@@ -2,14 +2,21 @@
 
 ### Props
 
-| Name      | Type      | Required | Default | Description                                                                                                                                                                                                      |
-| --------- | --------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tabs`    | `array`   | ✓        | —       | Tab definitions — same shape `pages[].config.quickFilters[]` uses. `filter` is consumed by the parent (CnIndexPage), not this component.                                                                         |
-| `inline`  | `boolean` |          | `false` | Render bare (no padding / bottom border / background) for embedding inline inside another bar — e.g. the `#filters` slot of `CnActionsBar`, so the tabs sit beside the view toggle instead of as a separate row. |
-| `v-model` | `number`  |          | `null`  | Index of the currently active tab, or `null` for none active.                                                                                                                                                    |
+| Name              | Type       | Required | Default    | Description                                                                                                                                                                                                      |
+| ----------------- | ---------- | -------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tabs`            | `array`    | ✓        | —          | Tab definitions — same shape `pages[].config.quickFilters[]` uses. `filter` is consumed by the parent (CnIndexPage), not this component.                                                                         |
+| `inline`          | `boolean`  |          | `false`    | Render bare (no padding / bottom border / background) for embedding inline inside another bar — e.g. the `#filters` slot of `CnActionsBar`, so the tabs sit beside the view toggle instead of as a separate row. |
+| `v-model`         | `number`   |          | `null`     | Index of the currently active tab, or `null` for none active. Single-select only.                                                                                                                                |
+| `mode`            | `string`   |          | `'chips'`  | Presentation: `'chips'` (pill button strip, default) or `'dropdown'` (a single `NcSelect`).                                                                                                                      |
+| `multiple`        | `boolean`  |          | `false`    | Allow more than one tab active at once. Selection is exposed via `selectedIndices` + `update:selected-indices`; the parent ORs the selected tabs' filters together.                                              |
+| `selectedIndices` | `number[]` |          | `[]`       | Active tab indices when `multiple` is set (the array v-model).                                                                                                                                                   |
+| `selectLabel`     | `string`   |          | `'Filter'` | Accessible label / placeholder for the dropdown control.                                                                                                                                                         |
+| `placeholder`     | `string`   |          | `''`       | Placeholder text for the dropdown (falls back to `selectLabel`).                                                                                                                                                 |
 
 ### Events
 
-| Name                  | Payload | Description |
-| --------------------- | ------- | ----------- |
-| `update:active-index` | —       |             |
+| Name                                                                  | Payload | Description |
+| --------------------------------------------------------------------- | ------- | ----------- |
+| `update:selected-indices Active tab indices changed (multiple mode).` | —       |             |
+| `update:selected-indices`                                             | —       |             |
+| `update:active-index`                                                 | —       |             |

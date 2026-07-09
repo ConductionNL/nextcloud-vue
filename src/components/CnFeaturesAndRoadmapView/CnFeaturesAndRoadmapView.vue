@@ -49,6 +49,7 @@
 			<CnSuggestFeatureModal
 				v-if="showSuggestModal"
 				:repo="repo"
+				:forge="forge"
 				:spec-ref="suggestModalSpecRef"
 				@submitted="onSubmitted"
 				@close="showSuggestModal = false" />
@@ -108,6 +109,7 @@ import CnSuggestFeatureModal from '../CnSuggestFeatureModal/CnSuggestFeatureModa
 import CnFeaturesAndRoadmapSidebar from '../CnFeaturesAndRoadmapSidebar/CnFeaturesAndRoadmapSidebar.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import { useSpecRef } from '../../composables/useSpecRef.js'
+import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 
 const DEFAULT_OPENBUILT_PATH = '/apps/openbuilt'
 const DEFAULT_LLM_SKILLS_URL = 'https://docs.conduction.nl/ai-skills'
@@ -153,11 +155,22 @@ export default {
 
 	props: {
 		/**
-		 * `<owner>/<repo>` of the app's GitHub repository.
+		 * `<owner>/<repo>` of the app's repository on the forge.
 		 */
 		repo: {
 			type: String,
 			required: true,
+		},
+		/**
+		 * Target forge for the feature-request deep-link, forwarded to
+		 * `CnSuggestFeatureModal` and used to derive the support dialog's
+		 * feature-request URL. Defaults to Codeberg; set `{type: 'github'}`
+		 * (optionally with `baseUrl`) to switch forge.
+		 * @type {{type: 'codeberg'|'forgejo'|'gitea'|'github', baseUrl?: string}}
+		 */
+		forge: {
+			type: Object,
+			default: () => ({ ...DEFAULT_FORGE }),
 		},
 		/**
 		 * Build-time feature manifest (alphabetical list rendered by CnFeaturesTab).
@@ -199,9 +212,9 @@ export default {
 		 * Optional override for the Suggest CTA inside the sidebar. When
 		 * set the CTA renders as an anchor pointing at this URL —
 		 * appropriate when the app routes feature suggestions through a
-		 * public form, a Discord channel, or any non-GitHub target. When
+		 * public form, a Discord channel, or any non-forge target. When
 		 * empty (default) the CTA stays a button that opens the
-		 * SuggestFeatureModal + posts to the GitHub-issues proxy.
+		 * SuggestFeatureModal's forge deep-link.
 		 * @type {string}
 		 */
 		suggestUrl: {
@@ -255,12 +268,12 @@ export default {
 		/**
 		 * URL the "Suggest a feature" CTA inside `CnSupportDialog` opens.
 		 * When empty (default) the View derives
-		 * `https://github.com/{repo}/issues/new`. This is intentionally
-		 * separate from the prop-of-the-same-name on the sidebar's
-		 * Suggest CTA — that one opens the modal-driven flow; this one
-		 * is the "open in GitHub" fallback used by the support dialog,
-		 * which is meant for the casual visitor rather than the existing
-		 * suggest-feature loop.
+		 * `<forge-base>/{repo}/issues/new` from the `forge` prop. This is
+		 * intentionally separate from the prop-of-the-same-name on the
+		 * sidebar's Suggest CTA — that one opens the modal-driven flow;
+		 * this one is the "open on the forge" fallback used by the support
+		 * dialog, which is meant for the casual visitor rather than the
+		 * existing suggest-feature loop.
 		 * @type {string}
 		 */
 		featureRequestUrl: {
@@ -358,9 +371,9 @@ export default {
 				: '')
 		},
 		resolvedFeatureRequestUrl() {
-			return this.featureRequestUrl || (this.repo
-				? `https://github.com/${this.repo}/issues/new`
-				: '')
+			if (this.featureRequestUrl) return this.featureRequestUrl
+			if (!this.repo) return ''
+			return `${resolveForge(this.forge).baseUrl}/${this.repo}/issues/new`
 		},
 		documentationUrlIsExternal() {
 			return /^https?:\/\//i.test(this.resolvedDocumentationUrl)
@@ -400,7 +413,7 @@ export default {
 			this.showSuggestModal = false
 			/**
 			 * Re-emitted when a feature suggestion was successfully filed from this view.
-			 * Carries the sanitized GitHub issue payload returned by the OpenRegister proxy
+			 * Carries the sanitized issue payload returned by the OpenRegister proxy
 			 * (`{number, title, html_url, ...}`). Host apps may use it to show a toast.
 			 *
 			 * @event submitted

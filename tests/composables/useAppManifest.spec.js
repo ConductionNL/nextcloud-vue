@@ -31,10 +31,13 @@ const validBundled = {
 	],
 }
 
-/** Wait one microtask for the IIFE inside useAppManifest to resolve. */
+/**
+ * Drain the async work inside useAppManifest before asserting. A macrotask
+ * tick drains the whole resolved-microtask chain — including the lazy
+ * validator import the composable awaits since the bundle-size split.
+ */
 async function flush() {
-	await nextTick()
-	await Promise.resolve()
+	await new Promise((resolve) => setTimeout(resolve, 0))
 	await nextTick()
 }
 
@@ -539,21 +542,24 @@ describe('useAppManifest', () => {
 			warnSpy.mockRestore()
 		})
 
-		it('runs validateManifest on `validate: true` with a valid manifest and emits no warning', () => {
-			// REQ-IMM-003 happy path.
+		it('runs validateManifest on `validate: true` with a valid manifest and emits no warning', async () => {
+			// REQ-IMM-003 happy path. Validation is informational and runs
+			// after the lazy validator import resolves — flush before
+			// asserting the (absent) warning.
 			const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
 			const { manifest, validationErrors, isLoading } = useAppManifest({
 				manifest: validBundled,
 				validate: true,
 			})
 			expect(manifest.value).toBe(validBundled)
-			expect(validationErrors.value).toBeNull()
 			expect(isLoading.value).toBe(false)
+			await flush()
+			expect(validationErrors.value).toBeNull()
 			expect(warnSpy).not.toHaveBeenCalled()
 			warnSpy.mockRestore()
 		})
 
-		it('populates validationErrors and warns on `validate: true` with an invalid manifest', () => {
+		it('populates validationErrors and warns on `validate: true` with an invalid manifest', async () => {
 			// REQ-IMM-003 failure path: validation is informational —
 			// manifest ref MUST still hold the input value, isLoading MUST
 			// still be false, console.warn MUST be emitted with the
@@ -571,9 +577,11 @@ describe('useAppManifest', () => {
 				manifest: invalidManifest,
 				validate: true,
 			})
-			// Validation populated but manifest is mounted unchanged.
+			// Validation populated but manifest is mounted unchanged. The
+			// lazy validator import resolves a tick later — flush first.
 			expect(manifest.value).toBe(invalidManifest)
 			expect(isLoading.value).toBe(false)
+			await flush()
 			expect(validationErrors.value).not.toBeNull()
 			expect(Array.isArray(validationErrors.value)).toBe(true)
 			expect(validationErrors.value.some((e) => e.includes('unique'))).toBe(true)

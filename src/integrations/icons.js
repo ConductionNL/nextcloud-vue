@@ -37,6 +37,7 @@ import Calendar from 'vue-material-design-icons/Calendar.vue'
 import ChartBar from 'vue-material-design-icons/ChartBar.vue'
 import ChatOutline from 'vue-material-design-icons/ChatOutline.vue'
 import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
+import ClipboardCheckOutline from 'vue-material-design-icons/ClipboardCheckOutline.vue'
 import ClipboardText from 'vue-material-design-icons/ClipboardText.vue'
 import Clock from 'vue-material-design-icons/Clock.vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
@@ -77,6 +78,7 @@ export const INTEGRATION_ICON_COMPONENTS = {
 	ChartBar,
 	ChatOutline,
 	CheckboxMarkedOutline,
+	ClipboardCheckOutline,
 	ClipboardText,
 	Clock,
 	CommentTextOutline,

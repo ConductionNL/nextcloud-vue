@@ -1,0 +1,112 @@
+{
+	"decidesk": {
+		"bytes": 58167,
+		"$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "7ded2459ffaf568e65f5d9ff752b4d86eb7e82f92a35004635fba84a0503a057"
+	},
+	"docudesk": {
+		"bytes": 11036,
+		"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "1b9876c4d06900ef16dd366a62cac38415c254c7689d2eb50682f382231f4d89"
+	},
+	"doriath": {
+		"bytes": 13363,
+		"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "04b7357cb596add3eddab9e7ec946ab1636c7fa604aa9dbdf4ce9e0a6e3753d8"
+	},
+	"hermiq": {
+		"bytes": 14679,
+		"$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "2712435275b71842be2cdebd8f0611608d987ca3790ffebf977ad45ea11a08f0"
+	},
+	"hrmq": {
+		"bytes": 9696,
+		"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "d318117a3ee296584fc25a13026e95ae6237d9662828882e23ec462105ca38df"
+	},
+	"larpingapp": {
+		"bytes": 46840,
+		"$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "8466f470ca5c8d9152f72d35685e4e2b4219f598db8862d98575cc3d6728cc8c"
+	},
+	"launchpad": {
+		"bytes": 3733,
+		"$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "5e3f82a2315b8fec7b91bb14755f308b356e0a8b578d2f6237baabe413042957"
+	},
+	"nextcloud-app-template": {
+		"bytes": 3394,
+		"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "ee6ebcf48b03aa67424a46fcce42bcb94f286426885059cabc92dd4287a6a321"
+	},
+	"nldesign": {
+		"bytes": 1924,
+		"$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "f69464fb08e99f2669f1498e26db36100b495309de25d8e95b1b2ce768ea27e0"
+	},
+	"openbuild": {
+		"bytes": 12474,
+		"$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "4c9584d0df8d16219189d0b6e4376d28cab20e9f4f9e1e60145a6a90942041d7"
+	},
+	"opencatalogi": {
+		"bytes": 31924,
+		"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "0dac96871895d0463db3d3538dd484ef53064fc277adc3dec18749b252eeafc5"
+	},
+	"openconnector": {
+		"bytes": 39998,
+		"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "8bfeecdde9aaad7d8e761d83515f72b7a545231bc80339372c23a5fd1866523e"
+	},
+	"openregister": {
+		"bytes": 18120,
+		"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "1d28d05af0a89c74fcfe29973bda4fb9d436064f56838652ab5a32c0cd5520ae"
+	},
+	"petstore": {
+		"bytes": 17295,
+		"$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "f5cfc90553aa4d94b58ab0c51c4692cadcafdb2be6a7ac513afa47fadf69bfb2"
+	},
+	"pipelinq": {
+		"bytes": 120878,
+		"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "02c202c377f6af43933c7fa898c347f51522089195d9336f293d7f125f3bead2"
+	},
+	"planix": {
+		"bytes": 2520,
+		"$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "a59d6035d5e1539d1437f36ca50e8e1088371f46e8c196486b04e38b525d9379"
+	},
+	"portaliq": {
+		"bytes": 4638,
+		"$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "72858956a574d976ee25811adfeef32a865615f7ccd845ab57953923157cfa8b"
+	},
+	"procest": {
+		"bytes": 88475,
+		"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "9fd1ce8371dbe24601b4092e75c030eada822462af2c32cbd88b601ee9775f76"
+	},
+	"scholiq": {
+		"bytes": 124620,
+		"$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "152195c51b901b53e6a695105d87c788807fd04fda21ed64e6e2a5c6b01fad02"
+	},
+	"shillinq": {
+		"bytes": 435055,
+		"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "4d931e64343f52f6bd2a583c326613d54233a1954608fea065a81eebe864eaae"
+	},
+	"softwarecatalog": {
+		"bytes": 25810,
+		"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "fe7e92e60b8572acd29ae8fd208171faa936010a9b6971ce1ed7ea8bb513f298"
+	},
+	"zaakafhandelapp": {
+		"bytes": 51266,
+		"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+		"sha256": "35df3b1cfb0523796b1c1d57869a9602eee50a468e709ee213af858d0a7c8bd6"
+	}
+}

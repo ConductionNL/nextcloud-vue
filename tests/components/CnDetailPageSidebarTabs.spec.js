@@ -162,4 +162,28 @@ describe('CnDetailPage — sidebarProps.tabs forwarding', () => {
 			expect(state.tabs).toBeUndefined()
 		})
 	})
+
+	// Regression: syncSidebarState must not put a fresh array/value on the
+	// reactive objectSidebarState when nothing changed. A new `hiddenTabs`
+	// ref every sync churns the channel → host App re-renders → its
+	// <router-view> re-renders the detail page → the page's inline `:sidebar`
+	// prop re-fires this sync → infinite render loop (froze the tab on the
+	// expense detail page).
+	describe('idempotent objectSidebarState writes', () => {
+		it('keeps the same hiddenTabs array ref across repeated syncs (no churn)', () => {
+			const state = makeState()
+			const wrapper = mountDetailPage({
+				title: 'Decision X',
+				sidebar: { enabled: true },
+				objectType: 'decision',
+				objectId: 'd-1',
+				sidebarProps: { register: 'r', schema: 's' }, // no hiddenTabs
+			}, state)
+			expect(state.active).toBe(true)
+			const ref1 = state.hiddenTabs
+			wrapper.vm.syncSidebarState()
+			wrapper.vm.syncSidebarState()
+			expect(state.hiddenTabs).toBe(ref1)
+		})
+	})
 })

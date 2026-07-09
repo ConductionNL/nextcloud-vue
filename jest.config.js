@@ -11,6 +11,8 @@ module.exports = {
 	moduleNameMapper: {
 		'^@/(.*)$': '<rootDir>/src/$1',
 		'\\.(css)$': 'jest-transform-stub',
+		'^@toast-ui/vue-editor$': '<rootDir>/tests/__mocks__/toast-ui-vue-editor.js',
+		'^@mdi/js$': '<rootDir>/tests/__mocks__/mdi-js.js',
 		'^vue-codemirror6$': '<rootDir>/tests/__mocks__/vue-codemirror6.js',
 		'^@codemirror/lang-json$': '<rootDir>/tests/__mocks__/codemirror-lang-json.js',
 		'^@codemirror/lang-xml$': '<rootDir>/tests/__mocks__/codemirror-lang-xml.js',
@@ -20,6 +22,11 @@ module.exports = {
 		'^@microsoft/fetch-event-source$': '<rootDir>/tests/__mocks__/fetch-event-source.js',
 		'^@nextcloud/notify_push$': '<rootDir>/tests/__mocks__/nextcloud-notify-push.js',
 		'^@vueuse/core$': '<rootDir>/tests/__mocks__/vueuse-core.js',
+		// Global vue-apexcharts stub — the real module's apexcharts renderer
+		// throws in jsdom, and specs that import CnChartWidget transitively
+		// without a local mock used to leak the real module into the worker
+		// (order-dependent full-suite failures). See the mock file's docblock.
+		'^vue-apexcharts$': '<rootDir>/tests/__mocks__/vue-apexcharts.js',
 		'^gridstack$': '<rootDir>/tests/__mocks__/gridstack.js',
 		'^gridstack/dist/gridstack\\.min\\.css$': 'jest-transform-stub',
 	},

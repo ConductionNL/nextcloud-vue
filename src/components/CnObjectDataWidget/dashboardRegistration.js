@@ -30,4 +30,8 @@ registerDashboardWidget('data', {
 	displayName: 'Object data',
 	icon: 'TableColumn',
 	surfaces: ['detail-page'],
+	// The sub-form (CnObjectDataWidgetForm) has its own Title field, so the
+	// Add-widget modal hides its generic "Custom title" chrome control to avoid
+	// two title inputs.
+	ownsTitle: true,
 })

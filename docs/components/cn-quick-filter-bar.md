@@ -64,6 +64,10 @@ Pill-shaped buttons. Active state uses `--color-primary-element` / `--color-prim
 
 Override via your app's CSS if needed — the component exposes `.cn-quick-filter-bar`, `.cn-quick-filter-bar__tab`, `.cn-quick-filter-bar__tab--active`, `.cn-quick-filter-bar__label`, `.cn-quick-filter-bar__icon` class names.
 
+## Dropdown & multi-select
+
+Set `mode="dropdown"` to render a single `NcSelect` instead of the chip strip (the empty-filter "All" tab is dropped — an empty selection means all). Set `multiple` to allow several filters active at once; the selection is exposed via the `selectedIndices` array prop + `update:selected-indices` event (the host ORs the selected tabs' filters into one fetch). `selectLabel` / `placeholder` label the dropdown. On a manifest `type:"index"` page, drive both from `config.quickFilterMode` and `config.quickFilterMultiple`.
+
 ## See also
 
 - [CnIndexPage](./cn-index-page.md) — the host that reads `config.quickFilters` and mounts this bar

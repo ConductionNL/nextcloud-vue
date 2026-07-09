@@ -52,11 +52,12 @@ In the deprecated list mode, relation and file sections only render when the sto
 | `register` | `String` | `''` | OpenRegister register slug. When omitted, derived from `object-data['@self'].register`. Required (with `schema`) for the tabbed self-fetch path |
 | `schema` | `String` | `''` | OpenRegister schema slug. When omitted, derived from `object-data['@self'].schema`. Required (with `register`) for the tabbed self-fetch path |
 | `layout` | `String` | `'tabs'` | Render mode: `'tabs'` (self-fetch, tab per non-empty group) or `'list'` (deprecated store-action list) |
-| `show-contracts` | `Boolean` | `false` | Include `/contracts` relations in the Objects group (opt-in) |
 | `store` | `Object` | `null` | Object store instance (legacy list path only). When omitted, the widget tries Pinia auto-detection. |
 | `show-objects` | `Boolean` | `true` | Show the related-objects (uses/used/contracts) section |
 | `show-files` | `Boolean` | `true` | Show the files section |
+| `show-contracts` | `Boolean` | `false` | Include `/contracts` relations in the Objects group (opt-in). |
 | `show-integrations` | `Boolean` | `true` | Show the leaf-integration entry-point section |
+| `include-groups` | `Array` | `[]` | Whitelist of relation-group keys to display (tabbed path). When non-empty, ONLY these render (e.g. `['objects', 'files', 'mails']`); empty shows every non-empty group. Lets a detail page carry several Related widgets scoped to different relations. Keys: `objects`, `files`, and the leaf groups (mails, events, contacts, notes, tasks, deck, talk, forms, maps, polls, …). Configurable in-app via the widget's cog. |
 | `exclude-integrations` | `Array` | `[]` | Integration ids to omit from "Linked apps" (on top of the always-omitted core tabs) |
 | `extra-sections` | `Array` | `[]` | Extra related sections the store can't resolve generically. Each: `{ key, label, icon?, items: [] }` |
 | `documentation-url` | `String` | `''` | Documentation link for the overflow Actions menu |
@@ -64,7 +65,7 @@ In the deprecated list mode, relation and file sections only render when the sto
 | `objects-label` | `String` | `'Objects'` | Section heading for related objects |
 | `files-label` | `String` | `'Files'` | Section heading for files |
 | `linked-apps-label` | `String` | `'Linked apps'` | Section heading for leaf-integration entry points (legacy list path) |
-| `open-in-sidebar-label` | `String` | `'Open in sidebar'` | **Deprecated, no-op.** The per-tab open-in-sidebar affordance was removed in favour of deep-linking; kept for backward compatibility |
+| `open-in-sidebar-label` | `String` | `'Open in sidebar'` | **Deprecated, no-op.** The per-tab open-in-sidebar affordance was removed in favour of deep-linking; kept for backward compatibility. No longer rendered in tabbed mode |
 | `empty-label` | `String` | `'Nothing related yet'` | Empty-state label shown when nothing is related |
 
 ## Events

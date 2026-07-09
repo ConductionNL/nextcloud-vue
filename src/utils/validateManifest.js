@@ -66,7 +66,7 @@ function ajvErrorToString(err) {
  * the rule when those widgets ship. New built-ins added to the
  * library MUST be appended to this list in the same PR.
  *
- * @type {ReadonlySet<string>}
+ * @type {Set<string>}
  */
 const LIBRARY_BUILT_IN_WIDGET_KEYS = new Set([
 	'object-table',
@@ -75,6 +75,13 @@ const LIBRARY_BUILT_IN_WIDGET_KEYS = new Set([
 	'map-viewer',
 	'chart',
 	'stats-block',
+	// Wave 1 (nextcloud-vue#91): banner + audit-trail built-ins, and the
+	// dashboard-catalog presentation widgets ported to the v2 grid.
+	'banner',
+	'audit-trail',
+	'header',
+	'text',
+	'divider',
 ])
 
 /**
@@ -95,6 +102,7 @@ const LIBRARY_BUILT_IN_WIDGET_KEYS = new Set([
  *    `pages[].slots.*`, `menu[].id`, `menu[].route`,
  *    `dependencies[]`, `version`
  *
+ * @spec openspec/changes/manifest-v2-schema/specs/manifest-v2-schema/spec.md
  * @param {object} manifest The v2 manifest object to validate.
  * @return {{ valid: boolean, errors: string[] }}
  */
@@ -125,6 +133,33 @@ export function validateManifestV2(manifest) {
 				}
 			}
 		})
+	}
+
+	// 1b. Entity-scaffold templating (manifest-entity-scaffold-templating):
+	//     pageTemplates[].id uniqueness + pageInstances[].templateRef resolves.
+	//     Cheap early feedback so a dangling ref is caught at validation time,
+	//     not only when the expander runs. No-op for a manifest without
+	//     templating (the fleet corpus), so it can't break the regression.
+	if (Array.isArray(clone.pageTemplates) || Array.isArray(clone.pageInstances)) {
+		const templateIds = new Set()
+		if (Array.isArray(clone.pageTemplates)) {
+			clone.pageTemplates.forEach((tpl, index) => {
+				if (!tpl || typeof tpl.id !== 'string') return
+				if (templateIds.has(tpl.id)) {
+					errors.push(`pageTemplates[${index}]/id: "${tpl.id}" must be unique within pageTemplates[]`)
+				} else {
+					templateIds.add(tpl.id)
+				}
+			})
+		}
+		if (Array.isArray(clone.pageInstances)) {
+			clone.pageInstances.forEach((inst, index) => {
+				if (!inst || typeof inst.templateRef !== 'string') return
+				if (!templateIds.has(inst.templateRef)) {
+					errors.push(`pageInstances[${index}]/templateRef: "${inst.templateRef}" references no pageTemplates[] entry`)
+				}
+			})
+		}
 	}
 
 	// 2. gridX + gridWidth <= 12 for widget entries (sidebar already
@@ -187,61 +222,168 @@ export function validateManifestV2(manifest) {
 	}
 
 	// 3a. Optional widget-id uniqueness within a page. The id is the delta
-		//     merge key, so duplicates would make a patch ambiguous.
-		if (Array.isArray(clone.pages)) {
-			clone.pages.forEach((page, pIndex) => {
-				if (!page || !Array.isArray(page.widgets)) return
-				const seen = new Set()
-				page.widgets.forEach((widget, wIndex) => {
-					if (!widget || typeof widget.id !== 'string') return
-					if (seen.has(widget.id)) {
-						errors.push(`pages[${pIndex}]/widgets[${wIndex}]/id: "${widget.id}" must be unique within the page's widgets[]`)
-					} else {
-						seen.add(widget.id)
-					}
-				})
+	//     merge key, so duplicates would make a patch ambiguous.
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			if (!page || !Array.isArray(page.widgets)) return
+			const seen = new Set()
+			page.widgets.forEach((widget, wIndex) => {
+				if (!widget || typeof widget.id !== 'string') return
+				if (seen.has(widget.id)) {
+					errors.push(`pages[${pIndex}]/widgets[${wIndex}]/id: "${widget.id}" must be unique within the page's widgets[]`)
+				} else {
+					seen.add(widget.id)
+				}
 			})
-		}
+		})
+	}
 
-		// 3b. Delta-only artefacts must not appear in a full (non-delta) manifest.
-		//     $op / __order are markers consumed by mergeManifestDelta; their
-		//     presence means a delta was loaded as a manifest. (props subtrees
-		//     are free-form user data and are not scanned.)
-		;(function walkReserved(node, path) {
-			if (Array.isArray(node)) {
-				node.forEach((v, i) => walkReserved(v, `${path}[${i}]`))
+	// 3b. Delta-only artefacts must not appear in a full (non-delta) manifest.
+	//     $op / __order are markers consumed by mergeManifestDelta; their
+	//     presence means a delta was loaded as a manifest. (props subtrees
+	//     are free-form user data and are not scanned.)
+	;(function walkReserved(node, path) {
+		if (Array.isArray(node)) {
+			node.forEach((v, i) => walkReserved(v, `${path}[${i}]`))
+			return
+		}
+		if (!isPlainObject(node)) return
+		for (const k of Object.keys(node)) {
+			if (k === '$op' || k === '__order') {
+				errors.push(`${path || ''}/${k}: reserved delta marker "${k}" is not allowed in a manifest (only inside a delta payload consumed by mergeManifestDelta)`)
+			}
+			if (k === 'props') continue
+			walkReserved(node[k], `${path}/${k}`)
+		}
+	})(clone, '')
+
+	// 3c. Optional per-page config.slotColumns override shape (slot →
+	//     positive integer). A wrong shape silently falls back to defaults
+	//     at render time, so flag it here.
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			const sc = isPlainObject(page && page.config) ? page.config.slotColumns : undefined
+			if (sc === undefined) return
+			if (!isPlainObject(sc)) {
+				errors.push(`pages[${pIndex}]/config/slotColumns: must be an object mapping slot name to a positive integer`)
 				return
 			}
-			if (!isPlainObject(node)) return
-			for (const k of Object.keys(node)) {
-				if (k === '$op' || k === '__order') {
-					errors.push(`${path || ''}/${k}: reserved delta marker "${k}" is not allowed in a manifest (only inside a delta payload consumed by mergeManifestDelta)`)
+			for (const [slotName, value] of Object.entries(sc)) {
+				if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
+					errors.push(`pages[${pIndex}]/config/slotColumns/${slotName}: must be a positive integer`)
 				}
-				if (k === 'props') continue
-				walkReserved(node[k], `${path}/${k}`)
 			}
-		})(clone, '')
+		})
+	}
 
-		// 3c. Optional per-page config.slotColumns override shape (slot →
-		//     positive integer). A wrong shape silently falls back to defaults
-		//     at render time, so flag it here.
-		if (Array.isArray(clone.pages)) {
-			clone.pages.forEach((page, pIndex) => {
-				const sc = isPlainObject(page && page.config) ? page.config.slotColumns : undefined
-				if (sc === undefined) return
-				if (!isPlainObject(sc)) {
-					errors.push(`pages[${pIndex}]/config/slotColumns: must be an object mapping slot name to a positive integer`)
-					return
-				}
-				for (const [slotName, value] of Object.entries(sc)) {
-					if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
-						errors.push(`pages[${pIndex}]/config/slotColumns/${slotName}: must be a positive integer`)
-					}
+	// 3d. stats-block dataSource | entries mutual exclusion. A multi-entry
+	//     stats-block (`props.entries[]`) declares one source PER entry, so a
+	//     widget-level `dataSource` (entry-level or `props.dataSource`) at the
+	//     same time is ambiguous — exactly one of the two forms is allowed.
+	//     Cross-field rule → post-schema check (clear message), matching the
+	//     gridX+gridWidth precedent. A stats-block with NEITHER is left to the
+	//     component (CnStatsBlockWidget flags it at mount time) because the
+	//     in-app widget editor legitimately creates not-yet-configured widgets.
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			if (!page || !Array.isArray(page.widgets)) return
+			page.widgets.forEach((widget, wIndex) => {
+				if (!widget || widget.widgetKey !== 'stats-block') return
+				const props = isPlainObject(widget.props) ? widget.props : {}
+				const hasEntries = Array.isArray(props.entries) && props.entries.length > 0
+				const hasDataSource = (widget.dataSource !== undefined && widget.dataSource !== null)
+					|| (props.dataSource !== undefined && props.dataSource !== null)
+				if (hasEntries && hasDataSource) {
+					errors.push(
+						`pages[${pIndex}]/widgets[${wIndex}]: stats-block widget declares BOTH a dataSource and props.entries[] — exactly one of the two source forms is allowed (single-KPI dataSource OR multi-entry entries[])`,
+					)
 				}
 			})
-		}
+		})
+	}
 
-		// 4. @resolve: sentinel rejection on registry-key paths
+	// 3e. endpointSource mutual exclusion (Wave 2, nextcloud-vue#91). Every
+	//     endpoint-capable widget binds to exactly ONE data source: the stat /
+	//     delta KPI tiles to `content.source` OR `content.endpointSource`, the
+	//     chart to `dataSource` OR `props.endpointSource`, the object-table to
+	//     `props.source` OR `props.endpointSource`. Cross-field rule →
+	//     post-schema check (clear message), matching the stats-block 3d
+	//     precedent. An OpenRegister source only counts when it is MEANINGFULLY
+	//     configured (register+schema, an endpoint kind, or a url) — the
+	//     in-app widget editor seeds stat/delta content with an EMPTY
+	//     `source: { register: '', schema: '', … }` blob, which must not trip
+	//     the rule when an endpointSource is added. Covers BOTH placements:
+	//     the v2 pages[].widgets[] grid (content under props.content) and the
+	//     legacy pages[].config.widgets[] dashboard catalog (content under
+	//     widget.content, chart inputs under widget.props).
+	const _hasConfiguredOrSource = (source) => isPlainObject(source) && (
+		(typeof source.register === 'string' && source.register !== ''
+			&& typeof source.schema === 'string' && source.schema !== '')
+		|| source.kind === 'endpoint'
+		|| typeof source.url === 'string'
+	)
+	const _hasEndpointSource = (es) => isPlainObject(es)
+	const _checkKpiContent = (content, path) => {
+		if (!isPlainObject(content)) return
+		if (_hasConfiguredOrSource(content.source) && _hasEndpointSource(content.endpointSource)) {
+			errors.push(
+				`${path}: widget content declares BOTH a source and an endpointSource — exactly one of the two data bindings is allowed (OpenRegister source OR endpointSource)`,
+			)
+		}
+	}
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			if (!page) return
+			// v2 grid placement: pages[].widgets[]
+			if (Array.isArray(page.widgets)) {
+				page.widgets.forEach((widget, wIndex) => {
+					if (!widget) return
+					const props = isPlainObject(widget.props) ? widget.props : {}
+					if (widget.widgetKey === 'stat' || widget.widgetKey === 'delta') {
+						_checkKpiContent(props.content, `pages[${pIndex}]/widgets[${wIndex}]`)
+					}
+					if (widget.widgetKey === 'chart') {
+						const hasDataSource = (widget.dataSource !== undefined && widget.dataSource !== null)
+							|| (props.dataSource !== undefined && props.dataSource !== null)
+						if (hasDataSource && _hasEndpointSource(props.endpointSource)) {
+							errors.push(
+								`pages[${pIndex}]/widgets[${wIndex}]: chart widget declares BOTH a dataSource and props.endpointSource — exactly one of the two data bindings is allowed`,
+							)
+						}
+					}
+					if (widget.widgetKey === 'object-table') {
+						if (_hasConfiguredOrSource(props.source) && _hasEndpointSource(props.endpointSource)) {
+							errors.push(
+								`pages[${pIndex}]/widgets[${wIndex}]: object-table widget declares BOTH a props.source and a props.endpointSource — exactly one of the two data bindings is allowed`,
+							)
+						}
+					}
+				})
+			}
+			// Legacy dashboard catalog placement: pages[].config.widgets[]
+			const legacy = page.config && Array.isArray(page.config.widgets) ? page.config.widgets : null
+			if (legacy) {
+				legacy.forEach((def, wIndex) => {
+					if (!def) return
+					if (def.type === 'stat' || def.type === 'delta') {
+						_checkKpiContent(def.content, `pages[${pIndex}]/config/widgets[${wIndex}]`)
+					}
+					if (def.type === 'chart') {
+						const props = isPlainObject(def.props) ? def.props : {}
+						const hasDataSource = (def.dataSource !== undefined && def.dataSource !== null)
+							|| (props.dataSource !== undefined && props.dataSource !== null)
+						if (hasDataSource && _hasEndpointSource(props.endpointSource)) {
+							errors.push(
+								`pages[${pIndex}]/config/widgets[${wIndex}]: chart widget declares BOTH a dataSource and props.endpointSource — exactly one of the two data bindings is allowed`,
+							)
+						}
+					}
+				})
+			}
+		})
+	}
+
+	// 4. @resolve: sentinel rejection on registry-key paths
 	const _v2Sentinel = /^@resolve:[a-z][a-z0-9_-]*$/
 	if (typeof clone.version === 'string' && _v2Sentinel.test(clone.version)) {
 		errors.push('/version must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)')

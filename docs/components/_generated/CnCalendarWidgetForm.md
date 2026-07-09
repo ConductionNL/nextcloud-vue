@@ -2,10 +2,11 @@
 
 ### Props
 
-| Name            | Type     | Required | Default                        | Description                                                  |
-| --------------- | -------- | -------- | ------------------------------ | ------------------------------------------------------------ |
-| `editingWidget` | `object` |          | `null`                         | The placement being edited, or `null` in create mode.        |
-| `value`         | `object` |          | `\{     ...DEFAULT_CONTENT \}` | Initial content values when not editing (registry defaults). |
+| Name               | Type     | Required | Default                        | Description                                                                                                                                                                                                                                                     |
+| ------------------ | -------- | -------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `editingWidget`    | `object` |          | `null`                         | The placement being edited, or `null` in create mode.                                                                                                                                                                                                           |
+| `value`            | `object` |          | `\{     ...DEFAULT_CONTENT \}` | Initial content values when not editing (registry defaults).                                                                                                                                                                                                    |
+| `calendarsFetcher` | `union`  |          | `null`                         | Optional async fetcher returning the user's calendars (`[{key, name, color}]`). When provided, the internal-calendar free-text box is replaced by a multiselect picker. Supplied by the consuming app (which owns the calendar backend) via `CnAddWidgetModal`. |
 
 ### Events
 

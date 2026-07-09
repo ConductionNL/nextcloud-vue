@@ -50,7 +50,7 @@
 			<component
 				:is="resolvedComponent"
 				v-else-if="resolvedComponent"
-				:key="currentPage.id"
+				:key="pageRenderKey"
 				v-bind="{ ...$attrs, ...resolvedProps }"
 				v-on="$listeners"
 				@view="onRowOpen"
@@ -97,7 +97,7 @@
 		<component
 			:is="resolvedComponent"
 			v-else-if="resolvedComponent"
-			:key="currentPage.id"
+			:key="pageRenderKey"
 			v-bind="{ ...$attrs, ...resolvedProps }"
 			v-on="$listeners"
 			@view="onRowOpen"
@@ -117,13 +117,28 @@
 		<CnPageConfigModal v-if="showConfigModal && currentPage"
 			:page="currentPage"
 			@close="showConfigModal = false" />
+
+		<!-- Shared export launcher, opened by a `type:"export"` manifest
+		     action (Wave 1, nextcloud-vue#91). Configured from the action's
+		     entities[] / formats[] / description; the confirm payload routes
+		     to the action's optional `handler` (manifest actions map). -->
+		<CnMassExportDialog
+			v-if="exportAction"
+			ref="exportDialog"
+			:entities="exportDialogEntities"
+			:formats="exportDialogFormats"
+			:description="exportAction.description || ''"
+			@confirm="onExportConfirm"
+			@close="exportAction = null" />
 	</div>
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { defaultPageTypes } from './pageTypes.js'
 import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
 import CnPageConfigModal from '../../modals/CnPageConfigModal.vue'
+import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { useObjectStore } from '../../store/index.js'
@@ -169,6 +184,7 @@ export default {
 	components: {
 		CnWidgetGrid,
 		CnPageConfigModal,
+		CnMassExportDialog,
 	},
 
 	inject: {
@@ -221,16 +237,26 @@ export default {
 			 * Bound dispatchAction for the v2 render path. Child widget
 			 * components inject `cnDispatchAction` to dispatch manifest
 			 * actions. Context is pre-bound with this component's
-			 * $router and the injected cnRegistry.
+			 * $router and the injected cnRegistry; a caller may merge
+			 * extra context (e.g. CnWidgetObjectTable passes
+			 * `{ objectStore, source, row }` for `object-op` actions).
+			 * The dispatch result is returned so async `object-op`
+			 * dispatches can be awaited.
 			 *
 			 * @param {object} action The action to dispatch.
+			 * @param {object} [extraContext] Extra context merged over the pre-bound one.
+			 * @return {*} The dispatchAction return value (a promise for object-op).
 			 */
-			cnDispatchAction: (action) => {
-				dispatchAction(action, {
+			cnDispatchAction: (action, extraContext = {}) => {
+				return dispatchAction(action, {
 					router: this.$router ?? null,
 					registry: this.cnRegistry,
 					handlers: this.effectiveManifest?.actions ?? {},
 					openModal: this._cnOpenModal,
+					// `type:"export"` opens the shared CnMassExportDialog this
+					// component mounts (Wave 1, nextcloud-vue#91).
+					openExport: (exportAction) => { this.exportAction = exportAction },
+					...extraContext,
 				})
 			},
 		}
@@ -327,6 +353,10 @@ export default {
 			// `file-manager` widgets receive the object with no per-widget
 			// manifest props.
 			detailObjectContext: { value: null },
+			// The `type:"export"` action currently shown in the shared
+			// CnMassExportDialog export launcher (null = dialog closed). Set
+			// by the `openExport` bound into the cnDispatchAction context.
+			exportAction: null,
 		}
 	},
 
@@ -349,6 +379,34 @@ export default {
 		 */
 		pageSidebarVisibleValue() {
 			return this.pageSidebarVisible.value !== false
+		},
+		/**
+		 * Entity options for the export launcher, from the active export
+		 * action's `entities[]` (empty hides the picker).
+		 *
+		 * @return {Array<{id: string, label: string}>}
+		 */
+		exportDialogEntities() {
+			const entities = this.exportAction && this.exportAction.entities
+			if (!Array.isArray(entities)) return []
+			return entities
+				.map((e) => (typeof e === 'string' ? { id: e, label: e } : e))
+				.filter((e) => e && e.id)
+		},
+		/**
+		 * Format options for the export launcher, from the active export
+		 * action's `formats[]` (bare ids are lifted to `{id, label}`).
+		 * `undefined` when the action declares none, so the dialog's
+		 * built-in Excel/CSV defaults apply.
+		 *
+		 * @return {Array<{id: string, label: string}>|undefined}
+		 */
+		exportDialogFormats() {
+			const formats = this.exportAction && this.exportAction.formats
+			if (!Array.isArray(formats) || formats.length === 0) return undefined
+			return formats
+				.map((f) => (typeof f === 'string' ? { id: f, label: f.toUpperCase() } : f))
+				.filter((f) => f && f.id)
 		},
 		/** Effective manifest: explicit prop wins over injected value. */
 		effectiveManifest() {
@@ -444,15 +502,63 @@ export default {
 		},
 		/** Page definition matching the current route name, or null. */
 		currentPage() {
-			const manifest = this.effectiveManifest
-			if (!manifest || !Array.isArray(manifest.pages)) {
-				return null
-			}
 			const routeName = this.$route?.name
 			if (!routeName) {
 				return null
 			}
-			return manifest.pages.find((page) => page.id === routeName) ?? null
+			return this.pageById.get(routeName) ?? null
+		},
+		/**
+		 * `Map<pageId, page>` built once per manifest identity (Vue caches this
+		 * computed until `effectiveManifest` changes), replacing per-recompute
+		 * linear `pages.find()` — O(n) per navigation on large manifests
+		 * (shillinq ships 223 pages). 2026-07-06 audit item 10.
+		 */
+		pageById() {
+			const pages = this.effectiveManifest?.pages
+			const index = new Map()
+			if (Array.isArray(pages)) {
+				for (const page of pages) {
+					if (page && typeof page.id === 'string' && !index.has(page.id)) {
+						index.set(page.id, page)
+					}
+				}
+			}
+			return index
+		},
+		/**
+		 * `Map<"register schema", detailPage>` — the first detail page bound to
+		 * each register+schema pair. Backs the index→detail row-click wiring
+		 * without re-scanning all pages per index page and per row click.
+		 * Memoized on `effectiveManifest`.
+		 */
+		detailPageByRegisterSchema() {
+			const pages = this.effectiveManifest?.pages
+			const index = new Map()
+			if (Array.isArray(pages)) {
+				for (const page of pages) {
+					if (!page || page.type !== 'detail') continue
+					const cfg = page.config || {}
+					const key = `${cfg.register} ${cfg.schema}`
+					if (!index.has(key)) index.set(key, page)
+				}
+			}
+			return index
+		},
+		/**
+		 * Remount key for the dispatched page component. Includes the data source
+		 * (register + schema) so changing it in the page-config modal remounts the
+		 * page: the self-fetch composable binds its object type + schema once at
+		 * setup, so without a remount a data-source change would leave the old
+		 * columns, create/edit form, and "Add" label in place.
+		 *
+		 * @return {string} A key of `id:register:schema`.
+		 */
+		pageRenderKey() {
+			const page = this.currentPage
+			if (!page) return 'none'
+			const cfg = (page.config && typeof page.config === 'object' && !Array.isArray(page.config)) ? page.config : {}
+			return [page.id, cfg.register || '', cfg.schema || ''].join(':')
 		},
 		/**
 		 * Component to render for the current page. Looked up in
@@ -562,11 +668,7 @@ export default {
 			// page is selectable. Selection stays available via the checkbox.
 			// An explicit `config.rowClickToView` still wins (merged below).
 			if (isIndex) {
-				const allPages = this.effectiveManifest?.pages
-				const hasDetail = Array.isArray(allPages) && allPages.some((p) => p
-					&& p.type === 'detail'
-					&& (p.config || {}).register === config.register
-					&& (p.config || {}).schema === config.schema)
+				const hasDetail = this.detailPageByRegisterSchema.has(`${config.register} ${config.schema}`)
 				if (hasDetail) topLevel.rowClickToView = true
 			}
 			let normalizedConfig = config
@@ -849,6 +951,39 @@ export default {
 
 	methods: {
 		/**
+		 * Route the export launcher's confirm payload (`{ format, entity? }`)
+		 * to the export action's `handler` (resolved against the manifest
+		 * actions map — the same registry `type:"handler"` actions use). The
+		 * handler does the actual download (e.g. an app's ExportService) and
+		 * its resolved/rejected promise drives the dialog's result phase. A
+		 * missing handler surfaces as a dialog error (never a silent success).
+		 *
+		 * @param {{format: string, entity?: string}} payload The dialog's confirm payload.
+		 * @return {Promise<void>}
+		 */
+		async onExportConfirm(payload) {
+			const action = this.exportAction
+			const dialog = this.$refs.exportDialog
+			const setResult = (result) => {
+				if (dialog && typeof dialog.setResult === 'function') dialog.setResult(result)
+			}
+			const handlers = this.effectiveManifest?.actions ?? {}
+			const fn = action && action.handler && handlers[action.handler]
+			if (typeof fn !== 'function') {
+				// eslint-disable-next-line no-console
+				console.warn(`[CnPageRenderer] export action "${action && action.id}" has no resolvable handler "${action && action.handler}" in the manifest actions map.`)
+				setResult({ error: t('nextcloud-vue', 'No export handler is configured') })
+				return
+			}
+			try {
+				await fn(payload, action)
+				setResult({ success: true })
+			} catch (e) {
+				setResult({ error: (e && e.message) || t('nextcloud-vue', 'Export failed') })
+			}
+		},
+
+		/**
 		 * Open a row's detail page. Bound to an index page's `@view` (the
 		 * built-in eye action) and `@row-click`, this is what makes "View"
 		 * navigate for manifest-driven index pages — `CnIndexPage` only emits
@@ -868,12 +1003,7 @@ export default {
 				return
 			}
 			const cfg = page.config || {}
-			const pages = this.effectiveManifest?.pages
-			if (!Array.isArray(pages)) return
-			const detail = pages.find((p) => p
-				&& p.type === 'detail'
-				&& (p.config || {}).register === cfg.register
-				&& (p.config || {}).schema === cfg.schema)
+			const detail = this.detailPageByRegisterSchema.get(`${cfg.register} ${cfg.schema}`)
 			if (!detail) return
 			const self = row['@self'] || {}
 			const id = row.id ?? self.id ?? self.uuid ?? row.uuid

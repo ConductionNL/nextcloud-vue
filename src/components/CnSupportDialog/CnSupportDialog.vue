@@ -72,49 +72,19 @@
 				</span>
 			</div>
 
-			<div class="cn-support-dialog__actions">
+			<div v-if="actionButtons.length" class="cn-support-dialog__actions">
 				<NcButton
-					variant="tertiary"
+					v-for="button in actionButtons"
+					:key="button.id"
+					:variant="button.variant"
 					wide
-					data-testid="cn-support-dialog-donate"
-					@click="openAction('donate', donateUrl)">
+					:data-testid="`cn-support-dialog-${button.id}`"
+					@click="openAction(button.id, button.url)">
 					<template #icon>
-						<HeartOutline :size="20" />
+						<CnIcon v-if="button.iconName" :name="button.iconName" :size="20" />
+						<component :is="button.iconComponent" v-else :size="20" />
 					</template>
-					{{ donateLabel }}
-				</NcButton>
-
-				<NcButton
-					variant="tertiary"
-					wide
-					data-testid="cn-support-dialog-support"
-					@click="openAction('support', supportUrl)">
-					<template #icon>
-						<BriefcaseOutline :size="20" />
-					</template>
-					{{ supportLabel }}
-				</NcButton>
-
-				<NcButton
-					variant="primary"
-					wide
-					data-testid="cn-support-dialog-feature-request"
-					@click="openAction('feature-request', featureRequestUrl)">
-					<template #icon>
-						<HandHeart :size="20" />
-					</template>
-					{{ featureRequestLabel }}
-				</NcButton>
-
-				<NcButton
-					variant="secondary"
-					wide
-					data-testid="cn-support-dialog-app-store"
-					@click="openAction('app-store', appStoreUrl)">
-					<template #icon>
-						<Star :size="20" />
-					</template>
-					{{ appStoreLabel }}
+					{{ button.label }}
 				</NcButton>
 			</div>
 		</div>
@@ -157,9 +127,18 @@ import HandHeart from 'vue-material-design-icons/HandHeart.vue'
 import HeartOutline from 'vue-material-design-icons/HeartOutline.vue'
 import Star from 'vue-material-design-icons/Star.vue'
 import BriefcaseOutline from 'vue-material-design-icons/BriefcaseOutline.vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 
 import { ensureCaveatFontFace } from './assets/caveatFontFace.js'
 import { DEFAULT_FOUNDER_AVATAR } from './assets/founderAvatar.js'
+
+/**
+ * The built-in CTA icons, keyed by their PascalCase MDI name. A configured
+ * `icon` that matches one of these renders the bundled component directly (no
+ * dependency on the host's CnIcon registry); any other name falls through to
+ * CnIcon, which the host must have registered.
+ */
+const BUILTIN_ICONS = { HandHeart, HeartOutline, Star, BriefcaseOutline }
 
 export default {
 	name: 'CnSupportDialog',
@@ -167,6 +146,7 @@ export default {
 	components: {
 		NcDialog,
 		NcButton,
+		CnIcon,
 		HandHeart,
 		HeartOutline,
 		Star,
@@ -201,7 +181,7 @@ export default {
 		},
 		/**
 		 * URL the "Suggest a feature" CTA opens (typically the host app's
-		 * GitHub issues "new feature" template). Required.
+		 * forge "new issue" form, e.g. on Codeberg). Required.
 		 */
 		featureRequestUrl: {
 			type: String,
@@ -290,6 +270,30 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+		/**
+		 * Optional dialog-title override. When empty the title is the default
+		 * "Support {appName}". Set it to title the note however you like.
+		 *
+		 * @type {string}
+		 */
+		title: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Per-button overrides, keyed by button id (`donate`, `support`,
+		 * `feature-request`, `app-store`). Each value may set `enabled`
+		 * (false hides the button), `label`, `url`, `variant`
+		 * (`primary`/`secondary`/`tertiary`) and `icon` (a PascalCase MDI
+		 * name). Unset fields fall back to the built-in defaults, so callers
+		 * override only what they want and can drop buttons entirely.
+		 *
+		 * @type {{[id: string]: {enabled?: boolean, label?: string, url?: string, variant?: string, icon?: string}}}
+		 */
+		buttons: {
+			type: Object,
+			default: () => ({}),
+		},
 	},
 
 	emits: ['close', 'action'],
@@ -299,7 +303,51 @@ export default {
 			return Array.isArray(this.bodyParagraphs) && this.bodyParagraphs.length > 0
 		},
 		dialogTitle() {
-			return t('nextcloud-vue', 'Support {appName}', { appName: this.appName })
+			return this.title || t('nextcloud-vue', 'Support {appName}', { appName: this.appName })
+		},
+		/**
+		 * The built-in buttons in display order, each carrying its default
+		 * label, icon component, variant and URL. The `buttons` prop overrides
+		 * any of these per id.
+		 *
+		 * @return {Array<object>} the default button definitions.
+		 */
+		defaultButtons() {
+			return [
+				{ id: 'donate', label: this.donateLabel, iconComponent: HeartOutline, variant: 'tertiary', url: this.donateUrl },
+				{ id: 'support', label: this.supportLabel, iconComponent: BriefcaseOutline, variant: 'tertiary', url: this.supportUrl },
+				{ id: 'feature-request', label: this.featureRequestLabel, iconComponent: HandHeart, variant: 'primary', url: this.featureRequestUrl },
+				{ id: 'app-store', label: this.appStoreLabel, iconComponent: Star, variant: 'secondary', url: this.appStoreUrl },
+			]
+		},
+		/**
+		 * The buttons actually rendered: defaults merged with the `buttons`
+		 * prop overrides, with disabled buttons (`enabled: false`) removed. A
+		 * custom `icon` name is rendered via CnIcon; otherwise the default
+		 * icon component is used.
+		 *
+		 * @return {Array<object>} the resolved, visible buttons.
+		 */
+		actionButtons() {
+			const overrides = this.buttons || {}
+			return this.defaultButtons
+				.map((b) => {
+					const o = overrides[b.id] || {}
+					// A configured icon that names a built-in renders the bundled
+					// component; an unknown name routes through CnIcon (iconName);
+					// no override keeps the default component.
+					const builtin = o.icon && BUILTIN_ICONS[o.icon]
+					return {
+						id: b.id,
+						label: o.label || b.label,
+						url: o.url || b.url,
+						variant: o.variant || b.variant,
+						iconName: (o.icon && !builtin) ? o.icon : '',
+						iconComponent: builtin || b.iconComponent,
+						enabled: o.enabled !== false,
+					}
+				})
+				.filter((b) => b.enabled)
 		},
 		greetingHi() { return t('nextcloud-vue', 'Hi,') },
 		introLead() {

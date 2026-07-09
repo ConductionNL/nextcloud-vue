@@ -8,7 +8,11 @@
  */
 
 import { mount } from '@vue/test-utils'
+import CnRelatedObjectsWidget from '../../src/components/CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
+import { integrations } from '../../src/integrations/registry.js'
 
+// jest.mock calls are hoisted above imports by babel-jest regardless of source
+// position, so the mocks still apply to the component import above.
 jest.mock('@nextcloud/event-bus', () => ({
 	emit: jest.fn(),
 	subscribe: jest.fn(),
@@ -18,9 +22,6 @@ jest.mock('@nextcloud/event-bus', () => ({
 jest.mock('@nextcloud/router', () => ({
 	generateUrl: (tpl, params = {}) => tpl.replace(/\{(\w+)\}/g, (_, k) => params[k]),
 }))
-
-import CnRelatedObjectsWidget from '../../src/components/CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
-import { integrations } from '../../src/integrations/registry.js'
 
 const Stub = { render: (h) => h('div') }
 
@@ -58,6 +59,21 @@ describe('CnRelatedObjectsWidget', () => {
 	beforeEach(() => {
 		integrations.__resetForTests()
 		jest.clearAllMocks()
+	})
+
+	it('does not force the Refresh action on — it follows the wrapper auto-detect default', () => {
+		const WrapperProbe = {
+			name: 'CnWidgetWrapper',
+			props: { showRefresh: { default: null } },
+			template: '<div><slot /></div>',
+		}
+		const wrapper = mount(CnRelatedObjectsWidget, {
+			propsData: { objectType: 'lead', objectId: 'L1', store: makeStore() },
+			stubs: { ...stubs, CnWidgetWrapper: WrapperProbe },
+		})
+		// No explicit show-refresh passed → stays null (auto). With no @refresh
+		// listener on a detail page, the wrapper auto-hides Refresh.
+		expect(wrapper.findComponent(WrapperProbe).props('showRefresh')).toBe(null)
 	})
 
 	it('renders related-object rows from uses/used/contracts (deduped)', async () => {
@@ -259,5 +275,26 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 		expect(wrapper.text()).toContain('Alpha')
 		expect(warn).toHaveBeenCalledWith(expect.stringContaining('deprecated'))
 		warn.mockRestore()
+	})
+
+	it('includeGroups whitelists which relation groups are visible', () => {
+		const wrapper = mountWidget({ includeGroups: ['objects', 'mails'] })
+		wrapper.setData({ groups: [
+			{ key: 'objects', items: [{ id: 1 }], total: 1 },
+			{ key: 'files', items: [{ id: 2 }], total: 1 },
+			{ key: 'mails', items: [{ id: 3 }], total: 1 },
+			{ key: 'events', items: [], total: 0 },
+		] })
+		expect(wrapper.vm.visibleGroups.map((g) => g.key)).toEqual(['objects', 'mails'])
+	})
+
+	it('shows every non-empty group when includeGroups is empty', () => {
+		const wrapper = mountWidget({ includeGroups: [] })
+		wrapper.setData({ groups: [
+			{ key: 'objects', items: [{ id: 1 }], total: 1 },
+			{ key: 'files', items: [], total: 0 },
+			{ key: 'mails', items: [{ id: 3 }], total: 1 },
+		] })
+		expect(wrapper.vm.visibleGroups.map((g) => g.key)).toEqual(['objects', 'mails'])
 	})
 })

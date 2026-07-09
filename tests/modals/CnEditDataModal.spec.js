@@ -8,20 +8,21 @@
  */
 import { mount } from '@vue/test-utils'
 
+import axios from '@nextcloud/axios'
+import CnEditDataModal from '../../src/modals/CnEditDataModal.vue'
+
 jest.mock('@nextcloud/router', () => ({ generateUrl: (p) => p }))
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
 	default: { get: jest.fn(), post: jest.fn(), put: jest.fn(), patch: jest.fn(), delete: jest.fn() },
 }))
 
-import axios from '@nextcloud/axios'
-import CnEditDataModal from '../../src/modals/CnEditDataModal.vue'
-
 const Stub = (name, props = []) => ({ name, props, template: '<div><slot /></div>' })
 
-function mountModal(manifest) {
+function mountModal(manifest, provide = {}) {
 	return mount(CnEditDataModal, {
 		propsData: { manifest },
+		provide,
 		stubs: {
 			NcModal: Stub('NcModal'),
 			NcButton: Stub('NcButton', ['type', 'disabled']),
@@ -33,11 +34,13 @@ function mountModal(manifest) {
 	})
 }
 
-const MANIFEST = { pages: [
-	{ id: 'a', config: { register: 'app-reg' } },
-	{ id: 'b', config: { register: 'app-reg' } },
-	{ id: 'c', config: {} },
-] }
+const MANIFEST = {
+	pages: [
+		{ id: 'a', config: { register: 'app-reg' } },
+		{ id: 'b', config: { register: 'app-reg' } },
+		{ id: 'c', config: {} },
+	],
+}
 
 beforeEach(() => {
 	axios.get.mockReset(); axios.post.mockReset(); axios.put.mockReset(); axios.patch.mockReset(); axios.delete.mockReset()
@@ -52,13 +55,17 @@ describe('CnEditDataModal', () => {
 
 	it('loads only the registers referenced by the manifest, then their schemas', async () => {
 		axios.get
-			.mockResolvedValueOnce({ data: { results: [
-				{ id: 1, slug: 'app-reg', title: 'App', schemas: [10] },
-				{ id: 2, slug: 'other', title: 'Other', schemas: [] },
-			] } })
+			.mockResolvedValueOnce({
+				data: {
+					results: [
+						{ id: 1, slug: 'app-reg', title: 'App', schemas: [10] },
+						{ id: 2, slug: 'other', title: 'Other', schemas: [] },
+					],
+				},
+			})
 			.mockResolvedValueOnce({ data: { result: { id: 10, title: 'Thing', properties: { name: {} } } } })
 		const wrapper = mountModal(MANIFEST)
-		await new Promise((r) => setTimeout(r, 0))
+		await new Promise((resolve) => setTimeout(resolve, 0))
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.registers.map((r) => r.slug)).toEqual(['app-reg'])
 		expect(wrapper.vm.schemas.map((s) => s.id)).toEqual([10])
@@ -70,7 +77,7 @@ describe('CnEditDataModal', () => {
 			.mockResolvedValueOnce({ data: { results: [{ id: 1, slug: 'app-reg', title: 'App', schemas: [10] }] } })
 			.mockResolvedValueOnce({ data: { result: { id: 10, title: 'Thing', properties: {} } } })
 		const wrapper = mountModal(MANIFEST)
-		await new Promise((r) => setTimeout(r, 0))
+		await new Promise((resolve) => setTimeout(resolve, 0))
 		await wrapper.vm.$nextTick()
 		axios.post.mockResolvedValue({ data: { result: { id: 11, title: 'New' } } })
 		axios.patch.mockResolvedValue({ data: {} })
@@ -87,7 +94,7 @@ describe('CnEditDataModal', () => {
 			.mockResolvedValueOnce({ data: { results: [{ id: 1, slug: 'app-reg', title: 'App', schemas: [10] }] } })
 			.mockResolvedValueOnce({ data: { result: { id: 10, title: 'Thing', properties: {} } } })
 		const wrapper = mountModal(MANIFEST)
-		await new Promise((r) => setTimeout(r, 0))
+		await new Promise((resolve) => setTimeout(resolve, 0))
 		await wrapper.vm.$nextTick()
 		axios.put.mockResolvedValue({ data: {} })
 		axios.get.mockResolvedValue({ data: { result: { id: 10, title: 'Thing2', properties: {} } } })
@@ -97,13 +104,27 @@ describe('CnEditDataModal', () => {
 		expect(axios.post).not.toHaveBeenCalled()
 	})
 
+	it('mirrors loaded schemas into the injected cnDataSources (so page-config pickers see them)', async () => {
+		const ds = { registers: [{ value: 'app-reg', label: 'App', schemas: [] }] }
+		axios.get
+			.mockResolvedValueOnce({ data: { results: [{ id: 1, slug: 'app-reg', title: 'App', schemas: [10, 11] }] } })
+			.mockResolvedValueOnce({ data: { result: { id: 10, slug: 'thing', title: 'Thing', properties: { a: {} } } } })
+			.mockResolvedValueOnce({ data: { result: { id: 11, slug: 'two', title: 'Two', properties: { b: {}, c: {} } } } })
+		mountModal(MANIFEST, { cnDataSources: ds })
+		await new Promise((resolve) => setTimeout(resolve, 0))
+		expect(ds.registers[0].schemas).toEqual([
+			{ value: 'thing', label: 'Thing', columns: ['a'] },
+			{ value: 'two', label: 'Two', columns: ['b', 'c'] },
+		])
+	})
+
 	it('removing a schema unlinks it from the register then DELETEs it', async () => {
 		axios.get
 			.mockResolvedValueOnce({ data: { results: [{ id: 1, slug: 'app-reg', title: 'App', schemas: [10, 11] }] } })
 			.mockResolvedValueOnce({ data: { result: { id: 10, title: 'Thing', properties: {} } } })
 			.mockResolvedValueOnce({ data: { result: { id: 11, title: 'Two', properties: {} } } })
 		const wrapper = mountModal(MANIFEST)
-		await new Promise((r) => setTimeout(r, 0))
+		await new Promise((resolve) => setTimeout(resolve, 0))
 		await wrapper.vm.$nextTick()
 		axios.patch.mockResolvedValue({ data: {} })
 		axios.delete.mockResolvedValue({ data: {} })

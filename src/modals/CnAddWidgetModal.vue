@@ -50,6 +50,7 @@
 					:key="state.type"
 					:editing-widget="state.editingWidget"
 					:value="state.content"
+					:calendars-fetcher="calendarsFetcher"
 					@update:content="onContentUpdate" />
 			</div>
 			<div v-else class="cn-add-widget-modal__empty">
@@ -63,16 +64,21 @@
 				<h3 class="cn-add-widget-modal__chrome-title">
 					{{ t('nextcloud-vue', 'Appearance') }}
 				</h3>
-				<NcCheckboxRadioSwitch
-					:checked="chrome.showTitle"
-					@update:checked="chrome.showTitle = $event">
-					{{ t('nextcloud-vue', 'Show title') }}
-				</NcCheckboxRadioSwitch>
-				<NcTextField
-					v-if="chrome.showTitle"
-					:value="chrome.customTitle"
-					:label="t('nextcloud-vue', 'Custom title')"
-					@update:value="chrome.customTitle = $event" />
+				<!-- Title chrome is hidden for types whose sub-form owns the title
+				     (e.g. the data widget's own Title field) so there aren't two
+				     title inputs. -->
+				<template v-if="!activeTypeOwnsTitle">
+					<NcCheckboxRadioSwitch
+						:checked="chrome.showTitle"
+						@update:checked="chrome.showTitle = $event">
+						{{ t('nextcloud-vue', 'Show title') }}
+					</NcCheckboxRadioSwitch>
+					<NcTextField
+						v-if="chrome.showTitle"
+						:value="chrome.customTitle"
+						:label="t('nextcloud-vue', 'Custom title')"
+						@update:value="chrome.customTitle = $event" />
+				</template>
 				<div class="cn-add-widget-modal__chrome-row">
 					<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Background') }}</span>
 					<NcColorPicker v-model="chrome.backgroundColor">
@@ -116,6 +122,7 @@
 </template>
 
 <script>
+import { computed, provide } from 'vue'
 import { NcModal, NcButton, NcTextField, NcColorPicker, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 
@@ -189,6 +196,44 @@ export default {
 			type: Function,
 			default: null,
 		},
+		/**
+		 * Optional async fetcher returning the user's calendars
+		 * (`[{key, name, color}]`) for the calendar widget's picker. Provided
+		 * by the consuming app (which owns the calendar backend); when null the
+		 * calendar form falls back to free-text principal entry.
+		 *
+		 * @type {Function|null}
+		 */
+		calendarsFetcher: {
+			type: Function,
+			default: null,
+		},
+		/**
+		 * The surface the picker offers types for. `'detail-page'` surfaces
+		 * detail-only types (e.g. a second `data` widget) alongside the universal
+		 * widgets; the default `'app-dashboard'` lists the dashboard set. Types
+		 * with no declared `surfaces` appear on every surface.
+		 *
+		 * @type {string}
+		 */
+		surface: {
+			type: String,
+			default: 'app-dashboard',
+		},
+		/**
+		 * Authoritative object context `{ register, schema }` for the page hosting
+		 * the picker (supplied by the OpenBuild edit button from the ACTIVE page's
+		 * config). Provided down as `cnObjectContext` so the data sub-form resolves
+		 * the right schema even though the modal teleports out of the page's
+		 * ambient provide tree. Null on surfaces without a single object (e.g.
+		 * dashboards).
+		 *
+		 * @type {{register: string, schema: string}|null}
+		 */
+		dataContext: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: [
@@ -198,10 +243,14 @@ export default {
 		'submit',
 	],
 
-	setup() {
+	setup(props) {
 		// One composable instance per modal mount. The composable owns the
 		// type/content/editingWidget reactive state shared with sub-forms.
 		const form = useWidgetForm()
+		// Publish the page's object context to the (teleported) sub-forms so the
+		// data widget's property editor loads the ACTIVE page's schema, not
+		// whatever ambient context the modal lands next to in the DOM.
+		provide('cnObjectContext', computed(() => props.dataContext || null))
 		return { form }
 	},
 
@@ -236,7 +285,19 @@ export default {
 		 * @return {string[]} the form-bearing type keys.
 		 */
 		availableTypes() {
-			return listWidgetTypes()
+			return listWidgetTypes(this.surface)
+		},
+
+		/**
+		 * Whether the active type's sub-form owns the widget title (declares
+		 * `ownsTitle` in its registry entry). When true the modal hides its
+		 * generic Title chrome so there aren't two title inputs.
+		 *
+		 * @return {boolean} true when the sub-form provides its own title field.
+		 */
+		activeTypeOwnsTitle() {
+			const entry = getWidgetTypeEntry(this.state.type)
+			return !!(entry && entry.ownsTitle)
 		},
 
 		/**
@@ -521,7 +582,7 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
-	max-height: 80vh;
+	max-height: 88vh;
 	min-width: 320px;
 }
 
@@ -553,7 +614,11 @@ export default {
 
 .cn-add-widget-modal__form {
 	overflow-y: auto;
-	flex: 1;
+	/* Prefer a roomy ~340px for the type-specific fields (data-driven widgets
+	   carry tall forms — columns, thresholds, data source); still shrinks with
+	   its own scroll on short viewports so the Appearance + actions stay visible. */
+	flex: 1 1 340px;
+	min-height: 0;
 }
 
 .cn-add-widget-modal__empty {

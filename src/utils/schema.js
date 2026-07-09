@@ -145,11 +145,27 @@ export function formatValue(value, property = {}, options = {}) {
 	if (type === 'array' || Array.isArray(value)) {
 		if (!Array.isArray(value)) return String(value)
 		if (value.length === 0) return '—'
+		// Stringify each entry so an array of OBJECTS never collapses to the
+		// useless "[object Object]" that `Array.prototype.join` produces — a
+		// nested object renders as compact JSON instead (ADR-062: a value cell
+		// must never show "[object Object]"). Rich array rendering (inline
+		// tables / chips) lives in CnObjectDataWidget; this is the flat-string
+		// fallback used by tables and truncated cells.
+		const parts = value.map((v) => {
+			if (v !== null && typeof v === 'object') {
+				try {
+					return JSON.stringify(v)
+				} catch {
+					return '[Object]'
+				}
+			}
+			return String(v)
+		})
 		// For short arrays, join values
-		if (value.length <= 3) {
-			return value.join(', ')
+		if (parts.length <= 3) {
+			return parts.join(', ')
 		}
-		return `${value.slice(0, 3).join(', ')} +${value.length - 3}`
+		return `${parts.slice(0, 3).join(', ')} +${parts.length - 3}`
 	}
 
 	// Object — render as JSON; tables truncate, multi-line value cells wrap with `<pre>`.
@@ -247,17 +263,71 @@ function truncateString(str, maxLength) {
  * Resolution priority (first match wins):
  * 1. Explicit `prop.widget` — pass-through custom widget name
  * 2. `prop.enum` → `'select'`
- * 3. Type-based: `boolean` → `'checkbox'`, `integer`/`number` → `'number'`,
+ * 3. OpenRegister object reference: `prop.$ref` (a string schema slug) →
+ *    `'select'`; `array` + `items.$ref` → `'multiselect'`. The consuming
+ *    surface (CnFormDialog) resolves the reference to a searchable dropdown
+ *    of the referenced objects (label = human name, value = UUID).
+ * 4. Type-based: `boolean` → `'checkbox'`, `integer`/`number` → `'number'`,
  *    `array` + `items.enum` → `'multiselect'`, `array` → `'tags'`
- * 4. Format-based: `date-time` → `'datetime'`, `date` → `'date'`,
+ * 5. Format-based: `date-time` → `'datetime'`, `date` → `'date'`,
  *    `email` → `'email'`, `uri`/`url` → `'url'`,
  *    `markdown`/`textarea` → `'textarea'`
- * 5. Long text: `maxLength > 255` → `'textarea'`
- * 6. Fallback → `'text'`
+ * 6. Long text: `maxLength > 255` → `'textarea'`
+ * 7. Fallback → `'text'`
  *
  * @param {object} prop The schema property definition (type, format, enum, widget, items, maxLength)
  * @return {string} Widget identifier: 'text'|'email'|'url'|'number'|'checkbox'|'select'|'multiselect'|'tags'|'textarea'|'date'|'datetime' or a custom string
  */
+/**
+ * Normalise a JSON-Schema `$ref` value into an OpenRegister schema reference
+ * identifier. OpenRegister authors a `$ref` as a schema *slug* (string) but
+ * persists/serves it as the numeric schema *id* (e.g. `85`). Both forms are
+ * valid object-reference targets (the objects API resolves either), so accept
+ * a non-empty string or a number and return it unchanged; return `null` for
+ * anything else (missing, empty string, object, etc.).
+ *
+ * @param {*} ref A `$ref` value (`prop.$ref` or `prop.items.$ref`).
+ * @return {string|number|null} The reference identifier, or null.
+ */
+function normalizeRef(ref) {
+	if (typeof ref === 'number' && !Number.isNaN(ref)) return ref
+	if (typeof ref === 'string' && ref !== '') {
+		// OR authors a `$ref` as a schema slug ('product') but may serve it as a
+		// numeric id ('85'), a JSON-pointer/path ('#/components/schemas/product'),
+		// a register-qualified path ('pipelinq/product'), or with a '.json'
+		// suffix. Reduce to the final path segment (minus any '.json') so the
+		// consuming surface fetches the right schema — the objects API resolves
+		// either a slug or a numeric id. Mirrors CnObjectDataWidget.relationProp,
+		// which is why the detail-page data widget resolved these while the
+		// form dialog rendered an empty dropdown for the same property.
+		const slug = ref.split('/').pop().replace(/\.json$/, '')
+		return slug !== '' ? slug : null
+	}
+	return null
+}
+
+/**
+ * The target schema slug of an OpenRegister object-reference property, or null
+ * when the property is not a reference. Handles a single reference (`prop.$ref`)
+ * and an array of references (`prop.items.$ref`), normalising the ref value the
+ * same way `resolveWidget` / `fieldsFromSchema` do (path / `.json` / numeric id
+ * forms all reduce to the final slug). Used by list surfaces to detect which
+ * columns hold a relation uuid that must be resolved to a display name.
+ *
+ * @param {object} prop A schema property definition.
+ * @return {string|number|null} The referenced schema slug/id, or null.
+ */
+export function referenceSchemaSlug(prop) {
+	if (!prop || typeof prop !== 'object') return null
+	const direct = normalizeRef(prop.$ref)
+	if (direct !== null) return direct
+	if (prop.type === 'array' && prop.items) {
+		const item = normalizeRef(prop.items.$ref)
+		if (item !== null) return item
+	}
+	return null
+}
+
 function resolveWidget(prop) {
 	// Explicit widget hint takes priority
 	if (prop.widget) return prop.widget
@@ -267,6 +337,14 @@ function resolveWidget(prop) {
 
 	const type = prop.type || 'string'
 	const format = prop.format || ''
+
+	// OpenRegister object reference (`$ref` is a schema slug or numeric id) →
+	// a searchable dropdown of the referenced objects. An array of
+	// references (`items.$ref`) → a multi-select. Checked before the
+	// plain type/format fallback so a `{ type: 'string', format: 'uuid',
+	// $ref: '<slug-or-id>' }` property renders as a dropdown, not a UUID box.
+	if (normalizeRef(prop.$ref) !== null) return 'select'
+	if (type === 'array' && prop.items && normalizeRef(prop.items.$ref) !== null) return 'multiselect'
 
 	// Boolean → switch/checkbox
 	if (type === 'boolean') return 'checkbox'
@@ -281,6 +359,7 @@ function resolveWidget(prop) {
 	}
 
 	// Format-based widgets
+	if (format === 'user') return 'user'
 	if (format === 'date-time') return 'datetime'
 	if (format === 'date') return 'date'
 	if (format === 'email') return 'email'
@@ -304,9 +383,9 @@ function resolveWidget(prop) {
  * @param {object} [options] Configuration options
  * @param {string[]} [options.exclude] Property keys to exclude
  * @param {string[]} [options.include] Property keys to include (whitelist mode)
- * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`. A `readOnly: false` override on a key that is `readOnly` in the schema also un-skips it (so a single schema-readOnly field — e.g. a denormalised name editable only on create — can be surfaced without `includeReadOnly`).
+ * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`. Recognised keys: `hidden` (true → drop the field), `order` (number → wins over the schema property's `order` for sorting), `readOnly` (false on a schema-readOnly key un-skips it), plus any field props to merge (`label`, `widget`, `enum`, …). A single overrides map therefore controls visibility, ordering and rendering on every surface that consumes this pipeline (data widget + form dialog).
  * @param {boolean} [options.includeReadOnly] Whether to include readOnly properties
- * @return {Array<{key: string, label: string, description: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, items: object|null, referenceType: string|null, validation: object, order: number}>}
+ * @return {Array<{key: string, label: string, description: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean}|null, validation: object, order: number}>}
  */
 export function fieldsFromSchema(schema, options = {}) {
 	const { exclude = [], include = null, overrides = {}, includeReadOnly = false } = options
@@ -321,6 +400,10 @@ export function fieldsFromSchema(schema, options = {}) {
 		.filter(([key, prop]) => {
 			// Skip properties marked as not visible
 			if (prop.visible === false) return false
+			// Per-key override visibility: `overrides[key].hidden === true` hides
+			// the field on every surface that consumes this pipeline (data widget
+			// + form dialog), so a single config map controls both.
+			if (overrides[key]?.hidden === true) return false
 			// Skip readOnly properties by default — UNLESS a per-key override
 			// explicitly re-enables the field (`overrides[key].readOnly === false`).
 			// This lets a consumer surface a schema-readOnly field (e.g. a
@@ -337,9 +420,16 @@ export function fieldsFromSchema(schema, options = {}) {
 			return true
 		})
 		.sort(([keyA, propA], [keyB, propB]) => {
-			// Sort by order hint first, then alphabetically
-			const orderA = typeof propA.order === 'number' ? propA.order : Infinity
-			const orderB = typeof propB.order === 'number' ? propB.order : Infinity
+			// Sort by EFFECTIVE order: a per-key `overrides[key].order` wins over
+			// the schema property's own `order`, then alphabetically. Honouring the
+			// override here means every consumer (data widget + form dialog) gets
+			// the same ordering from one map — no per-component re-sort needed.
+			const orderA = typeof overrides[keyA]?.order === 'number'
+				? overrides[keyA].order
+				: (typeof propA.order === 'number' ? propA.order : Infinity)
+			const orderB = typeof overrides[keyB]?.order === 'number'
+				? overrides[keyB].order
+				: (typeof propB.order === 'number' ? propB.order : Infinity)
 			if (orderA !== orderB) return orderA - orderB
 			return keyA.localeCompare(keyB)
 		})
@@ -352,6 +442,15 @@ export function fieldsFromSchema(schema, options = {}) {
 			type: prop.type || 'string',
 			format: prop.format || null,
 			widget: resolveWidget(prop),
+			// Icon picker (`widget: 'icon'`) config forwarded to CnIconPicker via
+			// CnFormDialog: which sources to offer (`iconSources`), consumer icon
+			// catalogues (JSON entries — FontAwesome/OpenGemeenten data is usually
+			// supplied via a fieldOverride instead), and whether search / custom-SVG
+			// are enabled. Omitted keys fall back to CnIconPicker's own defaults.
+			iconSources: prop.iconSources || undefined,
+			catalogues: prop.catalogues || undefined,
+			allowCustomSvg: prop.allowCustomSvg || undefined,
+			searchable: prop.searchable,
 			required: requiredKeys.includes(key),
 			readOnly: prop.readOnly || false,
 			default: prop.default !== undefined ? prop.default : null,
@@ -362,12 +461,55 @@ export function fieldsFromSchema(schema, options = {}) {
 			// surfaces (CnFormDialog, CnDetailGrid) render that
 			// integration's single-entity widget instead of a plain input.
 			referenceType: prop.referenceType || null,
+			// Cross-app semantic reference (ADR-048): a property can declare
+			// `referenceSemanticType: '<canonical-uri>'` (e.g.
+			// 'https://schema.org/Organization') plus an optional
+			// `referenceSemanticApp: '<appid>'` naming the app expected to
+			// provide it. The consuming surface (CnFormDialog) resolves the
+			// URI against OpenRegister's discovery endpoint: when SOME
+			// installed schema implements it, the field renders as a
+			// searchable object picker over that provider schema's register;
+			// when NONE does, the field renders DISABLED with a tooltip. This
+			// is the semantic sibling of `referenceType` (integration id).
+			// `null` when the keys are absent (no behaviour change). Pure: no
+			// resolution happens here.
+			referenceSemanticType: prop.referenceSemanticType || null,
+			referenceSemanticApp: prop.referenceSemanticApp || null,
+			// OpenRegister object reference (`$ref`): when a property points
+			// at another schema (`$ref: '<slug>'`, or `items.$ref` for an
+			// array), record the referenced schema slug + whether it is a
+			// multi-value reference. The consuming surface (CnFormDialog)
+			// resolves this to a searchable dropdown of the referenced
+			// objects, storing the chosen UUID(s). `null` for non-reference
+			// properties. Pure: no fetching happens here.
+			reference: (normalizeRef(prop.$ref) !== null)
+				? { schema: normalizeRef(prop.$ref), multiple: false }
+				: (prop.type === 'array' && prop.items && normalizeRef(prop.items.$ref) !== null)
+					? { schema: normalizeRef(prop.items.$ref), multiple: true }
+					: null,
 			// Conditional immutability (AD: x-openregister-readonly-when): a
 			// property can declare it becomes read-only when another field on the
 			// same object holds a given value — e.g. a hybrid app's identity
 			// fields. Consumers (CnObjectDataWidget) evaluate this against the
 			// object's current data. Shape: `{ field, equals }` or `{ field, in: [] }`.
 			readOnlyWhen: prop['x-openregister-readonly-when'] || prop.readOnlyWhen || null,
+			// Inline create opt-in for single object-reference fields
+			// (`x-allow-create: true` or `allowCreate: true` on the property):
+			// the consuming surface (CnFormDialog) renders a select-OR-create
+			// picker (CnResourceSelect) so a user can pick an existing object or
+			// create a new one from the typed term, instead of a plain select of
+			// existing objects. Ignored for non-reference fields.
+			allowCreate: prop['x-allow-create'] === true || prop.allowCreate === true,
+			// Template pre-fill map for a single object-reference field
+			// (`x-fill-from`): when the user selects (or inline-creates) the
+			// referenced object, the consuming surface (CnFormDialog) copies the
+			// mapped fields off it into the form — `{ <thisFormKey>: <sourceKey> }`,
+			// e.g. a line item's `product` ref filling `unitPrice`/`unit` from the
+			// chosen Product. Existing values are overwritten so re-selecting a
+			// template refreshes them; the user can still edit afterwards.
+			fillFrom: (prop['x-fill-from'] && typeof prop['x-fill-from'] === 'object')
+				? prop['x-fill-from']
+				: (prop.fillFrom && typeof prop.fillFrom === 'object' ? prop.fillFrom : null),
 			validation: {
 				minLength: prop.minLength,
 				maxLength: prop.maxLength,
