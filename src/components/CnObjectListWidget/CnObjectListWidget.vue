@@ -61,6 +61,9 @@
 			ref="createDialog"
 			:schema="createSchema"
 			:item="null"
+			:register="content.register"
+			:initial-data="createInitialData"
+			:locked-fields="createLockedFields"
 			@confirm="onCreateConfirm"
 			@close="showCreate = false" />
 	</div>
@@ -194,6 +197,31 @@ export default {
 		 */
 		resolvedFilter() {
 			return dropOptionalUnresolved(resolveFilterTokens(this.content.filter || {}, this.tokenCtx))
+		},
+		/**
+		 * Create-form seed values derived from the list's resolved filter: every
+		 * scalar filter entry (e.g. `{ lead: '<uuid>' }` on a detail-page related
+		 * list) pre-links a new child to the record the list is scoped to.
+		 *
+		 * @return {Record<string, string|number>}
+		 */
+		createInitialData() {
+			const out = {}
+			const f = this.resolvedFilter || {}
+			for (const key of Object.keys(f)) {
+				const v = f[key]
+				if (typeof v === 'string' || typeof v === 'number') out[key] = v
+			}
+			return out
+		},
+		/**
+		 * The seeded parent-reference keys, rendered read-only in the create form
+		 * so a child can't be repointed away from the record it was added under.
+		 *
+		 * @return {string[]}
+		 */
+		createLockedFields() {
+			return Object.keys(this.createInitialData)
 		},
 		/**
 		 * Whether a context-dependent filter token (e.g. `@workspace.selectedClient`)
