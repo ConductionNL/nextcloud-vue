@@ -694,6 +694,11 @@ export default {
 	display: flex;
 	align-items: center;
 	flex-shrink: 0;
+	/* One icon color across the whole card family: the primary element color.
+	   Some leaf cards colored their icons primary while wrapper icons stayed
+	   text-colored — pages read as two design systems (audit 2026-07-09).
+	   A titleIconColor prop still overrides via inline style. */
+	color: var(--color-primary-element);
 }
 
 .cn-widget-wrapper__footer {
