@@ -378,10 +378,33 @@
 									:content="widgetContentFor(item)"
 									v-bind="widgetContentFor(item)" />
 							</CnWidgetWrapper>
+							<!-- Registry "card" widgets (stat / gauge / delta):
+							     these render bare tile content, so give them the
+							     titled CnWidgetWrapper card chrome exactly like the
+							     dashboard does (ADR-062: a lone stat must not read
+							     as uncarded text). `card-fit` centres the tile and
+							     drops the inner scrollbar. -->
+							<CnWidgetWrapper
+								v-else-if="registryRendererFor(item) && isCardWidget(item)"
+								:title="findWidget(item).title || widgetContentFor(item).title || ''"
+								:show-title="findWidget(item).title !== undefined || widgetContentFor(item).title !== undefined"
+								title-icon-position="left"
+								flush
+								:show-refresh="false"
+								:show-request-feature="false"
+								class="cn-detail-page__card-fit">
+								<template v-if="findWidget(item).icon" #title-icon>
+									<CnIcon :name="findWidget(item).icon" :size="20" />
+								</template>
+								<component
+									:is="registryRendererFor(item)"
+									:content="widgetContentFor(item)"
+									v-bind="widgetContentFor(item)" />
+							</CnWidgetWrapper>
 							<!-- Fallback for content-driven catalog widgets
-							     (stat / chart / delta / gauge / …): render the
-							     registered renderer with the def's `content`.
-							     These self-fetch from OpenRegister. -->
+							     (chart / …): render the registered renderer with
+							     the def's `content`. These self-fetch from
+							     OpenRegister. -->
 							<component
 								:is="registryRendererFor(item)"
 								v-else-if="registryRendererFor(item)"
@@ -2093,6 +2116,24 @@ export default {
 		isContentOnlyWidget(item) {
 			const def = this.findWidget(item)
 			return Boolean(def) && ['object-list', 'table'].includes(def.type)
+		},
+
+		/**
+		 * Whether a grid item is a registry "card" widget — a single self-
+		 * contained KPI / gauge / delta tile (registry entry `card: true`).
+		 * These render bare tile content, so on a detail page they need the
+		 * same titled CnWidgetWrapper card chrome the dashboard gives them
+		 * (ADR-062: a lone stat must not read as uncarded floating text —
+		 * pipelinq contracts / POS).
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} true when the widget def's registry entry is a card.
+		 */
+		isCardWidget(item) {
+			const def = this.findWidget(item)
+			if (!def || !def.type) return false
+			const entry = getWidgetTypeEntry(def.type)
+			return Boolean(entry && entry.card === true)
 		},
 
 		/**

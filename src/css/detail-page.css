@@ -239,6 +239,30 @@
 	flex-direction: column;
 }
 
+/* Registry "card" widgets (stat / gauge / delta) get the same titled card
+   chrome as content-only widgets, plus a centred, non-scrolling body so a
+   short KPI tile fits its cell without an inner scrollbar (ADR-062). */
+.cn-detail-page__card-fit {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.cn-detail-page__card-fit .cn-widget-wrapper__content {
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	padding: 8px 14px;
+}
+
+.cn-detail-page__card-fit .cn-stat-widget,
+.cn-detail-page__card-fit .cn-gauge-widget,
+.cn-detail-page__card-fit .cn-delta-widget {
+	min-width: 0;
+	max-width: 100%;
+}
+
 /* OpenBuild in-app edit cog (ADR-041), shown over a configurable widget
    while the page is in edit mode. Mirrors the dashboard's widget-edit cog. */
 .cn-detail-page__widget-edit {
