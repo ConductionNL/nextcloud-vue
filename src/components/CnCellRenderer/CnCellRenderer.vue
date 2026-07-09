@@ -129,7 +129,7 @@ import { NcDateTime } from '@nextcloud/vue'
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 import { safeHref } from '../../utils/safeHref.js'
 import { formatValue } from '../../utils/schema.js'
-import { safeCurrencyCode } from '../../utils/formatMetric.js'
+import { safeCurrencyCode, resolveConfigFormat, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 
@@ -176,6 +176,14 @@ export default {
 		 * Defaults to an empty object.
 		 */
 		cnCellWidgets: { default: () => ({}) },
+		/**
+		 * Page-level app-config map, provided by CnAppRoot / CnDashboardPage
+		 * (`cnAppConfig`). Lets a column's `format.currency` (or `prefix` /
+		 * `suffix`) be a `@config.<key>` token — resolved here exactly as the
+		 * stat widgets resolve it on a dashboard, so a KPI tile and a table
+		 * column read the same currency. Defaults to `{}` (standalone use).
+		 */
+		cnAppConfig: { default: () => ({}) },
 	},
 
 	props: {
@@ -536,7 +544,11 @@ export default {
 		 */
 		applyBuiltinFormat() {
 			if (!this.hasValue) return '—'
-			const fmt = this.format || {}
+			// Resolve `@config.<key>` tokens (currency / prefix / suffix) against
+			// the injected app-config, mirroring the stat widgets — so a column
+			// passing `format.currency: "@config.currency"` renders the app's
+			// configured currency instead of silently falling back to EUR.
+			const fmt = resolveConfigFormat(this.format || {}, unwrapAppConfig(this.cnAppConfig))
 			if (fmt.style === 'duration') return this.formatDuration()
 			const num = Number(this.value)
 			if (!Number.isFinite(num)) {

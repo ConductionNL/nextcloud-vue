@@ -9,7 +9,6 @@
 			:key="tr.action"
 			class="cn-lifecycle-actions__button"
 			:variant="tr.variant || 'secondary'"
-			size="small"
 			:title="tr.title || undefined"
 			:disabled="working"
 			:data-testid="`cn-lifecycle-action-${tr.action}`"

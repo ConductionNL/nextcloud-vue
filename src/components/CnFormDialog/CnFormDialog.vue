@@ -433,6 +433,7 @@ import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { shouldShow } from '../../utils/fieldCondition.js'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 
@@ -1769,6 +1770,26 @@ export default {
 			try {
 				const params = { _limit: 100 }
 				if (query) params._search = query
+				// Declarative option scoping (`x-relation-filter`): narrow the
+				// picker to objects that fit the form's CURRENT values — e.g. a
+				// line item's `product` scoped to the chosen leadProduct. Mirrors
+				// CnObjectDataWidget: values are token-resolved (@object.<field> /
+				// @objectId) against the live form data; an entry whose token stays
+				// unresolved is dropped (unfiltered beats an empty picker).
+				const prop = (this.schema && this.schema.properties && this.schema.properties[field.key]) || null
+				const rawFilter = prop && prop['x-relation-filter']
+				if (rawFilter && typeof rawFilter === 'object') {
+					const ctx = { objectId: this.formData.id, object: { ...this.formData } }
+					const filter = resolveFilterTokens(rawFilter, ctx)
+					for (const [fk, fv] of Object.entries(filter)) {
+						if (typeof fv === 'string' && fv.charAt(0) === '@') continue
+						if (fv && typeof fv === 'object') {
+							for (const [op, ov] of Object.entries(fv)) params[`${fk}[${op}]`] = ov
+						} else if (fv !== '' && fv !== null && fv !== undefined) {
+							params[fk] = fv
+						}
+					}
+				}
 				const slug = store.createObjectTypeSlug(register, field.reference.schema)
 				if (!store.objectTypeRegistry[slug]) {
 					store.registerObjectType(slug, field.reference.schema, register)
