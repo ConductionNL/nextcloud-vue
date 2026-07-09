@@ -30,12 +30,18 @@
 					:editing-widget="widget"
 					@update:content="draftContent = $event" />
 				<ul v-if="contentErrors.length" class="cn-widget-style-editor__errors">
-					<li v-for="(err, i) in contentErrors" :key="i">{{ err }}</li>
+					<li v-for="(err, i) in contentErrors" :key="i">
+						{{ err }}
+					</li>
 				</ul>
 			</div>
 
-			<!-- Title section: toggle + override text. -->
-			<div v-if="!hasTypeForm" class="cn-widget-style-editor__section">
+			<!-- Title section: toggle + override text. Gated by `ownsTitle`, not
+			     `hasTypeForm` — the `showTitle` toggle controls the CnWidgetWrapper
+			     chrome header, which is orthogonal to a typed widget's own content
+			     title (e.g. the `header` banner). Only types that truly own the
+			     chrome title (registry `ownsTitle`) suppress it. -->
+			<div v-if="!ownsTitle" class="cn-widget-style-editor__section">
 				<h3 class="cn-widget-style-editor__section-title">
 					{{ t('nextcloud-vue', 'Title') }}
 				</h3>
@@ -89,7 +95,7 @@
 
 				<NcSelect
 					v-model="selectedIcon"
-					:options="iconOptions"
+					:options="allIconOptions"
 					:input-label="t('nextcloud-vue', 'Icon')"
 					:aria-label-combobox="t('nextcloud-vue', 'Icon')"
 					label="label"
@@ -97,7 +103,11 @@
 					data-testid="cn-widget-style-icon">
 					<template #selected-option="{ label }">
 						<span class="cn-widget-style-editor__icon-option">
-							<svg class="cn-widget-style-editor__icon-preview" viewBox="0 0 24 24">
+							<img v-if="isUrlIcon(selectedIcon.icon)"
+								:src="selectedIcon.icon"
+								:alt="label"
+								class="cn-widget-style-editor__icon-preview">
+							<svg v-else class="cn-widget-style-editor__icon-preview" viewBox="0 0 24 24">
 								<path :d="selectedIcon.icon" />
 							</svg>
 							<span class="cn-widget-style-editor__icon-label">{{ label }}</span>
@@ -105,7 +115,11 @@
 					</template>
 					<template #option="option">
 						<span class="cn-widget-style-editor__icon-option">
-							<svg class="cn-widget-style-editor__icon-preview" viewBox="0 0 24 24">
+							<img v-if="isUrlIcon(option.icon)"
+								:src="option.icon"
+								:alt="option.label"
+								class="cn-widget-style-editor__icon-preview">
+							<svg v-else class="cn-widget-style-editor__icon-preview" viewBox="0 0 24 24">
 								<path :d="option.icon" />
 							</svg>
 							<span class="cn-widget-style-editor__icon-label">{{ option.label }}</span>
@@ -229,6 +243,17 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+		/**
+		 * Extra icon options appended to the built-in set, e.g. an app's own
+		 * icon pack. Each `{ id, label, icon }` where `icon` may be an MDI path
+		 * OR a URL/absolute path (rendered as an `<img>`). Default `[]`.
+		 *
+		 * @type {Array<{id: string, label: string, icon: string}>}
+		 */
+		extraIconOptions: {
+			type: Array,
+			default: () => [],
+		},
 	},
 
 	emits: [
@@ -310,6 +335,23 @@ export default {
 		},
 
 		/**
+		 * Whether this widget type owns its own title (registry `ownsTitle`),
+		 * so the chrome title toggle + custom-title override are redundant.
+		 * Mirrors CnAddWidgetModal's `activeTypeOwnsTitle` so the create and
+		 * edit dialogs gate the Title section identically — a typed widget
+		 * that does NOT own its title (e.g. `header`) still exposes the
+		 * "Show title" chrome toggle here, not just at create time.
+		 *
+		 * @return {boolean}
+		 */
+		ownsTitle() {
+			const type = this.widget && this.widget.type
+			if (!type) return false
+			const entry = getWidgetTypeEntry(type)
+			return !!(entry && entry.ownsTitle)
+		},
+
+		/**
 		 * Two-way bridge between the draft's `customIcon` path string and the
 		 * matching option object the NcSelect renders.
 		 *
@@ -317,12 +359,21 @@ export default {
 		 */
 		selectedIcon: {
 			get() {
-				const option = this.iconOptions.find((opt) => opt.icon === this.draft.customIcon)
-				return option || this.iconOptions[0]
+				const option = this.allIconOptions.find((opt) => opt.icon === this.draft.customIcon)
+				return option || this.allIconOptions[0]
 			},
 			set(value) {
 				this.draft.customIcon = value ? value.icon : ''
 			},
+		},
+
+		/**
+		 * The built-in icon set plus any consumer-supplied `extraIconOptions`.
+		 *
+		 * @return {Array<{id: string, label: string, icon: string}>} all options.
+		 */
+		allIconOptions() {
+			return this.extraIconOptions.length ? [...this.iconOptions, ...this.extraIconOptions] : this.iconOptions
 		},
 	},
 
@@ -353,6 +404,17 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * Whether an icon value is a URL/absolute path (render as `<img>`)
+		 * rather than an MDI path string (render as `<svg><path>`).
+		 *
+		 * @param {string} icon the icon value.
+		 * @return {boolean} true for URL/path icons.
+		 */
+		isUrlIcon(icon) {
+			return typeof icon === 'string' && (icon.startsWith('/') || icon.startsWith('http'))
+		},
 
 		/**
 		 * Build the working-copy draft from a widget's current chrome + styleConfig.
@@ -547,6 +609,7 @@ export default {
 	display: block;
 	flex-shrink: 0;
 	fill: currentColor;
+	object-fit: contain;
 }
 
 .cn-widget-style-editor__icon-label {

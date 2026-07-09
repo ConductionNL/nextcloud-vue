@@ -124,7 +124,10 @@ Each `#step-{id}` slot receives:
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `setResult(result)` | `({ success?, message?, error? })` | Switch into the result phase + clear `loading`. |
+| `setResult(result)` | `({ success?, message?, error? })` | Switch into the **terminal** result phase + clear `loading` (Close only). |
+| `setError(message)` | `(string)` | **Recoverable** failure: clear `loading` and show `message` above the still-editable step so the user can fix and resubmit — without entering the result phase. Prefer this over `setResult({ error })` when the submit can be retried (e.g. a taken slug). |
+
+The step indicator renders as numbered circles joined by connectors, with a checkmark on completed steps and the active step highlighted in the primary colour.
 
 ## Slots
 

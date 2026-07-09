@@ -38,6 +38,7 @@ export default {
 | `show` | `Boolean` | `false` | Toggles visibility. Going `false → true` re-seeds the draft from `widget`. |
 | `widget` | `{ styleConfig?, showTitle?, customTitle?, customIcon?, title? }` | — | The widget chrome being edited. Its `styleConfig` and chrome fields (`showTitle`, `customTitle`, `customIcon`) are mutated in place on Save. |
 | `deletable` | `Boolean` | `true` | Whether to show the Delete button (`false` for compulsory widgets). |
+| `extraIconOptions` | `Array<{id, label, icon}>` | `[]` | Extra icon options appended to the built-in set (e.g. an app's own icon pack). `icon` may be an MDI path string OR a URL/absolute path (rendered as an `<img>`). |
 
 ## Events
 

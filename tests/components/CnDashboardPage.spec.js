@@ -442,9 +442,60 @@ describe('CnDashboardPage — per-widget configure cog (ADR-041)', () => {
 		wrapper.vm.configureWidget({ widgetId: 'w1' })
 		await wrapper.vm.$nextTick()
 		wrapper.vm.onWidgetConfigDelete({ id: 'w1' })
-		expect(wrapper.props('layout').some((l) => l.widgetId === 'w1')).toBe(false)
-		expect(wrapper.props('widgets').some((w) => w.id === 'w1')).toBe(false)
+		// removeWidget emits layout-change with w1 excluded, and widget-remove with the removed id.
+		// Props are not mutated (no vue/no-mutating-props violation).
+		const layoutChanges = wrapper.emitted('layout-change')
+		expect(layoutChanges).toBeTruthy()
+		const emittedLayout = layoutChanges[layoutChanges.length - 1][0]
+		expect(emittedLayout.some((l) => l.widgetId === 'w1')).toBe(false)
+		const widgetRemoves = wrapper.emitted('widget-remove')
+		expect(widgetRemoves).toBeTruthy()
+		expect(widgetRemoves[0][0]).toBe('w1')
 		expect(wrapper.vm.showWidgetConfig).toBe(false)
 		wrapper.destroy()
+	})
+})
+
+describe('CnDashboardPage — card-fit registry widgets', () => {
+	// eslint-disable-next-line global-require
+	const { registerDashboardWidget } = require('@/components/CnWidgetGrid/dashboardWidgetRegistry.js')
+	// Render functions (not `template:` strings) so they mount under the
+	// runtime-only Vue build the dynamic `<component :is>` uses.
+	const CardRenderer = { name: 'CardRenderer', props: ['content'], render(h) { return h('div', { class: 'card-renderer-stub' }) } }
+	const PlainRenderer = { name: 'PlainRenderer', props: ['content'], render(h) { return h('div', { class: 'plain-renderer-stub' }) } }
+
+	beforeAll(() => {
+		registerDashboardWidget('test-card', { renderer: CardRenderer, form: null, defaultContent: {}, displayName: 'Card', icon: 'X', card: true })
+		registerDashboardWidget('test-plain', { renderer: PlainRenderer, form: null, defaultContent: {}, displayName: 'Plain', icon: 'X' })
+	})
+
+	const mountWith = (type) => mount(CnDashboardPage, {
+		propsData: {
+			widgets: [{ id: 'w', type, content: {} }],
+			layout: [{ id: 'l', widgetId: 'w', gridX: 0, gridY: 0, gridWidth: 3, gridHeight: 2, showTitle: false }],
+		},
+		stubs,
+	})
+
+	it('isCardWidget is true for a registry entry flagged card:true', () => {
+		const wrapper = mountWith('test-card')
+		expect(wrapper.vm.isCardWidget({ widgetId: 'w' })).toBe(true)
+	})
+
+	it('isCardWidget is false for a registry entry without the card flag', () => {
+		const wrapper = mountWith('test-plain')
+		expect(wrapper.vm.isCardWidget({ widgetId: 'w' })).toBe(false)
+	})
+
+	it('a card widget gets the card-fit class (no inner padding/scroll)', () => {
+		const wrapper = mountWith('test-card')
+		expect(wrapper.find('.cn-dashboard-page__card-fit').exists()).toBe(true)
+		expect(wrapper.find('.card-renderer-stub').exists()).toBe(true)
+	})
+
+	it('a non-card registry widget does not get the card-fit class', () => {
+		const wrapper = mountWith('test-plain')
+		expect(wrapper.find('.cn-dashboard-page__card-fit').exists()).toBe(false)
+		expect(wrapper.find('.plain-renderer-stub').exists()).toBe(true)
 	})
 })

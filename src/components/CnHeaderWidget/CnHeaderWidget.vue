@@ -145,7 +145,11 @@ export default {
 				return `/index.php/core/preview?fileId=${fileId}&x=1024&y=512&a=1`
 			}
 			const url = this.content && this.content.backgroundImageUrl
-			if (typeof url === 'string' && /^https?:\/\//i.test(url)) {
+			// Accept http(s) plus uploaded/same-origin sources: data: and blob:
+			// (from the form's upload) and root-relative paths (NC files/preview).
+			// External http(s) images may still be blocked by the instance CSP —
+			// uploading is the reliable, same-origin path.
+			if (typeof url === 'string' && /^(https?:\/\/|data:|blob:|\/)/i.test(url)) {
 				return url
 			}
 			return ''
@@ -254,7 +258,11 @@ export default {
 			const style = {
 				position: 'relative',
 				width: '100%',
-				height: `${this.heightPixels}px`,
+				// Fill the dashboard grid cell so the banner resizes with the
+				// widget. A fixed pixel height ignored the cell, which made the
+				// banner un-resizable and made it overflow/scroll inside a
+				// smaller cell. The grid controls the size now.
+				height: '100%',
 				overflow: 'hidden',
 				'background-color': this.backgroundColor,
 			}

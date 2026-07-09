@@ -50,10 +50,56 @@
 					:key="state.type"
 					:editing-widget="state.editingWidget"
 					:value="state.content"
+					:calendars-fetcher="calendarsFetcher"
 					@update:content="onContentUpdate" />
 			</div>
 			<div v-else class="cn-add-widget-modal__empty">
 				{{ t('nextcloud-vue', 'No widget types available') }}
+			</div>
+
+			<!-- Widget appearance (chrome): title, background, icon. Shared with
+			     every consumer so the add/edit experience is identical across apps
+			     (the chrome rides alongside `content` in the submit payload). -->
+			<div v-if="activeSubFormComponent" class="cn-add-widget-modal__chrome">
+				<h3 class="cn-add-widget-modal__chrome-title">
+					{{ t('nextcloud-vue', 'Appearance') }}
+				</h3>
+				<!-- Title chrome is hidden for types whose sub-form owns the title
+				     (e.g. the data widget's own Title field) so there aren't two
+				     title inputs. -->
+				<template v-if="!activeTypeOwnsTitle">
+					<NcCheckboxRadioSwitch
+						:checked="chrome.showTitle"
+						@update:checked="chrome.showTitle = $event">
+						{{ t('nextcloud-vue', 'Show title') }}
+					</NcCheckboxRadioSwitch>
+					<NcTextField
+						v-if="chrome.showTitle"
+						:value="chrome.customTitle"
+						:label="t('nextcloud-vue', 'Custom title')"
+						@update:value="chrome.customTitle = $event" />
+				</template>
+				<div class="cn-add-widget-modal__chrome-row">
+					<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Background') }}</span>
+					<NcColorPicker v-model="chrome.backgroundColor">
+						<NcButton type="tertiary">
+							<template #icon>
+								<span
+									class="cn-add-widget-modal__swatch"
+									:style="{ backgroundColor: chrome.backgroundColor || 'transparent' }" />
+							</template>
+							{{ chrome.backgroundColor || t('nextcloud-vue', 'Default') }}
+						</NcButton>
+					</NcColorPicker>
+				</div>
+				<div class="cn-add-widget-modal__chrome-row">
+					<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Icon') }}</span>
+					<CnIconPicker
+						:value="chrome.customIcon"
+						:upload-fn="uploadFn"
+						compact
+						@input="chrome.customIcon = $event" />
+				</div>
 			</div>
 
 			<!-- Action buttons. Cancel emits close, never submit. Submit is
@@ -76,9 +122,11 @@
 </template>
 
 <script>
-import { NcModal, NcButton } from '@nextcloud/vue'
+import { computed, provide } from 'vue'
+import { NcModal, NcButton, NcTextField, NcColorPicker, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 
+import { CnIconPicker } from '../components/CnIconPicker/index.js'
 import {
 	listWidgetTypes,
 	getWidgetTypeEntry,
@@ -103,6 +151,10 @@ export default {
 	components: {
 		NcModal,
 		NcButton,
+		NcTextField,
+		NcColorPicker,
+		NcCheckboxRadioSwitch,
+		CnIconPicker,
 	},
 
 	props: {
@@ -133,6 +185,55 @@ export default {
 			type: Object,
 			default: null,
 		},
+		/**
+		 * Optional upload transport for the Appearance icon picker:
+		 * `async (file) => dataUrlOrUrl`. When null, CnIconPicker embeds the
+		 * uploaded image as a data URL (same-origin, CSP-safe).
+		 *
+		 * @type {Function|null}
+		 */
+		uploadFn: {
+			type: Function,
+			default: null,
+		},
+		/**
+		 * Optional async fetcher returning the user's calendars
+		 * (`[{key, name, color}]`) for the calendar widget's picker. Provided
+		 * by the consuming app (which owns the calendar backend); when null the
+		 * calendar form falls back to free-text principal entry.
+		 *
+		 * @type {Function|null}
+		 */
+		calendarsFetcher: {
+			type: Function,
+			default: null,
+		},
+		/**
+		 * The surface the picker offers types for. `'detail-page'` surfaces
+		 * detail-only types (e.g. a second `data` widget) alongside the universal
+		 * widgets; the default `'app-dashboard'` lists the dashboard set. Types
+		 * with no declared `surfaces` appear on every surface.
+		 *
+		 * @type {string}
+		 */
+		surface: {
+			type: String,
+			default: 'app-dashboard',
+		},
+		/**
+		 * Authoritative object context `{ register, schema }` for the page hosting
+		 * the picker (supplied by the OpenBuild edit button from the ACTIVE page's
+		 * config). Provided down as `cnObjectContext` so the data sub-form resolves
+		 * the right schema even though the modal teleports out of the page's
+		 * ambient provide tree. Null on surfaces without a single object (e.g.
+		 * dashboards).
+		 *
+		 * @type {{register: string, schema: string}|null}
+		 */
+		dataContext: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: [
@@ -142,10 +243,14 @@ export default {
 		'submit',
 	],
 
-	setup() {
+	setup(props) {
 		// One composable instance per modal mount. The composable owns the
 		// type/content/editingWidget reactive state shared with sub-forms.
 		const form = useWidgetForm()
+		// Publish the page's object context to the (teleported) sub-forms so the
+		// data widget's property editor loads the ACTIVE page's schema, not
+		// whatever ambient context the modal lands next to in the DOM.
+		provide('cnObjectContext', computed(() => props.dataContext || null))
 		return { form }
 	},
 
@@ -158,6 +263,9 @@ export default {
 			validationTick: 0,
 			titleId: `cn-add-widget-modal-title-${++titleIdCounter}`,
 			typeSelectId: `cn-add-widget-modal-type-${++selectIdCounter}`,
+			// Widget chrome (title / background / icon) edited in the same modal
+			// as the per-type content and emitted back under `payload.chrome`.
+			chrome: { showTitle: true, customTitle: '', backgroundColor: '', customIcon: '' },
 		}
 	},
 
@@ -177,7 +285,19 @@ export default {
 		 * @return {string[]} the form-bearing type keys.
 		 */
 		availableTypes() {
-			return listWidgetTypes()
+			return listWidgetTypes(this.surface)
+		},
+
+		/**
+		 * Whether the active type's sub-form owns the widget title (declares
+		 * `ownsTitle` in its registry entry). When true the modal hides its
+		 * generic Title chrome so there aren't two title inputs.
+		 *
+		 * @return {boolean} true when the sub-form provides its own title field.
+		 */
+		activeTypeOwnsTitle() {
+			const entry = getWidgetTypeEntry(this.state.type)
+			return !!(entry && entry.ownsTitle)
 		},
 
 		/**
@@ -331,13 +451,38 @@ export default {
 		openLifecycle() {
 			if (this.editingWidget) {
 				this.form.loadEditingWidget(this.editingWidget)
+				this.seedChrome(this.editingWidget)
 				return
 			}
 			const initialType = this.preselectedType
 				|| this.availableTypes[0]
 				|| ''
 			this.form.resetForm(initialType)
+			this.seedChrome(null)
 			this.validationTick++
+		},
+
+		/**
+		 * Seed the Appearance controls (title / background / icon) from a
+		 * placement being edited, or to defaults in create mode. Reads chrome
+		 * fields from the placement's top level with a fallback to its `content`
+		 * (and `styleConfig.backgroundColor`), so it round-trips whatever shape
+		 * the consumer persists.
+		 *
+		 * @param {object|null} widget The placement being edited, or null.
+		 * @return {void}
+		 */
+		seedChrome(widget) {
+			const w = widget || {}
+			const c = (w.content && typeof w.content === 'object') ? w.content : {}
+			const pick = (...vals) => vals.find((v) => v !== undefined && v !== null)
+			const showRaw = pick(w.showTitle, c.showTitle)
+			this.chrome = {
+				showTitle: showRaw === undefined ? true : Boolean(Number(showRaw) || showRaw === true),
+				customTitle: pick(w.customTitle, c.customTitle, c.title) || '',
+				backgroundColor: pick(w.backgroundColor, w.styleConfig?.backgroundColor, c.styleConfig?.backgroundColor) || '',
+				customIcon: pick(w.customIcon, c.customIcon, c.icon) || '',
+			}
 		},
 
 		/**
@@ -405,6 +550,14 @@ export default {
 				return
 			}
 			const payload = this.form.assembleContent(this.$refs.activeSubForm)
+			// Carry the chrome (title / background / icon) alongside the content
+			// so the parent persists both from this single modal.
+			payload.chrome = {
+				showTitle: this.chrome.showTitle,
+				customTitle: this.chrome.customTitle,
+				customIcon: this.chrome.customIcon,
+				backgroundColor: this.chrome.backgroundColor,
+			}
 			this.$emit('submit', payload)
 		},
 
@@ -429,7 +582,7 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
-	max-height: 80vh;
+	max-height: 88vh;
 	min-width: 320px;
 }
 
@@ -461,13 +614,51 @@ export default {
 
 .cn-add-widget-modal__form {
 	overflow-y: auto;
-	flex: 1;
+	/* Prefer a roomy ~340px for the type-specific fields (data-driven widgets
+	   carry tall forms — columns, thresholds, data source); still shrinks with
+	   its own scroll on short viewports so the Appearance + actions stay visible. */
+	flex: 1 1 340px;
+	min-height: 0;
 }
 
 .cn-add-widget-modal__empty {
 	padding: 16px;
 	text-align: center;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-add-widget-modal__chrome {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	border-top: 1px solid var(--color-border);
+	padding-top: 12px;
+}
+
+.cn-add-widget-modal__chrome-title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-add-widget-modal__chrome-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.cn-add-widget-modal__chrome-label {
+	min-width: 96px;
+	font-size: 14px;
+}
+
+.cn-add-widget-modal__swatch {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	border-radius: 3px;
+	border: 1px solid var(--color-border);
 }
 
 .cn-add-widget-modal__actions {

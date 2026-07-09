@@ -74,35 +74,66 @@
 						<p v-if="description" class="cn-detail-page__description">
 							{{ description }}
 						</p>
+						<!-- Declarative cross-schema summary chips (manifest
+						     `config.summaryAggregates`). Count/sum/avg over a
+						     related schema scoped to this object via @objectId. -->
+						<CnSummaryAggregates
+							v-if="summaryAggregates && summaryAggregates.length > 0"
+							:aggregates="summaryAggregates" />
 					</div>
 				</div>
 			</slot>
 			<div class="cn-detail-page__header-actions">
+				<!-- Declarative lifecycle/transition buttons (manifest
+				     `config.lifecycleActions`). Status-gated; driven by the
+				     object's x-openregister-lifecycle. Renders nothing when no
+				     transitions apply. -->
+				<CnLifecycleActions
+					v-if="lifecycleActions && (objectId || currentObject)"
+					:object-id="objectId"
+					:object="currentObject"
+					:config="lifecycleActions"
+					@transitioned="onTransitioned"
+					@reload="onLifecycleReload" />
+				<!-- Declarative header actions (#91 Wave 3): a manifest
+				     `config.headerActions[]` renders as buttons (api-call /
+				     open-form / toggle / navigate) with visibleWhen gating —
+				     the object context this page provides drives `@objectId` /
+				     `@object.<field>` tokens + local predicates (the shillinq
+				     PaymentRunDetailActions contract). -->
+				<CnActionButtons
+					v-if="headerActions && headerActions.length"
+					:actions="headerActions"
+					data-testid="cn-detail-page-header-actions"
+					@created="onLifecycleReload" />
 				<!--
 					@slot actions
 					@description Right-hand action surface in the page header (typically NcActions
-					or buttons). Renders alongside (not inside) the `header` slot.
+					or buttons). Renders alongside (not inside) the `header` slot. Receives the
+					resolved object context so an actionsComponent (resolved by CnPageRenderer)
+					can act on the current record without re-fetching.
+					@binding {object} object The resolved record.
+					@binding {string} objectId The resolved object id.
+					@binding {object} schema The resolved schema.
+					@binding {string} objectType The resolved object type.
+					@binding {object} store The effective object store.
 				-->
-				<slot name="actions" />
-				<!-- Object-sidebar toggle — opens/closes the right sidebar (the
-				     sidebar defaults closed; its own X also closes it). Only shown
-				     when this page actually has an active sidebar. -->
-				<NcButton
-					v-if="hasObjectSidebar"
-					variant="tertiary"
-					:aria-label="t('nextcloud-vue', 'Toggle sidebar')"
-					:title="t('nextcloud-vue', 'Toggle sidebar')"
-					:pressed="objectSidebarOpen"
-					@click="toggleObjectSidebar">
-					<template #icon>
-						<PageLayoutSidebarRight :size="20" />
-					</template>
-				</NcButton>
+				<slot
+					name="actions"
+					:object="resolvedObject"
+					:object-id="objectId"
+					:schema="currentSchema"
+					:object-type="resolvedObjectType"
+					:store="effectiveObjectStore" />
+				<!-- NB: no sidebar-toggle here — NcObjectSidebar/NcAppSidebar
+				     renders its own open toggle (`.app-sidebar__toggle`) when
+				     closed and an X (`.app-sidebar__close`) when open, so a custom
+				     button would duplicate it. -->
 				<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot. -->
 				<CnOpenBuildEditButton />
 				<CnActionsMenu
-					:show-refresh="showRefresh"
-					:refreshing="refreshing"
+					:show-refresh="effectiveHeaderShowRefresh"
+					:refreshing="effectiveRefreshing"
 					:show-request-feature="showRequestFeature"
 					:documentation-url="documentationUrl"
 					:documentation-label="documentationLabel || undefined"
@@ -125,7 +156,7 @@
 			:expires-at="lockState.expiresAt.value" />
 
 		<!-- Loading state -->
-		<div v-if="loading" class="cn-detail-page__loading">
+		<div v-if="showLoadingState" class="cn-detail-page__loading">
 			<NcLoadingIcon :size="32" />
 			<span>{{ loadingLabel }}</span>
 		</div>
@@ -208,78 +239,129 @@
 					:store="effectiveObjectStore" />
 			</div>
 
-			<!-- Grid layout mode -->
-			<div v-if="hasGridLayout" class="cn-grid cn-grid--responsive cn-detail-page__grid">
-				<section
-					v-for="item in sortedLayout"
-					:key="item.id"
-					:style="cnGridCellStyle(item)"
-					class="cn-grid__item cn-detail-page__grid-item"
-					:class="{ 'cn-grid__item--row': hasGridRow(item) }"
-					:aria-labelledby="item.showTitle !== false && findWidget(item) ? `widget-title-${item.id}` : undefined">
-					<!-- In-app edit overlay (ADR-041): a configure cog appears on
-					     widgets that have a registered config form while the page
-					     is in OpenBuild edit mode. The modal's own Delete affordance
-					     covers removal, so no separate remove button here. -->
-					<div v-if="editingBody && registryFormFor(item)" class="cn-detail-page__widget-edit">
-						<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
-							<template #icon><Cog :size="18" /></template>
-						</NcButton>
+			<!-- Declarative in-body sections, `placement: "before-body"` —
+			     above the grid / stats / auto-body. -->
+			<CnBodySections
+				v-if="hasBodyWidgets"
+				:sections="bodyWidgets"
+				:context="sectionContext"
+				placement="before-body"
+				data-testid="cn-detail-body-sections-before-body" />
+
+			<!-- Adjustable widget grid (GridStack). The detail body is, at its
+			     core, a real drag/resize grid: by default it is seeded with the
+			     schema-driven Data + Related widgets (see `bodyGridLayout`), but in
+			     OpenBuild edit mode widgets can be moved, resized, configured and
+			     added. Explicit `layout` + `widgets` props (manifest grid pages)
+			     feed the same engine, so hand-authored grid pages also become
+			     draggable. -->
+			<CnDashboardGrid
+				v-if="hasBodyGrid"
+				:layout="bodyGridLayout"
+				:editable="editingBody"
+				:columns="12"
+				class="cn-detail-page__grid"
+				@layout-change="onBodyLayoutChange">
+				<template #widget="{ item }">
+					<div
+						class="cn-detail-page__grid-item"
+						:aria-labelledby="showGridTitle(item) ? `widget-title-${item.id}` : undefined">
+						<!-- In-app edit overlay (ADR-041): a configure cog appears on
+						     widgets that have a registered config form while the page
+						     is in OpenBuild edit mode. The modal's own Delete affordance
+						     covers removal, so no separate remove button here. -->
+						<div v-if="editingBody && registryFormFor(item)" class="cn-detail-page__widget-edit">
+							<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
+								<template #icon>
+									<Cog :size="18" />
+								</template>
+							</NcButton>
+						</div>
+						<!-- Section heading ONLY for consumer-supplied bare-content slots.
+						     Built-in widgets (data / related / integration / catalog)
+						     render their own titled card header, so a grid <h3> here would
+						     duplicate the title above the widget. -->
+						<h3
+							v-if="showGridTitle(item)"
+							:id="`widget-title-${item.id}`"
+							class="cn-detail-page__widget-title">
+							{{ findWidget(item).title }}
+						</h3>
+						<!--
+							@slot `widget-${item.widgetId}`
+							@description Per-widget slot whose name is `widget-<widgetId>`. Use
+							it to inject custom widget content into a grid slot. Default
+							fallback renders a registry widget: `type: 'data'` renders the
+							schema-driven data widget; `type: 'related'` the related-objects
+							widget; `type: 'integration'` resolves from the integration
+							registry; any other content-driven catalog type (stat / chart /
+							delta / gauge / object-list / …) renders its registered renderer.
+							@binding {object} item Layout item descriptor.
+							@binding {object} widget Resolved widget definition.
+						-->
+						<slot
+							:name="`widget-${item.widgetId}`"
+							:item="item"
+							:widget="findWidget(item)">
+							<!-- `type: 'data'` widget: render the schema-driven data
+							     widget with the page's loaded object + the def's
+							     per-property overrides. This is the default body widget. -->
+							<CnObjectDataWidget
+								v-if="isDataWidget(item) && currentSchema"
+								:title="findWidget(item).title || widgetContentFor(item).title || undefined"
+								:schema="currentSchema"
+								:object-data="currentObject"
+								:object-type="resolvedObjectType"
+								:store="effectiveObjectStore"
+								:overrides="widgetContentFor(item).overrides || {}"
+								:columns="widgetContentFor(item).columns || 3" />
+							<!-- `type: 'related'` widget: the related-objects widget,
+							     the second default body widget. Resolves this object's
+							     relations and links into integrations. -->
+							<CnRelatedObjectsWidget
+								v-else-if="isRelatedWidget(item)"
+								:title="findWidget(item).title || widgetContentFor(item).title || undefined"
+								:object-type="resolvedObjectType"
+								:object-id="objectId"
+								:object-data="currentObject"
+								:register="register"
+								:schema="schema"
+								:store="effectiveObjectStore"
+								:include-groups="widgetContentFor(item).groups || []"
+								@open-integration="onAutoBodyOpenIntegration" />
+							<!-- Fallback for `type: 'integration'` widget defs:
+							     render the registry widget on the detail-page
+							     surface. A consumer-supplied #widget-<id> slot
+							     still overrides this. -->
+							<component
+								:is="resolveIntegrationWidget(item)"
+								v-else-if="isIntegrationWidget(item) && resolveIntegrationWidget(item)"
+								v-bind="getIntegrationProps(item)" />
+							<!-- Fallback for content-driven catalog widgets
+							     (stat / chart / delta / gauge / object-list / …):
+							     render the registered renderer with the def's
+							     `content`. These self-fetch from OpenRegister.
+							     The current object's context is forwarded too (same
+							     shape CnWidgetGrid merges on the v2 widgets[] path) so
+							     object-aware catalog widgets — e.g. the `files` widget
+							     binding to this object's folder — receive it; widgets
+							     that don't declare these props ignore them. `content`
+							     is spread LAST so explicit widget config still wins. -->
+							<component
+								:is="registryRendererFor(item)"
+								v-else-if="registryRendererFor(item)"
+								:content="widgetContentFor(item)"
+								:object-id="objectId"
+								:register="register"
+								:schema="schema"
+								:object-data="currentObject"
+								:object-type="resolvedObjectType"
+								:store="effectiveObjectStore"
+								v-bind="widgetContentFor(item)" />
+						</slot>
 					</div>
-					<h3
-						v-if="item.showTitle !== false && findWidget(item)"
-						:id="`widget-title-${item.id}`"
-						class="cn-detail-page__widget-title">
-						{{ findWidget(item).title }}
-					</h3>
-					<!--
-						@slot `widget-${item.widgetId}`
-						@description Per-widget slot whose name is `widget-<widgetId>`. Use
-						it to inject custom widget content into a grid slot. Default
-						fallback renders a registry widget: `type: 'integration'` resolves
-						from the integration registry; any other content-driven catalog
-						type (stat / chart / delta / gauge / object-list / …) renders its
-						registered renderer with the widget def's `content`.
-						@binding {object} item Layout item descriptor.
-						@binding {object} widget Resolved widget definition.
-					-->
-					<slot
-						:name="`widget-${item.widgetId}`"
-						:item="item"
-						:widget="findWidget(item)">
-						<!-- `type: 'data'` widget: render the schema-driven data
-						     widget with the page's loaded object + the def's
-						     per-property overrides. Lets a detail page compose the
-						     data widget into a grid (instead of the auto-body). -->
-						<CnObjectDataWidget
-							v-if="isDataWidget(item) && currentSchema"
-							:title="findWidget(item).title || widgetContentFor(item).title || undefined"
-							:schema="currentSchema"
-							:object-data="currentObject"
-							:object-type="resolvedObjectType"
-							:store="effectiveObjectStore"
-							:overrides="widgetContentFor(item).overrides || {}"
-							:columns="widgetContentFor(item).columns || 3" />
-						<!-- Fallback for `type: 'integration'` widget defs:
-						     render the registry widget on the detail-page
-						     surface. A consumer-supplied #widget-<id> slot
-						     still overrides this. -->
-						<component
-							:is="resolveIntegrationWidget(item)"
-							v-else-if="isIntegrationWidget(item) && resolveIntegrationWidget(item)"
-							v-bind="getIntegrationProps(item)" />
-						<!-- Fallback for content-driven catalog widgets
-						     (stat / chart / delta / gauge / object-list / …):
-						     render the registered renderer with the def's
-						     `content`. These self-fetch from OpenRegister. -->
-						<component
-							:is="registryRendererFor(item)"
-							v-else-if="registryRendererFor(item)"
-							:content="widgetContentFor(item)"
-							v-bind="widgetContentFor(item)" />
-					</slot>
-				</section>
-			</div>
+				</template>
+			</CnDashboardGrid>
 
 			<!-- Statistics table -->
 			<div v-if="hasStats" class="cn-detail-page__stats">
@@ -318,37 +400,13 @@
 				</table>
 			</div>
 
-			<!-- Default vertical stacking mode -->
+			<!-- Default vertical stacking mode. The schema-driven auto-body (Data +
+			     Related) is now rendered by the adjustable grid above (seeded by
+			     `bodyGridLayout`), so this branch only carries hand-authored
+			     default-slot content when no widget grid is active. -->
 			<div v-else class="cn-detail-page__content">
-				<!-- Schema-driven auto-body: fires when the manifest passed
-				     register+schema+objectId, the object resolved, and no
-				     consumer-supplied slot content is present. Renders the
-				     data widget with the related-objects widget beneath it
-				     so a `type: "detail"` manifest page is meaningful without
-				     per-app code. Object metadata is reachable from the data
-				     widget's "Metadata" action item rather than a permanent
-				     widget. The consumer's slot below short-circuits the
-				     auto-body when present. -->
-				<div v-if="shouldRenderAutoBody" class="cn-grid cn-grid--responsive cn-detail-page__auto-body">
-					<div v-if="currentSchema" class="cn-grid__item" :style="cnGridCellStyle({ gridWidth: 12 })">
-						<CnObjectDataWidget
-							:schema="currentSchema"
-							:object-data="currentObject"
-							:object-type="resolvedObjectType"
-							:store="effectiveObjectStore" />
-					</div>
-					<div v-if="showRelatedObjects" class="cn-grid__item" :style="cnGridCellStyle({ gridWidth: 12 })">
-						<CnRelatedObjectsWidget
-							:object-type="resolvedObjectType"
-							:object-id="objectId"
-							:object-data="currentObject"
-							:store="effectiveObjectStore"
-							@open-integration="onAutoBodyOpenIntegration" />
-					</div>
-				</div>
-
 				<!-- Default content -->
-				<div v-else class="cn-detail-page__content">
+				<div v-if="!hasBodyGrid" class="cn-detail-page__content">
 					<!--
 						@slot default
 						@description Main body content rendered when no grid layout, no
@@ -368,6 +426,59 @@
 					<slot name="sections" />
 				</div>
 			</div>
+
+			<!-- Declarative in-body sections, `placement: "after-data"` —
+			     below the data/auto-body, above the related-object lists. -->
+			<CnBodySections
+				v-if="hasBodyWidgets"
+				:sections="bodyWidgets"
+				:context="sectionContext"
+				placement="after-data"
+				data-testid="cn-detail-body-sections-after-data" />
+
+			<!-- Declarative related-object list sections (manifest
+			     `config.relatedCollections`). Rendered below the detail body;
+			     each section's filter is scoped to this object via @objectId.
+			     An optional relation-link button opens CnRelationLinkModal. -->
+			<div
+				v-if="(relatedCollections && relatedCollections.length > 0) || (relationLinks && relationLinks.length > 0)"
+				class="cn-detail-page__related-collections">
+				<div v-if="relationLinks && relationLinks.length > 0" class="cn-detail-page__relation-links">
+					<NcButton
+						v-for="(link, li) in relationLinks"
+						:key="li"
+						class="cn-detail-page__relation-link-button"
+						:data-testid="`cn-detail-relation-link-${li}`"
+						@click="openRelationLink(link)">
+						<template #icon>
+							<Plus :size="18" />
+						</template>
+						{{ link.label || t('nextcloud-vue', 'Link related object') }}
+					</NcButton>
+				</div>
+				<CnRelatedCollections
+					v-if="relatedCollections && relatedCollections.length > 0"
+					:collections="relatedCollections"
+					@row-click="onRelatedRowClick" />
+			</div>
+
+			<!-- Declarative in-body sections, `placement: "after-related"` —
+			     below the related-object lists. -->
+			<CnBodySections
+				v-if="hasBodyWidgets"
+				:sections="bodyWidgets"
+				:context="sectionContext"
+				placement="after-related"
+				data-testid="cn-detail-body-sections-after-related" />
+
+			<!-- Declarative in-body sections, `placement: "end"` (the default
+			     placement) — the last body content, above the footer. -->
+			<CnBodySections
+				v-if="hasBodyWidgets"
+				:sections="endPlacementSections"
+				:context="sectionContext"
+				:placement="null"
+				data-testid="cn-detail-body-sections-end" />
 
 			<!-- Footer -->
 			<div v-if="$slots.footer" class="cn-detail-page__footer">
@@ -391,24 +502,47 @@
 			@save="onWidgetConfigSave"
 			@delete="onWidgetConfigDelete"
 			@close="showWidgetConfig = false" />
+
+		<!-- Relation-link modal (manifest `config.relationLinks`): async-search a
+		     target schema and patch a FK on the current object. -->
+		<CnRelationLinkModal
+			v-if="activeRelationLink"
+			:title="activeRelationLink.title || undefined"
+			:select-label="activeRelationLink.selectLabel || undefined"
+			:register="activeRelationLink.register"
+			:schema="activeRelationLink.schema"
+			:label-field="activeRelationLink.labelField || 'name'"
+			:allow-create="activeRelationLink.allowCreate === true"
+			:current-type="resolvedObjectType"
+			:current-object="currentObject || {}"
+			:fk-field="activeRelationLink.fkField"
+			@linked="onRelationLinked"
+			@close="activeRelationLink = null" />
 	</div>
 </template>
 
 <script>
-import { provide, ref } from 'vue'
+import { provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
-import PageLayoutSidebarRight from 'vue-material-design-icons/PageLayoutSidebarRight.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
+import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
+import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
+import { CnActionButtons } from '../CnActionButtons/index.js'
+import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
+import CnRelatedCollections from '../CnRelatedCollections/CnRelatedCollections.vue'
+import CnBodySections from '../CnBodySections/CnBodySections.vue'
 import CnWidgetStyleEditorModal from '../../modals/CnWidgetStyleEditorModal.vue'
+import CnRelationLinkModal from '../../modals/CnRelationLinkModal.vue'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import '../CnWidgetGrid/registerDashboardWidgets.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
@@ -416,6 +550,7 @@ import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { gridLayout } from '../../mixins/gridLayout.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
+import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 import { useObjectStore } from '../../store/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
@@ -510,10 +645,17 @@ export default {
 		CnLockedBanner,
 		CnObjectDataWidget,
 		CnRelatedObjectsWidget,
+		CnDashboardGrid,
+		CnLifecycleActions,
+		CnActionButtons,
+		CnSummaryAggregates,
+		CnRelatedCollections,
+		CnBodySections,
 		CnTranslatedBadge,
 		CnWidgetStyleEditorModal,
+		CnRelationLinkModal,
 		Cog,
-		PageLayoutSidebarRight,
+		Plus,
 	},
 
 	mixins: [gridLayout],
@@ -857,10 +999,21 @@ export default {
 			default: '',
 		},
 
-		/** Whether the Refresh entry renders in the page-header menu. */
+		/**
+		 * Whether the Refresh entry renders in the page-header menu.
+		 * Tri-state:
+		 * - `true` / `false` — force it on or off.
+		 * - `null` (the default) — **auto**: show Refresh only when it will
+		 *   do something, i.e. a consumer attached an `@refresh` listener OR
+		 *   the page is in schema-driven mode (`register` + `schema` +
+		 *   `objectId`) and can self-fetch. Legacy `objectType`-mode detail
+		 *   pages that never wire `@refresh` therefore show no dead button.
+		 *
+		 * @type {boolean|null}
+		 */
 		showRefresh: {
 			type: Boolean,
-			default: true,
+			default: null,
 		},
 
 		/**
@@ -877,6 +1030,133 @@ export default {
 		showRequestFeature: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Declarative lifecycle/transition actions (manifest `config.lifecycleActions`).
+		 * When set, renders status-gated transition buttons in the page header driven
+		 * by the object's `x-openregister-lifecycle`. Shape:
+		 * `{ field?: 'status', transitions?: [{ from, to, action, label, confirm?, variant? }], autoFetch?: boolean }`.
+		 * With just `{ field: 'status' }` the allowed transitions are fetched live from
+		 * OpenRegister's `/available-actions` endpoint (server-authoritative). An
+		 * explicit `transitions` array is filtered client-side by the object's current
+		 * state. Omit (default `null`) to keep the current behaviour (no transition
+		 * buttons). See `CnLifecycleActions`.
+		 *
+		 * @type {object|null}
+		 */
+		lifecycleActions: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Declarative header actions (manifest `config.headerActions`, #91
+		 * Wave 3) rendered as buttons in the page header via CnActionButtons —
+		 * `api-call` (POST/PUT + toast + refresh), `open-form`, `toggle`,
+		 * `navigate` / `open-modal`, each with an optional `visibleWhen`
+		 * predicate. Distinct from `lifecycleActions` (state-machine
+		 * transitions): these are free-form record actions (approve, send,
+		 * archive). The page's object context drives `@objectId` /
+		 * `@object.<field>` token + local-predicate resolution. Empty (the
+		 * default) renders nothing.
+		 *
+		 * @type {Array<object>}
+		 */
+		headerActions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Declarative related-object list sections (manifest
+		 * `config.relatedCollections`). Each entry renders a titled
+		 * `CnObjectListWidget` below the detail body, filtered to this object via
+		 * `@objectId` / `@object.<field>` tokens. Shape per entry:
+		 * `{ title?, register, schema, filter?, columns?, sort?, limit?, rowRoute? }`.
+		 * Empty / omitted (default `[]`) renders nothing. See `CnRelatedCollections`.
+		 *
+		 * @type {Array<object>}
+		 */
+		relatedCollections: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Declarative cross-schema summary chips (manifest
+		 * `config.summaryAggregates`). Each entry runs ONE count/sum/avg over a
+		 * related schema scoped to this object and shows it as a stat chip in the
+		 * header. Shape per entry:
+		 * `{ label, register, schema, metric?, field?, filter?, format? }`.
+		 * Empty / omitted (default `[]`) renders nothing. See `CnSummaryAggregates`.
+		 *
+		 * @type {Array<object>}
+		 */
+		summaryAggregates: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Declarative relation-link actions (manifest `config.relationLinks`).
+		 * Each entry renders a button that opens a search-and-link modal which
+		 * patches a foreign-key field on THIS object with the chosen object's id.
+		 * Shape per entry:
+		 * `{ label?, register, schema, fkField, labelField?, allowCreate?, title?, selectLabel? }`.
+		 * Empty / omitted (default `[]`) renders nothing.
+		 *
+		 * @type {Array<object>}
+		 */
+		relationLinks: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Declarative IN-BODY sections (manifest `config.bodyWidgets`). Each
+		 * entry renders a REGISTERED host-app component as a titled section in
+		 * the page BODY (not the sidebar), with the object/page context injected.
+		 * This is the primitive that lets a rich bespoke detail page (BRP panels,
+		 * activity timelines, comms history, relationship graphs, bookings, …)
+		 * become declarative while keeping its sections in the body. Shape per
+		 * entry:
+		 * `{ id?, component, title?, props?, placement?, colSpan? }`.
+		 *   - `component` — registry name resolved from the app's v2 `registry`
+		 *     (any `kind` exposing a `.component`, e.g. `kind:"section"` or
+		 *     `kind:"widget"`) or the legacy `customComponents` map. NO sidebar
+		 *     tab is required (unlike integration widgets).
+		 *   - `props` — values are token-resolved: `@objectId` → this object's id,
+		 *     `@object.<field>` → a field off it, `@workspace.<key>` → page
+		 *     context; unset `@…?` optional / unresolved tokens are dropped.
+		 *   - `placement` — `before-body` | `after-data` | `after-related` | `end`
+		 *     (default `end`). Controls where in the body the section lands.
+		 *   - `colSpan` — 1–12 grid span when sections share a placement.
+		 * The loaded object + objectId are also `provide`d on `cnSectionContext`
+		 * so a host component can inject them instead of taking explicit props.
+		 * Empty / omitted (default `[]`) renders nothing. See `CnBodySections`.
+		 *
+		 * @type {Array<{id?: string, component: string, title?: string, props?: object, placement?: string, colSpan?: number}>}
+		 */
+		bodyWidgets: {
+			type: Array,
+			default: () => [],
+		},
+		/**
+		 * Page-level app config map exposed to declarative widget / section
+		 * config via the `@config.<key>` token (e.g. the reporting `currency`
+		 * the setup wizard captures). Provided to descendants on `cnAppConfig`,
+		 * so a stat widget's `format: { style: 'currency', currency:
+		 * '@config.currency' }` formats with the configured value (falling back
+		 * to the literal default when unset). A manifest renderer typically seeds
+		 * this from `loadState(appId, 'config', {})`. Empty (default) leaves every
+		 * `@config.<key>` token to fall back to its literal default.
+		 *
+		 * @type {object}
+		 */
+		appConfig: {
+			type: Object,
+			default: () => ({}),
 		},
 	},
 
@@ -896,6 +1176,19 @@ export default {
 		const cnObjectContext = ref({ objectId: props.objectId || null, object: null, register: props.register || '', schema: props.schema || '' })
 		provide('cnObjectContext', cnObjectContext)
 		registryExposed.cnObjectContextRef = cnObjectContext
+
+		// Page-level APP CONFIG exposed to declarative widget / section config via
+		// the `@config.<key>` token (e.g. the reporting currency the setup wizard
+		// captures). Provided so CnStatWidget / CnBodySections can format with the
+		// configured value. Kept in sync with the `appConfig` prop.
+		const cnAppConfig = ref({ ...(props.appConfig || {}) })
+		provide('cnAppConfig', cnAppConfig)
+		registryExposed.cnAppConfigRef = cnAppConfig
+		watch(
+			() => props.appConfig,
+			(next) => { cnAppConfig.value = { ...(next || {}) } },
+			{ deep: true },
+		)
 
 		// Auto-subscribe + reactive lock state for the current object.
 		// Both are no-ops when objectStore is null (no Pinia active),
@@ -944,6 +1237,32 @@ export default {
 			 * seed in `syncSidebarState` so user close/toggle is not clobbered.
 			 */
 			sidebarSeeded: false,
+			/** The relation-link descriptor whose modal is currently open (or null). */
+			activeRelationLink: null,
+			/**
+			 * Materialized default body grid for the schema-driven auto-body (Data +
+			 * Related). Lazily built by `materializeAutoBody()` the first time the
+			 * object resolves so the detail body is a real, mutable GridStack grid
+			 * (drag / resize / configure) rather than a static stack. `null` until
+			 * materialized; reset when the schema-driven context changes.
+			 */
+			autoBodyLayout: null,
+			/** Widget definitions paired with `autoBodyLayout` (id ↔ widgetId). */
+			autoBodyWidgets: null,
+			/**
+			 * Drives the Actions-menu Refresh spinner during a schema-driven
+			 * self-fetch refresh, where the host has no promise to bind
+			 * `:refreshing` to. Mirrors CnIndexPage.internalRefreshing.
+			 */
+			internalRefreshing: false,
+			/**
+			 * Whether a load has completed at least once. Gates the
+			 * full-page loading state to the FIRST load only: once content
+			 * has been shown, later loads (refresh, re-fetch) stay in place
+			 * and surface as the action-button spinner instead of blanking
+			 * the page. Set true the first time `loading` falls to false.
+			 */
+			hasLoadedOnce: false,
 		}
 	},
 
@@ -974,13 +1293,41 @@ export default {
 		 */
 		configWidget() {
 			if (!this.configWidgetId) return null
-			const def = this.widgets.find((w) => w.id === this.configWidgetId)
+			const def = this.bodyGridWidgets.find((w) => w.id === this.configWidgetId)
 			return def || null
 		},
 
 		resolvedPageId() {
 			if (this.pageId) return this.pageId
 			return String(this.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+		},
+
+		/**
+		 * Whether to show the full-page loading state (spinner that replaces
+		 * the page content). Only on the FIRST load — when `loading` is true
+		 * and nothing has been shown yet. Once `hasLoadedOnce` is set, a
+		 * subsequent `loading` (refresh / re-fetch) keeps the existing
+		 * content in place; the action-button spinner signals the refresh
+		 * instead (see `effectiveRefreshing`).
+		 *
+		 * @return {boolean}
+		 */
+		showLoadingState() {
+			return this.loading && !this.hasLoadedOnce
+		},
+
+		/**
+		 * Refresh-spinner flag for the page-header Actions menu. True when:
+		 * an explicit `refreshing` prop is set; OR a schema-driven self-fetch
+		 * is in flight (`internalRefreshing`); OR a background load is running
+		 * after the first one completed (`loading && hasLoadedOnce`) — so
+		 * legacy `objectType` hosts get the spinner for free just by passing
+		 * `:loading`, without wiring `:refreshing` themselves.
+		 *
+		 * @return {boolean}
+		 */
+		effectiveRefreshing() {
+			return this.refreshing || this.internalRefreshing || (this.loading && this.hasLoadedOnce)
 		},
 
 		/**
@@ -1012,6 +1359,19 @@ export default {
 		 */
 		hasSchemaDrivenFetch() {
 			return Boolean(this.register && this.schema && this.objectId)
+		},
+
+		/**
+		 * Effective Refresh visibility for the page header. An explicit
+		 * `showRefresh` prop wins; when unset (`null`), show Refresh only if
+		 * it will do something — a consumer attached an `@refresh` listener,
+		 * or the page can self-fetch (`hasSchemaDrivenFetch`).
+		 *
+		 * @return {boolean}
+		 */
+		effectiveHeaderShowRefresh() {
+			if (this.showRefresh !== null) return this.showRefresh
+			return Boolean(this.$listeners.refresh) || this.hasSchemaDrivenFetch
 		},
 
 		/**
@@ -1129,6 +1489,43 @@ export default {
 		},
 
 		/**
+		 * Effective layout array driving the body grid. An explicit `layout` prop
+		 * (manifest grid page) wins; otherwise the materialized default auto-body
+		 * (Data + Related) is used when the schema-driven object has loaded.
+		 *
+		 * @return {Array} Layout items for CnDashboardGrid.
+		 */
+		bodyGridLayout() {
+			if (this.hasGridLayout) return this.layout
+			if (this.shouldRenderAutoBody) return this.autoBodyLayout || []
+			return []
+		},
+
+		/**
+		 * Effective widget-definition array paired with `bodyGridLayout`. Used by
+		 * the overridden `findWidget` so both the prop-driven and the default
+		 * auto-body grids resolve their widget defs from one place.
+		 *
+		 * @return {Array} Widget definitions.
+		 */
+		bodyGridWidgets() {
+			if (this.hasGridLayout) return this.widgets
+			if (this.shouldRenderAutoBody) return this.autoBodyWidgets || []
+			return []
+		},
+
+		/**
+		 * Whether the body renders as an adjustable widget grid (vs. the
+		 * hand-authored default slot). True for explicit grid pages and for the
+		 * schema-driven default Data + Related body.
+		 *
+		 * @return {boolean}
+		 */
+		hasBodyGrid() {
+			return this.bodyGridLayout.length > 0
+		},
+
+		/**
 		 * Whether the sidebar is rendered externally (via objectSidebarState inject)
 		 * rather than inline. When external, CnDetailPage only manages state —
 		 * the parent App renders the actual NcAppSidebar.
@@ -1197,28 +1594,59 @@ export default {
 			return this.statsColumns.length > 0 && (this.statsRows.length > 0 || !!this.$slots['stats-rows'])
 		},
 
-		/**
-		 * Whether this page has an active object sidebar (wired through the
-		 * external `objectSidebarState` channel). Drives the header
-		 * sidebar-toggle button's visibility.
-		 *
-		 * @return {boolean}
-		 */
-		hasObjectSidebar() {
-			return this.hasExternalSidebar && this.sidebarActive
+		/** Whether any declarative in-body sections are configured. */
+		hasBodyWidgets() {
+			return Array.isArray(this.bodyWidgets) && this.bodyWidgets.length > 0
 		},
 
 		/**
-		 * Current open state of the object sidebar (from the shared channel).
+		 * Sections that land at the END placement: those with no `placement`
+		 * (the default) or an explicit `placement: "end"`. The three named
+		 * placement mounts (before-body / after-data / after-related) filter by
+		 * exact value; this catches the rest so nothing is silently dropped.
 		 *
-		 * @return {boolean}
+		 * @return {Array}
 		 */
-		objectSidebarOpen() {
-			return !!(this.objectSidebarState && this.objectSidebarState.open === true)
+		endPlacementSections() {
+			if (!this.hasBodyWidgets) return []
+			const named = ['before-body', 'after-data', 'after-related']
+			return this.bodyWidgets.filter((s) => !s || !s.placement || !named.includes(s.placement))
+		},
+
+		/**
+		 * Page/object context forwarded to CnBodySections for token resolution
+		 * (`@objectId` / `@object.<field>` / `@workspace.<key>`) AND provided on
+		 * `cnSectionContext` for host section components that inject. Mirrors the
+		 * `cnObjectContext` ref the abstract list/stat widgets already read.
+		 *
+		 * @return {{objectId: (string|null), object: (object|null), register: string, schema: string}}
+		 */
+		sectionContext() {
+			const resolved = this.resolvedSidebar || {}
+			return {
+				objectId: (this.objectId !== undefined && this.objectId !== null) ? String(this.objectId) : null,
+				object: this.resolvedObject || null,
+				register: resolved.register || this.register || this.sidebarProps?.register || '',
+				schema: resolved.schema || this.schema || this.resolvedObjectType || this.sidebarProps?.schema || '',
+				config: this.cnAppConfigRef,
+			}
 		},
 	},
 
 	watch: {
+		// A load just settled (true → false) — remember it so later loads
+		// refresh in place (full-page spinner only on the first load). Not
+		// `immediate`: `loading` starts false before the first fetch begins,
+		// so reacting to that initial false would suppress the first spinner.
+		loading(val) {
+			if (!val) {
+				this.hasLoadedOnce = true
+				// Refresh settled — re-assert the sidebar state that
+				// syncSidebarState skipped while loading was in flight.
+				this.syncSidebarState()
+			}
+		},
+
 		sidebar: {
 			immediate: true,
 			handler() { this.syncSidebarState() },
@@ -1230,6 +1658,22 @@ export default {
 		currentObject: {
 			immediate: true,
 			handler() { this.syncObjectContext() },
+		},
+
+		// Materialize the default body grid (Data + Related) the first time the
+		// schema-driven object resolves so the detail body is an adjustable grid.
+		shouldRenderAutoBody: {
+			immediate: true,
+			handler(active) {
+				if (active && !this.autoBodyLayout) this.materializeAutoBody()
+			},
+		},
+
+		// A different schema means a fresh default grid — drop the materialized
+		// one so it rebuilds for the new object type.
+		resolvedObjectType() {
+			this.autoBodyLayout = null
+			this.autoBodyWidgets = null
 		},
 
 		title() { this.syncSidebarState() },
@@ -1306,12 +1750,22 @@ export default {
 		 * @param {{ widgetId: string, title: string }} payload - Action payload.
 		 * @param {object} event - Synthetic event (host may preventDefault).
 		 */
-		onHeaderRefresh(payload, event) {
+		async onHeaderRefresh(payload, event) {
 			/**
 			 * @event refresh The page-header Refresh action was clicked.
 			 * @type {{ widgetId: string, title: string }}
 			 */
 			this.$emit('refresh', payload, event)
+			// Schema-driven (manifest) detail pages self-fetch — without this
+			// the Refresh action has no host listener to act on and does
+			// nothing. Re-fetch the object + schema and spin the action.
+			if (!this.hasSchemaDrivenFetch) return
+			this.internalRefreshing = true
+			try {
+				await this.fetchObjectIfNeeded()
+			} finally {
+				this.internalRefreshing = false
+			}
 		},
 
 		/**
@@ -1350,6 +1804,67 @@ export default {
 		},
 
 		/**
+		 * Re-emit a successful lifecycle transition to the host.
+		 *
+		 * @param {{ action: string, to: string, object: object }} payload The transition result.
+		 */
+		onTransitioned(payload) {
+			/**
+			 * @event transitioned A declarative lifecycle transition succeeded on this
+			 * page's object. Payload is `{ action, to, object }`.
+			 * @type {{ action: string, to: string, object: object }}
+			 */
+			this.$emit('transitioned', payload)
+		},
+
+		/**
+		 * Re-fetch the page's object after a lifecycle transition so the new state
+		 * (and any other server-side mutations the guard applied) render.
+		 */
+		onLifecycleReload() {
+			this.fetchObjectIfNeeded()
+		},
+
+		/**
+		 * Open the relation-link modal for a configured `relationLinks` entry.
+		 *
+		 * @param {object} link The relation-link descriptor.
+		 */
+		openRelationLink(link) {
+			this.activeRelationLink = link
+		},
+
+		/**
+		 * A relation-link modal saved a patched FK — re-fetch the object and
+		 * re-emit so the host can react.
+		 *
+		 * @param {object} saved The updated object.
+		 */
+		onRelationLinked(saved) {
+			this.fetchObjectIfNeeded()
+			/**
+			 * @event relation-linked A relation-link action patched a foreign key on
+			 * this page's object. Payload is the updated object.
+			 * @type {object}
+			 */
+			this.$emit('relation-linked', saved)
+		},
+
+		/**
+		 * Re-emit a related-collection row click to the host.
+		 *
+		 * @param {{ collection: object, row: object, index: number }} payload The click payload.
+		 */
+		onRelatedRowClick(payload) {
+			/**
+			 * @event related-row-click A row in a `relatedCollections` section was
+			 * clicked. Payload is `{ collection, row, index }`.
+			 * @type {{ collection: object, row: object, index: number }}
+			 */
+			this.$emit('related-row-click', payload)
+		},
+
+		/**
 		 * Schema-driven fetch entry point — no-op outside the
 		 * `register`+`schema`+`objectId` mode. Registers the type on
 		 * the store with the canonical 4-arg signature (matches what
@@ -1373,7 +1888,14 @@ export default {
 			// the positional id slots is intentional (OR's REST accepts
 			// either numeric ids or kebab slugs there), and the 4th-arg
 			// hints feed the live-updates transport.
-			if (typeof store.registerObjectType === 'function') {
+			// Register the type ONCE. `registerObjectType` resets the type's
+			// cache (`objects[type] = {}`, `schemas[type] = null`), so calling
+			// it on every refresh blanks the object + schema until the
+			// re-fetch lands — the content visibly disappears mid-refresh.
+			// Skip re-registration when the type is already registered so a
+			// refresh re-fetches and replaces the data in place.
+			if (typeof store.registerObjectType === 'function'
+				&& !store.objectTypeRegistry?.[type]) {
 				store.registerObjectType(
 					type,
 					this.schema,
@@ -1461,6 +1983,122 @@ export default {
 		},
 
 		/**
+		 * Whether a grid item is the schema-driven `related` widget — rendered via
+		 * CnRelatedObjectsWidget with the page's loaded object. One of the two
+		 * default body widgets.
+		 *
+		 * @param {object} item Layout item
+		 * @return {boolean} true when the matching widget def is `type: 'related'`.
+		 */
+		isRelatedWidget(item) {
+			const def = this.findWidget(item)
+			return Boolean(def) && def.type === 'related'
+		},
+
+		/**
+		 * Whether to render the grid section `<h3>` title above a widget. Only for
+		 * consumer-supplied `#widget-<id>` slots (whose content may be bare) — the
+		 * built-in widget renderers (data / related / integration / catalog) draw
+		 * their own titled card header, so a grid heading would show the title
+		 * twice. Honours `item.showTitle === false` to opt out entirely.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} true when the grid heading should render.
+		 */
+		showGridTitle(item) {
+			if (item.showTitle === false || !this.findWidget(item)) return false
+			return Boolean(this.$scopedSlots[`widget-${item.widgetId}`] || this.$slots[`widget-${item.widgetId}`])
+		},
+
+		/**
+		 * Resolve the widget definition for a layout item. Overrides the
+		 * gridLayout mixin's `findWidget` (which only reads the `widgets` prop) so
+		 * the materialized default auto-body widgets resolve too. Searches the
+		 * effective `bodyGridWidgets`.
+		 *
+		 * @param {{ widgetId: string }} item Layout item.
+		 * @return {object|undefined} The matching widget definition.
+		 */
+		findWidget(item) {
+			return this.bodyGridWidgets.find((w) => w.id === item.widgetId)
+		},
+
+		/**
+		 * Build the default body grid for the schema-driven auto-body: a full-width
+		 * Data widget with the Related-objects widget beneath it. Materialized once
+		 * (lazily) so the geometry is a mutable, reactive array the user can drag /
+		 * resize in edit mode. Both widgets carry `showTitle: false` because they
+		 * render their own card chrome.
+		 */
+		materializeAutoBody() {
+			// One source of truth (shared with the OpenBuild edit button's
+			// "eject" on edit) so the in-memory default and the manifest-ejected
+			// default are identical. The data widget's content carries the page's
+			// register/schema so its per-property editor can resolve the schema
+			// (empty on legacy objectType-only mounts → the editor falls back to
+			// the injected `cnObjectContext`).
+			const grid = defaultDetailGrid({
+				register: this.register || '',
+				schema: this.schema || '',
+				showRelated: this.showRelatedObjects,
+			})
+			// Drop the Data widget when there's no schema to render (the helper
+			// always includes it; the auto-body only shows it with a schema).
+			if (!this.currentSchema) {
+				grid.widgets = grid.widgets.filter((w) => w.widgetId !== 'data')
+				grid.layout = grid.layout.filter((l) => l.widgetId !== 'data')
+			}
+			this.autoBodyWidgets = grid.widgets
+			this.autoBodyLayout = grid.layout
+		},
+
+		/**
+		 * Persist a drag/resize from the body grid. For the default auto-body the
+		 * new geometry is kept locally so the move sticks; for an explicit `layout`
+		 * prop the change is emitted upward (`layout-change` + `update:layout`) for
+		 * the manifest renderer / host to persist.
+		 *
+		 * @param {Array} updated The new layout array from CnDashboardGrid.
+		 *
+		 * @event layout-change Emitted with the updated body-grid layout. The
+		 *   sibling `update:layout` event is also emitted so `:layout.sync`
+		 *   consumers stay in sync.
+		 */
+		onBodyLayoutChange(updated) {
+			if (this.hasGridLayout) {
+				// Config-backed grid (manifest editor, ADR-041): the `layout` prop is
+				// the SAME array the working manifest holds (the route-sentinel
+				// resolver is reference-preserving), so write the new geometry back
+				// onto its items in place — Save page then persists the resize.
+				for (const u of updated) {
+					const item = this.layout.find((l) => String(l.id) === String(u.id))
+					if (item) {
+						item.gridX = u.gridX
+						item.gridY = u.gridY
+						item.gridWidth = u.gridWidth
+						item.gridHeight = u.gridHeight
+					}
+				}
+			} else {
+				// In-memory default grid — keep the new geometry locally so the move
+				// sticks for the session (un-customised page, nothing to persist).
+				this.autoBodyLayout = updated
+			}
+			/**
+			 * @event layout-change Emitted when a body-grid widget is dragged or
+			 *   resized. Payload is the updated layout array.
+			 * @type {Array}
+			 */
+			this.$emit('layout-change', updated)
+			/**
+			 * @event update:layout Sibling of `layout-change` so `:layout.sync`
+			 *   consumers stay in sync.
+			 * @type {Array}
+			 */
+			this.$emit('update:layout', updated)
+		},
+
+		/**
 		 * The registered config FORM for a grid item's widget type, or null.
 		 * Used to gate the per-widget configure cog (only configurable widgets
 		 * show one) in OpenBuild edit mode.
@@ -1526,7 +2164,7 @@ export default {
 		 * @type {object}
 		 */
 		onWidgetConfigSave(edited) {
-			const def = this.widgets.find((w) => w.id === this.configWidgetId)
+			const def = this.bodyGridWidgets.find((w) => w.id === this.configWidgetId)
 			if (def) {
 				if (edited.title !== undefined) this.$set(def, 'title', edited.title)
 				if (edited.content !== undefined) this.$set(def, 'content', edited.content)
@@ -1554,10 +2192,19 @@ export default {
 		 */
 		onWidgetConfigDelete(_w) {
 			const id = this.configWidgetId
-			const wIdx = this.widgets.findIndex((w) => w.id === id)
-			if (wIdx !== -1) this.widgets.splice(wIdx, 1)
-			const lIdx = this.layout.findIndex((l) => l.widgetId === id)
-			if (lIdx !== -1) this.layout.splice(lIdx, 1)
+			// Drop from whichever pair backs the active grid: the explicit
+			// `layout`/`widgets` props (manifest grid page) or the materialized
+			// default auto-body arrays.
+			const widgetArr = this.hasGridLayout ? this.widgets : this.autoBodyWidgets
+			const layoutArr = this.hasGridLayout ? this.layout : this.autoBodyLayout
+			if (Array.isArray(widgetArr)) {
+				const wIdx = widgetArr.findIndex((w) => w.id === id)
+				if (wIdx !== -1) widgetArr.splice(wIdx, 1)
+			}
+			if (Array.isArray(layoutArr)) {
+				const lIdx = layoutArr.findIndex((l) => l.widgetId === id)
+				if (lIdx !== -1) layoutArr.splice(lIdx, 1)
+			}
 			this.showWidgetConfig = false
 			this.$emit('widget-config-change', null)
 		},
@@ -1606,40 +2253,27 @@ export default {
 		 * `tabs` so a hidden detail page does not leak prior tab
 		 * state to the next mount.
 		 */
-		/**
-		 * Toggle the object sidebar open/closed via the shared channel. Wired to
-		 * the header sidebar-toggle button; the sidebar's own X also closes it
-		 * (CnObjectSidebar → `update:open` → CnAppRoot writes the channel).
-		 *
-		 * @return {void}
-		 */
-		toggleObjectSidebar() {
-			if (!this.objectSidebarState) return
-			this.objectSidebarState.open = !(this.objectSidebarState.open === true)
-		},
-
 		syncSidebarState() {
 			if (!this.hasExternalSidebar) return
 			this.warnIfDeprecatedSidebarShape()
+			// During a background refresh (content stays in place — see
+			// `hasLoadedOnce`), a transient loading-driven `enabled: false`
+			// must NOT tear down the sidebar. Hosts commonly bind
+			// `:sidebar="{ enabled: !loading }"`, so without this guard every
+			// refresh unmounts the host's CnObjectSidebar and re-fetches all
+			// its sub-resources (files/notes/tags/tasks/audit). Skip the sync
+			// while refreshing; the `loading` watcher re-syncs once it settles.
+			if (this.loading && this.hasLoadedOnce) return
 			const r = this.resolvedSidebar
 			if (this.sidebarActive && this.resolvedObjectType && this.objectId) {
 				const merged = this.mergeSidebarSources(r)
-				this.objectSidebarState.active = true
 				// Seed `open` only on the inactive→active edge (first activation
 				// of this object). Subsequent syncs must NOT clobber it, otherwise
 				// the user's close/toggle would be undone on the next reactive
 				// change. The shared channel owns `open` after seeding.
 				if (!this.sidebarSeeded) {
-					this.objectSidebarState.open = this.sidebarOpen
 					this.sidebarSeeded = true
 				}
-				this.objectSidebarState.objectType = this.resolvedObjectType
-				this.objectSidebarState.objectId = this.objectId
-				this.objectSidebarState.title = merged.title || this.title || ''
-				this.objectSidebarState.subtitle = merged.subtitle || this.subtitle || ''
-				this.objectSidebarState.register = merged.register || this.register || ''
-				this.objectSidebarState.schema = merged.schema || this.schema || ''
-				this.objectSidebarState.hiddenTabs = merged.hiddenTabs || []
 				// Manifest-driven open-enum tabs (forwarded to the host
 				// app's mounted CnObjectSidebar via inject). When the
 				// top-level `sidebarTabs` prop is non-empty it provides
@@ -1647,14 +2281,53 @@ export default {
 				// `sidebar.tabs` / `sidebarProps.tabs` legacy paths win.
 				// Falls back to `undefined` so the host's CnObjectSidebar
 				// renders its built-in tab set.
-				this.objectSidebarState.tabs = (this.sidebarTabs && this.sidebarTabs.length > 0)
+				const tabs = (this.sidebarTabs && this.sidebarTabs.length > 0)
 					? this.sidebarTabs
 					: merged.tabs
+				this.assignSidebarState({
+					active: true,
+					open: this.sidebarOpen,
+					objectType: this.resolvedObjectType,
+					objectId: this.objectId,
+					title: merged.title || this.title || '',
+					subtitle: merged.subtitle || this.subtitle || '',
+					register: merged.register || this.register || '',
+					schema: merged.schema || this.schema || '',
+					hiddenTabs: merged.hiddenTabs || [],
+					tabs,
+				})
 			} else {
-				this.objectSidebarState.active = false
-				this.objectSidebarState.tabs = undefined
+				this.assignSidebarState({ active: false, tabs: undefined })
 				// Re-arm the seed so the next activation re-applies `sidebarOpen`.
 				this.sidebarSeeded = false
+			}
+		},
+		/**
+		 * Apply fields onto the shared `objectSidebarState` only when they
+		 * actually change. Writing the same logical value — notably a fresh
+		 * `[]` for `hiddenTabs` when none is configured — would otherwise put
+		 * a new array reference on the reactive object every call and trigger
+		 * a host re-render. That churn fed an infinite render loop: the host
+		 * App re-renders on the new `hiddenTabs` ref → its `<router-view>`
+		 * re-renders the routed detail page → the page's inline `:sidebar`
+		 * prop re-fires this sync → repeat. Arrays are compared shallowly so
+		 * an equivalent array is treated as unchanged.
+		 *
+		 * @param {object} fields Partial `objectSidebarState` to apply.
+		 */
+		assignSidebarState(fields) {
+			const state = this.objectSidebarState
+			for (const key of Object.keys(fields)) {
+				const next = fields[key]
+				const cur = state[key]
+				if (Array.isArray(next) && Array.isArray(cur)
+					&& next.length === cur.length
+					&& next.every((v, i) => v === cur[i])) {
+					continue
+				}
+				if (cur !== next) {
+					state[key] = next
+				}
 			}
 		},
 

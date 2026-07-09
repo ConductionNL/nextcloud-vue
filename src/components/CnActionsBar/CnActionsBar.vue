@@ -21,17 +21,21 @@
 			     sliding thumb that animates between the two segments. -->
 			<div v-if="showViewToggle"
 				class="cn-actions-bar__view-toggle"
+				:class="{ 'cn-actions-bar__view-toggle--three': showMap }"
 				role="group"
 				:aria-label="t('nextcloud-vue', 'View mode')">
-				<!-- Sliding pill that sits behind the active segment. -->
+				<!-- Sliding pill that sits behind the active segment. Its horizontal
+				     position is a `--pos-N` class derived from the active segment's
+				     index (0 = cards, 1 = table, 2 = map), so the same markup drives
+				     both the two- and three-segment layouts. -->
 				<span
 					class="cn-actions-bar__view-toggle-thumb"
-					:class="{ 'cn-actions-bar__view-toggle-thumb--right': viewMode === 'table' }"
+					:class="viewToggleThumbClass"
 					aria-hidden="true" />
 				<!--
 					@event view-mode-change
-					@description User clicked one of the view-mode toggle buttons (Cards / Table). Payload is the selected mode string.
-					@type {'cards' | 'table'}
+					@description User clicked one of the view-mode toggle buttons (Cards / Table / Map). Payload is the selected mode string.
+					@type {'cards' | 'table' | 'map'}
 				-->
 				<button
 					type="button"
@@ -59,7 +63,24 @@
 					<FormatListBulletedSquare v-else :size="24" class="cn-actions-bar__view-toggle-icon" />
 					<span class="cn-actions-bar__view-toggle-label">{{ tableLabel || t('nextcloud-vue', 'Table') }}</span>
 				</button>
+				<button
+					v-if="showMap"
+					type="button"
+					class="cn-actions-bar__view-toggle-btn"
+					:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === 'map' }"
+					:aria-pressed="viewMode === 'map'"
+					@click="$emit('view-mode-change', 'map')">
+					<CnIcon v-if="mapIcon"
+						:name="mapIcon"
+						:size="24"
+						class="cn-actions-bar__view-toggle-icon" />
+					<MapMarkerOutline v-else :size="24" class="cn-actions-bar__view-toggle-icon" />
+					<span class="cn-actions-bar__view-toggle-label">{{ mapLabel || t('nextcloud-vue', 'Map') }}</span>
+				</button>
 			</div>
+
+			<!-- @slot filters Inline filter controls rendered inside the action bar, between the view toggle and the add/actions (e.g. a CnQuickFilterBar segmented toggle). -->
+			<slot name="filters" />
 
 			<!-- Search / Columns sidebar toggle (opt-in). Icon-only; reflects the
 			     open state via aria-pressed so the index sidebar can default
@@ -88,6 +109,7 @@
 				variant="primary"
 				:disabled="addDisabled"
 				data-testid="cn-cta-primary"
+				data-walkthrough-id="index-add"
 				@click="$emit('add')">
 				<template #icon>
 					<CnIcon v-if="addIcon" :name="addIcon" :size="20" />
@@ -239,6 +261,7 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import Tune from 'vue-material-design-icons/Tune.vue'
 import ViewGridOutline from 'vue-material-design-icons/ViewGridOutline.vue'
+import MapMarkerOutline from 'vue-material-design-icons/MapMarkerOutline.vue'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -277,6 +300,7 @@ export default {
 		Tune,
 		ViewGridOutline,
 		FormatListBulletedSquare,
+		MapMarkerOutline,
 	},
 
 	props: {
@@ -346,11 +370,11 @@ export default {
 			default: true,
 		},
 
-		/** Current view mode: 'table' or 'cards' */
+		/** Current view mode: 'table', 'cards' or 'map' */
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards'].includes(v),
+			validator: (v) => ['table', 'cards', 'map'].includes(v),
 		},
 
 		/** Whether to show the Cards/Table view toggle */
@@ -379,6 +403,24 @@ export default {
 
 		/** MDI icon name for the table option (defaults to the built-in list icon). Resolved via CnIcon. */
 		tableIcon: {
+			type: String,
+			default: '',
+		},
+
+		/** Whether to render the third "Map" segment in the view toggle. Off by default so existing two-segment consumers are unchanged. */
+		showMap: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Label for the map view-toggle option (defaults to "Map"). Only shown when `showMap`. */
+		mapLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the map option (defaults to the built-in map-marker icon). Resolved via CnIcon. */
+		mapIcon: {
 			type: String,
 			default: '',
 		},
@@ -475,6 +517,23 @@ export default {
 		countText() {
 			if (!this.pagination) return ''
 			return t('nextcloud-vue', 'Showing {count} of {total}', { count: this.objectCount, total: this.pagination.total })
+		},
+
+		/**
+		 * Position class for the sliding thumb, derived from the active segment's
+		 * index in the ordered mode list (cards, table, [map]). `--pos-1` shifts it
+		 * one segment right (table), `--pos-2` two (map); index 0 (cards) needs no
+		 * class. Works for both the two- and three-segment layouts because the
+		 * thumb width scales with segment count, so one translate step always
+		 * equals one segment.
+		 */
+		viewToggleThumbClass() {
+			const modes = this.showMap ? ['cards', 'table', 'map'] : ['cards', 'table']
+			const idx = Math.max(0, modes.indexOf(this.viewMode))
+			return {
+				'cn-actions-bar__view-toggle-thumb--pos-1': idx === 1,
+				'cn-actions-bar__view-toggle-thumb--pos-2': idx === 2,
+			}
 		},
 
 		hasMassActions() {

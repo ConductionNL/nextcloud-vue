@@ -39,11 +39,11 @@
 				required
 				@update:value="updateField('url', $event)" />
 
-			<NcTextField
+			<CnIconBrowser
 				:value="icon"
 				:label="t('nextcloud-vue', 'Icon (optional)')"
-				:placeholder="t('nextcloud-vue', 'Icon name or URL')"
-				@update:value="updateField('icon', $event)" />
+				allow-url
+				@input="updateField('icon', $event)" />
 		</template>
 
 		<!-- Widget-level colours (apply to button mode AND list items
@@ -138,11 +138,11 @@
 								:placeholder="urlPlaceholderFor(link.actionType)"
 								required
 								@update:value="updateLinkField(index, 'url', $event)" />
-							<NcTextField
+							<CnIconBrowser
 								:value="link.icon"
 								:label="t('nextcloud-vue', 'Icon (optional)')"
-								:placeholder="t('nextcloud-vue', 'Icon')"
-								@update:value="updateLinkField(index, 'icon', $event)" />
+								allow-url
+								@input="updateLinkField(index, 'icon', $event)" />
 							<NcTextField
 								v-if="link.actionType === 'createFile'"
 								:value="link.value"
@@ -179,6 +179,7 @@
 <script>
 import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 
 const ACTION_TYPES = Object.freeze({
 	EXTERNAL: 'external',
@@ -268,6 +269,7 @@ export default {
 	components: {
 		NcTextField,
 		NcSelect,
+		CnIconBrowser,
 	},
 
 	props: {
@@ -593,6 +595,17 @@ export default {
 	justify-content: space-between;
 	gap: 12px;
 	font-size: 14px;
+}
+
+.cn-link-button-widget-form__icon-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.cn-link-button-widget-form__icon-label {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-link-button-widget-form__color {

@@ -11,6 +11,14 @@
 
 import { mount } from '@vue/test-utils'
 import CnWidgetStyleEditorModal from '../../src/modals/CnWidgetStyleEditorModal.vue'
+import { registerDashboardWidget } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+
+const stubForm = { name: 'StubForm', render: (h) => h('div') }
+// A typed widget that does NOT own its chrome title (like `header`): the
+// "Show title" toggle must still be editable here.
+registerDashboardWidget('test-typed-noown', { renderer: stubForm, form: stubForm, defaultContent: {}, displayName: 'NoOwn', icon: 'X' })
+// A typed widget that owns its own title: the chrome title toggle is suppressed.
+registerDashboardWidget('test-typed-own', { renderer: stubForm, form: stubForm, defaultContent: {}, displayName: 'Own', icon: 'X', ownsTitle: true })
 
 /**
  * Mount the modal over a fresh widget object.
@@ -139,5 +147,27 @@ describe('CnWidgetStyleEditorModal', () => {
 		const widget = { title: 'Sales', styleConfig: {} }
 		const wrapper = mountModal(widget, { deletable: false })
 		expect(wrapper.find('[data-testid="cn-widget-style-delete"]').exists()).toBe(false)
+	})
+
+	// Regression: the "Show title" toggle controls the CnWidgetWrapper chrome
+	// header and must be editable for typed widgets that don't own their title
+	// (e.g. `header`) — previously gated by `!hasTypeForm`, which hid it whenever
+	// a type contributed a content form, so you could only set it at create time.
+	it('shows the Show-title toggle for a typed widget that does not own its title', () => {
+		const wrapper = mountModal({ type: 'test-typed-noown', title: 'Banner', styleConfig: {} })
+		expect(wrapper.find('[data-testid="cn-widget-style-show-title"]').exists()).toBe(true)
+	})
+
+	it('edits showTitle on a typed widget and persists it on Save', () => {
+		const widget = { type: 'test-typed-noown', title: 'Banner', showTitle: true, styleConfig: {} }
+		const wrapper = mountModal(widget)
+		wrapper.vm.draft.showTitle = false
+		wrapper.vm.onSave()
+		expect(widget.showTitle).toBe(false)
+	})
+
+	it('suppresses the Show-title toggle for a typed widget that owns its title', () => {
+		const wrapper = mountModal({ type: 'test-typed-own', title: 'Data', styleConfig: {} })
+		expect(wrapper.find('[data-testid="cn-widget-style-show-title"]').exists()).toBe(false)
 	})
 })

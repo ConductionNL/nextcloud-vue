@@ -1,50 +1,70 @@
 # CnSuggestFeatureModal
 
-Feature-request submission dialog. Title field (3–200 chars, required), body
-markdown textarea (≥ 10 chars, required), live markdown preview, optional hidden
-`specRef` field. On submit, POSTs to OpenRegister's `github-issue-proxy` with the
-Nextcloud CSRF token.
+Proposal-grade feature-request dialog. Five structured fields (`title`,
+`problem`, `proposedSolution`, `whoBenefits`, `priorityToYou`) plus one optional
+context field (`anythingElse`), with auto-captured context (`app`, `page`,
+`surface`, `object`, `specRef`).
+
+On submit the modal does **not** post anywhere — it opens a pre-filled "new
+issue" deep-link on the configured forge in a new tab; the user reviews and
+submits under their own forge account. Fully client-side: no app token, no
+proxy, no server-side write path.
+
+## Forge configuration
+
+The target forge is set by the `forge` prop and defaults to **Codeberg**
+(the fleet's current source of truth). Each forge type is deep-linked
+differently — see [`src/utils/forge.js`](../../src/utils/forge.js):
+
+| `forge.type` | How the issue is pre-filled |
+|---|---|
+| `codeberg` (default) / `forgejo` / `gitea` | Forgejo/Gitea only support `?title=` + `?body=`, so the structured fields are assembled into a Markdown `body`. |
+| `github` | GitHub Issue Forms support per-field deep-linking: `template=feature-request.yml` plus one query param per form-field id (`problem`, `proposed-solution`, …). |
+
+Switching the whole fleet's forge is a one-line manifest change
+(`nav.forge`); see [CnAppRoot](cn-app-root.md) and the manifest schema. For
+`forgejo`/`gitea` a `baseUrl` is required (self-hosted); `codeberg`/`github`
+fall back to their canonical public hosts.
 
 ## Props
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
-| `repo` | String | Yes | `<owner>/<repo>` slug — sent as the `repo` field in the submission body. |
-| `specRef` (`spec-ref`) | String | No | Optional kebab-case capability slug. When set, the modal includes it in the POST body, the backend applies a `specRef:<slug>` label and a body suffix per the spec. Typically supplied via `useSpecRef()` from the surrounding context. |
+| `repo` | String | Yes | `<owner>/<repo>` slug on the forge (e.g. `Conduction/pipelinq`). |
+| `forge` | Object | No | `{ type, baseUrl? }`. Selects the target forge + URL strategy. Defaults to `{ type: 'codeberg', baseUrl: 'https://codeberg.org' }`. |
+| `specRef` (`spec-ref`) | String | No | Optional kebab-case capability slug linking the suggestion to an existing spec capability. Typically supplied via `useSpecRef()`. |
+| `conductionSubmitEnabled` | Boolean | No (`false`) | Enables the secondary "Send to Conduction" button (Path B) alongside the primary forge deep-link. Disabled with a tooltip until the host opts in. |
+
+### Context props
+
+Each is auto-captured by the host (e.g. `CnActionsMenu` / `CnFeaturesAndRoadmapView`) and forwarded into the issue so the request records where it originated.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `app` | String | `''` | Host app id. |
+| `page` | String | `''` | Page id / route the request was raised from. |
+| `surface` | String | `''` | Surface (e.g. `widget:<id>`, `detail:<id>`, `dashboard:<id>`). |
+| `object` | String | `''` | OpenRegister object reference (register · schema · uuid). |
 
 ## Events
 
 | Event | Payload | Trigger |
 |---|---|---|
-| `submitted` | `{number, html_url, state, specRef?, used_server_pat}` | POST returns 201 |
-| `close` | — | user cancel OR after `submitted` |
+| `submit-conduction` | `{title, problem, proposedSolution, whoBenefits, priorityToYou, anythingElse, repo, specRef, app, page, surface, object}` | user clicks "Send to Conduction" (only when `conductionSubmitEnabled`) |
+| `close` | — | user cancels, or after either submission path hands off |
 
-## Error states
-
-| Server response | Handling |
-|---|---|
-| 201 | emit `submitted`, close |
-| 400 (validation) | inline error, dialog stays open |
-| 412 (CSRF / not authed) | passes through framework's middleware error |
-| 429 (rate limited) | inline "Submitting too fast — wait Ns" message |
-| 503 (PAT not configured) | inline "GitHub submissions not configured" message |
+The primary "Continue on \<forge\>" button opens the deep-link via
+`window.open(...)` and then emits `close` — there is no success event for
+Path A, since submission completes on the forge.
 
 ## Security
 
-The live preview uses the same `cnRenderMarkdown` → `DOMPurify.sanitize()`
-pipeline as `CnRoadmapItem`, with the exported `SAFE_MARKDOWN_DOMPURIFY_CONFIG`.
+Validation is purely client-side (length checks per field). The deep-link is
+built with `URLSearchParams`, so all field content is URL-encoded.
 
 ## Reference
 
 - Spec: `openspec/changes/add-features-roadmap-menu/specs/features-roadmap-component/spec.md`
   → Requirement "CnSuggestFeatureModal"
+- Forge URL builder: [src/utils/forge.js](../../src/utils/forge.js)
 - Implementation: [src/components/CnSuggestFeatureModal/CnSuggestFeatureModal.vue](../../src/components/CnSuggestFeatureModal/CnSuggestFeatureModal.vue)
-
-## Context props
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `page` | String | `''` | Auto-captured page id / route the request was raised from. |
-| `surface` | String | `''` | Auto-captured surface (e.g. `widget:<id>`, `index:<schema>`). |
-| `object` | String | `''` | Auto-captured OpenRegister object reference (register · schema · uuid). |
-| `conductionSubmitEnabled` | Boolean | `false` | Enable the "Send to Conduction" (Path B) submit option in addition to the GitHub deep-link. |

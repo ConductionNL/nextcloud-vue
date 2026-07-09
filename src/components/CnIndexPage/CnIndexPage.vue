@@ -39,6 +39,9 @@
 			:table-label="tableLabel"
 			:cards-icon="cardsIcon"
 			:table-icon="tableIcon"
+			:show-map="showMapSegment"
+			:map-label="mapLabel"
+			:map-icon="mapIcon"
 			:show-search="inlineSearch"
 			:search-value="effectiveSearchValue"
 			:search-placeholder="searchPlaceholder"
@@ -67,8 +70,33 @@
 			<template v-if="$scopedSlots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$scopedSlots['actions']" #actions>
+			<template v-if="$scopedSlots['actions'] || isEditMode" #actions>
 				<slot name="actions" />
+				<!-- Edit-mode config cog: opens the page's full config editor
+				     (CnPageRenderer wires @configure to CnPageConfigModal). -->
+				<NcButton v-if="isEditMode"
+					type="tertiary"
+					:aria-label="t('nextcloud-vue', 'Configure page')"
+					@click="$emit('configure')">
+					<template #icon>
+						<Cog :size="20" />
+					</template>
+				</NcButton>
+			</template>
+			<!-- Quick-filter tabs (REQ-MIPFU-1) rendered INSIDE the action bar
+			     (between the view toggle and the actions) when the manifest
+			     declares `config.quickFilters`. Switching tabs re-fetches with
+			     the merged filter; @event quick-filter-change. -->
+			<template v-if="quickFilters && quickFilters.length > 0" #filters>
+				<CnQuickFilterBar
+					inline
+					:tabs="quickFilters"
+					:mode="quickFilterMode"
+					:multiple="quickFilterMultiple"
+					:active-index="activeQuickFilterIndex"
+					:selected-indices="selectedQuickFilterIndices"
+					@update:active-index="onQuickFilterChange"
+					@update:selected-indices="onQuickFilterMultiChange" />
 			</template>
 		</CnActionsBar>
 
@@ -162,6 +190,7 @@
 				ref="formDialog"
 				:schema="effectiveSchema"
 				:item="editItem"
+				:register="register"
 				:exclude-fields="excludeFields"
 				:include-fields="includeFields"
 				:field-overrides="fieldOverrides"
@@ -184,15 +213,6 @@
 				@confirm="onFormConfirm"
 				@close="closeFormDialog" />
 		</slot>
-
-		<!-- Quick-filter tabs (REQ-MIPFU-1) — rendered above the body when
-		     the manifest declares `config.quickFilters`. Switching tabs
-		     re-fetches with the merged filter; @event quick-filter-change. -->
-		<CnQuickFilterBar
-			v-if="quickFilters && quickFilters.length > 0"
-			:tabs="quickFilters"
-			:active-index="activeQuickFilterIndex"
-			@update:active-index="onQuickFilterChange" />
 
 		<!-- Body -->
 		<div class="cn-index-page__body">
@@ -221,10 +241,11 @@
 					:schema="effectiveSchema"
 					:columns="tableColumns"
 					:row-icon="rowIcon"
-					:rows="effectiveObjects"
+					:rows="displayObjects"
 					:sort-key="effectiveSortKey"
 					:sort-order="effectiveSortOrder"
 					:selectable="selectable"
+					:row-click-to-view="rowClickToView"
 					:selected-ids="internalSelectedIds"
 					:row-key="rowKey"
 					:empty-text="emptyText"
@@ -298,10 +319,23 @@
 					</template>
 				</CnDataTable>
 
+				<!-- Map view — plots the CURRENT filtered rows (displayObjects) as
+				     inline markers; no separate fetch path, so it reuses the same
+				     filter / sidebar / quick-filter machinery as table and cards.
+				     A marker click routes back through onRowClick for identical
+				     detail-page navigation. -->
+				<CnMapWidget
+					v-else-if="currentViewMode === 'map'"
+					class="cn-index-page__map"
+					:center="mapCenter"
+					:markers="mapMarkers"
+					:auto-fit="true"
+					@marker-click="onMarkerClick" />
+
 				<!-- Card view -->
 				<CnCardGrid
 					v-else
-					:objects="effectiveObjects"
+					:objects="displayObjects"
 					:schema="effectiveSchema"
 					:selectable="selectable"
 					:selected-ids="internalSelectedIds"
@@ -395,7 +429,8 @@
 </template>
 
 <script>
-import { NcActions, NcActionCaption, NcActionCheckbox, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActions, NcActionCaption, NcActionCheckbox, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import Cog from 'vue-material-design-icons/Cog.vue'
 import { getCurrentInstance, inject } from 'vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
@@ -404,6 +439,7 @@ import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { columnsFromSchema } from '../../utils/schema.js'
+import { multiKeySort } from '../../utils/multiKeySort.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
@@ -414,6 +450,7 @@ import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
+import { CnMapWidget } from '../CnMapWidget/index.js'
 import { CnMassCopyDialog } from '../CnMassCopyDialog/index.js'
 import { CnMassDeleteDialog } from '../CnMassDeleteDialog/index.js'
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
@@ -510,6 +547,8 @@ export default {
 		NcActions,
 		NcActionCaption,
 		NcActionCheckbox,
+		NcButton,
+		Cog,
 		DatabaseSearch,
 		FilterOutline,
 		ViewColumnOutline,
@@ -519,6 +558,7 @@ export default {
 		CnIcon,
 		CnDataTable,
 		CnCardGrid,
+		CnMapWidget,
 		CnPagination,
 		CnRowActions,
 		CnMassDeleteDialog,
@@ -548,6 +588,11 @@ export default {
 	 */
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
+		/**
+		 * Reactive edit-mode flag from CnAppRoot's manifest editor. When truthy
+		 * the page shows a config cog in its actions bar (emits `configure`).
+		 */
+		cnEditingBody: { default: false },
 		/**
 		 * Reactive holder provided by CnAppRoot for hoisting the
 		 * embedded CnIndexSidebar to NcContent level. The default
@@ -644,6 +689,28 @@ export default {
 			default: null,
 		},
 
+		/**
+		 * How the quick filters render: `'chips'` (pill strip, default) or
+		 * `'dropdown'` (a single `NcSelect`). Sourced from the manifest as
+		 * `pages[].config.quickFilterMode`.
+		 * @type {'chips'|'dropdown'}
+		 */
+		quickFilterMode: {
+			type: String,
+			default: 'chips',
+			validator: (v) => ['chips', 'dropdown'].includes(v),
+		},
+
+		/**
+		 * Allow several quick filters active at once. Selected tabs' filters
+		 * are OR-ed together into the fetch (same field → array value →
+		 * `field[]=` IN query). Sourced from `pages[].config.quickFilterMultiple`.
+		 */
+		quickFilterMultiple: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Manual column definitions (used instead of schema when provided) */
 		columns: {
 			type: Array,
@@ -674,17 +741,80 @@ export default {
 			default: true,
 		},
 
+		/**
+		 * When true, a row/card click emits `row-click` (to open/navigate) even
+		 * while `selectable` — selection then happens via the checkbox only.
+		 * Manifest-driven index pages set this when a matching detail page
+		 * exists, so clicking a row opens its detail. Default false preserves
+		 * the legacy select-on-click behaviour.
+		 * @type {boolean}
+		 */
+		rowClickToView: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Currently selected IDs */
 		selectedIds: {
 			type: Array,
 			default: () => [],
 		},
 
-		/** View mode: 'table' or 'cards' */
+		/**
+		 * View mode: 'table', 'cards' or 'map'. Default 'table'. The 'map' mode
+		 * is only offered when the page opts in via `mapConfig` / `config.viewModes`.
+		 */
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards'].includes(v),
+			validator: (v) => ['table', 'cards', 'map'].includes(v),
+		},
+
+		/**
+		 * Marker geometry mapping for the opt-in `map` view mode, mirroring the
+		 * manifest `config.map` block 1:1. When non-empty (and not excluded by an
+		 * explicit `config.viewModes`), a third "Map" segment appears in the view
+		 * toggle and the current filtered rows are plotted on a CnMapWidget.
+		 *
+		 * - `latField` / `lngField` — object (or `@self`) property paths holding the
+		 *   marker's latitude / longitude. Dotted paths are supported (e.g.
+		 *   `@self.geo.lat`).
+		 * - `geoField` — alternative single property holding a GeoJSON Point
+		 *   geometry (`{ type: 'Point', coordinates: [lng, lat] }`); takes
+		 *   precedence over lat/lngField when present and resolvable.
+		 * - `popupField` — object property rendered in the marker popup.
+		 * - `center` — optional `[lat, lng]` fallback centre when the filtered set
+		 *   has no plottable rows.
+		 * @type {{ latField?: string, lngField?: string, geoField?: string, popupField?: string, center?: [number, number] }}
+		 */
+		mapConfig: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/** Label for the map view-toggle segment (defaults to "Map"). */
+		mapLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the map view-toggle segment (defaults to the built-in map-marker icon). */
+		mapIcon: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Explicit whitelist of view-toggle segments to offer, e.g.
+		 * `['table', 'cards', 'map']`. Fed from the manifest as
+		 * `pages[].config.viewModes`. When set it takes precedence over the
+		 * inferred availability (map otherwise appears iff `mapConfig` is
+		 * non-empty). Cards/table always render regardless of this list.
+		 * @type {Array<'table' | 'cards' | 'map'>}
+		 */
+		viewModes: {
+			type: Array,
+			default: null,
 		},
 
 		/** Current sort key */
@@ -697,6 +827,23 @@ export default {
 		sortOrder: {
 			type: String,
 			default: 'asc',
+		},
+
+		/**
+		 * Optional declarative DEFAULT multi-key client-side sort, applied to the
+		 * already-loaded rows whenever no explicit column sort is active (no
+		 * `sortKey` selected by the user / passed in). Each entry is
+		 * `{ field, order }` with `order` one of `'asc'` / `'desc'` (default
+		 * `'asc'`); rows are compared by the first field, ties broken by the
+		 * next, and so on. Comparison is type-aware (numbers numerically, dates
+		 * by timestamp, strings via `localeCompare`). Clicking a sortable header
+		 * takes over and suppresses this default. Useful for a fixed presentation
+		 * order such as "group by type, then name".
+		 * @type {Array<{field: string, order?: 'asc'|'desc'}>}
+		 */
+		defaultSort: {
+			type: Array,
+			default: () => [],
 		},
 
 		/** Unique row identifier property */
@@ -1184,6 +1331,7 @@ export default {
 			selfObjectStore,
 			selfObjectType,
 			activeQuickFilterIndex,
+			selectedQuickFilterIndices,
 		} = useSelfFetchList(props, getCurrentInstance(), inject)
 
 		return {
@@ -1196,6 +1344,7 @@ export default {
 			selfObjectStore,
 			selfObjectType,
 			activeQuickFilterIndex,
+			selectedQuickFilterIndices,
 		}
 	},
 
@@ -1226,6 +1375,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the host manifest editor is in edit mode (unwraps the injected
+		 * `cnEditingBody`, which may be a Vue ref or a plain boolean). Drives the
+		 * in-header config cog.
+		 *
+		 * @return {boolean}
+		 */
+		isEditMode() {
+			const e = this.cnEditingBody
+			return !!(e && typeof e === 'object' && 'value' in e ? e.value : e)
+		},
 		/**
 		 * Effective customComponents registry — the explicit prop wins
 		 * over the injected `cnCustomComponents`. Mirrors the priority
@@ -1268,6 +1428,81 @@ export default {
 		isSelfFetchMode() { return this.isSelfFetch && !!this.list },
 		/** Rows: store collection in self-fetch mode, else the `objects` prop. */
 		effectiveObjects() { return this.isSelfFetchMode ? (this.list.objects.value || []) : this.objects },
+		/**
+		 * Rows handed to the table / card grid — `effectiveObjects` re-sorted by
+		 * the declarative `defaultSort` spec whenever no explicit user column
+		 * sort is active. A live `sortKey` (user clicked a header, or one was
+		 * passed in) takes over and this falls through to the unsorted rows so
+		 * the server / prop order wins. No-op when `defaultSort` is empty.
+		 *
+		 * @return {object[]}
+		 */
+		displayObjects() {
+			if (!this.defaultSort || this.defaultSort.length === 0) return this.effectiveObjects
+			if (this.effectiveSortKey) return this.effectiveObjects
+			return multiKeySort(this.effectiveObjects, this.defaultSort)
+		},
+
+		/**
+		 * Whether the `map` segment is offered in the view toggle. An explicit
+		 * `viewModes` whitelist wins; otherwise map is available iff `mapConfig`
+		 * carries at least one field. Cards/table are always available.
+		 *
+		 * @return {boolean}
+		 */
+		showMapSegment() {
+			if (Array.isArray(this.viewModes)) return this.viewModes.includes('map')
+			return Object.keys(this.mapConfig || {}).length > 0
+		},
+
+		/**
+		 * Inline GeoJSON markers for the map view, built from the CURRENT filtered
+		 * `displayObjects` using `mapConfig`. Each feature stashes the row's
+		 * `rowKey` in `properties` so a marker click can resolve back to its source
+		 * row. Rows without finite, resolvable geometry are skipped silently.
+		 *
+		 * @return {{ features: object[], popupField: (string|undefined) }}
+		 */
+		mapMarkers() {
+			const features = []
+			for (const row of this.displayObjects) {
+				const coords = this.resolveRowLatLng(row)
+				if (!coords) continue
+				features.push({
+					type: 'Feature',
+					geometry: { type: 'Point', coordinates: [coords.lng, coords.lat] },
+					properties: {
+						[this.rowKey]: row[this.rowKey],
+						...(this.mapConfig.popupField ? { [this.mapConfig.popupField]: row[this.mapConfig.popupField] } : {}),
+					},
+				})
+			}
+			return { features, popupField: this.mapConfig.popupField }
+		},
+
+		/**
+		 * Initial map centre `[lat, lng]`. Uses the centroid of the plotted markers
+		 * when any exist (CnMapWidget's autoFit then tightens to the bounds); falls
+		 * back to `mapConfig.center`, then a neutral world view when the set is empty.
+		 *
+		 * @return {[number, number]}
+		 */
+		mapCenter() {
+			const feats = this.mapMarkers.features
+			if (feats.length > 0) {
+				let sumLat = 0
+				let sumLng = 0
+				for (const f of feats) {
+					sumLng += f.geometry.coordinates[0]
+					sumLat += f.geometry.coordinates[1]
+				}
+				return [sumLat / feats.length, sumLng / feats.length]
+			}
+			if (Array.isArray(this.mapConfig.center) && this.mapConfig.center.length === 2) {
+				return this.mapConfig.center
+			}
+			return [0, 0]
+		},
 		/** Loading flag: store loading in self-fetch mode, else the `loading` prop. */
 		effectiveLoading() { return this.isSelfFetchMode ? !!this.list.loading.value : this.loading },
 		/**
@@ -1647,6 +1882,15 @@ export default {
 				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh(1)
 			},
 		},
+		// A same-path `$route.query` change (e.g. a dashboard deep-link
+		// `/cases?caseType=X`) must also re-fetch — `fixedFilters` merges the
+		// query into the fetch (see useSelfFetchList.resolveQueryFilters).
+		'$route.query': {
+			deep: true,
+			handler() {
+				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh(1)
+			},
+		},
 	},
 
 	mounted() {
@@ -1702,7 +1946,8 @@ export default {
 		 * @return {object} Possibly-mutated copy: function-typed
 		 *   handlers untouched; `'emit'` and unknown registry names
 		 *   strip the `handler` (emit-only fall-through); `'navigate'`
-		 *   becomes a `$router.push` thunk; `'none'` becomes a no-op +
+		 *   becomes a `$router.push` thunk (with the entry's literal
+		 *   `params` map when present); `'none'` becomes a no-op +
 		 *   `_dispatchSuppress: true`; a registry name resolves to a
 		 *   `fn({ actionId })` thunk.
 		 */
@@ -1725,10 +1970,13 @@ export default {
 				}
 				const route = entry.route
 				const router = this.$router
+				// Literal params let a header action navigate to a detail route
+				// with fixed params, e.g. a "New X" button → `{ id: "new" }`.
+				const params = (entry.params && typeof entry.params === 'object') ? entry.params : null
 				const out = { ...entry }
 				out.handler = () => {
 					if (router && typeof router.push === 'function') {
-						router.push({ name: route })
+						router.push(params ? { name: route, params } : { name: route })
 					}
 				}
 				return out
@@ -1809,6 +2057,19 @@ export default {
 			// Vue 2 ref-unwrap proxy makes plain assignment work.
 			this.activeQuickFilterIndex = index
 			this.$emit('quick-filter-change', index)
+		},
+
+		/**
+		 * Multi-select quick-filter change (`quickFilterMultiple`). Updates the
+		 * selected-index array; the `setup()` watcher re-fetches with the
+		 * OR-ed union of the selected tabs' filters.
+		 *
+		 * @param {number[]} indices Selected tab indices (from CnQuickFilterBar).
+		 * @return {void}
+		 */
+		onQuickFilterMultiChange(indices) {
+			this.selectedQuickFilterIndices = Array.isArray(indices) ? indices : []
+			this.$emit('quick-filter-change', this.selectedQuickFilterIndices)
 		},
 
 		/**
@@ -1957,15 +2218,79 @@ export default {
 		 * @param {object} row The clicked row object
 		 */
 		onRowClick(row) {
-			if (this.selectable) {
+			if (this.selectable && !this.rowClickToView) {
 				this.onSelect(this.toggleIdInArray(this.internalSelectedIds, row[this.rowKey]))
 				return
 			}
 			/**
-			 * @event row-click Emitted when a non-selectable row/card is clicked. Only fires when `selectable` is false; selectable rows/cards toggle selection instead.
+			 * @event row-click Emitted on a row/card click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox).
 			 * @type {object} The clicked row object.
 			 */
 			this.$emit('row-click', row)
+		},
+
+		/**
+		 * Resolve a marker click on the map back to its source row and route it
+		 * through `onRowClick`, so `@row-click` fires with the identical payload a
+		 * table/card click would emit — giving uniform detail-page navigation
+		 * across all three view modes.
+		 *
+		 * @param {{ feature: object }} payload CnMapWidget marker-click payload.
+		 */
+		onMarkerClick(payload) {
+			const feature = payload && payload.feature
+			const key = feature && feature.properties ? feature.properties[this.rowKey] : undefined
+			if (key === undefined || key === null) return
+			const row = this.displayObjects.find((o) => o[this.rowKey] === key)
+			if (row) this.onRowClick(row)
+		},
+
+		/**
+		 * Extract a `{ lat, lng }` pair from a row using `mapConfig`. Prefers a
+		 * GeoJSON Point on `geoField` (`coordinates: [lng, lat]`), else reads the
+		 * dotted `latField` / `lngField` paths. Returns null when the geometry is
+		 * missing or non-finite, so callers can skip the row.
+		 *
+		 * @param {object} row The source object.
+		 * @return {{ lat: number, lng: number } | null}
+		 */
+		resolveRowLatLng(row) {
+			if (!row) return null
+			const cfg = this.mapConfig || {}
+			if (cfg.geoField) {
+				let geo = this.getByPath(row, cfg.geoField)
+				// OpenRegister often stores geometry as a JSON-encoded string on
+				// object metadata; parse it before reading `coordinates`.
+				if (typeof geo === 'string') {
+					try {
+						geo = JSON.parse(geo)
+					} catch {
+						geo = null
+					}
+				}
+				const coords = geo && Array.isArray(geo.coordinates) ? geo.coordinates : null
+				if (coords && Number.isFinite(coords[0]) && Number.isFinite(coords[1])) {
+					return { lat: Number(coords[1]), lng: Number(coords[0]) }
+				}
+			}
+			const lat = Number(this.getByPath(row, cfg.latField))
+			const lng = Number(this.getByPath(row, cfg.lngField))
+			if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng }
+			return null
+		},
+
+		/**
+		 * Read a possibly-dotted property path off an object (e.g. `@self.geo.lat`).
+		 * Returns undefined on any missing segment. No path = undefined.
+		 *
+		 * @param {object} obj The object to read from.
+		 * @param {string} path Dot-separated property path.
+		 * @return {*} The resolved value or undefined.
+		 */
+		getByPath(obj, path) {
+			if (!obj || !path) return undefined
+			if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path]
+			return path.split('.').reduce((acc, seg) => (acc == null ? undefined : acc[seg]), obj)
 		},
 
 		/**

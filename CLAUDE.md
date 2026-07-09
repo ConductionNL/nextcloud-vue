@@ -20,6 +20,14 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 
 Consumer apps MUST also call `registerTranslations()` once in `main.js` (alongside `registerIcons({})`) **before** `new Vue().$mount(...)` — without it, library-rendered strings stay in English even when the user's Nextcloud language is Dutch. See [docs/getting-started.md](docs/getting-started.md#register-library-translations-required).
 
+### NcDialog vs NcModal (choosing a popover)
+
+**Default to `NcDialog` whenever the popover has a heading and/or action buttons** — even when the request calls it a "modal". `NcDialog` wraps `NcModal` under the hood but adds a real, visible header (via its `name` prop — required) and a footer action bar (via the `#actions` slot). It is the right choice for anything the user *acts on*: confirm / deny, edit forms, multi-step flows, configuration panels, "manage X" screens.
+
+Reserve raw `NcModal` for non-specific, headingless quick info or a single simple action — e.g. a popover showing extra information, or a bare "pick a file" surface with no title and no action bar. If you find yourself hand-rolling an `<h2>` title or a footer button row inside an `NcModal`, that's the signal to use `NcDialog` instead.
+
+Note: `NcModal`'s `name` prop does **not** render a visible title in our version — only `NcDialog`'s does. So an `NcModal` with a title needs `NcDialog` (or, for accessibility only, a `label-id` pointing at your own heading). Convert `@close` → `@closing` when switching (NcDialog emits `closing`), keep `size`, move footer buttons into `<template #actions>`, and drop the redundant internal heading. `NcDialog` teleports to `<body>` (same as `NcModal`) but `provide`/`inject` still resolves through the component tree.
+
 ### Available Components
 
 **Layout & Pages**
@@ -69,6 +77,7 @@ Consumer apps MUST also call `registerTranslations()` once in `main.js` (alongsi
 - `CnContextMenu` — Right-click context menu (wraps NcActions, pair with `useContextMenu` composable)
 - `CnMassActionBar` — Floating bar for mass action triggers
 - `CnIcon` — MDI icon by name
+- `CnIconBrowser` — Searchable visual icon picker: a search box + capped grid over the full `@mdi/js` set (emits the icon's SVG path) plus an optional Custom tab for curated image-URL icons and uploads (emits a URL). v-model is a single string; pair with `CnDashboardIcon` to render. Pass `inline` to render the panel always-open inside a roomy surface.
 - `CnKpiGrid` — KPI metric cards grid
 - `CnStatsPanel` — Data-driven statistics panel (sections of stat blocks, list items, and progress bars)
 - `CnProgressBar` — Labeled horizontal progress bars with variant colors for distribution visualizations

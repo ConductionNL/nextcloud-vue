@@ -20,6 +20,7 @@ const { program } = require('commander')
 const fs = require('fs')
 const path = require('path')
 const { runPipeline } = require('./pipeline')
+const { runConvergence } = require('./convergence')
 
 /**
  * The v2 schema URL suffix used for detection.
@@ -141,17 +142,58 @@ const opts = program.opts()
 		}
 	}
 
-	// 5. Idempotency guard — already v2
+	// 5. Already v2 — run the idempotent widget-dialect convergence pass.
+	//    A v2 manifest still needs converging when it carries dialect-B typed
+	//    widgets, legacy data-binding spellings, legacy sidebar shapes, or
+	//    bespoke custom dashboards. The pass is a byte-identical no-op on an
+	//    already-canonical manifest.
 	if (schemaVersion === 'v2') {
 		const result = validateManifestV2(manifest)
-		if (result.valid) {
-			process.stdout.write('Manifest is already v2 and valid. No changes needed.\n')
-			process.exit(0)
-		} else {
+		if (!result.valid) {
 			process.stderr.write('Input manifest declares v2 $schema but has validation errors:\n')
 			result.errors.forEach((e) => process.stderr.write(`  - ${e}\n`))
 			process.exit(1)
 		}
+
+		const convergence = runConvergence(manifest, { inputFile: opts.input })
+		if (!convergence.changed) {
+			process.stdout.write('Manifest is already v2 and canonical. No changes needed.\n')
+			process.exit(0)
+		}
+
+		const convValidation = validateManifestV2(convergence.transformed)
+		if (!convValidation.valid) {
+			process.stderr.write('Error: converged manifest does not satisfy the v2 schema:\n')
+			convValidation.errors.forEach((e) => process.stderr.write(`  - ${e}\n`))
+			process.stderr.write('Output file was NOT written.\n')
+			process.exit(1)
+		}
+
+		const convJson = JSON.stringify(convergence.transformed, null, '\t') + '\n'
+		if (dryRun) {
+			process.stdout.write(convJson)
+			if (convergence.report) {
+				process.stderr.write('\n--- Convergence Report ---\n')
+				process.stderr.write(convergence.report + '\n')
+			}
+			process.exit(0)
+		}
+		try {
+			fs.writeFileSync(outputPath, convJson, 'utf8')
+			process.stdout.write(`Wrote converged manifest to "${outputPath}"\n`)
+		} catch (err) {
+			process.stderr.write(`Error: cannot write output file "${outputPath}": ${err.message}\n`)
+			process.exit(1)
+		}
+		if (reportPath && convergence.report) {
+			try {
+				fs.writeFileSync(reportPath, convergence.report, 'utf8')
+				process.stdout.write(`Wrote convergence report to "${reportPath}"\n`)
+			} catch (err) {
+				process.stderr.write(`Warning: cannot write report file "${reportPath}": ${err.message}\n`)
+			}
+		}
+		process.exit(0)
 	}
 
 	// 6. Run transformation pipeline

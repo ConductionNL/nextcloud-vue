@@ -35,6 +35,7 @@ const stubs = {
 	CnMassDeleteDialog: true, CnMassCopyDialog: true, CnMassExportDialog: true,
 	CnMassImportDialog: true, CnDeleteDialog: true, CnCopyDialog: true,
 	CnFormDialog: true, CnAdvancedFormDialog: true, NcLoadingIcon: true, NcEmptyContent: true, CnIcon: true,
+	NcSelect: true,
 }
 
 /**
@@ -178,5 +179,65 @@ describe('CnIndexPage — quick-filter tabs (REQ-MIPFU-1)', () => {
 		await flush()
 		const params = mockStore.fetchCollection.mock.calls[0][1] || {}
 		expect(params.caseId).toBe('case-7')
+	})
+})
+
+describe('CnIndexPage — multi-select quick filters (quickFilterMultiple)', () => {
+	const TYPES = [
+		{ label: 'All', filter: {} },
+		{ label: 'Tenders', filter: { type: 'tender' } },
+		{ label: 'Idea box', filter: { type: 'idea-box' } },
+		{ label: 'Market', filter: { type: 'market' } },
+	]
+
+	it('starts with no type filter (empty selection = all)', async () => {
+		mountPage({ title: 'C', register: 'app', schema: 'c', quickFilterMultiple: true, quickFilters: TYPES })
+		await flush()
+		const params = mockStore.fetchCollection.mock.calls[0][1] || {}
+		expect(params.type).toBeUndefined()
+	})
+
+	it('ORs multiple selected tabs into an array value', async () => {
+		const wrapper = mountPage({ title: 'C', register: 'app', schema: 'c', quickFilterMultiple: true, quickFilters: TYPES })
+		await flush()
+		mockStore.fetchCollection.mockClear()
+
+		wrapper.vm.onQuickFilterMultiChange([1, 2]) // Tenders + Idea box
+		await flush()
+		const params = mockStore.fetchCollection.mock.calls[0][1] || {}
+		expect(params.type).toEqual(['tender', 'idea-box'])
+	})
+
+	it('a single selection collapses to a scalar value', async () => {
+		const wrapper = mountPage({ title: 'C', register: 'app', schema: 'c', quickFilterMultiple: true, quickFilters: TYPES })
+		await flush()
+		mockStore.fetchCollection.mockClear()
+
+		wrapper.vm.onQuickFilterMultiChange([3]) // Market only
+		await flush()
+		const params = mockStore.fetchCollection.mock.calls[0][1] || {}
+		expect(params.type).toBe('market')
+	})
+
+	it('clearing the selection drops the filter (back to all)', async () => {
+		const wrapper = mountPage({ title: 'C', register: 'app', schema: 'c', quickFilterMultiple: true, quickFilters: TYPES })
+		await flush()
+		wrapper.vm.onQuickFilterMultiChange([1, 2])
+		await flush()
+		mockStore.fetchCollection.mockClear()
+
+		wrapper.vm.onQuickFilterMultiChange([])
+		await flush()
+		const params = mockStore.fetchCollection.mock.calls[0][1] || {}
+		expect(params.type).toBeUndefined()
+	})
+
+	it('dropdown mode renders an NcSelect instead of the chip strip', async () => {
+		const wrapper = mountPage({
+			title: 'C', register: 'app', schema: 'c',
+			quickFilterMode: 'dropdown', quickFilterMultiple: true, quickFilters: TYPES,
+		})
+		await flush()
+		expect(wrapper.find('.cn-quick-filter-bar--dropdown').exists()).toBe(true)
 	})
 })

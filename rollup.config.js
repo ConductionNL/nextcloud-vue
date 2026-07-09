@@ -9,6 +9,54 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+/**
+ * Unwrap a `:deep( … )` token, honouring nested parens (e.g. `:deep(.x:not(.y))`).
+ * @param {string} selector A CSS selector (or selector list) string.
+ * @return {string} The selector with every `:deep(X)` replaced by `X`.
+ */
+function unwrapDeepSelector(selector) {
+	let out = ''
+	for (let i = 0; i < selector.length;) {
+		if (selector.startsWith(':deep(', i)) {
+			i += 6
+			let depth = 1
+			let inner = ''
+			while (i < selector.length && depth > 0) {
+				const ch = selector[i]
+				if (ch === '(') depth++
+				else if (ch === ')' && --depth === 0) { i++; break }
+				inner += ch
+				i++
+			}
+			out += unwrapDeepSelector(inner).trim()
+		} else {
+			out += selector[i++]
+		}
+	}
+	return out
+}
+
+/**
+ * PostCSS plugin that lowers Vue's `:deep(X)` SFC syntax to plain CSS `X`.
+ *
+ * rollup-plugin-vue (Vue 2) scopes the outer selector with `[data-v-*]` but only
+ * lowers the legacy deep combinators (`::v-deep` / `>>>` / `/deep/`); it passes the
+ * modern `:deep(...)` form through untouched. The library authors scoped styles
+ * exclusively with `:deep(...)`, so without this every such rule ships as invalid
+ * CSS and the browser drops it (e.g. the CnOpenBuildEditButton orange accent).
+ * Since the outer compound is already scoped, unwrapping `:deep(.btn)` → `.btn`
+ * yields the correct `… [data-v-*] .btn` descendant selector.
+ */
+const unwrapVueDeep = () => ({
+	postcssPlugin: 'unwrap-vue-deep',
+	Rule(rule) {
+		if (rule.selector.includes(':deep(')) {
+			rule.selector = unwrapDeepSelector(rule.selector)
+		}
+	},
+})
+unwrapVueDeep.postcss = true
+
 export default {
 	input: 'src/index.js',
 	output: [
@@ -43,7 +91,7 @@ export default {
 			},
 		},
 		vue({ css: false }),
-		postcss({ extract: 'nextcloud-vue.css', plugins: [postcssImport()] }),
+		postcss({ extract: 'nextcloud-vue.css', plugins: [postcssImport(), unwrapVueDeep()] }),
 		json(),
 		nodeResolve({ extensions: ['.mjs', '.js', '.json', '.node'] }),
 		commonjs(),

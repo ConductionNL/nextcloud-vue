@@ -7,6 +7,7 @@
 	<div class="cn-files-widget">
 		<div class="cn-files-widget__toolbar">
 			<nav
+				v-if="!objectBound"
 				class="cn-files-widget__breadcrumb"
 				:aria-label="t('nextcloud-vue', 'Folder breadcrumb')">
 				<button
@@ -102,7 +103,10 @@
 			{{ noSearchResultsLabel }}
 		</div>
 
-		<ul v-else class="cn-files-widget__list">
+		<ul
+			v-else
+			class="cn-files-widget__list"
+			:class="{ 'cn-files-widget__list--grid': viewMode === 'grid' }">
 			<li
 				v-for="item in filteredItems"
 				:key="item.fileId"
@@ -139,34 +143,18 @@
 			</button>
 		</div>
 
-		<div
-			v-if="confirmTarget"
-			class="cn-files-widget__modal-backdrop"
-			role="dialog"
-			aria-modal="true"
-			@click.self="cancelDelete">
-			<div class="cn-files-widget__modal">
-				<p>
-					{{ t('nextcloud-vue', 'Are you sure you want to delete {name}?', { name: confirmTarget.name }) }}
-				</p>
-				<div class="cn-files-widget__modal-actions">
-					<button type="button" @click="cancelDelete">
-						{{ t('nextcloud-vue', 'Cancel') }}
-					</button>
-					<button
-						type="button"
-						class="cn-files-widget__modal-confirm"
-						@click="performDelete">
-						{{ t('nextcloud-vue', 'Delete') }}
-					</button>
-				</div>
-			</div>
-		</div>
+		<CnFilesWidgetDeleteDialog
+			:open="confirmTarget !== null"
+			:file-name="confirmTarget ? confirmTarget.name : ''"
+			@update:open="onDeleteDialogToggle"
+			@confirm="performDelete" />
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
+import CnFilesWidgetDeleteDialog from '../../dialogs/CnFilesWidgetDeleteDialog.vue'
 
 /**
  * CnFilesWidget — an inline Nextcloud Files browser rendered as a dashboard
@@ -175,8 +163,8 @@ import { translate as t } from '@nextcloud/l10n'
  * NC-INTEGRATION DEPENDENCY: this widget reads folder contents from a host
  * application's `/api/widgets/files/{placementId}/...` endpoints (the same
  * contract the launchpad/mydash backend served) and deep-links file rows into
- * the Nextcloud **Files** app (`/apps/files/?fileid=...`). The
- * `@nextcloud/axios` + `@nextcloud/router` helpers are imported LAZILY at call
+ * the Nextcloud **Files** app via the canonical `/f/{fileid}` permalink. The
+ * `@nextcloud/axios` helper is imported LAZILY at call
  * time so the widget code never hard-couples to a network stack at module load
  * (keeps the no-op css transform path clean and lets a host without the backing
  * endpoint mount the component without side-effects). When the backing endpoint
@@ -192,6 +180,10 @@ import { translate as t } from '@nextcloud/l10n'
  */
 export default {
 	name: 'CnFilesWidget',
+
+	components: {
+		CnFilesWidgetDeleteDialog,
+	},
 
 	props: {
 		/**
@@ -230,6 +222,58 @@ export default {
 			type: String,
 			default: '/apps/files',
 		},
+
+		/**
+		 * Object-bound mode: the OpenRegister object id this widget attaches
+		 * files to. When `objectId` + `register` + `schema` are all set (they
+		 * are auto-supplied by `CnWidgetGrid`'s detail-page context merge), the
+		 * widget lists/uploads/deletes against the object's Nextcloud folder via
+		 * the OpenRegister object endpoints instead of the dashboard
+		 * `/api/widgets/files/...` contract. Empty (default) keeps the dashboard
+		 * placement behaviour unchanged.
+		 *
+		 * @type {string}
+		 */
+		objectId: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Object-bound mode: the OpenRegister register slug of the bound object.
+		 * See the `objectId` prop.
+		 *
+		 * @type {string}
+		 */
+		register: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Object-bound mode: the OpenRegister schema of the bound object. Accepts
+		 * either a slug string or the resolved schema object (as merged by
+		 * `CnWidgetGrid`); the slug is derived by the `schemaSlug` computed. See
+		 * the `objectId` prop.
+		 *
+		 * @type {string|object}
+		 */
+		schema: {
+			type: [String, Object],
+			default: '',
+		},
+
+		/**
+		 * App base for the OpenRegister object-file endpoints used in
+		 * object-bound mode (`{objectApiBase}/objects/{register}/{schema}/{id}/...`).
+		 * Defaults to `/apps/openregister/api`.
+		 *
+		 * @type {string}
+		 */
+		objectApiBase: {
+			type: String,
+			default: '/apps/openregister/api',
+		},
 	},
 
 	data() {
@@ -256,21 +300,83 @@ export default {
 		},
 
 		/**
-		 * Whether the upload affordance is enabled by configuration.
+		 * The schema slug in object-bound mode. Accepts either a slug string or
+		 * the resolved schema object merged by `CnWidgetGrid` (in which case the
+		 * slug is read from `slug`/`id`/`uuid`).
 		 *
-		 * @return {boolean} `true` when `content.allowUpload` is explicitly true.
+		 * @return {string} the schema slug, or `''` when unavailable.
+		 */
+		schemaSlug() {
+			const s = this.schema
+			if (typeof s === 'string') {
+				return s
+			}
+			return (s && (s.slug || s.id || s.uuid)) || ''
+		},
+
+		/**
+		 * Whether the widget runs in object-bound mode — i.e. it attaches files
+		 * to a specific OpenRegister object rather than a dashboard placement.
+		 *
+		 * @return {boolean} `true` when `objectId`, `register` and `schemaSlug` are all set.
+		 */
+		objectBound() {
+			return !!(this.objectId && this.register && this.schemaSlug)
+		},
+
+		/**
+		 * Stable identity key for the bound object, or `''` in dashboard mode.
+		 * Watched to (re)fetch when the object context first resolves (the schema
+		 * object arrives after the ids) or when the widget rebinds to another
+		 * object.
+		 *
+		 * @return {string} `register/schema/objectId`, or `''` when not object-bound.
+		 */
+		objectKey() {
+			return this.objectBound
+				? `${this.register}/${this.schemaSlug}/${this.objectId}`
+				: ''
+		},
+
+		/**
+		 * Whether the upload affordance is enabled by configuration. In
+		 * object-bound mode the drop zone is on by default (matching the object
+		 * sidebar's Files tab) unless `content.allowUpload` is explicitly false;
+		 * in dashboard mode it stays opt-in (`content.allowUpload === true`).
+		 *
+		 * @return {boolean} `true` when uploads are allowed.
 		 */
 		allowUpload() {
+			if (this.objectBound) {
+				return this.content?.allowUpload !== false
+			}
 			return this.content?.allowUpload === true
 		},
 
 		/**
-		 * Whether per-row delete affordances are enabled by configuration.
+		 * Whether per-row delete affordances are enabled by configuration. On by
+		 * default in object-bound mode (unless `content.allowDelete` is explicitly
+		 * false); opt-in (`content.allowDelete === true`) in dashboard mode.
 		 *
-		 * @return {boolean} `true` when `content.allowDelete` is explicitly true.
+		 * @return {boolean} `true` when deletes are allowed.
 		 */
 		allowDelete() {
+			if (this.objectBound) {
+				return this.content?.allowDelete !== false
+			}
 			return this.content?.allowDelete === true
+		},
+
+		/**
+		 * Layout for the file listing, from `content.viewMode`. `'grid'` renders
+		 * the items as a tile grid; any other value (`'list'`, `'tree'`, unset)
+		 * renders the default list. Tree navigation is not implemented, so
+		 * `'tree'` falls back to the list layout.
+		 *
+		 * @return {string} `'grid'` or `'list'`.
+		 */
+		viewMode() {
+			return this.content?.viewMode === 'grid' ? 'grid' : 'list'
 		},
 
 		/**
@@ -346,15 +452,31 @@ export default {
 			immediate: true,
 			/**
 			 * Reset navigation state and refetch whenever the placement changes.
+			 * Dashboard mode only — object-bound mode is driven by `objectKey`.
 			 *
 			 * @return {void}
 			 */
 			handler() {
-				this.currentSubPath = '/'
-				this.items = []
-				this.nextCursor = null
-				this.errorCode = null
-				this.unavailable = false
+				if (this.objectBound) {
+					return
+				}
+				this.resetListing()
+				this.fetchContents()
+			},
+		},
+		objectKey: {
+			immediate: true,
+			/**
+			 * Reset and refetch when the bound object first resolves or changes.
+			 *
+			 * @param {string} key the new object key (`''` in dashboard mode).
+			 * @return {void}
+			 */
+			handler(key) {
+				if (!key) {
+					return
+				}
+				this.resetListing()
 				this.fetchContents()
 			},
 		},
@@ -362,6 +484,19 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * Reset the listing/navigation state before a (re)fetch.
+		 *
+		 * @return {void}
+		 */
+		resetListing() {
+			this.currentSubPath = '/'
+			this.items = []
+			this.nextCursor = null
+			this.errorCode = null
+			this.unavailable = false
+		},
 
 		/**
 		 * Fetch (or append) one page of folder contents from the host Files
@@ -372,6 +507,9 @@ export default {
 		 * @return {Promise<void>} resolves when the fetch settles.
 		 */
 		async fetchContents(append = false) {
+			if (this.objectBound) {
+				return this.fetchObjectFiles()
+			}
 			if (this.placementId === 0) {
 				return
 			}
@@ -381,10 +519,7 @@ export default {
 			this.unavailable = false
 
 			try {
-				const [{ default: axios }, { generateUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
+				const { default: axios } = await import('@nextcloud/axios')
 
 				const url = generateUrl(
 					`${this.apiBase}/api/widgets/files/{placementId}/contents`,
@@ -421,6 +556,60 @@ export default {
 					this.items = []
 					this.nextCursor = null
 				}
+			} finally {
+				this.loading = false
+			}
+		},
+
+		/**
+		 * Object-bound listing: fetch the bound OpenRegister object's files from
+		 * `{objectApiBase}/objects/{register}/{schema}/{id}/files` and map them
+		 * onto the widget's flat item shape (no folder navigation). Degrades the
+		 * same way as the dashboard fetch: 404/403 → typed `errorCode`, no HTTP
+		 * response → `unavailable`.
+		 *
+		 * @return {Promise<void>} resolves when the fetch settles.
+		 */
+		async fetchObjectFiles() {
+			this.loading = true
+			this.errorCode = null
+			this.unavailable = false
+
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+
+				const url = generateUrl(
+					`${this.objectApiBase}/objects/{register}/{schema}/{objectId}/files`,
+					{ register: this.register, schema: this.schemaSlug, objectId: this.objectId },
+				)
+				const response = await axios.get(url)
+				const data = response?.data || {}
+				const results = Array.isArray(data)
+					? data
+					: (Array.isArray(data.results) ? data.results : [])
+				this.items = results.map((file) => ({
+					name: file.name || file.title || '',
+					fileId: file.id,
+					isFolder: false,
+					size: file.size,
+					modifiedAt: file.modified || file.updated || '',
+					canEdit: true,
+					canDelete: this.allowDelete,
+				}))
+				this.nextCursor = null
+			} catch (err) {
+				const status = err?.response?.status
+				if (status === 404) {
+					this.errorCode = 'folder_not_found'
+				} else if (status === 403) {
+					this.errorCode = 'no_access'
+				} else if (status === undefined) {
+					this.unavailable = true
+				} else {
+					this.errorCode = 'unknown_error'
+				}
+				this.items = []
+				this.nextCursor = null
 			} finally {
 				this.loading = false
 			}
@@ -502,7 +691,13 @@ export default {
 			if (!fileId) {
 				return
 			}
-			const url = `/apps/files/?fileid=${encodeURIComponent(fileId)}`
+			// Canonical Nextcloud file permalink: `/f/{fileid}` resolves the id
+			// to its containing folder and opens the file. generateUrl adds the
+			// `index.php` prefix on instances without URL rewriting. The previous
+			// raw `/apps/files/?fileid=` both omitted that prefix (404 on those
+			// instances) and, on modern Nextcloud, only ever landed on the root
+			// folder instead of the file.
+			const url = generateUrl('/f/{fileid}', { fileid: fileId })
 			window.open(url, '_blank', 'noopener,noreferrer')
 		},
 
@@ -527,12 +722,16 @@ export default {
 		},
 
 		/**
-		 * Dismiss the delete-confirmation modal.
+		 * React to the delete dialog's open-state changes. Closing it (Cancel,
+		 * Esc, click-outside, or the header X) clears the pending target.
 		 *
+		 * @param {boolean} open the dialog's new open state.
 		 * @return {void}
 		 */
-		cancelDelete() {
-			this.confirmTarget = null
+		onDeleteDialogToggle(open) {
+			if (!open) {
+				this.confirmTarget = null
+			}
 		},
 
 		/**
@@ -547,15 +746,17 @@ export default {
 				return
 			}
 			try {
-				const [{ default: axios }, { generateUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
+				const { default: axios } = await import('@nextcloud/axios')
 
-				const url = generateUrl(
-					`${this.apiBase}/api/widgets/files/{placementId}/files/{fileId}`,
-					{ placementId: this.placementId, fileId: target.fileId },
-				)
+				const url = this.objectBound
+					? generateUrl(
+						`${this.objectApiBase}/objects/{register}/{schema}/{objectId}/files/{fileId}`,
+						{ register: this.register, schema: this.schemaSlug, objectId: this.objectId, fileId: target.fileId },
+					)
+					: generateUrl(
+						`${this.apiBase}/api/widgets/files/{placementId}/files/{fileId}`,
+						{ placementId: this.placementId, fileId: target.fileId },
+					)
 				await axios.delete(url)
 				this.items = this.items.filter((item) => item.fileId !== target.fileId)
 			} catch (err) {
@@ -594,18 +795,23 @@ export default {
 			}
 
 			try {
-				const [{ default: axios }, { generateUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
+				const { default: axios } = await import('@nextcloud/axios')
 
-				const url = generateUrl(
-					`${this.apiBase}/api/widgets/files/{placementId}/upload`,
-					{ placementId: this.placementId },
-				)
-				await axios.post(url, formData, {
-					params: { currentPath: this.currentSubPath },
-				})
+				if (this.objectBound) {
+					const objectUrl = generateUrl(
+						`${this.objectApiBase}/objects/{register}/{schema}/{objectId}/filesMultipart`,
+						{ register: this.register, schema: this.schemaSlug, objectId: this.objectId },
+					)
+					await axios.post(objectUrl, formData)
+				} else {
+					const url = generateUrl(
+						`${this.apiBase}/api/widgets/files/{placementId}/upload`,
+						{ placementId: this.placementId },
+					)
+					await axios.post(url, formData, {
+						params: { currentPath: this.currentSubPath },
+					})
+				}
 				this.fetchContents()
 			} catch (err) {
 				this.fetchContents()
@@ -785,6 +991,44 @@ export default {
 	color: var(--color-error);
 }
 
+/* Grid view (content.viewMode === 'grid'): lay the rows out as tiles. */
+.cn-files-widget__list--grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+	gap: 8px;
+	padding: 4px;
+	align-content: start;
+}
+
+.cn-files-widget__list--grid .cn-files-widget__row {
+	grid-template-columns: 1fr;
+	justify-items: center;
+	text-align: center;
+	gap: 4px;
+	padding: 10px 6px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+}
+
+.cn-files-widget__list--grid .cn-files-widget__row-name {
+	flex-direction: column;
+	align-items: center;
+	max-width: 100%;
+}
+
+.cn-files-widget__list--grid .cn-files-widget__row-label {
+	max-width: 100%;
+}
+
+.cn-files-widget__list--grid .cn-files-widget__row-icon {
+	font-size: 32px;
+}
+
+/* Keep tiles compact — the modified date is list-view detail. */
+.cn-files-widget__list--grid .cn-files-widget__row-modified {
+	display: none;
+}
+
 .cn-files-widget__pagination {
 	text-align: center;
 	padding: 8px 0;
@@ -798,43 +1042,4 @@ export default {
 	cursor: pointer;
 }
 
-.cn-files-widget__modal-backdrop {
-	position: fixed;
-	inset: 0;
-	background: rgba(0, 0, 0, 0.5);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	z-index: 10000;
-}
-
-.cn-files-widget__modal {
-	background: var(--color-main-background);
-	color: var(--color-main-text);
-	padding: 16px;
-	border-radius: var(--border-radius-large);
-	max-width: 90vw;
-	min-width: 280px;
-}
-
-.cn-files-widget__modal-actions {
-	display: flex;
-	justify-content: flex-end;
-	gap: 8px;
-	margin-top: 12px;
-}
-
-.cn-files-widget__modal-actions button {
-	padding: 4px 12px;
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius);
-	background: var(--color-background-hover);
-	cursor: pointer;
-}
-
-.cn-files-widget__modal-confirm {
-	background: var(--color-error);
-	color: var(--color-primary-element-text);
-	border-color: var(--color-error);
-}
 </style>

@@ -63,6 +63,26 @@
 						v-bind="referenceWidgetProps(field)"
 						@input="value => updateField(field.key, value)" />
 
+					<!-- referenceSemanticType (ADR-048): a field that declares a
+					     canonical semantic-type URI whose provider schema is NOT
+					     installed renders DISABLED with a mouse-over tooltip. When
+					     a provider IS installed the field is transformed upstream
+					     (applySemanticResolution → a `$ref` reference) so it flows
+					     through the normal select branch below; only the
+					     unresolved/loading case lands here. -->
+					<div
+						v-else-if="field.referenceSemanticType && !isSemanticResolved(field)"
+						class="cn-form-dialog__semantic-unresolved"
+						:title="semanticUnavailableText(field)">
+						<NcTextField
+							:label="field.label + (field.required ? ' *' : '')"
+							:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
+							:helper-text="isSemanticLoading(field) ? '' : semanticUnavailableText(field)"
+							:disabled="true"
+							:loading="isSemanticLoading(field)"
+							:placeholder="field.description" />
+					</div>
+
 					<!-- Auto-generated field -->
 					<template v-else>
 						<!-- Text / Email / URL -->
@@ -327,9 +347,21 @@ import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { useObjectStore } from '../../store/useObjectStore.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
 import { shouldShow } from '../../utils/fieldCondition.js'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
+
+/**
+ * OpenRegister semantic-type discovery endpoint (ADR-048). Resolves a
+ * canonical semantic-type URI to the provider schema that implements it.
+ * Returns HTTP 200 with `{ resolved, registerSlug, schemaSlug, appId }` even
+ * when nothing implements the URI (`resolved: false`). The exact route path
+ * is still being finalised on the OpenRegister side — this path is the small,
+ * single point of truth; a 404 (route absent) degrades to `resolved: false`
+ * (see `resolveSemanticReference`), never a crash.
+ */
+const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-implements'
 
 /**
  * CnFormDialog — Create/edit dialog with auto-generated form from schema.
@@ -357,6 +389,23 @@ import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
  * (each must have a `label` property for default display). Options are loaded on mount
  * (with empty query) and on each search input (debounced, default 300ms, configurable
  * via `field.debounce`). Async selects store the full option object in formData.
+ *
+ * ## OpenRegister object references (`$ref`)
+ *
+ * A schema property that is an object reference renders as a searchable
+ * dropdown of the referenced objects instead of a free-text UUID box:
+ *
+ * - `{ type: 'string', format: 'uuid', $ref: '<schema-slug>' }` → single-select
+ * - `{ type: 'array', items: { $ref: '<schema-slug>' } }` → multi-select
+ *
+ * `fieldsFromSchema` records the reference on the field as
+ * `field.reference = { schema, multiple }`. Pass the `register` prop so the
+ * dialog can fetch the referenced objects (`GET /api/objects/{register}/{schema}`)
+ * — each is mapped to `{ label: <human name>, value: <uuid> }`. The chosen
+ * value stored in formData is the UUID (single) or array of UUIDs (multiple),
+ * NOT the full object. In edit mode the stored UUID is resolved to its label
+ * so the current selection displays. When `register` is empty the field falls
+ * back to a plain text input.
  *
  * ## JSON / code fields
  *
@@ -460,6 +509,23 @@ export default {
 			default: null,
 		},
 
+		/**
+		 * Register slug to resolve OpenRegister object references against.
+		 *
+		 * A schema property that is an object reference (`$ref: '<schema-slug>'`,
+		 * or `items.$ref` for an array) renders as a searchable dropdown of the
+		 * referenced objects (label = human name, value = UUID) instead of a
+		 * free-text UUID box. The `$ref` value is the referenced *schema* slug;
+		 * this prop supplies the *register* the objects live in. When empty,
+		 * reference fields fall back to a plain text input (no fetch attempted).
+		 *
+		 * @type {string}
+		 */
+		register: {
+			type: String,
+			default: '',
+		},
+
 		/** Dialog title. Defaults to "Create {schema.title}" or "Edit {schema.title}". */
 		dialogTitle: {
 			type: String,
@@ -558,6 +624,23 @@ export default {
 			jsonDrafts: {},
 			/** Per-field parse-error messages for `json` widgets (blocks confirm) */
 			jsonErrors: {},
+			/**
+			 * Resolved labels for `$ref` object-reference values, keyed by UUID:
+			 * `{ [uuid]: '<human label>' }`. Populated as reference options load
+			 * and when an edit-mode UUID is resolved by id, so the select shows
+			 * the human name for the currently-stored UUID(s). The stored value
+			 * itself always remains the UUID — this is display-only.
+			 */
+			referenceLabels: {},
+			/**
+			 * Cross-app semantic-reference resolutions (ADR-048), keyed by the
+			 * semantic-type URI: `{ [uri]: { status, resolved, registerSlug,
+			 * schemaSlug, appId } }`. `status` is 'loading' | 'done'. Populated
+			 * once per URI by `resolveSemanticReferences()` (called from
+			 * `created()`), so the discovery endpoint is hit at most once per
+			 * distinct URI, not per render.
+			 */
+			semanticResolutions: {},
 			/** Field keys the user has actually edited this session (used to avoid re-validating untouched persisted server values) */
 			touchedFields: {},
 		}
@@ -630,7 +713,10 @@ export default {
 		 * @return {object[]} The visible subset of `resolvedFields`.
 		 */
 		visibleFields() {
-			return this.resolvedFields.filter((field) => shouldShow(field, this.formData))
+			return this.resolvedFields
+				.filter((field) => shouldShow(field, this.formData))
+				.map((field) => this.applySemanticResolution(field))
+				.map((field) => this.degradeUnresolvableReference(field))
 		},
 	},
 
@@ -676,6 +762,11 @@ export default {
 		// Kept off `data` so Vue doesn't make the option objects reactive —
 		// stable identity is what lets NcSelect recognise the selected option.
 		this._enumOptionCache = {}
+		// ADR-048: resolve any cross-app semantic-reference URIs once, up
+		// front. Async — fields render disabled (loading) until each URI
+		// resolves, then re-render as a picker (resolved) or disabled+tooltip
+		// (unresolved).
+		this.resolveSemanticReferences()
 	},
 
 	beforeDestroy() {
@@ -723,6 +814,140 @@ export default {
 			}
 		},
 
+		/**
+		 * Resolve every distinct cross-app semantic-reference URI (ADR-048)
+		 * declared by the schema's fields against OpenRegister's discovery
+		 * endpoint. Fires once per URI (deduped via `semanticResolutions`),
+		 * kicked off from `created()`. Each entry moves 'loading' → 'done';
+		 * while loading, the field renders disabled. Never throws.
+		 *
+		 * @return {void}
+		 */
+		resolveSemanticReferences() {
+			const uris = new Set()
+			for (const field of this.resolvedFields) {
+				if (field && typeof field.referenceSemanticType === 'string' && field.referenceSemanticType !== '') {
+					uris.add(field.referenceSemanticType)
+				}
+			}
+			for (const uri of uris) {
+				if (this.semanticResolutions[uri]) continue
+				this.$set(this.semanticResolutions, uri, { status: 'loading', resolved: false })
+				this.resolveSemanticReference(uri).then((result) => {
+					this.$set(this.semanticResolutions, uri, { status: 'done', ...result })
+					// Re-init async fields so a newly-resolved reference picker
+					// starts fetching its options, and resolve any edit-mode
+					// label for a value already stored on the field.
+					if (result.resolved) {
+						this.initAsyncFields()
+						this.resolveInitialReferenceLabels()
+					}
+				})
+			}
+		},
+
+		/**
+		 * Call the OpenRegister discovery endpoint for one semantic-type URI.
+		 * Degrades to `{ resolved: false }` on any error (including a 404 when
+		 * the route isn't present yet) — never crashes the form.
+		 *
+		 * @param {string} uri The canonical semantic-type URI.
+		 * @return {Promise<{resolved: boolean, registerSlug: string|null, schemaSlug: string|null, appId: string|null}>}
+		 */
+		async resolveSemanticReference(uri) {
+			const empty = { resolved: false, registerSlug: null, schemaSlug: null, appId: null }
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl(SEMANTIC_RESOLVE_ENDPOINT)
+				const res = await axios.get(url, { params: { uri } })
+				const data = (res && res.data) || {}
+				if (data.resolved === true && data.registerSlug && data.schemaSlug) {
+					return {
+						resolved: true,
+						registerSlug: String(data.registerSlug),
+						schemaSlug: String(data.schemaSlug),
+						appId: data.appId != null ? String(data.appId) : null,
+					}
+				}
+				return empty
+			} catch (err) {
+				console.error(`CnFormDialog: semantic reference resolve failed for "${uri}":`, err)
+				return empty
+			}
+		},
+
+		/**
+		 * Whether a semantic-reference field's URI has resolved to an
+		 * installed provider schema. False while loading or when nothing
+		 * implements the URI.
+		 *
+		 * @param {object} field A resolved field descriptor.
+		 * @return {boolean}
+		 */
+		isSemanticResolved(field) {
+			if (!field || !field.referenceSemanticType) return false
+			const entry = this.semanticResolutions[field.referenceSemanticType]
+			return !!(entry && entry.status === 'done' && entry.resolved)
+		},
+
+		/**
+		 * Whether a semantic-reference field's URI is still being resolved.
+		 *
+		 * @param {object} field A resolved field descriptor.
+		 * @return {boolean}
+		 */
+		isSemanticLoading(field) {
+			if (!field || !field.referenceSemanticType) return false
+			const entry = this.semanticResolutions[field.referenceSemanticType]
+			return !entry || entry.status === 'loading'
+		},
+
+		/**
+		 * Tooltip / helper copy for an unresolved semantic-reference field:
+		 * "The {App} app that provides {Type} is not installed." `Type` is
+		 * derived from the URI's last path segment; the app label from
+		 * `referenceSemanticApp` (fallback: a generic "supporting app").
+		 *
+		 * @param {object} field A resolved field descriptor.
+		 * @return {string}
+		 */
+		semanticUnavailableText(field) {
+			const uri = (field && field.referenceSemanticType) || ''
+			const segment = uri.split(/[/#]/).filter(Boolean).pop() || uri
+			const typeLabel = segment || t('nextcloud-vue', 'this reference')
+			const appLabel = (field && field.referenceSemanticApp)
+				? field.referenceSemanticApp
+				: t('nextcloud-vue', 'supporting app')
+			return t('nextcloud-vue', 'The {appLabel} app that provides {typeLabel} is not installed.', { appLabel, typeLabel })
+		},
+
+		/**
+		 * Transform a resolved cross-app semantic-reference field (ADR-048)
+		 * into a normal `$ref` reference field so it flows through the
+		 * existing searchable-object-picker machinery, but pointed at the
+		 * PROVIDER'S register (cross-app — the provider lives in another
+		 * app's register). Unresolved/loading fields and non-semantic fields
+		 * are returned unchanged.
+		 *
+		 * @param {object} field A resolved field descriptor.
+		 * @return {object} The (possibly transformed) field.
+		 */
+		applySemanticResolution(field) {
+			if (!field || !field.referenceSemanticType) return field
+			const entry = this.semanticResolutions[field.referenceSemanticType]
+			if (!entry || entry.status !== 'done' || !entry.resolved) return field
+			return {
+				...field,
+				widget: 'select',
+				// Carry the provider register on the reference so the fetch
+				// targets registerSlug (cross-app), not the form's own register.
+				reference: { schema: entry.schemaSlug, multiple: false, register: entry.registerSlug },
+			}
+		},
+
 		initFormData(item) {
 			if (item) {
 				// Edit mode: clone item data, then normalise persisted
@@ -763,7 +988,30 @@ export default {
 			this.jsonDrafts = {}
 			this.jsonErrors = {}
 			this.touchedFields = {}
+			this.referenceLabels = {}
 			this.initAsyncFields()
+			this.resolveInitialReferenceLabels()
+		},
+
+		/**
+		 * For each reference field that already holds a UUID (edit mode),
+		 * resolve its label so the select shows the current selection's human
+		 * name. Runs after the options load; `resolveReferenceLabel` is a no-op
+		 * once the label is cached (so it doesn't re-fetch what the options
+		 * load already populated).
+		 */
+		resolveInitialReferenceLabels() {
+			for (const field of this.resolvedFields.map((f) => this.applySemanticResolution(f))) {
+				if (this.isReferenceField(field)) {
+					const uuid = this.formData[field.key]
+					if (uuid) this.resolveReferenceLabel(field, uuid)
+				} else if (this.isReferenceArrayField(field)) {
+					const uuids = this.formData[field.key]
+					if (Array.isArray(uuids)) {
+						for (const uuid of uuids) this.resolveReferenceLabel(field, uuid)
+					}
+				}
+			}
 		},
 
 		/**
@@ -1058,23 +1306,184 @@ export default {
 		},
 
 		/**
+		 * Whether a field is a single-value OpenRegister object reference
+		 * (`$ref`) we can resolve — i.e. it carries a `reference` descriptor,
+		 * is not multi-value, and a `register` is available to fetch against.
+		 *
+		 * @param {object} field The field definition
+		 * @return {boolean}
+		 */
+		isReferenceField(field) {
+			return !!(field && field.reference && !field.reference.multiple && this.referenceRegister(field))
+		},
+
+		/**
+		 * The register a reference field fetches against: the reference's own
+		 * `register` (cross-app semantic references, ADR-048) when present,
+		 * otherwise the form's `register` prop.
+		 *
+		 * @param {object} field A resolved field descriptor.
+		 * @return {string} The register slug, or '' when none is available.
+		 */
+		referenceRegister(field) {
+			return (field && field.reference && field.reference.register) || this.register || ''
+		},
+
+		/**
+		 * Degrade a reference field whose reference can't be resolved (no
+		 * `register` available) to a plain text input so it remains editable
+		 * instead of rendering an empty, optionless dropdown. Non-reference
+		 * fields and resolvable references are returned unchanged.
+		 *
+		 * @param {object} field A resolved field descriptor.
+		 * @return {object} The (possibly downgraded) field.
+		 */
+		degradeUnresolvableReference(field) {
+			if (field && field.reference && !this.referenceRegister(field)) {
+				return { ...field, widget: 'text', reference: null }
+			}
+			return field
+		},
+
+		/**
+		 * Whether a field is a multi-value OpenRegister object reference
+		 * (`items.$ref`) we can resolve.
+		 *
+		 * @param {object} field The field definition
+		 * @return {boolean}
+		 */
+		isReferenceArrayField(field) {
+			return !!(field && field.reference && field.reference.multiple && this.referenceRegister(field))
+		},
+
+		/**
 		 * Check if a field has an async enum (function instead of static array).
+		 * Object references (`$ref`) are treated as async so they reuse the
+		 * async-select load/search/loading machinery.
 		 *
 		 * @param {object} field The field definition
 		 * @return {boolean}
 		 */
 		isAsyncEnum(field) {
-			return typeof field.enum === 'function'
+			return typeof field.enum === 'function' || this.isReferenceField(field)
 		},
 
 		/**
-		 * Check if an array field has an async items enum.
+		 * Check if an array field has an async items enum. Multi-value object
+		 * references (`items.$ref`) are treated as async multiselects.
 		 *
 		 * @param {object} field The field definition
 		 * @return {boolean}
 		 */
 		isAsyncItemsEnum(field) {
-			return !!(field.items && typeof field.items.enum === 'function')
+			return !!(field.items && typeof field.items.enum === 'function') || this.isReferenceArrayField(field)
+		},
+
+		/**
+		 * Resolve a human-readable label for an OpenRegister object, falling
+		 * back through the common name fields to the UUID.
+		 *
+		 * @param {object} obj An OpenRegister object.
+		 * @return {string} The display label.
+		 */
+		displayLabel(obj) {
+			if (!obj || typeof obj !== 'object') return String(obj)
+			return obj.title
+				|| obj.name
+				|| obj.naam
+				|| obj.label
+				|| obj.identifier
+				|| (obj['@self'] && obj['@self'].name)
+				|| obj.id
+				|| ''
+		},
+
+		/**
+		 * Fetch the options for a `$ref` reference field: the objects of the
+		 * referenced schema in the form's register, mapped to
+		 * `{ id: <uuid>, label: <human name> }`. Server-filters by the search
+		 * term when present. Resolved labels are cached in `referenceLabels`
+		 * so the select can display the current selection's name. Fails soft
+		 * (returns `[]`) when no register is set or the fetch errors.
+		 *
+		 * @param {object} field The field definition (must carry `field.reference`).
+		 * @param {string} query The NcSelect search term.
+		 * @return {Promise<Array<{id: string, label: string}>>}
+		 */
+		/**
+		 * Lazily resolve the generic OpenRegister object store. Acquired on
+		 * demand (not in `setup()`) so mounting CnFormDialog without an active
+		 * Pinia — e.g. forms with no reference fields, or unit tests — never
+		 * fails. Returns null when no Pinia is available.
+		 *
+		 * @return {object|null} The object store, or null.
+		 */
+		getObjectStore() {
+			if (this._objectStore) return this._objectStore
+			try {
+				this._objectStore = useObjectStore()
+				return this._objectStore
+			} catch {
+				return null
+			}
+		},
+
+		async fetchReferenceOptions(field, query) {
+			const register = this.referenceRegister(field)
+			if (!register || !field.reference || !field.reference.schema) return []
+			const store = this.getObjectStore()
+			if (!store) return []
+			try {
+				const params = { _limit: 100 }
+				if (query) params._search = query
+				const slug = store.createObjectTypeSlug(register, field.reference.schema)
+				if (!store.objectTypeRegistry[slug]) {
+					store.registerObjectType(slug, field.reference.schema, register)
+				}
+				const results = await store.fetchCollection(slug, params)
+				const list = Array.isArray(results) ? results : []
+				const labels = {}
+				const options = list
+					.filter((obj) => obj && obj.id)
+					.map((obj) => {
+						const label = this.displayLabel(obj)
+						labels[obj.id] = label
+						return { id: obj.id, label }
+					})
+				if (Object.keys(labels).length > 0) {
+					this.referenceLabels = { ...this.referenceLabels, ...labels }
+				}
+				return options
+			} catch (err) {
+				console.error(`CnFormDialog: reference fetch failed for field "${field.key}":`, err)
+				return []
+			}
+		},
+
+		/**
+		 * Resolve a single reference UUID to its `{ id, label }` option,
+		 * fetching the object by id when its label isn't cached yet (edit mode).
+		 *
+		 * @param {object} field The field definition.
+		 * @param {string} uuid The stored UUID.
+		 */
+		async resolveReferenceLabel(field, uuid) {
+			const register = this.referenceRegister(field)
+			if (!uuid || this.referenceLabels[uuid] || !register || !field.reference) return
+			const store = this.getObjectStore()
+			if (!store) return
+			try {
+				const slug = store.createObjectTypeSlug(register, field.reference.schema)
+				if (!store.objectTypeRegistry[slug]) {
+					store.registerObjectType(slug, field.reference.schema, register)
+				}
+				const obj = await store.fetchObject(slug, uuid)
+				if (obj && obj.id) {
+					this.referenceLabels = { ...this.referenceLabels, [obj.id]: this.displayLabel(obj) }
+				}
+			} catch (err) {
+				console.error(`CnFormDialog: reference label resolve failed for "${uuid}":`, err)
+			}
 		},
 
 		/**
@@ -1086,8 +1495,11 @@ export default {
 				if (state.searchTimeout) clearTimeout(state.searchTimeout)
 			}
 
+			// Iterate the *transformed* fields so a resolved cross-app
+			// semantic reference (now a `$ref` picker) gets async state too.
+			const fields = this.resolvedFields.map((field) => this.applySemanticResolution(field))
 			const newState = {}
-			for (const field of this.resolvedFields) {
+			for (const field of fields) {
 				if (this.isAsyncEnum(field) || this.isAsyncItemsEnum(field)) {
 					newState[field.key] = { options: [], loading: false, searchTimeout: null }
 				}
@@ -1096,7 +1508,7 @@ export default {
 
 			// Trigger initial load for each async field
 			this.$nextTick(() => {
-				for (const field of this.resolvedFields) {
+				for (const field of fields) {
 					if (this.isAsyncEnum(field) || this.isAsyncItemsEnum(field)) {
 						this.loadAsyncOptions(field, '')
 					}
@@ -1117,8 +1529,14 @@ export default {
 			this.$set(state, 'loading', true)
 
 			try {
-				const enumFn = this.isAsyncEnum(field) ? field.enum : field.items.enum
-				const results = await enumFn(query)
+				let results
+				if (this.isReferenceField(field) || this.isReferenceArrayField(field)) {
+					// OpenRegister object reference — fetch the referenced objects.
+					results = await this.fetchReferenceOptions(field, query)
+				} else {
+					const enumFn = typeof field.enum === 'function' ? field.enum : field.items.enum
+					results = await enumFn(query)
+				}
 				this.$set(state, 'options', Array.isArray(results) ? results : [])
 			} catch (err) {
 				console.error(`CnFormDialog: async enum error for field "${field.key}":`, err)
@@ -1170,6 +1588,14 @@ export default {
 		 * @return {object|null}
 		 */
 		getEffectiveSelectedOption(field) {
+			if (this.isReferenceField(field)) {
+				// Reference fields store the UUID — resolve it to a display
+				// option `{ id, label }` (label from the resolved-labels cache,
+				// falling back to the UUID until it loads).
+				const uuid = this.formData[field.key]
+				if (uuid === null || uuid === undefined || uuid === '') return null
+				return { id: uuid, label: this.referenceLabels[uuid] || String(uuid) }
+			}
 			if (this.isAsyncEnum(field)) {
 				// For async fields, formData stores the full option object
 				return this.formData[field.key] || null
@@ -1184,7 +1610,14 @@ export default {
 		 * @param {object|null} option The selected option
 		 */
 		onEffectiveSelectChange(field, option) {
-			if (this.isAsyncEnum(field)) {
+			if (this.isReferenceField(field)) {
+				// Reference fields store the chosen object's UUID, not the
+				// full option. Cache its label so the selection still displays.
+				if (option && option.id) {
+					this.referenceLabels = { ...this.referenceLabels, [option.id]: option.label || String(option.id) }
+				}
+				this.updateField(field.key, option ? option.id : null)
+			} else if (this.isAsyncEnum(field)) {
 				// Store full option object for async selects
 				this.updateField(field.key, option || null)
 			} else {
@@ -1213,6 +1646,13 @@ export default {
 		 * @return {Array}
 		 */
 		getEffectiveSelectedArrayOptions(field) {
+			if (this.isReferenceArrayField(field)) {
+				// Reference arrays store an array of UUIDs — resolve each to a
+				// display option `{ id, label }`.
+				const uuids = this.formData[field.key]
+				if (!Array.isArray(uuids)) return []
+				return uuids.map((uuid) => ({ id: uuid, label: this.referenceLabels[uuid] || String(uuid) }))
+			}
 			if (this.isAsyncItemsEnum(field)) {
 				// For async fields, formData stores array of full option objects
 				return this.formData[field.key] || []
@@ -1227,7 +1667,19 @@ export default {
 		 * @param {Array} options The selected options
 		 */
 		onEffectiveMultiSelectChange(field, options) {
-			if (this.isAsyncItemsEnum(field)) {
+			if (this.isReferenceArrayField(field)) {
+				// Reference arrays store an array of UUIDs. Cache labels so the
+				// chips still display the human names.
+				const list = options || []
+				const labels = {}
+				for (const o of list) {
+					if (o && o.id) labels[o.id] = o.label || String(o.id)
+				}
+				if (Object.keys(labels).length > 0) {
+					this.referenceLabels = { ...this.referenceLabels, ...labels }
+				}
+				this.updateField(field.key, list.map((o) => o.id))
+			} else if (this.isAsyncItemsEnum(field)) {
 				// Store full option objects for async multiselect
 				this.updateField(field.key, options || [])
 			} else {
@@ -1423,6 +1875,12 @@ export default {
 	font-weight: 600;
 	font-size: 0.9em;
 	color: var(--color-main-text);
+}
+
+/* Cross-app semantic reference (ADR-048) whose provider isn't installed —
+   rendered disabled; the wrapper carries the mouse-over tooltip. */
+.cn-form-dialog__semantic-unresolved {
+	cursor: not-allowed;
 }
 
 .cn-form-dialog__textarea {

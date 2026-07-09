@@ -43,6 +43,51 @@ describe('app-manifest-v2.schema.json — positive validation (REQ-MV2S-001)', (
 	})
 })
 
+describe('app-manifest-v2 — observability-only profile (ADR-040 Tier-0 adopters)', () => {
+	const OBSERVABILITY_ONLY = {
+		$schema: V2_SCHEMA_URL,
+		version: '0.1.0',
+		observability: {
+			health: {
+				statusCodePolicy: 'adr006',
+				checks: [{ id: 'database', type: 'database', severity: 'critical' }],
+			},
+		},
+	}
+
+	it('manifest with observability but no menu/pages passes (AppHost engine config only)', () => {
+		const result = validateManifestV2(OBSERVABILITY_ONLY)
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('manifest with neither pages nor observability fails', () => {
+		const result = validateManifestV2({ $schema: V2_SCHEMA_URL, version: '0.1.0' })
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('observability'))).toBe(true)
+	})
+
+	it('pages without menu still fails (UI-manifest coupling preserved)', () => {
+		const result = validateManifestV2({ $schema: V2_SCHEMA_URL, version: '0.1.0', pages: [] })
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('menu'))).toBe(true)
+	})
+
+	it('health cors flag validates (ADR-040, used by decidesk)', () => {
+		const manifest = {
+			...OBSERVABILITY_ONLY,
+			observability: {
+				health: {
+					...OBSERVABILITY_ONLY.observability.health,
+					cors: true,
+				},
+			},
+		}
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(true)
+	})
+})
+
 describe('app-manifest-v2 — all 10 page types (REQ-MV2S-003)', () => {
 	const PAGE_TYPES = ['index', 'detail', 'dashboard', 'logs', 'settings', 'chat', 'files', 'form', 'map', 'custom']
 
