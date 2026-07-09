@@ -14,6 +14,14 @@ describe('CnActionsBar — view toggle', () => {
 		expect(wrapper.findAll('.cn-actions-bar__view-toggle-btn')).toHaveLength(2)
 	})
 
+	it('renders three segments in a custom availableViewModes order', () => {
+		const wrapper = shallowMount(CnActionsBar, {
+			propsData: { viewMode: 'list', availableViewModes: ['list', 'cards', 'table'] },
+		})
+		expect(wrapper.findAll('.cn-actions-bar__view-toggle-btn')).toHaveLength(3)
+		expect(wrapper.vm.viewSegments.map((s) => s.mode)).toEqual(['list', 'cards', 'table'])
+	})
+
 	it('renders a list segment when list is in availableViewModes', () => {
 		const wrapper = shallowMount(CnActionsBar, {
 			propsData: { viewMode: 'list', availableViewModes: ['cards', 'table', 'list'] },
@@ -47,6 +55,13 @@ describe('CnActionsBar — view toggle', () => {
 	})
 
 	it('positions the sliding thumb by active-segment index', () => {
+		const wrapper = shallowMount(CnActionsBar, {
+			propsData: { viewMode: 'table', availableViewModes: ['list', 'cards', 'table'] },
+		})
+		expect(wrapper.vm.thumbStyle.transform).toBe('translateX(200%)')
+	})
+
+	it('positions the sliding thumb on the map segment (index 3)', () => {
 		const wrapper = shallowMount(CnActionsBar, {
 			propsData: { viewMode: 'map', availableViewModes: ['cards', 'table', 'list'], showMap: true },
 		})

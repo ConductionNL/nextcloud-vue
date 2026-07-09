@@ -114,6 +114,22 @@ describe('CnOpenBuildEditButton', () => {
 		expect(btn(wrapper, 'Add widget')).not.toBeUndefined()
 	})
 
+	it('shows Add widget on an empty custom page (blank canvas, ADR-041)', () => {
+		const wrapper = mountButton({ editor: makeEditor(true, [{ id: 'blank', type: 'custom' }]), pageId: 'blank' })
+		expect(wrapper.vm.isEmptyBodyPage).toBe(true)
+		expect(btn(wrapper, 'Add widget')).not.toBeUndefined()
+	})
+
+	it('hides Add widget on a custom page that already has a component or a body widget', () => {
+		const withComp = mountButton({ editor: makeEditor(true, [{ id: 'c', type: 'custom', component: 'MyPage' }]), pageId: 'c' })
+		expect(withComp.vm.isEmptyBodyPage).toBe(false)
+		expect(btn(withComp, 'Add widget')).toBeUndefined()
+
+		const withWidget = mountButton({ editor: makeEditor(true, [{ id: 'w', type: 'custom', widgets: [{ id: 'x', slot: 'body' }] }]), pageId: 'w' })
+		expect(withWidget.vm.isEmptyBodyPage).toBe(false)
+		expect(btn(withWidget, 'Add widget')).toBeUndefined()
+	})
+
 	it('ejects the default Data + Related grid into a detail page config on entering edit mode', () => {
 		const page = { id: 'det', type: 'detail', config: { register: 'r', schema: 'dogs' } }
 		const wrapper = mountButton({ editor: makeEditor(false, [page]), pageId: 'det' })
