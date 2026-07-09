@@ -25,15 +25,15 @@
 				:aria-label="t('nextcloud-vue', 'View mode')">
 				<!-- Sliding pill that sits behind the active segment. Width and
 				     offset are driven by the segment count so the same markup
-				     works for 2 or 3 segments. -->
+				     works for 2–4 segments (cards / table / list / map). -->
 				<span
 					class="cn-actions-bar__view-toggle-thumb"
 					:style="thumbStyle"
 					aria-hidden="true" />
 				<!--
 					@event view-mode-change
-					@description User clicked one of the view-mode toggle buttons (Cards / Table / List). Payload is the selected mode string.
-					@type {'cards' | 'table' | 'list'}
+					@description User clicked one of the view-mode toggle buttons (Cards / Table / List / Map). Payload is the selected mode string.
+					@type {'cards' | 'table' | 'list' | 'map'}
 				-->
 				<button
 					v-for="seg in viewSegments"
@@ -256,6 +256,7 @@ import SortVariant from 'vue-material-design-icons/SortVariant.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import Tune from 'vue-material-design-icons/Tune.vue'
 import ViewGridOutline from 'vue-material-design-icons/ViewGridOutline.vue'
+import MapMarkerOutline from 'vue-material-design-icons/MapMarkerOutline.vue'
 import ViewListOutline from 'vue-material-design-icons/ViewListOutline.vue'
 import { CnIcon } from '../CnIcon/index.js'
 
@@ -297,6 +298,7 @@ export default {
 		Tune,
 		ViewGridOutline,
 		FormatListBulletedSquare,
+		MapMarkerOutline,
 	},
 
 	props: {
@@ -366,11 +368,11 @@ export default {
 			default: true,
 		},
 
-		/** Current view mode: 'table', 'cards', or 'list' */
+		/** Current view mode: 'table', 'cards', 'list', or 'map' */
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards', 'list'].includes(v),
+			validator: (v) => ['table', 'cards', 'list', 'map'].includes(v),
 		},
 
 		/**
@@ -410,6 +412,24 @@ export default {
 
 		/** MDI icon name for the table option (defaults to the built-in list icon). Resolved via CnIcon. */
 		tableIcon: {
+			type: String,
+			default: '',
+		},
+
+		/** Whether to render the "Map" segment in the view toggle (back-compat bridge; equivalent to adding 'map' to `availableViewModes`). */
+		showMap: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Label for the map view-toggle option (defaults to "Map"). */
+		mapLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the map option (defaults to the built-in map-marker icon). Resolved via CnIcon. */
+		mapIcon: {
 			type: String,
 			default: '',
 		},
@@ -548,16 +568,21 @@ export default {
 		},
 
 		/**
-		 * The view-toggle segments (label + icon) derived from `availableViewModes`.
-		 * `icon` is a CnIcon name (empty → the built-in `fallback` component).
+		 * The view-toggle segments (label + icon) derived from `availableViewModes`,
+		 * with a back-compat bridge that appends the map segment when the beta-era
+		 * `showMap` prop is set. `icon` is a CnIcon name (empty → the built-in
+		 * `fallback` component).
 		 */
 		viewSegments() {
 			const defs = {
 				cards: { label: this.cardsLabel || t('nextcloud-vue', 'Cards'), icon: this.cardsIcon, fallback: ViewGridOutline },
 				table: { label: this.tableLabel || t('nextcloud-vue', 'Table'), icon: this.tableIcon, fallback: FormatListBulletedSquare },
 				list: { label: this.listLabel || t('nextcloud-vue', 'List'), icon: this.listIcon, fallback: ViewListOutline },
+				map: { label: this.mapLabel || t('nextcloud-vue', 'Map'), icon: this.mapIcon, fallback: MapMarkerOutline },
 			}
-			return this.availableViewModes
+			const modes = [...this.availableViewModes]
+			if (this.showMap && !modes.includes('map')) modes.push('map')
+			return modes
 				.filter((mode) => defs[mode])
 				.map((mode) => ({ mode, ...defs[mode] }))
 		},

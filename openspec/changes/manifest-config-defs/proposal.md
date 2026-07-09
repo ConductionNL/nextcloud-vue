@@ -59,7 +59,7 @@ Without formal `$defs`, every consumer derives the shape of
 `config.columns`, `config.widgets`, `config.layout`,
 `config.sidebar.columnGroups`, etc. by reading component source. That
 produces silent drift: opencatalogi names a column field `key` while
-mydash names it `field`, both work at runtime because the components
+launchpad names it `field`, both work at runtime because the components
 shrug off unknown keys, and nothing flags the divergence at schema-
 validation time.
 

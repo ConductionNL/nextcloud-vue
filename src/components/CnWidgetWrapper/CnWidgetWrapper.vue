@@ -559,6 +559,9 @@ export default {
 	flex-direction: column;
 	background: var(--color-main-background);
 	border: 1px solid var(--color-border);
+	/* NC design system: every content card is rounded — same token as
+	   CnDetailCard so detail pages read as ONE card family (ADR-062). */
+	border-radius: var(--border-radius-large, 8px);
 	overflow: hidden;
 }
 
@@ -618,6 +621,9 @@ export default {
 	align-items: center;
 	gap: 8px;
 	min-width: 0;
+	/* Grow so the title hugs the (optional) title-icon on the left instead
+	   of centering between icon and actions (header is space-between). */
+	flex: 1 1 auto;
 }
 
 .cn-widget-wrapper__icon {
@@ -688,6 +694,11 @@ export default {
 	display: flex;
 	align-items: center;
 	flex-shrink: 0;
+	/* One icon color across the whole card family: the primary element color.
+	   Some leaf cards colored their icons primary while wrapper icons stayed
+	   text-colored — pages read as two design systems (audit 2026-07-09).
+	   A titleIconColor prop still overrides via inline style. */
+	color: var(--color-primary-element);
 }
 
 .cn-widget-wrapper__footer {

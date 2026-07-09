@@ -53,6 +53,8 @@ function mountNav({
 	translate,
 	openUserSettings,
 	replayWalkthrough,
+	openAdminSettings,
+	isOwner,
 } = {}) {
 	const provide = useProps
 		? {}
@@ -61,9 +63,11 @@ function mountNav({
 			cnTranslate: translate ?? ((k) => k),
 			...(openUserSettings ? { cnOpenUserSettings: openUserSettings } : {}),
 			...(replayWalkthrough ? { cnReplayWalkthrough: replayWalkthrough } : {}),
+			...(openAdminSettings ? { cnOpenAdminSettings: openAdminSettings } : {}),
 		}
 	const propsData = {
 		permissions,
+		...(isOwner !== undefined ? { isOwner } : {}),
 		...(useProps
 			? {
 				manifest,
@@ -157,6 +161,46 @@ describe('CnAppNav', () => {
 			const c = wrapper.vm.visibleItems.find((i) => i.id === 'c')
 			const childIds = wrapper.vm.visibleChildren(c).map((ch) => ch.id)
 			expect(childIds).toEqual(['c1'])
+		})
+	})
+
+	describe('auto-included "Admin settings" nav entry (admin-settings-owner-gating)', () => {
+		const manifestWithAdminSettings = {
+			...baseManifest,
+			adminSettings: [{ id: 'org-credentials', type: 'organisation-credentials', label: 'Org credentials' }],
+		}
+
+		it('shows the entry when isOwner is true AND adminSettings is non-empty', () => {
+			const wrapper = mountNav({ manifest: manifestWithAdminSettings, isOwner: true })
+			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(true)
+		})
+
+		it('hides the entry when isOwner is false, even with adminSettings declared', () => {
+			const wrapper = mountNav({ manifest: manifestWithAdminSettings, isOwner: false })
+			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(false)
+		})
+
+		it('hides the entry when isOwner is true but adminSettings is absent', () => {
+			const wrapper = mountNav({ manifest: baseManifest, isOwner: true })
+			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(false)
+		})
+
+		it('hides the entry when isOwner is true but adminSettings is an empty array', () => {
+			const wrapper = mountNav({ manifest: { ...baseManifest, adminSettings: [] }, isOwner: true })
+			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(false)
+		})
+
+		it('defaults isOwner to false when the prop is omitted (standalone mount)', () => {
+			const wrapper = mountNav({ manifest: manifestWithAdminSettings })
+			expect(wrapper.vm.isOwner).toBe(false)
+			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(false)
+		})
+
+		it('invokes cnOpenAdminSettings when the entry is clicked', async () => {
+			const openAdminSettings = jest.fn()
+			const wrapper = mountNav({ manifest: manifestWithAdminSettings, isOwner: true, openAdminSettings })
+			await wrapper.find('[data-testid="cn-nav-admin-settings"]').trigger('click')
+			expect(openAdminSettings).toHaveBeenCalled()
 		})
 	})
 
@@ -302,44 +346,44 @@ describe('CnAppNav', () => {
 			menu: [
 				{ id: 'always', label: 'app.always', route: 'always', order: 1 },
 				{
-					id: 'view-in-mydash',
-					label: 'scholiq.nav.viewInMydash',
-					href: '/index.php/apps/mydash#scholiq-compliance',
+					id: 'view-in-launchpad',
+					label: 'scholiq.nav.viewInLaunchpad',
+					href: '/index.php/apps/launchpad#scholiq-compliance',
 					order: 2,
-					visibleIf: { appInstalled: 'mydash' },
+					visibleIf: { appInstalled: 'launchpad' },
 				},
 			],
 		}
 
 		it('hides items where visibleIf.appInstalled names an app not in OC.appswebroots', () => {
-			// mydash not installed: OC.appswebroots empty, capabilities empty.
+			// launchpad not installed: OC.appswebroots empty, capabilities empty.
 			global.OC = { appswebroots: {} }
 			getCapabilities.mockReturnValue({})
 
 			const wrapper = mountNav({ manifest: crossAppManifest, useProps: true })
 			const ids = wrapper.vm.visibleItems.map((i) => i.id)
 			expect(ids).toContain('always')
-			expect(ids).not.toContain('view-in-mydash')
+			expect(ids).not.toContain('view-in-launchpad')
 		})
 
 		it('shows items where visibleIf.appInstalled names an app in OC.appswebroots', () => {
-			global.OC = { appswebroots: { mydash: '/apps/mydash' } }
+			global.OC = { appswebroots: { launchpad: '/apps/launchpad' } }
 			getCapabilities.mockReturnValue({})
 
 			const wrapper = mountNav({ manifest: crossAppManifest, useProps: true })
 			const ids = wrapper.vm.visibleItems.map((i) => i.id)
 			expect(ids).toContain('always')
-			expect(ids).toContain('view-in-mydash')
+			expect(ids).toContain('view-in-launchpad')
 		})
 
 		it('shows items where visibleIf.appInstalled is in capabilities (fallback path)', () => {
-			// No OC.appswebroots, but capabilities advertise mydash.
+			// No OC.appswebroots, but capabilities advertise launchpad.
 			delete global.OC
-			getCapabilities.mockReturnValue({ mydash: {} })
+			getCapabilities.mockReturnValue({ launchpad: {} })
 
 			const wrapper = mountNav({ manifest: crossAppManifest, useProps: true })
 			const ids = wrapper.vm.visibleItems.map((i) => i.id)
-			expect(ids).toContain('view-in-mydash')
+			expect(ids).toContain('view-in-launchpad')
 		})
 
 		it('keeps items without visibleIf always visible (backwards-compatible)', () => {
@@ -363,10 +407,10 @@ describe('CnAppNav', () => {
 						children: [
 							{ id: 'child-always', label: 'app.child-always', route: 'ca' },
 							{
-								id: 'child-mydash',
-								label: 'app.child-mydash',
-								href: '/index.php/apps/mydash',
-								visibleIf: { appInstalled: 'mydash' },
+								id: 'child-launchpad',
+								label: 'app.child-launchpad',
+								href: '/index.php/apps/launchpad',
+								visibleIf: { appInstalled: 'launchpad' },
 							},
 						],
 					},
@@ -379,7 +423,7 @@ describe('CnAppNav', () => {
 			const parent = wrapper.vm.visibleItems.find((i) => i.id === 'parent')
 			const childIds = wrapper.vm.visibleChildren(parent).map((c) => c.id)
 			expect(childIds).toContain('child-always')
-			expect(childIds).not.toContain('child-mydash')
+			expect(childIds).not.toContain('child-launchpad')
 		})
 
 		it('shows conditional children when the named app is installed', () => {
@@ -394,23 +438,23 @@ describe('CnAppNav', () => {
 						children: [
 							{ id: 'child-always', label: 'app.child-always', route: 'ca' },
 							{
-								id: 'child-mydash',
-								label: 'app.child-mydash',
-								href: '/index.php/apps/mydash',
-								visibleIf: { appInstalled: 'mydash' },
+								id: 'child-launchpad',
+								label: 'app.child-launchpad',
+								href: '/index.php/apps/launchpad',
+								visibleIf: { appInstalled: 'launchpad' },
 							},
 						],
 					},
 				],
 			}
-			global.OC = { appswebroots: { mydash: '/apps/mydash' } }
+			global.OC = { appswebroots: { launchpad: '/apps/launchpad' } }
 			getCapabilities.mockReturnValue({})
 
 			const wrapper = mountNav({ manifest, useProps: true })
 			const parent = wrapper.vm.visibleItems.find((i) => i.id === 'parent')
 			const childIds = wrapper.vm.visibleChildren(parent).map((c) => c.id)
 			expect(childIds).toContain('child-always')
-			expect(childIds).toContain('child-mydash')
+			expect(childIds).toContain('child-launchpad')
 		})
 
 		it('passesVisibleIf returns true when visibleIf is absent', () => {
@@ -523,26 +567,26 @@ describe('CnAppNav', () => {
 		})
 
 		it('coexists with appInstalled — both conditions must pass', () => {
-			// Item requires mydash installed AND user.primaryRole === 'compliance-officer'.
+			// Item requires launchpad installed AND user.primaryRole === 'compliance-officer'.
 			const manifest = runtimeManifest(
 				{ user: { primaryRole: 'compliance-officer' } },
 				[{
 					id: 'combined',
 					label: 'scholiq.nav.combined',
-					href: '/apps/mydash#scholiq',
+					href: '/apps/launchpad#scholiq',
 					order: 2,
 					visibleIf: {
-						appInstalled: 'mydash',
+						appInstalled: 'launchpad',
 						'user.primaryRole': { in: ['compliance-officer'] },
 					},
 				}],
 			)
-			// mydash IS installed, role IS correct → visible.
-			global.OC = { appswebroots: { mydash: '/apps/mydash' } }
+			// launchpad IS installed, role IS correct → visible.
+			global.OC = { appswebroots: { launchpad: '/apps/launchpad' } }
 			const wrapperVisible = mountNav({ manifest, useProps: true })
 			expect(wrapperVisible.vm.visibleItems.map((i) => i.id)).toContain('combined')
 
-			// Reset and verify: mydash NOT installed → hidden despite correct role.
+			// Reset and verify: launchpad NOT installed → hidden despite correct role.
 			__resetAppInstalledCacheForTests()
 			global.OC = { appswebroots: {} }
 			getCapabilities.mockReturnValue({})
@@ -1218,7 +1262,7 @@ describe('CnAppNav', () => {
 	})
 
 	describe('per-item actions slot pass-through', () => {
-		it('renders content from item-${id}-actions slot inside the NcAppNavigationItem #actions slot', () => {
+		it('renders content from the item-<id>-actions slot inside the NcAppNavigationItem #actions slot', () => {
 			const wrapper = mount(CnAppNav, {
 				propsData: {
 					manifest: {
@@ -1232,6 +1276,49 @@ describe('CnAppNav', () => {
 				scopedSlots: { 'item-a-actions': '<button class="host-action">Do</button>' },
 			})
 			expect(wrapper.find('.host-action').exists()).toBe(true)
+		})
+	})
+
+	// A menu entry (or a backend-merged child) may carry `query` params so it
+	// deep-links to a pre-filtered index page, e.g. one entry per case type →
+	// Cases?caseType=<uuid>. itemTo() must fold them into the router target.
+	describe('menu-item query params', () => {
+		it('includes query in the router target when item.query is set', () => {
+			const wrapper = mountNav({})
+			const to = wrapper.vm.itemTo({ id: 'x', route: 'Cases', query: { caseType: 'abc' } })
+			expect(to).toEqual({ name: 'Cases', query: { caseType: 'abc' } })
+			wrapper.destroy()
+		})
+
+		it('omits query when item.query is absent (unchanged behaviour)', () => {
+			const wrapper = mountNav({})
+			expect(wrapper.vm.itemTo({ id: 'x', route: 'Cases' })).toEqual({ name: 'Cases' })
+			wrapper.destroy()
+		})
+
+		it('returns null (no route) for action/href items regardless of query', () => {
+			const wrapper = mountNav({})
+			expect(wrapper.vm.itemTo({ id: 'x', href: '/foo', query: { a: 1 } })).toBeNull()
+			expect(wrapper.vm.itemTo({ id: 'x', action: 'user-settings', query: { a: 1 } })).toBeNull()
+			wrapper.destroy()
+		})
+
+		it('renders a per-case-type child link carrying its query', () => {
+			const manifest = {
+				version: '1.0.0',
+				pages: [{ id: 'Cases', route: '/cases' }],
+				menu: [{
+					id: 'CasesGroup',
+					label: 'Cases',
+					order: 1,
+					open: true,
+					children: [{ id: 'ct-1', label: 'Objections', route: 'Cases', query: { caseType: 'uuid-1' } }],
+				}],
+			}
+			const wrapper = mountNav({ manifest })
+			const child = wrapper.vm.itemTo({ id: 'ct-1', route: 'Cases', query: { caseType: 'uuid-1' } })
+			expect(child.query.caseType).toBe('uuid-1')
+			wrapper.destroy()
 		})
 	})
 })

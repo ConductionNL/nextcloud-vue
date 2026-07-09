@@ -117,7 +117,7 @@ language). Every plugin call inherits the same stamps.
 A read configured with `languageGetter` returns objects whose
 `_translationMeta.translatedFrom` is non-null. The
 [`CnTranslatedBadge`](../components/cn-translated-badge.md) component
-renders a small *(translated from {sourceLanguage})* chip in
+renders a small *(translated from &#123;sourceLanguage&#125;)* chip in
 `CnDetailGrid` and `CnDetailPage` so the end-user sees that they are
 reading a translation, not the source. See the
 `cn-detail-translation-aware-surfacing` change for details.

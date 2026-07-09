@@ -54,12 +54,15 @@ Custom action items can be injected into the overflow menu:
 | `addIcon` | String | `''` | MDI icon name for the Add button (falls back to Plus) |
 | `showAdd` | Boolean | `true` | Whether to show the Add button |
 | `addDisabled` | Boolean | `false` | Whether the Add button is disabled |
-| `viewMode` | String | `'table'` | Current view mode: `'table'` or `'cards'` |
+| `viewMode` | String | `'table'` | Current view mode: `'table'`, `'cards'`, or `'map'` |
 | `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table toggle (each option carries a leading icon) |
 | `cardsLabel` | String | `''` | Label for the cards/grid view-toggle option (defaults to "Cards") |
 | `tableLabel` | String | `''` | Label for the table/list view-toggle option (defaults to "Table") |
 | `cardsIcon` | String | `''` | MDI icon name for the cards option (defaults to the built-in grid icon); resolved via CnIcon |
 | `tableIcon` | String | `''` | MDI icon name for the table option (defaults to the built-in list icon); resolved via CnIcon |
+| `showMap` | Boolean | `false` | Whether to render the third "Map" toggle segment. Off by default, so existing two-segment consumers are unchanged |
+| `mapLabel` | String | `''` | Label for the map view-toggle option (defaults to "Map"). Only shown when `showMap` |
+| `mapIcon` | String | `''` | MDI icon name for the map option (defaults to the built-in map-marker icon); resolved via CnIcon |
 | `showSearch` | Boolean | `false` | Show an inline search field on the left of the bar; emits `search` on input |
 | `searchValue` | String | `''` | Current value of the inline search field (controlled) |
 | `searchPlaceholder` | String | `''` | Placeholder / accessible label for the inline search field |

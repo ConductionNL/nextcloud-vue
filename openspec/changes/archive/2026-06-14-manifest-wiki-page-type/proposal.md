@@ -106,7 +106,7 @@ writes a `type: "custom"` entry that:
   so i18n audits and accessibility audits walk past these routes.
 - Re-invents the sidebar-tree pattern on every project — Pipelinq
   has its own `KennisbankHome` view that does it, OpenCatalogi has
-  its own glossary tree, mydash has its own "Help" tree.
+  its own glossary tree, launchpad has its own "Help" tree.
 
 This change closes the "manifest-driven markdown article" gap. It
 does NOT attempt to close the "wiki authoring UI" gap — the editor

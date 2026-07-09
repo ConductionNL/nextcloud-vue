@@ -223,6 +223,30 @@ npm run stylelint # Stylelint
 | Quality | ESLint (@nextcloud/eslint-config), Stylelint |
 | Release | semantic-release (automated npm publish) |
 
+## Icon sets & licensing
+
+`CnIconPicker` can present icons from **Material Design Icons (MDI)**, **FontAwesome**, and the **OpenGemeenten** governmental icon set. **This library bundles no icon pack.** It ships only the *capability* — the picker UI plus the `fromMdiJs` / `fromFontAwesome` / `fromOpenGemeenten` catalogue adapters. You bring the icon data:
+
+```js
+import { fromFontAwesome, fromOpenGemeenten } from '@conduction/nextcloud-vue'
+import { fas } from '@fortawesome/free-solid-svg-icons'
+
+<CnIconPicker
+  v-model="icon"
+  searchable
+  :sources="['mdi', 'fontawesome', 'opengemeenten']"
+  :catalogues="{
+    fontawesome: fromFontAwesome({ fas }),
+    opengemeenten: fromOpenGemeenten(myOpenGemeentenIcons),
+  }" />
+```
+
+- The **MDI** source uses the optional `@mdi/js` dependency (falling back to a small built-in set when it is absent) — MDI is licensed [Apache-2.0 / MIT](https://pictogrammers.com/docs/general/license/).
+- **FontAwesome** — Free icons are [CC BY 4.0 / SIL OFL 1.1 / MIT](https://fontawesome.com/license/free); Pro icons and the "Font Awesome" name/marks carry commercial terms. See <https://fontawesome.com>.
+- **OpenGemeenten** ([gemeenteniconen.nl](https://www.gemeenteniconen.nl/)) — the icons themselves are **CC0 1.0** (public domain), but the `@opengemeenten/iconset-web-component` npm package is licensed **CC BY-NC-ND 4.0** (non-commercial, no-derivatives). See <https://github.com/OpenGemeenten/Iconenset>.
+
+**You are responsible for confirming that you are licensed to use FontAwesome and the OpenGemeenten package in your own use case.** Passing a pack through the adapters grants no rights — this library provides only the ability to render icons you have obtained and licensed yourself. Attribution is due to the respective projects.
+
 ## License
 
 EUPL-1.2

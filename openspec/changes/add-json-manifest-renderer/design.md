@@ -174,7 +174,7 @@ src/
 3. Soak period: one sprint with decidesk running in production before migrating others
 4. Roll out per-app migration changes for remaining consumers at their appropriate tier (separate change per app)
 
-Apps with custom menus (e.g. mydash) can adopt Tier 4 using the `#menu` slot rather than replacing their existing menu component. Apps that only want manifest-driven pages without the full shell start at Tier 2. See `docs/migrating-to-manifest.md` for code snippets for each tier.
+Apps with custom menus (e.g. launchpad) can adopt Tier 4 using the `#menu` slot rather than replacing their existing menu component. Apps that only want manifest-driven pages without the full shell start at Tier 2. See `docs/migrating-to-manifest.md` for code snippets for each tier.
 
 Rollback: pin consuming apps to prior npm version. Library change is purely additive.
 

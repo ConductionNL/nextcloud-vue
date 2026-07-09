@@ -2,7 +2,7 @@
 
 ## Why
 
-Dashboards across the Conduction fleet (decidesk, mydash, opencatalogi,
+Dashboards across the Conduction fleet (decidesk, launchpad, opencatalogi,
 pipelinq, procest, scholiq) want a single date-range header that filters
 every chart on the page, plus a way to wire chart widgets to time-bucketed
 series without each app shipping bespoke GraphQL.
@@ -69,7 +69,7 @@ default; existing manifests are unchanged):
 ## Open questions resolved during implementation
 
 - **Default preset when `dateRange.default` is omitted** — `last-7`
-  (now − 7 d → now). Mirrors the most common case across mydash and
+  (now − 7 d → now). Mirrors the most common case across launchpad and
   decidesk dashboards, and matches the OR spec's day-bucket scenario.
 - **`from`/`to` granularity** — ISO-8601 strings with UTC midnight
   boundaries (`T00:00:00.000Z` / `T23:59:59.999Z`). The OR contract
@@ -91,5 +91,5 @@ default; existing manifests are unchanged):
 - `openregister/openspec/changes/add-time-bucket-aggregation/specs/graphql-api/spec.md`
   (the contract; lives in worktree `/tmp/worktrees/openregister-time-bucket-agg/`).
 - `ConductionNL/openregister#1611` — the OR PR.
-- Existing dashboard usage in `decidesk`, `mydash`, `opencatalogi`,
+- Existing dashboard usage in `decidesk`, `launchpad`, `opencatalogi`,
   `pipelinq`, `procest`, `scholiq`.

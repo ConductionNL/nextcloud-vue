@@ -177,7 +177,7 @@ import { generateUrl } from '@nextcloud/router'
  * application's `/api/widgets/files/{placementId}/...` endpoints (the same
  * contract the launchpad/mydash backend served) and deep-links file rows into
  * the Nextcloud **Files** app via the canonical `/f/{fileid}` permalink. The
- * `@nextcloud/axios` helper is imported LAZILY at call
+ * `@nextcloud/axios` + `@nextcloud/router` helpers are imported LAZILY at call
  * time so the widget code never hard-couples to a network stack at module load
  * (keeps the no-op css transform path clean and lets a host without the backing
  * endpoint mount the component without side-effects). When the backing endpoint
@@ -222,7 +222,7 @@ export default {
 		/**
 		 * App base for the host's files-widget endpoints
 		 * (`{apiBase}/api/widgets/files/{placementId}/...`). Lets a consuming
-		 * app point the widget at its own backend (e.g. `/apps/mydash`).
+		 * app point the widget at its own backend (e.g. `/apps/launchpad`).
 		 * Defaults to `/apps/files`.
 		 *
 		 * @type {string}

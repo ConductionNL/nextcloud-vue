@@ -115,7 +115,7 @@ For example, an app like opencatalogi that previously rendered one nav entry per
 }
 ```
 
-The full contract — required fields, schema-conformance, i18n key requirement, fallback behaviour — lives in the [`useAppManifest` reference docs](./utilities/composables/use-app-manifest.md#dynamic-per-tenant-menu-entries). The lib never directly queries a register or schema; ADR-022 keeps the data layer behind the app's backend.
+The full contract — required fields, schema-conformance, i18n key requirement, fallback behaviour, and the two merge strategies (`deepMerge` replaces `menu[]` wholesale; `delta` merges entries and nested `children[]` **by `id`** so a group can be extended without clobbering it) — lives in [Overriding an app's manifest at runtime](./manifest-runtime-override.md) and the [`useAppManifest` reference](./utilities/composables/use-app-manifest.md#merge-semantics--two-modes). The lib never directly queries a register or schema; ADR-022 keeps the data layer behind the app's backend.
 
 ---
 
@@ -809,21 +809,26 @@ If you want a few of the read-only defaults overridden, mix them in:
 | `date` | `Intl.DateTimeFormat` `dateStyle:"medium"` — locale-aware date, no time. |
 | `datetime` | Date + `timeStyle:"short"`. |
 | `relative-time` | `Intl.RelativeTimeFormat` — "3 days ago" / "in 2 hours". |
+| `currency` | `Intl.NumberFormat` currency — EUR default; the column's `formatterOptions` may set `currency` (ISO-4217, guarded — an invalid code falls back to EUR) and `decimals` (default 2). |
+| `conditionalPhrase` | Sign/zero-based phrase selection over a numeric field (generalizes `daysUntil`): `formatterOptions { negative, zero, positive }` supply pre-translated phrases; `{n}` is replaced by the absolute value (e.g. `-3` + `"{n} days overdue"` → "3 days overdue"). |
 
 ```jsonc
 "columns": [
   { "key": "createdAt", "label": "Created", "formatter": "date" },
-  { "key": "lastSeenAt", "label": "Last seen", "formatter": "relative-time" }
+  { "key": "lastSeenAt", "label": "Last seen", "formatter": "relative-time" },
+  { "key": "amount", "label": "Amount", "formatter": "currency", "formatterOptions": { "currency": "USD", "decimals": 0 } },
+  { "key": "daysLeft", "label": "Deadline", "formatter": "conditionalPhrase", "formatterOptions": { "negative": "{n} days overdue", "zero": "Due today", "positive": "{n} days remaining" } }
 ]
 ```
 
-All three are safe against `null` / `""` / non-parseable values — they return an empty string or the original value rather than throwing.
+Formatters are invoked as `fn(value, row, property, formatterOptions)` — the fourth argument is the column's `formatterOptions` map (undefined when the column declares none), so config-driven formatters need no registry function per configuration. All built-ins are safe against `null` / `""` / non-parseable values — they return an empty string or the original value rather than throwing.
 
 ### Widgets
 
 | id | What |
 |---|---|
-| `badge` | Renders the value as a `CnStatusBadge` pill. `widgetProps.variant` picks the colour (default `"default"`). |
+| `badge` | Renders the value as a `CnStatusBadge` pill. `widgetProps.variant` picks the colour (default `"default"`). Lives on the *widget* mechanism (not a formatter) because it renders a component; pair it with a `formatter` to shape the pill's label. |
+| `fkResolve` | Resolves a reference uuid (or an array of them) to the related object's display label, fetched through the shared object store with per-schema caching (one request per distinct id, in-flight de-dup). Config: `widgetProps { register, schema, labelField }` — `labelField` default `"name"`, falling back to `title` → `@self.name` → the raw id. |
 | `link` | Renders the value as a navigable link. Resolution order: `widgetProps.route` (a manifest page id) → `<router-link>` to `{name: route, params: {id: row[rowKey]}}`; else `widgetProps.href` → `<a target="_blank" rel="noopener">` (with `{key}` placeholders substituted from the row); else plain text + a once-per-session `console.warn` (silence with `widgetProps.fallback: "silent"`). For non-`id` route params, pass `widgetProps.params: { routeParamName: "rowFieldName" }`. |
 
 ```jsonc
