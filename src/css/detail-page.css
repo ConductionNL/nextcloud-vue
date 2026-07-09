@@ -198,11 +198,45 @@
 	width: 100%;
 }
 
-/* Each widget fills its grid cell; GridStack's `.grid-stack-item-content` is
-   `overflow: hidden`, so let a tall widget (e.g. a long data form) scroll
-   within its cell rather than clip. */
+/* Each widget fills its grid cell. ADR-062: NO inner scrollbars on detail
+   pages — an overflowing data widget clips at a whole-row boundary and offers
+   "Show all" (CnObjectDataWidget) instead of scrolling, so the cell itself
+   must not scroll either (the cell-level scrollbar was the last one left). */
 .cn-detail-page__grid .grid-stack-item-content {
-	overflow: auto;
+	overflow: hidden;
+}
+
+/* When a data widget is expanded via "Show all", let it overflow its cell and
+   float above the siblings below. */
+.cn-detail-page__grid .grid-stack-item:has(.cn-object-data-widget--expanded) {
+	z-index: 5;
+}
+
+.cn-detail-page__grid .grid-stack-item-content:has(.cn-object-data-widget--expanded) {
+	overflow: visible;
+}
+
+/* ADR-062: every widget spans its full assigned cell — integration leaf cards
+   (Emails / Meetings / Files / Contacts / Notes …) previously sized to their
+   content and left a dead band under the card inside the cell. Stretch the
+   cell's root widget element; leaf cards flex their body to absorb it. */
+.cn-detail-page__grid .grid-stack-item-content > * {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.cn-detail-page__grid .grid-stack-item-content > *:not(.cn-stats-block-widget) > :last-child {
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+/* Multi-tile stats-blocks distribute the cell height across their tiles
+   instead of stretching only the last one. */
+.cn-detail-page__grid .grid-stack-item-content > .cn-stats-block-widget > * {
+	flex: 1 1 0;
+	min-height: 0;
 }
 
 /* dashboard.css draws a square cell border + background around any grid cell
