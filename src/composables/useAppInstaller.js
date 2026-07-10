@@ -7,6 +7,15 @@ import {
 	PwdConfirmationMode,
 } from '@nextcloud/password-confirmation'
 import '@nextcloud/password-confirmation/style.css'
+// password-confirmation renders its prompt via @nextcloud/dialogs'
+// `spawnDialog`, and this composable also fires `showSuccess`/`showError`
+// toasts through @nextcloud/dialogs. Since rollup now BUNDLES @nextcloud/dialogs
+// (see rollup.config.js), its stylesheet is imported here so the dialog chrome
+// and toasts render styled from the library's own extracted CSS — the
+// password-confirmation stylesheet only covers the inner form. The rules are
+// scoped (toasts under `.dialogs`, dialog/file-picker chrome under their own
+// classes), so this adds no app-wide restyling.
+import '@nextcloud/dialogs/style.css'
 
 /**
  * Composable that installs-and-enables (or just enables) a missing

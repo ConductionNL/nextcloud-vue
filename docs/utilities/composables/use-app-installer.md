@@ -36,7 +36,9 @@ The install route moved between Nextcloud majors, so two are tried in order:
 
 ## Adoption notes
 
-`@nextcloud/password-confirmation@5` (used for both the strict interceptor and the legacy session `confirmPassword()`) imports `spawnDialog` from `@nextcloud/dialogs` **^6**; nc-vue itself ships `@nextcloud/dialogs@^6.4.2`. Consumers that **webpack-alias `@nextcloud/dialogs` to a pre-6 version** will fail to build (`spawnDialog` is not exported by dialogs <6). Such consumers must **drop or bump** that alias to `^6` before adopting the install action.
+`@nextcloud/password-confirmation@5` (used for both the strict interceptor and the legacy session `confirmPassword()`) imports `spawnDialog` from `@nextcloud/dialogs` **^6** — an export that does not exist in dialogs <6. Since the library now **bundles both `@nextcloud/password-confirmation` and `@nextcloud/dialogs` into its dist**, consumers that webpack-alias `@nextcloud/dialogs` to a pre-6 version keep building and running unchanged: the install action uses the bundled dialogs ^6 internally, while the app's own `@nextcloud/dialogs` imports keep resolving through its alias.
+
+**Local-dev caveat**: apps that build against nc-vue *source* (e.g. a `useLocalLib` webpack alias to `../nextcloud-vue/src`) bypass the dist bundle — on that path `@nextcloud/dialogs` resolves from the app's own `node_modules`, and a pre-6 copy still fails with `spawnDialog was not found`. For local-lib development either install `@nextcloud/dialogs@^6` in the app or set `useLocalLib = false`.
 
 ## Signature
 
