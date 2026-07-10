@@ -355,6 +355,7 @@
 					v-else-if="currentViewMode === 'map'"
 					class="cn-index-page__map"
 					:center="mapCenter"
+					:layers="mapLayers"
 					:markers="mapMarkers"
 					:auto-fit="true"
 					@marker-click="onMarkerClick" />
@@ -1709,11 +1710,11 @@ export default {
 		mapMarkers() {
 			const features = []
 			for (const row of this.displayObjects) {
-				const coords = this.resolveRowLatLng(row)
-				if (!coords) continue
+				const geometry = this.resolveRowGeometry(row)
+				if (!geometry) continue
 				features.push({
 					type: 'Feature',
-					geometry: { type: 'Point', coordinates: [coords.lng, coords.lat] },
+					geometry,
 					properties: {
 						[this.rowKey]: row[this.rowKey],
 						...(this.mapConfig.popupField ? { [this.mapConfig.popupField]: row[this.mapConfig.popupField] } : {}),
@@ -1730,14 +1731,25 @@ export default {
 		 *
 		 * @return {[number, number]}
 		 */
-		mapCenter() {
+		mapLayers() {
+				if (Array.isArray(this.mapConfig.layers) && this.mapConfig.layers.length > 0) {
+					return this.mapConfig.layers
+				}
+				return [{
+					type: 'tile',
+					url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+					attribution: '© OpenStreetMap contributors',
+				}]
+			},
+
+			mapCenter() {
 			const feats = this.mapMarkers.features
 			if (feats.length > 0) {
 				let sumLat = 0
 				let sumLng = 0
 				for (const f of feats) {
-					sumLng += f.geometry.coordinates[0]
-					sumLat += f.geometry.coordinates[1]
+					const _p = this.firstLatLng(f.geometry); if (!_p) continue; sumLng += _p.lng
+					sumLat += _p.lat
 				}
 				return [sumLat / feats.length, sumLng / feats.length]
 			}
@@ -2595,6 +2607,65 @@ export default {
 			const lat = Number(this.getByPath(row, cfg.latField))
 			const lng = Number(this.getByPath(row, cfg.lngField))
 			if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng }
+			return null
+		},
+
+		/**
+		 * Resolve a row's GeoJSON geometry for the map view. Prefers a full
+		 * geometry on `geoField`: a Point renders as a marker, a Polygon /
+		 * MultiPolygon / LineString renders as an area/line — so location cases
+		 * plot as both points AND areas. `geoField` is parsed from a JSON string
+		 * when OpenRegister stores it encoded. Falls back to a Point built from
+		 * `latField` / `lngField`. Returns null when nothing resolvable is present.
+		 *
+		 * @param {object} row The source object.
+		 * @return {object|null} A GeoJSON geometry object, or null.
+		 */
+		resolveRowGeometry(row) {
+			if (!row) return null
+			const cfg = this.mapConfig || {}
+			const GEO_TYPES = ['Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon', 'GeometryCollection']
+			if (cfg.geoField) {
+				let geo = this.getByPath(row, cfg.geoField)
+				if (typeof geo === 'string') {
+					try { geo = JSON.parse(geo) } catch { geo = null }
+				}
+				if (geo && GEO_TYPES.includes(geo.type)) {
+					const hasShape = geo.type === 'GeometryCollection'
+						? Array.isArray(geo.geometries)
+						: Array.isArray(geo.coordinates)
+					if (hasShape) return geo
+				}
+			}
+			const lat = Number(this.getByPath(row, cfg.latField))
+			const lng = Number(this.getByPath(row, cfg.lngField))
+			if (Number.isFinite(lat) && Number.isFinite(lng)) {
+				return { type: 'Point', coordinates: [lng, lat] }
+			}
+			return null
+		},
+
+		/**
+		 * Dig out the first `[lng, lat]` coordinate pair from any GeoJSON geometry
+		 * (Point, Polygon ring, GeometryCollection, …) for a rough centroid.
+		 *
+		 * @param {object} geometry A GeoJSON geometry.
+		 * @return {{lat: number, lng: number}|null}
+		 */
+		firstLatLng(geometry) {
+			if (!geometry) return null
+			if (geometry.type === 'GeometryCollection') {
+				for (const g of (geometry.geometries || [])) {
+					const p = this.firstLatLng(g)
+					if (p) return p
+				}
+				return null
+			}
+			let c = geometry.coordinates
+			while (Array.isArray(c) && Array.isArray(c[0])) c = c[0]
+			if (Array.isArray(c) && Number.isFinite(c[0]) && Number.isFinite(c[1])) {
+				return { lat: Number(c[1]), lng: Number(c[0]) }
+			}
 			return null
 		},
 

@@ -67,3 +67,88 @@
 	inset-inline-end: 10px;
 	z-index: 2;
 }
+
+/*
+ * KPI stat widget layout — same scoped-hash caveat as above. In a consuming app
+ * that ends up with two compilations of the lib, the CnStatWidget `<style
+ * scoped>` misses the live element and the card collapses to `display:inline`
+ * with a full-width block icon band and a big empty void (looks broken). These
+ * unscoped globals mirror the component's own scoped rules so the icon renders
+ * as a small circle and the label/value/caption stack compactly regardless of
+ * the data-v hash. Values are identical to CnStatWidget.vue.
+ */
+.cn-stat-widget {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 8px 4px;
+	min-height: 64px;
+	min-width: 0;
+	max-width: 100%;
+}
+
+.cn-stat-widget--linked {
+	cursor: pointer;
+	text-decoration: none;
+	color: inherit;
+	border-radius: var(--border-radius-large, 8px);
+	transition: background-color 0.1s ease-in-out;
+}
+
+.cn-stat-widget--linked:hover {
+	background-color: var(--color-background-hover);
+}
+
+.cn-stat-widget__icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.cn-stat-widget__body {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-stat-widget__label {
+	font-size: 0.95em;
+	font-weight: 600;
+	color: var(--color-main-text);
+}
+
+.cn-stat-widget__value-row {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	min-width: 0;
+}
+
+.cn-stat-widget__value {
+	font-size: 1.6em;
+	font-weight: 700;
+	line-height: 1.15;
+	color: var(--color-primary-element);
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cn-stat-widget__trend {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	font-size: 0.85em;
+	font-weight: 600;
+}
+
+.cn-stat-widget__caption {
+	font-size: 0.85em;
+	color: var(--color-text-maxcontrast);
+}
