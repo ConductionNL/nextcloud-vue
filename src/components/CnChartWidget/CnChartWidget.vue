@@ -1277,7 +1277,7 @@ export default {
 					}
 				}
 			}
-			const rawKeys = sorted.map((g) => (g.key === null || g.key === undefined ? '' : String(g.key)))
+			let rawKeys = sorted.map((g) => (g.key === null || g.key === undefined ? '' : String(g.key)))
 			let labels = rawKeys.map((k) => (k === '' ? '—' : k))
 			let colorMap = null
 			if (agg.labelResolve && agg.labelResolve.schema) {
@@ -1295,7 +1295,31 @@ export default {
 					})
 				}
 			}
-			const values = sorted.map((g) => Number(g.value) || 0)
+			let values = sorted.map((g) => Number(g.value) || 0)
+			// Optional: collapse groups that resolve to the SAME label into one
+			// bucket (summing their values). Useful when the groupBy field is a
+			// per-parent reference — e.g. status types defined per case type, so
+			// several distinct "Received" ids should read as a single "Received"
+			// category. Drilldown keeps the first contributing key.
+			if (agg.mergeByLabel) {
+				const order = []
+				const acc = {}
+				labels.forEach((lab, i) => {
+					if (!Object.prototype.hasOwnProperty.call(acc, lab)) {
+						acc[lab] = { value: 0, key: rawKeys[i] }
+						order.push(lab)
+					}
+					acc[lab].value += values[i]
+				})
+				labels = order
+				values = order.map((l) => acc[l].value)
+				rawKeys = order.map((l) => acc[l].key)
+				if (colorMap) {
+					const merged = {}
+					order.forEach((l) => { if (colorMap[l]) merged[l] = colorMap[l] })
+					colorMap = merged
+				}
+			}
 			if (other) {
 				rawKeys.push(other.key)
 				labels.push(other.label)

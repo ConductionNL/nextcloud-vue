@@ -719,7 +719,16 @@ export default {
 		toObjectRow(raw) {
 			const self = raw['@self'] || {}
 			const id = raw.id || self.id || self.uuid || ''
-			const label = raw.title || raw.name || self.title || self.name || self.schema || String(id)
+			const isUuid = (v) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v.trim())
+				// Pick a human label. Skip `@self.name` when OpenRegister has fallen
+				// back to the bare uuid (schemas with no configured name field), and
+				// cover common display properties across schemas — including Dutch
+				// ones (onderwerp, omschrijving, naam, titel) — before the schema/id.
+				const label = [
+					raw.title, raw.name, raw.displayName, raw.label,
+					raw.onderwerp, raw.subject, raw.omschrijving, raw.naam, raw.titel,
+					self.title, self.name, raw.summary, raw.description,
+				].find((v) => typeof v === 'string' && v.trim() && !isUuid(v)) || self.schema || String(id)
 			const meta = self.schema || raw.schema || ''
 			return { id, label, meta: typeof meta === 'string' ? meta : '', raw }
 		},
