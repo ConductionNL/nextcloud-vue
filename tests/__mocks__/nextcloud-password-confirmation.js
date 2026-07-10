@@ -9,9 +9,13 @@
  * moduleNameMapper redirects the import here so resolution always succeeds.
  *
  * Default: `confirmPassword()` resolves immediately (as if the admin
- * confirmed).
+ * confirmed) and `addPasswordConfirmationInterceptors()` is a no-op — the
+ * modern strict path attaches its Basic-auth header via the real interceptor
+ * on the live instance, which is out of scope for the unit boundary.
  */
 module.exports = {
 	__esModule: true,
+	addPasswordConfirmationInterceptors: () => {},
 	confirmPassword: () => Promise.resolve(),
+	PwdConfirmationMode: { Lax: 'lax', Strict: 'strict' },
 }

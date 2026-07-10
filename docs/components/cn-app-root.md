@@ -34,7 +34,9 @@ Each entry in `manifest.dependencies` is either a **string** (a HARD dependency 
 
 ### In-place install / enable
 
-Both dependency surfaces (`CnDependencyMissing` and the `or-missing` guard) and every soft-dependency banner render an admin-aware action driven by [`useAppInstaller`](../utilities/composables/use-app-installer.md): an admin clicks **Install and enable** (not installed) or **Enable** (installed but disabled) and nc-vue downloads, installs and enables the app via Nextcloud's own `settings/apps/enable` endpoint, then reloads. Non-admins — who cannot hit that admin-only endpoint — see "ask your administrator to enable {name}" copy instead of a dead-end link. On failure the error shows inline and the original store link stays as a fallback.
+Both dependency surfaces (`CnDependencyMissing` and the `or-missing` guard) and every soft-dependency banner render an admin-aware action driven by [`useAppInstaller`](../utilities/composables/use-app-installer.md): an admin clicks **Install and enable** (not installed) or **Enable** (installed but disabled) and nc-vue downloads, installs and enables the app via Nextcloud's install endpoint — the NC34+ bundled-`appstore` OCS API, falling back to the legacy `settings/apps/enable` route on ≤NC33 — then reloads. Non-admins — who cannot hit that admin-only endpoint — see "ask your administrator to enable {name}" copy instead of a dead-end link. On failure the error shows inline and the original store link stays as a fallback.
+
+When no server-side `dependency_statuses` initial-state is present and the JS heuristic cannot distinguish "not installed" from "installed but disabled", the action defaults to the **Install and enable** label — a genuinely-missing app must never be mislabelled **Enable**.
 
 The `or-missing` guard (the capabilities check driven by the `requiresApps` prop) now renders English default copy for the `app-availability.title` / `app-availability.description` / `app-availability.action` keys when the `translate` prop leaves them unchanged, so the raw keys never render.
 

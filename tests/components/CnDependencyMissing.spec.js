@@ -17,7 +17,7 @@ jest.mock('@nextcloud/auth', () => ({
 	getCurrentUser: jest.fn(() => ({ uid: 'admin', isAdmin: true })),
 }))
 // Mock the shared installer so the component tests never hit the real
-// confirmPassword() + settings/apps/enable round-trip.
+// password-confirmation + appstore/enable round-trip.
 const mockInstallAndEnable = jest.fn()
 const mockInstallerRefs = { installing: { value: false }, error: { value: null } }
 jest.mock('../../src/composables/useAppInstaller.js', () => ({

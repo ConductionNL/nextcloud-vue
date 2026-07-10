@@ -7,8 +7,9 @@ status: draft
 
 Let a Conduction app resolve a missing Nextcloud app dependency in place — an
 admin clicks "Install and enable" (or "Enable") on the dependency surface and
-nc-vue downloads, installs and enables the app via Nextcloud's own
-`settings/apps/enable` endpoint, then reloads. Distinguish HARD dependencies (the
+nc-vue downloads, installs and enables the app via Nextcloud's own enable endpoint
+(the NC34+ `appstore` OCS API, with the legacy `settings/apps/enable` route as a
+≤NC33 fallback), then reloads. Distinguish HARD dependencies (the
 app cannot run; blocking `CnDependencyMissing` screen) from SOFT dependencies
 (optional integrations; the app shell loads normally with a dismissible in-shell
 notice). Supersedes the dead-end "go to the apps settings page" link previously
@@ -21,36 +22,92 @@ guard (REQ-OR-1..7).
 
 nc-vue MUST provide a `useAppInstaller` composable (`src/composables/useAppInstaller.js`,
 exported from `src/composables/index.js`) exposing reactive `installing` (boolean),
-`error` (string or null) and an async `installAndEnable(appId)` action. The action
-MUST call `confirmPassword()` from `@nextcloud/password-confirmation` first, then
-`POST /index.php/settings/apps/enable` with body `{ appIds: [appId], groups: [] }`
-via `@nextcloud/axios`. On HTTP 200 it MUST resolve; on failure it MUST set `error`
-from the response `data.message` (or a generic fallback) and reject. `installing`
-MUST be `true` for the whole duration (download + migrations can take 10–30s) and
-`false` once settled.
+`error` (string or null) and an async `installAndEnable(appId)` action.
 
-@e2e exclude Shared Vue-library composable with no standalone Playwright app surface; the confirmPassword() + settings/apps/enable round-trip is admin-only and mutates the live Nextcloud instance (installs real apps), so it is unsafe to drive in browser e2e — covered by @vue/test-utils unit tests with mocked @nextcloud/axios and @nextcloud/password-confirmation (ADR-008 / Playwright-UI-only convention).
+Because the **NC34+ OCS `appstore` endpoint** declares
+`#[PasswordConfirmationRequired(strict: true)]` — which ignores the session
+confirmation timestamp and demands an `Authorization: Basic base64(login:password)`
+header on the request — the composable MUST use the canonical strict-confirmation
+mechanism: it MUST call `addPasswordConfirmationInterceptors(axios)` from
+`@nextcloud/password-confirmation` once at module load, and MUST `POST`
+`generateOcsUrl('/apps/appstore/api/v1/apps/enable')` with the singular body
+`{ appId, groups: [] }` and the request config `{ confirmPassword:
+PwdConfirmationMode.Strict }` via `@nextcloud/axios`. The interceptor prompts for the
+password and attaches the Basic-auth header to that single request; the composable MUST
+NOT call the session `confirmPassword()` on this modern path.
 
-#### Scenario: confirm password then enable
+When the OCS call fails with HTTP `404` or `405` (an older Nextcloud without the
+bundled `appstore` app), it MUST fall back to the **legacy** non-strict
+`POST /index.php/settings/apps/enable` with the plural body
+`{ appIds: [appId], groups: [] }`, calling the session `confirmPassword()` first (the
+legacy route accepts session confirmation). Any other error from the OCS call
+(500, 403, network) MUST be treated as a real failure and MUST NOT trigger the legacy
+fallback. A cancelled password prompt (the strict interceptor and the session
+`confirmPassword()` both reject with `Error('Dialog closed')`) MUST NOT trigger the
+legacy fallback and MUST leave `error` `null`. On HTTP 200 it MUST resolve; on failure
+it MUST set `error` from the response message — the OCS envelope
+`data.ocs.meta.message` or the legacy `data.data.message`/`data.message` (or a generic
+fallback) — and reject. `installing` MUST be `true` for the whole duration (the strict
+prompt + download + migrations can take 10–30s) and `false` once settled.
 
-- **GIVEN** an admin calls `installAndEnable('openregister')`
-- **WHEN** `confirmPassword()` resolves
-- **THEN** the composable MUST `POST /index.php/settings/apps/enable` with
-  `{ appIds: ['openregister'], groups: [] }`
+@e2e exclude Shared Vue-library composable with no standalone Playwright app surface; the confirmPassword() + enable round-trip is admin-only and mutates the live Nextcloud instance (installs real apps), so it is unsafe to drive in browser e2e — covered by @vue/test-utils unit tests with mocked @nextcloud/axios and @nextcloud/password-confirmation (ADR-008 / Playwright-UI-only convention).
+
+#### Scenario: strict confirm-in-request enable via the modern OCS endpoint
+
+- **GIVEN** `addPasswordConfirmationInterceptors(axios)` has been registered at load
+- **AND** an admin calls `installAndEnable('openregister')` on NC34+
+- **WHEN** the action runs
+- **THEN** the composable MUST `POST` `generateOcsUrl('/apps/appstore/api/v1/apps/enable')`
+  with `{ appId: 'openregister', groups: [] }` and the request config
+  `{ confirmPassword: PwdConfirmationMode.Strict }`
+- **AND** it MUST NOT call the session `confirmPassword()` on this path
+- **AND** it MUST NOT call the legacy `/settings/apps/enable` route
 - **AND** `installing` MUST be `true` while the request is in flight
+- **AND** on a 200 response `installing` MUST return to `false` and `error` MUST
+  stay `null`
+
+#### Scenario: falls back to the legacy route (with session confirmPassword) when the OCS endpoint is absent
+
+- **GIVEN** an admin calls `installAndEnable('deck')` on ≤NC33 (no `appstore` app)
+- **WHEN** the OCS `POST` fails with HTTP `404` or `405`
+- **THEN** the composable MUST call the session `confirmPassword()` and then retry
+  `POST /index.php/settings/apps/enable` with `{ appIds: ['deck'], groups: [] }`
 - **AND** on a 200 response `installing` MUST return to `false` and `error` MUST
   stay `null`
 
 #### Scenario: password confirmation cancelled
 
-- **WHEN** `confirmPassword()` rejects (the admin dismisses the dialog)
-- **THEN** the composable MUST NOT call the enable endpoint
+- **WHEN** the strict interceptor (or, on the legacy path, the session
+  `confirmPassword()`) rejects with `Error('Dialog closed')` because the admin
+  dismisses the dialog
+- **THEN** the composable MUST NOT trigger the legacy fallback
+- **AND** `error` MUST stay `null`
 - **AND** `installing` MUST be `false`
+- **AND** the action MUST reject
 
-#### Scenario: enable endpoint fails
+#### Scenario: a strict 403 does NOT fall back
 
-- **GIVEN** the enable request returns HTTP 500 with
-  `{ data: { message: 'Could not download app' } }`
+- **GIVEN** the OCS `POST` returns HTTP 403 (e.g. wrong password / missing Basic
+  header from the strict middleware)
+- **WHEN** `installAndEnable` handles the rejection
+- **THEN** the composable MUST NOT call the legacy `/settings/apps/enable` route
+- **AND** `installing` MUST be `false`
+- **AND** the action MUST reject so the caller can fall back to the store link
+
+#### Scenario: a modern non-404/405 error does NOT fall back
+
+- **GIVEN** the OCS `POST` returns HTTP 500 with
+  `{ data: { ocs: { meta: { message: 'could not enable app' } } } }`
+- **WHEN** `installAndEnable` handles the rejection
+- **THEN** the composable MUST NOT call the legacy `/settings/apps/enable` route
+- **AND** `error` MUST equal `'could not enable app'` (from `data.ocs.meta.message`)
+- **AND** `installing` MUST be `false`
+- **AND** the action MUST reject so the caller can fall back to the store link
+
+#### Scenario: legacy fallback also fails
+
+- **GIVEN** the OCS `POST` fails with HTTP 405 and the legacy `POST` then returns
+  HTTP 500 with `{ data: { message: 'Could not download app' } }`
 - **WHEN** `installAndEnable` handles the rejection
 - **THEN** `error` MUST equal `'Could not download app'`
 - **AND** `installing` MUST be `false`

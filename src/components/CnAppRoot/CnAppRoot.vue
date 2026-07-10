@@ -1810,8 +1810,11 @@ export default {
 							enabled: server.installed ? false : undefined,
 						}
 					}
-					// No server data — cannot tell installed from disabled, show "Enable"
-					return { id, name, required, category: 'featured', enabled: false }
+					// No server data and the JS heuristic cannot tell not-installed
+					// from installed-but-disabled. Default to the safe "not
+					// installed" shape (enabled: undefined → "Install and enable"):
+					// a genuinely-missing app must never be mislabelled "Enable".
+					return { id, name, required, category: 'featured', enabled: undefined }
 				})
 		},
 		/**

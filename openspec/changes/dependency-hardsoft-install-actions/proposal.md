@@ -20,11 +20,13 @@ shell — it should surface a dismissible in-shell notice, not a blocking screen
 ## What Changes
 
 - Add a new `useAppInstaller` composable that wraps `confirmPassword()` from
-  `@nextcloud/password-confirmation` (**new dependency**) followed by
-  `POST /index.php/settings/apps/enable` (via `@nextcloud/axios`). This single
-  admin-only endpoint auto-downloads from the app store (signature-verified),
-  runs migrations, and enables the app — covering both "install" and "enable" in
-  one call. Exposes `installing`, `error`, and `installAndEnable(appId)` state.
+  `@nextcloud/password-confirmation` (**new dependency**) followed by a `POST` to
+  the NC34+ bundled-`appstore` OCS endpoint (`/ocs/v2.php/apps/appstore/api/v1/apps/enable`,
+  via `@nextcloud/axios`), falling back to the legacy `POST /index.php/settings/apps/enable`
+  route on ≤NC33 (a 404/405). This single admin-only endpoint auto-downloads from the
+  app store (signature-verified), runs migrations, and enables the app — covering both
+  "install" and "enable" in one call. Exposes `installing`, `error`, and
+  `installAndEnable(appId)` state.
 - Add admin-aware **"Install and enable" / "Enable"** action buttons to BOTH
   dependency surfaces: `CnDependencyMissing.vue` and `CnAppRoot`'s `or-missing`
   guard. Label is "Install and enable" when the app is not installed vs "Enable"

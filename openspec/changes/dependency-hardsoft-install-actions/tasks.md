@@ -3,7 +3,7 @@
 ## 1. Dependency & composable
 
 - [x] 1.1 Add `@nextcloud/password-confirmation` to `package.json` dependencies and install (spec_ref: REQ-DIA-1; files: `package.json`, `package-lock.json`)
-- [x] 1.2 Create `src/composables/useAppInstaller.js` — `installing`/`error` refs + async `installAndEnable(appId)` calling `confirmPassword()` then `POST /index.php/settings/apps/enable` `{ appIds:[appId], groups:[] }` via `@nextcloud/axios`; set `error` from `data.message` on failure (spec_ref: REQ-DIA-1; files: `src/composables/useAppInstaller.js`)
+- [x] 1.2 Create `src/composables/useAppInstaller.js` — `installing`/`error` refs + async `installAndEnable(appId)` that registers `addPasswordConfirmationInterceptors(axios)` at load and `POST`s the NC34+ OCS `appstore` endpoint `generateOcsUrl('/apps/appstore/api/v1/apps/enable')` `{ appId, groups:[] }` with `{ confirmPassword: PwdConfirmationMode.Strict }` (the strict route ignores the session timestamp and needs a per-request `Authorization: Basic` header — the interceptor supplies it), falling back to the legacy `POST /index.php/settings/apps/enable` `{ appIds:[appId], groups:[] }` — preceded by the non-strict session `confirmPassword()` — only on a 404/405; a cancelled prompt (`Error('Dialog closed')`) leaves `error` null and does not fall back; set `error` from `data.ocs.meta.message` (OCS) or `data.message` (legacy) on failure (spec_ref: REQ-DIA-1; files: `src/composables/useAppInstaller.js`)
 - [x] 1.3 Export `useAppInstaller` from `src/composables/index.js` barrel (spec_ref: REQ-DIA-1; files: `src/composables/index.js`)
 
 ## 2. Manifest HARD/SOFT model
@@ -26,7 +26,7 @@
 
 ## 5. Tests & docs
 
-- [x] 5.1 Unit-test `useAppInstaller` with mocked `@nextcloud/axios` + `@nextcloud/password-confirmation` (confirm→enable, cancel, 500-error paths) (spec_ref: REQ-DIA-1; files: `test/`)
+- [x] 5.1 Unit-test `useAppInstaller` with mocked `@nextcloud/axios` + `@nextcloud/password-confirmation` (interceptors registered at load, modern-OCS strict-flag enable, strict-prompt cancel = no fallback + no error, 404/405→legacy fallback with session `confirmPassword()` success + failure, legacy-prompt cancel, modern-500/403-does-not-fall-back, OCS/legacy error-message extraction) (spec_ref: REQ-DIA-1; files: `test/`)
 - [x] 5.2 Component-test `CnDependencyMissing` admin/non-admin + install-success/fail branches with mocked `useAppInstaller` and `@nextcloud/auth` (spec_ref: REQ-DIA-2; files: `test/`)
 - [x] 5.3 Unit-test `CnAppRoot` dependency normalisation, hard-gates/soft-does-not, soft banner + dismissal persistence, and app-availability default copy (spec_ref: REQ-DIA-3, REQ-DIA-5, REQ-DIA-6, REQ-DIA-7; files: `test/`)
 - [x] 5.4 Validator/unit-test both string and object `dependencies` forms accept & normalise (spec_ref: REQ-DIA-4; files: `test/`)

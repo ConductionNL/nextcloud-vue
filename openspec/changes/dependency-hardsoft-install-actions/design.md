@@ -16,13 +16,31 @@ Meanwhile the dependency model is all-or-nothing: `dependencyStatuses` maps ever
 > 0 forces `phase === 'dependency-missing'` — there is no notion of an optional
 integration whose absence should merely warn.
 
-Nextcloud already exposes a one-call install-and-enable primitive: `POST
-/index.php/settings/apps/enable` auto-downloads the app from the (signature-verified)
-app store, runs its migrations and enables it. It is admin-only, CSRF-protected and
-carries `#[PasswordConfirmationRequired]` (a 30-minute confirmation window), which is
-why `confirmPassword()` must run first. Its 200 response is
-`{ data: { update_required: bool } }`; on failure it returns HTTP 500 with
+Nextcloud already exposes a one-call install-and-enable primitive that auto-downloads
+the app from the (signature-verified) app store, runs its migrations and enables it.
+It is admin-only, CSRF-protected and carries `#[PasswordConfirmationRequired]`, which
+is why the admin's password must be confirmed. **The route moved between Nextcloud
+majors:** ≤NC33 exposed `POST /index.php/settings/apps/enable` (plural
+`{ appIds, groups }`, non-strict confirmation), but NC34 removed it (405) and moved the
+store into a bundled `appstore` app with an OCS API — `POST
+/ocs/v2.php/apps/appstore/api/v1/apps/enable` (singular `{ appId, groups }`,
+`#[ApiRoute(verb:'POST', url:'/api/v1/apps/enable')]`,
+`#[PasswordConfirmationRequired(strict: true)]`, admin-only). Success is a 200 OCS
+envelope with `data.ocs.data.update_required: bool`; failure is an OCS 500
+(`data.ocs.meta.message` / `statuscode`). The legacy route's 200 is
+`{ data: { update_required: bool } }` and its failure is HTTP 500 with
 `{ data: { message } }`.
+
+**Strict confirmation changes the client contract.** In `strict` mode Nextcloud's
+`PasswordConfirmationMiddleware` (`lib/private/AppFramework/Middleware/Security/PasswordConfirmationMiddleware.php`)
+**ignores the session `last-password-confirm` timestamp** and requires an
+`Authorization: Basic base64(login:password)` header **on the request itself** — so a
+session-based `confirmPassword()` can NEVER satisfy the NC34+ route (it 403s with
+`Required authorization header missing`). This was verified live on NC 34.0.0: a
+`confirmPassword()`-then-POST always 403s, whereas
+`curl -u admin:admin -H 'OCS-APIRequest: true' -X POST …/apps/enable` installs the app.
+The legacy ≤NC33 route is **non-strict**, so the session `confirmPassword()` still
+satisfies it.
 
 ## Goals / Non-Goals
 
@@ -37,8 +55,9 @@ why `confirmPassword()` must run first. Its 200 response is
 - Fix the raw `app-availability.*` keys that render untranslated today.
 
 **Non-Goals:**
-- No new backend/PHP — the change consumes Nextcloud's own `settings/apps/enable`
-  endpoint. nc-vue ships no controller.
+- No new backend/PHP — the change consumes Nextcloud's own enable endpoints (the NC34+
+  `appstore` OCS API, with the legacy `settings/apps/enable` route as a ≤NC33 fallback).
+  nc-vue ships no controller.
 - No per-user (non-admin) install flow — Nextcloud gates the endpoint to admins.
 - No change to `useAppStatus`'s detection logic (appswebroots-first) or to the
   `serverAppStatuses` `dependency_statuses` initial-state contract.
@@ -49,8 +68,9 @@ why `confirmPassword()` must run first. Its 200 response is
 N/A. This is a frontend-only change to a shared Vue component library. It introduces
 no OpenRegister schema register, no object notifications, and no server-side
 declarative config, so ADR-031's declarative-vs-imperative categorisation does not
-apply. The one server interaction is a call to Nextcloud's built-in
-`settings/apps/enable` endpoint.
+apply. The one server interaction is a call to Nextcloud's built-in enable endpoint
+(the NC34+ `appstore` OCS API, with the legacy `settings/apps/enable` route as a
+≤NC33 fallback).
 
 ## Seed Data
 
@@ -66,12 +86,42 @@ Vue 2.7 Options API). It centralises `confirmPassword()` + axios so both surface
 the soft-dependency banner share one implementation and one error shape. Alternative
 (inlining the call in each component) was rejected — three copies would drift.
 
-**2. `POST settings/apps/enable` covers both install and enable.**
+**2. One enable call covers both install and enable, over a version-resilient endpoint pair.**
 The endpoint downloads-if-missing then enables, so "Install and enable" (not
 installed) and "Enable" (installed-but-disabled) hit the same call; only the button
-*label* differs, chosen from `dep.enabled` (`false` ⇒ "Enable"). `confirmPassword()`
-runs first because of `#[PasswordConfirmationRequired]`; a rejected/cancelled
-confirmation short-circuits without calling the endpoint.
+*label* differs, chosen from `dep.enabled` (`false` ⇒ "Enable", any other value ⇒
+"Install and enable"). Because the route moved in NC34, `useAppInstaller` tries the
+**modern OCS `appstore` endpoint first** and only falls back to the **legacy
+`settings/apps/enable` route** when the OCS call returns HTTP `404`/`405` (an older NC
+without the `appstore` app). Any other OCS error (500, 403, network) is a real failure
+and is NOT retried on the legacy route — this avoids masking a genuine install error
+behind a spurious second attempt. Error messages are extracted from either shape (OCS
+`data.ocs.meta.message` or legacy `data.data.message`/`data.message`).
+
+**Password confirmation uses the canonical strict interceptor on the modern path.**
+Because the NC34+ route is `strict`, `useAppInstaller` mirrors NC34's own `appstore`
+front-end: it calls `addPasswordConfirmationInterceptors(axios)` once at module load
+and tags the modern POST `{ confirmPassword: PwdConfirmationMode.Strict }`. The
+`@nextcloud/password-confirmation@5` request interceptor prompts for the password and
+injects it as `config.auth = { username: getCurrentUser().uid, password }` — axios
+serialises this to the required `Authorization: Basic …` header — for that single
+request; the password is never stored. The **legacy** fallback path is non-strict, so
+it keeps the session `confirmPassword()` call (run just before the legacy POST). The
+two paths are mutually exclusive per Nextcloud major, so a normal NC34+ install prompts
+exactly once. A cancelled prompt (strict interceptor or session `confirmPassword()`,
+both reject with `Error('Dialog closed')`) short-circuits without falling back and
+without surfacing an `error`.
+
+An earlier iteration ran the session `confirmPassword()` unconditionally before the
+modern POST; that was **rejected** after live NC 34.0.0 testing proved the strict
+middleware ignores the session timestamp entirely, so the session call could never
+satisfy the modern endpoint — the strict-interceptor Basic-auth header is the only
+mechanism that works.
+
+When neither server-side `dependency_statuses` initial-state nor the JS heuristic can
+distinguish "not installed" from "installed but disabled" (the no-signal case), the
+action fails safe to the **"Install and enable"** label (`enabled: undefined`) — a
+genuinely-missing app must never be mislabelled "Enable".
 
 **3. Full page reload on success.**
 A newly installed app's JS/CSS and its `OC.appswebroots` entry only exist after a
