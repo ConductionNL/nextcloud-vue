@@ -74,12 +74,10 @@
 				:value="String(decimals)"
 				:label="t('nextcloud-vue', 'Decimals')"
 				@update:value="updateField('decimals', Number($event))" />
-			<CnFieldPicker
+			<CnIconBrowser
 				:value="icon"
 				:label="t('nextcloud-vue', 'Icon')"
-				:options="iconOptions"
-				placeholder="Cash"
-				@update="updateField('icon', $event)" />
+				@input="updateField('icon', $event)" />
 		</div>
 	</div>
 </template>
@@ -89,9 +87,9 @@ import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import { rowsToFilter, filterToRows } from '../CnFilterRowsEditor/filterRows.js'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
-import { DASHBOARD_ICONS } from '../CnWidgetGrid/widgetIcons.js'
 
 const DEFAULT_CONTENT = Object.freeze({
 	label: '',
@@ -113,7 +111,7 @@ const DEFAULT_CONTENT = Object.freeze({
 export default {
 	name: 'CnDeltaWidgetForm',
 
-	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker },
+	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnIconBrowser },
 
 	props: {
 		/** The placement being edited (pre-fills from `editingWidget.content`), or null. @type {{content: object}|null} */
@@ -158,8 +156,6 @@ export default {
 		directionOptions() { return ['up', 'down'] },
 		/** Number-format styles. */
 		formatOptions() { return ['number', 'currency', 'percent'] },
-		/** Icon name options from the shared catalog. */
-		iconOptions() { return Object.keys(DASHBOARD_ICONS) },
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			return {

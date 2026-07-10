@@ -8,11 +8,13 @@
  * tiles (CnStatWidget / CnGaugeWidget / CnDeltaWidget).
  *
  * When the host widget's `content` carries a `route` (a vue-router location
- * object or named-route string) the tile root renders as a `<router-link>`
- * for SPA navigation; when it carries an external `link` (string href) it
- * renders as an `<a>`; otherwise it stays a plain `<div>`. Mirrors the
- * route → `<router-link>` precedent already used by CnStatsBlock so metric
- * tiles get a whole-card click target without per-app coded wrappers.
+ * object or named-route string) — or its Wave-2 alias `clickRoute`, the name
+ * the endpoint-bound KPI vocabulary uses; `route` wins when both are set —
+ * the tile root renders as a `<router-link>` for SPA navigation; when it
+ * carries an external `link` (string href) it renders as an `<a>`; otherwise
+ * it stays a plain `<div>`. Mirrors the route → `<router-link>` precedent
+ * already used by CnStatsBlock so metric tiles get a whole-card click target
+ * without per-app coded wrappers.
  *
  * Host usage: `<component :is="linkTag" v-bind="linkAttrs" :class="{ '…--linked': isLinked }">`.
  * Assumes the host component exposes a `content` object prop.
@@ -30,9 +32,13 @@ import { resolveFilterValue } from '../utils/resolveFilterTokens.js'
 
 export default {
 	computed: {
-		/** The tile's configured vue-router location (query/params tokens resolved), or null. */
+		/**
+		 * The tile's configured vue-router location (query/params tokens
+		 * resolved), or null. Reads `content.route` first, then the Wave-2
+		 * `content.clickRoute` alias (the endpoint-bound KPI vocabulary).
+		 */
 		linkRoute() {
-			const r = this.content && this.content.route
+			const r = (this.content && (this.content.route || this.content.clickRoute)) || null
 			if (!r) return null
 			if (typeof r === 'string') return r
 			if (typeof r !== 'object') return null

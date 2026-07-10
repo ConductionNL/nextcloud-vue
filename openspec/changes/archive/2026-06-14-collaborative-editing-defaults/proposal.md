@@ -17,7 +17,7 @@ These two gaps are complementary:
 - **Subscribe → see remote changes** (including remote lock state, since lock fields ride the same `or-object-{uuid}` push payload).
 - **Lock on edit → block concurrent writes** (and tell every other subscriber, in real time, "I'm editing").
 
-Together they give us "collaborative editing" semantics for free across every consumer that uses `CnDetailPage` / `CnObjectSidebar` — decidesk, mydash, opencatalogi, procest, pipelinq, openregister itself.
+Together they give us "collaborative editing" semantics for free across every consumer that uses `CnDetailPage` / `CnObjectSidebar` — decidesk, launchpad, opencatalogi, procest, pipelinq, openregister itself.
 
 ## Affected Projects
 

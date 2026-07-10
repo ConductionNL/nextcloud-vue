@@ -63,6 +63,24 @@ describe('CnTreeView', () => {
 		expect(wrapper.find('.cn-tree-view__empty').exists()).toBe(true)
 	})
 
+	it('does not throw and renders the empty state when nodes is undefined', () => {
+		const wrapper = mount(CnTreeView, { propsData: { nodes: undefined } })
+		expect(wrapper.find('.cn-tree-view__empty').exists()).toBe(true)
+	})
+
+	it('does not throw and renders the empty state when nodes is null', () => {
+		// An explicit `null` (a parent whose data has not loaded) must not
+		// reach `nodes.length` — Vue only applies the prop default for
+		// `undefined`, so this exercises the `safeNodes` coercion.
+		const wrapper = mount(CnTreeView, { propsData: { nodes: null } })
+		expect(wrapper.find('.cn-tree-view__empty').exists()).toBe(true)
+	})
+
+	it('does not throw when expandAllOnMount is set with undefined nodes', () => {
+		const wrapper = mount(CnTreeView, { propsData: { nodes: undefined, expandAllOnMount: true } })
+		expect(wrapper.find('.cn-tree-view__empty').exists()).toBe(true)
+	})
+
 	it('uses configurable idKey / labelKey / childrenKey', () => {
 		const wrapper = mount(CnTreeView, {
 			propsData: {

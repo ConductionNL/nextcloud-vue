@@ -17,7 +17,7 @@ and don't `$ref` the new shapes. The reasons were:
 
 Both reasons are now resolved: all five sibling changes have merged
 into `feature/manifest-v1`, the defs have been used by tests and
-documented examples, and three apps (opencatalogi, decidesk, mydash)
+documented examples, and three apps (opencatalogi, decidesk, launchpad)
 have authored manifests using the documented shapes. Time to wire up
 the refs.
 

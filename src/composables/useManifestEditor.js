@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { diffManifest } from '../utils/diffManifest.js'
 
 /**
@@ -11,10 +11,26 @@ import { diffManifest } from '../utils/diffManifest.js'
  * never reach already-mounted renderers (CnPageRenderer, CnAppNav, …). Mutating
  * the object they already hold is what makes edits appear live.
  *
+ * Raw/reactive boundary (audit item 9 — `manifest-markraw-reactivity`). The
+ * bundled manifest is held RAW at boot: CnAppRoot wraps it in a `shallowRef`, so
+ * Vue never deep-observes the (up to ~434 KB) immutable graph during ordinary
+ * navigation — the renderer only ever reads it. `enter()` is the reactivity
+ * opt-in: it observes the live manifest IN PLACE via `reactive()`, which returns
+ * the SAME object with an attached observer (identity preserved, so the mounted
+ * renderers described above pick up the edits) and deep-tracks the subtree the
+ * editor mutates. The enter → editing flip forces those renderers to re-render
+ * once and re-establish their dependencies against the now-reactive graph, after
+ * which every widget move / menu / sidebar edit renders live exactly as it did
+ * under the previous always-deep-reactive model. `reactive()` is idempotent, so
+ * re-entering an edit session on the same manifest is a no-op.
+ *
  * On Save the minimal delta is computed via `diffManifest(snapshot, live)` and
  * handed to the injected `persist` function (the library does not own the
  * persistence endpoint, per ADR-041); the snapshot is then re-baselined. Cancel
- * restores the live manifest from the snapshot in place.
+ * restores the live manifest from the snapshot in place. On the next manifest
+ * publish (the host re-passing `props.manifest`, e.g. a reload or backend delta
+ * merge) CnAppRoot re-installs a fresh RAW manifest into the `shallowRef`, so
+ * the read path returns to non-reactive.
  *
  * `working` is the object the grid and edit modals mutate — the live manifest
  * while editing, `null` otherwise. `source` is always the live manifest.
@@ -50,9 +66,23 @@ export function useManifestEditor(baseRef, options = {}) {
 	// What the modals/grid mutate — the live manifest while editing.
 	const working = computed(() => (editing.value ? baseRef.value : null))
 
-	/** Enter edit mode: snapshot the live manifest for diff + cancel. */
+	/**
+	 * Enter edit mode: snapshot the live manifest for diff + cancel, then opt
+	 * the live manifest into deep reactivity IN PLACE so in-place edits render.
+	 *
+	 * The manifest is held raw (shallowRef) at boot to skip deep observation of
+	 * the immutable graph. `reactive()` attaches an observer to the SAME object
+	 * (identity preserved — critical because CnPageRenderer captured this object
+	 * once via `inject('cnManifest')` at create time), and the subsequent
+	 * `editing` flip re-renders the shell so it re-reads and subscribes to the
+	 * now-reactive nodes. Idempotent: a no-op if the manifest is already
+	 * reactive (a second edit session in the same SPA lifetime).
+	 */
 	function enter() {
 		snapshot.value = deepClone(baseRef.value)
+		if (baseRef.value != null && typeof baseRef.value === 'object') {
+			reactive(baseRef.value)
+		}
 		editing.value = true
 	}
 
@@ -107,7 +137,8 @@ function restoreInPlace(target, snap) {
 
 /**
  * structuredClone with a JSON fallback (manifests are plain JSON, no cycles).
- * @param value
+ * @param {*} value The value to clone.
+ * @return {*} A deep clone of the value.
  */
 function deepClone(value) {
 	if (value == null) return value
@@ -117,7 +148,8 @@ function deepClone(value) {
 
 /**
  * Stable JSON for equality — manifests are plain JSON, so this is sufficient.
- * @param value
+ * @param {*} value The value to stringify.
+ * @return {string} The JSON string.
  */
 function stableStringify(value) {
 	return JSON.stringify(value)

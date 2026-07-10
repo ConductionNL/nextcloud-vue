@@ -33,13 +33,20 @@ function makeState() {
 }
 
 function makeFakeStore() {
-	return {
+	const store = {
 		objects: {},
 		schemas: {},
-		registerObjectType: jest.fn(),
+		objectTypeRegistry: {},
+		// Mirror the real store: registering a type records it in
+		// objectTypeRegistry (and would reset its cache). The component
+		// must therefore register a given type only once.
+		registerObjectType: jest.fn(function(slug) {
+			store.objectTypeRegistry = { ...store.objectTypeRegistry, [slug]: {} }
+		}),
 		fetchObject: jest.fn(async () => null),
 		fetchSchema: jest.fn(async () => null),
 	}
+	return store
 }
 
 describe('CnDetailPage — schema-driven mode', () => {
@@ -92,17 +99,44 @@ describe('CnDetailPage — schema-driven mode', () => {
 			expect(store.fetchSchema).toHaveBeenCalledWith('openbuilt-application')
 		})
 
-		it('skips the fetch path when only register+schema are set (missing objectId)', () => {
+		it('does not re-register the type on refresh (re-registration would wipe the cache and flicker the content)', async () => {
 			const store = makeFakeStore()
-			mount(CnDetailPage, {
+			const wrapper = mount(CnDetailPage, {
+				propsData: {
+					register: 'openbuilt',
+					schema: 'application',
+					objectId: 'a-1',
+					objectStore: store,
+				},
+			})
+			await Promise.resolve()
+			expect(store.registerObjectType).toHaveBeenCalledTimes(1)
+
+			// Simulate the header Refresh re-fetch.
+			store.fetchObject.mockClear()
+			await wrapper.vm.fetchObjectIfNeeded()
+
+			// Type already registered → NOT re-registered (cache preserved),
+			// but the object IS re-fetched in place.
+			expect(store.registerObjectType).toHaveBeenCalledTimes(1)
+			expect(store.fetchObject).toHaveBeenCalledWith('openbuilt-application', 'a-1')
+		})
+
+		it('enters create mode (schema only, no object fetch) when register+schema are set without objectId', () => {
+			const store = makeFakeStore()
+			const w = mount(CnDetailPage, {
 				propsData: {
 					register: 'r',
 					schema: 's',
 					objectStore: store,
 				},
 			})
-			expect(store.registerObjectType).not.toHaveBeenCalled()
+			// Create archetype (item 10): no object id → no object fetch, but the
+			// schema IS fetched so the inline create form can render.
+			expect(w.vm.isCreateMode).toBe(true)
 			expect(store.fetchObject).not.toHaveBeenCalled()
+			expect(store.registerObjectType).toHaveBeenCalledTimes(1)
+			expect(store.fetchSchema).toHaveBeenCalledWith('r-s')
 		})
 
 		it('refetches when objectId changes', async () => {

@@ -47,6 +47,11 @@ const DOCS_DIR = path.join(ROOT, 'docs')
 const EXEMPT = new Set([
 	'registerIcons',
 	'registerTranslations',
+	// Override (shadow) of @nextcloud/vue's own NcSelectTags — fixes the
+	// systemtags fetch and `:options` handling without changing the public
+	// API. The component contract is upstream's; its docs live in
+	// @nextcloud/vue, so there is no standalone Conduction page to require.
+	'NcSelectTags',
 ])
 
 /**

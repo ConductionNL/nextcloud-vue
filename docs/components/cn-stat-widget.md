@@ -15,14 +15,46 @@ Single-value KPI card (`Statistic / KPI`). Resolves one number from an OpenRegis
 }
 ```
 
+## Endpoint binding (Wave 2, #91)
+
+Instead of an OpenRegister `source`, the tile can bind to an arbitrary app REST endpoint through the shared [`useEndpointSource`](../utilities/composables/use-endpoint-source.md) engine — token-resolved `params`, per-`(url+params)` request dedup + short-TTL cache (four tiles reading one overview endpoint issue ONE request), and `cn:page:refresh` / `cn:widget:refresh` refresh wiring. **Exactly one of `source` | `endpointSource`** (validator-enforced; `endpointSource` wins when both slip through).
+
+```json
+{
+  "label": "Revenue",
+  "icon": "CashMultiple",
+  "format": { "style": "currency", "currency": "EUR", "decimals": 0 },
+  "endpointSource": {
+    "url": "/apps/pipelinq/api/analytics/commercial",
+    "params": { "period": "@workspace.datePreset?" }
+  },
+  "valueField": "revenue",
+  "previousField": "previousPeriod.revenue",
+  "goodDirection": "up",
+  "variantWhen": [
+    { "op": "gte", "value": 100000, "variant": "success" },
+    { "op": "lt", "value": 10000, "variant": "warning", "icon": "AlertOutline" }
+  ],
+  "clickRoute": "leads"
+}
+```
+
+- `valueField` — dot-path into the payload for the displayed value (omitted = the payload itself).
+- `previousField` — previous-period value → **trend sublabel** (arrow + percent-vs-previous, the pipelinq KPI contract), tinted good/bad by `goodDirection` (`'up'` default).
+- `deltaField` — a server-computed delta percent; wins over `previousField`.
+- `variantWhen` — first-match threshold rules `[{ op: eq|neq|gt|gte|lt|lte, value, variant, icon? }]`; the matched `variant` (`default|primary|success|warning|error`, plus `danger` as an error alias) re-tints the value + icon circle, `icon` overrides `content.icon`.
+- `clickRoute` — whole-tile click-through (alias of `route`; `route` wins when both are set).
+- `format` styles: `number`, `currency`, `percent`, `duration-hours` (`42.5h`), `decimal` (one fraction digit by default).
+
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | `object` | `{}` | The KPI config blob (`label`, `icon`, `format`, `source`, …). |
+| `content` | `object` | `{}` | The KPI config blob (`label`, `icon`, `format`, `source` or `endpointSource` + `valueField`/`previousField`/`deltaField`/`variantWhen`/`clickRoute`, …). |
+| `translate` | `function` | `null` | Translate function for the `label` / `caption` source strings. Falls back to the injected `cnTranslate` (identity by default). |
 
 ## Notes
 
-- `source` supports the OpenRegister-backed kinds (`metric: 'count' \| 'sum' \| 'avg' \| …`) and an `{ kind: 'endpoint', url }` form for arbitrary endpoints.
+- `source` supports the OpenRegister-backed kinds (`metric: 'count' \| 'sum' \| 'avg' \| …`) and a legacy `{ kind: 'endpoint', url }` form for arbitrary endpoints (uncached; prefer `endpointSource`).
 - Self-contained card surface — rendered flush and centred (no inner scrollbar).
 - Filter tokens (`@page.*`, `@object.*`, `@workspace.*`) are resolved from injected dashboard/detail context when present.

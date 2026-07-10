@@ -577,6 +577,20 @@ describe('fieldsFromSchema', () => {
 		expect(configField.widget).toBe('json')
 	})
 
+	it('maps a widget:"icon" property to an icon field and forwards its config', () => {
+		const schemaWithIcon = {
+			title: 'MenuItem',
+			properties: {
+				icon: { type: 'string', title: 'Icon', widget: 'icon', iconSources: ['mdi', 'fontawesome'], allowCustomSvg: true, searchable: false },
+			},
+		}
+		const field = fieldsFromSchema(schemaWithIcon).find((f) => f.key === 'icon')
+		expect(field.widget).toBe('icon')
+		expect(field.iconSources).toEqual(['mdi', 'fontawesome'])
+		expect(field.allowCustomSvg).toBe(true)
+		expect(field.searchable).toBe(false)
+	})
+
 	it('applies exclude option', () => {
 		const fields = fieldsFromSchema(formSchema, { exclude: ['description', 'tags'] })
 		const keys = fields.map((f) => f.key)
@@ -736,6 +750,52 @@ describe('fieldsFromSchema', () => {
 		const caseTypeField = fields.find((f) => f.key === 'caseType')
 		expect(caseTypeField.widget).toBe('select')
 		expect(caseTypeField.reference).toEqual({ schema: 85, multiple: false })
+	})
+
+	// --- Nextcloud user references ---
+
+	const userSchema = {
+		title: 'Case',
+		properties: {
+			assignee: { type: 'string', referenceType: 'nextcloud-user', title: 'Assignee', order: 1 },
+			watchers: { type: 'array', items: { referenceType: 'nextcloud-user' }, title: 'Watchers', order: 2 },
+			handler: { type: 'string', format: 'user', title: 'Handler', order: 3 },
+			login: { type: 'string', format: 'username', title: 'Login', order: 4 },
+			plain: { type: 'string', title: 'Plain', order: 5 },
+		},
+	}
+
+	it('resolves a referenceType:nextcloud-user property to a user-select widget', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'assignee').widget).toBe('user-select')
+	})
+
+	it('resolves format:user / format:username to a user-select widget', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'handler').widget).toBe('user-select')
+		expect(fields.find((f) => f.key === 'login').widget).toBe('user-select')
+	})
+
+	it('resolves an array of nextcloud-user items to a user-multiselect widget', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'watchers').widget).toBe('user-multiselect')
+	})
+
+	it('tags a single user field with userPicker { multiple: false }', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'assignee').userPicker).toEqual({ multiple: false })
+		expect(fields.find((f) => f.key === 'handler').userPicker).toEqual({ multiple: false })
+	})
+
+	it('tags an array user field with userPicker { multiple: true }', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'watchers').userPicker).toEqual({ multiple: true })
+	})
+
+	it('leaves userPicker null for non-user properties', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'plain').userPicker).toBeNull()
+		expect(fields.find((f) => f.key === 'plain').widget).toBe('text')
 	})
 
 	it('resolves uri format to url widget', () => {

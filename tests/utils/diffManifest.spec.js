@@ -71,4 +71,33 @@ describe('diffManifest', () => {
 		expect(warn).toHaveBeenCalled()
 		warn.mockRestore()
 	})
+
+	// Nested menu children diff by child id, symmetric with the merge engine.
+	describe('nested menu children (keyed)', () => {
+		const menuBase = () => ({
+			menu: [{ id: 'CasesGroup', children: [{ id: 'AllCases', label: 'All cases' }] }],
+		})
+
+		it('emits a minimal per-child delta for an added child and round-trips', () => {
+			const edited = {
+				menu: [{ id: 'CasesGroup', children: [
+					{ id: 'AllCases', label: 'All cases' },
+					{ id: 'ct-new', label: 'Objections', route: 'Cases' },
+				] }],
+			}
+			const delta = diffManifest(menuBase(), edited)
+			// Only the new child travels in the delta, keyed under the group.
+			expect(delta.menu[0].id).toBe('CasesGroup')
+			expect(delta.menu[0].children).toEqual([{ id: 'ct-new', label: 'Objections', route: 'Cases' }])
+			expect(roundTrip(menuBase(), edited)).toEqual(edited)
+		})
+
+		it('round-trips a child removal via $op:"remove"', () => {
+			const b = { menu: [{ id: 'CasesGroup', children: [{ id: 'AllCases' }, { id: 'ct-x' }] }] }
+			const edited = { menu: [{ id: 'CasesGroup', children: [{ id: 'AllCases' }] }] }
+			const delta = diffManifest(b, edited)
+			expect(delta.menu[0].children).toEqual([{ id: 'ct-x', $op: 'remove' }])
+			expect(roundTrip(b, edited)).toEqual(edited)
+		})
+	})
 })

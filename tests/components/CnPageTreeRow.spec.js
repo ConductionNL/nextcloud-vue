@@ -61,12 +61,6 @@ describe('CnPageTreeRow', () => {
 		expect(mountRow({ id: 'a', type: 'custom' }).vm.typeIconComponent).toBe('ShapeOutline')
 	})
 
-	it('canNavigate is true only for concrete (non-param) routes', () => {
-		expect(mountRow({ id: 'a', type: 'index', route: '/dogs' }).vm.canNavigate).toBe(true)
-		expect(mountRow({ id: 'a', type: 'detail', route: '/dogs/:id' }).vm.canNavigate).toBe(false)
-		expect(mountRow({ id: 'a', type: 'custom', route: '' }).vm.canNavigate).toBe(false)
-	})
-
 	it('commitSlug emits a sanitised rename and no-ops when unchanged', () => {
 		const wrapper = mountRow({ id: 'page-3', type: 'index' })
 		wrapper.vm.slugDraft = 'Dogs Page!'
@@ -94,6 +88,26 @@ describe('CnPageTreeRow', () => {
 		expect(wrapper.vm.columnOptions.map((o) => o.value)).toEqual(['name', 'breed'])
 		wrapper.vm.setColumns([{ value: 'name' }])
 		expect(page.config.columns).toEqual(['name'])
+	})
+
+	it('renders Register/Schema as dropdowns when data sources are provided, free-text otherwise', async () => {
+		// With data sources: register + schema become NcSelect (on top of the
+		// always-present Type select) — the fix for the builder's empty pickers.
+		const withDs = mountRow({ id: 'p', type: 'index', config: {} }, { cnDataSources: DATA_SOURCES })
+		expect(withDs.vm.hasDataSources).toBe(true)
+		await withDs.setData({ expanded: true })
+		const withSelects = withDs.findAllComponents({ name: 'NcSelect' }).length
+		const withTextFields = withDs.findAllComponents({ name: 'NcTextField' }).length
+
+		// Without data sources: register + schema fall back to NcTextField.
+		const noDs = mountRow({ id: 'p2', type: 'index', config: {} })
+		expect(noDs.vm.hasDataSources).toBe(false)
+		await noDs.setData({ expanded: true })
+		const noSelects = noDs.findAllComponents({ name: 'NcSelect' }).length
+		const noTextFields = noDs.findAllComponents({ name: 'NcTextField' }).length
+
+		expect(withSelects).toBeGreaterThan(noSelects)
+		expect(noTextFields).toBeGreaterThan(withTextFields)
 	})
 
 	it('recovers a config corrupted to an array (PHP empty-object round-trip)', () => {

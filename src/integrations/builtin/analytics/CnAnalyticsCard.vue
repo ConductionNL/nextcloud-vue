@@ -16,7 +16,7 @@
   CnAnalyticsTab; for `single-entity` the optional `value` prop
   addresses a single report by id.
 
-  This is the widget MyDash adopts to consume the analytics leaf. v1
+  This is the widget LaunchPad adopts to consume the analytics leaf. v1
   deliberately does NOT fetch chart data inline per row — that would be
   N HTTP calls per dashboard. The type-coded icon + badge surface the
   report kind cheaply. Phase D / follow-up can wire one inline chart
