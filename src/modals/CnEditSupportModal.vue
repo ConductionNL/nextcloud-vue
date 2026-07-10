@@ -37,10 +37,11 @@
 				{{ t('nextcloud-vue', 'Signature') }}
 			</h3>
 			<NcTextField class="cn-edit-support__field"
-				:label="t('nextcloud-vue', 'Founder name')"
+				:label="t('nextcloud-vue', 'Signatory name')"
 				:value.sync="support.founderName" />
 			<NcTextField class="cn-edit-support__field"
-				:label="t('nextcloud-vue', 'Founder title')"
+				:label="t('nextcloud-vue', 'Signatory role')"
+				:placeholder="t('nextcloud-vue', 'e.g. Owner, CTO, Founder, Team')"
 				:value.sync="support.founderTitle" />
 
 			<div class="cn-edit-support__avatar">
@@ -114,8 +115,9 @@
 
 			<div class="cn-edit-support__footer">
 				<NcButton type="primary" :disabled="saving" @click="onDone">
-					<template v-if="saving" #icon>
-						<NcLoadingIcon :size="20" />
+					<template #icon>
+						<NcLoadingIcon v-if="saving" :size="20" />
+						<ContentSaveOutline v-else :size="20" />
 					</template>
 					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
 				</NcButton>
@@ -128,6 +130,7 @@
 import { NcModal, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Upload from 'vue-material-design-icons/Upload.vue'
+import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 /** The four built-in buttons, in display order, with their shell defaults. */
@@ -141,7 +144,7 @@ const BUTTON_DEFS = [
 export default {
 	name: 'CnEditSupportModal',
 
-	components: { NcModal, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect, Upload },
+	components: { NcModal, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect, Upload, ContentSaveOutline },
 
 	mixins: [manifestModalDoneMixin],
 

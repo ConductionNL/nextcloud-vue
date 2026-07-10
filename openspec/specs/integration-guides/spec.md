@@ -100,7 +100,7 @@ The docs site MUST include a `docs/integrations/ecosystem.md` page listing the a
 - **Pipelinq** -- CRM with CnIndexPage for contacts/organizations, CnDashboardPage for KPI dashboards, pipeline views with CnTimelineStages, settings management with CnSettingsCard/CnConfigurationCard
 - **Procest** -- Case management with CnIndexPage for zaak lists, workflow state transitions, CnAdvancedFormDialog for complex case editing
 - **LarpingApp** -- Character/event management with computed stats, PDF export, CnFormDialog with extensive field overrides
-- **MyDash** -- Dashboard-focused app using CnDashboardPage, CnWidgetWrapper, CnTileWidget for widget-based layouts
+- **LaunchPad** -- Dashboard-focused app using CnDashboardPage, CnWidgetWrapper, CnTileWidget for widget-based layouts
 - **ZaakAfhandelApp** -- Case handling with CnDetailPage, CnObjectSidebar, CnNotesCard, CnTasksCard for case detail views
 - **SoftwareCatalog** -- Software catalog built on OpenCatalogi patterns
 
@@ -116,7 +116,7 @@ Each app entry MUST note which Cn* components it uses most heavily, link to the 
 
 - GIVEN a developer wants to build a dashboard with widgets
 - WHEN they check the ecosystem overview
-- THEN they SHALL find MyDash and Pipelinq listed as apps demonstrating CnDashboardPage usage with links to their repositories
+- THEN they SHALL find LaunchPad and Pipelinq listed as apps demonstrating CnDashboardPage usage with links to their repositories
 
 #### Scenario: Developer finds dialog customization pattern
 

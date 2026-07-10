@@ -23,7 +23,7 @@ The stack reads top-to-bottom: your app composes Conduction's Layer 2 primitives
       <cn-hex size="md">Pipelinq</cn-hex>
       <cn-hex size="md">OpenCatalogi</cn-hex>
       <cn-hex size="md">Procest</cn-hex>
-      <cn-hex size="md">MyDash</cn-hex>
+      <cn-hex size="md">LaunchPad</cn-hex>
     </cn-domain-tree>
     <cn-domain-tree compact>
       <cn-hex slot="apex" size="xl" color="orange">@conduction/nextcloud-vue</cn-hex>

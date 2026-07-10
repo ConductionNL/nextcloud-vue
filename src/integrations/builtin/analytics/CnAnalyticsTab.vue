@@ -40,7 +40,7 @@
   communicates the chart kind without fetching chart data; inline
   mini-charts remain a follow-up enhancement.
 
-  Bespoke-vs-generic rationale: MyDash needs to surface "what kind of
+  Bespoke-vs-generic rationale: LaunchPad needs to surface "what kind of
   report is this + its headline number" without opening it; the generic
   link list strips the chart type, the data source and the KPI.
 -->

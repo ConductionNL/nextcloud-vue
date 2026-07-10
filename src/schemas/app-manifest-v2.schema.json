@@ -226,6 +226,11 @@
 			"items": { "$ref": "#/$defs/page" },
 			"description": "Page definitions dispatched by CnPageRenderer. Each page's id is also its vue-router route name. Ids MUST be unique across the array; uniqueness is enforced by validateManifestV2 as a post-schema check."
 		},
+		"adminSettings": {
+			"type": "array",
+			"items": { "$ref": "#/$defs/adminSettingsEntry" },
+			"description": "Admin-only settings sections rendered by CnAppRoot's generic admin NcAppSettingsDialog, gated on app-owner-group membership (not OC.isUserAdmin()). An absent key or an empty array yields no admin nav entry and no admin dialog. See the manifest-admin-settings and admin-settings-owner-gating capabilities."
+		},
 		"credentials": {
 			"type": "array",
 			"description": "External-provider credentials this app can use via the OpenRegister credential broker (github, gitlab, …). Each entry declares which provider, why, and at what scope; the app never receives the secret — the broker performs the outbound call on the user's behalf. See the credential-broker capability.",
@@ -237,6 +242,27 @@
 					"provider": { "type": "string", "description": "Catalogue provider identifier (e.g. \"github\", \"gitlab\") — a key in OpenRegister's credential-providers catalogue." },
 					"reason": { "type": "string", "description": "Human-readable reason shown to the user in credential settings (why the app wants this provider)." },
 					"scopes": { "type": "array", "items": { "type": "string" }, "description": "Advisory scopes the app needs (e.g. [\"repo\"])." }
+				}
+			}
+		},
+		"schedules": {
+			"type": "array",
+			"description": "Declarative scheduled tasks (apphost-scheduling capability). Each entry declares a recurring task the OpenRegister AppHost schedule-reconciler turns into an OpenConnector job that runs on the existing background-job path — so a manifest-driven app (including a pure-virtual OpenBuild app with no PHP on disk) can own its ingestion/maintenance cadence without shipping a TimedJob. The temporal peer of `credentials`/`observability`: consumed by the OpenRegister engine, NOT by the Vue renderer. Optional and additive.",
+			"items": {
+				"type": "object",
+				"required": ["id", "action"],
+				"additionalProperties": false,
+				"oneOf": [
+					{ "required": ["interval"], "not": { "required": ["cron"] } },
+					{ "required": ["cron"], "not": { "required": ["interval"] } }
+				],
+				"properties": {
+					"id": { "type": "string", "description": "Stable identifier for this schedule, unique within the manifest. The reconciled job is keyed on applicationId + this id, so renaming it creates a new job and orphans the old one (which is then garbage-collected)." },
+					"interval": { "type": "integer", "minimum": 1, "description": "Run cadence in seconds (e.g. 604800 = weekly). Exactly one of `interval` or `cron` must be set." },
+					"cron": { "type": "string", "description": "Standard 5-field cron expression (e.g. \"0 3 * * 1\"). The reconciler computes the job's nextRun from it. Exactly one of `interval` or `cron` must be set." },
+					"action": { "type": "string", "pattern": "^[a-z0-9]+:[a-z0-9-]+$", "description": "A server-allow-listed generic action type, NOT a PHP class name. Only vetted types are accepted (v1: \"openconnector:synchronization\"); the reconciler maps the type to a trusted jobClass — a manifest-supplied class name is never executed. A non-allow-listed action is rejected and logged." },
+					"arguments": { "type": "object", "description": "Free-form arguments passed to the action (e.g. the synchronization id/ref). Interpreted by the vetted action, not by the reconciler.", "additionalProperties": true },
+					"enabled": { "type": "boolean", "description": "Whether this schedule is active. Defaults to true. Setting false disables the reconciled job (preserving its run history) rather than deleting it." }
 				}
 			}
 		},
@@ -582,8 +608,8 @@
 				},
 				"action": {
 					"type": "string",
-					"enum": ["user-settings", "replay-walkthrough"],
-					"description": "Built-in action to invoke when the entry is clicked. Closed enum. 'replay-walkthrough' re-runs the product walkthrough (ADR-043), optionally for a specific tourId."
+					"enum": ["user-settings", "admin-settings", "replay-walkthrough"],
+					"description": "Built-in action to invoke when the entry is clicked. Closed enum. 'admin-settings' opens the app-level admin-settings dialog (distinct from the per-user settings dialog). 'replay-walkthrough' re-runs the product walkthrough (ADR-043), optionally for a specific tourId."
 				},
 				"tourId": {
 					"type": "string",
@@ -641,7 +667,7 @@
 				"href": { "type": "string" },
 				"action": {
 					"type": "string",
-					"enum": ["user-settings", "replay-walkthrough"]
+					"enum": ["user-settings", "admin-settings", "replay-walkthrough"]
 				},
 				"tourId": {
 					"type": "string",
@@ -2146,6 +2172,48 @@
 				"displayName": {
 					"type": "string",
 					"description": "Human-readable label for the linked object type."
+				}
+			}
+		},
+		"adminSettingsEntry": {
+			"type": "object",
+			"required": ["id", "label"],
+			"additionalProperties": false,
+			"oneOf": [
+				{ "required": ["type"] },
+				{ "required": ["component"] }
+			],
+			"description": "One admin-only settings section rendered by CnAppRoot's generic admin NcAppSettingsDialog, sorted into the dialog by `order`. Exactly one of `type` (a built-in section) or `component` (a custom section resolved from the renderer registry) MUST be present.",
+			"properties": {
+				"id": {
+					"type": "string",
+					"description": "Unique identifier for this admin-settings entry; also the rendered NcAppSettingsSection id."
+				},
+				"label": {
+					"type": "string",
+					"description": "i18n translation key (English source) resolved by the consuming app's t() function, shown as the section header."
+				},
+				"type": {
+					"type": "string",
+					"enum": ["organisation-credentials"],
+					"description": "Built-in admin-settings section. Closed enum. 'organisation-credentials' renders CnCredentials with scope=\"organisation\" (the OpenRegister credential broker's organisation-scope pane). Mutually exclusive with `component`."
+				},
+				"component": {
+					"type": "string",
+					"description": "Registry key of a custom admin-settings section component, resolved from the CnAppRoot custom-components registry at render time. Mutually exclusive with `type`."
+				},
+				"order": {
+					"type": "integer",
+					"description": "Sort order of this section within the admin dialog. Entries without an order render last, in array position."
+				},
+				"permission": {
+					"type": "string",
+					"description": "Optional permission string that further narrows visibility of this section WITHIN the already owner-gated admin dialog, reusing the existing per-item permission grammar. Narrow-only: it can never widen access to a caller who is not an owner of the app."
+				},
+				"props": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "Props forwarded to a custom `component` entry. Ignored for built-in `type` entries."
 				}
 			}
 		}

@@ -62,3 +62,9 @@ Dockerfile text eol=lf
 *.zip binary
 *.gz binary
 *.tar binary
+
+# Generated NL-government icon catalogues (see src/icons/ATTRIBUTION.md)
+src/icons/rvo.js linguist-generated=true -diff
+src/icons/openGemeenten.js linguist-generated=true -diff
+src/icons/denHaag.js linguist-generated=true -diff
+src/icons/index.js linguist-generated=true

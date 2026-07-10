@@ -47,7 +47,7 @@ With additional items and extra actions:
 
 ```vue
 <CnVersionInfoCard
-  app-name="MyDash"
+  app-name="LaunchPad"
   app-version="1.0.0"
   :additional-items="[
     { label: 'PHP', value: '8.2.12' },

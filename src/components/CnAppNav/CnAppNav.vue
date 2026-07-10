@@ -29,10 +29,19 @@
     A "Personal settings" entry is auto-prepended at the top of the
     foldout (opens the host app's NcAppSettingsDialog via
     cnOpenUserSettings); opt out with `nav.includePersonalSettings:
-    false`. The foldout mounts whenever there are settings items OR
-    personal settings is enabled — so every app shows a Settings gear
-    with at least Personal settings. It is only fully suppressed when
-    there are no settings items AND `nav.includePersonalSettings: false`.
+    false`. Right below it, an "Admin settings" entry is auto-prepended
+    for app OWNERS only — gated on the `isOwner` prop (computed by
+    CnAppRoot from `currentUserGroups` ∩ `permissions.owners`, and/or a
+    manifest `runtime.user` owner signal; NOT `OC.isUserAdmin()`) AND on
+    the manifest declaring at least one `adminSettings[]` entry. It
+    opens the host app's SEPARATE admin-settings NcAppSettingsDialog via
+    cnOpenAdminSettings — see CnAppRoot; this is where app-level, not
+    per-user, configuration such as the organisation credential broker
+    lives, rendered generically from `manifest.adminSettings[]`. The
+    foldout mounts whenever there are settings items OR personal
+    settings is enabled — so every app shows a Settings gear with at
+    least Personal settings. It is only fully suppressed when there are
+    no settings items AND `nav.includePersonalSettings: false`.
 
   Manifest and translate are injected from CnAppRoot by default but can
   also be passed as props for standalone use without CnAppRoot. Props
@@ -42,6 +51,8 @@
   setting `action` on the manifest entry. Supported keywords:
   `"user-settings"` invokes the `cnOpenUserSettings` provide-injected
   by CnAppRoot, which opens the host app's NcAppSettingsDialog modal;
+  `"admin-settings"` invokes `cnOpenAdminSettings`, which opens the
+  host app's admin-settings NcAppSettingsDialog;
   `"replay-walkthrough"` invokes `cnReplayWalkthrough` (optionally
   with the item's `tourId`) to re-run the product walkthrough from
   the first step (ADR-043). Both `route` and `href` are ignored when
@@ -192,6 +203,35 @@
 							<Cog :size="20" />
 						</template>
 					</NcAppNavigationItem>
+					<NcAppNavigationItem
+						v-if="roadmapEntry"
+						:name="roadmapEntry.label"
+						:to="roadmapEntry.to"
+						:href="roadmapEntry.href"
+						data-testid="cn-nav-roadmap">
+						<template #icon>
+							<MapMarkerPath :size="20" />
+						</template>
+					</NcAppNavigationItem>
+					<NcAppNavigationItem
+						v-if="documentationEntry"
+						:name="documentationEntry.label"
+						:href="documentationEntry.href"
+						target="_blank"
+						data-testid="cn-nav-documentation">
+						<template #icon>
+							<BookOpenVariant :size="20" />
+						</template>
+					</NcAppNavigationItem>
+					<NcAppNavigationItem
+						v-if="isOwner && hasAdminSettings"
+						:name="adminSettingsLabel"
+						data-testid="cn-nav-admin-settings"
+						@click="onAdminSettingsClick">
+						<template #icon>
+							<ShieldAccountOutline :size="20" />
+						</template>
+					</NcAppNavigationItem>
 					<template v-for="item in settingsItems">
 						<NcAppNavigationCaption
 							v-if="isCaption(item)"
@@ -229,6 +269,9 @@
 import { NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationNew, NcAppNavigationSettings, NcCounterBubble } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import MapMarkerPath from 'vue-material-design-icons/MapMarkerPath.vue'
+import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
+import ShieldAccountOutline from 'vue-material-design-icons/ShieldAccountOutline.vue'
 import { translate as t } from '@nextcloud/l10n'
 import { ICON_MAP } from '../CnIcon/CnIcon.vue'
 import { isAppInstalled } from '../../utils/appInstalled.js'
@@ -345,6 +388,9 @@ export default {
 		NcAppNavigationSettings,
 		NcCounterBubble,
 		Cog,
+		ShieldAccountOutline,
+		MapMarkerPath,
+		BookOpenVariant,
 	},
 
 	inject: {
@@ -358,6 +404,15 @@ export default {
 		 * throwing.
 		 */
 		cnOpenUserSettings: { default: () => () => {} },
+		/**
+		 * Provided by CnAppRoot — opens the host app's admin-settings
+		 * NcAppSettingsDialog (the app-level, not per-user, surface
+		 * that hosts the organisation credential broker). Defaults to
+		 * a no-op so CnAppNav is still usable when mounted outside a
+		 * CnAppRoot ancestor; the click silently does nothing in that
+		 * case rather than throwing.
+		 */
+		cnOpenAdminSettings: { default: () => () => {} },
 		/**
 		 * Provided by CnAppRoot — restarts the product walkthrough (ADR-043)
 		 * from the first step. Bound to menu entries declaring
@@ -410,6 +465,22 @@ export default {
 		permissions: {
 			type: Array,
 			default: () => [],
+		},
+		/**
+		 * Whether the current user is an OWNER of this app
+		 * (admin-settings-owner-gating capability). Computed by CnAppRoot
+		 * from `currentUserGroups` ∩ `permissions.owners` and/or a manifest
+		 * `runtime.user` owner signal — deliberately NOT `OC.isUserAdmin()`.
+		 * Gates the auto-included "Admin settings" entry together with
+		 * `hasAdminSettings`. Defaults to `false` so CnAppNav mounted
+		 * standalone (without a CnAppRoot ancestor computing the value)
+		 * never shows the entry.
+		 *
+		 * @type {boolean}
+		 */
+		isOwner: {
+			type: Boolean,
+			default: false,
 		},
 	},
 
@@ -527,6 +598,7 @@ export default {
 		 */
 		showSettingsFoldout() {
 			return this.settingsItems.length > 0 || this.includePersonalSettings
+				|| this.roadmapEntry !== null || this.documentationEntry !== null
 		},
 		/**
 		 * Whether to auto-prepend the "Personal settings" entry at the top
@@ -560,6 +632,60 @@ export default {
 		 */
 		personalSettingsLabel() {
 			return t('nextcloud-vue', 'Personal settings')
+		},
+		/**
+		 * Optional "Features & roadmap" foldout entry. Enabled via
+		 * `nav.includeRoadmap`; `nav.roadmapUrl` is treated as an external link
+		 * when it looks like a URL, otherwise as an in-app router target.
+		 *
+		 * @return {{label: string, to: (string|null), href: (string|null)}|null}
+		 */
+		roadmapEntry() {
+			const nav = this.effectiveManifest?.nav
+			if (!nav || nav.includeRoadmap !== true) return null
+			const label = (typeof nav.roadmapLabel === 'string' && nav.roadmapLabel)
+				? this.effectiveTranslate(nav.roadmapLabel)
+				: t('nextcloud-vue', 'Features & roadmap')
+			const target = typeof nav.roadmapUrl === 'string' ? nav.roadmapUrl.trim() : ''
+			const external = /^(https?:)?\/\//.test(target)
+			return { label, to: (target && !external) ? target : null, href: external ? target : null }
+		},
+		/**
+		 * Optional "Documentation" foldout entry. Enabled via
+		 * `nav.includeDocumentation`; always an external link (`nav.documentationUrl`).
+		 *
+		 * @return {{label: string, href: string}|null}
+		 */
+		documentationEntry() {
+			const nav = this.effectiveManifest?.nav
+			if (!nav || nav.includeDocumentation !== true) return null
+			const target = typeof nav.documentationUrl === 'string' ? nav.documentationUrl.trim() : ''
+			if (!target) return null
+			const label = (typeof nav.documentationLabel === 'string' && nav.documentationLabel)
+				? this.effectiveTranslate(nav.documentationLabel)
+				: t('nextcloud-vue', 'Documentation')
+			return { label, href: target }
+		},
+		/**
+		 * Label for the auto-prepended Admin-settings entry.
+		 *
+		 * @return {string}
+		 */
+		adminSettingsLabel() {
+			return t('nextcloud-vue', 'Admin settings')
+		},
+		/**
+		 * Whether the manifest declares any `adminSettings` entries. Gates
+		 * the auto-included "Admin settings" nav entry together with
+		 * `isOwner` — an app with no (or empty) `adminSettings` shows no
+		 * admin nav entry at all, even for an owner (manifest-admin-settings
+		 * D4 backward-compat).
+		 *
+		 * @return {boolean}
+		 */
+		hasAdminSettings() {
+			const adminSettings = this.effectiveManifest?.adminSettings
+			return Array.isArray(adminSettings) && adminSettings.length > 0
 		},
 		/**
 		 * Route name of the menu item that best matches the current route.
@@ -905,7 +1031,9 @@ export default {
 		 * Click handler. Dispatch order: action keyword → group toggle.
 		 * For `action: "user-settings"` invokes the injected
 		 * `cnOpenUserSettings` (provided by CnAppRoot) and prevents
-		 * default; for `action: "replay-walkthrough"` invokes the injected
+		 * default; for `action: "admin-settings"` invokes the injected
+		 * `cnOpenAdminSettings` and prevents default; for `action:
+		 * "replay-walkthrough"` invokes the injected
 		 * `cnReplayWalkthrough(item.tourId)` and prevents default. `href`
 		 * items are NOT handled here — they render a real anchor via
 		 * `itemHref`, so the browser navigates natively (external URLs open
@@ -925,6 +1053,13 @@ export default {
 					event.preventDefault()
 				}
 				this.cnOpenUserSettings()
+				return
+			}
+			if (item.action === 'admin-settings') {
+				if (event && typeof event.preventDefault === 'function') {
+					event.preventDefault()
+				}
+				this.cnOpenAdminSettings()
 				return
 			}
 			if (item.action === 'replay-walkthrough') {
@@ -951,6 +1086,18 @@ export default {
 		 */
 		onPersonalSettingsClick() {
 			this.cnOpenUserSettings()
+		},
+		/**
+		 * Click handler for the auto-prepended Admin-settings entry in the
+		 * settings foldout (visible only when `isOwner && hasAdminSettings`
+		 * is true). Invokes the injected `cnOpenAdminSettings` (provided by
+		 * CnAppRoot → opens the host's admin-settings NcAppSettingsDialog).
+		 * No-op inject when mounted standalone.
+		 *
+		 * @return {void}
+		 */
+		onAdminSettingsClick() {
+			this.cnOpenAdminSettings()
 		},
 		/**
 		 * Click handler for the manifest-declared primary action. Emits

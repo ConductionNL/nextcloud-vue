@@ -2,40 +2,73 @@
   - SPDX-License-Identifier: EUPL-1.2
   - SPDX-FileCopyrightText: 2026 Conduction B.V.
   -
-  - CnCredentials — self-contained settings pane that lets the signed-in
-  - user manage the credentials the OpenRegister credential broker holds
-  - on their behalf. The user hands a secret to OpenRegister once; apps
-  - then make outbound calls THROUGH OpenRegister without ever seeing the
-  - secret. This component is the browser surface over OR's credential API.
+  - CnCredentials — the settings surface for the OpenRegister credential
+  - broker. Apps occasionally need to act on your behalf against an external
+  - service (GitHub, GitLab, …). Rather than hand the secret to the app, you
+  - give it once to OpenRegister, which stores it in Doriath — Nextcloud's
+  - native, encrypted credential vault. Apps then make the outbound call
+  - THROUGH OpenRegister and never see the secret itself. You decide which
+  - apps may use each credential, so one credential can be shared across apps
+  - or kept dedicated to one.
   -
-  - It talks to OpenRegister's credential endpoints (metadata only — a
-  - secret is write-only and is NEVER returned or displayed):
+  - Two scopes render from this one component:
+  -   • scope="personal"      (default) — the signed-in user's own
+  -     credentials, shown in an app's *personal* settings. From here you may
+  -     only add/remove *the app you are currently in* to/from a credential,
+  -     or add a new credential (the current app is auto-added). You never
+  -     manage the full app list of another app from here.
+  -   • scope="organisation"  — organisation-wide credentials, shown in an
+  -     app's *admin* settings. An admin manages the full allowed-app list.
   -
-  -   GET    /apps/openregister/api/credentials
-  -            → { results: [{ '@self': { owner, ... }, id, name,
-  -                            provider, allowedApps[], createdAt }] }
+  - Talks to OpenRegister's credential endpoints (metadata only — a secret is
+  - write-only and is NEVER returned or displayed):
+  -   GET    /apps/openregister/api/credentials?scope={scope}
   -   GET    /apps/openregister/api/credentials/providers
-  -            → { results: [{ identifier, title }] }
-  -   POST   /apps/openregister/api/credentials
-  -            body { name, provider, allowedApps?, secret? }
-  -   PUT    /apps/openregister/api/credentials/{id}
-  -            body { name?, allowedApps?, secret? }
+  -   POST   /apps/openregister/api/credentials      { name, provider, allowedApps?, secret?, scope? }
+  -   PUT    /apps/openregister/api/credentials/{id}  { name?, allowedApps?, secret? }
   -   DELETE /apps/openregister/api/credentials/{id}
   -
-  - Designed to render inside CnAppRoot's `#user-settings` slot, wrapped in
-  - an `NcAppSettingsSection`. It is host-agnostic: pass the current app id
-  - and the app's manifest `credentials[]` declarations so the pane can
-  - explain which providers this app can reach through the broker.
+  - Provider presentation (title, colour, how-to text + link, secret label) is
+  - a hardcoded catalogue in this file (PROVIDER_META): new providers get a
+  - richer card here without a server change; unknown providers fall back to a
+  - neutral tile keyed off the identifier.
   -
-  - Fails soft: an empty `appCredentials` prop, or a 404 from the OR
-  - endpoints (broker not installed), degrades to an empty list plus a
-  - friendly note rather than crashing.
+  - Renders inside CnAppRoot's `#user-settings` (personal) or an admin surface
+  - (organisation). Fails soft: a 404 (broker not installed) degrades to an
+  - empty state with a friendly note rather than crashing.
   -->
 <template>
-	<div class="cn-credentials">
+	<div class="cn-credentials" :class="`cn-credentials--${scope}`">
 		<p class="cn-credentials__intro">
-			{{ t('nextcloud-vue', 'Give a secret to OpenRegister once. Apps then make calls on your behalf through OpenRegister — they never receive the secret itself.') }}
+			{{ introText }}
+			<a v-if="resolvedVaultUrl"
+				:href="resolvedVaultUrl"
+				class="cn-credentials__vault-link"
+				target="_self">
+				{{ t('nextcloud-vue', 'Learn about Doriath') }} ↗
+			</a>
 		</p>
+
+		<!-- What this app uses (the app's manifest credentials[] requirements) -->
+		<section v-if="scope === 'personal'" class="cn-credentials__section cn-credentials__supports">
+			<h4 class="cn-credentials__section-title">
+				{{ t('nextcloud-vue', 'What {app} uses', { app: appDisplayName }) }}
+			</h4>
+			<p v-if="appCredentials.length === 0" class="cn-credentials__muted">
+				{{ t('nextcloud-vue', 'This app does not use any external credentials.') }}
+			</p>
+			<ul v-else class="cn-credentials__requests">
+				<li v-for="(req, index) in appCredentials"
+					:key="`req-${index}`"
+					class="cn-credentials__request">
+					<span class="cn-credentials__tile-dot" :style="dotStyle(req.provider)">{{ providerInitial(req.provider) }}</span>
+					<span class="cn-credentials__request-body">
+						<span class="cn-credentials__request-provider">{{ providerTitle(req.provider) }}</span>
+						<span v-if="req.reason" class="cn-credentials__request-reason">{{ req.reason }}</span>
+					</span>
+				</li>
+			</ul>
+		</section>
 
 		<NcLoadingIcon v-if="loading" :size="24" />
 
@@ -46,47 +79,25 @@
 				{{ t('nextcloud-vue', 'Credentials are provided by OpenRegister and could not be loaded here.') }}
 			</NcNoteCard>
 
-			<!-- Apps requesting credentials (informational) -->
+			<!-- Your / the organisation's credentials -->
 			<section class="cn-credentials__section">
 				<h4 class="cn-credentials__section-title">
-					{{ t('nextcloud-vue', 'Apps requesting credentials') }}
-				</h4>
-				<p v-if="appCredentials.length === 0" class="cn-credentials__muted">
-					{{ t('nextcloud-vue', 'This app does not request any credentials.') }}
-				</p>
-				<ul v-else class="cn-credentials__requests">
-					<li v-for="(req, index) in appCredentials"
-						:key="`req-${index}`"
-						class="cn-credentials__request">
-						<span class="cn-credentials__request-provider">{{ providerTitle(req.provider) }}</span>
-						<span v-if="req.reason" class="cn-credentials__request-reason"> — {{ req.reason }}</span>
-					</li>
-				</ul>
-			</section>
-
-			<!-- Your credentials -->
-			<section class="cn-credentials__section">
-				<h4 class="cn-credentials__section-title">
-					{{ t('nextcloud-vue', 'Your credentials') }}
+					{{ scope === 'organisation' ? t('nextcloud-vue', 'Organisation credentials') : t('nextcloud-vue', 'Your credentials') }}
 				</h4>
 				<p v-if="credentials.length === 0" class="cn-credentials__muted">
-					{{ t('nextcloud-vue', 'You have not stored any credentials yet.') }}
+					{{ t('nextcloud-vue', 'No credentials stored yet.') }}
 				</p>
 				<ul v-else class="cn-credentials__list">
 					<li v-for="cred in credentials"
 						:key="cred.id"
 						class="cn-credentials__item">
 						<div class="cn-credentials__item-head">
+							<span class="cn-credentials__tile-dot" :style="dotStyle(cred.provider)">{{ providerInitial(cred.provider) }}</span>
 							<div class="cn-credentials__item-meta">
 								<span class="cn-credentials__item-name">{{ cred.name }}</span>
 								<span class="cn-credentials__item-provider">{{ providerTitle(cred.provider) }}</span>
 							</div>
 							<div class="cn-credentials__item-actions">
-								<NcButton variant="tertiary"
-									:disabled="cred.saving"
-									@click="onDuplicate(cred)">
-									{{ t('nextcloud-vue', 'Duplicate') }}
-								</NcButton>
 								<template v-if="cred.confirmingDelete">
 									<NcButton variant="error"
 										:disabled="cred.saving"
@@ -107,7 +118,23 @@
 								</NcButton>
 							</div>
 						</div>
-						<NcSelect class="cn-credentials__item-apps"
+
+						<!-- Personal: only toggle THIS app in/out of the credential. -->
+						<div v-if="scope === 'personal'" class="cn-credentials__item-toggle">
+							<NcCheckboxRadioSwitch :checked="appAllowed(cred)"
+								:disabled="cred.saving"
+								type="switch"
+								@update:checked="toggleThisApp(cred, $event)">
+								{{ t('nextcloud-vue', '{app} may use this credential', { app: appDisplayName }) }}
+							</NcCheckboxRadioSwitch>
+							<p v-if="otherApps(cred).length" class="cn-credentials__also muted">
+								{{ t('nextcloud-vue', 'Also allowed for: {apps}', { apps: otherApps(cred).join(', ') }) }}
+							</p>
+						</div>
+
+						<!-- Organisation: admin manages the full allowed-app list. -->
+						<NcSelect v-else
+							class="cn-credentials__item-apps"
 							:options="appOptions"
 							:value="cred.allowedApps"
 							:multiple="true"
@@ -115,64 +142,122 @@
 							:close-on-select="false"
 							:disabled="cred.saving"
 							:input-label="t('nextcloud-vue', 'Allowed apps')"
-							:placeholder="t('nextcloud-vue', 'Every app may use this credential')"
+							:placeholder="t('nextcloud-vue', 'No app may use this credential yet')"
 							@input="onAllowedAppsChange(cred, $event)" />
 					</li>
 				</ul>
 			</section>
 
-			<!-- Add credential -->
+			<!-- Add credential — inline wizard: pick a provider, then fill it in. -->
 			<section class="cn-credentials__section">
-				<h4 class="cn-credentials__section-title">
+				<NcButton v-if="!adding"
+					variant="secondary"
+					@click="startAdd">
+					<template #icon>
+						<Plus :size="20" />
+					</template>
 					{{ t('nextcloud-vue', 'Add credential') }}
-				</h4>
-				<form class="cn-credentials__form" @submit.prevent="onCreate">
-					<NcTextField v-model="form.name"
-						:label="t('nextcloud-vue', 'Name')"
-						:input-label="t('nextcloud-vue', 'Name')"
-						:disabled="saving"
-						required />
+				</NcButton>
 
-					<NcSelect :options="providerOptions"
-						:value="form.provider"
-						:disabled="saving"
-						:input-label="t('nextcloud-vue', 'Provider')"
-						:placeholder="t('nextcloud-vue', 'Select a provider')"
-						@input="form.provider = $event" />
+				<div v-else class="cn-credentials__wizard">
+					<!-- Step 1: provider icon grid -->
+					<template v-if="wizardStep === 'provider'">
+						<h4 class="cn-credentials__section-title">
+							{{ t('nextcloud-vue', 'Which credential do you want to add?') }}
+						</h4>
+						<div class="cn-credentials__grid">
+							<button v-for="p in providerGrid"
+								:key="p.identifier"
+								type="button"
+								class="cn-credentials__grid-tile"
+								@click="pickProvider(p.identifier)">
+								<span class="cn-credentials__tile-dot cn-credentials__tile-dot--lg" :style="dotStyle(p.identifier)">{{ providerInitial(p.identifier) }}</span>
+								<span class="cn-credentials__grid-title">{{ p.title }}</span>
+							</button>
+						</div>
+						<div class="cn-credentials__wizard-actions">
+							<NcButton variant="tertiary" @click="cancelAdd">
+								{{ t('nextcloud-vue', 'Cancel') }}
+							</NcButton>
+						</div>
+					</template>
 
-					<NcTextField v-model="form.secret"
-						type="password"
-						:label="t('nextcloud-vue', 'Secret')"
-						:input-label="t('nextcloud-vue', 'Secret')"
-						:helper-text="t('nextcloud-vue', 'The secret is sent to OpenRegister and never shown again.')"
-						:disabled="saving"
-						autocomplete="new-password" />
+					<!-- Step 2: provider-specific form + how-to -->
+					<template v-else>
+						<div class="cn-credentials__wizard-head">
+							<NcButton variant="tertiary" @click="wizardStep = 'provider'">
+								<template #icon>
+									<ChevronLeft :size="20" />
+								</template>
+								{{ t('nextcloud-vue', 'Back') }}
+							</NcButton>
+							<span class="cn-credentials__tile-dot" :style="dotStyle(form.provider)">{{ providerInitial(form.provider) }}</span>
+							<span class="cn-credentials__wizard-title">{{ providerTitle(form.provider) }}</span>
+						</div>
 
-					<NcSelect :options="appOptions"
-						:value="form.allowedApps"
-						:multiple="true"
-						:taggable="true"
-						:close-on-select="false"
-						:disabled="saving"
-						:input-label="t('nextcloud-vue', 'Allowed apps')"
-						:placeholder="t('nextcloud-vue', 'Every app may use this credential')"
-						@input="form.allowedApps = normaliseApps($event)" />
+						<NcNoteCard v-if="activeMeta.setupHelp" type="info" class="cn-credentials__howto">
+							{{ activeMeta.setupHelp }}
+							<a v-if="activeMeta.setupUrl"
+								:href="activeMeta.setupUrl"
+								target="_blank"
+								rel="noopener noreferrer"
+								class="cn-credentials__howto-link">
+								{{ t('nextcloud-vue', 'Open {provider}', { provider: providerTitle(form.provider) }) }} ↗
+							</a>
+						</NcNoteCard>
 
-					<div class="cn-credentials__form-actions">
-						<NcButton variant="primary"
-							native-type="submit"
-							:disabled="!canSubmit">
-							{{ t('nextcloud-vue', 'Add credential') }}
-						</NcButton>
-					</div>
-				</form>
+						<form class="cn-credentials__form" @submit.prevent="onCreate">
+							<NcTextField v-model="form.name"
+								:label="t('nextcloud-vue', 'Name')"
+								:helper-text="t('nextcloud-vue', 'A label to recognise this credential later.')"
+								:disabled="saving"
+								required />
+
+							<NcTextField v-model="form.secret"
+								type="password"
+								:label="activeMeta.secretLabel || t('nextcloud-vue', 'Secret')"
+								:helper-text="t('nextcloud-vue', 'Sent to OpenRegister and stored in Doriath. It is never shown again.')"
+								:disabled="saving"
+								autocomplete="new-password"
+								required />
+
+							<!-- Organisation add: admin also chooses the allowed apps up-front. -->
+							<NcSelect v-if="scope === 'organisation'"
+								:options="appOptions"
+								:value="form.allowedApps"
+								:multiple="true"
+								:taggable="true"
+								:close-on-select="false"
+								:disabled="saving"
+								:input-label="t('nextcloud-vue', 'Allowed apps')"
+								:placeholder="t('nextcloud-vue', 'Choose which apps may use it')"
+								@input="form.allowedApps = normaliseApps($event)" />
+							<p v-else class="cn-credentials__muted cn-credentials__addnote">
+								{{ t('nextcloud-vue', '{app} will be allowed to use this credential. You can change that afterwards.', { app: appDisplayName }) }}
+							</p>
+
+							<div class="cn-credentials__form-actions">
+								<NcButton variant="tertiary" :disabled="saving" @click="cancelAdd">
+									{{ t('nextcloud-vue', 'Cancel') }}
+								</NcButton>
+								<NcButton variant="primary"
+									native-type="submit"
+									:disabled="!canSubmit">
+									{{ t('nextcloud-vue', 'Add credential') }}
+								</NcButton>
+							</div>
+						</form>
+					</template>
+				</div>
 			</section>
 		</template>
 	</div>
 </template>
 
 <script>
-import { NcButton, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
+import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
@@ -180,21 +265,54 @@ import axios from '@nextcloud/axios'
 const CREDENTIALS_PATH = '/apps/openregister/api/credentials'
 const PROVIDERS_PATH = '/apps/openregister/api/credentials/providers'
 
+/**
+ * Hardcoded per-provider presentation. Keyed by the OpenRegister catalogue
+ * identifier. `colour` drives the tile; `setupHelp`/`setupUrl` explain how to
+ * obtain the secret; `secretLabel` names the field. Providers not listed here
+ * still work — they render a neutral tile from their identifier.
+ */
+const PROVIDER_META = {
+	github: {
+		title: 'GitHub',
+		colour: '#1f2328',
+		setupUrl: 'https://github.com/settings/personal-access-tokens',
+		setupHelp: 'Create a fine-grained personal access token with read-only access to the repositories or organisation this app should reach, then paste it below.',
+		secretLabel: 'Personal access token',
+	},
+	gitlab: {
+		title: 'GitLab',
+		colour: '#fc6d26',
+		setupUrl: 'https://gitlab.com/-/user_settings/personal_access_tokens',
+		setupHelp: 'Create a personal access token with the read_api (and read_repository) scopes, then paste it below.',
+		secretLabel: 'Personal access token',
+	},
+	doffin: {
+		title: 'Doffin (Norway)',
+		colour: '#00509e',
+		setupUrl: 'https://dfo.no/anskaffelser/doffin',
+		setupHelp: 'Request an APIM subscription key for the Doffin public procurement API, then paste it below.',
+		secretLabel: 'Subscription key',
+	},
+}
+
 export default {
 	name: 'CnCredentials',
 
 	components: {
 		NcButton,
+		NcCheckboxRadioSwitch,
 		NcLoadingIcon,
 		NcNoteCard,
 		NcSelect,
 		NcTextField,
+		ChevronLeft,
+		Plus,
 	},
 
 	props: {
 		/**
-		 * The consuming Nextcloud app id (e.g. "pipelinq"). Seeds the
-		 * allowed-apps picker and lets the pane stay host-agnostic.
+		 * The consuming Nextcloud app id (e.g. "openbuild-spectr"). In personal
+		 * scope this is the only app you can toggle in/out of a credential.
 		 *
 		 * @type {string}
 		 */
@@ -203,17 +321,47 @@ export default {
 			default: '',
 		},
 		/**
+		 * A friendly app name for copy ("{app} may use this credential"). Falls
+		 * back to the appId.
+		 *
+		 * @type {string}
+		 */
+		appName: {
+			type: String,
+			default: '',
+		},
+		/**
 		 * The current app's manifest `credentials[]` declarations — the
-		 * providers this app wants to reach through the broker. Shape:
-		 * `[{ provider, reason, scopes }]`. Rendered read-only in the
-		 * "Apps requesting credentials" section. Defaults to an empty
-		 * array so the pane renders an empty state rather than crashing.
+		 * providers this app can reach through the broker. Shape:
+		 * `[{ provider, reason, scopes }]`. Rendered read-only under the intro.
 		 *
 		 * @type {Array<object>}
 		 */
 		appCredentials: {
 			type: Array,
 			default: () => [],
+		},
+		/**
+		 * Which credential set to manage: `"personal"` (the signed-in user's
+		 * own; app-scoped toggle only) or `"organisation"` (org-wide; full
+		 * allowed-app management, admin surface).
+		 *
+		 * @type {string}
+		 */
+		scope: {
+			type: String,
+			default: 'personal',
+			validator: (v) => ['personal', 'organisation'].includes(v),
+		},
+		/**
+		 * Optional link target explaining the Doriath vault. Defaults to the
+		 * Doriath app route; pass '' to hide the link.
+		 *
+		 * @type {string}
+		 */
+		vaultUrl: {
+			type: String,
+			default: null,
 		},
 	},
 
@@ -224,6 +372,8 @@ export default {
 			saving: false,
 			credentials: [],
 			providers: [],
+			adding: false,
+			wizardStep: 'provider',
 			form: {
 				name: '',
 				provider: null,
@@ -235,20 +385,49 @@ export default {
 
 	computed: {
 		/**
-		 * Provider catalogue mapped to `NcSelect` option objects.
+		 * Friendly current-app label.
 		 *
-		 * @return {Array<{id: string, label: string}>} Picker options.
+		 * @return {string} App display name.
 		 */
-		providerOptions() {
-			return this.providers.map((p) => ({
-				id: p.identifier,
-				label: p.title || p.identifier,
-			}))
+		appDisplayName() {
+			return this.appName || this.appId || t('nextcloud-vue', 'This app')
 		},
 		/**
-		 * The union of app ids the allowed-apps pickers offer: the current
-		 * app id plus any app id already referenced by a stored credential.
-		 * Free-text entry (taggable) covers anything not yet seen.
+		 * Reframed intro copy per scope.
+		 *
+		 * @return {string} Intro text.
+		 */
+		introText() {
+			if (this.scope === 'organisation') {
+				return t('nextcloud-vue', 'Organisation credentials let apps act on behalf of your organisation. The secret is stored in Doriath — Nextcloud\'s native credential vault — never in the app. You choose which apps may use each credential.')
+			}
+			return t('nextcloud-vue', 'Apps sometimes need to act on your behalf against an external service. So they never hold your secrets, you give a secret to Nextcloud once and it is kept in Doriath — a native, encrypted credential vault. Apps then make the call through Doriath and never see the secret. You decide which apps may use each credential — share one across apps, or keep one per app.')
+		},
+		/**
+		 * Resolved Doriath link (explicit prop, or the app route by default).
+		 *
+		 * @return {string} URL or ''.
+		 */
+		resolvedVaultUrl() {
+			if (this.vaultUrl === '') {
+				return ''
+			}
+			return this.vaultUrl || generateUrl('/apps/doriath')
+		},
+		/**
+		 * The provider tiles offered in the add-wizard grid: what the server
+		 * actually offers when known (so we never offer a provider the broker
+		 * can't honour), else the full hardcoded set.
+		 *
+		 * @return {Array<{identifier: string, title: string}>} Grid tiles.
+		 */
+		providerGrid() {
+			const serverIds = this.providers.map((p) => p.identifier)
+			const ids = serverIds.length ? serverIds : Object.keys(PROVIDER_META)
+			return ids.map((id) => ({ identifier: id, title: this.providerTitle(id) }))
+		},
+		/**
+		 * The union of app ids the organisation allowed-apps picker offers.
 		 *
 		 * @return {Array<string>} Distinct app ids.
 		 */
@@ -267,21 +446,24 @@ export default {
 			return Array.from(ids)
 		},
 		/**
-		 * Whether the add-credential form can be submitted — a name and a
-		 * provider are the minimum; the secret stays optional (rotate later).
+		 * Presentation metadata for the provider currently being added.
 		 *
-		 * @return {boolean} True when the form is submittable.
+		 * @return {object} Provider meta (may be a neutral fallback).
 		 */
-		canSubmit() {
-			return !this.saving && this.form.name.trim() !== '' && !!this.selectedProvider
+		activeMeta() {
+			return PROVIDER_META[this.form.provider] || {}
 		},
 		/**
-		 * The selected provider identifier from the add-form, or ''.
+		 * Whether the add form can be submitted — name, provider and a secret
+		 * are required (the whole point is to store a secret).
 		 *
-		 * @return {string} Provider identifier.
+		 * @return {boolean} True when submittable.
 		 */
-		selectedProvider() {
-			return this.optionId(this.form.provider)
+		canSubmit() {
+			return !this.saving
+				&& this.form.name.trim() !== ''
+				&& !!this.form.provider
+				&& this.form.secret.trim() !== ''
 		},
 	},
 
@@ -293,9 +475,8 @@ export default {
 		t,
 
 		/**
-		 * Load the caller's credentials and the provider catalogue in
-		 * parallel. Fails soft: a rejected request (e.g. the broker is not
-		 * installed, 404) leaves both lists empty and flags a friendly note.
+		 * Load credentials (scoped) and the provider catalogue in parallel.
+		 * Fails soft on a rejected request.
 		 *
 		 * @return {Promise<void>}
 		 */
@@ -304,7 +485,7 @@ export default {
 			this.error = false
 			try {
 				const [credsRes, provRes] = await Promise.all([
-					axios.get(generateUrl(CREDENTIALS_PATH)),
+					axios.get(generateUrl(CREDENTIALS_PATH), { params: { scope: this.scope } }),
 					axios.get(generateUrl(PROVIDERS_PATH)),
 				])
 				this.credentials = this.mapCredentials(credsRes?.data?.results)
@@ -319,8 +500,7 @@ export default {
 		},
 
 		/**
-		 * Normalise the credential list from the API into rows with local
-		 * UI state (`saving`, `confirmingDelete`).
+		 * Normalise API credential objects into display rows with local state.
 		 *
 		 * @param {Array<object>} results Raw credential objects.
 		 * @return {Array<object>} Display rows.
@@ -340,7 +520,40 @@ export default {
 		},
 
 		/**
-		 * Create a new credential from the add-form, then reload + reset.
+		 * Open the add-credential wizard at the provider grid.
+		 *
+		 * @return {void}
+		 */
+		startAdd() {
+			this.resetForm()
+			this.wizardStep = 'provider'
+			this.adding = true
+		},
+
+		/**
+		 * Cancel the wizard and reset.
+		 *
+		 * @return {void}
+		 */
+		cancelAdd() {
+			this.adding = false
+			this.resetForm()
+		},
+
+		/**
+		 * Choose a provider in step 1 and advance to the form.
+		 *
+		 * @param {string} identifier The provider identifier.
+		 * @return {void}
+		 */
+		pickProvider(identifier) {
+			this.form.provider = identifier
+			this.wizardStep = 'form'
+		},
+
+		/**
+		 * Create a credential. Personal scope auto-adds the current app; org
+		 * scope sends the admin-chosen allowed apps and the organisation scope.
 		 *
 		 * @return {Promise<void>}
 		 */
@@ -352,14 +565,17 @@ export default {
 			try {
 				const body = {
 					name: this.form.name.trim(),
-					provider: this.selectedProvider,
-					allowedApps: this.form.allowedApps,
+					provider: this.form.provider,
+					secret: this.form.secret,
 				}
-				if (this.form.secret !== '') {
-					body.secret = this.form.secret
+				if (this.scope === 'organisation') {
+					body.scope = 'organisation'
+					body.allowedApps = this.form.allowedApps.length ? this.form.allowedApps : (this.appId ? [this.appId] : [])
+				} else {
+					body.allowedApps = this.appId ? [this.appId] : []
 				}
 				await axios.post(generateUrl(CREDENTIALS_PATH), body)
-				this.resetForm()
+				this.cancelAdd()
 				await this.load()
 			} catch (e) {
 				this.showError(t('nextcloud-vue', 'Could not save the credential'))
@@ -387,25 +603,60 @@ export default {
 		},
 
 		/**
-		 * Prefill the add-form from an existing credential — name, provider
-		 * and allowed apps carry over; the secret stays blank (write-only).
+		 * Whether the current app is allowed to use a credential.
 		 *
-		 * @param {object} cred The credential to duplicate.
-		 * @return {void}
+		 * @param {object} cred The credential row.
+		 * @return {boolean} True when appId is in allowedApps.
 		 */
-		onDuplicate(cred) {
-			const providerOption = this.providerOptions.find((o) => o.id === cred.provider)
-			this.form = {
-				name: cred.name ? `${cred.name} (copy)` : '',
-				provider: providerOption || (cred.provider ? { id: cred.provider, label: cred.provider } : null),
-				secret: '',
-				allowedApps: (cred.allowedApps || []).slice(),
+		appAllowed(cred) {
+			return !!this.appId && (cred.allowedApps || []).includes(this.appId)
+		},
+
+		/**
+		 * The apps other than the current one that may use a credential.
+		 *
+		 * @param {object} cred The credential row.
+		 * @return {Array<string>} Other app ids.
+		 */
+		otherApps(cred) {
+			return (cred.allowedApps || []).filter((a) => a && a !== this.appId)
+		},
+
+		/**
+		 * Personal scope: add/remove ONLY the current app to/from a credential.
+		 * Reverts on failure.
+		 *
+		 * @param {object}  cred    The credential row.
+		 * @param {boolean} checked The switch's new state.
+		 * @return {Promise<void>}
+		 */
+		async toggleThisApp(cred, checked) {
+			if (!this.appId) {
+				return
+			}
+			const previous = cred.allowedApps.slice()
+			const set = new Set(previous)
+			if (checked) {
+				set.add(this.appId)
+			} else {
+				set.delete(this.appId)
+			}
+			const next = Array.from(set)
+			cred.allowedApps = next
+			cred.saving = true
+			try {
+				await axios.put(generateUrl(`${CREDENTIALS_PATH}/${encodeURIComponent(cred.id)}`), { allowedApps: next })
+			} catch (e) {
+				cred.allowedApps = previous
+				this.showError(t('nextcloud-vue', 'Could not update the credential'))
+			} finally {
+				cred.saving = false
 			}
 		},
 
 		/**
-		 * Persist an allowed-apps change for a stored credential via PUT.
-		 * Reverts the row on failure.
+		 * Organisation scope: persist a full allowed-apps change via PUT.
+		 * Reverts on failure.
 		 *
 		 * @param {object} cred    The credential row.
 		 * @param {Array}  updated The picker's new selection.
@@ -417,9 +668,7 @@ export default {
 			cred.allowedApps = next
 			cred.saving = true
 			try {
-				await axios.put(generateUrl(`${CREDENTIALS_PATH}/${encodeURIComponent(cred.id)}`), {
-					allowedApps: next,
-				})
+				await axios.put(generateUrl(`${CREDENTIALS_PATH}/${encodeURIComponent(cred.id)}`), { allowedApps: next })
 			} catch (e) {
 				cred.allowedApps = previous
 				this.showError(t('nextcloud-vue', 'Could not update allowed apps'))
@@ -429,20 +678,44 @@ export default {
 		},
 
 		/**
-		 * Human-readable provider title for an identifier, falling back to
-		 * the raw identifier when the catalogue has no match.
+		 * Human-readable provider title — hardcoded catalogue first, then the
+		 * server title, then the raw identifier.
 		 *
 		 * @param {string} identifier The provider identifier.
 		 * @return {string} A display title.
 		 */
 		providerTitle(identifier) {
+			if (PROVIDER_META[identifier] && PROVIDER_META[identifier].title) {
+				return PROVIDER_META[identifier].title
+			}
 			const match = this.providers.find((p) => p.identifier === identifier)
 			return (match && match.title) || identifier || ''
 		},
 
 		/**
-		 * Coerce an `NcSelect` multiple/taggable value into a plain string[]
-		 * of app ids (options are objects, taggable free-text is a string).
+		 * A one-letter badge for a provider tile.
+		 *
+		 * @param {string} identifier The provider identifier.
+		 * @return {string} An uppercase initial.
+		 */
+		providerInitial(identifier) {
+			const title = this.providerTitle(identifier)
+			return (title || '?').trim().charAt(0).toUpperCase() || '?'
+		},
+
+		/**
+		 * Inline style for a provider tile dot (its brand colour, or neutral).
+		 *
+		 * @param {string} identifier The provider identifier.
+		 * @return {object} A style binding.
+		 */
+		dotStyle(identifier) {
+			const colour = (PROVIDER_META[identifier] && PROVIDER_META[identifier].colour) || 'var(--color-primary-element)'
+			return { backgroundColor: colour }
+		},
+
+		/**
+		 * Coerce an NcSelect multiple/taggable value into a string[] of app ids.
 		 *
 		 * @param {Array} value The picker value.
 		 * @return {Array<string>} App ids.
@@ -451,34 +724,16 @@ export default {
 			if (!Array.isArray(value)) {
 				return []
 			}
-			return value.map((v) => this.optionId(v)).filter((v) => v !== '')
+			return value.map((v) => (typeof v === 'string' ? v : (v && v.id) || '')).filter((v) => v !== '')
 		},
 
 		/**
-		 * Extract the id from an `NcSelect` value (option object or string).
-		 *
-		 * @param {object|string|null} value The picker value.
-		 * @return {string} The id, or '' when empty.
-		 */
-		optionId(value) {
-			if (!value) {
-				return ''
-			}
-			return typeof value === 'string' ? value : (value.id || '')
-		},
-
-		/**
-		 * Reset the add-credential form to its empty state.
+		 * Reset the add-credential form.
 		 *
 		 * @return {void}
 		 */
 		resetForm() {
-			this.form = {
-				name: '',
-				provider: null,
-				secret: '',
-				allowedApps: [],
-			}
+			this.form = { name: '', provider: null, secret: '', allowedApps: [] }
 		},
 
 		/**
@@ -496,8 +751,14 @@ export default {
 
 <style scoped>
 .cn-credentials__intro {
-	margin-bottom: 12px;
+	margin-bottom: 16px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-credentials__vault-link,
+.cn-credentials__howto-link {
+	white-space: nowrap;
+	color: var(--color-primary-element);
 }
 
 .cn-credentials__error {
@@ -505,15 +766,16 @@ export default {
 }
 
 .cn-credentials__section {
-	margin-bottom: 20px;
+	margin-bottom: 22px;
 }
 
 .cn-credentials__section-title {
-	margin: 8px 0 6px;
+	margin: 8px 0 8px;
 	font-weight: bold;
 }
 
-.cn-credentials__muted {
+.cn-credentials__muted,
+.muted {
 	color: var(--color-text-maxcontrast);
 }
 
@@ -525,28 +787,63 @@ export default {
 }
 
 .cn-credentials__request {
-	padding: 2px 0;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 6px 0;
+}
+
+.cn-credentials__request-body {
+	display: flex;
+	flex-direction: column;
 }
 
 .cn-credentials__request-provider {
 	font-weight: bold;
 }
 
+.cn-credentials__request-reason {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+}
+
+/* Provider tile dot: a coloured badge with the provider's initial. */
+.cn-credentials__tile-dot {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 32px;
+	height: 32px;
+	border-radius: var(--border-radius-large, 8px);
+	color: #fff;
+	font-weight: bold;
+	font-size: 0.95em;
+	line-height: 1;
+}
+
+.cn-credentials__tile-dot--lg {
+	width: 44px;
+	height: 44px;
+	font-size: 1.3em;
+}
+
 .cn-credentials__item {
-	padding: 10px 0;
+	padding: 12px 0;
 	border-bottom: 1px solid var(--color-border);
 }
 
 .cn-credentials__item-head {
 	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
-	gap: 8px;
+	align-items: center;
+	gap: 10px;
 }
 
 .cn-credentials__item-meta {
 	display: flex;
 	flex-direction: column;
+	flex-grow: 1;
+	min-width: 0;
 }
 
 .cn-credentials__item-name {
@@ -565,19 +862,81 @@ export default {
 	flex-shrink: 0;
 }
 
+.cn-credentials__item-toggle {
+	margin: 8px 0 0 42px;
+}
+
+.cn-credentials__also {
+	margin: 4px 0 0;
+	font-size: 0.9em;
+}
+
 .cn-credentials__item-apps {
 	margin-top: 8px;
 	width: 100%;
 }
 
+.cn-credentials__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+	gap: 10px;
+	margin-bottom: 12px;
+}
+
+.cn-credentials__grid-tile {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	padding: 16px 8px;
+	background: var(--color-background-hover);
+	border: 2px solid var(--color-border);
+	border-radius: var(--border-radius-large, 8px);
+	cursor: pointer;
+}
+
+.cn-credentials__grid-tile:hover,
+.cn-credentials__grid-tile:focus-visible {
+	border-color: var(--color-primary-element);
+	background: var(--color-background-dark);
+}
+
+.cn-credentials__grid-title {
+	font-weight: bold;
+	text-align: center;
+}
+
+.cn-credentials__wizard-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 12px;
+}
+
+.cn-credentials__wizard-title {
+	font-weight: bold;
+	font-size: 1.1em;
+}
+
+.cn-credentials__howto {
+	margin-bottom: 12px;
+}
+
 .cn-credentials__form {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
+	gap: 12px;
 }
 
-.cn-credentials__form-actions {
+.cn-credentials__addnote {
+	margin: 0;
+	font-size: 0.9em;
+}
+
+.cn-credentials__form-actions,
+.cn-credentials__wizard-actions {
 	display: flex;
 	justify-content: flex-end;
+	gap: 8px;
 }
 </style>

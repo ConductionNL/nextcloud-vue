@@ -31,7 +31,7 @@
 					v-if="headerActions && headerActions.length"
 					:actions="headerActions"
 					data-testid="cn-dashboard-page-header-actions" />
-				<!-- @slot header-actions Inline buttons rendered in the dashboard header next to the edit toggle. Used by every existing consumer (decidesk, mydash, opencatalogi, pipelinq, procest). -->
+				<!-- @slot header-actions Inline buttons rendered in the dashboard header next to the edit toggle. Used by every existing consumer (decidesk, launchpad, opencatalogi, pipelinq, procest). -->
 				<slot name="header-actions" />
 				<!-- @slot actions Back-compat alias for `#header-actions`. Prefer `#header-actions` in new code. -->
 				<slot name="actions" />
@@ -2471,6 +2471,23 @@ export default {
 			const out = { title: content.title || def?.title || item.widgetId }
 			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'route', 'iconClass']) {
 				if (props[key] !== undefined) out[key] = props[key]
+			}
+			// Multi-entry mode (ADR-049): prefer `content.entries`, then
+			// `props.entries`. A legacy manifest that declared `entries` at the
+			// widgetDef ROOT (a common opencatalogi shape) was silently dropped
+			// because the dispatcher only forwards `content` — honour it with a
+			// one-time deprecation warning so those cards render while authors
+			// migrate the key under `content`.
+			const contentEntries = content.entries !== undefined ? content.entries : props.entries
+			if (contentEntries !== undefined) {
+				out.entries = contentEntries
+			} else if (Array.isArray(def?.entries)) {
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnDashboardPage] stats-block "${item.widgetId}" declares \`entries\` at the widget-def root — `
+					+ 'move it under `content.entries`. Root-level `entries` is deprecated and will stop being read.',
+				)
+				out.entries = def.entries
 			}
 			return out
 		},

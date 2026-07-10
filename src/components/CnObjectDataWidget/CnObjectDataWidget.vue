@@ -13,6 +13,7 @@
 		:title="title"
 		:widget-id="widgetId || objectType"
 		:documentation-url="documentationUrl"
+		:class="{ 'cn-object-data-widget--expanded': overflowing && expanded }"
 		:title-icon-position="(iconComponent || iconName) ? 'left' : 'right'">
 		<template v-if="iconName" #title-icon>
 			<CnIcon :name="iconName" :size="20" />
@@ -66,11 +67,21 @@
 			{{ emptyLabel }}
 		</div>
 
-		<!-- Grid -->
+		<!-- Grid, wrapped so an overflowing field set is clipped at a WHOLE-ROW
+		     boundary (never mid-text) with a bottom fade + a "Show all N fields"
+		     affordance that expands the widget in place (ADR-062: the cell is
+		     the budget; content adapts, no inner scrollbars). -->
 		<div
 			v-else
-			class="cn-object-data-widget__grid"
-			:style="gridStyle">
+			class="cn-object-data-widget__grid-wrap"
+			:class="{
+				'cn-object-data-widget__grid-wrap--clipped': overflowing && !expanded,
+				'cn-object-data-widget__grid-wrap--expanded': overflowing && expanded,
+			}">
+			<div
+				ref="grid"
+				class="cn-object-data-widget__grid"
+				:style="collapsedGridStyle">
 			<div
 				v-for="field in resolvedFields"
 				:key="field.key"
@@ -265,6 +276,57 @@
 							v-else-if="isRelationPending(field)"
 							class="cn-object-data-widget__skeleton"
 							:aria-label="t('nextcloud-vue', 'Loading')" />
+						<!-- Array of OBJECTS → compact inline table (union of the
+						     first rows' keys, capped at 5 columns / 5 rows) so a
+						     structured value renders legibly instead of
+						     "[object Object]" (ADR-062). -->
+						<div
+							v-else-if="fieldValueKind(field) === 'object-array'"
+							class="cn-object-data-widget__mini-table-wrap">
+							<table class="cn-object-data-widget__mini-table">
+								<thead>
+									<tr>
+										<th v-for="col in objectArrayColumns(rawOf(field))" :key="col">
+											{{ col }}
+										</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr v-for="(row, ri) in objectArrayRows(rawOf(field))" :key="ri">
+										<td v-for="col in objectArrayColumns(rawOf(field))" :key="col">
+											{{ stringifyCell(row && row[col]) }}
+										</td>
+									</tr>
+								</tbody>
+							</table>
+							<div v-if="rawOf(field).length > 5" class="cn-object-data-widget__more">
+								{{ t('nextcloud-vue', '{count} more', { count: rawOf(field).length - 5 }) }}
+							</div>
+						</div>
+						<!-- Array of SCALARS → comma-separated chips. -->
+						<div
+							v-else-if="fieldValueKind(field) === 'scalar-array'"
+							class="cn-object-data-widget__chips">
+							<span
+								v-for="(v, ci) in rawOf(field)"
+								:key="ci"
+								class="cn-object-data-widget__chip">
+								{{ stringifyCell(v) }}
+							</span>
+						</div>
+						<!-- Single plain OBJECT → key: value definition list. -->
+						<dl
+							v-else-if="fieldValueKind(field) === 'object'"
+							class="cn-object-data-widget__deflist">
+							<template v-for="(pair, pi) in objectEntries(rawOf(field))">
+								<dt :key="'k' + pi">
+									{{ pair[0] }}
+								</dt>
+								<dd :key="'v' + pi">
+									{{ stringifyCell(pair[1]) }}
+								</dd>
+							</template>
+						</dl>
 						<template v-else>{{ displayValues[field.key] }}</template>
 					</template>
 					<Pencil
@@ -273,6 +335,21 @@
 						:size="14" />
 				</div>
 			</div>
+			</div>
+			<!-- Bottom fade over the clipped whole-row boundary. -->
+			<div
+				v-if="overflowing && !expanded"
+				class="cn-object-data-widget__fade"
+				aria-hidden="true" />
+			<!-- Expand / collapse affordance — only rendered when the field set
+			     actually overflows its cell. -->
+			<button
+				v-if="overflowing"
+				type="button"
+				class="cn-object-data-widget__toggle"
+				@click="toggleExpanded">
+				{{ expanded ? collapseFieldsLabel : showAllFieldsLabel }}
+			</button>
 		</div>
 
 		<!-- Read-only @self metadata, surfaced on demand from the
@@ -535,10 +612,32 @@ export default {
 			relationOptions: {},
 			/** Whether relation picker options are being fetched. */
 			relationOptionsLoading: false,
+			/** Whether the field set overflows its cell (drives the clip + toggle). */
+			overflowing: false,
+			/** Whether the user expanded the widget to see every field. */
+			expanded: false,
+			/**
+			 * Pixel height to clip the collapsed grid at — chosen at a WHOLE-ROW
+			 * boundary so the last visible row is never cut mid-text. `null`
+			 * until measured / when not overflowing.
+			 */
+			collapsedMaxHeight: null,
 		}
 	},
 
-	mounted() { this.resolveRelations() },
+	mounted() {
+		this.resolveRelations()
+		this.scheduleOverflowMeasure()
+	},
+
+	updated() {
+		this.scheduleOverflowMeasure()
+	},
+
+	beforeDestroy() {
+		if (this._overflowObserver) this._overflowObserver.disconnect()
+		if (this._overflowTimer) clearTimeout(this._overflowTimer)
+	},
 
 	computed: {
 		iconComponent() {
@@ -607,6 +706,31 @@ export default {
 				'grid-template-columns': `repeat(${this.columns}, 1fr)`,
 			}
 		},
+
+		/**
+		 * The grid style plus, when collapsed and overflowing, a `max-height`
+		 * clip at the last WHOLE-ROW boundary (with overflow hidden via the
+		 * `--clipped` wrapper class) so no field row is cut mid-text (ADR-062).
+		 *
+		 * @return {object}
+		 */
+		collapsedGridStyle() {
+			const style = { ...this.gridStyle }
+			if (this.overflowing && !this.expanded && this.collapsedMaxHeight != null) {
+				style.maxHeight = this.collapsedMaxHeight + 'px'
+			}
+			return style
+		},
+
+		/** Pre-translated "Show all N fields" affordance label. */
+		showAllFieldsLabel() {
+			return t('nextcloud-vue', 'Show all {count} fields', { count: this.resolvedFields.length })
+		},
+
+		/** Pre-translated collapse label. */
+		collapseFieldsLabel() {
+			return t('nextcloud-vue', 'Show less')
+		},
 	},
 
 	watch: {
@@ -634,10 +758,189 @@ export default {
 		/** Pre-translated string helper exposed to the template. */
 		t,
 
+		/** Toggle the expand/collapse state and, on collapse, re-measure. */
+		toggleExpanded() {
+			this.expanded = !this.expanded
+			if (!this.expanded) this.$nextTick(() => this.measureOverflow())
+		},
+
+		/**
+		 * Debounced overflow measurement — coalesces the many `updated` ticks
+		 * that a data load / relation resolution triggers into one measure, and
+		 * (once) attaches a ResizeObserver on the host cell so the clip re-fits
+		 * when the cell resizes.
+		 *
+		 * @return {void}
+		 */
+		scheduleOverflowMeasure() {
+			if (typeof window === 'undefined') return
+			if (!this._overflowObserver && typeof ResizeObserver !== 'undefined' && this.$refs.grid) {
+				const content = this.$refs.grid.closest && this.$refs.grid.closest('.cn-widget-wrapper__content')
+				if (content) {
+					this._overflowObserver = new ResizeObserver(() => this.measureOverflow())
+					this._overflowObserver.observe(content)
+				}
+			}
+			clearTimeout(this._overflowTimer)
+			this._overflowTimer = setTimeout(() => this.measureOverflow(), 60)
+		},
+
+		/**
+		 * Measure whether the field grid overflows its cell and, if so, choose a
+		 * WHOLE-ROW clip height so the collapsed state never cuts a row mid-text
+		 * (ADR-062). No-op while expanded (the user opted to see everything) and
+		 * in non-layout environments (jsdom) where every rect is zero.
+		 *
+		 * @return {void}
+		 */
+		measureOverflow() {
+			if (this.expanded) return
+			const grid = this.$refs.grid
+			const content = grid && grid.closest && grid.closest('.cn-widget-wrapper__content')
+			if (!grid || !content) { this.overflowing = false; this.collapsedMaxHeight = null; return }
+			const avail = content.clientHeight
+			// Natural (unclipped) grid height. `scrollHeight` ignores the
+			// max-height clip so it reflects the full field set.
+			const natural = grid.scrollHeight
+			if (!avail || natural <= avail + 2) {
+				this.overflowing = false
+				this.collapsedMaxHeight = null
+				return
+			}
+			// Reserve room for the fade + the "Show all" toggle button.
+			const reserve = 30
+			const budget = Math.max(avail - reserve, 0)
+			const gridTop = grid.getBoundingClientRect().top
+			const cells = Array.from(grid.querySelectorAll('.cn-object-data-widget__cell'))
+			const clip = this.computeWholeRowClip(this.cellRowBottoms(cells, gridTop), budget)
+			this.overflowing = true
+			this.collapsedMaxHeight = clip
+		},
+
+		/**
+		 * Group cells into rows (by their top offset, bucketed) and return each
+		 * row's greatest bottom offset relative to the grid top — the candidate
+		 * whole-row clip boundaries.
+		 *
+		 * @param {Element[]} cells The grid cell elements.
+		 * @param {number} gridTop The grid's viewport top (getBoundingClientRect).
+		 * @return {number[]} Sorted ascending row-bottom offsets (px, grid-relative).
+		 */
+		cellRowBottoms(cells, gridTop) {
+			const rows = new Map()
+			for (const cell of cells) {
+				const r = cell.getBoundingClientRect()
+				const topKey = Math.round((r.top - gridTop) / 4) * 4
+				const bottom = r.bottom - gridTop
+				rows.set(topKey, Math.max(rows.get(topKey) || 0, bottom))
+			}
+			return Array.from(rows.values()).sort((a, b) => a - b)
+		},
+
+		/**
+		 * Pick the largest row-bottom that fits the budget — the whole-row clip
+		 * boundary. Always keeps at least the first row so a single very tall
+		 * row still shows (its overflow is the fade's job, not a mid-row cut).
+		 * Pure — unit-tested directly.
+		 *
+		 * @param {number[]} rowBottoms Ascending row-bottom offsets.
+		 * @param {number} budget The available height (px).
+		 * @return {number} The clip height (px).
+		 */
+		computeWholeRowClip(rowBottoms, budget) {
+			if (!rowBottoms.length) return budget
+			let clip = rowBottoms[0]
+			for (const b of rowBottoms) {
+				if (b <= budget) clip = b
+				else break
+			}
+			return clip
+		},
+
 		/** Raw (possibly dirty) value for a field. */
 		rawOf(field) {
 			const o = this.objectData || {}
 			return (field.key in this.dirtyFields) ? this.dirtyFields[field.key] : o[field.key]
+		},
+		/**
+		 * Classify a field's raw value for display so the template can pick a
+		 * legible renderer (ADR-062: a structured value must never render as
+		 * "[object Object]"). Relation fields are excluded here — their
+		 * name-resolved label already flows through `displayValues`.
+		 *
+		 * @param {object} field Resolved field definition.
+		 * @return {'object-array'|'scalar-array'|'object'|'scalar'} The value kind.
+		 */
+		fieldValueKind(field) {
+			const prop = ((this.schema && this.schema.properties) || {})[field.key]
+			if (this.isRelationField(prop)) return 'scalar'
+			const raw = this.rawOf(field)
+			if (Array.isArray(raw)) {
+				if (raw.length === 0) return 'scalar'
+				return raw.some((v) => v !== null && typeof v === 'object' && !Array.isArray(v))
+					? 'object-array'
+					: 'scalar-array'
+			}
+			if (raw !== null && typeof raw === 'object') return 'object'
+			return 'scalar'
+		},
+		/**
+		 * Column keys for an array-of-objects inline table: the union of the
+		 * keys of the first three items, capped at five columns.
+		 *
+		 * @param {Array<object>} raw The array value.
+		 * @return {string[]} Up to five column keys.
+		 */
+		objectArrayColumns(raw) {
+			if (!Array.isArray(raw)) return []
+			const keys = []
+			for (const item of raw.slice(0, 3)) {
+				if (item && typeof item === 'object') {
+					for (const k of Object.keys(item)) {
+						if (!keys.includes(k)) keys.push(k)
+					}
+				}
+			}
+			return keys.slice(0, 5)
+		},
+		/**
+		 * The first five rows of an array-of-objects value (the table caps at
+		 * five rows + an "N more" affordance).
+		 *
+		 * @param {Array<object>} raw The array value.
+		 * @return {Array<object>} Up to five row objects.
+		 */
+		objectArrayRows(raw) {
+			return Array.isArray(raw) ? raw.slice(0, 5) : []
+		},
+		/**
+		 * `[key, value]` pairs of a single plain-object value, for the compact
+		 * definition-list renderer.
+		 *
+		 * @param {object} raw The object value.
+		 * @return {Array<[string, *]>} The entries.
+		 */
+		objectEntries(raw) {
+			return (raw && typeof raw === 'object') ? Object.entries(raw) : []
+		},
+		/**
+		 * Stringify a scalar cell value; a nested object/array collapses to
+		 * compact JSON (never "[object Object]").
+		 *
+		 * @param {*} v The cell value.
+		 * @return {string} The display string.
+		 */
+		stringifyCell(v) {
+			if (v === null || v === undefined || v === '') return '—'
+			if (typeof v === 'boolean') return v ? '✓' : '—'
+			if (typeof v === 'object') {
+				try {
+					return JSON.stringify(v)
+				} catch {
+					return '[Object]'
+				}
+			}
+			return String(v)
 		},
 		/** Whether a field should render as an image preview. */
 		isImageField(field) {
@@ -1168,6 +1471,62 @@ export default {
 	.cn-object-data-widget__skeleton { animation: none; }
 }
 
+.cn-object-data-widget__grid-wrap {
+	position: relative;
+}
+
+/* Collapsed + overflowing: the grid is clipped at a whole-row boundary
+   (max-height set inline in collapsedGridStyle). No inner scrollbar. */
+.cn-object-data-widget__grid-wrap--clipped .cn-object-data-widget__grid {
+	overflow: hidden;
+}
+
+/* Bottom fade over the clipped boundary — signals more content. */
+.cn-object-data-widget__fade {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 28px;
+	height: 28px;
+	pointer-events: none;
+	background: linear-gradient(to bottom, rgba(0, 0, 0, 0), var(--color-main-background));
+}
+
+.cn-object-data-widget__toggle {
+	display: block;
+	width: 100%;
+	margin-top: 4px;
+	padding: 4px;
+	background: none;
+	border: none;
+	color: var(--color-primary-element);
+	cursor: pointer;
+	font: inherit;
+	font-weight: 600;
+	text-align: center;
+}
+
+.cn-object-data-widget__toggle:hover,
+.cn-object-data-widget__toggle:focus-visible {
+	text-decoration: underline;
+}
+
+/* Expanded in place: the widget card lifts above its siblings and its content
+   area stops clipping, so every field is legible even when the grid cell
+   positions cards absolutely (ADR-062: expand as an anchored panel rather than
+   an inner scrollbar). */
+.cn-object-data-widget--expanded {
+	z-index: 20;
+}
+
+.cn-object-data-widget--expanded ::v-deep .cn-widget-wrapper__content {
+	overflow: visible;
+}
+
+.cn-object-data-widget__grid-wrap--expanded {
+	background: var(--color-main-background);
+}
+
 .cn-object-data-widget__grid {
 	display: grid;
 	gap: calc(2 * var(--default-grid-baseline, 4px)) calc(4 * var(--default-grid-baseline, 4px));
@@ -1266,6 +1625,70 @@ export default {
 	color: var(--color-text-maxcontrast);
 	font-style: italic;
 	padding: calc(2 * var(--default-grid-baseline, 4px));
+}
+
+/* Compact inline table for array-of-objects values. Dense + unstyled-simple;
+   fits the card and participates in the whole-row overflow handling. */
+.cn-object-data-widget__mini-table-wrap {
+	max-width: 100%;
+}
+
+.cn-object-data-widget__mini-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.9em;
+}
+
+.cn-object-data-widget__mini-table th,
+.cn-object-data-widget__mini-table td {
+	text-align: start;
+	padding: 2px 8px 2px 0;
+	border-bottom: 1px solid var(--color-border);
+	vertical-align: top;
+	word-break: break-word;
+}
+
+.cn-object-data-widget__mini-table th {
+	color: var(--color-text-maxcontrast);
+	font-weight: 500;
+}
+
+.cn-object-data-widget__more {
+	margin-top: 2px;
+	font-size: 0.85em;
+	color: var(--color-text-maxcontrast);
+}
+
+/* Comma-less chip row for array-of-scalars values. */
+.cn-object-data-widget__chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.cn-object-data-widget__chip {
+	padding: 1px 8px;
+	border-radius: 12px;
+	background: var(--color-background-dark);
+	font-size: 0.9em;
+}
+
+/* Key: value definition list for a single plain-object value. */
+.cn-object-data-widget__deflist {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 2px 8px;
+	margin: 0;
+}
+
+.cn-object-data-widget__deflist dt {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+}
+
+.cn-object-data-widget__deflist dd {
+	margin: 0;
+	word-break: break-word;
 }
 
 /* Responsive: collapse to single column on narrow widths */

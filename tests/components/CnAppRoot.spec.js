@@ -755,4 +755,44 @@ describe('CnAppRoot', () => {
 			expect(wrapper.find('.cn-ai-companion-stub').exists()).toBe(true)
 		})
 	})
+
+	describe('AI companion opt-in (aiCompanion prop)', () => {
+		/**
+		 * Mount into the shell phase with CnAiCompanion stubbed (the real one
+		 * fires a backend health probe). Omit aiCompanion to test the default.
+		 *
+		 * @param {boolean|undefined} aiCompanion The opt-in prop value.
+		 * @return {object} The mounted wrapper.
+		 */
+		function mountWithCompanion(aiCompanion) {
+			const propsData = { manifest: baseManifest, appId: 'myapp', translate: (k) => k, requiresApps: [] }
+			if (aiCompanion !== undefined) {
+				propsData.aiCompanion = aiCompanion
+			}
+			return mount(CnAppRoot, {
+				propsData,
+				mocks: { $route: { name: 'home' } },
+				stubs: {
+					'router-view': { template: '<div class="router-view-stub" />' },
+					CnAiCompanion: { template: '<div class="cn-ai-companion-stub" />' },
+				},
+			})
+		}
+
+		it('does NOT mount the AI companion by default (opt-in off)', () => {
+			const wrapper = mountWithCompanion(undefined)
+			expect(wrapper.vm.phase).toBe('shell')
+			expect(wrapper.find('.cn-ai-companion-stub').exists()).toBe(false)
+		})
+
+		it('does NOT mount the AI companion when aiCompanion is false', () => {
+			const wrapper = mountWithCompanion(false)
+			expect(wrapper.find('.cn-ai-companion-stub').exists()).toBe(false)
+		})
+
+		it('mounts the AI companion when aiCompanion is true', () => {
+			const wrapper = mountWithCompanion(true)
+			expect(wrapper.find('.cn-ai-companion-stub').exists()).toBe(true)
+		})
+	})
 })

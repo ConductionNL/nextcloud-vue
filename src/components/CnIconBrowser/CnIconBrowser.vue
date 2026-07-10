@@ -191,6 +191,18 @@ export default {
 			default: () => [],
 		},
 		/**
+		 * Curated image-URL icons split into named groups, rendered on the Custom
+		 * tab as one sub-tab per group with its own search + truncation. Use this
+		 * (instead of the flat `urlIcons`) for large packs such as the bundled NL
+		 * Design catalogues. Shape: `[{ key, label, icons: [{ id?, label, url }] }]`.
+		 *
+		 * @type {Array<{ key: string, label: string, icons: Array<{ label: string, url: string }> }>}
+		 */
+		urlIconGroups: {
+			type: Array,
+			default: () => [],
+		},
+		/**
 		 * Injected upload transport: `async (dataUrl) => ({ url })`. When null,
 		 * the upload control is hidden (the library carries no upload dependency).
 		 *
@@ -315,6 +327,7 @@ export default {
 				value: this.value,
 				icons: this.resolvedIcons,
 				urlIcons: this.urlIcons,
+				urlIconGroups: this.urlIconGroups,
 				uploadFn: this.uploadFn,
 				maxResults: this.maxResults,
 				defaultIcons: this.defaultIcons,
