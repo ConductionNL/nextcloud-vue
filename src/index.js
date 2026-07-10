@@ -163,6 +163,7 @@ export {
 	CnObjectMetadataWidget,
 	CnObjectMetadataModal,
 	CnRelatedObjectsWidget,
+	CnMapWidget,
 	CnLogsPage,
 	CnSettingsPage,
 	CnChatPage,
@@ -318,6 +319,7 @@ export { safeHref, safeImageSrc, safeSvgPath } from './utils/index.js'
 export { dispatchAction } from './utils/actionsDispatcher.js'
 export { placeNewWidget, getDashboardColumnOpts } from './utils/dashboardPlacement.js'
 export { DASHBOARD_ICONS, DEFAULT_ICON, getIconComponent, isCustomIconUrl } from './components/CnIconPicker/index.js'
+export { NL_DESIGN_ICONS } from './components/CnIconPicker/nlDesignIcons.js'
 export { mergeManifestDelta } from './utils/mergeManifestDelta.js'
 export { buildManifest, applyMenuLayout, mergeMenuItems, mergePages, applyMenuRelocations, applyMenuRemovals, applySettingsSection } from './utils/buildManifest.js'
 export { expandPageTemplates } from './utils/expandPageTemplates.js'
