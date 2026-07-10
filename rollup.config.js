@@ -74,18 +74,40 @@ export default {
 			inlineDynamicImports: true,
 		},
 	],
-	external: [
-		'vue',
-		/^@nextcloud\//,
-		'pinia',
-		/^vue-material-design-icons\//,
-		// Kept out of the bundle so they stay lazy at the consumer and the
-		// library ships no icon pack: the Toast UI WYSIWYG editor (loaded only
-		// in CnMarkdownEditor's `mode: 'wysiwyg'`) and the optional @mdi/js pack
-		// (loaded only by CnIconPicker's enriched MDI source).
-		/^@toast-ui\//,
-		'@mdi/js',
-	],
+	// `external` is a FUNCTION (not the usual string/regex array) because two
+	// @nextcloud/* packages must be BUNDLED while every other @nextcloud/*
+	// stays external. useAppInstaller.js (the dependency install-action)
+	// imports @nextcloud/password-confirmation@5, which internally does
+	// `import { spawnDialog } from '@nextcloud/dialogs'` — an export that only
+	// exists in @nextcloud/dialogs ^6. 17 fleet consumer apps webpack-alias
+	// @nextcloud/dialogs to their own older copy (v3.2.0 / v5.x); if these two
+	// packages stayed external the consumer build would resolve `spawnDialog`
+	// against that aliased <6 copy and fail with "spawnDialog was not found"
+	// (empirically confirmed on larpingapp). Bundling password-confirmation
+	// 5.3.2 + dialogs 6.4.2 here pins the exact combo that was live-verified on
+	// NC34 (Vue 2.7 + @nextcloud/vue 8), so consumers keep their own dialogs
+	// alias untouched and their build stays green. Everything else below
+	// preserves the previous array's externals semantics verbatim.
+	external: (id) => {
+		// Bundle these two (and their subpaths, e.g. `/style.css`) into dist.
+		if (/^@nextcloud\/(password-confirmation|dialogs)(\/|$)/.test(id)) {
+			return false
+		}
+		return (
+			id === 'vue'
+			|| id === 'pinia'
+			// Optional @mdi/js pack (loaded only by CnIconPicker's enriched MDI
+			// source) — kept external so it stays lazy at the consumer and the
+			// library ships no icon pack.
+			|| id === '@mdi/js'
+			// All other @nextcloud/* packages resolve at consumer build time.
+			|| /^@nextcloud\//.test(id)
+			|| /^vue-material-design-icons\//.test(id)
+			// The Toast UI WYSIWYG editor (loaded only in CnMarkdownEditor's
+			// `mode: 'wysiwyg'`) — kept external so it stays lazy at the consumer.
+			|| /^@toast-ui\//.test(id)
+		)
+	},
 	plugins: [
 		{
 			name: 'resolve-apexcharts',
