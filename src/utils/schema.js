@@ -390,7 +390,6 @@ function resolveWidget(prop) {
 	}
 
 	// Format-based widgets
-	if (format === 'user') return 'user'
 	if (format === 'date-time') return 'datetime'
 	if (format === 'date') return 'date'
 	if (format === 'email') return 'email'

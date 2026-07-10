@@ -9,7 +9,7 @@
 import { mount } from '@vue/test-utils'
 
 import axios from '@nextcloud/axios'
-import CnEditDataModal from '../../src/modals/CnEditDataModal.vue'
+import CnEditDataModal, { invalidateDataCache } from '../../src/modals/CnEditDataModal.vue'
 
 jest.mock('@nextcloud/router', () => ({ generateUrl: (p) => p }))
 jest.mock('@nextcloud/axios', () => ({
@@ -43,6 +43,10 @@ const MANIFEST = {
 }
 
 beforeEach(() => {
+	// The modal keeps a process-lifetime cache of registers + resolved schemas.
+	// Reset it between cases so each test loads from its own axios mocks instead
+	// of a previous case's cached list/schemas.
+	invalidateDataCache()
 	axios.get.mockReset(); axios.post.mockReset(); axios.put.mockReset(); axios.patch.mockReset(); axios.delete.mockReset()
 })
 
