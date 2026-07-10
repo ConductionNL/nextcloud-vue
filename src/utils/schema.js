@@ -268,7 +268,7 @@ function truncateString(str, maxLength) {
  *    surface (CnFormDialog) resolves the reference to a searchable dropdown
  *    of the referenced objects (label = human name, value = UUID).
  * 4. Nextcloud user reference: `referenceType: 'nextcloud-user'` (or
- *    `format: 'user'`/`'username'`) → `'user-select'`; an array of such
+ *    `format: 'user'`/`'username'`) → `'user'`; an array of such
  *    properties → `'user-multiselect'`. CnFormDialog resolves these to a
  *    searchable dropdown of real Nextcloud users (label = display name,
  *    value = UID).
@@ -281,7 +281,7 @@ function truncateString(str, maxLength) {
  * 8. Fallback → `'text'`
  *
  * @param {object} prop The schema property definition (type, format, enum, widget, items, maxLength)
- * @return {string} Widget identifier: 'text'|'email'|'url'|'number'|'checkbox'|'select'|'multiselect'|'user-select'|'user-multiselect'|'tags'|'textarea'|'date'|'datetime' or a custom string
+ * @return {string} Widget identifier: 'text'|'email'|'url'|'number'|'checkbox'|'select'|'multiselect'|'user'|'user-multiselect'|'tags'|'textarea'|'date'|'datetime' or a custom string
  */
 /**
  * Normalise a JSON-Schema `$ref` value into an OpenRegister schema reference
@@ -374,7 +374,7 @@ function resolveWidget(prop) {
 	// users (label = display name, value = UID). An array of users is a
 	// multi-select. Checked before the plain type/format fallback so a
 	// user-marked property renders as a picker, not a free-text box.
-	if (isUserProp(prop)) return 'user-select'
+	if (isUserProp(prop)) return 'user'
 	if (type === 'array' && isUserProp(prop.items)) return 'user-multiselect'
 
 	// Boolean → switch/checkbox
@@ -513,10 +513,20 @@ export function fieldsFromSchema(schema, options = {}) {
 			// resolves this to a searchable dropdown of the referenced
 			// objects, storing the chosen UUID(s). `null` for non-reference
 			// properties. Pure: no fetching happens here.
+			//
+			// Cross-app object relation (ADR-066): a reference property may
+			// carry `x-external-register: '<app>'` naming the register the
+			// referenced schema lives in — a link into ANOTHER fleet app
+			// (e.g. a procest case referencing a decidesk decision). When
+			// present it is recorded as `reference.register` so the picker
+			// resolves/scopes/creates against that register instead of the
+			// form's own; absent, the reference stays same-register (the form's
+			// `register` prop is used). Consolidates the ad-hoc caseReference /
+			// approvalDecisionId / x-mirror-of variants onto one convention.
 			reference: (normalizeRef(prop.$ref) !== null)
-				? { schema: normalizeRef(prop.$ref), multiple: false }
+				? { schema: normalizeRef(prop.$ref), multiple: false, ...(prop['x-external-register'] ? { register: prop['x-external-register'] } : {}) }
 				: (prop.type === 'array' && prop.items && normalizeRef(prop.items.$ref) !== null)
-					? { schema: normalizeRef(prop.items.$ref), multiple: true }
+					? { schema: normalizeRef(prop.items.$ref), multiple: true, ...((prop.items['x-external-register'] || prop['x-external-register']) ? { register: prop.items['x-external-register'] || prop['x-external-register'] } : {}) }
 					: null,
 			// Nextcloud user reference: when a property marks a NC user
 			// (`referenceType: 'nextcloud-user'`, or `format: 'user'`/

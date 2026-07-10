@@ -192,7 +192,7 @@
 						</NcCheckboxRadioSwitch>
 
 						<!-- Select (enum / $ref object reference / Nextcloud user, supports async function) -->
-						<div v-else-if="field.widget === 'select' || field.widget === 'user-select'" class="cn-form-dialog__select-wrapper">
+						<div v-else-if="field.widget === 'select'" class="cn-form-dialog__select-wrapper">
 							<NcSelect
 								:input-id="'cn-form-' + field.key"
 								:input-label="field.label + (field.required ? ' *' : '')"

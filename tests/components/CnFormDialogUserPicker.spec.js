@@ -54,10 +54,10 @@ beforeEach(() => {
 })
 
 describe('CnFormDialog — Nextcloud user picker', () => {
-	it('renders a single user field as a (user-)select widget', () => {
+	it('renders a single user field as the user picker widget', () => {
 		const wrapper = mount(CnFormDialog, { propsData: { schema: userSchema, item: null }, stubs })
 		const field = wrapper.vm.resolvedFields.find((f) => f.key === 'assignee')
-		expect(field.widget).toBe('user-select')
+		expect(field.widget).toBe('user')
 		expect(wrapper.vm.isUserField(field)).toBe(true)
 	})
 

@@ -703,6 +703,9 @@ describe('fieldsFromSchema', () => {
 			contacts: { type: 'array', items: { $ref: 'contact' }, title: 'Contacts', order: 2 },
 			plain: { type: 'string', title: 'Plain', order: 3 },
 			emptyRef: { type: 'string', $ref: '', title: 'Empty Ref', order: 4 },
+			// Cross-app object relations (ADR-066): x-external-register names the foreign app.
+			decision: { type: 'string', format: 'uuid', $ref: 'Decision', 'x-external-register': 'decidesk', title: 'Decision', order: 5 },
+			products: { type: 'array', items: { $ref: 'product', 'x-external-register': 'pipelinq' }, title: 'Products', order: 6 },
 		},
 	}
 
@@ -737,6 +740,22 @@ describe('fieldsFromSchema', () => {
 		expect(fields.find((f) => f.key === 'emptyRef').widget).not.toBe('select')
 	})
 
+	it('records x-external-register as reference.register on a single cross-app $ref (ADR-066)', () => {
+		const fields = fieldsFromSchema(refSchema)
+		expect(fields.find((f) => f.key === 'decision').reference).toEqual({ schema: 'Decision', multiple: false, register: 'decidesk' })
+	})
+
+	it('records x-external-register on an items.$ref cross-app array reference (ADR-066)', () => {
+		const fields = fieldsFromSchema(refSchema)
+		expect(fields.find((f) => f.key === 'products').reference).toEqual({ schema: 'product', multiple: true, register: 'pipelinq' })
+	})
+
+	it('omits register on same-app references so the form register is used', () => {
+		const fields = fieldsFromSchema(refSchema)
+		expect(fields.find((f) => f.key === 'caseType').reference).not.toHaveProperty('register')
+		expect(fields.find((f) => f.key === 'contacts').reference).not.toHaveProperty('register')
+	})
+
 	it('accepts a numeric $ref (OpenRegister serves the schema id, not the slug)', () => {
 		// OR authors `$ref` as a slug but persists/serves it as the numeric
 		// schema id (e.g. 85). The numeric form must still resolve to a select.
@@ -765,15 +784,18 @@ describe('fieldsFromSchema', () => {
 		},
 	}
 
-	it('resolves a referenceType:nextcloud-user property to a user-select widget', () => {
+	// Single Nextcloud-user fields resolve to the 'user' widget — the only
+	// widget CnFormDialog's real user picker (`:user-select` NcSelect) renders;
+	// the former 'user-select' name fell through to a plain select (bug fixed).
+	it('resolves a referenceType:nextcloud-user property to the user widget', () => {
 		const fields = fieldsFromSchema(userSchema)
-		expect(fields.find((f) => f.key === 'assignee').widget).toBe('user-select')
+		expect(fields.find((f) => f.key === 'assignee').widget).toBe('user')
 	})
 
-	it('resolves format:user / format:username to a user-select widget', () => {
+	it('resolves format:user / format:username to the user widget', () => {
 		const fields = fieldsFromSchema(userSchema)
-		expect(fields.find((f) => f.key === 'handler').widget).toBe('user-select')
-		expect(fields.find((f) => f.key === 'login').widget).toBe('user-select')
+		expect(fields.find((f) => f.key === 'handler').widget).toBe('user')
+		expect(fields.find((f) => f.key === 'login').widget).toBe('user')
 	})
 
 	it('resolves an array of nextcloud-user items to a user-multiselect widget', () => {
