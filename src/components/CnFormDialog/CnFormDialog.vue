@@ -130,67 +130,6 @@
 							</span>
 						</div>
 
-						<!-- Object reference with inline create (`x-allow-create`):
-						     a select-OR-create picker over the referenced schema.
-						     Checked before the plain select branch so create-enabled
-						     references get CnResourceSelect; plain references keep the
-						     read-only NcSelect below. -->
-						<div
-							v-else-if="isReferenceField(field) && field.allowCreate"
-							class="cn-form-dialog__select-wrapper">
-							<CnResourceSelect
-								:input-id="'cn-form-' + field.key"
-								:input-label="field.label + (field.required ? ' *' : '')"
-								:register="referenceRegister(field)"
-								:schema="field.reference.schema"
-								:label-field="referenceLabelField(field)"
-								:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
-								:clearable="!field.required"
-								@update:modelValue="value => onReferenceSelected(field, value)"
-								@create="obj => onReferenceCreated(field, obj)" />
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
-						</div>
-
-						<!-- Nextcloud user picker (`format: "user"`): async search
-						     against NC's core autocomplete, stores the chosen uid. -->
-						<div v-else-if="field.widget === 'user'" class="cn-form-dialog__select-wrapper">
-							<NcSelect
-								:input-id="'cn-form-' + field.key"
-								:input-label="field.label + (field.required ? ' *' : '')"
-								:options="userOptions[field.key] || []"
-								:model-value="userSelectedOption(field)"
-								:clearable="!field.required"
-								:disabled="field.readOnly"
-								:loading="!!userLoading[field.key]"
-								:filterable="false"
-								:user-select="true"
-								label="displayName"
-								@search="query => onUserSearch(field, query)"
-								@input="option => updateField(field.key, option ? option.id : null)" />
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
-						</div>
-
-						<!-- Enum toggle (`widget: "switch"` on a 2-value enum):
-						     renders a switch mapping off→enum[0], on→last enum value. -->
-						<NcCheckboxRadioSwitch
-							v-else-if="field.widget === 'switch'"
-							:model-value="isSwitchOn(field)"
-							:disabled="field.readOnly"
-							type="switch"
-							@update:model-value="value => updateField(field.key, switchValueFor(field, value))">
-							{{ field.label }}{{ field.required ? ' *' : '' }}
-						</NcCheckboxRadioSwitch>
-
 						<!-- Select (enum, supports async function) -->
 						<div v-else-if="field.widget === 'select'" class="cn-form-dialog__select-wrapper">
 							<NcSelect
@@ -429,11 +368,9 @@ import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import CnIconPicker from '../CnIconPicker/CnIconPicker.vue'
-import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { shouldShow } from '../../utils/fieldCondition.js'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 
@@ -460,20 +397,6 @@ const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-imp
  * - `#field-{key}-option` — Customize dropdown option rendering for a select/multiselect/tags field
  * - `#field-{key}-selected-option` — Customize selected option display for a select/multiselect/tags field
  * - `#before-fields` / `#after-fields` — Inject content around fields
- *
- * ## Schema-driven pickers
- *
- * Three JSON-Schema property shapes auto-render richer widgets:
- *
- * - `{ format: 'user' }` → a Nextcloud-user picker (async-searches the core
- *   autocomplete endpoint; stores the chosen uid string).
- * - `{ format: 'uuid', $ref: '<schema>', 'x-allow-create': true }` → a single
- *   object reference that renders `CnResourceSelect` — pick an existing object
- *   OR create one inline from the typed term. Without `x-allow-create` a `$ref`
- *   stays a plain select of existing objects.
- * - `{ enum: ['no', 'yes'], widget: 'switch' }` → a toggle mapping off → the
- *   first enum value and on → the last enum value (keeps the stored value an
- *   enum string, so an enum-driven lifecycle is unaffected).
  *
  * ## Async select support
  *
@@ -592,7 +515,6 @@ export default {
 		NcCheckboxRadioSwitch,
 		CnJsonViewer,
 		CnIconPicker,
-		CnResourceSelect,
 		Plus,
 		ContentSaveOutline,
 	},
@@ -632,28 +554,6 @@ export default {
 		register: {
 			type: String,
 			default: '',
-		},
-
-		/**
-		 * Seed values for CREATE mode, keyed by field. Merged over the schema
-		 * defaults when opening a new-item form. Use it to pre-link a child to
-		 * its parent when adding from a detail page (e.g. `{ lead: '<uuid>' }`).
-		 * @type {object}
-		 */
-		initialData: {
-			type: Object,
-			default: () => ({}),
-		},
-
-		/**
-		 * Field keys rendered read-only (disabled) and immutable — typically the
-		 * parent reference seeded via `initialData` so the user can't repoint a
-		 * child away from the record it was created under.
-		 * @type {string[]}
-		 */
-		lockedFields: {
-			type: Array,
-			default: () => [],
 		},
 
 		/** Dialog title. Defaults to "Create {schema.title}" or "Edit {schema.title}". */
@@ -771,12 +671,6 @@ export default {
 			 * distinct URI, not per render.
 			 */
 			semanticResolutions: {},
-			/** Per-field Nextcloud-user search results for `format:"user"` fields, keyed by field key: `{ [key]: Array<{id, displayName}> }`. */
-			userOptions: {},
-			/** Per-field loading flag for `format:"user"` user searches, keyed by field key. */
-			userLoading: {},
-			/** Resolved `{ [uid]: displayName }` cache so a stored uid shows its display name (display-only; stored value stays the uid). */
-			userLabels: {},
 			/** Field keys the user has actually edited this session (used to avoid re-validating untouched persisted server values) */
 			touchedFields: {},
 		}
@@ -827,22 +721,14 @@ export default {
 
 		resolvedFields() {
 			// Manual fields take priority
-			const base = this.fields
-				? this.fields
-				: fieldsFromSchema(this.schema, {
-					exclude: this.excludeFields,
-					include: this.includeFields,
-					overrides: this.fieldOverrides,
-				})
+			if (this.fields) return this.fields
 
-			// Render locked fields (parent references seeded via initialData) as
-			// read-only so the disabled binding on every widget branch applies.
-			if (!this.lockedFields.length) return base
-			return base.map((field) => (
-				this.lockedFields.includes(field.key)
-					? { ...field, readOnly: true }
-					: field
-			))
+			// Auto-generate from schema
+			return fieldsFromSchema(this.schema, {
+				exclude: this.excludeFields,
+				include: this.includeFields,
+				overrides: this.fieldOverrides,
+			})
 		},
 
 		/**
@@ -1117,12 +1003,6 @@ export default {
 						data[field.key] = null
 					}
 				}
-				// Seed create-mode values (parent pre-link from a detail page).
-				for (const key of Object.keys(this.initialData || {})) {
-					if (this.initialData[key] !== undefined) {
-						data[key] = this.initialData[key]
-					}
-				}
 				this.formData = data
 			}
 			// Multi-tenancy auto-fill (multi-tenancy-context REQ-MT-4).
@@ -1160,35 +1040,7 @@ export default {
 					if (Array.isArray(uuids)) {
 						for (const uuid of uuids) this.resolveReferenceLabel(field, uuid)
 					}
-				} else if (field.widget === 'user') {
-					const uid = this.formData[field.key]
-					if (uid) this.resolveUserLabel(String(uid))
 				}
-			}
-		},
-
-		/**
-		 * Resolve a Nextcloud uid to its display name for a `format:"user"`
-		 * field in edit mode, caching it in `userLabels`. No-op when already
-		 * cached; degrades silently (the picker then shows the raw uid).
-		 *
-		 * @param {string} uid The Nextcloud user id.
-		 * @return {Promise<void>}
-		 */
-		async resolveUserLabel(uid) {
-			if (!uid || this.userLabels[uid]) return
-			try {
-				const [{ default: axios }, { generateOcsUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
-				const res = await axios.get(generateOcsUrl('cloud/users/{uid}', { uid }), {
-					headers: { 'OCS-APIRequest': 'true' },
-				})
-				const name = ((((res || {}).data || {}).ocs || {}).data || {}).displayname
-				if (name) this.userLabels = { ...this.userLabels, [uid]: String(name) }
-			} catch (err) {
-				console.error(`CnFormDialog: user label resolve failed for "${uid}":`, err)
 			}
 		},
 
@@ -1577,162 +1429,6 @@ export default {
 		},
 
 		/**
-		 * The object field CnResourceSelect uses as the option label and writes
-		 * on inline create. Reads `field.reference.labelField` when the schema
-		 * declares one, else defaults to `name`.
-		 *
-		 * @param {object} field A resolved reference field descriptor.
-		 * @return {string} The label field name.
-		 */
-		referenceLabelField(field) {
-			return (field && field.reference && field.reference.labelField) || 'name'
-		},
-
-		/**
-		 * Cache the label of an object just created inline via CnResourceSelect,
-		 * so any read-side that resolves the stored UUID shows its name. The
-		 * value itself is set by CnResourceSelect's `update:modelValue`.
-		 *
-		 * @param {object} field The reference field.
-		 * @param {object} obj   The freshly-created object (carries id + label field).
-		 * @return {void}
-		 */
-		onReferenceCreated(field, obj) {
-			if (obj && obj.id) {
-				this.referenceLabels = { ...this.referenceLabels, [obj.id]: this.displayLabel(obj) }
-			}
-			// A freshly-created template carries its own fields — fill from it directly.
-			this.applyTemplateFill(field, obj)
-		},
-
-		/**
-		 * Handle selection of a create-capable (`CnResourceSelect`) reference:
-		 * store the chosen UUID, then run any `fillFrom` template copy.
-		 *
-		 * @param {object}      field The reference field descriptor.
-		 * @param {string|null} value The chosen object's UUID (or null on clear).
-		 * @return {void}
-		 */
-		onReferenceSelected(field, value) {
-			this.updateField(field.key, value || null)
-			if (value) this.applyTemplateFill(field, value)
-		},
-
-		/**
-		 * Copy template values off a selected/created reference object into the
-		 * form, per the field's `fillFrom` map (`{ formKey: sourceKey }`). When
-		 * `source` is an id, the object is fetched first. Overwrites existing
-		 * values so re-selecting a template refreshes them; no-op without a map.
-		 *
-		 * @param {object}        field  The reference field carrying `fillFrom`.
-		 * @param {object|string} source The selected object, or its UUID.
-		 * @return {Promise<void>}
-		 */
-		async applyTemplateFill(field, source) {
-			if (!field || !field.fillFrom || !source) return
-			let obj = (typeof source === 'object') ? source : null
-			if (!obj) {
-				const register = this.referenceRegister(field)
-				const store = this.getObjectStore()
-				if (!register || !store || !field.reference) return
-				try {
-					const slug = store.createObjectTypeSlug(register, field.reference.schema)
-					if (!store.objectTypeRegistry[slug]) {
-						store.registerObjectType(slug, field.reference.schema, register)
-					}
-					obj = await store.fetchObject(slug, String(source))
-				} catch (err) {
-					console.error(`CnFormDialog: template fill fetch failed for "${field.key}":`, err)
-					return
-				}
-			}
-			if (!obj) return
-			for (const formKey of Object.keys(field.fillFrom)) {
-				const sourceKey = field.fillFrom[formKey]
-				const value = obj[sourceKey]
-				if (value !== undefined && value !== null) {
-					this.updateField(formKey, value)
-				}
-			}
-		},
-
-		/**
-		 * Search Nextcloud users for a `format:"user"` field via the core
-		 * autocomplete endpoint, populating `userOptions[field.key]` with
-		 * `{ id: uid, displayName }` options. Degrades to an empty list on error.
-		 *
-		 * @param {object} field The user field descriptor.
-		 * @param {string} query The typed search term.
-		 * @return {Promise<void>}
-		 */
-		async onUserSearch(field, query) {
-			const term = (query || '').trim()
-			this.userLoading = { ...this.userLoading, [field.key]: true }
-			try {
-				const [{ default: axios }, { generateOcsUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
-				const res = await axios.get(generateOcsUrl('core/autocomplete/get'), {
-					params: { search: term, itemType: ' ', itemId: ' ', shareTypes: [0], limit: 20 },
-					headers: { 'OCS-APIRequest': 'true' },
-				})
-				const rows = (((res || {}).data || {}).ocs || {}).data || []
-				const options = rows
-					.filter(r => r && (r.source === 'users' || r.source === undefined) && r.id)
-					.map(r => ({ id: String(r.id), displayName: r.label || String(r.id), isNoUser: false, user: String(r.id) }))
-				options.forEach(o => { this.userLabels = { ...this.userLabels, [o.id]: o.displayName } })
-				this.userOptions = { ...this.userOptions, [field.key]: options }
-			} catch (err) {
-				console.error('CnFormDialog: user search failed:', err)
-				this.userOptions = { ...this.userOptions, [field.key]: [] }
-			} finally {
-				this.userLoading = { ...this.userLoading, [field.key]: false }
-			}
-		},
-
-		/**
-		 * The NcSelect option object for a user field's currently-stored uid,
-		 * so the picker shows the display name. `null` when unset.
-		 *
-		 * @param {object} field The user field descriptor.
-		 * @return {object|null}
-		 */
-		userSelectedOption(field) {
-			const uid = this.formData[field.key]
-			if (uid == null || uid === '') return null
-			const id = String(uid)
-			return { id, displayName: this.userLabels[id] || id, isNoUser: false, user: id }
-		},
-
-		/**
-		 * Whether an enum `widget:"switch"` field is currently "on" — i.e. its
-		 * value equals the last enum value (off → first enum value).
-		 *
-		 * @param {object} field The switch field descriptor (carries `enum`).
-		 * @return {boolean}
-		 */
-		isSwitchOn(field) {
-			const values = Array.isArray(field.enum) ? field.enum : []
-			if (values.length === 0) return !!this.formData[field.key]
-			return this.formData[field.key] === values[values.length - 1]
-		},
-
-		/**
-		 * Map a switch toggle to the field's enum value: on → last enum value,
-		 * off → first enum value.
-		 *
-		 * @param {object}  field The switch field descriptor (carries `enum`).
-		 * @param {boolean} on    The new switch state.
-		 * @return {*} The enum value to store.
-		 */
-		switchValueFor(field, on) {
-			const values = Array.isArray(field.enum) ? field.enum : []
-			if (values.length === 0) return on
-			return on ? values[values.length - 1] : values[0]
-		},
-
-		/**
 		 * Fetch the options for a `$ref` reference field: the objects of the
 		 * referenced schema in the form's register, mapped to
 		 * `{ id: <uuid>, label: <human name> }`. Server-filters by the search
@@ -1770,26 +1466,6 @@ export default {
 			try {
 				const params = { _limit: 100 }
 				if (query) params._search = query
-				// Declarative option scoping (`x-relation-filter`): narrow the
-				// picker to objects that fit the form's CURRENT values — e.g. a
-				// line item's `product` scoped to the chosen leadProduct. Mirrors
-				// CnObjectDataWidget: values are token-resolved (@object.<field> /
-				// @objectId) against the live form data; an entry whose token stays
-				// unresolved is dropped (unfiltered beats an empty picker).
-				const prop = (this.schema && this.schema.properties && this.schema.properties[field.key]) || null
-				const rawFilter = prop && prop['x-relation-filter']
-				if (rawFilter && typeof rawFilter === 'object') {
-					const ctx = { objectId: this.formData.id, object: { ...this.formData } }
-					const filter = resolveFilterTokens(rawFilter, ctx)
-					for (const [fk, fv] of Object.entries(filter)) {
-						if (typeof fv === 'string' && fv.charAt(0) === '@') continue
-						if (fv && typeof fv === 'object') {
-							for (const [op, ov] of Object.entries(fv)) params[`${fk}[${op}]`] = ov
-						} else if (fv !== '' && fv !== null && fv !== undefined) {
-							params[fk] = fv
-						}
-					}
-				}
 				const slug = store.createObjectTypeSlug(register, field.reference.schema)
 				if (!store.objectTypeRegistry[slug]) {
 					store.registerObjectType(slug, field.reference.schema, register)
@@ -1971,9 +1647,6 @@ export default {
 					this.referenceLabels = { ...this.referenceLabels, [option.id]: option.label || String(option.id) }
 				}
 				this.updateField(field.key, option ? option.id : null)
-				// Reference options are label-only ({id,label}) — pass the id so
-				// template pre-fill fetches the full object.
-				if (option && option.id) this.applyTemplateFill(field, String(option.id))
 			} else if (this.isAsyncEnum(field)) {
 				// Store full option object for async selects
 				this.updateField(field.key, option || null)

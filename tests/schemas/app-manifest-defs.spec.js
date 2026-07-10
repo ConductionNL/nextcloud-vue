@@ -260,9 +260,8 @@ describe('manifest-config-defs additivity', () => {
 		// 1.6.0 adds an optional `dateChip` boolean to the `layoutItem` $def
 		// so custom widgets can opt into the shared dashboard date-range
 		// chip in their title bar (chart widgets get it automatically).
-		// 1.7.0 adds the optional top-level `credentials[]` array declaring
-		// external-provider credentials brokered by OpenRegister
-		// (credential-broker capability). Existing $defs unchanged either way.
+		// 1.7.0 adds the optional top-level `credentials[]` field
+		// (credential-broker). Existing $defs unchanged either way.
 		expect(schema.version).toBe('1.7.0')
 	})
 

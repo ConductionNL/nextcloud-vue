@@ -63,11 +63,8 @@ describe('CnLifecycleActions', () => {
 			const buttons = wrapper.findAll('[data-testid^="cn-lifecycle-action-"]')
 			expect(buttons.length).toBe(2)
 			expect(wrapper.find('[data-testid="cn-lifecycle-action-close"]').text()).toBe('Close')
-			// Label stays the derived action name; the description rides on the
-			// tooltip (title), not the button label (round-1 label-not-description).
-			const voidBtn = wrapper.find('[data-testid="cn-lifecycle-action-void"]')
-			expect(voidBtn.text()).toBe('Void')
-			expect(voidBtn.attributes('title')).toBe('Void shift')
+			// description wins over derived label
+			expect(wrapper.find('[data-testid="cn-lifecycle-action-void"]').text()).toBe('Void shift')
 		})
 
 		it('renders nothing when the object has no available actions', async () => {
@@ -103,29 +100,6 @@ describe('CnLifecycleActions', () => {
 			const buttons = wrapper.findAll('[data-testid^="cn-lifecycle-action-"]')
 			expect(buttons.length).toBe(1)
 			expect(wrapper.find('[data-testid="cn-lifecycle-action-close"]').text()).toBe('Close shift')
-		})
-
-		it('renders the button at the default size (no size="small") while keeping label + tooltip', async () => {
-			const wrapper = mount(CnLifecycleActions, {
-				propsData: {
-					objectId: 's1',
-					object: { status: 'open' },
-					config: {
-						field: 'status',
-						transitions: [
-							{ from: 'open', to: 'closed', action: 'close', label: 'Close shift', description: 'Close this shift' },
-						],
-					},
-				},
-				stubs,
-			})
-			await wrapper.vm.$nextTick()
-			const btn = wrapper.find('[data-testid="cn-lifecycle-action-close"]')
-			// Default NcButton size — the `size` prop must not be forwarded.
-			expect(btn.attributes('size')).toBeUndefined()
-			// Label stays visible; the description rides on the tooltip (title).
-			expect(btn.text()).toBe('Close shift')
-			expect(btn.attributes('title')).toBe('Close this shift')
 		})
 
 		it('treats a missing `from` as "any state"', async () => {

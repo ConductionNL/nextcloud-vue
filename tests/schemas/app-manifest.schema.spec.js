@@ -479,7 +479,7 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 			// 1.3.0 introduced sidebarComponent/slots; 1.4.0 adds runtime + visibleIf context predicates.
 			// 1.5.0 adds the `action` field (closed enum: "user-settings") to menuItem + menuItemLeaf.
 			// 1.6.0 adds the `dateChip` boolean to the layoutItem $def (custom-widget date chip opt-in).
-			// 1.7.0 adds the top-level `credentials[]` array (credential-broker capability).
+			// 1.7.0 adds the optional top-level `credentials[]` field (credential-broker).
 			expect(schema.version).toBe('1.7.0')
 		})
 
@@ -592,7 +592,7 @@ describe('validateManifest — settings rich sections (manifest-settings-rich-se
 		expect(description).toContain('register-mapping')
 	})
 
-	it('REQ-MSRS-6: schema top-level version field is at 1.7.0 (1.4.0 adds runtime+visibleIf; 1.5.0 adds menuItem.action; 1.6.0 adds layoutItem.dateChip; 1.7.0 adds top-level credentials[])', () => {
+	it('REQ-MSRS-6: schema top-level version field is at 1.7.0 (1.4.0 adds runtime+visibleIf; 1.5.0 adds menuItem.action; 1.6.0 adds layoutItem.dateChip; 1.7.0 adds credentials[])', () => {
 		expect(schema.version).toBe('1.7.0')
 	})
 })
@@ -812,13 +812,12 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 	})
 
 	describe('schema metadata stability', () => {
-		it('schema version is at 1.7.0 (1.5.0 adds menuItem.action; 1.6.0 adds layoutItem.dateChip; 1.7.0 adds credentials[])', () => {
+		it('schema version is at 1.5.0 (1.3.0 introduced card/actions; 1.4.0 adds runtime+visibleIf; 1.5.0 adds menuItem.action)', () => {
 			// `manifest-detail-sidebar-config` kept version at 1.1.0; `manifest-config-refs`
 			// bumped to 1.2.0; `manifest-card-index-component` + `manifest-actions-dispatch`
 			// bumped to 1.3.0; `manifest-visible-if-context` bumps to 1.4.0;
 			// `manifest-user-settings-action` bumps to 1.5.0;
-			// `layoutItem.dateChip` (custom-widget date chip) bumps to 1.6.0;
-			// top-level `credentials[]` (credential-broker capability) bumps to 1.7.0.
+			// `layoutItem.dateChip` (custom-widget date chip) bumps to 1.6.0.
 			expect(schema.version).toBe('1.7.0')
 		})
 

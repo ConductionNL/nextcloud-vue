@@ -13,14 +13,7 @@ import CnDeltaWidget from './CnDeltaWidget.vue'
 import CnDeltaWidgetForm from '../CnDeltaWidgetForm/CnDeltaWidgetForm.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
-/**
- * The `delta` registry entry. Exported so the barrel
- * (registerDashboardWidgets.js) can register it INLINE — a bare
- * `import './index.js'` side effect is tree-shaken out of the single-file
- * dist because package.json's `sideEffects` globs never match a dist path.
- * See the object-list note in registerDashboardWidgets.js.
- */
-export const deltaWidgetRegistration = {
+registerDashboardWidget('delta', {
 	renderer: CnDeltaWidget,
 	form: CnDeltaWidgetForm,
 	defaultContent: {
@@ -34,9 +27,7 @@ export const deltaWidgetRegistration = {
 	// Self-contained card surface — rendered flush and centred (no inner
 	// scrollbar). See CnDashboardPage.isCardWidget.
 	card: true,
-}
-
-registerDashboardWidget('delta', deltaWidgetRegistration)
+})
 
 export { CnDeltaWidget }
 export default CnDeltaWidget
