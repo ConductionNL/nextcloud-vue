@@ -129,9 +129,37 @@
 				:aria-label="t('nextcloud-vue', 'Image URL')"
 				@input="onUrlInput">
 
-			<div v-if="urlIcons.length > 0" class="cn-icon-browser-panel__grid">
+			<!-- Group sub-tabs (one per named URL-icon group, e.g. RVO / Gemeente). -->
+			<div
+				v-if="hasGroupTabs"
+				class="cn-icon-browser-panel__groups"
+				role="tablist"
+				:aria-label="t('nextcloud-vue', 'Icon set')">
 				<button
-					v-for="icon in urlIcons"
+					v-for="(group, gi) in resolvedGroups"
+					:key="group.key"
+					type="button"
+					role="tab"
+					:aria-selected="gi === activeGroupIndex ? 'true' : 'false'"
+					class="cn-icon-browser-panel__group-tab"
+					:class="{ 'cn-icon-browser-panel__group-tab--active': gi === activeGroupIndex }"
+					@click="activeGroupIndex = gi">
+					{{ group.label }}
+				</button>
+			</div>
+
+			<!-- Search over the active group's icons (large packs are searchable). -->
+			<input
+				v-if="activeGroup && activeGroup.icons.length > maxResults"
+				v-model="customQuery"
+				type="search"
+				class="cn-icon-browser-panel__search"
+				:placeholder="t('nextcloud-vue', 'Search icons…')"
+				:aria-label="t('nextcloud-vue', 'Search icons')">
+
+			<div v-if="customVisibleIcons.length > 0" class="cn-icon-browser-panel__grid">
+				<button
+					v-for="icon in customVisibleIcons"
 					:key="icon.url"
 					type="button"
 					class="cn-icon-browser-panel__cell"
@@ -139,10 +167,14 @@
 					:title="icon.label"
 					:aria-label="icon.label"
 					@click="selectUrl(icon.url)">
-					<img class="cn-icon-browser-panel__cell-img" :src="icon.url" :alt="icon.label">
+					<img class="cn-icon-browser-panel__cell-img" :src="icon.url" :alt="icon.label" loading="lazy">
 					<span v-if="showLabels" class="cn-icon-browser-panel__cell-label">{{ icon.label }}</span>
 				</button>
 			</div>
+
+			<p v-if="customTruncated" class="cn-icon-browser-panel__hint">
+				{{ t('nextcloud-vue', 'Showing {shown} of {total} — refine your search to narrow results.', { shown: customVisibleIcons.length, total: customMatches.length }) }}
+			</p>
 
 			<label v-if="canUpload" class="cn-icon-browser-panel__upload-label">
 				<input
@@ -217,6 +249,17 @@ export default {
 			default: () => [],
 		},
 		/**
+		 * Curated URL icons split into named groups: `[{ key, label, icons }]`.
+		 * Rendered on the Custom tab as one sub-tab per group, each with its own
+		 * search + truncation. Takes precedence over the flat `urlIcons`.
+		 *
+		 * @type {Array<{ key: string, label: string, icons: Array<{ label: string, url: string }> }>}
+		 */
+		urlIconGroups: {
+			type: Array,
+			default: () => [],
+		},
+		/**
 		 * Injected upload transport: `async (dataUrl) => ({ url })`. When null,
 		 * the upload control is hidden.
 		 *
@@ -278,6 +321,9 @@ export default {
 			// Roving-tabindex cursor into visibleIcons: the one grid cell that's
 			// tab-reachable; arrow keys move it.
 			activeIndex: 0,
+			// Custom-tab search + active group (for large grouped URL-icon packs).
+			customQuery: '',
+			activeGroupIndex: 0,
 		}
 	},
 
@@ -297,7 +343,69 @@ export default {
 		 * @return {boolean} true when a custom icon source is available.
 		 */
 		hasCustomTab() {
-			return this.allowUrl || this.urlIcons.length > 0 || this.canUpload
+			return this.allowUrl || this.urlIcons.length > 0 || this.urlIconGroups.length > 0 || this.canUpload
+		},
+		/**
+		 * Curated URL icons normalised to groups. `urlIconGroups` wins; otherwise
+		 * the flat `urlIcons` become a single unnamed group. Empty groups drop out.
+		 *
+		 * @return {Array<{ key: string, label: string, icons: Array<object> }>} the groups.
+		 */
+		resolvedGroups() {
+			const groups = this.urlIconGroups.length > 0
+				? this.urlIconGroups
+				: (this.urlIcons.length > 0 ? [{ key: 'custom', label: '', icons: this.urlIcons }] : [])
+			return groups.filter((g) => g && Array.isArray(g.icons) && g.icons.length > 0)
+		},
+		/**
+		 * Whether to show the group sub-tab row (only when there's more than one).
+		 *
+		 * @return {boolean} true when multiple groups exist.
+		 */
+		hasGroupTabs() {
+			return this.resolvedGroups.length > 1
+		},
+		/**
+		 * The currently-selected URL-icon group (clamped to a valid index).
+		 *
+		 * @return {{ key: string, label: string, icons: Array<object> }|null} the active group.
+		 */
+		activeGroup() {
+			const groups = this.resolvedGroups
+			if (groups.length === 0) {
+				return null
+			}
+			return groups[Math.min(this.activeGroupIndex, groups.length - 1)]
+		},
+		/**
+		 * Active group's icons filtered by the Custom-tab search (label match).
+		 *
+		 * @return {Array<object>} the matching URL icons.
+		 */
+		customMatches() {
+			const icons = this.activeGroup ? this.activeGroup.icons : []
+			const q = this.customQuery.trim().toLowerCase()
+			if (!q) {
+				return icons
+			}
+			return icons.filter((icon) => String(icon.label || '').toLowerCase().includes(q))
+		},
+		/**
+		 * The rendered slice of the Custom grid, capped at `maxResults` to keep the
+		 * DOM small for large packs (a hint is shown when matches exceed the cap).
+		 *
+		 * @return {Array<object>} the visible URL icons.
+		 */
+		customVisibleIcons() {
+			return this.customMatches.slice(0, this.maxResults)
+		},
+		/**
+		 * Whether the Custom grid is truncated (more matches than rendered).
+		 *
+		 * @return {boolean} true when capped.
+		 */
+		customTruncated() {
+			return this.customMatches.length > this.customVisibleIcons.length
 		},
 		/**
 		 * Stable ids wiring the mode tabs to their panels (`aria-controls` /
@@ -354,8 +462,13 @@ export default {
 				return ''
 			}
 			if (this.isUrlValue) {
-				const match = this.urlIcons.find((icon) => icon.url === this.value)
-				return match ? match.label : this.value
+				for (const group of this.resolvedGroups) {
+					const match = group.icons.find((icon) => icon.url === this.value)
+					if (match) {
+						return match.label
+					}
+				}
+				return this.value
 			}
 			return this.selectedEntry ? this.selectedEntry.label : t('nextcloud-vue', 'Custom icon')
 		},
@@ -688,6 +801,30 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
+}
+
+/* Sub-tab row for named URL-icon groups (RVO / Gemeente / Den Haag). */
+.cn-icon-browser-panel__groups {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.cn-icon-browser-panel__group-tab {
+	padding: 3px 10px;
+	background: var(--color-background-hover);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-pill, 16px);
+	font: inherit;
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+	cursor: pointer;
+}
+
+.cn-icon-browser-panel__group-tab--active {
+	background: var(--color-primary-element);
+	border-color: var(--color-primary-element);
+	color: var(--color-primary-element-text);
 }
 
 .cn-icon-browser-panel__search,
