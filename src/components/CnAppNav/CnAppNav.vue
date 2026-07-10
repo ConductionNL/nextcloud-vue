@@ -204,6 +204,26 @@
 						</template>
 					</NcAppNavigationItem>
 					<NcAppNavigationItem
+						v-if="roadmapEntry"
+						:name="roadmapEntry.label"
+						:to="roadmapEntry.to"
+						:href="roadmapEntry.href"
+						data-testid="cn-nav-roadmap">
+						<template #icon>
+							<MapMarkerPath :size="20" />
+						</template>
+					</NcAppNavigationItem>
+					<NcAppNavigationItem
+						v-if="documentationEntry"
+						:name="documentationEntry.label"
+						:href="documentationEntry.href"
+						target="_blank"
+						data-testid="cn-nav-documentation">
+						<template #icon>
+							<BookOpenVariant :size="20" />
+						</template>
+					</NcAppNavigationItem>
+					<NcAppNavigationItem
 						v-if="isOwner && hasAdminSettings"
 						:name="adminSettingsLabel"
 						data-testid="cn-nav-admin-settings"
@@ -249,6 +269,8 @@
 import { NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationNew, NcAppNavigationSettings, NcCounterBubble } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import MapMarkerPath from 'vue-material-design-icons/MapMarkerPath.vue'
+import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import ShieldAccountOutline from 'vue-material-design-icons/ShieldAccountOutline.vue'
 import { translate as t } from '@nextcloud/l10n'
 import { ICON_MAP } from '../CnIcon/CnIcon.vue'
@@ -367,6 +389,8 @@ export default {
 		NcCounterBubble,
 		Cog,
 		ShieldAccountOutline,
+		MapMarkerPath,
+		BookOpenVariant,
 	},
 
 	inject: {
@@ -574,6 +598,7 @@ export default {
 		 */
 		showSettingsFoldout() {
 			return this.settingsItems.length > 0 || this.includePersonalSettings
+				|| this.roadmapEntry !== null || this.documentationEntry !== null
 		},
 		/**
 		 * Whether to auto-prepend the "Personal settings" entry at the top
@@ -607,6 +632,39 @@ export default {
 		 */
 		personalSettingsLabel() {
 			return t('nextcloud-vue', 'Personal settings')
+		},
+		/**
+		 * Optional "Features & roadmap" foldout entry. Enabled via
+		 * `nav.includeRoadmap`; `nav.roadmapUrl` is treated as an external link
+		 * when it looks like a URL, otherwise as an in-app router target.
+		 *
+		 * @return {{label: string, to: (string|null), href: (string|null)}|null}
+		 */
+		roadmapEntry() {
+			const nav = this.effectiveManifest?.nav
+			if (!nav || nav.includeRoadmap !== true) return null
+			const label = (typeof nav.roadmapLabel === 'string' && nav.roadmapLabel)
+				? this.effectiveTranslate(nav.roadmapLabel)
+				: t('nextcloud-vue', 'Features & roadmap')
+			const target = typeof nav.roadmapUrl === 'string' ? nav.roadmapUrl.trim() : ''
+			const external = /^(https?:)?\/\//.test(target)
+			return { label, to: (target && !external) ? target : null, href: external ? target : null }
+		},
+		/**
+		 * Optional "Documentation" foldout entry. Enabled via
+		 * `nav.includeDocumentation`; always an external link (`nav.documentationUrl`).
+		 *
+		 * @return {{label: string, href: string}|null}
+		 */
+		documentationEntry() {
+			const nav = this.effectiveManifest?.nav
+			if (!nav || nav.includeDocumentation !== true) return null
+			const target = typeof nav.documentationUrl === 'string' ? nav.documentationUrl.trim() : ''
+			if (!target) return null
+			const label = (typeof nav.documentationLabel === 'string' && nav.documentationLabel)
+				? this.effectiveTranslate(nav.documentationLabel)
+				: t('nextcloud-vue', 'Documentation')
+			return { label, href: target }
 		},
 		/**
 		 * Label for the auto-prepended Admin-settings entry.

@@ -155,6 +155,24 @@ function unwrap(data) {
 }
 
 /**
+ * Process-lifetime cache for the registers list + resolved schema objects, so
+ * re-opening Manage data (or reopening after a page-config picker used the same
+ * data) is instant instead of re-fetching every register and every schema on
+ * each open. Invalidated on any write from this modal (create/edit/delete/link)
+ * and after a short TTL so external changes still surface. Keyed by nothing for
+ * registers (single app-scoped list) and by schema id for schemas.
+ */
+const REGISTER_TTL_MS = 60000
+const dataCache = { registers: null, registersAt: 0, schemas: new Map() }
+
+/** Drop all cached registers + schemas (call after any write). */
+function invalidateDataCache() {
+	dataCache.registers = null
+	dataCache.registersAt = 0
+	dataCache.schemas.clear()
+}
+
+/**
  * CnEditDataModal — manage the app's OpenRegister register + schemas in-app
  * (see file header). Reads the register slugs from the manifest, talks to the
  * OpenRegister REST API, and reuses CnSchemaFormDialog for schema editing.
@@ -248,10 +266,18 @@ export default {
 			this.loading = true
 			this.error = ''
 			try {
-				const url = generateUrl('/apps/openregister/api/registers') + '?_limit=1000'
-				const { data } = await axios.get(url, { headers: this.headers() })
-				const all = unwrap(data) || []
-				const list = Array.isArray(all) ? all : []
+				const fresh = dataCache.registers && (Date.now() - dataCache.registersAt) < REGISTER_TTL_MS
+				let list
+				if (fresh) {
+					list = dataCache.registers
+				} else {
+					const url = generateUrl('/apps/openregister/api/registers') + '?_limit=1000'
+					const { data } = await axios.get(url, { headers: this.headers() })
+					const all = unwrap(data) || []
+					list = Array.isArray(all) ? all : []
+					dataCache.registers = list
+					dataCache.registersAt = Date.now()
+				}
 				const wanted = this.manifestRegisterSlugs
 				this.registers = wanted.length
 					? list.filter((r) => wanted.includes(r.slug))
@@ -274,9 +300,13 @@ export default {
 			const reg = this.selectedRegister
 			const ids = (reg && Array.isArray(reg.schemas)) ? reg.schemas.filter((x) => typeof x === 'number' || typeof x === 'string') : []
 			const resolved = await Promise.all(ids.map(async (id) => {
+				const cached = dataCache.schemas.get(id)
+				if (cached) return cached
 				try {
 					const { data } = await axios.get(generateUrl(`/apps/openregister/api/schemas/${id}`), { headers: this.headers() })
-					return unwrap(data)
+					const schema = unwrap(data)
+					if (schema) dataCache.schemas.set(id, schema)
+					return schema
 				} catch {
 					return null
 				}
@@ -360,6 +390,7 @@ export default {
 					if (created && created.id) await this.linkSchema(created.id)
 				}
 				this.showSchemaDialog = false
+				invalidateDataCache()
 				await this.loadSchemas()
 			} catch (e) {
 				this.error = (e && e.message) || t('nextcloud-vue', 'Failed to save the schema.')
@@ -412,6 +443,7 @@ export default {
 					reg.schemas = ids
 				}
 				await axios.delete(generateUrl(`/apps/openregister/api/schemas/${schema.id}`), { headers: this.headers() })
+				invalidateDataCache()
 				await this.loadSchemas()
 			} catch (e) {
 				this.error = (e && e.message) || t('nextcloud-vue', 'Failed to remove the schema.')
@@ -442,6 +474,7 @@ export default {
 				)
 				const created = unwrap(data)
 				if (created && created.id) {
+					invalidateDataCache()
 					this.registers = [created]
 					this.selectedRegisterId = created.id
 					this.schemas = []
@@ -559,12 +592,14 @@ export default {
 }
 </style>
 
-<!-- Global (un-scoped): NcModal and NcDialog both teleport to <body> at the same
-     z-index (9998); when this data modal opens the schema editor (an NcDialog),
-     the later-mounted modal would paint over it. Lift NcDialog-based dialogs just
-     above NcModal so the schema editor (a drill-in) sits on top. -->
+<!-- Global (un-scoped): NcModal and NcDialog both render a `.modal-mask` at
+     z-index 9998. NcModal's own scoped rule `.modal-mask[data-v-…]{z-index:9998}`
+     has the SAME specificity as a plain `.modal-mask.dialog__modal` selector, so a
+     non-important override loses the tie to whichever stylesheet loads last and the
+     nested schema editor (an NcDialog) paints *under* this data modal. Force it with
+     `!important` and clear headroom so a modal-launched NcDialog always sits on top. -->
 <style>
 .modal-mask.dialog__modal {
-	z-index: 10001;
+	z-index: 10005 !important;
 }
 </style>
