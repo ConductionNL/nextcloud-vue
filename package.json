@@ -13,7 +13,7 @@
 		"url": "git+https://codeberg.org/Conduction/nextcloud-vue.git"
 	},
 	"main": "dist/nextcloud-vue.cjs.js",
-	"module": "dist/nextcloud-vue.esm.js",
+	"module": "dist/esm/index.js",
 	"style": "dist/nextcloud-vue.css",
 	"types": "src/types/index.d.ts",
 	"bin": {
@@ -25,7 +25,11 @@
 		"css/",
 		"l10n/"
 	],
-	"sideEffects": true,
+	"sideEffects": [
+		"*.css",
+		"./src/integrations/registry.js",
+		"./dist/esm/integrations/registry.js"
+	],
 	"scripts": {
 		"build:validators": "node scripts/build-validators.js",
 		"prebuild": "npm run build:validators",
@@ -84,7 +88,6 @@
 		"leaflet": "^1.9.0",
 		"leaflet.markercluster": "^1.5.3",
 		"linkifyjs": "^4.3.3",
-		"lodash": "^4.17.21",
 		"marked": "^12.0.0",
 		"style-mod": "^4.0.0",
 		"vue-apexcharts": "^1.7.0",

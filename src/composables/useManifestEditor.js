@@ -1,5 +1,46 @@
-import { ref, computed } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { diffManifest } from '../utils/diffManifest.js'
+
+/**
+ * Non-enumerable marker set on a manifest object once it has been upgraded to
+ * deep-reactive, so a repeated upgrade is a cheap no-op.
+ */
+const REACTIVE_UPGRADE_MARKER = '__cnReactiveUpgraded'
+
+/**
+ * Upgrade a manifest object to Vue-2.7 deep reactivity **in place**.
+ *
+ * manifest-shallow-reactivity-by-default: `useAppManifest` now returns the
+ * manifest via `shallowRef`, so the object graph is NOT deep-observed on boot
+ * (the common, read-only case pays nothing). In-app editing (ADR-041) still
+ * requires deep reactivity so that mutating a nested property of the live
+ * manifest re-renders the descendants that hold it. Vue 2.7's Composition-API
+ * `reactive()` converts an existing plain object's properties to getter/setter
+ * pairs IN PLACE and returns the SAME reference (classic Vue 2
+ * `Object.defineProperty` semantics — verified against vue@2.7.16), so
+ * already-mounted `provide`/`inject` consumers observe the change without a
+ * remount. This is why the manifest must NOT be `markRaw`'d — `markRaw`
+ * (`__v_skip`) makes `reactive()` a silent no-op, which would break live edits.
+ *
+ * Idempotent: guarded by a non-enumerable marker (Vue 2's own `__ob__` check
+ * already makes a repeat call a no-op, but the explicit marker is cheaper to
+ * reason about and test).
+ *
+ * @param {object} manifestObj The live manifest object to make deep-reactive.
+ * @return {object} The same object reference, now deep-reactive.
+ */
+export function upgradeManifestToEditable(manifestObj) {
+	if (!manifestObj || typeof manifestObj !== 'object') return manifestObj
+	if (manifestObj[REACTIVE_UPGRADE_MARKER]) return manifestObj
+	// Vue 2.7: converts in place, same reference, no clone.
+	reactive(manifestObj)
+	Object.defineProperty(manifestObj, REACTIVE_UPGRADE_MARKER, {
+		value: true,
+		enumerable: false,
+		configurable: true,
+	})
+	return manifestObj
+}
 
 /**
  * Edit-mode state machine for in-app manifest editing (ADR-041).
@@ -10,6 +51,13 @@ import { diffManifest } from '../utils/diffManifest.js'
  * descendant's creation, so swapping in a *separate* working-copy object would
  * never reach already-mounted renderers (CnPageRenderer, CnAppNav, …). Mutating
  * the object they already hold is what makes edits appear live.
+ *
+ * The manifest may arrive **shallow/raw** (manifest-shallow-reactivity-by-
+ * default): `useAppManifest` no longer deep-observes it on boot. `enter()` is
+ * therefore responsible for ensuring the live manifest is deep-reactive
+ * (`upgradeManifestToEditable`) before edits begin, as a belt-and-suspenders
+ * fallback to `CnAppRoot`'s availability-gated upgrade (in case OpenBuild
+ * availability resolves after mount).
  *
  * On Save the minimal delta is computed via `diffManifest(snapshot, live)` and
  * handed to the injected `persist` function (the library does not own the
@@ -52,6 +100,10 @@ export function useManifestEditor(baseRef, options = {}) {
 
 	/** Enter edit mode: snapshot the live manifest for diff + cancel. */
 	function enter() {
+		// Fallback upgrade: ensure the live manifest is deep-reactive before
+		// edits begin, in case OpenBuild availability resolved after CnAppRoot's
+		// gated upgrade watch already ran (manifest-shallow-reactivity-by-default).
+		upgradeManifestToEditable(baseRef.value)
 		snapshot.value = deepClone(baseRef.value)
 		editing.value = true
 	}
@@ -107,7 +159,8 @@ function restoreInPlace(target, snap) {
 
 /**
  * structuredClone with a JSON fallback (manifests are plain JSON, no cycles).
- * @param value
+ * @param {*} value The value to deep-clone.
+ * @return {*} A deep copy of the value.
  */
 function deepClone(value) {
 	if (value == null) return value
@@ -117,7 +170,8 @@ function deepClone(value) {
 
 /**
  * Stable JSON for equality — manifests are plain JSON, so this is sufficient.
- * @param value
+ * @param {*} value The value to serialise.
+ * @return {string} The JSON string form used for equality comparison.
  */
 function stableStringify(value) {
 	return JSON.stringify(value)

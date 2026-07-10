@@ -61,16 +61,35 @@ export default {
 	input: 'src/index.js',
 	output: [
 		{
-			file: 'dist/nextcloud-vue.esm.js',
+			// Chunked ESM output (per bundle-tree-shaking-and-code-splitting):
+			// `dir` + `preserveModules` (instead of a single `file` with
+			// `inlineDynamicImports: true`) lets Rollup emit one chunk per
+			// source module and keep the library's existing `import()` call
+			// sites (CnObjectListWidget.vue, CnChartWidget.vue,
+			// resolveManifestSentinels.js) as real async chunks, so a
+			// consumer bundler's `usedExports` analysis can drop chunks the
+			// consumer never imports instead of pulling in one indivisible
+			// 9.9MB file.
+			dir: 'dist/esm',
 			format: 'es',
+			preserveModules: true,
+			preserveModulesRoot: 'src',
 			sourcemap: true,
-			inlineDynamicImports: true,
-			banner: "import './nextcloud-vue.css';",
+			// Only the entry chunk needs to pull in the extracted CSS —
+			// `banner` runs per emitted chunk under preserveModules, and a
+			// plain string banner would emit `import './nextcloud-vue.css'`
+			// (a path relative to `dist/esm/nextcloud-vue.css`) from every
+			// chunk, which resolves incorrectly for chunks nested in
+			// subdirectories (e.g. `dist/esm/components/CnFoo/CnFoo.js`).
+			banner: (chunk) => (chunk.isEntry ? "import './nextcloud-vue.css';" : ''),
 		},
 		{
 			file: 'dist/nextcloud-vue.cjs.js',
 			format: 'cjs',
 			sourcemap: true,
+			// CJS keeps single-file inlining — CJS has no standard
+			// dynamic-chunk-loading convention and no fleet consumer builds
+			// against this entry (all use webpack + the ESM `module` field).
 			inlineDynamicImports: true,
 		},
 	],

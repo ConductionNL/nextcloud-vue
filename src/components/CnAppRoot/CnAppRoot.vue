@@ -372,8 +372,8 @@ import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
 import { provideTenantContext } from '../../composables/useTenantContext.js'
-import Vue, { computed, ref, watch } from 'vue'
-import { useManifestEditor } from '../../composables/useManifestEditor.js'
+import Vue, { computed, shallowRef, watch } from 'vue'
+import { useManifestEditor, upgradeManifestToEditable } from '../../composables/useManifestEditor.js'
 import { useOpenBuildEditAvailability } from '../../composables/useOpenBuildEditAvailability.js'
 import { loadState } from '@nextcloud/initial-state'
 import { useAppStatus } from '../../composables/useAppStatus.js'
@@ -1012,14 +1012,18 @@ export default {
 		// state keeps rendering until the host reloads the prop. `source` is what
 		// descendants render (working while editing, the live manifest otherwise),
 		// so the edit shell is behaviour-neutral until the user enters edit mode.
-		const baseRef = ref(props.manifest)
+		//
+		// shallowRef (NOT ref) — manifest-shallow-reactivity-by-default: a plain
+		// `ref(props.manifest)` deep-converts the whole manifest tree to reactive
+		// on mount (Vue 2.7 ref() runs reactive() on object values), which is
+		// exactly the boot cost this change removes. shallowRef keeps the object
+		// raw; `upgradeManifestToEditable` deep-converts it IN PLACE only when
+		// OpenBuild editing is available (see the watch below).
+		const baseRef = shallowRef(props.manifest)
 		const manifestEditor = useManifestEditor(baseRef, {
 			persist: (delta) => (typeof props.persistManifestDelta === 'function'
 				? props.persistManifestDelta(delta)
 				: undefined),
-		})
-		watch(() => props.manifest, (m) => {
-			if (!manifestEditor.editing.value) baseRef.value = m
 		})
 		const { available: openBuildAvailable } = useOpenBuildEditAvailability()
 		// A manifest may opt OUT of the OpenBuild in-app edit button by setting
@@ -1029,6 +1033,28 @@ export default {
 		const openBuildEditable = computed(
 			() => openBuildAvailable.value && props.manifest?.openbuildEditable !== false,
 		)
+		// manifest-shallow-reactivity-by-default: the manifest arrives shallow
+		// (useAppManifest uses shallowRef — no deep-reactive conversion on boot).
+		// When OpenBuild in-app editing is available, upgrade the SAME object to
+		// deep-reactive IN PLACE (Vue 2.7 reactive() preserves object identity),
+		// so already-mounted descendants that captured the object via
+		// provide/inject observe in-place edits without remounting (ADR-041's
+		// live-editing contract, preserved by useManifestEditor). Apps without
+		// OpenBuild never pay the conversion cost. The watch fires once when
+		// availability resolves true and is intentionally not reverted — once
+		// upgraded, stay upgraded rather than flip-flop reactivity mid-session.
+		watch(openBuildEditable, (available) => {
+			if (available) upgradeManifestToEditable(baseRef.value)
+		}, { immediate: true })
+		watch(() => props.manifest, (m) => {
+			if (!manifestEditor.editing.value) {
+				baseRef.value = m
+				// A manifest hot-swap while OpenBuild is available must re-upgrade
+				// the fresh (raw) object — otherwise a later edit would mutate a
+				// non-observed object and not render live.
+				if (openBuildEditable.value) upgradeManifestToEditable(m)
+			}
+		})
 
 		return {
 			...supportPair,
