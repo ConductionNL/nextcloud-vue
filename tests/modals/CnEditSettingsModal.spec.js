@@ -55,10 +55,11 @@ describe('CnEditSettingsModal', () => {
 	it('personal-settings entry toggles and label write into nav in place', () => {
 		const working = { menu: [] }
 		const wrapper = mountModal(working)
-		expect(wrapper.vm.includePersonalSettings).toBe(false)
-		wrapper.vm.setIncludePersonalSettings(true)
+		// Defaults ON when nav.includePersonalSettings is unset.
+		expect(wrapper.vm.includePersonalSettings).toBe(true)
+		wrapper.vm.setIncludePersonalSettings(false)
 		wrapper.vm.setSettingsLabel('Preferences')
-		expect(working.nav.includePersonalSettings).toBe(true)
+		expect(working.nav.includePersonalSettings).toBe(false)
 		expect(working.nav.settingsLabel).toBe('Preferences')
 	})
 })
