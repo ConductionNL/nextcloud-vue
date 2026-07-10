@@ -13,3 +13,4 @@
 | `created`   | —       | Emitted after a successful create with the sent payload.                               |
 | `view-all`  | —       | Emitted when the "View all (N)" footer is clicked.                                     |
 | `row-click` | —       | Emitted with the clicked object (for hosts that want to handle navigation themselves). |
+| `updated`   | —       | Emitted after a successful edit with the sent payload.                                 |
