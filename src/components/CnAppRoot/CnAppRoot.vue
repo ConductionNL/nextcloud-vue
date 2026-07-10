@@ -165,7 +165,7 @@
 				  and `cnOpenBuildAvailable` this component provides, so it sits inline
 				  with the page's normal buttons rather than as a floating overlay.
 				-->
-				<router-view />
+				<router-view :key="routerViewKey" />
 				<!--
 				  @slot tenant-badge
 				  @description Top-bar tenant indicator surface
@@ -807,6 +807,22 @@ export default {
 		manifest: {
 			type: Object,
 			required: true,
+		},
+		/**
+		 * Remount key for the routed `<router-view>`. Hosts that rebuild the
+		 * router at runtime (e.g. the OpenBuild builder adding a page mid-edit)
+		 * bump this AFTER the rebuild so the view drops its stale component-
+		 * instance cache and mounts the new routes — a Vue Router 3 matcher swap
+		 * alone resolves the new hrefs but leaves SPA-navigation to a just-added
+		 * route rendering a blank view. Keep at the default for static apps: the
+		 * key is stable across ordinary navigation, so the view is never
+		 * needlessly remounted (and the shell / teleported modals are untouched).
+		 *
+		 * @type {string|number}
+		 */
+		routerViewKey: {
+			type: [String, Number],
+			default: 'cn-router-view',
 		},
 		/**
 		 * Optional persistence hook for in-app editing (ADR-041). Called with the
