@@ -156,30 +156,6 @@
 							</span>
 						</div>
 
-						<!-- Nextcloud user picker (`format: "user"`): async search
-						     against NC's core autocomplete, stores the chosen uid. -->
-						<div v-else-if="field.widget === 'user'" class="cn-form-dialog__select-wrapper">
-							<NcSelect
-								:input-id="'cn-form-' + field.key"
-								:input-label="field.label + (field.required ? ' *' : '')"
-								:options="userOptions[field.key] || []"
-								:model-value="userSelectedOption(field)"
-								:clearable="!field.required"
-								:disabled="field.readOnly"
-								:loading="!!userLoading[field.key]"
-								:filterable="false"
-								:user-select="true"
-								label="displayName"
-								@search="query => onUserSearch(field, query)"
-								@input="option => updateField(field.key, option ? option.id : null)" />
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
-						</div>
-
 						<!-- Enum toggle (`widget: "switch"` on a 2-value enum):
 						     renders a switch mapping off→enum[0], on→last enum value. -->
 						<NcCheckboxRadioSwitch
@@ -191,8 +167,13 @@
 							{{ field.label }}{{ field.required ? ' *' : '' }}
 						</NcCheckboxRadioSwitch>
 
-						<!-- Select (enum / $ref object reference / Nextcloud user, supports async function) -->
-						<div v-else-if="field.widget === 'select'" class="cn-form-dialog__select-wrapper">
+						<!-- Select (enum / $ref object reference / single Nextcloud user, supports async function).
+						     A single Nextcloud-user field (`widget: "user"`) renders here too:
+						     `:user-select="isUserField(field)"` flips this NcSelect into NC's native
+						     user picker, and the async load/search/select machinery (getEffective*,
+						     onAsyncSearch) resolves real users — mirroring how `user-multiselect`
+						     shares the multiselect branch below. -->
+						<div v-else-if="field.widget === 'select' || field.widget === 'user'" class="cn-form-dialog__select-wrapper">
 							<NcSelect
 								:input-id="'cn-form-' + field.key"
 								:input-label="field.label + (field.required ? ' *' : '')"
@@ -791,12 +772,6 @@ export default {
 			 * distinct URI, not per render.
 			 */
 			semanticResolutions: {},
-			/** Per-field Nextcloud-user search results for `format:"user"` fields, keyed by field key: `{ [key]: Array<{id, displayName}> }`. */
-			userOptions: {},
-			/** Per-field loading flag for `format:"user"` user searches, keyed by field key. */
-			userLoading: {},
-			/** Resolved `{ [uid]: displayName }` cache so a stored uid shows its display name (display-only; stored value stays the uid). */
-			userLabels: {},
 			/** Field keys the user has actually edited this session (used to avoid re-validating untouched persisted server values) */
 			touchedFields: {},
 		}
@@ -1188,9 +1163,6 @@ export default {
 					if (Array.isArray(uids)) {
 						for (const uid of uids) this.resolveUserLabel(uid)
 					}
-				} else if (field.widget === 'user') {
-					const uid = this.formData[field.key]
-					if (uid) this.resolveUserWidgetLabel(String(uid))
 				}
 			}
 		},
@@ -1208,32 +1180,6 @@ export default {
 			const option = await resolveNextcloudUser(uid)
 			if (option && option.id) {
 				this.referenceLabels = { ...this.referenceLabels, [option.id]: option.label || String(option.id) }
-			}
-		},
-
-		/**
-		 * Resolve a Nextcloud uid to its display name for a `format:"user"`
-		 * (`widget: "user"`) field in edit mode, caching it in `userLabels`.
-		 * No-op when already cached; degrades silently (the picker then shows
-		 * the raw uid).
-		 *
-		 * @param {string} uid The Nextcloud user id.
-		 * @return {Promise<void>}
-		 */
-		async resolveUserWidgetLabel(uid) {
-			if (!uid || this.userLabels[uid]) return
-			try {
-				const [{ default: axios }, { generateOcsUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
-				const res = await axios.get(generateOcsUrl('cloud/users/{uid}', { uid }), {
-					headers: { 'OCS-APIRequest': 'true' },
-				})
-				const name = ((((res || {}).data || {}).ocs || {}).data || {}).displayname
-				if (name) this.userLabels = { ...this.userLabels, [uid]: String(name) }
-			} catch (err) {
-				console.error(`CnFormDialog: user label resolve failed for "${uid}":`, err)
 			}
 		},
 
@@ -1725,55 +1671,6 @@ export default {
 					this.updateField(formKey, value)
 				}
 			}
-		},
-
-		/**
-		 * Search Nextcloud users for a `format:"user"` field via the core
-		 * autocomplete endpoint, populating `userOptions[field.key]` with
-		 * `{ id: uid, displayName }` options. Degrades to an empty list on error.
-		 *
-		 * @param {object} field The user field descriptor.
-		 * @param {string} query The typed search term.
-		 * @return {Promise<void>}
-		 */
-		async onUserSearch(field, query) {
-			const term = (query || '').trim()
-			this.userLoading = { ...this.userLoading, [field.key]: true }
-			try {
-				const [{ default: axios }, { generateOcsUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
-				const res = await axios.get(generateOcsUrl('core/autocomplete/get'), {
-					params: { search: term, itemType: ' ', itemId: ' ', shareTypes: [0], limit: 20 },
-					headers: { 'OCS-APIRequest': 'true' },
-				})
-				const rows = (((res || {}).data || {}).ocs || {}).data || []
-				const options = rows
-					.filter(r => r && (r.source === 'users' || r.source === undefined) && r.id)
-					.map(r => ({ id: String(r.id), displayName: r.label || String(r.id), isNoUser: false, user: String(r.id) }))
-				options.forEach(o => { this.userLabels = { ...this.userLabels, [o.id]: o.displayName } })
-				this.userOptions = { ...this.userOptions, [field.key]: options }
-			} catch (err) {
-				console.error('CnFormDialog: user search failed:', err)
-				this.userOptions = { ...this.userOptions, [field.key]: [] }
-			} finally {
-				this.userLoading = { ...this.userLoading, [field.key]: false }
-			}
-		},
-
-		/**
-		 * The NcSelect option object for a user field's currently-stored uid,
-		 * so the picker shows the display name. `null` when unset.
-		 *
-		 * @param {object} field The user field descriptor.
-		 * @return {object|null}
-		 */
-		userSelectedOption(field) {
-			const uid = this.formData[field.key]
-			if (uid == null || uid === '') return null
-			const id = String(uid)
-			return { id, displayName: this.userLabels[id] || id, isNoUser: false, user: id }
 		},
 
 		/**

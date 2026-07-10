@@ -53,9 +53,9 @@ const schema = {
 }
 
 describe('schema.js widget resolution', () => {
-	it('maps format:"user" to the user-select widget', () => {
+	it('maps format:"user" to the user widget (renders via the :user-select NcSelect)', () => {
 		const fields = fieldsFromSchema(schema)
-		expect(fields.find((f) => f.key === 'userUid').widget).toBe('user-select')
+		expect(fields.find((f) => f.key === 'userUid').widget).toBe('user')
 	})
 
 	it('passes x-allow-create through onto the reference field', () => {
