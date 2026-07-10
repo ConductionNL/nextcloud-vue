@@ -53,10 +53,8 @@ const schema = {
 }
 
 describe('schema.js widget resolution', () => {
-	it('maps format:"user" to the user widget', () => {
+	it('maps format:"user" to the user widget (renders via the :user-select NcSelect)', () => {
 		const fields = fieldsFromSchema(schema)
-		// schema.js resolves user props to the 'user' widget (CnFormDialog's
-		// field.widget === 'user' branch renders the Nextcloud user picker).
 		expect(fields.find((f) => f.key === 'userUid').widget).toBe('user')
 	})
 
