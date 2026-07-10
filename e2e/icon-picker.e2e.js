@@ -31,6 +31,22 @@ test.describe('CnIconPicker — enriched (real browser)', () => {
 		}).toBe(true)
 	})
 
+	test('infinite scroll reveals more icons past the 120 cap', async ({ page }) => {
+		const sec = enriched(page)
+		const grid = sec.locator('.cn-icon-picker__grid')
+		// Wait for the full MDI catalogue to load (well past the initial batch).
+		await expect.poll(async () => grid.locator('.cn-icon-picker__icon').count()).toBeGreaterThan(100)
+		const before = await grid.locator('.cn-icon-picker__icon').count()
+		// The hint reports "Showing N of M" while more remain.
+		await expect(sec.locator('.cn-icon-picker__hint')).toContainText('scroll for more')
+		// Scroll the grid to its bottom a few times to load further batches.
+		for (let i = 0; i < 3; i++) {
+			await grid.evaluate((el) => { el.scrollTop = el.scrollHeight })
+			await page.waitForTimeout(150)
+		}
+		await expect.poll(async () => grid.locator('.cn-icon-picker__icon').count()).toBeGreaterThan(before)
+	})
+
 	test('clicking a tile emits the MDI value into v-model', async ({ page }) => {
 		const sec = enriched(page)
 		await sec.locator('.cn-icon-picker__search').fill('home')
@@ -38,6 +54,20 @@ test.describe('CnIconPicker — enriched (real browser)', () => {
 		await expect(tile).toBeVisible()
 		await tile.click()
 		await expect(page.getByTestId('icon-value')).toContainText('mdi')
+	})
+
+	test('source switcher shows tabs and swaps the grid per source', async ({ page }) => {
+		const sec = enriched(page)
+		const sources = sec.locator('.cn-icon-picker__sources')
+		await expect(sources.locator('button', { hasText: 'Material' })).toBeVisible()
+		await expect(sources.locator('button', { hasText: 'FontAwesome' })).toBeVisible()
+		await expect(sources.locator('button', { hasText: 'OpenGemeenten' })).toBeVisible()
+
+		await sources.locator('button', { hasText: 'FontAwesome' }).click()
+		await expect(sec.locator('.cn-icon-picker__icon[aria-label="House"]')).toBeVisible()
+
+		await sources.locator('button', { hasText: 'OpenGemeenten' }).click()
+		await expect(sec.locator('.cn-icon-picker__icon[aria-label="Paspoort"]')).toBeVisible()
 	})
 
 	test('placement toggle emits update:placement', async ({ page }) => {
@@ -52,6 +82,25 @@ test.describe('CnIconPicker — enriched (real browser)', () => {
 		await sec.locator('.cn-icon-picker__sources button', { hasText: 'Custom' }).click()
 		await expect(sec.locator('.cn-icon-picker__custom')).toBeVisible()
 		await expect(sec.locator('.cn-icon-picker__format')).toBeVisible()
+	})
+
+	test('custom-SVG round-trip: typed SVG emits via v-model, Format pretty-prints it', async ({ page }) => {
+		const sec = enriched(page)
+		await sec.locator('.cn-icon-picker__sources button', { hasText: 'Custom' }).click()
+		const editor = sec.locator('.cn-icon-picker__custom .cm-content')
+		await expect(editor).toBeVisible()
+		// insertText (not per-char typing) avoids CodeMirror's XML auto-close.
+		await editor.click()
+		await page.keyboard.press('ControlOrMeta+a')
+		await page.keyboard.insertText('<svg viewBox="0 0 24 24"><path d="M1 2 3 4"/></svg>')
+		// Raw SVG flows to v-model.
+		await expect(page.getByTestId('icon-value')).toContainText('<svg')
+		// Format pretty-prints it (indented, one node per line).
+		await sec.locator('.cn-icon-picker__format').click()
+		const value = await page.getByTestId('icon-value').textContent()
+		expect(value).toContain('<svg')
+		expect(value).toContain('<path')
+		expect(value.split('\n').length).toBeGreaterThan(1)
 	})
 })
 

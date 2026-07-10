@@ -194,6 +194,17 @@ describe('CnIconPicker enriched mode', () => {
 		expect(w.vm.customSvg).toBe('no svg here')
 	})
 
+	it('reveals more icons on scroll (infinite scroll past the cap)', async () => {
+		const many = Array.from({ length: 400 }, (_, i) => ({ key: 'k' + i, label: 'k' + i, value: 'k' + i, search: 'k' + i }))
+		const w = mount(CnIconPicker, { propsData: { searchable: true, sources: ['fontawesome'], catalogues: { fontawesome: many } }, mocks })
+		expect(w.vm.filteredEntries.length).toBe(120)
+		expect(w.vm.hasMore).toBe(true)
+		// simulate a scroll to the bottom of the grid
+		w.vm.onGridScroll({ target: { scrollTop: 1000, clientHeight: 200, scrollHeight: 1200 } })
+		await w.vm.$nextTick()
+		expect(w.vm.filteredEntries.length).toBe(240)
+	})
+
 	it('emits update:placement when a placement is chosen', () => {
 		const w = mount(CnIconPicker, { propsData: { searchable: true, sources: ['fontawesome'], catalogues: { fontawesome: faCat }, placement: 'left' }, mocks, listeners: { 'update:placement': () => {} } })
 		w.vm.selectPlacement('right')
