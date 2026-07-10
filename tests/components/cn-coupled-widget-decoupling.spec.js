@@ -1,7 +1,7 @@
 /**
  * Decoupling guard for the app-coupled dashboard widget renderers
  * (cn-widget-library Waves 2+3). None of these library renderers may import a
- * sibling-app module path (financeq / procest / launchpad / mydash) nor a
+ * sibling-app module path (financeq / procest / launchpad / launchpad) nor a
  * launchpad widgetBridge / api / spendAnalytics service — external data must
  * flow only via props/injection, @nextcloud/* helpers, or the OCA.Dashboard
  * global.
@@ -21,7 +21,6 @@ const FORBIDDEN = [
 	/from\s+['"][^'"]*\bfinanceq\b/,
 	/from\s+['"][^'"]*\bprocest\b/,
 	/from\s+['"][^'"]*\blaunchpad\b/,
-	/from\s+['"][^'"]*\bmydash\b/,
 	/from\s+['"][^'"]*widgetBridge/,
 	/from\s+['"][^'"]*services\/api/,
 	/from\s+['"][^'"]*services\/spendAnalytics/,

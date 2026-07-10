@@ -5,24 +5,33 @@
  * useAiChatStream — Conversation transport composable for the AI Chat Companion.
  *
  * Owns the full SSE lifecycle:
- * - Attempts POST /index.php/apps/openregister/api/chat/stream via
+ * - Attempts POST /index.php/apps/{chatAppId}/api/chat/stream via
  *   @microsoft/fetch-event-source (handles POST body, abort signals, reconnect,
  *   and SSE frame parsing).
  * - Handles the six-event envelope: token, tool_call, tool_result, heartbeat,
  *   final, error.
- * - Falls back to POST /index.php/apps/openregister/api/chat/send via axios
+ * - Falls back to POST /index.php/apps/{chatAppId}/api/chat/send via axios
  *   when the streaming endpoint returns 404/501 or fails mid-handshake,
  *   synthesising a single "final" event so rendering code does not branch.
  * - Sends the active cnAiContext snapshot in every outgoing request body.
+ *
+ * The backend app id (`chatAppId`) is a single configuration point — see
+ * ./aiChatConfig.js. It defaults to `openregister`; pass `{ chatAppId }` to
+ * target another backend (e.g. `hermiq`) without touching this file. Per hydra
+ * ADR-034 "Amendment 2026-07-05" the default flip to `hermiq` is a deferred,
+ * one-line change in aiChatConfig.js gated on the OR compat proxy + Hermiq flag.
  */
 
 import Vue from 'vue'
 import axios from '@nextcloud/axios'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { useAiContext } from './useAiContext.js'
-
-const STREAM_URL = '/index.php/apps/openregister/api/chat/stream'
-const SEND_URL = '/index.php/apps/openregister/api/chat/send'
+import {
+	DEFAULT_CHAT_APP_ID,
+	chatStreamUrl,
+	chatSendUrl,
+	conversationMessagesUrl,
+} from './aiChatConfig.js'
 
 /**
  * Factory that creates and returns a reactive AI chat stream state object.
@@ -34,9 +43,16 @@ const SEND_URL = '/index.php/apps/openregister/api/chat/send'
  * @param {object} [contextInstance] Vue component instance to read cnAiContext from.
  *   Pass the CnAiCompanion component instance so the outgoing request includes
  *   the current page context.
+ * @param {object} [options] Transport options.
+ * @param {string} [options.chatAppId] Backend app id the chat/conversation URLs
+ *   resolve against. Defaults to {@link DEFAULT_CHAT_APP_ID} (`openregister`).
  * @returns {object} Reactive state + methods
  */
-export function useAiChatStream(contextInstance) {
+export function useAiChatStream(contextInstance, options = {}) {
+	/** Backend app id for every URL this composable builds (see aiChatConfig.js) */
+	const chatAppId = options.chatAppId || DEFAULT_CHAT_APP_ID
+	const STREAM_URL = chatStreamUrl(chatAppId)
+	const SEND_URL = chatSendUrl(chatAppId)
 	/** Stable reactive state object */
 	const state = Vue.observable({
 		/** Whether an SSE or fallback request is in-flight */
@@ -164,8 +180,8 @@ export function useAiChatStream(contextInstance) {
 
 	/**
 	 * Handle an error event or transport failure.
-	 * @param code
-	 * @param message
+	 * @param {string} code - Machine-readable error code (e.g. 'rate_limited', 'connection_error')
+	 * @param {string} message - Human-readable error message for the UI
 	 */
 	function fail(code, message) {
 		state.isStreaming = false
@@ -184,8 +200,8 @@ export function useAiChatStream(contextInstance) {
 	/**
 	 * Non-streaming fallback: POST to /api/chat/send via axios, then synthesise
 	 * a single "final" event from the JSON response.
-	 * @param {string} content
-	 * @param {object} body
+	 * @param {string} content - The user's message text
+	 * @param {object} body - Request body already built by send() (message, context, newThread)
 	 */
 	async function sendFallback(content, body) {
 		try {
@@ -207,7 +223,7 @@ export function useAiChatStream(contextInstance) {
 	 * non-streaming endpoint on 404/501 or connection failure.
 	 *
 	 * @param {string} content - The user's message text
-	 * @param {object} [options]
+	 * @param {object} [options] - Send options
 	 * @param {boolean} [options.newThread] - Force a new Conversation row on the server
 	 * @returns {Promise<void>} Resolves on "final", rejects on "error" or abort
 	 */
@@ -349,16 +365,29 @@ export function useAiChatStream(contextInstance) {
 	/**
 	 * Load an existing conversation's messages into the state.
 	 * Used by CnAiHistoryDialog when the user selects a past conversation.
-	 * @param {string} conversationUuid
+	 *
+	 * Fetches GET /api/conversations/{uuid}/messages (OR's conversation#messages
+	 * route), which returns { results: [...] } ordered oldest-first. Each OR
+	 * message carries { id, uuid, conversationId, role, content, sources,
+	 * context, created } — mapped here onto the { role, content, toolCalls }
+	 * shape the send/stream paths produce so CnAiMessageList renders resumed
+	 * conversations identically to live ones. OR does not persist tool calls
+	 * on messages, so toolCalls degrades to [].
+	 * @param {string} conversationUuid - UUID of the conversation to resume
 	 * @returns {Promise<void>}
 	 */
 	async function loadConversation(conversationUuid) {
 		try {
 			const response = await axios.get(
-				`/index.php/apps/openregister/api/chat/conversations/${conversationUuid}`,
+				conversationMessagesUrl(chatAppId, conversationUuid),
+				// The backend controller defaults to 50 messages; raise the limit
+				// so long threads resume fully.
+				{ params: { limit: 200 } },
 			)
 			const data = response.data
-			const messages = Array.isArray(data.messages) ? data.messages : (data.results || [])
+			const messages = Array.isArray(data.results)
+				? data.results
+				: (Array.isArray(data.messages) ? data.messages : [])
 			state.messages = messages.map((m) => ({
 				role: m.role || 'assistant',
 				content: m.content || '',

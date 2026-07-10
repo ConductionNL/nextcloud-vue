@@ -577,6 +577,20 @@ describe('fieldsFromSchema', () => {
 		expect(configField.widget).toBe('json')
 	})
 
+	it('maps a widget:"icon" property to an icon field and forwards its config', () => {
+		const schemaWithIcon = {
+			title: 'MenuItem',
+			properties: {
+				icon: { type: 'string', title: 'Icon', widget: 'icon', iconSources: ['mdi', 'fontawesome'], allowCustomSvg: true, searchable: false },
+			},
+		}
+		const field = fieldsFromSchema(schemaWithIcon).find((f) => f.key === 'icon')
+		expect(field.widget).toBe('icon')
+		expect(field.iconSources).toEqual(['mdi', 'fontawesome'])
+		expect(field.allowCustomSvg).toBe(true)
+		expect(field.searchable).toBe(false)
+	})
+
 	it('applies exclude option', () => {
 		const fields = fieldsFromSchema(formSchema, { exclude: ['description', 'tags'] })
 		const keys = fields.map((f) => f.key)
@@ -678,6 +692,110 @@ describe('fieldsFromSchema', () => {
 		const fields = fieldsFromSchema(formSchema)
 		const catField = fields.find((f) => f.key === 'categories')
 		expect(catField.widget).toBe('multiselect')
+	})
+
+	// --- OpenRegister object references ($ref) ---
+
+	const refSchema = {
+		title: 'Case',
+		properties: {
+			caseType: { type: 'string', format: 'uuid', $ref: 'caseType', title: 'Case type', order: 1 },
+			contacts: { type: 'array', items: { $ref: 'contact' }, title: 'Contacts', order: 2 },
+			plain: { type: 'string', title: 'Plain', order: 3 },
+			emptyRef: { type: 'string', $ref: '', title: 'Empty Ref', order: 4 },
+		},
+	}
+
+	it('resolves a string $ref property to a select widget', () => {
+		const fields = fieldsFromSchema(refSchema)
+		const caseTypeField = fields.find((f) => f.key === 'caseType')
+		expect(caseTypeField.widget).toBe('select')
+	})
+
+	it('resolves an array items.$ref property to a multiselect widget', () => {
+		const fields = fieldsFromSchema(refSchema)
+		const contactsField = fields.find((f) => f.key === 'contacts')
+		expect(contactsField.widget).toBe('multiselect')
+	})
+
+	it('sets field.reference for a single $ref property', () => {
+		const fields = fieldsFromSchema(refSchema)
+		const caseTypeField = fields.find((f) => f.key === 'caseType')
+		expect(caseTypeField.reference).toEqual({ schema: 'caseType', multiple: false })
+	})
+
+	it('sets field.reference with multiple:true for an items.$ref property', () => {
+		const fields = fieldsFromSchema(refSchema)
+		const contactsField = fields.find((f) => f.key === 'contacts')
+		expect(contactsField.reference).toEqual({ schema: 'contact', multiple: true })
+	})
+
+	it('leaves reference null for non-reference and empty-$ref properties', () => {
+		const fields = fieldsFromSchema(refSchema)
+		expect(fields.find((f) => f.key === 'plain').reference).toBeNull()
+		expect(fields.find((f) => f.key === 'emptyRef').reference).toBeNull()
+		expect(fields.find((f) => f.key === 'emptyRef').widget).not.toBe('select')
+	})
+
+	it('accepts a numeric $ref (OpenRegister serves the schema id, not the slug)', () => {
+		// OR authors `$ref` as a slug but persists/serves it as the numeric
+		// schema id (e.g. 85). The numeric form must still resolve to a select.
+		const numericRefSchema = {
+			title: 'Case',
+			properties: {
+				caseType: { type: 'string', format: 'uuid', $ref: 85, title: 'Case type' },
+			},
+		}
+		const fields = fieldsFromSchema(numericRefSchema)
+		const caseTypeField = fields.find((f) => f.key === 'caseType')
+		expect(caseTypeField.widget).toBe('select')
+		expect(caseTypeField.reference).toEqual({ schema: 85, multiple: false })
+	})
+
+	// --- Nextcloud user references ---
+
+	const userSchema = {
+		title: 'Case',
+		properties: {
+			assignee: { type: 'string', referenceType: 'nextcloud-user', title: 'Assignee', order: 1 },
+			watchers: { type: 'array', items: { referenceType: 'nextcloud-user' }, title: 'Watchers', order: 2 },
+			handler: { type: 'string', format: 'user', title: 'Handler', order: 3 },
+			login: { type: 'string', format: 'username', title: 'Login', order: 4 },
+			plain: { type: 'string', title: 'Plain', order: 5 },
+		},
+	}
+
+	it('resolves a referenceType:nextcloud-user property to a user-select widget', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'assignee').widget).toBe('user-select')
+	})
+
+	it('resolves format:user / format:username to a user-select widget', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'handler').widget).toBe('user-select')
+		expect(fields.find((f) => f.key === 'login').widget).toBe('user-select')
+	})
+
+	it('resolves an array of nextcloud-user items to a user-multiselect widget', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'watchers').widget).toBe('user-multiselect')
+	})
+
+	it('tags a single user field with userPicker { multiple: false }', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'assignee').userPicker).toEqual({ multiple: false })
+		expect(fields.find((f) => f.key === 'handler').userPicker).toEqual({ multiple: false })
+	})
+
+	it('tags an array user field with userPicker { multiple: true }', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'watchers').userPicker).toEqual({ multiple: true })
+	})
+
+	it('leaves userPicker null for non-user properties', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'plain').userPicker).toBeNull()
+		expect(fields.find((f) => f.key === 'plain').widget).toBe('text')
 	})
 
 	it('resolves uri format to url widget', () => {

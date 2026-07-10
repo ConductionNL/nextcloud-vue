@@ -3,9 +3,12 @@
  *
  * Unlike a plain deep-merge (which replaces arrays wholesale), this merges
  * the manifest's identity-bearing arrays BY KEY: `pages[]` by `page.id`,
- * `widgets[]` by `widget.id`, and `menu[]` by `menu.id`. That lets a stored
- * delta patch a single page or widget without resending the whole array, and
- * lets a built app inherit later changes to its base manifest.
+ * `widgets[]` by `widget.id`, `menu[]` by `menu.id`, and a menu entry's nested
+ * `children[]` by child `id`. That lets a stored delta patch a single page,
+ * widget, or nested menu child — and lets a backend `/api/manifest` override
+ * ADD children to an existing menu group (e.g. one nav entry per case type
+ * under a "Cases" group) without resending or clobbering the group's other
+ * children. It also lets a built app inherit later changes to its base manifest.
  *
  * Semantics (per the manifest-delta-merge capability):
  *  - Plain objects merge recursively; scalars and non-keyed arrays are
@@ -38,6 +41,10 @@ export const KEYED_ARRAYS = Object.freeze({
 	pages: 'id',
 	widgets: 'id',
 	menu: 'id',
+	// A menu entry's nested nav children merge by child `id` too, so a delta
+	// (or a backend `/api/manifest` override) can add/patch/remove individual
+	// children of a group without replacing the whole `children[]` array.
+	children: 'id',
 })
 
 /** Reserved delta markers — never part of a base manifest. */
@@ -180,7 +187,10 @@ function applyOrder(entries, order, keyField) {
 	return result
 }
 
-/** Strip all delta-only markers from an entry before it lands in the manifest. */
+/**
+ * Strip all delta-only markers from an entry before it lands in the manifest.
+ * @param entry
+ */
 function stripMarkers(entry) {
 	const out = { ...entry }
 	delete out[OP_KEY]
@@ -188,7 +198,10 @@ function stripMarkers(entry) {
 	return out
 }
 
-/** Strip only `$op`, preserving `__order` for a recursive merge to consume. */
+/**
+ * Strip only `$op`, preserving `__order` for a recursive merge to consume.
+ * @param entry
+ */
 function stripOp(entry) {
 	const out = { ...entry }
 	delete out[OP_KEY]
@@ -199,7 +212,10 @@ function isPlainObject(value) {
 	return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
-/** Structured clone via JSON (manifests are plain JSON — no cycles/functions). */
+/**
+ * Structured clone via JSON (manifests are plain JSON — no cycles/functions).
+ * @param value
+ */
 function clone(value) {
 	if (value === undefined) return undefined
 	if (value === null || typeof value !== 'object') return value

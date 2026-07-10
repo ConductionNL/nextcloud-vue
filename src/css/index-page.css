@@ -28,6 +28,16 @@
 	overflow-y: auto;
 }
 
+/* Opt-in folder navigation pane (left of the list). */
+.cn-index-page__folder-pane {
+	flex: 0 0 240px;
+	min-width: 0;
+	padding: 8px 12px 8px 0;
+	margin-right: 12px;
+	border-right: 1px solid var(--color-border);
+	overflow-y: auto;
+}
+
 .cn-index-page__loading {
 	display: flex;
 	justify-content: center;

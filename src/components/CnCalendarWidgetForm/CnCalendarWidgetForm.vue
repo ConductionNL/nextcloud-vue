@@ -23,6 +23,7 @@
 				:multiple="true"
 				:close-on-select="false"
 				:loading="loadingCalendars"
+				:input-label="t('nextcloud-vue', 'Calendars')"
 				:placeholder="t('nextcloud-vue', 'Select calendars…')"
 				label="label"
 				@input="onCalendarsChange" />
@@ -190,6 +191,10 @@ export default {
 				colorByCalendar: this.colorByCalendar,
 			}
 		},
+	},
+
+	mounted() {
+		this.fetchCalendars()
 	},
 
 	methods: {

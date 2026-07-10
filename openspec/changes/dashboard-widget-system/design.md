@@ -272,7 +272,7 @@ All 5 components + composable are added to barrel exports. CSS is imported via `
 
 **Alternative**: Include a style configuration UI (color pickers, background selectors).
 
-**Rationale**: Style configuration is MyDash's value-add. The shared library provides the structural grid; MyDash will layer style controls on top later.
+**Rationale**: Style configuration is LaunchPad's value-add. The shared library provides the structural grid; LaunchPad will layer style controls on top later.
 
 ---
 
@@ -293,4 +293,4 @@ All 5 components + composable are added to barrel exports. CSS is imported via `
 2. Migrate procest Dashboard.vue as proof of concept (done)
 3. Migrate pipelinq dashboard (separate task)
 4. Migrate opencatalogi dashboard (separate task)
-5. Refactor MyDash to consume these components (separate change)
+5. Refactor LaunchPad to consume these components (separate change)

@@ -39,12 +39,11 @@
 				required
 				@update:value="updateField('url', $event)" />
 
-			<label class="cn-link-button-widget-form__icon-field">
-				<span class="cn-link-button-widget-form__icon-label">{{ t('nextcloud-vue', 'Icon (optional)') }}</span>
-				<CnIconPicker
-					:value="icon"
-					@input="updateField('icon', $event || '')" />
-			</label>
+			<CnIconBrowser
+				:value="icon"
+				:label="t('nextcloud-vue', 'Icon (optional)')"
+				allow-url
+				@input="updateField('icon', $event)" />
 		</template>
 
 		<!-- Widget-level colours (apply to button mode AND list items
@@ -139,12 +138,11 @@
 								:placeholder="urlPlaceholderFor(link.actionType)"
 								required
 								@update:value="updateLinkField(index, 'url', $event)" />
-							<label class="cn-link-button-widget-form__icon-field">
-								<span class="cn-link-button-widget-form__icon-label">{{ t('nextcloud-vue', 'Icon (optional)') }}</span>
-								<CnIconPicker
-									:value="link.icon"
-									@input="updateLinkField(index, 'icon', $event || '')" />
-							</label>
+							<CnIconBrowser
+								:value="link.icon"
+								:label="t('nextcloud-vue', 'Icon (optional)')"
+								allow-url
+								@input="updateLinkField(index, 'icon', $event)" />
 							<NcTextField
 								v-if="link.actionType === 'createFile'"
 								:value="link.value"
@@ -181,7 +179,7 @@
 <script>
 import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import CnIconPicker from '../CnIconPicker/CnIconPicker.vue'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 
 const ACTION_TYPES = Object.freeze({
 	EXTERNAL: 'external',
@@ -271,7 +269,7 @@ export default {
 	components: {
 		NcTextField,
 		NcSelect,
-		CnIconPicker,
+		CnIconBrowser,
 	},
 
 	props: {

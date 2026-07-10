@@ -6,7 +6,9 @@
 <template>
 	<div class="cn-object-list-form">
 		<!-- Data source. -->
-		<h4 class="cn-object-list-form__section">{{ t('nextcloud-vue', 'Data source') }}</h4>
+		<h4 class="cn-object-list-form__section">
+			{{ t('nextcloud-vue', 'Data source') }}
+		</h4>
 
 		<div class="cn-object-list-form__row2">
 			<CnRegisterSchemaSelect
@@ -40,7 +42,9 @@
 		<CnFilterRowsEditor :value="filterRows" :fields="availableFields" @input="onFilterRows" />
 
 		<!-- Columns. -->
-		<h4 class="cn-object-list-form__section">{{ t('nextcloud-vue', 'Columns') }}</h4>
+		<h4 class="cn-object-list-form__section">
+			{{ t('nextcloud-vue', 'Columns') }}
+		</h4>
 		<div
 			v-for="(col, i) in columns"
 			:key="i"
@@ -60,11 +64,15 @@
 				type="tertiary"
 				:aria-label="t('nextcloud-vue', 'Remove column')"
 				@click="removeColumn(i)">
-				<template #icon><Close :size="18" /></template>
+				<template #icon>
+					<Close :size="18" />
+				</template>
 			</NcButton>
 		</div>
 		<NcButton type="tertiary" @click="addColumn">
-			<template #icon><Plus :size="18" /></template>
+			<template #icon>
+				<Plus :size="18" />
+			</template>
 			{{ t('nextcloud-vue', 'Add column') }}
 		</NcButton>
 	</div>
@@ -156,15 +164,6 @@ export default {
 		}
 	},
 
-	watch: {
-		'source.register': 'loadFields',
-		'source.schema': 'loadFields',
-	},
-
-	mounted() {
-		this.loadFields()
-	},
-
 	computed: {
 		/** Sort-direction options. */
 		dirOptions() {
@@ -183,6 +182,15 @@ export default {
 		},
 	},
 
+	watch: {
+		'source.register': 'loadFields',
+		'source.schema': 'loadFields',
+	},
+
+	mounted() {
+		this.loadFields()
+	},
+
 	methods: {
 		t,
 
@@ -191,25 +199,39 @@ export default {
 			this.availableFields = await fetchSchemaProperties(this.source.register, this.source.schema)
 		},
 
-		/** Set a source sub-field and emit. */
+		/**
+		 * Set a source sub-field and emit.
+		 * @param field
+		 * @param value
+		 */
 		updateSource(field, value) {
 			this.$set(this.source, field, value)
 			this.emitChange()
 		},
 
-		/** Set a sort sub-field and emit. */
+		/**
+		 * Set a sort sub-field and emit.
+		 * @param field
+		 * @param value
+		 */
 		updateSort(field, value) {
 			this.$set(this.sort, field, value)
 			this.emitChange()
 		},
 
-		/** Set the limit and emit. */
+		/**
+		 * Set the limit and emit.
+		 * @param value
+		 */
 		updateLimit(value) {
 			this.limit = Number(value) || 5
 			this.emitChange()
 		},
 
-		/** Receive updated filter rows from the shared editor. */
+		/**
+		 * Receive updated filter rows from the shared editor.
+		 * @param rows
+		 */
 		onFilterRows(rows) {
 			this.filterRows = rows
 			this.emitChange()
@@ -220,13 +242,21 @@ export default {
 			this.columns.push({ key: '', label: '' })
 		},
 
-		/** Remove a column by index. */
+		/**
+		 * Remove a column by index.
+		 * @param i
+		 */
 		removeColumn(i) {
 			this.columns.splice(i, 1)
 			this.emitChange()
 		},
 
-		/** Update one cell of a column and emit. */
+		/**
+		 * Update one cell of a column and emit.
+		 * @param i
+		 * @param cell
+		 * @param value
+		 */
 		updateColumn(i, cell, value) {
 			this.$set(this.columns[i], cell, value)
 			this.emitChange()

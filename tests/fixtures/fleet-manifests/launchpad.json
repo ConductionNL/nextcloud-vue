@@ -1,0 +1,110 @@
+{
+	"$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json",
+	"version": "0.2.0",
+	"dependencies": [],
+	"observability": {
+		"_note": "LaunchPad consumes the OpenRegister AppHost observability engine (ADR-040). These descriptors reproduce the output of the now-deleted hand-written HealthController + MetricsController. The /api/health and /api/metrics routes are aliased to the AppHost generic controllers in lib/AppInfo/Application.php, so the engine reads this block at request time. The Prometheus prefix is the runtime app id `launchpad`. Parity: implicit launchpad_info/launchpad_up plus launchpad_dashboards_total/widgets_total/tiles_total match the pre-adoption contract; documented intentional improvements are the now-public health endpoint and the added health `app`/`version` fields (ADR-006).",
+		"health": {
+			"statusCodePolicy": "adr006",
+			"checks": [
+				{
+					"id": "database",
+					"type": "database",
+					"severity": "critical"
+				}
+			]
+		},
+		"metrics": [
+			{
+				"name": "dashboards_total",
+				"type": "gauge",
+				"help": "Total dashboards by type",
+				"source": {
+					"kind": "tableCount",
+					"table": "launchpad_dashboards",
+					"groupBy": [
+						"type"
+					],
+					"labelDefaults": {
+						"type": "personal"
+					}
+				}
+			},
+			{
+				"name": "widgets_total",
+				"type": "gauge",
+				"help": "Total number of widget placements",
+				"source": {
+					"kind": "tableCount",
+					"table": "launchpad_widget_placements"
+				}
+			},
+			{
+				"name": "tiles_total",
+				"type": "gauge",
+				"help": "Total number of tiles",
+				"source": {
+					"kind": "tableCount",
+					"table": "launchpad_tiles"
+				}
+			}
+		]
+	},
+	"menu": [
+		{
+			"id": "dashboards",
+			"label": "launchpad.menu.dashboards",
+			"icon": "icon-dashboard",
+			"route": "/dashboards",
+			"section": "main"
+		},
+		{
+			"id": "admin-templates",
+			"label": "launchpad.menu.adminTemplates",
+			"icon": "icon-template",
+			"route": "/admin/templates",
+			"section": "settings",
+			"permission": "admin"
+		},
+		{
+			"id": "admin-settings",
+			"label": "launchpad.menu.adminSettings",
+			"icon": "icon-settings",
+			"route": "/admin/settings",
+			"section": "settings",
+			"permission": "admin"
+		}
+	],
+	"pages": [
+		{
+			"id": "dashboard-detail",
+			"route": "/dashboards/:id",
+			"type": "dashboard",
+			"title": "launchpad.pages.dashboard",
+			"_note": "Bundled STUB for the ADR-036 Decision-8 runtime-manifest pattern: the real per-user dashboard pages are assembled server-side by GET /apps/launchpad/api/manifest from the user's visible dashboards and replace this manifest at boot. widgets[] is intentionally empty here — LaunchPad has no static home page.",
+			"widgets": [],
+			"config": {
+				"documentationUrl": "https://launchpad.conduction.nl"
+			}
+		},
+		{
+			"id": "admin-templates-index",
+			"route": "/admin/templates",
+			"type": "custom",
+			"title": "launchpad.pages.adminTemplates",
+			"component": "TemplatesPage",
+			"_note": "Admin CRUD over the launchpad app-config/templates table, rendered by LaunchPad's own admin chrome (src/components/admin/tabs/TemplatesPage.vue). No OpenRegister register/schema backs this data, so the declarative index page type (which requires register + schema) cannot apply.",
+			"config": {
+				"documentationUrl": "https://launchpad.conduction.nl"
+			}
+		},
+		{
+			"id": "admin-settings",
+			"route": "/admin/settings",
+			"type": "custom",
+			"title": "launchpad.pages.adminSettings",
+			"component": "AdminSettingsPage",
+			"_note": "Bespoke admin settings surface (tile/template management forms) rendered by LaunchPad's own router; manages app-config state that no declarative widget vocabulary covers."
+		}
+	]
+}

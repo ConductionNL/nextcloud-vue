@@ -23,7 +23,7 @@ Constraints:
 - Vue 2.7 Options API across the board (existing `CnDetailPage` mixes Options + a small `setup()` block for composables; we keep that shape).
 - ADR-017 forbids inline `CnObjectSidebar` inside `NcAppContent`; the sidebar must live at `NcContent` level. `CnDetailPage` already publishes to `objectSidebarState` via inject — we just have to feed the new `sidebarTabs` into that state, and add the matching auto-mount in `CnAppRoot`.
 - ADR-022 forbids axios in components; fetch must flow through `useObjectStore` (the same path `CnIndexPage`/`CnLogsPage` use).
-- Backwards-compat: every existing `CnDetailPage` consumer (call sites in OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash, decidesk, openbuilt itself for non-manifest routes) must keep working unchanged.
+- Backwards-compat: every existing `CnDetailPage` consumer (call sites in OpenRegister, OpenCatalogi, Procest, Pipelinq, LaunchPad, decidesk, openbuilt itself for non-manifest routes) must keep working unchanged.
 
 ## Goals / Non-Goals
 
@@ -154,7 +154,7 @@ Alternative considered: require manifests to move title into config. Rejected be
 3. PR to ConductionNL/nextcloud-vue against `beta`. Self-review-approve + merge per the user's authorisation for nc-vue PRs.
 4. Bump the openbuilt `package.json` dep on `@conduction/nextcloud-vue` to the new beta tag.
 5. Rebuild openbuilt, redeploy to the dev container, browser-verify `/applications/<objectId>` renders: header (title=Hello World, description=app desc, icon), body (data widget showing manifest, metadata widget), right sidebar with Overview / Manifest / Version history / Diff / Audit tabs.
-6. Sweep the fleet — every app already on the manifest pattern (decidesk, mydash, openbuilt, plus the in-flight journeydoc rollouts) inherits the behaviour. No per-app code change required; per-app `npm i` + redeploy is enough.
+6. Sweep the fleet — every app already on the manifest pattern (decidesk, launchpad, openbuilt, plus the in-flight journeydoc rollouts) inherits the behaviour. No per-app code change required; per-app `npm i` + redeploy is enough.
 7. Rollback: revert the PR. Detail pages return to the current blank-body state. No data or state migration needed.
 
 ## Open Questions

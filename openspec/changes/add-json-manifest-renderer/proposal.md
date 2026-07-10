@@ -8,7 +8,7 @@ Add a JSON-driven manifest system to `@conduction/nextcloud-vue` that lets each 
 
 Every Conduction app currently hand-rolls the same pattern: a `main.ts` mounting an `NcContent` wrapper, per-route `.vue` stubs that dispatch to `CnIndexPage`/`CnDetailPage`/`CnDashboardPage`, and nav wiring repeated in each app. This produces three problems:
 
-1. **Duplication** — the same 80-line navigation + router-view boilerplate exists across OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash, and every future app.
+1. **Duplication** — the same 80-line navigation + router-view boilerplate exists across OpenRegister, OpenCatalogi, Procest, Pipelinq, LaunchPad, and every future app.
 2. **Inconsistency** — each app drifts in how it wires permissions, active-route highlighting, and i18n key resolution.
 3. **No runtime override** — adding an "app builder" backend later (letting admins customise pages without a code deploy) requires a standard manifest contract. That contract must be defined now to avoid migration pain later.
 
@@ -21,7 +21,7 @@ The manifest system solves all three: one canonical shape, one renderer, one com
 - [ ] Project: `opencatalogi` — Can adopt manifest pattern (separate migration change; NOT in scope here)
 - [ ] Project: `procest` — Can adopt manifest pattern (separate migration change; NOT in scope here)
 - [ ] Project: `pipelinq` — Can adopt manifest pattern (separate migration change; NOT in scope here)
-- [ ] Project: `mydash` — Can adopt manifest pattern (separate migration change; NOT in scope here)
+- [ ] Project: `launchpad` — Can adopt manifest pattern (separate migration change; NOT in scope here)
 
 ## Scope
 
@@ -55,7 +55,7 @@ The manifest shape is a single JSON file: `{ version, menu[], pages[] }`. A clos
 
 Loading is hybrid: the bundled `manifest.json` (zero latency) is used immediately; if a backend endpoint later returns an override, it is deep-merged on top. If the merged result fails schema validation, the bundled manifest is the fallback.
 
-**Incremental adoption** is a first-class design goal. Apps can adopt the manifest system in four tiers — from just using `useAppManifest` for loading and validation, all the way to the full `CnAppRoot` shell — without having to adopt the entire stack at once. Apps that want manifest-driven pages but their own root layout or custom menu (e.g. mydash's `MainMenu`) are explicitly supported via `#menu` and other slots on `CnAppRoot`, and via direct props on `CnPageRenderer` and `CnAppNav` that override `inject`.
+**Incremental adoption** is a first-class design goal. Apps can adopt the manifest system in four tiers — from just using `useAppManifest` for loading and validation, all the way to the full `CnAppRoot` shell — without having to adopt the entire stack at once. Apps that want manifest-driven pages but their own root layout or custom menu (e.g. launchpad's `MainMenu`) are explicitly supported via `#menu` and other slots on `CnAppRoot`, and via direct props on `CnPageRenderer` and `CnAppNav` that override `inject`.
 
 ## Cross-Project Dependencies
 

@@ -12,18 +12,11 @@
 			required
 			@update:value="updateField('title', $event)" />
 
-		<div class="cn-dash-tile-form__icon-row">
-			<label class="cn-dash-tile-form__icon-label">
-				{{ t('nextcloud-vue', 'Icon') }}
-			</label>
-			<CnIconPicker
-				:value="builtInIconValue"
-				@input="onIconChange($event || '')" />
-			<NcTextField
-				:value="icon"
-				:label="t('nextcloud-vue', 'Icon (name or URL)')"
-				@update:value="onIconChange($event)" />
-		</div>
+		<CnIconBrowser
+			:value="icon"
+			:label="t('nextcloud-vue', 'Icon')"
+			allow-url
+			@input="onIconChange($event)" />
 
 		<NcSelect
 			:value="iconType"
@@ -71,8 +64,9 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcTextField, NcSelect } from '@nextcloud/vue'
-import CnIconPicker from '../CnIconPicker/CnIconPicker.vue'
-import { DASHBOARD_ICONS, isCustomIconUrl } from '../CnWidgetGrid/widgetIcons.js'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import { isCustomIconUrl } from '../CnWidgetGrid/widgetIcons.js'
+import { isSvgPath } from '../../utils/iconUtils.js'
 
 const DEFAULT_CONTENT = Object.freeze({
 	title: '',
@@ -89,10 +83,10 @@ const DEFAULT_CONTENT = Object.freeze({
  * placement. Collects the six tile fields (title, icon + iconType, background
  * and text colours, linkType, linkValue) and emits them via `update:content`.
  *
- * The icon control offers a curated registry `<select>` plus a free-text input
- * (for URLs / emoji / SVG paths); a URL value sets `iconType` to `url`,
- * otherwise `class`. The `iconType` select stays visible so authors can
- * override to `emoji` or `svg`.
+ * The icon control is a `CnIconBrowser` — a searchable visual picker over the
+ * `@mdi/js` set with an optional custom image-URL tab. A URL value sets
+ * `iconType` to `url`, an SVG path to `svg`, otherwise `class`. The `iconType`
+ * select stays visible so authors can override (e.g. to `emoji`).
  *
  * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
  */
@@ -102,7 +96,7 @@ export default {
 	components: {
 		NcTextField,
 		NcSelect,
-		CnIconPicker,
+		CnIconBrowser,
 	},
 
 	props: {
@@ -130,7 +124,6 @@ export default {
 	data() {
 		const initial = this.editingWidget?.content || this.value || {}
 		return {
-			iconRegistry: DASHBOARD_ICONS,
 			title: initial.title ?? DEFAULT_CONTENT.title,
 			icon: initial.icon ?? DEFAULT_CONTENT.icon,
 			iconType: initial.iconType ?? DEFAULT_CONTENT.iconType,
@@ -158,19 +151,6 @@ export default {
 		 */
 		linkTypeOptions() {
 			return ['app', 'url']
-		},
-
-		/**
-		 * The registry `<select>` value — only set when the icon is a known
-		 * registry key, otherwise the disabled placeholder.
-		 *
-		 * @return {string} the select value.
-		 */
-		builtInIconValue() {
-			if (this.icon && !isCustomIconUrl(this.icon)) {
-				return this.icon
-			}
-			return ''
 		},
 
 		/**
@@ -235,7 +215,14 @@ export default {
 		 */
 		onIconChange(value) {
 			this.icon = value || ''
-			this.iconType = isCustomIconUrl(this.icon) ? 'url' : 'class'
+			if (isCustomIconUrl(this.icon)) {
+				this.iconType = 'url'
+			} else if (isSvgPath(this.icon)) {
+				// SVG path string (e.g. from CnIconBrowser's @mdi/js catalogue).
+				this.iconType = 'svg'
+			} else {
+				this.iconType = 'class'
+			}
 			this.$emit('update:content', this.assembledContent)
 		},
 
@@ -263,45 +250,6 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
-}
-
-.cn-dash-tile-form__icon-row {
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-}
-
-.cn-dash-tile-form__icon-label {
-	font-size: 14px;
-	font-weight: 600;
-}
-
-.cn-dash-tile-form__icon-picker {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
-
-.cn-dash-tile-form__icon-preview {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 40px;
-	height: 40px;
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius);
-	background-color: var(--color-background-hover);
-	flex-shrink: 0;
-}
-
-.cn-dash-tile-form__icon-select {
-	flex: 1;
-	padding: 6px 8px;
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius);
-	background: var(--color-main-background);
-	color: var(--color-main-text);
-	font-size: 14px;
 }
 
 .cn-dash-tile-form__color-row {

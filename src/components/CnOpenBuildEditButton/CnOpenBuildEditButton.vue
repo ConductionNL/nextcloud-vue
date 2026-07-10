@@ -89,11 +89,39 @@
 				{{ t('nextcloud-vue', 'Edit settings…') }}
 			</NcActionButton>
 
+			<NcActionButton :close-after-click="true" @click="onEditSetup">
+				<template #icon>
+					<AutoFix :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Edit setup wizard…') }}
+			</NcActionButton>
+
+			<NcActionButton :close-after-click="true" @click="onEditWalkthrough">
+				<template #icon>
+					<MapMarkerPath :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Edit walkthrough…') }}
+			</NcActionButton>
+
+			<NcActionButton :close-after-click="true" @click="onEditSupport">
+				<template #icon>
+					<HeartOutline :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Edit support &amp; donation…') }}
+			</NcActionButton>
+
 			<NcActionButton :close-after-click="true" @click="onEditData">
 				<template #icon>
 					<Database :size="20" />
 				</template>
 				{{ t('nextcloud-vue', 'Edit data…') }}
+			</NcActionButton>
+
+			<NcActionButton :close-after-click="true" @click="onEditFlows">
+				<template #icon>
+					<Sitemap :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Edit flows…') }}
 			</NcActionButton>
 
 			<NcActionButton v-if="isEditing" :close-after-click="true" @click="onCancel">
@@ -137,6 +165,22 @@
 			v-if="showDataModal"
 			:manifest="effectiveManifest"
 			@close="showDataModal = false" />
+		<CnEditFlowsModal
+			v-if="showFlowsModal"
+			:manifest="effectiveManifest"
+			@close="showFlowsModal = false" />
+		<CnEditSetupModal
+			v-if="showSetupModal"
+			:working="workingManifest"
+			@close="showSetupModal = false" />
+		<CnEditWalkthroughModal
+			v-if="showWalkthroughModal"
+			:working="workingManifest"
+			@close="showWalkthroughModal = false" />
+		<CnEditSupportModal
+			v-if="showSupportModal"
+			:working="workingManifest"
+			@close="showSupportModal = false" />
 	</div>
 </template>
 
@@ -153,6 +197,10 @@ import FileMultiple from 'vue-material-design-icons/FileMultiple.vue'
 import PageLayoutSidebarRight from 'vue-material-design-icons/PageLayoutSidebarRight.vue'
 import GestureTapButton from 'vue-material-design-icons/GestureTapButton.vue'
 import Database from 'vue-material-design-icons/Database.vue'
+import Sitemap from 'vue-material-design-icons/Sitemap.vue'
+import AutoFix from 'vue-material-design-icons/AutoFix.vue'
+import MapMarkerPath from 'vue-material-design-icons/MapMarkerPath.vue'
+import HeartOutline from 'vue-material-design-icons/HeartOutline.vue'
 import CnEditMenuModal from '../../modals/CnEditMenuModal.vue'
 import CnEditPagesModal from '../../modals/CnEditPagesModal.vue'
 import CnEditSettingsModal from '../../modals/CnEditSettingsModal.vue'
@@ -160,6 +208,10 @@ import CnEditSidebarModal from '../../modals/CnEditSidebarModal.vue'
 import CnEditActionsModal from '../../modals/CnEditActionsModal.vue'
 import CnAddWidgetModal from '../../modals/CnAddWidgetModal.vue'
 import CnEditDataModal from '../../modals/CnEditDataModal.vue'
+import CnEditFlowsModal from '../../modals/CnEditFlowsModal.vue'
+import CnEditSetupModal from '../../modals/CnEditSetupModal.vue'
+import CnEditWalkthroughModal from '../../modals/CnEditWalkthroughModal.vue'
+import CnEditSupportModal from '../../modals/CnEditSupportModal.vue'
 import { getDefaultContent } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 
@@ -180,6 +232,10 @@ export default {
 		PageLayoutSidebarRight,
 		GestureTapButton,
 		Database,
+		Sitemap,
+		AutoFix,
+		MapMarkerPath,
+		HeartOutline,
 		CnEditMenuModal,
 		CnEditPagesModal,
 		CnEditSettingsModal,
@@ -187,6 +243,10 @@ export default {
 		CnEditActionsModal,
 		CnAddWidgetModal,
 		CnEditDataModal,
+		CnEditFlowsModal,
+		CnEditSetupModal,
+		CnEditWalkthroughModal,
+		CnEditSupportModal,
 	},
 
 	inject: {
@@ -240,6 +300,10 @@ export default {
 			showAddWidgetModal: false,
 			showActionsModal: false,
 			showDataModal: false,
+			showFlowsModal: false,
+			showSetupModal: false,
+			showWalkthroughModal: false,
+			showSupportModal: false,
 			menuOpen: false,
 			saving: false,
 		}
@@ -284,9 +348,25 @@ export default {
 		isDetailPage() {
 			return !!(this.currentPage && this.currentPage.type === 'detail')
 		},
+		/**
+		 * Whether the active page is a blank custom page with no body yet — no
+		 * `component`, no `slots.main`, and no `body`-slot widgets. Such a page
+		 * renders the builder empty-state; letting "Add widget" target it turns a
+		 * freshly-created page into a widget grid (the V2 `body` slot renders for
+		 * any page type), so a new page is buildable from empty. ADR-041.
+		 *
+		 * @return {boolean}
+		 */
+		isEmptyBodyPage() {
+			const p = this.currentPage
+			if (!p || p.type !== 'custom') return false
+			if (p.component || (p.slots && p.slots.main)) return false
+			const widgets = Array.isArray(p.widgets) ? p.widgets : []
+			return !widgets.some((w) => w && (w.slot || 'body') === 'body')
+		},
 		/** Whether the active page hosts a widget grid that "Add widget" can target. */
 		pageSupportsWidgets() {
-			return this.isDashboardPage || this.isDetailPage
+			return this.isDashboardPage || this.isDetailPage || this.isEmptyBodyPage
 		},
 		/**
 		 * The widget-picker surface for "Add widget". Detail pages get
@@ -518,6 +598,33 @@ export default {
 			 */
 			this.$emit('edit-actions')
 		},
+		/** Enter edit mode (if needed) and open the setup-wizard editor modal. */
+		onEditSetup() {
+			this.ensureEditing()
+			this.showSetupModal = true
+			/**
+			 * @event edit-setup Emitted when the setup-wizard editor modal opens.
+			 */
+			this.$emit('edit-setup')
+		},
+		/** Enter edit mode (if needed) and open the walkthrough editor modal. */
+		onEditWalkthrough() {
+			this.ensureEditing()
+			this.showWalkthroughModal = true
+			/**
+			 * @event edit-walkthrough Emitted when the walkthrough editor modal opens.
+			 */
+			this.$emit('edit-walkthrough')
+		},
+		/** Enter edit mode (if needed) and open the support/donation editor modal. */
+		onEditSupport() {
+			this.ensureEditing()
+			this.showSupportModal = true
+			/**
+			 * @event edit-support Emitted when the support/donation editor modal opens.
+			 */
+			this.$emit('edit-support')
+		},
 		/**
 		 * Open the data (register + schemas) editor. Unlike the manifest editors
 		 * this does NOT enter manifest edit mode — it manages OpenRegister
@@ -530,6 +637,19 @@ export default {
 			 * @event edit-data Emitted when the data (register/schema) editor opens.
 			 */
 			this.$emit('edit-data')
+		},
+		/**
+		 * Open the flows editor. Like Edit data, this edits OpenRegister schema
+		 * configuration (`x-openregister-flows`) directly via the API and does
+		 * NOT enter manifest edit mode.
+		 */
+		onEditFlows() {
+			this.showFlowsModal = true
+			this.menuOpen = false
+			/**
+			 * @event edit-flows Emitted when the flows editor opens.
+			 */
+			this.$emit('edit-flows')
 		},
 	},
 }

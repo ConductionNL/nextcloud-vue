@@ -5,7 +5,7 @@
 | Name            | Type                                                       | Required | Default     | Description                                                       |
 | --------------- | ---------------------------------------------------------- | -------- | ----------- | ----------------------------------------------------------------- |
 | `title`         | `string`                                                   |          | `''`        | Widget title shown in the header.                                 |
-| `borderless`    | `boolean`                                                  |          | `false`     | Drop the card chrome so the table sits flush inside another card. |
+| `borderless`    | `boolean`                                                  |          | `false`     | Drop the widget's own card chrome (border, background, radius) so the table sits flush inside a container that already provides a card — e.g. a `CnWidgetWrapper` dashboard slot. Avoids the double-card / nested-border look when a table widget is embedded in another card. Defaults to false (back-compat: standalone usage keeps its card). |
 | `rows`          | `object[]`                                                 |          | `null`      | External row data. When provided, no API calls are made.          |
 | `columns`       | `Array<{ key: string, label: string, sortable: boolean }>` |          | `[]`        | Column definitions for the table.                                 |
 | `register`      | `union`                                                    |          | `null`      | OpenRegister register id for self-fetch mode.                     |

@@ -2,7 +2,7 @@
 
 ## Architecture
 
-This change implements the tile-widget specification as part of the @conduction/nextcloud-vue component library. `CnTileWidget` renders a quick-access tile with an icon and a link. It supports four icon types (SVG, CSS class, URL, emoji) and two link types (Nextcloud app route, external URL). Used internally by `CnDashboardPage` for tile-type widgets and by consumer apps (e.g. MyDash) for dashboard shortcuts.
+This change implements the tile-widget specification as part of the @conduction/nextcloud-vue component library. `CnTileWidget` renders a quick-access tile with an icon and a link. It supports four icon types (SVG, CSS class, URL, emoji) and two link types (Nextcloud app route, external URL). Used internally by `CnDashboardPage` for tile-type widgets and by consumer apps (e.g. LaunchPad) for dashboard shortcuts.
 
 ## Implementation Approach
 

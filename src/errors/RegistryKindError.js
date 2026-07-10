@@ -22,7 +22,7 @@ export class RegistryKindError extends Error {
 	constructor(registryKey, unknownKind) {
 		super(
 			`[CnAppRoot] Registry entry "${registryKey}" has an unrecognised kind "${unknownKind}". `
-			+ 'Recognised kinds are: widget, modal, page, form-field, cell-renderer.',
+			+ 'Recognised kinds are: widget, modal, page, form-field, cell-renderer, header, actions, tab, section, create-override.',
 		)
 		this.name = 'RegistryKindError'
 		this.registryKey = registryKey

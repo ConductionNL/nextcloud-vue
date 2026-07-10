@@ -32,7 +32,7 @@ const _cache = new Map()
  * the nav item hides on uncertainty rather than leaking a cross-app link
  * to a possibly-missing app.
  *
- * @param {string} appId Nextcloud app id to check (e.g. `"mydash"`).
+ * @param {string} appId Nextcloud app id to check (e.g. `"launchpad"`).
  * @return {boolean} True when the app is installed and enabled.
  */
 export function isAppInstalled(appId) {

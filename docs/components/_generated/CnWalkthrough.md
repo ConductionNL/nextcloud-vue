@@ -2,19 +2,20 @@
 
 ### Props
 
-| Name          | Type     | Required | Default                                 | Description                                                                |
-| ------------- | -------- | -------- | --------------------------------------- | -------------------------------------------------------------------------- |
-| `appId`       | `string` | ✓        | —                                       | The Nextcloud app id (walkthrough machine cache key).                      |
-| `manifest`    | `object` |          | `null`                                  | The app manifest; `manifest.walkthrough` + `manifest.version` are read.    |
-| `seenVersion` | `string` |          | `''`                                    | The user's last-seen app version (drives "what's new" composition).        |
-| `tourId`      | `string` |          | `''`                                    | Force a specific tour id; when empty the auto-start tour is used.          |
-| `resume`      | `object` |          | `null`                                  | Optional resume token `{ tourId, stepId }` (refresh / cross-app hand-off). |
-| `zIndex`      | `number` |          | `10000`                                 | Stacking order of the overlay.                                             |
-| `nextLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Next')`   | Next button label.                                                         |
-| `backLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Back')`   | Back button label.                                                         |
-| `skipLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Skip')`   | Skip button label.                                                         |
-| `finishLabel` | `string` |          | `() =&gt; t('nextcloud-vue', 'Finish')` | Final-step button label.                                                   |
-| `translate`   | `func`   |          | `null`                                  | Optional translate function applied to step title/body/task i18n keys.     |
+| Name          | Type     | Required | Default                                     | Description                                                                |
+| ------------- | -------- | -------- | ------------------------------------------- | -------------------------------------------------------------------------- |
+| `appId`       | `string` | ✓        | —                                           | The Nextcloud app id (walkthrough machine cache key).                      |
+| `manifest`    | `object` |          | `null`                                      | The app manifest; `manifest.walkthrough` + `manifest.version` are read.    |
+| `seenVersion` | `string` |          | `''`                                        | The user's last-seen app version (drives "what's new" composition).        |
+| `tourId`      | `string` |          | `''`                                        | Force a specific tour id; when empty the auto-start tour is used.          |
+| `resume`      | `object` |          | `null`                                      | Optional resume token `{ tourId, stepId }` (refresh / cross-app hand-off). |
+| `zIndex`      | `number` |          | `10000`                                     | Stacking order of the overlay.                                             |
+| `nextLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Next')`       | Next button label.                                                         |
+| `backLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Back')`       | Back button label.                                                         |
+| `skipLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Skip')`       | Skip button label.                                                         |
+| `finishLabel` | `string` |          | `() =&gt; t('nextcloud-vue', 'Finish')`     | Final-step button label.                                                   |
+| `closeLabel`  | `string` |          | `() =&gt; t('nextcloud-vue', 'Close tour')` | Accessible label for the corner close button that ends the tour.           |
+| `translate`   | `func`   |          | `null`                                      | Optional translate function applied to step title/body/task i18n keys.     |
 
 ### Events
 

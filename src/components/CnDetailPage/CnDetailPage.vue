@@ -57,8 +57,18 @@
 							class="cn-detail-page__icon" />
 					</slot>
 					<div class="cn-detail-page__header-text">
-						<h2 v-if="title" class="cn-detail-page__title">
-							{{ title }}
+						<!-- Type name as a small eyebrow above the record name, so
+						     the header reads "the record" not "the kind of record"
+						     (ADR-062). Only shown once the object resolves to a
+						     display name that differs from the type label. -->
+						<p
+							v-if="typeEyebrow"
+							class="cn-detail-page__type-eyebrow"
+							data-testid="cn-detail-page-type-eyebrow">
+							{{ typeEyebrow }}
+						</p>
+						<h2 v-if="displayTitle" class="cn-detail-page__title">
+							{{ displayTitle }}
 						</h2>
 						<!--
 							@slot translation-badge
@@ -95,6 +105,17 @@
 					:config="lifecycleActions"
 					@transitioned="onTransitioned"
 					@reload="onLifecycleReload" />
+				<!-- Declarative header actions (#91 Wave 3): a manifest
+				     `config.headerActions[]` renders as buttons (api-call /
+				     open-form / toggle / navigate) with visibleWhen gating —
+				     the object context this page provides drives `@objectId` /
+				     `@object.<field>` tokens + local predicates (the shillinq
+				     PaymentRunDetailActions contract). -->
+				<CnActionButtons
+					v-if="headerActions && headerActions.length"
+					:actions="headerActions"
+					data-testid="cn-detail-page-header-actions"
+					@created="onLifecycleReload" />
 				<!--
 					@slot actions
 					@description Right-hand action surface in the page header (typically NcActions
@@ -121,8 +142,8 @@
 				<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot. -->
 				<CnOpenBuildEditButton />
 				<CnActionsMenu
-					:show-refresh="showRefresh"
-					:refreshing="refreshing"
+					:show-refresh="effectiveHeaderShowRefresh"
+					:refreshing="effectiveRefreshing"
 					:show-request-feature="showRequestFeature"
 					:documentation-url="documentationUrl"
 					:documentation-label="documentationLabel || undefined"
@@ -145,7 +166,7 @@
 			:expires-at="lockState.expiresAt.value" />
 
 		<!-- Loading state -->
-		<div v-if="loading" class="cn-detail-page__loading">
+		<div v-if="showLoadingState" class="cn-detail-page__loading">
 			<NcLoadingIcon :size="32" />
 			<span>{{ loadingLabel }}</span>
 		</div>
@@ -298,11 +319,14 @@
 							<CnObjectDataWidget
 								v-if="isDataWidget(item) && currentSchema"
 								:title="findWidget(item).title || widgetContentFor(item).title || undefined"
+								:icon="findWidget(item).icon || null"
 								:schema="currentSchema"
 								:object-data="currentObject"
 								:object-type="resolvedObjectType"
 								:store="effectiveObjectStore"
 								:overrides="widgetContentFor(item).overrides || {}"
+								:include="widgetContentFor(item).include || null"
+								:exclude="widgetContentFor(item).exclude || []"
 								:columns="widgetContentFor(item).columns || 3" />
 							<!-- `type: 'related'` widget: the related-objects widget,
 							     the second default body widget. Resolves this object's
@@ -326,10 +350,61 @@
 								:is="resolveIntegrationWidget(item)"
 								v-else-if="isIntegrationWidget(item) && resolveIntegrationWidget(item)"
 								v-bind="getIntegrationProps(item)" />
+							<!-- Content-only catalog widgets (object-list / table)
+							     render bare tables, so give them the titled
+							     CnWidgetWrapper card chrome (ADR-062: every body
+							     widget has chrome + its manifest title). -->
+							<CnWidgetWrapper
+								v-else-if="registryRendererFor(item) && isContentOnlyWidget(item)"
+								:title="findWidget(item).title || ''"
+								title-icon-position="left"
+								:show-refresh="false"
+								:show-request-feature="false"
+								class="cn-detail-page__catalog-card">
+								<template v-if="findWidget(item).icon" #title-icon>
+									<CnIcon :name="findWidget(item).icon" :size="20" />
+								</template>
+								<template v-if="catalogAddEnabled(item)" #action-items>
+									<NcActionButton @click="invokeCatalogAdd(item)">
+										<template #icon>
+											<Plus :size="20" />
+										</template>
+										{{ t('nextcloud-vue', 'Add') }}
+									</NcActionButton>
+								</template>
+								<component
+									:is="registryRendererFor(item)"
+									:ref="'catalog-' + item.widgetId"
+									:content="widgetContentFor(item)"
+									v-bind="widgetContentFor(item)" />
+							</CnWidgetWrapper>
+							<!-- Registry "card" widgets (stat / gauge / delta):
+							     these render bare tile content, so give them the
+							     titled CnWidgetWrapper card chrome exactly like the
+							     dashboard does (ADR-062: a lone stat must not read
+							     as uncarded text). `card-fit` centres the tile and
+							     drops the inner scrollbar. -->
+							<CnWidgetWrapper
+								v-else-if="registryRendererFor(item) && isCardWidget(item)"
+								:title="findWidget(item).title || widgetContentFor(item).title || ''"
+								:show-title="findWidget(item).title !== undefined || widgetContentFor(item).title !== undefined"
+								title-icon-position="left"
+								flush
+								:show-refresh="false"
+								:show-request-feature="false"
+								class="cn-detail-page__card-fit">
+								<template v-if="findWidget(item).icon" #title-icon>
+									<CnIcon :name="findWidget(item).icon" :size="20" />
+								</template>
+								<component
+									:is="registryRendererFor(item)"
+									:content="widgetContentFor(item)"
+									v-bind="widgetContentFor(item)" />
+							</CnWidgetWrapper>
 							<!-- Fallback for content-driven catalog widgets
-							     (stat / chart / delta / gauge / object-list / …):
-							     render the registered renderer with the def's
-							     `content`. These self-fetch from OpenRegister. -->
+							     (chart / …): render the registered renderer with
+							     the def's `content`. These self-fetch from
+							     OpenRegister. -->
 							<component
 								:is="registryRendererFor(item)"
 								v-else-if="registryRendererFor(item)"
@@ -482,6 +557,20 @@
 
 		<!-- Relation-link modal (manifest `config.relationLinks`): async-search a
 		     target schema and patch a FK on the current object. -->
+		<!-- Create archetype (ADR-062): a schema-bound `type:"detail"` page with
+		     no object id renders an empty create form for its schema instead of a
+		     blank page. Save POSTs the object and navigates to its detail route
+		     (or back); prefill comes from the route query. -->
+		<CnFormDialog
+			v-if="isCreateMode && currentSchema"
+			ref="createFormDialog"
+			:schema="currentSchema"
+			:item="createPrefill"
+			:register="register"
+			:dialog-title="title || undefined"
+			@confirm="onCreateFormConfirm"
+			@close="onCreateFormClose" />
+
 		<CnRelationLinkModal
 			v-if="activeRelationLink"
 			:title="activeRelationLink.title || undefined"
@@ -501,7 +590,7 @@
 <script>
 import { provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
@@ -511,9 +600,12 @@ import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
+import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
+import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
+import { CnActionButtons } from '../CnActionButtons/index.js'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
 import CnRelatedCollections from '../CnRelatedCollections/CnRelatedCollections.vue'
 import CnBodySections from '../CnBodySections/CnBodySections.vue'
@@ -609,6 +701,7 @@ export default {
 	name: 'CnDetailPage',
 
 	components: {
+		NcActionButton,
 		NcButton,
 		NcEmptyContent,
 		NcLoadingIcon,
@@ -620,9 +713,12 @@ export default {
 		CnOpenBuildEditButton,
 		CnLockedBanner,
 		CnObjectDataWidget,
+		CnFormDialog,
 		CnRelatedObjectsWidget,
 		CnDashboardGrid,
+		CnWidgetWrapper,
 		CnLifecycleActions,
+		CnActionButtons,
 		CnSummaryAggregates,
 		CnRelatedCollections,
 		CnBodySections,
@@ -974,10 +1070,21 @@ export default {
 			default: '',
 		},
 
-		/** Whether the Refresh entry renders in the page-header menu. */
+		/**
+		 * Whether the Refresh entry renders in the page-header menu.
+		 * Tri-state:
+		 * - `true` / `false` — force it on or off.
+		 * - `null` (the default) — **auto**: show Refresh only when it will
+		 *   do something, i.e. a consumer attached an `@refresh` listener OR
+		 *   the page is in schema-driven mode (`register` + `schema` +
+		 *   `objectId`) and can self-fetch. Legacy `objectType`-mode detail
+		 *   pages that never wire `@refresh` therefore show no dead button.
+		 *
+		 * @type {boolean|null}
+		 */
 		showRefresh: {
 			type: Boolean,
-			default: true,
+			default: null,
 		},
 
 		/**
@@ -1012,6 +1119,24 @@ export default {
 		lifecycleActions: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * Declarative header actions (manifest `config.headerActions`, #91
+		 * Wave 3) rendered as buttons in the page header via CnActionButtons —
+		 * `api-call` (POST/PUT + toast + refresh), `open-form`, `toggle`,
+		 * `navigate` / `open-modal`, each with an optional `visibleWhen`
+		 * predicate. Distinct from `lifecycleActions` (state-machine
+		 * transitions): these are free-form record actions (approve, send,
+		 * archive). The page's object context drives `@objectId` /
+		 * `@object.<field>` token + local-predicate resolution. Empty (the
+		 * default) renders nothing.
+		 *
+		 * @type {Array<object>}
+		 */
+		headerActions: {
+			type: Array,
+			default: () => [],
 		},
 
 		/**
@@ -1088,6 +1213,20 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+		/**
+		 * Vue-router route NAME to navigate to after a create-form save (the
+		 * create archetype: a `type:"detail"` page whose route carries no `:id`).
+		 * The created object's id is passed as the `id` route param. When empty
+		 * (the default) the page navigates back in history after a successful
+		 * create instead. See `isCreateMode`.
+		 *
+		 * @type {string}
+		 */
+		createRoute: {
+			type: String,
+			default: '',
+		},
+
 		/**
 		 * Page-level app config map exposed to declarative widget / section
 		 * config via the `@config.<key>` token (e.g. the reporting `currency`
@@ -1195,6 +1334,20 @@ export default {
 			autoBodyLayout: null,
 			/** Widget definitions paired with `autoBodyLayout` (id ↔ widgetId). */
 			autoBodyWidgets: null,
+			/**
+			 * Drives the Actions-menu Refresh spinner during a schema-driven
+			 * self-fetch refresh, where the host has no promise to bind
+			 * `:refreshing` to. Mirrors CnIndexPage.internalRefreshing.
+			 */
+			internalRefreshing: false,
+			/**
+			 * Whether a load has completed at least once. Gates the
+			 * full-page loading state to the FIRST load only: once content
+			 * has been shown, later loads (refresh, re-fetch) stay in place
+			 * and surface as the action-button spinner instead of blanking
+			 * the page. Set true the first time `loading` falls to false.
+			 */
+			hasLoadedOnce: false,
 		}
 	},
 
@@ -1235,6 +1388,34 @@ export default {
 		},
 
 		/**
+		 * Whether to show the full-page loading state (spinner that replaces
+		 * the page content). Only on the FIRST load — when `loading` is true
+		 * and nothing has been shown yet. Once `hasLoadedOnce` is set, a
+		 * subsequent `loading` (refresh / re-fetch) keeps the existing
+		 * content in place; the action-button spinner signals the refresh
+		 * instead (see `effectiveRefreshing`).
+		 *
+		 * @return {boolean}
+		 */
+		showLoadingState() {
+			return this.loading && !this.hasLoadedOnce
+		},
+
+		/**
+		 * Refresh-spinner flag for the page-header Actions menu. True when:
+		 * an explicit `refreshing` prop is set; OR a schema-driven self-fetch
+		 * is in flight (`internalRefreshing`); OR a background load is running
+		 * after the first one completed (`loading && hasLoadedOnce`) — so
+		 * legacy `objectType` hosts get the spinner for free just by passing
+		 * `:loading`, without wiring `:refreshing` themselves.
+		 *
+		 * @return {boolean}
+		 */
+		effectiveRefreshing() {
+			return this.refreshing || this.internalRefreshing || (this.loading && this.hasLoadedOnce)
+		},
+
+		/**
 		 * Effective object-type slug, used for subscription, lock, store
 		 * registration, fetch, and sidebar state. Explicit `objectType`
 		 * prop wins (existing direct-mount call sites stay untouched);
@@ -1266,6 +1447,51 @@ export default {
 		},
 
 		/**
+		 * The create archetype: a schema-bound page (`register` + `schema`) whose
+		 * route carries NO object id, and which has no hand-authored body of its
+		 * own. Instead of rendering a blank page (procest `/tasks/new`), the page
+		 * shows an empty create form for the schema (ADR-062). Suppressed when a
+		 * default slot or an explicit grid `layout` supplies the body.
+		 *
+		 * @return {boolean}
+		 */
+		isCreateMode() {
+			return Boolean(this.register && this.schema) && !this.objectId
+				&& !this.hasDefaultSlotContent && !this.hasGridLayout
+		},
+
+		/**
+		 * Create-form prefill drawn from the route query, filtered to the
+		 * schema's own properties (e.g. `?caseId=x` seeds the `caseId` field so
+		 * a child created from a parent is pre-linked). Null when nothing
+		 * applies (true empty create).
+		 *
+		 * @return {object|null}
+		 */
+		createPrefill() {
+			const q = (this.$route && this.$route.query) || {}
+			const props = (this.currentSchema && this.currentSchema.properties) || {}
+			const out = {}
+			for (const [k, v] of Object.entries(q)) {
+				if (Object.prototype.hasOwnProperty.call(props, k)) out[k] = v
+			}
+			return Object.keys(out).length ? out : null
+		},
+
+		/**
+		 * Effective Refresh visibility for the page header. An explicit
+		 * `showRefresh` prop wins; when unset (`null`), show Refresh only if
+		 * it will do something — a consumer attached an `@refresh` listener,
+		 * or the page can self-fetch (`hasSchemaDrivenFetch`).
+		 *
+		 * @return {boolean}
+		 */
+		effectiveHeaderShowRefresh() {
+			if (this.showRefresh !== null) return this.showRefresh
+			return Boolean(this.$listeners.refresh) || this.hasSchemaDrivenFetch
+		},
+
+		/**
 		 * Pinia store instance used for the schema-driven fetch.
 		 * Mirrors `CnLogsPage.objectStore`: explicit `objectStore` prop
 		 * wins; otherwise falls back to the library's default
@@ -1279,7 +1505,7 @@ export default {
 			if (this.objectStore) {
 				return this.objectStore
 			}
-			if (!this.hasSchemaDrivenFetch) {
+			if (!this.hasSchemaDrivenFetch && !this.isCreateMode) {
 				return null
 			}
 			try {
@@ -1336,6 +1562,55 @@ export default {
 			if (!store) return null
 			if (!this.objectType || !this.objectId) return null
 			return store.objects?.[this.objectType]?.[this.objectId] ?? null
+		},
+
+		/**
+		 * The resolved record's human display name, drawn from the loaded
+		 * object via the same fallback chain the relation resolver uses:
+		 * `@self.name` → `name` / `title` / `displayName` → `firstName
+		 * lastName`. Empty string while the object is still loading or when no
+		 * name-like field exists (a raw id is never used as a name — ADR-062).
+		 *
+		 * @return {string}
+		 */
+		objectDisplayName() {
+			const obj = this.resolvedObject
+			if (!obj || typeof obj !== 'object') return ''
+			const self = obj['@self'] || {}
+			const id = this.objectId != null ? String(this.objectId) : ''
+			const candidates = [self.name, self.title, obj.name, obj.title, obj.displayName]
+			for (const c of candidates) {
+				if (c != null && c !== '' && String(c) !== id) return String(c)
+			}
+			const composed = ((obj.firstName || '') + ' ' + (obj.lastName || '')).trim()
+			return composed || ''
+		},
+
+		/**
+		 * The header `<h2>` text. Prefers the resolved record's display name
+		 * so the header names the record ("ACME Corp") rather than its type
+		 * ("Case"); falls back to the `title` prop (the type/label) while the
+		 * object is loading or has no name field.
+		 *
+		 * @return {string}
+		 */
+		displayTitle() {
+			return this.objectDisplayName || this.title
+		},
+
+		/**
+		 * The small type-label eyebrow shown above the record name. Only
+		 * rendered once a record name is resolved AND it differs from the
+		 * `title` prop, so the type context ("Case", "Publication") is kept
+		 * without shadowing the record name. Empty while loading (the type
+		 * label is then the `<h2>` itself).
+		 *
+		 * @return {string}
+		 */
+		typeEyebrow() {
+			const name = this.objectDisplayName
+			if (!name || !this.title || name === this.title) return ''
+			return this.title
 		},
 
 		/**
@@ -1525,6 +1800,19 @@ export default {
 	},
 
 	watch: {
+		// A load just settled (true → false) — remember it so later loads
+		// refresh in place (full-page spinner only on the first load). Not
+		// `immediate`: `loading` starts false before the first fetch begins,
+		// so reacting to that initial false would suppress the first spinner.
+		loading(val) {
+			if (!val) {
+				this.hasLoadedOnce = true
+				// Refresh settled — re-assert the sidebar state that
+				// syncSidebarState skipped while loading was in flight.
+				this.syncSidebarState()
+			}
+		},
+
 		sidebar: {
 			immediate: true,
 			handler() { this.syncSidebarState() },
@@ -1600,6 +1888,11 @@ export default {
 		// `effectiveObjectStore` relies on a live Pinia context, which
 		// is guaranteed by mounted() but not by created().
 		this.fetchObjectIfNeeded()
+		this.scheduleCellOverflowAudit()
+	},
+
+	updated() {
+		this.scheduleCellOverflowAudit()
 	},
 
 	beforeDestroy() {
@@ -1628,12 +1921,22 @@ export default {
 		 * @param {{ widgetId: string, title: string }} payload - Action payload.
 		 * @param {object} event - Synthetic event (host may preventDefault).
 		 */
-		onHeaderRefresh(payload, event) {
+		async onHeaderRefresh(payload, event) {
 			/**
 			 * @event refresh The page-header Refresh action was clicked.
 			 * @type {{ widgetId: string, title: string }}
 			 */
 			this.$emit('refresh', payload, event)
+			// Schema-driven (manifest) detail pages self-fetch — without this
+			// the Refresh action has no host listener to act on and does
+			// nothing. Re-fetch the object + schema and spin the action.
+			if (!this.hasSchemaDrivenFetch) return
+			this.internalRefreshing = true
+			try {
+				await this.fetchObjectIfNeeded()
+			} finally {
+				this.internalRefreshing = false
+			}
 		},
 
 		/**
@@ -1747,7 +2050,12 @@ export default {
 		 * place so the request lifecycle stays predictable.
 		 */
 		async fetchObjectIfNeeded() {
-			if (!this.hasSchemaDrivenFetch) return
+			// Create archetype: no object to fetch, but the create form needs
+			// the schema — register the type and fetch its schema, then stop.
+			if (!this.hasSchemaDrivenFetch) {
+				if (this.isCreateMode) await this.fetchSchemaForCreate()
+				return
+			}
 			const store = this.effectiveObjectStore
 			if (!store) return
 			const type = this.resolvedObjectType
@@ -1756,7 +2064,14 @@ export default {
 			// the positional id slots is intentional (OR's REST accepts
 			// either numeric ids or kebab slugs there), and the 4th-arg
 			// hints feed the live-updates transport.
-			if (typeof store.registerObjectType === 'function') {
+			// Register the type ONCE. `registerObjectType` resets the type's
+			// cache (`objects[type] = {}`, `schemas[type] = null`), so calling
+			// it on every refresh blanks the object + schema until the
+			// re-fetch lands — the content visibly disappears mid-refresh.
+			// Skip re-registration when the type is already registered so a
+			// refresh re-fetches and replaces the data in place.
+			if (typeof store.registerObjectType === 'function'
+				&& !store.objectTypeRegistry?.[type]) {
 				store.registerObjectType(
 					type,
 					this.schema,
@@ -1787,6 +2102,84 @@ export default {
 		 * @param {object} item Layout item
 		 * @return {boolean} true when the matching widget def is an integration widget
 		 */
+		/**
+		 * Register the type and fetch ONLY its schema, for the create archetype
+		 * (no object id to fetch). Populates `currentSchema` so the inline create
+		 * form can auto-generate its fields.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async fetchSchemaForCreate() {
+			const store = this.effectiveObjectStore
+			if (!store) return
+			const type = this.resolvedObjectType
+			if (typeof store.registerObjectType === 'function'
+				&& !store.objectTypeRegistry?.[type]) {
+				store.registerObjectType(
+					type,
+					this.schema,
+					this.register,
+					{ registerSlug: this.register, schemaSlug: this.schema },
+				)
+			}
+			try {
+				if (typeof store.fetchSchema === 'function') await store.fetchSchema(type)
+			} catch (err) {
+				console.error('[CnDetailPage] create-mode schema fetch failed:', err)
+			}
+		},
+
+		/**
+		 * Persist the create form: POST the new object to OpenRegister, then
+		 * navigate to the created object's detail route (`createRoute` with its
+		 * id) — or back in history when no route is configured.
+		 *
+		 * @param {object} formData The confirmed form values.
+		 * @return {Promise<void>}
+		 */
+		async onCreateFormConfirm(formData) {
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl(
+					'/apps/openregister/api/objects/{register}/{schema}',
+					{ register: this.register, schema: this.schema },
+				)
+				const res = await axios.post(url, formData)
+				const created = (res && res.data) ? res.data : {}
+				const newId = (created['@self'] && created['@self'].id) || created.id
+				if (this.$refs.createFormDialog) this.$refs.createFormDialog.setResult({ success: true })
+				/**
+				 * @event created Emitted after a successful create-form save.
+				 * @type {object}
+				 */
+				this.$emit('created', created)
+				if (this.createRoute && newId && this.$router) {
+					this.$router.push({ name: this.createRoute, params: { id: String(newId) } }).catch(() => {})
+				} else if (this.$router) {
+					this.$router.back()
+				}
+			} catch (e) {
+				if (this.$refs.createFormDialog) this.$refs.createFormDialog.setResult({ error: (e && e.message) || 'error' })
+			}
+		},
+
+		/**
+		 * The create form was dismissed without saving — navigate back so the
+		 * user is not stranded on an id-less page.
+		 *
+		 * @return {void}
+		 */
+		onCreateFormClose() {
+			/**
+			 * @event create-cancel Emitted when the create form is dismissed.
+			 */
+			this.$emit('create-cancel')
+			if (this.$router) this.$router.back()
+		},
+
 		isIntegrationWidget(item) {
 			const def = this.findWidget(item)
 			return Boolean(def) && def.type === 'integration' && typeof def.integrationId === 'string'
@@ -1854,6 +2247,100 @@ export default {
 		isRelatedWidget(item) {
 			const def = this.findWidget(item)
 			return Boolean(def) && def.type === 'related'
+		},
+
+		/**
+		 * Whether a grid item is a content-only catalog widget (a bare table
+		 * renderer with no chrome of its own). These get the titled
+		 * CnWidgetWrapper card in the grid (ADR-062); self-chromed catalog
+		 * widgets (stat / chart / gauge / tile / …) render bare.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} true when the widget def's type is content-only.
+		 */
+		isContentOnlyWidget(item) {
+			const def = this.findWidget(item)
+			return Boolean(def) && ['object-list', 'table'].includes(def.type)
+		},
+
+		/**
+		 * Whether a grid item is a registry "card" widget — a single self-
+		 * contained KPI / gauge / delta tile (registry entry `card: true`).
+		 * These render bare tile content, so on a detail page they need the
+		 * same titled CnWidgetWrapper card chrome the dashboard gives them
+		 * (ADR-062: a lone stat must not read as uncarded floating text —
+		 * pipelinq contracts / POS).
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} true when the widget def's registry entry is a card.
+		 */
+		isCardWidget(item) {
+			const def = this.findWidget(item)
+			if (!def || !def.type) return false
+			const entry = getWidgetTypeEntry(def.type)
+			return Boolean(entry && entry.card === true)
+		},
+
+		/**
+		 * Whether a catalog list widget offers the Add action (ADR-062:
+		 * collections carry their create affordance in the card's Actions
+		 * menu AND as the widget's own footer button). On by default for
+		 * object-list/table; opt out via `content.allowCreate: false`.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean}
+		 */
+		catalogAddEnabled(item) {
+			if (!this.isContentOnlyWidget(item)) return false
+			return this.widgetContentFor(item).allowCreate !== false
+		},
+
+		/**
+		 * Actions-menu "Add" entry: delegate to the rendered list widget's
+		 * public `openCreate()` (the same dialog its footer button opens).
+		 *
+		 * @param {object} item Layout item.
+		 * @return {void}
+		 */
+		invokeCatalogAdd(item) {
+			const r = this.$refs['catalog-' + item.widgetId]
+			const w = Array.isArray(r) ? r[0] : r
+			if (w && typeof w.openCreate === 'function') w.openCreate()
+		},
+
+		/**
+		 * Debounced dev-mode audit: warn when a grid widget's rendered content
+		 * overflows its fixed cell (ADR-062 — the cell is the budget; overflow
+		 * is a design bug, never a scroll surface). No-op in production builds.
+		 *
+		 * @return {void}
+		 */
+		scheduleCellOverflowAudit() {
+			if (process.env.NODE_ENV === 'production') return
+			clearTimeout(this._cellAuditTimer)
+			this._cellAuditTimer = setTimeout(() => this.auditCellOverflow(), 800)
+		},
+
+		/**
+		 * Measure every grid cell and console.warn the widget ids whose content
+		 * is taller than the cell. Dev aid only — called via
+		 * {@link scheduleCellOverflowAudit}.
+		 *
+		 * @return {void}
+		 */
+		auditCellOverflow() {
+			if (!this.$el || !this.$el.querySelectorAll) return
+			this.$el.querySelectorAll('.grid-stack-item').forEach((cell) => {
+				const content = cell.querySelector('.grid-stack-item-content')
+				if (!content) return
+				if (content.scrollHeight > content.clientHeight + 8) {
+					const inner = cell.querySelector('.cn-detail-page__grid-item')
+					const label = (inner && inner.getAttribute('aria-labelledby')) || cell.getAttribute('gs-id') || ''
+					// eslint-disable-next-line no-console
+					console.warn(`[CnDetailPage] widget cell ${label || '(unlabelled)'} content overflows its gridHeight `
+						+ `(${content.scrollHeight}px in ${content.clientHeight}px) — enlarge the cell or scope the widget's content (ADR-062).`)
+				}
+			})
 		},
 
 		/**
@@ -2117,25 +2604,24 @@ export default {
 		syncSidebarState() {
 			if (!this.hasExternalSidebar) return
 			this.warnIfDeprecatedSidebarShape()
+			// During a background refresh (content stays in place — see
+			// `hasLoadedOnce`), a transient loading-driven `enabled: false`
+			// must NOT tear down the sidebar. Hosts commonly bind
+			// `:sidebar="{ enabled: !loading }"`, so without this guard every
+			// refresh unmounts the host's CnObjectSidebar and re-fetches all
+			// its sub-resources (files/notes/tags/tasks/audit). Skip the sync
+			// while refreshing; the `loading` watcher re-syncs once it settles.
+			if (this.loading && this.hasLoadedOnce) return
 			const r = this.resolvedSidebar
 			if (this.sidebarActive && this.resolvedObjectType && this.objectId) {
 				const merged = this.mergeSidebarSources(r)
-				this.objectSidebarState.active = true
 				// Seed `open` only on the inactive→active edge (first activation
 				// of this object). Subsequent syncs must NOT clobber it, otherwise
 				// the user's close/toggle would be undone on the next reactive
 				// change. The shared channel owns `open` after seeding.
 				if (!this.sidebarSeeded) {
-					this.objectSidebarState.open = this.sidebarOpen
 					this.sidebarSeeded = true
 				}
-				this.objectSidebarState.objectType = this.resolvedObjectType
-				this.objectSidebarState.objectId = this.objectId
-				this.objectSidebarState.title = merged.title || this.title || ''
-				this.objectSidebarState.subtitle = merged.subtitle || this.subtitle || ''
-				this.objectSidebarState.register = merged.register || this.register || ''
-				this.objectSidebarState.schema = merged.schema || this.schema || ''
-				this.objectSidebarState.hiddenTabs = merged.hiddenTabs || []
 				// Manifest-driven open-enum tabs (forwarded to the host
 				// app's mounted CnObjectSidebar via inject). When the
 				// top-level `sidebarTabs` prop is non-empty it provides
@@ -2143,14 +2629,53 @@ export default {
 				// `sidebar.tabs` / `sidebarProps.tabs` legacy paths win.
 				// Falls back to `undefined` so the host's CnObjectSidebar
 				// renders its built-in tab set.
-				this.objectSidebarState.tabs = (this.sidebarTabs && this.sidebarTabs.length > 0)
+				const tabs = (this.sidebarTabs && this.sidebarTabs.length > 0)
 					? this.sidebarTabs
 					: merged.tabs
+				this.assignSidebarState({
+					active: true,
+					open: this.sidebarOpen,
+					objectType: this.resolvedObjectType,
+					objectId: this.objectId,
+					title: merged.title || this.title || '',
+					subtitle: merged.subtitle || this.subtitle || '',
+					register: merged.register || this.register || '',
+					schema: merged.schema || this.schema || '',
+					hiddenTabs: merged.hiddenTabs || [],
+					tabs,
+				})
 			} else {
-				this.objectSidebarState.active = false
-				this.objectSidebarState.tabs = undefined
+				this.assignSidebarState({ active: false, tabs: undefined })
 				// Re-arm the seed so the next activation re-applies `sidebarOpen`.
 				this.sidebarSeeded = false
+			}
+		},
+		/**
+		 * Apply fields onto the shared `objectSidebarState` only when they
+		 * actually change. Writing the same logical value — notably a fresh
+		 * `[]` for `hiddenTabs` when none is configured — would otherwise put
+		 * a new array reference on the reactive object every call and trigger
+		 * a host re-render. That churn fed an infinite render loop: the host
+		 * App re-renders on the new `hiddenTabs` ref → its `<router-view>`
+		 * re-renders the routed detail page → the page's inline `:sidebar`
+		 * prop re-fires this sync → repeat. Arrays are compared shallowly so
+		 * an equivalent array is treated as unchanged.
+		 *
+		 * @param {object} fields Partial `objectSidebarState` to apply.
+		 */
+		assignSidebarState(fields) {
+			const state = this.objectSidebarState
+			for (const key of Object.keys(fields)) {
+				const next = fields[key]
+				const cur = state[key]
+				if (Array.isArray(next) && Array.isArray(cur)
+					&& next.length === cur.length
+					&& next.every((v, i) => v === cur[i])) {
+					continue
+				}
+				if (cur !== next) {
+					state[key] = next
+				}
 			}
 		},
 

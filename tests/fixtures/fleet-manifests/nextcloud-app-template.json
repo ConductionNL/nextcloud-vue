@@ -1,0 +1,173 @@
+{
+	"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+	"version": "0.2.0",
+	"dependencies": [
+		"openregister"
+	],
+	"menu": [
+		{
+			"id": "Dashboard",
+			"label": "Dashboard",
+			"icon": "icon-category-dashboard",
+			"route": "Dashboard",
+			"order": 10
+		},
+		{
+			"id": "Examples",
+			"label": "Examples",
+			"icon": "icon-files",
+			"route": "Examples",
+			"order": 20
+		},
+		{
+			"id": "Documentation",
+			"label": "Documentation",
+			"icon": "icon-info",
+			"href": "https://www.conduction.nl/academy",
+			"section": "footer",
+			"order": 90
+		},
+		{
+			"id": "FeaturesRoadmapMenu",
+			"label": "Features & roadmap",
+			"icon": "icon-toggle",
+			"route": "FeaturesRoadmap",
+			"section": "footer",
+			"order": 100
+		}
+	],
+	"pages": [
+		{
+			"id": "Dashboard",
+			"route": "/",
+			"type": "dashboard",
+			"title": "Dashboard",
+			"widgets": [
+				{
+					"widgetKey": "stats-block",
+					"slot": "body",
+					"gridX": 0,
+					"gridY": 0,
+					"gridWidth": 3,
+					"gridHeight": 1,
+					"props": {
+						"title": "Open examples",
+						"iconClass": "icon-files",
+						"register": "app-template",
+						"schema": "example",
+						"countLabel": "examples",
+						"variant": "primary"
+					}
+				}
+			]
+		},
+		{
+			"id": "Examples",
+			"route": "/examples",
+			"type": "index",
+			"title": "Examples",
+			"config": {
+				"register": "app-template",
+				"schema": "example",
+				"columns": [
+					"title",
+					"status",
+					"updatedAt"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			},
+			"widgets": [
+				{
+					"widgetKey": "object-table",
+					"slot": "body",
+					"gridX": 0,
+					"gridY": 0,
+					"gridWidth": 12,
+					"gridHeight": 6
+				}
+			]
+		},
+		{
+			"id": "ExampleDetail",
+			"route": "/examples/:id",
+			"type": "detail",
+			"title": "Example",
+			"config": {
+				"register": "app-template",
+				"schema": "example",
+				"sidebar": true
+			},
+			"widgets": [
+				{
+					"widgetKey": "object-data",
+					"slot": "sidebar",
+					"tabGroup": "data",
+					"gridX": 0,
+					"gridY": 0,
+					"gridWidth": 1,
+					"gridHeight": 1
+				},
+				{
+					"widgetKey": "audit-trail",
+					"slot": "sidebar",
+					"tabGroup": "audit",
+					"gridX": 0,
+					"gridY": 0,
+					"gridWidth": 1,
+					"gridHeight": 1
+				}
+			]
+		},
+		{
+			"id": "Settings",
+			"route": "/settings",
+			"type": "settings",
+			"title": "Settings",
+			"config": {
+				"saveEndpoint": "/index.php/apps/app-template/api/settings",
+				"sections": [
+					{
+						"title": "Version",
+						"widgets": [
+							{
+								"type": "version-info",
+								"props": {
+									"appName": "App Template",
+									"title": "Version Information",
+									"description": "Information about the current installation."
+								}
+							}
+						]
+					}
+				]
+			},
+			"widgets": [
+				{
+					"widgetKey": "version-info",
+					"slot": "section:version",
+					"gridX": 0,
+					"gridY": 0,
+					"gridWidth": 12,
+					"gridHeight": 1,
+					"props": {
+						"appName": "App Template",
+						"title": "Version Information",
+						"description": "Information about the current installation."
+					}
+				}
+			]
+		},
+		{
+			"id": "FeaturesRoadmap",
+			"route": "/features-roadmap",
+			"type": "roadmap",
+			"title": "Features & roadmap",
+			"config": {
+				"documentationUrl": "https://nextcloud-app-template.conduction.nl"
+			}
+		}
+	]
+}

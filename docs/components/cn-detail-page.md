@@ -98,6 +98,18 @@ The detail body is, at its core, a real drag/resize grid powered by
 - **Widget types** rendered by the grid: `data`, `related`, `integration`, and
   any registered content-driven catalog type (stat / chart / delta / gauge /
   object-list / …). A `#widget-<widgetId>` slot overrides any cell.
+- **Field-scoped data widgets (ADR-062).** A `data` widget's `content` accepts
+  `include` (field whitelist) / `exclude` (blacklist), forwarded to
+  `CnObjectDataWidget` — so one object can be presented as several purposeful
+  data widgets ("Core case data" / "Process"), each sized to its field count.
+- **Content-only catalog widgets get card chrome.** `object-list` / `table`
+  cells render on `CnWidgetWrapper` with the widget def's `title` (they have no
+  chrome of their own); self-chromed catalog widgets (stat / chart / …) render
+  bare, as before.
+- **Cell-overflow dev warning (ADR-062: the cell is the budget).** In
+  non-production builds the page console.warns any grid cell whose rendered
+  content is taller than its `gridHeight` — overflow is a design bug (enlarge
+  the cell or scope the widget's content), never a scroll surface.
 
 ## Sidebar config object
 
@@ -327,7 +339,7 @@ See [`useObjectLock`](../utilities/composables/use-object-lock.md) for the lock 
 
 ## Built-in Actions menu
 
-The header carries the shared [`CnActionsMenu`](./cn-actions-menu) overflow `…` — **Refresh**, **Documentation**, and **Request a feature** — after any `#actions` slot content. Refresh and Request-a-feature are **on by default**; opt out per item with `:show-refresh="false"` / `:show-request-feature="false"`.
+The header carries the shared [`CnActionsMenu`](./cn-actions-menu) overflow `…` — **Refresh**, **Documentation**, and **Request a feature** — after any `#actions` slot content. Request-a-feature is **on by default**; **Refresh is shown only when it will do something** — `showRefresh` is tri-state (`true`/`false` force it; the default `null` is **auto**: shown when a consumer attached an `@refresh` listener *or* the page is in schema-driven mode and can self-fetch). A legacy `objectType`-mode page that never wires `@refresh` therefore shows no dead Refresh button. Force it with `:show-refresh="true"`/`false`; opt out of Request-a-feature with `:show-request-feature="false"`.
 
 - **Refresh** emits `@refresh` and, unless the host calls `event.preventDefault()`, fires the `cn:page:refresh` event-bus channel with `{ widgetId, title }`.
 - **Documentation** renders only when `documentationUrl` is set, opening it in a new tab.
@@ -360,3 +372,12 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `showRelatedObjects` | Boolean | `true` | Whether to render the Related section beneath the data widget. Set `false` on pages that surface relations elsewhere (e.g. the sidebar) to drop the section. |
+
+### Widget icons (ADR-062)
+
+Every `config.widgets[]` def may carry `icon` (an MDI component name, e.g.
+`"CheckboxMarkedOutline"`). Data widgets forward it to their card header via
+`CnIcon`; content-only catalog widgets (object-list / table) render it in
+their `CnWidgetWrapper` title. Together with the shared
+`var(--border-radius-large, 8px)` card radius this keeps all detail-page
+widgets in one visual family.

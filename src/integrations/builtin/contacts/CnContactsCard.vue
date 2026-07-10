@@ -312,7 +312,14 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
-	padding: 8px;
+	padding: 12px;
+	/* Same card chrome as the other detail-page leaves (CnDetailCard) —
+	   ADR-062: every body widget renders on visible card chrome. The chip
+	   variant below overrides this back to its pill look. */
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large, 8px);
+	height: 100%;
 }
 
 .cn-contacts-card--chip {
@@ -320,8 +327,10 @@ export default {
 	align-items: center;
 	padding: 4px 8px;
 	background-color: var(--color-background-hover);
+	border: none;
 	border-radius: var(--border-radius-pill, 16px);
 	max-width: fit-content;
+	height: auto;
 }
 
 .cn-contacts-card__chip-text {
