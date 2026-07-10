@@ -165,7 +165,10 @@ function unwrap(data) {
 const REGISTER_TTL_MS = 60000
 const dataCache = { registers: null, registersAt: 0, schemas: new Map() }
 
-/** Drop all cached registers + schemas (call after any write; exported for test isolation). */
+/**
+ * Drop all cached registers + schemas (call after any write). Exported so tests
+ * can reset the process-lifetime cache between cases for isolation.
+ */
 export function invalidateDataCache() {
 	dataCache.registers = null
 	dataCache.registersAt = 0

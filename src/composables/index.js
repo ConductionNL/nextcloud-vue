@@ -24,6 +24,7 @@ export {
 } from './useContextMenu.js'
 export { useAppManifest } from './useAppManifest.js'
 export { useAppStatus } from './useAppStatus.js'
+export { useAppInstaller } from './useAppInstaller.js'
 export { useSetupStatus } from './useSetupStatus.js'
 export { useWalkthrough, compareSemver, interpolateTokens } from './useWalkthrough.js'
 export { useGraphQL, selectByPath } from './useGraphQL.js'

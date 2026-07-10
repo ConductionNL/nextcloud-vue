@@ -55,11 +55,13 @@ describe('CnEditSettingsModal', () => {
 	it('personal-settings entry toggles and label write into nav in place', () => {
 		const working = { menu: [] }
 		const wrapper = mountModal(working)
-		// Defaults ON when nav.includePersonalSettings is unset.
+		// Defaults ON: mirrors CnAppNav's runtime default (the entry shows unless
+		// nav.includePersonalSettings is explicitly false), so the toggle reflects
+		// what the nav actually renders for an app that never set the flag.
 		expect(wrapper.vm.includePersonalSettings).toBe(true)
-		wrapper.vm.setIncludePersonalSettings(false)
+		wrapper.vm.setIncludePersonalSettings(true)
 		wrapper.vm.setSettingsLabel('Preferences')
-		expect(working.nav.includePersonalSettings).toBe(false)
+		expect(working.nav.includePersonalSettings).toBe(true)
 		expect(working.nav.settingsLabel).toBe('Preferences')
 	})
 })

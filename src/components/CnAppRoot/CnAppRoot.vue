@@ -80,17 +80,47 @@
 			<slot name="or-missing" :missing-apps="missingApps">
 				<div class="cn-app-root__or-missing">
 					<NcEmptyContent
-						:name="translate('app-availability.title')"
-						:description="translate('app-availability.description')">
+						:name="orMissingTitle"
+						:description="orMissingDescription">
 						<template #icon>
 							<DatabaseSearchOutline :size="64" />
 						</template>
 						<template #action>
-							<a
-								class="cn-app-root__or-missing-action"
-								:href="orStoreLink">
-								{{ translate('app-availability.action') }}
-							</a>
+							<!--
+							  Admin: one click installs-and-enables (or enables)
+							  the missing app via Nextcloud's own settings/apps/
+							  enable endpoint, then reloads. On failure the error
+							  shows inline and the store link stays as a fallback
+							  (REQ-DIA-3).
+							-->
+							<template v-if="isAdmin">
+								<NcButton
+									type="primary"
+									data-testid="cn-app-root-or-missing-install"
+									:disabled="depInstalling"
+									@click="installDependency(orMissingPrimaryApp)">
+									<template #icon>
+										<NcLoadingIcon v-if="depInstalling" :size="20" />
+									</template>
+									{{ orMissingInstallLabel }}
+								</NcButton>
+								<p v-if="depInstallError" class="cn-app-root__or-missing-error">
+									{{ depInstallError }}
+								</p>
+								<a
+									v-if="depInstallError"
+									class="cn-app-root__or-missing-action"
+									:href="orStoreLink">
+									{{ orMissingActionLabel }}
+								</a>
+							</template>
+							<!--
+							  Non-admin: no dead-end link they cannot act on —
+							  point them at their administrator instead (REQ-DIA-3).
+							-->
+							<p v-else class="cn-app-root__or-missing-ask-admin" data-testid="cn-app-root-or-missing-ask-admin">
+								{{ orMissingAskAdmin }}
+							</p>
 						</template>
 					</NcEmptyContent>
 				</div>
@@ -118,9 +148,9 @@
 		  `<CnDependencyMissing>`. See REQ-JMR-011.
 		-->
 		<template v-else-if="phase === 'dependency-missing'">
-			<slot name="dependency-missing" :dependencies="unresolvedDependencies">
+			<slot name="dependency-missing" :dependencies="unresolvedHardDependencies">
 				<CnDependencyMissing
-					:dependencies="unresolvedDependencies"
+					:dependencies="unresolvedHardDependencies"
 					:app-name="appId" />
 			</slot>
 		</template>
@@ -158,6 +188,52 @@
 				<CnAppNav :manifest="menuManifest" :permissions="permissions" :is-owner="isOwner" />
 			</slot>
 			<NcAppContent>
+				<!--
+				  Soft-dependency notices (REQ-DIA-6). One dismissible,
+				  NON-BLOCKING NcNoteCard per unresolved+undismissed SOFT
+				  dependency, each carrying the same admin-aware install/enable
+				  action as the hard surfaces. Dismissal persists per
+				  app+dependency in localStorage so a dismissed notice does not
+				  reappear on reload.
+				-->
+				<NcNoteCard
+					v-for="dep in unresolvedSoftDependencies"
+					:key="'cn-soft-dep-' + dep.id"
+					type="warning"
+					:heading="softDepHeading(dep)"
+					class="cn-app-root__soft-dep"
+					:data-testid="'cn-app-root-soft-dep-' + dep.id">
+					<div class="cn-app-root__soft-dep-body">
+						<p class="cn-app-root__soft-dep-text">
+							{{ softDepText(dep) }}
+						</p>
+						<div class="cn-app-root__soft-dep-actions">
+							<NcButton
+								v-if="isAdmin"
+								type="secondary"
+								:data-testid="'cn-app-root-soft-dep-install-' + dep.id"
+								:disabled="depInstalling"
+								@click="installDependency(dep.id)">
+								<template #icon>
+									<NcLoadingIcon v-if="depInstalling && installingDepId === dep.id" :size="20" />
+								</template>
+								{{ dep.enabled === false ? softDepEnableLabel : softDepInstallLabel }}
+							</NcButton>
+							<span v-else class="cn-app-root__soft-dep-ask-admin">
+								{{ softDepAskAdmin(dep) }}
+							</span>
+							<NcButton
+								type="tertiary"
+								:data-testid="'cn-app-root-soft-dep-dismiss-' + dep.id"
+								@click="dismissSoftDep(dep.id)">
+								{{ softDepDismissLabel }}
+							</NcButton>
+						</div>
+						<p v-if="depInstallError && erroredDepId === dep.id" class="cn-app-root__soft-dep-error">
+							{{ depInstallError }}
+						</p>
+					</div>
+				</NcNoteCard>
 				<!--
 				  In-app edit shell (ADR-041). The Conduction-orange OpenBuild edit
 				  button is rendered INSIDE each page's action row (CnDashboardPage /
@@ -454,7 +530,8 @@
 <script>
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
-import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { getCurrentUser } from '@nextcloud/auth'
+import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
 import Restart from 'vue-material-design-icons/Restart.vue'
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
@@ -475,6 +552,7 @@ import { useManifestEditor } from '../../composables/useManifestEditor.js'
 import { useOpenBuildEditAvailability } from '../../composables/useOpenBuildEditAvailability.js'
 import { loadState } from '@nextcloud/initial-state'
 import { useAppStatus } from '../../composables/useAppStatus.js'
+import { useAppInstaller } from '../../composables/useAppInstaller.js'
 import { useSetupStatus } from '../../composables/useSetupStatus.js'
 import { useWalkthrough } from '../../composables/useWalkthrough.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
@@ -541,6 +619,7 @@ export default {
 		NcContent,
 		NcEmptyContent,
 		NcLoadingIcon,
+		NcNoteCard,
 		DatabaseSearchOutline,
 		Restart,
 		CnAppNav,
@@ -1210,6 +1289,13 @@ export default {
 		watch(() => props.manifest, (m) => {
 			if (!manifestEditor.editing.value) baseRef.value = m
 		})
+		// One shared install/enable action for the or-missing guard and the
+		// soft-dependency banners (REQ-DIA-3 / REQ-DIA-6). `depInstalling` /
+		// `depInstallError` are the composable refs, returned top-level so the
+		// template auto-unwraps them; `installAndEnable` is called from the
+		// `installDependency` method.
+		const appInstaller = useAppInstaller()
+
 		const { available: openBuildAvailable } = useOpenBuildEditAvailability()
 		// A manifest may opt OUT of the OpenBuild in-app edit button by setting
 		// `openbuildEditable: false` (e.g. OpenBuild's own pages — an app does not
@@ -1224,6 +1310,9 @@ export default {
 			cnTenantContext: tenantContext,
 			manifestEditor,
 			openBuildAvailable: openBuildEditable,
+			appInstaller,
+			depInstalling: appInstaller.installing,
+			depInstallError: appInstaller.error,
 		}
 	},
 
@@ -1303,6 +1392,52 @@ export default {
 			 * `update:open` event.
 			 */
 			adminSettingsOpen: false,
+			/**
+			 * Id of the dependency whose install/enable action is currently
+			 * in flight (REQ-DIA-3 / REQ-DIA-6). Drives the per-button spinner
+			 * so, with several soft-dependency banners on screen, only the
+			 * clicked one shows busy. `null` when nothing is installing.
+			 *
+			 * @type {string|null}
+			 */
+			installingDepId: null,
+			/**
+			 * Id of the dependency whose last install/enable attempt failed —
+			 * scopes the inline soft-dependency banner error to that dep even
+			 * after `installingDepId` clears on settle.
+			 *
+			 * @type {string|null}
+			 */
+			erroredDepId: null,
+			/**
+			 * Ids of SOFT dependencies whose in-shell banner the user has
+			 * dismissed (REQ-DIA-6). Seeded synchronously from `localStorage`
+			 * (`cn-soft-dep-dismissed:{appId}:{depId}`) so a previously
+			 * dismissed notice never flashes on mount; a fresh dismissal pushes
+			 * the id here (reactive hide) and persists the key.
+			 *
+			 * @type {Array<string>}
+			 */
+			dismissedSoftDeps: (() => {
+				const out = []
+				try {
+					const deps = Array.isArray(this.manifest?.dependencies)
+						? this.manifest.dependencies
+						: []
+					for (const entry of deps) {
+						const isObject = entry !== null && typeof entry === 'object'
+						const id = isObject ? entry.id : entry
+						const required = isObject ? entry.required !== false : true
+						if (required || typeof id !== 'string' || id === '') continue
+						if (window.localStorage.getItem('cn-soft-dep-dismissed:' + this.appId + ':' + id)) {
+							out.push(id)
+						}
+					}
+				} catch (e) {
+					// localStorage unavailable (private mode) — nothing dismissed.
+				}
+				return out
+			})(),
 			/**
 			 * Key of the currently active modal (opened via cnOpenModal).
 			 * null when no modal is open.
@@ -1640,7 +1775,21 @@ export default {
 			const deps = Array.isArray(this.manifest?.dependencies)
 				? this.manifest.dependencies
 				: []
-			return deps.map((id) => ({ id, status: useAppStatus(id) }))
+			// HARD/SOFT dependency model (REQ-DIA-4/REQ-DIA-5). Each manifest
+			// entry is normalised to `{ id, required, name, status }`:
+			//  - string        → HARD (`required: true`), name = id
+			//  - { id, required?, name? } → `required` defaults to true;
+			//    `required: false` marks a SOFT (optional) dependency.
+			return deps
+				.map((entry) => {
+					const isObject = entry !== null && typeof entry === 'object'
+					const id = isObject ? entry.id : entry
+					if (typeof id !== 'string' || id === '') return null
+					const required = isObject ? entry.required !== false : true
+					const name = (isObject && entry.name) || id
+					return { id, required, name, status: useAppStatus(id) }
+				})
+				.filter((entry) => entry !== null)
 		},
 		/**
 		 * App statuses injected by the PHP boot() via IInitialStateService.
@@ -1663,7 +1812,7 @@ export default {
 					if (server !== undefined) return !server.installed || !server.enabled
 					return !status.installed.value || !status.enabled.value
 				})
-				.map(({ id }) => {
+				.map(({ id, required, name }) => {
 					const server = this.serverAppStatuses[id]
 					if (server !== undefined) {
 						// Server data available: correctly distinguish the two states.
@@ -1671,14 +1820,43 @@ export default {
 						// enabled: undefined → not installed (→ "Install")
 						return {
 							id,
-							name: id,
+							name,
+							required,
 							category: server.category ?? 'featured',
 							enabled: server.installed ? false : undefined,
 						}
 					}
-					// No server data — cannot tell installed from disabled, show "Enable"
-					return { id, name: id, category: 'featured', enabled: false }
+					// No server data and the JS heuristic cannot tell not-installed
+					// from installed-but-disabled. Default to the safe "not
+					// installed" shape (enabled: undefined → "Install and enable"):
+					// a genuinely-missing app must never be mislabelled "Enable".
+					return { id, name, required, category: 'featured', enabled: undefined }
 				})
+		},
+		/**
+		 * Unresolved HARD dependencies — the app cannot run without these,
+		 * so their presence gates the shell behind the blocking
+		 * `dependency-missing` phase / `CnDependencyMissing` screen
+		 * (REQ-DIA-5).
+		 *
+		 * @return {Array<object>} Unresolved entries with `required === true`.
+		 */
+		unresolvedHardDependencies() {
+			return this.unresolvedDependencies.filter((dep) => dep.required)
+		},
+		/**
+		 * Unresolved SOFT dependencies — optional integrations whose
+		 * absence must NOT block the shell. Each surfaces as a dismissible
+		 * in-shell `NcNoteCard` banner (REQ-DIA-6), filtered here to those
+		 * not yet dismissed in `localStorage`.
+		 *
+		 * @return {Array<object>} Undismissed unresolved entries with
+		 *   `required === false`.
+		 */
+		unresolvedSoftDependencies() {
+			return this.unresolvedDependencies
+				.filter((dep) => !dep.required)
+				.filter((dep) => !this.dismissedSoftDeps.includes(dep.id))
 		},
 		/**
 		 * First-time-setup status for this app (ADR-042), or null when the
@@ -1743,7 +1921,10 @@ export default {
 		},
 		phase() {
 			if (this.isLoading) return 'loading'
-			if (this.unresolvedDependencies.length > 0) return 'dependency-missing'
+			// Only unresolved HARD dependencies block the shell (REQ-DIA-5);
+			// unresolved SOFT dependencies surface as a non-blocking in-shell
+			// banner and let the app advance to setup/shell.
+			if (this.unresolvedHardDependencies.length > 0) return 'dependency-missing'
 			if (this.setupGating) return 'setup'
 			return 'shell'
 		},
@@ -1755,6 +1936,113 @@ export default {
 		 */
 		orStoreLink() {
 			return OR_STORE_LINK
+		},
+		/**
+		 * Whether the current user is a Nextcloud admin. Only admins can
+		 * hit `settings/apps/enable`, so both dependency surfaces branch on
+		 * this: admins get the in-place install/enable action, non-admins
+		 * get "ask your administrator" copy (REQ-DIA-2 / REQ-DIA-3).
+		 *
+		 * @return {boolean}
+		 */
+		isAdmin() {
+			try {
+				return getCurrentUser()?.isAdmin === true
+			} catch (e) {
+				return false
+			}
+		},
+		/**
+		 * The missing app the or-missing guard's primary install/enable
+		 * action targets — the first entry of `missingApps` (typically
+		 * `openregister`). Empty string when nothing is missing.
+		 *
+		 * @return {string}
+		 */
+		orMissingPrimaryApp() {
+			return this.missingApps[0] || ''
+		},
+		/**
+		 * Human-readable list of the missing apps for the guard copy.
+		 *
+		 * @return {string}
+		 */
+		missingAppsLabel() {
+			return this.missingApps.join(', ')
+		},
+		/**
+		 * Guard title — the translated `app-availability.title`, or a
+		 * sensible English default when the key is untranslated (REQ-DIA-7).
+		 *
+		 * @return {string}
+		 */
+		orMissingTitle() {
+			return this.availabilityCopy('app-availability.title', 'Required app not available')
+		},
+		/**
+		 * Guard description — translated `app-availability.description` or an
+		 * English default naming the missing app(s) (REQ-DIA-7).
+		 *
+		 * @return {string}
+		 */
+		orMissingDescription() {
+			return this.availabilityCopy(
+				'app-availability.description',
+				`This app requires ${this.missingAppsLabel || 'another Nextcloud app'} to be installed and enabled.`,
+			)
+		},
+		/**
+		 * Fallback store-link label — translated `app-availability.action`
+		 * or an English default (REQ-DIA-7).
+		 *
+		 * @return {string}
+		 */
+		orMissingActionLabel() {
+			return this.availabilityCopy('app-availability.action', 'Open app settings')
+		},
+		/**
+		 * Admin install button label for the or-missing guard.
+		 *
+		 * @return {string}
+		 */
+		orMissingInstallLabel() {
+			return this.availabilityCopy('app-availability.install', 'Install and enable')
+		},
+		/**
+		 * Non-admin "ask your administrator" copy for the or-missing guard
+		 * (REQ-DIA-3), naming the missing app(s).
+		 *
+		 * @return {string}
+		 */
+		orMissingAskAdmin() {
+			return this.availabilityCopy(
+				'app-availability.ask-admin',
+				`Ask your administrator to enable ${this.missingAppsLabel || 'the required app'}.`,
+			)
+		},
+		/**
+		 * Soft-dependency install-action label (app not installed).
+		 *
+		 * @return {string}
+		 */
+		softDepInstallLabel() {
+			return this.availabilityCopy('app-availability.soft.install', 'Install and enable')
+		},
+		/**
+		 * Soft-dependency enable-action label (installed but disabled).
+		 *
+		 * @return {string}
+		 */
+		softDepEnableLabel() {
+			return this.availabilityCopy('app-availability.soft.enable', 'Enable')
+		},
+		/**
+		 * Soft-dependency dismiss-action label.
+		 *
+		 * @return {string}
+		 */
+		softDepDismissLabel() {
+			return this.availabilityCopy('app-availability.soft.dismiss', 'Dismiss')
 		},
 		/**
 		 * Repo target for the built-in feature-request deep link.
@@ -1918,6 +2206,100 @@ export default {
 			if (reg && reg.component) return reg.component
 			const legacy = this.customComponents && this.customComponents[key]
 			return legacy || null
+		},
+		/**
+		 * Return the translated copy for `key`, or `fallback` when the
+		 * `translate` prop leaves the key unchanged (its default is the
+		 * identity function and no consumer app defines the
+		 * `app-availability.*` keys). Keeps real l10n working for apps that
+		 * DO supply the strings while guaranteeing English prose otherwise
+		 * (REQ-DIA-7).
+		 *
+		 * @param {string} key The i18n key.
+		 * @param {string} fallback The English default.
+		 * @return {string}
+		 */
+		availabilityCopy(key, fallback) {
+			const translated = this.translate(key)
+			return (translated === undefined || translated === null || translated === key)
+				? fallback
+				: translated
+		},
+		/**
+		 * Install-and-enable (or enable) a missing dependency via the shared
+		 * `useAppInstaller` (REQ-DIA-3 / REQ-DIA-6). Marks the dependency
+		 * busy for the per-button spinner, reloads on success (a freshly
+		 * installed app's assets only exist after a full load), and on
+		 * failure leaves `depInstallError` set so the store link stays as a
+		 * fallback.
+		 *
+		 * @param {string} id The Nextcloud app id to install/enable.
+		 * @return {Promise<void>}
+		 */
+		async installDependency(id) {
+			if (!id) return
+			this.installingDepId = id
+			this.erroredDepId = null
+			try {
+				await this.appInstaller.installAndEnable(id)
+				window.location.reload()
+			} catch (e) {
+				// Error is surfaced inline via `depInstallError`; the store
+				// link remains available as a manual fallback. A cancelled
+				// password confirmation also lands here (no error text).
+				this.erroredDepId = id
+			} finally {
+				this.installingDepId = null
+			}
+		},
+		/**
+		 * Dismiss a soft-dependency banner (REQ-DIA-6). Persists the
+		 * dismissal under `cn-soft-dep-dismissed:{appId}:{depId}` and hides
+		 * the banner reactively. Independent per dependency.
+		 *
+		 * @param {string} id The soft dependency's app id.
+		 * @return {void}
+		 */
+		dismissSoftDep(id) {
+			try {
+				window.localStorage.setItem('cn-soft-dep-dismissed:' + this.appId + ':' + id, '1')
+			} catch (e) {
+				// Best-effort persistence (private mode / no storage).
+			}
+			if (!this.dismissedSoftDeps.includes(id)) {
+				this.dismissedSoftDeps.push(id)
+			}
+		},
+		/**
+		 * Heading for a soft-dependency banner.
+		 *
+		 * @param {object} dep The normalised dependency `{ id, name, ... }`.
+		 * @return {string}
+		 */
+		softDepHeading(dep) {
+			return this.availabilityCopy('app-availability.soft.heading', `Optional: ${dep.name}`)
+		},
+		/**
+		 * Body text for a soft-dependency banner.
+		 *
+		 * @param {object} dep The normalised dependency `{ id, name, ... }`.
+		 * @return {string}
+		 */
+		softDepText(dep) {
+			return this.availabilityCopy(
+				'app-availability.soft.description',
+				`${dep.name} unlocks optional features in this app but is not installed or enabled.`,
+			)
+		},
+		/**
+		 * Non-admin "ask your administrator" copy for a soft-dependency
+		 * banner.
+		 *
+		 * @param {object} dep The normalised dependency `{ id, name, ... }`.
+		 * @return {string}
+		 */
+		softDepAskAdmin(dep) {
+			return this.availabilityCopy('app-availability.soft.ask-admin', `Ask your administrator to enable ${dep.name}.`)
 		},
 		/**
 		 * Warn before unload when the manifest editor has unsaved (or still-
@@ -2250,5 +2632,40 @@ export default {
 .cn-app-root__walkthrough-hint {
 	margin-bottom: 12px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-app-root__or-missing-error {
+	margin: calc(2 * var(--default-grid-baseline)) 0 calc(1 * var(--default-grid-baseline));
+	color: var(--color-error);
+}
+
+.cn-app-root__or-missing-ask-admin {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-app-root__soft-dep {
+	margin: calc(2 * var(--default-grid-baseline));
+}
+
+.cn-app-root__soft-dep-body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--default-grid-baseline);
+}
+
+.cn-app-root__soft-dep-actions {
+	display: flex;
+	align-items: center;
+	gap: calc(2 * var(--default-grid-baseline));
+	flex-wrap: wrap;
+}
+
+.cn-app-root__soft-dep-ask-admin {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-app-root__soft-dep-error {
+	margin: 0;
+	color: var(--color-error);
 }
 </style>
