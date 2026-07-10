@@ -156,13 +156,14 @@ export const DEFAULT_ICON = 'ViewDashboard'
  * as an `<img>` (a URL) rather than looked up in the registry.
  *
  * @param {string|null|undefined} name the value from a widget icon field.
- * @return {boolean} true when `name` is a non-empty string starting with `/` or `http`.
+ * @return {boolean} true when `name` is a non-empty string starting with `/`,
+ *   `http`, or `data:` (an inline data-URI, e.g. the bundled NL Design icons).
  */
 export function isCustomIconUrl(name) {
 	if (typeof name !== 'string' || name.length === 0) {
 		return false
 	}
-	return name.startsWith('/') || name.startsWith('http')
+	return name.startsWith('/') || name.startsWith('http') || name.startsWith('data:')
 }
 
 /**
