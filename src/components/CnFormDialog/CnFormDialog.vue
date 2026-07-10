@@ -202,6 +202,7 @@
 								:disabled="field.readOnly"
 								:loading="isFieldLoading(field)"
 								:filterable="!isAsyncEnum(field)"
+								:user-select="isUserField(field)"
 								@input="onEffectiveSelectChange(field, $event)"
 								@search="isAsyncEnum(field) ? onAsyncSearch(field, $event) : undefined">
 								<template

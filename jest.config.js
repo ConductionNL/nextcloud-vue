@@ -19,6 +19,7 @@ module.exports = {
 		'^@codemirror/lang-html$': '<rootDir>/tests/__mocks__/codemirror-lang-html.js',
 		'^@nextcloud/vue$': '<rootDir>/tests/__mocks__/nextcloud-vue.js',
 		'^@nextcloud/axios$': '<rootDir>/tests/__mocks__/nextcloud-axios.js',
+		'^@nextcloud/password-confirmation$': '<rootDir>/tests/__mocks__/nextcloud-password-confirmation.js',
 		'^@microsoft/fetch-event-source$': '<rootDir>/tests/__mocks__/fetch-event-source.js',
 		'^@nextcloud/notify_push$': '<rootDir>/tests/__mocks__/nextcloud-notify-push.js',
 		'^@vueuse/core$': '<rootDir>/tests/__mocks__/vueuse-core.js',

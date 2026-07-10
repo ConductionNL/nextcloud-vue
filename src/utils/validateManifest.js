@@ -390,7 +390,9 @@ export function validateManifestV2(manifest) {
 	}
 	if (Array.isArray(clone.dependencies)) {
 		clone.dependencies.forEach((dep, index) => {
-			if (typeof dep === 'string' && _v2Sentinel.test(dep)) {
+			// String (HARD) or { id, required?, name? } (required:false = SOFT).
+			const id = typeof dep === 'string' ? dep : (dep && typeof dep === 'object' ? dep.id : null)
+			if (typeof id === 'string' && _v2Sentinel.test(id)) {
 				errors.push(`/dependencies/${index} must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
 			}
 		})
@@ -751,13 +753,30 @@ export function validateManifest(manifest, options = {}) {
 
 	if (manifest.dependencies !== undefined) {
 		if (!Array.isArray(manifest.dependencies)) {
-			errors.push('/dependencies must be an array of strings')
+			errors.push('/dependencies must be an array of strings or { id, required?, name? } objects')
 		} else {
 			manifest.dependencies.forEach((dep, index) => {
-				if (typeof dep !== 'string') {
-					errors.push(`/dependencies/${index} must be a string`)
-				} else if (isSentinel(dep)) {
-					errors.push(`/dependencies/${index} must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+				// HARD/SOFT dependency model: an entry is either a string
+				// (HARD) or an object { id, required?, name? } (required:false
+				// = SOFT). See REQ-DIA-4.
+				if (typeof dep === 'string') {
+					if (isSentinel(dep)) {
+						errors.push(`/dependencies/${index} must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+					}
+				} else if (dep && typeof dep === 'object' && !Array.isArray(dep)) {
+					if (typeof dep.id !== 'string' || dep.id === '') {
+						errors.push(`/dependencies/${index}/id must be a non-empty string`)
+					} else if (isSentinel(dep.id)) {
+						errors.push(`/dependencies/${index}/id must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+					}
+					if (dep.required !== undefined && typeof dep.required !== 'boolean') {
+						errors.push(`/dependencies/${index}/required must be a boolean`)
+					}
+					if (dep.name !== undefined && typeof dep.name !== 'string') {
+						errors.push(`/dependencies/${index}/name must be a string`)
+					}
+				} else {
+					errors.push(`/dependencies/${index} must be a string or a { id, required?, name? } object`)
 				}
 			})
 		}

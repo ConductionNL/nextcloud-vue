@@ -39,7 +39,16 @@ Apps can override CnAppRoot's `#dependency-missing` slot to customise the screen
 | `id` | `string` | Required. Nextcloud app id (matches entries in `manifest.dependencies`) |
 | `name` | `string` | Optional human-readable label; falls back to `id` when omitted |
 | `installUrl` | `string` | Optional override URL. Defaults to `/index.php/settings/apps` |
-| `enabled` | `boolean` | When `false`, the link reads "Enable" (installed but disabled). Otherwise it reads "Install" |
+| `enabled` | `boolean` | When `false`, the action reads "Enable" (installed but disabled). Otherwise it reads "Install and enable" |
+
+## Install / enable action (admin-aware)
+
+For each dependency the component renders, by user role:
+
+- **Admin** (`getCurrentUser().isAdmin`): an **Install and enable** / **Enable** button driven by [`useAppInstaller`](../utilities/composables/use-app-installer.md). One click confirms the admin's password, then downloads-installs-and-enables the app via Nextcloud's install endpoint — the NC34+ bundled-`appstore` OCS API, falling back to the legacy `settings/apps/enable` route on ≤NC33 — and reloads on success. On failure the error shows inline and the store link (`resolveLink(dep)`) stays as a fallback. See the composable's [Adoption notes](../utilities/composables/use-app-installer.md#adoption-notes) for the `@nextcloud/dialogs` ^6 build requirement.
+- **Non-admin**: "ask your administrator to enable {name}" copy (they cannot hit the admin-only endpoint) — no dead-end link.
+
+The label is **Install and enable** when the app is not installed and **Enable** when `dep.enabled === false` (installed but disabled).
 
 ## Props
 
@@ -49,8 +58,9 @@ Apps can override CnAppRoot's `#dependency-missing` slot to customise the screen
 | `appName` | `String` | `''` | Optional name of the host app. Currently informational; reserved for templated headings |
 | `heading` | `String` | `'Required apps are missing'` | Top heading text |
 | `intro` | `String` | `'This app needs the following Nextcloud apps to be installed and enabled.'` | Introductory paragraph |
-| `installLabel` | `String` | `'Install'` | Label for the install link |
-| `enableLabel` | `String` | `'Enable'` | Label for the enable link (used when `dep.enabled === false`) |
+| `installLabel` | `String` | `'Install and enable'` | Label for the action when the app is not installed |
+| `enableLabel` | `String` | `'Enable'` | Label for the action when `dep.enabled === false` (installed but disabled) |
+| `askAdminLabel` | `String` | `'Ask your administrator to enable {name}'` | Non-admin copy; `{name}` is replaced by the dependency's display name |
 
 ## CSS
 
@@ -59,4 +69,5 @@ Class prefix: `cn-dependency-missing__*`. Uses Nextcloud CSS variables only (`--
 ## Related
 
 - [CnAppRoot](./cn-app-root.md) — Mounts this component during the dependency-check phase.
+- [useAppInstaller](../utilities/composables/use-app-installer.md) — Backs the admin-aware install/enable action.
 - [useAppStatus](../utilities/composables/use-app-status.md) — Detects per-app installed/enabled status.

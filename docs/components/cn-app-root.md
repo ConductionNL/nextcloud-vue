@@ -11,10 +11,34 @@ CnAppRoot is the full-shell convenience for the JSON manifest renderer. Apps tha
 | Phase | When | Default rendering | Override slot |
 |-------|------|-------------------|---------------|
 | `loading` | While `isLoading` is `true` | `<CnAppLoading />` | `#loading` |
-| `dependency-missing` | After loading; any entry in `manifest.dependencies` is not installed/enabled | `<CnDependencyMissing />` | `#dependency-missing` |
-| `shell` | Manifest loaded + dependencies satisfied | `<CnAppNav />` + default slot content | `#menu`, default slot, `#header-actions`, `#sidebar`, `#footer` |
+| `dependency-missing` | After loading; an unresolved **HARD** dependency in `manifest.dependencies` | `<CnDependencyMissing />` | `#dependency-missing` |
+| `shell` | Manifest loaded + all HARD dependencies satisfied | `<CnAppNav />` + default slot content | `#menu`, default slot, `#header-actions`, `#sidebar`, `#footer` |
 
 Dependency status is resolved by [`useAppStatus`](../utilities/composables/use-app-status.md) — one call per id in `manifest.dependencies`, cached for the page lifetime.
+
+## HARD vs SOFT dependencies
+
+Each entry in `manifest.dependencies` is either a **string** (a HARD dependency — the app cannot run without it) or an **object** `{ id, required?, name? }` where `required: false` marks a **SOFT** (optional) integration. `required` defaults to `true`, so existing string-only manifests behave exactly as before.
+
+```jsonc
+"dependencies": [
+  "openregister",                              // HARD: blocks the shell when missing
+  { "id": "deck", "required": false, "name": "Deck" }  // SOFT: dismissible in-shell notice
+]
+```
+
+| | Unresolved behaviour |
+|---|---|
+| **HARD** (string, or `required` not `false`) | Blocks the shell — phase `dependency-missing`, `<CnDependencyMissing>` full-page screen. |
+| **SOFT** (`required: false`) | Never blocks. Renders a dismissible `NcNoteCard` banner inside the shell carrying the same install/enable action. Dismissal persists per app+dependency under `localStorage` key `cn-soft-dep-dismissed:{appId}:{depId}`. |
+
+### In-place install / enable
+
+Both dependency surfaces (`CnDependencyMissing` and the `or-missing` guard) and every soft-dependency banner render an admin-aware action driven by [`useAppInstaller`](../utilities/composables/use-app-installer.md): an admin clicks **Install and enable** (not installed) or **Enable** (installed but disabled) and nc-vue downloads, installs and enables the app via Nextcloud's install endpoint — the NC34+ bundled-`appstore` OCS API, falling back to the legacy `settings/apps/enable` route on ≤NC33 — then reloads. Non-admins — who cannot hit that admin-only endpoint — see "ask your administrator to enable {name}" copy instead of a dead-end link. On failure the error shows inline and the original store link stays as a fallback.
+
+When no server-side `dependency_statuses` initial-state is present and the JS heuristic cannot distinguish "not installed" from "installed but disabled", the action defaults to the **Install and enable** label — a genuinely-missing app must never be mislabelled **Enable**.
+
+The `or-missing` guard (the capabilities check driven by the `requiresApps` prop) now renders English default copy for the `app-availability.title` / `app-availability.description` / `app-availability.action` keys when the `translate` prop leaves them unchanged, so the raw keys never render.
 
 ## Usage
 
@@ -76,6 +100,7 @@ export default {
 | `translate` | `Function` | identity | App-supplied translator — typically `(key) => t(appId, key)`. Named `translate` (not `t`) to avoid shadowing the global `t()` mixin. Provided as `cnTranslate`. |
 | `permissions` | `Array<string>` | `[]` | Permission strings the current user holds. Forwarded to `CnAppNav` for menu filtering. |
 | `userSettingsTitle` | `String` | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to `translate('User settings')` so the title follows the user's locale. Override per app to brand the modal (e.g. `'Decidesk preferences'`). |
+| `adminSettingsTitle` | `String` | `''` | Title shown at the top of the admin-settings `NcAppSettingsDialog`. Empty (the default) resolves to `translate('Administration')`. Override per app (e.g. `'Pipelinq administration'`). |
 | `requiresApps` | `Array<string>` | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the `or-missing` slot (default `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. launchpad, the docs/styleguide app). See [App-availability guard](../architecture/schemas-and-registers.md#app-availability-guard-opt-out). |
 | `initialOrganisationUuid` | `String \| null` | `null` | Seed value for the multi-tenancy provider's `activeOrganisationUuid`. CnAppRoot calls [`provideTenantContext`](../utilities/provide-tenant-context.md)`(initialOrganisationUuid, initialOrganisation)` on mount, so consumers wired to [`useTenantContext`](../utilities/composables/use-tenant-context.md) see the seeded tenant from the first render. Single-tenant deployments leave both props `null`. |
 | `initialOrganisation` | `Object \| null` | `null` | Optional resolved organisation entity matching `initialOrganisationUuid`. Stored on `activeOrganisation` so downstream components ([`CnTenantBadge`](./cn-tenant-badge.md), [`CnFormDialog`](./cn-form-dialog.md) auto-fill) have the name/icon available immediately without a follow-up fetch. |
