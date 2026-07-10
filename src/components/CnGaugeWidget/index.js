@@ -13,14 +13,7 @@ import CnGaugeWidget from './CnGaugeWidget.vue'
 import CnGaugeWidgetForm from '../CnGaugeWidgetForm/CnGaugeWidgetForm.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
-/**
- * The `gauge` registry entry. Exported so the barrel
- * (registerDashboardWidgets.js) can register it INLINE — a bare
- * `import './index.js'` side effect is tree-shaken out of the single-file
- * dist because package.json's `sideEffects` globs never match a dist path.
- * See the object-list note in registerDashboardWidgets.js.
- */
-export const gaugeWidgetRegistration = {
+registerDashboardWidget('gauge', {
 	renderer: CnGaugeWidget,
 	form: CnGaugeWidgetForm,
 	defaultContent: {
@@ -35,9 +28,7 @@ export const gaugeWidgetRegistration = {
 	// Self-contained card surface — rendered flush and centred (no inner
 	// scrollbar). See CnDashboardPage.isCardWidget.
 	card: true,
-}
-
-registerDashboardWidget('gauge', gaugeWidgetRegistration)
+})
 
 export { CnGaugeWidget }
 export default CnGaugeWidget
