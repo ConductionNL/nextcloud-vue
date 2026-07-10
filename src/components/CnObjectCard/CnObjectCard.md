@@ -112,7 +112,7 @@ Limiting metadata fields and custom `metadata` slot — `maxMetadata` caps the n
 export default {
   data() {
     return {
-      item: { id: 4, title: 'MyDash', status: 'active', version: '0.1.0', owner: 'Remko' },
+      item: { id: 4, title: 'LaunchPad', status: 'active', version: '0.1.0', owner: 'Remko' },
       schema: {
         properties: {
           title: { type: 'string', title: 'Name' },

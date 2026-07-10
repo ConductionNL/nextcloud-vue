@@ -204,3 +204,40 @@ describe('CnDataTable — @self metadata fallback', () => {
 		expect(wrapper.findAll('.cell').wrappers.map((w) => w.text())).toEqual(expect.arrayContaining(['Acme', 'https://x/y']))
 	})
 })
+
+// hideHeader lets compact dashboard list widgets render a plain bordered-row
+// list with no column-label row (matches the older bespoke ManageListWidget look).
+describe('CnDataTable — hideHeader', () => {
+	it('renders the <thead> by default', () => {
+		const wrapper = mountTable({ rows, columns: ['name'] })
+		expect(wrapper.find('thead').exists()).toBe(true)
+	})
+
+	it('omits the <thead> when hideHeader is set', () => {
+		const wrapper = mountTable({ rows, columns: ['name'], hideHeader: true })
+		expect(wrapper.find('thead').exists()).toBe(false)
+		// Rows still render.
+		expect(wrapper.findAll('.cn-table-row').length).toBe(2)
+	})
+})
+
+// A #footer scoped slot lets a host render its own footer link with its own
+// handler (a "+ New" create action, or an always-shown "View all") — usable
+// outside a vue-router context, where the built-in link's $router.push no-ops.
+describe('CnDataTable — #footer slot', () => {
+	it('renders custom footer content instead of the built-in view-all link', () => {
+		const wrapper = mount(CnDataTable, {
+			propsData: { rows, columns: ['name'] },
+			stubs: { CnCellRenderer: { props: ['value'], template: '<span class="cell">{{ value }}</span>' } },
+			scopedSlots: { footer: '<a class="my-footer" @click="props.total">+ New thing</a>' },
+		})
+		expect(wrapper.find('.cn-data-table__footer').exists()).toBe(true)
+		expect(wrapper.find('.my-footer').text()).toBe('+ New thing')
+		expect(wrapper.find('.cn-data-table__view-all').exists()).toBe(false)
+	})
+
+	it('renders no footer when neither a slot nor a subset view-all applies', () => {
+		const wrapper = mountTable({ rows, columns: ['name'] })
+		expect(wrapper.find('.cn-data-table__footer').exists()).toBe(false)
+	})
+})

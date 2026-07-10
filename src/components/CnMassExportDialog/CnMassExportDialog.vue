@@ -28,6 +28,17 @@
 				{{ description }}
 			</p>
 
+			<div v-if="entities.length > 0" class="cn-mass-export__field">
+				<label for="cn-mass-export-entity">{{ entityLabel }}</label>
+				<NcSelect
+					input-id="cn-mass-export-entity"
+					:label-outside="true"
+					:options="entities"
+					:model-value="selectedEntity"
+					:clearable="false"
+					@input="selectedEntity = $event" />
+			</div>
+
 			<div class="cn-mass-export__field">
 				<label for="cn-mass-export-format">{{ formatLabel }}</label>
 				<NcSelect
@@ -136,6 +147,30 @@ export default {
 			default: 'excel',
 		},
 
+		/**
+		 * Optional selectable entity types (`[{ id, label }]`) rendered as an
+		 * extra picker above the format selector — the export-launcher case
+		 * ("which dataset am I exporting?"). Empty (the default) hides the
+		 * picker and keeps the pre-existing format-only dialog. When set, the
+		 * `confirm` payload carries the chosen `entity` id.
+		 * @type {Array<{id: string, label: string}>}
+		 */
+		entities: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Optional default selected entity ID (first entity when unset).
+		 */
+		defaultEntity: {
+			type: String,
+			default: '',
+		},
+
+		/** Label for the entity selector. */
+		entityLabel: { type: String, default: () => t('nextcloud-vue', 'Entity') },
+
 		/** Success message */
 		successText: {
 			type: String,
@@ -154,8 +189,10 @@ export default {
 
 	data() {
 		const defaultOption = this.formats.find((f) => f.id === this.defaultFormat) || this.formats[0]
+		const defaultEntityOption = this.entities.find((e) => e.id === this.defaultEntity) || this.entities[0] || null
 		return {
 			selectedFormat: defaultOption,
+			selectedEntity: defaultEntityOption,
 			loading: false,
 			result: null,
 			closeTimeout: null,
@@ -169,8 +206,13 @@ export default {
 	methods: {
 		executeExport() {
 			this.loading = true
+			/**
+			 * @event confirm Emitted when the primary Export button is clicked.
+			 * @type {{ format: string, entity?: string }} `entity` is present only when the `entities` picker is configured.
+			 */
 			this.$emit('confirm', {
 				format: this.selectedFormat.id,
+				...(this.selectedEntity ? { entity: this.selectedEntity.id } : {}),
 			})
 		},
 

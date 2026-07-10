@@ -28,7 +28,7 @@ This change is **phase 2**: a universal, in-place **edit mode** for any manifest
 ## Impact
 
 - **Code:** `src/components/CnOpenBuildEditButton/` (new), `src/composables/useManifestEditor.js` (new) + a thin `useOpenBuildEditAvailability` wiring composable reading `useAppStatus`, `src/modals/CnEditMenuModal.vue` + `src/modals/CnEditSidebarModal.vue` (new), `src/components/CnWidgetGrid/CnWidgetGrid.vue` (edit-aware mode), `src/components/CnPageRenderer/CnPageRenderer.vue` + `src/components/CnAppRoot/CnAppRoot.vue` (mount button right of refresh; provide editor state), `src/img/openbuild.svg` (library copy of the glyph), barrel exports in `src/index.js`.
-- **Consumers:** All five (OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash) — additively and default-off; the button only appears where OpenBuild is reachable, so no consumer requires changes.
+- **Consumers:** All five (OpenRegister, OpenCatalogi, Procest, Pipelinq, LaunchPad) — additively and default-off; the button only appears where OpenBuild is reachable, so no consumer requires changes.
 - **Theming:** Adds one Conduction brand color reference `var(--c-orange-knvb)` (fallback `#F36C21`) used solely for the OpenBuild button; everything else reuses existing Nextcloud CSS variables. No `--nldesign-*` direct use.
 - **Dependencies (hard):**
   - `manifest-delta-merge-and-flex-columns` (**shipped**) — provides `mergeManifestDelta`, `diffManifest`, `widgetEntry.id`, `mergeStrategy:'delta'`, `resolveSlotColumns`/`slotColumns`.

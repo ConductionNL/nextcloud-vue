@@ -23,7 +23,11 @@
  * @module utils/resolveRouteSentinels
  */
 
-const SENTINEL_PATTERN = /^@route\.([A-Za-z][A-Za-z0-9_-]*)$/
+import { ROUTE_TOKEN_RE } from './sentinelTokens.js'
+
+// `@route.<param>` — the route-context token, sourced from the single closed
+// vocabulary (src/utils/sentinelTokens.js) so schema + runtime cannot drift.
+const SENTINEL_PATTERN = ROUTE_TOKEN_RE
 
 /**
  * Per-page set of (pageId, sentinel) warnings already emitted, so a

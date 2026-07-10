@@ -2,7 +2,7 @@
 
 Files browser widget (folder navigation, thumbnails, mime filter, sort).
 
-Part of the dashboard widget library (v2). Registered with the dashboard widget registry and consumed by MyDash/LaunchPad's widget grid. See [the widget library overview](./cn-widget-grid.md) and `docs/architecture/cards-and-widgets.md`.
+Part of the dashboard widget library (v2). Registered with the dashboard widget registry and consumed by LaunchPad's widget grid. See [the widget library overview](./cn-widget-grid.md) and `docs/architecture/cards-and-widgets.md`.
 
 ## Reference
 
@@ -21,4 +21,4 @@ Part of the dashboard widget library (v2). Registered with the dashboard widget 
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `apiBase` | String | `/apps/files` | App base for the host files-widget endpoints (`{apiBase}/api/widgets/files/{placementId}/...`). Set to point the widget at a consuming app's backend (e.g. `/apps/mydash`). |
+| `apiBase` | String | `/apps/files` | App base for the host files-widget endpoints (`{apiBase}/api/widgets/files/{placementId}/...`). Set to point the widget at a consuming app's backend (e.g. `/apps/launchpad`). |

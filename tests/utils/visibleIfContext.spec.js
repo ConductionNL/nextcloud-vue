@@ -30,7 +30,7 @@ describe('passesContextPredicates', () => {
 		})
 
 		it('returns true when visibleIf has no context-path keys (only appInstalled)', () => {
-			expect(passesContextPredicates({ appInstalled: 'mydash' }, {})).toBe(true)
+			expect(passesContextPredicates({ appInstalled: 'launchpad' }, {})).toBe(true)
 		})
 
 		it('returns true when visibleIf is an empty object', () => {
@@ -241,14 +241,14 @@ describe('passesContextPredicates', () => {
 			// must skip it so it never influences the result here.
 			const runtime = { user: { primaryRole: 'hr-coordinator' } }
 			const visibleIf = {
-				appInstalled: 'mydash',
+				appInstalled: 'launchpad',
 				'user.primaryRole': { in: ['compliance-officer', 'hr-coordinator'] },
 			}
 			expect(passesContextPredicates(visibleIf, runtime)).toBe(true)
 		})
 
 		it('returns true when only appInstalled is set (no context-path keys)', () => {
-			expect(passesContextPredicates({ appInstalled: 'mydash' }, null)).toBe(true)
+			expect(passesContextPredicates({ appInstalled: 'launchpad' }, null)).toBe(true)
 		})
 	})
 

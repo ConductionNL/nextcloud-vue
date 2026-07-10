@@ -39,7 +39,7 @@ The button order intentionally puts **feature requests first** because that is t
 
 ## Consumer impact
 
-- Every consumer (OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash, Decidesk, Scholiq, …) gains the components on a single library bump.
+- Every consumer (OpenRegister, OpenCatalogi, Procest, Pipelinq, LaunchPad, Decidesk, Scholiq, …) gains the components on a single library bump.
 - Apps that already mount `CnFeaturesAndRoadmapView` will see the new 4th container automatically once they bump the lib; opening the dialog needs no extra wiring because the view mounts `CnSupportDialog` itself.
 - First-open behaviour is opt-in only — host apps call `useSupportDialog(slug)` and mount the dialog where they want.
 - CSS bundle grows by ~100 KB (inlined Caveat woff2 latin subset). Justified by the once-per-user UX value; will be revisited if any consumer flags it.

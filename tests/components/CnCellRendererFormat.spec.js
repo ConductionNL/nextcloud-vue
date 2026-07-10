@@ -51,6 +51,34 @@ describe('CnCellRenderer — declarative format', () => {
 			expect(wrapper.text().replace(/[^\d]/g, '')).toBe('1000')
 		})
 
+		it('resolves a @config.currency token against the injected app-config', () => {
+			// Mirrors the stat widgets: a manifest column may pass
+			// `format.currency: "@config.currency"`; the injected cnAppConfig
+			// supplies the actual code (USD here → a "$" glyph, not the EUR
+			// fallback a raw "@config.currency" string would trip).
+			const wrapper = mountRenderer(
+				{
+					value: 1000,
+					property: { type: 'number' },
+					format: { style: 'currency', currency: '@config.currency', decimals: 0 },
+				},
+				{ cnAppConfig: { currency: 'USD' } },
+			)
+			const text = wrapper.text()
+			expect(text).toContain('$')
+			expect(text).not.toContain('€')
+			expect(text.replace(/[^\d]/g, '')).toBe('1000')
+		})
+
+		it('falls back to EUR when the @config.currency token is unresolved', () => {
+			const wrapper = mountRenderer({
+				value: 1000,
+				property: { type: 'number' },
+				format: { style: 'currency', currency: '@config.currency', decimals: 0 },
+			})
+			expect(wrapper.text()).toContain('€')
+		})
+
 		it('renders an em-dash for an empty value', () => {
 			const wrapper = mountRenderer({
 				value: null,

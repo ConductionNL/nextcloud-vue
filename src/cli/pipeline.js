@@ -16,6 +16,7 @@ const { handleCustomPages } = require('./transforms/handleCustomPages')
 const { migrateCustomComponents } = require('./transforms/migrateCustomComponents')
 const { updateSchemaField } = require('./transforms/updateSchemaField')
 const { createReportBuilder } = require('./reportBuilder')
+const { runConvergence } = require('./convergence')
 
 /**
  * Run the full v1 → v2 transformation pipeline on a manifest object.
@@ -129,6 +130,15 @@ function runPipeline(manifest, opts = {}) {
 
 	// Step 10: Set $schema to v2 URL
 	current = updateSchemaField(current)
+
+	// Step 11: Widget-dialect convergence pass (idempotent). Runs after the
+	// mechanical v1→v2 rules so a freshly-migrated manifest also lands on the
+	// single canonical widget dialect. See convergence.js.
+	const convergence = runConvergence(current, { inputFile: opts.inputFile })
+	current = convergence.transformed
+	for (const item of convergence.reportItems) {
+		builder.add(item)
+	}
 
 	const reportItems = builder.getItems()
 	const report = builder.render({ inputFile: opts.inputFile })

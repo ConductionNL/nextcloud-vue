@@ -35,6 +35,7 @@ import { NcLoadingIcon } from '@nextcloud/vue'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
 import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import widgetLink from '../../mixins/widgetLink.js'
+import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 
 /**
  * CnGaugeWidget — an abstract utilization / progress-to-target gauge.
@@ -103,16 +104,9 @@ export default {
 	},
 
 	computed: {
-		/**
-		 * The unwrapped page-level app config map for `@config.*` token
-		 * resolution. Always an object (defaults to `{}`).
-		 *
-		 * @return {object}
-		 */
+		/** The unwrapped page-level app config map for `@config.*` resolution. */
 		configCtx() {
-			const c = this.cnAppConfig
-			const unwrapped = (c && typeof c === 'object' && 'value' in c) ? c.value : c
-			return (unwrapped && typeof unwrapped === 'object') ? unwrapped : {}
+			return unwrapAppConfig(this.cnAppConfig)
 		},
 		/**
 		 * The `content.format` spec with its `currency` / `prefix` / `suffix`
@@ -200,20 +194,7 @@ export default {
 		 * @return {string} The formatted string.
 		 */
 		formatNumber(value) {
-			if (value === null || value === undefined) return '—'
-			const fmt = this.resolvedFormat
-			const decimals = Number.isFinite(fmt.decimals) ? fmt.decimals : 0
-			const num = Number(value)
-			if (!Number.isFinite(num)) return String(value)
-			let body
-			if (fmt.style === 'currency') {
-				body = new Intl.NumberFormat(undefined, { style: 'currency', currency: fmt.currency || 'EUR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(num)
-			} else if (fmt.style === 'percent') {
-				body = new Intl.NumberFormat(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(num) + '%'
-			} else {
-				body = new Intl.NumberFormat(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(num)
-			}
-			return `${fmt.prefix || ''}${body}${fmt.suffix || ''}`
+			return formatMetricValue(value, this.resolvedFormat, this.configCtx)
 		},
 		/**
 		 * Fetch the value and resolve the target (static or aggregate).

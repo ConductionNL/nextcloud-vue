@@ -113,17 +113,54 @@
 			</template>
 		</component>
 
+		<!-- Builder empty-state. A page with no renderable body — e.g. a
+		     freshly-created custom page that has no `component` / body widgets
+		     yet — would otherwise render nothing at all, leaving no
+		     "Edit with OpenBuild" affordance to start adding content. Render the
+		     edit button (it self-gates to builder mode via CnAppRoot's
+		     `cnOpenBuildAvailable`) plus a neutral prompt, so a new page is
+		     always editable. ADR-041. -->
+		<div v-if="!hasRenderableBody" class="cn-page-renderer__empty">
+			<div class="cn-page-renderer__empty-actions">
+				<CnOpenBuildEditButton />
+			</div>
+			<NcEmptyContent :name="tr('This page is empty')"
+				:description="tr('Open the OpenBuild editor to start adding content to this page.')">
+				<template #icon>
+					<ShapeOutline :size="20" />
+				</template>
+			</NcEmptyContent>
+		</div>
+
 		<!-- Per-page config editor, opened by an index page's edit-mode cog. -->
 		<CnPageConfigModal v-if="showConfigModal && currentPage"
 			:page="currentPage"
 			@close="showConfigModal = false" />
+
+		<!-- Shared export launcher, opened by a `type:"export"` manifest
+		     action (Wave 1, nextcloud-vue#91). Configured from the action's
+		     entities[] / formats[] / description; the confirm payload routes
+		     to the action's optional `handler` (manifest actions map). -->
+		<CnMassExportDialog
+			v-if="exportAction"
+			ref="exportDialog"
+			:entities="exportDialogEntities"
+			:formats="exportDialogFormats"
+			:description="exportAction.description || ''"
+			@confirm="onExportConfirm"
+			@close="exportAction = null" />
 	</div>
 </template>
 
 <script>
+import { NcEmptyContent } from '@nextcloud/vue'
+import { translate as t } from '@nextcloud/l10n'
+import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
 import { defaultPageTypes } from './pageTypes.js'
 import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
+import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import CnPageConfigModal from '../../modals/CnPageConfigModal.vue'
+import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { useObjectStore } from '../../store/index.js'
@@ -169,6 +206,10 @@ export default {
 	components: {
 		CnWidgetGrid,
 		CnPageConfigModal,
+		CnOpenBuildEditButton,
+		CnMassExportDialog,
+		NcEmptyContent,
+		ShapeOutline,
 	},
 
 	inject: {
@@ -221,16 +262,26 @@ export default {
 			 * Bound dispatchAction for the v2 render path. Child widget
 			 * components inject `cnDispatchAction` to dispatch manifest
 			 * actions. Context is pre-bound with this component's
-			 * $router and the injected cnRegistry.
+			 * $router and the injected cnRegistry; a caller may merge
+			 * extra context (e.g. CnWidgetObjectTable passes
+			 * `{ objectStore, source, row }` for `object-op` actions).
+			 * The dispatch result is returned so async `object-op`
+			 * dispatches can be awaited.
 			 *
 			 * @param {object} action The action to dispatch.
+			 * @param {object} [extraContext] Extra context merged over the pre-bound one.
+			 * @return {*} The dispatchAction return value (a promise for object-op).
 			 */
-			cnDispatchAction: (action) => {
-				dispatchAction(action, {
+			cnDispatchAction: (action, extraContext = {}) => {
+				return dispatchAction(action, {
 					router: this.$router ?? null,
 					registry: this.cnRegistry,
 					handlers: this.effectiveManifest?.actions ?? {},
 					openModal: this._cnOpenModal,
+					// `type:"export"` opens the shared CnMassExportDialog this
+					// component mounts (Wave 1, nextcloud-vue#91).
+					openExport: (exportAction) => { this.exportAction = exportAction },
+					...extraContext,
 				})
 			},
 		}
@@ -327,6 +378,10 @@ export default {
 			// `file-manager` widgets receive the object with no per-widget
 			// manifest props.
 			detailObjectContext: { value: null },
+			// The `type:"export"` action currently shown in the shared
+			// CnMassExportDialog export launcher (null = dialog closed). Set
+			// by the `openExport` bound into the cnDispatchAction context.
+			exportAction: null,
 		}
 	},
 
@@ -349,6 +404,34 @@ export default {
 		 */
 		pageSidebarVisibleValue() {
 			return this.pageSidebarVisible.value !== false
+		},
+		/**
+		 * Entity options for the export launcher, from the active export
+		 * action's `entities[]` (empty hides the picker).
+		 *
+		 * @return {Array<{id: string, label: string}>}
+		 */
+		exportDialogEntities() {
+			const entities = this.exportAction && this.exportAction.entities
+			if (!Array.isArray(entities)) return []
+			return entities
+				.map((e) => (typeof e === 'string' ? { id: e, label: e } : e))
+				.filter((e) => e && e.id)
+		},
+		/**
+		 * Format options for the export launcher, from the active export
+		 * action's `formats[]` (bare ids are lifted to `{id, label}`).
+		 * `undefined` when the action declares none, so the dialog's
+		 * built-in Excel/CSV defaults apply.
+		 *
+		 * @return {Array<{id: string, label: string}>|undefined}
+		 */
+		exportDialogFormats() {
+			const formats = this.exportAction && this.exportAction.formats
+			if (!Array.isArray(formats) || formats.length === 0) return undefined
+			return formats
+				.map((f) => (typeof f === 'string' ? { id: f, label: f.toUpperCase() } : f))
+				.filter((f) => f && f.id)
 		},
 		/** Effective manifest: explicit prop wins over injected value. */
 		effectiveManifest() {
@@ -444,15 +527,48 @@ export default {
 		},
 		/** Page definition matching the current route name, or null. */
 		currentPage() {
-			const manifest = this.effectiveManifest
-			if (!manifest || !Array.isArray(manifest.pages)) {
-				return null
-			}
 			const routeName = this.$route?.name
 			if (!routeName) {
 				return null
 			}
-			return manifest.pages.find((page) => page.id === routeName) ?? null
+			return this.pageById.get(routeName) ?? null
+		},
+		/**
+		 * `Map<pageId, page>` built once per manifest identity (Vue caches this
+		 * computed until `effectiveManifest` changes), replacing per-recompute
+		 * linear `pages.find()` — O(n) per navigation on large manifests
+		 * (shillinq ships 223 pages). 2026-07-06 audit item 10.
+		 */
+		pageById() {
+			const pages = this.effectiveManifest?.pages
+			const index = new Map()
+			if (Array.isArray(pages)) {
+				for (const page of pages) {
+					if (page && typeof page.id === 'string' && !index.has(page.id)) {
+						index.set(page.id, page)
+					}
+				}
+			}
+			return index
+		},
+		/**
+		 * `Map<"register schema", detailPage>` — the first detail page bound to
+		 * each register+schema pair. Backs the index→detail row-click wiring
+		 * without re-scanning all pages per index page and per row click.
+		 * Memoized on `effectiveManifest`.
+		 */
+		detailPageByRegisterSchema() {
+			const pages = this.effectiveManifest?.pages
+			const index = new Map()
+			if (Array.isArray(pages)) {
+				for (const page of pages) {
+					if (!page || page.type !== 'detail') continue
+					const cfg = page.config || {}
+					const key = `${cfg.register} ${cfg.schema}`
+					if (!index.has(key)) index.set(key, page)
+				}
+			}
+			return index
 		},
 		/**
 		 * Remount key for the dispatched page component. Includes the data source
@@ -480,6 +596,20 @@ export default {
 		 * `defineAsyncComponent`); the renderer treats any value in the
 		 * map as a Vue component.
 		 */
+		/**
+		 * Whether the current page renders any body content — a dispatched page
+		 * component (index/detail/dashboard/custom-with-component) or a v2 `body`
+		 * widget slot. False for a freshly-created custom page with no component
+		 * and no widgets, which drives the builder empty-state (ADR-041) so the
+		 * page still exposes the "Edit with OpenBuild" affordance.
+		 *
+		 * @return {boolean}
+		 */
+		hasRenderableBody() {
+			if (this.resolvedComponent) return true
+			if (this.isV2Manifest && this.widgetsBySlot && this.widgetsBySlot.has('body')) return true
+			return false
+		},
 		resolvedComponent() {
 			const page = this.currentPage
 			if (!page) {
@@ -577,11 +707,7 @@ export default {
 			// page is selectable. Selection stays available via the checkbox.
 			// An explicit `config.rowClickToView` still wins (merged below).
 			if (isIndex) {
-				const allPages = this.effectiveManifest?.pages
-				const hasDetail = Array.isArray(allPages) && allPages.some((p) => p
-					&& p.type === 'detail'
-					&& (p.config || {}).register === config.register
-					&& (p.config || {}).schema === config.schema)
+				const hasDetail = this.detailPageByRegisterSchema.has(`${config.register} ${config.schema}`)
 				if (hasDetail) topLevel.rowClickToView = true
 			}
 			let normalizedConfig = config
@@ -864,6 +990,52 @@ export default {
 
 	methods: {
 		/**
+		 * Resolve a UI string through the consumer's translate function
+		 * (`translate` prop, else injected `cnTranslate`), falling back to the
+		 * English source key. Used for the builder empty-state copy.
+		 *
+		 * @param {string} key The English source string.
+		 * @return {string} The translated (or source) string.
+		 */
+		tr(key) {
+			const fn = this.translate || this.cnTranslate
+			return typeof fn === 'function' ? fn(key) : key
+		},
+
+		/**
+		 * Route the export launcher's confirm payload (`{ format, entity? }`)
+		 * to the export action's `handler` (resolved against the manifest
+		 * actions map — the same registry `type:"handler"` actions use). The
+		 * handler does the actual download (e.g. an app's ExportService) and
+		 * its resolved/rejected promise drives the dialog's result phase. A
+		 * missing handler surfaces as a dialog error (never a silent success).
+		 *
+		 * @param {{format: string, entity?: string}} payload The dialog's confirm payload.
+		 * @return {Promise<void>}
+		 */
+		async onExportConfirm(payload) {
+			const action = this.exportAction
+			const dialog = this.$refs.exportDialog
+			const setResult = (result) => {
+				if (dialog && typeof dialog.setResult === 'function') dialog.setResult(result)
+			}
+			const handlers = this.effectiveManifest?.actions ?? {}
+			const fn = action && action.handler && handlers[action.handler]
+			if (typeof fn !== 'function') {
+				// eslint-disable-next-line no-console
+				console.warn(`[CnPageRenderer] export action "${action && action.id}" has no resolvable handler "${action && action.handler}" in the manifest actions map.`)
+				setResult({ error: t('nextcloud-vue', 'No export handler is configured') })
+				return
+			}
+			try {
+				await fn(payload, action)
+				setResult({ success: true })
+			} catch (e) {
+				setResult({ error: (e && e.message) || t('nextcloud-vue', 'Export failed') })
+			}
+		},
+
+		/**
 		 * Open a row's detail page. Bound to an index page's `@view` (the
 		 * built-in eye action) and `@row-click`, this is what makes "View"
 		 * navigate for manifest-driven index pages — `CnIndexPage` only emits
@@ -883,12 +1055,7 @@ export default {
 				return
 			}
 			const cfg = page.config || {}
-			const pages = this.effectiveManifest?.pages
-			if (!Array.isArray(pages)) return
-			const detail = pages.find((p) => p
-				&& p.type === 'detail'
-				&& (p.config || {}).register === cfg.register
-				&& (p.config || {}).schema === cfg.schema)
+			const detail = this.detailPageByRegisterSchema.get(`${cfg.register} ${cfg.schema}`)
 			if (!detail) return
 			const self = row['@self'] || {}
 			const id = row.id ?? self.id ?? self.uuid ?? row.uuid
@@ -1225,5 +1392,17 @@ export default {
  */
 .cn-page-renderer--no-sidebar {
 	/* intentionally empty — consumer-styled */
+}
+
+/* Builder empty-state: keep the edit button top-right (mirrors a page
+   header's actions area) above a centred empty prompt. */
+.cn-page-renderer__empty {
+	padding-inline-start: 56px;
+}
+
+.cn-page-renderer__empty-actions {
+	display: flex;
+	justify-content: flex-end;
+	padding: 8px 8px 0;
 }
 </style>

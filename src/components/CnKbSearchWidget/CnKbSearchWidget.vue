@@ -31,8 +31,8 @@
 				<a
 					v-if="article.url"
 					:href="article.url"
-					target="_blank"
-					rel="noopener noreferrer"
+					:target="externalOpen ? '_blank' : '_self'"
+					:rel="externalOpen ? 'noopener noreferrer' : null"
 					class="cn-kb-search-widget__result-title">
 					{{ article.title || article.url }}
 				</a>
@@ -58,13 +58,21 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcTextField } from '@nextcloud/vue'
+import { BUILT_IN_KB_PROVIDERS, resolveKbProvider, normaliseKbResults } from '../../utils/kbSearchProviders.js'
 
 /**
  * CnKbSearchWidget — a summary-driven knowledge-base search widget.
  *
- * Queries a configurable HTTP endpoint (default the OpenRegister xWiki leaf
- * `/apps/openregister/api/integrations/xwiki/search`) and renders the returned
- * articles as a clickable list. The query is driven two ways:
+ * Runs the search through a PLUGGABLE PROVIDER (#91 Wave 3) resolved from
+ * `content.provider` against the library's built-in providers merged with
+ * the consumer registry CnAppRoot provides (`cnKbSearchProviders` — the
+ * formatter-registry pattern). The built-in `default` provider GETs the
+ * configured `endpoint` (default the OpenRegister xWiki leaf
+ * `/apps/openregister/api/integrations/xwiki/search`); an app talking to a
+ * bespoke KB (the xwiki proxy, an external API) registers its own provider
+ * key — the xwiki client stays app-side, the library ships only the seam.
+ *
+ * The query is driven two ways:
  *  1. The agent typing in the search box (debounced), and
  *  2. — the reason this is a WIDGET, not a plain box — a page-level workspace
  *     context key (`content.bindTo`, default `activeSummary`) that another
@@ -72,21 +80,26 @@ import { NcTextField } from '@nextcloud/vue'
  *     debounces a search on that text automatically, so the knowledge base
  *     follows the live conversation. Manual typing overrides the bound text.
  *
- * Degrades gracefully: a 503 / network error / empty body renders the
- * unavailable-or-empty state (never throws), so a missing or unconfigured
- * xWiki backend simply shows "Knowledge base unavailable" rather than breaking
- * the page.
+ * Degrades gracefully: a rejected provider search (503 / network error /
+ * unavailable backend) renders the unavailable-fallback text (never throws),
+ * so a missing or unconfigured backend simply shows a fallback message rather
+ * than breaking the page.
  *
  * Resolved by its registry type key `kb-search`.
  *
  * Example content blob:
  * ```js
  * content: {
- *   endpoint: '/apps/openregister/api/integrations/xwiki/search',
+ *   provider: 'xwiki',           // registry key (default 'default')
+ *   space: 'Support',            // provider-specific filters
+ *   tags: ['printer', 'network'],
+ *   endpoint: '/apps/openregister/api/integrations/xwiki/search', // default provider only
  *   queryParam: 'q',
  *   bindTo: 'activeSummary',
  *   minChars: 3,
  *   limit: 8,
+ *   externalOpen: true,          // result links open in a new tab
+ *   unavailableFallback: 'Knowledge base is not configured.',
  * }
  * ```
  */
@@ -104,6 +117,13 @@ export default {
 		 * still works).
 		 */
 		cnWorkspaceContext: { default: null },
+		/**
+		 * Pluggable KB-search provider registry (built-ins + consumer),
+		 * provided by CnAppRoot as `cnKbSearchProviders`. The widget resolves
+		 * `content.provider` against it. Falls back to the library built-ins
+		 * (`{ default }`) when no CnAppRoot ancestor provides one.
+		 */
+		cnKbSearchProviders: { default: () => BUILT_IN_KB_PROVIDERS },
 	},
 
 	props: {
@@ -161,6 +181,19 @@ export default {
 			if (this.manual || !this.boundSummary) return ''
 			return t('nextcloud-vue', 'Suggested from the active summary')
 		},
+		/** The resolved provider (content.provider → registry → default). */
+		resolvedProvider() {
+			return resolveKbProvider(this.content.provider, this.cnKbSearchProviders || BUILT_IN_KB_PROVIDERS)
+		},
+		/**
+		 * Whether result links open in a new tab: the provider's `externalOpen`
+		 * default, overridden by an explicit `content.externalOpen`.
+		 * @return {boolean}
+		 */
+		externalOpen() {
+			if (typeof this.content.externalOpen === 'boolean') return this.content.externalOpen
+			return Boolean(this.resolvedProvider && this.resolvedProvider.externalOpen)
+		},
 		searchLabel() {
 			return t('nextcloud-vue', 'Search the knowledge base')
 		},
@@ -168,7 +201,7 @@ export default {
 			return t('nextcloud-vue', 'Searching…')
 		},
 		unavailableLabel() {
-			return t('nextcloud-vue', 'Knowledge base unavailable')
+			return this.content.unavailableFallback || t('nextcloud-vue', 'Knowledge base unavailable')
 		},
 		emptyLabel() {
 			return t('nextcloud-vue', 'No articles found')
@@ -225,25 +258,31 @@ export default {
 		},
 
 		/**
-		 * Execute the search against the configured endpoint. Every failure
-		 * (network, 503, malformed body) degrades to the unavailable/empty state.
+		 * Execute the search through the resolved provider (#91 Wave 3),
+		 * passing the widget config (endpoint / queryParam / space / tags /
+		 * limit). Every failure (rejected provider search, unavailable
+		 * backend) degrades to the unavailable-fallback state — never throws.
 		 *
 		 * @return {Promise<void>}
 		 */
 		async runSearch() {
-			const endpoint = this.content.endpoint || '/apps/openregister/api/integrations/xwiki/search'
-			const queryParam = this.content.queryParam || 'q'
-			const limit = typeof this.content.limit === 'number' ? this.content.limit : 8
+			const provider = this.resolvedProvider
+			if (!provider || typeof provider.search !== 'function') {
+				this.results = []
+				this.unavailable = true
+				return
+			}
 			this.loading = true
 			this.unavailable = false
 			try {
-				const [{ default: axios }, { generateUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
-				const params = { [queryParam]: this.term.trim(), limit }
-				const res = await axios.get(generateUrl(endpoint), { params })
-				this.results = this.normalise(res && res.data)
+				const articles = await provider.search(this.term.trim(), {
+					endpoint: this.content.endpoint,
+					queryParam: this.content.queryParam,
+					space: this.content.space,
+					tags: this.content.tags,
+					limit: typeof this.content.limit === 'number' ? this.content.limit : 8,
+				})
+				this.results = this.normalise(articles)
 			} catch (e) {
 				// 503 / network / disabled backend — show the unavailable state.
 				this.results = []
@@ -256,16 +295,15 @@ export default {
 		/**
 		 * Normalise an assortment of likely response shapes into an article list:
 		 * an array, `{ results: [] }`, `{ items: [] }`, or `{ articles: [] }`.
+		 * Delegates to the shared `normaliseKbResults` helper (also used by the
+		 * built-in default provider), so a provider MAY return a raw response
+		 * body and still normalise here.
 		 *
-		 * @param {*} data The raw response body.
+		 * @param {*} data The raw provider result.
 		 * @return {Array<object>} The article list (possibly empty).
 		 */
 		normalise(data) {
-			if (Array.isArray(data)) return data
-			if (data && Array.isArray(data.results)) return data.results
-			if (data && Array.isArray(data.items)) return data.items
-			if (data && Array.isArray(data.articles)) return data.articles
-			return []
+			return normaliseKbResults(data)
 		},
 
 		/**
