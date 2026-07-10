@@ -41,8 +41,17 @@ export default {
 	props: {
 		/** Widget title shown in the header. */
 		title: { type: String, default: '' },
-		/** Drop the card chrome so the table sits flush inside another card. */
-		borderless: { type: Boolean, default: false },
+		/**
+		 * Drop the widget's own card chrome (border, background, radius) so the
+		 * table sits flush inside a container that already provides a card — e.g.
+		 * a `CnWidgetWrapper` dashboard slot. Avoids the double-card / nested-border
+		 * look when a table widget is embedded in another card. Defaults to false
+		 * (back-compat: standalone usage keeps its card).
+		 */
+		borderless: {
+			type: Boolean,
+			default: false,
+		},
 		/**
 		 * External row data. When provided, no API calls are made.
 		 * @type {object[]}

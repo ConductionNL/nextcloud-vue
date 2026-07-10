@@ -4,6 +4,10 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+	/* Wrap the actions cluster below the search on narrow containers instead of
+	   overflowing (clipping the Add button / Actions menu). */
+	flex-wrap: wrap;
+	gap: calc(2 * var(--default-grid-baseline));
 	margin-bottom: calc(5 * var(--default-grid-baseline));
 	padding: calc(2 * var(--default-grid-baseline));
 	background: var(--color-background-hover);
@@ -13,6 +17,10 @@
 .cn-actions-bar__info {
 	font-weight: 500;
 	font-size: var(--default-font-size);
+	/* Let the search area grow to fill the row but shrink (min-width:0) so the
+	   actions can stay beside it until there's genuinely no room, then wrap. */
+	flex: 1 1 220px;
+	min-width: 0;
 }
 
 .cn-actions-bar__count {
@@ -24,8 +32,9 @@
 	position: relative;
 	display: flex;
 	align-items: center;
-	width: 280px;
-	max-width: 100%;
+	/* Fill the (flexible) info area up to a comfortable cap; shrinks below it. */
+	width: 100%;
+	max-width: 320px;
 }
 
 .cn-actions-bar__search-icon {
@@ -36,11 +45,15 @@
 	display: inline-flex;
 }
 
-.cn-actions-bar__search-input {
+/* Scoped under the search wrapper (specificity 0,2,0) + !important on the
+   inline padding so NC core's global `input` rule can't reset the left inset
+   and let the placeholder slide under the magnifier icon. */
+.cn-actions-bar__search .cn-actions-bar__search-input {
 	width: 100%;
 	height: 40px;
 	margin: 0;
-	padding: 0 12px 0 38px;
+	padding-block: 0;
+	padding-inline: 38px 12px !important;
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius-pill);
 	background: var(--color-main-background);
@@ -52,9 +65,31 @@
 	display: inline-flex;
 }
 
+/* Standalone sort control: a leading icon + a compact select, kept on one
+   line (the visible "Sort by" label is dropped; it lives on the icon's
+   aria-label and the combobox's accessible name instead). */
+.cn-actions-bar__sort {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.cn-actions-bar__sort-icon {
+	display: inline-flex;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-actions-bar__sort .cn-actions-bar__sort-select {
+	min-width: 140px;
+}
+
 .cn-actions-bar__actions {
 	display: flex;
 	align-items: center;
+	/* Wrap the toggle / sort / add / overflow cluster onto a second line rather
+	   than overflowing when the container is narrow. */
+	flex-wrap: wrap;
+	justify-content: flex-end;
 	gap: calc(2 * var(--default-grid-baseline));
 }
 
@@ -99,8 +134,20 @@
 	will-change: transform;
 }
 
-.cn-actions-bar__view-toggle-thumb--right {
+.cn-actions-bar__view-toggle-thumb--right,
+.cn-actions-bar__view-toggle-thumb--pos-1 {
 	transform: translateX(100%);
+}
+
+.cn-actions-bar__view-toggle-thumb--pos-2 {
+	transform: translateX(200%);
+}
+
+/* Three-segment layout (Cards / Table / Map): the thumb shrinks to one third of
+   the track so a single translateX(100%) step lands it exactly on the next
+   segment. The two-segment default above (50% - 4px) is untouched. */
+.cn-actions-bar__view-toggle--three .cn-actions-bar__view-toggle-thumb {
+	width: calc((100% - 8px) / 3);
 }
 
 /* Segment buttons must shed Nextcloud core's global <button> chrome (server.css

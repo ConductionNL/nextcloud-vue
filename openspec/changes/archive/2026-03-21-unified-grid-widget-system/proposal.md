@@ -61,7 +61,7 @@ Every Conduction app duplicates KPI card markup, info-grid CSS, and relation tab
 
 ## Cross-Project Dependencies
 
-- All consumer apps (OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash) use the webpack alias `@conduction/nextcloud-vue` pointing to the library source — changes are picked up on next build
+- All consumer apps (OpenRegister, OpenCatalogi, Procest, Pipelinq, LaunchPad) use the webpack alias `@conduction/nextcloud-vue` pointing to the library source — changes are picked up on next build
 - CnTableWidget's self-fetch mode depends on OpenRegister API (`/apps/openregister/api/objects/`)
 - Relations data (uses/used endpoints) already supported by the store's relationsPlugin
 

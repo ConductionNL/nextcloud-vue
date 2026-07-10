@@ -10,16 +10,20 @@
 
 ### Events
 
-| Name            | Payload | Description                                                 |
-| --------------- | ------- | ----------------------------------------------------------- |
-| `save`          | —       | Emitted after a successful save with the minimal delta.     |
-| `edit`          | —       | Emitted when edit mode is entered.                          |
-| `cancel`        | —       | Emitted when edits are discarded.                           |
-| `add-widget`    | —       | Emitted when "Add widget…" is activated in edit mode.       |
-| `widget-added`  | —       | Emitted after a widget is appended to the working manifest. |
-| `edit-pages`    | —       | Emitted when the pages editor modal opens.                  |
-| `edit-menu`     | —       | Emitted when the menu editor modal opens.                   |
-| `edit-settings` | —       | Emitted when the settings editor modal opens.               |
-| `edit-sidebar`  | —       | Emitted when the sidebar editor modal opens.                |
-| `edit-actions`  | —       | Emitted when the actions editor modal opens.                |
-| `edit-data`     | —       | Emitted when the data (register/schema) editor opens.       |
+| Name               | Payload | Description                                                 |
+| ------------------ | ------- | ----------------------------------------------------------- |
+| `save`             | —       | Emitted after a successful save with the minimal delta.     |
+| `edit`             | —       | Emitted when edit mode is entered.                          |
+| `cancel`           | —       | Emitted when edits are discarded.                           |
+| `add-widget`       | —       | Emitted when "Add widget…" is activated in edit mode.       |
+| `widget-added`     | —       | Emitted after a widget is appended to the working manifest. |
+| `edit-pages`       | —       | Emitted when the pages editor modal opens.                  |
+| `edit-menu`        | —       | Emitted when the menu editor modal opens.                   |
+| `edit-settings`    | —       | Emitted when the settings editor modal opens.               |
+| `edit-sidebar`     | —       | Emitted when the sidebar editor modal opens.                |
+| `edit-actions`     | —       | Emitted when the actions editor modal opens.                |
+| `edit-setup`       | —       | Emitted when the setup-wizard editor modal opens.           |
+| `edit-walkthrough` | —       | Emitted when the walkthrough editor modal opens.            |
+| `edit-support`     | —       | Emitted when the support/donation editor modal opens.       |
+| `edit-data`        | —       | Emitted when the data (register/schema) editor opens.       |
+| `edit-flows`       | —       | Emitted when the flows editor opens.                        |

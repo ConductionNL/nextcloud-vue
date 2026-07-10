@@ -158,7 +158,7 @@ These are reactive Pinia state. `liveStatus` and `liveSubscriptions` are suitabl
 ## Bundle Size
 
 - `@nextcloud/notify_push` — ~3.5 KB gzipped (as of v2.0.0). This is the Nextcloud-maintained notify_push client; it is intentionally tiny (no framework dependency, pure WebSocket wrapper).
-- `@vueuse/core` — **direct runtime dependency**. Audit shows 2 of 7 consumer apps (openregister, opencatalogi) currently bundle VueUse, so making it a peer dep would force the other 5 (procest, pipelinq, docudesk, mydash, larpingapp) to add it manually. The two composables we use (`tryOnScopeDispose`, `useDocumentVisibility`) are tree-shakeable; Rollup ships ~400 bytes gzipped combined.
+- `@vueuse/core` — **direct runtime dependency**. Audit shows 2 of 7 consumer apps (openregister, opencatalogi) currently bundle VueUse, so making it a peer dep would force the other 5 (procest, pipelinq, docudesk, launchpad, larpingapp) to add it manually. The two composables we use (`tryOnScopeDispose`, `useDocumentVisibility`) are tree-shakeable; Rollup ships ~400 bytes gzipped combined.
 - Plugin code itself: estimated ~3 KB gzipped.
 - Total incremental cost for consumers: ~7 KB gzipped (one-time, shared across all store instances).
 

@@ -5,7 +5,7 @@ Conversation history browser dialog. Lives in `src/dialogs/` per ADR-004 modal/d
 Wraps `NcDialog` from `@nextcloud/vue`. Opened by `CnAiChatPanel` when the user clicks the History button. On open, fetches the 50 most-recent conversations from:
 
 ```
-GET /index.php/apps/openregister/api/chat/conversations?limit=50
+GET /index.php/apps/openregister/api/conversations?limit=50
 ```
 
 ## Props

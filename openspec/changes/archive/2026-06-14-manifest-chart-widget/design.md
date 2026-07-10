@@ -20,7 +20,7 @@ That permissiveness is what lets us add a fourth conventional value
 ## Decision Drivers
 
 - **Don't break back-compat** — every existing consumer
-  (decidesk, mydash, opencatalogi, pipelinq, procest) reads the
+  (decidesk, launchpad, opencatalogi, pipelinq, procest) reads the
   dispatcher today.
 - **Keep the schema stable** — extending the closed `pageType` enum
   requires a schema bump (ADR-024 §10); extending the open `widgetDef.type`
@@ -141,7 +141,7 @@ manifest schema bump or consumer-side migration.
 ## Consequences
 
 - **Apps can drop `type: "custom"`** for any dashboard whose widgets
-  are charts + tiles. procest, opencatalogi, mydash benefit immediately;
+  are charts + tiles. procest, opencatalogi, launchpad benefit immediately;
   pipelinq when it adopts the manifest.
 - **`widgetDef.type === "chart"` becomes a documented conventional
   value** alongside `tile`, `custom`, and NC widget ids. The schema's

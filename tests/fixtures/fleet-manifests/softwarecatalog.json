@@ -1,0 +1,981 @@
+{
+	"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+	"version": "1.0.0",
+	"dependencies": [
+		"openregister"
+	],
+	"walkthrough": {
+		"enabled": true,
+		"version": 1,
+		"completionConfigKey": "walkthrough_completed_version",
+		"tours": [
+			{
+				"id": "softwarecatalog:getting-started",
+				"title": "Getting started",
+				"trigger": "first-visit",
+				"minAppVersion": "0.2.11",
+				"steps": [
+					{
+						"id": "welcome",
+						"sinceVersion": "0.2.11",
+						"placement": "center",
+						"title": "Welcome to Software Catalog",
+						"body": "Let's take a quick spin through your software catalogue — we'll register an organisation together so you can see how the pieces fit. You'll add the record yourself.",
+						"target": {
+							"kind": "page",
+							"ref": "Dashboard"
+						},
+						"advanceOn": {
+							"type": "manual"
+						}
+					},
+					{
+						"id": "go-organisaties",
+						"sinceVersion": "0.2.11",
+						"placement": "right",
+						"body": "Organisations are the heart of your catalogue — they own the contracts, modules and compliance records you track. Open Organisations from the menu to get started.",
+						"task": "Click Organisations in the menu",
+						"target": {
+							"kind": "nav-item",
+							"ref": "Organisaties"
+						},
+						"advanceOn": {
+							"type": "route-match",
+							"route": "Organisaties"
+						}
+					},
+					{
+						"id": "create-organisatie",
+						"sinceVersion": "0.2.11",
+						"placement": "bottom",
+						"allowManualNext": true,
+						"body": "Add your first organisation — give it a name and save. You can attach contracts, modules and compliance records to it afterwards.",
+						"task": "Click New and save an organisation",
+						"target": {
+							"kind": "element",
+							"ref": "index-add"
+						},
+						"advanceOn": {
+							"type": "object-created",
+							"register": "voorzieningen",
+							"schema": "organisatie",
+							"capture": {
+								"organisatieId": ":id"
+							}
+						}
+					},
+					{
+						"id": "done",
+						"sinceVersion": "0.2.11",
+						"placement": "center",
+						"title": "You're all set",
+						"body": "Nicely done — your catalogue has its first organisation. Head back to the Dashboard to watch it grow, and reopen this tour anytime from the … menu.",
+						"target": {
+							"kind": "page",
+							"ref": "Dashboard"
+						},
+						"advanceOn": {
+							"type": "manual"
+						}
+					}
+				]
+			}
+		]
+	},
+	"menu": [
+		{
+			"id": "Dashboard",
+			"label": "Dashboard",
+			"icon": "icon-category-dashboard",
+			"route": "Dashboard",
+			"order": 10
+		},
+		{
+			"id": "Organisaties",
+			"label": "Organisations",
+			"icon": "icon-category-organization",
+			"route": "Organisaties",
+			"order": 20
+		},
+		{
+			"id": "Contracten",
+			"label": "Contracts",
+			"icon": "icon-file",
+			"route": "Contracten",
+			"order": 40
+		},
+		{
+			"id": "Standaarden",
+			"label": "Standards",
+			"icon": "icon-checkmark",
+			"route": "Standaarden",
+			"order": 50
+		},
+		{
+			"id": "Reviews",
+			"label": "Reviews",
+			"icon": "icon-comment",
+			"route": "Reviews",
+			"order": 60
+		},
+		{
+			"id": "Komplianties",
+			"label": "Compliance",
+			"icon": "icon-checkmark",
+			"route": "Komplianties",
+			"order": 70
+		},
+		{
+			"id": "ComplianceMatrix",
+			"label": "Compliance matrix",
+			"icon": "icon-category-monitoring",
+			"route": "ComplianceMatrix",
+			"order": 75
+		},
+		{
+			"id": "ReportsCompliance",
+			"label": "Reports & Compliance",
+			"icon": "icon-category-monitoring",
+			"order": 78
+		},
+		{
+			"id": "Moduleversies",
+			"label": "Module versions",
+			"icon": "icon-files",
+			"route": "Moduleversies",
+			"order": 80
+		},
+		{
+			"id": "LifecycleRoadmap",
+			"label": "Portfolio roadmap",
+			"icon": "icon-category-organization",
+			"route": "LifecycleRoadmap",
+			"order": 85
+		},
+		{
+			"id": "Documentation",
+			"label": "Documentation",
+			"icon": "icon-info",
+			"href": "https://softwarecatalog.conduction.nl",
+			"section": "footer",
+			"order": 90
+		},
+		{
+			"id": "FeaturesRoadmapMenu",
+			"label": "Features & roadmap",
+			"icon": "icon-toggle",
+			"route": "FeaturesRoadmap",
+			"section": "footer",
+			"order": 95
+		},
+		{
+			"id": "SettingsMenu",
+			"label": "Settings",
+			"icon": "icon-settings",
+			"route": "Settings",
+			"section": "settings",
+			"order": 99
+		}
+	],
+	"pages": [
+		{
+			"id": "Dashboard",
+			"route": "/",
+			"type": "custom",
+			"title": "Dashboard",
+			"component": "DashboardCustomView",
+			"_note": "Bespoke landing dashboard: composes CnDashboardPage with hand-authored named widget slots (a management info-box with deep-links and two custom statistics tables that render per-object-type counts with inline navigation). No standard dashboard config expresses these non-KPI slot bodies."
+		},
+		{
+			"id": "Organisaties",
+			"route": "/organisaties",
+			"type": "index",
+			"title": "Organisation relationships",
+			"config": {
+				"register": "@resolve:voorzieningen_register",
+				"schema": "organisatie",
+				"viewMode": "cards",
+				"cardComponent": "OrganisatieCard",
+				"columns": [
+					"naam",
+					"type",
+					"status",
+					"website"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				},
+				"documentationUrl": "https://softwarecatalog.conduction.nl"
+			},
+			"_note": "Decomposed from the bespoke OrganisatieIndexView to a standard type:index (Phase 8): renders organisatie OR objects as a card grid via config.cardComponent=OrganisatieCard. The card keeps its inline contactpersoon toggle internally; CnIndexPage provides the toolbar, search, view-toggle and create/edit/delete dialogs."
+		},
+		{
+			"id": "Contactpersonen",
+			"route": "/contactpersonen",
+			"type": "index",
+			"title": "Contact roles",
+			"config": {
+				"register": "@resolve:voorzieningen_register",
+				"schema": "contactpersoon",
+				"columns": [
+					"contactsUid",
+					"functie",
+					"rollen",
+					"organisatie"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				},
+				"documentationUrl": "https://softwarecatalog.conduction.nl"
+			}
+		},
+		{
+			"id": "ContactpersoonDetail",
+			"route": "/contactpersonen/:id",
+			"type": "detail",
+			"title": "Contact role",
+			"config": {
+				"register": "@resolve:voorzieningen_register",
+				"schema": "contactpersoon",
+				"_note": "Person archetype (a contact ROLE at an organisation). Body leads with the person's role data (function, roles, notification preferences, the linked Nextcloud contactsUid) 8-wide, with a Related panel 4-wide surfacing the owning organisation and any records that reference this person. The contactpersoon schema declares NO email/calendar linkedType (communication is handled through the linked Nextcloud contact via contactsUid, not stored on this catalogue role), so per the comms hard-rule NO Emails/Meetings widgets are placed on the body. Audit trail is rarely consulted for a contact role, so it stays as a sidebar tab.",
+				"widgets": [
+					{
+						"id": "cp-data",
+						"type": "data",
+						"title": "Contact role",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "cp-related",
+						"type": "related",
+						"title": "Organisation & links"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "cp-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "2",
+						"widgetId": "cp-related",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 4
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"tabs": [
+						{
+							"id": "audit",
+							"label": "Audit trail",
+							"icon": "icon-history",
+							"widgets": [
+								{
+									"type": "audit-trail"
+								}
+							]
+						}
+					]
+				},
+				"documentationUrl": "https://softwarecatalog.conduction.nl"
+			}
+		},
+		{
+			"id": "Contracten",
+			"route": "/contracten",
+			"type": "index",
+			"title": "Contracts",
+			"config": {
+				"register": "@resolve:voorzieningen_register",
+				"schema": "contract",
+				"columns": [
+					"contractNummer",
+					"contractType",
+					"startDatum",
+					"eindDatum",
+					"kosten",
+					"status"
+				],
+				"quickFilters": [
+					{
+						"label": "All",
+						"filter": {},
+						"default": true
+					},
+					{
+						"label": "Active",
+						"filter": {
+							"status": "Actief"
+						},
+						"icon": "CheckCircle"
+					},
+					{
+						"label": "Expiring / expired",
+						"filter": {
+							"status": "Verlopen"
+						},
+						"icon": "AlertCircle"
+					},
+					{
+						"label": "In negotiation",
+						"filter": {
+							"status": "In onderhandeling"
+						},
+						"icon": "Handshake"
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				},
+				"documentationUrl": "https://softwarecatalog.conduction.nl"
+			}
+		},
+		{
+			"id": "ContractDetail",
+			"route": "/contracten/:id",
+			"type": "detail",
+			"title": "Contract",
+			"config": {
+				"register": "@resolve:voorzieningen_register",
+				"schema": "contract",
+				"_note": "Document / agreement archetype. The reader of a contract needs terms and money up front, then the paperwork. Body: contract data (number, type, start/end dates, cost + period, status, both nested contact persons, documentReferentie, remarks) spans 8-wide top-left; a Documents (files) panel spans 4-wide full-height on the right because the signed contract, addenda and evidence are the primary attachments. Below the data, a Related panel links the contract's service (dienst) and usage (gebruik). Two KPI stats surface the contract value and remaining term at a glance. The contract schema declares NO email/calendar linkedType, so per the comms hard-rule NO Emails/Meetings widgets appear on the body (circulation happens via the linked Nextcloud contacts, not the catalogue record). The existing ContractApprovalPanel (approval workflow) and audit trail stay as sidebar tabs — they are per-record actions, not primary reading.",
+				"widgets": [
+					{
+						"id": "ct-value",
+						"type": "stat",
+						"title": "Contract value",
+						"content": {
+							"label": "Contract value",
+							"format": "currency",
+							"source": {
+								"register": "@resolve:voorzieningen_register",
+								"schema": "contract",
+								"metric": "sum",
+								"field": "kosten",
+								"filter": {
+									"id": "@objectId"
+								}
+							}
+						}
+					},
+					{
+						"id": "ct-data",
+						"type": "data",
+						"title": "Contract details",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "ct-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Documents"
+					},
+					{
+						"id": "ct-related",
+						"type": "related",
+						"title": "Service & usage"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "ct-value",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 2
+					},
+					{
+						"id": "2",
+						"widgetId": "ct-data",
+						"gridX": 0,
+						"gridY": 2,
+						"gridWidth": 8,
+						"gridHeight": 5
+					},
+					{
+						"id": "3",
+						"widgetId": "ct-files",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 7
+					},
+					{
+						"id": "4",
+						"widgetId": "ct-related",
+						"gridX": 0,
+						"gridY": 7,
+						"gridWidth": 12,
+						"gridHeight": 3
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"tabs": [
+						{
+							"id": "approval",
+							"label": "Approval",
+							"icon": "icon-checkmark",
+							"component": "ContractApprovalPanel"
+						},
+						{
+							"id": "audit",
+							"label": "Audit trail",
+							"icon": "icon-history",
+							"widgets": [
+								{
+									"type": "audit-trail"
+								}
+							]
+						}
+					]
+				},
+				"documentationUrl": "https://softwarecatalog.conduction.nl"
+			}
+		},
+		{
+			"id": "Standaarden",
+			"route": "/standaarden",
+			"type": "index",
+			"title": "Standards",
+			"config": {
+				"register": "@resolve:voorzieningen_register",
+				"schema": "standaard",
+				"columns": [
+					"naam",
+					"versie",
+					"categorie",
+					"status"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				},
+				"documentationUrl": "https://softwarecatalog.conduction.nl"
+			}
+		},
+		{
+			"id": "StandaardDetail",
+			"route": "/standaarden/:id",
+			"type": "detail",
+			"title": "Standard",
+			"config": {
+				"register": "@resolve:voorzieningen_register",
+				"schema": "standaard",
+				"_note": "Catalog archetype (a normative standard). What matters about a standard is (a) its definition, (b) the specification documents, and (c) the ecosystem around it: which modules implement it and what compliance records claim it. Body: standard data 8-wide top-left; a Specification documents (files) panel 4-wide top-right for the published spec/PDFs. Below, a Related panel links referencing records, then a compliancy object-list shows every compliance claim naming this standard (standaardGemma matched to the standard's name) so a reader sees adoption at a glance. A standard does not communicate, so per the comms hard-rule NO Emails/Meetings/Talk widgets appear. Audit trail stays a sidebar tab.",
+				"widgets": [
+					{
+						"id": "st-data",
+						"type": "data",
+						"title": "Standard",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "st-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Specification documents"
+					},
+					{
+						"id": "st-related",
+						"type": "related",
+						"title": "Related"
+					},
+					{
+						"id": "st-compliance",
+						"type": "object-list",
+						"title": "Compliance claims for this standard",
+						"content": {
+							"register": "@resolve:voorzieningen_register",
+							"schema": "compliancy",
+							"filter": {
+								"standaardGemma": "@object.naam"
+							},
+							"columns": [
+								{
+									"key": "module",
+									"label": "Module"
+								},
+								{
+									"key": "standaardversie",
+									"label": "Standard version"
+								},
+								{
+									"key": "url",
+									"label": "Evidence URL"
+								}
+							],
+							"limit": 50,
+							"rowRoute": "KompliantieDetail"
+						}
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "st-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "2",
+						"widgetId": "st-files",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 4
+					},
+					{
+						"id": "3",
+						"widgetId": "st-related",
+						"gridX": 8,
+						"gridY": 4,
+						"gridWidth": 4,
+						"gridHeight": 4
+					},
+					{
+						"id": "4",
+						"widgetId": "st-compliance",
+						"gridX": 0,
+						"gridY": 4,
+						"gridWidth": 8,
+						"gridHeight": 4
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"tabs": [
+						{
+							"id": "audit",
+							"label": "Audit trail",
+							"icon": "icon-history",
+							"widgets": [
+								{
+									"type": "audit-trail"
+								}
+							]
+						}
+					]
+				},
+				"documentationUrl": "https://softwarecatalog.conduction.nl"
+			}
+		},
+		{
+			"id": "Reviews",
+			"route": "/reviews",
+			"type": "index",
+			"title": "Reviews",
+			"config": {
+				"register": "@resolve:voorzieningen_register",
+				"schema": "beoordeeling",
+				"columns": [
+					"titel",
+					"auteur",
+					"score",
+					"datum"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				},
+				"documentationUrl": "https://softwarecatalog.conduction.nl"
+			}
+		},
+		{
+			"id": "ReviewDetail",
+			"route": "/reviews/:id",
+			"type": "detail",
+			"title": "Review",
+			"config": {
+				"register": "@resolve:voorzieningen_register",
+				"schema": "beoordeeling",
+				"_note": "Review / assessment archetype (beoordeeling). A review is read for its verdict then its subject: body leads with a prominent score stat (waardering) so the rating is the first thing seen, the review data (name, short + long markdown description, score) 8-wide beneath it, and a Related panel 4-wide surfacing the reviewed subjects — the beoordeeling links modules[], diensten[] and koppelingen[] (the things assessed) plus its gebruik context. A supporting-evidence Files panel sits below for screenshots / test reports backing the verdict. A review does not communicate, so per the comms hard-rule NO Emails/Meetings widgets appear. Audit trail stays a sidebar tab.",
+				"widgets": [
+					{
+						"id": "rv-score",
+						"type": "stat",
+						"title": "Rating",
+						"content": {
+							"label": "Rating",
+							"icon": "star",
+							"source": {
+								"register": "@resolve:voorzieningen_register",
+								"schema": "beoordeeling",
+								"metric": "avg",
+								"field": "waardering",
+								"filter": {
+									"id": "@objectId"
+								}
+							}
+						}
+					},
+					{
+						"id": "rv-data",
+						"type": "data",
+						"title": "Review",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "rv-related",
+						"type": "related",
+						"title": "Reviewed modules & services"
+					},
+					{
+						"id": "rv-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Supporting evidence"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "rv-score",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 2
+					},
+					{
+						"id": "2",
+						"widgetId": "rv-data",
+						"gridX": 0,
+						"gridY": 2,
+						"gridWidth": 8,
+						"gridHeight": 5
+					},
+					{
+						"id": "3",
+						"widgetId": "rv-related",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 4
+					},
+					{
+						"id": "4",
+						"widgetId": "rv-files",
+						"gridX": 8,
+						"gridY": 4,
+						"gridWidth": 4,
+						"gridHeight": 3
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"tabs": [
+						{
+							"id": "audit",
+							"label": "Audit trail",
+							"icon": "icon-history",
+							"widgets": [
+								{
+									"type": "audit-trail"
+								}
+							]
+						}
+					]
+				},
+				"documentationUrl": "https://softwarecatalog.conduction.nl"
+			}
+		},
+		{
+			"id": "Komplianties",
+			"route": "/komplianties",
+			"type": "index",
+			"title": "Compliance",
+			"config": {
+				"register": "@resolve:voorzieningen_register",
+				"schema": "compliancy",
+				"columns": [
+					"module",
+					"standaardversie",
+					"standaardGemma",
+					"url"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				},
+				"documentationUrl": "https://softwarecatalog.conduction.nl"
+			}
+		},
+		{
+			"id": "KompliantieDetail",
+			"route": "/komplianties/:id",
+			"type": "detail",
+			"title": "Compliance",
+			"config": {
+				"register": "@resolve:voorzieningen_register",
+				"schema": "compliancy",
+				"_note": "Compliance-claim archetype (compliancy). A compliance record asserts that a MODULE satisfies a STANDARD (version), backed by evidence. The claim is only credible with its evidence, so the body pairs the claim data 8-wide (module, standaardversie, standaardGemma, evidence URL and bewijsReferentie) with an Evidence documents (files) panel 4-wide full-height on the right — the bewijs file attachment is the whole point of the record. Below, a Related panel links the two subjects of the claim (module + standard/element) for one-click navigation to either side. A compliance record does not communicate, so per the comms hard-rule NO Emails/Meetings widgets appear. Audit trail stays a sidebar tab.",
+				"widgets": [
+					{
+						"id": "cm-data",
+						"type": "data",
+						"title": "Compliance claim",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "cm-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Evidence documents"
+					},
+					{
+						"id": "cm-related",
+						"type": "related",
+						"title": "Module & standard"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "cm-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "2",
+						"widgetId": "cm-files",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 7
+					},
+					{
+						"id": "3",
+						"widgetId": "cm-related",
+						"gridX": 0,
+						"gridY": 4,
+						"gridWidth": 8,
+						"gridHeight": 3
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"tabs": [
+						{
+							"id": "audit",
+							"label": "Audit trail",
+							"icon": "icon-history",
+							"widgets": [
+								{
+									"type": "audit-trail"
+								}
+							]
+						}
+					]
+				},
+				"documentationUrl": "https://softwarecatalog.conduction.nl"
+			}
+		},
+		{
+			"id": "ComplianceMatrix",
+			"route": "/compliance-matrix",
+			"type": "custom",
+			"title": "Compliance matrix",
+			"component": "ComplianceMatrixView",
+			"_note": "Filter-first cross-tab grid of modules (rows) against user-selected GEMMA standard versions (columns), where each cell is a tri-state (verified-with-evidence / claimed / none). No standard index or detail type expresses a two-dimensional matrix whose columns are chosen at runtime."
+		},
+		{
+			"id": "Moduleversies",
+			"route": "/moduleversies",
+			"type": "index",
+			"title": "Module versions",
+			"config": {
+				"register": "@resolve:voorzieningen_register",
+				"schema": "moduleVersie",
+				"columns": [
+					"versie",
+					"module",
+					"releaseDatum",
+					"status"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				},
+				"documentationUrl": "https://softwarecatalog.conduction.nl"
+			}
+		},
+		{
+			"id": "ModuleversieDetail",
+			"route": "/moduleversies/:id",
+			"type": "detail",
+			"title": "Module version",
+			"config": {
+				"register": "@resolve:voorzieningen_register",
+				"schema": "moduleVersie",
+				"_note": "Catalog / release archetype (moduleVersie — a released version of a module). Two questions dominate: what is this release and where is it in its lifecycle. Body: version data 8-wide (versie, package description, short + long markdown, status, geregistreerdDoor and the four lifecycle dates: in ontwikkeling / in gebruik / einde ondersteuning / teruggetrokken) with a Related panel 4-wide surfacing the parent module and its usages (gebruiken). Below, a compliancy object-list shows every compliance claim recorded against the parent module (compliance is tracked at module level via module.compliancy), and a release-notes / package Files panel holds changelogs and artefacts. A module version does not communicate, so per the comms hard-rule NO Emails/Meetings widgets appear. Audit trail stays a sidebar tab.",
+				"widgets": [
+					{
+						"id": "mv-data",
+						"type": "data",
+						"title": "Version details",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "mv-related",
+						"type": "related",
+						"title": "Module & usage"
+					},
+					{
+						"id": "mv-compliance",
+						"type": "object-list",
+						"title": "Compliance claims",
+						"content": {
+							"register": "@resolve:voorzieningen_register",
+							"schema": "compliancy",
+							"filter": {
+								"module": "@object.module"
+							},
+							"columns": [
+								{
+									"key": "standaardGemma",
+									"label": "Standard"
+								},
+								{
+									"key": "standaardversie",
+									"label": "Version"
+								},
+								{
+									"key": "url",
+									"label": "Evidence"
+								}
+							],
+							"limit": 50,
+							"rowRoute": "KompliantieDetail"
+						}
+					},
+					{
+						"id": "mv-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Release notes & artefacts"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "mv-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 5
+					},
+					{
+						"id": "2",
+						"widgetId": "mv-related",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 5
+					},
+					{
+						"id": "3",
+						"widgetId": "mv-compliance",
+						"gridX": 0,
+						"gridY": 5,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "4",
+						"widgetId": "mv-files",
+						"gridX": 8,
+						"gridY": 5,
+						"gridWidth": 4,
+						"gridHeight": 4
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"tabs": [
+						{
+							"id": "audit",
+							"label": "Audit trail",
+							"icon": "icon-history",
+							"widgets": [
+								{
+									"type": "audit-trail"
+								}
+							]
+						}
+					]
+				},
+				"documentationUrl": "https://softwarecatalog.conduction.nl"
+			}
+		},
+		{
+			"id": "LifecycleRoadmap",
+			"route": "/portfolio-roadmap",
+			"type": "custom",
+			"title": "Portfolio roadmap",
+			"component": "LifecycleRoadmapView",
+			"_note": "Per-organisation roadmap: the selected organisation's applications-in-use grouped into derived lifecycle-phase swimlanes (Onbekend first) and ordered within each lane by nearest urgency (end-of-support / phase-out / planned replacement). No standard index/roadmap type derives and groups by computed lifecycle phase."
+		},
+		{
+			"id": "FeaturesRoadmap",
+			"route": "/features-roadmap",
+			"type": "roadmap",
+			"title": "Features & roadmap",
+			"config": {
+				"documentationUrl": "https://softwarecatalog.conduction.nl"
+			}
+		},
+		{
+			"id": "Settings",
+			"route": "/settings",
+			"type": "settings",
+			"title": "Settings",
+			"config": {
+				"saveEndpoint": "/index.php/apps/softwarecatalog/api/settings",
+				"sections": [
+					{
+						"title": "Algemeen",
+						"widgets": [
+							{
+								"type": "component",
+								"componentName": "SoftwareCatalogSettingsPage"
+							}
+						]
+					}
+				]
+			}
+		}
+	]
+}
