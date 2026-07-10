@@ -74,8 +74,9 @@
 					{{ t('nextcloud-vue', 'Add step') }}
 				</NcButton>
 				<NcButton type="primary" :disabled="saving" @click="onDone">
-					<template v-if="saving" #icon>
-						<NcLoadingIcon :size="20" />
+					<template #icon>
+						<NcLoadingIcon v-if="saving" :size="20" />
+						<ContentSaveOutline v-else :size="20" />
 					</template>
 					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
 				</NcButton>
