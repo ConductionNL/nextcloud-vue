@@ -243,7 +243,7 @@ describe('$defs.sidebarTab', () => {
 })
 
 describe('manifest-config-defs additivity', () => {
-	it('schema version reflects the current bump (1.7.0)', () => {
+	it('schema version reflects the current bump (1.8.0)', () => {
 		// The page-type-extensions and abstract-sidebar changes bumped the
 		// schema version (to 1.1.0 in feature/manifest-v1). The follow-up
 		// manifest-config-refs change wired up $refs and bumped to 1.2.0.
@@ -263,7 +263,7 @@ describe('manifest-config-defs additivity', () => {
 		// 1.7.0 adds the optional top-level `credentials[]` array declaring
 		// external-provider credentials brokered by OpenRegister
 		// (credential-broker capability). Existing $defs unchanged either way.
-		expect(schema.version).toBe('1.7.0')
+		expect(schema.version).toBe('1.8.0')
 	})
 
 	it('keeps pages[].config OUTER additionalProperties as true (per-app keys remain free-form)', () => {

@@ -81,6 +81,7 @@
 		"@nextcloud/dialogs": "^6.4.2",
 		"@nextcloud/event-bus": "^3.3.3",
 		"@nextcloud/notify_push": "^1.4.0",
+		"@nextcloud/password-confirmation": "^5.3.1",
 		"@toast-ui/editor": "^3.2.2",
 		"@toast-ui/vue-editor": "^3.2.3",
 		"@types/react": "^18.0.0",
