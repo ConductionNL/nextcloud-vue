@@ -167,7 +167,11 @@
 					:title="icon.label"
 					:aria-label="icon.label"
 					@click="selectUrl(icon.url)">
-					<img class="cn-icon-browser-panel__cell-img" :src="icon.url" :alt="icon.label" loading="lazy">
+					<img
+						class="cn-icon-browser-panel__cell-img"
+						:src="icon.url"
+						:alt="icon.label"
+						loading="lazy">
 					<span v-if="showLabels" class="cn-icon-browser-panel__cell-label">{{ icon.label }}</span>
 				</button>
 			</div>
