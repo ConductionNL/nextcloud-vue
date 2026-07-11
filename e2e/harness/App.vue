@@ -27,6 +27,21 @@
 			<pre data-testid="fd-result">{{ fdResult ? JSON.stringify(fdResult) : 'none' }}</pre>
 		</template>
 
+		<!-- CnFormPage steps + conditional field + validation (manifest-form-logic,
+		     gated behind ?fl=1). submitHandler (not submitEndpoint) echoes the
+		     dispatched payload into #fl-result — mirrors the ?fd=1 harness's
+		     local-capture pattern (no real backend in the Vite harness). -->
+		<template v-else-if="showFormLogic">
+			<h2>Form logic — wizard + conditional field + validation</h2>
+			<CnFormPage
+				:fields="flFields"
+				:steps="flSteps"
+				submit-handler="echoSubmit"
+				:custom-components="flCustomComponents"
+				mode="public" />
+			<pre data-testid="fl-result">{{ flResult ? JSON.stringify(flResult) : 'none' }}</pre>
+		</template>
+
 		<template v-else>
 		<section data-testid="section-icon-enriched">
 			<h2>Icon picker — enriched (multi-source)</h2>
@@ -68,6 +83,7 @@ import CnIconPicker from '../../src/components/CnIconPicker/CnIconPicker.vue'
 import CnMarkdownEditor from '../../src/components/CnMarkdownEditor/CnMarkdownEditor.vue'
 import CnWalkthrough from '../../src/components/CnWalkthrough/CnWalkthrough.vue'
 import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
+import CnFormPage from '../../src/components/CnFormPage/CnFormPage.vue'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
 
 const wtStep = (id, title, body) => ({ id, sinceVersion: '1.0.0', placement: 'center', title, body, target: { kind: 'page', ref: 'harness' }, advanceOn: { type: 'manual' } })
@@ -87,7 +103,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'Harness',
-	components: { CnIconPicker, CnMarkdownEditor, CnWalkthrough, CnFormDialog },
+	components: { CnIconPicker, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage },
 	data() {
 		return {
 			icon: null,
@@ -102,6 +118,38 @@ export default {
 			fdFields: [
 				{ key: 'icon', widget: 'icon', label: 'Icon', iconSources: ['fontawesome'], catalogues: { fontawesome: faSample }, searchable: true },
 			],
+			showFormLogic: (typeof window !== 'undefined' && window.location.search.includes('fl')),
+			flResult: null,
+			flFields: [
+				{ key: 'kind', type: 'enum', label: 'Kind', enum: ['person', 'company'] },
+				{
+					key: 'name',
+					type: 'string',
+					label: 'Name',
+					validation: { required: true, pattern: '^[A-Za-z ]+$', message: 'Only letters allowed' },
+				},
+				{
+					key: 'kvk',
+					type: 'string',
+					label: 'KvK number',
+					visibleWhen: { field: 'kind', op: 'eq', value: 'company' },
+				},
+				// Always-visible filler on the "details" step so that step is
+				// never fully hidden merely because kvk's condition is false —
+				// otherwise Next/Submit gating (REQ-MFL-6's "fully-hidden step
+				// skipped" rule) would make Next disappear entirely whenever
+				// kind !== "company", which is not what this harness exercises.
+				{ key: 'amount', type: 'number', label: 'Amount' },
+			],
+			flSteps: [
+				{ id: 'who', title: 'Who', fields: ['kind', 'name'] },
+				{ id: 'details', title: 'Details', fields: ['kvk', 'amount'] },
+			],
+			flCustomComponents: {
+				echoSubmit: (formData) => {
+					this.flResult = formData
+				},
+			},
 			showWalkthrough: (typeof window !== 'undefined' && window.location.search.includes('wt')),
 			wtManifest: {
 				version: '1.0.0',

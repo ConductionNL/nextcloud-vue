@@ -9,7 +9,7 @@
 
 ## Phase 1 — Schema (REQ-MFL-1..3)
 
-- [ ] Update `src/schemas/app-manifest-v2.schema.json`:
+- [x] Update `src/schemas/app-manifest-v2.schema.json`:
       add `steps` to `$defs.page.properties.config.properties` —
       array, `minItems: 1`, items `{id (string, minLength 1, required),
       title (string, minLength 1, required), description (string,
@@ -17,14 +17,14 @@
       required)}` with `additionalProperties: false`. Description
       MUST state: form pages only; entries reference
       `config.fields[].key`; absent = single-step.
-- [ ] Update `src/schemas/app-manifest-v2.schema.json`:
+- [x] Update `src/schemas/app-manifest-v2.schema.json`:
       add `$defs.fieldValidation` — `{required (boolean), min
       (number), max (number), pattern (string), message (string)}`,
       `additionalProperties: false`, descriptions covering the
       per-type semantics table from design.md (string/password =
       length + pattern; number = numeric bounds; boolean required =
       must be true).
-- [ ] Update `src/schemas/app-manifest-v2.schema.json`:
+- [x] Update `src/schemas/app-manifest-v2.schema.json`:
       tighten `config.properties.fields.items` (currently a loose
       `additionalProperties: true` object) with two OPTIONAL typed
       properties — `visibleWhen: {$ref: "#/$defs/visibleWhen"}` and
@@ -32,16 +32,28 @@
       `additionalProperties: true` on the item itself (carry-forward
       field shapes must not break). Do NOT touch `$defs.visibleWhen`
       or the `pages[].type` enum.
-- [ ] Bump the schema top-level `version` `2.18.0` → `2.19.0` (or the
+      Deviation (necessary fix, in scope): the sentinel-guard test for
+      REQ-MFL-2's "data-source condition validates" scenario requires
+      `visibleWhen.field: "@total"` to pass `sentinelGuardedValue`
+      (newly reachable through `pages[].config` for the first time via
+      this field). Added a new `visibleWhen` sentinel context
+      (`$defs.sentinelVisibleWhenToken`, pattern `^@total$`) mirrored
+      in `src/utils/sentinelTokens.js` (`SENTINEL_TOKEN_PATTERNS`,
+      `SENTINEL_CONTEXTS`, `SENTINEL_VOCABULARY`) and
+      `src/utils/resolveManifestTokens.js` (`SENTINEL_RESOLVERS` +
+      the subtree-walk exclusion), with matching test updates in
+      `tests/schemas/sentinel-token-vocabulary.spec.js` and
+      `tests/utils/sentinelTokens.spec.js`.
+- [x] Bump the schema top-level `version` `2.18.0` → `2.19.0` (or the
       next sequential minor if another change landed first) and note
       the change in the schema `description` only if prior bumps did.
-- [ ] Run `npm run build:validators` to regenerate
+- [x] Run `npm run build:validators` to regenerate
       `src/utils/validateManifestV2.compiled.js` (ADR-036: the
       runtime consumes the COMPILED module, not the JSON file).
 
 ## Phase 2 — v2 post-schema validation (REQ-MFL-5)
 
-- [ ] Update `src/utils/validateManifest.js` — add a numbered
+- [x] Update `src/utils/validateManifest.js` — add a numbered
       post-schema check block inside `validateManifestV2()` (the v2
       path does NOT call `validateTypeConfig`; leave the v1 `case
       'form':` branch untouched) iterating `clone.pages` where
@@ -62,27 +74,27 @@
 
 ## Phase 3 — Runtime helpers (REQ-MFL-8, REQ-MFL-9)
 
-- [ ] Update `src/utils/visibleWhen.js` — export
+- [x] Update `src/utils/visibleWhen.js` — export
       `evaluateVisibleWhenLocal(cond, data)`: sync LOCAL-mode
       evaluation composed from `readVisibleWhenPath` +
       `compareVisibleWhen`; nullish cond → `true`; malformed cond
       (non-object, missing `field`, or `endpoint`/`source` present) →
       `false`. Extend the module docblock.
-- [ ] Create `src/utils/formValidation.js` — export
+- [x] Create `src/utils/formValidation.js` — export
       `validateFieldValue(field, value, t) → string|null`
       implementing the per-type rule table (required / min / max /
       pattern / message; built-in messages via
       `t('nextcloud-vue', …)` English msgids). Pure, no imports from
       components.
-- [ ] Export both helpers from `src/utils/index.js` (match the
+- [x] Export both helpers from `src/utils/index.js` (match the
       existing barrel style).
 
 ## Phase 4 — CnFormPage rendering (REQ-MFL-6, REQ-MFL-7, REQ-MFL-9, REQ-MFL-10, REQ-MFL-12)
 
-- [ ] Update `src/components/CnFormPage/CnFormPage.vue` — add the
+- [x] Update `src/components/CnFormPage/CnFormPage.vue` — add the
       `steps` prop (Array, default `[]`) + data for
       `currentStepIndex`, `fieldErrors`, `remoteVisibility`.
-- [ ] Update `src/components/CnFormPage/CnFormPage.vue` — visibility
+- [x] Update `src/components/CnFormPage/CnFormPage.vue` — visibility
       pipeline: computed `effectiveVisibility` doing the single-pass
       declaration-order cascade over `fields` using
       `evaluateVisibleWhenLocal` against the effective data (hidden
@@ -92,7 +104,7 @@
       `formData` draft but are filtered from rendering, validation,
       and the dispatch payload (strip in `submit()` before
       endpoint/handler dispatch).
-- [ ] Update `src/components/CnFormPage/CnFormPage.vue` — step
+- [x] Update `src/components/CnFormPage/CnFormPage.vue` — step
       chrome: `<nav>`-wrapped `<ol class="cn-form-page__steps">`
       indicator with `aria-current="step"`, current-step-only field
       rendering (step `fields[]` order), Back / Next / Submit footer
@@ -100,7 +112,7 @@
       both directions; submit button only on the last step; `#submit`
       slot unchanged), `@step {from, to}` event. Empty `steps` ⇒
       existing single-step markup unchanged. NC CSS variables only.
-- [ ] Update `src/components/CnFormPage/CnFormPage.vue` — validation
+- [x] Update `src/components/CnFormPage/CnFormPage.vue` — validation
       gating: Next validates current step's visible fields, Submit
       validates all visible fields and jumps to the earliest invalid
       step; failures fill `fieldErrors` + focus the first invalid
@@ -109,7 +121,7 @@
       dispatch only on pass. Update the component docblock (props,
       events, decisions: hidden = unvalidated + excluded-from-payload
       + draft-retained).
-- [ ] Update `src/composables/cnFormFieldRenderer.js` — accept
+- [x] Update `src/composables/cnFormFieldRenderer.js` — accept
       optional `error` in the args object; when set, add
       `error: true` + `helperText: error` to the NcInputField-family
       bindings (`string`, `number`, `password`, `string-textarea`
@@ -118,13 +130,13 @@
       `role="alert"` sibling for those — wire `aria-describedby` from
       the field wrapper). Pass `error` through the `#field-<key>`
       scoped slot props.
-- [ ] Update `src/components/CnWidgetFormRenderer/CnWidgetFormRenderer.vue`
+- [x] Update `src/components/CnWidgetFormRenderer/CnWidgetFormRenderer.vue`
       — declare the `steps` prop (Array, default `[]`) so
       `innerProps` forwards it to the inner CnFormPage.
 
 ## Phase 5 — Unit tests (Jest)
 
-- [ ] Update `tests/schemas/app-manifest-v2.schema.spec.js` — REQ-MFL-1..5
+- [x] Update `tests/schemas/app-manifest-v2.schema.spec.js` — REQ-MFL-1..5
       cases: steps valid / missing-title / closed-shape / stepless
       regression; visibleWhen local + source valid, bad `op`
       rejected, `@bogus.token` sentinel-through-new-shape rejected;
@@ -132,20 +144,33 @@
       min rejected; post-schema: unknown step field key, unassigned
       field, duplicate step id, min>max, bad pattern, pattern-on-number,
       LOCAL ref to undeclared key.
-- [ ] Update `tests/fixtures/manifest-all-types.json` — extend the
+- [x] Update `tests/fixtures/manifest-all-types.json` — extend the
       `type: "form"` page with `steps` + one `visibleWhen` + one
       `validation` so the all-types fixture exercises the new shapes.
-- [ ] Run `npx jest tests/schemas/fleet-manifest-regression.spec.js`
+      Deviation: skipped. HEAD's `manifest-all-types.json` targets the
+      v1 schema (`app-manifest.schema.json`) and has NO `type: "form"`
+      page at all — `steps`/`visibleWhen`/`validation` are v2-only
+      (design.md "v1 schema back-port" is explicitly out of scope), so
+      adding them here would be untested by the v1 validator and
+      inconsistent with the fixture's own schema. The equivalent
+      combined-shapes coverage is provided instead by the new
+      "compiled validator regeneration" describe block in
+      `tests/schemas/app-manifest-v2.schema.spec.js` (steps +
+      visibleWhen + validation on one manifest, validated end-to-end
+      through the compiled v2 validator).
+- [x] Run `npx jest tests/schemas/fleet-manifest-regression.spec.js`
       — MUST stay green with zero fleet-fixture edits (additive
-      change).
-- [ ] Create `tests/utils/formValidation.spec.js` — REQ-MFL-8 cases:
+      change). Confirmed green, zero fixture edits.
+- [x] Create `tests/utils/formValidation.spec.js` — REQ-MFL-8 cases:
       required per type (string-whitespace, number, boolean-true,
       enum, json), length vs numeric min/max, pattern match/mismatch,
       `message` override, translated defaults.
-- [ ] Update `tests/components/visibleWhen.spec.js` — REQ-MFL-9
+- [x] Update `tests/components/visibleWhen.spec.js` — REQ-MFL-9
       helper cases: `evaluateVisibleWhenLocal` nullish → true,
       malformed → false, dot-path resolution, each operator.
-- [ ] Update `tests/components/CnFormPage.spec.js` — REQ-MFL-6/7/9/10/11/12
+      (File lives at `tests/utils/visibleWhen.spec.js` on HEAD — the
+      home suite the task refers to.)
+- [x] Update `tests/components/CnFormPage.spec.js` — REQ-MFL-6/7/9/10/11/12
       component cases: two-step indicator + `aria-current`, Next/Back
       navigation + `@step` payloads + draft retention, fully-hidden
       step skipped, stepless regression (existing cases untouched),
@@ -159,20 +184,30 @@
       `error`/`helperText`, `role="alert"` sibling for enum,
       `#field-<key>` slot receives `error`, public-mode banner only
       after final-step dispatch.
-- [ ] Update `tests/components/CnWidgetFormRenderer` coverage (in its
+- [x] Update `tests/components/CnWidgetFormRenderer` coverage (in its
       existing spec home) — `steps` forwarded to the inner
       CnFormPage (REQ-MFL-12).
+      (Existing spec home is `tests/components/CnBuiltInWidgets.spec.js`'s
+      `describe('CnWidgetFormRenderer', ...)` block — no standalone
+      `CnWidgetFormRenderer.spec.js` exists on HEAD.)
 
 ## Phase 6 — e2e (Playwright, this repo)
 
-- [ ] Update `e2e/harness/App.vue` (+ `e2e/harness/main.js` if
+- [x] Update `e2e/harness/App.vue` (+ `e2e/harness/main.js` if
       needed) — add a `?fl=1` gated view mounting CnFormPage with a
       2-step manifest config: one conditional field
       (`visibleWhen: {field: "kind", op: "eq", value: "company"}`),
       one `required` + `pattern` field, `submitEndpoint` stubbed to
       echo the payload into a `data-testid="fl-result"` node (mirror
       the `?fd=1` CnFormDialog harness pattern).
-- [ ] Create `e2e/form-logic.e2e.js` — header `@spec` comment
+      Deviation: used `submitHandler` (a local JS function via the
+      `customComponents` prop) instead of `submitEndpoint`, since the
+      Vite harness has no backend to stub an HTTP endpoint against
+      and `?fd=1`'s own pattern is likewise a local capture (`@confirm`
+      handler), not a faked network call. Both dispatch modes share
+      the identical validate-then-dispatch code path, so this doesn't
+      reduce coverage of anything this change adds.
+- [x] Create `e2e/form-logic.e2e.js` — header `@spec` comment
       pointing at
       `openspec/changes/manifest-form-logic/specs/manifest-form-logic/spec.md`
       (REQ-MFL-6/7/9/10/11); tests: step indicator + Next/Back
@@ -180,10 +215,13 @@
       error; flipping the condition shows/hides the dependent field;
       submit payload excludes the hidden field (assert `fl-result`
       content); success banner after final submit.
+      All 4 tests verified green against a real Chromium via
+      `npx playwright test e2e/form-logic.e2e.js` (and the full
+      20-test e2e suite stays green alongside them).
 
 ## Phase 7 — Docs
 
-- [ ] Update `docs/components/cn-form-page.md` — new sections:
+- [x] Update `docs/components/cn-form-page.md` — new sections:
       "Multi-step wizards" (`steps` shape, key-reference rule,
       skipped-step behaviour), "Conditional fields" (`visibleWhen`
       reuse, LOCAL field-ref resolution, declaration-order cascade
@@ -192,19 +230,36 @@
       override, hidden = unvalidated + excluded-from-payload
       decision, the leading-`@` pattern/sentinel caveat), worked
       wizard example.
-- [ ] Update `docs/components/cn-widget-form-renderer.md` (if
+- [x] Update `docs/components/cn-widget-form-renderer.md` (if
       present; otherwise the widget's doc home) — mention `steps`
       forwarding.
-- [ ] Run `npm run check:docs` — passes.
+- [x] Run `npm run check:docs` — passes for this change's components
+      (`CnFormPage`, `CnWidgetFormRenderer` both fully covered). The
+      overall script still exits 1 due to 6 PRE-EXISTING, unrelated
+      component doc gaps (`CnFormDialog`, `CnDetailPage`,
+      `CnMapWidget`, `CnAppNav`, `CnAppRoot`, `CnCredentials` — none
+      touched by this change; identical failure confirmed on
+      unmodified HEAD) — out of scope for this leaf change.
 
 ## Phase 8 — Verification
 
-- [ ] Run `npm run build:validators` again — regeneration MUST
-      produce no diff (compiled module in sync, REQ-MFL-4).
-- [ ] Run `npm test` — full suite green (existing + new).
-- [ ] Run `npx eslint src/schemas src/utils/formValidation.js
+- [x] Run `npm run build:validators` again — regeneration MUST
+      produce no diff (compiled module in sync, REQ-MFL-4). Verified
+      idempotent across 3 consecutive regenerations (identical
+      SHA-256).
+- [x] Run `npm test` — full suite green (existing + new). 427/427
+      suites, 4736/4736 tests.
+- [x] Run `npx eslint src/schemas src/utils/formValidation.js
       src/utils/visibleWhen.js src/utils/validateManifest.js
       src/components/CnFormPage src/components/CnWidgetFormRenderer
       src/composables/cnFormFieldRenderer.js tests e2e/form-logic.e2e.js`
-      — passes.
-- [ ] Run `npx playwright test e2e/form-logic.e2e.js` — passes.
+      — passes. All files this change owns are error/warning-clean
+      (`src/schemas` has no JS to lint — schema is JSON). Pre-existing,
+      unrelated lint debt (251 `src/` errors repo-wide, several `tests/`
+      + `e2e/harness/App.vue` errors) confirmed byte-identical on
+      unmodified HEAD via `git stash` diff — zero NEW errors introduced;
+      10 new JSDoc `@param` warnings from this change's own new methods
+      were fixed (all `src/components/CnFormPage` +
+      `src/composables/cnFormFieldRenderer.js` warnings resolved).
+- [x] Run `npx playwright test e2e/form-logic.e2e.js` — passes (4/4;
+      20/20 across the full e2e suite).

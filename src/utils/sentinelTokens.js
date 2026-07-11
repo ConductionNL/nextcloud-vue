@@ -38,6 +38,15 @@
  *  - **declarative**  — OpenRegister direction, resolved server-side:
  *                       `@self.<field>` (the object's own field in a
  *                       cross-object calc), `@ref:<path>`, `@aggregate:<expr>`.
+ *  - **visibleWhen**  — the shared `visibleWhen` predicate's `source`-mode
+ *                       collection-total marker, resolved client-side by
+ *                       `evaluateVisibleWhen` (`utils/visibleWhen.js`):
+ *                       `@total` (a `field: "@total"` — or omitted `field` —
+ *                       compares the collection total rather than the first
+ *                       result). Added for manifest-form-logic:
+ *                       `config.fields[].visibleWhen` is the first
+ *                       `visibleWhen` reachable through the
+ *                       sentinelGuardedValue-guarded `pages[].config` subtree.
  *
  * `@ref`/`@aggregate` are first-class members even though currently unused
  * fleet-wide — they are the OR-declarative direction and belong in the closed
@@ -64,6 +73,14 @@ export const SENTINEL_TOKEN_PATTERNS = Object.freeze({
 	workspace: '^@workspace\\.[A-Za-z][A-Za-z0-9_]*\\??$',
 	route: '^@route\\.[A-Za-z][A-Za-z0-9_-]*$',
 	declarative: '^@self\\.[A-Za-z][A-Za-z0-9_]*$|^@ref:[A-Za-z][A-Za-z0-9_./-]*$|^@aggregate:.+$',
+	// manifest-form-logic: the shared visibleWhen predicate's source-mode
+	// collection-total marker (`field: "@total"`), resolved client-side by
+	// evaluateVisibleWhen — not one of the four IAppConfig/OpenRegister
+	// resolvers, but a real pre-existing convention (already documented on
+	// $defs.visibleWhen and the banner widget) now reachable through the
+	// sentinelGuardedValue-guarded pages[].config subtree for the first time
+	// via config.fields[].visibleWhen.
+	visibleWhen: '^@total$',
 	// Deprecated-but-not-yet-removed tokens. Kept in the schema union so
 	// deployed manifests still validate during the migration window; the gate
 	// downgrades them to a WARN (see SENTINEL_DEPRECATIONS).
@@ -71,13 +88,13 @@ export const SENTINEL_TOKEN_PATTERNS = Object.freeze({
 })
 
 /**
- * The seven canonical context names (excludes `deprecated`, which is a
+ * The eight canonical context names (excludes `deprecated`, which is a
  * transitional overlay, not a resolution context).
  *
  * @type {string[]}
  */
 export const SENTINEL_CONTEXTS = Object.freeze([
-	'filter', 'config', 'object', 'workspace', 'route', 'declarative',
+	'filter', 'config', 'object', 'workspace', 'route', 'declarative', 'visibleWhen',
 ])
 
 /**
@@ -117,6 +134,11 @@ export const SENTINEL_VOCABULARY = Object.freeze({
 		resolver: 'fetchAggregate (OpenRegister server-side)',
 		description: 'OpenRegister declarative direction — resolved server-side. `@self.<field>` is the object\'s own field in a cross-object calc; `@ref`/`@aggregate` are reserved (currently unused fleet-wide).',
 		members: ['@self.<field>', '@ref:<path>', '@aggregate:<expr>'],
+	},
+	visibleWhen: {
+		resolver: 'evaluateVisibleWhen (utils/visibleWhen.js)',
+		description: 'The shared visibleWhen predicate\'s source-mode collection-total marker. `field: "@total"` (or an omitted `field`) compares the collection total instead of the first result.',
+		members: ['@total'],
 	},
 })
 
