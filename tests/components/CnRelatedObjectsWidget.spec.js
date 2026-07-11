@@ -26,8 +26,9 @@ jest.mock('@nextcloud/router', () => ({
 const Stub = { render: (h) => h('div') }
 
 const stubs = {
-	// Render the chrome's default slot so section content is testable.
-	CnWidgetWrapper: { template: '<div class="cn-widget-wrapper-stub"><slot /></div>' },
+	// Render the chrome's default + footer slots so section content and the
+	// Add footer are testable.
+	CnWidgetWrapper: { template: '<div class="cn-widget-wrapper-stub"><slot /><slot name="footer" /></div>' },
 	CnIcon: true,
 	FileTreeOutline: true,
 	Paperclip: true,
@@ -116,7 +117,8 @@ describe('CnRelatedObjectsWidget', () => {
 	it('shows the empty state when nothing is related', async () => {
 		const wrapper = mountWidget({ showIntegrations: false })
 		await flush()
-		expect(wrapper.find('.cn-related-objects-widget__empty').exists()).toBe(true)
+		expect(wrapper.find('.cn-related-objects-widget__empty-state').exists()).toBe(true)
+		expect(wrapper.find('.cn-related-objects-widget__empty-state').attributes('name')).toBe('No relations yet')
 	})
 
 	it('emits select-object when a related-object row is clicked', async () => {
@@ -206,7 +208,29 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 		const wrapper = mountTabbed()
 		await flush()
 		expect(wrapper.findAll('.cn-related-objects-widget__tab').length).toBe(0)
-		expect(wrapper.find('.cn-related-objects-widget__empty').exists()).toBe(true)
+		expect(wrapper.find('.cn-related-objects-widget__empty-state').exists()).toBe(true)
+		expect(wrapper.find('.cn-related-objects-widget__empty-state').attributes('name')).toBe('No relations yet')
+	})
+
+	it('names the single source in the empty state when scoped to one group', async () => {
+		global.fetch = mockFetchBySuffix({ relations: {}, uses: { results: [], total: 0 }, used: { results: [], total: 0 }, files: { results: [], total: 0 } })
+		const wrapper = mountTabbed({ includeGroups: ['files'] })
+		await flush()
+		expect(wrapper.find('.cn-related-objects-widget__empty-state').attributes('name')).toBe('No files yet')
+	})
+
+	it('renders the Add footer on the tabbed path', async () => {
+		global.fetch = mockFetchBySuffix({ relations: {}, uses: { results: [], total: 0 }, used: { results: [], total: 0 }, files: { results: [], total: 0 } })
+		const wrapper = mountTabbed()
+		await flush()
+		expect(wrapper.find('.cn-related-objects-widget__footer').exists()).toBe(true)
+	})
+
+	it('hides the Add footer when showAddFooter is false', async () => {
+		global.fetch = mockFetchBySuffix({ relations: {}, uses: { results: [], total: 0 }, used: { results: [], total: 0 }, files: { results: [], total: 0 } })
+		const wrapper = mountTabbed({ showAddFooter: false })
+		await flush()
+		expect(wrapper.find('.cn-related-objects-widget__footer').exists()).toBe(false)
 	})
 
 	it('deep-links a file row to its Nextcloud file permalink in a new tab', async () => {
@@ -279,22 +303,26 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 
 	it('includeGroups whitelists which relation groups are visible', () => {
 		const wrapper = mountWidget({ includeGroups: ['objects', 'mails'] })
-		wrapper.setData({ groups: [
-			{ key: 'objects', items: [{ id: 1 }], total: 1 },
-			{ key: 'files', items: [{ id: 2 }], total: 1 },
-			{ key: 'mails', items: [{ id: 3 }], total: 1 },
-			{ key: 'events', items: [], total: 0 },
-		] })
+		wrapper.setData({
+			groups: [
+				{ key: 'objects', items: [{ id: 1 }], total: 1 },
+				{ key: 'files', items: [{ id: 2 }], total: 1 },
+				{ key: 'mails', items: [{ id: 3 }], total: 1 },
+				{ key: 'events', items: [], total: 0 },
+			],
+		})
 		expect(wrapper.vm.visibleGroups.map((g) => g.key)).toEqual(['objects', 'mails'])
 	})
 
 	it('shows every non-empty group when includeGroups is empty', () => {
 		const wrapper = mountWidget({ includeGroups: [] })
-		wrapper.setData({ groups: [
-			{ key: 'objects', items: [{ id: 1 }], total: 1 },
-			{ key: 'files', items: [], total: 0 },
-			{ key: 'mails', items: [{ id: 3 }], total: 1 },
-		] })
+		wrapper.setData({
+			groups: [
+				{ key: 'objects', items: [{ id: 1 }], total: 1 },
+				{ key: 'files', items: [], total: 0 },
+				{ key: 'mails', items: [{ id: 3 }], total: 1 },
+			],
+		})
 		expect(wrapper.vm.visibleGroups.map((g) => g.key)).toEqual(['objects', 'mails'])
 	})
 })

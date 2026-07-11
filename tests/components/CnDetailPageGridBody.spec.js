@@ -134,6 +134,39 @@ describe('CnDetailPage — adjustable body grid', () => {
 		})
 	})
 
+	describe('widgetDisplayTitle (title-owning widget types)', () => {
+		it('prefers content.title for a title-owning type (related) over the seed chrome title', async () => {
+			// The related widget owns its title via content.title (its config
+			// form edits it; the chrome title input is hidden). A non-empty seed
+			// chrome title must NOT shadow the edited content.title — otherwise
+			// the title can never be changed (the reported bug).
+			const layout = [{ id: 1, widgetId: 'r1', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 4 }]
+			const widgets = [{ id: 'r1', type: 'related', title: 'Related', content: { title: 'Renamed', groups: [] } }]
+			const wrapper = mount(CnDetailPage, { propsData: { layout, widgets } })
+			await wrapper.vm.$nextTick()
+			expect(wrapper.vm.widgetDisplayTitle(layout[0])).toBe('Renamed')
+			wrapper.destroy()
+		})
+
+		it('returns undefined for a title-owning widget with an empty content.title (widget default)', async () => {
+			const layout = [{ id: 1, widgetId: 'r1', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 4 }]
+			const widgets = [{ id: 'r1', type: 'related', title: 'Related', content: { title: '', groups: [] } }]
+			const wrapper = mount(CnDetailPage, { propsData: { layout, widgets } })
+			await wrapper.vm.$nextTick()
+			expect(wrapper.vm.widgetDisplayTitle(layout[0])).toBeUndefined()
+			wrapper.destroy()
+		})
+
+		it('keeps the chrome title authoritative for non-title-owning types', async () => {
+			const layout = [{ id: 1, widgetId: 'w1', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 3 }]
+			const widgets = [{ id: 'w1', type: 'stat', title: 'KPI', content: { title: 'ignored' } }]
+			const wrapper = mount(CnDetailPage, { propsData: { layout, widgets } })
+			await wrapper.vm.$nextTick()
+			expect(wrapper.vm.widgetDisplayTitle(layout[0])).toBe('KPI')
+			wrapper.destroy()
+		})
+	})
+
 	describe('configurable / removable default widgets', () => {
 		it('resolves the config widget from the materialized auto-body', async () => {
 			const wrapper = mountSchemaDriven()

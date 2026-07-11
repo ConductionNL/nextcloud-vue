@@ -163,6 +163,7 @@ export {
 	CnObjectMetadataWidget,
 	CnObjectMetadataModal,
 	CnRelatedObjectsWidget,
+	CnObjectGeoWidget,
 	CnMapWidget,
 	CnLogsPage,
 	CnSettingsPage,
