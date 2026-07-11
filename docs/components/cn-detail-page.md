@@ -372,6 +372,7 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `showRelatedObjects` | Boolean | `true` | Whether to render the Related section beneath the data widget. Set `false` on pages that surface relations elsewhere (e.g. the sidebar) to drop the section. |
+| `createRoute` | String \| Object | `''` | Route pushed when the page's "create" action fires (empty disables it). |
 
 ### Widget icons (ADR-062)
 

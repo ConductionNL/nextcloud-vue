@@ -66,7 +66,8 @@ In the deprecated list mode, relation and file sections only render when the sto
 | `files-label` | `String` | `'Files'` | Section heading for files |
 | `linked-apps-label` | `String` | `'Linked apps'` | Section heading for leaf-integration entry points (legacy list path) |
 | `open-in-sidebar-label` | `String` | `'Open in sidebar'` | **Deprecated, no-op.** The per-tab open-in-sidebar affordance was removed in favour of deep-linking; kept for backward compatibility. No longer rendered in tabbed mode |
-| `empty-label` | `String` | `'Nothing related yet'` | Empty-state label shown when nothing is related |
+| `empty-label` | `String` | `'Nothing related yet'` | Empty-state label. When left at its default a contextual label is derived instead: a widget scoped to a single group (`include-groups: ['files']`) shows "No files yet", an unscoped/multi-source one shows "No relations yet". The state renders as an `NcEmptyContent` with the group's icon (generic link icon when unscoped) |
+| `show-add-footer` | `Boolean` | `true` | Render the "Add" footer on the tabbed self-fetch path: upload file (built-in, posts to the object's `filesMultipart` endpoint), add note (built-in, posts to the object's `notes` endpoint), and one emit-`add` entry per other configured group. Disable for read-only hosts |
 
 ## Events
 
@@ -77,3 +78,6 @@ In the deprecated list mode, relation and file sections only render when the sto
 | `@select-related` | `{ group, item }` | A leaf-group row (mails, events, contacts, …) was clicked in tabbed mode and no owning-app deep link could be resolved |
 | `@select-extra` | `{ section, item }` | A row in a host-supplied `extra-sections` group was clicked (legacy list path) |
 | `@open-integration` | integration id (string) | A "Linked apps" row or a tab's "open in sidebar" affordance was activated — the host opens that leaf (the detail-page auto-body deep-links the sidebar tab) |
+| `@add` | group key (string) | An Add-footer entry without a built-in flow was activated (e.g. `objects`, `mails`); the host routes it (open a link-object dialog, compose a mail, …) |
+| `@file-uploaded` | `File[]` | Files were uploaded to the object via the Add footer's built-in upload flow |
+| `@note-added` | note message (string) | A note was created on the object via the Add footer's built-in note flow |
