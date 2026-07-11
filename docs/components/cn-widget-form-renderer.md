@@ -43,6 +43,7 @@ commonly used ones in manifest widgets are:
 | --- | --- | --- |
 | `register` | `String` | Register slug for form data submission. |
 | `schema` | `String` | Schema slug for the form's field generation. |
+| `steps` | `Array` | Multi-step wizard groups (manifest-form-logic), forwarded to `CnFormPage`. `visibleWhen` / `validation` travel inside `fields` and need no separate wiring. |
 | `item` | `Object` | Pre-fill the form with an existing object (edit mode). |
 | `disabled` | `Boolean` | Render the form read-only. |
 | `submitHandler` | `Function` | Optional override that receives `(formData)` instead of the default save flow. |
