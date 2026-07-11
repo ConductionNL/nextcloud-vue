@@ -34,11 +34,21 @@
  * template trivially mountable in jest with the same component stubs
  * tests already use for CnSettingsPage.
  *
+ * manifest-form-logic (REQ-MFL-11) adds an optional `error` argument.
+ * When set, components in the `NcInputField` family (`string`, `number`,
+ * `password`, and `string-textarea` when `NcTextArea` is available, plus
+ * the unknown-type `fallback`) receive the NC-standard `error: true` +
+ * `helperText: <message>` props, which paint the input's error state and
+ * announce the message natively. `boolean` / `enum` / `json` bindings and
+ * the native-`<textarea>` fallback are left untouched — `CnFormPage`
+ * renders an adjacent `role="alert"` element for those instead.
+ *
  * @param {object} args
  * @param {object} args.field   The formField shape.
  * @param {*}      args.value   Current value for `field.key`.
  * @param {Function} args.onInput Callback invoked with the new value.
  * @param {Function} [args.t]   Optional translator for `field.label`.
+ * @param {string|null} [args.error] Optional validation failure message (REQ-MFL-11).
  * @param {object}  [args.componentMap] Optional override map from
  *   widget id → Vue component. Defaults to the library's standard
  *   set (`NcCheckboxRadioSwitch`, `NcTextField`, `NcTextArea`,
@@ -105,14 +115,15 @@ function resolveEnumOptions(field) {
  * Resolve render bindings for a single form field.
  *
  * @param {object} args See module docblock.
- * @param args.field
- * @param args.value
- * @param args.onInput
- * @param args.t
- * @param args.componentMap
+ * @param {object} args.field The formField shape.
+ * @param {*} args.value Current value for `field.key`.
+ * @param {Function} args.onInput Callback invoked with the new value.
+ * @param {Function} [args.t] Optional translator for `field.label`.
+ * @param {string|null} [args.error] Optional validation failure message (REQ-MFL-11).
+ * @param {object} [args.componentMap] Optional override map from widget id to Vue component.
  * @return {{ tag: object|string, props: object, listeners: object, kind: string }}
  */
-export function cnRenderFormField({ field, value, onInput, t, componentMap } = {}) {
+export function cnRenderFormField({ field, value, onInput, t, error, componentMap } = {}) {
 	if (!field || typeof field !== 'object' || typeof field.key !== 'string') {
 		return null
 	}
@@ -120,8 +131,10 @@ export function cnRenderFormField({ field, value, onInput, t, componentMap } = {
 	const translate = typeof t === 'function' ? t : (k) => k
 	const label = translate(field.label || field.key)
 
+	let result = null
+
 	if (field.type === 'boolean') {
-		return {
+		result = {
 			kind: 'boolean',
 			tag: map.boolean,
 			props: {
@@ -133,10 +146,8 @@ export function cnRenderFormField({ field, value, onInput, t, componentMap } = {
 			},
 			labelText: label,
 		}
-	}
-
-	if (field.type === 'number') {
-		return {
+	} else if (field.type === 'number') {
+		result = {
 			kind: 'number',
 			tag: map.number,
 			props: {
@@ -148,10 +159,8 @@ export function cnRenderFormField({ field, value, onInput, t, componentMap } = {
 				'update:value': (next) => onInput(next === '' ? null : Number(next)),
 			},
 		}
-	}
-
-	if (field.type === 'password') {
-		return {
+	} else if (field.type === 'password') {
+		result = {
 			kind: 'password',
 			tag: map.password,
 			props: {
@@ -163,12 +172,10 @@ export function cnRenderFormField({ field, value, onInput, t, componentMap } = {
 				'update:value': (next) => onInput(next),
 			},
 		}
-	}
-
-	if (field.type === 'enum') {
+	} else if (field.type === 'enum') {
 		const options = resolveEnumOptions(field)
 		const selected = options.find((o) => o.value === value) ?? null
-		return {
+		result = {
 			kind: 'enum',
 			tag: map.enum,
 			props: {
@@ -180,10 +187,8 @@ export function cnRenderFormField({ field, value, onInput, t, componentMap } = {
 				input: (next) => onInput(next?.value),
 			},
 		}
-	}
-
-	if (field.type === 'json') {
-		return {
+	} else if (field.type === 'json') {
+		result = {
 			kind: 'json',
 			tag: map.json,
 			props: {
@@ -192,16 +197,14 @@ export function cnRenderFormField({ field, value, onInput, t, componentMap } = {
 			},
 			listeners: {},
 		}
-	}
-
-	if (field.type === 'string') {
+	} else if (field.type === 'string') {
 		const isTextarea = field.widget === 'textarea'
 		if (isTextarea) {
 			// NcTextArea is preferred; otherwise fall back to a plain
 			// <textarea> rendered via the host template. The renderer
 			// returns `tag: 'textarea'` so the consumer's `<component :is>`
 			// resolves to the native element.
-			return {
+			result = {
 				kind: 'string-textarea',
 				tag: map['string-textarea'] || 'textarea',
 				props: {
@@ -218,22 +221,21 @@ export function cnRenderFormField({ field, value, onInput, t, componentMap } = {
 					},
 				},
 			}
+		} else {
+			result = {
+				kind: 'string',
+				tag: map.string,
+				props: {
+					label,
+					value: value === null || value === undefined ? '' : String(value),
+				},
+				listeners: {
+					'update:value': (next) => onInput(next),
+				},
+			}
 		}
-		return {
-			kind: 'string',
-			tag: map.string,
-			props: {
-				label,
-				value: value === null || value === undefined ? '' : String(value),
-			},
-			listeners: {
-				'update:value': (next) => onInput(next),
-			},
-		}
-	}
-
-	// Unknown type — warn ONCE per type and fall back to NcTextField.
-	if (!KNOWN_TYPES.includes(field.type)) {
+	} else if (!KNOWN_TYPES.includes(field.type)) {
+		// Unknown type — warn ONCE per type and fall back to NcTextField.
 		if (!warned.has(field.type)) {
 			warned.add(field.type)
 			// eslint-disable-next-line no-console
@@ -241,7 +243,7 @@ export function cnRenderFormField({ field, value, onInput, t, componentMap } = {
 				`[cnRenderFormField] Unknown field.type "${field.type}" for field "${field.key}". Falling back to NcTextField. Known types: ${KNOWN_TYPES.join(', ')}.`,
 			)
 		}
-		return {
+		result = {
 			kind: 'fallback',
 			tag: map.string,
 			props: {
@@ -254,8 +256,20 @@ export function cnRenderFormField({ field, value, onInput, t, componentMap } = {
 		}
 	}
 
-	// Should be unreachable given KNOWN_TYPES check above.
-	return null
+	// Should be unreachable given the KNOWN_TYPES check above.
+	if (!result) return null
+
+	// manifest-form-logic (REQ-MFL-11): NcInputField-family kinds get the
+	// NC-standard error props. `string-textarea` only qualifies when
+	// NcTextArea resolved (native <textarea> has no such props — CnFormPage
+	// renders the adjacent role="alert" fallback for that case instead).
+	const supportsNativeError = ['string', 'number', 'password', 'fallback'].includes(result.kind)
+		|| (result.kind === 'string-textarea' && result.tag !== 'textarea')
+	if (error && supportsNativeError) {
+		result.props = { ...result.props, error: true, helperText: error }
+	}
+
+	return result
 }
 
 export default cnRenderFormField
