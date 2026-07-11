@@ -24,6 +24,14 @@
  * literal right-hand side. Evaluation is FAIL-SAFE: any fetch / shape error
  * resolves `false` (hidden) — a broken predicate never breaks a page.
  *
+ * manifest-form-logic adds `evaluateVisibleWhenLocal(cond, data)`, a SYNC
+ * counterpart to `evaluateVisibleWhen()` for the LOCAL mode only, composed
+ * from `readVisibleWhenPath` + `compareVisibleWhen` with no fetch / promise.
+ * `CnFormPage` calls it on every form-data change so conditions gating one
+ * field on another's live value resolve without flicker. `endpoint` /
+ * `source` conditions on form fields still go through the async
+ * `evaluateVisibleWhen()`, evaluated once at mount and cached.
+ *
  * @module utils/visibleWhen
  */
 
@@ -124,6 +132,35 @@ export async function evaluateVisibleWhen(cond, ctx) {
 	if (!cond) return true
 	try {
 		const actual = await readVisibleWhenValue(cond, ctx)
+		return compareVisibleWhen(actual, cond.op || 'eq', cond.value)
+	} catch (e) {
+		return false
+	}
+}
+
+/**
+ * Evaluate a LOCAL-mode visibleWhen condition synchronously against a
+ * plain data object (`CnFormPage`'s live `formData`). No fetch, no
+ * promise — pure composition of {@link readVisibleWhenPath} and
+ * {@link compareVisibleWhen}, so it is safe to call on every keystroke.
+ *
+ * A nullish condition resolves `true` (no condition = always visible),
+ * mirroring {@link evaluateVisibleWhen}'s fail-safe posture. A malformed
+ * condition — not a plain object, missing `field`, or declaring
+ * `endpoint` / `source` (those are NOT local-mode conditions) — resolves
+ * `false` (hidden).
+ *
+ * @param {{field?: string, op?: string, value?: *}|null} cond The LOCAL visibleWhen condition (or null).
+ * @param {object} data The live data object `field` dot-paths into (e.g. formData).
+ * @return {boolean} Whether the guarded element should show.
+ */
+export function evaluateVisibleWhenLocal(cond, data) {
+	if (cond === null || cond === undefined) return true
+	if (typeof cond !== 'object' || Array.isArray(cond)) return false
+	if (cond.endpoint || cond.source) return false
+	if (typeof cond.field !== 'string' || cond.field.length === 0) return false
+	try {
+		const actual = readVisibleWhenPath(data, cond.field)
 		return compareVisibleWhen(actual, cond.op || 'eq', cond.value)
 	} catch (e) {
 		return false

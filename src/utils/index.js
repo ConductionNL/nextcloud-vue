@@ -5,3 +5,5 @@ export { filterWidgetsByVisibility, isWidgetVisible, getCurrentUserId, getCurren
 export { isAppInstalled } from './appInstalled.js'
 export { passesContextPredicates } from './visibleIfContext.js'
 export { safeHref, safeImageSrc, safeSvgPath } from './safeHref.js'
+export { evaluateVisibleWhenLocal, evaluateVisibleWhen, readVisibleWhenPath, compareVisibleWhen } from './visibleWhen.js'
+export { validateFieldValue } from './formValidation.js'
