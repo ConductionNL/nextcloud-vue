@@ -515,6 +515,111 @@ export function validateManifestV2(manifest) {
 		})
 	}
 
+	// 7. Form logic (manifest-form-logic): cross-shape rules over
+	//    `type: "form"` pages' `config.steps[]` / `config.fields[].visibleWhen`
+	//    / `config.fields[].validation` that JSON Schema cannot express —
+	//    step id uniqueness, step→field key reference integrity, complete
+	//    step/field partition, min<=max, pattern compilability,
+	//    type-inapplicable rules, and LOCAL visibleWhen field-ref resolution.
+	//    The v2 path does not call validateTypeConfig(); the v1 `form`
+	//    branch is untouched.
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			if (!page || page.type !== 'form') return
+			const config = isPlainObject(page.config) ? page.config : null
+			if (!config) return
+			const pathBase = `/pages/${pIndex}/config`
+
+			const fieldList = Array.isArray(config.fields) ? config.fields : []
+			const declaredKeys = new Set(
+				fieldList
+					.filter((f) => f && typeof f.key === 'string')
+					.map((f) => f.key),
+			)
+			// steps[] cross-shape rules
+			if (Array.isArray(config.steps)) {
+				const seenStepIds = new Set()
+				const assignmentCount = new Map()
+				config.steps.forEach((step, sIndex) => {
+					if (!step) return
+					if (typeof step.id === 'string') {
+						if (seenStepIds.has(step.id)) {
+							errors.push(`${pathBase}/steps[${sIndex}]/id: duplicate step id "${step.id}" — step ids must be unique within the page`)
+						}
+						seenStepIds.add(step.id)
+					}
+					if (Array.isArray(step.fields)) {
+						step.fields.forEach((key, fIndex) => {
+							if (typeof key !== 'string' || !declaredKeys.has(key)) {
+								errors.push(`${pathBase}/steps[${sIndex}]/fields[${fIndex}]: "${key}" does not match any declared config.fields[].key`)
+								return
+							}
+							assignmentCount.set(key, (assignmentCount.get(key) || 0) + 1)
+						})
+					}
+				})
+
+				// Complete partition: every declared field key MUST appear in
+				// exactly one step.
+				const unassigned = []
+				const duplicated = []
+				declaredKeys.forEach((key) => {
+					const count = assignmentCount.get(key) || 0
+					if (count === 0) unassigned.push(key)
+					else if (count > 1) duplicated.push(key)
+				})
+				if (unassigned.length > 0) {
+					errors.push(`${pathBase}/steps: field key(s) ${unassigned.map((k) => `"${k}"`).join(', ')} are not assigned to any step — every declared field must appear in exactly one step when steps is present`)
+				}
+				if (duplicated.length > 0) {
+					errors.push(`${pathBase}/steps: field key(s) ${duplicated.map((k) => `"${k}"`).join(', ')} are assigned to more than one step — every declared field must appear in exactly one step`)
+				}
+			}
+
+			// fields[].validation / fields[].visibleWhen cross-shape rules
+			fieldList.forEach((field, fIndex) => {
+				if (!field || typeof field !== 'object') return
+				const fieldPath = `${pathBase}/fields[${fIndex}]`
+				const fieldType = field.type
+
+				const validation = isPlainObject(field.validation) ? field.validation : null
+				if (validation) {
+					if (typeof validation.min === 'number' && typeof validation.max === 'number' && validation.min > validation.max) {
+						errors.push(`${fieldPath}/validation: min (${validation.min}) must be <= max (${validation.max})`)
+					}
+					if (typeof validation.pattern === 'string') {
+						try {
+							// eslint-disable-next-line no-new
+							new RegExp(validation.pattern)
+						} catch (e) {
+							errors.push(`${fieldPath}/validation/pattern: "${validation.pattern}" does not compile as a regular expression (${e.message})`)
+						}
+						if (fieldType !== 'string' && fieldType !== 'password') {
+							errors.push(`${fieldPath}/validation/pattern: pattern only applies to string/password fields, not "${fieldType}"`)
+						}
+					}
+					const boundsApplicable = fieldType === 'string' || fieldType === 'password' || fieldType === 'number'
+					if (!boundsApplicable) {
+						if (typeof validation.min === 'number') {
+							errors.push(`${fieldPath}/validation/min: min only applies to string/password/number fields, not "${fieldType}"`)
+						}
+						if (typeof validation.max === 'number') {
+							errors.push(`${fieldPath}/validation/max: max only applies to string/password/number fields, not "${fieldType}"`)
+						}
+					}
+				}
+
+				const visibleWhen = isPlainObject(field.visibleWhen) ? field.visibleWhen : null
+				if (visibleWhen && !visibleWhen.endpoint && !visibleWhen.source && typeof visibleWhen.field === 'string') {
+					const firstSegment = visibleWhen.field.split('.')[0]
+					if (!declaredKeys.has(firstSegment)) {
+						errors.push(`${fieldPath}/visibleWhen/field: "${firstSegment}" does not match any declared config.fields[].key`)
+					}
+				}
+			})
+		})
+	}
+
 	return { valid: errors.length === 0, errors }
 }
 

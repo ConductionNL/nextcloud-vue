@@ -22,6 +22,11 @@ module.exports = {
 		'^@nextcloud/password-confirmation$': '<rootDir>/tests/__mocks__/nextcloud-password-confirmation.js',
 		'^@microsoft/fetch-event-source$': '<rootDir>/tests/__mocks__/fetch-event-source.js',
 		'^@nextcloud/notify_push$': '<rootDir>/tests/__mocks__/nextcloud-notify-push.js',
+		// `@nextcloud/dialogs`' CJS build requires the ESM-only `@nextcloud/paths`
+		// (no `require` export condition) — Jest can't resolve it. Stub the two
+		// toast helpers actually used in src/ so any test pulling in the full
+		// library barrel (src/index.js → CnAdminSettingsShell → dialogs) works.
+		'^@nextcloud/dialogs$': '<rootDir>/tests/__mocks__/nextcloud-dialogs.js',
 		'^@vueuse/core$': '<rootDir>/tests/__mocks__/vueuse-core.js',
 		// Global vue-apexcharts stub — the real module's apexcharts renderer
 		// throws in jsdom, and specs that import CnChartWidget transitively

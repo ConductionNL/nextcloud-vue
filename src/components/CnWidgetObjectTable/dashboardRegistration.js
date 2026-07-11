@@ -82,14 +82,7 @@ const CnHostedObjectTable = {
 	},
 }
 
-/**
- * The `object-table` registry entry. Exported so the barrel
- * (registerDashboardWidgets.js) can register it INLINE — a bare
- * `import './dashboardRegistration.js'` side effect is tree-shaken out of the
- * single-file dist because package.json's `sideEffects` globs never match a
- * dist path. See the object-list note in registerDashboardWidgets.js.
- */
-export const objectTableWidgetRegistration = {
+registerDashboardWidget('object-table', {
 	renderer: CnHostedObjectTable,
 	form: CnObjectListWidgetForm,
 	defaultContent: {
@@ -102,6 +95,4 @@ export const objectTableWidgetRegistration = {
 	},
 	displayName: 'Object table',
 	icon: 'TableLarge',
-}
-
-registerDashboardWidget('object-table', objectTableWidgetRegistration)
+})

@@ -11,6 +11,7 @@
 import {
 	compareVisibleWhen,
 	evaluateVisibleWhen,
+	evaluateVisibleWhenLocal,
 	readVisibleWhenPath,
 	VISIBLE_WHEN_OPS,
 } from '../../src/utils/visibleWhen.js'
@@ -85,5 +86,58 @@ describe('evaluateVisibleWhen', () => {
 
 	it('is FAIL-SAFE: an unusable condition (no endpoint/source/object) resolves false', async () => {
 		expect(await evaluateVisibleWhen({ field: 'x', op: 'eq', value: 1 }, {})).toBe(false)
+	})
+})
+
+/**
+ * evaluateVisibleWhenLocal — manifest-form-logic (REQ-MFL-9). The SYNC
+ * LOCAL-mode counterpart CnFormPage evaluates on every formData change.
+ */
+describe('evaluateVisibleWhenLocal', () => {
+	it('a nullish condition is always visible (true)', () => {
+		expect(evaluateVisibleWhenLocal(null, { kind: 'person' })).toBe(true)
+		expect(evaluateVisibleWhenLocal(undefined, { kind: 'person' })).toBe(true)
+	})
+
+	it('a malformed condition resolves false: non-object', () => {
+		expect(evaluateVisibleWhenLocal('nope', {})).toBe(false)
+		expect(evaluateVisibleWhenLocal(42, {})).toBe(false)
+	})
+
+	it('a malformed condition resolves false: missing field', () => {
+		expect(evaluateVisibleWhenLocal({ op: 'eq', value: 1 }, {})).toBe(false)
+		expect(evaluateVisibleWhenLocal({ field: '', op: 'eq', value: 1 }, {})).toBe(false)
+	})
+
+	it('a malformed condition resolves false: endpoint/source are NOT local-mode', () => {
+		expect(evaluateVisibleWhenLocal({ endpoint: '/x', field: 'a', op: 'eq', value: 1 }, { a: 1 })).toBe(false)
+		expect(evaluateVisibleWhenLocal({ source: { register: 'r', schema: 's' }, field: 'a', op: 'eq', value: 1 }, { a: 1 })).toBe(false)
+	})
+
+	it('resolves a dot-path into the data object', () => {
+		const cond = { field: 'address.country', op: 'eq', value: 'NL' }
+		expect(evaluateVisibleWhenLocal(cond, { address: { country: 'NL' } })).toBe(true)
+		expect(evaluateVisibleWhenLocal(cond, { address: { country: 'BE' } })).toBe(false)
+	})
+
+	it.each([
+		// [op, actual field value, condition.value, expected result]
+		['eq', 'company', 'company', true],
+		['eq', 'person', 'company', false],
+		['neq', 'person', 'company', true],
+		['gt', 10, 5, true],
+		['gte', 5, 5, true],
+		['lt', 3, 5, true],
+		['lte', 5, 5, true],
+	])('supports operator %s', (op, actual, conditionValue, result) => {
+		expect(evaluateVisibleWhenLocal({ field: 'kind', op, value: conditionValue }, { kind: actual })).toBe(result)
+	})
+
+	it('defaults to eq when op is omitted', () => {
+		expect(evaluateVisibleWhenLocal({ field: 'kind', value: 'company' }, { kind: 'company' })).toBe(true)
+	})
+
+	it('a hidden (undefined) upstream value never matches a literal condition (cascade support)', () => {
+		expect(evaluateVisibleWhenLocal({ field: 'b', op: 'eq', value: 'y' }, { b: undefined })).toBe(false)
 	})
 })

@@ -114,6 +114,23 @@ describe('CnWidgetFormRenderer', () => {
 		expect(wrapper.props('register')).toBe('r1')
 		expect(wrapper.props('schema')).toBe('s1')
 	})
+
+	// manifest-form-logic (REQ-MFL-12): `steps` must be declared + forwarded
+	// so the form-renderer widget's embedded CnFormPage renders a wizard.
+	it('declares and forwards the `steps` prop to the inner CnFormPage', () => {
+		const CnWidgetFormRenderer = require('../../src/components/CnWidgetFormRenderer/CnWidgetFormRenderer.vue').default
+		const fields = [{ key: 'a', type: 'string', label: 'A' }, { key: 'b', type: 'string', label: 'B' }]
+		const steps = [
+			{ id: 's1', title: 'One', fields: ['a'] },
+			{ id: 's2', title: 'Two', fields: ['b'] },
+		]
+		const wrapper = shallowMount(CnWidgetFormRenderer, {
+			propsData: { register: 'r1', schema: 's1', fields, steps },
+		})
+		const formPage = wrapper.findComponent({ name: 'CnFormPage' })
+		expect(formPage.exists()).toBe(true)
+		expect(formPage.props('steps')).toEqual(steps)
+	})
 })
 
 describe('CnWidgetMapViewer', () => {

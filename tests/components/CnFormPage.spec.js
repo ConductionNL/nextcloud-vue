@@ -22,6 +22,8 @@ jest.mock('@nextcloud/axios', () => ({
 import { mount } from '@vue/test-utils'
 import CnFormPage from '@/components/CnFormPage/CnFormPage.vue'
 
+const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0))
+
 const stubs = {
 	CnPageHeader: {
 		template: '<div class="cn-page-header-stub" />',
@@ -39,7 +41,7 @@ const stubs = {
 	},
 	NcTextField: {
 		template: '<input class="nc-textfield-stub" :type="type" :value="value" @input="$emit(\'update:value\', $event.target.value)" />',
-		props: ['label', 'type', 'value'],
+		props: ['label', 'type', 'value', 'error', 'helperText'],
 	},
 	NcSelect: {
 		template: '<select class="nc-select-stub" @change="$emit(\'input\', { value: $event.target.value })"><option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option></select>',
@@ -253,5 +255,321 @@ describe('CnFormPage', () => {
 		await wrapper.vm.submit()
 		expect(explicit).toHaveBeenCalled()
 		expect(injected).not.toHaveBeenCalled()
+	})
+})
+
+/**
+ * manifest-form-logic (REQ-MFL-6/7/9/10/11/12): steps, conditional
+ * visibility, validation gating, error surfacing, and public-mode /
+ * CnWidgetFormRenderer interplay.
+ */
+describe('CnFormPage — manifest-form-logic', () => {
+	let warnSpy
+
+	beforeEach(() => {
+		jest.clearAllMocks()
+		warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+	})
+
+	afterEach(() => {
+		warnSpy.mockRestore()
+		if (global.fetch && global.fetch.mockRestore) global.fetch.mockRestore()
+	})
+
+	describe('steps: indicator + navigation (REQ-MFL-6)', () => {
+		it('renders a two-entry step indicator, only step-1 fields, Next (no Submit)', () => {
+			const fields = [
+				{ key: 'a', type: 'string', label: 'A' },
+				{ key: 'b', type: 'string', label: 'B' },
+			]
+			const steps = [
+				{ id: 's1', title: 'One', fields: ['a'] },
+				{ id: 's2', title: 'Two', fields: ['b'] },
+			]
+			const wrapper = mountForm({ fields, steps, submitHandler: 'submit' })
+
+			const items = wrapper.findAll('.cn-form-page__step')
+			expect(items.length).toBe(2)
+			expect(items.at(0).attributes('aria-current')).toBe('step')
+			expect(items.at(1).attributes('aria-current')).toBeUndefined()
+
+			expect(wrapper.findAll('.cn-form-page__field').length).toBe(1)
+			expect(wrapper.find('.cn-form-page__field').attributes('data-field-key')).toBe('a')
+
+			const buttons = wrapper.findAll('.nc-button-stub')
+			expect(buttons.length).toBe(1)
+			expect(buttons.at(0).text()).toBe('Next')
+		})
+
+		it('no steps ⇒ no indicator, no Next/Back — today\'s single-step rendering', () => {
+			const fields = [{ key: 'a', type: 'string', label: 'A' }]
+			const wrapper = mountForm({ fields, submitHandler: 'submit' })
+			expect(wrapper.find('.cn-form-page__steps').exists()).toBe(false)
+			expect(wrapper.findAll('.nc-button-stub').length).toBe(1)
+			expect(wrapper.find('.nc-button-stub').text()).not.toBe('Next')
+		})
+
+		it('Next/Back move between steps, emit @step, and retain draft values', async () => {
+			const fields = [
+				{ key: 'a', type: 'string', label: 'A' },
+				{ key: 'b', type: 'string', label: 'B' },
+			]
+			const steps = [
+				{ id: 's1', title: 'One', fields: ['a'] },
+				{ id: 's2', title: 'Two', fields: ['b'] },
+			]
+			const wrapper = mountForm({ fields, steps, submitHandler: 'submit' })
+
+			wrapper.vm.updateField('a', 'hello')
+			wrapper.vm.next()
+			await wrapper.vm.$nextTick()
+
+			expect(wrapper.emitted('step')[0][0]).toEqual({ from: 0, to: 1 })
+			expect(wrapper.find('.cn-form-page__field').attributes('data-field-key')).toBe('b')
+			expect(wrapper.findAll('.nc-button-stub').length).toBe(2) // Back + Submit
+
+			wrapper.vm.back()
+			await wrapper.vm.$nextTick()
+
+			expect(wrapper.emitted('step')[1][0]).toEqual({ from: 1, to: 0 })
+			expect(wrapper.vm.formData.a).toBe('hello')
+			expect(wrapper.find('.cn-form-page__field').attributes('data-field-key')).toBe('a')
+		})
+
+		it('a step whose fields are ALL hidden is skipped in both directions', async () => {
+			const fields = [
+				{ key: 'kind', type: 'enum', label: 'Kind', enum: ['a', 'b'] },
+				{ key: 'never', type: 'string', label: 'Never', visibleWhen: { field: 'kind', op: 'eq', value: 'impossible' } },
+				{ key: 'c', type: 'string', label: 'C' },
+			]
+			const steps = [
+				{ id: 's1', title: 'One', fields: ['kind'] },
+				{ id: 's2', title: 'Two', fields: ['never'] },
+				{ id: 's3', title: 'Three', fields: ['c'] },
+			]
+			const wrapper = mountForm({ fields, steps, submitHandler: 'submit' })
+			wrapper.vm.next()
+			await wrapper.vm.$nextTick()
+			expect(wrapper.vm.currentStepIndex).toBe(2)
+		})
+	})
+
+	describe('validation gating (REQ-MFL-7)', () => {
+		it('an invalid required field blocks Next, renders the error, and moves focus', async () => {
+			const fields = [
+				{ key: 'name', type: 'string', label: 'Name', validation: { required: true } },
+				{ key: 'b', type: 'string', label: 'B' },
+			]
+			const steps = [
+				{ id: 's1', title: 'One', fields: ['name'] },
+				{ id: 's2', title: 'Two', fields: ['b'] },
+			]
+			const wrapper = mountForm({ fields, steps, submitHandler: 'submit' }, {
+				mountOptions: { attachTo: document.body },
+			})
+
+			wrapper.vm.next()
+			await wrapper.vm.$nextTick()
+			await flushPromises()
+
+			expect(wrapper.vm.currentStepIndex).toBe(0)
+			expect(wrapper.vm.fieldErrors.name).toBeTruthy()
+			const input = wrapper.find('[data-field-key="name"] input')
+			expect(document.activeElement).toBe(input.element)
+
+			wrapper.destroy()
+		})
+
+		it('submit failure jumps to the earliest step containing an invalid field', async () => {
+			const handler = jest.fn().mockResolvedValue(undefined)
+			const fields = [
+				{ key: 'a', type: 'string', label: 'A', validation: { required: true } },
+				{ key: 'b', type: 'string', label: 'B' },
+			]
+			const steps = [
+				{ id: 's1', title: 'One', fields: ['a'] },
+				{ id: 's2', title: 'Two', fields: ['b'] },
+			]
+			const wrapper = mountForm(
+				{ fields, steps, submitHandler: 'submit' },
+				{ cnCustomComponents: { submit: handler } },
+			)
+
+			wrapper.vm.updateField('a', 'ok')
+			wrapper.vm.next()
+			await wrapper.vm.$nextTick()
+			expect(wrapper.vm.currentStepIndex).toBe(1)
+
+			// Step-1 field cleared via a #field-<key> slot's onInput after Next passed.
+			wrapper.vm.updateField('a', '')
+			await wrapper.vm.submit()
+
+			expect(handler).not.toHaveBeenCalled()
+			expect(wrapper.vm.currentStepIndex).toBe(0)
+		})
+
+		it('editing a field clears its validation error', async () => {
+			const fields = [{ key: 'name', type: 'string', label: 'Name', validation: { required: true } }]
+			const wrapper = mountForm({ fields, submitHandler: 'submit' })
+			await wrapper.vm.submit()
+			expect(wrapper.vm.fieldErrors.name).toBeTruthy()
+			wrapper.vm.updateField('name', 'Ada')
+			expect(wrapper.vm.fieldErrors.name).toBeUndefined()
+		})
+	})
+
+	describe('LOCAL conditional visibility (REQ-MFL-9)', () => {
+		it('a field appears when its condition becomes true, without remounting the form', async () => {
+			const fields = [
+				{ key: 'kind', type: 'enum', label: 'Kind', enum: ['person', 'company'] },
+				{ key: 'kvk', type: 'string', label: 'KvK', visibleWhen: { field: 'kind', op: 'eq', value: 'company' } },
+			]
+			const wrapper = mountForm({ fields, submitHandler: 'submit' })
+			expect(wrapper.find('[data-field-key="kvk"]').exists()).toBe(false)
+			wrapper.vm.updateField('kind', 'company')
+			await wrapper.vm.$nextTick()
+			expect(wrapper.find('[data-field-key="kvk"]').exists()).toBe(true)
+		})
+
+		it('a chained hide cascades: hiding b also hides c (b reads undefined for c)', async () => {
+			const fields = [
+				{ key: 'a', type: 'string', label: 'A' },
+				{ key: 'b', type: 'string', label: 'B', visibleWhen: { field: 'a', op: 'eq', value: 'x' } },
+				{ key: 'c', type: 'string', label: 'C', visibleWhen: { field: 'b', op: 'eq', value: 'y' } },
+			]
+			const wrapper = mountForm({ fields, submitHandler: 'submit' })
+			wrapper.vm.updateField('a', 'x')
+			await wrapper.vm.$nextTick()
+			wrapper.vm.updateField('b', 'y')
+			await wrapper.vm.$nextTick()
+			expect(wrapper.find('[data-field-key="c"]').exists()).toBe(true)
+
+			wrapper.vm.updateField('a', 'z')
+			await wrapper.vm.$nextTick()
+			expect(wrapper.find('[data-field-key="b"]').exists()).toBe(false)
+			expect(wrapper.find('[data-field-key="c"]').exists()).toBe(false)
+		})
+
+		it('an endpoint condition resolves once at mount, fail-safe hidden, and never re-fetches on keystrokes', async () => {
+			const fetchSpy = jest.spyOn(global, 'fetch').mockRejectedValue(new Error('network'))
+			const fields = [
+				{ key: 'a', type: 'string', label: 'A' },
+				{ key: 'flagged', type: 'string', label: 'Flagged', visibleWhen: { endpoint: '/broken', field: 'flag', op: 'eq', value: true } },
+			]
+			const wrapper = mountForm({ fields, submitHandler: 'submit' })
+			await flushPromises()
+
+			expect(wrapper.find('[data-field-key="flagged"]').exists()).toBe(false)
+			expect(fetchSpy).toHaveBeenCalledTimes(1)
+
+			wrapper.vm.updateField('a', 'typing away')
+			await wrapper.vm.$nextTick()
+			expect(fetchSpy).toHaveBeenCalledTimes(1)
+		})
+	})
+
+	describe('hidden-field exclusion (REQ-MFL-10)', () => {
+		it('a hidden required field does not block submit, is excluded from the payload, and its draft is retained + restored', async () => {
+			const handler = jest.fn().mockResolvedValue(undefined)
+			const fields = [
+				{ key: 'kind', type: 'enum', label: 'Kind', enum: ['person', 'company'] },
+				{
+					key: 'kvk',
+					type: 'string',
+					label: 'KvK',
+					visibleWhen: { field: 'kind', op: 'eq', value: 'company' },
+					validation: { required: true },
+				},
+			]
+			const wrapper = mountForm(
+				{ fields, submitHandler: 'submit', mode: 'edit' },
+				{ cnCustomComponents: { submit: handler } },
+			)
+
+			wrapper.vm.updateField('kind', 'company')
+			await wrapper.vm.$nextTick()
+			wrapper.vm.updateField('kvk', '12345678')
+			await wrapper.vm.$nextTick()
+			wrapper.vm.updateField('kind', 'person')
+			await wrapper.vm.$nextTick()
+			expect(wrapper.find('[data-field-key="kvk"]').exists()).toBe(false)
+
+			await wrapper.vm.submit()
+
+			expect(handler).toHaveBeenCalledTimes(1)
+			const payload = handler.mock.calls[0][0]
+			expect(payload).not.toHaveProperty('kvk')
+			expect(wrapper.vm.formData.kvk).toBe('12345678')
+
+			wrapper.vm.updateField('kind', 'company')
+			await wrapper.vm.$nextTick()
+			expect(wrapper.find('[data-field-key="kvk"]').exists()).toBe(true)
+			expect(wrapper.find('[data-field-key="kvk"] input').element.value).toBe('12345678')
+		})
+	})
+
+	describe('accessible error surfacing (REQ-MFL-11)', () => {
+		it('a failing string field receives NcTextField error + helperText props', async () => {
+			const fields = [{ key: 'name', type: 'string', label: 'Name', validation: { required: true } }]
+			const wrapper = mountForm({ fields, submitHandler: 'submit' })
+			await wrapper.vm.submit()
+			await wrapper.vm.$nextTick()
+			const input = wrapper.find('.nc-textfield-stub')
+			expect(input.props('error')).toBe(true)
+			expect(input.props('helperText')).toBeTruthy()
+		})
+
+		it('a failing enum field renders an adjacent role="alert" element', async () => {
+			const fields = [{ key: 'kind', type: 'enum', label: 'Kind', enum: ['a', 'b'], validation: { required: true } }]
+			const wrapper = mountForm({ fields, submitHandler: 'submit' })
+			await wrapper.vm.submit()
+			await wrapper.vm.$nextTick()
+			expect(wrapper.find('[role="alert"]').exists()).toBe(true)
+		})
+
+		it('a #field-<key> slot override receives the error in its scoped props', async () => {
+			const fields = [{ key: 'rating', type: 'number', label: 'Rating', validation: { required: true } }]
+			const wrapper = mountForm({ fields, submitHandler: 'submit' }, {
+				mountOptions: {
+					scopedSlots: {
+						'field-rating'(props) {
+							return this.$createElement('div', { staticClass: 'custom-rating', attrs: { 'data-error': props.error || '' } })
+						},
+					},
+				},
+			})
+			await wrapper.vm.submit()
+			await wrapper.vm.$nextTick()
+			const custom = wrapper.find('.custom-rating')
+			expect(custom.exists()).toBe(true)
+			expect(custom.attributes('data-error')).toBeTruthy()
+		})
+	})
+
+	describe('public mode + CnWidgetFormRenderer interplay (REQ-MFL-12)', () => {
+		it('a public-mode wizard only shows the success banner after the FINAL step dispatches', async () => {
+			const handler = jest.fn().mockResolvedValue(undefined)
+			const fields = [
+				{ key: 'a', type: 'string', label: 'A' },
+				{ key: 'b', type: 'string', label: 'B' },
+			]
+			const steps = [
+				{ id: 's1', title: 'One', fields: ['a'] },
+				{ id: 's2', title: 'Two', fields: ['b'] },
+			]
+			const wrapper = mountForm(
+				{ fields, steps, submitHandler: 'submit', mode: 'public' },
+				{ cnCustomComponents: { submit: handler } },
+			)
+
+			wrapper.vm.next()
+			await wrapper.vm.$nextTick()
+			expect(wrapper.find('.cn-form-page__success').exists()).toBe(false)
+			expect(handler).not.toHaveBeenCalled()
+
+			await wrapper.vm.submit()
+			expect(handler).toHaveBeenCalledTimes(1)
+			expect(wrapper.find('.cn-form-page__success').exists()).toBe(true)
+		})
 	})
 })

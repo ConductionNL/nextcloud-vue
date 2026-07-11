@@ -2318,7 +2318,7 @@ export default {
 		 */
 		isContentOnlyWidget(item) {
 			const def = this.findWidget(item)
-			return Boolean(def) && ['object-list', 'table'].includes(def.type)
+			return Boolean(def) && ['object-list', 'table', 'files'].includes(def.type)
 		},
 
 		/**
@@ -2349,7 +2349,10 @@ export default {
 		 * @return {boolean}
 		 */
 		catalogAddEnabled(item) {
-			if (!this.isContentOnlyWidget(item)) return false
+			const def = this.findWidget(item)
+			// Files widgets carry their own upload/drag-drop toolbar, so the card
+			// Add action is only for object-list / table collections.
+			if (!def || !['object-list', 'table'].includes(def.type)) return false
 			return this.widgetContentFor(item).allowCreate !== false
 		},
 

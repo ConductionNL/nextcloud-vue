@@ -33,8 +33,12 @@ import '../CnPeopleWidget/index.js'
 import '../CnCalendarWidget/index.js'
 import '../CnNcWidgetWidget/index.js'
 import '../CnSpendAnalyticsWidget/index.js'
+import '../CnStatWidget/index.js'
+import '../CnDeltaWidget/index.js'
+import '../CnGaugeWidget/index.js'
 import '../CnObjectDataWidget/dashboardRegistration.js'
 import '../CnObjectGeoWidget/dashboardRegistration.js'
+import '../CnWidgetObjectTable/dashboardRegistration.js'
 import '../CnAuditTrailWidget/dashboardRegistration.js'
 import '../CnObjectListWidget/index.js'
 import '../CnKbSearchWidget/index.js'
@@ -48,20 +52,7 @@ import '../CnWorkspaceFilterWidget/index.js'
 // registry entry exists so the cog editor + Add-widget picker get a form (and,
 // for `related`, the detail-page surface). `table` aliases the object-list
 // renderer/form for legacy manifests using type:'table'.
-//
-// stat / delta / gauge / object-table MUST also be registered inline here
-// (via their exported registration entries) for the same reason object-list
-// is below: package.json `sideEffects: ["**/*.css", …]` lets rollup/webpack
-// DROP the bare `import '../CnStatWidget/index.js'` side-effect imports — the
-// globs never match a path in the single-file dist — so every manifest
-// `type:"stat"|"delta"|"gauge"|"object-table"` widget rendered the
-// "Widget not available" placeholder. Importing the live entry bindings and
-// calling registerDashboardWidget inline survives tree-shaking.
 import { registerDashboardWidget } from './dashboardWidgetRegistry.js'
-import { statWidgetRegistration } from '../CnStatWidget/index.js'
-import { deltaWidgetRegistration } from '../CnDeltaWidget/index.js'
-import { gaugeWidgetRegistration } from '../CnGaugeWidget/index.js'
-import { objectTableWidgetRegistration } from '../CnWidgetObjectTable/dashboardRegistration.js'
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnChartWidgetForm from '../CnChartWidgetForm/CnChartWidgetForm.vue'
 import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
@@ -140,15 +131,6 @@ registerDashboardWidget('related', {
 	surfaces: ['detail-page'],
 	ownsTitle: true,
 })
-
-// KPI / card widgets — registered inline from their exported entries so the
-// registration survives tree-shaking of the bare side-effect imports (see the
-// note above the imports). Without these, dashboard KPI tiles and the built-in
-// object-table render the "Widget not available" placeholder.
-registerDashboardWidget('stat', statWidgetRegistration)
-registerDashboardWidget('delta', deltaWidgetRegistration)
-registerDashboardWidget('gauge', gaugeWidgetRegistration)
-registerDashboardWidget('object-table', objectTableWidgetRegistration)
 
 /**
  * Explicit no-op that guarantees this module (and therefore every widget's

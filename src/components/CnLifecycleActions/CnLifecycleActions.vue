@@ -9,7 +9,6 @@
 			:key="tr.action"
 			class="cn-lifecycle-actions__button"
 			:variant="tr.variant || 'secondary'"
-			:title="tr.title || undefined"
 			:disabled="working"
 			:data-testid="`cn-lifecycle-action-${tr.action}`"
 			@click="onTransition(tr)">
@@ -143,8 +142,7 @@ export default {
 				return this.serverActions.map((a) => ({
 					action: a.action,
 					to: a.to,
-					label: a.label || this.labelFor(a.action, a.to),
-					title: a.description || '',
+					label: this.labelFor(a.action, a.to, a.description),
 					variant: 'secondary',
 				}))
 			}
@@ -155,7 +153,6 @@ export default {
 					action: tr.action || tr.to,
 					to: tr.to,
 					label: tr.label || this.labelFor(tr.action || tr.to, tr.to),
-					title: tr.description || '',
 					confirm: tr.confirm,
 					variant: tr.variant || 'secondary',
 				}))
@@ -194,11 +191,8 @@ export default {
 		 * @param {string} [description] Optional schema-provided description.
 		 * @return {string}
 		 */
-		labelFor(action, to) {
-			// The action key is the label source. Schema-provided descriptions
-			// are full sentences ("Close the lead as won. Authorization: …")
-			// and belong in the tooltip, never on the button face — long
-			// descriptions blew the header out on every lifecycle page.
+		labelFor(action, to, description) {
+			if (description) return description
 			const src = action || to || ''
 			if (!src) return t('nextcloud-vue', 'Apply')
 			return src.charAt(0).toUpperCase() + src.slice(1).replace(/[_-]+/g, ' ')
