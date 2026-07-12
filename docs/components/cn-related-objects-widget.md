@@ -57,6 +57,8 @@ In the deprecated list mode, relation and file sections only render when the sto
 | `show-files` | `Boolean` | `true` | Show the files section |
 | `show-contracts` | `Boolean` | `false` | Include `/contracts` relations in the Objects group (opt-in). |
 | `show-integrations` | `Boolean` | `true` | Show the leaf-integration entry-point section |
+| `hide-single-tab-title` | `Boolean` | `true` | Suppress the tab strip when only one group is visible. A lone tab repeats the widget title verbatim (a "Files" card carrying a "Files" tab), so hide it and let the card header stand alone. |
+| `show-total-count` | `Boolean` | `true` | Render a count pill beside the widget title totalling every visible group. Keeps the count reachable once `hide-single-tab-title` has taken the sole tab — and its pill — away. |
 | `include-groups` | `Array` | `[]` | Whitelist of relation-group keys to display (tabbed path). When non-empty, ONLY these render (e.g. `['objects', 'files', 'mails']`); empty shows every non-empty group. Lets a detail page carry several Related widgets scoped to different relations. Keys: `objects`, `files`, and the leaf groups (mails, events, contacts, notes, tasks, deck, talk, forms, maps, polls, …). Configurable in-app via the widget's cog. |
 | `exclude-integrations` | `Array` | `[]` | Integration ids to omit from "Linked apps" (on top of the always-omitted core tabs) |
 | `extra-sections` | `Array` | `[]` | Extra related sections the store can't resolve generically. Each: `{ key, label, icon?, items: [] }` |
