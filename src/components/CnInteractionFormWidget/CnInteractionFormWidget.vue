@@ -99,14 +99,19 @@ let uid = 0
  * ```js
  * content: {
  *   register: 'pipelinq',
- *   schema: 'contactmoment',
+ *   schema: 'ticket',
+ *   defaults: { ticketType: 'contactmoment' }, // fixed fields stamped on every create
  *   clientSchema: 'client',
  *   clientField: 'client',
- *   summaryField: 'summary',
+ *   summaryField: 'description',
  *   channels: [{ value: 'telefoon', label: 'Phone' }, …],
  *   outcomes: [{ value: 'opgelost', label: 'Resolved' }, …],
  * }
  * ```
+ *
+ * `defaults` covers the case where the target schema requires a value the form
+ * has no input for — typically a discriminator on a supertype schema. It is
+ * merged before the mapped fields, so those always take precedence.
  */
 export default {
 	name: 'CnInteractionFormWidget',
@@ -126,7 +131,7 @@ export default {
 	props: {
 		/**
 		 * Persisted configuration blob (see component description for the shape).
-		 * @type {{register?: string, schema?: string, clientSchema?: string, clientField?: string, clientLabelField?: string, subjectField?: string, summaryField?: string, channelField?: string, outcomeField?: string, channels?: Array, outcomes?: Array}}
+		 * @type {{register?: string, schema?: string, defaults?: object, clientSchema?: string, clientField?: string, clientLabelField?: string, subjectField?: string, summaryField?: string, channelField?: string, outcomeField?: string, channels?: Array, outcomes?: Array}}
 		 */
 		content: {
 			type: Object,
@@ -303,7 +308,13 @@ export default {
 				return
 			}
 			const c = this.content || {}
+			// `defaults` is spread FIRST so the mapped fields below always win.
+			// It exists for schemas that need a fixed value on every create the
+			// form itself has no input for — e.g. a discriminator on a supertype
+			// schema (`{ ticketType: 'contactmoment' }`), which would otherwise be
+			// omitted and fail validation.
 			const payload = {
+				...(c.defaults || {}),
 				[c.subjectField || 'subject']: this.form.subject.trim(),
 				[c.channelField || 'channel']: this.form.channel,
 				[c.contactedAtField || 'contactedAt']: new Date().toISOString(),

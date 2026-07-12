@@ -480,18 +480,25 @@ export default {
 			// ejectDetailGridIfNeeded). A v2 page keeps them in pages[].widgets[]
 			// (slot-based). Append to whichever this page uses so the new widget
 			// lands where the renderer reads.
+			// Append by REPLACING each array, never `push`. The renderer passes
+			// these arrays down as props (CnDashboardPage.widgets / .layout,
+			// CnDashboardGrid.layout); an in-place push keeps the same array
+			// identity, so no prop change is seen and the grid's `$stable`
+			// scoped slots never re-render the new card — it rendered the
+			// "Widget not available" placeholder until a full page reload.
+			// A fresh array gives the children a real prop change.
 			const cfg = page.config && typeof page.config === 'object' && !Array.isArray(page.config) ? page.config : null
 			if ((page.type === 'dashboard' || page.type === 'detail') && cfg) {
-				if (!Array.isArray(cfg.widgets)) this.$set(cfg, 'widgets', [])
-				if (!Array.isArray(cfg.layout)) this.$set(cfg, 'layout', [])
-				const nextY = cfg.layout.reduce((max, l) => Math.max(max, (l.gridY || 0) + (l.gridHeight || 1)), 0)
-				cfg.widgets.push({ id: wid, type: payload.type, ...chromeFields, content })
-				cfg.layout.push({ id: cfg.layout.length + 1, widgetId: wid, gridX: 0, gridY: nextY, gridWidth: 6, gridHeight: 3 })
+				const widgets = Array.isArray(cfg.widgets) ? cfg.widgets : []
+				const layout = Array.isArray(cfg.layout) ? cfg.layout : []
+				const nextY = layout.reduce((max, l) => Math.max(max, (l.gridY || 0) + (l.gridHeight || 1)), 0)
+				this.$set(cfg, 'widgets', [...widgets, { id: wid, type: payload.type, ...chromeFields, content }])
+				this.$set(cfg, 'layout', [...layout, { id: layout.length + 1, widgetId: wid, gridX: 0, gridY: nextY, gridWidth: 6, gridHeight: 3 }])
 			} else {
-				if (!Array.isArray(page.widgets)) this.$set(page, 'widgets', [])
-				const bodyWidgets = page.widgets.filter((w) => w && w.slot === 'body')
+				const pageWidgets = Array.isArray(page.widgets) ? page.widgets : []
+				const bodyWidgets = pageWidgets.filter((w) => w && w.slot === 'body')
 				const nextY = bodyWidgets.reduce((max, w) => Math.max(max, (w.gridY || 0) + (w.gridHeight || 1)), 0)
-				page.widgets.push({
+				this.$set(page, 'widgets', [...pageWidgets, {
 					id: wid,
 					widgetKey: payload.type,
 					slot: 'body',
@@ -501,7 +508,7 @@ export default {
 					gridHeight: 3,
 					...chromeFields,
 					props: content,
-				})
+				}])
 			}
 			/**
 			 * @event widget-added Emitted after a widget is appended to the working manifest.

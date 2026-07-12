@@ -1460,14 +1460,6 @@ export default {
 			}
 		},
 
-		widgetMap() {
-			const map = {}
-			for (const w of this.widgets) {
-				map[w.id] = w
-			}
-			return map
-		},
-
 		/**
 		 * Filtered list of `widget-ref` items from `content[]`.
 		 * Unknown `type` values are logged and excluded so future
@@ -2066,8 +2058,24 @@ export default {
 			this.$emit('layout-change', this.layout)
 		},
 
+		/**
+		 * Resolve a layout item's widget definition from `widgets[]`.
+		 *
+		 * Deliberately a METHOD, not a cached computed `widgetMap`. The
+		 * `widgets` prop array is mutated IN PLACE by the in-app editor
+		 * (CnOpenBuildEditButton's "Add widget…" pushes onto
+		 * `page.config.widgets`), and a computed over a prop array does not
+		 * subscribe to that array's observer — so the map never invalidated
+		 * and every freshly added widget rendered the `unavailableLabel`
+		 * placeholder (with its raw id as the title) until a full reload.
+		 * A method re-runs on every render, so the lookup cannot go stale.
+		 *
+		 * @param {string} widgetId The layout item's `widgetId`.
+		 * @return {object|null} The matching widget definition, or null.
+		 */
 		getWidgetDef(widgetId) {
-			return this.widgetMap[widgetId] || null
+			const list = Array.isArray(this.widgets) ? this.widgets : []
+			return list.find((w) => w && w.id === widgetId) || null
 		},
 
 		/**
