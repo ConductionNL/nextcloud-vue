@@ -85,7 +85,7 @@
 		</slot>
 
 		<div v-if="$slots.actions || $scopedSlots.actions" class="cn-form-page__actions">
-			<!-- Optional slot for action buttons (back, cancel, etc.) rendered above the form. -->
+			<!-- @slot actions Action buttons (back, cancel, …) rendered above the form. -->
 			<slot name="actions" />
 		</div>
 
@@ -188,7 +188,10 @@
 					@click="next">
 					{{ t('nextcloud-vue', 'Next') }}
 				</NcButton>
-				<!-- Replaces the default submit button. Scoped props: `{ submitting, dirty, submit }`. -->
+				<!-- @slot submit Replaces the default submit button. -->
+				<!-- @binding {boolean} submitting Whether a submit is in flight. -->
+				<!-- @binding {boolean} dirty Whether the form has unsaved changes. -->
+				<!-- @binding {Function} submit Call to submit the form programmatically. -->
 				<slot
 					v-if="!hasSteps || isLastStep"
 					name="submit"
@@ -714,6 +717,10 @@ export default {
 			if (targetIndex !== -1) {
 				const from = this.currentStepIndex
 				this.currentStepIndex = targetIndex
+				/**
+				 * @event step Emitted on step navigation (Next / Back).
+				 * @type {{ from: number, to: number }} Step indices.
+				 */
 				this.$emit('step', { from, to: targetIndex })
 			}
 		},
@@ -727,6 +734,10 @@ export default {
 			if (targetIndex !== -1) {
 				const from = this.currentStepIndex
 				this.currentStepIndex = targetIndex
+				/**
+				 * @event step Emitted on step navigation (Next / Back).
+				 * @type {{ from: number, to: number }} Step indices.
+				 */
 				this.$emit('step', { from, to: targetIndex })
 			}
 		},

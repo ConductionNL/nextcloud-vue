@@ -61,6 +61,11 @@ export default {
 
 	mixins: [manifestModalDoneMixin],
 
+	inject: {
+		/** Re-fetch the pages editor's registers/schemas; null when the host has no loader. */
+		cnRefreshDataSources: { default: null },
+	},
+
 	props: {
 		/**
 		 * The working manifest copy whose `pages[]` is edited in place. Never the
@@ -84,6 +89,12 @@ export default {
 			}
 			return this.working ? this.working.pages : []
 		},
+	},
+
+	// The modal is `v-if`-mounted, so mount == open: refreshing here picks up
+	// any register/schema created since the app booted, with no page reload.
+	mounted() {
+		if (typeof this.cnRefreshDataSources === 'function') this.cnRefreshDataSources()
 	},
 
 	methods: {
