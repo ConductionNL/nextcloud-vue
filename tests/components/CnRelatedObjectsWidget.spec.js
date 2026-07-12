@@ -62,6 +62,22 @@ describe('CnRelatedObjectsWidget', () => {
 		jest.clearAllMocks()
 	})
 
+	it('does not throw when objectData is null (host passes an unloaded object)', () => {
+		// CnDetailPage forwards `currentObject`, which is null until the object
+		// loads (e.g. the grid renders in OpenBuild edit mode). An explicit null
+		// bypasses the `() => ({})` prop default, so the resolved* computeds must
+		// tolerate it and fall back to the explicit register/schema/id props.
+		expect(() => {
+			const wrapper = mount(CnRelatedObjectsWidget, {
+				propsData: { objectData: null, register: 'crm', schema: 'lead', objectId: 'L1', store: makeStore() },
+				stubs,
+			})
+			expect(wrapper.vm.resolvedRegister).toBe('crm')
+			expect(wrapper.vm.resolvedSchema).toBe('lead')
+			expect(wrapper.vm.resolvedId).toBe('L1')
+		}).not.toThrow()
+	})
+
 	it('does not force the Refresh action on — it follows the wrapper auto-detect default', () => {
 		const WrapperProbe = {
 			name: 'CnWidgetWrapper',

@@ -1,9 +1,28 @@
 /**
- * Resolve a manifest-declared action's string `handler` into a `(row) => void`
- * function. Returns null when the action should fall back to the page's
- * `@action`-event-only path.
+ * True when `target` is an external/absolute URL (has a scheme + `//`, is
+ * protocol-relative, or is a `mailto:`/`tel:` link) rather than an in-app path.
  *
- * Reserved keywords:
+ * @param {string} target The action target to test.
+ * @return {boolean}
+ */
+function isExternalUrl(target) {
+	return /^([a-z][a-z0-9+.-]*:)?\/\//i.test(target) || /^(mailto|tel):/i.test(target)
+}
+
+/**
+ * Resolve a manifest-declared action into a `(row) => void` function. Returns
+ * null when the action should fall back to the page's `@action`-event-only path.
+ *
+ * Dispatch is chosen by the v2 `type` discriminator (app-manifest-v2 schema);
+ * when `type` is absent it defaults to `'handler'` for v1.3.0 back-compat.
+ *
+ * Typed dispatch (`action.type`):
+ *   - `navigate` → `action.target` is a URL. External/absolute URLs open in a
+ *     new tab (`window.open`, `noopener`); in-app paths go through `$router.push`.
+ *   - `open-page` → `action.target` is a named route; `$router.push({ name, params:{ id } })`.
+ *   - `open-modal` → not wired for index actions; falls back to `@action`.
+ *
+ * Handler dispatch (`type: 'handler'`, the default) reads `action.handler`:
  *   - `navigate` → $router.push to `action.route` with `{ id: row[rowKey] }`,
  *     merged with the literal `action.params` map (literals win — so a
  *     "New X" action can navigate to a detail route with `{ id: "new" }`).
@@ -13,10 +32,43 @@
  *   - Anything else → looked up in `customComponents`; wrapped if a function.
  *
  * @param {object} action Manifest action descriptor.
- * @param {{ router: object, rowKey: string, customComponents: object }} ctx
+ * @param {{ router: object, rowKey: string, customComponents: object }} ctx Dispatch context (router, rowKey, customComponents registry).
  * @return {Function|null}
  */
 export function resolveActionHandler(action, ctx) {
+	const type = (typeof action.type === 'string' && action.type.length > 0) ? action.type : 'handler'
+
+	// v2 typed dispatch (schema: type ∈ handler | open-modal | open-page | navigate).
+	if (type === 'navigate') {
+		const target = action.target
+		if (typeof target !== 'string' || target.length === 0) {
+			console.warn(`[CnIndexPage] action "${action.id}" declares type:"navigate" `
+				+ 'but target is missing; falling back to @action-only.')
+			return null
+		}
+		if (isExternalUrl(target)) {
+			return () => window.open(target, '_blank', 'noopener,noreferrer')
+		}
+		return () => ctx.router.push(target)
+	}
+
+	if (type === 'open-page') {
+		const target = action.target
+		if (typeof target !== 'string' || target.length === 0) {
+			console.warn(`[CnIndexPage] action "${action.id}" declares type:"open-page" `
+				+ 'but target is missing; falling back to @action-only.')
+			return null
+		}
+		return (row) => ctx.router.push({ name: target, params: { id: row?.[ctx.rowKey] } })
+	}
+
+	if (type === 'open-modal') {
+		console.warn(`[CnIndexPage] action "${action.id}" type:"open-modal" is not `
+			+ 'supported for index-page actions; falling back to @action-only.')
+		return null
+	}
+
+	// type === 'handler' (default): the v1.3.0 handler-string path.
 	const name = action.handler
 	if (typeof name !== 'string' || name.length === 0) return null
 
@@ -58,12 +110,19 @@ export function resolveActionHandler(action, ctx) {
  * falls through to the @action-only path.
  *
  * @param {object} action Manifest action descriptor.
- * @param {{ router: object, rowKey: string, customComponents: object }} ctx
- * @return {object}
+ * @param {{ router: object, rowKey: string, customComponents: object }} ctx Dispatch context (router, rowKey, customComponents registry).
+ * @return {object} The action with its handler resolved (or stripped on failure).
  */
 export function dispatchAction(action, ctx) {
 	if (typeof action.handler === 'function') return action
-	if (typeof action.handler !== 'string' || action.handler.length === 0) return action
+
+	const type = (typeof action.type === 'string' && action.type.length > 0) ? action.type : 'handler'
+	// Nothing to resolve: the default `handler` type with no handler string
+	// (a pure `@action`-emit action). Typed actions (navigate / open-page /
+	// open-modal) resolve below even though they carry no `handler` string.
+	if (type === 'handler' && (typeof action.handler !== 'string' || action.handler.length === 0)) {
+		return action
+	}
 
 	const isNone = action.handler === 'none'
 	const resolved = resolveActionHandler(action, ctx)

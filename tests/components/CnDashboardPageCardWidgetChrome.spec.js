@@ -38,29 +38,29 @@ describe('CnDashboardPage — card widget chrome', () => {
 
 	it('hides the chrome header on a card by default, so the raw type name is never shown', () => {
 		const w = mountPage()
-		expect(w.vm.getWidgetShowTitle({ widgetId: 'kpi' })).toBe(false)
+		expect(w.vm.widgetShowTitle({ widgetId: 'kpi' })).toBe(false)
 	})
 
 	it('hides the Actions menu on a card by default', () => {
 		const w = mountPage()
-		expect(w.vm.getWidgetShowActions({ widgetId: 'kpi' })).toBe(false)
+		expect(w.vm.widgetShowActions({ widgetId: 'kpi' })).toBe(false)
 	})
 
 	it('keeps header and Actions menu on a non-card registry widget', () => {
 		const w = mountPage({ widget: { type: 'table' } })
 		expect(w.vm.isCardWidget({ widgetId: 'kpi' })).toBe(false)
-		expect(w.vm.getWidgetShowTitle({ widgetId: 'kpi' })).toBe(true)
-		expect(w.vm.getWidgetShowActions({ widgetId: 'kpi' })).toBe(true)
+		expect(w.vm.widgetShowTitle({ widgetId: 'kpi' })).toBe(true)
+		expect(w.vm.widgetShowActions({ widgetId: 'kpi' })).toBe(true)
 	})
 
 	it('honours an explicit showTitle on the widget def (what the style editor writes)', () => {
 		const w = mountPage({ widget: { showTitle: true } })
-		expect(w.vm.getWidgetShowTitle({ widgetId: 'kpi' })).toBe(true)
+		expect(w.vm.widgetShowTitle({ widgetId: 'kpi' })).toBe(true)
 	})
 
 	it('lets the layout item override the widget def', () => {
 		const w = mountPage({ widget: { showTitle: true }, layoutItem: { showTitle: false } })
-		expect(w.vm.getWidgetShowTitle(w.props('layout')[0])).toBe(false)
+		expect(w.vm.widgetShowTitle(w.props('layout')[0])).toBe(false)
 	})
 
 	it('prefers customTitle over the def title once a header is opted back in', () => {
