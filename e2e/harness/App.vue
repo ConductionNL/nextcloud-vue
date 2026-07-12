@@ -26,6 +26,24 @@
 			<CnEditDataModal :manifest="sdManifest" @close="() => {}" />
 		</template>
 
+		<!--
+			CnSchemaFormDialog enum-add (gated behind ?spa=1). Mounts the real schema
+			editor with one string property so the e2e can open that property's actions
+			menu and click the "Add enum value" ARROW — the affordance that was dead
+			when the input listened only for keydown.enter.
+		-->
+		<template v-else-if="showSchemaForm">
+			<h2>Schema editor — add enum value</h2>
+			<CnSchemaFormDialog
+				:item="spaSchema"
+				dialog-title="New schema"
+				:available-registers="[]"
+				:available-schemas="[]"
+				:show-delete="false"
+				@confirm="() => {}"
+				@close="() => {}" />
+		</template>
+
 		<!-- CnFormDialog schema-driven widget:'icon' (gated behind ?fd=1). -->
 		<template v-else-if="showFormDialog">
 			<h2>Form dialog — schema-driven icon field</h2>
@@ -105,6 +123,7 @@ import CnWalkthrough from '../../src/components/CnWalkthrough/CnWalkthrough.vue'
 import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
 import CnFormPage from '../../src/components/CnFormPage/CnFormPage.vue'
 import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
+import CnSchemaFormDialog from '../../src/components/CnSchemaFormDialog/CnSchemaFormDialog.vue'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
 
 const wtStep = (id, title, body) => ({ id, sinceVersion: '1.0.0', placement: 'center', title, body, target: { kind: 'page', ref: 'harness' }, advanceOn: { type: 'manual' } })
@@ -126,12 +145,15 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal },
+	components: { CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog },
 	data() {
 		return {
 			// Schema-deletion harness (?sd=1). The register slug is what the modal
 			// matches against; the spec's page.route() stubs supply the register.
 			showSchemaDelete: (typeof window !== 'undefined' && window.location.search.includes('sd')),
+			// Schema editor with one string property, for the enum-add arrow test (?spa=1).
+			showSchemaForm: (typeof window !== 'undefined' && window.location.search.includes('spa')),
+			spaSchema: { title: 'Cow', properties: { size: { type: 'string' } }, required: [] },
 			sdManifest: { pages: [{ config: { register: 'harness-register' } }] },
 			icon: null,
 			placement: 'left',
