@@ -28,6 +28,20 @@
 	overflow-y: auto;
 }
 
+/* Map view fills the remaining space instead of sitting at a fixed height — no
+   dead area under the map and nothing to scroll past to reach the cases. The map
+   pans internally, so the column itself must not scroll. */
+.cn-index-page__main--map {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.cn-index-page__map {
+	flex: 1;
+	min-height: 300px;
+}
+
 /* Opt-in folder navigation pane (left of the list). */
 .cn-index-page__folder-pane {
 	flex: 0 0 240px;
