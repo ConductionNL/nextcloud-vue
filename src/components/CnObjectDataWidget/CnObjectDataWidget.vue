@@ -552,6 +552,23 @@ export default {
 			default: true,
 		},
 		/**
+		 * Hide fields that have no value, instead of rendering them with an em dash.
+		 *
+		 * Use this for a schema whose properties are only relevant to a subset of its
+		 * objects — a discriminated supertype, say, where a `complaint` never carries
+		 * the telephony fields a `contactmoment` does. The read grid then shows only
+		 * what the object actually has, without the schema having to declare which
+		 * fields belong to which variant.
+		 *
+		 * Only affects the read grid: a field being edited, a field with an unsaved
+		 * change, and the full edit form all stay visible, so an empty field is always
+		 * still reachable to fill in.
+		 */
+		hideEmpty: {
+			type: Boolean,
+			default: false,
+		},
+		/**
 		 * Properties to exclude from display.
 		 * @type {string[]}
 		 */
@@ -656,11 +673,21 @@ export default {
 
 			// Attach grid span info (a display-only concern, not part of the
 			// shared field pipeline) from the same overrides map.
-			return fields.map(field => ({
+			const withSpans = fields.map(field => ({
 				...field,
 				gridColumn: (this.overrides[field.key] && this.overrides[field.key].gridColumn) || 1,
 				gridRow: (this.overrides[field.key] && this.overrides[field.key].gridRow) || 1,
 			}))
+
+			if (!this.hideEmpty) {
+				return withSpans
+			}
+
+			// Keep a field the user is currently editing or has pending changes for,
+			// otherwise it would vanish mid-edit the moment its value is cleared.
+			return withSpans.filter(field => field.key === this.editingField
+				|| field.key in this.dirtyFields
+				|| !this.isEmptyValue((this.objectData || {})[field.key]))
 		},
 
 		/**
@@ -995,6 +1022,27 @@ export default {
 		 */
 		isRelationField(prop) {
 			return this.relationProp(prop) !== null
+		},
+		/**
+		 * Whether a stored value counts as "no value" for `hideEmpty`.
+		 *
+		 * `false` and `0` are values, not absences, so they are deliberately kept —
+		 * hiding a boolean because it is false would lose information.
+		 *
+		 * @param {*} value The raw value from objectData.
+		 * @return {boolean} True when there is nothing to show.
+		 */
+		isEmptyValue(value) {
+			if (value === null || value === undefined || value === '') {
+				return true
+			}
+			if (Array.isArray(value)) {
+				return value.length === 0
+			}
+			if (typeof value === 'object') {
+				return Object.keys(value).length === 0
+			}
+			return false
 		},
 		/**
 		 * Display label(s) for a relation value, using resolved names. While a

@@ -4,195 +4,184 @@
 -->
 
 <template>
-	<NcModal
+	<NcDialog
 		v-if="show"
 		size="normal"
 		:name="t('nextcloud-vue', 'Visibility rules')"
-		@close="onCancel">
-		<div
-			class="cn-visibility-rules"
-			role="dialog"
-			:aria-labelledby="titleId"
-			aria-modal="true"
-			data-testid="cn-visibility-rules">
-			<h2 :id="titleId" class="cn-visibility-rules__title">
-				{{ t('nextcloud-vue', 'Visibility rules') }}
-			</h2>
-			<p class="cn-visibility-rules__hint">
-				{{ t('nextcloud-vue', 'Show this widget when ANY rule matches (OR). Within a rule, ALL of its conditions must match (AND).') }}
-			</p>
+		@closing="onCancel">
+		<p class="cn-visibility-rules__hint">
+			{{ t('nextcloud-vue', 'Show this widget when ANY rule matches (OR). Within a rule, ALL of its conditions must match (AND).') }}
+		</p>
 
-			<!-- Existing rules: each rule is an OR branch; its conditions AND. -->
-			<ul
-				v-if="draft.length > 0"
-				class="cn-visibility-rules__list"
-				data-testid="cn-visibility-rules-list">
-				<li
-					v-for="(rule, ruleIndex) in draft"
-					:key="rule.id"
-					class="cn-visibility-rules__rule"
-					data-testid="cn-visibility-rules-rule">
-					<div class="cn-visibility-rules__rule-header">
-						<strong>{{ ruleHeading(ruleIndex) }}</strong>
-						<NcButton
-							type="tertiary"
-							:aria-label="t('nextcloud-vue', 'Remove rule')"
-							data-testid="cn-visibility-rule-remove"
-							@click="removeRule(ruleIndex)">
-							<template #icon>
-								<Close :size="18" />
-							</template>
-						</NcButton>
-					</div>
-
-					<ul class="cn-visibility-rules__conditions">
-						<li
-							v-for="(condition, condIndex) in rule.conditions"
-							:key="condIndex"
-							class="cn-visibility-rules__condition"
-							data-testid="cn-visibility-rules-condition">
-							<span class="cn-visibility-rules__condition-kind">{{ kindLabel(condition.kind) }}</span>
-							<code class="cn-visibility-rules__condition-summary">{{ summariseCondition(condition) }}</code>
-							<NcButton
-								type="tertiary"
-								:aria-label="t('nextcloud-vue', 'Remove condition')"
-								data-testid="cn-visibility-condition-remove"
-								@click="removeCondition(ruleIndex, condIndex)">
-								<template #icon>
-									<Close :size="16" />
-								</template>
-							</NcButton>
-						</li>
-						<li v-if="rule.conditions.length === 0" class="cn-visibility-rules__condition-empty">
-							{{ t('nextcloud-vue', 'No conditions — add one below.') }}
-						</li>
-					</ul>
-
+		<!-- Existing rules: each rule is an OR branch; its conditions AND. -->
+		<ul
+			v-if="draft.length > 0"
+			class="cn-visibility-rules__list"
+			data-testid="cn-visibility-rules-list">
+			<li
+				v-for="(rule, ruleIndex) in draft"
+				:key="rule.id"
+				class="cn-visibility-rules__rule"
+				data-testid="cn-visibility-rules-rule">
+				<div class="cn-visibility-rules__rule-header">
+					<strong>{{ ruleHeading(ruleIndex) }}</strong>
 					<NcButton
 						type="tertiary"
-						data-testid="cn-visibility-condition-target"
-						@click="targetRule = ruleIndex">
-						{{ ruleIndex === targetRule ? t('nextcloud-vue', 'Adding condition here') : t('nextcloud-vue', 'Add condition to this rule') }}
-					</NcButton>
-				</li>
-			</ul>
-			<p v-else class="cn-visibility-rules__empty">
-				{{ t('nextcloud-vue', 'No visibility rules yet — this widget is always shown.') }}
-			</p>
-
-			<NcButton
-				type="secondary"
-				data-testid="cn-visibility-add-rule"
-				@click="addRule">
-				{{ t('nextcloud-vue', 'Add a new rule (OR)') }}
-			</NcButton>
-
-			<!-- Condition builder: appends an AND-condition to the target rule. -->
-			<div class="cn-visibility-rules__form" data-testid="cn-visibility-rules-form">
-				<h3>{{ t('nextcloud-vue', 'Add a condition') }}</h3>
-
-				<div class="cn-visibility-rules__field">
-					<NcSelect
-						v-model="conditionDraft.kind"
-						:input-label="t('nextcloud-vue', 'Condition kind')"
-						:aria-label-combobox="t('nextcloud-vue', 'Condition kind')"
-						:options="kindOptions"
-						label="label"
-						track-by="id"
-						:clearable="false" />
-				</div>
-
-				<!-- group -->
-				<div v-if="activeKind === 'group'" class="cn-visibility-rules__field">
-					<NcSelect
-						v-model="conditionDraft.groups"
-						:input-label="t('nextcloud-vue', 'Groups')"
-						:aria-label-combobox="t('nextcloud-vue', 'Groups')"
-						:options="availableGroups"
-						:multiple="true"
-						:placeholder="t('nextcloud-vue', 'Select groups')" />
-				</div>
-
-				<!-- time-of-day -->
-				<template v-else-if="activeKind === 'time'">
-					<div class="cn-visibility-rules__field">
-						<NcTextField
-							:value="conditionDraft.startTime"
-							:label="t('nextcloud-vue', 'Start time (HH:MM)')"
-							placeholder="09:00"
-							@update:value="conditionDraft.startTime = $event" />
-					</div>
-					<div class="cn-visibility-rules__field">
-						<NcTextField
-							:value="conditionDraft.endTime"
-							:label="t('nextcloud-vue', 'End time (HH:MM)')"
-							placeholder="17:00"
-							@update:value="conditionDraft.endTime = $event" />
-					</div>
-				</template>
-
-				<!-- date-range -->
-				<template v-else-if="activeKind === 'date'">
-					<div class="cn-visibility-rules__field">
-						<NcTextField
-							:value="conditionDraft.startDate"
-							:label="t('nextcloud-vue', 'Start date (YYYY-MM-DD)')"
-							placeholder="2026-12-01"
-							@update:value="conditionDraft.startDate = $event" />
-					</div>
-					<div class="cn-visibility-rules__field">
-						<NcTextField
-							:value="conditionDraft.endDate"
-							:label="t('nextcloud-vue', 'End date (YYYY-MM-DD)')"
-							placeholder="2026-12-31"
-							@update:value="conditionDraft.endDate = $event" />
-					</div>
-				</template>
-
-				<!-- user-attribute -->
-				<template v-else-if="activeKind === 'attribute'">
-					<div class="cn-visibility-rules__field">
-						<NcTextField
-							:value="conditionDraft.attribute"
-							:label="t('nextcloud-vue', 'Attribute')"
-							placeholder="language"
-							@update:value="conditionDraft.attribute = $event" />
-					</div>
-					<div class="cn-visibility-rules__field">
-						<NcTextField
-							:value="conditionDraft.value"
-							:label="t('nextcloud-vue', 'Equals value')"
-							placeholder="nl"
-							@update:value="conditionDraft.value = $event" />
-					</div>
-				</template>
-
-				<div class="cn-visibility-rules__actions">
-					<NcButton
-						type="primary"
-						:disabled="!canAddCondition"
-						data-testid="cn-visibility-add-condition"
-						@click="addCondition">
-						{{ t('nextcloud-vue', 'Add condition') }}
+						:aria-label="t('nextcloud-vue', 'Remove rule')"
+						data-testid="cn-visibility-rule-remove"
+						@click="removeRule(ruleIndex)">
+						<template #icon>
+							<Close :size="18" />
+						</template>
 					</NcButton>
 				</div>
+
+				<ul class="cn-visibility-rules__conditions">
+					<li
+						v-for="(condition, condIndex) in rule.conditions"
+						:key="condIndex"
+						class="cn-visibility-rules__condition"
+						data-testid="cn-visibility-rules-condition">
+						<span class="cn-visibility-rules__condition-kind">{{ kindLabel(condition.kind) }}</span>
+						<code class="cn-visibility-rules__condition-summary">{{ summariseCondition(condition) }}</code>
+						<NcButton
+							type="tertiary"
+							:aria-label="t('nextcloud-vue', 'Remove condition')"
+							data-testid="cn-visibility-condition-remove"
+							@click="removeCondition(ruleIndex, condIndex)">
+							<template #icon>
+								<Close :size="16" />
+							</template>
+						</NcButton>
+					</li>
+					<li v-if="rule.conditions.length === 0" class="cn-visibility-rules__condition-empty">
+						{{ t('nextcloud-vue', 'No conditions — add one below.') }}
+					</li>
+				</ul>
+
+				<NcButton
+					type="tertiary"
+					data-testid="cn-visibility-condition-target"
+					@click="targetRule = ruleIndex">
+					{{ ruleIndex === targetRule ? t('nextcloud-vue', 'Adding condition here') : t('nextcloud-vue', 'Add condition to this rule') }}
+				</NcButton>
+			</li>
+		</ul>
+		<p v-else class="cn-visibility-rules__empty">
+			{{ t('nextcloud-vue', 'No visibility rules yet — this widget is always shown.') }}
+		</p>
+
+		<NcButton
+			type="secondary"
+			data-testid="cn-visibility-add-rule"
+			@click="addRule">
+			{{ t('nextcloud-vue', 'Add a new rule (OR)') }}
+		</NcButton>
+
+		<!-- Condition builder: appends an AND-condition to the target rule. -->
+		<div class="cn-visibility-rules__form" data-testid="cn-visibility-rules-form">
+			<h3>{{ t('nextcloud-vue', 'Add a condition') }}</h3>
+
+			<div class="cn-visibility-rules__field">
+				<NcSelect
+					v-model="conditionDraft.kind"
+					:input-label="t('nextcloud-vue', 'Condition kind')"
+					:aria-label-combobox="t('nextcloud-vue', 'Condition kind')"
+					:options="kindOptions"
+					label="label"
+					track-by="id"
+					:clearable="false" />
 			</div>
 
-			<!-- Footer: discard or commit the edited rule set. -->
-			<div class="cn-visibility-rules__footer">
-				<NcButton type="tertiary" @click="onCancel">
-					{{ t('nextcloud-vue', 'Cancel') }}
-				</NcButton>
-				<NcButton type="primary" data-testid="cn-visibility-save" @click="onSave">
-					{{ t('nextcloud-vue', 'Save') }}
+			<!-- group -->
+			<div v-if="activeKind === 'group'" class="cn-visibility-rules__field">
+				<NcSelect
+					v-model="conditionDraft.groups"
+					:input-label="t('nextcloud-vue', 'Groups')"
+					:aria-label-combobox="t('nextcloud-vue', 'Groups')"
+					:options="availableGroups"
+					:multiple="true"
+					:placeholder="t('nextcloud-vue', 'Select groups')" />
+			</div>
+
+			<!-- time-of-day -->
+			<template v-else-if="activeKind === 'time'">
+				<div class="cn-visibility-rules__field">
+					<NcTextField
+						:value="conditionDraft.startTime"
+						:label="t('nextcloud-vue', 'Start time (HH:MM)')"
+						placeholder="09:00"
+						@update:value="conditionDraft.startTime = $event" />
+				</div>
+				<div class="cn-visibility-rules__field">
+					<NcTextField
+						:value="conditionDraft.endTime"
+						:label="t('nextcloud-vue', 'End time (HH:MM)')"
+						placeholder="17:00"
+						@update:value="conditionDraft.endTime = $event" />
+				</div>
+			</template>
+
+			<!-- date-range -->
+			<template v-else-if="activeKind === 'date'">
+				<div class="cn-visibility-rules__field">
+					<NcTextField
+						:value="conditionDraft.startDate"
+						:label="t('nextcloud-vue', 'Start date (YYYY-MM-DD)')"
+						placeholder="2026-12-01"
+						@update:value="conditionDraft.startDate = $event" />
+				</div>
+				<div class="cn-visibility-rules__field">
+					<NcTextField
+						:value="conditionDraft.endDate"
+						:label="t('nextcloud-vue', 'End date (YYYY-MM-DD)')"
+						placeholder="2026-12-31"
+						@update:value="conditionDraft.endDate = $event" />
+				</div>
+			</template>
+
+			<!-- user-attribute -->
+			<template v-else-if="activeKind === 'attribute'">
+				<div class="cn-visibility-rules__field">
+					<NcTextField
+						:value="conditionDraft.attribute"
+						:label="t('nextcloud-vue', 'Attribute')"
+						placeholder="language"
+						@update:value="conditionDraft.attribute = $event" />
+				</div>
+				<div class="cn-visibility-rules__field">
+					<NcTextField
+						:value="conditionDraft.value"
+						:label="t('nextcloud-vue', 'Equals value')"
+						placeholder="nl"
+						@update:value="conditionDraft.value = $event" />
+				</div>
+			</template>
+
+			<div class="cn-visibility-rules__actions">
+				<NcButton
+					type="primary"
+					:disabled="!canAddCondition"
+					data-testid="cn-visibility-add-condition"
+					@click="addCondition">
+					{{ t('nextcloud-vue', 'Add condition') }}
 				</NcButton>
 			</div>
 		</div>
-	</NcModal>
+
+		<template #actions>
+			<NcButton type="tertiary" @click="onCancel">
+				{{ t('nextcloud-vue', 'Cancel') }}
+			</NcButton>
+			<NcButton type="primary" data-testid="cn-visibility-save" @click="onSave">
+				{{ t('nextcloud-vue', 'Save') }}
+			</NcButton>
+		</template>
+	</NcDialog>
 </template>
 
 <script>
-import { NcModal, NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Close from 'vue-material-design-icons/Close.vue'
 
@@ -215,7 +204,7 @@ export default {
 	name: 'CnWidgetVisibilityRulesModal',
 
 	components: {
-		NcModal,
+		NcDialog,
 		NcButton,
 		NcSelect,
 		NcTextField,
@@ -548,19 +537,6 @@ export default {
 </script>
 
 <style scoped>
-.cn-visibility-rules {
-	padding: 24px;
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-}
-
-.cn-visibility-rules__title {
-	margin: 0;
-	font-size: 20px;
-	font-weight: 600;
-}
-
 .cn-visibility-rules__hint {
 	color: var(--color-text-maxcontrast);
 	margin: 0 0 8px;
@@ -639,13 +615,5 @@ export default {
 .cn-visibility-rules__actions {
 	display: flex;
 	justify-content: flex-end;
-}
-
-.cn-visibility-rules__footer {
-	display: flex;
-	justify-content: flex-end;
-	gap: 8px;
-	border-top: 1px solid var(--color-border);
-	padding-top: 16px;
 }
 </style>

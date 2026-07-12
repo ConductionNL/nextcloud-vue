@@ -320,7 +320,19 @@ export { safeHref, safeImageSrc, safeSvgPath } from './utils/index.js'
 export { dispatchAction } from './utils/actionsDispatcher.js'
 export { placeNewWidget, getDashboardColumnOpts } from './utils/dashboardPlacement.js'
 export { DASHBOARD_ICONS, DEFAULT_ICON, getIconComponent, isCustomIconUrl } from './components/CnIconPicker/index.js'
-export { NL_DESIGN_ICONS, NL_DESIGN_ICON_GROUPS, rvoIcons, openGemeentenIcons, denHaagIcons } from './components/CnIconPicker/nlDesignIcons.js'
+// NB: the NL-government icon sets are deliberately NOT re-exported here.
+//
+// `NL_DESIGN_ICONS` / `NL_DESIGN_ICON_GROUPS` / `rvoIcons` all reference RVO,
+// whose 1164 icons are ~1.9MB of inlined data URIs. Re-exporting them from the
+// barrel put that on the eager path of every consumer that imports ANYTHING from
+// this package, and left it to each app's tree-shaking to prove the export was
+// unused — which openbuild and pipelinq managed but LaunchPad did not, silently
+// shipping the whole pack in its entry bundle.
+//
+// CnIconBrowser offers the sets by default (Gemeente + Den Haag eagerly at
+// ~405KB; RVO behind an `import()`), so consumers need nothing. Anyone who
+// genuinely wants the eager pack imports it by subpath:
+//     import { NL_DESIGN_ICON_GROUPS } from '@conduction/nextcloud-vue/src/icons/index.js'
 export { fromMdiJs, fromFontAwesome, fromOpenGemeenten, dedupeCatalogue } from './components/CnIconPicker/index.js'
 export { mergeManifestDelta } from './utils/mergeManifestDelta.js'
 export { buildManifest, applyMenuLayout, mergeMenuItems, mergePages, applyMenuRelocations, applyMenuRemovals, applySettingsSection } from './utils/buildManifest.js'

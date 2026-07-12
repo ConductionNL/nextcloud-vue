@@ -49,7 +49,7 @@ describe('parseAxiosError', () => {
 })
 
 describe('CnEditDataModal — removeSchema ordering and cascade', () => {
-	const CnEditDataModal = require('../../src/modals/CnEditDataModal.vue').default
+	const CnEditDataModal = require('../../src/dialogs/CnEditDataModal.vue').default
 	const { removeSchema, confirmCascade, cancelCascade } = CnEditDataModal.methods
 
 	/**

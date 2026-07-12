@@ -7,48 +7,42 @@
   that reveals its Title / Type / Parent / Route, plus reorder, delete and
   add-sub-page — mirroring the menu editor. The hierarchy comes from each page's
   `parent` (a parent page's id), so an index and its detail nest together and
-  the detail's route builds up from the index's. Isolated NcModal file per
+  the detail's route builds up from the index's. Isolated NcDialog file per
   ADR-004.
 -->
 <template>
-	<NcModal size="normal" @close="$emit('close')">
-		<div class="cn-edit-pages">
-			<h2 class="cn-edit-pages__title">
-				{{ t('nextcloud-vue', 'Edit pages') }}
-			</h2>
+	<NcDialog size="normal" :name="t('nextcloud-vue', 'Edit pages')" @closing="$emit('close')">
+		<NcEmptyContent
+			v-if="!pages.length"
+			:name="t('nextcloud-vue', 'No pages yet')"
+			:description="t('nextcloud-vue', 'Add a page to get started.')" />
 
-			<NcEmptyContent
-				v-if="!pages.length"
-				:name="t('nextcloud-vue', 'No pages yet')"
-				:description="t('nextcloud-vue', 'Add a page to get started.')" />
+		<CnPageTreeNode v-else
+			:list="pages"
+			:menu="working && Array.isArray(working.menu) ? working.menu : null"
+			:max-depth="1"
+			@navigate="onNavigate" />
 
-			<CnPageTreeNode v-else
-				:list="pages"
-				:menu="working && Array.isArray(working.menu) ? working.menu : null"
-				:max-depth="1"
-				@navigate="onNavigate" />
-
-			<div class="cn-edit-pages__footer">
-				<NcButton type="secondary" @click="add">
-					<template #icon>
-						<Plus :size="20" />
-					</template>
-					{{ t('nextcloud-vue', 'Add page') }}
-				</NcButton>
-				<NcButton type="primary" :disabled="saving" @click="onDone">
-					<template #icon>
-						<NcLoadingIcon v-if="saving" :size="20" />
-						<ContentSaveOutline v-else :size="20" />
-					</template>
-					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
-				</NcButton>
-			</div>
-		</div>
-	</NcModal>
+		<template #actions>
+			<NcButton type="secondary" @click="add">
+				<template #icon>
+					<Plus :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Add page') }}
+			</NcButton>
+			<NcButton type="primary" :disabled="saving" @click="onDone">
+				<template #icon>
+					<NcLoadingIcon v-if="saving" :size="20" />
+					<ContentSaveOutline v-else :size="20" />
+				</template>
+				{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
+			</NcButton>
+		</template>
+	</NcDialog>
 </template>
 
 <script>
-import { NcModal, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnPageTreeNode from '../components/CnPageTreeNode/CnPageTreeNode.vue'
@@ -57,7 +51,7 @@ import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 export default {
 	name: 'CnEditPagesModal',
 
-	components: { NcModal, NcButton, NcEmptyContent, NcLoadingIcon, Plus, CnPageTreeNode },
+	components: { NcDialog, NcButton, NcEmptyContent, NcLoadingIcon, Plus, CnPageTreeNode },
 
 	mixins: [manifestModalDoneMixin],
 
@@ -122,17 +116,6 @@ export default {
 </script>
 
 <style scoped>
-.cn-edit-pages {
-	padding: 20px;
-}
-
-.cn-edit-pages__title {
-	margin-top: 0;
-}
-
-.cn-edit-pages__footer {
-	display: flex;
-	justify-content: space-between;
-	margin-top: 16px;
-}
+/* NcDialog owns the padding, the title (via `name`) and the actions row, so the
+   wrapper, heading and footer rules the NcModal markup needed are all gone. */
 </style>

@@ -4,127 +4,115 @@
 -->
 
 <template>
-	<NcModal
+	<NcDialog
 		v-if="show"
 		size="normal"
 		:name="modalTitle"
-		@close="onCancel">
-		<div
-			class="cn-add-widget-modal"
-			role="dialog"
-			:aria-labelledby="titleId"
-			aria-modal="true">
-			<h2 :id="titleId" class="cn-add-widget-modal__title">
-				{{ modalTitle }}
-			</h2>
+		@closing="onCancel">
+		<!-- Type selector: shown only in pure-create mode (no preselected
+		     type, no editing widget). -->
+		<div v-if="showTypeSelect" class="cn-add-widget-modal__type">
+			<label class="cn-add-widget-modal__type-label" :for="typeSelectId">
+				{{ t('nextcloud-vue', 'Widget type') }}
+			</label>
+			<select
+				:id="typeSelectId"
+				v-model="state.type"
+				class="cn-add-widget-modal__type-select"
+				data-testid="widget-type-select"
+				@change="onTypeSwitch">
+				<option
+					v-for="type in availableTypes"
+					:key="type"
+					:value="type"
+					:data-testid="`widget-type-option-${type}`">
+					{{ typeDisplayName(type) }}
+				</option>
+			</select>
+		</div>
 
-			<!-- Type selector: shown only in pure-create mode (no preselected
-			     type, no editing widget). -->
-			<div v-if="showTypeSelect" class="cn-add-widget-modal__type">
-				<label class="cn-add-widget-modal__type-label" :for="typeSelectId">
-					{{ t('nextcloud-vue', 'Widget type') }}
-				</label>
-				<select
-					:id="typeSelectId"
-					v-model="state.type"
-					class="cn-add-widget-modal__type-select"
-					data-testid="widget-type-select"
-					@change="onTypeSwitch">
-					<option
-						v-for="type in availableTypes"
-						:key="type"
-						:value="type"
-						:data-testid="`widget-type-option-${type}`">
-						{{ typeDisplayName(type) }}
-					</option>
-				</select>
-			</div>
+		<!-- Active per-type sub-form. Driven by `<component :is>` from the
+		     shared registry; sub-forms expose `validate()` and either an
+		     `assembledContent` getter or `@update:content` events. -->
+		<div v-if="activeSubFormComponent" class="cn-add-widget-modal__form">
+			<component
+				:is="activeSubFormComponent"
+				ref="activeSubForm"
+				:key="state.type"
+				:editing-widget="state.editingWidget"
+				:value="state.content"
+				:calendars-fetcher="calendarsFetcher"
+				@update:content="onContentUpdate" />
+		</div>
+		<div v-else class="cn-add-widget-modal__empty">
+			{{ t('nextcloud-vue', 'No widget types available') }}
+		</div>
 
-			<!-- Active per-type sub-form. Driven by `<component :is>` from the
-			     shared registry; sub-forms expose `validate()` and either an
-			     `assembledContent` getter or `@update:content` events. -->
-			<div v-if="activeSubFormComponent" class="cn-add-widget-modal__form">
-				<component
-					:is="activeSubFormComponent"
-					ref="activeSubForm"
-					:key="state.type"
-					:editing-widget="state.editingWidget"
-					:value="state.content"
-					:calendars-fetcher="calendarsFetcher"
-					@update:content="onContentUpdate" />
+		<!-- Widget appearance (chrome): title, background, icon. Shared with
+		     every consumer so the add/edit experience is identical across apps
+		     (the chrome rides alongside `content` in the submit payload). -->
+		<div v-if="activeSubFormComponent" class="cn-add-widget-modal__chrome">
+			<h3 class="cn-add-widget-modal__chrome-title">
+				{{ t('nextcloud-vue', 'Appearance') }}
+			</h3>
+			<!-- Title chrome is hidden for types whose sub-form owns the title
+			     (e.g. the data widget's own Title field) so there aren't two
+			     title inputs. -->
+			<template v-if="!activeTypeOwnsTitle">
+				<NcCheckboxRadioSwitch
+					:checked="chrome.showTitle"
+					@update:checked="chrome.showTitle = $event">
+					{{ t('nextcloud-vue', 'Show title') }}
+				</NcCheckboxRadioSwitch>
+				<NcTextField
+					v-if="chrome.showTitle"
+					:value="chrome.customTitle"
+					:label="t('nextcloud-vue', 'Custom title')"
+					@update:value="chrome.customTitle = $event" />
+			</template>
+			<div class="cn-add-widget-modal__chrome-row">
+				<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Background') }}</span>
+				<NcColorPicker v-model="chrome.backgroundColor">
+					<NcButton type="tertiary">
+						<template #icon>
+							<span
+								class="cn-add-widget-modal__swatch"
+								:style="{ backgroundColor: chrome.backgroundColor || 'transparent' }" />
+						</template>
+						{{ chrome.backgroundColor || t('nextcloud-vue', 'Default') }}
+					</NcButton>
+				</NcColorPicker>
 			</div>
-			<div v-else class="cn-add-widget-modal__empty">
-				{{ t('nextcloud-vue', 'No widget types available') }}
-			</div>
-
-			<!-- Widget appearance (chrome): title, background, icon. Shared with
-			     every consumer so the add/edit experience is identical across apps
-			     (the chrome rides alongside `content` in the submit payload). -->
-			<div v-if="activeSubFormComponent" class="cn-add-widget-modal__chrome">
-				<h3 class="cn-add-widget-modal__chrome-title">
-					{{ t('nextcloud-vue', 'Appearance') }}
-				</h3>
-				<!-- Title chrome is hidden for types whose sub-form owns the title
-				     (e.g. the data widget's own Title field) so there aren't two
-				     title inputs. -->
-				<template v-if="!activeTypeOwnsTitle">
-					<NcCheckboxRadioSwitch
-						:checked="chrome.showTitle"
-						@update:checked="chrome.showTitle = $event">
-						{{ t('nextcloud-vue', 'Show title') }}
-					</NcCheckboxRadioSwitch>
-					<NcTextField
-						v-if="chrome.showTitle"
-						:value="chrome.customTitle"
-						:label="t('nextcloud-vue', 'Custom title')"
-						@update:value="chrome.customTitle = $event" />
-				</template>
-				<div class="cn-add-widget-modal__chrome-row">
-					<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Background') }}</span>
-					<NcColorPicker v-model="chrome.backgroundColor">
-						<NcButton type="tertiary">
-							<template #icon>
-								<span
-									class="cn-add-widget-modal__swatch"
-									:style="{ backgroundColor: chrome.backgroundColor || 'transparent' }" />
-							</template>
-							{{ chrome.backgroundColor || t('nextcloud-vue', 'Default') }}
-						</NcButton>
-					</NcColorPicker>
-				</div>
-				<div class="cn-add-widget-modal__chrome-row">
-					<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Icon') }}</span>
-					<CnIconBrowser
-						:value="chrome.customIcon"
-						:upload-fn="uploadFn"
-						allow-url
-						clearable
-						@input="chrome.customIcon = $event" />
-				</div>
-			</div>
-
-			<!-- Action buttons. Cancel emits close, never submit. Submit is
-			     disabled while the active sub-form's validate() returns errors. -->
-			<div class="cn-add-widget-modal__actions">
-				<NcButton type="tertiary" @click="onCancel">
-					{{ t('nextcloud-vue', 'Cancel') }}
-				</NcButton>
-				<NcButton
-					type="primary"
-					:disabled="!isValid"
-					:title="firstError || ''"
-					data-testid="add-widget-save"
-					@click="onSubmit">
-					{{ submitLabel }}
-				</NcButton>
+			<div class="cn-add-widget-modal__chrome-row">
+				<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Icon') }}</span>
+				<CnIconBrowser
+					:value="chrome.customIcon"
+					:upload-fn="uploadFn"
+					allow-url
+					clearable
+					@input="chrome.customIcon = $event" />
 			</div>
 		</div>
-	</NcModal>
+
+		<template #actions>
+			<NcButton type="tertiary" @click="onCancel">
+				{{ t('nextcloud-vue', 'Cancel') }}
+			</NcButton>
+			<NcButton
+				type="primary"
+				:disabled="!isValid"
+				:title="firstError || ''"
+				data-testid="add-widget-save"
+				@click="onSubmit">
+				{{ submitLabel }}
+			</NcButton>
+		</template>
+	</NcDialog>
 </template>
 
 <script>
 import { computed, provide } from 'vue'
-import { NcModal, NcButton, NcTextField, NcColorPicker, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcTextField, NcColorPicker, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 
 import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
@@ -150,7 +138,7 @@ export default {
 	name: 'CnAddWidgetModal',
 
 	components: {
-		NcModal,
+		NcDialog,
 		NcButton,
 		NcTextField,
 		NcColorPicker,
@@ -479,7 +467,12 @@ export default {
 			const pick = (...vals) => vals.find((v) => v !== undefined && v !== null)
 			const showRaw = pick(w.showTitle, c.showTitle)
 			this.chrome = {
-				showTitle: showRaw === undefined ? true : Boolean(Number(showRaw) || showRaw === true),
+				// Cards (stat / gauge / delta) headline themselves via `content.label`,
+				// so they default headerless — otherwise the chrome header just repeats
+				// the label, or shows the bare type name when no title was ever set.
+				showTitle: showRaw === undefined
+					? !this.isCardType(w.type || this.state.type)
+					: Boolean(Number(showRaw) || showRaw === true),
 				customTitle: pick(w.customTitle, c.customTitle, c.title) || '',
 				backgroundColor: pick(w.backgroundColor, w.styleConfig?.backgroundColor, c.styleConfig?.backgroundColor) || '',
 				customIcon: pick(w.customIcon, c.customIcon, c.icon) || '',
@@ -498,10 +491,26 @@ export default {
 		 */
 		onTypeSwitch() {
 			this.form.resetForm(this.state.type)
+			// Re-apply the type's chrome default: switching between a card and a
+			// full widget flips whether a header makes sense.
+			this.chrome.showTitle = !this.isCardType(this.state.type)
 			this.validationTick++
 			this.$nextTick(() => {
 				this.validationTick++
 			})
+		},
+
+		/**
+		 * Whether a widget type is a self-contained card (stat / gauge / delta),
+		 * which renders headerless by default.
+		 *
+		 * @param {string} type the registry type key.
+		 * @return {boolean} true when the registry entry is a card.
+		 */
+		isCardType(type) {
+			if (!type) return false
+			const entry = getWidgetTypeEntry(type)
+			return Boolean(entry && entry.card === true)
 		},
 
 		/**
@@ -578,21 +587,6 @@ export default {
 </script>
 
 <style scoped>
-.cn-add-widget-modal {
-	padding: 24px;
-	display: flex;
-	flex-direction: column;
-	gap: 16px;
-	max-height: 88vh;
-	min-width: 320px;
-}
-
-.cn-add-widget-modal__title {
-	margin: 0;
-	font-size: 20px;
-	font-weight: 600;
-}
-
 .cn-add-widget-modal__type {
 	display: flex;
 	flex-direction: column;
@@ -660,13 +654,5 @@ export default {
 	height: 16px;
 	border-radius: 3px;
 	border: 1px solid var(--color-border);
-}
-
-.cn-add-widget-modal__actions {
-	display: flex;
-	gap: 8px;
-	justify-content: flex-end;
-	border-top: 1px solid var(--color-border);
-	padding-top: 16px;
 }
 </style>

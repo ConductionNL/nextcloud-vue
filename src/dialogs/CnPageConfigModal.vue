@@ -20,18 +20,14 @@
                  no simple control yet (quick filters, base filter, form-field
                  include/exclude + overrides, export formats, import options).
 
-  Isolated NcModal file per ADR-004; every NcSelect carries an inputLabel.
+  Isolated NcDialog file per ADR-004; every NcSelect carries an inputLabel.
   CnIndexPage booleans default true EXCEPT showTitle/filterMenu/columnMenu — a
   toggle stores a value only when it DIFFERS from that per-key default and drops
   the key otherwise, keeping the persisted config minimal.
 -->
 <template>
-	<NcModal size="normal" @close="$emit('close')">
+	<NcDialog size="normal" :name="t('nextcloud-vue', 'Page configuration')" @closing="$emit('close')">
 		<div class="cn-page-config">
-			<h2 class="cn-page-config__title">
-				{{ t('nextcloud-vue', 'Page configuration') }}
-			</h2>
-
 			<div class="cn-page-config__tabs">
 				<NcButton v-for="tab in tabs"
 					:key="tab.id"
@@ -548,21 +544,22 @@
 				</div>
 			</div>
 
-			<div class="cn-page-config__footer">
-				<span class="cn-page-config__id">{{ page.id }}</span>
-				<NcButton type="primary" :disabled="saving || hasJsonError" @click="onDone">
-					<template v-if="saving" #icon>
-						<NcLoadingIcon :size="20" />
-					</template>
-					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
-				</NcButton>
-			</div>
 		</div>
-	</NcModal>
+
+		<template #actions>
+			<span class="cn-page-config__id">{{ page.id }}</span>
+			<NcButton type="primary" :disabled="saving || hasJsonError" @click="onDone">
+				<template v-if="saving" #icon>
+					<NcLoadingIcon :size="20" />
+				</template>
+				{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
+			</NcButton>
+		</template>
+	</NcDialog>
 </template>
 
 <script>
-import { NcModal, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
@@ -661,7 +658,7 @@ const JSON_FIELDS = [
 export default {
 	name: 'CnPageConfigModal',
 
-	components: { NcModal, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, CnIconBrowser },
+	components: { NcDialog, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, CnIconBrowser },
 
 	mixins: [manifestModalDoneMixin],
 
@@ -1221,15 +1218,12 @@ export default {
 </script>
 
 <style scoped>
+/* NcDialog supplies the padding and the heading (via `name`); this div keeps only
+   the body's own column layout. */
 .cn-page-config {
-	padding: 20px;
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
-}
-
-.cn-page-config__title {
-	margin: 0;
 }
 
 .cn-page-config__subtitle {
@@ -1344,15 +1338,10 @@ export default {
 	font-size: 0.85em;
 }
 
-.cn-page-config__footer {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	border-top: 1px solid var(--color-border);
-	padding-top: 12px;
-}
-
+/* The footer row is NcDialog's `#actions` slot now. The page id still sits in it,
+   pushed away from the Done button. */
 .cn-page-config__id {
+	margin-inline-end: auto;
 	font-size: 0.85em;
 	color: var(--color-text-maxcontrast);
 }

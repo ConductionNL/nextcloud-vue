@@ -201,18 +201,18 @@ import Sitemap from 'vue-material-design-icons/Sitemap.vue'
 import AutoFix from 'vue-material-design-icons/AutoFix.vue'
 import MapMarkerPath from 'vue-material-design-icons/MapMarkerPath.vue'
 import HeartOutline from 'vue-material-design-icons/HeartOutline.vue'
-import CnEditMenuModal from '../../modals/CnEditMenuModal.vue'
-import CnEditPagesModal from '../../modals/CnEditPagesModal.vue'
-import CnEditSettingsModal from '../../modals/CnEditSettingsModal.vue'
-import CnEditSidebarModal from '../../modals/CnEditSidebarModal.vue'
-import CnEditActionsModal from '../../modals/CnEditActionsModal.vue'
-import CnAddWidgetModal from '../../modals/CnAddWidgetModal.vue'
-import CnEditDataModal from '../../modals/CnEditDataModal.vue'
-import CnEditFlowsModal from '../../modals/CnEditFlowsModal.vue'
-import CnEditSetupModal from '../../modals/CnEditSetupModal.vue'
-import CnEditWalkthroughModal from '../../modals/CnEditWalkthroughModal.vue'
-import CnEditSupportModal from '../../modals/CnEditSupportModal.vue'
-import { getDefaultContent } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+import CnEditMenuModal from '../../dialogs/CnEditMenuModal.vue'
+import CnEditPagesModal from '../../dialogs/CnEditPagesModal.vue'
+import CnEditSettingsModal from '../../dialogs/CnEditSettingsModal.vue'
+import CnEditSidebarModal from '../../dialogs/CnEditSidebarModal.vue'
+import CnEditActionsModal from '../../dialogs/CnEditActionsModal.vue'
+import CnAddWidgetModal from '../../dialogs/CnAddWidgetModal.vue'
+import CnEditDataModal from '../../dialogs/CnEditDataModal.vue'
+import CnEditFlowsModal from '../../dialogs/CnEditFlowsModal.vue'
+import CnEditSetupModal from '../../dialogs/CnEditSetupModal.vue'
+import CnEditWalkthroughModal from '../../dialogs/CnEditWalkthroughModal.vue'
+import CnEditSupportModal from '../../dialogs/CnEditSupportModal.vue'
+import { getDefaultContent, getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 
 export default {
@@ -468,9 +468,17 @@ export default {
 			// Appearance (chrome) chosen in the modal — title visibility/label,
 			// icon and background — applied to the widget entry the renderer reads.
 			const chrome = payload.chrome && typeof payload.chrome === 'object' ? payload.chrome : {}
+			const entry = getWidgetTypeEntry(payload.type)
+			const isCard = Boolean(entry && entry.card === true)
 			const chromeFields = {
-				title: chrome.customTitle || content.title || payload.type,
-				showTitle: chrome.showTitle !== false,
+				// Never fall back to the raw type key — that shipped widgets titled
+				// literally "stat". A card's own `content.label` is the best name,
+				// then the registry's display name.
+				title: chrome.customTitle || content.title || content.label
+					|| entry?.displayName || payload.type,
+				// Cards headline themselves via `content.label`, so they default
+				// headerless unless the modal explicitly asked for a header.
+				showTitle: typeof chrome.showTitle === 'boolean' ? chrome.showTitle : !isCard,
 				...(chrome.customIcon ? { icon: chrome.customIcon } : {}),
 				...(chrome.backgroundColor ? { styleConfig: { backgroundColor: chrome.backgroundColor } } : {}),
 			}

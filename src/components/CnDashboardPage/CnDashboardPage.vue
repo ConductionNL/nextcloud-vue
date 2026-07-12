@@ -262,7 +262,7 @@
 				<CnWidgetWrapper
 					v-if="missingRequiredApp(item)"
 					:title="getWidgetTitle(item)"
-					:show-title="item.showTitle !== false">
+					:show-title="widgetShowTitle(item)">
 					<NcEmptyContent
 						:name="installAppLabel(missingRequiredApp(item))"
 						:description="t('nextcloud-vue', 'This widget shows data from another app that isn\'t installed yet.')"
@@ -294,15 +294,15 @@
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
-						:show-title="item.showTitle !== false"
-						:borderless="item.showTitle === false"
+						:show-title="widgetShowTitle(item)"
+						:borderless="!widgetShowTitle(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
 						:show-refresh="getWidgetShowRefresh(item)"
-						:show-actions="item.showActions !== false"
+						:show-actions="widgetShowActions(item)"
 						:documentation-url="getWidgetDocumentationUrl(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
@@ -368,8 +368,8 @@
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
-						:show-title="item.showTitle !== false"
-						:borderless="item.showTitle === false"
+						:show-title="widgetShowTitle(item)"
+						:borderless="!widgetShowTitle(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
@@ -443,8 +443,8 @@
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
-						:show-title="item.showTitle !== false"
-						:borderless="item.showTitle === false"
+						:show-title="widgetShowTitle(item)"
+						:borderless="!widgetShowTitle(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
@@ -470,7 +470,7 @@
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
-						:show-title="item.showTitle !== false"
+						:show-title="widgetShowTitle(item)"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
 						:show-refresh="getWidgetShowRefresh(item)"
@@ -489,8 +489,9 @@
 				<template v-else-if="registryRenderer(item)">
 					<CnWidgetWrapper
 						:title="getWidgetTitle(item)"
-						:show-title="item.showTitle !== false"
-						:show-actions="item.showActions !== false"
+						:show-title="widgetShowTitle(item)"
+						:show-actions="widgetShowActions(item)"
+						:show-refresh="getWidgetShowRefresh(item)"
 						:flush="item.flush !== false"
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
@@ -551,7 +552,7 @@
 				<CnWidgetWrapper
 					v-else
 					:title="getWidgetTitle(item)"
-					:show-title="item.showTitle !== false"
+					:show-title="widgetShowTitle(item)"
 					:show-refresh="false">
 					<div class="cn-dashboard-page__unknown">
 						{{ unavailableLabel }}
@@ -627,7 +628,7 @@ import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } fr
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
-import CnWidgetStyleEditorModal from '../../modals/CnWidgetStyleEditorModal.vue'
+import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
@@ -1471,7 +1472,9 @@ export default {
 				type: def.type || '',
 				title: def.title || '',
 				styleConfig: def.styleConfig || {},
-				showTitle: def.showTitle !== false,
+				// Left raw (possibly undefined) so the modal can apply the
+				// card-aware default rather than being handed a coerced `true`.
+				showTitle: def.showTitle,
 				customTitle: def.customTitle || '',
 				customIcon: def.customIcon || '',
 				content,
@@ -2294,6 +2297,46 @@ export default {
 			// Prefer a per-placement override, then the widget def's customTitle
 			// (set by the in-place style editor cog), then the def's base title.
 			return item.customTitle || def?.customTitle || def?.title || item.widgetId
+		},
+
+		/**
+		 * Whether a widget's title header renders. Tri-state, resolved from the
+		 * layout placement first, then the widget def. The def fallback matters
+		 * because the in-place style editor persists `showTitle` onto the
+		 * widget def (see onWidgetConfigSave), while hand-written manifests
+		 * may set it on either object — mirrors getWidgetTitle's def fallback.
+		 *
+		 * When neither sets it, the default depends on the family: card widgets
+		 * (stat / gauge / delta) headline themselves via `content.label`, so a
+		 * chrome header would only repeat it — or, when no title was ever set,
+		 * show the raw type name ("stat"). Cards therefore default headerless;
+		 * every other widget defaults to showing the header.
+		 *
+		 * @param {object} item the layout placement.
+		 * @return {boolean}
+		 */
+		widgetShowTitle(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			const value = item.showTitle !== undefined ? item.showTitle : def?.showTitle
+			if (value === undefined || value === null) return !this.isCardWidget(item)
+			return value !== false
+		},
+
+		/**
+		 * Whether a widget's overflow Actions menu renders. Same tri-state +
+		 * layout-then-def resolution as widgetShowTitle, and the same card
+		 * default: cards are the "card" family (docs/architecture/cards-and-widgets.md)
+		 * and carry no Actions menu — a KPI tile has no refreshable surface of
+		 * its own and the menu eats the header width it needs.
+		 *
+		 * @param {object} item the layout placement.
+		 * @return {boolean}
+		 */
+		widgetShowActions(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			const value = item.showActions !== undefined ? item.showActions : def?.showActions
+			if (value === undefined || value === null) return !this.isCardWidget(item)
+			return value !== false
 		},
 
 		/**

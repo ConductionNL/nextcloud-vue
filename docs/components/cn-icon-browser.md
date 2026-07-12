@@ -56,8 +56,8 @@ See [mdiCatalogue](../utilities/mdi-catalogue.md) and [vmdiCatalogue](../utiliti
 | `allowUrl` | `Boolean` | `false` | Add a free-text image-URL input to the Custom tab, so the picker can also hold an arbitrary URL (the icon-or-URL fields). |
 | `label` | `String` | `''` | Optional field label rendered above the control (convenience for form fields). |
 | `clearable` | `Boolean` | `false` | Offer a control to unset the icon (emits `null`). Use for optional icon fields, where a picked icon would otherwise be impossible to remove. |
-| `sources` | `Array` | `[]` | Ordered catalogue source keys, one tab each (e.g. `['mdi', 'fontawesome', 'opengemeenten']`). Empty → a single "Icons" tab over the resolved icons. |
-| `allowCustomSvg` (`allow-custom-svg`) | `Boolean` | `false` | Offer a tab for authoring a raw `<svg>` icon by hand. |
+| `sources` | `Array` | `[]` | Ordered catalogue source keys, one tab each (e.g. `['mdi', 'fontawesome', 'opengemeenten']`). Empty renders a single "Icons" tab over the resolved icons. |
+| `allowCustomSvg` | `Boolean` | `false` | Offer a tab for authoring a raw `<svg>` icon by hand. |
 
 ## Catalogue injection
 
