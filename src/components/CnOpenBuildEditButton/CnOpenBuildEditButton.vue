@@ -212,7 +212,7 @@ import CnEditFlowsModal from '../../dialogs/CnEditFlowsModal.vue'
 import CnEditSetupModal from '../../dialogs/CnEditSetupModal.vue'
 import CnEditWalkthroughModal from '../../dialogs/CnEditWalkthroughModal.vue'
 import CnEditSupportModal from '../../dialogs/CnEditSupportModal.vue'
-import { getDefaultContent } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+import { getDefaultContent, getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 
 export default {
@@ -468,9 +468,17 @@ export default {
 			// Appearance (chrome) chosen in the modal — title visibility/label,
 			// icon and background — applied to the widget entry the renderer reads.
 			const chrome = payload.chrome && typeof payload.chrome === 'object' ? payload.chrome : {}
+			const entry = getWidgetTypeEntry(payload.type)
+			const isCard = Boolean(entry && entry.card === true)
 			const chromeFields = {
-				title: chrome.customTitle || content.title || payload.type,
-				showTitle: chrome.showTitle !== false,
+				// Never fall back to the raw type key — that shipped widgets titled
+				// literally "stat". A card's own `content.label` is the best name,
+				// then the registry's display name.
+				title: chrome.customTitle || content.title || content.label
+					|| entry?.displayName || payload.type,
+				// Cards headline themselves via `content.label`, so they default
+				// headerless unless the modal explicitly asked for a header.
+				showTitle: typeof chrome.showTitle === 'boolean' ? chrome.showTitle : !isCard,
 				...(chrome.customIcon ? { icon: chrome.customIcon } : {}),
 				...(chrome.backgroundColor ? { styleConfig: { backgroundColor: chrome.backgroundColor } } : {}),
 			}
