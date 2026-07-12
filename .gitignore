@@ -1,7 +1,6 @@
-# Both forms: the trailing slash only matches a directory, so a `node_modules`
-# SYMLINK (as a worktree pointing at a sibling checkout's deps) slips past it and
-# gets committed — it happened on beta in 8cf337bb.
-node_modules/
+# No trailing slash: `node_modules/` matches only directories, so a SYMLINK named
+# node_modules is a file to git and slips through — which is how an absolute-path
+# symlink got committed onto beta (8cf337bb).
 node_modules
 dist/
 .DS_Store

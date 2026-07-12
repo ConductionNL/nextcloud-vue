@@ -649,7 +649,19 @@ export default {
 			// App registers/schemas for the in-app pages editor (index/detail
 			// data source). Plain value (not a getter) so deep descendants —
 			// the page-tree rows under the edit button — resolve it reliably.
+			// Being a plain value is also why it goes stale: provide() runs
+			// once, so this can never reflect a schema created after boot.
+			// Kept as-is for backwards compatibility; `cnDataSourcesState`
+			// below is the live path, and descendants prefer it.
 			cnDataSources: this.dataSources,
+			// Live data sources for the pages editor. Provided BY REFERENCE —
+			// the holder's identity never changes, only its fields — so the
+			// one-shot provide() still sees every update. Descendants resolve
+			// `cnDataSourcesState.value ?? cnDataSources`.
+			cnDataSourcesState: this.dataSourcesState,
+			// Re-fetch the data sources via `dataSourcesLoader`. The pages-editor
+			// modals call this on open. No-op when no loader is configured.
+			cnRefreshDataSources: this.refreshDataSources,
 			// Provided as the raw refs (not getters): Vue 2 inject resolves plain
 			// provided properties at any depth, but getter-defined provide
 			// properties don't reliably reach deep descendants (e.g. the edit
@@ -928,6 +940,25 @@ export default {
 		 */
 		dataSources: {
 			type: Object,
+			default: null,
+		},
+		/**
+		 * Async loader for the same data sources, re-invoked every time a
+		 * pages-editor modal opens — so a register or schema created after
+		 * app boot shows up without a page reload. Prefer this over the
+		 * static `dataSources` snapshot, which is captured once and cannot
+		 * change (`provide()` runs a single time).
+		 *
+		 * Signature: `async () => ({ registers: [...] })`, returning the
+		 * same shape as `dataSources`. Passing it also moves the fetch off
+		 * the app-boot path onto the (much rarer) editor-open path. When
+		 * both props are given, `dataSources` seeds the initial list and
+		 * the loader's result replaces it on the first refresh.
+		 *
+		 * @type {Function|null}
+		 */
+		dataSourcesLoader: {
+			type: Function,
 			default: null,
 		},
 		/**
@@ -1361,6 +1392,29 @@ export default {
 				pageKind: 'custom',
 				route: { path: (typeof window !== 'undefined' ? window.location.pathname : '') },
 			}),
+			/**
+			 * Reactive holder for the pages editor's register/schema
+			 * data sources. Provided as `cnDataSourcesState`.
+			 *
+			 * The object reference is STABLE for the lifetime of
+			 * CnAppRoot — `refreshDataSources()` mutates its fields and
+			 * never reassigns it. That is load-bearing: provide() runs
+			 * once, so a value provided from a prop can never change
+			 * (which is exactly why the legacy `cnDataSources` snapshot
+			 * goes stale). Descendants read `.value`, mirroring how they
+			 * already unwrap `cnOpenBuildAvailable` / `cnEditingBody`.
+			 *
+			 * `value` holds the `{ registers: [...] }` payload (seeded
+			 * from the `dataSources` snapshot when one is passed), and
+			 * `hasLoader` lets descendants render the pickers instead of
+			 * free-text fields before the first fetch resolves.
+			 */
+			dataSourcesState: {
+				value: this.dataSources || null,
+				loading: false,
+				error: null,
+				hasLoader: typeof this.dataSourcesLoader === 'function',
+			},
 			/**
 			 * Reactive `{ [register]: { [schema]: number } }` map of
 			 * object-store totals — one entry per unique
@@ -2173,6 +2227,45 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Re-fetch the pages editor's register/schema data sources via the
+		 * `dataSourcesLoader` prop. Provided to descendants as
+		 * `cnRefreshDataSources`; the pages-editor modals call it on open.
+		 *
+		 * Mutates `dataSourcesState` in place (never reassigns it — see the
+		 * stable-identity contract in `data()`). A refresh already in flight
+		 * is reused rather than duplicated, so two modals opening at once
+		 * issue one fetch. The previous list stays in `value` while a refresh
+		 * runs and survives a failure, so the user can keep editing against
+		 * the last known-good data instead of an empty dropdown.
+		 *
+		 * @return {Promise<void>} Resolves when the refresh settles. Never rejects.
+		 */
+		async refreshDataSources() {
+			if (typeof this.dataSourcesLoader !== 'function') return
+			if (this._dataSourcesInFlight) return this._dataSourcesInFlight
+
+			this.dataSourcesState.loading = true
+			this.dataSourcesState.error = null
+
+			// Wrapped so a loader that throws synchronously is handled
+			// identically to one that returns a rejecting promise.
+			this._dataSourcesInFlight = (async () => {
+				try {
+					const next = await this.dataSourcesLoader()
+					this.dataSourcesState.value = next || { registers: [] }
+				} catch (e) {
+					this.dataSourcesState.error = e
+					// Keep the last good `value` — a failed refresh must not
+					// blank a list the user is mid-edit against.
+				} finally {
+					this.dataSourcesState.loading = false
+					this._dataSourcesInFlight = null
+				}
+			})()
+
+			return this._dataSourcesInFlight
+		},
 		/**
 		 * Whether an `adminSettings` entry's optional `permission` passes
 		 * for the current caller, mirroring `CnAppNav.passesPermission`'s

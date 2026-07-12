@@ -319,14 +319,22 @@
 			<!-- Data source -->
 			<div v-show="activeTab === 'data'" class="cn-page-config__section">
 				<template v-if="isDataPage">
+					<NcNoteCard v-if="dataSourcesError" type="error">
+						{{ t('nextcloud-vue', 'Could not load registers and schemas.') }}
+						<NcButton type="tertiary" @click="retryDataSources">
+							{{ t('nextcloud-vue', 'Retry') }}
+						</NcButton>
+					</NcNoteCard>
+
 					<div class="cn-field">
-						<NcSelect v-if="hasDataSources"
+						<NcSelect v-if="showPickers"
 							class="cn-page-config__field"
 							:value="selectedRegister"
 							:options="registerOptions"
 							:input-label="t('nextcloud-vue', 'Register')"
 							label="label"
 							:clearable="true"
+							:loading="dataSourcesLoading"
 							:placeholder="t('nextcloud-vue', 'Choose a register')"
 							@input="setRegister" />
 						<NcTextField v-else
@@ -340,13 +348,14 @@
 					</div>
 
 					<div class="cn-field">
-						<NcSelect v-if="hasDataSources"
+						<NcSelect v-if="showPickers"
 							class="cn-page-config__field"
 							:value="selectedSchema"
 							:options="schemaOptions"
 							:input-label="t('nextcloud-vue', 'Schema')"
 							label="label"
 							:clearable="true"
+							:loading="dataSourcesLoading"
 							:disabled="!configValue('register')"
 							:placeholder="t('nextcloud-vue', 'Choose a schema')"
 							@input="setSchema" />
@@ -553,7 +562,7 @@
 </template>
 
 <script>
-import { NcModal, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import { NcModal, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import CnIconPicker from '../components/CnIconPicker/CnIconPicker.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
@@ -652,13 +661,21 @@ const JSON_FIELDS = [
 export default {
 	name: 'CnPageConfigModal',
 
-	components: { NcModal, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon, CnIconPicker },
+	components: { NcModal, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, CnIconPicker },
 
 	mixins: [manifestModalDoneMixin],
 
 	inject: {
 		/** App registers/schemas for the data-source pickers; null → free text. */
 		cnDataSources: { default: null },
+		/**
+		 * Live data-source holder from CnAppRoot (`{ value, loading, error,
+		 * hasLoader }`). Preferred over the `cnDataSources` snapshot, which
+		 * cannot change after boot. Null when the host predates it.
+		 */
+		cnDataSourcesState: { default: null },
+		/** Re-fetch the data sources; called on open and by the error notice's Retry. */
+		cnRefreshDataSources: { default: null },
 	},
 
 	props: {
@@ -767,19 +784,45 @@ export default {
 		isDataPage() {
 			return this.page && (this.page.type === 'index' || this.page.type === 'detail')
 		},
+		/**
+		 * The data sources actually in force: the live holder when CnAppRoot
+		 * has a loader, else the static snapshot.
+		 */
+		effectiveDataSources() {
+			const live = this.cnDataSourcesState && this.cnDataSourcesState.value
+			return live || this.cnDataSources
+		},
+		/** Whether a refresh is currently in flight. */
+		dataSourcesLoading() {
+			return !!(this.cnDataSourcesState && this.cnDataSourcesState.loading)
+		},
+		/** The last refresh's failure, if any. */
+		dataSourcesError() {
+			return (this.cnDataSourcesState && this.cnDataSourcesState.error) || null
+		},
 		/** Whether app data sources were provided. */
 		hasDataSources() {
-			return !!(this.cnDataSources && Array.isArray(this.cnDataSources.registers) && this.cnDataSources.registers.length)
+			const ds = this.effectiveDataSources
+			return !!(ds && Array.isArray(ds.registers) && ds.registers.length)
+		},
+		/**
+		 * Whether to render dropdowns rather than free-text slug inputs. A
+		 * configured loader counts even before its first fetch resolves, so
+		 * the panel never flashes text fields and then swaps them for selects.
+		 */
+		showPickers() {
+			if (this.hasDataSources || this.dataSourcesLoading) return true
+			return !!(this.cnDataSourcesState && this.cnDataSourcesState.hasLoader)
 		},
 		/** Register options. */
 		registerOptions() {
 			if (!this.hasDataSources) return []
-			return this.cnDataSources.registers.map((r) => ({ value: r.value, label: r.label || r.value }))
+			return this.effectiveDataSources.registers.map((r) => ({ value: r.value, label: r.label || r.value }))
 		},
 		/** Schema options for the chosen register. */
 		schemaOptions() {
 			if (!this.hasDataSources) return []
-			const reg = this.cnDataSources.registers.find((r) => r.value === this.configValue('register'))
+			const reg = this.effectiveDataSources.registers.find((r) => r.value === this.configValue('register'))
 			const schemas = (reg && Array.isArray(reg.schemas)) ? reg.schemas : []
 			return schemas.map((s) => ({ value: s.value, label: s.label || s.value, columns: s.columns || [] }))
 		},
@@ -844,8 +887,21 @@ export default {
 		},
 	},
 
+	// The modal is `v-if`-mounted, so mount == open: refreshing here picks up
+	// any register/schema created since the app booted, with no page reload.
+	mounted() {
+		if (typeof this.cnRefreshDataSources === 'function') this.cnRefreshDataSources()
+	},
+
 	methods: {
 		t,
+		/**
+		 * Re-run the data-source fetch after a failure (the error notice's Retry).
+		 * @return {void}
+		 */
+		retryDataSources() {
+			if (typeof this.cnRefreshDataSources === 'function') this.cnRefreshDataSources()
+		},
 		/**
 		 * Build the Advanced-tab editing buffer from the page's current config —
 		 * each JSON field pretty-printed, or '' when unset.
