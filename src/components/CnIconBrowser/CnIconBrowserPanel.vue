@@ -36,48 +36,38 @@
 			</button>
 		</div>
 
-		<!-- Mode tabs (only when a Custom source exists) -->
+		<!-- Source tabs: Icons | <named icon sets…> | Custom. Named url-icon sets
+		     (Gemeente / Den Haag / RVO) get a top-level tab each rather than hiding
+		     a level down under "Custom", which is where users failed to find them. -->
 		<div
-			v-if="hasCustomTab"
+			v-if="tabs.length > 1"
 			class="cn-icon-browser-panel__tabs"
 			role="tablist"
 			:aria-label="t('nextcloud-vue', 'Icon source')">
 			<button
-				:id="tabIds.tabIcons"
-				ref="tabIcons"
+				v-for="(tab, index) in tabs"
+				:id="tabId(tab.key)"
+				:key="tab.key"
+				ref="tabButtons"
 				type="button"
 				role="tab"
-				:aria-selected="mode === 'icons' ? 'true' : 'false'"
-				:aria-controls="tabIds.panelIcons"
-				:tabindex="mode === 'icons' ? 0 : -1"
+				:aria-selected="mode === tab.key ? 'true' : 'false'"
+				:aria-controls="panelId(tab.key)"
+				:tabindex="mode === tab.key ? 0 : -1"
 				class="cn-icon-browser-panel__tab"
-				:class="{ 'cn-icon-browser-panel__tab--active': mode === 'icons' }"
-				@click="mode = 'icons'"
-				@keydown="onTabKeydown">
-				{{ t('nextcloud-vue', 'Icons') }}
-			</button>
-			<button
-				:id="tabIds.tabCustom"
-				ref="tabCustom"
-				type="button"
-				role="tab"
-				:aria-selected="mode === 'custom' ? 'true' : 'false'"
-				:aria-controls="tabIds.panelCustom"
-				:tabindex="mode === 'custom' ? 0 : -1"
-				class="cn-icon-browser-panel__tab"
-				:class="{ 'cn-icon-browser-panel__tab--active': mode === 'custom' }"
-				@click="mode = 'custom'"
-				@keydown="onTabKeydown">
-				{{ t('nextcloud-vue', 'Custom') }}
+				:class="{ 'cn-icon-browser-panel__tab--active': mode === tab.key }"
+				@click="mode = tab.key"
+				@keydown="onTabKeydown($event, index)">
+				{{ tab.label }}
 			</button>
 		</div>
 
 		<!-- Icons grid -->
 		<div
 			v-show="mode === 'icons'"
-			:id="hasCustomTab ? tabIds.panelIcons : undefined"
-			:role="hasCustomTab ? 'tabpanel' : undefined"
-			:aria-labelledby="hasCustomTab ? tabIds.tabIcons : undefined"
+			:id="panelId('icons')"
+			:role="tabs.length > 1 ? 'tabpanel' : undefined"
+			:aria-labelledby="tabs.length > 1 ? tabId('icons') : undefined"
 			class="cn-icon-browser-panel__icons">
 			<input
 				v-model="query"
@@ -122,12 +112,75 @@
 			</p>
 		</div>
 
-		<!-- Custom: free URL input + curated URL icons + upload -->
+		<!-- One tabpanel per named icon set (Gemeente / Den Haag / RVO). The body is
+		     v-if'd on the active tab so a large set's cells (RVO renders 150) stay
+		     out of the DOM while another tab is showing. -->
 		<div
+			v-for="group in promotedGroups"
+			v-show="mode === groupKey(group)"
+			:id="panelId(groupKey(group))"
+			:key="group.key"
+			role="tabpanel"
+			:aria-labelledby="tabId(groupKey(group))"
+			class="cn-icon-browser-panel__icons">
+			<template v-if="mode === groupKey(group)">
+				<!-- A lazily-loaded set (e.g. RVO) resolves on first activation. -->
+				<p v-if="groupLoading[group.key]" class="cn-icon-browser-panel__hint">
+					{{ t('nextcloud-vue', 'Loading icon set…') }}
+				</p>
+				<p
+					v-else-if="groupError[group.key]"
+					class="cn-icon-browser-panel__error"
+					role="alert">
+					{{ groupError[group.key] }}
+				</p>
+
+				<!-- Search over the set's icons (large packs are searchable). -->
+				<input
+					v-if="group.icons.length > maxResults"
+					v-model="customQuery"
+					type="search"
+					class="cn-icon-browser-panel__search"
+					:placeholder="t('nextcloud-vue', 'Search icons…')"
+					:aria-label="t('nextcloud-vue', 'Search icons')">
+
+				<div v-if="customVisibleIcons.length > 0" class="cn-icon-browser-panel__grid">
+					<!-- Keyed by `id`, not `url`: distinct icons can share an identical
+					     SVG payload (rvo-bestelbus/rvo-bus, og-paspoort/…internationaal),
+					     and a duplicate key makes Vue mis-patch the grid. -->
+					<button
+						v-for="icon in customVisibleIcons"
+						:key="icon.id || icon.url"
+						type="button"
+						class="cn-icon-browser-panel__cell"
+						:class="{ 'cn-icon-browser-panel__cell--active': icon.url === value }"
+						:title="icon.label"
+						:aria-label="icon.label"
+						@click="selectUrl(icon.url)">
+						<img
+							class="cn-icon-browser-panel__cell-img"
+							:src="icon.url"
+							:alt="icon.label"
+							loading="lazy">
+						<span v-if="showLabels" class="cn-icon-browser-panel__cell-label">{{ icon.label }}</span>
+					</button>
+				</div>
+
+				<p v-if="customTruncated" class="cn-icon-browser-panel__hint">
+					{{ t('nextcloud-vue', 'Showing {shown} of {total} — refine your search to narrow results.', { shown: customVisibleIcons.length, total: customMatches.length }) }}
+				</p>
+			</template>
+		</div>
+
+		<!-- Custom: bring-your-own icon — free URL input, unnamed curated url-icons
+		     (the legacy flat `urlIcons` prop), and upload. Named sets are NOT here;
+		     they have their own tabs above. -->
+		<div
+			v-if="hasCustomTab"
 			v-show="mode === 'custom'"
-			:id="hasCustomTab ? tabIds.panelCustom : undefined"
-			:role="hasCustomTab ? 'tabpanel' : undefined"
-			:aria-labelledby="hasCustomTab ? tabIds.tabCustom : undefined"
+			:id="panelId('custom')"
+			role="tabpanel"
+			:aria-labelledby="tabId('custom')"
 			class="cn-icon-browser-panel__custom">
 			<input
 				v-if="allowUrl"
@@ -138,51 +191,9 @@
 				:aria-label="t('nextcloud-vue', 'Image URL')"
 				@input="onUrlInput">
 
-			<!-- Group sub-tabs (one per named URL-icon group, e.g. RVO / Gemeente). -->
-			<div
-				v-if="hasGroupTabs"
-				class="cn-icon-browser-panel__groups"
-				role="tablist"
-				:aria-label="t('nextcloud-vue', 'Icon set')">
+			<div v-if="unnamedIcons.length > 0" class="cn-icon-browser-panel__grid">
 				<button
-					v-for="(group, gi) in resolvedGroups"
-					:key="group.key"
-					type="button"
-					role="tab"
-					:aria-selected="gi === activeGroupIndex ? 'true' : 'false'"
-					class="cn-icon-browser-panel__group-tab"
-					:class="{ 'cn-icon-browser-panel__group-tab--active': gi === activeGroupIndex }"
-					@click="activeGroupIndex = gi">
-					{{ group.label }}
-				</button>
-			</div>
-
-			<!-- A lazily-loaded set (e.g. RVO) resolves on first activation. -->
-			<p v-if="activeGroupLoading" class="cn-icon-browser-panel__hint">
-				{{ t('nextcloud-vue', 'Loading icon set…') }}
-			</p>
-			<p
-				v-else-if="activeGroupError"
-				class="cn-icon-browser-panel__error"
-				role="alert">
-				{{ activeGroupError }}
-			</p>
-
-			<!-- Search over the active group's icons (large packs are searchable). -->
-			<input
-				v-if="activeGroup && activeGroup.icons.length > maxResults"
-				v-model="customQuery"
-				type="search"
-				class="cn-icon-browser-panel__search"
-				:placeholder="t('nextcloud-vue', 'Search icons…')"
-				:aria-label="t('nextcloud-vue', 'Search icons')">
-
-			<div v-if="customVisibleIcons.length > 0" class="cn-icon-browser-panel__grid">
-				<!-- Keyed by `id`, not `url`: distinct icons can share an identical
-				     SVG payload (rvo-bestelbus/rvo-bus, og-paspoort/…internationaal),
-				     and a duplicate key makes Vue mis-patch the grid. -->
-				<button
-					v-for="icon in customVisibleIcons"
+					v-for="icon in unnamedIcons"
 					:key="icon.id || icon.url"
 					type="button"
 					class="cn-icon-browser-panel__cell"
@@ -198,10 +209,6 @@
 					<span v-if="showLabels" class="cn-icon-browser-panel__cell-label">{{ icon.label }}</span>
 				</button>
 			</div>
-
-			<p v-if="customTruncated" class="cn-icon-browser-panel__hint">
-				{{ t('nextcloud-vue', 'Showing {shown} of {total} — refine your search to narrow results.', { shown: customVisibleIcons.length, total: customMatches.length }) }}
-			</p>
 
 			<label v-if="canUpload" class="cn-icon-browser-panel__upload-label">
 				<input
@@ -369,9 +376,8 @@ export default {
 			// Roving-tabindex cursor into visibleIcons: the one grid cell that's
 			// tab-reachable; arrow keys move it.
 			activeIndex: 0,
-			// Custom-tab search + active group (for large grouped URL-icon packs).
+			// Search within the active icon set's tab (large packs are searchable).
 			customQuery: '',
-			activeGroupIndex: 0,
 			// Lazy URL-icon groups, keyed by group key: resolved icons, in-flight
 			// flag, and last error. A key absent from `groupIcons` has not loaded
 			// (or failed), so activating its tab retries.
@@ -391,13 +397,54 @@ export default {
 			return typeof this.uploadFn === 'function'
 		},
 		/**
-		 * Whether the Custom tab is offered (URL input, curated URL icons, or
-		 * upload available).
+		 * Named icon sets, each promoted to its own top-level tab.
+		 *
+		 * A group only qualifies if it has a label to put on a tab. The legacy flat
+		 * `urlIcons` prop normalises to an unlabelled group, which stays inside the
+		 * Custom tab (see `unnamedIcons`) — so existing consumers are unaffected.
+		 *
+		 * @return {Array<object>} the groups with a label.
+		 */
+		promotedGroups() {
+			return this.resolvedGroups.filter((group) => !!group.label)
+		},
+		/**
+		 * Curated url-icons that have no set name, shown inside the Custom tab
+		 * alongside the URL input and upload control.
+		 *
+		 * @return {Array<object>} the unnamed icons.
+		 */
+		unnamedIcons() {
+			return this.resolvedGroups
+				.filter((group) => !group.label)
+				.flatMap((group) => group.icons)
+		},
+		/**
+		 * Whether the Custom tab is offered — a bring-your-own source exists.
+		 *
+		 * Note a NAMED set no longer implies a Custom tab: sets have their own tabs
+		 * now, so a consumer that passes only `urlIconGroups` gets no Custom tab.
 		 *
 		 * @return {boolean} true when a custom icon source is available.
 		 */
 		hasCustomTab() {
-			return this.allowUrl || this.urlIcons.length > 0 || this.urlIconGroups.length > 0 || this.canUpload
+			return this.allowUrl || this.canUpload || this.unnamedIcons.length > 0
+		},
+		/**
+		 * The tablist: the catalogue grid, then a tab per named icon set, then
+		 * Custom. Rendered only when there's more than one.
+		 *
+		 * @return {Array<{key: string, label: string}>} the tabs, in display order.
+		 */
+		tabs() {
+			const tabs = [{ key: 'icons', label: t('nextcloud-vue', 'Icons') }]
+			for (const group of this.promotedGroups) {
+				tabs.push({ key: this.groupKey(group), label: group.label })
+			}
+			if (this.hasCustomTab) {
+				tabs.push({ key: 'custom', label: t('nextcloud-vue', 'Custom') })
+			}
+			return tabs
 		},
 		/**
 		 * Curated URL icons normalised to groups. `urlIconGroups` wins; otherwise
@@ -426,43 +473,16 @@ export default {
 				}))
 		},
 		/**
-		 * Whether the active group's icons are being fetched.
+		 * The icon set whose tab is currently selected, or null when the active tab
+		 * is not a set (Icons / Custom).
 		 *
-		 * @return {boolean} true while a lazy group is in flight.
-		 */
-		activeGroupLoading() {
-			return !!(this.activeGroup && this.groupLoading[this.activeGroup.key])
-		},
-		/**
-		 * The active group's load failure, if any.
-		 *
-		 * @return {string} the error message, or '' when there is none.
-		 */
-		activeGroupError() {
-			return (this.activeGroup && this.groupError[this.activeGroup.key]) || ''
-		},
-		/**
-		 * Whether to show the group sub-tab row (only when there's more than one).
-		 *
-		 * @return {boolean} true when multiple groups exist.
-		 */
-		hasGroupTabs() {
-			return this.resolvedGroups.length > 1
-		},
-		/**
-		 * The currently-selected URL-icon group (clamped to a valid index).
-		 *
-		 * @return {{ key: string, label: string, icons: Array<object> }|null} the active group.
+		 * @return {{ key: string, label: string, icons: Array<object> }|null} the active set.
 		 */
 		activeGroup() {
-			const groups = this.resolvedGroups
-			if (groups.length === 0) {
-				return null
-			}
-			return groups[Math.min(this.activeGroupIndex, groups.length - 1)]
+			return this.promotedGroups.find((group) => this.groupKey(group) === this.mode) || null
 		},
 		/**
-		 * Active group's icons filtered by the Custom-tab search (label match).
+		 * Active set's icons filtered by its search box (label match).
 		 *
 		 * @return {Array<object>} the matching URL icons.
 		 */
@@ -492,18 +512,12 @@ export default {
 			return this.customMatches.length > this.customVisibleIcons.length
 		},
 		/**
-		 * Stable ids wiring the mode tabs to their panels (`aria-controls` /
-		 * `aria-labelledby`), so the switcher exposes proper tablist semantics.
+		 * Index of the selected tab, used to seed roving keyboard navigation.
 		 *
-		 * @return {{ tabIcons: string, tabCustom: string, panelIcons: string, panelCustom: string }} the tab/panel id set.
+		 * @return {number} the active tab's index (0 when the mode has no tab).
 		 */
-		tabIds() {
-			return {
-				tabIcons: 'cn-icon-browser-tab-icons-' + this._uid,
-				tabCustom: 'cn-icon-browser-tab-custom-' + this._uid,
-				panelIcons: 'cn-icon-browser-panel-icons-' + this._uid,
-				panelCustom: 'cn-icon-browser-panel-custom-' + this._uid,
-			}
+		activeTabIndex() {
+			return Math.max(0, this.tabs.findIndex((tab) => tab.key === this.mode))
 		},
 		/**
 		 * Whether the current value is a URL (render as `<img>`).
@@ -629,16 +643,11 @@ export default {
 				this.activeIndex = selected >= 0 ? selected : 0
 			},
 		},
-		// A lazy set is fetched only once its tab is actually shown — on switching
-		// group, and on entering the Custom tab (which reveals the current group).
-		activeGroupIndex() {
+		// A lazy set is fetched only once its own tab is selected — never on mount,
+		// which is what keeps RVO's 1.9MB out of the initial load.
+		mode() {
 			this.customQuery = ''
 			this.ensureActiveGroupLoaded()
-		},
-		mode(value) {
-			if (value === 'custom') {
-				this.ensureActiveGroupLoaded()
-			}
 		},
 	},
 
@@ -691,25 +700,63 @@ export default {
 		},
 
 		/**
-		 * Roving-tabindex keyboard navigation for the mode tablist: Left/Up/Home
-		 * focus the Icons tab, Right/Down/End the Custom tab. Activation follows
-		 * focus (the two tabs' panels are always mounted, so this is cheap).
+		 * The tab key for an icon set. Namespaced so a set keyed 'custom' or
+		 * 'icons' can't collide with the two built-in tabs.
+		 *
+		 * @param {object} group the icon set.
+		 * @return {string} the tab key.
+		 */
+		groupKey(group) {
+			return 'group:' + group.key
+		},
+
+		/**
+		 * DOM id of a tab button, for the panel's `aria-labelledby`.
+		 *
+		 * @param {string} key the tab key.
+		 * @return {string} the element id.
+		 */
+		tabId(key) {
+			return 'cn-icon-browser-tab-' + key.replace(':', '-') + '-' + this._uid
+		},
+
+		/**
+		 * DOM id of a tabpanel, for the tab's `aria-controls`.
+		 *
+		 * @param {string} key the tab key.
+		 * @return {string} the element id.
+		 */
+		panelId(key) {
+			return 'cn-icon-browser-panel-' + key.replace(':', '-') + '-' + this._uid
+		},
+
+		/**
+		 * Roving-tabindex keyboard navigation across the tablist: arrows move one
+		 * tab (wrapping), Home/End jump to the ends. Activation follows focus, per
+		 * the ARIA tabs pattern.
 		 *
 		 * @param {KeyboardEvent} event the keydown event on a tab button.
+		 * @param {number} index the tab's index in `tabs`.
 		 * @return {void}
 		 */
-		onTabKeydown(event) {
-			const navKeys = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End']
-			if (!navKeys.includes(event.key)) {
-				return
+		onTabKeydown(event, index) {
+			const last = this.tabs.length - 1
+			let next = index
+			switch (event.key) {
+			case 'ArrowRight':
+			case 'ArrowDown': next = index === last ? 0 : index + 1; break
+			case 'ArrowLeft':
+			case 'ArrowUp': next = index === 0 ? last : index - 1; break
+			case 'Home': next = 0; break
+			case 'End': next = last; break
+			default: return
 			}
 			event.preventDefault()
-			const toCustom = ['ArrowRight', 'ArrowDown', 'End'].includes(event.key)
-			this.mode = toCustom ? 'custom' : 'icons'
+			this.mode = this.tabs[next].key
 			this.$nextTick(() => {
-				const target = toCustom ? this.$refs.tabCustom : this.$refs.tabIcons
-				if (target) {
-					target.focus()
+				const buttons = this.$refs.tabButtons
+				if (buttons && buttons[next]) {
+					buttons[next].focus()
 				}
 			})
 		},
@@ -933,6 +980,9 @@ export default {
 
 .cn-icon-browser-panel__tabs {
 	display: flex;
+	/* Icons + one tab per icon set + Custom: wrap rather than overflow a narrow
+	   popover. */
+	flex-wrap: wrap;
 	gap: 4px;
 	border-bottom: 1px solid var(--color-border);
 }
@@ -957,30 +1007,6 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
-}
-
-/* Sub-tab row for named URL-icon groups (RVO / Gemeente / Den Haag). */
-.cn-icon-browser-panel__groups {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 4px;
-}
-
-.cn-icon-browser-panel__group-tab {
-	padding: 3px 10px;
-	background: var(--color-background-hover);
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius-pill, 16px);
-	font: inherit;
-	font-size: 13px;
-	color: var(--color-text-maxcontrast);
-	cursor: pointer;
-}
-
-.cn-icon-browser-panel__group-tab--active {
-	background: var(--color-primary-element);
-	border-color: var(--color-primary-element);
-	color: var(--color-primary-element-text);
 }
 
 .cn-icon-browser-panel__search,
