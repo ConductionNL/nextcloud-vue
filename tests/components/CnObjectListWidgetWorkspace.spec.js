@@ -72,8 +72,7 @@ describe('CnObjectListWidget — workspace context', () => {
 			],
 		})
 		const cols = w.vm.resolvedColumns
-		// Columns default to sortable so a header click toggles the client-side sort.
-		expect(cols[0]).toEqual({ key: 'description', label: 'description', sortable: true })
+		expect(cols[0]).toEqual({ key: 'description', label: 'description' })
 		expect(cols[1]).toMatchObject({ key: 'lineTotal', label: 'Total', format: 'currency', align: 'right' })
 		expect(cols[2]).toMatchObject({ key: 'status', widget: 'badge', widgetProps: { colorMap: { open: 'info' } } })
 	})

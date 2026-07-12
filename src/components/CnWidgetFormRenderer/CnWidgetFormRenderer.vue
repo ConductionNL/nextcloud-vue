@@ -81,6 +81,15 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+		/**
+		 * Multi-step wizard groups (manifest-form-logic). Forwarded to
+		 * CnFormPage. `visibleWhen` / `validation` travel inside `fields`
+		 * and need no separate wiring.
+		 */
+		steps: {
+			type: Array,
+			default: () => [],
+		},
 		/** Submit handler name. Forwarded to CnFormPage. */
 		submitHandler: {
 			type: String,

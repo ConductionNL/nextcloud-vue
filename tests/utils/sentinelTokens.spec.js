@@ -38,6 +38,7 @@ describe('contextOf / isKnownToken', () => {
 		['@self.administrationId', 'declarative'],
 		['@ref:foo/bar', 'declarative'],
 		['@aggregate:sum(amount)', 'declarative'],
+		['@total', 'visibleWhen'],
 	])('classifies %s as %s', (token, ctx) => {
 		expect(contextOf(token)).toBe(ctx)
 		expect(isKnownToken(token)).toBe(true)

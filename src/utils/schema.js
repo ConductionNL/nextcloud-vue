@@ -295,41 +295,8 @@ function truncateString(str, maxLength) {
  * @return {string|number|null} The reference identifier, or null.
  */
 function normalizeRef(ref) {
+	if (typeof ref === 'string' && ref !== '') return ref
 	if (typeof ref === 'number' && !Number.isNaN(ref)) return ref
-	if (typeof ref === 'string' && ref !== '') {
-		// OR authors a `$ref` as a schema slug ('product') but may serve it as a
-		// numeric id ('85'), a JSON-pointer/path ('#/components/schemas/product'),
-		// a register-qualified path ('pipelinq/product'), or with a '.json'
-		// suffix. Reduce to the final path segment (minus any '.json') so the
-		// consuming surface fetches the right schema — the objects API resolves
-		// either a slug or a numeric id. Mirrors CnObjectDataWidget.relationProp,
-		// which is why the detail-page data widget resolved these while the
-		// form dialog rendered an empty dropdown for the same property.
-		const slug = ref.split('/').pop().replace(/\.json$/, '')
-		return slug !== '' ? slug : null
-	}
-	return null
-}
-
-/**
- * The target schema slug of an OpenRegister object-reference property, or null
- * when the property is not a reference. Handles a single reference (`prop.$ref`)
- * and an array of references (`prop.items.$ref`), normalising the ref value the
- * same way `resolveWidget` / `fieldsFromSchema` do (path / `.json` / numeric id
- * forms all reduce to the final slug). Used by list surfaces to detect which
- * columns hold a relation uuid that must be resolved to a display name.
- *
- * @param {object} prop A schema property definition.
- * @return {string|number|null} The referenced schema slug/id, or null.
- */
-export function referenceSchemaSlug(prop) {
-	if (!prop || typeof prop !== 'object') return null
-	const direct = normalizeRef(prop.$ref)
-	if (direct !== null) return direct
-	if (prop.type === 'array' && prop.items) {
-		const item = normalizeRef(prop.items.$ref)
-		if (item !== null) return item
-	}
 	return null
 }
 
@@ -472,11 +439,13 @@ export function fieldsFromSchema(schema, options = {}) {
 			type: prop.type || 'string',
 			format: prop.format || null,
 			widget: resolveWidget(prop),
-			// Icon picker (`widget: 'icon'`) config forwarded to CnIconPicker via
+			// Icon picker (`widget: 'icon'`) config forwarded to CnIconBrowser via
 			// CnFormDialog: which sources to offer (`iconSources`), consumer icon
 			// catalogues (JSON entries — FontAwesome/OpenGemeenten data is usually
-			// supplied via a fieldOverride instead), and whether search / custom-SVG
-			// are enabled. Omitted keys fall back to CnIconPicker's own defaults.
+			// supplied via a fieldOverride instead), and whether custom-SVG is
+			// enabled. `searchable` is obsolete — the browser always searches.
+			// Omitted keys fall back to CnIconBrowser's own defaults, which include
+			// the bundled NL-government sets.
 			iconSources: prop.iconSources || undefined,
 			catalogues: prop.catalogues || undefined,
 			allowCustomSvg: prop.allowCustomSvg || undefined,
@@ -545,23 +514,6 @@ export function fieldsFromSchema(schema, options = {}) {
 			// fields. Consumers (CnObjectDataWidget) evaluate this against the
 			// object's current data. Shape: `{ field, equals }` or `{ field, in: [] }`.
 			readOnlyWhen: prop['x-openregister-readonly-when'] || prop.readOnlyWhen || null,
-			// Inline create opt-in for single object-reference fields
-			// (`x-allow-create: true` or `allowCreate: true` on the property):
-			// the consuming surface (CnFormDialog) renders a select-OR-create
-			// picker (CnResourceSelect) so a user can pick an existing object or
-			// create a new one from the typed term, instead of a plain select of
-			// existing objects. Ignored for non-reference fields.
-			allowCreate: prop['x-allow-create'] === true || prop.allowCreate === true,
-			// Template pre-fill map for a single object-reference field
-			// (`x-fill-from`): when the user selects (or inline-creates) the
-			// referenced object, the consuming surface (CnFormDialog) copies the
-			// mapped fields off it into the form — `{ <thisFormKey>: <sourceKey> }`,
-			// e.g. a line item's `product` ref filling `unitPrice`/`unit` from the
-			// chosen Product. Existing values are overwritten so re-selecting a
-			// template refreshes them; the user can still edit afterwards.
-			fillFrom: (prop['x-fill-from'] && typeof prop['x-fill-from'] === 'object')
-				? prop['x-fill-from']
-				: (prop.fillFrom && typeof prop.fillFrom === 'object' ? prop.fillFrom : null),
 			validation: {
 				minLength: prop.minLength,
 				maxLength: prop.maxLength,

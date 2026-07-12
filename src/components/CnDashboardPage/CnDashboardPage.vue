@@ -192,8 +192,11 @@
 		<!-- Loading state -->
 		<NcLoadingIcon v-if="loading" />
 
-		<!-- Empty state -->
-		<div v-else-if="!hasWidgets" class="cn-dashboard-page__empty">
+		<!-- Empty state. Suppressed when the page renders declarative body
+		     sections (before-grid / after-grid / end): a page can legitimately
+		     have no grid widgets yet still show bodyWidget content, so
+		     "No widgets configured" would be a false negative. -->
+		<div v-else-if="!hasWidgets && !hasBodyWidgets" class="cn-dashboard-page__empty">
 			<!-- @slot empty Replaces the default empty state shown when the dashboard has no widgets. Defaults to an `NcEmptyContent` block. -->
 			<slot name="empty">
 				<NcEmptyContent :description="emptyLabel">
@@ -221,9 +224,16 @@
 		<!-- Dashboard grid (classic widgets+layout mode).
 		     Uses v-else so the `v-else-if="!hasWidgets"` empty state and the
 		     `v-else-if="widgetRefItems.length > 0"` content-items section
-		     are mutually exclusive with the grid. -->
+		     are mutually exclusive with the grid.
+		     :key remounts the grid when in-app edit mode flips (ADR-041): the
+		     manifest is raw (non-reactive) until useManifestEditor.enter()
+		     observes it in place, so a grid mounted pre-edit never subscribed
+		     to the layout/widgets arrays — in-place pushes (Add widget) keep
+		     the same array identity and can't re-render it. One remount per
+		     edit flip re-subscribes against the now-reactive graph. -->
 		<CnDashboardGrid
 			v-else
+			:key="`cn-dashboard-grid-${gridEditable ? 'editing' : 'live'}`"
 			:layout="layout"
 			:editable="gridEditable"
 			:columns="columns"
@@ -1418,6 +1428,14 @@ export default {
 		 * `layout`) or declarative `content[]` widget-ref items to render.
 		 */
 		hasWidgets() {
+			// Depend on the (always-reactive) edit flag so this computed
+			// re-evaluates when in-app edit mode flips. Manifest arrays are raw
+			// until useManifestEditor.enter() observes them in place — a cache
+			// built pre-edit has no reactive deps and would stay frozen forever,
+			// keeping the empty state on screen after the first Add widget.
+			// Re-evaluating post-enter re-subscribes against the reactive graph.
+			// eslint-disable-next-line no-unused-expressions
+			this.gridEditable
 			return this.layout.length > 0 || this.widgetRefItems.length > 0
 		},
 
@@ -2595,6 +2613,12 @@ export default {
 	gap: 8px;
 	flex-wrap: wrap;
 	flex-shrink: 0;
+	/* Keeps the actions hard right even when a wide action set (pipelinq's six
+	   buttons) wraps onto its own line. The header's `justify-content:
+	   space-between` only distributes items WITHIN a line, so once the actions
+	   wrap they become the sole item on line 2 and would otherwise sit flush
+	   left, under the title. No-op while title and actions share a line. */
+	margin-left: auto;
 }
 
 /* Date-range header band. Kept compact so it doesn't open a tall gap

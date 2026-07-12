@@ -6,9 +6,11 @@
   then persists on Done via the shared manifest editor. It aims to expose the
   WHOLE CnIndexPage config surface across five tabs:
 
-    • Display  — title/description/icon, type, route, show-title, view toggle +
-                 labels, default view, empty/loading text, inline search +
-                 placeholder, table filter/column menus, documentation link.
+    • Display  — title/description/icon, type, route, show-title, view toggle,
+                 available views (allow/disallow across table/cards/list/map),
+                 default view, per-view toggle labels, map config (lat/lng/geo/
+                 popup fields), empty/loading text, inline search + placeholder,
+                 table filter/column menus, documentation link.
     • Data     — register, schema, row-key (unique id field).
     • Columns  — which columns to show, per-column transforms (label +
                  formatter/widget/number-format), and the default sort.
@@ -62,11 +64,11 @@
 				</div>
 				<div class="cn-field">
 					<label class="cn-field__label">{{ t('nextcloud-vue', 'Icon') }}</label>
-					<CnIconPicker :value="configValue('icon') || null"
-						:clearable="true"
+					<CnIconBrowser :value="configValue('icon') || null"
+						clearable
 						@input="(v) => setConfig('icon', v)" />
 					<p class="cn-field__hint">
-						{{ t('nextcloud-vue', 'Icon shown next to the title. Pick None to show no icon.') }}
+						{{ t('nextcloud-vue', 'Icon shown next to the title. Use the ✕ next to the preview to remove it.') }}
 					</p>
 				</div>
 				<div class="cn-field">
@@ -109,8 +111,22 @@
 				</div>
 				<div class="cn-field">
 					<NcSelect class="cn-page-config__field"
-						:value="selectedViewMode"
+						:value="selectedAvailableViews"
 						:options="viewModeOptions"
+						:input-label="t('nextcloud-vue', 'Available views')"
+						label="label"
+						:multiple="true"
+						:close-on-select="false"
+						:placeholder="t('nextcloud-vue', 'Cards, Table (default)')"
+						@input="setAvailableViews" />
+					<p class="cn-field__hint">
+						{{ t('nextcloud-vue', 'Which layouts visitors may switch between. Leave empty for the default Cards + Table. Include Map to add the map segment (configure it below).') }}
+					</p>
+				</div>
+				<div class="cn-field">
+					<NcSelect class="cn-page-config__field"
+						:value="selectedViewMode"
+						:options="defaultViewOptions"
 						:input-label="t('nextcloud-vue', 'Default view')"
 						label="label"
 						:clearable="false"
@@ -141,6 +157,87 @@
 						</p>
 					</div>
 				</div>
+				<div class="cn-page-config__row">
+					<div class="cn-field">
+						<NcTextField :value="configValue('listLabel')"
+							:label="t('nextcloud-vue', 'List toggle label')"
+							:label-visible="true"
+							:placeholder="t('nextcloud-vue', 'List')"
+							@update:value="(v) => setConfig('listLabel', v)" />
+						<p class="cn-field__hint">
+							{{ t('nextcloud-vue', 'Custom text for the List button (when List is available).') }}
+						</p>
+					</div>
+					<div class="cn-field">
+						<NcTextField :value="configValue('mapLabel')"
+							:label="t('nextcloud-vue', 'Map toggle label')"
+							:label-visible="true"
+							:placeholder="t('nextcloud-vue', 'Map')"
+							@update:value="(v) => setConfig('mapLabel', v)" />
+						<p class="cn-field__hint">
+							{{ t('nextcloud-vue', 'Custom text for the Map button (when Map is available).') }}
+						</p>
+					</div>
+				</div>
+
+				<!-- Map view configuration (shown once Map is an available view). The
+				     map reads each row's coordinates from either lat/lng property paths
+				     or a single GeoJSON Point property, and labels pins with the popup
+				     field. Written to `config.mapConfig`. -->
+				<template v-if="mapEnabled">
+					<div class="cn-field cn-field--section">
+						<h3 class="cn-page-config__subtitle">
+							{{ t('nextcloud-vue', 'Map view') }}
+						</h3>
+						<p class="cn-field__hint">
+							{{ t('nextcloud-vue', 'Where the map reads each record’s location. Use latitude + longitude fields, or a single GeoJSON Point field.') }}
+						</p>
+					</div>
+					<div class="cn-page-config__row">
+						<div class="cn-field">
+							<NcTextField :value="mapConfigValue('latField')"
+								:label="t('nextcloud-vue', 'Latitude field')"
+								:label-visible="true"
+								:placeholder="'lat'"
+								@update:value="(v) => setMapConfig('latField', v)" />
+							<p class="cn-field__hint">
+								{{ t('nextcloud-vue', 'Property holding the latitude (e.g. lat).') }}
+							</p>
+						</div>
+						<div class="cn-field">
+							<NcTextField :value="mapConfigValue('lngField')"
+								:label="t('nextcloud-vue', 'Longitude field')"
+								:label-visible="true"
+								:placeholder="'lng'"
+								@update:value="(v) => setMapConfig('lngField', v)" />
+							<p class="cn-field__hint">
+								{{ t('nextcloud-vue', 'Property holding the longitude (e.g. lng).') }}
+							</p>
+						</div>
+					</div>
+					<div class="cn-page-config__row">
+						<div class="cn-field">
+							<NcTextField :value="mapConfigValue('geoField')"
+								:label="t('nextcloud-vue', 'GeoJSON Point field')"
+								:label-visible="true"
+								:placeholder="'geometry'"
+								@update:value="(v) => setMapConfig('geoField', v)" />
+							<p class="cn-field__hint">
+								{{ t('nextcloud-vue', 'Alternative: one property holding a GeoJSON Point. Takes precedence over lat/lng.') }}
+							</p>
+						</div>
+						<div class="cn-field">
+							<NcTextField :value="mapConfigValue('popupField')"
+								:label="t('nextcloud-vue', 'Popup label field')"
+								:label-visible="true"
+								:placeholder="'title'"
+								@update:value="(v) => setMapConfig('popupField', v)" />
+							<p class="cn-field__hint">
+								{{ t('nextcloud-vue', 'Property used to label each pin’s popup.') }}
+							</p>
+						</div>
+					</div>
+				</template>
 				<div class="cn-field">
 					<NcCheckboxRadioSwitch :checked="boolVal('inlineSearch')" type="switch" @update:checked="(c) => setBool('inlineSearch', c)">
 						{{ t('nextcloud-vue', 'Inline search box') }}
@@ -222,14 +319,22 @@
 			<!-- Data source -->
 			<div v-show="activeTab === 'data'" class="cn-page-config__section">
 				<template v-if="isDataPage">
+					<NcNoteCard v-if="dataSourcesError" type="error">
+						{{ t('nextcloud-vue', 'Could not load registers and schemas.') }}
+						<NcButton type="tertiary" @click="retryDataSources">
+							{{ t('nextcloud-vue', 'Retry') }}
+						</NcButton>
+					</NcNoteCard>
+
 					<div class="cn-field">
-						<NcSelect v-if="hasDataSources"
+						<NcSelect v-if="showPickers"
 							class="cn-page-config__field"
 							:value="selectedRegister"
 							:options="registerOptions"
 							:input-label="t('nextcloud-vue', 'Register')"
 							label="label"
 							:clearable="true"
+							:loading="dataSourcesLoading"
 							:placeholder="t('nextcloud-vue', 'Choose a register')"
 							@input="setRegister" />
 						<NcTextField v-else
@@ -243,13 +348,14 @@
 					</div>
 
 					<div class="cn-field">
-						<NcSelect v-if="hasDataSources"
+						<NcSelect v-if="showPickers"
 							class="cn-page-config__field"
 							:value="selectedSchema"
 							:options="schemaOptions"
 							:input-label="t('nextcloud-vue', 'Schema')"
 							label="label"
 							:clearable="true"
+							:loading="dataSourcesLoading"
 							:disabled="!configValue('register')"
 							:placeholder="t('nextcloud-vue', 'Choose a schema')"
 							@input="setSchema" />
@@ -456,9 +562,9 @@
 </template>
 
 <script>
-import { NcModal, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import { NcModal, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import CnIconPicker from '../components/CnIconPicker/CnIconPicker.vue'
+import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 const PAGE_TYPES = [
@@ -468,9 +574,13 @@ const PAGE_TYPES = [
 	{ value: 'custom', label: 'Custom' },
 ]
 
+// The four CnIndexPage layouts. Any of them can be the default view; the
+// subset offered as toggle segments is controlled by `config.viewModes`.
 const VIEW_MODES = [
 	{ value: 'table', label: 'Table' },
 	{ value: 'cards', label: 'Cards' },
+	{ value: 'list', label: 'List' },
+	{ value: 'map', label: 'Map' },
 ]
 
 // Per-column transform presets. A friendly label maps to ONE of CnCellRenderer's
@@ -551,13 +661,21 @@ const JSON_FIELDS = [
 export default {
 	name: 'CnPageConfigModal',
 
-	components: { NcModal, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon, CnIconPicker },
+	components: { NcModal, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, CnIconBrowser },
 
 	mixins: [manifestModalDoneMixin],
 
 	inject: {
 		/** App registers/schemas for the data-source pickers; null → free text. */
 		cnDataSources: { default: null },
+		/**
+		 * Live data-source holder from CnAppRoot (`{ value, loading, error,
+		 * hasLoader }`). Preferred over the `cnDataSources` snapshot, which
+		 * cannot change after boot. Null when the host predates it.
+		 */
+		cnDataSourcesState: { default: null },
+		/** Re-fetch the data sources; called on open and by the error notice's Retry. */
+		cnRefreshDataSources: { default: null },
 	},
 
 	props: {
@@ -598,9 +716,39 @@ export default {
 		pageTypeOptions() {
 			return PAGE_TYPES
 		},
-		/** Default-view options. */
+		/** All four layouts — the "Available views" multi-select options. */
 		viewModeOptions() {
-			return VIEW_MODES
+			return VIEW_MODES.map((o) => ({ value: o.value, label: t('nextcloud-vue', o.label) }))
+		},
+		/**
+		 * The enabled view layouts (array form): the page's `config.viewModes`
+		 * whitelist when set, else the historical Cards + Table default.
+		 * @return {string[]}
+		 */
+		enabledViews() {
+			const v = this.page && this.page.config && this.page.config.viewModes
+			return (Array.isArray(v) && v.length) ? v : ['cards', 'table']
+		},
+		/** The enabled views as multi-select options. */
+		selectedAvailableViews() {
+			return this.enabledViews
+				.map((val) => this.viewModeOptions.find((o) => o.value === val))
+				.filter(Boolean)
+		},
+		/**
+		 * Default-view options: only the enabled layouts (plus the current default
+		 * even if it was disabled, so it still displays rather than reading blank).
+		 * @return {Array<{value: string, label: string}>}
+		 */
+		defaultViewOptions() {
+			const enabled = new Set(this.enabledViews)
+			const current = this.configValue('viewMode') || 'table'
+			enabled.add(current)
+			return this.viewModeOptions.filter((o) => enabled.has(o.value))
+		},
+		/** Whether Map is one of the enabled views (reveals the Map-config fields). */
+		mapEnabled() {
+			return this.enabledViews.includes('map')
 		},
 		/** Per-column transform format options. */
 		formatOptions() {
@@ -636,19 +784,45 @@ export default {
 		isDataPage() {
 			return this.page && (this.page.type === 'index' || this.page.type === 'detail')
 		},
+		/**
+		 * The data sources actually in force: the live holder when CnAppRoot
+		 * has a loader, else the static snapshot.
+		 */
+		effectiveDataSources() {
+			const live = this.cnDataSourcesState && this.cnDataSourcesState.value
+			return live || this.cnDataSources
+		},
+		/** Whether a refresh is currently in flight. */
+		dataSourcesLoading() {
+			return !!(this.cnDataSourcesState && this.cnDataSourcesState.loading)
+		},
+		/** The last refresh's failure, if any. */
+		dataSourcesError() {
+			return (this.cnDataSourcesState && this.cnDataSourcesState.error) || null
+		},
 		/** Whether app data sources were provided. */
 		hasDataSources() {
-			return !!(this.cnDataSources && Array.isArray(this.cnDataSources.registers) && this.cnDataSources.registers.length)
+			const ds = this.effectiveDataSources
+			return !!(ds && Array.isArray(ds.registers) && ds.registers.length)
+		},
+		/**
+		 * Whether to render dropdowns rather than free-text slug inputs. A
+		 * configured loader counts even before its first fetch resolves, so
+		 * the panel never flashes text fields and then swaps them for selects.
+		 */
+		showPickers() {
+			if (this.hasDataSources || this.dataSourcesLoading) return true
+			return !!(this.cnDataSourcesState && this.cnDataSourcesState.hasLoader)
 		},
 		/** Register options. */
 		registerOptions() {
 			if (!this.hasDataSources) return []
-			return this.cnDataSources.registers.map((r) => ({ value: r.value, label: r.label || r.value }))
+			return this.effectiveDataSources.registers.map((r) => ({ value: r.value, label: r.label || r.value }))
 		},
 		/** Schema options for the chosen register. */
 		schemaOptions() {
 			if (!this.hasDataSources) return []
-			const reg = this.cnDataSources.registers.find((r) => r.value === this.configValue('register'))
+			const reg = this.effectiveDataSources.registers.find((r) => r.value === this.configValue('register'))
 			const schemas = (reg && Array.isArray(reg.schemas)) ? reg.schemas : []
 			return schemas.map((s) => ({ value: s.value, label: s.label || s.value, columns: s.columns || [] }))
 		},
@@ -713,8 +887,21 @@ export default {
 		},
 	},
 
+	// The modal is `v-if`-mounted, so mount == open: refreshing here picks up
+	// any register/schema created since the app booted, with no page reload.
+	mounted() {
+		if (typeof this.cnRefreshDataSources === 'function') this.cnRefreshDataSources()
+	},
+
 	methods: {
 		t,
+		/**
+		 * Re-run the data-source fetch after a failure (the error notice's Retry).
+		 * @return {void}
+		 */
+		retryDataSources() {
+			if (typeof this.cnRefreshDataSources === 'function') this.cnRefreshDataSources()
+		},
 		/**
 		 * Build the Advanced-tab editing buffer from the page's current config —
 		 * each JSON field pretty-printed, or '' when unset.
@@ -812,6 +999,57 @@ export default {
 			const v = option ? option.value : 'table'
 			if (v && v !== 'table') this.$set(config, 'viewMode', v)
 			else this.$delete(config, 'viewMode')
+		},
+		/**
+		 * Set the enabled view layouts (`config.viewModes`), preserving the picked
+		 * order. Drops the key when it equals the Cards + Table default (order-
+		 * independent) so the config stays minimal. When the current default view is
+		 * no longer enabled, resets it to the first still-enabled layout.
+		 * @param {Array<{value: string}>} options The selected view options.
+		 * @return {void}
+		 */
+		setAvailableViews(options) {
+			const config = this.ensureConfig()
+			const modes = (options || []).map((o) => o.value)
+			const isDefault = modes.length === 2
+				&& modes.includes('cards') && modes.includes('table')
+			if (!modes.length || isDefault) this.$delete(config, 'viewModes')
+			else this.$set(config, 'viewModes', modes)
+			// Keep the default view within the enabled set.
+			const effective = modes.length ? modes : ['cards', 'table']
+			const current = this.configValue('viewMode') || 'table'
+			if (!effective.includes(current)) {
+				const next = effective[0]
+				if (next && next !== 'table') this.$set(config, 'viewMode', next)
+				else this.$delete(config, 'viewMode')
+			}
+		},
+		/**
+		 * Read a `config.mapConfig` sub-field (empty string when unset).
+		 * @param {string} key The mapConfig key.
+		 * @return {string}
+		 */
+		mapConfigValue(key) {
+			const mc = this.page && this.page.config && this.page.config.mapConfig
+			return (mc && typeof mc === 'object' && mc[key] != null) ? mc[key] : ''
+		},
+		/**
+		 * Write a `config.mapConfig` sub-field in place, pruning an emptied map so
+		 * the config stays minimal.
+		 * @param {string} key The mapConfig key.
+		 * @param {string} value The value.
+		 * @return {void}
+		 */
+		setMapConfig(key, value) {
+			const config = this.ensureConfig()
+			let map = config.mapConfig
+			if (!map || typeof map !== 'object' || Array.isArray(map)) {
+				map = {}
+				this.$set(config, 'mapConfig', map)
+			}
+			if (value) this.$set(map, key, value)
+			else this.$delete(map, key)
+			if (!Object.keys(config.mapConfig).length) this.$delete(config, 'mapConfig')
 		},
 		/**
 		 * Set the register; clears schema + columns.

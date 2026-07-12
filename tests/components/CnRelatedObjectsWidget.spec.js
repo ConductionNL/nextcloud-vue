@@ -26,8 +26,9 @@ jest.mock('@nextcloud/router', () => ({
 const Stub = { render: (h) => h('div') }
 
 const stubs = {
-	// Render the chrome's default slot so section content is testable.
-	CnWidgetWrapper: { template: '<div class="cn-widget-wrapper-stub"><slot /></div>' },
+	// Render the chrome's default + footer slots so section content and the
+	// Add footer are testable.
+	CnWidgetWrapper: { template: '<div class="cn-widget-wrapper-stub"><slot /><slot name="footer" /></div>' },
 	CnIcon: true,
 	FileTreeOutline: true,
 	Paperclip: true,
@@ -116,7 +117,8 @@ describe('CnRelatedObjectsWidget', () => {
 	it('shows the empty state when nothing is related', async () => {
 		const wrapper = mountWidget({ showIntegrations: false })
 		await flush()
-		expect(wrapper.find('.cn-related-objects-widget__empty').exists()).toBe(true)
+		expect(wrapper.find('.cn-related-objects-widget__empty-state').exists()).toBe(true)
+		expect(wrapper.find('.cn-related-objects-widget__empty-state').attributes('name')).toBe('No relations yet')
 	})
 
 	it('emits select-object when a related-object row is clicked', async () => {
@@ -206,7 +208,29 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 		const wrapper = mountTabbed()
 		await flush()
 		expect(wrapper.findAll('.cn-related-objects-widget__tab').length).toBe(0)
-		expect(wrapper.find('.cn-related-objects-widget__empty').exists()).toBe(true)
+		expect(wrapper.find('.cn-related-objects-widget__empty-state').exists()).toBe(true)
+		expect(wrapper.find('.cn-related-objects-widget__empty-state').attributes('name')).toBe('No relations yet')
+	})
+
+	it('names the single source in the empty state when scoped to one group', async () => {
+		global.fetch = mockFetchBySuffix({ relations: {}, uses: { results: [], total: 0 }, used: { results: [], total: 0 }, files: { results: [], total: 0 } })
+		const wrapper = mountTabbed({ includeGroups: ['files'] })
+		await flush()
+		expect(wrapper.find('.cn-related-objects-widget__empty-state').attributes('name')).toBe('No files yet')
+	})
+
+	it('renders the Add footer on the tabbed path', async () => {
+		global.fetch = mockFetchBySuffix({ relations: {}, uses: { results: [], total: 0 }, used: { results: [], total: 0 }, files: { results: [], total: 0 } })
+		const wrapper = mountTabbed()
+		await flush()
+		expect(wrapper.find('.cn-related-objects-widget__footer').exists()).toBe(true)
+	})
+
+	it('hides the Add footer when showAddFooter is false', async () => {
+		global.fetch = mockFetchBySuffix({ relations: {}, uses: { results: [], total: 0 }, used: { results: [], total: 0 }, files: { results: [], total: 0 } })
+		const wrapper = mountTabbed({ showAddFooter: false })
+		await flush()
+		expect(wrapper.find('.cn-related-objects-widget__footer').exists()).toBe(false)
 	})
 
 	it('deep-links a file row to its Nextcloud file permalink in a new tab', async () => {
@@ -279,22 +303,168 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 
 	it('includeGroups whitelists which relation groups are visible', () => {
 		const wrapper = mountWidget({ includeGroups: ['objects', 'mails'] })
-		wrapper.setData({ groups: [
-			{ key: 'objects', items: [{ id: 1 }], total: 1 },
-			{ key: 'files', items: [{ id: 2 }], total: 1 },
-			{ key: 'mails', items: [{ id: 3 }], total: 1 },
-			{ key: 'events', items: [], total: 0 },
-		] })
+		wrapper.setData({
+			groups: [
+				{ key: 'objects', items: [{ id: 1 }], total: 1 },
+				{ key: 'files', items: [{ id: 2 }], total: 1 },
+				{ key: 'mails', items: [{ id: 3 }], total: 1 },
+				{ key: 'events', items: [], total: 0 },
+			],
+		})
 		expect(wrapper.vm.visibleGroups.map((g) => g.key)).toEqual(['objects', 'mails'])
 	})
 
 	it('shows every non-empty group when includeGroups is empty', () => {
 		const wrapper = mountWidget({ includeGroups: [] })
-		wrapper.setData({ groups: [
-			{ key: 'objects', items: [{ id: 1 }], total: 1 },
-			{ key: 'files', items: [], total: 0 },
-			{ key: 'mails', items: [{ id: 3 }], total: 1 },
-		] })
+		wrapper.setData({
+			groups: [
+				{ key: 'objects', items: [{ id: 1 }], total: 1 },
+				{ key: 'files', items: [], total: 0 },
+				{ key: 'mails', items: [{ id: 3 }], total: 1 },
+			],
+		})
 		expect(wrapper.vm.visibleGroups.map((g) => g.key)).toEqual(['objects', 'mails'])
+	})
+
+	it('hides the tab strip when only one group is visible — a lone tab just repeats the card title', async () => {
+		global.fetch = mockFetchBySuffix({
+			relations: {},
+			uses: { results: [], total: 0 },
+			used: { results: [], total: 0 },
+			files: { results: [{ id: 'f1', name: 'doc.pdf', size: 2048 }], total: 1 },
+		})
+		const wrapper = mountTabbed()
+		await flush()
+		expect(wrapper.vm.visibleGroups.map((g) => g.key)).toEqual(['files'])
+		expect(wrapper.findAll('.cn-related-objects-widget__tab').length).toBe(0)
+		// The lone group still renders its rows.
+		expect(wrapper.text()).toContain('doc.pdf')
+	})
+
+	it('keeps the tab strip for a lone group when hideSingleTabTitle is false', async () => {
+		global.fetch = mockFetchBySuffix({
+			relations: {},
+			uses: { results: [], total: 0 },
+			used: { results: [], total: 0 },
+			files: { results: [{ id: 'f1', name: 'doc.pdf', size: 2048 }], total: 1 },
+		})
+		const wrapper = mountTabbed({ hideSingleTabTitle: false })
+		await flush()
+		expect(wrapper.findAll('.cn-related-objects-widget__tab').length).toBe(1)
+	})
+
+	it('keeps the tab strip once a second group fills up', async () => {
+		global.fetch = mockFetchBySuffix({
+			relations: { notes: { results: [{ id: 'n1', message: 'A note' }], total: 1 } },
+			uses: { results: [], total: 0 },
+			used: { results: [], total: 0 },
+			files: { results: [{ id: 'f1', name: 'doc.pdf', size: 2048 }], total: 1 },
+		})
+		const wrapper = mountTabbed()
+		await flush()
+		expect(wrapper.findAll('.cn-related-objects-widget__tab').length).toBe(2)
+	})
+
+	it('totals the count across every visible group and renders it beside the title', async () => {
+		global.fetch = mockFetchBySuffix({
+			relations: { notes: { results: [{ id: 'n1', message: 'A note' }], total: 1 } },
+			uses: { results: [{ id: 'o1', title: 'Account' }, { id: 'o2', title: 'Deal' }], total: 2 },
+			used: { results: [], total: 0 },
+			files: { results: [{ id: 'f1', name: 'doc.pdf', size: 2048 }], total: 1 },
+		})
+		// Render the chrome's title-meta slot so the pill lands in the DOM.
+		const wrapper = mount(CnRelatedObjectsWidget, {
+			propsData: tabbedProps(),
+			stubs: {
+				...stubs,
+				CnWidgetWrapper: {
+					template: '<div><span class="title-meta-stub"><slot name="title-meta" /></span><slot /></div>',
+				},
+			},
+		})
+		await flush()
+		expect(wrapper.vm.totalCount).toBe(4)
+		expect(wrapper.find('.title-meta-stub .cn-related-objects-widget__count').text()).toBe('4')
+	})
+
+	it('omits the title count pill when showTotalCount is false', async () => {
+		global.fetch = mockFetchBySuffix({
+			relations: {},
+			uses: { results: [], total: 0 },
+			used: { results: [], total: 0 },
+			files: { results: [{ id: 'f1', name: 'doc.pdf', size: 2048 }], total: 1 },
+		})
+		const wrapper = mount(CnRelatedObjectsWidget, {
+			propsData: tabbedProps({ showTotalCount: false }),
+			stubs: {
+				...stubs,
+				CnWidgetWrapper: {
+					template: '<div><span class="title-meta-stub"><slot name="title-meta" /></span><slot /></div>',
+				},
+			},
+		})
+		await flush()
+		expect(wrapper.find('.title-meta-stub .cn-related-objects-widget__count').exists()).toBe(false)
+	})
+
+	it('posts the text typed into the Add-note input and clears it — NcActionInput carries no form field name', async () => {
+		global.fetch = mockFetchBySuffix({
+			relations: {},
+			uses: { results: [], total: 0 },
+			used: { results: [], total: 0 },
+			files: { results: [], total: 0 },
+		})
+		const wrapper = mountTabbed()
+		await flush()
+
+		// Drive the real binding: type into the input, then submit the form.
+		const input = wrapper.find('.NcActionInput input')
+		input.element.value = 'Sweet cow'
+		await input.trigger('input')
+		expect(wrapper.vm.noteDraft).toBe('Sweet cow')
+
+		await wrapper.find('.NcActionInput form').trigger('submit')
+		await flush()
+
+		const post = global.fetch.mock.calls.find((c) => c[1] && c[1].method === 'POST')
+		expect(post).toBeDefined()
+		expect(String(post[0])).toContain('/crm/lead/L1/notes')
+		expect(JSON.parse(post[1].body)).toEqual({ message: 'Sweet cow' })
+		expect(wrapper.emitted('note-added')[0]).toEqual(['Sweet cow'])
+		expect(wrapper.vm.noteDraft).toBe('')
+	})
+
+	it('does not post an empty or whitespace-only note', async () => {
+		global.fetch = mockFetchBySuffix({
+			relations: {},
+			uses: { results: [], total: 0 },
+			used: { results: [], total: 0 },
+			files: { results: [], total: 0 },
+		})
+		const wrapper = mountTabbed()
+		await flush()
+
+		await wrapper.setData({ noteDraft: '   ' })
+		await wrapper.vm.onAddNote()
+		await flush()
+
+		expect(global.fetch.mock.calls.some((c) => c[1] && c[1].method === 'POST')).toBe(false)
+		expect(wrapper.emitted('note-added')).toBeUndefined()
+	})
+
+	it('keeps the draft and surfaces an error when the note POST fails', async () => {
+		global.fetch = jest.fn((url, init) => {
+			if (init && init.method === 'POST') return Promise.resolve({ ok: false, status: 500 })
+			return Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
+		})
+		const wrapper = mountTabbed()
+		await flush()
+
+		await wrapper.setData({ noteDraft: 'Sweet cow' })
+		await wrapper.vm.onAddNote()
+		await flush()
+
+		expect(wrapper.vm.noteDraft).toBe('Sweet cow')
+		expect(wrapper.vm.addError).toBe('Could not add note')
 	})
 })

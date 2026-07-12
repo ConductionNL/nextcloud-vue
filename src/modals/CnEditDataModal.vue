@@ -44,19 +44,56 @@
 			</div>
 
 			<template v-else>
-				<!-- Register selector (usually a single register). -->
+				<!-- Register selector (usually a single register) + inline rename. -->
 				<div class="cn-edit-data__register">
-					<NcSelect v-if="registers.length > 1"
-						class="cn-edit-data__register-select"
-						:value="selectedRegisterOption"
-						:options="registerOptions"
-						:input-label="t('nextcloud-vue', 'Register')"
-						label="label"
-						:clearable="false"
-						@input="onSelectRegister" />
-					<span v-else class="cn-edit-data__register-name">
-						{{ t('nextcloud-vue', 'Register') }}: <strong>{{ selectedRegister && (selectedRegister.title || selectedRegister.slug) }}</strong>
-					</span>
+					<template v-if="renamingRegister">
+						<NcTextField class="cn-edit-data__register-rename"
+							:value="renameTitle"
+							:label="t('nextcloud-vue', 'Register name')"
+							:disabled="busy"
+							@update:value="(v) => renameTitle = v"
+							@keydown.native.enter="renameRegister"
+							@keydown.native.esc="renamingRegister = false" />
+						<NcButton type="primary"
+							:disabled="busy || !renameTitle.trim()"
+							:aria-label="t('nextcloud-vue', 'Save register name')"
+							@click="renameRegister">
+							<template #icon>
+								<NcLoadingIcon v-if="busy" :size="20" />
+								<Check v-else :size="20" />
+							</template>
+						</NcButton>
+						<NcButton type="tertiary"
+							:disabled="busy"
+							:aria-label="t('nextcloud-vue', 'Cancel rename')"
+							@click="renamingRegister = false">
+							<template #icon>
+								<Close :size="20" />
+							</template>
+						</NcButton>
+					</template>
+					<template v-else>
+						<NcSelect v-if="registers.length > 1"
+							class="cn-edit-data__register-select"
+							:value="selectedRegisterOption"
+							:options="registerOptions"
+							:input-label="t('nextcloud-vue', 'Register')"
+							label="label"
+							:clearable="false"
+							@input="onSelectRegister" />
+						<span v-else class="cn-edit-data__register-name">
+							{{ t('nextcloud-vue', 'Register') }}: <strong>{{ selectedRegister && (selectedRegister.title || selectedRegister.slug) }}</strong>
+						</span>
+						<NcButton v-if="selectedRegister"
+							type="tertiary"
+							:disabled="busy"
+							:aria-label="t('nextcloud-vue', 'Rename register')"
+							@click="startRename">
+							<template #icon>
+								<Pencil :size="20" />
+							</template>
+						</NcButton>
+					</template>
 				</div>
 
 				<!-- Schemas of the selected register. -->
@@ -137,6 +174,8 @@ import axios from '@nextcloud/axios'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import Check from 'vue-material-design-icons/Check.vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import CnSchemaFormDialog from '../components/CnSchemaFormDialog/CnSchemaFormDialog.vue'
 import { buildHeaders } from '../utils/headers.js'
 
@@ -183,7 +222,7 @@ export function invalidateDataCache() {
 export default {
 	name: 'CnEditDataModal',
 
-	components: { NcModal, NcButton, NcTextField, NcSelect, NcLoadingIcon, CnSchemaFormDialog, Plus, Pencil, Delete },
+	components: { NcModal, NcButton, NcTextField, NcSelect, NcLoadingIcon, CnSchemaFormDialog, Plus, Pencil, Delete, Check, Close },
 
 	inject: {
 		/**
@@ -223,6 +262,9 @@ export default {
 			editingSchema: null,
 			// New-register form.
 			newRegisterTitle: '',
+			// Inline register rename.
+			renamingRegister: false,
+			renameTitle: '',
 		}
 	},
 
@@ -342,7 +384,51 @@ export default {
 		 */
 		async onSelectRegister(option) {
 			this.selectedRegisterId = option ? option.id : null
+			this.renamingRegister = false
 			await this.loadSchemas()
+		},
+		/** Open the inline rename field pre-filled with the current title. */
+		startRename() {
+			const reg = this.selectedRegister
+			if (!reg) return
+			this.renameTitle = reg.title || reg.slug || ''
+			this.renamingRegister = true
+		},
+		/**
+		 * Persist the new register title (PATCH — the slug and schema links are
+		 * untouched, so manifest pages keep resolving) and mirror it into the
+		 * shared data-source map so pickers show the new name without a reload.
+		 * @return {Promise<void>}
+		 */
+		async renameRegister() {
+			const reg = this.selectedRegister
+			const title = this.renameTitle.trim()
+			if (!reg || !title) return
+			if (title === (reg.title || '')) {
+				this.renamingRegister = false
+				return
+			}
+			this.busy = true
+			this.error = ''
+			try {
+				await axios.patch(
+					generateUrl(`/apps/openregister/api/registers/${reg.id}`),
+					{ title },
+					{ headers: this.headers() },
+				)
+				reg.title = title
+				invalidateDataCache()
+				const ds = this.cnDataSources
+				if (ds && Array.isArray(ds.registers)) {
+					const dsReg = ds.registers.find((r) => r.value === reg.slug)
+					if (dsReg) this.$set(dsReg, 'label', title)
+				}
+				this.renamingRegister = false
+			} catch (e) {
+				this.error = (e && e.message) || t('nextcloud-vue', 'Failed to rename the register.')
+			} finally {
+				this.busy = false
+			}
 		},
 		/**
 		 * Human-readable property count for a schema.
@@ -535,8 +621,18 @@ export default {
 	align-items: flex-start;
 }
 
+.cn-edit-data__register {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
 .cn-edit-data__register-name {
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-edit-data__register-rename {
+	max-width: 360px;
 }
 
 .cn-edit-data__schemas {

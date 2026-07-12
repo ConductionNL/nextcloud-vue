@@ -60,3 +60,4 @@ export {
 	createTenantContext,
 	TENANT_CONTEXT_KEY,
 } from './useTenantContext.js'
+export { useManifestEditHistory } from './useManifestEditHistory.js'

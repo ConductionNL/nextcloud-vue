@@ -55,6 +55,7 @@ See [mdiCatalogue](../utilities/mdi-catalogue.md) and [vmdiCatalogue](../utiliti
 | `showLabels` | `Boolean` | `false` | Show the human label under each icon cell. |
 | `allowUrl` | `Boolean` | `false` | Add a free-text image-URL input to the Custom tab, so the picker can also hold an arbitrary URL (the icon-or-URL fields). |
 | `label` | `String` | `''` | Optional field label rendered above the control (convenience for form fields). |
+| `clearable` | `Boolean` | `false` | Offer a control to unset the icon (emits `null`). Use for optional icon fields, where a picked icon would otherwise be impossible to remove. |
 
 ## Catalogue injection
 

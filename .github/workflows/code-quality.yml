@@ -91,3 +91,11 @@ jobs:
       # fast, integration-scoped early-warning for the same class of bug.
       - name: Build
         run: npm run build
+
+      # Needs dist/, so it runs after the build. Asserts that every scope id the
+      # built JS stamps onto elements has a matching rule in the CSS reachable
+      # from css/index.css — the entry consumers import. When that invariant
+      # broke, dist-consuming apps rendered whole components unstyled with no
+      # error anywhere.
+      - name: Published CSS entry ships the scoped styles
+        run: npm run check:css-entry

@@ -28,47 +28,8 @@
 					:rows="visibleRows"
 					:loading="loading"
 					:empty-text="emptyText"
-					:sort-key="sortKey"
-					:sort-order="sortDir"
 					borderless
-					@row-click="onRowClick"
-					@sort="onSort">
-					<!-- Row edit / reorder affordances (ADR-062: the row acts on
-					     itself). Rendered only when the content blob opts in
-					     (`allowEdit` and/or `orderField`). -->
-					<template v-if="hasRowActions" #row-actions="{ row }">
-						<NcActions :force-menu="true">
-							<NcActionButton
-								v-if="allowEdit"
-								:close-after-click="true"
-								:data-testid="`cn-object-list-edit-${rowId(row)}`"
-								@click="openEdit(row)">
-								<template #icon>
-									<Pencil :size="18" />
-								</template>
-								{{ editLabel }}
-							</NcActionButton>
-							<NcActionButton
-								v-if="orderField"
-								:disabled="working || isFirstRow(row)"
-								@click="moveRow(row, -1)">
-								<template #icon>
-									<ArrowUp :size="18" />
-								</template>
-								{{ moveUpLabel }}
-							</NcActionButton>
-							<NcActionButton
-								v-if="orderField"
-								:disabled="working || isLastRow(row)"
-								@click="moveRow(row, 1)">
-								<template #icon>
-									<ArrowDown :size="18" />
-								</template>
-								{{ moveDownLabel }}
-							</NcActionButton>
-						</NcActions>
-					</template>
-				</CnDataTable>
+					@row-click="onRowClick" />
 			</div>
 			<!-- Fit-to-cell footer (ADR-062: the cell is the budget — rows adapt
 			     to the cell, the remainder is one click away, never a scrollbar).
@@ -100,34 +61,16 @@
 			ref="createDialog"
 			:schema="createSchema"
 			:item="null"
-			:register="content.register"
-			:initial-data="createInitialData"
-			:locked-fields="createLockedFields"
 			@confirm="onCreateConfirm"
 			@close="showCreate = false" />
-		<!-- Edit dialog (content.allowEdit) — the same CnFormDialog in EDIT mode
-		     for the clicked row; the list refreshes on save. -->
-		<CnFormDialog
-			v-if="showEdit && createSchema && editItem"
-			ref="editDialog"
-			:schema="createSchema"
-			:item="editItem"
-			:register="content.register"
-			@confirm="onEditConfirm"
-			@close="showEdit = false" />
 	</div>
 </template>
 
 <script>
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
-import { NcActions, NcActionButton } from '@nextcloud/vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
-import ArrowUp from 'vue-material-design-icons/ArrowUp.vue'
-import ArrowDown from 'vue-material-design-icons/ArrowDown.vue'
 import { translate as t } from '@nextcloud/l10n'
 import { resolveFilterTokens, hasUnresolvedTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
-import { referenceSchemaSlug } from '../../utils/schema.js'
 
 /**
  * CnObjectListWidget — an abstract, manifest-configured object list / table.
@@ -154,7 +97,7 @@ import { referenceSchemaSlug } from '../../utils/schema.js'
 export default {
 	name: 'CnObjectListWidget',
 
-	components: { CnDataTable, CnFormDialog, NcActions, NcActionButton, Pencil, ArrowUp, ArrowDown },
+	components: { CnDataTable, CnFormDialog },
 
 	inject: {
 		/**
@@ -202,23 +145,6 @@ export default {
 			showCreate: false,
 			/** Target schema definition fetched for the create dialog. */
 			createSchema: null,
-			/**
-			 * The target schema's `properties` map, fetched once so relation
-			 * columns (a `$ref` uuid property) can auto-resolve their uuids to
-			 * display names (ADR-062: a value cell must never show a raw uuid).
-			 * Null until the schema loads.
-			 */
-			schemaProps: null,
-			/** Active client-side sort column key (null = server/default order). */
-			sortKey: null,
-			/** Active client-side sort direction ('asc' | 'desc' | null). */
-			sortDir: null,
-			/** Whether the edit dialog is open. */
-			showEdit: false,
-			/** The row being edited (passed to CnFormDialog in edit mode). */
-			editItem: null,
-			/** True while a row reorder is persisting (disables the move buttons). */
-			working: false,
 		}
 	},
 
@@ -270,31 +196,6 @@ export default {
 			return dropOptionalUnresolved(resolveFilterTokens(this.content.filter || {}, this.tokenCtx))
 		},
 		/**
-		 * Create-form seed values derived from the list's resolved filter: every
-		 * scalar filter entry (e.g. `{ lead: '<uuid>' }` on a detail-page related
-		 * list) pre-links a new child to the record the list is scoped to.
-		 *
-		 * @return {Record<string, string|number>}
-		 */
-		createInitialData() {
-			const out = {}
-			const f = this.resolvedFilter || {}
-			for (const key of Object.keys(f)) {
-				const v = f[key]
-				if (typeof v === 'string' || typeof v === 'number') out[key] = v
-			}
-			return out
-		},
-		/**
-		 * The seeded parent-reference keys, rendered read-only in the create form
-		 * so a child can't be repointed away from the record it was added under.
-		 *
-		 * @return {string[]}
-		 */
-		createLockedFields() {
-			return Object.keys(this.createInitialData)
-		},
-		/**
 		 * Whether a context-dependent filter token (e.g. `@workspace.selectedClient`)
 		 * is still unresolved — the page state this list depends on isn't set yet,
 		 * so the list renders a prompt instead of fetching the whole register.
@@ -341,34 +242,13 @@ export default {
 		resolvedColumns() {
 			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
 			return cols.map((c) => {
-				const out = (typeof c === 'string')
-					? { key: c, label: c }
-					: { key: c.key, label: c.label || c.key }
-				if (typeof c !== 'string') {
-					for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'sortable']) {
-						if (c[k] !== undefined) out[k] = c[k]
-					}
+				if (typeof c === 'string') {
+					return { key: c, label: c }
 				}
-				// Relation columns (a `$ref` uuid property on the schema) resolve
-				// their uuid(s) to the referenced object's display NAME via the
-				// built-in `fkResolve` cell widget — the same store-cached
-				// resolution CnObjectDataWidget uses (one request per distinct id,
-				// falls back to the uuid while loading). Only auto-applied when the
-				// column hasn't already declared its own widget/formatter/format,
-				// so an explicit config always wins.
-				const relSchema = this.relationTargetForColumn(out.key)
-				if (relSchema && !out.widget && !out.formatter && !out.format) {
-					out.widget = 'fkResolve'
-					out.widgetProps = {
-						register: this.content.register || '',
-						schema: String(relSchema),
-						labelField: (typeof c !== 'string' && c.labelField) || 'name',
-					}
+				const out = { key: c.key, label: c.label || c.key }
+				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'sortable']) {
+					if (c[k] !== undefined) out[k] = c[k]
 				}
-				// Columns are sortable by default so a header click toggles the
-				// client-side sort (ADR-062); a column can opt out with
-				// `sortable: false`.
-				if (out.sortable === undefined) out.sortable = true
 				return out
 			})
 		},
@@ -385,55 +265,7 @@ export default {
 		 * @return {Array<object>}
 		 */
 		visibleRows() {
-			return this.fitRows ? this.displayRows.slice(0, this.fitRows) : this.displayRows
-		},
-		/**
-		 * The fetched rows with any active client-side sort applied (ADR-062:
-		 * a header click sorts in place). Unsorted → the fetched order.
-		 *
-		 * @return {Array<object>}
-		 */
-		displayRows() {
-			if (!this.sortKey || !this.sortDir) return this.rows
-			const key = this.sortKey
-			const factor = this.sortDir === 'desc' ? -1 : 1
-			return this.rows.slice().sort((a, b) => factor * this.compareValues(a[key], b[key]))
-		},
-		/**
-		 * The fetched rows ordered by `content.orderField` ascending — the frame
-		 * of reference for the up/down reorder actions (independent of any active
-		 * column sort). Falls back to the fetched order when no orderField is set.
-		 *
-		 * @return {Array<object>}
-		 */
-		orderedRows() {
-			if (!this.orderField) return this.rows
-			const key = this.orderField
-			return this.rows.slice().sort((a, b) => this.compareValues(a[key], b[key]))
-		},
-		/** Whether inline edit is enabled (`content.allowEdit`) and possible. */
-		allowEdit() {
-			const c = this.content || {}
-			return c.allowEdit === true && Boolean(c.register) && Boolean(c.schema)
-		},
-		/** The order field name when manual reordering is enabled, else ''. */
-		orderField() {
-			const c = this.content || {}
-			return (typeof c.orderField === 'string' && c.orderField) ? c.orderField : ''
-		},
-		/** Whether the trailing row-actions column renders at all. */
-		hasRowActions() {
-			return this.allowEdit || Boolean(this.orderField)
-		},
-		/** Pre-translated row-action labels. */
-		editLabel() {
-			return this.content.editLabel || t('nextcloud-vue', 'Edit')
-		},
-		moveUpLabel() {
-			return t('nextcloud-vue', 'Move up')
-		},
-		moveDownLabel() {
-			return t('nextcloud-vue', 'Move down')
+			return this.fitRows ? this.rows.slice(0, this.fitRows) : this.rows
 		},
 		/**
 		 * How many matching objects are NOT rendered (server total minus the
@@ -485,11 +317,6 @@ export default {
 
 	mounted() {
 		this.fetchRows()
-		// Load the schema so relation columns can resolve their uuids to names
-		// (best-effort — a schema-fetch failure never blocks the row render).
-		if (this.content && this.content.register && this.content.schema) {
-			this.loadSchema().catch(() => {})
-		}
 		// Observe the host grid cell so the visible row count re-fits on
 		// resize/layout changes. Only detail-grid cells constrain height;
 		// on dashboards the closest() lookup misses and fitRows stays null.
@@ -613,46 +440,19 @@ export default {
 			const c = this.content || {}
 			if (!c.schema) return
 			try {
-				await this.loadSchema()
+				if (!this.createSchema) {
+					const [{ default: axios }, { generateUrl }] = await Promise.all([
+						import('@nextcloud/axios'),
+						import('@nextcloud/router'),
+					])
+					const url = generateUrl('/apps/openregister/api/schemas/{sch}', { sch: c.schema })
+					const res = await axios.get(url)
+					this.createSchema = (res && res.data) || null
+				}
 				this.showCreate = true
 			} catch (e) {
 				this.error = (e && e.message) || 'error'
 			}
-		},
-
-		/**
-		 * Fetch the target schema once (used both for the create/edit dialog and
-		 * to detect relation columns). Populates `createSchema` and its
-		 * `schemaProps` map; no-op once loaded. Returns the schema (or null).
-		 *
-		 * @return {Promise<object|null>}
-		 */
-		async loadSchema() {
-			const c = this.content || {}
-			if (!c.schema) return null
-			if (this.createSchema) return this.createSchema
-			const [{ default: axios }, { generateUrl }] = await Promise.all([
-				import('@nextcloud/axios'),
-				import('@nextcloud/router'),
-			])
-			const url = generateUrl('/apps/openregister/api/schemas/{sch}', { sch: c.schema })
-			const res = await axios.get(url)
-			this.createSchema = (res && res.data) || null
-			this.schemaProps = (this.createSchema && this.createSchema.properties) || null
-			return this.createSchema
-		},
-
-		/**
-		 * The target schema slug of a relation column (a `$ref` uuid property),
-		 * or null when the column isn't a relation (or the schema hasn't loaded).
-		 *
-		 * @param {string} key The column key.
-		 * @return {string|number|null}
-		 */
-		relationTargetForColumn(key) {
-			const props = this.schemaProps
-			if (!props || !key) return null
-			return referenceSchemaSlug(props[key])
 		},
 
 		/**
@@ -731,156 +531,6 @@ export default {
 			 * @type {object}
 			 */
 			this.$emit('row-click', row)
-		},
-
-		/**
-		 * Apply a column-header sort toggle from CnDataTable (asc → desc → off).
-		 *
-		 * @param {{ key: string|null, order: 'asc'|'desc'|null }} payload The sort state.
-		 * @return {void}
-		 */
-		onSort(payload) {
-			this.sortKey = (payload && payload.key) || null
-			this.sortDir = (payload && payload.order) || null
-		},
-
-		/**
-		 * Compare two cell values for client-side sorting: numeric when both
-		 * parse as finite numbers, else a locale string compare. Empty values
-		 * sort last (before the direction factor is applied).
-		 *
-		 * @param {*} a First value.
-		 * @param {*} b Second value.
-		 * @return {number}
-		 */
-		compareValues(a, b) {
-			const ea = a === null || a === undefined || a === ''
-			const eb = b === null || b === undefined || b === ''
-			if (ea && eb) return 0
-			if (ea) return 1
-			if (eb) return -1
-			const na = Number(a)
-			const nb = Number(b)
-			if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb
-			return String(a).localeCompare(String(b))
-		},
-
-		/**
-		 * The stable id of a row (`id`, else `@self.id`).
-		 *
-		 * @param {object} row The row object.
-		 * @return {string|number|undefined}
-		 */
-		rowId(row) {
-			return row && (row.id || (row['@self'] && row['@self'].id))
-		},
-
-		/** Whether a row is first in the orderField ordering (up disabled). */
-		isFirstRow(row) {
-			const list = this.orderedRows
-			return list.length > 0 && this.rowId(list[0]) === this.rowId(row)
-		},
-
-		/** Whether a row is last in the orderField ordering (down disabled). */
-		isLastRow(row) {
-			const list = this.orderedRows
-			return list.length > 0 && this.rowId(list[list.length - 1]) === this.rowId(row)
-		},
-
-		/**
-		 * Open the edit dialog (CnFormDialog in edit mode) for a row. Loads the
-		 * schema first (shared with the create path).
-		 *
-		 * @param {object} row The row to edit.
-		 * @return {Promise<void>}
-		 */
-		async openEdit(row) {
-			try {
-				await this.loadSchema()
-				this.editItem = { ...row }
-				this.showEdit = true
-			} catch (e) {
-				this.error = (e && e.message) || 'error'
-			}
-		},
-
-		/**
-		 * Persist the edit-dialog form via PUT, then refresh the list.
-		 *
-		 * @param {object} formData Confirmed form values (carries the object id).
-		 * @return {Promise<void>}
-		 */
-		async onEditConfirm(formData) {
-			const c = this.content || {}
-			try {
-				const [{ default: axios }, { generateUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
-				const id = this.rowId(formData) || (this.editItem && this.rowId(this.editItem))
-				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id })
-				await axios.put(url, formData)
-				if (this.$refs.editDialog) this.$refs.editDialog.setResult({ success: true })
-				/**
-				 * @event updated Emitted after a successful edit with the sent payload.
-				 * @type {object}
-				 */
-				this.$emit('updated', formData)
-				this.fetchRows()
-			} catch (e) {
-				if (this.$refs.editDialog) this.$refs.editDialog.setResult({ error: (e && e.message) || 'error' })
-			}
-		},
-
-		/**
-		 * Swap a row's `orderField` value with its neighbour in the orderField
-		 * ordering (dir -1 = up, +1 = down), persisting BOTH objects, then
-		 * refresh. No-op at the ends of the list.
-		 *
-		 * @param {object} row The row to move.
-		 * @param {number} dir -1 (up) or +1 (down).
-		 * @return {Promise<void>}
-		 */
-		async moveRow(row, dir) {
-			const of = this.orderField
-			if (!of || this.working) return
-			const list = this.orderedRows
-			const id = this.rowId(row)
-			const idx = list.findIndex((r) => this.rowId(r) === id)
-			if (idx < 0) return
-			const neighbor = list[idx + dir]
-			if (!neighbor) return
-			const a = { ...list[idx] }
-			const b = { ...neighbor }
-			const av = a[of]
-			a[of] = b[of]
-			b[of] = av
-			this.working = true
-			try {
-				await Promise.all([this.persistRow(a), this.persistRow(b)])
-				await this.fetchRows()
-			} catch (e) {
-				this.error = (e && e.message) || 'error'
-			} finally {
-				this.working = false
-			}
-		},
-
-		/**
-		 * PUT a single object back to OpenRegister (used by the reorder swap).
-		 *
-		 * @param {object} obj The full object to persist (carries its id).
-		 * @return {Promise<void>}
-		 */
-		async persistRow(obj) {
-			const c = this.content || {}
-			const [{ default: axios }, { generateUrl }] = await Promise.all([
-				import('@nextcloud/axios'),
-				import('@nextcloud/router'),
-			])
-			const id = this.rowId(obj)
-			const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id })
-			await axios.put(url, obj)
 		},
 	},
 }

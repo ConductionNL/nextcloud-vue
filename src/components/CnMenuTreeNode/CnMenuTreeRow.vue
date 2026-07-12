@@ -9,30 +9,26 @@
 			<DragVertical :size="18" />
 		</span>
 
-		<!-- Icon: click to pick inline. -->
-		<NcSelect v-if="editing === 'icon'"
-			class="cn-menu-tree__inline-select"
-			:value="selectedIcon"
-			:options="iconOptions"
-			:input-label="t('nextcloud-vue', 'Icon')"
-			label="label"
-			:clearable="true"
-			@input="onIcon"
-			@close="stopEdit">
-			<template #option="opt">
-				<span class="cn-menu-tree__icon-opt"><span class="cn-menu-tree__icon-glyph" :class="opt.value" aria-hidden="true" />{{ opt.label }}</span>
+		<!-- Icon: click the glyph to pick. The picker emits registry keys / SVG
+		     paths / URLs — the same vocabulary CnMenuItemIcon renders at runtime.
+		     (The old NcSelect offered Nextcloud `icon-*` CSS classes, which
+		     CnWidgetIcon does not resolve, so every picked menu icon silently
+		     rendered as the DEFAULT icon in the live menu.) -->
+		<CnIconBrowser
+			:value="item.icon || null"
+			clearable
+			@input="onIcon">
+			<template #trigger="{ toggle }">
+				<button
+					type="button"
+					class="cn-menu-tree__icon-btn"
+					:aria-label="t('nextcloud-vue', 'Change icon')"
+					@click="toggle">
+					<CnMenuItemIcon v-if="item.icon" :icon="item.icon" :size="18" />
+					<span v-else class="cn-menu-tree__icon cn-menu-tree__icon--generic" aria-hidden="true" />
+				</button>
 			</template>
-			<template #selected-option="opt">
-				<span class="cn-menu-tree__icon-opt"><span class="cn-menu-tree__icon-glyph" :class="opt.value" aria-hidden="true" />{{ opt.label }}</span>
-			</template>
-		</NcSelect>
-		<button v-else
-			type="button"
-			class="cn-menu-tree__icon-btn"
-			:aria-label="t('nextcloud-vue', 'Change icon')"
-			@click="startEdit('icon')">
-			<span class="cn-menu-tree__icon" :class="iconClass" aria-hidden="true" />
-		</button>
+		</CnIconBrowser>
 
 		<!-- Label: click to edit inline. -->
 		<NcTextField v-if="editing === 'label'"
@@ -105,7 +101,8 @@
 <script>
 import { NcButton, NcTextField, NcSelect, NcPopover } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import { NEXTCLOUD_ICONS } from './nextcloudIcons.js'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import CnMenuItemIcon from '../CnMenuWidget/CnMenuItemIcon.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
@@ -125,7 +122,7 @@ import DragVertical from 'vue-material-design-icons/DragVertical.vue'
 export default {
 	name: 'CnMenuTreeRow',
 
-	components: { NcButton, NcTextField, NcSelect, NcPopover, Cog, Plus, Delete, DragVertical },
+	components: { NcButton, NcTextField, NcSelect, NcPopover, CnIconBrowser, CnMenuItemIcon, Cog, Plus, Delete, DragVertical },
 
 	props: {
 		/**
@@ -164,22 +161,6 @@ export default {
 	},
 
 	computed: {
-		/** Nextcloud icon options for the icon dropdown. */
-		iconOptions() {
-			return NEXTCLOUD_ICONS
-		},
-		/** Render an `icon-*` class as a glyph; anything else gets a generic dot. */
-		iconClass() {
-			return typeof this.item.icon === 'string' && this.item.icon.startsWith('icon-')
-				? this.item.icon
-				: 'cn-menu-tree__icon--generic'
-		},
-		/** The chosen icon as an option (synthetic fallback for a custom value). */
-		selectedIcon() {
-			const icon = this.item && this.item.icon
-			if (!icon) return null
-			return this.iconOptions.find((o) => o.value === icon) || { value: icon, label: icon }
-		},
 		/** The chosen target page as an option (synthetic fallback for a custom route). */
 		selectedPage() {
 			const route = this.item && this.item.route
@@ -222,13 +203,14 @@ export default {
 			this.$set(this.item, 'label', value)
 		},
 		/**
-		 * Set the item icon and leave edit mode.
-		 * @param {{value: string}|null} option The selected icon option.
+		 * Set the item icon. CnIconBrowser emits the value directly (a registry
+		 * key, SVG path, or URL) — not an option object.
+		 *
+		 * @param {string|null} icon The selected icon value.
 		 * @return {void}
 		 */
-		onIcon(option) {
-			this.$set(this.item, 'icon', option ? option.value : '')
-			this.stopEdit()
+		onIcon(icon) {
+			this.$set(this.item, 'icon', icon || '')
 		},
 		/**
 		 * Set the item's target page (route name) and leave edit mode.

@@ -265,8 +265,15 @@
 			     added. Explicit `layout` + `widgets` props (manifest grid pages)
 			     feed the same engine, so hand-authored grid pages also become
 			     draggable. -->
+			<!-- :key remounts the grid when in-app edit mode flips (ADR-041):
+			     the manifest is raw (non-reactive) until useManifestEditor
+			     observes it in place, so a grid mounted pre-edit never
+			     subscribed to the layout/widgets arrays — in-place pushes
+			     (Add widget) keep the same array identity and can't re-render
+			     it. One remount per edit flip re-subscribes it. -->
 			<CnDashboardGrid
 				v-if="hasBodyGrid"
+				:key="`cn-detail-grid-${editingBody ? 'editing' : 'live'}`"
 				:layout="bodyGridLayout"
 				:editable="editingBody"
 				:columns="12"
@@ -318,7 +325,7 @@
 							     per-property overrides. This is the default body widget. -->
 							<CnObjectDataWidget
 								v-if="isDataWidget(item) && currentSchema"
-								:title="findWidget(item).title || widgetContentFor(item).title || undefined"
+								:title="widgetDisplayTitle(item)"
 								:icon="findWidget(item).icon || null"
 								:schema="currentSchema"
 								:object-data="currentObject"
@@ -333,7 +340,7 @@
 							     relations and links into integrations. -->
 							<CnRelatedObjectsWidget
 								v-else-if="isRelatedWidget(item)"
-								:title="findWidget(item).title || widgetContentFor(item).title || undefined"
+								:title="widgetDisplayTitle(item)"
 								:object-type="resolvedObjectType"
 								:object-id="objectId"
 								:object-data="currentObject"
@@ -341,7 +348,29 @@
 								:schema="schema"
 								:store="effectiveObjectStore"
 								:include-groups="widgetContentFor(item).groups || []"
+								:hide-single-tab-title="widgetContentFor(item).hideSingleTabTitle !== false"
+								:show-total-count="widgetContentFor(item).showTotalCount !== false"
 								@open-integration="onAutoBodyOpenIntegration" />
+							<!-- `type: 'object-geo'` widget: view/edit the object's
+							     `@self.geo` on a map. Editable in OpenBuild edit mode
+							     or when the widget config sets `editable`. -->
+							<CnObjectGeoWidget
+								v-else-if="isGeoWidget(item)"
+								:title="widgetDisplayTitle(item)"
+								:object-id="objectId"
+								:object-data="currentObject"
+								:register="register"
+								:schema="schema"
+								:editable="widgetContentFor(item).editable !== false"
+								:address-search="widgetContentFor(item).addressSearch === true"
+								:basemap="widgetContentFor(item).basemap || 'standard'"
+								:allow-basemap-switch="widgetContentFor(item).allowBasemapSwitch === true"
+								:fit-control="widgetContentFor(item).fitControl !== false"
+								:locate-control="widgetContentFor(item).locateControl !== false"
+								:fullscreen-control="widgetContentFor(item).fullscreenControl !== false"
+								:height="widgetContentFor(item).height || '360px'"
+								:default-zoom="widgetContentFor(item).defaultZoom || 7"
+								@saved="onGeoSaved" />
 							<!-- Fallback for `type: 'integration'` widget defs:
 							     render the registry widget on the detail-page
 							     surface. A consumer-supplied #widget-<id> slot
@@ -602,6 +631,7 @@ import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
+import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
@@ -715,6 +745,7 @@ export default {
 		CnObjectDataWidget,
 		CnFormDialog,
 		CnRelatedObjectsWidget,
+		CnObjectGeoWidget,
 		CnDashboardGrid,
 		CnWidgetWrapper,
 		CnLifecycleActions,
@@ -1662,6 +1693,13 @@ export default {
 		 * @return {Array} Layout items for CnDashboardGrid.
 		 */
 		bodyGridLayout() {
+			// Depend on the (always-reactive) edit flag so this re-evaluates
+			// when in-app edit mode flips: the manifest arrays are raw until
+			// useManifestEditor.enter() observes them in place, so a cache
+			// built pre-edit would stay frozen for in-place pushes (Add widget
+			// on a detail page / grid ejection). See CnDashboardPage.hasWidgets.
+			// eslint-disable-next-line no-unused-expressions
+			this.editingBody
 			if (this.hasGridLayout) return this.layout
 			if (this.shouldRenderAutoBody) return this.autoBodyLayout || []
 			return []
@@ -1975,6 +2013,23 @@ export default {
 		},
 
 		/**
+		 * Re-fetch the object after the geo widget persists `@self.geo` (so the
+		 * rest of the page — metadata, other widgets — reflects the new value),
+		 * and re-emit for the host.
+		 *
+		 * @param {object|null} geo The saved geo value (GeoJSON Point or null).
+		 */
+		onGeoSaved(geo) {
+			this.fetchObjectIfNeeded()
+			/**
+			 * @event geo-saved The object's `@self.geo` was saved via the geo
+			 * widget. Payload is the saved geo value (GeoJSON Point or null).
+			 * @type {object|null}
+			 */
+			this.$emit('geo-saved', geo)
+		},
+
+		/**
 		 * Re-emit a successful lifecycle transition to the host.
 		 *
 		 * @param {{ action: string, to: string, object: object }} payload The transition result.
@@ -2250,6 +2305,19 @@ export default {
 		},
 
 		/**
+		 * Whether a grid item is the `object-geo` widget — rendered via
+		 * CnObjectGeoWidget with the page's loaded object so the user can view /
+		 * edit the object's `@self.geo` on a map.
+		 *
+		 * @param {object} item Layout item
+		 * @return {boolean} true when the matching widget def is `type: 'object-geo'`.
+		 */
+		isGeoWidget(item) {
+			const def = this.findWidget(item)
+			return Boolean(def) && def.type === 'object-geo'
+		},
+
+		/**
 		 * Whether a grid item is a content-only catalog widget (a bare table
 		 * renderer with no chrome of its own). These get the titled
 		 * CnWidgetWrapper card in the grid (ADR-062); self-chromed catalog
@@ -2260,7 +2328,7 @@ export default {
 		 */
 		isContentOnlyWidget(item) {
 			const def = this.findWidget(item)
-			return Boolean(def) && ['object-list', 'table'].includes(def.type)
+			return Boolean(def) && ['object-list', 'table', 'files'].includes(def.type)
 		},
 
 		/**
@@ -2291,7 +2359,10 @@ export default {
 		 * @return {boolean}
 		 */
 		catalogAddEnabled(item) {
-			if (!this.isContentOnlyWidget(item)) return false
+			const def = this.findWidget(item)
+			// Files widgets carry their own upload/drag-drop toolbar, so the card
+			// Add action is only for object-list / table collections.
+			if (!def || !['object-list', 'table'].includes(def.type)) return false
 			return this.widgetContentFor(item).allowCreate !== false
 		},
 
@@ -2324,7 +2395,7 @@ export default {
 		/**
 		 * Measure every grid cell and console.warn the widget ids whose content
 		 * is taller than the cell. Dev aid only — called via
-		 * {@link scheduleCellOverflowAudit}.
+		 * `scheduleCellOverflowAudit`.
 		 *
 		 * @return {void}
 		 */
@@ -2438,12 +2509,14 @@ export default {
 			 * @type {Array}
 			 */
 			this.$emit('layout-change', updated)
+			/* eslint-disable jsdoc/valid-types -- the colon in the event name is valid Vue but not a jsdoc namepath */
 			/**
 			 * @event update:layout Sibling of `layout-change` so `:layout.sync`
 			 *   consumers stay in sync.
 			 * @type {Array}
 			 */
 			this.$emit('update:layout', updated)
+			/* eslint-enable jsdoc/valid-types */
 		},
 
 		/**
@@ -2488,6 +2561,33 @@ export default {
 		widgetContentFor(item) {
 			const def = this.findWidget(item)
 			return (def && def.content && typeof def.content === 'object') ? def.content : {}
+		},
+
+		/**
+		 * Resolve the effective title for a grid widget.
+		 *
+		 * A title-owning widget type (registry `ownsTitle`, e.g. `related`) keeps
+		 * its editable title in `content.title` — its config sub-form owns the
+		 * title field and the generic chrome title input is hidden. For those,
+		 * `content.title` MUST win over the chrome `def.title`, otherwise a
+		 * non-empty seed title (e.g. the default detail grid seeds the related
+		 * widget with `title: 'Related'`) permanently shadows the user's edit and
+		 * the title can never be changed. For every other type the chrome
+		 * `def.title` is authoritative, falling back to `content.title`. Empty
+		 * resolves to `undefined` so the widget renders its own default label.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {string|undefined} The title to render, or undefined for the default.
+		 */
+		widgetDisplayTitle(item) {
+			const def = this.findWidget(item)
+			if (!def) return undefined
+			const content = (def.content && typeof def.content === 'object') ? def.content : {}
+			const entry = getWidgetTypeEntry(def.type)
+			if (entry && entry.ownsTitle) {
+				return content.title || undefined
+			}
+			return def.title || content.title || undefined
 		},
 
 		/**

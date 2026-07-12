@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { resolveManifestSentinels } from '../utils/resolveManifestSentinels.js'
@@ -59,8 +59,18 @@ function loadValidator() {
  * Both branches return the same shape:
  * `{ manifest, isLoading, validationErrors, unresolvedSentinels }`.
  *
- * The returned manifest is reactive, so the future "app builder" backend
- * can hot-swap the manifest without a page reload.
+ * The returned manifest ref is **shallow by default** (`shallowRef`) —
+ * reactivity tracks `.value` reassignment (the hot-swap the future "app
+ * builder" backend performs) but NOT deep mutation of the manifest's own
+ * nested properties, so the whole manifest graph is not deep-observed on
+ * boot. Every read-only consumer (`CnAppNav`, `CnPageRenderer`,
+ * `CnDashboardPage`, …) only reads the tree and re-renders on the ref swap.
+ * `CnAppRoot` upgrades the *same* object to deep-reactive IN PLACE (Vue 2.7
+ * `reactive()`, preserving object identity) only when OpenBuild in-app
+ * editing is available — see `manifest-shallow-reactivity-by-default` and
+ * `useManifestEditor.upgradeManifestToEditable`. The object is deliberately
+ * NOT `markRaw`'d, because `markRaw` would make that in-place `reactive()`
+ * upgrade a silent no-op and break ADR-041 live editing.
  *
  * @param {string | { manifest: object, validate?: boolean }} appIdOrOptions
  *   Either a Nextcloud app ID (legacy positional signature) OR an options
@@ -152,7 +162,11 @@ export function useAppManifest(appIdOrOptions, bundledManifest, options = {}) {
  * @return {{ manifest: import('vue').Ref<object>, isLoading: import('vue').Ref<boolean>, validationErrors: import('vue').Ref<string[]|null>, unresolvedSentinels: import('vue').Ref<string[]> }}
  */
 function loadInMemory(input) {
-	const manifest = ref(input.manifest)
+	// Shallow by default (manifest-shallow-reactivity-by-default): track the
+	// ref reassignment, not deep mutation of the manifest tree. NOT markRaw'd —
+	// CnAppRoot upgrades this same object in place via reactive() when OpenBuild
+	// editing is available, which markRaw would silently block.
+	const manifest = shallowRef(input.manifest)
 	const isLoading = ref(false)
 	const validationErrors = ref(null)
 	const unresolvedSentinels = ref([])
@@ -193,7 +207,10 @@ function loadInMemory(input) {
  * @return {{ manifest: import('vue').Ref<object>, isLoading: import('vue').Ref<boolean>, validationErrors: import('vue').Ref<string[]|null>, unresolvedSentinels: import('vue').Ref<string[]> }}
  */
 function loadFromBackend(appId, bundledManifest, options) {
-	const manifest = ref(bundledManifest)
+	// Shallow by default (manifest-shallow-reactivity-by-default) — see
+	// loadInMemory. The later `manifest.value = resolved` swap still triggers
+	// reactivity because reassigning the shallowRef itself is tracked.
+	const manifest = shallowRef(bundledManifest)
 	const isLoading = ref(true)
 	const validationErrors = ref(null)
 	const unresolvedSentinels = ref([])
@@ -264,6 +281,8 @@ function loadFromBackend(appId, bundledManifest, options) {
 			}
 			// Publish the resolved manifest whenever it differs from the
 			// bundled input (sentinels substituted and/or backend merged).
+			// The shallowRef reassignment is what re-renders consumers; the new
+			// object stays shallow (not deep-observed) unless CnAppRoot upgrades it.
 			manifest.value = resolved
 		} catch (err) {
 			// Defensive: any unexpected error leaves the bundled manifest in

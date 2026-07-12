@@ -13,6 +13,7 @@
 // `getCapabilities` call intercepted.
 import { mount } from '@vue/test-utils'
 import CnAppNav from '../../src/components/CnAppNav/CnAppNav.vue'
+import { NEXTCLOUD_ICONS } from '../../src/components/CnMenuTreeNode/nextcloudIcons.js'
 
 jest.mock('@nextcloud/capabilities', () => ({
 	getCapabilities: jest.fn(),
@@ -110,6 +111,26 @@ describe('CnAppNav', () => {
 		getCapabilities.mockReturnValue({})
 		// Default: no OC.appswebroots.
 		delete global.OC
+	})
+
+	describe('icon vocabulary', () => {
+		// CnMenuTreeRow now picks icons with CnIconBrowser, which emits registry
+		// keys, raw SVG paths, and data: URIs (the NL-government sets) — not just
+		// the legacy `icon-*` CSS classes. The nav must render all of them, or an
+		// icon picked from the Gemeente/Den Haag/RVO tabs shows up as nothing.
+		it('treats SVG paths and data: URIs as rich icons, and icon-* / registry keys as components', () => {
+			const wrapper = mountNav()
+			const vm = wrapper.vm
+
+			expect(vm.isRichIcon({ icon: 'M12 2 3 7' })).toBe(true)
+			expect(vm.isRichIcon({ icon: 'data:image/svg+xml,%3csvg/%3e' })).toBe(true)
+			expect(vm.isRichIcon({ icon: '/apps/x/brand.svg' })).toBe(true)
+
+			// Handled by the component path (bridge / ICON_MAP), not CnMenuItemIcon.
+			expect(vm.isRichIcon({ icon: 'icon-home' })).toBe(false)
+			expect(vm.isRichIcon({ icon: '' })).toBe(false)
+			expect(vm.isRichIcon({})).toBe(false)
+		})
 	})
 
 	describe('ordering', () => {
@@ -337,6 +358,20 @@ describe('CnAppNav', () => {
 			// A non-icon- name that isn't registered falls back to null (CSS path = '')
 			expect(wrapper.vm.cssIconClass({ icon: 'AccountGroup' })).toBe('')
 		})
+
+		// Every icon-* offered in the CnMenuTreeNode picker MUST be bridged to an
+		// MDI component: on NC34+ under a light theme, unbridged legacy icons fall
+		// through to the CSS-class path and render as white/grey background-images
+		// → invisible. This test keeps CSS_ICON_TO_MDI in sync with the picker list.
+		it.each(NEXTCLOUD_ICONS.map((i) => i.value))(
+			'bridges every picker icon to an MDI component (not the CSS path): %s',
+			(iconClass) => {
+				const wrapper = mountNav({ useProps: true })
+				const item = { icon: iconClass }
+				expect(wrapper.vm.mdiIconComponent(item)).toBeTruthy()
+				expect(wrapper.vm.cssIconClass(item)).toBe('')
+			},
+		)
 	})
 
 	describe('visibleIf.appInstalled filter', () => {

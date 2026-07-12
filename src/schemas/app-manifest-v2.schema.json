@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.18.0",
+	"version": "2.19.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -400,6 +400,11 @@
 			"pattern": "^@currentFiscalYear$|^@page\\.[A-Za-z][A-Za-z0-9_]*$|^@runtime(?:\\.[A-Za-z][A-Za-z0-9_]*)?$",
 			"description": "Deprecated single-app inventions kept in the union so deployed manifests still validate during the migration window. The hydra token-vocabulary gate downgrades these to a WARN (see SENTINEL_DEPRECATIONS): @currentFiscalYear → @config.fiscalYear, @page.<key> → @workspace.<key>, @runtime → removal. Mirrors SENTINEL_TOKEN_PATTERNS.deprecated."
 		},
+		"sentinelVisibleWhenToken": {
+			"type": "string",
+			"pattern": "^@total$",
+			"description": "manifest-form-logic: the shared visibleWhen predicate's source-mode collection-total marker, resolved client-side by evaluateVisibleWhen (utils/visibleWhen.js) — NOT one of the four IAppConfig/OpenRegister resolvers, but a pre-existing convention (already documented on $defs.visibleWhen and the banner widget) reachable through the sentinelGuardedValue-guarded pages[].config subtree for the first time via config.fields[].visibleWhen. Mirrors SENTINEL_TOKEN_PATTERNS.visibleWhen."
+		},
 		"sentinelTokenAny": {
 			"$comment": "Union of every canonical context plus the deprecated-during-window overlay. Single source the shared resolver + gate import.",
 			"anyOf": [
@@ -409,6 +414,7 @@
 				{ "$ref": "#/$defs/sentinelWorkspaceToken" },
 				{ "$ref": "#/$defs/sentinelRouteToken" },
 				{ "$ref": "#/$defs/sentinelDeclarativeToken" },
+				{ "$ref": "#/$defs/sentinelVisibleWhenToken" },
 				{ "$ref": "#/$defs/sentinelDeprecatedToken" }
 			]
 		},
@@ -1557,6 +1563,33 @@
 				}
 			]
 		},
+		"fieldValidation": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "manifest-form-logic: per-field validation rules for `type: 'form'` pages, enforced client-side by CnFormPage's validateFieldValue() before dispatch. Per-type semantics: string/password — required = non-empty after trim, min/max = string LENGTH, pattern tested against the value; number — required = finite number, min/max = numeric VALUE, pattern not applicable; boolean — required = value must be true (consent checkboxes), min/max/pattern not applicable; enum — required = a value is selected, min/max/pattern not applicable; json — required = non-null, min/max/pattern not applicable. Type-inapplicable rules are rejected by validateManifestV2() post-schema (pattern only on string/password; min/max only on string/password/number). `message` (i18n-able) overrides the built-in default message for whichever rule fails.",
+			"properties": {
+				"required": {
+					"type": "boolean",
+					"description": "Whether the field must be filled. Default false. Per-type pass condition — see the fieldValidation description."
+				},
+				"min": {
+					"type": "number",
+					"description": "Minimum bound. String length for string/password fields, numeric value for number fields. MUST be <= max when both are set (validateManifestV2 post-schema check)."
+				},
+				"max": {
+					"type": "number",
+					"description": "Maximum bound. String length for string/password fields, numeric value for number fields."
+				},
+				"pattern": {
+					"type": "string",
+					"description": "ECMAScript regex source tested against string/password values (implicit full-value test via new RegExp(pattern).test(value)). MUST compile — validateManifestV2() post-schema check runs `new RegExp(pattern)` in a try/catch."
+				},
+				"message": {
+					"type": "string",
+					"description": "i18n-able override message shown for ANY failing rule on this field, in place of the built-in translated default. Run through the page's `translate` prop, like `field.label`."
+				}
+			}
+		},
 		"visibleWhen": {
 			"type": "object",
 			"additionalProperties": false,
@@ -1968,10 +2001,53 @@
 						},
 						"fields": {
 							"type": "array",
-							"description": "Form fields (for type='form'). Carry-forward from v1.3.0.",
+							"description": "Form fields (for type='form'). Carry-forward from v1.3.0. manifest-form-logic adds two OPTIONAL typed properties — `visibleWhen` (reuses `$defs/visibleWhen`; LOCAL mode resolves `field` as a dot-path into the live form data) and `validation` (`$defs/fieldValidation`) — while every other carry-forward field shape (`key`, `label`, `type`, `enum`, `widget`, `help`, etc.) stays untyped via `additionalProperties: true` on the item.",
 							"items": {
 								"type": "object",
-								"additionalProperties": true
+								"additionalProperties": true,
+								"properties": {
+									"visibleWhen": {
+										"$ref": "#/$defs/visibleWhen",
+										"description": "manifest-form-logic: optional conditional-visibility predicate. LOCAL mode (neither `endpoint` nor `source`) resolves `field` as a dot-path into the live form data — the first dot-segment MUST match a declared `config.fields[].key` (validateManifestV2 post-schema check). `endpoint` / `source` modes keep their existing fail-safe, evaluated-once-at-mount semantics."
+									},
+									"validation": {
+										"$ref": "#/$defs/fieldValidation",
+										"description": "manifest-form-logic: optional per-field validation rules, enforced client-side by CnFormPage before dispatch. See `$defs/fieldValidation` for the per-type semantics table."
+									}
+								}
+							}
+						},
+						"steps": {
+							"type": "array",
+							"minItems": 1,
+							"description": "manifest-form-logic: for type='form' pages, ordered multi-step wizard groups. Each entry is `{ id, title, description?, fields[] }` where `fields[]` is an ordered array of KEY REFERENCES into `config.fields[].key` — steps do not embed field objects (config.fields[] stays the single source of truth). Absent `steps` = single-step form, byte-for-byte the pre-change rendering. When present, validateManifestV2() post-schema requires: step ids unique within the page, every fields[] entry references a declared field key, and every declared field key appears in EXACTLY ONE step (complete partition — an unassigned field would silently never render; a doubly-assigned field would double-render).",
+							"items": {
+								"type": "object",
+								"required": ["id", "title", "fields"],
+								"additionalProperties": false,
+								"description": "One wizard step. `fields[]` order is the rendering order for that step's fields.",
+								"properties": {
+									"id": {
+										"type": "string",
+										"minLength": 1,
+										"description": "Unique step identifier within the page's `steps[]` array."
+									},
+									"title": {
+										"type": "string",
+										"minLength": 1,
+										"description": "i18n key (or literal) for the step's title, shown in the step indicator."
+									},
+									"description": {
+										"type": "string",
+										"description": "Optional i18n key (or literal) for a short step description/subtitle."
+									},
+									"fields": {
+										"type": "array",
+										"minItems": 1,
+										"items": { "type": "string", "minLength": 1 },
+										"description": "Ordered field KEYS (referencing `config.fields[].key`) rendered on this step."
+									}
+								}
 							}
 						},
 						"fieldWidgets": {

@@ -21,7 +21,11 @@
  *    `resolveManifestSentinels` (async IAppConfig), so a render-time
  *    subtree pass leaves it untouched — matching today's split;
  *  - declarative `@self`/`@ref`/`@aggregate` → resolved server-side by
- *    OpenRegister, so they pass through the client walk untouched.
+ *    OpenRegister, so they pass through the client walk untouched;
+ *  - visibleWhen `@total` (manifest-form-logic) → resolved by
+ *    {@link module:utils/visibleWhen}'s own `evaluateVisibleWhen` /
+ *    `evaluateVisibleWhenLocal`, not by this generic subtree walk, so it
+ *    likewise passes through untouched.
  *
  * On top it adds the migration-window behaviour the vocabulary requires: a
  * one-time `console.warn` naming the canonical replacement whenever a
@@ -48,6 +52,7 @@ export const SENTINEL_RESOLVERS = Object.freeze({
 	workspace: 'resolveFilterTokens',
 	route: 'resolveRouteSentinels',
 	declarative: 'fetchAggregate (OpenRegister server-side)',
+	visibleWhen: 'evaluateVisibleWhen (utils/visibleWhen.js)',
 })
 
 /**
@@ -138,7 +143,7 @@ export function resolveManifestSubtree(value, opts = {}) {
 				// Still a raw token: unresolved unless it is a load-time / server-side
 				// context this render-pass deliberately leaves alone.
 				const c = contextOf(node)
-				if (c !== 'config' && c !== 'declarative') unresolved.push(node)
+				if (c !== 'config' && c !== 'declarative' && c !== 'visibleWhen') unresolved.push(node)
 			}
 			return resolved
 		}

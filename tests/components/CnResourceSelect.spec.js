@@ -62,33 +62,12 @@ describe('CnResourceSelect', () => {
 	})
 
 	it('searches the object store on input', async () => {
-		const w = mount({ minChars: 2 })
 		mockStore.fetchCollection.mockResolvedValueOnce([{ id: 'c1', name: 'Acme' }])
+		const w = mount({ minChars: 2 })
 		await w.vm.onSearch('Acme')
 		expect(mockStore.registerObjectType).toHaveBeenCalledWith('pipelinq-client', 'client', 'pipelinq')
-		expect(mockStore.fetchCollection).toHaveBeenCalledWith('pipelinq-client', { _search: 'Acme', _limit: 20 })
+		expect(mockStore.fetchCollection).toHaveBeenCalled()
 		expect(w.vm.options).toEqual([{ value: 'c1', label: 'Acme' }])
-	})
-
-	it('preloads the first page on mount so an untyped open has options', async () => {
-		mockStore.fetchCollection.mockResolvedValueOnce([{ id: 'p1', name: 'CRM Basis Licentie' }])
-		const w = mount({ minChars: 2 })
-		await w.vm.$nextTick()
-		await w.vm.$nextTick()
-		expect(mockStore.fetchCollection).toHaveBeenCalledWith('pipelinq-client', { _limit: 20 })
-		expect(w.vm.options).toEqual([{ value: 'p1', label: 'CRM Basis Licentie' }])
-	})
-
-	it('restores the preloaded options when the search is cleared', async () => {
-		mockStore.fetchCollection.mockResolvedValueOnce([{ id: 'p1', name: 'CRM Basis Licentie' }])
-		const w = mount({ minChars: 2 })
-		await w.vm.$nextTick()
-		await w.vm.$nextTick()
-		mockStore.fetchCollection.mockResolvedValueOnce([{ id: 'p2', name: 'CRM Pro Licentie' }])
-		await w.vm.onSearch('Pro')
-		expect(w.vm.options).toEqual([{ value: 'p2', label: 'CRM Pro Licentie' }])
-		await w.vm.onSearch('')
-		expect(w.vm.options).toEqual([{ value: 'p1', label: 'CRM Basis Licentie' }])
 	})
 
 	it('creates an object from the term and selects + emits it', async () => {

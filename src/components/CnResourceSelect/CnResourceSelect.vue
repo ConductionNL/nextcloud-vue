@@ -132,10 +132,6 @@ export default {
 			search: '',
 			loading: false,
 			options: [],
-			// The unfiltered first page of objects, shown when the dropdown opens
-			// before the user has typed anything — an empty picker on open reads
-			// as "you have no products" even when objects exist.
-			initialOptions: [],
 			// The selected option object kept locally so the label shows even
 			// before/without a matching search result (e.g. a pre-set modelValue).
 			localSelected: null,
@@ -191,10 +187,6 @@ export default {
 		},
 	},
 
-	mounted() {
-		this.loadInitialOptions()
-	},
-
 	methods: {
 		/**
 		 * The translated "Create 'X'" label for the synthetic option.
@@ -213,38 +205,10 @@ export default {
 		 * @param {string} term The search term from NcSelect.
 		 * @return {Promise<void>}
 		 */
-		/**
-		 * Preload the first page of objects so the dropdown has options before
-		 * the user types. Failures degrade to an empty initial list (the typed
-		 * search still works).
-		 *
-		 * @return {Promise<void>}
-		 */
-		async loadInitialOptions() {
-			if (!this.objectStore) return
-			this.loading = true
-			try {
-				this.ensureRegistered()
-				const collection = await this.objectStore.fetchCollection(this.typeSlug, { _limit: 20 })
-				const items = Array.isArray(collection)
-					? collection
-					: (this.objectStore.collections[this.typeSlug] || [])
-				this.initialOptions = items.map((o) => this.toOption(o))
-				// Only surface them if the user hasn't started a search meanwhile.
-				if (this.search.trim().length < this.minChars) {
-					this.options = this.initialOptions
-				}
-			} catch (e) {
-				this.initialOptions = []
-			} finally {
-				this.loading = false
-			}
-		},
-
 		async onSearch(term) {
 			this.search = term || ''
 			if (!this.objectStore || this.search.trim().length < this.minChars) {
-				this.options = this.initialOptions
+				this.options = []
 				return
 			}
 			this.loading = true
