@@ -32,7 +32,8 @@
 <template>
 	<div
 		class="cn-map-widget"
-		:style="{ height: resolvedHeight }">
+		:class="{ 'cn-map-widget--fullscreen': isFullscreen }"
+		:style="{ height: isFullscreen ? null : resolvedHeight }">
 		<div
 			v-if="leafletAvailable"
 			ref="mapEl"
@@ -77,6 +78,23 @@ import DOMPurify from 'dompurify'
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 
 const ALLOWED_LAYER_TYPES = ['tile', 'wms', 'wfs', 'geojson']
+
+// MDI paths for the custom control buttons, inlined so the widget carries no
+// icon-font dependency and renders identically inside a Leaflet control bar.
+const ICON_FIT = 'M9.5,13.09L10.91,14.5L6.41,19H10V21H3V14H5V17.59L9.5,13.09M10.91,9.5L9.5,10.91L5,6.41V10H3V3H10V5H6.41L10.91,9.5M14.5,13.09L19,17.59V14H21V21H14V19H17.59L13.09,14.5L14.5,13.09M13.09,9.5L17.59,5H14V3H21V10H19V6.41L14.5,10.91L13.09,9.5Z'
+const ICON_LOCATE = 'M12,8A4,4 0 0,0 8,12A4,4 0 0,0 12,16A4,4 0 0,0 16,12A4,4 0 0,0 12,8M3.05,13H1V11H3.05C3.5,6.83 6.83,3.5 11,3.05V1H13V3.05C17.17,3.5 20.5,6.83 20.95,11H23V13H20.95C20.5,17.17 17.17,20.5 13,20.95V23H11V20.95C6.83,20.5 3.5,17.17 3.05,13M12,5A7,7 0 0,0 5,12A7,7 0 0,0 12,19A7,7 0 0,0 19,12A7,7 0 0,0 12,5Z'
+const ICON_FULLSCREEN = 'M5,5H10V7H7V10H5V5M14,5H19V10H17V7H14V5M17,14H19V19H14V17H17V14M10,17V19H5V14H7V17H10Z'
+const ICON_FULLSCREEN_EXIT = 'M14,14H19V16H16V19H14V14M5,14H10V19H8V16H5V14M8,5H10V10H5V8H8V5M19,8V10H14V5H16V8H19Z'
+
+/**
+ * Wrap an MDI path in a 24x24 SVG sized for a Leaflet control button.
+ *
+ * @param {string} path The MDI `d` attribute.
+ * @return {string} SVG markup.
+ */
+function controlIcon(path) {
+	return `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="${path}" /></svg>`
+}
 
 /**
  * CnMapWidget — Leaflet wrapper for declarative manifest-driven maps.
@@ -188,6 +206,45 @@ export default {
 			default: true,
 		},
 		/**
+		 * Show the "fit all markers" control — re-centres and re-zooms the map so
+		 * every marker is back in view (the position the map opens at).
+		 * @type {boolean}
+		 */
+		fitControl: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Show the fullscreen toggle. Expands the widget to fill the viewport via a
+		 * CSS overlay, so it needs no Fullscreen-API permission prompt.
+		 * @type {boolean}
+		 */
+		fullscreenControl: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Show the "locate me" control, which centres the map on the visitor's own
+		 * position via the browser geolocation API. Warns (does not throw) if denied.
+		 * @type {boolean}
+		 */
+		locateControl: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Switchable base maps: `[{ name, url, attribution, options }]`. The first
+		 * entry is active on load and a layer switcher appears when more than one is
+		 * given. Supply these INSTEAD of a `tile` entry in `layers` for the background
+		 * map. Empty by default, so consumers that declare their background through
+		 * `layers` are unaffected.
+		 * @type {Array<object>}
+		 */
+		basemaps: {
+			type: Array,
+			default: () => [],
+		},
+		/**
 		 * Aria-label for the map application region.
 		 * @type {string}
 		 */
@@ -230,6 +287,13 @@ export default {
 			clusterGroup: null,
 			leafletAvailable: true,
 			boundsTimer: null,
+			// Controls / sizing
+			isFullscreen: false,
+			controlBar: null,
+			layersControl: null,
+			fullscreenButton: null,
+			resizeObserver: null,
+			resizeTimer: null,
 		}
 	},
 
@@ -279,6 +343,11 @@ export default {
 
 	beforeDestroy() {
 		clearTimeout(this.boundsTimer)
+		clearTimeout(this.resizeTimer)
+		if (this.resizeObserver) {
+			this.resizeObserver.disconnect()
+			this.resizeObserver = null
+		}
 		if (this.map) {
 			this.map.remove()
 			this.map = null
@@ -330,8 +399,31 @@ export default {
 				}, 100)
 			})
 
+			// Geolocation is best-effort — a denied permission or an insecure origin
+			// must not break the map, so just warn.
+			this.map.on('locationerror', (e) => {
+				// eslint-disable-next-line no-console
+				console.warn('[CnMapWidget] Geolocation unavailable', e && e.message)
+			})
+
 			this.renderLayers()
 			this.renderMarkers()
+			this.addControls()
+
+			// The container may grow (fill-height layouts) or start hidden behind a
+			// view toggle. Re-flow whenever its box actually changes — otherwise
+			// Leaflet keeps the stale size it measured at mount and the tiles and
+			// markers land in the wrong place.
+			if (typeof ResizeObserver !== 'undefined' && this.$refs.mapEl) {
+				this.resizeObserver = new ResizeObserver(() => {
+					clearTimeout(this.resizeTimer)
+					this.resizeTimer = setTimeout(() => {
+						if (this.map) this.map.invalidateSize()
+					}, 100)
+				})
+				this.resizeObserver.observe(this.$refs.mapEl)
+			}
+
 			/**
 			 * Map ready event. Fired once after Leaflet has loaded and the map is mounted.
 			 *
@@ -362,6 +454,12 @@ export default {
 				this.map.removeLayer(layer)
 			}
 			this.layerInstances = []
+			if (this.layersControl) {
+				this.map.removeControl(this.layersControl)
+				this.layersControl = null
+			}
+
+			this.renderBasemaps()
 
 			for (const def of this.layers) {
 				if (!def || typeof def !== 'object') continue
@@ -520,14 +618,132 @@ export default {
 			}
 
 			if (this.autoFit) {
-				const target = this.clusterGroup || layer
-				try {
-					const b = target.getBounds()
-					if (b.isValid()) this.map.fitBounds(b, { padding: [50, 50] })
-				} catch {
-					// ignore — empty layer set means no bounds to fit
-				}
+				// Wait a tick so the container has its final box — fill-height layouts
+				// and the hidden→visible view toggle both settle after render.
+				// fitToMarkers() then measures before it fits.
+				this.$nextTick(() => this.fitToMarkers())
 			}
+		},
+
+		/**
+		 * Mount the switchable base maps and, when more than one is configured, a
+		 * Leaflet layer switcher. Falls back to a single OpenStreetMap base map when
+		 * the consumer supplied neither `basemaps` nor a `tile` entry in `layers`, so
+		 * a map is never left with a blank background.
+		 */
+		renderBasemaps() {
+			const L = this.L
+			if (!this.map || !L || typeof L.tileLayer !== 'function') return
+
+			// Opt-in only. A consumer that configures its background through a `tile`
+			// entry in `layers` keeps exactly its existing behaviour, and an invalid
+			// layer config still renders no tiles rather than silently falling back.
+			const basemaps = (this.basemaps || []).filter((b) => b && typeof b.url === 'string' && b.url.length > 0)
+			if (basemaps.length === 0) return
+
+			const baseLayers = {}
+			basemaps.forEach((bm, index) => {
+				const opts = { ...(bm.options || {}) }
+				if (bm.attribution && !opts.attribution) opts.attribution = bm.attribution
+				const instance = L.tileLayer(bm.url, opts)
+				baseLayers[bm.name || `${index + 1}`] = instance
+				// Only the first base map is live on load; the switcher swaps in the rest.
+				if (index === 0) instance.addTo(this.map)
+				this.layerInstances.push(instance)
+			})
+
+			if (Object.keys(baseLayers).length > 1 && L.control && typeof L.control.layers === 'function') {
+				this.layersControl = L.control.layers(baseLayers, {}, { position: 'topright' })
+				this.layersControl.addTo(this.map)
+			}
+		},
+
+		/**
+		 * Mount the custom control bar (fit-all / locate / fullscreen). Leaflet's own
+		 * zoom + attribution controls are enabled separately in `initMap`.
+		 */
+		addControls() {
+			const L = this.L
+			// L.Control is absent from lightweight Leaflet stubs (tests); the map is
+			// still perfectly usable without the extra bar, so degrade quietly.
+			if (!this.map || !L || !L.Control || typeof L.Control.extend !== 'function') return
+
+			const buttons = []
+			if (this.fitControl) {
+				buttons.push({ key: 'fit', title: t('nextcloud-vue', 'Fit all markers'), icon: ICON_FIT, onClick: () => this.fitToMarkers() })
+			}
+			if (this.locateControl) {
+				buttons.push({ key: 'locate', title: t('nextcloud-vue', 'Show my location'), icon: ICON_LOCATE, onClick: () => this.locateMe() })
+			}
+			if (this.fullscreenControl) {
+				buttons.push({ key: 'fullscreen', title: t('nextcloud-vue', 'Toggle fullscreen'), icon: ICON_FULLSCREEN, onClick: () => this.toggleFullscreen() })
+			}
+			if (buttons.length === 0) return
+
+			const self = this
+			const ControlBar = L.Control.extend({
+				onAdd() {
+					const bar = L.DomUtil.create('div', 'leaflet-bar cn-map-widget__controls')
+					for (const button of buttons) {
+						const anchor = L.DomUtil.create('a', `cn-map-widget__control cn-map-widget__control--${button.key}`, bar)
+						anchor.href = '#'
+						anchor.title = button.title
+						anchor.setAttribute('role', 'button')
+						anchor.setAttribute('aria-label', button.title)
+						anchor.innerHTML = controlIcon(button.icon)
+						if (button.key === 'fullscreen') self.fullscreenButton = anchor
+						L.DomEvent.on(anchor, 'click', L.DomEvent.stop).on(anchor, 'click', button.onClick)
+					}
+					// Keep clicks / wheel on the bar from panning or zooming the map.
+					L.DomEvent.disableClickPropagation(bar)
+					L.DomEvent.disableScrollPropagation(bar)
+					return bar
+				},
+			})
+
+			this.controlBar = new ControlBar({ position: 'topleft' })
+			this.controlBar.addTo(this.map)
+		},
+
+		/**
+		 * Re-centre and re-zoom so every marker is back in view — the same frame
+		 * `autoFit` lands on at load. Public: consumers MAY call it through `$refs`.
+		 */
+		fitToMarkers() {
+			if (!this.map) return
+			const target = this.clusterGroup || this.markerLayer
+			if (!target) return
+			try {
+				const bounds = target.getBounds()
+				if (!bounds || !bounds.isValid()) return
+				// Measure first — a stale container size yields a wrong fit.
+				this.map.invalidateSize()
+				this.map.fitBounds(bounds, { padding: [50, 50] })
+			} catch {
+				// ignore — empty layer set means no bounds to fit
+			}
+		},
+
+		/**
+		 * Centre the map on the visitor's own position. Failures (denied permission,
+		 * insecure origin) surface via the `locationerror` handler in `initMap`.
+		 */
+		locateMe() {
+			if (!this.map || typeof this.map.locate !== 'function') return
+			this.map.locate({ setView: true, maxZoom: 16 })
+		},
+
+		/**
+		 * Toggle the CSS fullscreen overlay and re-flow Leaflet into the new box.
+		 */
+		toggleFullscreen() {
+			this.isFullscreen = !this.isFullscreen
+			if (this.fullscreenButton) {
+				this.fullscreenButton.innerHTML = controlIcon(this.isFullscreen ? ICON_FULLSCREEN_EXIT : ICON_FULLSCREEN)
+			}
+			this.$nextTick(() => {
+				if (this.map) this.map.invalidateSize()
+			})
 		},
 
 		/**
@@ -630,5 +846,35 @@ export default {
 	padding: 8px 12px;
 	border-radius: var(--border-radius-large, 8px);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+}
+
+/* Fullscreen overlay. A CSS-fixed box rather than the Fullscreen API, so it needs
+   no permission prompt; the z-index clears the Nextcloud header. */
+.cn-map-widget--fullscreen {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	z-index: 3000;
+}
+
+/* Custom control bar (fit / locate / fullscreen), themed to Nextcloud rather than
+   Leaflet's default white-on-grey buttons.
+   ::v-deep is required — Leaflet builds the control DOM via L.DomUtil.create, so
+   those nodes never receive this SFC's scoped data-v attribute. */
+.cn-map-widget ::v-deep .cn-map-widget__control {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	color: var(--color-main-text);
+	background: var(--color-main-background);
+}
+
+.cn-map-widget ::v-deep .cn-map-widget__control:hover,
+.cn-map-widget ::v-deep .cn-map-widget__control:focus-visible {
+	background: var(--color-background-hover);
 }
 </style>

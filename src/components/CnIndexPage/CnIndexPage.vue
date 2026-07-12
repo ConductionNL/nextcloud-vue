@@ -243,7 +243,9 @@
 					@create="$emit('folder-create', $event)" />
 			</div>
 
-			<div class="cn-index-page__main">
+			<div
+				class="cn-index-page__main"
+				:class="{ 'cn-index-page__main--map': currentViewMode === 'map' }">
 				<!-- Loading state -->
 				<div v-if="effectiveLoading" class="cn-index-page__loading">
 					<!-- name gives NcLoadingIcon a non-empty aria-label (WCAG role-img-alt); empty name ships an unlabeled role="img" -->
@@ -356,8 +358,10 @@
 					class="cn-index-page__map"
 					:center="mapCenter"
 					:layers="mapLayers"
+					:basemaps="mapBasemaps"
 					:markers="mapMarkers"
 					:auto-fit="true"
+					height="100%"
 					@marker-click="onMarkerClick" />
 
 				<!-- List view -->
@@ -509,6 +513,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcActions, NcActionCaption, NcActionCheckbox, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import { getCurrentInstance, inject } from 'vue'
@@ -1725,24 +1730,57 @@ export default {
 		},
 
 		/**
+		 * Extra (non-background) map layers — WMS / WFS / GeoJSON overlays declared in
+		 * `mapConfig.layers`. The background map comes from `mapBasemaps` instead, so
+		 * this is empty unless the consumer configured overlays.
+		 *
+		 * @return {Array<object>}
+		 */
+		mapLayers() {
+			if (Array.isArray(this.mapConfig.layers) && this.mapConfig.layers.length > 0) {
+				return this.mapConfig.layers
+			}
+			return []
+		},
+
+		/**
+		 * Switchable background maps. Consumers MAY override the set via
+		 * `mapConfig.basemaps`; otherwise an OpenStreetMap-family selection is offered
+		 * and CnMapWidget renders a layer switcher for it.
+		 *
+		 * @return {Array<object>}
+		 */
+		mapBasemaps() {
+			if (Array.isArray(this.mapConfig.basemaps) && this.mapConfig.basemaps.length > 0) {
+				return this.mapConfig.basemaps
+			}
+			return [
+				{
+					name: t('nextcloud-vue', 'Standard'),
+					url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+					attribution: '© OpenStreetMap contributors',
+				},
+				{
+					name: t('nextcloud-vue', 'Humanitarian'),
+					url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+					attribution: '© OpenStreetMap contributors, tiles by HOT',
+				},
+				{
+					name: t('nextcloud-vue', 'Terrain'),
+					url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+					attribution: '© OpenStreetMap contributors, SRTM | © OpenTopoMap',
+				},
+			]
+		},
+
+		/**
 		 * Initial map centre `[lat, lng]`. Uses the centroid of the plotted markers
 		 * when any exist (CnMapWidget's autoFit then tightens to the bounds); falls
 		 * back to `mapConfig.center`, then a neutral world view when the set is empty.
 		 *
 		 * @return {[number, number]}
 		 */
-		mapLayers() {
-				if (Array.isArray(this.mapConfig.layers) && this.mapConfig.layers.length > 0) {
-					return this.mapConfig.layers
-				}
-				return [{
-					type: 'tile',
-					url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-					attribution: '© OpenStreetMap contributors',
-				}]
-			},
-
-			mapCenter() {
+		mapCenter() {
 			const feats = this.mapMarkers.features
 			if (feats.length > 0) {
 				let sumLat = 0
