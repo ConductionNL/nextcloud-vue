@@ -11,14 +11,22 @@ module.exports = {
 	moduleNameMapper: {
 		'^@/(.*)$': '<rootDir>/src/$1',
 		'\\.(css)$': 'jest-transform-stub',
+		'^@toast-ui/vue-editor$': '<rootDir>/tests/__mocks__/toast-ui-vue-editor.js',
+		'^@mdi/js$': '<rootDir>/tests/__mocks__/mdi-js.js',
 		'^vue-codemirror6$': '<rootDir>/tests/__mocks__/vue-codemirror6.js',
 		'^@codemirror/lang-json$': '<rootDir>/tests/__mocks__/codemirror-lang-json.js',
 		'^@codemirror/lang-xml$': '<rootDir>/tests/__mocks__/codemirror-lang-xml.js',
 		'^@codemirror/lang-html$': '<rootDir>/tests/__mocks__/codemirror-lang-html.js',
 		'^@nextcloud/vue$': '<rootDir>/tests/__mocks__/nextcloud-vue.js',
 		'^@nextcloud/axios$': '<rootDir>/tests/__mocks__/nextcloud-axios.js',
+		'^@nextcloud/password-confirmation$': '<rootDir>/tests/__mocks__/nextcloud-password-confirmation.js',
 		'^@microsoft/fetch-event-source$': '<rootDir>/tests/__mocks__/fetch-event-source.js',
 		'^@nextcloud/notify_push$': '<rootDir>/tests/__mocks__/nextcloud-notify-push.js',
+		// `@nextcloud/dialogs`' CJS build requires the ESM-only `@nextcloud/paths`
+		// (no `require` export condition) — Jest can't resolve it. Stub the two
+		// toast helpers actually used in src/ so any test pulling in the full
+		// library barrel (src/index.js → CnAdminSettingsShell → dialogs) works.
+		'^@nextcloud/dialogs$': '<rootDir>/tests/__mocks__/nextcloud-dialogs.js',
 		'^@vueuse/core$': '<rootDir>/tests/__mocks__/vueuse-core.js',
 		// Global vue-apexcharts stub — the real module's apexcharts renderer
 		// throws in jsdom, and specs that import CnChartWidget transitively

@@ -35,7 +35,9 @@ import { isSvgPath } from '../../utils/iconUtils.js'
  *
  *   - null / '' / unknown → the default registry icon component
  *   - registry key (e.g. 'Star') → that MDI component
- *   - URL (starts with '/' or 'http') → an `<img>` tag
+ *   - URL (starts with '/', 'http', or 'data:') → an `<img>` tag. The bundled
+ *     NL-government sets emit self-contained `data:image/svg+xml` URIs, so an
+ *     icon picked from them renders here without its catalogue being present.
  *   - SVG path string (e.g. from CnIconBrowser) → an inline `<svg>`
  *
  * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md

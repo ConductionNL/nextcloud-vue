@@ -18,6 +18,10 @@ export { CnAdminSettingsShell } from './CnAdminSettingsShell/index.js'
 export { CnCellRenderer } from './CnCellRenderer/index.js'
 export { CnObjectCard } from './CnObjectCard/index.js'
 export { CnCardGrid } from './CnCardGrid/index.js'
+export { CnObjectRow } from './CnObjectRow/index.js'
+export { CnObjectList } from './CnObjectList/index.js'
+export { CnFolderTree } from './CnFolderTree/index.js'
+export { CnFolderSidebar, fetchWebdavFolderTree } from './CnFolderSidebar/index.js'
 export { CnFacetSidebar } from './CnFacetSidebar/index.js'
 export { CnFederationStatus } from './CnFederationStatus/index.js'
 export { CnRowActions } from './CnRowActions/index.js'
@@ -99,7 +103,7 @@ export { CnDetailGrid } from './CnDetailGrid/index.js'
 export { CnProgressBar } from './CnProgressBar/index.js'
 export { CnChartWidget } from './CnChartWidget/index.js'
 // Dashboard widget library (v2) — renderers + their config forms. Consumed by
-// MyDash/LaunchPad's widget registry; data-driven widgets take a dataSource /
+// LaunchPad's widget registry; data-driven widgets take a dataSource /
 // cn*Source injection or *Endpoint builder so they stay app-agnostic.
 export { CnLabelWidget } from './CnLabelWidget/index.js'
 export { CnLabelWidgetForm } from './CnLabelWidgetForm/index.js'
@@ -142,7 +146,7 @@ export { CnStatsBlockWidget } from './CnStatsBlockWidget/index.js'
 // Analytics widget library — OpenRegister-data-driven renderers + their config
 // forms (KPI/delta/gauge/object-list/chart/stats-card/table). Each renderer
 // fetches its own OR aggregate at runtime via generateUrl; the forms self-fetch
-// schema properties. Consumed by MyDash/LaunchPad's widget registry.
+// schema properties. Consumed by LaunchPad's widget registry.
 export { CnStatWidget } from './CnStatWidget/index.js'
 export { CnStatWidgetForm } from './CnStatWidgetForm/index.js'
 export { CnDeltaWidget } from './CnDeltaWidget/index.js'
@@ -162,6 +166,7 @@ export { CnObjectDataWidget } from './CnObjectDataWidget/index.js'
 export { CnObjectMetadataWidget } from './CnObjectMetadataWidget/index.js'
 export { CnObjectMetadataModal } from './CnObjectMetadataModal/index.js'
 export { CnRelatedObjectsWidget } from './CnRelatedObjectsWidget/index.js'
+export { CnObjectGeoWidget } from './CnObjectGeoWidget/index.js'
 export { CnLogsPage } from './CnLogsPage/index.js'
 export { CnSettingsPage } from './CnSettingsPage/index.js'
 export { CnChatPage } from './CnChatPage/index.js'

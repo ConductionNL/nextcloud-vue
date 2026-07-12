@@ -358,7 +358,7 @@ export default {
 		},
 
 		/**
-		 * Set a link's icon from the compact CnIconPicker and re-emit.
+		 * Set a link's icon from the CnIconBrowser and re-emit.
 		 *
 		 * @param {object} link the link row.
 		 * @param {string|null} value the chosen icon key/URL.

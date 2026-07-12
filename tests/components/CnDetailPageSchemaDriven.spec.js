@@ -122,17 +122,21 @@ describe('CnDetailPage — schema-driven mode', () => {
 			expect(store.fetchObject).toHaveBeenCalledWith('openbuilt-application', 'a-1')
 		})
 
-		it('skips the fetch path when only register+schema are set (missing objectId)', () => {
+		it('enters create mode (schema only, no object fetch) when register+schema are set without objectId', () => {
 			const store = makeFakeStore()
-			mount(CnDetailPage, {
+			const w = mount(CnDetailPage, {
 				propsData: {
 					register: 'r',
 					schema: 's',
 					objectStore: store,
 				},
 			})
-			expect(store.registerObjectType).not.toHaveBeenCalled()
+			// Create archetype (item 10): no object id → no object fetch, but the
+			// schema IS fetched so the inline create form can render.
+			expect(w.vm.isCreateMode).toBe(true)
 			expect(store.fetchObject).not.toHaveBeenCalled()
+			expect(store.registerObjectType).toHaveBeenCalledTimes(1)
+			expect(store.fetchSchema).toHaveBeenCalledWith('r-s')
 		})
 
 		it('refetches when objectId changes', async () => {

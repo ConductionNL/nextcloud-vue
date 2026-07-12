@@ -29,10 +29,19 @@
     A "Personal settings" entry is auto-prepended at the top of the
     foldout (opens the host app's NcAppSettingsDialog via
     cnOpenUserSettings); opt out with `nav.includePersonalSettings:
-    false`. The foldout mounts whenever there are settings items OR
-    personal settings is enabled — so every app shows a Settings gear
-    with at least Personal settings. It is only fully suppressed when
-    there are no settings items AND `nav.includePersonalSettings: false`.
+    false`. Right below it, an "Admin settings" entry is auto-prepended
+    for app OWNERS only — gated on the `isOwner` prop (computed by
+    CnAppRoot from `currentUserGroups` ∩ `permissions.owners`, and/or a
+    manifest `runtime.user` owner signal; NOT `OC.isUserAdmin()`) AND on
+    the manifest declaring at least one `adminSettings[]` entry. It
+    opens the host app's SEPARATE admin-settings NcAppSettingsDialog via
+    cnOpenAdminSettings — see CnAppRoot; this is where app-level, not
+    per-user, configuration such as the organisation credential broker
+    lives, rendered generically from `manifest.adminSettings[]`. The
+    foldout mounts whenever there are settings items OR personal
+    settings is enabled — so every app shows a Settings gear with at
+    least Personal settings. It is only fully suppressed when there are
+    no settings items AND `nav.includePersonalSettings: false`.
 
   Manifest and translate are injected from CnAppRoot by default but can
   also be passed as props for standalone use without CnAppRoot. Props
@@ -42,6 +51,8 @@
   setting `action` on the manifest entry. Supported keywords:
   `"user-settings"` invokes the `cnOpenUserSettings` provide-injected
   by CnAppRoot, which opens the host app's NcAppSettingsDialog modal;
+  `"admin-settings"` invokes `cnOpenAdminSettings`, which opens the
+  host app's admin-settings NcAppSettingsDialog;
   `"replay-walkthrough"` invokes `cnReplayWalkthrough` (optionally
   with the item's `tourId`) to re-run the product walkthrough from
   the first step (ADR-043). Both `route` and `href` are ignored when
@@ -101,8 +112,9 @@
 					:data-cn-route="item.route"
 					@update:open="setItemOpen(item, $event)"
 					@click="onItemClick(item, $event)">
-					<template v-if="mdiIconComponent(item)" #icon>
-						<component :is="mdiIconComponent(item)" :size="20" />
+					<template v-if="mdiIconComponent(item) || isRichIcon(item)" #icon>
+						<component :is="mdiIconComponent(item)" v-if="mdiIconComponent(item)" :size="20" />
+						<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 					</template>
 					<template v-if="resolveCount(item)" #counter>
 						<NcCounterBubble
@@ -164,8 +176,9 @@
 					:data-testid="`cn-nav-entry-${item.id}`"
 					:data-cn-route="item.route"
 					@click="onItemClick(item, $event)">
-					<template v-if="mdiIconComponent(item)" #icon>
-						<component :is="mdiIconComponent(item)" :size="20" />
+					<template v-if="mdiIconComponent(item) || isRichIcon(item)" #icon>
+						<component :is="mdiIconComponent(item)" v-if="mdiIconComponent(item)" :size="20" />
+						<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 					</template>
 					<template v-if="resolveCount(item)" #counter>
 						<NcCounterBubble
@@ -192,6 +205,35 @@
 							<Cog :size="20" />
 						</template>
 					</NcAppNavigationItem>
+					<NcAppNavigationItem
+						v-if="roadmapEntry"
+						:name="roadmapEntry.label"
+						:to="roadmapEntry.to"
+						:href="roadmapEntry.href"
+						data-testid="cn-nav-roadmap">
+						<template #icon>
+							<MapMarkerPath :size="20" />
+						</template>
+					</NcAppNavigationItem>
+					<NcAppNavigationItem
+						v-if="documentationEntry"
+						:name="documentationEntry.label"
+						:href="documentationEntry.href"
+						target="_blank"
+						data-testid="cn-nav-documentation">
+						<template #icon>
+							<BookOpenVariant :size="20" />
+						</template>
+					</NcAppNavigationItem>
+					<NcAppNavigationItem
+						v-if="isOwner && hasAdminSettings"
+						:name="adminSettingsLabel"
+						data-testid="cn-nav-admin-settings"
+						@click="onAdminSettingsClick">
+						<template #icon>
+							<ShieldAccountOutline :size="20" />
+						</template>
+					</NcAppNavigationItem>
 					<template v-for="item in settingsItems">
 						<NcAppNavigationCaption
 							v-if="isCaption(item)"
@@ -209,8 +251,9 @@
 							:active="isActive(item)"
 							:data-testid="`cn-nav-entry-${item.id}`"
 							@click="onItemClick(item, $event)">
-							<template v-if="mdiIconComponent(item)" #icon>
-								<component :is="mdiIconComponent(item)" :size="20" />
+							<template v-if="mdiIconComponent(item) || isRichIcon(item)" #icon>
+								<component :is="mdiIconComponent(item)" v-if="mdiIconComponent(item)" :size="20" />
+								<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 							</template>
 							<template v-if="resolveCount(item)" #counter>
 								<NcCounterBubble
@@ -229,8 +272,14 @@
 import { NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationNew, NcAppNavigationSettings, NcCounterBubble } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import MapMarkerPath from 'vue-material-design-icons/MapMarkerPath.vue'
+import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
+import ShieldAccountOutline from 'vue-material-design-icons/ShieldAccountOutline.vue'
 import { translate as t } from '@nextcloud/l10n'
 import { ICON_MAP } from '../CnIcon/CnIcon.vue'
+import CnMenuItemIcon from '../CnMenuWidget/CnMenuItemIcon.vue'
+import { isCustomIconUrl } from '../CnWidgetGrid/widgetIcons.js'
+import { isSvgPath } from '../../utils/iconUtils.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 
@@ -242,85 +291,139 @@ import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 import Account from 'vue-material-design-icons/Account.vue'
 import AccountBox from 'vue-material-design-icons/AccountBox.vue'
 import AccountGroup from 'vue-material-design-icons/AccountGroup.vue'
+import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import BellOutline from 'vue-material-design-icons/BellOutline.vue'
+import BriefcaseOutline from 'vue-material-design-icons/BriefcaseOutline.vue'
 import Calendar from 'vue-material-design-icons/Calendar.vue'
 import ChartLine from 'vue-material-design-icons/ChartLine.vue'
 import Check from 'vue-material-design-icons/Check.vue'
+import ClipboardOutline from 'vue-material-design-icons/ClipboardOutline.vue'
+import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import CommentOutline from 'vue-material-design-icons/CommentOutline.vue'
+import Connection from 'vue-material-design-icons/Connection.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import Domain from 'vue-material-design-icons/Domain.vue'
 import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import Download from 'vue-material-design-icons/Download.vue'
 import Earth from 'vue-material-design-icons/Earth.vue'
 import Email from 'vue-material-design-icons/Email.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
+import FileDocumentOutline from 'vue-material-design-icons/FileDocumentOutline.vue'
 import FileMultiple from 'vue-material-design-icons/FileMultiple.vue'
+import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import Folder from 'vue-material-design-icons/Folder.vue'
+import FolderAccountOutline from 'vue-material-design-icons/FolderAccountOutline.vue'
 import FolderMultiple from 'vue-material-design-icons/FolderMultiple.vue'
+import FilterVariant from 'vue-material-design-icons/FilterVariant.vue'
 import FormatListBulleted from 'vue-material-design-icons/FormatListBulleted.vue'
+import Forum from 'vue-material-design-icons/Forum.vue'
+import Gauge from 'vue-material-design-icons/Gauge.vue'
 import History from 'vue-material-design-icons/History.vue'
 import Home from 'vue-material-design-icons/Home.vue'
 import Image from 'vue-material-design-icons/Image.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import Lock from 'vue-material-design-icons/Lock.vue'
 import Magnify from 'vue-material-design-icons/Magnify.vue'
 import MapMarker from 'vue-material-design-icons/MapMarker.vue'
 import OfficeBuilding from 'vue-material-design-icons/OfficeBuilding.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
+import PackageVariantClosed from 'vue-material-design-icons/PackageVariantClosed.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Phone from 'vue-material-design-icons/Phone.vue'
 import PlayCircleOutline from 'vue-material-design-icons/PlayCircleOutline.vue'
+import Pulse from 'vue-material-design-icons/Pulse.vue'
+import RenameBox from 'vue-material-design-icons/RenameBox.vue'
 import Sitemap from 'vue-material-design-icons/Sitemap.vue'
 import ShareVariant from 'vue-material-design-icons/ShareVariant.vue'
 import Star from 'vue-material-design-icons/Star.vue'
 import Tag from 'vue-material-design-icons/Tag.vue'
 import Tune from 'vue-material-design-icons/Tune.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
+import Video from 'vue-material-design-icons/Video.vue'
 import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
+import ViewGridOutline from 'vue-material-design-icons/ViewGridOutline.vue'
+import VolumeHigh from 'vue-material-design-icons/VolumeHigh.vue'
 
 /**
  * Maps Nextcloud core `icon-*` CSS class names to a monochrome MDI component.
  * Lets a manifest keep using the familiar NC class names while the nav renders
- * every glyph in the current text colour. Names not listed here fall through to
- * the CSS-class path (still fine for the many NC icons that ship monochrome).
- * Variant suffixes (`-dark` / `-white`) are stripped before lookup.
+ * every glyph in the current text colour.
+ *
+ * IMPORTANT: unlisted names fall through to the raw NC CSS-class path, and that
+ * is NOT safe on NC34+ under a light theme — several legacy `icon-*` classes now
+ * ship a baked white/grey background-image data-URI (e.g. `icon-category-organization`
+ * and `icon-error` render pure white → invisible on a light nav). So every
+ * `icon-*` offered in the CnMenuTreeNode picker (see nextcloudIcons.js) MUST have
+ * a bridge entry here; keep the two lists in sync. Variant suffixes (`-dark` /
+ * `-white`) are stripped before lookup.
  */
 const CSS_ICON_TO_MDI = {
+	'icon-activity': Pulse,
 	'icon-add': Plus,
 	'icon-address': MapMarker,
 	'icon-calendar': Calendar,
+	'icon-category-app-bundles': PackageVariantClosed,
 	'icon-category-customization': Tune,
 	'icon-category-dashboard': ViewDashboard,
 	'icon-category-files': FolderMultiple,
+	'icon-category-integration': Connection,
 	'icon-category-monitoring': ChartLine,
 	'icon-category-office': OfficeBuilding,
+	'icon-category-organization': Domain,
 	'icon-category-workflow': Sitemap,
 	'icon-checkmark': Check,
+	'icon-clippy': ClipboardOutline,
+	'icon-clock': ClockOutline,
 	'icon-close': Close,
 	'icon-comment': CommentOutline,
 	'icon-contacts': AccountBox,
+	'icon-dashboard': ViewDashboard,
 	'icon-delete': Delete,
 	'icon-details': InformationOutline,
 	'icon-download': Download,
 	'icon-edit': Pencil,
+	'icon-error': AlertCircleOutline,
+	'icon-external': OpenInNew,
+	'icon-file': FileOutline,
 	'icon-files': FileMultiple,
+	'icon-filetype-text': FileDocumentOutline,
+	'icon-filter': FilterVariant,
 	'icon-folder': Folder,
+	'icon-folder-shared': FolderAccountOutline,
 	'icon-group': AccountGroup,
 	'icon-history': History,
 	'icon-home': Home,
 	'icon-info': InformationOutline,
 	'icon-link': LinkVariant,
+	'icon-lock': Lock,
 	'icon-mail': Email,
 	'icon-more': DotsHorizontal,
+	'icon-notifications': BellOutline,
+	'icon-password': Lock,
+	'icon-phone': Phone,
 	'icon-picture': Image,
 	'icon-play': PlayCircleOutline,
+	'icon-projects': BriefcaseOutline,
+	'icon-public': Earth,
+	'icon-quota': Gauge,
+	'icon-rename': RenameBox,
 	'icon-search': Magnify,
 	'icon-settings': Cog,
+	'icon-share': ShareVariant,
 	'icon-shared': ShareVariant,
+	'icon-sound': VolumeHigh,
 	'icon-star': Star,
 	'icon-tag': Tag,
+	'icon-talk': Forum,
 	'icon-timezone': Earth,
 	'icon-toggle': Eye,
 	'icon-toggle-filelist': FormatListBulleted,
+	'icon-toggle-pictures': ViewGridOutline,
 	'icon-upload': Upload,
 	'icon-user': Account,
+	'icon-video': Video,
 }
 
 /**
@@ -344,7 +447,11 @@ export default {
 		NcAppNavigationNew,
 		NcAppNavigationSettings,
 		NcCounterBubble,
+		CnMenuItemIcon,
 		Cog,
+		ShieldAccountOutline,
+		MapMarkerPath,
+		BookOpenVariant,
 	},
 
 	inject: {
@@ -358,6 +465,15 @@ export default {
 		 * throwing.
 		 */
 		cnOpenUserSettings: { default: () => () => {} },
+		/**
+		 * Provided by CnAppRoot — opens the host app's admin-settings
+		 * NcAppSettingsDialog (the app-level, not per-user, surface
+		 * that hosts the organisation credential broker). Defaults to
+		 * a no-op so CnAppNav is still usable when mounted outside a
+		 * CnAppRoot ancestor; the click silently does nothing in that
+		 * case rather than throwing.
+		 */
+		cnOpenAdminSettings: { default: () => () => {} },
 		/**
 		 * Provided by CnAppRoot — restarts the product walkthrough (ADR-043)
 		 * from the first step. Bound to menu entries declaring
@@ -410,6 +526,22 @@ export default {
 		permissions: {
 			type: Array,
 			default: () => [],
+		},
+		/**
+		 * Whether the current user is an OWNER of this app
+		 * (admin-settings-owner-gating capability). Computed by CnAppRoot
+		 * from `currentUserGroups` ∩ `permissions.owners` and/or a manifest
+		 * `runtime.user` owner signal — deliberately NOT `OC.isUserAdmin()`.
+		 * Gates the auto-included "Admin settings" entry together with
+		 * `hasAdminSettings`. Defaults to `false` so CnAppNav mounted
+		 * standalone (without a CnAppRoot ancestor computing the value)
+		 * never shows the entry.
+		 *
+		 * @type {boolean}
+		 */
+		isOwner: {
+			type: Boolean,
+			default: false,
 		},
 	},
 
@@ -527,6 +659,7 @@ export default {
 		 */
 		showSettingsFoldout() {
 			return this.settingsItems.length > 0 || this.includePersonalSettings
+				|| this.roadmapEntry !== null || this.documentationEntry !== null
 		},
 		/**
 		 * Whether to auto-prepend the "Personal settings" entry at the top
@@ -560,6 +693,60 @@ export default {
 		 */
 		personalSettingsLabel() {
 			return t('nextcloud-vue', 'Personal settings')
+		},
+		/**
+		 * Optional "Features & roadmap" foldout entry. Enabled via
+		 * `nav.includeRoadmap`; `nav.roadmapUrl` is treated as an external link
+		 * when it looks like a URL, otherwise as an in-app router target.
+		 *
+		 * @return {{label: string, to: (string|null), href: (string|null)}|null}
+		 */
+		roadmapEntry() {
+			const nav = this.effectiveManifest?.nav
+			if (!nav || nav.includeRoadmap !== true) return null
+			const label = (typeof nav.roadmapLabel === 'string' && nav.roadmapLabel)
+				? this.effectiveTranslate(nav.roadmapLabel)
+				: t('nextcloud-vue', 'Features & roadmap')
+			const target = typeof nav.roadmapUrl === 'string' ? nav.roadmapUrl.trim() : ''
+			const external = /^(https?:)?\/\//.test(target)
+			return { label, to: (target && !external) ? target : null, href: external ? target : null }
+		},
+		/**
+		 * Optional "Documentation" foldout entry. Enabled via
+		 * `nav.includeDocumentation`; always an external link (`nav.documentationUrl`).
+		 *
+		 * @return {{label: string, href: string}|null}
+		 */
+		documentationEntry() {
+			const nav = this.effectiveManifest?.nav
+			if (!nav || nav.includeDocumentation !== true) return null
+			const target = typeof nav.documentationUrl === 'string' ? nav.documentationUrl.trim() : ''
+			if (!target) return null
+			const label = (typeof nav.documentationLabel === 'string' && nav.documentationLabel)
+				? this.effectiveTranslate(nav.documentationLabel)
+				: t('nextcloud-vue', 'Documentation')
+			return { label, href: target }
+		},
+		/**
+		 * Label for the auto-prepended Admin-settings entry.
+		 *
+		 * @return {string}
+		 */
+		adminSettingsLabel() {
+			return t('nextcloud-vue', 'Admin settings')
+		},
+		/**
+		 * Whether the manifest declares any `adminSettings` entries. Gates
+		 * the auto-included "Admin settings" nav entry together with
+		 * `isOwner` — an app with no (or empty) `adminSettings` shows no
+		 * admin nav entry at all, even for an owner (manifest-admin-settings
+		 * D4 backward-compat).
+		 *
+		 * @return {boolean}
+		 */
+		hasAdminSettings() {
+			const adminSettings = this.effectiveManifest?.adminSettings
+			return Array.isArray(adminSettings) && adminSettings.length > 0
 		},
 		/**
 		 * Route name of the menu item that best matches the current route.
@@ -617,6 +804,25 @@ export default {
 			if (typeof icon !== 'string' || icon.length === 0) return null
 			if (icon.startsWith('icon-')) return bridgedMdiForCssIcon(icon) || null
 			return ICON_MAP[icon] || null
+		},
+		/**
+		 * Whether the item's icon is a raw SVG path or an image URL (incl. the
+		 * `data:` URIs the bundled NL-government sets emit) — neither of which is a
+		 * component, so `ICON_MAP` can't resolve it and the `#icon` slot must
+		 * render it through CnMenuItemIcon instead.
+		 *
+		 * Without this, an icon picked from CnIconBrowser's Gemeente / Den Haag /
+		 * RVO tabs would simply not appear in the navigation.
+		 *
+		 * @param {{ icon?: string }} item Menu item descriptor.
+		 * @return {boolean} true for path/URL icons.
+		 */
+		isRichIcon(item) {
+			const icon = item?.icon
+			if (typeof icon !== 'string' || icon.length === 0 || icon.startsWith('icon-')) {
+				return false
+			}
+			return isCustomIconUrl(icon) || isSvgPath(icon)
 		},
 		/**
 		 * Pass-through for the `:icon` prop on NcAppNavigationItem when
@@ -905,7 +1111,9 @@ export default {
 		 * Click handler. Dispatch order: action keyword → group toggle.
 		 * For `action: "user-settings"` invokes the injected
 		 * `cnOpenUserSettings` (provided by CnAppRoot) and prevents
-		 * default; for `action: "replay-walkthrough"` invokes the injected
+		 * default; for `action: "admin-settings"` invokes the injected
+		 * `cnOpenAdminSettings` and prevents default; for `action:
+		 * "replay-walkthrough"` invokes the injected
 		 * `cnReplayWalkthrough(item.tourId)` and prevents default. `href`
 		 * items are NOT handled here — they render a real anchor via
 		 * `itemHref`, so the browser navigates natively (external URLs open
@@ -925,6 +1133,13 @@ export default {
 					event.preventDefault()
 				}
 				this.cnOpenUserSettings()
+				return
+			}
+			if (item.action === 'admin-settings') {
+				if (event && typeof event.preventDefault === 'function') {
+					event.preventDefault()
+				}
+				this.cnOpenAdminSettings()
 				return
 			}
 			if (item.action === 'replay-walkthrough') {
@@ -951,6 +1166,18 @@ export default {
 		 */
 		onPersonalSettingsClick() {
 			this.cnOpenUserSettings()
+		},
+		/**
+		 * Click handler for the auto-prepended Admin-settings entry in the
+		 * settings foldout (visible only when `isOwner && hasAdminSettings`
+		 * is true). Invokes the injected `cnOpenAdminSettings` (provided by
+		 * CnAppRoot → opens the host's admin-settings NcAppSettingsDialog).
+		 * No-op inject when mounted standalone.
+		 *
+		 * @return {void}
+		 */
+		onAdminSettingsClick() {
+			this.cnOpenAdminSettings()
 		},
 		/**
 		 * Click handler for the manifest-declared primary action. Emits

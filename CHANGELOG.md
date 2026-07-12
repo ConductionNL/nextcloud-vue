@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- `CnAppRoot` `dataSourcesLoader` prop — an async `() => ({ registers })` re-invoked every time a pages-editor modal opens, so a register or schema created after app boot appears without a page reload. Feeds a stable reactive `cnDataSourcesState` holder (provided **by reference** and mutated in place, so the one-shot `provide()` still observes updates) plus a provided `cnRefreshDataSources()` action that de-dupes concurrent refreshes and keeps the last good list on failure. The existing `dataSources` prop and `cnDataSources` provide key are unchanged — a consumer passing only the snapshot, or neither prop, behaves exactly as before
+- Pages-editor Register/Schema selects now show a loading state while a refresh is in flight, and render an error notice with a Retry control when the fetch fails, so a failed load is no longer indistinguishable from "no schemas exist"
+- `useAppInstaller` composable — one-click "Install and enable" for missing app dependencies via Nextcloud's own store endpoint (NC34+ `appstore` OCS API with strict password confirmation; legacy `/settings/apps/enable` fallback for ≤NC33)
+- Admin-aware install/enable buttons on `CnDependencyMissing` and the `CnAppRoot` or-missing guard; non-admins get "ask your administrator" copy instead of a dead-end settings link
+- HARD vs SOFT dependency model: manifest `dependencies` entries may now be objects `{ id, required, name }` — `required: false` marks an optional dependency that no longer blocks the app shell and instead shows a dismissible in-shell notice (dismissal persisted per app+dependency); plain string entries stay hard/blocking (fully backward-compatible, schemas v1 1.8.0 / v2 2.18.0)
+
+### Fixed
+- Pages editor showed a **stale** Register/Schema list: `provide()` runs once, so the `dataSources` snapshot captured at app boot could never reflect anything created afterwards, and the dropdown stayed wrong until a full page reload. Adopt `dataSourcesLoader` to fix (see Added)
+- Removed a `node_modules` symlink accidentally committed to `beta`, pointing at an absolute path on one machine — it broke fresh clones and CI checkouts. It slipped past `.gitignore` because the pattern was `node_modules/`, and a trailing slash matches only directories while a symlink is a file to git
+- `CnFormPage` — added the missing `@event step` and `@slot actions` / `@slot submit` JSDoc (styleguide docs were incomplete)
+- `CnAppRoot` or-missing guard rendered raw `app-availability.*` i18n keys — English defaults now render when no translation is provided
+- Unified the two overlapping user-picker widget paths on `user-select`; native Nextcloud user picker now renders for single-user fields
+- `CnEditDataModal` register/schema cache can now be reset (`invalidateDataCache` exported)
+
 ## [1.0.0]
 
 This is a major release. The library grew from 57 to 148 exported symbols and introduced a full manifest-driven app shell, a pluggable integration registry, and a comprehensive security layer. Apps on `0.1.0-beta.x` can upgrade without changing template code — all new props carry defaults and no existing props were removed.

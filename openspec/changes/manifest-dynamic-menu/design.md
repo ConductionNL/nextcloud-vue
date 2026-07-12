@@ -118,7 +118,7 @@ ships a fixture test, and updates the relevant docs pages.
 If a future need surfaces that genuinely cannot be served by the
 backend-merge path (e.g. a long-tail of small apps without backend
 codebases), revisit. But the initial set of consumers
-(opencatalogi, mydash, organisations-flavoured procest, possibly
+(opencatalogi, launchpad, organisations-flavoured procest, possibly
 softwarecatalog) all already have PHP backends and per-tenant
 config; adding a `/api/manifest` controller is a 30-line lift per
 app.

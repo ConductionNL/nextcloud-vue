@@ -119,11 +119,11 @@ export function isExternalUrl(url) {
  * as `<img>`; bare names render through `CnIcon`.
  *
  * @param {*} name the icon value from widget content.
- * @return {boolean} `true` when the value is a `/`- or `http`-prefixed source.
+ * @return {boolean} `true` when the value is a `/`-, `http`- or `data:`-prefixed source.
  */
 export function isCustomIconUrl(name) {
 	if (typeof name !== 'string' || name.length === 0) {
 		return false
 	}
-	return name.startsWith('/') || name.startsWith('http')
+	return name.startsWith('/') || name.startsWith('http') || name.startsWith('data:')
 }

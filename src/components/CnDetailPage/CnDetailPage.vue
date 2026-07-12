@@ -57,8 +57,18 @@
 							class="cn-detail-page__icon" />
 					</slot>
 					<div class="cn-detail-page__header-text">
-						<h2 v-if="title" class="cn-detail-page__title">
-							{{ title }}
+						<!-- Type name as a small eyebrow above the record name, so
+						     the header reads "the record" not "the kind of record"
+						     (ADR-062). Only shown once the object resolves to a
+						     display name that differs from the type label. -->
+						<p
+							v-if="typeEyebrow"
+							class="cn-detail-page__type-eyebrow"
+							data-testid="cn-detail-page-type-eyebrow">
+							{{ typeEyebrow }}
+						</p>
+						<h2 v-if="displayTitle" class="cn-detail-page__title">
+							{{ displayTitle }}
 						</h2>
 						<!--
 							@slot translation-badge
@@ -255,8 +265,15 @@
 			     added. Explicit `layout` + `widgets` props (manifest grid pages)
 			     feed the same engine, so hand-authored grid pages also become
 			     draggable. -->
+			<!-- :key remounts the grid when in-app edit mode flips (ADR-041):
+			     the manifest is raw (non-reactive) until useManifestEditor
+			     observes it in place, so a grid mounted pre-edit never
+			     subscribed to the layout/widgets arrays — in-place pushes
+			     (Add widget) keep the same array identity and can't re-render
+			     it. One remount per edit flip re-subscribes it. -->
 			<CnDashboardGrid
 				v-if="hasBodyGrid"
+				:key="`cn-detail-grid-${editingBody ? 'editing' : 'live'}`"
 				:layout="bodyGridLayout"
 				:editable="editingBody"
 				:columns="12"
@@ -308,19 +325,22 @@
 							     per-property overrides. This is the default body widget. -->
 							<CnObjectDataWidget
 								v-if="isDataWidget(item) && currentSchema"
-								:title="findWidget(item).title || widgetContentFor(item).title || undefined"
+								:title="widgetDisplayTitle(item)"
+								:icon="findWidget(item).icon || null"
 								:schema="currentSchema"
 								:object-data="currentObject"
 								:object-type="resolvedObjectType"
 								:store="effectiveObjectStore"
 								:overrides="widgetContentFor(item).overrides || {}"
+								:include="widgetContentFor(item).include || null"
+								:exclude="widgetContentFor(item).exclude || []"
 								:columns="widgetContentFor(item).columns || 3" />
 							<!-- `type: 'related'` widget: the related-objects widget,
 							     the second default body widget. Resolves this object's
 							     relations and links into integrations. -->
 							<CnRelatedObjectsWidget
 								v-else-if="isRelatedWidget(item)"
-								:title="findWidget(item).title || widgetContentFor(item).title || undefined"
+								:title="widgetDisplayTitle(item)"
 								:object-type="resolvedObjectType"
 								:object-id="objectId"
 								:object-data="currentObject"
@@ -328,7 +348,29 @@
 								:schema="schema"
 								:store="effectiveObjectStore"
 								:include-groups="widgetContentFor(item).groups || []"
+								:hide-single-tab-title="widgetContentFor(item).hideSingleTabTitle !== false"
+								:show-total-count="widgetContentFor(item).showTotalCount !== false"
 								@open-integration="onAutoBodyOpenIntegration" />
+							<!-- `type: 'object-geo'` widget: view/edit the object's
+							     `@self.geo` on a map. Editable in OpenBuild edit mode
+							     or when the widget config sets `editable`. -->
+							<CnObjectGeoWidget
+								v-else-if="isGeoWidget(item)"
+								:title="widgetDisplayTitle(item)"
+								:object-id="objectId"
+								:object-data="currentObject"
+								:register="register"
+								:schema="schema"
+								:editable="widgetContentFor(item).editable !== false"
+								:address-search="widgetContentFor(item).addressSearch === true"
+								:basemap="widgetContentFor(item).basemap || 'standard'"
+								:allow-basemap-switch="widgetContentFor(item).allowBasemapSwitch === true"
+								:fit-control="widgetContentFor(item).fitControl !== false"
+								:locate-control="widgetContentFor(item).locateControl !== false"
+								:fullscreen-control="widgetContentFor(item).fullscreenControl !== false"
+								:height="widgetContentFor(item).height || '360px'"
+								:default-zoom="widgetContentFor(item).defaultZoom || 7"
+								@saved="onGeoSaved" />
 							<!-- Fallback for `type: 'integration'` widget defs:
 							     render the registry widget on the detail-page
 							     surface. A consumer-supplied #widget-<id> slot
@@ -337,6 +379,57 @@
 								:is="resolveIntegrationWidget(item)"
 								v-else-if="isIntegrationWidget(item) && resolveIntegrationWidget(item)"
 								v-bind="getIntegrationProps(item)" />
+							<!-- Content-only catalog widgets (object-list / table)
+							     render bare tables, so give them the titled
+							     CnWidgetWrapper card chrome (ADR-062: every body
+							     widget has chrome + its manifest title). -->
+							<CnWidgetWrapper
+								v-else-if="registryRendererFor(item) && isContentOnlyWidget(item)"
+								:title="findWidget(item).title || ''"
+								title-icon-position="left"
+								:show-refresh="false"
+								:show-request-feature="false"
+								class="cn-detail-page__catalog-card">
+								<template v-if="findWidget(item).icon" #title-icon>
+									<CnIcon :name="findWidget(item).icon" :size="20" />
+								</template>
+								<template v-if="catalogAddEnabled(item)" #action-items>
+									<NcActionButton @click="invokeCatalogAdd(item)">
+										<template #icon>
+											<Plus :size="20" />
+										</template>
+										{{ t('nextcloud-vue', 'Add') }}
+									</NcActionButton>
+								</template>
+								<component
+									:is="registryRendererFor(item)"
+									:ref="'catalog-' + item.widgetId"
+									:content="widgetContentFor(item)"
+									v-bind="widgetContentFor(item)" />
+							</CnWidgetWrapper>
+							<!-- Registry "card" widgets (stat / gauge / delta):
+							     these render bare tile content, so give them the
+							     titled CnWidgetWrapper card chrome exactly like the
+							     dashboard does (ADR-062: a lone stat must not read
+							     as uncarded text). `card-fit` centres the tile and
+							     drops the inner scrollbar. -->
+							<CnWidgetWrapper
+								v-else-if="registryRendererFor(item) && isCardWidget(item)"
+								:title="findWidget(item).title || widgetContentFor(item).title || ''"
+								:show-title="findWidget(item).title !== undefined || widgetContentFor(item).title !== undefined"
+								title-icon-position="left"
+								flush
+								:show-refresh="false"
+								:show-request-feature="false"
+								class="cn-detail-page__card-fit">
+								<template v-if="findWidget(item).icon" #title-icon>
+									<CnIcon :name="findWidget(item).icon" :size="20" />
+								</template>
+								<component
+									:is="registryRendererFor(item)"
+									:content="widgetContentFor(item)"
+									v-bind="widgetContentFor(item)" />
+							</CnWidgetWrapper>
 							<!-- Fallback for content-driven catalog widgets
 							     (stat / chart / delta / gauge / object-list / …):
 							     render the registered renderer with the def's
@@ -505,6 +598,20 @@
 
 		<!-- Relation-link modal (manifest `config.relationLinks`): async-search a
 		     target schema and patch a FK on the current object. -->
+		<!-- Create archetype (ADR-062): a schema-bound `type:"detail"` page with
+		     no object id renders an empty create form for its schema instead of a
+		     blank page. Save POSTs the object and navigates to its detail route
+		     (or back); prefill comes from the route query. -->
+		<CnFormDialog
+			v-if="isCreateMode && currentSchema"
+			ref="createFormDialog"
+			:schema="currentSchema"
+			:item="createPrefill"
+			:register="register"
+			:dialog-title="title || undefined"
+			@confirm="onCreateFormConfirm"
+			@close="onCreateFormClose" />
+
 		<CnRelationLinkModal
 			v-if="activeRelationLink"
 			:title="activeRelationLink.title || undefined"
@@ -524,7 +631,7 @@
 <script>
 import { provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
@@ -534,8 +641,11 @@ import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
+import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
+import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
+import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
@@ -633,6 +743,7 @@ export default {
 	name: 'CnDetailPage',
 
 	components: {
+		NcActionButton,
 		NcButton,
 		NcEmptyContent,
 		NcLoadingIcon,
@@ -644,8 +755,11 @@ export default {
 		CnOpenBuildEditButton,
 		CnLockedBanner,
 		CnObjectDataWidget,
+		CnFormDialog,
 		CnRelatedObjectsWidget,
+		CnObjectGeoWidget,
 		CnDashboardGrid,
+		CnWidgetWrapper,
 		CnLifecycleActions,
 		CnActionButtons,
 		CnSummaryAggregates,
@@ -1143,6 +1257,20 @@ export default {
 			default: () => [],
 		},
 		/**
+		 * Vue-router route NAME to navigate to after a create-form save (the
+		 * create archetype: a `type:"detail"` page whose route carries no `:id`).
+		 * The created object's id is passed as the `id` route param. When empty
+		 * (the default) the page navigates back in history after a successful
+		 * create instead. See `isCreateMode`.
+		 *
+		 * @type {string}
+		 */
+		createRoute: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Page-level app config map exposed to declarative widget / section
 		 * config via the `@config.<key>` token (e.g. the reporting `currency`
 		 * the setup wizard captures). Provided to descendants on `cnAppConfig`,
@@ -1362,6 +1490,38 @@ export default {
 		},
 
 		/**
+		 * The create archetype: a schema-bound page (`register` + `schema`) whose
+		 * route carries NO object id, and which has no hand-authored body of its
+		 * own. Instead of rendering a blank page (procest `/tasks/new`), the page
+		 * shows an empty create form for the schema (ADR-062). Suppressed when a
+		 * default slot or an explicit grid `layout` supplies the body.
+		 *
+		 * @return {boolean}
+		 */
+		isCreateMode() {
+			return Boolean(this.register && this.schema) && !this.objectId
+				&& !this.hasDefaultSlotContent && !this.hasGridLayout
+		},
+
+		/**
+		 * Create-form prefill drawn from the route query, filtered to the
+		 * schema's own properties (e.g. `?caseId=x` seeds the `caseId` field so
+		 * a child created from a parent is pre-linked). Null when nothing
+		 * applies (true empty create).
+		 *
+		 * @return {object|null}
+		 */
+		createPrefill() {
+			const q = (this.$route && this.$route.query) || {}
+			const props = (this.currentSchema && this.currentSchema.properties) || {}
+			const out = {}
+			for (const [k, v] of Object.entries(q)) {
+				if (Object.prototype.hasOwnProperty.call(props, k)) out[k] = v
+			}
+			return Object.keys(out).length ? out : null
+		},
+
+		/**
 		 * Effective Refresh visibility for the page header. An explicit
 		 * `showRefresh` prop wins; when unset (`null`), show Refresh only if
 		 * it will do something — a consumer attached an `@refresh` listener,
@@ -1388,7 +1548,7 @@ export default {
 			if (this.objectStore) {
 				return this.objectStore
 			}
-			if (!this.hasSchemaDrivenFetch) {
+			if (!this.hasSchemaDrivenFetch && !this.isCreateMode) {
 				return null
 			}
 			try {
@@ -1448,6 +1608,55 @@ export default {
 		},
 
 		/**
+		 * The resolved record's human display name, drawn from the loaded
+		 * object via the same fallback chain the relation resolver uses:
+		 * `@self.name` → `name` / `title` / `displayName` → `firstName
+		 * lastName`. Empty string while the object is still loading or when no
+		 * name-like field exists (a raw id is never used as a name — ADR-062).
+		 *
+		 * @return {string}
+		 */
+		objectDisplayName() {
+			const obj = this.resolvedObject
+			if (!obj || typeof obj !== 'object') return ''
+			const self = obj['@self'] || {}
+			const id = this.objectId != null ? String(this.objectId) : ''
+			const candidates = [self.name, self.title, obj.name, obj.title, obj.displayName]
+			for (const c of candidates) {
+				if (c != null && c !== '' && String(c) !== id) return String(c)
+			}
+			const composed = ((obj.firstName || '') + ' ' + (obj.lastName || '')).trim()
+			return composed || ''
+		},
+
+		/**
+		 * The header `<h2>` text. Prefers the resolved record's display name
+		 * so the header names the record ("ACME Corp") rather than its type
+		 * ("Case"); falls back to the `title` prop (the type/label) while the
+		 * object is loading or has no name field.
+		 *
+		 * @return {string}
+		 */
+		displayTitle() {
+			return this.objectDisplayName || this.title
+		},
+
+		/**
+		 * The small type-label eyebrow shown above the record name. Only
+		 * rendered once a record name is resolved AND it differs from the
+		 * `title` prop, so the type context ("Case", "Publication") is kept
+		 * without shadowing the record name. Empty while loading (the type
+		 * label is then the `<h2>` itself).
+		 *
+		 * @return {string}
+		 */
+		typeEyebrow() {
+			const name = this.objectDisplayName
+			if (!name || !this.title || name === this.title) return ''
+			return this.title
+		},
+
+		/**
 		 * The fetched JSON Schema for the schema-driven mode. Read from
 		 * the store's `schemas[type]` cache populated by `fetchSchema`.
 		 * Required to render `CnObjectDataWidget` (which takes a schema
@@ -1496,6 +1705,13 @@ export default {
 		 * @return {Array} Layout items for CnDashboardGrid.
 		 */
 		bodyGridLayout() {
+			// Depend on the (always-reactive) edit flag so this re-evaluates
+			// when in-app edit mode flips: the manifest arrays are raw until
+			// useManifestEditor.enter() observes them in place, so a cache
+			// built pre-edit would stay frozen for in-place pushes (Add widget
+			// on a detail page / grid ejection). See CnDashboardPage.hasWidgets.
+			// eslint-disable-next-line no-unused-expressions
+			this.editingBody
 			if (this.hasGridLayout) return this.layout
 			if (this.shouldRenderAutoBody) return this.autoBodyLayout || []
 			return []
@@ -1722,6 +1938,11 @@ export default {
 		// `effectiveObjectStore` relies on a live Pinia context, which
 		// is guaranteed by mounted() but not by created().
 		this.fetchObjectIfNeeded()
+		this.scheduleCellOverflowAudit()
+	},
+
+	updated() {
+		this.scheduleCellOverflowAudit()
 	},
 
 	beforeDestroy() {
@@ -1804,6 +2025,23 @@ export default {
 		},
 
 		/**
+		 * Re-fetch the object after the geo widget persists `@self.geo` (so the
+		 * rest of the page — metadata, other widgets — reflects the new value),
+		 * and re-emit for the host.
+		 *
+		 * @param {object|null} geo The saved geo value (GeoJSON Point or null).
+		 */
+		onGeoSaved(geo) {
+			this.fetchObjectIfNeeded()
+			/**
+			 * @event geo-saved The object's `@self.geo` was saved via the geo
+			 * widget. Payload is the saved geo value (GeoJSON Point or null).
+			 * @type {object|null}
+			 */
+			this.$emit('geo-saved', geo)
+		},
+
+		/**
 		 * Re-emit a successful lifecycle transition to the host.
 		 *
 		 * @param {{ action: string, to: string, object: object }} payload The transition result.
@@ -1879,7 +2117,12 @@ export default {
 		 * place so the request lifecycle stays predictable.
 		 */
 		async fetchObjectIfNeeded() {
-			if (!this.hasSchemaDrivenFetch) return
+			// Create archetype: no object to fetch, but the create form needs
+			// the schema — register the type and fetch its schema, then stop.
+			if (!this.hasSchemaDrivenFetch) {
+				if (this.isCreateMode) await this.fetchSchemaForCreate()
+				return
+			}
 			const store = this.effectiveObjectStore
 			if (!store) return
 			const type = this.resolvedObjectType
@@ -1926,6 +2169,84 @@ export default {
 		 * @param {object} item Layout item
 		 * @return {boolean} true when the matching widget def is an integration widget
 		 */
+		/**
+		 * Register the type and fetch ONLY its schema, for the create archetype
+		 * (no object id to fetch). Populates `currentSchema` so the inline create
+		 * form can auto-generate its fields.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async fetchSchemaForCreate() {
+			const store = this.effectiveObjectStore
+			if (!store) return
+			const type = this.resolvedObjectType
+			if (typeof store.registerObjectType === 'function'
+				&& !store.objectTypeRegistry?.[type]) {
+				store.registerObjectType(
+					type,
+					this.schema,
+					this.register,
+					{ registerSlug: this.register, schemaSlug: this.schema },
+				)
+			}
+			try {
+				if (typeof store.fetchSchema === 'function') await store.fetchSchema(type)
+			} catch (err) {
+				console.error('[CnDetailPage] create-mode schema fetch failed:', err)
+			}
+		},
+
+		/**
+		 * Persist the create form: POST the new object to OpenRegister, then
+		 * navigate to the created object's detail route (`createRoute` with its
+		 * id) — or back in history when no route is configured.
+		 *
+		 * @param {object} formData The confirmed form values.
+		 * @return {Promise<void>}
+		 */
+		async onCreateFormConfirm(formData) {
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl(
+					'/apps/openregister/api/objects/{register}/{schema}',
+					{ register: this.register, schema: this.schema },
+				)
+				const res = await axios.post(url, formData)
+				const created = (res && res.data) ? res.data : {}
+				const newId = (created['@self'] && created['@self'].id) || created.id
+				if (this.$refs.createFormDialog) this.$refs.createFormDialog.setResult({ success: true })
+				/**
+				 * @event created Emitted after a successful create-form save.
+				 * @type {object}
+				 */
+				this.$emit('created', created)
+				if (this.createRoute && newId && this.$router) {
+					this.$router.push({ name: this.createRoute, params: { id: String(newId) } }).catch(() => {})
+				} else if (this.$router) {
+					this.$router.back()
+				}
+			} catch (e) {
+				if (this.$refs.createFormDialog) this.$refs.createFormDialog.setResult({ error: (e && e.message) || 'error' })
+			}
+		},
+
+		/**
+		 * The create form was dismissed without saving — navigate back so the
+		 * user is not stranded on an id-less page.
+		 *
+		 * @return {void}
+		 */
+		onCreateFormClose() {
+			/**
+			 * @event create-cancel Emitted when the create form is dismissed.
+			 */
+			this.$emit('create-cancel')
+			if (this.$router) this.$router.back()
+		},
+
 		isIntegrationWidget(item) {
 			const def = this.findWidget(item)
 			return Boolean(def) && def.type === 'integration' && typeof def.integrationId === 'string'
@@ -1993,6 +2314,116 @@ export default {
 		isRelatedWidget(item) {
 			const def = this.findWidget(item)
 			return Boolean(def) && def.type === 'related'
+		},
+
+		/**
+		 * Whether a grid item is the `object-geo` widget — rendered via
+		 * CnObjectGeoWidget with the page's loaded object so the user can view /
+		 * edit the object's `@self.geo` on a map.
+		 *
+		 * @param {object} item Layout item
+		 * @return {boolean} true when the matching widget def is `type: 'object-geo'`.
+		 */
+		isGeoWidget(item) {
+			const def = this.findWidget(item)
+			return Boolean(def) && def.type === 'object-geo'
+		},
+
+		/**
+		 * Whether a grid item is a content-only catalog widget (a bare table
+		 * renderer with no chrome of its own). These get the titled
+		 * CnWidgetWrapper card in the grid (ADR-062); self-chromed catalog
+		 * widgets (stat / chart / gauge / tile / …) render bare.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} true when the widget def's type is content-only.
+		 */
+		isContentOnlyWidget(item) {
+			const def = this.findWidget(item)
+			return Boolean(def) && ['object-list', 'table', 'files'].includes(def.type)
+		},
+
+		/**
+		 * Whether a grid item is a registry "card" widget — a single self-
+		 * contained KPI / gauge / delta tile (registry entry `card: true`).
+		 * These render bare tile content, so on a detail page they need the
+		 * same titled CnWidgetWrapper card chrome the dashboard gives them
+		 * (ADR-062: a lone stat must not read as uncarded floating text —
+		 * pipelinq contracts / POS).
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} true when the widget def's registry entry is a card.
+		 */
+		isCardWidget(item) {
+			const def = this.findWidget(item)
+			if (!def || !def.type) return false
+			const entry = getWidgetTypeEntry(def.type)
+			return Boolean(entry && entry.card === true)
+		},
+
+		/**
+		 * Whether a catalog list widget offers the Add action (ADR-062:
+		 * collections carry their create affordance in the card's Actions
+		 * menu AND as the widget's own footer button). On by default for
+		 * object-list/table; opt out via `content.allowCreate: false`.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean}
+		 */
+		catalogAddEnabled(item) {
+			const def = this.findWidget(item)
+			// Files widgets carry their own upload/drag-drop toolbar, so the card
+			// Add action is only for object-list / table collections.
+			if (!def || !['object-list', 'table'].includes(def.type)) return false
+			return this.widgetContentFor(item).allowCreate !== false
+		},
+
+		/**
+		 * Actions-menu "Add" entry: delegate to the rendered list widget's
+		 * public `openCreate()` (the same dialog its footer button opens).
+		 *
+		 * @param {object} item Layout item.
+		 * @return {void}
+		 */
+		invokeCatalogAdd(item) {
+			const r = this.$refs['catalog-' + item.widgetId]
+			const w = Array.isArray(r) ? r[0] : r
+			if (w && typeof w.openCreate === 'function') w.openCreate()
+		},
+
+		/**
+		 * Debounced dev-mode audit: warn when a grid widget's rendered content
+		 * overflows its fixed cell (ADR-062 — the cell is the budget; overflow
+		 * is a design bug, never a scroll surface). No-op in production builds.
+		 *
+		 * @return {void}
+		 */
+		scheduleCellOverflowAudit() {
+			if (process.env.NODE_ENV === 'production') return
+			clearTimeout(this._cellAuditTimer)
+			this._cellAuditTimer = setTimeout(() => this.auditCellOverflow(), 800)
+		},
+
+		/**
+		 * Measure every grid cell and console.warn the widget ids whose content
+		 * is taller than the cell. Dev aid only — called via
+		 * `scheduleCellOverflowAudit`.
+		 *
+		 * @return {void}
+		 */
+		auditCellOverflow() {
+			if (!this.$el || !this.$el.querySelectorAll) return
+			this.$el.querySelectorAll('.grid-stack-item').forEach((cell) => {
+				const content = cell.querySelector('.grid-stack-item-content')
+				if (!content) return
+				if (content.scrollHeight > content.clientHeight + 8) {
+					const inner = cell.querySelector('.cn-detail-page__grid-item')
+					const label = (inner && inner.getAttribute('aria-labelledby')) || cell.getAttribute('gs-id') || ''
+					// eslint-disable-next-line no-console
+					console.warn(`[CnDetailPage] widget cell ${label || '(unlabelled)'} content overflows its gridHeight `
+						+ `(${content.scrollHeight}px in ${content.clientHeight}px) — enlarge the cell or scope the widget's content (ADR-062).`)
+				}
+			})
 		},
 
 		/**
@@ -2090,12 +2521,14 @@ export default {
 			 * @type {Array}
 			 */
 			this.$emit('layout-change', updated)
+			/* eslint-disable jsdoc/valid-types -- the colon in the event name is valid Vue but not a jsdoc namepath */
 			/**
 			 * @event update:layout Sibling of `layout-change` so `:layout.sync`
 			 *   consumers stay in sync.
 			 * @type {Array}
 			 */
 			this.$emit('update:layout', updated)
+			/* eslint-enable jsdoc/valid-types */
 		},
 
 		/**
@@ -2140,6 +2573,33 @@ export default {
 		widgetContentFor(item) {
 			const def = this.findWidget(item)
 			return (def && def.content && typeof def.content === 'object') ? def.content : {}
+		},
+
+		/**
+		 * Resolve the effective title for a grid widget.
+		 *
+		 * A title-owning widget type (registry `ownsTitle`, e.g. `related`) keeps
+		 * its editable title in `content.title` — its config sub-form owns the
+		 * title field and the generic chrome title input is hidden. For those,
+		 * `content.title` MUST win over the chrome `def.title`, otherwise a
+		 * non-empty seed title (e.g. the default detail grid seeds the related
+		 * widget with `title: 'Related'`) permanently shadows the user's edit and
+		 * the title can never be changed. For every other type the chrome
+		 * `def.title` is authoritative, falling back to `content.title`. Empty
+		 * resolves to `undefined` so the widget renders its own default label.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {string|undefined} The title to render, or undefined for the default.
+		 */
+		widgetDisplayTitle(item) {
+			const def = this.findWidget(item)
+			if (!def) return undefined
+			const content = (def.content && typeof def.content === 'object') ? def.content : {}
+			const entry = getWidgetTypeEntry(def.type)
+			if (entry && entry.ownsTitle) {
+				return content.title || undefined
+			}
+			return def.title || content.title || undefined
 		},
 
 		/**

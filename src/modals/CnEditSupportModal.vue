@@ -11,8 +11,11 @@
   (manifestModalDoneMixin). Isolated NcModal per ADR-004.
 -->
 <template>
-	<NcDialog size="normal" :name="t('nextcloud-vue', 'Edit support &amp; donation')" @closing="$emit('close')">
+	<NcModal size="normal" @close="$emit('close')">
 		<div class="cn-edit-support">
+			<h2 class="cn-edit-support__title">
+				{{ t('nextcloud-vue', 'Edit support &amp; donation') }}
+			</h2>
 			<p class="cn-edit-support__intro">
 				{{ t('nextcloud-vue', 'A one-time, dismissible note shown the first time a user opens the app. It introduces the team and offers to donate, suggest a feature, review, or get support. Leave a field blank to keep the default.') }}
 			</p>
@@ -34,10 +37,11 @@
 				{{ t('nextcloud-vue', 'Signature') }}
 			</h3>
 			<NcTextField class="cn-edit-support__field"
-				:label="t('nextcloud-vue', 'Founder name')"
+				:label="t('nextcloud-vue', 'Signatory name')"
 				:value.sync="support.founderName" />
 			<NcTextField class="cn-edit-support__field"
-				:label="t('nextcloud-vue', 'Founder title')"
+				:label="t('nextcloud-vue', 'Signatory role')"
+				:placeholder="t('nextcloud-vue', 'e.g. Owner, CTO, Founder, Team')"
 				:value.sync="support.founderTitle" />
 
 			<div class="cn-edit-support__avatar">
@@ -108,23 +112,25 @@
 						:value.sync="buttonFor(def.id).icon" />
 				</li>
 			</ul>
-		</div>
 
-		<template #actions>
-			<NcButton type="primary" :disabled="saving" @click="onDone">
-				<template v-if="saving" #icon>
-					<NcLoadingIcon :size="20" />
-				</template>
-				{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
-			</NcButton>
-		</template>
-	</NcDialog>
+			<div class="cn-edit-support__footer">
+				<NcButton type="primary" :disabled="saving" @click="onDone">
+					<template #icon>
+						<NcLoadingIcon v-if="saving" :size="20" />
+						<ContentSaveOutline v-else :size="20" />
+					</template>
+					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
+				</NcButton>
+			</div>
+		</div>
+	</NcModal>
 </template>
 
 <script>
-import { NcDialog, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
+import { NcModal, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Upload from 'vue-material-design-icons/Upload.vue'
+import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 /** The four built-in buttons, in display order, with their shell defaults. */
@@ -138,7 +144,7 @@ const BUTTON_DEFS = [
 export default {
 	name: 'CnEditSupportModal',
 
-	components: { NcDialog, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect, Upload },
+	components: { NcModal, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect, Upload, ContentSaveOutline },
 
 	mixins: [manifestModalDoneMixin],
 
@@ -268,6 +274,10 @@ export default {
 	padding: 20px;
 }
 
+.cn-edit-support__title {
+	margin-top: 0;
+}
+
 .cn-edit-support__intro {
 	color: var(--color-text-maxcontrast);
 	margin-bottom: 12px;
@@ -338,5 +348,11 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
+}
+
+.cn-edit-support__footer {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 16px;
 }
 </style>

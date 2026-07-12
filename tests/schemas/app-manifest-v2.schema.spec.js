@@ -692,3 +692,262 @@ describe('app-manifest-v2 — v1.3.0 feature carry-forward (REQ-MV2S-007)', () =
 		expect(result.valid).toBe(true)
 	})
 })
+
+/**
+ * Build a minimal v2 manifest with one type='form' page whose config is
+ * merged from `config`.
+ *
+ * @param {object} config `pages[0].config` overrides.
+ * @return {object} Complete v2 manifest.
+ */
+function manifestWithFormPage(config) {
+	return {
+		...MINIMAL_V2,
+		pages: [{
+			id: 'IntakeWizard',
+			route: '/public/intake',
+			type: 'form',
+			title: 'app.intake',
+			config,
+		}],
+	}
+}
+
+describe('app-manifest-v2 — form logic: config.steps[] (REQ-MFL-1, manifest-form-logic)', () => {
+	it('form page with steps validates', () => {
+		const manifest = manifestWithFormPage({
+			fields: [{ key: 'a', label: 'A', type: 'string' }, { key: 'b', label: 'B', type: 'string' }],
+			steps: [
+				{ id: 's1', title: 'One', fields: ['a'] },
+				{ id: 's2', title: 'Two', fields: ['b'] },
+			],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result).toEqual({ valid: true, errors: [] })
+	})
+
+	it('step missing title rejected', () => {
+		const manifest = manifestWithFormPage({
+			fields: [{ key: 'a', label: 'A', type: 'string' }],
+			steps: [{ id: 's1', fields: ['a'] }],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+	})
+
+	it('step with unknown property rejected (closed shape)', () => {
+		const manifest = manifestWithFormPage({
+			fields: [{ key: 'a', label: 'A', type: 'string' }],
+			steps: [{ id: 's1', title: 'One', fields: ['a'], showIf: {} }],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+	})
+
+	it('existing stepless form manifests still validate (backward compatible)', () => {
+		const manifest = manifestWithFormPage({
+			fields: [{ key: 'name', label: 'Name', type: 'string' }],
+			submitHandler: 'onSubmit',
+		})
+		const result = validateManifestV2(manifest)
+		expect(result).toEqual({ valid: true, errors: [] })
+	})
+
+	it('step referencing unknown field key rejected, naming the bad key', () => {
+		const manifest = manifestWithFormPage({
+			fields: [{ key: 'a', label: 'A', type: 'string' }, { key: 'b', label: 'B', type: 'string' }],
+			steps: [
+				{ id: 's1', title: 'One', fields: ['a', 'zz'] },
+				{ id: 's2', title: 'Two', fields: ['b'] },
+			],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('"zz"'))).toBe(true)
+	})
+
+	it('field assigned to no step rejected, naming the unassigned key', () => {
+		const manifest = manifestWithFormPage({
+			fields: [{ key: 'a', label: 'A', type: 'string' }, { key: 'b', label: 'B', type: 'string' }],
+			steps: [{ id: 's1', title: 'One', fields: ['a'] }],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('"b"'))).toBe(true)
+	})
+
+	it('field assigned to two steps rejected', () => {
+		const manifest = manifestWithFormPage({
+			fields: [{ key: 'a', label: 'A', type: 'string' }],
+			steps: [
+				{ id: 's1', title: 'One', fields: ['a'] },
+				{ id: 's2', title: 'Two', fields: ['a'] },
+			],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+	})
+
+	it('duplicate step ids rejected', () => {
+		const manifest = manifestWithFormPage({
+			fields: [{ key: 'a', label: 'A', type: 'string' }, { key: 'b', label: 'B', type: 'string' }],
+			steps: [
+				{ id: 's1', title: 'One', fields: ['a'] },
+				{ id: 's1', title: 'Two', fields: ['b'] },
+			],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — form logic: fields[].visibleWhen (REQ-MFL-2, manifest-form-logic)', () => {
+	it('field-reference (LOCAL) condition validates', () => {
+		const manifest = manifestWithFormPage({
+			fields: [
+				{ key: 'kind', label: 'Kind', type: 'enum', enum: ['person', 'company'] },
+				{ key: 'kvk', label: 'KvK', type: 'string', visibleWhen: { field: 'kind', op: 'eq', value: 'company' } },
+			],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result).toEqual({ valid: true, errors: [] })
+	})
+
+	it('data-source condition validates', () => {
+		const manifest = manifestWithFormPage({
+			fields: [
+				{
+					key: 'kvk',
+					label: 'KvK',
+					type: 'string',
+					visibleWhen: { source: { register: 'r', schema: 's' }, field: '@total', op: 'gt', value: 0 },
+				},
+			],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result).toEqual({ valid: true, errors: [] })
+	})
+
+	it('unknown operator rejected, naming the op enum', () => {
+		const manifest = manifestWithFormPage({
+			fields: [
+				{ key: 'kind', label: 'Kind', type: 'string' },
+				{ key: 'kvk', label: 'KvK', type: 'string', visibleWhen: { field: 'kind', op: 'contains', value: 'x' } },
+			],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('op'))).toBe(true)
+	})
+
+	it('sentinel guard still fires through visibleWhen.value', () => {
+		const manifest = manifestWithFormPage({
+			fields: [
+				{ key: 'kind', label: 'Kind', type: 'string' },
+				{ key: 'kvk', label: 'KvK', type: 'string', visibleWhen: { field: 'kind', op: 'eq', value: '@bogus.token' } },
+			],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+	})
+
+	it('LOCAL condition referencing undeclared key rejected, naming the key', () => {
+		const manifest = manifestWithFormPage({
+			fields: [
+				{ key: 'kind', label: 'Kind', type: 'string' },
+				{ key: 'kvk', label: 'KvK', type: 'string', visibleWhen: { field: 'knd', op: 'eq', value: 'x' } },
+			],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('"knd"'))).toBe(true)
+	})
+})
+
+describe('app-manifest-v2 — form logic: fields[].validation (REQ-MFL-3, REQ-MFL-5, manifest-form-logic)', () => {
+	it('full validation object accepted', () => {
+		const manifest = manifestWithFormPage({
+			fields: [
+				{
+					key: 'name',
+					label: 'Name',
+					type: 'string',
+					validation: { required: true, min: 2, max: 120, pattern: '^[a-z]+$', message: 'i18n.bad-name' },
+				},
+			],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result).toEqual({ valid: true, errors: [] })
+	})
+
+	it('unknown rule key rejected (closed shape)', () => {
+		const manifest = manifestWithFormPage({
+			fields: [{ key: 'name', label: 'Name', type: 'string', validation: { required: true, minLength: 2 } }],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+	})
+
+	it('non-numeric min rejected', () => {
+		const manifest = manifestWithFormPage({
+			fields: [{ key: 'name', label: 'Name', type: 'string', validation: { min: '2' } }],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+	})
+
+	it('min greater than max rejected', () => {
+		const manifest = manifestWithFormPage({
+			fields: [{ key: 'amount', label: 'Amount', type: 'number', validation: { min: 10, max: 2 } }],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+	})
+
+	it('non-compiling pattern rejected, error includes the regex failure hint', () => {
+		const manifest = manifestWithFormPage({
+			fields: [{ key: 'name', label: 'Name', type: 'string', validation: { pattern: '([a-z' } }],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => /does not compile/.test(e))).toBe(true)
+	})
+
+	it('pattern on a number field rejected (pattern applies to string/password only)', () => {
+		const manifest = manifestWithFormPage({
+			fields: [{ key: 'n', label: 'N', type: 'number', validation: { pattern: '^[0-9]+$' } }],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+	})
+
+	it('min/max on a boolean field rejected (bounds apply to string/password/number only)', () => {
+		const manifest = manifestWithFormPage({
+			fields: [{ key: 'agree', label: 'Agree', type: 'boolean', validation: { min: 1 } }],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — form logic: compiled validator regeneration (REQ-MFL-4, manifest-form-logic)', () => {
+	it('runtime (compiled) validator accepts steps + visibleWhen + validation together', () => {
+		const manifest = manifestWithFormPage({
+			fields: [
+				{ key: 'kind', label: 'Kind', type: 'enum', enum: ['person', 'company'] },
+				{
+					key: 'kvk',
+					label: 'KvK',
+					type: 'string',
+					visibleWhen: { field: 'kind', op: 'eq', value: 'company' },
+					validation: { required: true, pattern: '^[0-9]{8}$', message: 'i18n.kvk-invalid' },
+				},
+			],
+			steps: [
+				{ id: 'who', title: 'Who', fields: ['kind', 'kvk'] },
+			],
+		})
+		const result = validateManifestV2(manifest)
+		expect(result).toEqual({ valid: true, errors: [] })
+	})
+})

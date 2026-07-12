@@ -96,6 +96,8 @@ export default {
 | Prop | Default | Description |
 |---|---|---|
 | `dialogTitle` | `''` | Dialog title. Defaults to `'Create {schema.title}'` or `'Edit {schema.title}'` when empty. |
+| `initialData` | `{}` | Seed values for CREATE mode, keyed by field. Merged over the schema defaults when opening a new-item form. Use it to pre-link a child to its parent when adding from a detail page (e.g. `{ lead: '<uuid>' }`). |
+| `lockedFields` | `[]` | Field keys rendered read-only (disabled) and immutable — typically the parent reference seeded via `initialData` so the user can't repoint a child away from the record it was created under. |
 | `excludeFields` | `[]` | Array of field keys to exclude from the auto-generated form. |
 | `includeFields` | `null` | Array of field keys to include (whitelist mode). Null means all fields. |
 | `fieldOverrides` | `{}` | Per-field override objects passed to `fieldsFromSchema`. |

@@ -55,6 +55,18 @@
 	min-width: 0;
 }
 
+.cn-detail-page__type-eyebrow {
+	margin: 0 0 2px;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	color: var(--color-text-maxcontrast);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 .cn-detail-page__title {
 	margin: 0;
 	font-size: 22px;
@@ -193,10 +205,62 @@
 	overflow: auto;
 }
 
+/* dashboard.css draws a square cell border + background around any grid cell
+   holding a CnWidgetWrapper — a DASHBOARD look. On detail pages the widget's
+   own rounded card (ADR-062) is the only chrome; the square cell outline
+   showed as a stray gray line behind the rounded corners. The doubled class
+   outranks the dashboard rule at equal source order. */
+.cn-dashboard-grid.cn-detail-page__grid .grid-stack-item-content:has(.cn-widget-wrapper) {
+	border: none;
+	background: transparent;
+	box-shadow: none;
+}
+
 .cn-detail-page__grid-item {
 	min-width: 0;
 	height: 100%;
 	position: relative;
+}
+
+/* Content-only catalog widgets (object-list / table) rendered on the
+   CnWidgetWrapper card chrome (ADR-062). The wrapper fills its grid cell so
+   the widget can fit its row count to the cell height, and the table region
+   flexes between the card header and the view-all footer. */
+.cn-detail-page__catalog-card {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.cn-detail-page__catalog-card .cn-widget-wrapper__content {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+/* Registry "card" widgets (stat / gauge / delta) get the same titled card
+   chrome as content-only widgets, plus a centred, non-scrolling body so a
+   short KPI tile fits its cell without an inner scrollbar (ADR-062). */
+.cn-detail-page__card-fit {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.cn-detail-page__card-fit .cn-widget-wrapper__content {
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	padding: 8px 14px;
+}
+
+.cn-detail-page__card-fit .cn-stat-widget,
+.cn-detail-page__card-fit .cn-gauge-widget,
+.cn-detail-page__card-fit .cn-delta-widget {
+	min-width: 0;
+	max-width: 100%;
 }
 
 /* OpenBuild in-app edit cog (ADR-041), shown over a configurable widget

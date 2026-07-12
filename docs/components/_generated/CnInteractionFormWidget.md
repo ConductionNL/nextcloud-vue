@@ -2,9 +2,9 @@
 
 ### Props
 
-| Name      | Type                                                                                                                                                                                                                                           | Required | Default | Description                                                             |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- | ----------------------------------------------------------------------- |
-| `content` | `{register?: string, schema?: string, clientSchema?: string, clientField?: string, clientLabelField?: string, subjectField?: string, summaryField?: string, channelField?: string, outcomeField?: string, channels?: Array, outcomes?: Array}` |          | `\{\}`  | Persisted configuration blob (see component description for the shape). |
+| Name      | Type                                                                                                                                                                                                                                                              | Required | Default | Description                                                             |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- | ----------------------------------------------------------------------- |
+| `content` | `{register?: string, schema?: string, defaults?: object, clientSchema?: string, clientField?: string, clientLabelField?: string, subjectField?: string, summaryField?: string, channelField?: string, outcomeField?: string, channels?: Array, outcomes?: Array}` |          | `\{\}`  | Persisted configuration blob (see component description for the shape). |
 
 ### Events
 

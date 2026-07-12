@@ -83,7 +83,7 @@ export default {
 	computed: {
 		resolvedComponent() {
 			// Registered icons win; then the built-in dashboard-icon set (so an
-			// icon picked via CnIconPicker always renders, since the picker offers
+			// icon picked via CnIconBrowser always renders, since the picker offers
 			// exactly that set); then the fallback. A direct map lookup (not
 			// getIconComponent) returns undefined for unknown names so they still
 			// fall through to the help-circle fallback.

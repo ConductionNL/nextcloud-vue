@@ -577,6 +577,20 @@ describe('fieldsFromSchema', () => {
 		expect(configField.widget).toBe('json')
 	})
 
+	it('maps a widget:"icon" property to an icon field and forwards its config', () => {
+		const schemaWithIcon = {
+			title: 'MenuItem',
+			properties: {
+				icon: { type: 'string', title: 'Icon', widget: 'icon', iconSources: ['mdi', 'fontawesome'], allowCustomSvg: true, searchable: false },
+			},
+		}
+		const field = fieldsFromSchema(schemaWithIcon).find((f) => f.key === 'icon')
+		expect(field.widget).toBe('icon')
+		expect(field.iconSources).toEqual(['mdi', 'fontawesome'])
+		expect(field.allowCustomSvg).toBe(true)
+		expect(field.searchable).toBe(false)
+	})
+
 	it('applies exclude option', () => {
 		const fields = fieldsFromSchema(formSchema, { exclude: ['description', 'tags'] })
 		const keys = fields.map((f) => f.key)
@@ -689,6 +703,9 @@ describe('fieldsFromSchema', () => {
 			contacts: { type: 'array', items: { $ref: 'contact' }, title: 'Contacts', order: 2 },
 			plain: { type: 'string', title: 'Plain', order: 3 },
 			emptyRef: { type: 'string', $ref: '', title: 'Empty Ref', order: 4 },
+			// Cross-app object relations (ADR-066): x-external-register names the foreign app.
+			decision: { type: 'string', format: 'uuid', $ref: 'Decision', 'x-external-register': 'decidesk', title: 'Decision', order: 5 },
+			products: { type: 'array', items: { $ref: 'product', 'x-external-register': 'pipelinq' }, title: 'Products', order: 6 },
 		},
 	}
 
@@ -723,6 +740,22 @@ describe('fieldsFromSchema', () => {
 		expect(fields.find((f) => f.key === 'emptyRef').widget).not.toBe('select')
 	})
 
+	it('records x-external-register as reference.register on a single cross-app $ref (ADR-066)', () => {
+		const fields = fieldsFromSchema(refSchema)
+		expect(fields.find((f) => f.key === 'decision').reference).toEqual({ schema: 'Decision', multiple: false, register: 'decidesk' })
+	})
+
+	it('records x-external-register on an items.$ref cross-app array reference (ADR-066)', () => {
+		const fields = fieldsFromSchema(refSchema)
+		expect(fields.find((f) => f.key === 'products').reference).toEqual({ schema: 'product', multiple: true, register: 'pipelinq' })
+	})
+
+	it('omits register on same-app references so the form register is used', () => {
+		const fields = fieldsFromSchema(refSchema)
+		expect(fields.find((f) => f.key === 'caseType').reference).not.toHaveProperty('register')
+		expect(fields.find((f) => f.key === 'contacts').reference).not.toHaveProperty('register')
+	})
+
 	it('accepts a numeric $ref (OpenRegister serves the schema id, not the slug)', () => {
 		// OR authors `$ref` as a slug but persists/serves it as the numeric
 		// schema id (e.g. 85). The numeric form must still resolve to a select.
@@ -736,6 +769,55 @@ describe('fieldsFromSchema', () => {
 		const caseTypeField = fields.find((f) => f.key === 'caseType')
 		expect(caseTypeField.widget).toBe('select')
 		expect(caseTypeField.reference).toEqual({ schema: 85, multiple: false })
+	})
+
+	// --- Nextcloud user references ---
+
+	const userSchema = {
+		title: 'Case',
+		properties: {
+			assignee: { type: 'string', referenceType: 'nextcloud-user', title: 'Assignee', order: 1 },
+			watchers: { type: 'array', items: { referenceType: 'nextcloud-user' }, title: 'Watchers', order: 2 },
+			handler: { type: 'string', format: 'user', title: 'Handler', order: 3 },
+			login: { type: 'string', format: 'username', title: 'Login', order: 4 },
+			plain: { type: 'string', title: 'Plain', order: 5 },
+		},
+	}
+
+	// Single Nextcloud-user fields resolve to the 'user' widget — the only
+	// widget CnFormDialog's real user picker (`:user-select` NcSelect) renders;
+	// the former 'user-select' name fell through to a plain select (bug fixed).
+	it('resolves a referenceType:nextcloud-user property to the user widget', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'assignee').widget).toBe('user')
+	})
+
+	it('resolves format:user / format:username to the user widget', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'handler').widget).toBe('user')
+		expect(fields.find((f) => f.key === 'login').widget).toBe('user')
+	})
+
+	it('resolves an array of nextcloud-user items to a user-multiselect widget', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'watchers').widget).toBe('user-multiselect')
+	})
+
+	it('tags a single user field with userPicker { multiple: false }', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'assignee').userPicker).toEqual({ multiple: false })
+		expect(fields.find((f) => f.key === 'handler').userPicker).toEqual({ multiple: false })
+	})
+
+	it('tags an array user field with userPicker { multiple: true }', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'watchers').userPicker).toEqual({ multiple: true })
+	})
+
+	it('leaves userPicker null for non-user properties', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'plain').userPicker).toBeNull()
+		expect(fields.find((f) => f.key === 'plain').widget).toBe('text')
 	})
 
 	it('resolves uri format to url widget', () => {

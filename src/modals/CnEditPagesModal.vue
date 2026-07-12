@@ -11,37 +11,44 @@
   ADR-004.
 -->
 <template>
-	<NcDialog size="normal" :name="t('nextcloud-vue', 'Edit pages')" @closing="$emit('close')">
-		<NcEmptyContent
-			v-if="!pages.length"
-			:name="t('nextcloud-vue', 'No pages yet')"
-			:description="t('nextcloud-vue', 'Add a page to get started.')" />
+	<NcModal size="normal" @close="$emit('close')">
+		<div class="cn-edit-pages">
+			<h2 class="cn-edit-pages__title">
+				{{ t('nextcloud-vue', 'Edit pages') }}
+			</h2>
 
-		<CnPageTreeNode v-else
-			:list="pages"
-			:menu="working && Array.isArray(working.menu) ? working.menu : null"
-			:max-depth="1"
-			@navigate="onNavigate" />
+			<NcEmptyContent
+				v-if="!pages.length"
+				:name="t('nextcloud-vue', 'No pages yet')"
+				:description="t('nextcloud-vue', 'Add a page to get started.')" />
 
-		<template #actions>
-			<NcButton type="secondary" @click="add">
-				<template #icon>
-					<Plus :size="20" />
-				</template>
-				{{ t('nextcloud-vue', 'Add page') }}
-			</NcButton>
-			<NcButton type="primary" :disabled="saving" @click="onDone">
-				<template v-if="saving" #icon>
-					<NcLoadingIcon :size="20" />
-				</template>
-				{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
-			</NcButton>
-		</template>
-	</NcDialog>
+			<CnPageTreeNode v-else
+				:list="pages"
+				:menu="working && Array.isArray(working.menu) ? working.menu : null"
+				:max-depth="1"
+				@navigate="onNavigate" />
+
+			<div class="cn-edit-pages__footer">
+				<NcButton type="secondary" @click="add">
+					<template #icon>
+						<Plus :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Add page') }}
+				</NcButton>
+				<NcButton type="primary" :disabled="saving" @click="onDone">
+					<template #icon>
+						<NcLoadingIcon v-if="saving" :size="20" />
+						<ContentSaveOutline v-else :size="20" />
+					</template>
+					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
+				</NcButton>
+			</div>
+		</div>
+	</NcModal>
 </template>
 
 <script>
-import { NcDialog, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcModal, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnPageTreeNode from '../components/CnPageTreeNode/CnPageTreeNode.vue'
@@ -50,9 +57,14 @@ import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 export default {
 	name: 'CnEditPagesModal',
 
-	components: { NcDialog, NcButton, NcEmptyContent, NcLoadingIcon, Plus, CnPageTreeNode },
+	components: { NcModal, NcButton, NcEmptyContent, NcLoadingIcon, Plus, CnPageTreeNode },
 
 	mixins: [manifestModalDoneMixin],
+
+	inject: {
+		/** Re-fetch the pages editor's registers/schemas; null when the host has no loader. */
+		cnRefreshDataSources: { default: null },
+	},
 
 	props: {
 		/**
@@ -79,6 +91,12 @@ export default {
 		},
 	},
 
+	// The modal is `v-if`-mounted, so mount == open: refreshing here picks up
+	// any register/schema created since the app booted, with no page reload.
+	mounted() {
+		if (typeof this.cnRefreshDataSources === 'function') this.cnRefreshDataSources()
+	},
+
 	methods: {
 		t,
 		/** Append a new blank top-level page with a unique stable id. */
@@ -102,3 +120,19 @@ export default {
 	},
 }
 </script>
+
+<style scoped>
+.cn-edit-pages {
+	padding: 20px;
+}
+
+.cn-edit-pages__title {
+	margin-top: 0;
+}
+
+.cn-edit-pages__footer {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 16px;
+}
+</style>

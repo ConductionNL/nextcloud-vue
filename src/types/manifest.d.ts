@@ -261,6 +261,34 @@ export interface TManifestCredential {
 	scopes?: string[]
 }
 
+/**
+ * Declarative scheduled-task descriptor (apphost-scheduling capability).
+ * The OpenRegister AppHost schedule-reconciler turns each entry into an
+ * OpenConnector job that runs on the existing background-job path, so a
+ * manifest-driven app (including a pure-virtual OpenBuild app) can own its
+ * cadence without shipping a PHP TimedJob. Consumed by the OpenRegister
+ * engine, never by the Vue renderer. Exactly one of `interval` or `cron`
+ * must be set.
+ */
+export interface TManifestSchedule {
+	/** Stable id, unique within the manifest — the reconciled job is keyed on applicationId + this id. */
+	id: string
+	/** Run cadence in seconds. Exactly one of `interval` or `cron`. */
+	interval?: number
+	/** 5-field cron expression; the reconciler computes nextRun from it. Exactly one of `interval` or `cron`. */
+	cron?: string
+	/**
+	 * A server-allow-listed generic action type (e.g. `"openconnector:synchronization"`),
+	 * NOT a PHP class name. The reconciler maps the type to a trusted jobClass;
+	 * a manifest-supplied class name is never executed. Non-allow-listed → rejected + logged.
+	 */
+	action: string
+	/** Free-form arguments passed to the vetted action (e.g. a synchronization ref). */
+	arguments?: Record<string, unknown>
+	/** Whether the schedule is active (default true). `false` disables the job, preserving run history. */
+	enabled?: boolean
+}
+
 export interface TManifest {
 	$schema?: string
 	version: string
@@ -279,6 +307,16 @@ export interface TManifest {
 	deepLinks?: TManifestDeepLink[]
 	/** External-provider credentials via the OpenRegister broker. */
 	credentials?: TManifestCredential[]
+	/** Declarative scheduled tasks (apphost-scheduling) reconciled into OpenConnector jobs. */
+	schedules?: TManifestSchedule[]
+	/**
+	 * Admin-only settings sections rendered by CnAppRoot's generic admin
+	 * NcAppSettingsDialog, gated on app-owner-group membership. See the
+	 * `adminSettingsEntry` $def in the v2 schema for the full shape (a
+	 * built-in `type` — currently only `"organisation-credentials"` — or a
+	 * custom `component` resolved from the renderer registry).
+	 */
+	adminSettings?: Record<string, unknown>[]
 	/**
 	 * ADR-041: offer the OpenBuild in-app edit button on this app's pages.
 	 * Default true; set false to suppress (e.g. OpenBuild's own UI).
@@ -299,4 +337,23 @@ export interface TManifest {
 	 * OpenRegister's ManifestController — never hand-authored.
 	 */
 	runtime?: Record<string, unknown>
+	/**
+	 * Entity-scaffold page templates (manifest-entity-scaffold-templating).
+	 * A template declares one reusable index/detail page shape with
+	 * `{{param}}` placeholders; `utils/expandPageTemplates` materialises
+	 * `pageInstances[]` into concrete `pages[]`. See the `pageTemplate` $def
+	 * in the v2 schema for the full shape.
+	 */
+	pageTemplates?: Record<string, unknown>[]
+	/**
+	 * Per-entity template instantiations — each references a
+	 * `pageTemplates[]` entry by `templateRef` and supplies the varying
+	 * values. See the v2 schema `pageInstance` $def.
+	 */
+	pageInstances?: Record<string, unknown>[]
+	/**
+	 * Named, reusable field/column/sidebar sets referenced from templates
+	 * via `{{set:NAME}}` placeholders. Each value is arbitrary JSON.
+	 */
+	sets?: Record<string, unknown>
 }

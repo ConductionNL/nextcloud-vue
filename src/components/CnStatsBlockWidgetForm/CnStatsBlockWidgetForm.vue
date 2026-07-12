@@ -59,12 +59,11 @@
 				@input="updateField('variant', $event)" />
 		</div>
 
-		<CnFieldPicker
-			:value="iconClass"
+		<CnIconBrowser
+			:value="iconClass || null"
 			:label="t('nextcloud-vue', 'Icon')"
-			:options="iconOptions"
-			placeholder="ChartBar"
-			@update="updateField('iconClass', $event)" />
+			clearable
+			@input="updateField('iconClass', $event || '')" />
 	</div>
 </template>
 
@@ -76,7 +75,7 @@ import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
 import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
 import { rowsToFilter, filterToRows } from '../CnFilterRowsEditor/filterRows.js'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
-import { DASHBOARD_ICONS } from '../CnWidgetGrid/widgetIcons.js'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 
 const DEFAULT_CONTENT = Object.freeze({
 	title: '',
@@ -95,7 +94,7 @@ const DEFAULT_CONTENT = Object.freeze({
 export default {
 	name: 'CnStatsBlockWidgetForm',
 
-	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect },
+	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect, CnIconBrowser },
 
 	props: {
 		/** The placement being edited (pre-fills from `editingWidget.content`), or null. @type {{content: object}|null} */
@@ -135,8 +134,6 @@ export default {
 		metricOptions() { return ['count', 'sum', 'avg', 'min', 'max'] },
 		/** Card colour variants (CnStatsBlock). */
 		variantOptions() { return ['default', 'primary', 'success', 'warning', 'error'] },
-		/** Icon name options from the shared catalog. */
-		iconOptions() { return Object.keys(DASHBOARD_ICONS) },
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			return {

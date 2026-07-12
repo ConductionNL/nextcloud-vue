@@ -46,6 +46,48 @@ The `layers[]` array dispatches by `type`:
 
 Unknown types log a warning and are skipped — manifests stay forward-compatible.
 
+## Base maps and the layer switcher
+
+`basemaps` declares the switchable **background** map(s). The first entry is live on load; when more than one is given, a Leaflet layer switcher appears in the top-right corner:
+
+```vue
+<CnMapWidget
+  :center="[52.1326, 5.2913]"
+  :basemaps="[
+    { name: 'Standard',
+      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      attribution: '© OpenStreetMap contributors' },
+    { name: 'Terrain',
+      url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+      attribution: '© OpenStreetMap contributors, SRTM | © OpenTopoMap' },
+  ]" />
+```
+
+Use `basemaps` **instead of** a `tile` entry in `layers` for the background — `layers` is then free to carry only overlays (WMS / WFS / GeoJSON). `basemaps` is empty by default, so consumers that already declare their background through `layers` are unaffected.
+
+> Base map tiles are `<img>` loads from a third-party host. A hardened Content-Security-Policy (`img-src`) may block hosts other than the one already allowed — verify before shipping a new basemap.
+
+## Controls
+
+Beyond Leaflet's own zoom and attribution controls, the widget mounts a control bar (top-left). Each button is individually switchable:
+
+| Prop                | Default | Button                                                                 |
+|---------------------|---------|------------------------------------------------------------------------|
+| `fitControl`        | `true`  | **Fit all markers** — re-centres and re-zooms to the full marker bounds, i.e. back to the frame the map opens at with `autoFit`. |
+| `locateControl`     | `true`  | **Show my location** — browser geolocation; warns (never throws) when denied or on an insecure origin. |
+| `fullscreenControl` | `true`  | **Toggle fullscreen** — a CSS overlay, so no Fullscreen-API permission prompt. |
+
+`fitToMarkers()` is also callable directly through a template ref:
+
+```vue
+<CnMapWidget ref="map" ... />
+<!-- this.$refs.map.fitToMarkers() -->
+```
+
+## Sizing
+
+`height` accepts any CSS length (default `500px`). Pass `height="100%"` to fill a flex parent — the widget watches its own box with a `ResizeObserver` and re-flows Leaflet whenever it changes, so a map that grows, or that mounts while hidden behind a view toggle, still lays its tiles and markers out correctly.
+
 ## Markers
 
 Pick **one** of:
@@ -55,6 +97,20 @@ Pick **one** of:
 - `markers.dataSource.{register, schema}` — RESERVED. Round-tripped by validators today, resolver lands in a follow-up change.
 
 `markers.clustering: true` (or the widget-level `clustering` prop) opts in to `leaflet.markercluster`. The cluster bundle lazy-loads only when first enabled — consumers without clustering pay zero extra bytes.
+
+## Legend
+
+Render a custom legend overlay via the `#legend` slot. It is positioned absolute (top-right) by default; consumers may override with their own container. Scoped props: `{ layers, markers }`.
+
+```vue
+<CnMapWidget :layers="layers" :markers="markers">
+  <template #legend="{ layers }">
+    <ul class="my-legend">
+      <li v-for="layer in layers" :key="layer.type">{{ layer.type }}</li>
+    </ul>
+  </template>
+</CnMapWidget>
+```
 
 ## Manifest mounting
 

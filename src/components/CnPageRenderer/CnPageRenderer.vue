@@ -113,6 +113,25 @@
 			</template>
 		</component>
 
+		<!-- Builder empty-state. A page with no renderable body — e.g. a
+		     freshly-created custom page that has no `component` / body widgets
+		     yet — would otherwise render nothing at all, leaving no
+		     "Edit with OpenBuild" affordance to start adding content. Render the
+		     edit button (it self-gates to builder mode via CnAppRoot's
+		     `cnOpenBuildAvailable`) plus a neutral prompt, so a new page is
+		     always editable. ADR-041. -->
+		<div v-if="!hasRenderableBody" class="cn-page-renderer__empty">
+			<div class="cn-page-renderer__empty-actions">
+				<CnOpenBuildEditButton />
+			</div>
+			<NcEmptyContent :name="tr('This page is empty')"
+				:description="tr('Open the OpenBuild editor to start adding content to this page.')">
+				<template #icon>
+					<ShapeOutline :size="20" />
+				</template>
+			</NcEmptyContent>
+		</div>
+
 		<!-- Per-page config editor, opened by an index page's edit-mode cog. -->
 		<CnPageConfigModal v-if="showConfigModal && currentPage"
 			:page="currentPage"
@@ -134,9 +153,12 @@
 </template>
 
 <script>
+import { NcEmptyContent } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
 import { defaultPageTypes } from './pageTypes.js'
 import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
+import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import CnPageConfigModal from '../../modals/CnPageConfigModal.vue'
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
@@ -184,7 +206,10 @@ export default {
 	components: {
 		CnWidgetGrid,
 		CnPageConfigModal,
+		CnOpenBuildEditButton,
 		CnMassExportDialog,
+		NcEmptyContent,
+		ShapeOutline,
 	},
 
 	inject: {
@@ -571,6 +596,20 @@ export default {
 		 * `defineAsyncComponent`); the renderer treats any value in the
 		 * map as a Vue component.
 		 */
+		/**
+		 * Whether the current page renders any body content — a dispatched page
+		 * component (index/detail/dashboard/custom-with-component) or a v2 `body`
+		 * widget slot. False for a freshly-created custom page with no component
+		 * and no widgets, which drives the builder empty-state (ADR-041) so the
+		 * page still exposes the "Edit with OpenBuild" affordance.
+		 *
+		 * @return {boolean}
+		 */
+		hasRenderableBody() {
+			if (this.resolvedComponent) return true
+			if (this.isV2Manifest && this.widgetsBySlot && this.widgetsBySlot.has('body')) return true
+			return false
+		},
 		resolvedComponent() {
 			const page = this.currentPage
 			if (!page) {
@@ -950,6 +989,19 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Resolve a UI string through the consumer's translate function
+		 * (`translate` prop, else injected `cnTranslate`), falling back to the
+		 * English source key. Used for the builder empty-state copy.
+		 *
+		 * @param {string} key The English source string.
+		 * @return {string} The translated (or source) string.
+		 */
+		tr(key) {
+			const fn = this.translate || this.cnTranslate
+			return typeof fn === 'function' ? fn(key) : key
+		},
+
 		/**
 		 * Route the export launcher's confirm payload (`{ format, entity? }`)
 		 * to the export action's `handler` (resolved against the manifest
@@ -1340,5 +1392,17 @@ export default {
  */
 .cn-page-renderer--no-sidebar {
 	/* intentionally empty — consumer-styled */
+}
+
+/* Builder empty-state: keep the edit button top-right (mirrors a page
+   header's actions area) above a centred empty prompt. */
+.cn-page-renderer__empty {
+	padding-inline-start: 56px;
+}
+
+.cn-page-renderer__empty-actions {
+	display: flex;
+	justify-content: flex-end;
+	padding: 8px 8px 0;
 }
 </style>

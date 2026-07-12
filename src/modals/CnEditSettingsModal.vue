@@ -11,8 +11,12 @@
   `inputLabel`.
 -->
 <template>
-	<NcDialog size="normal" :name="t('nextcloud-vue', 'Edit settings menu')" @closing="$emit('close')">
+	<NcModal size="normal" @close="$emit('close')">
 		<div class="cn-edit-settings">
+			<h2 class="cn-edit-settings__title">
+				{{ t('nextcloud-vue', 'Edit settings menu') }}
+			</h2>
+
 			<p class="cn-edit-settings__hint">
 				{{ t('nextcloud-vue', 'These items appear in the settings ⚙ foldout at the bottom of the navigation.') }}
 			</p>
@@ -44,36 +48,90 @@
 					:placeholder="t('nextcloud-vue', 'Settings')"
 					@update:value="setSettingsLabel" />
 			</fieldset>
-		</div>
 
-		<template #actions>
-			<NcButton type="secondary" @click="add">
-				<template #icon>
-					<Plus :size="20" />
+			<fieldset class="cn-edit-settings__group">
+				<legend class="cn-edit-settings__legend">
+					{{ t('nextcloud-vue', 'Roadmap entry') }}
+				</legend>
+				<NcCheckboxRadioSwitch
+					:checked="includeRoadmap"
+					type="switch"
+					@update:checked="setIncludeRoadmap">
+					{{ t('nextcloud-vue', 'Show a “Features & roadmap” entry in the foldout') }}
+				</NcCheckboxRadioSwitch>
+				<template v-if="includeRoadmap">
+					<NcTextField
+						:value="roadmapLabel"
+						:label="t('nextcloud-vue', 'Roadmap label')"
+						:label-visible="true"
+						:placeholder="t('nextcloud-vue', 'Features & roadmap')"
+						@update:value="setRoadmapLabel" />
+					<NcTextField
+						:value="roadmapUrl"
+						:label="t('nextcloud-vue', 'Roadmap link (URL or in-app route)')"
+						:label-visible="true"
+						:placeholder="t('nextcloud-vue', 'https://…')"
+						@update:value="setRoadmapUrl" />
 				</template>
-				{{ t('nextcloud-vue', 'Add settings item') }}
-			</NcButton>
-			<NcButton type="primary" :disabled="saving" @click="onDone">
-				<template v-if="saving" #icon>
-					<NcLoadingIcon :size="20" />
+			</fieldset>
+
+			<fieldset class="cn-edit-settings__group">
+				<legend class="cn-edit-settings__legend">
+					{{ t('nextcloud-vue', 'Documentation entry') }}
+				</legend>
+				<NcCheckboxRadioSwitch
+					:checked="includeDocumentation"
+					type="switch"
+					@update:checked="setIncludeDocumentation">
+					{{ t('nextcloud-vue', 'Show a “Documentation” entry in the foldout') }}
+				</NcCheckboxRadioSwitch>
+				<template v-if="includeDocumentation">
+					<NcTextField
+						:value="documentationLabel"
+						:label="t('nextcloud-vue', 'Documentation label')"
+						:label-visible="true"
+						:placeholder="t('nextcloud-vue', 'Documentation')"
+						@update:value="setDocumentationLabel" />
+					<NcTextField
+						:value="documentationUrl"
+						:label="t('nextcloud-vue', 'Documentation link (URL)')"
+						:label-visible="true"
+						:placeholder="t('nextcloud-vue', 'https://…')"
+						@update:value="setDocumentationUrl" />
 				</template>
-				{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
-			</NcButton>
-		</template>
-	</NcDialog>
+			</fieldset>
+
+			<div class="cn-edit-settings__footer">
+				<NcButton type="secondary" @click="add">
+					<template #icon>
+						<Plus :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Add settings item') }}
+				</NcButton>
+				<NcButton type="primary" :disabled="saving" @click="onDone">
+					<template #icon>
+						<NcLoadingIcon v-if="saving" :size="20" />
+						<ContentSaveOutline v-else :size="20" />
+					</template>
+					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
+				</NcButton>
+			</div>
+		</div>
+	</NcModal>
 </template>
 
 <script>
-import { NcDialog, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcModal, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import CnMenuTreeNode from '../components/CnMenuTreeNode/CnMenuTreeNode.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 export default {
 	name: 'CnEditSettingsModal',
 
-	components: { NcDialog, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon, Plus, CnMenuTreeNode },
+	components: { NcModal, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon, Plus, ContentSaveOutline, CnMenuTreeNode },
 
 	mixins: [manifestModalDoneMixin],
 
@@ -121,13 +179,42 @@ export default {
 		nav() {
 			return (this.working && this.working.nav && typeof this.working.nav === 'object') ? this.working.nav : {}
 		},
-		/** Whether the foldout shows the auto "Personal settings" entry. */
+		/**
+		 * Whether the foldout shows the auto "Personal settings" entry. Mirrors
+		 * CnAppNav's runtime default (shown unless explicitly `false`) so the
+		 * toggle reflects reality — otherwise an app that never set the flag shows
+		 * the toggle OFF while the entry is still rendered in the nav.
+		 */
 		includePersonalSettings() {
-			return Boolean(this.nav.includePersonalSettings)
+			return this.nav.includePersonalSettings !== false
 		},
 		/** The settings foldout label (empty string when unset). */
 		settingsLabel() {
 			return typeof this.nav.settingsLabel === 'string' ? this.nav.settingsLabel : ''
+		},
+		/** Whether the foldout shows a "Features & roadmap" entry (off by default). */
+		includeRoadmap() {
+			return this.nav.includeRoadmap === true
+		},
+		/** Label for the roadmap foldout entry (empty string when unset). */
+		roadmapLabel() {
+			return typeof this.nav.roadmapLabel === 'string' ? this.nav.roadmapLabel : ''
+		},
+		/** Target link/route for the roadmap foldout entry (empty when unset). */
+		roadmapUrl() {
+			return typeof this.nav.roadmapUrl === 'string' ? this.nav.roadmapUrl : ''
+		},
+		/** Whether the foldout shows a "Documentation" entry (off by default). */
+		includeDocumentation() {
+			return this.nav.includeDocumentation === true
+		},
+		/** Label for the documentation foldout entry (empty string when unset). */
+		documentationLabel() {
+			return typeof this.nav.documentationLabel === 'string' ? this.nav.documentationLabel : ''
+		},
+		/** Target URL for the documentation foldout entry (empty when unset). */
+		documentationUrl() {
+			return typeof this.nav.documentationUrl === 'string' ? this.nav.documentationUrl : ''
 		},
 	},
 
@@ -158,6 +245,48 @@ export default {
 		setSettingsLabel(value) {
 			this.$set(this.ensureNav(), 'settingsLabel', value)
 		},
+		/**
+		 * Toggle the roadmap foldout entry.
+		 * @param checked
+		 */
+		setIncludeRoadmap(checked) {
+			this.$set(this.ensureNav(), 'includeRoadmap', Boolean(checked))
+		},
+		/**
+		 * Set the roadmap entry label.
+		 * @param value
+		 */
+		setRoadmapLabel(value) {
+			this.$set(this.ensureNav(), 'roadmapLabel', value)
+		},
+		/**
+		 * Set the roadmap entry link/route.
+		 * @param value
+		 */
+		setRoadmapUrl(value) {
+			this.$set(this.ensureNav(), 'roadmapUrl', value)
+		},
+		/**
+		 * Toggle the documentation foldout entry.
+		 * @param checked
+		 */
+		setIncludeDocumentation(checked) {
+			this.$set(this.ensureNav(), 'includeDocumentation', Boolean(checked))
+		},
+		/**
+		 * Set the documentation entry label.
+		 * @param value
+		 */
+		setDocumentationLabel(value) {
+			this.$set(this.ensureNav(), 'documentationLabel', value)
+		},
+		/**
+		 * Set the documentation entry URL.
+		 * @param value
+		 */
+		setDocumentationUrl(value) {
+			this.$set(this.ensureNav(), 'documentationUrl', value)
+		},
 	},
 }
 </script>
@@ -165,6 +294,11 @@ export default {
 <style scoped>
 .cn-edit-settings {
 	padding: 20px;
+}
+
+.cn-edit-settings__title {
+	margin-top: 0;
+	margin-bottom: 4px;
 }
 
 .cn-edit-settings__hint {
@@ -185,5 +319,11 @@ export default {
 .cn-edit-settings__legend {
 	font-weight: 600;
 	padding: 0 6px;
+}
+
+.cn-edit-settings__footer {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 16px;
 }
 </style>

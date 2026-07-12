@@ -24,6 +24,13 @@ module.exports = defineConfig([{
 		// single line and reports thousands of stylistic errors — they're
 		// not actionable on generated code.
 		'src/utils/validateManifestV2.compiled.js',
+		// Generated NL-government icon catalogues (data:image/svg+xml URIs).
+		// Multi-MB data-only modules produced by scripts/generate-nl-icons.mjs;
+		// linting the inlined SVG URIs is not actionable. See icons/ATTRIBUTION.md.
+		'src/icons/rvo.js',
+		'src/icons/openGemeenten.js',
+		'src/icons/denHaag.js',
+		'src/icons/index.js',
 	],
 }, {
 	extends: compat.extends('@nextcloud'),

@@ -348,9 +348,25 @@ export default {
 		isDetailPage() {
 			return !!(this.currentPage && this.currentPage.type === 'detail')
 		},
+		/**
+		 * Whether the active page is a blank custom page with no body yet — no
+		 * `component`, no `slots.main`, and no `body`-slot widgets. Such a page
+		 * renders the builder empty-state; letting "Add widget" target it turns a
+		 * freshly-created page into a widget grid (the V2 `body` slot renders for
+		 * any page type), so a new page is buildable from empty. ADR-041.
+		 *
+		 * @return {boolean}
+		 */
+		isEmptyBodyPage() {
+			const p = this.currentPage
+			if (!p || p.type !== 'custom') return false
+			if (p.component || (p.slots && p.slots.main)) return false
+			const widgets = Array.isArray(p.widgets) ? p.widgets : []
+			return !widgets.some((w) => w && (w.slot || 'body') === 'body')
+		},
 		/** Whether the active page hosts a widget grid that "Add widget" can target. */
 		pageSupportsWidgets() {
-			return this.isDashboardPage || this.isDetailPage
+			return this.isDashboardPage || this.isDetailPage || this.isEmptyBodyPage
 		},
 		/**
 		 * The widget-picker surface for "Add widget". Detail pages get
@@ -464,6 +480,14 @@ export default {
 			// ejectDetailGridIfNeeded). A v2 page keeps them in pages[].widgets[]
 			// (slot-based). Append to whichever this page uses so the new widget
 			// lands where the renderer reads.
+			// Append IN PLACE (`push`), never by replacing the array. These arrays
+			// reach the grid as props via CnPageRenderer's `resolvedProps`, which
+			// does NOT re-derive when `config.widgets` / `config.layout` are
+			// swapped for new arrays — the page component keeps its original array
+			// and the widget never appears at all. Mutating the array the props
+			// already point at is what makes the addition visible. (Rendering the
+			// new card correctly also needs CnDashboardPage to resolve widget defs
+			// through a live lookup rather than a cached map — see getWidgetDef.)
 			const cfg = page.config && typeof page.config === 'object' && !Array.isArray(page.config) ? page.config : null
 			if ((page.type === 'dashboard' || page.type === 'detail') && cfg) {
 				if (!Array.isArray(cfg.widgets)) this.$set(cfg, 'widgets', [])
