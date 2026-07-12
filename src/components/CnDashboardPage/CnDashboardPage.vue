@@ -489,8 +489,9 @@
 				<template v-else-if="registryRenderer(item)">
 					<CnWidgetWrapper
 						:title="getWidgetTitle(item)"
-						:show-title="item.showTitle !== false"
-						:show-actions="item.showActions !== false"
+						:show-title="getWidgetShowTitle(item)"
+						:show-actions="getWidgetShowActions(item)"
+						:show-refresh="getWidgetShowRefresh(item)"
 						:flush="item.flush !== false"
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
@@ -1471,7 +1472,9 @@ export default {
 				type: def.type || '',
 				title: def.title || '',
 				styleConfig: def.styleConfig || {},
-				showTitle: def.showTitle !== false,
+				// Left raw (possibly undefined) so the modal can apply the
+				// card-aware default rather than being handed a coerced `true`.
+				showTitle: def.showTitle,
 				customTitle: def.customTitle || '',
 				customIcon: def.customIcon || '',
 				content,
@@ -2205,6 +2208,44 @@ export default {
 			if (!def || !def.type) return false
 			const entry = getWidgetTypeEntry(def.type)
 			return Boolean(entry && entry.card === true)
+		},
+
+		/**
+		 * Whether a registry widget renders the wrapper's chrome header.
+		 *
+		 * Card widgets (stat / gauge / delta) carry their own headline — the
+		 * tile's `content.label` — so the chrome header would only repeat it
+		 * (or, when the layout never set one, show the raw type name). They
+		 * therefore default to headerless; every other registered widget keeps
+		 * the header. An explicit `showTitle` on the layout item wins either way,
+		 * so a card can still opt back in.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} true when the chrome header renders.
+		 */
+		getWidgetShowTitle(item) {
+			if (typeof item.showTitle === 'boolean') return item.showTitle
+			const def = this.getWidgetDef(item.widgetId)
+			if (def && typeof def.showTitle === 'boolean') return def.showTitle
+			return !this.isCardWidget(item)
+		},
+
+		/**
+		 * Whether a registry widget renders the shared overflow Actions menu.
+		 *
+		 * Card widgets are the "card" family (see docs/architecture/cards-and-widgets.md)
+		 * and carry no Actions menu — a KPI tile has no refreshable surface of its
+		 * own and the menu eats the header width it needs. An explicit `showActions`
+		 * on the layout item wins.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} true when the Actions menu renders.
+		 */
+		getWidgetShowActions(item) {
+			if (typeof item.showActions === 'boolean') return item.showActions
+			const def = this.getWidgetDef(item.widgetId)
+			if (def && typeof def.showActions === 'boolean') return def.showActions
+			return !this.isCardWidget(item)
 		},
 
 		/**

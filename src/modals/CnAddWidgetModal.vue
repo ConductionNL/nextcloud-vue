@@ -479,7 +479,12 @@ export default {
 			const pick = (...vals) => vals.find((v) => v !== undefined && v !== null)
 			const showRaw = pick(w.showTitle, c.showTitle)
 			this.chrome = {
-				showTitle: showRaw === undefined ? true : Boolean(Number(showRaw) || showRaw === true),
+				// Cards (stat / gauge / delta) headline themselves via `content.label`,
+				// so they default headerless — otherwise the chrome header just repeats
+				// the label, or shows the bare type name when no title was ever set.
+				showTitle: showRaw === undefined
+					? !this.isCardType(w.type || this.state.type)
+					: Boolean(Number(showRaw) || showRaw === true),
 				customTitle: pick(w.customTitle, c.customTitle, c.title) || '',
 				backgroundColor: pick(w.backgroundColor, w.styleConfig?.backgroundColor, c.styleConfig?.backgroundColor) || '',
 				customIcon: pick(w.customIcon, c.customIcon, c.icon) || '',
@@ -498,10 +503,26 @@ export default {
 		 */
 		onTypeSwitch() {
 			this.form.resetForm(this.state.type)
+			// Re-apply the type's chrome default: switching between a card and a
+			// full widget flips whether a header makes sense.
+			this.chrome.showTitle = !this.isCardType(this.state.type)
 			this.validationTick++
 			this.$nextTick(() => {
 				this.validationTick++
 			})
+		},
+
+		/**
+		 * Whether a widget type is a self-contained card (stat / gauge / delta),
+		 * which renders headerless by default.
+		 *
+		 * @param {string} type the registry type key.
+		 * @return {boolean} true when the registry entry is a card.
+		 */
+		isCardType(type) {
+			if (!type) return false
+			const entry = getWidgetTypeEntry(type)
+			return Boolean(entry && entry.card === true)
 		},
 
 		/**
