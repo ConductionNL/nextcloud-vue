@@ -3,74 +3,68 @@
 
   Mutates the passed `working` manifest copy ONLY (never the base): toggles the
   active page's sidebar visibility and the visibility of its declared tabs
-  (`page.config.sidebar`). Isolated NcModal file per ADR-004. Uses NcCheckboxRadioSwitch
+  (`page.config.sidebar`). Isolated NcDialog file per ADR-004. Uses NcCheckboxRadioSwitch
   (no NcSelect) so no input-label wiring is required.
 -->
 <template>
-	<NcModal size="normal" @close="$emit('close')">
-		<div class="cn-edit-sidebar">
-			<h2 class="cn-edit-sidebar__title">
-				{{ t('nextcloud-vue', 'Edit sidebar') }}
-			</h2>
+	<NcDialog size="normal" :name="t('nextcloud-vue', 'Edit sidebar')" @closing="$emit('close')">
+		<template v-if="page">
+			<NcCheckboxRadioSwitch :checked.sync="sidebarShown" type="switch">
+				{{ t('nextcloud-vue', 'Show sidebar on this page') }}
+			</NcCheckboxRadioSwitch>
 
-			<template v-if="page">
-				<NcCheckboxRadioSwitch :checked.sync="sidebarShown" type="switch">
-					{{ t('nextcloud-vue', 'Show sidebar on this page') }}
-				</NcCheckboxRadioSwitch>
+			<h3 class="cn-edit-sidebar__subtitle">
+				{{ t('nextcloud-vue', 'Tabs') }}
+			</h3>
+			<ul class="cn-edit-sidebar__tabs">
+				<li v-for="(tab, index) in editableTabs" :key="tab.id || index" class="cn-edit-sidebar__tab">
+					<div class="cn-edit-sidebar__tab-row">
+						<NcCheckboxRadioSwitch
+							:checked="!isHidden(tab.id)"
+							:aria-label="t('nextcloud-vue', 'Visible')"
+							@update:checked="(v) => setTabVisible(tab.id, v)" />
+						<NcTextField :value.sync="tab.label" :label="t('nextcloud-vue', 'Tab label')" :label-visible="true" />
+						<NcTextField :value.sync="tab.id" :label="t('nextcloud-vue', 'Tab id')" :label-visible="true" />
+						<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="removeTab(index)">
+							<template #icon>
+								<Delete :size="20" />
+							</template>
+						</NcButton>
+					</div>
+					<label class="cn-edit-sidebar__content">
+						<span>{{ t('nextcloud-vue', 'Content') }}</span>
+						<NcSelect :value="selectedContent(tab)"
+							:options="contentOptions"
+							:clearable="false"
+							label="label"
+							:input-label="t('nextcloud-vue', 'Tab content')"
+							@input="(o) => setContent(tab, o)" />
+					</label>
+				</li>
+			</ul>
+			<NcButton type="secondary" @click="addTab">
+				<template #icon>
+					<Plus :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Add tab') }}
+			</NcButton>
+		</template>
+		<NcEmptyContent v-else :name="t('nextcloud-vue', 'No editable page')" />
 
-				<h3 class="cn-edit-sidebar__subtitle">
-					{{ t('nextcloud-vue', 'Tabs') }}
-				</h3>
-				<ul class="cn-edit-sidebar__tabs">
-					<li v-for="(tab, index) in editableTabs" :key="tab.id || index" class="cn-edit-sidebar__tab">
-						<div class="cn-edit-sidebar__tab-row">
-							<NcCheckboxRadioSwitch
-								:checked="!isHidden(tab.id)"
-								:aria-label="t('nextcloud-vue', 'Visible')"
-								@update:checked="(v) => setTabVisible(tab.id, v)" />
-							<NcTextField :value.sync="tab.label" :label="t('nextcloud-vue', 'Tab label')" :label-visible="true" />
-							<NcTextField :value.sync="tab.id" :label="t('nextcloud-vue', 'Tab id')" :label-visible="true" />
-							<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="removeTab(index)">
-								<template #icon>
-									<Delete :size="20" />
-								</template>
-							</NcButton>
-						</div>
-						<label class="cn-edit-sidebar__content">
-							<span>{{ t('nextcloud-vue', 'Content') }}</span>
-							<NcSelect :value="selectedContent(tab)"
-								:options="contentOptions"
-								:clearable="false"
-								label="label"
-								:input-label="t('nextcloud-vue', 'Tab content')"
-								@input="(o) => setContent(tab, o)" />
-						</label>
-					</li>
-				</ul>
-				<NcButton type="secondary" @click="addTab">
-					<template #icon>
-						<Plus :size="20" />
-					</template>
-					{{ t('nextcloud-vue', 'Add tab') }}
-				</NcButton>
-			</template>
-			<NcEmptyContent v-else :name="t('nextcloud-vue', 'No editable page')" />
-
-			<div class="cn-edit-sidebar__footer">
-				<NcButton type="primary" :disabled="saving" @click="onDone">
-					<template #icon>
-						<NcLoadingIcon v-if="saving" :size="20" />
-						<ContentSaveOutline v-else :size="20" />
-					</template>
-					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
-				</NcButton>
-			</div>
-		</div>
-	</NcModal>
+		<template #actions>
+			<NcButton type="primary" :disabled="saving" @click="onDone">
+				<template #icon>
+					<NcLoadingIcon v-if="saving" :size="20" />
+					<ContentSaveOutline v-else :size="20" />
+				</template>
+				{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
+			</NcButton>
+		</template>
+	</NcDialog>
 </template>
 
 <script>
-import { NcModal, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
@@ -79,7 +73,7 @@ import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 export default {
 	name: 'CnEditSidebarModal',
 
-	components: { NcModal, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField, NcLoadingIcon, NcSelect, Plus, Delete },
+	components: { NcDialog, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField, NcLoadingIcon, NcSelect, Plus, Delete },
 
 	mixins: [manifestModalDoneMixin],
 
@@ -230,14 +224,6 @@ export default {
 </script>
 
 <style scoped>
-.cn-edit-sidebar {
-	padding: 20px;
-}
-
-.cn-edit-sidebar__title {
-	margin-top: 0;
-}
-
 .cn-edit-sidebar__subtitle {
 	margin: 16px 0 8px;
 }
@@ -270,11 +256,5 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
-}
-
-.cn-edit-sidebar__footer {
-	display: flex;
-	justify-content: flex-end;
-	margin-top: 16px;
 }
 </style>

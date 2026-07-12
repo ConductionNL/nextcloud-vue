@@ -8,126 +8,121 @@
   re-targeted). Empty fields fall back to the shell's built-in defaults, so the
   author overrides only what they want. CnAppRoot reads `manifest.support` and
   feeds it to CnSupportDialog. Persists via the shared useManifestEditor
-  (manifestModalDoneMixin). Isolated NcModal per ADR-004.
+  (manifestModalDoneMixin). Isolated NcDialog per ADR-004.
 -->
 <template>
-	<NcModal size="normal" @close="$emit('close')">
-		<div class="cn-edit-support">
-			<h2 class="cn-edit-support__title">
-				{{ t('nextcloud-vue', 'Edit support &amp; donation') }}
-			</h2>
-			<p class="cn-edit-support__intro">
-				{{ t('nextcloud-vue', 'A one-time, dismissible note shown the first time a user opens the app. It introduces the team and offers to donate, suggest a feature, review, or get support. Leave a field blank to keep the default.') }}
-			</p>
+	<NcDialog size="normal" :name="t('nextcloud-vue', 'Edit support &amp; donation')" @closing="$emit('close')">
+		<p class="cn-edit-support__intro">
+			{{ t('nextcloud-vue', 'A one-time, dismissible note shown the first time a user opens the app. It introduces the team and offers to donate, suggest a feature, review, or get support. Leave a field blank to keep the default.') }}
+		</p>
 
-			<NcCheckboxRadioSwitch :checked.sync="support.enabled">
-				{{ t('nextcloud-vue', 'Show the support note on first open') }}
-			</NcCheckboxRadioSwitch>
+		<NcCheckboxRadioSwitch :checked.sync="support.enabled">
+			{{ t('nextcloud-vue', 'Show the support note on first open') }}
+		</NcCheckboxRadioSwitch>
 
-			<NcTextField class="cn-edit-support__field"
-				:label="t('nextcloud-vue', 'Dialog title')"
-				:placeholder="t('nextcloud-vue', 'Support {appName}', { appName: appName })"
-				:value.sync="support.title" />
-			<NcTextArea class="cn-edit-support__field"
-				:label="t('nextcloud-vue', 'Body (one paragraph per line, blank for the default note)')"
-				:value="bodyText"
-				@update:value="setBody" />
+		<NcTextField class="cn-edit-support__field"
+			:label="t('nextcloud-vue', 'Dialog title')"
+			:placeholder="t('nextcloud-vue', 'Support {appName}', { appName: appName })"
+			:value.sync="support.title" />
+		<NcTextArea class="cn-edit-support__field"
+			:label="t('nextcloud-vue', 'Body (one paragraph per line, blank for the default note)')"
+			:value="bodyText"
+			@update:value="setBody" />
 
-			<h3 class="cn-edit-support__section">
-				{{ t('nextcloud-vue', 'Signature') }}
-			</h3>
-			<NcTextField class="cn-edit-support__field"
-				:label="t('nextcloud-vue', 'Signatory name')"
-				:value.sync="support.founderName" />
-			<NcTextField class="cn-edit-support__field"
-				:label="t('nextcloud-vue', 'Signatory role')"
-				:placeholder="t('nextcloud-vue', 'e.g. Owner, CTO, Founder, Team')"
-				:value.sync="support.founderTitle" />
+		<h3 class="cn-edit-support__section">
+			{{ t('nextcloud-vue', 'Signature') }}
+		</h3>
+		<NcTextField class="cn-edit-support__field"
+			:label="t('nextcloud-vue', 'Signatory name')"
+			:value.sync="support.founderName" />
+		<NcTextField class="cn-edit-support__field"
+			:label="t('nextcloud-vue', 'Signatory role')"
+			:placeholder="t('nextcloud-vue', 'e.g. Owner, CTO, Founder, Team')"
+			:value.sync="support.founderTitle" />
 
-			<div class="cn-edit-support__avatar">
-				<img v-if="avatarPreview"
-					class="cn-edit-support__avatar-preview"
-					:src="avatarPreview"
-					alt="">
-				<div class="cn-edit-support__avatar-fields">
-					<NcTextField :label="t('nextcloud-vue', 'Avatar URL (blank for the default portrait)')"
-						:value.sync="support.founderAvatarUrl" />
-					<div class="cn-edit-support__avatar-actions">
-						<NcButton type="secondary" @click="$refs.avatarFile.click()">
-							<template #icon>
-								<Upload :size="20" />
-							</template>
-							{{ t('nextcloud-vue', 'Upload image') }}
-						</NcButton>
-						<NcButton v-if="support.founderAvatarUrl"
-							type="tertiary"
-							@click="clearAvatar">
-							{{ t('nextcloud-vue', 'Reset to default') }}
-						</NcButton>
-						<input ref="avatarFile"
-							type="file"
-							accept="image/*"
-							class="cn-edit-support__avatar-input"
-							@change="onAvatarFile">
-					</div>
+		<div class="cn-edit-support__avatar">
+			<img v-if="avatarPreview"
+				class="cn-edit-support__avatar-preview"
+				:src="avatarPreview"
+				alt="">
+			<div class="cn-edit-support__avatar-fields">
+				<NcTextField :label="t('nextcloud-vue', 'Avatar URL (blank for the default portrait)')"
+					:value.sync="support.founderAvatarUrl" />
+				<div class="cn-edit-support__avatar-actions">
+					<NcButton type="secondary" @click="$refs.avatarFile.click()">
+						<template #icon>
+							<Upload :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Upload image') }}
+					</NcButton>
+					<NcButton v-if="support.founderAvatarUrl"
+						type="tertiary"
+						@click="clearAvatar">
+						{{ t('nextcloud-vue', 'Reset to default') }}
+					</NcButton>
+					<input ref="avatarFile"
+						type="file"
+						accept="image/*"
+						class="cn-edit-support__avatar-input"
+						@change="onAvatarFile">
 				</div>
 			</div>
-
-			<NcTextField class="cn-edit-support__field"
-				:label="t('nextcloud-vue', 'Avatar link URL (where the avatar points)')"
-				:value.sync="support.founderProfileUrl" />
-
-			<h3 class="cn-edit-support__section">
-				{{ t('nextcloud-vue', 'Buttons') }}
-			</h3>
-			<p class="cn-edit-support__intro">
-				{{ t('nextcloud-vue', 'Turn a button off, or change its label, link, style and icon. Icons use a PascalCase MDI name (for example HeartOutline).') }}
-			</p>
-
-			<ul class="cn-edit-support__list">
-				<li v-for="def in buttonDefs" :key="def.id" class="cn-edit-support__button">
-					<h4 class="cn-edit-support__button-name">
-						{{ def.name }}
-					</h4>
-					<NcTextField :label="t('nextcloud-vue', 'Label')"
-						:placeholder="def.label"
-						:value.sync="buttonFor(def.id).label" />
-					<NcTextField :label="t('nextcloud-vue', 'Link URL')"
-						:placeholder="def.url || t('nextcloud-vue', 'Default for this app')"
-						:value.sync="buttonFor(def.id).url" />
-					<NcCheckboxRadioSwitch :checked.sync="buttonFor(def.id).enabled">
-						{{ t('nextcloud-vue', 'Show this button') }}
-					</NcCheckboxRadioSwitch>
-					<label class="cn-edit-support__style">
-						<span>{{ t('nextcloud-vue', 'Style') }}</span>
-						<NcSelect v-model="buttonFor(def.id).variant"
-							:options="variantOptions"
-							:clearable="false"
-							:reduce="o => o.id"
-							label="label"
-							:input-label="t('nextcloud-vue', 'Button style')" />
-					</label>
-					<NcTextField :label="t('nextcloud-vue', 'Icon (PascalCase MDI name)')"
-						:placeholder="def.icon"
-						:value.sync="buttonFor(def.id).icon" />
-				</li>
-			</ul>
-
-			<div class="cn-edit-support__footer">
-				<NcButton type="primary" :disabled="saving" @click="onDone">
-					<template #icon>
-						<NcLoadingIcon v-if="saving" :size="20" />
-						<ContentSaveOutline v-else :size="20" />
-					</template>
-					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
-				</NcButton>
-			</div>
 		</div>
-	</NcModal>
+
+		<NcTextField class="cn-edit-support__field"
+			:label="t('nextcloud-vue', 'Avatar link URL (where the avatar points)')"
+			:value.sync="support.founderProfileUrl" />
+
+		<h3 class="cn-edit-support__section">
+			{{ t('nextcloud-vue', 'Buttons') }}
+		</h3>
+		<p class="cn-edit-support__intro">
+			{{ t('nextcloud-vue', 'Turn a button off, or change its label, link, style and icon. Icons use a PascalCase MDI name (for example HeartOutline).') }}
+		</p>
+
+		<ul class="cn-edit-support__list">
+			<li v-for="def in buttonDefs" :key="def.id" class="cn-edit-support__button">
+				<h4 class="cn-edit-support__button-name">
+					{{ def.name }}
+				</h4>
+				<NcTextField :label="t('nextcloud-vue', 'Label')"
+					:placeholder="def.label"
+					:value.sync="buttonFor(def.id).label" />
+				<NcTextField :label="t('nextcloud-vue', 'Link URL')"
+					:placeholder="def.url || t('nextcloud-vue', 'Default for this app')"
+					:value.sync="buttonFor(def.id).url" />
+				<NcCheckboxRadioSwitch :checked.sync="buttonFor(def.id).enabled">
+					{{ t('nextcloud-vue', 'Show this button') }}
+				</NcCheckboxRadioSwitch>
+				<label class="cn-edit-support__style">
+					<span>{{ t('nextcloud-vue', 'Style') }}</span>
+					<NcSelect v-model="buttonFor(def.id).variant"
+						:options="variantOptions"
+						:clearable="false"
+						:reduce="o => o.id"
+						label="label"
+						:input-label="t('nextcloud-vue', 'Button style')" />
+				</label>
+				<NcTextField :label="t('nextcloud-vue', 'Icon (PascalCase MDI name)')"
+					:placeholder="def.icon"
+					:value.sync="buttonFor(def.id).icon" />
+			</li>
+		</ul>
+
+		<template #actions>
+			<NcButton type="primary" :disabled="saving" @click="onDone">
+				<template #icon>
+					<NcLoadingIcon v-if="saving" :size="20" />
+					<ContentSaveOutline v-else :size="20" />
+				</template>
+				{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
+			</NcButton>
+		</template>
+	</NcDialog>
 </template>
 
 <script>
-import { NcModal, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Upload from 'vue-material-design-icons/Upload.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
@@ -144,7 +139,7 @@ const BUTTON_DEFS = [
 export default {
 	name: 'CnEditSupportModal',
 
-	components: { NcModal, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect, Upload, ContentSaveOutline },
+	components: { NcDialog, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect, Upload, ContentSaveOutline },
 
 	mixins: [manifestModalDoneMixin],
 
@@ -270,14 +265,6 @@ export default {
 </script>
 
 <style scoped>
-.cn-edit-support {
-	padding: 20px;
-}
-
-.cn-edit-support__title {
-	margin-top: 0;
-}
-
 .cn-edit-support__intro {
 	color: var(--color-text-maxcontrast);
 	margin-bottom: 12px;
@@ -348,11 +335,5 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
-}
-
-.cn-edit-support__footer {
-	display: flex;
-	justify-content: flex-end;
-	margin-top: 16px;
 }
 </style>

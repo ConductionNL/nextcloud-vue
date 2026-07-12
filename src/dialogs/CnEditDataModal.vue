@@ -12,15 +12,11 @@
 
   Persistence talks straight to the OpenRegister REST API (the same backend the
   runtime already reads objects from): POST/PUT/DELETE /api/schemas, and
-  PATCH /api/registers/{id} to (un)link a schema. Isolated NcModal per ADR-004.
+  PATCH /api/registers/{id} to (un)link a schema. Isolated NcDialog per ADR-004.
 -->
 <template>
-	<NcModal size="large" @close="$emit('close')">
+	<NcDialog size="large" :name="t('nextcloud-vue', 'Manage data')" @closing="$emit('close')">
 		<div class="cn-edit-data">
-			<h2 class="cn-edit-data__title">
-				{{ t('nextcloud-vue', 'Manage data') }}
-			</h2>
-
 			<NcLoadingIcon v-if="loading" :size="32" class="cn-edit-data__loading" />
 
 			<div v-else-if="error" class="cn-edit-data__error">
@@ -143,16 +139,11 @@
 				</div>
 			</template>
 
-			<div class="cn-edit-data__footer">
-				<NcButton @click="$emit('close')">
-					{{ t('nextcloud-vue', 'Close') }}
-				</NcButton>
-			</div>
 		</div>
 
 		<!-- Reuse the full OpenRegister schema editor for add/edit. It renders its
 		     own dialog (teleported); a global z-index rule below stacks it above
-		     this data modal so it isn't painted underneath. -->
+		     this data dialog so it isn't painted underneath. -->
 		<CnSchemaFormDialog
 			v-if="showSchemaDialog"
 			:item="editingSchema"
@@ -163,11 +154,17 @@
 			@confirm="onSchemaConfirm"
 			@delete-schema="onSchemaDelete"
 			@close="showSchemaDialog = false" />
-	</NcModal>
+
+		<template #actions>
+			<NcButton @click="$emit('close')">
+				{{ t('nextcloud-vue', 'Close') }}
+			</NcButton>
+		</template>
+	</NcDialog>
 </template>
 
 <script>
-import { NcModal, NcButton, NcTextField, NcSelect, NcLoadingIcon } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcTextField, NcSelect, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
@@ -222,7 +219,7 @@ export function invalidateDataCache() {
 export default {
 	name: 'CnEditDataModal',
 
-	components: { NcModal, NcButton, NcTextField, NcSelect, NcLoadingIcon, CnSchemaFormDialog, Plus, Pencil, Delete, Check, Close },
+	components: { NcDialog, NcButton, NcTextField, NcSelect, NcLoadingIcon, CnSchemaFormDialog, Plus, Pencil, Delete, Check, Close },
 
 	inject: {
 		/**
@@ -585,16 +582,13 @@ export default {
 </script>
 
 <style scoped>
+/* NcDialog supplies the padding and the heading (via `name`); this div keeps only
+   the body's own column layout. */
 .cn-edit-data {
-	padding: 20px;
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
 	min-height: 280px;
-}
-
-.cn-edit-data__title {
-	margin: 0;
 }
 
 .cn-edit-data__subtitle {
@@ -682,21 +676,13 @@ export default {
 	gap: 4px;
 }
 
-.cn-edit-data__footer {
-	display: flex;
-	justify-content: flex-end;
-	border-top: 1px solid var(--color-border);
-	padding-top: 12px;
-	margin-top: auto;
-}
 </style>
 
-<!-- Global (un-scoped): NcModal and NcDialog both render a `.modal-mask` at
-     z-index 9998. NcModal's own scoped rule `.modal-mask[data-v-…]{z-index:9998}`
-     has the SAME specificity as a plain `.modal-mask.dialog__modal` selector, so a
-     non-important override loses the tie to whichever stylesheet loads last and the
-     nested schema editor (an NcDialog) paints *under* this data modal. Force it with
-     `!important` and clear headroom so a modal-launched NcDialog always sits on top. -->
+<!-- Global (un-scoped): every NcDialog renders a `.modal-mask` at z-index 9998, so
+     this dialog and the schema editor it launches sit on the SAME layer and the
+     winner is decided by stylesheet order. A non-important override loses that tie,
+     and the nested schema editor paints *under* the dialog that opened it. Force it
+     with `!important` and clear headroom so a nested NcDialog always sits on top. -->
 <style>
 .modal-mask.dialog__modal {
 	z-index: 10005 !important;

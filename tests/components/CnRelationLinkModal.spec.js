@@ -23,7 +23,7 @@ jest.mock('../../src/store/index.js', () => ({
 // eslint-disable-next-line import/first
 import { shallowMount } from '@vue/test-utils'
 // eslint-disable-next-line import/first
-import CnRelationLinkModal from '../../src/modals/CnRelationLinkModal.vue'
+import CnRelationLinkModal from '../../src/dialogs/CnRelationLinkModal.vue'
 
 describe('CnRelationLinkModal', () => {
 	beforeEach(() => {

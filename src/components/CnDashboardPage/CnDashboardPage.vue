@@ -628,7 +628,7 @@ import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } fr
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
-import CnWidgetStyleEditorModal from '../../modals/CnWidgetStyleEditorModal.vue'
+import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
