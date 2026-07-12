@@ -26,7 +26,30 @@ describe('CnRelatedObjectsWidgetForm', () => {
 		const w = mount({ title: '', groups: [] })
 		w.vm.onGroupsInput([{ id: 'mails', label: 'Mails' }, { id: 'events', label: 'Events' }])
 		expect(w.vm.groups).toEqual(['mails', 'events'])
-		expect(w.emitted('update:content').slice(-1)[0][0]).toEqual({ title: '', groups: ['mails', 'events'] })
+		expect(w.emitted('update:content').slice(-1)[0][0]).toEqual({
+			title: '',
+			groups: ['mails', 'events'],
+			hideSingleTabTitle: true,
+			showTotalCount: true,
+		})
+	})
+
+	it('defaults both display toggles on for content saved before they existed', () => {
+		const w = mount({ title: 'Files', groups: ['files'] })
+		expect(w.vm.hideSingleTabTitle).toBe(true)
+		expect(w.vm.showTotalCount).toBe(true)
+	})
+
+	it('seeds the display toggles from saved content and round-trips them', () => {
+		const w = mount({ title: '', groups: [], hideSingleTabTitle: false, showTotalCount: false })
+		expect(w.vm.hideSingleTabTitle).toBe(false)
+		expect(w.vm.showTotalCount).toBe(false)
+
+		w.vm.updateField('hideSingleTabTitle', true)
+		expect(w.emitted('update:content').slice(-1)[0][0]).toMatchObject({
+			hideSingleTabTitle: true,
+			showTotalCount: false,
+		})
 	})
 
 	it('offers the full relation-group catalog', () => {

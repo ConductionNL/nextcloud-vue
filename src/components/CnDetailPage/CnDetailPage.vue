@@ -348,6 +348,8 @@
 								:schema="schema"
 								:store="effectiveObjectStore"
 								:include-groups="widgetContentFor(item).groups || []"
+								:hide-single-tab-title="widgetContentFor(item).hideSingleTabTitle !== false"
+								:show-total-count="widgetContentFor(item).showTotalCount !== false"
 								@open-integration="onAutoBodyOpenIntegration" />
 							<!-- `type: 'object-geo'` widget: view/edit the object's
 							     `@self.geo` on a map. Editable in OpenBuild edit mode
