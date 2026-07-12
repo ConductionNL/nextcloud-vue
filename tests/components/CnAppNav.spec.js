@@ -13,6 +13,7 @@
 // `getCapabilities` call intercepted.
 import { mount } from '@vue/test-utils'
 import CnAppNav from '../../src/components/CnAppNav/CnAppNav.vue'
+import { NEXTCLOUD_ICONS } from '../../src/components/CnMenuTreeNode/nextcloudIcons.js'
 
 jest.mock('@nextcloud/capabilities', () => ({
 	getCapabilities: jest.fn(),
@@ -337,6 +338,20 @@ describe('CnAppNav', () => {
 			// A non-icon- name that isn't registered falls back to null (CSS path = '')
 			expect(wrapper.vm.cssIconClass({ icon: 'AccountGroup' })).toBe('')
 		})
+
+		// Every icon-* offered in the CnMenuTreeNode picker MUST be bridged to an
+		// MDI component: on NC34+ under a light theme, unbridged legacy icons fall
+		// through to the CSS-class path and render as white/grey background-images
+		// → invisible. This test keeps CSS_ICON_TO_MDI in sync with the picker list.
+		it.each(NEXTCLOUD_ICONS.map((i) => i.value))(
+			'bridges every picker icon to an MDI component (not the CSS path): %s',
+			(iconClass) => {
+				const wrapper = mountNav({ useProps: true })
+				const item = { icon: iconClass }
+				expect(wrapper.vm.mdiIconComponent(item)).toBeTruthy()
+				expect(wrapper.vm.cssIconClass(item)).toBe('')
+			},
+		)
 	})
 
 	describe('visibleIf.appInstalled filter', () => {
