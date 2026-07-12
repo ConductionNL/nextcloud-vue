@@ -122,12 +122,19 @@
 				{{ String(enumValue) }}
 			</NcActionButton>
 		</template>
+		<!--
+			Use @submit, not @keydown.enter: NcActionInput wraps the field and its
+			trailing arrow button in a <form> and emits `submit` for BOTH Enter and
+			an arrow click. Listening only for keydown.enter left the arrow — the
+			visible affordance most users reach for — doing nothing. Mirrors the
+			note-add input in CnRelatedObjectsWidget.
+		-->
 		<NcActionInput
 			:value="enumInputValue"
 			:label="t('nextcloud-vue', 'Add enum value')"
-			:placeholder="t('nextcloud-vue', 'Type value and press Enter')"
+			:placeholder="t('nextcloud-vue', 'Type a value and press Enter or the arrow')"
 			@update:value="enumInputValue = $event"
-			@keydown.enter.prevent="addEnumValueAndClear(propertyKey)" />
+			@submit="addEnumValueAndClear(propertyKey)" />
 
 		<!-- Default Value Configuration -->
 		<NcActionSeparator />
