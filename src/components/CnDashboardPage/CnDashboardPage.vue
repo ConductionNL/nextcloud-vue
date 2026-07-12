@@ -2613,6 +2613,12 @@ export default {
 	gap: 8px;
 	flex-wrap: wrap;
 	flex-shrink: 0;
+	/* Keeps the actions hard right even when a wide action set (pipelinq's six
+	   buttons) wraps onto its own line. The header's `justify-content:
+	   space-between` only distributes items WITHIN a line, so once the actions
+	   wrap they become the sole item on line 2 and would otherwise sit flush
+	   left, under the title. No-op while title and actions share a line. */
+	margin-left: auto;
 }
 
 /* Date-range header band. Kept compact so it doesn't open a tall gap
