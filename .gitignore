@@ -1,4 +1,8 @@
+# Both forms: the trailing slash only matches a directory, so a `node_modules`
+# SYMLINK (as a worktree pointing at a sibling checkout's deps) slips past it and
+# gets committed — it happened on beta in 8cf337bb.
 node_modules/
+node_modules
 dist/
 .DS_Store
 *.log
