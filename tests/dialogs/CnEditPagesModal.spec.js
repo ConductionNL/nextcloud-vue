@@ -7,7 +7,7 @@
  * auto-stubbed via tests/__mocks__/nextcloud-vue.js.
  */
 import { mount } from '@vue/test-utils'
-import CnEditPagesModal from '../../src/modals/CnEditPagesModal.vue'
+import CnEditPagesModal from '../../src/dialogs/CnEditPagesModal.vue'
 
 const CnPageTreeNodeStub = { name: 'CnPageTreeNode', props: ['list', 'parentId', 'depth', 'maxDepth'], template: '<div class="page-tree-stub" />' }
 

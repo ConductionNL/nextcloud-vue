@@ -4,21 +4,15 @@
 -->
 
 <template>
-	<NcModal
+	<NcDialog
 		v-if="show"
 		size="normal"
-		:name="t('nextcloud-vue', 'Widget style')"
-		@close="onCancel">
-		<div
-			class="cn-widget-style-editor"
-			role="dialog"
-			:aria-labelledby="titleId"
-			aria-modal="true"
-			data-testid="cn-widget-style-editor">
-			<h2 :id="titleId" class="cn-widget-style-editor__title">
-				{{ t('nextcloud-vue', 'Customize widget') }}
-			</h2>
-
+		:name="t('nextcloud-vue', 'Customize widget')"
+		@closing="onCancel">
+		<!-- NcDialog supplies the dialog role, the aria-modal/labelledby wiring and
+		     the heading (via `name`); the div survives only to carry the test hook
+		     and the layout class. -->
+		<div class="cn-widget-style-editor" data-testid="cn-widget-style-editor">
 			<!-- Typed-widget content config (e.g. a `stat` KPI's data source,
 			     label, icon, colours, format) supplied by the type's registered
 			     sub-form. Supersedes the generic chrome title/icon below. -->
@@ -98,33 +92,34 @@
 					@input="draft.customIcon = $event || ''" />
 			</div>
 
-			<!-- Actions: optional delete, reset to defaults, save. -->
-			<div class="cn-widget-style-editor__actions">
-				<NcButton
-					v-if="deletable"
-					type="error"
-					data-testid="cn-widget-style-delete"
-					@click="onDelete">
-					{{ t('nextcloud-vue', 'Delete') }}
-				</NcButton>
-				<div class="cn-widget-style-editor__actions-right">
-					<NcButton type="tertiary" @click="onCancel">
-						{{ t('nextcloud-vue', 'Cancel') }}
-					</NcButton>
-					<NcButton type="secondary" data-testid="cn-widget-style-reset" @click="resetDraft">
-						{{ t('nextcloud-vue', 'Reset') }}
-					</NcButton>
-					<NcButton type="primary" data-testid="cn-widget-style-save" @click="onSave">
-						{{ t('nextcloud-vue', 'Save') }}
-					</NcButton>
-				</div>
-			</div>
 		</div>
-	</NcModal>
+
+		<!-- Actions: optional delete, reset to defaults, save. -->
+		<template #actions>
+			<NcButton
+				v-if="deletable"
+				type="error"
+				data-testid="cn-widget-style-delete"
+				@click="onDelete">
+				{{ t('nextcloud-vue', 'Delete') }}
+			</NcButton>
+			<div class="cn-widget-style-editor__actions-right">
+				<NcButton type="tertiary" @click="onCancel">
+					{{ t('nextcloud-vue', 'Cancel') }}
+				</NcButton>
+				<NcButton type="secondary" data-testid="cn-widget-style-reset" @click="resetDraft">
+					{{ t('nextcloud-vue', 'Reset') }}
+				</NcButton>
+				<NcButton type="primary" data-testid="cn-widget-style-save" @click="onSave">
+					{{ t('nextcloud-vue', 'Save') }}
+				</NcButton>
+			</div>
+		</template>
+	</NcDialog>
 </template>
 
 <script>
-import { NcModal, NcButton, NcTextField, NcSelect, NcColorPicker, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcTextField, NcSelect, NcColorPicker, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import { getWidgetTypeEntry } from '../components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
@@ -157,8 +152,6 @@ const mdiUpload = 'M9,16V10H5L12,3L19,10H15V16H9M5,20V18H19V20H5Z'
 const mdiChartLine = 'M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z'
 const mdiConnection = 'M21.4 7.5C22.2 8.3 22.2 9.6 21.4 10.3L18.6 13.1L10.8 5.3L13.6 2.5C14.4 1.7 15.7 1.7 16.4 2.5L18.2 4.3L21.2 1.3L22.6 2.7L19.6 5.7L21.4 7.5M15.6 13.3L14.2 11.9L11.4 14.7L9.3 12.6L12.1 9.8L10.7 8.4L7.9 11.2L6.4 9.8L3.6 12.6C2.8 13.4 2.8 14.7 3.6 15.4L5.4 17.2L1.4 21.2L2.8 22.6L6.8 18.6L8.6 20.4C9.4 21.2 10.7 21.2 11.4 20.4L14.2 17.6L12.8 16.2L15.6 13.3Z'
 
-let titleIdCounter = 0
-
 // The shape a freshly-reset widget chrome falls back to. Kept as a factory so
 // callers of resetDraft() always get a deep copy (never a shared reference).
 const defaultStyleConfig = () => ({
@@ -185,7 +178,7 @@ export default {
 	name: 'CnWidgetStyleEditorModal',
 
 	components: {
-		NcModal,
+		NcDialog,
 		NcButton,
 		NcTextField,
 		NcSelect,
@@ -247,7 +240,6 @@ export default {
 
 	data() {
 		return {
-			titleId: `cn-widget-style-editor-title-${++titleIdCounter}`,
 			draft: this.buildDraft(this.widget),
 			// Working copy of the typed widget's `content` (when its type
 			// registers a config form). Seeded from the widget on open.
@@ -495,16 +487,8 @@ export default {
 </script>
 
 <style scoped>
-.cn-widget-style-editor {
-	padding: 24px;
-}
-
-.cn-widget-style-editor__title {
-	font-size: 20px;
-	font-weight: 600;
-	margin: 0 0 24px;
-}
-
+/* NcDialog owns the padding and the heading (via `name`), so the wrapper and
+   title rules the NcModal markup needed are gone. */
 .cn-widget-style-editor__section {
 	margin-bottom: 24px;
 	padding-bottom: 24px;
@@ -542,14 +526,8 @@ export default {
 	border: 1px solid var(--color-border);
 }
 
-.cn-widget-style-editor__actions {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	gap: 12px;
-	margin-top: 24px;
-}
-
+/* The actions row itself is NcDialog's `#actions` slot now; only the right-hand
+   button cluster inside it still needs its own layout. */
 .cn-widget-style-editor__actions-right {
 	display: flex;
 	gap: 12px;

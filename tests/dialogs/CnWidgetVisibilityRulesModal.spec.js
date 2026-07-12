@@ -10,7 +10,7 @@
  */
 
 import { mount } from '@vue/test-utils'
-import CnWidgetVisibilityRulesModal from '../../src/modals/CnWidgetVisibilityRulesModal.vue'
+import CnWidgetVisibilityRulesModal from '../../src/dialogs/CnWidgetVisibilityRulesModal.vue'
 
 /**
  * Mount the modal over a rule set.

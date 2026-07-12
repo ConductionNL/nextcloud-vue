@@ -10,7 +10,7 @@
 import { mount } from '@vue/test-utils'
 
 import axios from '@nextcloud/axios'
-import CnEditFlowsModal from '../../src/modals/CnEditFlowsModal.vue'
+import CnEditFlowsModal from '../../src/dialogs/CnEditFlowsModal.vue'
 
 jest.mock('@nextcloud/router', () => ({ generateUrl: (p) => p }))
 jest.mock('@nextcloud/axios', () => ({

@@ -7,7 +7,7 @@
  * itself is CnMenuTreeNode (stubbed here). @nextcloud/vue is auto-stubbed.
  */
 import { mount } from '@vue/test-utils'
-import CnEditSettingsModal from '../../src/modals/CnEditSettingsModal.vue'
+import CnEditSettingsModal from '../../src/dialogs/CnEditSettingsModal.vue'
 
 const CnMenuTreeNodeStub = { name: 'CnMenuTreeNode', props: ['list', 'depth', 'maxDepth', 'pages', 'section'], template: '<div class="menu-tree-stub" />' }
 

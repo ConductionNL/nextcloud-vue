@@ -10,7 +10,7 @@
  */
 
 import { mount } from '@vue/test-utils'
-import CnWidgetStyleEditorModal from '../../src/modals/CnWidgetStyleEditorModal.vue'
+import CnWidgetStyleEditorModal from '../../src/dialogs/CnWidgetStyleEditorModal.vue'
 
 /**
  * Mount the modal over a fresh widget object.

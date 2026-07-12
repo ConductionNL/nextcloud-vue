@@ -6,7 +6,7 @@
  * for menu items. @nextcloud/vue is auto-stubbed via tests/__mocks__/nextcloud-vue.js.
  */
 import { mount } from '@vue/test-utils'
-import CnEditMenuModal from '../../src/modals/CnEditMenuModal.vue'
+import CnEditMenuModal from '../../src/dialogs/CnEditMenuModal.vue'
 
 const CnMenuTreeNodeStub = { name: 'CnMenuTreeNode', props: ['list', 'parentId', 'depth', 'maxDepth', 'pages'], template: '<div class="menu-tree-stub" />' }
 
