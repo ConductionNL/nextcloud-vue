@@ -112,8 +112,9 @@
 					:data-cn-route="item.route"
 					@update:open="setItemOpen(item, $event)"
 					@click="onItemClick(item, $event)">
-					<template v-if="mdiIconComponent(item)" #icon>
-						<component :is="mdiIconComponent(item)" :size="20" />
+					<template v-if="mdiIconComponent(item) || isRichIcon(item)" #icon>
+						<component :is="mdiIconComponent(item)" v-if="mdiIconComponent(item)" :size="20" />
+						<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 					</template>
 					<template v-if="resolveCount(item)" #counter>
 						<NcCounterBubble
@@ -175,8 +176,9 @@
 					:data-testid="`cn-nav-entry-${item.id}`"
 					:data-cn-route="item.route"
 					@click="onItemClick(item, $event)">
-					<template v-if="mdiIconComponent(item)" #icon>
-						<component :is="mdiIconComponent(item)" :size="20" />
+					<template v-if="mdiIconComponent(item) || isRichIcon(item)" #icon>
+						<component :is="mdiIconComponent(item)" v-if="mdiIconComponent(item)" :size="20" />
+						<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 					</template>
 					<template v-if="resolveCount(item)" #counter>
 						<NcCounterBubble
@@ -249,8 +251,9 @@
 							:active="isActive(item)"
 							:data-testid="`cn-nav-entry-${item.id}`"
 							@click="onItemClick(item, $event)">
-							<template v-if="mdiIconComponent(item)" #icon>
-								<component :is="mdiIconComponent(item)" :size="20" />
+							<template v-if="mdiIconComponent(item) || isRichIcon(item)" #icon>
+								<component :is="mdiIconComponent(item)" v-if="mdiIconComponent(item)" :size="20" />
+								<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 							</template>
 							<template v-if="resolveCount(item)" #counter>
 								<NcCounterBubble
@@ -274,6 +277,9 @@ import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import ShieldAccountOutline from 'vue-material-design-icons/ShieldAccountOutline.vue'
 import { translate as t } from '@nextcloud/l10n'
 import { ICON_MAP } from '../CnIcon/CnIcon.vue'
+import CnMenuItemIcon from '../CnMenuWidget/CnMenuItemIcon.vue'
+import { isCustomIconUrl } from '../CnWidgetGrid/widgetIcons.js'
+import { isSvgPath } from '../../utils/iconUtils.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 
@@ -441,6 +447,7 @@ export default {
 		NcAppNavigationNew,
 		NcAppNavigationSettings,
 		NcCounterBubble,
+		CnMenuItemIcon,
 		Cog,
 		ShieldAccountOutline,
 		MapMarkerPath,
@@ -797,6 +804,25 @@ export default {
 			if (typeof icon !== 'string' || icon.length === 0) return null
 			if (icon.startsWith('icon-')) return bridgedMdiForCssIcon(icon) || null
 			return ICON_MAP[icon] || null
+		},
+		/**
+		 * Whether the item's icon is a raw SVG path or an image URL (incl. the
+		 * `data:` URIs the bundled NL-government sets emit) — neither of which is a
+		 * component, so `ICON_MAP` can't resolve it and the `#icon` slot must
+		 * render it through CnMenuItemIcon instead.
+		 *
+		 * Without this, an icon picked from CnIconBrowser's Gemeente / Den Haag /
+		 * RVO tabs would simply not appear in the navigation.
+		 *
+		 * @param {{ icon?: string }} item Menu item descriptor.
+		 * @return {boolean} true for path/URL icons.
+		 */
+		isRichIcon(item) {
+			const icon = item?.icon
+			if (typeof icon !== 'string' || icon.length === 0 || icon.startsWith('icon-')) {
+				return false
+			}
+			return isCustomIconUrl(icon) || isSvgPath(icon)
 		},
 		/**
 		 * Pass-through for the `:icon` prop on NcAppNavigationItem when

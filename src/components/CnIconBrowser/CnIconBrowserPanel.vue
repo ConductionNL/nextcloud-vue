@@ -62,54 +62,62 @@
 			</button>
 		</div>
 
-		<!-- Icons grid -->
+		<!-- One tabpanel per icon catalogue. With no `sources` there is exactly one
+		     ("Icons"); with sources, one per catalogue (Material / FontAwesome / …). -->
 		<div
-			v-show="mode === 'icons'"
-			:id="panelId('icons')"
+			v-for="cat in catalogueTabs"
+			v-show="mode === cat.key"
+			:id="panelId(cat.key)"
+			:key="cat.key"
 			:role="tabs.length > 1 ? 'tabpanel' : undefined"
-			:aria-labelledby="tabs.length > 1 ? tabId('icons') : undefined"
+			:aria-labelledby="tabs.length > 1 ? tabId(cat.key) : undefined"
 			class="cn-icon-browser-panel__icons">
-			<input
-				v-model="query"
-				type="search"
-				class="cn-icon-browser-panel__search"
-				:placeholder="t('nextcloud-vue', 'Search icons…')"
-				:aria-label="t('nextcloud-vue', 'Search icons')">
+			<template v-if="mode === cat.key">
+				<input
+					v-model="query"
+					type="search"
+					class="cn-icon-browser-panel__search"
+					:placeholder="t('nextcloud-vue', 'Search icons…')"
+					:aria-label="t('nextcloud-vue', 'Search icons')">
 
-			<div v-if="visibleIcons.length > 0" class="cn-icon-browser-panel__grid">
-				<button
-					v-for="(icon, index) in visibleIcons"
-					:key="icon.key"
-					ref="iconCells"
-					type="button"
-					class="cn-icon-browser-panel__cell"
-					:class="{ 'cn-icon-browser-panel__cell--active': icon.value === value }"
-					:title="icon.label"
-					:aria-label="icon.label"
-					:tabindex="index === activeIndex ? 0 : -1"
-					@click="selectIcon(icon)"
-					@keydown="onGridKeydown($event, index)">
-					<component
-						:is="icon.component"
-						v-if="icon.component"
-						class="cn-icon-browser-panel__cell-component"
-						:size="24" />
-					<svg v-else class="cn-icon-browser-panel__cell-svg" viewBox="0 0 24 24">
-						<path :d="icon.path" />
-					</svg>
-					<span v-if="showLabels" class="cn-icon-browser-panel__cell-label">{{ icon.label }}</span>
-				</button>
-			</div>
-			<!-- @slot empty Shown when no icons match the search query. -->
-			<slot v-else name="empty">
-				<p class="cn-icon-browser-panel__empty">
-					{{ emptyMessage }}
+				<div v-if="visibleIcons.length > 0" class="cn-icon-browser-panel__grid">
+					<button
+						v-for="(icon, index) in visibleIcons"
+						:key="icon.key"
+						ref="iconCells"
+						type="button"
+						class="cn-icon-browser-panel__cell"
+						:class="{ 'cn-icon-browser-panel__cell--active': icon.value === value }"
+						:title="icon.label"
+						:aria-label="icon.label"
+						:tabindex="index === activeIndex ? 0 : -1"
+						@click="selectIcon(icon)"
+						@keydown="onGridKeydown($event, index)">
+						<component
+							:is="icon.component"
+							v-if="icon.component"
+							class="cn-icon-browser-panel__cell-component"
+							:size="24" />
+						<svg
+							v-else
+							class="cn-icon-browser-panel__cell-svg"
+							:viewBox="icon.viewBox || '0 0 24 24'">
+							<path :d="icon.path" />
+						</svg>
+						<span v-if="showLabels" class="cn-icon-browser-panel__cell-label">{{ icon.label }}</span>
+					</button>
+				</div>
+				<!-- @slot empty Shown when no icons match the search query. -->
+				<slot v-else name="empty">
+					<p class="cn-icon-browser-panel__empty">
+						{{ emptyMessage }}
+					</p>
+				</slot>
+
+				<p v-if="truncated" class="cn-icon-browser-panel__hint">
+					{{ t('nextcloud-vue', 'Showing {shown} of {total} — refine your search to narrow results.', { shown: visibleIcons.length, total: matchCount }) }}
 				</p>
-			</slot>
-
-			<p v-if="truncated" class="cn-icon-browser-panel__hint">
-				{{ t('nextcloud-vue', 'Showing {shown} of {total} — refine your search to narrow results.', { shown: visibleIcons.length, total: matchCount }) }}
-			</p>
+			</template>
 		</div>
 
 		<!-- One tabpanel per named icon set (Gemeente / Den Haag / RVO). The body is
@@ -231,12 +239,34 @@
 				{{ uploadError }}
 			</p>
 		</div>
+
+		<!-- Custom SVG: author a raw <svg> by hand (opt-in via allowCustomSvg). -->
+		<div
+			v-if="hasCustomSvgTab"
+			v-show="mode === 'svg'"
+			:id="panelId('svg')"
+			role="tabpanel"
+			:aria-labelledby="tabId('svg')"
+			class="cn-icon-browser-panel__custom">
+			<CnJsonViewer
+				v-if="mode === 'svg'"
+				:value="customSvg"
+				language="xml"
+				@update:value="onCustomSvgInput" />
+			<button
+				type="button"
+				class="cn-icon-browser-panel__format"
+				@click="formatCustomSvg">
+				{{ t('nextcloud-vue', 'Format SVG') }}
+			</button>
+		</div>
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import Cancel from 'vue-material-design-icons/Cancel.vue'
+import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import { findIconByValue } from './iconCatalogue.js'
 import { fuzzyFilter } from './fuzzy.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
@@ -257,6 +287,7 @@ export default {
 
 	components: {
 		Cancel,
+		CnJsonViewer,
 	},
 
 	props: {
@@ -311,6 +342,37 @@ export default {
 		 * @type {boolean}
 		 */
 		clearable: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Ordered catalogue source keys, one tab each (e.g. `['mdi', 'fontawesome']`).
+		 * `mdi` is special: its catalogue is loaded from the optional `@mdi/js`
+		 * dependency on demand, falling back to the `icons` prop when absent.
+		 * Empty → a single "Icons" tab over `icons`.
+		 *
+		 * @type {string[]}
+		 */
+		sources: {
+			type: Array,
+			default: () => [],
+		},
+		/**
+		 * Entries per source: `{ mdi: [...], fontawesome: [...] }`. Build with the
+		 * `fromMdiJs` / `fromFontAwesome` / `fromOpenGemeenten` adapters.
+		 *
+		 * @type {Record<string, Array<object>>}
+		 */
+		catalogues: {
+			type: Object,
+			default: () => ({}),
+		},
+		/**
+		 * Offer a tab for authoring a raw `<svg>` icon by hand.
+		 *
+		 * @type {boolean}
+		 */
+		allowCustomSvg: {
 			type: Boolean,
 			default: false,
 		},
@@ -384,6 +446,10 @@ export default {
 			groupIcons: {},
 			groupLoading: {},
 			groupError: {},
+			// Catalogue lazily built from the optional `@mdi/js` dep (source 'mdi').
+			mdiCatalogue: null,
+			// Raw-SVG draft for the Custom SVG tab.
+			customSvg: (typeof this.value === 'string' && this.value.trim().startsWith('<svg')) ? this.value : '',
 		}
 	},
 
@@ -431,18 +497,70 @@ export default {
 			return this.allowUrl || this.canUpload || this.unnamedIcons.length > 0
 		},
 		/**
-		 * The tablist: the catalogue grid, then a tab per named icon set, then
-		 * Custom. Rendered only when there's more than one.
+		 * Path/component icon catalogues, one tab each.
+		 *
+		 * With no `sources` this is the single "Icons" tab over the `icons` prop —
+		 * the common case. With `sources` (e.g. opencatalogi's Material /
+		 * FontAwesome / OpenGemeenten menu-item picker) each source becomes a
+		 * sibling tab, so catalogues and NL sets share one flat tab row.
+		 *
+		 * @return {Array<{key: string, label: string, icons: Array<object>}>} the catalogue tabs.
+		 */
+		catalogueTabs() {
+			if (this.sources.length === 0) {
+				return [{ key: 'icons', label: t('nextcloud-vue', 'Icons'), icons: this.icons }]
+			}
+			const seen = new Set()
+			return this.sources
+				.filter((source) => !seen.has(source) && seen.add(source))
+				.map((source) => ({
+					key: 'cat:' + source,
+					label: this.sourceLabel(source),
+					icons: this.catalogueFor(source),
+				}))
+		},
+		/**
+		 * The catalogue whose tab is selected (empty when a non-catalogue tab is).
+		 *
+		 * @return {Array<object>} the active catalogue's entries.
+		 */
+		activeCatalogue() {
+			const tab = this.catalogueTabs.find((c) => c.key === this.mode)
+			return tab ? tab.icons : []
+		},
+		/**
+		 * Every catalogue entry across all sources — used to resolve the preview
+		 * for the current value regardless of which tab it came from.
+		 *
+		 * @return {Array<object>} the union of all catalogue entries.
+		 */
+		allCatalogueIcons() {
+			return this.catalogueTabs.flatMap((tab) => tab.icons)
+		},
+		/**
+		 * Whether the raw-SVG authoring tab is offered.
+		 *
+		 * @return {boolean} true when allowCustomSvg is set.
+		 */
+		hasCustomSvgTab() {
+			return this.allowCustomSvg
+		},
+		/**
+		 * The tablist: a tab per icon catalogue, then per named icon set, then
+		 * Custom (URL/upload) and Custom SVG. Rendered only when there's >1.
 		 *
 		 * @return {Array<{key: string, label: string}>} the tabs, in display order.
 		 */
 		tabs() {
-			const tabs = [{ key: 'icons', label: t('nextcloud-vue', 'Icons') }]
+			const tabs = this.catalogueTabs.map(({ key, label }) => ({ key, label }))
 			for (const group of this.promotedGroups) {
 				tabs.push({ key: this.groupKey(group), label: group.label })
 			}
 			if (this.hasCustomTab) {
 				tabs.push({ key: 'custom', label: t('nextcloud-vue', 'Custom') })
+			}
+			if (this.hasCustomSvgTab) {
+				tabs.push({ key: 'svg', label: t('nextcloud-vue', 'Custom SVG') })
 			}
 			return tabs
 		},
@@ -529,11 +647,13 @@ export default {
 		},
 		/**
 		 * The catalogue entry matching the current value (for preview/highlight).
+		 * Searched across EVERY source, not just the active tab, so the preview
+		 * still names an icon picked from another catalogue.
 		 *
 		 * @return {object|null} the matching entry, or null.
 		 */
 		selectedEntry() {
-			return findIconByValue(this.icons, this.value)
+			return findIconByValue(this.allCatalogueIcons, this.value)
 		},
 		/**
 		 * The SVG path to preview when the value is a bare path string not backed
@@ -580,11 +700,11 @@ export default {
 			const q = this.debouncedQuery.trim()
 			if (!q) {
 				if (this.defaultIcons.length > 0) {
-					return this.icons.filter((icon) => this.defaultIcons.includes(icon.key))
+					return this.activeCatalogue.filter((icon) => this.defaultIcons.includes(icon.key))
 				}
-				return this.icons
+				return this.activeCatalogue
 			}
-			return fuzzyFilter(this.icons, q)
+			return fuzzyFilter(this.activeCatalogue, q)
 		},
 		/**
 		 * Total number of icons matching the current query (before capping).
@@ -616,7 +736,7 @@ export default {
 		 * @return {string} the message to show when the grid is empty.
 		 */
 		emptyMessage() {
-			return this.icons.length === 0
+			return this.activeCatalogue.length === 0
 				? t('nextcloud-vue', 'No icons available.')
 				: t('nextcloud-vue', 'No icons match your search.')
 		},
@@ -644,11 +764,23 @@ export default {
 			},
 		},
 		// A lazy set is fetched only once its own tab is selected — never on mount,
-		// which is what keeps RVO's 1.9MB out of the initial load.
+		// which is what keeps RVO's 1.9MB out of the initial load. Searches are
+		// per-tab, so both query boxes reset when the tab changes.
 		mode() {
+			this.query = ''
+			this.debouncedQuery = ''
 			this.customQuery = ''
 			this.ensureActiveGroupLoaded()
 		},
+	},
+
+	created() {
+		// `mode` defaults to 'icons', which isn't a tab when `sources` are given
+		// (the first tab is then 'cat:<source>'). Land on whatever the first tab is.
+		if (!this.tabs.some((tab) => tab.key === this.mode)) {
+			this.mode = this.tabs[0].key
+		}
+		this.loadMdiCatalogue()
 	},
 
 	beforeDestroy() {
@@ -708,6 +840,104 @@ export default {
 		 */
 		groupKey(group) {
 			return 'group:' + group.key
+		},
+
+		/**
+		 * Human label for a catalogue source key.
+		 *
+		 * @param {string} source the source key.
+		 * @return {string} the tab label.
+		 */
+		sourceLabel(source) {
+			const known = {
+				mdi: t('nextcloud-vue', 'Material'),
+				fontawesome: 'FontAwesome',
+				opengemeenten: t('nextcloud-vue', 'Gemeente'),
+			}
+			return known[source] || source
+		},
+
+		/**
+		 * Entries for a catalogue source. A consumer-supplied catalogue wins; the
+		 * `mdi` source otherwise falls back to the lazily-loaded `@mdi/js` set, and
+		 * finally to the `icons` prop so the tab is never empty.
+		 *
+		 * @param {string} source the source key.
+		 * @return {Array<object>} the entries.
+		 */
+		catalogueFor(source) {
+			const supplied = this.catalogues[source]
+			if (Array.isArray(supplied) && supplied.length > 0) {
+				return supplied
+			}
+			if (source === 'mdi') {
+				return this.mdiCatalogue || this.icons
+			}
+			return []
+		},
+
+		/**
+		 * Build the Material catalogue from the OPTIONAL `@mdi/js` dependency. It
+		 * isn't a hard dep of the library, so a failure just leaves the `icons`
+		 * fallback in place rather than breaking the picker.
+		 *
+		 * @return {Promise<void>} resolves once the catalogue is set (or skipped).
+		 */
+		async loadMdiCatalogue() {
+			if (this.mdiCatalogue || !this.sources.includes('mdi') || this.catalogues.mdi) {
+				return
+			}
+			try {
+				const [mdi, adapters] = await Promise.all([
+					import(/* webpackChunkName: "cn-icons-mdi" */ '@mdi/js'),
+					import('../CnIconPicker/iconCatalogues.js'),
+				])
+				this.mdiCatalogue = adapters.fromMdiJs(mdi)
+			} catch (error) {
+				// @mdi/js not installed — the `icons` fallback stands.
+				this.mdiCatalogue = null
+			}
+		},
+
+		/**
+		 * Hold the raw-SVG draft and emit it as the value (no `pick`, so the
+		 * popover stays open while the user types).
+		 *
+		 * @param {string} svg the SVG markup.
+		 * @return {void}
+		 */
+		onCustomSvgInput(svg) {
+			this.customSvg = svg
+			this.$emit('input', svg || null)
+		},
+
+		/**
+		 * Pretty-print the raw-SVG draft (one tag per line, indented).
+		 *
+		 * @return {void}
+		 */
+		formatCustomSvg() {
+			const input = String(this.customSvg || '').trim()
+			if (!input) {
+				return
+			}
+			let depth = 0
+			const formatted = input
+				.replace(/>\s*</g, '><')
+				.replace(/></g, '>\n<')
+				.split('\n')
+				.map((line) => {
+					if (line.startsWith('</')) {
+						depth = Math.max(0, depth - 1)
+					}
+					const out = '\t'.repeat(depth) + line
+					if (line.startsWith('<') && !line.startsWith('</') && !line.endsWith('/>') && !line.startsWith('<?')) {
+						depth++
+					}
+					return out
+				})
+				.join('\n')
+			this.onCustomSvgInput(formatted)
 		},
 
 		/**
@@ -1087,12 +1317,20 @@ export default {
 	display: none;
 }
 
-.cn-icon-browser-panel__upload-button {
+.cn-icon-browser-panel__upload-button,
+.cn-icon-browser-panel__format {
 	padding: 6px 12px;
 	border: 1px solid var(--color-border);
 	border-radius: 4px;
 	background-color: var(--color-background-hover);
 	font-size: 14px;
+}
+
+.cn-icon-browser-panel__format {
+	align-self: flex-start;
+	font: inherit;
+	color: var(--color-main-text);
+	cursor: pointer;
 }
 
 .cn-icon-browser-panel__upload-label:hover .cn-icon-browser-panel__upload-button {
