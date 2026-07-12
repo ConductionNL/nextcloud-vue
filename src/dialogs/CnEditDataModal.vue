@@ -162,10 +162,13 @@
 		</div>
 
 		<!-- Reuse the full OpenRegister schema editor for add/edit. It renders its
-		     own dialog (teleported); a global z-index rule below stacks it above
-		     this data dialog so it isn't painted underneath. -->
+		     own dialog, teleported to <body>. `cn-dialog--nested` lifts it ABOVE the
+		     dialog that opened it (see the global rule below) — without it the two
+		     tie on z-index and the winner is decided by DOM order, which for
+		     teleported dialogs is a race this loses about half the time. -->
 		<CnSchemaFormDialog
 			v-if="showSchemaDialog"
+			class="cn-dialog--nested"
 			:item="editingSchema"
 			:dialog-title="editingSchema ? t('nextcloud-vue', 'Edit schema') : t('nextcloud-vue', 'New schema')"
 			:available-registers="registerOptions"
@@ -805,13 +808,27 @@ export default {
 
 </style>
 
-<!-- Global (un-scoped): every NcDialog renders a `.modal-mask` at z-index 9998, so
-     this dialog and the schema editor it launches sit on the SAME layer and the
-     winner is decided by stylesheet order. A non-important override loses that tie,
-     and the nested schema editor paints *under* the dialog that opened it. Force it
-     with `!important` and clear headroom so a nested NcDialog always sits on top. -->
+<!--
+  Global (un-scoped). Every NcDialog renders a `.modal-mask` at z-index 9998, so a
+  dialog and any dialog it opens land on the SAME layer.
+
+  Raising them both to one shared value does NOT fix that: equal z-index means the
+  painting order falls back to DOM order, and NcDialog teleports its mask to <body>,
+  so which mask is inserted first is a mount-timing race. Observed live: the nested
+  schema editor was at DOM index 641 and the "Manage data" dialog that opened it at
+  1143 — so the PARENT painted over its own child. On a different run the order was
+  reversed and it looked fine, which is why this kept coming back.
+
+  Give the nested dialog a strictly HIGHER layer instead, so the stacking no longer
+  depends on insertion order. Any dialog opened from inside another dialog should
+  carry `cn-dialog--nested`.
+-->
 <style>
 .modal-mask.dialog__modal {
 	z-index: 10005 !important;
+}
+
+.modal-mask.cn-dialog--nested {
+	z-index: 10010 !important;
 }
 </style>
