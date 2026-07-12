@@ -29,6 +29,46 @@ Note GeoJSON coordinate order is `[longitude, latitude]`. Reading is tolerant �
   @saved="onGeoSaved" />
 ```
 
+## Map options
+
+All of these are editable in-app from the widget's config form (`CnObjectGeoWidgetForm`), and are stored on the widget's content blob.
+
+| Prop | Default | What it does |
+|------|---------|--------------|
+| `editable` | `true` | Click the map to place/move the marker; footer offers Save / Cancel / Remove. `false` renders a read-only map. |
+| `addressSearch` | `false` | Adds a search box that geocodes a place name and drops the marker there. Requires `editable`. |
+| `basemap` | `'standard'` | Background map: `standard`, `humanitarian` or `terrain`. |
+| `allowBasemapSwitch` | `false` | Renders a base-map switcher so users can change the background themselves. |
+| `fitControl` | `true` | "Recenter" button — re-centres on the marker. |
+| `locateControl` | `true` | "Locate me" button (browser geolocation). |
+| `fullscreenControl` | `true` | Fullscreen toggle. |
+| `height` | `'360px'` | Map container height. |
+| `defaultZoom` | `7` | Zoom used while the object has no location. Once it has one, the map zooms to it. |
+
+Passing a custom `tile` entry via `layers` (e.g. the Dutch PDOK BRT achtergrondkaart) takes over the background and disables `basemap` / the switcher, so existing consumers keep their own basemap.
+
+## Content-Security-Policy (required)
+
+Both the base maps and the address search reach third-party hosts, and Nextcloud's default CSP blocks them. **A CSP-blocked tile issues no network request at all** — the map just renders blank — so check the browser *console*, not the network tab, when a base map doesn't appear.
+
+The consuming app must allowlist what it uses:
+
+```php
+// lib/AppInfo/Application.php — boot()
+$policy = new ContentSecurityPolicy();
+// Base maps (img-src) — one entry per basemap you offer:
+$policy->addAllowedImageDomain('https://*.tile.openstreetmap.org');   // standard
+$policy->addAllowedImageDomain('https://*.tile.openstreetmap.fr');    // humanitarian
+$policy->addAllowedImageDomain('https://*.tile.opentopomap.org');     // terrain
+// Address search (connect-src):
+$policy->addAllowedConnectDomain('https://nominatim.openstreetmap.org');
+$server->get(IContentSecurityPolicyManager::class)->addDefaultPolicy($policy);
+```
+
+Keep the allowlist and the basemaps you enable **in step** — a base map the user can pick from the switcher but whose host isn't allowed renders blank.
+
+> **Address search** uses [OpenStreetMap Nominatim](https://nominatim.org). Its usage policy caps requests at roughly one per second, so lookups are debounced (600 ms) and capped at 5 results. A failed lookup (CSP, rate limit, offline) surfaces a message rather than throwing.
+
 ```json
 // In a manifest type:"detail" page
 { "id": "location", "widgetKey": "object-geo", "title": "Location" }
