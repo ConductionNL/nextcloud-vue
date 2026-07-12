@@ -1744,9 +1744,14 @@ export default {
 		},
 
 		/**
-		 * Switchable background maps. Consumers MAY override the set via
-		 * `mapConfig.basemaps`; otherwise an OpenStreetMap-family selection is offered
-		 * and CnMapWidget renders a layer switcher for it.
+		 * Switchable background maps.
+		 *
+		 * Defaults to OpenStreetMap standard ONLY. Every extra basemap is an `<img>`
+		 * load from a third-party host, which a Nextcloud app's Content-Security-Policy
+		 * (`img-src`) blocks unless that app explicitly allowlists the host — so a
+		 * richer default would ship dead options to consumers that never widened their
+		 * CSP. Apps that want a switcher declare the set in `mapConfig.basemaps` AND
+		 * allowlist those hosts (see Procest's `relaxCspForMapTiles()`).
 		 *
 		 * @return {Array<object>}
 		 */
@@ -1754,23 +1759,11 @@ export default {
 			if (Array.isArray(this.mapConfig.basemaps) && this.mapConfig.basemaps.length > 0) {
 				return this.mapConfig.basemaps
 			}
-			return [
-				{
-					name: t('nextcloud-vue', 'Standard'),
-					url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-					attribution: '© OpenStreetMap contributors',
-				},
-				{
-					name: t('nextcloud-vue', 'Humanitarian'),
-					url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
-					attribution: '© OpenStreetMap contributors, tiles by HOT',
-				},
-				{
-					name: t('nextcloud-vue', 'Terrain'),
-					url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-					attribution: '© OpenStreetMap contributors, SRTM | © OpenTopoMap',
-				},
-			]
+			return [{
+				name: t('nextcloud-vue', 'Standard'),
+				url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+				attribution: '© OpenStreetMap contributors',
+			}]
 		},
 
 		/**
