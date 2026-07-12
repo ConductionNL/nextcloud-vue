@@ -17,12 +17,18 @@ const stubs = {
 	CnWidgetWrapper: { template: '<div class="cn-widget-wrapper-stub"><slot /><slot name="footer" /></div>' },
 	CnMapWidget: {
 		name: 'CnMapWidget',
-		props: ['center', 'zoom', 'markers', 'height', 'autoFit', 'ariaLabel'],
+		props: ['center', 'zoom', 'markers', 'height', 'autoFit', 'ariaLabel', 'layers', 'basemaps', 'fitControl', 'locateControl', 'fullscreenControl'],
 		template: '<div class="cn-map-stub" @click="$emit(\'click\', { lat: 51.5, lng: 4.5 })" />',
 	},
 	NcButton: { template: '<button class="nc-button-stub" @click="$emit(\'click\')"><slot /></button>' },
+	NcTextField: {
+		name: 'NcTextField',
+		props: ['value', 'label'],
+		template: '<input class="nc-text-field-stub" :value="value" @input="$emit(\'update:value\', $event.target.value)" />',
+	},
 	NcLoadingIcon: true,
 	ContentSave: true,
+	Magnify: true,
 	MapMarkerOff: true,
 }
 
@@ -143,6 +149,130 @@ describe('CnObjectGeoWidget', () => {
 		const wrapper = mountWidget({ objectData: null, objectId: '', register: '', schema: '' })
 		expect(wrapper.vm.resolvedId).toBe('')
 		expect(wrapper.vm.savedPoint).toBeNull()
+		wrapper.destroy()
+	})
+})
+
+describe('CnObjectGeoWidget — base maps', () => {
+	const mapStub = (wrapper) => wrapper.findComponent({ name: 'CnMapWidget' })
+
+	it('sends a single base map and no tile layer by default', () => {
+		const wrapper = mountWidget({})
+		const map = mapStub(wrapper)
+		expect(map.props('basemaps')).toHaveLength(1)
+		expect(map.props('basemaps')[0].url).toContain('tile.openstreetmap.org')
+		// The basemap owns the background — a stacked tile layer would double up.
+		expect(map.props('layers')).toEqual([])
+		wrapper.destroy()
+	})
+
+	it('puts the selected base map first and offers the rest when switching is allowed', () => {
+		const wrapper = mountWidget({ basemap: 'terrain', allowBasemapSwitch: true })
+		const basemaps = mapStub(wrapper).props('basemaps')
+		expect(basemaps).toHaveLength(3)
+		// First entry is the live one on load.
+		expect(basemaps[0].id).toBe('terrain')
+		expect(basemaps.map((b) => b.id).sort()).toEqual(['humanitarian', 'standard', 'terrain'])
+		wrapper.destroy()
+	})
+
+	it('yields the background to a consumer-supplied custom tile layer', () => {
+		const custom = [{ type: 'tile', url: 'https://pdok.example/{z}/{x}/{y}.png' }]
+		const wrapper = mountWidget({ layers: custom, basemap: 'terrain' })
+		const map = mapStub(wrapper)
+		expect(map.props('basemaps')).toEqual([])
+		expect(map.props('layers')).toEqual(custom)
+		wrapper.destroy()
+	})
+
+	it('forwards the control toggles', () => {
+		const wrapper = mountWidget({ fitControl: false, locateControl: false, fullscreenControl: true })
+		const map = mapStub(wrapper)
+		expect(map.props('fitControl')).toBe(false)
+		expect(map.props('locateControl')).toBe(false)
+		expect(map.props('fullscreenControl')).toBe(true)
+		wrapper.destroy()
+	})
+})
+
+describe('CnObjectGeoWidget — address search', () => {
+	afterEach(() => {
+		jest.restoreAllMocks()
+		delete global.fetch
+	})
+
+	it('is hidden unless both editable and addressSearch are on', () => {
+		const readOnly = mountWidget({ editable: false, addressSearch: true })
+		expect(readOnly.find('.cn-object-geo-widget__search').exists()).toBe(false)
+		readOnly.destroy()
+
+		const off = mountWidget({ editable: true, addressSearch: false })
+		expect(off.find('.cn-object-geo-widget__search').exists()).toBe(false)
+		off.destroy()
+
+		const on = mountWidget({ editable: true, addressSearch: true })
+		expect(on.find('.cn-object-geo-widget__search').exists()).toBe(true)
+		on.destroy()
+	})
+
+	it('geocodes through Nominatim and maps the results', async () => {
+		global.fetch = jest.fn(async () => ({
+			ok: true,
+			json: async () => ([{ display_name: 'Utrecht, NL', lat: '52.09', lon: '5.12' }]),
+		}))
+		const wrapper = mountWidget({ editable: true, addressSearch: true })
+		wrapper.vm.query = 'utrecht'
+		await wrapper.vm.geocode()
+
+		expect(global.fetch).toHaveBeenCalledTimes(1)
+		expect(global.fetch.mock.calls[0][0]).toContain('nominatim.openstreetmap.org')
+		expect(global.fetch.mock.calls[0][0]).toContain('q=utrecht')
+		expect(wrapper.vm.results).toEqual([{ label: 'Utrecht, NL', lat: 52.09, lng: 5.12 }])
+		wrapper.destroy()
+	})
+
+	it('surfaces a message instead of throwing when the lookup fails (e.g. CSP-blocked)', async () => {
+		jest.spyOn(console, 'warn').mockImplementation(() => {})
+		global.fetch = jest.fn(async () => { throw new Error('blocked by CSP') })
+		const wrapper = mountWidget({ editable: true, addressSearch: true })
+		wrapper.vm.query = 'utrecht'
+		await wrapper.vm.geocode()
+
+		expect(wrapper.vm.results).toEqual([])
+		expect(wrapper.vm.searchError).toBeTruthy()
+		expect(wrapper.vm.searching).toBe(false)
+		wrapper.destroy()
+	})
+
+	it('picking a result drafts the point and re-centres the map', async () => {
+		const wrapper = mountWidget({ editable: true, addressSearch: true })
+		const epochBefore = wrapper.vm.mapEpoch
+
+		wrapper.vm.pickResult({ label: 'Utrecht, NL', lat: 52.09, lng: 5.12 })
+
+		expect(wrapper.vm.draft).toEqual({ lat: 52.09, lng: 5.12 })
+		expect(wrapper.vm.dirty).toBe(true)
+		expect(wrapper.vm.results).toEqual([])
+		// Remount so CnMapWidget re-reads its centre.
+		expect(wrapper.vm.mapEpoch).toBe(epochBefore + 1)
+		wrapper.destroy()
+	})
+
+	it('ignores a picked result on a read-only map', () => {
+		const wrapper = mountWidget({ editable: false, addressSearch: true })
+		wrapper.vm.pickResult({ label: 'Utrecht, NL', lat: 52.09, lng: 5.12 })
+		expect(wrapper.vm.draft).toBeUndefined()
+		wrapper.destroy()
+	})
+
+	it('does not fire a lookup for a query under three characters', async () => {
+		global.fetch = jest.fn()
+		const wrapper = mountWidget({ editable: true, addressSearch: true })
+		wrapper.vm.onQueryInput('ut')
+		// Past the debounce window — still nothing, the query is too short.
+		await new Promise((resolve) => setTimeout(resolve, 700))
+		expect(wrapper.vm.results).toEqual([])
+		expect(global.fetch).not.toHaveBeenCalled()
 		wrapper.destroy()
 	})
 })

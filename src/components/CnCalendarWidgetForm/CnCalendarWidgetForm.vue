@@ -143,10 +143,6 @@ export default {
 		}
 	},
 
-	mounted() {
-		this.fetchCalendars()
-	},
-
 	computed: {
 		/** Available view modes. */
 		viewModeOptions() {

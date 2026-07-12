@@ -20,14 +20,39 @@
 		:refreshing="saving"
 		flush>
 		<div class="cn-object-geo-widget">
+			<div v-if="editable && addressSearch" class="cn-object-geo-widget__search">
+				<NcTextField
+					:value="query"
+					:label="t('nextcloud-vue', 'Search for an address or place')"
+					:show-trailing-button="false"
+					@update:value="onQueryInput">
+					<Magnify :size="18" />
+				</NcTextField>
+				<NcLoadingIcon v-if="searching" :size="20" />
+				<ul v-if="results.length" class="cn-object-geo-widget__results">
+					<li v-for="(result, index) in results" :key="`geo-result-${index}`">
+						<button type="button" @click="pickResult(result)">
+							{{ result.label }}
+						</button>
+					</li>
+				</ul>
+				<p v-if="searchError" class="cn-object-geo-widget__error">
+					{{ searchError }}
+				</p>
+			</div>
+
 			<CnMapWidget
 				:key="`cn-object-geo-map-${mapEpoch}`"
 				:center="mapCenter"
 				:zoom="mapZoom"
 				:layers="resolvedLayers"
+				:basemaps="resolvedBasemaps"
 				:markers="mapMarkers"
 				:height="height"
 				:auto-fit="false"
+				:fit-control="fitControl"
+				:locate-control="locateControl"
+				:fullscreen-control="fullscreenControl"
 				:aria-label="t('nextcloud-vue', 'Object location map')"
 				@click="onMapClick" />
 			<p v-if="editable && !activePoint" class="cn-object-geo-widget__hint">
@@ -70,8 +95,9 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
+import Magnify from 'vue-material-design-icons/Magnify.vue'
 import MapMarkerOff from 'vue-material-design-icons/MapMarkerOff.vue'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 import CnMapWidget from '../CnMapWidget/CnMapWidget.vue'
@@ -93,6 +119,42 @@ const DEFAULT_LAYERS = Object.freeze([
 		options: Object.freeze({ attribution: '© OpenStreetMap contributors', maxZoom: 19, subdomains: 'abc' }),
 	}),
 ])
+
+/**
+ * The base maps a widget config may choose from, keyed by the id stored in the
+ * widget content blob.
+ *
+ * Every entry is an `<img>` load from a third-party host, so the consuming app
+ * MUST allowlist that host in its `img-src` Content-Security-Policy or the tiles
+ * render blank with no network request at all. Only `standard` is safe to assume;
+ * see Procest's `relaxCspForMapTiles()` for the pattern.
+ */
+const BASEMAPS = Object.freeze({
+	standard: Object.freeze({
+		id: 'standard',
+		name: 'Standard',
+		url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+		attribution: '© OpenStreetMap contributors',
+	}),
+	humanitarian: Object.freeze({
+		id: 'humanitarian',
+		name: 'Humanitarian',
+		url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+		attribution: '© OpenStreetMap contributors, tiles by HOT',
+	}),
+	terrain: Object.freeze({
+		id: 'terrain',
+		name: 'Terrain',
+		url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+		attribution: '© OpenStreetMap contributors, SRTM | © OpenTopoMap',
+	}),
+})
+
+/** Nominatim forward-geocoding endpoint used by the optional address search. */
+const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search'
+
+/** Debounce for address lookups — Nominatim's usage policy caps ~1 request/second. */
+const GEOCODE_DEBOUNCE_MS = 600
 
 /**
  * CnObjectGeoWidget — view and edit an object's `@self.geo` on a map.
@@ -118,7 +180,9 @@ export default {
 		CnMapWidget,
 		NcButton,
 		NcLoadingIcon,
+		NcTextField,
 		ContentSave,
+		Magnify,
 		MapMarkerOff,
 	},
 
@@ -172,12 +236,52 @@ export default {
 		/**
 		 * Base layer stack forwarded to `CnMapWidget` (`{ type, url, options }[]`).
 		 * Defaults to the OpenStreetMap standard tile set; override to use a
-		 * different basemap (e.g. the Dutch PDOK BRT achtergrondkaart).
+		 * different basemap (e.g. the Dutch PDOK BRT achtergrondkaart). Supplying a
+		 * `tile` entry here takes over the background and disables `basemap`.
 		 * @type {Array<object>}
 		 */
 		layers: {
 			type: Array,
 			default: () => DEFAULT_LAYERS.map((l) => ({ ...l })),
+		},
+		/**
+		 * Base map shown by default — one of `standard`, `humanitarian`, `terrain`.
+		 * The app must allowlist the tile host in its `img-src` CSP.
+		 * @type {string}
+		 */
+		basemap: {
+			type: String,
+			default: 'standard',
+			validator: (v) => Object.prototype.hasOwnProperty.call(BASEMAPS, v),
+		},
+		/** Offer a base-map switcher so users can change the background themselves. */
+		allowBasemapSwitch: {
+			type: Boolean,
+			default: false,
+		},
+		/** Show the "fit to location" control (re-centres on the marker). */
+		fitControl: {
+			type: Boolean,
+			default: true,
+		},
+		/** Show the "locate me" control (browser geolocation). */
+		locateControl: {
+			type: Boolean,
+			default: true,
+		},
+		/** Show the fullscreen toggle. */
+		fullscreenControl: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Show an address-search box that geocodes a place name via OpenStreetMap
+		 * Nominatim and drops the marker there. Requires `editable`, and the app must
+		 * allowlist `https://nominatim.openstreetmap.org` in its `connect-src` CSP.
+		 */
+		addressSearch: {
+			type: Boolean,
+			default: false,
 		},
 		/** Documentation link for the overflow Actions menu. */
 		documentationUrl: {
@@ -218,6 +322,12 @@ export default {
 			error: '',
 			// Bumped to remount CnMapWidget so it re-centres after a save/reload.
 			mapEpoch: 0,
+			// Address search (opt-in via `addressSearch`).
+			query: '',
+			results: [],
+			searching: false,
+			searchError: '',
+			searchTimer: null,
 		}
 	},
 
@@ -282,9 +392,44 @@ export default {
 			return this.activePoint ? 14 : this.defaultZoom
 		},
 
-		/** Base layers forwarded to CnMapWidget — the `layers` prop, else the OSM default. */
+		/**
+		 * Base layers forwarded to CnMapWidget. When `resolvedBasemaps` supplies the
+		 * background we pass NO tile layer here, or the two would stack.
+		 */
 		resolvedLayers() {
+			if (this.resolvedBasemaps.length > 0) return []
 			return (Array.isArray(this.layers) && this.layers.length) ? this.layers : DEFAULT_LAYERS.map((l) => ({ ...l }))
+		},
+
+		/**
+		 * Switchable base maps forwarded to CnMapWidget. Empty when the consumer
+		 * supplied its own `tile` layer through `layers` (that wins, so a custom
+		 * background such as PDOK keeps working). Otherwise the selected base map is
+		 * first — CnMapWidget makes the first entry live and only renders a switcher
+		 * when more than one is present.
+		 *
+		 * @return {Array<object>}
+		 */
+		resolvedBasemaps() {
+			// A consumer-supplied custom tile layer owns the background.
+			if (!this.layersAreDefault) return []
+
+			const selected = BASEMAPS[this.basemap] || BASEMAPS.standard
+			if (!this.allowBasemapSwitch) return [{ ...selected }]
+
+			// Selected first (it is the one CnMapWidget activates on load), then the rest.
+			return [
+				{ ...selected },
+				...Object.values(BASEMAPS)
+					.filter((b) => b.id !== selected.id)
+					.map((b) => ({ ...b })),
+			]
+		},
+
+		/** Whether `layers` is still the untouched OSM default (so a basemap may take over). */
+		layersAreDefault() {
+			const l = Array.isArray(this.layers) ? this.layers : []
+			return l.length === 0 || (l.length === 1 && l[0] && l[0].url === DEFAULT_LAYERS[0].url)
 		},
 
 		/** CnMapWidget markers config — a single Point feature for the active location, or null. */
@@ -311,8 +456,85 @@ export default {
 		},
 	},
 
+	beforeDestroy() {
+		clearTimeout(this.searchTimer)
+	},
+
 	methods: {
 		t,
+
+		/**
+		 * Debounce an address lookup. Nominatim's usage policy caps requests at
+		 * roughly one per second, so we never fire per keystroke.
+		 *
+		 * @param {string} value The current query text.
+		 * @return {void}
+		 */
+		onQueryInput(value) {
+			this.query = value
+			this.searchError = ''
+			clearTimeout(this.searchTimer)
+			if (!value || value.trim().length < 3) {
+				this.results = []
+				return
+			}
+			this.searchTimer = setTimeout(() => this.geocode(), GEOCODE_DEBOUNCE_MS)
+		},
+
+		/**
+		 * Forward-geocode the current query through OpenStreetMap Nominatim.
+		 *
+		 * Failures here are expected in the wild — the app may not have allowlisted
+		 * `nominatim.openstreetmap.org` in its `connect-src` CSP, or the service may
+		 * rate-limit — so surface a message rather than throwing.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async geocode() {
+			const q = (this.query || '').trim()
+			if (q.length < 3) return
+
+			this.searching = true
+			this.searchError = ''
+			try {
+				const url = `${NOMINATIM_URL}?format=jsonv2&limit=5&q=${encodeURIComponent(q)}`
+				const response = await fetch(url)
+				if (!response.ok) throw new Error(`HTTP ${response.status}`)
+				const json = await response.json()
+				this.results = (Array.isArray(json) ? json : [])
+					.map((r) => ({
+						label: r.display_name,
+						lat: Number.parseFloat(r.lat),
+						lng: Number.parseFloat(r.lon),
+					}))
+					.filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lng))
+				if (this.results.length === 0) {
+					this.searchError = t('nextcloud-vue', 'No places found for that search.')
+				}
+			} catch (err) {
+				this.results = []
+				this.searchError = t('nextcloud-vue', 'Address lookup failed. The search service may be unreachable.')
+				// eslint-disable-next-line no-console
+				console.warn('[CnObjectGeoWidget] Geocoding failed', err)
+			} finally {
+				this.searching = false
+			}
+		},
+
+		/**
+		 * Drop the marker on a geocoded result and re-centre the map on it.
+		 *
+		 * @param {{lat: number, lng: number, label: string}} result The chosen place.
+		 * @return {void}
+		 */
+		pickResult(result) {
+			if (!this.editable || !result) return
+			this.draft = { lat: result.lat, lng: result.lng }
+			this.results = []
+			this.query = result.label
+			// CnMapWidget takes its centre at mount, so remount it to re-centre.
+			this.mapEpoch += 1
+		},
 
 		/**
 		 * Parse a stored geo value into `{ lat, lng }`, or null when absent /
@@ -472,6 +694,51 @@ export default {
 .cn-object-geo-widget {
 	display: flex;
 	flex-direction: column;
+}
+
+/* Address search sits above the map; the result list overlays it rather than
+   pushing the map down, so the layout doesn't jump while typing. */
+.cn-object-geo-widget__search {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: calc(2 * var(--default-grid-baseline, 4px));
+}
+
+.cn-object-geo-widget__results {
+	position: absolute;
+	top: 100%;
+	left: calc(2 * var(--default-grid-baseline, 4px));
+	right: calc(2 * var(--default-grid-baseline, 4px));
+	z-index: 1000;
+	max-height: 220px;
+	overflow-y: auto;
+	margin: 0;
+	padding: 4px;
+	list-style: none;
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large, 8px);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+}
+
+.cn-object-geo-widget__results button {
+	display: block;
+	width: 100%;
+	padding: 8px;
+	border: none;
+	border-radius: var(--border-radius, 4px);
+	background: transparent;
+	color: var(--color-main-text);
+	text-align: left;
+	font-size: 0.9em;
+	cursor: pointer;
+}
+
+.cn-object-geo-widget__results button:hover,
+.cn-object-geo-widget__results button:focus-visible {
+	background: var(--color-background-hover);
 }
 
 .cn-object-geo-widget__hint {

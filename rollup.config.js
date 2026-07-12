@@ -14,12 +14,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
  * Ship Leaflet's marker/layer images alongside the extracted CSS.
  *
  * `CnMapWidget` statically imports `leaflet/dist/leaflet.css`, which postcss
- * inlines into `dist/nextcloud-vue.css` with relative `url(images/marker-icon.png)`
- * references. Those paths are resolved by a CONSUMER's bundler relative to our
- * `dist/` dir — where `images/` would otherwise not exist, breaking the
- * consumer build (e.g. `Module not found: images/layers.png`). Copying
- * Leaflet's images into `dist/images/` makes the relative refs resolve for
- * every consumer.
+ * inlines into the extracted CSS with relative `url(images/marker-icon.png)`
+ * references. Those paths are resolved by a CONSUMER's bundler relative to the
+ * CSS file that contains them — so `images/` must exist next to EVERY extracted
+ * stylesheet we ship, not just the one at the `dist/` root. We emit two:
+ * `dist/nextcloud-vue.css` (cjs) and `dist/esm/nextcloud-vue.css` (esm, imported
+ * by the esm entry banner). Copying into `dist/images/` alone left the esm build
+ * resolving `dist/esm/images/layers.png`, which does not exist — every consumer
+ * bundling the esm entry died with `Module not found: Can't resolve
+ * 'images/layers.png'` (openbuild, 2026-07-12). Copy into both.
  *
  * @return {import('rollup').Plugin} A rollup plugin copying Leaflet images.
  */
@@ -28,13 +31,19 @@ function copyLeafletImages() {
 		name: 'copy-leaflet-images',
 		writeBundle() {
 			const srcDir = path.resolve(__dirname, 'node_modules/leaflet/dist/images')
-			const outDir = path.resolve(__dirname, 'dist/images')
 			if (!fs.existsSync(srcDir)) {
 				return
 			}
-			fs.mkdirSync(outDir, { recursive: true })
-			for (const file of fs.readdirSync(srcDir)) {
-				fs.copyFileSync(path.join(srcDir, file), path.join(outDir, file))
+			// One copy per extracted stylesheet location.
+			const outDirs = [
+				path.resolve(__dirname, 'dist/images'),
+				path.resolve(__dirname, 'dist/esm/images'),
+			]
+			for (const outDir of outDirs) {
+				fs.mkdirSync(outDir, { recursive: true })
+				for (const file of fs.readdirSync(srcDir)) {
+					fs.copyFileSync(path.join(srcDir, file), path.join(outDir, file))
+				}
 			}
 		},
 	}
