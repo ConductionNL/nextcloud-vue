@@ -159,14 +159,16 @@
 					</ul>
 				</div>
 			</template>
-
 		</div>
 
 		<!-- Reuse the full OpenRegister schema editor for add/edit. It renders its
-		     own dialog (teleported); a global z-index rule below stacks it above
-		     this data dialog so it isn't painted underneath. -->
+		     own dialog, teleported to <body>. `cn-dialog--nested` lifts it ABOVE the
+		     dialog that opened it (see the global rule below) — without it the two
+		     tie on z-index and the winner is decided by DOM order, which for
+		     teleported dialogs is a race this loses about half the time. -->
 		<CnSchemaFormDialog
 			v-if="showSchemaDialog"
+			class="cn-dialog--nested"
 			:item="editingSchema"
 			:dialog-title="editingSchema ? t('nextcloud-vue', 'Edit schema') : t('nextcloud-vue', 'New schema')"
 			:available-registers="registerOptions"
@@ -292,17 +294,23 @@ export default {
 	},
 
 	computed: {
-		/** Why the delete was refused, naming the schema and its object count. */
+		/**
+		 * Why the delete was refused, naming the schema and its object count.
+		 *
+		 * Nextcloud's l10n substitutes `%n` for the plural count and `{named}`
+		 * placeholders from a vars OBJECT — it has no printf `%s`. Passing `%s`
+		 * with an array leaves the literal "%s" on screen.
+		 */
 		cascadeWarning() {
 			const p = this.pendingCascade
 			if (!p) return ''
 			const name = (p.schema && (p.schema.title || p.schema.slug)) || ''
 			return n(
 				'nextcloud-vue',
-				'“%s” still has %n object. Delete the schema and its object?',
-				'“%s” still has %n objects. Delete the schema and its objects?',
+				'“{name}” still has %n object. Delete the schema and its object?',
+				'“{name}” still has %n objects. Delete the schema and its objects?',
 				p.objectCount,
-				[name],
+				{ name },
 			)
 		},
 		/** Label for the destructive confirm button, carrying the count. */
@@ -600,13 +608,23 @@ export default {
 				await this.loadSchemas()
 			} catch (e) {
 				const { code, message, data } = parseAxiosError(e)
-				if (code === 'schema-has-objects') {
-					// Offer the cascade instead of a dead end. Confirm-gated: this
-					// permanently deletes the objects, so it must never be one click.
+
+				// Only offer the cascade for a PLAIN delete. If the CASCADE itself came
+				// back "still has objects", re-prompting would put the same confirmation
+				// straight back on screen and the user would loop forever, confirming a
+				// destructive action that never lands. That happens for real: an
+				// OpenRegister too old to know `?deleteObjects=true` ignores the flag and
+				// answers 409 exactly as before. Report it instead.
+				if (code === 'schema-has-objects' && !deleteObjects) {
+					// Confirm-gated: this permanently deletes the objects, never one click.
 					const count = (data && Number(data.objectCount)) || 0
 					this.pendingCascade = { schema, objectCount: count }
 					this.error = ''
+				} else if (code === 'schema-has-objects') {
+					this.pendingCascade = null
+					this.error = t('nextcloud-vue', 'Could not delete the schema and its objects. The server still reports objects attached — it may not support deleting them along with the schema.')
 				} else {
+					this.pendingCascade = null
 					this.error = message || t('nextcloud-vue', 'Failed to remove the schema.')
 				}
 			} finally {
@@ -790,13 +808,27 @@ export default {
 
 </style>
 
-<!-- Global (un-scoped): every NcDialog renders a `.modal-mask` at z-index 9998, so
-     this dialog and the schema editor it launches sit on the SAME layer and the
-     winner is decided by stylesheet order. A non-important override loses that tie,
-     and the nested schema editor paints *under* the dialog that opened it. Force it
-     with `!important` and clear headroom so a nested NcDialog always sits on top. -->
+<!--
+  Global (un-scoped). Every NcDialog renders a `.modal-mask` at z-index 9998, so a
+  dialog and any dialog it opens land on the SAME layer.
+
+  Raising them both to one shared value does NOT fix that: equal z-index means the
+  painting order falls back to DOM order, and NcDialog teleports its mask to <body>,
+  so which mask is inserted first is a mount-timing race. Observed live: the nested
+  schema editor was at DOM index 641 and the "Manage data" dialog that opened it at
+  1143 — so the PARENT painted over its own child. On a different run the order was
+  reversed and it looked fine, which is why this kept coming back.
+
+  Give the nested dialog a strictly HIGHER layer instead, so the stacking no longer
+  depends on insertion order. Any dialog opened from inside another dialog should
+  carry `cn-dialog--nested`.
+-->
 <style>
 .modal-mask.dialog__modal {
 	z-index: 10005 !important;
+}
+
+.modal-mask.cn-dialog--nested {
+	z-index: 10010 !important;
 }
 </style>
