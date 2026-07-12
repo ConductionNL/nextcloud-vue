@@ -56,6 +56,8 @@ export default {
 </script>
 ```
 
+Admin settings gating — the `isOwner` prop controls whether the auto-prepended "Admin settings" entry appears inside the settings foldout (alongside the manifest declaring at least one `adminSettings[]` entry). `CnAppRoot` computes it from `currentUserGroups` ∩ `permissions.owners` and/or a manifest `runtime.user` owner signal — deliberately not `OC.isUserAdmin()`. Defaults to `false`, so `CnAppNav` mounted standalone (without a `CnAppRoot` ancestor) never shows the entry.
+
 `visibleIf.appInstalled` filter — a menu item can declare a `visibleIf` condition to hide cross-app links when the target app is not installed. The item only renders when the named Nextcloud app is found in `OC.appswebroots` (primary) or the capabilities API (fallback). Items without `visibleIf` are always visible (backwards-compatible).
 
 Typical use: a "View in launchpad" link that should only show when launchpad is enabled:

@@ -98,6 +98,20 @@ Pick **one** of:
 
 `markers.clustering: true` (or the widget-level `clustering` prop) opts in to `leaflet.markercluster`. The cluster bundle lazy-loads only when first enabled — consumers without clustering pay zero extra bytes.
 
+## Legend
+
+Render a custom legend overlay via the `#legend` slot. It is positioned absolute (top-right) by default; consumers may override with their own container. Scoped props: `{ layers, markers }`.
+
+```vue
+<CnMapWidget :layers="layers" :markers="markers">
+  <template #legend="{ layers }">
+    <ul class="my-legend">
+      <li v-for="layer in layers" :key="layer.type">{{ layer.type }}</li>
+    </ul>
+  </template>
+</CnMapWidget>
+```
+
 ## Manifest mounting
 
 Don't mount this component directly from a manifest. Use `CnMapPage` (the `type: "map"` page renderer) which wraps this primitive with a header, filter slot, and event pass-through.

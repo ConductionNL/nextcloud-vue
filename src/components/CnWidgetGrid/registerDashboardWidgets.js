@@ -125,7 +125,7 @@ registerDashboardWidget('object-list', {
 registerDashboardWidget('related', {
 	renderer: CnRelatedObjectsWidget,
 	form: CnRelatedObjectsWidgetForm,
-	defaultContent: { title: '', groups: [] },
+	defaultContent: { title: '', groups: [], hideSingleTabTitle: true, showTotalCount: true },
 	displayName: 'Object relations',
 	icon: 'FileTreeOutline',
 	surfaces: ['detail-page'],

@@ -28,6 +28,8 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `register` | String | `''` | Register slug used to resolve OpenRegister object references (`$ref`). A schema property that is an object reference renders as a searchable dropdown of the referenced objects (label = human name, value = UUID). See [Object references](#object-references-ref). When empty, reference fields fall back to a plain text input. |
 | `dialogTitle` | String | `''` | Defaults to "Create/Edit \{schema.title\}" |
 | `fields` | Array | `null` | Manual field definitions (overrides schema) |
+| `initialData` | Object | `{}` | Seed values for CREATE mode, keyed by field. Merged over the schema defaults when opening a new-item form. Use it to pre-link a child to its parent when adding from a detail page (e.g. `{ lead: '<uuid>' }`). |
+| `lockedFields` | Array | `[]` | Field keys rendered read-only (disabled) and immutable — typically the parent reference seeded via `initialData` so the user can't repoint a child away from the record it was created under. |
 | `excludeFields` | Array | `[]` | Fields to hide |
 | `includeFields` | Array | `null` | Fields to show (whitelist) |
 | `fieldOverrides` | Object | `{}` | Per-field overrides (see [Field Overrides](#field-overrides)) |

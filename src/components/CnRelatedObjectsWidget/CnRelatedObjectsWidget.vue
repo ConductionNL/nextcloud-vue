@@ -28,10 +28,16 @@
 		:documentation-url="documentationUrl"
 		:refreshing="loading"
 		flush>
+		<!-- Total beside the card title. Carries the count that the tab strip
+		     would otherwise show — notably when `hideSingleTabTitle` hid it. -->
+		<template v-if="useTabs && showTotalCount && totalCount > 0" #title-meta>
+			<span class="cn-related-objects-widget__count">{{ totalCount }}</span>
+		</template>
+
 		<div class="cn-related-objects-widget">
 			<!-- Tabbed self-fetch mode -->
 			<template v-if="useTabs">
-				<div v-if="visibleGroups.length" class="cn-related-objects-widget__tabs" role="tablist">
+				<div v-if="tabStripVisible" class="cn-related-objects-widget__tabs" role="tablist">
 					<button v-for="group in visibleGroups"
 						:key="`tab-${group.key}`"
 						type="button"
@@ -206,7 +212,9 @@
 						{{ t('nextcloud-vue', 'Upload file') }}
 					</NcActionButton>
 					<NcActionInput v-if="groupAllowed('notes')"
+						:value="noteDraft"
 						:label="t('nextcloud-vue', 'Add note')"
+						@update:value="noteDraft = $event"
 						@submit="onAddNote">
 						<template #icon>
 							<CnIcon name="CommentTextOutline" :size="20" />
@@ -489,6 +497,24 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+		/**
+		 * Suppress the tab strip when only one group is visible. A lone tab
+		 * repeats the widget title verbatim ("Files" card carrying a "Files"
+		 * tab), so hide it and let the card header stand alone.
+		 */
+		hideSingleTabTitle: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Render a count pill beside the widget title totalling every visible
+		 * group. Keeps the count reachable once `hideSingleTabTitle` has taken
+		 * the sole tab — and its pill — away.
+		 */
+		showTotalCount: {
+			type: Boolean,
+			default: true,
+		},
 	},
 
 	setup() {
@@ -516,6 +542,8 @@ export default {
 			uploading: false,
 			/** Last add-footer error message (upload / note create). */
 			addError: '',
+			/** Bound text of the footer's "Add note" input. */
+			noteDraft: '',
 		}
 	},
 
@@ -565,6 +593,31 @@ export default {
 			return this.groups.filter((group) =>
 				(group.total > 0 || group.items.length > 0)
 				&& (allow.length === 0 || allow.includes(group.key)),
+			)
+		},
+
+		/**
+		 * Whether the tab strip renders. A single visible group makes the strip
+		 * a restatement of the card header, so `hideSingleTabTitle` drops it.
+		 *
+		 * @return {boolean} true when the tab strip should be shown.
+		 */
+		tabStripVisible() {
+			if (!this.visibleGroups.length) return false
+			return !(this.hideSingleTabTitle && this.visibleGroups.length === 1)
+		},
+
+		/**
+		 * Items across every visible group — rendered as a pill beside the
+		 * widget title. Falls back to the loaded item count when a group
+		 * reports no server-side total.
+		 *
+		 * @return {number} the summed total.
+		 */
+		totalCount() {
+			return this.visibleGroups.reduce(
+				(sum, group) => sum + (group.total || group.items.length || 0),
+				0,
 			)
 		},
 
@@ -757,13 +810,15 @@ export default {
 
 		/**
 		 * Create a note on the object from the footer's note input.
-		 * @param {Event|string} payload - NcActionInput submit payload.
+		 *
+		 * Reads `noteDraft` rather than the submitted form: NcActionInput's
+		 * input carries no `name`, so a FormData lookup always comes back null
+		 * and the note is silently dropped.
+		 *
 		 * @return {Promise<void>}
 		 */
-		async onAddNote(payload) {
-			const message = typeof payload === 'string'
-				? payload.trim()
-				: String((payload && payload.target && new FormData(payload.target).get('text')) || '').trim()
+		async onAddNote() {
+			const message = String(this.noteDraft || '').trim()
 			if (!message) return
 			this.addError = ''
 			try {
@@ -778,6 +833,7 @@ export default {
 					body: JSON.stringify({ message }),
 				})
 				if (!response.ok) throw new Error(`${response.status}`)
+				this.noteDraft = ''
 				/**
 				 * @event note-added A note was created via the Add footer.
 				 * @type {string}

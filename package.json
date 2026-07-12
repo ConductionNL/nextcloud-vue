@@ -1,6 +1,6 @@
 {
 	"name": "@conduction/nextcloud-vue",
-	"version": "1.0.0-beta.141",
+	"version": "1.0.0-beta.184",
 	"description": "Shared Vue component library for Conduction Nextcloud apps — complements @nextcloud/vue with higher-level components, OpenRegister integration, and NL Design System support",
 	"license": "EUPL-1.2",
 	"author": "Conduction B.V. <info@conduction.nl>",
@@ -50,6 +50,7 @@
 		"check:jsdoc": "node scripts/check-jsdoc.js",
 		"check:integration-parity": "node scripts/check-integration-parity.js",
 		"check:integration-build": "node scripts/check-integration-build.js",
+		"check:css-entry": "node scripts/check-css-entry.js",
 		"jsdoc-baselines:update": "node scripts/check-jsdoc.js --update",
 		"prepare": "husky || true",
 		"prepublishOnly": "npm run build",

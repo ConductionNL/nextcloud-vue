@@ -39,10 +39,6 @@
 	flex-direction: column;
 }
 
-.cn-table-container--fill .cn-data-table__footer {
-	margin-top: auto;
-}
-
 /* Optional card header + "View all" footer (folded from CnTableWidget). */
 .cn-data-table__header {
 	display: flex;
@@ -78,6 +74,14 @@
 	position: sticky;
 	bottom: 0;
 	background: var(--color-main-background);
+}
+
+/* Must follow the base `.cn-data-table__footer` rule above: it is the more
+   specific selector, and stylelint's no-descending-specificity forbids the
+   reverse order. Pushes the footer to the bottom of a `--fill` container
+   (see the flex-column block near the top of this file). */
+.cn-table-container--fill .cn-data-table__footer {
+	margin-top: auto;
 }
 
 .cn-data-table__view-all {

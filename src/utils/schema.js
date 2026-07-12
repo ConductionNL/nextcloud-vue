@@ -439,11 +439,13 @@ export function fieldsFromSchema(schema, options = {}) {
 			type: prop.type || 'string',
 			format: prop.format || null,
 			widget: resolveWidget(prop),
-			// Icon picker (`widget: 'icon'`) config forwarded to CnIconPicker via
+			// Icon picker (`widget: 'icon'`) config forwarded to CnIconBrowser via
 			// CnFormDialog: which sources to offer (`iconSources`), consumer icon
 			// catalogues (JSON entries — FontAwesome/OpenGemeenten data is usually
-			// supplied via a fieldOverride instead), and whether search / custom-SVG
-			// are enabled. Omitted keys fall back to CnIconPicker's own defaults.
+			// supplied via a fieldOverride instead), and whether custom-SVG is
+			// enabled. `searchable` is obsolete — the browser always searches.
+			// Omitted keys fall back to CnIconBrowser's own defaults, which include
+			// the bundled NL-government sets.
 			iconSources: prop.iconSources || undefined,
 			catalogues: prop.catalogues || undefined,
 			allowCustomSvg: prop.allowCustomSvg || undefined,

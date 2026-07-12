@@ -480,6 +480,14 @@ export default {
 			// ejectDetailGridIfNeeded). A v2 page keeps them in pages[].widgets[]
 			// (slot-based). Append to whichever this page uses so the new widget
 			// lands where the renderer reads.
+			// Append IN PLACE (`push`), never by replacing the array. These arrays
+			// reach the grid as props via CnPageRenderer's `resolvedProps`, which
+			// does NOT re-derive when `config.widgets` / `config.layout` are
+			// swapped for new arrays — the page component keeps its original array
+			// and the widget never appears at all. Mutating the array the props
+			// already point at is what makes the addition visible. (Rendering the
+			// new card correctly also needs CnDashboardPage to resolve widget defs
+			// through a live lookup rather than a cached map — see getWidgetDef.)
 			const cfg = page.config && typeof page.config === 'object' && !Array.isArray(page.config) ? page.config : null
 			if ((page.type === 'dashboard' || page.type === 'detail') && cfg) {
 				if (!Array.isArray(cfg.widgets)) this.$set(cfg, 'widgets', [])
