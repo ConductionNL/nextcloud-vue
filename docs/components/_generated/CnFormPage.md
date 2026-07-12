@@ -25,13 +25,13 @@
 | `submit` | —       | Successful submit event. Payload is the effective payload (visible fields only). |
 | `error`  | —       | Submit failure event. Payload is the thrown error / rejected reason.             |
 | `input`  | —       | Field-level update event.                                                        |
-| `step`   | —       |                                                                                  |
+| `step`   | —       | Emitted on step navigation (Next / Back).                                        |
 
 ### Slots
 
-| Name                 | Bindings                                      | Description           |
-| -------------------- | --------------------------------------------- | --------------------- |
-| `header`             | `title`, `description`                        | header                |
-| `actions`            | —                                             |                       |
-| `field-${field.key}` | `name`, `field`, `value`, `on-input`, `error` | field-\$\{field.key\} |
-| `submit`             | `submitting`, `dirty`, `submit`               |                       |
+| Name                 | Bindings                                      | Description                                                       |
+| -------------------- | --------------------------------------------- | ----------------------------------------------------------------- |
+| `header`             | `title`, `description`                        | header                                                            |
+| `actions`            | —                                             | actions Action buttons (back, cancel, …) rendered above the form. |
+| `field-${field.key}` | `name`, `field`, `value`, `on-input`, `error` | field-\$\{field.key\}                                             |
+| `submit`             | `submitting`, `dirty`, `submit`               | submit Replaces the default submit button.                        |

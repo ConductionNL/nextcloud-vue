@@ -95,13 +95,23 @@
 				@update:value="setRoute" />
 
 			<template v-if="isDataPage">
-				<NcSelect v-if="hasDataSources"
+				<NcNoteCard v-if="dataSourcesError"
+					class="cn-page-tree__panel-field"
+					type="error">
+					{{ t('nextcloud-vue', 'Could not load registers and schemas.') }}
+					<NcButton type="tertiary" @click="retryDataSources">
+						{{ t('nextcloud-vue', 'Retry') }}
+					</NcButton>
+				</NcNoteCard>
+
+				<NcSelect v-if="showPickers"
 					class="cn-page-tree__panel-field"
 					:value="selectedRegister"
 					:options="registerOptions"
 					:input-label="t('nextcloud-vue', 'Register')"
 					label="label"
 					:clearable="true"
+					:loading="dataSourcesLoading"
 					:placeholder="t('nextcloud-vue', 'Choose a register')"
 					@input="setRegister" />
 				<NcTextField v-else
@@ -111,13 +121,14 @@
 					:label-visible="true"
 					@update:value="(v) => setConfig('register', v)" />
 
-				<NcSelect v-if="hasDataSources"
+				<NcSelect v-if="showPickers"
 					class="cn-page-tree__panel-field"
 					:value="selectedSchema"
 					:options="schemaOptions"
 					:input-label="t('nextcloud-vue', 'Schema')"
 					label="label"
 					:clearable="true"
+					:loading="dataSourcesLoading"
 					:disabled="!configValue('register')"
 					:placeholder="t('nextcloud-vue', 'Choose a schema')"
 					@input="setSchema" />
@@ -166,7 +177,7 @@
 </template>
 
 <script>
-import { NcButton, NcTextField, NcSelect } from '@nextcloud/vue'
+import { NcButton, NcTextField, NcSelect, NcNoteCard } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -209,11 +220,19 @@ const TYPE_ICON_COMPONENTS = {
 export default {
 	name: 'CnPageTreeRow',
 
-	components: { NcButton, NcTextField, NcSelect, Cog, Plus, Delete, DragVertical, ViewDashboardOutline, FormatListBulletedSquare, TextBoxOutline, ShapeOutline },
+	components: { NcButton, NcTextField, NcSelect, NcNoteCard, Cog, Plus, Delete, DragVertical, ViewDashboardOutline, FormatListBulletedSquare, TextBoxOutline, ShapeOutline },
 
 	inject: {
 		/** App registers/schemas for the data-source pickers; null → free text. */
 		cnDataSources: { default: null },
+		/**
+		 * Live data-source holder from CnAppRoot (`{ value, loading, error,
+		 * hasLoader }`). Preferred over the `cnDataSources` snapshot, which
+		 * cannot change after boot. Null when the host predates it.
+		 */
+		cnDataSourcesState: { default: null },
+		/** Re-fetch the data sources; used by the error notice's Retry. */
+		cnRefreshDataSources: { default: null },
 	},
 
 	props: {
@@ -268,19 +287,45 @@ export default {
 		isDataPage() {
 			return this.page && (this.page.type === 'index' || this.page.type === 'detail')
 		},
+		/**
+		 * The data sources actually in force: the live holder when CnAppRoot
+		 * has a loader, else the static snapshot.
+		 */
+		effectiveDataSources() {
+			const live = this.cnDataSourcesState && this.cnDataSourcesState.value
+			return live || this.cnDataSources
+		},
+		/** Whether a refresh is currently in flight. */
+		dataSourcesLoading() {
+			return !!(this.cnDataSourcesState && this.cnDataSourcesState.loading)
+		},
+		/** The last refresh's failure, if any. */
+		dataSourcesError() {
+			return (this.cnDataSourcesState && this.cnDataSourcesState.error) || null
+		},
 		/** Whether app data sources (registers/schemas) were provided. */
 		hasDataSources() {
-			return !!(this.cnDataSources && Array.isArray(this.cnDataSources.registers) && this.cnDataSources.registers.length)
+			const ds = this.effectiveDataSources
+			return !!(ds && Array.isArray(ds.registers) && ds.registers.length)
+		},
+		/**
+		 * Whether to render dropdowns rather than free-text slug inputs. A
+		 * configured loader counts even before its first fetch resolves, so
+		 * the panel never flashes text fields and then swaps them for selects.
+		 */
+		showPickers() {
+			if (this.hasDataSources || this.dataSourcesLoading) return true
+			return !!(this.cnDataSourcesState && this.cnDataSourcesState.hasLoader)
 		},
 		/** Register dropdown options from the data sources. */
 		registerOptions() {
 			if (!this.hasDataSources) return []
-			return this.cnDataSources.registers.map((r) => ({ value: r.value, label: r.label || r.value }))
+			return this.effectiveDataSources.registers.map((r) => ({ value: r.value, label: r.label || r.value }))
 		},
 		/** Schema options for the chosen register. */
 		schemaOptions() {
 			if (!this.hasDataSources) return []
-			const reg = this.cnDataSources.registers.find((r) => r.value === this.configValue('register'))
+			const reg = this.effectiveDataSources.registers.find((r) => r.value === this.configValue('register'))
 			const schemas = (reg && Array.isArray(reg.schemas)) ? reg.schemas : []
 			return schemas.map((s) => ({ value: s.value, label: s.label || s.value, columns: s.columns || [] }))
 		},
@@ -324,6 +369,13 @@ export default {
 
 	methods: {
 		t,
+		/**
+		 * Re-run the data-source fetch after a failure (the error notice's Retry).
+		 * @return {void}
+		 */
+		retryDataSources() {
+			if (typeof this.cnRefreshDataSources === 'function') this.cnRefreshDataSources()
+		},
 		/**
 		 * Enter inline-edit mode for a field, focusing it on next tick.
 		 * @param {string} field 'name' | 'type'.

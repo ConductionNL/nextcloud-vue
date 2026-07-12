@@ -206,6 +206,7 @@ The backend (OpenRegister) injects `manifest.runtime` when serving the manifest 
 | `manifest` | `Object \| null` | `null` | Manifest object. Falls back to injected `cnManifest`. |
 | `translate` | `Function \| null` | `null` | Translator used for labels. Falls back to injected `cnTranslate` (identity by default). |
 | `permissions` | `Array<string>` | `[]` | Permissions held by the current user. Empty means all items render regardless of their `permission` field. |
+| `isOwner` | `Boolean` | `false` | Whether the current user is an app OWNER — computed by `CnAppRoot` from `currentUserGroups` ∩ `permissions.owners`, and/or a manifest `runtime.user` owner signal; deliberately NOT `OC.isUserAdmin()`. Gates the auto-prepended "Admin settings" foldout entry together with the manifest declaring at least one `adminSettings[]` entry. Defaults to `false` so `CnAppNav` mounted standalone (without a `CnAppRoot` ancestor) never shows the entry. |
 
 ## Behaviour
 
