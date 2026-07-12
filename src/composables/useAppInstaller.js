@@ -7,8 +7,6 @@ import { ref } from 'vue'
 // Unwrap the default ourselves so it works under either resolution.
 import * as axiosModule from '@nextcloud/axios'
 import { generateOcsUrl, generateUrl } from '@nextcloud/router'
-
-const axios = axiosModule.default || axiosModule
 import {
 	addPasswordConfirmationInterceptors,
 	confirmPassword,
@@ -24,6 +22,8 @@ import '@nextcloud/password-confirmation/style.css'
 // scoped (toasts under `.dialogs`, dialog/file-picker chrome under their own
 // classes), so this adds no app-wide restyling.
 import '@nextcloud/dialogs/style.css'
+
+const axios = axiosModule.default || axiosModule
 
 /**
  * Composable that installs-and-enables (or just enables) a missing

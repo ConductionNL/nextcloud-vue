@@ -98,6 +98,7 @@ import { findIconByValue } from './iconCatalogue.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
 import { isCustomIconUrl, DASHBOARD_ICONS } from '../CnIconPicker/dashboardIcons.js'
 import { DASHBOARD_ICONS as WIDGET_ICONS } from '../CnWidgetGrid/widgetIcons.js'
+import { nlDesignIconGroups } from '../../icons/nlDesignGroups.js'
 
 /**
  * Curated fallback catalogue, built from the library's always-present
@@ -120,6 +121,19 @@ const CURATED_FALLBACK = Object.freeze(Object.keys(FALLBACK_REGISTRY).map((key) 
 })))
 
 /**
+ * Default URL-icon groups: the bundled NL-government sets (Gemeente / Den Haag
+ * eager, RVO lazily fetched on first use).
+ *
+ * These are a DEFAULT rather than something each app must `provide`, because the
+ * widget config forms render CnIconBrowser several levels deep inside
+ * CnAddWidgetModal, with no route to pass a prop. Before this, url-icon sets had
+ * no injection channel at all, so they could never appear in a widget's icon
+ * picker in any app. Apps can still override via the `urlIconGroups` prop or a
+ * provided `cnIconUrlGroups`, and pass `[]` to opt out entirely.
+ */
+const DEFAULT_URL_ICON_GROUPS = Object.freeze(nlDesignIconGroups())
+
+/**
  * CnIconBrowser — a searchable, visual icon picker. The library imports no icon
  * package: the consumer injects a normalized catalogue via the `icons` prop
  * (build one with the {@link mdiCatalogue} / {@link vmdiCatalogue} adapters) or
@@ -129,8 +143,10 @@ const CURATED_FALLBACK = Object.freeze(Object.keys(FALLBACK_REGISTRY).map((key) 
  *
  * By default the picker is a trigger button that opens the panel in a popover
  * (teleported to the body, so it works inside modals); pass `inline` to render
- * the panel always-open. The optional **Custom** tab offers an image-URL input
- * (`allowUrl`), curated URL icons (`urlIcons`), and an upload control (`uploadFn`).
+ * the panel always-open. The **Custom** tab offers an image-URL input
+ * (`allowUrl`), curated URL icons (`urlIcons` / `urlIconGroups`), and an upload
+ * control (`uploadFn`). It carries the bundled NL-government sets (Gemeente / Den
+ * Haag / RVO) by default — see `resolvedUrlIconGroups`.
  *
  * `value`/`input` is a single string per the Vue 2 v-model convention.
  *
@@ -154,6 +170,15 @@ export default {
 		 */
 		injectedIconCatalogue: {
 			from: 'cnIconCatalogue',
+			default: null,
+		},
+		/**
+		 * App-provided URL-icon groups, used when no `urlIconGroups` prop is passed.
+		 * Same purpose as `cnIconCatalogue`, for the image-URL sets on the Custom
+		 * tab. Provide `[]` to suppress the bundled NL-government default.
+		 */
+		injectedUrlIconGroups: {
+			from: 'cnIconUrlGroups',
 			default: null,
 		},
 	},
@@ -272,6 +297,16 @@ export default {
 			type: String,
 			default: '',
 		},
+		/**
+		 * Offer a control to unset the icon (emits `null`). Use for optional icon
+		 * fields, where a picked icon would otherwise be impossible to remove.
+		 *
+		 * @type {boolean}
+		 */
+		clearable: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	emits: ['input'],
@@ -318,6 +353,26 @@ export default {
 			return CURATED_FALLBACK
 		},
 		/**
+		 * The URL-icon groups actually offered: the `urlIconGroups` prop if given,
+		 * else a provided `cnIconUrlGroups`, else the bundled NL-government sets.
+		 *
+		 * To opt out of the default, `provide` an empty `cnIconUrlGroups` — an
+		 * empty array there is honoured, since the inject defaults to `null` and so
+		 * distinguishes "explicitly none" from "not set". The prop cannot express
+		 * that (its own default is `[]`), so an empty prop falls through.
+		 *
+		 * @return {Array<object>} the resolved groups.
+		 */
+		resolvedUrlIconGroups() {
+			if (this.urlIconGroups.length > 0) {
+				return this.urlIconGroups
+			}
+			if (Array.isArray(this.injectedUrlIconGroups)) {
+				return this.injectedUrlIconGroups
+			}
+			return DEFAULT_URL_ICON_GROUPS
+		},
+		/**
 		 * The props forwarded to the inner panel (inline and popover share these).
 		 *
 		 * @return {object} the panel's props.
@@ -327,12 +382,13 @@ export default {
 				value: this.value,
 				icons: this.resolvedIcons,
 				urlIcons: this.urlIcons,
-				urlIconGroups: this.urlIconGroups,
+				urlIconGroups: this.resolvedUrlIconGroups,
 				uploadFn: this.uploadFn,
 				maxResults: this.maxResults,
 				defaultIcons: this.defaultIcons,
 				showLabels: this.showLabels,
 				allowUrl: this.allowUrl,
+				clearable: this.clearable,
 			}
 		},
 		/**
