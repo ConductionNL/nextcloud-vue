@@ -362,6 +362,14 @@
 								:register="register"
 								:schema="schema"
 								:editable="widgetContentFor(item).editable !== false"
+								:address-search="widgetContentFor(item).addressSearch === true"
+								:basemap="widgetContentFor(item).basemap || 'standard'"
+								:allow-basemap-switch="widgetContentFor(item).allowBasemapSwitch === true"
+								:fit-control="widgetContentFor(item).fitControl !== false"
+								:locate-control="widgetContentFor(item).locateControl !== false"
+								:fullscreen-control="widgetContentFor(item).fullscreenControl !== false"
+								:height="widgetContentFor(item).height || '360px'"
+								:default-zoom="widgetContentFor(item).defaultZoom || 7"
 								@saved="onGeoSaved" />
 							<!-- Fallback for `type: 'integration'` widget defs:
 							     render the registry widget on the detail-page
