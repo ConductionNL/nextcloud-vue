@@ -113,6 +113,26 @@ describe('CnAppNav', () => {
 		delete global.OC
 	})
 
+	describe('icon vocabulary', () => {
+		// CnMenuTreeRow now picks icons with CnIconBrowser, which emits registry
+		// keys, raw SVG paths, and data: URIs (the NL-government sets) — not just
+		// the legacy `icon-*` CSS classes. The nav must render all of them, or an
+		// icon picked from the Gemeente/Den Haag/RVO tabs shows up as nothing.
+		it('treats SVG paths and data: URIs as rich icons, and icon-* / registry keys as components', () => {
+			const wrapper = mountNav()
+			const vm = wrapper.vm
+
+			expect(vm.isRichIcon({ icon: 'M12 2 3 7' })).toBe(true)
+			expect(vm.isRichIcon({ icon: 'data:image/svg+xml,%3csvg/%3e' })).toBe(true)
+			expect(vm.isRichIcon({ icon: '/apps/x/brand.svg' })).toBe(true)
+
+			// Handled by the component path (bridge / ICON_MAP), not CnMenuItemIcon.
+			expect(vm.isRichIcon({ icon: 'icon-home' })).toBe(false)
+			expect(vm.isRichIcon({ icon: '' })).toBe(false)
+			expect(vm.isRichIcon({})).toBe(false)
+		})
+	})
+
 	describe('ordering', () => {
 		it('renders top-level items sorted by ascending `order`, with unordered items last', () => {
 			const wrapper = mountNav()

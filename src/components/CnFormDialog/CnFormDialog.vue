@@ -346,16 +346,16 @@
 							</span>
 						</div>
 
-						<!-- Icon (widget: 'icon'): renders CnIconPicker, forwarding the field's icon config -->
+						<!-- Icon (widget: 'icon'): renders CnIconBrowser, forwarding the field's icon config.
+						     `searchable` is gone — the browser always searches. -->
 						<div v-else-if="field.widget === 'icon'" class="cn-form-dialog__icon-wrapper">
 							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
 								{{ field.label }}{{ field.required ? ' *' : '' }}
 							</label>
-							<CnIconPicker
+							<CnIconBrowser
 								:value="formData[field.key] != null ? String(formData[field.key]) : null"
 								:sources="field.iconSources || ['mdi']"
 								:catalogues="field.catalogues || {}"
-								:searchable="field.searchable !== false"
 								:allow-custom-svg="!!field.allowCustomSvg"
 								:clearable="!field.required"
 								@input="value => updateField(field.key, value)" />
@@ -410,7 +410,7 @@ import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcDialog, NcLo
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
-import CnIconPicker from '../CnIconPicker/CnIconPicker.vue'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
@@ -520,10 +520,11 @@ const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-imp
  *
  * ## Icon field
  *
- * - `widget: 'icon'` — Renders a `CnIconPicker`. Optional field config forwards to
- *   the picker: `iconSources` (→ `sources`, default `['mdi']`), `catalogues`,
- *   `searchable` (default on), and `allowCustomSvg`. formData holds the selected
- *   icon value (registry key, source value, URL, or raw SVG).
+ * - `widget: 'icon'` — Renders a `CnIconBrowser`. Optional field config forwards to
+ *   the picker: `iconSources` (→ `sources`, default `['mdi']`), `catalogues`, and
+ *   `allowCustomSvg`. (`searchable` is obsolete — the browser always searches.)
+ *   formData holds the selected icon value (registry key, source value, URL, or
+ *   raw SVG). The bundled NL-government sets are offered alongside the catalogues.
  *
  * The dialog does NOT perform the save itself — it emits a `confirm` event
  * with the form data. The parent performs the actual API call and calls
@@ -592,7 +593,7 @@ export default {
 		NcDateTimePickerNative,
 		NcCheckboxRadioSwitch,
 		CnJsonViewer,
-		CnIconPicker,
+		CnIconBrowser,
 		CnResourceSelect,
 		Plus,
 		ContentSaveOutline,

@@ -93,13 +93,28 @@ describe('CnWidgetStyleEditorModal', () => {
 		expect(widget.customTitle).toBe('keep')
 	})
 
-	it('selectedIcon round-trips a picked icon into draft.customIcon', () => {
+	it('exposes the built-in icon set to CnIconBrowser as a catalogue', () => {
 		const widget = { title: 'Sales', styleConfig: {} }
 		const wrapper = mountModal(widget)
 		const option = wrapper.vm.iconOptions[3]
-		wrapper.vm.selectedIcon = option
-		expect(wrapper.vm.draft.customIcon).toBe(option.icon)
-		expect(wrapper.vm.selectedIcon).toBe(option)
+		const entry = wrapper.vm.builtinCatalogue[3]
+		// The emitted value stays the MDI path string, so what the draft persists
+		// is unchanged by the move off NcSelect.
+		expect(entry).toMatchObject({ key: option.id, label: option.label, value: option.icon, path: option.icon })
+	})
+
+	it('maps the deprecated extraIconOptions into the browser url-icons', () => {
+		const widget = { title: 'Sales', styleConfig: {} }
+		const wrapper = mount(CnWidgetStyleEditorModal, {
+			propsData: {
+				show: true,
+				widget,
+				extraIconOptions: [{ id: 'rvo-bus', label: 'Bus', icon: 'data:image/svg+xml,<svg/>' }],
+			},
+		})
+		expect(wrapper.vm.legacyExtraIcons).toEqual([
+			{ id: 'rvo-bus', label: 'Bus', url: 'data:image/svg+xml,<svg/>' },
+		])
 	})
 
 	it('re-seeds the draft when the modal re-opens', async () => {

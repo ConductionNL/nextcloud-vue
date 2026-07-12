@@ -94,10 +94,11 @@
 				</div>
 				<div class="cn-add-widget-modal__chrome-row">
 					<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Icon') }}</span>
-					<CnIconPicker
+					<CnIconBrowser
 						:value="chrome.customIcon"
 						:upload-fn="uploadFn"
-						compact
+						allow-url
+						clearable
 						@input="chrome.customIcon = $event" />
 				</div>
 			</div>
@@ -126,7 +127,7 @@ import { computed, provide } from 'vue'
 import { NcModal, NcButton, NcTextField, NcColorPicker, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 
-import { CnIconPicker } from '../components/CnIconPicker/index.js'
+import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
 import {
 	listWidgetTypes,
 	getWidgetTypeEntry,
@@ -154,7 +155,7 @@ export default {
 		NcTextField,
 		NcColorPicker,
 		NcCheckboxRadioSwitch,
-		CnIconPicker,
+		CnIconBrowser,
 	},
 
 	props: {
@@ -187,8 +188,8 @@ export default {
 		},
 		/**
 		 * Optional upload transport for the Appearance icon picker:
-		 * `async (file) => dataUrlOrUrl`. When null, CnIconPicker embeds the
-		 * uploaded image as a data URL (same-origin, CSP-safe).
+		 * `async (file) => dataUrlOrUrl`. When null, the upload control is hidden
+		 * and the picker still offers its catalogues, NL sets, and a URL field.
 		 *
 		 * @type {Function|null}
 		 */

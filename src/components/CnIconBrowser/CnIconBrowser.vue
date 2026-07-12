@@ -307,6 +307,35 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+		/**
+		 * Ordered catalogue source keys, one tab each (e.g. `['mdi', 'fontawesome',
+		 * 'opengemeenten']`). Empty → a single "Icons" tab over the resolved icons.
+		 *
+		 * @type {string[]}
+		 */
+		sources: {
+			type: Array,
+			default: () => [],
+		},
+		/**
+		 * Entries per source: `{ mdi: [...], fontawesome: [...] }`. Build with the
+		 * `fromMdiJs` / `fromFontAwesome` / `fromOpenGemeenten` adapters.
+		 *
+		 * @type {Record<string, Array<object>>}
+		 */
+		catalogues: {
+			type: Object,
+			default: () => ({}),
+		},
+		/**
+		 * Offer a tab for authoring a raw `<svg>` icon by hand.
+		 *
+		 * @type {boolean}
+		 */
+		allowCustomSvg: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	emits: ['input'],
@@ -389,6 +418,9 @@ export default {
 				showLabels: this.showLabels,
 				allowUrl: this.allowUrl,
 				clearable: this.clearable,
+				sources: this.sources,
+				catalogues: this.catalogues,
+				allowCustomSvg: this.allowCustomSvg,
 			}
 		},
 		/**
