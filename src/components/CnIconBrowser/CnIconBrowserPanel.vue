@@ -25,6 +25,15 @@
 				</svg>
 			</span>
 			<span class="cn-icon-browser-panel__preview-label">{{ selectedLabel || t('nextcloud-vue', 'No icon selected') }}</span>
+			<button
+				v-if="clearable && value"
+				type="button"
+				class="cn-icon-browser-panel__clear"
+				:title="t('nextcloud-vue', 'Remove icon')"
+				:aria-label="t('nextcloud-vue', 'Remove icon')"
+				@click="clearIcon">
+				<Cancel :size="16" />
+			</button>
 		</div>
 
 		<!-- Mode tabs (only when a Custom source exists) -->
@@ -148,6 +157,17 @@
 				</button>
 			</div>
 
+			<!-- A lazily-loaded set (e.g. RVO) resolves on first activation. -->
+			<p v-if="activeGroupLoading" class="cn-icon-browser-panel__hint">
+				{{ t('nextcloud-vue', 'Loading icon set…') }}
+			</p>
+			<p
+				v-else-if="activeGroupError"
+				class="cn-icon-browser-panel__error"
+				role="alert">
+				{{ activeGroupError }}
+			</p>
+
 			<!-- Search over the active group's icons (large packs are searchable). -->
 			<input
 				v-if="activeGroup && activeGroup.icons.length > maxResults"
@@ -158,9 +178,12 @@
 				:aria-label="t('nextcloud-vue', 'Search icons')">
 
 			<div v-if="customVisibleIcons.length > 0" class="cn-icon-browser-panel__grid">
+				<!-- Keyed by `id`, not `url`: distinct icons can share an identical
+				     SVG payload (rvo-bestelbus/rvo-bus, og-paspoort/…internationaal),
+				     and a duplicate key makes Vue mis-patch the grid. -->
 				<button
 					v-for="icon in customVisibleIcons"
-					:key="icon.url"
+					:key="icon.id || icon.url"
 					type="button"
 					class="cn-icon-browser-panel__cell"
 					:class="{ 'cn-icon-browser-panel__cell--active': icon.url === value }"
@@ -206,6 +229,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import Cancel from 'vue-material-design-icons/Cancel.vue'
 import { findIconByValue } from './iconCatalogue.js'
 import { fuzzyFilter } from './fuzzy.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
@@ -223,6 +247,10 @@ import { isCustomIconUrl } from '../CnIconPicker/dashboardIcons.js'
  */
 export default {
 	name: 'CnIconBrowserPanel',
+
+	components: {
+		Cancel,
+	},
 
 	props: {
 		/**
@@ -257,11 +285,27 @@ export default {
 		 * Rendered on the Custom tab as one sub-tab per group, each with its own
 		 * search + truncation. Takes precedence over the flat `urlIcons`.
 		 *
-		 * @type {Array<{ key: string, label: string, icons: Array<{ label: string, url: string }> }>}
+		 * A group may omit `icons` and declare `load: () => Promise<icons>` instead;
+		 * it is then fetched the first time the user activates its sub-tab (see
+		 * `nlDesignIconGroups()`, which defers the 1.9MB RVO set this way). Loading
+		 * and failure are surfaced in the panel; a failed load retries on the next
+		 * activation.
+		 *
+		 * @type {Array<{ key: string, label: string, icons?: Array<{ label: string, url: string }>, load?: () => Promise<Array<object>> }>}
 		 */
 		urlIconGroups: {
 			type: Array,
 			default: () => [],
+		},
+		/**
+		 * Offer a control to unset the icon (emits `null`). Shown next to the
+		 * preview whenever a value is selected.
+		 *
+		 * @type {boolean}
+		 */
+		clearable: {
+			type: Boolean,
+			default: false,
 		},
 		/**
 		 * Injected upload transport: `async (dataUrl) => ({ url })`. When null,
@@ -328,6 +372,12 @@ export default {
 			// Custom-tab search + active group (for large grouped URL-icon packs).
 			customQuery: '',
 			activeGroupIndex: 0,
+			// Lazy URL-icon groups, keyed by group key: resolved icons, in-flight
+			// flag, and last error. A key absent from `groupIcons` has not loaded
+			// (or failed), so activating its tab retries.
+			groupIcons: {},
+			groupLoading: {},
+			groupError: {},
 		}
 	},
 
@@ -351,15 +401,45 @@ export default {
 		},
 		/**
 		 * Curated URL icons normalised to groups. `urlIconGroups` wins; otherwise
-		 * the flat `urlIcons` become a single unnamed group. Empty groups drop out.
+		 * the flat `urlIcons` become a single unnamed group.
 		 *
-		 * @return {Array<{ key: string, label: string, icons: Array<object> }>} the groups.
+		 * A group survives if it already has icons OR can load them on demand; a
+		 * lazy group's `icons` resolve from `groupIcons` once fetched, so it starts
+		 * empty and fills in without the tab disappearing. Groups that are neither
+		 * populated nor loadable drop out.
+		 *
+		 * @return {Array<{ key: string, label: string, icons: Array<object>, lazy: boolean, load: Function|null }>} the groups.
 		 */
 		resolvedGroups() {
 			const groups = this.urlIconGroups.length > 0
 				? this.urlIconGroups
 				: (this.urlIcons.length > 0 ? [{ key: 'custom', label: '', icons: this.urlIcons }] : [])
-			return groups.filter((g) => g && Array.isArray(g.icons) && g.icons.length > 0)
+
+			return groups
+				.filter((g) => g && (typeof g.load === 'function' || (Array.isArray(g.icons) && g.icons.length > 0)))
+				.map((g) => ({
+					key: g.key,
+					label: g.label,
+					lazy: typeof g.load === 'function',
+					load: g.load || null,
+					icons: this.groupIcons[g.key] || (Array.isArray(g.icons) ? g.icons : []),
+				}))
+		},
+		/**
+		 * Whether the active group's icons are being fetched.
+		 *
+		 * @return {boolean} true while a lazy group is in flight.
+		 */
+		activeGroupLoading() {
+			return !!(this.activeGroup && this.groupLoading[this.activeGroup.key])
+		},
+		/**
+		 * The active group's load failure, if any.
+		 *
+		 * @return {string} the error message, or '' when there is none.
+		 */
+		activeGroupError() {
+			return (this.activeGroup && this.groupError[this.activeGroup.key]) || ''
 		},
 		/**
 		 * Whether to show the group sub-tab row (only when there's more than one).
@@ -549,6 +629,17 @@ export default {
 				this.activeIndex = selected >= 0 ? selected : 0
 			},
 		},
+		// A lazy set is fetched only once its tab is actually shown — on switching
+		// group, and on entering the Custom tab (which reveals the current group).
+		activeGroupIndex() {
+			this.customQuery = ''
+			this.ensureActiveGroupLoaded()
+		},
+		mode(value) {
+			if (value === 'custom') {
+				this.ensureActiveGroupLoaded()
+			}
+		},
 	},
 
 	beforeDestroy() {
@@ -557,6 +648,47 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * Resolve the active group's icons when it declares `load()` and hasn't
+		 * been fetched yet. Failures are surfaced in the panel (and logged) rather
+		 * than hidden: a set that silently vanishes is indistinguishable from the
+		 * missing-icons bug this mechanism exists to fix. Leaving the key out of
+		 * `groupIcons` on failure means re-activating the tab retries.
+		 *
+		 * @return {Promise<void>} resolves once the group is loaded or has failed.
+		 */
+		async ensureActiveGroupLoaded() {
+			const group = this.activeGroup
+			if (!group || !group.lazy) {
+				return
+			}
+			if (this.groupIcons[group.key] || this.groupLoading[group.key]) {
+				return
+			}
+
+			this.$set(this.groupLoading, group.key, true)
+			this.$set(this.groupError, group.key, '')
+			try {
+				const icons = await group.load()
+				this.$set(this.groupIcons, group.key, Array.isArray(icons) ? icons : [])
+			} catch (error) {
+				this.$set(this.groupError, group.key, t('nextcloud-vue', 'Could not load this icon set.'))
+				console.error('Icon set "' + group.key + '" failed to load:', error)
+			} finally {
+				this.$set(this.groupLoading, group.key, false)
+			}
+		},
+
+		/**
+		 * Unset the icon (a discrete pick, so the popover closes).
+		 *
+		 * @return {void}
+		 */
+		clearIcon() {
+			this.$emit('input', null)
+			this.$emit('pick')
+		},
 
 		/**
 		 * Roving-tabindex keyboard navigation for the mode tablist: Left/Up/Home
@@ -777,6 +909,26 @@ export default {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.cn-icon-browser-panel__clear {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	margin-inline-start: auto;
+	padding: 4px;
+	background: transparent;
+	border: none;
+	border-radius: var(--border-radius, 4px);
+	color: var(--color-text-maxcontrast);
+	cursor: pointer;
+}
+
+.cn-icon-browser-panel__clear:hover,
+.cn-icon-browser-panel__clear:focus-visible {
+	background-color: var(--color-background-hover);
+	color: var(--color-main-text);
 }
 
 .cn-icon-browser-panel__tabs {
