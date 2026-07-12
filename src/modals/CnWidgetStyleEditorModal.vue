@@ -21,7 +21,9 @@
 
 			<!-- Typed-widget content config (e.g. a `stat` KPI's data source,
 			     label, icon, colours, format) supplied by the type's registered
-			     sub-form. Supersedes the generic chrome title/icon below. -->
+			     sub-form. Supersedes the generic chrome *icon* below — the type
+			     form owns the icon that renders inside the tile — but not the
+			     chrome title, which stays editable for every type. -->
 			<div v-if="hasTypeForm" class="cn-widget-style-editor__section">
 				<component
 					:is="typeFormComponent"
@@ -36,8 +38,11 @@
 				</ul>
 			</div>
 
-			<!-- Title section: toggle + override text. -->
-			<div v-if="!hasTypeForm" class="cn-widget-style-editor__section">
+			<!-- Title section: toggle + override text. Rendered for every widget
+			     type — card widgets (stat / gauge / delta) default the toggle off,
+			     since the tile's own label is its headline, but a title is still
+			     settable when a card genuinely wants chrome. -->
+			<div class="cn-widget-style-editor__section">
 				<h3 class="cn-widget-style-editor__section-title">
 					{{ t('nextcloud-vue', 'Title') }}
 				</h3>
@@ -312,6 +317,20 @@ export default {
 		},
 
 		/**
+		 * Whether this widget is a self-contained card (stat / gauge / delta),
+		 * which renders headerless by default. Drives the Title toggle's default
+		 * so re-saving an untouched card doesn't hand it back a chrome header.
+		 *
+		 * @return {boolean} true when the registry entry is a card.
+		 */
+		isCardWidget() {
+			const type = this.widget && this.widget.type
+			if (!type) return false
+			const entry = getWidgetTypeEntry(type)
+			return Boolean(entry && entry.card === true)
+		},
+
+		/**
 		 * The built-in `{id,label,icon}` set as a CnIconBrowser catalogue. `icon`
 		 * is an MDI path string, which is also the emitted value — so what the
 		 * draft stores is unchanged by the move off NcSelect.
@@ -386,8 +405,11 @@ export default {
 		buildDraft(widget) {
 			const base = defaultStyleConfig()
 			const sc = (widget && widget.styleConfig) || {}
+			const entry = widget?.type ? getWidgetTypeEntry(widget.type) : null
+			const isCard = Boolean(entry && entry.card === true)
 			return {
-				showTitle: widget?.showTitle !== false,
+				// Cards default headerless; anything else defaults to showing the header.
+				showTitle: typeof widget?.showTitle === 'boolean' ? widget.showTitle : !isCard,
 				customTitle: widget?.customTitle || '',
 				customIcon: widget?.customIcon || '',
 				backgroundColor: sc.backgroundColor || base.backgroundColor,
@@ -412,7 +434,7 @@ export default {
 		resetDraft() {
 			const base = defaultStyleConfig()
 			this.draft = {
-				showTitle: true,
+				showTitle: !this.isCardWidget,
 				customTitle: '',
 				customIcon: '',
 				...base,
