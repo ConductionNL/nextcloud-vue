@@ -2226,19 +2226,44 @@ export default {
 		 * `config.widgets` + `config.layout` (the working manifest, by reference)
 		 * and emits the updated layout so consumers persist.
 		 *
+		 * Splices in place rather than emitting fresh arrays. `widgets` / `layout`
+		 * ARE the working manifest's arrays — CnOpenBuildEditButton.onAddWidgetSubmit
+		 * pushes straight into them, and onWidgetConfigSave mutates a def in place —
+		 * so mutation is what actually removes the widget from the page. Filtering
+		 * into new arrays and emitting them only told listeners about the removal,
+		 * and nothing listens (`@widget-remove` has no consumer in the library or in
+		 * OpenBuild), so Delete was a no-op.
+		 *
 		 * @spec openspec/changes/dashboard-widget-system/specs/dashboard-page/spec.md
 		 * @param {object} item Layout item to remove.
 		 */
 		removeWidget(item) {
 			const id = item.widgetId
-			const newLayout = this.layout.filter((l) => l.widgetId !== id)
-			const newWidgets = Array.isArray(this.widgets) ? this.widgets.filter((w) => w.id !== id) : this.widgets
-			this.$emit('layout-change', newLayout)
+			const layoutIndex = this.layout.findIndex((l) => l.widgetId === id)
+			/*
+			 * `layout` and `widgets` are the working manifest's own arrays, passed by
+			 * reference on purpose: the edit button pushes into them to add a widget,
+			 * and onWidgetConfigSave mutates a def in place to save one. Emitting a
+			 * copy instead leaves the manifest untouched — exactly the bug this
+			 * replaces — so the mutation is deliberate here.
+			 */
+			if (layoutIndex !== -1) {
+				// eslint-disable-next-line vue/no-mutating-props
+				this.layout.splice(layoutIndex, 1)
+			}
+			if (Array.isArray(this.widgets)) {
+				const widgetIndex = this.widgets.findIndex((w) => w.id === id)
+				if (widgetIndex !== -1) {
+					// eslint-disable-next-line vue/no-mutating-props
+					this.widgets.splice(widgetIndex, 1)
+				}
+			}
+			this.$emit('layout-change', this.layout)
 			/**
 			 * @event widget-remove Emitted when a widget is removed via the in-place editor.
 			 * @type {{ id: string, widgets: Array }}
 			 */
-			this.$emit('widget-remove', id, newWidgets)
+			this.$emit('widget-remove', id, this.widgets)
 		},
 
 		/**
