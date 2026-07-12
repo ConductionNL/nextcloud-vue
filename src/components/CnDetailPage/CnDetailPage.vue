@@ -334,6 +334,7 @@
 								:overrides="widgetContentFor(item).overrides || {}"
 								:include="widgetContentFor(item).include || null"
 								:exclude="widgetContentFor(item).exclude || []"
+								:hide-empty="widgetContentFor(item).hideEmpty === true || hideEmpty"
 								:columns="widgetContentFor(item).columns || 3" />
 							<!-- `type: 'related'` widget: the related-objects widget,
 							     the second default body widget. Resolves this object's
@@ -1067,6 +1068,22 @@ export default {
 		schema: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Hide valueless fields on the auto-rendered data widget, instead of
+		 * showing them with an em dash. See `CnObjectDataWidget`'s `hide-empty`.
+		 *
+		 * Set this from the manifest (`config.hideEmpty`) for a discriminated
+		 * supertype — one schema holding several variants, where each object only
+		 * carries the fields its variant uses. A widget that declares its own
+		 * `content.hideEmpty` still wins over this page-level default.
+		 *
+		 * @type {boolean}
+		 */
+		hideEmpty: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
