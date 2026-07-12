@@ -77,8 +77,33 @@
 			<template v-if="$scopedSlots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$scopedSlots['actions'] || isEditMode" #actions>
+			<template v-if="$scopedSlots['actions'] || isEditMode || showExportMenu" #actions>
 				<slot name="actions" />
+				<!-- Native Export menu (opt-in via `allowExport` + schema.exportable):
+				     CSV/Excel entries navigate to OR's export-leaf URL, passing the
+				     current route's query params through as filters. -->
+				<NcActions
+					v-if="showExportMenu"
+					:force-name="true"
+					:menu-name="t('nextcloud-vue', 'Export')"
+					data-testid="cn-index-export-menu"
+					:aria-label="t('nextcloud-vue', 'Export')">
+					<template #icon>
+						<Export :size="20" />
+					</template>
+					<NcActionButton data-testid="cn-index-export-csv" @click="onExportClick('csv')">
+						<template #icon>
+							<Export :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Export as CSV') }}
+					</NcActionButton>
+					<NcActionButton data-testid="cn-index-export-excel" @click="onExportClick('excel')">
+						<template #icon>
+							<Export :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Export as Excel') }}
+					</NcActionButton>
+				</NcActions>
 				<!-- Edit-mode config cog: opens the page's full config editor
 				     (CnPageRenderer wires @configure to CnPageConfigModal). -->
 				<NcButton v-if="isEditMode"
@@ -514,15 +539,17 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActions, NcActionCaption, NcActionCheckbox, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActions, NcActionButton, NcActionCaption, NcActionCheckbox, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import { getCurrentInstance, inject } from 'vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
+import Export from 'vue-material-design-icons/Export.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
+import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
@@ -632,11 +659,13 @@ export default {
 		NcLoadingIcon,
 		NcEmptyContent,
 		NcActions,
+		NcActionButton,
 		NcActionCaption,
 		NcActionCheckbox,
 		NcButton,
 		Cog,
 		DatabaseSearch,
+		Export,
 		FilterOutline,
 		ViewColumnOutline,
 		CnPageHeader,
@@ -1041,6 +1070,22 @@ export default {
 		showMassDelete: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Opt-in flag for the native Export menu (CSV/Excel) rendered in the
+		 * toolbar next to the Add button. Defaults to `false` — an app must
+		 * explicitly enable it per page. The menu only renders when this is
+		 * `true` AND the resolved schema is flagged `exportable: true`; it
+		 * navigates the browser to OpenRegister's export leaf
+		 * (`GET /apps/openregister/api/objects/{register}/{schema}/export`),
+		 * passing the current route's query params through as filters. This
+		 * is distinct from the `showMassExport` mass-action, which exports
+		 * only the fetched/selected rows via a blob download.
+		 */
+		allowExport: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Property name used to display item names in dialogs */
@@ -1804,6 +1849,25 @@ export default {
 		effectiveSchema() {
 			if (this.isSelfFetchMode) return this.list.schema.value
 			return (this.schema && typeof this.schema === 'object') ? this.schema : null
+		},
+
+		/**
+		 * Schema slug for the export-leaf URL — the `schema` prop directly
+		 * when it's a string (self-fetch mode's precondition), else the
+		 * resolved schema object's `slug`/`name`.
+		 */
+		exportSchemaSlug() {
+			if (typeof this.schema === 'string') return this.schema
+			return this.effectiveSchema?.slug || this.effectiveSchema?.name || ''
+		},
+
+		/**
+		 * Whether the native Export menu renders in the toolbar: opt-in via
+		 * `allowExport` AND the resolved schema flagged `exportable: true`.
+		 * Default-safe — false unless both hold.
+		 */
+		showExportMenu() {
+			return Boolean(this.allowExport) && Boolean(this.effectiveSchema?.exportable) && Boolean(this.register) && Boolean(this.exportSchemaSlug)
 		},
 
 		/** Sort key / order: list state in self-fetch mode, else the props. */
@@ -2812,6 +2876,20 @@ export default {
 		async onMassExportConfirm(payload) {
 			if (await this.selfActions.handleMassExport(payload)) return
 			this.$emit('mass-export', payload)
+		},
+
+		/**
+		 * Native Export menu entry click (`allowExport` + `schema.exportable`).
+		 * Navigates the browser to OpenRegister's export leaf, passing the
+		 * current route's query params through so a filtered index exports
+		 * only the visible rows.
+		 *
+		 * @param {'csv'|'excel'} format The requested export format.
+		 */
+		onExportClick(format) {
+			const routeQuery = (this.$route && this.$route.query) || {}
+			const url = buildExportUrl(this.register, this.exportSchemaSlug, routeQuery, format)
+			window.location.assign(url)
 		},
 
 		async onMassImportConfirm(payload) {

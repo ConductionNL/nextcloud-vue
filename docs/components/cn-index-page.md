@@ -64,6 +64,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showMassExport` | Boolean | `true` | Show mass export action |
 | `showMassCopy` | Boolean | `true` | Show mass copy action |
 | `showMassDelete` | Boolean | `true` | Show mass delete action |
+| `allowExport` | Boolean | `false` | Opt-in flag for the native Export menu (CSV/Excel) rendered next to the Add button. Renders only when `true` AND the resolved schema is flagged `exportable: true`; navigates to `GET /apps/openregister/api/objects/{register}/{schema}/export`, passing `$route.query` through as filters. Distinct from `showMassExport`, which exports the fetched/selected rows via a blob download instead. |
 | `massActionNameField` | String | `'title'` | Field for display names in mass action dialogs |
 | `nameFormatter` | Function | `null` | Optional function `(item) => string` to format item names in dialogs. Overrides `massActionNameField` when provided. Passed to all delete and copy dialogs. |
 | `exportFormats` | Array | `[]` | Available export formats |
