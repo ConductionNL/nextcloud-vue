@@ -9,8 +9,11 @@
   no target shows a centred coachmark.
 -->
 <template>
-	<NcDialog size="normal" :name="t('nextcloud-vue', 'Edit walkthrough')" @closing="$emit('close')">
+	<NcModal size="normal" @close="$emit('close')">
 		<div class="cn-edit-walkthrough">
+			<h2 class="cn-edit-walkthrough__title">
+				{{ t('nextcloud-vue', 'Edit walkthrough') }}
+			</h2>
 			<p class="cn-edit-walkthrough__intro">
 				{{ t('nextcloud-vue', 'A walkthrough is a guided tour that spotlights parts of the app and explains each step. It runs on a user\'s first visit and can be replayed from settings.') }}
 			</p>
@@ -62,27 +65,28 @@
 						@update:value="setTarget(step, $event)" />
 				</li>
 			</ul>
-		</div>
 
-		<template #actions>
-			<NcButton type="secondary" @click="add">
-				<template #icon>
-					<Plus :size="20" />
-				</template>
-				{{ t('nextcloud-vue', 'Add step') }}
-			</NcButton>
-			<NcButton type="primary" :disabled="saving" @click="onDone">
-				<template v-if="saving" #icon>
-					<NcLoadingIcon :size="20" />
-				</template>
-				{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
-			</NcButton>
-		</template>
-	</NcDialog>
+			<div class="cn-edit-walkthrough__footer">
+				<NcButton type="secondary" @click="add">
+					<template #icon>
+						<Plus :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Add step') }}
+				</NcButton>
+				<NcButton type="primary" :disabled="saving" @click="onDone">
+					<template #icon>
+						<NcLoadingIcon v-if="saving" :size="20" />
+						<ContentSaveOutline v-else :size="20" />
+					</template>
+					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
+				</NcButton>
+			</div>
+		</div>
+	</NcModal>
 </template>
 
 <script>
-import { NcDialog, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
+import { NcModal, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
@@ -91,7 +95,7 @@ import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 export default {
 	name: 'CnEditWalkthroughModal',
 
-	components: { NcDialog, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect, Plus, Delete },
+	components: { NcModal, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect, Plus, Delete },
 
 	mixins: [manifestModalDoneMixin],
 
@@ -200,6 +204,10 @@ export default {
 	padding: 20px;
 }
 
+.cn-edit-walkthrough__title {
+	margin-top: 0;
+}
+
 .cn-edit-walkthrough__intro,
 .cn-edit-walkthrough__empty {
 	color: var(--color-text-maxcontrast);
@@ -242,5 +250,11 @@ export default {
 	display: flex;
 	align-items: flex-end;
 	gap: 8px;
+}
+
+.cn-edit-walkthrough__footer {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 16px;
 }
 </style>

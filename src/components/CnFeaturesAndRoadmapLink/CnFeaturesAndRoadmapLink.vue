@@ -74,7 +74,3 @@ export default {
 	},
 }
 </script>
-
-<style scoped>
-/* Visual styling is inherited from NcAppNavigationItem; no overrides needed. */
-</style>

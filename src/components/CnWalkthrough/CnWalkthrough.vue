@@ -60,17 +60,31 @@
 					<span class="cn-walkthrough__task-icon" aria-hidden="true">👉</span> {{ step.task }}
 				</p>
 				<div class="cn-walkthrough__actions">
-					<NcButton ref="skipBtn" type="tertiary" @click="skip">
-						{{ skipLabel }}
-					</NcButton>
-					<span class="cn-walkthrough__spacer" />
 					<NcButton v-if="!isFirst" type="secondary" @click="back">
+						<template #icon>
+							<ChevronLeft :size="20" />
+						</template>
 						{{ backLabel }}
 					</NcButton>
-					<NcButton v-if="isHandoff" type="primary" @click="doHandoff">
+					<span class="cn-walkthrough__spacer" />
+					<NcButton v-if="isHandoff"
+						ref="firstBtn"
+						type="primary"
+						alignment="center-reverse"
+						@click="doHandoff">
+						<template #icon>
+							<ChevronRight :size="20" />
+						</template>
 						{{ handoffLabel }}
 					</NcButton>
-					<NcButton v-else-if="showNext" type="primary" @click="advance">
+					<NcButton v-else-if="showNext"
+						ref="firstBtn"
+						type="primary"
+						alignment="center-reverse"
+						@click="advance">
+						<template #icon>
+							<ChevronRight :size="20" />
+						</template>
 						{{ isLast ? finishLabel : nextLabel }}
 					</NcButton>
 				</div>
@@ -83,6 +97,8 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
+import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import { useWalkthrough } from '../../composables/useWalkthrough.js'
 
 /**
@@ -112,7 +128,7 @@ import { useWalkthrough } from '../../composables/useWalkthrough.js'
 export default {
 	name: 'CnWalkthrough',
 
-	components: { NcButton, Close },
+	components: { NcButton, Close, ChevronLeft, ChevronRight },
 
 	props: {
 		/** The Nextcloud app id (walkthrough machine cache key). */
@@ -159,26 +175,6 @@ export default {
 			cardPlacement: 'bottom',
 			targetEl: null,
 		}
-	},
-
-	/**
-	 * Initialise non-reactive instance state (event handler refs, DOM observer
-	 * handles). These use the `_` prefix convention and are set here rather than
-	 * in `data()` to avoid Vue's reserved-key warning for `_`-prefixed fields.
-	 *
-	 * @spec openspec/changes/cn-walkthrough-engine/specs/cn-walkthrough/spec.md
-	 */
-	created() {
-		// Non-reactive instance state: event handlers and DOM watchers.
-		// Not in data() to avoid triggering Vue's reserved-key warning (_prefix).
-		this._revealAttempted = false
-		this._observer = null
-		this._resizeObs = null
-		this._delayTimer = null
-		this._onScroll = null
-		this._onKey = null
-		this._onObjectCreated = null
-		this._routeUnhook = null
 	},
 
 	computed: {
@@ -293,14 +289,32 @@ export default {
 		},
 	},
 
+	/**
+	 * Initialise non-reactive instance state (event handler refs, DOM observer
+	 * handles). These use the `_` prefix convention and are set here rather than
+	 * in `data()` to avoid Vue's reserved-key warning for `_`-prefixed fields.
+	 *
+	 * @spec openspec/changes/cn-walkthrough-engine/specs/cn-walkthrough/spec.md
+	 */
+	created() {
+		// Non-reactive instance state: event handlers and DOM watchers.
+		// Not in data() to avoid triggering Vue's reserved-key warning (_prefix).
+		this._revealAttempted = false
+		this._observer = null
+		this._resizeObs = null
+		this._delayTimer = null
+		this._onScroll = null
+		this._onKey = null
+		this._onObjectCreated = null
+		this._routeUnhook = null
+		// A qualifying auto-start tour whose first-step page is NOT the current
+		// route — held here until the user navigates to that page (see hookRouter).
+		this._pendingAutoTour = null
+	},
+
 	mounted() {
 		// Auto-start a qualifying tour unless one is already running.
-		if (!this.wt.running.value) {
-			const forced = this.tourId
-			const auto = this.wt.autoStartTour.value
-			if (forced) this.wt.start(forced)
-			else if (auto) this.wt.start(auto.id)
-		}
+		this.maybeAutoStart()
 		this._onScroll = () => this.computeRect()
 		window.addEventListener('scroll', this._onScroll, true)
 		window.addEventListener('resize', this._onScroll)
@@ -342,8 +356,70 @@ export default {
 			if (!router || typeof router.afterEach !== 'function') return
 			this._routeUnhook = router.afterEach((to) => {
 				this.wt.notify({ kind: 'route', route: to.name, params: to.params || {} })
+				// A first-visit tour deferred because the user deep-linked onto a
+				// different page starts once they reach its first-step page.
+				if (this._pendingAutoTour && !this.wt.running.value
+					&& this.routeMatchesTour(this._pendingAutoTour, to.name)) {
+					const tour = this._pendingAutoTour
+					this._pendingAutoTour = null
+					this.wt.start(tour.id)
+				}
 				this.$nextTick(() => this.locateTarget())
 			})
+		},
+		/**
+		 * Start a qualifying auto-start tour — but a `first-visit` tour whose
+		 * first step targets a specific page only opens when the user is ON that
+		 * page. Deep-linking onto an unrelated route (e.g. a shared detail-page
+		 * URL) defers the tour via `_pendingAutoTour` instead of popping it over
+		 * the wrong screen (ADR-062). A forced `tourId` always starts; a tour
+		 * whose first step is not page-anchored keeps the prior any-route
+		 * behaviour; without a router there is nothing to match, so it starts.
+		 *
+		 * @return {void}
+		 */
+		maybeAutoStart() {
+			if (this.wt.running.value) return
+			if (this.tourId) { this.wt.start(this.tourId); return }
+			const auto = this.wt.autoStartTour.value
+			if (!auto) return
+			if (!this.$router) { this.wt.start(auto.id); return }
+			const routeName = this.$route && this.$route.name
+			if (this.routeMatchesTour(auto, routeName)) {
+				this.wt.start(auto.id)
+			} else {
+				this._pendingAutoTour = auto
+			}
+		},
+		/**
+		 * The route name a tour's FIRST step is anchored to, or null when the
+		 * first step is not page-anchored (a centered welcome step, or a
+		 * non-page target). Used to gate auto-start to the right screen.
+		 *
+		 * @param {object} tour The tour definition.
+		 * @return {string|null} The first-step page/nav route name, or null.
+		 */
+		firstStepPage(tour) {
+			const steps = (tour && tour.steps) || []
+			const tgt = steps[0] && steps[0].target
+			if (tgt && (tgt.kind === 'page' || tgt.kind === 'nav-item') && tgt.ref) {
+				return String(tgt.ref)
+			}
+			return null
+		},
+		/**
+		 * Whether a tour may auto-open on the given route. True when the tour's
+		 * first step is not page-anchored (starts anywhere); otherwise the route
+		 * name must equal the first-step page.
+		 *
+		 * @param {object} tour The tour definition.
+		 * @param {string} [routeName] The current route name.
+		 * @return {boolean} True when the tour may open on this route.
+		 */
+		routeMatchesTour(tour, routeName) {
+			const page = this.firstStepPage(tour)
+			if (!page) return true
+			return !!routeName && String(routeName) === page
 		},
 		/**
 		 * Resolve, scroll to, and measure the active step's target, then install
@@ -485,6 +561,10 @@ export default {
 			// the overlay's coordinate space so the dim/ring/card line up with the
 			// real element instead of sitting a header's height too low.
 			const host = this.$el && this.$el.getBoundingClientRect ? this.$el.getBoundingClientRect() : { top: 0, left: 0 }
+			// Remember the overlay's own viewport offset so placeCard can clamp
+			// the coachmark against the REAL viewport even when a transformed
+			// ancestor makes the position:fixed origin non-zero.
+			this._hostOffset = { top: host.top, left: host.left }
 			this.rect = { top: r.top - host.top, left: r.left - host.left, width: r.width, height: r.height }
 			this.$nextTick(() => this.placeCard())
 		},
@@ -510,8 +590,14 @@ export default {
 			if (placement === 'bottom' && r.top + r.height + gap + ch > vh) placement = 'top'
 			if (placement === 'top' && r.top - gap - ch < 0) placement = 'bottom'
 			if (placement === 'bottom') { top = r.top + r.height + gap; left = r.left } else if (placement === 'top') { top = r.top - gap - ch; left = r.left } else if (placement === 'left') { top = r.top; left = r.left - gap - cw } else { top = r.top; left = r.left + r.width + gap }
-			left = Math.max(gap, Math.min(left, vw - cw - gap))
-			top = Math.max(gap, Math.min(top, vh - ch - gap))
+			// Clamp to the viewport. `left`/`top` live in overlay-relative space
+			// (this.rect was host-subtracted), so the viewport bounds must be
+			// host-subtracted too — otherwise a scrolled/transformed host would
+			// let the card render off-screen (ADR-062: the coachmark is always
+			// fully on-screen).
+			const ho = this._hostOffset || { top: 0, left: 0 }
+			left = Math.max(gap - ho.left, Math.min(left, vw - cw - gap - ho.left))
+			top = Math.max(gap - ho.top, Math.min(top, vh - ch - gap - ho.top))
 			this.cardPlacement = placement
 			this.cardPos = { top, left }
 			this.focusCard()
@@ -523,7 +609,7 @@ export default {
 		 */
 		focusCard() {
 			this.$nextTick(() => {
-				const btn = this.$refs.skipBtn && this.$refs.skipBtn.$el
+				const btn = this.$refs.firstBtn && this.$refs.firstBtn.$el
 				if (btn && typeof btn.focus === 'function') btn.focus()
 			})
 		},
@@ -620,10 +706,23 @@ export default {
 		back() {
 			this.wt.back()
 		},
+		/**
+		 * The coachmark's "Skip" control — ENDS the tour (it does not advance a
+		 * step). Marks the tour complete so the seen-version is persisted and it
+		 * won't auto-reopen, then emits `dismiss` + `complete` (ADR-062: Skip
+		 * dismisses the whole tour; Next is the only control that advances).
+		 * The internal per-step skip (an optional step whose target is absent)
+		 * still uses `wt.skip()` directly in `locateTarget`.
+		 *
+		 * @return {void}
+		 */
 		skip() {
-			const wasLast = this.isLast
-			this.wt.skip()
-			if (wasLast) this.$emit('complete')
+			this.wt.complete()
+			/**
+			 * @event dismiss Emitted when the user skips (ends) the tour.
+			 */
+			this.$emit('dismiss')
+			this.$emit('complete')
 		},
 		/**
 		 * Execute a cross-app hand-off: complete this tour locally, then navigate
@@ -718,9 +817,13 @@ export default {
 }
 
 .cn-walkthrough__close {
-	position: absolute;
+	/* !important beats NcButton's own `position: relative`, which would otherwise
+	   leave the close button in-flow at the card's top-left. */
+	position: absolute !important;
 	top: 8px;
 	inset-inline-end: 8px;
+	inset-inline-start: auto;
+	z-index: 1;
 }
 
 .cn-walkthrough__counter {

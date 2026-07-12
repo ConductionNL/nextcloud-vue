@@ -130,8 +130,50 @@
 							</span>
 						</div>
 
-						<!-- Select (enum, supports async function) -->
-						<div v-else-if="field.widget === 'select'" class="cn-form-dialog__select-wrapper">
+						<!-- Object reference with inline create (`x-allow-create`):
+						     a select-OR-create picker over the referenced schema.
+						     Checked before the plain select branch so create-enabled
+						     references get CnResourceSelect; plain references keep the
+						     read-only NcSelect below. -->
+						<div
+							v-else-if="isReferenceField(field) && field.allowCreate"
+							class="cn-form-dialog__select-wrapper">
+							<CnResourceSelect
+								:input-id="'cn-form-' + field.key"
+								:input-label="field.label + (field.required ? ' *' : '')"
+								:register="referenceRegister(field)"
+								:schema="field.reference.schema"
+								:label-field="referenceLabelField(field)"
+								:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
+								:clearable="!field.required"
+								@update:modelValue="value => onReferenceSelected(field, value)"
+								@create="obj => onReferenceCreated(field, obj)" />
+							<span
+								v-if="errors[field.key] || field.description"
+								class="cn-form-dialog__helper"
+								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
+								{{ errors[field.key] || field.description }}
+							</span>
+						</div>
+
+						<!-- Enum toggle (`widget: "switch"` on a 2-value enum):
+						     renders a switch mapping off→enum[0], on→last enum value. -->
+						<NcCheckboxRadioSwitch
+							v-else-if="field.widget === 'switch'"
+							:model-value="isSwitchOn(field)"
+							:disabled="field.readOnly"
+							type="switch"
+							@update:model-value="value => updateField(field.key, switchValueFor(field, value))">
+							{{ field.label }}{{ field.required ? ' *' : '' }}
+						</NcCheckboxRadioSwitch>
+
+						<!-- Select (enum / $ref object reference / single Nextcloud user, supports async function).
+						     A single Nextcloud-user field (`widget: "user"`) renders here too:
+						     `:user-select="isUserField(field)"` flips this NcSelect into NC's native
+						     user picker, and the async load/search/select machinery (getEffective*,
+						     onAsyncSearch) resolves real users — mirroring how `user-multiselect`
+						     shares the multiselect branch below. -->
+						<div v-else-if="field.widget === 'select' || field.widget === 'user'" class="cn-form-dialog__select-wrapper">
 							<NcSelect
 								:input-id="'cn-form-' + field.key"
 								:input-label="field.label + (field.required ? ' *' : '')"
@@ -141,6 +183,7 @@
 								:disabled="field.readOnly"
 								:loading="isFieldLoading(field)"
 								:filterable="!isAsyncEnum(field)"
+								:user-select="isUserField(field)"
 								@input="onEffectiveSelectChange(field, $event)"
 								@search="isAsyncEnum(field) ? onAsyncSearch(field, $event) : undefined">
 								<template
@@ -162,8 +205,8 @@
 							</span>
 						</div>
 
-						<!-- Multiselect (array with enum items, supports async function) -->
-						<div v-else-if="field.widget === 'multiselect'" class="cn-form-dialog__select-wrapper">
+						<!-- Multiselect (array enum items / $ref array / Nextcloud users, supports async function) -->
+						<div v-else-if="field.widget === 'multiselect' || field.widget === 'user-multiselect'" class="cn-form-dialog__select-wrapper">
 							<NcSelect
 								:input-id="'cn-form-' + field.key"
 								:input-label="field.label + (field.required ? ' *' : '')"
@@ -303,6 +346,27 @@
 							</span>
 						</div>
 
+						<!-- Icon (widget: 'icon'): renders CnIconBrowser, forwarding the field's icon config.
+						     `searchable` is gone — the browser always searches. -->
+						<div v-else-if="field.widget === 'icon'" class="cn-form-dialog__icon-wrapper">
+							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
+								{{ field.label }}{{ field.required ? ' *' : '' }}
+							</label>
+							<CnIconBrowser
+								:value="formData[field.key] != null ? String(formData[field.key]) : null"
+								:sources="field.iconSources || ['mdi']"
+								:catalogues="field.catalogues || {}"
+								:allow-custom-svg="!!field.allowCustomSvg"
+								:clearable="!field.required"
+								@input="value => updateField(field.key, value)" />
+							<span
+								v-if="errors[field.key] || field.description"
+								class="cn-form-dialog__helper"
+								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
+								{{ errors[field.key] || field.description }}
+							</span>
+						</div>
+
 						<!-- Fallback: text input -->
 						<NcTextField
 							v-else
@@ -346,9 +410,13 @@ import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcDialog, NcLo
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
+import { searchNextcloudUsers, resolveNextcloudUser } from '../../utils/userAutocomplete.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { shouldShow } from '../../utils/fieldCondition.js'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 
@@ -375,6 +443,20 @@ const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-imp
  * - `#field-{key}-option` — Customize dropdown option rendering for a select/multiselect/tags field
  * - `#field-{key}-selected-option` — Customize selected option display for a select/multiselect/tags field
  * - `#before-fields` / `#after-fields` — Inject content around fields
+ *
+ * ## Schema-driven pickers
+ *
+ * Three JSON-Schema property shapes auto-render richer widgets:
+ *
+ * - `{ format: 'user' }` → a Nextcloud-user picker (async-searches the core
+ *   autocomplete endpoint; stores the chosen uid string).
+ * - `{ format: 'uuid', $ref: '<schema>', 'x-allow-create': true }` → a single
+ *   object reference that renders `CnResourceSelect` — pick an existing object
+ *   OR create one inline from the typed term. Without `x-allow-create` a `$ref`
+ *   stays a plain select of existing objects.
+ * - `{ enum: ['no', 'yes'], widget: 'switch' }` → a toggle mapping off → the
+ *   first enum value and on → the last enum value (keeps the stored value an
+ *   enum string, so an enum-driven lifecycle is unaffected).
  *
  * ## Async select support
  *
@@ -407,6 +489,24 @@ const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-imp
  * so the current selection displays. When `register` is empty the field falls
  * back to a plain text input.
  *
+ * ## Nextcloud user references
+ *
+ * A schema property marked as a Nextcloud user renders as a searchable
+ * dropdown of real Nextcloud users instead of a free-text box:
+ *
+ * - `{ type: 'string', referenceType: 'nextcloud-user' }` → single-select
+ *   (`format: 'user'` / `'username'` also work as markers)
+ * - `{ type: 'array', items: { referenceType: 'nextcloud-user' } }` → multi-select
+ *
+ * `fieldsFromSchema` tags the field as `field.userPicker = { multiple }`.
+ * Users are loaded from the core autocomplete OCS endpoint (available to every
+ * authenticated user), mapped to `{ label: <display name>, value: <uid> }`.
+ * The value stored in formData is the UID string (single) or array of UIDs
+ * (multiple) — never the display object. In edit mode the stored UID is
+ * resolved to its display name so the current selection shows. Needs no
+ * `register` prop. If the OCS call fails the picker fails soft (empty options;
+ * the stored UID still shows).
+ *
  * ## JSON / code fields
  *
  * Two widgets render a CnJsonViewer-powered editor:
@@ -417,6 +517,14 @@ const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-imp
  *   (or any type) to opt a property out of the default object-filter in `fieldsFromSchema`.
  * - `widget: 'code'` — Stores the raw string. Optional `field.language` chooses
  *   syntax highlighting (`'json'|'xml'|'html'|'text'|'auto'`, default `'auto'`).
+ *
+ * ## Icon field
+ *
+ * - `widget: 'icon'` — Renders a `CnIconBrowser`. Optional field config forwards to
+ *   the picker: `iconSources` (→ `sources`, default `['mdi']`), `catalogues`, and
+ *   `allowCustomSvg`. (`searchable` is obsolete — the browser always searches.)
+ *   formData holds the selected icon value (registry key, source value, URL, or
+ *   raw SVG). The bundled NL-government sets are offered alongside the catalogues.
  *
  * The dialog does NOT perform the save itself — it emits a `confirm` event
  * with the form data. The parent performs the actual API call and calls
@@ -485,6 +593,8 @@ export default {
 		NcDateTimePickerNative,
 		NcCheckboxRadioSwitch,
 		CnJsonViewer,
+		CnIconBrowser,
+		CnResourceSelect,
 		Plus,
 		ContentSaveOutline,
 	},
@@ -524,6 +634,28 @@ export default {
 		register: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Seed values for CREATE mode, keyed by field. Merged over the schema
+		 * defaults when opening a new-item form. Use it to pre-link a child to
+		 * its parent when adding from a detail page (e.g. `{ lead: '<uuid>' }`).
+		 * @type {object}
+		 */
+		initialData: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * Field keys rendered read-only (disabled) and immutable — typically the
+		 * parent reference seeded via `initialData` so the user can't repoint a
+		 * child away from the record it was created under.
+		 * @type {string[]}
+		 */
+		lockedFields: {
+			type: Array,
+			default: () => [],
 		},
 
 		/** Dialog title. Defaults to "Create {schema.title}" or "Edit {schema.title}". */
@@ -691,14 +823,22 @@ export default {
 
 		resolvedFields() {
 			// Manual fields take priority
-			if (this.fields) return this.fields
+			const base = this.fields
+				? this.fields
+				: fieldsFromSchema(this.schema, {
+					exclude: this.excludeFields,
+					include: this.includeFields,
+					overrides: this.fieldOverrides,
+				})
 
-			// Auto-generate from schema
-			return fieldsFromSchema(this.schema, {
-				exclude: this.excludeFields,
-				include: this.includeFields,
-				overrides: this.fieldOverrides,
-			})
+			// Render locked fields (parent references seeded via initialData) as
+			// read-only so the disabled binding on every widget branch applies.
+			if (!this.lockedFields.length) return base
+			return base.map((field) => (
+				this.lockedFields.includes(field.key)
+					? { ...field, readOnly: true }
+					: field
+			))
 		},
 
 		/**
@@ -965,12 +1105,18 @@ export default {
 						data[field.key] = field.default
 					} else if (field.widget === 'checkbox') {
 						data[field.key] = false
-					} else if (field.widget === 'tags' || field.widget === 'multiselect') {
+					} else if (field.widget === 'tags' || field.widget === 'multiselect' || field.widget === 'user-multiselect') {
 						data[field.key] = []
 					} else if (field.widget === 'code') {
 						data[field.key] = ''
 					} else {
 						data[field.key] = null
+					}
+				}
+				// Seed create-mode values (parent pre-link from a detail page).
+				for (const key of Object.keys(this.initialData || {})) {
+					if (this.initialData[key] !== undefined) {
+						data[key] = this.initialData[key]
 					}
 				}
 				this.formData = data
@@ -1010,7 +1156,31 @@ export default {
 					if (Array.isArray(uuids)) {
 						for (const uuid of uuids) this.resolveReferenceLabel(field, uuid)
 					}
+				} else if (this.isUserField(field)) {
+					const uid = this.formData[field.key]
+					if (uid) this.resolveUserLabel(uid)
+				} else if (this.isUserArrayField(field)) {
+					const uids = this.formData[field.key]
+					if (Array.isArray(uids)) {
+						for (const uid of uids) this.resolveUserLabel(uid)
+					}
 				}
+			}
+		},
+
+		/**
+		 * Resolve a single user UID to its display name (edit mode) and cache it
+		 * in `referenceLabels` so the select shows the name instead of the UID.
+		 * No-op once the label is cached. Fails soft — `resolveNextcloudUser`
+		 * falls back to the UID itself when the name can't be looked up.
+		 *
+		 * @param {string} uid The stored user UID.
+		 */
+		async resolveUserLabel(uid) {
+			if (!uid || this.referenceLabels[uid]) return
+			const option = await resolveNextcloudUser(uid)
+			if (option && option.id) {
+				this.referenceLabels = { ...this.referenceLabels, [option.id]: option.label || String(option.id) }
 			}
 		},
 
@@ -1357,26 +1527,52 @@ export default {
 		},
 
 		/**
+		 * Whether a field is a single-value Nextcloud user reference — a
+		 * property the schema marked with `referenceType: 'nextcloud-user'`
+		 * (or `format: 'user'`/`'username'`). Renders as a searchable dropdown
+		 * of real Nextcloud users (label = display name, value = UID). Needs no
+		 * `register` (users come from the core autocomplete OCS endpoint).
+		 *
+		 * @param {object} field The field definition
+		 * @return {boolean}
+		 */
+		isUserField(field) {
+			return !!(field && field.userPicker && !field.userPicker.multiple)
+		},
+
+		/**
+		 * Whether a field is a multi-value Nextcloud user reference (an array
+		 * of users) → a searchable multi-select of real Nextcloud users.
+		 *
+		 * @param {object} field The field definition
+		 * @return {boolean}
+		 */
+		isUserArrayField(field) {
+			return !!(field && field.userPicker && field.userPicker.multiple)
+		},
+
+		/**
 		 * Check if a field has an async enum (function instead of static array).
-		 * Object references (`$ref`) are treated as async so they reuse the
-		 * async-select load/search/loading machinery.
+		 * Object references (`$ref`) and Nextcloud user references are treated
+		 * as async so they reuse the async-select load/search/loading machinery.
 		 *
 		 * @param {object} field The field definition
 		 * @return {boolean}
 		 */
 		isAsyncEnum(field) {
-			return typeof field.enum === 'function' || this.isReferenceField(field)
+			return typeof field.enum === 'function' || this.isReferenceField(field) || this.isUserField(field)
 		},
 
 		/**
 		 * Check if an array field has an async items enum. Multi-value object
-		 * references (`items.$ref`) are treated as async multiselects.
+		 * references (`items.$ref`) and multi-value user references are treated
+		 * as async multiselects.
 		 *
 		 * @param {object} field The field definition
 		 * @return {boolean}
 		 */
 		isAsyncItemsEnum(field) {
-			return !!(field.items && typeof field.items.enum === 'function') || this.isReferenceArrayField(field)
+			return !!(field.items && typeof field.items.enum === 'function') || this.isReferenceArrayField(field) || this.isUserArrayField(field)
 		},
 
 		/**
@@ -1396,6 +1592,113 @@ export default {
 				|| (obj['@self'] && obj['@self'].name)
 				|| obj.id
 				|| ''
+		},
+
+		/**
+		 * The object field CnResourceSelect uses as the option label and writes
+		 * on inline create. Reads `field.reference.labelField` when the schema
+		 * declares one, else defaults to `name`.
+		 *
+		 * @param {object} field A resolved reference field descriptor.
+		 * @return {string} The label field name.
+		 */
+		referenceLabelField(field) {
+			return (field && field.reference && field.reference.labelField) || 'name'
+		},
+
+		/**
+		 * Cache the label of an object just created inline via CnResourceSelect,
+		 * so any read-side that resolves the stored UUID shows its name. The
+		 * value itself is set by CnResourceSelect's `update:modelValue`.
+		 *
+		 * @param {object} field The reference field.
+		 * @param {object} obj   The freshly-created object (carries id + label field).
+		 * @return {void}
+		 */
+		onReferenceCreated(field, obj) {
+			if (obj && obj.id) {
+				this.referenceLabels = { ...this.referenceLabels, [obj.id]: this.displayLabel(obj) }
+			}
+			// A freshly-created template carries its own fields — fill from it directly.
+			this.applyTemplateFill(field, obj)
+		},
+
+		/**
+		 * Handle selection of a create-capable (`CnResourceSelect`) reference:
+		 * store the chosen UUID, then run any `fillFrom` template copy.
+		 *
+		 * @param {object}      field The reference field descriptor.
+		 * @param {string|null} value The chosen object's UUID (or null on clear).
+		 * @return {void}
+		 */
+		onReferenceSelected(field, value) {
+			this.updateField(field.key, value || null)
+			if (value) this.applyTemplateFill(field, value)
+		},
+
+		/**
+		 * Copy template values off a selected/created reference object into the
+		 * form, per the field's `fillFrom` map (`{ formKey: sourceKey }`). When
+		 * `source` is an id, the object is fetched first. Overwrites existing
+		 * values so re-selecting a template refreshes them; no-op without a map.
+		 *
+		 * @param {object}        field  The reference field carrying `fillFrom`.
+		 * @param {object|string} source The selected object, or its UUID.
+		 * @return {Promise<void>}
+		 */
+		async applyTemplateFill(field, source) {
+			if (!field || !field.fillFrom || !source) return
+			let obj = (typeof source === 'object') ? source : null
+			if (!obj) {
+				const register = this.referenceRegister(field)
+				const store = this.getObjectStore()
+				if (!register || !store || !field.reference) return
+				try {
+					const slug = store.createObjectTypeSlug(register, field.reference.schema)
+					if (!store.objectTypeRegistry[slug]) {
+						store.registerObjectType(slug, field.reference.schema, register)
+					}
+					obj = await store.fetchObject(slug, String(source))
+				} catch (err) {
+					console.error(`CnFormDialog: template fill fetch failed for "${field.key}":`, err)
+					return
+				}
+			}
+			if (!obj) return
+			for (const formKey of Object.keys(field.fillFrom)) {
+				const sourceKey = field.fillFrom[formKey]
+				const value = obj[sourceKey]
+				if (value !== undefined && value !== null) {
+					this.updateField(formKey, value)
+				}
+			}
+		},
+
+		/**
+		 * Whether an enum `widget:"switch"` field is currently "on" — i.e. its
+		 * value equals the last enum value (off → first enum value).
+		 *
+		 * @param {object} field The switch field descriptor (carries `enum`).
+		 * @return {boolean}
+		 */
+		isSwitchOn(field) {
+			const values = Array.isArray(field.enum) ? field.enum : []
+			if (values.length === 0) return !!this.formData[field.key]
+			return this.formData[field.key] === values[values.length - 1]
+		},
+
+		/**
+		 * Map a switch toggle to the field's enum value: on → last enum value,
+		 * off → first enum value.
+		 *
+		 * @param {object}  field The switch field descriptor (carries `enum`).
+		 * @param {boolean} on    The new switch state.
+		 * @return {*} The enum value to store.
+		 */
+		switchValueFor(field, on) {
+			const values = Array.isArray(field.enum) ? field.enum : []
+			if (values.length === 0) return on
+			return on ? values[values.length - 1] : values[0]
 		},
 
 		/**
@@ -1436,6 +1739,26 @@ export default {
 			try {
 				const params = { _limit: 100 }
 				if (query) params._search = query
+				// Declarative option scoping (`x-relation-filter`): narrow the
+				// picker to objects that fit the form's CURRENT values — e.g. a
+				// line item's `product` scoped to the chosen leadProduct. Mirrors
+				// CnObjectDataWidget: values are token-resolved (@object.<field> /
+				// @objectId) against the live form data; an entry whose token stays
+				// unresolved is dropped (unfiltered beats an empty picker).
+				const prop = (this.schema && this.schema.properties && this.schema.properties[field.key]) || null
+				const rawFilter = prop && prop['x-relation-filter']
+				if (rawFilter && typeof rawFilter === 'object') {
+					const ctx = { objectId: this.formData.id, object: { ...this.formData } }
+					const filter = resolveFilterTokens(rawFilter, ctx)
+					for (const [fk, fv] of Object.entries(filter)) {
+						if (typeof fv === 'string' && fv.charAt(0) === '@') continue
+						if (fv && typeof fv === 'object') {
+							for (const [op, ov] of Object.entries(fv)) params[`${fk}[${op}]`] = ov
+						} else if (fv !== '' && fv !== null && fv !== undefined) {
+							params[fk] = fv
+						}
+					}
+				}
 				const slug = store.createObjectTypeSlug(register, field.reference.schema)
 				if (!store.objectTypeRegistry[slug]) {
 					store.registerObjectType(slug, field.reference.schema, register)
@@ -1533,6 +1856,18 @@ export default {
 				if (this.isReferenceField(field) || this.isReferenceArrayField(field)) {
 					// OpenRegister object reference — fetch the referenced objects.
 					results = await this.fetchReferenceOptions(field, query)
+				} else if (this.isUserField(field) || this.isUserArrayField(field)) {
+					// Nextcloud user reference — search real users via the core
+					// autocomplete OCS endpoint. Cache labels so the current
+					// selection still displays its display name.
+					results = await searchNextcloudUsers(query)
+					const labels = {}
+					for (const opt of results) {
+						if (opt && opt.id) labels[opt.id] = opt.label || String(opt.id)
+					}
+					if (Object.keys(labels).length > 0) {
+						this.referenceLabels = { ...this.referenceLabels, ...labels }
+					}
 				} else {
 					const enumFn = typeof field.enum === 'function' ? field.enum : field.items.enum
 					results = await enumFn(query)
@@ -1588,10 +1923,10 @@ export default {
 		 * @return {object|null}
 		 */
 		getEffectiveSelectedOption(field) {
-			if (this.isReferenceField(field)) {
-				// Reference fields store the UUID — resolve it to a display
-				// option `{ id, label }` (label from the resolved-labels cache,
-				// falling back to the UUID until it loads).
+			if (this.isReferenceField(field) || this.isUserField(field)) {
+				// Reference / user fields store the UUID/UID — resolve it to a
+				// display option `{ id, label }` (label from the resolved-labels
+				// cache, falling back to the id until it loads).
 				const uuid = this.formData[field.key]
 				if (uuid === null || uuid === undefined || uuid === '') return null
 				return { id: uuid, label: this.referenceLabels[uuid] || String(uuid) }
@@ -1610,13 +1945,16 @@ export default {
 		 * @param {object|null} option The selected option
 		 */
 		onEffectiveSelectChange(field, option) {
-			if (this.isReferenceField(field)) {
-				// Reference fields store the chosen object's UUID, not the
-				// full option. Cache its label so the selection still displays.
+			if (this.isReferenceField(field) || this.isUserField(field)) {
+				// Reference / user fields store the chosen id (UUID / UID),
+				// not the full option. Cache its label so the selection displays.
 				if (option && option.id) {
 					this.referenceLabels = { ...this.referenceLabels, [option.id]: option.label || String(option.id) }
 				}
 				this.updateField(field.key, option ? option.id : null)
+				// Reference options are label-only ({id,label}) — pass the id so
+				// template pre-fill fetches the full object.
+				if (option && option.id) this.applyTemplateFill(field, String(option.id))
 			} else if (this.isAsyncEnum(field)) {
 				// Store full option object for async selects
 				this.updateField(field.key, option || null)
@@ -1646,9 +1984,9 @@ export default {
 		 * @return {Array}
 		 */
 		getEffectiveSelectedArrayOptions(field) {
-			if (this.isReferenceArrayField(field)) {
-				// Reference arrays store an array of UUIDs — resolve each to a
-				// display option `{ id, label }`.
+			if (this.isReferenceArrayField(field) || this.isUserArrayField(field)) {
+				// Reference / user arrays store an array of ids (UUIDs / UIDs) —
+				// resolve each to a display option `{ id, label }`.
 				const uuids = this.formData[field.key]
 				if (!Array.isArray(uuids)) return []
 				return uuids.map((uuid) => ({ id: uuid, label: this.referenceLabels[uuid] || String(uuid) }))
@@ -1667,9 +2005,9 @@ export default {
 		 * @param {Array} options The selected options
 		 */
 		onEffectiveMultiSelectChange(field, options) {
-			if (this.isReferenceArrayField(field)) {
-				// Reference arrays store an array of UUIDs. Cache labels so the
-				// chips still display the human names.
+			if (this.isReferenceArrayField(field) || this.isUserArrayField(field)) {
+				// Reference / user arrays store an array of ids (UUIDs / UIDs).
+				// Cache labels so the chips still display the human names.
 				const list = options || []
 				const labels = {}
 				for (const o of list) {

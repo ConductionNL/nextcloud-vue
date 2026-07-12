@@ -7,80 +7,85 @@
   Every NcSelect carries an `inputLabel`.
 -->
 <template>
-	<NcDialog size="normal" :name="t('nextcloud-vue', 'Edit actions')" @closing="$emit('close')">
-		<NcEmptyContent
-			v-if="!page"
-			:name="t('nextcloud-vue', 'No editable page')" />
-		<template v-else>
-			<ul class="cn-edit-actions__list">
-				<li v-for="(action, index) in actions" :key="action.id || index" class="cn-edit-actions__row">
-					<div class="cn-edit-actions__fields">
-						<NcTextField
-							:value.sync="action.label"
-							:label="t('nextcloud-vue', 'Label')"
-							:label-visible="true" />
-						<NcTextField
-							:value.sync="action.icon"
-							:label="t('nextcloud-vue', 'Icon')"
-							:label-visible="true" />
-						<NcSelect
-							v-model="action.type"
-							:options="actionTypes"
-							:input-label="t('nextcloud-vue', 'Type')"
-							:clearable="false" />
-						<NcTextField
-							:value.sync="action.target"
-							:label="targetLabel(action)"
-							:label-visible="true" />
-					</div>
-					<div class="cn-edit-actions__row-actions">
-						<NcButton type="tertiary"
-							:aria-label="t('nextcloud-vue', 'Move up')"
-							:disabled="index === 0"
-							@click="move(index, -1)">
-							<template #icon>
-								<ArrowUp :size="20" />
-							</template>
-						</NcButton>
-						<NcButton type="tertiary"
-							:aria-label="t('nextcloud-vue', 'Move down')"
-							:disabled="index === actions.length - 1"
-							@click="move(index, 1)">
-							<template #icon>
-								<ArrowDown :size="20" />
-							</template>
-						</NcButton>
-						<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="remove(index)">
-							<template #icon>
-								<Delete :size="20" />
-							</template>
-						</NcButton>
-					</div>
-				</li>
-			</ul>
-		</template>
+	<NcModal size="normal" @close="$emit('close')">
+		<div class="cn-edit-actions">
+			<h2 class="cn-edit-actions__title">
+				{{ t('nextcloud-vue', 'Edit actions') }}
+			</h2>
 
-		<!-- No footer actions in the empty state — matches the pre-migration
-		     NcModal, which suppressed the footer entirely when no page was editable. -->
-		<template v-if="page" #actions>
-			<NcButton type="secondary" @click="add">
-				<template #icon>
-					<Plus :size="20" />
-				</template>
-				{{ t('nextcloud-vue', 'Add action') }}
-			</NcButton>
-			<NcButton type="primary" :disabled="saving" @click="onDone">
-				<template v-if="saving" #icon>
-					<NcLoadingIcon :size="20" />
-				</template>
-				{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
-			</NcButton>
-		</template>
-	</NcDialog>
+			<NcEmptyContent
+				v-if="!page"
+				:name="t('nextcloud-vue', 'No editable page')" />
+			<template v-else>
+				<ul class="cn-edit-actions__list">
+					<li v-for="(action, index) in actions" :key="action.id || index" class="cn-edit-actions__row">
+						<div class="cn-edit-actions__fields">
+							<NcTextField
+								:value.sync="action.label"
+								:label="t('nextcloud-vue', 'Label')"
+								:label-visible="true" />
+							<NcTextField
+								:value.sync="action.icon"
+								:label="t('nextcloud-vue', 'Icon')"
+								:label-visible="true" />
+							<NcSelect
+								v-model="action.type"
+								:options="actionTypes"
+								:input-label="t('nextcloud-vue', 'Type')"
+								:clearable="false" />
+							<NcTextField
+								:value.sync="action.target"
+								:label="targetLabel(action)"
+								:label-visible="true" />
+						</div>
+						<div class="cn-edit-actions__row-actions">
+							<NcButton type="tertiary"
+								:aria-label="t('nextcloud-vue', 'Move up')"
+								:disabled="index === 0"
+								@click="move(index, -1)">
+								<template #icon>
+									<ArrowUp :size="20" />
+								</template>
+							</NcButton>
+							<NcButton type="tertiary"
+								:aria-label="t('nextcloud-vue', 'Move down')"
+								:disabled="index === actions.length - 1"
+								@click="move(index, 1)">
+								<template #icon>
+									<ArrowDown :size="20" />
+								</template>
+							</NcButton>
+							<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="remove(index)">
+								<template #icon>
+									<Delete :size="20" />
+								</template>
+							</NcButton>
+						</div>
+					</li>
+				</ul>
+
+				<div class="cn-edit-actions__footer">
+					<NcButton type="secondary" @click="add">
+						<template #icon>
+							<Plus :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Add action') }}
+					</NcButton>
+					<NcButton type="primary" :disabled="saving" @click="onDone">
+						<template #icon>
+							<NcLoadingIcon v-if="saving" :size="20" />
+							<ContentSaveOutline v-else :size="20" />
+						</template>
+						{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
+					</NcButton>
+				</div>
+			</template>
+		</div>
+	</NcModal>
 </template>
 
 <script>
-import { NcDialog, NcButton, NcTextField, NcSelect, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcModal, NcButton, NcTextField, NcSelect, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
@@ -93,7 +98,7 @@ const ACTION_TYPES = ['open-page', 'navigate', 'open-modal', 'handler']
 export default {
 	name: 'CnEditActionsModal',
 
-	components: { NcDialog, NcButton, NcTextField, NcSelect, NcEmptyContent, NcLoadingIcon, Plus, Delete, ArrowUp, ArrowDown },
+	components: { NcModal, NcButton, NcTextField, NcSelect, NcEmptyContent, NcLoadingIcon, Plus, Delete, ArrowUp, ArrowDown },
 
 	mixins: [manifestModalDoneMixin],
 
@@ -145,8 +150,7 @@ export default {
 		t,
 		/**
 		 * Human label for the target field, hinting what each type targets.
-		 * @param {object} action The action whose target field is being labelled.
-		 * @return {string} The localised field label.
+		 * @param action
 		 */
 		targetLabel(action) {
 			switch (action.type) {
@@ -162,15 +166,15 @@ export default {
 		},
 		/**
 		 * Remove the action at `index`.
-		 * @param {number} index Index of the action to remove.
+		 * @param index
 		 */
 		remove(index) {
 			this.actions.splice(index, 1)
 		},
 		/**
 		 * Move the action at `index` by `delta` positions (reorder).
-		 * @param {number} index Index of the action to move.
-		 * @param {number} delta Positions to move by (negative = up, positive = down).
+		 * @param index
+		 * @param delta
 		 */
 		move(index, delta) {
 			const to = index + delta
@@ -183,6 +187,14 @@ export default {
 </script>
 
 <style scoped>
+.cn-edit-actions {
+	padding: 20px;
+}
+
+.cn-edit-actions__title {
+	margin-top: 0;
+}
+
 .cn-edit-actions__list {
 	display: flex;
 	flex-direction: column;
@@ -207,5 +219,11 @@ export default {
 .cn-edit-actions__row-actions {
 	display: flex;
 	gap: 2px;
+}
+
+.cn-edit-actions__footer {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 16px;
 }
 </style>

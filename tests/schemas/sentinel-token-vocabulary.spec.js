@@ -24,6 +24,7 @@ const DEF_FOR_CONTEXT = {
 	workspace: 'sentinelWorkspaceToken',
 	route: 'sentinelRouteToken',
 	declarative: 'sentinelDeclarativeToken',
+	visibleWhen: 'sentinelVisibleWhenToken',
 	deprecated: 'sentinelDeprecatedToken',
 }
 
@@ -79,6 +80,7 @@ describe('schema guard accepts known + deprecated, rejects out-of-vocabulary', (
 		['@workspace.dateFrom? workspace', manifest({ widgets: [{ content: { source: { filter: { d: { gte: '@workspace.dateFrom?' } } } } }] })],
 		['@resolve:foo config', manifest({ register: '@resolve:foo_register' })],
 		['@config.currency config', manifest({ widgets: [{ content: { format: { currency: '@config.currency' } } }] })],
+		['@total visibleWhen (manifest-form-logic)', manifest({ fields: [{ key: 'kvk', label: 'KvK', type: 'string', visibleWhen: { source: { register: 'r', schema: 's' }, field: '@total', op: 'gt', value: 0 } }] })],
 		['@route.id in top-level widget dataSource', manifest(undefined, [{ widgetKey: 'w', slot: 'body', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 4, dataSource: { filter: { id: '@objectId' } } }])],
 	])('accepts %s', (_label, m) => {
 		expect(validateManifestV2(m).valid).toBe(true)

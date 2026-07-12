@@ -10,9 +10,9 @@
 			</template>
 		</NcEmptyContent>
 
-		<NcEmptyContent v-else-if="entries.length === 0"
+		<NcEmptyContent v-else-if="scopedEntries.length === 0"
 			:name="t('nextcloud-vue', 'No notifications')"
-			:description="t('nextcloud-vue', 'This app does not declare any notifications yet.')">
+			:description="t('nextcloud-vue', 'This app has no notifications.')">
 			<template #icon>
 				<BellOutline :size="20" />
 			</template>
@@ -23,22 +23,24 @@
 				{{ t('nextcloud-vue', 'Choose which notifications you want to receive. Items you leave unchanged use the app default.') }}
 			</p>
 			<div v-for="group in groupedEntries" :key="group.schema" class="cn-notif-prefs__group">
-				<h4 class="cn-notif-prefs__group-title">
+				<h4 v-if="groupedEntries.length > 1" class="cn-notif-prefs__group-title">
 					{{ group.schemaTitle }}
 				</h4>
-				<div v-for="entry in group.items" :key="entry.key" class="cn-notif-prefs__row">
-					<NcCheckboxRadioSwitch type="switch"
-						:model-value="entry.enabled"
-						:disabled="entry.saving"
-						@update:model-value="onToggle(entry, $event)">
-						{{ notificationLabel(entry.notification) }}
-					</NcCheckboxRadioSwitch>
-					<NcButton v-if="entry.source === 'user-override'"
-						variant="tertiary"
-						:disabled="entry.saving"
-						@click="onReset(entry)">
-						{{ t('nextcloud-vue', 'Reset to default') }}
-					</NcButton>
+				<div class="cn-notif-prefs__grid">
+					<div v-for="entry in group.items" :key="entry.key" class="cn-notif-prefs__card">
+						<NcCheckboxRadioSwitch type="switch"
+							:model-value="entry.enabled"
+							:disabled="entry.saving"
+							@update:model-value="onToggle(entry, $event)">
+							{{ notificationLabel(entry.notification) }}
+						</NcCheckboxRadioSwitch>
+						<NcButton v-if="entry.source === 'user-override'"
+							variant="tertiary"
+							:disabled="entry.saving"
+							@click="onReset(entry)">
+							{{ t('nextcloud-vue', 'Reset to default') }}
+						</NcButton>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -55,13 +57,24 @@
  * and writes override-only values, both via OpenRegister's
  * `/api/notification-preferences` endpoint:
  *
- *   GET  → { results: [{ schema, schemaTitle, notification, enabled, channels, source }], total }
+ *   GET  → { results: [{ schema, schemaTitle, application, notification, enabled, channels, source }], total }
  *   PUT  → { schema, notification, enabled } | { schema, notification, reset: true }
  *
  * Preferences are override-only: leaving an item unchanged keeps the app
  * default, so apps that add new schemas/notifications keep working without
  * any per-user migration. Designed to render inside CnAppRoot's
  * `#user-settings` slot (its default fallback mounts this component).
+ *
+ * The API is multi-tenant per USER (every schema the user can read), not
+ * per APP, so the raw `results` list mixes notifications from every app the
+ * user has access to (e.g. "Data-Subject Request", "Subsidie",
+ * "Applicatieversie" side by side). This component scopes the list down to
+ * the app whose settings modal is currently open by matching each entry's
+ * `application` field (the owning app id OpenRegister recorded on the
+ * schema, e.g. "pipelinq") against `cnAppId`, injected by the CnAppRoot
+ * ancestor. Entries with no known owning app (`application` is null/empty —
+ * legacy or hand-authored schemas) are excluded from the scoped list rather
+ * than guessed into the wrong app.
  */
 import { NcAppSettingsSection, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
@@ -83,6 +96,16 @@ export default {
 		BellOutline,
 		BellOffOutline,
 	},
+	inject: {
+		/**
+		 * Consuming app's id (e.g. "pipelinq"), provided by the CnAppRoot
+		 * ancestor. Used to scope the notification list to the app whose
+		 * settings modal is currently open. Empty when no CnAppRoot ancestor
+		 * exists, in which case the full (unscoped) list is shown rather
+		 * than an always-empty pane.
+		 */
+		cnAppId: { default: () => '' },
+	},
 	data() {
 		return {
 			loading: true,
@@ -92,13 +115,26 @@ export default {
 	},
 	computed: {
 		/**
-		 * Group the flat effective-preference list by schema for display.
+		 * Entries scoped to the current app. Falls back to the full list
+		 * when there is no `cnAppId` context to scope by (e.g. the
+		 * component is used standalone, outside CnAppRoot).
+		 *
+		 * @return {Array<object>} The app-scoped preference entries.
+		 */
+		scopedEntries() {
+			if (!this.cnAppId) {
+				return this.entries
+			}
+			return this.entries.filter((entry) => entry.application === this.cnAppId)
+		},
+		/**
+		 * Group the scoped effective-preference list by schema for display.
 		 *
 		 * @return {Array<{schema: string, schemaTitle: string, items: Array}>} Grouped entries.
 		 */
 		groupedEntries() {
 			const groups = new Map()
-			for (const entry of this.entries) {
+			for (const entry of this.scopedEntries) {
 				if (!groups.has(entry.schema)) {
 					groups.set(entry.schema, {
 						schema: entry.schema,
@@ -223,18 +259,28 @@ export default {
 }
 
 .cn-notif-prefs__group {
-	margin-bottom: 16px;
+	margin-bottom: 20px;
 }
 
 .cn-notif-prefs__group-title {
-	margin: 8px 0 4px;
+	margin: 8px 0 8px;
 	font-weight: bold;
 }
 
-.cn-notif-prefs__row {
-	display: flex;
-	align-items: center;
+.cn-notif-prefs__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 	gap: 8px;
-	padding: 2px 0;
+}
+
+.cn-notif-prefs__card {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 4px;
+	padding: 12px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large);
+	background-color: var(--color-background-hover);
 }
 </style>

@@ -15,8 +15,12 @@
   PATCH /api/registers/{id} to (un)link a schema. Isolated NcModal per ADR-004.
 -->
 <template>
-	<NcDialog size="large" :name="t('nextcloud-vue', 'Manage data')" @closing="$emit('close')">
+	<NcModal size="large" @close="$emit('close')">
 		<div class="cn-edit-data">
+			<h2 class="cn-edit-data__title">
+				{{ t('nextcloud-vue', 'Manage data') }}
+			</h2>
+
 			<NcLoadingIcon v-if="loading" :size="32" class="cn-edit-data__loading" />
 
 			<div v-else-if="error" class="cn-edit-data__error">
@@ -40,19 +44,56 @@
 			</div>
 
 			<template v-else>
-				<!-- Register selector (usually a single register). -->
+				<!-- Register selector (usually a single register) + inline rename. -->
 				<div class="cn-edit-data__register">
-					<NcSelect v-if="registers.length > 1"
-						class="cn-edit-data__register-select"
-						:value="selectedRegisterOption"
-						:options="registerOptions"
-						:input-label="t('nextcloud-vue', 'Register')"
-						label="label"
-						:clearable="false"
-						@input="onSelectRegister" />
-					<span v-else class="cn-edit-data__register-name">
-						{{ t('nextcloud-vue', 'Register') }}: <strong>{{ selectedRegister && (selectedRegister.title || selectedRegister.slug) }}</strong>
-					</span>
+					<template v-if="renamingRegister">
+						<NcTextField class="cn-edit-data__register-rename"
+							:value="renameTitle"
+							:label="t('nextcloud-vue', 'Register name')"
+							:disabled="busy"
+							@update:value="(v) => renameTitle = v"
+							@keydown.native.enter="renameRegister"
+							@keydown.native.esc="renamingRegister = false" />
+						<NcButton type="primary"
+							:disabled="busy || !renameTitle.trim()"
+							:aria-label="t('nextcloud-vue', 'Save register name')"
+							@click="renameRegister">
+							<template #icon>
+								<NcLoadingIcon v-if="busy" :size="20" />
+								<Check v-else :size="20" />
+							</template>
+						</NcButton>
+						<NcButton type="tertiary"
+							:disabled="busy"
+							:aria-label="t('nextcloud-vue', 'Cancel rename')"
+							@click="renamingRegister = false">
+							<template #icon>
+								<Close :size="20" />
+							</template>
+						</NcButton>
+					</template>
+					<template v-else>
+						<NcSelect v-if="registers.length > 1"
+							class="cn-edit-data__register-select"
+							:value="selectedRegisterOption"
+							:options="registerOptions"
+							:input-label="t('nextcloud-vue', 'Register')"
+							label="label"
+							:clearable="false"
+							@input="onSelectRegister" />
+						<span v-else class="cn-edit-data__register-name">
+							{{ t('nextcloud-vue', 'Register') }}: <strong>{{ selectedRegister && (selectedRegister.title || selectedRegister.slug) }}</strong>
+						</span>
+						<NcButton v-if="selectedRegister"
+							type="tertiary"
+							:disabled="busy"
+							:aria-label="t('nextcloud-vue', 'Rename register')"
+							@click="startRename">
+							<template #icon>
+								<Pencil :size="20" />
+							</template>
+						</NcButton>
+					</template>
 				</div>
 
 				<!-- Schemas of the selected register. -->
@@ -101,6 +142,12 @@
 					</ul>
 				</div>
 			</template>
+
+			<div class="cn-edit-data__footer">
+				<NcButton @click="$emit('close')">
+					{{ t('nextcloud-vue', 'Close') }}
+				</NcButton>
+			</div>
 		</div>
 
 		<!-- Reuse the full OpenRegister schema editor for add/edit. It renders its
@@ -116,23 +163,19 @@
 			@confirm="onSchemaConfirm"
 			@delete-schema="onSchemaDelete"
 			@close="showSchemaDialog = false" />
-
-		<template #actions>
-			<NcButton @click="$emit('close')">
-				{{ t('nextcloud-vue', 'Close') }}
-			</NcButton>
-		</template>
-	</NcDialog>
+	</NcModal>
 </template>
 
 <script>
-import { NcDialog, NcButton, NcTextField, NcSelect, NcLoadingIcon } from '@nextcloud/vue'
+import { NcModal, NcButton, NcTextField, NcSelect, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import Check from 'vue-material-design-icons/Check.vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import CnSchemaFormDialog from '../components/CnSchemaFormDialog/CnSchemaFormDialog.vue'
 import { buildHeaders } from '../utils/headers.js'
 
@@ -151,6 +194,27 @@ function unwrap(data) {
 }
 
 /**
+ * Process-lifetime cache for the registers list + resolved schema objects, so
+ * re-opening Manage data (or reopening after a page-config picker used the same
+ * data) is instant instead of re-fetching every register and every schema on
+ * each open. Invalidated on any write from this modal (create/edit/delete/link)
+ * and after a short TTL so external changes still surface. Keyed by nothing for
+ * registers (single app-scoped list) and by schema id for schemas.
+ */
+const REGISTER_TTL_MS = 60000
+const dataCache = { registers: null, registersAt: 0, schemas: new Map() }
+
+/**
+ * Drop all cached registers + schemas (call after any write). Exported so tests
+ * can reset the process-lifetime cache between cases for isolation.
+ */
+export function invalidateDataCache() {
+	dataCache.registers = null
+	dataCache.registersAt = 0
+	dataCache.schemas.clear()
+}
+
+/**
  * CnEditDataModal — manage the app's OpenRegister register + schemas in-app
  * (see file header). Reads the register slugs from the manifest, talks to the
  * OpenRegister REST API, and reuses CnSchemaFormDialog for schema editing.
@@ -158,7 +222,7 @@ function unwrap(data) {
 export default {
 	name: 'CnEditDataModal',
 
-	components: { NcDialog, NcButton, NcTextField, NcSelect, NcLoadingIcon, CnSchemaFormDialog, Plus, Pencil, Delete },
+	components: { NcModal, NcButton, NcTextField, NcSelect, NcLoadingIcon, CnSchemaFormDialog, Plus, Pencil, Delete, Check, Close },
 
 	inject: {
 		/**
@@ -198,6 +262,9 @@ export default {
 			editingSchema: null,
 			// New-register form.
 			newRegisterTitle: '',
+			// Inline register rename.
+			renamingRegister: false,
+			renameTitle: '',
 		}
 	},
 
@@ -244,10 +311,18 @@ export default {
 			this.loading = true
 			this.error = ''
 			try {
-				const url = generateUrl('/apps/openregister/api/registers') + '?_limit=1000'
-				const { data } = await axios.get(url, { headers: this.headers() })
-				const all = unwrap(data) || []
-				const list = Array.isArray(all) ? all : []
+				const fresh = dataCache.registers && (Date.now() - dataCache.registersAt) < REGISTER_TTL_MS
+				let list
+				if (fresh) {
+					list = dataCache.registers
+				} else {
+					const url = generateUrl('/apps/openregister/api/registers') + '?_limit=1000'
+					const { data } = await axios.get(url, { headers: this.headers() })
+					const all = unwrap(data) || []
+					list = Array.isArray(all) ? all : []
+					dataCache.registers = list
+					dataCache.registersAt = Date.now()
+				}
 				const wanted = this.manifestRegisterSlugs
 				this.registers = wanted.length
 					? list.filter((r) => wanted.includes(r.slug))
@@ -270,9 +345,13 @@ export default {
 			const reg = this.selectedRegister
 			const ids = (reg && Array.isArray(reg.schemas)) ? reg.schemas.filter((x) => typeof x === 'number' || typeof x === 'string') : []
 			const resolved = await Promise.all(ids.map(async (id) => {
+				const cached = dataCache.schemas.get(id)
+				if (cached) return cached
 				try {
 					const { data } = await axios.get(generateUrl(`/apps/openregister/api/schemas/${id}`), { headers: this.headers() })
-					return unwrap(data)
+					const schema = unwrap(data)
+					if (schema) dataCache.schemas.set(id, schema)
+					return schema
 				} catch {
 					return null
 				}
@@ -305,7 +384,51 @@ export default {
 		 */
 		async onSelectRegister(option) {
 			this.selectedRegisterId = option ? option.id : null
+			this.renamingRegister = false
 			await this.loadSchemas()
+		},
+		/** Open the inline rename field pre-filled with the current title. */
+		startRename() {
+			const reg = this.selectedRegister
+			if (!reg) return
+			this.renameTitle = reg.title || reg.slug || ''
+			this.renamingRegister = true
+		},
+		/**
+		 * Persist the new register title (PATCH — the slug and schema links are
+		 * untouched, so manifest pages keep resolving) and mirror it into the
+		 * shared data-source map so pickers show the new name without a reload.
+		 * @return {Promise<void>}
+		 */
+		async renameRegister() {
+			const reg = this.selectedRegister
+			const title = this.renameTitle.trim()
+			if (!reg || !title) return
+			if (title === (reg.title || '')) {
+				this.renamingRegister = false
+				return
+			}
+			this.busy = true
+			this.error = ''
+			try {
+				await axios.patch(
+					generateUrl(`/apps/openregister/api/registers/${reg.id}`),
+					{ title },
+					{ headers: this.headers() },
+				)
+				reg.title = title
+				invalidateDataCache()
+				const ds = this.cnDataSources
+				if (ds && Array.isArray(ds.registers)) {
+					const dsReg = ds.registers.find((r) => r.value === reg.slug)
+					if (dsReg) this.$set(dsReg, 'label', title)
+				}
+				this.renamingRegister = false
+			} catch (e) {
+				this.error = (e && e.message) || t('nextcloud-vue', 'Failed to rename the register.')
+			} finally {
+				this.busy = false
+			}
 		},
 		/**
 		 * Human-readable property count for a schema.
@@ -356,6 +479,7 @@ export default {
 					if (created && created.id) await this.linkSchema(created.id)
 				}
 				this.showSchemaDialog = false
+				invalidateDataCache()
 				await this.loadSchemas()
 			} catch (e) {
 				this.error = (e && e.message) || t('nextcloud-vue', 'Failed to save the schema.')
@@ -408,6 +532,7 @@ export default {
 					reg.schemas = ids
 				}
 				await axios.delete(generateUrl(`/apps/openregister/api/schemas/${schema.id}`), { headers: this.headers() })
+				invalidateDataCache()
 				await this.loadSchemas()
 			} catch (e) {
 				this.error = (e && e.message) || t('nextcloud-vue', 'Failed to remove the schema.')
@@ -438,6 +563,7 @@ export default {
 				)
 				const created = unwrap(data)
 				if (created && created.id) {
+					invalidateDataCache()
 					this.registers = [created]
 					this.selectedRegisterId = created.id
 					this.schemas = []
@@ -467,6 +593,10 @@ export default {
 	min-height: 280px;
 }
 
+.cn-edit-data__title {
+	margin: 0;
+}
+
 .cn-edit-data__subtitle {
 	margin: 0;
 	font-size: 1em;
@@ -491,8 +621,18 @@ export default {
 	align-items: flex-start;
 }
 
+.cn-edit-data__register {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
 .cn-edit-data__register-name {
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-edit-data__register-rename {
+	max-width: 360px;
 }
 
 .cn-edit-data__schemas {
@@ -541,14 +681,24 @@ export default {
 	display: flex;
 	gap: 4px;
 }
+
+.cn-edit-data__footer {
+	display: flex;
+	justify-content: flex-end;
+	border-top: 1px solid var(--color-border);
+	padding-top: 12px;
+	margin-top: auto;
+}
 </style>
 
-<!-- Global (un-scoped): NcModal and NcDialog both teleport to <body> at the same
-     z-index (9998); when this data modal opens the schema editor (an NcDialog),
-     the later-mounted modal would paint over it. Lift NcDialog-based dialogs just
-     above NcModal so the schema editor (a drill-in) sits on top. -->
+<!-- Global (un-scoped): NcModal and NcDialog both render a `.modal-mask` at
+     z-index 9998. NcModal's own scoped rule `.modal-mask[data-v-…]{z-index:9998}`
+     has the SAME specificity as a plain `.modal-mask.dialog__modal` selector, so a
+     non-important override loses the tie to whichever stylesheet loads last and the
+     nested schema editor (an NcDialog) paints *under* this data modal. Force it with
+     `!important` and clear headroom so a modal-launched NcDialog always sits on top. -->
 <style>
 .modal-mask.dialog__modal {
-	z-index: 10001;
+	z-index: 10005 !important;
 }
 </style>

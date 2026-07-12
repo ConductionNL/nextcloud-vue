@@ -8,39 +8,47 @@
   Isolated NcModal file per ADR-004 modal isolation.
 -->
 <template>
-	<NcDialog size="normal" :name="t('nextcloud-vue', 'Edit menu')" @closing="$emit('close')">
-		<CnMenuTreeNode :list="menu"
-			:max-depth="1"
-			:pages="pageOptions" />
+	<NcModal size="normal" @close="$emit('close')">
+		<div class="cn-edit-menu">
+			<h2 class="cn-edit-menu__title">
+				{{ t('nextcloud-vue', 'Edit menu') }}
+			</h2>
 
-		<template #actions>
-			<NcButton type="secondary" @click="add">
-				<template #icon>
-					<Plus :size="20" />
-				</template>
-				{{ t('nextcloud-vue', 'Add menu item') }}
-			</NcButton>
-			<NcButton type="primary" :disabled="saving" @click="onDone">
-				<template v-if="saving" #icon>
-					<NcLoadingIcon :size="20" />
-				</template>
-				{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
-			</NcButton>
-		</template>
-	</NcDialog>
+			<CnMenuTreeNode :list="menu"
+				:max-depth="1"
+				:pages="pageOptions" />
+
+			<div class="cn-edit-menu__footer">
+				<NcButton type="secondary" @click="add">
+					<template #icon>
+						<Plus :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Add menu item') }}
+				</NcButton>
+				<NcButton type="primary" :disabled="saving" @click="onDone">
+					<template #icon>
+						<NcLoadingIcon v-if="saving" :size="20" />
+						<ContentSaveOutline v-else :size="20" />
+					</template>
+					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
+				</NcButton>
+			</div>
+		</div>
+	</NcModal>
 </template>
 
 <script>
-import { NcDialog, NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcModal, NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import CnMenuTreeNode from '../components/CnMenuTreeNode/CnMenuTreeNode.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 export default {
 	name: 'CnEditMenuModal',
 
-	components: { NcDialog, NcButton, NcLoadingIcon, Plus, CnMenuTreeNode },
+	components: { NcModal, NcButton, NcLoadingIcon, Plus, ContentSaveOutline, CnMenuTreeNode },
 
 	mixins: [manifestModalDoneMixin],
 
@@ -99,3 +107,19 @@ export default {
 	},
 }
 </script>
+
+<style scoped>
+.cn-edit-menu {
+	padding: 20px;
+}
+
+.cn-edit-menu__title {
+	margin-top: 0;
+}
+
+.cn-edit-menu__footer {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 16px;
+}
+</style>

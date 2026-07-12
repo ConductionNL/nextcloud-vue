@@ -18,7 +18,7 @@
  * in `leaves.js` exactly so the descriptor stays interchangeable should
  * the bespoke pair ever need to fall back to the generic components.
  *
- * This is the leaf MyDash adopts to surface analytics in dashboard
+ * This is the leaf LaunchPad adopts to surface analytics in dashboard
  * widgets without re-implementing the link-table mechanics.
  *
  * Refs openregister#1321.

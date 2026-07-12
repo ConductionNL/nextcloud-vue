@@ -28,6 +28,8 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `register` | String | `''` | Register slug used to resolve OpenRegister object references (`$ref`). A schema property that is an object reference renders as a searchable dropdown of the referenced objects (label = human name, value = UUID). See [Object references](#object-references-ref). When empty, reference fields fall back to a plain text input. |
 | `dialogTitle` | String | `''` | Defaults to "Create/Edit \{schema.title\}" |
 | `fields` | Array | `null` | Manual field definitions (overrides schema) |
+| `initialData` | Object | `{}` | Seed values for CREATE mode, keyed by field. Merged over the schema defaults when opening a new-item form. Use it to pre-link a child to its parent when adding from a detail page (e.g. `{ lead: '<uuid>' }`). |
+| `lockedFields` | Array | `[]` | Field keys rendered read-only (disabled) and immutable — typically the parent reference seeded via `initialData` so the user can't repoint a child away from the record it was created under. |
 | `excludeFields` | Array | `[]` | Fields to hide |
 | `includeFields` | Array | `null` | Fields to show (whitelist) |
 | `fieldOverrides` | Object | `{}` | Per-field overrides (see [Field Overrides](#field-overrides)) |
@@ -50,12 +52,16 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `textarea` | Long text |
 | `select` | Single choice from options (static or async) |
 | `multiselect` | Multiple choices (static or async) |
+| `user` | Single Nextcloud user (`referenceType: 'nextcloud-user'` / `format: 'user'`) — a searchable dropdown of real users rendered by the shared select branch as NC's native `:user-select` picker (stores the UID string). See [Nextcloud user references](#nextcloud-user-references) |
+| `user-multiselect` | Multiple Nextcloud users — searchable multi-select (stores an array of UIDs) |
 | `tags` | Tag input (with optional async suggestions) |
 | `checkbox` | Boolean toggle |
+| `switch` | Toggle over a 2-value `enum` (off → first value, on → last value) |
 | `date` | Date picker |
 | `datetime` | Date-time picker |
 | `json` | JSON editor (CnJsonViewer). formData holds the parsed value; invalid JSON blocks confirm |
 | `code` | Freeform code editor (CnJsonViewer). formData holds the raw string; syntax highlighting via `field.language` |
+| `icon` | Icon picker ([CnIconPicker](cn-icon-picker.md)). Forwards `field.iconSources` → `sources` (default `['mdi']`), plus `field.catalogues` / `field.searchable` (default on) / `field.allowCustomSvg`. formData holds the selected icon value |
 
 ## Events
 
@@ -212,6 +218,61 @@ A schema property that is an OpenRegister object reference renders as a **search
 - When `register` is empty (or the fetch fails) the field falls back to a plain text input — no regression, no console spew.
 
 `CnIndexPage` threads its own `register` into the built-in `CnFormDialog` automatically, so reference fields resolve out of the box on manifest-driven and self-fetch pages.
+
+## Nextcloud user references (`referenceType: "nextcloud-user"`)
+
+A schema property that represents a Nextcloud user renders as a **searchable dropdown of real Nextcloud users** (label = display name, value = UID) instead of a free-text box. Mark the property with `referenceType: "nextcloud-user"` (preferred) — `format: "user"` / `format: "username"` work too:
+
+```js
+const schema = {
+  title: 'Case',
+  properties: {
+    // single user → searchable single-select (stores the UID string)
+    assignee: { type: 'string', referenceType: 'nextcloud-user', title: 'Assignee' },
+    // array of users → searchable multi-select (stores an array of UIDs)
+    watchers: { type: 'array', items: { referenceType: 'nextcloud-user' }, title: 'Watchers' },
+  },
+}
+```
+
+```vue
+<CnFormDialog :schema="schema" @confirm="onConfirm" />
+```
+
+**Behavior:**
+
+- `fieldsFromSchema` resolves a user-marked property to a `user-select` widget (or `user-multiselect` for an array) and tags it `field.userPicker = { multiple }`.
+- Users are loaded from the core **autocomplete OCS endpoint** (`GET /ocs/v2.php/core/autocomplete/get`), which is available to **every authenticated user** (not just admins). Each suggestion is mapped to `{ label: <display name>, value: <uid> }`. The search is debounced (300 ms).
+- The value stored in `formData` is the **UID string** (single) or **array of UIDs** (multiple) — never the display object. In edit mode the stored UID is resolved to its display name so the current selection shows (falling back to the UID itself when the name can't be resolved).
+- No `register` prop is needed. If the OCS call fails the picker fails soft (empty options, no console spew) and the stored UID still displays.
+- A `#field-<key>` slot still overrides the picker entirely.
+
+### Inline create (`x-allow-create`)
+
+Add `x-allow-create: true` (or `allowCreate: true`) to a **single** `$ref` property and the field renders [`CnResourceSelect`](./cn-resource-select.md) instead of a read-only select — the user can pick an existing object **or** type a new term to create one inline (the term is written to the reference schema's label field, default `name`):
+
+```js
+// single reference the user can pick OR create
+ocName: { type: 'string', format: 'uuid', $ref: 'player', 'x-allow-create': true, title: 'Player' }
+```
+
+The stored value is still the chosen (or freshly-created) object's UUID. Without the flag, a `$ref` stays a plain select of existing objects.
+
+## Nextcloud-user picker (`format: "user"`, `widget: "user"`)
+
+A `{ type: 'string', format: 'user' }` property renders a user picker that async-searches Nextcloud users (via the core `autocomplete/get` OCS endpoint) and stores the selected **uid** string. In edit mode the stored uid is resolved to its display name for the label.
+
+```js
+userUid: { type: 'string', format: 'user', title: 'Nextcloud user' }
+```
+
+## Enum toggle (`widget: "switch"`)
+
+A 2-value `enum` property with `widget: 'switch'` renders as a toggle instead of a select: off maps to the **first** enum value, on maps to the **last**. The stored value stays an enum string, so an enum-driven `x-openregister-lifecycle` keeps working.
+
+```js
+approved: { type: 'string', enum: ['no', 'approved'], widget: 'switch', title: 'Approved' }
+```
 
 ## Cross-app semantic references (`referenceSemanticType`)
 

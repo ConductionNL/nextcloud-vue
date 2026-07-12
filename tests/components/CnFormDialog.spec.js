@@ -837,4 +837,56 @@ describe('CnFormDialog — referenceType (pluggable integration registry)', () =
 			spy.mockRestore()
 		})
 	})
+
+	// === Icon widget (widget: 'icon') ===
+
+	describe('icon widget', () => {
+		const iconStubs = {
+			...stubs,
+			CnIconBrowser: {
+				props: ['value', 'sources', 'catalogues', 'allowCustomSvg', 'clearable'],
+				template: '<div class="stub-cn-icon-browser" @click="$emit(\'input\', \'mdiStar\')" />',
+			},
+		}
+
+		it('renders a CnIconBrowser for a widget:"icon" field and forwards iconSources', () => {
+			const wrapper = mount(CnFormDialog, {
+				propsData: {
+					fields: [{ key: 'icon', widget: 'icon', label: 'Icon', iconSources: ['mdi', 'fontawesome'], allowCustomSvg: true }],
+					item: null,
+				},
+				stubs: iconStubs,
+			})
+			expect(wrapper.find('.stub-cn-icon-browser').exists()).toBe(true)
+			const child = wrapper.findComponent(iconStubs.CnIconBrowser)
+			expect(child.props('sources')).toEqual(['mdi', 'fontawesome'])
+			expect(child.props('allowCustomSvg')).toBe(true)
+		})
+
+		it('makes the field clearable only when it is optional', () => {
+			const optional = mount(CnFormDialog, {
+				propsData: { fields: [{ key: 'icon', widget: 'icon', label: 'Icon' }], item: null },
+				stubs: iconStubs,
+			})
+			expect(optional.findComponent(iconStubs.CnIconBrowser).props('clearable')).toBe(true)
+
+			const required = mount(CnFormDialog, {
+				propsData: { fields: [{ key: 'icon', widget: 'icon', label: 'Icon', required: true }], item: null },
+				stubs: iconStubs,
+			})
+			expect(required.findComponent(iconStubs.CnIconBrowser).props('clearable')).toBe(false)
+		})
+
+		it('updates formData when the picker emits an icon value', async () => {
+			const wrapper = mount(CnFormDialog, {
+				propsData: {
+					fields: [{ key: 'icon', widget: 'icon', label: 'Icon' }],
+					item: null,
+				},
+				stubs: iconStubs,
+			})
+			await wrapper.find('.stub-cn-icon-browser').trigger('click')
+			expect(wrapper.vm.formData.icon).toBe('mdiStar')
+		})
+	})
 })

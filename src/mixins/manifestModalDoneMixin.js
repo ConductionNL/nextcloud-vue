@@ -17,7 +17,13 @@
  * persist. When no editor is injected (standalone use) it degrades to a plain
  * close, so the modals stay usable outside the edit shell.
  */
+import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
+
 export default {
+	// Registered here so every "Done = save" modal can drop <ContentSaveOutline>
+	// into its primary button's #icon slot without repeating the import.
+	components: { ContentSaveOutline },
+
 	inject: {
 		/** Shared useManifestEditor instance from CnAppRoot; null when standalone. */
 		cnManifestEditor: { default: null },

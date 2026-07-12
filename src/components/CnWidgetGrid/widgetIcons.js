@@ -52,6 +52,31 @@ import FolderOutlineIcon from 'vue-material-design-icons/FolderOutline.vue'
 import AlertCircleOutlineIcon from 'vue-material-design-icons/AlertCircleOutline.vue'
 import CheckCircleOutlineIcon from 'vue-material-design-icons/CheckCircleOutline.vue'
 import ClipboardCheckOutlineIcon from 'vue-material-design-icons/ClipboardCheckOutline.vue'
+// ADR-062 fleet expansion (2026-07-08): detail-page widget headers need a
+// broader domain vocabulary (cases, contacts, comms, logistics, ops). One
+// shared list — hydra gate-32's ICON_REGISTRY mirrors it; keep them in sync.
+import EmailIcon from 'vue-material-design-icons/Email.vue'
+import PhoneIcon from 'vue-material-design-icons/Phone.vue'
+import SchoolIcon from 'vue-material-design-icons/School.vue'
+import MapMarkerIcon from 'vue-material-design-icons/MapMarker.vue'
+import GavelIcon from 'vue-material-design-icons/Gavel.vue'
+import FileSignIcon from 'vue-material-design-icons/FileSign.vue'
+import TruckIcon from 'vue-material-design-icons/Truck.vue'
+import PackageIcon from 'vue-material-design-icons/Package.vue'
+import HandshakeOutlineIcon from 'vue-material-design-icons/HandshakeOutline.vue'
+import OfficeBuildingIcon from 'vue-material-design-icons/OfficeBuilding.vue'
+import WebIcon from 'vue-material-design-icons/Web.vue'
+import ShieldCheckOutlineIcon from 'vue-material-design-icons/ShieldCheckOutline.vue'
+import HistoryIcon from 'vue-material-design-icons/History.vue'
+import AccountBoxOutlineIcon from 'vue-material-design-icons/AccountBoxOutline.vue'
+import NoteTextOutlineIcon from 'vue-material-design-icons/NoteTextOutline.vue'
+import MessageTextOutlineIcon from 'vue-material-design-icons/MessageTextOutline.vue'
+import SitemapIcon from 'vue-material-design-icons/Sitemap.vue'
+import SourceBranchIcon from 'vue-material-design-icons/SourceBranch.vue'
+import TimelineIcon from 'vue-material-design-icons/Timeline.vue'
+import LinkVariantIcon from 'vue-material-design-icons/LinkVariant.vue'
+import DatabaseOutlineIcon from 'vue-material-design-icons/DatabaseOutline.vue'
+import TagOutlineIcon from 'vue-material-design-icons/TagOutline.vue'
 
 /**
  * Map of icon registry name → Vue component reference. Iteration order is the
@@ -93,6 +118,29 @@ export const DASHBOARD_ICONS = Object.freeze({
 	AlertCircleOutline: AlertCircleOutlineIcon,
 	CheckCircleOutline: CheckCircleOutlineIcon,
 	ClipboardCheckOutline: ClipboardCheckOutlineIcon,
+	// ADR-062 fleet expansion — mirror any change into hydra gate-32.
+	Email: EmailIcon,
+	Phone: PhoneIcon,
+	School: SchoolIcon,
+	MapMarker: MapMarkerIcon,
+	Gavel: GavelIcon,
+	FileSign: FileSignIcon,
+	Truck: TruckIcon,
+	Package: PackageIcon,
+	HandshakeOutline: HandshakeOutlineIcon,
+	OfficeBuilding: OfficeBuildingIcon,
+	Web: WebIcon,
+	ShieldCheckOutline: ShieldCheckOutlineIcon,
+	History: HistoryIcon,
+	AccountBoxOutline: AccountBoxOutlineIcon,
+	NoteTextOutline: NoteTextOutlineIcon,
+	MessageTextOutline: MessageTextOutlineIcon,
+	Sitemap: SitemapIcon,
+	SourceBranch: SourceBranchIcon,
+	Timeline: TimelineIcon,
+	LinkVariant: LinkVariantIcon,
+	DatabaseOutline: DatabaseOutlineIcon,
+	TagOutline: TagOutlineIcon,
 })
 
 /**
@@ -108,13 +156,14 @@ export const DEFAULT_ICON = 'ViewDashboard'
  * as an `<img>` (a URL) rather than looked up in the registry.
  *
  * @param {string|null|undefined} name the value from a widget icon field.
- * @return {boolean} true when `name` is a non-empty string starting with `/` or `http`.
+ * @return {boolean} true when `name` is a non-empty string starting with `/`,
+ *   `http`, or `data:` (an inline data-URI, e.g. the bundled NL Design icons).
  */
 export function isCustomIconUrl(name) {
 	if (typeof name !== 'string' || name.length === 0) {
 		return false
 	}
-	return name.startsWith('/') || name.startsWith('http')
+	return name.startsWith('/') || name.startsWith('http') || name.startsWith('data:')
 }
 
 /**

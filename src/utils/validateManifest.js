@@ -390,7 +390,9 @@ export function validateManifestV2(manifest) {
 	}
 	if (Array.isArray(clone.dependencies)) {
 		clone.dependencies.forEach((dep, index) => {
-			if (typeof dep === 'string' && _v2Sentinel.test(dep)) {
+			// String (HARD) or { id, required?, name? } (required:false = SOFT).
+			const id = typeof dep === 'string' ? dep : (dep && typeof dep === 'object' ? dep.id : null)
+			if (typeof id === 'string' && _v2Sentinel.test(id)) {
 				errors.push(`/dependencies/${index} must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
 			}
 		})
@@ -508,6 +510,111 @@ export function validateManifestV2(manifest) {
 						`pages[${pageId}]/config/widgets[${wIndex}]: custom widget "${id}" has no slot-component mapping at pages[${pIndex}]/slots["${slotKey}"]. `
 						+ `It will render the unavailable placeholder. Add "${slotKey}": "<ComponentName>" to the page-top-level slots map, or use a built-in widget type.`,
 					)
+				}
+			})
+		})
+	}
+
+	// 7. Form logic (manifest-form-logic): cross-shape rules over
+	//    `type: "form"` pages' `config.steps[]` / `config.fields[].visibleWhen`
+	//    / `config.fields[].validation` that JSON Schema cannot express —
+	//    step id uniqueness, step→field key reference integrity, complete
+	//    step/field partition, min<=max, pattern compilability,
+	//    type-inapplicable rules, and LOCAL visibleWhen field-ref resolution.
+	//    The v2 path does not call validateTypeConfig(); the v1 `form`
+	//    branch is untouched.
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			if (!page || page.type !== 'form') return
+			const config = isPlainObject(page.config) ? page.config : null
+			if (!config) return
+			const pathBase = `/pages/${pIndex}/config`
+
+			const fieldList = Array.isArray(config.fields) ? config.fields : []
+			const declaredKeys = new Set(
+				fieldList
+					.filter((f) => f && typeof f.key === 'string')
+					.map((f) => f.key),
+			)
+			// steps[] cross-shape rules
+			if (Array.isArray(config.steps)) {
+				const seenStepIds = new Set()
+				const assignmentCount = new Map()
+				config.steps.forEach((step, sIndex) => {
+					if (!step) return
+					if (typeof step.id === 'string') {
+						if (seenStepIds.has(step.id)) {
+							errors.push(`${pathBase}/steps[${sIndex}]/id: duplicate step id "${step.id}" — step ids must be unique within the page`)
+						}
+						seenStepIds.add(step.id)
+					}
+					if (Array.isArray(step.fields)) {
+						step.fields.forEach((key, fIndex) => {
+							if (typeof key !== 'string' || !declaredKeys.has(key)) {
+								errors.push(`${pathBase}/steps[${sIndex}]/fields[${fIndex}]: "${key}" does not match any declared config.fields[].key`)
+								return
+							}
+							assignmentCount.set(key, (assignmentCount.get(key) || 0) + 1)
+						})
+					}
+				})
+
+				// Complete partition: every declared field key MUST appear in
+				// exactly one step.
+				const unassigned = []
+				const duplicated = []
+				declaredKeys.forEach((key) => {
+					const count = assignmentCount.get(key) || 0
+					if (count === 0) unassigned.push(key)
+					else if (count > 1) duplicated.push(key)
+				})
+				if (unassigned.length > 0) {
+					errors.push(`${pathBase}/steps: field key(s) ${unassigned.map((k) => `"${k}"`).join(', ')} are not assigned to any step — every declared field must appear in exactly one step when steps is present`)
+				}
+				if (duplicated.length > 0) {
+					errors.push(`${pathBase}/steps: field key(s) ${duplicated.map((k) => `"${k}"`).join(', ')} are assigned to more than one step — every declared field must appear in exactly one step`)
+				}
+			}
+
+			// fields[].validation / fields[].visibleWhen cross-shape rules
+			fieldList.forEach((field, fIndex) => {
+				if (!field || typeof field !== 'object') return
+				const fieldPath = `${pathBase}/fields[${fIndex}]`
+				const fieldType = field.type
+
+				const validation = isPlainObject(field.validation) ? field.validation : null
+				if (validation) {
+					if (typeof validation.min === 'number' && typeof validation.max === 'number' && validation.min > validation.max) {
+						errors.push(`${fieldPath}/validation: min (${validation.min}) must be <= max (${validation.max})`)
+					}
+					if (typeof validation.pattern === 'string') {
+						try {
+							// eslint-disable-next-line no-new
+							new RegExp(validation.pattern)
+						} catch (e) {
+							errors.push(`${fieldPath}/validation/pattern: "${validation.pattern}" does not compile as a regular expression (${e.message})`)
+						}
+						if (fieldType !== 'string' && fieldType !== 'password') {
+							errors.push(`${fieldPath}/validation/pattern: pattern only applies to string/password fields, not "${fieldType}"`)
+						}
+					}
+					const boundsApplicable = fieldType === 'string' || fieldType === 'password' || fieldType === 'number'
+					if (!boundsApplicable) {
+						if (typeof validation.min === 'number') {
+							errors.push(`${fieldPath}/validation/min: min only applies to string/password/number fields, not "${fieldType}"`)
+						}
+						if (typeof validation.max === 'number') {
+							errors.push(`${fieldPath}/validation/max: max only applies to string/password/number fields, not "${fieldType}"`)
+						}
+					}
+				}
+
+				const visibleWhen = isPlainObject(field.visibleWhen) ? field.visibleWhen : null
+				if (visibleWhen && !visibleWhen.endpoint && !visibleWhen.source && typeof visibleWhen.field === 'string') {
+					const firstSegment = visibleWhen.field.split('.')[0]
+					if (!declaredKeys.has(firstSegment)) {
+						errors.push(`${fieldPath}/visibleWhen/field: "${firstSegment}" does not match any declared config.fields[].key`)
+					}
 				}
 			})
 		})
@@ -751,13 +858,30 @@ export function validateManifest(manifest, options = {}) {
 
 	if (manifest.dependencies !== undefined) {
 		if (!Array.isArray(manifest.dependencies)) {
-			errors.push('/dependencies must be an array of strings')
+			errors.push('/dependencies must be an array of strings or { id, required?, name? } objects')
 		} else {
 			manifest.dependencies.forEach((dep, index) => {
-				if (typeof dep !== 'string') {
-					errors.push(`/dependencies/${index} must be a string`)
-				} else if (isSentinel(dep)) {
-					errors.push(`/dependencies/${index} must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+				// HARD/SOFT dependency model: an entry is either a string
+				// (HARD) or an object { id, required?, name? } (required:false
+				// = SOFT). See REQ-DIA-4.
+				if (typeof dep === 'string') {
+					if (isSentinel(dep)) {
+						errors.push(`/dependencies/${index} must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+					}
+				} else if (dep && typeof dep === 'object' && !Array.isArray(dep)) {
+					if (typeof dep.id !== 'string' || dep.id === '') {
+						errors.push(`/dependencies/${index}/id must be a non-empty string`)
+					} else if (isSentinel(dep.id)) {
+						errors.push(`/dependencies/${index}/id must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+					}
+					if (dep.required !== undefined && typeof dep.required !== 'boolean') {
+						errors.push(`/dependencies/${index}/required must be a boolean`)
+					}
+					if (dep.name !== undefined && typeof dep.name !== 'string') {
+						errors.push(`/dependencies/${index}/name must be a string`)
+					}
+				} else {
+					errors.push(`/dependencies/${index} must be a string or a { id, required?, name? } object`)
 				}
 			})
 		}

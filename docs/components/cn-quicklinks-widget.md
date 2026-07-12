@@ -2,7 +2,7 @@
 
 Icon-grid quick-links widget with configurable icon size, columns and labels.
 
-Part of the dashboard widget library (v2). Registered with the dashboard widget registry and consumed by MyDash/LaunchPad's widget grid. See [the widget library overview](./cn-widget-grid.md) and `docs/architecture/cards-and-widgets.md`.
+Part of the dashboard widget library (v2). Registered with the dashboard widget registry and consumed by LaunchPad's widget grid. See [the widget library overview](./cn-widget-grid.md) and `docs/architecture/cards-and-widgets.md`.
 
 ## Reference
 

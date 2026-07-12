@@ -53,3 +53,38 @@ describe('CnGaugeWidget', () => {
 		expect(w.vm.fillWidth).toBe('0%')
 	})
 })
+
+describe('CnGaugeWidget — @config.currency token', () => {
+	const mountCfg = (content, config) =>
+		shallowMount(CnGaugeWidget, { propsData: { content }, provide: { cnAppConfig: config || {} } })
+
+	it('resolves @config.currency into the format spec', () => {
+		const w = mountCfg(
+			{ format: { style: 'currency', currency: '@config.currency', decimals: 0 } },
+			{ currency: 'USD' },
+		)
+		expect(w.vm.resolvedFormat.currency).toBe('USD')
+		expect(w.vm.formatNumber(1000)).toContain('$')
+		expect(w.vm.formatNumber(1000)).not.toContain('@config')
+	})
+
+	it('falls back to EUR (never passes the raw token to Intl) when unset', () => {
+		const w = mountCfg(
+			{ format: { style: 'currency', currency: '@config.currency', decimals: 0 } },
+			{},
+		)
+		expect(w.vm.resolvedFormat.currency).toBeUndefined()
+		// Regression: a literal '@config.currency' would throw RangeError in Intl.
+		expect(() => w.vm.formatNumber(1000)).not.toThrow()
+		expect(w.vm.formatNumber(1000)).toContain('€')
+	})
+
+	it('keeps a literal currency working (backwards compatible)', () => {
+		const w = mountCfg(
+			{ format: { style: 'currency', currency: 'GBP', decimals: 0 } },
+			{ currency: 'USD' },
+		)
+		expect(w.vm.resolvedFormat.currency).toBe('GBP')
+		expect(w.vm.formatNumber(1000)).toContain('£')
+	})
+})

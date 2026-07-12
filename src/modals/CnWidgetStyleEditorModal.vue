@@ -36,12 +36,8 @@
 				</ul>
 			</div>
 
-			<!-- Title section: toggle + override text. Gated by `ownsTitle`, not
-			     `hasTypeForm` — the `showTitle` toggle controls the CnWidgetWrapper
-			     chrome header, which is orthogonal to a typed widget's own content
-			     title (e.g. the `header` banner). Only types that truly own the
-			     chrome title (registry `ownsTitle`) suppress it. -->
-			<div v-if="!ownsTitle" class="cn-widget-style-editor__section">
+			<!-- Title section: toggle + override text. -->
+			<div v-if="!hasTypeForm" class="cn-widget-style-editor__section">
 				<h3 class="cn-widget-style-editor__section-title">
 					{{ t('nextcloud-vue', 'Title') }}
 				</h3>
@@ -93,39 +89,13 @@
 					{{ t('nextcloud-vue', 'Icon') }}
 				</h3>
 
-				<NcSelect
-					v-model="selectedIcon"
-					:options="allIconOptions"
-					:input-label="t('nextcloud-vue', 'Icon')"
-					:aria-label-combobox="t('nextcloud-vue', 'Icon')"
-					label="label"
-					label-outside
-					data-testid="cn-widget-style-icon">
-					<template #selected-option="{ label }">
-						<span class="cn-widget-style-editor__icon-option">
-							<img v-if="isUrlIcon(selectedIcon.icon)"
-								:src="selectedIcon.icon"
-								:alt="label"
-								class="cn-widget-style-editor__icon-preview">
-							<svg v-else class="cn-widget-style-editor__icon-preview" viewBox="0 0 24 24">
-								<path :d="selectedIcon.icon" />
-							</svg>
-							<span class="cn-widget-style-editor__icon-label">{{ label }}</span>
-						</span>
-					</template>
-					<template #option="option">
-						<span class="cn-widget-style-editor__icon-option">
-							<img v-if="isUrlIcon(option.icon)"
-								:src="option.icon"
-								:alt="option.label"
-								class="cn-widget-style-editor__icon-preview">
-							<svg v-else class="cn-widget-style-editor__icon-preview" viewBox="0 0 24 24">
-								<path :d="option.icon" />
-							</svg>
-							<span class="cn-widget-style-editor__icon-label">{{ option.label }}</span>
-						</span>
-					</template>
-				</NcSelect>
+				<CnIconBrowser
+					:value="draft.customIcon || null"
+					:icons="builtinCatalogue"
+					:url-icons="legacyExtraIcons"
+					clearable
+					data-testid="cn-widget-style-icon"
+					@input="draft.customIcon = $event || ''" />
 			</div>
 
 			<!-- Actions: optional delete, reset to defaults, save. -->
@@ -157,6 +127,7 @@
 import { NcModal, NcButton, NcTextField, NcSelect, NcColorPicker, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import { getWidgetTypeEntry } from '../components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
 
 // Hardcoded @mdi/js icon path strings (matching CnNoteCard's precedent) to
 // avoid pulling @mdi/js into this library's dependency tree and bundle.
@@ -220,6 +191,7 @@ export default {
 		NcSelect,
 		NcColorPicker,
 		NcCheckboxRadioSwitch,
+		CnIconBrowser,
 	},
 
 	props: {
@@ -247,6 +219,11 @@ export default {
 		 * Extra icon options appended to the built-in set, e.g. an app's own
 		 * icon pack. Each `{ id, label, icon }` where `icon` may be an MDI path
 		 * OR a URL/absolute path (rendered as an `<img>`). Default `[]`.
+		 *
+		 * @deprecated CnIconBrowser now ships the NL-government sets by default
+		 * (RVO lazily), which is what nearly every consumer passed this for. Drop
+		 * the prop and they appear on their own tabs — passing the pack here forces
+		 * it into the eager bundle instead. Still honoured so no icons vanish.
 		 *
 		 * @type {Array<{id: string, label: string, icon: string}>}
 		 */
@@ -335,45 +312,38 @@ export default {
 		},
 
 		/**
-		 * Whether this widget type owns its own title (registry `ownsTitle`),
-		 * so the chrome title toggle + custom-title override are redundant.
-		 * Mirrors CnAddWidgetModal's `activeTypeOwnsTitle` so the create and
-		 * edit dialogs gate the Title section identically — a typed widget
-		 * that does NOT own its title (e.g. `header`) still exposes the
-		 * "Show title" chrome toggle here, not just at create time.
+		 * The built-in `{id,label,icon}` set as a CnIconBrowser catalogue. `icon`
+		 * is an MDI path string, which is also the emitted value — so what the
+		 * draft stores is unchanged by the move off NcSelect.
 		 *
-		 * @return {boolean}
+		 * @return {Array<object>} the catalogue entries.
 		 */
-		ownsTitle() {
-			const type = this.widget && this.widget.type
-			if (!type) return false
-			const entry = getWidgetTypeEntry(type)
-			return !!(entry && entry.ownsTitle)
+		builtinCatalogue() {
+			return this.iconOptions.map((option) => ({
+				key: option.id,
+				label: option.label,
+				value: option.icon,
+				path: option.icon,
+				search: option.label.toLowerCase(),
+			}))
 		},
 
 		/**
-		 * Two-way bridge between the draft's `customIcon` path string and the
-		 * matching option object the NcSelect renders.
+		 * `extraIconOptions` (deprecated) as curated URL icons for the Custom tab.
 		 *
-		 * @return {object} the selected icon option.
-		 */
-		selectedIcon: {
-			get() {
-				const option = this.allIconOptions.find((opt) => opt.icon === this.draft.customIcon)
-				return option || this.allIconOptions[0]
-			},
-			set(value) {
-				this.draft.customIcon = value ? value.icon : ''
-			},
-		},
-
-		/**
-		 * The built-in icon set plus any consumer-supplied `extraIconOptions`.
+		 * Consumers passed image-URL icons here to widen the built-in set — chiefly
+		 * LaunchPad's NL-government pack. That pack now ships with CnIconBrowser by
+		 * default (lazily), so consumers should drop the prop; it is still honoured
+		 * so nobody's icons vanish on upgrade.
 		 *
-		 * @return {Array<{id: string, label: string, icon: string}>} all options.
+		 * @return {Array<{id: string, label: string, url: string}>} the URL icons.
 		 */
-		allIconOptions() {
-			return this.extraIconOptions.length ? [...this.iconOptions, ...this.extraIconOptions] : this.iconOptions
+		legacyExtraIcons() {
+			return this.extraIconOptions.map((option) => ({
+				id: option.id,
+				label: option.label,
+				url: option.icon,
+			}))
 		},
 	},
 
@@ -404,17 +374,6 @@ export default {
 
 	methods: {
 		t,
-
-		/**
-		 * Whether an icon value is a URL/absolute path (render as `<img>`)
-		 * rather than an MDI path string (render as `<svg><path>`).
-		 *
-		 * @param {string} icon the icon value.
-		 * @return {boolean} true for URL/path icons.
-		 */
-		isUrlIcon(icon) {
-			return typeof icon === 'string' && (icon.startsWith('/') || icon.startsWith('http'))
-		},
 
 		/**
 		 * Build the working-copy draft from a widget's current chrome + styleConfig.

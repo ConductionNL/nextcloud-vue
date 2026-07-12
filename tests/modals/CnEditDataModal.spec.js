@@ -9,7 +9,7 @@
 import { mount } from '@vue/test-utils'
 
 import axios from '@nextcloud/axios'
-import CnEditDataModal from '../../src/modals/CnEditDataModal.vue'
+import CnEditDataModal, { invalidateDataCache } from '../../src/modals/CnEditDataModal.vue'
 
 jest.mock('@nextcloud/router', () => ({ generateUrl: (p) => p }))
 jest.mock('@nextcloud/axios', () => ({
@@ -43,6 +43,10 @@ const MANIFEST = {
 }
 
 beforeEach(() => {
+	// The modal keeps a process-lifetime cache of registers + resolved schemas.
+	// Reset it between cases so each test loads from its own axios mocks instead
+	// of a previous case's cached list/schemas.
+	invalidateDataCache()
 	axios.get.mockReset(); axios.post.mockReset(); axios.put.mockReset(); axios.patch.mockReset(); axios.delete.mockReset()
 })
 
@@ -116,6 +120,37 @@ describe('CnEditDataModal', () => {
 			{ value: 'thing', label: 'Thing', columns: ['a'] },
 			{ value: 'two', label: 'Two', columns: ['b', 'c'] },
 		])
+	})
+
+	it('renaming the register PATCHes only the title and mirrors it into cnDataSources', async () => {
+		const ds = { registers: [{ value: 'app-reg', label: 'App', schemas: [] }] }
+		axios.get
+			.mockResolvedValueOnce({ data: { results: [{ id: 1, slug: 'app-reg', title: 'App', schemas: [] }] } })
+		const wrapper = mountModal(MANIFEST, { cnDataSources: ds })
+		await new Promise((resolve) => setTimeout(resolve, 0))
+		await wrapper.vm.$nextTick()
+		axios.patch.mockResolvedValue({ data: {} })
+		wrapper.vm.startRename()
+		expect(wrapper.vm.renamingRegister).toBe(true)
+		expect(wrapper.vm.renameTitle).toBe('App')
+		wrapper.vm.renameTitle = 'Cattle ranch'
+		await wrapper.vm.renameRegister()
+		expect(axios.patch).toHaveBeenCalledWith('/apps/openregister/api/registers/1', { title: 'Cattle ranch' }, expect.any(Object))
+		expect(wrapper.vm.selectedRegister.title).toBe('Cattle ranch')
+		expect(ds.registers[0].label).toBe('Cattle ranch')
+		expect(wrapper.vm.renamingRegister).toBe(false)
+	})
+
+	it('rename with an unchanged title closes the field without a PATCH', async () => {
+		axios.get
+			.mockResolvedValueOnce({ data: { results: [{ id: 1, slug: 'app-reg', title: 'App', schemas: [] }] } })
+		const wrapper = mountModal(MANIFEST)
+		await new Promise((resolve) => setTimeout(resolve, 0))
+		await wrapper.vm.$nextTick()
+		wrapper.vm.startRename()
+		await wrapper.vm.renameRegister()
+		expect(axios.patch).not.toHaveBeenCalled()
+		expect(wrapper.vm.renamingRegister).toBe(false)
 	})
 
 	it('removing a schema unlinks it from the register then DELETEs it', async () => {

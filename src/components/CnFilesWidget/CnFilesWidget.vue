@@ -4,7 +4,13 @@
 -->
 
 <template>
-	<div class="cn-files-widget">
+	<div
+		class="cn-files-widget"
+		:class="{ 'cn-files-widget--dragging': isDragging }"
+		@dragenter="onDragEnter"
+		@dragover="onDragOver"
+		@dragleave="onDragLeave"
+		@drop="onDrop">
 		<div class="cn-files-widget__toolbar">
 			<nav
 				v-if="!objectBound"
@@ -55,6 +61,13 @@
 				:aria-hidden="true"
 				tabindex="-1"
 				@change="onFileInputChange">
+		</div>
+
+		<div
+			v-if="isDragging && canShowUpload"
+			class="cn-files-widget__dropzone"
+			aria-hidden="true">
+			{{ t('nextcloud-vue', 'Drop files to upload') }}
 		</div>
 
 		<div v-if="loading" class="cn-files-widget__state">
@@ -164,7 +177,7 @@ import CnFilesWidgetDeleteDialog from '../../dialogs/CnFilesWidgetDeleteDialog.v
  * application's `/api/widgets/files/{placementId}/...` endpoints (the same
  * contract the launchpad/mydash backend served) and deep-links file rows into
  * the Nextcloud **Files** app via the canonical `/f/{fileid}` permalink. The
- * `@nextcloud/axios` helper is imported LAZILY at call
+ * `@nextcloud/axios` + `@nextcloud/router` helpers are imported LAZILY at call
  * time so the widget code never hard-couples to a network stack at module load
  * (keeps the no-op css transform path clean and lets a host without the backing
  * endpoint mount the component without side-effects). When the backing endpoint
@@ -213,7 +226,7 @@ export default {
 		/**
 		 * App base for the host's files-widget endpoints
 		 * (`{apiBase}/api/widgets/files/{placementId}/...`). Lets a consuming
-		 * app point the widget at its own backend (e.g. `/apps/mydash`).
+		 * app point the widget at its own backend (e.g. `/apps/launchpad`).
 		 * Defaults to `/apps/files`.
 		 *
 		 * @type {string}
@@ -286,6 +299,10 @@ export default {
 			nextCursor: null,
 			searchQuery: '',
 			confirmTarget: null,
+			// Whether a file drag is currently hovering the widget (drop overlay).
+			isDragging: false,
+			// Depth counter so nested dragenter/dragleave don't flicker the overlay.
+			dragDepth: 0,
 		}
 	},
 
@@ -339,18 +356,16 @@ export default {
 		},
 
 		/**
-		 * Whether the upload affordance is enabled by configuration. In
-		 * object-bound mode the drop zone is on by default (matching the object
-		 * sidebar's Files tab) unless `content.allowUpload` is explicitly false;
-		 * in dashboard mode it stays opt-in (`content.allowUpload === true`).
+		 * Whether the upload affordance is enabled by configuration. Defaults to
+		 * enabled in BOTH modes — a Files widget is an add-files surface — and is
+		 * only suppressed when a placement explicitly sets `allowUpload: false`.
+		 * (Object-bound mode already defaulted on, matching the object sidebar's
+		 * Files tab; beta extended the same default to dashboard placements.)
 		 *
-		 * @return {boolean} `true` when uploads are allowed.
+		 * @return {boolean} `true` unless `content.allowUpload` is explicitly false.
 		 */
 		allowUpload() {
-			if (this.objectBound) {
-				return this.content?.allowUpload !== false
-			}
-			return this.content?.allowUpload === true
+			return this.content?.allowUpload !== false
 		},
 
 		/**
@@ -785,7 +800,22 @@ export default {
 		 */
 		async onFileInputChange(event) {
 			const fileList = event?.target?.files
-			if (!fileList || fileList.length === 0) {
+			await this.uploadFiles(fileList)
+			if (this.$refs.fileInput) {
+				this.$refs.fileInput.value = ''
+			}
+		},
+
+		/**
+		 * POST a FileList (from the picker or a drag-and-drop) to the host Files
+		 * endpoint, then refresh the listing. No-op when there is nothing to upload
+		 * or upload is not permitted; never throws.
+		 *
+		 * @param {FileList|File[]|null} fileList the files to upload.
+		 * @return {Promise<void>} resolves when the upload settles.
+		 */
+		async uploadFiles(fileList) {
+			if (!fileList || fileList.length === 0 || !this.canShowUpload) {
 				return
 			}
 
@@ -815,11 +845,83 @@ export default {
 				this.fetchContents()
 			} catch (err) {
 				this.fetchContents()
-			} finally {
-				if (this.$refs.fileInput) {
-					this.$refs.fileInput.value = ''
-				}
 			}
+		},
+
+		/**
+		 * Track a drag entering the widget (depth-counted so nested elements don't
+		 * flicker the drop overlay).
+		 *
+		 * @param {DragEvent} event the dragenter event.
+		 * @return {void}
+		 */
+		onDragEnter(event) {
+			if (!this.canShowUpload || !this.hasFiles(event)) {
+				return
+			}
+			event.preventDefault()
+			this.dragDepth++
+			this.isDragging = true
+		},
+
+		/**
+		 * Keep the browser from opening the dragged file and mark the drop as a copy.
+		 *
+		 * @param {DragEvent} event the dragover event.
+		 * @return {void}
+		 */
+		onDragOver(event) {
+			if (!this.canShowUpload || !this.hasFiles(event)) {
+				return
+			}
+			event.preventDefault()
+			if (event.dataTransfer) {
+				event.dataTransfer.dropEffect = 'copy'
+			}
+		},
+
+		/**
+		 * Track a drag leaving the widget, clearing the overlay at depth zero.
+		 *
+		 * @return {void}
+		 */
+		onDragLeave() {
+			if (this.dragDepth > 0) {
+				this.dragDepth--
+			}
+			if (this.dragDepth === 0) {
+				this.isDragging = false
+			}
+		},
+
+		/**
+		 * Handle a file drop — upload the dropped files into the current folder.
+		 *
+		 * @param {DragEvent} event the drop event.
+		 * @return {Promise<void>} resolves when the upload settles.
+		 */
+		async onDrop(event) {
+			this.dragDepth = 0
+			this.isDragging = false
+			if (!this.canShowUpload || !this.hasFiles(event)) {
+				return
+			}
+			event.preventDefault()
+			await this.uploadFiles(event.dataTransfer?.files)
+		},
+
+		/**
+		 * Whether a drag event is carrying files (vs. text / an internal drag).
+		 *
+		 * @param {DragEvent} event the drag event.
+		 * @return {boolean} `true` when the payload includes files.
+		 */
+		hasFiles(event) {
+			const types = event?.dataTransfer?.types
+			if (!types) {
+				return false
+			}
+			return Array.from(types).includes('Files')
 		},
 
 		/**
@@ -852,11 +954,32 @@ export default {
 
 <style scoped>
 .cn-files-widget {
+	position: relative;
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
 	height: 100%;
 	overflow: hidden;
+}
+
+.cn-files-widget--dragging {
+	outline: 2px dashed var(--color-primary-element);
+	outline-offset: -2px;
+	border-radius: var(--border-radius);
+}
+
+.cn-files-widget__dropzone {
+	position: absolute;
+	inset: 0;
+	z-index: 5;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	pointer-events: none;
+	background: var(--color-primary-element-light, rgba(0, 130, 201, 0.1));
+	color: var(--color-primary-element);
+	font-weight: 600;
+	border-radius: var(--border-radius);
 }
 
 .cn-files-widget__toolbar {

@@ -47,6 +47,7 @@ See [mdiCatalogue](../utilities/mdi-catalogue.md) and [vmdiCatalogue](../utiliti
 | `value` | `String` | `null` | Current selection (v-model) — the catalogue's emitted value (path / name / …), a URL, or null. |
 | `icons` | `Array` | `[]` | The catalogue to browse: `[{ key, label, value, search?, path?, component? }]`. Build with `mdiCatalogue` / `vmdiCatalogue`. |
 | `urlIcons` | `Array` | `[]` | Curated image-URL icons for the Custom tab: `[{ label, url }]`. Each emits its `url` when picked. |
+| `urlIconGroups` | `Array` | `[]` | Curated image-URL icons split into named groups, rendered on the Custom tab as one sub-tab per group with its own search: `[{ key, label, icons: [{ id?, label, url }] }]`. Use instead of the flat `urlIcons` for large packs such as the bundled NL Design catalogues (`NL_DESIGN_ICON_GROUPS`). |
 | `uploadFn` | `Function` | `null` | Injected upload transport `async (dataUrl) => ({ url })`. When null, the upload control is hidden. |
 | `maxResults` | `Number` | `150` | Maximum icon cells rendered in the grid; a hint shows when matches exceed the cap. |
 | `defaultIcons` | `Array` | `[]` | Catalogue `key`s shown when the search box is empty. Falls back to the first `maxResults` in catalogue order. |
@@ -54,6 +55,7 @@ See [mdiCatalogue](../utilities/mdi-catalogue.md) and [vmdiCatalogue](../utiliti
 | `showLabels` | `Boolean` | `false` | Show the human label under each icon cell. |
 | `allowUrl` | `Boolean` | `false` | Add a free-text image-URL input to the Custom tab, so the picker can also hold an arbitrary URL (the icon-or-URL fields). |
 | `label` | `String` | `''` | Optional field label rendered above the control (convenience for form fields). |
+| `clearable` | `Boolean` | `false` | Offer a control to unset the icon (emits `null`). Use for optional icon fields, where a picked icon would otherwise be impossible to remove. |
 
 ## Catalogue injection
 

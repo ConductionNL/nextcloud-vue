@@ -3,7 +3,7 @@
 ## Why
 
 Phase 3 of the OR-abstraction audit (2026-05-03) had three apps —
-mydash, larpingapp, softwarecatalog — each face the same problem
+launchpad, larpingapp, softwarecatalog — each face the same problem
 when drafting their `src/manifest.json`: the `pages[].config.register`
 and `config.schema` fields want a register slug or schema slug, but
 those values are typically configured per-tenant via `IAppConfig`
@@ -94,7 +94,7 @@ The implementation surface is small: ~50 lines in
 ## See also
 
 - Phase 3 audit follow-up: agent 1 introduced the sentinel locally
-  in mydash + larpingapp + softwarecatalog adoption changes; this
+  in launchpad + larpingapp + softwarecatalog adoption changes; this
   upstream change canonicalises it.
 - `add-json-manifest-renderer/specs/json-manifest-renderer/spec.md` —
   parent contract; this change extends the loader behaviour.

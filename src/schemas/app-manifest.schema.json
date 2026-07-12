@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
 	"title": "Conduction App Manifest",
 	"description": "Schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Each Conduction Nextcloud app declares its routes, menu, page types, widget configuration, and required app dependencies in a single src/manifest.json validated against this schema. Manifests can also be mounted in-memory at runtime (no static file, no backend route) via the `useAppManifest({ manifest })` overload — see the in-memory-app-manifest-loader capability for the virtual-app-host call shape.",
-	"version": "1.7.0",
+	"version": "1.8.0",
 	"type": "object",
 	"required": ["version", "menu", "pages"],
 	"additionalProperties": false,
@@ -21,8 +21,22 @@
 		"dependencies": {
 			"type": "array",
 			"default": [],
-			"items": { "type": "string" },
-			"description": "Nextcloud app IDs that MUST be installed and enabled for this app to function. CnAppRoot checks each via useAppStatus(appId)."
+			"items": {
+				"oneOf": [
+					{ "type": "string" },
+					{
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["id"],
+						"properties": {
+							"id": { "type": "string", "description": "Nextcloud app id." },
+							"required": { "type": "boolean", "default": true, "description": "true (default) = HARD: absence blocks the app shell behind CnDependencyMissing. false = SOFT: an optional integration whose absence surfaces a dismissible in-shell notice and never blocks." },
+							"name": { "type": "string", "description": "Human-readable display label; falls back to id." }
+						}
+					}
+				]
+			},
+			"description": "Nextcloud app dependencies. Each entry is either a string (a HARD dependency — the app cannot run without it, absence blocks the shell) or an object { id, required?, name? } where required:false marks a SOFT (optional) dependency (required defaults to true). CnAppRoot checks each via useAppStatus(id); unresolved HARD deps block behind CnDependencyMissing, unresolved SOFT deps show a dismissible NcNoteCard banner."
 		},
 		"nav": {
 			"type": "object",
@@ -204,7 +218,7 @@
 				},
 				"visibleIf": {
 					"$ref": "#/$defs/visibleIfCondition",
-					"description": "Optional display condition evaluated at render time. When set, the entry only renders when ALL declared conditions are satisfied. Two forms are accepted: (1) `appInstalled` form — checks whether a given Nextcloud app is installed and enabled; (2) context-path-predicate map — each key is a dot-separated path into `manifest.runtime` (e.g. `\"user.primaryRole\"`) and the value is a predicate expression (`{ \"in\": [\"role-a\", \"role-b\"] }`, `true`/`false`, or an operator object). Items without `visibleIf` are always visible (backwards-compatible). Examples: `{ \"appInstalled\": \"mydash\" }` — hides when mydash is absent; `{ \"user.primaryRole\": { \"in\": [\"compliance-officer\", \"hr-coordinator\"] } }` — hides unless the user holds one of those roles."
+					"description": "Optional display condition evaluated at render time. When set, the entry only renders when ALL declared conditions are satisfied. Two forms are accepted: (1) `appInstalled` form — checks whether a given Nextcloud app is installed and enabled; (2) context-path-predicate map — each key is a dot-separated path into `manifest.runtime` (e.g. `\"user.primaryRole\"`) and the value is a predicate expression (`{ \"in\": [\"role-a\", \"role-b\"] }`, `true`/`false`, or an operator object). Items without `visibleIf` are always visible (backwards-compatible). Examples: `{ \"appInstalled\": \"launchpad\" }` — hides when launchpad is absent; `{ \"user.primaryRole\": { \"in\": [\"compliance-officer\", \"hr-coordinator\"] } }` — hides unless the user holds one of those roles."
 				},
 				"children": {
 					"type": "array",
@@ -962,7 +976,7 @@
 				"appInstalled": {
 					"type": "string",
 					"minLength": 1,
-					"description": "Nextcloud app id that MUST be installed and enabled for this entry to render. CnAppNav checks via `OC.appswebroots` (primary) or the capabilities API (fallback). Result is cached per page load. Use for cross-app links that are meaningless when the target app is absent (e.g. a 'View in mydash' link should only show when mydash is enabled)."
+					"description": "Nextcloud app id that MUST be installed and enabled for this entry to render. CnAppNav checks via `OC.appswebroots` (primary) or the capabilities API (fallback). Result is cached per page load. Use for cross-app links that are meaningless when the target app is absent (e.g. a 'View in launchpad' link should only show when launchpad is enabled)."
 				}
 			}
 		}

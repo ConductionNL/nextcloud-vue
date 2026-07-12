@@ -34,6 +34,29 @@ export const NcContent = createStub('NcContent')
 export const NcEmptyContent = createStub('NcEmptyContent')
 export const NcActions = createStub('NcActions')
 export const NcActionButton = createStub('NcActionButton')
+
+/**
+ * NcActionInput needs a real stateful stub: the component under test binds
+ * `:value` / `@update:value` and submits, and the real NcActionInput's input
+ * carries no `name` attribute — so a stub that emits the typed text is what
+ * keeps consumers honest about reading their own bound state.
+ */
+export const NcActionInput = {
+	name: 'NcActionInput',
+	props: { value: { type: String, default: '' } },
+	render(h) {
+		return h('li', { class: ['stub', 'NcActionInput'] }, [
+			h('form', {
+				on: { submit: (event) => { event.preventDefault(); this.$emit('submit', event) } },
+			}, [
+				h('input', {
+					domProps: { value: this.value },
+					on: { input: (event) => this.$emit('update:value', event.target.value) },
+				}),
+			]),
+		])
+	},
+}
 export const NcSelect = createStub('NcSelect')
 export const NcSettingsSection = createStub('NcSettingsSection')
 export const NcAppSidebar = createStub('NcAppSidebar')
