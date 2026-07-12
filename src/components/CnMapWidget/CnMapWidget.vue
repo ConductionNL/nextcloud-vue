@@ -65,6 +65,13 @@
 </template>
 
 <script>
+// Leaflet's own stylesheet positions the map panes, tiles the tile
+// images, and places the zoom/attribution controls. The JS is lazy-loaded
+// in mounted(), but the CSS must be present whenever this widget renders —
+// otherwise the map paints unstyled (no basemap, mispositioned controls).
+// Import it here so the widget is self-styling for every consumer rather
+// than relying on another component (e.g. a location picker) to pull it in.
+import 'leaflet/dist/leaflet.css'
 import { translate as t } from '@nextcloud/l10n'
 import DOMPurify from 'dompurify'
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
