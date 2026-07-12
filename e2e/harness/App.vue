@@ -16,6 +16,16 @@
 			<CnWalkthrough app-id="harness" :manifest="wtManifest" seen-version="" />
 		</template>
 
+		<!--
+			CnEditDataModal schema deletion (gated behind ?sd=1). The OpenRegister
+			calls are stubbed by the spec via page.route(), so the real dialog runs
+			against real HTTP responses — including the 409 that offers the cascade.
+		-->
+		<template v-else-if="showSchemaDelete">
+			<h2>Manage data — schema deletion</h2>
+			<CnEditDataModal :manifest="sdManifest" @close="() => {}" />
+		</template>
+
 		<!-- CnFormDialog schema-driven widget:'icon' (gated behind ?fd=1). -->
 		<template v-else-if="showFormDialog">
 			<h2>Form dialog — schema-driven icon field</h2>
@@ -94,6 +104,7 @@ import CnMarkdownEditor from '../../src/components/CnMarkdownEditor/CnMarkdownEd
 import CnWalkthrough from '../../src/components/CnWalkthrough/CnWalkthrough.vue'
 import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
 import CnFormPage from '../../src/components/CnFormPage/CnFormPage.vue'
+import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
 
 const wtStep = (id, title, body) => ({ id, sinceVersion: '1.0.0', placement: 'center', title, body, target: { kind: 'page', ref: 'harness' }, advanceOn: { type: 'manual' } })
@@ -114,10 +125,14 @@ const ogSample = fromOpenGemeenten([
 ])
 
 export default {
-	name: 'Harness',
-	components: { CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage },
+	name: 'App',
+	components: { CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal },
 	data() {
 		return {
+			// Schema-deletion harness (?sd=1). The register slug is what the modal
+			// matches against; the spec's page.route() stubs supply the register.
+			showSchemaDelete: (typeof window !== 'undefined' && window.location.search.includes('sd')),
+			sdManifest: { pages: [{ config: { register: 'harness-register' } }] },
 			icon: null,
 			placement: 'left',
 			legacyIcon: null,

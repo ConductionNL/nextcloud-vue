@@ -160,4 +160,67 @@ describe('CnEditDataModal — removeSchema ordering and cascade', () => {
 		expect(axios.patch).not.toHaveBeenCalled()
 		expect(ctx.selectedRegister.schemas).toEqual([4432, 4434])
 	})
+
+	// Reported from the live UI: confirming the cascade re-opened the SAME
+	// confirmation, forever. An OpenRegister too old to know `?deleteObjects=true`
+	// ignores the flag and answers 409 exactly as before — and the catch block was
+	// re-arming pendingCascade on that, so the user could confirm a destructive
+	// action that never landed, indefinitely.
+	it('a CASCADE that still reports objects errors — it must NOT re-prompt (the loop)', async () => {
+		axios.delete = jest.fn().mockRejectedValue(conflict409(1))
+		axios.patch = jest.fn()
+
+		const ctx = harness(axios)
+
+		await ctx.removeSchema({ id: 4434, title: 'Cow' }) // plain delete → offer cascade
+		expect(ctx.pendingCascade).toBeTruthy()
+
+		await ctx.confirmCascade() // cascade ALSO 409s
+
+		expect(ctx.pendingCascade).toBeNull() // ← no re-prompt: the loop is closed
+		expect(ctx.error).toBeTruthy() // the user is told instead
+		expect(axios.patch).not.toHaveBeenCalled()
+		expect(ctx.selectedRegister.schemas).toEqual([4432, 4434])
+	})
+
+	it('clears any stale cascade prompt when the delete fails for another reason', async () => {
+		axios.delete = jest.fn().mockRejectedValue({ response: { status: 403, data: { error: 'forbidden' } } })
+		axios.patch = jest.fn()
+
+		const ctx = harness(axios)
+		ctx.pendingCascade = { schema: { id: 4434 }, objectCount: 1 } // stale from an earlier attempt
+
+		await ctx.removeSchema({ id: 4434, title: 'Cow' })
+
+		expect(ctx.pendingCascade).toBeNull()
+		expect(ctx.error).toBeTruthy()
+	})
+})
+
+describe('CnEditDataModal — the cascade warning names the schema', () => {
+	const CnEditDataModal = require('../../src/dialogs/CnEditDataModal.vue').default
+	const { cascadeWarning, cascadeConfirmLabel } = CnEditDataModal.computed
+
+	// Reported from the live UI: the dialog read “%s” still has 1 object.
+	// Nextcloud's l10n substitutes %n for the plural count and {named} placeholders
+	// from a vars OBJECT — it has no printf %s. Passing %s with an array left the
+	// literal on screen.
+	it('interpolates the schema name — never leaves a raw placeholder', () => {
+		const ctx = { pendingCascade: { schema: { id: 4434, title: 'Cow' }, objectCount: 1 } }
+		const text = cascadeWarning.call(ctx)
+
+		expect(text).toContain('Cow')
+		expect(text).not.toContain('%s')
+		expect(text).not.toContain('{name}')
+	})
+
+	it('falls back to the slug when the schema has no title', () => {
+		const ctx = { pendingCascade: { schema: { id: 4434, slug: 'cow' }, objectCount: 2 } }
+		expect(cascadeWarning.call(ctx)).toContain('cow')
+	})
+
+	it('the confirm button carries the count', () => {
+		const ctx = { pendingCascade: { schema: { title: 'Cow' }, objectCount: 3 } }
+		expect(cascadeConfirmLabel.call(ctx)).not.toContain('%n')
+	})
 })
