@@ -13,7 +13,7 @@
 		"url": "git+https://codeberg.org/Conduction/nextcloud-vue.git"
 	},
 	"main": "dist/nextcloud-vue.cjs.js",
-	"module": "dist/nextcloud-vue.esm.js",
+	"module": "dist/esm/index.js",
 	"style": "dist/nextcloud-vue.css",
 	"types": "src/types/index.d.ts",
 	"bin": {
