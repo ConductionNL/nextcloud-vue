@@ -289,6 +289,27 @@ export interface TManifestSchedule {
 	enabled?: boolean
 }
 
+/**
+ * MCP tool visibility/UX hints (ADR-063). Purely advisory: OpenRegister's
+ * register (`x-openregister-mcp` dialect + `#[McpTool]` attributes) is the
+ * single source of CRUD-tool truth and OpenRegister RBAC is the
+ * authoritative invoke-time gate. Consumed by Hermiq / openbuild surfaces,
+ * never by nextcloud-vue itself. See the `mcp` property in the v2 schema.
+ */
+export interface TManifestMcp {
+	/** Advisory app-wide default for showing this app's tools in pickers. Defaults to `false`. */
+	expose?: boolean
+	/** Maps a `pages[].id` to the ordered MCP tool ids relevant on that page. */
+	pageTools?: Record<string, string[]>
+	/** Advisory agent-facing metadata (summary, defaultTools, keywords, and future advisory keys). */
+	agentHints?: {
+		summary?: string
+		defaultTools?: string[]
+		keywords?: string[]
+		[key: string]: unknown
+	}
+}
+
 export interface TManifest {
 	$schema?: string
 	version: string
@@ -356,4 +377,9 @@ export interface TManifest {
 	 * via `{{set:NAME}}` placeholders. Each value is arbitrary JSON.
 	 */
 	sets?: Record<string, unknown>
+	/**
+	 * MCP tool visibility/UX hints (ADR-063). Advisory only; see
+	 * `TManifestMcp`. Nothing in nextcloud-vue reads this field.
+	 */
+	mcp?: TManifestMcp
 }

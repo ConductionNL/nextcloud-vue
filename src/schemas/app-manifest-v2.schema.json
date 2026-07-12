@@ -303,6 +303,69 @@
 			"type": "object",
 			"description": "Named, reusable field/column/sidebar sets referenced from templates via a `{{set:NAME}}` placeholder, so a repeated field/column/sidebar block is declared ONCE and shared across templates and pages instead of being re-listed. Each value is arbitrary JSON (typically an array of field/column defs or a sidebar object). Optional and additive.",
 			"additionalProperties": true
+		},
+		"mcp": {
+			"type": "object",
+			"title": "MCP tool visibility hints",
+			"description": "OPTIONAL. Advisory visibility/UX hints for MCP tool surfaces (Hermiq agent tool picker, openbuild tool browser). Purely presentational: per ADR-063, OpenRegister's register (x-openregister-mcp dialect + #[McpTool] attributes) is the single source of CRUD-tool truth and OpenRegister RBAC is the authoritative invoke-time gate. This block grants no access and gates nothing; nothing in nextcloud-vue consumes it.",
+			"additionalProperties": false,
+			"properties": {
+				"expose": {
+					"type": "boolean",
+					"title": "App-level exposure hint",
+					"description": "Advisory app-wide default for whether this app's register-derived MCP tools should be shown in agent / tool-picker surfaces. Advisory only — the authoritative gate is OpenRegister RBAC plus per-agent whitelists. Defaults to false (opt-in), matching ADR-063's default-OFF exposure model.",
+					"default": false
+				},
+				"pageTools": {
+					"type": "object",
+					"title": "Per-page tool hints",
+					"description": "Maps a pages[].id to the ordered list of MCP tool ids that are contextually relevant on that page. Advisory grouping for UX surfaces only; it does not grant access. Keys are expected to match an existing pages[].id; the register remains authoritative for whether each listed tool actually exists.",
+					"additionalProperties": {
+						"type": "array",
+						"title": "Relevant tool ids for a page",
+						"description": "Ordered MCP tool ids relevant to the page keyed above. Advisory ordering only.",
+						"items": {
+							"type": "string",
+							"title": "MCP tool id",
+							"description": "A fully-qualified MCP tool id in the register's derived-CRUD shape {appId}.{schemaSlug}.{verb}, verb one of search|get|create|update|delete (ADR-063). Example only: \"pipelinq.lead.search\". The register is authoritative for existence; this is a hint.",
+							"pattern": "^[a-z0-9_-]+\\.[a-zA-Z0-9_-]+\\.(search|get|create|update|delete)$"
+						}
+					}
+				},
+				"agentHints": {
+					"type": "object",
+					"title": "Agent-facing hints",
+					"description": "Advisory metadata for agent surfaces (Hermiq). All values are non-authoritative UX hints. Additional properties are permitted so consuming surfaces can introduce new advisory hints without a schema release (forward compatibility).",
+					"additionalProperties": true,
+					"properties": {
+						"summary": {
+							"type": "string",
+							"title": "App tool summary",
+							"description": "One-line description of what this app's tools help an agent accomplish. Shown in agent / tool-picker surfaces."
+						},
+						"defaultTools": {
+							"type": "array",
+							"title": "Default tool ids",
+							"description": "MCP tool ids to surface first / preselect when an agent has no page context. Advisory ordering hint only; not a grant.",
+							"items": {
+								"type": "string",
+								"title": "MCP tool id",
+								"description": "Fully-qualified MCP tool id {appId}.{schemaSlug}.{verb}. Example only: \"pipelinq.lead.search\"."
+							}
+						},
+						"keywords": {
+							"type": "array",
+							"title": "Discovery keywords",
+							"description": "Keywords helping progressive-disclosure / tool-search surfaces (Hermiq) rank this app's tools. Advisory only.",
+							"items": {
+								"type": "string",
+								"title": "Keyword",
+								"description": "A single discovery keyword."
+							}
+						}
+					}
+				}
+			}
 		}
 	},
 	"$defs": {
