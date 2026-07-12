@@ -6,7 +6,7 @@
  * handling, type/view-mode writes, and the data-source pickers.
  */
 import { mount } from '@vue/test-utils'
-import CnPageConfigModal from '../../src/modals/CnPageConfigModal.vue'
+import CnPageConfigModal from '../../src/dialogs/CnPageConfigModal.vue'
 
 const Stub = (name, props = []) => ({ name, props, template: '<div><slot /></div>' })
 

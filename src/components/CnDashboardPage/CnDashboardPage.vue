@@ -491,6 +491,7 @@
 						:title="getWidgetTitle(item)"
 						:show-title="widgetShowTitle(item)"
 						:show-actions="widgetShowActions(item)"
+						:show-refresh="getWidgetShowRefresh(item)"
 						:flush="item.flush !== false"
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
@@ -627,7 +628,7 @@ import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } fr
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
-import CnWidgetStyleEditorModal from '../../modals/CnWidgetStyleEditorModal.vue'
+import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
@@ -1471,7 +1472,9 @@ export default {
 				type: def.type || '',
 				title: def.title || '',
 				styleConfig: def.styleConfig || {},
-				showTitle: def.showTitle !== false,
+				// Left raw (possibly undefined) so the modal can apply the
+				// card-aware default rather than being handed a coerced `true`.
+				showTitle: def.showTitle,
 				customTitle: def.customTitle || '',
 				customIcon: def.customIcon || '',
 				content,
@@ -2297,12 +2300,17 @@ export default {
 		},
 
 		/**
-		 * Whether a widget's title header renders. Tri-state `!== false`
-		 * (shown unless explicitly disabled), resolved from the layout
-		 * placement first, then the widget def. The def fallback matters
+		 * Whether a widget's title header renders. Tri-state, resolved from the
+		 * layout placement first, then the widget def. The def fallback matters
 		 * because the in-place style editor persists `showTitle` onto the
 		 * widget def (see onWidgetConfigSave), while hand-written manifests
 		 * may set it on either object — mirrors getWidgetTitle's def fallback.
+		 *
+		 * When neither sets it, the default depends on the family: card widgets
+		 * (stat / gauge / delta) headline themselves via `content.label`, so a
+		 * chrome header would only repeat it — or, when no title was ever set,
+		 * show the raw type name ("stat"). Cards therefore default headerless;
+		 * every other widget defaults to showing the header.
 		 *
 		 * @param {object} item the layout placement.
 		 * @return {boolean}
@@ -2310,12 +2318,16 @@ export default {
 		widgetShowTitle(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			const value = item.showTitle !== undefined ? item.showTitle : def?.showTitle
+			if (value === undefined || value === null) return !this.isCardWidget(item)
 			return value !== false
 		},
 
 		/**
 		 * Whether a widget's overflow Actions menu renders. Same tri-state +
-		 * layout-then-def resolution as widgetShowTitle.
+		 * layout-then-def resolution as widgetShowTitle, and the same card
+		 * default: cards are the "card" family (docs/architecture/cards-and-widgets.md)
+		 * and carry no Actions menu — a KPI tile has no refreshable surface of
+		 * its own and the menu eats the header width it needs.
 		 *
 		 * @param {object} item the layout placement.
 		 * @return {boolean}
@@ -2323,6 +2335,7 @@ export default {
 		widgetShowActions(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			const value = item.showActions !== undefined ? item.showActions : def?.showActions
+			if (value === undefined || value === null) return !this.isCardWidget(item)
 			return value !== false
 		},
 

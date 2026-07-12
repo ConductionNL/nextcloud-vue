@@ -7,121 +7,115 @@
   It mutates the working manifest copy ONLY: the settings-section menu items
   (via the same compact CnMenuTreeNode the main menu editor uses, scoped to the
   settings section) and the foldout's personal-settings entry (label + whether
-  it shows). Isolated NcModal file per ADR-004; every NcSelect carries an
+  it shows). Isolated NcDialog file per ADR-004; every NcSelect carries an
   `inputLabel`.
 -->
 <template>
-	<NcModal size="normal" @close="$emit('close')">
-		<div class="cn-edit-settings">
-			<h2 class="cn-edit-settings__title">
-				{{ t('nextcloud-vue', 'Edit settings menu') }}
-			</h2>
+	<NcDialog size="normal" :name="t('nextcloud-vue', 'Edit settings menu')" @closing="$emit('close')">
+		<p class="cn-edit-settings__hint">
+			{{ t('nextcloud-vue', 'These items appear in the settings ⚙ foldout at the bottom of the navigation.') }}
+		</p>
 
-			<p class="cn-edit-settings__hint">
-				{{ t('nextcloud-vue', 'These items appear in the settings ⚙ foldout at the bottom of the navigation.') }}
-			</p>
+		<CnMenuTreeNode :list="menu"
+			:max-depth="1"
+			:pages="pageOptions"
+			section="settings" />
 
-			<CnMenuTreeNode :list="menu"
-				:max-depth="1"
-				:pages="pageOptions"
-				section="settings" />
+		<NcEmptyContent
+			v-if="!settingsItemCount"
+			:name="t('nextcloud-vue', 'No settings items yet')"
+			:description="t('nextcloud-vue', 'Add an item to build the settings menu.')" />
 
-			<NcEmptyContent
-				v-if="!settingsItemCount"
-				:name="t('nextcloud-vue', 'No settings items yet')"
-				:description="t('nextcloud-vue', 'Add an item to build the settings menu.')" />
+		<fieldset class="cn-edit-settings__group">
+			<legend class="cn-edit-settings__legend">
+				{{ t('nextcloud-vue', 'Personal settings entry') }}
+			</legend>
+			<NcCheckboxRadioSwitch
+				:checked="includePersonalSettings"
+				type="switch"
+				@update:checked="setIncludePersonalSettings">
+				{{ t('nextcloud-vue', 'Show the “Personal settings” entry in the foldout') }}
+			</NcCheckboxRadioSwitch>
+			<NcTextField
+				:value="settingsLabel"
+				:label="t('nextcloud-vue', 'Foldout label')"
+				:label-visible="true"
+				:placeholder="t('nextcloud-vue', 'Settings')"
+				@update:value="setSettingsLabel" />
+		</fieldset>
 
-			<fieldset class="cn-edit-settings__group">
-				<legend class="cn-edit-settings__legend">
-					{{ t('nextcloud-vue', 'Personal settings entry') }}
-				</legend>
-				<NcCheckboxRadioSwitch
-					:checked="includePersonalSettings"
-					type="switch"
-					@update:checked="setIncludePersonalSettings">
-					{{ t('nextcloud-vue', 'Show the “Personal settings” entry in the foldout') }}
-				</NcCheckboxRadioSwitch>
+		<fieldset class="cn-edit-settings__group">
+			<legend class="cn-edit-settings__legend">
+				{{ t('nextcloud-vue', 'Roadmap entry') }}
+			</legend>
+			<NcCheckboxRadioSwitch
+				:checked="includeRoadmap"
+				type="switch"
+				@update:checked="setIncludeRoadmap">
+				{{ t('nextcloud-vue', 'Show a “Features & roadmap” entry in the foldout') }}
+			</NcCheckboxRadioSwitch>
+			<template v-if="includeRoadmap">
 				<NcTextField
-					:value="settingsLabel"
-					:label="t('nextcloud-vue', 'Foldout label')"
+					:value="roadmapLabel"
+					:label="t('nextcloud-vue', 'Roadmap label')"
 					:label-visible="true"
-					:placeholder="t('nextcloud-vue', 'Settings')"
-					@update:value="setSettingsLabel" />
-			</fieldset>
+					:placeholder="t('nextcloud-vue', 'Features & roadmap')"
+					@update:value="setRoadmapLabel" />
+				<NcTextField
+					:value="roadmapUrl"
+					:label="t('nextcloud-vue', 'Roadmap link (URL or in-app route)')"
+					:label-visible="true"
+					:placeholder="t('nextcloud-vue', 'https://…')"
+					@update:value="setRoadmapUrl" />
+			</template>
+		</fieldset>
 
-			<fieldset class="cn-edit-settings__group">
-				<legend class="cn-edit-settings__legend">
-					{{ t('nextcloud-vue', 'Roadmap entry') }}
-				</legend>
-				<NcCheckboxRadioSwitch
-					:checked="includeRoadmap"
-					type="switch"
-					@update:checked="setIncludeRoadmap">
-					{{ t('nextcloud-vue', 'Show a “Features & roadmap” entry in the foldout') }}
-				</NcCheckboxRadioSwitch>
-				<template v-if="includeRoadmap">
-					<NcTextField
-						:value="roadmapLabel"
-						:label="t('nextcloud-vue', 'Roadmap label')"
-						:label-visible="true"
-						:placeholder="t('nextcloud-vue', 'Features & roadmap')"
-						@update:value="setRoadmapLabel" />
-					<NcTextField
-						:value="roadmapUrl"
-						:label="t('nextcloud-vue', 'Roadmap link (URL or in-app route)')"
-						:label-visible="true"
-						:placeholder="t('nextcloud-vue', 'https://…')"
-						@update:value="setRoadmapUrl" />
+		<fieldset class="cn-edit-settings__group">
+			<legend class="cn-edit-settings__legend">
+				{{ t('nextcloud-vue', 'Documentation entry') }}
+			</legend>
+			<NcCheckboxRadioSwitch
+				:checked="includeDocumentation"
+				type="switch"
+				@update:checked="setIncludeDocumentation">
+				{{ t('nextcloud-vue', 'Show a “Documentation” entry in the foldout') }}
+			</NcCheckboxRadioSwitch>
+			<template v-if="includeDocumentation">
+				<NcTextField
+					:value="documentationLabel"
+					:label="t('nextcloud-vue', 'Documentation label')"
+					:label-visible="true"
+					:placeholder="t('nextcloud-vue', 'Documentation')"
+					@update:value="setDocumentationLabel" />
+				<NcTextField
+					:value="documentationUrl"
+					:label="t('nextcloud-vue', 'Documentation link (URL)')"
+					:label-visible="true"
+					:placeholder="t('nextcloud-vue', 'https://…')"
+					@update:value="setDocumentationUrl" />
+			</template>
+		</fieldset>
+
+		<template #actions>
+			<NcButton type="secondary" @click="add">
+				<template #icon>
+					<Plus :size="20" />
 				</template>
-			</fieldset>
-
-			<fieldset class="cn-edit-settings__group">
-				<legend class="cn-edit-settings__legend">
-					{{ t('nextcloud-vue', 'Documentation entry') }}
-				</legend>
-				<NcCheckboxRadioSwitch
-					:checked="includeDocumentation"
-					type="switch"
-					@update:checked="setIncludeDocumentation">
-					{{ t('nextcloud-vue', 'Show a “Documentation” entry in the foldout') }}
-				</NcCheckboxRadioSwitch>
-				<template v-if="includeDocumentation">
-					<NcTextField
-						:value="documentationLabel"
-						:label="t('nextcloud-vue', 'Documentation label')"
-						:label-visible="true"
-						:placeholder="t('nextcloud-vue', 'Documentation')"
-						@update:value="setDocumentationLabel" />
-					<NcTextField
-						:value="documentationUrl"
-						:label="t('nextcloud-vue', 'Documentation link (URL)')"
-						:label-visible="true"
-						:placeholder="t('nextcloud-vue', 'https://…')"
-						@update:value="setDocumentationUrl" />
+				{{ t('nextcloud-vue', 'Add settings item') }}
+			</NcButton>
+			<NcButton type="primary" :disabled="saving" @click="onDone">
+				<template #icon>
+					<NcLoadingIcon v-if="saving" :size="20" />
+					<ContentSaveOutline v-else :size="20" />
 				</template>
-			</fieldset>
-
-			<div class="cn-edit-settings__footer">
-				<NcButton type="secondary" @click="add">
-					<template #icon>
-						<Plus :size="20" />
-					</template>
-					{{ t('nextcloud-vue', 'Add settings item') }}
-				</NcButton>
-				<NcButton type="primary" :disabled="saving" @click="onDone">
-					<template #icon>
-						<NcLoadingIcon v-if="saving" :size="20" />
-						<ContentSaveOutline v-else :size="20" />
-					</template>
-					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
-				</NcButton>
-			</div>
-		</div>
-	</NcModal>
+				{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
+			</NcButton>
+		</template>
+	</NcDialog>
 </template>
 
 <script>
-import { NcModal, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
@@ -131,7 +125,7 @@ import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 export default {
 	name: 'CnEditSettingsModal',
 
-	components: { NcModal, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon, Plus, ContentSaveOutline, CnMenuTreeNode },
+	components: { NcDialog, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon, Plus, ContentSaveOutline, CnMenuTreeNode },
 
 	mixins: [manifestModalDoneMixin],
 
@@ -292,15 +286,6 @@ export default {
 </script>
 
 <style scoped>
-.cn-edit-settings {
-	padding: 20px;
-}
-
-.cn-edit-settings__title {
-	margin-top: 0;
-	margin-bottom: 4px;
-}
-
 .cn-edit-settings__hint {
 	color: var(--color-text-maxcontrast);
 	margin: 0 0 12px;
@@ -319,11 +304,5 @@ export default {
 .cn-edit-settings__legend {
 	font-weight: 600;
 	padding: 0 6px;
-}
-
-.cn-edit-settings__footer {
-	display: flex;
-	justify-content: space-between;
-	margin-top: 16px;
 }
 </style>

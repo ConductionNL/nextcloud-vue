@@ -124,6 +124,45 @@ export async function parseResponseError(response, type) {
 }
 
 /**
+ * Unpack an AXIOS error into the parts a caller needs to explain itself.
+ *
+ * `parseResponseError` above takes a fetch `Response` (and awaits `.json()`).
+ * Axios has already parsed the body onto `error.response.data`, and its
+ * `error.message` is only ever the useless generic "Request failed with status
+ * code 409" — so a `catch (e) { this.error = e.message }` throws away whatever
+ * the server actually said. This pulls that back out.
+ *
+ * OpenRegister returns machine-readable refusals such as
+ * `{ error: 'schema-has-objects', objectCount: 3 }`; `code` carries that slug so
+ * a caller can render a specific, actionable message (and offer a way forward)
+ * instead of echoing an HTTP status at the user.
+ *
+ * @param {object} error The caught axios error.
+ * @return {{status: number, code: string|null, message: string|null, data: object|null}}
+ *   `code` is the server's error slug when it sent one; `message` is the best
+ *   human-readable string available from the body, or null when it sent none.
+ */
+export function parseAxiosError(error) {
+	const response = (error && error.response) || null
+	const status = (response && response.status) || 0
+	const data = (response && response.data) || null
+
+	// The body may be a bare string, or an object carrying `error` / `message`.
+	let code = null
+	let message = null
+	if (typeof data === 'string' && data !== '') {
+		message = data
+	} else if (data && typeof data === 'object') {
+		if (typeof data.error === 'string') code = data.error
+		message = (typeof data.message === 'string' && data.message)
+			|| (typeof data.error === 'string' && data.error)
+			|| null
+	}
+
+	return { status, code, message, data }
+}
+
+/**
  * Create a network error object for fetch failures (no response).
  *
  * @param {Error} error The caught error

@@ -12,19 +12,36 @@
 
   Persistence talks straight to the OpenRegister REST API (the same backend the
   runtime already reads objects from): POST/PUT/DELETE /api/schemas, and
-  PATCH /api/registers/{id} to (un)link a schema. Isolated NcModal per ADR-004.
+  PATCH /api/registers/{id} to (un)link a schema. Isolated NcDialog per ADR-004.
 -->
 <template>
-	<NcModal size="large" @close="$emit('close')">
+	<NcDialog size="large" :name="t('nextcloud-vue', 'Manage data')" @closing="$emit('close')">
 		<div class="cn-edit-data">
-			<h2 class="cn-edit-data__title">
-				{{ t('nextcloud-vue', 'Manage data') }}
-			</h2>
-
 			<NcLoadingIcon v-if="loading" :size="32" class="cn-edit-data__loading" />
 
 			<div v-else-if="error" class="cn-edit-data__error">
 				{{ error }}
+			</div>
+
+			<!--
+				The server refused the delete because objects still use this schema.
+				Offer the cascade — but confirm first: it permanently deletes the data.
+			-->
+			<div v-else-if="pendingCascade" class="cn-edit-data__confirm">
+				<p class="cn-edit-data__confirm-lead">
+					{{ cascadeWarning }}
+				</p>
+				<p class="cn-edit-data__confirm-note">
+					{{ t('nextcloud-vue', 'Deleting the objects cannot be undone.') }}
+				</p>
+				<div class="cn-edit-data__confirm-actions">
+					<NcButton type="tertiary" :disabled="busy" @click="cancelCascade">
+						{{ t('nextcloud-vue', 'Cancel') }}
+					</NcButton>
+					<NcButton type="error" :disabled="busy" @click="confirmCascade">
+						{{ cascadeConfirmLabel }}
+					</NcButton>
+				</div>
 			</div>
 
 			<!-- No register yet → offer to create one. -->
@@ -143,16 +160,11 @@
 				</div>
 			</template>
 
-			<div class="cn-edit-data__footer">
-				<NcButton @click="$emit('close')">
-					{{ t('nextcloud-vue', 'Close') }}
-				</NcButton>
-			</div>
 		</div>
 
 		<!-- Reuse the full OpenRegister schema editor for add/edit. It renders its
 		     own dialog (teleported); a global z-index rule below stacks it above
-		     this data modal so it isn't painted underneath. -->
+		     this data dialog so it isn't painted underneath. -->
 		<CnSchemaFormDialog
 			v-if="showSchemaDialog"
 			:item="editingSchema"
@@ -163,12 +175,18 @@
 			@confirm="onSchemaConfirm"
 			@delete-schema="onSchemaDelete"
 			@close="showSchemaDialog = false" />
-	</NcModal>
+
+		<template #actions>
+			<NcButton @click="$emit('close')">
+				{{ t('nextcloud-vue', 'Close') }}
+			</NcButton>
+		</template>
+	</NcDialog>
 </template>
 
 <script>
-import { NcModal, NcButton, NcTextField, NcSelect, NcLoadingIcon } from '@nextcloud/vue'
-import { translate as t } from '@nextcloud/l10n'
+import { NcDialog, NcButton, NcTextField, NcSelect, NcLoadingIcon } from '@nextcloud/vue'
+import { translate as t, translatePlural as n } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -178,6 +196,7 @@ import Check from 'vue-material-design-icons/Check.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import CnSchemaFormDialog from '../components/CnSchemaFormDialog/CnSchemaFormDialog.vue'
 import { buildHeaders } from '../utils/headers.js'
+import { parseAxiosError } from '../utils/errors.js'
 
 /**
  * Unwrap an OpenRegister API payload (`{result}` / `{results}` / array / object).
@@ -222,7 +241,7 @@ export function invalidateDataCache() {
 export default {
 	name: 'CnEditDataModal',
 
-	components: { NcModal, NcButton, NcTextField, NcSelect, NcLoadingIcon, CnSchemaFormDialog, Plus, Pencil, Delete, Check, Close },
+	components: { NcDialog, NcButton, NcTextField, NcSelect, NcLoadingIcon, CnSchemaFormDialog, Plus, Pencil, Delete, Check, Close },
 
 	inject: {
 		/**
@@ -252,6 +271,10 @@ export default {
 			loading: true,
 			busy: false,
 			error: '',
+			// Set when a schema delete was refused because objects still use it:
+			// `{ schema, objectCount }`. Drives the cascade confirmation — the
+			// destructive "delete the objects too" path is never a single click.
+			pendingCascade: null,
 			// The app's registers (full OR objects).
 			registers: [],
 			selectedRegisterId: null,
@@ -269,6 +292,29 @@ export default {
 	},
 
 	computed: {
+		/** Why the delete was refused, naming the schema and its object count. */
+		cascadeWarning() {
+			const p = this.pendingCascade
+			if (!p) return ''
+			const name = (p.schema && (p.schema.title || p.schema.slug)) || ''
+			return n(
+				'nextcloud-vue',
+				'“%s” still has %n object. Delete the schema and its object?',
+				'“%s” still has %n objects. Delete the schema and its objects?',
+				p.objectCount,
+				[name],
+			)
+		},
+		/** Label for the destructive confirm button, carrying the count. */
+		cascadeConfirmLabel() {
+			const count = (this.pendingCascade && this.pendingCascade.objectCount) || 0
+			return n(
+				'nextcloud-vue',
+				'Delete schema and %n object',
+				'Delete schema and %n objects',
+				count,
+			)
+		},
 		/** Distinct, non-empty register slugs referenced by the manifest's pages. */
 		manifestRegisterSlugs() {
 			const pages = (this.manifest && Array.isArray(this.manifest.pages)) ? this.manifest.pages : []
@@ -332,7 +378,7 @@ export default {
 					await this.loadSchemas()
 				}
 			} catch (e) {
-				this.error = (e && e.message) || t('nextcloud-vue', 'Failed to load data registers.')
+				this.error = parseAxiosError(e).message || t('nextcloud-vue', 'Failed to load data registers.')
 			} finally {
 				this.loading = false
 			}
@@ -425,7 +471,7 @@ export default {
 				}
 				this.renamingRegister = false
 			} catch (e) {
-				this.error = (e && e.message) || t('nextcloud-vue', 'Failed to rename the register.')
+				this.error = parseAxiosError(e).message || t('nextcloud-vue', 'Failed to rename the register.')
 			} finally {
 				this.busy = false
 			}
@@ -482,7 +528,7 @@ export default {
 				invalidateDataCache()
 				await this.loadSchemas()
 			} catch (e) {
-				this.error = (e && e.message) || t('nextcloud-vue', 'Failed to save the schema.')
+				this.error = parseAxiosError(e).message || t('nextcloud-vue', 'Failed to save the schema.')
 			} finally {
 				this.busy = false
 			}
@@ -512,17 +558,34 @@ export default {
 			reg.schemas = ids
 		},
 		/**
-		 * Remove a schema: unlink it from the register, then delete it.
+		 * Delete a schema, then unlink it from the register.
+		 *
+		 * ORDER IS LOAD-BEARING. This used to unlink first and delete second, so a
+		 * REFUSED delete (409 — the schema still has objects) left the schema alive
+		 * but detached from its register: it vanished from the pages editor while
+		 * its data sat there untouched. Deleting first means a refusal changes
+		 * nothing at all.
+		 *
+		 * When the schema still has objects the server refuses with 409
+		 * `schema-has-objects` + an `objectCount`; we surface that and offer the
+		 * cascade rather than echoing an HTTP status at the user.
+		 *
 		 * @param {object} schema The schema to remove.
+		 * @param {boolean} deleteObjects Also hard-delete the schema's objects (cascade).
 		 * @return {Promise<void>}
 		 */
-		async removeSchema(schema) {
+		async removeSchema(schema, deleteObjects = false) {
 			if (!schema || !schema.id) return
 			this.busy = true
 			this.error = ''
 			try {
+				const url = generateUrl(`/apps/openregister/api/schemas/${schema.id}`)
+					+ (deleteObjects ? '?deleteObjects=true' : '')
+				await axios.delete(url, { headers: this.headers() })
+
+				// Only now that the schema is really gone is it safe to unlink it.
 				const reg = this.selectedRegister
-				if (reg && Array.isArray(reg.schemas)) {
+				if (reg && Array.isArray(reg.schemas) && reg.schemas.includes(schema.id)) {
 					const ids = reg.schemas.filter((id) => id !== schema.id)
 					await axios.patch(
 						generateUrl(`/apps/openregister/api/registers/${reg.id}`),
@@ -531,14 +594,38 @@ export default {
 					)
 					reg.schemas = ids
 				}
-				await axios.delete(generateUrl(`/apps/openregister/api/schemas/${schema.id}`), { headers: this.headers() })
+
+				this.pendingCascade = null
 				invalidateDataCache()
 				await this.loadSchemas()
 			} catch (e) {
-				this.error = (e && e.message) || t('nextcloud-vue', 'Failed to remove the schema.')
+				const { code, message, data } = parseAxiosError(e)
+				if (code === 'schema-has-objects') {
+					// Offer the cascade instead of a dead end. Confirm-gated: this
+					// permanently deletes the objects, so it must never be one click.
+					const count = (data && Number(data.objectCount)) || 0
+					this.pendingCascade = { schema, objectCount: count }
+					this.error = ''
+				} else {
+					this.error = message || t('nextcloud-vue', 'Failed to remove the schema.')
+				}
 			} finally {
 				this.busy = false
 			}
+		},
+		/**
+		 * Run the cascade the user just confirmed: delete the schema AND its objects.
+		 * @return {Promise<void>}
+		 */
+		async confirmCascade() {
+			const pending = this.pendingCascade
+			if (!pending) return
+			this.pendingCascade = null
+			await this.removeSchema(pending.schema, true)
+		},
+		/** Back out of the cascade confirmation, changing nothing. */
+		cancelCascade() {
+			this.pendingCascade = null
 		},
 		/**
 		 * Create a register for this app and select it.
@@ -575,7 +662,7 @@ export default {
 					}
 				}
 			} catch (e) {
-				this.error = (e && e.message) || t('nextcloud-vue', 'Failed to create the register.')
+				this.error = parseAxiosError(e).message || t('nextcloud-vue', 'Failed to create the register.')
 			} finally {
 				this.busy = false
 			}
@@ -585,16 +672,13 @@ export default {
 </script>
 
 <style scoped>
+/* NcDialog supplies the padding and the heading (via `name`); this div keeps only
+   the body's own column layout. */
 .cn-edit-data {
-	padding: 20px;
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
 	min-height: 280px;
-}
-
-.cn-edit-data__title {
-	margin: 0;
 }
 
 .cn-edit-data__subtitle {
@@ -612,6 +696,28 @@ export default {
 	padding: 8px 12px;
 	background-color: var(--color-background-hover);
 	border-radius: var(--border-radius);
+}
+
+.cn-edit-data__confirm {
+	padding: 12px;
+	background-color: var(--color-background-hover);
+	border-radius: var(--border-radius);
+}
+
+.cn-edit-data__confirm-lead {
+	font-weight: bold;
+	margin-bottom: 4px;
+}
+
+.cn-edit-data__confirm-note {
+	color: var(--color-text-maxcontrast);
+	margin-bottom: 12px;
+}
+
+.cn-edit-data__confirm-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
 }
 
 .cn-edit-data__empty {
@@ -682,21 +788,13 @@ export default {
 	gap: 4px;
 }
 
-.cn-edit-data__footer {
-	display: flex;
-	justify-content: flex-end;
-	border-top: 1px solid var(--color-border);
-	padding-top: 12px;
-	margin-top: auto;
-}
 </style>
 
-<!-- Global (un-scoped): NcModal and NcDialog both render a `.modal-mask` at
-     z-index 9998. NcModal's own scoped rule `.modal-mask[data-v-…]{z-index:9998}`
-     has the SAME specificity as a plain `.modal-mask.dialog__modal` selector, so a
-     non-important override loses the tie to whichever stylesheet loads last and the
-     nested schema editor (an NcDialog) paints *under* this data modal. Force it with
-     `!important` and clear headroom so a modal-launched NcDialog always sits on top. -->
+<!-- Global (un-scoped): every NcDialog renders a `.modal-mask` at z-index 9998, so
+     this dialog and the schema editor it launches sit on the SAME layer and the
+     winner is decided by stylesheet order. A non-important override loses that tie,
+     and the nested schema editor paints *under* the dialog that opened it. Force it
+     with `!important` and clear headroom so a nested NcDialog always sits on top. -->
 <style>
 .modal-mask.dialog__modal {
 	z-index: 10005 !important;

@@ -264,17 +264,21 @@ export { CnCospendCreate } from './CnCospendCreate/index.js'
 export { CnTimeTrackerPicker } from './CnTimeTrackerPicker/index.js'
 export { CnTimeTrackerCreate } from './CnTimeTrackerCreate/index.js'
 
-// OpenBuild in-app edit shell (ADR-041)
+// OpenBuild in-app edit shell (ADR-041).
+//
+// These live in src/dialogs/ now — they are NcDialog-based, and ADR-004 puts
+// NcDialog components there and NcModal ones in src/modals/. The exported NAMES
+// keep their `…Modal` suffix so no consumer import breaks; only the path moved.
 export { CnOpenBuildEditButton } from './CnOpenBuildEditButton/index.js'
-export { default as CnEditMenuModal } from '../modals/CnEditMenuModal.vue'
-export { default as CnEditPagesModal } from '../modals/CnEditPagesModal.vue'
-export { default as CnEditSettingsModal } from '../modals/CnEditSettingsModal.vue'
-export { default as CnEditSidebarModal } from '../modals/CnEditSidebarModal.vue'
-export { default as CnEditActionsModal } from '../modals/CnEditActionsModal.vue'
-export { default as CnAddWidgetModal } from '../modals/CnAddWidgetModal.vue'
-export { default as CnWidgetStyleEditorModal } from '../modals/CnWidgetStyleEditorModal.vue'
-export { default as CnWidgetVisibilityRulesModal } from '../modals/CnWidgetVisibilityRulesModal.vue'
-export { default as CnRelationLinkModal } from '../modals/CnRelationLinkModal.vue'
+export { default as CnEditMenuModal } from '../dialogs/CnEditMenuModal.vue'
+export { default as CnEditPagesModal } from '../dialogs/CnEditPagesModal.vue'
+export { default as CnEditSettingsModal } from '../dialogs/CnEditSettingsModal.vue'
+export { default as CnEditSidebarModal } from '../dialogs/CnEditSidebarModal.vue'
+export { default as CnEditActionsModal } from '../dialogs/CnEditActionsModal.vue'
+export { default as CnAddWidgetModal } from '../dialogs/CnAddWidgetModal.vue'
+export { default as CnWidgetStyleEditorModal } from '../dialogs/CnWidgetStyleEditorModal.vue'
+export { default as CnWidgetVisibilityRulesModal } from '../dialogs/CnWidgetVisibilityRulesModal.vue'
+export { default as CnRelationLinkModal } from '../dialogs/CnRelationLinkModal.vue'
 export { CnMenuItemEditor } from './CnMenuItemEditor/index.js'
 export { CnTextTableEditor } from './CnTextTableEditor/index.js'
 export { CnNcWidgetGridPicker } from './CnNcWidgetGridPicker/index.js'

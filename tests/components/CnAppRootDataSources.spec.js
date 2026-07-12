@@ -138,7 +138,7 @@ describe('CnPageTreeRow — data-source resolution', () => {
 
 describe('pages-editor modals refresh on open', () => {
 	// Both modals are v-if-mounted by their hosts, so mount == open.
-	const CnEditPagesModal = require('../../src/modals/CnEditPagesModal.vue').default
+	const CnEditPagesModal = require('../../src/dialogs/CnEditPagesModal.vue').default
 
 	it('CnEditPagesModal calls cnRefreshDataSources exactly once on open', () => {
 		const cnRefreshDataSources = jest.fn()

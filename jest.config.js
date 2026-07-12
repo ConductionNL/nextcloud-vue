@@ -1,4 +1,9 @@
 module.exports = {
+	// Rebuilds the gitignored compiled manifest validator when it is missing or
+	// stale. `pretest` already does this for `npm test`, but not for `npx jest`,
+	// `--watch`, or an IDE runner — and without it `tests/schemas/*` fails for
+	// reasons that have nothing to do with the code under test.
+	globalSetup: '<rootDir>/tests/globalSetup.js',
 	testEnvironment: 'jsdom',
 	moduleFileExtensions: ['js', 'vue', 'json'],
 	transform: {

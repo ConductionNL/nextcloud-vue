@@ -54,7 +54,7 @@ function loadModal(entries = {}) {
 	let registry
 	jest.isolateModules(() => {
 		registry = require('../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js')
-		CnAddWidgetModal = require('../../src/modals/CnAddWidgetModal.vue').default
+		CnAddWidgetModal = require('../../src/dialogs/CnAddWidgetModal.vue').default
 	})
 	for (const [type, entry] of Object.entries(entries)) {
 		registry.registerDashboardWidget(type, {
@@ -88,7 +88,7 @@ describe('CnAddWidgetModal', () => {
 		// Use the real (non-isolated) registry + modal so the modal's imported
 		// getWidgetTypeEntry and the registration below share one instance.
 		const registry = require('../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js')
-		const Modal = require('../../src/modals/CnAddWidgetModal.vue').default
+		const Modal = require('../../src/dialogs/CnAddWidgetModal.vue').default
 		registry.registerDashboardWidget('owns-title-test', {
 			renderer: { name: 'R' }, form: fakeForm(), defaultContent: {}, displayName: 'Owns title', icon: 'Star', ownsTitle: true,
 		})
