@@ -1,6 +1,7 @@
 <template>
 	<div class="cn-context-menu-root">
 		<NcActions
+			v-if="!activePanel"
 			:open.sync="internalOpen"
 			:manual-open="true"
 			:force-menu="true"
@@ -27,33 +28,45 @@
 			</NcActionButton>
 
 			<!--
-				@slot default
-				@description Custom NcActionButton-family content rendered inside the
-				NcActions menu. Use this for hardcoded buttons (Doriath pattern) when
-				the `actions` prop is empty.
-			-->
+			@slot default
+			@description Custom NcActionButton-family content rendered inside the
+			NcActions menu. Use this for hardcoded buttons (Doriath pattern) when
+			the `actions` prop is empty.
+		-->
 			<slot />
 		</NcActions>
 
-		<!--
-			Panels API — an overlay that replaces the action list with a
-			named sub-panel (e.g. a colour picker). Rendered only while the
-			menu is open AND an `activePanel` is set. The `#panel:<name>`
-			scoped slot receives `{ targetItem, back }`; `back()` returns to
-			the action list. A backdrop closes the menu entirely.
-		-->
-		<template v-if="internalOpen && activePanel">
+		<!-- CUSTOM PANEL — bypass NcActions, render arbitrary slot content
+		     anchored at the cursor. The `#panel:<name>` slot may contain any
+		     markup (grids, inputs, custom components) without the NcActions
+		     child-allowlist filter. -->
+		<template v-if="activePanel && internalOpen">
 			<div
 				class="cn-context-menu__backdrop"
-				@click="onBackdrop" />
+				@click="onClose"
+				@contextmenu.prevent="onClose" />
 			<div
+				ref="panel"
 				class="cn-context-menu__panel"
+				role="menu"
+				tabindex="-1"
 				data-testid="cn-context-menu-panel"
-				:data-panel="activePanel">
+				:data-panel="activePanel"
+				@keydown.esc.stop="onClose"
+				@click.stop>
+				<!-- @slot panel:<name> Free-form custom panel content shown when
+				     `activePanel === '<name>'`. Bypasses the NcActions child
+				     allowlist — put any markup here (grids, inputs, custom
+				     components, etc.). The slot name is dynamic: define one
+				     `#panel:<name>` per panel you want to support. -->
+				<!-- @binding {Function} back Clear `activePanel`, returning to the default action list. -->
+				<!-- @binding {Function} close Close the entire menu, equivalent to clicking outside. -->
+				<!-- @binding {*} targetItem The right-clicked item, forwarded from the `targetItem` prop. -->
 				<slot
 					:name="`panel:${activePanel}`"
-					:target-item="targetItem"
-					:back="back" />
+					:back="back"
+					:close="onClose"
+					:target-item="targetItem" />
 			</div>
 		</template>
 	</div>
@@ -147,10 +160,11 @@ export default {
 		},
 
 		/**
-		 * Name of the active sub-panel. When set (and the menu is open), the
-		 * matching `#panel:<name>` scoped slot is rendered as an overlay in
-		 * place of the action list. Use with `.sync`; `back()` / a backdrop
-		 * click reset it to `null`.
+		 * Name of the currently-active custom panel. When set (and the menu is
+		 * open), the default NcActions list is replaced by the matching
+		 * `#panel:<name>` slot, rendered free-form (no NcActions child filter).
+		 * Use with `.sync` — the component emits `update:activePanel(null)` when
+		 * the panel's `back()` binding is invoked or the menu closes.
 		 *
 		 * @type {string|null}
 		 */
@@ -290,30 +304,27 @@ export default {
 			this.$emit('action', { action: action.label, row: this.targetItem })
 		},
 
-		/**
-		 * Return from a sub-panel to the action list.
-		 *
-		 * @event update:activePanel Fired with `null` to clear the active panel.
-		 */
-		back() {
-			this.$emit('update:activePanel', null)
-		},
-
-		/**
-		 * Backdrop click — closes the whole menu and clears any active panel.
-		 */
-		onBackdrop() {
-			this.$emit('update:activePanel', null)
-			this.internalOpen = false
-			this.$emit('close')
-		},
-
 		onClose() {
 			this.internalOpen = false
+			if (this.activePanel) {
+				this.$emit('update:activePanel', null)
+			}
 			/**
 			 * @event close Fired when the menu starts closing (before the popper's hide animation). Use `@closed` for the post-animation point.
 			 */
 			this.$emit('close')
+		},
+
+		/**
+		 * Clear the active panel and return to the default action list.
+		 * Exposed to custom panel slots via the `back` scope binding.
+		 */
+		back() {
+			/**
+			 * @event update:activePanel Emitted with `null` to clear the active panel — fired by the panel's `back()` binding and whenever the menu closes while a panel is open. Bind with `:active-panel.sync`.
+			 * @type {null}
+			 */
+			this.$emit('update:activePanel', null)
 		},
 
 		/**
@@ -354,17 +365,20 @@ export default {
 .cn-context-menu__backdrop {
 	position: fixed;
 	inset: 0;
-	z-index: 1000;
-	background: transparent;
+	z-index: 9998;
 }
 
 .cn-context-menu__panel {
-	position: absolute;
-	z-index: 1001;
-	min-width: 200px;
-	padding: 8px;
-	border-radius: var(--border-radius-large);
+	position: fixed;
+	top: var(--cn-ctx-menu-y, 0);
+	left: var(--cn-ctx-menu-x, 0);
+	z-index: 9999;
+	min-width: 220px;
+	padding: 4px;
 	background: var(--color-main-background);
-	box-shadow: 0 2px 8px var(--color-box-shadow);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large, 12px);
+	box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+	outline: none;
 }
 </style>

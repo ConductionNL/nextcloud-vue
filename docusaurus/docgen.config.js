@@ -69,7 +69,18 @@ module.exports = {
   // CnIconBrowserPanel is an internal-only subcomponent (not exported from
   // src/index.js and has no parent doc page), so it's excluded to avoid an
   // orphaned partial Docusaurus would flag as unreferenced.
-  components: ['Cn*/Cn*.vue', '!**/CnIconBrowserPanel.vue'],
+  //
+  // CnMenuWidget/CnMenuTreeNode.vue is the private subcomponent of
+  // CnMenuWidget (imported only from CnMenuWidget.vue). Its basename
+  // collides with the public CnMenuTreeNode/CnMenuTreeNode.vue editor
+  // — both would write to _generated/CnMenuTreeNode.md, corrupting the
+  // file with a partial overwrite. Excluding the private one keeps the
+  // public editor's partial clean.
+  components: [
+    'Cn*/Cn*.vue',
+    '!**/CnIconBrowserPanel.vue',
+    '!**/CnMenuWidget/CnMenuTreeNode.vue',
+  ],
   outDir: path.join(REPO_ROOT, 'docs/components/_generated'),
 
   // Each component gets its own .md file.

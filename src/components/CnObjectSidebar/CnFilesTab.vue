@@ -282,13 +282,14 @@ export default {
 
 		openFile(file) {
 			if (file.accessUrl) {
-				// Validate the OR-supplied URL scheme before navigating (C4).
-				// A misbehaving file record returning `javascript:`/`data:`
-				// must never reach window.open. `noopener,noreferrer` blocks
-				// reverse-tabnabbing on the new window.
-				const href = safeHref(file.accessUrl)
-				if (href !== '#') {
-					window.open(href, '_blank', 'noopener,noreferrer')
+				// Security: accessUrl originates from the OR files API and may be
+				// attacker-controlled. Validate the scheme via safeHref before
+				// opening (C4) — this blocks javascript: / data: payloads. Add
+				// noopener,noreferrer to prevent the opened tab from accessing
+				// window.opener (reverse-tabnabbing) and to strip the Referer header.
+				const safe = safeHref(file.accessUrl)
+				if (safe !== '#') {
+					window.open(safe, '_blank', 'noopener,noreferrer')
 				}
 			} else if (file.id) {
 				const dirPath = file.path ? file.path.substring(0, file.path.lastIndexOf('/')) : ''

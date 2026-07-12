@@ -431,13 +431,25 @@
 									v-bind="widgetContentFor(item)" />
 							</CnWidgetWrapper>
 							<!-- Fallback for content-driven catalog widgets
-							     (chart / …): render the registered renderer with
-							     the def's `content`. These self-fetch from
-							     OpenRegister. -->
+							     (stat / chart / delta / gauge / object-list / …):
+							     render the registered renderer with the def's
+							     `content`. These self-fetch from OpenRegister.
+							     The current object's context is forwarded too (same
+							     shape CnWidgetGrid merges on the v2 widgets[] path) so
+							     object-aware catalog widgets — e.g. the `files` widget
+							     binding to this object's folder — receive it; widgets
+							     that don't declare these props ignore them. `content`
+							     is spread LAST so explicit widget config still wins. -->
 							<component
 								:is="registryRendererFor(item)"
 								v-else-if="registryRendererFor(item)"
 								:content="widgetContentFor(item)"
+								:object-id="objectId"
+								:register="register"
+								:schema="schema"
+								:object-data="currentObject"
+								:object-type="resolvedObjectType"
+								:store="effectiveObjectStore"
 								v-bind="widgetContentFor(item)" />
 						</slot>
 					</div>

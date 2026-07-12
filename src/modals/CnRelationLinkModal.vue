@@ -8,11 +8,8 @@
   CnResourceSelect carries an inputLabel.
 -->
 <template>
-	<NcModal size="small" @close="$emit('close')">
+	<NcDialog size="small" :name="title" @closing="$emit('close')">
 		<div class="cn-relation-link" data-testid="cn-relation-link-modal">
-			<h2 class="cn-relation-link__title">
-				{{ title }}
-			</h2>
 			<CnResourceSelect
 				:register="register"
 				:schema="schema"
@@ -24,24 +21,25 @@
 			<p v-if="error" class="cn-relation-link__error" data-testid="cn-relation-link-error">
 				{{ error }}
 			</p>
-			<div class="cn-relation-link__actions">
-				<NcButton @click="$emit('close')">
-					{{ t('nextcloud-vue', 'Cancel') }}
-				</NcButton>
-				<NcButton variant="primary" :disabled="!selectedId || saving" @click="onConfirm">
-					<template v-if="saving" #icon>
-						<NcLoadingIcon :size="18" />
-					</template>
-					{{ t('nextcloud-vue', 'Link') }}
-				</NcButton>
-			</div>
 		</div>
-	</NcModal>
+
+		<template #actions>
+			<NcButton @click="$emit('close')">
+				{{ t('nextcloud-vue', 'Cancel') }}
+			</NcButton>
+			<NcButton variant="primary" :disabled="!selectedId || saving" @click="onConfirm">
+				<template v-if="saving" #icon>
+					<NcLoadingIcon :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Link') }}
+			</NcButton>
+		</template>
+	</NcDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon, NcModal } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcDialog } from '@nextcloud/vue'
 import CnResourceSelect from '../components/CnResourceSelect/CnResourceSelect.vue'
 import { useObjectStore } from '../store/index.js'
 
@@ -59,7 +57,7 @@ import { useObjectStore } from '../store/index.js'
 export default {
 	name: 'CnRelationLinkModal',
 
-	components: { NcModal, NcButton, NcLoadingIcon, CnResourceSelect },
+	components: { NcDialog, NcButton, NcLoadingIcon, CnResourceSelect },
 
 	props: {
 		/** Modal heading. */
@@ -175,21 +173,9 @@ export default {
 	gap: 12px;
 }
 
-.cn-relation-link__title {
-	margin: 0;
-	font-size: 1.2em;
-	font-weight: 600;
-}
-
 .cn-relation-link__error {
 	color: var(--color-error);
 	font-size: 0.85em;
 	margin: 0;
-}
-
-.cn-relation-link__actions {
-	display: flex;
-	justify-content: flex-end;
-	gap: 8px;
 }
 </style>

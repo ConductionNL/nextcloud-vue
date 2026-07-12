@@ -15,15 +15,11 @@
   NcModal, never inlined into the parent.
 -->
 <template>
-	<NcModal
+	<NcDialog
 		size="normal"
 		:name="title"
-		@close="onClose">
+		@closing="onClose">
 		<div class="cn-calendar-event-picker">
-			<h2 class="cn-calendar-event-picker__title">
-				{{ title }}
-			</h2>
-
 			<!-- Step 1: calendars -->
 			<div v-if="step === 'calendars'" class="cn-calendar-event-picker__step">
 				<p class="cn-calendar-event-picker__instructions">
@@ -98,26 +94,30 @@
 				<div v-else class="cn-calendar-event-picker__empty">
 					{{ noEventsLabel }}
 				</div>
-
-				<div class="cn-calendar-event-picker__actions">
-					<NcButton variant="tertiary" @click="onClose">
-						{{ cancelLabel }}
-					</NcButton>
-					<NcButton
-						variant="primary"
-						:disabled="!selectedEventUid"
-						@click="confirmSelection">
-						{{ confirmLabel }}
-					</NcButton>
-				</div>
 			</div>
 		</div>
-	</NcModal>
+
+		<template #actions>
+			<!-- Cancel is available in BOTH steps so the footer is never empty and
+			     the user always has a visible exit (not just the top-right X). The
+			     primary Confirm only applies once an event can be picked. -->
+			<NcButton variant="tertiary" @click="onClose">
+				{{ cancelLabel }}
+			</NcButton>
+			<NcButton
+				v-if="step === 'events'"
+				variant="primary"
+				:disabled="!selectedEventUid"
+				@click="confirmSelection">
+				{{ confirmLabel }}
+			</NcButton>
+		</template>
+	</NcDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcModal, NcButton, NcTextField, NcLoadingIcon } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcTextField, NcLoadingIcon } from '@nextcloud/vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import { buildHeaders } from '../../utils/index.js'
 
@@ -131,7 +131,7 @@ export default {
 	name: 'CnCalendarEventPicker',
 
 	components: {
-		NcModal,
+		NcDialog,
 		NcButton,
 		NcTextField,
 		NcLoadingIcon,
@@ -311,12 +311,6 @@ export default {
 	min-width: 480px;
 }
 
-.cn-calendar-event-picker__title {
-	margin: 0 0 16px 0;
-	font-size: 18px;
-	font-weight: 600;
-}
-
 .cn-calendar-event-picker__instructions {
 	color: var(--color-text-maxcontrast);
 	margin-bottom: 12px;
@@ -415,12 +409,5 @@ export default {
 	padding: 24px;
 	text-align: center;
 	color: var(--color-text-maxcontrast);
-}
-
-.cn-calendar-event-picker__actions {
-	display: flex;
-	justify-content: flex-end;
-	gap: 8px;
-	margin-top: 16px;
 }
 </style>
