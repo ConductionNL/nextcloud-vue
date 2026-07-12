@@ -82,259 +82,261 @@
 				ref="grid"
 				class="cn-object-data-widget__grid"
 				:style="collapsedGridStyle">
-			<div
-				v-for="field in resolvedFields"
-				:key="field.key"
-				class="cn-object-data-widget__cell"
-				:style="cellStyle(field)">
-				<!-- Label -->
-				<div class="cn-object-data-widget__label">
-					{{ field.label }}
-				</div>
-
-				<!-- Editing mode for this field -->
 				<div
-					v-if="editingField === field.key"
-					class="cn-object-data-widget__editor">
-					<!-- Per-field slot override -->
-					<slot
-						v-if="$scopedSlots['field-' + field.key]"
-						:name="'field-' + field.key"
-						:field="field"
-						:value="editData[field.key]"
-						:update="(val) => updateField(field.key, val)"
-						:cancel="cancelEdit" />
+					v-for="field in resolvedFields"
+					:key="field.key"
+					class="cn-object-data-widget__cell"
+					:style="cellStyle(field)">
+					<!-- Label -->
+					<div class="cn-object-data-widget__label">
+						{{ field.label }}
+					</div>
 
-					<!-- Auto-generated editor -->
-					<template v-else>
-						<!-- Text / Email / URL -->
-						<NcTextField
-							v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'"
-							ref="activeEditor"
-							:value="editData[field.key] != null ? String(editData[field.key]) : ''"
-							:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
-							:placeholder="field.description"
-							@update:value="val => updateField(field.key, val)"
-							@keydown.native.enter="commitEdit"
-							@keydown.native.escape="cancelEdit" />
+					<!-- Editing mode for this field -->
+					<div
+						v-if="editingField === field.key"
+						class="cn-object-data-widget__editor">
+						<!-- Per-field slot override -->
+						<slot
+							v-if="$scopedSlots['field-' + field.key]"
+							:name="'field-' + field.key"
+							:field="field"
+							:value="editData[field.key]"
+							:update="(val) => updateField(field.key, val)"
+							:cancel="cancelEdit" />
 
-						<!-- Number -->
-						<NcTextField
-							v-else-if="field.widget === 'number'"
-							ref="activeEditor"
-							:value="editData[field.key] != null ? String(editData[field.key]) : ''"
-							type="number"
-							:placeholder="field.description"
-							@update:value="val => updateField(field.key, val !== '' ? Number(val) : null)"
-							@keydown.native.enter="commitEdit"
-							@keydown.native.escape="cancelEdit" />
+						<!-- Auto-generated editor -->
+						<template v-else>
+							<!-- Text / Email / URL -->
+							<NcTextField
+								v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'"
+								ref="activeEditor"
+								:value="editData[field.key] != null ? String(editData[field.key]) : ''"
+								:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
+								:placeholder="field.description"
+								@update:value="val => updateField(field.key, val)"
+								@keydown.native.enter="commitEdit"
+								@keydown.native.escape="cancelEdit" />
 
-						<!-- Textarea -->
-						<textarea
-							v-else-if="field.widget === 'textarea'"
-							ref="activeEditor"
-							class="cn-object-data-widget__textarea"
-							:value="editData[field.key] || ''"
-							:placeholder="field.description"
-							rows="4"
-							@input="updateField(field.key, $event.target.value)"
-							@keydown.escape="cancelEdit" />
+							<!-- Number -->
+							<NcTextField
+								v-else-if="field.widget === 'number'"
+								ref="activeEditor"
+								:value="editData[field.key] != null ? String(editData[field.key]) : ''"
+								type="number"
+								:placeholder="field.description"
+								@update:value="val => updateField(field.key, val !== '' ? Number(val) : null)"
+								@keydown.native.enter="commitEdit"
+								@keydown.native.escape="cancelEdit" />
 
-						<!-- Relation ($ref / x-openregister-relation): pick the
+							<!-- Textarea -->
+							<textarea
+								v-else-if="field.widget === 'textarea'"
+								ref="activeEditor"
+								class="cn-object-data-widget__textarea"
+								:value="editData[field.key] || ''"
+								:placeholder="field.description"
+								rows="4"
+								@input="updateField(field.key, $event.target.value)"
+								@keydown.escape="cancelEdit" />
+
+							<!-- Relation ($ref / x-openregister-relation): pick the
 						     referenced object by NAME — the raw uuid is never a
 						     user-facing value (ADR-062). Options load from the
 						     target schema on edit start. Array relations keep
 						     their generic editor for now. -->
-						<NcSelect
-							v-else-if="isSingleRelationField(field.key)"
-							ref="activeEditor"
-							:options="relationOptions[field.key] || []"
-							:value="relationSelectedOption(field)"
-							:loading="relationOptionsLoading"
-							label="label"
-							:clearable="!field.required"
-							@input="onRelationChange(field, $event)"
-							@close="commitEdit" />
+							<NcSelect
+								v-else-if="isSingleRelationField(field.key)"
+								ref="activeEditor"
+								:options="relationOptions[field.key] || []"
+								:value="relationSelectedOption(field)"
+								:loading="relationOptionsLoading"
+								label="label"
+								:clearable="!field.required"
+								@input="onRelationChange(field, $event)"
+								@close="commitEdit" />
 
-						<!-- Select -->
-						<NcSelect
-							v-else-if="field.widget === 'select'"
-							ref="activeEditor"
-							:options="getSelectOptions(field)"
-							:value="getSelectedOption(field)"
-							:clearable="!field.required"
-							@input="onSelectChange(field, $event)"
-							@close="commitEdit" />
+							<!-- Select -->
+							<NcSelect
+								v-else-if="field.widget === 'select'"
+								ref="activeEditor"
+								:options="getSelectOptions(field)"
+								:value="getSelectedOption(field)"
+								:clearable="!field.required"
+								@input="onSelectChange(field, $event)"
+								@close="commitEdit" />
 
-						<!-- Multiselect -->
-						<NcSelect
-							v-else-if="field.widget === 'multiselect'"
-							ref="activeEditor"
-							:options="getMultiselectOptions(field)"
-							:value="getSelectedMultiselectOptions(field)"
-							:multiple="true"
-							:keep-open="true"
-							:clearable="true"
-							@input="onMultiselectChange(field, $event)" />
+							<!-- Multiselect -->
+							<NcSelect
+								v-else-if="field.widget === 'multiselect'"
+								ref="activeEditor"
+								:options="getMultiselectOptions(field)"
+								:value="getSelectedMultiselectOptions(field)"
+								:multiple="true"
+								:keep-open="true"
+								:clearable="true"
+								@input="onMultiselectChange(field, $event)" />
 
-						<!-- Tags -->
-						<NcSelect
-							v-else-if="field.widget === 'tags'"
-							ref="activeEditor"
-							:value="editData[field.key] || []"
-							:multiple="true"
-							:keep-open="true"
-							:taggable="true"
-							:clearable="true"
-							@input="val => updateField(field.key, val)" />
+							<!-- Tags -->
+							<NcSelect
+								v-else-if="field.widget === 'tags'"
+								ref="activeEditor"
+								:value="editData[field.key] || []"
+								:multiple="true"
+								:keep-open="true"
+								:taggable="true"
+								:clearable="true"
+								@input="val => updateField(field.key, val)" />
 
-						<!-- Checkbox / Switch -->
-						<NcCheckboxRadioSwitch
-							v-else-if="field.widget === 'checkbox'"
-							:model-value="!!editData[field.key]"
-							type="switch"
-							@update:model-value="val => { updateField(field.key, val); commitEdit() }">
-							{{ editData[field.key] ? 'Yes' : 'No' }}
-						</NcCheckboxRadioSwitch>
+							<!-- Checkbox / Switch -->
+							<NcCheckboxRadioSwitch
+								v-else-if="field.widget === 'checkbox'"
+								:model-value="!!editData[field.key]"
+								type="switch"
+								@update:model-value="val => { updateField(field.key, val); commitEdit() }">
+								{{ editData[field.key] ? 'Yes' : 'No' }}
+							</NcCheckboxRadioSwitch>
 
-						<!-- Date -->
-						<NcTextField
-							v-else-if="field.widget === 'date'"
-							ref="activeEditor"
-							:value="editData[field.key] || ''"
-							type="date"
-							@update:value="val => updateField(field.key, val)"
-							@keydown.native.enter="commitEdit"
-							@keydown.native.escape="cancelEdit" />
+							<!-- Date -->
+							<NcTextField
+								v-else-if="field.widget === 'date'"
+								ref="activeEditor"
+								:value="editData[field.key] || ''"
+								type="date"
+								@update:value="val => updateField(field.key, val)"
+								@keydown.native.enter="commitEdit"
+								@keydown.native.escape="cancelEdit" />
 
-						<!-- Datetime -->
-						<NcTextField
-							v-else-if="field.widget === 'datetime'"
-							ref="activeEditor"
-							:value="editData[field.key] || ''"
-							type="datetime-local"
-							@update:value="val => updateField(field.key, val)"
-							@keydown.native.enter="commitEdit"
-							@keydown.native.escape="cancelEdit" />
+							<!-- Datetime -->
+							<NcTextField
+								v-else-if="field.widget === 'datetime'"
+								ref="activeEditor"
+								:value="editData[field.key] || ''"
+								type="datetime-local"
+								@update:value="val => updateField(field.key, val)"
+								@keydown.native.enter="commitEdit"
+								@keydown.native.escape="cancelEdit" />
 
-						<!-- Fallback: text -->
-						<NcTextField
-							v-else
-							ref="activeEditor"
-							:value="editData[field.key] != null ? String(editData[field.key]) : ''"
-							:placeholder="field.description"
-							@update:value="val => updateField(field.key, val)"
-							@keydown.native.enter="commitEdit"
-							@keydown.native.escape="cancelEdit" />
-					</template>
+							<!-- Fallback: text -->
+							<NcTextField
+								v-else
+								ref="activeEditor"
+								:value="editData[field.key] != null ? String(editData[field.key]) : ''"
+								:placeholder="field.description"
+								@update:value="val => updateField(field.key, val)"
+								@keydown.native.enter="commitEdit"
+								@keydown.native.escape="cancelEdit" />
+						</template>
 
-					<!-- Confirm/Cancel for non-auto-committing editors -->
-					<div
-						v-if="field.widget !== 'checkbox'"
-						class="cn-object-data-widget__editor-actions">
-						<NcButton type="tertiary-no-background" @click="commitEdit">
-							<template #icon>
-								<Check :size="20" />
-							</template>
-						</NcButton>
-						<NcButton type="tertiary-no-background" @click="cancelEdit">
-							<template #icon>
-								<Close :size="20" />
-							</template>
-						</NcButton>
+						<!-- Confirm/Cancel for non-auto-committing editors -->
+						<div
+							v-if="field.widget !== 'checkbox'"
+							class="cn-object-data-widget__editor-actions">
+							<NcButton type="tertiary-no-background" @click="commitEdit">
+								<template #icon>
+									<Check :size="20" />
+								</template>
+							</NcButton>
+							<NcButton type="tertiary-no-background" @click="cancelEdit">
+								<template #icon>
+									<Close :size="20" />
+								</template>
+							</NcButton>
+						</div>
 					</div>
-				</div>
 
-				<!-- Display mode -->
-				<div
-					v-else
-					class="cn-object-data-widget__value"
-					:class="{
-						'cn-object-data-widget__value--editable': isEditable(field),
-						'cn-object-data-widget__value--empty': isValueEmpty(field.key),
-					}"
-					:tabindex="isEditable(field) ? 0 : -1"
-					:role="isEditable(field) ? 'button' : undefined"
-					:aria-label="isEditable(field) ? 'Click to edit ' + field.label : undefined"
-					@click="isEditable(field) && startEdit(field)"
-					@keydown.enter="isEditable(field) && startEdit(field)">
-					<!-- Per-field display slot override -->
-					<slot
-						v-if="$scopedSlots['display-' + field.key]"
-						:name="'display-' + field.key"
-						:field="field"
-						:value="displayValues[field.key]"
-						:raw="objectData[field.key]" />
-					<template v-else>
-						<img v-if="isImageField(field) && rawOf(field)"
-							:src="rawOf(field)"
-							:alt="field.label"
-							class="cn-object-data-widget__image">
-						<!-- Relation name still resolving: a quiet skeleton bar,
+					<!-- Display mode -->
+					<div
+						v-else
+						class="cn-object-data-widget__value"
+						:class="{
+							'cn-object-data-widget__value--editable': isEditable(field),
+							'cn-object-data-widget__value--empty': isValueEmpty(field.key),
+						}"
+						:tabindex="isEditable(field) ? 0 : -1"
+						:role="isEditable(field) ? 'button' : undefined"
+						:aria-label="isEditable(field) ? 'Click to edit ' + field.label : undefined"
+						@click="isEditable(field) && startEdit(field)"
+						@keydown.enter="isEditable(field) && startEdit(field)">
+						<!-- Per-field display slot override -->
+						<slot
+							v-if="$scopedSlots['display-' + field.key]"
+							:name="'display-' + field.key"
+							:field="field"
+							:value="displayValues[field.key]"
+							:raw="objectData[field.key]" />
+						<template v-else>
+							<img v-if="isImageField(field) && rawOf(field)"
+								:src="rawOf(field)"
+								:alt="field.label"
+								class="cn-object-data-widget__image">
+							<!-- Relation name still resolving: a quiet skeleton bar,
 						     never a raw uuid or a bare '…' (ADR-062). -->
-						<span
-							v-else-if="isRelationPending(field)"
-							class="cn-object-data-widget__skeleton"
-							:aria-label="t('nextcloud-vue', 'Loading')" />
-						<!-- Array of OBJECTS → compact inline table (union of the
+							<span
+								v-else-if="isRelationPending(field)"
+								class="cn-object-data-widget__skeleton"
+								:aria-label="t('nextcloud-vue', 'Loading')" />
+							<!-- Array of OBJECTS → compact inline table (union of the
 						     first rows' keys, capped at 5 columns / 5 rows) so a
 						     structured value renders legibly instead of
 						     "[object Object]" (ADR-062). -->
-						<div
-							v-else-if="fieldValueKind(field) === 'object-array'"
-							class="cn-object-data-widget__mini-table-wrap">
-							<table class="cn-object-data-widget__mini-table">
-								<thead>
-									<tr>
-										<th v-for="col in objectArrayColumns(rawOf(field))" :key="col">
-											{{ col }}
-										</th>
-									</tr>
-								</thead>
-								<tbody>
-									<tr v-for="(row, ri) in objectArrayRows(rawOf(field))" :key="ri">
-										<td v-for="col in objectArrayColumns(rawOf(field))" :key="col">
-											{{ stringifyCell(row && row[col]) }}
-										</td>
-									</tr>
-								</tbody>
-							</table>
-							<div v-if="rawOf(field).length > 5" class="cn-object-data-widget__more">
-								{{ t('nextcloud-vue', '{count} more', { count: rawOf(field).length - 5 }) }}
+							<div
+								v-else-if="fieldValueKind(field) === 'object-array'"
+								class="cn-object-data-widget__mini-table-wrap">
+								<table class="cn-object-data-widget__mini-table">
+									<thead>
+										<tr>
+											<th v-for="col in objectArrayColumns(rawOf(field))" :key="col">
+												{{ col }}
+											</th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr v-for="(row, ri) in objectArrayRows(rawOf(field))" :key="ri">
+											<td v-for="col in objectArrayColumns(rawOf(field))" :key="col">
+												{{ stringifyCell(row && row[col]) }}
+											</td>
+										</tr>
+									</tbody>
+								</table>
+								<div v-if="rawOf(field).length > 5" class="cn-object-data-widget__more">
+									{{ t('nextcloud-vue', '{count} more', { count: rawOf(field).length - 5 }) }}
+								</div>
 							</div>
-						</div>
-						<!-- Array of SCALARS → comma-separated chips. -->
-						<div
-							v-else-if="fieldValueKind(field) === 'scalar-array'"
-							class="cn-object-data-widget__chips">
-							<span
-								v-for="(v, ci) in rawOf(field)"
-								:key="ci"
-								class="cn-object-data-widget__chip">
-								{{ stringifyCell(v) }}
-							</span>
-						</div>
-						<!-- Single plain OBJECT → key: value definition list. -->
-						<dl
-							v-else-if="fieldValueKind(field) === 'object'"
-							class="cn-object-data-widget__deflist">
-							<template v-for="(pair, pi) in objectEntries(rawOf(field))">
-								<dt :key="'k' + pi">
-									{{ pair[0] }}
-								</dt>
-								<dd :key="'v' + pi">
-									{{ stringifyCell(pair[1]) }}
-								</dd>
+							<!-- Array of SCALARS → comma-separated chips. -->
+							<div
+								v-else-if="fieldValueKind(field) === 'scalar-array'"
+								class="cn-object-data-widget__chips">
+								<span
+									v-for="(v, ci) in rawOf(field)"
+									:key="ci"
+									class="cn-object-data-widget__chip">
+									{{ stringifyCell(v) }}
+								</span>
+							</div>
+							<!-- Single plain OBJECT → key: value definition list. -->
+							<dl
+								v-else-if="fieldValueKind(field) === 'object'"
+								class="cn-object-data-widget__deflist">
+								<template v-for="(pair, pi) in objectEntries(rawOf(field))">
+									<dt :key="'k' + pi">
+										{{ pair[0] }}
+									</dt>
+									<dd :key="'v' + pi">
+										{{ stringifyCell(pair[1]) }}
+									</dd>
+								</template>
+							</dl>
+							<template v-else>
+								{{ displayValues[field.key] }}
 							</template>
-						</dl>
-						<template v-else>{{ displayValues[field.key] }}</template>
-					</template>
-					<Pencil
-						v-if="isEditable(field)"
-						class="cn-object-data-widget__edit-icon"
-						:size="14" />
+						</template>
+						<Pencil
+							v-if="isEditable(field)"
+							class="cn-object-data-widget__edit-icon"
+							:size="14" />
+					</div>
 				</div>
-			</div>
 			</div>
 			<!-- Bottom fade over the clipped whole-row boundary. -->
 			<div
@@ -625,20 +627,6 @@ export default {
 		}
 	},
 
-	mounted() {
-		this.resolveRelations()
-		this.scheduleOverflowMeasure()
-	},
-
-	updated() {
-		this.scheduleOverflowMeasure()
-	},
-
-	beforeDestroy() {
-		if (this._overflowObserver) this._overflowObserver.disconnect()
-		if (this._overflowTimer) clearTimeout(this._overflowTimer)
-	},
-
 	computed: {
 		iconComponent() {
 			return (this.icon && typeof this.icon !== 'string') ? this.icon : null
@@ -754,6 +742,20 @@ export default {
 		},
 	},
 
+	mounted() {
+		this.resolveRelations()
+		this.scheduleOverflowMeasure()
+	},
+
+	updated() {
+		this.scheduleOverflowMeasure()
+	},
+
+	beforeDestroy() {
+		if (this._overflowObserver) this._overflowObserver.disconnect()
+		if (this._overflowTimer) clearTimeout(this._overflowTimer)
+	},
+
 	methods: {
 		/** Pre-translated string helper exposed to the template. */
 		t,
@@ -857,7 +859,10 @@ export default {
 			return clip
 		},
 
-		/** Raw (possibly dirty) value for a field. */
+		/**
+		 * Raw (possibly dirty) value for a field.
+		 * @param field
+		 */
 		rawOf(field) {
 			const o = this.objectData || {}
 			return (field.key in this.dirtyFields) ? this.dirtyFields[field.key] : o[field.key]
@@ -942,7 +947,10 @@ export default {
 			}
 			return String(v)
 		},
-		/** Whether a field should render as an image preview. */
+		/**
+		 * Whether a field should render as an image preview.
+		 * @param field
+		 */
 		isImageField(field) {
 			if (field.widget === 'image') return true
 			const prop = this.schema.properties && this.schema.properties[field.key]
@@ -950,7 +958,10 @@ export default {
 			if (fmt === 'image' || String(fmt).indexOf('image/') === 0) return true
 			return /(^|[._-])(photo|image|avatar|logo|thumb|picture)/i.test(field.key)
 		},
-		/** The x-openregister-relation block for a property (scalar or array), or null. */
+		/**
+		 * The x-openregister-relation block for a property (scalar or array), or null.
+		 * @param prop
+		 */
 		relationProp(prop) {
 			if (!prop) return null
 			if (prop['x-openregister-relation']) return prop['x-openregister-relation']
@@ -978,7 +989,10 @@ export default {
 			const v = (typeof c === 'object' && 'value' in c) ? c.value : c
 			return (v && v.register) || ''
 		},
-		/** Whether a property is a relation. */
+		/**
+		 * Whether a property is a relation.
+		 * @param prop
+		 */
 		isRelationField(prop) {
 			return this.relationProp(prop) !== null
 		},
@@ -1482,6 +1496,11 @@ export default {
 	position: relative;
 }
 
+.cn-object-data-widget__grid {
+	display: grid;
+	gap: calc(2 * var(--default-grid-baseline, 4px)) calc(4 * var(--default-grid-baseline, 4px));
+}
+
 /* Collapsed + overflowing: the grid is clipped at a whole-row boundary
    (max-height set inline in collapsedGridStyle). No inner scrollbar. */
 .cn-object-data-widget__grid-wrap--clipped .cn-object-data-widget__grid {
@@ -1532,11 +1551,6 @@ export default {
 
 .cn-object-data-widget__grid-wrap--expanded {
 	background: var(--color-main-background);
-}
-
-.cn-object-data-widget__grid {
-	display: grid;
-	gap: calc(2 * var(--default-grid-baseline, 4px)) calc(4 * var(--default-grid-baseline, 4px));
 }
 
 .cn-object-data-widget__cell {
