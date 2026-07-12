@@ -2,14 +2,17 @@
  * Regression: a widget appended to the `widgets` prop array WHILE MOUNTED must
  * resolve on the next render.
  *
- * The in-app editor (CnOpenBuildEditButton "Add widget…") appends to the live
- * manifest's `page.config.widgets` / `.layout`. Widget lookup used to go through
- * a cached `widgetMap` computed, which does not subscribe to the prop array's
- * observer — so an appended widget never entered the map and its card rendered
- * the `unavailableLabel` placeholder, titled with its raw widget id, until the
- * page was fully reloaded. Observed 2026-07-12 on the openbuild `cowboy` builder:
- * a `type:"stat"` widget added via Add widget… rendered "Widget not available"
- * even though the saved manifest was correct.
+ * The in-app editor (CnOpenBuildEditButton "Add widget…") appends IN PLACE to the
+ * live manifest's `page.config.widgets` / `.layout` — it must, because
+ * CnPageRenderer's `resolvedProps` does not re-derive when those keys are swapped
+ * for new arrays, so a replaced array never reaches the page component at all.
+ *
+ * Widget lookup used to go through a cached `widgetMap` computed, which does not
+ * subscribe to the prop array's observer — so an appended widget never entered the
+ * map and its card rendered the `unavailableLabel` placeholder, titled with its raw
+ * widget id, until the page was fully reloaded. Observed 2026-07-12 on the openbuild
+ * `cowboy` builder: a `type:"stat"` widget added via Add widget… rendered "Widget not
+ * available" even though the saved manifest was correct.
  */
 
 jest.mock('gridstack', () => ({ GridStack: { init: jest.fn() } }), { virtual: true })
