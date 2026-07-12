@@ -358,6 +358,7 @@ export default {
 | `columnOverrides` | Object | `{}` | Per-column config overrides in schema mode |
 | `emptyText` | String | `'No items found'` | Text shown in the empty state |
 | `loadingText` | String | `'Loading…'` | Accessible label for the loading spinner (NcLoadingIcon aria-label) |
+| `rowIcon` | String \| Function | `null` | Optional leading icon for every table row — a static MDI name or `(row) => iconName`. Forwarded to CnDataTable; fed from the manifest as `pages[].config.rowIcon`. Unset = no icon column. |
 | `rowClass` | Function | `null` | Callback returning CSS class(es) for a row |
 | `rowIcon` | String \| Function | `null` | Optional leading row icon forwarded to CnDataTable — a static MDI icon name or `(row) => iconName`. Fed from the manifest as `pages[].config.rowIcon`; unset = no icon column |
 | `inlineActionCount` | Number | `2` | How many row actions to show inline (rest go in overflow menu) |

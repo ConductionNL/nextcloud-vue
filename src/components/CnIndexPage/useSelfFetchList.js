@@ -1,7 +1,25 @@
 import { ref, watch } from 'vue'
 import { useListView } from '../../composables/index.js'
 import { useObjectStore } from '../../store/index.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
+/**
+ * Resolve an index base/quick filter map at fetch time.
+ *
+ * Two grammars are applied, in order:
+ *  1. Route-param interpolation — `@route.<name>` / `:<name>` string values are
+ *     replaced with the matching `$route.params` entry (index-specific).
+ *  2. The shared fetch-time `@`-token grammar (via `resolveFilterTokens`):
+ *     `@me` (current user), `@today`/`@today±Nd`, `@monthStart`/`@quarterStart`/
+ *     `@yearStart`, etc. — the same tokens widget/KPI filters use — so an index
+ *     base filter can scope to the signed-in user (e.g. `{ assignee: '@me' }`)
+ *     or a relative date window without a bespoke wrapper. Literals and unknown
+ *     strings pass through unchanged.
+ *
+ * @param {object} filterMap The configured filter map.
+ * @param {object} params The current `$route.params`.
+ * @return {object} The resolved filter map.
+ */
 function resolveFilterMap(filterMap, params) {
 	if (!filterMap || typeof filterMap !== 'object') return {}
 	const out = {}
@@ -10,7 +28,7 @@ function resolveFilterMap(filterMap, params) {
 		else if (typeof v === 'string' && v.startsWith(':')) out[k] = params[v.slice(1)]
 		else out[k] = v
 	}
-	return out
+	return resolveFilterTokens(out)
 }
 
 /**

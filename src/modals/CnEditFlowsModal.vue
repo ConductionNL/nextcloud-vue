@@ -19,166 +19,164 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<NcModal size="large" :name="t('nextcloud-vue', 'Edit flows')" @close="$emit('close')">
-		<div class="cn-edit-flows">
-			<h2 class="cn-edit-flows__title">
-				{{ t('nextcloud-vue', 'Edit flows') }}
-			</h2>
-			<p class="cn-edit-flows__intro">
-				{{ t('nextcloud-vue', 'Flows run simple business logic when an object is created, updated or deleted — declared on a schema, no code. For example: when a pet is created, add a vet inspection to the calendar and email the vet.') }}
-			</p>
+	<NcDialog size="large" :name="t('nextcloud-vue', 'Edit flows')" @closing="$emit('close')">
+		<p class="cn-edit-flows__intro">
+			{{ t('nextcloud-vue', 'Flows run simple business logic when an object is created, updated or deleted — declared on a schema, no code. For example: when a pet is created, add a vet inspection to the calendar and email the vet.') }}
+		</p>
 
-			<div v-if="loading" class="cn-edit-flows__center">
-				<NcLoadingIcon :size="32" />
+		<div v-if="loading" class="cn-edit-flows__center">
+			<NcLoadingIcon :size="32" />
+		</div>
+		<NcNoteCard v-else-if="error" type="error">
+			{{ error }}
+		</NcNoteCard>
+		<NcNoteCard v-else-if="!schemas.length" type="warning">
+			{{ t('nextcloud-vue', 'This app has no schemas yet. Add data first (Edit data…), then attach flows to a schema.') }}
+		</NcNoteCard>
+
+		<template v-else>
+			<!-- Schema picker: flows are attached per schema. -->
+			<div class="cn-edit-flows__schema">
+				<NcSelect :value="selectedSchemaOption"
+					:options="schemaOptions"
+					:input-label="t('nextcloud-vue', 'Schema')"
+					:clearable="false"
+					@input="onSelectSchema" />
 			</div>
-			<NcNoteCard v-else-if="error" type="error">
-				{{ error }}
-			</NcNoteCard>
-			<NcNoteCard v-else-if="!schemas.length" type="warning">
-				{{ t('nextcloud-vue', 'This app has no schemas yet. Add data first (Edit data…), then attach flows to a schema.') }}
-			</NcNoteCard>
 
-			<template v-else>
-				<!-- Schema picker: flows are attached per schema. -->
-				<div class="cn-edit-flows__schema">
-					<NcSelect :value="selectedSchemaOption"
-						:options="schemaOptions"
-						:input-label="t('nextcloud-vue', 'Schema')"
+			<template v-if="selectedSchema">
+				<NcEmptyContent v-if="!flows.length"
+					:name="t('nextcloud-vue', 'No flows yet')"
+					:description="t('nextcloud-vue', 'Add a flow to run actions when this object changes.')">
+					<template #icon>
+						<Sitemap :size="20" />
+					</template>
+				</NcEmptyContent>
+
+				<div v-for="(flow, fi) in flows" :key="fi" class="cn-edit-flows__flow">
+					<div class="cn-edit-flows__flow-head">
+						<NcTextField class="cn-edit-flows__grow"
+							:value="flow.name"
+							:label="t('nextcloud-vue', 'Flow name')"
+							@update:value="(v) => $set(flow, 'name', v)" />
+						<NcButton type="tertiary"
+							:aria-label="t('nextcloud-vue', 'Remove flow')"
+							:title="t('nextcloud-vue', 'Remove flow')"
+							@click="removeFlow(fi)">
+							<template #icon>
+								<Delete :size="20" />
+							</template>
+						</NcButton>
+					</div>
+
+					<label class="cn-edit-flows__field-label">{{ t('nextcloud-vue', 'When') }}</label>
+					<NcSelect :value="triggerOption(flow.trigger)"
+						:options="triggerOptions"
 						:clearable="false"
-						@input="onSelectSchema" />
-				</div>
+						:input-label="t('nextcloud-vue', 'Trigger')"
+						@input="(o) => $set(flow, 'trigger', o ? o.id : 'created')" />
 
-				<template v-if="selectedSchema">
-					<NcEmptyContent v-if="!flows.length"
-						:name="t('nextcloud-vue', 'No flows yet')"
-						:description="t('nextcloud-vue', 'Add a flow to run actions when this object changes.')">
-						<template #icon>
-							<Sitemap :size="20" />
-						</template>
-					</NcEmptyContent>
-
-					<div v-for="(flow, fi) in flows" :key="fi" class="cn-edit-flows__flow">
-						<div class="cn-edit-flows__flow-head">
-							<NcTextField class="cn-edit-flows__grow"
-								:value="flow.name"
-								:label="t('nextcloud-vue', 'Flow name')"
-								@update:value="(v) => $set(flow, 'name', v)" />
+					<div v-for="(action, ai) in flow.actions" :key="ai" class="cn-edit-flows__action">
+						<div class="cn-edit-flows__action-head">
+							<NcSelect class="cn-edit-flows__grow"
+								:value="actionTypeOption(action.type)"
+								:options="actionTypeOptions"
+								:clearable="false"
+								:input-label="t('nextcloud-vue', 'Action')"
+								@input="(o) => setActionType(action, o)" />
 							<NcButton type="tertiary"
-								:aria-label="t('nextcloud-vue', 'Remove flow')"
-								:title="t('nextcloud-vue', 'Remove flow')"
-								@click="removeFlow(fi)">
+								:aria-label="t('nextcloud-vue', 'Remove action')"
+								:title="t('nextcloud-vue', 'Remove action')"
+								@click="removeAction(flow, ai)">
 								<template #icon>
 									<Delete :size="20" />
 								</template>
 							</NcButton>
 						</div>
 
-						<label class="cn-edit-flows__field-label">{{ t('nextcloud-vue', 'When') }}</label>
-						<NcSelect :value="triggerOption(flow.trigger)"
-							:options="triggerOptions"
-							:clearable="false"
-							:input-label="t('nextcloud-vue', 'Trigger')"
-							@input="(o) => $set(flow, 'trigger', o ? o.id : 'created')" />
-
-						<div v-for="(action, ai) in flow.actions" :key="ai" class="cn-edit-flows__action">
-							<div class="cn-edit-flows__action-head">
-								<NcSelect class="cn-edit-flows__grow"
-									:value="actionTypeOption(action.type)"
-									:options="actionTypeOptions"
-									:clearable="false"
-									:input-label="t('nextcloud-vue', 'Action')"
-									@input="(o) => setActionType(action, o)" />
-								<NcButton type="tertiary"
-									:aria-label="t('nextcloud-vue', 'Remove action')"
-									:title="t('nextcloud-vue', 'Remove action')"
-									@click="removeAction(flow, ai)">
-									<template #icon>
-										<Delete :size="20" />
-									</template>
-								</NcButton>
+						<!-- Calendar-event fields -->
+						<template v-if="isCalendar(action.type)">
+							<NcTextField :value="action.summary"
+								:label="t('nextcloud-vue', 'Event title')"
+								@update:value="(v) => $set(action, 'summary', v)" />
+							<label class="cn-edit-flows__field-label">{{ t('nextcloud-vue', 'Description') }}</label>
+							<textarea class="cn-edit-flows__textarea"
+								:value="action.description"
+								rows="2"
+								@input="(e) => $set(action, 'description', e.target.value)" />
+							<NcTextField :value="action.location"
+								:label="t('nextcloud-vue', 'Location')"
+								@update:value="(v) => $set(action, 'location', v)" />
+							<div class="cn-edit-flows__row">
+								<NcTextField type="number"
+									:value="String(action.offsetDays != null ? action.offsetDays : 1)"
+									:label="t('nextcloud-vue', 'Days from now')"
+									@update:value="(v) => $set(action, 'offsetDays', v)" />
+								<NcTextField type="number"
+									:value="String(action.durationMinutes != null ? action.durationMinutes : 30)"
+									:label="t('nextcloud-vue', 'Duration (minutes)')"
+									@update:value="(v) => $set(action, 'durationMinutes', v)" />
 							</div>
+						</template>
 
-							<!-- Calendar-event fields -->
-							<template v-if="isCalendar(action.type)">
-								<NcTextField :value="action.summary"
-									:label="t('nextcloud-vue', 'Event title')"
-									@update:value="(v) => $set(action, 'summary', v)" />
-								<label class="cn-edit-flows__field-label">{{ t('nextcloud-vue', 'Description') }}</label>
-								<textarea class="cn-edit-flows__textarea"
-									:value="action.description"
-									rows="2"
-									@input="(e) => $set(action, 'description', e.target.value)" />
-								<NcTextField :value="action.location"
-									:label="t('nextcloud-vue', 'Location')"
-									@update:value="(v) => $set(action, 'location', v)" />
-								<div class="cn-edit-flows__row">
-									<NcTextField type="number"
-										:value="String(action.offsetDays != null ? action.offsetDays : 1)"
-										:label="t('nextcloud-vue', 'Days from now')"
-										@update:value="(v) => $set(action, 'offsetDays', v)" />
-									<NcTextField type="number"
-										:value="String(action.durationMinutes != null ? action.durationMinutes : 30)"
-										:label="t('nextcloud-vue', 'Duration (minutes)')"
-										@update:value="(v) => $set(action, 'durationMinutes', v)" />
-								</div>
-							</template>
-
-							<!-- Email fields -->
-							<template v-else-if="isEmail(action.type)">
-								<NcTextField :value="action.to"
-									:label="t('nextcloud-vue', 'Send to (email)')"
-									@update:value="(v) => $set(action, 'to', v)" />
-								<NcTextField :value="action.subject"
-									:label="t('nextcloud-vue', 'Subject')"
-									@update:value="(v) => $set(action, 'subject', v)" />
-								<label class="cn-edit-flows__field-label">{{ t('nextcloud-vue', 'Message') }}</label>
-								<textarea class="cn-edit-flows__textarea"
-									:value="action.body"
-									rows="3"
-									@input="(e) => $set(action, 'body', e.target.value)" />
-							</template>
-						</div>
-
-						<NcButton type="secondary" @click="addAction(flow)">
-							<template #icon>
-								<Plus :size="20" />
-							</template>
-							{{ t('nextcloud-vue', 'Add action') }}
-						</NcButton>
+						<!-- Email fields -->
+						<template v-else-if="isEmail(action.type)">
+							<NcTextField :value="action.to"
+								:label="t('nextcloud-vue', 'Send to (email)')"
+								@update:value="(v) => $set(action, 'to', v)" />
+							<NcTextField :value="action.subject"
+								:label="t('nextcloud-vue', 'Subject')"
+								@update:value="(v) => $set(action, 'subject', v)" />
+							<label class="cn-edit-flows__field-label">{{ t('nextcloud-vue', 'Message') }}</label>
+							<textarea class="cn-edit-flows__textarea"
+								:value="action.body"
+								rows="3"
+								@input="(e) => $set(action, 'body', e.target.value)" />
+						</template>
 					</div>
 
-					<div class="cn-edit-flows__actions-bar">
-						<NcButton type="secondary" @click="addFlow">
-							<template #icon>
-								<Plus :size="20" />
-							</template>
-							{{ t('nextcloud-vue', 'Add flow') }}
-						</NcButton>
-					</div>
+					<NcButton type="secondary" @click="addAction(flow)">
+						<template #icon>
+							<Plus :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Add action') }}
+					</NcButton>
+				</div>
 
-					<p class="cn-edit-flows__hint">
-						{{ t('nextcloud-vue', 'Tip: insert a value from the object with double braces, e.g.') }}
-						<code>{{ placeholderExample }}</code>.
-						<span v-if="schemaFieldHint">{{ schemaFieldHint }}</span>
-					</p>
+				<div class="cn-edit-flows__actions-bar">
+					<NcButton type="secondary" @click="addFlow">
+						<template #icon>
+							<Plus :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Add flow') }}
+					</NcButton>
+				</div>
 
-					<div class="cn-edit-flows__footer">
-						<NcButton type="primary" :disabled="busy" @click="save">
-							<template #icon>
-								<NcLoadingIcon v-if="busy" :size="20" />
-								<ContentSave v-else :size="20" />
-							</template>
-							{{ t('nextcloud-vue', 'Save flows') }}
-						</NcButton>
-					</div>
-				</template>
+				<p class="cn-edit-flows__hint">
+					{{ t('nextcloud-vue', 'Tip: insert a value from the object with double braces, e.g.') }}
+					<code>{{ placeholderExample }}</code>.
+					<span v-if="schemaFieldHint">{{ schemaFieldHint }}</span>
+				</p>
 			</template>
-		</div>
-	</NcModal>
+		</template>
+
+		<template #actions>
+			<NcButton v-if="selectedSchema"
+				type="primary"
+				:disabled="busy"
+				@click="save">
+				<template #icon>
+					<NcLoadingIcon v-if="busy" :size="20" />
+					<ContentSave v-else :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Save flows') }}
+			</NcButton>
+		</template>
+	</NcDialog>
 </template>
 
 <script>
-import { NcModal, NcButton, NcTextField, NcSelect, NcLoadingIcon, NcNoteCard, NcEmptyContent } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcTextField, NcSelect, NcLoadingIcon, NcNoteCard, NcEmptyContent } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
@@ -210,7 +208,7 @@ function unwrap(data) {
 export default {
 	name: 'CnEditFlowsModal',
 
-	components: { NcModal, NcButton, NcTextField, NcSelect, NcLoadingIcon, NcNoteCard, NcEmptyContent, Plus, Delete, ContentSave, Sitemap },
+	components: { NcDialog, NcButton, NcTextField, NcSelect, NcLoadingIcon, NcNoteCard, NcEmptyContent, Plus, Delete, ContentSave, Sitemap },
 
 	props: {
 		/**
@@ -512,16 +510,6 @@ export default {
 </script>
 
 <style scoped>
-.cn-edit-flows {
-	padding: 20px;
-	max-height: 80vh;
-	overflow-y: auto;
-}
-
-.cn-edit-flows__title {
-	margin: 0 0 8px;
-}
-
 .cn-edit-flows__intro {
 	color: var(--color-text-maxcontrast);
 	margin-bottom: 16px;
@@ -602,10 +590,5 @@ export default {
 	color: var(--color-text-maxcontrast);
 	font-size: 0.9em;
 	margin: 8px 0 16px;
-}
-
-.cn-edit-flows__footer {
-	display: flex;
-	justify-content: flex-end;
 }
 </style>

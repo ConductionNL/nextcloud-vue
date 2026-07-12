@@ -116,6 +116,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcListItem, NcLoadingIcon, NcSelect, NcDateTimePickerNative } from '@nextcloud/vue'
 import History from 'vue-material-design-icons/History.vue'
 import { buildHeaders } from '../../utils/index.js'
@@ -214,8 +215,11 @@ export default {
 			this.loadingMore = this.page > 1
 			try {
 				const query = this.buildQueryParams()
+				// generateUrl prepends the Nextcloud webroot + `/index.php` so the
+				// request resolves on instances without URL rewriting.
+				const url = generateUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/audit-trails`)
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/audit-trails?${query}`,
+					`${url}?${query}`,
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {
