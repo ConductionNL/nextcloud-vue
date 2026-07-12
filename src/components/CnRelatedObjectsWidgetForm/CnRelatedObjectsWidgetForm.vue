@@ -26,15 +26,40 @@
 		<p class="cn-related-form__hint">
 			{{ t('nextcloud-vue', 'Leave empty to show every relation that has items. Empty groups are always hidden.') }}
 		</p>
+
+		<NcCheckboxRadioSwitch
+			:checked="hideSingleTabTitle"
+			type="switch"
+			@update:checked="updateField('hideSingleTabTitle', $event)">
+			{{ t('nextcloud-vue', 'Hide the tab bar when only one relation is shown') }}
+		</NcCheckboxRadioSwitch>
+		<p class="cn-related-form__hint">
+			{{ t('nextcloud-vue', 'A lone tab just repeats the widget title.') }}
+		</p>
+
+		<NcCheckboxRadioSwitch
+			:checked="showTotalCount"
+			type="switch"
+			@update:checked="updateField('showTotalCount', $event)">
+			{{ t('nextcloud-vue', 'Show a total count next to the title') }}
+		</NcCheckboxRadioSwitch>
+		<p class="cn-related-form__hint">
+			{{ t('nextcloud-vue', 'Totals the items across every relation shown.') }}
+		</p>
 	</div>
 </template>
 
 <script>
-import { NcTextField, NcSelect } from '@nextcloud/vue'
+import { NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import { RELATED_GROUPS } from '../CnRelatedObjectsWidget/relatedGroups.js'
 
-const DEFAULT_CONTENT = Object.freeze({ title: '', groups: [] })
+const DEFAULT_CONTENT = Object.freeze({
+	title: '',
+	groups: [],
+	hideSingleTabTitle: true,
+	showTotalCount: true,
+})
 
 /**
  * CnRelatedObjectsWidgetForm — the config sub-form for a `related` widget
@@ -47,7 +72,7 @@ const DEFAULT_CONTENT = Object.freeze({ title: '', groups: [] })
 export default {
 	name: 'CnRelatedObjectsWidgetForm',
 
-	components: { NcTextField, NcSelect },
+	components: { NcTextField, NcSelect, NcCheckboxRadioSwitch },
 
 	props: {
 		/** The placement being edited (pre-fills from `editingWidget.content`), or null. @type {{content: object}|null} */
@@ -70,6 +95,10 @@ export default {
 		return {
 			title: initial.title ?? '',
 			groups: Array.isArray(initial.groups) ? [...initial.groups] : [],
+			// Widgets configured before these options existed carry neither key;
+			// both default on so the tab/title duplication is gone by default.
+			hideSingleTabTitle: initial.hideSingleTabTitle ?? true,
+			showTotalCount: initial.showTotalCount ?? true,
 		}
 	},
 
@@ -84,7 +113,12 @@ export default {
 		},
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
-			return { title: this.title, groups: this.groups }
+			return {
+				title: this.title,
+				groups: this.groups,
+				hideSingleTabTitle: this.hideSingleTabTitle,
+				showTotalCount: this.showTotalCount,
+			}
 		},
 	},
 
