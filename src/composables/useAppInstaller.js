@@ -1,6 +1,14 @@
 import { ref } from 'vue'
-import axios from '@nextcloud/axios'
+// Namespace import + explicit default-unwrap: @nextcloud/axios stays external, so
+// a consumer that resolves its ESM build makes `require('@nextcloud/axios')` a
+// namespace `{default: axiosInstance, …}`. A plain `import axios from …` compiles
+// to a bare require in our CJS dist, so `axios.interceptors` would be undefined
+// → `addPasswordConfirmationInterceptors(axios)` crashes ("reading 'request'").
+// Unwrap the default ourselves so it works under either resolution.
+import * as axiosModule from '@nextcloud/axios'
 import { generateOcsUrl, generateUrl } from '@nextcloud/router'
+
+const axios = axiosModule.default || axiosModule
 import {
 	addPasswordConfirmationInterceptors,
 	confirmPassword,

@@ -138,6 +138,8 @@
   "CnObjectCard": 0.7,
   "CnObjectDataWidget": 0.72,
   "CnObjectDataWidgetForm": 1,
+  "CnObjectGeoWidget": 1,
+  "CnObjectGeoWidgetForm": 1,
   "CnObjectList": 1,
   "CnObjectListWidget": 1,
   "CnObjectListWidgetForm": 1,

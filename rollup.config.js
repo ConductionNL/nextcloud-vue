@@ -5,9 +5,40 @@ import { nodeResolve } from '@rollup/plugin-node-resolve'
 import commonjs from '@rollup/plugin-commonjs'
 import json from '@rollup/plugin-json'
 import path from 'path'
+import fs from 'fs'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+/**
+ * Ship Leaflet's marker/layer images alongside the extracted CSS.
+ *
+ * `CnMapWidget` statically imports `leaflet/dist/leaflet.css`, which postcss
+ * inlines into `dist/nextcloud-vue.css` with relative `url(images/marker-icon.png)`
+ * references. Those paths are resolved by a CONSUMER's bundler relative to our
+ * `dist/` dir — where `images/` would otherwise not exist, breaking the
+ * consumer build (e.g. `Module not found: images/layers.png`). Copying
+ * Leaflet's images into `dist/images/` makes the relative refs resolve for
+ * every consumer.
+ *
+ * @return {import('rollup').Plugin} A rollup plugin copying Leaflet images.
+ */
+function copyLeafletImages() {
+	return {
+		name: 'copy-leaflet-images',
+		writeBundle() {
+			const srcDir = path.resolve(__dirname, 'node_modules/leaflet/dist/images')
+			const outDir = path.resolve(__dirname, 'dist/images')
+			if (!fs.existsSync(srcDir)) {
+				return
+			}
+			fs.mkdirSync(outDir, { recursive: true })
+			for (const file of fs.readdirSync(srcDir)) {
+				fs.copyFileSync(path.join(srcDir, file), path.join(outDir, file))
+			}
+		},
+	}
+}
 
 /**
  * Unwrap a `:deep( … )` token, honouring nested parens (e.g. `:deep(.x:not(.y))`).
@@ -128,6 +159,7 @@ export default {
 		)
 	},
 	plugins: [
+		copyLeafletImages(),
 		{
 			name: 'resolve-apexcharts',
 			resolveId(source) {
@@ -135,6 +167,37 @@ export default {
 					return path.resolve(__dirname, 'node_modules/apexcharts/dist/apexcharts.min.js')
 				}
 				return null
+			},
+		},
+		{
+			// vue-demi (pulled in by vue-codemirror6 via CnJsonViewer, and by
+			// @vueuse) resolves to its ESM entry `lib/index.mjs`, which does an
+			// unguarded `import Vue from 'vue'; Vue.util.warn`. Two failure modes
+			// stem from vue-demi's version-switch shipping the wrong variant in a
+			// nested copy:
+			//   1. The Vue-2.6 variant lacks `defineComponent`, so vue-codemirror6's
+			//      `mG.defineComponent(...)` crashes at mount ("defineComponent is
+			//      not a function").
+			//   2. The `.cjs` re-exports Vue's named exports via a RUNTIME
+			//      `Object.keys(require('vue'))` loop, which drops `defineComponent`
+			//      when the external `vue` is provided as a bare constructor.
+			// Since this library targets Vue 2.7, pin every `vue-demi` copy to its
+			// `lib/v2.7/index.mjs` variant — it statically `export *`s from `vue`,
+			// so rollup re-exports Vue 2.7's `defineComponent` (and friends)
+			// correctly regardless of the consumer's vue interop shape. Falls back
+			// to the resolved id when the v2.7 variant is absent.
+			name: 'resolve-vue-demi-v27',
+			async resolveId(source, importer, options) {
+				if (source !== 'vue-demi') {
+					return null
+				}
+				const resolved = await this.resolve(source, importer, { ...options, skipSelf: true })
+				if (!resolved || resolved.external) {
+					return resolved
+				}
+				// e.g. .../vue-demi/lib/index.mjs → .../vue-demi/lib/v2.7/index.mjs
+				const v27 = resolved.id.replace(/lib[/\\]index\.(mjs|cjs|js)$/, 'lib/v2.7/index.mjs')
+				return (v27 !== resolved.id && fs.existsSync(v27)) ? { ...resolved, id: v27 } : resolved
 			},
 		},
 		vue({ css: false }),
