@@ -44,6 +44,24 @@
 				@close="() => {}" />
 		</template>
 
+		<!--
+			CnSchemaFormDialog schema-reference dropdown (gated behind ?sref=1).
+			available-schemas are shaped like OpenBuild passes them — keyed by
+			title/slug with NO `label` — so the e2e reproduces the "undefined" options
+			bug, and a ready-made array-of-object property renders the select at once.
+		-->
+		<template v-else-if="showSchemaRef">
+			<h2>Schema editor — schema reference</h2>
+			<CnSchemaFormDialog
+				:item="srefSchema"
+				dialog-title="New schema"
+				:available-registers="srefRegisters"
+				:available-schemas="srefSchemas"
+				:show-delete="false"
+				@confirm="() => {}"
+				@close="() => {}" />
+		</template>
+
 		<!-- CnFormDialog schema-driven widget:'icon' (gated behind ?fd=1). -->
 		<template v-else-if="showFormDialog">
 			<h2>Form dialog — schema-driven icon field</h2>
@@ -154,6 +172,23 @@ export default {
 			// Schema editor with one string property, for the enum-add arrow test (?spa=1).
 			showSchemaForm: (typeof window !== 'undefined' && window.location.search.includes('spa')),
 			spaSchema: { title: 'Cow', properties: { size: { type: 'string' } }, required: [] },
+			// Schema-reference dropdown harness (?sref=1).
+			showSchemaRef: (typeof window !== 'undefined' && window.location.search.includes('sref')),
+			srefSchemas: [
+				{ id: 100, slug: 'cow', title: 'Cow' },
+				{ id: 101, slug: 'stable', title: 'Stable' },
+			],
+			srefRegisters: [{ id: 5, title: 'Production' }],
+			srefSchema: {
+				title: 'Barn',
+				properties: {
+					cows: {
+						type: 'array',
+						items: { type: 'object', objectConfiguration: { handling: 'related-schema' } },
+					},
+				},
+				required: [],
+			},
 			sdManifest: { pages: [{ config: { register: 'harness-register' } }] },
 			icon: null,
 			placement: 'left',
