@@ -44,6 +44,34 @@
 				</div>
 			</div>
 
+			<!--
+				The server classified the schema edit as BREAKING and refused it until it
+				is acknowledged. Show the user exactly WHICH changes it objected to, then
+				let them re-save with the acknowledgement — without this the edit is
+				simply impossible from the UI.
+			-->
+			<div v-else-if="pendingBreaking" class="cn-edit-data__confirm cn-edit-data__confirm--breaking">
+				<p class="cn-edit-data__confirm-lead">
+					{{ t('nextcloud-vue', 'This change breaks the existing data model:') }}
+				</p>
+				<ul class="cn-edit-data__breaking-list">
+					<li v-for="(change, i) in breakingChanges" :key="`bc-${i}`">
+						{{ describeBreakingChange(change) }}
+					</li>
+				</ul>
+				<p class="cn-edit-data__confirm-note">
+					{{ t('nextcloud-vue', 'Objects already stored under this schema may no longer match it. Save anyway?') }}
+				</p>
+				<div class="cn-edit-data__confirm-actions">
+					<NcButton type="tertiary" :disabled="busy" @click="cancelBreaking">
+						{{ t('nextcloud-vue', 'Back to editing') }}
+					</NcButton>
+					<NcButton type="warning" :disabled="busy" @click="confirmBreaking">
+						{{ t('nextcloud-vue', 'Save anyway') }}
+					</NcButton>
+				</div>
+			</div>
+
 			<!-- No register yet → offer to create one. -->
 			<div v-else-if="!registers.length" class="cn-edit-data__empty">
 				<p>{{ t('nextcloud-vue', 'This app has no data register yet. Create one to start adding schemas.') }}</p>
@@ -199,6 +227,15 @@ import Close from 'vue-material-design-icons/Close.vue'
 import CnSchemaFormDialog from '../components/CnSchemaFormDialog/CnSchemaFormDialog.vue'
 import { buildHeaders } from '../utils/headers.js'
 import { parseAxiosError } from '../utils/errors.js'
+// The OpenRegister schema API contract lives in one place so this dialog and
+// OpenRegister's own editor cannot drift on what a 409 means.
+import {
+	saveSchema,
+	deleteSchema,
+	describeSchemaChange,
+	SchemaBreakingChangeError,
+	SchemaHasObjectsError,
+} from '../utils/schemaApi.js'
 
 /**
  * Unwrap an OpenRegister API payload (`{result}` / `{results}` / array / object).
@@ -277,6 +314,10 @@ export default {
 			// `{ schema, objectCount }`. Drives the cascade confirmation — the
 			// destructive "delete the objects too" path is never a single click.
 			pendingCascade: null,
+			// Set when a schema SAVE was refused as a breaking change:
+			// `{ schema, changes }`. Drives the breaking-change confirmation, which
+			// re-saves with `acknowledgeBreaking` — the only way the edit can land.
+			pendingBreaking: null,
 			// The app's registers (full OR objects).
 			registers: [],
 			selectedRegisterId: null,
@@ -322,6 +363,10 @@ export default {
 				'Delete schema and %n objects',
 				count,
 			)
+		},
+		/** The changes the server flagged as breaking, for the confirmation list. */
+		breakingChanges() {
+			return (this.pendingBreaking && this.pendingBreaking.changes) || []
 		},
 		/** Distinct, non-empty register slugs referenced by the manifest's pages. */
 		manifestRegisterSlugs() {
@@ -510,36 +555,85 @@ export default {
 		/**
 		 * Persist a schema from the editor: PUT when editing, else POST + link
 		 * the new schema id onto the register.
+		 *
+		 * OpenRegister refuses some edits (e.g. a property going from `string` to
+		 * `object` when it becomes a related object) with 409 + `classification:
+		 * "breaking"` unless the request acknowledges it. Never acknowledge on the
+		 * user's behalf — surface what the server objected to and let them decide.
+		 *
 		 * @param {object} schema The schema payload from CnSchemaFormDialog.
+		 * @param {boolean} [acknowledgeBreaking] Re-send accepting the breaking change.
 		 * @return {Promise<void>}
 		 */
-		async onSchemaConfirm(schema) {
+		async onSchemaConfirm(schema, acknowledgeBreaking = false) {
 			this.busy = true
 			this.error = ''
+			const id = this.editingSchema && this.editingSchema.id
 			try {
-				if (this.editingSchema && this.editingSchema.id) {
-					await axios.put(
-						generateUrl(`/apps/openregister/api/schemas/${this.editingSchema.id}`),
-						schema,
-						{ headers: this.headers() },
-					)
-				} else {
-					const { data } = await axios.post(
-						generateUrl('/apps/openregister/api/schemas'),
-						schema,
-						{ headers: this.headers() },
-					)
-					const created = unwrap(data)
-					if (created && created.id) await this.linkSchema(created.id)
-				}
+				const saved = await saveSchema(schema, {
+					id,
+					acknowledgeBreaking,
+					headers: this.headers(),
+				})
+				if (!id && saved && saved.id) await this.linkSchema(saved.id)
+
+				this.pendingBreaking = null
 				this.showSchemaDialog = false
 				invalidateDataCache()
 				await this.loadSchemas()
 			} catch (e) {
-				this.error = parseAxiosError(e).message || t('nextcloud-vue', 'Failed to save the schema.')
+				if (e instanceof SchemaBreakingChangeError) {
+					// Offer the acknowledgement instead of a dead end. Hide the editor so
+					// the confirmation is not painted underneath it (nested dialogs sit on
+					// a higher layer); `cancelBreaking` puts the user straight back into it
+					// with their edits intact.
+					//
+					// saveSchema only raises this when the attempt was NOT acknowledged, so
+					// an acknowledged save that is still refused falls through to the error
+					// branch rather than re-arming the prompt forever.
+					this.pendingBreaking = { schema, changes: e.changes }
+					this.showSchemaDialog = false
+					this.error = ''
+				} else if (acknowledgeBreaking && parseAxiosError(e).status === 409) {
+					this.pendingBreaking = null
+					this.error = t('nextcloud-vue', 'The server rejected the change even with the breaking-change acknowledgement.')
+				} else {
+					this.pendingBreaking = null
+					this.error = parseAxiosError(e).message || t('nextcloud-vue', 'Failed to save the schema.')
+				}
 			} finally {
 				this.busy = false
 			}
+		},
+		/**
+		 * Re-save the pending schema, this time acknowledging the breaking change.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async confirmBreaking() {
+			const pending = this.pendingBreaking
+			if (!pending) return
+			await this.onSchemaConfirm(pending.schema, true)
+		},
+		/**
+		 * Abandon the acknowledgement and drop the user back into the editor with the
+		 * edits they made — cancelling must not throw their work away.
+		 */
+		cancelBreaking() {
+			this.pendingBreaking = null
+			this.showSchemaDialog = true
+		},
+		/**
+		 * Human-readable line for one entry of the server's `changes[]`, e.g.
+		 * `{property: 'barn', kind: 'type_changed', old: 'string', new: 'object'}`
+		 * → "barn: type changed from string to object".
+		 *
+		 * @param {object} change One change descriptor from the 409 body.
+		 * @return {string} The description.
+		 */
+		describeBreakingChange(change) {
+			// Shared wording — OpenRegister's editor renders the same warning.
+			return describeSchemaChange(change, t)
 		},
 		/** Delete the schema currently open in the editor (editor Delete button). */
 		async onSchemaDelete() {
@@ -587,9 +681,7 @@ export default {
 			this.busy = true
 			this.error = ''
 			try {
-				const url = generateUrl(`/apps/openregister/api/schemas/${schema.id}`)
-					+ (deleteObjects ? '?deleteObjects=true' : '')
-				await axios.delete(url, { headers: this.headers() })
+				await deleteSchema(schema.id, { deleteObjects, headers: this.headers() })
 
 				// Only now that the schema is really gone is it safe to unlink it.
 				const reg = this.selectedRegister
@@ -607,25 +699,22 @@ export default {
 				invalidateDataCache()
 				await this.loadSchemas()
 			} catch (e) {
-				const { code, message, data } = parseAxiosError(e)
-
-				// Only offer the cascade for a PLAIN delete. If the CASCADE itself came
-				// back "still has objects", re-prompting would put the same confirmation
-				// straight back on screen and the user would loop forever, confirming a
-				// destructive action that never lands. That happens for real: an
+				// deleteSchema only raises SchemaHasObjectsError for a PLAIN delete. If the
+				// CASCADE itself came back "still has objects", re-prompting would put the
+				// same confirmation straight back on screen and the user would loop forever,
+				// confirming a destructive action that never lands. That happens for real: an
 				// OpenRegister too old to know `?deleteObjects=true` ignores the flag and
 				// answers 409 exactly as before. Report it instead.
-				if (code === 'schema-has-objects' && !deleteObjects) {
+				if (e instanceof SchemaHasObjectsError) {
 					// Confirm-gated: this permanently deletes the objects, never one click.
-					const count = (data && Number(data.objectCount)) || 0
-					this.pendingCascade = { schema, objectCount: count }
+					this.pendingCascade = { schema, objectCount: e.objectCount }
 					this.error = ''
-				} else if (code === 'schema-has-objects') {
+				} else if (deleteObjects && parseAxiosError(e).code === 'schema-has-objects') {
 					this.pendingCascade = null
 					this.error = t('nextcloud-vue', 'Could not delete the schema and its objects. The server still reports objects attached — it may not support deleting them along with the schema.')
 				} else {
 					this.pendingCascade = null
-					this.error = message || t('nextcloud-vue', 'Failed to remove the schema.')
+					this.error = parseAxiosError(e).message || t('nextcloud-vue', 'Failed to remove the schema.')
 				}
 			} finally {
 				this.busy = false
@@ -725,6 +814,23 @@ export default {
 .cn-edit-data__confirm-lead {
 	font-weight: bold;
 	margin-bottom: 4px;
+}
+
+/* The breaking-change confirmation is a warning, not a destruction. */
+.cn-edit-data__confirm--breaking {
+	border-inline-start: 4px solid var(--color-warning, var(--color-primary));
+}
+
+.cn-edit-data__breaking-list {
+	margin: 0 0 8px;
+	padding-inline-start: 20px;
+	list-style: disc;
+}
+
+.cn-edit-data__breaking-list li {
+	color: var(--color-text-maxcontrast);
+	font-family: var(--font-face-monospace, monospace);
+	font-size: 90%;
 }
 
 .cn-edit-data__confirm-note {
