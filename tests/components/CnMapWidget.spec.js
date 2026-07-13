@@ -148,6 +148,12 @@ jest.mock('leaflet.markercluster', () => ({}), { virtual: true })
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
+/**
+ * Every url L.tileLayer was asked to build, in call order.
+ * @param L
+ */
+const tileUrls = (L) => L.tileLayer.mock.calls.map(([url]) => url)
+
 const mountWidget = (propsData) => mount(CnMapWidget, {
 	propsData: {
 		center: [52, 5],
@@ -217,7 +223,9 @@ describe('CnMapWidget — layer dispatch', () => {
 		await flush(); await nextTick()
 		expect(warn).toHaveBeenCalledWith(expect.stringContaining('Unknown layer type "kml"'))
 		const L = require('leaflet').default
-		expect(L.tileLayer).not.toHaveBeenCalled()
+		// The unknown def creates no layer. A basemap still appears — a map with a
+		// broken layer config should show a background, not a grey box.
+		expect(tileUrls(L)).not.toContain('https://a/{z}/{x}/{y}.png')
 		warn.mockRestore()
 		wrapper.destroy()
 	})
@@ -228,7 +236,10 @@ describe('CnMapWidget — layer dispatch', () => {
 		})
 		await flush(); await nextTick()
 		const L = require('leaflet').default
-		expect(L.tileLayer).not.toHaveBeenCalled()
+		// Same: the empty-url def is not turned into a layer...
+		expect(tileUrls(L)).not.toContain('')
+		// ...but the widget still falls back to a background rather than render grey.
+		expect(tileUrls(L).some((u) => u.includes('openstreetmap'))).toBe(true)
 		wrapper.destroy()
 	})
 
@@ -523,11 +534,25 @@ describe('CnMapWidget — base maps', () => {
 		wrapper.destroy()
 	})
 
-	it('does not fall back to a basemap when none is configured', async () => {
+	// This test used to assert the OPPOSITE — that a map with no configured basemap
+	// renders no tile layer at all. That was never the intent (renderBasemaps()'s own
+	// docblock always promised a fallback "so a map is never left with a blank
+	// background"); it locked in the accidental behaviour instead. The result was a
+	// dashboard Map widget that mounted Leaflet, drew its zoom controls, and rendered
+	// as a grey box.
+	it('falls back to a basemap when none is configured, so the map is never blank', async () => {
 		const wrapper = mountWidget({})
 		await flush(); await nextTick()
 		const L = require('leaflet').default
-		expect(L.tileLayer).not.toHaveBeenCalled()
+		expect(tileUrls(L).some((u) => u.includes('openstreetmap'))).toBe(true)
+		wrapper.destroy()
+	})
+
+	it('does not stack the fallback under a consumer-supplied tile layer', async () => {
+		const wrapper = mountWidget({ layers: [{ type: 'tile', url: 'https://pdok/{z}/{x}/{y}.png' }] })
+		await flush(); await nextTick()
+		const L = require('leaflet').default
+		expect(tileUrls(L)).toEqual(['https://pdok/{z}/{x}/{y}.png'])
 		wrapper.destroy()
 	})
 })
