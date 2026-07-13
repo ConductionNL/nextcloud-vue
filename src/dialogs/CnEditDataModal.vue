@@ -227,6 +227,15 @@ import Close from 'vue-material-design-icons/Close.vue'
 import CnSchemaFormDialog from '../components/CnSchemaFormDialog/CnSchemaFormDialog.vue'
 import { buildHeaders } from '../utils/headers.js'
 import { parseAxiosError } from '../utils/errors.js'
+// The OpenRegister schema API contract lives in one place so this dialog and
+// OpenRegister's own editor cannot drift on what a 409 means.
+import {
+	saveSchema,
+	deleteSchema,
+	describeSchemaChange,
+	SchemaBreakingChangeError,
+	SchemaHasObjectsError,
+} from '../utils/schemaApi.js'
 
 /**
  * Unwrap an OpenRegister API payload (`{result}` / `{results}` / array / object).
@@ -559,39 +568,33 @@ export default {
 		async onSchemaConfirm(schema, acknowledgeBreaking = false) {
 			this.busy = true
 			this.error = ''
+			const id = this.editingSchema && this.editingSchema.id
 			try {
-				if (this.editingSchema && this.editingSchema.id) {
-					const url = generateUrl(`/apps/openregister/api/schemas/${this.editingSchema.id}`)
-						+ (acknowledgeBreaking ? '?acknowledgeBreaking=true' : '')
-					await axios.put(url, schema, { headers: this.headers() })
-				} else {
-					const { data } = await axios.post(
-						generateUrl('/apps/openregister/api/schemas'),
-						schema,
-						{ headers: this.headers() },
-					)
-					const created = unwrap(data)
-					if (created && created.id) await this.linkSchema(created.id)
-				}
+				const saved = await saveSchema(schema, {
+					id,
+					acknowledgeBreaking,
+					headers: this.headers(),
+				})
+				if (!id && saved && saved.id) await this.linkSchema(saved.id)
+
 				this.pendingBreaking = null
 				this.showSchemaDialog = false
 				invalidateDataCache()
 				await this.loadSchemas()
 			} catch (e) {
-				const { status, data } = parseAxiosError(e)
-				const isBreaking = status === 409 && data && data.classification === 'breaking'
-
-				if (isBreaking && !acknowledgeBreaking) {
+				if (e instanceof SchemaBreakingChangeError) {
 					// Offer the acknowledgement instead of a dead end. Hide the editor so
 					// the confirmation is not painted underneath it (nested dialogs sit on
 					// a higher layer); `cancelBreaking` puts the user straight back into it
 					// with their edits intact.
-					this.pendingBreaking = { schema, changes: Array.isArray(data.changes) ? data.changes : [] }
+					//
+					// saveSchema only raises this when the attempt was NOT acknowledged, so
+					// an acknowledged save that is still refused falls through to the error
+					// branch rather than re-arming the prompt forever.
+					this.pendingBreaking = { schema, changes: e.changes }
 					this.showSchemaDialog = false
 					this.error = ''
-				} else if (isBreaking) {
-					// The server still calls it breaking even though we acknowledged it, so
-					// acknowledging again would just re-open the same prompt forever. Stop.
+				} else if (acknowledgeBreaking && parseAxiosError(e).status === 409) {
 					this.pendingBreaking = null
 					this.error = t('nextcloud-vue', 'The server rejected the change even with the breaking-change acknowledgement.')
 				} else {
@@ -629,22 +632,8 @@ export default {
 		 * @return {string} The description.
 		 */
 		describeBreakingChange(change) {
-			if (!change || typeof change !== 'object') return ''
-			const property = change.property || t('nextcloud-vue', 'schema')
-			const kind = String(change.kind || '').replace(/_/g, ' ')
-			const fmt = (v) => (v === null || v === undefined
-				? t('nextcloud-vue', 'none')
-				: (typeof v === 'object' ? JSON.stringify(v) : String(v)))
-
-			if (change.old === undefined && change.new === undefined) {
-				return `${property}: ${kind}`
-			}
-			return t('nextcloud-vue', '{property}: {kind} (from {old} to {new})', {
-				property,
-				kind,
-				old: fmt(change.old),
-				new: fmt(change.new),
-			})
+			// Shared wording — OpenRegister's editor renders the same warning.
+			return describeSchemaChange(change, t)
 		},
 		/** Delete the schema currently open in the editor (editor Delete button). */
 		async onSchemaDelete() {
@@ -692,9 +681,7 @@ export default {
 			this.busy = true
 			this.error = ''
 			try {
-				const url = generateUrl(`/apps/openregister/api/schemas/${schema.id}`)
-					+ (deleteObjects ? '?deleteObjects=true' : '')
-				await axios.delete(url, { headers: this.headers() })
+				await deleteSchema(schema.id, { deleteObjects, headers: this.headers() })
 
 				// Only now that the schema is really gone is it safe to unlink it.
 				const reg = this.selectedRegister
@@ -712,25 +699,22 @@ export default {
 				invalidateDataCache()
 				await this.loadSchemas()
 			} catch (e) {
-				const { code, message, data } = parseAxiosError(e)
-
-				// Only offer the cascade for a PLAIN delete. If the CASCADE itself came
-				// back "still has objects", re-prompting would put the same confirmation
-				// straight back on screen and the user would loop forever, confirming a
-				// destructive action that never lands. That happens for real: an
+				// deleteSchema only raises SchemaHasObjectsError for a PLAIN delete. If the
+				// CASCADE itself came back "still has objects", re-prompting would put the
+				// same confirmation straight back on screen and the user would loop forever,
+				// confirming a destructive action that never lands. That happens for real: an
 				// OpenRegister too old to know `?deleteObjects=true` ignores the flag and
 				// answers 409 exactly as before. Report it instead.
-				if (code === 'schema-has-objects' && !deleteObjects) {
+				if (e instanceof SchemaHasObjectsError) {
 					// Confirm-gated: this permanently deletes the objects, never one click.
-					const count = (data && Number(data.objectCount)) || 0
-					this.pendingCascade = { schema, objectCount: count }
+					this.pendingCascade = { schema, objectCount: e.objectCount }
 					this.error = ''
-				} else if (code === 'schema-has-objects') {
+				} else if (deleteObjects && parseAxiosError(e).code === 'schema-has-objects') {
 					this.pendingCascade = null
 					this.error = t('nextcloud-vue', 'Could not delete the schema and its objects. The server still reports objects attached — it may not support deleting them along with the schema.')
 				} else {
 					this.pendingCascade = null
-					this.error = message || t('nextcloud-vue', 'Failed to remove the schema.')
+					this.error = parseAxiosError(e).message || t('nextcloud-vue', 'Failed to remove the schema.')
 				}
 			} finally {
 				this.busy = false
