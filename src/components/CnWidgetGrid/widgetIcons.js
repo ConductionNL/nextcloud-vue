@@ -47,6 +47,7 @@ import FilterVariantIcon from 'vue-material-design-icons/FilterVariant.vue'
 import PercentIcon from 'vue-material-design-icons/Percent.vue'
 import AccountIcon from 'vue-material-design-icons/Account.vue'
 import ClipboardListIcon from 'vue-material-design-icons/ClipboardListOutline.vue'
+import MapIcon from 'vue-material-design-icons/MapOutline.vue'
 import TableColumnIcon from 'vue-material-design-icons/TableColumn.vue'
 import FolderOutlineIcon from 'vue-material-design-icons/FolderOutline.vue'
 import AlertCircleOutlineIcon from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -113,6 +114,7 @@ export const DASHBOARD_ICONS = Object.freeze({
 	Percent: PercentIcon,
 	Account: AccountIcon,
 	ClipboardList: ClipboardListIcon,
+	Map: MapIcon,
 	TableColumn: TableColumnIcon,
 	FolderOutline: FolderOutlineIcon,
 	AlertCircleOutline: AlertCircleOutlineIcon,
