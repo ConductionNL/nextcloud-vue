@@ -52,3 +52,23 @@ describe('the map dashboard widget', () => {
 		expect(defaultContent.center).toHaveLength(2)
 	})
 })
+
+// A map with no tile layer renders as a grey box. CnMapWidget's `basemaps` prop is
+// opt-in and defaults to `[]`, so a freshly-placed Map widget had NO background at all
+// — Leaflet's controls rendered over blank grey, which reads as "broken", not "empty".
+describe('the map widget ships a basemap', () => {
+	it('defaults to a tile layer, so the map is not a grey box', () => {
+		const { defaultContent } = getWidgetTypeEntry('map')
+
+		expect(Array.isArray(defaultContent.basemaps)).toBe(true)
+		expect(defaultContent.basemaps.length).toBeGreaterThan(0)
+		expect(defaultContent.basemaps[0].url).toContain('{z}/{x}/{y}')
+	})
+
+	it('uses a tile host the Nextcloud CSP allows', () => {
+		const { defaultContent } = getWidgetTypeEntry('map')
+		// img-src on this app permits *.tile.openstreetmap.org; a host outside the CSP
+		// is silently blocked — the tiles do not even produce a failed request.
+		expect(defaultContent.basemaps[0].url).toContain('tile.openstreetmap.org')
+	})
+})
