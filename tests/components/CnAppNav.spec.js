@@ -1357,3 +1357,81 @@ describe('CnAppNav', () => {
 		})
 	})
 })
+
+// ---------- Icon rendering (registry names) ----------
+//
+// Reported live on the `cowboy` OpenBuild app: menu items whose icon was picked
+// from CnIconBrowser as a NAME ("Heart", "Home") rendered with NO icon at all,
+// while CSS-class icons ("icon-comment") rendered fine.
+//
+// Cause: `mdiIconComponent()` reads ICON_MAP, which only holds what the consuming
+// app passed to registerIcons() — and an app rendering USER-AUTHORED manifests
+// can't pre-register whatever a user might pick (OpenBuild registers none). So the
+// name failed mdiIconComponent AND isRichIcon (not a URL/SVG path), the `#icon`
+// slot was skipped entirely, and CnMenuItemIcon — which CAN resolve it via the
+// shared widget-icon registry — never got the chance.
+//
+// These tests deliberately do NOT call registerIcons(), mirroring OpenBuild.
+
+describe('CnAppNav — icon rendering', () => {
+	const iconManifest = {
+		version: '1.0.0',
+		pages: [],
+		menu: [
+			{ id: 'messages', label: 'Messages', icon: 'icon-comment', route: 'messages', order: 10 },
+			{ id: 'cows', label: 'Cows', icon: 'Heart', route: 'cows', order: 20 },
+			{ id: 'barns', label: 'Barns', icon: 'Home', route: 'barns', order: 30 },
+			{ id: 'bogus', label: 'Bogus', icon: 'NotARealIconName', route: 'bogus', order: 40 },
+		],
+	}
+
+	/**
+	 * Mount the nav with the icon manifest.
+	 *
+	 * @return {import('@vue/test-utils').Wrapper} The wrapper.
+	 */
+	const mountNav = () => mount(CnAppNav, {
+		propsData: { manifest: iconManifest },
+		mocks: { $route: { name: 'messages' } },
+		stubs: { RouterLink: true },
+	})
+
+	it('renders an icon for a registry NAME even when the app registered no icons', () => {
+		const wrapper = mountNav()
+
+		// The whole bug: these two rendered with no icon slot at all.
+		expect(wrapper.vm.isRegistryIcon({ icon: 'Heart' })).toBe(true)
+		expect(wrapper.vm.isRegistryIcon({ icon: 'Home' })).toBe(true)
+
+		wrapper.destroy()
+	})
+
+	it('does NOT claim an icon for an unknown name (would render a wrong default)', () => {
+		const wrapper = mountNav()
+
+		// getIconComponent() answers the DEFAULT icon for anything unknown, so gating
+		// on it would paint a plausible-but-wrong icon for a typo. Gate on membership.
+		expect(wrapper.vm.isRegistryIcon({ icon: 'NotARealIconName' })).toBe(false)
+
+		wrapper.destroy()
+	})
+
+	it('leaves Nextcloud CSS-class icons on their own path (not the registry)', () => {
+		const wrapper = mountNav()
+
+		// `icon-*` is bridged to an MDI component, so it already resolves. Treating it
+		// as a registry NAME would instead resolve to the default dashboard icon — the
+		// reason isRegistryIcon must exclude the `icon-` prefix.
+		expect(wrapper.vm.isRegistryIcon({ icon: 'icon-comment' })).toBe(false)
+		expect(wrapper.vm.mdiIconComponent({ icon: 'icon-comment' })).toBeTruthy()
+
+		wrapper.destroy()
+	})
+
+	it('ignores empty/missing icons', () => {
+		const wrapper = mountNav()
+		expect(wrapper.vm.isRegistryIcon({ icon: '' })).toBe(false)
+		expect(wrapper.vm.isRegistryIcon({})).toBe(false)
+		wrapper.destroy()
+	})
+})
