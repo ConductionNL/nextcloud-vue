@@ -44,6 +44,34 @@
 				</div>
 			</div>
 
+			<!--
+				The server classified the schema edit as BREAKING and refused it until it
+				is acknowledged. Show the user exactly WHICH changes it objected to, then
+				let them re-save with the acknowledgement — without this the edit is
+				simply impossible from the UI.
+			-->
+			<div v-else-if="pendingBreaking" class="cn-edit-data__confirm cn-edit-data__confirm--breaking">
+				<p class="cn-edit-data__confirm-lead">
+					{{ t('nextcloud-vue', 'This change breaks the existing data model:') }}
+				</p>
+				<ul class="cn-edit-data__breaking-list">
+					<li v-for="(change, i) in breakingChanges" :key="`bc-${i}`">
+						{{ describeBreakingChange(change) }}
+					</li>
+				</ul>
+				<p class="cn-edit-data__confirm-note">
+					{{ t('nextcloud-vue', 'Objects already stored under this schema may no longer match it. Save anyway?') }}
+				</p>
+				<div class="cn-edit-data__confirm-actions">
+					<NcButton type="tertiary" :disabled="busy" @click="cancelBreaking">
+						{{ t('nextcloud-vue', 'Back to editing') }}
+					</NcButton>
+					<NcButton type="warning" :disabled="busy" @click="confirmBreaking">
+						{{ t('nextcloud-vue', 'Save anyway') }}
+					</NcButton>
+				</div>
+			</div>
+
 			<!-- No register yet → offer to create one. -->
 			<div v-else-if="!registers.length" class="cn-edit-data__empty">
 				<p>{{ t('nextcloud-vue', 'This app has no data register yet. Create one to start adding schemas.') }}</p>
@@ -277,6 +305,10 @@ export default {
 			// `{ schema, objectCount }`. Drives the cascade confirmation — the
 			// destructive "delete the objects too" path is never a single click.
 			pendingCascade: null,
+			// Set when a schema SAVE was refused as a breaking change:
+			// `{ schema, changes }`. Drives the breaking-change confirmation, which
+			// re-saves with `acknowledgeBreaking` — the only way the edit can land.
+			pendingBreaking: null,
 			// The app's registers (full OR objects).
 			registers: [],
 			selectedRegisterId: null,
@@ -322,6 +354,10 @@ export default {
 				'Delete schema and %n objects',
 				count,
 			)
+		},
+		/** The changes the server flagged as breaking, for the confirmation list. */
+		breakingChanges() {
+			return (this.pendingBreaking && this.pendingBreaking.changes) || []
 		},
 		/** Distinct, non-empty register slugs referenced by the manifest's pages. */
 		manifestRegisterSlugs() {
@@ -510,19 +546,24 @@ export default {
 		/**
 		 * Persist a schema from the editor: PUT when editing, else POST + link
 		 * the new schema id onto the register.
+		 *
+		 * OpenRegister refuses some edits (e.g. a property going from `string` to
+		 * `object` when it becomes a related object) with 409 + `classification:
+		 * "breaking"` unless the request acknowledges it. Never acknowledge on the
+		 * user's behalf — surface what the server objected to and let them decide.
+		 *
 		 * @param {object} schema The schema payload from CnSchemaFormDialog.
+		 * @param {boolean} [acknowledgeBreaking] Re-send accepting the breaking change.
 		 * @return {Promise<void>}
 		 */
-		async onSchemaConfirm(schema) {
+		async onSchemaConfirm(schema, acknowledgeBreaking = false) {
 			this.busy = true
 			this.error = ''
 			try {
 				if (this.editingSchema && this.editingSchema.id) {
-					await axios.put(
-						generateUrl(`/apps/openregister/api/schemas/${this.editingSchema.id}`),
-						schema,
-						{ headers: this.headers() },
-					)
+					const url = generateUrl(`/apps/openregister/api/schemas/${this.editingSchema.id}`)
+						+ (acknowledgeBreaking ? '?acknowledgeBreaking=true' : '')
+					await axios.put(url, schema, { headers: this.headers() })
 				} else {
 					const { data } = await axios.post(
 						generateUrl('/apps/openregister/api/schemas'),
@@ -532,14 +573,78 @@ export default {
 					const created = unwrap(data)
 					if (created && created.id) await this.linkSchema(created.id)
 				}
+				this.pendingBreaking = null
 				this.showSchemaDialog = false
 				invalidateDataCache()
 				await this.loadSchemas()
 			} catch (e) {
-				this.error = parseAxiosError(e).message || t('nextcloud-vue', 'Failed to save the schema.')
+				const { status, data } = parseAxiosError(e)
+				const isBreaking = status === 409 && data && data.classification === 'breaking'
+
+				if (isBreaking && !acknowledgeBreaking) {
+					// Offer the acknowledgement instead of a dead end. Hide the editor so
+					// the confirmation is not painted underneath it (nested dialogs sit on
+					// a higher layer); `cancelBreaking` puts the user straight back into it
+					// with their edits intact.
+					this.pendingBreaking = { schema, changes: Array.isArray(data.changes) ? data.changes : [] }
+					this.showSchemaDialog = false
+					this.error = ''
+				} else if (isBreaking) {
+					// The server still calls it breaking even though we acknowledged it, so
+					// acknowledging again would just re-open the same prompt forever. Stop.
+					this.pendingBreaking = null
+					this.error = t('nextcloud-vue', 'The server rejected the change even with the breaking-change acknowledgement.')
+				} else {
+					this.pendingBreaking = null
+					this.error = parseAxiosError(e).message || t('nextcloud-vue', 'Failed to save the schema.')
+				}
 			} finally {
 				this.busy = false
 			}
+		},
+		/**
+		 * Re-save the pending schema, this time acknowledging the breaking change.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async confirmBreaking() {
+			const pending = this.pendingBreaking
+			if (!pending) return
+			await this.onSchemaConfirm(pending.schema, true)
+		},
+		/**
+		 * Abandon the acknowledgement and drop the user back into the editor with the
+		 * edits they made — cancelling must not throw their work away.
+		 */
+		cancelBreaking() {
+			this.pendingBreaking = null
+			this.showSchemaDialog = true
+		},
+		/**
+		 * Human-readable line for one entry of the server's `changes[]`, e.g.
+		 * `{property: 'barn', kind: 'type_changed', old: 'string', new: 'object'}`
+		 * → "barn: type changed from string to object".
+		 *
+		 * @param {object} change One change descriptor from the 409 body.
+		 * @return {string} The description.
+		 */
+		describeBreakingChange(change) {
+			if (!change || typeof change !== 'object') return ''
+			const property = change.property || t('nextcloud-vue', 'schema')
+			const kind = String(change.kind || '').replace(/_/g, ' ')
+			const fmt = (v) => (v === null || v === undefined
+				? t('nextcloud-vue', 'none')
+				: (typeof v === 'object' ? JSON.stringify(v) : String(v)))
+
+			if (change.old === undefined && change.new === undefined) {
+				return `${property}: ${kind}`
+			}
+			return t('nextcloud-vue', '{property}: {kind} (from {old} to {new})', {
+				property,
+				kind,
+				old: fmt(change.old),
+				new: fmt(change.new),
+			})
 		},
 		/** Delete the schema currently open in the editor (editor Delete button). */
 		async onSchemaDelete() {
@@ -725,6 +830,23 @@ export default {
 .cn-edit-data__confirm-lead {
 	font-weight: bold;
 	margin-bottom: 4px;
+}
+
+/* The breaking-change confirmation is a warning, not a destruction. */
+.cn-edit-data__confirm--breaking {
+	border-inline-start: 4px solid var(--color-warning, var(--color-primary));
+}
+
+.cn-edit-data__breaking-list {
+	margin: 0 0 8px;
+	padding-inline-start: 20px;
+	list-style: disc;
+}
+
+.cn-edit-data__breaking-list li {
+	color: var(--color-text-maxcontrast);
+	font-family: var(--font-face-monospace, monospace);
+	font-size: 90%;
 }
 
 .cn-edit-data__confirm-note {
