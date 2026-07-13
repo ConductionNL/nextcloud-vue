@@ -47,6 +47,7 @@ import FilterVariantIcon from 'vue-material-design-icons/FilterVariant.vue'
 import PercentIcon from 'vue-material-design-icons/Percent.vue'
 import AccountIcon from 'vue-material-design-icons/Account.vue'
 import ClipboardListIcon from 'vue-material-design-icons/ClipboardListOutline.vue'
+import MapIcon from 'vue-material-design-icons/MapOutline.vue'
 import TableColumnIcon from 'vue-material-design-icons/TableColumn.vue'
 import FolderOutlineIcon from 'vue-material-design-icons/FolderOutline.vue'
 import AlertCircleOutlineIcon from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -113,6 +114,7 @@ export const DASHBOARD_ICONS = Object.freeze({
 	Percent: PercentIcon,
 	Account: AccountIcon,
 	ClipboardList: ClipboardListIcon,
+	Map: MapIcon,
 	TableColumn: TableColumnIcon,
 	FolderOutline: FolderOutlineIcon,
 	AlertCircleOutline: AlertCircleOutlineIcon,
@@ -183,4 +185,23 @@ export function getIconComponent(name) {
 		return DASHBOARD_ICONS[DEFAULT_ICON]
 	}
 	return DASHBOARD_ICONS[name] || DASHBOARD_ICONS[DEFAULT_ICON]
+}
+
+/**
+ * Whether a name resolves to a REAL icon in this registry — i.e. `getIconComponent`
+ * would return that icon rather than silently falling back to {@link DEFAULT_ICON}.
+ *
+ * Callers that decide *whether to render an icon at all* need this: asking
+ * `getIconComponent` is useless for that, because it answers "ViewDashboard" for
+ * every unknown name, so an unrecognised value would render a wrong (but plausible)
+ * icon instead of none. `icon-*` values are Nextcloud CSS-class icons, rendered
+ * through a different path, and are never registry names.
+ *
+ * @param {*} name The icon value from a menu/widget icon field.
+ * @return {boolean} True when the registry has a component for this exact name.
+ */
+export function hasRegistryIcon(name) {
+	if (typeof name !== 'string' || name.length === 0) return false
+	if (name.startsWith('icon-')) return false
+	return Object.prototype.hasOwnProperty.call(DASHBOARD_ICONS, name)
 }

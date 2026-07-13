@@ -85,6 +85,9 @@ A tab's `component` name is resolved against the v2 component registry (`cnRegis
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `update:open` | `boolean` | Emitted when the sidebar is closed; use with `.sync` |
+| `mention` | `{ objectId, register, schema, noteId, mentionedUserIds }` | Forwarded unchanged from the built-in Notes tab after a note containing at least one `@mention` was created or edited. `mentionedUserIds` is the unique list of mentioned Nextcloud user ids. nc-vue is a frontend library and never dispatches notifications itself — the consuming app listens to this event and creates Nextcloud notifications from its own backend (e.g. `INotificationManager` in the controller that persists the note). Not emitted when the saved note contains no mentions, nor when the Notes tab is overridden via the `tab-notes` slot. |
+
+The Notes tab's composer supports `@mention` autocomplete (backed by the core `core/autocomplete/get` OCS endpoint) and stores mentions inline in the note text as `@userId` / `@"user id"` — the same convention as Nextcloud Comments/Talk. Stored mentions render as highlighted chips with the user's display name, degrading to the raw id for unknown/deleted users.
 
 ### Slots
 

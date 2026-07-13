@@ -112,7 +112,7 @@
 					:data-cn-route="item.route"
 					@update:open="setItemOpen(item, $event)"
 					@click="onItemClick(item, $event)">
-					<template v-if="mdiIconComponent(item) || isRichIcon(item)" #icon>
+					<template v-if="mdiIconComponent(item) || isRichIcon(item) || isRegistryIcon(item)" #icon>
 						<component :is="mdiIconComponent(item)" v-if="mdiIconComponent(item)" :size="20" />
 						<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 					</template>
@@ -145,8 +145,9 @@
 						:data-testid="`cn-nav-entry-${child.id}`"
 						:data-cn-route="child.route"
 						@click="onItemClick(child, $event)">
-						<template v-if="mdiIconComponent(child)" #icon>
-							<component :is="mdiIconComponent(child)" :size="20" />
+						<template v-if="mdiIconComponent(child) || isRichIcon(child) || isRegistryIcon(child)" #icon>
+							<component :is="mdiIconComponent(child)" v-if="mdiIconComponent(child)" :size="20" />
+							<CnMenuItemIcon v-else :icon="child.icon" :size="20" />
 						</template>
 						<template v-if="resolveCount(child)" #counter>
 							<NcCounterBubble
@@ -176,7 +177,7 @@
 					:data-testid="`cn-nav-entry-${item.id}`"
 					:data-cn-route="item.route"
 					@click="onItemClick(item, $event)">
-					<template v-if="mdiIconComponent(item) || isRichIcon(item)" #icon>
+					<template v-if="mdiIconComponent(item) || isRichIcon(item) || isRegistryIcon(item)" #icon>
 						<component :is="mdiIconComponent(item)" v-if="mdiIconComponent(item)" :size="20" />
 						<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 					</template>
@@ -251,7 +252,7 @@
 							:active="isActive(item)"
 							:data-testid="`cn-nav-entry-${item.id}`"
 							@click="onItemClick(item, $event)">
-							<template v-if="mdiIconComponent(item) || isRichIcon(item)" #icon>
+							<template v-if="mdiIconComponent(item) || isRichIcon(item) || isRegistryIcon(item)" #icon>
 								<component :is="mdiIconComponent(item)" v-if="mdiIconComponent(item)" :size="20" />
 								<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 							</template>
@@ -278,7 +279,7 @@ import ShieldAccountOutline from 'vue-material-design-icons/ShieldAccountOutline
 import { translate as t } from '@nextcloud/l10n'
 import { ICON_MAP } from '../CnIcon/CnIcon.vue'
 import CnMenuItemIcon from '../CnMenuWidget/CnMenuItemIcon.vue'
-import { isCustomIconUrl } from '../CnWidgetGrid/widgetIcons.js'
+import { isCustomIconUrl, hasRegistryIcon } from '../CnWidgetGrid/widgetIcons.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
@@ -823,6 +824,28 @@ export default {
 				return false
 			}
 			return isCustomIconUrl(icon) || isSvgPath(icon)
+		},
+		/**
+		 * Whether the item's icon is a plain MDI *name* that the shared widget-icon
+		 * registry can render (e.g. "Heart", "Home" — what CnIconBrowser emits from
+		 * its component-name sources).
+		 *
+		 * `ICON_MAP` only holds what the consuming app passed to `registerIcons()`,
+		 * and an app rendering USER-AUTHORED manifests cannot pre-register whatever
+		 * icon a user might pick — OpenBuild registers none at all. So a picked name
+		 * failed `mdiIconComponent` (not registered) AND `isRichIcon` (not a URL or
+		 * SVG path), the `#icon` slot was skipped entirely, and the menu item rendered
+		 * with NO icon — even though CnMenuItemIcon → CnWidgetIcon could resolve it.
+		 *
+		 * Gate on the registry actually HAVING the name: `getIconComponent` answers
+		 * the default icon for anything unknown, so gating on it would render a wrong
+		 * (but plausible) icon for a typo instead of none.
+		 *
+		 * @param {{ icon?: string }} item Menu item descriptor.
+		 * @return {boolean} true when the widget-icon registry can render this name.
+		 */
+		isRegistryIcon(item) {
+			return hasRegistryIcon(item?.icon)
 		},
 		/**
 		 * Pass-through for the `:icon` prop on NcAppNavigationItem when

@@ -77,8 +77,19 @@
 			<template v-if="$scopedSlots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$scopedSlots['actions'] || isEditMode || showExportMenu" #actions>
+			<template v-if="$scopedSlots['actions'] || isEditMode || showExportMenu || allowSavedViews" #actions>
 				<slot name="actions" />
+				<!-- Saved views (opt-in via `allowSavedViews`): lists the user's
+				     OpenRegister saved-search views; applying one writes its stored
+				     filters/search/sort into the route query. -->
+				<CnSavedViewsControl
+					v-if="allowSavedViews"
+					:views="savedViews"
+					:loading="savedViewsLoading"
+					:current-user-id="currentSavedViewsUserId"
+					@apply="onApplySavedView"
+					@save-request="showSaveViewDialog = true"
+					@delete-request="onDeleteViewRequest" />
 				<!-- Native Export menu (opt-in via `allowExport` + schema.exportable):
 				     CSV/Excel entries navigate to OR's export-leaf URL, passing the
 				     current route's query params through as filters. -->
@@ -171,6 +182,24 @@
 				<slot name="import-fields" :file="file" />
 			</template>
 		</CnMassImportDialog>
+
+		<!-- Save-current-view dialog (saved-views-ui) -->
+		<CnSaveViewDialog
+			v-if="showSaveViewDialog"
+			ref="saveViewDialog"
+			@confirm="onSaveViewConfirm"
+			@close="showSaveViewDialog = false" />
+
+		<!-- Delete-saved-view confirm (saved-views-ui) -->
+		<CnConfirmDialog
+			v-if="viewPendingDelete"
+			ref="deleteViewConfirmDialog"
+			variant="error"
+			:dialog-title="t('nextcloud-vue', 'Delete view')"
+			:message="deleteViewMessage"
+			:confirm-label="t('nextcloud-vue', 'Delete')"
+			@confirm="onDeleteViewConfirm"
+			@close="viewPendingDelete = null" />
 
 		<!-- @slot delete-dialog Replace the single-item delete dialog. -->
 		<!-- @binding {object} item The item targeted for deletion. -->
@@ -539,6 +568,7 @@
 </template>
 
 <script>
+import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActions, NcActionButton, NcActionCaption, NcActionCheckbox, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
@@ -549,8 +579,11 @@ import Eye from 'vue-material-design-icons/Eye.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import { useContextMenu } from '../../composables/index.js'
+import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
+import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
+import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
@@ -574,6 +607,8 @@ import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnPagination } from '../CnPagination/index.js'
 import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
 import { CnRowActions } from '../CnRowActions/index.js'
+import { CnSavedViewsControl } from '../CnSavedViewsControl/index.js'
+import { CnSaveViewDialog } from '../CnSaveViewDialog/index.js'
 import { applyAiContext } from './aiContext.js'
 import { buildDefaultActions } from './defaultActions.js'
 import { dispatchAction } from './manifestActionDispatch.js'
@@ -646,6 +681,7 @@ import { useSelfFetchList } from './useSelfFetchList.js'
  * @event {number} page-size-changed — Pagination page size changed
  * @event {string[]} select — Selection changed. Payload: array of selected IDs
  * @event {object} action — Row action triggered. Payload: { action, row }
+ * @event {object} apply-view — A saved view was applied (saved-views-ui). Payload: the View API object. Only emitted when `allowSavedViews`.
  * @event {string} search — Search input changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  * @event {string[]} columns-change — Visible columns changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  * @event {{ key: string, values: any[] }} filter-change — Facet filter changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
@@ -700,6 +736,9 @@ export default {
 		CnAdvancedFormDialog,
 		CnContextMenu,
 		CnIndexSidebar,
+		CnSavedViewsControl,
+		CnSaveViewDialog,
+		CnConfirmDialog,
 	},
 
 	/**
@@ -1108,6 +1147,23 @@ export default {
 		 * only the fetched/selected rows via a blob download.
 		 */
 		allowExport: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Opt-in flag for the saved-views control (saved-views-ui) rendered
+		 * in the toolbar. Defaults to `false` — an app must explicitly
+		 * enable it per page. When `true`, a Views dropdown lists the
+		 * current user's OpenRegister saved-search views
+		 * (`GET /apps/openregister/api/views`); applying one writes its
+		 * stored filters/search/sort into the route query (reusing the
+		 * existing deep-link contract — non-underscore keys are filters,
+		 * `_search`/`_sortKey`/`_sortOrder` are reserved), "Save current
+		 * view…" persists the current route-query state via POST, and own
+		 * views can be deleted after confirmation.
+		 */
+		allowSavedViews: {
 			type: Boolean,
 			default: false,
 		},
@@ -1629,6 +1685,13 @@ export default {
 			// content (table / cards) starts at the top and fills the width;
 			// opened on demand via the actions-bar toggle.
 			sidebarOpen: false,
+			// Saved views (saved-views-ui): the fetched view list, its
+			// loading flag, the save-dialog toggle, and the view awaiting
+			// delete confirmation.
+			savedViews: [],
+			savedViewsLoading: false,
+			showSaveViewDialog: false,
+			viewPendingDelete: null,
 		}
 	},
 
@@ -1892,6 +1955,27 @@ export default {
 		 */
 		showExportMenu() {
 			return Boolean(this.allowExport) && Boolean(this.effectiveSchema?.exportable) && Boolean(this.register) && Boolean(this.exportSchemaSlug)
+		},
+
+		/**
+		 * The signed-in NC user id — passed to CnSavedViewsControl to gate
+		 * the per-view delete affordance (saved-views-ui).
+		 *
+		 * @return {string}
+		 */
+		currentSavedViewsUserId() {
+			const user = getCurrentUser()
+			return (user && user.uid) || ''
+		},
+
+		/**
+		 * Confirmation message for the delete-saved-view dialog.
+		 *
+		 * @return {string}
+		 */
+		deleteViewMessage() {
+			if (!this.viewPendingDelete) return ''
+			return t('nextcloud-vue', 'Delete the view "{name}"? This cannot be undone.', { name: this.viewPendingDelete.name })
 		},
 
 		/** Sort key / order: list state in self-fetch mode, else the props. */
@@ -2318,6 +2402,7 @@ export default {
 
 	created() {
 		this.pushAiContext()
+		if (this.allowSavedViews) this.fetchSavedViews()
 		this.selfActions = createSelfModeActions({
 			isSelfFetchMode: () => this.isSelfFetchMode,
 			selfObjectStore: () => this.selfObjectStore,
@@ -2950,6 +3035,95 @@ export default {
 			const routeQuery = (this.$route && this.$route.query) || {}
 			const url = buildExportUrl(this.register, this.exportSchemaSlug, routeQuery, format)
 			window.location.assign(url)
+		},
+
+		// ── Saved views (saved-views-ui) ─────────────────────────────────────
+
+		/**
+		 * Fetch the current user's saved views (own + public) from
+		 * OpenRegister's views API. Called from created() when
+		 * `allowSavedViews` is enabled.
+		 */
+		async fetchSavedViews() {
+			this.savedViewsLoading = true
+			try {
+				this.savedViews = await useSavedViewsApi().fetchViews()
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('CnIndexPage: failed to fetch saved views', error)
+			} finally {
+				this.savedViewsLoading = false
+			}
+		},
+
+		/**
+		 * Apply a saved view: replace the route query with the view's
+		 * stored filters/search/sort. `$router.replace` (not push) so the
+		 * browser Back button doesn't step through every applied view —
+		 * same precedent as the `?action=create` query cleanup. Dropping
+		 * the whole previous query implicitly resets `_page` to 1.
+		 *
+		 * @param {object} view The View API object to apply.
+		 */
+		onApplySavedView(view) {
+			const query = buildRouteQueryFromViewState(extractViewState(view))
+			if (!this.$router) return
+			const nav = this.$router.replace({ query })
+			// Swallow the duplicate-navigation rejection (Vue Router 3)
+			// when the applied view matches the current query.
+			if (nav && typeof nav.catch === 'function') nav.catch(() => {})
+			this.$emit('apply-view', view)
+		},
+
+		/**
+		 * Persist the current route-query state as a named view via
+		 * OpenRegister's views API (CnSaveViewDialog `@confirm`). On
+		 * success the new view joins the list and the dialog closes; on
+		 * failure the dialog stays open with the error surfaced.
+		 *
+		 * @param {{ name: string, isPublic: boolean }} payload Dialog payload.
+		 */
+		async onSaveViewConfirm({ name, isPublic }) {
+			const state = extractViewStateFromRouteQuery((this.$route && this.$route.query) || {})
+			const payload = buildViewCreatePayload({ name, description: '', isPublic, isDefault: false, state })
+			try {
+				const view = await useSavedViewsApi().createView(payload)
+				if (view) this.savedViews = [...this.savedViews, view]
+				this.showSaveViewDialog = false
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('CnIndexPage: failed to save view', error)
+				this.$refs.saveViewDialog?.setError(error?.response?.data?.error || error?.message)
+			}
+		},
+
+		/**
+		 * Open the delete-confirmation dialog for a saved view
+		 * (CnSavedViewsControl `@delete-request`).
+		 *
+		 * @param {object} view The View API object to delete.
+		 */
+		onDeleteViewRequest(view) {
+			this.viewPendingDelete = view
+		},
+
+		/**
+		 * Delete the pending view after confirmation (CnConfirmDialog
+		 * `@confirm`), then report back via the dialog's setResult()
+		 * contract and remove it from the local list.
+		 */
+		async onDeleteViewConfirm() {
+			const view = this.viewPendingDelete
+			if (!view) return
+			try {
+				await useSavedViewsApi().deleteView(view.id)
+				this.savedViews = this.savedViews.filter((v) => v.id !== view.id)
+				this.$refs.deleteViewConfirmDialog?.setResult({ success: true })
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('CnIndexPage: failed to delete view', error)
+				this.$refs.deleteViewConfirmDialog?.setResult({ error: error?.response?.data?.error || error?.message || 'Failed to delete view' })
+			}
 		},
 
 		async onMassImportConfirm(payload) {

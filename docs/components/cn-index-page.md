@@ -66,6 +66,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showMassCopy` | Boolean | `true` | Show mass copy action |
 | `showMassDelete` | Boolean | `true` | Show mass delete action |
 | `allowExport` | Boolean | `false` | Opt-in flag for the native Export menu (CSV/Excel) rendered next to the Add button. Renders only when `true` AND the resolved schema is flagged `exportable: true`; navigates to `GET /apps/openregister/api/objects/{register}/{schema}/export`, passing `$route.query` through as filters. Distinct from `showMassExport`, which exports the fetched/selected rows via a blob download instead. |
+| `allowSavedViews` | Boolean | `false` | Opt-in flag for the saved-views control (saved-views-ui): a Views dropdown listing the user's OpenRegister saved-search views (`GET /apps/openregister/api/views`). Applying a view writes its stored filters/search/sort into the route query (non-underscore keys are filters; `_search`/`_sortKey`/`_sortOrder` are reserved); "Save current view…" persists the current route-query state via `POST /apps/openregister/api/views`; own views can be deleted after confirmation. Emits `apply-view` when a view is applied. |
 | `massActionNameField` | String | `'title'` | Field for display names in mass action dialogs |
 | `nameFormatter` | Function | `null` | Optional function `(item) => string` to format item names in dialogs. Overrides `massActionNameField` when provided. Passed to all delete and copy dialogs. |
 | `exportFormats` | Array | `[]` | Available export formats |
@@ -126,6 +127,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `columns-change` | `keys[]` | Visible columns changed in the embedded sidebar (only emitted when `sidebar.enabled`). |
 | `filter-change` | `\{ key, values \}` | Facet filter changed in the embedded sidebar (only emitted when `sidebar.enabled`). |
 | `quick-filter-change` | `index` | Zero-based active tab index changed (only emitted when `quickFilters` is set). The fetch is automatically triggered — listen for observability / analytics. |
+| `apply-view` | `view` | A saved view was applied via the Views dropdown (only emitted when `allowSavedViews`). The route query has already been replaced with the view's stored state — listen for observability / analytics. |
 
 ## Slots
 
