@@ -87,6 +87,8 @@ export {
 	CnTimelineView,
 	CnItemCard,
 	CnSchemaFormDialog,
+	CnSavedViewsControl,
+	CnSaveViewDialog,
 	CnSearchPage,
 	CnTabbedFormDialog,
 	CnTimelineStages,
