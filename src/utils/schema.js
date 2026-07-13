@@ -287,15 +287,23 @@ function truncateString(str, maxLength) {
  * Normalise a JSON-Schema `$ref` value into an OpenRegister schema reference
  * identifier. OpenRegister authors a `$ref` as a schema *slug* (string) but
  * persists/serves it as the numeric schema *id* (e.g. `85`). Both forms are
- * valid object-reference targets (the objects API resolves either), so accept
- * a non-empty string or a number and return it unchanged; return `null` for
- * anything else (missing, empty string, object, etc.).
+ * valid object-reference targets (the objects API resolves either).
+ *
+ * The schema editor writes the JSON-Pointer form — `#/components/schemas/<slug>`
+ * — so a `$ref` reaching here may be a pointer rather than a bare slug. Passing
+ * the whole pointer through as the schema identifier made the object picker query
+ * a schema literally named "#/components/schemas/cow", which matches nothing: the
+ * dropdown rendered but came back empty. Take the tail after the last `/`, which
+ * is what the editor itself does when it resolves a $ref back to a schema.
  *
  * @param {*} ref A `$ref` value (`prop.$ref` or `prop.items.$ref`).
  * @return {string|number|null} The reference identifier, or null.
  */
 function normalizeRef(ref) {
-	if (typeof ref === 'string' && ref !== '') return ref
+	if (typeof ref === 'string' && ref !== '') {
+		const tail = ref.includes('/') ? ref.substring(ref.lastIndexOf('/') + 1) : ref
+		return tail !== '' ? tail : null
+	}
 	if (typeof ref === 'number' && !Number.isNaN(ref)) return ref
 	return null
 }
@@ -412,8 +420,12 @@ export function fieldsFromSchema(schema, options = {}) {
 			// Apply include whitelist
 			if (include && !include.includes(key)) return false
 			// Skip complex object types unless the caller opts in with an explicit widget
-			// (e.g. `widget: 'json'` or `widget: 'code'` in CnFormDialog).
-			if (prop.type === 'object' && !prop.widget) return false
+			// (e.g. `widget: 'json'` or `widget: 'code'` in CnFormDialog) — or unless the
+			// property is an OpenRegister object REFERENCE (`$ref`). A reference is a
+			// relation to another schema's object, which resolveWidget maps to a
+			// searchable 'select'; dropping it here meant a related-object property
+			// (e.g. cow.barn → barn) silently never rendered in the form at all.
+			if (prop.type === 'object' && !prop.widget && normalizeRef(prop.$ref) === null) return false
 			return true
 		})
 		.sort(([keyA, propA], [keyB, propB]) => {
