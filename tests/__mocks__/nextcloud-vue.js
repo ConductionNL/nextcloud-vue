@@ -34,6 +34,9 @@ export const NcContent = createStub('NcContent')
 export const NcEmptyContent = createStub('NcEmptyContent')
 export const NcActions = createStub('NcActions')
 export const NcActionButton = createStub('NcActionButton')
+export const NcActionCaption = createStub('NcActionCaption')
+export const NcActionCheckbox = createStub('NcActionCheckbox')
+export const NcActionSeparator = createStub('NcActionSeparator')
 
 /**
  * NcActionInput needs a real stateful stub: the component under test binds
@@ -138,6 +141,9 @@ export default {
 	NcEmptyContent,
 	NcActions,
 	NcActionButton,
+	NcActionCaption,
+	NcActionCheckbox,
+	NcActionSeparator,
 	NcSelect,
 	NcSettingsSection,
 	NcAppSidebar,
