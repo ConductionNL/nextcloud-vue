@@ -897,3 +897,90 @@ describe('fieldsFromSchema', () => {
 		expect(fields[0].required).toBe(false)
 	})
 })
+
+// ---------- Object references (relations between schemas) ----------
+//
+// Reported live on the `cowboy` app: a `barn` schema with a `cows` property
+// (array → cow) showed an EMPTY dropdown, and a `cow` schema with a `barn`
+// property (object → barn) showed no field at all. Both schemas were configured
+// correctly by the user; the pipeline dropped them.
+//
+// These fixtures are the real shapes OpenRegister persisted — note the schema
+// editor writes $ref as the JSON-Pointer form, not a bare slug.
+
+const barnSchema = {
+	title: 'barn',
+	properties: {
+		name: { type: 'string' },
+		cows: {
+			type: 'array',
+			items: {
+				type: 'object',
+				$ref: '#/components/schemas/cow',
+				objectConfiguration: { handling: 'nested-object', schema: 4501, register: 2466 },
+				inversedBy: 'barn',
+			},
+		},
+	},
+}
+
+const cowSchema = {
+	title: 'cow',
+	properties: {
+		name: { type: 'string' },
+		size: { type: 'string', enum: ['small', 'medium', 'large'] },
+		barn: {
+			type: 'object',
+			$ref: '#/components/schemas/barn',
+			objectConfiguration: { handling: 'related-object', schema: 4505, register: 2466 },
+		},
+	},
+}
+
+describe('fieldsFromSchema — object references', () => {
+	it('renders an object-reference property as a field (it was silently dropped)', () => {
+		const fields = fieldsFromSchema(cowSchema)
+		const barn = fields.find((f) => f.key === 'barn')
+
+		// The whole bug: `type: 'object'` with no `widget` was filtered out, so the
+		// relation never appeared in the create form.
+		expect(barn).toBeTruthy()
+		expect(barn.widget).toBe('select')
+	})
+
+	it('resolves a JSON-Pointer $ref down to the schema slug the picker can query', () => {
+		const fields = fieldsFromSchema(cowSchema)
+		const barn = fields.find((f) => f.key === 'barn')
+
+		// Passing "#/components/schemas/barn" through as the schema id made the picker
+		// query a schema by that literal string — nothing matched, so it came back empty.
+		expect(barn.reference).toEqual({ schema: 'barn', multiple: false })
+	})
+
+	it('resolves an ARRAY of references to a multi-value picker on the referenced slug', () => {
+		const fields = fieldsFromSchema(barnSchema)
+		const cows = fields.find((f) => f.key === 'cows')
+
+		expect(cows).toBeTruthy()
+		expect(cows.widget).toBe('multiselect')
+		expect(cows.reference).toEqual({ schema: 'cow', multiple: true })
+	})
+
+	it('still drops a plain object property that is NOT a reference and has no widget', () => {
+		const fields = fieldsFromSchema({
+			properties: { blob: { type: 'object' } },
+		})
+		expect(fields.find((f) => f.key === 'blob')).toBeUndefined()
+	})
+
+	it('leaves a bare-slug or numeric $ref untouched', () => {
+		const fields = fieldsFromSchema({
+			properties: {
+				bySlug: { type: 'object', $ref: 'cow' },
+				byId: { type: 'object', $ref: 4501 },
+			},
+		})
+		expect(fields.find((f) => f.key === 'bySlug').reference.schema).toBe('cow')
+		expect(fields.find((f) => f.key === 'byId').reference.schema).toBe(4501)
+	})
+})

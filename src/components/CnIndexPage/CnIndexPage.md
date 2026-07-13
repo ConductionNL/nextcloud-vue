@@ -364,6 +364,7 @@ export default {
 | `inlineActionCount` | Number | `2` | How many row actions to show inline (rest go in overflow menu) |
 | `showMassImport` | Boolean | `true` | Whether to show the mass Import action |
 | `showMassCopy` | Boolean | `true` | Whether to show the mass Copy action |
+| `allowExport` | Boolean | `false` | Opt-in flag for the native Export menu (CSV/Excel) next to the Add button. Renders only when `true` AND the resolved schema is flagged `exportable: true`; navigates to OpenRegister's export leaf (`GET /apps/openregister/api/objects/{register}/{schema}/export`), passing `$route.query` through as filters. Distinct from `showMassExport`, which exports the fetched/selected rows via a blob download. |
 | `massActionNameField` | String | `'title'` | Property name used to display item names in dialogs |
 | `nameFormatter` | Function | `null` | Custom formatter for item names in dialogs; overrides `massActionNameField` |
 | `exportFormats` | Array | `[Excel, CSV]` | Available export formats for the export dialog |
