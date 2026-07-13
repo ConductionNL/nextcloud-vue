@@ -81,6 +81,16 @@ import { objectToGeoFeature } from '../../utils/geo.js'
 
 const ALLOWED_LAYER_TYPES = ['tile', 'wms', 'wfs', 'geojson']
 
+// Last-resort background for a map that was configured with none. The Nextcloud CSP
+// already allows *.tile.openstreetmap.org; a host outside the CSP is blocked so early
+// it does not even produce a failed network request.
+const DEFAULT_BASEMAP = Object.freeze({
+	name: 'OpenStreetMap',
+	url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+	attribution: '© OpenStreetMap contributors',
+	options: { maxZoom: 19 },
+})
+
 // MDI paths for the custom control buttons, inlined so the widget carries no
 // icon-font dependency and renders identically inside a Leaflet control bar.
 const ICON_FIT = 'M9.5,13.09L10.91,14.5L6.41,19H10V21H3V14H5V17.59L9.5,13.09M10.91,9.5L9.5,10.91L5,6.41V10H3V3H10V5H6.41L10.91,9.5M14.5,13.09L19,17.59V14H21V21H14V19H17.59L13.09,14.5L14.5,13.09M13.09,9.5L17.59,5H14V3H21V10H19V6.41L14.5,10.91L13.09,9.5Z'
@@ -640,10 +650,17 @@ export default {
 			const L = this.L
 			if (!this.map || !L || typeof L.tileLayer !== 'function') return
 
-			// Opt-in only. A consumer that configures its background through a `tile`
-			// entry in `layers` keeps exactly its existing behaviour, and an invalid
-			// layer config still renders no tiles rather than silently falling back.
-			const basemaps = (this.basemaps || []).filter((b) => b && typeof b.url === 'string' && b.url.length > 0)
+			const configured = (this.basemaps || []).filter((b) => b && typeof b.url === 'string' && b.url.length > 0)
+
+			// A map with no background is not an empty map — it is a grey box, and it
+			// reads as broken. When the consumer configured NEITHER a basemap NOR a
+			// `tile` entry in `layers`, fall back to OpenStreetMap rather than render
+			// Leaflet's controls over blank grey.
+			//
+			// A consumer that DOES supply a `tile` layer keeps exactly its existing
+			// background — we must not stack OSM underneath somebody's PDOK tiles.
+			const hasTileLayer = (this.layers || []).some((l) => l && l.type === 'tile' && l.url)
+			const basemaps = configured.length > 0 ? configured : (hasTileLayer ? [] : [DEFAULT_BASEMAP])
 			if (basemaps.length === 0) return
 
 			const baseLayers = {}
