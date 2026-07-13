@@ -14,9 +14,10 @@
       be either a GeoJSON FeatureCollection OR a flat array of rows
       (in which case `latField`, `lngField`, `popupField` drive the
       conversion).
-    - `markers.dataSource.{register, schema}` — RESERVED. The
-      validator round-trips this shape but the resolver lands in a
-      follow-up change; v1 ignores it at render time.
+    - `markers.dataSource.{register, schema}` — plots the objects of an
+      OpenRegister register/schema, reading each one's `@self.geo`
+      (falling back to `latField` / `lngField` on the object itself).
+      Objects with no usable location are skipped, not plotted at (0, 0).
 
   `leaflet.markercluster` lazy-loads only when `clustering: true`
   (or `markers.clustering: true`) — consumers without clustering
@@ -76,8 +77,20 @@ import 'leaflet/dist/leaflet.css'
 import { translate as t } from '@nextcloud/l10n'
 import DOMPurify from 'dompurify'
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
+import { objectToGeoFeature } from '../../utils/geo.js'
+import { objectDisplayName } from '../../utils/objectName.js'
 
 const ALLOWED_LAYER_TYPES = ['tile', 'wms', 'wfs', 'geojson']
+
+// Last-resort background for a map that was configured with none. The Nextcloud CSP
+// already allows *.tile.openstreetmap.org; a host outside the CSP is blocked so early
+// it does not even produce a failed network request.
+const DEFAULT_BASEMAP = Object.freeze({
+	name: 'OpenStreetMap',
+	url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+	attribution: '© OpenStreetMap contributors',
+	options: { maxZoom: 19 },
+})
 
 // MDI paths for the custom control buttons, inlined so the widget carries no
 // icon-font dependency and renders identically inside a Leaflet control bar.
@@ -172,8 +185,8 @@ export default {
 		/**
 		 * Marker config. `{ features?, dataSource?, latField?, lngField?, popupField?,
 		 * clustering?, iconColor?, iconUrl? }`. `features[]` is inline; `dataSource.url`
-		 * is HTTP-fetched on mount; `dataSource.{register, schema}` is reserved
-		 * (resolver deferred).
+		 * is HTTP-fetched on mount; `dataSource.{register, schema}` plots the objects of
+		 * an OpenRegister register/schema via their `@self.geo`.
 		 * @type {object|null}
 		 */
 		markers: {
@@ -578,6 +591,18 @@ export default {
 						const safeHtml = DOMPurify.sanitize(String(popupHtml), SAFE_MARKDOWN_DOMPURIFY_CONFIG)
 						lyr.bindPopup(safeHtml)
 					}
+
+					// Hover tooltip: a marker with no label is a mystery dot. Name it
+					// with the object's own display name — the backend already derives
+					// one and publishes it as `@self.name`, so a Cow (`name`), a Barn
+					// (`title`), and a Case (`reference`) all read correctly without the
+					// widget knowing the schema. bindTooltip also renders HTML, so
+					// sanitize the same way bindPopup does.
+					const label = objectDisplayName(feature.properties || {})
+					if (label !== '') {
+						const safeLabel = DOMPurify.sanitize(label, SAFE_MARKDOWN_DOMPURIFY_CONFIG)
+						lyr.bindTooltip(safeLabel, { direction: 'top' })
+					}
 					lyr.on('click', (e) => {
 						/**
 						 * Marker click event. Fired when a marker is clicked.
@@ -638,10 +663,17 @@ export default {
 			const L = this.L
 			if (!this.map || !L || typeof L.tileLayer !== 'function') return
 
-			// Opt-in only. A consumer that configures its background through a `tile`
-			// entry in `layers` keeps exactly its existing behaviour, and an invalid
-			// layer config still renders no tiles rather than silently falling back.
-			const basemaps = (this.basemaps || []).filter((b) => b && typeof b.url === 'string' && b.url.length > 0)
+			const configured = (this.basemaps || []).filter((b) => b && typeof b.url === 'string' && b.url.length > 0)
+
+			// A map with no background is not an empty map — it is a grey box, and it
+			// reads as broken. When the consumer configured NEITHER a basemap NOR a
+			// `tile` entry in `layers`, fall back to OpenStreetMap rather than render
+			// Leaflet's controls over blank grey.
+			//
+			// A consumer that DOES supply a `tile` layer keeps exactly its existing
+			// background — we must not stack OSM underneath somebody's PDOK tiles.
+			const hasTileLayer = (this.layers || []).some((l) => l && l.type === 'tile' && l.url)
+			const basemaps = configured.length > 0 ? configured : (hasTileLayer ? [] : [DEFAULT_BASEMAP])
 			if (basemaps.length === 0) return
 
 			const baseLayers = {}
@@ -758,8 +790,8 @@ export default {
 		 * FeatureCollection OR an array of flat rows (in which case
 		 * `latField`, `lngField`, `popupField` drive the conversion).
 		 *
-		 * The `dataSource.{register, schema}` shape is RESERVED for a
-		 * follow-up resolver and returns `[]` today.
+		 * `dataSource.{register, schema}` plots the objects of an OpenRegister
+		 * register/schema (see fetchRegisterFeatures).
 		 *
 		 * @return {Promise<Array<object>>} GeoJSON Feature array.
 		 */
@@ -781,8 +813,48 @@ export default {
 					return []
 				}
 			}
-			// register+schema reserved; resolver deferred
+			if (ds.register && ds.schema) {
+				return await this.fetchRegisterFeatures(ds)
+			}
 			return []
+		},
+
+		/**
+		 * Plot the objects of an OpenRegister register/schema.
+		 *
+		 * Each object's location comes from `@self.geo` (where CnObjectGeoWidget writes
+		 * it), falling back to plain `latField` / `lngField` properties so a schema that
+		 * models coordinates itself still plots. Objects with no usable location are
+		 * skipped rather than dropped at (0, 0) — an invisible wrong marker is worse
+		 * than an absent one.
+		 *
+		 * @param {{register: string, schema: string, limit?: number}} ds The data source.
+		 * @return {Promise<Array<object>>} GeoJSON Feature array.
+		 */
+		async fetchRegisterFeatures(ds) {
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl(
+					'/apps/openregister/api/objects/{register}/{schema}',
+					{ register: ds.register, schema: ds.schema },
+				)
+				const res = await axios.get(url, { params: { _limit: ds.limit || 500 } })
+				const rows = (res && res.data && res.data.results) || []
+
+				const latField = this.markers && this.markers.latField
+				const lngField = this.markers && this.markers.lngField
+
+				return rows
+					.map((row) => objectToGeoFeature(row, { latField, lngField }))
+					.filter(Boolean)
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.warn('[CnMapWidget] Failed to load objects for the map', ds, err)
+				return []
+			}
 		},
 
 		/**

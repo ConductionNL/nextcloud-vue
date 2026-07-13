@@ -71,6 +71,7 @@ import CnDataTable from '../CnDataTable/CnDataTable.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import { translate as t } from '@nextcloud/l10n'
 import { resolveFilterTokens, hasUnresolvedTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
+import { objectFieldValue } from '../../utils/objectName.js'
 
 /**
  * CnObjectListWidget — an abstract, manifest-configured object list / table.
@@ -241,7 +242,7 @@ export default {
 		 */
 		resolvedColumns() {
 			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
-			return cols.map((c) => {
+			const mapped = cols.map((c) => {
 				if (typeof c === 'string') {
 					return { key: c, label: c }
 				}
@@ -251,6 +252,25 @@ export default {
 				}
 				return out
 			})
+
+			// The registry used to default to `[{ key: 'title' }]`, but plenty of schemas
+			// have no `title` — a Barn has `name`. Such a widget rendered a table of
+			// em-dashes forever, and nothing told the user why.
+			//
+			// Don't guess the right key from the data: OpenRegister already guessed, and
+			// published the answer as `@self.name`. When NOT ONE configured column
+			// resolves on any loaded row, fall back to that single display-name column.
+			//
+			// Only when none resolve: a partly-matching column set is a deliberate choice
+			// (a column can be legitimately empty across the current page of rows), and
+			// silently replacing it would override the user.
+			if (this.rows.length > 0 && mapped.length > 0) {
+				const resolves = mapped.some((c) => this.rows.some((r) => objectFieldValue(r, c.key) !== undefined))
+				if (resolves === false) {
+					return [{ key: 'name', label: t('nextcloud-vue', 'Name') }]
+				}
+			}
+			return mapped
 		},
 		/** Empty-state text (overridable via `content.emptyText`). */
 		emptyText() {

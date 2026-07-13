@@ -60,6 +60,94 @@ export const NcActionInput = {
 		])
 	},
 }
+/**
+ * NcRichContenteditable needs a real stateful stub: the component under test
+ * binds `:value` / `@update:value` and passes an `auto-complete` function that
+ * the real component calls with `(searchText, callback)` when the user types
+ * `@query`. This stub mirrors that contract on top of a plain <textarea> so
+ * jsdom tests can drive typing, suggestion display, keyboard navigation
+ * (ArrowUp/ArrowDown/Enter/Escape) and mouse selection. Token insertion uses
+ * the same `@id` / `@"id"` convention as the real Tribute integration.
+ */
+export const NcRichContenteditable = {
+	name: 'NcRichContenteditable',
+	props: {
+		value: { type: String, default: '' },
+		autoComplete: { type: Function, default: () => [] },
+		placeholder: { type: String, default: '' },
+		multiline: { type: Boolean, default: false },
+	},
+	data() {
+		return {
+			suggestions: [],
+			open: false,
+			activeIndex: 0,
+		}
+	},
+	methods: {
+		onInput(event) {
+			const text = event.target.value
+			this.$emit('update:value', text)
+			const match = text.match(/(?:^|\s)@([A-Za-z0-9_.'-]*)$/)
+			if (match) {
+				this.autoComplete(match[1], (results) => {
+					this.suggestions = Array.isArray(results) ? results : []
+					this.open = this.suggestions.length > 0
+					this.activeIndex = 0
+				})
+			} else {
+				this.close()
+			}
+		},
+		onKeydown(event) {
+			if (!this.open) return
+			if (event.key === 'ArrowDown') {
+				event.preventDefault()
+				this.activeIndex = Math.min(this.activeIndex + 1, this.suggestions.length - 1)
+			} else if (event.key === 'ArrowUp') {
+				event.preventDefault()
+				this.activeIndex = Math.max(this.activeIndex - 1, 0)
+			} else if (event.key === 'Enter') {
+				event.preventDefault()
+				this.select(this.suggestions[this.activeIndex])
+			} else if (event.key === 'Escape') {
+				event.preventDefault()
+				this.close()
+			}
+		},
+		select(suggestion) {
+			if (!suggestion) return
+			const id = String(suggestion.id)
+			const token = /^[A-Za-z0-9_.'-]+$/.test(id) ? `@${id}` : `@"${id}"`
+			const newText = this.value.replace(/@[A-Za-z0-9_.'-]*$/, `${token} `)
+			this.$emit('update:value', newText)
+			this.close()
+		},
+		close() {
+			this.open = false
+			this.suggestions = []
+			this.activeIndex = 0
+		},
+	},
+	render(h) {
+		const children = [
+			h('textarea', {
+				class: 'rich-contenteditable__input',
+				domProps: { value: this.value },
+				attrs: { placeholder: this.placeholder },
+				on: { input: this.onInput, keydown: this.onKeydown },
+			}),
+		]
+		if (this.open) {
+			children.push(h('ul', { class: 'tribute-container' }, this.suggestions.map((suggestion, index) => h('li', {
+				class: ['tribute-item', { 'tribute-item--active': index === this.activeIndex }],
+				key: suggestion.id,
+				on: { click: () => this.select(suggestion) },
+			}, suggestion.label || suggestion.id))))
+		}
+		return h('div', { class: ['stub', 'NcRichContenteditable'] }, children)
+	},
+}
 export const NcSelect = createStub('NcSelect')
 export const NcSettingsSection = createStub('NcSettingsSection')
 export const NcAppSidebar = createStub('NcAppSidebar')
@@ -155,4 +243,5 @@ export default {
 	NcAvatar,
 	NcCounterBubble,
 	NcDateTime,
+	NcRichContenteditable,
 }
