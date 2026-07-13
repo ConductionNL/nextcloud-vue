@@ -78,6 +78,7 @@ import { translate as t } from '@nextcloud/l10n'
 import DOMPurify from 'dompurify'
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 import { objectToGeoFeature } from '../../utils/geo.js'
+import { objectDisplayName } from '../../utils/objectName.js'
 
 const ALLOWED_LAYER_TYPES = ['tile', 'wms', 'wfs', 'geojson']
 
@@ -589,6 +590,18 @@ export default {
 						// execute in the Nextcloud origin.
 						const safeHtml = DOMPurify.sanitize(String(popupHtml), SAFE_MARKDOWN_DOMPURIFY_CONFIG)
 						lyr.bindPopup(safeHtml)
+					}
+
+					// Hover tooltip: a marker with no label is a mystery dot. Name it
+					// with the object's own display name — the backend already derives
+					// one and publishes it as `@self.name`, so a Cow (`name`), a Barn
+					// (`title`), and a Case (`reference`) all read correctly without the
+					// widget knowing the schema. bindTooltip also renders HTML, so
+					// sanitize the same way bindPopup does.
+					const label = objectDisplayName(feature.properties || {})
+					if (label !== '') {
+						const safeLabel = DOMPurify.sanitize(label, SAFE_MARKDOWN_DOMPURIFY_CONFIG)
+						lyr.bindTooltip(safeLabel, { direction: 'top' })
 					}
 					lyr.on('click', (e) => {
 						/**
