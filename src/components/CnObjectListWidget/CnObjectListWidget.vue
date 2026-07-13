@@ -241,7 +241,7 @@ export default {
 		 */
 		resolvedColumns() {
 			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
-			return cols.map((c) => {
+			const mapped = cols.map((c) => {
 				if (typeof c === 'string') {
 					return { key: c, label: c }
 				}
@@ -251,6 +251,35 @@ export default {
 				}
 				return out
 			})
+
+			// The registry default is `[{ key: 'title' }]`, but plenty of schemas have no
+			// `title` — a Barn has `name`. Such a widget rendered a table of em-dashes
+			// forever, and nothing told the user why. When NOT ONE configured column
+			// exists on the data, fall back to the object's own fields, the way the index
+			// page already derives its columns from the schema.
+			//
+			// Only when none match: a partly-wrong column set is a deliberate choice (a
+			// column can be legitimately empty across the current page of rows), and
+			// silently replacing it would override the user.
+			if (this.rows.length > 0 && mapped.length > 0) {
+				const present = mapped.some((c) => this.rows.some((r) => r && r[c.key] !== undefined))
+				if (present === false) {
+					return this.columnsFromRows
+				}
+			}
+			return mapped
+		},
+		/**
+		 * Columns derived from the loaded objects themselves — the object's own fields,
+		 * minus OpenRegister's internals (`@self`, `_`-prefixed) and `id`.
+		 *
+		 * @return {Array<{key: string, label: string}>} Derived columns.
+		 */
+		columnsFromRows() {
+			const first = this.rows[0] || {}
+			return Object.keys(first)
+				.filter((k) => k !== 'id' && !k.startsWith('@') && !k.startsWith('_'))
+				.map((k) => ({ key: k, label: k }))
 		},
 		/** Empty-state text (overridable via `content.emptyText`). */
 		emptyText() {
