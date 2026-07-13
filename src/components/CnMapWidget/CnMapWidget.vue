@@ -14,9 +14,10 @@
       be either a GeoJSON FeatureCollection OR a flat array of rows
       (in which case `latField`, `lngField`, `popupField` drive the
       conversion).
-    - `markers.dataSource.{register, schema}` — RESERVED. The
-      validator round-trips this shape but the resolver lands in a
-      follow-up change; v1 ignores it at render time.
+    - `markers.dataSource.{register, schema}` — plots the objects of an
+      OpenRegister register/schema, reading each one's `@self.geo`
+      (falling back to `latField` / `lngField` on the object itself).
+      Objects with no usable location are skipped, not plotted at (0, 0).
 
   `leaflet.markercluster` lazy-loads only when `clustering: true`
   (or `markers.clustering: true`) — consumers without clustering
@@ -76,6 +77,7 @@ import 'leaflet/dist/leaflet.css'
 import { translate as t } from '@nextcloud/l10n'
 import DOMPurify from 'dompurify'
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
+import { objectToGeoFeature } from '../../utils/geo.js'
 
 const ALLOWED_LAYER_TYPES = ['tile', 'wms', 'wfs', 'geojson']
 
@@ -172,8 +174,8 @@ export default {
 		/**
 		 * Marker config. `{ features?, dataSource?, latField?, lngField?, popupField?,
 		 * clustering?, iconColor?, iconUrl? }`. `features[]` is inline; `dataSource.url`
-		 * is HTTP-fetched on mount; `dataSource.{register, schema}` is reserved
-		 * (resolver deferred).
+		 * is HTTP-fetched on mount; `dataSource.{register, schema}` plots the objects of
+		 * an OpenRegister register/schema via their `@self.geo`.
 		 * @type {object|null}
 		 */
 		markers: {
@@ -758,8 +760,8 @@ export default {
 		 * FeatureCollection OR an array of flat rows (in which case
 		 * `latField`, `lngField`, `popupField` drive the conversion).
 		 *
-		 * The `dataSource.{register, schema}` shape is RESERVED for a
-		 * follow-up resolver and returns `[]` today.
+		 * `dataSource.{register, schema}` plots the objects of an OpenRegister
+		 * register/schema (see fetchRegisterFeatures).
 		 *
 		 * @return {Promise<Array<object>>} GeoJSON Feature array.
 		 */
@@ -781,8 +783,48 @@ export default {
 					return []
 				}
 			}
-			// register+schema reserved; resolver deferred
+			if (ds.register && ds.schema) {
+				return await this.fetchRegisterFeatures(ds)
+			}
 			return []
+		},
+
+		/**
+		 * Plot the objects of an OpenRegister register/schema.
+		 *
+		 * Each object's location comes from `@self.geo` (where CnObjectGeoWidget writes
+		 * it), falling back to plain `latField` / `lngField` properties so a schema that
+		 * models coordinates itself still plots. Objects with no usable location are
+		 * skipped rather than dropped at (0, 0) — an invisible wrong marker is worse
+		 * than an absent one.
+		 *
+		 * @param {{register: string, schema: string, limit?: number}} ds The data source.
+		 * @return {Promise<Array<object>>} GeoJSON Feature array.
+		 */
+		async fetchRegisterFeatures(ds) {
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl(
+					'/apps/openregister/api/objects/{register}/{schema}',
+					{ register: ds.register, schema: ds.schema },
+				)
+				const res = await axios.get(url, { params: { _limit: ds.limit || 500 } })
+				const rows = (res && res.data && res.data.results) || []
+
+				const latField = this.markers && this.markers.latField
+				const lngField = this.markers && this.markers.lngField
+
+				return rows
+					.map((row) => objectToGeoFeature(row, { latField, lngField }))
+					.filter(Boolean)
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.warn('[CnMapWidget] Failed to load objects for the map', ds, err)
+				return []
+			}
 		},
 
 		/**
