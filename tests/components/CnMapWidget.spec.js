@@ -74,9 +74,11 @@ jest.mock('leaflet', () => {
 				? data.features.length
 				: (Array.isArray(data) ? data.length : 0)
 			if (opts && typeof opts.onEachFeature === 'function' && data && data.features) {
+				layer._children = []
 				for (const f of data.features) {
-					const child = { on: jest.fn(), bindPopup: jest.fn() }
+					const child = { on: jest.fn(), bindPopup: jest.fn(), bindTooltip: jest.fn() }
 					opts.onEachFeature(f, child)
+					layer._children.push(child)
 				}
 			}
 			return layer
@@ -271,6 +273,42 @@ describe('CnMapWidget — markers', () => {
 		const L = require('leaflet').default
 		const geojsonCalls = L.geoJSON.mock.calls.filter((c) => c[0]?.features?.length === 2)
 		expect(geojsonCalls.length).toBe(1)
+		wrapper.destroy()
+	})
+
+	it('binds a hover tooltip from the object’s @self.name so a marker is not a mystery dot', async () => {
+		const wrapper = mountWidget({
+			markers: {
+				features: [
+					{
+						type: 'Feature',
+						geometry: { type: 'Point', coordinates: [4.88, 52.37] },
+						// The name lives on the envelope — the marker must still be labelled.
+						properties: { '@self': { name: 'THe southern barn' } },
+					},
+				],
+			},
+		})
+		await flush(); await nextTick(); await flush()
+		const L = require('leaflet').default
+		const layer = L.geoJSON.mock.results.map((r) => r.value).find((v) => v._children)
+		expect(layer).toBeTruthy()
+		expect(layer._children[0].bindTooltip).toHaveBeenCalledWith('THe southern barn', expect.objectContaining({ direction: 'top' }))
+		wrapper.destroy()
+	})
+
+	it('binds no tooltip when the feature has no nameable field', async () => {
+		const wrapper = mountWidget({
+			markers: {
+				features: [
+					{ type: 'Feature', geometry: { type: 'Point', coordinates: [4.88, 52.37] }, properties: {} },
+				],
+			},
+		})
+		await flush(); await nextTick(); await flush()
+		const L = require('leaflet').default
+		const layer = L.geoJSON.mock.results.map((r) => r.value).find((v) => v._children)
+		expect(layer._children[0].bindTooltip).not.toHaveBeenCalled()
 		wrapper.destroy()
 	})
 
