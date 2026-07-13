@@ -298,6 +298,7 @@
 					:rows="displayObjects"
 					:sort-key="effectiveSortKey"
 					:sort-order="effectiveSortOrder"
+					:sort-keys="effectiveSortKeys"
 					:selectable="selectable"
 					:row-click-to-view="rowClickToView"
 					:selected-ids="internalSelectedIds"
@@ -593,6 +594,16 @@ import { useSelfFetchList } from './useSelfFetchList.js'
  * - `#form-fields` — Replace only the form content inside the built-in form dialog (CnFormDialog only)
  *
  * Use the `useAdvancedFormDialog` prop to use CnAdvancedFormDialog for create/edit (properties table, JSON tab, optional metadata).
+ *
+ * Multi-column sort (self-fetch mode: `register` + `schema`, no external
+ * `objects`): shift+click a second/third sortable header in the embedded
+ * CnDataTable to build a priority-ordered sort. The active key list is
+ * translated into OpenRegister's `_order` query param (`{field: 'asc'|
+ * 'desc', ...}`, key order = priority — the exact shape `ObjectsController::
+ * normalizeOrderParameter` / `MagicMapper` consume) and persisted in
+ * `$route.query._order` (JSON-encoded), so a reload or a shared link
+ * restores the same sort. Host-controlled (non-self-fetch) pages pass their
+ * own `sortKeys` prop instead.
  *
  * Minimal usage (auto-generated dialogs from schema)
  * ```vue
@@ -958,6 +969,19 @@ export default {
 		sortOrder: {
 			type: String,
 			default: 'asc',
+		},
+
+		/**
+		 * Ordered multi-column sort state (host-controlled / non-self-fetch
+		 * mode): `[{ key, order }, ...]`, mirroring the `sortKey`/`sortOrder`
+		 * pair but for more than one active key. Ignored in self-fetch mode
+		 * (register + schema), which manages its own multi-sort state via
+		 * `useSelfFetchList`/`useListView` and persists it in the route query.
+		 * @type {Array<{key: string, order: 'asc'|'desc'}>}
+		 */
+		sortKeys: {
+			type: Array,
+			default: () => [],
 		},
 
 		/**
@@ -1873,6 +1897,14 @@ export default {
 		/** Sort key / order: list state in self-fetch mode, else the props. */
 		effectiveSortKey() { return this.isSelfFetchMode ? this.list.sortKey.value : this.sortKey },
 		effectiveSortOrder() { return this.isSelfFetchMode ? this.list.sortOrder.value : this.sortOrder },
+		/**
+		 * Ordered multi-column sort state fed to CnDataTable: the self-fetch
+		 * list's `sortKeys` in self-fetch mode, else the host-controlled
+		 * `sortKeys` prop.
+		 *
+		 * @return {Array<{key: string, order: 'asc'|'desc'}>}
+		 */
+		effectiveSortKeys() { return this.isSelfFetchMode ? (this.list.sortKeys.value || []) : this.sortKeys },
 		/** Search term / visible columns / active facet filters for the embedded sidebar. */
 		effectiveSearchValue() { return this.isSelfFetchMode ? (this.list.searchTerm.value || '') : (this.searchValue || '') },
 		effectiveVisibleColumns() { return this.isSelfFetchMode ? this.list.visibleColumns.value : this.visibleColumns },
@@ -2459,12 +2491,40 @@ export default {
 		},
 
 		/**
-		 * @param {{key: string, order: string}} payload Sort change from CnDataTable.
+		 * @param {{key: string, order: string, keys?: Array<{key: string, order: string}>}} payload Sort change from CnDataTable.
 		 * @return {void}
 		 */
 		onSortEvent(payload) {
 			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') this.list.onSort(payload)
+			if (this.isSelfFetchMode) {
+				const keys = Array.isArray(payload.keys)
+					? payload.keys
+					: (payload.key ? [{ key: payload.key, order: payload.order || 'asc' }] : [])
+				this.persistSortToRoute(keys)
+			}
 			this.$emit('sort', payload)
+		},
+
+		/**
+		 * Persist the active multi-column sort to `$route.query._order`
+		 * (JSON-encoded ordered array) so a reload or a shared/bookmarked
+		 * link reproduces the same sort. An empty `keys` list removes the
+		 * param entirely. Best-effort: a duplicate-navigation rejection
+		 * (same resulting path/query) is swallowed, matching every other
+		 * `$router.replace` call in this component.
+		 *
+		 * @param {Array<{key: string, order: string}>} keys The active ordered sort-key list.
+		 * @return {void}
+		 */
+		persistSortToRoute(keys) {
+			if (!this.$router || !this.$route) return
+			const query = { ...this.$route.query }
+			if (Array.isArray(keys) && keys.length > 0) {
+				query._order = JSON.stringify(keys)
+			} else {
+				delete query._order
+			}
+			this.$router.replace({ query }).catch(() => {})
 		},
 
 		/**
