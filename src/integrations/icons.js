@@ -44,6 +44,7 @@ import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue
 import CurrencyEur from 'vue-material-design-icons/CurrencyEur.vue'
 import Earth from 'vue-material-design-icons/Earth.vue'
 import Email from 'vue-material-design-icons/Email.vue'
+import FileCompare from 'vue-material-design-icons/FileCompare.vue'
 import FileDocumentMultiple from 'vue-material-design-icons/FileDocumentMultiple.vue'
 import History from 'vue-material-design-icons/History.vue'
 import Image from 'vue-material-design-icons/Image.vue'
@@ -85,6 +86,7 @@ export const INTEGRATION_ICON_COMPONENTS = {
 	CurrencyEur,
 	Earth,
 	Email,
+	FileCompare,
 	FileDocumentMultiple,
 	History,
 	Image,

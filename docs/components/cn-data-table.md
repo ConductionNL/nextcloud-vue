@@ -77,6 +77,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `loadingText` | String | `'Loading...'` | Accessible label for the loading spinner |
 | `sortKey` | String | `null` | Currently sorted column key; controls the ▲/▼ indicator. `null` means no column is actively sorted. |
 | `sortOrder` | String | `'asc'` | Current sort direction — `'asc'`, `'desc'`, or `null` (no sort) |
+| `sortKeys` | Array | `[]` | Ordered multi-column ("shift+click") sort key list, `[{ key, order }, …]` (0–3 entries). When non-empty it takes precedence over `sortKey`/`sortOrder`; a single-key list is single-sort's behavior unchanged. Shift+click a sortable header to append/cycle a secondary or tertiary key. |
 | `selectable` | Boolean | `false` | Enables the checkbox column for multi-row selection |
 | `rowClickToView` | Boolean | `false` | When true, a row-body click emits `row-click` (for navigation) even while `selectable` — selection then happens only via the checkbox column ("click row = open, tick box = select") |
 | `selectedIds` | Array | `[]` | Array of currently selected row IDs (controlled) |

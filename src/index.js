@@ -98,6 +98,7 @@ export {
 	CnFileManager,
 	CnTagsCard,
 	CnAuditTrailCard,
+	CnVersionHistory,
 	CnEmailCard,
 	CnEmailTab,
 	CnContactsCard,
