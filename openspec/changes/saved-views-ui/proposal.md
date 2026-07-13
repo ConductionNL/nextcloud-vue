@@ -21,6 +21,7 @@ Saved filters/views is a researched handler-productivity gap. OpenRegister alrea
 - No default-view auto-apply on page load (`isDefault` is persisted as `false`; auto-apply is a follow-up).
 - No favoriting/renaming/sharing UI beyond the `isPublic` toggle at save time.
 - No per-app view migration tooling.
+- No multi-column-sort capture: `multi-column-sort-ui` (merged concurrently) persists shift+click sorts as a JSON `_order` route-query key; saved views capture single-key `_sortKey`/`_sortOrder` only. Capturing `_order` in the view state is a follow-up.
 
 ## References
 
