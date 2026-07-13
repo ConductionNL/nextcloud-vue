@@ -41,6 +41,7 @@ import '../CnObjectGeoWidget/dashboardRegistration.js'
 import '../CnWidgetObjectTable/dashboardRegistration.js'
 import '../CnAuditTrailWidget/dashboardRegistration.js'
 import '../CnObjectListWidget/index.js'
+import '../CnMapWidget/index.js'
 import '../CnKbSearchWidget/index.js'
 import '../CnInteractionFormWidget/index.js'
 import '../CnBannerWidget/index.js'
@@ -59,6 +60,8 @@ import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
 import CnStatsBlockWidgetForm from '../CnStatsBlockWidgetForm/CnStatsBlockWidgetForm.vue'
 import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
 import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
+import CnMapWidget from '../CnMapWidget/CnMapWidget.vue'
+import CnMapWidgetForm from '../CnMapWidgetForm/CnMapWidgetForm.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnRelatedObjectsWidgetForm from '../CnRelatedObjectsWidgetForm/CnRelatedObjectsWidgetForm.vue'
 
@@ -130,6 +133,33 @@ registerDashboardWidget('related', {
 	icon: 'FileTreeOutline',
 	surfaces: ['detail-page'],
 	ownsTitle: true,
+})
+
+// `map` is registered inline for the same tree-shaking reason as `object-list`
+// above — a bare `import '../CnMapWidget/index.js'` is a side-effect-free JS module
+// as far as the bundler is concerned, so it may legally be dropped and the widget
+// would silently never appear in Add Widget.
+registerDashboardWidget('map', {
+	renderer: CnMapWidget,
+	form: CnMapWidgetForm,
+	defaultContent: {
+		register: '',
+		schema: '',
+		// The Netherlands, roughly — only visible until autoFit frames the objects.
+		center: [52.13, 5.29],
+		zoom: 7,
+		height: '400px',
+		popupField: '',
+		clustering: false,
+		autoFit: true,
+		markers: {
+			dataSource: { register: '', schema: '' },
+			popupField: '',
+			clustering: false,
+		},
+	},
+	displayName: 'Map',
+	icon: 'Map',
 })
 
 /**

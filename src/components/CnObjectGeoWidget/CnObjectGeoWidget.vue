@@ -95,6 +95,9 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
+// Aliased: the methods below are also called parseGeoPoint/finitePoint (kept for
+// backwards compatibility), and an unaliased call inside them would read like recursion.
+import { parseGeoPoint as parseGeoPointUtil, finitePoint as finitePointUtil } from '../../utils/geo.js'
 import { NcButton, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import Magnify from 'vue-material-design-icons/Magnify.vue'
@@ -545,24 +548,8 @@ export default {
 		 * @return {{lat: number, lng: number}|null} The parsed point.
 		 */
 		parseGeoPoint(geo) {
-			if (!geo || typeof geo !== 'object') return null
-			// FeatureCollection → first feature.
-			if (geo.type === 'FeatureCollection' && Array.isArray(geo.features) && geo.features.length) {
-				return this.parseGeoPoint(geo.features[0])
-			}
-			// Feature → its geometry.
-			if (geo.type === 'Feature' && geo.geometry) {
-				return this.parseGeoPoint(geo.geometry)
-			}
-			// Point geometry → [lng, lat].
-			if (geo.type === 'Point' && Array.isArray(geo.coordinates) && geo.coordinates.length >= 2) {
-				const [lng, lat] = geo.coordinates
-				return this.finitePoint(lat, lng)
-			}
-			// Plain lat/lng shapes.
-			const lat = geo.lat ?? geo.latitude
-			const lng = geo.lng ?? geo.lon ?? geo.longitude
-			return this.finitePoint(lat, lng)
+			// Shared with CnMapWidget — the two must agree on what a valid location is.
+			return parseGeoPointUtil(geo)
 		},
 
 		/**
@@ -570,13 +557,10 @@ export default {
 		 *
 		 * @param {*} lat Candidate latitude.
 		 * @param {*} lng Candidate longitude.
-		 * @return {{lat: number, lng: number}|null} The point or null.
+		 * @return {?{lat: number, lng: number}} The point, or null.
 		 */
 		finitePoint(lat, lng) {
-			const nLat = Number(lat)
-			const nLng = Number(lng)
-			if (!Number.isFinite(nLat) || !Number.isFinite(nLng)) return null
-			return { lat: nLat, lng: nLng }
+			return finitePointUtil(lat, lng)
 		},
 
 		/**
