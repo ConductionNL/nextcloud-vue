@@ -53,6 +53,32 @@ function resolveQueryFilters(query) {
 	return out
 }
 
+/**
+ * Parse the persisted multi-column sort out of `$route.query._order`
+ * (JSON-encoded ordered array of `{key, order}`, written by
+ * `CnIndexPage.persistSortToRoute`) so a reload or a shared/bookmarked
+ * link restores the same sort. Malformed or absent input yields `null`
+ * (caller falls back to `props.sortKey`/`props.sortKeys`).
+ *
+ * @param {object} route The current `$route` (may be undefined/null).
+ * @return {Array<{key: string, order: 'asc'|'desc'}>|null} The parsed ordered sort-key list, or `null`.
+ */
+function parseInitialSortKeysFromRoute(route) {
+	const raw = route && route.query && route.query._order
+	if (typeof raw !== 'string' || raw === '') return null
+	let parsed
+	try {
+		parsed = JSON.parse(raw)
+	} catch (e) {
+		return null
+	}
+	if (!Array.isArray(parsed) || parsed.length === 0) return null
+	const keys = parsed
+		.filter((k) => k && typeof k.key === 'string')
+		.map((k) => ({ key: k.key, order: k.order === 'desc' ? 'desc' : 'asc' }))
+	return keys.length > 0 ? keys : null
+}
+
 function resolveInitialQuickFilterIndex(quickFilters) {
 	const tabs = Array.isArray(quickFilters) ? quickFilters : null
 	if (!tabs || tabs.length === 0) return null
@@ -141,10 +167,18 @@ export function useSelfFetchList(props, instance, inject) {
 		.map((c) => (typeof c === 'string' ? c : c && c.key))
 		.filter(Boolean)
 
+	// Restore a persisted multi-column sort from the route query first (deep
+	// link / reload); fall back to a host-passed `sortKeys` prop, then the
+	// legacy single-key `sortKey`/`sortOrder` props.
+	const initialRoute = instance && instance.proxy && instance.proxy.$route
+	const initialSortKeys = parseInitialSortKeysFromRoute(initialRoute)
+		|| (Array.isArray(props.sortKeys) && props.sortKeys.length > 0 ? props.sortKeys : undefined)
+
 	const list = useListView(objectType, {
 		objectStore,
 		sidebarState,
 		defaultSort: props.sortKey ? { key: props.sortKey, order: props.sortOrder || 'asc' } : undefined,
+		defaultSortKeys: initialSortKeys,
 		defaultPageSize: (props.pagination && props.pagination.limit) || undefined,
 		defaultVisibleColumns: configuredColumnKeys.length ? configuredColumnKeys : null,
 		fixedFilters: () => {

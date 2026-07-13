@@ -50,12 +50,20 @@
 							col.class || '',
 						]"
 						:style="col.width ? { width: col.width } : {}"
-						@click="col.sortable ? onSort(col.key) : null">
+						:tabindex="col.sortable ? 0 : null"
+						:aria-sort="ariaSortFor(col)"
+						@click="col.sortable ? onHeaderClick(col.key, $event) : null"
+						@keydown.enter="col.sortable ? onHeaderKeydown(col.key, $event) : null">
 						{{ col.label }}
 						<span
-							v-if="col.sortable && sortKey === col.key"
+							v-if="col.sortable && sortKeyIndex(col.key) !== -1"
 							class="cn-table-sort-indicator">
-							{{ sortOrder === 'asc' ? '▲' : '▼' }}
+							{{ effectiveSortKeys[sortKeyIndex(col.key)].order === 'asc' ? '▲' : '▼' }}
+						</span>
+						<span
+							v-if="col.sortable && effectiveSortKeys.length > 1 && sortKeyIndex(col.key) !== -1"
+							class="cn-table-sort-badge">
+							{{ sortKeyIndex(col.key) + 1 }}
 						</span>
 					</th>
 
@@ -173,6 +181,7 @@ import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
+import { nextSortState } from '../../utils/multiColumnSort.js'
 
 /**
  * CnDataTable — Generic sortable data table for list views.
@@ -181,6 +190,16 @@ import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
  * every list view across OpenRegister, Pipelinq, and Procest. Supports sorting,
  * row selection, custom cell rendering via scoped slots, loading states,
  * and empty states.
+ *
+ * Sorting: a plain click on a sortable header is single-sort (cycle asc →
+ * desc → cleared), unchanged from before. Shift+click (or Shift+Enter on a
+ * focused header) appends the column as a secondary/tertiary sort key —
+ * capped at 3 — with numbered priority badges (1, 2, 3) once more than one
+ * key is active. Pass `sortKeys: [{key, order}, ...]` for multi-sort (falls
+ * back to the legacy `sortKey`/`sortOrder` props when empty). The `sort`
+ * event payload is extended, not replaced: `{key, order}` still mirrors the
+ * primary key exactly as before; a new `keys` field carries the full
+ * ordered list. See `src/utils/multiColumnSort.js` for the state machine.
  *
  * When a `schema` prop is provided, columns are auto-generated from schema
  * properties and cells render through CnCellRenderer for type-aware formatting
@@ -293,6 +312,19 @@ export default {
 			type: String,
 			default: 'asc',
 			validator: (v) => v === null || ['asc', 'desc'].includes(v),
+		},
+		/**
+		 * Ordered multi-column sort state: `[{ key, order }, ...]` (priority
+		 * order, 0 to 3 entries). Optional — when empty (the default), the
+		 * table falls back to the legacy `sortKey`/`sortOrder` props, so
+		 * single-sort hosts are completely unaffected. Shift+click a
+		 * sortable header to append/cycle a secondary or tertiary key (see
+		 * `src/utils/multiColumnSort.js`).
+		 * @type {Array<{key: string, order: 'asc'|'desc'}>}
+		 */
+		sortKeys: {
+			type: Array,
+			default: () => [],
 		},
 		/** Whether rows can be selected with checkboxes */
 		selectable: {
@@ -560,6 +592,21 @@ export default {
 				if (typeof c !== 'string') return c
 				return byKey.get(c) || { key: c, label: c, sortable: true }
 			})
+		},
+
+		/**
+		 * The active ordered sort-key list: the `sortKeys` prop when non-empty,
+		 * else a single-entry list derived from the legacy `sortKey`/`sortOrder`
+		 * props (empty when neither is active). Every header/badge/aria-sort
+		 * computation reads this so single-sort hosts (no `sortKeys` passed)
+		 * render exactly as before.
+		 *
+		 * @return {Array<{key: string, order: 'asc'|'desc'}>}
+		 */
+		effectiveSortKeys() {
+			if (this.sortKeys && this.sortKeys.length > 0) return this.sortKeys
+			if (this.sortKey) return [{ key: this.sortKey, order: this.sortOrder || 'asc' }]
+			return []
 		},
 
 		totalColumns() {
@@ -870,26 +917,78 @@ export default {
 		},
 
 		/**
-		 * Handle sort column click.
-		 * @param {string} key Column key
+		 * Index of `key` within `effectiveSortKeys`, or -1 when not active.
+		 * Used by the template for the arrow, the numbered badge, and aria-sort.
+		 *
+		 * @param {string} key Column key.
+		 * @return {number}
 		 */
-		onSort(key) {
-			let newKey = key
-			let order = 'asc'
-			if (this.sortKey === key) {
-				if (this.sortOrder === 'asc') {
-					order = 'desc'
-				} else {
-					// desc → disabled: clear sort entirely
-					newKey = null
-					order = null
-				}
-			}
+		sortKeyIndex(key) {
+			return this.effectiveSortKeys.findIndex((k) => k && k.key === key)
+		},
+
+		/**
+		 * `aria-sort` value for a column header: `'ascending'`/`'descending'`
+		 * for the PRIMARY (index 0) active sort key only — secondary/tertiary
+		 * keys carry the visible numbered badge instead, per WCAG guidance
+		 * that `aria-sort` describes single-column sort state. `null` omits
+		 * the attribute entirely (unsorted / not sortable).
+		 *
+		 * @param {object} col Column definition.
+		 * @return {string|null}
+		 */
+		ariaSortFor(col) {
+			if (!col.sortable) return null
+			const primary = this.effectiveSortKeys[0]
+			if (!primary || primary.key !== col.key) return null
+			return primary.order === 'asc' ? 'ascending' : 'descending'
+		},
+
+		/**
+		 * Header click: plain click = single-sort (existing behavior,
+		 * unchanged); shift+click appends/cycles the column as a secondary or
+		 * tertiary sort key. See `src/utils/multiColumnSort.js`.
+		 *
+		 * @param {string} key Column key.
+		 * @param {MouseEvent} [event] The originating click event.
+		 */
+		onHeaderClick(key, event) {
+			this.applySort(key, !!(event && event.shiftKey))
+		},
+
+		/**
+		 * Header keydown: `Enter` = plain click, `Shift+Enter` = shift+click.
+		 *
+		 * @param {string} key Column key.
+		 * @param {KeyboardEvent} event The originating keydown event.
+		 */
+		onHeaderKeydown(key, event) {
+			if (event.key !== 'Enter') return
+			event.preventDefault()
+			this.applySort(key, !!event.shiftKey)
+		},
+
+		/**
+		 * Compute and emit the next sort state for a header interaction.
+		 *
+		 * @param {string} key Column key.
+		 * @param {boolean} append `true` for a shift+click/shift+Enter (append/cycle a secondary key).
+		 */
+		applySort(key, append) {
+			const keys = nextSortState(this.effectiveSortKeys, key, { append })
+			const primary = keys[0] || null
 			/**
-			 * @event sort Emitted when a sortable column header is clicked.
-			 * @type {{ key: string|null, order: 'asc'|'desc'|null }}
+			 * @event sort Emitted when a sortable column header is clicked (plain click) or shift-clicked (multi-sort).
+			 * @type {{ key: string|null, order: 'asc'|'desc'|null, keys: Array<{key: string, order: 'asc'|'desc'}> }}
+			 * `key`/`order` mirror the PRIMARY (first) active sort key exactly as the pre-multi-sort single-key
+			 * contract did (`null`/`null` when cleared) — existing listeners destructuring `{ key, order }` are
+			 * unaffected. `keys` is new: the full ordered list (0 to 3 entries) for multi-sort-aware hosts.
 			 */
-			this.$emit('sort', { key: newKey, order })
+			this.$emit('sort', {
+				key: primary ? primary.key : null,
+				order: primary ? primary.order : null,
+				keys,
+			})
 		},
 
 		toggleSelect(row) {
