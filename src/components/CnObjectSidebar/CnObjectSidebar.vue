@@ -78,11 +78,15 @@
 					<CommentTextOutline :size="20" />
 				</template>
 				<slot name="tab-notes" :object-id="objectId" :object-type="objectType">
+					<!-- The `mention` passthrough is the notification hook: apps
+					     mounting the full sidebar receive the mentioned user ids
+					     and dispatch NC notifications from their own backend. -->
 					<CnNotesTab
 						:object-id="objectId"
 						:register="register"
 						:schema="schema"
-						:api-base="apiBase" />
+						:api-base="apiBase"
+						@mention="$emit('mention', $event)" />
 				</slot>
 			</NcAppSidebarTab>
 
@@ -484,7 +488,15 @@ export default {
 		},
 	},
 
-	emits: ['update:open'],
+	emits: [
+		'update:open',
+		/**
+		 * Forwarded unchanged from the built-in CnNotesTab after a note with
+		 * at least one `@mention` was saved. Payload:
+		 * `{ objectId, register, schema, noteId, mentionedUserIds }`.
+		 */
+		'mention',
+	],
 
 	setup(props) {
 		const exposed = {}

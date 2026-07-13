@@ -15,3 +15,9 @@
 | `cancelLabel`        | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')`        | Label for the cancel button               |
 | `deleteLabel`        | `string` |          | `() =&gt; t('nextcloud-vue', 'Delete')`        | Label for the delete action               |
 | `noNotesLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'No notes yet')`  | Text shown when there are no notes        |
+
+### Events
+
+| Name      | Payload | Description                                                                                                                                                                                                                                                                                            |
+| --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `mention` | —       | Emitted after a note containing at least one `@mention` was successfully created or edited, with payload `{ objectId, register, schema, noteId, mentionedUserIds }`. nc-vue never dispatches server-side notifications itself — consuming apps listen to this event and notify from their own backend. |

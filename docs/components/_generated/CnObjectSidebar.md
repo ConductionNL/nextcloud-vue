@@ -29,9 +29,10 @@
 
 ### Events
 
-| Name          | Payload | Description |
-| ------------- | ------- | ----------- |
-| `update:open` | —       |             |
+| Name          | Payload | Description                                                                                                                                                                |
+| ------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `update:open` | —       |                                                                                                                                                                            |
+| `mention`     | —       | Forwarded unchanged from the built-in CnNotesTab after a note with at least one `@mention` was saved. Payload: `{ objectId, register, schema, noteId, mentionedUserIds }`. |
 
 ### Slots
 
