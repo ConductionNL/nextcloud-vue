@@ -236,6 +236,28 @@ describe('createObjectStore default-on live updates', () => {
 			expect(store.liveSubscriptions).toBe(1)
 		})
 
+		it('a consumer plugin action named subscribe wins over the default install', async () => {
+			// The default instance is unshifted BEFORE options.plugins and the
+			// merge is later-wins, so consumer plugins keep collision priority.
+			const customSubscribe = jest.fn(() => 'custom-result')
+			const store = freshStore({
+				plugins: [{
+					name: 'custom',
+					actions: { subscribe: customSubscribe },
+				}],
+			})
+
+			const result = store.subscribe('foo')
+
+			expect(customSubscribe).toHaveBeenCalledWith('foo')
+			expect(result).toBe('custom-result')
+			// The default plugin's non-colliding surface is still contributed
+			expect(store.liveStatus).toBe('offline')
+			expect(typeof store.unsubscribe).toBe('function')
+			// And no transport activity resulted from the custom subscribe
+			expect(mockListenFn).not.toHaveBeenCalled()
+		})
+
 		it('liveUpdates: false does not strip an explicitly passed plugin', () => {
 			// Explicit plugins are an explicit opt-in; the flag only controls
 			// the DEFAULT injection.

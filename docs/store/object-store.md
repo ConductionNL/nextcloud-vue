@@ -125,6 +125,10 @@ const useFastStore = createObjectStore('myapp-fast', {
   liveUpdates: { pollIntervalCollection: 15000 },
 })
 
+// The default instance is installed BEFORE options.plugins, so a consumer
+// plugin that defines its own subscribe/unsubscribe (or live state keys)
+// keeps collision priority over the default install.
+
 // Explicitly passing the plugin still works and is NOT double-installed —
 // the explicit instance (and its options) wins.
 import { liveUpdatesPlugin } from '@conduction/nextcloud-vue'

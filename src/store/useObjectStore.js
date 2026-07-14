@@ -1022,6 +1022,9 @@ export const useObjectStore = defineObjectStore(DEFAULT_STORE_ID, [], prefixUrl(
  *   configure the default-installed plugin. When `options.plugins` already
  *   contains a `liveUpdatesPlugin(...)` instance, that explicit instance wins
  *   and no second copy is installed (dedupe by plugin name `'liveUpdates'`).
+ *   The default instance is installed BEFORE `options.plugins`, so on name
+ *   collisions (a consumer plugin defining `subscribe`, `unsubscribe`, or
+ *   live state keys) the consumer plugin keeps priority.
  *   See the `live-updates-default-on` change.
  * @param {Function} [options.organisationUuidGetter] `() => string|null` — when set, every
  *   request stamps `X-OpenRegister-Organisation: <uuid>` for multi-tenancy.
@@ -1074,12 +1077,18 @@ export function createObjectStore(storeId, options = {}) {
 	// `liveUpdates: false`, or already passed their own instance (dedupe
 	// by plugin name so explicit usage keeps working without a double
 	// install). The plugin is inert until the first subscribe() call.
+	//
+	// The default instance is UNSHIFTED before options.plugins: plugin
+	// merge order is later-wins (Object.assign), so consumer plugins keep
+	// collision priority — a consumer plugin that defines its own
+	// `subscribe`/`unsubscribe` action or `liveStatus` state overrides
+	// the default install instead of being silently overridden by it.
 	const hasExplicitLiveUpdates = plugins.some((p) => p && p.name === 'liveUpdates')
 	if (options.liveUpdates !== false && !hasExplicitLiveUpdates) {
 		const liveOpts = (typeof options.liveUpdates === 'object' && options.liveUpdates !== null)
 			? options.liveUpdates
 			: {}
-		plugins.push(liveUpdatesPlugin(liveOpts))
+		plugins.unshift(liveUpdatesPlugin(liveOpts))
 	}
 
 	return defineObjectStore(
