@@ -133,7 +133,7 @@ export interface UseAiChatStreamOptions {
 	/**
 	 * Backend app id the chat/conversation URLs resolve against
 	 * (`/index.php/apps/{chatAppId}/api/...`). Defaults to
-	 * {@link DEFAULT_CHAT_APP_ID} (`openregister`).
+	 * {@link DEFAULT_CHAT_APP_ID} (`hermiq`).
 	 */
 	chatAppId?: string
 }

@@ -262,24 +262,25 @@ describe('useAiChatStream', () => {
 		expect(stream.state.messages).toEqual([{ role: 'user', content: 'Existing', toolCalls: [] }])
 	})
 
-	// --- chatAppId parameterization (chat-appid-flip) -----------------------
+	// --- chatAppId parameterization (chat-appid-flip, default flipped to
+	// hermiq by chat-appid-default-flip) -------------------------------------
 
-	it('streams against the default backend app id (openregister) when no chatAppId is given', async () => {
+	it('streams against the default backend app id (hermiq) when no chatAppId is given', async () => {
 		setupSse([FINAL_EVENT])
 
 		const stream = useAiChatStream(null)
 		await stream.send('Hi')
 
-		expect(fetchEventSource.mock.calls[0][0]).toBe('/index.php/apps/openregister/api/chat/stream')
+		expect(fetchEventSource.mock.calls[0][0]).toBe('/index.php/apps/hermiq/api/chat/stream')
 	})
 
-	it('streams against an overridden chatAppId (hermiq)', async () => {
+	it('streams against an overridden chatAppId (openregister compat window)', async () => {
 		setupSse([FINAL_EVENT])
 
-		const stream = useAiChatStream(null, { chatAppId: 'hermiq' })
+		const stream = useAiChatStream(null, { chatAppId: 'openregister' })
 		await stream.send('Hi')
 
-		expect(fetchEventSource.mock.calls[0][0]).toBe('/index.php/apps/hermiq/api/chat/stream')
+		expect(fetchEventSource.mock.calls[0][0]).toBe('/index.php/apps/openregister/api/chat/stream')
 	})
 
 	it('non-streaming fallback posts to the send URL of the overridden chatAppId', async () => {
@@ -291,11 +292,11 @@ describe('useAiChatStream', () => {
 		})
 		axios.post.mockResolvedValue({ data: { content: 'Fallback', role: 'assistant' }, status: 200 })
 
-		const stream = useAiChatStream(null, { chatAppId: 'hermiq' })
+		const stream = useAiChatStream(null, { chatAppId: 'openregister' })
 		await stream.send('Hi')
 
 		expect(axios.post).toHaveBeenCalledWith(
-			'/index.php/apps/hermiq/api/chat/send',
+			'/index.php/apps/openregister/api/chat/send',
 			expect.objectContaining({ content: 'Hi' }),
 		)
 	})
@@ -306,14 +307,14 @@ describe('useAiChatStream', () => {
 		const defaultStream = useAiChatStream(null)
 		await defaultStream.loadConversation('conv-1')
 		expect(axios.get).toHaveBeenLastCalledWith(
-			'/index.php/apps/openregister/api/conversations/conv-1/messages',
+			'/index.php/apps/hermiq/api/conversations/conv-1/messages',
 			expect.objectContaining({ params: expect.objectContaining({ limit: expect.any(Number) }) }),
 		)
 
-		const hermiqStream = useAiChatStream(null, { chatAppId: 'hermiq' })
-		await hermiqStream.loadConversation('conv-2')
+		const orStream = useAiChatStream(null, { chatAppId: 'openregister' })
+		await orStream.loadConversation('conv-2')
 		expect(axios.get).toHaveBeenLastCalledWith(
-			'/index.php/apps/hermiq/api/conversations/conv-2/messages',
+			'/index.php/apps/openregister/api/conversations/conv-2/messages',
 			expect.objectContaining({ params: expect.objectContaining({ limit: expect.any(Number) }) }),
 		)
 	})

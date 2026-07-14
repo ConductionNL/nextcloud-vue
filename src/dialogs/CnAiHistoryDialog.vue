@@ -7,7 +7,7 @@
   On open, fetches the 50 most-recent conversations from:
     GET /index.php/apps/{chatAppId}/api/conversations?limit=50
   via axios from @nextcloud/axios. The backend app id is the `chatAppId` prop
-  (default `openregister`) forwarded from CnAiCompanion — see
+  (default `hermiq`) forwarded from CnAiCompanion — see
   composables/aiChatConfig.js.
 
   Emits:
@@ -111,7 +111,7 @@ export default {
 		/**
 		 * Backend app id the conversation-list URL resolves against. Single
 		 * configuration point for the chat backend — see
-		 * composables/aiChatConfig.js. Defaults to `openregister`.
+		 * composables/aiChatConfig.js. Defaults to `hermiq`.
 		 * @type {string}
 		 */
 		chatAppId: {
