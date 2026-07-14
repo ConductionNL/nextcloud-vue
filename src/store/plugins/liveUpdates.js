@@ -27,6 +27,16 @@
  *   Concurrent calls to fetchObject(type, id) or fetchCollection(type, params)
  *   for the same key are coalesced into one HTTP request. The dedup maps live as
  *   plain (non-reactive) Maps on the store instance to avoid Vue 2 overhead.
+ *   Dedup activates on the FIRST `subscribe()` call — before that, fetch actions
+ *   pass straight through to the base implementations. This keeps the plugin
+ *   fully inert (zero behaviour change) on stores that never subscribe, which
+ *   matters now that createObjectStore installs this plugin by default
+ *   (live-updates-default-on).
+ *
+ * Laziness guarantee:
+ *   Installing the plugin causes NO transport activity. The transport singleton
+ *   (and therefore the notify_push `listen()` probe / websocket connection /
+ *   polling timers) is only created inside the `subscribe()` action.
  *
  * @param {object} [opts] Plugin options
  * @param {number} [opts.pollIntervalCollection=30000] Collection poll interval (ms)
@@ -149,6 +159,11 @@ export function liveUpdatesPlugin(opts = {}) {
 				if (!config) {
 					throw new Error(`"${type}" is not registered. Call registerObjectType('${type}', ...) first.`)
 				}
+
+				// First subscribe() activates the in-flight dedup wrappers set
+				// up in the plugin's setup() hook. Before this point the store
+				// behaves exactly as if the plugin were not installed.
+				this.__liveDedupActive = true
 
 				const liveUpdates = getLiveUpdates({
 					pollIntervalCollection: pluginPollCollection,
@@ -289,6 +304,12 @@ export function liveUpdatesPlugin(opts = {}) {
 		 * @param {object} store The Pinia store instance
 		 */
 		setup(store) {
+			// Dedup activation flag — flipped to true by the first subscribe()
+			// call. Until then the fetch wrappers below pass straight through,
+			// so a default-installed plugin causes zero behaviour change on
+			// stores that never subscribe (live-updates-default-on).
+			store.__liveDedupActive = false
+
 			// -- Last-params stash for collection re-fetch on events --
 			// Plain (non-reactive) Map: type → last params object
 			store.__lastCollectionParams = new Map()
@@ -308,6 +329,9 @@ export function liveUpdatesPlugin(opts = {}) {
 
 			const originalFetchObject = store.fetchObject.bind(store)
 			store.fetchObject = async function dedupedFetchObject(type, id) {
+				if (!store.__liveDedupActive) {
+					return originalFetchObject(type, id)
+				}
 				const key = objectDedupKey(type, id)
 				if (objectInFlight.has(key)) {
 					return objectInFlight.get(key)
@@ -324,6 +348,9 @@ export function liveUpdatesPlugin(opts = {}) {
 
 			const originalFetchCollection = store.fetchCollection.bind(store)
 			store.fetchCollection = async function dedupedFetchCollection(type, params = {}) {
+				if (!store.__liveDedupActive) {
+					return originalFetchCollection(type, params)
+				}
 				const key = collectionDedupKey(type, params)
 				if (collectionInFlight.has(key)) {
 					return collectionInFlight.get(key)

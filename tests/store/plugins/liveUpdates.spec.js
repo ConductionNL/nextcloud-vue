@@ -198,6 +198,8 @@ describe('liveUpdatesPlugin', () => {
 	})
 
 	// --- In-flight dedup ---
+	// Dedup activates on the first subscribe() call (live-updates-default-on):
+	// each dedup test below subscribes first to flip the activation flag.
 
 	describe('fetchObject deduplication', () => {
 		it('makes only one HTTP request for concurrent fetchObject calls on the same id', async () => {
@@ -205,6 +207,7 @@ describe('liveUpdatesPlugin', () => {
 				registerSlug: 'zaken',
 				schemaSlug: 'meldingen',
 			})
+			await store.subscribe('melding', 'uuid-sub')
 
 			let resolveFirst
 			const pending = new Promise((res) => { resolveFirst = res })
@@ -287,6 +290,7 @@ describe('liveUpdatesPlugin', () => {
 				registerSlug: 'zaken',
 				schemaSlug: 'meldingen',
 			})
+			await store.subscribe('melding', 'uuid-sub')
 
 			let resolve
 			const pending = new Promise((res) => { resolve = res })

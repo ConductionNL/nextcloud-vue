@@ -2,7 +2,30 @@
 
 Adds real-time update support to a store created via `createObjectStore()`. Subscribes to OpenRegister object/collection events through `@nextcloud/notify_push` and falls back to polling when the push transport is unavailable.
 
-## Usage
+## Installed by default
+
+Since the `live-updates-default-on` change, `createObjectStore()` installs this plugin **by default** — you no longer need to pass it explicitly:
+
+```js
+import { createObjectStore } from '@conduction/nextcloud-vue'
+
+// subscribe()/unsubscribe() available out of the box
+const useMyStore = createObjectStore('myapp')
+
+// Opt out entirely — no subscribe/unsubscribe actions, no live state
+const useStaticStore = createObjectStore('myapp-static', { liveUpdates: false })
+
+// Configure the default install
+const useFastStore = createObjectStore('myapp-fast', {
+  liveUpdates: { pollIntervalCollection: 15000 },
+})
+```
+
+The default install is **inert until the first `subscribe()` call**: no `notify_push` probe, no websocket connection, no polling timers, and no request-dedup wrapping happen before that. Stores that never subscribe behave exactly as if the plugin were absent.
+
+Explicitly passing the plugin (the style below) keeps working and is **not double-installed** — when `options.plugins` already contains a `liveUpdatesPlugin(...)` instance, that instance and its options win. `liveUpdates: false` only suppresses the default injection; it never strips an explicitly passed plugin.
+
+## Usage (explicit)
 
 ```js
 import { createObjectStore, liveUpdatesPlugin } from '@conduction/nextcloud-vue'
@@ -74,6 +97,8 @@ export default {
 ## In-flight dedup
 
 The plugin coalesces concurrent `fetchObject(type, id)` and `fetchCollection(type, params)` calls for the same key into a single HTTP request. The dedup maps live as plain (non-reactive) `Map`s on the store instance to avoid Vue 2 reactivity overhead — they are an internal implementation detail and not part of the public API.
+
+Dedup activates on the **first `subscribe()` call**. Before that, `fetchObject` / `fetchCollection` pass straight through to the base implementations, so a store that never subscribes has zero behaviour change from the (default-installed) plugin.
 
 ## Transport
 

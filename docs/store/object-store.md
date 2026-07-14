@@ -26,6 +26,7 @@ export const useObjectStore = createObjectStore(storeId, options)
 | `options.state` | Function | Extra state factory — merged after plugin state | `undefined` |
 | `options.getters` | Object | Extra getters — merged after plugin getters | `undefined` |
 | `options.actions` | Object | Extra actions — merged after plugin actions | `undefined` |
+| `options.liveUpdates` | Boolean \| Object | Live-updates control. The [`liveUpdatesPlugin`](./plugins/live-updates.md) is installed **by default**. Pass `false` to opt out, or an options object (e.g. `{ pollIntervalCollection: 15000 }`) to configure the default install. See [Live updates](#live-updates-default-on) below. | `true` |
 | `options.organisationUuidGetter` | Function | `() => string\|null` — when set, every request stamps `X-OpenRegister-Organisation: <uuid>` (multi-tenancy). | `null` |
 | `options.languageGetter` | Function | `() => string\|null` — when set, every read URL stamps `?_lang=<bcp47>` so OR returns the localised projection (`i18n-api-language-negotiation`). | `null` |
 | `options.targetLanguageGetter` | Function | `() => string\|null` — when set, every write request stamps `X-Translation-Target-Language: <bcp47>` so OR authors the payload into `_translations[<bcp47>]` instead of overwriting the source row (`i18n-source-of-truth`). | `null` |
@@ -97,6 +98,39 @@ await store.fetchCollection('contact', { _page: 1, _limit: 20 })
 // Read list and pagination via getters
 const list = store.getCollection('contact')
 const pagination = store.getPagination('contact')
+```
+
+### Live updates (default-on)
+
+Every store created via `createObjectStore` ships with the
+[`liveUpdatesPlugin`](./plugins/live-updates.md) installed, so
+`store.subscribe(type, id?)` / `store.unsubscribe(handle)` and the
+`liveStatus` / `liveSubscriptions` / `liveLastEventAt` state are available
+out of the box.
+
+**The default install is fully inert until the first `subscribe()` call**: no
+`@nextcloud/notify_push` probe, no websocket connection, no polling timers,
+and no request-dedup wrapping happen before that. Apps that never call
+`subscribe()` see zero behaviour change.
+
+```js
+// Default: live updates available, nothing active until subscribe()
+const useMyStore = createObjectStore('myapp-objects')
+
+// Opt out entirely — no subscribe/unsubscribe actions, no live state
+const useStaticStore = createObjectStore('myapp-static', { liveUpdates: false })
+
+// Configure the default install
+const useFastStore = createObjectStore('myapp-fast', {
+  liveUpdates: { pollIntervalCollection: 15000 },
+})
+
+// Explicitly passing the plugin still works and is NOT double-installed —
+// the explicit instance (and its options) wins.
+import { liveUpdatesPlugin } from '@conduction/nextcloud-vue'
+const useExplicitStore = createObjectStore('myapp-explicit', {
+  plugins: [liveUpdatesPlugin({ pollIntervalObject: 30000 })],
+})
 ```
 
 ## useObjectStore
