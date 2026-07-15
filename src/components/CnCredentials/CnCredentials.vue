@@ -84,11 +84,11 @@
 				<h4 class="cn-credentials__section-title">
 					{{ scope === 'organisation' ? t('nextcloud-vue', 'Organisation credentials') : t('nextcloud-vue', 'Your credentials') }}
 				</h4>
-				<p v-if="credentials.length === 0" class="cn-credentials__muted">
+				<p v-if="visibleCredentials.length === 0" class="cn-credentials__muted">
 					{{ t('nextcloud-vue', 'No credentials stored yet.') }}
 				</p>
 				<ul v-else class="cn-credentials__list">
-					<li v-for="cred in credentials"
+					<li v-for="cred in visibleCredentials"
 						:key="cred.id"
 						class="cn-credentials__item">
 						<div class="cn-credentials__item-head">
@@ -423,8 +423,39 @@ export default {
 		 */
 		providerGrid() {
 			const serverIds = this.providers.map((p) => p.identifier)
-			const ids = serverIds.length ? serverIds : Object.keys(PROVIDER_META)
+			let ids = serverIds.length ? serverIds : Object.keys(PROVIDER_META)
+			// When the app declares which providers it uses (appCredentials),
+			// only offer those — an app should not let you add a credential for
+			// a provider it has no code path to use.
+			if (this.supportedProviders.size > 0) {
+				ids = ids.filter((id) => this.supportedProviders.has(id))
+			}
 			return ids.map((id) => ({ identifier: id, title: this.providerTitle(id) }))
+		},
+		/**
+		 * Provider identifiers the app declares it uses, derived from
+		 * `appCredentials`. Empty when the app declares nothing — filtering is
+		 * then a no-op, so consumers that don't declare providers are unchanged.
+		 *
+		 * @return {Set<string>} Supported provider identifiers.
+		 */
+		supportedProviders() {
+			return new Set((this.appCredentials || [])
+				.map((r) => r && r.provider)
+				.filter(Boolean))
+		},
+		/**
+		 * Stored credentials to display — filtered to the app's supported
+		 * providers when it declares any, so you can only see and authorise
+		 * credentials the app can actually use; otherwise all of them.
+		 *
+		 * @return {Array<object>} Visible credentials.
+		 */
+		visibleCredentials() {
+			if (this.supportedProviders.size === 0) {
+				return this.credentials
+			}
+			return this.credentials.filter((c) => this.supportedProviders.has(c.provider))
 		},
 		/**
 		 * The union of app ids the organisation allowed-apps picker offers.
