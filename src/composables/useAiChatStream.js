@@ -16,10 +16,9 @@
  * - Sends the active cnAiContext snapshot in every outgoing request body.
  *
  * The backend app id (`chatAppId`) is a single configuration point — see
- * ./aiChatConfig.js. It defaults to `openregister`; pass `{ chatAppId }` to
- * target another backend (e.g. `hermiq`) without touching this file. Per hydra
- * ADR-034 "Amendment 2026-07-05" the default flip to `hermiq` is a deferred,
- * one-line change in aiChatConfig.js gated on the OR compat proxy + Hermiq flag.
+ * ./aiChatConfig.js. It defaults to `hermiq` (per hydra ADR-034 "Amendment
+ * 2026-07-05"); pass `{ chatAppId }` to target another backend (e.g.
+ * `openregister` during its compat window) without touching this file.
  */
 
 import Vue from 'vue'

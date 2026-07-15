@@ -1015,13 +1015,12 @@ export default {
 		 * Backend app id the AI Chat Companion targets for its chat / health /
 		 * conversation HTTP calls (`/index.php/apps/{chatAppId}/api/...`). This is
 		 * the single configuration point for switching the chat backend — see
-		 * composables/aiChatConfig.js. Defaults to `openregister`.
+		 * composables/aiChatConfig.js. Defaults to `hermiq`.
 		 *
-		 * Per hydra ADR-034 "Amendment 2026-07-05" the agent engine is moving from
-		 * OpenRegister to Hermiq; the default flips to `hermiq` on a coordinated
-		 * `@conduction/nextcloud-vue` beta bump once Hermiq's engine flag is live
-		 * and OR's compat proxy has shipped. Until then, apps that want to target
-		 * Hermiq early can pass `chatAppId="hermiq"` explicitly.
+		 * Per hydra ADR-034 "Amendment 2026-07-05" the agent engine moved from
+		 * OpenRegister to Hermiq and the default flipped to `hermiq`
+		 * (`chat-appid-default-flip`). Deployments riding OpenRegister's compat
+		 * window (openregister#305) can pass `chatAppId="openregister"` explicitly.
 		 *
 		 * @type {string}
 		 */
