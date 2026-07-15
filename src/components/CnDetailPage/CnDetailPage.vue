@@ -1336,12 +1336,51 @@ export default {
 		)
 
 		// Auto-subscribe + reactive lock state for the current object.
-		// Both are no-ops when objectStore is null (no Pinia active),
-		// when subscribe is false (read-only / archive views), or when
+		// Both are no-ops when no store resolves (no Pinia active), when
+		// subscribe is false (read-only / archive views), or when
 		// objectType / objectId aren't yet known. Using composables in
 		// setup() keeps the lifecycle bound to the component scope —
 		// `tryOnScopeDispose` releases the subscription on unmount.
-		if (!props.objectStore || !props.subscribe) {
+		//
+		// Store resolution (manifest-live-updates): an explicit
+		// `objectStore` prop always wins (existing behaviour, unchanged
+		// for apps that pass their own store). In schema-driven mode —
+		// `register` + `schema` set, the manifest renderer path — fall
+		// back to the library's default store, the same one the
+		// schema-driven fetch (`effectiveObjectStore`) uses, so
+		// manifest-rendered detail pages auto-subscribe with zero
+		// app-side wiring. Legacy `objectType`-only mounts without an
+		// explicit store keep today's behaviour (no subscription).
+		let subscriptionStore = props.objectStore
+		if (!subscriptionStore && props.subscribe && props.register && props.schema) {
+			try {
+				subscriptionStore = useObjectStore()
+			} catch (err) {
+				// Pinia not active (stand-alone test mounts) — no live updates.
+				subscriptionStore = null
+			}
+			if (subscriptionStore) {
+				// Register the EFFECTIVE type slug synchronously — the same
+				// slug `resolveType()`/`resolvedObjectType` yields (an explicit
+				// `objectType` prop wins; note the manifest renderer aliases
+				// `config.schema` → `objectType`), with the same idempotence
+				// guard as fetchObjectIfNeeded (which therefore skips its own
+				// registration). This ensures the subscription's mount-time
+				// subscribe() never races the mounted() fetch path into a
+				// "type not registered" rejection.
+				const effectiveType = props.objectType || `${props.register}-${props.schema}`
+				if (typeof subscriptionStore.registerObjectType === 'function'
+					&& !subscriptionStore.objectTypeRegistry?.[effectiveType]) {
+					subscriptionStore.registerObjectType(
+						effectiveType,
+						props.schema,
+						props.register,
+						{ registerSlug: props.register, schemaSlug: props.schema },
+					)
+				}
+			}
+		}
+		if (!subscriptionStore || !props.subscribe) {
 			return { ...registryExposed, lockState: null }
 		}
 		// Resolve the effective object-type slug the same way `computed.resolvedObjectType`
@@ -1350,7 +1389,7 @@ export default {
 		// `register` / `schema` / `objectType` change at runtime.
 		const resolveType = () => props.objectType || (props.register && props.schema ? `${props.register}-${props.schema}` : '')
 		const subscription = useObjectSubscription(
-			props.objectStore,
+			subscriptionStore,
 			resolveType,
 			() => props.objectId,
 			{ enabled: () => Boolean(resolveType() && props.objectId) },
@@ -1358,7 +1397,7 @@ export default {
 		const sidebarReg = props.sidebarProps?.register || props.resolvedSidebar?.register || props.register || ''
 		const sidebarSchema = props.sidebarProps?.schema || props.resolvedSidebar?.schema || props.schema || ''
 		const lock = useObjectLock(
-			props.objectStore,
+			subscriptionStore,
 			() => sidebarReg,
 			() => resolveType() || sidebarSchema,
 			() => props.objectId,

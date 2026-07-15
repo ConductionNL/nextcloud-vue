@@ -105,4 +105,127 @@ describe('useObjectSubscription', () => {
 		expect(store.subscribe).toHaveBeenCalledTimes(1)
 		w.destroy()
 	})
+
+	test('getter-function inputs resolve and stay reactive (CnDetailPage call shape)', async () => {
+		const store = makeStore()
+		const idRef = ref('uuid-1')
+		const Comp = defineComponent({
+			setup() {
+				useObjectSubscription(
+					store,
+					() => 'meeting',
+					() => idRef.value,
+					{ enabled: () => Boolean(idRef.value) },
+				)
+				return () => h('div')
+			},
+			render(h) { return h('div') },
+		})
+		const w = mount(Comp)
+		await Promise.resolve()
+		await w.vm.$nextTick()
+		// The getter must be UNWRAPPED — subscribe receives the slug string,
+		// not the getter function itself.
+		expect(store.subscribe).toHaveBeenCalledWith('meeting', 'uuid-1')
+
+		idRef.value = 'uuid-2'
+		await w.vm.$nextTick()
+		await Promise.resolve()
+		await w.vm.$nextTick()
+		expect(store.subscribe).toHaveBeenCalledWith('meeting', 'uuid-2')
+		w.destroy()
+	})
+
+	test('store without a subscribe action is a silent no-op', async () => {
+		const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		const store = { liveLastEventAt: null } // e.g. created with liveUpdates: false
+		const Comp = defineComponent({
+			setup() {
+				useObjectSubscription(store, 'meeting', 'uuid-1')
+				return () => h('div')
+			},
+			render(h) { return h('div') },
+		})
+		const w = mount(Comp)
+		await Promise.resolve()
+		await w.vm.$nextTick()
+		expect(warnSpy).not.toHaveBeenCalled()
+		w.destroy()
+		warnSpy.mockRestore()
+	})
+
+	// The openregister#402 stale-resolution pattern: subscribe() is async —
+	// when it resolves AFTER the scope is gone, the handle must be released,
+	// not stored.
+	test('subscribe resolving after unmount releases the stale handle (epoch guard)', async () => {
+		let resolveSubscribe
+		const store = {
+			liveLastEventAt: null,
+			subscribe: jest.fn(() => new Promise((res) => { resolveSubscribe = res })),
+			unsubscribe: jest.fn().mockResolvedValue(undefined),
+		}
+		const Comp = defineComponent({
+			setup() {
+				useObjectSubscription(store, 'meeting', 'uuid-1')
+				return () => h('div')
+			},
+			render(h) { return h('div') },
+		})
+		const w = mount(Comp)
+		await w.vm.$nextTick()
+		expect(store.subscribe).toHaveBeenCalledTimes(1)
+
+		// Unmount while subscribe() is still in flight…
+		w.destroy()
+		await Promise.resolve()
+		expect(store.unsubscribe).not.toHaveBeenCalled() // nothing held yet
+
+		// …then the late resolution arrives: the handle must be released.
+		resolveSubscribe('late-handle')
+		await Promise.resolve()
+		await Promise.resolve()
+		expect(store.unsubscribe).toHaveBeenCalledWith('late-handle')
+	})
+
+	test('overlapping attaches leave exactly one live handle (double-subscribe guard)', async () => {
+		const resolvers = []
+		const store = {
+			liveLastEventAt: null,
+			subscribe: jest.fn(() => new Promise((res) => { resolvers.push(res) })),
+			unsubscribe: jest.fn().mockResolvedValue(undefined),
+		}
+		const idRef = ref('uuid-1')
+		const Comp = defineComponent({
+			setup() {
+				useObjectSubscription(store, 'meeting', idRef)
+				return () => h('div')
+			},
+			render(h) { return h('div') },
+		})
+		const w = mount(Comp)
+		await w.vm.$nextTick()
+		expect(store.subscribe).toHaveBeenCalledTimes(1)
+
+		// Change scope while the first subscribe() is still pending —
+		// a second attach starts before the first resolved.
+		idRef.value = 'uuid-2'
+		await w.vm.$nextTick()
+		expect(store.subscribe).toHaveBeenCalledTimes(2)
+
+		// Resolve them out of order: first (stale) then second (current).
+		resolvers[0]('handle-stale')
+		resolvers[1]('handle-current')
+		await Promise.resolve()
+		await Promise.resolve()
+		await Promise.resolve()
+
+		// The stale handle was released; the current one is held.
+		expect(store.unsubscribe).toHaveBeenCalledWith('handle-stale')
+		expect(store.unsubscribe).not.toHaveBeenCalledWith('handle-current')
+
+		// Unmount releases the current handle.
+		w.destroy()
+		await Promise.resolve()
+		expect(store.unsubscribe).toHaveBeenCalledWith('handle-current')
+	})
 })

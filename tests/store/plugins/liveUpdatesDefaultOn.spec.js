@@ -99,6 +99,33 @@ describe('createObjectStore default-on live updates', () => {
 		})
 	})
 
+	describe('library default store (useObjectStore)', () => {
+		it('ships with the plugin installed: subscribe/unsubscribe + live state present', () => {
+			// The default store powers manifest-driven pages (CnIndexPage
+			// self-fetch, CnDetailPage schema-driven, CnPageRenderer) — it
+			// needs the live-updates actions for their auto-subscriptions
+			// to engage (manifest-live-updates).
+			const { useObjectStore } = require('../../../src/store/useObjectStore.js')
+			const store = useObjectStore()
+
+			expect(typeof store.subscribe).toBe('function')
+			expect(typeof store.unsubscribe).toBe('function')
+			expect(store.liveStatus).toBe('offline')
+			expect(store.liveSubscriptions).toBe(0)
+		})
+
+		it('stays inert: creating and registering on the default store never probes notify_push', () => {
+			const { useObjectStore } = require('../../../src/store/useObjectStore.js')
+			const store = useObjectStore()
+			store.registerObjectType('melding', 'schema-uuid', 'register-uuid', {
+				registerSlug: 'zaken',
+				schemaSlug: 'meldingen',
+			})
+
+			expect(mockListenFn).not.toHaveBeenCalled()
+		})
+	})
+
 	describe('opt-out via liveUpdates: false', () => {
 		it('does not expose subscribe/unsubscribe actions', () => {
 			const store = freshStore({ liveUpdates: false })

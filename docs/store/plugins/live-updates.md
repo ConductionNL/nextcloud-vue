@@ -23,7 +23,18 @@ const useFastStore = createObjectStore('myapp-fast', {
 
 The default install is **inert until the first `subscribe()` call**: no `notify_push` probe, no websocket connection, no polling timers, and no request-dedup wrapping happen before that. Stores that never subscribe behave exactly as if the plugin were absent.
 
+The library's **default store** (`useObjectStore()`, id `conduction-objects`) also ships with the plugin installed — same inertness guarantee. This is what powers zero-config live updates on manifest-driven pages (see below).
+
 Explicitly passing the plugin (the style below) keeps working and is **not double-installed** — when `options.plugins` already contains a `liveUpdatesPlugin(...)` instance, that instance and its options win. `liveUpdates: false` only suppresses the default injection; it never strips an explicitly passed plugin.
+
+## Manifest pages subscribe automatically
+
+Manifest-driven pages resolve the default store internally and wire their own subscriptions — an app whose pages come from a JSON manifest gets live updates **with zero app-side changes**:
+
+- **`type:"index"` pages** (CnIndexPage self-fetch mode) subscribe to the collection scope `or-collection-{register}-{schema}` and refetch the list — with its current params — when an event arrives.
+- **`type:"detail"` pages** (CnDetailPage schema-driven mode) subscribe to `or-object-{id}` and refetch the object; the page re-renders from the store cache reactively.
+
+Both respect a `config.subscribe: false` opt-out on the page entry, release their subscription on unmount, and stay fully inert while no such page is mounted. Apps that pass their own `objectStore` prop keep their explicit store — the fallback only engages when none is provided.
 
 ## Usage (explicit)
 
@@ -56,6 +67,7 @@ store.unsubscribe(objectHandle)
 |---|---|---|
 | `pollIntervalCollection` | `30000` | Polling interval (ms) used for collection subscriptions when the push transport is unavailable. |
 | `pollIntervalObject` | `60000` | Polling interval (ms) used for single-object subscriptions when the push transport is unavailable. Higher than the collection default because object updates tend to be less frequent and read-amplified by upstream caches. |
+| `refetchDebounce` | `750` | Event-burst coalescing window (ms). Live events are hints; the first event in a burst refetches immediately and further events inside the window collapse into one trailing refetch. `0` disables coalescing (every event refetches). Override per subscription with `subscribe(type, id, { debounce })`. |
 
 ## Contributed state
 
@@ -73,8 +85,8 @@ store.unsubscribe(objectHandle)
 
 | Action | Returns | Purpose |
 |---|---|---|
-| `subscribe(type, id?, opts?)` | handle | Start a subscription. Pass only `type` for a collection subscription, both `type` and `id` for a single-object subscription. Returns an opaque handle to pass to `unsubscribe`. |
-| `unsubscribe(handle)` | `void` | Tear down a subscription created via `subscribe()`. |
+| `subscribe(type, id?, opts?)` | handle | Start a subscription. Pass only `type` for a collection subscription, both `type` and `id` for a single-object subscription. `opts.interval` overrides the poll interval; `opts.debounce` overrides the event-coalescing window. Returns an opaque handle to pass to `unsubscribe`. |
+| `unsubscribe(handle)` | `void` | Tear down a subscription created via `subscribe()`. Idempotent — releasing the same handle twice is a no-op the second time. Cancels any pending coalesced refetch. |
 
 ## Cleanup
 
