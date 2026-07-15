@@ -24,15 +24,25 @@
 				class="cn-text-widget-form__mode"
 				@input="updateField('contentMode', $event)" />
 
-			<label class="cn-text-widget-form__field">
-				{{ t('nextcloud-vue', 'Text') }}
+			<!-- NB: a plain <div>, NOT a <label>. Wrapping the markdown editor in a
+			     <label> forwards any stray click inside it (caption, toolbar gaps,
+			     preview) to the label's first labelable descendant — the first
+			     toolbar button (Bold) — spuriously toggling bold. The controls
+			     carry their own aria-label instead. -->
+			<div class="cn-text-widget-form__field">
+				<span class="cn-text-widget-form__field-label">{{ t('nextcloud-vue', 'Text') }}</span>
 				<!-- Markdown mode gets the full editor (toolbar + live preview);
 				     raw-HTML mode keeps a plain textarea. -->
+				<!-- `hide-mode-switch`: the form pins the editor to `edit` and does
+				     not handle `update:mode`, so the layout-cycle button would be a
+				     no-op here — hide it rather than show a dead control. -->
 				<CnMarkdownEditor
 					v-if="contentMode === 'markdown'"
 					:value="text"
 					mode="edit"
 					:rows="6"
+					hide-mode-switch
+					:aria-label="t('nextcloud-vue', 'Text')"
 					:placeholder="modePlaceholder"
 					@input="updateField('text', $event)" />
 				<textarea
@@ -42,8 +52,9 @@
 					class="cn-text-widget-form__textarea"
 					rows="4"
 					required
+					:aria-label="t('nextcloud-vue', 'Text')"
 					@input="updateField('text', $event.target.value)" />
-			</label>
+			</div>
 
 			<!-- Font size / text colour / alignment only apply to raw-HTML/plain
 			     text. In markdown mode the markdown itself controls headings,

@@ -376,6 +376,79 @@ export default {
 	max-width: 100%;
 }
 
+/* Restore inline-emphasis semantics inside rendered content. Nextcloud's
+   server CSS styles bare <em> as muted (var(--color-text-maxcontrast)) and can
+   drop the italic, so `_x_` / `**_x_**` looked greyed-out and non-italic. Force
+   italic <em> / bold <strong> that inherit the widget's own text colour. */
+.cn-text-widget :deep(em),
+.cn-text-widget :deep(i) {
+	font-style: italic;
+	color: inherit;
+}
+
+.cn-text-widget :deep(strong),
+.cn-text-widget :deep(b) {
+	font-weight: bold;
+	color: inherit;
+}
+
+/* Nextcloud's server CSS strips list markers/indent (`list-style: none`,
+   no padding), so rendered `<ul>`/`<ol>` looked like plain text. Restore
+   bullets/numbers and indentation, including nested levels. */
+.cn-text-widget :deep(ul),
+.cn-text-widget :deep(ol) {
+	margin: 4px 0;
+	padding-left: 1.5em;
+}
+
+.cn-text-widget :deep(ul) {
+	list-style: disc outside;
+}
+
+.cn-text-widget :deep(ol) {
+	list-style: decimal outside;
+}
+
+.cn-text-widget :deep(ul ul) {
+	list-style-type: circle;
+}
+
+.cn-text-widget :deep(ul ul ul) {
+	list-style-type: square;
+}
+
+.cn-text-widget :deep(li) {
+	display: list-item;
+}
+
+/* Nextcloud's server CSS flattens heading sizes (e.g. h1 → 100%, so it fell
+   back to the ~14px body size while h2 stayed 1.8em), leaving them oddly
+   scaled. Apply a consistent em-based scale that grows with the widget's own
+   font size. */
+.cn-text-widget :deep(h1) {
+	font-size: 2em;
+}
+
+.cn-text-widget :deep(h2) {
+	font-size: 1.5em;
+}
+
+.cn-text-widget :deep(h3) {
+	font-size: 1.25em;
+}
+
+.cn-text-widget :deep(h4) {
+	font-size: 1.1em;
+}
+
+.cn-text-widget :deep(h5) {
+	font-size: 1em;
+}
+
+.cn-text-widget :deep(h6) {
+	font-size: 0.85em;
+}
+
 .cn-text-widget__content--markdown :deep(h1),
 .cn-text-widget__content--markdown :deep(h2),
 .cn-text-widget__content--markdown :deep(h3),
