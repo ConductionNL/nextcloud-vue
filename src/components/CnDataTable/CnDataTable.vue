@@ -21,7 +21,11 @@
 
 		<!-- Loading State -->
 		<div v-if="isLoading" class="cn-table-loading" data-testid="cn-object-list-loading">
-			<NcLoadingIcon :size="32" />
+			<!-- Decorative: the adjacent <p> already carries the accessible
+			     name (loadingText), so the spinner is hidden from the
+			     accessibility tree rather than exposed as an unlabelled
+			     role="img" (WCAG 1.1.1 / axe "role-img-alt"). -->
+			<NcLoadingIcon :size="32" aria-hidden="true" />
 			<p>{{ loadingText }}</p>
 		</div>
 
