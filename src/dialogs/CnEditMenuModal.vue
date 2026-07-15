@@ -102,7 +102,9 @@ export default {
 }
 </script>
 
-<style scoped>
-/* NcDialog owns the padding, the title (via `name`) and the actions row, so the
-   wrapper, heading and footer rules the NcModal markup needed are all gone. */
-</style>
+<!-- No style block: NcDialog owns the padding, the title (via `name`) and the
+     actions row, so the wrapper, heading and footer rules the NcModal markup
+     needed are all gone. An empty `<style scoped>` would still bake a
+     data-v-* scope id into the built JS with no matching CSS rule, which
+     the check:css-entry gate rejects. -->
+
