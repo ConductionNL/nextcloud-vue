@@ -72,16 +72,14 @@
 			</template>
 			<div class="cn-add-widget-modal__chrome-row">
 				<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Background') }}</span>
-				<NcColorPicker v-model="chrome.backgroundColor">
-					<NcButton type="tertiary">
-						<template #icon>
-							<span
-								class="cn-add-widget-modal__swatch"
-								:style="{ backgroundColor: chrome.backgroundColor || 'transparent' }" />
-						</template>
-						{{ chrome.backgroundColor || t('nextcloud-vue', 'Default') }}
-					</NcButton>
-				</NcColorPicker>
+				<CnColorPicker
+					:value="chrome.backgroundColor"
+					clearable
+					@input="chrome.backgroundColor = $event.hex"
+					@clear="chrome.backgroundColor = ''" />
+				<span class="cn-add-widget-modal__chrome-value">
+					{{ chrome.backgroundColor || t('nextcloud-vue', 'Default') }}
+				</span>
 			</div>
 			<div class="cn-add-widget-modal__chrome-row">
 				<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Icon') }}</span>
@@ -112,10 +110,11 @@
 
 <script>
 import { computed, provide } from 'vue'
-import { NcDialog, NcButton, NcTextField, NcColorPicker, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcTextField, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 
 import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
+import CnColorPicker from '../components/CnColorPicker/CnColorPicker.vue'
 import {
 	listWidgetTypes,
 	getWidgetTypeEntry,
@@ -141,9 +140,9 @@ export default {
 		NcDialog,
 		NcButton,
 		NcTextField,
-		NcColorPicker,
 		NcCheckboxRadioSwitch,
 		CnIconBrowser,
+		CnColorPicker,
 	},
 
 	props: {
@@ -648,11 +647,8 @@ export default {
 	font-size: 14px;
 }
 
-.cn-add-widget-modal__swatch {
-	display: inline-block;
-	width: 16px;
-	height: 16px;
-	border-radius: 3px;
-	border: 1px solid var(--color-border);
+.cn-add-widget-modal__chrome-value {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
 }
 </style>

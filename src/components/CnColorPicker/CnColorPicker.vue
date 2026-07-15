@@ -1,35 +1,52 @@
 <template>
-	<NcPopover
-		:shown.sync="open"
-		:disabled="disabled"
-		:triggers="[]"
-		popup-role="dialog"
-		popover-base-class="cn-color-picker__popper">
-		<template #trigger>
-			<button
-				type="button"
-				class="cn-color-picker__swatch"
-				:class="{ 'cn-color-picker__swatch--disabled': disabled }"
-				:style="swatchStyle"
-				:disabled="disabled"
-				:title="t('nextcloud-vue', 'Open color picker')"
-				:aria-label="t('nextcloud-vue', 'Open color picker')"
-				@click="open = !open" />
-		</template>
-		<ChromeColorPicker
-			ref="picker"
-			v-bind="$attrs"
-			class="cn-color-picker__chrome"
-			:class="{ 'cn-color-picker__chrome--locked-mode': mode !== null }"
-			:value="value"
-			v-on="$listeners" />
-	</NcPopover>
+	<div class="cn-color-picker">
+		<NcPopover
+			:shown.sync="open"
+			:disabled="disabled"
+			:triggers="[]"
+			popup-role="dialog"
+			popover-base-class="cn-color-picker__popper">
+			<template #trigger>
+				<button
+					type="button"
+					class="cn-color-picker__swatch"
+					:class="{ 'cn-color-picker__swatch--disabled': disabled }"
+					:style="swatchStyle"
+					:disabled="disabled"
+					:title="t('nextcloud-vue', 'Open color picker')"
+					:aria-label="t('nextcloud-vue', 'Open color picker')"
+					@click="open = !open" />
+			</template>
+			<div class="cn-color-picker__panel">
+				<ChromeColorPicker
+					ref="picker"
+					v-bind="$attrs"
+					class="cn-color-picker__chrome"
+					:class="{ 'cn-color-picker__chrome--locked-mode': mode !== null }"
+					:value="value"
+					v-on="$listeners" />
+			</div>
+		</NcPopover>
+		<!-- Inline clear affordance: sits next to the swatch and only appears
+		     when clearable, so the field can be returned to "no color"
+		     without opening the picker. -->
+		<button
+			v-if="clearable && !disabled"
+			type="button"
+			class="cn-color-picker__clear"
+			:title="t('nextcloud-vue', 'Remove color')"
+			:aria-label="t('nextcloud-vue', 'Remove color')"
+			@click="onClear">
+			<Close :size="16" />
+		</button>
+	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcPopover } from '@nextcloud/vue'
 import { Chrome as ChromeColorPicker } from 'vue-color'
+import Close from 'vue-material-design-icons/Close.vue'
 
 /**
  * A swatch-button trigger that opens a themed `Chrome` color picker
@@ -66,6 +83,9 @@ import { Chrome as ChromeColorPicker } from 'vue-color'
  *
  * @event input Forwarded from `Chrome`. Payload: vue-color color object
  *              `{ hex, hex8, rgba, hsl, hsv, a, source }`.
+ * @event clear Emitted when the user presses the inline clear (×) button
+ *              shown next to the swatch (only rendered when `clearable`). No payload — the parent decides what "no color"
+ *              means (e.g. set the bound value to `''`/`null`).
  */
 export default {
 	name: 'CnColorPicker',
@@ -73,6 +93,7 @@ export default {
 	components: {
 		NcPopover,
 		ChromeColorPicker,
+		Close,
 	},
 
 	inheritAttrs: false,
@@ -102,6 +123,17 @@ export default {
 			type: String,
 			default: null,
 			validator: (v) => v === null || ['hex', 'rgb', 'hsl'].includes(v),
+		},
+		/**
+		 * When `true`, an inline clear (×) button is shown next to the swatch
+		 * whenever a color is set, letting the user reset back to "no color"
+		 * without opening the picker. Pressing it emits `clear` (no payload) —
+		 * the parent then unsets the bound value. Defaults to `false` so existing
+		 * usage is unchanged.
+		 */
+		clearable: {
+			type: Boolean,
+			default: false,
 		},
 	},
 
@@ -152,6 +184,21 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * Clear the current color: notify the parent (which clears the bound
+		 * value) and close the popover.
+		 *
+		 * @return {void}
+		 */
+		onClear() {
+			/**
+			 * @event clear Emitted when the user presses the inline clear (×)
+			 *              button. No payload — the parent clears the bound value.
+			 */
+			this.$emit('clear')
+			this.open = false
+		},
 
 		/** Pin the Chrome picker's `fieldsIndex` to the requested mode. */
 		applyMode() {
@@ -205,6 +252,45 @@ export default {
 	   rule which forces opacity: 0.5 — that distorts the previewed color. The cursor
 	   change above is enough of a disabled affordance. */
 	opacity: 1 !important;
+}
+
+.cn-color-picker {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.cn-color-picker__panel {
+	display: flex;
+	flex-direction: column;
+	background: var(--color-main-background);
+}
+
+/* Inline "remove color" button — a compact icon button sitting next to the
+   swatch, sized to align with the 32px swatch without overpowering it. */
+.cn-color-picker__clear {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	flex-shrink: 0;
+	padding: 0;
+	border: none;
+	border-radius: var(--border-radius);
+	cursor: pointer;
+	color: var(--color-text-maxcontrast);
+	background-color: transparent;
+}
+
+.cn-color-picker__clear:hover {
+	background-color: var(--color-background-hover);
+	color: var(--color-main-text);
+}
+
+.cn-color-picker__clear:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
 }
 
 /* Strip Chrome's hardcoded light-mode palette so it adopts the active theme.

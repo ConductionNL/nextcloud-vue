@@ -28,20 +28,20 @@
 		<div class="cn-dash-tile-form__color-row">
 			<label class="cn-dash-tile-form__color-label">
 				{{ t('nextcloud-vue', 'Background color') }}
-				<input
-					type="color"
-					:value="backgroundColor || '#3b82f6'"
-					class="cn-dash-tile-form__color"
-					@input="updateField('backgroundColor', $event.target.value)">
+				<CnColorPicker
+					:value="backgroundColor"
+					clearable
+					@input="updateField('backgroundColor', $event.hex)"
+					@clear="updateField('backgroundColor', '')" />
 			</label>
 
 			<label class="cn-dash-tile-form__color-label">
 				{{ t('nextcloud-vue', 'Text color') }}
-				<input
-					type="color"
-					:value="textColor || '#ffffff'"
-					class="cn-dash-tile-form__color"
-					@input="updateField('textColor', $event.target.value)">
+				<CnColorPicker
+					:value="textColor"
+					clearable
+					@input="updateField('textColor', $event.hex)"
+					@clear="updateField('textColor', '')" />
 			</label>
 		</div>
 
@@ -65,6 +65,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcTextField, NcSelect } from '@nextcloud/vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 import { isCustomIconUrl } from '../CnWidgetGrid/widgetIcons.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
 
@@ -97,6 +98,7 @@ export default {
 		NcTextField,
 		NcSelect,
 		CnIconBrowser,
+		CnColorPicker,
 	},
 
 	props: {

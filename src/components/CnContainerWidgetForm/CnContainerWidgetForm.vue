@@ -11,11 +11,11 @@
 
 		<label class="cn-container-form__color-label">
 			{{ t('nextcloud-vue', 'Background') }}
-			<input
-				type="color"
-				:value="backgroundColorValue"
-				class="cn-container-form__color"
-				@input="updateField('backgroundColor', $event.target.value)">
+			<CnColorPicker
+				:value="backgroundColor"
+				clearable
+				@input="updateField('backgroundColor', $event.hex)"
+				@clear="updateField('backgroundColor', '')" />
 		</label>
 
 		<NcSelect
@@ -38,6 +38,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcTextField, NcSelect } from '@nextcloud/vue'
+import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 
 const PADDING_VALUES = Object.freeze(['none', 'small', 'medium', 'large'])
 
@@ -62,6 +63,7 @@ export default {
 	components: {
 		NcTextField,
 		NcSelect,
+		CnColorPicker,
 	},
 
 	props: {
@@ -115,20 +117,6 @@ export default {
 				{ value: 'medium', label: t('nextcloud-vue', 'Medium') },
 				{ value: 'large', label: t('nextcloud-vue', 'Large') },
 			]
-		},
-
-		/**
-		 * The colour-swatch value — maps `''`/`transparent` to a neutral hex
-		 * so the native `<input type="color">` has a valid value.
-		 *
-		 * @return {string} the swatch hex.
-		 */
-		backgroundColorValue() {
-			const value = this.backgroundColor
-			if (typeof value !== 'string' || value === '' || value === 'transparent') {
-				return '#ffffff'
-			}
-			return value
 		},
 
 		/**

@@ -112,19 +112,19 @@
 		<div class="cn-stat-widget-form__row2">
 			<label class="cn-stat-widget-form__color-label">
 				{{ t('nextcloud-vue', 'Value color') }}
-				<input
-					type="color"
-					:value="valueColor || '#0082c9'"
-					class="cn-stat-widget-form__color"
-					@input="updateField('valueColor', $event.target.value)">
+				<CnColorPicker
+					:value="valueColor"
+					clearable
+					@input="updateField('valueColor', $event.hex)"
+					@clear="updateField('valueColor', '')" />
 			</label>
 			<label class="cn-stat-widget-form__color-label">
 				{{ t('nextcloud-vue', 'Icon color') }}
-				<input
-					type="color"
-					:value="iconColor || valueColor || '#0082c9'"
-					class="cn-stat-widget-form__color"
-					@input="updateField('iconColor', $event.target.value)">
+				<CnColorPicker
+					:value="iconColor || valueColor"
+					clearable
+					@input="updateField('iconColor', $event.hex)"
+					@clear="updateField('iconColor', '')" />
 			</label>
 		</div>
 
@@ -162,6 +162,7 @@ import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
 import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 import { rowsToFilter, filterToRows } from '../CnFilterRowsEditor/filterRows.js'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
 
@@ -190,7 +191,7 @@ const DEFAULT_CONTENT = Object.freeze({
 export default {
 	name: 'CnStatWidgetForm',
 
-	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect, CnIconBrowser },
+	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect, CnIconBrowser, CnColorPicker },
 
 	props: {
 		/**

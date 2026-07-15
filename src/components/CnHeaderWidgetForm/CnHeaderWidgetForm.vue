@@ -45,11 +45,11 @@
 
 		<label class="cn-header-widget-form__color-label">
 			{{ t('nextcloud-vue', 'Background color') }}
-			<input
-				type="color"
-				:value="backgroundColor || '#0070c0'"
-				class="cn-header-widget-form__color"
-				@input="updateField('backgroundColor', $event.target.value)">
+			<CnColorPicker
+				:value="backgroundColor"
+				clearable
+				@input="updateField('backgroundColor', $event.hex)"
+				@clear="updateField('backgroundColor', '')" />
 		</label>
 
 		<NcSelect
@@ -63,11 +63,11 @@
 
 		<label v-if="overlayMode !== 'none'" class="cn-header-widget-form__color-label">
 			{{ t('nextcloud-vue', 'Overlay color') }}
-			<input
-				type="color"
-				:value="overlayColor || '#000000'"
-				class="cn-header-widget-form__color"
-				@input="updateField('overlayColor', $event.target.value)">
+			<CnColorPicker
+				:value="overlayColor"
+				clearable
+				@input="updateField('overlayColor', $event.hex)"
+				@clear="updateField('overlayColor', '')" />
 		</label>
 
 		<label v-if="overlayMode === 'tint'" class="cn-header-widget-form__field">
@@ -86,11 +86,11 @@
 
 		<label class="cn-header-widget-form__color-label">
 			{{ t('nextcloud-vue', 'Text color') }}
-			<input
-				type="color"
-				:value="textColor || '#ffffff'"
-				class="cn-header-widget-form__color"
-				@input="updateField('textColor', $event.target.value)">
+			<CnColorPicker
+				:value="textColor"
+				clearable
+				@input="updateField('textColor', $event.hex)"
+				@clear="updateField('textColor', '')" />
 		</label>
 
 		<NcSelect
@@ -148,6 +148,7 @@
 <script>
 import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 
 const ALLOWED_OVERLAY_MODES = ['none', 'tint', 'gradient-bottom']
 const ALLOWED_HEIGHTS = ['small', 'medium', 'large', 'xlarge']
@@ -188,6 +189,7 @@ export default {
 	components: {
 		NcTextField,
 		NcSelect,
+		CnColorPicker,
 	},
 
 	props: {
