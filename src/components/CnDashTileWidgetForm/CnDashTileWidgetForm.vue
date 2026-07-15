@@ -122,15 +122,24 @@ export default {
 	],
 
 	data() {
-		const initial = this.editingWidget?.content || this.value || {}
+		// Preset/legacy tile placements store their config in flat `tile*`
+		// columns (tileTitle, tileIcon, …) rather than in `content`, so reading
+		// `content` alone left the form blank when editing one — the required
+		// title/link fields came up empty and Save stayed disabled. Read the
+		// flat columns as a fallback, mirroring CnDashTileWidget's dual-shape
+		// read. Precedence: inline content > flat tile* columns > provided
+		// value > registry default.
+		const w = this.editingWidget || {}
+		const c = w.content || {}
+		const v = this.value || {}
 		return {
-			title: initial.title ?? DEFAULT_CONTENT.title,
-			icon: initial.icon ?? DEFAULT_CONTENT.icon,
-			iconType: initial.iconType ?? DEFAULT_CONTENT.iconType,
-			backgroundColor: initial.backgroundColor ?? DEFAULT_CONTENT.backgroundColor,
-			textColor: initial.textColor ?? DEFAULT_CONTENT.textColor,
-			linkType: initial.linkType ?? DEFAULT_CONTENT.linkType,
-			linkValue: initial.linkValue ?? DEFAULT_CONTENT.linkValue,
+			title: c.title ?? w.tileTitle ?? v.title ?? DEFAULT_CONTENT.title,
+			icon: c.icon ?? w.tileIcon ?? v.icon ?? DEFAULT_CONTENT.icon,
+			iconType: c.iconType ?? w.tileIconType ?? v.iconType ?? DEFAULT_CONTENT.iconType,
+			backgroundColor: c.backgroundColor ?? w.tileBackgroundColor ?? v.backgroundColor ?? DEFAULT_CONTENT.backgroundColor,
+			textColor: c.textColor ?? w.tileTextColor ?? v.textColor ?? DEFAULT_CONTENT.textColor,
+			linkType: c.linkType ?? w.tileLinkType ?? v.linkType ?? DEFAULT_CONTENT.linkType,
+			linkValue: c.linkValue ?? w.tileLinkValue ?? v.linkValue ?? DEFAULT_CONTENT.linkValue,
 		}
 	},
 
