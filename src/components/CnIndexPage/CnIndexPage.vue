@@ -1423,6 +1423,24 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Whether to auto-subscribe to live collection updates in self-fetch
+		 * mode. Defaults to true. When `register` + `schema` are set (and no
+		 * `objects` prop is passed), the page subscribes to the collection's
+		 * `or-collection-{register}-{schema}` scope on mount and refetches
+		 * (coalesced — events are hints) when an update event arrives; the
+		 * subscription is released on unmount. Set `false` (manifest:
+		 * `config.subscribe: false`) for static / read-once views. No-op in
+		 * consumer-managed mode (an `objects` prop was passed) and on stores
+		 * without live-updates support.
+		 *
+		 * @type {boolean}
+		 */
+		subscribe: {
+			type: Boolean,
+			default: true,
+		},
+
 		/** Whether the refresh action is disabled (e.g. when required selections are missing) */
 		refreshDisabled: {
 			type: Boolean,

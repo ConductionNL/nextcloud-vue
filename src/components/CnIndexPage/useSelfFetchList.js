@@ -1,5 +1,6 @@
 import { ref, watch } from 'vue'
 import { useListView } from '../../composables/index.js'
+import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { useObjectStore } from '../../store/index.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
@@ -206,6 +207,21 @@ export function useSelfFetchList(props, instance, inject) {
 
 	watch([activeQuickFilterIndex, selectedQuickFilterIndices], () => {
 		if (list && typeof list.refresh === 'function') list.refresh(1)
+	})
+
+	// Live collection updates (manifest-live-updates): subscribe to the
+	// page's `or-collection-{register}-{schema}` scope so another user's
+	// create/update/delete refreshes this list without a manual reload.
+	// The subscription lifecycle (mount/unmount, in-flight dedupe, epoch
+	// guard against stale async resolution) lives in useObjectSubscription;
+	// the refetch-on-event (with the last fetch params, burst-coalesced)
+	// lives in liveUpdatesPlugin. The `subscribe` prop (default true; from
+	// a manifest: `config.subscribe: false`) is the opt-out, read through
+	// a reactive getter so a runtime flip attaches/detaches accordingly.
+	// Stores without live-updates support (no `subscribe` action) are a
+	// silent no-op inside the composable, keeping this fully inert.
+	useObjectSubscription(objectStore, objectType, null, {
+		enabled: () => props.subscribe !== false,
 	})
 
 	return {

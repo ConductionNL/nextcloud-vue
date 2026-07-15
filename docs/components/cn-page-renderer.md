@@ -261,6 +261,26 @@ still mounts) and re-runs when the register/schema/objectId triple changes.
 }
 ```
 
+## Live updates on manifest pages
+
+Manifest-rendered pages inherit **notify_push live updates with zero
+app-side wiring** — the renderer itself needs no configuration:
+
+- A `type:"index"` page dispatches to [CnIndexPage](./cn-index-page.md)
+  in self-fetch mode, which subscribes to the page's
+  `or-collection-{register}-{schema}` scope and refetches the list
+  (coalesced; current params) when a remote change event arrives.
+- A `type:"detail"` page dispatches to [CnDetailPage](./cn-detail-page.md)
+  in schema-driven mode, which subscribes to `or-object-{id}` and
+  re-renders from the refreshed store cache.
+
+Both resolve the library's default `useObjectStore()` internally (which
+ships with [`liveUpdatesPlugin`](../store/plugins/live-updates.md)
+installed), fall back to visibility-gated polling when notify_push is
+absent, release their subscription on unmount, and honour a
+`config.subscribe: false` opt-out on the page entry. Nothing connects
+while no such page is mounted.
+
 ## Related
 
 - [CnAppRoot](./cn-app-root.md) — Provides manifest / customComponents / pageTypes via inject.

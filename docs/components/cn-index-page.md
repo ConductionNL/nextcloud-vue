@@ -85,6 +85,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showAdd` | Boolean | `true` | Show the Add button in the actions bar |
 | `addDisabled` | Boolean | `false` | Disable the Add button (e.g. when required selections are missing) |
 | `refreshDisabled` | Boolean | `false` | Disable the refresh button (e.g. when required selections are missing) |
+| `subscribe` | Boolean | `true` | [Self-fetch mode](#self-fetch-mode) only — auto-subscribe to live collection updates for the page's register/schema scope and refetch (coalesced) on remote changes. Set `false` (manifest: `config.subscribe: false`) for static views. See [Live updates](#live-updates--collection-subscription). |
 | `showViewToggle` | Boolean | `true` | Show table/card view toggle |
 | `inlineSearch` | Boolean | `false` | Show an inline search field in the actions bar (manifest: `config.inlineSearch`) |
 | `filterMenu` | Boolean | `false` | Show a filter menu (funnel) in the table header listing each enum/badge column's values as toggleable facet filters (manifest: `config.filterMenu`) |
@@ -377,9 +378,25 @@ Form save (create/edit), **mass export**, and **mass import** are also self-hand
 }
 ```
 
+### Live updates — collection subscription
+
+In self-fetch mode the page also **subscribes to live collection updates** for its `or-collection-{register}-{schema}` scope (via [`useObjectSubscription`](../utilities/composables/use-object-subscription.md) and the store's [`liveUpdatesPlugin`](../../store/plugins/live-updates.md)). When another user creates, updates, or deletes an object in the register/schema pair, the list refetches with its **current** params (page, sort, search, filters) — events are hints, so bursts (mass import, bulk edits) are coalesced into at most one refetch per ~750 ms window, deduped against in-flight requests. When notify_push is unavailable the transport falls back to visibility-gated polling; nothing else changes for the page.
+
+The subscription attaches on mount and is released on unmount; the epoch guard inside `useObjectSubscription` prevents a navigation-away during the async subscribe from leaking a stale subscription.
+
+Opt out per page with the `subscribe` prop (default `true`):
+
+```json
+{
+  "type": "index",
+  "title": "Archive",
+  "config": { "register": "decidesk", "schema": "decision", "subscribe": false }
+}
+```
+
 ### Consumer-managed mode is unchanged
 
-When the `objects` prop **is** supplied (every current consumer), nothing changes — no `useObjectStore` / `useListView` call, no `registerObjectType` / `fetchCollection`, `objects` and the other props are used as today and `filter` has no effect. The switch is purely "did the caller pass `objects`?".
+When the `objects` prop **is** supplied (every current consumer), nothing changes — no `useObjectStore` / `useListView` call, no `registerObjectType` / `fetchCollection`, no live-updates subscription; `objects` and the other props are used as today and `filter` has no effect. The switch is purely "did the caller pass `objects`?".
 
 ## Map view mode
 
