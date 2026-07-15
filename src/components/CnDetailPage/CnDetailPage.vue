@@ -1003,11 +1003,13 @@ export default {
 
 		/**
 		 * Whether to auto-subscribe to live updates for this object.
-		 * Defaults to true. When `useObjectStore` and `objectType` +
-		 * `objectId` are both available, the page calls
-		 * `objectStore.subscribe(objectType, objectId)` on mount and
-		 * unsubscribes on unmount via `tryOnScopeDispose`. Set
-		 * `false` for read-only / archive views.
+		 * Defaults to true. The page calls
+		 * `store.subscribe(type, objectId)` on mount and unsubscribes on
+		 * unmount, against the explicit `objectStore` prop when passed,
+		 * else (schema-driven / manifest mode: `register` + `schema` set)
+		 * against the library's default `useObjectStore()`. Set `false`
+		 * (manifest: `config.subscribe: false`) for read-only / archive
+		 * views.
 		 *
 		 * @type {boolean}
 		 */
@@ -1031,9 +1033,12 @@ export default {
 
 		/**
 		 * Optional explicit Pinia store instance to subscribe / lock
-		 * against. When omitted, the page resolves `useObjectStore()`
-		 * lazily so consumer apps that haven't activated Pinia yet
-		 * (e.g. tests) don't crash.
+		 * against; always wins when passed. When omitted, a page in
+		 * schema-driven mode (`register` + `schema` — the manifest
+		 * renderer path) falls back to the library's default
+		 * `useObjectStore()` so auto-subscribe still engages; the
+		 * resolution is defensive so consumer apps that haven't
+		 * activated Pinia yet (e.g. tests) don't crash.
 		 *
 		 * @type {object|null}
 		 */
