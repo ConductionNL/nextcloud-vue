@@ -45,29 +45,29 @@ describe('CnAiCompanion', () => {
 		jest.clearAllMocks()
 	})
 
-	it('health probe targets the default backend app id (openregister)', async () => {
+	it('health probe targets the default backend app id (hermiq)', async () => {
 		axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
 		const wrapper = mountCompanion()
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 
 		expect(axios.get).toHaveBeenCalledWith(
-			'/index.php/apps/openregister/api/chat/health',
+			'/index.php/apps/hermiq/api/chat/health',
 			expect.any(Object),
 		)
 	})
 
-	it('health probe targets an overridden chatAppId (hermiq)', async () => {
+	it('health probe targets an overridden chatAppId (openregister compat window)', async () => {
 		axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
 		const wrapper = mount(CnAiCompanion, {
-			propsData: { chatAppId: 'hermiq' },
+			propsData: { chatAppId: 'openregister' },
 			provide: {},
 		})
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 
 		expect(axios.get).toHaveBeenCalledWith(
-			'/index.php/apps/hermiq/api/chat/health',
+			'/index.php/apps/openregister/api/chat/health',
 			expect.any(Object),
 		)
 	})

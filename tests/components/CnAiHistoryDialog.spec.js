@@ -34,22 +34,22 @@ describe('CnAiHistoryDialog', () => {
 		jest.clearAllMocks()
 	})
 
-	it('fetches the conversation list from the default backend app id (openregister)', async () => {
+	it('fetches the conversation list from the default backend app id (hermiq)', async () => {
 		const wrapper = mountDialog()
 		await wrapper.vm.fetchConversations()
 
 		expect(axios.get).toHaveBeenCalledWith(
-			'/index.php/apps/openregister/api/conversations',
+			'/index.php/apps/hermiq/api/conversations',
 			expect.objectContaining({ params: expect.objectContaining({ limit: 50 }) }),
 		)
 	})
 
-	it('fetches the conversation list from an overridden chatAppId (hermiq)', async () => {
-		const wrapper = mountDialog({ chatAppId: 'hermiq' })
+	it('fetches the conversation list from an overridden chatAppId (openregister compat window)', async () => {
+		const wrapper = mountDialog({ chatAppId: 'openregister' })
 		await wrapper.vm.fetchConversations()
 
 		expect(axios.get).toHaveBeenCalledWith(
-			'/index.php/apps/hermiq/api/conversations',
+			'/index.php/apps/openregister/api/conversations',
 			expect.objectContaining({ params: expect.objectContaining({ limit: 50 }) }),
 		)
 	})

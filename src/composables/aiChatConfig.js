@@ -17,22 +17,20 @@
  * - The `chatXxxUrl(appId)` builders derive every widget HTTP path from an app
  *   id, so switching backends is a single value change (a prop, or this default).
  *
- * DEFAULT VALUE — deliberately `openregister`, NOT `hermiq` (see ADR-034 §Amendment
- * 2026-07-05 "Default flip" + SPECTR-NEXTCLOUD-PLAN.md §7.4 step 5):
- *   The amendment sequences the flip so consuming apps keep working across the
- *   move. Hermiq's chat backend ships behind a default-OFF feature flag, and
- *   OpenRegister keeps `/api/chat/*` + `/api/agents` as a 308/proxy compat shim
- *   for >= 1 release (a separate openregister change). Until BOTH the Hermiq
- *   engine flag is live AND the OR compat proxy exists, the safe default that
- *   points at a backend which actually answers today is `openregister`.
+ * DEFAULT VALUE — `hermiq`, the agent engine's canonical home (ADR-034 §Amendment
+ * 2026-07-05 "Default flip" + SPECTR-NEXTCLOUD-PLAN.md §7.4 step 5, executed by
+ * the `chat-appid-default-flip` change):
+ *   Both flip prerequisites have shipped — Hermiq's engine port is merged on
+ *   hermiq `development` (gated on the `hermiq`.`engine.enabled` app config),
+ *   and OpenRegister keeps `/api/chat/*` + `/api/agents` answering through a
+ *   compat window with deprecation headers and an optional proxy-to-hermiq
+ *   (openregister#305).
  *
- *   This change makes the backend OVERRIDABLE now (via the `chatAppId` prop on
- *   CnAppRoot / CnAiCompanion). Flipping the default to `hermiq` is then a
- *   ONE-LINE change here, to be landed on the coordinated `@conduction/nextcloud-vue`
- *   beta bump once Hermiq's engine (hermiq#13, merged) is enabled by default and
- *   the OR compat proxy change has shipped. Deployments that want to point at
- *   Hermiq before the coordinated default flip can already do so today by passing
- *   `:chat-app-id="'hermiq'"` to `CnAppRoot`.
+ *   Deployments still riding the OR compat window can keep the widget on the
+ *   old backend by passing `:chat-app-id="'openregister'"` to `CnAppRoot`.
+ *   Note the widget fails closed either way: if the configured backend's
+ *   `/api/chat/health` probe does not answer 2xx (e.g. Hermiq not installed or
+ *   no LLM provider configured), the AI icon simply does not render.
  */
 
 /**
@@ -40,14 +38,14 @@
  *
  * @type {string}
  */
-export const DEFAULT_CHAT_APP_ID = 'openregister'
+export const DEFAULT_CHAT_APP_ID = 'hermiq'
 
 /**
  * Base API path for a chat backend app.
  *
  * @param {string} [appId] Backend app id. Falls back to {@link DEFAULT_CHAT_APP_ID}
  *   when empty/nullish so a mis-wired prop never produces `/apps//api`.
- * @return {string} e.g. `/index.php/apps/openregister/api`
+ * @return {string} e.g. `/index.php/apps/hermiq/api`
  */
 export function chatApiBase(appId = DEFAULT_CHAT_APP_ID) {
 	return `/index.php/apps/${appId || DEFAULT_CHAT_APP_ID}/api`
