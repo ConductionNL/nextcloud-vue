@@ -107,4 +107,3 @@ export default {
      needed are all gone. An empty `<style scoped>` would still bake a
      data-v-* scope id into the built JS with no matching CSS rule, which
      the check:css-entry gate rejects. -->
-
