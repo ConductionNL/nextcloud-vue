@@ -1,8 +1,8 @@
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useListView } from '../../composables/index.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { useObjectStore } from '../../store/index.js'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { resolveFilterTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
 
 /**
  * Resolve an index base/quick filter map at fetch time.
@@ -14,14 +14,22 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
  *     `@me` (current user), `@today`/`@today±Nd`, `@monthStart`/`@quarterStart`/
  *     `@yearStart`, etc. — the same tokens widget/KPI filters use — so an index
  *     base filter can scope to the signed-in user (e.g. `{ assignee: '@me' }`)
- *     or a relative date window without a bespoke wrapper. Literals and unknown
- *     strings pass through unchanged.
+ *     or a relative date window without a bespoke wrapper. `@workspace.<key>` /
+ *     `@config.<key>` tokens resolve too, against the `ctx` the caller supplies
+ *     (the page-level `cnWorkspaceContext`/`cnAppConfig` bags — see
+ *     `useSelfFetchList`) — the same grammar `CnObjectListWidget` uses. An
+ *     UNRESOLVED OPTIONAL token (`@workspace.<key>?`) is dropped from the
+ *     result (see `dropOptionalUnresolved`) so an unset selection shows all
+ *     rows instead of sending the literal token string to the API. Literals
+ *     and unknown strings pass through unchanged.
  *
  * @param {object} filterMap The configured filter map.
  * @param {object} params The current `$route.params`.
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Token-resolution
+ *   context for `@workspace.<key>` / `@config.<key>` / `@objectId` / `@object.<field>` tokens.
  * @return {object} The resolved filter map.
  */
-function resolveFilterMap(filterMap, params) {
+function resolveFilterMap(filterMap, params, ctx) {
 	if (!filterMap || typeof filterMap !== 'object') return {}
 	const out = {}
 	for (const [k, v] of Object.entries(filterMap)) {
@@ -29,7 +37,7 @@ function resolveFilterMap(filterMap, params) {
 		else if (typeof v === 'string' && v.startsWith(':')) out[k] = params[v.slice(1)]
 		else out[k] = v
 	}
-	return resolveFilterTokens(out)
+	return dropOptionalUnresolved(resolveFilterTokens(out, ctx))
 }
 
 /**
@@ -150,6 +158,45 @@ export function useSelfFetchList(props, instance, inject) {
 	const sidebarState = inject('sidebarState', null) ?? inject('objectSidebarState', null)
 	const objectStore = useObjectStore()
 
+	// Token-resolution context for `@workspace.<key>` / `@config.<key>` /
+	// `@objectId` / `@object.<field>` inside `props.filter` / quick-filter
+	// tab filters. Same injects + unwrap shape as CnObjectListWidget's
+	// `objectCtx`/`workspaceCtx`/`tokenCtx` computeds (and CnDeltaWidget) —
+	// `cnWorkspaceContext` is the reactive bag a dashboard/workspace-root
+	// (e.g. hrmq's App.vue for multi-administratie) provides; `cnObjectContext`
+	// is a detail-page's object context (rare on an index page, but harmless
+	// to support); `cnAppConfig` is the page-level app config bag. All three
+	// default to null/absent so an app that never provides them is unaffected.
+	const objectCtxRaw = inject('cnObjectContext', null)
+	const workspaceCtxRaw = inject('cnWorkspaceContext', null)
+	const appConfigRaw = inject('cnAppConfig', null)
+	const unwrapCtx = (v) => ((v && typeof v === 'object' && 'value' in v) ? v.value : v)
+
+	/**
+	 * Build the current token-resolution ctx `{ objectId?, object?, workspace, config }`
+	 * from the injected bags, unwrapping Vue refs. Called fresh on every fetch
+	 * so it always reflects the latest workspace/config state.
+	 *
+	 * @return {object} The token ctx.
+	 */
+	function tokenCtx() {
+		const objCtx = unwrapCtx(objectCtxRaw)
+		const base = (objCtx && typeof objCtx === 'object') ? { ...objCtx } : {}
+		base.workspace = unwrapCtx(workspaceCtxRaw) || {}
+		base.config = unwrapCtx(appConfigRaw) || {}
+		return base
+	}
+
+	// Reactive signature of the workspace/config bags so a change (e.g. the
+	// administration switcher writing `activeAdministrationId`) triggers a
+	// re-fetch below — `fixedFilters` is a plain getter called at fetch time
+	// (see useListView.resolveFixedFilters), it is NOT auto-tracked by Vue,
+	// so without this the list would resolve the token once on mount and
+	// never again. Stringified (like CnDeltaWidget's `sourceKey`) so the
+	// watcher fires on real content changes only, not object identity.
+	const workspaceSignature = computed(() => JSON.stringify(unwrapCtx(workspaceCtxRaw) || {}))
+	const appConfigSignature = computed(() => JSON.stringify(unwrapCtx(appConfigRaw) || {}))
+
 	// Pass register/schema in their positional id slots (not as a {register, schema} object as
 	// second arg) — that previously made fetch URLs go to `/api/objects/undefined/[object Object]`.
 	if (typeof objectStore.registerObjectType === 'function') {
@@ -186,14 +233,15 @@ export function useSelfFetchList(props, instance, inject) {
 			const route = instance && instance.proxy && instance.proxy.$route
 			const params = (route && route.params) || {}
 			const queryFilters = resolveQueryFilters(route && route.query)
-			const base = resolveFilterMap(props.filter, params)
+			const ctx = tokenCtx()
+			const base = resolveFilterMap(props.filter, params, ctx)
 			const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
 			if (!tabs) return { ...queryFilters, ...base }
 
 			// Multiple mode: OR the selected tabs' filters together (union).
 			if (isMultiQuickFilter) {
 				const maps = selectedQuickFilterIndices.value
-					.map((i) => resolveFilterMap(tabs[i]?.filter, params))
+					.map((i) => resolveFilterMap(tabs[i]?.filter, params, ctx))
 				return { ...queryFilters, ...base, ...unionFilterMaps(maps) }
 			}
 
@@ -201,11 +249,16 @@ export function useSelfFetchList(props, instance, inject) {
 			// over a colliding props.filter entry.
 			const activeIdx = activeQuickFilterIndex.value
 			const tabFilter = (activeIdx !== null && activeIdx !== undefined) ? tabs[activeIdx]?.filter : null
-			return { ...queryFilters, ...base, ...resolveFilterMap(tabFilter, params) }
+			return { ...queryFilters, ...base, ...resolveFilterMap(tabFilter, params, ctx) }
 		},
 	})
 
-	watch([activeQuickFilterIndex, selectedQuickFilterIndices], () => {
+	// Re-fetch when the quick-filter selection changes (pre-existing), OR
+	// when the workspace/app-config bag content changes (e.g. the
+	// administration switcher writes a new `activeAdministrationId`) — a
+	// `@workspace.<key>`/`@config.<key>` token in `props.filter` must re-scope
+	// the list without a manual reload.
+	watch([activeQuickFilterIndex, selectedQuickFilterIndices, workspaceSignature, appConfigSignature], () => {
 		if (list && typeof list.refresh === 'function') list.refresh(1)
 	})
 
