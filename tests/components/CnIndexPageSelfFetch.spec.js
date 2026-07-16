@@ -28,6 +28,7 @@ jest.mock('../../src/store/index.js', () => ({
 }))
 
 const { mount } = require('@vue/test-utils')
+const { ref } = require('vue')
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
 
 const stubs = {
@@ -43,12 +44,14 @@ const stubs = {
  *
  * @param {object} propsData Component props.
  * @param {object} [route] Mocked `$route` (defaults to `{ params: {} }`).
+ * @param {object} [provide] Extra `provide` entries (e.g. `cnWorkspaceContext`).
  * @return {object} The Vue Test Utils wrapper.
  */
-function mountPage(propsData, route) {
+function mountPage(propsData, route, provide) {
 	return mount(CnIndexPage, {
 		propsData,
 		stubs,
+		provide,
 		mocks: { $route: route || { params: {} }, $router: { push: jest.fn() } },
 	})
 }
@@ -120,5 +123,74 @@ describe('CnIndexPage — self-fetch mode', () => {
 		const wrapper = mountPage({ title: 'Decisions', register: 'decidesk', schema: 'decision', objects: [], refreshing: true })
 		await new Promise((resolve) => setTimeout(resolve))
 		expect(wrapper.vm.effectiveRefreshing).toBe(true)
+	})
+})
+
+/**
+ * Regression coverage for the multi-administratie self-fetch bug: the index
+ * self-fetch path resolved filter tokens with NO `ctx`, so `@workspace.<key>`
+ * could never resolve, and never dropped an unresolved OPTIONAL token — an
+ * unset `@workspace.activeAdministrationId?` was sent to the API LITERALLY
+ * (`administrationId=%40workspace.activeAdministrationId%3F`) instead of
+ * being dropped, hiding every row instead of showing all of them.
+ */
+describe('CnIndexPage — self-fetch mode: @workspace.<key> filter tokens', () => {
+	it('resolves `@workspace.<key>` against the injected cnWorkspaceContext', async () => {
+		const workspaceCtx = ref({ activeAdministrationId: 'ADM-001' })
+		mountPage(
+			{ title: 'Employees', register: 'hrmq', schema: 'employee', filter: { administrationId: '@workspace.activeAdministrationId?' } },
+			null,
+			{ cnWorkspaceContext: workspaceCtx },
+		)
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(mockStore.fetchCollection).toHaveBeenCalled()
+		const params = mockStore.fetchCollection.mock.calls[0][1] || {}
+		expect(params.administrationId).toBe('ADM-001')
+	})
+
+	it('DROPS an unresolved OPTIONAL `@workspace.<key>?` token instead of sending it literally', async () => {
+		// No cnWorkspaceContext provided at all (mirrors an app that never sets it).
+		mountPage(
+			{ title: 'Employees', register: 'hrmq', schema: 'employee', filter: { administrationId: '@workspace.activeAdministrationId?' } },
+		)
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(mockStore.fetchCollection).toHaveBeenCalled()
+		const params = mockStore.fetchCollection.mock.calls[0][1] || {}
+		expect(Object.prototype.hasOwnProperty.call(params, 'administrationId')).toBe(false)
+	})
+
+	it('DROPS the token when cnWorkspaceContext is provided but the key is unset', async () => {
+		const workspaceCtx = ref({})
+		mountPage(
+			{ title: 'Employees', register: 'hrmq', schema: 'employee', filter: { administrationId: '@workspace.activeAdministrationId?' } },
+			null,
+			{ cnWorkspaceContext: workspaceCtx },
+		)
+		await new Promise((resolve) => setTimeout(resolve))
+		const params = mockStore.fetchCollection.mock.calls[0][1] || {}
+		expect(Object.prototype.hasOwnProperty.call(params, 'administrationId')).toBe(false)
+	})
+
+	it('re-fetches reactively when the workspace ctx changes — no reload required', async () => {
+		const workspaceCtx = ref({})
+		mountPage(
+			{ title: 'Employees', register: 'hrmq', schema: 'employee', filter: { administrationId: '@workspace.activeAdministrationId?' } },
+			null,
+			{ cnWorkspaceContext: workspaceCtx },
+		)
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(mockStore.fetchCollection).toHaveBeenCalledTimes(1)
+		let params = mockStore.fetchCollection.mock.calls[0][1] || {}
+		expect(Object.prototype.hasOwnProperty.call(params, 'administrationId')).toBe(false)
+
+		// The administration switcher writes into the SAME ref (see hrmq's
+		// App.vue / AdministrationSwitcher.vue) — mutate it here the same way.
+		workspaceCtx.value = { activeAdministrationId: 'ADM-002' }
+		await new Promise((resolve) => setTimeout(resolve))
+
+		expect(mockStore.fetchCollection.mock.calls.length).toBeGreaterThan(1)
+		const lastCall = mockStore.fetchCollection.mock.calls[mockStore.fetchCollection.mock.calls.length - 1]
+		params = lastCall[1] || {}
+		expect(params.administrationId).toBe('ADM-002')
 	})
 })
