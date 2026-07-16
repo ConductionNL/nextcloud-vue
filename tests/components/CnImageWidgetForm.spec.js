@@ -96,13 +96,26 @@ describe('CnImageWidgetForm', () => {
 		expect(wrapper.vm.url).toBe('')
 	})
 
-	it('typing a URL discards a pending file (escape hatch)', () => {
+	it('shows a Remove button while a file is pending and clears it on remove', async () => {
 		const wrapper = mount(CnImageWidgetForm, { propsData: { uploadFn: jest.fn() } })
-		selectFile(wrapper, new File(['x'], 'a.png', { type: 'image/png' }))
-		expect(wrapper.vm.pendingFile).not.toBeNull()
-		wrapper.vm.updateField('url', 'https://x.test/b.png')
+		const removeButtons = () => wrapper.findAllComponents({ name: 'NcButton' })
+
+		// No pending file → no Remove button; the URL field is enabled
+		// (:disabled="!!pendingFile" is false).
 		expect(wrapper.vm.pendingFile).toBeNull()
-		expect(wrapper.vm.url).toBe('https://x.test/b.png')
+		expect(removeButtons().length).toBe(0)
+
+		selectFile(wrapper, new File(['x'], 'a.png', { type: 'image/png' }))
+		await wrapper.vm.$nextTick()
+		// Pending file → URL field disabled, Remove button shown.
+		expect(wrapper.vm.pendingFile).not.toBeNull()
+		expect(removeButtons().length).toBe(1)
+
+		wrapper.vm.clearPendingFile()
+		await wrapper.vm.$nextTick()
+		// Removed → URL field re-enabled, object URL revoked, button gone.
+		expect(wrapper.vm.pendingFile).toBeNull()
+		expect(removeButtons().length).toBe(0)
 		expect(window.URL.revokeObjectURL).toHaveBeenCalled()
 	})
 

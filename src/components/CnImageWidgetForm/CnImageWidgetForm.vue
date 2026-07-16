@@ -10,18 +10,27 @@
 		     host modal calls commit() on submit, so repeated picks or a
 		     cancelled dialog never write orphaned files. The URL field below
 		     stays for linking an external image instead. -->
-		<label class="cn-image-widget-form__upload-label">
-			<input
-				ref="fileInput"
-				type="file"
-				accept="image/*"
-				class="cn-image-widget-form__file-input"
+		<div class="cn-image-widget-form__upload-row">
+			<label class="cn-image-widget-form__upload-label">
+				<input
+					ref="fileInput"
+					type="file"
+					accept="image/*"
+					class="cn-image-widget-form__file-input"
+					:disabled="uploading"
+					@change="handleFileSelect">
+				<span class="cn-image-widget-form__upload-button">
+					{{ pendingFile ? t('nextcloud-vue', 'Change image') : t('nextcloud-vue', 'Choose image') }}
+				</span>
+			</label>
+			<NcButton
+				v-if="pendingFile"
+				type="tertiary"
 				:disabled="uploading"
-				@change="handleFileSelect">
-			<span class="cn-image-widget-form__upload-button">
-				{{ pendingFile ? t('nextcloud-vue', 'Change image') : t('nextcloud-vue', 'Choose image') }}
-			</span>
-		</label>
+				@click="clearPendingFile">
+				{{ t('nextcloud-vue', 'Remove') }}
+			</NcButton>
+		</div>
 		<p v-if="pendingFile" class="cn-image-widget-form__pending">
 			{{ t('nextcloud-vue', 'Ready to upload on save: {name}', { name: pendingFile.name }) }}
 		</p>
@@ -33,6 +42,7 @@
 			:value="url"
 			:label="t('nextcloud-vue', 'Image URL')"
 			:placeholder="t('nextcloud-vue', 'Or paste an image URL')"
+			:disabled="!!pendingFile"
 			@update:value="updateField('url', $event)" />
 
 		<div v-if="previewSrc" class="cn-image-widget-form__preview-wrap">
@@ -69,7 +79,7 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect } from '@nextcloud/vue'
+import { NcTextField, NcSelect, NcButton } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
 
@@ -104,6 +114,7 @@ export default {
 	components: {
 		NcTextField,
 		NcSelect,
+		NcButton,
 	},
 
 	props: {
@@ -226,14 +237,21 @@ export default {
 		 * @return {void}
 		 */
 		updateField(field, value) {
-			// Typing an external URL discards any pending file so the two
-			// image sources can't both be "set" at once.
-			if (field === 'url' && value && this.pendingFile !== null) {
-				this.revokePreview()
-				this.pendingFile = null
-			}
 			this[field] = value
 			this.$emit('update:content', this.assembledContent)
+		},
+
+		/**
+		 * Discard the pending file, re-enabling the URL field. Called by the
+		 * Remove button.
+		 *
+		 * @return {void}
+		 */
+		clearPendingFile() {
+			this.revokePreview()
+			this.pendingFile = null
+			this.uploadError = ''
+			this.resetFileInput()
 		},
 
 		/**
@@ -375,6 +393,12 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
+}
+
+.cn-image-widget-form__upload-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
 }
 
 .cn-image-widget-form__upload-label {
