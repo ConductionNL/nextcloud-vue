@@ -1,3 +1,6 @@
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnDashboardGrid.md'
+
 # CnDashboardGrid
 
 Low-level drag-and-drop grid layout engine powered by [GridStack](https://gridstackjs.com/). Manages widget placement, drag, and resize interactions and emits layout changes for persistence. Does **not** handle widget rendering — the parent provides content via the `#widget` scoped slot.
@@ -5,6 +8,10 @@ Low-level drag-and-drop grid layout engine powered by [GridStack](https://gridst
 Used internally by `CnDashboardPage`. Only use this directly if you need fine-grained control over the grid without the full dashboard page shell.
 
 **Requires**: `gridstack` (bundled dependency)
+
+## Try it
+
+<Playground component="CnDashboardGrid" />
 
 ## Usage
 
@@ -45,6 +52,9 @@ function onLayoutChange(updated) {
 | `margin` | Number | | `12` | Gap between grid items in pixels |
 | `minWidth` | Number | | `2` | Minimum widget width in grid units |
 | `minHeight` | Number | | `2` | Minimum widget height in grid units |
+| `columnOpts` | Object | | `null` | GridStack v12 responsive `columnOpts` bag; when set the grid reflows its column count across screen sizes. Build it with [getDashboardColumnOpts](../utilities/get-dashboard-column-opts.md). Default `null` = fixed `columns`. |
+| `cellHeightCssVar` | String | | `null` | When set, `cellHeight` is mirrored into this CSS custom property on the document root at init (e.g. `--app-cell-height`). Default `null` = none. |
+| `itemKey` | Function | | `null` | Optional `(item) => string\|number` to derive each item's render key; forces a re-render when an item changes in a way its `id` doesn't capture (e.g. style edits). Default `null` = key on `item.id`. |
 
 ### Events
 
@@ -57,3 +67,9 @@ function onLayoutChange(updated) {
 | Slot | Scope | Description |
 |------|-------|-------------|
 | `widget` | `{ item }` | Content to render inside each grid cell; `item` is the layout object |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDashboardGrid.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDashboardGrid/CnDashboardGrid.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

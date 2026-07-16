@@ -2,11 +2,18 @@
 sidebar_position: 15
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnMassActionBar.md'
+
 # CnMassActionBar
 
 Mass action dropdown button for selected items. Appears when items are selected in a table or card grid.
 
 **Wraps**: NcActions, NcActionButton
+
+## Try it
+
+<Playground component="CnMassActionBar" />
 
 ![CnMassActionBar showing bulk action options (Import, Export, Copy, Delete)](/img/screenshots/cn-mass-action-bar.png)
 
@@ -56,3 +63,9 @@ Mass action dropdown button for selected items. Appears when items are selected 
   </template>
 </CnMassActionBar>
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnMassActionBar.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnMassActionBar/CnMassActionBar.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

@@ -1,0 +1,478 @@
+{
+	"$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json",
+	"version": "0.3.0",
+	"dependencies": [
+		"openregister"
+	],
+	"menu": [
+		{
+			"id": "Dashboard",
+			"label": "Dashboard",
+			"icon": "icon-category-dashboard",
+			"route": "Dashboard",
+			"order": 10
+		},
+		{
+			"id": "Examples",
+			"label": "Examples",
+			"icon": "icon-files",
+			"route": "Examples",
+			"order": 20
+		},
+		{
+			"id": "Categories",
+			"label": "Categories",
+			"icon": "icon-category-organization",
+			"route": "Categories",
+			"order": 30
+		},
+		{
+			"id": "Orders",
+			"label": "Orders",
+			"icon": "icon-category-workflow",
+			"route": "Orders",
+			"order": 40
+		},
+		{
+			"id": "Documentation",
+			"label": "Documentation",
+			"icon": "icon-info",
+			"href": "https://petstore.conduction.nl",
+			"section": "footer",
+			"order": 90
+		},
+		{
+			"id": "FeaturesRoadmapMenu",
+			"label": "Features & roadmap",
+			"icon": "icon-toggle",
+			"route": "FeaturesRoadmap",
+			"section": "footer",
+			"order": 100
+		}
+	],
+	"pages": [
+		{
+			"id": "Dashboard",
+			"route": "/",
+			"type": "dashboard",
+			"title": "Dashboard",
+			"widgets": [
+				{
+					"id": "dashboard-header",
+					"widgetKey": "header",
+					"slot": "body",
+					"gridX": 0,
+					"gridY": 0,
+					"gridWidth": 12,
+					"gridHeight": 1,
+					"_note": "Built-in `header` worked example (nc-vue #91 Wave 1): the dashboard catalog's content-only header widget reused on the v2 grid. Replaces the custom page-header registry widget (ADR-049 Phase 4) — page chrome is pure config via props.content ({ title, subtitle, height, and optionally backgroundImageUrl / overlayMode / cta }). Known gap, accepted: CnHeaderWidget has no MDI icon field, so the old icon: \"Paw\" is dropped.",
+					"props": {
+						"content": {
+							"title": "Dashboard",
+							"subtitle": "Daily overview of pets, orders and categories",
+							"height": "small"
+						}
+					}
+				},
+				{
+					"id": "kpi-available-pets",
+					"widgetKey": "stats-block",
+					"slot": "body",
+					"gridX": 0,
+					"gridY": 1,
+					"gridWidth": 3,
+					"gridHeight": 1,
+					"_note": "Built-in `stats-block` worked example (ADR-049 / nc-vue #91 Wave 1): replaces the custom self-fetching bridge widget — zero Vue code. Each entries[] item is one KPI: register + schema + filter (shared @-token grammar: @today, @me, @workspace.*, trailing ? = optional clause) counted via the OpenRegister /value aggregation, plus per-entry title / countLabel / variant and a route deep link. One entry per card keeps these four KPIs side-by-side; several entries in one card stack vertically. The three sibling cards below follow this same pattern.",
+					"props": {
+						"entries": [
+							{
+								"title": "Available pets",
+								"register": "petstore",
+								"schema": "pet",
+								"filter": { "status": "available" },
+								"countLabel": "pets",
+								"variant": "success",
+								"route": { "name": "Examples", "query": { "status": "available" } }
+							}
+						]
+					}
+				},
+				{
+					"id": "kpi-pending-pets",
+					"widgetKey": "stats-block",
+					"slot": "body",
+					"gridX": 3,
+					"gridY": 1,
+					"gridWidth": 3,
+					"gridHeight": 1,
+					"props": {
+						"entries": [
+							{
+								"title": "Pending reservations",
+								"register": "petstore",
+								"schema": "pet",
+								"filter": { "status": "pending" },
+								"countLabel": "pets",
+								"variant": "warning",
+								"route": { "name": "Examples", "query": { "status": "pending" } }
+							}
+						]
+					}
+				},
+				{
+					"id": "kpi-open-orders",
+					"widgetKey": "stats-block",
+					"slot": "body",
+					"gridX": 6,
+					"gridY": 1,
+					"gridWidth": 3,
+					"gridHeight": 1,
+					"props": {
+						"entries": [
+							{
+								"title": "Open orders",
+								"register": "petstore",
+								"schema": "order",
+								"filter": { "complete": "false" },
+								"countLabel": "orders",
+								"variant": "primary",
+								"route": { "name": "Orders", "query": { "complete": "false" } }
+							}
+						]
+					}
+				},
+				{
+					"id": "kpi-categories",
+					"widgetKey": "stats-block",
+					"slot": "body",
+					"gridX": 9,
+					"gridY": 1,
+					"gridWidth": 3,
+					"gridHeight": 1,
+					"_note": "Filterless entry: omitting `filter` counts every object of the schema.",
+					"props": {
+						"entries": [
+							{
+								"title": "Categories",
+								"register": "petstore",
+								"schema": "category",
+								"countLabel": "categories",
+								"variant": "default",
+								"route": { "name": "Categories" }
+							}
+						]
+					}
+				},
+				{
+					"id": "chart-pets-per-category",
+					"widgetKey": "chart-by-field",
+					"slot": "body",
+					"gridX": 0,
+					"gridY": 2,
+					"gridWidth": 6,
+					"gridHeight": 3,
+					"_note": "Custom registry widget kept deliberately for tranche B (ADR-049): the built-in `chart` widget cannot yet express a grouped-count over one register/schema field (its dataSource only buckets by DATE interval) — this needs the Wave-3 groupBy aggregation vocabulary, nc-vue #91. Dissolve both chart-by-field placements when it lands; justification lives in src/registry.js.",
+					"props": {
+						"title": "Pets per category",
+						"register": "petstore",
+						"schema": "pet",
+						"field": "category",
+						"chartType": "donut"
+					}
+				},
+				{
+					"id": "chart-orders-by-status",
+					"widgetKey": "chart-by-field",
+					"slot": "body",
+					"gridX": 6,
+					"gridY": 2,
+					"gridWidth": 6,
+					"gridHeight": 3,
+					"props": {
+						"title": "Orders by status",
+						"register": "petstore",
+						"schema": "order",
+						"field": "status",
+						"chartType": "bar"
+					}
+				},
+				{
+					"id": "recent-orders",
+					"widgetKey": "object-table",
+					"slot": "body",
+					"gridX": 0,
+					"gridY": 5,
+					"gridWidth": 12,
+					"gridHeight": 3,
+					"_note": "Built-in `object-table` worked example (hydra ADR-049): ONE declarative table now replaces both the custom recent-objects bridge widget and the earlier compact recent-pets example. Vocabulary shown, all zero Vue code: token-resolved source with order/limit, mixed column forms (string shorthand; object form with formatter: \"date\"; widget: \"badge\" + widgetProps colorMap — same shape as the Orders index page columns), rowRoute/viewAllRoute navigation, emptyText, and a declarative object-op row action (patch with confirm). For the compact dashboard-list look instead, flip hideHeader + borderless and trim to two columns with cn-cell-- utility classes.",
+					"props": {
+						"title": "Recent orders",
+						"source": {
+							"register": "petstore",
+							"schema": "order",
+							"order": { "created": "desc" },
+							"limit": 5
+						},
+						"columns": [
+							{ "key": "pet", "cellClass": "cn-cell--strong" },
+							"quantity",
+							{ "key": "shipDate", "formatter": "date" },
+							{
+								"key": "status",
+								"widget": "badge",
+								"widgetProps": {
+									"colorMap": {
+										"placed": "primary",
+										"approved": "warning",
+										"delivered": "success"
+									}
+								}
+							},
+							"complete"
+						],
+						"rowRoute": "OrderDetail",
+						"viewAllRoute": { "name": "Orders" },
+						"emptyText": "No orders yet",
+						"actions": [
+							{
+								"id": "mark-complete",
+								"label": "Mark complete",
+								"type": "object-op",
+								"op": "patch",
+								"values": { "complete": true },
+								"confirm": true
+							}
+						]
+					}
+				}
+			]
+		},
+		{
+			"id": "Examples",
+			"route": "/examples",
+			"type": "index",
+			"title": "Pets",
+			"config": {
+				"register": "petstore",
+				"schema": "pet",
+				"columns": [
+					"name",
+					"category",
+					"status",
+					"price"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "ExampleDetail",
+			"route": "/examples/:id",
+			"type": "detail",
+			"title": "Pet",
+			"config": {
+				"register": "petstore",
+				"schema": "pet",
+				"documentationUrl": "https://petstore.conduction.nl",
+				"_note": "Product/catalog archetype for a single pet. A pet is a photographed, categorised item that gets sold, so the body leads with its fields (name, category, status, price, tags, notes) beside a Related panel (its category and the orders that reference it), then gives the pet's photos and documents a full-width Files leaf below — photoUrls is a URI array, so imagery is a primary content type here. The schema declares NO email/calendar/talk linkedType, so this record carries NO comms leaves (no vet-appointment calendar). The audit trail is a rarely-read history, so it stays a sidebar tab.",
+				"widgets": [
+					{ "id": "pet-data", "type": "data", "title": "Pet details", "content": { "columns": 2 } },
+					{ "id": "pet-related", "type": "related", "title": "Category & orders" },
+					{ "id": "pet-files", "type": "integration", "integrationId": "files", "title": "Photos & documents" }
+				],
+				"layout": [
+					{ "id": "1", "widgetId": "pet-data", "gridX": 0, "gridY": 0, "gridWidth": 8, "gridHeight": 4 },
+					{ "id": "2", "widgetId": "pet-related", "gridX": 8, "gridY": 0, "gridWidth": 4, "gridHeight": 4 },
+					{ "id": "3", "widgetId": "pet-files", "gridX": 0, "gridY": 4, "gridWidth": 12, "gridHeight": 4 }
+				],
+				"summaryAggregates": [
+					{ "label": "Orders for this pet", "register": "petstore", "schema": "order", "metric": "count", "filter": { "pet": "@objectId" } }
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"tabs": [
+						{ "id": "audit", "label": "History", "component": "CnAuditTrailTab" }
+					]
+				}
+			}
+		},
+		{
+			"id": "Categories",
+			"route": "/categories",
+			"type": "index",
+			"title": "Categories",
+			"config": {
+				"register": "petstore",
+				"schema": "category",
+				"columns": [
+					"name",
+					"description"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "CategoryDetail",
+			"route": "/categories/:id",
+			"type": "detail",
+			"title": "Category",
+			"config": {
+				"register": "petstore",
+				"schema": "category",
+				"documentationUrl": "https://petstore.conduction.nl",
+				"_note": "Catalog archetype for a pet category (Dogs, Cats, ...). A category is a thin grouping (only name + description), so its purpose on the detail page is to answer 'which pets are in it?'. The body therefore keeps the two fields in a compact 4-wide data card and devotes the dominant 8-wide column to a live object-list of the pets whose 'category' FK points at this record, with a KPI chip counting them. Clean and simple: no comms leaves (the schema declares none), no Files (categories carry no attachments). Audit history stays a sidebar tab.",
+				"widgets": [
+					{ "id": "category-data", "type": "data", "title": "Category", "content": { "columns": 1 } },
+					{ "id": "category-pets", "type": "object-list", "title": "Pets in this category", "content": { "register": "petstore", "schema": "pet", "filter": { "category": "@objectId" }, "sort": { "field": "name", "dir": "asc" }, "columns": [{ "key": "name", "label": "Name" }, { "key": "status", "label": "Status" }, { "key": "price", "label": "Price" }], "limit": 100, "rowRoute": "ExampleDetail" } }
+				],
+				"layout": [
+					{ "id": "1", "widgetId": "category-data", "gridX": 0, "gridY": 0, "gridWidth": 4, "gridHeight": 4 },
+					{ "id": "2", "widgetId": "category-pets", "gridX": 4, "gridY": 0, "gridWidth": 8, "gridHeight": 6 }
+				],
+				"summaryAggregates": [
+					{ "label": "Pets in category", "register": "petstore", "schema": "pet", "metric": "count", "filter": { "category": "@objectId" } },
+					{ "label": "Available", "register": "petstore", "schema": "pet", "metric": "count", "filter": { "category": "@objectId", "status": "available" } }
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"tabs": [
+						{ "id": "audit", "label": "History", "component": "CnAuditTrailTab" }
+					]
+				}
+			}
+		},
+		{
+			"id": "Orders",
+			"route": "/orders",
+			"type": "index",
+			"title": "Orders",
+			"config": {
+				"register": "petstore",
+				"schema": "order",
+				"showTitle": true,
+				"selectable": false,
+				"inlineSearch": true,
+				"searchPlaceholder": "Search by name",
+				"filterMenu": true,
+				"columnMenu": true,
+				"cardsLabel": "Tiles",
+				"tableLabel": "List",
+				"cardsIcon": "TilesGrid",
+				"tableIcon": "ListRows",
+				"icon": "Receipt",
+				"rowIcon": "FileDocumentOutline",
+				"columns": [
+					"pet",
+					"quantity",
+					{
+						"key": "status",
+						"label": "status",
+						"widget": "badge",
+						"widgetProps": {
+							"colorMap": {
+								"placed": "primary",
+								"approved": "warning",
+								"delivered": "success"
+							}
+						}
+					},
+					"complete"
+				],
+				"sidebar": {
+					"enabled": false
+				}
+			}
+		},
+		{
+			"id": "OrderDetail",
+			"route": "/orders/:id",
+			"type": "detail",
+			"title": "Order",
+			"config": {
+				"register": "petstore",
+				"schema": "order",
+				"documentationUrl": "https://petstore.conduction.nl",
+				"_note": "Transaction archetype for a customer order. What matters when opening an order is 'what was ordered, in what state, and where are the papers': the body leads with the transaction fields (pet, quantity, status, shipDate, complete) in an 8-wide data card, a Related panel (4-wide) linking the ordered pet, a quantity KPI chip in the header, and a full-width Files leaf below for the invoice / shipping documents. The order schema is atomic (a single pet+quantity line, no child line-item schema) so there is NO object-list of sub-lines. The schema declares no email/calendar/talk linkedType, so this record carries NO comms leaves and NO meetings. Audit history stays a sidebar tab.",
+				"widgets": [
+					{ "id": "order-data", "type": "data", "title": "Order details", "content": { "columns": 2 } },
+					{ "id": "order-related", "type": "related", "title": "Ordered pet" },
+					{ "id": "order-files", "type": "integration", "integrationId": "files", "title": "Invoice & documents" }
+				],
+				"layout": [
+					{ "id": "1", "widgetId": "order-data", "gridX": 0, "gridY": 0, "gridWidth": 8, "gridHeight": 4 },
+					{ "id": "2", "widgetId": "order-related", "gridX": 8, "gridY": 0, "gridWidth": 4, "gridHeight": 4 },
+					{ "id": "3", "widgetId": "order-files", "gridX": 0, "gridY": 4, "gridWidth": 12, "gridHeight": 4 }
+				],
+				"summaryAggregates": [
+					{ "label": "Items ordered", "register": "petstore", "schema": "order", "metric": "sum", "field": "quantity", "filter": { "id": "@objectId" } }
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"tabs": [
+						{ "id": "audit", "label": "History", "component": "CnAuditTrailTab" }
+					]
+				}
+			}
+		},
+		{
+			"id": "Settings",
+			"route": "/settings",
+			"type": "settings",
+			"title": "Settings",
+			"config": {
+				"saveEndpoint": "/index.php/apps/petstore/api/settings",
+				"sections": [
+					{
+						"title": "Version",
+						"widgets": [
+							{
+								"type": "version-info",
+								"props": {
+									"appName": "PetStore",
+									"showUpdateButton": false,
+									"isUpToDate": true,
+									"title": "Version Information",
+									"description": "Information about the current installation."
+								}
+							}
+						]
+					}
+				]
+			},
+			"widgets": [
+				{
+					"widgetKey": "version-info",
+					"slot": "section:version",
+					"gridX": 0,
+					"gridY": 0,
+					"gridWidth": 12,
+					"gridHeight": 1,
+					"props": {
+						"appName": "PetStore",
+						"showUpdateButton": false,
+						"isUpToDate": true,
+						"title": "Version Information",
+						"description": "Information about the current installation."
+					}
+				}
+			]
+		},
+		{
+			"id": "FeaturesRoadmap",
+			"route": "/features-roadmap",
+			"type": "roadmap",
+			"title": "Features & roadmap",
+			"config": {
+				"documentationUrl": "https://petstore.conduction.nl"
+			}
+		}
+	]
+}

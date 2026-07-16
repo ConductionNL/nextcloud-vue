@@ -2,11 +2,18 @@
 sidebar_position: 8
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnCardGrid.md'
+
 # CnCardGrid
 
 Responsive CSS grid layout for CnObjectCard instances. Auto-fills with `minmax(320px, 1fr)`.
 
 **Wraps**: NcLoadingIcon, NcEmptyContent, CnObjectCard
+
+## Try it
+
+<Playground component="CnCardGrid" />
 
 ![CnCardGrid showing a grid of object cards](/img/screenshots/cn-card-grid.png)
 
@@ -49,3 +56,9 @@ Responsive CSS grid layout for CnObjectCard instances. Auto-fills with `minmax(3
   @click="onCardClick"
   @select="onSelect" />
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnCardGrid.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnCardGrid/CnCardGrid.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

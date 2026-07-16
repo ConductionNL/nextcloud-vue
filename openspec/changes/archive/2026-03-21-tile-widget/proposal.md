@@ -1,7 +1,7 @@
 # CnTileWidget Specification
 
 ## Problem
-`CnTileWidget` renders a quick-access tile with an icon and a link. It supports four icon types (SVG, CSS class, URL, emoji) and two link types (Nextcloud app route, external URL). Used internally by `CnDashboardPage` for tile-type widgets and by consumer apps (e.g. MyDash) for dashboard shortcuts.
+`CnTileWidget` renders a quick-access tile with an icon and a link. It supports four icon types (SVG, CSS class, URL, emoji) and two link types (Nextcloud app route, external URL). Used internally by `CnDashboardPage` for tile-type widgets and by consumer apps (e.g. LaunchPad) for dashboard shortcuts.
 ---
 
 ## Proposed Solution

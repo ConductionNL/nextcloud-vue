@@ -1,1 +1,4 @@
-export { default as CnKpiGrid } from './CnKpiGrid.vue'
+import CnKpiGrid from './CnKpiGrid.vue'
+
+export default CnKpiGrid
+export { CnKpiGrid }

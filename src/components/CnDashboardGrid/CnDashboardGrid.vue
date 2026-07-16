@@ -9,7 +9,7 @@
 		<div class="grid-stack">
 			<div
 				v-for="item in layout"
-				:key="item.id"
+				:key="resolveItemKey(item)"
 				class="grid-stack-item"
 				:gs-id="item.id"
 				:gs-x="item.gridX"
@@ -39,7 +39,7 @@ import 'gridstack/dist/gridstack.min.css'
  * changes. Does NOT handle widget rendering — that's done by the parent
  * via the `#widget` scoped slot.
  *
- * @example
+ * ```vue
  * <CnDashboardGrid
  *   :layout="placements"
  *   :editable="isEditing"
@@ -48,6 +48,7 @@ import 'gridstack/dist/gridstack.min.css'
  *     <MyWidget :config="item" />
  *   </template>
  * </CnDashboardGrid>
+ * ```
  */
 export default {
 	name: 'CnDashboardGrid',
@@ -87,6 +88,41 @@ export default {
 		minHeight: {
 			type: Number,
 			default: 2,
+		},
+		/**
+		 * GridStack v12 responsive `columnOpts` bag (breakpoints + reflow
+		 * layout). When set, the grid reflows column count across screen sizes.
+		 * Build it with `getDashboardColumnOpts()`. Default `null` = fixed
+		 * `columns`, no responsive reflow (backwards-compatible).
+		 *
+		 * @type {object|null}
+		 */
+		columnOpts: {
+			type: Object,
+			default: null,
+		},
+		/**
+		 * When set, `cellHeight` is mirrored into this CSS custom property on
+		 * the document root at init (e.g. `'--app-cell-height'`), so app CSS can
+		 * align to the grid geometry. Default `null` = no CSS var written.
+		 *
+		 * @type {string|null}
+		 */
+		cellHeightCssVar: {
+			type: String,
+			default: null,
+		},
+		/**
+		 * Optional `(item) => string|number` to derive each item's render key.
+		 * Use it to force a re-render when an item changes in a way its `id`
+		 * doesn't capture (e.g. style edits — return `${item.id}:${item.updatedAt}`).
+		 * Default `null` = key on `item.id`.
+		 *
+		 * @type {Function|null}
+		 */
+		itemKey: {
+			type: Function,
+			default: null,
 		},
 	},
 
@@ -129,7 +165,21 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Derive the v-for render key for a layout item, honouring the optional
+		 * `itemKey` prop and falling back to `item.id`.
+		 *
+		 * @param {object} item the layout item.
+		 * @return {string|number} the render key.
+		 */
+		resolveItemKey(item) {
+			return this.itemKey ? this.itemKey(item) : item.id
+		},
+
 		initGrid() {
+			if (this.cellHeightCssVar && typeof document !== 'undefined' && document.documentElement) {
+				document.documentElement.style.setProperty(this.cellHeightCssVar, `${this.cellHeight}px`)
+			}
 			const el = this.$refs.gridContainer.querySelector('.grid-stack')
 			this.grid = GridStack.init({
 				column: this.columns,
@@ -140,6 +190,7 @@ export default {
 				disableDrag: !this.editable,
 				disableResize: !this.editable,
 				removable: false,
+				...(this.columnOpts ? { columnOpts: this.columnOpts } : {}),
 			}, el)
 
 			this.grid.on('change', (_event, items) => {
@@ -168,19 +219,30 @@ export default {
 		},
 
 		syncGridItems(newLayout) {
-			// Add items that don't exist in grid yet
+			// Add new items, and re-adopt items whose backing DOM element was
+			// replaced. When a consumer's `itemKey` changes for an unchanged
+			// `id` (e.g. a style edit — the documented use of `itemKey`), Vue
+			// swaps the element. GridStack keeps tracking the old, now-detached
+			// element, leaving the new one unmanaged (no positioning/sizing) —
+			// so re-register it against the new element.
 			for (const item of newLayout) {
-				const exists = this.grid.engine.nodes.find(
-					n => String(n.id) === String(item.id),
-				)
-				if (!exists) {
-					this.$nextTick(() => {
-						const el = this.$refs.gridContainer.querySelector(`[gs-id="${item.id}"]`)
-						if (el) {
-							this.grid.makeWidget(el)
-						}
-					})
-				}
+				this.$nextTick(() => {
+					const el = this.$refs.gridContainer.querySelector(`[gs-id="${item.id}"]`)
+					if (!el) {
+						return
+					}
+					const node = this.grid.engine.nodes.find(
+						n => String(n.id) === String(item.id),
+					)
+					if (!node) {
+						this.grid.makeWidget(el)
+					} else if (node.el !== el) {
+						// Drop the stale node without touching its detached DOM,
+						// then adopt the new element so GridStack sizes/places it.
+						this.grid.removeWidget(node.el, false, false)
+						this.grid.makeWidget(el)
+					}
+				})
 			}
 
 			// Remove items no longer in layout
@@ -211,7 +273,12 @@ export default {
 
 :deep(.grid-stack-item-content) {
 	background: var(--color-main-background);
-	border-radius: 0;
+	/* Match CnWidgetWrapper's container radius: this backing surface sits
+	   BEHIND the rounded widget card, and a square (radius 0) backing pokes
+	   out at the card's corners whenever --color-main-background differs
+	   from the page background (dark mode / tinted themes) — a dark grey
+	   square under every rounded corner. */
+	border-radius: var(--border-radius-container-large, 16px);
 	border: none;
 	box-shadow: none;
 	overflow: hidden;

@@ -289,8 +289,14 @@ describe('formatValue', () => {
 		expect(result.length).toBeLessThanOrEqual(23) // 20 + '...'
 	})
 
-	it('formats objects as [Object]', () => {
-		expect(formatValue({ a: 1 }, { type: 'object' })).toBe('[Object]')
+	it('formats objects as JSON', () => {
+		expect(formatValue({ a: 1 }, { type: 'object' })).toBe('{\n  "a": 1\n}')
+	})
+
+	it('falls back to [Object] when JSON cannot be produced', () => {
+		const circular = {}
+		circular.self = circular
+		expect(formatValue(circular, { type: 'object' })).toBe('[Object]')
 	})
 
 	it('works without property definition', () => {
@@ -530,6 +536,19 @@ describe('fieldsFromSchema', () => {
 		expect(createdField.readOnly).toBe(true)
 	})
 
+	it('un-skips a single readOnly field when a per-key override sets readOnly:false', () => {
+		// A consumer can surface ONE schema-readOnly field (e.g. a denormalised
+		// name editable only on create) without flipping the whole form to
+		// includeReadOnly. The override also wins on the resulting field.
+		const fields = fieldsFromSchema(formSchema, {
+			overrides: { createdAt: { readOnly: false } },
+		})
+		const keys = fields.map((f) => f.key)
+		expect(keys).toContain('createdAt')
+		expect(keys).not.toContain('uuid') // other readOnly fields still skipped
+		expect(fields.find((f) => f.key === 'createdAt').readOnly).toBe(false)
+	})
+
 	it('excludes visible: false properties', () => {
 		const fields = fieldsFromSchema(formSchema)
 		const keys = fields.map((f) => f.key)
@@ -540,6 +559,36 @@ describe('fieldsFromSchema', () => {
 		const fields = fieldsFromSchema(formSchema)
 		const keys = fields.map((f) => f.key)
 		expect(keys).not.toContain('metadata')
+	})
+
+	it('includes object-type properties when an explicit widget opts in', () => {
+		const schemaWithJsonWidget = {
+			title: 'Thing',
+			properties: {
+				config: { type: 'object', title: 'Config', widget: 'json' },
+				other: { type: 'object', title: 'Other' }, // no widget → still filtered
+			},
+		}
+		const fields = fieldsFromSchema(schemaWithJsonWidget)
+		const keys = fields.map((f) => f.key)
+		expect(keys).toContain('config')
+		expect(keys).not.toContain('other')
+		const configField = fields.find((f) => f.key === 'config')
+		expect(configField.widget).toBe('json')
+	})
+
+	it('maps a widget:"icon" property to an icon field and forwards its config', () => {
+		const schemaWithIcon = {
+			title: 'MenuItem',
+			properties: {
+				icon: { type: 'string', title: 'Icon', widget: 'icon', iconSources: ['mdi', 'fontawesome'], allowCustomSvg: true, searchable: false },
+			},
+		}
+		const field = fieldsFromSchema(schemaWithIcon).find((f) => f.key === 'icon')
+		expect(field.widget).toBe('icon')
+		expect(field.iconSources).toEqual(['mdi', 'fontawesome'])
+		expect(field.allowCustomSvg).toBe(true)
+		expect(field.searchable).toBe(false)
 	})
 
 	it('applies exclude option', () => {
@@ -563,6 +612,23 @@ describe('fieldsFromSchema', () => {
 		const nameField = fields.find((f) => f.key === 'name')
 		expect(nameField.widget).toBe('textarea')
 		expect(nameField.label).toBe('Full Name')
+	})
+
+	it('hides a field via overrides[key].hidden (unified visibility)', () => {
+		const fields = fieldsFromSchema(formSchema, {
+			overrides: { email: { hidden: true } },
+		})
+		expect(fields.find((f) => f.key === 'email')).toBeUndefined()
+		expect(fields.find((f) => f.key === 'name')).toBeTruthy()
+	})
+
+	it('re-sorts by overrides[key].order over the schema order', () => {
+		// name=order1, email=order2 in the schema; override flips them.
+		const fields = fieldsFromSchema(formSchema, {
+			overrides: { name: { order: 10 }, email: { order: 1 } },
+		})
+		const keys = fields.map((f) => f.key)
+		expect(keys.indexOf('email')).toBeLessThan(keys.indexOf('name'))
 	})
 
 	// --- Widget resolution ---
@@ -626,6 +692,132 @@ describe('fieldsFromSchema', () => {
 		const fields = fieldsFromSchema(formSchema)
 		const catField = fields.find((f) => f.key === 'categories')
 		expect(catField.widget).toBe('multiselect')
+	})
+
+	// --- OpenRegister object references ($ref) ---
+
+	const refSchema = {
+		title: 'Case',
+		properties: {
+			caseType: { type: 'string', format: 'uuid', $ref: 'caseType', title: 'Case type', order: 1 },
+			contacts: { type: 'array', items: { $ref: 'contact' }, title: 'Contacts', order: 2 },
+			plain: { type: 'string', title: 'Plain', order: 3 },
+			emptyRef: { type: 'string', $ref: '', title: 'Empty Ref', order: 4 },
+			// Cross-app object relations (ADR-066): x-external-register names the foreign app.
+			decision: { type: 'string', format: 'uuid', $ref: 'Decision', 'x-external-register': 'decidesk', title: 'Decision', order: 5 },
+			products: { type: 'array', items: { $ref: 'product', 'x-external-register': 'pipelinq' }, title: 'Products', order: 6 },
+		},
+	}
+
+	it('resolves a string $ref property to a select widget', () => {
+		const fields = fieldsFromSchema(refSchema)
+		const caseTypeField = fields.find((f) => f.key === 'caseType')
+		expect(caseTypeField.widget).toBe('select')
+	})
+
+	it('resolves an array items.$ref property to a multiselect widget', () => {
+		const fields = fieldsFromSchema(refSchema)
+		const contactsField = fields.find((f) => f.key === 'contacts')
+		expect(contactsField.widget).toBe('multiselect')
+	})
+
+	it('sets field.reference for a single $ref property', () => {
+		const fields = fieldsFromSchema(refSchema)
+		const caseTypeField = fields.find((f) => f.key === 'caseType')
+		expect(caseTypeField.reference).toEqual({ schema: 'caseType', multiple: false })
+	})
+
+	it('sets field.reference with multiple:true for an items.$ref property', () => {
+		const fields = fieldsFromSchema(refSchema)
+		const contactsField = fields.find((f) => f.key === 'contacts')
+		expect(contactsField.reference).toEqual({ schema: 'contact', multiple: true })
+	})
+
+	it('leaves reference null for non-reference and empty-$ref properties', () => {
+		const fields = fieldsFromSchema(refSchema)
+		expect(fields.find((f) => f.key === 'plain').reference).toBeNull()
+		expect(fields.find((f) => f.key === 'emptyRef').reference).toBeNull()
+		expect(fields.find((f) => f.key === 'emptyRef').widget).not.toBe('select')
+	})
+
+	it('records x-external-register as reference.register on a single cross-app $ref (ADR-066)', () => {
+		const fields = fieldsFromSchema(refSchema)
+		expect(fields.find((f) => f.key === 'decision').reference).toEqual({ schema: 'Decision', multiple: false, register: 'decidesk' })
+	})
+
+	it('records x-external-register on an items.$ref cross-app array reference (ADR-066)', () => {
+		const fields = fieldsFromSchema(refSchema)
+		expect(fields.find((f) => f.key === 'products').reference).toEqual({ schema: 'product', multiple: true, register: 'pipelinq' })
+	})
+
+	it('omits register on same-app references so the form register is used', () => {
+		const fields = fieldsFromSchema(refSchema)
+		expect(fields.find((f) => f.key === 'caseType').reference).not.toHaveProperty('register')
+		expect(fields.find((f) => f.key === 'contacts').reference).not.toHaveProperty('register')
+	})
+
+	it('accepts a numeric $ref (OpenRegister serves the schema id, not the slug)', () => {
+		// OR authors `$ref` as a slug but persists/serves it as the numeric
+		// schema id (e.g. 85). The numeric form must still resolve to a select.
+		const numericRefSchema = {
+			title: 'Case',
+			properties: {
+				caseType: { type: 'string', format: 'uuid', $ref: 85, title: 'Case type' },
+			},
+		}
+		const fields = fieldsFromSchema(numericRefSchema)
+		const caseTypeField = fields.find((f) => f.key === 'caseType')
+		expect(caseTypeField.widget).toBe('select')
+		expect(caseTypeField.reference).toEqual({ schema: 85, multiple: false })
+	})
+
+	// --- Nextcloud user references ---
+
+	const userSchema = {
+		title: 'Case',
+		properties: {
+			assignee: { type: 'string', referenceType: 'nextcloud-user', title: 'Assignee', order: 1 },
+			watchers: { type: 'array', items: { referenceType: 'nextcloud-user' }, title: 'Watchers', order: 2 },
+			handler: { type: 'string', format: 'user', title: 'Handler', order: 3 },
+			login: { type: 'string', format: 'username', title: 'Login', order: 4 },
+			plain: { type: 'string', title: 'Plain', order: 5 },
+		},
+	}
+
+	// Single Nextcloud-user fields resolve to the 'user' widget — the only
+	// widget CnFormDialog's real user picker (`:user-select` NcSelect) renders;
+	// the former 'user-select' name fell through to a plain select (bug fixed).
+	it('resolves a referenceType:nextcloud-user property to the user widget', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'assignee').widget).toBe('user')
+	})
+
+	it('resolves format:user / format:username to the user widget', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'handler').widget).toBe('user')
+		expect(fields.find((f) => f.key === 'login').widget).toBe('user')
+	})
+
+	it('resolves an array of nextcloud-user items to a user-multiselect widget', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'watchers').widget).toBe('user-multiselect')
+	})
+
+	it('tags a single user field with userPicker { multiple: false }', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'assignee').userPicker).toEqual({ multiple: false })
+		expect(fields.find((f) => f.key === 'handler').userPicker).toEqual({ multiple: false })
+	})
+
+	it('tags an array user field with userPicker { multiple: true }', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'watchers').userPicker).toEqual({ multiple: true })
+	})
+
+	it('leaves userPicker null for non-user properties', () => {
+		const fields = fieldsFromSchema(userSchema)
+		expect(fields.find((f) => f.key === 'plain').userPicker).toBeNull()
+		expect(fields.find((f) => f.key === 'plain').widget).toBe('text')
 	})
 
 	it('resolves uri format to url widget', () => {
@@ -703,5 +895,92 @@ describe('fieldsFromSchema', () => {
 		}
 		const fields = fieldsFromSchema(schema)
 		expect(fields[0].required).toBe(false)
+	})
+})
+
+// ---------- Object references (relations between schemas) ----------
+//
+// Reported live on the `cowboy` app: a `barn` schema with a `cows` property
+// (array → cow) showed an EMPTY dropdown, and a `cow` schema with a `barn`
+// property (object → barn) showed no field at all. Both schemas were configured
+// correctly by the user; the pipeline dropped them.
+//
+// These fixtures are the real shapes OpenRegister persisted — note the schema
+// editor writes $ref as the JSON-Pointer form, not a bare slug.
+
+const barnSchema = {
+	title: 'barn',
+	properties: {
+		name: { type: 'string' },
+		cows: {
+			type: 'array',
+			items: {
+				type: 'object',
+				$ref: '#/components/schemas/cow',
+				objectConfiguration: { handling: 'nested-object', schema: 4501, register: 2466 },
+				inversedBy: 'barn',
+			},
+		},
+	},
+}
+
+const cowSchema = {
+	title: 'cow',
+	properties: {
+		name: { type: 'string' },
+		size: { type: 'string', enum: ['small', 'medium', 'large'] },
+		barn: {
+			type: 'object',
+			$ref: '#/components/schemas/barn',
+			objectConfiguration: { handling: 'related-object', schema: 4505, register: 2466 },
+		},
+	},
+}
+
+describe('fieldsFromSchema — object references', () => {
+	it('renders an object-reference property as a field (it was silently dropped)', () => {
+		const fields = fieldsFromSchema(cowSchema)
+		const barn = fields.find((f) => f.key === 'barn')
+
+		// The whole bug: `type: 'object'` with no `widget` was filtered out, so the
+		// relation never appeared in the create form.
+		expect(barn).toBeTruthy()
+		expect(barn.widget).toBe('select')
+	})
+
+	it('resolves a JSON-Pointer $ref down to the schema slug the picker can query', () => {
+		const fields = fieldsFromSchema(cowSchema)
+		const barn = fields.find((f) => f.key === 'barn')
+
+		// Passing "#/components/schemas/barn" through as the schema id made the picker
+		// query a schema by that literal string — nothing matched, so it came back empty.
+		expect(barn.reference).toEqual({ schema: 'barn', multiple: false })
+	})
+
+	it('resolves an ARRAY of references to a multi-value picker on the referenced slug', () => {
+		const fields = fieldsFromSchema(barnSchema)
+		const cows = fields.find((f) => f.key === 'cows')
+
+		expect(cows).toBeTruthy()
+		expect(cows.widget).toBe('multiselect')
+		expect(cows.reference).toEqual({ schema: 'cow', multiple: true })
+	})
+
+	it('still drops a plain object property that is NOT a reference and has no widget', () => {
+		const fields = fieldsFromSchema({
+			properties: { blob: { type: 'object' } },
+		})
+		expect(fields.find((f) => f.key === 'blob')).toBeUndefined()
+	})
+
+	it('leaves a bare-slug or numeric $ref untouched', () => {
+		const fields = fieldsFromSchema({
+			properties: {
+				bySlug: { type: 'object', $ref: 'cow' },
+				byId: { type: 'object', $ref: 4501 },
+			},
+		})
+		expect(fields.find((f) => f.key === 'bySlug').reference.schema).toBe('cow')
+		expect(fields.find((f) => f.key === 'byId').reference.schema).toBe(4501)
 	})
 })

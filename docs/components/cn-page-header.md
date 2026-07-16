@@ -1,8 +1,15 @@
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnPageHeader.md'
+
 # CnPageHeader
 
 Page header with an optional MDI icon, title, and description. Used at the top of index and detail pages to provide consistent visual identity.
 
 **Wraps**: CnIcon
+
+## Try it
+
+<Playground component="CnPageHeader" />
 
 ## Usage
 
@@ -44,3 +51,9 @@ Page header with an optional MDI icon, title, and description. Used at the top o
 |------|-------------|
 | `icon` | Custom icon element replacing the `icon` prop |
 | `extra` | Additional content rendered after the title block (e.g., badges, counters) |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnPageHeader.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnPageHeader/CnPageHeader.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

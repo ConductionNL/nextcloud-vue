@@ -1,5 +1,5 @@
 <template>
-	<div v-if="totalPages > 1 || totalItems > minItemsToShow" class="cn-pagination">
+	<div v-if="totalPages > 1 || totalItems > minItemsToShow" class="cn-pagination" data-testid="cn-pagination">
 		<!-- Page info -->
 		<div class="cn-pagination__info">
 			<span class="cn-pagination__page-info">
@@ -77,7 +77,7 @@ import { NcButton, NcSelect } from '@nextcloud/vue'
  * NL Design tokens used:
  * - Inherits from cn-pagination CSS class (see css/pagination.css)
  *
- * @example
+ * ```vue
  * <CnPagination
  *   :current-page="page"
  *   :total-pages="totalPages"
@@ -85,6 +85,7 @@ import { NcButton, NcSelect } from '@nextcloud/vue'
  *   :current-page-size="limit"
  *   @page-changed="onPageChange"
  *   @page-size-changed="onPageSizeChange" />
+ * ```
  */
 export default {
 	name: 'CnPagination',
@@ -160,7 +161,7 @@ export default {
 		},
 		/**
 		 * Page info format string. Use {current} and {total} as placeholders.
-		 * @example "Page {current} of {total}"
+		 * "Page {current} of {total}"
 		 */
 		pageInfoFormat: {
 			type: String,

@@ -1,0 +1,30 @@
+{
+  "version.label": {
+    "message": "Volgende",
+    "description": "The label for version current"
+  },
+  "sidebar.tutorialSidebar.category.Layouts": {
+    "message": "Layouts",
+    "description": "The label for category 'Layouts' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Component Reference": {
+    "message": "Componentreferentie",
+    "description": "The label for category 'Component Reference' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Architecture": {
+    "message": "Architectuur",
+    "description": "The label for category 'Architecture' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Store": {
+    "message": "Opslag",
+    "description": "The label for category 'Store' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Integrations": {
+    "message": "Integraties",
+    "description": "The label for category 'Integrations' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Utilities": {
+    "message": "Hulpmiddelen",
+    "description": "The label for category 'Utilities' in sidebar 'tutorialSidebar'"
+  }
+}

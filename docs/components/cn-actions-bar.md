@@ -1,8 +1,15 @@
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnActionsBar.md'
+
 # CnActionsBar
 
 Toolbar that combines an item count display, a primary Add button, a view-mode toggle (Cards / Table), and an overflow actions menu containing Refresh, Import, Export, Copy-selected, and Delete-selected. All built-in mass actions are individually toggle-able.
 
-**Wraps**: NcButton, NcActions, NcCheckboxRadioSwitch
+**Wraps**: NcButton, NcActions
+
+## Try it
+
+<Playground component="CnActionsBar" />
 
 ## Usage
 
@@ -47,8 +54,18 @@ Custom action items can be injected into the overflow menu:
 | `addIcon` | String | `''` | MDI icon name for the Add button (falls back to Plus) |
 | `showAdd` | Boolean | `true` | Whether to show the Add button |
 | `addDisabled` | Boolean | `false` | Whether the Add button is disabled |
-| `viewMode` | String | `'table'` | Current view mode: `'table'` or `'cards'` |
-| `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table toggle |
+| `viewMode` | String | `'table'` | Current view mode: `'table'`, `'cards'`, or `'map'` |
+| `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table toggle (each option carries a leading icon) |
+| `cardsLabel` | String | `''` | Label for the cards/grid view-toggle option (defaults to "Cards") |
+| `tableLabel` | String | `''` | Label for the table/list view-toggle option (defaults to "Table") |
+| `cardsIcon` | String | `''` | MDI icon name for the cards option (defaults to the built-in grid icon); resolved via CnIcon |
+| `tableIcon` | String | `''` | MDI icon name for the table option (defaults to the built-in list icon); resolved via CnIcon |
+| `showMap` | Boolean | `false` | Whether to render the third "Map" toggle segment. Off by default, so existing two-segment consumers are unchanged |
+| `mapLabel` | String | `''` | Label for the map view-toggle option (defaults to "Map"). Only shown when `showMap` |
+| `mapIcon` | String | `''` | MDI icon name for the map option (defaults to the built-in map-marker icon); resolved via CnIcon |
+| `showSearch` | Boolean | `false` | Show an inline search field on the left of the bar; emits `search` on input |
+| `searchValue` | String | `''` | Current value of the inline search field (controlled) |
+| `searchPlaceholder` | String | `''` | Placeholder / accessible label for the inline search field |
 | `refreshing` | Boolean | `false` | Whether a refresh is currently in progress |
 | `refreshDisabled` | Boolean | `false` | Whether the Refresh action is disabled |
 | `showMassImport` | Boolean | `true` | Whether to show the Import action |
@@ -56,6 +73,7 @@ Custom action items can be injected into the overflow menu:
 | `showMassCopy` | Boolean | `true` | Whether to show the Copy selected action |
 | `showMassDelete` | Boolean | `true` | Whether to show the Delete selected action |
 | `inlineActionCount` | Number | `2` | How many actions to show inline (rest go in overflow) |
+| `showRequestFeature` | Boolean | `false` | Show a built-in "Request a feature" entry in the overflow (after Refresh + headerActions). Emits `@request-feature`; the host opens the CnSuggestFeatureModal |
 
 ### Events
 
@@ -63,6 +81,7 @@ Custom action items can be injected into the overflow menu:
 |-------|---------|-------------|
 | `add` | — | Add button clicked |
 | `refresh` | — | Refresh action triggered |
+| `request-feature` | — | Built-in "Request a feature" overflow item clicked (only when `showRequestFeature`) |
 | `view-mode-change` | `'table'` \| `'cards'` | View toggle changed |
 | `show-import` | — | Import action triggered |
 | `show-export` | — | Export action triggered |
@@ -73,6 +92,31 @@ Custom action items can be injected into the overflow menu:
 
 | Slot | Scope | Description |
 |------|-------|-------------|
+| `filters` | — | Inline filter controls rendered inside the bar, between the view toggle and the add/actions (e.g. a `CnQuickFilterBar` segmented toggle). |
 | `header-actions` | — | Extra buttons placed after the Add button, before the overflow menu |
 | `action-items` | — | Extra `NcActionButton` items injected into the overflow menu |
 | `mass-actions` | `{ count, selectedIds }` | Extra mass-action items at the bottom of the overflow menu |
+
+## Documentation link
+
+Set `documentationUrl` to add a **Documentation** entry to the overflow menu (just before Request a feature). It renders as a link that opens the URL in a new tab (`target="_blank"`, `rel="noopener noreferrer"`); customise the wording with `documentationLabel`. Empty (the default) hides it. This mirrors the widget Actions menu's Documentation entry. [`CnIndexPage`](./cn-index-page) forwards its own `documentationUrl` / `documentationLabel` props here.
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnActionsBar.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnActionsBar/CnActionsBar.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />
+
+### Additional props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showSidebarToggle` | Boolean | `false` | Whether to show the Search/Columns sidebar toggle button (lets the index sidebar default to closed and open on demand). |
+| `sidebarOpen` | Boolean | `false` | Current open state of the sidebar (controls the toggle button's pressed state). |
+| `availableViewModes` | Array | `['cards','table']` | Which view-mode segments to show, in order (add `list`). |
+| `listLabel` | String | `''` | Label for the list view-toggle option. |
+| `listIcon` | String | `''` | MDI icon for the list view-toggle option. |
+| `showSortSelect` | Boolean | `false` | Show a standalone sort dropdown (card/list views). |
+| `sortOptions` | Array | `[]` | Options `{ value, label }` for the sort dropdown. |
+| `sortValue` | String | `''` | Selected sort option value (controlled). |
+| `sortLabel` | String | *(i18n)* | Accessible label for the sort dropdown. |

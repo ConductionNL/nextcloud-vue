@@ -1,1 +1,4 @@
-export { default as CnTabbedFormDialog } from './CnTabbedFormDialog.vue'
+import CnTabbedFormDialog from './CnTabbedFormDialog.vue'
+
+export default CnTabbedFormDialog
+export { CnTabbedFormDialog }

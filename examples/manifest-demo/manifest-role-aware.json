@@ -1,0 +1,96 @@
+{
+	"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
+	"version": "1.0.0",
+	"runtime": {
+		"user": {
+			"primaryRole": "compliance-officer",
+			"isOverdueOnMandatoryTraining": true
+		}
+	},
+	"menu": [
+		{
+			"id": "overview",
+			"label": "demo.menu.overview",
+			"icon": "icon-home",
+			"route": "overview",
+			"order": 10
+		},
+		{
+			"id": "compliance-dashboard",
+			"label": "demo.menu.complianceDashboard",
+			"icon": "icon-checkmark",
+			"route": "compliance-dashboard",
+			"order": 20,
+			"visibleIf": {
+				"user.primaryRole": {
+					"in": ["compliance-officer", "hr-coordinator"]
+				}
+			}
+		},
+		{
+			"id": "overdue-courses",
+			"label": "demo.menu.overdueCourses",
+			"icon": "icon-alert",
+			"route": "overdue-courses",
+			"order": 25,
+			"visibleIf": {
+				"user.isOverdueOnMandatoryTraining": true
+			}
+		},
+		{
+			"id": "settings",
+			"label": "demo.menu.settings",
+			"icon": "icon-settings",
+			"route": "settings",
+			"order": 99
+		}
+	],
+	"pages": [
+		{
+			"id": "overview",
+			"route": "/",
+			"type": "dashboard",
+			"title": "demo.overview.title",
+			"config": {
+				"widgets": [
+					{ "id": "kpis", "title": "demo.overview.kpis", "type": "custom" }
+				],
+				"layout": [
+					{ "id": "layout-kpis", "widgetId": "kpis", "gridX": 0, "gridY": 0, "gridWidth": 12, "gridHeight": 3 }
+				]
+			}
+		},
+		{
+			"id": "compliance-dashboard",
+			"route": "/compliance",
+			"type": "dashboard",
+			"title": "demo.compliance.title",
+			"config": {
+				"widgets": [
+					{ "id": "compliance-kpis", "title": "demo.compliance.kpis", "type": "custom" }
+				],
+				"layout": [
+					{ "id": "layout-compliance-kpis", "widgetId": "compliance-kpis", "gridX": 0, "gridY": 0, "gridWidth": 12, "gridHeight": 3 }
+				]
+			}
+		},
+		{
+			"id": "overdue-courses",
+			"route": "/overdue",
+			"type": "index",
+			"title": "demo.overdueCourses.title",
+			"config": {
+				"register": "scholiq",
+				"schema": "course-enrollment",
+				"columns": ["course", "dueDate", "status"]
+			}
+		},
+		{
+			"id": "settings",
+			"route": "/settings",
+			"type": "custom",
+			"title": "demo.settings.title",
+			"component": "SettingsPage"
+		}
+	]
+}

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { buildHeaders, buildQueryString, prefixUrl, capitalize } from '../utils/headers.js'
 import { parseResponseError, networkError, genericError } from '../utils/errors.js'
 import { extractId } from '../utils/id.js'
+import { mergePluginState, mergePluginGetters, mergePluginActions } from './pluginMerge.js'
 
 /**
  * Generic Pinia store for OpenRegister object CRUD operations.
@@ -26,53 +27,20 @@ import { extractId } from '../utils/id.js'
 const DEFAULT_STORE_ID = 'conduction-objects'
 const DEFAULT_BASE_URL = '/apps/openregister/api/objects'
 
-/**
- * Merge plugin state factories into a single state object.
- *
- * @param {Array} plugins Array of plugin definitions
- * @return {object} Merged state object
- */
-function mergePluginState(plugins) {
-	const merged = {}
-	for (const plugin of plugins) {
-		if (plugin.state) {
-			Object.assign(merged, plugin.state())
-		}
-	}
-	return merged
-}
-
-/**
- * Merge plugin getters into a single getters object.
- *
- * @param {Array} plugins Array of plugin definitions
- * @return {object} Merged getters object
- */
-function mergePluginGetters(plugins) {
-	const merged = {}
-	for (const plugin of plugins) {
-		if (plugin.getters) {
-			Object.assign(merged, plugin.getters)
-		}
-	}
-	return merged
-}
-
-/**
- * Merge plugin actions into a single actions object.
- *
- * @param {Array} plugins Array of plugin definitions
- * @return {object} Merged actions object
- */
-function mergePluginActions(plugins) {
-	const merged = {}
-	for (const plugin of plugins) {
-		if (plugin.actions) {
-			Object.assign(merged, plugin.actions)
-		}
-	}
-	return merged
-}
+// Coalesces concurrent identical fetch-by-id requests into a single network
+// call: callers asking for an object already in flight share the pending
+// promise instead of firing a duplicate request. The entry clears once the
+// request settles. Module-scoped (not reactive state) so it never triggers
+// re-renders.
+//
+// The key is `${storeId}::${type}::${id}`, NOT the URL alone: the resolved
+// store write target is `objects[type][id]` on a specific store instance, and
+// each `_requestObject` writes only its own store. Coalescing across different
+// stores (e.g. the library default store vs an app's own createObjectStore)
+// or different type slugs would let one caller's request satisfy another whose
+// cache then never gets written — leaving that store's `objects[type][id]`
+// empty. Keying by (store, type, id) dedupes only truly-identical operations.
+const _inflightObjectFetches = new Map()
 
 // ── Base state ──────────────────────────────────────────────────────────
 
@@ -101,10 +69,22 @@ function baseState(baseUrl = DEFAULT_BASE_URL) {
 		 * @type {{string: object}}
 		 */
 		facets: {},
-		/** @type {{baseUrl: string}} */
+		/** @type {{baseUrl: string, organisationUuidGetter: Function|null, languageGetter: Function|null, targetLanguageGetter: Function|null}} */
 		_options: {
 			baseUrl,
+			organisationUuidGetter: null,
+			languageGetter: null,
+			targetLanguageGetter: null,
 		},
+		/**
+		 * Active tenant UUID — written by `setActiveTenantOrganisation()`
+		 * and read by `_resolveOrganisationUuid()` when no
+		 * `organisationUuidGetter` was passed to the factory.
+		 * `null` means "no tenant header on outgoing requests".
+		 *
+		 * @type {string|null}
+		 */
+		activeTenantOrganisationUuid: null,
 	}
 }
 
@@ -221,14 +201,31 @@ const baseActions = {
 	/**
 	 * Register an object type for CRUD operations.
 	 *
+	 * The optional fourth argument allows callers to supply canonical OR slugs
+	 * at registration time, avoiding a lazy fetch on first `subscribe()` call.
+	 * Omitting it is fully back-compatible — slugs default to `null` and are
+	 * lazily resolved by liveUpdatesPlugin when needed.
+	 *
 	 * @param {string} slug Short name for the type (e.g. 'client', 'case')
 	 * @param {string} schemaId OpenRegister schema ID
 	 * @param {string} registerId OpenRegister register ID
+	 * @param {object} [slugs] Optional slug hints for live-updates transport
+	 * @param {string|null} [slugs.registerSlug] Canonical register slug (e.g. 'zaken')
+	 * @param {string|null} [slugs.schemaSlug]   Canonical schema slug (e.g. 'meldingen')
 	 */
-	registerObjectType(slug, schemaId, registerId) {
+	registerObjectType(slug, schemaId, registerId, slugs = {}) {
+		const { registerSlug = null, schemaSlug = null } = slugs
 		// Replace entire objects so Vue 2 reactivity detects the change
 		// (Vue 2 cannot track new properties added to existing reactive objects)
-		this.objectTypeRegistry = { ...this.objectTypeRegistry, [slug]: { schema: schemaId, register: registerId } }
+		this.objectTypeRegistry = {
+			...this.objectTypeRegistry,
+			[slug]: {
+				schema: schemaId,
+				register: registerId,
+				registerSlug,
+				schemaSlug,
+			},
+		}
 		this.collections = { ...this.collections, [slug]: [] }
 		this.objects = { ...this.objects, [slug]: {} }
 		this.loading = { ...this.loading, [slug]: false }
@@ -278,7 +275,128 @@ const baseActions = {
 	},
 
 	/**
+	 * Resolve the active organisation UUID for the next outgoing request.
+	 *
+	 * Resolution order (multi-tenancy-context):
+	 *   1. `_options.organisationUuidGetter()` — when set at store init.
+	 *   2. `activeTenantOrganisationUuid` — written by `setActiveTenantOrganisation`.
+	 *   3. `null` — no tenant header is stamped.
+	 *
+	 * Errors thrown by a custom getter are caught and downgraded to
+	 * `null` so a buggy getter never breaks an outbound request.
+	 *
+	 * @return {string|null}
+	 */
+	_resolveOrganisationUuid() {
+		const getter = this._options.organisationUuidGetter
+		if (typeof getter === 'function') {
+			try {
+				const v = getter()
+				return typeof v === 'string' && v.length > 0 ? v : null
+			} catch {
+				return null
+			}
+		}
+		return this.activeTenantOrganisationUuid || null
+	},
+
+	/**
+	 * Resolve the active read-side language for the next outgoing request.
+	 *
+	 * Wired via `createObjectStore(id, { languageGetter })`. When set, the
+	 * resolved value is appended to read URLs as `?_lang=<value>` so OR's
+	 * `i18n-api-language-negotiation` contract returns the localised
+	 * projection. A null/empty getter return — or a throwing getter — is
+	 * downgraded to `null` and the query parameter is skipped.
+	 *
+	 * @return {string|null}
+	 */
+	_resolveLanguage() {
+		const getter = this._options.languageGetter
+		if (typeof getter !== 'function') return null
+		try {
+			const v = getter()
+			return typeof v === 'string' && v.length > 0 ? v : null
+		} catch {
+			return null
+		}
+	},
+
+	/**
+	 * Resolve the active write-side target language for the next outgoing
+	 * request.
+	 *
+	 * Wired via `createObjectStore(id, { targetLanguageGetter })`. When set,
+	 * the resolved value is stamped on writes as
+	 * `X-Translation-Target-Language: <value>` so OR's `i18n-source-of-truth`
+	 * contract authors the payload into `_translations[<value>]` instead
+	 * of overwriting the canonical source row. A null/empty return — or a
+	 * throwing getter — is downgraded to `null` and the header is skipped.
+	 *
+	 * @return {string|null}
+	 */
+	_resolveTargetLanguage() {
+		const getter = this._options.targetLanguageGetter
+		if (typeof getter !== 'function') return null
+		try {
+			const v = getter()
+			return typeof v === 'string' && v.length > 0 ? v : null
+		} catch {
+			return null
+		}
+	},
+
+	/**
+	 * Build outbound headers stamped with the active tenant UUID, if any,
+	 * and the active write-side target language, if any.
+	 * Plugins MUST call this helper (not the bare `buildHeaders()` import)
+	 * so a single store instance stamps the same UUID + target language on
+	 * every request.
+	 *
+	 * @param {string} [contentType] Content-Type header value
+	 * @return {object} Headers object for use with fetch()
+	 */
+	_buildHeaders(contentType = 'application/json') {
+		return buildHeaders({
+			contentType,
+			organisationUuid: this._resolveOrganisationUuid() || undefined,
+			targetLanguage: this._resolveTargetLanguage() || undefined,
+		})
+	},
+
+	/**
+	 * Set the active tenant organisation. Stamps `X-OpenRegister-Organisation`
+	 * on every subsequent outgoing request and clears the in-memory
+	 * `collections` + `objects` caches so a re-fetch hits the new tenant.
+	 *
+	 * No-op when the new UUID equals the currently-active one.
+	 *
+	 * @param {string|null} uuid The new tenant UUID
+	 */
+	setActiveTenantOrganisation(uuid) {
+		const next = (typeof uuid === 'string' && uuid.length > 0) ? uuid : null
+		if (this.activeTenantOrganisationUuid === next) return
+
+		this.activeTenantOrganisationUuid = next
+
+		// Cache reset — by tenant the same object slug can refer to a
+		// completely different row set, so old cache entries are wrong.
+		this.collections = {}
+		this.objects = {}
+		this.facets = {}
+		this.pagination = {}
+		// Errors + loading flags are per-fetch and don't need a reset.
+	},
+
+	/**
 	 * Build the API URL for a type and optional object ID.
+	 *
+	 * When a `languageGetter` is wired and returns a non-empty string the
+	 * URL stamps `?_lang=<value>` so OR returns the localised projection
+	 * per the `i18n-api-language-negotiation` contract. Callers that
+	 * subsequently append their own `buildQueryString(params)` MUST use
+	 * `_buildUrlWithParams(type, params, id)` instead so the two query
+	 * strings reconcile cleanly.
 	 *
 	 * @param {string} type The type slug
 	 * @param {string|null} [id] Optional object ID
@@ -290,6 +408,34 @@ const baseActions = {
 		if (id) {
 			url += `/${id}`
 		}
+		const lang = this._resolveLanguage()
+		if (lang) {
+			url += buildQueryString({ _lang: lang })
+		}
+		return url
+	},
+
+	/**
+	 * Build the API URL for a type, an optional object ID, and an extra
+	 * params object that's already destined for `buildQueryString`. The
+	 * helper merges the active `languageGetter` value (when set) into the
+	 * params bag so the two query strings produce a single, well-formed
+	 * URL (instead of duplicating `?_lang=`).
+	 *
+	 * @param {string} type The type slug
+	 * @param {object} [params] Extra query parameters
+	 * @param {string|null} [id] Optional object ID
+	 * @return {string} Full API URL path including query string
+	 */
+	_buildUrlWithParams(type, params = {}, id = null) {
+		const config = this._getTypeConfig(type)
+		let url = `${this._options.baseUrl}/${config.register}/${config.schema}`
+		if (id) {
+			url += `/${id}`
+		}
+		const lang = this._resolveLanguage()
+		const merged = lang ? { ...params, _lang: lang } : params
+		url += buildQueryString(merged)
 		return url
 	},
 
@@ -338,7 +484,7 @@ const baseActions = {
 		try {
 			const response = await fetch(
 				prefixUrl(`/apps/openregister/api/schemas/${config.schema}`),
-				{ method: 'GET', headers: buildHeaders() },
+				{ method: 'GET', headers: this._buildHeaders() },
 			)
 
 			if (!response.ok) return null
@@ -368,7 +514,7 @@ const baseActions = {
 		try {
 			const response = await fetch(
 				prefixUrl(`/apps/openregister/api/registers/${config.register}`),
-				{ method: 'GET', headers: buildHeaders() },
+				{ method: 'GET', headers: this._buildHeaders() },
 			)
 
 			if (!response.ok) return null
@@ -405,11 +551,11 @@ const baseActions = {
 				}
 			}
 
-			const url = this._buildUrl(type) + buildQueryString(fetchParams)
+			const url = this._buildUrlWithParams(type, fetchParams)
 
 			const response = await fetch(url, {
 				method: 'GET',
-				headers: buildHeaders(),
+				headers: this._buildHeaders(),
 			})
 
 			if (!response.ok) {
@@ -472,15 +618,42 @@ const baseActions = {
 	 * @return {Promise<object|null>} The fetched object (also cached in state)
 	 */
 	async fetchObject(type, id) {
+		const url = this._buildUrl(type, id)
+		// Share a single in-flight request across concurrent callers asking
+		// for the same object on this store, instead of firing a duplicate
+		// network call. Scoped to (store, type, id) so it never starves a
+		// different store's cache — see `_inflightObjectFetches` above.
+		const key = `${this.$id}::${type}::${id}`
+		const existing = _inflightObjectFetches.get(key)
+		if (existing) {
+			return existing
+		}
+		const request = this._requestObject(type, id, url)
+		_inflightObjectFetches.set(key, request)
+		try {
+			return await request
+		} finally {
+			_inflightObjectFetches.delete(key)
+		}
+	},
+
+	/**
+	 * Perform the actual fetch-by-id network request and cache the result.
+	 * Wrapped by `fetchObject`, which de-duplicates concurrent calls.
+	 *
+	 * @param {string} type The registered type slug
+	 * @param {string} id The object id
+	 * @param {string} url The pre-built request URL
+	 * @return {Promise<object|null>} The object or null on error
+	 */
+	async _requestObject(type, id, url) {
 		this.loading = { ...this.loading, [type]: true }
 		this.errors = { ...this.errors, [type]: null }
 
 		try {
-			const url = this._buildUrl(type, id)
-
 			const response = await fetch(url, {
 				method: 'GET',
-				headers: buildHeaders(),
+				headers: this._buildHeaders(),
 			})
 
 			if (!response.ok) {
@@ -531,7 +704,7 @@ const baseActions = {
 
 			const response = await fetch(url, {
 				method,
-				headers: buildHeaders(),
+				headers: this._buildHeaders(),
 				body: JSON.stringify(objectData),
 			})
 
@@ -580,7 +753,7 @@ const baseActions = {
 
 			const response = await fetch(url, {
 				method: 'DELETE',
-				headers: buildHeaders(),
+				headers: this._buildHeaders(),
 			})
 
 			if (!response.ok) {
@@ -636,7 +809,7 @@ const baseActions = {
 					const url = this._buildUrl(type, id)
 					const response = await fetch(url, {
 						method: 'DELETE',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 					})
 					return { id, success: response.ok }
 				} catch (error) {
@@ -711,7 +884,7 @@ const baseActions = {
 					const url = this._buildUrl(type, id)
 					const response = await fetch(url, {
 						method: 'GET',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 					})
 					if (response.ok) {
 						const data = await response.json()
@@ -744,18 +917,42 @@ const baseActions = {
  * @param {string} storeId Pinia store identifier
  * @param {Array} [plugins] Array of plugin definitions
  * @param {string} [baseUrl] Base API URL override
+ * @param extraOptions
  * @return {Function} Pinia store composable
  */
-function defineObjectStore(storeId, plugins = [], baseUrl = DEFAULT_BASE_URL) {
+function defineObjectStore(storeId, plugins = [], baseUrl = DEFAULT_BASE_URL, extraOptions = {}) {
 	const pluginState = mergePluginState(plugins)
 	const pluginGetters = mergePluginGetters(plugins)
 	const pluginActions = mergePluginActions(plugins)
+	const setupPlugins = plugins.filter((p) => typeof p.setup === 'function')
+	const initialized = new WeakSet()
+	const factoryOrganisationUuidGetter = typeof extraOptions.organisationUuidGetter === 'function'
+		? extraOptions.organisationUuidGetter
+		: null
+	const factoryLanguageGetter = typeof extraOptions.languageGetter === 'function'
+		? extraOptions.languageGetter
+		: null
+	const factoryTargetLanguageGetter = typeof extraOptions.targetLanguageGetter === 'function'
+		? extraOptions.targetLanguageGetter
+		: null
 
-	return defineStore(storeId, {
-		state: () => ({
-			...baseState(baseUrl),
-			...pluginState,
-		}),
+	const useStore = defineStore(storeId, {
+		state: () => {
+			const base = baseState(baseUrl)
+			if (factoryOrganisationUuidGetter) {
+				base._options.organisationUuidGetter = factoryOrganisationUuidGetter
+			}
+			if (factoryLanguageGetter) {
+				base._options.languageGetter = factoryLanguageGetter
+			}
+			if (factoryTargetLanguageGetter) {
+				base._options.targetLanguageGetter = factoryTargetLanguageGetter
+			}
+			return {
+				...base,
+				...pluginState,
+			}
+		},
 
 		getters: {
 			...baseGetters,
@@ -780,6 +977,21 @@ function defineObjectStore(storeId, plugins = [], baseUrl = DEFAULT_BASE_URL) {
 			},
 		},
 	})
+
+	if (setupPlugins.length === 0) {
+		return useStore
+	}
+
+	return function useObjectStoreWithSetup(pinia) {
+		const store = useStore(pinia)
+		if (!initialized.has(store)) {
+			initialized.add(store)
+			for (const plugin of setupPlugins) {
+				plugin.setup(store)
+			}
+		}
+		return store
+	}
 }
 
 /**
@@ -799,6 +1011,21 @@ export const useObjectStore = defineObjectStore(DEFAULT_STORE_ID, [], prefixUrl(
  * @param {object} [options] Configuration options
  * @param {Array} [options.plugins] Array of sub-resource plugins
  * @param {string} [options.baseUrl] Base API URL override
+ * @param {Function} [options.organisationUuidGetter] `() => string|null` — when set, every
+ *   request stamps `X-OpenRegister-Organisation: <uuid>` for multi-tenancy.
+ *   See the `multi-tenancy-context` change.
+ * @param {Function} [options.languageGetter] `() => string|null` — when set, every read URL
+ *   stamps `?_lang=<bcp47>` so OR returns the localised projection per the
+ *   `i18n-api-language-negotiation` contract. Returning `null` or an empty
+ *   string skips the parameter. A throwing getter is downgraded to `null`.
+ *   See the `i18n-language-negotiation-getters` change.
+ * @param {Function} [options.targetLanguageGetter] `() => string|null` — when set, every
+ *   write request stamps `X-Translation-Target-Language: <bcp47>` so OR
+ *   authors the payload into `_translations[<bcp47>]` instead of overwriting
+ *   the canonical source row, per the `i18n-source-of-truth` contract.
+ *   Returning `null` or an empty string skips the header. A throwing getter
+ *   is downgraded to `null`.
+ *   See the `i18n-language-negotiation-getters` change.
  * @return {Function} Pinia store composable
  *
  * @example
@@ -817,7 +1044,25 @@ export const useObjectStore = defineObjectStore(DEFAULT_STORE_ID, [], prefixUrl(
  * const useMyStore = createObjectStore('object', {
  *   baseUrl: '/apps/myapp/api/objects',
  * })
+ *
+ * @example
+ * // With i18n language negotiation (i18n-language-negotiation-getters)
+ * import { useUserLanguage } from './composables/useUserLanguage.js'
+ * const userLang = useUserLanguage()
+ * const useMyStore = createObjectStore('object', {
+ *   languageGetter:       () => userLang.value, // read stamps ?_lang=
+ *   targetLanguageGetter: () => userLang.value, // write stamps X-Translation-Target-Language
+ * })
  */
 export function createObjectStore(storeId, options = {}) {
-	return defineObjectStore(storeId, options.plugins || [], options.baseUrl || prefixUrl(DEFAULT_BASE_URL))
+	return defineObjectStore(
+		storeId,
+		options.plugins || [],
+		options.baseUrl || prefixUrl(DEFAULT_BASE_URL),
+		{
+			organisationUuidGetter: options.organisationUuidGetter || null,
+			languageGetter: options.languageGetter || null,
+			targetLanguageGetter: options.targetLanguageGetter || null,
+		},
+	)
 }

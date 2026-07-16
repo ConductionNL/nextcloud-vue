@@ -1,22 +1,45 @@
 <template>
-	<div class="cn-table-container" :class="{ 'cn-table-container--scrollable': scrollable }">
+	<div
+		class="cn-table-container"
+		data-testid="cn-object-list"
+		:class="{
+			'cn-table-container--scrollable': scrollable,
+			'cn-table-container--borderless': borderless,
+			'cn-table-container--fill': fillHeight,
+		}">
+		<!-- Optional card header (folded from the retired CnTableWidget): a title
+		     + total-count badge. Only rendered when `title` is set; bare table
+		     usage is unchanged. -->
+		<div v-if="title" class="cn-data-table__header">
+			<h3 class="cn-data-table__title">
+				{{ title }}
+			</h3>
+			<span v-if="totalRowCount > 0" class="cn-data-table__count">
+				{{ totalRowCount }}
+			</span>
+		</div>
+
 		<!-- Loading State -->
-		<div v-if="loading" class="cn-table-loading">
+		<div v-if="isLoading" class="cn-table-loading" data-testid="cn-object-list-loading">
 			<NcLoadingIcon :size="32" />
 			<p>{{ loadingText }}</p>
 		</div>
 
 		<!-- Table -->
-		<table v-else class="cn-data-table">
-			<thead>
+		<table v-else class="cn-data-table" data-testid="cn-object-list-table">
+			<thead v-if="!hideHeader">
 				<tr>
 					<!-- Checkbox column -->
 					<th v-if="selectable" class="cn-table-col--checkbox">
 						<NcCheckboxRadioSwitch
-							:checked="allSelected"
+							:model-value="allSelected"
 							:indeterminate="someSelected && !allSelected"
-							@update:checked="toggleSelectAll" />
+							:aria-label="selectAllLabel"
+							@update:model-value="toggleSelectAll" />
 					</th>
+
+					<!-- Leading icon column (header is intentionally blank) -->
+					<th v-if="rowIcon" class="cn-table-col--icon" />
 
 					<!-- Data columns -->
 					<th
@@ -27,17 +50,26 @@
 							col.class || '',
 						]"
 						:style="col.width ? { width: col.width } : {}"
-						@click="col.sortable ? onSort(col.key) : null">
+						:tabindex="col.sortable ? 0 : null"
+						:aria-sort="ariaSortFor(col)"
+						@click="col.sortable ? onHeaderClick(col.key, $event) : null"
+						@keydown.enter="col.sortable ? onHeaderKeydown(col.key, $event) : null">
 						{{ col.label }}
 						<span
-							v-if="col.sortable && sortKey === col.key"
+							v-if="col.sortable && sortKeyIndex(col.key) !== -1"
 							class="cn-table-sort-indicator">
-							{{ sortOrder === 'asc' ? '▲' : '▼' }}
+							{{ effectiveSortKeys[sortKeyIndex(col.key)].order === 'asc' ? '▲' : '▼' }}
+						</span>
+						<span
+							v-if="col.sortable && effectiveSortKeys.length > 1 && sortKeyIndex(col.key) !== -1"
+							class="cn-table-sort-badge">
+							{{ sortKeyIndex(col.key) + 1 }}
 						</span>
 					</th>
 
 					<!-- Actions column -->
 					<th v-if="$scopedSlots['row-actions']" class="cn-table-col--actions">
+						<!-- @slot Header cell content above the row-actions column (blank by default). -->
 						<slot name="actions-header" />
 					</th>
 				</tr>
@@ -45,8 +77,9 @@
 
 			<tbody>
 				<!-- Empty state -->
-				<tr v-if="rows.length === 0" class="cn-table-empty">
+				<tr v-if="effectiveRows.length === 0" class="cn-table-empty" data-testid="cn-object-list-empty">
 					<td :colspan="totalColumns">
+						<!-- @slot Empty-state content shown when there are no rows (defaults to `emptyText`). -->
 						<slot name="empty">
 							{{ emptyText }}
 						</slot>
@@ -55,57 +88,100 @@
 
 				<!-- Data rows -->
 				<tr
-					v-for="row in rows"
+					v-for="row in effectiveRows"
 					v-else
 					:key="row[rowKey]"
 					class="cn-table-row"
+					data-testid="cn-object-row"
+					:data-testid-row-id="row[rowKey]"
 					:class="[
 						isSelected(row) ? 'cn-table-row--selected' : '',
 						rowClass ? rowClass(row) : '',
 					]"
-					@click="$emit('row-click', row)"
-					@contextmenu.prevent="$emit('row-context-menu', { row, event: $event })">
+					@mousedown="onPointerDown"
+					@click="onRowClick(row, $event)"
+					@contextmenu.prevent="onRowContextMenu(row, $event)">
 					<!-- Checkbox -->
 					<td v-if="selectable" class="cn-table-col--checkbox" @click.stop>
 						<NcCheckboxRadioSwitch
-							:checked="isSelected(row)"
-							@update:checked="toggleSelect(row)" />
+							:model-value="isSelected(row)"
+							:aria-label="selectRowLabel"
+							@update:model-value="toggleSelect(row)" />
+					</td>
+
+					<!-- Leading icon -->
+					<td v-if="rowIcon" class="cn-table-col--icon">
+						<CnIcon :name="getRowIcon(row)" :size="20" />
 					</td>
 
 					<!-- Data cells -->
 					<td
 						v-for="col in effectiveColumns"
 						:key="col.key"
-						:class="col.cellClass || ''"
+						:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '']"
 						:style="col.width ? { maxWidth: col.width } : {}">
-						<slot :name="'column-' + col.key" :row="row" :value="getCellValue(row, col.key)">
-							<!-- Schema-driven: use CnCellRenderer -->
+						<!-- @slot Per-column cell override (`#column-<key>`), scoped with { row, value }. Wins over CnCellRenderer. -->
+						<slot :name="'column-' + col.key" :row="row" :value="cellValue(row, col)">
+							<!-- Every column renders through CnCellRenderer: it resolves
+							     col.formatter / col.widget against the injected registries
+							     (cnFormatters / cnCellWidgets), uses the schema property when
+							     one is available (else {}) for type-aware rendering, and
+							     falls back to formatValue(). Columns with `aggregate` get a
+							     count of related objects (see cellValue/loadAggregates). The
+							     #column-{key} slot still wins. -->
 							<CnCellRenderer
-								v-if="isSchemaColumn(col)"
-								:value="getCellValue(row, col.key)"
-								:property="getSchemaProperty(col.key)" />
-							<!-- Manual: plain text -->
-							<template v-else>
-								{{ getCellValue(row, col.key) }}
-							</template>
+								:value="cellValue(row, col)"
+								:property="columnProperty(col)"
+								:formatter="col.formatter || null"
+								:formatter-options="col.formatterOptions || null"
+								:widget="col.widget || null"
+								:widget-props="col.widgetProps || undefined"
+								:format="col.format || null"
+								:row="row"
+								:row-key="rowKey" />
 						</slot>
 					</td>
 
 					<!-- Row actions -->
-					<td v-if="$scopedSlots['row-actions']" class="cn-table-col--actions" @click.stop>
+					<td v-if="$scopedSlots['row-actions']" :class="['cn-table-col--actions', cellClass ? cellClass(row, { key: 'actions' }) : '']" @click.stop>
+						<!-- @slot Per-row actions menu (e.g. a CnRowActions), scoped with { row }. Supplying it adds the trailing actions column. -->
 						<slot name="row-actions" :row="row" />
 					</td>
 				</tr>
 			</tbody>
 		</table>
+
+		<!-- Optional footer. A `#footer` scoped slot lets a host render its own
+		     footer link (e.g. a "+ New" create action or an always-shown
+		     "View all") with its own click handler — useful when the widget runs
+		     outside a vue-router context (the built-in link uses $router). When
+		     no slot is given, the built-in "View all" link (folded from the
+		     retired CnTableWidget) is shown for a `limit`-ed subset. -->
+		<div
+			v-if="$scopedSlots.footer || (viewAllRoute && totalRowCount > effectiveRows.length)"
+			class="cn-data-table__footer">
+			<!-- @slot Custom footer content, scoped with { total, shown } (defaults to the built-in "View all" link). -->
+			<slot name="footer" :total="totalRowCount" :shown="effectiveRows.length">
+				<a
+					class="cn-data-table__view-all"
+					@click.prevent="onViewAll">
+					{{ viewAllLabel }}
+				</a>
+			</slot>
+		</div>
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { generateUrl } from '@nextcloud/router'
+import axios from '@nextcloud/axios'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
+import { CnIcon } from '../CnIcon/index.js'
 import { columnsFromSchema } from '../../utils/schema.js'
+import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
+import { nextSortState } from '../../utils/multiColumnSort.js'
 
 /**
  * CnDataTable — Generic sortable data table for list views.
@@ -115,12 +191,23 @@ import { columnsFromSchema } from '../../utils/schema.js'
  * row selection, custom cell rendering via scoped slots, loading states,
  * and empty states.
  *
+ * Sorting: a plain click on a sortable header is single-sort (cycle asc →
+ * desc → cleared), unchanged from before. Shift+click (or Shift+Enter on a
+ * focused header) appends the column as a secondary/tertiary sort key —
+ * capped at 3 — with numbered priority badges (1, 2, 3) once more than one
+ * key is active. Pass `sortKeys: [{key, order}, ...]` for multi-sort (falls
+ * back to the legacy `sortKey`/`sortOrder` props when empty). The `sort`
+ * event payload is extended, not replaced: `{key, order}` still mirrors the
+ * primary key exactly as before; a new `keys` field carries the full
+ * ordered list. See `src/utils/multiColumnSort.js` for the state machine.
+ *
  * When a `schema` prop is provided, columns are auto-generated from schema
  * properties and cells render through CnCellRenderer for type-aware formatting
  * (dates, booleans, UUIDs, enums, etc.). Scoped slots still override individual
  * columns when needed.
  *
- * @example Manual columns (backwards compatible)
+ * Manual columns (backwards compatible)
+ * ```vue
  * <CnDataTable
  *   :columns="[
  *     { key: 'name', label: 'Name', sortable: true },
@@ -128,11 +215,15 @@ import { columnsFromSchema } from '../../utils/schema.js'
  *   ]"
  *   :rows="clients"
  *   @row-click="openClient" />
+ * ```
  *
- * @example Schema-driven (auto columns)
+ * Schema-driven (auto columns)
+ * ```vue
  * <CnDataTable :schema="schema" :rows="objects" />
+ * ```
  *
- * @example Schema with overrides and custom cell
+ * Schema with overrides and custom cell
+ * ```vue
  * <CnDataTable
  *   :schema="schema"
  *   :exclude-columns="['description']"
@@ -142,6 +233,7 @@ import { columnsFromSchema } from '../../utils/schema.js'
  *     <QuickStatusDropdown :case-obj="row" />
  *   </template>
  * </CnDataTable>
+ * ```
  */
 export default {
 	name: 'CnDataTable',
@@ -150,17 +242,32 @@ export default {
 		NcLoadingIcon,
 		NcCheckboxRadioSwitch,
 		CnCellRenderer,
+		CnIcon,
 	},
 
 	props: {
 		/**
 		 * Column definitions (manual mode).
 		 * Not required when `schema` is provided.
-		 * @type {Array<{key: string, label: string, sortable?: boolean, width?: string, class?: string, cellClass?: string}>}
+		 * Each entry may be a full column object OR a bare string key; bare strings
+		 * are normalised to `{ key, label }` by `effectiveColumns` so manifest-driven
+		 * pages that pass `config.columns` as a string array work without extra mapping.
+		 * @type {Array<{key: string, label: string, sortable: boolean, width: string, class: string, cellClass: string}|string>}
 		 */
 		columns: {
 			type: Array,
 			default: () => [],
+		},
+		/**
+		 * Optional leading icon shown at the start of every row. Either a static
+		 * MDI icon name (PascalCase, e.g. `'FileDocumentOutline'`) applied to all
+		 * rows, or a function `(row) => iconName` to vary it per row. The icon is
+		 * resolved through the shared CnIcon registry. Unset = no icon column.
+		 * @type {string | ((row: object) => string) | null}
+		 */
+		rowIcon: {
+			type: [String, Function],
+			default: null,
 		},
 		/**
 		 * Schema object with `properties` field (schema-driven mode).
@@ -206,6 +313,19 @@ export default {
 			default: 'asc',
 			validator: (v) => v === null || ['asc', 'desc'].includes(v),
 		},
+		/**
+		 * Ordered multi-column sort state: `[{ key, order }, ...]` (priority
+		 * order, 0 to 3 entries). Optional — when empty (the default), the
+		 * table falls back to the legacy `sortKey`/`sortOrder` props, so
+		 * single-sort hosts are completely unaffected. Shift+click a
+		 * sortable header to append/cycle a secondary or tertiary key (see
+		 * `src/utils/multiColumnSort.js`).
+		 * @type {Array<{key: string, order: 'asc'|'desc'}>}
+		 */
+		sortKeys: {
+			type: Array,
+			default: () => [],
+		},
 		/** Whether rows can be selected with checkboxes */
 		selectable: {
 			type: Boolean,
@@ -231,6 +351,11 @@ export default {
 			type: Function,
 			default: null,
 		},
+		/** Function returning CSS class(es) for a data cell: (row, col) => string|object */
+		cellClass: {
+			type: Function,
+			default: null,
+		},
 		/** Whether to constrain table height and make it scrollable */
 		scrollable: {
 			type: Boolean,
@@ -241,71 +366,509 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Loading...'),
 		},
+		/**
+		 * Accessible name for the select-all checkbox in the header row.
+		 * Used as the checkbox's `aria-label` so screen readers announce a
+		 * named control (WCAG 4.1.2). Defaults to the lib's translation of
+		 * "Select all rows".
+		 */
+		selectAllLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Select all rows'),
+		},
+		/**
+		 * Accessible name for a per-row select checkbox. Used as the
+		 * checkbox's `aria-label` so screen readers announce a named control
+		 * (WCAG 4.1.2). Defaults to the lib's translation of "Select row".
+		 */
+		selectRowLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Select row'),
+		},
+		/**
+		 * Optional card title rendered in a header above the table. When set, the
+		 * table reads as a self-contained card (the container's own border/radius
+		 * is the card chrome). Folded in from the retired CnTableWidget.
+		 */
+		title: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Drop the container's card chrome (border, radius, shadow) so the table
+		 * sits flush inside a parent that already provides a card (e.g. a
+		 * CnWidgetWrapper dashboard slot). Folded in from CnTableWidget.
+		 */
+		borderless: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Fill the height of the parent (a flex-column card / widget content
+		 * area) so the optional `#footer` is pushed to the bottom instead of
+		 * floating directly under a short list. When the list is long enough to
+		 * overflow, the footer stays pinned via its sticky rule. No-op outside a
+		 * height-constrained parent. Opt-in so ordinary in-flow tables are
+		 * unaffected.
+		 */
+		fillHeight: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Hide the column-header row (`<thead>`). Useful for compact dashboard
+		 * list widgets that want a plain bordered-row list without column labels.
+		 */
+		hideHeader: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Max number of rows to display. When the total exceeds it, only the first
+		 * `limit` render and the "View all" footer appears (with `viewAllRoute`).
+		 * 0 = show all. Folded in from CnTableWidget.
+		 */
+		limit: {
+			type: Number,
+			default: 0,
+		},
+		/**
+		 * vue-router route object for the "View all" footer link. The footer only
+		 * shows when set AND the rows are a `limit`-ed subset. Folded in from CnTableWidget.
+		 * @type {object|null}
+		 */
+		viewAllRoute: {
+			type: Object,
+			default: null,
+		},
+		/** Pre-translated "View all" footer label. */
+		viewAllLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'View all'),
+		},
+		/**
+		 * Self-fetch mode (folded from CnTableWidget): the OpenRegister register
+		 * id/slug. When `register` + `schemaId` are set and no `rows` are passed,
+		 * the table fetches `/apps/openregister/api/objects/{register}/{schemaId}`.
+		 * @type {string|number|null}
+		 */
+		register: {
+			type: [String, Number],
+			default: null,
+		},
+		/**
+		 * Self-fetch mode (folded from CnTableWidget): the OpenRegister schema
+		 * id used together with `register`. (Distinct from the `schema` prop,
+		 * which is a JSON Schema object for column generation.)
+		 * @type {string|number|null}
+		 */
+		schemaId: {
+			type: [String, Number],
+			default: null,
+		},
+		/**
+		 * Extra query parameters sent with the self-fetch request (register +
+		 * schemaId mode) — e.g. a resolved filter map, `_order[field]` ordering,
+		 * or `_limit`. Changing it re-triggers the self-fetch, so a host widget
+		 * (CnWidgetObjectTable's declarative `source`) can drive filtering and
+		 * ordering without re-implementing the fetch. Ignored when external
+		 * `rows` are supplied.
+		 * @type {object|null}
+		 */
+		fetchParams: {
+			type: Object,
+			default: null,
+		},
+		/**
+		 * Convenience navigation (folded from CnTableWidget): a function that
+		 * receives the clicked row and returns a vue-router route to push. When
+		 * set, a row click navigates there (the `row-click` event still fires).
+		 * @type {Function|null}
+		 */
+		rowClickRoute: {
+			type: Function,
+			default: null,
+		},
+		/**
+		 * When true, a row-body click emits `row-click` (for navigation) even
+		 * while `selectable` — selection then happens only via the checkbox
+		 * column. Lets "click row = open, tick box = select" coexist. Default
+		 * false keeps the legacy behaviour (selectable rows select on body click).
+		 * @type {boolean}
+		 */
+		rowClickToView: {
+			type: Boolean,
+			default: false,
+		},
+	},
+
+	setup() {
+		// Tell a deliberate row click apart from a text-selection drag.
+		return useClickDragGuard()
+	},
+
+	data() {
+		return {
+			/**
+			 * Resolved aggregate-column values, keyed by `String(row[rowKey])`
+			 * then by column key. Populated by `loadAggregates()` for columns
+			 * that declare `aggregate` (see CnIndexPage's manifest config).
+			 *
+			 * @type {{[rowId: string]: {[colKey: string]: number}}}
+			 */
+			aggregateValues: {},
+			/** True while a batch of aggregate-count requests is in flight. */
+			aggregateLoading: false,
+			/** Monotonic id used to discard a stale aggregate batch when `rows` changes mid-flight. */
+			aggregateRequestId: 0,
+			/** Rows fetched in self-fetch mode (register + schemaId). */
+			fetchedRows: [],
+			/** True while a self-fetch request is in flight. */
+			selfFetchLoading: false,
+		}
 	},
 
 	computed: {
+		/**
+		 * The row source: external `rows` when provided, else the self-fetched
+		 * rows (register + schemaId mode). External rows always win.
+		 *
+		 * @return {Array<object>}
+		 */
+		sourceRows() {
+			if (this.rows && this.rows.length > 0) return this.rows
+			if (this.register != null && this.schemaId != null) return this.fetchedRows
+			return this.rows
+		},
+
+		/**
+		 * The rows actually rendered — `sourceRows` capped to `limit` (0 = all).
+		 *
+		 * @return {Array<object>}
+		 */
+		effectiveRows() {
+			return this.limit > 0 ? this.sourceRows.slice(0, this.limit) : this.sourceRows
+		},
+
+		/**
+		 * Total row count before the `limit` cap (drives the count badge + the
+		 * "View all" footer condition).
+		 *
+		 * @return {number}
+		 */
+		totalRowCount() {
+			return this.sourceRows.length
+		},
+
+		/**
+		 * Whether to show the loading state — the external `loading` prop OR a
+		 * self-fetch in flight.
+		 *
+		 * @return {boolean}
+		 */
+		isLoading() {
+			return this.loading || this.selfFetchLoading
+		},
 		/**
 		 * Effective columns: schema-generated or manually provided.
 		 * Schema columns take precedence when schema is provided and no manual columns given.
 		 */
 		effectiveColumns() {
-			if (this.schema && this.columns.length === 0) {
-				return columnsFromSchema(this.schema, {
+			const cols = (this.schema && this.columns.length === 0)
+				? columnsFromSchema(this.schema, {
 					exclude: this.excludeColumns,
 					include: this.includeColumns,
 					overrides: this.columnOverrides,
 				})
+				: this.columns
+			if (!(cols || []).some((c) => typeof c === 'string')) {
+				return cols || []
 			}
-			return this.columns
+			const schemaCols = this.schema
+				? columnsFromSchema(this.schema, { overrides: this.columnOverrides })
+				: []
+			const byKey = new Map(schemaCols.map((c) => [c.key, c]))
+			return (cols || []).map((c) => {
+				if (typeof c !== 'string') return c
+				return byKey.get(c) || { key: c, label: c, sortable: true }
+			})
+		},
+
+		/**
+		 * The active ordered sort-key list: the `sortKeys` prop when non-empty,
+		 * else a single-entry list derived from the legacy `sortKey`/`sortOrder`
+		 * props (empty when neither is active). Every header/badge/aria-sort
+		 * computation reads this so single-sort hosts (no `sortKeys` passed)
+		 * render exactly as before.
+		 *
+		 * @return {Array<{key: string, order: 'asc'|'desc'}>}
+		 */
+		effectiveSortKeys() {
+			if (this.sortKeys && this.sortKeys.length > 0) return this.sortKeys
+			if (this.sortKey) return [{ key: this.sortKey, order: this.sortOrder || 'asc' }]
+			return []
 		},
 
 		totalColumns() {
 			let count = this.effectiveColumns.length
 			if (this.selectable) count++
+			if (this.rowIcon) count++
 			if (this.$scopedSlots['row-actions']) count++
 			return count
 		},
 
+		/**
+		 * Stable signature of the self-fetch inputs so the watcher refetches
+		 * only on a real change (register / schemaId / fetchParams).
+		 *
+		 * @return {string}
+		 */
+		selfFetchKey() {
+			return JSON.stringify({
+				register: this.register,
+				schemaId: this.schemaId,
+				fetchParams: this.fetchParams || null,
+			})
+		},
+
 		allSelected() {
-			return this.rows.length > 0
-				&& this.rows.every((row) => this.selectedIds.includes(row[this.rowKey]))
+			return this.effectiveRows.length > 0
+				&& this.effectiveRows.every((row) => this.selectedIds.includes(row[this.rowKey]))
 		},
 
 		someSelected() {
-			return this.rows.some((row) => this.selectedIds.includes(row[this.rowKey]))
+			return this.effectiveRows.some((row) => this.selectedIds.includes(row[this.rowKey]))
 		},
+	},
+
+	watch: {
+		rows: {
+			handler() { this.loadAggregates() },
+		},
+		effectiveColumns: {
+			handler() { this.loadAggregates() },
+			deep: false,
+		},
+		/**
+		 * Re-run the self-fetch when its inputs (register, schemaId, or the
+		 * host-driven `fetchParams`) change — a token-resolved filter (e.g.
+		 * `@workspace.*`) can change after mount. External rows still win.
+		 */
+		selfFetchKey() {
+			if ((!this.rows || this.rows.length === 0) && this.register != null && this.schemaId != null) {
+				this.fetchData()
+			}
+		},
+	},
+
+	mounted() {
+		this.loadAggregates()
+		// Self-fetch mode: pull rows from OpenRegister when register + schemaId
+		// are given and no external rows were passed (folded from CnTableWidget).
+		if ((!this.rows || this.rows.length === 0) && this.register != null && this.schemaId != null) {
+			this.fetchData()
+		}
 	},
 
 	methods: {
 		/**
+		 * Self-fetch rows from OpenRegister (register + schemaId mode). Best-effort:
+		 * any failure leaves the fetched rows empty. Folded from CnTableWidget.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async fetchData() {
+			this.selfFetchLoading = true
+			try {
+				const url = generateUrl('/apps/openregister/api/objects/{register}/{schemaId}', {
+					register: String(this.register),
+					schemaId: String(this.schemaId),
+				})
+				const { data } = await axios.get(url, {
+					headers: { 'OCS-APIREQUEST': 'true' },
+					...(this.fetchParams ? { params: this.fetchParams } : {}),
+				})
+				this.fetchedRows = (data && data.results) || (Array.isArray(data) ? data : [])
+			} catch (e) {
+				this.fetchedRows = []
+			} finally {
+				this.selfFetchLoading = false
+			}
+		},
+
+		/**
+		 * Navigate to the "View all" footer route.
+		 *
+		 * @return {void}
+		 */
+		onViewAll() {
+			if (this.viewAllRoute && this.$router) {
+				this.$router.push(this.viewAllRoute).catch(() => {})
+			}
+		},
+		/**
+		 * Resolve the leading-row icon name for a row. Returns the static
+		 * `rowIcon` string, or the result of the `rowIcon(row)` function.
+		 *
+		 * @param {object} row The row object.
+		 * @return {string} The MDI icon name (PascalCase).
+		 */
+		getRowIcon(row) {
+			return typeof this.rowIcon === 'function' ? this.rowIcon(row) : this.rowIcon
+		},
+
+		/**
 		 * Get a cell value from a row using dot-notation key.
+		 *
+		 * OpenRegister system/metadata fields (created, updated, owner, uri,
+		 * size, register, schema, ...) live under the object's `@self` block.
+		 * For a flat key we fall back to `@self` when the top level has no
+		 * value, so sidebar-enabled metadata columns resolve. Top-level fields
+		 * always win, keeping existing behaviour unchanged.
+		 *
 		 * @param {object} row The row data
 		 * @param {string} key The column key (supports dot notation: 'address.city')
 		 * @return {*} The cell value
 		 */
 		getCellValue(row, key) {
+			if (typeof key !== 'string') {
+				return undefined
+			}
 			if (key.includes('.')) {
 				return key.split('.').reduce((obj, k) => obj?.[k], row)
 			}
-			return row[key]
+			if (row?.[key] === undefined && row?.['@self'] && typeof row['@self'] === 'object') {
+				return row['@self'][key]
+			}
+			return row?.[key]
 		},
 
 		/**
-		 * Check if a column was generated from schema (has type info).
-		 * @param {object} col Column definition
-		 * @return {boolean}
-		 */
-		isSchemaColumn(col) {
-			return !!(this.schema && col.type)
-		},
-
-		/**
-		 * Get the schema property definition for a column key.
+		 * Get the schema property definition for a column key, or `{}` when
+		 * there is no schema (manual mode) or no matching property. The result
+		 * is handed to `CnCellRenderer` for type-aware rendering; an empty
+		 * object makes it fall back to `formatValue()` (plain truncated text).
+		 *
 		 * @param {string} key Column key
-		 * @return {object} Property definition
+		 * @return {object} Property definition (possibly empty).
 		 */
 		getSchemaProperty(key) {
 			return this.schema?.properties?.[key] || {}
+		},
+
+		/**
+		 * Effective property definition handed to CnCellRenderer for a column:
+		 * the schema property augmented with the column's own `type`/`format`/
+		 * `enum` hints. Lets synthesized columns that have no schema property
+		 * (e.g. metadata fields with `format: 'date-time'` / `'uri'`) still get
+		 * type-aware rendering.
+		 *
+		 * @param {object} col Column definition.
+		 * @return {object} Property definition for CnCellRenderer.
+		 */
+		columnProperty(col) {
+			const base = this.getSchemaProperty(col.key)
+			if (col && (col.format || col.type || col.enum)) {
+				return {
+					...base,
+					...(col.type ? { type: col.type } : {}),
+					...(col.format ? { format: col.format } : {}),
+					...(col.enum ? { enum: col.enum } : {}),
+				}
+			}
+			return base
+		},
+
+		/**
+		 * Value to render in a cell. For a column that declares `aggregate`
+		 * (a count of related objects), returns the cached count once
+		 * `loadAggregates()` has resolved it (or `'…'` while pending, `'—'`
+		 * if it failed / there's nothing to count). Otherwise the row's
+		 * property value via `getCellValue`.
+		 *
+		 * @param {object} row The row data.
+		 * @param {object} col The column definition.
+		 * @return {*} The value handed to the slot / CnCellRenderer.
+		 */
+		cellValue(row, col) {
+			if (col && col.aggregate) {
+				const cached = this.aggregateValues[String(row[this.rowKey])]
+				const v = cached ? cached[col.key] : undefined
+				if (v === undefined) return this.aggregateLoading ? '…' : '—'
+				return v
+			}
+			return this.getCellValue(row, col.key)
+		},
+
+		/**
+		 * Interpolate a column's `aggregate.where` map for one row: any string
+		 * value of the form `"@self.<path>"` is replaced with
+		 * `getCellValue(row, path)`; everything else is passed through.
+		 *
+		 * @param {object} where The `aggregate.where` map (may be undefined).
+		 * @param {object} row The parent row.
+		 * @return {object} The resolved filter map.
+		 */
+		resolveAggregateWhere(where, row) {
+			const out = {}
+			for (const [k, v] of Object.entries(where || {})) {
+				if (typeof v === 'string' && v.startsWith('@self.')) {
+					out[k] = this.getCellValue(row, v.slice('@self.'.length))
+				} else {
+					out[k] = v
+				}
+			}
+			return out
+		},
+
+		/**
+		 * For every column that declares `aggregate` (currently `op: "count"`),
+		 * issue one `_limit=0` count request per visible row against the related
+		 * OpenRegister collection and cache the totals in `aggregateValues`.
+		 * Batched with `Promise.all`; a per-request failure degrades that one
+		 * cell to `'—'` (logged), never the page. A monotonic request id
+		 * discards a stale batch when `rows` / columns change mid-flight.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadAggregates() {
+			const aggCols = this.effectiveColumns.filter((c) => c && c.aggregate && c.aggregate.op === 'count')
+			if (aggCols.length === 0) {
+				if (Object.keys(this.aggregateValues).length > 0) this.aggregateValues = {}
+				this.aggregateLoading = false
+				return
+			}
+			const id = ++this.aggregateRequestId
+			this.aggregateLoading = true
+			const next = {}
+			const jobs = []
+			for (const row of this.rows) {
+				const rowKey = String(row[this.rowKey])
+				next[rowKey] = {}
+				for (const col of aggCols) {
+					const agg = col.aggregate
+					if (!agg.register || !agg.schema) continue
+					const where = this.resolveAggregateWhere(agg.where, row)
+					jobs.push(
+						axios.get(generateUrl(`/apps/openregister/api/objects/${agg.register}/${agg.schema}`), {
+							params: { ...where, _limit: 0 },
+						})
+							.then((res) => {
+								const d = res && res.data
+								next[rowKey][col.key] = (d && (d.total ?? (Array.isArray(d.results) ? d.results.length : undefined))) ?? 0
+							})
+							.catch((e) => {
+								// eslint-disable-next-line no-console
+								console.warn(`[CnDataTable] aggregate "${col.key}" count failed for row ${rowKey}`, e)
+								next[rowKey][col.key] = undefined
+							}),
+					)
+				}
+			}
+			await Promise.all(jobs)
+			if (id !== this.aggregateRequestId) return
+			this.aggregateValues = next
+			this.aggregateLoading = false
 		},
 
 		isSelected(row) {
@@ -313,26 +876,119 @@ export default {
 		},
 
 		/**
-		 * Handle sort column click.
-		 * @param {string} key Column key
+		 * Row-body click: toggles selection when `selectable` (ignoring drags),
+		 * otherwise emits `row-click` for navigation.
+		 *
+		 * @param {object} row The clicked row object
+		 * @param {MouseEvent} [event] The originating click event.
 		 */
-		onSort(key) {
-			let newKey = key
-			let order = 'asc'
-			if (this.sortKey === key) {
-				if (this.sortOrder === 'asc') {
-					order = 'desc'
-				} else {
-					// desc → disabled: clear sort entirely
-					newKey = null
-					order = null
-				}
+		onRowClick(row, event) {
+			if (this.wasDrag(event)) return
+			if (this.selectable && !this.rowClickToView) {
+				this.toggleSelect(row)
+				return
 			}
 			/**
-			 * @event sort Emitted when a sortable column header is clicked.
-			 * @type {{ key: string|null, order: 'asc'|'desc'|null }}
+			 * @event row-click Emitted on a row-body click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox column).
+			 * @type {object} The clicked row object.
 			 */
-			this.$emit('sort', { key: newKey, order })
+			this.$emit('row-click', row)
+			// Convenience navigation folded from CnTableWidget: a rowClickRoute
+			// function maps the row to a route to push (the event still fires).
+			if (this.rowClickRoute && this.$router) {
+				const route = this.rowClickRoute(row)
+				if (route) this.$router.push(route).catch(() => {})
+			}
+		},
+
+		/**
+		 * Row right-click: forward the row + originating event so a host can
+		 * open a context menu (the browser default is prevented).
+		 *
+		 * @param {object} row The right-clicked row object.
+		 * @param {MouseEvent} event The originating contextmenu event.
+		 */
+		onRowContextMenu(row, event) {
+			/**
+			 * @event row-context-menu Emitted on a row right-click (contextmenu) for hosts that render a context menu.
+			 * @type {{ row: object, event: MouseEvent }}
+			 */
+			this.$emit('row-context-menu', { row, event })
+		},
+
+		/**
+		 * Index of `key` within `effectiveSortKeys`, or -1 when not active.
+		 * Used by the template for the arrow, the numbered badge, and aria-sort.
+		 *
+		 * @param {string} key Column key.
+		 * @return {number}
+		 */
+		sortKeyIndex(key) {
+			return this.effectiveSortKeys.findIndex((k) => k && k.key === key)
+		},
+
+		/**
+		 * `aria-sort` value for a column header: `'ascending'`/`'descending'`
+		 * for the PRIMARY (index 0) active sort key only — secondary/tertiary
+		 * keys carry the visible numbered badge instead, per WCAG guidance
+		 * that `aria-sort` describes single-column sort state. `null` omits
+		 * the attribute entirely (unsorted / not sortable).
+		 *
+		 * @param {object} col Column definition.
+		 * @return {string|null}
+		 */
+		ariaSortFor(col) {
+			if (!col.sortable) return null
+			const primary = this.effectiveSortKeys[0]
+			if (!primary || primary.key !== col.key) return null
+			return primary.order === 'asc' ? 'ascending' : 'descending'
+		},
+
+		/**
+		 * Header click: plain click = single-sort (existing behavior,
+		 * unchanged); shift+click appends/cycles the column as a secondary or
+		 * tertiary sort key. See `src/utils/multiColumnSort.js`.
+		 *
+		 * @param {string} key Column key.
+		 * @param {MouseEvent} [event] The originating click event.
+		 */
+		onHeaderClick(key, event) {
+			this.applySort(key, !!(event && event.shiftKey))
+		},
+
+		/**
+		 * Header keydown: `Enter` = plain click, `Shift+Enter` = shift+click.
+		 *
+		 * @param {string} key Column key.
+		 * @param {KeyboardEvent} event The originating keydown event.
+		 */
+		onHeaderKeydown(key, event) {
+			if (event.key !== 'Enter') return
+			event.preventDefault()
+			this.applySort(key, !!event.shiftKey)
+		},
+
+		/**
+		 * Compute and emit the next sort state for a header interaction.
+		 *
+		 * @param {string} key Column key.
+		 * @param {boolean} append `true` for a shift+click/shift+Enter (append/cycle a secondary key).
+		 */
+		applySort(key, append) {
+			const keys = nextSortState(this.effectiveSortKeys, key, { append })
+			const primary = keys[0] || null
+			/**
+			 * @event sort Emitted when a sortable column header is clicked (plain click) or shift-clicked (multi-sort).
+			 * @type {{ key: string|null, order: 'asc'|'desc'|null, keys: Array<{key: string, order: 'asc'|'desc'}> }}
+			 * `key`/`order` mirror the PRIMARY (first) active sort key exactly as the pre-multi-sort single-key
+			 * contract did (`null`/`null` when cleared) — existing listeners destructuring `{ key, order }` are
+			 * unaffected. `keys` is new: the full ordered list (0 to 3 entries) for multi-sort-aware hosts.
+			 */
+			this.$emit('sort', {
+				key: primary ? primary.key : null,
+				order: primary ? primary.order : null,
+				keys,
+			})
 		},
 
 		toggleSelect(row) {

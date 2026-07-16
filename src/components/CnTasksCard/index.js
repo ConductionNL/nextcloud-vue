@@ -1,1 +1,4 @@
-export { default as CnTasksCard } from './CnTasksCard.vue'
+import CnTasksCard from './CnTasksCard.vue'
+
+export default CnTasksCard
+export { CnTasksCard }

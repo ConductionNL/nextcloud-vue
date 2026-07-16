@@ -21,6 +21,8 @@ describe('useObjectStore', () => {
 			expect(store.objectTypeRegistry.client).toEqual({
 				schema: '28',
 				register: '5',
+				registerSlug: null,
+				schemaSlug: null,
 			})
 			expect(store.collections.client).toEqual([])
 			expect(store.objects.client).toEqual({})
@@ -167,6 +169,68 @@ describe('useObjectStore', () => {
 			expect(result).toEqual({ id: 'abc', name: 'Test Client' })
 			expect(store.getObject('client', 'abc')).toEqual({ id: 'abc', name: 'Test Client' })
 		})
+
+		it('de-duplicates concurrent requests for the same object into one network call', async () => {
+			store.registerObjectType('client', '28', '5')
+
+			let resolveFetch
+			global.fetch = jest.fn().mockReturnValue(new Promise((resolve) => {
+				resolveFetch = () => resolve({
+					ok: true,
+					json: () => Promise.resolve({ id: 'abc', name: 'Test Client' }),
+				})
+			}))
+
+			// Fire three concurrent requests before the first settles.
+			const promises = [
+				store.fetchObject('client', 'abc'),
+				store.fetchObject('client', 'abc'),
+				store.fetchObject('client', 'abc'),
+			]
+			resolveFetch()
+			const results = await Promise.all(promises)
+
+			expect(global.fetch).toHaveBeenCalledTimes(1)
+			results.forEach((r) => expect(r).toEqual({ id: 'abc', name: 'Test Client' }))
+		})
+
+		it('fetches again after a prior request settled (cache is per-flight, not permanent)', async () => {
+			store.registerObjectType('client', '28', '5')
+
+			global.fetch = jest.fn().mockResolvedValue({
+				ok: true,
+				json: () => Promise.resolve({ id: 'abc', name: 'Test Client' }),
+			})
+
+			await store.fetchObject('client', 'abc')
+			await store.fetchObject('client', 'abc')
+
+			expect(global.fetch).toHaveBeenCalledTimes(2)
+		})
+
+		it('does NOT coalesce across separate store instances — each store populates its own cache', async () => {
+			// Two distinct stores resolving to the same URL must each run their
+			// own request and write their own objects[type][id]; the in-flight
+			// de-dup is per-store, so it can never starve a sibling store's cache.
+			const storeA = createObjectStore('store-a')()
+			const storeB = createObjectStore('store-b')()
+			storeA.registerObjectType('client', '28', '5')
+			storeB.registerObjectType('client', '28', '5')
+
+			global.fetch = jest.fn().mockResolvedValue({
+				ok: true,
+				json: () => Promise.resolve({ id: 'abc', name: 'Test Client' }),
+			})
+
+			await Promise.all([
+				storeA.fetchObject('client', 'abc'),
+				storeB.fetchObject('client', 'abc'),
+			])
+
+			expect(global.fetch).toHaveBeenCalledTimes(2)
+			expect(storeA.getObject('client', 'abc')).toEqual({ id: 'abc', name: 'Test Client' })
+			expect(storeB.getObject('client', 'abc')).toEqual({ id: 'abc', name: 'Test Client' })
+		})
 	})
 
 	describe('saveObject', () => {
@@ -303,6 +367,7 @@ describe('createObjectStore with plugins', () => {
 		expect(typeof store.uploadFiles).toBe('function')
 		expect(typeof store.publishFile).toBe('function')
 		expect(typeof store.deleteFile).toBe('function')
+		expect(typeof store.batchFiles).toBe('function')
 		expect(typeof store.fetchTags).toBe('function')
 		expect(typeof store.lockObject).toBe('function')
 		expect(typeof store.unlockObject).toBe('function')
@@ -322,6 +387,69 @@ describe('createObjectStore with plugins', () => {
 		expect(store.getTags).toEqual([])
 		expect(store.isTagsLoading).toBe(false)
 		expect(store.getTagsError).toBeNull()
+	})
+
+	it('batchFiles posts to /files/batch with one round-trip for many ids', async () => {
+		const useStore = createObjectStore('test-batch-files', {
+			plugins: [filesPlugin()],
+		})
+		store = useStore()
+		store.registerObjectType('case', '28', '5')
+
+		// Two responses: the batch POST + the follow-up fetchFiles refresh.
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				json: () => Promise.resolve({
+					results: [{ fileId: 1, ok: true }, { fileId: 2, ok: true }],
+					summary: { succeeded: 2, failed: 0, total: 2 },
+				}),
+			})
+			.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ results: [], total: 0, page: 1, pages: 1, limit: 20, offset: 0 }),
+			})
+
+		const result = await store.batchFiles('case', 'obj-uuid', 'publish', [1, 2])
+
+		expect(global.fetch).toHaveBeenCalledTimes(2)
+		const [url, opts] = global.fetch.mock.calls[0]
+		expect(url).toContain('/files/batch')
+		expect(opts.method).toBe('POST')
+		expect(JSON.parse(opts.body)).toEqual({
+			action: 'publish',
+			fileIds: [1, 2],
+		})
+		expect(result.summary).toEqual({ succeeded: 2, failed: 0, total: 2 })
+	})
+
+	it('batchFiles accepts 207 partial-success without flagging error', async () => {
+		const useStore = createObjectStore('test-batch-207', {
+			plugins: [filesPlugin()],
+		})
+		store = useStore()
+		store.registerObjectType('case', '28', '5')
+
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce({
+				ok: false,
+				status: 207,
+				json: () => Promise.resolve({
+					results: [{ fileId: 1, ok: true }, { fileId: 2, ok: false, error: 'locked' }],
+					summary: { succeeded: 1, failed: 1, total: 2 },
+				}),
+			})
+			.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ results: [], total: 0, page: 1, pages: 1, limit: 20, offset: 0 }),
+			})
+
+		const result = await store.batchFiles('case', 'obj-uuid', 'delete', [1, 2])
+
+		expect(result).not.toBeNull()
+		expect(result.summary.failed).toBe(1)
+		expect(store.filesError).toBeNull()
 	})
 
 	it('fetchTags calls tags API and stores array of strings', async () => {

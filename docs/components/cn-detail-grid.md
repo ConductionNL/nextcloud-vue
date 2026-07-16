@@ -21,6 +21,7 @@ Supports two layout modes:
 | `labelWidth` | Number | `150` | Minimum width (px) for labels in horizontal mode. |
 | `accent` | Boolean | `true` | Show a left accent border (primary color) on each item. |
 | `emptyLabel` | String | `'No details available'` | Text shown when the `items` array is empty and no default slot is provided. |
+| `object` | `Object\|null` | `null` | Optional OR object backing the grid. When set AND it carries `_translationMeta.translatedFrom`, a [`CnTranslatedBadge`](./cn-translated-badge.md) is rendered above the items so the user sees `(translated from {sourceLanguage})`. Auto-hides via the badge's own `v-if` for source-of-truth objects. Introduced by the `cn-detail-translation-aware-surfacing` change. |
 
 ## Slots
 
@@ -29,6 +30,7 @@ Supports two layout modes:
 | `#item-{index}` | `{ item, index }` | Override the **value** portion of a specific item. Useful for rendering components (badges, selects, etc.) instead of plain text. |
 | `#label-{index}` | `{ item, index }` | Override the **label** portion of a specific item. |
 | `#item-actions-{index}` | `{ item, index }` | Add action buttons alongside a specific item (e.g. an edit button). |
+| `#header` | `{ object }` | Replace the default translation-header block (which renders the auto `CnTranslatedBadge`). Useful when consumer apps want a richer header surface above the items. |
 | `#empty` | — | Custom empty state content. |
 | `#default` | — | Append extra content after the data-driven items. |
 
@@ -133,3 +135,9 @@ The component uses Nextcloud CSS variables for theming:
 - `--color-main-text` — value text color
 
 On screens narrower than 600px, the grid collapses to a single column and horizontal items stack vertically.
+
+## Integration props (AD-18)
+
+| Prop | Type | Default | Notes |
+|---|---|---|---|
+| `referenceContext` (`reference-context`) | Object \| null | `null` | Object context `{ register, schema, objectId }` forwarded to the integration single-entity widget rendered for items that declare a `referenceType`. Optional. |

@@ -1,0 +1,27 @@
+{
+	"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
+	"version": "not-semver",
+	"menu": [
+		{ "id": "missing-label" }
+	],
+	"pages": [
+		{
+			"id": "dup",
+			"route": "/a",
+			"type": "wizard",
+			"title": "bad type"
+		},
+		{
+			"id": "dup",
+			"route": "/b",
+			"type": "index",
+			"title": "duplicate id"
+		},
+		{
+			"id": "no-component",
+			"route": "/c",
+			"type": "custom",
+			"title": "missing component field"
+		}
+	]
+}

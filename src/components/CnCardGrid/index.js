@@ -1,1 +1,4 @@
-export { default as CnCardGrid } from './CnCardGrid.vue'
+import CnCardGrid from './CnCardGrid.vue'
+
+export default CnCardGrid
+export { CnCardGrid }

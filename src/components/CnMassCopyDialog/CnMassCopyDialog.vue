@@ -2,10 +2,14 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="!loading"
+		:no-close="loading"
 		@closing="$emit('close')">
 		<!-- Review phase -->
-		<div v-if="result === null" class="cn-mass-copy__review">
+		<div v-if="result === null"
+			class="cn-mass-copy__review"
+			data-testid="cn-modal"
+			data-testid-modal="cn-mass-copy-dialog"
+			data-testid-phase="review">
 			<div class="cn-mass-copy__pattern">
 				<label for="cn-mass-copy-pattern">{{ patternLabel }}</label>
 				<NcSelect
@@ -27,7 +31,7 @@
 						<span class="cn-mass-copy__item-new">{{ getNewName(item) }}</span>
 					</div>
 					<NcButton
-						type="tertiary"
+						variant="tertiary"
 						:aria-label="removeLabel"
 						@click="removeItem(item.id)">
 						<template #icon>
@@ -43,7 +47,11 @@
 		</div>
 
 		<!-- Result phase -->
-		<div v-else class="cn-mass-copy__result">
+		<div v-else
+			class="cn-mass-copy__result"
+			data-testid="cn-modal"
+			data-testid-modal="cn-mass-copy-dialog"
+			data-testid-phase="result">
 			<NcNoteCard v-if="result.success" type="success">
 				{{ successText }}
 			</NcNoteCard>
@@ -58,7 +66,7 @@
 			</NcButton>
 			<NcButton
 				v-if="result === null"
-				type="primary"
+				variant="primary"
 				:disabled="loading || localItems.length === 0"
 				@click="executeCopy">
 				<template #icon>
@@ -88,7 +96,7 @@ import Close from 'vue-material-design-icons/Close.vue'
  * with the items and naming function. The parent performs the actual API
  * call and calls `setResult()` via a ref.
  *
- * @example
+ * ```vue
  * <CnMassCopyDialog
  *   v-if="showCopyDialog"
  *   ref="copyDialog"
@@ -96,6 +104,7 @@ import Close from 'vue-material-design-icons/Close.vue'
  *   :name-field="'title'"
  *   @confirm="onCopyConfirm"
  *   @close="showCopyDialog = false" />
+ * ```
  *
  * // In methods:
  * async onCopyConfirm({ ids, getName }) {
@@ -108,6 +117,8 @@ import Close from 'vue-material-design-icons/Close.vue'
  *     this.$refs.copyDialog.setResult({ error: e.message })
  *   }
  * }
+ *
+ * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
  */
 export default {
 	name: 'CnMassCopyDialog',
@@ -158,9 +169,13 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Items successfully copied.'),
 		},
+		/** Label for the cancel button (visible before the copy runs). */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the close button (visible after copy completes). */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		/** Label for the primary confirm button that triggers the copy. */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Copy') },
+		/** Aria label for the per-row "remove from list" icon button. */
 		removeLabel: { type: String, default: () => t('nextcloud-vue', 'Remove from list') },
 	},
 

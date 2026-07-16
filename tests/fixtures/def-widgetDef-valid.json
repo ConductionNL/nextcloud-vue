@@ -1,0 +1,7 @@
+{
+	"id": "kpis",
+	"title": "myapp.dashboard.kpis",
+	"type": "custom",
+	"iconClass": "icon-graph",
+	"itemApiVersions": [1, 2]
+}

@@ -1,8 +1,27 @@
 import { ref, onBeforeUnmount } from 'vue'
 
-const CSS_VAR_X = '--cn-ctx-menu-x'
-const CSS_VAR_Y = '--cn-ctx-menu-y'
-const DATA_ATTR = 'data-cn-ctx-menu'
+export const CTX_MENU_CSS_VAR_X = '--cn-ctx-menu-x'
+export const CTX_MENU_CSS_VAR_Y = '--cn-ctx-menu-y'
+export const CTX_MENU_DATA_ATTR = 'data-cn-ctx-menu'
+
+// Internal aliases — keep the original short names for the existing code below.
+const CSS_VAR_X = CTX_MENU_CSS_VAR_X
+const CSS_VAR_Y = CTX_MENU_CSS_VAR_Y
+const DATA_ATTR = CTX_MENU_DATA_ATTR
+
+/**
+ * Strip the position CSS vars + data attribute from `<html>`.
+ *
+ * Exposed so `CnContextMenu` can drive cleanup off NcActions' real
+ * `@closed` event (which fires *after* the popper's hide animation), instead
+ * of the composable guessing a duration. The composable owns set-up in
+ * `open()`; the consumer's `<CnContextMenu>` owns tear-down via this helper.
+ */
+export function clearContextMenuPositionDom() {
+	document.documentElement.style.removeProperty(CSS_VAR_X)
+	document.documentElement.style.removeProperty(CSS_VAR_Y)
+	document.documentElement.removeAttribute(DATA_ATTR)
+}
 
 /**
  * Composable for managing a right-click context menu positioned at the cursor.
@@ -54,7 +73,7 @@ export function useContextMenu() {
 	 * Sets CSS custom properties for x/y coordinates and a data attribute on
 	 * `document.documentElement` so the shared CSS can override Popper positioning.
 	 *
-	 * @param {object} params
+	 * @param {object} params - Context menu trigger parameters.
 	 * @param {any} params.item The item associated with the right-click (row, folder, etc.)
 	 * @param {MouseEvent} params.event The native contextmenu event
 	 */
@@ -67,14 +86,19 @@ export function useContextMenu() {
 	}
 
 	/**
-	 * Close the context menu and clean up DOM attributes.
-	 * Use as the `@close` handler on `<NcActions>`.
+	 * Close the context menu.
+	 *
+	 * Only flips reactive state — the DOM cleanup (CSS vars + data attribute)
+	 * is driven by `CnContextMenu`'s `@closed` listener on NcActions, which
+	 * fires *after* the popper's hide animation completes. Removing the data
+	 * attribute synchronously here would strip the cursor-positioning
+	 * transform mid-animation and the popper would snap to ≈ 0,0 for one
+	 * frame before unmounting.
+	 *
+	 * Use as the `@close` handler on `<NcActions>` / `<CnContextMenu>`.
 	 */
 	function close() {
 		isOpen.value = false
-		document.documentElement.style.removeProperty(CSS_VAR_X)
-		document.documentElement.style.removeProperty(CSS_VAR_Y)
-		document.documentElement.removeAttribute(DATA_ATTR)
 		targetItem.value = null
 	}
 
@@ -108,11 +132,13 @@ export function useContextMenu() {
 		return { action: action.label, row: targetItem.value }
 	}
 
-	// Clean up DOM if the component unmounts while the menu is open
+	// Clean up DOM if the component unmounts while the menu is open —
+	// CnContextMenu's `@closed` listener would otherwise never fire because
+	// NcActions has already been torn down.
 	onBeforeUnmount(() => {
-		if (isOpen.value) {
-			close()
-		}
+		isOpen.value = false
+		targetItem.value = null
+		clearContextMenuPositionDom()
 	})
 
 	return {

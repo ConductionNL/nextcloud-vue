@@ -1,1 +1,4 @@
-export { default as CnNotesCard } from './CnNotesCard.vue'
+import CnNotesCard from './CnNotesCard.vue'
+
+export default CnNotesCard
+export { CnNotesCard }

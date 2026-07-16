@@ -1,4 +1,5 @@
-import { buildHeaders } from '../../utils/headers.js'
+// `buildHeaders` is reached via `this._buildHeaders()` so lifecycle
+// transitions inherit the active tenant UUID (multi-tenancy-context).
 import { parseResponseError, networkError } from '../../utils/errors.js'
 
 /**
@@ -53,7 +54,7 @@ export function lifecyclePlugin() {
 					const url = this._buildUrl(type, objectId) + '/' + action
 					const options = {
 						method: 'POST',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 					}
 					if (body) {
 						options.body = JSON.stringify(body)

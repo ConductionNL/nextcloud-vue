@@ -2,15 +2,49 @@
 sidebar_position: 16
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnDeleteDialog.md'
+
 # CnDeleteDialog
 
 Two-phase single-item delete confirmation dialog. Shows a warning, waits for API response, then shows success or error.
+
+## Try it
+
+<Playground component="CnDeleteDialog" />
 
 **Wraps**: NcDialog, NcButton, NcNoteCard, NcLoadingIcon
 
 ![CnDeleteDialog confirmation dialog with warning text and Cancel/Delete buttons](/img/screenshots/cn-delete-dialog.png)
 
 ![CnDeleteDialog confirmation with warning text and Cancel/Delete buttons](/img/screenshots/cn-delete-dialog.png)
+
+## Live demo
+
+```vue
+<template>
+  <div>
+    <button @click="open = true" style="padding: 6px 16px; border-radius: 4px; background: var(--color-primary-element); color: white; border: none; cursor: pointer;">Delete item</button>
+    <CnDeleteDialog
+      v-if="open"
+      ref="dlg"
+      :item="{ id: 1, title: 'Annual Report 2024' }"
+      @confirm="onConfirm"
+      @close="open = false" />
+  </div>
+</template>
+<script>
+export default {
+  data() { return { open: false } },
+  methods: {
+    async onConfirm(id) {
+      await new Promise(r => setTimeout(r, 800))
+      this.$refs.dlg.setResult({ success: true })
+    },
+  },
+}
+</script>
+```
 
 ## Props
 
@@ -43,7 +77,7 @@ Two-phase single-item delete confirmation dialog. Shows a warning, waits for API
 
 When items don't have a simple name field, use `nameFormatter` to build a display name from any item properties:
 
-```vue
+```vue {static}
 <CnDeleteDialog
   :item="auditTrail"
   :name-formatter="(item) => t('myapp', 'Audit Trail #{id}', { id: item.id })"
@@ -53,7 +87,7 @@ When items don't have a simple name field, use `nameFormatter` to build a displa
 
 ## Two-Phase Pattern
 
-```vue
+```vue {static}
 <template>
   <CnDeleteDialog
     v-if="deleteItem"
@@ -78,3 +112,9 @@ export default {
 }
 </script>
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDeleteDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDeleteDialog/CnDeleteDialog.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

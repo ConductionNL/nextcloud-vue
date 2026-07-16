@@ -31,7 +31,7 @@ It follows the same **two-phase confirm → result pattern** as CnFormDialog and
 
 - **Properties tab**: Sortable table of schema properties with click-to-edit rows. Each property supports type selection, format, required flag, `$ref` references to other schemas, enum values, default values, validation constraints (`minLength`, `maxLength`, `minimum`, `maximum`, `pattern`, `minItems`, `maxItems`), and nested object/array configuration. Properties can be reordered, added, and deleted.
 - **Configuration tab**: Schema description, slug, version, allOf/oneOf/anyOf composition selectors, object field mappings (name, description, image, summary), file upload settings, allowed tags, hard validation toggle, and searchable toggle.
-- **Security tab**: RBAC permissions table with per-group Create/Read/Update/Delete toggles. Includes built-in rows for `public` (anonymous), `user` (authenticated), and `admin` (always full access, disabled). Custom user groups are shown alphabetically between `user` and `admin`. Property-level permissions can also be configured per property via the action menu.
+- **Security tab**: RBAC permissions table with per-group Create/Read/Update/Delete toggles. Includes built-in rows for `public` (anonymous), `authenticated` (all logged-in users), and `admin` (always full access, disabled). Custom user groups are shown alphabetically between `authenticated` and `admin`. An **Advanced** accordion (collapsed by default) exposes conditional access rules (property-value-based runtime rules) and the inherit-from-public toggle. Property-level permissions can also be configured per property via the action menu.
 - **Optional action buttons**: Extend Schema, Analyze Properties, Validate Objects, Delete Objects, Publish Objects, and Delete. Each is toggled via a boolean prop and emits an event — the parent handles the actual logic.
 - **External data via props**: All data dependencies (schemas, registers, user groups, tags) are passed as props. When a data source is unavailable (empty array), dependent fields are automatically disabled or show empty options.
 
@@ -58,6 +58,7 @@ These props feed external data into the form. The component never fetches data o
 | `userGroups` | `Array` | `[]` | User groups for the Security (RBAC) tab. Each entry should have `{ id, displayname }`. The groups `admin` and `public` are automatically filtered out from this list since they have dedicated rows. Groups are sorted alphabetically by display name. When empty, only the built-in `public`, `user`, and `admin` rows are shown. |
 | `availableTags` | `Array` | `[]` | Tags available for the file property tag configuration. Array of strings (e.g. `['image', 'document', 'audio']`). Used in the property detail panel when a property has `type: 'file'` to configure allowed file tags. When empty, the tag selector shows no options. |
 | `loadingGroups` | `Boolean` | `false` | Whether user groups are still being loaded by the parent. When `true`, the Security tab shows a loading indicator instead of the RBAC table. Set this to `true` while fetching groups, then `false` once `userGroups` is populated. |
+| `inheritedProperties` | `Object` | `{}` | Properties inherited from parent schemas (allOf). Displayed as locked, non-editable rows in the Properties tab so the user can see the full property surface including inherited fields. |
 | `objectCount` | `Number` | `0` | Number of objects currently attached to this schema. Used for two purposes: (1) the "Delete Objects" and "Publish Objects" buttons are disabled when `objectCount === 0` (nothing to act on), and (2) the "Delete" (schema) button is disabled when `objectCount > 0` (cannot delete a schema with attached objects). |
 
 ### Action button visibility props
@@ -93,11 +94,11 @@ All labels accept pre-translated strings with English defaults. Use these to loc
 | `closeLabel` | `String` | `'Close'` | Label for the close button (shown during result phase). |
 | `confirmLabel` | `String` | `''` | Label for the primary action button. When empty, defaults to `'Create'` (create mode) or `'Save'` (edit mode). |
 | `successText` | `String` | `''` | Success message shown in the result phase. When empty, defaults to `'Schema saved successfully.'`. |
-| `extendSchemaLabel` | `String` | `'Extend Schema'` | Label for the Extend Schema action button. |
-| `analyzePropertiesLabel` | `String` | `'Analyze Properties'` | Label for the Analyze Properties action button. |
-| `validateObjectsLabel` | `String` | `'Validate Objects'` | Label for the Validate Objects action button. |
-| `deleteObjectsLabel` | `String` | `'Delete Objects'` | Label for the Delete Objects action button. |
-| `publishObjectsLabel` | `String` | `'Publish Objects'` | Label for the Publish Objects action button. |
+| `extendSchemaLabel` | `String` | `'Extend schema'` | Label for the Extend Schema action button. |
+| `analyzePropertiesLabel` | `String` | `'Analyze properties'` | Label for the Analyze Properties action button. |
+| `validateObjectsLabel` | `String` | `'Validate objects'` | Label for the Validate Objects action button. |
+| `deleteObjectsLabel` | `String` | `'Delete objects'` | Label for the Delete Objects action button. |
+| `publishObjectsLabel` | `String` | `'Publish objects'` | Label for the Publish Objects action button. |
 | `deleteLabel` | `String` | `'Delete'` | Label for the Delete (schema) action button. |
 | `deleteObjectsTooltip` | `String` | `'Delete all objects in this schema'` | Tooltip shown on the Delete Objects button when it is enabled. |
 | `publishObjectsTooltip` | `String` | `'Publish all objects in this schema'` | Tooltip shown on the Publish Objects button when it is enabled. |
@@ -192,18 +193,37 @@ The Configuration tab provides schema-level settings:
 
 ### Security tab
 
-The Security tab provides a Role-Based Access Control (RBAC) table:
+The Security tab provides a Role-Based Access Control (RBAC) table and an advanced conditional access rules section.
 
+**RBAC table:**
 - **Columns**: Group, Create, Read, Update, Delete
 - **Built-in rows** (always shown):
-  - `public` — anonymous/unauthenticated users (blue badge)
-  - `user` — all authenticated users (orange badge)
-  - `admin` — always has full access, all toggles disabled/checked (green badge)
-- **Custom group rows** — populated from the `userGroups` prop, sorted alphabetically, shown between `user` and `admin`
+  - `public` — anonymous/unauthenticated users
+  - `authenticated` — all authenticated users
+  - `admin` — always has full access, all toggles disabled/checked
+- **Custom group rows** — populated from the `userGroups` prop, sorted alphabetically, shown between `authenticated` and `admin`
 - **Loading state** — when `loadingGroups` is `true`, a spinner is shown instead of the table
 - **Summary cards** — below the table:
-  - "Open Access" (success) when no permissions are set
-  - "Restrictive Schema" (warning) when permissions restrict access to specific groups
+  - "Open access" (success) when no permissions are set
+  - "Restrictive schema" (warning) when permissions restrict access to specific groups
+
+**Advanced: Conditional access rules and inheritance** (accordion, collapsed by default):
+
+The accordion contains two subsections:
+
+**Conditional access rules** — Grant access based on object property values evaluated at runtime. Conditions are per-action (create/read/update/delete). Multiple rules per action are OR'd — any matching rule grants access.
+
+Each rule has:
+- A **group** (public, authenticated, or a named user group)
+- One or more **match conditions**: `property → operator → value`
+
+Supported operators: `$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$exists`
+
+Special value variables: `$now` (current date/time), `$userId` (current user ID), `$organisation` (current organisation)
+
+**Inheritance** — Controls whether authenticated users inherit the permissions of the `public` group.
+
+- **Authenticated users inherit `public` group rights** toggle (default: on). When enabled, logged-in users qualify for any rule that targets the `public` group. Disable to make authenticated access strictly gated by explicit group memberships — anonymous users are unaffected either way. This setting is placed at the bottom of the accordion because it rarely needs to be changed and changing it has significant RBAC implications.
 
 ---
 
@@ -300,11 +320,39 @@ The component internally manages a `schemaItem` data object with this structure:
 
 ---
 
+## Live demo
+
+```vue
+<template>
+  <div>
+    <button @click="open = true" style="padding: 6px 16px; border-radius: 4px; background: var(--color-primary-element); color: white; border: none; cursor: pointer;">New schema</button>
+    <CnSchemaFormDialog
+      v-if="open"
+      ref="dlg"
+      @confirm="onConfirm"
+      @close="open = false" />
+  </div>
+</template>
+<script>
+export default {
+  data() { return { open: false } },
+  methods: {
+    async onConfirm(schemaData) {
+      await new Promise(r => setTimeout(r, 800))
+      this.$refs.dlg.setResult({ success: true })
+    },
+  },
+}
+</script>
+```
+
+---
+
 ## Usage examples
 
 ### Basic create/edit (standalone)
 
-```vue
+```vue {static}
 <template>
   <CnSchemaFormDialog
     ref="schemaForm"
@@ -351,7 +399,7 @@ export default {
 
 ### With all action buttons (edit mode)
 
-```vue
+```vue {static}
 <CnSchemaFormDialog
   ref="schemaForm"
   :item="schema"
@@ -379,7 +427,7 @@ export default {
 
 ### With translations (i18n)
 
-```vue
+```vue {static}
 <CnSchemaFormDialog
   ref="schemaForm"
   :item="schema"
@@ -400,7 +448,7 @@ export default {
 
 ### Inside CnIndexPage (slot override)
 
-```vue
+```vue {static}
 <CnIndexPage
   :schema="schema"
   :objects="items"
@@ -431,7 +479,7 @@ export default {
 
 ### Minimal create-only (no external data)
 
-```vue
+```vue {static}
 <CnSchemaFormDialog
   ref="schemaForm"
   dialog-title="New Schema"
