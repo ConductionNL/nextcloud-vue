@@ -1,1 +1,4 @@
-export { default as CnInfoWidget } from './CnInfoWidget.vue'
+import CnInfoWidget from './CnInfoWidget.vue'
+
+export default CnInfoWidget
+export { CnInfoWidget }

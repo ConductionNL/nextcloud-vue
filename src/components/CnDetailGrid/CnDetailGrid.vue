@@ -13,8 +13,22 @@
 		class="cn-detail-grid"
 		:class="rootClasses"
 		:style="rootStyles">
+		<!-- Translation header (cn-detail-translation-aware-surfacing).
+		     Renders the `CnTranslatedBadge` for the bound object when
+		     `:object` is passed. The badge auto-hides via its own
+		     v-if when `_translationMeta.translatedFrom` is null, so
+		     the header block harmlessly stays in the DOM for source
+		     objects with no visible content. -->
+		<div v-if="object && !$scopedSlots.header" class="cn-detail-grid__translation-header">
+			<CnTranslatedBadge :object="object" />
+		</div>
+		<!-- @slot header Replaces the default translation-badge header row above the grid. -->
+		<!-- @binding {object} object The source object the grid renders. -->
+		<slot name="header" :object="object" />
+
 		<!-- Empty state -->
 		<div v-if="!items.length && !$scopedSlots.default" class="cn-detail-grid__empty">
+			<!-- @slot empty Replaces the default empty-state text shown when there are no items. -->
 			<slot name="empty">
 				{{ emptyLabel }}
 			</slot>
@@ -28,6 +42,9 @@
 			:class="itemClasses">
 			<!-- Label -->
 			<div class="cn-detail-grid__label">
+				<!-- @slot label-{index} Per-item label override (e.g. `#label-0`). Defaults to `item.label`. -->
+				<!-- @binding {object} item The item definition being rendered. -->
+				<!-- @binding {number} index The item's position in `items`. -->
 				<slot :name="'label-' + index" :item="item" :index="index">
 					{{ item.label }}
 				</slot>
@@ -35,34 +52,56 @@
 
 			<!-- Value -->
 			<div class="cn-detail-grid__value">
+				<!-- @slot item-{index} Per-item value override (e.g. `#item-0`). Defaults to `item.value` or the AD-18 reference widget. -->
+				<!-- @binding {object} item The item definition being rendered. -->
+				<!-- @binding {number} index The item's position in `items`. -->
 				<slot :name="'item-' + index" :item="item" :index="index">
-					{{ item.value !== undefined && item.value !== null ? item.value : '-' }}
+					<!-- referenceType (AD-18): render the integration's
+					     single-entity widget instead of a raw value. A
+					     consumer-supplied #item-<index> slot still wins. -->
+					<component
+						:is="resolveReferenceWidget(item)"
+						v-if="resolveReferenceWidget(item)"
+						v-bind="referenceWidgetProps(item)" />
+					<template v-else>
+						{{ item.value !== undefined && item.value !== null ? item.value : '-' }}
+					</template>
 				</slot>
 			</div>
 
 			<!-- Optional per-item actions -->
 			<div v-if="$scopedSlots['item-actions-' + index]" class="cn-detail-grid__actions">
+				<!-- @slot item-actions-{index} Optional per-item action buttons rendered after the value (e.g. `#item-actions-0`). -->
+				<!-- @binding {object} item The item definition being rendered. -->
+				<!-- @binding {number} index The item's position in `items`. -->
 				<slot :name="'item-actions-' + index" :item="item" :index="index" />
 			</div>
 		</div>
 
-		<!-- Append slot for manual items -->
+		<!-- @slot default Appended after the data-driven items — add manual rows or arbitrary content here. -->
 		<slot />
 	</div>
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
+import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
+
 /**
  * CnDetailGrid — Data-driven label-value grid for detail/info sections.
  *
- * @example Simple data-driven grid
+ * Simple data-driven grid
+ * ```vue
  * <CnDetailGrid :items="[
  *   { label: 'ID', value: '12345' },
  *   { label: 'Status', value: 'Active' },
  *   { label: 'Created', value: '2024-01-15' },
  * ]" />
+ * ```
  *
- * @example Grid with custom slot content
+ * Grid with custom slot content
+ * ```vue
  * <CnDetailGrid :items="[
  *   { label: 'ID', value: item.id },
  *   { label: 'Action' },
@@ -71,21 +110,60 @@
  *     <CnStatusBadge :label="item.action" />
  *   </template>
  * </CnDetailGrid>
+ * ```
  *
- * @example Horizontal row layout
+ * Horizontal row layout
+ * ```vue
  * <CnDetailGrid layout="horizontal" :items="fields" />
+ * ```
  */
 export default {
 	name: 'CnDetailGrid',
 
+	components: {
+		CnTranslatedBadge,
+	},
+
 	props: {
 		/**
+		 * The OR object backing the detail grid. When passed AND it
+		 * carries a `_translationMeta.translatedFrom` value, the grid
+		 * renders a `CnTranslatedBadge` above the items so the user
+		 * sees that the projection is a translation rather than the
+		 * source row. Optional — existing consumers that don't pass
+		 * `:object` see no visual change. See
+		 * `openspec/changes/cn-detail-translation-aware-surfacing`.
+		 *
+		 * @type {object|null}
+		 */
+		object: {
+			type: Object,
+			default: null,
+		},
+		/**
 		 * Array of detail items to render.
-		 * @type {Array<{ label: string, value?: string|number }>}
+		 *
+		 * An item may carry `referenceType: '<integration-id>'` (AD-18)
+		 * to render the integration's single-entity widget for its
+		 * value instead of a plain string; `value` then acts as the
+		 * widget's input value.
+		 *
+		 * @type {Array<{ label: string, value: string|number, referenceType?: string }>}
 		 */
 		items: {
 			type: Array,
 			default: () => [],
+		},
+		/**
+		 * Object context forwarded to integration single-entity
+		 * widgets rendered for items that declare a `referenceType`:
+		 * `{ register, schema, objectId }`. Optional.
+		 *
+		 * @type {object|null}
+		 */
+		referenceContext: {
+			type: Object,
+			default: null,
 		},
 		/**
 		 * Layout mode.
@@ -132,8 +210,20 @@ export default {
 		 */
 		emptyLabel: {
 			type: String,
-			default: 'No details available',
+			default: () => t('nextcloud-vue', 'No details available'),
 		},
+	},
+
+	setup() {
+		// Pluggable integration registry — used to render items that
+		// declare `referenceType: '<integration-id>'` (AD-18) via the
+		// integration's single-entity widget. Cheap when no such
+		// items exist.
+		const { resolveWidget, getById } = useIntegrationRegistry()
+		return {
+			resolveRegistryWidget: resolveWidget,
+			getRegistryIntegration: getById,
+		}
 	},
 
 	computed: {
@@ -159,6 +249,45 @@ export default {
 		itemClasses() {
 			return {
 				'cn-detail-grid__item--horizontal': this.layout === 'horizontal',
+			}
+		},
+	},
+
+	methods: {
+		/**
+		 * Resolve an item's reference integration widget, if any.
+		 * Returns the integration's single-entity widget component
+		 * (AD-19 fallback to its main `widget`) when the item declares
+		 * a `referenceType` mapping to a registered integration; null
+		 * otherwise.
+		 *
+		 * @param {object} item A detail item.
+		 * @return {object|null} Vue component, or null.
+		 */
+		resolveReferenceWidget(item) {
+			if (!item || typeof item.referenceType !== 'string' || item.referenceType === '') {
+				return null
+			}
+			if (typeof this.getRegistryIntegration === 'function' && this.getRegistryIntegration(item.referenceType) === null) {
+				return null
+			}
+			return this.resolveRegistryWidget(item.referenceType, 'single-entity')
+		},
+
+		/**
+		 * Props passed to a reference integration widget: the item's
+		 * value, the rendering surface, the item itself, and the
+		 * object context (from `referenceContext`).
+		 *
+		 * @param {object} item A detail item.
+		 * @return {object} Props object for the widget component.
+		 */
+		referenceWidgetProps(item) {
+			return {
+				surface: 'single-entity',
+				value: item.value,
+				item,
+				...(this.referenceContext || {}),
 			}
 		},
 	},
@@ -231,6 +360,12 @@ export default {
 	flex-shrink: 0;
 	display: flex;
 	align-items: center;
+}
+
+/* ===== Translation header (cn-detail-translation-aware-surfacing) ===== */
+.cn-detail-grid__translation-header {
+	grid-column: 1 / -1;
+	margin-bottom: var(--default-grid-baseline, 4px);
 }
 
 /* ===== Empty state ===== */

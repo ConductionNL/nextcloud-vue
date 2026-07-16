@@ -1,1 +1,4 @@
-export { default as CnVersionInfoCard } from './CnVersionInfoCard.vue'
+import CnVersionInfoCard from './CnVersionInfoCard.vue'
+
+export default CnVersionInfoCard
+export { CnVersionInfoCard }

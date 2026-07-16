@@ -10,7 +10,8 @@
 					@keyup.enter="addTag"
 					@focus="showSuggestions = true" />
 				<NcButton
-					type="primary"
+					variant="primary"
+					:aria-label="addTagPlaceholder"
 					:disabled="!newTagName.trim() || saving"
 					@click="addTag">
 					<template #icon>
@@ -56,6 +57,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcTextField, NcLoadingIcon } from '@nextcloud/vue'
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -68,12 +70,18 @@ export default {
 	components: { NcButton, NcTextField, NcLoadingIcon, TagOutline, Plus, Close },
 
 	props: {
+		/** ID of the object this tab belongs to */
 		objectId: { type: String, required: true },
+		/** OpenRegister register slug */
 		register: { type: String, default: '' },
+		/** JSON Schema definition for the object */
 		schema: { type: String, default: '' },
+		/** Base URL for the OpenRegister API */
 		apiBase: { type: String, default: '/apps/openregister/api' },
-		addTagPlaceholder: { type: String, default: 'Add tag...' },
-		noTagsLabel: { type: String, default: 'No tags' },
+		/** Placeholder text for the tag input */
+		addTagPlaceholder: { type: String, default: () => t('nextcloud-vue', 'Add tag…') },
+		/** Text shown when no tags are present */
+		noTagsLabel: { type: String, default: () => t('nextcloud-vue', 'No tags') },
 	},
 
 	data() {
@@ -120,6 +128,7 @@ export default {
 		},
 
 		async fetchAvailableTags() {
+			if (!this.register || !this.schema) return
 			try {
 				const response = await fetch(`${this.apiBase}/tags`, { headers: buildHeaders() })
 				if (response.ok) {

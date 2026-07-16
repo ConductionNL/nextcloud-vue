@@ -1,0 +1,8 @@
+{
+	"key": "title",
+	"label": "myapp.column.title",
+	"sortable": true,
+	"width": "200px",
+	"align": "left",
+	"hidden": false
+}

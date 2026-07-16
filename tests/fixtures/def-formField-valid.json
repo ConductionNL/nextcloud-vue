@@ -1,0 +1,8 @@
+{
+	"key": "feature_x_enabled",
+	"label": "myapp.settings.feature_x",
+	"type": "boolean",
+	"required": false,
+	"default": false,
+	"help": "myapp.settings.feature_x.help"
+}

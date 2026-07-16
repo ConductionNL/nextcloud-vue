@@ -10,7 +10,7 @@
 		<!-- Built-in: Import -->
 		<NcActionButton
 			v-if="showImport"
-			@click="$emit('mass-import')">
+			@click="emitMassImport">
 			<template #icon>
 				<Import :size="20" />
 			</template>
@@ -20,7 +20,7 @@
 		<!-- Built-in: Export -->
 		<NcActionButton
 			v-if="showExport"
-			@click="$emit('mass-export')">
+			@click="emitMassExport">
 			<template #icon>
 				<Export :size="20" />
 			</template>
@@ -30,7 +30,7 @@
 		<!-- Built-in: Copy -->
 		<NcActionButton
 			v-if="showCopy"
-			@click="$emit('mass-copy')">
+			@click="emitMassCopy">
 			<template #icon>
 				<ContentCopy :size="20" />
 			</template>
@@ -40,14 +40,14 @@
 		<!-- Built-in: Delete -->
 		<NcActionButton
 			v-if="showDelete"
-			@click="$emit('mass-delete')">
+			@click="emitMassDelete">
 			<template #icon>
 				<TrashCanOutline :size="20" />
 			</template>
 			{{ deleteLabel }}
 		</NcActionButton>
 
-		<!-- Custom actions slot -->
+		<!-- @slot actions Additional app-specific mass-action buttons. Slot scope: `{ count, selectedIds }`. -->
 		<slot name="actions" :count="count" :selected-ids="selectedIds" />
 	</NcActions>
 </template>
@@ -68,34 +68,14 @@ import Export from 'vue-material-design-icons/Export.vue'
  * Import, Export, Copy, and Delete actions plus a slot for custom actions.
  * Place this in the header/action bar of your index page.
  *
- * ## Adding Custom Mass Actions
+ * Use the `#actions` scoped slot to add app-specific mass actions
+ * (use `NcActionButton` for slot content).
  *
- * Use the `#actions` scoped slot to add app-specific mass actions.
- * Slot content should use `NcActionButton` components:
- *
- * ```vue
- * <CnMassActionBar :selected-ids="selectedIds" :count="selectedIds.length">
- *   <template #actions="{ count, selectedIds }">
- *     <NcActionButton @click="migrateSelected(selectedIds)">
- *       <template #icon><SwapHorizontal :size="20" /></template>
- *       Migrate
- *     </NcActionButton>
- *     <NcActionButton @click="publishSelected(selectedIds)">
- *       <template #icon><Publish :size="20" /></template>
- *       Publish
- *     </NcActionButton>
- *   </template>
- * </CnMassActionBar>
- * ```
- *
- * @example Basic usage
- * <CnMassActionBar
- *   :selected-ids="selectedIds"
- *   :count="selectedIds.length"
- *   @mass-copy="openCopyDialog"
- *   @mass-delete="openDeleteDialog"
- *   @mass-import="openImportDialog"
- *   @mass-export="openExportDialog" />
+ * @event mass-import Emitted when the Import action is clicked. No payload.
+ * @event mass-export Emitted when the Export action is clicked. No payload.
+ * @event mass-copy Emitted when the Copy action is clicked. No payload.
+ * @event mass-delete Emitted when the Delete action is clicked. No payload.
+ * @slot actions Additional app-specific mass-action buttons. Slot scope: `{ count, selectedIds }`.
  */
 export default {
 	name: 'CnMassActionBar',
@@ -144,17 +124,71 @@ export default {
 		/** Label template for the menu button. Use {count} for the count. */
 		menuLabelTemplate: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Mass Actions ({count})'),
+			default: () => t('nextcloud-vue', 'Mass actions ({count})'),
 		},
+		/** Label for the built-in Import mass-action button. */
 		importLabel: { type: String, default: () => t('nextcloud-vue', 'Import') },
+		/** Label for the built-in Export mass-action button. */
 		exportLabel: { type: String, default: () => t('nextcloud-vue', 'Export') },
+		/** Label for the built-in Copy mass-action button. */
 		copyLabel: { type: String, default: () => t('nextcloud-vue', 'Copy') },
+		/** Label for the built-in Delete mass-action button. */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 	},
 
 	computed: {
 		menuLabel() {
 			return this.menuLabelTemplate.replace('{count}', String(this.count))
+		},
+	},
+
+	methods: {
+		/**
+		 * Emit the built-in Import click. No payload.
+		 *
+		 * @return {void}
+		 */
+		emitMassImport() {
+			/**
+			 * @event mass-import Emitted when the Import action is clicked. No payload.
+			 */
+			this.$emit('mass-import')
+		},
+
+		/**
+		 * Emit the built-in Export click. No payload.
+		 *
+		 * @return {void}
+		 */
+		emitMassExport() {
+			/**
+			 * @event mass-export Emitted when the Export action is clicked. No payload.
+			 */
+			this.$emit('mass-export')
+		},
+
+		/**
+		 * Emit the built-in Copy click. No payload.
+		 *
+		 * @return {void}
+		 */
+		emitMassCopy() {
+			/**
+			 * @event mass-copy Emitted when the Copy action is clicked. No payload.
+			 */
+			this.$emit('mass-copy')
+		},
+
+		/**
+		 * Emit the built-in Delete click. No payload.
+		 *
+		 * @return {void}
+		 */
+		emitMassDelete() {
+			/**
+			 * @event mass-delete Emitted when the Delete action is clicked. No payload.
+			 */
+			this.$emit('mass-delete')
 		},
 	},
 }

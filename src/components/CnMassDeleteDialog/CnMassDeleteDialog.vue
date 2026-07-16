@@ -2,10 +2,14 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="!loading"
+		:no-close="loading"
 		@closing="$emit('close')">
 		<!-- Review phase -->
-		<div v-if="result === null" class="cn-mass-delete__review">
+		<div v-if="result === null"
+			class="cn-mass-delete__review"
+			data-testid="cn-modal"
+			data-testid-modal="cn-mass-delete-dialog"
+			data-testid-phase="review">
 			<NcNoteCard type="warning">
 				{{ warningText }}
 			</NcNoteCard>
@@ -19,7 +23,7 @@
 						{{ getItemName(item) }}
 					</span>
 					<NcButton
-						type="tertiary"
+						variant="tertiary"
 						:aria-label="removeLabel"
 						@click="removeItem(item.id)">
 						<template #icon>
@@ -35,7 +39,11 @@
 		</div>
 
 		<!-- Result phase -->
-		<div v-else class="cn-mass-delete__result">
+		<div v-else
+			class="cn-mass-delete__result"
+			data-testid="cn-modal"
+			data-testid-modal="cn-mass-delete-dialog"
+			data-testid-phase="result">
 			<NcNoteCard v-if="result.success" type="success">
 				{{ successText }}
 			</NcNoteCard>
@@ -50,7 +58,7 @@
 			</NcButton>
 			<NcButton
 				v-if="result === null"
-				type="error"
+				variant="error"
 				:disabled="loading || localItems.length === 0"
 				@click="executeDelete">
 				<template #icon>
@@ -79,13 +87,14 @@ import Close from 'vue-material-design-icons/Close.vue'
  * with the item IDs. The parent component performs the actual API call and
  * calls `setResult()` via a ref.
  *
- * @example
+ * ```vue
  * <CnMassDeleteDialog
  *   v-if="showDeleteDialog"
  *   :items="selectedObjects"
  *   :name-field="'title'"
  *   @confirm="onDeleteConfirm"
  *   @close="showDeleteDialog = false" />
+ * ```
  *
  * // In methods:
  * async onDeleteConfirm(ids) {
@@ -96,6 +105,8 @@ import Close from 'vue-material-design-icons/Close.vue'
  *     this.$refs.deleteDialog.setResult({ error: e.message })
  *   }
  * }
+ *
+ * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
  */
 export default {
 	name: 'CnMassDeleteDialog',
@@ -145,9 +156,13 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Items successfully deleted.'),
 		},
+		/** Label for the cancel button (visible before the delete runs). */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the close button (visible after delete completes). */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		/** Label for the primary confirm button that triggers the delete. */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
+		/** Aria label for the per-row "remove from list" icon button. */
 		removeLabel: { type: String, default: () => t('nextcloud-vue', 'Remove from list') },
 	},
 

@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Store Plugins
 
-Plugins extend `createObjectStore` with additional state, getters, and actions. Register them by passing their factories into the `plugins` array:
+Plugins extend `createObjectStore` (and, as of the CRUD plugin support update, `createCrudStore`) with additional state, getters, and actions. Register them by passing their factories into the `plugins` array:
 
 ```js
 import {
@@ -39,6 +39,7 @@ Each plugin ships with its own dedicated reference page:
 | [relationsPlugin](./plugins/relations.md) | `contracts`, `uses`, `used` sub-resources |
 | [filesPlugin](./plugins/files.md) | File attachments (upload, publish, delete) + shared tags list |
 | [lifecyclePlugin](./plugins/lifecycle.md) | Object lifecycle actions: lock, publish, revert, merge |
+| [logsPlugin](./plugins/logs.md) | Per-item logs collection for CRUD stores (e.g. `/sources/logs?source_id=…`) |
 | [registerMappingPlugin](./plugins/register-mapping.md) | Fetch registers and schemas for admin selects |
 | [selectionPlugin](./plugins/selection.md) | Cross-type selection state (`selectedObjects`) |
 | [searchPlugin](./plugins/search.md) | Dedicated search context: single collection slot, facets, cached schema/register |

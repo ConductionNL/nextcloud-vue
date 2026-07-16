@@ -1,1 +1,4 @@
-export { default as CnSchemaFormDialog } from './CnSchemaFormDialog.vue'
+import CnSchemaFormDialog from './CnSchemaFormDialog.vue'
+
+export default CnSchemaFormDialog
+export { CnSchemaFormDialog }

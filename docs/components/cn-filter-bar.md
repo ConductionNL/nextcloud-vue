@@ -2,44 +2,48 @@
 sidebar_position: 12
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnFilterBar.md'
+
 # CnFilterBar
 
-The top action bar of a list page. Shows the current result count, view-mode toggle, primary add button, and the bulk Actions menu.
+Search and filter controls row for list views. Renders a text search input, zero or more typed filter controls (select, text, checkbox), and an optional "Clear filters" button.
 
-**Wraps**: NcButton, NcActions, NcActionButton
+**Wraps**: NcTextField, NcSelect, NcButton, NcCheckboxRadioSwitch
 
-![CnFilterBar showing Cards/Table toggle, Add button, and Actions menu](/img/screenshots/cn-filter-bar.png)
+## Try it
+
+<Playground component="CnFilterBar" />
 
 ## Anatomy
 
 ```
-+--------------------------------------------------------------------------+
-|  Showing N of N  |  [Cards] [Table]  |  [+ Add Entity]  [··· Actions ▾]  |  [⊞]
-+--------------------------------------------------------------------------+
-        ↑                   ↑                   ↑              ↑              ↑
-   result count        view toggle          primary CTA    bulk actions    sidebar toggle
++------------------------------------------------------------+
+|  [🔍 Search...]  |  [All types ▾]  |  [✓ Active only]  |  [Clear filters]
++------------------------------------------------------------+
+        ↑                   ↑                  ↑                     ↑
+   search input         select filter     checkbox filter        clear all
 ```
 
 | Region | Description |
 |--------|-------------|
-| **Result count** | "Showing N of N" — total visible vs total matched |
-| **View toggle** | Cards / Table radio buttons to switch between `CnCardGrid` and `CnDataTable` |
-| **Add button** | Primary call-to-action — opens CnFormDialog or navigates to create route |
-| **Actions menu** | Bulk-action dropdown — import, export, mass copy, mass delete |
-| **Sidebar toggle** | Icon button that opens/closes the `CnIndexSidebar` |
+| **Search input** | Free-text search; emits `search` on every keystroke. Shows a clear (×) button while text is entered |
+| **Filter controls** | One control per entry in `:filters`. Type `select` renders NcSelect, `text` renders NcTextField, `checkbox` renders NcCheckboxRadioSwitch |
+| **Clear filters** | Appears when any filter or the search term is non-empty (when `showClearAll` is `true`); emits `clear-all` |
 
 ## Usage
 
 ```vue
 <CnFilterBar
-  :result-count="objects.length"
-  :total-count="pagination.totalItems"
-  :view-mode="viewMode"
-  :add-label="t('myapp', 'Add Client')"
-  :actions="bulkActions"
-  @view-change="viewMode = $event"
-  @add="onCreate"
-  @action="onBulkAction" />
+  :search-value="searchTerm"
+  search-placeholder="Search clients..."
+  :filters="[
+    { key: 'type', label: 'All types', type: 'select', options: typeOptions, value: selectedType },
+    { key: 'active', label: 'Active only', type: 'checkbox', value: showActiveOnly },
+  ]"
+  @search="onSearch"
+  @filter-change="onFilterChange"
+  @clear-all="clearFilters" />
 ```
 
 ### Props
@@ -59,3 +63,9 @@ The top action bar of a list page. Shows the current result count, view-mode tog
 | `search` | `term` | Emitted when the search input value changes |
 | `filter-change` | `{ key, value }` | Emitted when any filter value changes; includes the filter key and new value |
 | `clear-all` | — | Emitted when the clear-all button is clicked |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnFilterBar.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnFilterBar/CnFilterBar.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

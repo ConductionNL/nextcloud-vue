@@ -1,8 +1,15 @@
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnUserActionMenu.md'
+
 # CnUserActionMenu
 
 Inline popover that appears when a user's name is clicked. Shows the user's avatar, display name, and contextual communication actions — Send message, Start chat, Send email, Plan meeting — depending on which Nextcloud apps are installed (Talk, Mail, Calendar). Capabilities are fetched once per session and cached module-level.
 
 **Wraps**: NcPopover, NcAvatar, NcActionButton
+
+## Try it
+
+<Playground component="CnUserActionMenu" />
 
 ## Usage
 
@@ -56,3 +63,9 @@ Inline popover that appears when a user's name is clicked. Shows the user's avat
 | Slot | Description |
 |------|-------------|
 | default | The trigger element (rendered as a clickable span). Defaults to `displayName` text |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnUserActionMenu.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnUserActionMenu/CnUserActionMenu.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

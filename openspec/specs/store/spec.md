@@ -4,9 +4,11 @@ status: reviewed
 
 # Store — Spec
 
+**OpenSpec changes**: add-live-updates-plugin (in-progress — adds notify_push subscription transport)
+
 ## Purpose
 
-Specifies the Pinia object store (`useObjectStore`), factory function (`createObjectStore`), sub-resource plugin factory (`createSubResourcePlugin`), built-in plugins, and all supporting utilities for OpenRegister CRUD operations. This store is the single data layer shared by all Conduction Nextcloud apps (OpenRegister, Pipelinq, Procest, OpenCatalogi, MyDash).
+Specifies the Pinia object store (`useObjectStore`), factory function (`createObjectStore`), sub-resource plugin factory (`createSubResourcePlugin`), built-in plugins, and all supporting utilities for OpenRegister CRUD operations. This store is the single data layer shared by all Conduction Nextcloud apps (OpenRegister, Pipelinq, Procest, OpenCatalogi, LaunchPad).
 
 **Files**: `src/store/useObjectStore.js`, `src/store/createSubResourcePlugin.js`, `src/store/plugins/`, `src/store/index.js`
 

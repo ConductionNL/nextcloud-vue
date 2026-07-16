@@ -37,10 +37,11 @@ import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
  * Extracted from OpenRegister's SettingsCard. Provides a titled card with
  * optional collapse/expand animation.
  *
- * @example
+ * ```vue
  * <CnSettingsCard title="Database Settings" icon="🗄️" collapsible>
  *   <p>Content here</p>
  * </CnSettingsCard>
+ * ```
  */
 export default {
 	name: 'CnSettingsCard',

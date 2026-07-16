@@ -2,11 +2,18 @@
 sidebar_position: 13
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnPagination.md'
+
 # CnPagination
 
 Full pagination bar with page navigation, ellipsis for large page counts, and a page-size selector. Automatically hidden when all items fit on one page.
 
 **Wraps**: NcButton, NcSelect
+
+## Try it
+
+<Playground component="CnPagination" />
 
 ![CnPagination showing "Page 1 of 2" with First/Previous/page numbers/Next/Last buttons and Items per page selector](/img/screenshots/cn-pagination.png)
 
@@ -49,7 +56,7 @@ Full pagination bar with page navigation, ellipsis for large page counts, and a 
 | `totalPages` | Number | `1` | Total number of pages |
 | `totalItems` | Number | `0` | Total number of items across all pages — used for the page info label |
 | `currentPageSize` | Number | `20` | Currently selected number of items per page |
-| `pageSizeOptions` | Array | `[10, 20, 50, 100, 250, 500, 1000]` | Options shown in the "Items per page" dropdown |
+| `pageSizeOptions` | Array | `[{ value: 10, label: '10' }, { value: 20, label: '20' }, …]` | Options shown in the "Items per page" dropdown. Each entry must be `{ value: number, label: string }` |
 | `minItemsToShow` | Number | `10` | Minimum item count before the pagination bar is rendered; hides it when all items fit on one page |
 | `firstLabel` | String | `'First'` | Accessible label for the First button |
 | `previousLabel` | String | `'Previous'` | Accessible label for the Previous button |
@@ -64,3 +71,9 @@ Full pagination bar with page navigation, ellipsis for large page counts, and a 
 |-------|---------|-------------|
 | `page-changed` | `pageNum` | Emitted when the user navigates to a different page; payload is the new 1-based page number |
 | `page-size-changed` | `size` | Emitted when the user selects a different page size |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnPagination.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnPagination/CnPagination.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

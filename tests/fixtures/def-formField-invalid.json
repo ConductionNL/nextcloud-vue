@@ -1,0 +1,5 @@
+{
+	"key": "feature_x_enabled",
+	"label": "myapp.settings.feature_x",
+	"type": "datetime"
+}

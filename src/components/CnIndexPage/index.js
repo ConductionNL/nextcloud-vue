@@ -1,1 +1,4 @@
-export { default as CnIndexPage } from './CnIndexPage.vue'
+import CnIndexPage from './CnIndexPage.vue'
+
+export default CnIndexPage
+export { CnIndexPage }

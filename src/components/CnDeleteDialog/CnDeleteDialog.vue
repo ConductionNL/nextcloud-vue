@@ -2,10 +2,14 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="small"
-		:can-close="!loading"
+		:no-close="loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
-		<div v-if="result !== null" class="cn-delete__result">
+		<div v-if="result !== null"
+			class="cn-delete__result"
+			data-testid="cn-modal"
+			data-testid-modal="cn-delete-dialog"
+			data-testid-phase="result">
 			<NcNoteCard v-if="result.success" type="success">
 				{{ successText }}
 			</NcNoteCard>
@@ -15,7 +19,11 @@
 		</div>
 
 		<!-- Confirm phase -->
-		<div v-else class="cn-delete__confirm">
+		<div v-else
+			class="cn-delete__confirm"
+			data-testid="cn-modal"
+			data-testid-modal="cn-delete-dialog"
+			data-testid-phase="confirm">
 			<NcNoteCard type="warning">
 				{{ resolvedWarningText }}
 			</NcNoteCard>
@@ -27,7 +35,7 @@
 			</NcButton>
 			<NcButton
 				v-if="result === null"
-				type="error"
+				variant="error"
 				:disabled="loading"
 				@click="executeDelete">
 				<template #icon>
@@ -52,13 +60,14 @@ import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
  * itself — it emits a `confirm` event with the item ID. The parent performs
  * the actual API call and calls `setResult()` via a ref.
  *
- * @example
+ * ```vue
  * <CnDeleteDialog
  *   v-if="showDeleteDialog"
  *   ref="deleteDialog"
  *   :item="itemToDelete"
  *   @confirm="onDeleteConfirm"
  *   @close="showDeleteDialog = false" />
+ * ```
  *
  * // In methods:
  * async onDeleteConfirm(id) {
@@ -69,6 +78,9 @@ import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
  *     this.$refs.deleteDialog.setResult({ error: e.message })
  *   }
  * }
+ *
+ * @event confirm Emitted when the user confirms deletion. Payload: the item ID.
+ * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
  */
 export default {
 	name: 'CnDeleteDialog',
@@ -112,8 +124,11 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Item successfully deleted.'),
 		},
+		/** Label for the cancel button (visible before the delete runs). */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the close button (visible after delete completes). */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		/** Label for the primary confirm button that triggers the delete. */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 	},
 
@@ -128,7 +143,7 @@ export default {
 	computed: {
 		itemName() {
 			if (this.nameFormatter) return this.nameFormatter(this.item)
-			return this.item[this.nameField] || this.item.name || this.item.title || this.item.id
+			return this.item[this.nameField] || this.item.name || this.item.naam || this.item.title || this.item.id
 		},
 		resolvedWarningText() {
 			return this.warningText.replace('{name}', this.itemName)
@@ -138,11 +153,6 @@ export default {
 	beforeDestroy() {
 		if (this.closeTimeout) clearTimeout(this.closeTimeout)
 	},
-
-	/**
-	 * @event confirm Emitted when the user confirms deletion. Payload: the item ID.
-	 * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
-	 */
 
 	methods: {
 		executeDelete() {

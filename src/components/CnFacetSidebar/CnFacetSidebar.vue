@@ -6,7 +6,7 @@
 			</h3>
 			<NcButton
 				v-if="hasActiveFilters"
-				type="tertiary"
+				variant="tertiary"
 				class="cn-facet-sidebar__clear"
 				@click="$emit('clear-all')">
 				{{ clearLabel }}
@@ -29,8 +29,8 @@
 				<!-- Checkbox filter (boolean) -->
 				<NcCheckboxRadioSwitch
 					v-if="filter.type === 'checkbox'"
-					:checked="getFilterValue(filter.key) === true"
-					@update:checked="onFilterChange(filter.key, $event)">
+					:model-value="getFilterValue(filter.key) === true"
+					@update:model-value="onFilterChange(filter.key, $event)">
 					{{ filter.label }}
 				</NcCheckboxRadioSwitch>
 
@@ -43,6 +43,7 @@
 					:placeholder="filter.label"
 					:input-label="filter.label"
 					:multiple="true"
+					:keep-open="true"
 					:clearable="true"
 					@input="onSelectChange(filter.key, $event)" />
 
@@ -59,6 +60,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcSelect, NcTextField, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { filtersFromSchema } from '../../utils/schema.js'
 
@@ -69,13 +71,14 @@ import { filtersFromSchema } from '../../utils/schema.js'
  * appropriate filter widgets. Accepts live facet data from the API for
  * dynamic option values with counts.
  *
- * @example
+ * ```vue
  * <CnFacetSidebar
  *   :schema="schema"
  *   :facet-data="facetData"
  *   :active-filters="filters"
  *   @filter-change="onFilterChange"
  *   @clear-all="clearFilters" />
+ * ```
  */
 export default {
 	name: 'CnFacetSidebar',
@@ -92,7 +95,7 @@ export default {
 		/** Schema definition — reads facetable properties */
 		schema: {
 			type: Object,
-			required: true,
+			default: null,
 		},
 		/** Live facet data from API: { fieldName: { values: [{value, count}] } } */
 		facetData: {
@@ -112,12 +115,12 @@ export default {
 		/** Sidebar title */
 		title: {
 			type: String,
-			default: 'Filters',
+			default: () => t('nextcloud-vue', 'Filters'),
 		},
 		/** Clear all button label */
 		clearLabel: {
 			type: String,
-			default: 'Clear all',
+			default: () => t('nextcloud-vue', 'Clear all'),
 		},
 		/**
 		 * Whether the current user is an admin.

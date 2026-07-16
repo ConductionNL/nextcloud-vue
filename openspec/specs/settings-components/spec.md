@@ -1,5 +1,5 @@
 ---
-status: reviewed
+status: done
 ---
 
 # Settings Components — Spec

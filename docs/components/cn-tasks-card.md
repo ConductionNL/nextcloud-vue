@@ -1,8 +1,15 @@
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnTasksCard.md'
+
 # CnTasksCard
 
 Inline tasks widget for detail pages. Fetches tasks from the OpenRegister API and displays them sorted by due date (soonest first). Shows status icons, assignee names (with `CnUserActionMenu`), and due dates. Overdue tasks are highlighted in red.
 
 **Wraps**: CnDetailCard, CnUserActionMenu
+
+## Try it
+
+<Playground component="CnTasksCard" />
 
 ## Usage
 
@@ -56,3 +63,9 @@ Pass pre-translated labels when your app handles i18n:
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `show-all` | — | Emitted when the "Show all" footer link is clicked |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnTasksCard.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnTasksCard/CnTasksCard.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

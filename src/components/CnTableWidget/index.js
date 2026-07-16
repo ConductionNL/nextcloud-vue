@@ -1,1 +1,4 @@
-export { default as CnTableWidget } from './CnTableWidget.vue'
+import CnTableWidget from './CnTableWidget.vue'
+
+export default CnTableWidget
+export { CnTableWidget }

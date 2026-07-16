@@ -1,0 +1,79 @@
+{
+	"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
+	"version": "1.1.0",
+	"menu": [
+		{ "id": "settings-menu", "label": "myapp.menu.settings", "route": "app-settings", "section": "settings" }
+	],
+	"pages": [
+		{
+			"id": "app-settings",
+			"route": "/settings",
+			"type": "settings",
+			"title": "myapp.settings.title",
+			"config": {
+				"saveEndpoint": "/index.php/apps/myapp/api/settings",
+				"sections": [
+					{
+						"title": "myapp.settings.section.version",
+						"widgets": [
+							{
+								"type": "version-info",
+								"props": {
+									"appName": "MyApp",
+									"appVersion": "0.1.0",
+									"showUpdateButton": false
+								}
+							}
+						]
+					},
+					{
+						"title": "myapp.settings.section.registers",
+						"widgets": [
+							{
+								"type": "register-mapping",
+								"props": {
+									"name": "myapp.settings.registerConfiguration",
+									"groups": [
+										{
+											"name": "MyApp",
+											"types": [
+												{ "slug": "thing", "label": "myapp.types.thing" }
+											]
+										}
+									]
+								}
+							}
+						]
+					},
+					{
+						"title": "myapp.settings.section.advanced",
+						"component": "MyAdvancedPanel",
+						"props": {
+							"foo": "bar"
+						}
+					},
+					{
+						"title": "myapp.settings.section.compound",
+						"widgets": [
+							{
+								"type": "version-info",
+								"props": { "appName": "MyApp", "appVersion": "0.1.0" }
+							},
+							{
+								"type": "MyExtraPanel",
+								"props": { "label": "Extra" }
+							}
+						]
+					},
+					{
+						"title": "myapp.settings.section.flags",
+						"fields": [
+							{ "key": "feature_x_enabled", "type": "boolean", "label": "myapp.settings.feature_x" },
+							{ "key": "max_items", "type": "number", "label": "myapp.settings.max_items", "default": 50 }
+						]
+					}
+				]
+			}
+		}
+	]
+}

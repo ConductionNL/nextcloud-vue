@@ -2,10 +2,16 @@
 sidebar_position: 25
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnConfigurationCard.md'
+
 # CnConfigurationCard
 
 Configuration card with title, actions, and status indicator. Used for feature toggles and service configurations.
 
+## Try it
+
+<Playground component="CnConfigurationCard" />
 
 ![CnConfigurationCard showing register and schema mapping configuration](/img/screenshots/cn-configuration-card.png)
 
@@ -14,24 +20,16 @@ Configuration card with title, actions, and status indicator. Used for feature t
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `title` | String | `''` | Card title |
-| `description` | String | `''` | Card description |
-| `status` | String | `null` | `'active'`, `'inactive'`, `'error'`, `'warning'` |
-| `statusLabel` | String | `''` | Override status display text |
-| `loading` | Boolean | `false` | Loading state |
-
-## Events
-
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `action` | `actionName` | Action button clicked |
 
 ## Slots
 
 | Slot | Description |
 |------|-------------|
 | `default` | Card content |
-| `#actions` | Action buttons |
+| `#icon` | Icon displayed in the card header |
+| `#actions` | Action buttons in the card header |
 | `#status` | Custom status indicator |
+| `#footer` | Footer content below the card body |
 
 ## Usage
 
@@ -47,3 +45,9 @@ Configuration card with title, actions, and status indicator. Used for feature t
   </template>
 </CnConfigurationCard>
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnConfigurationCard.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnConfigurationCard/CnConfigurationCard.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

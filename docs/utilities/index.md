@@ -34,6 +34,16 @@ Helpers that derive UI structure from an OpenRegister / JSON Schema.
 | [fieldsFromSchema](./fields-from-schema.md) | Generate form field descriptors (widget, validation, required) |
 | [formatValue](./format-value.md) | Format a raw value for display using a property descriptor |
 
+## Manifest
+
+Helpers that back the JSON-manifest renderer. Most consumers never call these directly — they are wired up automatically inside [`useAppManifest`](./composables/use-app-manifest.md) — but they are exported for advanced loaders and CLI manifest checkers.
+
+| Function | Purpose |
+|----------|---------|
+| [validateManifest](./validate-manifest.md) | Validate an app manifest against the JSON Schema (build-time and runtime) |
+| [resolveManifestSentinels](./resolve-manifest-sentinels.md) | Substitute `@resolve:<key>` strings under `pages[].config` with their `IAppConfig` values |
+| [clearResolveCache](./clear-resolve-cache.md) | Reset the per-page IAppConfig resolution cache (test-only) |
+
 ## Widget visibility
 
 Used by the dashboard composable and any custom widget loader that wants the same user/group visibility rules.

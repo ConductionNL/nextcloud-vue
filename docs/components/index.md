@@ -6,6 +6,10 @@ sidebar_position: 3
 
 All components exported by `@conduction/nextcloud-vue`, organized by category.
 
+:::tip Standalone playground
+Every component page below embeds a live demo via `<Playground />` — that's the canonical way to preview a component. If you want the full Vue Styleguidist UI on its own (no narrative, just the interactive sandbox), it's mounted by the gh-pages deploy at <a href="/styleguide/"><strong>/styleguide/</strong></a> — same component set, deep-link via <code>/styleguide/#!/CnDataTable</code>.
+:::
+
 ## Page Layout
 
 | Component | Description |
@@ -59,6 +63,16 @@ All components exported by `@conduction/nextcloud-vue`, organized by category.
 | [CnConfigurationCard](./cn-configuration-card.md) | Configuration card with title, actions, and status |
 | [CnVersionInfoCard](./cn-version-info-card.md) | App version information card for admin settings |
 | [CnRegisterMapping](./cn-register-mapping.md) | OpenRegister register/schema configuration panel |
+
+## Dashboard Widgets
+
+The dashboard widget library — the catalog shared by OpenBuild and LaunchPad.
+
+| Component | Description |
+|-----------|-------------|
+| [Dashboard Widget Catalog](./dashboard-widget-catalog.md) | **Start here** — all 25 dashboard widget types with screenshots, grouped by category |
+| [CnWidgetGrid](./cn-widget-grid.md) | The grid host and registry-resolution boundary for widget placements |
+| [CnAddWidgetModal](./cn-add-widget-modal.md) | Unified add/edit modal with the per-type widget sub-forms |
 
 ## Cards
 

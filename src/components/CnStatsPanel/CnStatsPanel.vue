@@ -143,6 +143,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon, NcListItem } from '@nextcloud/vue'
 import { CnStatsBlock } from '../CnStatsBlock/index.js'
 import { CnKpiGrid } from '../CnKpiGrid/index.js'
@@ -157,7 +158,8 @@ import { CnProgressBar } from '../CnProgressBar/index.js'
  * 'list' section (renders NcListItems). Suitable for sidebar tabs, dashboard widgets,
  * or any panel that displays statistics.
  *
- * @example Stats stack (vertical)
+ * Stats stack (vertical)
+ * ```vue
  * <CnStatsPanel :sections="[{
  *   type: 'stats',
  *   id: 'totals',
@@ -168,8 +170,10 @@ import { CnProgressBar } from '../CnProgressBar/index.js'
  *     { title: 'Files', count: 128, countLabel: 'files', icon: FileIcon },
  *   ],
  * }]" />
+ * ```
  *
- * @example Stats grid (2-column)
+ * Stats grid (2-column)
+ * ```vue
  * <CnStatsPanel :sections="[{
  *   type: 'stats',
  *   id: 'operations',
@@ -181,8 +185,10 @@ import { CnProgressBar } from '../CnProgressBar/index.js'
  *     { title: 'Delete', count: 3, countLabel: 'ops', variant: 'error', icon: DeleteIcon },
  *   ],
  * }]" />
+ * ```
  *
- * @example List section
+ * List section
+ * ```vue
  * <CnStatsPanel :sections="[{
  *   type: 'list',
  *   id: 'topObjects',
@@ -191,13 +197,16 @@ import { CnProgressBar } from '../CnProgressBar/index.js'
  *     { key: '1', name: 'Object A', subname: '42 entries', icon: CogIcon },
  *   ],
  * }]" />
+ * ```
  *
- * @example With header slot for filters
+ * With header slot for filters
+ * ```vue
  * <CnStatsPanel :sections="sections">
  *   <template #header>
  *     <NcSelect v-bind="registerOptions" />
  *   </template>
  * </CnStatsPanel>
+ * ```
  */
 export default {
 	name: 'CnStatsPanel',
@@ -238,13 +247,13 @@ export default {
 		/** Label shown during loading state */
 		loadingLabel: {
 			type: String,
-			default: 'Loading...',
+			default: () => t('nextcloud-vue', 'Loading...'),
 		},
 
 		/** Default text shown when a section has no items. Can be overridden per section via `section.emptyLabel`. */
 		emptyLabel: {
 			type: String,
-			default: 'No data available',
+			default: () => t('nextcloud-vue', 'No data available'),
 		},
 	},
 

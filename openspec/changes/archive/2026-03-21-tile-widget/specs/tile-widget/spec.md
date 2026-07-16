@@ -6,7 +6,7 @@ status: implemented
 
 ## Purpose
 
-`CnTileWidget` renders a quick-access tile with an icon and a link. It supports four icon types (SVG, CSS class, URL, emoji) and two link types (Nextcloud app route, external URL). Used internally by `CnDashboardPage` for tile-type widgets and by consumer apps (e.g. MyDash) for dashboard shortcuts.
+`CnTileWidget` renders a quick-access tile with an icon and a link. It supports four icon types (SVG, CSS class, URL, emoji) and two link types (Nextcloud app route, external URL). Used internally by `CnDashboardPage` for tile-type widgets and by consumer apps (e.g. LaunchPad) for dashboard shortcuts.
 
 ---
 
@@ -215,14 +215,14 @@ CnTileWidget SHALL be navigable via keyboard since the interactive element is a 
 
 ### Requirement: edit mode overlay (consumer extension point)
 
-CnTileWidget in the shared library does not include edit mode, but consumer apps (e.g. MyDash) extend the tile with an edit button overlay. The library component SHALL remain simple and not include edit controls.
+CnTileWidget in the shared library does not include edit mode, but consumer apps (e.g. LaunchPad) extend the tile with an edit button overlay. The library component SHALL remain simple and not include edit controls.
 
 #### Scenario: library component has no edit mode
 
 - GIVEN the `CnTileWidget` component from `@conduction/nextcloud-vue`
 - WHEN it is rendered
 - THEN no edit button or edit overlay is present
-- AND consumer apps that need edit mode (like MyDash's `TileWidget.vue`) implement their own wrapper with `editMode` prop and edit button
+- AND consumer apps that need edit mode (like LaunchPad's `TileWidget.vue`) implement their own wrapper with `editMode` prop and edit button
 
 ---
 
@@ -277,7 +277,7 @@ CnTileWidget SHALL accept a single `tile` object prop with a well-defined shape.
 
 **Not yet implemented:**
 - All spec requirements are implemented. No gaps.
-- Consumer apps (MyDash) extend with edit mode separately -- this is by design, not a gap.
+- Consumer apps (LaunchPad) extend with edit mode separately -- this is by design, not a gap.
 
 ## Standards & References
 
@@ -285,7 +285,7 @@ CnTileWidget SHALL accept a single `tile` object prop with a well-defined shape.
 - Nextcloud router: Uses `generateUrl()` from `@nextcloud/router` for app URL generation
 - NL Design System: Tile uses scoped CSS custom properties (`--cn-tile-bg`, `--cn-tile-text`) that are set via inline styles, making them immune to NL Design global overrides. Default colors are hardcoded hex values as fallbacks.
 - Vue 2 Options API pattern
-- Consumer usage: MyDash wraps tile data from placement objects (`tileTitle`, `tileIcon`, etc.) and adds edit mode overlay
+- Consumer usage: LaunchPad wraps tile data from placement objects (`tileTitle`, `tileIcon`, etc.) and adds edit mode overlay
 
 ## Specificity Assessment
 
@@ -293,5 +293,5 @@ CnTileWidget SHALL accept a single `tile` object prop with a well-defined shape.
 - **Covered aspects:** Icon rendering (4 types), link behavior (2 types + fallback), color styling, title display, hover feedback, null guard, grid sizing, NL Design compatibility, accessibility, edit mode boundary, prop interface.
 - **Open questions:**
   - Should the default colors (`#0082c9`, `#ffffff`) use Nextcloud CSS variables (e.g. `var(--color-primary-element)`) instead of hardcoded hex for better theme integration?
-  - Should the library component gain an optional `editMode` prop to consolidate the MyDash extension pattern?
+  - Should the library component gain an optional `editMode` prop to consolidate the LaunchPad extension pattern?
   - The SVG `viewBox="0 0 24 24"` assumes MDI icon paths -- should other viewBox sizes be supported?
