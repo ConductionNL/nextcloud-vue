@@ -5,10 +5,11 @@
 
 <template>
 	<div class="cn-image-widget-form">
-		<!-- Upload an image file (primary path); the URL field below stays for
-		     linking an external image. Upload reads the file and either hands it
-		     to the injected uploadFn (→ a hosted URL) or, with no transport,
-		     embeds it as a data URL so it works out of the box. -->
+		<!-- Pick an image file. Selection does NOT upload — the file is held
+		     locally (with an object-URL preview) and only uploaded when the
+		     host modal calls commit() on submit, so repeated picks or a
+		     cancelled dialog never write orphaned files. The URL field below
+		     stays for linking an external image instead. -->
 		<label class="cn-image-widget-form__upload-label">
 			<input
 				ref="fileInput"
@@ -18,9 +19,12 @@
 				:disabled="uploading"
 				@change="handleFileSelect">
 			<span class="cn-image-widget-form__upload-button">
-				{{ uploading ? t('nextcloud-vue', 'Uploading…') : t('nextcloud-vue', 'Upload image') }}
+				{{ pendingFile ? t('nextcloud-vue', 'Change image') : t('nextcloud-vue', 'Choose image') }}
 			</span>
 		</label>
+		<p v-if="pendingFile" class="cn-image-widget-form__pending">
+			{{ t('nextcloud-vue', 'Ready to upload on save: {name}', { name: pendingFile.name }) }}
+		</p>
 		<p v-if="uploadError" class="cn-image-widget-form__error" role="alert">
 			{{ uploadError }}
 		</p>
@@ -31,10 +35,10 @@
 			:placeholder="t('nextcloud-vue', 'Or paste an image URL')"
 			@update:value="updateField('url', $event)" />
 
-		<div v-if="hasUrl" class="cn-image-widget-form__preview-wrap">
+		<div v-if="previewSrc" class="cn-image-widget-form__preview-wrap">
 			<img
 				class="cn-image-widget-form__preview"
-				:src="url"
+				:src="previewSrc"
 				:alt="alt || t('nextcloud-vue', 'Image')"
 				@error="onPreviewError">
 			<div v-if="previewError" class="cn-image-widget-form__preview-error">
@@ -67,6 +71,7 @@
 <script>
 import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
 
 const ALLOWED_FITS = Object.freeze(['cover', 'contain', 'fill', 'none'])
 
@@ -76,6 +81,11 @@ const DEFAULT_CONTENT = Object.freeze({
 	link: '',
 	fit: 'cover',
 })
+
+// Cap for the no-transport fallback only: without an uploadFn the file must
+// be embedded as a data URL, and a large one can freeze the browser tab, so
+// we refuse anything bigger and tell the consumer to wire an upload transport.
+const FALLBACK_MAX_BYTES = (1024 * 1024)
 
 /**
  * CnImageWidgetForm — the `CnAddWidgetModal` sub-form for creating or editing
@@ -118,10 +128,12 @@ export default {
 			default: () => ({ ...DEFAULT_CONTENT }),
 		},
 		/**
-		 * Optional upload transport: `async (dataUrl) => ({ url })`. When given,
-		 * an uploaded file is sent through it and the returned URL is stored.
-		 * When omitted, the file is embedded as a data URL so upload still works
-		 * without a transport dependency.
+		 * Optional upload transport: `async (file: File) => ({ url })`. Called by
+		 * `commit()` on submit (never on file selection) with the raw picked
+		 * `File`; the returned hosted URL is stored. When omitted, the file is
+		 * embedded as a data URL on commit instead — but only up to 1 MB, so the
+		 * browser tab can't be frozen by a huge inline blob. Wire a transport for
+		 * anything larger.
 		 *
 		 * @type {Function|null}
 		 */
@@ -152,13 +164,22 @@ export default {
 			previewError: false,
 			uploading: false,
 			uploadError: '',
+			// The picked-but-not-yet-uploaded file and its object-URL preview.
+			// Upload is deferred to commit() so nothing is written on selection.
+			pendingFile: null,
+			pendingPreviewUrl: '',
 		}
 	},
 
 	computed: {
-		/** Whether a non-empty URL is set (drives the preview). */
+		/** Whether a non-empty URL is set. */
 		hasUrl() {
 			return typeof this.url === 'string' && this.url.trim() !== ''
+		},
+
+		/** The image shown in the preview: the pending file's object URL, else the resolved URL field. */
+		previewSrc() {
+			return this.pendingPreviewUrl || (this.hasUrl ? resolveImageUrl(this.url) : '')
 		},
 
 		/** Object-fit select options. */
@@ -190,6 +211,10 @@ export default {
 		},
 	},
 
+	beforeDestroy() {
+		this.revokePreview()
+	},
+
 	methods: {
 		t,
 
@@ -201,6 +226,12 @@ export default {
 		 * @return {void}
 		 */
 		updateField(field, value) {
+			// Typing an external URL discards any pending file so the two
+			// image sources can't both be "set" at once.
+			if (field === 'url' && value && this.pendingFile !== null) {
+				this.revokePreview()
+				this.pendingFile = null
+			}
 			this[field] = value
 			this.$emit('update:content', this.assembledContent)
 		},
@@ -215,8 +246,9 @@ export default {
 		},
 
 		/**
-		 * Read the selected image file and set the widget URL — via the injected
-		 * uploadFn when present (→ hosted URL), otherwise embedded as a data URL.
+		 * Hold the picked file for a deferred upload and show an instant
+		 * object-URL preview. Does NOT upload — that happens in commit() when
+		 * the host modal submits, so re-picking or cancelling writes nothing.
 		 *
 		 * @param {Event} event the file-input change event.
 		 * @return {void}
@@ -227,34 +259,88 @@ export default {
 				return
 			}
 			this.uploadError = ''
+			this.previewError = false
+			this.revokePreview()
+			this.pendingFile = file
+			this.pendingPreviewUrl = URL.createObjectURL(file)
+			this.resetFileInput()
+		},
+
+		/**
+		 * Upload the pending file (if any) and store the resulting URL. Called
+		 * by the host modal on submit. A no-op when no file is pending, so
+		 * editing a widget without changing the image keeps the existing URL.
+		 *
+		 * @return {Promise<void>} resolves once the URL is set.
+		 * @throws {Error} when the upload fails, so the modal can block submit.
+		 */
+		async commit() {
+			if (this.pendingFile === null) {
+				return
+			}
+			this.uploadError = ''
 			this.uploading = true
-			const reader = new FileReader()
-			reader.onload = async (e) => {
-				try {
-					const dataUrl = e.target.result
-					if (typeof dataUrl !== 'string') {
-						throw new Error('FileReader did not return a data URL')
+			try {
+				let resolvedUrl
+				if (typeof this.uploadFn === 'function') {
+					const response = await this.uploadFn(this.pendingFile)
+					if (!response || typeof response.url !== 'string' || response.url === '') {
+						throw new Error('Upload transport returned no URL')
 					}
-					if (typeof this.uploadFn === 'function') {
-						const response = await this.uploadFn(dataUrl)
-						this.updateField('url', response.url)
-					} else {
-						this.updateField('url', dataUrl)
-					}
-				} catch (err) {
-					this.uploadError = (err && err.message) || t('nextcloud-vue', 'Failed to upload image')
-					console.error('Image upload failed:', err)
-				} finally {
-					this.uploading = false
-					this.resetFileInput()
+					resolvedUrl = response.url
+				} else {
+					resolvedUrl = await this.embedAsDataUrl(this.pendingFile)
 				}
-			}
-			reader.onerror = () => {
-				this.uploadError = t('nextcloud-vue', 'Failed to upload image')
+				this.revokePreview()
+				this.pendingFile = null
+				this.updateField('url', resolvedUrl)
+			} catch (err) {
+				this.uploadError = (err && err.message) || t('nextcloud-vue', 'Failed to upload image')
+				console.error('Image upload failed:', err)
+				throw err
+			} finally {
 				this.uploading = false
-				this.resetFileInput()
 			}
-			reader.readAsDataURL(file)
+		},
+
+		/**
+		 * No-transport fallback: embed the file as a data URL, but only up to
+		 * FALLBACK_MAX_BYTES so a huge inline blob can't freeze the tab.
+		 *
+		 * @param {File} file the pending file.
+		 * @return {Promise<string>} resolves to a `data:<mime>;base64,…` URL.
+		 */
+		embedAsDataUrl(file) {
+			if (file.size > FALLBACK_MAX_BYTES) {
+				return Promise.reject(new Error(
+					t('nextcloud-vue', 'Image is too large to embed. Configure an upload transport for larger files.'),
+				))
+			}
+			return new Promise((resolve, reject) => {
+				const reader = new FileReader()
+				reader.onload = (e) => {
+					const dataUrl = e.target.result
+					if (typeof dataUrl === 'string') {
+						resolve(dataUrl)
+					} else {
+						reject(new Error('FileReader did not return a data URL'))
+					}
+				}
+				reader.onerror = () => reject(reader.error || new Error('FileReader failed'))
+				reader.readAsDataURL(file)
+			})
+		},
+
+		/**
+		 * Revoke the current object-URL preview (if any) to free memory.
+		 *
+		 * @return {void}
+		 */
+		revokePreview() {
+			if (this.pendingPreviewUrl) {
+				URL.revokeObjectURL(this.pendingPreviewUrl)
+				this.pendingPreviewUrl = ''
+			}
 		},
 
 		/**
@@ -274,7 +360,8 @@ export default {
 		 * @return {string[]} the validation errors.
 		 */
 		validate() {
-			if (typeof this.url !== 'string' || this.url.trim() === '') {
+			const hasUrl = typeof this.url === 'string' && this.url.trim() !== ''
+			if (!hasUrl && this.pendingFile === null) {
 				return [t('nextcloud-vue', 'Image URL is required')]
 			}
 			return []
@@ -310,6 +397,12 @@ export default {
 
 .cn-image-widget-form__upload-label:hover .cn-image-widget-form__upload-button {
 	background-color: var(--color-background-dark);
+}
+
+.cn-image-widget-form__pending {
+	margin: 0;
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-image-widget-form__error {

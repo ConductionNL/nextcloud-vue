@@ -41,6 +41,7 @@
 				:key="state.type"
 				:editing-widget="state.editingWidget"
 				:value="state.content"
+				:upload-fn="fileUploadFn"
 				:calendars-fetcher="calendarsFetcher"
 				@update:content="onContentUpdate" />
 		</div>
@@ -93,12 +94,12 @@
 		</div>
 
 		<template #actions>
-			<NcButton type="tertiary" @click="onCancel">
+			<NcButton type="tertiary" :disabled="submitting" @click="onCancel">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
 				type="primary"
-				:disabled="!isValid"
+				:disabled="!isValid || submitting"
 				:title="firstError || ''"
 				data-testid="add-widget-save"
 				@click="onSubmit">
@@ -185,6 +186,20 @@ export default {
 			default: null,
 		},
 		/**
+		 * Optional raw-file upload transport forwarded to the active sub-form as
+		 * its `upload-fn`: `async (file: File) => ({ url })`. Distinct from
+		 * `uploadFn` (which the icon picker calls with a data URL) — sub-forms
+		 * such as the image widget defer the upload to submit and hand over the
+		 * raw `File`. When null, sub-forms fall back to their own no-transport
+		 * behaviour.
+		 *
+		 * @type {Function|null}
+		 */
+		fileUploadFn: {
+			type: Function,
+			default: null,
+		},
+		/**
 		 * Optional async fetcher returning the user's calendars
 		 * (`[{key, name, color}]`) for the calendar widget's picker. Provided
 		 * by the consuming app (which owns the calendar backend); when null the
@@ -254,6 +269,9 @@ export default {
 			// Widget chrome (title / background / icon) edited in the same modal
 			// as the per-type content and emitted back under `payload.chrome`.
 			chrome: { showTitle: true, customTitle: '', backgroundColor: '', customIcon: '' },
+			// True while the sub-form's commit() (e.g. an image upload) runs on
+			// submit, so both footer buttons disable and the label shows progress.
+			submitting: false,
 		}
 	},
 
@@ -325,6 +343,9 @@ export default {
 		 * @return {string} the localised submit label.
 		 */
 		submitLabel() {
+			if (this.submitting) {
+				return t('nextcloud-vue', 'Uploading…')
+			}
 			return this.editingWidget ? t('nextcloud-vue', 'Save') : t('nextcloud-vue', 'Add')
 		},
 
@@ -549,14 +570,30 @@ export default {
 		},
 
 		/**
-		 * Build the `{type, content}` payload via the composable's
-		 * `assembleContent()` and emit it. Performs no API and no grid calls.
+		 * Commit the active sub-form (e.g. upload a pending image), then build
+		 * the `{type, content}` payload via the composable's `assembleContent()`
+		 * and emit it. The commit is the only step that can hit the network; a
+		 * commit failure keeps the modal open and blocks the `submit` emit.
 		 *
-		 * @return {void}
+		 * @return {Promise<void>} resolves once submit is emitted or aborted.
 		 */
-		onSubmit() {
-			if (!this.isValid) {
+		async onSubmit() {
+			if (!this.isValid || this.submitting) {
 				return
+			}
+			const subForm = this.$refs.activeSubForm
+			if (subForm && typeof subForm.commit === 'function') {
+				this.submitting = true
+				try {
+					await subForm.commit()
+				} catch (error) {
+					// The sub-form surfaces its own inline error; keep the modal
+					// open so the author can retry or pick another file.
+					console.error('[CnAddWidgetModal] Widget commit failed:', error)
+					return
+				} finally {
+					this.submitting = false
+				}
 			}
 			const payload = this.form.assembleContent(this.$refs.activeSubForm)
 			// Carry the chrome (title / background / icon) alongside the content

@@ -14,7 +14,7 @@ Part of the dashboard widget library (v2). Registered with the dashboard widget 
 | --------------- | ----------------------------- | -------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
 | `editingWidget` | `{content: object}&#124;null` |          | `null`                         | The placement being edited, or `null` in create mode. Pre-fills every control from `editingWidget.content`. |
 | `value`         | `object`                      |          | `\{     ...DEFAULT_CONTENT \}` | Initial content values — used when not editing and the parent supplies registry defaults.                   |
-| `uploadFn`      | `Function`                    |          | `null`                         | Optional async uploader `(file) => url`; when set, an upload control supplements the image-URL field.       |
+| `uploadFn`      | `Function`                    |          | `null`                         | Optional upload transport `async (file: File) => ({ url })`. Called by `commit()` on submit (never on selection) with the raw picked file; the returned hosted URL is stored. When omitted, the file is embedded as a data URL on commit instead — capped at 1 MB so a huge inline blob can't freeze the tab. |
 
 ### Events
 

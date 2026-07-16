@@ -20,20 +20,29 @@ import { mount } from '@vue/test-utils'
  * @param {object} opts options.
  * @param {string[]} [opts.errors] the array `validate()` returns.
  * @param {object} [opts.assembled] the `assembledContent` getter value.
+ * @param {Function} [opts.commit] an async `commit()` implementation (omitted → no commit method).
  * @return {object} a Vue component definition.
  */
-function fakeForm({ errors = [], assembled = null } = {}) {
+function fakeForm({ errors = [], assembled = null, commit = undefined } = {}) {
+	const methods = {
+		validate() {
+			return errors
+		},
+	}
+	if (commit !== undefined) {
+		methods.commit = commit
+	}
 	return {
 		name: 'FakeForm',
-		props: { editingWidget: { default: null }, value: { default: () => ({}) } },
+		props: {
+			editingWidget: { default: null },
+			value: { default: () => ({}) },
+			uploadFn: { default: null },
+		},
 		render(h) {
 			return h('div', { class: 'fake-form' })
 		},
-		methods: {
-			validate() {
-				return errors
-			},
-		},
+		methods,
 		computed: {
 			assembledContent() {
 				return assembled === null ? undefined : assembled
@@ -268,5 +277,44 @@ describe('CnAddWidgetModal', () => {
 		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true } })
 		wrapper.vm.onSubmit()
 		expect(wrapper.emitted('submit')).toBeFalsy()
+	})
+
+	it('awaits the sub-form commit() before emitting submit', async () => {
+		const order = []
+		const commit = jest.fn(async () => { order.push('commit') })
+		const { CnAddWidgetModal } = loadModal({
+			label: { form: fakeForm({ errors: [], assembled: { text: 'hi' }, commit }) },
+		})
+		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.onSubmit()
+		expect(commit).toHaveBeenCalledTimes(1)
+		order.push('emit')
+		expect(order).toEqual(['commit', 'emit'])
+		expect(wrapper.emitted('submit')).toBeTruthy()
+		expect(wrapper.vm.submitting).toBe(false)
+	})
+
+	it('a commit() rejection blocks the submit emit and keeps the modal open', async () => {
+		const commit = jest.fn().mockRejectedValue(new Error('upload failed'))
+		const { CnAddWidgetModal } = loadModal({
+			label: { form: fakeForm({ errors: [], assembled: { text: 'hi' }, commit }) },
+		})
+		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.onSubmit()
+		expect(commit).toHaveBeenCalledTimes(1)
+		expect(wrapper.emitted('submit')).toBeFalsy()
+		expect(wrapper.vm.submitting).toBe(false)
+	})
+
+	it('forwards fileUploadFn to the active sub-form as upload-fn', async () => {
+		const fileUploadFn = jest.fn()
+		const { CnAddWidgetModal } = loadModal({
+			label: { form: fakeForm({ errors: [], assembled: { text: 'hi' } }) },
+		})
+		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true, fileUploadFn } })
+		await wrapper.vm.$nextTick()
+		expect(wrapper.findComponent({ name: 'FakeForm' }).props('uploadFn')).toBe(fileUploadFn)
 	})
 })
