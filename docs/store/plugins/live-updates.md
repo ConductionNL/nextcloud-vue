@@ -33,8 +33,9 @@ Manifest-driven pages resolve the default store internally and wire their own su
 
 - **`type:"index"` pages** (CnIndexPage self-fetch mode) subscribe to the collection scope `or-collection-{register}-{schema}` and refetch the list — with its current params — when an event arrives.
 - **`type:"detail"` pages** (CnDetailPage schema-driven mode) subscribe to `or-object-{id}` and refetch the object; the page re-renders from the store cache reactively.
+- **v2 widget-grid `type:"detail"` pages** (body/sidebar/tab widgets rendered by CnWidgetGrid instead of a typed page component) are live too: CnPageRenderer subscribes to `or-object-{id}` for the loaded object, and the `cnDetailObjectContext` holder it provides reads `objectData` / `schema` **through the store cache** — so every widget fed from the holder (`data`, `metadata`, stat/chart/delta token resolution, …) re-renders when the event-driven refetch lands, rather than holding a mount-time snapshot.
 
-Both respect a `config.subscribe: false` opt-out on the page entry, release their subscription on unmount, and stay fully inert while no such page is mounted. Apps that pass their own `objectStore` prop keep their explicit store — the fallback only engages when none is provided.
+All of these respect a `config.subscribe: false` opt-out on the page entry, release their subscription on unmount (and, for the renderer path, when navigating to a non-detail page), and stay fully inert while no such page is mounted. Apps that pass their own `objectStore` prop keep their explicit store — the fallback only engages when none is provided.
 
 ## Usage (explicit)
 
@@ -67,7 +68,7 @@ store.unsubscribe(objectHandle)
 |---|---|---|
 | `pollIntervalCollection` | `30000` | Polling interval (ms) used for collection subscriptions when the push transport is unavailable. |
 | `pollIntervalObject` | `60000` | Polling interval (ms) used for single-object subscriptions when the push transport is unavailable. Higher than the collection default because object updates tend to be less frequent and read-amplified by upstream caches. |
-| `refetchDebounce` | `750` | Event-burst coalescing window (ms). Live events are hints; the first event in a burst refetches immediately and further events inside the window collapse into one trailing refetch. `0` disables coalescing (every event refetches). Override per subscription with `subscribe(type, id, { debounce })`. |
+| `refetchDebounce` | `750` | Event-burst coalescing window (ms). Live events are hints; the first event in a burst refetches immediately and further events inside the window collapse into one trailing refetch. `0` disables coalescing (every event refetches). Override per subscription with `subscribe(type, id, { debounce })`. Internally the value is handed to the hint coalescer as its `waitMs` window. |
 
 ## Contributed state
 

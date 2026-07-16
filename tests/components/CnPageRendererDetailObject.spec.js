@@ -18,12 +18,23 @@ const mockObject = { id: 'pub-1', title: 'Hello', '@self': { id: 'pub-1' } }
 const mockSchema = { properties: { title: { type: 'string' } } }
 
 // `mock`-prefixed so jest.mock()'s hoisted factory may reference it.
+// Cache-backed like the real store: fetches populate `objects` /
+// `schemas`, the getters read them — the holder published by
+// CnPageRenderer is a READ-THROUGH view over this cache (#222).
 const mockStore = {
+	objects: {},
+	schemas: {},
 	registerObjectType: jest.fn(),
-	fetchObject: jest.fn(() => Promise.resolve(mockObject)),
-	fetchSchema: jest.fn(() => Promise.resolve(mockSchema)),
-	getObject: jest.fn(() => null),
-	getSchema: jest.fn(() => null),
+	fetchObject: jest.fn((type, id) => {
+		mockStore.objects = { ...mockStore.objects, [type]: { ...(mockStore.objects[type] || {}), [id]: mockObject } }
+		return Promise.resolve(mockObject)
+	}),
+	fetchSchema: jest.fn((type) => {
+		mockStore.schemas = { ...mockStore.schemas, [type]: mockSchema }
+		return Promise.resolve(mockSchema)
+	}),
+	getObject: jest.fn((type, id) => mockStore.objects[type]?.[id] || null),
+	getSchema: jest.fn((type) => mockStore.schemas[type] || null),
 }
 
 jest.mock('../../src/store/index.js', () => ({
@@ -72,6 +83,8 @@ function mountRenderer(pageId, params) {
 
 describe('CnPageRenderer — detail-page object loading', () => {
 	beforeEach(() => {
+		mockStore.objects = {}
+		mockStore.schemas = {}
 		mockStore.registerObjectType.mockClear()
 		mockStore.fetchObject.mockClear()
 		mockStore.fetchSchema.mockClear()
