@@ -244,9 +244,13 @@ like `"@route.id"`, falling back to the `:objectId` / `:id` route param),
 registers the `${register}-${schema}` object type, fetches the object +
 schema via `useObjectStore`, and exposes them on the `cnDetailObjectContext`
 inject (a reactive `{ value }` holder). [CnWidgetGrid](./cn-widget-grid.md)
-merges that context under each widget's props. The load is defensive (a
-Pinia-less harness or a failed fetch leaves the context null and the page
-still mounts) and re-runs when the register/schema/objectId triple changes.
+merges that context under each widget's props. The holder's `objectData` /
+`schema` are read-through views over the store cache (not copies), so
+widgets re-render when a live-update refetch replaces the cached object —
+see [Live updates on manifest pages](#live-updates-on-manifest-pages).
+The load is defensive (a Pinia-less harness or a failed fetch leaves the
+context null and the page still mounts) and re-runs when the
+register/schema/objectId triple changes.
 
 ```json
 {
@@ -273,8 +277,17 @@ app-side wiring** — the renderer itself needs no configuration:
 - A `type:"detail"` page dispatches to [CnDetailPage](./cn-detail-page.md)
   in schema-driven mode, which subscribes to `or-object-{id}` and
   re-renders from the refreshed store cache.
+- A **v2 widget-grid `type:"detail"` page** (widgets rendered by
+  [CnWidgetGrid](./cn-widget-grid.md) instead of the typed page
+  component) is live too: the renderer itself subscribes to
+  `or-object-{id}` for the loaded object, and the
+  `cnDetailObjectContext` holder reads `objectData` / `schema`
+  **through the store cache**, so holder-fed widgets re-render when
+  the event-driven refetch lands instead of keeping a mount-time
+  snapshot. The subscription re-scopes when the route/object changes
+  and is released when the renderer leaves the detail page.
 
-Both resolve the library's default `useObjectStore()` internally (which
+All of these resolve the library's default `useObjectStore()` internally (which
 ships with [`liveUpdatesPlugin`](../store/plugins/live-updates.md)
 installed), fall back to visibility-gated polling when notify_push is
 absent, release their subscription on unmount, and honour a

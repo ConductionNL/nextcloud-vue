@@ -65,7 +65,14 @@ export function useObjectSubscription(objectStore, type, id, options = {}) {
 		// action — stay inert instead of warning on every attach.
 		if (typeof objectStore?.subscribe !== 'function') return
 		const t = readType()
-		if (!t || !readEnabled()) return
+		if (!t || !readEnabled()) {
+			// The reactive scope became invalid — the type cleared or the
+			// `enabled` gate closed (e.g. a persistent CnPageRenderer
+			// navigating off a detail page while staying mounted). Release
+			// any held subscription instead of leaking it until unmount.
+			if (currentHandle) await detach()
+			return
+		}
 		// Idempotent: if we already hold a handle, release it before
 		// taking a fresh one. Plugin dedups by event key but the
 		// composable's own handle bookkeeping needs the swap.
