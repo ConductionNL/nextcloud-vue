@@ -51,6 +51,7 @@ export { useObjectLock, LockConflictError, PermissionError } from './useObjectLo
 export { cnRenderFormField } from './cnFormFieldRenderer.js'
 export { cnRenderMarkdown } from './cnRenderMarkdown.js'
 export { useIntegrationRegistry } from './useIntegrationRegistry.js'
+export { useCommandPalette, commandPaletteOpenState } from './useCommandPalette.js'
 export { useRuntimeManifest } from './useRuntimeManifest.js'
 export { useSupportDialog } from './useSupportDialog.js'
 export { useClickDragGuard, CLICK_DRAG_THRESHOLD } from './useClickDragGuard.js'

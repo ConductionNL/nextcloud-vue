@@ -756,43 +756,59 @@ describe('CnAppRoot', () => {
 		})
 	})
 
-	describe('AI companion opt-in (aiCompanion prop)', () => {
+	describe('Command palette opt-in (commandPalette prop)', () => {
 		/**
-		 * Mount into the shell phase with CnAiCompanion stubbed (the real one
-		 * fires a backend health probe). Omit aiCompanion to test the default.
+		 * Mount into the shell phase with CnCommandPalette stubbed.
+		 * Omit `commandPalette` to test the default (off).
 		 *
-		 * @param {boolean|undefined} aiCompanion The opt-in prop value.
+		 * @param {boolean|object|undefined} commandPalette The opt-in prop value.
 		 * @return {object} The mounted wrapper.
 		 */
-		function mountWithCompanion(aiCompanion) {
+		function mountWithPalette(commandPalette) {
 			const propsData = { manifest: baseManifest, appId: 'myapp', translate: (k) => k, requiresApps: [] }
-			if (aiCompanion !== undefined) {
-				propsData.aiCompanion = aiCompanion
+			if (commandPalette !== undefined) {
+				propsData.commandPalette = commandPalette
 			}
 			return mount(CnAppRoot, {
 				propsData,
 				mocks: { $route: { name: 'home' } },
 				stubs: {
 					'router-view': { template: '<div class="router-view-stub" />' },
-					CnAiCompanion: { template: '<div class="cn-ai-companion-stub" />' },
+					CnCommandPalette: {
+						name: 'CnCommandPalette',
+						props: ['manifest', 'router', 'appId', 'objectSearch', 'shortcut'],
+						template: '<div class="cn-command-palette-stub" />',
+					},
 				},
 			})
 		}
 
-		it('does NOT mount the AI companion by default (opt-in off)', () => {
-			const wrapper = mountWithCompanion(undefined)
+		it('does NOT mount the command palette by default (opt-in off)', () => {
+			const wrapper = mountWithPalette(undefined)
 			expect(wrapper.vm.phase).toBe('shell')
-			expect(wrapper.find('.cn-ai-companion-stub').exists()).toBe(false)
+			expect(wrapper.find('.cn-command-palette-stub').exists()).toBe(false)
 		})
 
-		it('does NOT mount the AI companion when aiCompanion is false', () => {
-			const wrapper = mountWithCompanion(false)
-			expect(wrapper.find('.cn-ai-companion-stub').exists()).toBe(false)
+		it('does NOT mount the command palette when commandPalette is false', () => {
+			const wrapper = mountWithPalette(false)
+			expect(wrapper.find('.cn-command-palette-stub').exists()).toBe(false)
 		})
 
-		it('mounts the AI companion when aiCompanion is true', () => {
-			const wrapper = mountWithCompanion(true)
-			expect(wrapper.find('.cn-ai-companion-stub').exists()).toBe(true)
+		it('mounts the command palette when commandPalette is true, wired to manifest + appId', () => {
+			const wrapper = mountWithPalette(true)
+			const palette = wrapper.find('.cn-command-palette-stub')
+			expect(palette.exists()).toBe(true)
+			expect(wrapper.findComponent({ name: 'CnCommandPalette' }).props('manifest')).toBe(wrapper.vm.manifest)
+			expect(wrapper.findComponent({ name: 'CnCommandPalette' }).props('appId')).toBe('myapp')
+		})
+
+		it('mounts the command palette with prop overrides when commandPalette is an object', () => {
+			const objectSearch = () => Promise.resolve([])
+			const wrapper = mountWithPalette({ objectSearch, shortcut: 'p' })
+			const palette = wrapper.findComponent({ name: 'CnCommandPalette' })
+			expect(palette.exists()).toBe(true)
+			expect(palette.props('objectSearch')).toBe(objectSearch)
+			expect(palette.props('shortcut')).toBe('p')
 		})
 	})
 })
