@@ -559,6 +559,8 @@ export default {
 		 * destroyed instance).
 		 *
 		 * @return {void}
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		onCancel() {
 			if (this.submitting) {
@@ -574,6 +576,8 @@ export default {
 		 *
 		 * @param {KeyboardEvent} event the keydown event.
 		 * @return {void}
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		onKeydown(event) {
 			if (this.submitting) {
