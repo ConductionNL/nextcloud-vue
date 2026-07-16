@@ -30,6 +30,13 @@ describe('resolveImageUrl', () => {
 			.toBe('/index.php/apps/launchpad/resource/x.gif')
 	})
 
+	it('leaves a webrooted or leading-slash-less apps path untouched (contract requires leading-slash /apps/)', () => {
+		expect(resolveImageUrl('/nextcloud/apps/launchpad/resource/x.gif'))
+			.toBe('/nextcloud/apps/launchpad/resource/x.gif')
+		expect(resolveImageUrl('apps/launchpad/resource/x.gif'))
+			.toBe('apps/launchpad/resource/x.gif')
+	})
+
 	it('returns non-strings and empty values unchanged', () => {
 		expect(resolveImageUrl('')).toBe('')
 		expect(resolveImageUrl(null)).toBe(null)

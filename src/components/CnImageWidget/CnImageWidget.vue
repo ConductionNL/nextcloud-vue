@@ -102,6 +102,8 @@ export default {
 		 * The `<img src>` value: the stored URL resolved for the current
 		 * instance's routing (app-relative resource paths gain the webroot +
 		 * `/index.php`; external/data URLs pass through).
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		imageSrc() {
 			return resolveImageUrl(this.url)

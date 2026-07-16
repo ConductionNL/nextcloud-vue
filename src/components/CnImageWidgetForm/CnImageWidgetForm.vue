@@ -82,6 +82,7 @@
 import { NcTextField, NcSelect, NcButton } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
+import { validateUrl } from '../../utils/widgetUrl.js'
 
 const ALLOWED_FITS = Object.freeze(['cover', 'contain', 'fill', 'none'])
 
@@ -92,9 +93,12 @@ const DEFAULT_CONTENT = Object.freeze({
 	fit: 'cover',
 })
 
-// Cap for the no-transport fallback only: without an uploadFn the file must
+// Cap for the no-transport fallback only: without a fileUploadFn the file must
 // be embedded as a data URL, and a large one can freeze the browser tab, so
 // we refuse anything bigger and tell the consumer to wire an upload transport.
+// Gated on the RAW file size (a cheap pre-check that avoids base64-encoding a
+// huge file at all); the stored data URL is ~1.37× this once base64-encoded,
+// so a 1 MB file yields a ~1.37 MB persisted string.
 const FALLBACK_MAX_BYTES = (1024 * 1024)
 
 /**
@@ -139,16 +143,19 @@ export default {
 			default: () => ({ ...DEFAULT_CONTENT }),
 		},
 		/**
-		 * Optional upload transport: `async (file: File) => ({ url })`. Called by
-		 * `commit()` on submit (never on file selection) with the raw picked
-		 * `File`; the returned hosted URL is stored. When omitted, the file is
-		 * embedded as a data URL on commit instead — but only up to 1 MB, so the
-		 * browser tab can't be frozen by a huge inline blob. Wire a transport for
-		 * anything larger.
+		 * Optional raw-file upload transport: `async (file: File) => ({ url })`.
+		 * Deliberately named `fileUploadFn` (not `uploadFn`) to avoid colliding
+		 * with the base64/data-URL `uploadFn` prop that other sub-forms (e.g.
+		 * `CnHeaderWidgetForm`) declare. Called by `commit()` on submit (never on
+		 * file selection) with the raw picked `File`; the returned hosted URL is
+		 * stored. When omitted, the file is embedded as a data URL on commit
+		 * instead — but only when the raw file is ≤ 1 MB (~1.37 MB once
+		 * base64-encoded and stored), so the browser tab can't be frozen by a huge
+		 * inline blob. Wire a transport for anything larger.
 		 *
 		 * @type {Function|null}
 		 */
-		uploadFn: {
+		fileUploadFn: {
 			type: Function,
 			default: null,
 		},
@@ -188,7 +195,11 @@ export default {
 			return typeof this.url === 'string' && this.url.trim() !== ''
 		},
 
-		/** The image shown in the preview: the pending file's object URL, else the resolved URL field. */
+		/**
+		 * The image shown in the preview: the pending file's object URL, else the resolved URL field.
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
+		 */
 		previewSrc() {
 			return this.pendingPreviewUrl || (this.hasUrl ? resolveImageUrl(this.url) : '')
 		},
@@ -235,6 +246,8 @@ export default {
 		 * @param {string} field one of: url, alt, link, fit.
 		 * @param {string} value the new value.
 		 * @return {void}
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		updateField(field, value) {
 			this[field] = value
@@ -246,6 +259,8 @@ export default {
 		 * Remove button.
 		 *
 		 * @return {void}
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		clearPendingFile() {
 			this.revokePreview()
@@ -270,6 +285,8 @@ export default {
 		 *
 		 * @param {Event} event the file-input change event.
 		 * @return {void}
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		handleFileSelect(event) {
 			const file = event.target.files && event.target.files[0]
@@ -291,6 +308,8 @@ export default {
 		 *
 		 * @return {Promise<void>} resolves once the URL is set.
 		 * @throws {Error} when the upload fails, so the modal can block submit.
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		async commit() {
 			if (this.pendingFile === null) {
@@ -300,10 +319,16 @@ export default {
 			this.uploading = true
 			try {
 				let resolvedUrl
-				if (typeof this.uploadFn === 'function') {
-					const response = await this.uploadFn(this.pendingFile)
+				if (typeof this.fileUploadFn === 'function') {
+					const response = await this.fileUploadFn(this.pendingFile)
 					if (!response || typeof response.url !== 'string' || response.url === '') {
 						throw new Error('Upload transport returned no URL')
+					}
+					// Defence-in-depth: reject a hostile scheme (javascript:, data:,
+					// …) from a misbehaving/compromised transport before it lands in
+					// stored content. Resource paths are `/`-relative, so they pass.
+					if (validateUrl(response.url) === false) {
+						throw new Error('Upload transport returned an unsafe URL')
 					}
 					resolvedUrl = response.url
 				} else {
@@ -322,11 +347,14 @@ export default {
 		},
 
 		/**
-		 * No-transport fallback: embed the file as a data URL, but only up to
-		 * FALLBACK_MAX_BYTES so a huge inline blob can't freeze the tab.
+		 * No-transport fallback: embed the file as a data URL, but only when the
+		 * raw file is ≤ FALLBACK_MAX_BYTES (the encoded string stored in content
+		 * is ~1.37× that) so a huge inline blob can't freeze the tab.
 		 *
 		 * @param {File} file the pending file.
 		 * @return {Promise<string>} resolves to a `data:<mime>;base64,…` URL.
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		embedAsDataUrl(file) {
 			if (file.size > FALLBACK_MAX_BYTES) {
@@ -353,6 +381,8 @@ export default {
 		 * Revoke the current object-URL preview (if any) to free memory.
 		 *
 		 * @return {void}
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		revokePreview() {
 			if (this.pendingPreviewUrl) {
@@ -376,6 +406,8 @@ export default {
 		 * Validate the form; an empty array means valid.
 		 *
 		 * @return {string[]} the validation errors.
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		validate() {
 			const hasUrl = typeof this.url === 'string' && this.url.trim() !== ''

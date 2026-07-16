@@ -37,7 +37,7 @@ function fakeForm({ errors = [], assembled = null, commit = undefined } = {}) {
 		props: {
 			editingWidget: { default: null },
 			value: { default: () => ({}) },
-			uploadFn: { default: null },
+			fileUploadFn: { default: null },
 		},
 		render(h) {
 			return h('div', { class: 'fake-form' })
@@ -308,13 +308,39 @@ describe('CnAddWidgetModal', () => {
 		expect(wrapper.vm.submitting).toBe(false)
 	})
 
-	it('forwards fileUploadFn to the active sub-form as upload-fn', async () => {
+	it('does not close (cancel/Esc) while a commit() is in flight', async () => {
+		let resolveCommit
+		const commit = jest.fn(() => new Promise((res) => { resolveCommit = res }))
+		const { CnAddWidgetModal } = loadModal({
+			label: { form: fakeForm({ errors: [], assembled: { text: 'hi' }, commit }) },
+		})
+		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true } })
+		await wrapper.vm.$nextTick()
+
+		const submitPromise = wrapper.vm.onSubmit()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.submitting).toBe(true)
+
+		// Cancel button / backdrop and Esc must be ignored while uploading.
+		wrapper.vm.onCancel()
+		wrapper.vm.onKeydown({ key: 'Escape' })
+		expect(wrapper.emitted('close')).toBeFalsy()
+
+		// Once the upload finishes, dismissal works again.
+		resolveCommit()
+		await submitPromise
+		expect(wrapper.vm.submitting).toBe(false)
+		wrapper.vm.onCancel()
+		expect(wrapper.emitted('close')).toBeTruthy()
+	})
+
+	it('forwards fileUploadFn to the active sub-form as file-upload-fn', async () => {
 		const fileUploadFn = jest.fn()
 		const { CnAddWidgetModal } = loadModal({
 			label: { form: fakeForm({ errors: [], assembled: { text: 'hi' } }) },
 		})
 		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true, fileUploadFn } })
 		await wrapper.vm.$nextTick()
-		expect(wrapper.findComponent({ name: 'FakeForm' }).props('uploadFn')).toBe(fileUploadFn)
+		expect(wrapper.findComponent({ name: 'FakeForm' }).props('fileUploadFn')).toBe(fileUploadFn)
 	})
 })

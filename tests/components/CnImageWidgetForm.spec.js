@@ -52,7 +52,7 @@ describe('CnImageWidgetForm', () => {
 
 	it('selecting a file does NOT upload and does NOT set the URL', () => {
 		const uploadFn = jest.fn()
-		const wrapper = mount(CnImageWidgetForm, { propsData: { uploadFn } })
+		const wrapper = mount(CnImageWidgetForm, { propsData: { fileUploadFn: uploadFn } })
 		selectFile(wrapper, new File(['x'], 'a.png', { type: 'image/png' }))
 		expect(uploadFn).not.toHaveBeenCalled()
 		expect(wrapper.vm.url).toBe('')
@@ -61,14 +61,14 @@ describe('CnImageWidgetForm', () => {
 	})
 
 	it('validate passes once a file is pending', () => {
-		const wrapper = mount(CnImageWidgetForm, { propsData: { uploadFn: jest.fn() } })
+		const wrapper = mount(CnImageWidgetForm, { propsData: { fileUploadFn: jest.fn() } })
 		selectFile(wrapper, new File(['x'], 'a.png', { type: 'image/png' }))
 		expect(wrapper.vm.validate()).toEqual([])
 	})
 
 	it('commit() uploads the pending file via the transport and stores the URL', async () => {
 		const uploadFn = jest.fn().mockResolvedValue({ url: '/apps/launchpad/resource/resource_x.png' })
-		const wrapper = mount(CnImageWidgetForm, { propsData: { uploadFn } })
+		const wrapper = mount(CnImageWidgetForm, { propsData: { fileUploadFn: uploadFn } })
 		const file = new File(['x'], 'a.png', { type: 'image/png' })
 		selectFile(wrapper, file)
 		await wrapper.vm.commit()
@@ -80,16 +80,39 @@ describe('CnImageWidgetForm', () => {
 	it('commit() is a no-op with no pending file (edit mode keeps the URL)', async () => {
 		const uploadFn = jest.fn()
 		const wrapper = mount(CnImageWidgetForm, {
-			propsData: { uploadFn, editingWidget: { content: { url: 'https://x.test/keep.png' } } },
+			propsData: { fileUploadFn: uploadFn, editingWidget: { content: { url: 'https://x.test/keep.png' } } },
 		})
 		await wrapper.vm.commit()
 		expect(uploadFn).not.toHaveBeenCalled()
 		expect(wrapper.vm.url).toBe('https://x.test/keep.png')
 	})
 
+	it.each([
+		['null', null],
+		['empty object', {}],
+		['null url', { url: null }],
+		['empty url', { url: '' }],
+	])('commit() rejects when the transport resolves with a malformed shape (%s)', async (_label, response) => {
+		const uploadFn = jest.fn().mockResolvedValue(response)
+		const wrapper = mount(CnImageWidgetForm, { propsData: { fileUploadFn: uploadFn } })
+		selectFile(wrapper, new File(['x'], 'a.png', { type: 'image/png' }))
+		await expect(wrapper.vm.commit()).rejects.toThrow(/no URL/i)
+		expect(wrapper.vm.url).toBe('')
+		expect(wrapper.vm.pendingFile).not.toBeNull()
+	})
+
+	it('commit() rejects a hostile scheme returned by the transport', async () => {
+		const uploadFn = jest.fn().mockResolvedValue({ url: 'javascript:alert(1)' })
+		const wrapper = mount(CnImageWidgetForm, { propsData: { fileUploadFn: uploadFn } })
+		selectFile(wrapper, new File(['x'], 'a.png', { type: 'image/png' }))
+		await expect(wrapper.vm.commit()).rejects.toThrow()
+		expect(wrapper.vm.url).toBe('')
+		expect(wrapper.vm.uploadError).not.toBe('')
+	})
+
 	it('commit() rethrows and surfaces an error when the transport fails', async () => {
 		const uploadFn = jest.fn().mockRejectedValue(new Error('boom'))
-		const wrapper = mount(CnImageWidgetForm, { propsData: { uploadFn } })
+		const wrapper = mount(CnImageWidgetForm, { propsData: { fileUploadFn: uploadFn } })
 		selectFile(wrapper, new File(['x'], 'a.png', { type: 'image/png' }))
 		await expect(wrapper.vm.commit()).rejects.toThrow('boom')
 		expect(wrapper.vm.uploadError).toBe('boom')
@@ -97,7 +120,7 @@ describe('CnImageWidgetForm', () => {
 	})
 
 	it('shows a Remove button while a file is pending and clears it on remove', async () => {
-		const wrapper = mount(CnImageWidgetForm, { propsData: { uploadFn: jest.fn() } })
+		const wrapper = mount(CnImageWidgetForm, { propsData: { fileUploadFn: jest.fn() } })
 		const removeButtons = () => wrapper.findAllComponents({ name: 'NcButton' })
 
 		// No pending file → no Remove button; the URL field is enabled
@@ -117,6 +140,14 @@ describe('CnImageWidgetForm', () => {
 		expect(wrapper.vm.pendingFile).toBeNull()
 		expect(removeButtons().length).toBe(0)
 		expect(window.URL.revokeObjectURL).toHaveBeenCalled()
+	})
+
+	it('fallback (no transport) embeds a small file as a data URL on commit', async () => {
+		const wrapper = mount(CnImageWidgetForm)
+		selectFile(wrapper, new File(['abcdefghij'], 'a.png', { type: 'image/png' }))
+		await wrapper.vm.commit()
+		expect(wrapper.vm.url).toMatch(/^data:image\//)
+		expect(wrapper.vm.pendingFile).toBeNull()
 	})
 
 	it('fallback (no transport) refuses a file larger than the 1 MB cap', async () => {

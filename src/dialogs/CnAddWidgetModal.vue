@@ -41,7 +41,7 @@
 				:key="state.type"
 				:editing-widget="state.editingWidget"
 				:value="state.content"
-				:upload-fn="fileUploadFn"
+				:file-upload-fn="fileUploadFn"
 				:calendars-fetcher="calendarsFetcher"
 				@update:content="onContentUpdate" />
 		</div>
@@ -176,8 +176,10 @@ export default {
 		},
 		/**
 		 * Optional upload transport for the Appearance icon picker:
-		 * `async (file) => dataUrlOrUrl`. When null, the upload control is hidden
-		 * and the picker still offers its catalogues, NL sets, and a URL field.
+		 * `async (dataUrl: string) => ({ url })`. The icon picker reads the chosen
+		 * file to a data URL and passes that string here. When null, the upload
+		 * control is hidden and the picker still offers its catalogues, NL sets,
+		 * and a URL field.
 		 *
 		 * @type {Function|null}
 		 */
@@ -187,11 +189,12 @@ export default {
 		},
 		/**
 		 * Optional raw-file upload transport forwarded to the active sub-form as
-		 * its `upload-fn`: `async (file: File) => ({ url })`. Distinct from
-		 * `uploadFn` (which the icon picker calls with a data URL) — sub-forms
-		 * such as the image widget defer the upload to submit and hand over the
-		 * raw `File`. When null, sub-forms fall back to their own no-transport
-		 * behaviour.
+		 * its `file-upload-fn`: `async (file: File) => ({ url })`. Deliberately a
+		 * separate prop from `uploadFn` (which the icon picker calls with a data
+		 * URL) so the File-typed transport can never reach a sub-form that expects
+		 * a data URL (e.g. `CnHeaderWidgetForm.uploadFn`). Sub-forms such as the
+		 * image widget defer the upload to submit and hand over the raw `File`.
+		 * When null, sub-forms fall back to their own no-transport behaviour.
 		 *
 		 * @type {Function|null}
 		 */
@@ -341,6 +344,8 @@ export default {
 		 * Submit button label — flips between Add and Save based on edit mode.
 		 *
 		 * @return {string} the localised submit label.
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		submitLabel() {
 			if (this.submitting) {
@@ -548,22 +553,32 @@ export default {
 
 		/**
 		 * Cancel button / backdrop / NcModal `close` event — non-destructive,
-		 * never emits submit.
+		 * never emits submit. Suppressed while a sub-form `commit()` (e.g. an
+		 * image upload) is in flight so dismissing the dialog can't unmount the
+		 * sub-form mid-upload (which would orphan the upload and write into a
+		 * destroyed instance).
 		 *
 		 * @return {void}
 		 */
 		onCancel() {
+			if (this.submitting) {
+				return
+			}
 			this.$emit('close')
 		},
 
 		/**
 		 * Esc-key fallback listener (in case NcModal's own handler is
 		 * suppressed by a parent focus-trap). Emits `close`, never `submit`.
+		 * Suppressed while a commit() is in flight (see {@link onCancel}).
 		 *
 		 * @param {KeyboardEvent} event the keydown event.
 		 * @return {void}
 		 */
 		onKeydown(event) {
+			if (this.submitting) {
+				return
+			}
 			if (this.show && event.key === 'Escape') {
 				this.$emit('close')
 			}
@@ -576,6 +591,8 @@ export default {
 		 * commit failure keeps the modal open and blocks the `submit` emit.
 		 *
 		 * @return {Promise<void>} resolves once submit is emitted or aborted.
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		async onSubmit() {
 			if (!this.isValid || this.submitting) {
