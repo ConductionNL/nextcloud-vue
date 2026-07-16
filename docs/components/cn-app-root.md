@@ -237,3 +237,4 @@ Before this overload existed, virtual-app hosts had to fake an HTTP fetch by pas
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `aiCompanion` (`ai-companion`) | Boolean | `false` | Opt-in floating AI-chat companion (`CnAiCompanion`). Off by default; pass `true` to mount it. When enabled it still self-gates on its own backend health probe and hides on chat pages. The companion is an AI capability provided by the Hermiq app — apps opt in explicitly rather than every app auto-mounting it whenever a chat backend is reachable. |
+| `commandPalette` (`command-palette`) | Boolean \| Object | `false` | Opt-in Ctrl/Cmd+K command palette (`CnCommandPalette`, see its own doc page). Off by default; pass `true` for zero-config navigation + registered actions, or an object to override any `CnCommandPalette` prop (most commonly `{ objectSearch: createObjectSearchSource({...}) }` to wire live OpenRegister search). |
