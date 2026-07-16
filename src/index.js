@@ -73,6 +73,7 @@ export {
 	CnRegisterSchemaSelect,
 	CnThemePreview,
 	CnRelationshipGraph,
+	CnGraphCanvas,
 	CnDashboardPage,
 	CnDashboardGrid,
 	CnWidgetWrapper,
