@@ -18,21 +18,35 @@
 			:placeholder="t('nextcloud-vue', 'Optional subtitle')"
 			@update:value="updateField('subtitle', $event)" />
 
-		<!-- Upload is the reliable path: external image URLs are often blocked
-		     by the Nextcloud Content-Security-Policy, so only the background
-		     colour would show. Uploads are same-origin / data URLs. -->
-		<label class="cn-header-widget-form__upload-label">
-			<input
-				ref="fileInput"
-				type="file"
-				accept="image/*"
-				class="cn-header-widget-form__file-input"
+		<!-- Pick a background image. Selection does NOT upload — the file is held
+		     and only uploaded when the host modal calls commit() on submit, so
+		     re-picking or cancelling writes nothing. Uploads are the reliable
+		     path: external image URLs are often blocked by the Nextcloud
+		     Content-Security-Policy, so only the background colour would show. -->
+		<div class="cn-header-widget-form__upload-row">
+			<label class="cn-header-widget-form__upload-label">
+				<input
+					ref="fileInput"
+					type="file"
+					accept="image/*"
+					class="cn-header-widget-form__file-input"
+					:disabled="uploading"
+					@change="handleFileSelect">
+				<span class="cn-header-widget-form__upload-button">
+					{{ pendingFile ? t('nextcloud-vue', 'Change background image') : t('nextcloud-vue', 'Choose background image') }}
+				</span>
+			</label>
+			<NcButton
+				v-if="pendingFile"
+				type="tertiary"
 				:disabled="uploading"
-				@change="handleFileSelect">
-			<span class="cn-header-widget-form__upload-button">
-				{{ uploading ? t('nextcloud-vue', 'Uploading…') : t('nextcloud-vue', 'Upload background image') }}
-			</span>
-		</label>
+				@click="clearPendingFile">
+				{{ t('nextcloud-vue', 'Remove') }}
+			</NcButton>
+		</div>
+		<p v-if="pendingFile" class="cn-header-widget-form__pending">
+			{{ t('nextcloud-vue', 'Ready to upload on save: {name}', { name: pendingFile.name }) }}
+		</p>
 		<p v-if="uploadError" class="cn-header-widget-form__error" role="alert">
 			{{ uploadError }}
 		</p>
@@ -41,6 +55,7 @@
 			:value="backgroundImageUrl"
 			:label="t('nextcloud-vue', 'Background image URL')"
 			placeholder="https://example.com/banner.jpg"
+			:disabled="!!pendingFile"
 			@update:value="updateField('backgroundImageUrl', $event)" />
 
 		<label class="cn-header-widget-form__color-label">
@@ -146,9 +161,17 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect } from '@nextcloud/vue'
+import { NcTextField, NcSelect, NcButton } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
+import { validateUrl } from '../../utils/widgetUrl.js'
+
+// Cap for the no-transport fallback only: without a fileUploadFn the file must
+// be embedded as a data URL, and a large one can freeze the browser tab, so we
+// refuse anything bigger. Gated on the RAW file size (a cheap pre-check that
+// avoids base64-encoding a huge file at all); the stored data URL is ~1.37×
+// this once base64-encoded.
+const FALLBACK_MAX_BYTES = (1024 * 1024)
 
 const ALLOWED_OVERLAY_MODES = ['none', 'tint', 'gradient-bottom']
 const ALLOWED_HEIGHTS = ['small', 'medium', 'large', 'xlarge']
@@ -189,6 +212,7 @@ export default {
 	components: {
 		NcTextField,
 		NcSelect,
+		NcButton,
 		CnColorPicker,
 	},
 
@@ -213,10 +237,28 @@ export default {
 			default: () => ({ ...DEFAULT_CONTENT }),
 		},
 		/**
-		 * Optional upload transport: `async (dataUrl) => ({ url })`. When given,
-		 * an uploaded background image is sent through it and the returned URL is
-		 * stored; otherwise the file is embedded as a data URL (same-origin, so
-		 * it isn't blocked by the CSP the way external http(s) URLs are).
+		 * Optional raw-file upload transport: `async (file: File) => ({ url })`.
+		 * Named `fileUploadFn` (not `uploadFn`) to match `CnAddWidgetModal`'s
+		 * File-typed sub-form transport. Called by `commit()` on submit (never on
+		 * file selection) with the raw picked `File`; the returned hosted URL is
+		 * stored as `backgroundImageUrl`. When omitted, the file is embedded as a
+		 * data URL on commit instead (same-origin, so it isn't blocked by the CSP
+		 * the way external http(s) URLs are) — but only when the raw file is ≤ 1 MB
+		 * (~1.37 MB once base64-encoded and stored) so a huge inline blob can't
+		 * freeze the tab. Wire a transport for anything larger.
+		 *
+		 * @type {Function|null}
+		 */
+		fileUploadFn: {
+			type: Function,
+			default: null,
+		},
+		/**
+		 * @deprecated Use {@link fileUploadFn} instead. Legacy base64 transport
+		 * `async (dataUrl: string) => ({ url })`, kept for backward compatibility.
+		 * When `fileUploadFn` is not set but this is, `commit()` reads the file to
+		 * a data URL and hands that to this function (emitting a one-time
+		 * console.warn). `fileUploadFn` takes precedence when both are provided.
 		 *
 		 * @type {Function|null}
 		 */
@@ -277,6 +319,11 @@ export default {
 			ctaStyle: (cta && ALLOWED_CTA_STYLES.includes(cta.style)) ? cta.style : 'primary',
 			uploading: false,
 			uploadError: '',
+			// The picked-but-not-yet-uploaded file. Upload is deferred to commit()
+			// so nothing is written on selection.
+			pendingFile: null,
+			// One-time guard for the deprecated uploadFn console.warn.
+			uploadFnDeprecationWarned: false,
 		}
 	},
 
@@ -377,12 +424,14 @@ export default {
 		},
 
 		/**
-		 * Read the selected image file and set backgroundImageUrl — via the
-		 * injected uploadFn when present (→ hosted URL), else embedded as a data
-		 * URL (same-origin, so the CSP doesn't block it like external URLs).
+		 * Hold the picked file for a deferred upload. Does NOT upload — that
+		 * happens in commit() when the host modal submits, so re-picking or
+		 * cancelling writes nothing.
 		 *
 		 * @param {Event} event the file-input change event.
 		 * @return {void}
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		handleFileSelect(event) {
 			const file = event.target.files && event.target.files[0]
@@ -390,34 +439,146 @@ export default {
 				return
 			}
 			this.uploadError = ''
+			this.pendingFile = file
+			this.resetFileInput()
+		},
+
+		/**
+		 * Upload the pending file (if any) and store it as backgroundImageUrl.
+		 * Called by the host modal on submit. A no-op when no file is pending, so
+		 * editing without changing the image keeps the existing value.
+		 *
+		 * @return {Promise<void>} resolves once the URL is set.
+		 * @throws {Error} when the upload fails, so the modal can block submit.
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
+		 */
+		async commit() {
+			if (this.pendingFile === null) {
+				return
+			}
+			this.uploadError = ''
 			this.uploading = true
-			const reader = new FileReader()
-			reader.onload = async (e) => {
-				try {
-					const dataUrl = e.target.result
-					if (typeof dataUrl !== 'string') {
-						throw new Error('FileReader did not return a data URL')
-					}
-					if (typeof this.uploadFn === 'function') {
-						const response = await this.uploadFn(dataUrl)
-						this.updateField('backgroundImageUrl', response.url)
-					} else {
-						this.updateField('backgroundImageUrl', dataUrl)
-					}
-				} catch (err) {
-					this.uploadError = (err && err.message) || t('nextcloud-vue', 'Failed to upload image')
-					console.error('Header image upload failed:', err)
-				} finally {
-					this.uploading = false
-					this.resetFileInput()
+			try {
+				let resolvedUrl
+				if (typeof this.fileUploadFn === 'function') {
+					resolvedUrl = this.extractTransportUrl(await this.fileUploadFn(this.pendingFile))
+				} else if (typeof this.uploadFn === 'function') {
+					// Deprecated path: the legacy uploadFn expects a base64 data URL.
+					this.warnUploadFnDeprecated()
+					const dataUrl = await this.readFileAsDataUrl(this.pendingFile)
+					resolvedUrl = this.extractTransportUrl(await this.uploadFn(dataUrl))
+				} else {
+					resolvedUrl = await this.embedAsDataUrl(this.pendingFile)
 				}
-			}
-			reader.onerror = () => {
-				this.uploadError = t('nextcloud-vue', 'Failed to upload image')
+				this.pendingFile = null
+				this.updateField('backgroundImageUrl', resolvedUrl)
+			} catch (err) {
+				this.uploadError = (err && err.message) || t('nextcloud-vue', 'Failed to upload image')
+				console.error('Header image upload failed:', err)
+				throw err
+			} finally {
 				this.uploading = false
-				this.resetFileInput()
 			}
-			reader.readAsDataURL(file)
+		},
+
+		/**
+		 * Validate an upload transport's `{ url }` response and return the URL.
+		 * Shared by the `fileUploadFn` and legacy `uploadFn` paths: rejects an
+		 * empty/malformed shape and a hostile scheme (javascript:, data:, …) so a
+		 * misbehaving/compromised transport can't write an unsafe URL into content
+		 * (resource paths are `/`-relative, so they pass).
+		 *
+		 * @param {{url: string}} response the transport response.
+		 * @return {string} the validated URL.
+		 * @throws {Error} when the response has no URL or an unsafe scheme.
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
+		 */
+		extractTransportUrl(response) {
+			if (!response || typeof response.url !== 'string' || response.url === '') {
+				throw new Error('Upload transport returned no URL')
+			}
+			if (validateUrl(response.url) === false) {
+				throw new Error('Upload transport returned an unsafe URL')
+			}
+			return response.url
+		},
+
+		/**
+		 * No-transport fallback: embed the file as a data URL, but only when the
+		 * raw file is ≤ FALLBACK_MAX_BYTES (the encoded string stored in content
+		 * is ~1.37× that) so a huge inline blob can't freeze the tab.
+		 *
+		 * @param {File} file the pending file.
+		 * @return {Promise<string>} resolves to a `data:<mime>;base64,…` URL.
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
+		 */
+		embedAsDataUrl(file) {
+			if (file.size > FALLBACK_MAX_BYTES) {
+				return Promise.reject(new Error(
+					t('nextcloud-vue', 'Image is too large to embed. Configure an upload transport for larger files.'),
+				))
+			}
+			return this.readFileAsDataUrl(file)
+		},
+
+		/**
+		 * Read a file as a base64 data URL (uncapped). Used by the data-URL
+		 * fallback (behind the size cap in {@link embedAsDataUrl}) and by the
+		 * deprecated `uploadFn` path, which uploads to a server and so isn't
+		 * size-capped.
+		 *
+		 * @param {File} file the file to read.
+		 * @return {Promise<string>} resolves to a `data:<mime>;base64,…` URL.
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
+		 */
+		readFileAsDataUrl(file) {
+			return new Promise((resolve, reject) => {
+				const reader = new FileReader()
+				reader.onload = (e) => {
+					const dataUrl = e.target.result
+					if (typeof dataUrl === 'string') {
+						resolve(dataUrl)
+					} else {
+						reject(new Error('FileReader did not return a data URL'))
+					}
+				}
+				reader.onerror = () => reject(reader.error || new Error('FileReader failed'))
+				reader.readAsDataURL(file)
+			})
+		},
+
+		/**
+		 * Emit the `uploadFn`-deprecation warning at most once per instance.
+		 *
+		 * @return {void}
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
+		 */
+		warnUploadFnDeprecated() {
+			if (this.uploadFnDeprecationWarned === true) {
+				return
+			}
+			this.uploadFnDeprecationWarned = true
+			// eslint-disable-next-line no-console
+			console.warn('[CnHeaderWidgetForm] The `uploadFn` prop is deprecated; use `fileUploadFn`, which receives the raw File instead of a base64 data URL.')
+		},
+
+		/**
+		 * Discard the pending file, re-enabling the URL field. Called by the
+		 * Remove button.
+		 *
+		 * @return {void}
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
+		 */
+		clearPendingFile() {
+			this.pendingFile = null
+			this.uploadError = ''
+			this.resetFileInput()
 		},
 
 		/**
@@ -503,9 +664,21 @@ export default {
 	font-size: 14px;
 }
 
+.cn-header-widget-form__upload-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
 .cn-header-widget-form__upload-label {
 	display: inline-flex;
 	cursor: pointer;
+}
+
+.cn-header-widget-form__pending {
+	margin: 0;
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-header-widget-form__file-input {

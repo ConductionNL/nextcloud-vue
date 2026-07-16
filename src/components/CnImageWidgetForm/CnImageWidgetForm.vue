@@ -159,6 +159,19 @@ export default {
 			type: Function,
 			default: null,
 		},
+		/**
+		 * @deprecated Use {@link fileUploadFn} instead. Legacy base64 transport
+		 * `async (dataUrl: string) => ({ url })`, kept for backward compatibility.
+		 * When `fileUploadFn` is not set but this is, `commit()` reads the file to
+		 * a data URL and hands that to this function (emitting a one-time
+		 * console.warn). `fileUploadFn` takes precedence when both are provided.
+		 *
+		 * @type {Function|null}
+		 */
+		uploadFn: {
+			type: Function,
+			default: null,
+		},
 	},
 
 	emits: [
@@ -186,6 +199,8 @@ export default {
 			// Upload is deferred to commit() so nothing is written on selection.
 			pendingFile: null,
 			pendingPreviewUrl: '',
+			// One-time guard for the deprecated uploadFn console.warn.
+			uploadFnDeprecationWarned: false,
 		}
 	},
 
@@ -320,17 +335,12 @@ export default {
 			try {
 				let resolvedUrl
 				if (typeof this.fileUploadFn === 'function') {
-					const response = await this.fileUploadFn(this.pendingFile)
-					if (!response || typeof response.url !== 'string' || response.url === '') {
-						throw new Error('Upload transport returned no URL')
-					}
-					// Defence-in-depth: reject a hostile scheme (javascript:, data:,
-					// …) from a misbehaving/compromised transport before it lands in
-					// stored content. Resource paths are `/`-relative, so they pass.
-					if (validateUrl(response.url) === false) {
-						throw new Error('Upload transport returned an unsafe URL')
-					}
-					resolvedUrl = response.url
+					resolvedUrl = this.extractTransportUrl(await this.fileUploadFn(this.pendingFile))
+				} else if (typeof this.uploadFn === 'function') {
+					// Deprecated path: the legacy uploadFn expects a base64 data URL.
+					this.warnUploadFnDeprecated()
+					const dataUrl = await this.readFileAsDataUrl(this.pendingFile)
+					resolvedUrl = this.extractTransportUrl(await this.uploadFn(dataUrl))
 				} else {
 					resolvedUrl = await this.embedAsDataUrl(this.pendingFile)
 				}
@@ -344,6 +354,29 @@ export default {
 			} finally {
 				this.uploading = false
 			}
+		},
+
+		/**
+		 * Validate an upload transport's `{ url }` response and return the URL.
+		 * Shared by the `fileUploadFn` and legacy `uploadFn` paths: rejects an
+		 * empty/malformed shape and a hostile scheme (javascript:, data:, …) so a
+		 * misbehaving/compromised transport can't write an unsafe URL into content
+		 * (resource paths are `/`-relative, so they pass).
+		 *
+		 * @param {{url: string}} response the transport response.
+		 * @return {string} the validated URL.
+		 * @throws {Error} when the response has no URL or an unsafe scheme.
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
+		 */
+		extractTransportUrl(response) {
+			if (!response || typeof response.url !== 'string' || response.url === '') {
+				throw new Error('Upload transport returned no URL')
+			}
+			if (validateUrl(response.url) === false) {
+				throw new Error('Upload transport returned an unsafe URL')
+			}
+			return response.url
 		},
 
 		/**
@@ -362,6 +395,21 @@ export default {
 					t('nextcloud-vue', 'Image is too large to embed. Configure an upload transport for larger files.'),
 				))
 			}
+			return this.readFileAsDataUrl(file)
+		},
+
+		/**
+		 * Read a file as a base64 data URL (uncapped). Used by the data-URL
+		 * fallback (behind the size cap in {@link embedAsDataUrl}) and by the
+		 * deprecated `uploadFn` path, which uploads to a server and so isn't
+		 * size-capped.
+		 *
+		 * @param {File} file the file to read.
+		 * @return {Promise<string>} resolves to a `data:<mime>;base64,…` URL.
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
+		 */
+		readFileAsDataUrl(file) {
 			return new Promise((resolve, reject) => {
 				const reader = new FileReader()
 				reader.onload = (e) => {
@@ -375,6 +423,22 @@ export default {
 				reader.onerror = () => reject(reader.error || new Error('FileReader failed'))
 				reader.readAsDataURL(file)
 			})
+		},
+
+		/**
+		 * Emit the `uploadFn`-deprecation warning at most once per instance.
+		 *
+		 * @return {void}
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
+		 */
+		warnUploadFnDeprecated() {
+			if (this.uploadFnDeprecationWarned === true) {
+				return
+			}
+			this.uploadFnDeprecationWarned = true
+			// eslint-disable-next-line no-console
+			console.warn('[CnImageWidgetForm] The `uploadFn` prop is deprecated; use `fileUploadFn`, which receives the raw File instead of a base64 data URL.')
 		},
 
 		/**

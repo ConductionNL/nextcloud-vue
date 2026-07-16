@@ -77,6 +77,31 @@ describe('CnImageWidgetForm', () => {
 		expect(wrapper.vm.pendingFile).toBeNull()
 	})
 
+	it('commit() supports the deprecated uploadFn (data URL) transport and warns once', async () => {
+		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		const uploadFn = jest.fn().mockResolvedValue({ url: '/apps/launchpad/resource/legacy.png' })
+		const wrapper = mount(CnImageWidgetForm, { propsData: { uploadFn } })
+		selectFile(wrapper, new File(['x'], 'a.png', { type: 'image/png' }))
+		await wrapper.vm.commit()
+		// Legacy contract: called with a base64 data URL string, not a File.
+		expect(typeof uploadFn.mock.calls[0][0]).toBe('string')
+		expect(uploadFn.mock.calls[0][0]).toMatch(/^data:/)
+		expect(wrapper.vm.url).toBe('/apps/launchpad/resource/legacy.png')
+		expect(warn).toHaveBeenCalledTimes(1)
+		warn.mockRestore()
+	})
+
+	it('prefers fileUploadFn over the deprecated uploadFn when both are set', async () => {
+		const fileUploadFn = jest.fn().mockResolvedValue({ url: '/apps/launchpad/resource/new.png' })
+		const uploadFn = jest.fn()
+		const wrapper = mount(CnImageWidgetForm, { propsData: { fileUploadFn, uploadFn } })
+		selectFile(wrapper, new File(['x'], 'a.png', { type: 'image/png' }))
+		await wrapper.vm.commit()
+		expect(fileUploadFn).toHaveBeenCalledTimes(1)
+		expect(uploadFn).not.toHaveBeenCalled()
+		expect(wrapper.vm.url).toBe('/apps/launchpad/resource/new.png')
+	})
+
 	it('commit() is a no-op with no pending file (edit mode keeps the URL)', async () => {
 		const uploadFn = jest.fn()
 		const wrapper = mount(CnImageWidgetForm, {
