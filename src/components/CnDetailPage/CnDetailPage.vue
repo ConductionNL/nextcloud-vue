@@ -1734,15 +1734,55 @@ export default {
 		},
 
 		/**
-		 * True when no consumer-supplied default slot content is
-		 * present. Treats whitespace-only / empty vnodes as no content
-		 * so a stray newline in the template doesn't accidentally
-		 * suppress the auto-body.
+		 * True when consumer-supplied default slot content is present.
+		 * Treats whitespace-only / empty vnodes as no content so a stray
+		 * newline in the template doesn't accidentally suppress the
+		 * auto-body.
+		 *
+		 * Checks BOTH slot channels. In Vue 2 a default slot passed WITH a
+		 * scope (`<template #default="{ … }">`, or a render function supplying
+		 * `scopedSlots`) lands ONLY in `$scopedSlots` — `$slots.default` stays
+		 * empty. Reading `$slots` alone therefore reported "no content" for
+		 * every consumer that passes its body as a scoped slot, which is what
+		 * `CnPageRenderer` does for a manifest page's `slots.default`.
+		 *
+		 * That mattered because `isCreateMode` is gated on this: a schema-bound
+		 * `type:"detail"` page with no object id and no body renders the
+		 * create archetype (ADR-062). A manifest-driven designer page — custom
+		 * body, schema-bound, no object id — was misread as "empty", so the
+		 * create form opened ON TOP of the page's own content and could not be
+		 * dismissed without leaving the route (openbuild#174 follow-up).
+		 *
+		 * The scoped slot is INVOKED rather than merely tested for existence:
+		 * Vue 2.6 exposes normal slots on `$scopedSlots` too, so presence alone
+		 * would be true for a whitespace-only slot and would silently disable
+		 * the create archetype for pages that legitimately want it.
+		 *
+		 * @return {boolean} True when a non-empty body was supplied.
 		 */
 		hasDefaultSlotContent() {
-			const nodes = this.$slots.default
-			if (!nodes || !nodes.length) return false
-			return nodes.some((vnode) => !(vnode.text !== undefined && vnode.text.trim() === ''))
+			const meaningful = (nodes) => Array.isArray(nodes)
+				&& nodes.some((vnode) => vnode
+					&& !(vnode.text !== undefined && String(vnode.text).trim() === ''))
+
+			if (meaningful(this.$slots.default)) {
+				return true
+			}
+
+			const scoped = this.$scopedSlots && this.$scopedSlots.default
+			if (typeof scoped !== 'function') {
+				return false
+			}
+
+			try {
+				// The default slot is rendered as a bare `<slot />` — it binds no
+				// props, so it is probed with none.
+				return meaningful(scoped())
+			} catch (e) {
+				// A slot that throws when probed is still content; let the real
+				// render surface the error rather than silently create-moding.
+				return true
+			}
 		},
 
 		/**
