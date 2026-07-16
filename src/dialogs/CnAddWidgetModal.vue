@@ -41,6 +41,7 @@
 				:key="state.type"
 				:editing-widget="state.editingWidget"
 				:value="state.content"
+				:file-upload-fn="fileUploadFn"
 				:calendars-fetcher="calendarsFetcher"
 				@update:content="onContentUpdate" />
 		</div>
@@ -93,12 +94,12 @@
 		</div>
 
 		<template #actions>
-			<NcButton type="tertiary" @click="onCancel">
+			<NcButton type="tertiary" :disabled="submitting" @click="onCancel">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
 				type="primary"
-				:disabled="!isValid"
+				:disabled="!isValid || submitting"
 				:title="firstError || ''"
 				data-testid="add-widget-save"
 				@click="onSubmit">
@@ -175,12 +176,29 @@ export default {
 		},
 		/**
 		 * Optional upload transport for the Appearance icon picker:
-		 * `async (file) => dataUrlOrUrl`. When null, the upload control is hidden
-		 * and the picker still offers its catalogues, NL sets, and a URL field.
+		 * `async (dataUrl: string) => ({ url })`. The icon picker reads the chosen
+		 * file to a data URL and passes that string here. When null, the upload
+		 * control is hidden and the picker still offers its catalogues, NL sets,
+		 * and a URL field.
 		 *
 		 * @type {Function|null}
 		 */
 		uploadFn: {
+			type: Function,
+			default: null,
+		},
+		/**
+		 * Optional raw-file upload transport forwarded to the active sub-form as
+		 * its `file-upload-fn`: `async (file: File) => ({ url })`. Deliberately a
+		 * separate prop from `uploadFn` (which the icon picker calls with a data
+		 * URL) so the File-typed transport can never reach a sub-form that expects
+		 * a data URL (e.g. `CnHeaderWidgetForm.uploadFn`). Sub-forms such as the
+		 * image widget defer the upload to submit and hand over the raw `File`.
+		 * When null, sub-forms fall back to their own no-transport behaviour.
+		 *
+		 * @type {Function|null}
+		 */
+		fileUploadFn: {
 			type: Function,
 			default: null,
 		},
@@ -254,6 +272,9 @@ export default {
 			// Widget chrome (title / background / icon) edited in the same modal
 			// as the per-type content and emitted back under `payload.chrome`.
 			chrome: { showTitle: true, customTitle: '', backgroundColor: '', customIcon: '' },
+			// True while the sub-form's commit() (e.g. an image upload) runs on
+			// submit, so both footer buttons disable and the label shows progress.
+			submitting: false,
 		}
 	},
 
@@ -323,8 +344,13 @@ export default {
 		 * Submit button label — flips between Add and Save based on edit mode.
 		 *
 		 * @return {string} the localised submit label.
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		submitLabel() {
+			if (this.submitting) {
+				return t('nextcloud-vue', 'Uploading…')
+			}
 			return this.editingWidget ? t('nextcloud-vue', 'Save') : t('nextcloud-vue', 'Add')
 		},
 
@@ -527,36 +553,68 @@ export default {
 
 		/**
 		 * Cancel button / backdrop / NcModal `close` event — non-destructive,
-		 * never emits submit.
+		 * never emits submit. Suppressed while a sub-form `commit()` (e.g. an
+		 * image upload) is in flight so dismissing the dialog can't unmount the
+		 * sub-form mid-upload (which would orphan the upload and write into a
+		 * destroyed instance).
 		 *
 		 * @return {void}
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		onCancel() {
+			if (this.submitting) {
+				return
+			}
 			this.$emit('close')
 		},
 
 		/**
 		 * Esc-key fallback listener (in case NcModal's own handler is
 		 * suppressed by a parent focus-trap). Emits `close`, never `submit`.
+		 * Suppressed while a commit() is in flight (see {@link onCancel}).
 		 *
 		 * @param {KeyboardEvent} event the keydown event.
 		 * @return {void}
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		onKeydown(event) {
+			if (this.submitting) {
+				return
+			}
 			if (this.show && event.key === 'Escape') {
 				this.$emit('close')
 			}
 		},
 
 		/**
-		 * Build the `{type, content}` payload via the composable's
-		 * `assembleContent()` and emit it. Performs no API and no grid calls.
+		 * Commit the active sub-form (e.g. upload a pending image), then build
+		 * the `{type, content}` payload via the composable's `assembleContent()`
+		 * and emit it. The commit is the only step that can hit the network; a
+		 * commit failure keeps the modal open and blocks the `submit` emit.
 		 *
-		 * @return {void}
+		 * @return {Promise<void>} resolves once submit is emitted or aborted.
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
-		onSubmit() {
-			if (!this.isValid) {
+		async onSubmit() {
+			if (!this.isValid || this.submitting) {
 				return
+			}
+			const subForm = this.$refs.activeSubForm
+			if (subForm && typeof subForm.commit === 'function') {
+				this.submitting = true
+				try {
+					await subForm.commit()
+				} catch (error) {
+					// The sub-form surfaces its own inline error; keep the modal
+					// open so the author can retry or pick another file.
+					console.error('[CnAddWidgetModal] Widget commit failed:', error)
+					return
+				} finally {
+					this.submitting = false
+				}
 			}
 			const payload = this.form.assembleContent(this.$refs.activeSubForm)
 			// Carry the chrome (title / background / icon) alongside the content
