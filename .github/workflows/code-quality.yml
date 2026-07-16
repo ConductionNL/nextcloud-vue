@@ -37,6 +37,12 @@ jobs:
       - name: JSDoc completeness ratchet
         run: npm run check:jsdoc
 
+      # Pluggable integration registry parity gate (AD-11/AD-13).
+      # Fails the build if any integration descriptor shipped in
+      # src/integrations/ is missing its `tab` or `widget` component.
+      - name: Integration parity gate
+        run: npm run check:integration-parity
+
       # G1 — Phase 2.5 of the unify-component-docs change.
       # Fails the build if a SFC change wasn't accompanied by regenerating
       # the auto-doc partial via vue-docgen-cli. Run docusaurus's prebuild
