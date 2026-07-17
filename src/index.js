@@ -239,7 +239,16 @@ export {
 } from './components/index.js'
 
 // AI Chat Companion component family
-export { CnAiCompanion, CnAiFloatingButton, CnAiChatPanel, CnAiMessageList, CnAiInput } from './components/CnAiCompanion/index.js'
+export {
+	CnAiCompanion,
+	CnAiFloatingButton,
+	CnAiChatPanel,
+	CnAiMessageList,
+	CnAiInput,
+	CnAiAgentPicker,
+	CnAiRecentSessions,
+	CnAiHistoryList,
+} from './components/CnAiCompanion/index.js'
 export { default as CnAiHistoryDialog } from './dialogs/CnAiHistoryDialog.vue'
 
 // Generic dialogs (NcDialog-based, one file per dialog — modal-isolation rule)
