@@ -2,9 +2,10 @@
 
 ### Props
 
-| Name       | Type      | Required | Default | Description                                                     |
-| ---------- | --------- | -------- | ------- | --------------------------------------------------------------- |
-| `disabled` | `boolean` |          | `false` | Whether the input controls are disabled (e.g. while streaming). |
+| Name        | Type      | Required | Default               | Description                                                                                                                                                       |
+| ----------- | --------- | -------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `disabled`  | `boolean` |          | `false`               | Whether the input controls are disabled (e.g. while streaming).                                                                                                   |
+| `chatAppId` | `string`  |          | `DEFAULT_CHAT_APP_ID` | Backend app id the attach control uploads files to (`POST /index.php/apps/{chatAppId}/api/chat/attachments`). See composables/aiChatConfig.js `attachmentsUrl()`. |
 
 ### Events
 

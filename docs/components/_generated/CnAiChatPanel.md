@@ -11,9 +11,9 @@
 
 ### Events
 
-| Name                | Payload     | Description |
-| ------------------- | ----------- | ----------- |
-| `close`             | —           |             |
-| `send`              | `undefined` |             |
-| `new-thread`        | —           |             |
-| `load-conversation` | —           |             |
+| Name                | Payload                  | Description |
+| ------------------- | ------------------------ | ----------- |
+| `close`             | —                        |             |
+| `send`              | `undefined`, `undefined` |             |
+| `new-thread`        | —                        |             |
+| `load-conversation` | —                        |             |

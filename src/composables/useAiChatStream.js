@@ -253,6 +253,11 @@ export function useAiChatStream(contextInstance, options = {}) {
 	 * @param {string} [options.agentUuid] - Agent to start a *new* conversation with
 	 *   (agent-picker selection). Ignored server-side once a conversation uuid is
 	 *   resolved — safe to pass on every call.
+	 * @param {Array<{path: string, name: string}>} [options.attachments] - Files
+	 *   already uploaded via the attachments endpoint (see aiChatConfig.js
+	 *   `attachmentsUrl()`), to be read by the backend from `body.attachments`.
+	 *   Omitted from the request body entirely when empty so existing backends
+	 *   that don't yet read the key see no change to the payload shape.
 	 * @returns {Promise<void>} Resolves on "final", rejects on "error" or abort
 	 */
 	function send(content, options = {}) {
@@ -295,6 +300,12 @@ export function useAiChatStream(contextInstance, options = {}) {
 			conversation: activeConversationUuid,
 			conversationUuid: activeConversationUuid,
 			agentUuid: options.agentUuid || '',
+		}
+		// Only add the key when there's something to send — keeps the payload
+		// shape unchanged (and any backend not yet reading `attachments`
+		// unaffected) for the common no-attachment turn.
+		if (Array.isArray(options.attachments) && options.attachments.length > 0) {
+			body.attachments = options.attachments
 		}
 
 		abortController = new AbortController()
