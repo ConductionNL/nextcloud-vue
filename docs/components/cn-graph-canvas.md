@@ -14,27 +14,69 @@ Extracted from procest's `WorkflowEditor.vue`, the only canvas in the fleet that
 
 ## Try it
 
+Drag a node. Drag from a node's handle onto another node to connect them. Scroll
+to zoom, drag empty space to pan. Focus a node and use the arrow keys.
+
 ```vue
-<CnGraphCanvas
-  :nodes="[
-    { id: 'draft',    x: 100, y: 100, label: 'Draft' },
-    { id: 'review',   x: 400, y: 100, label: 'In review' },
-    { id: 'approved', x: 700, y: 260, label: 'Approved' },
-  ]"
-  :edges="[
-    { id: 'e1', source: 'draft',  target: 'review' },
-    { id: 'e2', source: 'review', target: 'approved' },
-  ]"
-  :selected-node-id="selectedId"
-  @node-move="onNodeMove"
-  @connect="onConnect"
-  @node-select="selectedId = $event"
-  @canvas-click="selectedId = null">
-  <template #node="{ node, selected }">
-    <MyStatusNode :status="node.data" :selected="selected" />
-  </template>
-</CnGraphCanvas>
+<template>
+  <div style="height: 420px; border: 1px solid var(--color-border);">
+    <CnGraphCanvas
+      :nodes="nodes"
+      :edges="edges"
+      :selected-node-id="selectedId"
+      :zoom.sync="zoom"
+      @node-move="onNodeMove"
+      @connect="onConnect"
+      @node-select="selectedId = $event"
+      @canvas-click="selectedId = null">
+      <template #node="{ node, selected }">
+        <div style="padding: 8px;">
+          <strong>{{ node.label }}</strong>
+          <div style="color: var(--color-text-maxcontrast); font-size: 0.8em;">
+            {{ Math.round(node.x) }}, {{ Math.round(node.y) }}
+          </div>
+        </div>
+      </template>
+    </CnGraphCanvas>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      selectedId: null,
+      zoom: 1,
+      nodes: [
+        { id: 'draft', x: 60, y: 60, label: 'Draft' },
+        { id: 'review', x: 340, y: 60, label: 'In review' },
+        { id: 'approved', x: 340, y: 220, label: 'Approved' },
+      ],
+      edges: [
+        { id: 'e1', source: 'draft', target: 'review' },
+      ],
+    }
+  },
+  methods: {
+    // Positions are owned by the consumer — the canvas only reports intent.
+    onNodeMove({ id, x, y }) {
+      const node = this.nodes.find((n) => n.id === id)
+      if (node) { this.$set(node, 'x', x); this.$set(node, 'y', y) }
+    },
+    onConnect({ source, target }) {
+      const id = `${source}-${target}`
+      if (!this.edges.some((e) => e.id === id)) {
+        this.edges.push({ id, source, target })
+      }
+    },
+  },
+}
+</script>
 ```
+
+In a real editor the `node` slot renders your own component — a status card, a
+step row — and `onNodeMove` / `onConnect` persist through your store instead of
+mutating local state.
 
 ## Coordinates
 
