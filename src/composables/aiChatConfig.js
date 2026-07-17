@@ -101,3 +101,54 @@ export function conversationsUrl(appId) {
 export function conversationMessagesUrl(appId, conversationUuid) {
 	return `${chatApiBase(appId)}/conversations/${conversationUuid}/messages`
 }
+
+/**
+ * Single conversation endpoint (`GET`/`PATCH`/`DELETE`) — used by the History
+ * UI to rename a conversation and set its description (both backends' Conversation
+ * controller accept `title` and `metadata` on PATCH; `metadata.description` is
+ * where the free-text description is stored since the conversation schema has
+ * no dedicated description column).
+ *
+ * @param {string} [appId] Backend app id.
+ * @param {string} conversationUuid Conversation UUID.
+ * @return {string}
+ */
+export function conversationUrl(appId, conversationUuid) {
+	return `${chatApiBase(appId)}/conversations/${conversationUuid}`
+}
+
+/**
+ * Agent list endpoint (`GET`) — used by the agent picker shown when starting
+ * a new conversation.
+ *
+ * @param {string} [appId] Backend app id.
+ * @return {string}
+ */
+export function agentsUrl(appId) {
+	return `${chatApiBase(appId)}/agents`
+}
+
+/**
+ * Normalize a raw conversation object (the shape returned by the
+ * `conversationsUrl()` / `conversationUrl()` endpoints) into the flat shape the
+ * AI Chat Companion's recent-sessions and history UI consume: a `title`, a
+ * `description` read from `metadata.description` (the free-text field the
+ * History UI's rename/describe control writes), the raw `metadata` object
+ * (preserved so a rename PATCH never drops unrelated metadata keys, e.g. the
+ * archive marker), and both timestamp fields.
+ *
+ * @param {object} raw Raw conversation object from the conversations API.
+ * @return {{uuid: string, title: string, description: string, metadata: object, updatedAt: (string|undefined), createdAt: (string|undefined)}}
+ */
+export function normalizeConversation(raw) {
+	const source = raw || {}
+	const metadata = (source.metadata && typeof source.metadata === 'object') ? source.metadata : {}
+	return {
+		uuid: source.uuid || source.id,
+		title: source.title || '',
+		description: (typeof metadata.description === 'string') ? metadata.description : '',
+		metadata,
+		updatedAt: source.updatedAt || source.updated || source.created,
+		createdAt: source.createdAt || source.created,
+	}
+}

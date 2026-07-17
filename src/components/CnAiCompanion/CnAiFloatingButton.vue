@@ -2,7 +2,10 @@
   CnAiFloatingButton — Conduction-Cobalt hex FAB for the AI Chat Companion.
 
   Shape: pointy-top point-up hexagon (Conduction brand rule — never rotated, never flat-top).
-  Background: solid Conduction Cobalt (#4376fc); hover (#2e5ed9). No gradients (brand rule).
+  Background: solid Conduction Cobalt (#21468B); hover (#1a3670). No gradients (brand rule).
+  NB: #4376FC is the DEPRECATED "Legacy" brand blue, not Cobalt — it reads as
+  cloud/SaaS and fails AA for body text, which is exactly why Cobalt replaced it
+  (identity.conduction.nl/colors). Do not reintroduce it here.
   Icon: Material Design "Creation" (the two-stars AI sparkles), rendered in white.
   Default position: bottom-right (right: 24px; bottom: 24px). Overridable via prop.
   Keyboard accessible (Tab + Enter/Space). Respects prefers-reduced-motion.
@@ -102,7 +105,7 @@ export default {
 	justify-content: center !important;
 	width: 100% !important;
 	height: 100% !important;
-	background: #4376fc !important; /* Conduction Cobalt — conduction.color.primary */
+	background: #21468B !important; /* Conduction Cobalt — identity.conduction.nl/colors */
 	clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%) !important;
 	border-radius: 0 !important;
 	filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.25));
@@ -116,7 +119,7 @@ export default {
 
 .cn-ai-floating-button:hover .cn-ai-floating-button__hex,
 .cn-ai-floating-button:focus-visible .cn-ai-floating-button__hex {
-	background: #2e5ed9; /* Conduction Cobalt hover — conduction.color.primary-hover */
+	background: #1a3670; /* Conduction Cobalt, darkened for hover */
 }
 
 .cn-ai-floating-button:hover,
