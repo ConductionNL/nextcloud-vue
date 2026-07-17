@@ -209,6 +209,36 @@ describe('CnAddWidgetModal', () => {
 		})
 	})
 
+	it('edit-open: Save stays disabled until a chrome-only change (e.g. Show title)', async () => {
+		// Regression: the modal instance persists across open/close (`:show`
+		// toggles it), so `mounted()`'s one-time revalidation does not fire on a
+		// later edit-open. The gate must (a) become valid on open without a form
+		// input, and (b) require an actual change — including a chrome-only one
+		// like toggling "Show title" — before enabling Save.
+		const { CnAddWidgetModal } = loadModal({
+			label: { form: fakeForm({ errors: [], assembled: { text: 'hi' } }) },
+		})
+		// Mount closed so mounted() runs while there is no active sub-form.
+		const wrapper = mount(CnAddWidgetModal, { propsData: { show: false } })
+		await wrapper.vm.$nextTick()
+		// Open in edit mode via the `show` watcher (not initial mount).
+		wrapper.setProps({ show: true, editingWidget: { type: 'label', content: { text: 'hi' } } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		// Valid, but unchanged → Save disabled.
+		expect(wrapper.vm.isValid).toBe(true)
+		expect(wrapper.vm.isDirty).toBe(false)
+		expect(wrapper.find('[data-testid="add-widget-save"]').attributes('disabled')).toBeDefined()
+
+		// Toggling chrome only (no form input) is recognised as a change.
+		wrapper.vm.chrome.showTitle = !wrapper.vm.chrome.showTitle
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.isDirty).toBe(true)
+		expect(wrapper.vm.canSubmit).toBe(true)
+		expect(wrapper.find('[data-testid="add-widget-save"]').attributes('disabled')).toBeUndefined()
+	})
+
 	it('preselectedType hides the picker and opens directly on that type', () => {
 		const { CnAddWidgetModal } = loadModal({
 			label: { displayName: 'Label' },

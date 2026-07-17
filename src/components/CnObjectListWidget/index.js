@@ -21,7 +21,7 @@ registerDashboardWidget('object-list', {
 		filter: {},
 		sort: { field: '', dir: 'asc' },
 		limit: 5,
-		columns: [{ key: 'title', label: 'Title' }],
+		columns: [],
 	},
 	displayName: 'Object list',
 	icon: 'ClipboardList',

@@ -99,7 +99,7 @@
 			</NcButton>
 			<NcButton
 				type="primary"
-				:disabled="!isValid || submitting"
+				:disabled="!canSubmit || submitting"
 				:title="firstError || ''"
 				data-testid="add-widget-save"
 				@click="onSubmit">
@@ -267,6 +267,10 @@ export default {
 			// on every keystroke; we bump this counter in the handler so the
 			// computed re-runs.
 			validationTick: 0,
+			// Snapshot of the assembled content + chrome captured when the modal
+			// opens; `isDirty` compares the live values against it so editing an
+			// existing widget only enables Save once something actually changed.
+			initialSnapshot: '',
 			titleId: `cn-add-widget-modal-title-${++titleIdCounter}`,
 			typeSelectId: `cn-add-widget-modal-type-${++selectIdCounter}`,
 			// Widget chrome (title / background / icon) edited in the same modal
@@ -377,6 +381,35 @@ export default {
 		},
 
 		/**
+		 * Whether the content or chrome differs from the snapshot taken when the
+		 * modal opened. Depends on `chrome` (via the snapshot's JSON) and the
+		 * `validationTick` (bumped on every sub-form `update:content`) so it
+		 * re-runs on both chrome and form-field edits.
+		 *
+		 * @return {boolean} true when something changed since open.
+		 */
+		isDirty() {
+			// touch the tick so content edits re-run this computed
+			// eslint-disable-next-line no-unused-expressions
+			this.validationTick
+			return this.currentSnapshot() !== this.initialSnapshot
+		},
+
+		/**
+		 * Whether Save is allowed: the form must be valid, and — when editing an
+		 * existing widget — something must have changed. Create mode may submit
+		 * the (valid) defaults straight away.
+		 *
+		 * @return {boolean} true when the submit button is enabled.
+		 */
+		canSubmit() {
+			if (!this.isValid) {
+				return false
+			}
+			return !this.editingWidget || this.isDirty
+		},
+
+		/**
 		 * The first user-visible validation error (hides the internal
 		 * `__no-active-form__` sentinel).
 		 *
@@ -466,14 +499,34 @@ export default {
 			if (this.editingWidget) {
 				this.form.loadEditingWidget(this.editingWidget)
 				this.seedChrome(this.editingWidget)
-				return
+			} else {
+				const initialType = this.preselectedType
+					|| this.availableTypes[0]
+					|| ''
+				this.form.resetForm(initialType)
+				this.seedChrome(null)
 			}
-			const initialType = this.preselectedType
-				|| this.availableTypes[0]
-				|| ''
-			this.form.resetForm(initialType)
-			this.seedChrome(null)
+			// Revalidate on every open (the modal instance persists across
+			// open/close, so `mounted()`'s one-time bump doesn't fire again).
+			// Bump synchronously and again once the sub-form has (re)mounted and
+			// its `$refs.activeSubForm` is bound — otherwise the submit gate stays
+			// stale in edit mode until the user touches a form field. The nextTick
+			// pass also captures the pristine snapshot `isDirty` compares against.
 			this.validationTick++
+			this.$nextTick(() => {
+				this.validationTick++
+				this.initialSnapshot = this.currentSnapshot()
+			})
+		},
+
+		/**
+		 * Serialise the current assembled content + chrome for dirty comparison.
+		 *
+		 * @return {string} a stable JSON snapshot of the editable state.
+		 */
+		currentSnapshot() {
+			const { content } = this.form.assembleContent(this.$refs.activeSubForm)
+			return JSON.stringify({ content, chrome: this.chrome })
 		},
 
 		/**
