@@ -130,7 +130,14 @@
 					class="cn-files-widget__row-name"
 					@click="onItemClick(item)">
 					<span aria-hidden="true" class="cn-files-widget__row-icon">
-						{{ item.isFolder ? '📁' : '📄' }}
+						<img
+							v-if="showThumbnails && !item.isFolder && item.thumbnailUrl && !failedThumbs[item.fileId]"
+							:src="item.thumbnailUrl"
+							alt=""
+							class="cn-files-widget__row-thumb"
+							loading="lazy"
+							@error="onThumbError(item)">
+						<template v-else>{{ item.isFolder ? '📁' : '📄' }}</template>
 					</span>
 					<span class="cn-files-widget__row-label">{{ item.name }}</span>
 				</button>
@@ -299,6 +306,9 @@ export default {
 			nextCursor: null,
 			searchQuery: '',
 			confirmTarget: null,
+			// fileId → true for thumbnails whose <img> failed to load, so the
+			// row falls back to the generic icon instead of a broken image.
+			failedThumbs: {},
 			// Whether a file drag is currently hovering the widget (drop overlay).
 			isDragging: false,
 			// Depth counter so nested dragenter/dragleave don't flicker the overlay.
@@ -392,6 +402,17 @@ export default {
 		 */
 		viewMode() {
 			return this.content?.viewMode === 'grid' ? 'grid' : 'list'
+		},
+
+		/**
+		 * Whether file rows show a preview thumbnail (from `content.showThumbnails`).
+		 * Defaults to on; only an explicit `false` disables it. Files without a
+		 * backend-provided `thumbnailUrl` still fall back to the generic icon.
+		 *
+		 * @return {boolean} `true` unless `content.showThumbnails` is explicitly false.
+		 */
+		showThumbnails() {
+			return this.content?.showThumbnails !== false
 		},
 
 		/**
@@ -602,15 +623,25 @@ export default {
 				const results = Array.isArray(data)
 					? data
 					: (Array.isArray(data.results) ? data.results : [])
-				this.items = results.map((file) => ({
-					name: file.name || file.title || '',
-					fileId: file.id,
-					isFolder: false,
-					size: file.size,
-					modifiedAt: file.modified || file.updated || '',
-					canEdit: true,
-					canDelete: this.allowDelete,
-				}))
+				this.items = results.map((file) => {
+					const mime = file.mimeType || file.mimetype || file.type || ''
+					// The object-file endpoint returns no preview URL, so build one
+					// for images from the file id (other types get the generic icon;
+					// a missing preview falls back via the <img> @error handler).
+					const thumbnailUrl = (file.id && /^image\//.test(mime))
+						? generateUrl('/core/preview?fileId={fileId}&x=256&y=256&a=1', { fileId: file.id })
+						: null
+					return {
+						name: file.name || file.title || '',
+						fileId: file.id,
+						isFolder: false,
+						size: file.size,
+						modifiedAt: file.modified || file.updated || '',
+						thumbnailUrl,
+						canEdit: true,
+						canDelete: this.allowDelete,
+					}
+				})
 				this.nextCursor = null
 			} catch (err) {
 				const status = err?.response?.status
@@ -724,6 +755,18 @@ export default {
 		 */
 		canDeleteItem(item) {
 			return this.allowDelete === true && item.canDelete === true
+		},
+
+		/**
+		 * Mark an item's thumbnail as failed so the row falls back to the
+		 * generic icon. Fires when the preview `<img>` cannot load (e.g. the
+		 * preview was not generated in time).
+		 *
+		 * @param {object} item the item whose thumbnail failed.
+		 * @return {void}
+		 */
+		onThumbError(item) {
+			this.$set(this.failedThumbs, item.fileId, true)
 		},
 
 		/**
@@ -1092,6 +1135,23 @@ export default {
 	min-width: 0;
 }
 
+.cn-files-widget__row-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 24px;
+	height: 24px;
+}
+
+.cn-files-widget__row-thumb {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	border-radius: var(--border-radius);
+	background-color: var(--color-background-dark);
+}
+
 .cn-files-widget__row-label {
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -1145,6 +1205,8 @@ export default {
 
 .cn-files-widget__list--grid .cn-files-widget__row-icon {
 	font-size: 32px;
+	width: 56px;
+	height: 56px;
 }
 
 /* Keep tiles compact — the modified date is list-view detail. */

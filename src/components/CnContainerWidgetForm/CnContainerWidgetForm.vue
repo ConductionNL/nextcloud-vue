@@ -5,6 +5,11 @@
 
 <template>
 	<div class="cn-container-form">
+		<!-- NOTE: adding/arranging child widgets inside a container is NOT
+		     implemented yet — that logic does not exist. This hint describes
+		     the intended behaviour, but there is currently no way to add a
+		     widget to a container (no drop-into-container, no add action, and
+		     inner move/resize does not persist). -->
 		<p class="cn-container-form__hint">
 			{{ t('nextcloud-vue', 'A container holds a sub-grid of child widgets. Add child widgets via the container’s own grid once it is on the dashboard.') }}
 		</p>

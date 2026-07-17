@@ -1,14 +1,36 @@
 /**
  * Tests for the `files` dashboard widget form + registration completion
  * (cn-widget-library Wave 1). The renderer already existed; this covers the
- * new form and the now-present registry entry after importing the renderer's
- * self-registering index.
+ * form (now folder-picker driven) and the registry entry after importing the
+ * renderer's self-registering index.
  */
 
 import { mount } from '@vue/test-utils'
 import CnFilesWidgetForm from '@/components/CnFilesWidgetForm/CnFilesWidgetForm.vue'
 
+// The folder picker is driven by @nextcloud/dialogs' builder. Mock it so the
+// builder chain is inert and `pickNodes()` resolves with a canned node.
+// Must be `mock`-prefixed so jest allows the hoisted factory to reference it.
+const mockPickNodes = jest.fn()
+jest.mock('@nextcloud/dialogs', () => ({
+	getFilePickerBuilder: jest.fn(() => {
+		const builder = {
+			setMultiSelect: () => builder,
+			setMimeTypeFilter: () => builder,
+			allowDirectories: () => builder,
+			startAt: () => builder,
+			addButton: () => builder,
+			build: () => ({ pickNodes: mockPickNodes }),
+		}
+		return builder
+	}),
+}))
+
 describe('CnFilesWidgetForm', () => {
+	beforeEach(() => {
+		mockPickNodes.mockReset()
+	})
+
 	it('emits the assembled shape on a folder-path edit', () => {
 		const wrapper = mount(CnFilesWidgetForm)
 		wrapper.vm.updateField('folderPath', '/Documents')
@@ -32,10 +54,25 @@ describe('CnFilesWidgetForm', () => {
 		expect(wrapper.vm.validate()).toEqual([])
 	})
 
-	it('coerces a fileId from the text field', () => {
+	it('sets folderPath and fileId from the picked folder node', async () => {
+		mockPickNodes.mockResolvedValue([{ path: '/Docs', fileid: 42 }])
 		const wrapper = mount(CnFilesWidgetForm)
-		wrapper.vm.updateFileId('42')
+		await wrapper.vm.openFolderPicker()
+		expect(wrapper.vm.folderPath).toBe('/Docs')
 		expect(wrapper.vm.fileId).toBe(42)
+		const events = wrapper.emitted('update:content')
+		const payload = events[events.length - 1][0]
+		expect(payload).toMatchObject({ folderPath: '/Docs', fileId: 42 })
+	})
+
+	it('leaves the selection untouched when the picker is cancelled', async () => {
+		mockPickNodes.mockRejectedValue(new Error('FilePicker: No nodes selected'))
+		const wrapper = mount(CnFilesWidgetForm, {
+			propsData: { value: { folderPath: '/Keep', fileId: 7 } },
+		})
+		await wrapper.vm.openFolderPicker()
+		expect(wrapper.vm.folderPath).toBe('/Keep')
+		expect(wrapper.vm.fileId).toBe(7)
 	})
 })
 
