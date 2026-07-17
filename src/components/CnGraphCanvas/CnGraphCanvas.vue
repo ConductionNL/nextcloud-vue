@@ -31,8 +31,17 @@ edges will attach off-centre.
 ### Accessibility
 
 A drag-only canvas is not keyboard-operable (WCAG 2.1 AA 2.1.1). Nodes are
-focusable and can be moved with the arrow keys (Shift = coarse step). A canvas
-must not be a consumer's only authoring surface.
+focusable; arrow keys move a focused node (Shift = coarse step); and a
+connection can be made without a mouse — press `c` on a focused node to start a
+connection, then `c` on another node to complete it (`Escape` cancels). A
+canvas must not be a consumer's only authoring surface.
+
+### Adding nodes from a palette
+
+Bind `@canvas-drop`: it fires on an HTML5 drop with the drop point already
+converted to canvas space (undoing pan and zoom), plus the native event so you
+can read `dataTransfer`. The consumer creates the node — the canvas never adds
+one itself, mirroring how it never mutates positions.
 
 ```vue
 <CnGraphCanvas
@@ -58,7 +67,9 @@ must not be a consumer's only authoring surface.
 			@mousemove="onCanvasMouseMove"
 			@mouseup="onCanvasMouseUp"
 			@mouseleave="onCanvasMouseUp"
-			@wheel="onCanvasWheel">
+			@wheel="onCanvasWheel"
+			@dragover="onDragOver"
+			@drop="onDrop">
 			<div class="cn-graph-canvas__world" :style="worldStyle">
 				<!-- Edge layer. Sits under the nodes so node bodies stay clickable. -->
 				<svg class="cn-graph-canvas__svg" :viewBox="viewBox">
@@ -112,7 +123,10 @@ must not be a consumer's only authoring surface.
 				<div v-for="node in nodes"
 					:key="node.id"
 					class="cn-graph-canvas__node"
-					:class="{ 'cn-graph-canvas__node--selected': node.id === selectedNodeId }"
+					:class="{
+						'cn-graph-canvas__node--selected': node.id === selectedNodeId,
+						'cn-graph-canvas__node--connect-source': pendingConnectSource === node.id,
+					}"
 					:style="nodeStyle(node)"
 					tabindex="0"
 					role="button"
@@ -136,7 +150,7 @@ must not be a consumer's only authoring surface.
 					<!-- Connection handle. Hidden when the canvas is not connectable. -->
 					<button v-if="connectable && !readOnly"
 						class="cn-graph-canvas__handle"
-						:aria-label="t('nextcloud-vue', 'Start a connection from this node')"
+						:aria-label="t('nextcloud-vue', 'Drag to connect, or press c to connect with the keyboard')"
 						@mousedown.stop="onConnectionStart(node, $event)"
 						@click.stop />
 				</div>
@@ -152,6 +166,8 @@ import { translate as t } from '@nextcloud/l10n'
 const KEY_STEP = 10
 /** Coarse keyboard nudge (Shift), in canvas units. */
 const KEY_STEP_COARSE = 50
+/** Key that starts/completes a keyboard-driven connection. */
+const CONNECT_KEY = 'c'
 
 /**
  * CnGraphCanvas — generic node/edge canvas (geometry + interaction only).
@@ -290,6 +306,8 @@ export default {
 			panOffset: { x: 0, y: 0 },
 			/** @type {{x: number, y: number}} Pan gesture origin. */
 			panStart: { x: 0, y: 0 },
+			/** @type {string|null} Source node id of a keyboard connection in progress. */
+			pendingConnectSource: null,
 		}
 	},
 
@@ -544,8 +562,26 @@ export default {
 		 * @return {void}
 		 */
 		onNodeKeydown(node, event) {
+			if (this.readOnly) return
+
+			// Escape cancels a keyboard connection in progress.
+			if (event.key === 'Escape' && this.pendingConnectSource !== null) {
+				event.preventDefault()
+				this.pendingConnectSource = null
+				return
+			}
+
+			// `c` starts a connection from the focused node, or completes one
+			// started earlier — the keyboard equivalent of dragging a handle, so
+			// connecting is not mouse-only (WCAG 2.1 AA 2.1.1).
+			if (event.key === CONNECT_KEY && this.connectable) {
+				event.preventDefault()
+				this.onConnectKey(node)
+				return
+			}
+
 			const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']
-			if (!keys.includes(event.key) || this.readOnly) return
+			if (!keys.includes(event.key)) return
 			event.preventDefault()
 			const step = event.shiftKey ? KEY_STEP_COARSE : KEY_STEP
 			const dx = (event.key === 'ArrowLeft' ? -step : 0) + (event.key === 'ArrowRight' ? step : 0)
@@ -555,6 +591,60 @@ export default {
 				x: Math.max(0, node.x + dx),
 				y: Math.max(0, node.y + dy),
 			})
+		},
+
+		/**
+		 * Handle the connect key on a focused node: arm a connection from it, or
+		 * complete one already armed from a different node.
+		 *
+		 * @param {object} node The focused node.
+		 * @return {void}
+		 */
+		onConnectKey(node) {
+			if (this.pendingConnectSource === null) {
+				this.pendingConnectSource = node.id
+				return
+			}
+			if (this.pendingConnectSource !== node.id) {
+				this.$emit('connect', { source: this.pendingConnectSource, target: node.id })
+			}
+			// Pressing `c` again on the source cancels; either way the pending
+			// state clears so the next `c` starts fresh.
+			this.pendingConnectSource = null
+		},
+
+		/**
+		 * Allow a drop by preventing the default, which is what makes the viewport
+		 * a valid HTML5 drop target for a palette drag.
+		 *
+		 * @param {DragEvent} event The dragover event.
+		 * @return {void}
+		 */
+		onDragOver(event) {
+			if (this.readOnly) return
+			event.preventDefault()
+		},
+
+		/**
+		 * Report a palette drop with the drop point in canvas space. The canvas
+		 * does not add a node itself — it hands the consumer coordinates it could
+		 * not compute alone (only the canvas knows its pan and zoom), mirroring how
+		 * it never mutates positions.
+		 *
+		 * @param {DragEvent} event The drop event.
+		 * @return {void}
+		 */
+		onDrop(event) {
+			if (this.readOnly) return
+			event.preventDefault()
+			const point = this.toCanvasPoint(event)
+			/**
+			 * @event canvas-drop Something was dropped onto the canvas. The
+			 * payload's `x`/`y` are in canvas space (pan and zoom undone); the
+			 * native `event` carries `dataTransfer`.
+			 * @type {{x: number, y: number, event: DragEvent}}
+			 */
+			this.$emit('canvas-drop', { x: point.x, y: point.y, event })
 		},
 	},
 }
@@ -629,6 +719,12 @@ export default {
 
 .cn-graph-canvas__node--selected {
 	border-color: var(--color-primary-element);
+}
+
+/* The armed source of a keyboard connection, so the pending state is visible. */
+.cn-graph-canvas__node--connect-source {
+	border-color: var(--color-primary-element);
+	border-style: dashed;
 }
 
 .cn-graph-canvas__node-fallback {

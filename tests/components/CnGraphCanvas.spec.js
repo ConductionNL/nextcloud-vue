@@ -171,6 +171,90 @@ describe('CnGraphCanvas', () => {
 		})
 	})
 
+	describe('keyboard connect', () => {
+		// Drag-to-connect is mouse-only; a keyboard user needs a path too (WCAG 2.1.1).
+		it('c on one node then c on another emits connect', () => {
+			const wrapper = mountCanvas()
+			wrapper.vm.onNodeKeydown(NODES[0], { key: 'c', preventDefault() {} })
+			expect(wrapper.vm.pendingConnectSource).toBe('a')
+			wrapper.vm.onNodeKeydown(NODES[1], { key: 'c', preventDefault() {} })
+			expect(wrapper.emitted('connect')[0][0]).toEqual({ source: 'a', target: 'b' })
+			// State clears so the next c starts fresh.
+			expect(wrapper.vm.pendingConnectSource).toBeNull()
+		})
+
+		it('c twice on the same node cancels instead of self-connecting', () => {
+			const wrapper = mountCanvas()
+			wrapper.vm.onNodeKeydown(NODES[0], { key: 'c', preventDefault() {} })
+			wrapper.vm.onNodeKeydown(NODES[0], { key: 'c', preventDefault() {} })
+			expect(wrapper.emitted('connect')).toBeFalsy()
+			expect(wrapper.vm.pendingConnectSource).toBeNull()
+		})
+
+		it('Escape cancels a connection in progress', () => {
+			const wrapper = mountCanvas()
+			wrapper.vm.onNodeKeydown(NODES[0], { key: 'c', preventDefault() {} })
+			wrapper.vm.onNodeKeydown(NODES[0], { key: 'Escape', preventDefault() {} })
+			expect(wrapper.vm.pendingConnectSource).toBeNull()
+			wrapper.vm.onNodeKeydown(NODES[1], { key: 'c', preventDefault() {} })
+			// After cancelling, c on b arms b — it does not complete a stale a→b.
+			expect(wrapper.emitted('connect')).toBeFalsy()
+			expect(wrapper.vm.pendingConnectSource).toBe('b')
+		})
+
+		it('does not connect when read-only', () => {
+			const wrapper = mountCanvas({ readOnly: true })
+			wrapper.vm.onNodeKeydown(NODES[0], { key: 'c', preventDefault() {} })
+			expect(wrapper.vm.pendingConnectSource).toBeNull()
+		})
+
+		it('does not connect when not connectable', () => {
+			const wrapper = mountCanvas({ connectable: false })
+			wrapper.vm.onNodeKeydown(NODES[0], { key: 'c', preventDefault() {} })
+			expect(wrapper.vm.pendingConnectSource).toBeNull()
+		})
+
+		it('the armed source node is visually marked', async () => {
+			const wrapper = mountCanvas()
+			wrapper.vm.onNodeKeydown(NODES[0], { key: 'c', preventDefault() {} })
+			await wrapper.vm.$nextTick()
+			expect(wrapper.findAll('.cn-graph-canvas__node').at(0).classes())
+				.toContain('cn-graph-canvas__node--connect-source')
+		})
+	})
+
+	describe('palette drop', () => {
+		it('emits canvas-drop with the point in canvas space', () => {
+			const wrapper = mountCanvas({ zoom: 2 }, { left: 0, top: 0 })
+			wrapper.setData({ panOffset: { x: 40, y: 20 } })
+			const event = { clientX: 240, clientY: 120, preventDefault() {} }
+			wrapper.vm.onDrop(event)
+			// (240 - 0 - 40) / 2 = 100 ; (120 - 0 - 20) / 2 = 50
+			const payload = wrapper.emitted('canvas-drop')[0][0]
+			expect(payload).toMatchObject({ x: 100, y: 50 })
+			// The native event is passed through so the consumer can read dataTransfer.
+			expect(payload.event).toBe(event)
+		})
+
+		it('does not emit a drop when read-only', () => {
+			const wrapper = mountCanvas({ readOnly: true })
+			wrapper.vm.onDrop({ clientX: 100, clientY: 100, preventDefault() {} })
+			expect(wrapper.emitted('canvas-drop')).toBeFalsy()
+		})
+
+		it('onDragOver prevents default only when editable', () => {
+			const wrapper = mountCanvas()
+			let prevented = false
+			wrapper.vm.onDragOver({ preventDefault() { prevented = true } })
+			expect(prevented).toBe(true)
+
+			const ro = mountCanvas({ readOnly: true })
+			let preventedRo = false
+			ro.vm.onDragOver({ preventDefault() { preventedRo = true } })
+			expect(preventedRo).toBe(false)
+		})
+	})
+
 	describe('accessibility', () => {
 		// A drag-only canvas is not keyboard-operable (WCAG 2.1 AA 2.1.1).
 		it('moves a focused node with the arrow keys', () => {

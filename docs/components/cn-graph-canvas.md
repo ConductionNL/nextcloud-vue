@@ -110,7 +110,8 @@ The canvas never mutates `nodes`. Dragging emits `node-move` with the intended p
 | Event | Payload | When |
 |---|---|---|
 | `node-move` | `{ id, x, y }` | A node was dragged, or nudged with the arrow keys. Clamped to the positive quadrant. |
-| `connect` | `{ source, target }` | A connection was released over a different node. Self-connections are refused. |
+| `connect` | `{ source, target }` | A connection was made — by dragging a handle onto a node, or with the keyboard (`c` on the source then `c` on the target). Self-connections are refused. |
+| `canvas-drop` | `{ x, y, event }` | Something was dropped onto the canvas. `x`/`y` are in canvas space (pan/zoom undone); `event` is the native `DragEvent`, so you can read `dataTransfer`. The canvas does not add the node — you do. |
 | `node-select` | `id` | A node was clicked or focused. |
 | `edge-select` | `id` | An edge was clicked (default edge rendering only). |
 | `canvas-click` | — | Empty canvas was clicked. Consumers usually clear selection. |
@@ -129,8 +130,9 @@ A drag-only canvas is not keyboard-operable — it fails WCAG 2.1 AA 2.1.1. So:
 
 - Nodes are focusable (`tabindex="0"`, `role="button"`, `aria-pressed` reflecting selection).
 - **Arrow keys move a focused node** (10 units); **Shift + arrow** takes a coarse step (50 units).
+- **`c` connects without a mouse**: press it on a focused node to start a connection, `c` on another node to complete it, `Escape` to cancel. The armed source node is marked while pending. This is the keyboard equivalent of dragging a handle.
 - `aria-label` comes from the node's `label`, falling back to its `id`.
-- Non-arrow keys are ignored, so inputs inside a node slot keep working.
+- Keys other than the arrows, `c`, and `Escape` are ignored, so inputs inside a node slot keep working.
 
 A canvas **must not be your only authoring surface**. Keep a list/form path for the same data.
 
