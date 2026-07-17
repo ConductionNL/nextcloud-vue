@@ -82,6 +82,20 @@ export function chatHealthUrl(appId) {
 }
 
 /**
+ * File attachment upload endpoint (`POST`, multipart/form-data, field `file`).
+ * Returns `{ path, name }` on success (200); rejects with 400 + `{ error }`
+ * for oversized (>20000 bytes) or non-UTF-8-decodable files. The returned
+ * `{ path, name }` is what the chat send/stream request body's `attachments`
+ * array carries — see `useAiChatStream.js`.
+ *
+ * @param {string} [appId] Backend app id.
+ * @return {string}
+ */
+export function attachmentsUrl(appId) {
+	return `${chatApiBase(appId)}/chat/attachments`
+}
+
+/**
  * Conversation list endpoint (`GET`).
  *
  * @param {string} [appId] Backend app id.

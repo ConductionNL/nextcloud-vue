@@ -9,13 +9,14 @@ Slide-out chat panel for the AI Chat Companion. Anchored to the right viewport e
 | `visible` | `boolean` | `false` | Controls panel visibility. The panel transitions in from the right when set to `true`. |
 | `streamState` | `object` | required | Reactive state object from `useAiChatStream().state`. Contains `isStreaming`, `currentText`, `toolCalls`, `error`, `messages`. |
 | `fabRef` | `object` | `null` | Ref to the FAB element. Focus is returned here on close (WCAG 2.4.3). |
+| `chatAppId` | `string` | `'hermiq'` | Backend app id, forwarded to the agent picker, recent sessions, history list, and `CnAiInput`'s attach control. See `composables/aiChatConfig.js`. |
 
 ## Events
 
 | Event | Payload | Description |
 |---|---|---|
 | `close` | — | Emitted on Close button click, Escape key, or outside-click with empty input |
-| `send` | `string` | Forwarded from `CnAiInput` |
+| `send` | `(text: string, agentUuid: string, attachments: Array<{path: string, name: string}>)` | Re-emitted from `CnAiInput`'s `{ text, attachments }` payload plus the currently-selected agent uuid |
 | `new-thread` | — | Emitted when the "Start new chat" button is clicked |
 | `load-conversation` | `string` (UUID) | Emitted when the user selects a conversation from `CnAiHistoryDialog` |
 
@@ -40,7 +41,7 @@ Slide-out chat panel for the AI Chat Companion. Anchored to the right viewport e
   :stream-state="stream.state"
   :fab-ref="$refs.fabButton"
   @close="isPanelOpen = false"
-  @send="stream.send($event)"
+  @send="(text, agentUuid, attachments) => stream.send(text, { agentUuid, attachments })"
   @new-thread="stream.startNewThread()"
   @load-conversation="stream.loadConversation($event)" />
 ```

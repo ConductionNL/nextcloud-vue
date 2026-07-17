@@ -118,6 +118,7 @@
 					<CnAiInput
 						ref="input"
 						:disabled="streamState.isStreaming"
+						:chat-app-id="chatAppId"
 						@send="onSend" />
 				</div>
 			</div>
@@ -285,8 +286,14 @@ export default {
 			this.$emit('close')
 		},
 
-		onSend(text) {
-			this.$emit('send', text, this.selectedAgentUuid)
+		/**
+		 * Re-emit CnAiInput's `{ text, attachments }` payload up to
+		 * CnAiCompanion, which owns the stream composable, adding the
+		 * currently-selected agent uuid (this panel's own picker state).
+		 * @param {{text: string, attachments: Array<{path: string, name: string}>}} payload CnAiInput's send payload.
+		 */
+		onSend({ text, attachments }) {
+			this.$emit('send', text, this.selectedAgentUuid, attachments)
 		},
 
 		onNewChat() {

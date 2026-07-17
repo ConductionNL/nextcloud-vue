@@ -64,7 +64,7 @@ const stubs = {
 	},
 	CnAiInput: {
 		name: 'CnAiInput',
-		props: ['disabled'],
+		props: ['disabled', 'chatAppId'],
 		methods: { focus() {} },
 		template: '<div class="stub-input" />',
 	},
@@ -152,11 +152,12 @@ describe('CnAiChatPanel', () => {
 		expect(wrapper.emitted('load-conversation')[0][0]).toBe('conv-123')
 	})
 
-	it('emits "send" (with the selected agent uuid) when CnAiInput triggers send', () => {
+	it('emits "send" (with the selected agent uuid and attachments) when CnAiInput triggers send', () => {
 		const wrapper = mountPanel()
 		wrapper.vm.selectedAgentUuid = 'agent-1'
-		wrapper.vm.onSend('Hello from input')
+		const attachments = [{ path: '/tmp/foo.txt', name: 'foo.txt' }]
+		wrapper.vm.onSend({ text: 'Hello from input', attachments })
 		expect(wrapper.emitted('send')).toBeTruthy()
-		expect(wrapper.emitted('send')[0]).toEqual(['Hello from input', 'agent-1'])
+		expect(wrapper.emitted('send')[0]).toEqual(['Hello from input', 'agent-1', attachments])
 	})
 })
