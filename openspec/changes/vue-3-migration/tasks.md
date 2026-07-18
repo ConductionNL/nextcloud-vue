@@ -60,10 +60,27 @@ its own commit/PR into `feat/vue-3`; the branch itself does not merge to `beta`
 
 ## 2. Codemod pass (mechanical, ~70%)
 
-- [ ] 2.1 `gogocode-plugin-vue`: `$set`/`$delete` (383) → assignment
-- [ ] 2.2 `.sync` (59) → `v-model:x`
-- [ ] 2.3 `$scopedSlots` (79) → `$slots`
-- [ ] 2.4 `beforeDestroy`/`destroyed` (56) → `beforeUnmount`/`unmounted`
+Tooling note (verified 2026-07-18): `gogocode-plugin-vue` is **too broad** — it
+also rewrites `.sync` → `v-model:`, which is v9-gated (silent-noop before the
+children are on v9). So transforms are applied **individually**, each with the
+`check:vue3-compile` sweep + a 0-collateral diff check as the ratchet. NOT a
+single wholesale codemod run.
+
+- [x] 2.3 **`$scopedSlots` → `$slots` (79 sites, 30 files)** — DONE. Precise
+      token rename (verified always-standalone); sweep 332/332, 0 collateral.
+- [x] 2.4a **`beforeDestroy()` → `beforeUnmount()` (55 sites)** — DONE. Hook form
+      only. Verified there is NO `destroyed()` hook — the 5 `destroyed` hits are
+      a DATA PROPERTY (CnCommandPalette) + comments; a blind rename would have
+      broken it. `destroyed` left untouched.
+- [ ] 2.1 **`$set`/`$delete` (297 + 59) — BLOCKED on a formatting-preserving
+      transform.** Regex is unsafe (the value arg has nested parens/braces/
+      commas). vue-codemod's `remove-vue-set-and-delete` converts *correctly*
+      (`this.$set(o,k,v)` → `o[k]=v`, still compiles) but **reprints the whole
+      SFC** (2455-line diff for a 2-line change — recast reformatting). Needs a
+      recast-preserving config or per-file handling. NOT urgent: `$set` works
+      under `@vue/compat`, so this is the last thing before removing compat.
+- [ ] 2.2 `.sync` (59) → `v-model:` — **v9-gated** (see §4 / ADR-066 Decision 6);
+      do WITH the v9 rebase, not now.
 - [ ] 2.5 `Vue.observable` (7) → `reactive`; `Vue.set` (4, CnAppRoot) → assignment
 - [ ] 2.6 Hand-fix: `$listeners` (17), `.native` (15), `filters:` (6),
       functional components (2)
