@@ -38,9 +38,16 @@ its own commit/PR into `feat/vue-3`; the branch itself does not merge to `beta`
       (`npm run check:vue3-compile`). First run 321/332; the 11 failures were all
       one pattern (`<template v-for>` key on child) — fixed. The whole component
       library compiles on Vue 3 under compat. (Compile, not runtime — see 2.2/2.6.)
-- [ ] 1.9 Full-lib *bundle* build via `rollup.config.vue3.mjs` — needs the Vue 3
-      dep install (bundles the non-external deps: gridstack, leaflet, codemirror);
-      the compile sweep already de-risks the SFC compilation half.
+- [ ] 1.9 Full-lib *bundle* build via `rollup.config.vue3.mjs`. NOT just an
+      install — the real blockers are Vue-version-sensitive bundled (non-external)
+      deps, each a per-component migration needing runtime verification:
+      - `vue-frag` (2 files) — remove; Vue 3 multi-root is native, but this
+        changes `$attrs` fall-through → live-verify (task 3.3)
+      - `vuedraggable` (2 files) — v2 is Vue-2-only; needs v4
+      - `@vueuse/core` (2 files) — v10→v11 on Vue 3
+      - `vue-codemirror6` (2 files) — confirm Vue 3 support
+      The SFC-compilation half is already de-risked (332/332 sweep). This half is
+      the codemod + dep-swap work (§2, §3, §4), not a quick build.
 
 ## 2. Codemod pass (mechanical, ~70%)
 
