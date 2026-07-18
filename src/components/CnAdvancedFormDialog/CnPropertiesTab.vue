@@ -45,7 +45,7 @@
 									:title="getPropertyErrorMessage(key, resolvedValue(key, value))" />
 								<PencilOutline
 									v-else-if="validationDisplay === 'indicator' && isValueChanged(key) && getPropertyValidationState(key, resolvedValue(key, value)) !== 'invalid'"
-									v-tooltip="t('nextcloud-vue', 'This field has been changed — save to apply')"
+									:title="t('nextcloud-vue', 'This field has been changed — save to apply')"
 									class="cn-advanced-form-dialog__validation-icon cn-advanced-form-dialog__validation-icon--edited"
 									:size="16" />
 								<Alert

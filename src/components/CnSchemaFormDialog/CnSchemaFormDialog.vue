@@ -147,7 +147,7 @@
 				</NcButton>
 				<NcButton
 					v-if="showDeleteObjects"
-					v-tooltip="objectCount > 0 ? deleteObjectsTooltip : noDeleteObjectsTooltip"
+					:title="objectCount > 0 ? deleteObjectsTooltip : noDeleteObjectsTooltip"
 					:disabled="dialogLoading || objectCount === 0"
 					@click="$emit('delete-objects')">
 					<template #icon>
@@ -157,7 +157,7 @@
 				</NcButton>
 				<NcButton
 					v-if="showPublishObjects"
-					v-tooltip="objectCount > 0 ? publishObjectsTooltip : noPublishObjectsTooltip"
+					:title="objectCount > 0 ? publishObjectsTooltip : noPublishObjectsTooltip"
 					:disabled="dialogLoading || objectCount === 0"
 					@click="$emit('publish-objects')">
 					<template #icon>
@@ -167,7 +167,7 @@
 				</NcButton>
 				<NcButton
 					v-if="showDelete"
-					v-tooltip="objectCount > 0 ? cannotDeleteTooltip : ''"
+					:title="objectCount > 0 ? cannotDeleteTooltip : ''"
 					:disabled="dialogLoading || objectCount > 0"
 					variant="error"
 					@click="$emit('delete-schema')">

@@ -17,7 +17,7 @@
 				</NcCheckboxRadioSwitch>
 				<InformationOutline
 					v-if="schemaProp && schemaProp.description"
-					v-tooltip="schemaProp.description"
+					:title="schemaProp.description"
 					class="cn-advanced-form-dialog__info-icon"
 					:size="16" />
 			</div>
@@ -178,7 +178,6 @@ import {
 	NcSelect,
 	NcButton,
 	NcDateTimePicker,
-	Tooltip,
 } from '@nextcloud/vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -211,8 +210,6 @@ const TEXTAREA_FORMATS = new Set(['html', 'markdown'])
 
 export default {
 	name: 'CnPropertyValueCell',
-
-	directives: { tooltip: Tooltip },
 
 	components: {
 		NcTextField,

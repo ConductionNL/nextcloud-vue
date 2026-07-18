@@ -107,16 +107,22 @@ components rendered live on Vue 3 + @nextcloud/vue 9 + @vue/compat, 2026-07-18):
 
 - [x] 4.1 Bump peer `@nextcloud/vue ^8` → `^9`, `vue ^2.7` → `^3.5`; drop
       `vue-frag`; `@vueuse/core ^10` → v11+ — DONE in package.json.
-- [ ] 4.2 Import-path sweep (`/dist/Components/NcButton.js` → `/components/NcButton`).
-      **Confirmed live**: apps + lib still use the v8 `/dist/Components/*.js` path;
-      v9 maps `./components/X` → `dist/components/X/index.mjs`. The integration
-      harness aliases old→new; the real fix is a source sweep.
-- [ ] 4.2b **`Tooltip` directive REMOVED from the v9 barrel.** `import { Tooltip }
-      from '@nextcloud/vue'` fails — v9 ships only `Focus`/`Linkify` in
-      dist/directives/, no Tooltip. ~10 lib components import it
-      (CnCard, CnFormDialog, CnMarkdownEditor, CnPropertyValueCell, CnTabbedFormDialog,
-      CnSchemaFormDialog, CnSuggestFeatureModal, CnNewsWidget, CnMapWidget,
-      CnPropertiesTab). Replace with the v9 tooltip mechanism or drop.
+- [x] 4.2 Import-path sweep (`/dist/Components/NcButton.js` → `/components/NcButton`).
+      **Lib side DONE — it was already clean**: verified 2026-07-18, the lib
+      imports 100% from the `@nextcloud/vue` barrel (244 files; ZERO
+      `@nextcloud/vue/dist/Components/*.js` deep imports in `src/`). The v8→v9
+      deep-path remap only bites the *consumer apps*; those get swept in §7
+      (per-app v9 codemod). No lib change needed.
+- [x] 4.2b **`Tooltip` directive REMOVED from the v9 barrel — DONE (2026-07-18).**
+      Live finding refined: only **1** component actually imported the directive
+      (`CnPropertyValueCell`, `directives: { tooltip: Tooltip }`); the other 4 used
+      `v-tooltip` via v8's **global** plugin registration (5 files, 7 uses total —
+      not the "~10 import it" first estimated). Replaced all 7 `v-tooltip`/
+      `v-tooltip.bottom` with native `:title` (accessible, dependency-free, no
+      directive) and removed the import + registration. Sweep still 332/332 clean.
+      Files: CnPropertyValueCell, CnTabbedFormDialog, CnCard, CnSchemaFormDialog (×3),
+      CnPropertiesTab. (Styled floating-vue tooltips can be restored later if the
+      native-title UX is judged a regression — but v9 ships no tooltip primitive.)
 - [ ] 4.3 `v-model` unification across wrappers (`value`/`checked` →
       `modelValue`) — coordinate with each wrapper's consumers; a miss
       silently no-ops

@@ -9,7 +9,7 @@
 				<slot name="icon">
 					<component :is="icon" v-if="icon" :size="iconSize" />
 				</slot>
-				<span ref="titleText" v-tooltip.bottom="computedTooltip" class="cn-card__title-text">{{ title }}</span>
+				<span ref="titleText" :title="computedTooltip" class="cn-card__title-text">{{ title }}</span>
 			</h2>
 			<div v-if="$slots.actions || $slots.actions" class="cn-card__actions">
 				<slot name="actions" />

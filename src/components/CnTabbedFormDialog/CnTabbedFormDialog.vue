@@ -106,7 +106,7 @@
 			<!-- Primary action button (Save / Create) -->
 			<NcButton
 				v-if="createAnother || result === null"
-				v-tooltip="disableSave && disableSaveTooltip ? disableSaveTooltip : undefined"
+				:title="disableSave && disableSaveTooltip ? disableSaveTooltip : undefined"
 				variant="primary"
 				:disabled="loading || disableSave"
 				:aria-label="disableSave && disableSaveTooltip ? disableSaveTooltip : undefined"
