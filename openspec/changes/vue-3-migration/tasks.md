@@ -15,16 +15,25 @@ its own commit/PR into `feat/vue-3`; the branch itself does not merge to `beta`
 
 ## 1. Build toolchain
 
-- [ ] 1.1 Add devDeps: `@vitejs/plugin-vue`, `@vue/compiler-sfc`, `@vue/compat`,
-      `vue@^3.5`; remove `vue-template-compiler`, `rollup-plugin-vue`
-- [ ] 1.2 Swap the Vue plugin in `rollup.config.js`; keep `preserveModules`
+- [~] 1.1 Add devDeps: `@vitejs/plugin-vue`, `@vue/compiler-sfc`, `@vue/compat`,
+      `vue@^3.5` (staged in package.json); still to remove `vue-template-compiler`,
+      `rollup-plugin-vue` when this line replaces the Vue 2 build
+- [~] 1.2 Vue plugin swap — `rollup.config.vue3.mjs` written (faithful swap of
+      rollup.config.js), keeps `preserveModules`. Not yet run against the full
+      lib (needs the dep install).
 - [ ] 1.3 Handle `<docs>` custom blocks (they broke the CnGraphCanvas Vue 3
       build until excluded — a real, reproduced gotcha)
 - [ ] 1.4 Delete the Vue-2-pinned `unwrapVueDeep` and `resolve-vue-demi-v27`
-      rollup plugins; re-verify scoped-CSS output (`check:css-entry`)
+      rollup plugins (done in the vue3 config); re-verify scoped-CSS output
+      (`check:css-entry`) once the full build runs
 - [ ] 1.5 Alias `vue` → `@vue/compat` (MODE 2) for the staging build
-- [ ] 1.6 First smoke test: build ONE clean component (CnGraphCanvas — already
-      proven) through the real lib pipeline, not a scratch harness
+- [x] 1.6 Component compile+run proof: **CnGraphCanvas builds and runs on Vue 3
+      in a browser** (drag/connect/keyboard/zoom verified), zero code changes.
+- [x] 1.7 **Compat-compiler necessity proven**: plain Vue 3 SILENTLY
+      mis-compiles `.sync` (drops the update handler) and `{{x|f}}` (parses `|`
+      as bitwise-OR) — zero compile errors, broken at runtime. `@vue/compat`
+      MODE 2 + COMPILER_FILTERS restores both. So a green Vue 3 build is NOT
+      trustworthy during the straddle. (See BUILD-VUE3.md.)
 
 ## 2. Codemod pass (mechanical, ~70%)
 
