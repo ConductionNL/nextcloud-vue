@@ -102,16 +102,31 @@ single wholesale codemod run.
 
 ## 4. @nextcloud/vue v8 → v9
 
-- [ ] 4.1 Bump peer `@nextcloud/vue ^8` → `^9`, `vue ^2.7` → `^3.5`; drop
-      `vue-frag`; `@vueuse/core ^10` → v11+
-- [ ] 4.2 Import-path sweep (`/dist/Components/NcButton.js` → `/components/NcButton`)
+Surfaced concretely by the Vue 3 integration test (procest + openbuild
+components rendered live on Vue 3 + @nextcloud/vue 9 + @vue/compat, 2026-07-18):
+
+- [x] 4.1 Bump peer `@nextcloud/vue ^8` → `^9`, `vue ^2.7` → `^3.5`; drop
+      `vue-frag`; `@vueuse/core ^10` → v11+ — DONE in package.json.
+- [ ] 4.2 Import-path sweep (`/dist/Components/NcButton.js` → `/components/NcButton`).
+      **Confirmed live**: apps + lib still use the v8 `/dist/Components/*.js` path;
+      v9 maps `./components/X` → `dist/components/X/index.mjs`. The integration
+      harness aliases old→new; the real fix is a source sweep.
+- [ ] 4.2b **`Tooltip` directive REMOVED from the v9 barrel.** `import { Tooltip }
+      from '@nextcloud/vue'` fails — v9 ships only `Focus`/`Linkify` in
+      dist/directives/, no Tooltip. ~10 lib components import it
+      (CnCard, CnFormDialog, CnMarkdownEditor, CnPropertyValueCell, CnTabbedFormDialog,
+      CnSchemaFormDialog, CnSuggestFeatureModal, CnNewsWidget, CnMapWidget,
+      CnPropertiesTab). Replace with the v9 tooltip mechanism or drop.
 - [ ] 4.3 `v-model` unification across wrappers (`value`/`checked` →
       `modelValue`) — coordinate with each wrapper's consumers; a miss
       silently no-ops
 - [ ] 4.4 Local registration (or `unplugin-vue-components`); handle removed
       `NcSettingsInputText` / `exact`; re-validate the `NcSelectTags` override
-- [ ] 4.5 Update the documented global `t`/`n` install contract (app.mixin /
-      globalProperties)
+- [x] 4.5 Global `t`/`n` install contract — **confirmed load-bearing**: without
+      `app.config.globalProperties.t/n`, every component's `this.t(...)` throws
+      at render. Consumers install it via globalProperties (Vue 3) instead of
+      the Vue 2 `Vue.mixin`. The integration harness proves this is the correct
+      install point.
 
 ## 5. Tests → Vitest
 
