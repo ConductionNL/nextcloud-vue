@@ -99,6 +99,7 @@ export {
 	CnTasksCard,
 	CnFilesCard,
 	CnFileManager,
+	CnRelatedFiles,
 	CnTagsCard,
 	CnAuditTrailCard,
 	CnVersionHistory,
