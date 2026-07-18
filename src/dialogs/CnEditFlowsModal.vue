@@ -133,6 +133,43 @@
 								rows="3"
 								@input="(e) => $set(action, 'body', e.target.value)" />
 						</template>
+
+						<!-- Agent fields -->
+						<template v-else-if="isAgent(action.type)">
+							<NcTextField :value="action.agent"
+								:label="t('nextcloud-vue', 'Agent')"
+								@update:value="(v) => $set(action, 'agent', v)" />
+							<NcTextField :value="action.skill"
+								:label="t('nextcloud-vue', 'Skill (optional)')"
+								@update:value="(v) => $set(action, 'skill', v)" />
+							<label class="cn-edit-flows__field-label">{{ t('nextcloud-vue', 'Prompt') }}</label>
+							<textarea class="cn-edit-flows__textarea"
+								:value="action.prompt"
+								rows="3"
+								@input="(e) => $set(action, 'prompt', e.target.value)" />
+							<NcTextField :value="action.resultField"
+								:label="t('nextcloud-vue', 'Write result to field')"
+								@update:value="(v) => $set(action, 'resultField', v)" />
+							<NcCheckboxRadioSwitch :checked="Boolean(action.requiresApproval)"
+								@update:checked="(v) => $set(action, 'requiresApproval', v)">
+								{{ t('nextcloud-vue', 'Require approval before the result is written') }}
+							</NcCheckboxRadioSwitch>
+						</template>
+
+						<!-- Federated-share fields -->
+						<template v-else-if="isFederateShare(action.type)">
+							<NcTextField :value="action.sharedWith"
+								:label="t('nextcloud-vue', 'Share with (federated user)')"
+								@update:value="(v) => $set(action, 'sharedWith', v)" />
+							<NcTextField :value="action.permissions"
+								:label="t('nextcloud-vue', 'Permissions')"
+								@update:value="(v) => $set(action, 'permissions', v)" />
+						</template>
+
+						<!-- A type this editor cannot author: shown, not silently rewritten. -->
+						<NcNoteCard v-else type="warning">
+							{{ t('nextcloud-vue', 'This action type ({type}) cannot be edited here. It is kept unchanged when you save.', { type: String(action.type) }) }}
+						</NcNoteCard>
 					</div>
 
 					<NcButton type="secondary" @click="addAction(flow)">
@@ -176,7 +213,7 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcTextField, NcSelect, NcLoadingIcon, NcNoteCard, NcEmptyContent } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcTextField, NcSelect, NcLoadingIcon, NcNoteCard, NcEmptyContent, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
@@ -208,7 +245,7 @@ function unwrap(data) {
 export default {
 	name: 'CnEditFlowsModal',
 
-	components: { NcDialog, NcButton, NcTextField, NcSelect, NcLoadingIcon, NcNoteCard, NcEmptyContent, Plus, Delete, ContentSave, Sitemap },
+	components: { NcDialog, NcButton, NcTextField, NcSelect, NcLoadingIcon, NcNoteCard, NcEmptyContent, NcCheckboxRadioSwitch, Plus, Delete, ContentSave, Sitemap },
 
 	props: {
 		/**
@@ -269,11 +306,18 @@ export default {
 				{ id: 'deleted', label: t('nextcloud-vue', 'An object is deleted') },
 			]
 		},
-		/** Action-type options (mirror FlowActionService's supported types). */
+		/**
+		 * Action-type options — these mirror every type FlowActionService::runAction()
+		 * dispatches. Keep this list and the backend switch in sync: a type the
+		 * backend runs but this list omits renders as the wrong action in the picker
+		 * and is destroyed by cleanFlows() on save.
+		 */
 		actionTypeOptions() {
 			return [
 				{ id: 'calendar-event', label: t('nextcloud-vue', 'Add a calendar event') },
 				{ id: 'email', label: t('nextcloud-vue', 'Send an email') },
+				{ id: 'agent', label: t('nextcloud-vue', 'Run an AI agent') },
+				{ id: 'federate-share', label: t('nextcloud-vue', 'Share with a federated user') },
 			]
 		},
 		/** A hint listing the selected schema's field names usable as placeholders. */
@@ -366,12 +410,17 @@ export default {
 			return this.triggerOptions.find((o) => o.id === (id || 'created')) || this.triggerOptions[0]
 		},
 		/**
-		 * Map an action-type id to its option.
+		 * Map an action-type id to its option. An unknown type yields a synthetic
+		 * option carrying its own id — falling back to the first option would show
+		 * an agent action as "Add a calendar event" and invite the user to save
+		 * over it.
 		 * @param {string} type The action type.
-		 * @return {object} The matching option.
+		 * @return {object} The matching option, or a synthetic one for unknown types.
 		 */
 		actionTypeOption(type) {
-			return this.actionTypeOptions.find((o) => o.id === this.normaliseType(type)) || this.actionTypeOptions[0]
+			const normalised = this.normaliseType(type)
+			return this.actionTypeOptions.find((o) => o.id === normalised)
+				|| { id: normalised, label: normalised }
 		},
 		/**
 		 * Normalise action-type aliases (agenda-task→calendar-event, mail→email).
@@ -400,6 +449,31 @@ export default {
 			return this.normaliseType(type) === 'email'
 		},
 		/**
+		 * Whether an action runs an AI agent.
+		 * @param {string} type The action type.
+		 * @return {boolean} True for agent.
+		 */
+		isAgent(type) {
+			return this.normaliseType(type) === 'agent'
+		},
+		/**
+		 * Whether an action creates a federated share.
+		 * @param {string} type The action type.
+		 * @return {boolean} True for federate-share.
+		 */
+		isFederateShare(type) {
+			return this.normaliseType(type) === 'federate-share'
+		},
+		/**
+		 * Whether this editor can author the given type. Types the backend runs
+		 * but this modal cannot render are preserved verbatim rather than edited.
+		 * @param {string} type The action type.
+		 * @return {boolean} True when a field block exists for the type.
+		 */
+		isAuthorable(type) {
+			return this.actionTypeOptions.some((o) => o.id === this.normaliseType(type))
+		},
+		/**
 		 * Change an action's type, seeding sensible default fields.
 		 * @param {object} action The action to mutate.
 		 * @param {{id: string}} option The chosen type option.
@@ -408,6 +482,18 @@ export default {
 		setActionType(action, option) {
 			const type = option ? option.id : 'calendar-event'
 			this.$set(action, 'type', type)
+			// Seed the required fields for the new type so a freshly-switched
+			// action is valid for FlowActionService without further edits.
+			if (type === 'agent') {
+				if (action.agent === undefined) this.$set(action, 'agent', '')
+				if (action.resultField === undefined) this.$set(action, 'resultField', '')
+				if (action.prompt === undefined) this.$set(action, 'prompt', '')
+				if (action.mode === undefined) this.$set(action, 'mode', 'async')
+				if (action.requiresApproval === undefined) this.$set(action, 'requiresApproval', false)
+			} else if (type === 'federate-share') {
+				if (action.sharedWith === undefined) this.$set(action, 'sharedWith', '')
+				if (action.permissions === undefined) this.$set(action, 'permissions', 'read')
+			}
 		},
 		/** Append a new flow. */
 		addFlow() {
@@ -459,7 +545,8 @@ export default {
 			return this.flows.map((f) => {
 				const actions = (Array.isArray(f.actions) ? f.actions : []).map((a) => {
 					const type = this.normaliseType(a.type)
-					if (type === 'calendar-event') {
+					switch (type) {
+					case 'calendar-event':
 						return {
 							type: 'calendar-event',
 							summary: a.summary || '',
@@ -468,8 +555,35 @@ export default {
 							offsetDays: Number(a.offsetDays) || 0,
 							durationMinutes: Number(a.durationMinutes) || 30,
 						}
+					case 'email':
+						return { type: 'email', to: a.to || '', subject: a.subject || '', body: a.body || '' }
+					case 'agent': {
+						const agentAction = {
+							type: 'agent',
+							agent: a.agent || '',
+							prompt: a.prompt || '',
+							resultField: a.resultField || '',
+							// Only 'async' is supported by FlowActionService v1, but carry
+							// through whatever was authored rather than silently rewriting it.
+							mode: a.mode || 'async',
+							requiresApproval: Boolean(a.requiresApproval),
+						}
+						// skill is optional server-side; omit rather than send an empty string.
+						if (a.skill) agentAction.skill = a.skill
+						return agentAction
 					}
-					return { type: 'email', to: a.to || '', subject: a.subject || '', body: a.body || '' }
+					case 'federate-share':
+						return {
+							type: 'federate-share',
+							sharedWith: a.sharedWith || '',
+							permissions: a.permissions || 'read',
+						}
+					default:
+						// A type this editor does not know (a newer backend action, or a
+						// hand-authored one). Round-trip it untouched: rewriting it to a
+						// default type here silently destroys the user's flow.
+						return { ...a }
+					}
 				})
 				return { name: f.name || 'flow', trigger: f.trigger || 'created', actions }
 			})
