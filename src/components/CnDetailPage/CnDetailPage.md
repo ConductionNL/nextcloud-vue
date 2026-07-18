@@ -189,6 +189,8 @@ export default {
 | `sidebarProps` | Object | `{}` | Extra sidebar configuration (`register`, `schema`, `hiddenTabs`, `title`, `subtitle`) |
 | `sidebarTabs` (`sidebar-tabs`) | Array | `[]` | Manifest-driven sidebar-tab descriptors published to the host's `objectSidebarState.tabs`. The hoisted `CnObjectSidebar` (mounted at `NcContent` level by `CnAppRoot` per ADR-017) renders them; the page itself only publishes. Each descriptor mirrors a `pages[].sidebar.tabs[]` entry (`{ id, label, component, props?, integrationKey? }`). When empty, the page emits no tabs and the host falls back to its own discovery (integration registry / schema-derived). |
 | `hideEmpty` (`hide-empty`) | Boolean | `false` | Hide valueless fields on the auto-rendered `CnObjectDataWidget` instead of showing them with an em dash. Set from the manifest as `config.hideEmpty` for a **discriminated supertype** — one schema holding several variants (e.g. a `ticket` holding request / complaint / contactmoment), where each object only carries the fields its own variant uses. A widget declaring its own `content.hideEmpty` wins over this page-level default. |
+
+A `type: "data"` widget also honours **`content.editable`** (Boolean, default `true`): set it to `false` in the manifest to render that `CnObjectDataWidget` read-only — no per-field click-to-edit — when a page provides its own edit surface (e.g. a header "Edit" modal) and the inline data-widget pencils would be redundant.
 | `error` | Boolean | `false` | Whether the page is in an error state |
 | `errorMessage` | String | `'An error occurred'` | Error message shown in the error state |
 | `onRetry` | Function | `null` | Callback for the retry button; when `null` no retry button is shown |
