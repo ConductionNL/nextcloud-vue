@@ -19,16 +19,30 @@ this is exactly how they consume it):
 ## Result (Playwright, 2026-07-18)
 
 - `#app.__vue_app__` present → **genuinely the Vue 3 runtime**, not Vue 2.
-- **procest AgendaItem rendered** with real data: "Vaststellen begroting 2027",
-  a drag handle, and **Hamerstuk / Bespreekstuk** buttons — **clicked cleanly**
-  (no throw).
-- **openbuild ApplicationDetailActions rendered**: the Export action + **12
-  `button-vue` elements** = `@nextcloud/vue` **v9** NcButtons on screen, plus an
-  NcActions menu.
-- The whole graph — **2040+ modules**, procest + openbuild + all 332 lib
-  components + v9 + compat — **builds** (`vite build`, ~21s) and **runs**.
+- **procest AgendaItem — clean + interactive.** Rendered "Vaststellen begroting
+  2027" + a drag handle + **Hamerstuk / Bespreekstuk** buttons (8 `button-vue` =
+  v9 NcButtons); the button **clicks cleanly**.
+- **openbuild DashboardAppsListWidget — clean.** Rendered the v9 `NcEmptyContent`
+  empty state ("No virtual apps yet / Create your first virtual application").
+- **Both render with ZERO errors** in one page. The whole graph — **2040+
+  modules**, both apps + all 332 lib components + v9 + compat — **builds**
+  (`vite build`) and **runs**.
+- openbuild `ApplicationDetailActions` also rendered (its NcButton "Export" +
+  more), exercising the heavier path.
 
-Screenshot: `.playwright-mcp/vue3-procest-openbuild.png`.
+Screenshots: `.playwright-mcp/vue3-both-clean.png` (both clean),
+`vue3-procest-openbuild.png` (the heavier ApplicationDetailActions path).
+
+### Two v9 *component* edges found (not migration blockers, but v9-rebase inputs)
+
+- **`NcActions` errors under `@vue/compat`** (`A.call is not a function` in its
+  render). procest's + openbuild's NcButton render clean; only the complex
+  NcActions menu trips compat — a reason the migration must ultimately *remove*
+  compat, not ship on it.
+- **`NcTextField` with the v8 `:value` binding throws** (`undefined.toString()`)
+  under v9. This is the v-model unification (task 4.3): v9 inputs want
+  `:model-value`. Confirms the per-app `.sync`/`value`→`modelValue` codemod is
+  v9-gated and must run *with* the rebase.
 
 ## What the integration surfaced (drives the v9 rebase, tasks §4)
 
