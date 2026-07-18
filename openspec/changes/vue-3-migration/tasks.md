@@ -39,15 +39,24 @@ its own commit/PR into `feat/vue-3`; the branch itself does not merge to `beta`
       one pattern (`<template v-for>` key on child) — fixed. The whole component
       library compiles on Vue 3 under compat. (Compile, not runtime — see 2.2/2.6.)
 - [ ] 1.9 Full-lib *bundle* build via `rollup.config.vue3.mjs`. NOT just an
-      install — the real blockers are Vue-version-sensitive bundled (non-external)
-      deps, each a per-component migration needing runtime verification:
-      - `vue-frag` (2 files) — remove; Vue 3 multi-root is native, but this
-        changes `$attrs` fall-through → live-verify (task 3.3)
-      - `vuedraggable` (2 files) — v2 is Vue-2-only; needs v4
-      - `@vueuse/core` (2 files) — v10→v11 on Vue 3
-      - `vue-codemirror6` (2 files) — confirm Vue 3 support
-      The SFC-compilation half is already de-risked (332/332 sweep). This half is
-      the codemod + dep-swap work (§2, §3, §4), not a quick build.
+      install — the blockers are Vue-version-sensitive bundled (non-external)
+      deps. Verified inventory (2026-07-18):
+      - **`@vueuse/core` — trivial.** All 3 sites (`useObjectLock`,
+        `useObjectSubscription`, `liveUpdates`) use only `tryOnScopeDispose`,
+        stable v10→v11. Just bump the version.
+      - **`vue-frag` — 1 safe, 1 delicate.** `CnSchemaPropertiesTab` is safe to
+        de-Fragment (verified: its only consumer, CnSchemaFormDialog, passes
+        declared props only — no `$attrs` fall-through). `CnActionsMenu` is
+        delicate: its Fragment renders NcActions + the overflow modal as
+        SIBLINGS on purpose (the modal must not mount inside NcActions' popover
+        slot, which unmounts on click) — de-Fragmenting must preserve that and
+        be live-verified.
+      - **`vuedraggable` — the real API migration.** `CnPageTreeNode` +
+        `CnMenuTreeNode`, each with a *nested* `<draggable>` (tree). v2→v4
+        changes the API (`item-key` + a required `#item` slot). Needs drag
+        behaviour runtime-verified, not just compiled.
+      The SFC-compilation half is de-risked (332/332 sweep). This half is the
+      dep-swap + codemod + v9 work (§2, §3, §4).
 
 ## 2. Codemod pass (mechanical, ~70%)
 
