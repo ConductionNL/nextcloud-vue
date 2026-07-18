@@ -32,7 +32,7 @@
 			</div>
 
 			<!-- Badges slot -->
-			<div v-if="$scopedSlots.badges" class="cn-object-card__badges">
+			<div v-if="$slots.badges" class="cn-object-card__badges">
 				<slot name="badges" :object="object" />
 			</div>
 
@@ -54,7 +54,7 @@
 		</div>
 
 		<!-- Actions slot -->
-		<div v-if="$scopedSlots.actions" class="cn-object-card__actions" @click.stop>
+		<div v-if="$slots.actions" class="cn-object-card__actions" @click.stop>
 			<slot name="actions" :object="object" />
 		</div>
 	</div>

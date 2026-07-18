@@ -331,7 +331,7 @@ export default {
 			if (this.showRefresh) return true
 			if (this.documentationUrl) return true
 			if (this.showRequestFeature) return true
-			return Boolean(this.$slots['action-items']) || Boolean(this.$scopedSlots && this.$scopedSlots['action-items'])
+			return Boolean(this.$slots['action-items']) || Boolean(this.$slots && this.$slots['action-items'])
 		},
 	},
 

@@ -84,7 +84,7 @@
 				:description="description" />
 		</slot>
 
-		<div v-if="$slots.actions || $scopedSlots.actions" class="cn-form-page__actions">
+		<div v-if="$slots.actions || $slots.actions" class="cn-form-page__actions">
 			<!-- @slot actions Action buttons (back, cancel, …) rendered above the form. -->
 			<slot name="actions" />
 		</div>
@@ -579,7 +579,7 @@ export default {
 		 * @return {boolean}
 		 */
 		fieldHasNativeErrorSupport(field) {
-			if (this.$scopedSlots[`field-${field.key}`] || this.$slots[`field-${field.key}`]) return false
+			if (this.$slots[`field-${field.key}`] || this.$slots[`field-${field.key}`]) return false
 			const render = this.resolveFieldRender(field)
 			if (!render) return false
 			if (['string', 'number', 'password', 'fallback'].includes(render.kind)) return true

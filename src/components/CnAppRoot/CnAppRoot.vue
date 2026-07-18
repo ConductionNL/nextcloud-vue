@@ -1773,7 +1773,7 @@ export default {
 		 */
 		shouldAutoMountObjectSidebar() {
 			if (this.$slots && this.$slots.sidebar) return false
-			if (this.$scopedSlots && this.$scopedSlots.sidebar) return false
+			if (this.$slots && this.$slots.sidebar) return false
 			if (this.ancestorObjectSidebarState) return false
 			const holder = this.localObjectSidebarState
 			if (!holder || !holder.active) return false

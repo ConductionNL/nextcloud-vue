@@ -16,7 +16,7 @@
 		</slot>
 
 		<!-- Optional content below header, above actions bar -->
-		<div v-if="$scopedSlots['below-header']" class="cn-index-page__below-header">
+		<div v-if="$slots['below-header']" class="cn-index-page__below-header">
 			<slot name="below-header" />
 		</div>
 
@@ -71,13 +71,13 @@
 			@show-delete="showMassDeleteDialog = true"
 			@search="onSearchEvent"
 			@view-mode-change="onViewModeChange">
-			<template v-if="$scopedSlots['mass-actions']" #mass-actions="{ count, selectedIds: ids }">
+			<template v-if="$slots['mass-actions']" #mass-actions="{ count, selectedIds: ids }">
 				<slot name="mass-actions" :count="count" :selected-ids="ids" />
 			</template>
-			<template v-if="$scopedSlots['action-items']" #action-items>
+			<template v-if="$slots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$scopedSlots['actions'] || isEditMode || showExportMenu || allowSavedViews" #actions>
+			<template v-if="$slots['actions'] || isEditMode || showExportMenu || allowSavedViews" #actions>
 				<slot name="actions" />
 				<!-- Saved views (opt-in via `allowSavedViews`): lists the user's
 				     OpenRegister saved-search views; applying one writes its stored
@@ -178,7 +178,7 @@
 			:options="importOptions"
 			@confirm="onMassImportConfirm"
 			@close="showImportDialog = false">
-			<template v-if="$scopedSlots['import-fields']" #fields="{ file }">
+			<template v-if="$slots['import-fields']" #fields="{ file }">
 				<slot name="import-fields" :file="file" />
 			</template>
 		</CnMassImportDialog>
@@ -258,7 +258,7 @@
 				:name-field="massActionNameField"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog">
-				<template v-if="$scopedSlots['form-fields']" #form="scope">
+				<template v-if="$slots['form-fields']" #form="scope">
 					<slot name="form-fields" v-bind="scope" />
 				</template>
 			</CnFormDialog>
@@ -438,7 +438,7 @@
 						   resolved against the customComponents registry.
 						3. CnObjectList's default CnObjectRow.
 					-->
-					<template v-if="$scopedSlots['list-item']" #list-item="{ object, selected }">
+					<template v-if="$slots['list-item']" #list-item="{ object, selected }">
 						<slot name="list-item" :object="object" :selected="selected" />
 					</template>
 					<template v-else-if="resolvedListComponent" #list-item="{ object, selected }">
@@ -455,13 +455,13 @@
 					<!-- Per-part row slots (list view only): forwarded to CnObjectRow
 					     so an app can override just the leading icon or the badge
 					     while keeping the config-driven title/subtitle. -->
-					<template v-if="$scopedSlots['row-icon']" #row-icon="{ object }">
+					<template v-if="$slots['row-icon']" #row-icon="{ object }">
 						<slot name="row-icon" :object="object" />
 					</template>
-					<template v-if="$scopedSlots['row-badges']" #row-badges="{ object }">
+					<template v-if="$slots['row-badges']" #row-badges="{ object }">
 						<slot name="row-badges" :object="object" />
 					</template>
-					<template v-if="hasRowActions || $scopedSlots['row-actions']" #row-actions="{ object }">
+					<template v-if="hasRowActions || $slots['row-actions']" #row-actions="{ object }">
 						<slot name="row-actions" :row="object">
 							<CnRowActions
 								:actions="mergedActions"
@@ -489,7 +489,7 @@
 						   resolved against the customComponents registry.
 						3. CnCardGrid's default CnObjectCard.
 					-->
-					<template v-if="$scopedSlots.card" #card="{ object, selected }">
+					<template v-if="$slots.card" #card="{ object, selected }">
 						<slot name="card" :object="object" :selected="selected" />
 					</template>
 					<template v-else-if="resolvedCardComponent" #card="{ object, selected }">
@@ -2186,7 +2186,7 @@ export default {
 		},
 
 		hasRowActions() {
-			return this.$scopedSlots['row-actions'] || this.mergedActions.length > 0
+			return this.$slots['row-actions'] || this.mergedActions.length > 0
 		},
 
 		/** Whether all visible items are selected */
@@ -2202,7 +2202,7 @@ export default {
 
 		/** Column slot names that the parent has provided (for pass-through) */
 		slotColumns() {
-			return Object.keys(this.$scopedSlots)
+			return Object.keys(this.$slots)
 				.filter((name) => name.startsWith('column-'))
 				.map((name) => name.replace('column-', ''))
 		},

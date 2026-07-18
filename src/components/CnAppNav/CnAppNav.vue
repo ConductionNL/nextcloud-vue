@@ -63,7 +63,7 @@
 -->
 <template>
 	<NcAppNavigation data-testid="cn-nav">
-		<template v-if="$slots.search || $scopedSlots.search" #search>
+		<template v-if="$slots.search || $slots.search" #search>
 			<!--
 				@slot search
 				@description Forwarded into NcAppNavigation's #search slot.
@@ -946,7 +946,7 @@ export default {
 			const name = `item-${item.id}-actions`
 			return Boolean(
 				(this.$slots && this.$slots[name])
-				|| (this.$scopedSlots && this.$scopedSlots[name]),
+				|| (this.$slots && this.$slots[name]),
 			)
 		},
 		/**

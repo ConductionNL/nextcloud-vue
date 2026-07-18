@@ -41,17 +41,17 @@
 						:selectable="selectable"
 						:selected="isSelected(object)"
 						v-on="rowListeners(object)">
-						<template v-if="$scopedSlots['row-actions']" #actions="{ object: obj }">
+						<template v-if="$slots['row-actions']" #actions="{ object: obj }">
 							<!-- @slot row-actions Trailing actions on the default row. -->
 							<!-- @binding {object} object The row's object. -->
 							<slot name="row-actions" :object="obj" />
 						</template>
-						<template v-if="$scopedSlots['row-badges']" #badges="{ object: obj }">
+						<template v-if="$slots['row-badges']" #badges="{ object: obj }">
 							<!-- @slot row-badges Badge area on the default row. -->
 							<!-- @binding {object} object The row's object. -->
 							<slot name="row-badges" :object="obj" />
 						</template>
-						<template v-if="$scopedSlots['row-icon']" #icon="{ object: obj }">
+						<template v-if="$slots['row-icon']" #icon="{ object: obj }">
 							<!-- @slot row-icon Leading icon/image on the default row. -->
 							<!-- @binding {object} object The row's object. -->
 							<slot name="row-icon" :object="obj" />

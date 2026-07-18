@@ -273,7 +273,7 @@ export default {
 		},
 
 		hasRowActionsSlot() {
-			return !!this.$scopedSlots['row-actions']
+			return !!this.$slots['row-actions']
 		},
 	},
 

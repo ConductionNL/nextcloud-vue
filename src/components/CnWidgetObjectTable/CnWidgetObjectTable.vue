@@ -656,7 +656,7 @@ export default {
 		 */
 		forwardedScopedSlots() {
 			const out = {}
-			for (const name of Object.keys(this.$scopedSlots || {})) {
+			for (const name of Object.keys(this.$slots || {})) {
 				if (name === 'row-actions' && this.rowScopedActions.length > 0) continue
 				out[name] = true
 			}

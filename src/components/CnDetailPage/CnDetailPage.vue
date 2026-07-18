@@ -226,7 +226,7 @@
 
 		<!-- Main content -->
 		<div v-else class="cn-detail-page__body">
-			<div v-if="$scopedSlots['before-body'] || $slots['before-body']" class="cn-detail-page__before-body">
+			<div v-if="$slots['before-body'] || $slots['before-body']" class="cn-detail-page__before-body">
 				<!--
 					@slot before-body
 					@description Content rendered at the top of the body, above the grid
@@ -2500,7 +2500,7 @@ export default {
 		 */
 		showGridTitle(item) {
 			if (item.showTitle === false || !this.findWidget(item)) return false
-			return Boolean(this.$scopedSlots[`widget-${item.widgetId}`] || this.$slots[`widget-${item.widgetId}`])
+			return Boolean(this.$slots[`widget-${item.widgetId}`] || this.$slots[`widget-${item.widgetId}`])
 		},
 
 		/**

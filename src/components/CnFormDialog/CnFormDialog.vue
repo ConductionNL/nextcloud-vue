@@ -31,7 +31,7 @@
 
 			<!-- Full form override slot -->
 			<slot
-				v-if="$scopedSlots.form"
+				v-if="$slots.form"
 				name="form"
 				:fields="resolvedFields"
 				:form-data="formData"
@@ -48,7 +48,7 @@
 					class="cn-form-dialog__field">
 					<!-- Per-field override slot -->
 					<slot
-						v-if="$scopedSlots['field-' + field.key]"
+						v-if="$slots['field-' + field.key]"
 						:name="'field-' + field.key"
 						:field="field"
 						:value="formData[field.key]"
@@ -187,12 +187,12 @@
 								@input="onEffectiveSelectChange(field, $event)"
 								@search="isAsyncEnum(field) ? onAsyncSearch(field, $event) : undefined">
 								<template
-									v-if="$scopedSlots['field-' + field.key + '-option']"
+									v-if="$slots['field-' + field.key + '-option']"
 									#option="optionProps">
 									<slot :name="'field-' + field.key + '-option'" v-bind="optionProps" />
 								</template>
 								<template
-									v-if="$scopedSlots['field-' + field.key + '-selected-option']"
+									v-if="$slots['field-' + field.key + '-selected-option']"
 									#selected-option="optionProps">
 									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
 								</template>
@@ -221,12 +221,12 @@
 								@input="onEffectiveMultiSelectChange(field, $event)"
 								@search="isAsyncItemsEnum(field) ? onAsyncSearch(field, $event) : undefined">
 								<template
-									v-if="$scopedSlots['field-' + field.key + '-option']"
+									v-if="$slots['field-' + field.key + '-option']"
 									#option="optionProps">
 									<slot :name="'field-' + field.key + '-option'" v-bind="optionProps" />
 								</template>
 								<template
-									v-if="$scopedSlots['field-' + field.key + '-selected-option']"
+									v-if="$slots['field-' + field.key + '-selected-option']"
 									#selected-option="optionProps">
 									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
 								</template>
@@ -257,12 +257,12 @@
 								@input="updateField(field.key, $event)"
 								@search="isFieldAsync(field) ? onAsyncSearch(field, $event) : undefined">
 								<template
-									v-if="$scopedSlots['field-' + field.key + '-option']"
+									v-if="$slots['field-' + field.key + '-option']"
 									#option="optionProps">
 									<slot :name="'field-' + field.key + '-option'" v-bind="optionProps" />
 								</template>
 								<template
-									v-if="$scopedSlots['field-' + field.key + '-selected-option']"
+									v-if="$slots['field-' + field.key + '-selected-option']"
 									#selected-option="optionProps">
 									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
 								</template>

@@ -33,10 +33,10 @@
 						:selectable="selectable"
 						:selected="isSelected(object)"
 						v-on="cardListeners(object)">
-						<template v-if="$scopedSlots['card-actions']" #actions="{ object: obj }">
+						<template v-if="$slots['card-actions']" #actions="{ object: obj }">
 							<slot name="card-actions" :object="obj" />
 						</template>
-						<template v-if="$scopedSlots['card-badges']" #badges="{ object: obj }">
+						<template v-if="$slots['card-badges']" #badges="{ object: obj }">
 							<slot name="card-badges" :object="obj" />
 						</template>
 					</CnObjectCard>

@@ -98,7 +98,7 @@
 						class="cn-object-data-widget__editor">
 						<!-- Per-field slot override -->
 						<slot
-							v-if="$scopedSlots['field-' + field.key]"
+							v-if="$slots['field-' + field.key]"
 							:name="'field-' + field.key"
 							:field="field"
 							:value="editData[field.key]"
@@ -260,7 +260,7 @@
 						@keydown.enter="isEditable(field) && startEdit(field)">
 						<!-- Per-field display slot override -->
 						<slot
-							v-if="$scopedSlots['display-' + field.key]"
+							v-if="$slots['display-' + field.key]"
 							:name="'display-' + field.key"
 							:field="field"
 							:value="displayValues[field.key]"

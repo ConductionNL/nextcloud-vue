@@ -46,7 +46,7 @@
 		</slot>
 
 		<!-- Actions slot for save / discard / reset overrides -->
-		<div v-if="$slots.actions || $scopedSlots.actions" class="cn-settings-page__actions">
+		<div v-if="$slots.actions || $slots.actions" class="cn-settings-page__actions">
 			<slot name="actions" />
 		</div>
 

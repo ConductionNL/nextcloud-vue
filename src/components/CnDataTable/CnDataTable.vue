@@ -72,7 +72,7 @@
 					</th>
 
 					<!-- Actions column -->
-					<th v-if="$scopedSlots['row-actions']" class="cn-table-col--actions">
+					<th v-if="$slots['row-actions']" class="cn-table-col--actions">
 						<!-- @slot Header cell content above the row-actions column (blank by default). -->
 						<slot name="actions-header" />
 					</th>
@@ -147,7 +147,7 @@
 					</td>
 
 					<!-- Row actions -->
-					<td v-if="$scopedSlots['row-actions']" :class="['cn-table-col--actions', cellClass ? cellClass(row, { key: 'actions' }) : '']" @click.stop>
+					<td v-if="$slots['row-actions']" :class="['cn-table-col--actions', cellClass ? cellClass(row, { key: 'actions' }) : '']" @click.stop>
 						<!-- @slot Per-row actions menu (e.g. a CnRowActions), scoped with { row }. Supplying it adds the trailing actions column. -->
 						<slot name="row-actions" :row="row" />
 					</td>
@@ -162,7 +162,7 @@
 		     no slot is given, the built-in "View all" link (folded from the
 		     retired CnTableWidget) is shown for a `limit`-ed subset. -->
 		<div
-			v-if="$scopedSlots.footer || (viewAllRoute && totalRowCount > effectiveRows.length)"
+			v-if="$slots.footer || (viewAllRoute && totalRowCount > effectiveRows.length)"
 			class="cn-data-table__footer">
 			<!-- @slot Custom footer content, scoped with { total, shown } (defaults to the built-in "View all" link). -->
 			<slot name="footer" :total="totalRowCount" :shown="effectiveRows.length">
@@ -617,7 +617,7 @@ export default {
 			let count = this.effectiveColumns.length
 			if (this.selectable) count++
 			if (this.rowIcon) count++
-			if (this.$scopedSlots['row-actions']) count++
+			if (this.$slots['row-actions']) count++
 			return count
 		},
 

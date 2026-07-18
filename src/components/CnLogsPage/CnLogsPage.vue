@@ -33,7 +33,7 @@
 		</slot>
 
 		<!-- Actions slot — for refresh/export buttons (renderer fills via actionsComponent or slots.actions) -->
-		<div v-if="$slots.actions || $scopedSlots.actions" class="cn-logs-page__actions">
+		<div v-if="$slots.actions || $slots.actions" class="cn-logs-page__actions">
 			<slot name="actions" />
 		</div>
 
@@ -67,7 +67,7 @@
 					#[`column-${col}`]="{ row, value }">
 					<slot :name="'column-' + col" :row="row" :value="value" />
 				</template>
-				<template v-if="$scopedSlots['row-actions']" #row-actions="{ row }">
+				<template v-if="$slots['row-actions']" #row-actions="{ row }">
 					<slot name="row-actions" :row="row" />
 				</template>
 			</CnDataTable>
@@ -274,7 +274,7 @@ export default {
 		},
 		/** Column slot names that the parent has provided (for pass-through). */
 		slotColumns() {
-			return Object.keys(this.$scopedSlots || {})
+			return Object.keys(this.$slots || {})
 				.filter((name) => name.startsWith('column-'))
 				.map((name) => name.replace('column-', ''))
 		},

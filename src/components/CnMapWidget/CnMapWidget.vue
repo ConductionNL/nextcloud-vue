@@ -54,7 +54,7 @@
 				</p>
 			</slot>
 		</div>
-		<div v-if="$slots.legend || $scopedSlots.legend" class="cn-map-widget__legend">
+		<div v-if="$slots.legend || $slots.legend" class="cn-map-widget__legend">
 			<!--
 				@slot legend
 				@description Custom legend overlay. Receives `{ layers, markers }` as scoped props.

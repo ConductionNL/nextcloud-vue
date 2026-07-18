@@ -27,7 +27,7 @@
 		</slot>
 
 		<!-- Actions slot -->
-		<div v-if="$slots.actions || $scopedSlots.actions" class="cn-chat-page__actions">
+		<div v-if="$slots.actions || $slots.actions" class="cn-chat-page__actions">
 			<slot name="actions" />
 		</div>
 

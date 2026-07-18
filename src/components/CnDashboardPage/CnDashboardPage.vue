@@ -1317,7 +1317,7 @@ export default {
 		 * @return {boolean}
 		 */
 		hasActionItemsSlot() {
-			return Boolean(this.$slots['action-items']) || Boolean(this.$scopedSlots && this.$scopedSlots['action-items'])
+			return Boolean(this.$slots['action-items']) || Boolean(this.$slots && this.$slots['action-items'])
 		},
 
 		/**
@@ -2620,7 +2620,7 @@ export default {
 		},
 
 		hasWidgetSlot(widgetId) {
-			return !!this.$scopedSlots['widget-' + widgetId]
+			return !!this.$slots['widget-' + widgetId]
 		},
 	},
 }

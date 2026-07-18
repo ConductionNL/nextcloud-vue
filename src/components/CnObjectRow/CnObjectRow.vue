@@ -35,7 +35,7 @@
 		</span>
 
 		<!-- Badges (default: config-driven status badge) -->
-		<span v-if="$scopedSlots.badges || badgeLabel" class="cn-object-row__badges">
+		<span v-if="$slots.badges || badgeLabel" class="cn-object-row__badges">
 			<!-- @slot badges Replace the badge area (overrides the config-driven badge). -->
 			<!-- @binding {object} object The row's object. -->
 			<slot name="badges" :object="object">
@@ -49,7 +49,7 @@
 		</span>
 
 		<!-- Trailing actions -->
-		<span v-if="$scopedSlots.actions" class="cn-object-row__actions" @click.stop>
+		<span v-if="$slots.actions" class="cn-object-row__actions" @click.stop>
 			<!-- @slot actions Trailing actions (copy button, menu, …). -->
 			<!-- @binding {object} object The row's object. -->
 			<slot name="actions" :object="object" />
@@ -170,7 +170,7 @@ export default {
 
 		/** Whether to render the leading icon column at all. */
 		hasLeadingIcon() {
-			return Boolean(this.imageUrl || this.iconName || this.$scopedSlots.icon)
+			return Boolean(this.imageUrl || this.iconName || this.$slots.icon)
 		},
 
 		badgeLabel() {

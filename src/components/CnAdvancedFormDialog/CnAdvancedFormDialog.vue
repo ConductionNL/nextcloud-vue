@@ -26,7 +26,7 @@
 			data-testid-phase="form">
 			<!-- Full form override slot -->
 			<slot
-				v-if="$scopedSlots.form"
+				v-if="$slots.form"
 				name="form"
 				:form-data="formData"
 				:update-field="updateField"
@@ -39,7 +39,7 @@
 			<template v-else>
 				<!-- Register/schema selection step (optional slot) -->
 				<slot
-					v-if="$scopedSlots['register-schema-selection']"
+					v-if="$slots['register-schema-selection']"
 					name="register-schema-selection" />
 
 				<!-- Main tabs — hand-rolled to drop the bootstrap-vue → bootstrap@4 → jquery

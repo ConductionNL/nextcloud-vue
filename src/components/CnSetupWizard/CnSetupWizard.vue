@@ -281,7 +281,7 @@ export default {
 			return 'step-' + step.id
 		},
 		hasCustomSlot(id) {
-			return !!this.$scopedSlots['step-' + id] || !!this.$slots['step-' + id]
+			return !!this.$slots['step-' + id] || !!this.$slots['step-' + id]
 		},
 		fieldsFor(step) {
 			if (step.schema && typeof step.schema === 'object') {

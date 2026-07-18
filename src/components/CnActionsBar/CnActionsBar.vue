@@ -612,7 +612,7 @@ export default {
 		 * separator would be orphaned by `inlineActionCount`.
 		 */
 		actionItemsCount() {
-			const slot = this.$scopedSlots['action-items']
+			const slot = this.$slots['action-items']
 			if (!slot) return 0
 			const vnodes = slot() || []
 			return vnodes.filter(n => n && (n.tag !== undefined || n.componentOptions !== undefined)).length
@@ -626,7 +626,7 @@ export default {
 		 */
 		showActionsSeparator() {
 			if (!this.hasMassActions) return false
-			if (!this.$scopedSlots['action-items']) return false
+			if (!this.$slots['action-items']) return false
 			const preSeparatorOverflow = 1 + this.actionItemsCount - this.inlineActionCount
 			return preSeparatorOverflow > 0
 		},
