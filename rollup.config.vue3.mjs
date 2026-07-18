@@ -97,6 +97,18 @@ export default {
 				},
 			},
 		}),
+		// DELTA 5 (openspec task 1.3): strip Vue Styleguidist <docs> custom blocks.
+		// @vitejs/plugin-vue emits them as modules whose raw prose isn't JS, which
+		// rollup can't parse. rollup-plugin-vue (Vue 2) silently ignored them.
+		{
+			name: 'empty-vue-docs-blocks',
+			transform(code, id) {
+				if (id.includes('vue&type=docs')) {
+					return { code: 'export default {}', map: null }
+				}
+				return null
+			},
+		},
 		// DELTA 4: no unwrapVueDeep — Vue 3 SFC compiler handles :deep() natively.
 		postcss({ extract: 'nextcloud-vue.css', plugins: [postcssImport()] }),
 		json(),

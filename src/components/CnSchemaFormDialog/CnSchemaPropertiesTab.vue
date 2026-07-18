@@ -1,6 +1,8 @@
 <template>
-	<Fragment>
-		<div class="cn-schema-form__scrollable">
+	<!-- Vue 3 native multi-root (was vue-frag <Fragment>): a scrollable table
+	     plus a conditional warning card. Consumer passes declared props only,
+	     so no $attrs fall-through to preserve. -->
+	<div class="cn-schema-form__scrollable">
 			<CnDataTable
 				:columns="tableColumns"
 				:rows="propertyRows"
@@ -105,13 +107,11 @@
 		<CnNoteCard v-if="propertiesModified && !loading" variant="warning" class="cn-schema-form__properties-warning">
 			<p>{{ t('nextcloud-vue', 'Properties have been modified. Changes will only take effect after the schema is saved.') }}</p>
 		</CnNoteCard>
-	</Fragment>
 </template>
 
 <!-- eslint-disable jsdoc/valid-types -->
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { Fragment } from 'vue-frag'
 import { NcButton, NcTextField, NcSelect } from '@nextcloud/vue'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnNoteCard } from '../CnNoteCard/index.js'
@@ -135,8 +135,8 @@ import LockOutline from 'vue-material-design-icons/LockOutline.vue'
  */
 export default {
 	name: 'CnSchemaPropertiesTab',
+	inheritAttrs: false,
 	components: {
-		Fragment,
 		NcButton,
 		NcTextField,
 		NcSelect,
