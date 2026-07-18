@@ -28,7 +28,7 @@
  * `openregister` during its compat window) without touching this file.
  */
 
-import Vue from 'vue'
+import { reactive } from 'vue'
 import axios from '@nextcloud/axios'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { useAiContext } from './useAiContext.js'
@@ -60,7 +60,7 @@ export function useAiChatStream(contextInstance, options = {}) {
 	const STREAM_URL = chatStreamUrl(chatAppId)
 	const SEND_URL = chatSendUrl(chatAppId)
 	/** Stable reactive state object */
-	const state = Vue.observable({
+	const state = reactive({
 		/** Whether an SSE or fallback request is in-flight */
 		isStreaming: false,
 		/** Partial assistant text built from token events */
