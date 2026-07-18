@@ -59,7 +59,7 @@
 import { inject, ref } from 'vue'
 import { translate as t, getLanguage } from '@nextcloud/l10n'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import VueApexCharts from 'vue-apexcharts'
+import VueApexCharts from 'vue3-apexcharts'
 import { useDataSource } from '../../composables/useDataSource.js'
 import { useEndpointSource, getByPath } from '../../composables/useEndpointSource.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
