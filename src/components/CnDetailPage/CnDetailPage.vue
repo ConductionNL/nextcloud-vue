@@ -335,7 +335,8 @@
 								:include="widgetContentFor(item).include || null"
 								:exclude="widgetContentFor(item).exclude || []"
 								:hide-empty="widgetContentFor(item).hideEmpty === true || hideEmpty"
-								:columns="widgetContentFor(item).columns || 3" />
+								:columns="widgetContentFor(item).columns || 3"
+								:editable="widgetContentFor(item).editable !== false" />
 							<!-- `type: 'related'` widget: the related-objects widget,
 							     the second default body widget. Resolves this object's
 							     relations and links into integrations. -->
