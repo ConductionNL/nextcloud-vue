@@ -86,9 +86,8 @@
 				:widgets="widgetsBySlot.get('sidebar')"
 				slot-name="sidebar" />
 			<!-- dynamic tab:* and section:* slots -->
-			<template v-for="dynamicSlot in dynamicSlotKeys">
+			<template v-for="dynamicSlot in dynamicSlotKeys" :key="dynamicSlot">
 				<CnWidgetGrid
-					:key="dynamicSlot"
 					:widgets="widgetsBySlot.get(dynamicSlot)"
 					:slot-name="dynamicSlot" />
 			</template>

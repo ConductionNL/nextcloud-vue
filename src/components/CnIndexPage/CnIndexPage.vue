@@ -373,8 +373,8 @@
 							<template #icon>
 								<FilterOutline :size="20" />
 							</template>
-							<template v-for="field in filterableFields">
-								<NcActionCaption :key="`${field.key}-caption`" :name="field.label" />
+							<template v-for="field in filterableFields" :key="field.key">
+								<NcActionCaption :name="field.label" />
 								<NcActionCheckbox
 									v-for="val in field.values"
 									:key="`${field.key}-${val}`"

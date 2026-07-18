@@ -23,13 +23,11 @@
 					@click="navigateTo('/')">
 					{{ t('nextcloud-vue', 'Root') }}
 				</button>
-				<template v-for="(segment, index) in pathSegments">
+				<template v-for="(segment, index) in pathSegments" :key="index">
 					<span
-						:key="`sep-${index}`"
 						aria-hidden="true"
 						class="cn-files-widget__separator">/</span>
 					<button
-						:key="`seg-${index}`"
 						type="button"
 						class="cn-files-widget__crumb"
 						:aria-current="index === pathSegments.length - 1 ? 'page' : null"

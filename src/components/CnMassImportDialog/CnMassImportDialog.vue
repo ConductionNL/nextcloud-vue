@@ -34,8 +34,8 @@
 					</tr>
 				</thead>
 				<tbody>
-					<template v-for="(sheet, key) in result.summary">
-						<tr :key="key">
+					<template v-for="(sheet, key) in result.summary" :key="key">
+						<tr>
 							<td class="cn-mass-import__sheet-name">
 								{{ key }}
 							</td>

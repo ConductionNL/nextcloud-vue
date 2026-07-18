@@ -51,9 +51,8 @@
 		:class="{ 'cn-grid--responsive': isResponsive }"
 		:style="gridVars"
 		:data-slot="slotName">
-		<template v-for="(widget, index) in resolvedWidgets">
+		<template v-for="(widget, index) in resolvedWidgets" :key="`${widget.widgetKey}-${index}`">
 			<div
-				:key="`${widget.widgetKey}-${index}`"
 				class="cn-grid__item"
 				:class="{ 'cn-grid__item--row': hasGridRow(widget) }"
 				:style="cnGridCellStyle(widget, gridColumns)">

@@ -65,11 +65,29 @@ compiler swap.
   included); the `app-versions` recipe avoids this by using `App.vue` SFCs
   (precompiled). Not a lib-build issue, but a consumer note.
 
+## Whole-library compile readiness — 332/332
+
+`scripts/vue3-compile-sweep.cjs` (`npm run check:vue3-compile`) compiles every
+SFC under `src/` with `@vue/compiler-sfc` in compat MODE 2. First run:
+
+- **321 of 332 clean**, 11 failing — and all 11 for the *same* reason:
+  `<template v-for>` with the `:key` on a child instead of the `<template>` tag
+  (a hard Vue 3 change, not covered by compat leniency).
+- Fixed all 11 (move the iteration key to the `<template>`; keep keys on nested
+  `v-for` children; drop keys from static/multi children). Re-run: **332/332
+  clean, 0 failing.**
+
+So the entire component library **compiles on Vue 3** under compat. This is a
+compile milestone, not a runtime one — see the mis-compile warning above; the
+`.sync`/filter sites still need rewriting before the compat flags come off.
+
 ## Status
 
 - [x] Component-level compile + run proven (`CnGraphCanvas`)
 - [x] Compat-compiler necessity proven (`.sync` / filters silent mis-compile)
-- [ ] Full-lib Vue 3 build (needs the dep install below + `rollup.config.vue3.mjs`)
+- [x] **Whole-lib compile sweep: 332/332 clean** (fixed 11 `<template v-for>` keys)
+- [ ] Full-lib *bundle* build (needs the dep install below + `rollup.config.vue3.mjs`;
+      bundling pulls in the non-external deps — gridstack, leaflet, codemirror, …)
 - [ ] Codemod pass, renderer live-verify, v9 rebase, Vitest — see
       `openspec/changes/vue-3-migration/tasks.md`
 

@@ -58,7 +58,8 @@
 		"prepublishOnly": "npm run build",
 		"styleguide": "cd styleguide && npm run server",
 		"styleguide:build": "cd styleguide && npm run build",
-		"build:vue3": "rollup -c rollup.config.vue3.mjs"
+		"build:vue3": "rollup -c rollup.config.vue3.mjs",
+		"check:vue3-compile": "node scripts/vue3-compile-sweep.cjs"
 	},
 	"tsd": {
 		"directory": "test-d",

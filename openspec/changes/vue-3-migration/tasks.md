@@ -34,6 +34,13 @@ its own commit/PR into `feat/vue-3`; the branch itself does not merge to `beta`
       as bitwise-OR) — zero compile errors, broken at runtime. `@vue/compat`
       MODE 2 + COMPILER_FILTERS restores both. So a green Vue 3 build is NOT
       trustworthy during the straddle. (See BUILD-VUE3.md.)
+- [x] 1.8 **Whole-lib compile sweep: 332/332 clean** — `scripts/vue3-compile-sweep.cjs`
+      (`npm run check:vue3-compile`). First run 321/332; the 11 failures were all
+      one pattern (`<template v-for>` key on child) — fixed. The whole component
+      library compiles on Vue 3 under compat. (Compile, not runtime — see 2.2/2.6.)
+- [ ] 1.9 Full-lib *bundle* build via `rollup.config.vue3.mjs` — needs the Vue 3
+      dep install (bundles the non-external deps: gridstack, leaflet, codemirror);
+      the compile sweep already de-risks the SFC compilation half.
 
 ## 2. Codemod pass (mechanical, ~70%)
 

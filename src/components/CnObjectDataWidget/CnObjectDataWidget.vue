@@ -318,11 +318,11 @@
 							<dl
 								v-else-if="fieldValueKind(field) === 'object'"
 								class="cn-object-data-widget__deflist">
-								<template v-for="(pair, pi) in objectEntries(rawOf(field))">
-									<dt :key="'k' + pi">
+								<template v-for="(pair, pi) in objectEntries(rawOf(field))" :key="pi">
+									<dt>
 										{{ pair[0] }}
 									</dt>
-									<dd :key="'v' + pi">
+									<dd>
 										{{ stringifyCell(pair[1]) }}
 									</dd>
 								</template>
