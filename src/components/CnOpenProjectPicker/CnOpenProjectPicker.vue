@@ -221,7 +221,7 @@ export default {
 		this.fetchWorkPackages()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.searchTimer) {
 			clearTimeout(this.searchTimer)
 		}

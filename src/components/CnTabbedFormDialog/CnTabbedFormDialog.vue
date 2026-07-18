@@ -351,7 +351,7 @@ export default {
 			return this.isCreateMode ? t('nextcloud-vue', 'Create') : t('nextcloud-vue', 'Save')
 		},
 	},
-	beforeDestroy() {
+	beforeUnmount() {
 		clearTimeout(this.closeTimeout)
 		clearTimeout(this.successClearTimeout)
 	},

@@ -354,7 +354,7 @@ export default {
 		this.initMap()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		clearTimeout(this.boundsTimer)
 		clearTimeout(this.resizeTimer)
 		if (this.resizeObserver) {

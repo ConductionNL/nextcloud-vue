@@ -168,7 +168,7 @@ export default {
 		this.fetchBookmarks()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.searchTimer) {
 			clearTimeout(this.searchTimer)
 		}

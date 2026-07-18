@@ -782,7 +782,7 @@ export default {
 		 * Reactive AI context holder provided by CnAppRoot. This page
 		 * component writes pageKind, registerSlug, schemaSlug in
 		 * created() and watches props for subsequent changes. On
-		 * beforeDestroy(), fields are reset to avoid stale context on
+		 * beforeUnmount(), fields are reset to avoid stale context on
 		 * subsequent custom pages.
 		 */
 		cnAiContext: { default: null },
@@ -2446,7 +2446,7 @@ export default {
 		})
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		// Clear the holder so the hoisted sidebar disappears when
 		// the user navigates away from the index page.
 		if (this.cnHostsIndexSidebar && this.cnIndexSidebarConfig) {

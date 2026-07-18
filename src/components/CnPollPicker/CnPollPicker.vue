@@ -140,7 +140,7 @@ export default {
 		this.fetchPolls()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.searchTimer) {
 			clearTimeout(this.searchTimer)
 		}

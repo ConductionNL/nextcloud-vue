@@ -18,7 +18,7 @@
  *       run: () => this.$router.push({ name: 'invoice-create' }),
  *     })
  *   },
- *   beforeDestroy() {
+ *   beforeUnmount() {
  *     this._cmdPalette.unregister('my-app.create-invoice')
  *   },
  * }

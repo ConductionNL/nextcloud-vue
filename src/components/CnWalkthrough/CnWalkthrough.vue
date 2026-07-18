@@ -326,7 +326,7 @@ export default {
 		if (this.active) this.$nextTick(() => this.locateTarget())
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		window.removeEventListener('scroll', this._onScroll, true)
 		window.removeEventListener('resize', this._onScroll)
 		window.removeEventListener('keydown', this._onKey)

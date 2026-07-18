@@ -224,7 +224,7 @@ export default {
 		},
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.debounceHandle) clearTimeout(this.debounceHandle)
 	},
 

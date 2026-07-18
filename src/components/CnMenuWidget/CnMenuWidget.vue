@@ -395,7 +395,7 @@ export default {
 		}
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (typeof window !== 'undefined' && this.boundLocationListener) {
 			window.removeEventListener('popstate', this.boundLocationListener)
 			window.removeEventListener('hashchange', this.boundLocationListener)

@@ -156,7 +156,7 @@ export default {
 	 *
 	 * @return {void}
 	 */
-	beforeDestroy() {
+	beforeUnmount() {
 		window.removeEventListener('online', this.onOnline)
 		window.removeEventListener('offline', this.onOffline)
 	},

@@ -158,7 +158,7 @@ export default {
 		this.initGrid()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.grid) {
 			this.grid.destroy(false)
 		}

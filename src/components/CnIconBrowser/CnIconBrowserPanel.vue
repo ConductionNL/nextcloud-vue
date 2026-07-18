@@ -783,7 +783,7 @@ export default {
 		this.loadMdiCatalogue()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		clearTimeout(this.debounceTimer)
 	},
 

@@ -624,7 +624,7 @@ export default {
 		},
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.pendingColorTimer) {
 			clearTimeout(this.pendingColorTimer)
 			this.pendingColorTimer = null

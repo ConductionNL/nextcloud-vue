@@ -127,7 +127,7 @@ export default {
 		this.fetchRooms()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.searchTimer) {
 			clearTimeout(this.searchTimer)
 		}

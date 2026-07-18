@@ -174,7 +174,7 @@ export default {
 		this.fetchOperations()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.searchTimer) {
 			clearTimeout(this.searchTimer)
 		}

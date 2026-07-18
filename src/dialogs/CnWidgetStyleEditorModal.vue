@@ -379,7 +379,7 @@ export default {
 		document.addEventListener('keydown', this.onKeydown)
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		document.removeEventListener('keydown', this.onKeydown)
 	},
 

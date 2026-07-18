@@ -145,7 +145,7 @@ export default {
 		this.fetchPois()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.searchTimer) {
 			clearTimeout(this.searchTimer)
 		}

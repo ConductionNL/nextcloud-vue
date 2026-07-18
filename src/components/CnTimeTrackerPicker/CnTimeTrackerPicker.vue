@@ -148,7 +148,7 @@ export default {
 		this.fetchEntries()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.searchTimer) {
 			clearTimeout(this.searchTimer)
 		}

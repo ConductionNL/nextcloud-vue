@@ -406,7 +406,7 @@ export default {
 			document.addEventListener('keydown', this.onGlobalKeydown)
 		}
 	},
-	beforeDestroy() {
+	beforeUnmount() {
 		document.removeEventListener('keydown', this.onGlobalKeydown)
 		this.clearDebounce()
 		this.destroyed = true

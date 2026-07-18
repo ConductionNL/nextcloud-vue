@@ -778,7 +778,7 @@ export default {
 		this.scheduleOverflowMeasure()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this._overflowObserver) this._overflowObserver.disconnect()
 		if (this._overflowTimer) clearTimeout(this._overflowTimer)
 	},

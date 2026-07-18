@@ -459,7 +459,7 @@ export default {
 		},
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		clearTimeout(this.searchTimer)
 	},
 

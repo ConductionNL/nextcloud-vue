@@ -149,7 +149,7 @@ export default {
 		this.fetchProjects()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.searchTimer) {
 			clearTimeout(this.searchTimer)
 		}

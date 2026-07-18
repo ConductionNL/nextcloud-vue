@@ -957,7 +957,7 @@ export default {
 		this._resizeObserver.observe(this.$el)
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		clearTimeout(this._resizeTimer)
 		if (this._resizeObserver) {
 			this._resizeObserver.disconnect()

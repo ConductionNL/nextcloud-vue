@@ -781,7 +781,7 @@ export default {
 		/**
 		 * Reactive AI context holder provided by CnAppRoot. This page
 		 * component writes pageKind, objectUuid, registerSlug, schemaSlug
-		 * in created() and watches for changes. Resets on beforeDestroy().
+		 * in created() and watches for changes. Resets on beforeUnmount().
 		 */
 		cnAiContext: { default: null },
 		/**
@@ -2007,7 +2007,7 @@ export default {
 		this.scheduleCellOverflowAudit()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.hasExternalSidebar) {
 			this.objectSidebarState.active = false
 			// Clear manifest-driven tabs so the next mount starts fresh

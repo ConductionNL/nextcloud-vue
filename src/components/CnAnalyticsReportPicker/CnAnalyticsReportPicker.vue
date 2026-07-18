@@ -148,7 +148,7 @@ export default {
 		this.fetchReports()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.searchTimer) {
 			clearTimeout(this.searchTimer)
 		}

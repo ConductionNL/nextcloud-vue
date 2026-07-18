@@ -909,7 +909,7 @@ export default {
 		this.resolveSemanticReferences()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		for (const state of Object.values(this.asyncState)) {
 			if (state.searchTimeout) clearTimeout(state.searchTimeout)
 		}

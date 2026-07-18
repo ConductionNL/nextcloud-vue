@@ -348,7 +348,7 @@ export default {
 		this.$nextTick(() => this.measureFit())
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this._fitObserver) this._fitObserver.disconnect()
 	},
 

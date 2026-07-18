@@ -177,7 +177,7 @@ export default {
 		this.fetchPages()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.searchTimer) {
 			clearTimeout(this.searchTimer)
 		}

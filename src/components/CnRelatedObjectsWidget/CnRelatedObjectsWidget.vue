@@ -719,7 +719,7 @@ export default {
 		subscribe(REFRESH_BUS_CHANNEL, this.onBusRefresh)
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		unsubscribe(REFRESH_BUS_CHANNEL, this.onBusRefresh)
 	},
 

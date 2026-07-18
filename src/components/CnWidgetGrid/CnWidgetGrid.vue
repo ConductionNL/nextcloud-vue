@@ -334,7 +334,7 @@ export default {
 		if (this.editableBody) this.initGrid()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		this.destroyGrid()
 	},
 

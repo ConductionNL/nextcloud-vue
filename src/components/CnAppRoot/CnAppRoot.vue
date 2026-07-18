@@ -2277,7 +2277,7 @@ export default {
 		this._hydrateMenuCounts()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		window.removeEventListener('beforeunload', this.onBeforeUnload)
 	},
 

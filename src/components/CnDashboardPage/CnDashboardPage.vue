@@ -782,7 +782,7 @@ export default {
 		cnEditingBody: { default: false },
 		/**
 		 * Reactive AI context holder provided by CnAppRoot. Overwritten
-		 * on created() and watched for prop changes. Reset on beforeDestroy().
+		 * on created() and watched for prop changes. Reset on beforeUnmount().
 		 */
 		cnAiContext: { default: null },
 	},
@@ -1557,7 +1557,7 @@ export default {
 		this.initPageFilters()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.cnAiContext) {
 			this.cnAiContext.pageKind = 'custom'
 			this.cnAiContext.registerSlug = undefined

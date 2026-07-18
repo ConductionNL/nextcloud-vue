@@ -150,7 +150,7 @@ export default {
 		},
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.closeTimeout) clearTimeout(this.closeTimeout)
 	},
 

@@ -187,7 +187,7 @@ export default {
 		this.initInnerGrid()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		this.destroyInnerGrid()
 	},
 

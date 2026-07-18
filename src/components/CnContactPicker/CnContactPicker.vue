@@ -210,7 +210,7 @@ export default {
 		this.fetchContacts('')
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.searchTimer) {
 			clearTimeout(this.searchTimer)
 		}

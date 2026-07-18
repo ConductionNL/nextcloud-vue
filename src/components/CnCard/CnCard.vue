@@ -267,7 +267,7 @@ export default {
 		this._resizeObserver.observe(this.$el)
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this._resizeObserver) {
 			this._resizeObserver.disconnect()
 		}
