@@ -643,7 +643,7 @@ export default {
 		},
 
 		updateField(key, value) {
-			this.$set(this.formData, key, value)
+			this.formData[key] = value
 			this.$emit('input', { key, value })
 		},
 

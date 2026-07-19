@@ -200,7 +200,7 @@ export default {
 		 * @return {void}
 		 */
 		setLabel(value) {
-			this.$set(this.item, 'label', value)
+			this.item['label'] = value
 		},
 		/**
 		 * Set the item icon. CnIconBrowser emits the value directly (a registry
@@ -210,7 +210,7 @@ export default {
 		 * @return {void}
 		 */
 		onIcon(icon) {
-			this.$set(this.item, 'icon', icon || '')
+			this.item['icon'] = icon || ''
 		},
 		/**
 		 * Set the item's target page (route name) and leave edit mode.
@@ -218,7 +218,7 @@ export default {
 		 * @return {void}
 		 */
 		onPage(option) {
-			this.$set(this.item, 'route', option ? option.value : '')
+			this.item['route'] = option ? option.value : ''
 			this.stopEdit()
 		},
 	},

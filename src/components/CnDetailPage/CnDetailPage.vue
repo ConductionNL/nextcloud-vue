@@ -2688,9 +2688,9 @@ export default {
 		onWidgetConfigSave(edited) {
 			const def = this.bodyGridWidgets.find((w) => w.id === this.configWidgetId)
 			if (def) {
-				if (edited.title !== undefined) this.$set(def, 'title', edited.title)
-				if (edited.content !== undefined) this.$set(def, 'content', edited.content)
-				this.$set(def, 'styleConfig', edited.styleConfig || {})
+				if (edited.title !== undefined) def['title'] = edited.title
+				if (edited.content !== undefined) def['content'] = edited.content
+				def['styleConfig'] = edited.styleConfig || {}
 			}
 			this.showWidgetConfig = false
 			/**

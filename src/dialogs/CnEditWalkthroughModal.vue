@@ -134,17 +134,17 @@ export default {
 		// track later mutations (added steps wouldn't render).
 		if (!this.working) return
 		if (!this.working.walkthrough || typeof this.working.walkthrough !== 'object') {
-			this.$set(this.working, 'walkthrough', { enabled: true, tours: [] })
+			this.working['walkthrough'] = { enabled: true, tours: [] }
 		}
 		if (!Array.isArray(this.working.walkthrough.tours)) {
-			this.$set(this.working.walkthrough, 'tours', [])
+			this.working.walkthrough['tours'] = []
 		}
 		if (this.working.walkthrough.tours.length === 0) {
 			// eslint-disable-next-line vue/no-mutating-props
 			this.working.walkthrough.tours.push({ id: 'getting-started', title: '', trigger: 'first-visit', steps: [] })
 		}
 		if (!Array.isArray(this.working.walkthrough.tours[0].steps)) {
-			this.$set(this.working.walkthrough.tours[0], 'steps', [])
+			this.working.walkthrough.tours[0]['steps'] = []
 		}
 	},
 
@@ -183,11 +183,11 @@ export default {
 		setTarget(step, value) {
 			const v = (value || '').trim()
 			if (v === '') {
-				this.$delete(step, 'target')
+				delete step['target']
 			} else {
 				// CnWalkthrough's resolveTarget reads `target.selector` for
 				// kind:"selector" (not `ref`), so store it under selector.
-				this.$set(step, 'target', { kind: 'selector', selector: v })
+				step['target'] = { kind: 'selector', selector: v }
 			}
 		},
 	},

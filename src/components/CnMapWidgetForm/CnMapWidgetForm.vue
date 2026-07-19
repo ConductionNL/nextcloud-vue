@@ -243,7 +243,7 @@ export default {
 		onCentre(index, value) {
 			const n = Number(value)
 			if (!Number.isFinite(n)) return
-			this.$set(this.center, index, n)
+			this.center[index] = n
 		},
 
 		/**

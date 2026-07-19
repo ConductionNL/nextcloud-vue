@@ -636,7 +636,7 @@ export default {
 			)
 			await Promise.all(remoteFields.map(async (field) => {
 				const result = await evaluateVisibleWhen(field.visibleWhen, { object: this.formData })
-				this.$set(this.remoteVisibility, field.key, result)
+				this.remoteVisibility[field.key] = result
 			}))
 		},
 
@@ -654,15 +654,15 @@ export default {
 			fieldsList.forEach((field) => {
 				if (!field || typeof field.key !== 'string') return
 				if (!this.isFieldVisible(field.key)) {
-					this.$delete(this.fieldErrors, field.key)
+					delete this.fieldErrors[field.key]
 					return
 				}
 				const message = validateFieldValue(field, this.formData[field.key], this.resolveLabel)
 				if (message) {
-					this.$set(this.fieldErrors, field.key, message)
+					this.fieldErrors[field.key] = message
 					if (!firstInvalidKey) firstInvalidKey = field.key
 				} else {
-					this.$delete(this.fieldErrors, field.key)
+					delete this.fieldErrors[field.key]
 				}
 			})
 			return firstInvalidKey
@@ -743,8 +743,8 @@ export default {
 		},
 
 		updateField(key, value) {
-			this.$set(this.formData, key, value)
-			this.$delete(this.fieldErrors, key)
+			this.formData[key] = value
+			delete this.fieldErrors[key]
 			/**
 			 * Field-level update event.
 			 *

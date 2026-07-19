@@ -291,7 +291,7 @@ export default {
 		 * @param value
 		 */
 		updateSource(field, value) {
-			this.$set(this.source, field, value)
+			this.source[field] = value
 			this.emitChange()
 		},
 
@@ -301,7 +301,7 @@ export default {
 		 * @param value
 		 */
 		updateBucket(field, value) {
-			this.$set(this.bucket, field, value)
+			this.bucket[field] = value
 			this.emitChange()
 		},
 
@@ -311,7 +311,7 @@ export default {
 		 * @param value
 		 */
 		updateGroup(field, value) {
-			this.$set(this.group, field, value)
+			this.group[field] = value
 			this.emitChange()
 		},
 

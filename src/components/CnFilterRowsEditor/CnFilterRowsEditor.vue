@@ -152,7 +152,7 @@ export default {
 		 * @param value
 		 */
 		update(i, cell, value) {
-			this.$set(this.rows[i], cell, value)
+			this.rows[i][cell] = value
 			this.emit()
 		},
 

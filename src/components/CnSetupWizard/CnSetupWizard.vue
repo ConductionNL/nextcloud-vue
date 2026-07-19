@@ -61,7 +61,7 @@
 						<NcCheckboxRadioSwitch
 							v-if="field.widget === 'checkbox'"
 							:model-value="!!configModel[field.key]"
-							@update:model-value="(v) => $set(configModel, field.key, v)">
+							@update:model-value="(v) => configModel[field.key] = v">
 							{{ field.label }}
 						</NcCheckboxRadioSwitch>
 						<NcSelect
@@ -69,13 +69,13 @@
 							:input-label="field.label"
 							:options="field.enum || []"
 							:model-value="configModel[field.key]"
-							@update:model-value="(v) => $set(configModel, field.key, v)" />
+							@update:model-value="(v) => configModel[field.key] = v" />
 						<NcTextField
 							v-else
 							:label="field.label"
 							:type="field.widget === 'number' ? 'number' : 'text'"
 							:model-value="configModel[field.key] != null ? String(configModel[field.key]) : ''"
-							@update:model-value="(v) => $set(configModel, field.key, v)" />
+							@update:model-value="(v) => configModel[field.key] = v" />
 					</div>
 				</template>
 
@@ -333,17 +333,17 @@ export default {
 			return raw && raw.value !== undefined ? raw.value : raw
 		},
 		onChoice(step, value) {
-			this.$set(this.userTouched, step.id, true)
-			this.$set(this.choiceModel, step.id, value)
+			this.userTouched[step.id] = true
+			this.choiceModel[step.id] = value
 			if (step.configKey) {
-				this.$set(this.choiceValues, step.configKey, this.scalarChoice(step))
+				this.choiceValues[step.configKey] = this.scalarChoice(step)
 			}
 			// Reset any dependent child choices when the parent changes.
 			for (const child of this.setupSteps) {
 				if (child.dependsOn && child.dependsOn === step.configKey) {
-					this.$set(this.choiceModel, child.id, child.multiple === true ? [] : null)
-					this.$set(this.userTouched, child.id, false)
-					if (child.configKey) this.$set(this.choiceValues, child.configKey, '')
+					this.choiceModel[child.id] = child.multiple === true ? [] : null
+					this.userTouched[child.id] = false
+					if (child.configKey) this.choiceValues[child.configKey] = ''
 				}
 			}
 			// Re-apply auto-suggestions for steps that derive a default from this one.
@@ -369,8 +369,8 @@ export default {
 			const wanted = (step.suggestMap || {})[parentValue]
 			if (wanted == null) return
 			const opt = this.optionsFor(step).find((o) => o.value === wanted) || { value: wanted, label: String(wanted) }
-			this.$set(this.choiceModel, step.id, opt)
-			if (step.configKey) this.$set(this.choiceValues, step.configKey, wanted)
+			this.choiceModel[step.id] = opt
+			if (step.configKey) this.choiceValues[step.configKey] = wanted
 		},
 		/**
 		 * CnWizardDialog `validate` hook — intercepts Next/Submit to persist
@@ -394,7 +394,7 @@ export default {
 				}
 				try {
 					await this.saveConfig({ [step.configKey]: this.scalarChoice(step) })
-					this.$set(this.localDone, step.id, true)
+					this.localDone[step.id] = true
 					return true
 				} catch (err) {
 					return this.errorMessage(err)
@@ -407,7 +407,7 @@ export default {
 						patch[field.key] = this.configModel[field.key]
 					}
 					await this.saveConfig(patch)
-					this.$set(this.localDone, step.id, true)
+					this.localDone[step.id] = true
 					return true
 				} catch (err) {
 					return this.errorMessage(err)
@@ -432,8 +432,8 @@ export default {
 			await axios.post(generateUrl(`/apps/${this.appId}/api/setup/config`), patch)
 		},
 		async runAction(step) {
-			this.$set(this.running, step.id, true)
-			this.$set(this.actionResult, step.id, null)
+			this.running[step.id] = true
+			this.actionResult[step.id] = null
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),
@@ -446,9 +446,9 @@ export default {
 					success: data && data.success !== false,
 					message: (data && data.message) || t('nextcloud-vue', 'Done.'),
 				}
-				this.$set(this.actionResult, step.id, result)
+				this.actionResult[step.id] = result
 				if (result.success) {
-					this.$set(this.localDone, step.id, true)
+					this.localDone[step.id] = true
 				}
 				/**
 				 * @event action-result Emitted when a `run-action` step finishes.
@@ -456,10 +456,10 @@ export default {
 				 */
 				this.$emit('action-result', { stepId: step.id, action: step.action, ...result })
 			} catch (err) {
-				this.$set(this.actionResult, step.id, { success: false, message: this.errorMessage(err) })
+				this.actionResult[step.id] = { success: false, message: this.errorMessage(err) }
 				this.$emit('action-result', { stepId: step.id, action: step.action, success: false, message: this.errorMessage(err) })
 			} finally {
-				this.$set(this.running, step.id, false)
+				this.running[step.id] = false
 			}
 		},
 		isStepDone(id) {

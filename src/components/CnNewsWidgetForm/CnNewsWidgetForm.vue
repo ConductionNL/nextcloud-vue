@@ -268,7 +268,7 @@ export default {
 		 * @return {void}
 		 */
 		updateFeedUrl(index, value) {
-			this.$set(this.feedUrls, index, value)
+			this.feedUrls[index] = value
 			this.emitUpdate()
 		},
 

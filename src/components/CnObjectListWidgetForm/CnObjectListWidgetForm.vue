@@ -205,7 +205,7 @@ export default {
 		 * @param value
 		 */
 		updateSource(field, value) {
-			this.$set(this.source, field, value)
+			this.source[field] = value
 			this.emitChange()
 		},
 
@@ -215,7 +215,7 @@ export default {
 		 * @param value
 		 */
 		updateSort(field, value) {
-			this.$set(this.sort, field, value)
+			this.sort[field] = value
 			this.emitChange()
 		},
 
@@ -258,7 +258,7 @@ export default {
 		 * @param value
 		 */
 		updateColumn(i, cell, value) {
-			this.$set(this.columns[i], cell, value)
+			this.columns[i][cell] = value
 			this.emitChange()
 		},
 

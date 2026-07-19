@@ -488,17 +488,17 @@ export default {
 			if (!hasOrgField) return
 			const current = this.formData.organisation
 			if (current !== null && current !== undefined && current !== '') return
-			this.$set(this.formData, 'organisation', uuid)
+			this.formData['organisation'] = uuid
 		},
 
 		updateField(key, value) {
-			this.$set(this.formData, key, value)
-			if (this.errors[key]) this.$delete(this.errors, key)
+			this.formData[key] = value
+			if (this.errors[key]) delete this.errors[key]
 		},
 
 		onPropertyValueUpdate({ key, value }) {
-			this.$set(this.formData, key, value)
-			if (this.errors[key]) this.$delete(this.errors, key)
+			this.formData[key] = value
+			if (this.errors[key]) delete this.errors[key]
 		},
 
 		/**

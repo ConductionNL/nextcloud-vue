@@ -338,7 +338,7 @@ export default {
 		},
 
 		setOption(key, value) {
-			this.$set(this.optionValues, key, value)
+			this.optionValues[key] = value
 		},
 
 		formatFileSize(bytes) {
@@ -356,7 +356,7 @@ export default {
 		},
 
 		toggleErrors(key) {
-			this.$set(this.expandedErrors, key, !this.expandedErrors[key])
+			this.expandedErrors[key] = !this.expandedErrors[key]
 		},
 
 		executeImport() {

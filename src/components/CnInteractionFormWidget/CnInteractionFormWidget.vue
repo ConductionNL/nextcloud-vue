@@ -287,7 +287,7 @@ export default {
 				holder.value = { ...(holder.value || {}), [key]: value }
 				return
 			}
-			this.$set(holder, key, value)
+			holder[key] = value
 		},
 
 		/**

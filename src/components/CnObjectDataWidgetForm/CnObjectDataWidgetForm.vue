@@ -297,7 +297,7 @@ export default {
 		 * @param field
 		 * @param value
 		 */
-		updateSource(field, value) { this.$set(this.source, field, value); this.emitChange() },
+		updateSource(field, value) { this.source[field] = value; this.emitChange() },
 		/**
 		 * Mutate one property row and re-emit.
 		 *
@@ -309,7 +309,7 @@ export default {
 		setRow(key, field, value) {
 			const row = this.rows.find((r) => r.key === key)
 			if (!row) return
-			this.$set(row, field, value)
+			row[field] = value
 			this.emitChange()
 		},
 		/**

@@ -250,7 +250,7 @@ export default {
 		},
 
 		onFaviconError(bookmark) {
-			this.$set(this.brokenFavicons, bookmark.id, true)
+			this.brokenFavicons[bookmark.id] = true
 		},
 
 		confirm() {

@@ -1581,7 +1581,7 @@ export default {
 				const fallback = (pf.options && pf.options.length) ? pf.options[0].value : undefined
 				const value = pf.default !== undefined ? pf.default : fallback
 				if (value !== undefined) {
-					this.$set(this.workspaceContext, pf.key, value)
+					this.workspaceContext[pf.key] = value
 				}
 			}
 		},
@@ -1608,7 +1608,7 @@ export default {
 		onPageFilterChange(pf, option) {
 			if (!pf || !pf.key) return
 			const value = option && typeof option === 'object' ? option.value : option
-			this.$set(this.workspaceContext, pf.key, value)
+			this.workspaceContext[pf.key] = value
 			/**
 			 * @event page-filter-change Emitted when a page-level filter selection changes.
 			 * @type {{ key: string, value: (string|number|null) }}
@@ -1978,9 +1978,9 @@ export default {
 		 */
 		syncRangeToWorkspace(value) {
 			const v = value || {}
-			this.$set(this.workspaceContext, 'dateFrom', v.from || '')
-			this.$set(this.workspaceContext, 'dateTo', v.to || '')
-			this.$set(this.workspaceContext, 'datePreset', v.preset || '')
+			this.workspaceContext['dateFrom'] = v.from || ''
+			this.workspaceContext['dateTo'] = v.to || ''
+			this.workspaceContext['datePreset'] = v.preset || ''
 		},
 
 		/**
@@ -2067,10 +2067,10 @@ export default {
 					const item = this.layout.find((l) => String(l.id) === String(u.id))
 						|| this.layout.find((l) => l.widgetId === u.widgetId)
 					if (!item) continue
-					if (u.gridX !== undefined) this.$set(item, 'gridX', u.gridX)
-					if (u.gridY !== undefined) this.$set(item, 'gridY', u.gridY)
-					if (u.gridWidth !== undefined) this.$set(item, 'gridWidth', u.gridWidth)
-					if (u.gridHeight !== undefined) this.$set(item, 'gridHeight', u.gridHeight)
+					if (u.gridX !== undefined) item['gridX'] = u.gridX
+					if (u.gridY !== undefined) item['gridY'] = u.gridY
+					if (u.gridWidth !== undefined) item['gridWidth'] = u.gridWidth
+					if (u.gridHeight !== undefined) item['gridHeight'] = u.gridHeight
 				}
 			}
 			/**
@@ -2291,16 +2291,16 @@ export default {
 				? this.widgets.find((w) => w.id === this.configWidgetId)
 				: null
 			if (def) {
-				this.$set(def, 'title', edited.title !== undefined ? edited.title : def.title)
-				this.$set(def, 'styleConfig', edited.styleConfig || {})
-				this.$set(def, 'showTitle', edited.showTitle !== false)
-				this.$set(def, 'customTitle', edited.customTitle || null)
-				this.$set(def, 'customIcon', edited.customIcon || null)
-				if (edited.content !== undefined) this.$set(def, 'content', edited.content)
+				def['title'] = edited.title !== undefined ? edited.title : def.title
+				def['styleConfig'] = edited.styleConfig || {}
+				def['showTitle'] = edited.showTitle !== false
+				def['customTitle'] = edited.customTitle || null
+				def['customIcon'] = edited.customIcon || null
+				if (edited.content !== undefined) def['content'] = edited.content
 			}
 			const layoutItem = this.layout.find((l) => l.widgetId === this.configWidgetId)
 			if (layoutItem) {
-				this.$set(layoutItem, 'styleConfig', edited.styleConfig || {})
+				layoutItem['styleConfig'] = edited.styleConfig || {}
 			}
 			this.showWidgetConfig = false
 			this.$emit('layout-change', this.layout)

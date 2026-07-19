@@ -1128,7 +1128,7 @@ export default {
 		 * @param {boolean} value New open state.
 		 */
 		setItemOpen(item, value) {
-			this.$set(this.openState, item.id, value)
+			this.openState[item.id] = value
 		},
 		/**
 		 * Click handler. Dispatch order: action keyword → group toggle.

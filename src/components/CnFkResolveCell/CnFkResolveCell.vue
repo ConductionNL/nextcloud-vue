@@ -125,7 +125,7 @@ export default {
 				const cached = store.objects && store.objects[type] && store.objects[type][id]
 				const obj = cached || await this.fetchOne(store, type, id)
 				const label = this.pickLabel(obj)
-				if (label) this.$set(this.labels, id, label)
+				if (label) this.labels[id] = label
 			}))
 		},
 

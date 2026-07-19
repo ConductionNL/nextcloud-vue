@@ -231,11 +231,11 @@ export default {
 				.filter((id) => !(id in this.mentionNames))
 				.map(async (id) => {
 					// Mark as pending (null) first so concurrent calls skip it.
-					this.$set(this.mentionNames, id, null)
+					this.mentionNames[id] = null
 					const results = await searchNextcloudUsers(id)
 					const match = results.find((user) => user.id === id)
 					if (match) {
-						this.$set(this.mentionNames, id, match.label)
+						this.mentionNames[id] = match.label
 					}
 				}))
 		},

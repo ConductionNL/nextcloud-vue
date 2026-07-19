@@ -1142,11 +1142,11 @@ export default {
 					const id = (o['@self'] && o['@self'].id) || o.id
 					return { id, label: this.objectDisplayName(o, id) }
 				}).filter((o) => o.id)
-				this.$set(this.relationOptions, key, opts)
+				this.relationOptions[key] = opts
 				// Cache the labels so display resolution reuses them.
-				opts.forEach((o) => { if (!(o.id in this.relatedLabels)) this.$set(this.relatedLabels, o.id, o.label) })
+				opts.forEach((o) => { if (!(o.id in this.relatedLabels)) this.relatedLabels[o.id] = o.label })
 			} catch (e) {
-				this.$set(this.relationOptions, key, [])
+				this.relationOptions[key] = []
 			} finally {
 				this.relationOptionsLoading = false
 			}
@@ -1170,7 +1170,7 @@ export default {
 		 * @param {object|null} opt Chosen option or null (cleared).
 		 */
 		onRelationChange(field, opt) {
-			if (opt && opt.id) this.$set(this.relatedLabels, opt.id, opt.label)
+			if (opt && opt.id) this.relatedLabels[opt.id] = opt.label
 			this.updateField(field.key, opt ? opt.id : null)
 		},
 		/** Fetch related objects' display names into relatedLabels. */
@@ -1199,9 +1199,9 @@ export default {
 					const res = await axios.get(url)
 					const d = (res && res.data) ? res.data : {}
 					const obj = (d.results && d.results[0]) ? d.results[0] : d
-					this.$set(this.relatedLabels, id, this.objectDisplayName(obj, id))
+					this.relatedLabels[id] = this.objectDisplayName(obj, id)
 				} catch (e) {
-					this.$set(this.relatedLabels, id, id)
+					this.relatedLabels[id] = id
 				}
 			}))
 		},

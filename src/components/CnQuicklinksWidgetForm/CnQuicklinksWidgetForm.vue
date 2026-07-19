@@ -378,7 +378,7 @@ export default {
 		 */
 		onLinkColor(index, value) {
 			if (this.links[index]) {
-				this.$set(this.links, index, { ...this.links[index], color: value })
+				this.links[index] = { ...this.links[index], color: value }
 			}
 			this.onContentChange()
 		},

@@ -162,7 +162,7 @@ export default {
 			const tool = msg.toolCalls[toolIndex]
 			if (!tool) return
 			// Vue 2: use $set for reactivity on new properties
-			this.$set(msg.toolCalls, toolIndex, { ...tool, _expanded: !tool._expanded })
+			msg.toolCalls[toolIndex] = { ...tool, _expanded: !tool._expanded }
 		},
 
 		formatToolPayload(tool) {

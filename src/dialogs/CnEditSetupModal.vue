@@ -126,10 +126,10 @@ export default {
 		// track later mutations (added steps wouldn't render).
 		if (!this.working) return
 		if (!this.working.setup || typeof this.working.setup !== 'object') {
-			this.$set(this.working, 'setup', { enabled: true, steps: [] })
+			this.working['setup'] = { enabled: true, steps: [] }
 		}
 		if (!Array.isArray(this.working.setup.steps)) {
-			this.$set(this.working.setup, 'steps', [])
+			this.working.setup['steps'] = []
 		}
 	},
 
@@ -166,9 +166,9 @@ export default {
 		setConfigKeys(step, value) {
 			const keys = (value || '').split(',').map((k) => k.trim()).filter((k) => k !== '')
 			if (keys.length === 0) {
-				this.$delete(step, 'configKeys')
+				delete step['configKeys']
 			} else {
-				this.$set(step, 'configKeys', keys)
+				step['configKeys'] = keys
 			}
 		},
 	},

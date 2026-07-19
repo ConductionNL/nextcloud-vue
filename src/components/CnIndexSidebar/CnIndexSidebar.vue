@@ -401,7 +401,7 @@ export default {
 			handler(groups) {
 				for (const group of groups) {
 					if (!(group.id in this.expandedGroups)) {
-						this.$set(this.expandedGroups, group.id, group.expanded !== false)
+						this.expandedGroups[group.id] = group.expanded !== false
 					}
 				}
 			},
@@ -480,7 +480,7 @@ export default {
 		 * @param {string} groupId Filter group identifier
 		 */
 		toggleGroup(groupId) {
-			this.$set(this.expandedGroups, groupId, !this.expandedGroups[groupId])
+			this.expandedGroups[groupId] = !this.expandedGroups[groupId]
 		},
 
 		/**

@@ -43,7 +43,7 @@
 					<NcTextField :model-value="page.title || ''"
 						:label="t('nextcloud-vue', 'Title')"
 						:label-visible="true"
-						@update:model-value="(v) => $set(page, 'title', v)" />
+						@update:model-value="(v) => page['title'] = v" />
 					<p class="cn-field__hint">
 						{{ t('nextcloud-vue', 'The page heading and its label in the navigation menu.') }}
 					</p>
@@ -84,7 +84,7 @@
 						:label="t('nextcloud-vue', 'Route')"
 						:label-visible="true"
 						:placeholder="'/example'"
-						@update:model-value="(v) => $set(page, 'route', v)" />
+						@update:model-value="(v) => page['route'] = v" />
 					<p class="cn-field__hint">
 						{{ t('nextcloud-vue', 'The URL path that opens this page (e.g. /dogs).') }}
 					</p>
@@ -918,7 +918,7 @@ export default {
 		 */
 		ensureConfig() {
 			if (!this.page.config || typeof this.page.config !== 'object' || Array.isArray(this.page.config)) {
-				this.$set(this.page, 'config', {})
+				this.page['config'] = {}
 			}
 			return this.page.config
 		},
@@ -939,8 +939,8 @@ export default {
 		 */
 		setConfig(key, value) {
 			const config = this.ensureConfig()
-			if (value) this.$set(config, key, value)
-			else this.$delete(config, key)
+			if (value) config[key] = value
+			else delete config[key]
 		},
 		/**
 		 * Write a numeric config field (deletes when blank/NaN).
@@ -951,8 +951,8 @@ export default {
 		setNumber(key, value) {
 			const config = this.ensureConfig()
 			const n = Number(value)
-			if (value === '' || value === null || Number.isNaN(n)) this.$delete(config, key)
-			else this.$set(config, key, n)
+			if (value === '' || value === null || Number.isNaN(n)) delete config[key]
+			else config[key] = n
 		},
 		/**
 		 * Effective value of a boolean toggle: the stored value when set, else the
@@ -975,8 +975,8 @@ export default {
 		 */
 		setBool(key, checked) {
 			const config = this.ensureConfig()
-			if (checked === (BOOL_DEFAULTS[key] === true)) this.$delete(config, key)
-			else this.$set(config, key, checked)
+			if (checked === (BOOL_DEFAULTS[key] === true)) delete config[key]
+			else config[key] = checked
 		},
 		/**
 		 * Set the page type in place.
@@ -984,7 +984,7 @@ export default {
 		 * @return {void}
 		 */
 		setType(option) {
-			this.$set(this.page, 'type', option ? option.value : 'custom')
+			this.page['type'] = option ? option.value : 'custom'
 		},
 		/**
 		 * Set the default view mode (drops the key when it equals the 'table' default).
@@ -994,8 +994,8 @@ export default {
 		setViewMode(option) {
 			const config = this.ensureConfig()
 			const v = option ? option.value : 'table'
-			if (v && v !== 'table') this.$set(config, 'viewMode', v)
-			else this.$delete(config, 'viewMode')
+			if (v && v !== 'table') config['viewMode'] = v
+			else delete config['viewMode']
 		},
 		/**
 		 * Set the enabled view layouts (`config.viewModes`), preserving the picked
@@ -1010,15 +1010,15 @@ export default {
 			const modes = (options || []).map((o) => o.value)
 			const isDefault = modes.length === 2
 				&& modes.includes('cards') && modes.includes('table')
-			if (!modes.length || isDefault) this.$delete(config, 'viewModes')
-			else this.$set(config, 'viewModes', modes)
+			if (!modes.length || isDefault) delete config['viewModes']
+			else config['viewModes'] = modes
 			// Keep the default view within the enabled set.
 			const effective = modes.length ? modes : ['cards', 'table']
 			const current = this.configValue('viewMode') || 'table'
 			if (!effective.includes(current)) {
 				const next = effective[0]
-				if (next && next !== 'table') this.$set(config, 'viewMode', next)
-				else this.$delete(config, 'viewMode')
+				if (next && next !== 'table') config['viewMode'] = next
+				else delete config['viewMode']
 			}
 		},
 		/**
@@ -1042,11 +1042,11 @@ export default {
 			let map = config.mapConfig
 			if (!map || typeof map !== 'object' || Array.isArray(map)) {
 				map = {}
-				this.$set(config, 'mapConfig', map)
+				config['mapConfig'] = map
 			}
-			if (value) this.$set(map, key, value)
-			else this.$delete(map, key)
-			if (!Object.keys(config.mapConfig).length) this.$delete(config, 'mapConfig')
+			if (value) map[key] = value
+			else delete map[key]
+			if (!Object.keys(config.mapConfig).length) delete config['mapConfig']
 		},
 		/**
 		 * Set the register; clears schema + columns.
@@ -1075,8 +1075,8 @@ export default {
 		setColumns(options) {
 			const config = this.ensureConfig()
 			const cols = (options || []).map((o) => o.value)
-			if (cols.length) this.$set(config, 'columns', cols)
-			else this.$delete(config, 'columns')
+			if (cols.length) config['columns'] = cols
+			else delete config['columns']
 		},
 		/**
 		 * Set columns from a comma-separated string.
@@ -1086,8 +1086,8 @@ export default {
 		setColumnsText(text) {
 			const config = this.ensureConfig()
 			const cols = String(text || '').split(',').map((s) => s.trim()).filter(Boolean)
-			if (cols.length) this.$set(config, 'columns', cols)
-			else this.$delete(config, 'columns')
+			if (cols.length) config['columns'] = cols
+			else delete config['columns']
 		},
 		/**
 		 * The override object for a column (empty object when none).
@@ -1118,11 +1118,11 @@ export default {
 			let map = config.columnOverrides
 			if (!map || typeof map !== 'object' || Array.isArray(map)) {
 				map = {}
-				this.$set(config, 'columnOverrides', map)
+				config['columnOverrides'] = map
 			}
-			if (override && Object.keys(override).length) this.$set(map, col, override)
-			else this.$delete(map, col)
-			if (!Object.keys(config.columnOverrides).length) this.$delete(config, 'columnOverrides')
+			if (override && Object.keys(override).length) map[col] = override
+			else delete map[col]
+			if (!Object.keys(config.columnOverrides).length) delete config['columnOverrides']
 		},
 		/**
 		 * Set a column's custom label.
@@ -1174,9 +1174,9 @@ export default {
 		 */
 		setSortField(option) {
 			const config = this.ensureConfig()
-			if (!option) { this.$delete(config, 'defaultSort'); return }
+			if (!option) { delete config['defaultSort']; return }
 			const order = (this.defaultSortArray[0] && this.defaultSortArray[0].order) || 'asc'
-			this.$set(config, 'defaultSort', [{ field: option.value, order }])
+			config['defaultSort'] = [{ field: option.value, order }]
 		},
 		/**
 		 * Set the default-sort direction (no-op until a field is chosen).
@@ -1187,7 +1187,7 @@ export default {
 			const sort = this.defaultSortArray
 			if (!sort.length || !sort[0].field) return
 			const config = this.ensureConfig()
-			this.$set(config, 'defaultSort', [{ field: sort[0].field, order: option ? option.value : 'asc' }])
+			config['defaultSort'] = [{ field: sort[0].field, order: option ? option.value : 'asc' }]
 		},
 		/**
 		 * Edit an Advanced JSON field: parse, flag errors, and persist on success
@@ -1197,20 +1197,20 @@ export default {
 		 * @return {void}
 		 */
 		setJson(key, text) {
-			this.$set(this.jsonText, key, text)
+			this.jsonText[key] = text
 			const config = this.ensureConfig()
 			const trimmed = String(text || '').trim()
 			if (!trimmed) {
-				this.$delete(this.jsonErrors, key)
-				this.$delete(config, key)
+				delete this.jsonErrors[key]
+				delete config[key]
 				return
 			}
 			try {
 				const parsed = JSON.parse(trimmed)
-				this.$delete(this.jsonErrors, key)
-				this.$set(config, key, parsed)
+				delete this.jsonErrors[key]
+				config[key] = parsed
 			} catch (e) {
-				this.$set(this.jsonErrors, key, true)
+				this.jsonErrors[key] = true
 			}
 		},
 	},

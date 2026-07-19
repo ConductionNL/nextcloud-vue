@@ -217,7 +217,7 @@ export default {
 		},
 
 		onCoverError(album) {
-			this.$set(this.brokenCovers, album.id, true)
+			this.brokenCovers[album.id] = true
 		},
 
 		countLabel(album) {

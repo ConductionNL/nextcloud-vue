@@ -808,16 +808,16 @@ export default {
 				return
 			}
 
-			this.$set(this.groupLoading, group.key, true)
-			this.$set(this.groupError, group.key, '')
+			this.groupLoading[group.key] = true
+			this.groupError[group.key] = ''
 			try {
 				const icons = await group.load()
-				this.$set(this.groupIcons, group.key, Array.isArray(icons) ? icons : [])
+				this.groupIcons[group.key] = Array.isArray(icons) ? icons : []
 			} catch (error) {
-				this.$set(this.groupError, group.key, t('nextcloud-vue', 'Could not load this icon set.'))
+				this.groupError[group.key] = t('nextcloud-vue', 'Could not load this icon set.')
 				console.error('Icon set "' + group.key + '" failed to load:', error)
 			} finally {
-				this.$set(this.groupLoading, group.key, false)
+				this.groupLoading[group.key] = false
 			}
 		},
 

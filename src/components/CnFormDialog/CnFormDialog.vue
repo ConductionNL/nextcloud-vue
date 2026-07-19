@@ -882,15 +882,15 @@ export default {
 			const newKeys = new Set(newFields.map((f) => f.key))
 			for (const oldField of oldFields) {
 				if (!newKeys.has(oldField.key) && Object.prototype.hasOwnProperty.call(this.formData, oldField.key)) {
-					this.$delete(this.formData, oldField.key)
+					delete this.formData[oldField.key]
 					if (Object.prototype.hasOwnProperty.call(this.errors, oldField.key)) {
-						this.$delete(this.errors, oldField.key)
+						delete this.errors[oldField.key]
 					}
 					if (Object.prototype.hasOwnProperty.call(this.jsonErrors, oldField.key)) {
-						this.$delete(this.jsonErrors, oldField.key)
+						delete this.jsonErrors[oldField.key]
 					}
 					if (Object.prototype.hasOwnProperty.call(this.jsonDrafts, oldField.key)) {
-						this.$delete(this.jsonDrafts, oldField.key)
+						delete this.jsonDrafts[oldField.key]
 					}
 				}
 			}
@@ -972,9 +972,9 @@ export default {
 			}
 			for (const uri of uris) {
 				if (this.semanticResolutions[uri]) continue
-				this.$set(this.semanticResolutions, uri, { status: 'loading', resolved: false })
+				this.semanticResolutions[uri] = { status: 'loading', resolved: false }
 				this.resolveSemanticReference(uri).then((result) => {
-					this.$set(this.semanticResolutions, uri, { status: 'done', ...result })
+					this.semanticResolutions[uri] = { status: 'done', ...result }
 					// Re-init async fields so a newly-resolved reference picker
 					// starts fetching its options, and resolve any edit-mode
 					// label for a value already stored on the field.
@@ -1200,7 +1200,7 @@ export default {
 			if (!hasOrgField) return
 			const current = this.formData.organisation
 			if (current !== null && current !== undefined && current !== '') return
-			this.$set(this.formData, 'organisation', uuid)
+			this.formData['organisation'] = uuid
 		},
 
 		/**
@@ -1251,11 +1251,11 @@ export default {
 		},
 
 		updateField(key, value) {
-			this.$set(this.formData, key, value)
-			this.$set(this.touchedFields, key, true)
+			this.formData[key] = value
+			this.touchedFields[key] = true
 			// Clear errors when a field is edited
 			if (this.errors[key]) {
-				this.$delete(this.errors, key)
+				delete this.errors[key]
 			}
 			this.formError = null
 			// A field change may flip the visibility of conditional fields.
@@ -1271,9 +1271,9 @@ export default {
 		pruneHiddenFields() {
 			for (const field of this.resolvedFields) {
 				if (!this.fieldVisible(field) && Object.hasOwn(this.formData, field.key)) {
-					this.$delete(this.formData, field.key)
+					delete this.formData[field.key]
 					if (this.errors[field.key]) {
-						this.$delete(this.errors, field.key)
+						delete this.errors[field.key]
 					}
 				}
 			}
@@ -1310,19 +1310,19 @@ export default {
 		 * @param {string} newString Current editor content.
 		 */
 		onJsonFieldInput(field, newString) {
-			this.$set(this.jsonDrafts, field.key, newString)
+			this.jsonDrafts[field.key] = newString
 			const trimmed = (newString || '').trim()
 			if (!trimmed) {
 				this.updateField(field.key, null)
-				this.$delete(this.jsonErrors, field.key)
+				delete this.jsonErrors[field.key]
 				return
 			}
 			try {
 				const parsed = JSON.parse(trimmed)
 				this.updateField(field.key, parsed)
-				this.$delete(this.jsonErrors, field.key)
+				delete this.jsonErrors[field.key]
 			} catch (e) {
-				this.$set(this.jsonErrors, field.key, t('nextcloud-vue', 'Invalid JSON: {msg}', { msg: e.message }))
+				this.jsonErrors[field.key] = t('nextcloud-vue', 'Invalid JSON: {msg}', { msg: e.message })
 			}
 		},
 
@@ -1411,7 +1411,7 @@ export default {
 				if (raw === null || raw === undefined || raw === '') continue
 				const date = this.dateValueFor(field)
 				if (date instanceof Date && !isNaN(date.getTime())) {
-					this.$set(this.formData, field.key, this.formatDateValue(field.widget, date))
+					this.formData[field.key] = this.formatDateValue(field.widget, date)
 				}
 			}
 		},
@@ -1849,7 +1849,7 @@ export default {
 			const state = this.asyncState[field.key]
 			if (!state) return
 
-			this.$set(state, 'loading', true)
+			state['loading'] = true
 
 			try {
 				let results
@@ -1872,12 +1872,12 @@ export default {
 					const enumFn = typeof field.enum === 'function' ? field.enum : field.items.enum
 					results = await enumFn(query)
 				}
-				this.$set(state, 'options', Array.isArray(results) ? results : [])
+				state['options'] = Array.isArray(results) ? results : []
 			} catch (err) {
 				console.error(`CnFormDialog: async enum error for field "${field.key}":`, err)
-				this.$set(state, 'options', [])
+				state['options'] = []
 			} finally {
-				this.$set(state, 'loading', false)
+				state['loading'] = false
 			}
 		},
 

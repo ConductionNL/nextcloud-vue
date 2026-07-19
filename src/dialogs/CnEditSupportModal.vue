@@ -196,20 +196,20 @@ export default {
 		// re-styled, re-iconed or dropped.
 		if (!this.working) return
 		if (!this.working.support || typeof this.working.support !== 'object') {
-			this.$set(this.working, 'support', { enabled: true })
+			this.working['support'] = { enabled: true }
 		}
 		if (!this.working.support.buttons || typeof this.working.support.buttons !== 'object') {
-			this.$set(this.working.support, 'buttons', {})
+			this.working.support['buttons'] = {}
 		}
 		for (const def of BUTTON_DEFS) {
 			if (!this.working.support.buttons[def.id]) {
-				this.$set(this.working.support.buttons, def.id, {
+				this.working.support.buttons[def.id] = {
 					enabled: true,
 					label: def.label,
 					url: def.url,
 					variant: def.variant,
 					icon: def.icon,
-				})
+				}
 			}
 		}
 	},
@@ -235,9 +235,9 @@ export default {
 		setBody(value) {
 			const paras = (value || '').split('\n').map((p) => p.trim()).filter((p) => p !== '')
 			if (paras.length === 0) {
-				this.$delete(this.support, 'bodyParagraphs')
+				delete this.support['bodyParagraphs']
 			} else {
-				this.$set(this.support, 'bodyParagraphs', paras)
+				this.support['bodyParagraphs'] = paras
 			}
 		},
 		/**
@@ -251,14 +251,14 @@ export default {
 			if (!file) return
 			const reader = new FileReader()
 			reader.onload = () => {
-				this.$set(this.support, 'founderAvatarUrl', String(reader.result))
+				this.support['founderAvatarUrl'] = String(reader.result)
 			}
 			reader.readAsDataURL(file)
 			event.target.value = ''
 		},
 		/** Clear the avatar override so the bundled default portrait applies. */
 		clearAvatar() {
-			this.$delete(this.support, 'founderAvatarUrl')
+			delete this.support['founderAvatarUrl']
 		},
 	},
 }

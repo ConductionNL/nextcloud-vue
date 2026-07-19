@@ -396,7 +396,7 @@ export default {
 				holder.value = { ...(holder.value || {}), [this.writeKey]: value }
 				return
 			}
-			this.$set(holder, this.writeKey, value)
+			holder[this.writeKey] = value
 		},
 	},
 }

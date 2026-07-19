@@ -452,52 +452,52 @@ export default {
 						if (property) {
 							// Initialize nested objects if they don't exist
 							if (property.type === 'array' && !property.items) {
-								this.$set(this.schemaItem.properties[key], 'items', { type: 'string' })
+								this.schemaItem.properties[key]['items'] = { type: 'string' }
 							}
 							if (property.type === 'object' && !property.objectConfiguration) {
-								this.$set(this.schemaItem.properties[key], 'objectConfiguration', { handling: 'nested-object' })
+								this.schemaItem.properties[key]['objectConfiguration'] = { handling: 'nested-object' }
 							}
 							if (property.type === 'array' && property.items && property.items.type === 'object' && !property.items.objectConfiguration) {
-								this.$set(this.schemaItem.properties[key].items, 'objectConfiguration', { handling: 'nested-object' })
+								this.schemaItem.properties[key].items['objectConfiguration'] = { handling: 'nested-object' }
 							}
 
 							// Convert property type from object to string
 							if (property.type && typeof property.type === 'object' && property.type.id) {
-								this.$set(this.schemaItem.properties[key], 'type', property.type.id)
+								this.schemaItem.properties[key]['type'] = property.type.id
 							}
 
 							// Convert property format from object to string
 							if (property.format && typeof property.format === 'object' && property.format.id) {
-								this.$set(this.schemaItem.properties[key], 'format', property.format.id)
+								this.schemaItem.properties[key]['format'] = property.format.id
 							}
 
 							// Convert array item type from object to string
 							if (property.items && property.items.type && typeof property.items.type === 'object' && property.items.type.id) {
-								this.$set(this.schemaItem.properties[key].items, 'type', property.items.type.id)
+								this.schemaItem.properties[key].items['type'] = property.items.type.id
 							}
 
 							// Convert object handling from object to string
 							if (property.objectConfiguration && property.objectConfiguration.handling
 								&& typeof property.objectConfiguration.handling === 'object' && property.objectConfiguration.handling.id) {
-								this.$set(this.schemaItem.properties[key].objectConfiguration, 'handling', property.objectConfiguration.handling.id)
+								this.schemaItem.properties[key].objectConfiguration['handling'] = property.objectConfiguration.handling.id
 							}
 
 							// Convert register from object to ID
 							if (property.objectConfiguration && property.objectConfiguration.register
 								&& typeof property.objectConfiguration.register === 'object' && property.objectConfiguration.register.id) {
-								this.$set(this.schemaItem.properties[key].objectConfiguration, 'register', property.objectConfiguration.register.id)
+								this.schemaItem.properties[key].objectConfiguration['register'] = property.objectConfiguration.register.id
 							}
 
 							// Convert array item object handling from object to string
 							if (property.items && property.items.objectConfiguration && property.items.objectConfiguration.handling
 								&& typeof property.items.objectConfiguration.handling === 'object' && property.items.objectConfiguration.handling.id) {
-								this.$set(this.schemaItem.properties[key].items.objectConfiguration, 'handling', property.items.objectConfiguration.handling.id)
+								this.schemaItem.properties[key].items.objectConfiguration['handling'] = property.items.objectConfiguration.handling.id
 							}
 
 							// Convert array item register from object to ID
 							if (property.items && property.items.objectConfiguration && property.items.objectConfiguration.register
 								&& typeof property.items.objectConfiguration.register === 'object' && property.items.objectConfiguration.register.id) {
-								this.$set(this.schemaItem.properties[key].items.objectConfiguration, 'register', property.items.objectConfiguration.register.id)
+								this.schemaItem.properties[key].items.objectConfiguration['register'] = property.items.objectConfiguration.register.id
 							}
 
 							// Ensure $ref is always a string
@@ -505,12 +505,12 @@ export default {
 
 							// Ensure inversedBy is always a string for regular properties
 							if (property.inversedBy && typeof property.inversedBy === 'object' && property.inversedBy.id) {
-								this.$set(this.schemaItem.properties[key], 'inversedBy', property.inversedBy.id)
+								this.schemaItem.properties[key]['inversedBy'] = property.inversedBy.id
 							}
 
 							// Ensure inversedBy is always a string for array items
 							if (property.items && property.items.inversedBy && typeof property.items.inversedBy === 'object' && property.items.inversedBy.id) {
-								this.$set(this.schemaItem.properties[key].items, 'inversedBy', property.items.inversedBy.id)
+								this.schemaItem.properties[key].items['inversedBy'] = property.items.inversedBy.id
 							}
 						}
 					})
@@ -627,16 +627,16 @@ export default {
 			// Ensure existing properties have facetable set to false by default
 			Object.keys(this.schemaItem.properties || {}).forEach(key => {
 				if (this.schemaItem.properties[key].facetable === undefined) {
-					this.$set(this.schemaItem.properties[key], 'facetable', false)
+					this.schemaItem.properties[key]['facetable'] = false
 				}
 
 				if (this.schemaItem.properties[key].enum && Array.isArray(this.schemaItem.properties[key].enum)) {
-					this.$set(this.schemaItem.properties[key], 'enum', [...this.schemaItem.properties[key].enum])
+					this.schemaItem.properties[key]['enum'] = [...this.schemaItem.properties[key].enum]
 				}
 
 				const property = this.schemaItem.properties[key]
 				if (property.type === 'array' && property.items && property.items.type === 'object' && !property.items.objectConfiguration) {
-					this.$set(this.schemaItem.properties[key].items, 'objectConfiguration', { handling: 'nested-object' })
+					this.schemaItem.properties[key].items['objectConfiguration'] = { handling: 'nested-object' }
 				}
 			})
 
@@ -676,13 +676,13 @@ export default {
 		},
 
 		addProperty() {
-			this.$set(this.schemaItem.properties, '', {
+			this.schemaItem.properties[''] = {
 				type: 'string',
 				format: '',
 				title: '',
 				description: '',
 				facetable: false,
-			})
+			}
 
 			this.checkPropertiesModified()
 			this.selectedProperty = ''
@@ -694,15 +694,15 @@ export default {
 
 			const propertyData = { ...this.schemaItem.properties[oldKey] }
 
-			this.$set(this.schemaItem.properties, newKey, propertyData)
-			this.$delete(this.schemaItem.properties, oldKey)
+			this.schemaItem.properties[newKey] = propertyData
+			delete this.schemaItem.properties[oldKey]
 
 			this.selectedProperty = newKey
 			this.checkPropertiesModified()
 		},
 
 		deleteProperty(key) {
-			this.$delete(this.schemaItem.properties, key)
+			delete this.schemaItem.properties[key]
 
 			if (this.selectedProperty === key) {
 				this.selectedProperty = null
@@ -724,10 +724,10 @@ export default {
 				}
 
 				const originalTitle = originalProperty.title || key
-				this.$set(this.schemaItem.properties, newPropertyName, {
+				this.schemaItem.properties[newPropertyName] = {
 					...originalProperty,
 					title: `${originalTitle} (copy)`,
-				})
+				}
 
 				this.checkPropertiesModified()
 				this.selectedProperty = newPropertyName
@@ -795,14 +795,14 @@ export default {
 
 			if (property.$ref && property.register && !property.objectConfiguration?.register) {
 				if (!property.objectConfiguration) {
-					this.$set(this.schemaItem.properties[key], 'objectConfiguration', { handling: 'related-object' })
+					this.schemaItem.properties[key]['objectConfiguration'] = { handling: 'related-object' }
 				}
 
 				const registerId = typeof property.register === 'object' && property.register.id
 					? property.register.id
 					: property.register
 
-				this.$set(this.schemaItem.properties[key].objectConfiguration, 'register', registerId)
+				this.schemaItem.properties[key].objectConfiguration['register'] = registerId
 
 				if (property.$ref) {
 					let schemaSlug = property.$ref
@@ -812,21 +812,21 @@ export default {
 
 					const referencedSchema = this.findSchemaBySlug(schemaSlug)
 					if (referencedSchema) {
-						this.$set(this.schemaItem.properties[key].objectConfiguration, 'schema', referencedSchema.id)
+						this.schemaItem.properties[key].objectConfiguration['schema'] = referencedSchema.id
 					}
 				}
 			}
 
 			if (property.items && property.items.$ref && property.items.register && !property.items.objectConfiguration?.register) {
 				if (!property.items.objectConfiguration) {
-					this.$set(this.schemaItem.properties[key].items, 'objectConfiguration', { handling: 'related-object' })
+					this.schemaItem.properties[key].items['objectConfiguration'] = { handling: 'related-object' }
 				}
 
 				const registerId = typeof property.items.register === 'object' && property.items.register.id
 					? property.items.register.id
 					: property.items.register
 
-				this.$set(this.schemaItem.properties[key].items.objectConfiguration, 'register', registerId)
+				this.schemaItem.properties[key].items.objectConfiguration['register'] = registerId
 
 				if (property.items.$ref) {
 					let schemaSlug = property.items.$ref
@@ -836,7 +836,7 @@ export default {
 
 					const referencedSchema = this.findSchemaBySlug(schemaSlug)
 					if (referencedSchema) {
-						this.$set(this.schemaItem.properties[key].items.objectConfiguration, 'schema', referencedSchema.id)
+						this.schemaItem.properties[key].items.objectConfiguration['schema'] = referencedSchema.id
 					}
 				}
 			}

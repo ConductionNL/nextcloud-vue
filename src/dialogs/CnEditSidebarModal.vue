@@ -110,11 +110,11 @@ export default {
 			// Normalise the working page in place so the editor can bind to it —
 			// the working manifest is ours to mutate by design (see CnEditPagesModal).
 			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-			if (!this.page.config || typeof this.page.config !== 'object') this.$set(this.page, 'config', {})
+			if (!this.page.config || typeof this.page.config !== 'object') this.page['config'] = {}
 			const cfg = this.page.config
 			if (typeof cfg.sidebar !== 'object' || cfg.sidebar === null) {
 				// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-				this.$set(cfg, 'sidebar', typeof cfg.sidebar === 'boolean' ? { show: cfg.sidebar } : {})
+				cfg['sidebar'] = typeof cfg.sidebar === 'boolean' ? { show: cfg.sidebar } : {}
 			}
 			return cfg.sidebar
 		},
@@ -124,7 +124,7 @@ export default {
 				return this.sidebar ? this.sidebar.show !== false : false
 			},
 			set(value) {
-				if (this.sidebar) this.$set(this.sidebar, 'show', value)
+				if (this.sidebar) this.sidebar['show'] = value
 			},
 		},
 		/** Declared sidebar tabs on this page (or empty). */
@@ -137,7 +137,7 @@ export default {
 			const s = this.sidebar
 			if (!s) return []
 			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-			if (!Array.isArray(s.tabs)) this.$set(s, 'tabs', [])
+			if (!Array.isArray(s.tabs)) s['tabs'] = []
 			return s.tabs
 		},
 		/** The page's hiddenTabs array (ensured to exist). */
@@ -145,7 +145,7 @@ export default {
 			const s = this.sidebar
 			if (!s) return []
 			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-			if (!Array.isArray(s.hiddenTabs)) this.$set(s, 'hiddenTabs', [])
+			if (!Array.isArray(s.hiddenTabs)) s['hiddenTabs'] = []
 			return s.hiddenTabs
 		},
 		/** Selectable content types for a tab (mapped to a built-in widget). */
@@ -181,9 +181,9 @@ export default {
 		setContent(tab, option) {
 			const type = option ? option.id : ''
 			if (type === '') {
-				this.$set(tab, 'widgets', [])
+				tab['widgets'] = []
 			} else {
-				this.$set(tab, 'widgets', [{ type }])
+				tab['widgets'] = [{ type }]
 			}
 		},
 		/**
@@ -208,7 +208,7 @@ export default {
 		},
 		/** Add a new sidebar tab, enabling the sidebar if it was off. */
 		addTab() {
-			if (this.sidebar) this.$set(this.sidebar, 'show', true)
+			if (this.sidebar) this.sidebar['show'] = true
 			this.editableTabs.push({ id: `tab-${this.editableTabs.length + 1}`, label: '', widgets: [] })
 		},
 		/**

@@ -442,19 +442,19 @@ export default {
 		 */
 		onSave() {
 			if (!this.widget.styleConfig || typeof this.widget.styleConfig !== 'object') {
-				this.$set(this.widget, 'styleConfig', {})
+				this.widget['styleConfig'] = {}
 			}
 			const sc = this.widget.styleConfig
-			this.$set(sc, 'backgroundColor', this.draft.backgroundColor || null)
-			this.$set(sc, 'borderStyle', this.draft.borderStyle)
-			this.$set(sc, 'borderColor', this.draft.borderColor || null)
-			this.$set(sc, 'borderWidth', this.draft.borderWidth)
-			this.$set(sc, 'borderRadius', this.draft.borderRadius)
-			this.$set(sc, 'padding', { ...this.draft.padding })
+			sc['backgroundColor'] = this.draft.backgroundColor || null
+			sc['borderStyle'] = this.draft.borderStyle
+			sc['borderColor'] = this.draft.borderColor || null
+			sc['borderWidth'] = this.draft.borderWidth
+			sc['borderRadius'] = this.draft.borderRadius
+			sc['padding'] = { ...this.draft.padding }
 
-			this.$set(this.widget, 'showTitle', this.draft.showTitle)
-			this.$set(this.widget, 'customTitle', this.draft.customTitle || null)
-			this.$set(this.widget, 'customIcon', this.draft.customIcon || null)
+			this.widget['showTitle'] = this.draft.showTitle
+			this.widget['customTitle'] = this.draft.customTitle || null
+			this.widget['customIcon'] = this.draft.customIcon || null
 
 			// For typed widgets, also commit the content config edited via the
 			// registered sub-form (validated first; a non-empty result blocks save).
@@ -467,7 +467,7 @@ export default {
 				}
 				this.contentErrors = []
 				if (this.draftContent !== null) {
-					this.$set(this.widget, 'content', this.draftContent)
+					this.widget['content'] = this.draftContent
 				}
 			}
 

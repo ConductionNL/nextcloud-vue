@@ -241,7 +241,7 @@ export default {
 		 * @param field
 		 * @param value
 		 */
-		updateSource(field, value) { this.$set(this.source, field, value); this.emitChange() },
+		updateSource(field, value) { this.source[field] = value; this.emitChange() },
 		/**
 		 * Receive updated filter rows.
 		 * @param rows

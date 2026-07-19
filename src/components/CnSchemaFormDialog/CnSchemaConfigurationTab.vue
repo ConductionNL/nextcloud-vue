@@ -237,14 +237,14 @@ export default {
 		 */
 		setIcon(value) {
 			const trimmed = (value || '').trim()
-			this.$set(this.schema, 'icon', trimmed === '' ? null : trimmed)
+			this.schema['icon'] = trimmed === '' ? null : trimmed
 		},
 		updateAllowedTags(value) {
 			if (!value || value.trim() === '') {
-				this.$set(this.schema.configuration, 'allowedTags', [])
+				this.schema.configuration['allowedTags'] = []
 			} else {
 				const tags = value.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
-				this.$set(this.schema.configuration, 'allowedTags', tags)
+				this.schema.configuration['allowedTags'] = tags
 			}
 		},
 	},

@@ -668,7 +668,7 @@ export default {
 		updatePropertySetting(key, setting, value) {
 			if (this.schema.properties[key]) {
 				const settingValue = typeof value === 'object' && value?.id ? value.id : value
-				this.$set(this.schema.properties[key], setting, settingValue)
+				this.schema.properties[key][setting] = settingValue
 				this.ensureRefIsString(this.schema.properties, key)
 			}
 		},
@@ -676,14 +676,14 @@ export default {
 		updatePropertyRequired(key, isRequired) {
 			if (this.schema.properties[key]) {
 				if (isRequired) {
-					this.$set(this.schema.properties[key], 'required', true)
+					this.schema.properties[key]['required'] = true
 				} else {
-					this.$delete(this.schema.properties[key], 'required')
+					delete this.schema.properties[key]['required']
 				}
 			}
 
 			if (!this.schema.required) {
-				this.$set(this.schema, 'required', [])
+				this.schema['required'] = []
 			}
 
 			const currentRequired = [...this.schema.required]
@@ -718,9 +718,9 @@ export default {
 
 		toggleFacetable(key, enabled) {
 			if (enabled) {
-				this.$set(this.schema.properties[key], 'facetable', true)
+				this.schema.properties[key]['facetable'] = true
 			} else {
-				this.$set(this.schema.properties[key], 'facetable', false)
+				this.schema.properties[key]['facetable'] = false
 			}
 		},
 
@@ -741,14 +741,14 @@ export default {
 				|| (config.order != null)
 
 			if (hasCustomConfig) {
-				this.$set(this.schema.properties[key], 'facetable', {
+				this.schema.properties[key]['facetable'] = {
 					aggregated: config.aggregated,
 					title: config.title?.trim() || null,
 					description: config.description?.trim() || null,
 					order: config.order,
-				})
+				}
 			} else {
-				this.$set(this.schema.properties[key], 'facetable', true)
+				this.schema.properties[key]['facetable'] = true
 			}
 		},
 
@@ -820,12 +820,12 @@ export default {
 
 			if (this.schema.properties[key]) {
 				if (!this.schema.properties[key].enum) {
-					this.$set(this.schema.properties[key], 'enum', [])
+					this.schema.properties[key]['enum'] = []
 				}
 
 				if (!this.schema.properties[key].enum.includes(trimmedValue)) {
 					const newEnum = [...this.schema.properties[key].enum, trimmedValue]
-					this.$set(this.schema.properties[key], 'enum', newEnum)
+					this.schema.properties[key]['enum'] = newEnum
 				}
 			}
 		},
@@ -842,9 +842,9 @@ export default {
 				const newEnum = this.schema.properties[key].enum.filter((_, i) => i !== index)
 
 				if (newEnum.length === 0) {
-					this.$delete(this.schema.properties[key], 'enum')
+					delete this.schema.properties[key]['enum']
 				} else {
-					this.$set(this.schema.properties[key], 'enum', newEnum)
+					this.schema.properties[key]['enum'] = newEnum
 				}
 			}
 		},
@@ -862,10 +862,10 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			if (!value || value.trim() === '') {
-				this.$set(this.schema.properties[key], 'default', undefined)
+				this.schema.properties[key]['default'] = undefined
 			} else {
 				const arrayValues = value.split(',').map(item => item.trim()).filter(item => item !== '')
-				this.$set(this.schema.properties[key], 'default', arrayValues)
+				this.schema.properties[key]['default'] = arrayValues
 			}
 		},
 
@@ -873,13 +873,13 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			if (!value || value.trim() === '' || value.trim() === '{}') {
-				this.$set(this.schema.properties[key], 'default', undefined)
+				this.schema.properties[key]['default'] = undefined
 				return
 			}
 
 			try {
 				const parsedValue = JSON.parse(value)
-				this.$set(this.schema.properties[key], 'default', parsedValue)
+				this.schema.properties[key]['default'] = parsedValue
 			} catch (e) {
 				console.warn('Invalid JSON for default value:', e.message)
 			}
@@ -925,10 +925,10 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			const schemaRef = typeof value === 'object' && value?.id ? value.id : value
-			this.$set(this.schema.properties[key], '$ref', schemaRef)
+			this.schema.properties[key]['$ref'] = schemaRef
 
 			if (!this.schema.properties[key].objectConfiguration) {
-				this.$set(this.schema.properties[key], 'objectConfiguration', { handling: 'related-object' })
+				this.schema.properties[key]['objectConfiguration'] = { handling: 'related-object' }
 			}
 
 			if (schemaRef) {
@@ -939,17 +939,17 @@ export default {
 
 				const referencedSchema = this.findSchemaBySlug(schemaSlug)
 				if (referencedSchema) {
-					this.$set(this.schema.properties[key].objectConfiguration, 'schema', referencedSchema.id)
+					this.schema.properties[key].objectConfiguration['schema'] = referencedSchema.id
 				}
 
 				if (this.schema.properties[key].register && !this.schema.properties[key].objectConfiguration.register) {
 					const oldRegister = this.schema.properties[key].register
 					const registerId = typeof oldRegister === 'object' && oldRegister.id ? oldRegister.id : oldRegister
-					this.$set(this.schema.properties[key].objectConfiguration, 'register', registerId)
+					this.schema.properties[key].objectConfiguration['register'] = registerId
 				}
 			} else {
-				this.$delete(this.schema.properties[key].objectConfiguration, 'schema')
-				this.$delete(this.schema.properties[key].objectConfiguration, 'register')
+				delete this.schema.properties[key].objectConfiguration['schema']
+				delete this.schema.properties[key].objectConfiguration['register']
 			}
 		},
 
@@ -957,10 +957,10 @@ export default {
 			if (!this.schema.properties[key] || !this.schema.properties[key].items) return
 
 			const schemaRef = typeof value === 'object' && value?.id ? value.id : value
-			this.$set(this.schema.properties[key].items, '$ref', schemaRef)
+			this.schema.properties[key].items['$ref'] = schemaRef
 
 			if (!this.schema.properties[key].items.objectConfiguration) {
-				this.$set(this.schema.properties[key].items, 'objectConfiguration', { handling: 'related-object' })
+				this.schema.properties[key].items['objectConfiguration'] = { handling: 'related-object' }
 			}
 
 			if (schemaRef) {
@@ -971,11 +971,11 @@ export default {
 
 				const referencedSchema = this.findSchemaBySlug(schemaSlug)
 				if (referencedSchema) {
-					this.$set(this.schema.properties[key].items.objectConfiguration, 'schema', referencedSchema.id)
+					this.schema.properties[key].items.objectConfiguration['schema'] = referencedSchema.id
 				}
 			} else {
-				this.$delete(this.schema.properties[key].items.objectConfiguration, 'schema')
-				this.$delete(this.schema.properties[key].items.objectConfiguration, 'register')
+				delete this.schema.properties[key].items.objectConfiguration['schema']
+				delete this.schema.properties[key].items.objectConfiguration['register']
 			}
 		},
 
@@ -985,18 +985,18 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			if (!this.schema.properties[key].objectConfiguration) {
-				this.$set(this.schema.properties[key], 'objectConfiguration', { handling: 'related-object' })
+				this.schema.properties[key]['objectConfiguration'] = { handling: 'related-object' }
 			}
 
 			const registerId = typeof value === 'object' && value?.id ? value.id : value
 
 			if (registerId) {
-				this.$set(this.schema.properties[key].objectConfiguration, 'register', registerId)
+				this.schema.properties[key].objectConfiguration['register'] = registerId
 				if (this.schema.properties[key].register) {
-					this.$delete(this.schema.properties[key], 'register')
+					delete this.schema.properties[key]['register']
 				}
 			} else {
-				this.$delete(this.schema.properties[key].objectConfiguration, 'register')
+				delete this.schema.properties[key].objectConfiguration['register']
 			}
 		},
 
@@ -1004,15 +1004,15 @@ export default {
 			if (!this.schema.properties[key] || !this.schema.properties[key].items) return
 
 			if (!this.schema.properties[key].items.objectConfiguration) {
-				this.$set(this.schema.properties[key].items, 'objectConfiguration', { handling: 'related-object' })
+				this.schema.properties[key].items['objectConfiguration'] = { handling: 'related-object' }
 			}
 
 			const registerId = typeof value === 'object' && value?.id ? value.id : value
 
 			if (registerId) {
-				this.$set(this.schema.properties[key].items.objectConfiguration, 'register', registerId)
+				this.schema.properties[key].items.objectConfiguration['register'] = registerId
 			} else {
-				this.$delete(this.schema.properties[key].items.objectConfiguration, 'register')
+				delete this.schema.properties[key].items.objectConfiguration['register']
 			}
 		},
 
@@ -1164,14 +1164,14 @@ export default {
 		updateInversedBy(key, value) {
 			if (this.schema.properties[key]) {
 				const inversedByValue = typeof value === 'object' && value?.id ? value.id : value
-				this.$set(this.schema.properties[key], 'inversedBy', inversedByValue)
+				this.schema.properties[key]['inversedBy'] = inversedByValue
 			}
 		},
 
 		updateInversedByForArrayItems(key, value) {
 			if (this.schema.properties[key] && this.schema.properties[key].items) {
 				const inversedByValue = typeof value === 'object' && value?.id ? value.id : value
-				this.$set(this.schema.properties[key].items, 'inversedBy', inversedByValue)
+				this.schema.properties[key].items['inversedBy'] = inversedByValue
 			}
 		},
 
@@ -1180,13 +1180,13 @@ export default {
 		updateArrayItemObjectConfigurationSetting(key, setting, value) {
 			if (this.schema.properties[key]) {
 				if (!this.schema.properties[key].items) {
-					this.$set(this.schema.properties[key], 'items', {})
+					this.schema.properties[key]['items'] = {}
 				}
 				if (!this.schema.properties[key].items.objectConfiguration) {
-					this.$set(this.schema.properties[key].items, 'objectConfiguration', {})
+					this.schema.properties[key].items['objectConfiguration'] = {}
 				}
 				const settingValue = typeof value === 'object' && value?.id ? value.id : value
-				this.$set(this.schema.properties[key].items, setting, settingValue)
+				this.schema.properties[key].items[setting] = settingValue
 			}
 		},
 
@@ -1201,13 +1201,13 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			if (!this.schema.properties[key].objectConfiguration) {
-				this.$set(this.schema.properties[key], 'objectConfiguration', { handling: 'related-object' })
+				this.schema.properties[key]['objectConfiguration'] = { handling: 'related-object' }
 			}
 
 			if (value && value.trim()) {
-				this.$set(this.schema.properties[key].objectConfiguration, 'queryParams', value.trim())
+				this.schema.properties[key].objectConfiguration['queryParams'] = value.trim()
 			} else {
-				this.$delete(this.schema.properties[key].objectConfiguration, 'queryParams')
+				delete this.schema.properties[key].objectConfiguration['queryParams']
 			}
 		},
 
@@ -1220,13 +1220,13 @@ export default {
 			if (!this.schema.properties[key] || !this.schema.properties[key].items) return
 
 			if (!this.schema.properties[key].items.objectConfiguration) {
-				this.$set(this.schema.properties[key].items, 'objectConfiguration', { handling: 'related-object' })
+				this.schema.properties[key].items['objectConfiguration'] = { handling: 'related-object' }
 			}
 
 			if (value && value.trim()) {
-				this.$set(this.schema.properties[key].items.objectConfiguration, 'queryParams', value.trim())
+				this.schema.properties[key].items.objectConfiguration['queryParams'] = value.trim()
 			} else {
-				this.$delete(this.schema.properties[key].items.objectConfiguration, 'queryParams')
+				delete this.schema.properties[key].items.objectConfiguration['queryParams']
 			}
 		},
 
@@ -1244,9 +1244,9 @@ export default {
 		updateFilePropertySetting(key, setting, value) {
 			if (this.schema.properties[key]) {
 				if (this.schema.properties[key].type === 'file') {
-					this.$set(this.schema.properties[key], setting, value)
+					this.schema.properties[key][setting] = value
 				} else if (this.schema.properties[key].type === 'array' && this.schema.properties[key].items) {
-					this.$set(this.schema.properties[key].items, setting, value)
+					this.schema.properties[key].items[setting] = value
 				}
 			}
 		},
@@ -1256,16 +1256,16 @@ export default {
 				if (['allowedTypes', 'allowedTags', 'autoTags'].includes(setting)) {
 					const arrayValue = value ? value.split(',').map(item => item.trim()).filter(item => item !== '') : []
 					if (this.schema.properties[key].type === 'file') {
-						this.$set(this.schema.properties[key], setting, arrayValue)
+						this.schema.properties[key][setting] = arrayValue
 					} else if (this.schema.properties[key].type === 'array' && this.schema.properties[key].items) {
-						this.$set(this.schema.properties[key].items, setting, arrayValue)
+						this.schema.properties[key].items[setting] = arrayValue
 					}
 				} else if (setting === 'maxSize') {
 					const numValue = value ? Number(value) : undefined
 					if (this.schema.properties[key].type === 'file') {
-						this.$set(this.schema.properties[key], setting, numValue)
+						this.schema.properties[key][setting] = numValue
 					} else if (this.schema.properties[key].type === 'array' && this.schema.properties[key].items) {
-						this.$set(this.schema.properties[key].items, setting, numValue)
+						this.schema.properties[key].items[setting] = numValue
 					}
 				}
 			}
@@ -1293,9 +1293,9 @@ export default {
 				const tags = selectedOptions ? selectedOptions.map(option => option.id || option) : []
 
 				if (this.schema.properties[key].type === 'file') {
-					this.$set(this.schema.properties[key], setting, tags)
+					this.schema.properties[key][setting] = tags
 				} else if (this.schema.properties[key].type === 'array' && this.schema.properties[key].items) {
-					this.$set(this.schema.properties[key].items, setting, tags)
+					this.schema.properties[key].items[setting] = tags
 				}
 			}
 		},
@@ -1315,17 +1315,17 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			if (!this.schema.properties[key].table) {
-				this.$set(this.schema.properties[key], 'table', {})
+				this.schema.properties[key]['table'] = {}
 			}
 
-			this.$set(this.schema.properties[key].table, setting, value)
+			this.schema.properties[key].table[setting] = value
 
 			const wasTrueOriginally = this.getOriginalPropertyTableSetting(key, setting) === true
 			const becameExplicitFalse = value === false
 			const shouldKeepExplicitFalse = setting === 'default' && becameExplicitFalse && wasTrueOriginally
 
 			if (this.isTableConfigDefault(key) && !shouldKeepExplicitFalse) {
-				this.$delete(this.schema.properties[key], 'table')
+				delete this.schema.properties[key]['table']
 			}
 		},
 
@@ -1436,11 +1436,11 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			if (!this.schema.properties[key].authorization) {
-				this.$set(this.schema.properties[key], 'authorization', {})
+				this.schema.properties[key]['authorization'] = {}
 			}
 
 			if (!this.schema.properties[key].authorization[action]) {
-				this.$set(this.schema.properties[key].authorization, action, [])
+				this.schema.properties[key].authorization[action] = []
 			}
 
 			const currentPermissions = this.schema.properties[key].authorization[action]
@@ -1453,11 +1453,11 @@ export default {
 			}
 
 			if (currentPermissions.length === 0) {
-				this.$delete(this.schema.properties[key].authorization, action)
+				delete this.schema.properties[key].authorization[action]
 			}
 
 			if (Object.keys(this.schema.properties[key].authorization).length === 0) {
-				this.$delete(this.schema.properties[key], 'authorization')
+				delete this.schema.properties[key]['authorization']
 			}
 		},
 
@@ -1469,7 +1469,7 @@ export default {
 				: this.propertyNewPermissionGroup
 
 			if (!this.schema.properties[key].authorization) {
-				this.$set(this.schema.properties[key], 'authorization', {})
+				this.schema.properties[key]['authorization'] = {}
 			}
 
 			if (this.propertyNewPermissionCreate) {

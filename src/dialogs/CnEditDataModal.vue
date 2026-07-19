@@ -470,11 +470,11 @@ export default {
 			if (!ds || !Array.isArray(ds.registers) || !reg) return
 			const dsReg = ds.registers.find((r) => r.value === reg.slug)
 			if (!dsReg) return
-			this.$set(dsReg, 'schemas', this.schemas.map((s) => ({
+			dsReg['schemas'] = this.schemas.map((s) => ({
 				value: s.slug,
 				label: s.title || s.slug,
 				columns: (s.properties && typeof s.properties === 'object') ? Object.keys(s.properties) : [],
-			})))
+			}))
 		},
 		/**
 		 * Switch the selected register and reload its schemas.
@@ -520,7 +520,7 @@ export default {
 				const ds = this.cnDataSources
 				if (ds && Array.isArray(ds.registers)) {
 					const dsReg = ds.registers.find((r) => r.value === reg.slug)
-					if (dsReg) this.$set(dsReg, 'label', title)
+					if (dsReg) dsReg['label'] = title
 				}
 				this.renamingRegister = false
 			} catch (e) {

@@ -58,7 +58,7 @@
 						<NcTextField class="cn-edit-flows__grow"
 							:model-value="flow.name"
 							:label="t('nextcloud-vue', 'Flow name')"
-							@update:model-value="(v) => $set(flow, 'name', v)" />
+							@update:model-value="(v) => flow['name'] = v" />
 						<NcButton type="tertiary"
 							:aria-label="t('nextcloud-vue', 'Remove flow')"
 							:title="t('nextcloud-vue', 'Remove flow')"
@@ -74,7 +74,7 @@
 						:options="triggerOptions"
 						:clearable="false"
 						:input-label="t('nextcloud-vue', 'Trigger')"
-						@update:model-value="(o) => $set(flow, 'trigger', o ? o.id : 'created')" />
+						@update:model-value="(o) => flow['trigger'] = o ? o.id : 'created'" />
 
 					<div v-for="(action, ai) in flow.actions" :key="ai" class="cn-edit-flows__action">
 						<div class="cn-edit-flows__action-head">
@@ -98,24 +98,24 @@
 						<template v-if="isCalendar(action.type)">
 							<NcTextField :model-value="action.summary"
 								:label="t('nextcloud-vue', 'Event title')"
-								@update:model-value="(v) => $set(action, 'summary', v)" />
+								@update:model-value="(v) => action['summary'] = v" />
 							<label class="cn-edit-flows__field-label">{{ t('nextcloud-vue', 'Description') }}</label>
 							<textarea class="cn-edit-flows__textarea"
 								:value="action.description"
 								rows="2"
-								@input="(e) => $set(action, 'description', e.target.value)" />
+								@input="(e) => action['description'] = e.target.value" />
 							<NcTextField :model-value="action.location"
 								:label="t('nextcloud-vue', 'Location')"
-								@update:model-value="(v) => $set(action, 'location', v)" />
+								@update:model-value="(v) => action['location'] = v" />
 							<div class="cn-edit-flows__row">
 								<NcTextField type="number"
 									:model-value="String(action.offsetDays != null ? action.offsetDays : 1)"
 									:label="t('nextcloud-vue', 'Days from now')"
-									@update:model-value="(v) => $set(action, 'offsetDays', v)" />
+									@update:model-value="(v) => action['offsetDays'] = v" />
 								<NcTextField type="number"
 									:model-value="String(action.durationMinutes != null ? action.durationMinutes : 30)"
 									:label="t('nextcloud-vue', 'Duration (minutes)')"
-									@update:model-value="(v) => $set(action, 'durationMinutes', v)" />
+									@update:model-value="(v) => action['durationMinutes'] = v" />
 							</div>
 						</template>
 
@@ -123,35 +123,35 @@
 						<template v-else-if="isEmail(action.type)">
 							<NcTextField :model-value="action.to"
 								:label="t('nextcloud-vue', 'Send to (email)')"
-								@update:model-value="(v) => $set(action, 'to', v)" />
+								@update:model-value="(v) => action['to'] = v" />
 							<NcTextField :model-value="action.subject"
 								:label="t('nextcloud-vue', 'Subject')"
-								@update:model-value="(v) => $set(action, 'subject', v)" />
+								@update:model-value="(v) => action['subject'] = v" />
 							<label class="cn-edit-flows__field-label">{{ t('nextcloud-vue', 'Message') }}</label>
 							<textarea class="cn-edit-flows__textarea"
 								:value="action.body"
 								rows="3"
-								@input="(e) => $set(action, 'body', e.target.value)" />
+								@input="(e) => action['body'] = e.target.value" />
 						</template>
 
 						<!-- Agent fields -->
 						<template v-else-if="isAgent(action.type)">
 							<NcTextField :model-value="action.agent"
 								:label="t('nextcloud-vue', 'Agent')"
-								@update:model-value="(v) => $set(action, 'agent', v)" />
+								@update:model-value="(v) => action['agent'] = v" />
 							<NcTextField :model-value="action.skill"
 								:label="t('nextcloud-vue', 'Skill (optional)')"
-								@update:model-value="(v) => $set(action, 'skill', v)" />
+								@update:model-value="(v) => action['skill'] = v" />
 							<label class="cn-edit-flows__field-label">{{ t('nextcloud-vue', 'Prompt') }}</label>
 							<textarea class="cn-edit-flows__textarea"
 								:value="action.prompt"
 								rows="3"
-								@input="(e) => $set(action, 'prompt', e.target.value)" />
+								@input="(e) => action['prompt'] = e.target.value" />
 							<NcTextField :model-value="action.resultField"
 								:label="t('nextcloud-vue', 'Write result to field')"
-								@update:model-value="(v) => $set(action, 'resultField', v)" />
+								@update:model-value="(v) => action['resultField'] = v" />
 							<NcCheckboxRadioSwitch :model-value="Boolean(action.requiresApproval)"
-								@update:model-value="(v) => $set(action, 'requiresApproval', v)">
+								@update:model-value="(v) => action['requiresApproval'] = v">
 								{{ t('nextcloud-vue', 'Require approval before the result is written') }}
 							</NcCheckboxRadioSwitch>
 						</template>
@@ -160,10 +160,10 @@
 						<template v-else-if="isFederateShare(action.type)">
 							<NcTextField :model-value="action.sharedWith"
 								:label="t('nextcloud-vue', 'Share with (federated user)')"
-								@update:model-value="(v) => $set(action, 'sharedWith', v)" />
+								@update:model-value="(v) => action['sharedWith'] = v" />
 							<NcTextField :model-value="action.permissions"
 								:label="t('nextcloud-vue', 'Permissions')"
-								@update:model-value="(v) => $set(action, 'permissions', v)" />
+								@update:model-value="(v) => action['permissions'] = v" />
 						</template>
 
 						<!-- A type this editor cannot author: shown, not silently rewritten. -->
@@ -481,18 +481,18 @@ export default {
 		 */
 		setActionType(action, option) {
 			const type = option ? option.id : 'calendar-event'
-			this.$set(action, 'type', type)
+			action['type'] = type
 			// Seed the required fields for the new type so a freshly-switched
 			// action is valid for FlowActionService without further edits.
 			if (type === 'agent') {
-				if (action.agent === undefined) this.$set(action, 'agent', '')
-				if (action.resultField === undefined) this.$set(action, 'resultField', '')
-				if (action.prompt === undefined) this.$set(action, 'prompt', '')
-				if (action.mode === undefined) this.$set(action, 'mode', 'async')
-				if (action.requiresApproval === undefined) this.$set(action, 'requiresApproval', false)
+				if (action.agent === undefined) action['agent'] = ''
+				if (action.resultField === undefined) action['resultField'] = ''
+				if (action.prompt === undefined) action['prompt'] = ''
+				if (action.mode === undefined) action['mode'] = 'async'
+				if (action.requiresApproval === undefined) action['requiresApproval'] = false
 			} else if (type === 'federate-share') {
-				if (action.sharedWith === undefined) this.$set(action, 'sharedWith', '')
-				if (action.permissions === undefined) this.$set(action, 'permissions', 'read')
+				if (action.sharedWith === undefined) action['sharedWith'] = ''
+				if (action.permissions === undefined) action['permissions'] = 'read'
 			}
 		},
 		/** Append a new flow. */
@@ -524,7 +524,7 @@ export default {
 		 * @return {void}
 		 */
 		addAction(flow) {
-			if (!Array.isArray(flow.actions)) this.$set(flow, 'actions', [])
+			if (!Array.isArray(flow.actions)) flow['actions'] = []
 			flow.actions.push(this.newAction())
 		},
 		/**
@@ -606,7 +606,7 @@ export default {
 					{ headers: this.headers() },
 				)
 				// Reflect the saved config locally so re-selecting shows the new state.
-				this.$set(schema, 'configuration', configuration)
+				schema['configuration'] = configuration
 				/**
 				 * @event saved Emitted after flows are persisted to a schema.
 				 * @type {{ schemaId: number, flows: Array<object> }}

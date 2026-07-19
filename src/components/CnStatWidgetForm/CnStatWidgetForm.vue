@@ -360,7 +360,7 @@ export default {
 		 * @param value
 		 */
 		updateFormat(field, value) {
-			this.$set(this.format, field, value)
+			this.format[field] = value
 			this.emitChange()
 		},
 
@@ -370,7 +370,7 @@ export default {
 		 * @param value
 		 */
 		updateSource(field, value) {
-			this.$set(this.source, field, value)
+			this.source[field] = value
 			this.emitChange()
 		},
 
@@ -380,7 +380,7 @@ export default {
 		 * @param value
 		 */
 		updateWeighted(field, value) {
-			this.$set(this.weighted, field, value)
+			this.weighted[field] = value
 			this.emitChange()
 		},
 
