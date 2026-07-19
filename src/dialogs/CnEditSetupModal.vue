@@ -47,8 +47,8 @@
 						:value.sync="step.body" />
 					<NcTextField v-if="step.type === 'config-fields'"
 						:label="t('nextcloud-vue', 'Fields to ask for (comma-separated keys, e.g. store_name, contact_email)')"
-						:value="configKeysText(step)"
-						@update:value="(v) => setConfigKeys(step, v)" />
+						:model-value="configKeysText(step)"
+						@update:model-value="(v) => setConfigKeys(step, v)" />
 					<NcCheckboxRadioSwitch :checked.sync="step.required">
 						{{ t('nextcloud-vue', 'Required (must be completed to enter the app)') }}
 					</NcCheckboxRadioSwitch>

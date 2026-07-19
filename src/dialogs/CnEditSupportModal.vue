@@ -26,8 +26,8 @@
 			:value.sync="support.title" />
 		<NcTextArea class="cn-edit-support__field"
 			:label="t('nextcloud-vue', 'Body (one paragraph per line, blank for the default note)')"
-			:value="bodyText"
-			@update:value="setBody" />
+			:model-value="bodyText"
+			@update:model-value="setBody" />
 
 		<h3 class="cn-edit-support__section">
 			{{ t('nextcloud-vue', 'Signature') }}

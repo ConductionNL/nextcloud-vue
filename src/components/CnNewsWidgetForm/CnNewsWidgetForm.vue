@@ -13,10 +13,10 @@
 			:key="`feed-${index}`"
 			class="cn-news-form__feed-row">
 			<NcTextField
-				:value="url"
+				:model-value="url"
 				:label="t('nextcloud-vue', 'Feed URL')"
 				placeholder="https://example.com/feed.xml"
-				@update:value="updateFeedUrl(index, $event)" />
+				@update:model-value="updateFeedUrl(index, $event)" />
 			<button
 				type="button"
 				class="cn-news-form__feed-remove"
@@ -33,7 +33,7 @@
 		</button>
 
 		<NcSelect
-			:value="layout"
+			:model-value="layout"
 			:options="layoutOptions"
 			:input-label="t('nextcloud-vue', 'Layout')"
 			:reduce="(option) => option.value"
@@ -42,31 +42,31 @@
 			@input="updateField('layout', $event)" />
 
 		<NcTextField
-			:value="String(itemLimit)"
+			:model-value="String(itemLimit)"
 			type="number"
 			:label="t('nextcloud-vue', 'Item limit (1–50)')"
-			@update:value="updateNumericField('itemLimit', $event, 1, 50)" />
+			@update:model-value="updateNumericField('itemLimit', $event, 1, 50)" />
 
 		<NcCheckboxRadioSwitch
-			:checked="showThumbnails"
-			@update:checked="updateField('showThumbnails', $event)">
+			:model-value="showThumbnails"
+			@update:model-value="updateField('showThumbnails', $event)">
 			{{ t('nextcloud-vue', 'Show thumbnails') }}
 		</NcCheckboxRadioSwitch>
 
 		<NcCheckboxRadioSwitch
-			:checked="showSummary"
-			@update:checked="updateField('showSummary', $event)">
+			:model-value="showSummary"
+			@update:model-value="updateField('showSummary', $event)">
 			{{ t('nextcloud-vue', 'Show summary') }}
 		</NcCheckboxRadioSwitch>
 
 		<NcTextField
-			:value="String(summaryMaxChars)"
+			:model-value="String(summaryMaxChars)"
 			type="number"
 			:label="t('nextcloud-vue', 'Summary max characters')"
-			@update:value="updateNumericField('summaryMaxChars', $event, 0, 5000)" />
+			@update:model-value="updateNumericField('summaryMaxChars', $event, 0, 5000)" />
 
 		<NcSelect
-			:value="dateFormat"
+			:model-value="dateFormat"
 			:options="dateFormatOptions"
 			:input-label="t('nextcloud-vue', 'Date format')"
 			:reduce="(option) => option.value"
@@ -75,22 +75,22 @@
 			@input="updateField('dateFormat', $event)" />
 
 		<NcCheckboxRadioSwitch
-			:checked="metadataFilterEnabled"
-			@update:checked="toggleMetadataFilter">
+			:model-value="metadataFilterEnabled"
+			@update:model-value="toggleMetadataFilter">
 			{{ t('nextcloud-vue', 'Filter by dashboard metadata') }}
 		</NcCheckboxRadioSwitch>
 
 		<div v-if="metadataFilterEnabled" class="cn-news-form__metadata">
 			<NcTextField
-				:value="metadataFieldKey"
+				:model-value="metadataFieldKey"
 				:label="t('nextcloud-vue', 'Metadata field key')"
 				placeholder="department"
-				@update:value="updateMetadataField('fieldKey', $event)" />
+				@update:model-value="updateMetadataField('fieldKey', $event)" />
 			<NcTextField
-				:value="metadataValue"
+				:model-value="metadataValue"
 				:label="t('nextcloud-vue', 'Metadata value to match')"
 				placeholder="marketing"
-				@update:value="updateMetadataField('value', $event)" />
+				@update:model-value="updateMetadataField('value', $event)" />
 		</div>
 	</div>
 </template>

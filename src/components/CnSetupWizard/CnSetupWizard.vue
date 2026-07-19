@@ -45,8 +45,8 @@
 						:multiple="step.multiple === true"
 						:disabled="isChoiceDisabled(step)"
 						label="label"
-						:value="choiceModel[step.id]"
-						@input="(v) => onChoice(step, v)" />
+						:model-value="choiceModel[step.id]"
+						@update:model-value="(v) => onChoice(step, v)" />
 					<NcNoteCard v-if="isChoiceDisabled(step)" type="warning">
 						{{ dependsOnHint(step) }}
 					</NcNoteCard>
@@ -60,22 +60,22 @@
 						class="cn-setup-field">
 						<NcCheckboxRadioSwitch
 							v-if="field.widget === 'checkbox'"
-							:checked="!!configModel[field.key]"
-							@update:checked="(v) => $set(configModel, field.key, v)">
+							:model-value="!!configModel[field.key]"
+							@update:model-value="(v) => $set(configModel, field.key, v)">
 							{{ field.label }}
 						</NcCheckboxRadioSwitch>
 						<NcSelect
 							v-else-if="field.widget === 'select'"
 							:input-label="field.label"
 							:options="field.enum || []"
-							:value="configModel[field.key]"
-							@input="(v) => $set(configModel, field.key, v)" />
+							:model-value="configModel[field.key]"
+							@update:model-value="(v) => $set(configModel, field.key, v)" />
 						<NcTextField
 							v-else
 							:label="field.label"
 							:type="field.widget === 'number' ? 'number' : 'text'"
-							:value="configModel[field.key] != null ? String(configModel[field.key]) : ''"
-							@update:value="(v) => $set(configModel, field.key, v)" />
+							:model-value="configModel[field.key] != null ? String(configModel[field.key]) : ''"
+							@update:model-value="(v) => $set(configModel, field.key, v)" />
 					</div>
 				</template>
 

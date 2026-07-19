@@ -30,9 +30,9 @@
 					input-id="cn-copy-pattern"
 					:label-outside="true"
 					:options="patternOptions"
-					:value="selectedPattern"
+					:model-value="selectedPattern"
 					:clearable="false"
-					@input="selectedPattern = $event" />
+					@update:model-value="selectedPattern = $event" />
 			</div>
 
 			<div class="cn-copy__preview">

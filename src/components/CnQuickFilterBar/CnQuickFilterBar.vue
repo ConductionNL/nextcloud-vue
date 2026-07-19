@@ -10,7 +10,7 @@
 		class="cn-quick-filter-bar cn-quick-filter-bar--dropdown"
 		:class="{ 'cn-quick-filter-bar--inline': inline }">
 		<NcSelect
-			:value="dropdownValue"
+			:model-value="dropdownValue"
 			:options="dropdownOptions"
 			:multiple="multiple"
 			:close-on-select="!multiple"
@@ -20,7 +20,7 @@
 			:input-label="selectLabel"
 			:aria-label-combobox="selectLabel"
 			:placeholder="placeholder || selectLabel"
-			@input="onSelectInput" />
+			@update:model-value="onSelectInput" />
 	</div>
 	<!-- Chips mode (default): the clickable tab strip. -->
 	<div v-else

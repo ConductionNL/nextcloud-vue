@@ -6,7 +6,7 @@
 <template>
 	<div class="cn-people-widget-form">
 		<NcSelect
-			:value="layout"
+			:model-value="layout"
 			:options="layoutOptions"
 			:input-label="t('nextcloud-vue', 'Layout')"
 			:reduce="(option) => option.value"
@@ -15,7 +15,7 @@
 			@input="updateField('layout', $event)" />
 
 		<NcSelect
-			:value="sortBy"
+			:model-value="sortBy"
 			:options="sortByOptions"
 			:input-label="t('nextcloud-vue', 'Sort by')"
 			:reduce="(option) => option.value"

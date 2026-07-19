@@ -75,11 +75,11 @@
 			<!-- No register yet → offer to create one. -->
 			<div v-else-if="!registers.length" class="cn-edit-data__empty">
 				<p>{{ t('nextcloud-vue', 'This app has no data register yet. Create one to start adding schemas.') }}</p>
-				<NcTextField :value="newRegisterTitle"
+				<NcTextField :model-value="newRegisterTitle"
 					:label="t('nextcloud-vue', 'Register name')"
 					:label-visible="true"
 					:placeholder="t('nextcloud-vue', 'My data')"
-					@update:value="(v) => newRegisterTitle = v" />
+					@update:model-value="(v) => newRegisterTitle = v" />
 				<NcButton type="primary" :disabled="busy || !newRegisterTitle.trim()" @click="createRegister">
 					<template v-if="busy" #icon>
 						<NcLoadingIcon :size="20" />
@@ -93,10 +93,10 @@
 				<div class="cn-edit-data__register">
 					<template v-if="renamingRegister">
 						<NcTextField class="cn-edit-data__register-rename"
-							:value="renameTitle"
+							:model-value="renameTitle"
 							:label="t('nextcloud-vue', 'Register name')"
 							:disabled="busy"
-							@update:value="(v) => renameTitle = v"
+							@update:model-value="(v) => renameTitle = v"
 							@keydown.native.enter="renameRegister"
 							@keydown.native.esc="renamingRegister = false" />
 						<NcButton type="primary"

@@ -15,9 +15,9 @@
 				<NcSelect
 					input-id="cn-mass-copy-pattern"
 					:options="patternOptions"
-					:value="selectedPattern"
+					:model-value="selectedPattern"
 					:clearable="false"
-					@input="onPatternChange" />
+					@update:model-value="onPatternChange" />
 			</div>
 
 			<div class="cn-mass-copy__list">

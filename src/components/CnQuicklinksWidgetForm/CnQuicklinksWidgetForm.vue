@@ -7,7 +7,7 @@
 	<div class="cn-quicklinks-widget-form">
 		<div class="cn-quicklinks-widget-form__settings">
 			<NcSelect
-				:value="iconSize"
+				:model-value="iconSize"
 				:options="iconSizeOptions"
 				:input-label="t('nextcloud-vue', 'Icon size')"
 				:reduce="(option) => option.value"
@@ -16,7 +16,7 @@
 				@input="updateOption('iconSize', $event)" />
 
 			<NcSelect
-				:value="iconShape"
+				:model-value="iconShape"
 				:options="iconShapeOptions"
 				:input-label="t('nextcloud-vue', 'Icon shape')"
 				:reduce="(option) => option.value"
@@ -33,7 +33,7 @@
 			</label>
 
 			<NcSelect
-				:value="labelPosition"
+				:model-value="labelPosition"
 				:options="labelPositionOptions"
 				:input-label="t('nextcloud-vue', 'Label position')"
 				:reduce="(option) => option.value"
@@ -43,7 +43,7 @@
 				@input="updateOption('labelPosition', $event)" />
 
 			<NcSelect
-				:value="columns"
+				:model-value="columns"
 				:options="columnsOptions"
 				:input-label="t('nextcloud-vue', 'Columns')"
 				:reduce="(option) => option.value"
@@ -52,7 +52,7 @@
 				@input="updateOption('columns', $event)" />
 
 			<NcSelect
-				:value="tileBackgroundStyle"
+				:model-value="tileBackgroundStyle"
 				:options="tileBackgroundOptions"
 				:input-label="t('nextcloud-vue', 'Tile background')"
 				:reduce="(option) => option.value"
@@ -61,7 +61,7 @@
 				@input="updateOption('tileBackgroundStyle', $event)" />
 
 			<NcSelect
-				:value="hoverEffect"
+				:model-value="hoverEffect"
 				:options="hoverEffectOptions"
 				:input-label="t('nextcloud-vue', 'Hover effect')"
 				:reduce="(option) => option.value"

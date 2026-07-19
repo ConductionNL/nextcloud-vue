@@ -57,8 +57,8 @@
 				<NcTextField :label="t('nextcloud-vue', 'Task (the one action for this step)')"
 					:value.sync="step.task" />
 				<NcTextField :label="t('nextcloud-vue', 'Target (optional CSS selector to spotlight; blank = centred)')"
-					:value="targetRef(step)"
-					@update:value="setTarget(step, $event)" />
+					:model-value="targetRef(step)"
+					@update:model-value="setTarget(step, $event)" />
 			</li>
 		</ul>
 

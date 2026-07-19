@@ -10,12 +10,12 @@
 		</h4>
 
 		<NcTextField
-			:value="title"
+			:model-value="title"
 			:label="t('nextcloud-vue', 'Title')"
 			placeholder="Location"
-			@update:value="updateField('title', $event)" />
+			@update:model-value="updateField('title', $event)" />
 
-		<NcCheckboxRadioSwitch :checked="editable" @update:checked="updateField('editable', $event)">
+		<NcCheckboxRadioSwitch :model-value="editable" @update:model-value="updateField('editable', $event)">
 			{{ t('nextcloud-vue', 'Allow editing the location on the map') }}
 		</NcCheckboxRadioSwitch>
 		<p class="cn-object-geo-form__hint">
@@ -23,9 +23,9 @@
 		</p>
 
 		<NcCheckboxRadioSwitch
-			:checked="addressSearch"
+			:model-value="addressSearch"
 			:disabled="!editable"
-			@update:checked="updateField('addressSearch', $event)">
+			@update:model-value="updateField('addressSearch', $event)">
 			{{ t('nextcloud-vue', 'Show an address search box') }}
 		</NcCheckboxRadioSwitch>
 		<p class="cn-object-geo-form__hint">
@@ -37,14 +37,14 @@
 		</h4>
 
 		<NcSelect
-			:value="selectedBasemapOption"
+			:model-value="selectedBasemapOption"
 			:options="basemapOptions"
 			:input-label="t('nextcloud-vue', 'Base map')"
 			:clearable="false"
 			label="label"
-			@input="onBasemapSelect" />
+			@update:model-value="onBasemapSelect" />
 
-		<NcCheckboxRadioSwitch :checked="allowBasemapSwitch" @update:checked="updateField('allowBasemapSwitch', $event)">
+		<NcCheckboxRadioSwitch :model-value="allowBasemapSwitch" @update:model-value="updateField('allowBasemapSwitch', $event)">
 			{{ t('nextcloud-vue', 'Let users switch the base map') }}
 		</NcCheckboxRadioSwitch>
 		<p class="cn-object-geo-form__hint">
@@ -55,13 +55,13 @@
 			{{ t('nextcloud-vue', 'Map controls') }}
 		</h4>
 
-		<NcCheckboxRadioSwitch :checked="fitControl" @update:checked="updateField('fitControl', $event)">
+		<NcCheckboxRadioSwitch :model-value="fitControl" @update:model-value="updateField('fitControl', $event)">
 			{{ t('nextcloud-vue', 'Recenter button') }}
 		</NcCheckboxRadioSwitch>
-		<NcCheckboxRadioSwitch :checked="locateControl" @update:checked="updateField('locateControl', $event)">
+		<NcCheckboxRadioSwitch :model-value="locateControl" @update:model-value="updateField('locateControl', $event)">
 			{{ t('nextcloud-vue', 'Locate-me button') }}
 		</NcCheckboxRadioSwitch>
-		<NcCheckboxRadioSwitch :checked="fullscreenControl" @update:checked="updateField('fullscreenControl', $event)">
+		<NcCheckboxRadioSwitch :model-value="fullscreenControl" @update:model-value="updateField('fullscreenControl', $event)">
 			{{ t('nextcloud-vue', 'Fullscreen button') }}
 		</NcCheckboxRadioSwitch>
 
@@ -70,17 +70,17 @@
 		</h4>
 
 		<NcTextField
-			:value="height"
+			:model-value="height"
 			:label="t('nextcloud-vue', 'Map height')"
 			placeholder="360px"
-			@update:value="updateField('height', $event)" />
+			@update:model-value="updateField('height', $event)" />
 
 		<NcTextField
-			:value="String(defaultZoom)"
+			:model-value="String(defaultZoom)"
 			type="number"
 			:label="t('nextcloud-vue', 'Zoom when no location is set')"
 			placeholder="7"
-			@update:value="onZoomInput" />
+			@update:model-value="onZoomInput" />
 		<p class="cn-object-geo-form__hint">
 			{{ t('nextcloud-vue', 'Zoom ranges from 1 (the whole world) to 19 (street level). Once the object has a location, the map zooms to it.') }}
 		</p>

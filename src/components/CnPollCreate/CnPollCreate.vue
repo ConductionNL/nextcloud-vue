@@ -80,7 +80,7 @@
 							:label="optionLabel(index)"
 							:maxlength="200"
 							class="cn-poll-create__option-input"
-							@update:value="onOptionChange(index, $event)" />
+							@update:model-value="onOptionChange(index, $event)" />
 						<NcButton
 							type="tertiary-no-background"
 							:aria-label="t('nextcloud-vue', 'Remove option')"

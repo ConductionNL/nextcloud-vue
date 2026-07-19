@@ -108,17 +108,17 @@
 			<template v-else-if="activeKind === 'time'">
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:value="conditionDraft.startTime"
+						:model-value="conditionDraft.startTime"
 						:label="t('nextcloud-vue', 'Start time (HH:MM)')"
 						placeholder="09:00"
-						@update:value="conditionDraft.startTime = $event" />
+						@update:model-value="conditionDraft.startTime = $event" />
 				</div>
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:value="conditionDraft.endTime"
+						:model-value="conditionDraft.endTime"
 						:label="t('nextcloud-vue', 'End time (HH:MM)')"
 						placeholder="17:00"
-						@update:value="conditionDraft.endTime = $event" />
+						@update:model-value="conditionDraft.endTime = $event" />
 				</div>
 			</template>
 
@@ -126,17 +126,17 @@
 			<template v-else-if="activeKind === 'date'">
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:value="conditionDraft.startDate"
+						:model-value="conditionDraft.startDate"
 						:label="t('nextcloud-vue', 'Start date (YYYY-MM-DD)')"
 						placeholder="2026-12-01"
-						@update:value="conditionDraft.startDate = $event" />
+						@update:model-value="conditionDraft.startDate = $event" />
 				</div>
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:value="conditionDraft.endDate"
+						:model-value="conditionDraft.endDate"
 						:label="t('nextcloud-vue', 'End date (YYYY-MM-DD)')"
 						placeholder="2026-12-31"
-						@update:value="conditionDraft.endDate = $event" />
+						@update:model-value="conditionDraft.endDate = $event" />
 				</div>
 			</template>
 
@@ -144,17 +144,17 @@
 			<template v-else-if="activeKind === 'attribute'">
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:value="conditionDraft.attribute"
+						:model-value="conditionDraft.attribute"
 						:label="t('nextcloud-vue', 'Attribute')"
 						placeholder="language"
-						@update:value="conditionDraft.attribute = $event" />
+						@update:model-value="conditionDraft.attribute = $event" />
 				</div>
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:value="conditionDraft.value"
+						:model-value="conditionDraft.value"
 						:label="t('nextcloud-vue', 'Equals value')"
 						placeholder="nl"
-						@update:value="conditionDraft.value = $event" />
+						@update:model-value="conditionDraft.value = $event" />
 				</div>
 			</template>
 

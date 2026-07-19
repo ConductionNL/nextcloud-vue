@@ -167,13 +167,13 @@
 				class="cn-dashboard-page__page-filter">
 				<span v-if="pf.label" class="cn-dashboard-page__page-filter-label">{{ pf.label }}</span>
 				<NcSelect
-					:value="selectedPageFilterOption(pf)"
+					:model-value="selectedPageFilterOption(pf)"
 					:options="pf.options || []"
 					:clearable="false"
 					:input-label="pf.label || pf.key"
 					label="label"
 					:data-testid="'cn-page-filter-' + pf.key"
-					@input="onPageFilterChange(pf, $event)" />
+					@update:model-value="onPageFilterChange(pf, $event)" />
 			</label>
 		</div>
 

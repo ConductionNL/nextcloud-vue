@@ -111,10 +111,10 @@
 							<NcTextField
 								v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'"
 								ref="activeEditor"
-								:value="editData[field.key] != null ? String(editData[field.key]) : ''"
+								:model-value="editData[field.key] != null ? String(editData[field.key]) : ''"
 								:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
 								:placeholder="field.description"
-								@update:value="val => updateField(field.key, val)"
+								@update:model-value="val => updateField(field.key, val)"
 								@keydown.native.enter="commitEdit"
 								@keydown.native.escape="cancelEdit" />
 
@@ -122,10 +122,10 @@
 							<NcTextField
 								v-else-if="field.widget === 'number'"
 								ref="activeEditor"
-								:value="editData[field.key] != null ? String(editData[field.key]) : ''"
+								:model-value="editData[field.key] != null ? String(editData[field.key]) : ''"
 								type="number"
 								:placeholder="field.description"
-								@update:value="val => updateField(field.key, val !== '' ? Number(val) : null)"
+								@update:model-value="val => updateField(field.key, val !== '' ? Number(val) : null)"
 								@keydown.native.enter="commitEdit"
 								@keydown.native.escape="cancelEdit" />
 
@@ -149,11 +149,11 @@
 								v-else-if="isSingleRelationField(field.key)"
 								ref="activeEditor"
 								:options="relationOptions[field.key] || []"
-								:value="relationSelectedOption(field)"
+								:model-value="relationSelectedOption(field)"
 								:loading="relationOptionsLoading"
 								label="label"
 								:clearable="!field.required"
-								@input="onRelationChange(field, $event)"
+								@update:model-value="onRelationChange(field, $event)"
 								@close="commitEdit" />
 
 							<!-- Select -->
@@ -161,9 +161,9 @@
 								v-else-if="field.widget === 'select'"
 								ref="activeEditor"
 								:options="getSelectOptions(field)"
-								:value="getSelectedOption(field)"
+								:model-value="getSelectedOption(field)"
 								:clearable="!field.required"
-								@input="onSelectChange(field, $event)"
+								@update:model-value="onSelectChange(field, $event)"
 								@close="commitEdit" />
 
 							<!-- Multiselect -->
@@ -171,22 +171,22 @@
 								v-else-if="field.widget === 'multiselect'"
 								ref="activeEditor"
 								:options="getMultiselectOptions(field)"
-								:value="getSelectedMultiselectOptions(field)"
+								:model-value="getSelectedMultiselectOptions(field)"
 								:multiple="true"
 								:keep-open="true"
 								:clearable="true"
-								@input="onMultiselectChange(field, $event)" />
+								@update:model-value="onMultiselectChange(field, $event)" />
 
 							<!-- Tags -->
 							<NcSelect
 								v-else-if="field.widget === 'tags'"
 								ref="activeEditor"
-								:value="editData[field.key] || []"
+								:model-value="editData[field.key] || []"
 								:multiple="true"
 								:keep-open="true"
 								:taggable="true"
 								:clearable="true"
-								@input="val => updateField(field.key, val)" />
+								@update:model-value="val => updateField(field.key, val)" />
 
 							<!-- Checkbox / Switch -->
 							<NcCheckboxRadioSwitch
@@ -201,9 +201,9 @@
 							<NcTextField
 								v-else-if="field.widget === 'date'"
 								ref="activeEditor"
-								:value="editData[field.key] || ''"
+								:model-value="editData[field.key] || ''"
 								type="date"
-								@update:value="val => updateField(field.key, val)"
+								@update:model-value="val => updateField(field.key, val)"
 								@keydown.native.enter="commitEdit"
 								@keydown.native.escape="cancelEdit" />
 
@@ -211,9 +211,9 @@
 							<NcTextField
 								v-else-if="field.widget === 'datetime'"
 								ref="activeEditor"
-								:value="editData[field.key] || ''"
+								:model-value="editData[field.key] || ''"
 								type="datetime-local"
-								@update:value="val => updateField(field.key, val)"
+								@update:model-value="val => updateField(field.key, val)"
 								@keydown.native.enter="commitEdit"
 								@keydown.native.escape="cancelEdit" />
 
@@ -221,9 +221,9 @@
 							<NcTextField
 								v-else
 								ref="activeEditor"
-								:value="editData[field.key] != null ? String(editData[field.key]) : ''"
+								:model-value="editData[field.key] != null ? String(editData[field.key]) : ''"
 								:placeholder="field.description"
-								@update:value="val => updateField(field.key, val)"
+								@update:model-value="val => updateField(field.key, val)"
 								@keydown.native.enter="commitEdit"
 								@keydown.native.escape="cancelEdit" />
 						</template>

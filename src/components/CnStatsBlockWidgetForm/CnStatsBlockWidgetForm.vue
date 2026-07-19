@@ -10,10 +10,10 @@
 		</h4>
 
 		<NcTextField
-			:value="title"
+			:model-value="title"
 			:label="t('nextcloud-vue', 'Title')"
 			placeholder="Sources"
-			@update:value="updateField('title', $event)" />
+			@update:model-value="updateField('title', $event)" />
 
 		<div class="cn-stats-block-form__row2">
 			<CnRegisterSchemaSelect
@@ -25,11 +25,11 @@
 
 		<div class="cn-stats-block-form__row2">
 			<NcSelect
-				:value="metric"
+				:model-value="metric"
 				:options="metricOptions"
 				:input-label="t('nextcloud-vue', 'Aggregation')"
 				:clearable="false"
-				@input="updateField('metric', $event)" />
+				@update:model-value="updateField('metric', $event)" />
 			<CnFieldPicker
 				v-if="metric !== 'count'"
 				:value="field"
@@ -47,16 +47,16 @@
 
 		<div class="cn-stats-block-form__row2">
 			<NcTextField
-				:value="countLabel"
+				:model-value="countLabel"
 				:label="t('nextcloud-vue', 'Count label')"
 				placeholder="sources"
-				@update:value="updateField('countLabel', $event)" />
+				@update:model-value="updateField('countLabel', $event)" />
 			<NcSelect
-				:value="variant"
+				:model-value="variant"
 				:options="variantOptions"
 				:input-label="t('nextcloud-vue', 'Color')"
 				:clearable="false"
-				@input="updateField('variant', $event)" />
+				@update:model-value="updateField('variant', $event)" />
 		</div>
 
 		<CnIconBrowser

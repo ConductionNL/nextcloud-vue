@@ -22,10 +22,10 @@
 		<div class="cn-object-geo-widget">
 			<div v-if="editable && addressSearch" class="cn-object-geo-widget__search">
 				<NcTextField
-					:value="query"
+					:model-value="query"
 					:label="t('nextcloud-vue', 'Search for an address or place')"
 					:show-trailing-button="false"
-					@update:value="onQueryInput">
+					@update:model-value="onQueryInput">
 					<Magnify :size="18" />
 				</NcTextField>
 				<NcLoadingIcon v-if="searching" :size="20" />

@@ -35,7 +35,7 @@
 				:input-label="searchLabel"
 				:placeholder="searchPlaceholder"
 				class="cn-contact-picker__search"
-				@input="onSearch" />
+				@update:model-value="onSearch" />
 
 			<NcLoadingIcon v-if="loading" class="cn-contact-picker__loading" />
 
@@ -83,10 +83,10 @@
 				<NcSelect
 					input-id="cn-contact-picker-role"
 					:options="roleOptions"
-					:value="role"
+					:model-value="role"
 					:clearable="true"
 					:input-label="roleLabel"
-					@input="role = $event" />
+					@update:model-value="role = $event" />
 			</div>
 		</div>
 

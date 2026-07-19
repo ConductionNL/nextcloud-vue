@@ -13,7 +13,7 @@
 		:filterable="false"
 		label="label"
 		@search="onSearch"
-		@input="onInput">
+		@update:model-value="onInput">
 		<template #option="{ label: optLabel, __create }">
 			<span v-if="__create" class="cn-resource-select__create">
 				<Plus :size="16" />

@@ -42,19 +42,19 @@
 				</h3>
 
 				<NcCheckboxRadioSwitch
-					:checked="draft.showTitle"
+					:model-value="draft.showTitle"
 					data-testid="cn-widget-style-show-title"
-					@update:checked="draft.showTitle = $event">
+					@update:model-value="draft.showTitle = $event">
 					{{ t('nextcloud-vue', 'Show title') }}
 				</NcCheckboxRadioSwitch>
 
 				<NcTextField
 					v-if="draft.showTitle"
-					:value="draft.customTitle"
+					:model-value="draft.customTitle"
 					:label="t('nextcloud-vue', 'Custom title')"
 					:placeholder="titlePlaceholder"
 					data-testid="cn-widget-style-custom-title"
-					@update:value="draft.customTitle = $event" />
+					@update:model-value="draft.customTitle = $event" />
 			</div>
 
 			<!-- Background section: colour picker over the chrome background. -->

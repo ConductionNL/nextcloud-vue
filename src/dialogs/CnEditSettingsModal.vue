@@ -31,17 +31,17 @@
 				{{ t('nextcloud-vue', 'Personal settings entry') }}
 			</legend>
 			<NcCheckboxRadioSwitch
-				:checked="includePersonalSettings"
+				:model-value="includePersonalSettings"
 				type="switch"
-				@update:checked="setIncludePersonalSettings">
+				@update:model-value="setIncludePersonalSettings">
 				{{ t('nextcloud-vue', 'Show the “Personal settings” entry in the foldout') }}
 			</NcCheckboxRadioSwitch>
 			<NcTextField
-				:value="settingsLabel"
+				:model-value="settingsLabel"
 				:label="t('nextcloud-vue', 'Foldout label')"
 				:label-visible="true"
 				:placeholder="t('nextcloud-vue', 'Settings')"
-				@update:value="setSettingsLabel" />
+				@update:model-value="setSettingsLabel" />
 		</fieldset>
 
 		<fieldset class="cn-edit-settings__group">
@@ -49,24 +49,24 @@
 				{{ t('nextcloud-vue', 'Roadmap entry') }}
 			</legend>
 			<NcCheckboxRadioSwitch
-				:checked="includeRoadmap"
+				:model-value="includeRoadmap"
 				type="switch"
-				@update:checked="setIncludeRoadmap">
+				@update:model-value="setIncludeRoadmap">
 				{{ t('nextcloud-vue', 'Show a “Features & roadmap” entry in the foldout') }}
 			</NcCheckboxRadioSwitch>
 			<template v-if="includeRoadmap">
 				<NcTextField
-					:value="roadmapLabel"
+					:model-value="roadmapLabel"
 					:label="t('nextcloud-vue', 'Roadmap label')"
 					:label-visible="true"
 					:placeholder="t('nextcloud-vue', 'Features & roadmap')"
-					@update:value="setRoadmapLabel" />
+					@update:model-value="setRoadmapLabel" />
 				<NcTextField
-					:value="roadmapUrl"
+					:model-value="roadmapUrl"
 					:label="t('nextcloud-vue', 'Roadmap link (URL or in-app route)')"
 					:label-visible="true"
 					:placeholder="t('nextcloud-vue', 'https://…')"
-					@update:value="setRoadmapUrl" />
+					@update:model-value="setRoadmapUrl" />
 			</template>
 		</fieldset>
 
@@ -75,24 +75,24 @@
 				{{ t('nextcloud-vue', 'Documentation entry') }}
 			</legend>
 			<NcCheckboxRadioSwitch
-				:checked="includeDocumentation"
+				:model-value="includeDocumentation"
 				type="switch"
-				@update:checked="setIncludeDocumentation">
+				@update:model-value="setIncludeDocumentation">
 				{{ t('nextcloud-vue', 'Show a “Documentation” entry in the foldout') }}
 			</NcCheckboxRadioSwitch>
 			<template v-if="includeDocumentation">
 				<NcTextField
-					:value="documentationLabel"
+					:model-value="documentationLabel"
 					:label="t('nextcloud-vue', 'Documentation label')"
 					:label-visible="true"
 					:placeholder="t('nextcloud-vue', 'Documentation')"
-					@update:value="setDocumentationLabel" />
+					@update:model-value="setDocumentationLabel" />
 				<NcTextField
-					:value="documentationUrl"
+					:model-value="documentationUrl"
 					:label="t('nextcloud-vue', 'Documentation link (URL)')"
 					:label-visible="true"
 					:placeholder="t('nextcloud-vue', 'https://…')"
-					@update:value="setDocumentationUrl" />
+					@update:model-value="setDocumentationUrl" />
 			</template>
 		</fieldset>
 

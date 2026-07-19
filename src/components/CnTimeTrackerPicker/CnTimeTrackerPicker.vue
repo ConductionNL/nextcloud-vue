@@ -47,7 +47,7 @@
 				:label="t('nextcloud-vue', 'Search entries')"
 				:placeholder="t('nextcloud-vue', 'Type to filter…')"
 				class="cn-time-tracker-picker__search"
-				@update:value="onSearch" />
+				@update:model-value="onSearch" />
 
 			<NcLoadingIcon v-if="loading" />
 			<NcEmptyContent

@@ -29,34 +29,34 @@
 
 		<div class="cn-map-widget-form__row">
 			<NcTextField
-				:value="String(zoom)"
+				:model-value="String(zoom)"
 				type="number"
 				:label="t('nextcloud-vue', 'Zoom')"
 				:label-visible="true"
-				@update:value="onZoom" />
+				@update:model-value="onZoom" />
 
 			<NcTextField
-				:value="height"
+				:model-value="height"
 				:label="t('nextcloud-vue', 'Height')"
 				:label-visible="true"
 				placeholder="400px"
-				@update:value="height = $event" />
+				@update:model-value="height = $event" />
 		</div>
 
 		<div class="cn-map-widget-form__row">
 			<NcTextField
-				:value="String(center[0])"
+				:model-value="String(center[0])"
 				type="number"
 				:label="t('nextcloud-vue', 'Centre latitude')"
 				:label-visible="true"
-				@update:value="onCentre(0, $event)" />
+				@update:model-value="onCentre(0, $event)" />
 
 			<NcTextField
-				:value="String(center[1])"
+				:model-value="String(center[1])"
 				type="number"
 				:label="t('nextcloud-vue', 'Centre longitude')"
 				:label-visible="true"
-				@update:value="onCentre(1, $event)" />
+				@update:model-value="onCentre(1, $event)" />
 		</div>
 
 		<NcCheckboxRadioSwitch :checked.sync="autoFit" type="switch">

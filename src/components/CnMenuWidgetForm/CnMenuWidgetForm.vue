@@ -6,7 +6,7 @@
 <template>
 	<div class="cn-menu-form">
 		<NcSelect
-			:value="style"
+			:model-value="style"
 			:options="styleOptions"
 			:input-label="t('nextcloud-vue', 'Menu Style')"
 			:reduce="(option) => option.value"
@@ -16,7 +16,7 @@
 
 		<NcSelect
 			v-if="style !== 'tree'"
-			:value="orientation"
+			:model-value="orientation"
 			:options="orientationOptions"
 			:input-label="t('nextcloud-vue', 'Orientation')"
 			:reduce="(option) => option.value"
@@ -25,7 +25,7 @@
 			@input="updateField('orientation', $event)" />
 
 		<NcSelect
-			:value="activeItemHighlight"
+			:model-value="activeItemHighlight"
 			:options="highlightOptions"
 			:input-label="t('nextcloud-vue', 'Active Item Highlight')"
 			:reduce="(option) => option.value"

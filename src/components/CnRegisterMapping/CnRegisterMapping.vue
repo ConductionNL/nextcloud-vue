@@ -72,7 +72,7 @@
 						:loading="registersLoading"
 						label="label"
 						track-by="value"
-						@input="handleRegisterChange(groupIdx, $event)" />
+						@update:model-value="handleRegisterChange(groupIdx, $event)" />
 				</div>
 
 				<!-- Type list -->
@@ -123,7 +123,7 @@
 									:input-label="labels.schema"
 									label="label"
 									track-by="value"
-									@input="handleSchemaChange(groupIdx, type, $event)" />
+									@update:model-value="handleSchemaChange(groupIdx, type, $event)" />
 							</div>
 						</transition>
 					</template>

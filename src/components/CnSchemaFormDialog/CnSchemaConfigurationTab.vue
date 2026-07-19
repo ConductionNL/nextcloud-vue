@@ -143,7 +143,7 @@
 			:disabled="loading"
 			:label="t('nextcloud-vue', 'Allowed tags (comma-separated)')"
 			:placeholder="t('nextcloud-vue', 'image, document, audio, video')"
-			@update:value="updateAllowedTags" />
+			@update:model-value="updateAllowedTags" />
 		<NcCheckboxRadioSwitch
 			:disabled="loading"
 			:checked.sync="schema.hardValidation">
@@ -155,9 +155,9 @@
 			:value.sync="schema.maxDepth" />
 		<NcTextField :disabled="loading"
 			:label="t('nextcloud-vue', 'Icon (Material Design Icon name, e.g. Dog)')"
-			:value="schema.icon || ''"
+			:model-value="schema.icon || ''"
 			:placeholder="t('nextcloud-vue', 'e.g. Dog, Account, Tag — see pictogrammers.com/library/mdi')"
-			@update:value="setIcon" />
+			@update:model-value="setIcon" />
 		<NcCheckboxRadioSwitch
 			:disabled="loading"
 			:checked.sync="schema.immutable">

@@ -6,9 +6,9 @@
 	<div class="cn-kb-search-widget">
 		<div class="cn-kb-search-widget__search">
 			<NcTextField
-				:value="term"
+				:model-value="term"
 				:label="searchLabel"
-				@update:value="onTermInput" />
+				@update:model-value="onTermInput" />
 		</div>
 
 		<p v-if="boundLabel" class="cn-kb-search-widget__bound">

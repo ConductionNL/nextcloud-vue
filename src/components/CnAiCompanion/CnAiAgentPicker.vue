@@ -20,7 +20,7 @@
 	<div class="cn-ai-agent-picker" data-testid="cn-ai-agent-picker">
 		<NcSelect
 			v-if="!fetchError"
-			:value="selectedOption"
+			:model-value="selectedOption"
 			:options="options"
 			:loading="loading"
 			:disabled="loading || options.length === 0"
@@ -31,7 +31,7 @@
 			:aria-label-combobox="cnTranslate('Agent')"
 			:placeholder="pickerPlaceholder"
 			data-testid="cn-ai-agent-picker-select"
-			@input="onInput" />
+			@update:model-value="onInput" />
 		<p v-else class="cn-ai-agent-picker__error" data-testid="cn-ai-agent-picker-error">
 			{{ cnTranslate('Could not load agents — you can still send a message.') }}
 		</p>

@@ -58,7 +58,7 @@
 					:label="t('nextcloud-vue', 'Search pages')"
 					:placeholder="t('nextcloud-vue', 'Type to filter…')"
 					class="cn-xwiki-page-picker__search"
-					@update:value="onSearch" />
+					@update:model-value="onSearch" />
 
 				<NcLoadingIcon v-if="loading" />
 				<NcEmptyContent

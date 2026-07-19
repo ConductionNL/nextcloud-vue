@@ -19,11 +19,11 @@
 		</div>
 
 		<NcSelect
-			:value="kind"
+			:model-value="kind"
 			:options="kindOptions"
 			:input-label="t('nextcloud-vue', 'Source type')"
 			:clearable="false"
-			@input="updateField('kind', $event)">
+			@update:model-value="updateField('kind', $event)">
 			<template #option="{ label: id }">
 				{{ kindLabel(id) }}
 			</template>
@@ -35,11 +35,11 @@
 		<!-- Aggregate / Ratio share metric + field. Weighted uses field × weight. -->
 		<div v-if="kind !== 'weighted'" class="cn-stat-widget-form__row2">
 			<NcSelect
-				:value="metric"
+				:model-value="metric"
 				:options="metricOptions"
 				:input-label="t('nextcloud-vue', 'Aggregation')"
 				:clearable="false"
-				@input="updateField('metric', $event)" />
+				@update:model-value="updateField('metric', $event)" />
 			<CnFieldPicker
 				v-if="metric && metric !== 'count'"
 				:value="field"
@@ -62,21 +62,21 @@
 				placeholder="probability"
 				@update="updateWeighted('weightField', $event)" />
 			<NcTextField
-				:value="String(weighted.divisor)"
+				:model-value="String(weighted.divisor)"
 				type="number"
 				:label="t('nextcloud-vue', 'Weight divisor')"
 				placeholder="100"
-				@update:value="updateWeighted('divisor', Number($event) || 1)" />
+				@update:model-value="updateWeighted('divisor', Number($event) || 1)" />
 		</div>
 
 		<!-- Aggregate + Weighted use one filter; Ratio + Computed use two parts. -->
 		<template v-if="kind === 'ratio' || kind === 'computed'">
 			<NcTextField
 				v-if="kind === 'computed'"
-				:value="formula"
+				:model-value="formula"
 				:label="t('nextcloud-vue', 'Formula (A, B)')"
 				placeholder="A/B*100"
-				@update:value="updateField('formula', $event)" />
+				@update:model-value="updateField('formula', $event)" />
 			<label class="cn-stat-widget-form__sublabel">{{ kind === 'computed' ? t('nextcloud-vue', 'Part A') : t('nextcloud-vue', 'Numerator (the part)') }}</label>
 			<CnFilterRowsEditor :value="numeratorRows" :fields="availableFields" @input="onRows('numeratorRows', $event)" />
 			<label class="cn-stat-widget-form__sublabel">{{ kind === 'computed' ? t('nextcloud-vue', 'Part B') : t('nextcloud-vue', 'Denominator (the whole)') }}</label>
@@ -93,10 +93,10 @@
 		</h4>
 
 		<NcTextField
-			:value="label"
+			:model-value="label"
 			:label="t('nextcloud-vue', 'Label')"
 			placeholder="Revenue"
-			@update:value="updateField('label', $event)" />
+			@update:model-value="updateField('label', $event)" />
 
 		<CnIconBrowser
 			:value="icon"
@@ -104,10 +104,10 @@
 			@input="updateField('icon', $event)" />
 
 		<NcTextField
-			:value="caption"
+			:model-value="caption"
 			:label="t('nextcloud-vue', 'Caption (optional)')"
 			:placeholder="t('nextcloud-vue', 'vs previous period')"
-			@update:value="updateField('caption', $event)" />
+			@update:model-value="updateField('caption', $event)" />
 
 		<div class="cn-stat-widget-form__row2">
 			<label class="cn-stat-widget-form__color-label">
@@ -135,22 +135,22 @@
 
 		<div class="cn-stat-widget-form__row2">
 			<NcSelect
-				:value="format.style"
+				:model-value="format.style"
 				:options="styleOptions"
 				:input-label="t('nextcloud-vue', 'Style')"
 				:clearable="false"
-				@input="updateFormat('style', $event)" />
+				@update:model-value="updateFormat('style', $event)" />
 			<NcTextField
 				v-if="format.style === 'currency'"
-				:value="format.currency"
+				:model-value="format.currency"
 				:label="t('nextcloud-vue', 'Currency')"
 				placeholder="EUR"
-				@update:value="updateFormat('currency', $event)" />
+				@update:model-value="updateFormat('currency', $event)" />
 			<NcTextField
-				:value="String(format.decimals)"
+				:model-value="String(format.decimals)"
 				type="number"
 				:label="t('nextcloud-vue', 'Decimals')"
-				@update:value="updateFormat('decimals', Number($event) || 0)" />
+				@update:model-value="updateFormat('decimals', Number($event) || 0)" />
 		</div>
 	</div>
 </template>

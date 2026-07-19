@@ -54,7 +54,7 @@
 			<NcSelect
 				:input-id="pageSizeId"
 				class="cn-pagination__page-size-select"
-				:value="currentPageSizeOption"
+				:model-value="currentPageSizeOption"
 				:options="pageSizeOptions"
 				:clearable="false"
 				:input-label="itemsPerPageLabel"

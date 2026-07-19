@@ -32,9 +32,9 @@
 							:title="t('nextcloud-vue', 'Property has been modified. Changes will only take effect after the schema is saved.')" />
 						<NcTextField
 							ref="propertyNameInput"
-							:value="row._key"
+							:model-value="row._key"
 							:label="t('nextcloud-vue', '(technical) Property name')"
-							@update:value="onPropertyKeyUpdate(row._key, $event)"
+							@update:model-value="onPropertyKeyUpdate(row._key, $event)"
 							@click.stop />
 					</div>
 					<div v-else class="cn-schema-form__name-display-container">

@@ -37,11 +37,11 @@
 		<template v-else>
 			<!-- Schema picker: flows are attached per schema. -->
 			<div class="cn-edit-flows__schema">
-				<NcSelect :value="selectedSchemaOption"
+				<NcSelect :model-value="selectedSchemaOption"
 					:options="schemaOptions"
 					:input-label="t('nextcloud-vue', 'Schema')"
 					:clearable="false"
-					@input="onSelectSchema" />
+					@update:model-value="onSelectSchema" />
 			</div>
 
 			<template v-if="selectedSchema">
@@ -56,9 +56,9 @@
 				<div v-for="(flow, fi) in flows" :key="fi" class="cn-edit-flows__flow">
 					<div class="cn-edit-flows__flow-head">
 						<NcTextField class="cn-edit-flows__grow"
-							:value="flow.name"
+							:model-value="flow.name"
 							:label="t('nextcloud-vue', 'Flow name')"
-							@update:value="(v) => $set(flow, 'name', v)" />
+							@update:model-value="(v) => $set(flow, 'name', v)" />
 						<NcButton type="tertiary"
 							:aria-label="t('nextcloud-vue', 'Remove flow')"
 							:title="t('nextcloud-vue', 'Remove flow')"
@@ -70,20 +70,20 @@
 					</div>
 
 					<label class="cn-edit-flows__field-label">{{ t('nextcloud-vue', 'When') }}</label>
-					<NcSelect :value="triggerOption(flow.trigger)"
+					<NcSelect :model-value="triggerOption(flow.trigger)"
 						:options="triggerOptions"
 						:clearable="false"
 						:input-label="t('nextcloud-vue', 'Trigger')"
-						@input="(o) => $set(flow, 'trigger', o ? o.id : 'created')" />
+						@update:model-value="(o) => $set(flow, 'trigger', o ? o.id : 'created')" />
 
 					<div v-for="(action, ai) in flow.actions" :key="ai" class="cn-edit-flows__action">
 						<div class="cn-edit-flows__action-head">
 							<NcSelect class="cn-edit-flows__grow"
-								:value="actionTypeOption(action.type)"
+								:model-value="actionTypeOption(action.type)"
 								:options="actionTypeOptions"
 								:clearable="false"
 								:input-label="t('nextcloud-vue', 'Action')"
-								@input="(o) => setActionType(action, o)" />
+								@update:model-value="(o) => setActionType(action, o)" />
 							<NcButton type="tertiary"
 								:aria-label="t('nextcloud-vue', 'Remove action')"
 								:title="t('nextcloud-vue', 'Remove action')"
@@ -96,37 +96,37 @@
 
 						<!-- Calendar-event fields -->
 						<template v-if="isCalendar(action.type)">
-							<NcTextField :value="action.summary"
+							<NcTextField :model-value="action.summary"
 								:label="t('nextcloud-vue', 'Event title')"
-								@update:value="(v) => $set(action, 'summary', v)" />
+								@update:model-value="(v) => $set(action, 'summary', v)" />
 							<label class="cn-edit-flows__field-label">{{ t('nextcloud-vue', 'Description') }}</label>
 							<textarea class="cn-edit-flows__textarea"
 								:value="action.description"
 								rows="2"
 								@input="(e) => $set(action, 'description', e.target.value)" />
-							<NcTextField :value="action.location"
+							<NcTextField :model-value="action.location"
 								:label="t('nextcloud-vue', 'Location')"
-								@update:value="(v) => $set(action, 'location', v)" />
+								@update:model-value="(v) => $set(action, 'location', v)" />
 							<div class="cn-edit-flows__row">
 								<NcTextField type="number"
-									:value="String(action.offsetDays != null ? action.offsetDays : 1)"
+									:model-value="String(action.offsetDays != null ? action.offsetDays : 1)"
 									:label="t('nextcloud-vue', 'Days from now')"
-									@update:value="(v) => $set(action, 'offsetDays', v)" />
+									@update:model-value="(v) => $set(action, 'offsetDays', v)" />
 								<NcTextField type="number"
-									:value="String(action.durationMinutes != null ? action.durationMinutes : 30)"
+									:model-value="String(action.durationMinutes != null ? action.durationMinutes : 30)"
 									:label="t('nextcloud-vue', 'Duration (minutes)')"
-									@update:value="(v) => $set(action, 'durationMinutes', v)" />
+									@update:model-value="(v) => $set(action, 'durationMinutes', v)" />
 							</div>
 						</template>
 
 						<!-- Email fields -->
 						<template v-else-if="isEmail(action.type)">
-							<NcTextField :value="action.to"
+							<NcTextField :model-value="action.to"
 								:label="t('nextcloud-vue', 'Send to (email)')"
-								@update:value="(v) => $set(action, 'to', v)" />
-							<NcTextField :value="action.subject"
+								@update:model-value="(v) => $set(action, 'to', v)" />
+							<NcTextField :model-value="action.subject"
 								:label="t('nextcloud-vue', 'Subject')"
-								@update:value="(v) => $set(action, 'subject', v)" />
+								@update:model-value="(v) => $set(action, 'subject', v)" />
 							<label class="cn-edit-flows__field-label">{{ t('nextcloud-vue', 'Message') }}</label>
 							<textarea class="cn-edit-flows__textarea"
 								:value="action.body"
@@ -136,34 +136,34 @@
 
 						<!-- Agent fields -->
 						<template v-else-if="isAgent(action.type)">
-							<NcTextField :value="action.agent"
+							<NcTextField :model-value="action.agent"
 								:label="t('nextcloud-vue', 'Agent')"
-								@update:value="(v) => $set(action, 'agent', v)" />
-							<NcTextField :value="action.skill"
+								@update:model-value="(v) => $set(action, 'agent', v)" />
+							<NcTextField :model-value="action.skill"
 								:label="t('nextcloud-vue', 'Skill (optional)')"
-								@update:value="(v) => $set(action, 'skill', v)" />
+								@update:model-value="(v) => $set(action, 'skill', v)" />
 							<label class="cn-edit-flows__field-label">{{ t('nextcloud-vue', 'Prompt') }}</label>
 							<textarea class="cn-edit-flows__textarea"
 								:value="action.prompt"
 								rows="3"
 								@input="(e) => $set(action, 'prompt', e.target.value)" />
-							<NcTextField :value="action.resultField"
+							<NcTextField :model-value="action.resultField"
 								:label="t('nextcloud-vue', 'Write result to field')"
-								@update:value="(v) => $set(action, 'resultField', v)" />
-							<NcCheckboxRadioSwitch :checked="Boolean(action.requiresApproval)"
-								@update:checked="(v) => $set(action, 'requiresApproval', v)">
+								@update:model-value="(v) => $set(action, 'resultField', v)" />
+							<NcCheckboxRadioSwitch :model-value="Boolean(action.requiresApproval)"
+								@update:model-value="(v) => $set(action, 'requiresApproval', v)">
 								{{ t('nextcloud-vue', 'Require approval before the result is written') }}
 							</NcCheckboxRadioSwitch>
 						</template>
 
 						<!-- Federated-share fields -->
 						<template v-else-if="isFederateShare(action.type)">
-							<NcTextField :value="action.sharedWith"
+							<NcTextField :model-value="action.sharedWith"
 								:label="t('nextcloud-vue', 'Share with (federated user)')"
-								@update:value="(v) => $set(action, 'sharedWith', v)" />
-							<NcTextField :value="action.permissions"
+								@update:model-value="(v) => $set(action, 'sharedWith', v)" />
+							<NcTextField :model-value="action.permissions"
 								:label="t('nextcloud-vue', 'Permissions')"
-								@update:value="(v) => $set(action, 'permissions', v)" />
+								@update:model-value="(v) => $set(action, 'permissions', v)" />
 						</template>
 
 						<!-- A type this editor cannot author: shown, not silently rewritten. -->

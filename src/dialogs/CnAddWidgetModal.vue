@@ -60,15 +60,15 @@
 			     title inputs. -->
 			<template v-if="!activeTypeOwnsTitle">
 				<NcCheckboxRadioSwitch
-					:checked="chrome.showTitle"
-					@update:checked="chrome.showTitle = $event">
+					:model-value="chrome.showTitle"
+					@update:model-value="chrome.showTitle = $event">
 					{{ t('nextcloud-vue', 'Show title') }}
 				</NcCheckboxRadioSwitch>
 				<NcTextField
 					v-if="chrome.showTitle"
-					:value="chrome.customTitle"
+					:model-value="chrome.customTitle"
 					:label="t('nextcloud-vue', 'Custom title')"
-					@update:value="chrome.customTitle = $event" />
+					@update:model-value="chrome.customTitle = $event" />
 			</template>
 			<div class="cn-add-widget-modal__chrome-row">
 				<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Background') }}</span>

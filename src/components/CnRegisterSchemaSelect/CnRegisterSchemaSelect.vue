@@ -6,7 +6,7 @@
 <template>
 	<div class="cn-register-schema-select">
 		<NcSelect
-			:value="registerOption"
+			:model-value="registerOption"
 			:options="registerOptions"
 			:input-label="t('nextcloud-vue', 'Register')"
 			:placeholder="t('nextcloud-vue', 'Select a register')"
@@ -14,9 +14,9 @@
 			:disabled="disabled"
 			:clearable="false"
 			label="label"
-			@input="onRegister" />
+			@update:model-value="onRegister" />
 		<NcSelect
-			:value="schemaOption"
+			:model-value="schemaOption"
 			:options="schemaOptions"
 			:input-label="t('nextcloud-vue', 'Schema')"
 			:placeholder="register ? t('nextcloud-vue', 'Select a schema') : t('nextcloud-vue', 'Pick a register first')"
@@ -24,7 +24,7 @@
 			:disabled="disabled || !register"
 			:clearable="false"
 			label="label"
-			@input="onSchema" />
+			@update:model-value="onSchema" />
 	</div>
 </template>
 

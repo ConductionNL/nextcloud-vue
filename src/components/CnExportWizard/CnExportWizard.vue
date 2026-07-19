@@ -78,9 +78,9 @@
 				<label :for="fieldIdFor('format')">{{ labelOr('format', formatLabel) }}</label>
 				<NcSelect :input-id="fieldIdFor('format')"
 					:options="formats"
-					:value="formData.format"
+					:model-value="formData.format"
 					:clearable="false"
-					@input="formData.format = $event" />
+					@update:model-value="formData.format = $event" />
 			</div>
 
 			<!-- Delivery channel. -->
@@ -88,9 +88,9 @@
 				<label :for="fieldIdFor('delivery')">{{ labelOr('delivery', deliveryLabel) }}</label>
 				<NcSelect :input-id="fieldIdFor('delivery')"
 					:options="deliveries"
-					:value="formData.delivery"
+					:model-value="formData.delivery"
 					:clearable="false"
-					@input="formData.delivery = $event" />
+					@update:model-value="formData.delivery = $event" />
 				<input v-if="formData.delivery === 'email'"
 					:id="fieldIdFor('emailRecipient')"
 					v-model="formData.emailRecipient"

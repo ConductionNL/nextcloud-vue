@@ -34,10 +34,10 @@
 		<NcTextField v-if="editing === 'label'"
 			ref="labelField"
 			class="cn-menu-tree__inline-field"
-			:value="item.label || ''"
+			:model-value="item.label || ''"
 			:label="t('nextcloud-vue', 'Label')"
 			:label-outside="true"
-			@update:value="setLabel"
+			@update:model-value="setLabel"
 			@keydown.enter="stopEdit"
 			@blur="stopEdit" />
 		<button v-else
@@ -51,13 +51,13 @@
 		<!-- Target page: click to change inline. -->
 		<NcSelect v-if="editing === 'page'"
 			class="cn-menu-tree__inline-select"
-			:value="selectedPage"
+			:model-value="selectedPage"
 			:options="pages"
 			:input-label="t('nextcloud-vue', 'Page')"
 			label="label"
 			:clearable="true"
 			:placeholder="pages.length ? t('nextcloud-vue', 'Pick a page') : t('nextcloud-vue', 'No pages')"
-			@input="onPage"
+			@update:model-value="onPage"
 			@close="stopEdit" />
 		<button v-else
 			type="button"

@@ -196,7 +196,7 @@ import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
  *   @confirm="onImportConfirm"
  *   @close="showImportDialog = false">
  *   <template #fields="{ file }">
- *     <NcSelect v-if="file" :options="schemas" @input="selectedSchema = $event" />
+ *     <NcSelect v-if="file" :options="schemas" @update:model-value="selectedSchema = $event" />
  *   </template>
  * </CnMassImportDialog>
  * ```

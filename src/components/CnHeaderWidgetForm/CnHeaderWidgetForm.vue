@@ -6,17 +6,17 @@
 <template>
 	<div class="cn-header-widget-form">
 		<NcTextField
-			:value="title"
+			:model-value="title"
 			:label="t('nextcloud-vue', 'Title')"
 			:placeholder="t('nextcloud-vue', 'Header title')"
 			required
-			@update:value="updateField('title', $event)" />
+			@update:model-value="updateField('title', $event)" />
 
 		<NcTextField
-			:value="subtitle"
+			:model-value="subtitle"
 			:label="t('nextcloud-vue', 'Subtitle (optional)')"
 			:placeholder="t('nextcloud-vue', 'Optional subtitle')"
-			@update:value="updateField('subtitle', $event)" />
+			@update:model-value="updateField('subtitle', $event)" />
 
 		<!-- Upload is the reliable path: external image URLs are often blocked
 		     by the Nextcloud Content-Security-Policy, so only the background
@@ -38,10 +38,10 @@
 		</p>
 
 		<NcTextField
-			:value="backgroundImageUrl"
+			:model-value="backgroundImageUrl"
 			:label="t('nextcloud-vue', 'Background image URL')"
 			placeholder="https://example.com/banner.jpg"
-			@update:value="updateField('backgroundImageUrl', $event)" />
+			@update:model-value="updateField('backgroundImageUrl', $event)" />
 
 		<label class="cn-header-widget-form__color-label">
 			{{ t('nextcloud-vue', 'Background color') }}
@@ -53,7 +53,7 @@
 		</label>
 
 		<NcSelect
-			:value="overlayMode"
+			:model-value="overlayMode"
 			:options="overlayModeOptions"
 			:input-label="t('nextcloud-vue', 'Overlay mode')"
 			:reduce="(option) => option.value"
@@ -94,7 +94,7 @@
 		</label>
 
 		<NcSelect
-			:value="textAlign"
+			:model-value="textAlign"
 			:options="textAlignOptions"
 			:input-label="t('nextcloud-vue', 'Text alignment')"
 			:reduce="(option) => option.value"
@@ -103,7 +103,7 @@
 			@input="updateField('textAlign', $event)" />
 
 		<NcSelect
-			:value="verticalAlign"
+			:model-value="verticalAlign"
 			:options="verticalAlignOptions"
 			:input-label="t('nextcloud-vue', 'Vertical alignment')"
 			:reduce="(option) => option.value"
@@ -122,19 +122,19 @@
 			</legend>
 
 			<NcTextField
-				:value="ctaLabel"
+				:model-value="ctaLabel"
 				:label="t('nextcloud-vue', 'Button text')"
 				:placeholder="t('nextcloud-vue', 'Sign up')"
-				@update:value="updateCta('label', $event)" />
+				@update:model-value="updateCta('label', $event)" />
 
 			<NcTextField
-				:value="ctaUrl"
+				:model-value="ctaUrl"
 				:label="t('nextcloud-vue', 'Target URL')"
 				placeholder="https://..."
-				@update:value="updateCta('url', $event)" />
+				@update:model-value="updateCta('url', $event)" />
 
 			<NcSelect
-				:value="ctaStyle"
+				:model-value="ctaStyle"
 				:options="ctaStyleOptions"
 				:input-label="t('nextcloud-vue', 'Button style')"
 				:reduce="(option) => option.value"

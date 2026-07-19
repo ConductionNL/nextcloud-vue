@@ -95,7 +95,7 @@
 							:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
 							:disabled="field.readOnly"
 							:placeholder="field.description"
-							@update:value="value => updateField(field.key, value)" />
+							@update:model-value="value => updateField(field.key, value)" />
 
 						<!-- Number -->
 						<NcTextField
@@ -107,7 +107,7 @@
 							type="number"
 							:disabled="field.readOnly"
 							:placeholder="field.description"
-							@update:value="value => updateField(field.key, value !== '' ? Number(value) : null)" />
+							@update:model-value="value => updateField(field.key, value !== '' ? Number(value) : null)" />
 
 						<!-- Textarea -->
 						<div v-else-if="field.widget === 'textarea'" class="cn-form-dialog__textarea-wrapper">
@@ -184,7 +184,7 @@
 								:loading="isFieldLoading(field)"
 								:filterable="!isAsyncEnum(field)"
 								:user-select="isUserField(field)"
-								@input="onEffectiveSelectChange(field, $event)"
+								@update:model-value="onEffectiveSelectChange(field, $event)"
 								@search="isAsyncEnum(field) ? onAsyncSearch(field, $event) : undefined">
 								<template
 									v-if="$slots['field-' + field.key + '-option']"
@@ -218,7 +218,7 @@
 								:disabled="field.readOnly"
 								:loading="isFieldLoading(field)"
 								:filterable="!isAsyncItemsEnum(field)"
-								@input="onEffectiveMultiSelectChange(field, $event)"
+								@update:model-value="onEffectiveMultiSelectChange(field, $event)"
 								@search="isAsyncItemsEnum(field) ? onAsyncSearch(field, $event) : undefined">
 								<template
 									v-if="$slots['field-' + field.key + '-option']"
@@ -254,7 +254,7 @@
 								:disabled="field.readOnly"
 								:loading="isFieldLoading(field)"
 								:filterable="!isFieldAsync(field)"
-								@input="updateField(field.key, $event)"
+								@update:model-value="updateField(field.key, $event)"
 								@search="isFieldAsync(field) ? onAsyncSearch(field, $event) : undefined">
 								<template
 									v-if="$slots['field-' + field.key + '-option']"
@@ -376,7 +376,7 @@
 							:error="!!errors[field.key]"
 							:disabled="field.readOnly"
 							:placeholder="field.description"
-							@update:value="value => updateField(field.key, value)" />
+							@update:model-value="value => updateField(field.key, value)" />
 					</template>
 				</div>
 

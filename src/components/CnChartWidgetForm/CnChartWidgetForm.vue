@@ -12,17 +12,17 @@
 
 		<div class="cn-chart-widget-form__row2">
 			<NcSelect
-				:value="chartKind"
+				:model-value="chartKind"
 				:options="chartKindOptions"
 				:input-label="t('nextcloud-vue', 'Chart type')"
 				:clearable="false"
-				@input="updateField('chartKind', $event)" />
+				@update:model-value="updateField('chartKind', $event)" />
 			<NcSelect
-				:value="mode"
+				:model-value="mode"
 				:options="modeOptions"
 				:input-label="t('nextcloud-vue', 'Breakdown')"
 				:clearable="false"
-				@input="updateField('mode', $event)">
+				@update:model-value="updateField('mode', $event)">
 				<template #option="{ label: id }">
 					{{ modeLabel(id) }}
 				</template>
@@ -54,11 +54,11 @@
 				placeholder="expectedCloseDate"
 				@update="updateBucket('field', $event)" />
 			<NcSelect
-				:value="bucket.interval"
+				:model-value="bucket.interval"
 				:options="intervalOptions"
 				:input-label="t('nextcloud-vue', 'Interval')"
 				:clearable="false"
-				@input="updateBucket('interval', $event)" />
+				@update:model-value="updateBucket('interval', $event)" />
 		</div>
 
 		<!-- Category breakdown. -->
@@ -70,26 +70,26 @@
 				placeholder="stage"
 				@update="updateGroup('field', $event)" />
 			<NcSelect
-				:value="group.sort"
+				:model-value="group.sort"
 				:options="sortOptions"
 				:input-label="t('nextcloud-vue', 'Sort')"
 				:clearable="false"
-				@input="updateGroup('sort', $event)" />
+				@update:model-value="updateGroup('sort', $event)" />
 			<NcTextField
-				:value="String(group.limit)"
+				:model-value="String(group.limit)"
 				type="number"
 				:label="t('nextcloud-vue', 'Top N')"
-				@update:value="updateGroup('limit', Number($event) || 0)" />
+				@update:model-value="updateGroup('limit', Number($event) || 0)" />
 		</div>
 
 		<!-- Shared metric (both modes). -->
 		<div class="cn-chart-widget-form__row2">
 			<NcSelect
-				:value="metric"
+				:model-value="metric"
 				:options="metricOptions"
 				:input-label="t('nextcloud-vue', 'Aggregation')"
 				:clearable="false"
-				@input="updateField('metric', $event)" />
+				@update:model-value="updateField('metric', $event)" />
 			<CnFieldPicker
 				v-if="metric && metric !== 'count'"
 				:value="metricField"

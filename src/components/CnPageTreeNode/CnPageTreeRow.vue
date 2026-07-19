@@ -19,10 +19,10 @@
 			<NcTextField v-if="editing === 'name'"
 				ref="nameField"
 				class="cn-page-tree__inline-field"
-				:value="page.title || ''"
+				:model-value="page.title || ''"
 				:label="t('nextcloud-vue', 'Title')"
 				:label-outside="true"
-				@update:value="setTitle"
+				@update:model-value="setTitle"
 				@keydown.enter="stopEdit"
 				@blur="stopEdit" />
 			<button v-else
@@ -36,12 +36,12 @@
 			<!-- Type: click to change inline. -->
 			<NcSelect v-if="editing === 'type'"
 				class="cn-page-tree__inline-select"
-				:value="selectedType"
+				:model-value="selectedType"
 				:options="pageTypeOptions"
 				:input-label="t('nextcloud-vue', 'Type')"
 				label="label"
 				:clearable="false"
-				@input="onType"
+				@update:model-value="onType"
 				@close="stopEdit" />
 			<button v-else
 				type="button"
@@ -65,34 +65,34 @@
 		     dropdown clicks don't dismiss it. -->
 		<div v-if="expanded" class="cn-page-tree__panel">
 			<NcTextField class="cn-page-tree__panel-field"
-				:value="page.title || ''"
+				:model-value="page.title || ''"
 				:label="t('nextcloud-vue', 'Title')"
 				:label-visible="true"
-				@update:value="setTitle" />
+				@update:model-value="setTitle" />
 
 			<NcSelect class="cn-page-tree__panel-field"
-				:value="selectedType"
+				:model-value="selectedType"
 				:options="pageTypeOptions"
 				:input-label="t('nextcloud-vue', 'Type')"
 				label="label"
 				:clearable="false"
-				@input="onType" />
+				@update:model-value="onType" />
 
 			<NcTextField class="cn-page-tree__panel-field"
-				:value="slugDraft"
+				:model-value="slugDraft"
 				:label="t('nextcloud-vue', 'Slug (page id)')"
 				:label-visible="true"
 				:placeholder="page.id"
-				@update:value="(v) => slugDraft = v"
+				@update:model-value="(v) => slugDraft = v"
 				@keydown.enter="commitSlug"
 				@blur="commitSlug" />
 
 			<NcTextField class="cn-page-tree__panel-field"
-				:value="page.route || ''"
+				:model-value="page.route || ''"
 				:label="t('nextcloud-vue', 'Route')"
 				:label-visible="true"
 				:placeholder="'/example'"
-				@update:value="setRoute" />
+				@update:model-value="setRoute" />
 
 			<template v-if="isDataPage">
 				<NcNoteCard v-if="dataSourcesError"
@@ -106,24 +106,24 @@
 
 				<NcSelect v-if="showPickers"
 					class="cn-page-tree__panel-field"
-					:value="selectedRegister"
+					:model-value="selectedRegister"
 					:options="registerOptions"
 					:input-label="t('nextcloud-vue', 'Register')"
 					label="label"
 					:clearable="true"
 					:loading="dataSourcesLoading"
 					:placeholder="t('nextcloud-vue', 'Choose a register')"
-					@input="setRegister" />
+					@update:model-value="setRegister" />
 				<NcTextField v-else
 					class="cn-page-tree__panel-field"
-					:value="configValue('register')"
+					:model-value="configValue('register')"
 					:label="t('nextcloud-vue', 'Register')"
 					:label-visible="true"
-					@update:value="(v) => setConfig('register', v)" />
+					@update:model-value="(v) => setConfig('register', v)" />
 
 				<NcSelect v-if="showPickers"
 					class="cn-page-tree__panel-field"
-					:value="selectedSchema"
+					:model-value="selectedSchema"
 					:options="schemaOptions"
 					:input-label="t('nextcloud-vue', 'Schema')"
 					label="label"
@@ -131,31 +131,31 @@
 					:loading="dataSourcesLoading"
 					:disabled="!configValue('register')"
 					:placeholder="t('nextcloud-vue', 'Choose a schema')"
-					@input="setSchema" />
+					@update:model-value="setSchema" />
 				<NcTextField v-else
 					class="cn-page-tree__panel-field"
-					:value="configValue('schema')"
+					:model-value="configValue('schema')"
 					:label="t('nextcloud-vue', 'Schema')"
 					:label-visible="true"
-					@update:value="(v) => setConfig('schema', v)" />
+					@update:model-value="(v) => setConfig('schema', v)" />
 
 				<NcSelect v-if="page.type === 'index' && columnOptions.length"
 					class="cn-page-tree__panel-field"
-					:value="selectedColumns"
+					:model-value="selectedColumns"
 					:options="columnOptions"
 					:input-label="t('nextcloud-vue', 'Columns')"
 					label="label"
 					:multiple="true"
 					:close-on-select="false"
 					:placeholder="t('nextcloud-vue', 'All properties')"
-					@input="setColumns" />
+					@update:model-value="setColumns" />
 				<NcTextField v-else-if="page.type === 'index'"
 					class="cn-page-tree__panel-field"
-					:value="columnsText"
+					:model-value="columnsText"
 					:label="t('nextcloud-vue', 'Columns (comma separated)')"
 					:label-visible="true"
 					:placeholder="'name, status'"
-					@update:value="setColumnsText" />
+					@update:model-value="setColumnsText" />
 			</template>
 
 			<div class="cn-page-tree__panel-actions">

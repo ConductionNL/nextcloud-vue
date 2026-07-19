@@ -6,11 +6,11 @@
 <template>
 	<div class="cn-video-form">
 		<NcTextField
-			:value="videoUrl"
+			:model-value="videoUrl"
 			:label="t('nextcloud-vue', 'Video URL')"
 			placeholder="https://www.youtube.com/watch?v=..."
 			required
-			@update:value="onUrlInput" />
+			@update:model-value="onUrlInput" />
 
 		<div v-if="detectedSource" class="cn-video-form__hint">
 			{{ detectedSourceLabel }}
@@ -21,13 +21,13 @@
 
 		<NcTextField
 			v-if="sourceType === 'nc-file'"
-			:value="String(fileId || '')"
+			:model-value="String(fileId || '')"
 			:label="t('nextcloud-vue', 'Nextcloud File ID')"
 			placeholder="12345"
-			@update:value="onFileIdInput" />
+			@update:model-value="onFileIdInput" />
 
 		<NcSelect
-			:value="aspectRatio"
+			:model-value="aspectRatio"
 			:options="aspectRatioOptions"
 			:input-label="t('nextcloud-vue', 'Aspect Ratio')"
 			:reduce="(option) => option.value"
@@ -36,8 +36,8 @@
 			@input="updateField('aspectRatio', $event)" />
 
 		<NcCheckboxRadioSwitch
-			:checked="autoplay"
-			@update:checked="onAutoplayToggle">
+			:model-value="autoplay"
+			@update:model-value="onAutoplayToggle">
 			{{ t('nextcloud-vue', 'Autoplay') }}
 		</NcCheckboxRadioSwitch>
 		<div v-if="autoplay" class="cn-video-form__hint">
@@ -45,29 +45,29 @@
 		</div>
 
 		<NcCheckboxRadioSwitch
-			:checked="muted"
+			:model-value="muted"
 			:disabled="autoplay"
-			@update:checked="updateField('muted', $event)">
+			@update:model-value="updateField('muted', $event)">
 			{{ t('nextcloud-vue', 'Muted') }}
 		</NcCheckboxRadioSwitch>
 
 		<NcCheckboxRadioSwitch
-			:checked="loop"
-			@update:checked="updateField('loop', $event)">
+			:model-value="loop"
+			@update:model-value="updateField('loop', $event)">
 			{{ t('nextcloud-vue', 'Loop') }}
 		</NcCheckboxRadioSwitch>
 
 		<NcCheckboxRadioSwitch
-			:checked="controls"
-			@update:checked="updateField('controls', $event)">
+			:model-value="controls"
+			@update:model-value="updateField('controls', $event)">
 			{{ t('nextcloud-vue', 'Show controls') }}
 		</NcCheckboxRadioSwitch>
 
 		<NcTextField
-			:value="posterUrl"
+			:model-value="posterUrl"
 			:label="t('nextcloud-vue', 'Poster Image URL (optional)')"
 			placeholder="https://example.com/poster.jpg"
-			@update:value="updateField('posterUrl', $event)" />
+			@update:model-value="updateField('posterUrl', $event)" />
 	</div>
 </template>
 

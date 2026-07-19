@@ -6,7 +6,7 @@
 <template>
 	<div class="cn-spend-analytics-widget-form">
 		<NcSelect
-			:value="viewMode"
+			:model-value="viewMode"
 			:options="viewModeOptions"
 			:input-label="t('nextcloud-vue', 'View mode')"
 			:reduce="(option) => option.value"
@@ -15,7 +15,7 @@
 			@input="updateField('viewMode', $event)" />
 
 		<NcSelect
-			:value="period"
+			:model-value="period"
 			:options="periodOptions"
 			:input-label="t('nextcloud-vue', 'Period')"
 			:reduce="(option) => option.value"
@@ -24,23 +24,23 @@
 			@input="updateField('period', $event)" />
 
 		<NcTextField
-			:value="categoryIdsString"
+			:model-value="categoryIdsString"
 			:label="t('nextcloud-vue', 'Category filter (comma separated CPV / category ids)')"
 			:placeholder="t('nextcloud-vue', 'e.g. 30190000, 48000000')"
-			@update:value="updateListField('categoryIds', $event)" />
+			@update:model-value="updateListField('categoryIds', $event)" />
 
 		<NcTextField
-			:value="departmentIdsString"
+			:model-value="departmentIdsString"
 			:label="t('nextcloud-vue', 'Department filter (comma separated cost-centre ids)')"
-			@update:value="updateListField('departmentIds', $event)" />
+			@update:model-value="updateListField('departmentIds', $event)" />
 
 		<NcTextField
-			:value="vendorIdsString"
+			:model-value="vendorIdsString"
 			:label="t('nextcloud-vue', 'Vendor filter (comma separated supplier ids)')"
-			@update:value="updateListField('vendorIds', $event)" />
+			@update:model-value="updateListField('vendorIds', $event)" />
 
 		<NcSelect
-			:value="drillThroughTarget"
+			:model-value="drillThroughTarget"
 			:options="drillThroughOptions"
 			:input-label="t('nextcloud-vue', 'Drill-through behaviour')"
 			:reduce="(option) => option.value"

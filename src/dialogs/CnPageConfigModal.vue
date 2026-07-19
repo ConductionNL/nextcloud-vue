@@ -40,20 +40,20 @@
 			<!-- Display -->
 			<div v-show="activeTab === 'display'" class="cn-page-config__section">
 				<div class="cn-field">
-					<NcTextField :value="page.title || ''"
+					<NcTextField :model-value="page.title || ''"
 						:label="t('nextcloud-vue', 'Title')"
 						:label-visible="true"
-						@update:value="(v) => $set(page, 'title', v)" />
+						@update:model-value="(v) => $set(page, 'title', v)" />
 					<p class="cn-field__hint">
 						{{ t('nextcloud-vue', 'The page heading and its label in the navigation menu.') }}
 					</p>
 				</div>
 				<div class="cn-field">
-					<NcTextField :value="configValue('description')"
+					<NcTextField :model-value="configValue('description')"
 						:label="t('nextcloud-vue', 'Description')"
 						:label-visible="true"
 						:placeholder="t('nextcloud-vue', 'Optional subtitle under the title')"
-						@update:value="(v) => setConfig('description', v)" />
+						@update:model-value="(v) => setConfig('description', v)" />
 					<p class="cn-field__hint">
 						{{ t('nextcloud-vue', 'Optional subtitle shown beneath the title.') }}
 					</p>
@@ -69,28 +69,28 @@
 				</div>
 				<div class="cn-field">
 					<NcSelect class="cn-page-config__field"
-						:value="selectedType"
+						:model-value="selectedType"
 						:options="pageTypeOptions"
 						:input-label="t('nextcloud-vue', 'Type')"
 						label="label"
 						:clearable="false"
-						@input="setType" />
+						@update:model-value="setType" />
 					<p class="cn-field__hint">
 						{{ t('nextcloud-vue', 'What the page renders: a list of records, a single record, a dashboard, or a custom component.') }}
 					</p>
 				</div>
 				<div class="cn-field">
-					<NcTextField :value="page.route || ''"
+					<NcTextField :model-value="page.route || ''"
 						:label="t('nextcloud-vue', 'Route')"
 						:label-visible="true"
 						:placeholder="'/example'"
-						@update:value="(v) => $set(page, 'route', v)" />
+						@update:model-value="(v) => $set(page, 'route', v)" />
 					<p class="cn-field__hint">
 						{{ t('nextcloud-vue', 'The URL path that opens this page (e.g. /dogs).') }}
 					</p>
 				</div>
 				<div class="cn-field">
-					<NcCheckboxRadioSwitch :checked="boolVal('showTitle')" type="switch" @update:checked="(c) => setBool('showTitle', c)">
+					<NcCheckboxRadioSwitch :model-value="boolVal('showTitle')" type="switch" @update:model-value="(c) => setBool('showTitle', c)">
 						{{ t('nextcloud-vue', 'Show page title') }}
 					</NcCheckboxRadioSwitch>
 					<p class="cn-field__hint">
@@ -98,7 +98,7 @@
 					</p>
 				</div>
 				<div class="cn-field">
-					<NcCheckboxRadioSwitch :checked="boolVal('showViewToggle')" type="switch" @update:checked="(c) => setBool('showViewToggle', c)">
+					<NcCheckboxRadioSwitch :model-value="boolVal('showViewToggle')" type="switch" @update:model-value="(c) => setBool('showViewToggle', c)">
 						{{ t('nextcloud-vue', 'Show Cards / Table toggle') }}
 					</NcCheckboxRadioSwitch>
 					<p class="cn-field__hint">
@@ -107,47 +107,47 @@
 				</div>
 				<div class="cn-field">
 					<NcSelect class="cn-page-config__field"
-						:value="selectedAvailableViews"
+						:model-value="selectedAvailableViews"
 						:options="viewModeOptions"
 						:input-label="t('nextcloud-vue', 'Available views')"
 						label="label"
 						:multiple="true"
 						:close-on-select="false"
 						:placeholder="t('nextcloud-vue', 'Cards, Table (default)')"
-						@input="setAvailableViews" />
+						@update:model-value="setAvailableViews" />
 					<p class="cn-field__hint">
 						{{ t('nextcloud-vue', 'Which layouts visitors may switch between. Leave empty for the default Cards + Table. Include Map to add the map segment (configure it below).') }}
 					</p>
 				</div>
 				<div class="cn-field">
 					<NcSelect class="cn-page-config__field"
-						:value="selectedViewMode"
+						:model-value="selectedViewMode"
 						:options="defaultViewOptions"
 						:input-label="t('nextcloud-vue', 'Default view')"
 						label="label"
 						:clearable="false"
-						@input="setViewMode" />
+						@update:model-value="setViewMode" />
 					<p class="cn-field__hint">
 						{{ t('nextcloud-vue', 'Which layout is shown first when the page opens.') }}
 					</p>
 				</div>
 				<div class="cn-page-config__row">
 					<div class="cn-field">
-						<NcTextField :value="configValue('tableLabel')"
+						<NcTextField :model-value="configValue('tableLabel')"
 							:label="t('nextcloud-vue', 'Table toggle label')"
 							:label-visible="true"
 							:placeholder="t('nextcloud-vue', 'Table')"
-							@update:value="(v) => setConfig('tableLabel', v)" />
+							@update:model-value="(v) => setConfig('tableLabel', v)" />
 						<p class="cn-field__hint">
 							{{ t('nextcloud-vue', 'Custom text for the Table button.') }}
 						</p>
 					</div>
 					<div class="cn-field">
-						<NcTextField :value="configValue('cardsLabel')"
+						<NcTextField :model-value="configValue('cardsLabel')"
 							:label="t('nextcloud-vue', 'Cards toggle label')"
 							:label-visible="true"
 							:placeholder="t('nextcloud-vue', 'Cards')"
-							@update:value="(v) => setConfig('cardsLabel', v)" />
+							@update:model-value="(v) => setConfig('cardsLabel', v)" />
 						<p class="cn-field__hint">
 							{{ t('nextcloud-vue', 'Custom text for the Cards button.') }}
 						</p>
@@ -155,21 +155,21 @@
 				</div>
 				<div class="cn-page-config__row">
 					<div class="cn-field">
-						<NcTextField :value="configValue('listLabel')"
+						<NcTextField :model-value="configValue('listLabel')"
 							:label="t('nextcloud-vue', 'List toggle label')"
 							:label-visible="true"
 							:placeholder="t('nextcloud-vue', 'List')"
-							@update:value="(v) => setConfig('listLabel', v)" />
+							@update:model-value="(v) => setConfig('listLabel', v)" />
 						<p class="cn-field__hint">
 							{{ t('nextcloud-vue', 'Custom text for the List button (when List is available).') }}
 						</p>
 					</div>
 					<div class="cn-field">
-						<NcTextField :value="configValue('mapLabel')"
+						<NcTextField :model-value="configValue('mapLabel')"
 							:label="t('nextcloud-vue', 'Map toggle label')"
 							:label-visible="true"
 							:placeholder="t('nextcloud-vue', 'Map')"
-							@update:value="(v) => setConfig('mapLabel', v)" />
+							@update:model-value="(v) => setConfig('mapLabel', v)" />
 						<p class="cn-field__hint">
 							{{ t('nextcloud-vue', 'Custom text for the Map button (when Map is available).') }}
 						</p>
@@ -191,21 +191,21 @@
 					</div>
 					<div class="cn-page-config__row">
 						<div class="cn-field">
-							<NcTextField :value="mapConfigValue('latField')"
+							<NcTextField :model-value="mapConfigValue('latField')"
 								:label="t('nextcloud-vue', 'Latitude field')"
 								:label-visible="true"
 								:placeholder="'lat'"
-								@update:value="(v) => setMapConfig('latField', v)" />
+								@update:model-value="(v) => setMapConfig('latField', v)" />
 							<p class="cn-field__hint">
 								{{ t('nextcloud-vue', 'Property holding the latitude (e.g. lat).') }}
 							</p>
 						</div>
 						<div class="cn-field">
-							<NcTextField :value="mapConfigValue('lngField')"
+							<NcTextField :model-value="mapConfigValue('lngField')"
 								:label="t('nextcloud-vue', 'Longitude field')"
 								:label-visible="true"
 								:placeholder="'lng'"
-								@update:value="(v) => setMapConfig('lngField', v)" />
+								@update:model-value="(v) => setMapConfig('lngField', v)" />
 							<p class="cn-field__hint">
 								{{ t('nextcloud-vue', 'Property holding the longitude (e.g. lng).') }}
 							</p>
@@ -213,21 +213,21 @@
 					</div>
 					<div class="cn-page-config__row">
 						<div class="cn-field">
-							<NcTextField :value="mapConfigValue('geoField')"
+							<NcTextField :model-value="mapConfigValue('geoField')"
 								:label="t('nextcloud-vue', 'GeoJSON Point field')"
 								:label-visible="true"
 								:placeholder="'geometry'"
-								@update:value="(v) => setMapConfig('geoField', v)" />
+								@update:model-value="(v) => setMapConfig('geoField', v)" />
 							<p class="cn-field__hint">
 								{{ t('nextcloud-vue', 'Alternative: one property holding a GeoJSON Point. Takes precedence over lat/lng.') }}
 							</p>
 						</div>
 						<div class="cn-field">
-							<NcTextField :value="mapConfigValue('popupField')"
+							<NcTextField :model-value="mapConfigValue('popupField')"
 								:label="t('nextcloud-vue', 'Popup label field')"
 								:label-visible="true"
 								:placeholder="'title'"
-								@update:value="(v) => setMapConfig('popupField', v)" />
+								@update:model-value="(v) => setMapConfig('popupField', v)" />
 							<p class="cn-field__hint">
 								{{ t('nextcloud-vue', 'Property used to label each pin’s popup.') }}
 							</p>
@@ -235,7 +235,7 @@
 					</div>
 				</template>
 				<div class="cn-field">
-					<NcCheckboxRadioSwitch :checked="boolVal('inlineSearch')" type="switch" @update:checked="(c) => setBool('inlineSearch', c)">
+					<NcCheckboxRadioSwitch :model-value="boolVal('inlineSearch')" type="switch" @update:model-value="(c) => setBool('inlineSearch', c)">
 						{{ t('nextcloud-vue', 'Inline search box') }}
 					</NcCheckboxRadioSwitch>
 					<p class="cn-field__hint">
@@ -243,37 +243,37 @@
 					</p>
 				</div>
 				<div class="cn-field">
-					<NcTextField :value="configValue('searchPlaceholder')"
+					<NcTextField :model-value="configValue('searchPlaceholder')"
 						:label="t('nextcloud-vue', 'Search placeholder')"
 						:label-visible="true"
 						:placeholder="t('nextcloud-vue', 'Search…')"
-						@update:value="(v) => setConfig('searchPlaceholder', v)" />
+						@update:model-value="(v) => setConfig('searchPlaceholder', v)" />
 					<p class="cn-field__hint">
 						{{ t('nextcloud-vue', 'Hint text shown inside the search field.') }}
 					</p>
 				</div>
 				<div class="cn-field">
-					<NcTextField :value="configValue('emptyText')"
+					<NcTextField :model-value="configValue('emptyText')"
 						:label="t('nextcloud-vue', 'Empty-state text')"
 						:label-visible="true"
 						:placeholder="t('nextcloud-vue', 'No items found')"
-						@update:value="(v) => setConfig('emptyText', v)" />
+						@update:model-value="(v) => setConfig('emptyText', v)" />
 					<p class="cn-field__hint">
 						{{ t('nextcloud-vue', 'Message shown when the list has no items.') }}
 					</p>
 				</div>
 				<div class="cn-field">
-					<NcTextField :value="configValue('loadingText')"
+					<NcTextField :model-value="configValue('loadingText')"
 						:label="t('nextcloud-vue', 'Loading text')"
 						:label-visible="true"
 						:placeholder="t('nextcloud-vue', 'Loading…')"
-						@update:value="(v) => setConfig('loadingText', v)" />
+						@update:model-value="(v) => setConfig('loadingText', v)" />
 					<p class="cn-field__hint">
 						{{ t('nextcloud-vue', 'Message shown while items are loading.') }}
 					</p>
 				</div>
 				<div class="cn-field">
-					<NcCheckboxRadioSwitch :checked="boolVal('filterMenu')" type="switch" @update:checked="(c) => setBool('filterMenu', c)">
+					<NcCheckboxRadioSwitch :model-value="boolVal('filterMenu')" type="switch" @update:model-value="(c) => setBool('filterMenu', c)">
 						{{ t('nextcloud-vue', 'Show table filter menu') }}
 					</NcCheckboxRadioSwitch>
 					<p class="cn-field__hint">
@@ -281,7 +281,7 @@
 					</p>
 				</div>
 				<div class="cn-field">
-					<NcCheckboxRadioSwitch :checked="boolVal('columnMenu')" type="switch" @update:checked="(c) => setBool('columnMenu', c)">
+					<NcCheckboxRadioSwitch :model-value="boolVal('columnMenu')" type="switch" @update:model-value="(c) => setBool('columnMenu', c)">
 						{{ t('nextcloud-vue', 'Show column (show/hide) menu') }}
 					</NcCheckboxRadioSwitch>
 					<p class="cn-field__hint">
@@ -290,21 +290,21 @@
 				</div>
 				<div class="cn-page-config__row">
 					<div class="cn-field">
-						<NcTextField :value="configValue('documentationUrl')"
+						<NcTextField :model-value="configValue('documentationUrl')"
 							:label="t('nextcloud-vue', 'Documentation URL')"
 							:label-visible="true"
 							:placeholder="'https://…'"
-							@update:value="(v) => setConfig('documentationUrl', v)" />
+							@update:model-value="(v) => setConfig('documentationUrl', v)" />
 						<p class="cn-field__hint">
 							{{ t('nextcloud-vue', 'Adds a documentation link to the … menu.') }}
 						</p>
 					</div>
 					<div class="cn-field">
-						<NcTextField :value="configValue('documentationLabel')"
+						<NcTextField :model-value="configValue('documentationLabel')"
 							:label="t('nextcloud-vue', 'Documentation label')"
 							:label-visible="true"
 							:placeholder="t('nextcloud-vue', 'Documentation')"
-							@update:value="(v) => setConfig('documentationLabel', v)" />
+							@update:model-value="(v) => setConfig('documentationLabel', v)" />
 						<p class="cn-field__hint">
 							{{ t('nextcloud-vue', 'Text for that documentation link.') }}
 						</p>
@@ -325,19 +325,19 @@
 					<div class="cn-field">
 						<NcSelect v-if="showPickers"
 							class="cn-page-config__field"
-							:value="selectedRegister"
+							:model-value="selectedRegister"
 							:options="registerOptions"
 							:input-label="t('nextcloud-vue', 'Register')"
 							label="label"
 							:clearable="true"
 							:loading="dataSourcesLoading"
 							:placeholder="t('nextcloud-vue', 'Choose a register')"
-							@input="setRegister" />
+							@update:model-value="setRegister" />
 						<NcTextField v-else
-							:value="configValue('register')"
+							:model-value="configValue('register')"
 							:label="t('nextcloud-vue', 'Register')"
 							:label-visible="true"
-							@update:value="(v) => setConfig('register', v)" />
+							@update:model-value="(v) => setConfig('register', v)" />
 						<p class="cn-field__hint">
 							{{ t('nextcloud-vue', 'The OpenRegister register this page reads its objects from.') }}
 						</p>
@@ -346,7 +346,7 @@
 					<div class="cn-field">
 						<NcSelect v-if="showPickers"
 							class="cn-page-config__field"
-							:value="selectedSchema"
+							:model-value="selectedSchema"
 							:options="schemaOptions"
 							:input-label="t('nextcloud-vue', 'Schema')"
 							label="label"
@@ -354,23 +354,23 @@
 							:loading="dataSourcesLoading"
 							:disabled="!configValue('register')"
 							:placeholder="t('nextcloud-vue', 'Choose a schema')"
-							@input="setSchema" />
+							@update:model-value="setSchema" />
 						<NcTextField v-else
-							:value="configValue('schema')"
+							:model-value="configValue('schema')"
 							:label="t('nextcloud-vue', 'Schema')"
 							:label-visible="true"
-							@update:value="(v) => setConfig('schema', v)" />
+							@update:model-value="(v) => setConfig('schema', v)" />
 						<p class="cn-field__hint">
 							{{ t('nextcloud-vue', 'The object type (schema) within that register.') }}
 						</p>
 					</div>
 
 					<div class="cn-field">
-						<NcTextField :value="configValue('rowKey')"
+						<NcTextField :model-value="configValue('rowKey')"
 							:label="t('nextcloud-vue', 'Row identifier field')"
 							:label-visible="true"
 							:placeholder="'id'"
-							@update:value="(v) => setConfig('rowKey', v)" />
+							@update:model-value="(v) => setConfig('rowKey', v)" />
 						<p class="cn-field__hint">
 							{{ t('nextcloud-vue', 'Property that uniquely identifies each row. Defaults to id.') }}
 						</p>
@@ -387,20 +387,20 @@
 					<div class="cn-field">
 						<NcSelect v-if="columnOptions.length"
 							class="cn-page-config__field"
-							:value="selectedColumns"
+							:model-value="selectedColumns"
 							:options="columnOptions"
 							:input-label="t('nextcloud-vue', 'Columns shown')"
 							label="label"
 							:multiple="true"
 							:close-on-select="false"
 							:placeholder="t('nextcloud-vue', 'All properties')"
-							@input="setColumns" />
+							@update:model-value="setColumns" />
 						<NcTextField v-else
-							:value="columnsText"
+							:model-value="columnsText"
 							:label="t('nextcloud-vue', 'Columns (comma separated)')"
 							:label-visible="true"
 							:placeholder="'name, status'"
-							@update:value="setColumnsText" />
+							@update:model-value="setColumnsText" />
 						<p class="cn-field__hint">
 							{{ t('nextcloud-vue', 'Pick which properties become table columns. Leave empty to show all.') }}
 						</p>
@@ -418,17 +418,17 @@
 						</div>
 						<div v-for="col in transformColumns" :key="col" class="cn-page-config__col-transform">
 							<span class="cn-page-config__col-name">{{ col }}</span>
-							<NcTextField :value="colLabel(col)"
+							<NcTextField :model-value="colLabel(col)"
 								:label="t('nextcloud-vue', 'Label')"
 								:placeholder="col"
-								@update:value="(v) => setColLabel(col, v)" />
+								@update:model-value="(v) => setColLabel(col, v)" />
 							<NcSelect class="cn-page-config__field"
-								:value="selectedFormat(col)"
+								:model-value="selectedFormat(col)"
 								:options="formatOptions"
 								:input-label="t('nextcloud-vue', 'Format')"
 								label="label"
 								:clearable="false"
-								@input="(o) => setColFormat(col, o)" />
+								@update:model-value="(o) => setColFormat(col, o)" />
 						</div>
 					</template>
 
@@ -444,23 +444,23 @@
 					<div class="cn-page-config__row">
 						<div class="cn-field">
 							<NcSelect class="cn-page-config__field"
-								:value="selectedSortField"
+								:model-value="selectedSortField"
 								:options="sortFieldOptions"
 								:input-label="t('nextcloud-vue', 'Sort by')"
 								label="label"
 								:clearable="true"
 								:placeholder="t('nextcloud-vue', 'None')"
-								@input="setSortField" />
+								@update:model-value="setSortField" />
 						</div>
 						<div class="cn-field">
 							<NcSelect class="cn-page-config__field"
-								:value="selectedSortOrder"
+								:model-value="selectedSortOrder"
 								:options="sortOrderOptions"
 								:input-label="t('nextcloud-vue', 'Direction')"
 								label="label"
 								:clearable="false"
 								:disabled="!selectedSortField"
-								@input="setSortOrder" />
+								@update:model-value="setSortOrder" />
 						</div>
 					</div>
 				</template>
@@ -472,9 +472,9 @@
 			<!-- Actions -->
 			<div v-show="activeTab === 'actions'" class="cn-page-config__section">
 				<div v-for="toggle in actionToggles" :key="toggle.key" class="cn-field">
-					<NcCheckboxRadioSwitch :checked="boolVal(toggle.key)"
+					<NcCheckboxRadioSwitch :model-value="boolVal(toggle.key)"
 						type="switch"
-						@update:checked="(c) => setBool(toggle.key, c)">
+						@update:model-value="(c) => setBool(toggle.key, c)">
 						{{ toggle.label }}
 					</NcCheckboxRadioSwitch>
 					<p class="cn-field__hint">
@@ -482,17 +482,17 @@
 					</p>
 				</div>
 				<div class="cn-field">
-					<NcTextField :value="configValue('addLabel')"
+					<NcTextField :model-value="configValue('addLabel')"
 						:label="t('nextcloud-vue', 'Add button label')"
 						:label-visible="true"
 						:placeholder="t('nextcloud-vue', 'Add')"
-						@update:value="(v) => setConfig('addLabel', v)" />
+						@update:model-value="(v) => setConfig('addLabel', v)" />
 					<p class="cn-field__hint">
 						{{ t('nextcloud-vue', 'Custom text for the Add button.') }}
 					</p>
 				</div>
 				<div class="cn-field">
-					<NcCheckboxRadioSwitch :checked="boolVal('useAdvancedFormDialog')" type="switch" @update:checked="(c) => setBool('useAdvancedFormDialog', c)">
+					<NcCheckboxRadioSwitch :model-value="boolVal('useAdvancedFormDialog')" type="switch" @update:model-value="(c) => setBool('useAdvancedFormDialog', c)">
 						{{ t('nextcloud-vue', 'Use the advanced create/edit dialog') }}
 					</NcCheckboxRadioSwitch>
 					<p class="cn-field__hint">
@@ -500,22 +500,22 @@
 					</p>
 				</div>
 				<div class="cn-field">
-					<NcTextField :value="configValue('massActionNameField')"
+					<NcTextField :model-value="configValue('massActionNameField')"
 						:label="t('nextcloud-vue', 'Mass-action name field')"
 						:label-visible="true"
 						:placeholder="'title'"
-						@update:value="(v) => setConfig('massActionNameField', v)" />
+						@update:model-value="(v) => setConfig('massActionNameField', v)" />
 					<p class="cn-field__hint">
 						{{ t('nextcloud-vue', 'Which property labels each item in bulk-action dialogs. Defaults to title.') }}
 					</p>
 				</div>
 				<div class="cn-field">
-					<NcTextField :value="configValue('inlineActionCount')"
+					<NcTextField :model-value="configValue('inlineActionCount')"
 						type="number"
 						:label="t('nextcloud-vue', 'Inline row actions before overflow')"
 						:label-visible="true"
 						:placeholder="'1'"
-						@update:value="(v) => setNumber('inlineActionCount', v)" />
+						@update:model-value="(v) => setNumber('inlineActionCount', v)" />
 					<p class="cn-field__hint">
 						{{ t('nextcloud-vue', 'How many row actions show as buttons before the rest collapse into a … menu.') }}
 					</p>

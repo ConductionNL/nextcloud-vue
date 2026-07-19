@@ -116,25 +116,25 @@
 								v-else-if="field.type === 'number'"
 								:label="resolveLabel(field.label)"
 								type="number"
-								:value="String(fieldValue(field.key, ''))"
-								@update:value="updateField(field.key, $event === '' ? null : Number($event))" />
+								:model-value="String(fieldValue(field.key, ''))"
+								@update:model-value="updateField(field.key, $event === '' ? null : Number($event))" />
 							<NcTextField
 								v-else-if="field.type === 'password'"
 								:label="resolveLabel(field.label)"
 								type="password"
-								:value="fieldValue(field.key, '')"
-								@update:value="updateField(field.key, $event)" />
+								:model-value="fieldValue(field.key, '')"
+								@update:model-value="updateField(field.key, $event)" />
 							<NcSelect
 								v-else-if="field.type === 'enum' && Array.isArray(field.options)"
-								:value="selectedOption(field)"
+								:model-value="selectedOption(field)"
 								:options="field.options"
 								:input-label="resolveLabel(field.label)"
-								@input="updateField(field.key, optionValue($event))" />
+								@update:model-value="updateField(field.key, optionValue($event))" />
 							<NcTextField
 								v-else
 								:label="resolveLabel(field.label)"
-								:value="fieldValue(field.key, '')"
-								@update:value="updateField(field.key, $event)" />
+								:model-value="fieldValue(field.key, '')"
+								@update:model-value="updateField(field.key, $event)" />
 						</slot>
 						<small
 							v-if="field.help"

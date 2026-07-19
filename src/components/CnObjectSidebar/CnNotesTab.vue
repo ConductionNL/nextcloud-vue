@@ -9,11 +9,11 @@
 		<div class="cn-sidebar-tab__action">
 			<NcRichContenteditable
 				class="cn-sidebar-tab__composer"
-				:value="newNoteText"
+				:model-value="newNoteText"
 				:auto-complete="fetchMentionSuggestions"
 				:placeholder="addNotePlaceholder"
 				multiline
-				@update:value="newNoteText = $event" />
+				@update:model-value="newNoteText = $event" />
 			<div class="cn-sidebar-tab__action--row">
 				<NcButton
 					v-if="editingNoteId"

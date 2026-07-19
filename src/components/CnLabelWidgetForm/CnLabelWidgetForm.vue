@@ -6,17 +6,17 @@
 <template>
 	<div class="cn-label-widget-form">
 		<NcTextField
-			:value="text"
+			:model-value="text"
 			:label="t('nextcloud-vue', 'Label text')"
 			:placeholder="t('nextcloud-vue', 'Label text')"
 			required
-			@update:value="updateField('text', $event)" />
+			@update:model-value="updateField('text', $event)" />
 
 		<NcTextField
-			:value="fontSize"
+			:model-value="fontSize"
 			:label="t('nextcloud-vue', 'Font size')"
 			placeholder="16px"
-			@update:value="updateField('fontSize', $event)" />
+			@update:model-value="updateField('fontSize', $event)" />
 
 		<label class="cn-label-widget-form__color-label">
 			{{ t('nextcloud-vue', 'Color') }}
@@ -37,18 +37,18 @@
 		</label>
 
 		<NcSelect
-			:value="fontWeight"
+			:model-value="fontWeight"
 			:options="fontWeightOptions"
 			:input-label="t('nextcloud-vue', 'Font weight')"
 			:clearable="false"
-			@input="updateField('fontWeight', $event)" />
+			@update:model-value="updateField('fontWeight', $event)" />
 
 		<NcSelect
-			:value="textAlign"
+			:model-value="textAlign"
 			:options="textAlignOptions"
 			:input-label="t('nextcloud-vue', 'Alignment')"
 			:clearable="false"
-			@input="updateField('textAlign', $event)" />
+			@update:model-value="updateField('textAlign', $event)" />
 	</div>
 </template>
 

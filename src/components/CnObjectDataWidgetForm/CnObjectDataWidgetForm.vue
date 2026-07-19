@@ -10,22 +10,22 @@
 		</h4>
 
 		<NcTextField
-			:value="title"
+			:model-value="title"
 			:label="t('nextcloud-vue', 'Title')"
 			placeholder="Data"
-			@update:value="updateField('title', $event)" />
+			@update:model-value="updateField('title', $event)" />
 
 		<div class="cn-data-form__row2">
 			<NcTextField
-				:value="source.register"
+				:model-value="source.register"
 				:label="t('nextcloud-vue', 'Register')"
 				:placeholder="contextSource.register || 'pipelinq'"
-				@update:value="updateSource('register', $event)" />
+				@update:model-value="updateSource('register', $event)" />
 			<NcTextField
-				:value="source.schema"
+				:model-value="source.schema"
 				:label="t('nextcloud-vue', 'Schema')"
 				:placeholder="contextSource.schema || 'lead'"
-				@update:value="updateSource('schema', $event)" />
+				@update:model-value="updateSource('schema', $event)" />
 		</div>
 
 		<div class="cn-data-form__layout">
@@ -44,10 +44,10 @@
 			</div>
 			<NcTextField
 				type="number"
-				:value="String(columns)"
+				:model-value="String(columns)"
 				:label="t('nextcloud-vue', 'Columns')"
 				class="cn-data-form__columns"
-				@update:value="updateField('columns', Number($event))" />
+				@update:model-value="updateField('columns', Number($event))" />
 		</div>
 
 		<h4 class="cn-data-form__section">
@@ -74,34 +74,34 @@
 			<div class="cn-data-form__prop-head">
 				<span class="cn-data-form__grip" :title="t('nextcloud-vue', 'Drag to reorder')" aria-hidden="true">⋮⋮</span>
 				<NcCheckboxRadioSwitch
-					:checked="!row.hidden"
+					:model-value="!row.hidden"
 					type="switch"
-					@update:checked="setRow(row.key, 'hidden', !$event)">
+					@update:model-value="setRow(row.key, 'hidden', !$event)">
 					<span class="cn-data-form__prop-name">{{ row.key }}</span>
 				</NcCheckboxRadioSwitch>
 			</div>
 
 			<div v-if="!row.hidden" class="cn-data-form__prop-body">
 				<NcTextField
-					:value="row.label"
+					:model-value="row.label"
 					:label="t('nextcloud-vue', 'Label')"
 					:placeholder="row.key"
-					@update:value="setRow(row.key, 'label', $event)" />
+					@update:model-value="setRow(row.key, 'label', $event)" />
 				<NcTextField
 					type="number"
-					:value="String(row.gridColumn)"
+					:model-value="String(row.gridColumn)"
 					:label="t('nextcloud-vue', 'Span')"
-					@update:value="setRow(row.key, 'gridColumn', Number($event))" />
+					@update:model-value="setRow(row.key, 'gridColumn', Number($event))" />
 				<NcSelect
-					:value="row.widget"
+					:model-value="row.widget"
 					:options="widgetOptions"
 					:input-label="t('nextcloud-vue', 'Editor')"
 					:clearable="false"
-					@input="setRow(row.key, 'widget', $event)" />
+					@update:model-value="setRow(row.key, 'widget', $event)" />
 				<NcCheckboxRadioSwitch
-					:checked="row.editable"
+					:model-value="row.editable"
 					type="switch"
-					@update:checked="setRow(row.key, 'editable', $event)">
+					@update:model-value="setRow(row.key, 'editable', $event)">
 					{{ t('nextcloud-vue', 'Editable') }}
 				</NcCheckboxRadioSwitch>
 			</div>

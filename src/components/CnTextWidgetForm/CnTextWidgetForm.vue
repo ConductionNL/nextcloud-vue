@@ -6,16 +6,16 @@
 <template>
 	<div class="cn-text-widget-form">
 		<NcSelect
-			:value="modeOption"
+			:model-value="modeOption"
 			:options="modeOptions"
 			:input-label="t('nextcloud-vue', 'Content type')"
 			:clearable="false"
 			label="label"
-			@input="onModeChange" />
+			@update:model-value="onModeChange" />
 
 		<template v-if="!tableMode">
 			<NcSelect
-				:value="contentMode"
+				:model-value="contentMode"
 				:options="contentModeOptions"
 				:input-label="t('nextcloud-vue', 'Mode')"
 				:clearable="false"
@@ -50,10 +50,10 @@
 			     emphasis and alignment, so these would be misleading. -->
 			<NcTextField
 				v-if="contentMode !== 'markdown'"
-				:value="fontSize"
+				:model-value="fontSize"
 				:label="t('nextcloud-vue', 'Font size')"
 				placeholder="14px"
-				@update:value="updateField('fontSize', $event)" />
+				@update:model-value="updateField('fontSize', $event)" />
 
 			<label v-if="contentMode !== 'markdown'" class="cn-text-widget-form__color-label">
 				{{ t('nextcloud-vue', 'Text color') }}
@@ -75,11 +75,11 @@
 
 			<NcSelect
 				v-if="contentMode !== 'markdown'"
-				:value="textAlign"
+				:model-value="textAlign"
 				:options="textAlignOptions"
 				:input-label="t('nextcloud-vue', 'Alignment')"
 				:clearable="false"
-				@input="updateField('textAlign', $event)" />
+				@update:model-value="updateField('textAlign', $event)" />
 		</template>
 
 		<template v-else>

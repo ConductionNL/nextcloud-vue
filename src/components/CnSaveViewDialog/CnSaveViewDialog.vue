@@ -17,17 +17,17 @@
 			</NcNoteCard>
 
 			<NcTextField
-				:value="name"
+				:model-value="name"
 				:label="t('nextcloud-vue', 'View name')"
 				:label-visible="true"
 				:placeholder="t('nextcloud-vue', 'My view')"
 				data-testid="cn-save-view-name-input"
-				@update:value="(v) => name = v" />
+				@update:model-value="(v) => name = v" />
 
 			<NcCheckboxRadioSwitch
-				:checked="isPublic"
+				:model-value="isPublic"
 				data-testid="cn-save-view-public-toggle"
-				@update:checked="(v) => isPublic = v">
+				@update:model-value="(v) => isPublic = v">
 				{{ t('nextcloud-vue', 'Share with other users (public)') }}
 			</NcCheckboxRadioSwitch>
 		</div>

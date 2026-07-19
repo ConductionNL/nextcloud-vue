@@ -141,11 +141,11 @@
 							</span>
 							<div class="cn-schema-form__cond-rule-group-select">
 								<NcSelect
-									:value="getGroupOption(rule.group)"
+									:model-value="getGroupOption(rule.group)"
 									:options="allGroupOptions"
 									:clearable="false"
 									:aria-label-combobox="t('nextcloud-vue', 'Group')"
-									@input="setRuleGroup(action, originalIndex, $event)" />
+									@update:model-value="setRuleGroup(action, originalIndex, $event)" />
 							</div>
 							<NcButton variant="error"
 								@click="removeConditionalRule(action, originalIndex)">
@@ -229,7 +229,7 @@
 										:clearable="true"
 										:input-label="t('nextcloud-vue', 'Value')"
 										:placeholder="t('nextcloud-vue', 'Select or type…')"
-										@input="onValueOptionChange" />
+										@update:model-value="onValueOptionChange" />
 								</div>
 							</div>
 							<!-- Custom value appears below the three selects, never displaces them -->

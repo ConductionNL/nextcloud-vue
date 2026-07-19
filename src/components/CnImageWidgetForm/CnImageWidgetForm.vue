@@ -26,10 +26,10 @@
 		</p>
 
 		<NcTextField
-			:value="url"
+			:model-value="url"
 			:label="t('nextcloud-vue', 'Image URL')"
 			:placeholder="t('nextcloud-vue', 'Or paste an image URL')"
-			@update:value="updateField('url', $event)" />
+			@update:model-value="updateField('url', $event)" />
 
 		<div v-if="hasUrl" class="cn-image-widget-form__preview-wrap">
 			<img
@@ -43,18 +43,18 @@
 		</div>
 
 		<NcTextField
-			:value="alt"
+			:model-value="alt"
 			:label="t('nextcloud-vue', 'Alt text')"
-			@update:value="updateField('alt', $event)" />
+			@update:model-value="updateField('alt', $event)" />
 
 		<NcTextField
-			:value="link"
+			:model-value="link"
 			:label="t('nextcloud-vue', 'Link (optional)')"
 			placeholder="https://example.com"
-			@update:value="updateField('link', $event)" />
+			@update:model-value="updateField('link', $event)" />
 
 		<NcSelect
-			:value="fit"
+			:model-value="fit"
 			:options="fitOptions"
 			:input-label="t('nextcloud-vue', 'Fit')"
 			:reduce="(option) => option.value"

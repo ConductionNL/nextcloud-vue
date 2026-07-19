@@ -26,16 +26,16 @@
 				placeholder="expectedCloseDate"
 				@update="updateSort('field', $event)" />
 			<NcSelect
-				:value="sort.dir"
+				:model-value="sort.dir"
 				:options="dirOptions"
 				:input-label="t('nextcloud-vue', 'Direction')"
 				:clearable="false"
-				@input="updateSort('dir', $event)" />
+				@update:model-value="updateSort('dir', $event)" />
 			<NcTextField
-				:value="String(limit)"
+				:model-value="String(limit)"
 				type="number"
 				:label="t('nextcloud-vue', 'Max rows')"
-				@update:value="updateLimit($event)" />
+				@update:model-value="updateLimit($event)" />
 		</div>
 
 		<!-- Filters with operators. -->
@@ -56,10 +56,10 @@
 				placeholder="title"
 				@update="updateColumn(i, 'key', $event)" />
 			<NcTextField
-				:value="col.label"
+				:model-value="col.label"
 				:label="t('nextcloud-vue', 'Header')"
 				placeholder="Deal"
-				@update:value="updateColumn(i, 'label', $event)" />
+				@update:model-value="updateColumn(i, 'label', $event)" />
 			<NcButton
 				type="tertiary"
 				:aria-label="t('nextcloud-vue', 'Remove column')"

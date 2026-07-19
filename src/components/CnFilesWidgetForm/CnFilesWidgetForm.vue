@@ -6,20 +6,20 @@
 <template>
 	<div class="cn-files-widget-form">
 		<NcTextField
-			:value="folderPath"
+			:model-value="folderPath"
 			:label="t('nextcloud-vue', 'Folder path')"
 			:placeholder="t('nextcloud-vue', 'e.g. /Documents/Marketing')"
 			required
-			@update:value="updateField('folderPath', $event)" />
+			@update:model-value="updateField('folderPath', $event)" />
 
 		<NcTextField
-			:value="fileIdString"
+			:model-value="fileIdString"
 			:label="t('nextcloud-vue', 'Folder ID (optional, preferred)')"
 			:placeholder="t('nextcloud-vue', 'Numeric file id of the folder')"
-			@update:value="updateFileId" />
+			@update:model-value="updateFileId" />
 
 		<NcSelect
-			:value="viewMode"
+			:model-value="viewMode"
 			:options="viewModeOptions"
 			:input-label="t('nextcloud-vue', 'View mode')"
 			:reduce="(option) => option.value"
@@ -28,7 +28,7 @@
 			@input="updateField('viewMode', $event)" />
 
 		<NcSelect
-			:value="sortBy"
+			:model-value="sortBy"
 			:options="sortByOptions"
 			:input-label="t('nextcloud-vue', 'Sort by')"
 			:reduce="(option) => option.value"
@@ -53,10 +53,10 @@
 		</label>
 
 		<NcTextField
-			:value="mimeTypeFilterString"
+			:model-value="mimeTypeFilterString"
 			:label="t('nextcloud-vue', 'MIME type filter (comma separated)')"
 			:placeholder="t('nextcloud-vue', 'e.g. image/*, application/pdf')"
-			@update:value="updateMimeFilter" />
+			@update:model-value="updateMimeFilter" />
 
 		<label class="cn-files-widget-form__toggle">
 			<input

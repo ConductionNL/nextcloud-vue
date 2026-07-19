@@ -10,10 +10,10 @@
 		</h4>
 
 		<NcTextField
-			:value="label"
+			:model-value="label"
 			:label="t('nextcloud-vue', 'Label')"
 			placeholder="Revenue (MTD)"
-			@update:value="updateField('label', $event)" />
+			@update:model-value="updateField('label', $event)" />
 
 		<div class="cn-delta-form__row2">
 			<CnRegisterSchemaSelect
@@ -25,11 +25,11 @@
 
 		<div class="cn-delta-form__row2">
 			<NcSelect
-				:value="metric"
+				:model-value="metric"
 				:options="metricOptions"
 				:input-label="t('nextcloud-vue', 'Aggregation')"
 				:clearable="false"
-				@input="updateField('metric', $event)" />
+				@update:model-value="updateField('metric', $event)" />
 			<CnFieldPicker
 				v-if="metric !== 'count'"
 				:value="field"
@@ -55,25 +55,25 @@
 
 		<div class="cn-delta-form__row2">
 			<NcSelect
-				:value="goodDirection"
+				:model-value="goodDirection"
 				:options="directionOptions"
 				:input-label="t('nextcloud-vue', 'Good direction')"
 				:clearable="false"
-				@input="updateField('goodDirection', $event)" />
+				@update:model-value="updateField('goodDirection', $event)" />
 			<NcSelect
-				:value="formatStyle"
+				:model-value="formatStyle"
 				:options="formatOptions"
 				:input-label="t('nextcloud-vue', 'Number format')"
 				:clearable="false"
-				@input="updateField('formatStyle', $event)" />
+				@update:model-value="updateField('formatStyle', $event)" />
 		</div>
 
 		<div class="cn-delta-form__row2">
 			<NcTextField
 				type="number"
-				:value="String(decimals)"
+				:model-value="String(decimals)"
 				:label="t('nextcloud-vue', 'Decimals')"
-				@update:value="updateField('decimals', Number($event))" />
+				@update:model-value="updateField('decimals', Number($event))" />
 			<CnIconBrowser
 				:value="icon"
 				:label="t('nextcloud-vue', 'Icon')"

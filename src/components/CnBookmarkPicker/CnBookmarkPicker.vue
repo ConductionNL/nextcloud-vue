@@ -45,7 +45,7 @@
 				:label="t('nextcloud-vue', 'Search bookmarks')"
 				:placeholder="t('nextcloud-vue', 'Type to filter…')"
 				class="cn-bookmark-picker__search"
-				@update:value="onSearch" />
+				@update:model-value="onSearch" />
 
 			<NcLoadingIcon v-if="loading" />
 			<NcEmptyContent

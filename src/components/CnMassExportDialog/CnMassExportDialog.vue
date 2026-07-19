@@ -36,7 +36,7 @@
 					:options="entities"
 					:model-value="selectedEntity"
 					:clearable="false"
-					@input="selectedEntity = $event" />
+					@update:model-value="selectedEntity = $event" />
 			</div>
 
 			<div class="cn-mass-export__field">
@@ -47,7 +47,7 @@
 					:options="formats"
 					:model-value="selectedFormat"
 					:clearable="false"
-					@input="selectedFormat = $event" />
+					@update:model-value="selectedFormat = $event" />
 			</div>
 		</div>
 

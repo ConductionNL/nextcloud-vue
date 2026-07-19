@@ -26,11 +26,11 @@
 		<NcTextField
 			v-if="searchable"
 			class="cn-ai-history-list__search"
-			:value="searchQuery"
+			:model-value="searchQuery"
 			:label="cnTranslate('Search conversations')"
 			:placeholder="cnTranslate('Search by name or description')"
 			data-testid="cn-ai-history-list-search"
-			@update:value="searchQuery = $event" />
+			@update:model-value="searchQuery = $event" />
 
 		<div v-if="loading" class="cn-ai-history-list__loading" data-testid="cn-ai-history-list-loading">
 			<NcLoadingIcon :size="32" />
@@ -63,13 +63,13 @@
 				]">
 				<div v-if="editingUuid === conv.uuid" class="cn-ai-history-list__edit" data-testid="cn-ai-history-list-edit">
 					<NcTextField
-						:value="editTitle"
+						:model-value="editTitle"
 						:label="cnTranslate('Name')"
-						@update:value="editTitle = $event" />
+						@update:model-value="editTitle = $event" />
 					<NcTextField
-						:value="editDescription"
+						:model-value="editDescription"
 						:label="cnTranslate('Description')"
-						@update:value="editDescription = $event" />
+						@update:model-value="editDescription = $event" />
 					<div class="cn-ai-history-list__edit-actions">
 						<NcButton type="primary" :disabled="saving" @click="saveEdit(conv)">
 							{{ cnTranslate('Save') }}

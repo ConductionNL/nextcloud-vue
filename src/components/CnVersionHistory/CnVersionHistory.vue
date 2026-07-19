@@ -24,7 +24,7 @@
 					:key="entry.id"
 					class="cn-version-history__row">
 					<NcCheckboxRadioSwitch
-						:checked="isSelected(entry.id)"
+						:model-value="isSelected(entry.id)"
 						:disabled="isSelected(entry.id) === false && selectedIds.length >= 2"
 						:aria-label="selectForCompareLabel"
 						@update:checked="toggleSelected(entry.id, $event)" />
@@ -60,7 +60,7 @@
 				<NcButton variant="tertiary" @click="closeDiff">
 					{{ backLabel }}
 				</NcButton>
-				<NcCheckboxRadioSwitch :checked="showAllFields" @update:checked="showAllFields = $event">
+				<NcCheckboxRadioSwitch :model-value="showAllFields" @update:model-value="showAllFields = $event">
 					{{ showAllFieldsLabel }}
 				</NcCheckboxRadioSwitch>
 			</div>

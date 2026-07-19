@@ -20,9 +20,9 @@
 				<li v-for="(tab, index) in editableTabs" :key="tab.id || index" class="cn-edit-sidebar__tab">
 					<div class="cn-edit-sidebar__tab-row">
 						<NcCheckboxRadioSwitch
-							:checked="!isHidden(tab.id)"
+							:model-value="!isHidden(tab.id)"
 							:aria-label="t('nextcloud-vue', 'Visible')"
-							@update:checked="(v) => setTabVisible(tab.id, v)" />
+							@update:model-value="(v) => setTabVisible(tab.id, v)" />
 						<NcTextField :value.sync="tab.label" :label="t('nextcloud-vue', 'Tab label')" :label-visible="true" />
 						<NcTextField :value.sync="tab.id" :label="t('nextcloud-vue', 'Tab id')" :label-visible="true" />
 						<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="removeTab(index)">
@@ -33,12 +33,12 @@
 					</div>
 					<label class="cn-edit-sidebar__content">
 						<span>{{ t('nextcloud-vue', 'Content') }}</span>
-						<NcSelect :value="selectedContent(tab)"
+						<NcSelect :model-value="selectedContent(tab)"
 							:options="contentOptions"
 							:clearable="false"
 							label="label"
 							:input-label="t('nextcloud-vue', 'Tab content')"
-							@input="(o) => setContent(tab, o)" />
+							@update:model-value="(o) => setContent(tab, o)" />
 					</label>
 				</li>
 			</ul>
