@@ -22,7 +22,7 @@
 		:is="hideWrapper ? 'CnWidgetHostShell' : 'CnWidgetWrapper'"
 		v-bind="hideWrapper ? {} : { title, widgetId, documentationUrl, flush: true }">
 		<div class="cn-widget-object-table">
-			<CnDataTable ref="dataTable" v-bind="innerProps" v-on="$listeners">
+			<CnDataTable ref="dataTable" v-bind="{ ...innerProps, ...$attrs }">
 				<!-- Forward every host-supplied CnDataTable scoped slot verbatim
 				     (#footer { total, shown }, #empty, #column-<key>, …). The
 				     #row-actions slot is NOT forwarded while the widget renders
@@ -134,6 +134,7 @@ import { CnWidgetHostShell } from './hostShell.js'
  */
 export default {
 	name: 'CnWidgetObjectTable',
+	inheritAttrs: false,
 
 	components: { CnDataTable, CnWidgetWrapper, CnWidgetHostShell, CnRowActions, CnIcon, NcButton, CnConfirmDialog },
 

@@ -417,7 +417,7 @@ export default {
 		 * @return {boolean} true when an `update:placement` listener is attached.
 		 */
 		showPlacement() {
-			return !!(this.$listeners && this.$listeners['update:placement'])
+			return !!(this.$attrs && this.$attrs['onUpdate:placement'])
 		},
 		/**
 		 * The catalogue for the active source. For `mdi` with no supplied

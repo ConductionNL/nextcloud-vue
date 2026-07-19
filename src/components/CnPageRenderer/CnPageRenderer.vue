@@ -52,7 +52,6 @@
 				v-else-if="resolvedComponent"
 				:key="pageRenderKey"
 				v-bind="{ ...$attrs, ...resolvedProps }"
-				v-on="$listeners"
 				@view="onRowOpen"
 				@row-click="onRowOpen"
 				@configure="showConfigModal = true">
@@ -98,7 +97,6 @@
 			v-else-if="resolvedComponent"
 			:key="pageRenderKey"
 			v-bind="{ ...$attrs, ...resolvedProps }"
-			v-on="$listeners"
 			@view="onRowOpen"
 			@row-click="onRowOpen"
 			@configure="showConfigModal = true">

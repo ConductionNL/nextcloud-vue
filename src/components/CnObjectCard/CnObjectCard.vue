@@ -214,7 +214,7 @@ export default {
 				this.$emit('select', this.object)
 				// Deprecation: selectable cards used to emit `click`. Keep emitting it
 				// for listeners that still rely on it, but warn them to migrate to `select`.
-				if (this.$listeners.click) {
+				if (this.$attrs.onClick) {
 					console.warn('[CnObjectCard] @click on selectable cards is deprecated; use @select instead.')
 					this.$emit('click', this.object)
 				}

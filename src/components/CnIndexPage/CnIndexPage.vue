@@ -2968,7 +2968,7 @@ export default {
 		 * emit the event (backward compatible). Otherwise open the form dialog.
 		 */
 		onAddClick() {
-			if (this.$listeners && this.$listeners.add) {
+			if (this.$attrs && this.$attrs.onAdd) {
 				this.$emit('add')
 			} else if (this.showFormDialog) {
 				this.editItem = null

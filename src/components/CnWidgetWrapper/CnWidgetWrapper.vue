@@ -419,7 +419,7 @@ export default {
 		effectiveShowRefresh() {
 			if (this.hideRefresh) return false
 			if (this.showRefresh !== null) return this.showRefresh
-			return Boolean(this.$listeners && this.$listeners.refresh)
+			return Boolean(this.$attrs && this.$attrs.onRefresh)
 		},
 		/**
 		 * Effective Request-a-feature visibility — same OR-of-opt-outs

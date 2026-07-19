@@ -18,7 +18,7 @@
 		:widget-id="widgetId"
 		:documentation-url="documentationUrl"
 		flush>
-		<CnFormPage v-bind="innerProps" v-on="$listeners" />
+		<CnFormPage v-bind="{ ...innerProps, ...$attrs }" />
 	</CnWidgetWrapper>
 </template>
 
@@ -38,6 +38,7 @@ import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
  */
 export default {
 	name: 'CnWidgetFormRenderer',
+	inheritAttrs: false,
 
 	components: { CnFormPage, CnWidgetWrapper },
 

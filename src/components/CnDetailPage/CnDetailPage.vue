@@ -1593,7 +1593,7 @@ export default {
 		 */
 		effectiveHeaderShowRefresh() {
 			if (this.showRefresh !== null) return this.showRefresh
-			return Boolean(this.$listeners.refresh) || this.hasSchemaDrivenFetch
+			return Boolean(this.$attrs.onRefresh) || this.hasSchemaDrivenFetch
 		},
 
 		/**

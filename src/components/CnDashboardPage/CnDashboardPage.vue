@@ -1295,7 +1295,7 @@ export default {
 		 */
 		effectiveWidgetShowRefresh() {
 			if (this.widgetShowRefresh !== null) return this.widgetShowRefresh
-			return Boolean(this.$listeners['widget-refresh'])
+			return Boolean(this.$attrs['onWidget-refresh'])
 		},
 		/**
 		 * Stable id for the page-level Actions menu. Prefers the explicit

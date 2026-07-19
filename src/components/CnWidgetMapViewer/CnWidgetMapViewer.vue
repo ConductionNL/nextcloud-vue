@@ -15,7 +15,7 @@
 		:widget-id="widgetId"
 		:documentation-url="documentationUrl"
 		flush>
-		<CnMapWidget v-bind="mapProps" v-on="$listeners" />
+		<CnMapWidget v-bind="{ ...mapProps, ...$attrs }" />
 	</CnWidgetWrapper>
 </template>
 
@@ -35,6 +35,7 @@ import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
  */
 export default {
 	name: 'CnWidgetMapViewer',
+	inheritAttrs: false,
 
 	components: { CnMapWidget, CnWidgetWrapper },
 

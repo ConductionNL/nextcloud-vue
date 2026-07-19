@@ -22,7 +22,7 @@
 			class="cn-color-picker__chrome"
 			:class="{ 'cn-color-picker__chrome--locked-mode': mode !== null }"
 			:value="value"
-			v-on="$listeners" />
+			/>
 	</NcPopover>
 </template>
 
