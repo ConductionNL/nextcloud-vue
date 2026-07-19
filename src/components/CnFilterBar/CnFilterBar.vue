@@ -3,12 +3,12 @@
 		<!-- Search input -->
 		<div class="cn-filter-bar__search" data-testid="cn-filter-bar-search">
 			<NcTextField
-				:value="searchValue"
+				:model-value="searchValue"
 				:placeholder="searchPlaceholder"
 				:label="searchPlaceholder"
 				trailing-button-icon="close"
 				:show-trailing-button="searchValue !== ''"
-				@update:value="$emit('search', $event)"
+				@update:model-value="$emit('search', $event)"
 				@trailing-button-click="$emit('search', '')">
 				<template #icon>
 					<Magnify :size="20" />
@@ -24,22 +24,22 @@
 					v-if="filter.type === 'select'"
 					:key="filter.key"
 					class="cn-filter-bar__filter"
-					:value="filter.value"
+					:model-value="filter.value"
 					:options="filter.options || []"
 					:placeholder="filter.label"
 					:input-label="filter.label"
 					:clearable="true"
-					@input="onFilterChange(filter.key, $event)" />
+					@update:model-value="onFilterChange(filter.key, $event)" />
 
 				<!-- Text filter -->
 				<NcTextField
 					v-else-if="filter.type === 'text'"
 					:key="filter.key"
 					class="cn-filter-bar__filter"
-					:value="filter.value || ''"
+					:model-value="filter.value || ''"
 					:placeholder="filter.label"
 					:label="filter.label"
-					@update:value="onFilterChange(filter.key, $event)" />
+					@update:model-value="onFilterChange(filter.key, $event)" />
 
 				<!-- Checkbox filter -->
 				<NcCheckboxRadioSwitch

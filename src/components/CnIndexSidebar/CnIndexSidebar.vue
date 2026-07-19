@@ -31,10 +31,10 @@
 
 				<div class="cn-index-sidebar__section">
 					<NcTextField
-						:value="searchValue"
+						:model-value="searchValue || ''"
 						:placeholder="searchPlaceholder"
 						:label="searchLabel"
-						@update:value="$emit('search', $event)" />
+						@update:model-value="$emit('search', $event)" />
 				</div>
 
 				<div v-if="schemaFilters.length > 0" class="cn-index-sidebar__section">
@@ -63,14 +63,14 @@
 						</div>
 						<NcSelect
 							class="cn-index-sidebar__select"
-							:value="getSelectedFilterOptions(filter)"
+							:model-value="getSelectedFilterOptions(filter)"
 							:options="getFilterOptions(filter)"
 							placeholder="Select..."
 							:input-label="filter.label"
 							:multiple="true"
 							:keep-open="true"
 							:clearable="true"
-							@input="onFilterChange(filter.key, $event)" />
+							@update:model-value="onFilterChange(filter.key, $event)" />
 					</div>
 				</div>
 
