@@ -17,6 +17,7 @@
  * CnWidgetObjectTable (a public export) doesn't force the registration.
  */
 
+import { h } from 'vue'
 import CnWidgetObjectTable from './CnWidgetObjectTable.vue'
 import CnObjectListWidgetForm from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
@@ -70,15 +71,21 @@ export function objectTableContentToProps(content) {
  */
 const CnHostedObjectTable = {
 	name: 'CnHostedObjectTable',
-	functional: true,
-	render(h, ctx) {
-		const attrs = ctx.data.attrs || {}
+	// Vue 3: no `functional: true`; a render function on a normal component.
+	// inheritAttrs:false so we forward $attrs explicitly (listeners are onXxx in
+	// $attrs now, not a separate ctx.listeners) and don't double-apply to the root.
+	inheritAttrs: false,
+	render() {
+		const attrs = this.$attrs || {}
 		const content = (attrs.content && typeof attrs.content === 'object') ? attrs.content : attrs
-		return h(CnWidgetObjectTable, {
-			props: { ...objectTableContentToProps(content), hideWrapper: true },
-			on: ctx.listeners,
-			scopedSlots: ctx.scopedSlots,
-		})
+		// Everything except `content` (mapped to props) passes through — this
+		// carries parent listeners (onXxx) too. Vue 3: props/attrs/listeners are
+		// one flat object; slots are the 3rd arg.
+		const { content: _content, ...rest } = attrs
+		return h(CnWidgetObjectTable,
+			{ ...rest, ...objectTableContentToProps(content), hideWrapper: true },
+			this.$slots,
+		)
 	},
 }
 

@@ -3,7 +3,7 @@
 		:name="resolvedName"
 		:title="resolvedName"
 		:subname="resolvedSubname"
-		:open.sync="internalOpen"
+		v-model:open="internalOpen"
 		:active="internalActiveTab"
 		:compact="!!resolvedIcon"
 		@close="$emit('update:open', false)"
@@ -103,7 +103,7 @@
 								<NcCheckboxRadioSwitch
 									:model-value="isGroupAllVisible(allColumns)"
 									class="cn-sidebar-columns__select-all"
-									@click.native.stop
+									@click.stop
 									@update:model-value="toggleGroupAll(allColumns)">
 									All
 								</NcCheckboxRadioSwitch>
@@ -131,7 +131,7 @@
 								<NcCheckboxRadioSwitch
 									:model-value="isGroupAllVisible(group.columns)"
 									class="cn-sidebar-columns__select-all"
-									@click.native.stop
+									@click.stop
 									@update:model-value="toggleGroupAll(group.columns)">
 									All
 								</NcCheckboxRadioSwitch>

@@ -97,8 +97,8 @@
 							:label="t('nextcloud-vue', 'Register name')"
 							:disabled="busy"
 							@update:model-value="(v) => renameTitle = v"
-							@keydown.native.enter="renameRegister"
-							@keydown.native.esc="renamingRegister = false" />
+							@keydown.enter="renameRegister"
+							@keydown.esc="renamingRegister = false" />
 						<NcButton type="primary"
 							:disabled="busy || !renameTitle.trim()"
 							:aria-label="t('nextcloud-vue', 'Save register name')"

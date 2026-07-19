@@ -115,8 +115,8 @@
 								:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
 								:placeholder="field.description"
 								@update:model-value="val => updateField(field.key, val)"
-								@keydown.native.enter="commitEdit"
-								@keydown.native.escape="cancelEdit" />
+								@keydown.enter="commitEdit"
+								@keydown.escape="cancelEdit" />
 
 							<!-- Number -->
 							<NcTextField
@@ -126,8 +126,8 @@
 								type="number"
 								:placeholder="field.description"
 								@update:model-value="val => updateField(field.key, val !== '' ? Number(val) : null)"
-								@keydown.native.enter="commitEdit"
-								@keydown.native.escape="cancelEdit" />
+								@keydown.enter="commitEdit"
+								@keydown.escape="cancelEdit" />
 
 							<!-- Textarea -->
 							<textarea
@@ -204,8 +204,8 @@
 								:model-value="editData[field.key] || ''"
 								type="date"
 								@update:model-value="val => updateField(field.key, val)"
-								@keydown.native.enter="commitEdit"
-								@keydown.native.escape="cancelEdit" />
+								@keydown.enter="commitEdit"
+								@keydown.escape="cancelEdit" />
 
 							<!-- Datetime -->
 							<NcTextField
@@ -214,8 +214,8 @@
 								:model-value="editData[field.key] || ''"
 								type="datetime-local"
 								@update:model-value="val => updateField(field.key, val)"
-								@keydown.native.enter="commitEdit"
-								@keydown.native.escape="cancelEdit" />
+								@keydown.enter="commitEdit"
+								@keydown.escape="cancelEdit" />
 
 							<!-- Fallback: text -->
 							<NcTextField
@@ -224,8 +224,8 @@
 								:model-value="editData[field.key] != null ? String(editData[field.key]) : ''"
 								:placeholder="field.description"
 								@update:model-value="val => updateField(field.key, val)"
-								@keydown.native.enter="commitEdit"
-								@keydown.native.escape="cancelEdit" />
+								@keydown.enter="commitEdit"
+								@keydown.escape="cancelEdit" />
 						</template>
 
 						<!-- Confirm/Cancel for non-auto-committing editors -->

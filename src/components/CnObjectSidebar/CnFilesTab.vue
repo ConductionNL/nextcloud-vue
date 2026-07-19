@@ -10,7 +10,7 @@
 		<NcCheckboxRadioSwitch
 			v-if="showShareToggle"
 			class="cn-sidebar-tab__share"
-			:checked.sync="share"
+			v-model="share"
 			:disabled="loading"
 			type="switch">
 			{{ shareLabel }}

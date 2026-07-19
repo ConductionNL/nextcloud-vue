@@ -2,7 +2,7 @@
 	<div class="cn-context-menu-root">
 		<NcActions
 			v-if="!activePanel"
-			:open.sync="internalOpen"
+			v-model:open="internalOpen"
 			:manual-open="true"
 			:force-menu="true"
 			class="cn-context-menu"
@@ -92,7 +92,7 @@ import { CnIcon } from '../CnIcon/index.js'
  * Dynamic actions (CnIndexPage pattern)
  * ```vue
  * <CnContextMenu
- *   :open.sync="contextMenuOpen"
+ *   v-model:open="contextMenuOpen"
  *   :actions="mergedActions"
  *   :target-item="contextMenuRow"
  *   @action="$emit('action', $event)"
@@ -102,7 +102,7 @@ import { CnIcon } from '../CnIcon/index.js'
  * Custom buttons via slot (Doriath pattern)
  * ```vue
  * <CnContextMenu
- *   :open.sync="contextMenuOpen"
+ *   v-model:open="contextMenuOpen"
  *   @close="closeContextMenu">
  *   <NcActionButton close-after-click @click="onRename">
  *     <template #icon><PencilIcon :size="20" /></template>

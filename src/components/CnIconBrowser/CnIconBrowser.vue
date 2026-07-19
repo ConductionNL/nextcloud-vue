@@ -28,7 +28,7 @@
 		     is teleported to the body, so it isn't clipped by a modal's overflow. -->
 		<NcPopover
 			v-else
-			:shown.sync="open"
+			v-model:shown="open"
 			:triggers="[]"
 			popup-role="dialog"
 			popover-base-class="cn-icon-browser__popper">

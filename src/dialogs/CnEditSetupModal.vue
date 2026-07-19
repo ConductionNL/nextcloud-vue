@@ -13,7 +13,7 @@
 				{{ t('nextcloud-vue', 'A setup wizard runs the first time a user opens the app. Required steps must be completed before the app opens.') }}
 			</p>
 
-			<NcCheckboxRadioSwitch :checked.sync="setup.enabled">
+			<NcCheckboxRadioSwitch v-model="setup.enabled">
 				{{ t('nextcloud-vue', 'Show the setup wizard') }}
 			</NcCheckboxRadioSwitch>
 
@@ -25,7 +25,7 @@
 				<li v-for="(step, index) in steps" :key="step.id" class="cn-edit-setup__step">
 					<div class="cn-edit-setup__row">
 						<NcTextField :label="t('nextcloud-vue', 'Step title')"
-							:value.sync="step.title" />
+							v-model="step.title" />
 						<NcButton type="tertiary"
 							:aria-label="t('nextcloud-vue', 'Remove step')"
 							@click="remove(index)">
@@ -44,12 +44,12 @@
 							:input-label="t('nextcloud-vue', 'Step type')" />
 					</label>
 					<NcTextArea :label="t('nextcloud-vue', 'Body')"
-						:value.sync="step.body" />
+						v-model="step.body" />
 					<NcTextField v-if="step.type === 'config-fields'"
 						:label="t('nextcloud-vue', 'Fields to ask for (comma-separated keys, e.g. store_name, contact_email)')"
 						:model-value="configKeysText(step)"
 						@update:model-value="(v) => setConfigKeys(step, v)" />
-					<NcCheckboxRadioSwitch :checked.sync="step.required">
+					<NcCheckboxRadioSwitch v-model="step.required">
 						{{ t('nextcloud-vue', 'Required (must be completed to enter the app)') }}
 					</NcCheckboxRadioSwitch>
 				</li>

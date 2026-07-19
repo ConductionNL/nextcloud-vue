@@ -67,7 +67,7 @@
 		</button>
 
 		<!-- Cog → actions popover (add sub-item + delete). -->
-		<NcPopover :shown.sync="popoverOpen" :focus-trap="false">
+		<NcPopover v-model:shown="popoverOpen" :focus-trap="false">
 			<template #trigger="{ attrs }">
 				<NcButton v-bind="attrs"
 					type="tertiary"

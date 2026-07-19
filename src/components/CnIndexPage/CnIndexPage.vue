@@ -515,7 +515,7 @@
 
 				<!-- Right-click context menu (positioned at cursor via CSS) -->
 				<CnContextMenu
-					:open.sync="contextMenuOpen"
+					v-model:open="contextMenuOpen"
 					:actions="mergedActions"
 					:target-item="contextMenuRow"
 					@action="onRowAction"

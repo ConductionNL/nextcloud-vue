@@ -324,7 +324,7 @@
 						<template v-if="dateRangeEnabled && item.dateChip === true" #title-meta>
 							<NcActions
 								:force-menu="true"
-								:open.sync="openChipPicker[item.widgetId]"
+								v-model:open="openChipPicker[item.widgetId]"
 								container="body"
 								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
 								class="cn-dashboard-page__date-chip-trigger">
@@ -382,7 +382,7 @@
 						<template v-if="dateRangeEnabled && (item.dateChip === true || formatChartDateRange(item))" #title-meta>
 							<NcActions
 								:force-menu="true"
-								:open.sync="openChipPicker[item.widgetId]"
+								v-model:open="openChipPicker[item.widgetId]"
 								container="body"
 								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
 								class="cn-dashboard-page__date-chip-trigger">
@@ -508,7 +508,7 @@
 						<template v-if="dateRangeEnabled && item.dateChip === true" #title-meta>
 							<NcActions
 								:force-menu="true"
-								:open.sync="openChipPicker[item.widgetId]"
+								v-model:open="openChipPicker[item.widgetId]"
 								container="body"
 								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
 								class="cn-dashboard-page__date-chip-trigger">

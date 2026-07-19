@@ -2,13 +2,13 @@
 	<div class="cn-schema-form__form-editor">
 		<NcTextArea :disabled="loading"
 			:label="t('nextcloud-vue', 'Description')"
-			:value.sync="schema.description" />
+			v-model="schema.description" />
 		<NcTextArea :disabled="loading"
 			:label="t('nextcloud-vue', 'Summary')"
-			:value.sync="schema.summary" />
+			v-model="schema.summary" />
 		<NcTextField :disabled="loading"
 			:label="t('nextcloud-vue', 'Slug')"
-			:value.sync="schema.slug" />
+			v-model="schema.slug" />
 
 		<!-- Schema Composition Section -->
 		<div>
@@ -125,17 +125,17 @@
 			:placeholder="t('nextcloud-vue', 'Select a property to use as object summary. e.g. summary, abstract, or excerpt')" />
 		<NcCheckboxRadioSwitch
 			:disabled="loading"
-			:checked.sync="schema.configuration.allowFiles">
+			v-model="schema.configuration.allowFiles">
 			{{ t('nextcloud-vue', 'Allow files') }}
 		</NcCheckboxRadioSwitch>
 		<NcCheckboxRadioSwitch
 			:disabled="loading"
-			:checked.sync="schema.configuration.autoPublish">
+			v-model="schema.configuration.autoPublish">
 			{{ t('nextcloud-vue', 'Auto-publish objects') }}
 		</NcCheckboxRadioSwitch>
 		<NcCheckboxRadioSwitch
 			:disabled="loading"
-			:checked.sync="schema.configuration.defaultAutoShare">
+			v-model="schema.configuration.defaultAutoShare">
 			{{ t('nextcloud-vue', 'Default "Automatically publish" toggle to on for new attachments') }}
 		</NcCheckboxRadioSwitch>
 		<NcTextField
@@ -146,13 +146,13 @@
 			@update:model-value="updateAllowedTags" />
 		<NcCheckboxRadioSwitch
 			:disabled="loading"
-			:checked.sync="schema.hardValidation">
+			v-model="schema.hardValidation">
 			{{ t('nextcloud-vue', 'Hard validation') }}
 		</NcCheckboxRadioSwitch>
 		<NcTextField :disabled="loading"
 			:label="t('nextcloud-vue', 'Max depth')"
 			type="number"
-			:value.sync="schema.maxDepth" />
+			v-model="schema.maxDepth" />
 		<NcTextField :disabled="loading"
 			:label="t('nextcloud-vue', 'Icon (Material Design Icon name, e.g. Dog)')"
 			:model-value="schema.icon || ''"
@@ -160,12 +160,12 @@
 			@update:model-value="setIcon" />
 		<NcCheckboxRadioSwitch
 			:disabled="loading"
-			:checked.sync="schema.immutable">
+			v-model="schema.immutable">
 			{{ t('nextcloud-vue', 'Immutable') }}
 		</NcCheckboxRadioSwitch>
 		<NcCheckboxRadioSwitch
 			:disabled="loading"
-			:checked.sync="schema.searchable">
+			v-model="schema.searchable">
 			{{ t('nextcloud-vue', 'Searchable (appears in Nextcloud unified search)') }}
 		</NcCheckboxRadioSwitch>
 	</div>

@@ -59,11 +59,11 @@
 				@update:model-value="onCentre(1, $event)" />
 		</div>
 
-		<NcCheckboxRadioSwitch :checked.sync="autoFit" type="switch">
+		<NcCheckboxRadioSwitch v-model="autoFit" type="switch">
 			{{ t('nextcloud-vue', 'Zoom to fit the plotted objects') }}
 		</NcCheckboxRadioSwitch>
 
-		<NcCheckboxRadioSwitch :checked.sync="clustering" type="switch">
+		<NcCheckboxRadioSwitch v-model="clustering" type="switch">
 			{{ t('nextcloud-vue', 'Group nearby objects into clusters') }}
 		</NcCheckboxRadioSwitch>
 	</div>

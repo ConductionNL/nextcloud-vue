@@ -14,7 +14,7 @@
 <template>
 	<div v-if="isAvailable" class="cn-openbuild-edit">
 		<NcActions
-			:open.sync="menuOpen"
+			v-model:open="menuOpen"
 			:aria-label="t('nextcloud-vue', 'Edit with OpenBuild')"
 			:class="['cn-openbuild-edit__actions', { 'cn-openbuild-edit__actions--editing': isEditing }]">
 			<template #icon>

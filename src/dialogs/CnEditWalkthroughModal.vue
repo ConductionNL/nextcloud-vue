@@ -14,13 +14,13 @@
 			{{ t('nextcloud-vue', 'A walkthrough is a guided tour that spotlights parts of the app and explains each step. It runs on a user\'s first visit and can be replayed from settings.') }}
 		</p>
 
-		<NcCheckboxRadioSwitch :checked.sync="walkthrough.enabled">
+		<NcCheckboxRadioSwitch v-model="walkthrough.enabled">
 			{{ t('nextcloud-vue', 'Show the walkthrough') }}
 		</NcCheckboxRadioSwitch>
 
 		<NcTextField class="cn-edit-walkthrough__field"
 			:label="t('nextcloud-vue', 'Tour title')"
-			:value.sync="tour.title" />
+			v-model="tour.title" />
 
 		<label class="cn-edit-walkthrough__trigger">
 			<span>{{ t('nextcloud-vue', 'When it runs') }}</span>
@@ -43,7 +43,7 @@
 			<li v-for="(step, index) in steps" :key="step.id" class="cn-edit-walkthrough__step">
 				<div class="cn-edit-walkthrough__row">
 					<NcTextField :label="t('nextcloud-vue', 'Step title')"
-						:value.sync="step.title" />
+						v-model="step.title" />
 					<NcButton type="tertiary"
 						:aria-label="t('nextcloud-vue', 'Remove step')"
 						@click="remove(index)">
@@ -53,9 +53,9 @@
 					</NcButton>
 				</div>
 				<NcTextArea :label="t('nextcloud-vue', 'Body')"
-					:value.sync="step.body" />
+					v-model="step.body" />
 				<NcTextField :label="t('nextcloud-vue', 'Task (the one action for this step)')"
-					:value.sync="step.task" />
+					v-model="step.task" />
 				<NcTextField :label="t('nextcloud-vue', 'Target (optional CSS selector to spotlight; blank = centred)')"
 					:model-value="targetRef(step)"
 					@update:model-value="setTarget(step, $event)" />

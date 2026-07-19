@@ -61,8 +61,8 @@ import CnTreeNode from './CnTreeNode.vue'
  *       { id: 4, label: 'Reference' },
  *     ] },
  *   ]"
- *   :expanded-ids.sync="expanded"
- *   :selected-id.sync="selected"
+ *   v-model:expanded-ids="expanded"
+ *   v-model:selected-id="selected"
  *   @select="onSelect" />
  * ```
  *

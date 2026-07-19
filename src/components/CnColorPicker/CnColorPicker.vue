@@ -1,6 +1,6 @@
 <template>
 	<NcPopover
-		:shown.sync="open"
+		v-model:shown="open"
 		:disabled="disabled"
 		:triggers="[]"
 		popup-role="dialog"

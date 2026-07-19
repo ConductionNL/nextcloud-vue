@@ -11,7 +11,7 @@
 		:title="sidebarTitle"
 		:subtitle="sidebarSubtitle"
 		:open="open"
-		:active.sync="activeTab"
+		v-model:active="activeTab"
 		data-testid="cn-object-sidebar"
 		@update:open="$emit('update:open', $event)"
 		@close="$emit('update:open', false)">

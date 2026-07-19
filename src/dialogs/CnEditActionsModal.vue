@@ -16,11 +16,11 @@
 				<li v-for="(action, index) in actions" :key="action.id || index" class="cn-edit-actions__row">
 					<div class="cn-edit-actions__fields">
 						<NcTextField
-							:value.sync="action.label"
+							v-model="action.label"
 							:label="t('nextcloud-vue', 'Label')"
 							:label-visible="true" />
 						<NcTextField
-							:value.sync="action.icon"
+							v-model="action.icon"
 							:label="t('nextcloud-vue', 'Icon')"
 							:label-visible="true" />
 						<NcSelect
@@ -29,7 +29,7 @@
 							:input-label="t('nextcloud-vue', 'Type')"
 							:clearable="false" />
 						<NcTextField
-							:value.sync="action.target"
+							v-model="action.target"
 							:label="targetLabel(action)"
 							:label-visible="true" />
 					</div>

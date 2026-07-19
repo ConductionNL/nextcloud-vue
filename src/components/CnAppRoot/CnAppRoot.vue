@@ -564,7 +564,7 @@ import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificati
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
 import { provideTenantContext } from '../../composables/useTenantContext.js'
-import Vue, { computed, shallowRef, watch } from 'vue'
+import { computed, shallowRef, watch, reactive } from 'vue'
 import { useManifestEditor } from '../../composables/useManifestEditor.js'
 import { useOpenBuildEditAvailability } from '../../composables/useOpenBuildEditAvailability.js'
 import { loadState } from '@nextcloud/initial-state'
@@ -1421,7 +1421,7 @@ export default {
 			 *   { appId, pageKind, objectUuid?, registerSlug?,
 			 *     schemaSlug?, route? }
 			 */
-			cnAiContext: Vue.observable({
+			cnAiContext: reactive({
 				appId: this.appId || 'unknown',
 				pageKind: 'custom',
 				route: { path: (typeof window !== 'undefined' ? window.location.pathname : '') },
@@ -1462,7 +1462,7 @@ export default {
 			 * (`this.cnMenuCounts[register][schema] = total`) are
 			 * picked up by CnAppNav's reactive render.
 			 */
-			cnMenuCounts: Vue.observable({}),
+			cnMenuCounts: reactive({}),
 			/**
 			 * Open state of the host NcAppSettingsDialog. Toggled
 			 * to `true` by the provided `cnOpenUserSettings()`
@@ -1552,7 +1552,7 @@ export default {
 			 * supplied a `#sidebar` slot AND no ancestor already
 			 * owns the channel.
 			 */
-			localObjectSidebarState: Vue.observable({
+			localObjectSidebarState: reactive({
 				active: false,
 				open: false,
 				objectType: '',
@@ -1575,7 +1575,7 @@ export default {
 			 * leaks an `active: true` write into the object-sidebar
 			 * channel.
 			 */
-			localIndexSidebarState: Vue.observable({
+			localIndexSidebarState: reactive({
 				active: false,
 				open: false,
 				searchValue: '',
@@ -2665,9 +2665,9 @@ export default {
 				const { register, schema, count } = result ?? {}
 				if (typeof count !== 'number' || count < 0) continue
 				if (!this.cnMenuCounts[register]) {
-					Vue.set(this.cnMenuCounts, register, {})
+					this.cnMenuCounts[register] = {}
 				}
-				Vue.set(this.cnMenuCounts[register], schema, count)
+				this.cnMenuCounts[register][schema] = count
 			}
 		},
 
@@ -2730,9 +2730,9 @@ export default {
 				const total = pagination?.total
 				if (typeof total === 'number' && total >= 0) {
 					if (!this.cnMenuCounts[register]) {
-						Vue.set(this.cnMenuCounts, register, {})
+						this.cnMenuCounts[register] = {}
 					}
-					Vue.set(this.cnMenuCounts[register], schema, total)
+					this.cnMenuCounts[register][schema] = total
 				}
 			} catch (err) {
 				// Non-fatal — leave the badge unrendered.

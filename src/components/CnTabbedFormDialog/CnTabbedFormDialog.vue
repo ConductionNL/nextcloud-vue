@@ -79,7 +79,7 @@
 				v-if="showCreateAnother && isCreateMode"
 				class="cn-tabbed-form-dialog__create-another"
 				:disabled="loading"
-				:checked.sync="createAnother">
+				v-model="createAnother">
 				{{ createAnotherLabel }}
 			</NcCheckboxRadioSwitch>
 

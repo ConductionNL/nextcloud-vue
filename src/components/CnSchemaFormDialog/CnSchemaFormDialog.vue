@@ -37,7 +37,7 @@
 				<div class="cn-schema-form__detail-item cn-schema-form__title-with-badge">
 					<NcTextField :disabled="dialogLoading"
 						:label="t('nextcloud-vue', 'Title *')"
-						:value.sync="schemaItem.title" />
+						v-model="schemaItem.title" />
 					<span v-if="schemaItem.allOf && schemaItem.allOf.length > 0"
 						class="cn-schema-form__statusPill cn-schema-form__statusPill--success">
 						allOf

@@ -9,7 +9,7 @@
 <template>
 	<NcDialog size="normal" :name="t('nextcloud-vue', 'Edit sidebar')" @closing="$emit('close')">
 		<template v-if="page">
-			<NcCheckboxRadioSwitch :checked.sync="sidebarShown" type="switch">
+			<NcCheckboxRadioSwitch v-model="sidebarShown" type="switch">
 				{{ t('nextcloud-vue', 'Show sidebar on this page') }}
 			</NcCheckboxRadioSwitch>
 
@@ -23,8 +23,8 @@
 							:model-value="!isHidden(tab.id)"
 							:aria-label="t('nextcloud-vue', 'Visible')"
 							@update:model-value="(v) => setTabVisible(tab.id, v)" />
-						<NcTextField :value.sync="tab.label" :label="t('nextcloud-vue', 'Tab label')" :label-visible="true" />
-						<NcTextField :value.sync="tab.id" :label="t('nextcloud-vue', 'Tab id')" :label-visible="true" />
+						<NcTextField v-model="tab.label" :label="t('nextcloud-vue', 'Tab label')" :label-visible="true" />
+						<NcTextField v-model="tab.id" :label="t('nextcloud-vue', 'Tab id')" :label-visible="true" />
 						<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="removeTab(index)">
 							<template #icon>
 								<Delete :size="20" />
