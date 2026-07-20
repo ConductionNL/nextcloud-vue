@@ -64,6 +64,10 @@
 				@update:value="onCentre(1, $event)" />
 		</div>
 
+		<NcCheckboxRadioSwitch :checked.sync="centerMarker" type="switch">
+			{{ t('nextcloud-vue', 'Show a marker at the centre') }}
+		</NcCheckboxRadioSwitch>
+
 		<NcCheckboxRadioSwitch :checked.sync="autoFit" type="switch">
 			{{ t('nextcloud-vue', 'Zoom to fit the plotted objects') }}
 		</NcCheckboxRadioSwitch>
@@ -157,6 +161,7 @@ export default {
 			popupField: initial.popupField ?? '',
 			clustering: initial.clustering === true,
 			autoFit: initial.autoFit !== false,
+			centerMarker: initial.markers?.centerMarker === true,
 		}
 	},
 
@@ -178,6 +183,7 @@ export default {
 					dataSource: { register: this.source.register, schema: this.source.schema },
 					popupField: this.popupField,
 					clustering: this.clustering,
+					centerMarker: this.centerMarker,
 				},
 			}
 		},
@@ -282,5 +288,10 @@ export default {
 
 .cn-map-widget-form__range {
 	width: 100%;
+	/* Native range inputs ship a default 2px margin on ALL sides. The left/right
+	   2px pushes the width:100% track past the form and shows a phantom
+	   horizontal scrollbar; zeroing it also drops the top/bottom 2px, which was
+	   padding the form's height. */
+	margin: 0;
 }
 </style>

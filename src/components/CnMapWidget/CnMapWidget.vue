@@ -189,9 +189,11 @@ export default {
 		},
 		/**
 		 * Marker config. `{ features?, dataSource?, latField?, lngField?, popupField?,
-		 * clustering?, iconColor?, iconUrl? }`. `features[]` is inline; `dataSource.url`
-		 * is HTTP-fetched on mount; `dataSource.{register, schema}` plots the objects of
-		 * an OpenRegister register/schema via their `@self.geo`.
+		 * clustering?, iconColor?, iconUrl?, centerMarker? }`. `features[]` is inline;
+		 * `dataSource.url` is HTTP-fetched on mount; `dataSource.{register, schema}`
+		 * plots the objects of an OpenRegister register/schema via their `@self.geo`.
+		 * `centerMarker: true` adds an extra pin at the map's `center`, alongside any
+		 * source markers.
 		 * @type {object|null}
 		 */
 		markers: {
@@ -389,6 +391,15 @@ export default {
 				if (this.map) this.renderMarkers()
 			},
 			deep: true,
+		},
+		// Re-plot when the centre moves, but only while the centre pin is on —
+		// otherwise the centre is an initial-view concern, not a marker one.
+		'cfg.center': {
+			handler() {
+				if (this.map && this.cfg.markers && this.cfg.markers.centerMarker) {
+					this.renderMarkers()
+				}
+			},
 		},
 	},
 
@@ -842,6 +853,26 @@ export default {
 		 */
 		async collectFeatures() {
 			if (!this.cfg.markers) return []
+			let features = await this.collectSourceFeatures()
+			// Optional pin at the configured centre, plotted alongside the object
+			// markers (`markers.centerMarker`). Spread into a new array so an inline
+			// `features[]` prop is never mutated.
+			if (this.cfg.markers.centerMarker) {
+				const centre = this.centreMarkerFeature()
+				if (centre) features = [...features, centre]
+			}
+			return features
+		},
+
+		/**
+		 * Resolve the marker features from the configured source only —
+		 * inline `features[]`, a fetched `dataSource.url`, or an OpenRegister
+		 * `dataSource.{register, schema}`. The optional centre pin is layered on
+		 * by collectFeatures().
+		 *
+		 * @return {Promise<Array<object>>} GeoJSON Feature array.
+		 */
+		async collectSourceFeatures() {
 			if (Array.isArray(this.cfg.markers.features)) {
 				return this.cfg.markers.features
 			}
@@ -862,6 +893,25 @@ export default {
 				return await this.fetchRegisterFeatures(ds)
 			}
 			return []
+		},
+
+		/**
+		 * Build a GeoJSON point Feature at the resolved centre, or null when the
+		 * centre is not a valid `[lat, lng]` pair. GeoJSON coordinates are
+		 * `[lng, lat]`, the reverse of the `center` prop's order.
+		 *
+		 * @return {object|null} the centre Feature, or null.
+		 */
+		centreMarkerFeature() {
+			const c = this.cfg.center
+			if (!Array.isArray(c) || c.length !== 2 || !c.every((n) => Number.isFinite(n))) {
+				return null
+			}
+			return {
+				type: 'Feature',
+				geometry: { type: 'Point', coordinates: [c[1], c[0]] },
+				properties: {},
+			}
 		},
 
 		/**
