@@ -88,6 +88,12 @@ registerDashboardWidget('stats-block', {
 	icon: 'ChartBar',
 })
 
+// `table` and `object-list` (below) are legacy aliases of `object-table` — same
+// config form (CnObjectListWidgetForm), same job. They stay registered so
+// existing placements keep rendering, but are hidden from every Add-widget
+// picker via a sentinel surface no picker queries (see widgetTypeAllowsSurface):
+// `object-table` is the one to add now. Rendering resolves through
+// getWidgetTypeEntry, which ignores `surfaces`, so hidden ≠ broken.
 registerDashboardWidget('table', {
 	renderer: CnObjectListWidget2,
 	form: CnObjectListWidgetForm2,
@@ -101,6 +107,7 @@ registerDashboardWidget('table', {
 	},
 	displayName: 'Table',
 	icon: 'ClipboardList',
+	surfaces: ['legacy'],
 })
 
 // `object-list` MUST be registered inline here, not only via the bare
@@ -123,6 +130,7 @@ registerDashboardWidget('object-list', {
 	},
 	displayName: 'Object list',
 	icon: 'ClipboardList',
+	surfaces: ['legacy'],
 })
 
 registerDashboardWidget('related', {
