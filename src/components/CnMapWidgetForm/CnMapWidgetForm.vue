@@ -27,21 +27,26 @@
 			{{ t('nextcloud-vue', 'Objects are plotted from their location (@self.geo). Objects without one are skipped.') }}
 		</p>
 
-		<div class="cn-map-widget-form__row">
-			<NcTextField
-				:value="String(zoom)"
-				type="number"
-				:label="t('nextcloud-vue', 'Zoom')"
-				:label-visible="true"
-				@update:value="onZoom" />
+		<label class="cn-map-widget-form__field">
+			<span class="cn-map-widget-form__label">
+				{{ t('nextcloud-vue', 'Zoom') }} ({{ zoom }})
+			</span>
+			<input
+				type="range"
+				min="1"
+				max="19"
+				step="1"
+				:value="zoom"
+				class="cn-map-widget-form__range"
+				@input="onZoom($event.target.value)">
+		</label>
 
-			<NcTextField
-				:value="height"
-				:label="t('nextcloud-vue', 'Height')"
-				:label-visible="true"
-				placeholder="400px"
-				@update:value="height = $event" />
-		</div>
+		<NcTextField
+			:value="height"
+			:label="t('nextcloud-vue', 'Height')"
+			:label-visible="true"
+			placeholder="400px"
+			@update:value="height = $event" />
 
 		<div class="cn-map-widget-form__row">
 			<NcTextField
@@ -207,13 +212,18 @@ export default {
 		},
 
 		/**
-		 * Zoom is a number; an empty or non-numeric field must not become NaN.
+		 * Zoom is an integer clamped to the slider range; guards against a
+		 * non-numeric value or one outside the slider's `[1, 19]` range.
 		 *
-		 * @param {string} value The raw input value.
+		 * @param {string} value The raw slider value.
 		 */
 		onZoom(value) {
-			const n = Number(value)
-			this.zoom = Number.isFinite(n) ? n : 7
+			const n = Math.round(Number(value))
+			if (!Number.isFinite(n)) {
+				this.zoom = 7
+				return
+			}
+			this.zoom = Math.min(19, Math.max(1, n))
 		},
 
 		/**
@@ -262,5 +272,15 @@ export default {
 	color: var(--color-text-maxcontrast);
 	font-size: 90%;
 	margin: 0;
+}
+
+.cn-map-widget-form__field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.cn-map-widget-form__range {
+	width: 100%;
 }
 </style>
