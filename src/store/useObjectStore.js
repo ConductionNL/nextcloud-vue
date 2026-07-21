@@ -3,6 +3,7 @@ import { buildHeaders, buildQueryString, prefixUrl, capitalize } from '../utils/
 import { parseResponseError, networkError, genericError } from '../utils/errors.js'
 import { extractId } from '../utils/id.js'
 import { mergePluginState, mergePluginGetters, mergePluginActions } from './pluginMerge.js'
+import { liveUpdatesPlugin } from './plugins/liveUpdates.js'
 
 /**
  * Generic Pinia store for OpenRegister object CRUD operations.
@@ -917,7 +918,7 @@ const baseActions = {
  * @param {string} storeId Pinia store identifier
  * @param {Array} [plugins] Array of plugin definitions
  * @param {string} [baseUrl] Base API URL override
- * @param extraOptions
+ * @param {object} [extraOptions] Factory-level getters (organisationUuidGetter, languageGetter, targetLanguageGetter)
  * @return {Function} Pinia store composable
  */
 function defineObjectStore(storeId, plugins = [], baseUrl = DEFAULT_BASE_URL, extraOptions = {}) {
@@ -997,11 +998,19 @@ function defineObjectStore(storeId, plugins = [], baseUrl = DEFAULT_BASE_URL, ex
 /**
  * Default object store instance with ID 'conduction-objects'.
  *
+ * Ships with `liveUpdatesPlugin` installed (manifest-live-updates): the
+ * library's manifest-driven pages (CnIndexPage self-fetch, CnDetailPage
+ * schema-driven, CnPageRenderer) all resolve THIS store, so it needs the
+ * `subscribe`/`unsubscribe` actions for their auto-subscriptions to engage —
+ * mirroring `createObjectStore`'s default-on behaviour (live-updates-default-on).
+ * The plugin is fully inert until the first `subscribe()` call: no notify_push
+ * probe, no websocket, no polling timers, no fetch-dedup wrapping.
+ *
  * @example
  * import { useObjectStore } from '@conduction/nextcloud-vue'
  * const store = useObjectStore()
  */
-export const useObjectStore = defineObjectStore(DEFAULT_STORE_ID, [], prefixUrl(DEFAULT_BASE_URL))
+export const useObjectStore = defineObjectStore(DEFAULT_STORE_ID, [liveUpdatesPlugin()], prefixUrl(DEFAULT_BASE_URL))
 
 /**
  * Factory function to create an object store with a custom Pinia store ID
@@ -1011,6 +1020,20 @@ export const useObjectStore = defineObjectStore(DEFAULT_STORE_ID, [], prefixUrl(
  * @param {object} [options] Configuration options
  * @param {Array} [options.plugins] Array of sub-resource plugins
  * @param {string} [options.baseUrl] Base API URL override
+ * @param {boolean|object} [options.liveUpdates] Live-updates plugin control. The
+ *   `liveUpdatesPlugin` is installed BY DEFAULT on every store created via this
+ *   factory. It is fully inert until the first `store.subscribe()` call: no
+ *   websocket connection attempt, no polling timers, and no request-dedup
+ *   wrapping happen before that. Pass `false` to opt out entirely (the store
+ *   then has no `subscribe`/`unsubscribe` actions and no `liveStatus` state).
+ *   Pass an options object (e.g. `{ pollIntervalCollection: 15000 }`) to
+ *   configure the default-installed plugin. When `options.plugins` already
+ *   contains a `liveUpdatesPlugin(...)` instance, that explicit instance wins
+ *   and no second copy is installed (dedupe by plugin name `'liveUpdates'`).
+ *   The default instance is installed BEFORE `options.plugins`, so on name
+ *   collisions (a consumer plugin defining `subscribe`, `unsubscribe`, or
+ *   live state keys) the consumer plugin keeps priority.
+ *   See the `live-updates-default-on` change.
  * @param {Function} [options.organisationUuidGetter] `() => string|null` — when set, every
  *   request stamps `X-OpenRegister-Organisation: <uuid>` for multi-tenancy.
  *   See the `multi-tenancy-context` change.
@@ -1055,9 +1078,30 @@ export const useObjectStore = defineObjectStore(DEFAULT_STORE_ID, [], prefixUrl(
  * })
  */
 export function createObjectStore(storeId, options = {}) {
+	const plugins = [...(options.plugins || [])]
+
+	// Default-on live updates (live-updates-default-on):
+	// install liveUpdatesPlugin unless the consumer opted out with
+	// `liveUpdates: false`, or already passed their own instance (dedupe
+	// by plugin name so explicit usage keeps working without a double
+	// install). The plugin is inert until the first subscribe() call.
+	//
+	// The default instance is UNSHIFTED before options.plugins: plugin
+	// merge order is later-wins (Object.assign), so consumer plugins keep
+	// collision priority — a consumer plugin that defines its own
+	// `subscribe`/`unsubscribe` action or `liveStatus` state overrides
+	// the default install instead of being silently overridden by it.
+	const hasExplicitLiveUpdates = plugins.some((p) => p && p.name === 'liveUpdates')
+	if (options.liveUpdates !== false && !hasExplicitLiveUpdates) {
+		const liveOpts = (typeof options.liveUpdates === 'object' && options.liveUpdates !== null)
+			? options.liveUpdates
+			: {}
+		plugins.unshift(liveUpdatesPlugin(liveOpts))
+	}
+
 	return defineObjectStore(
 		storeId,
-		options.plugins || [],
+		plugins,
 		options.baseUrl || prefixUrl(DEFAULT_BASE_URL),
 		{
 			organisationUuidGetter: options.organisationUuidGetter || null,

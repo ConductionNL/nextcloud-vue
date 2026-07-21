@@ -160,6 +160,18 @@ registerDashboardWidget('map', {
 		popupField: '',
 		clustering: false,
 		autoFit: true,
+		// A map with no tile layer renders as a grey box. `basemaps` is opt-in and
+		// empty by default (so consumers declaring a `tile` entry in `layers` are
+		// unaffected), which meant a freshly-placed Map widget had NO background at
+		// all. Ship OpenStreetMap — the Nextcloud CSP already allows *.tile.openstreetmap.org.
+		basemaps: [
+			{
+				name: 'OpenStreetMap',
+				url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+				attribution: '© OpenStreetMap contributors',
+				options: { maxZoom: 19 },
+			},
+		],
 		markers: {
 			dataSource: { register: '', schema: '' },
 			popupField: '',

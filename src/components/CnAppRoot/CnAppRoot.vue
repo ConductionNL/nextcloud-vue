@@ -362,6 +362,22 @@
 			<CnAiCompanion v-if="aiCompanion" :chat-app-id="chatAppId" />
 
 			<!--
+			  Command palette (Ctrl/Cmd+K) — auto-mounted, opt-in via the
+			  `commandPalette` prop (default off). Zero-config navigation
+			  source from `manifest.menu`; the "objects" live-search source
+			  is wired by passing `commandPalette: { objectSearch: ... }`
+			  (see `createObjectSearchSource`). Actions register themselves
+			  via `useCommandPalette().register(...)` from anywhere in the
+			  app — no additional wiring here.
+			-->
+			<CnCommandPalette
+				v-if="cnCommandPaletteVisible"
+				:manifest="manifest"
+				:router="$router"
+				:app-id="appId"
+				v-bind="cnCommandPaletteOverrides" />
+
+			<!--
 			  Support note — auto-mounted on first open per the fleet
 			  support-dialog rollout. Deriving slug/name/URLs from `appId`
 			  by convention means apps gain it on a lib bump with no
@@ -541,6 +557,7 @@ import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
 import CnWalkthrough from '../CnWalkthrough/CnWalkthrough.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import { DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
+import CnCommandPalette from '../CnCommandPalette/CnCommandPalette.vue'
 import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
@@ -628,6 +645,7 @@ export default {
 		CnSetupWizard,
 		CnWalkthrough,
 		CnAiCompanion,
+		CnCommandPalette,
 		CnObjectSidebar,
 		CnSupportDialog,
 		CnNotificationPreferences,
@@ -1012,16 +1030,32 @@ export default {
 			default: false,
 		},
 		/**
+		 * Whether to mount the Ctrl/Cmd+K command palette (`CnCommandPalette`).
+		 * Opt-in: `false` (default) keeps it off, so existing apps are
+		 * unaffected until they enable it. Pass `true` for the zero-config
+		 * default (navigation from `manifest.menu` + any commands the app
+		 * registers via `useCommandPalette().register(...)`, no live
+		 * object search), or an object to override any `CnCommandPalette`
+		 * prop — most commonly `{ objectSearch: createObjectSearchSource({...}) }`
+		 * (see `src/utils/commandPaletteObjectSource.js`) to wire live
+		 * OpenRegister search into the palette's "objects" source.
+		 *
+		 * @type {boolean|object}
+		 */
+		commandPalette: {
+			type: [Boolean, Object],
+			default: false,
+		},
+		/**
 		 * Backend app id the AI Chat Companion targets for its chat / health /
 		 * conversation HTTP calls (`/index.php/apps/{chatAppId}/api/...`). This is
 		 * the single configuration point for switching the chat backend — see
-		 * composables/aiChatConfig.js. Defaults to `openregister`.
+		 * composables/aiChatConfig.js. Defaults to `hermiq`.
 		 *
-		 * Per hydra ADR-034 "Amendment 2026-07-05" the agent engine is moving from
-		 * OpenRegister to Hermiq; the default flips to `hermiq` on a coordinated
-		 * `@conduction/nextcloud-vue` beta bump once Hermiq's engine flag is live
-		 * and OR's compat proxy has shipped. Until then, apps that want to target
-		 * Hermiq early can pass `chatAppId="hermiq"` explicitly.
+		 * Per hydra ADR-034 "Amendment 2026-07-05" the agent engine moved from
+		 * OpenRegister to Hermiq and the default flipped to `hermiq`
+		 * (`chat-appid-default-flip`). Deployments riding OpenRegister's compat
+		 * window (openregister#305) can pass `chatAppId="openregister"` explicitly.
 		 *
 		 * @type {string}
 		 */
@@ -1818,6 +1852,27 @@ export default {
 				}
 			}
 			return out
+		},
+		/**
+		 * Whether the `CnCommandPalette` auto-mount is active — `true`, or
+		 * an override object (per the `supportDialog` Boolean|Object
+		 * convention above).
+		 *
+		 * @return {boolean}
+		 */
+		cnCommandPaletteVisible() {
+			return this.commandPalette === true || (!!this.commandPalette && typeof this.commandPalette === 'object')
+		},
+		/**
+		 * Prop overrides supplied via the `commandPalette` object form,
+		 * spread onto `CnCommandPalette` OVER the auto-wired `manifest` /
+		 * `router` / `app-id` — so an app can override e.g. `objectSearch`
+		 * or `shortcut` without losing the zero-config navigation source.
+		 *
+		 * @return {object}
+		 */
+		cnCommandPaletteOverrides() {
+			return (this.commandPalette && typeof this.commandPalette === 'object') ? this.commandPalette : {}
 		},
 		/**
 		 * Per-dependency status, computed once per `appId` declared in

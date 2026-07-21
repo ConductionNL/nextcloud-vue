@@ -318,16 +318,21 @@ The schema's typed `mode` enum (`edit | create | public`) gives consumers IDE co
 
 ## Collaborative editing defaults
 
-`CnDetailPage` auto-subscribes to live updates for the current object when both `objectStore` and (`objectType` + `objectId`) are provided. This wires [`useObjectSubscription`](../utilities/composables/use-object-subscription.md) into the page lifecycle so users see remote changes without polling — including remote pessimistic locks.
+`CnDetailPage` auto-subscribes to live updates for the current object. This wires [`useObjectSubscription`](../utilities/composables/use-object-subscription.md) into the page lifecycle so users see remote changes without polling — including remote pessimistic locks. The store it binds to resolves in two ways:
+
+1. **Explicit `objectStore` prop** (existing behaviour, unchanged) — pass your own store instance; the page subscribes when `objectType`/`objectId` (or `register`+`schema`+`objectId`) are known.
+2. **Schema-driven / manifest mode** — when `register` + `schema` are set and no `objectStore` prop is passed (the `CnPageRenderer` path), the page falls back to the library's default `useObjectStore()` — the same store its self-fetch uses — so **manifest-driven detail pages get live updates with zero app-side wiring**. Legacy `objectType`-only mounts without an explicit store keep today's behaviour (no subscription).
+
+Live events are hints: the underlying `liveUpdatesPlugin` refetches the object (burst-coalesced, in-flight-deduped), the store cache updates, and the page re-renders reactively. When notify_push is unavailable the transport falls back to visibility-gated polling.
 
 When the cached `@self.locked` block indicates another user holds the lock, `CnDetailPage` mounts [`CnLockedBanner`](./cn-locked-banner.md) above the content. The banner renders only when `lockedByMe === false`.
 
-Two opt-out props:
+Opt-out props:
 
 | Prop | Default | Behaviour |
 |------|---------|-----------|
-| `subscribe` | `true` | When `false`, skips the auto-subscribe (useful for read-only / archive views). |
-| `objectStore` | `null` | Pinia store instance. When omitted, both subscribe and lock-state are skipped. Pass the result of `useObjectStore()` from your app. |
+| `subscribe` | `true` | When `false`, skips the auto-subscribe (useful for read-only / archive views). From a manifest: `pages[].config.subscribe: false`. |
+| `objectStore` | `null` | Pinia store instance. When set it always wins over the schema-driven fallback. When omitted **and** the page is not in schema-driven mode, both subscribe and lock-state are skipped. |
 
 See [`useObjectLock`](../utilities/composables/use-object-lock.md) for the lock state contract; the lib does not yet auto-acquire on edit-mode toggle (planned for a follow-up cycle that wires the form dialogs).
 

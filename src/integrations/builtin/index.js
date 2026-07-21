@@ -5,10 +5,10 @@
  * `tasks`, `audit-trail`) that mirror OpenRegister's built-in PHP
  * `IntegrationProvider`s, plus bespoke overrides for leaf integrations
  * that need a richer UI than the generic `CnIntegrationTab` /
- * `CnIntegrationCard` pair (currently: `calendar`, `contacts`, `email`,
- * `talk`, `deck`, `bookmarks`, `polls`, `shares`, `xwiki`,
- * `openproject`, `activity`, `forms`, `flow`, `collectives`, `maps`,
- * `photos`, `analytics`, `cospend`, `time-tracker`).
+ * `CnIntegrationCard` pair (currently: `version-history`, `calendar`,
+ * `contacts`, `email`, `talk`, `deck`, `bookmarks`, `polls`, `shares`,
+ * `xwiki`, `openproject`, `activity`, `forms`, `flow`, `collectives`,
+ * `maps`, `photos`, `analytics`, `cospend`, `time-tracker`).
  *
  * Each entry maps onto a sidebar tab plus a compact widget for
  * dashboard / detail surfaces.
@@ -35,6 +35,7 @@ import { notesIntegration } from './notes.js'
 import { tagsIntegration } from './tags.js'
 import { tasksIntegration } from './tasks.js'
 import { auditTrailIntegration } from './audit-trail.js'
+import { versionHistoryIntegration } from './version-history.js'
 import { calendarIntegration } from './calendar.js'
 import { contactsIntegration } from './contacts.js'
 import { emailIntegration } from './email.js'
@@ -72,6 +73,7 @@ export const builtinIntegrations = [
 	tagsIntegration,
 	tasksIntegration,
 	auditTrailIntegration,
+	versionHistoryIntegration,
 	// comms
 	calendarIntegration,
 	contactsIntegration,
@@ -134,6 +136,7 @@ export {
 	tagsIntegration,
 	tasksIntegration,
 	auditTrailIntegration,
+	versionHistoryIntegration,
 	calendarIntegration,
 	contactsIntegration,
 	emailIntegration,

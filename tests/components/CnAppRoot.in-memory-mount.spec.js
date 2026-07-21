@@ -85,7 +85,7 @@ describe('CnAppRoot — in-memory manifest mount (REQ-IMM-001..REQ-IMM-004)', ()
 
 	// REQ-IMM-001 + REQ-IMM-002: in-memory overload + CnAppRoot mount
 	// produces no manifest HTTP traffic and propagates the manifest by reference.
-	// NOTE: the unrelated AI-companion health probe (GET /apps/openregister/api/chat/health)
+	// NOTE: the unrelated AI-companion health probe (GET /apps/hermiq/api/chat/health)
 	// may issue a single axios call from CnAppRoot's mounted child — that is not
 	// the manifest endpoint and is irrelevant to REQ-IMM-002. We assert that
 	// no call hits a `*/api/manifest` URL.
