@@ -153,10 +153,12 @@
 </template>
 
 <script>
+import { ref } from 'vue'
 import { NcEmptyContent } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
 import { defaultPageTypes } from './pageTypes.js'
+import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import CnPageConfigModal from '../../dialogs/CnPageConfigModal.vue'
@@ -355,6 +357,56 @@ export default {
 			type: Object,
 			default: null,
 		},
+	},
+
+	/**
+	 * Live updates for the v2 widget-grid detail path (#222). A
+	 * `type:"detail"` page rendered through CnWidgetGrid gets its object
+	 * from the `cnDetailObjectContext` holder (see `loadDetailObject`),
+	 * NOT from a page component with its own subscription — so the
+	 * renderer itself subscribes to `or-object-{id}` for the loaded
+	 * object. The plugin's event-driven refetch then lands in
+	 * `store.objects[slug][id]`, which the holder reads through
+	 * reactively.
+	 *
+	 * The refs returned here are DRIVEN by `loadDetailObject`:
+	 *   - `liveSubType` / `liveSubId` re-scope the subscription on route
+	 *     or object change (the composable's epoch guard swaps handles).
+	 *   - `liveSubEnabled` gates on (a) a v2 manifest page that actually
+	 *     renders widget grids — the typed CnDetailPage dispatch path
+	 *     manages its own subscription — and (b) the same
+	 *     `config.subscribe: false` opt-out CnIndexPage / CnDetailPage
+	 *     honour (manifest-live-updates).
+	 *
+	 * Laziness: `enabled` starts `false`, so mounting the renderer on
+	 * any non-detail page causes zero transport activity (resolving the
+	 * default store is inert per the plugin's laziness guarantee).
+	 * Unmount and route changes release via the composable's own
+	 * lifecycle; the polling fallback is the transport's concern.
+	 *
+	 * @return {object} Refs exposed on `this` for `loadDetailObject`.
+	 */
+	setup() {
+		const liveSubType = ref('')
+		const liveSubId = ref('')
+		const liveSubEnabled = ref(false)
+		let liveStore = null
+		try {
+			liveStore = useObjectStore()
+		} catch (err) {
+			// Pinia not installed (stand-alone / unit-test mounts) — no
+			// live updates; loadDetailObject degrades the same way.
+			liveStore = null
+		}
+		if (liveStore) {
+			useObjectSubscription(
+				liveStore,
+				liveSubType,
+				liveSubId,
+				{ enabled: () => Boolean(liveSubEnabled.value && liveSubType.value && liveSubId.value) },
+			)
+		}
+		return { liveSubType, liveSubId, liveSubEnabled }
 	},
 
 	data() {
@@ -1148,19 +1200,40 @@ export default {
 		 * context null, so the page still mounts):
 		 *   1. Resolve `detailLoadContext` (null → clear + return).
 		 *   2. Register the `${register}-${schema}` object type (idempotent).
-		 *   3. Fetch schema + object in parallel.
-		 *   4. Publish `{ objectData, schema, objectType, objectId,
-		 *      register, store }`.
+		 *   3. Publish `{ objectData, schema, objectType, objectId,
+		 *      register, store }` — with `objectData` / `schema` as
+		 *      READ-THROUGH getters over the store cache (see below).
+		 *   4. Re-scope the live `or-object-{id}` subscription (see setup()).
+		 *   5. Fetch schema + object in parallel to warm the cache.
 		 *
-		 * The holder is published immediately with the known ids (and a
-		 * null objectData/schema) so widgets that only need objectId /
-		 * register (e.g. file-manager) render without waiting for the
-		 * object body; objectData/schema are filled in when the fetch
-		 * resolves.
+		 * Read-through holder (#222): `objectData` and `schema` are
+		 * accessors over `store.objects[slug][id]` / `store.schemas[slug]`
+		 * rather than stashed copies, so when the live-updates plugin's
+		 * event-driven refetch replaces the cache entry, every consumer
+		 * reading the holder during render (CnWidgetGrid's
+		 * `detailContextProps`, `resolveObjectTokenContext` callers)
+		 * re-renders with the fresh object — the holder never freezes a
+		 * snapshot. The external contract is unchanged: same keys, same
+		 * `{ value }` holder shape. Vue's observer preserves the accessors
+		 * and makes top-level writes to `objectData` / `schema` silent
+		 * no-ops (accessor without setter), so a consumer cannot clobber
+		 * the live view; all shipped widgets copy before mutating.
+		 *
+		 * The holder is published before the fetches so widgets that only
+		 * need objectId / register (e.g. file-manager) render without
+		 * waiting for the object body; the getters go non-null the moment
+		 * the fetches populate the cache — no re-publish needed.
 		 */
 		async loadDetailObject() {
 			const ctx = this.detailLoadContext
 			if (!ctx) {
+				// Not a detail page (or incomplete triple): clear the holder
+				// and close the live-subscription gate — the composable in
+				// setup() releases any held subscription when it sees the
+				// scope go invalid (the renderer persists across routes).
+				this.liveSubEnabled = false
+				this.liveSubType = ''
+				this.liveSubId = ''
 				this.detailObjectContext.value = null
 				return
 			}
@@ -1170,7 +1243,9 @@ export default {
 				store = useObjectStore()
 			} catch (err) {
 				// Pinia not installed (unit tests). Publish the ids so
-				// id-only widgets still work; skip the object fetch.
+				// id-only widgets still work; skip the object fetch and
+				// leave the live subscription disabled.
+				this.liveSubEnabled = false
 				this.detailObjectContext.value = {
 					objectData: null,
 					schema: null,
@@ -1183,7 +1258,9 @@ export default {
 			}
 
 			// Register the object type (idempotent — registerObjectType
-			// replaces the entry each call).
+			// replaces the entry each call). Must precede the subscription
+			// re-scope below: the plugin's subscribe() rejects unregistered
+			// types.
 			try {
 				if (typeof store.registerObjectType === 'function') {
 					store.registerObjectType(ctx.slug, ctx.schema, ctx.register)
@@ -1193,17 +1270,38 @@ export default {
 				console.warn(`[CnPageRenderer] Failed to register object type "${ctx.slug}" for detail page "${this.currentPage?.id}":`, err)
 			}
 
-			// Publish ids immediately (objectData/schema fill in on fetch).
+			// Publish the read-through holder (see method docblock). The ids
+			// are available immediately; the getters resolve once the cache
+			// fills.
 			this.detailObjectContext.value = {
-				objectData: store.getObject?.(ctx.slug, ctx.objectId) ?? null,
-				schema: store.getSchema?.(ctx.slug) ?? null,
+				get objectData() {
+					return store.getObject?.(ctx.slug, ctx.objectId) ?? null
+				},
+				get schema() {
+					return store.getSchema?.(ctx.slug) ?? null
+				},
 				objectType: ctx.slug,
 				objectId: ctx.objectId,
 				register: ctx.register,
 				store,
 			}
 
-			// Fetch schema + object; tolerate either failing.
+			// Re-scope the live subscription (see setup()). Gated to the v2
+			// widget-grid path — CnWidgetGrid (the holder's only render-time
+			// consumer surface) mounts only for v2 manifests with widget
+			// entries; the typed CnDetailPage dispatch path manages its own
+			// subscription. `config.subscribe: false` opts out, mirroring
+			// CnIndexPage / CnDetailPage (manifest-live-updates).
+			const subscribeOptOut = this.currentPage?.config?.subscribe === false
+			const rendersWidgetGrids = this.isV2Manifest && this.widgetsBySlot.size > 0
+			this.liveSubType = ctx.slug
+			this.liveSubId = ctx.objectId
+			this.liveSubEnabled = !subscribeOptOut && rendersWidgetGrids
+
+			// Warm the cache: fetch schema + object, tolerating either
+			// failing. No re-publish afterwards — the holder's getters read
+			// the cache these fetches populate, so there is nothing to
+			// clobber if the user navigated away mid-fetch either.
 			const tasks = []
 			if (typeof store.fetchSchema === 'function') {
 				tasks.push(store.fetchSchema(ctx.slug).catch(() => null))
@@ -1215,21 +1313,7 @@ export default {
 			} else {
 				tasks.push(Promise.resolve(null))
 			}
-			const [schema, objectData] = await Promise.all(tasks)
-
-			// Guard against a race: only publish if the context still
-			// matches (the user may have navigated away mid-fetch).
-			if (this.detailLoadContext?.objectId !== ctx.objectId) {
-				return
-			}
-			this.detailObjectContext.value = {
-				objectData: objectData ?? store.getObject?.(ctx.slug, ctx.objectId) ?? null,
-				schema: schema ?? store.getSchema?.(ctx.slug) ?? null,
-				objectType: ctx.slug,
-				objectId: ctx.objectId,
-				register: ctx.register,
-				store,
-			}
+			await Promise.all(tasks)
 		},
 		/**
 		 * Auto-register object types declared on the current

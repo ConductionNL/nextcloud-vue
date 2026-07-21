@@ -4,7 +4,7 @@ Top-level mount for the AI Chat Companion widget. Auto-mounted inside `CnAppRoot
 
 ## Behaviour
 
-On `created()`, issues `GET /index.php/apps/openregister/api/chat/health` via axios with a 5-second timeout. When the response is non-2xx, the component renders nothing (no FAB, no panel) and emits no console output above `info` level. The probe result is cached for the component lifetime.
+On `created()`, issues `GET /index.php/apps/hermiq/api/chat/health` via axios with a 5-second timeout. When the response is non-2xx, the component renders nothing (no FAB, no panel) and emits no console output above `info` level. The probe result is cached for the component lifetime.
 
 When the health probe succeeds:
 
@@ -18,7 +18,7 @@ The FAB and panel are both hidden when `useAiContext().pageKind === 'chat'` (i.e
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `position` | `'bottom-right'` \| `'bottom-left'` \| `'top-right'` \| `'top-left'` | `'bottom-right'` | Corner at which to anchor the FAB |
-| `chatAppId` | `String` | `'openregister'` | Backend app id the chat/agent endpoints resolve against; passed through to `useAiChatStream`. |
+| `chatAppId` | `String` | `'hermiq'` | Backend app id the chat/agent endpoints resolve against; passed through to `useAiChatStream`. Pass `'openregister'` to ride OR's compat window (openregister#305). |
 
 ## Inject
 

@@ -198,6 +198,8 @@ describe('liveUpdatesPlugin', () => {
 	})
 
 	// --- In-flight dedup ---
+	// Dedup activates on the first subscribe() call (live-updates-default-on):
+	// each dedup test below subscribes first to flip the activation flag.
 
 	describe('fetchObject deduplication', () => {
 		it('makes only one HTTP request for concurrent fetchObject calls on the same id', async () => {
@@ -205,6 +207,7 @@ describe('liveUpdatesPlugin', () => {
 				registerSlug: 'zaken',
 				schemaSlug: 'meldingen',
 			})
+			await store.subscribe('melding', 'uuid-sub')
 
 			let resolveFirst
 			const pending = new Promise((res) => { resolveFirst = res })
@@ -287,6 +290,7 @@ describe('liveUpdatesPlugin', () => {
 				registerSlug: 'zaken',
 				schemaSlug: 'meldingen',
 			})
+			await store.subscribe('melding', 'uuid-sub')
 
 			let resolve
 			const pending = new Promise((res) => { resolve = res })
@@ -462,6 +466,124 @@ describe('liveUpdatesPlugin', () => {
 
 			// No fetch calls for slugs since they're already in the registry
 			expect(global.fetch).not.toHaveBeenCalled()
+		})
+	})
+
+	// --- Event-burst coalescing (manifest-live-updates) ---
+	// Events are hints: the first event in a burst refetches immediately,
+	// further events inside the refetchDebounce window (default 750 ms)
+	// collapse into ONE trailing refetch. A torn-down subscription cancels
+	// its pending trailing refetch.
+
+	describe('event-burst coalescing', () => {
+		/**
+		 * Subscribe to the collection and return the captured notify_push
+		 * handler for the collection event key, so tests can fire events.
+		 *
+		 * @param {object} [subscribeOpts] Options forwarded to subscribe().
+		 * @return {Promise<{handle: object, fire: Function}>} The handle + event trigger.
+		 */
+		async function subscribeCollection(subscribeOpts) {
+			store.registerObjectType('melding', 'schema-uuid', 'register-uuid', {
+				registerSlug: 'zaken',
+				schemaSlug: 'meldingen',
+			})
+			const handle = await store.subscribe('melding', undefined, subscribeOpts)
+			const call = mockListenFn.mock.calls.find(
+				(args) => args[0] === 'or-collection-zaken-meldingen',
+			)
+			expect(call).toBeTruthy()
+			return { handle, fire: () => call[1]('or-collection-zaken-meldingen', {}) }
+		}
+
+		beforeEach(() => {
+			jest.useFakeTimers()
+			global.fetch = jest.fn().mockResolvedValue(okJson({ results: [], total: 0, page: 1, pages: 1 }))
+		})
+
+		afterEach(() => {
+			jest.useRealTimers()
+		})
+
+		it('a single event refetches immediately (leading edge)', async () => {
+			const { fire } = await subscribeCollection()
+			const dispatchSpy = jest.spyOn(store, 'fetchCollection')
+
+			fire()
+			expect(dispatchSpy).toHaveBeenCalledTimes(1)
+
+			// No phantom trailing refetch after the window closes.
+			jest.advanceTimersByTime(1000)
+			expect(dispatchSpy).toHaveBeenCalledTimes(1)
+		})
+
+		it('a burst collapses into leading + one trailing refetch', async () => {
+			const { fire } = await subscribeCollection()
+			const dispatchSpy = jest.spyOn(store, 'fetchCollection')
+
+			fire()
+			fire()
+			fire()
+			fire()
+			fire()
+			// Leading edge only so far.
+			expect(dispatchSpy).toHaveBeenCalledTimes(1)
+
+			// Window closes → exactly one trailing refetch for the burst.
+			jest.advanceTimersByTime(750)
+			expect(dispatchSpy).toHaveBeenCalledTimes(2)
+
+			// Quiet afterwards — no further dispatches.
+			jest.advanceTimersByTime(2000)
+			expect(dispatchSpy).toHaveBeenCalledTimes(2)
+		})
+
+		it('every event updates liveLastEventAt even while coalescing', async () => {
+			const { fire } = await subscribeCollection()
+
+			fire()
+			const first = store.liveLastEventAt
+			expect(first).toBeInstanceOf(Date)
+
+			fire()
+			expect(store.liveLastEventAt).toBeInstanceOf(Date)
+		})
+
+		it('unsubscribe cancels a pending trailing refetch', async () => {
+			const { handle, fire } = await subscribeCollection()
+			const dispatchSpy = jest.spyOn(store, 'fetchCollection')
+
+			fire()
+			fire() // pending trailing refetch scheduled
+			expect(dispatchSpy).toHaveBeenCalledTimes(1)
+
+			store.unsubscribe(handle)
+			jest.advanceTimersByTime(2000)
+			// The trailing refetch was cancelled with the subscription.
+			expect(dispatchSpy).toHaveBeenCalledTimes(1)
+		})
+
+		it('subscribeOpts.debounce = 0 disables coalescing', async () => {
+			const { fire } = await subscribeCollection({ debounce: 0 })
+			const dispatchSpy = jest.spyOn(store, 'fetchCollection')
+
+			fire()
+			fire()
+			fire()
+			expect(dispatchSpy).toHaveBeenCalledTimes(3)
+		})
+
+		it('unsubscribe is idempotent (no double-decrement of liveSubscriptions)', async () => {
+			const { handle } = await subscribeCollection()
+			const second = await store.subscribe('melding', 'uuid-abc')
+			expect(store.liveSubscriptions).toBe(2)
+
+			store.unsubscribe(handle)
+			store.unsubscribe(handle) // released handle — must be a no-op
+			expect(store.liveSubscriptions).toBe(1)
+
+			store.unsubscribe(second)
+			expect(store.liveSubscriptions).toBe(0)
 		})
 	})
 })

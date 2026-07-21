@@ -47,6 +47,15 @@ module.exports = {
 		'<rootDir>/src/**/__tests__/**/*.spec.js',
 		'<rootDir>/src/**/__tests__/**/*.test.js',
 	],
+	// `tests/a11y/` has its own project (jest.a11y.config.js, run via
+	// `npm run check:a11y`) that swaps the @nextcloud/vue mock for real
+	// components so axe-core inspects real markup — see that config's
+	// docblock. Excluded here so `npm test` doesn't also run those specs
+	// against the generic stub tree (double-run + false pass).
+	testPathIgnorePatterns: [
+		'/node_modules/',
+		'<rootDir>/tests/a11y/',
+	],
 	setupFiles: [
 		'<rootDir>/tests/setup.js',
 	],

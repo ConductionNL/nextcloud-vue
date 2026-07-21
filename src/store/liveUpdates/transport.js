@@ -169,7 +169,18 @@ export function getLiveUpdates(opts = {}) {
 				|| (opts.isObject ? state.pollIntervalObject : state.pollIntervalCollection)
 
 			const transport = getOrInitTransport()
-			const internalHandle = transport.subscribe(eventKey, cb, interval)
+			let internalHandle = transport.subscribe(eventKey, cb, interval)
+
+			// The websocket transport can synchronously emit 'polling' during
+			// its first subscribe (the listen() probe says push is unavailable).
+			// switchToPolling() only migrates subscriptions already recorded in
+			// `state.handles`, so THIS in-progress subscription would be
+			// stranded on the dead websocket transport and never poll.
+			// Detect the switch and re-subscribe on the now-active transport.
+			if (state.activeTransport && state.activeTransport !== transport) {
+				transport.unsubscribe(internalHandle)
+				internalHandle = state.activeTransport.subscribe(eventKey, cb, interval)
+			}
 
 			// Attach interval metadata for potential transport switch
 			internalHandle._interval = interval

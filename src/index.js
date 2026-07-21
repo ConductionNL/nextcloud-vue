@@ -98,7 +98,10 @@ export {
 	CnTimelineView,
 	CnItemCard,
 	CnSchemaFormDialog,
+	CnSavedViewsControl,
+	CnSaveViewDialog,
 	CnSearchPage,
+	CnCommandPalette,
 	CnTabbedFormDialog,
 	CnTimelineStages,
 	CnTreeView,
@@ -107,8 +110,10 @@ export {
 	CnTasksCard,
 	CnFilesCard,
 	CnFileManager,
+	CnRelatedFiles,
 	CnTagsCard,
 	CnAuditTrailCard,
+	CnVersionHistory,
 	CnEmailCard,
 	CnEmailTab,
 	CnContactsCard,
@@ -277,7 +282,13 @@ export {
 export { useAiContext, useAiChatStream } from './composables/index.js'
 // AI Chat Companion backend config (single point for the chat backend app id)
 export { DEFAULT_CHAT_APP_ID, chatApiBase, chatStreamUrl, chatSendUrl, chatHealthUrl, conversationsUrl, conversationMessagesUrl } from './composables/index.js'
-export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, clearContextMenuPositionDom, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, useAppManifest, useAppStatus, useAppInstaller, useSetupStatus, useWalkthrough, useGraphQL, useDataSource, selectByPath, buildCountQuery, buildBucketQuery, useBrokeredCall, useEndpointSource, fetchEndpointSource, invalidateEndpointSourceCache, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest, useSupportDialog, useClickDragGuard, useTenantContext, provideTenantContext, createTenantContext, TENANT_CONTEXT_KEY, useManifestEditor, useOpenBuildEditAvailability, useManifestEditHistory } from './composables/index.js'
+export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, clearContextMenuPositionDom, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, useAppManifest, useAppStatus, useAppInstaller, useSetupStatus, useWalkthrough, useGraphQL, useDataSource, selectByPath, buildCountQuery, buildBucketQuery, useBrokeredCall, useEndpointSource, fetchEndpointSource, invalidateEndpointSourceCache, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest, useSupportDialog, useClickDragGuard, useTenantContext, provideTenantContext, createTenantContext, TENANT_CONTEXT_KEY, useManifestEditor, useOpenBuildEditAvailability, useManifestEditHistory, useCommandPalette } from './composables/index.js'
+
+// Command palette — the "objects" source adapter (see docs/utilities/create-object-search-source.md).
+// `resolveManifestDetailRoute` is intentionally subpath-only (not re-exported here), same
+// precedent as the NL-government icon sets below — import it directly from
+// '@conduction/nextcloud-vue/src/utils/commandPaletteObjectSource.js' when you need it.
+export { createObjectSearchSource } from './utils/commandPaletteObjectSource.js'
 
 // Integration registry (pluggable integrations — sidebar tabs and widgets)
 export { integrations, createIntegrationRegistry, installIntegrationRegistry, registerIntegration, getSharedRegistry, sharedRegistryIfInstalled, VALID_SURFACES, builtinIntegrations, registerBuiltinIntegrations, leafIntegrations, registerLeafIntegrations, talkIntegration, fieldInspectionIntegration, registerIntegrationIcons, INTEGRATION_ICON_COMPONENTS } from './integrations/index.js'

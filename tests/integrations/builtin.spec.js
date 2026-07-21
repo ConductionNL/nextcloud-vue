@@ -54,7 +54,11 @@ const BESPOKE_LEAF_IDS = [
 	'xwiki',
 ]
 
-const ALL_IDS = [...CANONICAL_IDS, ...BESPOKE_LEAF_IDS]
+// `version-history` is a bespoke-but-`core`-group addition (not a
+// PHP-backed provider like the canonical five) declared right after
+// `audit-trail` and before the comms/docs/workflow/external bespoke
+// leaf block — see `src/integrations/builtin/version-history.js`.
+const ALL_IDS = [...CANONICAL_IDS, 'version-history', ...BESPOKE_LEAF_IDS]
 
 // Same set but sorted by `order` ascending — `reg.list()` returns the
 // providers sorted by `.order` (see `registry.js`), so the assertion
@@ -66,6 +70,7 @@ const SORTED_IDS = [
 	'tags', // 3
 	'tasks', // 4
 	'audit-trail', // 5
+	'version-history', // 6
 	'shares', // 10
 	'calendar', // 20
 	'contacts', // 21
@@ -133,6 +138,16 @@ describe('builtinIntegrations', () => {
 		for (const d of builtinIntegrations) {
 			expect(d.referenceType).toBe(d.id)
 		}
+	})
+
+	it('version-history is additive alongside audit-trail (no collision)', () => {
+		const byId = Object.fromEntries(builtinIntegrations.map((d) => [d.id, d]))
+		expect(byId['audit-trail']).toBeTruthy()
+		expect(byId['version-history']).toBeTruthy()
+		expect(byId['version-history'].order).toBe(6)
+		expect(byId['version-history'].icon).toBe('FileCompare')
+		expect(byId['version-history'].group).toBe('core')
+		expect(byId['version-history'].requiredApp).toBe(null)
 	})
 })
 
