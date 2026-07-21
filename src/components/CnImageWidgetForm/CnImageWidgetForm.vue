@@ -152,6 +152,8 @@ export default {
 			default: null,
 		},
 		/**
+		 * Legacy base64 upload transport, superseded by `fileUploadFn`.
+		 *
 		 * @deprecated Use {@link fileUploadFn} instead. Legacy base64 transport
 		 * `async (dataUrl: string) => ({ url })`, kept for backward compatibility.
 		 * When `fileUploadFn` is not set but this is, `commit()` reads the file to

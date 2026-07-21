@@ -350,7 +350,7 @@ export default {
 | `selectedIds` | Array | `[]` | Currently selected row IDs (controlled) |
 | `sortKey` | String | `null` | Current sort key |
 | `sortOrder` | String | `'asc'` | Current sort direction (`'asc'` or `'desc'`) |
-| `sortKeys` | Array | `[]` | Ordered multi-column sort state (`[{ key, order }]`) for host-controlled mode; ignored in self-fetch mode. |
+| `sortKeys` | Array | `[]` | External/host-controlled multi-column ("shift+click") sort key list, `[{ key, order }, …]`; self-fetch mode persists/restores its own multi-sort via `$route.query._order` instead |
 | `defaultSort` | Array | `[]` | Default multi-key client-side sort (`[{ field, order }]`) applied while no explicit `sortKey` is active; suppressed once the user sorts a column. |
 | `rowKey` | String | `'id'` | Property name used as the unique row identifier |
 | `activeOrganisation` | Object \| null | `null` | Optional multi-tenant binding. When the bound organisation entity changes, the page calls `store.setActiveTenantOrganisation(uuid)` so the next `fetchCollection()` stamps `X-OpenRegister-Organisation: <uuid>` and the in-memory list caches are cleared. Wire this from a tenant-switcher higher in the tree; leave `null` for single-tenant pages. |
@@ -366,6 +366,7 @@ export default {
 | `showMassImport` | Boolean | `true` | Whether to show the mass Import action |
 | `showMassCopy` | Boolean | `true` | Whether to show the mass Copy action |
 | `allowExport` | Boolean | `false` | Opt-in flag for the native Export menu (CSV/Excel) next to the Add button. Renders only when `true` AND the resolved schema is flagged `exportable: true`; navigates to OpenRegister's export leaf (`GET /apps/openregister/api/objects/{register}/{schema}/export`), passing `$route.query` through as filters. Distinct from `showMassExport`, which exports the fetched/selected rows via a blob download. |
+| `allowSavedViews` | Boolean | `false` | Opt-in flag for the saved-views control (saved-views-ui): a Views dropdown listing the user's OpenRegister saved-search views (`GET /apps/openregister/api/views`). Applying one writes its stored filters/search/sort into the route query (`_search`/`_sortKey`/`_sortOrder` reserved keys + plain filter keys); "Save current view…" persists the current route-query state via POST; own views can be deleted after confirmation. Emits `apply-view`. |
 | `massActionNameField` | String | `'title'` | Property name used to display item names in dialogs |
 | `nameFormatter` | Function | `null` | Custom formatter for item names in dialogs; overrides `massActionNameField` |
 | `exportFormats` | Array | `[Excel, CSV]` | Available export formats for the export dialog |
@@ -407,6 +408,7 @@ export default {
 | `quickFilterMultiple` | Boolean | `false` | Allow several quick filters active at once; selected tabs' filters are OR-ed into the fetch (same field → `field[]=` array). Fed from `pages[].config.quickFilterMultiple`. |
 | `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the `customComponents` registry on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log `console.warn` once and fall back to the default. |
 | `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
+| `subscribe` | Boolean | `true` | Self-fetch mode only. When `register` + `schema` are set (and no `objects` prop), the page subscribes to the collection's `or-collection-{register}-{schema}` live-update scope on mount and refetches on an update event; released on unmount. Set `false` (manifest: `config.subscribe: false`) for static / read-once views. No-op in consumer-managed mode or on stores without live-updates support. |
 
 ## Self-fetch mode (manifest `type:"index"` pages)
 

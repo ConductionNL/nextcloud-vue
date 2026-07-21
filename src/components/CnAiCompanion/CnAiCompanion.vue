@@ -66,10 +66,10 @@ export default {
 		 * Backend app id that answers the chat/health/conversation HTTP calls
 		 * (`/index.php/apps/{chatAppId}/api/...`). Single configuration point for
 		 * the AI Chat Companion's backend — see composables/aiChatConfig.js.
-		 * Defaults to `openregister`; `CnAppRoot` forwards its own `chatAppId`
+		 * Defaults to `hermiq` (the agent engine's home per hydra ADR-034
+		 * "Amendment 2026-07-05"); `CnAppRoot` forwards its own `chatAppId`
 		 * prop here so a consuming app can point the widget at another backend
-		 * (e.g. `hermiq`) in one place. Per hydra ADR-034 "Amendment 2026-07-05"
-		 * the default flip to `hermiq` is a deferred, coordinated change.
+		 * (e.g. `openregister` during its compat window) in one place.
 		 * @type {string}
 		 */
 		chatAppId: {

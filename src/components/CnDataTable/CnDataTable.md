@@ -186,7 +186,7 @@ export default {
 | `includeColumns` | Array | `null` | Column keys to include (whitelist) in schema mode |
 | `sortKey` | String | `null` | Currently active sort column key (controlled) |
 | `sortOrder` | String | `'asc'` | Current sort direction: `'asc'` or `'desc'` |
-| `sortKeys` | Array | `[]` | Ordered multi-column sort state (`[{ key, order }]`, up to 3). Empty → falls back to single-sort `sortKey`/`sortOrder`. Shift+click a header to append a key. |
+| `sortKeys` | Array | `[]` | Ordered multi-column ("shift+click") sort key list, `[{ key, order }, …]` (0–3 entries); takes precedence over `sortKey`/`sortOrder` when non-empty |
 | `selectedIds` | Array | `[]` | Array of selected row IDs (controlled) |
 | `rowClass` | Function | `null` | `(row) => string` — CSS class(es) applied to each `<tr>` |
 | `rowClickToView` | Boolean | `false` | Emit `row-click` on a row-body click even while `selectable` (selection then via the checkbox column only) |

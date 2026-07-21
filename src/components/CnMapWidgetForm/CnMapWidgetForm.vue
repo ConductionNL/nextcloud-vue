@@ -88,6 +88,17 @@ import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
 // autoFit is on by default, so this only shows before any object is plotted.
 const DEFAULT_CENTRE = [52.13, 5.29]
 
+// Without a basemap the widget renders a grey box: CnMapWidget's `basemaps` prop is
+// opt-in and empty by default. The Nextcloud CSP already allows *.tile.openstreetmap.org.
+const DEFAULT_BASEMAPS = [
+	{
+		name: 'OpenStreetMap',
+		url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+		attribution: '© OpenStreetMap contributors',
+		options: { maxZoom: 19 },
+	},
+]
+
 const DEFAULT_CONTENT = {
 	register: '',
 	schema: '',
@@ -97,6 +108,7 @@ const DEFAULT_CONTENT = {
 	popupField: '',
 	clustering: false,
 	autoFit: true,
+	basemaps: DEFAULT_BASEMAPS,
 }
 
 /**
@@ -162,6 +174,11 @@ export default {
 			clustering: initial.clustering === true,
 			autoFit: initial.autoFit !== false,
 			centerMarker: initial.markers?.centerMarker === true,
+			// Preserved verbatim: the form does not expose a basemap picker, and dropping
+			// it on save would turn the user's map into a grey box.
+			basemaps: Array.isArray(initial.basemaps) && initial.basemaps.length
+				? initial.basemaps
+				: DEFAULT_BASEMAPS,
 		}
 	},
 
@@ -177,6 +194,7 @@ export default {
 				popupField: this.popupField,
 				clustering: this.clustering,
 				autoFit: this.autoFit,
+				basemaps: this.basemaps,
 				// CnMapWidget reads its markers from here; `dataSource.{register, schema}`
 				// is the shape its resolver understands.
 				markers: {

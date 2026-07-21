@@ -34,11 +34,16 @@
 		</div>
 
 		<!-- Notes list -->
-		<NcLoadingIcon v-if="loading" />
+		<!-- Standalone spinner: give it an accessible name so screen readers
+		     announce the loading state (WCAG 1.1.1 / 4.1.2 — a bare
+		     NcLoadingIcon renders an unlabelled role="img"). -->
+		<NcLoadingIcon v-if="loading" :name="loadingLabel" />
 		<div v-else-if="notes.length === 0" class="cn-sidebar-tab__empty">
 			{{ noNotesLabel }}
 		</div>
-		<div v-else class="cn-sidebar-tab__list">
+		<!-- <ul>, not <div>: NcListItem renders an <li>, which WCAG 1.3.1
+		     requires to be contained in a <ul>/<ol> (axe "listitem"). -->
+		<ul v-else class="cn-sidebar-tab__list">
 			<NcListItem
 				v-for="note in notes"
 				:key="note.id"
@@ -78,7 +83,7 @@
 					</NcActionButton>
 				</template>
 			</NcListItem>
-		</div>
+		</ul>
 	</div>
 </template>
 
@@ -121,6 +126,7 @@ export default {
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 		/** Text shown when there are no notes */
 		noNotesLabel: { type: String, default: () => t('nextcloud-vue', 'No notes yet') },
+		loadingLabel: { type: String, default: () => t('nextcloud-vue', 'Loading notes…') },
 	},
 
 	emits: [
@@ -386,7 +392,7 @@ export default {
 	font-size: 13px;
 }
 
-.cn-sidebar-tab__list { display: flex; flex-direction: column; gap: 2px; }
+.cn-sidebar-tab__list { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
 
 .cn-notes-tab__mention {
 	display: inline-block;
