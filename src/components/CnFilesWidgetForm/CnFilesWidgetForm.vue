@@ -81,7 +81,7 @@
 <script>
 import { NcTextField, NcSelect, NcButton } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import { getFilePickerBuilder } from '@nextcloud/dialogs'
+import { getFilePickerBuilder, showError, FilePickerClosed } from '@nextcloud/dialogs'
 // The native file-picker modal ships its chrome styles here; without this the
 // spawned picker renders unstyled. Rules are scoped to the picker/dialog
 // classes, so this adds no app-wide restyling.
@@ -279,7 +279,15 @@ export default {
 				this.fileId = this.coerceFileId(node.fileid)
 				this.$emit('update:content', this.assembledContent)
 			} catch (e) {
-				// FilePickerClosed on cancel — no-op.
+				if (e instanceof FilePickerClosed) {
+					return
+				}
+				// The lazy picker chunk failed to load, or the dialog threw — the
+				// Browse button would otherwise look dead. Log for debugging (ADR-062:
+				// never leak a raw stack into the UI) and tell the user quietly.
+				// eslint-disable-next-line no-console
+				console.warn('[CnFilesWidgetForm] folder picker failed to open:', e)
+				showError(t('nextcloud-vue', 'Could not open the folder picker'))
 			}
 		},
 
