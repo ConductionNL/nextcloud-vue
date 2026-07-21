@@ -121,7 +121,7 @@
 			<label class="cn-stat-widget-form__color-label">
 				{{ t('nextcloud-vue', 'Icon color') }}
 				<CnColorPicker
-					:value="iconColor || valueColor"
+					:value="iconColor"
 					clearable
 					@input="updateField('iconColor', $event.hex)"
 					@clear="updateField('iconColor', '')" />
