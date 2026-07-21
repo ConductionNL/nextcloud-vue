@@ -5,18 +5,20 @@
 
 <template>
 	<div class="cn-files-widget-form">
-		<NcTextField
-			:value="folderPath"
-			:label="t('nextcloud-vue', 'Folder path')"
-			:placeholder="t('nextcloud-vue', 'e.g. /Documents/Marketing')"
-			required
-			@update:value="updateField('folderPath', $event)" />
-
-		<NcTextField
-			:value="fileIdString"
-			:label="t('nextcloud-vue', 'Folder ID (optional, preferred)')"
-			:placeholder="t('nextcloud-vue', 'Numeric file id of the folder')"
-			@update:value="updateFileId" />
+		<div class="cn-files-widget-form__folder">
+			<span class="cn-files-widget-form__folder-label">{{ t('nextcloud-vue', 'Folder') }}</span>
+			<div class="cn-files-widget-form__folder-row">
+				<span class="cn-files-widget-form__folder-path" :title="folderPath || '/'">
+					{{ folderPath || '/' }}
+				</span>
+				<NcButton type="secondary" @click="openFolderPicker">
+					<template #icon>
+						<FolderOutline :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Browse…') }}
+				</NcButton>
+			</div>
+		</div>
 
 		<NcSelect
 			:value="viewMode"
@@ -77,8 +79,14 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect } from '@nextcloud/vue'
+import { NcTextField, NcSelect, NcButton } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { getFilePickerBuilder, showError, FilePickerClosed } from '@nextcloud/dialogs'
+// The native file-picker modal ships its chrome styles here; without this the
+// spawned picker renders unstyled. Rules are scoped to the picker/dialog
+// classes, so this adds no app-wide restyling.
+import '@nextcloud/dialogs/style.css'
+import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 
 const VIEW_MODES = Object.freeze(['list', 'grid', 'tree'])
 const SORT_FIELDS = Object.freeze(['name', 'modified', 'size', 'type'])
@@ -102,10 +110,14 @@ const DEFAULT_CONTENT = Object.freeze({
  * CnFilesWidgetForm — the `CnAddWidgetModal` sub-form for creating or editing
  * a `files` widget placement (renderer: {@link CnFilesWidget}).
  *
- * Exposes nine controls — `folderPath`, `fileId`, `viewMode`,
+ * The folder is chosen with the native Nextcloud folder picker (a "Browse…"
+ * button opens {@link https://www.npmjs.com/package/@nextcloud/dialogs | getFilePickerBuilder}
+ * restricted to directories); the pick sets both `folderPath` and the
+ * backend-preferred numeric `fileId` from the selected node, so no free-text
+ * path/id entry is needed. The remaining controls are `viewMode`,
  * `showThumbnails`, `mimeTypeFilter`, `allowUpload`, `allowDelete`, `sortBy`,
- * `sortDescending`. Emits `update:content` with the assembled content blob on
- * every change. `validate()` requires either a non-empty `folderPath` OR a
+ * and `sortDescending`. Emits `update:content` with the assembled content blob
+ * on every change. `validate()` requires either a non-empty `folderPath` OR a
  * numeric `fileId` so the placement always resolves to a folder at view time.
  */
 export default {
@@ -114,6 +126,8 @@ export default {
 	components: {
 		NcTextField,
 		NcSelect,
+		NcButton,
+		FolderOutline,
 	},
 
 	props: {
@@ -165,11 +179,6 @@ export default {
 	},
 
 	computed: {
-		/** The numeric `fileId` rendered as a string for the text field. */
-		fileIdString() {
-			return this.fileId === null || this.fileId === undefined ? '' : String(this.fileId)
-		},
-
 		/** The MIME filter list joined for the comma-separated text field. */
 		mimeTypeFilterString() {
 			return this.mimeTypeFilter.join(', ')
@@ -243,14 +252,43 @@ export default {
 		},
 
 		/**
-		 * Coerce + set the `fileId` from the text field, then notify.
+		 * Open the native Nextcloud folder picker (directories only) and, on a
+		 * pick, set both `folderPath` and the backend-preferred `fileId` from
+		 * the chosen node, then notify. A cancel/close rejects the picker
+		 * promise and is treated as a no-op.
 		 *
-		 * @param {string} value the raw text value.
-		 * @return {void}
+		 * @return {Promise<void>}
 		 */
-		updateFileId(value) {
-			this.fileId = this.coerceFileId(value)
-			this.$emit('update:content', this.assembledContent)
+		async openFolderPicker() {
+			const picker = getFilePickerBuilder(t('nextcloud-vue', 'Choose a folder'))
+				.setMultiSelect(false)
+				.setMimeTypeFilter(['httpd/unix-directory'])
+				.allowDirectories(true)
+				.startAt(this.folderPath || '/')
+				// v6 replacement for the deprecated setType(Choose): the node
+				// resolution comes from the picker itself, so the callback is a no-op.
+				.addButton({ label: t('nextcloud-vue', 'Choose'), type: 'primary', callback: () => {} })
+				.build()
+			try {
+				const nodes = await picker.pickNodes()
+				const node = Array.isArray(nodes) ? nodes[0] : nodes
+				if (!node) {
+					return
+				}
+				this.folderPath = node.path
+				this.fileId = this.coerceFileId(node.fileid)
+				this.$emit('update:content', this.assembledContent)
+			} catch (e) {
+				if (e instanceof FilePickerClosed) {
+					return
+				}
+				// The lazy picker chunk failed to load, or the dialog threw — the
+				// Browse button would otherwise look dead. Log for debugging (ADR-062:
+				// never leak a raw stack into the UI) and tell the user quietly.
+				// eslint-disable-next-line no-console
+				console.warn('[CnFilesWidgetForm] folder picker failed to open:', e)
+				showError(t('nextcloud-vue', 'Could not open the folder picker'))
+			}
 		},
 
 		/**
@@ -299,5 +337,35 @@ export default {
 	align-items: center;
 	gap: 8px;
 	font-size: 14px;
+}
+
+.cn-files-widget-form__folder {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.cn-files-widget-form__folder-label {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-files-widget-form__folder-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-files-widget-form__folder-path {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	padding: 8px 12px;
+	border: 2px solid var(--color-border-maxcontrast);
+	border-radius: var(--border-radius-large);
+	background-color: var(--color-main-background);
+	color: var(--color-main-text);
 }
 </style>

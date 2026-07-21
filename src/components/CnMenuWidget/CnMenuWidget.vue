@@ -72,6 +72,7 @@
 			</ul>
 			<div
 				v-if="megaOpenIndex !== null && hasChildren(items[megaOpenIndex])"
+				ref="megaPanel"
 				class="cn-menu-widget__mega-panel"
 				role="menu">
 				<div
@@ -122,6 +123,7 @@
 			<li
 				v-for="(item, idx) in items"
 				:key="`drop-top-${idx}`"
+				:ref="(el) => setBarItemRef(el, idx)"
 				role="none"
 				class="cn-menu-widget__bar-item">
 				<button
@@ -213,6 +215,13 @@ const VALID_HIGHLIGHTS = ['background', 'underline', 'left-bar', 'none']
  * highlight (`underline`, `background`, `left-bar`, `none`) renders
  * consistently. Keyboard navigation follows the WAI-ARIA Menu/Menubar pattern.
  *
+ * Open dropdown/megamenu panels close on: re-clicking the toggle, Escape,
+ * Tab, navigating a leaf, and clicking ANYWHERE else — including empty space
+ * elsewhere in the widget itself, not just outside it entirely (a
+ * document-level listener that checks containment against the open toggle
+ * button + its own panel specifically, since the panels are plain in-DOM
+ * markup, not a teleported popover with its own outside-click handling).
+ *
  * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
  */
 export default {
@@ -258,6 +267,7 @@ export default {
 			megaOpenIndex: null,
 			currentLocation: this.readLocation(),
 			topRefs: [],
+			barItemRefs: [],
 		}
 	},
 
@@ -393,12 +403,19 @@ export default {
 			window.addEventListener('popstate', this.boundLocationListener)
 			window.addEventListener('hashchange', this.boundLocationListener)
 		}
+		this.boundOutsideClickListener = this.onOutsideClick
+		if (typeof document !== 'undefined') {
+			document.addEventListener('click', this.boundOutsideClickListener)
+		}
 	},
 
 	beforeDestroy() {
 		if (typeof window !== 'undefined' && this.boundLocationListener) {
 			window.removeEventListener('popstate', this.boundLocationListener)
 			window.removeEventListener('hashchange', this.boundLocationListener)
+		}
+		if (typeof document !== 'undefined' && this.boundOutsideClickListener) {
+			document.removeEventListener('click', this.boundOutsideClickListener)
 		}
 	},
 
@@ -428,6 +445,21 @@ export default {
 		setTopRef(el, idx) {
 			if (el) {
 				this.topRefs[idx] = el
+			}
+		},
+
+		/**
+		 * Stash a dropdown-style top-level `<li>` ref by index. This `<li>`
+		 * contains both the toggle button and its dropdown/flyout panel, so a
+		 * single containment check against it covers the whole open structure.
+		 *
+		 * @param {HTMLElement} el the `<li>` element.
+		 * @param {number} idx the item index.
+		 * @return {void}
+		 */
+		setBarItemRef(el, idx) {
+			if (el) {
+				this.barItemRefs[idx] = el
 			}
 		},
 
@@ -532,6 +564,45 @@ export default {
 			this.dropOpenIndex = null
 			this.flyoutOpenKey = null
 			this.megaOpenIndex = null
+		},
+
+		/**
+		 * Document-level click handler — closes any open dropdown/flyout/panel
+		 * when the click lands outside its own toggle button + panel, INCLUDING
+		 * empty space elsewhere in the widget (e.g. bar padding, gaps between
+		 * items) — not just outside the whole widget. The toggle button's own
+		 * `@click` handler manages opening/closing for its own clicks, so a
+		 * click still inside the open button/panel is left alone — otherwise
+		 * every open-toggle click would immediately re-close itself via this
+		 * same listener.
+		 *
+		 * @param {MouseEvent} event the document click event.
+		 * @return {void}
+		 */
+		onOutsideClick(event) {
+			const target = event.target
+			if (this.effectiveStyle === 'megamenu') {
+				if (this.megaOpenIndex === null) {
+					return
+				}
+				const button = this.topRefs[this.megaOpenIndex]
+				const panel = this.$refs.megaPanel
+				const insideButton = Boolean(button && button.contains(target))
+				const insidePanel = Boolean(panel && panel.contains(target))
+				if (!insideButton && !insidePanel) {
+					this.closeAll()
+				}
+				return
+			}
+			// Dropdown style — the button and its dropdown/flyout panel share
+			// the same top-level `<li>`, so one containment check covers both.
+			if (this.dropOpenIndex === null) {
+				return
+			}
+			const barItem = this.barItemRefs[this.dropOpenIndex]
+			if (barItem && !barItem.contains(target)) {
+				this.closeAll()
+			}
 		},
 
 		/**

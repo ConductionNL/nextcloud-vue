@@ -61,7 +61,7 @@
 				Positioned absolute (top-right) by default; consumers MAY override with their own
 				container.
 			-->
-			<slot name="legend" :layers="layers" :markers="markers" />
+			<slot name="legend" :layers="cfg.layers" :markers="cfg.markers" />
 		</div>
 	</div>
 </template>
@@ -80,6 +80,19 @@ import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurif
 import { objectToGeoFeature } from '../../utils/geo.js'
 
 const ALLOWED_LAYER_TYPES = ['tile', 'wms', 'wfs', 'geojson']
+
+// Fallback background used when the consumer configures no `basemaps` and no
+// `tile`/`wms` entry in `layers` — otherwise the map paints white. Consuming
+// apps MUST allow this host in their Content-Security-Policy `img-src`
+// (Nextcloud blocks external images by default) or the tiles are CSP-blocked
+// and the map stays blank.
+const DEFAULT_BASEMAP = {
+	url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+	options: {
+		attribution: '© OpenStreetMap contributors',
+		maxZoom: 19,
+	},
+}
 
 // MDI paths for the custom control buttons, inlined so the widget carries no
 // icon-font dependency and renders identically inside a Leaflet control bar.
@@ -145,12 +158,15 @@ export default {
 
 	props: {
 		/**
-		 * Initial map center as `[latitude, longitude]`.
+		 * Initial map center as `[latitude, longitude]`. Optional: on a dashboard
+		 * the centre arrives via `content.center` (see the `cfg` computed), and when
+		 * neither source supplies a valid pair it defaults to `[52.13, 5.29]` (the
+		 * Netherlands).
 		 * @type {[number, number]}
 		 */
 		center: {
 			type: Array,
-			required: true,
+			default: () => [52.13, 5.29],
 			validator: (v) => Array.isArray(v) && v.length === 2 && v.every((n) => typeof n === 'number' && Number.isFinite(n)),
 		},
 		/**
@@ -173,9 +189,11 @@ export default {
 		},
 		/**
 		 * Marker config. `{ features?, dataSource?, latField?, lngField?, popupField?,
-		 * clustering?, iconColor?, iconUrl? }`. `features[]` is inline; `dataSource.url`
-		 * is HTTP-fetched on mount; `dataSource.{register, schema}` plots the objects of
-		 * an OpenRegister register/schema via their `@self.geo`.
+		 * clustering?, iconColor?, iconUrl?, centerMarker? }`. `features[]` is inline;
+		 * `dataSource.url` is HTTP-fetched on mount; `dataSource.{register, schema}`
+		 * plots the objects of an OpenRegister register/schema via their `@self.geo`.
+		 * `centerMarker: true` adds an extra pin at the map's `center`, alongside any
+		 * source markers.
 		 * @type {object|null}
 		 */
 		markers: {
@@ -262,6 +280,27 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Map library not available'),
 		},
+		/**
+		 * Dashboard `content` blob. When this widget is placed on a dashboard, the
+		 * grid stores its config here and each key (`center`, `zoom`, `markers`,
+		 * `clustering`, `height`, `autoFit`, `layers`, `basemaps`) overrides the
+		 * matching flat prop. Direct (non-dashboard) consumers omit this and pass
+		 * the flat props instead. See the `cfg` computed for the merge rules.
+		 * @type {object|null}
+		 */
+		content: {
+			type: Object,
+			default: null,
+		},
+		/**
+		 * Dashboard placement record. Declared so the grid's `:placement` binding is
+		 * consumed as a prop instead of leaking onto the root element; unused here.
+		 * @type {object|null}
+		 */
+		placement: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	/**
@@ -300,30 +339,67 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Effective configuration. On a dashboard the placement `content` blob
+		 * carries the widget's config, so each key falls back to `content.<key>`
+		 * when present and otherwise uses the matching flat prop. This lets
+		 * CnMapWidget work both directly (flat props) and as a dashboard renderer
+		 * (a grid that binds only `:content` never spreads the keys as props).
+		 *
+		 * @return {object} the resolved `{ center, zoom, layers, markers,
+		 *   clustering, height, autoFit, basemaps }`.
+		 */
+		cfg() {
+			const c = this.content || {}
+			const p = this.$props
+			const validCentre = Array.isArray(c.center) && c.center.length === 2
+				&& c.center.every((n) => Number.isFinite(n))
+			return {
+				center: validCentre ? c.center : p.center,
+				zoom: Number.isFinite(c.zoom) ? c.zoom : p.zoom,
+				layers: Array.isArray(c.layers) ? c.layers : p.layers,
+				markers: (c.markers !== undefined && c.markers !== null) ? c.markers : p.markers,
+				clustering: typeof c.clustering === 'boolean' ? c.clustering : p.clustering,
+				height: (c.height !== undefined && c.height !== null && c.height !== '') ? c.height : p.height,
+				autoFit: typeof c.autoFit === 'boolean' ? c.autoFit : p.autoFit,
+				basemaps: Array.isArray(c.basemaps) ? c.basemaps : p.basemaps,
+			}
+		},
 		resolvedHeight() {
-			if (typeof this.height === 'number') return `${this.height}px`
-			return this.height
+			if (typeof this.cfg.height === 'number') return `${this.cfg.height}px`
+			return this.cfg.height
 		},
 		clusteringEnabled() {
-			if (this.markers && typeof this.markers.clustering === 'boolean') {
-				return this.markers.clustering
+			if (this.cfg.markers && typeof this.cfg.markers.clustering === 'boolean') {
+				return this.cfg.markers.clustering
 			}
-			return this.clustering
+			return this.cfg.clustering
 		},
 	},
 
 	watch: {
-		layers: {
+		// Watch the resolved config so both flat-prop and `content`-blob updates
+		// re-render the affected layer set.
+		'cfg.layers': {
 			handler() {
 				if (this.map) this.renderLayers()
 			},
 			deep: true,
 		},
-		markers: {
+		'cfg.markers': {
 			handler() {
 				if (this.map) this.renderMarkers()
 			},
 			deep: true,
+		},
+		// Re-plot when the centre moves, but only while the centre pin is on —
+		// otherwise the centre is an initial-view concern, not a marker one.
+		'cfg.center': {
+			handler() {
+				if (this.map && this.cfg.markers && this.cfg.markers.centerMarker) {
+					this.renderMarkers()
+				}
+			},
 		},
 	},
 
@@ -364,8 +440,8 @@ export default {
 		initMap() {
 			const L = this.L
 			this.map = L.map(this.$refs.mapEl, {
-				center: this.center,
-				zoom: this.zoom,
+				center: this.cfg.center,
+				zoom: this.cfg.zoom,
 				zoomControl: true,
 				attributionControl: true,
 			})
@@ -463,7 +539,7 @@ export default {
 
 			this.renderBasemaps()
 
-			for (const def of this.layers) {
+			for (const def of this.cfg.layers) {
 				if (!def || typeof def !== 'object') continue
 				if (!ALLOWED_LAYER_TYPES.includes(def.type)) {
 					// eslint-disable-next-line no-console
@@ -532,7 +608,7 @@ export default {
 		 */
 		async renderMarkers() {
 			const L = this.L
-			if (!this.map || !L || !this.markers) return
+			if (!this.map || !L || !this.cfg.markers) return
 
 			// Tear down previous marker layer
 			if (this.markerLayer) {
@@ -550,11 +626,11 @@ export default {
 			const layer = L.geoJSON({ type: 'FeatureCollection', features }, {
 				pointToLayer: (feature, latlng) => {
 					const color = (feature.properties && feature.properties.markerColor)
-						|| (this.markers && this.markers.iconColor)
+						|| (this.cfg.markers && this.cfg.markers.iconColor)
 						|| 'var(--color-primary-element, #2196F3)'
-					if (this.markers && this.markers.iconUrl) {
+					if (this.cfg.markers && this.cfg.markers.iconUrl) {
 						return L.marker(latlng, {
-							icon: L.icon({ iconUrl: this.markers.iconUrl, iconSize: [25, 41], iconAnchor: [12, 41] }),
+							icon: L.icon({ iconUrl: this.cfg.markers.iconUrl, iconSize: [25, 41], iconAnchor: [12, 41] }),
 						})
 					}
 					return L.circleMarker(latlng, {
@@ -567,7 +643,7 @@ export default {
 					})
 				},
 				onEachFeature: (feature, lyr) => {
-					const popupField = this.markers && this.markers.popupField
+					const popupField = this.cfg.markers && this.cfg.markers.popupField
 					const popupHtml = popupField && feature.properties ? feature.properties[popupField] : null
 					if (popupHtml) {
 						// Security: marker data may come from an external URL
@@ -622,7 +698,7 @@ export default {
 				this.markerLayer = layer
 			}
 
-			if (this.autoFit) {
+			if (this.cfg.autoFit) {
 				// Wait a tick so the container has its final box — fill-height layouts
 				// and the hidden→visible view toggle both settle after render.
 				// fitToMarkers() then measures before it fits.
@@ -640,11 +716,21 @@ export default {
 			const L = this.L
 			if (!this.map || !L || typeof L.tileLayer !== 'function') return
 
-			// Opt-in only. A consumer that configures its background through a `tile`
-			// entry in `layers` keeps exactly its existing behaviour, and an invalid
-			// layer config still renders no tiles rather than silently falling back.
-			const basemaps = (this.basemaps || []).filter((b) => b && typeof b.url === 'string' && b.url.length > 0)
-			if (basemaps.length === 0) return
+			const basemaps = (this.cfg.basemaps || []).filter((b) => b && typeof b.url === 'string' && b.url.length > 0)
+			if (basemaps.length === 0) {
+				// No explicit basemaps. Unless the consumer draws its own background
+				// via a `tile`/`wms` entry in `layers`, add a single OpenStreetMap
+				// base map so the map is never left blank (see DEFAULT_BASEMAP).
+				const hasTileLayer = (this.cfg.layers || []).some((l) => l
+					&& (l.type === 'tile' || l.type === 'wms')
+					&& typeof l.url === 'string' && l.url.length > 0)
+				if (!hasTileLayer) {
+					const fallback = L.tileLayer(DEFAULT_BASEMAP.url, { ...DEFAULT_BASEMAP.options })
+					fallback.addTo(this.map)
+					this.layerInstances.push(fallback)
+				}
+				return
+			}
 
 			const baseLayers = {}
 			basemaps.forEach((bm, index) => {
@@ -766,11 +852,31 @@ export default {
 		 * @return {Promise<Array<object>>} GeoJSON Feature array.
 		 */
 		async collectFeatures() {
-			if (!this.markers) return []
-			if (Array.isArray(this.markers.features)) {
-				return this.markers.features
+			if (!this.cfg.markers) return []
+			let features = await this.collectSourceFeatures()
+			// Optional pin at the configured centre, plotted alongside the object
+			// markers (`markers.centerMarker`). Spread into a new array so an inline
+			// `features[]` prop is never mutated.
+			if (this.cfg.markers.centerMarker) {
+				const centre = this.centreMarkerFeature()
+				if (centre) features = [...features, centre]
 			}
-			const ds = this.markers.dataSource
+			return features
+		},
+
+		/**
+		 * Resolve the marker features from the configured source only —
+		 * inline `features[]`, a fetched `dataSource.url`, or an OpenRegister
+		 * `dataSource.{register, schema}`. The optional centre pin is layered on
+		 * by collectFeatures().
+		 *
+		 * @return {Promise<Array<object>>} GeoJSON Feature array.
+		 */
+		async collectSourceFeatures() {
+			if (Array.isArray(this.cfg.markers.features)) {
+				return this.cfg.markers.features
+			}
+			const ds = this.cfg.markers.dataSource
 			if (!ds) return []
 			if (typeof ds.url === 'string' && ds.url.length > 0) {
 				try {
@@ -787,6 +893,25 @@ export default {
 				return await this.fetchRegisterFeatures(ds)
 			}
 			return []
+		},
+
+		/**
+		 * Build a GeoJSON point Feature at the resolved centre, or null when the
+		 * centre is not a valid `[lat, lng]` pair. GeoJSON coordinates are
+		 * `[lng, lat]`, the reverse of the `center` prop's order.
+		 *
+		 * @return {object|null} the centre Feature, or null.
+		 */
+		centreMarkerFeature() {
+			const c = this.cfg.center
+			if (!Array.isArray(c) || c.length !== 2 || !c.every((n) => Number.isFinite(n))) {
+				return null
+			}
+			return {
+				type: 'Feature',
+				geometry: { type: 'Point', coordinates: [c[1], c[0]] },
+				properties: {},
+			}
 		},
 
 		/**
@@ -814,8 +939,8 @@ export default {
 				const res = await axios.get(url, { params: { _limit: ds.limit || 500 } })
 				const rows = (res && res.data && res.data.results) || []
 
-				const latField = this.markers && this.markers.latField
-				const lngField = this.markers && this.markers.lngField
+				const latField = this.cfg.markers && this.cfg.markers.latField
+				const lngField = this.cfg.markers && this.cfg.markers.lngField
 
 				return rows
 					.map((row) => objectToGeoFeature(row, { latField, lngField }))
@@ -840,8 +965,8 @@ export default {
 			if (!json) return []
 			if (Array.isArray(json.features)) return json.features
 			if (Array.isArray(json)) {
-				const latField = (this.markers && this.markers.latField) || 'lat'
-				const lngField = (this.markers && this.markers.lngField) || 'lng'
+				const latField = (this.cfg.markers && this.cfg.markers.latField) || 'lat'
+				const lngField = (this.cfg.markers && this.cfg.markers.lngField) || 'lng'
 				return json
 					.filter((row) => row != null && Number.isFinite(row[latField]) && Number.isFinite(row[lngField]))
 					.map((row) => ({

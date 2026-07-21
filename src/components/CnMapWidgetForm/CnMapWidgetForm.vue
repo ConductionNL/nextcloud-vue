@@ -27,21 +27,26 @@
 			{{ t('nextcloud-vue', 'Objects are plotted from their location (@self.geo). Objects without one are skipped.') }}
 		</p>
 
-		<div class="cn-map-widget-form__row">
-			<NcTextField
-				:value="String(zoom)"
-				type="number"
-				:label="t('nextcloud-vue', 'Zoom')"
-				:label-visible="true"
-				@update:value="onZoom" />
+		<label class="cn-map-widget-form__field">
+			<span class="cn-map-widget-form__label">
+				{{ t('nextcloud-vue', 'Zoom') }} ({{ zoom }})
+			</span>
+			<input
+				type="range"
+				min="1"
+				max="19"
+				step="1"
+				:value="zoom"
+				class="cn-map-widget-form__range"
+				@input="onZoom($event.target.value)">
+		</label>
 
-			<NcTextField
-				:value="height"
-				:label="t('nextcloud-vue', 'Height')"
-				:label-visible="true"
-				placeholder="400px"
-				@update:value="height = $event" />
-		</div>
+		<NcTextField
+			:value="height"
+			:label="t('nextcloud-vue', 'Height')"
+			:label-visible="true"
+			placeholder="400px"
+			@update:value="height = $event" />
 
 		<div class="cn-map-widget-form__row">
 			<NcTextField
@@ -58,6 +63,10 @@
 				:label-visible="true"
 				@update:value="onCentre(1, $event)" />
 		</div>
+
+		<NcCheckboxRadioSwitch :checked.sync="centerMarker" type="switch">
+			{{ t('nextcloud-vue', 'Show a marker at the centre') }}
+		</NcCheckboxRadioSwitch>
 
 		<NcCheckboxRadioSwitch :checked.sync="autoFit" type="switch">
 			{{ t('nextcloud-vue', 'Zoom to fit the plotted objects') }}
@@ -152,6 +161,7 @@ export default {
 			popupField: initial.popupField ?? '',
 			clustering: initial.clustering === true,
 			autoFit: initial.autoFit !== false,
+			centerMarker: initial.markers?.centerMarker === true,
 		}
 	},
 
@@ -173,6 +183,7 @@ export default {
 					dataSource: { register: this.source.register, schema: this.source.schema },
 					popupField: this.popupField,
 					clustering: this.clustering,
+					centerMarker: this.centerMarker,
 				},
 			}
 		},
@@ -207,13 +218,18 @@ export default {
 		},
 
 		/**
-		 * Zoom is a number; an empty or non-numeric field must not become NaN.
+		 * Zoom is an integer clamped to the slider range; guards against a
+		 * non-numeric value or one outside the slider's `[1, 19]` range.
 		 *
-		 * @param {string} value The raw input value.
+		 * @param {string} value The raw slider value.
 		 */
 		onZoom(value) {
-			const n = Number(value)
-			this.zoom = Number.isFinite(n) ? n : 7
+			const n = Math.round(Number(value))
+			if (!Number.isFinite(n)) {
+				this.zoom = 7
+				return
+			}
+			this.zoom = Math.min(19, Math.max(1, n))
 		},
 
 		/**
@@ -261,6 +277,21 @@ export default {
 .cn-map-widget-form__hint {
 	color: var(--color-text-maxcontrast);
 	font-size: 90%;
+	margin: 0;
+}
+
+.cn-map-widget-form__field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.cn-map-widget-form__range {
+	width: 100%;
+	/* Native range inputs ship a default 2px margin on ALL sides. The left/right
+	   2px pushes the width:100% track past the form and shows a phantom
+	   horizontal scrollbar; zeroing it also drops the top/bottom 2px, which was
+	   padding the form's height. */
 	margin: 0;
 }
 </style>

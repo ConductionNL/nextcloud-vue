@@ -1,6 +1,17 @@
 // CSS — auto-imported so consumers get styles with components
 import './css/index.css'
 
+// Dashboard widget catalog — bare side-effect import so the widget types
+// self-register whenever this barrel is imported. This MUST live in the barrel
+// itself (which is always included when a consumer imports anything from it):
+// the equivalent import in components/index.js is dropped by `sideEffects`
+// tree-shaking (ADR-061) when a consumer's used symbols never reach that
+// sub-barrel, which collapses the Add-Widget picker to only the few types the
+// consumer imports directly. The aggregator IS `sideEffects`-listed, so a bare
+// import of it here is retained. Consumers on a bundler that still strips it can
+// additionally call `registerBuiltinDashboardWidgets()` at bootstrap.
+import './components/CnWidgetGrid/registerDashboardWidgets.js'
+
 // Re-export every Nc* component from @nextcloud/vue so consumer apps
 // can import all Nextcloud-Vue + Conduction components from a single
 // barrel, per ADR-004: "NEVER import from @nextcloud/vue directly —

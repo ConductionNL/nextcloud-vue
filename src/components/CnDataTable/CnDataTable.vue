@@ -182,6 +182,10 @@ import { CnIcon } from '../CnIcon/index.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
+// CnDataTable has no scoped styles of its own — its entire look lives in the
+// shared table stylesheet. Import it here so the table is styled even when the
+// consuming app does not pull in the library's global css/index.css.
+import '../../css/table.css'
 
 /**
  * CnDataTable — Generic sortable data table for list views.
