@@ -8,6 +8,7 @@
 					v-model="filterAction"
 					:options="actionOptions"
 					:placeholder="actionFilterLabel"
+					:input-label="actionFilterLabel"
 					:multiple="true"
 					:keep-open="true"
 					class="cn-audit-filters__select" />
@@ -15,6 +16,7 @@
 					v-model="filterUser"
 					:options="userOptions"
 					:placeholder="userFilterLabel"
+					:input-label="userFilterLabel"
 					:multiple="true"
 					:keep-open="true"
 					class="cn-audit-filters__select" />
