@@ -28,6 +28,7 @@ import { nodeResolve } from '@rollup/plugin-node-resolve'
 import commonjs from '@rollup/plugin-commonjs'
 import json from '@rollup/plugin-json'
 import path from 'path'
+import fs from 'fs'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -35,9 +36,31 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // Vue 2-only image-copy + apexcharts resolve are unchanged; import them from a
 // shared module in the real port. Inlined minimally here for the scaffold.
 function copyLeafletImages() {
-	// See rollup.config.js — copies leaflet marker PNGs into dist/images and
-	// dist/esm/images (both, per the 2026-07-12 openbuild esm-consumer fix).
-	return { name: 'copy-leaflet-images', buildStart() { /* port verbatim */ } }
+	// Ported verbatim from rollup.config.js (Vue 2 build). Without this the
+	// extracted leaflet CSS references `images/{layers,marker-icon,...}.png`
+	// that ship nowhere in the published dist, so every consumer that bundles
+	// the lib's CSS fails to resolve them (the 2026-07-12 openbuild esm-consumer
+	// fix). Copy into BOTH dist/images (cjs stylesheet) and dist/esm/images
+	// (chunked-ESM stylesheet).
+	return {
+		name: 'copy-leaflet-images',
+		writeBundle() {
+			const srcDir = path.resolve(__dirname, 'node_modules/leaflet/dist/images')
+			if (!fs.existsSync(srcDir)) {
+				return
+			}
+			const outDirs = [
+				path.resolve(__dirname, 'dist/images'),
+				path.resolve(__dirname, 'dist/esm/images'),
+			]
+			for (const outDir of outDirs) {
+				fs.mkdirSync(outDir, { recursive: true })
+				for (const file of fs.readdirSync(srcDir)) {
+					fs.copyFileSync(path.join(srcDir, file), path.join(outDir, file))
+				}
+			}
+		},
+	}
 }
 
 export default {
