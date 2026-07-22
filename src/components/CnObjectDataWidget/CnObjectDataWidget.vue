@@ -368,7 +368,7 @@
 			:schema="schema"
 			:item="objectData"
 			:dialog-title="editLabel"
-			:overrides="overrides"
+			:overrides="resolvedOverrides"
 			:exclude-fields="exclude"
 			:include-fields="include"
 			@confirm="onEditConfirm"
@@ -539,10 +539,15 @@ export default {
 		 * - `editable` (boolean) — Override editability (default: based on schema readOnly)
 		 * - `label` (string) — Override the display label
 		 * - `widget` (string) — Override the widget type for editing
+		 *
+		 * Accepts an Array too: an empty overrides map (`{}`) round-trips through
+		 * PHP/JSON as an empty Array (`[]`), so a persisted manifest can deliver
+		 * `[]`. `resolvedOverrides` coerces that back to `{}`.
+		 *
 		 * @type {object}
 		 */
 		overrides: {
-			type: Object,
+			type: [Object, Array],
 			default: () => ({}),
 		},
 		/**
@@ -664,6 +669,17 @@ export default {
 		},
 
 		/**
+		 * The overrides map, coerced to a plain object. An empty `{}` persists
+		 * through PHP/JSON as `[]`; treat any Array as "no overrides" so lookups
+		 * (`overrides[key]`) stay well-defined.
+		 *
+		 * @return {object}
+		 */
+		resolvedOverrides() {
+			return (this.overrides && !Array.isArray(this.overrides)) ? this.overrides : {}
+		},
+
+		/**
 		 * Resolved field definitions from schema + overrides.
 		 * Sorted by order, filtered by hidden/exclude/include.
 		 */
@@ -676,7 +692,7 @@ export default {
 			const fields = fieldsFromSchema(this.schema, {
 				exclude: this.exclude,
 				include: this.include,
-				overrides: this.overrides,
+				overrides: this.resolvedOverrides,
 				includeReadOnly: true,
 			})
 
@@ -684,8 +700,8 @@ export default {
 			// shared field pipeline) from the same overrides map.
 			const withSpans = fields.map(field => ({
 				...field,
-				gridColumn: (this.overrides[field.key] && this.overrides[field.key].gridColumn) || 1,
-				gridRow: (this.overrides[field.key] && this.overrides[field.key].gridRow) || 1,
+				gridColumn: (this.resolvedOverrides[field.key] && this.resolvedOverrides[field.key].gridColumn) || 1,
+				gridRow: (this.resolvedOverrides[field.key] && this.resolvedOverrides[field.key].gridRow) || 1,
 			}))
 
 			if (!this.hideEmpty) {
@@ -1221,7 +1237,7 @@ export default {
 		isEditable(field) {
 			if (!this.editable) return false
 			// Per-field override takes priority
-			const override = this.overrides[field.key]
+			const override = this.resolvedOverrides[field.key]
 			if (override && typeof override.editable === 'boolean') {
 				return override.editable
 			}
