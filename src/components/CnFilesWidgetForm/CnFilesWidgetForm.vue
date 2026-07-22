@@ -8,16 +8,26 @@
 		<div class="cn-files-widget-form__folder">
 			<span class="cn-files-widget-form__folder-label">{{ t('nextcloud-vue', 'Folder') }}</span>
 			<div class="cn-files-widget-form__folder-row">
-				<span class="cn-files-widget-form__folder-path" :title="folderPath || '/'">
-					{{ folderPath || '/' }}
+				<span
+					class="cn-files-widget-form__folder-path"
+					:class="{ 'cn-files-widget-form__folder-path--disabled': isObjectBound }"
+					:title="isObjectBound ? objectBoundNote : (folderPath || '/')">
+					{{ isObjectBound ? t('nextcloud-vue', 'Current object') : (folderPath || '/') }}
 				</span>
-				<NcButton type="secondary" @click="openFolderPicker">
+				<NcButton
+					type="secondary"
+					:disabled="isObjectBound"
+					:title="isObjectBound ? objectBoundNote : null"
+					@click="openFolderPicker">
 					<template #icon>
 						<FolderOutline :size="20" />
 					</template>
 					{{ t('nextcloud-vue', 'Browse…') }}
 				</NcButton>
 			</div>
+			<p v-if="isObjectBound" class="cn-files-widget-form__folder-note">
+				{{ objectBoundNote }}
+			</p>
 		</div>
 
 		<NcSelect
@@ -130,6 +140,17 @@ export default {
 		FolderOutline,
 	},
 
+	inject: {
+		/**
+		 * Object context published by the host (CnAddWidgetModal re-provides the
+		 * detail page's `{ register, schema }`; CnDetailPage provides it directly).
+		 * Non-null with a register+schema means this files widget will render in
+		 * object-bound mode — bound to the current object's folder — so the fixed
+		 * folder picker below does nothing and is disabled.
+		 */
+		cnObjectContext: { default: null },
+	},
+
 	props: {
 		/**
 		 * The placement being edited, or `null` in create mode. Pre-fills
@@ -179,6 +200,27 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the widget will render in object-bound mode (files scoped to the
+		 * current object's folder). True when the injected object context carries a
+		 * register + schema — i.e. the widget is on a detail/object page. In that
+		 * mode the fixed folder is ignored, so the picker is disabled.
+		 *
+		 * @return {boolean}
+		 */
+		isObjectBound() {
+			const raw = this.cnObjectContext
+			// The context may be a composition-API ref (CnAddWidgetModal provides a
+			// computed) or a plain object — unwrap either.
+			const ctx = (raw && typeof raw === 'object' && 'value' in raw) ? raw.value : raw
+			return !!(ctx && ctx.register && ctx.schema)
+		},
+
+		/** Explanatory note shown when the folder picker is disabled (object-bound). */
+		objectBoundNote() {
+			return t('nextcloud-vue', 'This widget shows files attached to the current object, so the folder cannot be set here.')
+		},
+
 		/** The MIME filter list joined for the comma-separated text field. */
 		mimeTypeFilterString() {
 			return this.mimeTypeFilter.join(', ')
@@ -260,6 +302,11 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async openFolderPicker() {
+			// Object-bound widgets ignore the fixed folder; the button is disabled
+			// but guard here too so a programmatic call is a no-op.
+			if (this.isObjectBound) {
+				return
+			}
 			const picker = getFilePickerBuilder(t('nextcloud-vue', 'Choose a folder'))
 				.setMultiSelect(false)
 				.setMimeTypeFilter(['httpd/unix-directory'])
@@ -367,5 +414,16 @@ export default {
 	border-radius: var(--border-radius-large);
 	background-color: var(--color-main-background);
 	color: var(--color-main-text);
+}
+
+.cn-files-widget-form__folder-path--disabled {
+	color: var(--color-text-maxcontrast);
+	font-style: italic;
+}
+
+.cn-files-widget-form__folder-note {
+	margin: 0;
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
 }
 </style>
