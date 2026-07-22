@@ -407,6 +407,12 @@
 									:is="registryRendererFor(item)"
 									:ref="'catalog-' + item.widgetId"
 									:content="widgetContentFor(item)"
+									:object-id="objectId"
+									:register="register"
+									:schema="schema"
+									:object-data="currentObject"
+									:object-type="resolvedObjectType"
+									:store="effectiveObjectStore"
 									v-bind="widgetContentFor(item)" />
 							</CnWidgetWrapper>
 							<!-- Registry "card" widgets (stat / gauge / delta):
