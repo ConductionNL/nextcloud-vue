@@ -264,7 +264,7 @@
 							:name="'display-' + field.key"
 							:field="field"
 							:value="displayValues[field.key]"
-							:raw="objectData[field.key]" />
+							:raw="(objectData || {})[field.key]" />
 						<template v-else>
 							<img v-if="isImageField(field) && rawOf(field)"
 								:src="rawOf(field)"
@@ -489,18 +489,27 @@ export default {
 		/**
 		 * The JSON Schema describing the object's properties.
 		 * Must have a `properties` field.
+		 * Optional: null renders the empty state (no fields) — e.g. while the
+		 * schema is still being fetched on surfaces that mount before it loads
+		 * (a `data` tab in CnObjectSidebar).
+		 *
+		 * @type {object|null}
 		 */
 		schema: {
 			type: Object,
-			required: true,
+			default: null,
 		},
 		/**
 		 * The object data to display and edit.
 		 * Keys should match the schema property keys.
+		 * Optional: null while the object is still loading; all internal reads
+		 * guard with `this.objectData || {}`.
+		 *
+		 * @type {object|null}
 		 */
 		objectData: {
 			type: Object,
-			required: true,
+			default: null,
 		},
 		/**
 		 * The registered object type slug in the objectStore.

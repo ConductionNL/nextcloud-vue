@@ -18,8 +18,8 @@ Schema-driven editable data grid widget. Displays object properties in a CSS gri
 |------|------|---------|-------------|
 | `title` | `String` | `'Data'` | Widget title in the card header |
 | `icon` | `Object\|Function` | `null` | Optional MDI icon component for the header |
-| `object-data` | `Object` | *required* | The object to display and edit. Keys must match the schema property keys. |
-| `schema` | `Object` | *required* | JSON Schema defining properties. Must have a `properties` field. |
+| `object-data` | `Object` | `null` | The object to display and edit. Keys must match the schema property keys. Optional — `null` while the object is still loading (internal reads are null-guarded). |
+| `schema` | `Object` | `null` | JSON Schema defining properties. Must have a `properties` field. Optional — `null` renders the empty state (e.g. before the schema is fetched). |
 | `object-type` | `String` | `''` | Registered object type slug in the objectStore. Required for saving via `objectStore.saveObject()`. |
 | `store` | `Object` | `null` | Optional objectStore instance. When provided, used directly for saving instead of auto-detecting via Pinia. |
 | `overrides` | `Object` | `{}` | Per-property configuration overrides (see below) |
