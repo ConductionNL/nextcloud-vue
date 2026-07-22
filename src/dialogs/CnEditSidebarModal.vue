@@ -17,7 +17,10 @@
 				{{ t('nextcloud-vue', 'Tabs') }}
 			</h3>
 			<ul class="cn-edit-sidebar__tabs">
-				<li v-for="(tab, index) in editableTabs" :key="tab.id || index" class="cn-edit-sidebar__tab">
+				<!-- Key on the stable list index, NOT tab.id. The Tab id field below edits -->
+				<!-- tab.id; keying on it would re-key (destroy + recreate) this <li> on every -->
+				<!-- keystroke, blowing away the focused input. -->
+				<li v-for="(tab, index) in editableTabs" :key="index" class="cn-edit-sidebar__tab">
 					<div class="cn-edit-sidebar__tab-row">
 						<NcCheckboxRadioSwitch
 							:checked="!isHidden(tab.id)"
