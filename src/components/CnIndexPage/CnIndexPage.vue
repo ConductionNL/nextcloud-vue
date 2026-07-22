@@ -300,8 +300,8 @@
 			<div
 				class="cn-index-page__main"
 				:class="{ 'cn-index-page__main--map': currentViewMode === 'map' }">
-				<!-- Loading state -->
-				<div v-if="effectiveLoading" class="cn-index-page__loading">
+				<!-- Loading state — initial fetch only; a background refresh keeps the table visible -->
+				<div v-if="showInitialLoader" class="cn-index-page__loading">
 					<!-- name gives NcLoadingIcon a non-empty aria-label (WCAG role-img-alt); empty name ships an unlabeled role="img" -->
 					<NcLoadingIcon :size="32" :name="loadingText" />
 				</div>
@@ -1941,6 +1941,15 @@ export default {
 		},
 		/** Loading flag: store loading in self-fetch mode, else the `loading` prop. */
 		effectiveLoading() { return this.isSelfFetchMode ? !!this.list.loading.value : this.loading },
+		/**
+		 * Whether to replace the page with the full loading spinner. Only on an
+		 * INITIAL fetch — i.e. while loading AND there is no data to show yet.
+		 * A background refresh (e.g. the on-visibility refetch) keeps the
+		 * existing rows on screen and updates them in place instead of flashing
+		 * the spinner over already-rendered content (fetchCollection preserves
+		 * the prior collection until the new results arrive).
+		 */
+		showInitialLoader() { return this.effectiveLoading && this.effectiveObjects.length === 0 },
 		/**
 		 * Refresh-spinner flag for the Actions menu: the `refreshing` prop
 		 * OR (self-fetch mode) the internally-tracked refresh. Lets manifest
