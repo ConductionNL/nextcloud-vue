@@ -169,6 +169,11 @@
 			v-if="showFlowsModal"
 			:manifest="effectiveManifest"
 			@close="showFlowsModal = false" />
+		<CnFlowCanvasModal
+			v-if="showFlowsCanvasModal"
+			:manifest="effectiveManifest"
+			:on-open-form="openFlowsForm"
+			@close="showFlowsCanvasModal = false" />
 		<CnEditSetupModal
 			v-if="showSetupModal"
 			:working="workingManifest"
@@ -209,6 +214,7 @@ import CnEditActionsModal from '../../dialogs/CnEditActionsModal.vue'
 import CnAddWidgetModal from '../../dialogs/CnAddWidgetModal.vue'
 import CnEditDataModal from '../../dialogs/CnEditDataModal.vue'
 import CnEditFlowsModal from '../../dialogs/CnEditFlowsModal.vue'
+import CnFlowCanvasModal from '../../dialogs/CnFlowCanvasModal.vue'
 import CnEditSetupModal from '../../dialogs/CnEditSetupModal.vue'
 import CnEditWalkthroughModal from '../../dialogs/CnEditWalkthroughModal.vue'
 import CnEditSupportModal from '../../dialogs/CnEditSupportModal.vue'
@@ -244,6 +250,7 @@ export default {
 		CnAddWidgetModal,
 		CnEditDataModal,
 		CnEditFlowsModal,
+		CnFlowCanvasModal,
 		CnEditSetupModal,
 		CnEditWalkthroughModal,
 		CnEditSupportModal,
@@ -301,6 +308,7 @@ export default {
 			showActionsModal: false,
 			showDataModal: false,
 			showFlowsModal: false,
+			showFlowsCanvasModal: false,
 			showSetupModal: false,
 			showWalkthroughModal: false,
 			showSupportModal: false,
@@ -660,12 +668,19 @@ export default {
 		 * NOT enter manifest edit mode.
 		 */
 		onEditFlows() {
-			this.showFlowsModal = true
+			// Open the VISUAL builder by default (the form editor stays reachable
+			// via the canvas modal's "Use the form editor instead" link).
+			this.showFlowsCanvasModal = true
 			this.menuOpen = false
 			/**
 			 * @event edit-flows Emitted when the flows editor opens.
 			 */
 			this.$emit('edit-flows')
+		},
+		/** Switch from the visual canvas to the legacy form editor. */
+		openFlowsForm() {
+			this.showFlowsCanvasModal = false
+			this.showFlowsModal = true
 		},
 	},
 }
