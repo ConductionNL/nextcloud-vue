@@ -263,3 +263,72 @@ export function resolveFilterTokens(filter, ctx) {
 	}
 	return out
 }
+
+/**
+ * Recursively resolve `@`-tokens inside an arbitrary JSON value — objects
+ * and arrays at ANY depth, unlike {@link resolveFilterTokens} which only
+ * understands the flat filter-map shape (equality / operator / IN-list, one
+ * level of nesting). Used by the `api-call` action's `payload`: a
+ * DocuDesk-style generation body like
+ * `{ dataRefs: [{ register: 'crm', schema: 'lead', id: '@objectId' }] }`
+ * needs the token resolved inside a nested array of objects, which the
+ * shallow filter-map resolver can't reach.
+ *
+ * @param {*} value The value to resolve — object / array / primitive.
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Optional
+ *   context forwarded to {@link resolveFilterValue}.
+ * @return {*} A new value with every string leaf token-resolved (structure preserved).
+ */
+export function resolveDeepTokens(value, ctx) {
+	if (Array.isArray(value)) return value.map((v) => resolveDeepTokens(v, ctx))
+	if (value && typeof value === 'object') {
+		const out = {}
+		for (const [k, v] of Object.entries(value)) out[k] = resolveDeepTokens(v, ctx)
+		return out
+	}
+	return resolveFilterValue(value, ctx)
+}
+
+/**
+ * Deep-tree counterpart to {@link hasUnresolvedTokens}: whether an
+ * already-{@link resolveDeepTokens}-resolved value still carries an
+ * unresolved, non-optional `@`-token anywhere inside it (any depth). Used to
+ * BLOCK an `api-call` whose `payload` has a required token (typically
+ * `@objectId` / `@object.<field>`) that failed to resolve, instead of
+ * silently sending the literal token string to the server.
+ *
+ * @param {*} value The (already deep-resolved) value.
+ * @return {boolean} True when a required token is still unresolved.
+ */
+export function hasUnresolvedDeepTokens(value) {
+	if (Array.isArray(value)) return value.some(hasUnresolvedDeepTokens)
+	if (value && typeof value === 'object') return Object.values(value).some(hasUnresolvedDeepTokens)
+	return typeof value === 'string' && value.charAt(0) === '@' && !isOptionalUnresolved(value)
+}
+
+/**
+ * Deep-tree counterpart to {@link dropOptionalUnresolved}: strips unresolved
+ * OPTIONAL tokens (`@workspace.<key>?` / `@config.<key>?` left as-is after
+ * resolution) out of an arbitrary JSON value at any depth. An object key
+ * whose value is an unresolved optional token is dropped entirely; an array
+ * item that resolves unresolved-optional is filtered out.
+ *
+ * @param {*} value The (already {@link resolveDeepTokens}-resolved) value.
+ * @return {*} The value with unresolved-optional leaves removed.
+ */
+export function dropOptionalUnresolvedDeep(value) {
+	if (Array.isArray(value)) {
+		return value
+			.filter((v) => !isOptionalUnresolved(v))
+			.map((v) => dropOptionalUnresolvedDeep(v))
+	}
+	if (value && typeof value === 'object') {
+		const out = {}
+		for (const [k, v] of Object.entries(value)) {
+			if (isOptionalUnresolved(v)) continue
+			out[k] = dropOptionalUnresolvedDeep(v)
+		}
+		return out
+	}
+	return value
+}

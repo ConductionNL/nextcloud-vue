@@ -116,6 +116,24 @@ describe('Wave 3 — headerActions action types', () => {
 		expect(result.valid).toBe(false)
 	})
 
+	it('accepts an api-call with payload / download / filename', () => {
+		const result = validateManifest(withHeaderActions([
+			{
+				id: 'generate-pdf', label: 'Generate PDF', type: 'api-call',
+				url: '/apps/docudesk/api/documents/generate', method: 'POST',
+				payload: {
+					template: 'invoice',
+					dataRefs: [{ register: 'crm', schema: 'lead', id: '@objectId' }],
+				},
+				download: true,
+				filename: 'invoice-@objectId.pdf',
+				successMessage: 'Document generated',
+			},
+		]))
+		expect(result.errors).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
 	it('rejects an open-form without a schema', () => {
 		const result = validateManifest(withHeaderActions([{ id: 'x', label: 'X', type: 'open-form' }]))
 		expect(result.valid).toBe(false)
