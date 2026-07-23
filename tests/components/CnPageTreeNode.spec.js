@@ -119,6 +119,17 @@ describe('CnPageTreeNode', () => {
 		expect(menu[0].route).toBe('hounds') // menu link re-pointed
 	})
 
+	it('nodeKey is stable across a slug rename (row is not torn down → panel stays open)', () => {
+		const dogs = { id: 'dogs', type: 'index', route: '/dogs' }
+		const wrapper = mountNode([dogs])
+		const before = wrapper.vm.nodeKey(dogs)
+		wrapper.vm.renamePage(dogs, 'hounds')
+		// The page object is the same ref (only `id` changed) → same render key,
+		// so Vue reuses the <li>/row instance and its open settings panel.
+		expect(dogs.id).toBe('hounds')
+		expect(wrapper.vm.nodeKey(dogs)).toBe(before)
+	})
+
 	it('renamePage is a no-op when the new id collides', () => {
 		const a = { id: 'a', type: 'index' }
 		const b = { id: 'b', type: 'index' }
