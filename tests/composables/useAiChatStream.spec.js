@@ -345,4 +345,27 @@ describe('useAiChatStream', () => {
 			objectUuid: 'abc-123',
 		})
 	})
+
+	it('outgoing request body carries attachments when send() is called with some', async () => {
+		setupSse([FINAL_EVENT])
+
+		const stream = useAiChatStream(null)
+		const attachments = [{ path: '/uploads/foo.txt', name: 'foo.txt' }]
+		await stream.send('Hi', { attachments })
+
+		const callArgs = fetchEventSource.mock.calls[0]
+		const body = JSON.parse(callArgs[1].body)
+		expect(body.attachments).toEqual(attachments)
+	})
+
+	it('outgoing request body omits the attachments key entirely when none are passed', async () => {
+		setupSse([FINAL_EVENT])
+
+		const stream = useAiChatStream(null)
+		await stream.send('Hi')
+
+		const callArgs = fetchEventSource.mock.calls[0]
+		const body = JSON.parse(callArgs[1].body)
+		expect(body).not.toHaveProperty('attachments')
+	})
 })
