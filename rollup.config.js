@@ -190,12 +190,16 @@ export default {
 			//   2. The `.cjs` re-exports Vue's named exports via a RUNTIME
 			//      `Object.keys(require('vue'))` loop, which drops `defineComponent`
 			//      when the external `vue` is provided as a bare constructor.
-			// Since this library targets Vue 2.7, pin every `vue-demi` copy to its
-			// `lib/v2.7/index.mjs` variant — it statically `export *`s from `vue`,
-			// so rollup re-exports Vue 2.7's `defineComponent` (and friends)
-			// correctly regardless of the consumer's vue interop shape. Falls back
-			// to the resolved id when the v2.7 variant is absent.
-			name: 'resolve-vue-demi-v27',
+			// Since this library now targets Vue 3, pin every `vue-demi` copy to
+			// its `lib/v3/index.mjs` variant — it does `import * as Vue from 'vue'`
+			// and statically re-exports Vue 3's named exports (`defineComponent`
+			// and friends), so a consumer bundling this dist gets a real
+			// `defineComponent` regardless of its own vue interop shape. Pinning
+			// the v2.7 variant here (a leftover from the Vue-2 line) is what made
+			// the published dist crash at mount with "Cannot read properties of
+			// undefined (reading 'defineComponent')" inside a Vue-3 consumer.
+			// Falls back to the resolved id when the v3 variant is absent.
+			name: 'resolve-vue-demi-v3',
 			async resolveId(source, importer, options) {
 				if (source !== 'vue-demi') {
 					return null
@@ -204,15 +208,22 @@ export default {
 				if (!resolved || resolved.external) {
 					return resolved
 				}
-				// e.g. .../vue-demi/lib/index.mjs → .../vue-demi/lib/v2.7/index.mjs
-				const v27 = resolved.id.replace(/lib[/\\]index\.(mjs|cjs|js)$/, 'lib/v2.7/index.mjs')
-				return (v27 !== resolved.id && fs.existsSync(v27)) ? { ...resolved, id: v27 } : resolved
+				// e.g. .../vue-demi/lib/index.mjs → .../vue-demi/lib/v3/index.mjs
+				const v3 = resolved.id.replace(/lib[/\\]index\.(mjs|cjs|js)$/, 'lib/v3/index.mjs')
+				return (v3 !== resolved.id && fs.existsSync(v3)) ? { ...resolved, id: v3 } : resolved
 			},
 		},
 		vue({ css: false }),
 		postcss({ extract: 'nextcloud-vue.css', plugins: [postcssImport(), unwrapVueDeep()] }),
 		json(),
 		nodeResolve({ extensions: ['.mjs', '.js', '.json', '.node'] }),
-		commonjs(),
+		// `esmExternals: ['vue']` makes the commonjs plugin treat the external
+		// `vue` as an ES module: a bundled CJS dependency's `require('vue')`
+		// (notably vuedraggable's `Object(L.defineComponent)(...)`) is wired via
+		// `import * as L from 'vue'` + namespace access, so `L.defineComponent`
+		// resolves to Vue 3's real export in a consumer. Without it the CJS
+		// default-interop left `L` undefined → "Cannot read properties of
+		// undefined (reading 'defineComponent')" crash in a Vue-3 consumer.
+		commonjs({ esmExternals: ['vue'] }),
 	],
 }
