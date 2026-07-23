@@ -45,7 +45,7 @@ selected schema, and persists via `PATCH /apps/openregister/api/schemas/{id}` (k
 
 				<NcNoteCard v-if="error" type="error">{{ error }}</NcNoteCard>
 
-				<CnFlowCanvas v-model="flows" :schema="selectedSchema" />
+				<CnFlowCanvas v-model="flows" :schema="selectedSchema" :event-catalog="eventCatalog" />
 			</template>
 		</div>
 
@@ -125,6 +125,7 @@ export default {
 			schemas: [],
 			selectedSchemaId: null,
 			flows: [],
+			eventCatalog: [],
 		}
 	},
 
@@ -156,9 +157,24 @@ export default {
 		headers() {
 			return buildHeaders()
 		},
+		async loadEventCatalog() {
+			// Best-effort: an older backend without this endpoint leaves the
+			// catalog empty and CnFlowCanvas falls back to the legacy triggers.
+			try {
+				const { data } = await axios.get(
+					generateUrl('/apps/openregister/api/flow/event-catalog'),
+					{ headers: this.headers() },
+				)
+				const list = unwrap(data)
+				this.eventCatalog = Array.isArray(list) ? list : (Array.isArray(list?.results) ? list.results : [])
+			} catch {
+				this.eventCatalog = []
+			}
+		},
 		async load() {
 			this.loading = true
 			this.error = ''
+			this.loadEventCatalog()
 			try {
 				const { data } = await axios.get(generateUrl('/apps/openregister/api/registers') + '?_limit=1000', { headers: this.headers() })
 				const list = Array.isArray(unwrap(data)) ? unwrap(data) : []

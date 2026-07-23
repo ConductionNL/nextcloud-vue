@@ -188,6 +188,18 @@ export default {
 			type: Object,
 			default: null,
 		},
+		/**
+		 * The trigger event catalog from `GET /api/flow/event-catalog`
+		 * (`[{ id, label, group, legacy? }]`). When empty, the builder falls
+		 * back to the three legacy object-CRUD triggers so it still works
+		 * offline / against an older backend.
+		 *
+		 * @type {Array}
+		 */
+		eventCatalog: {
+			type: Array,
+			default: () => [],
+		},
 	},
 
 	emits: ['update:modelValue'],
@@ -208,6 +220,15 @@ export default {
 			return this.actionTypeOptions.map((o) => ({ ...o, icon: this.actionIcon(o.id) }))
 		},
 		triggerOptions() {
+			if (Array.isArray(this.eventCatalog) && this.eventCatalog.length) {
+				return this.eventCatalog.map((e) => ({
+					id: e.id,
+					label: e.label || e.id,
+					group: e.group || '',
+					legacy: e.legacy,
+				}))
+			}
+			// Fallback: legacy object-CRUD triggers (offline / older backend).
 			return [
 				{ id: 'created', label: t('nextcloud-vue', 'An object is created') },
 				{ id: 'updated', label: t('nextcloud-vue', 'An object is updated') },
@@ -296,7 +317,13 @@ export default {
 			return a.to || a.title || a.prompt || a.sharedWith || ''
 		},
 		triggerOption(id) {
-			return this.triggerOptions.find((o) => o.id === (id || 'created')) || this.triggerOptions[0]
+			const wanted = id || 'created'
+			// Match the canonical id first, then a legacy alias so flows saved
+			// as bare 'created'/'updated'/'deleted' still resolve to their
+			// catalog entry (e.g. 'created' → the 'object.created' option).
+			return this.triggerOptions.find((o) => o.id === wanted)
+				|| this.triggerOptions.find((o) => o.legacy === wanted)
+				|| this.triggerOptions[0]
 		},
 		actionTypeOption(type) {
 			return this.actionTypeOptions.find((o) => o.id === type) || { id: type, label: type }
