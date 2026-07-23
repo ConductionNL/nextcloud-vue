@@ -240,7 +240,7 @@ export default {
 		},
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		this.revokePreview()
 	},
 

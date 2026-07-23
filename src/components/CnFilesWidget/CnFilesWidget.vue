@@ -776,7 +776,7 @@ export default {
 		 * @return {void}
 		 */
 		onThumbError(item) {
-			this.$set(this.failedThumbs, item.fileId, true)
+			this.failedThumbs[item.fileId] = true
 		},
 
 		/**
