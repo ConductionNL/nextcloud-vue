@@ -133,6 +133,9 @@ import ShareVariant from 'vue-material-design-icons/ShareVariant.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import Sitemap from 'vue-material-design-icons/Sitemap.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import PlusBox from 'vue-material-design-icons/PlusBox.vue'
+import CallSplit from 'vue-material-design-icons/CallSplit.vue'
 
 const DT_KEY = 'application/x-cn-flow-node'
 
@@ -156,6 +159,24 @@ const ACTION_FIELDS = {
 	'federate-share': [
 		{ key: 'sharedWith', label: 'Shared with' },
 		{ key: 'permissions', label: 'Permissions' },
+	],
+	'object.set-field': [
+		{ key: 'field', label: 'Field' },
+		{ key: 'value', label: 'Value' },
+	],
+	'object.create': [
+		{ key: 'register', label: 'Register (slug or id)' },
+		{ key: 'schema', label: 'Schema (slug or id)' },
+		{ key: 'field', label: 'Field' },
+		{ key: 'value', label: 'Value' },
+	],
+	'object.delete': [
+		{ key: 'target', label: 'Target UUID (blank = this object)' },
+	],
+	condition: [
+		{ key: 'field', label: 'Field' },
+		{ key: 'operator', label: 'Operator (eq, ne, empty, notEmpty, contains)' },
+		{ key: 'value', label: 'Value' },
 	],
 }
 
@@ -241,6 +262,10 @@ export default {
 				{ id: 'calendar-event', label: t('nextcloud-vue', 'Add a calendar event') },
 				{ id: 'agent', label: t('nextcloud-vue', 'Run an AI agent') },
 				{ id: 'federate-share', label: t('nextcloud-vue', 'Share with a federated user') },
+				{ id: 'object.set-field', label: t('nextcloud-vue', 'Set a field on this object') },
+				{ id: 'object.create', label: t('nextcloud-vue', 'Create an object') },
+				{ id: 'object.delete', label: t('nextcloud-vue', 'Delete an object') },
+				{ id: 'condition', label: t('nextcloud-vue', 'Only continue if…') },
 			]
 		},
 		/** Derived graph nodes from the flows + persisted/auto layout. */
@@ -295,7 +320,16 @@ export default {
 	methods: {
 		t,
 		actionIcon(type) {
-			return ({ email: Email, 'calendar-event': CalendarPlus, agent: Robot, 'federate-share': ShareVariant })[type] || Cog
+			return ({
+				email: Email,
+				'calendar-event': CalendarPlus,
+				agent: Robot,
+				'federate-share': ShareVariant,
+				'object.set-field': Pencil,
+				'object.create': PlusBox,
+				'object.delete': Delete,
+				condition: CallSplit,
+			})[type] || Cog
 		},
 		nodeIcon(node) {
 			return node.data.kind === 'trigger' ? FlashOutline : this.actionIcon(this.actionOf(node).type)
@@ -314,6 +348,13 @@ export default {
 		nodeSubtitle(node) {
 			if (node.data.kind === 'trigger') return (this.triggerOption(this.flowOf(node).trigger) || {}).label || ''
 			const a = this.actionOf(node)
+			if (a.type === 'condition') {
+				return [a.field, a.operator, a.value].filter(Boolean).join(' ')
+			}
+			if (a.type === 'object.set-field' || a.type === 'object.create') {
+				return a.field ? `${a.field} = ${a.value || ''}` : (a.schema || '')
+			}
+			if (a.type === 'object.delete') return a.target || t('nextcloud-vue', 'this object')
 			return a.to || a.title || a.prompt || a.sharedWith || ''
 		},
 		triggerOption(id) {
