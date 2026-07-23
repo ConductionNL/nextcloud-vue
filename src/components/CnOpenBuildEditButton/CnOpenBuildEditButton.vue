@@ -349,24 +349,16 @@ export default {
 			return !!(this.currentPage && this.currentPage.type === 'detail')
 		},
 		/**
-		 * Whether the active page is a blank custom page with no body yet — no
-		 * `component`, no `slots.main`, and no `body`-slot widgets. Such a page
-		 * renders the builder empty-state; letting "Add widget" target it turns a
-		 * freshly-created page into a widget grid (the V2 `body` slot renders for
-		 * any page type), so a new page is buildable from empty. ADR-041.
+		 * Whether the active page hosts a widget grid that "Add widget" can target.
+		 * Only dashboard and detail pages do: their bodies are adjustable widget
+		 * grids. A `type:"custom"` page is the manifest's escape hatch — it renders
+		 * a bespoke `component` (or `slots.main`) and owns its own body, so it has
+		 * no widget grid to add to. Widget canvases are dashboard pages.
 		 *
 		 * @return {boolean}
 		 */
-		isEmptyBodyPage() {
-			const p = this.currentPage
-			if (!p || p.type !== 'custom') return false
-			if (p.component || (p.slots && p.slots.main)) return false
-			const widgets = Array.isArray(p.widgets) ? p.widgets : []
-			return !widgets.some((w) => w && (w.slot || 'body') === 'body')
-		},
-		/** Whether the active page hosts a widget grid that "Add widget" can target. */
 		pageSupportsWidgets() {
-			return this.isDashboardPage || this.isDetailPage || this.isEmptyBodyPage
+			return this.isDashboardPage || this.isDetailPage
 		},
 		/**
 		 * The widget-picker surface for "Add widget". Detail pages get

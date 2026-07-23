@@ -625,12 +625,24 @@ export default {
 					: (Array.isArray(data.results) ? data.results : [])
 				this.items = results.map((file) => {
 					const mime = file.mimeType || file.mimetype || file.type || ''
-					// The object-file endpoint returns no preview URL, so build one
-					// for images from the file id (other types get the generic icon;
-					// a missing preview falls back via the <img> @error handler).
-					const thumbnailUrl = (file.id && /^image\//.test(mime))
-						? generateUrl('/core/preview?fileId={fileId}&x=256&y=256&a=1', { fileId: file.id })
-						: null
+					// SVG: Nextcloud's rasterised /core/preview is usually
+					// unavailable for SVG (no rsvg/imagick), so stream the raw file
+					// from OpenRegister's authenticated per-file download endpoint
+					// (works for the owner's un-shared uploads via the session
+					// cookie; the widget's other calls use the same objectApiBase).
+					// Rendered through the list's <img>, the SVG runs in the
+					// browser's restricted image mode — inline <script> / event
+					// handlers never execute and external refs don't load — so
+					// untrusted SVG is shown safely without a bespoke sandbox.
+					// Other images use the rasterised server preview; anything else
+					// gets the generic icon (a missing preview also falls back via
+					// the <img> @error handler).
+					let thumbnailUrl = null
+					if (file.id && /^image\/svg\+xml$/i.test(mime)) {
+						thumbnailUrl = generateUrl(`${this.objectApiBase}/files/{fileId}/download`, { fileId: file.id })
+					} else if (file.id && /^image\//.test(mime)) {
+						thumbnailUrl = generateUrl('/core/preview?fileId={fileId}&x=256&y=256&a=1', { fileId: file.id })
+					}
 					return {
 						name: file.name || file.title || '',
 						fileId: file.id,

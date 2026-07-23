@@ -407,6 +407,12 @@
 									:is="registryRendererFor(item)"
 									:ref="'catalog-' + item.widgetId"
 									:content="widgetContentFor(item)"
+									:object-id="objectId"
+									:register="register"
+									:schema="schema"
+									:object-data="currentObject"
+									:object-type="resolvedObjectType"
+									:store="effectiveObjectStore"
 									v-bind="widgetContentFor(item)" />
 							</CnWidgetWrapper>
 							<!-- Registry "card" widgets (stat / gauge / delta):
@@ -1935,8 +1941,17 @@ export default {
 		// `@object.<field>` tokens against the live object.
 		currentObject: {
 			immediate: true,
-			handler() { this.syncObjectContext() },
+			handler() {
+				this.syncObjectContext()
+				// Re-publish the object into objectSidebarState so the
+				// hoisted sidebar's data/metadata tab widgets stay current.
+				this.syncSidebarState()
+			},
 		},
+
+		// Re-publish once the schema Object resolves (fetched async), so the
+		// hoisted sidebar's `data` tab widget gets its `schema` prop.
+		currentSchema() { this.syncSidebarState() },
 
 		// Materialize the default body grid (Data + Related) the first time the
 		// schema-driven object resolves so the detail body is an adjustable grid.
@@ -2811,6 +2826,14 @@ export default {
 					open: this.sidebarOpen,
 					objectType: this.resolvedObjectType,
 					objectId: this.objectId,
+					// The loaded object, so coordinate-blind sidebar-tab widgets
+					// (the `data` / `metadata` built-ins) receive it as `objectData`
+					// — the hoisted sidebar is a CnAppRoot sibling, not a
+					// CnDetailPage child, so it can't inject our object context.
+					object: this.resolvedObject || null,
+					// The resolved schema OBJECT (not the slug), which the `data`
+					// built-in (CnObjectDataWidget) needs alongside `objectData`.
+					schemaObject: this.currentSchema || null,
 					title: merged.title || this.title || '',
 					subtitle: merged.subtitle || this.subtitle || '',
 					register: merged.register || this.register || '',
