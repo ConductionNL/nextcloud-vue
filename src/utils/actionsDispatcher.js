@@ -19,6 +19,15 @@
  * and an automatic page refresh; any `confirm` on the action is INTENT
  * consumed by the rendering surface BEFORE dispatch, like object-op).
  *
+ * `api-call`'s request body prefers `payload` (DEEP @-token resolution at
+ * any nesting depth — object/array, e.g. a DocuDesk-style
+ * `{ dataRefs: [{ id: '@objectId' }] }` body) over the legacy `params`
+ * (shallow, one-level filter-map resolution, kept for back-compat). Set
+ * `download: true` to request a binary blob response and trigger a
+ * browser file download instead of a JSON toast+refresh cycle (filename:
+ * `Content-Disposition` header, else the token-resolved `filename`, else
+ * `'download.pdf'`; no auto-refresh unless `refresh: true` is explicit).
+ *
  * `toggle` (Wave 3) is deliberately NOT dispatchable: a toggle is a
  * stateful two-way control (GET state on mount, write on click) rendered
  * by the header-actions surface (CnActionButtons); dispatching it here
@@ -32,10 +41,14 @@ import { emit } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import {
 	dropOptionalUnresolved,
+	dropOptionalUnresolvedDeep,
+	hasUnresolvedDeepTokens,
 	hasUnresolvedTokens,
+	resolveDeepTokens,
 	resolveFilterTokens,
 } from './resolveFilterTokens.js'
 import { interpolateUrlTokens } from '../composables/useEndpointSource.js'
+import { parseDispositionFilename, triggerBlobDownload } from '../components/CnIndexPage/selfModeIO.js'
 
 /** Event-bus channel the page-level Refresh signal broadcasts on (Wave 2). */
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
@@ -142,34 +155,77 @@ export function buildOnSuccessRoute(onSuccessRoute, saved) {
 }
 
 /**
+ * Interpolate the `api-call` URL/filename token grammar inside a string:
+ * the `{objectId}` BRACE convention (a literal placeholder some manifests
+ * use for path templates, matching the OpenRegister credential-broker path
+ * style) as well as the full `@objectId` / `@object.<field>` /
+ * `@workspace.<key>` / `@config.<key>` grammar {@link interpolateUrlTokens}
+ * already understands. Unresolved `@`-tokens and an unresolved
+ * `{objectId}` both collapse to an empty string (never leak a literal
+ * placeholder into a request URL or a downloaded filename).
+ *
+ * @param {string} str The raw string (an action's `url` or `filename`).
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} ctx Token context.
+ * @return {string} The interpolated string.
+ */
+function interpolateActionString(str, ctx) {
+	if (typeof str !== 'string') return str
+	const braced = str.replace(/\{objectId\}/g, () => {
+		const id = ctx.objectId
+		return (id === undefined || id === null) ? '' : String(id)
+	})
+	return interpolateUrlTokens(braced, ctx)
+}
+
+/**
  * Execute a Wave-3 `api-call` action: POST/PUT the configured app endpoint
- * (URL + params run the SAME @-token grammar endpoint sources use), toast
- * the outcome via @nextcloud/dialogs, then — unless `action.refresh` is
- * `false` — bump the page-level refresh signal so every endpoint-bound
+ * (URL + body run the SAME @-token grammar endpoint sources use), toast the
+ * outcome via @nextcloud/dialogs, then — unless `action.refresh` is `false`
+ * (or, for a `download` action, unless `action.refresh` is explicitly
+ * `true`) — bump the page-level refresh signal so every endpoint-bound
  * widget refetches. Confirm-gating is the RENDERING SURFACE's job (the
  * `confirm` field is intent, object-op precedent): this runs after any
  * confirmation already happened.
  *
+ * The request body prefers `action.payload` (DEEP token resolution, any
+ * nesting — {@link resolveDeepTokens}) over the legacy `action.params`
+ * (shallow, one-level filter-map resolution — unchanged for back-compat).
+ * A required token left unresolved anywhere in the body BLOCKS the call
+ * (error toast) rather than sending a literal `@objectId` to the server.
+ *
+ * `action.download === true` requests the response as a binary blob
+ * (`responseType: 'blob'`) and triggers a browser file download — the
+ * filename comes from the response's `Content-Disposition` header, else
+ * the token-resolved `action.filename`, else `'download.pdf'`.
+ *
  * Never throws: a failed call resolves `{ ok: false, error }` after the
  * error toast (so a confirm dialog can await the outcome).
  *
- * @param {object} action The api-call action (`url`, `method?`, `params?`,
- *   `successMessage?`, `errorMessage?`, `refresh?`).
+ * @param {object} action The api-call action (`url`, `method?`, `payload?`,
+ *   `params?`, `download?`, `filename?`, `successMessage?`, `errorMessage?`,
+ *   `refresh?`).
  * @param {object} context Runtime context; `context.tokenCtx` is the token
- *   context (`{ objectId?, object?, workspace?, config? }`) the URL/params
+ *   context (`{ objectId?, object?, workspace?, config? }`) the URL/body
  *   resolve against.
  * @return {Promise<{ok: boolean, data?: *, error?: *}>} The call outcome.
  */
 async function executeApiCall(action, context) {
 	const tokenCtx = context.tokenCtx || {}
-	const url = interpolateUrlTokens(action.url || '', tokenCtx)
-	const params = dropOptionalUnresolved(resolveFilterTokens(action.params || {}, tokenCtx))
-	if (!url || hasUnresolvedTokens(params)) {
+	const url = interpolateActionString(action.url || '', tokenCtx)
+
+	const hasPayload = action.payload && typeof action.payload === 'object' && !Array.isArray(action.payload)
+	const body = hasPayload
+		? dropOptionalUnresolvedDeep(resolveDeepTokens(action.payload, tokenCtx))
+		: dropOptionalUnresolved(resolveFilterTokens(action.params || {}, tokenCtx))
+	const bodyBlocked = hasPayload ? hasUnresolvedDeepTokens(body) : hasUnresolvedTokens(body)
+
+	if (!url || bodyBlocked) {
 		// eslint-disable-next-line no-console
 		console.warn('[dispatchAction] api-call is missing its url or a required token is unresolved — skipping.', action)
 		return { ok: false, error: new Error('api-call blocked') }
 	}
 	const method = String(action.method || 'POST').toUpperCase() === 'PUT' ? 'put' : 'post'
+	const isDownload = action.download === true
 	const [{ default: axios }, { generateUrl }, dialogs] = await Promise.all([
 		import('@nextcloud/axios'),
 		import('@nextcloud/router'),
@@ -177,11 +233,24 @@ async function executeApiCall(action, context) {
 	])
 	const target = /^https?:\/\//i.test(url) ? url : generateUrl(url)
 	try {
-		const res = await axios[method](target, params)
+		// Only pass a third axios config arg for a download call — an
+		// explicit `undefined` third argument would otherwise change the
+		// call shape for every existing (non-download) api-call consumer/test.
+		const res = isDownload
+			? await axios[method](target, body, { responseType: 'blob' })
+			: await axios[method](target, body)
+		if (isDownload) {
+			const filename = parseDispositionFilename(
+				res && res.headers && res.headers['content-disposition'],
+				interpolateActionString(action.filename, tokenCtx) || 'download.pdf',
+			)
+			triggerBlobDownload(res.data, filename)
+		}
 		if (typeof dialogs.showSuccess === 'function') {
 			dialogs.showSuccess(action.successMessage || t('nextcloud-vue', 'Action completed.'))
 		}
-		if (action.refresh !== false) emit(PAGE_REFRESH_CHANNEL, {})
+		const shouldRefresh = isDownload ? action.refresh === true : action.refresh !== false
+		if (shouldRefresh) emit(PAGE_REFRESH_CHANNEL, {})
 		return { ok: true, data: res && res.data }
 	} catch (error) {
 		const serverMessage = error && error.response && error.response.data
@@ -221,17 +290,31 @@ async function executeApiCall(action, context) {
  *   above the pickers.
  * @param {string} [action.url] "api-call" only: the app endpoint — app-relative (routed
  *   through generateUrl) or absolute. May interpolate the shared URL tokens
- *   (`@objectId`, `@object.<field>`, `@workspace.<key>`, `@config.<key>`).
+ *   (`@objectId`, `@object.<field>`, `@workspace.<key>`, `@config.<key>`, and the
+ *   `{objectId}` brace form).
  * @param {string} [action.method] "api-call" only: "POST" (default) | "PUT".
- * @param {object} [action.params] "api-call" only: the JSON body. Values pass the shared
- *   filter-token grammar; optional (`…?`) tokens drop when unresolved, an unresolved
- *   REQUIRED token blocks the call.
+ * @param {object} [action.payload] "api-call" only: the JSON body — preferred over `params`.
+ *   Values resolve the shared `@`-token grammar RECURSIVELY at any nesting depth (objects
+ *   and arrays of objects, e.g. `{ dataRefs: [{ id: '@objectId' }] }`); optional (`…?`)
+ *   tokens drop when unresolved anywhere in the tree, an unresolved REQUIRED token blocks
+ *   the call. When set, `params` is ignored.
+ * @param {object} [action.params] "api-call" only: legacy JSON body (ignored when `payload`
+ *   is set). Values pass the shared filter-token grammar ONE level deep; optional (`…?`)
+ *   tokens drop when unresolved, an unresolved REQUIRED token blocks the call.
+ * @param {boolean} [action.download] "api-call" only: request the response as a binary blob
+ *   (`responseType: 'blob'`) and trigger a browser file download instead of a JSON
+ *   toast+refresh cycle. Default `false`.
+ * @param {string} [action.filename] "api-call" `download: true` only: fallback filename when
+ *   the response carries no `Content-Disposition` header (falls back further to
+ *   `'download.pdf'`). Interpolates the same token grammar as `url`.
  * @param {string} [action.successMessage] "api-call" / "open-form": pre-translated success
  *   toast text (a library default applies when absent).
  * @param {string} [action.errorMessage] "api-call" / "open-form": pre-translated error toast
  *   text (falls back to the server's `error`/`message`, then a library default).
  * @param {boolean} [action.refresh] "api-call" only: bump the `cn:page:refresh` signal after
- *   a successful call (default true; set `false` to skip).
+ *   a successful call. Default `true` — EXCEPT for a `download: true` call, whose default is
+ *   `false` (a file download normally shouldn't also force-refetch every widget); set the
+ *   flag explicitly either way to override.
  *
  * @param {object} context Runtime context.
  * @param {object} [context.router] Vue Router instance. Required for "open-page" and "navigate".

@@ -29,12 +29,15 @@ function dispatchAction(
         entities?: { id, label }[], // type='export' — selectable entity types (optional)
         formats?: (string | { id, label })[],  // type='export' — offered formats (optional)
         description?: string,       // type='export' — pre-translated dialog description
-        url?: string,               // type='api-call' — app endpoint (token-interpolated)
+        url?: string,               // type='api-call' — app endpoint (token-interpolated, @objectId or {objectId})
         method?: 'POST' | 'PUT',    // type='api-call' — default POST
-        params?: object,            // type='api-call' — JSON body (@-token grammar)
+        payload?: object,           // type='api-call' — JSON body, DEEP @-token resolution (preferred over params)
+        params?: object,            // type='api-call' — legacy JSON body, shallow (1-level) @-token grammar
+        download?: boolean,         // type='api-call' — request a blob response + trigger a file download (default false)
+        filename?: string,          // type='api-call' download only — fallback filename (token-interpolated)
         successMessage?: string,    // type='api-call' — success toast text
         errorMessage?: string,      // type='api-call' — error toast text
-        refresh?: boolean,          // type='api-call' — bump cn:page:refresh (default true)
+        refresh?: boolean,          // type='api-call' — bump cn:page:refresh (default true; default FALSE when download:true)
     },
     context: {
         router?: VueRouter,         // required for 'open-page' + 'navigate'
@@ -203,13 +206,38 @@ item broadcasts). No context is required.
 
 POST/PUT a configured app endpoint, toast the outcome via
 `@nextcloud/dialogs` (`showSuccess` / `showError`), then — unless
-`refresh: false` — bump `cn:page:refresh`. The `url` interpolates
-`@objectId` / `@object.<field>` / `@workspace.<key>` / `@config.<key>`
-tokens and `params` run the shared filter-token grammar (optional `…?`
-tokens drop when unresolved; a required unresolved token skips the call).
-Returns a promise of `{ ok, data?, error? }`. `confirm` gating is the
-rendering surface's job (object-op precedent) — the dispatcher runs after
-any confirmation.
+`refresh: false` (or, for a `download` call, unless `refresh: true`) —
+bump `cn:page:refresh`. The `url` interpolates `@objectId` /
+`@object.<field>` / `@workspace.<key>` / `@config.<key>` tokens, as well
+as the literal `{objectId}` brace placeholder. Returns a promise of
+`{ ok, data?, error? }`. `confirm` gating is the rendering surface's job
+(object-op precedent) — the dispatcher runs after any confirmation.
+
+**Request body — `payload` vs `params`.** `payload` is the preferred
+field: its values resolve the SAME `@`-token grammar (`@me`, `@today±Nd`,
+`@objectId`, `@object.<field>`, `@workspace.<key>?`/`@config.<key>?`)
+**recursively at any nesting depth** — objects, arrays, and arrays of
+objects all resolve, so a body like
+
+```jsonc
+{ "dataRefs": [{ "register": "crm", "schema": "lead", "id": "@objectId" }] }
+```
+
+resolves the nested `@objectId` correctly. The legacy `params` field
+still works unchanged for back-compat, but only resolves tokens ONE
+level deep (the flat filter-map shape) — prefer `payload` for anything
+with nested objects/arrays. Either way, a required (non-`?`) token left
+unresolved anywhere in the body **blocks the call** (error toast) rather
+than sending the literal token string to the server. When both are set,
+`payload` wins.
+
+**`download: true`** requests the response as a binary blob
+(`responseType: 'blob'`) and triggers a browser file download instead of
+treating the body as JSON. The filename comes from the response's
+`Content-Disposition` header, else the token-interpolated `filename`,
+else `'download.pdf'`. The success toast still shows; unlike a normal
+`api-call`, the page does **not** auto-refresh afterwards unless
+`refresh: true` is set explicitly.
 
 ```jsonc
 {
@@ -220,6 +248,25 @@ any confirmation.
   "confirm": true,
   "successMessage": "Payment run approved",
   "visibleWhen": { "field": "state", "op": "eq", "value": "pending" }
+}
+```
+
+Generate-and-download a DocuDesk PDF for the current detail-page object:
+
+```jsonc
+{
+  "id": "generate-pdf",
+  "label": "Generate PDF",
+  "type": "api-call",
+  "url": "/apps/docudesk/api/documents/generate",
+  "method": "POST",
+  "payload": {
+    "template": "invoice",
+    "dataRefs": [{ "register": "crm", "schema": "lead", "id": "@objectId" }]
+  },
+  "download": true,
+  "filename": "invoice-@objectId.pdf",
+  "successMessage": "Document generated"
 }
 ```
 

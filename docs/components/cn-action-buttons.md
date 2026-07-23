@@ -17,7 +17,7 @@ dispatcher — with a confirm gate first when the action asks for it.
 |--------|-----------|
 | `open-form` | Fetches the action's `schema` through the object store and mounts `CnAdvancedFormDialog`; saves the new object on confirm, toasts, bumps `cn:page:refresh`, and navigates to `onSuccessRoute` when set. |
 | `toggle` | Two-way state button: GETs `stateSource` on mount, renders `labelOn` / `labelOff`, and on click writes the flipped value **optimistically** (reverting on failure). |
-| `api-call` | POST/PUT `url` + success/error toast + page refresh — via `dispatchAction`. |
+| `api-call` | POST/PUT `url` + success/error toast + page refresh — via `dispatchAction`. `payload` (preferred, deep @-token resolution) or `params` (legacy, shallow) supplies the JSON body; `download: true` requests a blob response and triggers a browser file download instead (no auto-refresh unless `refresh: true`). See [dispatchAction](../utilities/dispatch-action.md#api-call-wave-3-91). |
 | `navigate` / `open-page` / `open-modal` / `refresh` / `handler` | Routed through `dispatchAction` (the pre-bound `cnDispatchAction` when mounted under `CnPageRenderer`). |
 
 Every action may carry a **`visibleWhen`** predicate (the shared banner
@@ -50,8 +50,11 @@ A `confirm: true` action opens `CnConfirmDialog` **before** dispatching
 ```
 
 `url` / `writeUrl` / `stateSource.url` interpolate `@objectId`,
-`@object.<field>`, `@workspace.<key>`, and `@config.<key>` tokens; `params`
-run the shared filter-token grammar. The object context comes from either
+`@object.<field>`, `@workspace.<key>`, `@config.<key>` tokens, and the
+literal `{objectId}` brace form; an `api-call`'s `payload` runs the SAME
+grammar recursively at any nesting depth (objects/arrays of objects —
+e.g. `{ dataRefs: [{ id: '@objectId' }] }`), while the legacy `params`
+only resolves one level deep. The object context comes from either
 `CnDetailPage`'s `cnObjectContext` or `CnPageRenderer`'s
 `cnDetailObjectContext` holder, so a detail action resolves against the
 current record without extra wiring.
