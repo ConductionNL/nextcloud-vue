@@ -59,6 +59,7 @@
 				:item="item"
 				:depth="1"
 				:path="[idx]"
+				:show-icons="showIcons"
 				@update-item="onUpdateItem"
 				@remove-item="onRemoveItem"
 				@add-child="onAddChild" />

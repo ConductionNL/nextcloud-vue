@@ -343,6 +343,8 @@
 				:tabs="effectiveObjectSidebarState.tabs"
 				:object-type="effectiveObjectSidebarState.objectType"
 				:object-id="effectiveObjectSidebarState.objectId"
+				:object-data="effectiveObjectSidebarState.object"
+				:object-schema="effectiveObjectSidebarState.schemaObject"
 				:register="effectiveObjectSidebarState.register"
 				:schema="effectiveObjectSidebarState.schema"
 				:title="effectiveObjectSidebarState.title"
@@ -1561,6 +1563,12 @@ export default {
 				subtitle: '',
 				register: '',
 				schema: '',
+				// The loaded object, published by CnDetailPage so the hoisted
+				// sidebar's data/metadata tab widgets get it as `objectData`.
+				// Pre-declared here so Vue 2 keeps it reactive.
+				object: null,
+				// The resolved schema OBJECT, for the `data` tab widget.
+				schemaObject: null,
 				hiddenTabs: [],
 				tabs: undefined,
 				// Host-requested active tab id (e.g. a detail-page "Linked

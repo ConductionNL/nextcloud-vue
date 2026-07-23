@@ -140,7 +140,7 @@
 								:formatter-options="col.formatterOptions || null"
 								:widget="col.widget || null"
 								:widget-props="col.widgetProps || undefined"
-								:format="col.format || null"
+								:format="columnFormat(col)"
 								:row="row"
 								:row-key="rowKey" />
 						</slot>
@@ -186,6 +186,10 @@ import { CnIcon } from '../CnIcon/index.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
+// CnDataTable has no scoped styles of its own — its entire look lives in the
+// shared table stylesheet. Import it here so the table is styled even when the
+// consuming app does not pull in the library's global css/index.css.
+import '../../css/table.css'
 
 /**
  * CnDataTable — Generic sortable data table for list views.
@@ -781,6 +785,22 @@ export default {
 				}
 			}
 			return base
+		},
+
+		/**
+		 * Declarative cell-format spec handed to CnCellRenderer's `format` prop
+		 * (an object: `{ style, currency, decimals, ... }`). `col.format` is
+		 * overloaded — for schema-derived columns it is the schema format STRING
+		 * (`'date'`, `'uri'`, ...), which is NOT a declarative spec and drives
+		 * type-aware rendering via `columnProperty()` instead. Only forward an
+		 * object here, so a string schema-format no longer trips CnCellRenderer's
+		 * `Object`-typed `format` prop (Vue prop-type warning).
+		 *
+		 * @param {object} col Column definition.
+		 * @return {object|null} The declarative format spec, or null.
+		 */
+		columnFormat(col) {
+			return (col && typeof col.format === 'object') ? col.format : null
 		},
 
 		/**

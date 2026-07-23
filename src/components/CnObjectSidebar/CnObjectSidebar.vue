@@ -178,14 +178,16 @@
 					v-bind="sharedTabProps" />
 
 				<!-- Widget array path. Each widget receives the shared object
-				     context plus its own `props`; per-widget props win on overlap. -->
+				     context plus its own `props` via `widgetBindings` (which also
+				     hands the prop-driven `data` / `metadata` built-ins the loaded
+				     object and schema); per-widget props win on overlap. -->
 				<div v-else class="cn-object-sidebar__tab-widgets">
 					<template v-for="(w, wIdx) in tab.widgets || []">
 						<component
 							:is="resolveWidgetComponent(w.type)"
 							v-if="resolveWidgetComponent(w.type)"
 							:key="wIdx"
-							v-bind="{ ...sharedTabProps, ...(w.props || {}) }" />
+							v-bind="widgetBindings(w)" />
 					</template>
 				</div>
 			</NcAppSidebarTab>
@@ -329,6 +331,31 @@ export default {
 		schema: {
 			type: String,
 			default: '',
+		},
+		/**
+		 * The loaded object, forwarded to prop-driven sidebar-tab widgets
+		 * (the `data` / `metadata` built-ins) as `objectData`. The sidebar is
+		 * otherwise coordinate-based — most tabs self-fetch from
+		 * `objectId`/`register`/`schema` — so this is null unless a host (e.g.
+		 * CnDetailPage via CnAppRoot) publishes the loaded object.
+		 *
+		 * @type {object|null}
+		 */
+		objectData: {
+			type: Object,
+			default: null,
+		},
+		/**
+		 * The resolved JSON Schema OBJECT (with a `properties` field), forwarded
+		 * to the `data` built-in tab widget (CnObjectDataWidget), which needs the
+		 * schema definition rather than the `schema` slug string. Null unless a
+		 * host (e.g. CnDetailPage via CnAppRoot) publishes it.
+		 *
+		 * @type {object|null}
+		 */
+		objectSchema: {
+			type: Object,
+			default: null,
 		},
 		/** Array of tab IDs to hide: 'files', 'notes', 'tags', 'tasks', 'auditTrail' */
 		hiddenTabs: {
@@ -691,6 +718,29 @@ export default {
 				return this.tabs[0].id
 			}
 			return 'files'
+		},
+
+		/**
+		 * Build the prop bag for a widget in the `widgets[]` tab path. All
+		 * widgets get the shared coordinate context plus the loaded object
+		 * (`objectData`); the prop-driven `data` built-in also gets the schema
+		 * OBJECT bound to its `schema` prop (the other tabs use the `schema`
+		 * slug string, so the override is scoped to `type: 'data'`). A widget's
+		 * own `props` win on overlap.
+		 *
+		 * @param {{ type: string, props?: object }} w Widget spec
+		 * @return {object} Props to v-bind onto the resolved widget component
+		 */
+		widgetBindings(w) {
+			const bindings = { ...this.sharedTabProps, objectData: this.objectData }
+			if (w.type === 'data') {
+				// CnObjectDataWidget wants the schema OBJECT, never the slug the
+				// other tabs use. Pass the resolved object (null until it loads —
+				// the widget renders its empty state meanwhile) so it never sees
+				// a String `schema`.
+				bindings.schema = this.objectSchema
+			}
+			return { ...bindings, ...(w.props || {}) }
 		},
 
 		/**

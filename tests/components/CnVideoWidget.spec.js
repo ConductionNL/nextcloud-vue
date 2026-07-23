@@ -32,6 +32,19 @@ describe('CnVideoWidget renderer', () => {
 		// muted defaults to true → the embed URL carries mute=1.
 		expect(iframe.attributes('src')).toBe('https://www.youtube.com/embed/abc123?mute=1')
 	})
+
+	it('sends a referrer on the iframe so YouTube does not reject the embed (Error 153)', () => {
+		const wrapper = mount(CnVideoWidget, {
+			propsData: {
+				content: {
+					sourceType: 'youtube',
+					videoUrl: 'https://www.youtube.com/embed/abc123',
+				},
+			},
+		})
+		const iframe = wrapper.find('.cn-video-widget__iframe')
+		expect(iframe.attributes('referrerpolicy')).toBe('strict-origin-when-cross-origin')
+	})
 })
 
 describe('CnVideoWidgetForm', () => {

@@ -21,11 +21,11 @@
 		<template v-if="style === 'line'">
 			<label class="cn-divider-widget-form__color-label">
 				{{ t('nextcloud-vue', 'Line color') }}
-				<input
-					type="color"
-					:value="lineColor || '#cccccc'"
-					class="cn-divider-widget-form__color"
-					@input="updateField('lineColor', $event.target.value)">
+				<CnColorPicker
+					:value="lineColor"
+					clearable
+					@input="updateField('lineColor', $event.hex)"
+					@clear="updateField('lineColor', '')" />
 			</label>
 
 			<NcTextField
@@ -68,11 +68,11 @@
 
 			<label class="cn-divider-widget-form__color-label">
 				{{ t('nextcloud-vue', 'Line color') }}
-				<input
-					type="color"
-					:value="lineColor || '#cccccc'"
-					class="cn-divider-widget-form__color"
-					@input="updateField('lineColor', $event.target.value)">
+				<CnColorPicker
+					:value="lineColor"
+					clearable
+					@input="updateField('lineColor', $event.hex)"
+					@clear="updateField('lineColor', '')" />
 			</label>
 
 			<NcSelect
@@ -90,6 +90,7 @@
 <script>
 import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 
 const STYLES = Object.freeze({
 	LINE: 'line',
@@ -121,6 +122,7 @@ export default {
 	components: {
 		NcTextField,
 		NcSelect,
+		CnColorPicker,
 	},
 
 	props: {

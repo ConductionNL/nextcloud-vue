@@ -23,6 +23,77 @@ describe('CnQuicklinksWidget renderer', () => {
 		})
 		expect(wrapper.find('.cn-quicklinks-widget__link').exists()).toBe(true)
 	})
+
+	it('sets a title tooltip with the label when labels are disabled', () => {
+		const wrapper = mount(CnQuicklinksWidget, {
+			propsData: {
+				content: {
+					links: [{ label: 'Docs', url: 'https://docs.test' }],
+					showLabels: false,
+				},
+			},
+		})
+		expect(wrapper.find('.cn-quicklinks-widget__link').attributes('title')).toBe('Docs')
+	})
+
+	it('omits the title tooltip in the below label position when the label fits (not truncated)', async () => {
+		const wrapper = mount(CnQuicklinksWidget, {
+			propsData: {
+				content: {
+					links: [{ label: 'Docs', url: 'https://docs.test' }],
+					showLabels: true,
+					labelPosition: 'below',
+				},
+			},
+		})
+		// jsdom reports scrollWidth === clientWidth === 0 by default (no real
+		// layout), i.e. never truncated — the tooltip must not appear here.
+		await wrapper.vm.$nextTick()
+		expect(wrapper.find('.cn-quicklinks-widget__link').attributes('title')).toBeUndefined()
+	})
+
+	it('sets a title tooltip once the below-position label is measured as truncated', async () => {
+		const wrapper = mount(CnQuicklinksWidget, {
+			propsData: {
+				content: {
+					links: [{ label: 'A Very Long Quicklink Label That Overflows', url: 'https://docs.test' }],
+					showLabels: true,
+					labelPosition: 'below',
+				},
+			},
+		})
+		const label = wrapper.find('.cn-quicklinks-widget__label').element
+		Object.defineProperty(label, 'scrollWidth', { configurable: true, value: 200 })
+		Object.defineProperty(label, 'clientWidth', { configurable: true, value: 80 })
+		await wrapper.vm.$nextTick()
+		expect(wrapper.find('.cn-quicklinks-widget__link').attributes('title'))
+			.toBe('A Very Long Quicklink Label That Overflows')
+	})
+
+	it('omits the title tooltip in the overlay label position', () => {
+		const wrapper = mount(CnQuicklinksWidget, {
+			propsData: {
+				content: {
+					links: [{ label: 'Docs', url: 'https://docs.test' }],
+					showLabels: true,
+					labelPosition: 'overlay',
+				},
+			},
+		})
+		expect(wrapper.find('.cn-quicklinks-widget__link').attributes('title')).toBeUndefined()
+	})
+
+	it('omits the title tooltip when the label is empty', () => {
+		const wrapper = mount(CnQuicklinksWidget, {
+			propsData: {
+				content: {
+					links: [{ label: '', url: 'https://docs.test' }],
+					showLabels: false,
+				},
+			},
+		})
+		expect(wrapper.find('.cn-quicklinks-widget__link').attributes('title')).toBeUndefined()
+	})
 })
 
 describe('CnQuicklinksWidgetForm', () => {

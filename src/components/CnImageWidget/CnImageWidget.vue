@@ -11,7 +11,7 @@
 		<img
 			v-if="showImage"
 			class="cn-image-widget__img"
-			:src="url"
+			:src="imageSrc"
 			:alt="alt"
 			:style="imgStyle"
 			@error="onImageError">
@@ -25,6 +25,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import CnIcon from '../CnIcon/CnIcon.vue'
+import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
 
 const ALLOWED_FITS = ['cover', 'contain', 'fill', 'none']
 const DEFAULT_FIT = 'cover'
@@ -95,6 +96,17 @@ export default {
 		url() {
 			const value = this.content && this.content.url
 			return typeof value === 'string' ? value : ''
+		},
+
+		/**
+		 * The `<img src>` value: the stored URL resolved for the current
+		 * instance's routing (app-relative resource paths gain the webroot +
+		 * `/index.php`; external/data URLs pass through).
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
+		 */
+		imageSrc() {
+			return resolveImageUrl(this.url)
 		},
 
 		/** The alt text, or '' when absent / non-string. */

@@ -98,7 +98,7 @@ registerDashboardWidget('object-table', {
 		filter: {},
 		sort: { field: '', dir: 'asc' },
 		limit: 10,
-		columns: [{ key: 'title', label: 'Title' }],
+		columns: [],
 	},
 	displayName: 'Object table',
 	icon: 'TableLarge',

@@ -21,12 +21,12 @@
 				:value="item.url"
 				:placeholder="t('nextcloud-vue', 'URL')"
 				@input="emitFieldChange('url', $event.target.value)">
-			<input
-				type="text"
-				class="cn-menu-item-editor__input cn-menu-item-editor__input--icon"
-				:value="item.icon"
-				:placeholder="t('nextcloud-vue', 'Icon')"
-				@input="emitFieldChange('icon', $event.target.value)">
+			<CnIconBrowser
+				v-if="showIcons"
+				:value="item.icon || null"
+				allow-url
+				clearable
+				@input="emitFieldChange('icon', $event || '')" />
 			<button
 				v-if="canAddChildren"
 				type="button"
@@ -49,6 +49,7 @@
 				:item="child"
 				:depth="depth + 1"
 				:path="[...path, idx]"
+				:show-icons="showIcons"
 				@update-item="$emit('update-item', $event)"
 				@remove-item="$emit('remove-item', $event)"
 				@add-child="$emit('add-child', $event)" />
@@ -58,12 +59,20 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 
 /**
  * CnMenuItemEditor — recursive row editor used by the menu widget form. Inline
- * label/url/icon inputs plus per-row "Add Children" and "Remove" actions. The
- * "Add Children" button is hidden once the row reaches depth 3 so the user
- * cannot create a tree the server would reject.
+ * label/url inputs, an icon picker, and per-row "Add Children" and "Remove"
+ * actions. The "Add Children" button is hidden once the row reaches depth 3 so
+ * the user cannot create a tree the server would reject.
+ *
+ * The icon field uses {@link CnIconBrowser} (not a free-text input), the same
+ * picker every other widget form uses for its icon field — a bare text field
+ * let editors type values the renderer (`CnMenuItemIcon`) can't resolve, e.g.
+ * Nextcloud `icon-*` CSS classes, which silently rendered as the default icon
+ * at runtime. It's hidden entirely when `showIcons` is `false`, since the
+ * widget won't render icons either.
  *
  * Field changes bubble up via the `update-item` event with the row's `path`
  * (an index list) so the parent form can mutate the canonical `items` array in
@@ -73,6 +82,10 @@ import { translate as t } from '@nextcloud/l10n'
  */
 export default {
 	name: 'CnMenuItemEditor',
+
+	components: {
+		CnIconBrowser,
+	},
 
 	props: {
 		/**
@@ -97,6 +110,15 @@ export default {
 		path: {
 			type: Array,
 			required: true,
+		},
+		/**
+		 * Whether the widget's "Show Icons" option is enabled. Hides the icon
+		 * picker (and stops it wasting row space) when icons won't render at
+		 * runtime anyway. Forwarded unchanged to child rows.
+		 */
+		showIcons: {
+			type: Boolean,
+			default: true,
 		},
 	},
 
@@ -208,10 +230,6 @@ export default {
 	font-size: 13px;
 	flex: 1;
 	min-width: 60px;
-}
-
-.cn-menu-item-editor__input--icon {
-	flex: 0 0 90px;
 }
 
 .cn-menu-item-editor__btn {

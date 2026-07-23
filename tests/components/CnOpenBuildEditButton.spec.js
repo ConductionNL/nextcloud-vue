@@ -114,19 +114,18 @@ describe('CnOpenBuildEditButton', () => {
 		expect(btn(wrapper, 'Add widget')).not.toBeUndefined()
 	})
 
-	it('shows Add widget on an empty custom page (blank canvas, ADR-041)', () => {
-		const wrapper = mountButton({ editor: makeEditor(true, [{ id: 'blank', type: 'custom' }]), pageId: 'blank' })
-		expect(wrapper.vm.isEmptyBodyPage).toBe(true)
-		expect(btn(wrapper, 'Add widget')).not.toBeUndefined()
-	})
+	it('hides Add widget on custom pages — custom is the bespoke-component escape hatch, not a widget canvas', () => {
+		// Blank, component-backed, and (defensively) widget-carrying custom pages
+		// all hide "Add widget": custom pages are not widget canvases. Widget
+		// canvases are dashboard pages.
+		const blank = mountButton({ editor: makeEditor(true, [{ id: 'blank', type: 'custom' }]), pageId: 'blank' })
+		expect(blank.vm.pageSupportsWidgets).toBe(false)
+		expect(btn(blank, 'Add widget')).toBeUndefined()
 
-	it('hides Add widget on a custom page that already has a component or a body widget', () => {
 		const withComp = mountButton({ editor: makeEditor(true, [{ id: 'c', type: 'custom', component: 'MyPage' }]), pageId: 'c' })
-		expect(withComp.vm.isEmptyBodyPage).toBe(false)
 		expect(btn(withComp, 'Add widget')).toBeUndefined()
 
 		const withWidget = mountButton({ editor: makeEditor(true, [{ id: 'w', type: 'custom', widgets: [{ id: 'x', slot: 'body' }] }]), pageId: 'w' })
-		expect(withWidget.vm.isEmptyBodyPage).toBe(false)
 		expect(btn(withWidget, 'Add widget')).toBeUndefined()
 	})
 
