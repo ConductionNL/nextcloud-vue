@@ -317,7 +317,7 @@ export default {
 		}
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this._resizeObserver) {
 			this._resizeObserver.disconnect()
 		}
@@ -417,7 +417,7 @@ export default {
 				}
 				const isTruncated = target.scrollWidth > target.clientWidth
 				if (this.truncatedLabels[index] !== isTruncated) {
-					this.$set(this.truncatedLabels, index, isTruncated)
+					this.truncatedLabels[index] = isTruncated
 				}
 			})
 		},

@@ -2,6 +2,7 @@
 	<div class="cn-context-menu-root">
 		<NcActions
 			v-if="!activePanel"
+			ref="actions"
 			v-model:open="internalOpen"
 			:manual-open="true"
 			:force-menu="true"
@@ -247,7 +248,11 @@ export default {
 		// Neutralising the check on our own NcPopover instance (one level
 		// down inside NcActions) leaves every other popover untouched and
 		// keeps the check live for real custom triggers elsewhere.
-		const ncActions = this.$children?.[0]
+		//
+		// Vue 3: `this.$children` was removed (it hard-errors under @vue/compat
+		// MODE 3 with "INSTANCE_CHILDREN compat has been disabled"), so reach the
+		// NcActions instance through an explicit template ref instead.
+		const ncActions = this.$refs.actions
 		const ncPopover = ncActions?.$refs?.popover
 		if (ncPopover) {
 			ncPopover.checkTriggerA11y = () => {}
