@@ -188,7 +188,23 @@ module.exports = {
 				// (document.documentElement.dataset.locale etc.) that don't exist in the
 				// styleguide and causes crashes when first loaded by Data Display components.
 				'@nextcloud/l10n': path.resolve(__dirname, 'mocks/l10n.js'),
+				// webpack 4 can't read these packages' "exports" maps, so the CSS
+				// subpath imports (physically at dist/style.css) don't resolve, and
+				// the bare `@nextcloud/dialogs` alias below would otherwise rewrite the
+				// subpath to `<empty.js>/style.css`. Declare the exact stylesheet
+				// requests BEFORE the bare-module aliases so they win (webpack alias is
+				// first-match in declaration order). The dialog/toast/file-picker chrome
+				// only matters at runtime in a real Nextcloud server.
+				'@nextcloud/dialogs/style.css': path.resolve(__dirname, 'mocks/empty.js'),
 				'@nextcloud/dialogs': path.resolve(__dirname, 'mocks/empty.js'),
+				// @nextcloud/password-confirmation (used by useAppInstaller) resolves to
+				// a CJS entry that imports `@nextcloud/vue/components/NcButton` etc. via
+				// an "exports" subpath webpack 4 can't resolve, and its own style.css hits
+				// the same subpath problem. Password confirmation only runs against a real
+				// Nextcloud server (the composable calls these lazily, never at module
+				// load), so stub both the module and its stylesheet.
+				'@nextcloud/password-confirmation/style.css': path.resolve(__dirname, 'mocks/empty.js'),
+				'@nextcloud/password-confirmation': path.resolve(__dirname, 'mocks/empty.js'),
 				// @microsoft/fetch-event-source is only installed in the
 				// library's root node_modules (CnAiCompanion + useAiChatStream
 				// consume it at runtime). The deploy workflow `npm ci`s only
