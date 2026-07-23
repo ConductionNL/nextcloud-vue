@@ -216,6 +216,14 @@ module.exports = {
 				// green. Sites consuming the lib pull marked from the lib
 				// root's package.json normally.
 				marked: path.resolve(__dirname, 'mocks/empty.js'),
+				// leaflet/dist/leaflet.css references marker/layers PNGs via url(),
+				// and webpack 4 has no loader for binary assets in this config
+				// (asset modules are webpack 5). CnMapWidget statically imports this
+				// CSS, so the whole styleguide build fails to resolve the PNGs. The
+				// map only renders at runtime in a real app (leaflet's JS itself is
+				// dynamically imported and still resolves normally); the styleguide
+				// has no map demo, so stubbing the stylesheet keeps the build green.
+				'leaflet/dist/leaflet.css': path.resolve(__dirname, 'mocks/empty.js'),
 				'#minpath': require.resolve('path-browserify'),
 				'#minurl': require.resolve('url/'),
 				// #minproc uses a package "imports" map that webpack 4 doesn't support;
