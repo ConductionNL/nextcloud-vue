@@ -167,6 +167,7 @@
   "CnRegisterMapping": 0.68,
   "CnRegisterSchemaSelect": 1,
   "CnRelatedCollections": 1,
+  "CnRelatedFiles": 1,
   "CnRelatedObjectsWidget": 1,
   "CnRelatedObjectsWidgetForm": 1,
   "CnRelationshipGraph": 1,
