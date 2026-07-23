@@ -7,24 +7,33 @@
 
 import { mount } from '@vue/test-utils'
 import CnFilesWidgetForm from '@/components/CnFilesWidgetForm/CnFilesWidgetForm.vue'
+import { FilePickerClosed } from '@nextcloud/dialogs'
 
 // The folder picker is driven by @nextcloud/dialogs' builder. Mock it so the
 // builder chain is inert and `pickNodes()` resolves with a canned node.
+// `showError` and `FilePickerClosed` are also imported by the component — the
+// latter is the sentinel the cancel branch checks via `instanceof`, so it must
+// be a real class here (the SFC does `e instanceof FilePickerClosed`).
 // Must be `mock`-prefixed so jest allows the hoisted factory to reference it.
 const mockPickNodes = jest.fn()
-jest.mock('@nextcloud/dialogs', () => ({
-	getFilePickerBuilder: jest.fn(() => {
-		const builder = {
-			setMultiSelect: () => builder,
-			setMimeTypeFilter: () => builder,
-			allowDirectories: () => builder,
-			startAt: () => builder,
-			addButton: () => builder,
-			build: () => ({ pickNodes: mockPickNodes }),
-		}
-		return builder
-	}),
-}))
+jest.mock('@nextcloud/dialogs', () => {
+	class FilePickerClosed extends Error {}
+	return {
+		getFilePickerBuilder: jest.fn(() => {
+			const builder = {
+				setMultiSelect: () => builder,
+				setMimeTypeFilter: () => builder,
+				allowDirectories: () => builder,
+				startAt: () => builder,
+				addButton: () => builder,
+				build: () => ({ pickNodes: mockPickNodes }),
+			}
+			return builder
+		}),
+		showError: jest.fn(),
+		FilePickerClosed,
+	}
+})
 
 describe('CnFilesWidgetForm', () => {
 	beforeEach(() => {
@@ -66,7 +75,7 @@ describe('CnFilesWidgetForm', () => {
 	})
 
 	it('leaves the selection untouched when the picker is cancelled', async () => {
-		mockPickNodes.mockRejectedValue(new Error('FilePicker: No nodes selected'))
+		mockPickNodes.mockRejectedValue(new FilePickerClosed('FilePicker: closed'))
 		const wrapper = mount(CnFilesWidgetForm, {
 			propsData: { value: { folderPath: '/Keep', fileId: 7 } },
 		})
