@@ -2,18 +2,18 @@
 
 ### Props
 
-| Name          | Type      | Required | Default               | Description                                                                                                                                                      |
-| ------------- | --------- | -------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `visible`     | `boolean` |          | `false`               | Controls panel visibility                                                                                                                                        |
-| `streamState` | `object`  | ✓        | —                     | Stream state object from useAiChatStream().state. Contains: isStreaming, currentText, toolCalls, error, messages.                                                |
-| `fabRef`      | `object`  |          | `null`                | Ref to the FAB element — kept for API back-compat, focus return is handled by NcAppSidebar.                                                                      |
-| `chatAppId`   | `string`  |          | `DEFAULT_CHAT_APP_ID` | Backend app id, forwarded to `CnAiHistoryDialog` so the conversation list resolves against the same backend as the chat stream. See composables/aiChatConfig.js. |
+| Name          | Type      | Required | Default               | Description                                                                                                                                                                            |
+| ------------- | --------- | -------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `visible`     | `boolean` |          | `false`               | Controls panel visibility                                                                                                                                                              |
+| `streamState` | `object`  | ✓        | —                     | Stream state object from useAiChatStream().state. Contains: isStreaming, currentText, toolCalls, error, messages, conversationUuid.                                                    |
+| `fabRef`      | `object`  |          | `null`                | Ref to the FAB element — kept for API back-compat, focus return is handled by NcAppSidebar.                                                                                            |
+| `chatAppId`   | `string`  |          | `DEFAULT_CHAT_APP_ID` | Backend app id, forwarded to the agent picker, recent sessions, and history list so every fetch resolves against the same backend as the chat stream. See composables/aiChatConfig.js. |
 
 ### Events
 
-| Name                | Payload | Description |
-| ------------------- | ------- | ----------- |
-| `close`             | —       |             |
-| `send`              | —       |             |
-| `new-thread`        | —       |             |
-| `load-conversation` | —       |             |
+| Name                | Payload                  | Description |
+| ------------------- | ------------------------ | ----------- |
+| `close`             | —                        |             |
+| `send`              | `undefined`, `undefined` |             |
+| `new-thread`        | —                        |             |
+| `load-conversation` | —                        |             |

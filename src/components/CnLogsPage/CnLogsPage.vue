@@ -151,10 +151,15 @@ export default {
 			type: String,
 			default: '',
 		},
-		/** Whether to render the inline page header. Default false to mirror CnIndexPage. */
+		/**
+		 * Whether to render the inline page header. Defaults to true: unlike
+		 * CnIndexPage (which surfaces the title in its sidebar header when this
+		 * is false), a logs page has no sidebar fallback, so a false default
+		 * left the page with no heading at all.
+		 */
 		showTitle: {
 			type: Boolean,
-			default: false,
+			default: true,
 		},
 		/** MDI icon name for the header. */
 		icon: {
