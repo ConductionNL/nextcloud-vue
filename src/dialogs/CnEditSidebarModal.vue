@@ -17,7 +17,10 @@
 				{{ t('nextcloud-vue', 'Tabs') }}
 			</h3>
 			<ul class="cn-edit-sidebar__tabs">
-				<li v-for="(tab, index) in editableTabs" :key="tab.id || index" class="cn-edit-sidebar__tab">
+				<!-- Key on the stable list index, NOT tab.id. The Tab id field below edits -->
+				<!-- tab.id; keying on it would re-key (destroy + recreate) this <li> on every -->
+				<!-- keystroke, blowing away the focused input. -->
+				<li v-for="(tab, index) in editableTabs" :key="index" class="cn-edit-sidebar__tab">
 					<div class="cn-edit-sidebar__tab-row">
 						<NcCheckboxRadioSwitch
 							:model-value="!isHidden(tab.id)"
@@ -124,7 +127,15 @@ export default {
 				return this.sidebar ? this.sidebar.show !== false : false
 			},
 			set(value) {
-				if (this.sidebar) this.sidebar['show'] = value
+				if (!this.sidebar) return
+				// Detail pages gate on `show`; index pages gate their embedded
+				// sidebar (and its actions-bar toggle button) on `enabled`. Set
+				// both so the toggle mounts/suppresses the sidebar on either page
+				// type — a modal-authored `{ show: true }` alone is inert on an
+				// index page (no `enabled`, so CnIndexPage renders nothing).
+				// Vue 3: reactive objects accept direct assignment (no $set).
+				this.sidebar.show = value
+				this.sidebar.enabled = value
 			},
 		},
 		/** Declared sidebar tabs on this page (or empty). */
@@ -208,7 +219,13 @@ export default {
 		},
 		/** Add a new sidebar tab, enabling the sidebar if it was off. */
 		addTab() {
-			if (this.sidebar) this.sidebar['show'] = true
+			if (this.sidebar) {
+				// Enable on both gates (see `sidebarShown`) so adding a tab mounts
+				// the sidebar on index pages too, not just detail pages.
+				// Vue 3: reactive objects accept direct assignment (no $set).
+				this.sidebar.show = true
+				this.sidebar.enabled = true
+			}
 			this.editableTabs.push({ id: `tab-${this.editableTabs.length + 1}`, label: '', widgets: [] })
 		},
 		/**

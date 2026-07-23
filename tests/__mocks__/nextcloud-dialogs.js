@@ -8,15 +8,34 @@
  * library barrel `src/index.js`) fails with a "Cannot find module
  * '@nextcloud/paths'" resolution error, not a real assertion failure.
  *
- * Only `showSuccess` / `showError` are used anywhere in `src/`, so the stub
- * covers just those two toast helpers.
+ * `showSuccess` / `showError` are the toast helpers used across `src/`.
+ * `getFilePickerBuilder` / `FilePickerType` are used by `CnRelatedFiles`; the
+ * default builder here resolves `pick()` to an empty string so a barrel import
+ * never explodes — specs that assert on picked paths override this module with
+ * their own `jest.mock('@nextcloud/dialogs', …)`.
  */
 
 const showSuccess = jest.fn()
 const showError = jest.fn()
 
+const FilePickerType = { Choose: 1, Move: 2, Copy: 3, MoveCopy: 4, Custom: 5 }
+
+const getFilePickerBuilder = jest.fn(() => {
+	const builder = {}
+	const chain = () => builder
+	builder.setMultiSelect = chain
+	builder.setMimeTypeFilter = chain
+	builder.setModal = chain
+	builder.setType = chain
+	builder.allowDirectories = chain
+	builder.build = () => ({ pick: jest.fn().mockResolvedValue('') })
+	return builder
+})
+
 module.exports = {
 	__esModule: true,
 	showSuccess,
 	showError,
+	getFilePickerBuilder,
+	FilePickerType,
 }

@@ -4,7 +4,7 @@
 -->
 
 <template>
-	<div class="cn-nc-widget-widget">
+	<div class="cn-nc-widget-widget" :class="{ 'cn-nc-widget-widget--horizontal': displayMode === 'horizontal' }">
 		<header class="cn-nc-widget-widget__header">
 			<img
 				v-if="widgetIconUrl"
@@ -18,6 +18,12 @@
 			Native callback container — always present but hidden until the
 			OCA.Dashboard callback mounts into it. Keeping it mounted avoids a
 			flicker when the native path wins after the API list has painted.
+
+			The `--horizontal` reskin class lives on the ROOT element, not here:
+			native widget callbacks mount via `new Vue(...).$mount(el)`, which
+			REPLACES this element in the live DOM with the callback's own root
+			node — any class we put directly on it is discarded along with the
+			element itself, so it can never appear in the rendered page.
 		-->
 		<div
 			v-show="mode === 'native'"
@@ -227,10 +233,18 @@ export default {
 				this.items = []
 				return
 			}
-			const callback = this.resolveNativeCallback()
-			if (typeof callback === 'function') {
-				this.mountNative(callback)
-				return
+			// The native callback paints its own opaque markup, so `displayMode`
+			// (bodyClass/itemClass below) has no effect on it — only the API
+			// item list honours the vertical/horizontal setting. Horizontal mode
+			// must therefore skip the native fast-path, or the "Horizontal
+			// (cards)" option would silently do nothing for the (common) case
+			// where the widget has a registered native callback.
+			if (this.displayMode !== 'horizontal') {
+				const callback = this.resolveNativeCallback()
+				if (typeof callback === 'function') {
+					this.mountNative(callback)
+					return
+				}
 			}
 			this.mode = 'api'
 			this.loadApiItems()
@@ -302,13 +316,12 @@ export default {
 		async loadApiItems() {
 			this.loading = true
 			try {
-				// The v2 widget-items API returns the per-widget `{items}`
-				// envelope for modern `IAPIWidgetV2` providers (files-favorites,
-				// recommendations, etc.). The legacy v1 endpoint returns an
-				// empty list for those providers, so a v1 fetch makes every
-				// modern widget render "No items available" even when the
-				// dashboard has data. extractItems() already tolerates both the
-				// flat-array (older providers) and `{items}` (v2) shapes.
+				// The v2 widget-items API only returns an entry for widgets
+				// whose server-side provider implements `IAPIWidgetV2` — plenty
+				// of native dashboard widgets are JS-callback-only (`IWidget`)
+				// and never appear in this response at all, which looks
+				// identical to "0 items" from here. extractItems() tolerates
+				// both the flat-array (older providers) and `{items}` (v2) shapes.
 				const url = generateOcsUrl('/apps/dashboard/api/v2/widget-items')
 				const response = await axios.get(url, {
 					params: { widgets: [this.widgetId], limit: API_ITEM_LIMIT },
@@ -320,6 +333,19 @@ export default {
 				this.items = []
 			} finally {
 				this.loading = false
+			}
+
+			// Horizontal mode deliberately skips the native fast-path (see
+			// tryMount()) to get the styled card layout. But when the API has
+			// no entry for this widget at all — no `IAPIWidgetV2` support, not
+			// "no items right now" — that would render a false empty state for
+			// a widget that actually has content. Fall back to native
+			// rendering rather than lying about there being nothing to show.
+			if (this.items.length === 0) {
+				const callback = this.resolveNativeCallback()
+				if (typeof callback === 'function') {
+					this.mountNative(callback)
+				}
 			}
 		},
 
@@ -394,6 +420,55 @@ export default {
 	flex: 1;
 	overflow: auto;
 	padding: 0 16px 16px;
+}
+
+/*
+ * The native `OCA.Dashboard` callback paints its own markup we don't control
+ * — for first-party widgets that's almost always `@nextcloud/vue`'s
+ * `NcDashboardWidget` / `NcDashboardWidgetItem` (`.dashboard-widget` wrapping
+ * a bare `<ul>`/`<li>` list, each item a `.item-list__entry`).
+ *
+ * Only the LIST CONTAINER is retiled into a grid here — `.item-list__entry`'s
+ * own internal layout is left untouched. An earlier version of this override
+ * also forced `.item-list__entry` from row to column, but its icon-overlay
+ * badge (`.item-icon`, see @nextcloud/vue's NcDashboardWidgetItem CSS) is
+ * positioned with negative margins calibrated for the row layout, so
+ * flipping to column made items visually overlap. Tiling the `<li>`s into a
+ * grid while each entry keeps its normal icon+text row reads as a grid of
+ * card tiles without touching that internal math.
+ *
+ * Scoped from `.cn-nc-widget-widget--horizontal` on the ROOT element, not
+ * `.cn-nc-widget-widget__native`: the callback mounts via `.$mount(el)`,
+ * which replaces `nativeContainer` in the live DOM outright, so any class
+ * placed directly on it never survives to be selectable.
+ *
+ * The 250px column floor matches `.item-list__entry`'s own natural minimum
+ * width (avatar + padding + its un-truncatable-below-this content) — a grid
+ * track narrower than that squeezes the entry below its real minimum and it
+ * overflows into the neighbouring cell. `min-width: 0` on the `<li>` alone
+ * isn't enough to shrink it further: the item's own internal flex layout
+ * still claims that much room regardless of the grid track size, so the
+ * track itself must not go below it.
+ */
+.cn-nc-widget-widget--horizontal :deep(.dashboard-widget > ul) {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+	gap: 8px;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.cn-nc-widget-widget--horizontal :deep(.dashboard-widget > ul > li) {
+	width: auto;
+	min-width: 0;
+}
+
+.cn-nc-widget-widget--horizontal :deep(.item-list__entry) {
+	height: 100%;
+	margin: 0;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large);
 }
 
 .cn-nc-widget-widget__body {

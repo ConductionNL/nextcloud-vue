@@ -14,7 +14,7 @@ Read-only metadata display widget. Automatically extracts and formats system met
 |------|------|---------|-------------|
 | `title` | `String` | `'Metadata'` | Widget title in the card header |
 | `icon` | `Object\|Function` | `null` | Optional MDI icon component |
-| `object-data` | `Object` | *required* | The object containing metadata (flat or with `@self` block) |
+| `object-data` | `Object` | `null` | The object containing metadata (flat or with `@self` block). Optional — `null` renders the empty state (e.g. before the object loads). |
 | `layout` | `String` | `'horizontal'` | Grid layout mode: `'grid'` or `'horizontal'` |
 | `columns` | `Number` | `0` | Number of grid columns (layout='grid' only) |
 | `label-width` | `Number` | `150` | Min width for labels in horizontal layout |

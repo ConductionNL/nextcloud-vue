@@ -312,8 +312,10 @@ export default {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 48px;
-	height: 48px;
+	width: auto;
+	min-width: 64px;
+	max-width: 80%;
+	height: 64px;
 	flex-shrink: 0;
 }
 
@@ -324,20 +326,21 @@ export default {
 
 .cn-dash-tile-widget__icon-class {
 	display: inline-block;
-	width: 48px;
-	height: 48px;
-	background-size: 48px;
+	width: 64px;
+	height: 64px;
+	background-size: 64px;
 	filter: brightness(0) invert(1);
 }
 
 .cn-dash-tile-widget__icon-img {
-	width: 100%;
+	width: auto;
 	height: 100%;
+	max-width: 100%;
 	object-fit: contain;
 }
 
 .cn-dash-tile-widget__emoji {
-	font-size: 40px;
+	font-size: 56px;
 	line-height: 1;
 }
 
