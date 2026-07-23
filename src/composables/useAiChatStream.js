@@ -14,6 +14,13 @@
  *   when the streaming endpoint returns 404/501 or fails mid-handshake,
  *   synthesising a single "final" event so rendering code does not branch.
  * - Sends the active cnAiContext snapshot in every outgoing request body.
+ * - Tracks `state.conversationUuid`, the server-side Conversation the active
+ *   session is writing to (set from the `final` event's `conversationUuid` /
+ *   the fallback response's `conversation` field, both already on the wire).
+ *   Every send() echoes it back under both key spellings the two backend
+ *   controllers read (`conversation` / `conversationUuid`) so a multi-turn
+ *   session stays one Conversation row server-side instead of implicitly
+ *   starting a new one on every turn — previously neither key was ever sent.
  *
  * The backend app id (`chatAppId`) is a single configuration point — see
  * ./aiChatConfig.js. It defaults to `hermiq` (per hydra ADR-034 "Amendment
@@ -66,6 +73,15 @@ export function useAiChatStream(contextInstance, options = {}) {
 		messages: [],
 		/** Whether the next send() should signal OR to start a new Conversation row */
 		_newThread: false,
+		/**
+		 * UUID of the conversation currently being written to, or null before the
+		 * first turn. Populated from the `final` SSE event's `conversationUuid`
+		 * field / the non-streaming fallback's `conversation` field (both already
+		 * on the wire — see finalise()) and echoed back on every subsequent send()
+		 * so the whole session stays one Conversation server-side instead of a new
+		 * one per turn. Reset by startNewThread(), set directly by loadConversation().
+		 */
+		conversationUuid: null,
 	})
 
 	/** AbortController for the active fetchEventSource call */
@@ -139,7 +155,7 @@ export function useAiChatStream(contextInstance, options = {}) {
 			if (state.currentText === '' && typeof parsed.fullText === 'string') {
 				state.currentText = parsed.fullText
 			}
-			finalise(parsed.messageId)
+			finalise(parsed.messageId, parsed.conversationUuid)
 			break
 
 		case 'error':
@@ -156,8 +172,12 @@ export function useAiChatStream(contextInstance, options = {}) {
 	 * @param {string|undefined} messageId - Server-supplied id from the final event;
 	 *   when empty/missing we synthesise a stable client-side id so Vue's :key
 	 *   stays unique within the conversation.
+	 * @param {string|undefined} [conversationUuid] - The conversation this turn was
+	 *   written to (SSE `final.conversationUuid` / fallback `.conversation`). Stored
+	 *   on state so the *next* send() continues the same server-side Conversation
+	 *   instead of implicitly starting a new one every turn.
 	 */
-	function finalise(messageId) {
+	function finalise(messageId, conversationUuid) {
 		const assistantMessage = {
 			id: (typeof messageId === 'string' && messageId !== '')
 				? messageId
@@ -167,6 +187,9 @@ export function useAiChatStream(contextInstance, options = {}) {
 			toolCalls: state.toolCalls.slice(),
 		}
 		state.messages.push(assistantMessage)
+		if (typeof conversationUuid === 'string' && conversationUuid !== '') {
+			state.conversationUuid = conversationUuid
+		}
 		state.currentText = ''
 		state.toolCalls = []
 		state.isStreaming = false
@@ -209,7 +232,10 @@ export function useAiChatStream(contextInstance, options = {}) {
 			// Treat the response as a final event — populate currentText from the reply
 			const replyContent = data?.content || data?.message || data?.reply || ''
 			state.currentText = replyContent
-			finalise()
+			// ChatController::sendMessage() echoes the conversation uuid back as
+			// `conversation` (ChatStreamController's SSE `final` event uses
+			// `conversationUuid` instead — see finalise() caller in handleSseMessage).
+			finalise(undefined, data?.conversation || data?.conversationUuid)
 		} catch (err) {
 			const code = err.response?.status?.toString() || 'network_error'
 			const message = err.message || 'Fallback request failed'
@@ -224,6 +250,14 @@ export function useAiChatStream(contextInstance, options = {}) {
 	 * @param {string} content - The user's message text
 	 * @param {object} [options] - Send options
 	 * @param {boolean} [options.newThread] - Force a new Conversation row on the server
+	 * @param {string} [options.agentUuid] - Agent to start a *new* conversation with
+	 *   (agent-picker selection). Ignored server-side once a conversation uuid is
+	 *   resolved — safe to pass on every call.
+	 * @param {Array<{path: string, name: string}>} [options.attachments] - Files
+	 *   already uploaded via the attachments endpoint (see aiChatConfig.js
+	 *   `attachmentsUrl()`), to be read by the backend from `body.attachments`.
+	 *   Omitted from the request body entirely when empty so existing backends
+	 *   that don't yet read the key see no change to the payload shape.
 	 * @returns {Promise<void>} Resolves on "final", rejects on "error" or abort
 	 */
 	function send(content, options = {}) {
@@ -241,15 +275,37 @@ export function useAiChatStream(contextInstance, options = {}) {
 		const newThread = options.newThread || state._newThread
 		state._newThread = false
 
+		// The conversation this send() continues — '' (never sent) forces both
+		// controllers to create a fresh Conversation row. Cleared on a new thread
+		// so the *next* turn starts a new server-side conversation instead of
+		// reusing the one that just ended.
+		const activeConversationUuid = newThread ? '' : (state.conversationUuid || '')
+		if (newThread) {
+			state.conversationUuid = null
+		}
+
 		// OR's ChatStreamController reads `$body['message']` (matches the existing
 		// non-streaming `/api/chat/send` request shape). We keep `content` as a
 		// fallback alias for clients that already used the old field name — the
-		// controller ignores unknown keys.
+		// controller ignores unknown keys. Conversation continuity is likewise
+		// duplicated under both key spellings the two backend endpoints read
+		// (ChatController::extractMessageRequestParams() reads `conversation`,
+		// ChatStreamController::stream() reads `conversationUuid`); `agentUuid` is
+		// the same key on both and only consulted when no conversation is resolved.
 		const body = {
 			message: content,
 			content,
 			context: getContextSnapshot(),
 			newThread,
+			conversation: activeConversationUuid,
+			conversationUuid: activeConversationUuid,
+			agentUuid: options.agentUuid || '',
+		}
+		// Only add the key when there's something to send — keeps the payload
+		// shape unchanged (and any backend not yet reading `attachments`
+		// unaffected) for the common no-attachment turn.
+		if (Array.isArray(options.attachments) && options.attachments.length > 0) {
+			body.attachments = options.attachments
 		}
 
 		abortController = new AbortController()
@@ -359,6 +415,7 @@ export function useAiChatStream(contextInstance, options = {}) {
 		state.toolCalls = []
 		state.error = null
 		state._newThread = true
+		state.conversationUuid = null
 	}
 
 	/**
@@ -392,8 +449,10 @@ export function useAiChatStream(contextInstance, options = {}) {
 				content: m.content || '',
 				toolCalls: m.toolCalls || m.tool_calls || [],
 			}))
-			// Don't force a new thread — resume this conversation
+			// Don't force a new thread — resume this conversation, and remember its
+			// uuid so the next send() continues it instead of starting a new one.
 			state._newThread = false
+			state.conversationUuid = conversationUuid
 		} catch (err) {
 			// eslint-disable-next-line no-console
 			console.info('[useAiChatStream] Could not load conversation:', err?.message)

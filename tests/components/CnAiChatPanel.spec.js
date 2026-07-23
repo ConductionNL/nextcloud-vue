@@ -29,6 +29,7 @@ const mockStreamState = {
 	toolCalls: [],
 	error: null,
 	messages: [],
+	conversationUuid: null,
 }
 
 const stubs = {
@@ -48,8 +49,8 @@ const stubs = {
 	},
 	NcActionButton: {
 		name: 'NcActionButton',
-		props: ['ariaLabel', 'title'],
-		template: '<button class="stub-action-btn" :aria-label="ariaLabel" @click="$emit(\'click\', $event)"><slot name="icon" /><slot /></button>',
+		props: ['ariaLabel', 'title', 'disabled'],
+		template: '<button class="stub-action-btn" :aria-label="ariaLabel" :disabled="disabled" @click="$emit(\'click\', $event)"><slot name="icon" /><slot /></button>',
 	},
 	NcEmptyContent: {
 		name: 'NcEmptyContent',
@@ -63,14 +64,24 @@ const stubs = {
 	},
 	CnAiInput: {
 		name: 'CnAiInput',
-		props: ['disabled'],
+		props: ['disabled', 'chatAppId'],
 		methods: { focus() {} },
 		template: '<div class="stub-input" />',
 	},
-	CnAiHistoryDialog: {
-		name: 'CnAiHistoryDialog',
-		props: ['open', 'activeConversationUuid'],
-		template: '<div class="stub-history-dialog" />',
+	CnAiAgentPicker: {
+		name: 'CnAiAgentPicker',
+		props: ['agents', 'loading', 'fetchError', 'value'],
+		template: '<div class="stub-agent-picker" />',
+	},
+	CnAiRecentSessions: {
+		name: 'CnAiRecentSessions',
+		props: ['conversations', 'activeConversationUuid', 'loading'],
+		template: '<div class="stub-recent-sessions" />',
+	},
+	CnAiHistoryList: {
+		name: 'CnAiHistoryList',
+		props: ['conversations', 'loading', 'fetchError', 'activeConversationUuid', 'chatAppId', 'searchable'],
+		template: '<div class="stub-history-list" />',
 	},
 }
 
@@ -83,12 +94,12 @@ function mountPanel(props = {}, provide = {}) {
 }
 
 describe('CnAiChatPanel', () => {
-	it('renders an NcAppSidebar titled with the agent name and a Chat tab', () => {
+	it('renders an NcAppSidebar titled "Hermiq" with a Chat tab', () => {
 		const wrapper = mountPanel()
 		const sidebar = wrapper.findComponent({ name: 'NcAppSidebar' })
 		expect(sidebar.exists()).toBe(true)
-		expect(sidebar.props('name')).toBe('AI assistant')
-		expect(sidebar.props('title')).toBe('AI assistant')
+		expect(sidebar.props('name')).toBe('Hermiq')
+		expect(sidebar.props('title')).toBe('Hermiq')
 		expect(wrapper.findComponent({ name: 'NcAppSidebarTab' }).props('id')).toBe('chat')
 	})
 
@@ -107,38 +118,46 @@ describe('CnAiChatPanel', () => {
 		expect(wrapper.emitted('close')).toBeTruthy()
 	})
 
-	it('emits "new-thread" when the Start-new-chat action is clicked', async () => {
-		const wrapper = mountPanel()
+	it('emits "new-thread" when the Start-new-chat action is clicked while a conversation is active', async () => {
+		const wrapper = mountPanel({
+			streamState: { ...mockStreamState, messages: [{ role: 'user', content: 'hi' }] },
+		})
 		await wrapper.findAllComponents({ name: 'NcActionButton' }).at(0).trigger('click')
 		expect(wrapper.emitted('new-thread')).toBeTruthy()
 	})
 
-	it('opens the history dialog when the History action is clicked', async () => {
+	it('disables "Start new chat" and does not emit "new-thread" when already on the fresh new-chat screen', async () => {
+		// Default mockStreamState has no messages — this IS the fresh new-chat screen.
 		const wrapper = mountPanel()
-		expect(wrapper.vm.isHistoryOpen).toBe(false)
-		await wrapper.findAllComponents({ name: 'NcActionButton' }).at(1).trigger('click')
-		expect(wrapper.vm.isHistoryOpen).toBe(true)
-		expect(wrapper.findComponent({ name: 'CnAiHistoryDialog' }).props('open')).toBe(true)
+		expect(wrapper.vm.isOnNewChatScreen).toBe(true)
+		expect(wrapper.findAllComponents({ name: 'NcActionButton' }).at(0).props('disabled')).toBe(true)
+		await wrapper.findAllComponents({ name: 'NcActionButton' }).at(0).trigger('click')
+		expect(wrapper.emitted('new-thread')).toBeFalsy()
 	})
 
-	it('re-emits "load-conversation" and records the active uuid on history select', () => {
+	it('switches to the inline History tab when the History action is clicked (no overlay dialog)', async () => {
 		const wrapper = mountPanel()
-		wrapper.findComponent({ name: 'CnAiHistoryDialog' }).vm.$emit('select', 'conv-123')
+		expect(wrapper.vm.activeTab).toBe('chat')
+		await wrapper.findAllComponents({ name: 'NcActionButton' }).at(1).trigger('click')
+		expect(wrapper.vm.activeTab).toBe('history')
+		expect(wrapper.findComponent({ name: 'CnAiHistoryList' }).exists()).toBe(true)
+	})
+
+	it('re-emits "load-conversation", records the active uuid, and returns to the chat tab on history select', () => {
+		const wrapper = mountPanel()
+		wrapper.vm.activeTab = 'history'
+		wrapper.findComponent({ name: 'CnAiHistoryList' }).vm.$emit('select', 'conv-123')
 		expect(wrapper.vm.activeConversationUuid).toBe('conv-123')
+		expect(wrapper.vm.activeTab).toBe('chat')
 		expect(wrapper.emitted('load-conversation')[0][0]).toBe('conv-123')
 	})
 
-	it('mirrors the history dialog\'s update:open back into state', () => {
+	it('emits "send" (with the selected agent uuid and attachments) when CnAiInput triggers send', () => {
 		const wrapper = mountPanel()
-		wrapper.vm.isHistoryOpen = true
-		wrapper.findComponent({ name: 'CnAiHistoryDialog' }).vm.$emit('update:open', false)
-		expect(wrapper.vm.isHistoryOpen).toBe(false)
-	})
-
-	it('emits "send" when CnAiInput triggers send', () => {
-		const wrapper = mountPanel()
-		wrapper.vm.onSend('Hello from input')
+		wrapper.vm.selectedAgentUuid = 'agent-1'
+		const attachments = [{ path: '/tmp/foo.txt', name: 'foo.txt' }]
+		wrapper.vm.onSend({ text: 'Hello from input', attachments })
 		expect(wrapper.emitted('send')).toBeTruthy()
-		expect(wrapper.emitted('send')[0][0]).toBe('Hello from input')
+		expect(wrapper.emitted('send')[0]).toEqual(['Hello from input', 'agent-1', attachments])
 	})
 })
