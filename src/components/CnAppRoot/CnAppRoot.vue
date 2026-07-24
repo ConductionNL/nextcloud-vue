@@ -299,8 +299,8 @@
 			-->
 			<slot v-if="cnPageSidebarVisible.value !== false" name="sidebar">
 				<component
-					:is="cnPageSidebarComponent.value"
-					v-if="cnPageSidebarComponent.value" />
+					:is="pageSidebarComponent"
+					v-if="pageSidebarComponent" />
 			</slot>
 			<!--
 			  Hoisted index-page sidebar. CnIndexPage publishes its
@@ -1597,6 +1597,24 @@ export default {
 
 	computed: {
 		/**
+		 * The component to render as this page's sidebar.
+		 *
+		 * Two sources, in order:
+		 *  1. `pages[].sidebarComponent` on the routed manifest page, resolved
+		 *     here — see `resolvePageSidebarComponent()` for why it cannot be
+		 *     resolved by the renderer that declares it.
+		 *  2. The injected `cnPageSidebarComponent` holder, kept so an app that
+		 *     genuinely provides one from an ANCESTOR still works.
+		 *
+		 * A consumer's own `#sidebar` slot content always wins over both, via
+		 * Vue's standard slot mechanic.
+		 *
+		 * @return {import('vue').Component|null} The component, or null.
+		 */
+		pageSidebarComponent() {
+			return this.resolvePageSidebarComponent() ?? this.cnPageSidebarComponent?.value ?? null
+		},
+		/**
 		 * Whether the current user is an OWNER of this app — the gate for
 		 * the admin-settings nav entry + dialog (admin-settings-owner-gating
 		 * capability). Deliberately NOT `OC.isUserAdmin()`: a Nextcloud
@@ -2356,6 +2374,36 @@ export default {
 		 * @param {string} key The entry's `component` registry key.
 		 * @return {import('vue').Component|null}
 		 */
+		/**
+		 * Resolve the routed manifest page's `sidebarComponent`.
+		 *
+		 * Resolved HERE rather than received from `CnPageRenderer`, which is
+		 * why the manifest key works at all. The renderer *provides*
+		 * `cnPageSidebarComponent` and this component *injects* it — but the
+		 * renderer is our descendant, and provide/inject only flows downward,
+		 * so that value could never reach this slot. `pages[].sidebarComponent`
+		 * was dead config for every app that tried it (#528).
+		 *
+		 * The route name is the page id (the same match `_hydrateMenuCounts`
+		 * uses), and the component name resolves through the same registries
+		 * every other slot component uses.
+		 *
+		 * @return {import('vue').Component|null} The sidebar component, or null.
+		 */
+		resolvePageSidebarComponent() {
+			const routeName = this.$route?.name
+			if (!routeName) return null
+
+			const page = (this.manifest?.pages ?? []).find((p) => p?.id === routeName)
+			if (!page || typeof page.sidebarComponent !== 'string' || page.sidebarComponent === '') return null
+
+			// `sidebar.show: false` suppresses the rail entirely, so a page
+			// declaring both is contradictory; visibility wins, matching what
+			// CnPageRenderer already warns about.
+			if (page?.sidebar?.show === false) return null
+
+			return this.resolveAdminSettingsComponent(page.sidebarComponent)
+		},
 		resolveAdminSettingsComponent(key) {
 			if (typeof key !== 'string' || key === '') return null
 			const reg = (this.registry && this.registry[key]) || null
