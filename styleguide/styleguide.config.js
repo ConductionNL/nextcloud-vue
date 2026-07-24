@@ -281,6 +281,8 @@ module.exports = {
 				`${ROOT}/src/components/CnDataTable/CnDataTable.vue`,
 				`${ROOT}/src/components/CnCardGrid/CnCardGrid.vue`,
 				`${ROOT}/src/components/CnObjectCard/CnObjectCard.vue`,
+				`${ROOT}/src/components/CnObjectKanban/CnObjectKanban.vue`,
+				`${ROOT}/src/components/CnObjectCalendar/CnObjectCalendar.vue`,
 				`${ROOT}/src/components/CnFilterBar/CnFilterBar.vue`,
 				`${ROOT}/src/components/CnFacetSidebar/CnFacetSidebar.vue`,
 				`${ROOT}/src/components/CnPagination/CnPagination.vue`,

@@ -49,6 +49,8 @@ export {
 	CnCardGrid,
 	CnObjectRow,
 	CnObjectList,
+	CnObjectKanban,
+	CnObjectCalendar,
 	CnFolderTree,
 	CnFolderSidebar,
 	fetchWebdavFolderTree,
