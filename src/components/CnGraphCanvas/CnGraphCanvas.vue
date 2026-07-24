@@ -264,14 +264,25 @@ export default {
 			default: 2,
 		},
 		/**
-		 * The SVG viewBox for the edge layer. Widen it if your graph extends
-		 * beyond the default canvas area.
+		 * Optional SVG viewBox for the edge layer.
 		 *
-		 * @type {string}
+		 * Leave this unset (the default). Nodes are positioned in CSS pixels
+		 * (`left: node.x px`) inside the same transformed world, so the edge
+		 * layer must use the SAME coordinate system. With no viewBox, one SVG
+		 * user unit is one CSS pixel and edges land exactly on their nodes.
+		 *
+		 * Setting a fixed viewBox (this used to default to `0 0 2000 1500`)
+		 * rescales user units to the canvas's rendered size, so edges drift
+		 * away from their nodes by `canvasWidth / viewBoxWidth` — visibly wrong
+		 * at any size other than the viewBox itself, and non-uniformly when the
+		 * aspect ratios differ. Only set this if you are positioning nodes in
+		 * the same viewBox units.
+		 *
+		 * @type {string|null}
 		 */
 		viewBox: {
 			type: String,
-			default: '0 0 2000 1500',
+			default: null,
 		},
 		/**
 		 * When true, nodes cannot be moved and connections cannot be drawn.
