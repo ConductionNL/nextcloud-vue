@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.20.0",
+	"version": "2.21.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -227,6 +227,10 @@
 					"type": "object",
 					"description": "Per-user runtime context. Populated by the backend for authenticated requests. All fields are optional; the FE predicate evaluator treats missing fields as undefined.",
 					"additionalProperties": true
+				},
+				"theme": {
+					"$ref": "#/$defs/runtimeTheme",
+					"description": "NL Design System scoped theme selection (scoped-theme-applier). Consumed by CnAppRoot's useScopedTheme wiring, not by the backend."
 				}
 			}
 		},
@@ -369,6 +373,37 @@
 		}
 	},
 	"$defs": {
+		"runtimeTheme": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["source", "tokenSet"],
+			"description": "A leaf app's NL Design token-set selection, as returned by nldesign's GET /api/token-sets catalogue (app-token-set-selection). Applied by CnAppRoot via useScopedTheme — the ONLY consumer; the backend does not read this field.",
+			"properties": {
+				"source": {
+					"type": "string",
+					"enum": ["nldesign"],
+					"description": "Theme provider. Closed to 'nldesign' — the only scoped-theme source this schema (and useScopedTheme) currently supports."
+				},
+				"tokenSet": {
+					"type": "string",
+					"pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+					"description": "The nldesign token-set id (a GET /api/token-sets entry's `id`), kebab-case. Resolves the token CSS at css/tokens/<tokenSet>.css."
+				},
+				"tokenSetName": {
+					"type": "string",
+					"description": "Optional human-readable name (the matching catalogue entry's `name`), cached at selection time so a picker can display it without a second catalogue fetch."
+				},
+				"preview": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Optional cached swatch preview (the matching catalogue entry's theming colors), for a picker to render a preview chip without re-fetching the catalogue.",
+					"properties": {
+						"primaryColor": { "type": "string", "description": "Cached theming.primary_color from the catalogue entry." },
+						"backgroundColor": { "type": "string", "description": "Cached theming.background_color from the catalogue entry." }
+					}
+				}
+			}
+		},
 		"pageTemplate": {
 			"type": "object",
 			"additionalProperties": false,

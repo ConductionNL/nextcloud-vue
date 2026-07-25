@@ -20,11 +20,19 @@ jest.mock('@nextcloud/capabilities', () => ({
 // an explicit resolution fall back to the per-entry path harmlessly.
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
-	default: { post: jest.fn().mockRejectedValue(new Error('no batch route')) },
+	default: {
+		post: jest.fn().mockRejectedValue(new Error('no batch route')),
+		// scoped-theme-applier: useScopedTheme's fetchTokenCss/listTokenSets use
+		// axios.get. Default rejects so tests that mount a themeless manifest
+		// (the vast majority) never issue a real request; the scoped-theme
+		// describe block below overrides this per-test.
+		get: jest.fn().mockRejectedValue(new Error('no theme route')),
+	},
 }))
 const axios = require('@nextcloud/axios').default
 const { getCapabilities } = require('@nextcloud/capabilities')
 const { __resetAppStatusCacheForTests } = require('../../src/composables/useAppStatus.js')
+const { clearScopedThemeCache, SCOPE_ATTR } = require('../../src/composables/useScopedTheme.js')
 const CnAppRoot = require('../../src/components/CnAppRoot/CnAppRoot.vue').default
 
 const baseManifest = {
@@ -75,7 +83,10 @@ describe('CnAppRoot', () => {
 		// default reject (no batch route) so per-test call counts are isolated.
 		axios.post.mockReset()
 		axios.post.mockRejectedValue(new Error('no batch route'))
+		axios.get.mockReset()
+		axios.get.mockRejectedValue(new Error('no theme route'))
 		__resetAppStatusCacheForTests()
+		clearScopedThemeCache()
 		// Define a clean appswebroots each test. CnAppRoot's in-app edit shell
 		// (ADR-041) calls useAppStatus('openbuild'); without OpenBuild present it
 		// is inert (availability false, no edit toolbar).
@@ -809,6 +820,54 @@ describe('CnAppRoot', () => {
 			expect(palette.exists()).toBe(true)
 			expect(palette.props('objectSearch')).toBe(objectSearch)
 			expect(palette.props('shortcut')).toBe('p')
+		})
+	})
+
+	describe('scoped theme (scoped-theme-applier, REQ-STA-3)', () => {
+		const themedManifest = {
+			...baseManifest,
+			runtime: { theme: { source: 'nldesign', tokenSet: 'gemeente-blauw' } },
+		}
+		const TOKEN_CSS = ':root {\n  --nldesign-color-primary: #154273;\n}\n'
+		const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+		it('root element carries the data-nldesign-theme-scope attribute', () => {
+			const wrapper = mountRoot({ manifest: baseManifest })
+			expect(wrapper.attributes(SCOPE_ATTR)).toBe('myapp')
+		})
+
+		it('mounting with runtime.theme fetches and injects the scoped style, keyed by appId', async () => {
+			axios.get.mockResolvedValue({ data: TOKEN_CSS })
+			const wrapper = mountRoot({ manifest: themedManifest })
+			await flushPromises()
+			await wrapper.vm.$nextTick()
+
+			const style = document.head.querySelector('style[data-nldesign-theme="myapp"]')
+			expect(style).not.toBeNull()
+			expect(style.textContent).toContain('[data-nldesign-theme-scope="myapp"]')
+			expect(style.textContent).not.toContain(':root')
+
+			wrapper.destroy()
+		})
+
+		it('a manifest with no runtime.theme injects no style (unaffected)', async () => {
+			const wrapper = mountRoot({ manifest: baseManifest })
+			await flushPromises()
+			await wrapper.vm.$nextTick()
+
+			expect(document.head.querySelector('style[data-nldesign-theme="myapp"]')).toBeNull()
+			wrapper.destroy()
+		})
+
+		it('unmounting tears down the scoped style', async () => {
+			axios.get.mockResolvedValue({ data: TOKEN_CSS })
+			const wrapper = mountRoot({ manifest: themedManifest })
+			await flushPromises()
+			await wrapper.vm.$nextTick()
+			expect(document.head.querySelector('style[data-nldesign-theme="myapp"]')).not.toBeNull()
+
+			wrapper.destroy()
+			expect(document.head.querySelector('style[data-nldesign-theme="myapp"]')).toBeNull()
 		})
 	})
 })

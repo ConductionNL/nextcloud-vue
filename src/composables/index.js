@@ -62,3 +62,4 @@ export {
 	TENANT_CONTEXT_KEY,
 } from './useTenantContext.js'
 export { useManifestEditHistory } from './useManifestEditHistory.js'
+export { useScopedTheme } from './useScopedTheme.js'
