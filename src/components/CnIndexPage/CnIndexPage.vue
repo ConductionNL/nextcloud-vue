@@ -397,7 +397,7 @@
 								:key="`col-${col.key}`"
 								:model-value="isColumnVisible(col.key)"
 								@update:model-value="toggleColumn(col.key)">
-								{{ col.label || col.key }}
+								{{ cnTranslate(col.label || col.key) }}
 							</NcActionCheckbox>
 						</NcActions>
 					</template>
@@ -756,6 +756,16 @@ export default {
 	 */
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Column and
+		 * filter labels come from schema property titles, authored in English as
+		 * the canonical source; the visible label is resolved through this
+		 * function so it follows the user's language. Defaults to identity when
+		 * used standalone (no CnAppRoot ancestor). The embedded CnDataTable
+		 * resolves its own header labels through the same injection.
+		 */
+		cnTranslate: { default: () => (key) => key },
 		/**
 		 * Reactive edit-mode flag from CnAppRoot's manifest editor. When truthy
 		 * the page shows a config cog in its actions bar (emits `configure`).
@@ -2040,7 +2050,7 @@ export default {
 					values = Object.keys(colObj.widgetProps.colorMap)
 				}
 				if (values && values.length) {
-					out.push({ key, label: colObj.label || def.title || key, values: values.map((v) => String(v)) })
+					out.push({ key, label: this.cnTranslate(colObj.label || def.title || key), values: values.map((v) => String(v)) })
 				}
 			}
 			return out
@@ -2056,6 +2066,11 @@ export default {
 		governedColumns() {
 			const defs = []
 			if (this.effectiveSchema) {
+				// English labels here: `governedColumns` feeds `tableColumns`,
+				// which CnDataTable render-translates via its own `cnTranslate`
+				// injection. Translating here too would double-translate. The
+				// column-picker menu that renders these labels directly applies
+				// `cnTranslate` at render instead.
 				defs.push(...columnsFromSchema(this.effectiveSchema, {}))
 				if (this.resolvedSidebar.showMetadata !== false) {
 					defs.push(...METADATA_COLUMNS)

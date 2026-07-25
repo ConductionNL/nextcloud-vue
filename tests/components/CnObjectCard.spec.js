@@ -70,3 +70,30 @@ describe('CnObjectCard — body click', () => {
 		expect(wrapper.emitted('select')).toBeFalsy()
 	})
 })
+
+describe('CnObjectCard — schema-label translation', () => {
+	const i18nObject = { id: 'org-1', title: 'Conduction', category: 'ngo' }
+	const i18nSchema = {
+		title: 'Organisation',
+		properties: {
+			category: { type: 'string', title: 'Category', order: 1 },
+		},
+	}
+
+	it('resolves the metadata label through the injected cnTranslate', () => {
+		const wrapper = shallowMount(CnObjectCard, {
+			propsData: { object: i18nObject, schema: i18nSchema },
+			provide: { cnTranslate: (s) => `NL:${s}` },
+		})
+		expect(wrapper.find('.cn-object-card__meta-label').text()).toBe('NL:Category')
+		wrapper.destroy()
+	})
+
+	it('renders the English source label unchanged when no cnTranslate is provided (standalone)', () => {
+		const wrapper = shallowMount(CnObjectCard, {
+			propsData: { object: i18nObject, schema: i18nSchema },
+		})
+		expect(wrapper.find('.cn-object-card__meta-label').text()).toBe('Category')
+		wrapper.destroy()
+	})
+})
