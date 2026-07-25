@@ -163,6 +163,18 @@ export default {
 		NcLoadingIcon,
 	},
 
+	inject: {
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Step field
+		 * labels come from schema property titles, authored in English as the
+		 * canonical source; the visible label is resolved through this function
+		 * so it follows the user's language. Defaults to identity when used
+		 * standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	props: {
 		/** The Nextcloud app id; used to build the `/apps/{appId}/api/setup/*` URLs. */
 		appId: {
@@ -285,7 +297,7 @@ export default {
 		},
 		fieldsFor(step) {
 			if (step.schema && typeof step.schema === 'object') {
-				return fieldsFromSchema(step.schema)
+				return fieldsFromSchema(step.schema, { translate: this.cnTranslate })
 			}
 			// Fallback: a plain text field per declared config key.
 			return (step.configKeys || []).map((key) => ({ key, label: key, widget: 'text' }))

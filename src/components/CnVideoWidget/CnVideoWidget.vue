@@ -24,6 +24,7 @@
 				class="cn-video-widget__iframe"
 				:src="embedUrl"
 				sandbox="allow-scripts allow-same-origin allow-presentation"
+				referrerpolicy="strict-origin-when-cross-origin"
 				allowfullscreen
 				frameborder="0" />
 			<video
@@ -61,6 +62,12 @@ const DEFAULT_ASPECT_RATIO = '16:9'
  * Autoplay forces muted=true because browsers block autoplay of unmuted media.
  * Aspect ratio uses the CSS `aspect-ratio` property; `16:9`, `4:3`, `1:1`, and
  * `9:16` are supported and unknown values fall back to `16:9`.
+ *
+ * The iframe sets `referrerpolicy="strict-origin-when-cross-origin"` because
+ * Nextcloud's own default security headers send `Referrer-Policy: no-referrer`
+ * — without an explicit override the iframe inherits that and YouTube's
+ * player rejects the request with "Error 153: Video player configuration
+ * error" (it requires a referrer to validate the embed).
  *
  * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
  */

@@ -41,6 +41,7 @@
 				:key="state.type"
 				:editing-widget="state.editingWidget"
 				:value="state.content"
+				:file-upload-fn="fileUploadFn"
 				:calendars-fetcher="calendarsFetcher"
 				@update:content="onContentUpdate" />
 		</div>
@@ -72,16 +73,14 @@
 			</template>
 			<div class="cn-add-widget-modal__chrome-row">
 				<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Background') }}</span>
-				<NcColorPicker v-model="chrome.backgroundColor">
-					<NcButton type="tertiary">
-						<template #icon>
-							<span
-								class="cn-add-widget-modal__swatch"
-								:style="{ backgroundColor: chrome.backgroundColor || 'transparent' }" />
-						</template>
-						{{ chrome.backgroundColor || t('nextcloud-vue', 'Default') }}
-					</NcButton>
-				</NcColorPicker>
+				<CnColorPicker
+					:value="chrome.backgroundColor"
+					clearable
+					@input="chrome.backgroundColor = $event.hex"
+					@clear="chrome.backgroundColor = ''" />
+				<span class="cn-add-widget-modal__chrome-value">
+					{{ chrome.backgroundColor || t('nextcloud-vue', 'Default') }}
+				</span>
 			</div>
 			<div class="cn-add-widget-modal__chrome-row">
 				<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Icon') }}</span>
@@ -95,12 +94,12 @@
 		</div>
 
 		<template #actions>
-			<NcButton type="tertiary" @click="onCancel">
+			<NcButton type="tertiary" :disabled="submitting" @click="onCancel">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
 				type="primary"
-				:disabled="!isValid"
+				:disabled="!canSubmit || submitting"
 				:title="firstError || ''"
 				data-testid="add-widget-save"
 				@click="onSubmit">
@@ -112,10 +111,11 @@
 
 <script>
 import { computed, provide } from 'vue'
-import { NcDialog, NcButton, NcTextField, NcColorPicker, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcTextField, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 
 import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
+import CnColorPicker from '../components/CnColorPicker/CnColorPicker.vue'
 import {
 	listWidgetTypes,
 	getWidgetTypeEntry,
@@ -141,9 +141,9 @@ export default {
 		NcDialog,
 		NcButton,
 		NcTextField,
-		NcColorPicker,
 		NcCheckboxRadioSwitch,
 		CnIconBrowser,
+		CnColorPicker,
 	},
 
 	props: {
@@ -176,12 +176,29 @@ export default {
 		},
 		/**
 		 * Optional upload transport for the Appearance icon picker:
-		 * `async (file) => dataUrlOrUrl`. When null, the upload control is hidden
-		 * and the picker still offers its catalogues, NL sets, and a URL field.
+		 * `async (dataUrl: string) => ({ url })`. The icon picker reads the chosen
+		 * file to a data URL and passes that string here. When null, the upload
+		 * control is hidden and the picker still offers its catalogues, NL sets,
+		 * and a URL field.
 		 *
 		 * @type {Function|null}
 		 */
 		uploadFn: {
+			type: Function,
+			default: null,
+		},
+		/**
+		 * Optional raw-file upload transport forwarded to the active sub-form as
+		 * its `file-upload-fn`: `async (file: File) => ({ url })`. Deliberately a
+		 * separate prop from `uploadFn` (which the icon picker calls with a data
+		 * URL) so the File-typed transport can never reach a sub-form that expects
+		 * a data URL (e.g. `CnHeaderWidgetForm.uploadFn`). Sub-forms such as the
+		 * image widget defer the upload to submit and hand over the raw `File`.
+		 * When null, sub-forms fall back to their own no-transport behaviour.
+		 *
+		 * @type {Function|null}
+		 */
+		fileUploadFn: {
 			type: Function,
 			default: null,
 		},
@@ -250,11 +267,18 @@ export default {
 			// on every keystroke; we bump this counter in the handler so the
 			// computed re-runs.
 			validationTick: 0,
+			// Snapshot of the assembled content + chrome captured when the modal
+			// opens; `isDirty` compares the live values against it so editing an
+			// existing widget only enables Save once something actually changed.
+			initialSnapshot: '',
 			titleId: `cn-add-widget-modal-title-${++titleIdCounter}`,
 			typeSelectId: `cn-add-widget-modal-type-${++selectIdCounter}`,
 			// Widget chrome (title / background / icon) edited in the same modal
 			// as the per-type content and emitted back under `payload.chrome`.
 			chrome: { showTitle: true, customTitle: '', backgroundColor: '', customIcon: '' },
+			// True while the sub-form's commit() (e.g. an image upload) runs on
+			// submit, so both footer buttons disable and the label shows progress.
+			submitting: false,
 		}
 	},
 
@@ -324,8 +348,13 @@ export default {
 		 * Submit button label — flips between Add and Save based on edit mode.
 		 *
 		 * @return {string} the localised submit label.
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		submitLabel() {
+			if (this.submitting) {
+				return t('nextcloud-vue', 'Uploading…')
+			}
 			return this.editingWidget ? t('nextcloud-vue', 'Save') : t('nextcloud-vue', 'Add')
 		},
 
@@ -349,6 +378,35 @@ export default {
 		 */
 		isValid() {
 			return this.validationErrors.length === 0
+		},
+
+		/**
+		 * Whether the content or chrome differs from the snapshot taken when the
+		 * modal opened. Depends on `chrome` (via the snapshot's JSON) and the
+		 * `validationTick` (bumped on every sub-form `update:content`) so it
+		 * re-runs on both chrome and form-field edits.
+		 *
+		 * @return {boolean} true when something changed since open.
+		 */
+		isDirty() {
+			// touch the tick so content edits re-run this computed
+			// eslint-disable-next-line no-unused-expressions
+			this.validationTick
+			return this.currentSnapshot() !== this.initialSnapshot
+		},
+
+		/**
+		 * Whether Save is allowed: the form must be valid, and — when editing an
+		 * existing widget — something must have changed. Create mode may submit
+		 * the (valid) defaults straight away.
+		 *
+		 * @return {boolean} true when the submit button is enabled.
+		 */
+		canSubmit() {
+			if (!this.isValid) {
+				return false
+			}
+			return !this.editingWidget || this.isDirty
 		},
 
 		/**
@@ -441,14 +499,34 @@ export default {
 			if (this.editingWidget) {
 				this.form.loadEditingWidget(this.editingWidget)
 				this.seedChrome(this.editingWidget)
-				return
+			} else {
+				const initialType = this.preselectedType
+					|| this.availableTypes[0]
+					|| ''
+				this.form.resetForm(initialType)
+				this.seedChrome(null)
 			}
-			const initialType = this.preselectedType
-				|| this.availableTypes[0]
-				|| ''
-			this.form.resetForm(initialType)
-			this.seedChrome(null)
+			// Revalidate on every open (the modal instance persists across
+			// open/close, so `mounted()`'s one-time bump doesn't fire again).
+			// Bump synchronously and again once the sub-form has (re)mounted and
+			// its `$refs.activeSubForm` is bound — otherwise the submit gate stays
+			// stale in edit mode until the user touches a form field. The nextTick
+			// pass also captures the pristine snapshot `isDirty` compares against.
 			this.validationTick++
+			this.$nextTick(() => {
+				this.validationTick++
+				this.initialSnapshot = this.currentSnapshot()
+			})
+		},
+
+		/**
+		 * Serialise the current assembled content + chrome for dirty comparison.
+		 *
+		 * @return {string} a stable JSON snapshot of the editable state.
+		 */
+		currentSnapshot() {
+			const { content } = this.form.assembleContent(this.$refs.activeSubForm)
+			return JSON.stringify({ content, chrome: this.chrome })
 		},
 
 		/**
@@ -528,36 +606,68 @@ export default {
 
 		/**
 		 * Cancel button / backdrop / NcModal `close` event — non-destructive,
-		 * never emits submit.
+		 * never emits submit. Suppressed while a sub-form `commit()` (e.g. an
+		 * image upload) is in flight so dismissing the dialog can't unmount the
+		 * sub-form mid-upload (which would orphan the upload and write into a
+		 * destroyed instance).
 		 *
 		 * @return {void}
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		onCancel() {
+			if (this.submitting) {
+				return
+			}
 			this.$emit('close')
 		},
 
 		/**
 		 * Esc-key fallback listener (in case NcModal's own handler is
 		 * suppressed by a parent focus-trap). Emits `close`, never `submit`.
+		 * Suppressed while a commit() is in flight (see {@link onCancel}).
 		 *
 		 * @param {KeyboardEvent} event the keydown event.
 		 * @return {void}
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
 		onKeydown(event) {
+			if (this.submitting) {
+				return
+			}
 			if (this.show && event.key === 'Escape') {
 				this.$emit('close')
 			}
 		},
 
 		/**
-		 * Build the `{type, content}` payload via the composable's
-		 * `assembleContent()` and emit it. Performs no API and no grid calls.
+		 * Commit the active sub-form (e.g. upload a pending image), then build
+		 * the `{type, content}` payload via the composable's `assembleContent()`
+		 * and emit it. The commit is the only step that can hit the network; a
+		 * commit failure keeps the modal open and blocks the `submit` emit.
 		 *
-		 * @return {void}
+		 * @return {Promise<void>} resolves once submit is emitted or aborted.
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
 		 */
-		onSubmit() {
-			if (!this.isValid) {
+		async onSubmit() {
+			if (!this.isValid || this.submitting) {
 				return
+			}
+			const subForm = this.$refs.activeSubForm
+			if (subForm && typeof subForm.commit === 'function') {
+				this.submitting = true
+				try {
+					await subForm.commit()
+				} catch (error) {
+					// The sub-form surfaces its own inline error; keep the modal
+					// open so the author can retry or pick another file.
+					console.error('[CnAddWidgetModal] Widget commit failed:', error)
+					return
+				} finally {
+					this.submitting = false
+				}
 			}
 			const payload = this.form.assembleContent(this.$refs.activeSubForm)
 			// Carry the chrome (title / background / icon) alongside the content
@@ -648,11 +758,8 @@ export default {
 	font-size: 14px;
 }
 
-.cn-add-widget-modal__swatch {
-	display: inline-block;
-	width: 16px;
-	height: 16px;
-	border-radius: 3px;
-	border: 1px solid var(--color-border);
+.cn-add-widget-modal__chrome-value {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
 }
 </style>

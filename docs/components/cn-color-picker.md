@@ -35,12 +35,14 @@ export default {
 | `value` | `string \| object` | `null` | Current color (string like `'#abcdef'`, `'rgba(...)'`, `'hsl(...)'`, or a vue-color color object). `null`/empty renders a transparent swatch. |
 | `disabled` | `Boolean` | `false` | Disables the swatch button and prevents the popover from opening. |
 | `mode` | `'hex' \| 'rgb' \| 'hsl' \| null` | `null` | Lock the numeric-input fields to a single mode and hide the toggle. `null` lets the user switch. The shown fields include alpha when `disable-alpha` is `false` (so `'rgb'` becomes RGBA, `'hsl'` becomes HSLA). |
+| `clearable` | `Boolean` | `false` | When `true`, an inline clear (×) button is shown next to the swatch, letting the user reset back to "no color" without opening the picker. Pressing it emits `clear` (no payload); the parent then unsets the bound value (e.g. to `''`/`null`). |
 
 Additional props (e.g. `disable-alpha`, `disable-fields`) are forwarded via `$attrs` to the underlying `Chrome` picker. See vue-color's [`Chrome` component](https://github.com/linx4200/vue-color) for the full prop surface.
 
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `input` | `{ hex, hex8, rgba, hsl, hsv, a, source }` | Fires whenever the user changes the color via any control. |
+| `clear` | _(none)_ | Fires when the inline clear (×) button is pressed (only rendered when `clearable`). The parent should unset the bound value in response. |
 
 ## Theming
 

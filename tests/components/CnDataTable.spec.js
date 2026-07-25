@@ -241,3 +241,32 @@ describe('CnDataTable — #footer slot', () => {
 		expect(wrapper.find('.cn-data-table__footer').exists()).toBe(false)
 	})
 })
+
+// Column headers come from schema property titles, which are authored in
+// English (canonical source, for API predictability). The visible header is
+// resolved through the consumer's translation function, provided by CnAppRoot
+// as `cnTranslate` (bound to the host app id). This is what makes an
+// English-authored `signatureLevel: { title: 'Level' }` render as "Niveau" for
+// a Dutch user instead of leaking whichever language the schema was typed in.
+describe('CnDataTable — column header translation via cnTranslate', () => {
+	it('translates column labels through the injected cnTranslate', () => {
+		const dict = { Name: 'Naam', Level: 'Niveau' }
+		const wrapper = mount(CnDataTable, {
+			propsData: { rows, columns: [{ key: 'name', label: 'Name' }, { key: 'level', label: 'Level' }] },
+			provide: { cnTranslate: (key) => dict[key] || key },
+			stubs: { CnCellRenderer: { props: ['value'], template: '<span class="cell">{{ value }}</span>' } },
+		})
+		const headers = wrapper.findAll('thead th').wrappers.map((w) => w.text())
+		expect(headers).toContain('Naam')
+		expect(headers).toContain('Niveau')
+		// The English source label is never shown when a translation exists.
+		expect(headers).not.toContain('Name')
+		expect(headers).not.toContain('Level')
+	})
+
+	it('falls back to the source label when no cnTranslate is provided', () => {
+		const wrapper = mountTable({ rows, columns: [{ key: 'name', label: 'Name' }] })
+		const headers = wrapper.findAll('thead th').wrappers.map((w) => w.text())
+		expect(headers).toContain('Name')
+	})
+})

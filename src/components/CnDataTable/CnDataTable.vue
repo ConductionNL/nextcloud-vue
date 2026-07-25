@@ -58,7 +58,7 @@
 						:aria-sort="ariaSortFor(col)"
 						@click="col.sortable ? onHeaderClick(col.key, $event) : null"
 						@keydown.enter="col.sortable ? onHeaderKeydown(col.key, $event) : null">
-						{{ col.label }}
+						{{ translateLabel(col.label) }}
 						<span
 							v-if="col.sortable && sortKeyIndex(col.key) !== -1"
 							class="cn-table-sort-indicator">
@@ -186,6 +186,10 @@ import { CnIcon } from '../CnIcon/index.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
+// CnDataTable has no scoped styles of its own — its entire look lives in the
+// shared table stylesheet. Import it here so the table is styled even when the
+// consuming app does not pull in the library's global css/index.css.
+import '../../css/table.css'
 
 /**
  * CnDataTable — Generic sortable data table for list views.
@@ -247,6 +251,20 @@ export default {
 		NcCheckboxRadioSwitch,
 		CnCellRenderer,
 		CnIcon,
+	},
+
+	inject: {
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id, e.g.
+		 * `t.bind(null, 'docudesk')`). Column headers come from schema
+		 * property titles, which are authored in English as the canonical
+		 * source (API predictability); the visible label is resolved through
+		 * this function so it follows the user's language, with the English
+		 * source key living in each app's l10n files. Defaults to identity
+		 * when the table is used standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -675,6 +693,21 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Resolve a column header label through the consumer's translation
+		 * function. Column labels originate from schema property titles
+		 * (English canonical source); this makes the rendered header follow
+		 * the user's language when the host app provides `cnTranslate`, and
+		 * returns the label unchanged when it does not.
+		 *
+		 * @param {string} label The English source label (schema property title).
+		 * @return {string} The translated label, or the input unchanged.
+		 */
+		translateLabel(label) {
+			if (!label) return ''
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return fn(label)
+		},
 		/**
 		 * Self-fetch rows from OpenRegister (register + schemaId mode). Best-effort:
 		 * any failure leaves the fetched rows empty. Folded from CnTableWidget.

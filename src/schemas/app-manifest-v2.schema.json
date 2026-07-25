@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.19.0",
+	"version": "2.20.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -1438,7 +1438,7 @@
 					"type": "string",
 					"enum": ["handler", "open-modal", "open-page", "navigate", "object-op", "export", "open-form", "refresh", "api-call", "toggle"],
 					"default": "handler",
-					"description": "Action behaviour discriminator. Defaults to 'handler' when omitted (back-compat with v1.3.0). handler: calls a registry function; open-modal: opens a modal by target id; open-page: navigates to a named route; navigate: navigates to a URL; object-op: dispatches a declarative mutation (patch | delete | create) of an OpenRegister object via the shared object store; export: opens the shared CnMassExportDialog export launcher configured via entities[]/formats[] — the confirm payload ({format, entity?}) routes to the action's `handler` in the manifest actions map (the app's export service does the download). open-form (#91 Wave 3): CnActionButtons opens a schema-driven create dialog (CnAdvancedFormDialog) for the action's register/schema, saves + toasts + refreshes + optionally navigates to onSuccessRoute. refresh (#91 Wave 3): bumps the page-level cn:page:refresh event-bus signal so every endpoint-bound widget refetches. api-call (#91 Wave 3): POST/PUT the token-interpolated url with params (JSON body) + success/error toast + auto page-refresh (unless refresh:false); confirm gating is surface-consumed intent (object-op precedent). toggle (#91 Wave 3): a stateful two-way state button rendered by CnActionButtons (GET stateSource on mount, optimistic write on click) — NOT dispatchable through dispatchAction. object-op declares mutation INTENT only — authority is enforced server-side by OpenRegister RBAC (ADR-022/ADR-023); authorization-shaped fields have no client-side effect and are not accepted here."
+					"description": "Action behaviour discriminator. Defaults to 'handler' when omitted (back-compat with v1.3.0). handler: calls a registry function; open-modal: opens a modal by target id; open-page: navigates to a named route; navigate: navigates to a URL; object-op: dispatches a declarative mutation (patch | delete | create) of an OpenRegister object via the shared object store; export: opens the shared CnMassExportDialog export launcher configured via entities[]/formats[] — the confirm payload ({format, entity?}) routes to the action's `handler` in the manifest actions map (the app's export service does the download). open-form (#91 Wave 3): CnActionButtons opens a schema-driven create dialog (CnAdvancedFormDialog) for the action's register/schema, saves + toasts + refreshes + optionally navigates to onSuccessRoute. refresh (#91 Wave 3): bumps the page-level cn:page:refresh event-bus signal so every endpoint-bound widget refetches. api-call (#91 Wave 3): POST/PUT the token-interpolated url with payload/params (JSON body, payload resolves @-tokens recursively at any depth) + success/error toast + auto page-refresh (unless refresh:false); confirm gating is surface-consumed intent (object-op precedent); download:true requests a binary blob and triggers a browser file download instead (auto-refresh defaults to OFF in that mode). toggle (#91 Wave 3): a stateful two-way state button rendered by CnActionButtons (GET stateSource on mount, optimistic write on click) — NOT dispatchable through dispatchAction. object-op declares mutation INTENT only — authority is enforced server-side by OpenRegister RBAC (ADR-022/ADR-023); authorization-shaped fields have no client-side effect and are not accepted here."
 				},
 				"op": {
 					"type": "string",
@@ -1513,17 +1513,31 @@
 				},
 				"url": {
 					"type": "string",
-					"description": "api-call / toggle only: the app endpoint (POST/PUT). App-relative (routed through generateUrl) or absolute (http/https). May interpolate @objectId / @object.<field> / @workspace.<key> / @config.<key> tokens inline (unresolved tokens collapse to empty)."
+					"description": "api-call / toggle only: the app endpoint (POST/PUT). App-relative (routed through generateUrl) or absolute (http/https). May interpolate @objectId / @object.<field> / @workspace.<key> / @config.<key> tokens inline, as well as the literal {objectId} brace placeholder (unresolved tokens collapse to empty)."
 				},
 				"method": {
 					"type": "string",
 					"enum": ["POST", "PUT"],
 					"description": "api-call: HTTP method (default POST). toggle writeUrl: default PUT."
 				},
+				"payload": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "api-call only: the JSON request body — PREFERRED over `params`, and used instead of it when both are set. Values run the SAME token grammar as `params` (@me, @now, @today±Nd, @monthStart/@quarterStart/@yearStart, @objectId, @object.<field>, @workspace.<key>/@config.<key> with a trailing `?` marking a value OPTIONAL — dropped when unresolved) but resolve RECURSIVELY at ANY nesting depth, including arrays of objects — e.g. a DocuDesk document-generation body: { \"dataRefs\": [{ \"register\": \"crm\", \"schema\": \"lead\", \"id\": \"@objectId\" }] }. A required (non-`?`) token left unresolved anywhere in the tree BLOCKS the call (error toast) instead of sending the literal token string to the server."
+				},
 				"params": {
 					"type": "object",
 					"additionalProperties": true,
-					"description": "api-call / toggle only: the JSON request body. Values run the shared filter-token grammar (@me, @today±Nd, @workspace.<key>/@config.<key> with a trailing `?` for optional values dropped when unresolved; a required unresolved token skips the call)."
+					"description": "api-call / toggle only: the JSON request body (legacy — prefer `payload` for anything with nested objects/arrays; ignored when `payload` is set). Values run the shared filter-token grammar ONE level deep (@me, @today±Nd, @workspace.<key>/@config.<key> with a trailing `?` for optional values dropped when unresolved; a required unresolved token skips the call)."
+				},
+				"download": {
+					"type": "boolean",
+					"default": false,
+					"description": "api-call only: request the response as a binary blob (axios responseType 'blob') and trigger a browser file download instead of a JSON toast+refresh cycle. The filename is taken from the response's Content-Disposition header, else the token-resolved `filename`, else 'download.pdf'. The success toast still shows; unlike a normal api-call the page does NOT auto-refresh afterwards unless `refresh: true` is explicitly set."
+				},
+				"filename": {
+					"type": "string",
+					"description": "api-call `download: true` only: fallback filename used when the response carries no Content-Disposition header (falls back further to 'download.pdf'). Interpolates the same token grammar as `url` (@objectId, @object.<field>, @workspace.<key>, @config.<key>, {objectId})."
 				},
 				"successMessage": {
 					"type": "string",
@@ -1536,7 +1550,7 @@
 				"refresh": {
 					"type": "boolean",
 					"default": true,
-					"description": "api-call / toggle: bump the page-level cn:page:refresh signal after a successful call (default true; set false to skip)."
+					"description": "api-call / toggle: bump the page-level cn:page:refresh signal after a successful call (default true; set false to skip). EXCEPTION: for an api-call with download:true the default flips to false — a file download normally shouldn't also force-refetch every widget — set refresh:true explicitly to opt back in."
 				},
 				"register": {
 					"type": "string",

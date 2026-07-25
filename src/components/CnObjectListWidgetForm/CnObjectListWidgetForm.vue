@@ -32,6 +32,7 @@
 				:clearable="false"
 				@input="updateSort('dir', $event)" />
 			<NcTextField
+				class="cn-object-list-form__limit"
 				:value="String(limit)"
 				type="number"
 				:label="t('nextcloud-vue', 'Max rows')"
@@ -53,12 +54,13 @@
 				:value="col.key"
 				:label="t('nextcloud-vue', 'Property')"
 				:options="availableFields"
-				placeholder="title"
+				:placeholder="t('nextcloud-vue', 'Select a property')"
 				@update="updateColumn(i, 'key', $event)" />
 			<NcTextField
 				:value="col.label"
 				:label="t('nextcloud-vue', 'Header')"
 				placeholder="Deal"
+				class="cn-object-list-form__col-row__header"
 				@update:value="updateColumn(i, 'label', $event)" />
 			<NcButton
 				type="tertiary"
@@ -95,7 +97,7 @@ const DEFAULT_CONTENT = Object.freeze({
 	filter: {},
 	sort: { field: '', dir: 'asc' },
 	limit: 5,
-	columns: [{ key: 'title', label: 'Title' }],
+	columns: [],
 })
 
 /**
@@ -158,7 +160,7 @@ export default {
 			limit: Number.isFinite(initial.limit) ? initial.limit : 5,
 			columns: Array.isArray(initial.columns) && initial.columns.length
 				? initial.columns.map((c) => (typeof c === 'string' ? { key: c, label: c } : { key: c.key, label: c.label || c.key }))
-				: [{ key: 'title', label: 'Title' }],
+				: [{ key: '', label: '' }],
 			filterRows: filterToRows(initial.filter || {}),
 			availableFields: [],
 		}
@@ -252,12 +254,42 @@ export default {
 		},
 
 		/**
-		 * Update one cell of a column and emit.
+		 * Turn a property key into a human-readable header, e.g.
+		 * `expectedCloseDate` / `expected_close_date` → `Expected Close Date`.
+		 *
+		 * @param {string} key the property key.
+		 * @return {string} the title-cased label.
+		 */
+		humanizeKey(key) {
+			if (!key) {
+				return ''
+			}
+			return String(key)
+				.replace(/[_-]+/g, ' ')
+				.replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+				.replace(/\s+/g, ' ')
+				.trim()
+				.replace(/\b\w/g, (c) => c.toUpperCase())
+		},
+
+		/**
+		 * Update one cell of a column and emit. When the property (`key`)
+		 * changes, auto-fill the header from the property name — but only while
+		 * the header is still empty or untouched (i.e. it matches the previous
+		 * key's auto-derived title), so a manually edited header is preserved.
+		 *
 		 * @param i
 		 * @param cell
 		 * @param value
 		 */
 		updateColumn(i, cell, value) {
+			const col = this.columns[i]
+			if (cell === 'key') {
+				const prevAuto = this.humanizeKey(col.key)
+				if (!col.label || col.label.trim() === '' || col.label === prevAuto) {
+					this.$set(col, 'label', this.humanizeKey(value))
+				}
+			}
 			this.$set(this.columns[i], cell, value)
 			this.emitChange()
 		},
@@ -303,12 +335,31 @@ export default {
 	align-items: flex-end;
 }
 
+/* Share the row on a single line: controls grow to fill and shrink to fit. */
 .cn-object-list-form__row2 > * {
-	flex: 1;
+	flex: 1 1 0;
+	min-width: 0;
+}
+
+/* The row limit is just a small number — pin it narrow (never grow/shrink) so
+   Sort by / Direction take the remaining width instead of an equal third. */
+.cn-object-list-form__limit {
+	flex: 0 0 80px;
+	margin-block-end: 2px;
+}
+
+/* NcSelect defaults to min-width:260px, which would force the row to overflow
+   (horizontal scroll) in narrow panels; let the pickers shrink to share it. */
+.cn-object-list-form__row2 :deep(.v-select.select) {
 	min-width: 0;
 }
 
 .cn-object-list-form__col-row :deep(.button-vue) {
 	flex: 0 0 auto;
+	min-width: 0;
+}
+
+.cn-object-list-form__col-row__header {
+	margin-block-end: 2px;
 }
 </style>

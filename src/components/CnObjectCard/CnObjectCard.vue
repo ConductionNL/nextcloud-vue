@@ -88,6 +88,18 @@ export default {
 		CnCellRenderer,
 	},
 
+	inject: {
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Metadata
+		 * labels come from schema property titles, authored in English as the
+		 * canonical source; the visible label is resolved through this function
+		 * so it follows the user's language. Defaults to identity when used
+		 * standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	props: {
 		/** The object data */
 		object: {
@@ -188,7 +200,7 @@ export default {
 				.slice(0, this.maxMetadata)
 				.map(([key, prop]) => ({
 					key,
-					label: prop.title || key,
+					label: this.cnTranslate(prop.title || key),
 					value: this.object[key],
 					property: prop,
 				}))

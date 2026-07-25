@@ -20,20 +20,20 @@
 
 		<label class="cn-label-widget-form__color-label">
 			{{ t('nextcloud-vue', 'Color') }}
-			<input
-				type="color"
-				:value="color || '#000000'"
-				class="cn-label-widget-form__color"
-				@input="updateField('color', $event.target.value)">
+			<CnColorPicker
+				:value="color"
+				clearable
+				@input="updateField('color', $event.hex)"
+				@clear="updateField('color', '')" />
 		</label>
 
 		<label class="cn-label-widget-form__color-label">
 			{{ t('nextcloud-vue', 'Background color') }}
-			<input
-				type="color"
-				:value="backgroundColor || '#ffffff'"
-				class="cn-label-widget-form__color"
-				@input="updateField('backgroundColor', $event.target.value)">
+			<CnColorPicker
+				:value="backgroundColor"
+				clearable
+				@input="updateField('backgroundColor', $event.hex)"
+				@clear="updateField('backgroundColor', '')" />
 		</label>
 
 		<NcSelect
@@ -55,6 +55,7 @@
 <script>
 import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 
 const DEFAULT_CONTENT = Object.freeze({
 	text: '',
@@ -81,6 +82,7 @@ export default {
 	components: {
 		NcTextField,
 		NcSelect,
+		CnColorPicker,
 	},
 
 	props: {

@@ -188,7 +188,23 @@ module.exports = {
 				// (document.documentElement.dataset.locale etc.) that don't exist in the
 				// styleguide and causes crashes when first loaded by Data Display components.
 				'@nextcloud/l10n': path.resolve(__dirname, 'mocks/l10n.js'),
+				// webpack 4 can't read these packages' "exports" maps, so the CSS
+				// subpath imports (physically at dist/style.css) don't resolve, and
+				// the bare `@nextcloud/dialogs` alias below would otherwise rewrite the
+				// subpath to `<empty.js>/style.css`. Declare the exact stylesheet
+				// requests BEFORE the bare-module aliases so they win (webpack alias is
+				// first-match in declaration order). The dialog/toast/file-picker chrome
+				// only matters at runtime in a real Nextcloud server.
+				'@nextcloud/dialogs/style.css': path.resolve(__dirname, 'mocks/empty.js'),
 				'@nextcloud/dialogs': path.resolve(__dirname, 'mocks/empty.js'),
+				// @nextcloud/password-confirmation (used by useAppInstaller) resolves to
+				// a CJS entry that imports `@nextcloud/vue/components/NcButton` etc. via
+				// an "exports" subpath webpack 4 can't resolve, and its own style.css hits
+				// the same subpath problem. Password confirmation only runs against a real
+				// Nextcloud server (the composable calls these lazily, never at module
+				// load), so stub both the module and its stylesheet.
+				'@nextcloud/password-confirmation/style.css': path.resolve(__dirname, 'mocks/empty.js'),
+				'@nextcloud/password-confirmation': path.resolve(__dirname, 'mocks/empty.js'),
 				// @microsoft/fetch-event-source is only installed in the
 				// library's root node_modules (CnAiCompanion + useAiChatStream
 				// consume it at runtime). The deploy workflow `npm ci`s only
@@ -216,6 +232,14 @@ module.exports = {
 				// green. Sites consuming the lib pull marked from the lib
 				// root's package.json normally.
 				marked: path.resolve(__dirname, 'mocks/empty.js'),
+				// leaflet/dist/leaflet.css references marker/layers PNGs via url(),
+				// and webpack 4 has no loader for binary assets in this config
+				// (asset modules are webpack 5). CnMapWidget statically imports this
+				// CSS, so the whole styleguide build fails to resolve the PNGs. The
+				// map only renders at runtime in a real app (leaflet's JS itself is
+				// dynamically imported and still resolves normally); the styleguide
+				// has no map demo, so stubbing the stylesheet keeps the build green.
+				'leaflet/dist/leaflet.css': path.resolve(__dirname, 'mocks/empty.js'),
 				'#minpath': require.resolve('path-browserify'),
 				'#minurl': require.resolve('url/'),
 				// #minproc uses a package "imports" map that webpack 4 doesn't support;
@@ -257,6 +281,8 @@ module.exports = {
 				`${ROOT}/src/components/CnDataTable/CnDataTable.vue`,
 				`${ROOT}/src/components/CnCardGrid/CnCardGrid.vue`,
 				`${ROOT}/src/components/CnObjectCard/CnObjectCard.vue`,
+				`${ROOT}/src/components/CnObjectKanban/CnObjectKanban.vue`,
+				`${ROOT}/src/components/CnObjectCalendar/CnObjectCalendar.vue`,
 				`${ROOT}/src/components/CnFilterBar/CnFilterBar.vue`,
 				`${ROOT}/src/components/CnFacetSidebar/CnFacetSidebar.vue`,
 				`${ROOT}/src/components/CnPagination/CnPagination.vue`,

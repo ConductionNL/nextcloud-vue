@@ -20,20 +20,29 @@ import { mount } from '@vue/test-utils'
  * @param {object} opts options.
  * @param {string[]} [opts.errors] the array `validate()` returns.
  * @param {object} [opts.assembled] the `assembledContent` getter value.
+ * @param {Function} [opts.commit] an async `commit()` implementation (omitted → no commit method).
  * @return {object} a Vue component definition.
  */
-function fakeForm({ errors = [], assembled = null } = {}) {
+function fakeForm({ errors = [], assembled = null, commit = undefined } = {}) {
+	const methods = {
+		validate() {
+			return errors
+		},
+	}
+	if (commit !== undefined) {
+		methods.commit = commit
+	}
 	return {
 		name: 'FakeForm',
-		props: { editingWidget: { default: null }, value: { default: () => ({}) } },
+		props: {
+			editingWidget: { default: null },
+			value: { default: () => ({}) },
+			fileUploadFn: { default: null },
+		},
 		render(h) {
 			return h('div', { class: 'fake-form' })
 		},
-		methods: {
-			validate() {
-				return errors
-			},
-		},
+		methods,
 		computed: {
 			assembledContent() {
 				return assembled === null ? undefined : assembled
@@ -200,6 +209,36 @@ describe('CnAddWidgetModal', () => {
 		})
 	})
 
+	it('edit-open: Save stays disabled until a chrome-only change (e.g. Show title)', async () => {
+		// Regression: the modal instance persists across open/close (`:show`
+		// toggles it), so `mounted()`'s one-time revalidation does not fire on a
+		// later edit-open. The gate must (a) become valid on open without a form
+		// input, and (b) require an actual change — including a chrome-only one
+		// like toggling "Show title" — before enabling Save.
+		const { CnAddWidgetModal } = loadModal({
+			label: { form: fakeForm({ errors: [], assembled: { text: 'hi' } }) },
+		})
+		// Mount closed so mounted() runs while there is no active sub-form.
+		const wrapper = mount(CnAddWidgetModal, { propsData: { show: false } })
+		await wrapper.vm.$nextTick()
+		// Open in edit mode via the `show` watcher (not initial mount).
+		wrapper.setProps({ show: true, editingWidget: { type: 'label', content: { text: 'hi' } } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		// Valid, but unchanged → Save disabled.
+		expect(wrapper.vm.isValid).toBe(true)
+		expect(wrapper.vm.isDirty).toBe(false)
+		expect(wrapper.find('[data-testid="add-widget-save"]').attributes('disabled')).toBeDefined()
+
+		// Toggling chrome only (no form input) is recognised as a change.
+		wrapper.vm.chrome.showTitle = !wrapper.vm.chrome.showTitle
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.isDirty).toBe(true)
+		expect(wrapper.vm.canSubmit).toBe(true)
+		expect(wrapper.find('[data-testid="add-widget-save"]').attributes('disabled')).toBeUndefined()
+	})
+
 	it('preselectedType hides the picker and opens directly on that type', () => {
 		const { CnAddWidgetModal } = loadModal({
 			label: { displayName: 'Label' },
@@ -268,5 +307,70 @@ describe('CnAddWidgetModal', () => {
 		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true } })
 		wrapper.vm.onSubmit()
 		expect(wrapper.emitted('submit')).toBeFalsy()
+	})
+
+	it('awaits the sub-form commit() before emitting submit', async () => {
+		const order = []
+		const commit = jest.fn(async () => { order.push('commit') })
+		const { CnAddWidgetModal } = loadModal({
+			label: { form: fakeForm({ errors: [], assembled: { text: 'hi' }, commit }) },
+		})
+		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.onSubmit()
+		expect(commit).toHaveBeenCalledTimes(1)
+		order.push('emit')
+		expect(order).toEqual(['commit', 'emit'])
+		expect(wrapper.emitted('submit')).toBeTruthy()
+		expect(wrapper.vm.submitting).toBe(false)
+	})
+
+	it('a commit() rejection blocks the submit emit and keeps the modal open', async () => {
+		const commit = jest.fn().mockRejectedValue(new Error('upload failed'))
+		const { CnAddWidgetModal } = loadModal({
+			label: { form: fakeForm({ errors: [], assembled: { text: 'hi' }, commit }) },
+		})
+		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.onSubmit()
+		expect(commit).toHaveBeenCalledTimes(1)
+		expect(wrapper.emitted('submit')).toBeFalsy()
+		expect(wrapper.vm.submitting).toBe(false)
+	})
+
+	it('does not close (cancel/Esc) while a commit() is in flight', async () => {
+		let resolveCommit
+		const commit = jest.fn(() => new Promise((res) => { resolveCommit = res }))
+		const { CnAddWidgetModal } = loadModal({
+			label: { form: fakeForm({ errors: [], assembled: { text: 'hi' }, commit }) },
+		})
+		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true } })
+		await wrapper.vm.$nextTick()
+
+		const submitPromise = wrapper.vm.onSubmit()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.submitting).toBe(true)
+
+		// Cancel button / backdrop and Esc must be ignored while uploading.
+		wrapper.vm.onCancel()
+		wrapper.vm.onKeydown({ key: 'Escape' })
+		expect(wrapper.emitted('close')).toBeFalsy()
+
+		// Once the upload finishes, dismissal works again.
+		resolveCommit()
+		await submitPromise
+		expect(wrapper.vm.submitting).toBe(false)
+		wrapper.vm.onCancel()
+		expect(wrapper.emitted('close')).toBeTruthy()
+	})
+
+	it('forwards fileUploadFn to the active sub-form as file-upload-fn', async () => {
+		const fileUploadFn = jest.fn()
+		const { CnAddWidgetModal } = loadModal({
+			label: { form: fakeForm({ errors: [], assembled: { text: 'hi' } }) },
+		})
+		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true, fileUploadFn } })
+		await wrapper.vm.$nextTick()
+		expect(wrapper.findComponent({ name: 'FakeForm' }).props('fileUploadFn')).toBe(fileUploadFn)
 	})
 })
