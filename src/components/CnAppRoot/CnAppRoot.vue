@@ -446,6 +446,13 @@
 							:app-credentials="(manifest && manifest.credentials) || []" />
 					</NcAppSettingsSection>
 					<!--
+						Federated configuration store (OpenRegister). Lets the user
+						choose which GitHub credential the store publishes/browses
+						with, see this instance's signing key, and browse shared
+						configuration by type.
+					-->
+					<CnConfigurationStore v-if="userSettingsOpen" />
+					<!--
 						Self-service walkthrough replay (ADR-043). Only mounts
 						when the manifest declares an enabled tour, so apps
 						without a walkthrough never show an empty section.
@@ -562,6 +569,7 @@ import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
+import CnConfigurationStore from '../CnConfigurationStore/CnConfigurationStore.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
 import { provideTenantContext } from '../../composables/useTenantContext.js'
 import Vue, { computed, shallowRef, watch } from 'vue'
@@ -651,6 +659,7 @@ export default {
 		CnSupportDialog,
 		CnNotificationPreferences,
 		CnCredentials,
+		CnConfigurationStore,
 		CnTenantBadge,
 	},
 

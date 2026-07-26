@@ -6,8 +6,16 @@
  * open-form (delegates to context.openForm), refresh (bumps the
  * cn:page:refresh event-bus signal), api-call (POST/PUT + success/error
  * toast + refresh, DEEP `payload` token resolution, `download: true` blob
- * flow), and toggle (non-dispatchable — warns).
+ * flow), agent (run-on-object token resolution, 202 handling,
+ * unresolved-@objectId block, hermiq-absent graceful toast — hermiq#41),
+ * and toggle (non-dispatchable — warns).
  */
+
+import { emit } from '@nextcloud/event-bus'
+import { showSuccess, showError } from '@nextcloud/dialogs'
+import axios from '@nextcloud/axios'
+import { triggerBlobDownload } from '../../src/components/CnIndexPage/selfModeIO.js'
+import { dispatchAction } from '../../src/utils/actionsDispatcher.js'
 
 jest.mock('@nextcloud/event-bus', () => ({
 	emit: jest.fn(),
@@ -34,12 +42,6 @@ jest.mock('../../src/components/CnIndexPage/selfModeIO.js', () => {
 		triggerBlobDownload: jest.fn(),
 	}
 })
-
-import { emit } from '@nextcloud/event-bus'
-import { showSuccess, showError } from '@nextcloud/dialogs'
-import axios from '@nextcloud/axios'
-import { triggerBlobDownload } from '../../src/components/CnIndexPage/selfModeIO.js'
-import { dispatchAction } from '../../src/utils/actionsDispatcher.js'
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
@@ -305,6 +307,144 @@ describe('dispatchAction — Wave 3 types (#91)', () => {
 				)
 				await flush()
 				expect(emit).toHaveBeenCalledWith('cn:page:refresh', {})
+			})
+		})
+
+		describe('agent (hermiq#41)', () => {
+			it('POSTs run-on-object with the resolved object context, toasts "Run queued", and refreshes', async () => {
+				axios.post.mockResolvedValue({ data: { status: 'accepted', correlationId: 'abc', mode: 'async' } })
+				const result = await dispatchAction(
+					{
+						id: 'summarise',
+						label: 'Summarise',
+						type: 'agent',
+						agent: 'agent-uuid-1',
+					},
+					{ tokenCtx: { register: 'crm', schema: 'lead', objectId: '42' } },
+				)
+				await flush()
+
+				expect(axios.post).toHaveBeenCalledWith(
+					'/nc/apps/hermiq/api/agents/agent-uuid-1/run-on-object',
+					{ register: 'crm', schema: 'lead', objectId: '42' },
+				)
+				expect(showSuccess).toHaveBeenCalledWith('Run queued')
+				expect(emit).toHaveBeenCalledWith('cn:page:refresh', {})
+				expect(result.ok).toBe(true)
+			})
+
+			it('folds in resultField / skill and the token-interpolated prompt', async () => {
+				axios.post.mockResolvedValue({ data: {} })
+				await dispatchAction(
+					{
+						type: 'agent',
+						agent: 'agent-uuid-1',
+						skill: 'summarise-v1',
+						resultField: 'aiSummary',
+						prompt: 'Summarise @object.title',
+						successMessage: 'Off it goes',
+					},
+					{ tokenCtx: { register: 'crm', schema: 'lead', objectId: '7', object: { title: 'Acme deal' } } },
+				)
+				await flush()
+
+				expect(axios.post).toHaveBeenCalledWith(
+					'/nc/apps/hermiq/api/agents/agent-uuid-1/run-on-object',
+					{
+						register: 'crm',
+						schema: 'lead',
+						objectId: '7',
+						resultField: 'aiSummary',
+						skill: 'summarise-v1',
+						prompt: 'Summarise Acme deal',
+					},
+				)
+				expect(showSuccess).toHaveBeenCalledWith('Off it goes')
+			})
+
+			it('lets explicit register/schema/objectId override the page context', async () => {
+				axios.post.mockResolvedValue({ data: {} })
+				await dispatchAction(
+					{
+						type: 'agent',
+						agent: 'agent-uuid-1',
+						register: 'other',
+						schema: 'invoice',
+						objectId: '99',
+					},
+					{ tokenCtx: { register: 'crm', schema: 'lead', objectId: '42' } },
+				)
+				await flush()
+				expect(axios.post).toHaveBeenCalledWith(
+					'/nc/apps/hermiq/api/agents/agent-uuid-1/run-on-object',
+					{ register: 'other', schema: 'invoice', objectId: '99' },
+				)
+			})
+
+			it('BLOCKS the call (with a warn) when the required @objectId is unresolved', async () => {
+				const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+				const result = await dispatchAction(
+					{ type: 'agent', agent: 'agent-uuid-1' },
+					{ tokenCtx: { register: 'crm', schema: 'lead' } },
+				)
+				expect(axios.post).not.toHaveBeenCalled()
+				expect(result.ok).toBe(false)
+				expect(warnSpy).toHaveBeenCalled()
+				warnSpy.mockRestore()
+			})
+
+			it('BLOCKS the call when no agent is declared', async () => {
+				const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+				const result = await dispatchAction(
+					{ type: 'agent' },
+					{ tokenCtx: { register: 'crm', schema: 'lead', objectId: '42' } },
+				)
+				expect(axios.post).not.toHaveBeenCalled()
+				expect(result.ok).toBe(false)
+				warnSpy.mockRestore()
+			})
+
+			it('fail-closes with the server message on a 403', async () => {
+				axios.post.mockRejectedValue({ response: { status: 403, data: { error: 'Forbidden' } } })
+				const result = await dispatchAction(
+					{ type: 'agent', agent: 'a1' },
+					{ tokenCtx: { register: 'crm', schema: 'lead', objectId: '42' } },
+				)
+				await flush()
+				expect(showError).toHaveBeenCalledWith('Forbidden')
+				expect(emit).not.toHaveBeenCalled()
+				expect(result.ok).toBe(false)
+			})
+
+			it('surfaces a graceful "runtime unavailable" toast when hermiq is absent (404, no structured body)', async () => {
+				axios.post.mockRejectedValue({ response: { status: 404, data: '' } })
+				const result = await dispatchAction(
+					{ type: 'agent', agent: 'a1' },
+					{ tokenCtx: { register: 'crm', schema: 'lead', objectId: '42' } },
+				)
+				await flush()
+				expect(showError).toHaveBeenCalledWith('Agent runtime unavailable')
+				expect(result.ok).toBe(false)
+			})
+
+			it('uses the server message on a 404 that DOES carry a structured error (object not found)', async () => {
+				axios.post.mockRejectedValue({ response: { status: 404, data: { error: 'Object not found' } } })
+				await dispatchAction(
+					{ type: 'agent', agent: 'a1' },
+					{ tokenCtx: { register: 'crm', schema: 'lead', objectId: '42' } },
+				)
+				await flush()
+				expect(showError).toHaveBeenCalledWith('Object not found')
+			})
+
+			it('does not refresh when action.refresh is false', async () => {
+				axios.post.mockResolvedValue({ data: {} })
+				await dispatchAction(
+					{ type: 'agent', agent: 'a1', refresh: false },
+					{ tokenCtx: { register: 'crm', schema: 'lead', objectId: '42' } },
+				)
+				await flush()
+				expect(emit).not.toHaveBeenCalled()
 			})
 		})
 	})
