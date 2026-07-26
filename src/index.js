@@ -128,6 +128,7 @@ export {
 	CnIntegrationCard,
 	CnIntegrationWidgetGrid,
 	CnIntegrationWidget,
+	CnLeafMountHost,
 	CnDetailCard,
 	CnDetailPage,
 	CnLifecycleActions,

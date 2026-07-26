@@ -80,6 +80,17 @@ function main() {
 				continue
 			}
 			const src = fs.readFileSync(path.join(dir, file), 'utf8')
+			// A mount-mode descriptor satisfies parity via mount+unmount
+			// instead of tab+widget (openregister#2127).
+			if (/renderMode\s*:\s*['"]mount['"]/.test(src)) {
+				if (!/\bmount\s*:/.test(src)) {
+					failures.push(`${file}: renderMode 'mount' but no \`mount:\` key found`)
+				}
+				if (!/\bunmount\s*:/.test(src)) {
+					failures.push(`${file}: renderMode 'mount' but no \`unmount:\` key found`)
+				}
+				continue
+			}
 			if (!/\btab\s*:/.test(src)) {
 				failures.push(`${file}: no \`tab:\` key found`)
 			}
@@ -98,11 +109,23 @@ function main() {
 			if (typeof d.label !== 'string' || d.label === '') {
 				failures.push(`${label}: missing or empty \`label\``)
 			}
-			if (d.tab === undefined || d.tab === null) {
-				failures.push(`${label}: missing required \`tab\` component`)
-			}
-			if (d.widget === undefined || d.widget === null) {
-				failures.push(`${label}: missing required \`widget\` component`)
+			// Parity now accepts either render pair (openregister#2127, ADR-066):
+			// a `mount` descriptor is complete with mount+unmount; a `component`
+			// (default) descriptor keeps the tab+widget requirement.
+			if (d && d.renderMode === 'mount') {
+				if (typeof d.mount !== 'function') {
+					failures.push(`${label}: renderMode 'mount' missing required \`mount\` function`)
+				}
+				if (typeof d.unmount !== 'function') {
+					failures.push(`${label}: renderMode 'mount' missing required \`unmount\` function`)
+				}
+			} else {
+				if (d.tab === undefined || d.tab === null) {
+					failures.push(`${label}: missing required \`tab\` component`)
+				}
+				if (d.widget === undefined || d.widget === null) {
+					failures.push(`${label}: missing required \`widget\` component`)
+				}
 			}
 		}
 	}
@@ -181,8 +204,8 @@ function collectFiles(root, test, maxDepth = 6) {
  *
  * @param {string} repoRoot The repo root to scan.
  *
- * @return {Array<{id: string, renderSurface: boolean, file: string}>} The
- *   discovered descriptors.
+ * @return {Array<{id: string, renderSurface: boolean, renderMode: string, file: string}>} The
+ *   discovered descriptors (`renderMode` is `'mount'` or `'component'`).
  */
 function collectServerDescriptors(repoRoot) {
 	const descriptors = []
@@ -219,8 +242,14 @@ function collectServerDescriptors(repoRoot) {
 			}
 			const renderSurface = /KIND_RENDER_SURFACE/.test(window)
 				|| /'render-surface'|"render-surface"/.test(window)
+			// renderMode carried on the descriptor (openregister#2127): a
+			// `RENDER_MODE_MOUNT` constant or a `renderMode: 'mount'` literal.
+			const renderMode = /RENDER_MODE_MOUNT/.test(window)
+				|| /renderMode\s*:\s*'mount'|renderMode\s*:\s*"mount"/.test(window)
+				? 'mount'
+				: 'component'
 			if (id) {
-				descriptors.push({ id, renderSurface, file: path.relative(repoRoot, file) })
+				descriptors.push({ id, renderSurface, renderMode, file: path.relative(repoRoot, file) })
 			}
 			idx += 'new LeafDescriptor('.length
 		}
@@ -236,7 +265,8 @@ function collectServerDescriptors(repoRoot) {
  *
  * @param {string} repoRoot The repo root to scan.
  *
- * @return {Array<{id: string, file: string}>} The discovered registrations.
+ * @return {Array<{id: string, renderMode: string, file: string}>} The discovered
+ *   registrations (`renderMode` is `'mount'` or `'component'`).
  */
 function collectJsRegistrations(repoRoot) {
 	const regs = []
@@ -264,8 +294,12 @@ function collectJsRegistrations(repoRoot) {
 			const window = src.slice(cm.index, cm.index + 400)
 			const m = idRe.exec(window)
 			const id = m ? (m[1] || m[2] || m[3]) : null
+			// renderMode declared on the JS registration (openregister#2127).
+			const renderMode = /renderMode\s*:\s*'mount'|renderMode\s*:\s*"mount"|renderMode\s*:\s*`mount`/.test(window)
+				? 'mount'
+				: 'component'
 			if (id) {
-				regs.push({ id, file: path.relative(repoRoot, file) })
+				regs.push({ id, renderMode, file: path.relative(repoRoot, file) })
 			}
 		}
 	}
@@ -309,7 +343,25 @@ function crossReferenceServerLeaves(repoRoot) {
 	const registrations = collectJsRegistrations(repoRoot)
 	const jsIds = new Set(registrations.map((r) => r.id))
 	const phpIds = new Set(descriptors.map((d) => d.id))
+	const jsModeById = new Map(registrations.map((r) => [r.id, r.renderMode]))
 	const warnings = []
+
+	// renderMode cross-layer correlation (openregister#2127 / ADR-066): for a
+	// render-surface leaf present on both sides, the server descriptor's
+	// renderMode MUST equal the JS registration's under the shared id.
+	for (const d of descriptors) {
+		if (!d.renderSurface || !jsModeById.has(d.id)) {
+			continue
+		}
+		const jsMode = jsModeById.get(d.id)
+		if (d.renderMode !== jsMode) {
+			warnings.push(
+				`render-surface leaf "${d.id}" (${d.file}) declares renderMode `
+				+ `"${d.renderMode}" server-side but "${jsMode}" in its JS `
+				+ 'registration — renderMode MUST match across layers (ADR-066).',
+			)
+		}
+	}
 
 	// Phantom render surface: a render-surface descriptor discoverable in the
 	// capability whose JS widget never registered.
