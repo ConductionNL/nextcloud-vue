@@ -84,6 +84,25 @@
 					</li>
 				</ul>
 			</div>
+
+			<!-- Trust & governance (administrators only; the endpoint 403s otherwise) -->
+			<div v-if="trust" class="cn-config-store__block">
+				<label class="cn-config-store__label">{{ t('nextcloud-vue', 'Trust & governance') }}</label>
+				<p class="cn-config-store__hint">
+					{{ t('nextcloud-vue', 'Comma-separated. Empty means not yet enforced. Administrators only.') }}
+				</p>
+				<NcTextField v-model="trust.sourceAllowlist"
+					:label="t('nextcloud-vue', 'Source allowlist (owner, or owner/repo)')" />
+				<NcTextField v-model="trust.trustedKeys"
+					:label="t('nextcloud-vue', 'Trusted publisher keys (base64)')" />
+				<NcTextField v-model="trust.publishGroups"
+					:label="t('nextcloud-vue', 'Groups allowed to publish')" />
+				<NcTextField v-model="trust.installGroups"
+					:label="t('nextcloud-vue', 'Groups allowed to install')" />
+				<NcButton type="primary" :disabled="savingTrust" @click="saveTrust">
+					{{ t('nextcloud-vue', 'Save trust settings') }}
+				</NcButton>
+			</div>
 		</div>
 	</NcAppSettingsSection>
 </template>
@@ -105,6 +124,9 @@
  *     configuration they publish.
  *  3. **Browse** — pick a shareable type and discover published bundles on
  *     GitHub by that type's topic.
+ *  4. **Trust & governance** (administrators only) — read and edit the org's
+ *     source allowlist, trusted publisher keys, and publish/install group lists.
+ *     The block does not render for non-admins (the endpoint 403s).
  *
  * Endpoints used:
  *   GET  /apps/openregister/api/credentials?scope=personal      → { results: [{ id, name, provider, ... }] }
@@ -113,11 +135,13 @@
  *   GET  /apps/openregister/api/federated-config/types          → { types: [{ id, name, topic }] }
  *   GET  /apps/openregister/api/federated-config/discover?topic → { results: [{ repo, url, stars, description }] }
  *   GET  /apps/openregister/api/federated-config/public-key     → { publicKey }
+ *   GET  /apps/openregister/api/federated-config/trust          → { sourceAllowlist, trustedKeys, publishGroups, installGroups } (admin; 403 otherwise)
+ *   PUT  /apps/openregister/api/federated-config/trust          → { field, value } → updated trust
  *
  * Designed to render inside CnAppRoot's `#user-settings` slot, next to the
  * credential-broker pane.
  */
-import { NcAppSettingsSection, NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
+import { NcAppSettingsSection, NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { showError, showSuccess } from '@nextcloud/dialogs'
@@ -137,6 +161,7 @@ export default {
 		NcLoadingIcon,
 		NcNoteCard,
 		NcSelect,
+		NcTextField,
 		ContentCopy,
 		PackageVariant,
 	},
@@ -146,12 +171,14 @@ export default {
 			unavailable: false,
 			savingCredential: false,
 			discovering: false,
+			savingTrust: false,
 			githubCredentials: [],
 			selectedCredential: null,
 			types: [],
 			selectedType: null,
 			discovered: [],
 			publicKey: '',
+			trust: null,
 		}
 	},
 	mounted() {
@@ -171,11 +198,13 @@ export default {
 			this.loading = true
 			this.unavailable = false
 			try {
-				const [credsResp, prefResp, typesResp, keyResp] = await Promise.all([
+				const [credsResp, prefResp, typesResp, keyResp, trustResp] = await Promise.all([
 					axios.get(generateUrl(`${API}/credentials?scope=personal`)),
 					axios.get(generateUrl(`${API}/preferences/${CREDENTIAL_PREF}`)),
 					axios.get(generateUrl(`${API}/federated-config/types`)),
 					axios.get(generateUrl(`${API}/federated-config/public-key`)).catch(() => ({ data: {} })),
+					// 403 for non-admins — the governance block simply does not render.
+					axios.get(generateUrl(`${API}/federated-config/trust`)).catch(() => ({ data: null })),
 				])
 
 				const creds = Array.isArray(credsResp.data?.results) ? credsResp.data.results : []
@@ -186,10 +215,34 @@ export default {
 
 				this.types = Array.isArray(typesResp.data?.types) ? typesResp.data.types : []
 				this.publicKey = keyResp.data?.publicKey || ''
+				this.trust = (trustResp.data && typeof trustResp.data === 'object') ? trustResp.data : null
 			} catch (e) {
 				this.unavailable = true
 			} finally {
 				this.loading = false
+			}
+		},
+
+		/**
+		 * Persist the organisation's trust settings (admin only). Each field is
+		 * written through the trust endpoint.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async saveTrust() {
+			if (!this.trust) {
+				return
+			}
+			this.savingTrust = true
+			try {
+				for (const field of ['sourceAllowlist', 'trustedKeys', 'publishGroups', 'installGroups']) {
+					await axios.put(generateUrl(`${API}/federated-config/trust`), { field, value: this.trust[field] || '' })
+				}
+				showSuccess(t('nextcloud-vue', 'Trust settings saved'))
+			} catch (e) {
+				showError(t('nextcloud-vue', 'Could not save the trust settings'))
+			} finally {
+				this.savingTrust = false
 			}
 		},
 

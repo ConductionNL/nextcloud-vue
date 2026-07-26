@@ -20,6 +20,9 @@ surface for it and does three things:
    the configuration they publish.
 3. **Browse** — the user picks a shareable type and the panel discovers the
    bundles published to GitHub under that type's topic, listing them as links.
+4. **Trust & governance** (administrators only) — reads and edits the
+   organisation's source allowlist, trusted publisher keys, and publish/install
+   group lists. The block is hidden for non-admins (the endpoint returns 403).
 
 All calls go to OpenRegister's `/api` surface, and the panel fails soft (an info
 note) when OpenRegister can't be reached:
@@ -31,6 +34,8 @@ PUT  /apps/openregister/api/preferences/federated-config-credential → { value 
 GET  /apps/openregister/api/federated-config/types                  → { types: [{ id, name, topic }] }
 GET  /apps/openregister/api/federated-config/discover?topic=<t>     → { results: [{ repo, url, stars, description }] }
 GET  /apps/openregister/api/federated-config/public-key             → { publicKey }
+GET  /apps/openregister/api/federated-config/trust                  → { sourceAllowlist, trustedKeys, publishGroups, installGroups } (admin; 403 otherwise)
+PUT  /apps/openregister/api/federated-config/trust                  → { field, value }
 ```
 
 Only credentials whose `provider` is `github` are offered in the picker.

@@ -40,6 +40,11 @@ const stubs = {
 		props: ['options', 'value'],
 		template: '<select class="ncselect" @change="$emit(\'input\', options[$event.target.value])"><option v-for="(o,i) in options" :key="i" :value="i">{{ o.name }}</option></select>',
 	},
+	NcTextField: {
+		name: 'NcTextField',
+		props: ['value', 'label'],
+		template: '<input class="nctextfield" :value="value" @input="$emit(\'input\', $event.target.value)" />',
+	},
 }
 
 function routes(overrides = {}) {
@@ -53,6 +58,11 @@ function routes(overrides = {}) {
 		if (url.includes('/federated-config/types')) return Promise.resolve({ data: { types: overrides.types ?? [{ id: 'a.b', name: 'A/B', topic: 'a-b' }] } })
 		if (url.includes('/federated-config/public-key')) return Promise.resolve({ data: { publicKey: overrides.key ?? 'KEY==' } })
 		if (url.includes('/federated-config/discover')) return Promise.resolve({ data: { results: overrides.discovered ?? [] } })
+		if (url.includes('/federated-config/trust')) {
+			return overrides.trust
+				? Promise.resolve({ data: overrides.trust })
+				: Promise.reject(Object.assign(new Error('forbidden'), { response: { status: 403 } }))
+		}
 		return Promise.resolve({ data: {} })
 	})
 	axios.put.mockResolvedValue({ data: { value: overrides.pref ?? '' } })
@@ -103,5 +113,29 @@ describe('CnConfigurationStore', () => {
 		const wrapper = mount(CnConfigurationStore, { stubs })
 		await flush()
 		expect(wrapper.vm.unavailable).toBe(true)
+	})
+
+	it('shows the governance block for an admin (trust endpoint returns config)', async () => {
+		routes({ trust: { sourceAllowlist: 'ConductionNL', trustedKeys: '', publishGroups: 'editors', installGroups: '' } })
+		const wrapper = mount(CnConfigurationStore, { stubs })
+		await flush()
+		expect(wrapper.vm.trust).not.toBeNull()
+		expect(wrapper.vm.trust.sourceAllowlist).toBe('ConductionNL')
+	})
+
+	it('hides the governance block for a non-admin (trust 403)', async () => {
+		routes() // no trust override → the trust route rejects 403
+		const wrapper = mount(CnConfigurationStore, { stubs })
+		await flush()
+		expect(wrapper.vm.trust).toBeNull()
+	})
+
+	it('saves each trust field through the trust endpoint', async () => {
+		routes({ trust: { sourceAllowlist: 'acme', trustedKeys: 'K=', publishGroups: '', installGroups: 'staff' } })
+		const wrapper = mount(CnConfigurationStore, { stubs })
+		await flush()
+		await wrapper.vm.saveTrust()
+		expect(axios.put).toHaveBeenCalledWith(expect.stringContaining('/federated-config/trust'), { field: 'sourceAllowlist', value: 'acme' })
+		expect(axios.put).toHaveBeenCalledWith(expect.stringContaining('/federated-config/trust'), { field: 'installGroups', value: 'staff' })
 	})
 })
