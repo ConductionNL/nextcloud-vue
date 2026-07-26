@@ -454,9 +454,16 @@
 						:documentation-url="getWidgetDocumentationUrl(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
+						<!-- Mount-mode integration leaf (openregister#2127):
+						     rendered through CnLeafMountHost so a cross-Vue-major
+						     leaf mounts its own framework into a bare element. -->
+						<CnLeafMountHost
+							v-if="isMountIntegration(item)"
+							:provider="integrationProviderFor(item)"
+							:mount-props="getIntegrationMountProps(item)" />
 						<component
 							:is="resolveIntegrationWidget(item)"
-							v-if="resolveIntegrationWidget(item)"
+							v-else-if="resolveIntegrationWidget(item)"
 							v-bind="getIntegrationProps(item)" />
 						<div v-else class="cn-dashboard-page__unknown">
 							{{ unavailableLabel }}
@@ -629,6 +636,7 @@ import { CnActionsMenu } from '../CnActionsMenu/index.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
+import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
@@ -771,6 +779,7 @@ export default {
 		CnActionButtons,
 		CnOpenBuildEditButton,
 		CnWidgetStyleEditorModal,
+		CnLeafMountHost,
 	},
 
 	inject: {
@@ -1191,7 +1200,7 @@ export default {
 		// Wire the pluggable integration registry so widgets of type
 		// `integration` resolve their component reactively. No-op cost
 		// when no integration widgets are configured.
-		const { integrations: registryIntegrations, resolveWidget } = useIntegrationRegistry()
+		const { integrations: registryIntegrations, resolveWidget, getById } = useIntegrationRegistry()
 
 		// Provide a reactive date-range ref to every descendant widget,
 		// ALWAYS — even when the feature is off. Descendants can then
@@ -1228,6 +1237,7 @@ export default {
 		return {
 			registryIntegrations,
 			resolveRegistryWidget: resolveWidget,
+			getRegistryProvider: getById,
 			dashboardDateRange,
 			workspaceContext,
 			appConfigRef,
@@ -2495,6 +2505,56 @@ export default {
 				surface: this.surface,
 				...(this.integrationContext || {}),
 				...(def?.props || {}),
+			}
+		},
+
+		/**
+		 * The registry provider descriptor behind an integration widget def,
+		 * carrying `mount`/`unmount` when it is a mount-mode leaf
+		 * (openregister#2127). Null when unregistered.
+		 *
+		 * @param {object} item Layout item
+		 * @return {object|null} Provider descriptor, or null.
+		 */
+		integrationProviderFor(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			if (!def || typeof def.integrationId !== 'string' || typeof this.getRegistryProvider !== 'function') {
+				return null
+			}
+			return this.getRegistryProvider(def.integrationId)
+		},
+
+		/**
+		 * Whether an integration widget resolves to a mount-mode leaf
+		 * (`renderMode: 'mount'`) — rendered through CnLeafMountHost rather
+		 * than as a component under the host's Vue runtime.
+		 *
+		 * @param {object} item Layout item
+		 * @return {boolean} true when the integration is mount-mode.
+		 */
+		isMountIntegration(item) {
+			if (!this.isIntegration(item)) {
+				return false
+			}
+			const provider = this.integrationProviderFor(item)
+			return Boolean(provider)
+				&& provider.renderMode === 'mount'
+				&& typeof provider.mount === 'function'
+				&& typeof provider.unmount === 'function'
+		},
+
+		/**
+		 * Props forwarded to a mount-mode leaf's `mount(el, props)` — the same
+		 * context an SFC integration widget receives, plus an explicit
+		 * `integrationContext` bag for leaves that read it directly.
+		 *
+		 * @param {object} item Layout item
+		 * @return {object} Mount props.
+		 */
+		getIntegrationMountProps(item) {
+			return {
+				...this.getIntegrationProps(item),
+				integrationContext: { ...(this.integrationContext || {}) },
 			}
 		},
 
