@@ -202,6 +202,15 @@ export default {
 			from: TENANT_CONTEXT_KEY,
 			default: null,
 		},
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Field
+		 * labels/descriptions come from schema property titles, authored in
+		 * English as the canonical source; the visible label is resolved
+		 * through this function so it follows the user's language. Defaults to
+		 * identity when used standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -340,6 +349,7 @@ export default {
 				include: this.includeFields,
 				overrides: this.fieldOverrides,
 				includeReadOnly: true,
+				translate: this.cnTranslate,
 			})
 		},
 

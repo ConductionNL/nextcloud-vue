@@ -455,6 +455,15 @@ export default {
 		 * bare-slug refs then stay unresolved (shortened id fallback).
 		 */
 		cnObjectContext: { default: null },
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Field
+		 * labels/descriptions come from schema property titles, authored in
+		 * English as the canonical source; the visible label is resolved
+		 * through this function so it follows the user's language. Defaults to
+		 * identity when used standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -694,6 +703,7 @@ export default {
 				include: this.include,
 				overrides: this.resolvedOverrides,
 				includeReadOnly: true,
+				translate: this.cnTranslate,
 			})
 
 			// Attach grid span info (a display-only concern, not part of the
@@ -913,7 +923,7 @@ export default {
 
 		/**
 		 * Raw (possibly dirty) value for a field.
-		 * @param field
+		 * @param {object} field The field descriptor (from `fieldsFromSchema`).
 		 */
 		rawOf(field) {
 			const o = this.objectData || {}
@@ -1001,7 +1011,7 @@ export default {
 		},
 		/**
 		 * Whether a field should render as an image preview.
-		 * @param field
+		 * @param {object} field The field descriptor (from `fieldsFromSchema`).
 		 */
 		isImageField(field) {
 			if (field.widget === 'image') return true
@@ -1012,7 +1022,7 @@ export default {
 		},
 		/**
 		 * The x-openregister-relation block for a property (scalar or array), or null.
-		 * @param prop
+		 * @param {object} prop The schema property definition.
 		 */
 		relationProp(prop) {
 			if (!prop) return null
@@ -1043,7 +1053,7 @@ export default {
 		},
 		/**
 		 * Whether a property is a relation.
-		 * @param prop
+		 * @param {object} prop The schema property definition.
 		 */
 		isRelationField(prop) {
 			return this.relationProp(prop) !== null
