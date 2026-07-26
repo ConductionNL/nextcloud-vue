@@ -76,6 +76,11 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+          # Track the branch head, not the detached triggering SHA. On an
+          # actively-pushed branch the run can start after new commits land;
+          # a detached checkout makes semantic-release see local as "behind
+          # the remote" and silently skip the publish (green-but-no-publish).
+          ref: ${{ github.ref_name }}
 
       - uses: actions/setup-node@v4
         with:
