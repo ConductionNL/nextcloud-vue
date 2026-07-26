@@ -153,4 +153,65 @@ describe('check-integration-parity — ADR-066 server↔JS cross-ref', () => {
 		expect(ran).toBe(false)
 		expect(warnings).toEqual([])
 	})
+
+	// --- renderMode cross-layer correlation (openregister#2127, ADR-066) -----
+
+	const PHP_MOUNT_SURFACE = (id) => `<?php
+use OCA\\OpenRegister\\Service\\Integration\\LeafDescriptor;
+$descriptor = new LeafDescriptor(
+	id: '${id}',
+	label: 'X',
+	kinds: [LeafDescriptor::KIND_RENDER_SURFACE],
+	renderMode: LeafDescriptor::RENDER_MODE_MOUNT,
+	surfaces: ['detail-page'],
+);
+`
+
+	const JS_MOUNT_REGISTRATION = (id) => `import { registerIntegration } from '@conduction/nextcloud-vue'
+registerIntegration({
+	id: '${id}',
+	label: 'X',
+	renderMode: 'mount',
+	mount: (el, props) => {},
+	unmount: (el) => {},
+})
+`
+
+	it('reads renderMode "mount" from a PHP RENDER_MODE_MOUNT descriptor', () => {
+		const root = makeRepo({ 'lib/Listener/L.php': PHP_MOUNT_SURFACE('hermiq-agent') })
+		const descriptors = collectServerDescriptors(root)
+		expect(descriptors[0].renderMode).toBe('mount')
+	})
+
+	it('defaults renderMode to "component" for a descriptor that does not opt in', () => {
+		const root = makeRepo({ 'lib/Listener/L.php': PHP_RENDER_SURFACE('hermiq-agent') })
+		const descriptors = collectServerDescriptors(root)
+		expect(descriptors[0].renderMode).toBe('component')
+	})
+
+	it('reads renderMode "mount" from a JS registration', () => {
+		const root = makeRepo({ 'src/leaf.js': JS_MOUNT_REGISTRATION('hermiq-agent') })
+		const regs = collectJsRegistrations(root)
+		expect(regs[0].renderMode).toBe('mount')
+	})
+
+	it('is silent when server and JS renderMode agree (both mount)', () => {
+		const root = makeRepo({
+			'lib/Listener/L.php': PHP_MOUNT_SURFACE('hermiq-agent'),
+			'src/leaf.js': JS_MOUNT_REGISTRATION('hermiq-agent'),
+		})
+		const { ran, warnings } = crossReferenceServerLeaves(root)
+		expect(ran).toBe(true)
+		expect(warnings).toEqual([])
+	})
+
+	it('flags a renderMode mismatch across layers (server mount, JS component)', () => {
+		const root = makeRepo({
+			'lib/Listener/L.php': PHP_MOUNT_SURFACE('hermiq-agent'),
+			'src/leaf.js': JS_REGISTRATION('hermiq-agent'), // component-mode JS
+		})
+		const { ran, warnings } = crossReferenceServerLeaves(root)
+		expect(ran).toBe(true)
+		expect(warnings.some((w) => /hermiq-agent/.test(w) && /renderMode MUST match/i.test(w))).toBe(true)
+	})
 })

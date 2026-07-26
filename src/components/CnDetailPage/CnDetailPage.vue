@@ -373,6 +373,14 @@
 								:height="widgetContentFor(item).height || '360px'"
 								:default-zoom="widgetContentFor(item).defaultZoom || 7"
 								@saved="onGeoSaved" />
+							<!-- Mount-mode integration leaf (openregister#2127):
+							     a `renderMode: 'mount'` provider renders through
+							     CnLeafMountHost — a bare host-owned element the
+							     leaf mounts its own framework into. -->
+							<CnLeafMountHost
+								v-else-if="isMountIntegrationWidget(item)"
+								:provider="integrationProviderFor(item)"
+								:mount-props="getIntegrationMountProps(item)" />
 							<!-- Fallback for `type: 'integration'` widget defs:
 							     render the registry widget on the detail-page
 							     surface. A consumer-supplied #widget-<id> slot
@@ -665,6 +673,7 @@ import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 import { useObjectStore } from '../../store/index.js'
 import { CnIcon } from '../CnIcon/index.js'
+import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
@@ -768,6 +777,7 @@ export default {
 		CnRelatedCollections,
 		CnBodySections,
 		CnTranslatedBadge,
+		CnLeafMountHost,
 		CnWidgetStyleEditorModal,
 		CnRelationLinkModal,
 		Cog,
@@ -1316,8 +1326,8 @@ export default {
 		// 'integration'` widgets in the grid layout to their Vue
 		// component (AD-19 surface fallback). Always wired; cheap when
 		// no integration widgets are configured.
-		const { resolveWidget } = useIntegrationRegistry()
-		const registryExposed = { resolveRegistryWidget: resolveWidget }
+		const { resolveWidget, getById } = useIntegrationRegistry()
+		const registryExposed = { resolveRegistryWidget: resolveWidget, getRegistryProvider: getById }
 
 		// Object context for detail-page abstract widgets (ADR-041): a reactive
 		// `{ objectId, object, register, schema }` holder kept current by the
@@ -2350,6 +2360,61 @@ export default {
 				surface: this.surface,
 				...(this.integrationContext || derivedContext),
 				...(def?.props || {}),
+			}
+		},
+
+		/**
+		 * The registry provider descriptor behind an integration widget def,
+		 * carrying `mount`/`unmount` when it is a mount-mode leaf
+		 * (openregister#2127). Null when unregistered.
+		 *
+		 * @param {object} item Layout item
+		 * @return {object|null} Provider descriptor, or null.
+		 */
+		integrationProviderFor(item) {
+			const def = this.findWidget(item)
+			if (!def || typeof def.integrationId !== 'string' || typeof this.getRegistryProvider !== 'function') {
+				return null
+			}
+			return this.getRegistryProvider(def.integrationId)
+		},
+
+		/**
+		 * Whether an integration widget def resolves to a mount-mode leaf
+		 * (`renderMode: 'mount'`) — rendered through CnLeafMountHost rather
+		 * than as a component under the host's Vue runtime.
+		 *
+		 * @param {object} item Layout item
+		 * @return {boolean} true when the integration is mount-mode.
+		 */
+		isMountIntegrationWidget(item) {
+			if (!this.isIntegrationWidget(item)) {
+				return false
+			}
+			const provider = this.integrationProviderFor(item)
+			return Boolean(provider)
+				&& provider.renderMode === 'mount'
+				&& typeof provider.mount === 'function'
+				&& typeof provider.unmount === 'function'
+		},
+
+		/**
+		 * Props forwarded to a mount-mode leaf's `mount(el, props)` — the same
+		 * context an SFC integration widget receives, plus an explicit
+		 * `integrationContext` bag for leaves that read it directly.
+		 *
+		 * @param {object} item Layout item
+		 * @return {object} Mount props.
+		 */
+		getIntegrationMountProps(item) {
+			const base = this.getIntegrationProps(item)
+			return {
+				...base,
+				integrationContext: {
+					register: base.register,
+					schema: base.schema,
+					objectId: base.objectId,
+				},
 			}
 		},
 
