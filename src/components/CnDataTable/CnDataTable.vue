@@ -28,7 +28,7 @@
 						]"
 						:style="col.width ? { width: col.width } : {}"
 						@click="col.sortable ? onSort(col.key) : null">
-						{{ col.label }}
+						{{ translateLabel(col.label) }}
 						<span
 							v-if="col.sortable && sortKey === col.key"
 							class="cn-table-sort-indicator">
@@ -150,6 +150,20 @@ export default {
 		NcLoadingIcon,
 		NcCheckboxRadioSwitch,
 		CnCellRenderer,
+	},
+
+	inject: {
+		/**
+		 * Consumer translation function, provided by the host app root as
+		 * `cnTranslate: this.translate` (bound to the host app's id, e.g.
+		 * `t.bind(null, 'docudesk')`). Column headers come from schema
+		 * property titles, which are authored in English as the canonical
+		 * source (API predictability); the visible label is resolved through
+		 * this function so it follows the user's language, with the English
+		 * source key living in each app's l10n files. Defaults to identity
+		 * when the table is used standalone (no provider ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -277,6 +291,21 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Resolve a column header label through the consumer's translation
+		 * function. Column labels originate from schema property titles
+		 * (English canonical source); this makes the rendered header follow
+		 * the user's language when the host app provides `cnTranslate`, and
+		 * returns the label unchanged when it does not.
+		 *
+		 * @param {string} label The English source label (schema property title).
+		 * @return {string} The translated label, or the input unchanged.
+		 */
+		translateLabel(label) {
+			if (!label) return ''
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return fn(label)
+		},
 		/**
 		 * Get a cell value from a row using dot-notation key.
 		 * @param {object} row The row data

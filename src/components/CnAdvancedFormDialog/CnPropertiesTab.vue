@@ -84,6 +84,18 @@ export default {
 		CnPropertyValueCell,
 	},
 
+	inject: {
+		/**
+		 * Consumer translation function, provided by the host app root as
+		 * `cnTranslate: this.translate` (bound to the host app's id). The
+		 * property display name comes from the schema property title, authored
+		 * in English as the canonical source; the visible label is resolved
+		 * through this function so it follows the user's language. Defaults to
+		 * identity when used standalone (no provider ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	props: {
 		schema: { type: Object, default: null },
 		item: { type: Object, default: null },
@@ -153,16 +165,19 @@ export default {
 		},
 
 		getPropertyDisplayName(key) {
-			return (this.schema?.properties?.[key]?.title) || key
+			// The property title is the English canonical source; resolve it
+			// through the consumer's translation function for display.
+			return this.cnTranslate((this.schema?.properties?.[key]?.title) || key)
 		},
 
 		getPropertyTooltip(key) {
 			const prop = this.schema?.properties?.[key]
 			if (prop?.description) {
+				const description = this.cnTranslate(prop.description)
 				if (prop.title && prop.title !== key) {
-					return `${prop.title}: ${prop.description}`
+					return `${this.cnTranslate(prop.title)}: ${description}`
 				}
-				return prop.description
+				return description
 			}
 			return `Property: ${key}`
 		},

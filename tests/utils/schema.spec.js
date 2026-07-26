@@ -183,6 +183,25 @@ describe('columnsFromSchema', () => {
 		const columns = columnsFromSchema(schema)
 		expect(columns[0].label).toBe('someField')
 	})
+
+	// --- Display-layer translation (options.translate) ---
+
+	it('applies options.translate to each column label', () => {
+		const columns = columnsFromSchema(testSchema, { translate: (s) => `NL:${s}` })
+		expect(columns.find((c) => c.key === 'title').label).toBe('NL:Title')
+	})
+
+	it('translates the key fallback label when a title is missing', () => {
+		const schema = { properties: { someField: { type: 'string' } } }
+		const columns = columnsFromSchema(schema, { translate: (s) => `NL:${s}` })
+		expect(columns[0].label).toBe('NL:someField')
+	})
+
+	it('produces byte-identical columns with an identity translate vs no translate', () => {
+		const without = columnsFromSchema(testSchema)
+		const withIdentity = columnsFromSchema(testSchema, { translate: (s) => s })
+		expect(withIdentity).toEqual(without)
+	})
 })
 
 // ---------- formatValue ----------
@@ -363,6 +382,19 @@ describe('filtersFromSchema', () => {
 		for (const filter of filters) {
 			expect(filter.value).toBeNull()
 		}
+	})
+
+	// --- Display-layer translation (options.translate) ---
+
+	it('applies options.translate to each filter label', () => {
+		const filters = filtersFromSchema(testSchema, { translate: (s) => `NL:${s}` })
+		expect(filters.find((f) => f.key === 'listed').label).toBe('NL:Listed')
+	})
+
+	it('produces byte-identical filters with an identity translate vs no translate', () => {
+		const without = filtersFromSchema(testSchema)
+		const withIdentity = filtersFromSchema(testSchema, { translate: (s) => s })
+		expect(withIdentity).toEqual(without)
 	})
 })
 
@@ -703,5 +735,36 @@ describe('fieldsFromSchema', () => {
 		}
 		const fields = fieldsFromSchema(schema)
 		expect(fields[0].required).toBe(false)
+	})
+
+	// --- Display-layer translation (options.translate) ---
+
+	it('applies options.translate to each field label and description', () => {
+		const schema = {
+			properties: {
+				name: { type: 'string', title: 'Name', description: 'Your name' },
+			},
+		}
+		const field = fieldsFromSchema(schema, { translate: (s) => `NL:${s}` })[0]
+		expect(field.label).toBe('NL:Name')
+		expect(field.description).toBe('NL:Your name')
+	})
+
+	it('translates the key fallback label when a title is missing', () => {
+		const schema = { properties: { someField: { type: 'string' } } }
+		const field = fieldsFromSchema(schema, { translate: (s) => `NL:${s}` })[0]
+		expect(field.label).toBe('NL:someField')
+	})
+
+	it('leaves description an empty string (no translation call) when the schema has none', () => {
+		const schema = { properties: { name: { type: 'string', title: 'Name' } } }
+		const field = fieldsFromSchema(schema, { translate: (s) => `NL:${s}` })[0]
+		expect(field.description).toBe('')
+	})
+
+	it('produces byte-identical fields with an identity translate vs no translate', () => {
+		const without = fieldsFromSchema(formSchema)
+		const withIdentity = fieldsFromSchema(formSchema, { translate: (s) => s })
+		expect(withIdentity).toEqual(without)
 	})
 })

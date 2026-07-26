@@ -270,6 +270,18 @@ export default {
 		Close,
 	},
 
+	inject: {
+		/**
+		 * Consumer translation function, provided by the host app root as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Field
+		 * labels/descriptions come from schema property titles, authored in
+		 * English as the canonical source; the visible label is resolved
+		 * through this function so it follows the user's language. Defaults to
+		 * identity when used standalone (no provider ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	props: {
 		/** Widget title shown in the card header */
 		title: {
@@ -429,6 +441,7 @@ export default {
 				include: this.include,
 				overrides: fieldOverrides,
 				includeReadOnly: true,
+				translate: this.cnTranslate,
 			})
 
 			// Attach grid span info from overrides
