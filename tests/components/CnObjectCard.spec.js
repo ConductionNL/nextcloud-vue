@@ -70,3 +70,33 @@ describe('CnObjectCard — body click', () => {
 		expect(wrapper.emitted('select')).toBeFalsy()
 	})
 })
+
+// Metadata labels come from schema property titles, authored in English as the
+// canonical source. The visible label is resolved through the injected
+// cnTranslate (provided by CnAppRoot), so a Dutch user sees the translated
+// label; standalone (no CnAppRoot ancestor) it renders the English source
+// unchanged.
+describe('CnObjectCard — schema-label translation', () => {
+	const i18nObject = { id: 'org-1', title: 'Conduction', category: 'ngo' }
+	const i18nSchema = {
+		title: 'Organisation',
+		properties: {
+			category: { type: 'string', title: 'Category', order: 1 },
+		},
+	}
+
+	it('resolves the metadata label through the injected cnTranslate', () => {
+		const wrapper = shallowMount(CnObjectCard, {
+			propsData: { object: i18nObject, schema: i18nSchema },
+			provide: { cnTranslate: (s) => `NL:${s}` },
+		})
+		expect(wrapper.find('.cn-object-card__meta-label').text()).toBe('NL:Category')
+	})
+
+	it('renders the English source label unchanged when no cnTranslate is provided (standalone)', () => {
+		const wrapper = shallowMount(CnObjectCard, {
+			propsData: { object: i18nObject, schema: i18nSchema },
+		})
+		expect(wrapper.find('.cn-object-card__meta-label').text()).toBe('Category')
+	})
+})
