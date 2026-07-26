@@ -42,6 +42,7 @@ export {
 	CnStatsBlock,
 	CnStructuredDocReview,
 	CnConfigurationCard,
+	CnConfigurationStore,
 	CnVersionInfoCard,
 	CnAdminSettingsShell,
 	CnCellRenderer,
