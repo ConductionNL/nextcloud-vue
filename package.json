@@ -29,6 +29,8 @@
   "sideEffects": [
     "**/*.css",
     "**/*.vue",
+    "**/*.vue.js",
+    "**/*.vue2.js",
     "**/CnWidgetGrid/registerDashboardWidgets.js",
     "**/dashboardRegistration.js",
     "**/Cn*Widget/index.js"
