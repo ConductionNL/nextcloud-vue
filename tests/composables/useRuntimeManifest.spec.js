@@ -11,7 +11,12 @@
  * - No-merge verification
  */
 
-import { nextTick } from 'vue'
+// `toRaw` unwraps Vue 3's reactive Proxy. Vue 2's `Vue.observable(obj)`
+// returned the SAME object, so `toBe` identity held; `reactive(obj)` returns a
+// new Proxy, so the identity assertions below have to compare the raw target.
+// Using toRaw rather than switching to toEqual keeps what these specs actually
+// assert — that the composable exposes the very object it was handed, not a copy.
+import { nextTick, toRaw } from 'vue'
 
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
@@ -75,14 +80,14 @@ describe('useRuntimeManifest', () => {
 	it('manifest starts as stubManifest synchronously', () => {
 		const fetcher = jest.fn().mockReturnValue(new Promise(() => {}))
 		const { manifest } = useRuntimeManifest('YOUR_APP_ID', stubManifest, { fetcher })
-		expect(manifest.value).toBe(stubManifest)
+		expect(toRaw(manifest.value)).toBe(stubManifest)
 	})
 
 	it('sets manifest to API response on 200 + valid manifest', async () => {
 		const fetcher = jest.fn().mockResolvedValue({ status: 200, data: validV2Manifest })
 		const { manifest, isLoading, validationErrors } = useRuntimeManifest('YOUR_APP_ID', stubManifest, { fetcher })
 		await flush()
-		expect(manifest.value).toBe(validV2Manifest)
+		expect(toRaw(manifest.value)).toBe(validV2Manifest)
 		expect(isLoading.value).toBe(false)
 		expect(validationErrors.value).toBeNull()
 	})
@@ -99,7 +104,7 @@ describe('useRuntimeManifest', () => {
 		const fetcher = jest.fn().mockResolvedValue({ status: 404, data: null })
 		const { manifest, isLoading } = useRuntimeManifest('YOUR_APP_ID', stubManifest, { fetcher })
 		await flush()
-		expect(manifest.value).toBe(stubManifest)
+		expect(toRaw(manifest.value)).toBe(stubManifest)
 		expect(isLoading.value).toBe(false)
 	})
 
@@ -107,7 +112,7 @@ describe('useRuntimeManifest', () => {
 		const fetcher = jest.fn().mockRejectedValue(new Error('Network error'))
 		const { manifest, isLoading } = useRuntimeManifest('YOUR_APP_ID', stubManifest, { fetcher })
 		await flush()
-		expect(manifest.value).toBe(stubManifest)
+		expect(toRaw(manifest.value)).toBe(stubManifest)
 		expect(isLoading.value).toBe(false)
 	})
 
@@ -131,7 +136,7 @@ describe('useRuntimeManifest', () => {
 		const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
 		const { manifest, validationErrors } = useRuntimeManifest('YOUR_APP_ID', stubManifest, { fetcher })
 		await flush()
-		expect(manifest.value).toBe(stubManifest)
+		expect(toRaw(manifest.value)).toBe(stubManifest)
 		expect(Array.isArray(validationErrors.value)).toBe(true)
 		expect(validationErrors.value.length).toBeGreaterThan(0)
 		expect(warnSpy).toHaveBeenCalledWith(
@@ -146,7 +151,7 @@ describe('useRuntimeManifest', () => {
 		const { manifest } = useRuntimeManifest('YOUR_APP_ID', stubManifest, { fetcher })
 		await flush()
 		// Should be the exact API response, not a merged object
-		expect(manifest.value).toBe(validV2Manifest)
+		expect(toRaw(manifest.value)).toBe(validV2Manifest)
 		// Stub-only field is NOT present in the result
 		expect(manifest.value.menu[0].id).toBe('home')
 		expect(manifest.value.menu[0].id).not.toBe('stub')
