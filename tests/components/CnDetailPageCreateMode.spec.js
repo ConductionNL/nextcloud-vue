@@ -69,3 +69,55 @@ describe('CnDetailPage — create archetype', () => {
 		expect(w.vm.isCreateMode).toBe(false)
 	})
 })
+
+describe('CnDetailPage — createForm config (auto | never | always)', () => {
+	/**
+	 * Mount with a default slot supplied as a SCOPED slot — the shape
+	 * CnPageRenderer produces for a manifest/registry slot override
+	 * (`<template #default>` compiles to a $scopedSlots function since Vue 2.6).
+	 *
+	 * @param {object} propsData - Extra props.
+	 * @return {object} The mounted wrapper.
+	 */
+	function mountWithScopedBody(propsData = {}) {
+		// register/schema must match makeStore()'s `proc-task` entry so
+		// `currentSchema` resolves — the create form only renders with a schema.
+		return mount(CnDetailPage, {
+			propsData: { title: 'Schemas', register: 'proc', schema: 'task', objectStore: makeStore(), ...propsData },
+			mocks: { $route: { query: {} }, $router: { push: jest.fn(), back: jest.fn() } },
+			scopedSlots: { default: '<div class="page-body">designer</div>' },
+			stubs: { CnFormDialog: { name: 'CnFormDialog', template: '<div class="stub-create-form" />' } },
+		})
+	}
+
+	it('detects a SCOPED default slot as body content, so the create form does not overlay it', () => {
+		const w = mountWithScopedBody()
+		expect(w.vm.hasDefaultSlotContent).toBe(true)
+		expect(w.vm.isCreateMode).toBe(false)
+		expect(w.find('.stub-create-form').exists()).toBe(false)
+	})
+
+	it("'never' suppresses the create form even on a bare schema-bound page", () => {
+		const w = mountCreate({ createForm: 'never' })
+		expect(w.vm.isCreateMode).toBe(false)
+		expect(w.find('.stub-create-form').exists()).toBe(false)
+	})
+
+	it("'always' renders the create form even when the page supplies its own body", () => {
+		const w = mountWithScopedBody({ createForm: 'always' })
+		expect(w.vm.hasDefaultSlotContent).toBe(true)
+		expect(w.vm.isCreateMode).toBe(true)
+		expect(w.find('.stub-create-form').exists()).toBe(true)
+	})
+
+	it("'always' still does not create when the page is showing an existing object", () => {
+		const w = mountCreate({ createForm: 'always', objectId: 'id-1' })
+		expect(w.vm.isCreateMode).toBe(false)
+	})
+
+	it("defaults to 'auto' — unchanged behaviour for existing consumers", () => {
+		const w = mountCreate()
+		expect(w.vm.createForm).toBe('auto')
+		expect(w.vm.isCreateMode).toBe(true)
+	})
+})

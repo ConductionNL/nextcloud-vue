@@ -1136,6 +1136,34 @@ export default {
 		},
 
 		/**
+		 * Whether this page renders its OWN create form dialog — the create
+		 * archetype (ADR-062): a schema-bound `type:"detail"` page reached
+		 * without an object id shows an empty CnFormDialog for its schema
+		 * instead of a blank page.
+		 *
+		 * Set from the manifest as `config.createForm`:
+		 *   - `'auto'` (default) — heuristic: only when the page is schema-bound,
+		 *     has no object id, and supplies no body of its own (no default slot,
+		 *     no grid layout). Existing behaviour.
+		 *   - `'never'` — never render it. Use when the body owns data entry, e.g.
+		 *     a page whose CnObjectDataWidget (or a registry component) already
+		 *     provides the form; this is what stops two form dialogs stacking.
+		 *   - `'always'` — render it even when the page has a body, for a page
+		 *     that deliberately pairs custom content with a create form.
+		 *
+		 * The dialog itself is always the generic, schema-driven CnFormDialog, so
+		 * whichever way it is summoned it follows the same OpenRegister/schema
+		 * form rules (required, readOnly, enum/$ref, `visibleWhen`).
+		 *
+		 * @type {'auto'|'never'|'always'}
+		 */
+		createForm: {
+			type: String,
+			default: 'auto',
+			validator: (value) => ['auto', 'never', 'always'].includes(value),
+		},
+
+		/**
 		 * Stable id for the page-header Actions menu — forwarded as the
 		 * `widgetId` on the `@refresh` / `cn:page:refresh` payloads and as
 		 * the `surface: "detail:<pageId>"` on the feature-request modal.
@@ -1571,8 +1599,18 @@ export default {
 		 * @return {boolean}
 		 */
 		isCreateMode() {
-			return Boolean(this.register && this.schema) && !this.objectId
-				&& !this.hasDefaultSlotContent && !this.hasGridLayout
+			// `createForm` (manifest `config.createForm`) is the explicit switch;
+			// 'auto' keeps the original heuristic. A page still needs a schema to
+			// build a form from, and one already showing an object is editing,
+			// not creating — so those two conditions hold even for 'always'.
+			if (this.createForm === 'never') {
+				return false
+			}
+			const schemaBound = Boolean(this.register && this.schema) && !this.objectId
+			if (this.createForm === 'always') {
+				return schemaBound
+			}
+			return schemaBound && !this.hasDefaultSlotContent && !this.hasGridLayout
 		},
 
 		/**
@@ -1745,13 +1783,21 @@ export default {
 		},
 
 		/**
-		 * True when no consumer-supplied default slot content is
-		 * present. Treats whitespace-only / empty vnodes as no content
-		 * so a stray newline in the template doesn't accidentally
-		 * suppress the auto-body.
+		 * True when consumer-supplied default slot content is present. Treats
+		 * whitespace-only / empty vnodes as no content so a stray newline in the
+		 * template doesn't accidentally suppress the auto-body.
+		 *
+		 * Handles BOTH slot shapes. Since Vue 2.6 a slot written as
+		 * `<template #default>` — which is how CnPageRenderer injects a
+		 * manifest/registry slot override (`resolvedSlotEntries`) — is compiled
+		 * to a FUNCTION on `$scopedSlots`, and `$slots.default` is then
+		 * undefined. Reading only `$slots.default` therefore reported "no body"
+		 * for every registry-backed page, which let the create archetype
+		 * (`isCreateMode`) mount its form dialog on top of a page that plainly
+		 * has content — an overlay that swallows clicks on the body beneath it.
 		 */
 		hasDefaultSlotContent() {
-			const nodes = this.$slots.default
+			const nodes = this.$slots.default ?? this.slotNodesFrom(this.$scopedSlots?.default)
 			if (!nodes || !nodes.length) return false
 			return nodes.some((vnode) => !(vnode.text !== undefined && vnode.text.trim() === ''))
 		},
@@ -2037,6 +2083,28 @@ export default {
 		// Expose the shared grid helpers to the template (grid mode + auto-body).
 		cnGridCellStyle,
 		hasGridRow,
+
+		/**
+		 * Normalise a scoped-slot entry to an array of vnodes. Scoped slots are
+		 * functions; calling one with no props is safe for the presence check we
+		 * need (a slot that genuinely requires props renders nothing rather than
+		 * throwing, which still tells us it exists as content).
+		 *
+		 * @param {Function|Array|null|undefined} slot - The `$scopedSlots` entry.
+		 * @return {Array} Vnodes the slot produces (empty when it produces none).
+		 */
+		slotNodesFrom(slot) {
+			if (Array.isArray(slot)) return slot
+			if (typeof slot !== 'function') return []
+			try {
+				const out = slot({})
+				if (!out) return []
+				return Array.isArray(out) ? out : [out]
+			} catch (e) {
+				// A slot that throws without its props still IS content.
+				return [{}]
+			}
+		},
 
 		/**
 		 * Re-emit the page-header menu's Refresh to the host.
