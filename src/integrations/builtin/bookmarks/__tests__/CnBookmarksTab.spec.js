@@ -69,7 +69,7 @@ describe('CnBookmarksTab', () => {
 		expect(rows).toHaveLength(2)
 		// Titles are bound to the NcListItem `name` attribute (the stub
 		// spreads bound attrs onto its root element).
-		const names = rows.wrappers.map((r) => r.attributes('name'))
+		const names = rows.map((r) => r.attributes('name'))
 		expect(names).toContain('Alpha')
 		expect(names).toContain('Bravo')
 		// The URL subline drops the scheme + trailing slash, NC-Bookmarks style.
@@ -91,7 +91,7 @@ describe('CnBookmarksTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		const chips = wrapper.findAll('.cn-bookmarks-tab__chip')
-		const chipTexts = chips.wrappers.map((c) => c.text())
+		const chipTexts = chips.map((c) => c.text())
 		expect(chipTexts).toContain('legal')
 		expect(chipTexts).toContain('reference')
 		expect(chipTexts).not.toContain('or:obj-1')
@@ -115,12 +115,12 @@ describe('CnBookmarksTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.findAll('.cn-bookmarks-tab__row')).toHaveLength(3)
 		const chips = wrapper.findAll('.cn-bookmarks-tab__chip')
-		const legalChip = chips.wrappers.find((c) => c.text() === 'legal')
+		const legalChip = chips.find((c) => c.text() === 'legal')
 		await legalChip.trigger('click')
 		await wrapper.vm.$nextTick()
 		const rows = wrapper.findAll('.cn-bookmarks-tab__row')
 		expect(rows).toHaveLength(2)
-		const names = rows.wrappers.map((r) => r.attributes('name'))
+		const names = rows.map((r) => r.attributes('name'))
 		expect(names).toContain('Alpha')
 		expect(names).toContain('Charlie')
 		expect(names).not.toContain('Bravo')

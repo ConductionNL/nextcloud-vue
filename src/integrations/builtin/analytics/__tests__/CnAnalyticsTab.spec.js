@@ -75,14 +75,14 @@ describe('CnAnalyticsTab', () => {
 		expect(rows).toHaveLength(2)
 		// Report names are bound to the NcListItem `name` attribute (the
 		// functional stub spreads bound attrs onto its root element).
-		const names = rows.wrappers.map((r) => r.attributes('name'))
+		const names = rows.map((r) => r.attributes('name'))
 		expect(names).toContain('Sales')
 		expect(names).toContain('Ops Dashboard')
 		// Type badges still render their labels as text.
 		expect(wrapper.text()).toContain('Group')
 		expect(wrapper.text()).toContain('External')
 		// Deep-link href is bound to the NcListItem row.
-		const hrefs = rows.wrappers.map((r) => r.attributes('href'))
+		const hrefs = rows.map((r) => r.attributes('href'))
 		expect(hrefs).toContain('/index.php/apps/analytics/#/r/1')
 		expect(hrefs).toContain('/index.php/apps/analytics/#/r/2')
 		wrapper.unmount()
@@ -182,7 +182,7 @@ describe('CnAnalyticsTab', () => {
 		expect(linkCall[0]).toBe('/apps/openregister/api/objects/reg/schema/obj-1/analytics')
 		expect(linkCall[1].method).toBe('POST')
 		expect(JSON.parse(linkCall[1].body)).toEqual({ reportId: 5 })
-		const names = wrapper.findAll('.cn-analytics-tab__row').wrappers.map((r) => r.attributes('name'))
+		const names = wrapper.findAll('.cn-analytics-tab__row').map((r) => r.attributes('name'))
 		expect(names).toContain('Linked')
 		wrapper.unmount()
 	})

@@ -55,7 +55,7 @@ const mountPage = (propsData = {}) => mount(CnDashboardPage, {
 })
 
 const refreshOf = (wrapper, title) => wrapper.findAll('.cn-widget-wrapper-stub')
-	.wrappers.find((w) => w.attributes('data-title') === title)
+	.find((w) => w.attributes('data-title') === title)
 	.attributes('data-show-refresh')
 
 describe('CnDashboardPage — per-widget Refresh visibility', () => {

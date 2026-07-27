@@ -70,7 +70,7 @@ describe('CnCollectivesTab', () => {
 		const rows = wrapper.findAll('.cn-collectives-tab__row')
 		expect(rows).toHaveLength(2)
 		// Page titles are bound to the NcListItem `name` attribute.
-		const names = rows.wrappers.map((r) => r.attributes('name'))
+		const names = rows.map((r) => r.attributes('name'))
 		expect(names).toContain('Alpha page')
 		expect(names).toContain('Bravo page')
 		expect(wrapper.text()).toContain('📘')
@@ -95,7 +95,7 @@ describe('CnCollectivesTab', () => {
 		await wrapper.vm.$nextTick()
 		const groups = wrapper.findAll('.cn-collectives-tab__group')
 		expect(groups).toHaveLength(2)
-		const headers = wrapper.findAll('.cn-collectives-tab__group-header').wrappers.map((h) => h.text())
+		const headers = wrapper.findAll('.cn-collectives-tab__group-header').map((h) => h.text())
 		expect(headers).toContain('Team Wiki')
 		expect(headers).toContain('Ops Runbook')
 		wrapper.unmount()

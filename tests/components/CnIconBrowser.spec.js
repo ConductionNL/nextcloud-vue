@@ -564,7 +564,7 @@ describe('CnIconBrowserPanel — named sets are promoted to top-level tabs', () 
 			propsData: { value: null, icons, urlIconGroups: groups },
 			mocks,
 		})
-		const labels = w.findAll('.cn-icon-browser-panel__tab').wrappers.map((b) => b.text())
+		const labels = w.findAll('.cn-icon-browser-panel__tab').map((b) => b.text())
 		expect(labels).toEqual(['Icons', 'Gemeente', 'Den Haag'])
 	})
 
@@ -588,7 +588,7 @@ describe('CnIconBrowserPanel — named sets are promoted to top-level tabs', () 
 			},
 			mocks,
 		})
-		const labels = w.findAll('.cn-icon-browser-panel__tab').wrappers.map((b) => b.text())
+		const labels = w.findAll('.cn-icon-browser-panel__tab').map((b) => b.text())
 		expect(labels).toEqual(['Icons', 'Custom'])
 		expect(w.vm.unnamedIcons).toEqual([{ label: 'Brand', url: '/b.svg' }])
 	})

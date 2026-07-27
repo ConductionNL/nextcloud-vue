@@ -129,7 +129,7 @@ describe('CnActivityTab', () => {
 		await flush(wrapper)
 		expect(wrapper.vm.types).toEqual(['files', 'or:decision'])
 		expect(wrapper.vm.actors).toEqual(['alice', 'bob'])
-		const options = wrapper.findAll('option').wrappers.map((w) => w.text())
+		const options = wrapper.findAll('option').map((w) => w.text())
 		expect(options).toContain('files')
 		expect(options).toContain('bob')
 		wrapper.unmount()

@@ -72,7 +72,7 @@ describe('CnTalkTab', () => {
 		expect(rows).toHaveLength(2)
 		// Conversation names are bound to the NcListItem `name` attribute
 		// (the functional stub spreads bound attrs onto its root element).
-		const names = rows.wrappers.map((r) => r.attributes('name'))
+		const names = rows.map((r) => r.attributes('name'))
 		expect(names).toContain('Alpha')
 		expect(names).toContain('Beta')
 		// Only the unread room shows a counter bubble badge.

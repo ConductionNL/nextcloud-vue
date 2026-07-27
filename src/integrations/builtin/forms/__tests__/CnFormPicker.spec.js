@@ -98,7 +98,7 @@ describe('CnFormPicker', () => {
 		await flushAll(wrapper)
 		// Click the Link button — the primary action.
 		const buttons = wrapper.findAllComponents({ name: 'NcButton' })
-		const linkButton = buttons.wrappers.find((b) => b.text().toLowerCase().includes('link'))
+		const linkButton = buttons.find((b) => b.text().toLowerCase().includes('link'))
 		await linkButton.trigger('click')
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0][0]).toEqual({ formId: 42 })

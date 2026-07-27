@@ -204,7 +204,7 @@ describe('CnIntegrationWidget — filtering', () => {
 			baseEntry('c', { order: 3 }),
 		])
 		const wrapper = mountWidget(registry, { include: ['a', 'c'] })
-		const ids = wrapper.findAll('[role="tab"]').wrappers.map((w) => w.attributes('data-testid'))
+		const ids = wrapper.findAll('[role="tab"]').map((w) => w.attributes('data-testid'))
 		expect(ids).toEqual([
 			'cn-integration-widget-tab-a',
 			'cn-integration-widget-tab-c',
@@ -218,7 +218,7 @@ describe('CnIntegrationWidget — filtering', () => {
 			baseEntry('b', { order: 2, surfaces: ['user-dashboard'] }),
 		])
 		const wrapper = mountWidget(registry, { surface: 'detail-page' })
-		const ids = wrapper.findAll('[role="tab"]').wrappers.map((w) => w.attributes('data-testid'))
+		const ids = wrapper.findAll('[role="tab"]').map((w) => w.attributes('data-testid'))
 		expect(ids).toEqual(['cn-integration-widget-tab-a'])
 		wrapper.unmount()
 	})

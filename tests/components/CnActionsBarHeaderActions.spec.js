@@ -46,7 +46,7 @@ describe('CnActionsBar — headerActions rendering', () => {
 		// only because showMass* defaults are true; the count text on
 		// the disabled mass-action gating doesn't matter — the BUTTON is
 		// still rendered).
-		const labels = buttons.wrappers.map(b => b.find('.nc-action-button-stub__label').text())
+		const labels = buttons.map(b => b.find('.nc-action-button-stub__label').text())
 		expect(labels).toContain('Refresh')
 		expect(labels).not.toContain('View logs')
 	})
@@ -59,7 +59,7 @@ describe('CnActionsBar — headerActions rendering', () => {
 			],
 		})
 		const buttons = wrapper.findAll('.nc-action-button-stub')
-		const labels = buttons.wrappers.map(b => b.find('.nc-action-button-stub__label').text())
+		const labels = buttons.map(b => b.find('.nc-action-button-stub__label').text())
 		expect(labels).toContain('View logs')
 		expect(labels).toContain('Open API docs')
 	})
@@ -69,7 +69,7 @@ describe('CnActionsBar — headerActions rendering', () => {
 			headerActions: [{ id: 'view-logs', label: 'View logs' }],
 		})
 		const buttons = wrapper.findAll('.nc-action-button-stub')
-		const target = buttons.wrappers.find(b => b.find('.nc-action-button-stub__label').text() === 'View logs')
+		const target = buttons.find(b => b.find('.nc-action-button-stub__label').text() === 'View logs')
 		expect(target).toBeDefined()
 		await target.trigger('click')
 		expect(wrapper.emitted('header-action')).toEqual([[{ action: 'view-logs', id: 'view-logs' }]])
@@ -97,8 +97,7 @@ describe('CnActionsBar — headerActions rendering', () => {
 		const wrapper = mountBar({
 			headerActions: [{ id: 'h', label: 'H', disabled: true }],
 		})
-		const target = wrapper.findAll('.nc-action-button-stub').wrappers
-			.find(b => b.find('.nc-action-button-stub__label').text() === 'H')
+		const target = wrapper.findAll('.nc-action-button-stub')			.find(b => b.find('.nc-action-button-stub__label').text() === 'H')
 		// The stub coerces `disabled` to the DOM attribute as the literal "true" string
 		expect(target.attributes('data-disabled')).toBe('true')
 	})

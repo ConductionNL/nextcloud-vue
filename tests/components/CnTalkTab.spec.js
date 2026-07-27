@@ -94,7 +94,7 @@ describe('CnTalkTab', () => {
 		await wrapper.vm.$nextTick()
 		const badges = wrapper.findAll('.cn-talk-tab__badge')
 		expect(badges).toHaveLength(2)
-		const texts = badges.wrappers.map((b) => b.text())
+		const texts = badges.map((b) => b.text())
 		expect(texts).toContain('7')
 		expect(texts).toContain('99+')
 		wrapper.unmount()

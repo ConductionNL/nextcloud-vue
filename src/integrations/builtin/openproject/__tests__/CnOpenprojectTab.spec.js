@@ -73,7 +73,7 @@ describe('CnOpenprojectTab', () => {
 		expect(rows).toHaveLength(2)
 		// Subjects are passed to NcListItem via the `name` prop (rendered
 		// to the `name` attribute by the test stub).
-		const names = rows.wrappers.map((w) => w.attributes('name'))
+		const names = rows.map((w) => w.attributes('name'))
 		expect(names).toContain('A')
 		expect(names).toContain('B')
 		const text = wrapper.text()
@@ -83,8 +83,7 @@ describe('CnOpenprojectTab', () => {
 		expect(text).toContain('Closed')
 		// Assignees render as NcAvatar; their names live in the avatar's
 		// display-name attribute, not as visible row text.
-		const avatarNames = wrapper.findAll('.cn-openproject-tab__assignee').wrappers
-			.map((w) => w.attributes('display-name'))
+		const avatarNames = wrapper.findAll('.cn-openproject-tab__assignee')			.map((w) => w.attributes('display-name'))
 		expect(avatarNames).toContain('Bob')
 		expect(avatarNames).toContain('Carol')
 		const bug = wrapper.find('.cn-openproject-tab__type-badge--bug')

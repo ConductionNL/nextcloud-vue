@@ -33,7 +33,7 @@ module.exports = {
 		'^.+\\.vue$': '@vue/vue3-jest',
 	},
 	transformIgnorePatterns: [
-		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|vue-codemirror6|codemirror|@codemirror)/)',
+		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|vue-codemirror6|codemirror|@codemirror|@ckpack)/)',
 	],
 	moduleNameMapper: {
 		'^@/(.*)$': '<rootDir>/src/$1',

@@ -76,7 +76,7 @@ describe('CnSharesTab', () => {
 		expect(wrapper.text()).toContain('Groups')
 		expect(wrapper.text()).toContain('Public links')
 		// Recipient labels are bound to the NcListItem `name` attribute.
-		const names = wrapper.findAll('.cn-shares-tab__row').wrappers.map((r) => r.attributes('name'))
+		const names = wrapper.findAll('.cn-shares-tab__row').map((r) => r.attributes('name'))
 		expect(names).toContain('Alice')
 		expect(names).toContain('Editors')
 		// Public link rows fall back to the generic "Share link" label.
@@ -100,7 +100,7 @@ describe('CnSharesTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		const rows = wrapper.findAll('.cn-shares-tab__permissions')
-		const texts = rows.wrappers.map((r) => r.text())
+		const texts = rows.map((r) => r.text())
 		// read-only share -> "Read only" badge.
 		expect(texts.some((t) => t.includes('Read only'))).toBe(true)
 		// edit shares (perms 3 and 19) -> "Can edit" badge.

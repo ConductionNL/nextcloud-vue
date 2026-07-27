@@ -251,7 +251,7 @@ describe('CnVersionHistory — two-entry compare', () => {
 		expect(wrapper.text()).toContain('published')
 		// The intermediate "review" value should not leak into the folded diff.
 		const cells = wrapper.findAll('.cn-version-history__diff-value')
-		const cellTexts = cells.wrappers.map((c) => c.text())
+		const cellTexts = cells.map((c) => c.text())
 		expect(cellTexts).not.toContain('review')
 		wrapper.unmount()
 	})

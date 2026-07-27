@@ -74,7 +74,7 @@ describe('CnDashboardPage — pageFilters', () => {
 	it('writes a new selection into the workspace context and emits @page-filter-change', async () => {
 		const wrapper = mountDash({ pageFilters: [PERIOD_FILTER] })
 		// Click the "Last 7 days" option in the stubbed select.
-		const opt = wrapper.findAll('.opt').wrappers.find((w) => w.attributes('data-value') === 'last-7')
+		const opt = wrapper.findAll('.opt').find((w) => w.attributes('data-value') === 'last-7')
 		await opt.trigger('click')
 
 		expect(wrapper.vm.workspaceContext.period).toBe('last-7')

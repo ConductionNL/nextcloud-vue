@@ -74,6 +74,7 @@
     }
   },
   "dependencies": {
+    "@ckpack/vue-color": "^1.6.0",
     "@codemirror/autocomplete": "^6.0.0",
     "@codemirror/commands": "^6.0.0",
     "@codemirror/lang-html": "^6.4.11",
@@ -106,7 +107,6 @@
     "marked": "^12.0.0",
     "style-mod": "^4.0.0",
     "vue-codemirror6": "^1.4.3",
-    "vue-color": "^2.8.2",
     "vue3-apexcharts": "~1.10.0",
     "vuedraggable": "^4.1.0"
   },
