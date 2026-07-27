@@ -76,7 +76,7 @@ describe('CnXwikiCard', () => {
 			expect(badge.exists()).toBe(true)
 			expect(badge.text()).toBe('Configured')
 			expect(badge.classes()).toContain('cn-xwiki-card__auth-badge--configured')
-			wrapper.destroy()
+			wrapper.unmount()
 		})
 
 		it('shows "Not configured" badge on dashboard when OpenConnector source is missing', async () => {
@@ -90,7 +90,7 @@ describe('CnXwikiCard', () => {
 			expect(badge.text()).toBe('Not configured')
 			expect(badge.classes()).toContain('cn-xwiki-card__auth-badge--missing')
 			expect(wrapper.text()).toContain('Not configured')
-			wrapper.destroy()
+			wrapper.unmount()
 		})
 
 		it('shows "Auth failed" badge on dashboard when credentials are bad', async () => {
@@ -103,7 +103,7 @@ describe('CnXwikiCard', () => {
 			expect(badge.exists()).toBe(true)
 			expect(badge.text()).toBe('Auth failed')
 			expect(badge.classes()).toContain('cn-xwiki-card__auth-badge--unhealthy')
-			wrapper.destroy()
+			wrapper.unmount()
 		})
 	})
 
@@ -135,7 +135,7 @@ describe('CnXwikiCard', () => {
 			// Truncated with ellipsis (the lorem body alone is ~720 chars).
 			expect(text.length).toBeLessThanOrEqual(501)
 			expect(text.endsWith('…')).toBe(true)
-			wrapper.destroy()
+			wrapper.unmount()
 		})
 
 		it('renders the "Open in XWiki" link pointing at the first page URL', async () => {
@@ -152,7 +152,7 @@ describe('CnXwikiCard', () => {
 			expect(link.text()).toBe('Open in XWiki')
 			expect(link.attributes('href')).toBe('https://wiki.example.org/bin/view/Knowledge/PolicyManual')
 			expect(link.attributes('target')).toBe('_blank')
-			wrapper.destroy()
+			wrapper.unmount()
 		})
 
 		it('shows the unconfigured banner on detail-page when source is missing', async () => {
@@ -165,7 +165,7 @@ describe('CnXwikiCard', () => {
 			expect(banner.exists()).toBe(true)
 			expect(banner.classes()).toContain('cn-xwiki-card__banner--unconfigured')
 			expect(wrapper.text()).toContain('XWiki connection not configured')
-			wrapper.destroy()
+			wrapper.unmount()
 		})
 	})
 
@@ -186,7 +186,7 @@ describe('CnXwikiCard', () => {
 			expect(chip.classes()).not.toContain('cn-xwiki-card__chip--fallback')
 			expect(chip.text()).toContain('Policy Manual')
 			expect(chip.text()).toContain('Wiki › Knowledge')
-			wrapper.destroy()
+			wrapper.unmount()
 		})
 
 		it('falls back to a minimal chip showing the raw value when lookup fails', async () => {
@@ -200,7 +200,7 @@ describe('CnXwikiCard', () => {
 			const chip = wrapper.find('.cn-xwiki-card__chip--fallback')
 			expect(chip.exists()).toBe(true)
 			expect(chip.text()).toContain('Knowledge.PolicyManual')
-			wrapper.destroy()
+			wrapper.unmount()
 		})
 	})
 })

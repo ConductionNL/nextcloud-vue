@@ -60,7 +60,7 @@ describe('CnSharesCard', () => {
 		expect(text).toMatch(/2 users/)
 		expect(text).toMatch(/1 groups/)
 		expect(text).toMatch(/1 links/)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders the empty state on dashboard surface when no shares', async () => {
@@ -69,7 +69,7 @@ describe('CnSharesCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No shares on this object yet')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders grouped sections on detail-page surface', async () => {
@@ -90,7 +90,7 @@ describe('CnSharesCard', () => {
 		expect(groups).toHaveLength(2)
 		expect(wrapper.text()).toContain('Alice')
 		expect(wrapper.text()).toContain('Editors')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders single-entity chip from fetchSingle response', async () => {
@@ -109,7 +109,7 @@ describe('CnSharesCard', () => {
 		expect(chip.text()).toContain('public')
 		// Lock icon should be there for password-protected.
 		expect(wrapper.html()).toMatch(/lock-outline/i)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders empty chip on single-entity surface when value missing', async () => {
@@ -120,7 +120,7 @@ describe('CnSharesCard', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No shares on this object yet')
 		expect(global.fetch).not.toHaveBeenCalled()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows unavailable label on 503', async () => {
@@ -129,7 +129,7 @@ describe('CnSharesCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC sharing is currently unavailable.')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('falls back to empty list when fetch throws', async () => {
@@ -139,7 +139,7 @@ describe('CnSharesCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No shares on this object yet')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 })

@@ -11,6 +11,7 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { h } from 'vue'
 
 jest.mock('@nextcloud/capabilities', () => ({ getCapabilities: jest.fn(() => ({})) }))
 const CnAppRoot = require('../../src/components/CnAppRoot/CnAppRoot.vue').default
@@ -64,7 +65,7 @@ const mountRoot = (manifest, extraProps = {}, routeName = 'Detail') => {
 	// level — this project is on @vue/test-utils v1, where `global.mocks` is
 	// silently ignored and `$route` arrives undefined.
 	return mount({
-		render(h) {
+		render() {
 			return h(CnAppRoot, {
 				props: { manifest, appId: 'testapp', translate: (k) => k, requiresApps: [], ...extraProps },
 			})

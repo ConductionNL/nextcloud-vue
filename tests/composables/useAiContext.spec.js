@@ -27,7 +27,7 @@ describe('useAiContext', () => {
 	})
 
 	it('returns the injected cnAiContext when the instance has one', () => {
-		const provided = Vue.observable({ appId: 'opencatalogi', pageKind: 'custom', route: { path: '/' } })
+		const provided = Vue.reactive({ appId: 'opencatalogi', pageKind: 'custom', route: { path: '/' } })
 		// Simulate an instance that has the injected value
 		const fakeInstance = { cnAiContext: provided }
 		const ctx = useAiContext(fakeInstance)
@@ -36,7 +36,7 @@ describe('useAiContext', () => {
 	})
 
 	it('returns the live reactive reference (not a snapshot)', () => {
-		const provided = Vue.observable({ appId: 'opencatalogi', pageKind: 'custom', route: { path: '/' } })
+		const provided = Vue.reactive({ appId: 'opencatalogi', pageKind: 'custom', route: { path: '/' } })
 		const fakeInstance = { cnAiContext: provided }
 		const ctx = useAiContext(fakeInstance)
 		// Mutate the provided object
@@ -46,7 +46,7 @@ describe('useAiContext', () => {
 	})
 
 	it('reactive watcher fires when a field is overwritten', async () => {
-		const provided = Vue.observable({ appId: 'test', pageKind: 'custom', route: { path: '' } })
+		const provided = Vue.reactive({ appId: 'test', pageKind: 'custom', route: { path: '' } })
 		const fakeInstance = { cnAiContext: provided }
 		const ctx = useAiContext(fakeInstance)
 

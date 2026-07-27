@@ -43,7 +43,7 @@ describe('CnCospendPicker', () => {
 		expect(rows).toHaveLength(2)
 		expect(wrapper.text()).toContain('Holiday')
 		expect(wrapper.text()).toContain('Office')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('selecting a project enables confirm and emits link', async () => {
@@ -63,7 +63,7 @@ describe('CnCospendPicker', () => {
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0]).toEqual([{ entryType: 'project', projectId: 'p99' }])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces an inline error when /available fails', async () => {
@@ -75,7 +75,7 @@ describe('CnCospendPicker', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('Could not load projects.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 
@@ -87,7 +87,7 @@ describe('CnCospendPicker', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('NC Costs is not installed.')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('filters projects client-side via search', async () => {
@@ -107,7 +107,7 @@ describe('CnCospendPicker', () => {
 
 		expect(wrapper.vm.visibleProjects).toHaveLength(1)
 		expect(wrapper.vm.visibleProjects[0].id).toBe('p1')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not emit link when no project is selected', () => {
@@ -116,6 +116,6 @@ describe('CnCospendPicker', () => {
 
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

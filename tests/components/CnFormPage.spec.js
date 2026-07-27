@@ -377,7 +377,7 @@ describe('CnFormPage — manifest-form-logic', () => {
 			const input = wrapper.find('[data-field-key="name"] input')
 			expect(document.activeElement).toBe(input.element)
 
-			wrapper.destroy()
+			wrapper.unmount()
 		})
 
 		it('submit failure jumps to the earliest step containing an invalid field', async () => {

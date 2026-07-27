@@ -57,7 +57,7 @@ describe('CnAnalyticsTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No reports linked yet')
 		expect(wrapper.text()).toContain('Open Analytics')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders one row per report with title + type badge + deep-link href', async () => {
@@ -85,7 +85,7 @@ describe('CnAnalyticsTab', () => {
 		const hrefs = rows.wrappers.map((r) => r.attributes('href'))
 		expect(hrefs).toContain('/index.php/apps/analytics/#/r/1')
 		expect(hrefs).toContain('/index.php/apps/analytics/#/r/2')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('strips the [or:{uuid}] marker from title and subheader', async () => {
@@ -108,7 +108,7 @@ describe('CnAnalyticsTab', () => {
 		expect(text).toContain('with annotated marker')
 		expect(text).not.toContain('[or:obj-1]')
 		expect(row.attributes('name')).not.toContain('[or:obj-1]')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a fallback "Report" badge for unknown report types', async () => {
@@ -119,7 +119,7 @@ describe('CnAnalyticsTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Report')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders the headline KPI value when the provider supplies one', async () => {
@@ -131,7 +131,7 @@ describe('CnAnalyticsTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.find('.cn-analytics-tab__kpi').exists()).toBe(true)
 		expect(wrapper.find('.cn-analytics-tab__kpi').text()).toBe((12345).toLocaleString())
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('omits the KPI element when no value is supplied', async () => {
@@ -142,7 +142,7 @@ describe('CnAnalyticsTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.find('.cn-analytics-tab__kpi').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the unavailable banner when the endpoint returns 503', async () => {
@@ -152,7 +152,7 @@ describe('CnAnalyticsTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Analytics is currently unavailable.')
 		expect(wrapper.find('.cn-analytics-tab__row').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the generic error label when fetch throws', async () => {
@@ -162,7 +162,7 @@ describe('CnAnalyticsTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Could not load reports.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 
@@ -184,7 +184,7 @@ describe('CnAnalyticsTab', () => {
 		expect(JSON.parse(linkCall[1].body)).toEqual({ reportId: 5 })
 		const names = wrapper.findAll('.cn-analytics-tab__row').wrappers.map((r) => r.attributes('name'))
 		expect(names).toContain('Linked')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces the already-linked error on 409', async () => {
@@ -198,7 +198,7 @@ describe('CnAnalyticsTab', () => {
 		await wrapper.vm.onLinkPick({ reportId: 5 })
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('This report is already linked.')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('POSTs to the create endpoint on create pick', async () => {
@@ -217,7 +217,7 @@ describe('CnAnalyticsTab', () => {
 		expect(createCall[0]).toBe('/apps/openregister/api/objects/reg/schema/obj-1/analytics/new')
 		expect(createCall[1].method).toBe('POST')
 		expect(JSON.parse(createCall[1].body)).toEqual({ name: 'New report', type: 0 })
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('DELETEs the report on unlink', async () => {
@@ -235,6 +235,6 @@ describe('CnAnalyticsTab', () => {
 		const delCall = global.fetch.mock.calls[1]
 		expect(delCall[0]).toBe('/apps/openregister/api/objects/reg/schema/obj-1/analytics/5')
 		expect(delCall[1].method).toBe('DELETE')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

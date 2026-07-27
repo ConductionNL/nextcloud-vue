@@ -20,7 +20,7 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { isReactive } from 'vue'
+import { isReactive, h } from 'vue'
 
 jest.mock('@nextcloud/capabilities', () => ({ getCapabilities: jest.fn(() => ({})) }))
 const { __resetAppStatusCacheForTests } = require('../../src/composables/useAppStatus.js')
@@ -45,7 +45,7 @@ const makeManifest = () => ({
 function mountNested(manifest, extraProps = {}) {
 	const Wrapper = {
 		components: { CnAppRoot },
-		render(h) {
+		render() {
 			return h(CnAppRoot, {
 				props: { manifest, appId: 'myapp', isLoading: false, translate: (k) => k, requiresApps: [], ...extraProps },
 			})

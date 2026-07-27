@@ -62,7 +62,7 @@ describe('CnFormPicker', () => {
 			expect.stringContaining('/integrations/forms/available?objectUuid=obj-1'),
 			expect.objectContaining({ headers: expect.any(Object) }),
 		)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('filters rows by the search field', async () => {
@@ -83,7 +83,7 @@ describe('CnFormPicker', () => {
 		await flushAll(wrapper)
 		expect(wrapper.findAll('.cn-form-picker__row')).toHaveLength(1)
 		expect(wrapper.text()).toContain('Holiday survey')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('emits link with the selected formId', async () => {
@@ -102,7 +102,7 @@ describe('CnFormPicker', () => {
 		await linkButton.trigger('click')
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0][0]).toEqual({ formId: 42 })
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('disables linking an already-linked form (form-level mode)', async () => {
@@ -116,7 +116,7 @@ describe('CnFormPicker', () => {
 		await wrapper.find('.cn-form-picker__row').trigger('click')
 		await flushAll(wrapper)
 		expect(wrapper.vm.canSubmit).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the empty state when no forms', async () => {
@@ -130,7 +130,7 @@ describe('CnFormPicker', () => {
 		// NcDialog body is stubbed away in jest; check vm state directly.
 		expect(wrapper.vm.forms).toEqual([])
 		expect(wrapper.vm.error).toBe('')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the error label when fetch throws', async () => {
@@ -141,7 +141,7 @@ describe('CnFormPicker', () => {
 		// NcDialog body is stubbed away; verify the error state via vm.
 		expect(wrapper.vm.error).toContain('boom')
 		expect(wrapper.vm.forms).toEqual([])
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 })

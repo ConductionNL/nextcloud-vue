@@ -53,7 +53,7 @@ function mountLock(store, options = {}) {
 			)
 			return () => h('div')
 		},
-		render(h) { return h('div') },
+		render() { return h('div') },
 	})
 	const wrapper = mount(Comp)
 	return { wrapper, lock: () => composable }
@@ -75,7 +75,7 @@ describe('useObjectLock — REQ-CO-LOCK-002 (reactive state from store cache)', 
 		expect(lock().locked.value).toBe(true)
 		expect(lock().lockedBy.value).toBe('bob')
 		expect(lock().lockedByMe.value).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	test('lockedByMe true when current user matches', () => {
@@ -85,7 +85,7 @@ describe('useObjectLock — REQ-CO-LOCK-002 (reactive state from store cache)', 
 		})
 		const { wrapper, lock } = mountLock(store)
 		expect(lock().lockedByMe.value).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	test('expiresAt parses', () => {
@@ -96,7 +96,7 @@ describe('useObjectLock — REQ-CO-LOCK-002 (reactive state from store cache)', 
 		const { wrapper, lock } = mountLock(store)
 		expect(lock().expiresAt.value).toBeInstanceOf(Date)
 		expect(lock().expiresAt.value.getUTCFullYear()).toBe(2030)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	test('expired lock reads as unlocked', () => {
@@ -106,7 +106,7 @@ describe('useObjectLock — REQ-CO-LOCK-002 (reactive state from store cache)', 
 		})
 		const { wrapper, lock } = mountLock(store)
 		expect(lock().locked.value).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -125,7 +125,7 @@ describe('useObjectLock — REQ-CO-LOCK-003 (acquire / release)', () => {
 		expect(axios.post.mock.calls[0][0]).toContain('/lock')
 		expect(axios.post.mock.calls[0][1]).toEqual({ duration: 1800 })
 		expect(store.fetchObject).toHaveBeenCalled()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	test('409 throws LockConflictError with lockedBy', async () => {
@@ -138,7 +138,7 @@ describe('useObjectLock — REQ-CO-LOCK-003 (acquire / release)', () => {
 		try { await lock().acquire() } catch (e) {
 			expect(e.lockedBy).toBe('bob')
 		}
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	test('403 throws PermissionError', async () => {
@@ -148,7 +148,7 @@ describe('useObjectLock — REQ-CO-LOCK-003 (acquire / release)', () => {
 		})
 		const { wrapper, lock } = mountLock(store, { autoRenew: false })
 		await expect(lock().acquire()).rejects.toBeInstanceOf(PermissionError)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	test('release issues DELETE', async () => {
@@ -157,7 +157,7 @@ describe('useObjectLock — REQ-CO-LOCK-003 (acquire / release)', () => {
 		const { wrapper, lock } = mountLock(store)
 		await lock().release()
 		expect(axios.delete).toHaveBeenCalledTimes(1)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -166,7 +166,7 @@ describe('useObjectLock — REQ-CO-LOCK-004 (auto-release lifecycle)', () => {
 		const store = makeStore({ user: 'alice', expiresAt: '2030-01-01T00:00:00Z' })
 		axios.delete.mockResolvedValue({ status: 204 })
 		const { wrapper } = mountLock(store)
-		wrapper.destroy()
+		wrapper.unmount()
 		// Allow any queued micro-tasks to flush
 		await Promise.resolve()
 		expect(axios.delete).toHaveBeenCalled()
@@ -180,7 +180,7 @@ describe('useObjectLock — REQ-CO-LOCK-004 (auto-release lifecycle)', () => {
 		const { wrapper } = mountLock(store)
 		window.dispatchEvent(new Event('beforeunload'))
 		expect(beacon).toHaveBeenCalled()
-		wrapper.destroy()
+		wrapper.unmount()
 		navigator.sendBeacon = origBeacon
 	})
 })

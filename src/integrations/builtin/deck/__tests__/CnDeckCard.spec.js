@@ -46,7 +46,7 @@ describe('CnDeckCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No cards linked yet')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a count headline + stack distribution on the user-dashboard surface', async () => {
@@ -70,7 +70,7 @@ describe('CnDeckCard', () => {
 		expect(txt).toContain('2')
 		expect(wrapper.find('.cn-deck-card__headline').exists()).toBe(true)
 		expect(wrapper.find('.cn-deck-card__distribution').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a mini-kanban on the detail-page surface and highlights the linked card', async () => {
@@ -92,7 +92,7 @@ describe('CnDeckCard', () => {
 		expect(columns).toHaveLength(3)
 		const highlighted = wrapper.findAll('.cn-deck-card__row--highlight')
 		expect(highlighted).toHaveLength(1)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('caps mini-kanban at three columns even with more stacks', async () => {
@@ -113,7 +113,7 @@ describe('CnDeckCard', () => {
 		await wrapper.vm.$nextTick()
 		const columns = wrapper.findAll('.cn-deck-card__column')
 		expect(columns).toHaveLength(3)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a chip on the single-entity surface', async () => {
@@ -129,7 +129,7 @@ describe('CnDeckCard', () => {
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Migrate DB')
 		expect(chip.text()).toContain('Doing')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the unavailable label when the provider returns 503', async () => {
@@ -138,7 +138,7 @@ describe('CnDeckCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Deck is currently unavailable.')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not throw when fetch fails on the detail-page surface', async () => {
@@ -148,7 +148,7 @@ describe('CnDeckCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No cards linked yet')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 })

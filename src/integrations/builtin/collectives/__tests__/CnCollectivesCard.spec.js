@@ -43,7 +43,7 @@ describe('CnCollectivesCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No Knowledge pages linked yet')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a count headline + most-recent on the user-dashboard surface', async () => {
@@ -66,7 +66,7 @@ describe('CnCollectivesCard', () => {
 		expect(wrapper.find('.cn-collectives-card__headline').exists()).toBe(true)
 		// most-recent (highest lastModified) shows
 		expect(txt).toContain('Charlie')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a compact list with view-all trail-off on the detail-page surface', async () => {
@@ -91,7 +91,7 @@ describe('CnCollectivesCard', () => {
 		// COMPACT_LIMIT = 5
 		expect(rows).toHaveLength(5)
 		expect(wrapper.find('.cn-collectives-card__view-all').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a chip on the single-entity surface', async () => {
@@ -107,7 +107,7 @@ describe('CnCollectivesCard', () => {
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Onboarding handbook')
 		expect(chip.text()).toContain('📘')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the unavailable label when the provider returns 503', async () => {
@@ -116,7 +116,7 @@ describe('CnCollectivesCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Knowledge is currently unavailable.')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not throw when fetch fails on the detail-page surface', async () => {
@@ -126,7 +126,7 @@ describe('CnCollectivesCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No Knowledge pages linked yet')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 })

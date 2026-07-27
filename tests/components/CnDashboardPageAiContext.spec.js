@@ -18,7 +18,7 @@ jest.mock('@nextcloud/axios', () => ({
 const CnDashboardPage = require('../../src/components/CnDashboardPage/CnDashboardPage.vue').default
 
 function makeAiContext(overrides = {}) {
-	return Vue.observable({ appId: 'test', pageKind: 'custom', route: { path: '/' }, ...overrides })
+	return Vue.reactive({ appId: 'test', pageKind: 'custom', route: { path: '/' }, ...overrides })
 }
 
 const stubs = {
@@ -65,7 +65,7 @@ describe('CnDashboardPage — AI context push', () => {
 		const wrapper = mountDashboard({}, ctx)
 
 		expect(ctx.pageKind).toBe('dashboard')
-		wrapper.destroy()
+		wrapper.unmount()
 		expect(ctx.pageKind).toBe('custom')
 	})
 

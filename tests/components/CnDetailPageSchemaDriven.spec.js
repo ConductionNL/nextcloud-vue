@@ -196,7 +196,7 @@ describe('CnDetailPage — schema-driven mode', () => {
 				provide: { objectSidebarState: state },
 			})
 			expect(state.active).toBe(true)
-			wrapper.destroy()
+			wrapper.unmount()
 			expect(state.active).toBe(false)
 			expect(state.tabs).toBeUndefined()
 		})

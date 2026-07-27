@@ -48,7 +48,7 @@ describe('CnBookmarksTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No bookmarks linked yet')
 		expect(wrapper.text()).toContain('Open Bookmarks')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders one row per bookmark with title + URL + description', async () => {
@@ -95,7 +95,7 @@ describe('CnBookmarksTab', () => {
 		expect(chipTexts).toContain('legal')
 		expect(chipTexts).toContain('reference')
 		expect(chipTexts).not.toContain('or:obj-1')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('filters the list by tag when a chip is clicked', async () => {
@@ -124,7 +124,7 @@ describe('CnBookmarksTab', () => {
 		expect(names).toContain('Alpha')
 		expect(names).toContain('Charlie')
 		expect(names).not.toContain('Bravo')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the unavailable banner when the provider returns 503', async () => {
@@ -134,7 +134,7 @@ describe('CnBookmarksTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Bookmarks is currently unavailable.')
 		expect(wrapper.find('.cn-bookmarks-tab__row').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the generic error label when fetch throws', async () => {
@@ -144,7 +144,7 @@ describe('CnBookmarksTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Could not load bookmarks.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 })

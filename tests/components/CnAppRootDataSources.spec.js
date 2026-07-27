@@ -9,7 +9,7 @@
  * The fix is a stable reactive holder (`cnDataSourcesState`) plus a provided
  * `cnRefreshDataSources()` that the pages-editor modals call on open.
  */
-import Vue from 'vue'
+import { reactive } from 'vue'
 import { mount } from '@vue/test-utils'
 import CnPageTreeRow from '../../src/components/CnPageTreeNode/CnPageTreeRow.vue'
 
@@ -39,7 +39,7 @@ const REFRESHED = {
 // reason mutating the holder in place reaches descendants. A plain object handed
 // to provide() would never be reactive.
 function makeHolder(overrides = {}) {
-	return Vue.observable({ value: null, loading: false, error: null, hasLoader: false, ...overrides })
+	return reactive({ value: null, loading: false, error: null, hasLoader: false, ...overrides })
 }
 
 function mountRow(page, provide = {}) {

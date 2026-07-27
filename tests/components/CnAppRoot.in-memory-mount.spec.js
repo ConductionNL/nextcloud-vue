@@ -19,6 +19,7 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { h } from 'vue'
 
 jest.mock('@nextcloud/capabilities', () => ({
 	getCapabilities: jest.fn(),
@@ -61,7 +62,7 @@ const fixtureManifest = {
 const ManifestInjectingRouterView = {
 	name: 'ManifestInjectingRouterView',
 	inject: ['cnManifest'],
-	render(h) {
+	render() {
 		const firstPageId = this.cnManifest?.pages?.[0]?.id ?? '(no-page)'
 		return h('div', { class: 'router-view-stub', attrs: { 'data-page-id': firstPageId } }, firstPageId)
 	},
@@ -341,7 +342,7 @@ describe('CnAppRoot — in-memory manifest mount (REQ-IMM-001..REQ-IMM-004)', ()
 			const wrapper = mountApp()
 			await flush(wrapper)
 			expect(addSpy).toHaveBeenCalledWith('beforeunload', wrapper.vm.onBeforeUnload)
-			wrapper.destroy()
+			wrapper.unmount()
 			expect(removeSpy).toHaveBeenCalledWith('beforeunload', wrapper.vm.onBeforeUnload)
 			addSpy.mockRestore()
 			removeSpy.mockRestore()

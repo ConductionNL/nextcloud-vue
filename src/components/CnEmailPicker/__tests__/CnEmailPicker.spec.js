@@ -46,7 +46,7 @@ describe('CnEmailPicker', () => {
 		expect(rows).toHaveLength(2)
 		expect(wrapper.text()).toContain('Work')
 		expect(wrapper.text()).toContain('Personal')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('advances to the mailbox step on account pick', async () => {
@@ -64,7 +64,7 @@ describe('CnEmailPicker', () => {
 
 		expect(wrapper.vm.step).toBe(2)
 		expect(wrapper.text()).toContain('INBOX')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('advances to the message step and emits link on confirm', async () => {
@@ -99,7 +99,7 @@ describe('CnEmailPicker', () => {
 			messageId: '700',
 			messageUid: 'uid-700',
 		}])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('back from mailbox step returns to account step', async () => {
@@ -118,7 +118,7 @@ describe('CnEmailPicker', () => {
 		expect(wrapper.vm.step).toBe(2)
 		wrapper.vm.goBack()
 		expect(wrapper.vm.step).toBe(1)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('filters messages by subject/sender client-side', async () => {
@@ -149,7 +149,7 @@ describe('CnEmailPicker', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.filteredMessages).toHaveLength(1)
 		expect(wrapper.vm.filteredMessages[0].subject).toBe('Hello world')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces an inline error when /accounts fails', async () => {
@@ -162,6 +162,6 @@ describe('CnEmailPicker', () => {
 
 		expect(wrapper.vm.error).not.toBe('')
 		spy.mockRestore()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

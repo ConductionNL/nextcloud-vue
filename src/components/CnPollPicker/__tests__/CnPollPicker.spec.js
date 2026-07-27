@@ -41,7 +41,7 @@ describe('CnPollPicker', () => {
 		expect(rows).toHaveLength(2)
 		expect(wrapper.text()).toContain('Lunch')
 		expect(wrapper.text()).toContain('Meeting time')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('selecting a poll enables confirm and emits link', async () => {
@@ -61,7 +61,7 @@ describe('CnPollPicker', () => {
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0]).toEqual([{ pollId: 99 }])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces an inline error when /available fails', async () => {
@@ -73,7 +73,7 @@ describe('CnPollPicker', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('Could not load polls.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 
@@ -94,7 +94,7 @@ describe('CnPollPicker', () => {
 
 		expect(wrapper.vm.visiblePolls).toHaveLength(1)
 		expect(wrapper.vm.visiblePolls[0].id).toBe(1)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not emit link when no poll is selected', () => {
@@ -103,6 +103,6 @@ describe('CnPollPicker', () => {
 
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

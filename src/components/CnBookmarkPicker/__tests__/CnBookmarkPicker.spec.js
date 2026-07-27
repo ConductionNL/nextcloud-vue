@@ -42,7 +42,7 @@ describe('CnBookmarkPicker', () => {
 		expect(rows).toHaveLength(2)
 		expect(wrapper.text()).toContain('Conduction')
 		expect(wrapper.text()).toContain('Docs')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('selecting a bookmark enables confirm and emits link', async () => {
@@ -62,7 +62,7 @@ describe('CnBookmarkPicker', () => {
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0]).toEqual([{ bookmarkId: 99 }])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces an inline error when /available fails', async () => {
@@ -74,7 +74,7 @@ describe('CnBookmarkPicker', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('Could not load bookmarks.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 
@@ -95,7 +95,7 @@ describe('CnBookmarkPicker', () => {
 
 		expect(wrapper.vm.visibleBookmarks).toHaveLength(1)
 		expect(wrapper.vm.visibleBookmarks[0].id).toBe(2)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('strips or:* marker tags from displayed chips', async () => {
@@ -104,7 +104,7 @@ describe('CnBookmarkPicker', () => {
 
 		const tags = wrapper.vm.displayTags({ tags: ['vendor', 'or:abc-123', '', 'reference'] })
 		expect(tags).toEqual(['vendor', 'reference'])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not emit link when no bookmark is selected', () => {
@@ -113,6 +113,6 @@ describe('CnBookmarkPicker', () => {
 
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

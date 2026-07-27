@@ -36,7 +36,7 @@ describe('CnDeckCardPicker', () => {
 		expect(rows).toHaveLength(2)
 		expect(wrapper.text()).toContain('Sprint')
 		expect(wrapper.text()).toContain('Backlog')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('advances to the stack step on board pick and loads stacks', async () => {
@@ -55,7 +55,7 @@ describe('CnDeckCardPicker', () => {
 
 		expect(wrapper.vm.step).toBe(2)
 		expect(wrapper.text()).toContain('To Do')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('advances to the card step and emits link on confirm', async () => {
@@ -87,7 +87,7 @@ describe('CnDeckCardPicker', () => {
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0]).toEqual([{ cardId: 700 }])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces an inline error when /boards fails', async () => {
@@ -99,7 +99,7 @@ describe('CnDeckCardPicker', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('Could not load boards.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 })

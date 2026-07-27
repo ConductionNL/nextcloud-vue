@@ -38,7 +38,7 @@ describe('CnTalkRoomPicker', () => {
 		expect(rows).toHaveLength(2)
 		expect(wrapper.text()).toContain('Sprint planning')
 		expect(wrapper.text()).toContain('Standup')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('emits link with the selected roomToken on confirm', async () => {
@@ -55,7 +55,7 @@ describe('CnTalkRoomPicker', () => {
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0]).toEqual([{ roomToken: 'tok-c' }])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces an inline error when /rooms fails', async () => {
@@ -67,7 +67,7 @@ describe('CnTalkRoomPicker', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('Could not load rooms.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 })

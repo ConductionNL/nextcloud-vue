@@ -52,7 +52,7 @@ describe('CnOpenprojectTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No work packages linked yet')
 		expect(wrapper.text()).toContain('Open OpenProject')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders work-package rows with subject, type, status and assignee', async () => {
@@ -93,7 +93,7 @@ describe('CnOpenprojectTab', () => {
 		expect(feature.exists()).toBe(true)
 		const done = wrapper.find('.cn-openproject-tab__status-pill--done')
 		expect(done.exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('parses HAL+JSON `_embedded.elements` envelope for work packages', async () => {
@@ -124,7 +124,7 @@ describe('CnOpenprojectTab', () => {
 		expect(wrapper.findAll('.cn-openproject-tab__row')).toHaveLength(1)
 		expect(row.attributes('name')).toBe('HAL-shaped WP')
 		expect(wrapper.find('.cn-openproject-tab__assignee').attributes('display-name')).toBe('Dora')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('marks high-priority rows so case handlers spot them', async () => {
@@ -143,7 +143,7 @@ describe('CnOpenprojectTab', () => {
 		await wrapper.vm.$nextTick()
 		const flagged = wrapper.findAll('.cn-openproject-tab__row--high-priority')
 		expect(flagged).toHaveLength(1)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders the unconfigured CTA when the provider returns 412', async () => {
@@ -153,7 +153,7 @@ describe('CnOpenprojectTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('OpenProject is not configured yet')
 		expect(wrapper.text()).toContain('Configure OpenProject connection')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders the auth-expired banner when the provider returns 401', async () => {
@@ -164,7 +164,7 @@ describe('CnOpenprojectTab', () => {
 		expect(wrapper.text()).toContain('Authorisation for OpenProject expired')
 		expect(wrapper.find('.cn-openproject-tab__banner--auth').exists()).toBe(true)
 		expect(wrapper.find('.cn-openproject-tab__row').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces a 5xx upstream error message rather than silently emptying the list', async () => {
@@ -177,7 +177,7 @@ describe('CnOpenprojectTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Bad gateway from OpenProject')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the unavailable banner when the provider returns 503', async () => {
@@ -187,7 +187,7 @@ describe('CnOpenprojectTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('OpenProject is currently unavailable.')
 		expect(wrapper.find('.cn-openproject-tab__banner--warn').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the generic error label when fetch throws', async () => {
@@ -197,7 +197,7 @@ describe('CnOpenprojectTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Could not load work packages.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 })

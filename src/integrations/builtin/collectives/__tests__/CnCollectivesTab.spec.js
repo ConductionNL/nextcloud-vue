@@ -50,7 +50,7 @@ describe('CnCollectivesTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No Knowledge pages linked yet')
 		expect(wrapper.text()).toContain('Open Knowledge')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders one row per page with title and emoji', async () => {
@@ -75,7 +75,7 @@ describe('CnCollectivesTab', () => {
 		expect(names).toContain('Bravo page')
 		expect(wrapper.text()).toContain('📘')
 		expect(wrapper.text()).toContain('🗂️')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('groups pages by collective name when the field is present', async () => {
@@ -98,7 +98,7 @@ describe('CnCollectivesTab', () => {
 		const headers = wrapper.findAll('.cn-collectives-tab__group-header').wrappers.map((h) => h.text())
 		expect(headers).toContain('Team Wiki')
 		expect(headers).toContain('Ops Runbook')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('strips the [or:{uuid}] marker from a slug-as-title fallback', async () => {
@@ -119,7 +119,7 @@ describe('CnCollectivesTab', () => {
 		expect(row.exists()).toBe(true)
 		expect(row.attributes('name')).toBe('release-notes')
 		expect(row.attributes('name')).not.toContain('[or:')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('trims a dangling slug separator left behind after marker strip (D-1 fixture)', async () => {
@@ -148,7 +148,7 @@ describe('CnCollectivesTab', () => {
 		expect(row.attributes('name')).toBe('phase-d1-page')
 		expect(row.attributes('name')).not.toContain('[or:')
 		expect(row.attributes('name')).not.toMatch(/-$/)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the unavailable banner when the provider returns 503', async () => {
@@ -158,7 +158,7 @@ describe('CnCollectivesTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Knowledge is currently unavailable.')
 		expect(wrapper.find('.cn-collectives-tab__row').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the generic error label when fetch throws', async () => {
@@ -168,7 +168,7 @@ describe('CnCollectivesTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Could not load Knowledge pages.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 
@@ -179,7 +179,7 @@ describe('CnCollectivesTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Link existing page')
 		expect(wrapper.text()).toContain('Create new page')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('POSTs the picked page to the Tier-2 collectives endpoint on link', async () => {
@@ -199,7 +199,7 @@ describe('CnCollectivesTab', () => {
 		expect(postCall[0]).toBe('/apps/openregister/api/objects/reg/schema/obj-1/collectives')
 		expect(postCall[1].method).toBe('POST')
 		expect(JSON.parse(postCall[1].body)).toEqual({ pageId: 77 })
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('POSTs the create payload to the /new endpoint on create', async () => {
@@ -219,7 +219,7 @@ describe('CnCollectivesTab', () => {
 		expect(postCall[0]).toBe('/apps/openregister/api/objects/reg/schema/obj-1/collectives/new')
 		expect(postCall[1].method).toBe('POST')
 		expect(JSON.parse(postCall[1].body)).toEqual({ collectiveId: 3, title: 'New page' })
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('DELETEs the page on unlink', async () => {
@@ -242,7 +242,7 @@ describe('CnCollectivesTab', () => {
 		const delCall = global.fetch.mock.calls[1]
 		expect(delCall[0]).toBe('/apps/openregister/api/objects/reg/schema/obj-1/collectives/55')
 		expect(delCall[1].method).toBe('DELETE')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders the Tier-2 link-row shape (pageTitle + collectiveName)', async () => {
@@ -260,6 +260,6 @@ describe('CnCollectivesTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.find('.cn-collectives-tab__row').attributes('name')).toBe('Runbook')
 		expect(wrapper.text()).toContain('Ops')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

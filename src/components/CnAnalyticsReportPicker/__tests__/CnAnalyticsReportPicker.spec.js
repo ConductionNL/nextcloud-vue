@@ -45,7 +45,7 @@ describe('CnAnalyticsReportPicker', () => {
 		expect(wrapper.text()).toContain('Ops')
 		expect(wrapper.text()).toContain('Group')
 		expect(wrapper.text()).toContain('Database')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('selecting a report enables confirm and emits link', async () => {
@@ -65,7 +65,7 @@ describe('CnAnalyticsReportPicker', () => {
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0]).toEqual([{ reportId: 99 }])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces an inline error when /available fails', async () => {
@@ -77,7 +77,7 @@ describe('CnAnalyticsReportPicker', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('Could not load reports.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 
@@ -89,7 +89,7 @@ describe('CnAnalyticsReportPicker', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('NC Analytics is not installed.')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('filters reports client-side via search', async () => {
@@ -109,7 +109,7 @@ describe('CnAnalyticsReportPicker', () => {
 
 		expect(wrapper.vm.visibleReports).toHaveLength(1)
 		expect(wrapper.vm.visibleReports[0].id).toBe(1)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not emit link when no report is selected', () => {
@@ -118,6 +118,6 @@ describe('CnAnalyticsReportPicker', () => {
 
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

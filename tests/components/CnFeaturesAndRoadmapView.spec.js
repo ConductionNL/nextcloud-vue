@@ -122,7 +122,7 @@ describe('CnFeaturesAndRoadmapView', () => {
 	it('clears the sidebar holder on beforeDestroy', () => {
 		const { wrapper, sidebarHolder } = mountWithHost()
 		expect(sidebarHolder.value).not.toBe(null)
-		wrapper.destroy()
+		wrapper.unmount()
 		expect(sidebarHolder.value).toBe(null)
 	})
 

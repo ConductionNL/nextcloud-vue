@@ -12,6 +12,7 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { h } from 'vue'
 
 /**
  * A factory for a fake sub-form component whose `validate()` / `assembledContent`
@@ -39,7 +40,7 @@ function fakeForm({ errors = [], assembled = null, commit = undefined } = {}) {
 			value: { default: () => ({}) },
 			fileUploadFn: { default: null },
 		},
-		render(h) {
+		render() {
 			return h('div', { class: 'fake-form' })
 		},
 		methods,
