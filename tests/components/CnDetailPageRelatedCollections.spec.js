@@ -7,6 +7,7 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { toRaw } from 'vue'
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 
 const RelatedStub = { name: 'CnRelatedCollections', props: ['collections'], template: '<div class="related-stub" />' }
@@ -59,7 +60,9 @@ describe('CnDetailPage — Primitive 2', () => {
 		const wrapper = mountPage({ relatedCollections: collections })
 		const child = wrapper.findComponent(RelatedStub)
 		expect(child.exists()).toBe(true)
-		expect(child.props('collections')).toBe(collections)
+		// Vue 3 hands object props to children as reactive Proxies; `toRaw`
+		// keeps the assertion that the array is forwarded, not copied.
+		expect(toRaw(child.props('collections'))).toBe(collections)
 	})
 
 	it('renders CnSummaryAggregates with the configured aggregates', () => {
