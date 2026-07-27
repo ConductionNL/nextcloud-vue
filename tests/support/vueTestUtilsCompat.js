@@ -62,6 +62,16 @@ function hoistGlobalOptions(options) {
 	if (!options || typeof options !== 'object') {
 		return options
 	}
+	// VTU v1 separated `slots` from `scopedSlots`; v2 merged them — every slot
+	// is a function now, so `scopedSlots` is simply gone and, like the keys
+	// below, is IGNORED WITHOUT WARNING. A spec that supplies a widget body
+	// through `scopedSlots` therefore mounts with no body at all, and fails on
+	// some far-away assertion about what the parent rendered. 28 specs here
+	// use it. Merge it into `slots`, with an explicit `slots` entry winning.
+	if (Object.prototype.hasOwnProperty.call(options, 'scopedSlots')) {
+		options = { ...options, slots: { ...options.scopedSlots, ...(options.slots || {}) } }
+		delete options.scopedSlots
+	}
 	const hoisted = {}
 	let found = false
 	for (const key of HOISTED_KEYS) {
