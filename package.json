@@ -29,6 +29,8 @@
   "sideEffects": [
     "**/*.css",
     "**/*.vue",
+    "dist/esm/index.js",
+    "dist/**/*.vue.js",
     "**/*.vue.js",
     "**/*.vue2.js",
     "**/CnWidgetGrid/registerDashboardWidgets.js",
@@ -55,6 +57,7 @@
     "check:integration-parity": "node scripts/check-integration-parity.js",
     "check:integration-build": "node scripts/check-integration-build.js",
     "check:css-entry": "node scripts/check-css-entry.js",
+    "check:dist-sideeffects": "node scripts/check-dist-sideeffects.mjs",
     "check:a11y": "jest --config jest.a11y.config.js",
     "jsdoc-baselines:update": "node scripts/check-jsdoc.js --update",
     "prepare": "husky || true",
@@ -211,6 +214,7 @@
     "typescript": "^5.7.0",
     "vite": "^5.4.0",
     "vue": "^3.5.13",
-    "vue-material-design-icons": "^5.2.0"
+    "vue-material-design-icons": "^5.2.0",
+    "webpack": "^5.109.0"
   }
 }
