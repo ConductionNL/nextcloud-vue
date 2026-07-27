@@ -1,13 +1,12 @@
 /**
- * Vue-3 test lane.
+ * Vue-3-specific test lane.
  *
- * The main `jest.config.js` still transforms `.vue` with `@vue/vue2-jest`
- * (the library source is authored dual-compatible and the bulk of the
- * suite is exercised under Vue 2). This additional lane compiles SFCs
- * with `@vue/vue3-jest` and runs ONLY `*.vue3.spec.js` files, so
- * behaviour that is Vue-3-specific (render-function API, `$attrs`
- * listener fall-through, `emit` wrapping) can be asserted under the real
- * Vue 3 runtime that consumers of the `vue3` dist-tag run.
+ * The main `jest.config.js` now also compiles SFCs with `@vue/vue3-jest` —
+ * this branch is the Vue-3 line, so Vue 3 is the only runtime under test.
+ * This lane remains as a focused harness for `*.vue3.spec.js` files that
+ * assert Vue-3-specific behaviour (render-function API, `$attrs` listener
+ * fall-through, `emit` wrapping) without the shared `globalSetup` /
+ * `setupFiles` the main lane installs.
  *
  *   npm run test:vue3
  */
@@ -17,6 +16,7 @@ module.exports = {
 	...base,
 	globalSetup: undefined,
 	setupFiles: [],
+	setupFilesAfterEnv: [],
 	transform: {
 		'^.+\\.js$': 'babel-jest',
 		'^.+\\.vue$': '@vue/vue3-jest',

@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: EUPL-1.2
  *
  * Vite config for the Playwright e2e harness only (not the library build —
- * that stays on Rollup). Serves e2e/harness with the Vue 2.7 plugin so the real
+ * that stays on Rollup). Serves e2e/harness with the Vue 3 plugin so the real
  * SFCs run in a browser.
  */
 import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue2'
+import vue from '@vitejs/plugin-vue'
 import path from 'path'
 import { fileURLToPath } from 'url'
 

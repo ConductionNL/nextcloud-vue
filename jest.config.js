@@ -8,7 +8,7 @@ module.exports = {
 	moduleFileExtensions: ['js', 'vue', 'json'],
 	transform: {
 		'^.+\\.js$': 'babel-jest',
-		'^.+\\.vue$': '@vue/vue2-jest',
+		'^.+\\.vue$': '@vue/vue3-jest',
 	},
 	transformIgnorePatterns: [
 		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|vue-codemirror6|codemirror|@codemirror)/)',
@@ -16,7 +16,7 @@ module.exports = {
 	moduleNameMapper: {
 		'^@/(.*)$': '<rootDir>/src/$1',
 		'\\.(css)$': 'jest-transform-stub',
-		'^@toast-ui/vue-editor$': '<rootDir>/tests/__mocks__/toast-ui-vue-editor.js',
+		'^@toast-ui/editor$': '<rootDir>/tests/__mocks__/toast-ui-editor.js',
 		'^@mdi/js$': '<rootDir>/tests/__mocks__/mdi-js.js',
 		'^vue-codemirror6$': '<rootDir>/tests/__mocks__/vue-codemirror6.js',
 		'^@codemirror/lang-json$': '<rootDir>/tests/__mocks__/codemirror-lang-json.js',
@@ -56,7 +56,11 @@ module.exports = {
 		'/node_modules/',
 		'<rootDir>/tests/a11y/',
 	],
-	setupFiles: [
+	// `setupFilesAfterEnv` (not `setupFiles`) because the setup installs a
+	// per-test pinia via `beforeEach`, which only exists once the test
+	// framework is in place. It still runs before the test file is loaded, so
+	// the `OC` global and the structuredClone polyfill land in time.
+	setupFilesAfterEnv: [
 		'<rootDir>/tests/setup.js',
 	],
 }

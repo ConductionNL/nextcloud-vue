@@ -160,7 +160,7 @@ export default {
 		}
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		this.unmountLeaf()
 	},
 
