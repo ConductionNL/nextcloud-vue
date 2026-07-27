@@ -1547,23 +1547,16 @@ export default {
 				return out
 			})(),
 			/**
-			 * Whether the user has already dismissed the non-gating setup
-			 * wizard for the manifest's CURRENT `setup.version` (REQ-SETUP-NV-012
-			 * optional-only path). Seeded synchronously from `localStorage`
-			 * (`cn-setup-wizard-dismissed:{appId}:{version}`) so a previously
-			 * dismissed wizard never flashes open on mount. Keying on `version`
-			 * means bumping it (e.g. a newly added optional step) re-prompts.
+			 * Session-only flag: the user dismissed (or finished) the non-gating
+			 * setup wizard during THIS page load. The durable answer lives in
+			 * `localStorage` and is read through `isSetupWizardDismissed()` —
+			 * deliberately NOT seeded here, because `manifest` can still be
+			 * replaced by `useAppManifest`'s async backend merge and a seed
+			 * would then have been checked against a stale `setup.version`.
 			 *
 			 * @type {boolean}
 			 */
-			setupWizardDismissed: (() => {
-				try {
-					const version = (this.manifest && this.manifest.setup && this.manifest.setup.version) || 0
-					return window.localStorage.getItem('cn-setup-wizard-dismissed:' + this.appId + ':' + version) === '1'
-				} catch (e) {
-					return false
-				}
-			})(),
+			setupWizardDismissed: false,
 			/**
 			 * Whether the non-gating setup wizard overlay is currently open.
 			 * Flips true once (auto-open) when only optional steps are unmet
@@ -2062,13 +2055,20 @@ export default {
 		},
 		/**
 		 * Whether the setup wizard should be OFFERED (non-gating) because
-		 * every required step is met but at least one optional step isn't
-		 * (REQ-SETUP-NV-012). Never true while the gating phase is active —
+		 * every required step is met but at least one ACTIONABLE optional step
+		 * isn't (REQ-SETUP-NV-012). Never true while the gating phase is active —
 		 * required-unmet already renders `CnSetupWizard` itself.
+		 *
+		 * `info` and `summary` steps are excluded: the server has nothing to
+		 * persist for them, so they report `done: false` forever and would keep
+		 * this permanently true (auto-prompting fully-configured users).
 		 */
-		optionalSetupGating() {
+		optionalSetupPending() {
 			const s = this.setupState
-			return !!s && s.loading.value === false && s.requiredUnmet.value.length === 0 && s.optionalUnmet.value.length > 0
+			if (!s || s.loading.value !== false || s.requiredUnmet.value.length > 0) {
+				return false
+			}
+			return s.optionalUnmet.value.some((st) => st.type !== 'info' && st.type !== 'summary')
 		},
 		/**
 		 * Ids of setup steps the server already reports done. Passed to
@@ -2334,10 +2334,10 @@ export default {
 		 * `immediate: true` so a fresh mount that's already optional-unmet
 		 * opens it without waiting for a later reactive change.
 		 */
-		optionalSetupGating: {
+		optionalSetupPending: {
 			immediate: true,
-			handler(gating) {
-				if (gating && !this.setupWizardDismissed) {
+			handler(pending) {
+				if (pending && !this.isSetupWizardDismissed()) {
 					this.setupWizardOpen = true
 				}
 			},
@@ -2615,10 +2615,18 @@ export default {
 		 * @return {void}
 		 */
 		onSetupComplete() {
+			// Finishing counts as dismissal. A user may legitimately reach Finish
+			// with an optional step still un-done (Next skips optional steps), and
+			// the server keeps reporting it unmet — so without this the wizard
+			// auto-opens again on every visit. Cancel must not be the only way to
+			// get peace.
+			this.persistSetupWizardDismissal()
 			if (this.setupState && typeof this.setupState.refresh === 'function') {
 				this.setupState.refresh()
 			}
-			this.setupWizardOpen = false
+			// NOT closing here: CnSetupWizard has just flipped CnWizardDialog into
+			// its result phase ("Setup complete."). Unmounting now would swallow it.
+			// The result phase's Close emits `@close` → dismissSetupWizard().
 			/**
 			 * @event setup-complete Emitted after the gating setup wizard reports
 			 * completion and the status has been re-fetched.
@@ -2626,21 +2634,55 @@ export default {
 			this.$emit('setup-complete')
 		},
 		/**
-		 * Dismiss the non-gating optional-setup wizard (REQ-SETUP-NV-012).
-		 * Persists under `cn-setup-wizard-dismissed:{appId}:{version}` so it
-		 * doesn't auto-reopen on the next visit for this manifest version.
+		 * Dismiss the non-gating optional-setup wizard (REQ-SETUP-NV-012) and
+		 * unmount it.
 		 *
 		 * @return {void}
 		 */
 		dismissSetupWizard() {
+			this.persistSetupWizardDismissal()
+			this.setupWizardOpen = false
+		},
+		/**
+		 * `localStorage` key holding the non-gating setup wizard's dismissal for
+		 * the manifest's CURRENT `setup.version`. Read at use time rather than
+		 * cached, so an async manifest merge that bumps the version is honoured.
+		 *
+		 * @return {string}
+		 */
+		setupWizardDismissKey() {
+			const version = (this.manifest && this.manifest.setup && this.manifest.setup.version) || 0
+			return 'cn-setup-wizard-dismissed:' + this.appId + ':' + version
+		},
+		/**
+		 * Whether the non-gating setup wizard has already been dismissed for
+		 * this manifest `setup.version` — this session or a previous visit.
+		 *
+		 * @return {boolean}
+		 */
+		isSetupWizardDismissed() {
+			if (this.setupWizardDismissed) {
+				return true
+			}
 			try {
-				const version = (this.manifest && this.manifest.setup && this.manifest.setup.version) || 0
-				window.localStorage.setItem('cn-setup-wizard-dismissed:' + this.appId + ':' + version, '1')
+				return window.localStorage.getItem(this.setupWizardDismissKey()) === '1'
+			} catch (e) {
+				return false
+			}
+		},
+		/**
+		 * Record the non-gating setup wizard as dismissed for this manifest
+		 * `setup.version` so it doesn't auto-open again.
+		 *
+		 * @return {void}
+		 */
+		persistSetupWizardDismissal() {
+			try {
+				window.localStorage.setItem(this.setupWizardDismissKey(), '1')
 			} catch (e) {
 				// Best-effort persistence (private mode / no storage).
 			}
 			this.setupWizardDismissed = true
-			this.setupWizardOpen = false
 		},
 		/**
 		 * Persist the current app version as the user's last-seen walkthrough
