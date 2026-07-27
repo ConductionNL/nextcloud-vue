@@ -376,7 +376,20 @@ export default {
 		clone() {
 			return JSON.parse(JSON.stringify(this.modelValue))
 		},
+		/**
+		 * Emit the mutated flow definition upward for `v-model`.
+		 *
+		 * @param {object} next The updated flow definition (a clone — the
+		 *   original `modelValue` is never mutated in place).
+		 * @return {void}
+		 */
 		emit(next) {
+			/**
+			 * @event update:modelValue Fired whenever the canvas mutates the
+			 * flow (node add/remove/move, field edit), carrying the complete
+			 * updated flow definition so the parent can `v-model` it.
+			 * @type {object}
+			 */
 			this.$emit('update:modelValue', next)
 		},
 		onNodeSelect(id) {
