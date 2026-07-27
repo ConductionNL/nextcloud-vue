@@ -49,6 +49,8 @@ export {
 	CnCardGrid,
 	CnObjectRow,
 	CnObjectList,
+	CnObjectKanban,
+	CnObjectCalendar,
 	CnFolderTree,
 	CnFolderSidebar,
 	fetchWebdavFolderTree,
@@ -126,6 +128,7 @@ export {
 	CnIntegrationCard,
 	CnIntegrationWidgetGrid,
 	CnIntegrationWidget,
+	CnLeafMountHost,
 	CnDetailCard,
 	CnDetailPage,
 	CnLifecycleActions,
@@ -292,7 +295,7 @@ export {
 export { useAiContext, useAiChatStream } from './composables/index.js'
 // AI Chat Companion backend config (single point for the chat backend app id)
 export { DEFAULT_CHAT_APP_ID, chatApiBase, chatStreamUrl, chatSendUrl, chatHealthUrl, conversationsUrl, conversationMessagesUrl } from './composables/index.js'
-export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, clearContextMenuPositionDom, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, useAppManifest, useAppStatus, useAppInstaller, useSetupStatus, useWalkthrough, useGraphQL, useDataSource, selectByPath, buildCountQuery, buildBucketQuery, useBrokeredCall, useEndpointSource, fetchEndpointSource, invalidateEndpointSourceCache, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest, useSupportDialog, useClickDragGuard, useTenantContext, provideTenantContext, createTenantContext, TENANT_CONTEXT_KEY, useManifestEditor, useOpenBuildEditAvailability, useManifestEditHistory, useCommandPalette } from './composables/index.js'
+export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, clearContextMenuPositionDom, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, useAppManifest, useAppStatus, useAppInstaller, useSetupStatus, useWalkthrough, useGraphQL, useDataSource, selectByPath, buildCountQuery, buildBucketQuery, useBrokeredCall, useEndpointSource, fetchEndpointSource, invalidateEndpointSourceCache, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest, useSupportDialog, useClickDragGuard, useTenantContext, provideTenantContext, createTenantContext, TENANT_CONTEXT_KEY, useManifestEditor, useOpenBuildEditAvailability, useManifestEditHistory, useCommandPalette, useScopedTheme } from './composables/index.js'
 
 // Command palette — the "objects" source adapter (see docs/utilities/create-object-search-source.md).
 // `resolveManifestDetailRoute` is intentionally subpath-only (not re-exported here), same

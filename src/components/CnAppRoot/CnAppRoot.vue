@@ -57,7 +57,7 @@
   and REQ-OR-1..REQ-OR-7 of the cnapproot-app-availability-guard spec.
 -->
 <template>
-	<NcContent :app-name="appDisplayName || (manifest && manifest.name) || appId" data-testid="cn-app-root">
+	<NcContent :app-name="appDisplayName || (manifest && manifest.name) || appId" :data-nldesign-theme-scope="appId" data-testid="cn-app-root">
 		<!-- Phase 0a: capabilities check in flight -->
 		<template v-if="capabilitiesLoading">
 			<div class="cn-app-root__capabilities-loading" data-testid="cn-app-root-capabilities-loading">
@@ -587,6 +587,7 @@ import { provideTenantContext } from '../../composables/useTenantContext.js'
 import { computed, shallowRef, watch, reactive } from 'vue'
 import { useManifestEditor } from '../../composables/useManifestEditor.js'
 import { useOpenBuildEditAvailability } from '../../composables/useOpenBuildEditAvailability.js'
+import { useScopedTheme } from '../../composables/useScopedTheme.js'
 import { loadState } from '@nextcloud/initial-state'
 import { useAppStatus } from '../../composables/useAppStatus.js'
 import { useAppInstaller } from '../../composables/useAppInstaller.js'
@@ -1390,6 +1391,23 @@ export default {
 			() => openBuildAvailable.value && props.manifest?.openbuildEditable !== false,
 		)
 
+		// Scoped NL Design token-set theming (scoped-theme-applier). Watches the
+		// SAME editing/props branch `cnManifest`'s getter already uses, so the
+		// applied theme tracks whichever manifest is currently effective —
+		// including an in-app live-preview editing session (ADR-041) — with no
+		// separate wiring needed for that case. `apply()` is a progressive
+		// enhancement: nldesign absent/unreachable/non-conformant degrades
+		// silently to default styling, never a throw (REQ-STA-1/REQ-STA-3).
+		const scopedTheme = useScopedTheme()
+		watch(
+			() => (manifestEditor.editing.value ? manifestEditor.source.value : props.manifest)?.runtime?.theme,
+			() => scopedTheme.apply(
+				manifestEditor.editing.value ? manifestEditor.source.value : props.manifest,
+				props.appId,
+			),
+			{ deep: true, immediate: true },
+		)
+
 		return {
 			...supportPair,
 			cnTenantContext: tenantContext,
@@ -1398,6 +1416,7 @@ export default {
 			appInstaller,
 			depInstalling: appInstaller.installing,
 			depInstallError: appInstaller.error,
+			cnScopedTheme: scopedTheme,
 		}
 	},
 
@@ -2390,6 +2409,7 @@ export default {
 
 	beforeUnmount() {
 		window.removeEventListener('beforeunload', this.onBeforeUnload)
+		this.cnScopedTheme.teardown(this.appId)
 	},
 
 	methods: {
