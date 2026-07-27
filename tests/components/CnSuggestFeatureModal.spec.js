@@ -20,23 +20,29 @@ import CnSuggestFeatureModal from '../../src/components/CnSuggestFeatureModal/Cn
 
 const stubs = {
 	NcDialog: { name: 'NcDialog', template: '<div class="dialog"><slot /><div class="dialog-actions"><slot name="actions" /></div></div>' },
+	// Vue 3 removed the `model: { prop, event }` option: `v-model` on a
+	// component is always `modelValue` + `update:modelValue`. These stubs used
+	// the Vue-2 custom-model shape, so the component's v-model bound a
+	// `modelValue` prop the stubs did not declare and their `update:value` /
+	// `input` emits went nowhere — every field stayed empty and the submit
+	// button never enabled.
 	NcTextField: {
 		name: 'NcTextField',
-		props: ['value', 'label', 'maxlength', 'error', 'helperText', 'required'],
-		model: { prop: 'value', event: 'update:value' },
-		template: '<div class="text-field" :data-label="label"><input :value="value" @input="$emit(\'update:value\', $event.target.value)" /></div>',
+		props: ['modelValue', 'label', 'maxlength', 'error', 'helperText', 'required'],
+		emits: ['update:modelValue'],
+		template: '<div class="text-field" :data-label="label"><input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" /></div>',
 	},
 	NcTextArea: {
 		name: 'NcTextArea',
-		props: ['value', 'label', 'maxlength', 'error', 'helperText', 'required', 'rows'],
-		model: { prop: 'value', event: 'update:value' },
-		template: '<div class="text-area" :data-label="label"><textarea :value="value" @input="$emit(\'update:value\', $event.target.value)" /></div>',
+		props: ['modelValue', 'label', 'maxlength', 'error', 'helperText', 'required', 'rows'],
+		emits: ['update:modelValue'],
+		template: '<div class="text-area" :data-label="label"><textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" /></div>',
 	},
 	NcSelect: {
 		name: 'NcSelect',
-		props: ['value', 'label', 'options', 'inputLabel', 'placeholder', 'clearable'],
-		model: { prop: 'value', event: 'input' },
-		template: '<select class="select" :data-label="label" :value="value" @change="$emit(\'input\', $event.target.value)"><option value="">--</option><option v-for="opt in options" :key="opt" :value="opt">{{ opt }}</option></select>',
+		props: ['modelValue', 'label', 'options', 'inputLabel', 'placeholder', 'clearable'],
+		emits: ['update:modelValue'],
+		template: '<select class="select" :data-label="label" :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)"><option value="">--</option><option v-for="opt in options" :key="opt" :value="opt">{{ opt }}</option></select>',
 	},
 	NcNoteCard: { name: 'NcNoteCard', props: ['type'], template: '<div class="note" :data-type="type"><slot /></div>' },
 	NcButton: {
