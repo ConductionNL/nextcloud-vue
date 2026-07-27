@@ -11,6 +11,8 @@
 		:back-label="backLabel"
 		:success-text="successText"
 		:validate="validateStep"
+		:cancellable="cancellable"
+		:initial-step="initialStepId"
 		@step-change="onStepChange"
 		@submit="onSubmit"
 		@close="onClose">
@@ -209,6 +211,34 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Setup complete.'),
 		},
+		/**
+		 * Whether the wizard can be dismissed before finishing (Cancel
+		 * button, ESC, backdrop click). Pass `false` when a REQUIRED step
+		 * is unmet and the host is gating its shell behind this wizard
+		 * (ADR-042) — an offered-but-non-functional Cancel would be
+		 * misleading. Optional-only setup stays cancellable (default).
+		 *
+		 * @type {boolean}
+		 */
+		cancellable: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Ids of steps the SERVER already reports as done (e.g.
+		 * `useSetupStatus(...).steps` filtered to `done === true`), passed by
+		 * the host so a freshly (re)mounted wizard doesn't re-ask something
+		 * already persisted in an earlier session — this component's own
+		 * `localDone`/`choiceModel` only track the CURRENT session and reset
+		 * blank on every mount. Drives both the initial step (`initialStepId`)
+		 * and the summary page's done markers.
+		 *
+		 * @type {Array<string>}
+		 */
+		completedStepIds: {
+			type: Array,
+			default: () => [],
+		},
 	},
 
 	emits: ['complete', 'close', 'step-change', 'action-result'],
@@ -267,12 +297,29 @@ export default {
 					if (step.type === 'info') {
 						done = true
 					} else if (step.type === 'choice') {
-						done = this.hasChoice(step)
+						done = this.hasChoice(step) || this.isServerDone(step.id)
 					} else {
 						done = this.isStepDone(step.id)
 					}
 					return { id: step.id, title: step.title || step.id, value, done }
 				})
+		},
+		/**
+		 * Id of the step the wizard should open on: the first non-`info`/
+		 * `summary` step not already done — per the CURRENT session's local
+		 * state OR the server-reported `completedStepIds` (a prior session).
+		 * Falls back to `''` (CnWizardDialog's own first-step default) when
+		 * every actionable step is already done.
+		 *
+		 * @return {string}
+		 */
+		initialStepId() {
+			const actionable = this.setupSteps.filter((s) => s.type !== 'info' && s.type !== 'summary')
+			const firstUnmet = actionable.find((s) => {
+				if (s.type === 'choice') return !(this.hasChoice(s) || this.isServerDone(s.id))
+				return !this.isStepDone(s.id)
+			})
+			return firstUnmet ? firstUnmet.id : ''
 		},
 	},
 
@@ -463,7 +510,17 @@ export default {
 			}
 		},
 		isStepDone(id) {
-			return this.localDone[id] === true || (this.actionResult[id] && this.actionResult[id].success)
+			return this.isServerDone(id) || this.localDone[id] === true || (this.actionResult[id] && this.actionResult[id].success)
+		},
+		/**
+		 * Whether the server already reported this step done in a prior
+		 * session, via the `completedStepIds` prop.
+		 *
+		 * @param {string} id Step id.
+		 * @return {boolean}
+		 */
+		isServerDone(id) {
+			return this.completedStepIds.includes(id)
 		},
 		onSubmit() {
 			if (this.$refs.wizard && this.$refs.wizard.setResult) {

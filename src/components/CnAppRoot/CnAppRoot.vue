@@ -170,6 +170,8 @@
 					<CnSetupWizard
 						:app-id="appId"
 						:steps="manifest.setup.steps"
+						:cancellable="false"
+						:completed-step-ids="setupCompletedStepIds"
 						@complete="onSetupComplete" />
 				</div>
 			</slot>
@@ -362,6 +364,22 @@
 			  component; app opt-in is via the `aiCompanion` prop (default off).
 			-->
 			<CnAiCompanion v-if="aiCompanion" :chat-app-id="chatAppId" />
+
+			<!--
+			  Non-gating setup wizard (REQ-SETUP-NV-012 optional path). Shown
+			  when every required setup step is met but an optional one isn't;
+			  auto-opens once per manifest `setup.version` and stays dismissible
+			  (Cancel/ESC/backdrop) — unlike the gating phase 2b instance above.
+			-->
+			<div v-if="setupWizardOpen" class="cn-app-root__setup-optional">
+				<CnSetupWizard
+					:app-id="appId"
+					:steps="manifest.setup.steps"
+					:cancellable="true"
+					:completed-step-ids="setupCompletedStepIds"
+					@complete="onSetupComplete"
+					@close="dismissSetupWizard" />
+			</div>
 
 			<!--
 			  Command palette (Ctrl/Cmd+K) — auto-mounted, opt-in via the
@@ -1529,6 +1547,34 @@ export default {
 				return out
 			})(),
 			/**
+			 * Whether the user has already dismissed the non-gating setup
+			 * wizard for the manifest's CURRENT `setup.version` (REQ-SETUP-NV-012
+			 * optional-only path). Seeded synchronously from `localStorage`
+			 * (`cn-setup-wizard-dismissed:{appId}:{version}`) so a previously
+			 * dismissed wizard never flashes open on mount. Keying on `version`
+			 * means bumping it (e.g. a newly added optional step) re-prompts.
+			 *
+			 * @type {boolean}
+			 */
+			setupWizardDismissed: (() => {
+				try {
+					const version = (this.manifest && this.manifest.setup && this.manifest.setup.version) || 0
+					return window.localStorage.getItem('cn-setup-wizard-dismissed:' + this.appId + ':' + version) === '1'
+				} catch (e) {
+					return false
+				}
+			})(),
+			/**
+			 * Whether the non-gating setup wizard overlay is currently open.
+			 * Flips true once (auto-open) when only optional steps are unmet
+			 * and the user hasn't already dismissed this manifest version; the
+			 * user can reopen later from wherever the host surfaces it (e.g.
+			 * admin settings), independent of this auto-open state.
+			 *
+			 * @type {boolean}
+			 */
+			setupWizardOpen: false,
+			/**
 			 * Key of the currently active modal (opened via cnOpenModal).
 			 * null when no modal is open.
 			 *
@@ -2015,6 +2061,28 @@ export default {
 			return !!s && s.loading.value === false && s.requiredUnmet.value.length > 0
 		},
 		/**
+		 * Whether the setup wizard should be OFFERED (non-gating) because
+		 * every required step is met but at least one optional step isn't
+		 * (REQ-SETUP-NV-012). Never true while the gating phase is active —
+		 * required-unmet already renders `CnSetupWizard` itself.
+		 */
+		optionalSetupGating() {
+			const s = this.setupState
+			return !!s && s.loading.value === false && s.requiredUnmet.value.length === 0 && s.optionalUnmet.value.length > 0
+		},
+		/**
+		 * Ids of setup steps the server already reports done. Passed to
+		 * `CnSetupWizard` so a freshly (re)mounted wizard resumes at the
+		 * first actually-unmet step instead of restarting from the top —
+		 * the wizard's own local state only tracks the current session.
+		 *
+		 * @return {Array<string>}
+		 */
+		setupCompletedStepIds() {
+			const s = this.setupState
+			return s ? s.steps.value.filter((st) => st.done).map((st) => st.id) : []
+		},
+		/**
 		 * Whether the manifest declares an enabled walkthrough with at least one
 		 * tour (ADR-043). Drives the non-gating CnWalkthrough overlay in the shell.
 		 *
@@ -2256,6 +2324,23 @@ export default {
 			if (!this.activeModalKey) return null
 			const entry = (this.registry || {})[this.activeModalKey]
 			return (entry && entry.component) ? entry.component : null
+		},
+	},
+
+	watch: {
+		/**
+		 * Auto-open the non-gating setup wizard once optional-unmet becomes
+		 * true, unless the user already dismissed this manifest version.
+		 * `immediate: true` so a fresh mount that's already optional-unmet
+		 * opens it without waiting for a later reactive change.
+		 */
+		optionalSetupGating: {
+			immediate: true,
+			handler(gating) {
+				if (gating && !this.setupWizardDismissed) {
+					this.setupWizardOpen = true
+				}
+			},
 		},
 	},
 
@@ -2533,11 +2618,29 @@ export default {
 			if (this.setupState && typeof this.setupState.refresh === 'function') {
 				this.setupState.refresh()
 			}
+			this.setupWizardOpen = false
 			/**
 			 * @event setup-complete Emitted after the gating setup wizard reports
 			 * completion and the status has been re-fetched.
 			 */
 			this.$emit('setup-complete')
+		},
+		/**
+		 * Dismiss the non-gating optional-setup wizard (REQ-SETUP-NV-012).
+		 * Persists under `cn-setup-wizard-dismissed:{appId}:{version}` so it
+		 * doesn't auto-reopen on the next visit for this manifest version.
+		 *
+		 * @return {void}
+		 */
+		dismissSetupWizard() {
+			try {
+				const version = (this.manifest && this.manifest.setup && this.manifest.setup.version) || 0
+				window.localStorage.setItem('cn-setup-wizard-dismissed:' + this.appId + ':' + version, '1')
+			} catch (e) {
+				// Best-effort persistence (private mode / no storage).
+			}
+			this.setupWizardDismissed = true
+			this.setupWizardOpen = false
 		},
 		/**
 		 * Persist the current app version as the user's last-seen walkthrough
