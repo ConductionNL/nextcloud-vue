@@ -64,7 +64,7 @@ describe('useAiContext', () => {
 		provided.pageKind = 'index'
 
 		// Let Vue flush the watcher queue
-		await Vue.nextTick()
+		await vueNextTick()
 
 		expect(observed).toContain('index')
 		vm.$destroy()

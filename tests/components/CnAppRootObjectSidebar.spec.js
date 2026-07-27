@@ -11,7 +11,8 @@
  */
 
 import { shallowMount } from '@vue/test-utils'
-import Vue from 'vue'
+// Vue 3 has no default export — `nextTick` is a named import.
+import { nextTick as vueNextTick } from 'vue'
 
 jest.mock('@nextcloud/capabilities', () => ({
 	getCapabilities: jest.fn(() => ({})),
@@ -49,7 +50,7 @@ describe('CnAppRoot — CnObjectSidebar auto-mount', () => {
 		wrapper.vm.localObjectSidebarState.active = true
 		wrapper.vm.localObjectSidebarState.objectType = 'r-s'
 		wrapper.vm.localObjectSidebarState.objectId = 'o-1'
-		await Vue.nextTick()
+		await vueNextTick()
 		expect(findSidebar(wrapper).exists()).toBe(true)
 	})
 
@@ -60,7 +61,7 @@ describe('CnAppRoot — CnObjectSidebar auto-mount', () => {
 			stubs: { CnObjectSidebar: true, CnAppNav: true, CnAiCompanion: true, NcContent: { template: '<div><slot/><slot name="sidebar"/></div>' }, NcAppContent: { template: '<div><slot/></div>' } },
 		})
 		wrapper.vm.localObjectSidebarState.active = true
-		await Vue.nextTick()
+		await vueNextTick()
 		expect(findSidebar(wrapper).exists()).toBe(false)
 		expect(wrapper.find('.consumer-sidebar').exists()).toBe(true)
 	})
@@ -78,7 +79,7 @@ describe('CnAppRoot — CnObjectSidebar auto-mount', () => {
 		})
 		wrapper.vm.localObjectSidebarState.active = true
 		// objectType + objectId left at their data() defaults ('')
-		await Vue.nextTick()
+		await vueNextTick()
 		expect(findSidebar(wrapper).exists()).toBe(false)
 	})
 
