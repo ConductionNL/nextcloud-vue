@@ -14,7 +14,7 @@ import CnDashboardPage from '@/components/CnDashboardPage/CnDashboardPage.vue'
 
 jest.mock('gridstack', () => ({ GridStack: { init: jest.fn() } }), { virtual: true })
 jest.mock('gridstack/dist/gridstack.min.css', () => ({}), { virtual: true })
-jest.mock('vue-apexcharts', () => ({ name: 'vue-apexcharts-stub' }), { virtual: true })
+// Apexcharts is stubbed globally via jest.config.js moduleNameMapper.
 
 // CnWidgetWrapper stub that records the resolved show-refresh per widget id.
 const WidgetWrapperStub = {

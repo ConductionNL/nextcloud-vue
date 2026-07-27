@@ -41,7 +41,13 @@ module.exports = {
 		// throws in jsdom, and specs that import CnChartWidget transitively
 		// without a local mock used to leak the real module into the worker
 		// (order-dependent full-suite failures). See the mock file's docblock.
+		// Both names are mapped: the Vue-3 line imports `vue3-apexcharts`,
+		// while `vue-apexcharts` (Vue 2) may still arrive transitively. Missing
+		// the vue3 name let the REAL renderer load and throw in jsdom
+		// ("reading 'filter'" / "querySelectorAll"), which is what the stub
+		// exists to prevent.
 		'^vue-apexcharts$': '<rootDir>/tests/__mocks__/vue-apexcharts.js',
+		'^vue3-apexcharts$': '<rootDir>/tests/__mocks__/vue-apexcharts.js',
 		'^gridstack$': '<rootDir>/tests/__mocks__/gridstack.js',
 		'^gridstack/dist/gridstack\\.min\\.css$': 'jest-transform-stub',
 	},

@@ -62,7 +62,9 @@ module.exports = {
 		// full surface those components use with inert refs (none affect ARIA
 		// markup) — see the stub's docblock.
 		'^@vueuse/core$': '<rootDir>/tests/a11y/support/vueuseCoreStub.js',
+		// See jest.config.js — the Vue-3 line imports `vue3-apexcharts`.
 		'^vue-apexcharts$': '<rootDir>/tests/__mocks__/vue-apexcharts.js',
+		'^vue3-apexcharts$': '<rootDir>/tests/__mocks__/vue-apexcharts.js',
 		'^gridstack$': '<rootDir>/tests/__mocks__/gridstack.js',
 		'^gridstack/dist/gridstack\\.min\\.css$': 'jest-transform-stub',
 	},
