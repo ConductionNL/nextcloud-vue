@@ -99,3 +99,12 @@ jobs:
       # error anywhere.
       - name: Published CSS entry ships the scoped styles
         run: npm run check:css-entry
+
+      # Needs dist/, so it runs after the build. Asserts that every bare
+      # side-effect import the dist emits (CSS banner, *.vue.js render-attach
+      # wrappers, widget registrations) targets a module the
+      # package.json#sideEffects allowlist matches. When that invariant broke,
+      # consumers' webpack tree-shook the render-attach wrappers and every Cn
+      # component rendered as a silent comment node — blank app, zero errors.
+      - name: sideEffects allowlist covers dist side-effect imports
+        run: npm run check:dist-sideeffects
