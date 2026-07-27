@@ -1797,9 +1797,16 @@ export default {
 		 * has content — an overlay that swallows clicks on the body beneath it.
 		 */
 		hasDefaultSlotContent() {
-			const nodes = this.$slots.default ?? this.slotNodesFrom(this.$scopedSlots?.default)
-			if (!nodes || !nodes.length) return false
-			return nodes.some((vnode) => !(vnode.text !== undefined && vnode.text.trim() === ''))
+			const nodes = this.$slots.default
+			if (nodes && nodes.length) {
+				return nodes.some((vnode) => !(vnode.text !== undefined && vnode.text.trim() === ''))
+			}
+			// Scoped-slot shape: treat the slot's PRESENCE as content. Do not call
+			// it to inspect what it renders — building vnodes inside a computed
+			// getter is unsafe in Vue 2 (it can re-enter rendering). A consumer
+			// only passes a default scoped slot when it means to own the body,
+			// which is exactly what this flag is asked about.
+			return typeof this.$scopedSlots?.default === 'function'
 		},
 
 		/**
@@ -2083,28 +2090,6 @@ export default {
 		// Expose the shared grid helpers to the template (grid mode + auto-body).
 		cnGridCellStyle,
 		hasGridRow,
-
-		/**
-		 * Normalise a scoped-slot entry to an array of vnodes. Scoped slots are
-		 * functions; calling one with no props is safe for the presence check we
-		 * need (a slot that genuinely requires props renders nothing rather than
-		 * throwing, which still tells us it exists as content).
-		 *
-		 * @param {Function|Array|null|undefined} slot - The `$scopedSlots` entry.
-		 * @return {Array} Vnodes the slot produces (empty when it produces none).
-		 */
-		slotNodesFrom(slot) {
-			if (Array.isArray(slot)) return slot
-			if (typeof slot !== 'function') return []
-			try {
-				const out = slot({})
-				if (!out) return []
-				return Array.isArray(out) ? out : [out]
-			} catch (e) {
-				// A slot that throws without its props still IS content.
-				return [{}]
-			}
-		},
 
 		/**
 		 * Re-emit the page-header menu's Refresh to the host.
