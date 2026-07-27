@@ -178,12 +178,12 @@ describe('CnAppRoot registry validation', () => {
 			myModal: { kind: 'modal', component: MockModal, propsSchema: null },
 		}
 		const wrapper = mountRoot({ registry })
-		expect(wrapper.vm._provided.cnRegistry).toBe(registry)
+		expect(wrapper.vm.$.provides.cnRegistry).toBe(registry)
 	})
 
 	it('provides empty object when no registry prop is passed', () => {
 		const wrapper = mountRoot({})
-		expect(wrapper.vm._provided.cnRegistry).toEqual({})
+		expect(wrapper.vm.$.provides.cnRegistry).toEqual({})
 	})
 })
 

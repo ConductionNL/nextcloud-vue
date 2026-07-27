@@ -86,13 +86,13 @@ describe('CnAppRoot — CnObjectSidebar auto-mount', () => {
 		// CnIndexPage's inject uses `sidebarState` first, falling back to
 		// `objectSidebarState`. CnAppRoot must provide a distinct holder
 		// for the preferred name so the fallback never fires and the two
-		// channels stay isolated. Inspect CnAppRoot's `_provided` map
+		// channels stay isolated. Inspect CnAppRoot's `$.provides` map (Vue 3; `_provided` was the Vue-2 internal)
 		// directly — that's the contract every descendant inject reads.
 		const wrapper = shallowMount(CnAppRoot, {
 			propsData: { manifest, requiresApps: [] },
 			stubs: { CnObjectSidebar: true, CnAppNav: true, CnAiCompanion: true, NcContent: { template: '<div><slot/></div>' }, NcAppContent: { template: '<div><slot/></div>' } },
 		})
-		const provided = wrapper.vm._provided
+		const provided = wrapper.vm.$.provides
 		expect(provided.sidebarState).not.toBeUndefined()
 		expect(provided.objectSidebarState).not.toBeUndefined()
 		// Distinct references — the two channels must NOT alias, else
@@ -167,8 +167,8 @@ describe('CnAppRoot — CnObjectSidebar auto-mount', () => {
 		})
 		const appRoot = wrapper.findComponent(CnAppRoot)
 		// The provide map a deep descendant (CnDetailPage) would inject from.
-		expect(appRoot.vm._provided.objectSidebarState).toBe(ancestorState)
-		expect(appRoot.vm._provided.objectSidebarState).not.toBe(appRoot.vm.localObjectSidebarState)
+		expect(appRoot.vm.$.provides.objectSidebarState).toBe(ancestorState)
+		expect(appRoot.vm.$.provides.objectSidebarState).not.toBe(appRoot.vm.localObjectSidebarState)
 	})
 
 	it('still provides its OWN local holder when NO ancestor provides one', () => {
@@ -179,6 +179,6 @@ describe('CnAppRoot — CnObjectSidebar auto-mount', () => {
 			propsData: { manifest, requiresApps: [] },
 			stubs: { CnObjectSidebar: true, CnAppNav: true, CnAiCompanion: true, NcContent: { template: '<div><slot/></div>' }, NcAppContent: { template: '<div><slot/></div>' } },
 		})
-		expect(wrapper.vm._provided.objectSidebarState).toBe(wrapper.vm.localObjectSidebarState)
+		expect(wrapper.vm.$.provides.objectSidebarState).toBe(wrapper.vm.localObjectSidebarState)
 	})
 })

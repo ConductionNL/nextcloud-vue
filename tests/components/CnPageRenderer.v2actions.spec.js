@@ -33,7 +33,7 @@ describe('CnPageRenderer v2 — cnDispatchAction provide', () => {
 			mocks: { $route: { name: 'home', params: {} } },
 		})
 		// The provided function should exist
-		expect(typeof wrapper.vm._provided.cnDispatchAction).toBe('function')
+		expect(typeof wrapper.vm.$.provides.cnDispatchAction).toBe('function')
 	})
 
 	it('cnDispatchAction routes open-modal to cnOpenModal inject', () => {
@@ -46,7 +46,7 @@ describe('CnPageRenderer v2 — cnDispatchAction provide', () => {
 			mocks: { $route: { name: 'home', params: {} } },
 			provide: { cnOpenModal: openModal, cnRegistry: registry },
 		})
-		const dispatch = wrapper.vm._provided.cnDispatchAction
+		const dispatch = wrapper.vm.$.provides.cnDispatchAction
 		dispatch({ type: 'open-modal', target: 'my-modal', props: { title: 'Hello' } })
 		expect(openModal).toHaveBeenCalledWith('my-modal', { title: 'Hello' })
 	})
@@ -57,7 +57,7 @@ describe('CnPageRenderer v2 — cnDispatchAction provide', () => {
 			propsData: { manifest: v2Manifest },
 			mocks: { $route: { name: 'home', params: {} }, $router: { push } },
 		})
-		const dispatch = wrapper.vm._provided.cnDispatchAction
+		const dispatch = wrapper.vm.$.provides.cnDispatchAction
 		dispatch({ type: 'navigate', target: '/custom/path' })
 		expect(push).toHaveBeenCalledWith('/custom/path')
 	})
@@ -90,7 +90,7 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 	it('a type:"export" dispatch opens CnMassExportDialog configured from the action', async () => {
 		const wrapper = mountRenderer()
 		expect(wrapper.findComponent({ name: 'CnMassExportDialog' }).exists()).toBe(false)
-		wrapper.vm._provided.cnDispatchAction(exportAction)
+		wrapper.vm.$.provides.cnDispatchAction(exportAction)
 		await Vue.nextTick()
 		const dialog = wrapper.findComponent({ name: 'CnMassExportDialog' })
 		expect(dialog.exists()).toBe(true)
@@ -105,7 +105,7 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 
 	it('falls back to the dialog default formats when the action declares none', async () => {
 		const wrapper = mountRenderer()
-		wrapper.vm._provided.cnDispatchAction({ ...exportAction, formats: undefined })
+		wrapper.vm.$.provides.cnDispatchAction({ ...exportAction, formats: undefined })
 		await Vue.nextTick()
 		const dialog = wrapper.findComponent({ name: 'CnMassExportDialog' })
 		// undefined → CnMassExportDialog's own Excel/CSV defaults apply.
@@ -115,7 +115,7 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 	it('confirm routes to the manifest actions handler and reports success', async () => {
 		const exportReport = jest.fn().mockResolvedValue()
 		const wrapper = mountRenderer({ exportReport })
-		wrapper.vm._provided.cnDispatchAction(exportAction)
+		wrapper.vm.$.provides.cnDispatchAction(exportAction)
 		await Vue.nextTick()
 		await wrapper.vm.onExportConfirm({ format: 'csv', entity: 'leads' })
 		expect(exportReport).toHaveBeenCalledWith({ format: 'csv', entity: 'leads' }, exportAction)
@@ -125,7 +125,7 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 		const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
 		const setResult = jest.fn()
 		const wrapper = mountRenderer()
-		wrapper.vm._provided.cnDispatchAction(exportAction)
+		wrapper.vm.$.provides.cnDispatchAction(exportAction)
 		await Vue.nextTick()
 		wrapper.vm.$refs.exportDialog = { setResult }
 		await wrapper.vm.onExportConfirm({ format: 'csv' })
@@ -138,7 +138,7 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 		const exportReport = jest.fn().mockRejectedValue(new Error('backend down'))
 		const setResult = jest.fn()
 		const wrapper = mountRenderer({ exportReport })
-		wrapper.vm._provided.cnDispatchAction(exportAction)
+		wrapper.vm.$.provides.cnDispatchAction(exportAction)
 		await Vue.nextTick()
 		wrapper.vm.$refs.exportDialog = { setResult }
 		await wrapper.vm.onExportConfirm({ format: 'csv', entity: 'leads' })
@@ -147,7 +147,7 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 
 	it('closing the dialog clears the active export action', async () => {
 		const wrapper = mountRenderer()
-		wrapper.vm._provided.cnDispatchAction(exportAction)
+		wrapper.vm.$.provides.cnDispatchAction(exportAction)
 		await Vue.nextTick()
 		wrapper.findComponent({ name: 'CnMassExportDialog' }).vm.$emit('close')
 		await Vue.nextTick()

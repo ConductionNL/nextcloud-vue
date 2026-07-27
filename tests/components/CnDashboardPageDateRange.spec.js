@@ -235,9 +235,9 @@ describe('CnDashboardPage — dateRange prop', () => {
 			stubs,
 		})
 		// Vue 2.7 stores provides on the component instance under
-		// `_provided`. The ref is provided unconditionally; when the
+		// `$.provides`. The ref is provided unconditionally; when the
 		// feature is off, ref.value stays null.
-		const provided = wrapper.vm._provided.cnDashboardDateRange
+		const provided = wrapper.vm.$.provides.cnDashboardDateRange
 		expect(provided).toBeDefined()
 		expect(provided.value).toBeNull()
 	})
@@ -247,7 +247,7 @@ describe('CnDashboardPage — dateRange prop', () => {
 			propsData: { dateRange: { enabled: true }, layout: [], widgets: [] },
 			stubs,
 		})
-		const provided = wrapper.vm._provided.cnDashboardDateRange
+		const provided = wrapper.vm.$.provides.cnDashboardDateRange
 		// After mount, last-7 was assigned.
 		expect(provided.value).not.toBeNull()
 		expect(provided.value.preset).toBe('last-7')
