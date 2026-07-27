@@ -37,6 +37,8 @@ module.exports = {
 	],
 	moduleNameMapper: {
 		'^@/(.*)$': '<rootDir>/src/$1',
+		// See jest.config.js — VTU v1 -> v2 mount-options adapter.
+		'^@vue/test-utils$': '<rootDir>/tests/support/vueTestUtilsCompat.js',
 		'\\.(css)$': 'jest-transform-stub',
 		'^@toast-ui/editor$': '<rootDir>/tests/__mocks__/toast-ui-editor.js',
 		'^@mdi/js$': '<rootDir>/tests/__mocks__/mdi-js.js',

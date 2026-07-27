@@ -15,6 +15,10 @@ module.exports = {
 	],
 	moduleNameMapper: {
 		'^@/(.*)$': '<rootDir>/src/$1',
+		// VTU v2 silently ignores v1's top-level stubs/provide/mocks. This
+		// adapter hoists them into `global` so ~100 legacy specs keep the
+		// isolation they were written with. See the file's docblock.
+		'^@vue/test-utils$': '<rootDir>/tests/support/vueTestUtilsCompat.js',
 		'\\.(css)$': 'jest-transform-stub',
 		'^@toast-ui/editor$': '<rootDir>/tests/__mocks__/toast-ui-editor.js',
 		'^@mdi/js$': '<rootDir>/tests/__mocks__/mdi-js.js',
