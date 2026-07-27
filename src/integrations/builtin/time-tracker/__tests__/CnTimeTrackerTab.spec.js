@@ -90,7 +90,7 @@ describe('CnTimeTrackerTab', () => {
 		expect(wrapper.find('.cn-time-tracker-tab__kind-chip--time').exists()).toBe(true)
 		// Titles are passed to NcListItem via the `name` prop (rendered as
 		// an attribute by the test-env stub), not inline text.
-		const names = wrapper.findAll('.cn-time-tracker-tab__row')			.map((w) => w.attributes('name'))
+		const names = wrapper.findAll('.cn-time-tracker-tab__row').map((w) => w.attributes('name'))
 		expect(names).toContain('Acme Corp')
 		expect(names).toContain('Migrate database')
 		expect(names).toContain('Morning session')

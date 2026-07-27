@@ -47,7 +47,9 @@
 		     Vue-3 line uses the framework-agnostic `@toast-ui/editor` API. -->
 		<div v-else class="cn-markdown-editor__wysiwyg" data-testid="cn-markdown-wysiwyg">
 			<div v-show="toastEditorReady" ref="toastHost" />
-			<p v-if="!toastEditorReady" class="cn-markdown-editor__hint">{{ t('nextcloud-vue', 'Loading editor…') }}</p>
+			<p v-if="!toastEditorReady" class="cn-markdown-editor__hint">
+				{{ t('nextcloud-vue', 'Loading editor…') }}
+			</p>
 		</div>
 
 		<!-- Hint row. -->

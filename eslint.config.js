@@ -67,51 +67,79 @@ module.exports = defineConfig([{
 		// nextcloud-vue is a library, not a Nextcloud app, so these rules don't apply anyway.
 		'@nextcloud/no-deprecations': 'off',
 		'@nextcloud/no-removed-apis': 'off',
+
+		// --- Vue-2 rules that are INVERTED under Vue 3 ---
+		// The `@nextcloud` preset is the Vue-2 config; these three rules
+		// forbid syntax that Vue 3 requires or explicitly supports. Switching
+		// wholesale to `@nextcloud/eslint-config/vue3` was tried and pulls in
+		// an unrelated stricter rule set (775 errors), so the three are
+		// disabled individually instead.
+		//
+		// Vue 3 supports multi-root components (fragments).
+		'vue/no-multiple-template-root': 'off',
+		// Vue 3 REQUIRES the key on <template v-for>, not on its children —
+		// the exact opposite of the Vue-2 rule.
+		'vue/no-v-for-template-key': 'off',
+		// Vue 3 supports named v-model arguments (`v-model:open="x"`), which
+		// replaced Vue 2's `.sync` modifier.
+		'vue/no-v-model-argument': 'off',
 	},
 }, {
-	// Phase K / K2 — integration-leaf template-ES2020 guard (ADR-019).
-	//
-	// Vue 2 transpiles every <template> expression through buble
-	// (vue-template-compiler → vue-template-es2015-compiler), which does
-	// NOT understand optional chaining (`?.`) or nullish coalescing
-	// (`??`). Such syntax passes jest but breaks `npm run build` — the
-	// rollout's biggest near-miss (a template-side `obj?.field` in
-	// CnContactsCard.vue). `vue/no-restricted-syntax` runs against the
-	// template AST produced by vue-eslint-parser, so these selectors fire
-	// at lint time, before build.
-	//
-	// SCOPED to src/integrations/builtin/**/*.vue on purpose: the rest of
-	// the library has plenty of legitimate `?.`/`??` in <script> blocks
-	// (which buble never sees), and a fleet-wide rule would be noise. The
-	// `VElement[name='template']` ancestor restriction in each selector
-	// keeps the rule template-only even within these files.
-	files: ['src/integrations/builtin/**/*.vue'],
+	// The barrel does `export * from '@nextcloud/vue'` and then re-exports a
+	// corrected `NcSelectTags` by name. Per the ES module spec an explicit
+	// named export SHADOWS the same name arriving via `export *` — that
+	// precedence is the whole mechanism the override relies on, and it is
+	// documented at the export site. `import/export` does not model star-export
+	// precedence and reports it as a duplicate.
+	files: ['src/index.js'],
 	rules: {
-		'vue/no-restricted-syntax': ['error',
-			{
-				// Optional chaining (a?.b, a?.(), a?.[b]) inside a <template>.
-				selector: "VElement[name='template'] ChainExpression",
-				message: 'Optional chaining (?.) is not allowed in <template> — Vue 2\'s buble transpiler rejects it and `npm run build` breaks (it passes jest). Move the expression into a computed/method, or use an explicit (a && a.b) form.',
-			},
-			{
-				// Belt-and-braces: a bare optional MemberExpression that
-				// some parser versions emit without the ChainExpression wrapper.
-				selector: "VElement[name='template'] MemberExpression[optional=true]",
-				message: 'Optional chaining (?.) is not allowed in <template> — Vue 2\'s buble transpiler rejects it. Use an explicit (a && a.b) form.',
-			},
-			{
-				// Optional call: a?.()
-				selector: "VElement[name='template'] CallExpression[optional=true]",
-				message: 'Optional call (?.()) is not allowed in <template> — Vue 2\'s buble transpiler rejects it. Guard the call explicitly.',
-			},
-			{
-				// Nullish coalescing (a ?? b) inside a <template>.
-				selector: "VElement[name='template'] LogicalExpression[operator='??']",
-				message: 'Nullish coalescing (??) is not allowed in <template> — Vue 2\'s buble transpiler rejects it and `npm run build` breaks. Use an explicit (a == null ? b : a) form or a computed.',
-			},
-		],
+		'import/export': 'off',
 	},
 }, {
+	// `@nextcloud/vue` is a PEER dependency loaded through a guarded
+	// `try { require(...) } catch` so the composable degrades to a plain
+	// textarea when the host has not installed it. The resolver cannot follow
+	// the package's ESM-only `exports` map from a CJS require, so it reports
+	// the peer as missing.
+	files: ['src/composables/cnFormFieldRenderer.js'],
+	rules: {
+		'n/no-missing-require': 'off',
+	},
+}, {
+	// The manifest editor's contract IS in-place mutation of the passed
+	// object. `CnPageConfigModal`'s `page` prop documents it literally ("the
+	// working manifest's page, mutated in place"), `useManifestEditor` makes
+	// the live manifest deeply reactive so those in-place edits render, and
+	// consuming apps depend on it — OpenBuild's builder.js PUTs the very same
+	// manifest object back after the editor has mutated it.
+	//
+	// `vue/no-mutating-props` is therefore reporting the architecture, not a
+	// defect. Refactoring these 27 sites to emit-and-copy would change a
+	// documented public contract and is out of scope for the Vue-3 migration;
+	// the rule is scoped off for exactly the editor surfaces that rely on it
+	// rather than disabled library-wide.
+	files: [
+		'src/components/CnMenuTreeNode/CnMenuTreeRow.vue',
+		'src/components/CnPageTreeNode/CnPageTreeRow.vue',
+		'src/components/CnSchemaFormDialog/CnSchemaSecurityTab.vue',
+		'src/dialogs/CnEditSettingsModal.vue',
+		'src/dialogs/CnEditSetupModal.vue',
+		'src/dialogs/CnEditSupportModal.vue',
+		'src/dialogs/CnEditWalkthroughModal.vue',
+		'src/dialogs/CnPageConfigModal.vue',
+		'src/dialogs/CnWidgetStyleEditorModal.vue',
+	],
+	rules: {
+		'vue/no-mutating-props': 'off',
+	},
+}, {
+	// The Phase K / K2 integration-leaf template-ES2020 guard (ADR-019) was
+	// REMOVED with the Vue-3 migration. It forbade `?.` and `??` inside
+	// <template> because Vue 2 transpiled template expressions through buble
+	// (vue-template-compiler → vue-template-es2015-compiler), which rejected
+	// both. Vue 3's compiler handles them natively — verified against
+	// @vue/compiler-sfc — so the restriction no longer serves any purpose.
+	//
 	// CLI scripts are Node.js executables — process.exit(), CJS require(), and
 	// minimal JSDoc are intentional and appropriate for build tools.
 	files: ['src/cli/**/*.js', 'src/cli/**/*.cjs'],

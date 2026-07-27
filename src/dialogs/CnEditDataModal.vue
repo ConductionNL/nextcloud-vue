@@ -470,7 +470,7 @@ export default {
 			if (!ds || !Array.isArray(ds.registers) || !reg) return
 			const dsReg = ds.registers.find((r) => r.value === reg.slug)
 			if (!dsReg) return
-			dsReg['schemas'] = this.schemas.map((s) => ({
+			dsReg.schemas = this.schemas.map((s) => ({
 				value: s.slug,
 				label: s.title || s.slug,
 				columns: (s.properties && typeof s.properties === 'object') ? Object.keys(s.properties) : [],
@@ -520,7 +520,7 @@ export default {
 				const ds = this.cnDataSources
 				if (ds && Array.isArray(ds.registers)) {
 					const dsReg = ds.registers.find((r) => r.value === reg.slug)
-					if (dsReg) dsReg['label'] = title
+					if (dsReg) dsReg.label = title
 				}
 				this.renamingRegister = false
 			} catch (e) {

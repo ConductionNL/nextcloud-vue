@@ -25,7 +25,9 @@ through `GET`/`PATCH /apps/openregister/api/schemas/{id}` (see `CnFlowCanvasModa
 	<div class="cn-flow-canvas">
 		<!-- Palette: drag a trigger (starts a new flow) or an action onto the canvas. -->
 		<div class="cn-flow-canvas__palette">
-			<h4 class="cn-flow-canvas__palette-heading">{{ t('nextcloud-vue', 'Triggers') }}</h4>
+			<h4 class="cn-flow-canvas__palette-heading">
+				{{ t('nextcloud-vue', 'Triggers') }}
+			</h4>
 			<div v-for="tr in triggerPalette"
 				:key="tr.id"
 				class="cn-flow-palette-item cn-flow-palette-item--trigger"
@@ -36,7 +38,9 @@ through `GET`/`PATCH /apps/openregister/api/schemas/{id}` (see `CnFlowCanvasModa
 				<span>{{ tr.label }}</span>
 			</div>
 
-			<h4 class="cn-flow-canvas__palette-heading">{{ t('nextcloud-vue', 'Actions') }}</h4>
+			<h4 class="cn-flow-canvas__palette-heading">
+				{{ t('nextcloud-vue', 'Actions') }}
+			</h4>
 			<div v-for="ac in actionPalette"
 				:key="ac.id"
 				class="cn-flow-palette-item cn-flow-palette-item--action"
@@ -67,8 +71,12 @@ through `GET`/`PATCH /apps/openregister/api/schemas/{id}` (see `CnFlowCanvasModa
 							<component :is="nodeIcon(node)" :size="20" />
 						</div>
 						<div class="cn-flow-node__body">
-							<div class="cn-flow-node__title">{{ nodeTitle(node) }}</div>
-							<div class="cn-flow-node__subtitle">{{ nodeSubtitle(node) }}</div>
+							<div class="cn-flow-node__title">
+								{{ nodeTitle(node) }}
+							</div>
+							<div class="cn-flow-node__subtitle">
+								{{ nodeSubtitle(node) }}
+							</div>
 						</div>
 					</div>
 				</template>
@@ -89,7 +97,9 @@ through `GET`/`PATCH /apps/openregister/api/schemas/{id}` (see `CnFlowCanvasModa
 			<div class="cn-flow-canvas__config-header">
 				<h4>{{ selectedNode.data.kind === 'trigger' ? t('nextcloud-vue', 'Trigger') : t('nextcloud-vue', 'Action') }}</h4>
 				<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Delete')" @click="deleteSelected">
-					<template #icon><Delete :size="18" /></template>
+					<template #icon>
+						<Delete :size="18" />
+					</template>
 				</NcButton>
 			</div>
 
@@ -115,7 +125,9 @@ through `GET`/`PATCH /apps/openregister/api/schemas/{id}` (see `CnFlowCanvasModa
 						:model-value="String(actionOf(selectedNode)[field.key] || '')"
 						@update:modelValue="setActionField(selectedNode.data.fi, selectedNode.data.ai, field.key, $event)" />
 				</div>
-				<p v-if="schemaFieldHint" class="cn-flow-canvas__hint">{{ schemaFieldHint }}</p>
+				<p v-if="schemaFieldHint" class="cn-flow-canvas__hint">
+					{{ schemaFieldHint }}
+				</p>
 			</template>
 		</div>
 	</div>
@@ -184,8 +196,19 @@ export default {
 	name: 'CnFlowCanvas',
 
 	components: {
-		CnGraphCanvas, NcButton, NcTextField, NcSelect, NcEmptyContent,
-		FlashOutline, Email, CalendarPlus, Robot, ShareVariant, Cog, Delete, Sitemap,
+		CnGraphCanvas,
+		NcButton,
+		NcTextField,
+		NcSelect,
+		NcEmptyContent,
+		FlashOutline,
+		Email,
+		CalendarPlus,
+		Robot,
+		ShareVariant,
+		Cog,
+		Delete,
+		Sitemap,
 	},
 
 	props: {
@@ -311,7 +334,8 @@ export default {
 		},
 		schemaFieldHint() {
 			const props = (this.schema && this.schema.properties && typeof this.schema.properties === 'object')
-				? Object.keys(this.schema.properties) : []
+				? Object.keys(this.schema.properties)
+				: []
 			if (!props.length) return ''
 			return t('nextcloud-vue', 'Available fields: {fields}', { fields: props.slice(0, 12).join(', ') })
 		},

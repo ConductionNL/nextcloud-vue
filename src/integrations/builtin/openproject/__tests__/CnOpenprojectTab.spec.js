@@ -83,7 +83,7 @@ describe('CnOpenprojectTab', () => {
 		expect(text).toContain('Closed')
 		// Assignees render as NcAvatar; their names live in the avatar's
 		// display-name attribute, not as visible row text.
-		const avatarNames = wrapper.findAll('.cn-openproject-tab__assignee')			.map((w) => w.attributes('display-name'))
+		const avatarNames = wrapper.findAll('.cn-openproject-tab__assignee').map((w) => w.attributes('display-name'))
 		expect(avatarNames).toContain('Bob')
 		expect(avatarNames).toContain('Carol')
 		const bug = wrapper.find('.cn-openproject-tab__type-badge--bug')

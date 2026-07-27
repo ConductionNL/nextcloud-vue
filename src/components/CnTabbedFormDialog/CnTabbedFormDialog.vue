@@ -77,9 +77,9 @@
 			<!-- Create another checkbox (only in create mode) -->
 			<NcCheckboxRadioSwitch
 				v-if="showCreateAnother && isCreateMode"
+				v-model="createAnother"
 				class="cn-tabbed-form-dialog__create-another"
-				:disabled="loading"
-				v-model="createAnother">
+				:disabled="loading">
 				{{ createAnotherLabel }}
 			</NcCheckboxRadioSwitch>
 

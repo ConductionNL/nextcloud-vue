@@ -26,7 +26,9 @@ selected schema, and persists via `PATCH /apps/openregister/api/schemas/{id}` (k
 			<NcEmptyContent v-else-if="!schemas.length"
 				:name="t('nextcloud-vue', 'No schemas to attach flows to')"
 				:description="t('nextcloud-vue', 'This app\'s pages reference no OpenRegister register, so there is nothing to automate yet.')">
-				<template #icon><Sitemap :size="20" /></template>
+				<template #icon>
+					<Sitemap :size="20" />
+				</template>
 			</NcEmptyContent>
 
 			<template v-else>
@@ -43,7 +45,9 @@ selected schema, and persists via `PATCH /apps/openregister/api/schemas/{id}` (k
 						@click.prevent="onOpenForm">{{ t('nextcloud-vue', 'Use the form editor instead') }}</a>
 				</div>
 
-				<NcNoteCard v-if="error" type="error">{{ error }}</NcNoteCard>
+				<NcNoteCard v-if="error" type="error">
+					{{ error }}
+				</NcNoteCard>
 
 				<CnFlowCanvas v-model="flows" :schema="selectedSchema" :event-catalog="eventCatalog" />
 			</template>

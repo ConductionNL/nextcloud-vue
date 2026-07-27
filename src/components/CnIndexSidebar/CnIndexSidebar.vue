@@ -1,9 +1,9 @@
 <template>
 	<NcAppSidebar
+		v-model:open="internalOpen"
 		:name="resolvedName"
 		:title="resolvedName"
 		:subname="resolvedSubname"
-		v-model:open="internalOpen"
 		:active="internalActiveTab"
 		:compact="!!resolvedIcon"
 		@close="$emit('update:open', false)"

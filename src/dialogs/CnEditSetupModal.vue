@@ -24,8 +24,8 @@
 			<ul class="cn-edit-setup__list">
 				<li v-for="(step, index) in steps" :key="step.id" class="cn-edit-setup__step">
 					<div class="cn-edit-setup__row">
-						<NcTextField :label="t('nextcloud-vue', 'Step title')"
-							v-model="step.title" />
+						<NcTextField v-model="step.title"
+							:label="t('nextcloud-vue', 'Step title')" />
 						<NcButton type="tertiary"
 							:aria-label="t('nextcloud-vue', 'Remove step')"
 							@click="remove(index)">
@@ -43,8 +43,8 @@
 							label="label"
 							:input-label="t('nextcloud-vue', 'Step type')" />
 					</label>
-					<NcTextArea :label="t('nextcloud-vue', 'Body')"
-						v-model="step.body" />
+					<NcTextArea v-model="step.body"
+						:label="t('nextcloud-vue', 'Body')" />
 					<NcTextField v-if="step.type === 'config-fields'"
 						:label="t('nextcloud-vue', 'Fields to ask for (comma-separated keys, e.g. store_name, contact_email)')"
 						:model-value="configKeysText(step)"
@@ -126,10 +126,10 @@ export default {
 		// track later mutations (added steps wouldn't render).
 		if (!this.working) return
 		if (!this.working.setup || typeof this.working.setup !== 'object') {
-			this.working['setup'] = { enabled: true, steps: [] }
+			this.working.setup = { enabled: true, steps: [] }
 		}
 		if (!Array.isArray(this.working.setup.steps)) {
-			this.working.setup['steps'] = []
+			this.working.setup.steps = []
 		}
 	},
 
@@ -166,9 +166,9 @@ export default {
 		setConfigKeys(step, value) {
 			const keys = (value || '').split(',').map((k) => k.trim()).filter((k) => k !== '')
 			if (keys.length === 0) {
-				delete step['configKeys']
+				delete step.configKeys
 			} else {
-				step['configKeys'] = keys
+				step.configKeys = keys
 			}
 		},
 	},

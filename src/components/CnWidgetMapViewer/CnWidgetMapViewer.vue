@@ -35,9 +35,9 @@ import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
  */
 export default {
 	name: 'CnWidgetMapViewer',
-	inheritAttrs: false,
 
 	components: { CnMapWidget, CnWidgetWrapper },
+	inheritAttrs: false,
 
 	props: {
 		/**

@@ -323,8 +323,8 @@
 						     two blocks in sync when editing either. -->
 						<template v-if="dateRangeEnabled && item.dateChip === true" #title-meta>
 							<NcActions
-								:force-menu="true"
 								v-model:open="openChipPicker[item.widgetId]"
+								:force-menu="true"
 								container="body"
 								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
 								class="cn-dashboard-page__date-chip-trigger">
@@ -381,8 +381,8 @@
 						@request-feature="onWidgetRequestFeature(item)">
 						<template v-if="dateRangeEnabled && (item.dateChip === true || formatChartDateRange(item))" #title-meta>
 							<NcActions
-								:force-menu="true"
 								v-model:open="openChipPicker[item.widgetId]"
+								:force-menu="true"
 								container="body"
 								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
 								class="cn-dashboard-page__date-chip-trigger">
@@ -514,8 +514,8 @@
 						     custom-slot chip block. -->
 						<template v-if="dateRangeEnabled && item.dateChip === true" #title-meta>
 							<NcActions
-								:force-menu="true"
 								v-model:open="openChipPicker[item.widgetId]"
+								:force-menu="true"
 								container="body"
 								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
 								class="cn-dashboard-page__date-chip-trigger">
@@ -1988,9 +1988,9 @@ export default {
 		 */
 		syncRangeToWorkspace(value) {
 			const v = value || {}
-			this.workspaceContext['dateFrom'] = v.from || ''
-			this.workspaceContext['dateTo'] = v.to || ''
-			this.workspaceContext['datePreset'] = v.preset || ''
+			this.workspaceContext.dateFrom = v.from || ''
+			this.workspaceContext.dateTo = v.to || ''
+			this.workspaceContext.datePreset = v.preset || ''
 		},
 
 		/**
@@ -2077,10 +2077,10 @@ export default {
 					const item = this.layout.find((l) => String(l.id) === String(u.id))
 						|| this.layout.find((l) => l.widgetId === u.widgetId)
 					if (!item) continue
-					if (u.gridX !== undefined) item['gridX'] = u.gridX
-					if (u.gridY !== undefined) item['gridY'] = u.gridY
-					if (u.gridWidth !== undefined) item['gridWidth'] = u.gridWidth
-					if (u.gridHeight !== undefined) item['gridHeight'] = u.gridHeight
+					if (u.gridX !== undefined) item.gridX = u.gridX
+					if (u.gridY !== undefined) item.gridY = u.gridY
+					if (u.gridWidth !== undefined) item.gridWidth = u.gridWidth
+					if (u.gridHeight !== undefined) item.gridHeight = u.gridHeight
 				}
 			}
 			/**
@@ -2301,16 +2301,16 @@ export default {
 				? this.widgets.find((w) => w.id === this.configWidgetId)
 				: null
 			if (def) {
-				def['title'] = edited.title !== undefined ? edited.title : def.title
-				def['styleConfig'] = edited.styleConfig || {}
-				def['showTitle'] = edited.showTitle !== false
-				def['customTitle'] = edited.customTitle || null
-				def['customIcon'] = edited.customIcon || null
-				if (edited.content !== undefined) def['content'] = edited.content
+				def.title = edited.title !== undefined ? edited.title : def.title
+				def.styleConfig = edited.styleConfig || {}
+				def.showTitle = edited.showTitle !== false
+				def.customTitle = edited.customTitle || null
+				def.customIcon = edited.customIcon || null
+				if (edited.content !== undefined) def.content = edited.content
 			}
 			const layoutItem = this.layout.find((l) => l.widgetId === this.configWidgetId)
 			if (layoutItem) {
-				layoutItem['styleConfig'] = edited.styleConfig || {}
+				layoutItem.styleConfig = edited.styleConfig || {}
 			}
 			this.showWidgetConfig = false
 			this.$emit('layout-change', this.layout)

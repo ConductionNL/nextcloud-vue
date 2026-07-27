@@ -1,14 +1,14 @@
 <template>
 	<div class="cn-schema-form__form-editor">
-		<NcTextArea :disabled="loading"
-			:label="t('nextcloud-vue', 'Description')"
-			v-model="schema.description" />
-		<NcTextArea :disabled="loading"
-			:label="t('nextcloud-vue', 'Summary')"
-			v-model="schema.summary" />
-		<NcTextField :disabled="loading"
-			:label="t('nextcloud-vue', 'Slug')"
-			v-model="schema.slug" />
+		<NcTextArea v-model="schema.description"
+			:disabled="loading"
+			:label="t('nextcloud-vue', 'Description')" />
+		<NcTextArea v-model="schema.summary"
+			:disabled="loading"
+			:label="t('nextcloud-vue', 'Summary')" />
+		<NcTextField v-model="schema.slug"
+			:disabled="loading"
+			:label="t('nextcloud-vue', 'Slug')" />
 
 		<!-- Schema Composition Section -->
 		<div>
@@ -124,18 +124,18 @@
 			:input-label="t('nextcloud-vue', 'Object summary field')"
 			:placeholder="t('nextcloud-vue', 'Select a property to use as object summary. e.g. summary, abstract, or excerpt')" />
 		<NcCheckboxRadioSwitch
-			:disabled="loading"
-			v-model="schema.configuration.allowFiles">
+			v-model="schema.configuration.allowFiles"
+			:disabled="loading">
 			{{ t('nextcloud-vue', 'Allow files') }}
 		</NcCheckboxRadioSwitch>
 		<NcCheckboxRadioSwitch
-			:disabled="loading"
-			v-model="schema.configuration.autoPublish">
+			v-model="schema.configuration.autoPublish"
+			:disabled="loading">
 			{{ t('nextcloud-vue', 'Auto-publish objects') }}
 		</NcCheckboxRadioSwitch>
 		<NcCheckboxRadioSwitch
-			:disabled="loading"
-			v-model="schema.configuration.defaultAutoShare">
+			v-model="schema.configuration.defaultAutoShare"
+			:disabled="loading">
 			{{ t('nextcloud-vue', 'Default "Automatically publish" toggle to on for new attachments') }}
 		</NcCheckboxRadioSwitch>
 		<NcTextField
@@ -145,27 +145,27 @@
 			:placeholder="t('nextcloud-vue', 'image, document, audio, video')"
 			@update:model-value="updateAllowedTags" />
 		<NcCheckboxRadioSwitch
-			:disabled="loading"
-			v-model="schema.hardValidation">
+			v-model="schema.hardValidation"
+			:disabled="loading">
 			{{ t('nextcloud-vue', 'Hard validation') }}
 		</NcCheckboxRadioSwitch>
-		<NcTextField :disabled="loading"
+		<NcTextField v-model="schema.maxDepth"
+			:disabled="loading"
 			:label="t('nextcloud-vue', 'Max depth')"
-			type="number"
-			v-model="schema.maxDepth" />
+			type="number" />
 		<NcTextField :disabled="loading"
 			:label="t('nextcloud-vue', 'Icon (Material Design Icon name, e.g. Dog)')"
 			:model-value="schema.icon || ''"
 			:placeholder="t('nextcloud-vue', 'e.g. Dog, Account, Tag — see pictogrammers.com/library/mdi')"
 			@update:model-value="setIcon" />
 		<NcCheckboxRadioSwitch
-			:disabled="loading"
-			v-model="schema.immutable">
+			v-model="schema.immutable"
+			:disabled="loading">
 			{{ t('nextcloud-vue', 'Immutable') }}
 		</NcCheckboxRadioSwitch>
 		<NcCheckboxRadioSwitch
-			:disabled="loading"
-			v-model="schema.searchable">
+			v-model="schema.searchable"
+			:disabled="loading">
 			{{ t('nextcloud-vue', 'Searchable (appears in Nextcloud unified search)') }}
 		</NcCheckboxRadioSwitch>
 	</div>
@@ -237,14 +237,14 @@ export default {
 		 */
 		setIcon(value) {
 			const trimmed = (value || '').trim()
-			this.schema['icon'] = trimmed === '' ? null : trimmed
+			this.schema.icon = trimmed === '' ? null : trimmed
 		},
 		updateAllowedTags(value) {
 			if (!value || value.trim() === '') {
-				this.schema.configuration['allowedTags'] = []
+				this.schema.configuration.allowedTags = []
 			} else {
 				const tags = value.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
-				this.schema.configuration['allowedTags'] = tags
+				this.schema.configuration.allowedTags = tags
 			}
 		},
 	},
