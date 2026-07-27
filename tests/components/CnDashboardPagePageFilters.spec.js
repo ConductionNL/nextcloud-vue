@@ -87,7 +87,8 @@ describe('CnDashboardPage — pageFilters', () => {
 		// Pre-set the key via a parent-provided reactive context is awkward in a
 		// unit mount; instead assert initPageFilters is a no-op when present.
 		const wrapper = mountDash({ pageFilters: [PERIOD_FILTER] })
-		wrapper.vm.$set(wrapper.vm.workspaceContext, 'period', 'custom')
+		// Vue 3 removed `$set` — reactivity tracks added keys natively.
+		wrapper.vm.workspaceContext.period = 'custom'
 		wrapper.vm.initPageFilters()
 		expect(wrapper.vm.workspaceContext.period).toBe('custom')
 	})
