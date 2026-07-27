@@ -36,9 +36,13 @@ jest.mock('@/components/CnVersionInfoCard/CnVersionInfoCard.vue', () => ({
 		name: 'CnVersionInfoCard',
 		props: ['appName', 'appVersion', 'showUpdateButton', 'isUpToDate'],
 		render() {
+			// `jest.mock` factories are hoisted above the imports, so the
+			// module-scope `h` import is out of scope here — require it inline.
+			// eslint-disable-next-line global-require
+			const { h } = require('vue')
 			return h('div', {
 				class: 'cn-version-info-card-stub',
-				attrs: { 'data-app-name': this.appName },
+				'data-app-name': this.appName,
 			}, 'version-info')
 		},
 	},
@@ -50,9 +54,12 @@ jest.mock('@/components/CnRegisterMapping/CnRegisterMapping.vue', () => ({
 		name: 'CnRegisterMapping',
 		props: ['name', 'groups', 'configuration', 'showReimportButton'],
 		render() {
+			// Hoisted factory — require `h` inline (see the mock above).
+			// eslint-disable-next-line global-require
+			const { h } = require('vue')
 			return h('div', {
 				class: 'cn-register-mapping-stub',
-				attrs: { 'data-name': this.name },
+				'data-name': this.name,
 			}, 'register-mapping')
 		},
 	},
@@ -190,7 +197,7 @@ describe('CnSettingsPage — tabs orchestration (REQ-MSO-*)', () => {
 			render() {
 				return h('div', {
 					class: 'workflow-editor-stub',
-					attrs: { 'data-schema': this.schemaSlug },
+					'data-schema': this.schemaSlug,
 				}, 'workflow editor')
 			},
 		}

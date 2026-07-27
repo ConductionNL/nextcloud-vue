@@ -20,6 +20,7 @@ jest.mock('@nextcloud/axios', () => ({
 }))
 
 import { mount } from '@vue/test-utils'
+import { h } from 'vue'
 import CnFormPage from '@/components/CnFormPage/CnFormPage.vue'
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0))
@@ -532,8 +533,11 @@ describe('CnFormPage — manifest-form-logic', () => {
 			const wrapper = mountForm({ fields, submitHandler: 'submit' }, {
 				mountOptions: {
 					scopedSlots: {
+						// Vue 3 has no `this.$createElement`, no `staticClass`, and no
+						// nested `attrs:` — slot functions import `h` and pass a flat
+						// props object.
 						'field-rating'(props) {
-							return this.$createElement('div', { staticClass: 'custom-rating', attrs: { 'data-error': props.error || '' } })
+							return h('div', { class: 'custom-rating', 'data-error': props.error || '' })
 						},
 					},
 				},

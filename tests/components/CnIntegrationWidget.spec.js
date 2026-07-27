@@ -30,7 +30,7 @@ function leafStub(id) {
 		name: `Stub${id}Tab`,
 		props: ['integrationId', 'register', 'schema', 'objectId', 'surface', 'apiBase', 'objectType'],
 		render() {
-			return h('div', { class: 'leaf-content', attrs: { 'data-leaf': this.integrationId } }, `${id} content`)
+			return h('div', { class: 'leaf-content', 'data-leaf': this.integrationId }, `${id} content`)
 		},
 	}
 }
@@ -74,7 +74,7 @@ function mountWidget(registry, propsData = {}) {
 				props: ['name', 'description'],
 				render() {
 					const slots = this.$slots
-					return h('div', { class: 'nc-empty', attrs: { 'data-name': this.name } }, [
+					return h('div', { class: 'nc-empty', 'data-name': this.name }, [
 						slots.icon,
 						slots.action,
 					])
@@ -84,7 +84,7 @@ function mountWidget(registry, propsData = {}) {
 				name: 'NcButton',
 				props: ['href', 'type'],
 				render() {
-					return h('a', { class: 'nc-button', attrs: { href: this.href } }, this.$slots.default)
+					return h('a', { class: 'nc-button', href: this.href }, this.$slots.default)
 				},
 			},
 		},

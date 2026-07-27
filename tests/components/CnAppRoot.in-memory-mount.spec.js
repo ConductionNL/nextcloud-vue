@@ -64,7 +64,7 @@ const ManifestInjectingRouterView = {
 	inject: ['cnManifest'],
 	render() {
 		const firstPageId = this.cnManifest?.pages?.[0]?.id ?? '(no-page)'
-		return h('div', { class: 'router-view-stub', attrs: { 'data-page-id': firstPageId } }, firstPageId)
+		return h('div', { class: 'router-view-stub', 'data-page-id': firstPageId }, firstPageId)
 	},
 }
 

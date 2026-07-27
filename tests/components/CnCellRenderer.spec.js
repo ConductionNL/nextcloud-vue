@@ -140,7 +140,7 @@ describe('CnCellRenderer — column widgets', () => {
 			name: 'TestPill',
 			props: ['value', 'row', 'property', 'formatted', 'tone'],
 			render() {
-				return h('span', { attrs: { 'data-test': 'pill', 'data-tone': this.tone } }, `${this.formatted}|${this.row.id}`)
+				return h('span', { 'data-test': 'pill', 'data-tone': this.tone }, `${this.formatted}|${this.row.id}`)
 			},
 		}
 		const wrapper = mountRenderer(
@@ -154,7 +154,7 @@ describe('CnCellRenderer — column widgets', () => {
 	})
 
 	it('a consumer widget receives the formatter-shaped value as `formatted` when formatter is also set', () => {
-		const Plain = { name: 'Plain', props: ['formatted'], render() { return h('span', { attrs: { 'data-test': 'p' } }, this.formatted) } }
+		const Plain = { name: 'Plain', props: ['formatted'], render() { return h('span', { 'data-test': 'p' }, this.formatted) } }
 		const wrapper = mountRenderer(
 			{ value: 'lead.created', property: { type: 'string' }, formatter: 'human', widget: 'plain' },
 			{ cnFormatters: { human: () => 'Lead created' }, cnCellWidgets: { plain: Plain } },
@@ -203,7 +203,7 @@ describe('CnCellRenderer — column widgets', () => {
 	})
 
 	it('a consumer-registered fkResolve override wins over the built-in', () => {
-		const Custom = { name: 'CustomFk', render() { return h('span', { attrs: { 'data-test': 'custom-fk' } }, 'custom') } }
+		const Custom = { name: 'CustomFk', render() { return h('span', { 'data-test': 'custom-fk' }, 'custom') } }
 		const wrapper = mountRenderer(
 			{ value: 'uuid-1', property: { type: 'string' }, widget: 'fkResolve' },
 			{ cnCellWidgets: { fkResolve: Custom } },
@@ -221,7 +221,7 @@ describe('CnCellRenderer — built-in "link" widget (REQ-MIPFU-2)', () => {
 		name: 'RouterLink',
 		props: ['to'],
 		render() {
-			return h('a', { attrs: { 'data-test': 'router-link', 'data-to': JSON.stringify(this.to) } }, this.$slots.default)
+			return h('a', { 'data-test': 'router-link', 'data-to': JSON.stringify(this.to) }, this.$slots.default)
 		},
 	}
 

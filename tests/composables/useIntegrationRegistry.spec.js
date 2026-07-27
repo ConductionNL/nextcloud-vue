@@ -19,7 +19,7 @@ function buildHarness(registry) {
 			return { ids, integrations, getById, resolveWidget }
 		},
 		render() {
-			return h('div', { attrs: { 'data-ids': this.ids } })
+			return h('div', { 'data-ids': this.ids })
 		},
 	})
 }
