@@ -71,7 +71,7 @@ describe('CnDetailPage — auto-subscribe store resolution', () => {
 		// Auto-subscribe engaged against the default store.
 		expect(mockDefaultStore.subscribe).toHaveBeenCalledWith('openbuilt-application', 'a-1')
 
-		w.destroy()
+		w.unmount()
 		await flush()
 		expect(mockDefaultStore.unsubscribe).toHaveBeenCalledTimes(1)
 	})
@@ -84,7 +84,7 @@ describe('CnDetailPage — auto-subscribe store resolution', () => {
 		expect(mockDefaultStore.subscribe).not.toHaveBeenCalled()
 		// The schema-driven fetch still runs — only the subscription is skipped.
 		expect(mockDefaultStore.fetchObject).toHaveBeenCalledWith('openbuilt-application', 'a-1')
-		w.destroy()
+		w.unmount()
 	})
 
 	it('legacy objectType-only mount without a store does not subscribe', async () => {
@@ -93,7 +93,7 @@ describe('CnDetailPage — auto-subscribe store resolution', () => {
 		})
 		await flush()
 		expect(mockDefaultStore.subscribe).not.toHaveBeenCalled()
-		w.destroy()
+		w.unmount()
 	})
 
 	it('an explicit objectStore prop wins over the schema-driven fallback', async () => {
@@ -118,6 +118,6 @@ describe('CnDetailPage — auto-subscribe store resolution', () => {
 		await flush()
 		expect(explicitStore.subscribe).toHaveBeenCalledWith('openbuilt-application', 'a-1')
 		expect(mockDefaultStore.subscribe).not.toHaveBeenCalled()
-		w.destroy()
+		w.unmount()
 	})
 })

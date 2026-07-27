@@ -57,7 +57,7 @@
   and REQ-OR-1..REQ-OR-7 of the cnapproot-app-availability-guard spec.
 -->
 <template>
-	<NcContent :app-name="appDisplayName || (manifest && manifest.name) || appId" data-testid="cn-app-root">
+	<NcContent :app-name="appDisplayName || (manifest && manifest.name) || appId" :data-nldesign-theme-scope="appId" data-testid="cn-app-root">
 		<!-- Phase 0a: capabilities check in flight -->
 		<template v-if="capabilitiesLoading">
 			<div class="cn-app-root__capabilities-loading" data-testid="cn-app-root-capabilities-loading">
@@ -170,6 +170,8 @@
 					<CnSetupWizard
 						:app-id="appId"
 						:steps="manifest.setup.steps"
+						:cancellable="false"
+						:completed-step-ids="setupCompletedStepIds"
 						@complete="onSetupComplete" />
 				</div>
 			</slot>
@@ -299,8 +301,8 @@
 			-->
 			<slot v-if="cnPageSidebarVisible.value !== false" name="sidebar">
 				<component
-					:is="cnPageSidebarComponent.value"
-					v-if="cnPageSidebarComponent.value" />
+					:is="pageSidebarComponent"
+					v-if="pageSidebarComponent" />
 			</slot>
 			<!--
 			  Hoisted index-page sidebar. CnIndexPage publishes its
@@ -362,6 +364,22 @@
 			  component; app opt-in is via the `aiCompanion` prop (default off).
 			-->
 			<CnAiCompanion v-if="aiCompanion" :chat-app-id="chatAppId" />
+
+			<!--
+			  Non-gating setup wizard (REQ-SETUP-NV-012 optional path). Shown
+			  when every required setup step is met but an optional one isn't;
+			  auto-opens once per manifest `setup.version` and stays dismissible
+			  (Cancel/ESC/backdrop) — unlike the gating phase 2b instance above.
+			-->
+			<div v-if="setupWizardOpen" class="cn-app-root__setup-optional">
+				<CnSetupWizard
+					:app-id="appId"
+					:steps="manifest.setup.steps"
+					:cancellable="true"
+					:completed-step-ids="setupCompletedStepIds"
+					@complete="onSetupComplete"
+					@close="dismissSetupWizard" />
+			</div>
 
 			<!--
 			  Command palette (Ctrl/Cmd+K) — auto-mounted, opt-in via the
@@ -569,6 +587,7 @@ import { provideTenantContext } from '../../composables/useTenantContext.js'
 import { computed, shallowRef, watch, reactive } from 'vue'
 import { useManifestEditor } from '../../composables/useManifestEditor.js'
 import { useOpenBuildEditAvailability } from '../../composables/useOpenBuildEditAvailability.js'
+import { useScopedTheme } from '../../composables/useScopedTheme.js'
 import { loadState } from '@nextcloud/initial-state'
 import { useAppStatus } from '../../composables/useAppStatus.js'
 import { useAppInstaller } from '../../composables/useAppInstaller.js'
@@ -1372,6 +1391,23 @@ export default {
 			() => openBuildAvailable.value && props.manifest?.openbuildEditable !== false,
 		)
 
+		// Scoped NL Design token-set theming (scoped-theme-applier). Watches the
+		// SAME editing/props branch `cnManifest`'s getter already uses, so the
+		// applied theme tracks whichever manifest is currently effective —
+		// including an in-app live-preview editing session (ADR-041) — with no
+		// separate wiring needed for that case. `apply()` is a progressive
+		// enhancement: nldesign absent/unreachable/non-conformant degrades
+		// silently to default styling, never a throw (REQ-STA-1/REQ-STA-3).
+		const scopedTheme = useScopedTheme()
+		watch(
+			() => (manifestEditor.editing.value ? manifestEditor.source.value : props.manifest)?.runtime?.theme,
+			() => scopedTheme.apply(
+				manifestEditor.editing.value ? manifestEditor.source.value : props.manifest,
+				props.appId,
+			),
+			{ deep: true, immediate: true },
+		)
+
 		return {
 			...supportPair,
 			cnTenantContext: tenantContext,
@@ -1380,6 +1416,7 @@ export default {
 			appInstaller,
 			depInstalling: appInstaller.installing,
 			depInstallError: appInstaller.error,
+			cnScopedTheme: scopedTheme,
 		}
 	},
 
@@ -1529,6 +1566,34 @@ export default {
 				return out
 			})(),
 			/**
+			 * Whether the user has already dismissed the non-gating setup
+			 * wizard for the manifest's CURRENT `setup.version` (REQ-SETUP-NV-012
+			 * optional-only path). Seeded synchronously from `localStorage`
+			 * (`cn-setup-wizard-dismissed:{appId}:{version}`) so a previously
+			 * dismissed wizard never flashes open on mount. Keying on `version`
+			 * means bumping it (e.g. a newly added optional step) re-prompts.
+			 *
+			 * @type {boolean}
+			 */
+			setupWizardDismissed: (() => {
+				try {
+					const version = (this.manifest && this.manifest.setup && this.manifest.setup.version) || 0
+					return window.localStorage.getItem('cn-setup-wizard-dismissed:' + this.appId + ':' + version) === '1'
+				} catch (e) {
+					return false
+				}
+			})(),
+			/**
+			 * Whether the non-gating setup wizard overlay is currently open.
+			 * Flips true once (auto-open) when only optional steps are unmet
+			 * and the user hasn't already dismissed this manifest version; the
+			 * user can reopen later from wherever the host surfaces it (e.g.
+			 * admin settings), independent of this auto-open state.
+			 *
+			 * @type {boolean}
+			 */
+			setupWizardOpen: false,
+			/**
 			 * Key of the currently active modal (opened via cnOpenModal).
 			 * null when no modal is open.
 			 *
@@ -1596,6 +1661,24 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The component to render as this page's sidebar.
+		 *
+		 * Two sources, in order:
+		 *  1. `pages[].sidebarComponent` on the routed manifest page, resolved
+		 *     here — see `resolvePageSidebarComponent()` for why it cannot be
+		 *     resolved by the renderer that declares it.
+		 *  2. The injected `cnPageSidebarComponent` holder, kept so an app that
+		 *     genuinely provides one from an ANCESTOR still works.
+		 *
+		 * A consumer's own `#sidebar` slot content always wins over both, via
+		 * Vue's standard slot mechanic.
+		 *
+		 * @return {import('vue').Component|null} The component, or null.
+		 */
+		pageSidebarComponent() {
+			return this.resolvePageSidebarComponent() ?? this.cnPageSidebarComponent?.value ?? null
+		},
 		/**
 		 * Whether the current user is an OWNER of this app — the gate for
 		 * the admin-settings nav entry + dialog (admin-settings-owner-gating
@@ -1997,6 +2080,28 @@ export default {
 			return !!s && s.loading.value === false && s.requiredUnmet.value.length > 0
 		},
 		/**
+		 * Whether the setup wizard should be OFFERED (non-gating) because
+		 * every required step is met but at least one optional step isn't
+		 * (REQ-SETUP-NV-012). Never true while the gating phase is active —
+		 * required-unmet already renders `CnSetupWizard` itself.
+		 */
+		optionalSetupGating() {
+			const s = this.setupState
+			return !!s && s.loading.value === false && s.requiredUnmet.value.length === 0 && s.optionalUnmet.value.length > 0
+		},
+		/**
+		 * Ids of setup steps the server already reports done. Passed to
+		 * `CnSetupWizard` so a freshly (re)mounted wizard resumes at the
+		 * first actually-unmet step instead of restarting from the top —
+		 * the wizard's own local state only tracks the current session.
+		 *
+		 * @return {Array<string>}
+		 */
+		setupCompletedStepIds() {
+			const s = this.setupState
+			return s ? s.steps.value.filter((st) => st.done).map((st) => st.id) : []
+		},
+		/**
 		 * Whether the manifest declares an enabled walkthrough with at least one
 		 * tour (ADR-043). Drives the non-gating CnWalkthrough overlay in the shell.
 		 *
@@ -2241,6 +2346,23 @@ export default {
 		},
 	},
 
+	watch: {
+		/**
+		 * Auto-open the non-gating setup wizard once optional-unmet becomes
+		 * true, unless the user already dismissed this manifest version.
+		 * `immediate: true` so a fresh mount that's already optional-unmet
+		 * opens it without waiting for a later reactive change.
+		 */
+		optionalSetupGating: {
+			immediate: true,
+			handler(gating) {
+				if (gating && !this.setupWizardDismissed) {
+					this.setupWizardOpen = true
+				}
+			},
+		},
+	},
+
 	mounted() {
 		// Guard against silently losing unsaved in-app edits. The manifest
 		// editor stays `dirty` for the whole Save (the persist PUT can take a
@@ -2287,6 +2409,7 @@ export default {
 
 	beforeUnmount() {
 		window.removeEventListener('beforeunload', this.onBeforeUnload)
+		this.cnScopedTheme.teardown(this.appId)
 	},
 
 	methods: {
@@ -2356,6 +2479,36 @@ export default {
 		 * @param {string} key The entry's `component` registry key.
 		 * @return {import('vue').Component|null}
 		 */
+		/**
+		 * Resolve the routed manifest page's `sidebarComponent`.
+		 *
+		 * Resolved HERE rather than received from `CnPageRenderer`, which is
+		 * why the manifest key works at all. The renderer *provides*
+		 * `cnPageSidebarComponent` and this component *injects* it — but the
+		 * renderer is our descendant, and provide/inject only flows downward,
+		 * so that value could never reach this slot. `pages[].sidebarComponent`
+		 * was dead config for every app that tried it (#528).
+		 *
+		 * The route name is the page id (the same match `_hydrateMenuCounts`
+		 * uses), and the component name resolves through the same registries
+		 * every other slot component uses.
+		 *
+		 * @return {import('vue').Component|null} The sidebar component, or null.
+		 */
+		resolvePageSidebarComponent() {
+			const routeName = this.$route?.name
+			if (!routeName) return null
+
+			const page = (this.manifest?.pages ?? []).find((p) => p?.id === routeName)
+			if (!page || typeof page.sidebarComponent !== 'string' || page.sidebarComponent === '') return null
+
+			// `sidebar.show: false` suppresses the rail entirely, so a page
+			// declaring both is contradictory; visibility wins, matching what
+			// CnPageRenderer already warns about.
+			if (page?.sidebar?.show === false) return null
+
+			return this.resolveAdminSettingsComponent(page.sidebarComponent)
+		},
 		resolveAdminSettingsComponent(key) {
 			if (typeof key !== 'string' || key === '') return null
 			const reg = (this.registry && this.registry[key]) || null
@@ -2485,11 +2638,29 @@ export default {
 			if (this.setupState && typeof this.setupState.refresh === 'function') {
 				this.setupState.refresh()
 			}
+			this.setupWizardOpen = false
 			/**
 			 * @event setup-complete Emitted after the gating setup wizard reports
 			 * completion and the status has been re-fetched.
 			 */
 			this.$emit('setup-complete')
+		},
+		/**
+		 * Dismiss the non-gating optional-setup wizard (REQ-SETUP-NV-012).
+		 * Persists under `cn-setup-wizard-dismissed:{appId}:{version}` so it
+		 * doesn't auto-reopen on the next visit for this manifest version.
+		 *
+		 * @return {void}
+		 */
+		dismissSetupWizard() {
+			try {
+				const version = (this.manifest && this.manifest.setup && this.manifest.setup.version) || 0
+				window.localStorage.setItem('cn-setup-wizard-dismissed:' + this.appId + ':' + version, '1')
+			} catch (e) {
+				// Best-effort persistence (private mode / no storage).
+			}
+			this.setupWizardDismissed = true
+			this.setupWizardOpen = false
 		},
 		/**
 		 * Persist the current app version as the user's last-seen walkthrough

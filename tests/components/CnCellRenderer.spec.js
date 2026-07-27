@@ -9,6 +9,7 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { h } from 'vue'
 
 const CnCellRenderer = require('../../src/components/CnCellRenderer/CnCellRenderer.vue').default
 const { CnStatusBadge } = require('../../src/components/CnStatusBadge/index.js')
@@ -138,7 +139,7 @@ describe('CnCellRenderer — column widgets', () => {
 		const Pill = {
 			name: 'TestPill',
 			props: ['value', 'row', 'property', 'formatted', 'tone'],
-			render(h) {
+			render() {
 				return h('span', { attrs: { 'data-test': 'pill', 'data-tone': this.tone } }, `${this.formatted}|${this.row.id}`)
 			},
 		}
@@ -153,7 +154,7 @@ describe('CnCellRenderer — column widgets', () => {
 	})
 
 	it('a consumer widget receives the formatter-shaped value as `formatted` when formatter is also set', () => {
-		const Plain = { name: 'Plain', props: ['formatted'], render(h) { return h('span', { attrs: { 'data-test': 'p' } }, this.formatted) } }
+		const Plain = { name: 'Plain', props: ['formatted'], render() { return h('span', { attrs: { 'data-test': 'p' } }, this.formatted) } }
 		const wrapper = mountRenderer(
 			{ value: 'lead.created', property: { type: 'string' }, formatter: 'human', widget: 'plain' },
 			{ cnFormatters: { human: () => 'Lead created' }, cnCellWidgets: { plain: Plain } },
@@ -202,7 +203,7 @@ describe('CnCellRenderer — column widgets', () => {
 	})
 
 	it('a consumer-registered fkResolve override wins over the built-in', () => {
-		const Custom = { name: 'CustomFk', render(h) { return h('span', { attrs: { 'data-test': 'custom-fk' } }, 'custom') } }
+		const Custom = { name: 'CustomFk', render() { return h('span', { attrs: { 'data-test': 'custom-fk' } }, 'custom') } }
 		const wrapper = mountRenderer(
 			{ value: 'uuid-1', property: { type: 'string' }, widget: 'fkResolve' },
 			{ cnCellWidgets: { fkResolve: Custom } },
@@ -219,7 +220,7 @@ describe('CnCellRenderer — built-in "link" widget (REQ-MIPFU-2)', () => {
 	const RouterLinkStub = {
 		name: 'RouterLink',
 		props: ['to'],
-		render(h) {
+		render() {
 			return h('a', { attrs: { 'data-test': 'router-link', 'data-to': JSON.stringify(this.to) } }, this.$slots.default)
 		},
 	}

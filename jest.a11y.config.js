@@ -30,15 +30,17 @@ module.exports = {
 	moduleFileExtensions: ['js', 'vue', 'json'],
 	transform: {
 		'^.+\\.js$': 'babel-jest',
-		'^.+\\.vue$': '@vue/vue2-jest',
+		'^.+\\.vue$': '@vue/vue3-jest',
 	},
 	transformIgnorePatterns: [
-		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|vue-codemirror6|codemirror|@codemirror)/)',
+		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|vue-codemirror6|codemirror|@codemirror|@ckpack)/)',
 	],
 	moduleNameMapper: {
 		'^@/(.*)$': '<rootDir>/src/$1',
+		// See jest.config.js — VTU v1 -> v2 mount-options adapter.
+		'^@vue/test-utils$': '<rootDir>/tests/support/vueTestUtilsCompat.js',
 		'\\.(css)$': 'jest-transform-stub',
-		'^@toast-ui/vue-editor$': '<rootDir>/tests/__mocks__/toast-ui-vue-editor.js',
+		'^@toast-ui/editor$': '<rootDir>/tests/__mocks__/toast-ui-editor.js',
 		'^@mdi/js$': '<rootDir>/tests/__mocks__/mdi-js.js',
 		'^vue-codemirror6$': '<rootDir>/tests/__mocks__/vue-codemirror6.js',
 		'^@codemirror/lang-json$': '<rootDir>/tests/__mocks__/codemirror-lang-json.js',
@@ -68,7 +70,10 @@ module.exports = {
 		'<rootDir>/tests/a11y/**/*.spec.js',
 	],
 	setupFiles: [
-		'<rootDir>/tests/setup.js',
 		'<rootDir>/tests/a11y/support/jsdomEnvPolyfill.js',
+	],
+	// See jest.config.js — tests/setup.js needs the test framework in place.
+	setupFilesAfterEnv: [
+		'<rootDir>/tests/setup.js',
 	],
 }

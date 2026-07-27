@@ -184,7 +184,7 @@ describe('CnMapWidget — layer dispatch', () => {
 			'https://x/{z}/{x}/{y}.png',
 			expect.objectContaining({ maxZoom: 19 }),
 		)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('mounts a WMS layer for type=wms', async () => {
@@ -197,7 +197,7 @@ describe('CnMapWidget — layer dispatch', () => {
 			'https://x/wms',
 			expect.objectContaining({ layers: 'pand' }),
 		)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('mounts an inline GeoJSON layer', async () => {
@@ -214,7 +214,7 @@ describe('CnMapWidget — layer dispatch', () => {
 			expect.objectContaining({ type: 'FeatureCollection' }),
 			expect.objectContaining({ style: expect.any(Object) }),
 		)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('warns and skips unknown layer types', async () => {
@@ -229,7 +229,7 @@ describe('CnMapWidget — layer dispatch', () => {
 		// broken layer config should show a background, not a grey box.
 		expect(tileUrls(L)).not.toContain('https://a/{z}/{x}/{y}.png')
 		warn.mockRestore()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('skips tile layers with empty url', async () => {
@@ -242,7 +242,7 @@ describe('CnMapWidget — layer dispatch', () => {
 		expect(tileUrls(L)).not.toContain('')
 		// ...but the widget still falls back to a background rather than render grey.
 		expect(tileUrls(L).some((u) => u.includes('openstreetmap'))).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('fetches and adds a wfs / geojson-from-url layer', async () => {
@@ -254,7 +254,7 @@ describe('CnMapWidget — layer dispatch', () => {
 		})
 		await flush(); await nextTick(); await flush()
 		expect(global.fetch).toHaveBeenCalledWith('https://x/wfs?service=WFS&typeName=foo')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -273,7 +273,7 @@ describe('CnMapWidget — markers', () => {
 		const L = require('leaflet').default
 		const geojsonCalls = L.geoJSON.mock.calls.filter((c) => c[0]?.features?.length === 2)
 		expect(geojsonCalls.length).toBe(1)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('binds a hover tooltip from the object’s @self.name so a marker is not a mystery dot', async () => {
@@ -294,7 +294,7 @@ describe('CnMapWidget — markers', () => {
 		const layer = L.geoJSON.mock.results.map((r) => r.value).find((v) => v._children)
 		expect(layer).toBeTruthy()
 		expect(layer._children[0].bindTooltip).toHaveBeenCalledWith('THe southern barn', expect.objectContaining({ direction: 'top' }))
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('binds no tooltip when the feature has no nameable field', async () => {
@@ -309,7 +309,7 @@ describe('CnMapWidget — markers', () => {
 		const L = require('leaflet').default
 		const layer = L.geoJSON.mock.results.map((r) => r.value).find((v) => v._children)
 		expect(layer._children[0].bindTooltip).not.toHaveBeenCalled()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('fetches markers from dataSource.url with FeatureCollection response', async () => {
@@ -326,7 +326,7 @@ describe('CnMapWidget — markers', () => {
 		})
 		await flush(); await nextTick(); await flush(); await nextTick()
 		expect(global.fetch).toHaveBeenCalledWith('/api/cases/geo')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('converts flat-row response into features via lat/lng fields', async () => {
@@ -347,7 +347,7 @@ describe('CnMapWidget — markers', () => {
 			.find((arg) => arg && arg.features && arg.features.length === 2)
 		expect(lastFeatureCollection).toBeDefined()
 		expect(lastFeatureCollection.features[0].geometry.coordinates).toEqual([5.2, 52.1])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('returns empty features when dataSource has neither url nor register', async () => {
@@ -356,7 +356,7 @@ describe('CnMapWidget — markers', () => {
 		const L = require('leaflet').default
 		// No FeatureCollection geoJSON call should have been made for markers
 		expect(L.geoJSON).not.toHaveBeenCalled()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('lazy-loads markercluster only when clustering is enabled', async () => {
@@ -371,7 +371,7 @@ describe('CnMapWidget — markers', () => {
 		})
 		await flush(); await nextTick(); await flush()
 		expect(L.markerClusterGroup).not.toHaveBeenCalled()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('uses markerClusterGroup when clustering is enabled', async () => {
@@ -386,7 +386,7 @@ describe('CnMapWidget — markers', () => {
 		})
 		await flush(); await nextTick(); await flush(); await nextTick()
 		expect(L.markerClusterGroup).toHaveBeenCalled()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('markers.clustering: true overrides widget-level clustering', async () => {
@@ -402,7 +402,7 @@ describe('CnMapWidget — markers', () => {
 		})
 		await flush(); await nextTick(); await flush(); await nextTick()
 		expect(L.markerClusterGroup).toHaveBeenCalled()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -412,7 +412,7 @@ describe('CnMapWidget — events', () => {
 		await flush(); await nextTick()
 		expect(wrapper.emitted('map-ready')).toBeTruthy()
 		expect(wrapper.emitted('map-ready')[0][0]).toHaveProperty('map')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('emits @click on map click', async () => {
@@ -421,7 +421,7 @@ describe('CnMapWidget — events', () => {
 		// trigger Leaflet click handler stored under map._handlers
 		require('leaflet').default.__lastMap.current._handlers.click({ latlng: { lat: 52.1, lng: 5.2 } })
 		expect(wrapper.emitted('click')[0][0]).toEqual({ lat: 52.1, lng: 5.2 })
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('emits @bounds-change on debounced moveend', async () => {
@@ -434,7 +434,7 @@ describe('CnMapWidget — events', () => {
 		expect(wrapper.emitted('bounds-change')[0][0]).toEqual({
 			north: 53, south: 51, east: 6, west: 4, zoom: 7,
 		})
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -484,7 +484,7 @@ describe('CnMapWidget — popup XSS sanitization (C1)', () => {
 			expect(arg).not.toMatch(/<script/i)
 			expect(arg).toContain('safe text')
 		}
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('strips onerror event-handler attribute from popup HTML', async () => {
@@ -517,7 +517,7 @@ describe('CnMapWidget — popup XSS sanitization (C1)', () => {
 			const arg = child.bindPopup.mock.calls[0][0]
 			expect(arg).not.toMatch(/onerror/i)
 		}
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -540,7 +540,7 @@ describe('CnMapWidget — fallback', () => {
 		await flush(); await nextTick()
 		expect(wrapper.find('.custom-fallback').exists()).toBe(true)
 		warn.mockRestore()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -560,7 +560,7 @@ describe('CnMapWidget — base maps', () => {
 		expect(map._added.filter((l) => l._kind === 'tile')).toHaveLength(1)
 		expect(L.control.layers).toHaveBeenCalledTimes(1)
 		expect(Object.keys(L.control.layers.mock.calls[0][0])).toEqual(['Standard', 'Terrain'])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders no switcher for a single basemap', async () => {
@@ -569,7 +569,7 @@ describe('CnMapWidget — base maps', () => {
 		const L = require('leaflet').default
 		expect(L.tileLayer).toHaveBeenCalledTimes(1)
 		expect(L.control.layers).not.toHaveBeenCalled()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	// This test used to assert the OPPOSITE — that a map with no configured basemap
@@ -583,7 +583,7 @@ describe('CnMapWidget — base maps', () => {
 		await flush(); await nextTick()
 		const L = require('leaflet').default
 		expect(tileUrls(L).some((u) => u.includes('openstreetmap'))).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not stack the fallback under a consumer-supplied tile layer', async () => {
@@ -591,7 +591,7 @@ describe('CnMapWidget — base maps', () => {
 		await flush(); await nextTick()
 		const L = require('leaflet').default
 		expect(tileUrls(L)).toEqual(['https://pdok/{z}/{x}/{y}.png'])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -606,14 +606,14 @@ describe('CnMapWidget — controls', () => {
 		expect(bar.querySelector('.cn-map-widget__control--fit')).toBeTruthy()
 		expect(bar.querySelector('.cn-map-widget__control--locate')).toBeTruthy()
 		expect(bar.querySelector('.cn-map-widget__control--fullscreen')).toBeTruthy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('omits the buttons that are switched off', async () => {
 		const wrapper = mountWidget({ fitControl: false, locateControl: false, fullscreenControl: false })
 		await flush(); await nextTick()
 		expect(controlBar(require('leaflet').default)).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('fitToMarkers() re-measures before it re-fits the marker bounds', async () => {
@@ -633,7 +633,7 @@ describe('CnMapWidget — controls', () => {
 
 		expect(map.invalidateSize).toHaveBeenCalled()
 		expect(map.fitBounds).toHaveBeenCalledWith(expect.anything(), { padding: [50, 50] })
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('locateMe() asks Leaflet to locate and recentre', async () => {
@@ -642,7 +642,7 @@ describe('CnMapWidget — controls', () => {
 		const map = require('leaflet').default.__lastMap.current
 		wrapper.vm.locateMe()
 		expect(map.locate).toHaveBeenCalledWith({ setView: true, maxZoom: 16 })
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('toggleFullscreen() flips the overlay class and re-flows the map', async () => {
@@ -659,6 +659,6 @@ describe('CnMapWidget — controls', () => {
 		wrapper.vm.toggleFullscreen()
 		await nextTick()
 		expect(wrapper.classes()).not.toContain('cn-map-widget--fullscreen')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

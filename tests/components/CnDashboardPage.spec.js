@@ -232,7 +232,7 @@ describe('CnDashboardPage — integration widget dispatcher', () => {
 		expect(wrapper.find('.integration-widget').exists()).toBe(true)
 		// default surface is app-dashboard
 		expect(wrapper.find('.integration-widget').text()).toContain('app-dashboard')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('forwards the surface prop and integrationContext to the widget', () => {
@@ -248,7 +248,7 @@ describe('CnDashboardPage — integration widget dispatcher', () => {
 			stubs,
 		})
 		expect(wrapper.find('.integration-widget').text()).toContain('detail-page|obj-1')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('merges per-widget props (def.props) into the widget', () => {
@@ -257,7 +257,7 @@ describe('CnDashboardPage — integration widget dispatcher', () => {
 		const layout = [{ id: 1, widgetId: 'w1', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 3 }]
 		const wrapper = mount(CnDashboardPage, { propsData: { widgets, layout }, stubs })
 		expect(wrapper.find('.integration-widget').text()).toContain('hello')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('falls back to unavailableLabel when the integration is not registered', () => {
@@ -266,7 +266,7 @@ describe('CnDashboardPage — integration widget dispatcher', () => {
 		const wrapper = mount(CnDashboardPage, { propsData: { widgets, layout, unavailableLabel: 'No widget here' }, stubs })
 		expect(wrapper.text()).toContain('No widget here')
 		expect(wrapper.find('.integration-widget').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('an integration widget def without integrationId is treated as unknown', () => {
@@ -274,7 +274,7 @@ describe('CnDashboardPage — integration widget dispatcher', () => {
 		const layout = [{ id: 1, widgetId: 'w1', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 3 }]
 		const wrapper = mount(CnDashboardPage, { propsData: { widgets, layout, unavailableLabel: 'unknown' }, stubs })
 		expect(wrapper.text()).toContain('unknown')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -326,26 +326,26 @@ describe('CnDashboardPage — custom-widget date chip (layout dateChip opt-in)',
 		// The chip label is the formatted SHARED dashboard range (last-7
 		// fallback resolves a from/to window on created()).
 		expect(wrapper.find('.cn-dashboard-page__date-chip').text()).not.toHaveLength(0)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders NO chip on a custom widget without the dateChip flag', () => {
 		const wrapper = mountWith({})
 		expect(wrapper.find('[data-testid="cn-dashboard-page-date-chip-custom1"]').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders NO chip when the dashboard dateRange feature is disabled', () => {
 		const wrapper = mountWith({ dateChip: true }, { dateRange: null })
 		expect(wrapper.find('[data-testid="cn-dashboard-page-date-chip-custom1"]').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('hides the header picker but keeps the chip when showHeaderPicker is false', () => {
 		const wrapper = mountWith({ dateChip: true }, { dateRange: { enabled: true, showHeaderPicker: false } })
 		expect(wrapper.find('[data-testid="cn-dashboard-page-date-range"]').exists()).toBe(false)
 		expect(wrapper.find('[data-testid="cn-dashboard-page-date-chip-custom1"]').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -385,7 +385,7 @@ describe('CnDashboardPage — per-widget configure cog (ADR-041)', () => {
 		await wrapper.vm.$nextTick()
 		const cog = wrapper.find('[aria-label="Configure widget"]')
 		expect(cog.exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does NOT render the overlay when not editing', () => {
@@ -396,7 +396,7 @@ describe('CnDashboardPage — per-widget configure cog (ADR-041)', () => {
 		})
 		expect(wrapper.find('.cn-dashboard-page__widget-edit').exists()).toBe(false)
 		expect(wrapper.find('.cn-widget-style-editor-modal-stub').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('clicking the cog opens the config modal for that widget', async () => {
@@ -409,7 +409,7 @@ describe('CnDashboardPage — per-widget configure cog (ADR-041)', () => {
 		expect(modal.exists()).toBe(true)
 		expect(modal.attributes('data-widget-id')).toBe('w1')
 		expect(modal.attributes('data-deletable')).toBe('true')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('save updates the widget definition in place and closes the modal', async () => {
@@ -434,7 +434,7 @@ describe('CnDashboardPage — per-widget configure cog (ADR-041)', () => {
 		expect(def.content).toEqual({ foo: 'bar' })
 		expect(wrapper.vm.showWidgetConfig).toBe(false)
 		expect(wrapper.emitted('layout-change')).toBeTruthy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('delete from the editor removes the widget and closes the modal', async () => {
@@ -452,17 +452,19 @@ describe('CnDashboardPage — per-widget configure cog (ADR-041)', () => {
 		expect(widgetRemoves).toBeTruthy()
 		expect(widgetRemoves[0][0]).toBe('w1')
 		expect(wrapper.vm.showWidgetConfig).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
 describe('CnDashboardPage — card-fit registry widgets', () => {
 	// eslint-disable-next-line global-require
 	const { registerDashboardWidget } = require('@/components/CnWidgetGrid/dashboardWidgetRegistry.js')
+	// eslint-disable-next-line global-require
+	const { h } = require('vue')
 	// Render functions (not `template:` strings) so they mount under the
 	// runtime-only Vue build the dynamic `<component :is>` uses.
-	const CardRenderer = { name: 'CardRenderer', props: ['content'], render(h) { return h('div', { class: 'card-renderer-stub' }) } }
-	const PlainRenderer = { name: 'PlainRenderer', props: ['content'], render(h) { return h('div', { class: 'plain-renderer-stub' }) } }
+	const CardRenderer = { name: 'CardRenderer', props: ['content'], render() { return h('div', { class: 'card-renderer-stub' }) } }
+	const PlainRenderer = { name: 'PlainRenderer', props: ['content'], render() { return h('div', { class: 'plain-renderer-stub' }) } }
 
 	beforeAll(() => {
 		registerDashboardWidget('test-card', { renderer: CardRenderer, form: null, defaultContent: {}, displayName: 'Card', icon: 'X', card: true })

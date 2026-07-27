@@ -50,6 +50,8 @@
  * cleanly. Only fall back to a hand stub if it hits the same ESM wall.
  */
 
+const { h } = require('vue')
+
 const REAL_COMPONENT_NAMES = [
 	'NcButton',
 	'NcTextField',
@@ -104,19 +106,17 @@ const NcSelectStub = {
 		options: { type: Array, default: () => [] },
 		multiple: { type: Boolean, default: false },
 	},
-	render(h) {
+	render() {
 		const accessibleName = this.inputLabel || this.$attrs['aria-label-combobox'] || this.$attrs['aria-label']
-		return h('div', { class: 'stub v-select', attrs: { role: 'combobox', 'aria-expanded': 'false' } }, [
+		return h('div', { class: 'stub v-select', role: 'combobox', 'aria-expanded': 'false' }, [
 			h('input', {
-				attrs: {
-					type: 'text',
-					role: 'searchbox',
-					'aria-label': accessibleName || undefined,
-					'aria-multiselectable': this.multiple ? 'true' : undefined,
-				},
+				type: 'text',
+				role: 'searchbox',
+				'aria-label': accessibleName || undefined,
+				'aria-multiselectable': this.multiple ? 'true' : undefined,
 			}),
-			h('ul', { attrs: { role: 'listbox', 'aria-label': accessibleName || undefined } },
-				(this.options || []).map((opt, i) => h('li', { key: opt.id ?? i, attrs: { role: 'option' } }, String(opt.label ?? opt)))),
+			h('ul', { role: 'listbox', 'aria-label': accessibleName || undefined },
+				(this.options || []).map((opt, i) => h('li', { key: opt.id ?? i, role: 'option' }, String(opt.label ?? opt)))),
 		])
 	},
 }
@@ -138,17 +138,17 @@ const NcListItemStub = {
 	props: {
 		name: { type: String, default: '' },
 	},
-	render(h) {
+	render() {
 		const slots = this.$slots
 		const anchorChildren = [h('span', { class: 'list-item-content__name' }, this.name)]
 		if (slots.subname) {
-			anchorChildren.push(h('span', { class: 'list-item-content__subname' }, slots.subname))
+			anchorChildren.push(h('span', { class: 'list-item-content__subname' }, slots.subname()))
 		}
 		if (slots.details) {
-			anchorChildren.push(h('span', { class: 'list-item-details' }, slots.details))
+			anchorChildren.push(h('span', { class: 'list-item-details' }, slots.details()))
 		}
 		const children = [
-			h('a', { attrs: { href: '#', 'aria-label': this.name || undefined }, class: 'list-item' }, anchorChildren),
+			h('a', { href: '#', 'aria-label': this.name || undefined, class: 'list-item' }, anchorChildren),
 		]
 		if (slots.actions) {
 			// Real NcListItem hosts the actions slot inside an NcActions menu,
@@ -159,8 +159,8 @@ const NcListItemStub = {
 			// violation that does NOT exist in the real, menu-wrapped component.
 			children.push(h('ul', {
 				class: 'list-item__extra',
-				attrs: { 'aria-label': this.name ? `${this.name} actions` : 'Actions' },
-			}, slots.actions))
+				'aria-label': this.name ? `${this.name} actions` : 'Actions',
+			}, slots.actions()))
 		}
 		return h('li', { class: 'stub NcListItem' }, children)
 	},

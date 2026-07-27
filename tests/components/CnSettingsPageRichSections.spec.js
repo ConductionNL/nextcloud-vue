@@ -15,6 +15,7 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { h } from 'vue'
 import CnSettingsPage from '@/components/CnSettingsPage/CnSettingsPage.vue'
 
 jest.mock('@nextcloud/axios', () => ({
@@ -35,7 +36,7 @@ jest.mock('@/components/CnVersionInfoCard/CnVersionInfoCard.vue', () => ({
 	default: {
 		name: 'CnVersionInfoCard',
 		props: ['appName', 'appVersion', 'showUpdateButton', 'isUpToDate'],
-		render(h) {
+		render() {
 			return h('div', {
 				class: 'cn-version-info-card-stub',
 				attrs: { 'data-app-name': this.appName },
@@ -49,7 +50,7 @@ jest.mock('@/components/CnRegisterMapping/CnRegisterMapping.vue', () => ({
 	default: {
 		name: 'CnRegisterMapping',
 		props: ['name', 'groups', 'configuration', 'showReimportButton'],
-		render(h) {
+		render() {
 			return h('div', {
 				class: 'cn-register-mapping-stub',
 				attrs: { 'data-name': this.name },
@@ -107,7 +108,7 @@ describe('CnSettingsPage — rich sections (REQ-MSRS-*)', () => {
 		const MyPanel = {
 			name: 'MyPanel',
 			props: ['foo'],
-			render(h) {
+			render() {
 				return h('div', { class: 'my-panel-stub', attrs: { 'data-foo': this.foo } }, 'my panel')
 			},
 		}
@@ -156,7 +157,7 @@ describe('CnSettingsPage — rich sections (REQ-MSRS-*)', () => {
 		const MyExtraPanel = {
 			name: 'MyExtraPanel',
 			props: ['label'],
-			render(h) {
+			render() {
 				return h('div', { class: 'my-extra-panel-stub', attrs: { 'data-label': this.label } }, 'extra')
 			},
 		}
@@ -175,7 +176,7 @@ describe('CnSettingsPage — rich sections (REQ-MSRS-*)', () => {
 	it('renders all three flavors in one mixed manifest (bare-fields + component + widgets)', () => {
 		const MyPanel = {
 			name: 'MyPanel',
-			render(h) {
+			render() {
 				return h('div', { class: 'my-panel-mixed' }, 'mixed')
 			},
 		}
@@ -249,13 +250,13 @@ describe('CnSettingsPage — rich sections (REQ-MSRS-*)', () => {
 	it('explicit customComponents prop wins over the injected cnCustomComponents', () => {
 		const FromInject = {
 			name: 'FromInject',
-			render(h) {
+			render() {
 				return h('div', { class: 'from-inject' }, 'inject')
 			},
 		}
 		const FromProp = {
 			name: 'FromProp',
-			render(h) {
+			render() {
 				return h('div', { class: 'from-prop' }, 'prop')
 			},
 		}
@@ -274,7 +275,7 @@ describe('CnSettingsPage — rich sections (REQ-MSRS-*)', () => {
 	it('falls back to cnCustomComponents inject when no explicit prop set', () => {
 		const FromInject = {
 			name: 'FromInject',
-			render(h) {
+			render() {
 				return h('div', { class: 'from-inject' }, 'inject')
 			},
 		}

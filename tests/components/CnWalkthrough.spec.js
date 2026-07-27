@@ -138,7 +138,7 @@ describe('CnWalkthrough', () => {
 		w.vm.revealTarget()
 		expect(clicks).toBe(1)
 
-		w.destroy()
+		w.unmount()
 		document.body.removeChild(nav)
 	})
 

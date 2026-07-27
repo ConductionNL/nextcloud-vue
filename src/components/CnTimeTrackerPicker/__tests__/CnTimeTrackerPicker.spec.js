@@ -43,7 +43,7 @@ describe('CnTimeTrackerPicker', () => {
 		expect(rows).toHaveLength(2)
 		expect(wrapper.text()).toContain('Acme')
 		expect(wrapper.text()).toContain('Globex')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('selecting an entry enables confirm and emits link', async () => {
@@ -63,7 +63,7 @@ describe('CnTimeTrackerPicker', () => {
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0]).toEqual([{ entryType: 'client', id: 'c9' }])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces an inline error when /available fails', async () => {
@@ -75,7 +75,7 @@ describe('CnTimeTrackerPicker', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('Could not load entries.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 
@@ -87,7 +87,7 @@ describe('CnTimeTrackerPicker', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('NC TimeManager is not installed.')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('filters entries client-side via search', async () => {
@@ -107,7 +107,7 @@ describe('CnTimeTrackerPicker', () => {
 
 		expect(wrapper.vm.visibleEntries).toHaveLength(1)
 		expect(wrapper.vm.visibleEntries[0].id).toBe('c1')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not emit link when no entry is selected', () => {
@@ -116,6 +116,6 @@ describe('CnTimeTrackerPicker', () => {
 
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

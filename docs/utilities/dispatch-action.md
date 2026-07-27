@@ -17,7 +17,7 @@ import { dispatchAction } from '@conduction/nextcloud-vue'
 function dispatchAction(
     action: {
         type?: 'handler' | 'open-modal' | 'open-page' | 'navigate' | 'object-op'
-             | 'export' | 'open-form' | 'refresh' | 'api-call' | 'toggle',
+             | 'export' | 'open-form' | 'refresh' | 'api-call' | 'agent' | 'toggle',
         // type-specific fields:
         handler?: string,           // type='handler'; type='export' — confirm handler name
         args?: any[],               // type='handler'
@@ -29,12 +29,22 @@ function dispatchAction(
         entities?: { id, label }[], // type='export' — selectable entity types (optional)
         formats?: (string | { id, label })[],  // type='export' — offered formats (optional)
         description?: string,       // type='export' — pre-translated dialog description
-        url?: string,               // type='api-call' — app endpoint (token-interpolated)
+        url?: string,               // type='api-call' — app endpoint (token-interpolated, @objectId or {objectId})
         method?: 'POST' | 'PUT',    // type='api-call' — default POST
-        params?: object,            // type='api-call' — JSON body (@-token grammar)
+        payload?: object,           // type='api-call' — JSON body, DEEP @-token resolution (preferred over params)
+        params?: object,            // type='api-call' — legacy JSON body, shallow (1-level) @-token grammar
+        download?: boolean,         // type='api-call' — request a blob response + trigger a file download (default false)
+        filename?: string,          // type='api-call' download only — fallback filename (token-interpolated)
         successMessage?: string,    // type='api-call' — success toast text
         errorMessage?: string,      // type='api-call' — error toast text
-        refresh?: boolean,          // type='api-call' — bump cn:page:refresh (default true)
+        refresh?: boolean,          // type='api-call' | 'agent' — bump cn:page:refresh (default true; default FALSE when download:true)
+        agent?: string,             // type='agent' (REQUIRED) — hermiq agent uuid
+        skill?: string,             // type='agent' — optional skill id
+        prompt?: string,            // type='agent' — optional prompt (inline @-token interpolation)
+        resultField?: string,       // type='agent' — object field the result writes to
+        register?: string,          // type='agent' | 'open-form' — OR register slug (agent: defaults to @register)
+        schema?: string,            // type='agent' | 'open-form' — OR schema slug (agent: defaults to @schema)
+        objectId?: string,          // type='agent' — target object id (defaults to @objectId)
     },
     context: {
         router?: VueRouter,         // required for 'open-page' + 'navigate'
@@ -46,9 +56,9 @@ function dispatchAction(
         objectStore?: ObjectStore,  // required for 'object-op' (useObjectStore shape)
         source?: { register, schema },  // required for 'object-op' — the widget's source
         row?: object,               // required for 'object-op' patch/delete (row-scoped)
-        tokenCtx?: object,          // 'api-call' — { objectId?, object?, workspace?, config? } for url/params tokens
+        tokenCtx?: object,          // 'api-call' | 'agent' — { objectId?, object?, register?, schema?, workspace?, config? }
     },
-): void | Promise<object | boolean | null>  // object-op / api-call return a promise
+): void | Promise<object | boolean | null>  // object-op / api-call / agent return a promise
 ```
 
 When `action.type` is missing it's treated as `"handler"` for v1
@@ -203,13 +213,38 @@ item broadcasts). No context is required.
 
 POST/PUT a configured app endpoint, toast the outcome via
 `@nextcloud/dialogs` (`showSuccess` / `showError`), then — unless
-`refresh: false` — bump `cn:page:refresh`. The `url` interpolates
-`@objectId` / `@object.<field>` / `@workspace.<key>` / `@config.<key>`
-tokens and `params` run the shared filter-token grammar (optional `…?`
-tokens drop when unresolved; a required unresolved token skips the call).
-Returns a promise of `{ ok, data?, error? }`. `confirm` gating is the
-rendering surface's job (object-op precedent) — the dispatcher runs after
-any confirmation.
+`refresh: false` (or, for a `download` call, unless `refresh: true`) —
+bump `cn:page:refresh`. The `url` interpolates `@objectId` /
+`@object.<field>` / `@workspace.<key>` / `@config.<key>` tokens, as well
+as the literal `{objectId}` brace placeholder. Returns a promise of
+`{ ok, data?, error? }`. `confirm` gating is the rendering surface's job
+(object-op precedent) — the dispatcher runs after any confirmation.
+
+**Request body — `payload` vs `params`.** `payload` is the preferred
+field: its values resolve the SAME `@`-token grammar (`@me`, `@today±Nd`,
+`@objectId`, `@object.<field>`, `@workspace.<key>?`/`@config.<key>?`)
+**recursively at any nesting depth** — objects, arrays, and arrays of
+objects all resolve, so a body like
+
+```jsonc
+{ "dataRefs": [{ "register": "crm", "schema": "lead", "id": "@objectId" }] }
+```
+
+resolves the nested `@objectId` correctly. The legacy `params` field
+still works unchanged for back-compat, but only resolves tokens ONE
+level deep (the flat filter-map shape) — prefer `payload` for anything
+with nested objects/arrays. Either way, a required (non-`?`) token left
+unresolved anywhere in the body **blocks the call** (error toast) rather
+than sending the literal token string to the server. When both are set,
+`payload` wins.
+
+**`download: true`** requests the response as a binary blob
+(`responseType: 'blob'`) and triggers a browser file download instead of
+treating the body as JSON. The filename comes from the response's
+`Content-Disposition` header, else the token-interpolated `filename`,
+else `'download.pdf'`. The success toast still shows; unlike a normal
+`api-call`, the page does **not** auto-refresh afterwards unless
+`refresh: true` is set explicitly.
 
 ```jsonc
 {
@@ -222,6 +257,81 @@ any confirmation.
   "visibleWhen": { "field": "state", "op": "eq", "value": "pending" }
 }
 ```
+
+Generate-and-download a DocuDesk PDF for the current detail-page object:
+
+```jsonc
+{
+  "id": "generate-pdf",
+  "label": "Generate PDF",
+  "type": "api-call",
+  "url": "/apps/docudesk/api/documents/generate",
+  "method": "POST",
+  "payload": {
+    "template": "invoice",
+    "dataRefs": [{ "register": "crm", "schema": "lead", "id": "@objectId" }]
+  },
+  "download": true,
+  "filename": "invoice-@objectId.pdf",
+  "successMessage": "Document generated"
+}
+```
+
+### `agent` (hermiq#41)
+
+Run a **governed hermiq agent** against the current page's OpenRegister
+object. A first-class companion to `api-call`: the author declares "run
+agent here" and the dispatcher wires the URL and body for them. It POSTs
+
+```jsonc
+{ "register": "...", "schema": "...", "objectId": "...", "resultField": "...", "skill": "...", "prompt": "..." }
+```
+
+to `POST /apps/hermiq/api/agents/{agent}/run-on-object` — hermiq's
+object-RBAC-scoped endpoint that dispatches the governed
+`AgentRunRequestedEvent` (the same governed recipe every other agent
+trigger uses). `register` / `schema` / `objectId` default to the page's
+`@register` / `@schema` / `@objectId` object context (a detail page
+provides all three); declare them explicitly to override. `prompt`
+interpolates the shared `@`-token grammar inline (`@objectId`,
+`@object.<field>`, `@workspace.<key>`, `@config.<key>`) so it can be
+grounded on the page object.
+
+Fail-closed and graceful:
+
+- an **unresolved required `@objectId`** (or a missing agent / register /
+  schema) **blocks the call** — a literal `@objectId` is never sent (same
+  guard as `api-call`'s payload work);
+- on the server's **202** it toasts `successMessage` (default
+  `'Run queued'`) and — unless `refresh: false` — bumps `cn:page:refresh`;
+- a **403 / 404 with a structured error body** fail-closes with that
+  message;
+- a **404 with no structured body** is read as "hermiq is not installed"
+  and toasts a graceful `'Agent runtime unavailable'` — the dispatcher
+  **never hard-requires hermiq**.
+
+Returns a promise of `{ ok, data?, error? }`. `confirm` gating is the
+rendering surface's job (object-op / api-call precedent). `type:"api-call"`
+remains the fallback when you need a bespoke body or a non-hermiq endpoint.
+
+```jsonc
+{
+  "id": "summarise",
+  "label": "Summarise with AI",
+  "type": "agent",
+  "agent": "b2c3d4e5-…",
+  "skill": "summarise-v1",
+  "prompt": "Summarise @object.title for a busy account manager.",
+  "resultField": "aiSummary",
+  "confirm": true,
+  "successMessage": "Summary queued",
+  "visibleWhen": { "field": "state", "op": "eq", "value": "open" }
+}
+```
+
+`register` / `schema` / `objectId` are omitted above — they default to the
+detail page's object context. On a page with no object context, declare
+them explicitly.
 
 ### `toggle` (Wave 3, #91) — not dispatched
 

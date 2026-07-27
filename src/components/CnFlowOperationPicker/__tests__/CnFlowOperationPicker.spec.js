@@ -43,7 +43,7 @@ describe('CnFlowOperationPicker', () => {
 		expect(rows).toHaveLength(2)
 		expect(wrapper.text()).toContain('Probe File')
 		expect(wrapper.text()).toContain('Archive Old')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('selecting an operation enables confirm and emits link', async () => {
@@ -63,7 +63,7 @@ describe('CnFlowOperationPicker', () => {
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0]).toEqual([{ operationId: 99 }])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('degrades to admin-only notice on 403', async () => {
@@ -81,7 +81,7 @@ describe('CnFlowOperationPicker', () => {
 		const confirmButtons = wrapper.findAll('button')
 		const linkButton = confirmButtons.filter(b => b.text().includes('Link automation'))
 		expect(linkButton.length).toBe(0)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces a 501 "not installed" error banner', async () => {
@@ -92,7 +92,7 @@ describe('CnFlowOperationPicker', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('not installed')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces an inline error when /operations fails', async () => {
@@ -104,7 +104,7 @@ describe('CnFlowOperationPicker', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('Could not load automations.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 
@@ -125,7 +125,7 @@ describe('CnFlowOperationPicker', () => {
 
 		expect(wrapper.vm.visibleOperations).toHaveLength(1)
 		expect(wrapper.vm.visibleOperations[0].id).toBe(1)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not emit link when no operation is selected', () => {
@@ -134,6 +134,6 @@ describe('CnFlowOperationPicker', () => {
 		const wrapper = mount(CnFlowOperationPicker)
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

@@ -69,7 +69,7 @@ describe('CnIndexPage — accessibility', () => {
 	})
 
 	afterEach(() => {
-		wrapper?.destroy()
+		wrapper?.unmount()
 	})
 
 	it('has no WCAG 2.1 AA violations in the empty state', async () => {

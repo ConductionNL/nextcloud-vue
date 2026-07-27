@@ -81,7 +81,7 @@ describe('CnChartWidget — refresh (#6)', () => {
 	it('unsubscribes on destroy', () => {
 		const { unsubscribe } = require('@nextcloud/event-bus')
 		const wrapper = mountChart({ widgetId: 'jobs-daily' })
-		wrapper.destroy()
+		wrapper.unmount()
 		expect(unsubscribe).toHaveBeenCalledWith('cn:widget:refresh', expect.any(Function))
 	})
 })

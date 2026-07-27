@@ -5,17 +5,23 @@
  * place v-for blocks inside slots like `#list` or `#footer` (e.g. CnAppNav)
  * still execute their render expressions during mount.
  */
+import { h } from 'vue'
+
 const createStub = (name) => ({
 	name,
-	functional: true,
-	render(h, { data, children, slots }) {
-		const named = slots ? slots() : {}
-		const namedVnodes = []
-		for (const key of Object.keys(named)) {
-			if (key === 'default') continue
-			namedVnodes.push(named[key])
+	inheritAttrs: false,
+	setup(props, { slots, attrs }) {
+		return () => {
+			const children = []
+			if (slots.default) {
+				children.push(slots.default())
+			}
+			for (const key of Object.keys(slots)) {
+				if (key === 'default') continue
+				children.push(slots[key]())
+			}
+			return h('div', { class: ['stub', name], ...attrs }, children)
 		}
-		return h('div', { class: ['stub', name], ...data }, [...(children || []), ...namedVnodes])
 	},
 })
 
@@ -47,14 +53,15 @@ export const NcActionSeparator = createStub('NcActionSeparator')
 export const NcActionInput = {
 	name: 'NcActionInput',
 	props: { value: { type: String, default: '' } },
-	render(h) {
+	emits: ['submit', 'update:value'],
+	render() {
 		return h('li', { class: ['stub', 'NcActionInput'] }, [
 			h('form', {
-				on: { submit: (event) => { event.preventDefault(); this.$emit('submit', event) } },
+				onSubmit: (event) => { event.preventDefault(); this.$emit('submit', event) },
 			}, [
 				h('input', {
-					domProps: { value: this.value },
-					on: { input: (event) => this.$emit('update:value', event.target.value) },
+					value: this.value,
+					onInput: (event) => this.$emit('update:value', event.target.value),
 				}),
 			]),
 		])
@@ -129,20 +136,22 @@ export const NcRichContenteditable = {
 			this.activeIndex = 0
 		},
 	},
-	render(h) {
+	emits: ['update:value'],
+	render() {
 		const children = [
 			h('textarea', {
 				class: 'rich-contenteditable__input',
-				domProps: { value: this.value },
-				attrs: { placeholder: this.placeholder },
-				on: { input: this.onInput, keydown: this.onKeydown },
+				value: this.value,
+				placeholder: this.placeholder,
+				onInput: this.onInput,
+				onKeydown: this.onKeydown,
 			}),
 		]
 		if (this.open) {
 			children.push(h('ul', { class: 'tribute-container' }, this.suggestions.map((suggestion, index) => h('li', {
 				class: ['tribute-item', { 'tribute-item--active': index === this.activeIndex }],
 				key: suggestion.id,
-				on: { click: () => this.select(suggestion) },
+				onClick: () => this.select(suggestion),
 			}, suggestion.label || suggestion.id))))
 		}
 		return h('div', { class: ['stub', 'NcRichContenteditable'] }, children)
@@ -163,25 +172,25 @@ export const NcPopover = {
 		shown: { type: Boolean, default: false },
 		popupRole: { type: String, default: undefined },
 	},
-	render(h) {
+	render() {
 		const vnodes = []
+		// Vue 3 unifies scoped and normal slots — every slot is a function, so
+		// the trigger scope is simply its argument.
 		const triggerScope = {
 			attrs: {
 				'aria-haspopup': this.popupRole,
 				'aria-expanded': String(!!this.shown),
 			},
 		}
-		if (this.$scopedSlots.trigger) {
-			vnodes.push(this.$scopedSlots.trigger(triggerScope))
-		} else if (this.$slots.trigger) {
-			vnodes.push(this.$slots.trigger)
+		if (this.$slots.trigger) {
+			vnodes.push(this.$slots.trigger(triggerScope))
 		}
 		if (this.$slots.default) {
-			vnodes.push(this.$slots.default)
+			vnodes.push(this.$slots.default())
 		}
 		for (const name of Object.keys(this.$slots)) {
 			if (name === 'default' || name === 'trigger') continue
-			vnodes.push(this.$slots[name])
+			vnodes.push(this.$slots[name]())
 		}
 		return h('div', { class: ['stub', 'NcPopover'] }, vnodes)
 	},
@@ -198,9 +207,10 @@ export const NcCounterBubble = createStub('NcCounterBubble')
  */
 export const NcDateTime = {
 	name: 'NcDateTime',
-	functional: true,
-	render(h, { props, data }) {
-		const ts = props && props.timestamp
+	props: { timestamp: { type: [String, Number, Date], default: undefined } },
+	inheritAttrs: false,
+	render() {
+		const ts = this.timestamp
 		// A Date instance is rendered as its ISO string (the real NcDateTime
 		// emits a <time> element); other primitives are stringified as-is so
 		// relative-time rows keep observable text. The `nc-date-time` class
@@ -209,7 +219,7 @@ export const NcDateTime = {
 		const text = ts === undefined || ts === null
 			? ''
 			: (ts instanceof Date ? ts.toISOString() : String(ts))
-		return h('time', { class: ['stub', 'NcDateTime', 'nc-date-time'], ...data }, text)
+		return h('time', { class: ['stub', 'NcDateTime', 'nc-date-time'], ...this.$attrs }, text)
 	},
 }
 

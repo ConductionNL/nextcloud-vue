@@ -26,7 +26,7 @@ describe('CnEmailTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No linked emails yet')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders the error label on a failed fetch', async () => {
@@ -37,7 +37,7 @@ describe('CnEmailTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Could not load emails')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders fetched messages and shows load-more when more exist', async () => {
@@ -64,7 +64,7 @@ describe('CnEmailTab', () => {
 		expect(wrapper.vm.total).toBe(10)
 		// Load-more visible because messages.length (3) < total (10)
 		expect(wrapper.find('.cn-sidebar-tab__load-more').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('marks unread rows and renders sender + snippet (NC Mail fidelity)', async () => {
@@ -110,7 +110,7 @@ describe('CnEmailTab', () => {
 		// Sender name + snippet are surfaced.
 		expect(wrapper.text()).toContain('Jane Doe')
 		expect(wrapper.text()).toContain('A short preview of the message body')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('appends results when load-more is clicked', async () => {
@@ -135,7 +135,7 @@ describe('CnEmailTab', () => {
 		expect(wrapper.vm.messages).toHaveLength(5)
 		// Load-more hidden once we've drained `total`.
 		expect(wrapper.find('.cn-sidebar-tab__load-more').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('reads the standardized {items, total, nextCursor} envelope', async () => {
@@ -157,7 +157,7 @@ describe('CnEmailTab', () => {
 		// hasMore driven by the cursor, not just the count comparison.
 		expect(wrapper.vm.hasMore).toBe(true)
 		expect(wrapper.find('.cn-sidebar-tab__load-more').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('walks nextCursor via the _page query param on load-more', async () => {
@@ -182,7 +182,7 @@ describe('CnEmailTab', () => {
 		// nextCursor cleared, load-more gone.
 		expect(wrapper.vm.nextCursor).toBeNull()
 		expect(wrapper.find('.cn-sidebar-tab__load-more').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('skips the fetch when register or schema is empty', async () => {
@@ -193,6 +193,6 @@ describe('CnEmailTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(global.fetch).not.toHaveBeenCalled()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

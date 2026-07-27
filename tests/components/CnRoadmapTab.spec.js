@@ -67,7 +67,7 @@ describe('CnRoadmapTab', () => {
 		await flush()
 		await wrapper.vm.$nextTick()
 
-		const numbers = wrapper.findAll('.roadmap-item').wrappers.map((w) => w.attributes('data-number'))
+		const numbers = wrapper.findAll('.roadmap-item').map((w) => w.attributes('data-number'))
 		expect(numbers).toEqual(['2', '3', '1'])
 	})
 

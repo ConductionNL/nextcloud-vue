@@ -1322,20 +1322,20 @@ describe('CnAppNav', () => {
 			const wrapper = mountNav({})
 			const to = wrapper.vm.itemTo({ id: 'x', route: 'Cases', query: { caseType: 'abc' } })
 			expect(to).toEqual({ name: 'Cases', query: { caseType: 'abc' } })
-			wrapper.destroy()
+			wrapper.unmount()
 		})
 
 		it('omits query when item.query is absent (unchanged behaviour)', () => {
 			const wrapper = mountNav({})
 			expect(wrapper.vm.itemTo({ id: 'x', route: 'Cases' })).toEqual({ name: 'Cases' })
-			wrapper.destroy()
+			wrapper.unmount()
 		})
 
 		it('returns null (no route) for action/href items regardless of query', () => {
 			const wrapper = mountNav({})
 			expect(wrapper.vm.itemTo({ id: 'x', href: '/foo', query: { a: 1 } })).toBeNull()
 			expect(wrapper.vm.itemTo({ id: 'x', action: 'user-settings', query: { a: 1 } })).toBeNull()
-			wrapper.destroy()
+			wrapper.unmount()
 		})
 
 		it('renders a per-case-type child link carrying its query', () => {
@@ -1353,7 +1353,7 @@ describe('CnAppNav', () => {
 			const wrapper = mountNav({ manifest })
 			const child = wrapper.vm.itemTo({ id: 'ct-1', route: 'Cases', query: { caseType: 'uuid-1' } })
 			expect(child.query.caseType).toBe('uuid-1')
-			wrapper.destroy()
+			wrapper.unmount()
 		})
 	})
 })
@@ -1403,7 +1403,7 @@ describe('CnAppNav — icon rendering', () => {
 		expect(wrapper.vm.isRegistryIcon({ icon: 'Heart' })).toBe(true)
 		expect(wrapper.vm.isRegistryIcon({ icon: 'Home' })).toBe(true)
 
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does NOT claim an icon for an unknown name (would render a wrong default)', () => {
@@ -1413,7 +1413,7 @@ describe('CnAppNav — icon rendering', () => {
 		// on it would paint a plausible-but-wrong icon for a typo. Gate on membership.
 		expect(wrapper.vm.isRegistryIcon({ icon: 'NotARealIconName' })).toBe(false)
 
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('leaves Nextcloud CSS-class icons on their own path (not the registry)', () => {
@@ -1425,13 +1425,13 @@ describe('CnAppNav — icon rendering', () => {
 		expect(wrapper.vm.isRegistryIcon({ icon: 'icon-comment' })).toBe(false)
 		expect(wrapper.vm.mdiIconComponent({ icon: 'icon-comment' })).toBeTruthy()
 
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('ignores empty/missing icons', () => {
 		const wrapper = mountNav()
 		expect(wrapper.vm.isRegistryIcon({ icon: '' })).toBe(false)
 		expect(wrapper.vm.isRegistryIcon({})).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

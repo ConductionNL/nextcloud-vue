@@ -42,7 +42,7 @@ describe('CnOpenProjectCreate', () => {
 
 		expect(wrapper.vm.projects).toEqual(['Portal', 'Internal'])
 		expect(wrapper.vm.projectOptions).toHaveLength(2)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('emits create with the selected project, subject and type', async () => {
@@ -64,7 +64,7 @@ describe('CnOpenProjectCreate', () => {
 
 		expect(wrapper.emitted('create')).toBeTruthy()
 		expect(wrapper.emitted('create')[0]).toEqual([{ projectId: 'Portal', subject: 'Ship it', type: 'Task' }])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('uses a free-text project id when no projects are discovered', async () => {
@@ -82,7 +82,7 @@ describe('CnOpenProjectCreate', () => {
 		wrapper.vm.submit()
 
 		expect(wrapper.emitted('create')[0]).toEqual([{ projectId: '42', subject: 'Ship it', type: '' }])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders the unconfigured Configure CTA on 503', async () => {
@@ -94,7 +94,7 @@ describe('CnOpenProjectCreate', () => {
 
 		expect(wrapper.vm.unconfigured).toBe(true)
 		expect(wrapper.text()).toContain('Configure OpenProject connection')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces the not-installed copy on 501', async () => {
@@ -105,7 +105,7 @@ describe('CnOpenProjectCreate', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('OpenConnector is not installed.')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not emit create when the form is incomplete', () => {
@@ -114,6 +114,6 @@ describe('CnOpenProjectCreate', () => {
 
 		wrapper.vm.submit()
 		expect(wrapper.emitted('create')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

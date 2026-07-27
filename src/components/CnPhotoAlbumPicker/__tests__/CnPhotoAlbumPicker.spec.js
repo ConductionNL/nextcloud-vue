@@ -43,7 +43,7 @@ describe('CnPhotoAlbumPicker', () => {
 		expect(tiles).toHaveLength(2)
 		expect(wrapper.text()).toContain('Holiday')
 		expect(wrapper.text()).toContain('Family')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('selecting an album enables confirm and emits link', async () => {
@@ -63,7 +63,7 @@ describe('CnPhotoAlbumPicker', () => {
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0]).toEqual([{ albumId: 99 }])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces an inline error when /available fails', async () => {
@@ -75,7 +75,7 @@ describe('CnPhotoAlbumPicker', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('Could not load albums.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 
@@ -87,7 +87,7 @@ describe('CnPhotoAlbumPicker', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('NC Photos is not installed.')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('filters albums client-side via search', async () => {
@@ -107,7 +107,7 @@ describe('CnPhotoAlbumPicker', () => {
 
 		expect(wrapper.vm.visibleAlbums).toHaveLength(1)
 		expect(wrapper.vm.visibleAlbums[0].id).toBe(1)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not emit link when no album is selected', () => {
@@ -116,6 +116,6 @@ describe('CnPhotoAlbumPicker', () => {
 
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

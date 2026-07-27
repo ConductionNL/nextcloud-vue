@@ -14,14 +14,14 @@ describe('CnContactCreate', () => {
 		const fields = wrapper.findAll('.stub.NcTextField')
 		// displayName + email + phone + org = 4 NcTextField stubs.
 		expect(fields.length).toBe(4)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('marks displayName required (empty form cannot submit)', () => {
 		const wrapper = mount(CnContactCreate)
 		expect(wrapper.vm.canSubmit).toBe(false)
 		expect(wrapper.vm.displayNameError).not.toBe('')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('flags an invalid email', async () => {
@@ -31,7 +31,7 @@ describe('CnContactCreate', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.emailError).not.toBe('')
 		expect(wrapper.vm.canSubmit).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('accepts a valid form and emits `create`', async () => {
@@ -52,7 +52,7 @@ describe('CnContactCreate', () => {
 		expect(payload.phone).toBe('+31 6 1234')
 		expect(payload.org).toBe('Acme')
 		expect(payload.role).toBe('applicant')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('refuses to emit when validation fails', async () => {
@@ -62,7 +62,7 @@ describe('CnContactCreate', () => {
 		await wrapper.vm.$nextTick()
 		wrapper.vm.submit()
 		expect(wrapper.emitted('create')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('trims and normalises optional fields to null when empty', async () => {
@@ -77,6 +77,6 @@ describe('CnContactCreate', () => {
 		expect(payload.email).toBeNull()
 		expect(payload.phone).toBeNull()
 		expect(payload.org).toBeNull()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

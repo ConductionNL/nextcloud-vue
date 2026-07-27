@@ -24,7 +24,7 @@ describe('CnAuditTrailCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No audit entries yet')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders rows for each fetched entry up to maxDisplay', async () => {
@@ -49,7 +49,7 @@ describe('CnAuditTrailCard', () => {
 		expect(wrapper.findAll('.cn-audit-card__row')).toHaveLength(5)
 		expect(wrapper.text()).toContain('alice')
 		expect(wrapper.text()).toContain('Show all')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('emits show-all when the overflow control is clicked', async () => {
@@ -66,7 +66,7 @@ describe('CnAuditTrailCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.find('.cn-audit-card__show-all').trigger('click')
 		expect(wrapper.emitted('show-all')).toBeTruthy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('falls back to actorDisplayName then userId when actor is missing', async () => {
@@ -86,6 +86,6 @@ describe('CnAuditTrailCard', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Display Name')
 		expect(wrapper.text()).toContain('uid')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

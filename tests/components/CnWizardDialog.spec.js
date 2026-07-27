@@ -6,7 +6,7 @@ const stubs = {
 		template: '<div><slot /><slot name="actions" /></div>',
 	},
 	NcButton: {
-		template: '<button :disabled="disabled" @click="$listeners.click"><slot /></button>',
+		template: '<button :disabled="disabled" @click="$attrs.onClick && $attrs.onClick()"><slot /></button>',
 		props: ['disabled', 'type'],
 	},
 	NcNoteCard: { template: '<div class="note-card" :data-type="type"><slot /></div>', props: ['type'] },

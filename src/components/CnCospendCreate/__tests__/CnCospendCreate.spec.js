@@ -19,7 +19,7 @@ describe('CnCospendCreate', () => {
 		wrapper.vm.name = 'Holiday'
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.canSubmit).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('submit emits create with trimmed name and default currency', () => {
@@ -29,7 +29,7 @@ describe('CnCospendCreate', () => {
 
 		expect(wrapper.emitted('create')).toBeTruthy()
 		expect(wrapper.emitted('create')[0]).toEqual([{ name: 'Holiday', currency: 'EUR' }])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('submit uses the chosen currency', () => {
@@ -39,7 +39,7 @@ describe('CnCospendCreate', () => {
 		wrapper.vm.submit()
 
 		expect(wrapper.emitted('create')[0]).toEqual([{ name: 'Office', currency: 'USD' }])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not emit create when the name is blank', () => {
@@ -48,6 +48,6 @@ describe('CnCospendCreate', () => {
 		wrapper.vm.submit()
 
 		expect(wrapper.emitted('create')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

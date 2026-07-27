@@ -48,7 +48,7 @@ describe('CnVersionHistory — history list', () => {
 		const wrapper = mountHistory({ register: 'r1', schema: 's1', objectId: 'o1' })
 		await flush(wrapper)
 		expect(wrapper.text()).toContain('No version history yet')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders entries newest-first with version/action/user and shows load-more when total exceeds the page', async () => {
@@ -66,7 +66,7 @@ describe('CnVersionHistory — history list', () => {
 		expect(rows.at(0).text()).toContain('1.1.0')
 		expect(rows.at(0).text()).toContain('bob')
 		expect(wrapper.text()).toContain('Load more')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('fetches against the OpenRegister audit-trails endpoint with the expected pagination params', async () => {
@@ -116,7 +116,7 @@ describe('CnVersionHistory — single-entry diff', () => {
 		expect(wrapper.text()).toContain('Acme')
 		expect(wrapper.text()).toContain('Acme B.V.')
 		expect(wrapper.text()).toContain('email')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the no-changes label when the entry has no changed fields', async () => {
@@ -129,7 +129,7 @@ describe('CnVersionHistory — single-entry diff', () => {
 		await wrapper.find('.cn-version-history__row-main').trigger('click')
 		await flush(wrapper)
 		expect(wrapper.text()).toContain('No field changes to show')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('the "Show all fields" toggle reveals unchanged nested rows', async () => {
@@ -164,7 +164,7 @@ describe('CnVersionHistory — single-entry diff', () => {
 		await flush(wrapper)
 
 		expect(wrapper.text()).toContain('city')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('applies add/remove/change tint classes to nested JSON lines', async () => {
@@ -192,7 +192,7 @@ describe('CnVersionHistory — single-entry diff', () => {
 
 		expect(wrapper.find('.cn-version-history__diff-line--changed').exists()).toBe(true)
 		expect(wrapper.find('.cn-version-history__diff-line--added').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('closing the diff returns to the list', async () => {
@@ -211,7 +211,7 @@ describe('CnVersionHistory — single-entry diff', () => {
 		await flush(wrapper)
 		expect(wrapper.find('.cn-version-history__diff-table').exists()).toBe(false)
 		expect(wrapper.find('.cn-version-history__rows').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -251,9 +251,9 @@ describe('CnVersionHistory — two-entry compare', () => {
 		expect(wrapper.text()).toContain('published')
 		// The intermediate "review" value should not leak into the folded diff.
 		const cells = wrapper.findAll('.cn-version-history__diff-value')
-		const cellTexts = cells.wrappers.map((c) => c.text())
+		const cellTexts = cells.map((c) => c.text())
 		expect(cellTexts).not.toContain('review')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('the compare button is disabled until exactly two entries are checked', async () => {
@@ -274,6 +274,6 @@ describe('CnVersionHistory — two-entry compare', () => {
 		await checkboxes.at(0).setChecked(true)
 		await flush(wrapper)
 		expect(compareButton().attributes('disabled')).toBeTruthy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

@@ -43,7 +43,7 @@ describe('CnMapPoiPicker', () => {
 		expect(rows).toHaveLength(2)
 		expect(wrapper.text()).toContain('Office')
 		expect(wrapper.text()).toContain('Home')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('selecting a POI enables confirm and emits link', async () => {
@@ -63,7 +63,7 @@ describe('CnMapPoiPicker', () => {
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0]).toEqual([{ favoriteId: 99 }])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces an inline error when /available fails', async () => {
@@ -75,7 +75,7 @@ describe('CnMapPoiPicker', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('Could not load locations.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 
@@ -87,7 +87,7 @@ describe('CnMapPoiPicker', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('NC Maps is not installed.')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('filters POIs client-side via search', async () => {
@@ -107,7 +107,7 @@ describe('CnMapPoiPicker', () => {
 
 		expect(wrapper.vm.visiblePois).toHaveLength(1)
 		expect(wrapper.vm.visiblePois[0].id).toBe(1)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not emit link when no POI is selected', () => {
@@ -116,6 +116,6 @@ describe('CnMapPoiPicker', () => {
 
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

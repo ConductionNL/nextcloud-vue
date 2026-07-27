@@ -2,9 +2,14 @@ name: Code Quality
 
 on:
   push:
-    branches: [main, beta]
+    branches: [main, beta, 'feat/vue-3']
   pull_request:
-    branches: [main, beta, development]
+    # `feat/vue-3` is the long-lived Vue-3 integration branch and MUST be
+    # listed here. While it was missing, every PR into it merged with zero
+    # checks (e.g. #541, "no checks reported") — which is how the branch ended
+    # up with a hard-broken `npm ci`, Vue-2 render functions in shipped source
+    # and a test suite that could not run at all.
+    branches: [main, beta, development, 'feat/vue-3']
 
 jobs:
   frontend-quality:

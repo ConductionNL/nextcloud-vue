@@ -25,7 +25,7 @@ describe('CnXwikiPageCreate', () => {
 		wrapper.vm.title = 'New Page'
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.canSubmit).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('emits create with trimmed space + title on submit', async () => {
@@ -39,7 +39,7 @@ describe('CnXwikiPageCreate', () => {
 		wrapper.vm.submit()
 		expect(wrapper.emitted().create).toBeTruthy()
 		expect(wrapper.emitted().create[0][0]).toEqual({ space: 'Sales', title: 'New Page' })
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the Configure CTA and hides the form when unavailable', async () => {
@@ -49,7 +49,7 @@ describe('CnXwikiPageCreate', () => {
 		expect(wrapper.find('.cn-xwiki-page-create__unconfigured').exists()).toBe(true)
 		expect(wrapper.find('form.cn-xwiki-page-create').exists()).toBe(false)
 		expect(wrapper.text()).toContain('Configure XWiki connection')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not emit create when the form is incomplete', async () => {
@@ -59,6 +59,6 @@ describe('CnXwikiPageCreate', () => {
 		wrapper.vm.space = 'Sales'
 		wrapper.vm.submit()
 		expect(wrapper.emitted().create).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

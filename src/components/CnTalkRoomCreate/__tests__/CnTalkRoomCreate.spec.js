@@ -18,7 +18,7 @@ describe('CnTalkRoomCreate', () => {
 		const ids = wrapper.vm.typeOptions.map(o => o.id)
 		expect(ids).toEqual(expect.arrayContaining([2, 3]))
 		expect(ids).not.toContain(1)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('emits create with the full payload on submit', async () => {
@@ -36,7 +36,7 @@ describe('CnTalkRoomCreate', () => {
 			description: 'Weekly sync',
 			type: 2,
 		}])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('blocks submit when name is empty', async () => {
@@ -44,6 +44,6 @@ describe('CnTalkRoomCreate', () => {
 		expect(wrapper.vm.canSubmit).toBe(false)
 		wrapper.vm.submit()
 		expect(wrapper.emitted('create')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
