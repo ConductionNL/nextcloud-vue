@@ -7,6 +7,50 @@
  */
 import { h } from 'vue'
 
+/**
+ * Native HTML boolean attributes: present means true, absent means false.
+ *
+ * Vue 2 removed ANY attribute whose bound value was `false` (`isFalsyAttrValue`
+ * in its attrs module), whatever the element. Vue 3 only does that for the
+ * attribute's real nature — a boolean DOM prop on a host element that has it
+ * (`<button :disabled="false">` -> no attribute), or the short
+ * `specialBooleanAttrs` list. Everything else is stringified, so a `<div>`
+ * given `disabled: false` renders `disabled="false"`.
+ *
+ * These stubs render a `<div>` where the real component renders a `<button>` /
+ * `<input>` / `<details>`, so without this filter `:disabled="!canSubmit"`
+ * always produces a `disabled` attribute and `attributes('disabled')` is
+ * truthy whether the button is enabled or not — the enabled/disabled specs
+ * pass in BOTH directions and assert nothing.
+ *
+ * Only genuine boolean attributes are filtered. `aria-*` and `data-*` are
+ * left alone: "false" is a meaningful value there and several specs assert it.
+ */
+const NATIVE_BOOLEAN_ATTRS = new Set([
+	'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'controls',
+	'default', 'defer', 'disabled', 'formnovalidate', 'hidden', 'ismap',
+	'itemscope', 'loop', 'multiple', 'muted', 'nomodule', 'novalidate', 'open',
+	'playsinline', 'readonly', 'required', 'reversed', 'selected',
+])
+
+/**
+ * Drop boolean attributes bound to `false`, mirroring what the real component's
+ * host element does. See {@link NATIVE_BOOLEAN_ATTRS}.
+ *
+ * @param {object} attrs the fallthrough attributes.
+ * @return {object} attributes safe to spread onto the stub's `<div>`.
+ */
+const withBooleanAttrSemantics = (attrs) => {
+	const out = {}
+	for (const [key, value] of Object.entries(attrs)) {
+		if (value === false && NATIVE_BOOLEAN_ATTRS.has(key)) {
+			continue
+		}
+		out[key] = value
+	}
+	return out
+}
+
 const createStub = (name) => ({
 	name,
 	inheritAttrs: false,
@@ -20,7 +64,7 @@ const createStub = (name) => ({
 				if (key === 'default') continue
 				children.push(slots[key]())
 			}
-			return h('div', { class: ['stub', name], ...attrs }, children)
+			return h('div', { class: ['stub', name], ...withBooleanAttrSemantics(attrs) }, children)
 		}
 	},
 })

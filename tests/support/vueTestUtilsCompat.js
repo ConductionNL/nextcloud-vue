@@ -93,6 +93,62 @@ function hoistGlobalOptions(options) {
 	return next
 }
 
+/**
+ * Restore VTU v1's `wrapper.vm` — the component's REACTIVE public instance.
+ *
+ * WHY
+ *
+ * When a component has a `setup()`, VTU v2 does not hand back the instance
+ * proxy. It substitutes `createVMProxy(vm, vm.$.setupState)`, whose lookup
+ * order is exposed -> setupState -> globalProperties -> `vm.$.ctx[key]`.
+ * That last fallback is where `data()` state is read from, and it is a
+ * DEV-ONLY convenience accessor Vue installs in `applyOptions`:
+ *
+ *   Object.defineProperty(ctx, key, { get: () => data[key], set: NOOP })
+ *
+ * `data` there is the RAW object captured before `instance.data =
+ * reactive(data)`. So `wrapper.vm.someObject` returns an unwrapped, untracked
+ * plain object, and — because the descriptor's setter is `NOOP` — a write is
+ * silently swallowed.
+ *
+ * Under Vue 2 + VTU v1 `wrapper.vm` was the real instance, so the idiom
+ *
+ *   wrapper.vm.chrome.showTitle = true
+ *   await wrapper.vm.$nextTick()
+ *   expect(wrapper.vm.isDirty).toBe(true)
+ *
+ * drove reactivity exactly like a user interaction. Under v2 the mutation
+ * lands on the raw object: no dep is notified, dependent computeds keep their
+ * cached value, and the template never re-renders. Nothing throws and nothing
+ * warns — the spec just fails on a stale assertion far from the write.
+ *
+ * Returning `instance.proxy` puts the reactive object back. It resolves the
+ * same names in the same order (setupState -> data -> props -> ctx ->
+ * globalProperties), so nothing a spec could already read is lost. The
+ * `exposed` branch is kept ahead of it for parity with stock v2; this library
+ * has no `expose()` call today, but a future one should not silently change
+ * what `wrapper.vm` means.
+ *
+ * Applies to every wrapper, including the children `findComponent()` returns.
+ */
+const vmDescriptor = Object.getOwnPropertyDescriptor(vtu.VueWrapper.prototype, 'vm')
+Object.defineProperty(vtu.VueWrapper.prototype, 'vm', {
+	configurable: true,
+	get() {
+		const wrapped = vmDescriptor.get.call(this)
+		// `wrapped.$` resolves to the internal instance through either shape
+		// (VTU's proxy forwards it via ctx). Functional components have no vm.
+		const instance = wrapped && wrapped.$
+		if (!instance || !instance.proxy) {
+			return wrapped
+		}
+		if (instance.exposed && instance.exposeProxy) {
+			return wrapped
+		}
+		return instance.proxy
+	},
+})
+
 module.exports = {
 	...vtu,
 	mount: (component, options) => vtu.mount(component, hoistGlobalOptions(options)),

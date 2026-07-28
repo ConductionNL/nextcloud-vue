@@ -19,6 +19,12 @@ module.exports = {
 		// adapter hoists them into `global` so ~100 legacy specs keep the
 		// isolation they were written with. See the file's docblock.
 		'^@vue/test-utils$': '<rootDir>/tests/support/vueTestUtilsCompat.js',
+		// Vue 3 keeps `currentRenderingInstance` / `currentInstance` in module
+		// scope, so the second copy of Vue that `jest.isolateModules()` creates
+		// breaks `resolveComponent()`, `inject()` and `getCurrentInstance()`
+		// across the copy boundary — silently. Pin `vue` to one instance for
+		// the whole worker. See the file's docblock.
+		'^vue$': '<rootDir>/tests/support/vueSingleton.js',
 		'\\.(css)$': 'jest-transform-stub',
 		'^@toast-ui/editor$': '<rootDir>/tests/__mocks__/toast-ui-editor.js',
 		'^@mdi/js$': '<rootDir>/tests/__mocks__/mdi-js.js',
