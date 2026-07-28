@@ -746,7 +746,7 @@ describe('CnPageRenderer', () => {
 				},
 				mocks: { $route: { name: 'report' } },
 			})
-			expect(wrapper.vm.resolvedComponent).toBe(ReportPage)
+			expect(toRaw(wrapper.vm.resolvedComponent)).toBe(ReportPage)
 		})
 
 		it('warns and renders nothing for an unknown type, recommending the pageTypes registry', () => {

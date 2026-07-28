@@ -12,7 +12,7 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { defineComponent, h } from 'vue'
+import { defineComponent, h, toRaw } from 'vue'
 import {
 	useContextMenu,
 	clearContextMenuPositionDom,
@@ -46,7 +46,10 @@ describe('useContextMenu', () => {
 		ctx.open({ item, event: { clientX: 120, clientY: 240 } })
 
 		expect(ctx.isOpen.value).toBe(true)
-		expect(ctx.targetItem.value).toBe(item)
+		// `toRaw` on the received side: the composable stores the item in a
+		// ref, and Vue 3 deep-wraps the object on read. Identity is what the
+		// test is for — `open()` stores the caller's item, not a copy.
+		expect(toRaw(ctx.targetItem.value)).toBe(item)
 		const dom = readPosition()
 		expect(dom.x).toBe('120px')
 		expect(dom.y).toBe('240px')

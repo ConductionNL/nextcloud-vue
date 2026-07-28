@@ -41,6 +41,7 @@ jest.mock('../../src/store/index.js', () => ({
 }))
 
 const { mount } = require('@vue/test-utils')
+const { toRaw } = require('vue')
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
 
 const stubs = {
@@ -194,7 +195,12 @@ describe('CnIndexPage map view mode', () => {
 		wrapper.vm.onMarkerClick({ feature })
 		const markerClickPayload = wrapper.emitted('row-click')[1][0]
 
-		expect(markerClickPayload).toBe(rowClickPayload)
+		// Compare the raw targets: `onRowClick` was called with the fixture row
+		// directly, while the marker path resolves the row out of reactive
+		// state and so emits a Proxy around it. `toBe` on the raws keeps the
+		// point of the test — both entry points emit THE SAME row object, not
+		// two equal-looking ones.
+		expect(toRaw(markerClickPayload)).toBe(toRaw(rowClickPayload))
 		expect(markerClickPayload.id).toBe('b')
 		wrapper.unmount()
 	})

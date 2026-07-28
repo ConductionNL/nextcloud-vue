@@ -12,6 +12,7 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { toRaw } from 'vue'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 import CnObjectCard from '../../src/components/CnObjectCard/CnObjectCard.vue'
 
@@ -103,7 +104,10 @@ describe('CnIndexPage — cardComponent prop', () => {
 			const cards = wrapper.findAllComponents(TestCard)
 			expect(cards.at(0).props('item')).toEqual(baseProps.objects[0])
 			expect(cards.at(0).props('object')).toEqual(baseProps.objects[0])
-			expect(cards.at(0).props('schema')).toBe(baseProps.schema)
+			// `toRaw` on the received side: props reach the card through a
+			// reactive Proxy under Vue 3. Identity still matters here — the
+			// page must hand the card its own schema object.
+			expect(toRaw(cards.at(0).props('schema'))).toBe(baseProps.schema)
 			expect(cards.at(0).props('register')).toBe('softwarecatalog')
 			expect(cards.at(0).props('selected')).toBe(true)
 			expect(cards.at(1).props('selected')).toBe(false)

@@ -70,7 +70,7 @@ describe('CnDetailPage — Primitive 2', () => {
 		const wrapper = mountPage({ summaryAggregates: aggregates })
 		const child = wrapper.findComponent(SummaryStub)
 		expect(child.exists()).toBe(true)
-		expect(child.props('aggregates')).toBe(aggregates)
+		expect(toRaw(child.props('aggregates'))).toBe(aggregates)
 	})
 
 	it('renders a relation-link button and opens the modal on click', async () => {
