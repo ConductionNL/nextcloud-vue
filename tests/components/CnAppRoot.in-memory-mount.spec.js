@@ -264,7 +264,8 @@ describe('CnAppRoot — in-memory manifest mount (REQ-IMM-001..REQ-IMM-004)', ()
 		// Component still mounts — validation is informational.
 		expect(wrapper.vm.phase).toBe('shell')
 		// REQ-IMM-003: manifest ref is held unchanged — same reference.
-		expect(wrapper.props('manifest')).toBe(invalidManifest)
+		// See the `toRaw` note above: props arrive through a reactive Proxy.
+		expect(toRaw(wrapper.props('manifest'))).toBe(invalidManifest)
 		// Inner surface receives the invalid manifest's first page id (dup)
 		// rather than a placeholder — the mount is not blocked.
 		expect(wrapper.find('.router-view-stub').attributes('data-page-id')).toBe('dup')

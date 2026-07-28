@@ -72,6 +72,36 @@ function hoistGlobalOptions(options) {
 		options = { ...options, slots: { ...options.scopedSlots, ...(options.slots || {}) } }
 		delete options.scopedSlots
 	}
+	// VTU v1's `listeners: { 'widget-action': fn }` is the third silently-ignored
+	// v1 key. Vue 3 has no separate listener channel at all — `v-on:widget-action`
+	// compiles to an `onWidgetAction` PROP, and `emit()` looks the handler up in
+	// `vnode.props`. VTU v2 therefore dropped the option, without warning, so a
+	// spec that asserts "the host receives what the child emitted" mounts with no
+	// handler attached and fails with `Number of calls: 0`.
+	//
+	// The primary key is Vue's `toHandlerKey(name)` — 'on' + capitalize, with NO
+	// camelization, because that is literally what the template compiler emits:
+	// `@widget-refresh` becomes the prop `onWidget-refresh`. Components that
+	// feature-detect a wired listener read that exact key (CnDashboardPage:
+	// `this.$attrs['onWidget-refresh']`), so a camelized-only key would leave
+	// them thinking nothing is wired.
+	//
+	// The camelized alias is added too, because `emit()` accepts either and some
+	// components detect the camelCase form instead. Only one ever fires: `emit`
+	// resolves `toHandlerKey(event)` first and stops.
+	if (Object.prototype.hasOwnProperty.call(options, 'listeners')) {
+		const handlers = {}
+		const toHandlerKey = (s) => `on${s.charAt(0).toUpperCase()}${s.slice(1)}`
+		for (const [event, handler] of Object.entries(options.listeners || {})) {
+			handlers[toHandlerKey(event)] = handler
+			handlers[toHandlerKey(event.replace(/-(\w)/g, (_, c) => c.toUpperCase()))] = handler
+		}
+		// `attrs` (not `props`) so this works whether or not the component
+		// declares the event in `emits` — both land in the vnode's props, which
+		// is where `emit()` reads from. An explicit `attrs` entry still wins.
+		options = { ...options, attrs: { ...handlers, ...(options.attrs || {}) } }
+		delete options.listeners
+	}
 	const hoisted = {}
 	let found = false
 	for (const key of HOISTED_KEYS) {

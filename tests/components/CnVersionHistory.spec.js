@@ -242,7 +242,7 @@ describe('CnVersionHistory — two-entry compare', () => {
 		await flush(wrapper)
 
 		const compareButton = wrapper.findAll('button').filter((b) => b.text().includes('Compare selected')).at(0)
-		expect(compareButton.attributes('disabled')).toBeFalsy()
+		expect(compareButton.attributes('disabled')).toBeUndefined()
 		await compareButton.trigger('click')
 		await flush(wrapper)
 
@@ -268,12 +268,12 @@ describe('CnVersionHistory — two-entry compare', () => {
 		await flush(wrapper)
 
 		const compareButton = () => wrapper.findAll('button').filter((b) => b.text().includes('Compare selected')).at(0)
-		expect(compareButton().attributes('disabled')).toBeTruthy()
+		expect(compareButton().attributes('disabled')).toBeDefined()
 
 		const checkboxes = wrapper.findAll('.cn-version-history__row .nc-switch')
 		await checkboxes.at(0).setChecked(true)
 		await flush(wrapper)
-		expect(compareButton().attributes('disabled')).toBeTruthy()
+		expect(compareButton().attributes('disabled')).toBeDefined()
 		wrapper.unmount()
 	})
 })

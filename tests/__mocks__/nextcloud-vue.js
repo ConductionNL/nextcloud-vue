@@ -267,7 +267,45 @@ export const NcDateTime = {
 	},
 }
 
+/**
+ * Components `src/` imports from `@nextcloud/vue` that this mock never
+ * exported. They resolved to `undefined`, so Vue could not resolve the tag.
+ *
+ * Vue 2 routed `warn()` through `console.error`, so a spec spying on
+ * `console.warn` never saw framework warnings. Vue 3 routes `warn()` through
+ * `console.warn` — so every unresolved component now lands in the same spy the
+ * spec uses for its OWN assertion, and `expect(warnSpy).toHaveBeenCalledTimes(1)`
+ * fails on warnings the component under test never emitted.
+ *
+ * Stubbing them is the fix at source: the mock should cover what `src/`
+ * actually imports.
+ */
+export const NcActionLink = createStub('NcActionLink')
+export const NcActionText = createStub('NcActionText')
+export const NcAppNavigationCaption = createStub('NcAppNavigationCaption')
+export const NcAppNavigationNew = createStub('NcAppNavigationNew')
+export const NcAppNavigationSettings = createStub('NcAppNavigationSettings')
+export const NcAppSettingsDialog = createStub('NcAppSettingsDialog')
+export const NcAppSettingsSection = createStub('NcAppSettingsSection')
+export const NcDashboardWidget = createStub('NcDashboardWidget')
+export const NcDateTimePicker = createStub('NcDateTimePicker')
+export const NcDateTimePickerNative = createStub('NcDateTimePickerNative')
+export const NcIconSvgWrapper = createStub('NcIconSvgWrapper')
+export const NcSelectTags = createStub('NcSelectTags')
+
 export default {
+	NcActionLink,
+	NcActionText,
+	NcAppNavigationCaption,
+	NcAppNavigationNew,
+	NcAppNavigationSettings,
+	NcAppSettingsDialog,
+	NcAppSettingsSection,
+	NcDashboardWidget,
+	NcDateTimePicker,
+	NcDateTimePickerNative,
+	NcIconSvgWrapper,
+	NcSelectTags,
 	NcDialog,
 	NcModal,
 	NcButton,
