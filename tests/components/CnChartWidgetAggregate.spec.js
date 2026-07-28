@@ -24,6 +24,22 @@ jest.mock('@nextcloud/router', () => ({
 		return `/nc${out}`
 	}),
 }))
+// `resolveAggregateRefs` prefers the SHARED pinia object store and only falls
+// back to the direct axios GET these labelResolve specs mock when NO store is
+// active. Under Vue 2, pinia was installed as a plugin but no pinia was made
+// `setActivePinia`, so a bare `useObjectStore()` threw and the axios branch
+// ran. The Vue-3 `tests/setup.js` must call `setActivePinia()` per test
+// (pinia 2 resolves stores from the active instance, not a global Vue mixin),
+// which silently moved this file onto the store branch — labels stayed as raw
+// uuids because the store's own fetch has nothing mocked behind it. Force the
+// documented "no Pinia store is active" branch so the axios path named in the
+// test titles is the one under test.
+jest.mock('../../src/store/useObjectStore.js', () => ({
+	__esModule: true,
+	useObjectStore: () => {
+		throw new Error('no active pinia')
+	},
+}))
 
 import axios from '@nextcloud/axios'
 import { shallowMount } from '@vue/test-utils'

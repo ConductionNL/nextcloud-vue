@@ -28,10 +28,17 @@ const stubs = {
 	NcLoadingIcon: { template: '<div />' },
 	CnDateRangePicker: { template: '<div />', props: ['value', 'presets', 'disabled'] },
 	// Lightweight NcSelect: renders option labels, emits the option object on click.
+	// Model contract: `modelValue` / `update:modelValue`. `@nextcloud/vue` 9
+	// (Vue 3) dropped vue-select's Vue-2-era `value` prop + `input` event for
+	// Vue 3's standard `v-model` names, and CnDashboardPage binds the new ones —
+	// a stub still emitting `input` fires an event nobody listens for, so the
+	// selection never reaches `onPageFilterChange` and the assertion reads the
+	// seeded default instead.
 	NcSelect: {
 		name: 'NcSelect',
-		props: ['value', 'options', 'inputLabel', 'label', 'clearable'],
-		template: '<div class="nc-select-stub"><button v-for="o in options" :key="o.value" class="opt" :data-value="o.value" @click="$emit(\'input\', o)">{{ o.label }}</button></div>',
+		props: ['modelValue', 'options', 'inputLabel', 'label', 'clearable'],
+		emits: ['update:modelValue'],
+		template: '<div class="nc-select-stub"><button v-for="o in options" :key="o.value" class="opt" :data-value="o.value" @click="$emit(\'update:modelValue\', o)">{{ o.label }}</button></div>',
 	},
 }
 

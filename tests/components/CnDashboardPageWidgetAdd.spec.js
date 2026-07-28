@@ -20,6 +20,7 @@ jest.mock('gridstack/dist/gridstack.min.css', () => ({}), { virtual: true })
 // Apexcharts is stubbed globally via jest.config.js moduleNameMapper.
 
 import { mount } from '@vue/test-utils'
+import { reactive } from 'vue'
 import CnDashboardPage from '@/components/CnDashboardPage/CnDashboardPage.vue'
 
 const stubs = {
@@ -51,8 +52,19 @@ const place = (n, widgetId) => ({ id: n, widgetId, gridX: 0, gridY: (n - 1) * 3,
 describe('CnDashboardPage — widget appended after mount', () => {
 	it('resolves a widget pushed onto the widgets prop array in place', async () => {
 		// The parent owns the arrays; the editor mutates them in place.
-		const widgets = [tile('w-1')]
-		const layout = [place(1, 'w-1')]
+		//
+		// They must be REACTIVE, exactly as they are in the app: the manifest
+		// lives in host-app reactive state, so `page.config.widgets.push(...)`
+		// runs through a reactive proxy. Vue 2 made that automatic — `observe()`
+		// walked the array the moment it became a prop value, so pushing to the
+		// very array literal the spec declared notified the component's render
+		// watcher. Vue 3 has no observer to attach: `reactive()` returns a
+		// PROXY and only writes THROUGH that proxy call `trigger()`. Mutating
+		// the raw target is invisible, so a plain array literal here would leave
+		// the DOM at one card while `wrapper.vm.getWidgetDef('w-2')` — which
+		// re-reads on call — already reported the new widget.
+		const widgets = reactive([tile('w-1')])
+		const layout = reactive([place(1, 'w-1')])
 
 		const wrapper = mount(CnDashboardPage, {
 			propsData: { widgets, layout, unavailableLabel: 'Widget not available' },
