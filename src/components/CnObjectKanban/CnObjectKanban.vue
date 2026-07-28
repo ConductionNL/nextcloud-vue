@@ -213,6 +213,8 @@ export default {
 		},
 	},
 
+	emits: ['card-click', 'load-more', 'move', 'move-rejected'],
+
 	data() {
 		return {
 			localColumns: [],

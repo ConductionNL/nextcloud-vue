@@ -175,6 +175,7 @@ export default {
 		/** Disable buttons + comment (mid-submit). */
 		loading: { type: Boolean, default: false },
 	},
+	emits: ['decision'],
 	data() {
 		return {
 			comment: '',

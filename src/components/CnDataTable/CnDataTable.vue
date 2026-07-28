@@ -524,6 +524,8 @@ export default {
 		},
 	},
 
+	emits: ['row-click', 'row-context-menu', 'select', 'select-all', 'sort'],
+
 	setup() {
 		// Tell a deliberate row click apart from a text-selection drag.
 		return useClickDragGuard()

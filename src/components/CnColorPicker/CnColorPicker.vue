@@ -142,6 +142,8 @@ export default {
 		},
 	},
 
+	emits: ['clear'],
+
 	data() {
 		return {
 			open: false,

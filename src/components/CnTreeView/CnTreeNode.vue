@@ -83,6 +83,7 @@ export default {
 		/** A11y label for the collapse button. */
 		collapseLabel: { type: String, default: 'Collapse' },
 	},
+	emits: ['select', 'toggle'],
 	computed: {
 		/**
 		 * Whether this node has any children at all.

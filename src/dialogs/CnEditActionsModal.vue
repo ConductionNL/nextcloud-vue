@@ -117,6 +117,8 @@ export default {
 		},
 	},
 
+	emits: ['close'],
+
 	computed: {
 		/** Closed enum of action types (open-page / navigate / open-modal / handler). */
 		actionTypes() {

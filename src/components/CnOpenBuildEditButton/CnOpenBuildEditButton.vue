@@ -298,6 +298,24 @@ export default {
 		},
 	},
 
+	emits: [
+		'add-widget',
+		'cancel',
+		'edit',
+		'edit-actions',
+		'edit-data',
+		'edit-flows',
+		'edit-menu',
+		'edit-pages',
+		'edit-settings',
+		'edit-setup',
+		'edit-sidebar',
+		'edit-support',
+		'edit-walkthrough',
+		'save',
+		'widget-added',
+	],
+
 	data() {
 		return {
 			showMenuModal: false,

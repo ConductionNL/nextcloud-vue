@@ -155,6 +155,8 @@ export default {
 		},
 	},
 
+	emits: ['close'],
+
 	computed: {
 		/** The working manifest's support block. */
 		support() {

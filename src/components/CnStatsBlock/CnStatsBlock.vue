@@ -193,6 +193,8 @@ export default {
 		},
 	},
 
+	emits: ['click'],
+
 	computed: {
 		hasIcon() {
 			return this.icon !== null || this.$slots.icon || this.$slots.icon

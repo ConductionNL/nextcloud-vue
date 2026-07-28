@@ -331,6 +331,8 @@ export default {
 		},
 	},
 
+	emits: ['columns-change', 'filter-change', 'search', 'tab-change', 'update:open'],
+
 	data() {
 		return {
 			internalOpen: this.open,

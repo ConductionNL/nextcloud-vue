@@ -145,6 +145,8 @@ export default {
 		},
 	},
 
+	emits: ['update:active-index', 'update:selected-indices'],
+
 	computed: {
 		/**
 		 * Dropdown options: every tab that carries a non-empty `filter`,

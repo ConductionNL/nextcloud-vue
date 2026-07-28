@@ -305,6 +305,8 @@ export default {
 		},
 	},
 
+	emits: ['canvas-click', 'canvas-drop', 'connect', 'edge-select', 'node-move', 'node-select', 'update:zoom'],
+
 	data() {
 		return {
 			/** @type {{id: string, offsetX: number, offsetY: number}|null} Node being dragged. */
@@ -557,8 +559,14 @@ export default {
 			event.preventDefault()
 			const delta = event.deltaY > 0 ? -0.1 : 0.1
 			const next = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom + delta))
+			// Description goes ABOVE `@event`, not inline after it:
+			// vue-docgen-api's event-name splitter stops at the first `:`, so
+			// `@event update:zoom <description>` is read as one long event NAME
+			// and the generated docs show an empty description.
 			/**
-			 * @event update:zoom The zoom factor changed (supports `.sync`).
+			 * The zoom factor changed (supports `v-model:zoom`).
+			 *
+			 * @event update:zoom
 			 * @type {number}
 			 */
 			this.$emit('update:zoom', next)

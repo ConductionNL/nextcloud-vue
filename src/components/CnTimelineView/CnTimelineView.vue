@@ -131,6 +131,7 @@ export default {
 		 */
 		locale: { type: String, default: undefined },
 	},
+	emits: ['event-click'],
 	computed: {
 		/**
 		 * Events grouped by `groupBy` (defaults to ISO date),

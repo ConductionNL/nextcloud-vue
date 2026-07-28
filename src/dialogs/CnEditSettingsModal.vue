@@ -143,6 +143,8 @@ export default {
 		},
 	},
 
+	emits: ['close'],
+
 	computed: {
 		/** The working manifest's menu array (always an array). */
 		menu() {

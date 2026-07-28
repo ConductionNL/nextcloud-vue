@@ -34,11 +34,11 @@
 
 | Name               | Payload | Description                                                                                                     |
 | ------------------ | ------- | --------------------------------------------------------------------------------------------------------------- |
+| `add`              | —       | An Add-footer entry without a built-in flow was activated; the host routes it (e.g. open a link-object dialog). |
 | `file-uploaded`    | —       | Files were uploaded via the Add footer.                                                                         |
 | `note-added`       | —       | A note was created via the Add footer.                                                                          |
-| `add`              | —       | An Add-footer entry without a built-in flow was activated; the host routes it (e.g. open a link-object dialog). |
-| `select-object`    | —       | A related-object row was clicked.                                                                               |
-| `select-file`      | —       | A file row was clicked.                                                                                         |
-| `select-related`   | —       | A leaf-group row (mails, events, …) was clicked and no owning-app deep link could be resolved.                  |
-| `select-extra`     | —       | A row in a host-supplied `extraSections` group was clicked.                                                     |
 | `open-integration` | —       | A "Linked apps" row or a tab's "open in sidebar" affordance was activated.                                      |
+| `select-extra`     | —       | A row in a host-supplied `extraSections` group was clicked.                                                     |
+| `select-file`      | —       | A file row was clicked.                                                                                         |
+| `select-object`    | —       | A related-object row was clicked.                                                                               |
+| `select-related`   | —       | A leaf-group row (mails, events, …) was clicked and no owning-app deep link could be resolved.                  |

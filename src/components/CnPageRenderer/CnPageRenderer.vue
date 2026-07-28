@@ -55,6 +55,13 @@
 				@view="onRowOpen"
 				@row-click="onRowOpen"
 				@configure="showConfigModal = true">
+				<!-- This `<template v-for>` defines dynamic SLOTS, not a
+				     rendered list, so the rule's advice is inverted here:
+				     `@vue/compiler-sfc` DISCARDS a `:key` on a slot-defining
+				     `<template>` (verified — the generated `createSlots` entry
+				     carries only `name`) and honours it only on the child.
+				     Moving the key up would throw it away. -->
+				<!-- eslint-disable vue/no-v-for-template-key-on-child -->
 				<template
 					v-for="entry in resolvedSlotEntries"
 					#[entry.name]="slotProps">
@@ -63,6 +70,7 @@
 						:key="entry.name"
 						v-bind="slotProps" />
 				</template>
+				<!-- eslint-enable vue/no-v-for-template-key-on-child -->
 			</component>
 			<!-- header-actions slot -->
 			<CnWidgetGrid
@@ -100,6 +108,9 @@
 			@view="onRowOpen"
 			@row-click="onRowOpen"
 			@configure="showConfigModal = true">
+			<!-- Dynamic slot definition, not a rendered list — see the note on
+			     the identical block above. -->
+			<!-- eslint-disable vue/no-v-for-template-key-on-child -->
 			<template
 				v-for="entry in resolvedSlotEntries"
 				#[entry.name]="slotProps">
@@ -108,6 +119,7 @@
 					:key="entry.name"
 					v-bind="slotProps" />
 			</template>
+			<!-- eslint-enable vue/no-v-for-template-key-on-child -->
 		</component>
 
 		<!-- Builder empty-state. A page with no renderable body — e.g. a
@@ -243,6 +255,11 @@ export default {
 	 * field.
 	 */
 	provide() {
+		// `self` is load-bearing: `cnSlotColumns` below is a GETTER, and inside
+		// a getter on that object literal `this` is the literal — not the
+		// component. The getter is what keeps the provide tracking the active
+		// page, and a getter cannot be an arrow function.
+		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const self = this
 		return {
 			// Per-page slot→columns override (page.config.slotColumns), read by

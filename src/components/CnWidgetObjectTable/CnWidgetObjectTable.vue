@@ -358,6 +358,8 @@ export default {
 		},
 	},
 
+	emits: ['object-op'],
+
 	setup(props) {
 		// Endpoint binding (Wave 2, #91): the shared useEndpointSource engine
 		// owns token resolution, request dedup + TTL caching, and the

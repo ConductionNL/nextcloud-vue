@@ -130,6 +130,8 @@ export default {
 		},
 	},
 
+	emits: ['clear-all', 'filter-change', 'search'],
+
 	computed: {
 		hasActiveFilters() {
 			return this.searchValue !== ''

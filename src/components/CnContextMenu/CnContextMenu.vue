@@ -175,6 +175,8 @@ export default {
 		},
 	},
 
+	emits: ['action', 'close', 'closed', 'update:activePanel', 'update:open'],
+
 	data() {
 		return {
 			internalOpen: this.open,
@@ -205,8 +207,15 @@ export default {
 		},
 
 		internalOpen(val) {
+			// Description goes ABOVE `@event`, not inline after it:
+			// vue-docgen-api's event-name splitter stops at the first `:`, so
+			// `@event update:open <description>` is read as one long event NAME
+			// and the generated docs show an empty description.
 			/**
-			 * @event update:open Fired whenever the menu's internal open state flips. Used by callers that bind `:open.sync` to track visibility.
+			 * Fired whenever the menu's internal open state flips. Used by
+			 * callers that bind `v-model:open` to track visibility.
+			 *
+			 * @event update:open
 			 * @type {boolean}
 			 */
 			this.$emit('update:open', val)
@@ -325,8 +334,13 @@ export default {
 		 * Exposed to custom panel slots via the `back` scope binding.
 		 */
 		back() {
+			// Description above the tag — see the note on `update:open`.
 			/**
-			 * @event update:activePanel Emitted with `null` to clear the active panel — fired by the panel's `back()` binding and whenever the menu closes while a panel is open. Bind with `:active-panel.sync`.
+			 * Emitted with `null` to clear the active panel — fired by the
+			 * panel's `back()` binding and whenever the menu closes while a
+			 * panel is open. Bind with `v-model:active-panel`.
+			 *
+			 * @event update:activePanel
 			 * @type {null}
 			 */
 			this.$emit('update:activePanel', null)

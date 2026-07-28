@@ -159,6 +159,8 @@ export default {
 		},
 	},
 
+	emits: ['created'],
+
 	setup() {
 		// Read the two detail-surface injects once so the object token context
 		// resolves identically to the endpoint-bound widgets (Wave 3).

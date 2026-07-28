@@ -576,6 +576,7 @@ export default {
 		/** Whether user groups are still loading */
 		loadingGroups: { type: Boolean, default: false },
 	},
+	emits: ['copy-property', 'delete-property'],
 	data() {
 		return {
 			enumInputValue: '',

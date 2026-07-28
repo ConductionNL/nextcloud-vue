@@ -145,6 +145,7 @@ export default {
 		/** Per-row Remove button label / title. */
 		removeLabel: { type: String, default: 'Remove' },
 	},
+	emits: ['add', 'remove', 'update:files'],
 	data() {
 		return {
 			pathDraft: '',

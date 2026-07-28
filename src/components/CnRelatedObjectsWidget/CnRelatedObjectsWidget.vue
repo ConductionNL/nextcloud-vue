@@ -517,6 +517,17 @@ export default {
 		},
 	},
 
+	emits: [
+		'add',
+		'file-uploaded',
+		'note-added',
+		'open-integration',
+		'select-extra',
+		'select-file',
+		'select-object',
+		'select-related',
+	],
+
 	setup() {
 		const { integrations, getById } = useIntegrationRegistry()
 		return { integrations, getById }

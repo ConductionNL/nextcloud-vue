@@ -738,6 +738,8 @@ export default {
 		},
 	},
 
+	emits: ['close', 'confirm'],
+
 	setup() {
 		// Pluggable integration registry — used to resolve fields that
 		// declare `referenceType: '<integration-id>'` (AD-18) to the

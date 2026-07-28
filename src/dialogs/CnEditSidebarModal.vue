@@ -101,6 +101,8 @@ export default {
 		},
 	},
 
+	emits: ['close'],
+
 	computed: {
 		/** The active page object from the working manifest, or null. */
 		page() {

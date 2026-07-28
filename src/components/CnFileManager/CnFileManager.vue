@@ -141,6 +141,7 @@ export default {
 		/** Delete button label / title. */
 		deleteLabel: { type: String, default: 'Delete' },
 	},
+	emits: ['delete', 'download', 'file-click', 'upload', 'upload-rejected'],
 	data() {
 		return {
 			isDragging: false,

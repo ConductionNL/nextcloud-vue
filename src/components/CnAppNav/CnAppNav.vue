@@ -546,6 +546,8 @@ export default {
 		},
 	},
 
+	emits: ['primary-action', 'primary-action-click'],
+
 	data() {
 		return {
 			/**

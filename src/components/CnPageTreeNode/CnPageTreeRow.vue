@@ -253,6 +253,8 @@ export default {
 		},
 	},
 
+	emits: ['add-child', 'remove', 'rename'],
+
 	data() {
 		return {
 			// Which field is in inline-edit mode: null | 'name' | 'type'.

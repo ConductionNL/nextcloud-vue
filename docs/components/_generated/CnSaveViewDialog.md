@@ -10,8 +10,8 @@
 
 | Name      | Payload | Description                                   |
 | --------- | ------- | --------------------------------------------- |
-| `confirm` | —       | Save clicked with a non-empty (trimmed) name. |
 | `close`   | —       | Dialog dismissed.                             |
+| `confirm` | —       | Save clicked with a non-empty (trimmed) name. |
 
 ### Methods
 

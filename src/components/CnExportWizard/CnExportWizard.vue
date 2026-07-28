@@ -259,6 +259,7 @@ export default {
 			default: () => ({}),
 		},
 	},
+	emits: ['close', 'confirm'],
 	data() {
 		return {
 			loading: false,

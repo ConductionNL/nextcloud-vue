@@ -305,6 +305,16 @@ export default {
 		/** Tooltip for the Delete schema button while objects are still attached. */
 		cannotDeleteTooltip: { type: String, default: () => t('nextcloud-vue', 'Cannot delete: objects are still attached') },
 	},
+	emits: [
+		'analyze-properties',
+		'close',
+		'confirm',
+		'delete-objects',
+		'delete-schema',
+		'extend-schema',
+		'publish-objects',
+		'validate-objects',
+	],
 	data() {
 		return {
 			isCopied: false,

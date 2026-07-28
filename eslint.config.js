@@ -33,7 +33,7 @@ module.exports = defineConfig([{
 		'src/icons/index.js',
 	],
 }, {
-	extends: compat.extends('@nextcloud'),
+	extends: compat.extends('@nextcloud/eslint-config/vue3'),
 
 	settings: {
 		'import/resolver': {
@@ -86,21 +86,79 @@ module.exports = defineConfig([{
 		'@nextcloud/no-deprecations': 'off',
 		'@nextcloud/no-removed-apis': 'off',
 
-		// --- Vue-2 rules that are INVERTED under Vue 3 ---
-		// The `@nextcloud` preset is the Vue-2 config; these three rules
-		// forbid syntax that Vue 3 requires or explicitly supports. Switching
-		// wholesale to `@nextcloud/eslint-config/vue3` was tried and pulls in
-		// an unrelated stricter rule set (775 errors), so the three are
-		// disabled individually instead.
+		// This library's PUBLIC event API is kebab-case (`row-click`,
+		// `view-mode-change`, `update:selected-id`, …). Every consuming app —
+		// openbuild, launchpad, procest, … — binds those names, and each one is
+		// documented with an `@event` tag that the docs pipeline publishes.
 		//
-		// Vue 3 supports multi-root components (fragments).
-		'vue/no-multiple-template-root': 'off',
-		// Vue 3 REQUIRES the key on <template v-for>, not on its children —
-		// the exact opposite of the Vue-2 rule.
-		'vue/no-v-for-template-key': 'off',
-		// Vue 3 supports named v-model arguments (`v-model:open="x"`), which
-		// replaced Vue 2's `.sync` modifier.
-		'vue/no-v-model-argument': 'off',
+		// `@nextcloud/eslint-config/vue3` leaves this rule at its bare default,
+		// which is `camelCase`; renaming 189 emissions to satisfy it would be a
+		// breaking change to that published surface for zero behavioural gain.
+		// So the convention is declared explicitly — the same shape the Vue-2
+		// `@nextcloud` preset shipped — which keeps the rule actively enforcing
+		// kebab-case rather than being switched off.
+		'vue/custom-event-name-casing': ['error', 'kebab-case', {
+			// `update:xxx` / `update:xxx-yyy` v-model event names.
+			ignores: ['/^[a-z]+(?:-[a-z]+)*:[a-z]+(?:-[a-z]+)*$/u'],
+		}],
+
+		// `update:modelValue` MUST stay camelCase at the listener site.
+		// `@nextcloud/vue` v9's NcTextField / NcInputField / NcPasswordField are
+		// built on Vue's `useModel()`, which only recognises a parent binding
+		// under the camelCase prop key `onUpdate:modelValue`. Given the
+		// hyphenated `@update:model-value` it falls back to LOCAL-ONLY mode: the
+		// field still looks editable but never emits back, so every keystroke is
+		// dropped — silently, with no warning. Verified live 2026-07-23 while
+		// building CnFlowCanvas. Hyphenating these 42 listeners is exactly the
+		// bug; every other event stays under the rule.
+		'vue/v-on-event-hyphenation': ['error', 'always', { ignore: ['update:modelValue'] }],
+	},
+}, {
+	// Split the SFC script parser by `lang`, instead of forcing one parser on
+	// every block.
+	//
+	// `@nextcloud/eslint-config/vue3` sets `parserOptions.parser` to the bare
+	// string `'@typescript-eslint/parser'`. vue-eslint-parser then routes the
+	// TEMPLATE expressions through it too, and its scope analysis does not
+	// carry the `v-for` iteration variables into the template's variable
+	// scope. Every single `:key` in the library then looks like it references
+	// something the loop never defined, and `vue/valid-v-for` reports 379
+	// false positives on code as plain as
+	// `v-for="seg in viewSegments" :key="seg.mode"` — plus 6 bogus
+	// `vue/valid-v-slot` "multiple templates for the same slot" errors on
+	// `<template v-for #[dynamicName]>`. All 385 disappear here.
+	//
+	// The object form is vue-eslint-parser's documented way to say
+	// "this parser for `lang="ts"`, that one otherwise", and it leaves the
+	// rules themselves fully armed: a genuinely wrong `:key="someConstant"`
+	// still errors, as does a missing key. Do NOT collapse it back to a
+	// string — that silently turns valid-v-for into noise, and the only way
+	// to get a green run would be to rewrite correct Vue 3 templates.
+	files: ['**/*.vue'],
+	languageOptions: {
+		parserOptions: {
+			parser: {
+				js: require.resolve('@babel/eslint-parser'),
+				ts: require.resolve('@typescript-eslint/parser'),
+			},
+		},
+	},
+}, {
+	// Wherever `@vue/eslint-config-typescript` applies — `.ts` files, and now
+	// `.vue` script blocks too — it switches the core `no-unused-vars` off and
+	// enables the `@typescript-eslint` one in its place, at bare defaults. That
+	// silently drops this project's exception set, so restate it on the rule
+	// that actually runs: `t`/`n` i18n imports, `_`-prefixed placeholder
+	// arguments, and rest-sibling omissions
+	// (`const { handler: _ignored, ...rest } = entry`).
+	//
+	// It has to live in a file-scoped block rather than the shared `rules`
+	// above: the `@typescript-eslint` plugin is only registered for these
+	// extensions, and a non-`off` rule referencing an unregistered plugin is a
+	// hard config error.
+	files: ['**/*.vue', '**/*.ts', '**/*.cts', '**/*.mts', '**/*.tsx'],
+	rules: {
+		'@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^(t|n)$', argsIgnorePattern: '^_', ignoreRestSiblings: true }],
 	},
 }, {
 	// The barrel does `export * from '@nextcloud/vue'` and then re-exports a

@@ -307,6 +307,8 @@ export default {
 		},
 	},
 
+	emits: ['refresh', 'request-feature'],
+
 	data() {
 		return {
 			/**

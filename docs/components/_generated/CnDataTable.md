@@ -44,9 +44,9 @@
 | ------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `row-click`        | —       | Emitted on a row-body click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox column). |
 | `row-context-menu` | —       | Emitted on a row right-click (contextmenu) for hosts that render a context menu.                                                                                |
-| `sort`             | —       | Emitted when a sortable column header is clicked (plain click) or shift-clicked (multi-sort).                                                                   |
 | `select`           | —       | Emitted when row selection changes. Payload: array of selected IDs.                                                                                             |
 | `select-all`       | —       | Emitted when select-all checkbox is toggled.                                                                                                                    |
+| `sort`             | —       | Emitted when a sortable column header is clicked (plain click) or shift-clicked (multi-sort).                                                                   |
 
 ### Slots
 
