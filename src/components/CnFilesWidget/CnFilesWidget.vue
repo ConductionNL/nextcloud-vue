@@ -206,7 +206,7 @@ export default {
 	props: {
 		/**
 		 * Persisted content blob configuring the folder + toolbar — see
-		 * {@link CnFilesWidgetForm} for the full shape (`folderPath`, `fileId`,
+		 * `CnFilesWidgetForm` for the full shape (`folderPath`, `fileId`,
 		 * `viewMode`, `allowUpload`, `allowDelete`, …).
 		 */
 		content: {

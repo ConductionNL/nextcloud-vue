@@ -109,7 +109,6 @@
 	</CnNoteCard>
 </template>
 
-<!-- eslint-disable jsdoc/valid-types -->
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcTextField, NcSelect } from '@nextcloud/vue'

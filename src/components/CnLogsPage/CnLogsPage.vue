@@ -298,7 +298,9 @@ export default {
 	methods: {
 		/**
 		 * Capitalise + space a snake_case / camelCase key for a default column label.
-		 * @param key
+		 *
+		 * @param {string} key A log-entry property name, e.g. `'created_at'` or `'userAgent'`.
+		 * @return {string} The sentence-cased label, e.g. `'Created at'` / `'User agent'`.
 		 */
 		humanise(key) {
 			const spaced = key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').toLowerCase()

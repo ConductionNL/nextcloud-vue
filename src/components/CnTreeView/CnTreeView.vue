@@ -97,11 +97,13 @@ export default {
 		 */
 		expandedIds: { type: Array, default: () => [] },
 		/**
-		 * Currently-selected node id (or null). Pass with `.sync`.
+		 * Currently-selected node id (or null). Node ids are read off
+		 * `node[idKey]`, so the same `string | number` domain as `expandedIds`.
+		 * Pass with `.sync`.
 		 *
-		 * @type {*}
+		 * @type {string|number|null}
 		 */
-		selectedId: { default: null },
+		selectedId: { type: [String, Number], default: null },
 		/** Override the `id` key on node objects. */
 		idKey: { type: String, default: 'id' },
 		/** Override the `label` key. */

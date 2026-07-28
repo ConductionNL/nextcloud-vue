@@ -336,7 +336,9 @@ export default {
 
 		/**
 		 * Human label for a source kind.
-		 * @param id
+		 *
+		 * @param {'aggregate'|'ratio'|'computed'|'weighted'} id A `kindOptions` value.
+		 * @return {string} The translated label; unknown ids fall back to "Aggregate".
 		 */
 		kindLabel(id) {
 			if (id === 'ratio') return t('nextcloud-vue', 'Ratio (%)')
@@ -347,8 +349,10 @@ export default {
 
 		/**
 		 * Set a top-level field and emit.
-		 * @param field
-		 * @param value
+		 *
+		 * @param {'label'|'icon'|'iconColor'|'valueColor'|'caption'|'kind'|'metric'|'field'|'formula'} field The data key to write.
+		 * @param {string} value The new value for that key.
+		 * @return {void}
 		 */
 		updateField(field, value) {
 			this[field] = value
@@ -357,8 +361,11 @@ export default {
 
 		/**
 		 * Set a format sub-field and emit.
-		 * @param field
-		 * @param value
+		 *
+		 * @param {'style'|'currency'|'decimals'} field The `format` sub-key to write.
+		 * @param {string|number} value A `styleOptions` value, an ISO currency code,
+		 *   or the decimal precision.
+		 * @return {void}
 		 */
 		updateFormat(field, value) {
 			this.format[field] = value
@@ -367,8 +374,10 @@ export default {
 
 		/**
 		 * Set a source sub-field and emit.
-		 * @param field
-		 * @param value
+		 *
+		 * @param {'register'|'schema'} field The `source` sub-key to write.
+		 * @param {string} value The chosen register or schema slug.
+		 * @return {void}
 		 */
 		updateSource(field, value) {
 			this.source[field] = value
@@ -376,9 +385,12 @@ export default {
 		},
 
 		/**
-		 * Set a weighted sub-field and emit.
-		 * @param field
-		 * @param value
+		 * Set a weighted sub-field and emit (the `weighted` source kind).
+		 *
+		 * @param {'field'|'weightField'|'divisor'} field The `weighted` sub-key to write.
+		 * @param {string|number} value The value or weight property name, or the
+		 *   numeric divisor applied to the weighted sum.
+		 * @return {void}
 		 */
 		updateWeighted(field, value) {
 			this.weighted[field] = value
@@ -387,8 +399,12 @@ export default {
 
 		/**
 		 * Receive updated filter rows from a shared editor (by data key).
-		 * @param key
-		 * @param rows
+		 *
+		 * @param {'filterRows'|'numeratorRows'|'denominatorRows'} key Which row set
+		 *   to replace — the plain filter, or the ratio's numerator/denominator.
+		 * @param {Array<{key: string, op: string, value: string}>} rows The editor's
+		 *   full row list, serialised by `rowsToFilter()`.
+		 * @return {void}
 		 */
 		onRows(key, rows) {
 			this[key] = rows

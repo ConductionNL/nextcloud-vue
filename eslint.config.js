@@ -45,6 +45,24 @@ module.exports = defineConfig([{
 				extensions: ['.js', '.ts', '.vue', '.json', '.css'],
 			},
 		},
+
+		jsdoc: {
+			// `@event` documents a *Vue event name*, not a JS namepath. Vue names
+			// its `v-model` / `.sync` events `update:content`, `update:selected-id`,
+			// … and a colon is not legal in a JSDoc namepath, so the default
+			// namepath parsing reports every one of them as a syntax error.
+			//
+			// Quoting the name (`@event 'update:content'`) satisfies the parser but
+			// BREAKS the docs pipeline: at `$emit()` call sites vue-docgen-api reads
+			// the event's name straight off this tag, so the quotes end up in the
+			// generated name and `npm run check:jsdoc` then scores the real event as
+			// undocumented. Declaring the tag's name as free text is the accurate
+			// description of how the tag is used here, and it keeps `valid-types`
+			// fully active on every type expression and every other namepath tag.
+			structuredTags: {
+				event: { name: 'text', type: true },
+			},
+		},
 	},
 
 	rules: {

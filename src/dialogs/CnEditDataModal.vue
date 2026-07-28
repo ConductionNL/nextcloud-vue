@@ -120,12 +120,12 @@
 					<template v-else>
 						<NcSelect v-if="registers.length > 1"
 							class="cn-edit-data__register-select"
-							:value="selectedRegisterOption"
+							:model-value="selectedRegisterOption"
 							:options="registerOptions"
 							:input-label="t('nextcloud-vue', 'Register')"
 							label="label"
 							:clearable="false"
-							@input="onSelectRegister" />
+							@update:modelValue="onSelectRegister" />
 						<span v-else class="cn-edit-data__register-name">
 							{{ t('nextcloud-vue', 'Register') }}: <strong>{{ selectedRegister && (selectedRegister.title || selectedRegister.slug) }}</strong>
 						</span>

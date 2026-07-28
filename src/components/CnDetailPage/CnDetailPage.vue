@@ -2663,14 +2663,12 @@ export default {
 			 * @type {Array}
 			 */
 			this.$emit('layout-change', updated)
-			/* eslint-disable jsdoc/valid-types -- the colon in the event name is valid Vue but not a jsdoc namepath */
 			/**
 			 * @event update:layout Sibling of `layout-change` so `:layout.sync`
 			 *   consumers stay in sync.
 			 * @type {Array}
 			 */
 			this.$emit('update:layout', updated)
-			/* eslint-enable jsdoc/valid-types */
 		},
 
 		/**

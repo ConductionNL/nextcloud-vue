@@ -210,7 +210,7 @@ import { dedupeCatalogue } from './iconCatalogues.js'
  * CnIconPicker — select-plus-upload picker for the dashboard `icon`
  * convention, with an opt-in multi-source mode.
  *
- * @deprecated Use {@link CnIconBrowser}. It supersedes every mode of this
+ * @deprecated Use `CnIconBrowser`. It supersedes every mode of this
  * component — catalogue sources, custom SVG, upload, clearing — behind one flat
  * tab row, adds the bundled NL-government sets (RVO lazily loaded), and teleports
  * its popover so it isn't clipped inside a modal. No call site in the library

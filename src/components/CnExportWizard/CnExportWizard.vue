@@ -54,9 +54,9 @@
 				<NcSelect v-if="regulations.length > 0"
 					:input-id="fieldIdFor('regulation')"
 					:options="regulations"
-					:value="formData.regulation"
+					:model-value="formData.regulation"
 					:clearable="false"
-					@input="formData.regulation = $event" />
+					@update:modelValue="formData.regulation = $event" />
 				<input v-else
 					:id="fieldIdFor('regulation')"
 					v-model="formData.regulation"

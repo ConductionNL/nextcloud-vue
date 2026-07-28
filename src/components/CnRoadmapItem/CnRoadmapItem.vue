@@ -32,7 +32,7 @@
 		<div
 			v-if="sanitizedBody !== ''"
 			class="cn-roadmap-item__body"
-			v-html="sanitizedBody" />
+			v-html="sanitizedBody" /><!-- eslint-disable-line vue/no-v-html -- sanitizedBody comes from cnRenderMarkdown(), which sanitises through DOMPurify -->
 
 		<footer v-if="visibleLabels.length > 0" class="cn-roadmap-item__labels">
 			<span

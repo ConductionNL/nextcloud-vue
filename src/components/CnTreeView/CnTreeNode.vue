@@ -70,8 +70,8 @@ export default {
 		indent: { type: Number, default: 18 },
 		/** Set of expanded node ids. */
 		expandedIds: { type: Object, required: true },
-		/** Currently selected node id (or null). */
-		selectedId: { default: null },
+		/** Currently selected node id, read off `node[idKey]` (or null). */
+		selectedId: { type: [String, Number], default: null },
 		/** Node-field key for the id. */
 		idKey: { type: String, default: 'id' },
 		/** Node-field key for the display label. */
