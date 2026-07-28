@@ -183,7 +183,7 @@ const DEFAULT_CONTENT = Object.freeze({
 
 /**
  * CnQuicklinksWidgetForm — the `CnAddWidgetModal` sub-form for the
- * `quicklinks` widget type (renderer: {@link CnQuicklinksWidget}).
+ * `quicklinks` widget type (renderer: `CnQuicklinksWidget`).
  *
  * Layout: a dropdown grid for the eight widget-level fields, an editable
  * table of links (label / URL / icon / colour), and a collapsible CSV

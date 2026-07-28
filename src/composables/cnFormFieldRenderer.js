@@ -96,8 +96,10 @@ const warned = new Set()
  *  - `field.options: [{ label, value }]` (legacy CnSettingsPage shape)
  *  - mixed `[{ label, value }, 'literal']`
  *
- * @param {object} field
- * @return {Array<{label: string, value: *}>}
+ * @param {object} field A formField descriptor carrying its choices on either
+ *   `field.enum` (preferred) or the legacy `field.options`.
+ * @return {Array<{label: string, value: *}>} The NcSelect options; bare literals
+ *   become `{label: String(entry), value: entry}`.
  */
 function resolveEnumOptions(field) {
 	const raw = Array.isArray(field.enum)

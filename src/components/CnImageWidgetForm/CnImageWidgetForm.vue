@@ -95,7 +95,7 @@ const DEFAULT_CONTENT = Object.freeze({
 
 /**
  * CnImageWidgetForm — the `CnAddWidgetModal` sub-form for creating or editing
- * an `image` widget placement (renderer: {@link CnImageWidget}).
+ * an `image` widget placement (renderer: `CnImageWidget`).
  *
  * Exposes four controls — image URL, alt text, optional click-through link,
  * and an object-fit select (`cover | contain | fill | none`, default
@@ -154,7 +154,7 @@ export default {
 		/**
 		 * Legacy base64 upload transport, superseded by `fileUploadFn`.
 		 *
-		 * @deprecated Use {@link fileUploadFn} instead. Legacy base64 transport
+		 * @deprecated Use `fileUploadFn` instead. Legacy base64 transport
 		 * `async (dataUrl: string) => ({ url })`, kept for backward compatibility.
 		 * When `fileUploadFn` is not set but this is, `commit()` reads the file to
 		 * a data URL and hands that to this function (emitting a one-time

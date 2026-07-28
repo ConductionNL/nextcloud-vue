@@ -38,7 +38,7 @@
 			<div v-if="mode !== 'edit'"
 				class="cn-markdown-editor__preview"
 				data-testid="cn-markdown-preview"
-				v-html="renderedHtml" />
+				v-html="renderedHtml" /><!-- eslint-disable-line vue/no-v-html -- renderedHtml comes from cnRenderMarkdown(), which sanitises through DOMPurify -->
 		</div>
 
 		<!-- WYSIWYG mode: lazily-instantiated Toast UI editor. The editor is

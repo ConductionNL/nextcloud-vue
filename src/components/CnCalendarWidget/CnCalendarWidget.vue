@@ -296,7 +296,7 @@ export default {
 		/**
 		 * Events bucketed by `YYYY-MM-DD` for grid lookup.
 		 *
-		 * @return {Object<string, object[]>} iso-date → events.
+		 * @return {Record<string, object[]>} iso-date → events.
 		 */
 		eventsByDay() {
 			const buckets = {}

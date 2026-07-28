@@ -118,7 +118,7 @@ const DEFAULT_CONTENT = Object.freeze({
 
 /**
  * CnFilesWidgetForm — the `CnAddWidgetModal` sub-form for creating or editing
- * a `files` widget placement (renderer: {@link CnFilesWidget}).
+ * a `files` widget placement (renderer: `CnFilesWidget`).
  *
  * The folder is chosen with the native Nextcloud folder picker (a "Browse…"
  * button opens {@link https://www.npmjs.com/package/@nextcloud/dialogs | getFilePickerBuilder}

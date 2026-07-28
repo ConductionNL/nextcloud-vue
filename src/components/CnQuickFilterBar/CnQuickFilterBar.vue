@@ -185,7 +185,10 @@ export default {
 		},
 		/**
 		 * Whether a tab's `filter` map is absent/empty (the "All" tab).
-		 * @param tab
+		 *
+		 * @param {{label: string, filter?: object}} tab An entry from the `tabs` prop.
+		 * @return {boolean} True when the tab applies no filter, so selecting it
+		 *   clears the multi-selection rather than adding to it.
 		 */
 		isEmptyFilter(tab) {
 			return !tab || !tab.filter || Object.keys(tab.filter).length === 0

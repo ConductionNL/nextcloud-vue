@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * Tiny, dependency-free fuzzy matcher for {@link CnIconBrowser}'s search box.
+ * Tiny, dependency-free fuzzy matcher for `CnIconBrowser`'s search box.
  * Scoped to icon names, so a compact subsequence scorer (fzf / quick-open
  * style) is enough — no Levenshtein library needed.
  *

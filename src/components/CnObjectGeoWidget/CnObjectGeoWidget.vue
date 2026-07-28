@@ -304,13 +304,11 @@ export default {
 		 * @type {object|null}
 		 */
 		'saved',
-		/* eslint-disable jsdoc/valid-types -- the colon in the event name is valid Vue but not a jsdoc namepath */
 		/**
 		 * @event update:geo Sibling of `saved` for `.sync`-style consumers.
 		 * @type {object|null}
 		 */
 		'update:geo',
-		/* eslint-enable jsdoc/valid-types */
 	],
 
 	data() {
@@ -657,13 +655,11 @@ export default {
 				 * @type {object|null}
 				 */
 				this.$emit('saved', newGeo)
-				/* eslint-disable jsdoc/valid-types -- the colon in the event name is valid Vue but not a jsdoc namepath */
 				/**
 				 * @event update:geo Sibling of `saved` for `.sync`-style consumers.
 				 * @type {object|null}
 				 */
 				this.$emit('update:geo', newGeo)
-				/* eslint-enable jsdoc/valid-types */
 			} catch (e) {
 				this.error = t('nextcloud-vue', 'Could not save the location.')
 			} finally {

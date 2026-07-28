@@ -126,7 +126,7 @@ const VALID_CONTENT_MODES = Object.freeze(['html', 'markdown'])
 
 /**
  * CnTextWidgetForm — the `CnAddWidgetModal` sub-form for creating or editing
- * a `text` widget placement (renderer: {@link CnTextWidget}).
+ * a `text` widget placement (renderer: `CnTextWidget`).
  *
  * A top-level "Content type" picker switches between text mode (textarea +
  * Markdown/HTML toggle, font size, two colour pickers, alignment) and table

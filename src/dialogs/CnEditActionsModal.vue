@@ -144,7 +144,10 @@ export default {
 		t,
 		/**
 		 * Human label for the target field, hinting what each type targets.
-		 * @param action
+		 *
+		 * @param {{type: string, target: string}} action The action row being edited;
+		 *   only its `type` (one of `actionTypes`) selects the label.
+		 * @return {string} The translated label for that action type's target input.
 		 */
 		targetLabel(action) {
 			switch (action.type) {
@@ -160,15 +163,20 @@ export default {
 		},
 		/**
 		 * Remove the action at `index`.
-		 * @param index
+		 *
+		 * @param {number} index Zero-based index into the page's `config.actions`.
+		 * @return {void}
 		 */
 		remove(index) {
 			this.actions.splice(index, 1)
 		},
 		/**
 		 * Move the action at `index` by `delta` positions (reorder).
-		 * @param index
-		 * @param delta
+		 *
+		 * @param {number} index Zero-based index into the page's `config.actions`.
+		 * @param {number} delta Signed offset — `-1` moves up, `+1` moves down.
+		 *   No-op when the resulting position falls outside the array.
+		 * @return {void}
 		 */
 		move(index, delta) {
 			const to = index + delta

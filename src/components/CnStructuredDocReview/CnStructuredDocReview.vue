@@ -35,7 +35,7 @@
 		<!-- Document body — CnJsonViewer for syntax-highlighted display. -->
 		<div class="cn-structured-doc-review__body">
 			<CnJsonViewer
-				:value="content"
+				:value="contentText"
 				:language="language"
 				:read-only="true"
 				data-testid="doc-viewer" />
@@ -112,12 +112,15 @@ export default {
 		/** Optional description rendered under the title. */
 		description: { type: String, default: '' },
 		/**
-		 * Document content. Any text-shaped value — JSON object,
-		 * XML string, plain text. Passed straight to CnJsonViewer.
+		 * Document content. Either the raw document text (XML, JSON,
+		 * HTML, plain) or an already-parsed JSON object/array, which is
+		 * serialised with 2-space indentation before it reaches
+		 * `CnJsonViewer` — that component's `value` prop is `String`-typed
+		 * and would otherwise fail its own type check.
 		 *
-		 * @type {*}
+		 * @type {string|object|Array}
 		 */
-		content: { default: '' },
+		content: { type: [String, Object, Array], default: '' },
 		/**
 		 * Source language for syntax highlighting. Forwarded to
 		 * CnJsonViewer. Common values: `'json' | 'xml' | 'html' |
@@ -179,6 +182,24 @@ export default {
 		}
 	},
 	computed: {
+		/**
+		 * `content` as the plain string `CnJsonViewer` expects. Objects and
+		 * arrays are pretty-printed; anything that cannot be serialised
+		 * (a cycle, say) degrades to `String(...)` rather than throwing
+		 * during render.
+		 *
+		 * @return {string} The document text.
+		 */
+		contentText() {
+			if (typeof this.content === 'string') {
+				return this.content
+			}
+			try {
+				return JSON.stringify(this.content, null, 2)
+			} catch (e) {
+				return String(this.content)
+			}
+		},
 		/**
 		 * BEM modifier class derived from `status`.
 		 *

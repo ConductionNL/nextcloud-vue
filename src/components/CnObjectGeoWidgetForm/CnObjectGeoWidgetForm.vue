@@ -129,14 +129,12 @@ export default {
 	},
 
 	emits: [
-		/* eslint-disable jsdoc/valid-types -- the colon in the event name is valid Vue but not a jsdoc namepath */
 		/**
 		 * Emitted with the assembled content blob on every field change.
 		 * @event update:content
 		 * @type {object}
 		 */
 		'update:content',
-		/* eslint-enable jsdoc/valid-types */
 	],
 
 	data() {

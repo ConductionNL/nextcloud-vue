@@ -192,24 +192,34 @@ export default {
 		},
 		/**
 		 * Set a top-level field and emit.
-		 * @param field
-		 * @param value
+		 *
+		 * @param {'label'|'icon'|'formatStyle'|'decimals'|'currency'|'metric'|'field'|'goodDirection'} field The data key to write.
+		 * @param {string|number} value The new value for that key (`decimals` is numeric; the rest are strings).
+		 * @return {void}
 		 */
 		updateField(field, value) { this[field] = value; this.emitChange() },
 		/**
 		 * Set a source sub-field and emit.
-		 * @param field
-		 * @param value
+		 *
+		 * @param {'register'|'schema'} field The `source` sub-key to write.
+		 * @param {string} value The chosen register or schema slug.
+		 * @return {void}
 		 */
 		updateSource(field, value) { this.source[field] = value; this.emitChange() },
 		/**
 		 * Receive updated current-period filter rows.
-		 * @param rows
+		 *
+		 * @param {Array<{key: string, op: string, value: string}>} rows The editor's
+		 *   full row list for the current period, serialised by `rowsToFilter()`.
+		 * @return {void}
 		 */
 		onCurrentRows(rows) { this.currentRows = rows; this.emitChange() },
 		/**
 		 * Receive updated previous-period filter rows.
-		 * @param rows
+		 *
+		 * @param {Array<{key: string, op: string, value: string}>} rows The editor's
+		 *   full row list for the comparison period, serialised by `rowsToFilter()`.
+		 * @return {void}
 		 */
 		onPreviousRows(rows) { this.previousRows = rows; this.emitChange() },
 		/** Emit the assembled content. */

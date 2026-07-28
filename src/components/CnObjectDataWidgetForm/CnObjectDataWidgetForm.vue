@@ -256,8 +256,10 @@ export default {
 		},
 		/**
 		 * Set a top-level field and emit.
-		 * @param field
-		 * @param value
+		 *
+		 * @param {'title'|'columns'} field The data key to write.
+		 * @param {string|number} value The widget title, or the column count.
+		 * @return {void}
 		 */
 		updateField(field, value) { this[field] = value; this.emitChange() },
 		/**
@@ -293,9 +295,12 @@ export default {
 			this.emitChange()
 		},
 		/**
-		 * Set a source sub-field and emit.
-		 * @param field
-		 * @param value
+		 * Set a source sub-field and emit. Leaving either empty falls back to the
+		 * injected object context.
+		 *
+		 * @param {'register'|'schema'} field The `source` sub-key to write.
+		 * @param {string} value The chosen register or schema slug.
+		 * @return {void}
 		 */
 		updateSource(field, value) { this.source[field] = value; this.emitChange() },
 		/**

@@ -190,7 +190,7 @@ const DEFAULT_CONTENT = Object.freeze({
 
 /**
  * CnHeaderWidgetForm — the `CnAddWidgetModal` sub-form for creating or editing
- * a `header` widget placement (renderer: {@link CnHeaderWidget}).
+ * a `header` widget placement (renderer: `CnHeaderWidget`).
  *
  * Controls cover every persisted field: title, subtitle, background image URL,
  * background colour, overlay mode/colour/opacity, text colour/alignment/
@@ -249,7 +249,7 @@ export default {
 		/**
 		 * Legacy base64 upload transport, superseded by `fileUploadFn`.
 		 *
-		 * @deprecated Use {@link fileUploadFn} instead. Legacy base64 transport
+		 * @deprecated Use `fileUploadFn` instead. Legacy base64 transport
 		 * `async (dataUrl: string) => ({ url })`, kept for backward compatibility.
 		 * When `fileUploadFn` is not set but this is, `commit()` reads the file to
 		 * a data URL and hands that to this function (emitting a one-time

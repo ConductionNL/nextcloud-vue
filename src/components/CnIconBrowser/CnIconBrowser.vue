@@ -136,7 +136,7 @@ const DEFAULT_URL_ICON_GROUPS = Object.freeze(nlDesignIconGroups())
 /**
  * CnIconBrowser — a searchable, visual icon picker. The library imports no icon
  * package: the consumer injects a normalized catalogue via the `icons` prop
- * (build one with the {@link mdiCatalogue} / {@link vmdiCatalogue} adapters) or
+ * (build one with the `mdiCatalogue` / `vmdiCatalogue` adapters) or
  * by providing `cnIconCatalogue` higher up the tree; otherwise a small curated
  * set is used. Each catalogue entry renders by `path` (inline `<svg>`) or
  * `component` (`<component :is>`), and the entry's `value` is emitted.
@@ -196,7 +196,7 @@ export default {
 		},
 		/**
 		 * The icon catalogue to browse: `[{ key, label, value, search?, path?, component? }]`.
-		 * Build with {@link mdiCatalogue} / {@link vmdiCatalogue}. When empty, an
+		 * Build with `mdiCatalogue` / `vmdiCatalogue`. When empty, an
 		 * injected `cnIconCatalogue` or the curated fallback is used.
 		 *
 		 * @type {Array<{key: string, label: string, value: string, search?: string, path?: string, component?: object}>}

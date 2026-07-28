@@ -253,7 +253,7 @@ function normaliseLink(raw) {
 
 /**
  * CnLinkButtonWidgetForm — the `CnAddWidgetModal` sub-form for creating or
- * editing a `link` widget placement (renderer: {@link CnLinkButtonWidget}).
+ * editing a `link` widget placement (renderer: `CnLinkButtonWidget`).
  *
  * In `displayMode = 'button'` (default) it exposes label, action type, URL,
  * icon, and the two colour pickers; the URL placeholder swaps with the action
