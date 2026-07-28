@@ -89,23 +89,42 @@
 		</template>
 
 		<template v-else>
+			<!--
+				NOTE ON THE BINDINGS BELOW — both are Vue-3 corrections, and both
+				failed SILENTLY before, which is why the harness rendered but the
+				specs saw nothing happen:
+
+				* `v-model="icon"` compiles to `modelValue` + `update:modelValue`
+				  in Vue 3, but CnIconPicker still declares `value` + `input`
+				  (the library-wide `value` → `modelValue` unification is task
+				  4.3 of openspec/changes/vue-3-migration, deliberately not done
+				  yet). So the picker got no value in and nothing came back out.
+				  Bind the component's REAL contract explicitly until 4.3 lands.
+
+				* `:placement.sync` is removed in Vue 3. It does not error — the
+				  compiler just drops the implied `update:placement` listener and
+				  emits a one-way `placement` prop. CnIconPicker gates its whole
+				  placement toggle on `!!this.$attrs['onUpdate:placement']`, so
+				  losing the listener REMOVED THE CONTROL FROM THE DOM entirely.
+			-->
 			<section data-testid="section-icon-enriched">
 				<h2>Icon picker — enriched (multi-source)</h2>
 				<CnIconPicker
-					v-model="icon"
+					v-model:placement="placement"
+					:value="icon"
 					searchable
 					allow-custom-svg
 					clearable
 					:sources="sources"
 					:catalogues="catalogues"
-					:placement.sync="placement" />
+					@input="icon = $event" />
 				<pre data-testid="icon-value">{{ icon === null ? 'null' : icon }}</pre>
 				<pre data-testid="icon-placement">{{ placement }}</pre>
 			</section>
 
 			<section data-testid="section-icon-legacy">
 				<h2>Icon picker — legacy</h2>
-				<CnIconPicker v-model="legacyIcon" />
+				<CnIconPicker :value="legacyIcon" @input="legacyIcon = $event" />
 				<pre data-testid="legacy-icon-value">{{ legacyIcon === null ? 'null' : legacyIcon }}</pre>
 			</section>
 
@@ -114,19 +133,24 @@
 		     a widget's Icon field. -->
 			<section data-testid="section-icon-browser">
 				<h2>Icon browser — defaults</h2>
-				<CnIconBrowser v-model="browserIcon" inline clearable />
+				<!-- `value`/`@input`, not `v-model` — see the note above. -->
+				<CnIconBrowser
+					:value="browserIcon"
+					inline
+					clearable
+					@input="browserIcon = $event" />
 				<pre data-testid="browser-icon-value">{{ browserIcon === null ? 'null' : browserIcon }}</pre>
 			</section>
 
 			<section data-testid="section-md-wysiwyg">
 				<h2>Markdown — WYSIWYG</h2>
-				<CnMarkdownEditor v-model="wysiwyg" mode="wysiwyg" />
+				<CnMarkdownEditor :value="wysiwyg" mode="wysiwyg" @input="wysiwyg = $event" />
 				<pre data-testid="wysiwyg-value">{{ wysiwyg }}</pre>
 			</section>
 
 			<section data-testid="section-md-default">
 				<h2>Markdown — default</h2>
-				<CnMarkdownEditor v-model="plain" />
+				<CnMarkdownEditor :value="plain" @input="plain = $event" />
 				<pre data-testid="plain-value">{{ plain }}</pre>
 			</section>
 		</template>

@@ -414,10 +414,29 @@ export default {
 		/**
 		 * Whether a left/right placement toggle is shown (consumer bound it).
 		 *
+		 * READ FROM `$.vnode.props`, NOT `$attrs` — this is a Vue 3 correctness
+		 * requirement, not a style choice. Vue 3 removes the listeners of every
+		 * DECLARED event from `$attrs` (`setFullProps` skips any key for which
+		 * `isEmitListener(emitsOptions, key)` is true). `update:placement` is
+		 * declared in this component's `emits`, so `$attrs['onUpdate:placement']`
+		 * is ALWAYS undefined no matter what the consumer bound — which made
+		 * this computed permanently false and deleted the placement toggle from
+		 * the DOM for every consumer, silently.
+		 *
+		 * `$.vnode.props` is the raw prop bag the parent passed, before that
+		 * split, so it still carries the handler. Both `v-model:placement` and a
+		 * plain `@update:placement` land there.
+		 *
+		 * Not caught by the jest lane because its spec calls
+		 * `vm.selectPlacement()` directly rather than clicking the rendered
+		 * control; the Playwright harness clicks the real button, which is why
+		 * that lane is the one that surfaces it.
+		 *
 		 * @return {boolean} true when an `update:placement` listener is attached.
 		 */
 		showPlacement() {
-			return !!(this.$attrs && this.$attrs['onUpdate:placement'])
+			const vnodeProps = this.$ && this.$.vnode && this.$.vnode.props
+			return !!(vnodeProps && vnodeProps['onUpdate:placement'])
 		},
 		/**
 		 * The catalogue for the active source. For `mdi` with no supplied

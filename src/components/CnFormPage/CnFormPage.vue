@@ -177,14 +177,14 @@
 				<NcButton
 					v-if="hasSteps && !isFirstStep"
 					variant="secondary"
-					native-type="button"
+					type="button"
 					@click="back">
 					{{ t('nextcloud-vue', 'Back') }}
 				</NcButton>
 				<NcButton
 					v-if="hasSteps && !isLastStep"
 					variant="primary"
-					native-type="button"
+					type="button"
 					@click="next">
 					{{ t('nextcloud-vue', 'Next') }}
 				</NcButton>
@@ -198,9 +198,25 @@
 					:submitting="submitting"
 					:dirty="dirty"
 					:submit="submit">
+					<!--
+						`type`, not `native-type` — @nextcloud/vue 9's NcButton declares
+						its native HTML button-type prop as `type` (`ButtonType = 'submit'
+						| 'reset' | 'button'`, default `'button'`) and has no `nativeType`
+						prop at all. `native-type` therefore fell through as an inert
+						attribute and every button silently rendered as the component's
+						default `type="button"` — including THIS one. A `type="button"`
+						button inside a `<form>` does NOT fire the form's native `submit`
+						event on click, so `<form @submit.prevent="submit">` above never
+						ran: clicking "Submit" did nothing, silently, in a real browser.
+						Jest's own local NcButton stub (`tests/components/CnFormPage.spec.js`)
+						never bound `:type` either, so its plain `<button>` defaulted to
+						the OPPOSITE — the HTML spec's implicit `type="submit"` for a
+						type-less button in a form — which is why every jest submit test
+						passed while the real component was broken.
+					-->
 					<NcButton
 						variant="primary"
-						native-type="submit"
+						type="submit"
 						:disabled="submitting">
 						<template #icon>
 							<NcLoadingIcon v-if="submitting" :size="20" />

@@ -43,7 +43,7 @@
     "pretest": "npm run build:validators",
     "test": "jest",
     "test:e2e": "playwright test",
-    "harness": "vite --config e2e/vite.config.js",
+    "harness": "vite --config e2e/vite.config.mjs",
     "test:types": "tsd",
     "lint": "eslint src/",
     "lint-fix": "npm run lint -- --fix",

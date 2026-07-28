@@ -135,14 +135,14 @@
 					</template>
 					<NcActionInput
 						type="datetime-local"
-						:value="toLocalDateTimeInput(currentRange && currentRange.from)"
+						:model-value="toLocalDateTimeInput(currentRange && currentRange.from)"
 						:label="t('nextcloud-vue', 'From')"
-						@input="onChipDateInput('from', $event)" />
+						@update:model-value="onChipDateInput('from', $event)" />
 					<NcActionInput
 						type="datetime-local"
-						:value="toLocalDateTimeInput(currentRange && currentRange.to)"
+						:model-value="toLocalDateTimeInput(currentRange && currentRange.to)"
 						:label="t('nextcloud-vue', 'To')"
-						@input="onChipDateInput('to', $event)" />
+						@update:model-value="onChipDateInput('to', $event)" />
 				</NcActions>
 			</div>
 			<!-- Default (picker) mode: the original select + two date inputs. -->
@@ -347,14 +347,14 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
-									:value="toLocalDateTimeInput(currentRange.from)"
+									:model-value="toLocalDateTimeInput(currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
-									@input="onChipDateInput('from', $event)" />
+									@update:model-value="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
-									:value="toLocalDateTimeInput(currentRange.to)"
+									:model-value="toLocalDateTimeInput(currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
-									@input="onChipDateInput('to', $event)" />
+									@update:model-value="onChipDateInput('to', $event)" />
 							</NcActions>
 						</template>
 						<!-- @slot widget-{widgetId} Per-widget body content (e.g. `#widget-my-work`). Apps inject custom widget rendering here. Scope: `{ item, widget }`. -->
@@ -405,14 +405,14 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
-									:value="toLocalDateTimeInput(currentRange.from)"
+									:model-value="toLocalDateTimeInput(currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
-									@input="onChipDateInput('from', $event)" />
+									@update:model-value="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
-									:value="toLocalDateTimeInput(currentRange.to)"
+									:model-value="toLocalDateTimeInput(currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
-									@input="onChipDateInput('to', $event)" />
+									@update:model-value="onChipDateInput('to', $event)" />
 							</NcActions>
 						</template>
 						<CnChartWidget
@@ -538,14 +538,14 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
-									:value="toLocalDateTimeInput(currentRange && currentRange.from)"
+									:model-value="toLocalDateTimeInput(currentRange && currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
-									@input="onChipDateInput('from', $event)" />
+									@update:model-value="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
-									:value="toLocalDateTimeInput(currentRange && currentRange.to)"
+									:model-value="toLocalDateTimeInput(currentRange && currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
-									@input="onChipDateInput('to', $event)" />
+									@update:model-value="onChipDateInput('to', $event)" />
 							</NcActions>
 						</template>
 						<component
