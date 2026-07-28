@@ -10,7 +10,7 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { h } from 'vue'
+import { h, toRaw } from 'vue'
 
 jest.mock('@nextcloud/capabilities', () => ({
 	getCapabilities: jest.fn(),
@@ -722,7 +722,10 @@ describe('CnAppRoot', () => {
 			}
 			await wrapper.setProps({ manifest: merged })
 			const nav = wrapper.findComponent({ name: 'CnAppNav' })
-			expect(nav.props('manifest')).toBe(merged)
+			// `toRaw` on the received side: props arrive through a reactive
+			// Proxy under Vue 3, but the assertion is still identity — the new
+			// manifest object itself must reach CnAppNav, not a copy of it.
+			expect(toRaw(nav.props('manifest'))).toBe(merged)
 			expect(nav.props('manifest').menu[0].children[0].query.caseType).toBe('u1')
 			wrapper.unmount()
 		})

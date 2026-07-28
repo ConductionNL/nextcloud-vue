@@ -12,7 +12,8 @@
 var mockBusHandlers = {}
 var mockRefetch = jest.fn()
 
-jest.mock('vue-apexcharts', () => ({ name: 'vue-apexcharts-stub', render: (h) => h('div') }), { virtual: true })
+// Apexcharts is stubbed globally via jest.config.js moduleNameMapper; the
+// local Vue-2 `render: (h) => h('div')` mock that lived here throws under Vue 3.
 
 // Capture event-bus subscriptions so we can fire them manually. Guarded:
 // @nextcloud/auth (imported transitively via resolveFilterTokens) subscribes

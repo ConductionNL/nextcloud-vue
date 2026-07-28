@@ -30,7 +30,7 @@ function leafStub(id) {
 		name: `Stub${id}Tab`,
 		props: ['integrationId', 'register', 'schema', 'objectId', 'surface', 'apiBase', 'objectType'],
 		render() {
-			return h('div', { class: 'leaf-content', attrs: { 'data-leaf': this.integrationId } }, `${id} content`)
+			return h('div', { class: 'leaf-content', 'data-leaf': this.integrationId }, `${id} content`)
 		},
 	}
 }
@@ -73,10 +73,15 @@ function mountWidget(registry, propsData = {}) {
 				name: 'NcEmptyContent',
 				props: ['name', 'description'],
 				render() {
+					// Vue 3 unified `$slots` to FUNCTIONS — `$slots.icon` is no
+					// longer the vnode array Vue 2 exposed. Passing the function
+					// itself as a child renders nothing at all, so the action
+					// link never appeared and `find('.nc-button')` came back
+					// empty. Call each slot to get its vnodes.
 					const slots = this.$slots
-					return h('div', { class: 'nc-empty', attrs: { 'data-name': this.name } }, [
-						slots.icon,
-						slots.action,
+					return h('div', { class: 'nc-empty', 'data-name': this.name }, [
+						slots.icon?.(),
+						slots.action?.(),
 					])
 				},
 			},
@@ -84,7 +89,7 @@ function mountWidget(registry, propsData = {}) {
 				name: 'NcButton',
 				props: ['href', 'type'],
 				render() {
-					return h('a', { class: 'nc-button', attrs: { href: this.href } }, this.$slots.default)
+					return h('a', { class: 'nc-button', href: this.href }, this.$slots.default)
 				},
 			},
 		},

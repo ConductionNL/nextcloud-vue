@@ -50,24 +50,24 @@ describe('useAiContext', () => {
 		const fakeInstance = { cnAiContext: provided }
 		const ctx = useAiContext(fakeInstance)
 
+		// Vue 3 has no `new Vue()` / `$destroy()`. The composition-API `watch()`
+		// observes the same reactive source directly and returns a stop handle,
+		// which is what this test needs — no component instance is involved.
 		const observed = []
-		const vm = new Vue({
-			data() { return { context: ctx } },
-			watch: {
-				'context.pageKind': function(val) {
-					observed.push(val)
-				},
-			},
+		const stop = Vue.watch(() => ctx.pageKind, (val) => {
+			observed.push(val)
 		})
 
 		// Trigger the reactive mutation
 		provided.pageKind = 'index'
 
-		// Let Vue flush the watcher queue
+		// Let Vue flush the watcher queue. Vue 3 has no default export, so the
+		// tick helper comes off the namespace like `watch`/`reactive` above —
+		// there is no global `Vue.nextTick` to fall back on any more.
 		await Vue.nextTick()
 
 		expect(observed).toContain('index')
-		vm.$destroy()
+		stop()
 	})
 
 	it('returns stable module-level default object across multiple calls without instance', () => {

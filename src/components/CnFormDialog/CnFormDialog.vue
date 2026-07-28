@@ -1210,7 +1210,7 @@ export default {
 			if (!hasOrgField) return
 			const current = this.formData.organisation
 			if (current !== null && current !== undefined && current !== '') return
-			this.formData['organisation'] = uuid
+			this.formData.organisation = uuid
 		},
 
 		/**
@@ -1859,7 +1859,7 @@ export default {
 			const state = this.asyncState[field.key]
 			if (!state) return
 
-			state['loading'] = true
+			state.loading = true
 
 			try {
 				let results
@@ -1882,12 +1882,12 @@ export default {
 					const enumFn = typeof field.enum === 'function' ? field.enum : field.items.enum
 					results = await enumFn(query)
 				}
-				state['options'] = Array.isArray(results) ? results : []
+				state.options = Array.isArray(results) ? results : []
 			} catch (err) {
 				console.error(`CnFormDialog: async enum error for field "${field.key}":`, err)
-				state['options'] = []
+				state.options = []
 			} finally {
-				state['loading'] = false
+				state.loading = false
 			}
 		},
 

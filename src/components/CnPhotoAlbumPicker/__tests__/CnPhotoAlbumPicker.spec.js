@@ -11,7 +11,10 @@
  *  - no link is emitted when nothing is selected.
  */
 
-const { mount } = require('@vue/test-utils')
+// See CnEmailPicker.spec.js: a Vue-3 `nextTick()` no longer implies the
+// render queued by an async `mounted()` has flushed, so wait on the promise
+// queue instead of counting ticks.
+const { mount, flushPromises } = require('@vue/test-utils')
 const CnPhotoAlbumPicker = require('../CnPhotoAlbumPicker.vue').default
 
 function resolveOnce(payload, status = 200) {
@@ -36,8 +39,7 @@ describe('CnPhotoAlbumPicker', () => {
 		}))
 
 		const wrapper = mount(CnPhotoAlbumPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		const tiles = wrapper.findAll('.cn-photo-album-picker__tile-button')
 		expect(tiles).toHaveLength(2)
@@ -52,8 +54,7 @@ describe('CnPhotoAlbumPicker', () => {
 		}))
 
 		const wrapper = mount(CnPhotoAlbumPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.find('.cn-photo-album-picker__tile-button').trigger('click')
 		await wrapper.vm.$nextTick()
@@ -71,8 +72,7 @@ describe('CnPhotoAlbumPicker', () => {
 		global.fetch.mockRejectedValueOnce(new Error('boom'))
 
 		const wrapper = mount(CnPhotoAlbumPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('Could not load albums.')
 		wrapper.unmount()
@@ -83,8 +83,7 @@ describe('CnPhotoAlbumPicker', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ error: 'nope' }, 501))
 
 		const wrapper = mount(CnPhotoAlbumPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('NC Photos is not installed.')
 		wrapper.unmount()
@@ -99,8 +98,7 @@ describe('CnPhotoAlbumPicker', () => {
 		}))
 
 		const wrapper = mount(CnPhotoAlbumPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		wrapper.vm.search = 'holiday'
 		await wrapper.vm.$nextTick()

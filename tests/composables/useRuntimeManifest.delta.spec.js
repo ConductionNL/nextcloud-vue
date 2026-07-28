@@ -7,7 +7,7 @@
  * - orphaned delta paths are surfaced
  */
 
-import { nextTick } from 'vue'
+import { nextTick, toRaw } from 'vue'
 
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
@@ -56,7 +56,11 @@ describe('useRuntimeManifest — delta mode', () => {
 		const { manifest } = useRuntimeManifest('app', stub, { fetcher })
 		await flush()
 		expect(manifest.value.pages).toHaveLength(1)
-		expect(manifest.value).toBe(full)
+		// `toRaw` on the received side: the manifest lives in a ref, so reading
+		// it yields a Proxy. The regression guard is precisely about identity —
+		// default mode REPLACES the manifest with the fetched object rather
+		// than merging a delta into the previous one.
+		expect(toRaw(manifest.value)).toBe(full)
 	})
 
 	it('surfaces orphaned delta paths from a remove of a missing page', async () => {

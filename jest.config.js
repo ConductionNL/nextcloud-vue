@@ -19,6 +19,12 @@ module.exports = {
 		// adapter hoists them into `global` so ~100 legacy specs keep the
 		// isolation they were written with. See the file's docblock.
 		'^@vue/test-utils$': '<rootDir>/tests/support/vueTestUtilsCompat.js',
+		// Vue 3 keeps `currentRenderingInstance` / `currentInstance` in module
+		// scope, so the second copy of Vue that `jest.isolateModules()` creates
+		// breaks `resolveComponent()`, `inject()` and `getCurrentInstance()`
+		// across the copy boundary — silently. Pin `vue` to one instance for
+		// the whole worker. See the file's docblock.
+		'^vue$': '<rootDir>/tests/support/vueSingleton.js',
 		'\\.(css)$': 'jest-transform-stub',
 		'^@toast-ui/editor$': '<rootDir>/tests/__mocks__/toast-ui-editor.js',
 		'^@mdi/js$': '<rootDir>/tests/__mocks__/mdi-js.js',
@@ -41,7 +47,13 @@ module.exports = {
 		// throws in jsdom, and specs that import CnChartWidget transitively
 		// without a local mock used to leak the real module into the worker
 		// (order-dependent full-suite failures). See the mock file's docblock.
+		// Both names are mapped: the Vue-3 line imports `vue3-apexcharts`,
+		// while `vue-apexcharts` (Vue 2) may still arrive transitively. Missing
+		// the vue3 name let the REAL renderer load and throw in jsdom
+		// ("reading 'filter'" / "querySelectorAll"), which is what the stub
+		// exists to prevent.
 		'^vue-apexcharts$': '<rootDir>/tests/__mocks__/vue-apexcharts.js',
+		'^vue3-apexcharts$': '<rootDir>/tests/__mocks__/vue-apexcharts.js',
 		'^gridstack$': '<rootDir>/tests/__mocks__/gridstack.js',
 		'^gridstack/dist/gridstack\\.min\\.css$': 'jest-transform-stub',
 	},

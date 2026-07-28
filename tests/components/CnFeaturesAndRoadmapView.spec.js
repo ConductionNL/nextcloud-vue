@@ -17,7 +17,14 @@ import { mount } from '@vue/test-utils'
 import CnFeaturesAndRoadmapView from '../../src/components/CnFeaturesAndRoadmapView/CnFeaturesAndRoadmapView.vue'
 
 const stubs = {
-	NcButton: { name: 'NcButton', template: '<button class="btn" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>' },
+	// `emits: ['click']` is load-bearing under Vue 3. Vue 2 kept component
+	// listeners in a separate `$listeners` channel, so the parent's
+	// `@click="toggleView"` reached ONLY `$emit('click')`. Vue 3 compiles it to
+	// an `onClick` PROP; a stub that does not declare `click` in `emits` leaves
+	// it in `$attrs`, where it falls through onto the root `<button>` as a
+	// native handler. A single `trigger('click')` then fires `toggleView` twice
+	// (native fallthrough + the stub's re-emit) and the view toggles back.
+	NcButton: { name: 'NcButton', emits: ['click'], template: '<button class="btn" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>' },
 	NcEmptyContent: { name: 'NcEmptyContent', props: ['name', 'description'], template: '<div class="empty"><h2>{{ name }}</h2></div>' },
 	NcNoteCard: { name: 'NcNoteCard', props: ['type'], template: '<div class="note-card" :data-type="type"><slot /></div>' },
 	FormatListBulleted: true,

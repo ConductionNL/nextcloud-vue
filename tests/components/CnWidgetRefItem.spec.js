@@ -12,6 +12,9 @@
  */
 
 import { shallowMount } from '@vue/test-utils'
+// Component definitions held in reactive state come back as Proxies in Vue 3,
+// so identity checks need the raw target (see useRuntimeManifest.spec.js).
+import { toRaw } from 'vue'
 import CnWidgetRefItem from '@/components/CnWidgetRefItem/CnWidgetRefItem.vue'
 
 // Stub axios so tests do not make real HTTP requests.
@@ -98,7 +101,7 @@ describe('CnWidgetRefItem', () => {
 
 			expect(wrapper.vm.loading).toBe(false)
 			expect(wrapper.vm.error).toBeNull()
-			expect(wrapper.vm.resolvedComponent).toBe(CoverageGridStub)
+			expect(toRaw(wrapper.vm.resolvedComponent)).toBe(CoverageGridStub)
 		})
 
 		it('forwards extra API response fields as props to the resolved component', async () => {
@@ -192,12 +195,12 @@ describe('CnWidgetRefItem', () => {
 			const wrapper = mountItem('openregister://widget/regulation/coverageGrid')
 			await wrapper.vm.$nextTick()
 			await wrapper.vm.$nextTick()
-			expect(wrapper.vm.resolvedComponent).toBe(CoverageGridStub)
+			expect(toRaw(wrapper.vm.resolvedComponent)).toBe(CoverageGridStub)
 
 			await wrapper.setProps({ refUri: 'openregister://widget/regulation/boardProof' })
 			await wrapper.vm.$nextTick()
 			await wrapper.vm.$nextTick()
-			expect(wrapper.vm.resolvedComponent).toBe(BoardProofStub)
+			expect(toRaw(wrapper.vm.resolvedComponent)).toBe(BoardProofStub)
 			expect(axios.get).toHaveBeenCalledTimes(2)
 		})
 	})

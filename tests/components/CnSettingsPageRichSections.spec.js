@@ -37,9 +37,13 @@ jest.mock('@/components/CnVersionInfoCard/CnVersionInfoCard.vue', () => ({
 		name: 'CnVersionInfoCard',
 		props: ['appName', 'appVersion', 'showUpdateButton', 'isUpToDate'],
 		render() {
+			// `jest.mock` factories are hoisted above the imports, so the
+			// module-scope `h` import is out of scope here — require it inline.
+			// eslint-disable-next-line global-require
+			const { h } = require('vue')
 			return h('div', {
 				class: 'cn-version-info-card-stub',
-				attrs: { 'data-app-name': this.appName },
+				'data-app-name': this.appName,
 			}, 'version-info')
 		},
 	},
@@ -51,9 +55,12 @@ jest.mock('@/components/CnRegisterMapping/CnRegisterMapping.vue', () => ({
 		name: 'CnRegisterMapping',
 		props: ['name', 'groups', 'configuration', 'showReimportButton'],
 		render() {
+			// Hoisted factory — require `h` inline (see the mock above).
+			// eslint-disable-next-line global-require
+			const { h } = require('vue')
 			return h('div', {
 				class: 'cn-register-mapping-stub',
-				attrs: { 'data-name': this.name },
+				'data-name': this.name,
 			}, 'register-mapping')
 		},
 	},
@@ -109,7 +116,7 @@ describe('CnSettingsPage — rich sections (REQ-MSRS-*)', () => {
 			name: 'MyPanel',
 			props: ['foo'],
 			render() {
-				return h('div', { class: 'my-panel-stub', attrs: { 'data-foo': this.foo } }, 'my panel')
+				return h('div', { class: 'my-panel-stub', 'data-foo': this.foo }, 'my panel')
 			},
 		}
 		const sections = [
@@ -158,7 +165,7 @@ describe('CnSettingsPage — rich sections (REQ-MSRS-*)', () => {
 			name: 'MyExtraPanel',
 			props: ['label'],
 			render() {
-				return h('div', { class: 'my-extra-panel-stub', attrs: { 'data-label': this.label } }, 'extra')
+				return h('div', { class: 'my-extra-panel-stub', 'data-label': this.label }, 'extra')
 			},
 		}
 		const sections = [

@@ -131,7 +131,7 @@ describe('CnFormDialog — cross-app semantic references (ADR-048)', () => {
 			expect(wrapperEl.attributes('title')).toContain('shillinq')
 			expect(wrapperEl.attributes('title')).toContain('Organization')
 			// The input is disabled.
-			expect(wrapperEl.find('input').attributes('disabled')).toBeTruthy()
+			expect(wrapperEl.find('input').attributes('disabled')).toBeDefined()
 		})
 
 		it('degrades to unresolved (never crashes) on a 404 / network error', async () => {

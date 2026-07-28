@@ -498,13 +498,13 @@ export default {
 			// through a live lookup rather than a cached map — see getWidgetDef.)
 			const cfg = page.config && typeof page.config === 'object' && !Array.isArray(page.config) ? page.config : null
 			if ((page.type === 'dashboard' || page.type === 'detail') && cfg) {
-				if (!Array.isArray(cfg.widgets)) cfg['widgets'] = []
-				if (!Array.isArray(cfg.layout)) cfg['layout'] = []
+				if (!Array.isArray(cfg.widgets)) cfg.widgets = []
+				if (!Array.isArray(cfg.layout)) cfg.layout = []
 				const nextY = cfg.layout.reduce((max, l) => Math.max(max, (l.gridY || 0) + (l.gridHeight || 1)), 0)
 				cfg.widgets.push({ id: wid, type: payload.type, ...chromeFields, content })
 				cfg.layout.push({ id: cfg.layout.length + 1, widgetId: wid, gridX: 0, gridY: nextY, gridWidth: 6, gridHeight: 3 })
 			} else {
-				if (!Array.isArray(page.widgets)) page['widgets'] = []
+				if (!Array.isArray(page.widgets)) page.widgets = []
 				const bodyWidgets = page.widgets.filter((w) => w && w.slot === 'body')
 				const nextY = bodyWidgets.reduce((max, w) => Math.max(max, (w.gridY || 0) + (w.gridHeight || 1)), 0)
 				page.widgets.push({
@@ -556,7 +556,7 @@ export default {
 			const page = pages.find((p) => p && p.id === this.effectivePageId) ?? null
 			if (!page || page.type !== 'detail') return
 			if (!page.config || typeof page.config !== 'object' || Array.isArray(page.config)) {
-				page['config'] = {}
+				page.config = {}
 			}
 			const cfg = page.config
 			// Already customised (ejected before, or a hand-authored grid page).
@@ -566,8 +566,8 @@ export default {
 				schema: cfg.schema || '',
 				showRelated: cfg.showRelatedObjects !== false,
 			})
-			cfg['widgets'] = grid.widgets
-			cfg['layout'] = grid.layout
+			cfg.widgets = grid.widgets
+			cfg.layout = grid.layout
 		},
 		/** Enter edit mode (if needed) and open the pages editor modal. */
 		onEditPages() {

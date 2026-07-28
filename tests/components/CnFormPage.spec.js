@@ -20,6 +20,7 @@ jest.mock('@nextcloud/axios', () => ({
 }))
 
 import { mount } from '@vue/test-utils'
+import { h } from 'vue'
 import CnFormPage from '@/components/CnFormPage/CnFormPage.vue'
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0))
@@ -514,7 +515,11 @@ describe('CnFormPage — manifest-form-logic', () => {
 			const wrapper = mountForm({ fields, submitHandler: 'submit' })
 			await wrapper.vm.submit()
 			await wrapper.vm.$nextTick()
-			const input = wrapper.find('.nc-textfield-stub')
+			// VTU v1's `find('.class')` returned a *component* wrapper when the
+			// class sat on a child component's root, so `.props()` worked. VTU
+			// v2 split the two: `find()` is DOM-only (DOMWrapper, no `props()`)
+			// and component lookups go through `findComponent()`.
+			const input = wrapper.findComponent({ name: 'NcTextField' })
 			expect(input.props('error')).toBe(true)
 			expect(input.props('helperText')).toBeTruthy()
 		})
@@ -532,8 +537,11 @@ describe('CnFormPage — manifest-form-logic', () => {
 			const wrapper = mountForm({ fields, submitHandler: 'submit' }, {
 				mountOptions: {
 					scopedSlots: {
+						// Vue 3 has no `this.$createElement`, no `staticClass`, and no
+						// nested `attrs:` — slot functions import `h` and pass a flat
+						// props object.
 						'field-rating'(props) {
-							return this.$createElement('div', { staticClass: 'custom-rating', attrs: { 'data-error': props.error || '' } })
+							return h('div', { class: 'custom-rating', 'data-error': props.error || '' })
 						},
 					},
 				},

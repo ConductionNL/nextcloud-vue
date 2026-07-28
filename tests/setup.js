@@ -42,6 +42,15 @@ beforeEach(() => {
 	config.global.plugins = [pinia]
 })
 
+// VTU v1 rendered a stubbed component's default slot; v2 does NOT unless this
+// is set. Without it, any `shallowMount` of a component whose root is a
+// wrapper (e.g. CnWidgetObjectTable's `<component :is="CnWidgetWrapper">`)
+// loses its entire subtree, so `findComponent` returns an empty wrapper and
+// the spec fails with "Cannot call props on an empty VueWrapper" — nowhere
+// near the actual cause. Restoring the v1 behaviour keeps those specs
+// asserting what they were written to assert.
+config.global.renderStubDefaultSlot = true
+
 // Register t/n for every mounted component — consumer apps normally do this
 // via `app.mixin({ methods: { t, n } })` in their main.js. Mirror that here so
 // components using `{{ t('nextcloud-vue', '...') }}` in templates render.

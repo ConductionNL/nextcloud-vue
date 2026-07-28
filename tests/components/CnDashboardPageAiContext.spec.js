@@ -8,7 +8,7 @@ const Vue = require('vue').default || require('vue')
 
 jest.mock('gridstack', () => ({ GridStack: { init: jest.fn() } }), { virtual: true })
 jest.mock('gridstack/dist/gridstack.min.css', () => ({}), { virtual: true })
-jest.mock('vue-apexcharts', () => ({ name: 'vue-apexcharts-stub' }), { virtual: true })
+// Apexcharts is stubbed globally via jest.config.js moduleNameMapper.
 
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,

@@ -498,7 +498,7 @@ export default {
 			if (!hasOrgField) return
 			const current = this.formData.organisation
 			if (current !== null && current !== undefined && current !== '') return
-			this.formData['organisation'] = uuid
+			this.formData.organisation = uuid
 		},
 
 		updateField(key, value) {

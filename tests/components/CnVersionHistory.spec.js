@@ -18,7 +18,16 @@ const CnVersionHistory = require('../../src/components/CnVersionHistory/CnVersio
 // suite (e.g. `tests/components/CnPropertyValueCell.spec.js`).
 const stubs = {
 	NcButton: { template: '<button :disabled="disabled" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>', props: ['disabled', 'variant'] },
-	NcCheckboxRadioSwitch: { template: '<input type="checkbox" class="nc-switch" :checked="checked" @change="$emit(\'update:checked\', $event.target.checked)" />', props: ['checked', 'disabled'] },
+	// Contract note: `@nextcloud/vue` 9 (Vue 3) renamed this component's
+	// `checked` prop / `update:checked` event to the standard `modelValue` /
+	// `update:modelValue` pair. A stub still speaking the v8 names binds
+	// nothing and emits an event no caller listens for, so the toggle looks
+	// wired but is dead.
+	NcCheckboxRadioSwitch: {
+		template: '<input type="checkbox" class="nc-switch" :checked="modelValue" :disabled="disabled" @change="$emit(\'update:modelValue\', $event.target.checked)" />',
+		props: ['modelValue', 'disabled'],
+		emits: ['update:modelValue'],
+	},
 }
 
 function mockFetchOnce(payload, ok = true) {
@@ -242,7 +251,7 @@ describe('CnVersionHistory — two-entry compare', () => {
 		await flush(wrapper)
 
 		const compareButton = wrapper.findAll('button').filter((b) => b.text().includes('Compare selected')).at(0)
-		expect(compareButton.attributes('disabled')).toBeFalsy()
+		expect(compareButton.attributes('disabled')).toBeUndefined()
 		await compareButton.trigger('click')
 		await flush(wrapper)
 
@@ -268,12 +277,12 @@ describe('CnVersionHistory — two-entry compare', () => {
 		await flush(wrapper)
 
 		const compareButton = () => wrapper.findAll('button').filter((b) => b.text().includes('Compare selected')).at(0)
-		expect(compareButton().attributes('disabled')).toBeTruthy()
+		expect(compareButton().attributes('disabled')).toBeDefined()
 
 		const checkboxes = wrapper.findAll('.cn-version-history__row .nc-switch')
 		await checkboxes.at(0).setChecked(true)
 		await flush(wrapper)
-		expect(compareButton().attributes('disabled')).toBeTruthy()
+		expect(compareButton().attributes('disabled')).toBeDefined()
 		wrapper.unmount()
 	})
 })

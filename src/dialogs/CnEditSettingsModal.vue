@@ -222,7 +222,7 @@ export default {
 		},
 		/** Ensure `working.nav` is an object, then return it for mutation. */
 		ensureNav() {
-			if (!this.working.nav || typeof this.working.nav !== 'object') this.working['nav'] = {}
+			if (!this.working.nav || typeof this.working.nav !== 'object') this.working.nav = {}
 			return this.working.nav
 		},
 		/**
@@ -230,56 +230,56 @@ export default {
 		 * @param checked
 		 */
 		setIncludePersonalSettings(checked) {
-			this.ensureNav()['includePersonalSettings'] = Boolean(checked)
+			this.ensureNav().includePersonalSettings = Boolean(checked)
 		},
 		/**
 		 * Set the settings foldout label.
 		 * @param value
 		 */
 		setSettingsLabel(value) {
-			this.ensureNav()['settingsLabel'] = value
+			this.ensureNav().settingsLabel = value
 		},
 		/**
 		 * Toggle the roadmap foldout entry.
 		 * @param checked
 		 */
 		setIncludeRoadmap(checked) {
-			this.ensureNav()['includeRoadmap'] = Boolean(checked)
+			this.ensureNav().includeRoadmap = Boolean(checked)
 		},
 		/**
 		 * Set the roadmap entry label.
 		 * @param value
 		 */
 		setRoadmapLabel(value) {
-			this.ensureNav()['roadmapLabel'] = value
+			this.ensureNav().roadmapLabel = value
 		},
 		/**
 		 * Set the roadmap entry link/route.
 		 * @param value
 		 */
 		setRoadmapUrl(value) {
-			this.ensureNav()['roadmapUrl'] = value
+			this.ensureNav().roadmapUrl = value
 		},
 		/**
 		 * Toggle the documentation foldout entry.
 		 * @param checked
 		 */
 		setIncludeDocumentation(checked) {
-			this.ensureNav()['includeDocumentation'] = Boolean(checked)
+			this.ensureNav().includeDocumentation = Boolean(checked)
 		},
 		/**
 		 * Set the documentation entry label.
 		 * @param value
 		 */
 		setDocumentationLabel(value) {
-			this.ensureNav()['documentationLabel'] = value
+			this.ensureNav().documentationLabel = value
 		},
 		/**
 		 * Set the documentation entry URL.
 		 * @param value
 		 */
 		setDocumentationUrl(value) {
-			this.ensureNav()['documentationUrl'] = value
+			this.ensureNav().documentationUrl = value
 		},
 	},
 }

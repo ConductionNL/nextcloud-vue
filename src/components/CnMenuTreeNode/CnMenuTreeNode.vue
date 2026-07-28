@@ -186,17 +186,17 @@ export default {
 			const others = this.list.filter((it) => it && (it.section === 'settings') !== wantSettings)
 			const mine = this.tree.map((node, i) => {
 				const ref = node.ref
-				ref['order'] = (i + 1) * 10
-				if (wantSettings) ref['section'] = 'settings'
-				else delete ref['section']
+				ref.order = (i + 1) * 10
+				if (wantSettings) ref.section = 'settings'
+				else delete ref.section
 				if (node.children.length) {
-					ref['children'] = node.children.map((cn, j) => {
-						cn.ref['order'] = (j + 1) * 10
-						delete cn.ref['section']
+					ref.children = node.children.map((cn, j) => {
+						cn.ref.order = (j + 1) * 10
+						delete cn.ref.section
 						return cn.ref
 					})
 				} else {
-					delete ref['children']
+					delete ref.children
 				}
 				return ref
 			})

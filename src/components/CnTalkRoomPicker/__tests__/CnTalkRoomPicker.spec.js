@@ -7,7 +7,10 @@
  *  - inline error banner surfaces when the API call fails.
  */
 
-const { mount } = require('@vue/test-utils')
+// See CnEmailPicker.spec.js: a Vue-3 `nextTick()` no longer implies the
+// render queued by an async `mounted()` has flushed, so wait on the promise
+// queue instead of counting ticks.
+const { mount, flushPromises } = require('@vue/test-utils')
 const CnTalkRoomPicker = require('../CnTalkRoomPicker.vue').default
 
 function resolveOnce(payload, status = 200) {
@@ -31,8 +34,7 @@ describe('CnTalkRoomPicker', () => {
 			],
 		}))
 		const wrapper = mount(CnTalkRoomPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		const rows = wrapper.findAll('.cn-talk-room-picker__row-button')
 		expect(rows).toHaveLength(2)
@@ -46,8 +48,7 @@ describe('CnTalkRoomPicker', () => {
 			results: [{ token: 'tok-c', name: 'Pre-prod', type: 3 }],
 		}))
 		const wrapper = mount(CnTalkRoomPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.find('.cn-talk-room-picker__row-button').trigger('click')
 		await wrapper.vm.$nextTick()
@@ -63,8 +64,7 @@ describe('CnTalkRoomPicker', () => {
 		global.fetch.mockRejectedValueOnce(new Error('boom'))
 
 		const wrapper = mount(CnTalkRoomPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('Could not load rooms.')
 		wrapper.unmount()

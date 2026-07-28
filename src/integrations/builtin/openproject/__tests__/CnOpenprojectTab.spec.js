@@ -12,7 +12,10 @@
  *  - generic-error path when fetch throws.
  */
 
-const { mount } = require('@vue/test-utils')
+// See CnEmailPicker.spec.js: a Vue-3 `nextTick()` no longer implies the
+// render queued by an async `mounted()` has flushed, so wait on the promise
+// queue instead of counting ticks.
+const { mount, flushPromises } = require('@vue/test-utils')
 const CnOpenprojectTab = require('../CnOpenprojectTab.vue').default
 
 const DEFAULT_PROPS = {
@@ -48,8 +51,7 @@ describe('CnOpenprojectTab', () => {
 	it('renders the empty state with an "Open OpenProject" CTA when no work packages', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnOpenprojectTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No work packages linked yet')
 		expect(wrapper.text()).toContain('Open OpenProject')
 		wrapper.unmount()
@@ -67,8 +69,7 @@ describe('CnOpenprojectTab', () => {
 			}),
 		})
 		const wrapper = mount(CnOpenprojectTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-openproject-tab__row')
 		expect(rows).toHaveLength(2)
 		// Subjects are passed to NcListItem via the `name` prop (rendered
@@ -83,7 +84,7 @@ describe('CnOpenprojectTab', () => {
 		expect(text).toContain('Closed')
 		// Assignees render as NcAvatar; their names live in the avatar's
 		// display-name attribute, not as visible row text.
-		const avatarNames = wrapper.findAll('.cn-openproject-tab__assignee')			.map((w) => w.attributes('display-name'))
+		const avatarNames = wrapper.findAll('.cn-openproject-tab__assignee').map((w) => w.attributes('display-name'))
 		expect(avatarNames).toContain('Bob')
 		expect(avatarNames).toContain('Carol')
 		const bug = wrapper.find('.cn-openproject-tab__type-badge--bug')
@@ -117,8 +118,7 @@ describe('CnOpenprojectTab', () => {
 			}),
 		})
 		const wrapper = mount(CnOpenprojectTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const row = wrapper.find('.cn-openproject-tab__row')
 		expect(wrapper.findAll('.cn-openproject-tab__row')).toHaveLength(1)
 		expect(row.attributes('name')).toBe('HAL-shaped WP')
@@ -138,8 +138,7 @@ describe('CnOpenprojectTab', () => {
 			}),
 		})
 		const wrapper = mount(CnOpenprojectTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const flagged = wrapper.findAll('.cn-openproject-tab__row--high-priority')
 		expect(flagged).toHaveLength(1)
 		wrapper.unmount()
@@ -148,8 +147,7 @@ describe('CnOpenprojectTab', () => {
 	it('renders the unconfigured CTA when the provider returns 412', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 412, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnOpenprojectTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('OpenProject is not configured yet')
 		expect(wrapper.text()).toContain('Configure OpenProject connection')
 		wrapper.unmount()
@@ -158,8 +156,7 @@ describe('CnOpenprojectTab', () => {
 	it('renders the auth-expired banner when the provider returns 401', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 401, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnOpenprojectTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Authorisation for OpenProject expired')
 		expect(wrapper.find('.cn-openproject-tab__banner--auth').exists()).toBe(true)
 		expect(wrapper.find('.cn-openproject-tab__row').exists()).toBe(false)
@@ -173,8 +170,7 @@ describe('CnOpenprojectTab', () => {
 			json: () => Promise.resolve({ message: 'Bad gateway from OpenProject' }),
 		})
 		const wrapper = mount(CnOpenprojectTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Bad gateway from OpenProject')
 		wrapper.unmount()
 	})
@@ -182,8 +178,7 @@ describe('CnOpenprojectTab', () => {
 	it('shows the unavailable banner when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnOpenprojectTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('OpenProject is currently unavailable.')
 		expect(wrapper.find('.cn-openproject-tab__banner--warn').exists()).toBe(true)
 		wrapper.unmount()
@@ -193,8 +188,7 @@ describe('CnOpenprojectTab', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnOpenprojectTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Could not load work packages.')
 		wrapper.unmount()
 		spy.mockRestore()

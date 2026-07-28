@@ -788,6 +788,18 @@ export default {
 		},
 	},
 
+	created() {
+		// Non-reactive one-shot latch for warnAutoCountMisconfigured(). It has
+		// to be seeded here rather than lazily on first use: `resolveCount()`
+		// runs DURING RENDER, and Vue 3's instance proxy emits
+		// "Property "_autoCountWarned" was accessed during render but is not
+		// defined on instance" for the first read of an unset instance field
+		// (Vue 2 read it back as plain `undefined`, silently). It deliberately
+		// stays out of `data()`: a reactive Set mutated inside render would
+		// re-trigger the render effect.
+		this._autoCountWarned = new Set()
+	},
+
 	methods: {
 		/**
 		 * Resolve a menu item's `icon` string to an MDI Vue component. MDI names
@@ -998,7 +1010,6 @@ export default {
 		 * @private
 		 */
 		warnAutoCountMisconfigured(item) {
-			if (!this._autoCountWarned) this._autoCountWarned = new Set()
 			if (this._autoCountWarned.has(item.id)) return
 			this._autoCountWarned.add(item.id)
 			// eslint-disable-next-line no-console

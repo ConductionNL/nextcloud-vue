@@ -19,7 +19,7 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { h } from 'vue'
+import { h, toRaw } from 'vue'
 
 jest.mock('@nextcloud/capabilities', () => ({
 	getCapabilities: jest.fn(),
@@ -64,7 +64,7 @@ const ManifestInjectingRouterView = {
 	inject: ['cnManifest'],
 	render() {
 		const firstPageId = this.cnManifest?.pages?.[0]?.id ?? '(no-page)'
-		return h('div', { class: 'router-view-stub', attrs: { 'data-page-id': firstPageId } }, firstPageId)
+		return h('div', { class: 'router-view-stub', 'data-page-id': firstPageId }, firstPageId)
 	},
 }
 
@@ -130,7 +130,11 @@ describe('CnAppRoot — in-memory manifest mount (REQ-IMM-001..REQ-IMM-004)', ()
 		expect(wrapper.find('.router-view-stub').exists()).toBe(true)
 
 		// REQ-IMM-001: the same object reference made it through provide/inject.
-		expect(wrapper.props('manifest')).toBe(fixtureManifest)
+		// `toRaw` on the received side only — Vue 3 hands props back through a
+		// reactive Proxy, so identity has to be checked against the target.
+		// `toEqual` would not distinguish "forwarded" from "deep-copied", which
+		// is exactly what this requirement is about.
+		expect(toRaw(wrapper.props('manifest'))).toBe(fixtureManifest)
 		expect(wrapper.props('manifest').menu.map((m) => m.id)).toEqual(['home', 'reports'])
 
 		// REQ-IMM-002: no manifest backend fetch / URL computation happened.
@@ -260,7 +264,8 @@ describe('CnAppRoot — in-memory manifest mount (REQ-IMM-001..REQ-IMM-004)', ()
 		// Component still mounts — validation is informational.
 		expect(wrapper.vm.phase).toBe('shell')
 		// REQ-IMM-003: manifest ref is held unchanged — same reference.
-		expect(wrapper.props('manifest')).toBe(invalidManifest)
+		// See the `toRaw` note above: props arrive through a reactive Proxy.
+		expect(toRaw(wrapper.props('manifest'))).toBe(invalidManifest)
 		// Inner surface receives the invalid manifest's first page id (dup)
 		// rather than a placeholder — the mount is not blocked.
 		expect(wrapper.find('.router-view-stub').attributes('data-page-id')).toBe('dup')
@@ -313,8 +318,8 @@ describe('CnAppRoot — in-memory manifest mount (REQ-IMM-001..REQ-IMM-004)', ()
 		expect(generateUrl).toHaveBeenCalledWith('/apps/fixture-app/api/manifest')
 
 		// The bundled manifest is observable synchronously — same shape as
-		// the in-memory branch produces.
-		expect(wrapper.props('manifest')).toBe(fixtureManifest)
+		// the in-memory branch produces. See the `toRaw` note above.
+		expect(toRaw(wrapper.props('manifest'))).toBe(fixtureManifest)
 		expect(isLoading.value).toBe(true)
 	})
 

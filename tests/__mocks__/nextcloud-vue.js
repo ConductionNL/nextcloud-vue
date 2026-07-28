@@ -7,6 +7,50 @@
  */
 import { h } from 'vue'
 
+/**
+ * Native HTML boolean attributes: present means true, absent means false.
+ *
+ * Vue 2 removed ANY attribute whose bound value was `false` (`isFalsyAttrValue`
+ * in its attrs module), whatever the element. Vue 3 only does that for the
+ * attribute's real nature — a boolean DOM prop on a host element that has it
+ * (`<button :disabled="false">` -> no attribute), or the short
+ * `specialBooleanAttrs` list. Everything else is stringified, so a `<div>`
+ * given `disabled: false` renders `disabled="false"`.
+ *
+ * These stubs render a `<div>` where the real component renders a `<button>` /
+ * `<input>` / `<details>`, so without this filter `:disabled="!canSubmit"`
+ * always produces a `disabled` attribute and `attributes('disabled')` is
+ * truthy whether the button is enabled or not — the enabled/disabled specs
+ * pass in BOTH directions and assert nothing.
+ *
+ * Only genuine boolean attributes are filtered. `aria-*` and `data-*` are
+ * left alone: "false" is a meaningful value there and several specs assert it.
+ */
+const NATIVE_BOOLEAN_ATTRS = new Set([
+	'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'controls',
+	'default', 'defer', 'disabled', 'formnovalidate', 'hidden', 'ismap',
+	'itemscope', 'loop', 'multiple', 'muted', 'nomodule', 'novalidate', 'open',
+	'playsinline', 'readonly', 'required', 'reversed', 'selected',
+])
+
+/**
+ * Drop boolean attributes bound to `false`, mirroring what the real component's
+ * host element does. See {@link NATIVE_BOOLEAN_ATTRS}.
+ *
+ * @param {object} attrs the fallthrough attributes.
+ * @return {object} attributes safe to spread onto the stub's `<div>`.
+ */
+const withBooleanAttrSemantics = (attrs) => {
+	const out = {}
+	for (const [key, value] of Object.entries(attrs)) {
+		if (value === false && NATIVE_BOOLEAN_ATTRS.has(key)) {
+			continue
+		}
+		out[key] = value
+	}
+	return out
+}
+
 const createStub = (name) => ({
 	name,
 	inheritAttrs: false,
@@ -20,7 +64,15 @@ const createStub = (name) => ({
 				if (key === 'default') continue
 				children.push(slots[key]())
 			}
-			return h('div', { class: ['stub', name], ...attrs }, children)
+			// `class` must be MERGED, not spread over. Vue 2 kept class/style out
+			// of `$attrs` (they lived in the vnode's own `data.class` /
+			// `data.staticClass`), so `{ class: [...], ...attrs }` was safe.
+			// Vue 3 folds class and style INTO `$attrs`, so a consumer writing
+			// `<NcNoteCard class="cn-banner-widget__card">` silently replaced the
+			// stub's own `stub NcNoteCard` marker and every `find('.stub.NcX')`
+			// in the suite stopped matching.
+			const { class: consumerClass, ...rest } = withBooleanAttrSemantics(attrs)
+			return h('div', { class: ['stub', name, consumerClass], ...rest }, children)
 		}
 	},
 })
@@ -69,17 +121,26 @@ export const NcActionInput = {
 }
 /**
  * NcRichContenteditable needs a real stateful stub: the component under test
- * binds `:value` / `@update:value` and passes an `auto-complete` function that
- * the real component calls with `(searchText, callback)` when the user types
- * `@query`. This stub mirrors that contract on top of a plain <textarea> so
- * jsdom tests can drive typing, suggestion display, keyboard navigation
+ * binds the model prop and passes an `auto-complete` function that the real
+ * component calls with `(searchText, callback)` when the user types `@query`.
+ * This stub mirrors that contract on top of a plain <textarea> so jsdom tests
+ * can drive typing, suggestion display, keyboard navigation
  * (ArrowUp/ArrowDown/Enter/Escape) and mouse selection. Token insertion uses
  * the same `@id` / `@"id"` convention as the real Tribute integration.
+ *
+ * MODEL PROP: `modelValue` / `update:modelValue`. `@nextcloud/vue` 9 (Vue 3)
+ * renamed the Vue-2-era `value` / `update:value` pair to Vue 3's standard
+ * `v-model` names — see
+ * `node_modules/@nextcloud/vue/dist/components/NcRichContenteditable/NcRichContenteditable.vue.d.ts`,
+ * where the text content prop is `modelValue`. `CnNotesTab` was migrated to
+ * the new names; a stub left on the old ones binds nothing (composer text
+ * stays '') and emits an event nobody listens for, so every keystroke and
+ * every mention insertion silently vanishes.
  */
 export const NcRichContenteditable = {
 	name: 'NcRichContenteditable',
 	props: {
-		value: { type: String, default: '' },
+		modelValue: { type: String, default: '' },
 		autoComplete: { type: Function, default: () => [] },
 		placeholder: { type: String, default: '' },
 		multiline: { type: Boolean, default: false },
@@ -94,7 +155,7 @@ export const NcRichContenteditable = {
 	methods: {
 		onInput(event) {
 			const text = event.target.value
-			this.$emit('update:value', text)
+			this.$emit('update:modelValue', text)
 			const match = text.match(/(?:^|\s)@([A-Za-z0-9_.'-]*)$/)
 			if (match) {
 				this.autoComplete(match[1], (results) => {
@@ -126,8 +187,8 @@ export const NcRichContenteditable = {
 			if (!suggestion) return
 			const id = String(suggestion.id)
 			const token = /^[A-Za-z0-9_.'-]+$/.test(id) ? `@${id}` : `@"${id}"`
-			const newText = this.value.replace(/@[A-Za-z0-9_.'-]*$/, `${token} `)
-			this.$emit('update:value', newText)
+			const newText = this.modelValue.replace(/@[A-Za-z0-9_.'-]*$/, `${token} `)
+			this.$emit('update:modelValue', newText)
 			this.close()
 		},
 		close() {
@@ -136,12 +197,12 @@ export const NcRichContenteditable = {
 			this.activeIndex = 0
 		},
 	},
-	emits: ['update:value'],
+	emits: ['update:modelValue'],
 	render() {
 		const children = [
 			h('textarea', {
 				class: 'rich-contenteditable__input',
-				value: this.value,
+				value: this.modelValue,
 				placeholder: this.placeholder,
 				onInput: this.onInput,
 				onKeydown: this.onKeydown,
@@ -223,7 +284,45 @@ export const NcDateTime = {
 	},
 }
 
+/**
+ * Components `src/` imports from `@nextcloud/vue` that this mock never
+ * exported. They resolved to `undefined`, so Vue could not resolve the tag.
+ *
+ * Vue 2 routed `warn()` through `console.error`, so a spec spying on
+ * `console.warn` never saw framework warnings. Vue 3 routes `warn()` through
+ * `console.warn` — so every unresolved component now lands in the same spy the
+ * spec uses for its OWN assertion, and `expect(warnSpy).toHaveBeenCalledTimes(1)`
+ * fails on warnings the component under test never emitted.
+ *
+ * Stubbing them is the fix at source: the mock should cover what `src/`
+ * actually imports.
+ */
+export const NcActionLink = createStub('NcActionLink')
+export const NcActionText = createStub('NcActionText')
+export const NcAppNavigationCaption = createStub('NcAppNavigationCaption')
+export const NcAppNavigationNew = createStub('NcAppNavigationNew')
+export const NcAppNavigationSettings = createStub('NcAppNavigationSettings')
+export const NcAppSettingsDialog = createStub('NcAppSettingsDialog')
+export const NcAppSettingsSection = createStub('NcAppSettingsSection')
+export const NcDashboardWidget = createStub('NcDashboardWidget')
+export const NcDateTimePicker = createStub('NcDateTimePicker')
+export const NcDateTimePickerNative = createStub('NcDateTimePickerNative')
+export const NcIconSvgWrapper = createStub('NcIconSvgWrapper')
+export const NcSelectTags = createStub('NcSelectTags')
+
 export default {
+	NcActionLink,
+	NcActionText,
+	NcAppNavigationCaption,
+	NcAppNavigationNew,
+	NcAppNavigationSettings,
+	NcAppSettingsDialog,
+	NcAppSettingsSection,
+	NcDashboardWidget,
+	NcDateTimePicker,
+	NcDateTimePickerNative,
+	NcIconSvgWrapper,
+	NcSelectTags,
 	NcDialog,
 	NcModal,
 	NcButton,

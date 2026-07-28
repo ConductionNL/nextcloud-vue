@@ -400,7 +400,7 @@ export default {
 		 * @return {void}
 		 */
 		setTitle(value) {
-			this.page['title'] = value
+			this.page.title = value
 		},
 		/**
 		 * Set the page route in place.
@@ -408,7 +408,7 @@ export default {
 		 * @return {void}
 		 */
 		setRoute(value) {
-			this.page['route'] = value
+			this.page.route = value
 		},
 		/**
 		 * Commit a slug (page id) rename. Emits `rename` so the parent can cascade
@@ -429,7 +429,7 @@ export default {
 		 * @return {void}
 		 */
 		onType(option) {
-			this.page['type'] = option ? option.value : 'custom'
+			this.page.type = option ? option.value : 'custom'
 			this.stopEdit()
 		},
 		/**
@@ -439,7 +439,7 @@ export default {
 		 */
 		ensureConfig() {
 			if (!this.page.config || typeof this.page.config !== 'object' || Array.isArray(this.page.config)) {
-				this.page['config'] = {}
+				this.page.config = {}
 			}
 			return this.page.config
 		},
@@ -489,8 +489,8 @@ export default {
 		setColumns(options) {
 			const config = this.ensureConfig()
 			const cols = (options || []).map((o) => o.value)
-			if (cols.length) config['columns'] = cols
-			else delete config['columns']
+			if (cols.length) config.columns = cols
+			else delete config.columns
 		},
 		/**
 		 * Set the columns from a comma-separated string (free-text fallback).
@@ -500,8 +500,8 @@ export default {
 		setColumnsText(text) {
 			const config = this.ensureConfig()
 			const cols = String(text || '').split(',').map((s) => s.trim()).filter(Boolean)
-			if (cols.length) config['columns'] = cols
-			else delete config['columns']
+			if (cols.length) config.columns = cols
+			else delete config.columns
 		},
 	},
 }

@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Conduction B.V.
 
 import { mount } from '@vue/test-utils'
+import { h } from 'vue'
 import CnIconBrowser from '../../src/components/CnIconBrowser/CnIconBrowser.vue'
 import CnIconBrowserPanel from '../../src/components/CnIconBrowser/CnIconBrowserPanel.vue'
 import {
@@ -22,9 +23,12 @@ const FAKE_MDI = {
 }
 
 function fakeVmdiContext() {
+	// Vue 2 passed `createElement` as `render()`'s first argument; Vue 3 passes
+	// none and `h` is imported from the package instead, so the old signature
+	// left the parameter `undefined` ("h is not a function" at render time).
 	const modules = {
-		'./Account.vue': { default: { name: 'AccountIcon', render: (h) => h('span', 'A') } },
-		'./CalendarRange.vue': { default: { name: 'CalendarRangeIcon', render: (h) => h('span', 'C') } },
+		'./Account.vue': { default: { name: 'AccountIcon', render: () => h('span', 'A') } },
+		'./CalendarRange.vue': { default: { name: 'CalendarRangeIcon', render: () => h('span', 'C') } },
 	}
 	const ctx = (file) => modules[file]
 	ctx.keys = () => Object.keys(modules)

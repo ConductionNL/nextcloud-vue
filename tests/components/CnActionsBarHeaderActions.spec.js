@@ -22,6 +22,12 @@ function mountBar(extra = {}) {
 			NcActionButton: {
 				template: '<button class="nc-action-button-stub" :data-disabled="disabled" @click="$emit(\'click\')"><span class="nc-action-button-stub__icon"><slot name="icon" /></span><span class="nc-action-button-stub__label"><slot /></span></button>',
 				props: ['disabled', 'title'],
+				// Vue 3: an undeclared event name stays a fallthrough attribute,
+				// so the parent's `@click` lands on this single-root `<button>`
+				// as a native handler AND is invoked again by `$emit('click')` —
+				// every click dispatched twice. Vue 2's separate listener channel
+				// made that impossible. Declaring the emit is the fix.
+				emits: ['click'],
 			},
 			NcActionSeparator: { template: '<hr class="nc-action-separator-stub" />' },
 			NcButton: { template: '<button class="nc-button-stub" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>', props: ['type', 'disabled'] },
