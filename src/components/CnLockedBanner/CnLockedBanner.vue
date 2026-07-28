@@ -17,7 +17,7 @@
 		<LockOutline :size="20" class="cn-locked-banner__icon" />
 		<div class="cn-locked-banner__body">
 			<p class="cn-locked-banner__message">
-				{{ message }}
+				{{ displayMessage }}
 			</p>
 			<p
 				v-if="expiresLabel"
@@ -70,20 +70,36 @@ export default {
 
 		/**
 		 * Override the rendered message. Useful for custom
-		 * branding / tone. The default is
-		 * `t('nextcloud-vue', 'Locked by {user}')`.
+		 * branding / tone. Left empty, the banner renders
+		 * `t('nextcloud-vue', 'Locked by {user}')` with `lockedBy`
+		 * interpolated — see the `displayMessage` computed.
 		 *
 		 * @type {string}
 		 */
 		message: {
 			type: String,
-			default() {
-				return t('nextcloud-vue', 'Locked by {user}', { user: this.lockedBy || '?' })
-			},
+			default: '',
 		},
 	},
 
 	computed: {
+		/**
+		 * The message actually rendered: the `message` override when the
+		 * consumer supplied one, otherwise the default "Locked by {user}"
+		 * line built from `lockedBy`.
+		 *
+		 * This deliberately is NOT a prop `default()` factory. Vue 3 calls
+		 * those with `this === null`, so `this.lockedBy` threw a TypeError
+		 * and took the whole page down with it — and even setting that
+		 * aside, prop defaults are resolved once and cached per instance,
+		 * so a `lockedBy` that arrives asynchronously (it comes off a
+		 * `useObjectLock()` ref) would never reach the text. A computed is
+		 * both crash-free and reactive.
+		 */
+		displayMessage() {
+			return this.message || t('nextcloud-vue', 'Locked by {user}', { user: this.lockedBy || '?' })
+		},
+
 		/**
 		 * Sub-line: "expires in N min" / "expires in less than a minute"
 		 * / "lock has expired" — derived from `expiresAt`. Returns an

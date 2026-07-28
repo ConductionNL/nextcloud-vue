@@ -268,6 +268,7 @@ export default {
 			default: true,
 		},
 	},
+	emits: ['close', 'step-change', 'submit'],
 	data() {
 		const initialIndex = this.resolveInitialIndex()
 		return {

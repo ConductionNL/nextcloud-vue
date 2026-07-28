@@ -48,7 +48,10 @@ import { DEFAULT_FORGE } from '../../utils/forge.js'
  */
 function readInitialState(appId, key, fallback) {
 	try {
-		// eslint-disable-next-line global-require, import/no-unresolved, n/no-extraneous-require
+		// The require is deliberately lazy and guarded: `@nextcloud/initial-state`
+		// is an optional host package, and a static import would hard-fail the
+		// bundle wherever it is absent.
+		// eslint-disable-next-line global-require, import/no-unresolved, n/no-extraneous-require, @typescript-eslint/no-var-requires
 		const mod = require('@nextcloud/initial-state')
 		if (typeof mod.loadState === 'function') {
 			return mod.loadState(appId, key, fallback)

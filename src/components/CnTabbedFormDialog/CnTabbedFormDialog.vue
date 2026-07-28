@@ -281,6 +281,7 @@ export default {
 			default: () => t('nextcloud-vue', 'Create another'),
 		},
 	},
+	emits: ['close', 'confirm', 'reset', 'update:activeTab'],
 	data() {
 		return {
 			/** @type {number} Current active tab index */

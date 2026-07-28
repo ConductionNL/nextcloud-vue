@@ -151,6 +151,8 @@ export default {
 		},
 	},
 
+	emits: ['add-child', 'remove'],
+
 	data() {
 		return {
 			// Which field is in inline-edit mode: null | 'icon' | 'label' | 'page'.

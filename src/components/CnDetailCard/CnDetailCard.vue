@@ -116,6 +116,8 @@ export default {
 		},
 	},
 
+	emits: ['update:collapsed'],
+
 	data() {
 		return {
 			isCollapsed: this.collapsed,

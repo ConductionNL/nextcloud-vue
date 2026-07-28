@@ -101,6 +101,8 @@ export default {
 		},
 	},
 
+	emits: ['navigate'],
+
 	data() {
 		return {
 			// Local nested mirror of `list` (real page refs) that vuedraggable

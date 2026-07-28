@@ -73,6 +73,8 @@ export default {
 		},
 	},
 
+	emits: ['close'],
+
 	computed: {
 		/** The working manifest's pages array (always an array). */
 		pages() {

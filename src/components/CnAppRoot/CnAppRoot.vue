@@ -675,6 +675,12 @@ export default {
 	},
 
 	provide() {
+		// `self` is load-bearing: the returned object exposes `cnManifest` as a
+		// GETTER, and inside a getter on that literal `this` is the literal —
+		// not the component. A getter is what keeps the provide reactive, and a
+		// getter cannot be an arrow function, so the alias is the only way to
+		// reach the instance from inside it.
+		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const self = this
 		return {
 			// In-app editing (ADR-041): descendants read the editor's `source`
@@ -1300,6 +1306,8 @@ export default {
 			default: null,
 		},
 	},
+
+	emits: ['setup-complete', 'walkthrough-complete'],
 
 	/**
 	 * Component-instance state for the capabilities guard.

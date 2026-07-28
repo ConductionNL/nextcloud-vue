@@ -22,9 +22,9 @@
 | Name                                                                                      | Payload | Description                                                                                                                                     |
 | ----------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `add`                                                                                     | —       | Emitted when file(s) are related via the picker or the path field. Payload is a single ref when one file was added, otherwise an array of refs. |
-| `update:files Emitted with the full new file list, enabling v-model:files / :files.sync.` | —       |                                                                                                                                                 |
 | `remove`                                                                                  | —       | Emitted when a row's Remove button is clicked.                                                                                                  |
 | `update:files`                                                                            | —       |                                                                                                                                                 |
+| `update:files Emitted with the full new file list, enabling v-model:files / :files.sync.` | —       |                                                                                                                                                 |
 
 ### Slots
 

@@ -31,9 +31,9 @@
 | ---------------- | ------- | ----------- |
 | `update:open`    | —       |             |
 | `search`         | —       |             |
-| `tab-change`     | —       |             |
 | `columns-change` | —       |             |
 | `filter-change`  | —       |             |
+| `tab-change`     | —       |             |
 
 ### Slots
 

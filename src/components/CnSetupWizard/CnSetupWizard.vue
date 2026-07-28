@@ -16,6 +16,12 @@
 		@step-change="onStepChange"
 		@submit="onSubmit"
 		@close="onClose">
+		<!-- This `<template v-for>` defines dynamic SLOTS, not a rendered list.
+		     `@vue/compiler-sfc` DISCARDS a `:key` on a slot-defining
+		     `<template>` (verified against the generated `createSlots` call)
+		     and honours it only on the child, so the rule's advice is inverted
+		     here — moving the key up would throw it away. -->
+		<!-- eslint-disable vue/no-v-for-template-key-on-child -->
 		<template v-for="step in setupSteps" #[stepSlot(step)]="scope">
 			<div :key="step.id" class="cn-setup-step" :data-step-type="step.type">
 				<!-- @slot step-{id} Override a step's body (for `component` steps or
@@ -120,6 +126,7 @@
 				</template>
 			</div>
 		</template>
+		<!-- eslint-enable vue/no-v-for-template-key-on-child -->
 	</CnWizardDialog>
 </template>
 

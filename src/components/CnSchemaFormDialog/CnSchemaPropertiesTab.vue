@@ -174,6 +174,13 @@ export default {
 		/** Properties inherited from parent schemas (allOf) — shown as locked/read-only rows */
 		inheritedProperties: { type: Object, default: () => ({}) },
 	},
+	emits: [
+		'add-property',
+		'copy-property',
+		'delete-property',
+		'update:property-key',
+		'update:selected-property',
+	],
 	data() {
 		return {
 			propertyStableIds: {},

@@ -106,6 +106,8 @@ export default {
 		},
 	},
 
+	emits: ['close'],
+
 	computed: {
 		/** The working manifest's walkthrough block. */
 		walkthrough() {

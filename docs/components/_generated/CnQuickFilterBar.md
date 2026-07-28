@@ -17,6 +17,6 @@
 
 | Name                                                                  | Payload | Description |
 | --------------------------------------------------------------------- | ------- | ----------- |
-| `update:selected-indices Active tab indices changed (multiple mode).` | —       |             |
-| `update:selected-indices`                                             | —       |             |
 | `update:active-index`                                                 | —       |             |
+| `update:selected-indices`                                             | —       |             |
+| `update:selected-indices Active tab indices changed (multiple mode).` | —       |             |

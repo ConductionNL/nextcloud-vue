@@ -181,6 +181,7 @@ export default {
 		/** Clear-button label. */
 		clearLabel: { type: String, default: 'Clear' },
 	},
+	emits: ['change'],
 	data() {
 		return {
 			mode: this.resolveInitialMode(),

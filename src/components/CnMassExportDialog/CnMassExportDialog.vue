@@ -187,6 +187,8 @@ export default {
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Export') },
 	},
 
+	emits: ['close', 'confirm'],
+
 	data() {
 		const defaultOption = this.formats.find((f) => f.id === this.defaultFormat) || this.formats[0]
 		const defaultEntityOption = this.entities.find((e) => e.id === this.defaultEntity) || this.entities[0] || null

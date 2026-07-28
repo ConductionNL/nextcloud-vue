@@ -19,15 +19,15 @@
 
 ### Events
 
-| Name                                                      | Payload | Description                                                                                                                                        |
-| --------------------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `node-select`                                             | —       | A node was clicked or focused.                                                                                                                     |
-| `edge-select`                                             | —       | An edge was clicked.                                                                                                                               |
-| `connect`                                                 | —       | A connection was drawn between two nodes.                                                                                                          |
-| `canvas-click`                                            | —       | The empty canvas was clicked — consumers usually clear their selection.                                                                            |
-| `node-move`                                               | —       | A node was dragged. Positions are owned by the consumer: the canvas reports intent and does not mutate `nodes`.                                    |
-| `update:zoom The zoom factor changed (supports `.sync`).` | —       |                                                                                                                                                    |
-| `canvas-drop`                                             | —       | Something was dropped onto the canvas. The payload's `x`/`y` are in canvas space (pan and zoom undone); the native `event` carries `dataTransfer`. |
+| Name           | Payload | Description                                                                                                                                        |
+| -------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `canvas-click` | —       | The empty canvas was clicked — consumers usually clear their selection.                                                                            |
+| `canvas-drop`  | —       | Something was dropped onto the canvas. The payload's `x`/`y` are in canvas space (pan and zoom undone); the native `event` carries `dataTransfer`. |
+| `connect`      | —       | A connection was drawn between two nodes.                                                                                                          |
+| `edge-select`  | —       | An edge was clicked.                                                                                                                               |
+| `node-move`    | —       | A node was dragged. Positions are owned by the consumer: the canvas reports intent and does not mutate `nodes`.                                    |
+| `node-select`  | —       | A node was clicked or focused.                                                                                                                     |
+| `update:zoom`  | —       | The zoom factor changed (supports `v-model:zoom`).                                                                                                 |
 
 ### Slots
 

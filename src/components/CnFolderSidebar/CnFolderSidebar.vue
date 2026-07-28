@@ -186,6 +186,8 @@ export default {
 		},
 	},
 
+	emits: ['create', 'select'],
+
 	data() {
 		return {
 			fileTree: [],

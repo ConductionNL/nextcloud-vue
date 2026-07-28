@@ -1656,6 +1656,36 @@ export default {
 		},
 	},
 
+	emits: [
+		'action',
+		'add',
+		'apply-view',
+		'columns-change',
+		'configure',
+		'copy',
+		'create',
+		'delete',
+		'filter-change',
+		'folder-change',
+		'folder-create',
+		'header-action',
+		'mass-copy',
+		'mass-delete',
+		'mass-export',
+		'mass-import',
+		'page-changed',
+		'page-size-changed',
+		'quick-filter-change',
+		'refresh',
+		'row-click',
+		'search',
+		'select',
+		'sort',
+		'sort-change',
+		'view',
+		'view-mode-change',
+	],
+
 	setup(props) {
 		const {
 			isOpen: contextMenuOpen,
@@ -2992,7 +3022,9 @@ export default {
 		 * emit the event (backward compatible). Otherwise open the form dialog.
 		 */
 		onAddClick() {
-			if (this.$attrs && this.$attrs.onAdd) {
+			// `$.vnode.props`, not `$attrs`: `add` is a declared emit, and Vue
+			// keeps declared emits out of `$attrs`.
+			if (this.$.vnode.props?.onAdd) {
 				this.$emit('add')
 			} else if (this.showFormDialog) {
 				this.editItem = null

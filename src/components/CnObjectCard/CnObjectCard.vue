@@ -128,6 +128,8 @@ export default {
 		},
 	},
 
+	emits: ['click', 'select'],
+
 	setup() {
 		// Tell a deliberate card click apart from a text-selection drag.
 		return useClickDragGuard()
@@ -226,7 +228,9 @@ export default {
 				this.$emit('select', this.object)
 				// Deprecation: selectable cards used to emit `click`. Keep emitting it
 				// for listeners that still rely on it, but warn them to migrate to `select`.
-				if (this.$attrs.onClick) {
+				// `$.vnode.props`, not `$attrs`: `click` is a declared emit, and
+				// Vue keeps declared emits out of `$attrs`.
+				if (this.$.vnode.props?.onClick) {
 					console.warn('[CnObjectCard] @click on selectable cards is deprecated; use @select instead.')
 					this.$emit('click', this.object)
 				}

@@ -139,6 +139,8 @@ export default {
 		},
 	},
 
+	emits: ['close', 'confirm'],
+
 	data() {
 		return {
 			/** True between the confirm click and the parent's setResult() call. */

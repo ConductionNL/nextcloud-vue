@@ -261,6 +261,8 @@ export default {
 		},
 	},
 
+	emits: ['close', 'saved'],
+
 	data() {
 		return {
 			loading: true,

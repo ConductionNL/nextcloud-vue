@@ -686,6 +686,8 @@ export default {
 		},
 	},
 
+	emits: ['close'],
+
 	data() {
 		return {
 			// Active config tab: 'display' | 'data' | 'columns' | 'actions' | 'advanced'.

@@ -1194,7 +1194,17 @@ export default {
 		},
 	},
 
-	emits: ['layout-change', 'edit-toggle', 'date-range-change', 'page-filter-change', 'refresh', 'request-feature'],
+	emits: [
+		'date-range-change',
+		'edit-toggle',
+		'layout-change',
+		'page-filter-change',
+		'refresh',
+		'request-feature',
+		'widget-refresh',
+		'widget-remove',
+		'widget-request-feature',
+	],
 
 	setup(props) {
 		// Wire the pluggable integration registry so widgets of type
@@ -1305,7 +1315,12 @@ export default {
 		 */
 		effectiveWidgetShowRefresh() {
 			if (this.widgetShowRefresh !== null) return this.widgetShowRefresh
-			return Boolean(this.$attrs['onWidget-refresh'])
+			// `$.vnode.props`, not `$attrs`: a declared emit is stripped out of
+			// `$attrs`. And the key is `onWidgetRefresh` — Vue's compiler
+			// camelizes every `v-on` argument, so the hyphenated
+			// `$attrs['onWidget-refresh']` this used to read was `undefined`
+			// unconditionally and the auto-detect never once fired.
+			return Boolean(this.$.vnode.props?.onWidgetRefresh)
 		},
 		/**
 		 * Stable id for the page-level Actions menu. Prefers the explicit

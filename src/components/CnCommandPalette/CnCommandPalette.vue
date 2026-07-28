@@ -211,6 +211,7 @@ export default {
 		 */
 		commandRegistry: { type: Object, default: null },
 	},
+	emits: ['select'],
 	data() {
 		return {
 			domId: `cn-command-palette-${++domIdCounter}`,

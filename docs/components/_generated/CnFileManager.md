@@ -21,11 +21,11 @@
 
 | Name              | Payload | Description                                                                           |
 | ----------------- | ------- | ------------------------------------------------------------------------------------- |
-| `upload-rejected` | —       | Emitted when one or more files in the batch exceed maxSizeMb.                         |
-| `upload`          | —       | Emitted with the file batch from the dropzone or file picker.                         |
-| `file-click`      | —       | Emitted on row click (not on the action buttons).                                     |
-| `download`        | —       | Emitted when the Download button is clicked.                                          |
 | `delete`          | —       | Emitted when the Delete button is clicked. Parent persists then removes from files[]. |
+| `download`        | —       | Emitted when the Download button is clicked.                                          |
+| `file-click`      | —       | Emitted on row click (not on the action buttons).                                     |
+| `upload`          | —       | Emitted with the file batch from the dropzone or file picker.                         |
+| `upload-rejected` | —       | Emitted when one or more files in the batch exceed maxSizeMb.                         |
 
 ### Slots
 

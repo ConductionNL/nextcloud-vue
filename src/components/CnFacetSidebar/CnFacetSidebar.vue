@@ -144,6 +144,8 @@ export default {
 		},
 	},
 
+	emits: ['clear-all', 'filter-change'],
+
 	computed: {
 		effectiveFilters() {
 			return filtersFromSchema(this.schema, { isAdmin: this.userIsAdmin, translate: this.cnTranslate })

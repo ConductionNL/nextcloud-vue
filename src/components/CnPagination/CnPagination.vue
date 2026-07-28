@@ -169,6 +169,8 @@ export default {
 		},
 	},
 
+	emits: ['page-changed', 'page-size-changed'],
+
 	computed: {
 		pageSizeId() {
 			return 'cn-page-size-' + this._uid

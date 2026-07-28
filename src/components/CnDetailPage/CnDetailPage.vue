@@ -645,7 +645,7 @@
 </template>
 
 <script>
-import { provide, ref, watch } from 'vue'
+import { Comment, Fragment, Text, provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -684,6 +684,28 @@ import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
+
+/**
+ * Whether a rendered slot produced anything a user can actually see.
+ *
+ * A non-empty vnode array is NOT evidence of content: Vue hands back a
+ * `Comment` placeholder for a falsy `v-if`, and a whitespace-only `Text`
+ * node for a stray newline between tags. Both have to read as "empty" so a
+ * consumer who wrote `<CnDetailPage>` across two lines does not
+ * accidentally suppress the auto-body.
+ *
+ * @param {Array} nodes Vnodes returned by calling a slot function.
+ * @return {boolean} True when at least one vnode renders visible content.
+ */
+function hasRenderableContent(nodes) {
+	if (!Array.isArray(nodes)) return false
+	return nodes.some((vnode) => {
+		if (!vnode || vnode.type === Comment) return false
+		if (vnode.type === Text) return String(vnode.children ?? '').trim() !== ''
+		if (vnode.type === Fragment) return hasRenderableContent(vnode.children)
+		return true
+	})
+}
 
 /**
  * CnDetailPage — Generic detail/overview page.
@@ -1327,6 +1349,21 @@ export default {
 		},
 	},
 
+	emits: [
+		'create-cancel',
+		'created',
+		'geo-saved',
+		'layout-change',
+		'open-integration',
+		'refresh',
+		'related-row-click',
+		'relation-linked',
+		'request-feature',
+		'transitioned',
+		'update:layout',
+		'widget-config-change',
+	],
+
 	setup(props) {
 		// Pluggable integration registry — used to resolve `type:
 		// 'integration'` widgets in the grid layout to their Vue
@@ -1609,7 +1646,9 @@ export default {
 		 */
 		effectiveHeaderShowRefresh() {
 			if (this.showRefresh !== null) return this.showRefresh
-			return Boolean(this.$attrs.onRefresh) || this.hasSchemaDrivenFetch
+			// `$.vnode.props`, not `$attrs`: `refresh` is a declared emit, and
+			// Vue keeps declared emits out of `$attrs`.
+			return Boolean(this.$.vnode.props?.onRefresh) || this.hasSchemaDrivenFetch
 		},
 
 		/**
@@ -1751,15 +1790,21 @@ export default {
 		},
 
 		/**
-		 * True when no consumer-supplied default slot content is
-		 * present. Treats whitespace-only / empty vnodes as no content
-		 * so a stray newline in the template doesn't accidentally
-		 * suppress the auto-body.
+		 * True when consumer-supplied default slot content IS present.
+		 * Treats comment placeholders and whitespace-only text vnodes as
+		 * no content so a stray newline in the template doesn't
+		 * accidentally suppress the auto-body.
+		 *
+		 * `$slots.default` is a FUNCTION in Vue 3 — it has to be called to
+		 * get the vnodes. Reading `.length` off it yields the function's
+		 * arity (always 0 for a compiled slot), which made this read
+		 * `false` unconditionally and let the auto-body render on top of
+		 * whatever the consumer had put in the slot.
 		 */
 		hasDefaultSlotContent() {
-			const nodes = this.$slots.default
-			if (!nodes || !nodes.length) return false
-			return nodes.some((vnode) => !(vnode.text !== undefined && vnode.text.trim() === ''))
+			const slot = this.$slots.default
+			if (typeof slot !== 'function') return false
+			return hasRenderableContent(slot())
 		},
 
 		/**
@@ -2663,9 +2708,15 @@ export default {
 			 * @type {Array}
 			 */
 			this.$emit('layout-change', updated)
+			// Description goes ABOVE `@event`, not inline after it:
+			// vue-docgen-api's event-name splitter stops at the first `:`, so
+			// `@event update:layout <description>` is read as one long event
+			// NAME and the generated docs show an empty description.
 			/**
-			 * @event update:layout Sibling of `layout-change` so `:layout.sync`
-			 *   consumers stay in sync.
+			 * Sibling of `layout-change` so `v-model:layout` consumers stay in
+			 * sync.
+			 *
+			 * @event update:layout
 			 * @type {Array}
 			 */
 			this.$emit('update:layout', updated)

@@ -250,6 +250,8 @@ export default {
 		jsonEditorDark: { type: Boolean, default: false },
 	},
 
+	emits: ['close', 'confirm'],
+
 	data() {
 		return {
 			formData: {},

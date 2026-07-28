@@ -634,6 +634,8 @@ export default {
 		},
 	},
 
+	emits: ['discard', 'save', 'save-error', 'saved'],
+
 	data() {
 		return {
 			/** Whether the read-only metadata modal is open. */
