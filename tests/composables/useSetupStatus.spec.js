@@ -62,6 +62,33 @@ describe('useSetupStatus', () => {
 		expect(s.requiredUnmet.value.map((x) => x.id)).toEqual(['region'])
 	})
 
+	it('does not count presentational steps as unmet setup work', async () => {
+		// `info` / `summary` steps are wizard chrome — they carry no work, so the
+		// server never reports a `done` flag for them. Counting them as unmet kept
+		// `optionalUnmet` permanently non-empty, which made CnAppRoot's non-gating
+		// setup wizard auto-open over the app on every fresh browser profile.
+		const chromeManifest = {
+			setup: {
+				enabled: true,
+				version: 1,
+				steps: [
+					{ id: 'welcome', type: 'info' },
+					{ id: 'seed', type: 'run-action', required: true },
+					{ id: 'store', type: 'config-fields' },
+					{ id: 'done', type: 'summary' },
+				],
+			},
+		}
+		// Exactly the shape OpenBuild's /api/setup/status returns: only the two
+		// actionable steps are reported, and both are done.
+		axios.get.mockResolvedValue({ data: { version: 1, completed: true, steps: { seed: { done: true }, store: { done: true } } } })
+		const s = useSetupStatus('openbuild', chromeManifest)
+		await s.refresh()
+		expect(s.requiredUnmet.value.map((x) => x.id)).toEqual([])
+		expect(s.optionalUnmet.value.map((x) => x.id)).toEqual([])
+		expect(s.completed.value).toBe(true)
+	})
+
 	it('is disabled (and trivially complete) when the manifest declares no setup', () => {
 		const s = useSetupStatus('plainapp', {})
 		expect(s.enabled).toBe(false)
