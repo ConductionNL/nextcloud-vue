@@ -1,5 +1,13 @@
 CnDashboardGrid is the low-level GridStack layout engine. Use `CnDashboardPage` for the full dashboard experience — CnDashboardGrid handles just the drag/drop/resize grid.
 
+**`gridstack` is a peer dependency** (`^12.0.0`), not bundled by nc-vue. Install it and import its stylesheet yourself, from the same copy:
+
+```js
+import 'gridstack/dist/gridstack.min.css'
+```
+
+GridStack's JS drives sizing through CSS custom properties (`--gs-column-width` etc.) that only its own matching stylesheet reads — mixing JS from one GridStack version with CSS from another silently renders every grid item at 0 width.
+
 Static grid — fixed layout without editing:
 
 ```vue
