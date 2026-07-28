@@ -97,6 +97,76 @@ const unwrapVueDeep = () => ({
 })
 unwrapVueDeep.postcss = true
 
+/**
+ * Anchor every SFC's default export to a module-LOCAL binding.
+ *
+ * `rollup-plugin-vue` emits an SFC as three modules under `preserveModules`:
+ *
+ *   Foo.vue2.js  the script object      Foo.vue3.js  the render function
+ *   Foo.vue.js   `import script from './Foo.vue2.js'
+ *                 import { render } from './Foo.vue3.js'
+ *                 script.render = render
+ *                 export default script`            ← wiring, by MUTATION
+ *
+ * Because `export default script` re-exports an IMPORTED binding, Rollup
+ * resolves the export straight through to `Foo.vue2.js` and rewrites every
+ * importer (including `dist/esm/index.js`) as:
+ *
+ *   import './Foo.vue.js'                                 // side effect only
+ *   export { default as Foo } from './Foo.vue2.js'        // the real binding
+ *
+ * That shape is fatal in a webpack consumer. `dist/esm/index.js` is not (and
+ * must not be) flagged side-effectful, so webpack's SideEffectsFlagPlugin
+ * redirects `import { Foo } from '@conduction/nextcloud-vue'` directly at
+ * `Foo.vue2.js` and then drops the barrel entirely — and the barrel was the
+ * ONLY thing importing `Foo.vue.js`. The consumer receives the script object
+ * with NO render function. Vue 3 production silently renders a comment node:
+ * `#content` becomes `<!---->`, `__vue_app__` exists, zero console errors.
+ * (Live 2026-07-27: openbuild's root IS `CnAppRoot`, so the whole app was
+ * blank. Components a parent component pulls in via its own `.vue.js` import
+ * were unaffected, which is why the failure looked arbitrary.)
+ *
+ * `sideEffects` globs cannot fix this — flagging the `.vue.js` wrappers only
+ * stops webpack shaking such a module once it is IN the graph; here nothing
+ * imports it at all. Flagging the barrel itself would work but forces every
+ * consumer to bundle all 335 components (measured: 13.9MB to 18.4MB, unminified).
+ *
+ * So fix the emit shape instead: assign the wired script to a local `const`
+ * and export THAT. The exported binding now lives in `Foo.vue.js`, so neither
+ * Rollup nor webpack can resolve past it — `import { Foo } from '…'` reaches
+ * the module that performs `script.render = render`, by construction, with no
+ * dependence on bundler side-effect heuristics.
+ *
+ * @return {import('rollup').Plugin} A rollup plugin localising SFC default exports.
+ */
+function anchorSfcDefaultExport() {
+	// Matches ONLY rollup-plugin-vue's own generated trailer.
+	const DEFAULT_EXPORT = /(^|\n)export default script(?=\n|$)/
+	return {
+		name: 'anchor-sfc-default-export',
+		transform(code, id) {
+			// The SFC "main" module has no `?vue&type=…` query; the script /
+			// template / style sub-blocks do, and must be left alone.
+			const [filename, query] = id.split('?')
+			if (query !== undefined || !filename.endsWith('.vue')) {
+				return null
+			}
+			if (!DEFAULT_EXPORT.test(code)) {
+				return null
+			}
+			return {
+				code: code.replace(
+					DEFAULT_EXPORT,
+					'$1const __sfc_main = script\nexport { __sfc_main as default }',
+				),
+				// rollup-plugin-vue already emits an empty mapping for this
+				// generated wrapper; keep it empty rather than claim a bogus one.
+				map: { mappings: '' },
+			}
+		},
+	}
+}
+
 export default {
 	input: 'src/index.js',
 	output: [
@@ -214,6 +284,8 @@ export default {
 			},
 		},
 		vue({ css: false }),
+		// MUST come after vue() — it rewrites that plugin's generated trailer.
+		anchorSfcDefaultExport(),
 		postcss({ extract: 'nextcloud-vue.css', plugins: [postcssImport(), unwrapVueDeep()] }),
 		json(),
 		nodeResolve({ extensions: ['.mjs', '.js', '.json', '.node'] }),
