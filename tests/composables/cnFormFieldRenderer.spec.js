@@ -50,8 +50,8 @@ describe('cnRenderFormField', () => {
 		})
 		expect(out.kind).toBe('number')
 		expect(out.props.type).toBe('number')
-		out.listeners['update:value']('')
-		out.listeners['update:value']('17')
+		out.listeners['update:modelValue']('')
+		out.listeners['update:modelValue']('17')
 		expect(onInput).toHaveBeenNthCalledWith(1, null)
 		expect(onInput).toHaveBeenNthCalledWith(2, 17)
 	})
@@ -73,7 +73,7 @@ describe('cnRenderFormField', () => {
 			onInput: jest.fn(),
 		})
 		expect(out.kind).toBe('string')
-		expect(out.props.value).toBe('Carol')
+		expect(out.props.modelValue).toBe('Carol')
 	})
 
 	it('string field with widget=textarea renders the textarea variant', () => {
@@ -96,17 +96,22 @@ describe('cnRenderFormField', () => {
 			{ label: 'red', value: 'red' },
 			{ label: 'green', value: 'green' },
 		])
-		expect(out.props.value).toEqual({ label: 'green', value: 'green' })
+		expect(out.props.modelValue).toEqual({ label: 'green', value: 'green' })
 	})
 
-	it('enum field maps NcSelect input(option) → onInput(option.value)', () => {
+	it('enum field maps NcSelect update:modelValue(option) → onInput(option.value)', () => {
+		// @nextcloud/vue 9's NcSelect declares `emits: [" ", "update:modelValue"]`
+		// and never emits `input` — see the composable's inline comment. Asserting
+		// on `update:modelValue` here is what would have caught the dead-listener
+		// bug (the old test asserted `out.listeners.input`, which always existed
+		// on the returned object regardless of whether NcSelect ever called it).
 		const onInput = jest.fn()
 		const out = cnRenderFormField({
 			field: { key: 'color', type: 'enum', label: 'Color', enum: ['red', 'green'] },
 			value: null,
 			onInput,
 		})
-		out.listeners.input({ label: 'red', value: 'red' })
+		out.listeners['update:modelValue']({ label: 'red', value: 'red' })
 		expect(onInput).toHaveBeenCalledWith('red')
 	})
 

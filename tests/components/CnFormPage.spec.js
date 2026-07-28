@@ -40,13 +40,22 @@ const stubs = {
 		template: '<label class="nc-checkbox-stub"><input type="checkbox" :checked="checked" @change="$emit(\'update:checked\', $event.target.checked)"><slot /></label>',
 		props: ['checked', 'label'],
 	},
+	// `modelValue` / `update:modelValue` — @nextcloud/vue 9's real contract for
+	// both components (NcTextField declares `modelValue`; NcSelect declares
+	// `emits: [" ", "update:modelValue"]` and never emits `input`). Mirrors the
+	// composable fix in src/composables/cnFormFieldRenderer.js: that renderer
+	// used to bind the Vue-2-era `value` / `update:value` / `input` names, which
+	// silently never round-tripped against the real components — and these
+	// local stubs used to accept the same wrong names, so this spec stayed
+	// green while the real library was broken. See that file's inline comments
+	// for the full explanation.
 	NcTextField: {
-		template: '<input class="nc-textfield-stub" :type="type" :value="value" @input="$emit(\'update:value\', $event.target.value)" />',
-		props: ['label', 'type', 'value', 'error', 'helperText'],
+		template: '<input class="nc-textfield-stub" :type="type" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+		props: ['label', 'type', 'modelValue', 'error', 'helperText'],
 	},
 	NcSelect: {
-		template: '<select class="nc-select-stub" @change="$emit(\'input\', { value: $event.target.value })"><option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option></select>',
-		props: ['inputLabel', 'options', 'value'],
+		template: '<select class="nc-select-stub" @change="$emit(\'update:modelValue\', { value: $event.target.value })"><option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option></select>',
+		props: ['inputLabel', 'options', 'modelValue'],
 	},
 	CnJsonViewer: { template: '<pre class="cn-json-viewer-stub" />', props: ['value', 'label'] },
 }

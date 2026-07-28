@@ -97,23 +97,37 @@ export const NcActionCheckbox = createStub('NcActionCheckbox')
 export const NcActionSeparator = createStub('NcActionSeparator')
 
 /**
- * NcActionInput needs a real stateful stub: the component under test binds
- * `:value` / `@update:value` and submits, and the real NcActionInput's input
- * carries no `name` attribute — so a stub that emits the typed text is what
- * keeps consumers honest about reading their own bound state.
+ * NcActionInput needs a real stateful stub: the component under test binds the
+ * model prop and submits, and the real NcActionInput's input carries no `name`
+ * attribute — so a stub that emits the typed text is what keeps consumers
+ * honest about reading their own bound state.
+ *
+ * MODEL PROP: `modelValue` / `update:modelValue` — same rename as
+ * `NcRichContenteditable` below. This stub used to declare the Vue-2-era
+ * `value` / `update:value` pair, which made it MORE PERMISSIVE THAN REALITY:
+ * `@nextcloud/vue` 9's NcActionInput declares only `modelValue` and emits only
+ * `submit` / `update:modelValue` (verified against
+ * `node_modules/@nextcloud/vue/dist/components/NcActionInput/NcActionInput.vue.d.ts`
+ * and against a live instance in the Playwright harness, whose vnode props read
+ * `value`, `onUpdate:value` — neither of which the component declares). Every
+ * `:value` we passed therefore fell through as an inert DOM attribute and
+ * `@update:value` never fired, so the "Add enum value" field and every other
+ * NcActionInput in `src/` silently stopped round-tripping — while this mock
+ * kept the jest lane green. Mirroring the real names is what makes that lane
+ * able to fail.
  */
 export const NcActionInput = {
 	name: 'NcActionInput',
-	props: { value: { type: String, default: '' } },
-	emits: ['submit', 'update:value'],
+	props: { modelValue: { type: String, default: '' } },
+	emits: ['submit', 'update:modelValue'],
 	render() {
 		return h('li', { class: ['stub', 'NcActionInput'] }, [
 			h('form', {
 				onSubmit: (event) => { event.preventDefault(); this.$emit('submit', event) },
 			}, [
 				h('input', {
-					value: this.value,
-					onInput: (event) => this.$emit('update:value', event.target.value),
+					value: this.modelValue,
+					onInput: (event) => this.$emit('update:modelValue', event.target.value),
 				}),
 			]),
 		])

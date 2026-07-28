@@ -155,10 +155,10 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 			props: {
 				label,
 				type: 'number',
-				value: value === null || value === undefined ? '' : String(value),
+				modelValue: value === null || value === undefined ? '' : String(value),
 			},
 			listeners: {
-				'update:value': (next) => onInput(next === '' ? null : Number(next)),
+				'update:modelValue': (next) => onInput(next === '' ? null : Number(next)),
 			},
 		}
 	} else if (field.type === 'password') {
@@ -168,10 +168,10 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 			props: {
 				label,
 				type: 'password',
-				value: value === null || value === undefined ? '' : String(value),
+				modelValue: value === null || value === undefined ? '' : String(value),
 			},
 			listeners: {
-				'update:value': (next) => onInput(next),
+				'update:modelValue': (next) => onInput(next),
 			},
 		}
 	} else if (field.type === 'enum') {
@@ -183,10 +183,19 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 			props: {
 				inputLabel: label,
 				options,
-				value: selected,
+				modelValue: selected,
 			},
 			listeners: {
-				input: (next) => onInput(next?.value),
+				// @nextcloud/vue 9's NcSelect declares `emits: [" ", "update:modelValue"]`
+				// and never emits `input`. Because `input` is not a declared component
+				// emit, Vue 3 does NOT treat `@input` as a component listener — it falls
+				// through to the root element as a NATIVE DOM listener, firing on every
+				// keystroke in NcSelect's `.vs__search` box with a raw Event (`next?.value`
+				// reads `undefined` off it), silently overwriting the field on every
+				// keypress. Same bug class as commit 05f540fa fixed elsewhere in this
+				// library; this composable was missed. `update:modelValue` emits the
+				// selected OPTION object here (no `reduce` prop), hence `next?.value`.
+				'update:modelValue': (next) => onInput(next?.value),
 			},
 		}
 	} else if (field.type === 'json') {
@@ -211,11 +220,11 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 				tag: map['string-textarea'] || 'textarea',
 				props: {
 					label,
-					value: value === null || value === undefined ? '' : String(value),
+					modelValue: value === null || value === undefined ? '' : String(value),
 					rows: 4,
 				},
 				listeners: {
-					'update:value': (next) => onInput(next),
+					'update:modelValue': (next) => onInput(next),
 					input: (event) => {
 						// Native textarea path — `event` is the InputEvent.
 						const next = event && event.target ? event.target.value : event
@@ -229,10 +238,10 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 				tag: map.string,
 				props: {
 					label,
-					value: value === null || value === undefined ? '' : String(value),
+					modelValue: value === null || value === undefined ? '' : String(value),
 				},
 				listeners: {
-					'update:value': (next) => onInput(next),
+					'update:modelValue': (next) => onInput(next),
 				},
 			}
 		}
@@ -250,10 +259,10 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 			tag: map.string,
 			props: {
 				label,
-				value: value === null || value === undefined ? '' : String(value),
+				modelValue: value === null || value === undefined ? '' : String(value),
 			},
 			listeners: {
-				'update:value': (next) => onInput(next),
+				'update:modelValue': (next) => onInput(next),
 			},
 		}
 	}

@@ -211,10 +211,18 @@
 						</template>
 						{{ t('nextcloud-vue', 'Upload file') }}
 					</NcActionButton>
+					<!--
+						`model-value` / `@update:model-value`, not `value` /
+						`@update:value`: @nextcloud/vue 9's NcActionInput declares
+						only `modelValue` and emits only `submit` /
+						`update:modelValue`. The old pair fell through as an inert
+						DOM attribute and a listener that never fired, so the note
+						draft stayed empty and Add note submitted nothing.
+					-->
 					<NcActionInput v-if="groupAllowed('notes')"
-						:value="noteDraft"
+						:model-value="noteDraft"
 						:label="t('nextcloud-vue', 'Add note')"
-						@update:value="noteDraft = $event"
+						@update:model-value="noteDraft = $event"
 						@submit="onAddNote">
 						<template #icon>
 							<CnIcon name="CommentTextOutline" :size="20" />

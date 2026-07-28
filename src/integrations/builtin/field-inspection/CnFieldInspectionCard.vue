@@ -107,8 +107,17 @@
 						</span>
 					</fieldset>
 
-					<NcButton native-type="submit"
-						type="primary"
+					<!-- `type="submit"` (native HTML type) + `variant="primary"` (style) —
+					     @nextcloud/vue 9 split what Vue-2-era code conflated: `type` is now
+					     the native button type (`ButtonType`), and the old style-variant
+					     prop is `variant`. This line used to pass BOTH wrong: `native-type`
+					     (not a real prop — the button silently defaulted to `type="button"`
+					     and never fired the form's native submit) and `type="primary"`
+					     (an invalid `ButtonType`, so the visual primary style never applied
+					     either). See CnFormPage.vue's inline comment for the submit-button
+					     half of this bug in detail. -->
+					<NcButton type="submit"
+						variant="primary"
 						data-testid="cn-fi-save"
 						:disabled="saving">
 						{{ t('nextcloud-vue', 'Save answers offline') }}
