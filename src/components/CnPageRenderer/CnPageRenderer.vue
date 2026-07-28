@@ -1274,9 +1274,21 @@ export default {
 				get objectData() {
 					return store.getObject?.(ctx.slug, ctx.objectId) ?? null
 				},
+				// Explicit no-op setters keep a consumer's stray write harmless.
+				// Under Vue 2 the getter-only accessor was enough: `defineReactive`
+				// replaced each property with its own get/set pair that delegated
+				// reads to the original getter, so an assignment was swallowed.
+				// Vue 3 leaves the accessor on the target and its `set` trap
+				// forwards to `Reflect.set`, which returns false for a
+				// setter-less accessor — and a `set` trap returning false throws
+				// `TypeError: 'set' on proxy: trap returned falsish` in strict
+				// mode. That would turn a benign mistake in a consumer app into a
+				// crash, so the swallow is now written out rather than implied.
+				set objectData(_ignored) {},
 				get schema() {
 					return store.getSchema?.(ctx.slug) ?? null
 				},
+				set schema(_ignored) {},
 				objectType: ctx.slug,
 				objectId: ctx.objectId,
 				register: ctx.register,

@@ -61,8 +61,10 @@ describe('useAiContext', () => {
 		// Trigger the reactive mutation
 		provided.pageKind = 'index'
 
-		// Let Vue flush the watcher queue
-		await vueNextTick()
+		// Let Vue flush the watcher queue. Vue 3 has no default export, so the
+		// tick helper comes off the namespace like `watch`/`reactive` above —
+		// there is no global `Vue.nextTick` to fall back on any more.
+		await Vue.nextTick()
 
 		expect(observed).toContain('index')
 		stop()
