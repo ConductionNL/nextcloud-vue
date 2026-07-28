@@ -22,7 +22,7 @@
 				:reduce="option => option.value"
 				label="label"
 				class="cn-text-widget-form__mode"
-				@input="updateField('contentMode', $event)" />
+				@update:modelValue="updateField('contentMode', $event)" />
 
 			<!-- NB: a plain <div>, NOT a <label>. Wrapping the markdown editor in a
 			     <label> forwards any stray click inside it (caption, toolbar gaps,

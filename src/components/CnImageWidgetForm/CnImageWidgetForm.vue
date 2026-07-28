@@ -74,7 +74,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('fit', $event)" />
+			@update:modelValue="updateField('fit', $event)" />
 	</div>
 </template>
 

@@ -74,7 +74,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('overlayMode', $event)" />
+			@update:modelValue="updateField('overlayMode', $event)" />
 
 		<label v-if="overlayMode !== 'none'" class="cn-header-widget-form__color-label">
 			{{ t('nextcloud-vue', 'Overlay color') }}
@@ -115,7 +115,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('textAlign', $event)" />
+			@update:modelValue="updateField('textAlign', $event)" />
 
 		<NcSelect
 			:model-value="verticalAlign"
@@ -124,7 +124,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('verticalAlign', $event)" />
+			@update:modelValue="updateField('verticalAlign', $event)" />
 
 		<!-- The banner fills its dashboard grid cell, so a fixed Height preset
 		     no longer changes anything — resize the widget on the grid instead.
@@ -155,7 +155,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateCta('style', $event)" />
+				@update:modelValue="updateCta('style', $event)" />
 		</fieldset>
 	</div>
 </template>

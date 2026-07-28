@@ -37,7 +37,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('viewMode', $event)" />
+			@update:modelValue="updateField('viewMode', $event)" />
 
 		<NcSelect
 			:model-value="sortBy"
@@ -46,7 +46,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('sortBy', $event)" />
+			@update:modelValue="updateField('sortBy', $event)" />
 
 		<label class="cn-files-widget-form__toggle">
 			<input

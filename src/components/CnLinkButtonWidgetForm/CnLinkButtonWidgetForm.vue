@@ -12,7 +12,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateDisplayMode($event)" />
+			@update:modelValue="updateDisplayMode($event)" />
 
 		<!-- Single-button fields (hidden in list mode). -->
 		<template v-if="!isListMode">
@@ -30,7 +30,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateField('actionType', $event)" />
+				@update:modelValue="updateField('actionType', $event)" />
 
 			<NcTextField
 				:model-value="url"
@@ -75,7 +75,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateField('listOrientation', $event)" />
+				@update:modelValue="updateField('listOrientation', $event)" />
 
 			<NcSelect
 				:model-value="listItemGap"
@@ -84,7 +84,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateField('listItemGap', $event)" />
+				@update:modelValue="updateField('listItemGap', $event)" />
 
 			<div class="cn-link-button-widget-form__list-editor">
 				<h4 class="cn-link-button-widget-form__list-title">
@@ -131,7 +131,7 @@
 								:reduce="(option) => option.value"
 								label="label"
 								:clearable="false"
-								@input="updateLinkField(index, 'actionType', $event)" />
+								@update:modelValue="updateLinkField(index, 'actionType', $event)" />
 							<NcTextField
 								:model-value="link.url"
 								:label="t('nextcloud-vue', 'URL')"

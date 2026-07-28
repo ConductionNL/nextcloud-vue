@@ -13,7 +13,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateOption('iconSize', $event)" />
+				@update:modelValue="updateOption('iconSize', $event)" />
 
 			<NcSelect
 				:model-value="iconShape"
@@ -22,7 +22,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateOption('iconShape', $event)" />
+				@update:modelValue="updateOption('iconShape', $event)" />
 
 			<label class="cn-quicklinks-widget-form__checkbox-label">
 				<input
@@ -40,7 +40,7 @@
 				label="label"
 				:clearable="false"
 				:disabled="!showLabels"
-				@input="updateOption('labelPosition', $event)" />
+				@update:modelValue="updateOption('labelPosition', $event)" />
 
 			<NcSelect
 				:model-value="columns"
@@ -49,7 +49,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateOption('columns', $event)" />
+				@update:modelValue="updateOption('columns', $event)" />
 
 			<NcSelect
 				:model-value="tileBackgroundStyle"
@@ -58,7 +58,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateOption('tileBackgroundStyle', $event)" />
+				@update:modelValue="updateOption('tileBackgroundStyle', $event)" />
 
 			<NcSelect
 				:model-value="hoverEffect"
@@ -67,7 +67,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateOption('hoverEffect', $event)" />
+				@update:modelValue="updateOption('hoverEffect', $event)" />
 		</div>
 
 		<div class="cn-quicklinks-widget-form__links">
