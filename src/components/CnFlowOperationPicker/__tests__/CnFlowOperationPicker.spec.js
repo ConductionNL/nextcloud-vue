@@ -11,7 +11,10 @@
  *  - search input filters the visible list client-side.
  */
 
-const { mount } = require('@vue/test-utils')
+// See CnEmailPicker.spec.js: a Vue-3 `nextTick()` no longer implies the
+// render queued by an async `mounted()` has flushed, so wait on the promise
+// queue instead of counting ticks.
+const { mount, flushPromises } = require('@vue/test-utils')
 const CnFlowOperationPicker = require('../CnFlowOperationPicker.vue').default
 
 function resolveOnce(payload, status = 200) {
@@ -36,8 +39,7 @@ describe('CnFlowOperationPicker', () => {
 		}))
 
 		const wrapper = mount(CnFlowOperationPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		const rows = wrapper.findAll('.cn-flow-operation-picker__row-button')
 		expect(rows).toHaveLength(2)
@@ -52,8 +54,7 @@ describe('CnFlowOperationPicker', () => {
 		}))
 
 		const wrapper = mount(CnFlowOperationPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.find('.cn-flow-operation-picker__row-button').trigger('click')
 		await wrapper.vm.$nextTick()
@@ -70,8 +71,7 @@ describe('CnFlowOperationPicker', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ error: 'Flow operations are configured by administrators', code: 'ADMIN_ONLY', results: [], total: 0 }, 403))
 
 		const wrapper = mount(CnFlowOperationPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.adminOnly).toBe(true)
 		expect(wrapper.text()).toContain('configured by administrators')
@@ -88,8 +88,7 @@ describe('CnFlowOperationPicker', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ error: 'NC Flow (workflowengine) app is not installed' }, 501))
 
 		const wrapper = mount(CnFlowOperationPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('not installed')
 		wrapper.unmount()
@@ -100,8 +99,7 @@ describe('CnFlowOperationPicker', () => {
 		global.fetch.mockRejectedValueOnce(new Error('boom'))
 
 		const wrapper = mount(CnFlowOperationPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('Could not load automations.')
 		wrapper.unmount()
@@ -117,8 +115,7 @@ describe('CnFlowOperationPicker', () => {
 		}))
 
 		const wrapper = mount(CnFlowOperationPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		wrapper.vm.search = 'probe'
 		await wrapper.vm.$nextTick()

@@ -10,7 +10,10 @@
  *  - inline error banner surfaces when an API call fails.
  */
 
-const { mount } = require('@vue/test-utils')
+// See CnEmailPicker.spec.js: a Vue-3 `nextTick()` no longer implies the
+// render queued by an async `mounted()` has flushed, so wait on the promise
+// queue instead of counting ticks.
+const { mount, flushPromises } = require('@vue/test-utils')
 const CnDeckCardPicker = require('../CnDeckCardPicker.vue').default
 
 function resolveOnce(payload, status = 200) {
@@ -29,8 +32,7 @@ describe('CnDeckCardPicker', () => {
 	it('renders boards on mount', async () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ results: [{ id: 1, title: 'Sprint' }, { id: 2, title: 'Backlog' }] }))
 		const wrapper = mount(CnDeckCardPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		const rows = wrapper.findAll('.cn-deck-card-picker__row-button')
 		expect(rows).toHaveLength(2)
@@ -45,13 +47,11 @@ describe('CnDeckCardPicker', () => {
 			.mockReturnValueOnce(resolveOnce({ results: [{ id: 70, title: 'To Do' }] }))
 
 		const wrapper = mount(CnDeckCardPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		const boardRow = wrapper.find('.cn-deck-card-picker__row-button')
 		await boardRow.trigger('click')
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.step).toBe(2)
 		expect(wrapper.text()).toContain('To Do')
@@ -69,16 +69,13 @@ describe('CnDeckCardPicker', () => {
 				cardLoader: async () => [{ id: 700, title: 'Investigate' }],
 			},
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.find('.cn-deck-card-picker__row-button').trigger('click')
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.find('.cn-deck-card-picker__row-button').trigger('click')
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.step).toBe(3)
 		await wrapper.find('.cn-deck-card-picker__row-button').trigger('click')
@@ -95,8 +92,7 @@ describe('CnDeckCardPicker', () => {
 		global.fetch.mockRejectedValueOnce(new Error('boom'))
 
 		const wrapper = mount(CnDeckCardPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('Could not load boards.')
 		wrapper.unmount()

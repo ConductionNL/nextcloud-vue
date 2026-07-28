@@ -11,7 +11,10 @@
  *  - no link is emitted when nothing is selected.
  */
 
-const { mount } = require('@vue/test-utils')
+// See CnEmailPicker.spec.js: a Vue-3 `nextTick()` no longer implies the
+// render queued by an async `mounted()` has flushed, so wait on the promise
+// queue instead of counting ticks.
+const { mount, flushPromises } = require('@vue/test-utils')
 const CnCospendPicker = require('../CnCospendPicker.vue').default
 
 function resolveOnce(payload, status = 200) {
@@ -36,8 +39,7 @@ describe('CnCospendPicker', () => {
 		}))
 
 		const wrapper = mount(CnCospendPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		const rows = wrapper.findAll('.cn-cospend-picker__row-button')
 		expect(rows).toHaveLength(2)
@@ -52,8 +54,7 @@ describe('CnCospendPicker', () => {
 		}))
 
 		const wrapper = mount(CnCospendPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.find('.cn-cospend-picker__row-button').trigger('click')
 		await wrapper.vm.$nextTick()
@@ -71,8 +72,7 @@ describe('CnCospendPicker', () => {
 		global.fetch.mockRejectedValueOnce(new Error('boom'))
 
 		const wrapper = mount(CnCospendPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('Could not load projects.')
 		wrapper.unmount()
@@ -83,8 +83,7 @@ describe('CnCospendPicker', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ error: 'nope' }, 501))
 
 		const wrapper = mount(CnCospendPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('NC Costs is not installed.')
 		wrapper.unmount()
@@ -99,8 +98,7 @@ describe('CnCospendPicker', () => {
 		}))
 
 		const wrapper = mount(CnCospendPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		wrapper.vm.search = 'holiday'
 		await wrapper.vm.$nextTick()

@@ -13,7 +13,10 @@
  *  - no link is emitted when nothing is selected.
  */
 
-const { mount } = require('@vue/test-utils')
+// See CnEmailPicker.spec.js: a Vue-3 `nextTick()` no longer implies the
+// render queued by an async `mounted()` has flushed, so wait on the promise
+// queue instead of counting ticks.
+const { mount, flushPromises } = require('@vue/test-utils')
 const CnOpenProjectPicker = require('../CnOpenProjectPicker.vue').default
 
 function resolveOnce(payload, status = 200) {
@@ -38,8 +41,7 @@ describe('CnOpenProjectPicker', () => {
 		}))
 
 		const wrapper = mount(CnOpenProjectPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		const rows = wrapper.findAll('.cn-openproject-picker__row-button')
 		expect(rows).toHaveLength(2)
@@ -54,8 +56,7 @@ describe('CnOpenProjectPicker', () => {
 		}))
 
 		const wrapper = mount(CnOpenProjectPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.find('.cn-openproject-picker__row-button').trigger('click')
 		await wrapper.vm.$nextTick()
@@ -73,8 +74,7 @@ describe('CnOpenProjectPicker', () => {
 		global.fetch.mockRejectedValueOnce(new Error('boom'))
 
 		const wrapper = mount(CnOpenProjectPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('Could not load work packages.')
 		wrapper.unmount()
@@ -85,8 +85,7 @@ describe('CnOpenProjectPicker', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ error: 'nope' }, 501))
 
 		const wrapper = mount(CnOpenProjectPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('OpenConnector is not installed.')
 		wrapper.unmount()
@@ -96,8 +95,7 @@ describe('CnOpenProjectPicker', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ error: 'no source' }, 503))
 
 		const wrapper = mount(CnOpenProjectPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.unconfigured).toBe(true)
 		expect(wrapper.text()).toContain('Configure OpenProject connection')
@@ -113,8 +111,7 @@ describe('CnOpenProjectPicker', () => {
 		}))
 
 		const wrapper = mount(CnOpenProjectPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		wrapper.vm.search = 'refactor'
 		await wrapper.vm.$nextTick()
@@ -133,8 +130,7 @@ describe('CnOpenProjectPicker', () => {
 		}))
 
 		const wrapper = mount(CnOpenProjectPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		wrapper.vm.projectFilter = { id: 'Internal', label: 'Internal' }
 		await wrapper.vm.$nextTick()

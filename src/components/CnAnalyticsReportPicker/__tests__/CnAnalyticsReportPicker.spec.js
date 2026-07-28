@@ -11,7 +11,10 @@
  *  - no link is emitted when nothing is selected.
  */
 
-const { mount } = require('@vue/test-utils')
+// See CnEmailPicker.spec.js: a Vue-3 `nextTick()` no longer implies the
+// render queued by an async `mounted()` has flushed, so wait on the promise
+// queue instead of counting ticks.
+const { mount, flushPromises } = require('@vue/test-utils')
 const CnAnalyticsReportPicker = require('../CnAnalyticsReportPicker.vue').default
 
 function resolveOnce(payload, status = 200) {
@@ -36,8 +39,7 @@ describe('CnAnalyticsReportPicker', () => {
 		}))
 
 		const wrapper = mount(CnAnalyticsReportPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		const rows = wrapper.findAll('.cn-analytics-report-picker__row-button')
 		expect(rows).toHaveLength(2)
@@ -54,8 +56,7 @@ describe('CnAnalyticsReportPicker', () => {
 		}))
 
 		const wrapper = mount(CnAnalyticsReportPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.find('.cn-analytics-report-picker__row-button').trigger('click')
 		await wrapper.vm.$nextTick()
@@ -73,8 +74,7 @@ describe('CnAnalyticsReportPicker', () => {
 		global.fetch.mockRejectedValueOnce(new Error('boom'))
 
 		const wrapper = mount(CnAnalyticsReportPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('Could not load reports.')
 		wrapper.unmount()
@@ -85,8 +85,7 @@ describe('CnAnalyticsReportPicker', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ error: 'nope' }, 501))
 
 		const wrapper = mount(CnAnalyticsReportPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('NC Analytics is not installed.')
 		wrapper.unmount()
@@ -101,8 +100,7 @@ describe('CnAnalyticsReportPicker', () => {
 		}))
 
 		const wrapper = mount(CnAnalyticsReportPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		wrapper.vm.search = 'sales'
 		await wrapper.vm.$nextTick()
