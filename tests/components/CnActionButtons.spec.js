@@ -60,6 +60,13 @@ const stubs = {
 	NcButton: {
 		name: 'NcButton',
 		props: ['disabled'],
+		// `emits: ['click']` is load-bearing. Vue 2 kept listeners in a separate
+		// channel, so `v-bind="$attrs"` could never re-attach the parent's
+		// `@click`. In Vue 3 an UNDECLARED event name stays in `$attrs` as the
+		// `onClick` prop, so spreading `$attrs` onto the native `<button>` wires
+		// the parent's handler a SECOND time — one call from the DOM click, one
+		// from `$emit('click')`. Declaring it removes `onClick` from `$attrs`.
+		emits: ['click'],
 		template: '<button :disabled="disabled" v-bind="$attrs" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>',
 	},
 	CnIcon: { name: 'CnIcon', template: '<span class="cn-icon" />' },

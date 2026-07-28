@@ -199,6 +199,13 @@ export default {
 		/** WYSIWYG mode only: editor height (any CSS length). */
 		wysiwygHeight: { type: String, default: '300px' },
 	},
+	// Declaring the emitted events is not cosmetic under Vue 3: an UNdeclared
+	// event name also stays in `$attrs` and falls through to the root element,
+	// so the NATIVE `input` event the `<textarea>` bubbles up is re-emitted by
+	// the component as its own `input` — after the component's own
+	// `$emit('input', value)` — and listeners receive the raw InputEvent
+	// instead of the string.
+	emits: ['input', 'update:mode'],
 	data() {
 		return {
 			localValue: this.value,

@@ -515,7 +515,11 @@ describe('CnFormPage — manifest-form-logic', () => {
 			const wrapper = mountForm({ fields, submitHandler: 'submit' })
 			await wrapper.vm.submit()
 			await wrapper.vm.$nextTick()
-			const input = wrapper.find('.nc-textfield-stub')
+			// VTU v1's `find('.class')` returned a *component* wrapper when the
+			// class sat on a child component's root, so `.props()` worked. VTU
+			// v2 split the two: `find()` is DOM-only (DOMWrapper, no `props()`)
+			// and component lookups go through `findComponent()`.
+			const input = wrapper.findComponent({ name: 'NcTextField' })
 			expect(input.props('error')).toBe(true)
 			expect(input.props('helperText')).toBeTruthy()
 		})

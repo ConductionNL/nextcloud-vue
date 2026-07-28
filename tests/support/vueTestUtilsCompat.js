@@ -52,6 +52,48 @@ const HOISTED_KEYS = [
 ]
 
 /**
+ * Give every object-shaped stub the `name` of the component it replaces.
+ *
+ * VTU v1 built a user-supplied stub through `createStubFromComponent()`, which
+ * copied the ORIGINAL component's core properties — `name` among them — onto
+ * the replacement. `findComponent({ name: 'CnStatsBlock' })` therefore matched
+ * the stub, and ~every spec written in that era relies on it.
+ *
+ * VTU v2 does not: for a "custom implementation" stub it builds
+ * `Object.assign({}, stub)` and copies only `props` (see
+ * `createStubComponentsTransformer`). A stub literal written as
+ * `{ template, props }` therefore renders with NO name at all, so
+ * `findComponent({ name })` silently returns an EMPTY wrapper and the spec
+ * dies on "Cannot call props on an empty VueWrapper" — nowhere near the cause.
+ *
+ * Restore the v1 behaviour by stamping the stub's registration key as its
+ * `name`. An explicit `name` on the stub always wins, and non-object stubs
+ * (`true` / `false` / functional components / `Vue.extend` ctors) are left
+ * untouched.
+ *
+ * The name is written ONTO the spec's own stub object rather than onto a copy,
+ * because VTU registers the stub by REFERENCE (`registerStub({ source, stub })`)
+ * and several specs then look the child up with the stub definition itself —
+ * `wrapper.findComponent(iconStubs.CnIconBrowser)`. A clone would break that
+ * identity and turn those lookups into empty wrappers. The write is idempotent
+ * and only ever fills in a missing `name`.
+ *
+ * @param {object} [stubs] The spec's `stubs` map.
+ * @return {object} The same map, with object stubs named after their key.
+ */
+function nameObjectStubs(stubs) {
+	if (!stubs || typeof stubs !== 'object') {
+		return stubs
+	}
+	for (const [key, stub] of Object.entries(stubs)) {
+		if (stub && typeof stub === 'object' && !Array.isArray(stub) && !stub.name) {
+			stub.name = key
+		}
+	}
+	return stubs
+}
+
+/**
  * Move any v1-style top-level environment options into `global`, leaving an
  * explicit `global` block the caller already wrote as the winner on conflict.
  *
@@ -71,6 +113,28 @@ function hoistGlobalOptions(options) {
 	if (Object.prototype.hasOwnProperty.call(options, 'scopedSlots')) {
 		options = { ...options, slots: { ...options.scopedSlots, ...(options.slots || {}) } }
 		delete options.scopedSlots
+	}
+	// ...and the slot SCOPE is reached differently. VTU v1 handed a string
+	// scoped slot its scope under the fixed name `props`
+	// (`'<div>{{ props.node.label }}</div>'`). VTU v2 compiles the string with
+	// `prefixIdentifiers` and invokes it with the scope as the render context,
+	// so bare `node` resolves and `props` is simply undefined — every such slot
+	// dies with "Cannot read properties of undefined (reading 'node')", thrown
+	// from inside VTU's generated function so the reported stack frame points
+	// at an unrelated line of the component under test.
+	//
+	// Wrapping the template in `<template #default="props">` re-binds the v1
+	// name without touching the 13 call sites. It is additive: the scoped-slot
+	// parameter shadows nothing, so a template written the v2 way (bare
+	// identifiers, resolved off `_ctx`) keeps working.
+	if (options.slots) {
+		const slots = {}
+		for (const [name, value] of Object.entries(options.slots)) {
+			slots[name] = typeof value === 'string'
+				? `<template #default="props">${value}</template>`
+				: value
+		}
+		options = { ...options, slots }
 	}
 	// VTU v1's `listeners: { 'widget-action': fn }` is the third silently-ignored
 	// v1 key. Vue 3 has no separate listener channel at all — `v-on:widget-action`
@@ -106,12 +170,17 @@ function hoistGlobalOptions(options) {
 	let found = false
 	for (const key of HOISTED_KEYS) {
 		if (Object.prototype.hasOwnProperty.call(options, key)) {
-			hoisted[key] = options[key]
+			hoisted[key] = key === 'stubs' ? nameObjectStubs(options[key]) : options[key]
 			found = true
 		}
 	}
+	// Specs already written in the v2 shape get the same stub-naming parity.
+	if (options.global && options.global.stubs) {
+		options = { ...options, global: { ...options.global, stubs: nameObjectStubs(options.global.stubs) } }
+		found = true
+	}
 	if (!found) {
-		return options
+		return mirrorMocksIntoGlobalProperties(options)
 	}
 	const next = { ...options }
 	for (const key of HOISTED_KEYS) {
@@ -120,7 +189,57 @@ function hoistGlobalOptions(options) {
 	// An explicitly-written `global` block wins — it is already v2 syntax and
 	// therefore states the author's current intent.
 	next.global = { ...hoisted, ...(options.global || {}) }
-	return next
+	return mirrorMocksIntoGlobalProperties(next)
+}
+
+/**
+ * Make `mocks` visible from inside `setup()`.
+ *
+ * WHY
+ *
+ * VTU v2 installs `global.mocks` through a `beforeCreate` mixin that does
+ * `this[key] = value` on the instance. Under Vue 2.7 that was early enough:
+ * `beforeCreate` fired inside `_init()` BEFORE `initState()` ran `setup()`, so
+ * a composable calling `getCurrentInstance().proxy.$route` saw the mock.
+ *
+ * Vue 3 inverted the order. `setup()` runs in `setupStatefulComponent()`, and
+ * only afterwards does `finishComponentSetup()` call `applyOptions()`, whose
+ * FIRST act is to fire `beforeCreate`. So during `setup()` the mock does not
+ * exist yet and `instance.proxy.$route` is `undefined` — silently, with no
+ * warning. Any composable that SEEDS initial state from the route (e.g.
+ * CnIndexPage's `useSelfFetchList`, which restores the multi-column sort from
+ * `$route.query._order` and the deep-link filters from `$route.query`)
+ * quietly starts from empty, and the spec fails on a far-away assertion about
+ * that state rather than on the missing mock.
+ *
+ * Real apps do not have this problem: vue-router 4 exposes `$route` through
+ * `app.config.globalProperties`, which the public-instance proxy resolves at
+ * any time, `setup()` included. Mirroring the mount-level `mocks` there
+ * restores exactly that. VTU's beforeCreate mixin still runs and its
+ * instance-level property still wins from then on (the proxy resolves `ctx`
+ * BEFORE `globalProperties`), so nothing that already worked changes — this
+ * only fills the previously-empty window before `beforeCreate`.
+ *
+ * @param {object} [options] Mount options, already normalised to the v2 shape.
+ * @return {object} Options with `global.config.globalProperties` seeded.
+ */
+function mirrorMocksIntoGlobalProperties(options) {
+	const mocks = options && options.global && options.global.mocks
+	if (!mocks || typeof mocks !== 'object') {
+		return options
+	}
+	const config = options.global.config || {}
+	return {
+		...options,
+		global: {
+			...options.global,
+			config: {
+				...config,
+				// A globalProperty the spec wrote itself wins.
+				globalProperties: { ...mocks, ...(config.globalProperties || {}) },
+			},
+		},
+	}
 }
 
 /**

@@ -48,6 +48,12 @@ const stubs = {
 	NcButton: {
 		name: 'NcButton',
 		props: ['type', 'disabled', 'title'],
+		// Vue 3 keeps an UNDECLARED event name in `$attrs` as an `onClick` prop,
+		// which then falls through onto this stub's single root `<button>` as a
+		// native handler — so the parent's `@click` runs once from the DOM event
+		// and once from `$emit('click')`. Vue 2's separate listener channel made
+		// that impossible. Declaring the emit removes `onClick` from `$attrs`.
+		emits: ['click'],
 		template: '<button class="btn" :data-type="type" :disabled="disabled" :title="title" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>',
 	},
 	OpenInNew: true,

@@ -13,13 +13,23 @@ import { h } from 'vue'
  * VNode data is the flat Vue 3 shape (`h(component, { ...props, ref })`),
  * not the Vue 2 `{ props, attrs }` nesting.
  *
- * Generic emit capture: the created child vnode is captured in render;
- * on mount we wrap the child's internal `emit` (`vnode.component.emit`).
- * Vue 3's public `$emit` getter resolves to `instance.emit` at call time,
- * so replacing it makes every `this.$emit(...)` the child fires bubble up
- * here as a single `widget-event`, regardless of the event name — without
- * enumerating names and without a props Proxy (a Proxy that answers every
- * `onXxx` lookup corrupts Vue's `onVnodeXxx` lifecycle probing).
+ * Generic emit capture: on mount we wrap the mounted child's internal
+ * `emit` (`instance.emit`). Vue 3's public `$emit` getter resolves to
+ * `instance.emit` at call time, so replacing it makes every
+ * `this.$emit(...)` the child fires bubble up here as a single
+ * `widget-event`, regardless of the event name — without enumerating names
+ * and without a props Proxy (a Proxy that answers every `onXxx` lookup
+ * corrupts Vue's `onVnodeXxx` lifecycle probing).
+ *
+ * The child is reached through the template `ref`, NOT through the vnode
+ * `render()` returned. Vue 3's `renderComponentRoot` CLONES a
+ * single-root render result whenever the component has fallthrough attrs
+ * (`cloneVNode(root, fallthroughAttrs)`), and it is the clone that gets
+ * patched — so the vnode captured in `render()` keeps `component === null`
+ * and the emit wrapper silently never installs. Vue 2 had no such clone
+ * (listeners lived outside `$attrs`), which is why the vnode handle worked
+ * there. `emits` is declared below so the parent's `@widget-event` is not
+ * ALSO left in `$attrs` and forwarded onto the child.
  *
  * NOT exported from the library barrel — this is a private
  * implementation detail of CnSettingsPage and lives next to it. The
@@ -46,15 +56,16 @@ export default {
 		/** Index of the widget in the section's `widgets[]` (0 for `component`-style sections). */
 		widgetIndex: { type: Number, required: true },
 	},
+	emits: ['widget-event'],
 	render() {
-		const vnode = h(this.component, { ...(this.componentProps || {}), ref: 'inner' })
-		// Keep a handle to the child vnode so `mounted()` can wrap the
-		// child's `emit`. Non-reactive assignment (avoids a render loop).
-		this._innerVnode = vnode
-		return vnode
+		return h(this.component, { ...(this.componentProps || {}), ref: 'inner' })
 	},
 	mounted() {
-		const inst = this._innerVnode && this._innerVnode.component
+		// `$refs.inner` is the child's public instance proxy; `.$` is its
+		// internal instance, which owns `emit`. See the docblock for why the
+		// vnode returned by `render()` cannot be used here under Vue 3.
+		const proxy = this.$refs.inner
+		const inst = proxy && proxy.$
 		if (!inst || typeof inst.emit !== 'function') return
 		const originalEmit = inst.emit
 		const self = this

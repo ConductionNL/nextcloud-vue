@@ -128,7 +128,12 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 		const wrapper = mountRenderer()
 		wrapper.vm.$.provides.cnDispatchAction(exportAction)
 		await vueNextTick()
-		wrapper.vm.$refs.exportDialog = { setResult }
+		// `vm.$refs` was a plain writable object under Vue 2. Vue 3 exposes it
+		// as `shallowReadonly(instance.refs)` in dev, so writing through it is
+		// REJECTED (a [Vue warn], no throw) and the stub dialog stays in place —
+		// `setResult` would silently never be called. `vm.$.refs` is the same
+		// raw object Vue 2's `$refs` was, and is writable.
+		wrapper.vm.$.refs.exportDialog = { setResult }
 		await wrapper.vm.onExportConfirm({ format: 'csv' })
 		expect(warnSpy).toHaveBeenCalled()
 		expect(setResult).toHaveBeenCalledWith({ error: expect.any(String) })
@@ -141,7 +146,8 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 		const wrapper = mountRenderer({ exportReport })
 		wrapper.vm.$.provides.cnDispatchAction(exportAction)
 		await vueNextTick()
-		wrapper.vm.$refs.exportDialog = { setResult }
+		// See the note above: Vue 3's `vm.$refs` is shallowReadonly in dev.
+		wrapper.vm.$.refs.exportDialog = { setResult }
 		await wrapper.vm.onExportConfirm({ format: 'csv', entity: 'leads' })
 		expect(setResult).toHaveBeenCalledWith({ error: 'backend down' })
 	})
