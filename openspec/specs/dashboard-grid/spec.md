@@ -324,7 +324,7 @@ CnDashboardGrid SHALL rely on GridStack's built-in accessibility model for drag-
 
 **Grid initialization (implemented):**
 - Uses `GridStack.init()` on mount with configurable `column`, `cellHeight`, `margin`, `float: true`, `animate: true`
-- Imports `gridstack` and its CSS (`gridstack/dist/gridstack.min.css`)
+- Imports `gridstack`'s JS (`gridstack` is a **peer dependency**, `^12.0.0` — not bundled). The consumer installs `gridstack` and imports its CSS (`gridstack/dist/gridstack.min.css`) themselves, from the same copy, so GridStack's JS and CSS can never be different versions.
 - Renders layout items via `v-for` with GridStack `gs-*` attributes (`gs-id`, `gs-x`, `gs-y`, `gs-w`, `gs-h`, `gs-min-w`, `gs-min-h`)
 
 **Drag and resize (implemented):**

@@ -69,7 +69,18 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { GridStack } from 'gridstack'
-import 'gridstack/dist/gridstack.min.css'
+// `gridstack` is a peerDependency (see package.json), not bundled — this
+// component's JS and the consumer's GridStack stylesheet MUST come from the
+// exact same installed copy, because GridStack's JS writes layout state
+// (e.g. the `--gs-column-width` CSS custom property) that only its OWN
+// matching CSS reads. Baking a copy of `gridstack/dist/gridstack.min.css`
+// into this library's build (as a previous version did) freezes it at
+// nc-vue's build-time version, which can silently drift from whatever the
+// consumer's peer-installed copy actually is — the exact mismatch that once
+// made every grid item render at 0px width. So nc-vue ships NO GridStack
+// CSS of its own: the consumer MUST install `gridstack` themselves and
+// import `gridstack/dist/gridstack.min.css` (or their preferred GridStack
+// stylesheet) from that same copy.
 
 /**
  * Monotonic counter backing the per-instance DOM ids (the shared

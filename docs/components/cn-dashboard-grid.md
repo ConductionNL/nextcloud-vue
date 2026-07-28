@@ -7,7 +7,7 @@ Low-level drag-and-drop grid layout engine powered by [GridStack](https://gridst
 
 Used internally by `CnDashboardPage`. Only use this directly if you need fine-grained control over the grid without the full dashboard page shell.
 
-**Requires**: `gridstack` (bundled dependency)
+**Requires**: `gridstack` (`^12.0.0`) as a **peer dependency** — install it yourself (`npm install gridstack@^12.0.0`) and import its stylesheet from that same copy (e.g. `import 'gridstack/dist/gridstack.min.css'`). nc-vue no longer bundles GridStack or its CSS: GridStack's JS drives layout through CSS custom properties (e.g. `--gs-column-width`) that only its own matching stylesheet reads, so the JS and CSS **must** come from the exact same installed version — a version mismatch is what previously made every grid item render at 0px width.
 
 ## Try it
 

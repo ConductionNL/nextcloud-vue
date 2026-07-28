@@ -235,6 +235,24 @@ export default {
 			// The Toast UI WYSIWYG editor (loaded only in CnMarkdownEditor's
 			// `mode: 'wysiwyg'`) — kept external so it stays lazy at the consumer.
 			|| /^@toast-ui\//.test(id)
+			// `gridstack` is a peerDependency (package.json), not a bundled
+			// dependency — MUST stay external. CnDashboardGrid's JS sets a CSS
+			// custom property (`--gs-column-width`, v12+) that only GridStack's
+			// OWN matching stylesheet reads. A consumer imports
+			// `gridstack/dist/gridstack.min.css` from their own installed copy;
+			// if this bundler vendored a *different* resolved copy of the JS
+			// into dist (as it previously did — see dist/esm/node_modules/gridstack
+			// before this fix), the vendored JS and the consumer's CSS could be
+			// different majors and silently disagree, which is exactly how every
+			// CnDashboardGrid item rendered at 0px width (nc-vue's own bundled
+			// `^10.3.1` dependency vendored v10 JS underneath a consumer's v12
+			// CSS import). Keeping `gridstack` external makes the compiled
+			// output `import { GridStack } from 'gridstack'` a bare specifier,
+			// so the consumer's bundler resolves it to the SAME single copy
+			// whose CSS they import — the only way JS and CSS are guaranteed to
+			// agree.
+			|| id === 'gridstack'
+			|| /^gridstack\//.test(id)
 		)
 	},
 	plugins: [
