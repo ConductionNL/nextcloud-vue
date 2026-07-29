@@ -107,8 +107,12 @@
 						</span>
 					</fieldset>
 
-					<NcButton native-type="submit"
-						type="primary"
+					<!-- v9 NcButton: `type` is the NATIVE button type, `variant` is the
+					     styling. This was `native-type="submit"` + `type="primary"` (the v8
+					     spelling); v9 ignores native-type, so the button rendered as
+					     type="button" and never submitted the form. -->
+					<NcButton type="submit"
+						variant="primary"
 						data-testid="cn-fi-save"
 						:disabled="saving">
 						{{ t('nextcloud-vue', 'Save answers offline') }}

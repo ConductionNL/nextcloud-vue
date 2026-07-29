@@ -240,8 +240,17 @@
 								<NcButton variant="tertiary" :disabled="saving" @click="cancelAdd">
 									{{ t('nextcloud-vue', 'Cancel') }}
 								</NcButton>
+								<!-- `type` is the NATIVE button type in @nextcloud/vue 9;
+								     `variant` carries the styling. The v8 prop was
+								     `native-type`, which v9's NcButton does not declare —
+								     so it fell through as an inert attribute and the button
+								     rendered with the prop default `type="button"`. A
+								     type="button" inside a <form> does not submit, so
+								     clicking "Add credential" fired nothing at all: no
+								     submit event, no onCreate, no request. The form looked
+								     complete and the button looked enabled. -->
 								<NcButton variant="primary"
-									native-type="submit"
+									type="submit"
 									:disabled="!canSubmit">
 									{{ t('nextcloud-vue', 'Add credential') }}
 								</NcButton>

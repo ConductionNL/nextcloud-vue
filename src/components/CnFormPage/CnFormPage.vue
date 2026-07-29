@@ -177,14 +177,14 @@
 				<NcButton
 					v-if="hasSteps && !isFirstStep"
 					variant="secondary"
-					native-type="button"
+					type="button"
 					@click="back">
 					{{ t('nextcloud-vue', 'Back') }}
 				</NcButton>
 				<NcButton
 					v-if="hasSteps && !isLastStep"
 					variant="primary"
-					native-type="button"
+					type="button"
 					@click="next">
 					{{ t('nextcloud-vue', 'Next') }}
 				</NcButton>
@@ -200,7 +200,7 @@
 					:submit="submit">
 					<NcButton
 						variant="primary"
-						native-type="submit"
+						type="submit"
 						:disabled="submitting">
 						<template #icon>
 							<NcLoadingIcon v-if="submitting" :size="20" />
