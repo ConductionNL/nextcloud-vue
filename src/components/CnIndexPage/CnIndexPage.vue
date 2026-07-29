@@ -299,7 +299,10 @@
 
 			<div
 				class="cn-index-page__main"
-				:class="{ 'cn-index-page__main--map': currentViewMode === 'map' }">
+				:class="{
+					'cn-index-page__main--map': currentViewMode === 'map',
+					'cn-index-page__main--table': currentViewMode === 'table',
+				}">
 				<!-- Loading state — initial fetch only; a background refresh keeps the table visible -->
 				<div v-if="showInitialLoader" class="cn-index-page__loading">
 					<!-- name gives NcLoadingIcon a non-empty aria-label (WCAG role-img-alt); empty name ships an unlabeled role="img" -->

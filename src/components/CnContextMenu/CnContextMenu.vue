@@ -365,7 +365,16 @@ export default {
 </script>
 
 <style scoped>
-.cn-context-menu {
+/* Selector is deliberately two classes deep. `.cn-context-menu` lands on
+   NcActions' root, which NcActions itself styles as `.action-item[data-v-…]
+   { position: relative; display: inline-block }`. Scoped CSS appends the attr
+   to the last compound only, so a bare `.cn-context-menu` tied that rule at
+   specificity (0,2,0) and lost on injection order — the trigger stayed
+   `position: relative`, so it kept its in-flow box (top/left just offset it
+   visually) and showed up as a full-width ~34px-tall phantom row between the
+   table and the pagination on CnIndexPage. Adding the parent class makes this
+   (0,3,0) so it wins regardless of order. */
+.cn-context-menu-root > .cn-context-menu {
 	/* Hide the NcActions trigger button — menu opens only via right-click.
 	   Off-screen rather than display:none / visibility:hidden so NcPopover's
 	   a11y check (`tabbable(triggerContainer)[0]`) still finds the NcButton
