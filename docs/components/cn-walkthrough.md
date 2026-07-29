@@ -49,6 +49,30 @@ the manifest declares an enabled `walkthrough`; you can also mount it standalone
 }
 ```
 
+## Completion persistence
+
+`walkthrough.completionConfigKey` names a **per-user preference** holding the last
+app version whose tour the user has seen. `CnAppRoot` owns the round trip:
+
+- on mount it `GET`s `/apps/{appId}/api/preferences/{completionConfigKey}` and holds
+  the overlay back until the answer arrives, so a returning user never sees the tour
+  flash open;
+- on completion **or dismissal** (✕, Skip, backdrop, ESC) it `PUT`s
+  `{ "value": "<manifest.version>" }` to that same URL, and mirrors it into
+  `localStorage` (`cn-walkthrough-seen:{appId}`) so the next boot resolves
+  synchronously.
+
+Only `null` / missing / `""` count as "never seen" — a recorded value that happens to
+be JS-falsy (`0`, `false`, `"0"`) still means the user has seen the tour.
+
+Omit `completionConfigKey` and persistence stays per-browser (`localStorage` only):
+the tour then reopens in a fresh browser profile, which is exactly what breaks e2e
+runs. Declare the key.
+
+The helpers are exported for hosts that mount `CnWalkthrough` standalone:
+`loadWalkthroughSeenVersion(appId, key)` and
+`persistWalkthroughSeenVersion(appId, key, version)`.
+
 ## Props
 
 | Prop | Type | Default | Description |

@@ -43,6 +43,34 @@ notify, interpolate }`.
 `compareSemver(a, b)` and `interpolateTokens(str, context)` are exported alongside for
 version comparison and `{{var}}` substitution.
 
+## Completion persistence
+
+The composable itself stays pure — `seenVersion` comes in, `onComplete` goes out. The
+round trip against the manifest's `walkthrough.completionConfigKey` is exported
+separately and used by [`CnAppRoot`](../../components/cn-app-root.md):
+
+```js
+import {
+  loadWalkthroughSeenVersion,
+  persistWalkthroughSeenVersion,
+} from '@conduction/nextcloud-vue'
+
+// GET /apps/{appId}/api/preferences/{configKey}
+const seenVersion = await loadWalkthroughSeenVersion(appId, configKey)
+// PUT the same URL with { value: appVersion }
+await persistWalkthroughSeenVersion(appId, configKey, manifest.version)
+```
+
+Both mirror into `localStorage` (`cn-walkthrough-seen:{appId}`) so the next boot
+resolves synchronously, both fall back to that mirror when the endpoint is absent or
+the user is unauthenticated, and neither ever rejects. With no `configKey` the
+persistence is per-browser only — which is why a fresh browser profile (every
+Playwright run) reopens the tour unless the manifest declares the key.
+
+`normaliseSeenVersion(value)` is the shared read/write normaliser: only `null` /
+`undefined` / `''` mean "never seen", so a recorded `0` / `false` / `'0'` still counts
+as seen rather than silently reverting the user to a fresh-user state.
+
 ## Example
 
 ```js
