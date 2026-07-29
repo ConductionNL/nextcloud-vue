@@ -419,8 +419,15 @@
 			  auto-starts a tour that qualifies for the user's app version. No
 			  per-app wiring; declare a `walkthrough` block to opt in.
 			-->
+			<!--
+			  Gated on `walkthroughSeenResolved` as well: when the manifest
+			  declares `walkthrough.completionConfigKey`, the per-user
+			  preference is fetched first so a returning user never sees the
+			  tour flash open before the answer arrives. Without a key the
+			  flag is already true at data() time (localStorage-only, sync).
+			-->
 			<!-- @slot walkthrough Override the gating-free walkthrough overlay. Scope: { manifest, seenVersion }. -->
-			<slot v-if="walkthroughEnabled"
+			<slot v-if="walkthroughEnabled && walkthroughSeenResolved"
 				name="walkthrough"
 				:manifest="manifest"
 				:seen-version="walkthroughSeenVersion">
@@ -592,7 +599,13 @@ import { loadState } from '@nextcloud/initial-state'
 import { useAppStatus } from '../../composables/useAppStatus.js'
 import { useAppInstaller } from '../../composables/useAppInstaller.js'
 import { useSetupStatus } from '../../composables/useSetupStatus.js'
-import { useWalkthrough } from '../../composables/useWalkthrough.js'
+import {
+	useWalkthrough,
+	loadWalkthroughSeenVersion,
+	persistWalkthroughSeenVersion,
+	readLocalWalkthroughSeenVersion,
+	normaliseSeenVersion,
+} from '../../composables/useWalkthrough.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { useObjectStore } from '../../store/index.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
@@ -1602,6 +1615,30 @@ export default {
 			 */
 			setupWizardOpen: false,
 			/**
+			 * The user's last-seen walkthrough app version (ADR-043).
+			 *
+			 * Seeded SYNCHRONOUSLY from the per-browser localStorage mirror so
+			 * nothing flashes, then overwritten by the `walkthroughConfigKey`
+			 * watcher from the authoritative per-user preference addressed by
+			 * `manifest.walkthrough.completionConfigKey`. `''` means the user
+			 * has never completed or dismissed the tour.
+			 *
+			 * @type {string}
+			 */
+			walkthroughSeenVersionValue: readLocalWalkthroughSeenVersion(this.appId),
+			/**
+			 * Whether `walkthroughSeenVersionValue` is settled. Starts `true`
+			 * when the manifest declares no `completionConfigKey` (the local
+			 * read above is already the final answer) and `false` when it does,
+			 * so the overlay waits for the server round trip instead of
+			 * auto-opening a tour the user already finished on another device.
+			 *
+			 * @type {boolean}
+			 */
+			walkthroughSeenResolved: !(this.manifest
+				&& this.manifest.walkthrough
+				&& this.manifest.walkthrough.completionConfigKey),
+			/**
 			 * Key of the currently active modal (opened via cnOpenModal).
 			 * null when no modal is open.
 			 *
@@ -2120,18 +2157,26 @@ export default {
 			return !!(w && w.enabled !== false && Array.isArray(w.tours) && w.tours.length > 0)
 		},
 		/**
-		 * The user's last-seen app version for walkthrough composition. Read from
-		 * a per-user/browser key; CnAppRoot writes it on completion. Apps wanting
-		 * cross-device persistence can override the `#walkthrough` slot.
+		 * The per-user preference key holding the last app version whose tour the
+		 * user has seen (`manifest.walkthrough.completionConfigKey`). Empty when
+		 * the manifest declares none, in which case persistence stays per-browser.
+		 *
+		 * @return {string} The preference key, or ''.
+		 */
+		walkthroughConfigKey() {
+			const w = this.manifest && this.manifest.walkthrough
+			return (w && typeof w.completionConfigKey === 'string' && w.completionConfigKey) || ''
+		},
+		/**
+		 * The user's last-seen app version for walkthrough composition. Resolved
+		 * from the per-user `completionConfigKey` preference (cross-device) with
+		 * the localStorage mirror as fallback; CnAppRoot writes BOTH on completion
+		 * or dismissal, so a returning user is not shown the tour again.
 		 *
 		 * @return {string} The last-seen version, or '' for a fresh user.
 		 */
 		walkthroughSeenVersion() {
-			try {
-				return window.localStorage.getItem('cn-walkthrough-seen:' + this.appId) || ''
-			} catch (e) {
-				return ''
-			}
+			return this.walkthroughSeenVersionValue
 		},
 		/**
 		 * Cross-app / refresh resume token parsed from the URL query
@@ -2367,6 +2412,25 @@ export default {
 				if (gating && !this.setupWizardDismissed) {
 					this.setupWizardOpen = true
 				}
+			},
+		},
+		/**
+		 * Resolve the per-user walkthrough completion preference whenever the
+		 * declared `completionConfigKey` appears or changes (ADR-043).
+		 * `immediate: true` covers the common static-manifest case; the watch
+		 * also covers a manifest that arrives asynchronously, where a
+		 * mount-time-only read would have found no key and let the tour open
+		 * for a user who already finished it.
+		 */
+		walkthroughConfigKey: {
+			immediate: true,
+			handler(key) {
+				if (!key) {
+					this.walkthroughSeenResolved = true
+					return
+				}
+				this.walkthroughSeenResolved = false
+				this.resolveWalkthroughSeenVersion()
 			},
 		},
 	},
@@ -2671,18 +2735,48 @@ export default {
 			this.setupWizardOpen = false
 		},
 		/**
+		 * Resolve the user's last-seen walkthrough version from the per-user
+		 * `completionConfigKey` preference before the overlay is allowed to
+		 * mount (ADR-043, REQ-WALK-NV-004). Without a declared key the value
+		 * seeded synchronously in `data()` is already final.
+		 *
+		 * Never rejects: an absent endpoint / unauthenticated user falls back to
+		 * the localStorage mirror inside the loader.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async resolveWalkthroughSeenVersion() {
+			if (!this.walkthroughEnabled || !this.walkthroughConfigKey) {
+				this.walkthroughSeenResolved = true
+				return
+			}
+			try {
+				this.walkthroughSeenVersionValue = await loadWalkthroughSeenVersion(
+					this.appId,
+					this.walkthroughConfigKey,
+				)
+			} finally {
+				this.walkthroughSeenResolved = true
+			}
+		},
+		/**
 		 * Persist the current app version as the user's last-seen walkthrough
 		 * version (so an upgrade later surfaces only newer steps) and notify.
+		 *
+		 * Writes BOTH the localStorage mirror and — when the manifest declares
+		 * `walkthrough.completionConfigKey` — the per-user preference the load
+		 * path reads, so completing or dismissing the tour actually sticks for
+		 * that user instead of re-opening on the next visit.
 		 *
 		 * @return {void}
 		 */
 		onWalkthroughComplete() {
-			try {
-				const v = (this.manifest && this.manifest.version) || '1.0.0'
-				window.localStorage.setItem('cn-walkthrough-seen:' + this.appId, String(v))
-			} catch (e) {
-				// Non-fatal: persistence is best-effort (private mode / no storage).
-			}
+			const v = normaliseSeenVersion((this.manifest && this.manifest.version) || '1.0.0')
+			this.walkthroughSeenVersionValue = v
+			this.walkthroughSeenResolved = true
+			// Fire-and-forget: the loader never rejects and the local mirror is
+			// already written, so a failed PUT must not surface as an error.
+			persistWalkthroughSeenVersion(this.appId, this.walkthroughConfigKey, v)
 			/**
 			 * @event walkthrough-complete Emitted when the walkthrough finishes or is dismissed.
 			 */
