@@ -70,8 +70,8 @@ the tour then reopens in a fresh browser profile, which is exactly what breaks e
 runs. Declare the key.
 
 The helpers are exported for hosts that mount `CnWalkthrough` standalone:
-`loadWalkthroughSeenVersion(appId, key)` and
-`persistWalkthroughSeenVersion(appId, key, version)`.
+[`loadWalkthroughSeenVersion`](../utilities/load-walkthrough-seen-version.md) and
+[`persistWalkthroughSeenVersion`](../utilities/persist-walkthrough-seen-version.md).
 
 ## Props
 

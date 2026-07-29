@@ -67,9 +67,11 @@ the user is unauthenticated, and neither ever rejects. With no `configKey` the
 persistence is per-browser only — which is why a fresh browser profile (every
 Playwright run) reopens the tour unless the manifest declares the key.
 
-`normaliseSeenVersion(value)` is the shared read/write normaliser: only `null` /
-`undefined` / `''` mean "never seen", so a recorded `0` / `false` / `'0'` still counts
-as seen rather than silently reverting the user to a fresh-user state.
+See [`loadWalkthroughSeenVersion`](../load-walkthrough-seen-version.md) and
+[`persistWalkthroughSeenVersion`](../persist-walkthrough-seen-version.md) for the full
+contracts. Both normalise identically: only `null` / `undefined` / `''` mean "never
+seen", so a recorded `0` / `false` / `'0'` still counts as seen rather than silently
+reverting the user to a fresh-user state.
 
 ## Example
 
