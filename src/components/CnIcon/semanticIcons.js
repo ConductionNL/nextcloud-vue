@@ -45,6 +45,7 @@ import AccountSearchOutlineIcon from 'vue-material-design-icons/AccountSearchOut
 import AccountStarOutlineIcon from 'vue-material-design-icons/AccountStarOutline.vue'
 import AccountSwitchOutlineIcon from 'vue-material-design-icons/AccountSwitchOutline.vue'
 import AccountTieOutlineIcon from 'vue-material-design-icons/AccountTieOutline.vue'
+import AlertCircleOutlineIcon from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ApiIcon from 'vue-material-design-icons/Api.vue'
 import ApplicationOutlineIcon from 'vue-material-design-icons/ApplicationOutline.vue'
 import BankOutlineIcon from 'vue-material-design-icons/BankOutline.vue'
@@ -72,6 +73,7 @@ import ChartBoxOutlineIcon from 'vue-material-design-icons/ChartBoxOutline.vue'
 import ChartLineVariantIcon from 'vue-material-design-icons/ChartLineVariant.vue'
 import ChartSankeyIcon from 'vue-material-design-icons/ChartSankey.vue'
 import ChartTimelineVariantIcon from 'vue-material-design-icons/ChartTimelineVariant.vue'
+import CheckCircleOutlineIcon from 'vue-material-design-icons/CheckCircleOutline.vue'
 import CheckDecagramOutlineIcon from 'vue-material-design-icons/CheckDecagramOutline.vue'
 import CheckboxMarkedCircleOutlineIcon from 'vue-material-design-icons/CheckboxMarkedCircleOutline.vue'
 import ClipboardAccountOutlineIcon from 'vue-material-design-icons/ClipboardAccountOutline.vue'
@@ -82,9 +84,13 @@ import ClipboardTextOutlineIcon from 'vue-material-design-icons/ClipboardTextOut
 import ClockAlertOutlineIcon from 'vue-material-design-icons/ClockAlertOutline.vue'
 import ClockCheckOutlineIcon from 'vue-material-design-icons/ClockCheckOutline.vue'
 import ClockOutlineIcon from 'vue-material-design-icons/ClockOutline.vue'
+import CloseCircleOutlineIcon from 'vue-material-design-icons/CloseCircleOutline.vue'
+import CloudUploadOutlineIcon from 'vue-material-design-icons/CloudUploadOutline.vue'
 import CogOutlineIcon from 'vue-material-design-icons/CogOutline.vue'
 import CommentOutlineIcon from 'vue-material-design-icons/CommentOutline.vue'
 import CommentQuestionOutlineIcon from 'vue-material-design-icons/CommentQuestionOutline.vue'
+import ContentCopyIcon from 'vue-material-design-icons/ContentCopy.vue'
+import ContentSaveIcon from 'vue-material-design-icons/ContentSave.vue'
 import CreditCardOutlineIcon from 'vue-material-design-icons/CreditCardOutline.vue'
 import CubeOutlineIcon from 'vue-material-design-icons/CubeOutline.vue'
 import CurrencyEurIcon from 'vue-material-design-icons/CurrencyEur.vue'
@@ -92,10 +98,14 @@ import DatabaseArrowRightOutlineIcon from 'vue-material-design-icons/DatabaseArr
 import DatabaseExportOutlineIcon from 'vue-material-design-icons/DatabaseExportOutline.vue'
 import DatabaseImportOutlineIcon from 'vue-material-design-icons/DatabaseImportOutline.vue'
 import DatabaseOutlineIcon from 'vue-material-design-icons/DatabaseOutline.vue'
+import DeleteOutlineIcon from 'vue-material-design-icons/DeleteOutline.vue'
 import DesktopTowerMonitorIcon from 'vue-material-design-icons/DesktopTowerMonitor.vue'
 import DomainIcon from 'vue-material-design-icons/Domain.vue'
+import DotsHorizontalIcon from 'vue-material-design-icons/DotsHorizontal.vue'
+import DownloadIcon from 'vue-material-design-icons/Download.vue'
 import EmailOutlineIcon from 'vue-material-design-icons/EmailOutline.vue'
 import EyeOffOutlineIcon from 'vue-material-design-icons/EyeOffOutline.vue'
+import EyeOutlineIcon from 'vue-material-design-icons/EyeOutline.vue'
 import FileAlertOutlineIcon from 'vue-material-design-icons/FileAlertOutline.vue'
 import FileChartOutlineIcon from 'vue-material-design-icons/FileChartOutline.vue'
 import FileCheckOutlineIcon from 'vue-material-design-icons/FileCheckOutline.vue'
@@ -105,6 +115,7 @@ import FileLockOutlineIcon from 'vue-material-design-icons/FileLockOutline.vue'
 import FileReplaceOutlineIcon from 'vue-material-design-icons/FileReplaceOutline.vue'
 import FileSignIcon from 'vue-material-design-icons/FileSign.vue'
 import FileTreeOutlineIcon from 'vue-material-design-icons/FileTreeOutline.vue'
+import FilterVariantIcon from 'vue-material-design-icons/FilterVariant.vue'
 import FolderAccountOutlineIcon from 'vue-material-design-icons/FolderAccountOutline.vue'
 import FolderCogOutlineIcon from 'vue-material-design-icons/FolderCogOutline.vue'
 import FolderOutlineIcon from 'vue-material-design-icons/FolderOutline.vue'
@@ -115,9 +126,11 @@ import GavelIcon from 'vue-material-design-icons/Gavel.vue'
 import HandHeartOutlineIcon from 'vue-material-design-icons/HandHeartOutline.vue'
 import HandshakeOutlineIcon from 'vue-material-design-icons/HandshakeOutline.vue'
 import HistoryIcon from 'vue-material-design-icons/History.vue'
+import ImageOutlineIcon from 'vue-material-design-icons/ImageOutline.vue'
 import InformationOutlineIcon from 'vue-material-design-icons/InformationOutline.vue'
 import KeyOutlineIcon from 'vue-material-design-icons/KeyOutline.vue'
 import LayersOutlineIcon from 'vue-material-design-icons/LayersOutline.vue'
+import LinkVariantIcon from 'vue-material-design-icons/LinkVariant.vue'
 import LockOutlineIcon from 'vue-material-design-icons/LockOutline.vue'
 import MagnifyIcon from 'vue-material-design-icons/Magnify.vue'
 import MapMarkerOutlineIcon from 'vue-material-design-icons/MapMarkerOutline.vue'
@@ -127,17 +140,24 @@ import MedalOutlineIcon from 'vue-material-design-icons/MedalOutline.vue'
 import MessageTextOutlineIcon from 'vue-material-design-icons/MessageTextOutline.vue'
 import NotebookOutlineIcon from 'vue-material-design-icons/NotebookOutline.vue'
 import OfficeBuildingOutlineIcon from 'vue-material-design-icons/OfficeBuildingOutline.vue'
+import OpenInNewIcon from 'vue-material-design-icons/OpenInNew.vue'
 import PackageVariantClosedIcon from 'vue-material-design-icons/PackageVariantClosed.vue'
 import PaperclipIcon from 'vue-material-design-icons/Paperclip.vue'
+import PencilOutlineIcon from 'vue-material-design-icons/PencilOutline.vue'
 import PercentOutlineIcon from 'vue-material-design-icons/PercentOutline.vue'
 import PlayCircleOutlineIcon from 'vue-material-design-icons/PlayCircleOutline.vue'
+import PlayOutlineIcon from 'vue-material-design-icons/PlayOutline.vue'
+import PlusIcon from 'vue-material-design-icons/Plus.vue'
+import PrinterOutlineIcon from 'vue-material-design-icons/PrinterOutline.vue'
 import PulseIcon from 'vue-material-design-icons/Pulse.vue'
 import PuzzleOutlineIcon from 'vue-material-design-icons/PuzzleOutline.vue'
 import ReceiptOutlineIcon from 'vue-material-design-icons/ReceiptOutline.vue'
 import ReceiptTextOutlineIcon from 'vue-material-design-icons/ReceiptTextOutline.vue'
+import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
 import RobotOutlineIcon from 'vue-material-design-icons/RobotOutline.vue'
 import ScaleBalanceIcon from 'vue-material-design-icons/ScaleBalance.vue'
 import SchoolOutlineIcon from 'vue-material-design-icons/SchoolOutline.vue'
+import ShareVariantOutlineIcon from 'vue-material-design-icons/ShareVariantOutline.vue'
 import ShieldAccountOutlineIcon from 'vue-material-design-icons/ShieldAccountOutline.vue'
 import ShieldAlertOutlineIcon from 'vue-material-design-icons/ShieldAlertOutline.vue'
 import ShieldCheckOutlineIcon from 'vue-material-design-icons/ShieldCheckOutline.vue'
@@ -158,6 +178,7 @@ import ToolboxOutlineIcon from 'vue-material-design-icons/ToolboxOutline.vue'
 import TransitConnectionVariantIcon from 'vue-material-design-icons/TransitConnectionVariant.vue'
 import TrayFullIcon from 'vue-material-design-icons/TrayFull.vue'
 import TrendingUpIcon from 'vue-material-design-icons/TrendingUp.vue'
+import UploadIcon from 'vue-material-design-icons/Upload.vue'
 import VectorPolylinePlusIcon from 'vue-material-design-icons/VectorPolylinePlus.vue'
 import ViewColumnOutlineIcon from 'vue-material-design-icons/ViewColumnOutline.vue'
 import ViewDashboardOutlineIcon from 'vue-material-design-icons/ViewDashboardOutline.vue'
@@ -316,6 +337,28 @@ export const SEMANTIC_ICONS_TIER_B = Object.freeze({
 	portfolio: 'BriefcaseOutline',
 	exam: 'ClipboardTextOutline',
 	student: 'AccountSchoolOutline',
+	// Publish, Test connection).
+	view: 'EyeOutline',
+	create: 'Plus',
+	edit: 'PencilOutline',
+	delete: 'DeleteOutline',
+	run: 'PlayOutline',
+	test: 'CheckCircleOutline',
+	upload: 'Upload',
+	publish: 'CloudUploadOutline',
+	download: 'Download',
+	refresh: 'Refresh',
+	'open-external': 'OpenInNew',
+	copy: 'ContentCopy',
+	share: 'ShareVariantOutline',
+	filter: 'FilterVariant',
+	print: 'PrinterOutline',
+	image: 'ImageOutline',
+	link: 'LinkVariant',
+	more: 'DotsHorizontal',
+	save: 'ContentSave',
+	cancel: 'CloseCircleOutline',
+	alert: 'AlertCircleOutline',
 	// hr
 	leave: 'CalendarWeekendOutline',
 	hours: 'ClockCheckOutline',
@@ -368,6 +411,7 @@ export const SEMANTIC_ICON_COMPONENTS = Object.freeze({
 	AccountStarOutline: AccountStarOutlineIcon,
 	AccountSwitchOutline: AccountSwitchOutlineIcon,
 	AccountTieOutline: AccountTieOutlineIcon,
+	AlertCircleOutline: AlertCircleOutlineIcon,
 	Api: ApiIcon,
 	ApplicationOutline: ApplicationOutlineIcon,
 	BankOutline: BankOutlineIcon,
@@ -395,6 +439,7 @@ export const SEMANTIC_ICON_COMPONENTS = Object.freeze({
 	ChartLineVariant: ChartLineVariantIcon,
 	ChartSankey: ChartSankeyIcon,
 	ChartTimelineVariant: ChartTimelineVariantIcon,
+	CheckCircleOutline: CheckCircleOutlineIcon,
 	CheckDecagramOutline: CheckDecagramOutlineIcon,
 	CheckboxMarkedCircleOutline: CheckboxMarkedCircleOutlineIcon,
 	ClipboardAccountOutline: ClipboardAccountOutlineIcon,
@@ -405,9 +450,13 @@ export const SEMANTIC_ICON_COMPONENTS = Object.freeze({
 	ClockAlertOutline: ClockAlertOutlineIcon,
 	ClockCheckOutline: ClockCheckOutlineIcon,
 	ClockOutline: ClockOutlineIcon,
+	CloseCircleOutline: CloseCircleOutlineIcon,
+	CloudUploadOutline: CloudUploadOutlineIcon,
 	CogOutline: CogOutlineIcon,
 	CommentOutline: CommentOutlineIcon,
 	CommentQuestionOutline: CommentQuestionOutlineIcon,
+	ContentCopy: ContentCopyIcon,
+	ContentSave: ContentSaveIcon,
 	CreditCardOutline: CreditCardOutlineIcon,
 	CubeOutline: CubeOutlineIcon,
 	CurrencyEur: CurrencyEurIcon,
@@ -415,10 +464,14 @@ export const SEMANTIC_ICON_COMPONENTS = Object.freeze({
 	DatabaseExportOutline: DatabaseExportOutlineIcon,
 	DatabaseImportOutline: DatabaseImportOutlineIcon,
 	DatabaseOutline: DatabaseOutlineIcon,
+	DeleteOutline: DeleteOutlineIcon,
 	DesktopTowerMonitor: DesktopTowerMonitorIcon,
 	Domain: DomainIcon,
+	DotsHorizontal: DotsHorizontalIcon,
+	Download: DownloadIcon,
 	EmailOutline: EmailOutlineIcon,
 	EyeOffOutline: EyeOffOutlineIcon,
+	EyeOutline: EyeOutlineIcon,
 	FileAlertOutline: FileAlertOutlineIcon,
 	FileChartOutline: FileChartOutlineIcon,
 	FileCheckOutline: FileCheckOutlineIcon,
@@ -428,6 +481,7 @@ export const SEMANTIC_ICON_COMPONENTS = Object.freeze({
 	FileReplaceOutline: FileReplaceOutlineIcon,
 	FileSign: FileSignIcon,
 	FileTreeOutline: FileTreeOutlineIcon,
+	FilterVariant: FilterVariantIcon,
 	FolderAccountOutline: FolderAccountOutlineIcon,
 	FolderCogOutline: FolderCogOutlineIcon,
 	FolderOutline: FolderOutlineIcon,
@@ -438,9 +492,11 @@ export const SEMANTIC_ICON_COMPONENTS = Object.freeze({
 	HandHeartOutline: HandHeartOutlineIcon,
 	HandshakeOutline: HandshakeOutlineIcon,
 	History: HistoryIcon,
+	ImageOutline: ImageOutlineIcon,
 	InformationOutline: InformationOutlineIcon,
 	KeyOutline: KeyOutlineIcon,
 	LayersOutline: LayersOutlineIcon,
+	LinkVariant: LinkVariantIcon,
 	LockOutline: LockOutlineIcon,
 	Magnify: MagnifyIcon,
 	MapMarkerOutline: MapMarkerOutlineIcon,
@@ -450,17 +506,24 @@ export const SEMANTIC_ICON_COMPONENTS = Object.freeze({
 	MessageTextOutline: MessageTextOutlineIcon,
 	NotebookOutline: NotebookOutlineIcon,
 	OfficeBuildingOutline: OfficeBuildingOutlineIcon,
+	OpenInNew: OpenInNewIcon,
 	PackageVariantClosed: PackageVariantClosedIcon,
 	Paperclip: PaperclipIcon,
+	PencilOutline: PencilOutlineIcon,
 	PercentOutline: PercentOutlineIcon,
 	PlayCircleOutline: PlayCircleOutlineIcon,
+	PlayOutline: PlayOutlineIcon,
+	Plus: PlusIcon,
+	PrinterOutline: PrinterOutlineIcon,
 	Pulse: PulseIcon,
 	PuzzleOutline: PuzzleOutlineIcon,
 	ReceiptOutline: ReceiptOutlineIcon,
 	ReceiptTextOutline: ReceiptTextOutlineIcon,
+	Refresh: RefreshIcon,
 	RobotOutline: RobotOutlineIcon,
 	ScaleBalance: ScaleBalanceIcon,
 	SchoolOutline: SchoolOutlineIcon,
+	ShareVariantOutline: ShareVariantOutlineIcon,
 	ShieldAccountOutline: ShieldAccountOutlineIcon,
 	ShieldAlertOutline: ShieldAlertOutlineIcon,
 	ShieldCheckOutline: ShieldCheckOutlineIcon,
@@ -481,6 +544,7 @@ export const SEMANTIC_ICON_COMPONENTS = Object.freeze({
 	TransitConnectionVariant: TransitConnectionVariantIcon,
 	TrayFull: TrayFullIcon,
 	TrendingUp: TrendingUpIcon,
+	Upload: UploadIcon,
 	VectorPolylinePlus: VectorPolylinePlusIcon,
 	ViewColumnOutline: ViewColumnOutlineIcon,
 	ViewDashboardOutline: ViewDashboardOutlineIcon,
