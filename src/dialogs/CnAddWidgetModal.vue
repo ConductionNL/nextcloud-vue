@@ -94,11 +94,11 @@
 		</div>
 
 		<template #actions>
-			<NcButton type="tertiary" :disabled="submitting" @click="onCancel">
+			<NcButton variant="tertiary" :disabled="submitting" @click="onCancel">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="!canSubmit || submitting"
 				:title="firstError || ''"
 				data-testid="add-widget-save"

@@ -66,19 +66,19 @@
 		<template v-if="editable" #footer>
 			<div class="cn-object-geo-widget__footer">
 				<template v-if="dirty">
-					<NcButton type="primary" :disabled="saving" @click="save">
+					<NcButton variant="primary" :disabled="saving" @click="save">
 						<template #icon>
 							<NcLoadingIcon v-if="saving" :size="20" />
 							<ContentSave v-else :size="20" />
 						</template>
 						{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Save location') }}
 					</NcButton>
-					<NcButton type="tertiary" :disabled="saving" @click="cancel">
+					<NcButton variant="tertiary" :disabled="saving" @click="cancel">
 						{{ t('nextcloud-vue', 'Cancel') }}
 					</NcButton>
 				</template>
 				<NcButton v-else-if="activePoint"
-					type="tertiary"
+					variant="tertiary"
 					:disabled="saving"
 					@click="clear">
 					<template #icon>

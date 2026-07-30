@@ -51,7 +51,7 @@
 			</button>
 
 			<!-- Cog → inline settings panel (toggled, in-DOM so the dropdowns work). -->
-			<NcButton type="tertiary"
+			<NcButton variant="tertiary"
 				:aria-label="t('nextcloud-vue', 'Page settings')"
 				:pressed="expanded"
 				@click="expanded = !expanded">
@@ -99,7 +99,7 @@
 					class="cn-page-tree__panel-field"
 					type="error">
 					{{ t('nextcloud-vue', 'Could not load registers and schemas.') }}
-					<NcButton type="tertiary" @click="retryDataSources">
+					<NcButton variant="tertiary" @click="retryDataSources">
 						{{ t('nextcloud-vue', 'Retry') }}
 					</NcButton>
 				</NcNoteCard>
@@ -159,13 +159,13 @@
 			</template>
 
 			<div class="cn-page-tree__panel-actions">
-				<NcButton v-if="canAddChild" type="tertiary" @click="$emit('add-child')">
+				<NcButton v-if="canAddChild" variant="tertiary" @click="$emit('add-child')">
 					<template #icon>
 						<Plus :size="18" />
 					</template>
 					{{ t('nextcloud-vue', 'Add sub-page') }}
 				</NcButton>
-				<NcButton type="tertiary" @click="$emit('remove')">
+				<NcButton variant="tertiary" @click="$emit('remove')">
 					<template #icon>
 						<Delete :size="18" />
 					</template>

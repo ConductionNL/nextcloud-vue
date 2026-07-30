@@ -98,7 +98,7 @@
 						{{ actionResult[step.id].message }}
 					</NcNoteCard>
 					<div class="cn-setup-step__nav">
-						<NcButton type="primary" :disabled="running[step.id]" @click="runAction(step)">
+						<NcButton variant="primary" :disabled="running[step.id]" @click="runAction(step)">
 							<template v-if="running[step.id]" #icon>
 								<NcLoadingIcon :size="20" />
 							</template>

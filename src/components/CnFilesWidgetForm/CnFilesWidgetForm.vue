@@ -15,7 +15,7 @@
 					{{ isObjectBound ? t('nextcloud-vue', 'Current object') : (folderPath || '/') }}
 				</span>
 				<NcButton
-					type="secondary"
+					variant="secondary"
 					:disabled="isObjectBound"
 					:title="isObjectBound ? objectBoundNote : null"
 					@click="openFolderPicker">

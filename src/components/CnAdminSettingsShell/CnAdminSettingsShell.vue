@@ -24,7 +24,7 @@
 				<!-- Canonical "Re-import configuration" action (POST /apps/<appId>/api/settings/load) -->
 				<NcButton
 					v-if="showReimport"
-					type="primary"
+					variant="primary"
 					:disabled="reimporting"
 					@click="reimport">
 					<template #icon>

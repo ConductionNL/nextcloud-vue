@@ -34,7 +34,7 @@
 							:label-visible="true" />
 					</div>
 					<div class="cn-edit-actions__row-actions">
-						<NcButton type="tertiary"
+						<NcButton variant="tertiary"
 							:aria-label="t('nextcloud-vue', 'Move up')"
 							:disabled="index === 0"
 							@click="move(index, -1)">
@@ -42,7 +42,7 @@
 								<ArrowUp :size="20" />
 							</template>
 						</NcButton>
-						<NcButton type="tertiary"
+						<NcButton variant="tertiary"
 							:aria-label="t('nextcloud-vue', 'Move down')"
 							:disabled="index === actions.length - 1"
 							@click="move(index, 1)">
@@ -50,7 +50,7 @@
 								<ArrowDown :size="20" />
 							</template>
 						</NcButton>
-						<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="remove(index)">
+						<NcButton variant="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="remove(index)">
 							<template #icon>
 								<Delete :size="20" />
 							</template>
@@ -61,13 +61,13 @@
 		</template>
 
 		<template #actions>
-			<NcButton type="secondary" @click="add">
+			<NcButton variant="secondary" @click="add">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
 				{{ t('nextcloud-vue', 'Add action') }}
 			</NcButton>
-			<NcButton type="primary" :disabled="saving" @click="onDone">
+			<NcButton variant="primary" :disabled="saving" @click="onDone">
 				<template #icon>
 					<NcLoadingIcon v-if="saving" :size="20" />
 					<ContentSaveOutline v-else :size="20" />

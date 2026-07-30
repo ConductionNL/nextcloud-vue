@@ -97,13 +97,13 @@
 		</fieldset>
 
 		<template #actions>
-			<NcButton type="secondary" @click="add">
+			<NcButton variant="secondary" @click="add">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
 				{{ t('nextcloud-vue', 'Add settings item') }}
 			</NcButton>
-			<NcButton type="primary" :disabled="saving" @click="onDone">
+			<NcButton variant="primary" :disabled="saving" @click="onDone">
 				<template #icon>
 					<NcLoadingIcon v-if="saving" :size="20" />
 					<ContentSaveOutline v-else :size="20" />

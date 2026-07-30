@@ -118,7 +118,7 @@
 				<!-- Edit-mode config cog: opens the page's full config editor
 				     (CnPageRenderer wires @configure to CnPageConfigModal). -->
 				<NcButton v-if="isEditMode"
-					type="tertiary"
+					variant="tertiary"
 					:aria-label="t('nextcloud-vue', 'Configure page')"
 					@click="$emit('configure')">
 					<template #icon>
