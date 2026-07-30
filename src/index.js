@@ -356,6 +356,13 @@ export {
 export { filterWidgetsByVisibility, isWidgetVisible, getCurrentUserId, getCurrentUserGroups, resetVisibilityCache } from './utils/index.js'
 export { safeHref, safeImageSrc, safeSvgPath } from './utils/index.js'
 export { dispatchAction } from './utils/actionsDispatcher.js'
+// Nested-modal stacking. `CnAppRoot` installs this itself; apps that do not
+// mount `CnAppRoot` should call `installModalStack()` once from `main.js`, or
+// two open dialogs tie on z-index and the lower one intercepts the clicks.
+// The stack's internals (`acquireModalLayer`, `topModalZIndex`, …) stay
+// module-private — import them from `src/utils/modalStack.js` if you need to
+// slot something between two dialog layers.
+export { installModalStack, uninstallModalStack } from './utils/modalStack.js'
 export { placeNewWidget, getDashboardColumnOpts } from './utils/dashboardPlacement.js'
 export { DASHBOARD_ICONS, DEFAULT_ICON, getIconComponent, isCustomIconUrl } from './components/CnIconPicker/index.js'
 // NB: the NL-government icon sets are deliberately NOT re-exported here.
