@@ -49,14 +49,14 @@
 				<NcTextField v-model="support.founderAvatarUrl"
 					:label="t('nextcloud-vue', 'Avatar URL (blank for the default portrait)')" />
 				<div class="cn-edit-support__avatar-actions">
-					<NcButton type="secondary" @click="$refs.avatarFile.click()">
+					<NcButton variant="secondary" @click="$refs.avatarFile.click()">
 						<template #icon>
 							<Upload :size="20" />
 						</template>
 						{{ t('nextcloud-vue', 'Upload image') }}
 					</NcButton>
 					<NcButton v-if="support.founderAvatarUrl"
-						type="tertiary"
+						variant="tertiary"
 						@click="clearAvatar">
 						{{ t('nextcloud-vue', 'Reset to default') }}
 					</NcButton>
@@ -110,7 +110,7 @@
 		</ul>
 
 		<template #actions>
-			<NcButton type="primary" :disabled="saving" @click="onDone">
+			<NcButton variant="primary" :disabled="saving" @click="onDone">
 				<template #icon>
 					<NcLoadingIcon v-if="saving" :size="20" />
 					<ContentSaveOutline v-else :size="20" />

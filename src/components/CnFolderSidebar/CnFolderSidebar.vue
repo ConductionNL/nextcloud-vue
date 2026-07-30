@@ -29,7 +29,7 @@
 		<NcButton
 			v-if="allowCreate"
 			class="cn-folder-sidebar__new"
-			type="tertiary"
+			variant="tertiary"
 			wide
 			@click="create">
 			<template #icon>

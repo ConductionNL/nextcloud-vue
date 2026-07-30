@@ -63,7 +63,7 @@
 				class="cn-object-list-form__col-row__header"
 				@update:model-value="updateColumn(i, 'label', $event)" />
 			<NcButton
-				type="tertiary"
+				variant="tertiary"
 				:aria-label="t('nextcloud-vue', 'Remove column')"
 				@click="removeColumn(i)">
 				<template #icon>
@@ -71,7 +71,7 @@
 				</template>
 			</NcButton>
 		</div>
-		<NcButton type="tertiary" @click="addColumn">
+		<NcButton variant="tertiary" @click="addColumn">
 			<template #icon>
 				<Plus :size="18" />
 			</template>

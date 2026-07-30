@@ -96,7 +96,7 @@ through `GET`/`PATCH /apps/openregister/api/schemas/{id}` (see `CnFlowCanvasModa
 		<div v-if="selectedNode" class="cn-flow-canvas__config">
 			<div class="cn-flow-canvas__config-header">
 				<h4>{{ selectedNode.data.kind === 'trigger' ? t('nextcloud-vue', 'Trigger') : t('nextcloud-vue', 'Action') }}</h4>
-				<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Delete')" @click="deleteSelected">
+				<NcButton variant="tertiary" :aria-label="t('nextcloud-vue', 'Delete')" @click="deleteSelected">
 					<template #icon>
 						<Delete :size="18" />
 					</template>

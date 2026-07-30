@@ -190,7 +190,7 @@
 		<template v-if="addFooterVisible" #footer>
 			<div class="cn-related-objects-widget__footer">
 				<NcButton v-if="soleAddable && soleAddable.key === 'files'"
-					type="secondary"
+					variant="secondary"
 					:disabled="uploading"
 					@click="openFilePicker">
 					<template #icon>

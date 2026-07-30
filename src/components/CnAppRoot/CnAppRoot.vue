@@ -95,7 +95,7 @@
 							-->
 							<template v-if="isAdmin">
 								<NcButton
-									type="primary"
+									variant="primary"
 									data-testid="cn-app-root-or-missing-install"
 									:disabled="depInstalling"
 									@click="installDependency(orMissingPrimaryApp)">
@@ -212,7 +212,7 @@
 						<div class="cn-app-root__soft-dep-actions">
 							<NcButton
 								v-if="isAdmin"
-								type="secondary"
+								variant="secondary"
 								:data-testid="'cn-app-root-soft-dep-install-' + dep.id"
 								:disabled="depInstalling"
 								@click="installDependency(dep.id)">
@@ -225,7 +225,7 @@
 								{{ softDepAskAdmin(dep) }}
 							</span>
 							<NcButton
-								type="tertiary"
+								variant="tertiary"
 								:data-testid="'cn-app-root-soft-dep-dismiss-' + dep.id"
 								@click="dismissSoftDep(dep.id)">
 								{{ softDepDismissLabel }}
@@ -483,7 +483,7 @@
 						<p class="cn-app-root__walkthrough-hint">
 							{{ restartWalkthroughHint }}
 						</p>
-						<NcButton type="secondary" @click="restartWalkthroughFromSettings">
+						<NcButton variant="secondary" @click="restartWalkthroughFromSettings">
 							<template #icon>
 								<Restart :size="20" />
 							</template>

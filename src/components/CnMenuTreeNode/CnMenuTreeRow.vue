@@ -70,7 +70,7 @@
 		<NcPopover v-model:shown="popoverOpen" :focus-trap="false">
 			<template #trigger="{ attrs }">
 				<NcButton v-bind="attrs"
-					type="tertiary"
+					variant="tertiary"
 					:aria-label="t('nextcloud-vue', 'Menu item settings')">
 					<template #icon>
 						<Cog :size="18" />
@@ -79,14 +79,14 @@
 			</template>
 			<div class="cn-menu-tree__config">
 				<NcButton v-if="canAddChild"
-					type="tertiary"
+					variant="tertiary"
 					@click="$emit('add-child')">
 					<template #icon>
 						<Plus :size="18" />
 					</template>
 					{{ t('nextcloud-vue', 'Add sub-item') }}
 				</NcButton>
-				<NcButton type="tertiary"
+				<NcButton variant="tertiary"
 					@click="$emit('remove')">
 					<template #icon>
 						<Delete :size="18" />

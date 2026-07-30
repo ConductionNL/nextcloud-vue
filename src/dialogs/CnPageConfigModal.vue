@@ -317,7 +317,7 @@
 				<template v-if="isDataPage">
 					<NcNoteCard v-if="dataSourcesError" type="error">
 						{{ t('nextcloud-vue', 'Could not load registers and schemas.') }}
-						<NcButton type="tertiary" @click="retryDataSources">
+						<NcButton variant="tertiary" @click="retryDataSources">
 							{{ t('nextcloud-vue', 'Retry') }}
 						</NcButton>
 					</NcNoteCard>
@@ -547,7 +547,7 @@
 
 		<template #actions>
 			<span class="cn-page-config__id">{{ page.id }}</span>
-			<NcButton type="primary" :disabled="saving || hasJsonError" @click="onDone">
+			<NcButton variant="primary" :disabled="saving || hasJsonError" @click="onDone">
 				<template v-if="saving" #icon>
 					<NcLoadingIcon :size="20" />
 				</template>

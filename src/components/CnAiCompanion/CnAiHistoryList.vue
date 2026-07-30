@@ -71,10 +71,10 @@
 						:label="cnTranslate('Description')"
 						@update:model-value="editDescription = $event" />
 					<div class="cn-ai-history-list__edit-actions">
-						<NcButton type="primary" :disabled="saving" @click="saveEdit(conv)">
+						<NcButton variant="primary" :disabled="saving" @click="saveEdit(conv)">
 							{{ cnTranslate('Save') }}
 						</NcButton>
-						<NcButton type="tertiary" :disabled="saving" @click="cancelEdit">
+						<NcButton variant="tertiary" :disabled="saving" @click="cancelEdit">
 							{{ cnTranslate('Cancel') }}
 						</NcButton>
 					</div>

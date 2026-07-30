@@ -28,7 +28,7 @@
 							@update:model-value="(v) => setTabVisible(tab.id, v)" />
 						<NcTextField v-model="tab.label" :label="t('nextcloud-vue', 'Tab label')" :label-visible="true" />
 						<NcTextField v-model="tab.id" :label="t('nextcloud-vue', 'Tab id')" :label-visible="true" />
-						<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="removeTab(index)">
+						<NcButton variant="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="removeTab(index)">
 							<template #icon>
 								<Delete :size="20" />
 							</template>
@@ -45,7 +45,7 @@
 					</label>
 				</li>
 			</ul>
-			<NcButton type="secondary" @click="addTab">
+			<NcButton variant="secondary" @click="addTab">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
@@ -55,7 +55,7 @@
 		<NcEmptyContent v-else :name="t('nextcloud-vue', 'No editable page')" />
 
 		<template #actions>
-			<NcButton type="primary" :disabled="saving" @click="onDone">
+			<NcButton variant="primary" :disabled="saving" @click="onDone">
 				<template #icon>
 					<NcLoadingIcon v-if="saving" :size="20" />
 					<ContentSaveOutline v-else :size="20" />

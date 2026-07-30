@@ -67,7 +67,7 @@
 					<span class="cn-widget-style-editor__label">{{ t('nextcloud-vue', 'Color') }}</span>
 					<NcColorPicker v-model="draft.backgroundColor">
 						<NcButton
-							type="secondary"
+							variant="secondary"
 							:aria-label="t('nextcloud-vue', 'Pick background color')"
 							data-testid="cn-widget-style-color">
 							<template #icon>
@@ -108,13 +108,13 @@
 				{{ t('nextcloud-vue', 'Delete') }}
 			</NcButton>
 			<div class="cn-widget-style-editor__actions-right">
-				<NcButton type="tertiary" @click="onCancel">
+				<NcButton variant="tertiary" @click="onCancel">
 					{{ t('nextcloud-vue', 'Cancel') }}
 				</NcButton>
-				<NcButton type="secondary" data-testid="cn-widget-style-reset" @click="resetDraft">
+				<NcButton variant="secondary" data-testid="cn-widget-style-reset" @click="resetDraft">
 					{{ t('nextcloud-vue', 'Reset') }}
 				</NcButton>
-				<NcButton type="primary" data-testid="cn-widget-style-save" @click="onSave">
+				<NcButton variant="primary" data-testid="cn-widget-style-save" @click="onSave">
 					{{ t('nextcloud-vue', 'Save') }}
 				</NcButton>
 			</div>
