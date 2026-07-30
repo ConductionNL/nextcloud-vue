@@ -190,13 +190,12 @@
 		</div>
 
 		<!-- Reuse the full OpenRegister schema editor for add/edit. It renders its
-		     own dialog, teleported to <body>. `cn-dialog--nested` lifts it ABOVE the
-		     dialog that opened it (see the global rule below) — without it the two
-		     tie on z-index and the winner is decided by DOM order, which for
-		     teleported dialogs is a race this loses about half the time. -->
+		     own dialog, teleported to <body>. It lands above this dialog because
+		     `src/utils/modalStack.js` hands every mask that opens the next layer
+		     up; no per-dialog class is needed (and the old `cn-dialog--nested`
+		     one only ever covered dialogs this library itself nested). -->
 		<CnSchemaFormDialog
 			v-if="showSchemaDialog"
-			class="cn-dialog--nested"
 			:item="editingSchema"
 			:dialog-title="editingSchema ? t('nextcloud-vue', 'Edit schema') : t('nextcloud-vue', 'New schema')"
 			:available-registers="registerOptions"
@@ -917,26 +916,18 @@ export default {
 </style>
 
 <!--
-  Global (un-scoped). Every NcDialog renders a `.modal-mask` at z-index 9998, so a
-  dialog and any dialog it opens land on the SAME layer.
+  The unscoped `.modal-mask.dialog__modal { z-index: 10005 !important }` /
+  `.cn-dialog--nested { 10010 !important }` pair that used to live here is gone.
 
-  Raising them both to one shared value does NOT fix that: equal z-index means the
-  painting order falls back to DOM order, and NcDialog teleports its mask to <body>,
-  so which mask is inserted first is a mount-timing race. Observed live: the nested
-  schema editor was at DOM index 641 and the "Manage data" dialog that opened it at
-  1143 — so the PARENT painted over its own child. On a different run the order was
-  reversed and it looked fine, which is why this kept coming back.
+  It shipped app-wide from this one component's <style> block and pinned EVERY
+  NcDialog mask in a consuming app to 10005 — a flat layer no consumer could
+  outrank, so any two open dialogs tied and the painting order fell back to DOM
+  order between two nodes teleported to <body>. The `--nested` escape hatch only
+  helped dialogs this library itself nested; a dialog opened by the consuming app
+  (OpenBuild's "Generate an app with AI", opened from the create-application
+  wizard) still tied and still swallowed the clicks aimed at it.
 
-  Give the nested dialog a strictly HIGHER layer instead, so the stacking no longer
-  depends on insertion order. Any dialog opened from inside another dialog should
-  carry `cn-dialog--nested`.
+  The baseline now lives in `src/css/patches.css` WITHOUT `!important`, and
+  `src/utils/modalStack.js` writes a per-modal inline layer so the most recently
+  opened modal is the one that receives pointer events.
 -->
-<style>
-.modal-mask.dialog__modal {
-	z-index: 10005 !important;
-}
-
-.modal-mask.cn-dialog--nested {
-	z-index: 10010 !important;
-}
-</style>
