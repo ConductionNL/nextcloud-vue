@@ -18,6 +18,14 @@ import { createApp } from 'vue'
 // (the library styles everything with var(--color-*) tokens).
 import '../../styleguide/nextcloud-tokens.css'
 import App from './App.vue'
+import { installModalStack } from '../../src/utils/modalStack.js'
+
+// Nested-modal stacking. In a real app `CnAppRoot` does this on mount; the
+// harness mounts individual SFCs with no shell, so it takes the same route a
+// consumer without `CnAppRoot` takes — one call at bootstrap. Without it every
+// `.modal-mask` keeps @nextcloud/vue's flat z-index, two open dialogs tie, and
+// the painting order falls back to DOM order (see nested-dialog-stacking.e2e.js).
+installModalStack()
 
 // Minimal l10n shims so library components that call the global `t`/`n` render.
 const t = (app, text, vars) => (vars

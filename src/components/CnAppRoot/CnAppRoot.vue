@@ -611,6 +611,7 @@ import { useObjectStore } from '../../store/index.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
 import { DEFAULT_FORGE } from '../../utils/forge.js'
+import { installModalStack, uninstallModalStack } from '../../utils/modalStack.js'
 import { RegistryKindError } from '../../errors/RegistryKindError.js'
 
 /**
@@ -2436,6 +2437,16 @@ export default {
 	},
 
 	mounted() {
+		// Nested modals: without this every `.modal-mask` in the app shares one
+		// z-index, so two open dialogs tie and the painting order falls back to
+		// DOM order between two nodes teleported to <body> — clicks aimed at the
+		// top dialog get swallowed by the one underneath. Installed on the app
+		// root (not per dialog) because the colliding dialogs are not all ours:
+		// the consuming app's own NcDialogs need the same layering, and
+		// @nextcloud/vue exposes no z-index prop. Reference-counted, so the
+		// nested CnAppRoot in OpenBuild's BuilderHost is safe.
+		installModalStack()
+
 		// Guard against silently losing unsaved in-app edits. The manifest
 		// editor stays `dirty` for the whole Save (the persist PUT can take a
 		// few seconds), so a refresh mid-save would drop the edit before the
@@ -2482,6 +2493,10 @@ export default {
 	beforeUnmount() {
 		window.removeEventListener('beforeunload', this.onBeforeUnload)
 		this.cnScopedTheme.teardown(this.appId)
+		// Scope the side effect to the shell's lifetime. Layers already written
+		// stay on screen (see `uninstallModalStack`), so a dialog outliving the
+		// shell does not lose its stacking.
+		uninstallModalStack()
 	},
 
 	methods: {
