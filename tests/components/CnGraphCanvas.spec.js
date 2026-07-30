@@ -36,6 +36,50 @@ function mountCanvas(propsData = {}, rect = { left: 0, top: 0 }) {
 }
 
 describe('CnGraphCanvas', () => {
+	describe('nodes without stored coordinates', () => {
+		// A node document is not obliged to carry x/y — a hand-written, imported or
+		// agent-generated graph routinely has none. Reading node.x straight off such
+		// a node gave `undefined`, and `undefined + nodeWidth / 2` is NaN, so every
+		// edge rendered as `d="M NaN NaN L NaN NaN"` (invisible, one console error
+		// per edge per render) and every node got `left: undefinedpx`, an invalid
+		// declaration the browser drops — collapsing the canvas into the static
+		// flow. A coordinate-less graph did not degrade, it broke.
+		const BARE = [{ id: 'a' }, { id: 'b' }, { id: 'c' }]
+
+		it('lays them out on a grid instead of producing NaN', () => {
+			const wrapper = mountCanvas({ nodes: BARE, edges: [{ id: 'e', source: 'a', target: 'b' }] })
+			wrapper.vm.positionedNodes.forEach((node) => {
+				expect(Number.isFinite(node.x)).toBe(true)
+				expect(Number.isFinite(node.y)).toBe(true)
+			})
+		})
+
+		it('spaces them apart rather than stacking them at the origin', () => {
+			const wrapper = mountCanvas({ nodes: BARE, edges: [] })
+			const [first, second] = wrapper.vm.positionedNodes
+			expect(second.x).toBeGreaterThan(first.x)
+		})
+
+		it('resolves edge endpoints to finite centres', () => {
+			const wrapper = mountCanvas({ nodes: BARE, edges: [{ id: 'e', source: 'a', target: 'b' }] })
+			const [edge] = wrapper.vm.resolvedEdges
+			expect(Number.isFinite(edge.from.x)).toBe(true)
+			expect(Number.isFinite(edge.to.y)).toBe(true)
+		})
+
+		it('leaves a stored position untouched', () => {
+			const wrapper = mountCanvas({ nodes: [{ id: 'a', x: 42, y: 7 }], edges: [] })
+			expect(wrapper.vm.positionedNodes[0]).toMatchObject({ x: 42, y: 7 })
+		})
+
+		it('fills in only the missing axis', () => {
+			const wrapper = mountCanvas({ nodes: [{ id: 'a', x: 42 }], edges: [] })
+			const node = wrapper.vm.positionedNodes[0]
+			expect(node.x).toBe(42)
+			expect(Number.isFinite(node.y)).toBe(true)
+		})
+	})
+
 	describe('geometry', () => {
 		it('a node centre accounts for the configured node size', () => {
 			const wrapper = mountCanvas({ nodeWidth: 200, nodeHeight: 80 })
