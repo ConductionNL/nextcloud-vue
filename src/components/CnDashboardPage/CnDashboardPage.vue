@@ -295,7 +295,7 @@
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
 						:show-title="widgetShowTitle(item)"
-						:borderless="!widgetShowTitle(item)"
+						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
@@ -369,7 +369,7 @@
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
 						:show-title="widgetShowTitle(item)"
-						:borderless="!widgetShowTitle(item)"
+						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
@@ -444,7 +444,7 @@
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
 						:show-title="widgetShowTitle(item)"
-						:borderless="!widgetShowTitle(item)"
+						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
@@ -2370,6 +2370,26 @@ export default {
 			const value = item.showTitle !== undefined ? item.showTitle : def?.showTitle
 			if (value === undefined || value === null) return !this.isCardWidget(item)
 			return value !== false
+		},
+
+		/**
+		 * Whether a widget's card chrome is suppressed. An explicit
+		 * `layout[].borderless` wins; otherwise a widget with no header is drawn
+		 * borderless, as before.
+		 *
+		 * The explicit override exists because "no header" and "no card" are
+		 * different intentions, and conflating them pushed authors into the
+		 * wrong shape: a headerless tile (a KPI whose label IS its content) lost
+		 * its card, so the widget drew its OWN bordered box inside the grid
+		 * cell — a card inside a card. Now `borderless: false` keeps the chrome
+		 * and the widget can stay flat, which is what a tile wants.
+		 *
+		 * @param {object} item the layout placement.
+		 * @return {boolean}
+		 */
+		widgetBorderless(item) {
+			if (typeof item.borderless === 'boolean') return item.borderless
+			return !this.widgetShowTitle(item)
 		},
 
 		/**

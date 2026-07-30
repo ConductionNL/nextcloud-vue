@@ -152,6 +152,8 @@ export {
 	CnDeltaWidgetForm,
 	CnGaugeWidget,
 	CnGaugeWidgetForm,
+	CnFlowRunsWidget,
+	CnFlowRunsWidgetForm,
 	CnObjectListWidget,
 	CnObjectListWidgetForm,
 	CnChartWidgetForm,
