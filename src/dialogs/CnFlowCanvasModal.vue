@@ -54,10 +54,10 @@ selected schema, and persists via `PATCH /apps/openregister/api/schemas/{id}` (k
 		</div>
 
 		<template #actions>
-			<NcButton type="tertiary" :disabled="busy" @click="$emit('close')">
+			<NcButton variant="tertiary" :disabled="busy" @click="$emit('close')">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
-			<NcButton type="primary" :disabled="busy || loading || !selectedSchema" @click="save">
+			<NcButton variant="primary" :disabled="busy || loading || !selectedSchema" @click="save">
 				<template #icon>
 					<NcLoadingIcon v-if="busy" :size="18" />
 					<ContentSave v-else :size="18" />

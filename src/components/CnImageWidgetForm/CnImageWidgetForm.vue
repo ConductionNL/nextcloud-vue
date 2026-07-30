@@ -25,7 +25,7 @@
 			</label>
 			<NcButton
 				v-if="pendingFile"
-				type="tertiary"
+				variant="tertiary"
 				:disabled="uploading"
 				@click="clearPendingFile">
 				{{ t('nextcloud-vue', 'Remove') }}

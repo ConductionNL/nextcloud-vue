@@ -59,7 +59,7 @@
 							:model-value="flow.name"
 							:label="t('nextcloud-vue', 'Flow name')"
 							@update:model-value="(v) => flow['name'] = v" />
-						<NcButton type="tertiary"
+						<NcButton variant="tertiary"
 							:aria-label="t('nextcloud-vue', 'Remove flow')"
 							:title="t('nextcloud-vue', 'Remove flow')"
 							@click="removeFlow(fi)">
@@ -84,7 +84,7 @@
 								:clearable="false"
 								:input-label="t('nextcloud-vue', 'Action')"
 								@update:model-value="(o) => setActionType(action, o)" />
-							<NcButton type="tertiary"
+							<NcButton variant="tertiary"
 								:aria-label="t('nextcloud-vue', 'Remove action')"
 								:title="t('nextcloud-vue', 'Remove action')"
 								@click="removeAction(flow, ai)">
@@ -172,7 +172,7 @@
 						</NcNoteCard>
 					</div>
 
-					<NcButton type="secondary" @click="addAction(flow)">
+					<NcButton variant="secondary" @click="addAction(flow)">
 						<template #icon>
 							<Plus :size="20" />
 						</template>
@@ -181,7 +181,7 @@
 				</div>
 
 				<div class="cn-edit-flows__actions-bar">
-					<NcButton type="secondary" @click="addFlow">
+					<NcButton variant="secondary" @click="addFlow">
 						<template #icon>
 							<Plus :size="20" />
 						</template>
@@ -199,7 +199,7 @@
 
 		<template #actions>
 			<NcButton v-if="selectedSchema"
-				type="primary"
+				variant="primary"
 				:disabled="busy"
 				@click="save">
 				<template #icon>

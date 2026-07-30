@@ -247,7 +247,7 @@
 				     remove button here. Shown only while the page is in edit
 				     mode. -->
 				<div v-if="gridEditable" class="cn-dashboard-page__widget-edit">
-					<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
+					<NcButton variant="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
 						<template #icon>
 							<Cog :size="18" />
 						</template>

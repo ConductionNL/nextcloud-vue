@@ -26,7 +26,7 @@
 					<div class="cn-edit-setup__row">
 						<NcTextField v-model="step.title"
 							:label="t('nextcloud-vue', 'Step title')" />
-						<NcButton type="tertiary"
+						<NcButton variant="tertiary"
 							:aria-label="t('nextcloud-vue', 'Remove step')"
 							@click="remove(index)">
 							<template #icon>
@@ -57,13 +57,13 @@
 		</div>
 
 		<template #actions>
-			<NcButton type="secondary" @click="add">
+			<NcButton variant="secondary" @click="add">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
 				{{ t('nextcloud-vue', 'Add step') }}
 			</NcButton>
-			<NcButton type="primary" :disabled="saving" @click="onDone">
+			<NcButton variant="primary" :disabled="saving" @click="onDone">
 				<template v-if="saving" #icon>
 					<NcLoadingIcon :size="20" />
 				</template>

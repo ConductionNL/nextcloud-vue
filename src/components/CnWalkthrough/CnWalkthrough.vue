@@ -31,7 +31,7 @@
 			:class="`cn-walkthrough__card--${cardPlacement}`"
 			:style="cardStyle">
 			<NcButton class="cn-walkthrough__close"
-				type="tertiary"
+				variant="tertiary"
 				:aria-label="closeLabel"
 				:title="closeLabel"
 				@click="close">
@@ -60,7 +60,7 @@
 					<span class="cn-walkthrough__task-icon" aria-hidden="true">👉</span> {{ step.task }}
 				</p>
 				<div class="cn-walkthrough__actions">
-					<NcButton v-if="!isFirst" type="secondary" @click="back">
+					<NcButton v-if="!isFirst" variant="secondary" @click="back">
 						<template #icon>
 							<ChevronLeft :size="20" />
 						</template>
@@ -69,7 +69,7 @@
 					<span class="cn-walkthrough__spacer" />
 					<NcButton v-if="isHandoff"
 						ref="firstBtn"
-						type="primary"
+						variant="primary"
 						alignment="center-reverse"
 						@click="doHandoff">
 						<template #icon>
@@ -79,7 +79,7 @@
 					</NcButton>
 					<NcButton v-else-if="showNext"
 						ref="firstBtn"
-						type="primary"
+						variant="primary"
 						alignment="center-reverse"
 						@click="advance">
 						<template #icon>

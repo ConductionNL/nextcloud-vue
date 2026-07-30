@@ -35,7 +35,7 @@
 				placeholder="won"
 				@update:model-value="update(i, 'value', $event)" />
 			<NcButton
-				type="tertiary"
+				variant="tertiary"
 				:aria-label="t('nextcloud-vue', 'Remove filter')"
 				@click="remove(i)">
 				<template #icon>
@@ -43,7 +43,7 @@
 				</template>
 			</NcButton>
 		</div>
-		<NcButton type="tertiary" @click="add">
+		<NcButton variant="tertiary" @click="add">
 			<template #icon>
 				<Plus :size="18" />
 			</template>

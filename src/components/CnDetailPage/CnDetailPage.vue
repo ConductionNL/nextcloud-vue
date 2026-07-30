@@ -288,7 +288,7 @@
 						     is in OpenBuild edit mode. The modal's own Delete affordance
 						     covers removal, so no separate remove button here. -->
 						<div v-if="editingBody && registryFormFor(item)" class="cn-detail-page__widget-edit">
-							<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
+							<NcButton variant="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
 								<template #icon>
 									<Cog :size="18" />
 								</template>

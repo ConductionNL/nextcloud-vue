@@ -57,7 +57,7 @@
 		</div>
 
 		<div class="cn-interaction-form-widget__actions">
-			<NcButton type="primary" :disabled="saving || !canRegister" @click="onRegister">
+			<NcButton variant="primary" :disabled="saving || !canRegister" @click="onRegister">
 				{{ saving ? savingLabel : registerLabel }}
 			</NcButton>
 		</div>

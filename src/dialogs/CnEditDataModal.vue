@@ -35,7 +35,7 @@
 					{{ t('nextcloud-vue', 'Deleting the objects cannot be undone.') }}
 				</p>
 				<div class="cn-edit-data__confirm-actions">
-					<NcButton type="tertiary" :disabled="busy" @click="cancelCascade">
+					<NcButton variant="tertiary" :disabled="busy" @click="cancelCascade">
 						{{ t('nextcloud-vue', 'Cancel') }}
 					</NcButton>
 					<NcButton type="error" :disabled="busy" @click="confirmCascade">
@@ -63,7 +63,7 @@
 					{{ t('nextcloud-vue', 'Objects already stored under this schema may no longer match it. Save anyway?') }}
 				</p>
 				<div class="cn-edit-data__confirm-actions">
-					<NcButton type="tertiary" :disabled="busy" @click="cancelBreaking">
+					<NcButton variant="tertiary" :disabled="busy" @click="cancelBreaking">
 						{{ t('nextcloud-vue', 'Back to editing') }}
 					</NcButton>
 					<NcButton type="warning" :disabled="busy" @click="confirmBreaking">
@@ -80,7 +80,7 @@
 					:label-visible="true"
 					:placeholder="t('nextcloud-vue', 'My data')"
 					@update:model-value="(v) => newRegisterTitle = v" />
-				<NcButton type="primary" :disabled="busy || !newRegisterTitle.trim()" @click="createRegister">
+				<NcButton variant="primary" :disabled="busy || !newRegisterTitle.trim()" @click="createRegister">
 					<template v-if="busy" #icon>
 						<NcLoadingIcon :size="20" />
 					</template>
@@ -99,7 +99,7 @@
 							@update:model-value="(v) => renameTitle = v"
 							@keydown.enter="renameRegister"
 							@keydown.esc="renamingRegister = false" />
-						<NcButton type="primary"
+						<NcButton variant="primary"
 							:disabled="busy || !renameTitle.trim()"
 							:aria-label="t('nextcloud-vue', 'Save register name')"
 							@click="renameRegister">
@@ -108,7 +108,7 @@
 								<Check v-else :size="20" />
 							</template>
 						</NcButton>
-						<NcButton type="tertiary"
+						<NcButton variant="tertiary"
 							:disabled="busy"
 							:aria-label="t('nextcloud-vue', 'Cancel rename')"
 							@click="renamingRegister = false">
@@ -130,7 +130,7 @@
 							{{ t('nextcloud-vue', 'Register') }}: <strong>{{ selectedRegister && (selectedRegister.title || selectedRegister.slug) }}</strong>
 						</span>
 						<NcButton v-if="selectedRegister"
-							type="tertiary"
+							variant="tertiary"
 							:disabled="busy"
 							:aria-label="t('nextcloud-vue', 'Rename register')"
 							@click="startRename">
@@ -147,7 +147,7 @@
 						<h3 class="cn-edit-data__subtitle">
 							{{ t('nextcloud-vue', 'Schemas') }}
 						</h3>
-						<NcButton type="secondary" :disabled="busy" @click="openCreate">
+						<NcButton variant="secondary" :disabled="busy" @click="openCreate">
 							<template #icon>
 								<Plus :size="20" />
 							</template>
@@ -166,7 +166,7 @@
 								<span class="cn-edit-data__schema-meta">{{ propertyCount(schema) }}</span>
 							</span>
 							<div class="cn-edit-data__row-actions">
-								<NcButton type="tertiary"
+								<NcButton variant="tertiary"
 									:disabled="busy"
 									:aria-label="t('nextcloud-vue', 'Edit schema')"
 									@click="openEdit(schema)">
@@ -174,7 +174,7 @@
 										<Pencil :size="20" />
 									</template>
 								</NcButton>
-								<NcButton type="tertiary"
+								<NcButton variant="tertiary"
 									:disabled="busy"
 									:aria-label="t('nextcloud-vue', 'Remove schema')"
 									@click="removeSchema(schema)">

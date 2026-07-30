@@ -25,7 +25,7 @@
 			</div>
 
 			<div class="cn-field-inspection__actions">
-				<NcButton type="primary"
+				<NcButton variant="primary"
 					data-testid="cn-fi-sync-day"
 					:disabled="syncing || offline"
 					@click="syncDay">
@@ -65,7 +65,7 @@
 			<!-- Checklist completion for one item -->
 			<div v-else class="cn-field-inspection__checklist" data-testid="cn-fi-checklist">
 				<div class="cn-field-inspection__checklist-head">
-					<NcButton type="tertiary" data-testid="cn-fi-back" @click="closeItem">
+					<NcButton variant="tertiary" data-testid="cn-fi-back" @click="closeItem">
 						{{ t('nextcloud-vue', 'Back') }}
 					</NcButton>
 					<strong>{{ itemTitle(activeItem) }}</strong>
@@ -112,7 +112,7 @@
 					     the native button type (`ButtonType`), and the old style-variant
 					     prop is `variant`. This line used to pass BOTH wrong: `native-type`
 					     (not a real prop — the button silently defaulted to `type="button"`
-					     and never fired the form's native submit) and `type="primary"`
+					     and never fired the form's native submit) and `variant="primary"`
 					     (an invalid `ButtonType`, so the visual primary style never applied
 					     either). See CnFormPage.vue's inline comment for the submit-button
 					     half of this bug in detail. -->
