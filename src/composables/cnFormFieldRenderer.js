@@ -56,24 +56,52 @@
  *
  * @return {{ tag: object, props: object, listeners: object }}
  */
+// READ THIS BEFORE MAKING `NcTextArea` LAZY AGAIN.
+//
+// This module used to resolve NcTextArea through a CommonJS `require` call
+// for `@nextcloud/vue` inside a try/catch, on the theory that "NcTextArea is
+// not always exported under the same path across @nextcloud/vue versions".
+// That call could never succeed in any consumer:
+//
+//   - this file is ESM and ships to `dist/esm/**`, where `require` is not
+//     defined at all;
+//   - `@nextcloud/vue@9`'s `exports` map declares ONLY an `import`
+//     condition ("." → { types, import }) — there is no `require`
+//     condition, so even a CommonJS consumer resolving the same specifier
+//     gets ERR_PACKAGE_PATH_NOT_EXPORTED.
+//
+// So the catch always fired, `NcTextArea` was permanently `null`, and every
+// `field.widget === 'textarea'` silently degraded to a bare `<textarea>`
+// (losing the label wiring and the `error`/`helperText` state) with NO
+// runtime error — plus a "require is not defined"/"cannot be resolved"
+// build warning in every consuming app.
+//
+// NcTextArea is a plain named export of `@nextcloud/vue` v9 (verified
+// against 9.9.0's `dist/index.mjs`), i.e. exactly the same kind of export as
+// the three next to it, so it is imported statically like them. If a future
+// @nextcloud/vue really does drop it, the named import resolves to
+// `undefined` rather than throwing — and that case is made OBSERVABLE by
+// `NC_TEXT_AREA_AVAILABLE` plus the one-time warning on the fallback path,
+// instead of being swallowed the way the try/catch swallowed it.
 import {
 	NcCheckboxRadioSwitch,
 	NcSelect,
+	NcTextArea,
 	NcTextField,
 } from '@nextcloud/vue'
 import CnJsonViewer from '../components/CnJsonViewer/CnJsonViewer.vue'
 
-// NcTextArea is not always exported under the same path across
-// @nextcloud/vue versions; falling back to NcTextField with a
-// `multiline` prop hint keeps this resilient. The actual textarea
-// rendering is delegated to the textarea fallback below.
-let NcTextArea = null
-try {
-	// eslint-disable-next-line global-require
-	NcTextArea = require('@nextcloud/vue').NcTextArea ?? null
-} catch (_e) {
-	NcTextArea = null
-}
+/**
+ * Whether the installed `@nextcloud/vue` actually provided `NcTextArea`.
+ *
+ * Exported so a consumer (or a test) can assert the textarea path is the
+ * REAL component rather than the degraded native-`<textarea>` fallback. The
+ * previous silent-`null` behaviour is precisely what made this
+ * unobservable — a flag someone can read is the minimum bar for a fallback.
+ *
+ * @type {boolean}
+ */
+export const NC_TEXT_AREA_AVAILABLE = Boolean(NcTextArea)
 
 const DEFAULT_COMPONENT_MAP = Object.freeze({
 	boolean: NcCheckboxRadioSwitch,
@@ -215,6 +243,23 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 			// <textarea> rendered via the host template. The renderer
 			// returns `tag: 'textarea'` so the consumer's `<component :is>`
 			// resolves to the native element.
+			//
+			// The fallback is degraded (no NC label wiring, no native
+			// `error`/`helperText` state), so taking it is WARNED about once
+			// per process. It used to be taken unconditionally and silently,
+			// because the CommonJS lookup that fed `NcTextArea` could never
+			// resolve from an ESM build.
+			if (!map['string-textarea'] && !warned.has('__no-nc-textarea')) {
+				warned.add('__no-nc-textarea')
+				// eslint-disable-next-line no-console
+				console.warn(
+					'[cnRenderFormField] NcTextArea is unavailable from @nextcloud/vue; '
+					+ 'falling back to a bare <textarea> for `widget: "textarea"` fields. '
+					+ 'The fallback has no label wiring and no error/helperText state. '
+					+ 'Check that @nextcloud/vue satisfies the peer range, or pass '
+					+ 'componentMap["string-textarea"] explicitly.',
+				)
+			}
 			result = {
 				kind: 'string-textarea',
 				tag: map['string-textarea'] || 'textarea',

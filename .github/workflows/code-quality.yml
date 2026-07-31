@@ -81,16 +81,24 @@ jobs:
         run: npm run stylelint
         continue-on-error: true
 
-      - name: Tests
-        run: npm test
-
       # Phase K / K1 — authoritative template-ES2020 gate. `rollup -c`
       # runs rollup-plugin-vue → vue-template-compiler → buble over every
       # SFC; a template-side `?.`/`??` (or any other buble-incompatible
       # syntax) fails here. The `check:integration-build` step above is the
       # fast, integration-scoped early-warning for the same class of bug.
+      #
+      # Runs BEFORE the tests: `tests/packaging/subpath-exports.spec.js` packs
+      # the package and asserts things about `dist/` — most importantly that no
+      # CommonJS require call survives in `dist/esm/**`. Against a tree with no
+      # `dist/` that assertion is vacuously true, which is the exact shape of
+      # the green-but-meaningless results that suite exists to rule out. (The
+      # spec builds on demand if `dist/` is missing, so a bare `npx jest` still
+      # measures something; this ordering just keeps it from building twice.)
       - name: Build
         run: npm run build
+
+      - name: Tests
+        run: npm test
 
       # Needs dist/, so it runs after the build. Asserts that every scope id the
       # built JS stamps onto elements has a matching rule in the CSS reachable
