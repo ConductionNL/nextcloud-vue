@@ -8,10 +8,23 @@ module.exports = {
 	moduleFileExtensions: ['js', 'vue', 'json'],
 	transform: {
 		'^.+\\.js$': 'babel-jest',
+		// `.mjs` too: several packages now ship ESM-only entry points reached
+		// through an `exports` map (pinia >= 4 pulls in `nostics`, whose only
+		// entry is `dist/index.mjs`). Without a transform for the extension the
+		// suite dies at `require('pinia')` in tests/setup.js — a whole-suite
+		// failure caused by nothing in this repository. NOT added to
+		// `moduleFileExtensions`: these files are resolved with an explicit
+		// extension, and changing the resolution order would be a much larger
+		// blast radius than transforming them.
+		'^.+\\.mjs$': 'babel-jest',
 		'^.+\\.vue$': '@vue/vue3-jest',
 	},
 	transformIgnorePatterns: [
-		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|vue-codemirror6|codemirror|@codemirror|@ckpack)/)',
+		// `nostics` is pulled in by pinia >= 4 and is ESM-only; without it the
+		// whole suite dies at `require('pinia')` in tests/setup.js the moment a
+		// consumer's pinia major moves. Listed so the peer range this package
+		// advertises stays actually runnable here.
+		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|nostics|vue-codemirror6|codemirror|@codemirror|@ckpack)/)',
 	],
 	moduleNameMapper: {
 		'^@/(.*)$': '<rootDir>/src/$1',

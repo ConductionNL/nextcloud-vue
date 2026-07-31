@@ -35,6 +35,13 @@ export const vueDeprecationRules: Record<string, unknown>
 /** `vue/v-on-event-hyphenation` with `update:modelValue` excluded. */
 export const vueEventCasingRules: Record<string, unknown>
 
+/**
+ * The two Vue-2 rules that forbid Vue-3-REQUIRED syntax, switched off:
+ * `vue/no-v-model-argument` and `vue/no-v-for-template-key`. The Vue-3 half of
+ * the key pair (`vue/no-v-for-template-key-on-child`) stays armed.
+ */
+export const vueInvertedVue2Rules: Record<string, unknown>
+
 /** Composable fix layer — registers no plugins; spread it LAST. */
 export const conductionVue3Fixes: CnFlatConfigEntry[]
 

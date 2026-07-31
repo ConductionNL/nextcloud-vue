@@ -46,6 +46,12 @@
  *  4. `parserOptions.parser` in vue-eslint-parser's documented OBJECT form,
  *     which is the difference between a working gate and 385 false positives —
  *     see the block comment on {@link vueSfcParserOptions}.
+ *  5. The two INVERTED Vue-2 rules — `vue/no-v-model-argument` and
+ *     `vue/no-v-for-template-key` — are OFF. Both forbid syntax Vue 3
+ *     requires, and every migrated app was re-adding the same two disables by
+ *     hand. The Vue-3 half of the key pair
+ *     (`vue/no-v-for-template-key-on-child`) is untouched and stays armed —
+ *     see {@link vueInvertedVue2Rules}.
  *
  * USAGE
  * -----
@@ -292,6 +298,40 @@ const vueDeprecationRules = {
 }
 
 /**
+ * The two Vue-2 rules that are INVERTED under Vue 3 — they forbid syntax
+ * Vue 3 requires — switched OFF.
+ *
+ * These are not style opinions and turning them off does not weaken the gate.
+ * Both live in `eslint-plugin-vue`'s **vue2** rulesets (`vue2-essential`), and
+ * both describe constructs that Vue 3 not only permits but mandates:
+ *
+ *  - `vue/no-v-for-template-key` — in Vue 2 the `key` had to sit on the
+ *    `<template v-for>`'s CHILD, so putting it on the `<template>` was an
+ *    error. Vue 3 reverses this exactly: the key belongs ON the
+ *    `<template v-for>`, and putting it on the child is the error. The Vue-3
+ *    half of that pair, `vue/no-v-for-template-key-on-child`, is a SEPARATE
+ *    rule and stays armed — this preset switches off only the inverted one.
+ *  - `vue/no-v-model-argument` — `v-model:foo="x"` is Vue 3's replacement for
+ *    Vue 2's removed `.sync` modifier. `vue/no-deprecated-v-bind-sync` (armed
+ *    above, at `error`) forces `:foo.sync="x"` to be rewritten as
+ *    `v-model:foo="x"` — so leaving this rule on makes the preset demand a
+ *    migration and then reject its only correct outcome.
+ *
+ * Every app that migrated had to add these same two disables by hand; the
+ * Nextcloud app template carried them with a `TODO(nc-vue)` comment pointing
+ * here. Folding them into the preset is what makes that TODO deletable.
+ *
+ * A consumer that still lints Vue 2 sources should not be using a preset
+ * named `conductionVue3` at all.
+ *
+ * @type {Record<string, unknown>}
+ */
+const vueInvertedVue2Rules = {
+	'vue/no-v-model-argument': 'off',
+	'vue/no-v-for-template-key': 'off',
+}
+
+/**
  * Listener-casing policy.
  *
  * `vue/v-on-event-hyphenation` is enabled — but with `update:modelValue`
@@ -369,6 +409,10 @@ const conductionVue3Fixes = [
 		rules: {
 			...vueDeprecationRules,
 			...vueEventCasingRules,
+			// Spread LAST within this layer: these two are 'off' overrides for
+			// rules a consumer's base config (or a Vue-2 ruleset reached through
+			// FlatCompat) may have armed. See {@link vueInvertedVue2Rules}.
+			...vueInvertedVue2Rules,
 		},
 	},
 ]
@@ -395,6 +439,7 @@ module.exports = {
 	vueSfcParserOptions,
 	vueDeprecationRules,
 	vueEventCasingRules,
+	vueInvertedVue2Rules,
 	conductionVue3Fixes,
 	conductionVue3,
 }

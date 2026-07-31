@@ -33,6 +33,10 @@
  * @module utils/resolveManifestSentinels
  */
 
+// `@nextcloud/initial-state` is a DECLARED (non-optional) peer dependency, so
+// it is imported statically. See `readInitialState()` for why the previous
+// lazy CommonJS resolution could never work from `dist/esm/**`.
+import { loadState } from '@nextcloud/initial-state'
 import { RESOLVE_TOKEN_RE } from './sentinelTokens.js'
 
 // `@resolve:<key>` — the config-context token, sourced from the single closed
@@ -246,17 +250,18 @@ async function defaultGetAppConfigValue(appId, key) {
  */
 function readInitialState(appId, key) {
 	try {
-		// `@nextcloud/initial-state` is an optional peer; the host page
-		// may not provision the slot at all. We resolve via require so
-		// jest mocks the import; bundle-side, the package is treeshaken
-		// when no caller pulls it in.
-		// eslint-disable-next-line global-require, import/no-unresolved, n/no-extraneous-require
-		const mod = require('@nextcloud/initial-state')
-		if (typeof mod.loadState === 'function') {
-			return mod.loadState(appId, key, undefined)
-		}
+		// `loadState` is imported STATICALLY (see the import at the top of this
+		// module). It used to be resolved through a CommonJS call inside this
+		// try/catch, which could never succeed from `dist/esm/**` — so the
+		// catch fired unconditionally and this helper always returned
+		// `undefined`, whether or not the host had provisioned the slot.
+		//
+		// The try/catch is kept because `loadState` genuinely throws when the
+		// `#initial-state-*` element is missing and no fallback is supplied —
+		// that is a real, expected runtime condition, not a resolution failure.
+		return loadState(appId, key, undefined)
 	} catch (e) {
-		// Package not installed or no slot provisioned — fall through.
+		// No slot provisioned for this app/key — the documented "absent" case.
 	}
 	return undefined
 }

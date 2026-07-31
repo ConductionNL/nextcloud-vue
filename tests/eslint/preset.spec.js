@@ -22,10 +22,13 @@
 const fs = require('fs')
 const path = require('path')
 
+const pluginVue = require('eslint-plugin-vue')
+
 const {
 	conductionVue3,
 	conductionVue3Fixes,
 	vueDeprecationRules,
+	vueInvertedVue2Rules,
 	ECMA_VERSION,
 	ECMA_LANGUAGE_LEVEL,
 } = require('../../eslint/index.js')
@@ -267,6 +270,118 @@ describe('@conduction/nextcloud-vue/eslint — the gate stays ARMED', () => {
 			+ '<script>\nexport default { name: \'Hyphen\', methods: { x() {} } }\n</script>\n'
 		const [result] = await engine.lintText(source, { filePath: path.join(FIXTURES, 'Hyphen.vue') })
 		expect(ruleIds(result.messages)).toContain('vue/v-on-event-hyphenation')
+	})
+})
+
+/**
+ * The two INVERTED Vue-2 rules must be OFF — and nothing around them may go
+ * off with them.
+ *
+ * `vue/no-v-model-argument` and `vue/no-v-for-template-key` forbid constructs
+ * Vue 3 requires. Every migrated app carried the same two hand-written
+ * disables; the Nextcloud app template carried them under a `TODO(nc-vue)`
+ * pointing at this preset.
+ *
+ * Neither rule is armed by eslint-plugin-vue's Vue-3 `flat/essential`, so
+ * linting the fixture through the standalone preset alone would pass whether
+ * or not the preset switched anything off — a green result that measures
+ * nothing. The base config used here is `flat/vue2-essential`, the plugin's
+ * OWN published ruleset that arms both (the same way a consumer reaching a
+ * Vue-2 ruleset through `FlatCompat`, or `@nextcloud/eslint-config`'s older
+ * layers, arms them). The first test proves the fixture triggers both rules
+ * under that base; the second proves the fix layer, spread last, silences
+ * exactly those two and nothing else.
+ *
+ * Getting this wrong in the SILENCING direction is the failure this preset
+ * exists to prevent, so the armed controls are not optional: `vue/valid-v-for`
+ * and `vue/no-v-for-template-key-on-child` — the Vue-3 half of the very pair
+ * being disabled — must still report.
+ */
+describe('@conduction/nextcloud-vue/eslint — the inverted Vue-2 rules are OFF', () => {
+	/** A consumer base config that ARMS both inverted rules. */
+	const VUE2_BASE = pluginVue.configs['flat/vue2-essential']
+
+	/**
+	 * Lint a fixture through an arbitrary flat config.
+	 *
+	 * @param {string} fixture File name inside tests/fixtures/eslint-preset.
+	 * @param {Array<object>} config Flat config entries.
+	 * @return {Promise<Array<object>>} Lint messages.
+	 */
+	async function lintWith(fixture, config) {
+		const FlatESLint = resolveFlatESLint()
+		const engine = new FlatESLint({
+			overrideConfigFile: true,
+			overrideConfig: config,
+			cwd: FIXTURES,
+		})
+		const filePath = path.join(FIXTURES, fixture)
+		const [result] = await engine.lintText(fs.readFileSync(filePath, 'utf8'), { filePath })
+		return result.messages
+	}
+
+	it('CONTROL: the base config really does report BOTH on the fixture', async () => {
+		// Without this the "clean" assertion below would pass against a preset
+		// that changed nothing at all, because Vue-3 `flat/essential` never
+		// arms these two in the first place.
+		const messages = await lintWith('Vue3RequiredSyntax.vue', VUE2_BASE)
+		expect(ruleIds(messages)).toContain('vue/no-v-model-argument')
+		expect(ruleIds(messages)).toContain('vue/no-v-for-template-key')
+	})
+
+	it('lints Vue-3-required syntax CLEAN once the fix layer is spread last', async () => {
+		const messages = await lintWith('Vue3RequiredSyntax.vue', [
+			...VUE2_BASE,
+			...conductionVue3Fixes,
+		])
+		expect(messages.map((m) => `${m.ruleId} (${m.line}): ${m.message}`)).toEqual([])
+	})
+
+	it('lints the same file clean through the standalone preset too', async () => {
+		const messages = await lintFixture('Vue3RequiredSyntax.vue')
+		expect(messages.map((m) => `${m.ruleId} (${m.line}): ${m.message}`)).toEqual([])
+	})
+
+	it('ARMED: the Vue-3 half of the key pair still reports', async () => {
+		// `no-v-for-template-key` (Vue 2) is off; `no-v-for-template-key-on-child`
+		// (Vue 3) must not be. Disabling both would silence the migration
+		// entirely while looking identical from the app side.
+		const messages = await lintFixture('Vue2KeyPlacement.vue')
+		expect(ruleIds(messages)).toContain('vue/no-v-for-template-key-on-child')
+	})
+
+	it('ARMED: a genuinely bad :key still raises vue/valid-v-for', async () => {
+		// Same probe the parser-wiring gate uses, re-asserted here so a future
+		// edit that switches rules off to quieten a run cannot pass this block.
+		const messages = await lintFixture('StillArmed.vue')
+		expect(ruleIds(messages)).toContain('vue/valid-v-for')
+	})
+
+	it('ARMED: .sync is still an error, so the migration target stays reachable', async () => {
+		// `no-deprecated-v-bind-sync` forces `:x.sync` → `v-model:x`. If that
+		// rule were ever dropped alongside the two disables, the preset would
+		// simply stop caring about the migration.
+		const messages = await lintFixture('LegacyComponent.vue')
+		expect(ruleIds(messages)).toContain('vue/no-deprecated-v-bind-sync')
+	})
+
+	it('switches off exactly these two rules and no others', async () => {
+		expect(vueInvertedVue2Rules).toEqual({
+			'vue/no-v-model-argument': 'off',
+			'vue/no-v-for-template-key': 'off',
+		})
+	})
+
+	it('carries both disables in the SHIPPED fix layer, not just in the export', () => {
+		// The export could be right while the layer never spread it.
+		const rules = conductionVue3Fixes
+			.map((c) => c.rules)
+			.filter(Boolean)
+			.reduce((acc, r) => ({ ...acc, ...r }), {})
+		expect(rules['vue/no-v-model-argument']).toBe('off')
+		expect(rules['vue/no-v-for-template-key']).toBe('off')
+		expect(rules['vue/no-v-for-template-key-on-child']).toBeUndefined()
+		expect(rules['vue/valid-v-for']).toBeUndefined()
 	})
 })
 
