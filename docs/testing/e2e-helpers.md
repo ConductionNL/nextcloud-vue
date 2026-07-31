@@ -91,19 +91,64 @@ test.beforeEach(async ({ page }) => {
 })
 ```
 
-- `seedSupportDialogSeen(page, appId?)` — marks `CnSupportDialog` seen.
+- `seedSupportDialogSeen(target, appId?)` — marks `CnSupportDialog` seen.
   `useSupportDialog` treats a positively set local flag as authoritative even
   in `persistence: 'server'` mode (it short-circuits before the preferences
   `GET`), so one seed covers both backends.
-- `seedWalkthroughSeen(page, appId?, version?)` — records a last-seen version
+- `seedWalkthroughSeen(target, appId?, version?)` — records a last-seen version
   far above any real app version. A *low* seed would suppress the
   `first-visit` tour and then immediately trip the `version-bump` one.
-- `seedFirstVisitOverlaysSeen(page, appId?)` — both at once.
+- `seedFirstVisitOverlaysSeen(target, appId?)` — both at once.
 
 **Call these before `page.goto()`.** `addInitScript` only applies to
 navigations that start after it is registered. (A best-effort write is also
 applied to the already-open document, so a mid-test call is not silently
 useless.)
+
+### In a `global-setup`: pass the **context**, with explicit ids
+
+`target` may be a `Page` **or** a `BrowserContext`. Use the context form
+whenever the state is going to be saved:
+
+```js
+// global-setup.js — durable for every spec, context and browser in the run.
+const context = await browser.newContext()
+await seedFirstVisitOverlaysSeen(context, 'openconnector')
+
+const page = await context.newPage()
+await page.goto('/apps/openconnector/')
+await retireFirstRunWizard(page)
+
+await context.storageState({ path: STORAGE_STATE })
+```
+
+:::danger `'*'` cannot be persisted — and the helpers now refuse to pretend it can
+
+The match-all form has no concrete key to write, so it works by installing a
+`Storage.prototype.getItem` shim. A shim is a live function on one page; it
+cannot serialise into `storageState`. Measured on openconnector:
+
+| `appId` | In-page `getItem` | Persisted into `storageState` |
+| --- | --- | --- |
+| `'openconnector'` | `"1"` | `cn-support-dialog-shown:openconnector=1` |
+| `'*'` | `"1"` | **nothing** |
+
+**Both read back `"1"` inside the page.** That is the whole trap: a
+`global-setup` that seeds with `'*'` and then saves `storageState` looks
+correct during setup and then silently fails for every spec — the
+green-but-dead shape this module exists to prevent.
+
+So the combination is refused rather than documented:
+
+- `seedSupportDialogSeen(context, '*')` — and an omitted `appId` — **throws**.
+- `seedSupportDialogSeen(page, '*')` still works for a spec that never
+  persists, but it poisons that page's `context.storageState()`, so a save
+  fails loudly instead of writing a state with nothing in it. (The untouched
+  method stays reachable as `context.__cnOriginalStorageState()`.)
+
+If you do not know the app ids, `mountedAppIds(page)` will tell you — including
+nested `CnAppRoot`s.
+:::
 
 :::warning Nested `CnAppRoot` — a real caveat, found in the field
 
@@ -120,13 +165,14 @@ The helpers handle this two ways:
 
 1. A bare `appId` also covers every id prefixed with `{appId}-`. So
    `seedSupportDialogSeen(page, 'openbuild')` covers `openbuild-my-app`.
-2. When a nested id does not follow that convention, pass `'*'` (or an explicit
-   array) to cover every app on the page:
-   `await seedSupportDialogSeen(page, '*')`.
+2. When a nested id does not follow that convention, pass an explicit **array**
+   of ids: `await seedSupportDialogSeen(page, ['openbuild', 'openbuild:vapp'])`.
+   The `'*'` form also covers everything, but only for the lifetime of that page
+   — it can never be persisted (see above).
 
 `mountedAppIds(page)` returns the `appId` of every mounted `CnAppRoot` in
 document order, if you would rather discover the real nested id once and feed
-it in explicitly.
+it in explicitly. That is the durable option, and the one to reach for first.
 :::
 
 ### Reactive
@@ -149,6 +195,83 @@ await dismissFirstVisitOverlays(page)
 - `dismissFirstVisitOverlays(page, options)` — the tour first, then the dialog.
   Order matters: the tour's dimmer sits above the dialog, so clearing it first
   is what makes the dialog's close button reachable.
+
+## Locating the app's own modal
+
+```js
+import { appDialog } from '@conduction/nextcloud-vue/testing/playwright'
+
+await page.getByRole('button', { name: 'Add source' }).click()
+await expect(appDialog(page)).toBeVisible()
+await appDialog(page).getByRole('textbox', { name: 'Name' }).fill('demo')
+```
+
+`appDialog(page, options?)` returns a **`Locator`**, so it composes with
+`.getByRole()` chains like any other.
+
+:::warning `getByRole('dialog').first()` can pass against chrome you never opened
+
+At least two other things on a Nextcloud page claim `role="dialog"`:
+`#firstrunwizard` and nc-vue's own `CnSupportDialog`. Both are full-viewport
+masks that **hide nothing** a visibility assertion inspects, so they break
+*clicks* rather than renders — the button underneath stays `toBeVisible()` while
+the click is swallowed with "subtree intercepts pointer events".
+
+The trap is what happens next. Because the overlays are themselves dialogs, a
+spec that clicks, misses, and then asserts on `getByRole('dialog').first()`
+matches **the overlay**, goes green, and reports that a modal it never opened is
+showing. A passing test for a broken flow.
+:::
+
+Excluded by default (`CHROME_DIALOG_SELECTORS`): `#firstrunwizard`,
+`.cn-support-dialog`, `[data-testid-modal="cn-support-dialog"]`, `.oc-dialog`.
+Add your own with `appDialog(page, { exclude: ['.my-overlay'] })`, or get the
+whole match set with `{ all: true }`.
+
+:::note `.modal-mask` is deliberately **not** excluded
+
+It is `@nextcloud/vue`'s `NcModal` **root** — the element that carries
+`role="dialog"` for every `NcModal` and `NcDialog`, including your own.
+Excluding it would make this locator match *nothing* in a typical app, which is
+the same green-but-dead shape it exists to prevent: the locator resolves to zero
+elements and a "not visible" assertion passes against absence.
+
+The chrome that motivates the request is already covered by name —
+`#firstrunwizard` carries `modal-mask--opaque`, and the support dialog is matched
+by class and by test hook.
+:::
+
+## Retiring Nextcloud's first-run wizard
+
+```js
+import { retireFirstRunWizard } from '@conduction/nextcloud-vue/testing/playwright'
+
+const { cleared, status } = await retireFirstRunWizard(page)
+if (!cleared) {
+	console.warn(`[globalSetup] wizard dismissal returned ${status}`)
+}
+```
+
+`#firstrunwizard` is Nextcloud's own overlay, with the identical failure shape
+as the one described above — it hides nothing, so only the *click* is
+intercepted.
+
+`retireFirstRunWizard(page)` issues `DELETE /apps/firstrunwizard/wizard`, the
+wizard app's own dismissal route, from inside the page (so the session cookie
+and CSRF token come along for free). It records the dismissal **server-side
+against the user**, so unlike a `localStorage` seed it holds for every spec,
+every context and every browser in the run — one call in `global-setup` instead
+of a re-dismissal in every `beforeEach`.
+
+| Field | Meaning |
+| --- | --- |
+| `status` | HTTP status, or `-1` when the request itself threw. |
+| `cleared` | `true` when nothing will block clicks — a 2xx, **or a 404**. |
+| `installed` | `false` when the firstrunwizard app is not installed (404). |
+
+A `404` means there is no wizard to retire, which is a success for the caller's
+purposes. It is reported, never thrown, so one shared `global-setup` works on
+instances with and without the app.
 
 ## Reading the component tree
 

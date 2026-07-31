@@ -22,7 +22,13 @@
 const fs = require('fs')
 const path = require('path')
 
-const { conductionVue3, vueDeprecationRules, ECMA_VERSION } = require('../../eslint/index.js')
+const {
+	conductionVue3,
+	conductionVue3Fixes,
+	vueDeprecationRules,
+	ECMA_VERSION,
+	ECMA_LANGUAGE_LEVEL,
+} = require('../../eslint/index.js')
 
 const FIXTURES = path.join(__dirname, '..', 'fixtures', 'eslint-preset')
 
@@ -123,6 +129,122 @@ describe('@conduction/nextcloud-vue/eslint — correct Vue 3 code passes clean',
 		// assertion above already covers — this asserts the declared floor so a
 		// future edit cannot quietly lower it.
 		expect(ECMA_VERSION).toBeGreaterThanOrEqual(2020)
+	})
+})
+
+/**
+ * The preset must never LOWER the consumer that adopts it.
+ *
+ * openconnector's config carried a top-level `ecmaVersion: 'latest'`; adopting
+ * this preset silently downgraded it to the pinned `2022`. Harmless in that
+ * repository — and the exact class of failure the pin was added to fix, because
+ * a file ESLint cannot parse gets a `fatal` message and NO other rule runs on
+ * it. A preset that pins a year turns "app uses modern syntax" into "the Vue-3
+ * deprecation gate is off for that file".
+ *
+ * This is not asserted against the constant. The fixture is LINTED, and a
+ * positive control re-lints the same source at the old pin to prove the fixture
+ * can actually tell the two apart — otherwise a fixture that happened to parse
+ * everywhere would fake a pass forever.
+ */
+describe('@conduction/nextcloud-vue/eslint — the language level is never a downgrade', () => {
+	const MODERN = 'modern-syntax.js'
+
+	/**
+	 * Lint the modern-syntax fixture at an arbitrary ecmaVersion, using the
+	 * preset's OWN language-level layer shape.
+	 *
+	 * @param {number|string} ecmaVersion Level to force.
+	 * @return {Promise<Array<object>>} Lint messages.
+	 */
+	async function lintModernAt(ecmaVersion) {
+		const FlatESLint = resolveFlatESLint()
+		const engine = new FlatESLint({
+			overrideConfigFile: true,
+			overrideConfig: [{
+				files: ['**/*.js'],
+				languageOptions: {
+					ecmaVersion,
+					sourceType: 'module',
+					parserOptions: { ecmaVersion, sourceType: 'module' },
+				},
+			}],
+			cwd: FIXTURES,
+		})
+		const filePath = path.join(FIXTURES, MODERN)
+		const [result] = await engine.lintText(fs.readFileSync(filePath, 'utf8'), { filePath })
+		return result.messages
+	}
+
+	it('sets ecmaVersion to "latest" on languageOptions', () => {
+		const layer = conductionVue3Fixes.find((c) => c.name === 'conduction/language-level')
+		expect(layer.languageOptions.ecmaVersion).toBe('latest')
+	})
+
+	it('sets ecmaVersion to "latest" on languageOptions.parserOptions too', () => {
+		// eslint-plugin-import reads `context.parserOptions`, which in flat
+		// config is `languageOptions.parserOptions` — NOT
+		// `languageOptions.ecmaVersion`. Setting only one of the two is how the
+		// import plugin ends up parsing at a different level from ESLint itself.
+		const layer = conductionVue3Fixes.find((c) => c.name === 'conduction/language-level')
+		expect(layer.languageOptions.parserOptions.ecmaVersion).toBe('latest')
+	})
+
+	it('sets it on the .vue SFC layer as well, on both keys', () => {
+		const layer = conductionVue3Fixes.find((c) => c.name === 'conduction/vue-sfc-parser')
+		expect(layer.languageOptions.ecmaVersion).toBe('latest')
+		expect(layer.languageOptions.parserOptions.ecmaVersion).toBe('latest')
+	})
+
+	it('pins NO numeric ecmaVersion anywhere in the shipped config', () => {
+		// The guard against a well-meaning future edit that "modernises" the pin
+		// to 2025 — which is still a pin, and still a downgrade tomorrow.
+		const levels = []
+		for (const entry of conductionVue3) {
+			const lang = entry.languageOptions
+			if (!lang) {
+				continue
+			}
+			if (lang.ecmaVersion !== undefined) {
+				levels.push(lang.ecmaVersion)
+			}
+			if (lang.parserOptions && lang.parserOptions.ecmaVersion !== undefined) {
+				levels.push(lang.parserOptions.ecmaVersion)
+			}
+		}
+		expect(levels.length).toBeGreaterThan(0)
+		expect(levels.every((v) => v === 'latest')).toBe(true)
+	})
+
+	it('parses ES2022+ syntax with NO fatal error', async () => {
+		const messages = await lintFixture(MODERN)
+		expect(messages.filter((m) => m.fatal)).toEqual([])
+	})
+
+	it('reports nothing at all for the modern fixture', async () => {
+		const messages = await lintFixture(MODERN)
+		expect(messages.map((m) => `${m.ruleId} (${m.line}): ${m.message}`)).toEqual([])
+	})
+
+	it('POSITIVE CONTROL: the same fixture DOES fatal at the old 2022 pin', async () => {
+		// Without this, a fixture that parses at every level would make the
+		// assertion above pass for a preset that had been re-pinned — the test
+		// would prove nothing. This is the measurement that gives it teeth.
+		const messages = await lintModernAt(2022)
+		const fatal = messages.filter((m) => m.fatal)
+		expect(fatal).not.toEqual([])
+		expect(fatal[0].message).toMatch(/Parsing error/)
+	})
+
+	it('POSITIVE CONTROL: and parses clean at "latest"', async () => {
+		const messages = await lintModernAt(ECMA_LANGUAGE_LEVEL)
+		expect(messages.filter((m) => m.fatal)).toEqual([])
+	})
+
+	it('still exports the numeric floor for tooling that needs a number', () => {
+		expect(typeof ECMA_VERSION).toBe('number')
+		expect(ECMA_VERSION).toBeGreaterThanOrEqual(2022)
+		expect(ECMA_LANGUAGE_LEVEL).toBe('latest')
 	})
 })
 
