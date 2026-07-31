@@ -188,6 +188,65 @@ errors go away is to switch `vue/valid-v-for` off, which silences the gate
 instead of fixing it. `tests/eslint/preset.spec.js` includes a control fixture
 whose genuinely bad `:key` must **still** error.
 
+### 5. It changes **how** you lint, never **which files** you lint
+
+The preset scopes exactly one layer with a `files` glob — `**/*.vue`, the one
+extension it supplies a parser for. Every other layer omits `files` entirely.
+
+That is deliberate, and it is the fix for a shipped regression. In flat config a
+`files` glob does two jobs at once:
+
+1. it **scopes** the layer — "apply my options to these files"; and
+2. it **enrols** them — a path matched by any layer's `files` becomes a file
+   ESLint lints, even though ESLint's own default set is only `**/*.js`,
+   `**/*.mjs` and `**/*.cjs`.
+
+Earlier releases scoped the language-level and deprecation layers to a nine-entry
+glob including `.jsx`, `.ts`, `.tsx`, `.mts` and `.cts`. Adopting the preset
+therefore dragged those extensions into the consuming app's lint run — while
+supplying a parser for `.vue` alone. Measured on portaliq's base
+(`@nextcloud/eslint-config/vue3`, whose non-SFC parser is `@babel/eslint-parser`
+with no JSX plugin):
+
+```
+base alone         + Probe.jsx  → NOT LINTED  (0 findings — a vacuous zero)
+base alone         + Probe.js   → linted, 1 no-unused-vars      (positive control)
+base + preset      + Probe.jsx  → linted, FATAL "requires … parser plugin(s): jsx"
+standalone preset  + Probe.ts   → linted, FATAL
+standalone preset  + Probe.tsx  → linted, FATAL
+```
+
+A `fatal` message stops ESLint evaluating **every other rule on that file**, so an
+app with a React (or plain-TypeScript) surface silently lost lint coverage of all
+of it — the same failure shape as the `ecmaVersion: 2022` pin in §2.
+
+Note what the cause was **not**. Flat config *deep-merges*
+`languageOptions.parserOptions`, so the preset never replaced a base's
+`requireConfigFile` or `ecmaFeatures.jsx`; spreading it last yields the union.
+"Merge instead of replace" would have been a no-op fix for a cause that was never
+there. `tests/eslint/preset.spec.js` asserts the merge directly so nobody has to
+re-derive it.
+
+**What this means for you.** If your app has `.jsx`, `.ts` or `.tsx` files, enrol
+them yourself, paired with a parser that can read them:
+
+```js
+module.exports = [
+  ...conductionVue3,
+  {
+    name: 'app/jsx',
+    files: ['**/*.jsx'],
+    languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+  },
+]
+```
+
+The preset's layers then apply to those files automatically, because a layer with
+no `files` matches whatever *you* lint. `eslint-plugin-vue` treats `.jsx` and
+`.tsx` as Vue component files, so a render-function component in a `.jsx` gets the
+full deprecation gate — verified by a `VueJsxLegacy.jsx` fixture whose
+`beforeDestroy` and `this.$on` must still error.
+
 ## Exports
 
 | Export | What it is |

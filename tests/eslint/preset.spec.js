@@ -385,6 +385,170 @@ describe('@conduction/nextcloud-vue/eslint — the inverted Vue-2 rules are OFF'
 	})
 })
 
+/**
+ * The preset must never ENROL a file type it cannot parse.
+ *
+ * In flat config a `files` glob does two jobs: it scopes a layer, and it adds
+ * the matched paths to the set of files ESLint lints (the default set is only
+ * `**\/*.js`, `**\/*.mjs`, `**\/*.cjs`). The preset's language-level and
+ * deprecation layers used to be scoped to a nine-entry glob that included
+ * `.jsx`, `.ts`, `.tsx`, `.mts` and `.cts` — so ADOPTING the preset dragged
+ * those extensions into every consumer's lint run while supplying a parser for
+ * `.vue` alone. Portaliq's React files then hit `@babel/eslint-parser` with no
+ * JSX plugin and fataled, and a `fatal` message means NO other rule is
+ * evaluated on that file: the whole React surface silently lost lint coverage.
+ * Same shape as the `ecmaVersion: 2022` pin above.
+ *
+ * Note what is NOT the cause, because "fix" it and you have changed nothing:
+ * flat config DEEP-MERGES `languageOptions.parserOptions`, so the preset never
+ * replaced the base's `requireConfigFile` / `ecmaFeatures.jsx`. That is
+ * asserted below rather than assumed.
+ *
+ * Every assertion here is paired. "Lints clean" is worthless on its own — a
+ * file ESLint never opened lints clean too — so each clean result sits next to
+ * a control proving the same pipeline still reports.
+ */
+describe('@conduction/nextcloud-vue/eslint — the preset enrols no file it cannot parse', () => {
+	/**
+	 * What a consumer must write for `.jsx` to be linted at all, paired with a
+	 * parser that can read it (espree, given `ecmaFeatures.jsx`). This is the
+	 * app's call to make — the point of the fix is that the preset no longer
+	 * makes it for them.
+	 */
+	const CONSUMER_JSX = [{
+		name: 'app/jsx-enrolment',
+		files: ['**/*.jsx'],
+		languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+	}]
+
+	/**
+	 * Lint a fixture through an arbitrary flat config, reporting whether ESLint
+	 * actually opened the file.
+	 *
+	 * @param {string} fixture File name inside tests/fixtures/eslint-preset.
+	 * @param {Array<object>} config Flat config entries.
+	 * @return {Promise<{linted: boolean, messages: Array<object>}>} Outcome.
+	 */
+	async function lintWith(fixture, config) {
+		const FlatESLint = resolveFlatESLint()
+		const engine = new FlatESLint({
+			overrideConfigFile: true,
+			overrideConfig: config,
+			cwd: FIXTURES,
+		})
+		const filePath = path.join(FIXTURES, fixture)
+		const [result] = await engine.lintText(fs.readFileSync(filePath, 'utf8'), { filePath })
+		// ESLint reports an unmatched path as an "ignored file" warning with a
+		// null ruleId. That warning IS the signal that nothing ran.
+		const linted = !result.messages.some((m) => !m.ruleId && /ignored/.test(String(m.message)))
+		return { linted, messages: result.messages }
+	}
+
+	it('does NOT drag .jsx into the lint set on its own', async () => {
+		// The regression, stated directly. Adopting a Vue preset must not change
+		// WHICH files an app lints.
+		const { linted } = await lintWith('ReactSurface.jsx', conductionVue3)
+		expect(linted).toBe(false)
+	})
+
+	it.each(['Probe.ts', 'Probe.tsx', 'Probe.mts', 'Probe.cts'])(
+		'does NOT drag %s into the lint set either', async (name) => {
+			// The same glob enrolled four TypeScript extensions the preset ships
+			// no parser for. Measured before the fix: all four FATAL.
+			const FlatESLint = resolveFlatESLint()
+			const engine = new FlatESLint({
+				overrideConfigFile: true,
+				overrideConfig: conductionVue3,
+				cwd: FIXTURES,
+			})
+			const filePath = path.join(FIXTURES, name)
+			const [result] = await engine.lintText('const a: number = 1\n', { filePath })
+			const linted = !result.messages.some((m) => !m.ruleId && /ignored/.test(String(m.message)))
+			expect(linted).toBe(false)
+		},
+	)
+
+	it('POSITIVE CONTROL: the same preset DOES lint a plain .js file', async () => {
+		// Without this, every "not linted" assertion above would also pass for a
+		// preset that had been broken into linting nothing whatsoever.
+		const { linted } = await lintWith('modern-syntax.js', conductionVue3)
+		expect(linted).toBe(true)
+	})
+
+	it('POSITIVE CONTROL: and still lints .vue, the one type it does enrol', async () => {
+		const { linted, messages } = await lintWith('LegacyComponent.vue', conductionVue3)
+		expect(linted).toBe(true)
+		expect(ruleIds(messages)).toContain('vue/no-deprecated-destroyed-lifecycle')
+	})
+
+	it('lints a JSX file CLEAN once the consumer enrols it', async () => {
+		// The consumer's own layer supplies the extension AND a parser that can
+		// read it; the preset then applies to that file for free, because a
+		// layer with no `files` matches whatever the consumer lints.
+		const { linted, messages } = await lintWith('ReactSurface.jsx', [
+			...conductionVue3,
+			...CONSUMER_JSX,
+		])
+		expect(linted).toBe(true)
+		expect(messages.filter((m) => m.fatal)).toEqual([])
+		expect(messages.map((m) => `${m.ruleId} (${m.line}): ${m.message}`)).toEqual([])
+	})
+
+	it('ARMED: and the deprecation family still REPORTS on a .jsx file', async () => {
+		// This is what makes the clean result above mean something. Same config,
+		// same extension, a file with genuine Vue-2 survivors in it —
+		// eslint-plugin-vue treats `.jsx`/`.tsx` as component files, so a
+		// render-function component gets the gate exactly as an SFC does.
+		const { linted, messages } = await lintWith('VueJsxLegacy.jsx', [
+			...conductionVue3,
+			...CONSUMER_JSX,
+		])
+		expect(linted).toBe(true)
+		expect(messages.filter((m) => m.fatal)).toEqual([])
+		expect(ruleIds(messages)).toContain('vue/no-deprecated-destroyed-lifecycle')
+		expect(ruleIds(messages)).toContain('vue/no-deprecated-events-api')
+		expect(messages.every((m) => m.severity === 2)).toBe(true)
+	})
+
+	it('CONTROL: those findings come from the PRESET, not the enrolment layer', async () => {
+		// The enrolment layer arms no rules at all. Linting the legacy fixture
+		// through it alone must therefore be silent — otherwise the assertion
+		// above would be measuring the fixture's own config, not the preset.
+		const { linted, messages } = await lintWith('VueJsxLegacy.jsx', CONSUMER_JSX)
+		expect(linted).toBe(true)
+		expect(messages.map((m) => m.ruleId)).toEqual([])
+	})
+
+	it('MERGES parserOptions with the consumer rather than replacing them', async () => {
+		// The originally-suspected cause. It is not real, and this is the
+		// measurement that says so: a base setting `ecmaFeatures.jsx` keeps it
+		// after the preset is spread LAST, and the file still parses.
+		const FlatESLint = resolveFlatESLint()
+		const engine = new FlatESLint({
+			overrideConfigFile: true,
+			overrideConfig: [...CONSUMER_JSX, ...conductionVue3],
+			cwd: FIXTURES,
+		})
+		const filePath = path.join(FIXTURES, 'ReactSurface.jsx')
+		const effective = await engine.calculateConfigForFile(filePath)
+		const parserOptions = effective.languageOptions.parserOptions
+		// The consumer's key survived…
+		expect(parserOptions.ecmaFeatures.jsx).toBe(true)
+		// …alongside the preset's.
+		expect(parserOptions.ecmaVersion).toBe('latest')
+		expect(parserOptions.sourceType).toBe('module')
+	})
+
+	it('carries a files glob on the SFC layer only — the one type it parses', () => {
+		// The shipped-shape guard. Any future layer that grows a `files` key is
+		// enrolling paths into consumers' lint runs, which is the regression.
+		const globbed = conductionVue3Fixes.filter((layer) => layer.files !== undefined)
+		expect(globbed.map((layer) => layer.name)).toEqual(['conduction/vue-sfc-parser'])
+		expect(globbed[0].files).toEqual(['**/*.vue'])
+		expect(globbed[0].languageOptions.parser).toBeDefined()
+	})
+})
+
 describe('@conduction/nextcloud-vue/eslint — shape of the published preset', () => {
 	it('arms the entire vue/no-deprecated-* family eslint-plugin-vue ships', () => {
 		// Guards against the family drifting: a new eslint-plugin-vue release
