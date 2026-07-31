@@ -194,11 +194,53 @@ nextcloud-vue/
 │   ├── utils/                # schema, headers, errors, formatting
 │   ├── css/                  # Modular CSS (one file per component group)
 │   └── types/index.d.ts      # TypeScript definitions
+├── eslint/                   # Published subpath: shared flat-config preset
+├── testing/                  # Published subpath: a11y + Playwright e2e helpers
 ├── tests/                    # Jest test suite
 ├── dist/                     # Built output (ESM, CJS, CSS)
 ├── rollup.config.js          # Build configuration
 └── package.json
 ```
+
+## Shared tooling subpaths
+
+Two things every consuming app used to reimplement are solved once here.
+
+### `@conduction/nextcloud-vue/eslint`
+
+The fleet's Vue 3 flat-config ESLint preset. Arms the whole
+`vue/no-deprecated-*` family at `error`, sets a modern `ecmaVersion` on both
+`languageOptions` and `languageOptions.parserOptions`, wires
+`parserOptions.parser` in vue-eslint-parser's **object** form, and configures
+`vue/v-on-event-hyphenation` with `ignore: ['update:modelValue']`.
+
+```js
+// eslint.config.js — on top of @nextcloud/eslint-config/vue3
+const { conductionVue3Fixes } = require('@conduction/nextcloud-vue/eslint')
+
+module.exports = [
+	...compat.extends('@nextcloud/eslint-config/vue3'),
+	...conductionVue3Fixes,
+]
+```
+
+See [docs/tooling/eslint-preset.md](docs/tooling/eslint-preset.md) — including
+why a Vue 2 lint config left four silent memory leaks in a migrated app.
+
+### `@conduction/nextcloud-vue/testing/playwright`
+
+Dependency-free e2e helpers for the overlays and bundle constraints this
+library imposes: `dismissFirstVisitOverlays`, `seedSupportDialogSeen`, and a
+component-tree accessor that works against a production bundle with
+`__VUE_PROD_DEVTOOLS__ = false`.
+
+```js
+await seedFirstVisitOverlaysSeen(page, 'openbuild') // also covers openbuild-<slug>
+await page.goto('/apps/openbuild/')
+```
+
+See [docs/testing/e2e-helpers.md](docs/testing/e2e-helpers.md) — including the
+nested-`CnAppRoot` caveat.
 
 ## Development
 

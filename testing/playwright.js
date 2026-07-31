@@ -52,6 +52,21 @@
  * inside `node_modules`, so an ESM-syntax `.js` in a package without
  * `"type": "module"` would fail to load in exactly the runner it targets.
  *
+ * IMPORT SPELLING (verified against a packed install, not the source tree):
+ * this package ships no `exports` map, and Node's NATIVE ESM resolver does no
+ * extension-adding resolution. Playwright's own loader, webpack and vite all
+ * resolve the extensionless subpath; a plain `node --input-type=module` script
+ * needs the extension:
+ *
+ * ```js
+ * // Playwright spec (TS or JS), webpack, vite:
+ * import { dismissFirstVisitOverlays } from '@conduction/nextcloud-vue/testing/playwright'
+ * // Plain CommonJS:
+ * const { dismissFirstVisitOverlays } = require('@conduction/nextcloud-vue/testing/playwright')
+ * // Native Node ESM:
+ * import { dismissFirstVisitOverlays } from '@conduction/nextcloud-vue/testing/playwright.js'
+ * ```
+ *
  * @module testing/playwright
  */
 
@@ -353,17 +368,31 @@ async function dismissSupportDialog(page, options = {}) {
 		if (!open) {
 			break
 		}
-		const closed = await dialog.getByRole('button', { name: /close/i }).first()
+
+		const clicked = await dialog.getByRole('button', { name: /close/i }).first()
 			.click({ timeout })
 			.then(() => true)
 			.catch(() => false)
-		if (!closed) {
-			// The dialog is up but its close control could not be reached (a
-			// higher overlay, or a renamed label). Escape is NcDialog's other
-			// documented exit; failing that, stop rather than spin.
-			await page.keyboard.press('Escape').catch(() => {})
+
+		if (clicked) {
+			dismissed++
+			// Deliberately NOT gated on the locator detaching. When a nested
+			// CnAppRoot raises its own dialog, the replacement matches the SAME
+			// selector, so "still visible" is indistinguishable from "never
+			// closed" at this point — treating it as failure reported zero
+			// dismissals for a pass that had in fact closed one. The loop bound
+			// is what keeps this terminating; the next iteration's visibility
+			// check is what decides whether there is more work.
+			await dialog.waitFor({ state: 'detached', timeout: 750 }).catch(() => {})
+			continue
 		}
-		await dialog.waitFor({ state: 'detached', timeout }).catch(() => {})
+
+		// The dialog is up but its close control could not be reached (a higher
+		// overlay, or a renamed accessible name). Escape is NcDialog's other
+		// documented exit; if that does not clear it either, stop rather than
+		// spin out the caller's budget.
+		await page.keyboard.press('Escape').catch(() => {})
+		await dialog.waitFor({ state: 'detached', timeout: 750 }).catch(() => {})
 		if (await dialog.isVisible().catch(() => false)) {
 			break
 		}

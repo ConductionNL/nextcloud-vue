@@ -73,6 +73,18 @@
  * ]
  * ```
  *
+ * IMPORT SPELLING (verified against a packed install, not the source tree)
+ * -----------------------------------------------------------------------
+ * This package deliberately ships NO `exports` map — several existing deep
+ * subpaths (`.../src/composables`, `.../src/icons/rvo.js`, `.../src/types`)
+ * depend on its absence. Node's NATIVE ESM resolver does not do directory-index
+ * or extension-adding resolution, so:
+ *
+ *   - `eslint.config.js`  (CommonJS)  → `require('@conduction/nextcloud-vue/eslint')`   ✓
+ *   - `eslint.config.mjs` (native ESM) → `import … from '@conduction/nextcloud-vue/eslint/index.js'` ✓
+ *     (the extensionless form throws `ERR_UNSUPPORTED_DIR_IMPORT`)
+ *   - webpack / vite / Playwright's esbuild loader resolve either spelling.
+ *
  * PEER REQUIREMENTS
  * -----------------
  * `eslint`, `eslint-plugin-vue` and `vue-eslint-parser` are OPTIONAL peer

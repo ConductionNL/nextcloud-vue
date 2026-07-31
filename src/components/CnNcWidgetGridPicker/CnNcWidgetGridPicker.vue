@@ -94,7 +94,7 @@ export default {
 	// arms through its own published preset.
 
 	props: {
-		/** The currently-selected widget id (`v-model` value). */
+		/** The currently-selected widget id. Bind `:value` + `@input` explicitly — Vue 3 does not desugar a bare `v-model` onto this pair. */
 		value: {
 			type: String,
 			default: '',
@@ -112,7 +112,7 @@ export default {
 	},
 
 	emits: [
-		/** `v-model` update; payload is the selected widget id string. */
+		/** Selection changed; payload is the selected widget id string. */
 		'input',
 	],
 
