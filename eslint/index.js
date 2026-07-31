@@ -52,6 +52,12 @@
  *     hand. The Vue-3 half of the key pair
  *     (`vue/no-v-for-template-key-on-child`) is untouched and stays armed —
  *     see {@link vueInvertedVue2Rules}.
+ *  6. It changes HOW you lint, never WHICH FILES you lint. Exactly one layer
+ *     carries a `files` glob — `**\/*.vue`, the only extension this preset
+ *     supplies a parser for. A `files` glob in flat config also ENROLS the
+ *     matched paths into the consumer's lint set, and enrolling a file type
+ *     you cannot parse is a fatal error that silences every rule on it —
+ *     see {@link VUE_SFC_FILES}.
  *
  * USAGE
  * -----
@@ -357,11 +363,65 @@ const vueEventCasingRules = {
 }
 
 /**
- * File globs the preset's language options apply to.
+ * The ONE file glob this preset is allowed to enrol, and the rule that says why.
+ *
+ * READ THIS BEFORE ADDING A `files` KEY TO ANY LAYER BELOW.
+ *
+ * In flat config a `files` glob does two different jobs at once, and only one
+ * of them is obvious:
+ *
+ *  1. it SCOPES the layer — "apply my options to these files"; and
+ *  2. it ENROLS those files — a path matched by some layer's `files` becomes a
+ *     file ESLint lints, even though ESLint's own default set is only
+ *     `**\/*.js`, `**\/*.mjs`, `**\/*.cjs`.
+ *
+ * A layer with NO `files` key does job 1 for every file the CONSUMER already
+ * lints and does not do job 2 at all. That is exactly what a shared
+ * language-level / rules layer wants, and getting it wrong shipped a
+ * regression:
+ *
+ * this preset used to scope its language-level and deprecation layers to
+ * `['**\/*.js', '**\/*.mjs', '**\/*.cjs', '**\/*.jsx', '**\/*.ts', '**\/*.mts',
+ * '**\/*.cts', '**\/*.tsx', '**\/*.vue']`. Adopting it therefore ENROLLED
+ * `.jsx`, `.ts`, `.tsx`, `.mts` and `.cts` into the lint set of every consumer
+ * — while supplying a parser for `.vue` only. Measured on portaliq's base
+ * config (`@nextcloud/eslint-config/vue3`, whose non-SFC parser is
+ * `@babel/eslint-parser` with no JSX plugin):
+ *
+ * ```
+ * base alone            + Probe.jsx  → NOT LINTED   (0 findings — a vacuous zero)
+ * base alone            + Probe.js   → linted, 1 no-unused-vars   (positive control)
+ * base + this preset    + Probe.jsx  → linted, FATAL "requires … parser plugin(s): jsx"
+ * standalone preset     + Probe.ts   → linted, FATAL
+ * standalone preset     + Probe.tsx  → linted, FATAL
+ * ```
+ *
+ * A `fatal` message stops ESLint evaluating EVERY OTHER RULE on that file, so
+ * an app with a React (or plain-TS) surface silently lost lint coverage of all
+ * of it — the identical failure shape to the `ecmaVersion: 2022` pin documented
+ * on {@link ECMA_LANGUAGE_LEVEL}, which fataled on the ES2024 `v` regexp flag
+ * and took the deprecation gate down with it.
+ *
+ * Note what the cause is NOT. Flat config DEEP-MERGES
+ * `languageOptions.parserOptions` across layers: spreading this preset last over
+ * a base that sets `{ requireConfigFile: false, ecmaFeatures: { jsx: true } }`
+ * yields `{ requireConfigFile: false, ecmaFeatures: { jsx: true },
+ * ecmaVersion: 'latest', sourceType: 'module' }` — nothing is dropped, and
+ * `tests/eslint/preset.spec.js` asserts it. "Merge instead of replace" would
+ * have been a no-op fix for a cause that was never there.
+ *
+ * So the rule: **enrol a file type only if this preset also supplies a parser
+ * that can read it.** It supplies one for `.vue` and nothing else, so `.vue` is
+ * the only glob here. Everything else is scoped by omission.
+ *
+ * A consumer that wants `.jsx` / `.ts` linted says so in ITS OWN config, where
+ * it can pair the extension with a parser that handles it; this preset's layers
+ * then apply to those files for free, because a layer with no `files` matches
+ * whatever the consumer lints.
  *
  * @type {string[]}
  */
-const ALL_SCRIPT_FILES = ['**/*.js', '**/*.mjs', '**/*.cjs', '**/*.jsx', '**/*.ts', '**/*.mts', '**/*.cts', '**/*.tsx', '**/*.vue']
+const VUE_SFC_FILES = ['**/*.vue']
 
 /**
  * The composable FIX layer: language level, SFC parser wiring, the armed
@@ -378,7 +438,13 @@ const ALL_SCRIPT_FILES = ['**/*.js', '**/*.mjs', '**/*.cjs', '**/*.jsx', '**/*.t
 const conductionVue3Fixes = [
 	{
 		name: 'conduction/language-level',
-		files: ALL_SCRIPT_FILES,
+		// NO `files` — deliberately. See {@link VUE_SFC_FILES}: a `files` glob
+		// also ENROLS those paths into the consumer's lint set, and this layer
+		// supplies no parser, so enrolling `.jsx`/`.ts`/`.tsx` handed them to
+		// whatever parser the base had and fataled the whole file. Without the
+		// key the layer applies to every file the consumer already lints —
+		// including `.jsx` once the consumer enrols it properly — and enrols
+		// nothing of its own.
 		languageOptions: {
 			ecmaVersion: ECMA_LANGUAGE_LEVEL,
 			sourceType: 'module',
@@ -395,7 +461,9 @@ const conductionVue3Fixes = [
 	},
 	{
 		name: 'conduction/vue-sfc-parser',
-		files: ['**/*.vue'],
+		// The one enrolment this preset is entitled to make: it hands `.vue`
+		// files to `vue-eslint-parser`, which can actually read them.
+		files: VUE_SFC_FILES,
 		languageOptions: {
 			parser: vueParser,
 			ecmaVersion: ECMA_LANGUAGE_LEVEL,
@@ -405,7 +473,18 @@ const conductionVue3Fixes = [
 	},
 	{
 		name: 'conduction/vue3-deprecations',
-		files: ['**/*.vue', '**/*.js', '**/*.mjs', '**/*.cjs', '**/*.ts', '**/*.tsx'],
+		// NO `files` — same reason as the language-level layer, and a rules-only
+		// layer enrols just as hard as one carrying `languageOptions`. Its old
+		// glob listed `**\/*.ts` and `**\/*.tsx`, which is how a plain-TypeScript
+		// file ended up being linted by a preset that ships no TypeScript parser.
+		//
+		// Applying to everything is also strictly BETTER coverage: eslint-plugin-vue
+		// treats `.jsx` and `.tsx` as Vue component files
+		// (`utils.isVueFile()` → `.vue || .jsx || .tsx`), so a Vue component
+		// authored as a render-function `.jsx` now gets the deprecation gate it
+		// never had under the old glob, on any consumer that lints `.jsx` at all.
+		// On files with no Vue component in them every one of these rules is a
+		// no-op, so there is no cost to the breadth.
 		rules: {
 			...vueDeprecationRules,
 			...vueEventCasingRules,

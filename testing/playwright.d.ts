@@ -58,10 +58,55 @@ export interface CnAppDialogOptions {
 export interface CnWizardRetirement {
 	/** HTTP status of the DELETE, or `-1` when the request itself threw. */
 	status: number
-	/** False when the firstrunwizard app is not installed (404). */
-	installed: boolean
-	/** True when no wizard will block clicks — a 2xx, or a 404. */
+	/**
+	 * False when the firstrunwizard app is not installed (404); `null` when the
+	 * status could not tell us — a 401 is answered by Nextcloud's auth layer
+	 * before the wizard app is ever consulted, so both booleans would be
+	 * inventions.
+	 */
+	installed: boolean | null
+	/**
+	 * True when no wizard will block clicks — a 2xx, a 404, or a guest surface
+	 * where the per-user wizard could never have rendered at all.
+	 */
 	cleared: boolean
+	/**
+	 * True when the wizard could not exist on this surface, so nothing was
+	 * dismissed and nothing needed to be. Assert `false` when a spec means to
+	 * prove a REAL dismissal happened.
+	 */
+	notApplicable: boolean
+	/** Why, when `notApplicable` — currently `'no-user-session'`. */
+	reason: string | null
+}
+
+/** Outcome of {@link dismissFirstVisitOverlays}. */
+export interface CnOverlayDismissal {
+	/**
+	 * True on a Nextcloud GUEST surface: nc-vue mounts `CnWalkthrough` and
+	 * `CnSupportDialog` from `CnAppRoot`, and a logged-out page has no app root,
+	 * so there is nothing to clear. The call short-circuits instead of spending
+	 * two timeouts polling for elements that cannot appear.
+	 */
+	notApplicable: boolean
+	/** Why, when `notApplicable` — currently `'guest-surface'`. */
+	reason: string | null
+	/** True when a walkthrough tour was actually closed. */
+	walkthroughDismissed: boolean
+	/** How many support dialogs were actually closed (nested roots raise more). */
+	supportDialogsDismissed: number
+}
+
+/** What kind of Nextcloud surface a page is — see {@link guestSurfaceStatus}. */
+export interface CnSurfaceStatus {
+	/** A Nextcloud page, with no user session and no mounted `CnAppRoot`. */
+	guest: boolean
+	/** The logged-in user id, or `null`. */
+	user: string | null
+	/** Whether the page carries a Nextcloud request token at all. */
+	isNextcloudPage: boolean
+	/** `appId` of every mounted `CnAppRoot`, outer shell first. */
+	appRoots: string[]
 }
 
 /** One mounted component instance, reduced to a JSON-safe shape. */
@@ -100,6 +145,21 @@ export const CHROME_DIALOG_SELECTORS: string[]
 /** Nextcloud's own first-run wizard dismissal route. */
 export const FIRST_RUN_WIZARD_ROUTE: string
 
+/** `reason` when {@link retireFirstRunWizard} finds no user session. */
+export const NO_USER_SESSION: string
+
+/** `reason` when {@link dismissFirstVisitOverlays} finds a guest surface. */
+export const GUEST_SURFACE: string
+
+/**
+ * Whether this page is a logged-in app surface or a Nextcloud GUEST surface.
+ *
+ * Call it AFTER the page has loaded. The seeding helpers cannot answer it for
+ * you — they run before `goto()`, where there is no document to interrogate —
+ * and on a guest surface they write keys that nothing ever reads.
+ */
+export function guestSurfaceStatus(page: CnTestPage): Promise<CnSurfaceStatus>
+
 /**
  * Seed the support dialog as already seen.
  *
@@ -119,7 +179,7 @@ export function seedFirstVisitOverlaysSeen(target: CnSeedTarget, appId?: string 
 
 export function dismissWalkthrough(page: CnTestPage, options?: CnDismissOptions): Promise<boolean>
 export function dismissSupportDialog(page: CnTestPage, options?: CnDismissOptions): Promise<number>
-export function dismissFirstVisitOverlays(page: CnTestPage, options?: CnDismissOptions): Promise<void>
+export function dismissFirstVisitOverlays(page: CnTestPage, options?: CnDismissOptions): Promise<CnOverlayDismissal>
 
 /** A `Locator` for the app's own modal, excluding NC and nc-vue chrome dialogs. */
 export function appDialog(page: CnTestPage, options?: CnAppDialogOptions): CnTestLocator
