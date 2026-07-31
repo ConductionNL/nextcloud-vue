@@ -76,10 +76,16 @@ export default {
 
 	components: { CnIcon, NcSelect },
 
-	model: {
-		prop: 'activeIndex',
-		event: 'update:active-index',
-	},
+	// NO `model: { prop, event }` OPTION.
+	//
+	// The Vue-2 `model` option is REMOVED in Vue 3 — read by nothing, warned
+	// about by nothing — so it survived the migration as a declaration that
+	// looked authoritative while doing exactly zero. The component's real
+	// contract is the explicit `:active-index` / `@update:active-index` pair
+	// (and `:selected-indices` / `@update:selected-indices` in `multiple`
+	// mode), which is what `CnIndexPage` binds. Surfaced by
+	// `vue/no-deprecated-model-definition`, which this repo now arms through
+	// its own published preset.
 
 	props: {
 		/**

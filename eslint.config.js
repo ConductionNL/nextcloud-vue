@@ -8,6 +8,17 @@ const {
 	FlatCompat,
 } = require('@eslint/eslintrc')
 
+// The library eats its own dog food: the Vue-3 deprecation gate, the modern
+// language level and the SFC parser wiring all come from the preset this
+// package now PUBLISHES at `@conduction/nextcloud-vue/eslint`. If the preset
+// ever stops arming `vue/no-deprecated-*`, or the object-form parser regresses
+// into 385 false `vue/valid-v-for` positives, this repo's own `npm run lint`
+// is the first thing that breaks — which is the only kind of guarantee worth
+// shipping to fourteen apps.
+const {
+	conductionVue3Fixes,
+} = require('./eslint/index.js')
+
 const compat = new FlatCompat({
 	baseDirectory: __dirname,
 	recommendedConfig: js.configs.recommended,
@@ -18,7 +29,15 @@ module.exports = defineConfig([{
 	ignores: [
 		'dist/**',
 		'node_modules/**',
+		// Ambient type declarations. They are checked by `npm run test:types`
+		// (tsd) and by `tsc`, not by ESLint: to a JS-configured `no-unused-vars`
+		// every parameter name in a `.d.ts` signature is an unused binding, so
+		// linting them produces one error per declared argument and zero
+		// findings. The `src/**` entry predates this; `eslint/**` and
+		// `testing/**` join it now that those directories are linted too.
 		'src/**/*.d.ts',
+		'eslint/**/*.d.ts',
+		'testing/**/*.d.ts',
 		// Generated AJV validator bundle (gitignored build artifact from
 		// `npm run build:validators`). Lint chokes on its 100KB+ minified
 		// single line and reports thousands of stylistic errors — they're
@@ -102,48 +121,18 @@ module.exports = defineConfig([{
 			ignores: ['/^[a-z]+(?:-[a-z]+)*:[a-z]+(?:-[a-z]+)*$/u'],
 		}],
 
-		// `update:modelValue` MUST stay camelCase at the listener site.
-		// `@nextcloud/vue` v9's NcTextField / NcInputField / NcPasswordField are
-		// built on Vue's `useModel()`, which only recognises a parent binding
-		// under the camelCase prop key `onUpdate:modelValue`. Given the
-		// hyphenated `@update:model-value` it falls back to LOCAL-ONLY mode: the
-		// field still looks editable but never emits back, so every keystroke is
-		// dropped — silently, with no warning. Verified live 2026-07-23 while
-		// building CnFlowCanvas. Hyphenating these 42 listeners is exactly the
-		// bug; every other event stays under the rule.
-		'vue/v-on-event-hyphenation': ['error', 'always', { ignore: ['update:modelValue'] }],
+		// NOTE: `vue/v-on-event-hyphenation` (with `update:modelValue` excluded)
+		// and the whole `vue/no-deprecated-*` family now arrive from
+		// `conductionVue3Fixes`, spread immediately below. They were moved out of
+		// this block so the published preset — not this file — is the single
+		// definition every app shares.
 	},
-}, {
-	// Split the SFC script parser by `lang`, instead of forcing one parser on
-	// every block.
-	//
-	// `@nextcloud/eslint-config/vue3` sets `parserOptions.parser` to the bare
-	// string `'@typescript-eslint/parser'`. vue-eslint-parser then routes the
-	// TEMPLATE expressions through it too, and its scope analysis does not
-	// carry the `v-for` iteration variables into the template's variable
-	// scope. Every single `:key` in the library then looks like it references
-	// something the loop never defined, and `vue/valid-v-for` reports 379
-	// false positives on code as plain as
-	// `v-for="seg in viewSegments" :key="seg.mode"` — plus 6 bogus
-	// `vue/valid-v-slot` "multiple templates for the same slot" errors on
-	// `<template v-for #[dynamicName]>`. All 385 disappear here.
-	//
-	// The object form is vue-eslint-parser's documented way to say
-	// "this parser for `lang="ts"`, that one otherwise", and it leaves the
-	// rules themselves fully armed: a genuinely wrong `:key="someConstant"`
-	// still errors, as does a missing key. Do NOT collapse it back to a
-	// string — that silently turns valid-v-for into noise, and the only way
-	// to get a green run would be to rewrite correct Vue 3 templates.
-	files: ['**/*.vue'],
-	languageOptions: {
-		parserOptions: {
-			parser: {
-				js: require.resolve('@babel/eslint-parser'),
-				ts: require.resolve('@typescript-eslint/parser'),
-			},
-		},
-	},
-}, {
+},
+// The shared preset: modern language level, the object-form SFC parser, the
+// armed Vue-3 deprecation family, and the `update:modelValue` carve-out.
+// Spread AFTER the `@nextcloud/eslint-config/vue3` compat block so it wins.
+...conductionVue3Fixes,
+{
 	// Wherever `@vue/eslint-config-typescript` applies — `.ts` files, and now
 	// `.vue` script blocks too — it switches the core `no-unused-vars` off and
 	// enables the `@typescript-eslint` one in its place, at bare defaults. That

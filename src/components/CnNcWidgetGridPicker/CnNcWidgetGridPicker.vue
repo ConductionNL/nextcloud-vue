@@ -82,13 +82,19 @@ export default {
 
 	components: { CheckIcon },
 
-	model: {
-		prop: 'value',
-		event: 'input',
-	},
+	// NO `model: { prop, event }` OPTION.
+	//
+	// The Vue-2 `model` option is REMOVED in Vue 3 — it is read by nothing and
+	// warns about nothing, so it survived the migration here as a declaration
+	// that looked authoritative while doing exactly zero. Vue 3 desugars a bare
+	// `v-model` on this component to `:modelValue` + `@update:modelValue`,
+	// neither of which it declares, which is why `CnNcDashboardWidgetForm`
+	// binds `:value` + `@input` explicitly (see the comment at that call site).
+	// Surfaced by `vue/no-deprecated-model-definition`, which this repo now
+	// arms through its own published preset.
 
 	props: {
-		/** The currently-selected widget id (`v-model` value). */
+		/** The currently-selected widget id. Bind `:value` + `@input` explicitly — Vue 3 does not desugar a bare `v-model` onto this pair. */
 		value: {
 			type: String,
 			default: '',
@@ -106,7 +112,7 @@ export default {
 	},
 
 	emits: [
-		/** `v-model` update; payload is the selected widget id string. */
+		/** Selection changed; payload is the selected widget id string. */
 		'input',
 	],
 
