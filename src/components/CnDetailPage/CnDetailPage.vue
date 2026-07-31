@@ -432,7 +432,7 @@
 							<CnWidgetWrapper
 								v-else-if="registryRendererFor(item) && isCardWidget(item)"
 								:title="findWidget(item).title || widgetContentFor(item).title || ''"
-								:show-title="findWidget(item).title !== undefined || widgetContentFor(item).title !== undefined"
+								:show-title="showCardTitle(item)"
 								title-icon-position="left"
 								flush
 								:show-refresh="false"
@@ -2626,6 +2626,28 @@ export default {
 		showGridTitle(item) {
 			if (item.showTitle === false || !this.findWidget(item)) return false
 			return Boolean(this.$slots[`widget-${item.widgetId}`] || this.$slots[`widget-${item.widgetId}`])
+		},
+
+		/**
+		 * Whether a card widget (stat / gauge / delta) shows its CnWidgetWrapper
+		 * header. These renderers draw their OWN label from `content.label`, so a
+		 * wrapper header carrying the same manifest title prints the title twice —
+		 * once as card chrome, once inside the tile.
+		 *
+		 * `item.showTitle === false` is the opt-out, exactly as it is for the grid
+		 * `<h3>` in `showGridTitle`: one layout key, the same meaning on both of
+		 * this component's title-rendering paths. It was previously honoured only
+		 * by the `<h3>`, so a consumer that set it on a stat tile still got the
+		 * duplicate header with no way to switch it off short of dropping the
+		 * widget's title entirely (which also removes its name from edit mode).
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} true when the card header should render.
+		 */
+		showCardTitle(item) {
+			if (item.showTitle === false) return false
+			return this.findWidget(item)?.title !== undefined
+				|| this.widgetContentFor(item).title !== undefined
 		},
 
 		/**
