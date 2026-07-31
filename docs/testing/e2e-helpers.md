@@ -194,7 +194,10 @@ await dismissFirstVisitOverlays(page)
   one — see the nested-`CnAppRoot` caveat above.
 - `dismissFirstVisitOverlays(page, options)` — the tour first, then the dialog.
   Order matters: the tour's dimmer sits above the dialog, so clearing it first
-  is what makes the dialog's close button reachable.
+  is what makes the dialog's close button reachable. Returns
+  `{ notApplicable, reason, walkthroughDismissed, supportDialogsDismissed }`; on
+  a guest surface it short-circuits rather than polling — see
+  [Guest surfaces](#guest-surfaces-guestsurfacestatuspage).
 
 ## Locating the app's own modal
 
@@ -266,12 +269,101 @@ of a re-dismissal in every `beforeEach`.
 | Field | Meaning |
 | --- | --- |
 | `status` | HTTP status, or `-1` when the request itself threw. |
-| `cleared` | `true` when nothing will block clicks — a 2xx, **or a 404**. |
-| `installed` | `false` when the firstrunwizard app is not installed (404). |
+| `cleared` | `true` when nothing will block clicks — a 2xx, a 404, **or a guest surface**. |
+| `installed` | `false` when the firstrunwizard app is not installed (404); `null` when the status could not tell us. |
+| `notApplicable` | `true` when the wizard could never have rendered here at all. |
+| `reason` | Why, when `notApplicable` — currently `'no-user-session'`. |
 
 A `404` means there is no wizard to retire, which is a success for the caller's
 purposes. It is reported, never thrown, so one shared `global-setup` works on
 instances with and without the app.
+
+### On a guest surface it says so, instead of inventing an overlay
+
+Unauthenticated, `DELETE /apps/firstrunwizard/wizard` answers **401**. That used
+to fall through to the catch-all failure branch and come back as
+`{ installed: true, cleared: false }` — *"a blocking overlay remains"*. That was
+not merely unhelpful, it was **false**: Nextcloud's first-run wizard is a
+per-user overlay and cannot render for a visitor with no session, so a public
+portal spec that guarded on `cleared` failed its own setup over an overlay that
+does not exist.
+
+The full decision table:
+
+| Condition | Result |
+| --- | --- |
+| 2xx | `installed: true`, `cleared: true`, `notApplicable: false` |
+| 404 | `installed: false`, `cleared: true`, `notApplicable: false` |
+| 401, or a Nextcloud page with no user | `installed: null`, `cleared: true`, `notApplicable: true`, `reason: 'no-user-session'` |
+| anything else | `installed: true`, `cleared: false`, `notApplicable: false` |
+
+Two choices worth stating outright:
+
+- **`cleared: true` for a guest.** `cleared` documents exactly one thing —
+  *"nothing will block clicks"*. On a guest surface nothing will, so `true` is
+  the honest answer; `false` would make every caller that guards on it treat a
+  perfectly usable page as broken. `notApplicable` is what keeps a guest run
+  distinguishable from a real dismissal, so a spec that means to prove the
+  wizard was genuinely retired asserts `notApplicable === false` and gets a
+  failure if it silently ran logged-out.
+- **`installed: null`, not a boolean.** A 401 is answered by Nextcloud's auth
+  layer before the wizard app is consulted, so the response carries no
+  information about whether it is installed. `true` and `false` would both be
+  inventions. `null` is falsy, so an existing `if (installed)` behaves as before.
+
+The 2xx and 404 branches are checked *before* the session, on purpose: if the
+server actually accepted the dismissal, that is dispositive.
+
+## Guest surfaces: `guestSurfaceStatus(page)`
+
+```js
+import { guestSurfaceStatus } from '@conduction/nextcloud-vue/testing/playwright'
+
+const surface = await guestSurfaceStatus(page)
+// { guest, user, isNextcloudPage, appRoots }
+```
+
+`CnWalkthrough` and `CnSupportDialog` are both auto-mounted **by `CnAppRoot`**.
+A page that mounts no app root has neither overlay — so `seedSupportDialogSeen`,
+`seedWalkthroughSeen` and `dismissFirstVisitOverlays` all have nothing to do
+there. That is correct behaviour, but doing it *silently* is the wrong shape:
+measured on a portaliq public portal page, `dismissFirstVisitOverlays` spent its
+full timeout budget twice polling for elements that could not appear, and then
+returned the same `undefined` a successful dismissal returned.
+
+The measured guest signature is three facts together, and all three are
+required:
+
+| Fact | Why it is needed |
+| --- | --- |
+| `data-requesttoken` **present** | Proves this *is* a Nextcloud page, so "no user" means logged-out rather than "not a Nextcloud page" (an `about:blank`, a fixture, a page seeded before `goto()`). |
+| `data-user` **absent** | The per-user state `useSupportDialog` / `useWalkthrough` read cannot exist. |
+| no mounted `CnAppRoot` | Neither overlay was ever instantiated. |
+
+A logged-out page that *does* mount a `CnAppRoot` is **not** reported as a guest
+surface — the overlays it mounts are real and still need clearing.
+
+### What each helper does about it
+
+- **`dismissFirstVisitOverlays(page)`** now returns
+  `{ notApplicable, reason, walkthroughDismissed, supportDialogsDismissed }`. On
+  a guest surface it short-circuits with
+  `{ notApplicable: true, reason: 'guest-surface' }` **immediately**, instead of
+  burning two timeouts. The return value is additive — callers that ignore it
+  are unaffected.
+- **The seeding helpers stay unconditional.** They are meant to be called
+  *before* `page.goto()` — that is what makes `addInitScript` work — and before
+  a navigation there is no document to interrogate, so a guest probe inside them
+  would be measuring `about:blank` and would answer wrong every time. They write
+  their key regardless; on a guest surface nothing reads it. Call
+  `guestSurfaceStatus(page)` **after** the page has loaded when you need to know
+  whether any of it mattered.
+
+:::warning Do not "work around" a guest surface locally
+If a seed appears not to have taken on a public page, the seed is not broken —
+there is no overlay to suppress. Check `guestSurfaceStatus(page).guest` before
+reaching for a CSS-hiding hack.
+:::
 
 ## Reading the component tree
 

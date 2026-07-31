@@ -21,6 +21,9 @@ import {
 	WALKTHROUGH_STORAGE_PREFIX,
 	CHROME_DIALOG_SELECTORS,
 	FIRST_RUN_WIZARD_ROUTE,
+	NO_USER_SESSION,
+	GUEST_SURFACE,
+	guestSurfaceStatus,
 	seedSupportDialogSeen,
 	seedWalkthroughSeen,
 	seedFirstVisitOverlaysSeen,
@@ -645,12 +648,18 @@ describe('retireFirstRunWizard', () => {
 
 	beforeEach(() => {
 		originalFetch = globalThis.fetch
-		globalThis.OC = { requestToken: 'tok-123' }
+		// A LOGGED-IN Nextcloud page, which is what this helper's contract
+		// assumes. The `currentUser` half used to be missing, so every fixture
+		// here was silently a GUEST page — which is precisely the case the
+		// helper got wrong, and why the old assertions certified the bug.
+		globalThis.OC = { requestToken: 'tok-123', currentUser: 'admin' }
 	})
 
 	afterEach(() => {
 		globalThis.fetch = originalFetch
 		delete globalThis.OC
+		document.head.removeAttribute('data-user')
+		document.head.removeAttribute('data-requesttoken')
 	})
 
 	/**
@@ -674,7 +683,7 @@ describe('retireFirstRunWizard', () => {
 	it('retires the wizard server-side, so it holds for every context', async () => {
 		const calls = stubFetch(200)
 		await expect(retireFirstRunWizard(makePage()))
-			.resolves.toEqual({ status: 200, installed: true, cleared: true })
+			.resolves.toEqual({ status: 200, installed: true, cleared: true, notApplicable: false, reason: null })
 		expect(calls[0].url).toBe(FIRST_RUN_WIZARD_ROUTE)
 		expect(calls[0].init.method).toBe('DELETE')
 	})
@@ -692,7 +701,7 @@ describe('retireFirstRunWizard', () => {
 		// shared global-setup.
 		stubFetch(404)
 		await expect(retireFirstRunWizard(makePage()))
-			.resolves.toEqual({ status: 404, installed: false, cleared: true })
+			.resolves.toEqual({ status: 404, installed: false, cleared: true, notApplicable: false, reason: null })
 	})
 
 	it('reports a real failure as NOT cleared', async () => {
@@ -700,12 +709,94 @@ describe('retireFirstRunWizard', () => {
 		const result = await retireFirstRunWizard(makePage())
 		expect(result.cleared).toBe(false)
 		expect(result.installed).toBe(true)
+		// A 403 against a page that HAS a session is a genuine refusal, not a
+		// guest surface. The two must not collapse into one another.
+		expect(result.notApplicable).toBe(false)
 	})
 
 	it('reports a thrown request as status -1 rather than rejecting', async () => {
 		stubFetch(new Error('network down'))
 		const result = await retireFirstRunWizard(makePage())
-		expect(result).toEqual({ status: -1, installed: true, cleared: false })
+		expect(result).toEqual({ status: -1, installed: true, cleared: false, notApplicable: false, reason: null })
+	})
+
+	/**
+	 * A guest surface has no first-run wizard, and the helper used to say it
+	 * did.
+	 *
+	 * Unauthenticated, `DELETE /apps/firstrunwizard/wizard` answers `401`. That
+	 * fell through to the catch-all failure branch and came back as
+	 * `{ installed: true, cleared: false }` — "a blocking overlay remains".
+	 * Nextcloud's wizard is per-user and cannot render for a visitor with no
+	 * session, so the report was not just unhelpful, it was false, and a public
+	 * portal spec that guarded on `cleared` failed its own setup over an
+	 * overlay that does not exist.
+	 */
+	describe('on a guest surface', () => {
+		it('reports notApplicable instead of a phantom blocking overlay', async () => {
+			delete globalThis.OC.currentUser
+			stubFetch(401)
+			await expect(retireFirstRunWizard(makePage())).resolves.toEqual({
+				status: 401,
+				installed: null,
+				cleared: true,
+				notApplicable: true,
+				reason: NO_USER_SESSION,
+			})
+		})
+
+		it('says cleared:true, because nothing on that page blocks a click', async () => {
+			// The regression this replaces, stated as the thing a caller reads.
+			delete globalThis.OC.currentUser
+			stubFetch(401)
+			const result = await retireFirstRunWizard(makePage())
+			expect(result.cleared).toBe(true)
+		})
+
+		it('says installed:null — a 401 never reached the wizard app', async () => {
+			// `true` and `false` would both be inventions: Nextcloud's auth layer
+			// answers before the app is consulted, so the response carries no
+			// information about whether firstrunwizard is installed at all.
+			delete globalThis.OC.currentUser
+			stubFetch(401)
+			const result = await retireFirstRunWizard(makePage())
+			expect(result.installed).toBeNull()
+			// Still falsy, so an existing `if (installed)` caller is unaffected.
+			expect(result.installed).toBeFalsy()
+		})
+
+		it('detects the guest signature from <head> when OC is unavailable', async () => {
+			// The measured shape of a portaliq public portal page: a request
+			// token, and no `data-user`. On a stripped public template the OC
+			// globals may never load, so the attributes are the only evidence.
+			delete globalThis.OC
+			document.head.setAttribute('data-requesttoken', 'tok-guest')
+			stubFetch(500)
+			const result = await retireFirstRunWizard(makePage())
+			expect(result.notApplicable).toBe(true)
+			expect(result.reason).toBe(NO_USER_SESSION)
+		})
+
+		it('CONTROL: the same 500 on a LOGGED-IN page is still a real failure', async () => {
+			// Without this the assertion above would pass for a helper that had
+			// been broken into calling everything not-applicable.
+			document.head.setAttribute('data-requesttoken', 'tok-user')
+			document.head.setAttribute('data-user', 'alice')
+			delete globalThis.OC
+			stubFetch(500)
+			const result = await retireFirstRunWizard(makePage())
+			expect(result.notApplicable).toBe(false)
+			expect(result.cleared).toBe(false)
+		})
+
+		it('CONTROL: a 2xx is dispositive and never re-read as a guest surface', async () => {
+			// The server accepted the dismissal. Whatever the page looks like,
+			// that is the answer — so the 2xx branch is evaluated first.
+			delete globalThis.OC.currentUser
+			stubFetch(200)
+			const result = await retireFirstRunWizard(makePage())
+			expect(result).toEqual({ status: 200, installed: true, cleared: true, notApplicable: false, reason: null })
+		})
 	})
 
 	it('tolerates a page with no OC global', async () => {
@@ -789,7 +880,164 @@ describe('dismissSupportDialog', () => {
 	})
 
 	it('dismissFirstVisitOverlays clears both without throwing on an empty page', async () => {
-		await expect(dismissFirstVisitOverlays(makePage(), { timeout: 10 })).resolves.toBeUndefined()
+		await expect(dismissFirstVisitOverlays(makePage(), { timeout: 10 })).resolves.toEqual({
+			notApplicable: false,
+			reason: null,
+			walkthroughDismissed: false,
+			supportDialogsDismissed: 0,
+		})
+	})
+
+	it('dismissFirstVisitOverlays REPORTS what it cleared', async () => {
+		// The old signature returned `undefined` whether it had closed two
+		// overlays or found none, which is what made the guest-surface no-op
+		// undetectable in the first place.
+		const card = { open: true, clicks: 0 }
+		const dialog = { open: true, clicks: 0 }
+		const page = makePage({
+			locators: {
+				'.cn-walkthrough__card': presentLocator(card),
+				'.cn-walkthrough__close': presentLocator({ open: true, clicks: 0 }),
+				'.cn-walkthrough__dim': presentLocator({ open: true, clicks: 0 }),
+				'[data-testid-modal="cn-support-dialog"]': presentLocator(dialog),
+			},
+		})
+		const result = await dismissFirstVisitOverlays(page, { timeout: 10 })
+		expect(result.notApplicable).toBe(false)
+		expect(result.walkthroughDismissed).toBe(true)
+		expect(result.supportDialogsDismissed).toBe(1)
+	})
+})
+
+/**
+ * The seed and dismiss helpers do nothing on a Nextcloud GUEST surface, and
+ * until now they did it silently.
+ *
+ * `CnWalkthrough` and `CnSupportDialog` are both auto-mounted BY `CnAppRoot`.
+ * Measured on a portaliq public portal page: `data-requesttoken` present,
+ * `data-user` absent, no `CnAppRoot` in the DOM — so neither overlay exists and
+ * neither helper has anything to do. Correct behaviour, wrong shape: the call
+ * spent its full timeout twice and returned exactly what a successful pass
+ * returned, leaving the consumer unable to tell "cleared two overlays" from
+ * "there was nothing here". The consumer did not work around it locally, which
+ * was right; this is what stops the next one having to guess.
+ */
+describe('guest surfaces are DETECTABLE, not silently inert', () => {
+	afterEach(() => {
+		delete globalThis.OC
+		document.head.removeAttribute('data-user')
+		document.head.removeAttribute('data-requesttoken')
+	})
+
+	/**
+	 * Stamp the measured guest signature onto the jsdom document.
+	 *
+	 * @return {void}
+	 */
+	function makeGuestDocument() {
+		document.head.setAttribute('data-requesttoken', 'tok-guest')
+		document.head.removeAttribute('data-user')
+	}
+
+	describe('guestSurfaceStatus', () => {
+		it('recognises the measured portaliq guest signature', async () => {
+			makeGuestDocument()
+			await expect(guestSurfaceStatus(makePage())).resolves.toEqual({
+				guest: true,
+				user: null,
+				isNextcloudPage: true,
+				appRoots: [],
+			})
+		})
+
+		it('CONTROL: a page with data-user is NOT a guest surface', async () => {
+			makeGuestDocument()
+			document.head.setAttribute('data-user', 'alice')
+			const status = await guestSurfaceStatus(makePage())
+			expect(status.guest).toBe(false)
+			expect(status.user).toBe('alice')
+		})
+
+		it('CONTROL: OC.getCurrentUser() counts as a session too', async () => {
+			makeGuestDocument()
+			globalThis.OC = { requestToken: 'tok', getCurrentUser: () => ({ uid: 'bob' }) }
+			const status = await guestSurfaceStatus(makePage())
+			expect(status.guest).toBe(false)
+			expect(status.user).toBe('bob')
+		})
+
+		it('does NOT call a non-Nextcloud page a guest surface', async () => {
+			// No request token means this is not a Nextcloud page at all — an
+			// about:blank, a fixture, a page seeded before goto(). Nothing may
+			// be concluded, so nothing is: "neither present" is not evidence.
+			const status = await guestSurfaceStatus(makePage())
+			expect(status.isNextcloudPage).toBe(false)
+			expect(status.guest).toBe(false)
+		})
+
+		it('does NOT call a page that mounts a CnAppRoot a guest surface', async () => {
+			// A logged-out page CAN mount an app root, and then the overlays it
+			// mounts are real and still need clearing.
+			makeGuestDocument()
+			const root = document.createElement('div')
+			root.setAttribute('data-testid', 'cn-app-root')
+			root.setAttribute('data-nldesign-theme-scope', 'portaliq')
+			document.body.appendChild(root)
+			try {
+				const status = await guestSurfaceStatus(makePage())
+				expect(status.appRoots).toEqual(['portaliq'])
+				expect(status.guest).toBe(false)
+			} finally {
+				root.remove()
+			}
+		})
+	})
+
+	describe('dismissFirstVisitOverlays', () => {
+		it('says "not applicable" rather than silently doing nothing', async () => {
+			makeGuestDocument()
+			await expect(dismissFirstVisitOverlays(makePage(), { timeout: 10 })).resolves.toEqual({
+				notApplicable: true,
+				reason: GUEST_SURFACE,
+				walkthroughDismissed: false,
+				supportDialogsDismissed: 0,
+			})
+		})
+
+		it('short-circuits: it never even polls for the overlays', async () => {
+			// Not cosmetic. On a guest page the old code burned both timeout
+			// budgets waiting for elements that could not appear. Asserting on
+			// the locator calls is what proves the wait is gone rather than
+			// merely faster on this machine.
+			makeGuestDocument()
+			const page = makePage()
+			await dismissFirstVisitOverlays(page, { timeout: 10 })
+			expect(page.calls.locators).toEqual([])
+		})
+
+		it('CONTROL: it DOES poll on a logged-in page', async () => {
+			// Without this the assertion above would pass for a helper that had
+			// been broken into never polling at all.
+			makeGuestDocument()
+			document.head.setAttribute('data-user', 'alice')
+			const page = makePage()
+			await dismissFirstVisitOverlays(page, { timeout: 10 })
+			expect(page.calls.locators).toContain('.cn-walkthrough__card')
+			expect(page.calls.locators).toContain('[data-testid-modal="cn-support-dialog"]')
+		})
+	})
+
+	describe('the seeding helpers stay unconditional, and say so', () => {
+		it('still writes its key on a guest surface', async () => {
+			// Deliberate: seeds are called BEFORE goto(), where there is no
+			// document to probe — a guest check there would be measuring
+			// about:blank and would answer wrong every time. So the seed stays
+			// cheap and unconditional, and guestSurfaceStatus() is the probe.
+			makeGuestDocument()
+			const page = makePage()
+			await seedSupportDialogSeen(page, 'portaliq')
+			expect(window.localStorage.getItem(`${SUPPORT_DIALOG_STORAGE_PREFIX}portaliq`)).toBe('1')
+		})
 	})
 })
 
