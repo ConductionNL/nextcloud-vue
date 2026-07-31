@@ -13,8 +13,18 @@
 /** A single ESLint flat-config entry. */
 export type CnFlatConfigEntry = Record<string, unknown>
 
-/** ECMAScript level every Conduction app is linted against. */
+/**
+ * The ECMAScript syntax FLOOR every Conduction app may rely on, as a number —
+ * for tooling that refuses the `'latest'` string. NOT the value the preset
+ * sets; see {@link ECMA_LANGUAGE_LEVEL}.
+ */
 export const ECMA_VERSION: number
+
+/**
+ * The level the preset actually configures: `'latest'`. A shared preset that
+ * pins a year can only ever LOWER a consumer.
+ */
+export const ECMA_LANGUAGE_LEVEL: 'latest'
 
 /** `parserOptions` for `<script>` blocks in `.vue` files (object-form parser). */
 export const vueSfcParserOptions: Record<string, unknown>

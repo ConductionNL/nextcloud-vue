@@ -21,6 +21,16 @@
  *    `__vueParentComponent` are never stamped onto elements. Consumers are
  *    forced to walk from `container.__vue_app__` instead. nc-vue creates that
  *    constraint, so nc-vue should ship the workaround.
+ *  - `appDialog()` exists because `CnSupportDialog` is itself a
+ *    `[role="dialog"]`, so the obvious `getByRole('dialog').first()` can match
+ *    nc-vue's overlay after a click that never landed and report a modal the
+ *    spec never opened as showing — a PASSING test for a broken flow.
+ *
+ * The one exception is `retireFirstRunWizard()`, which is Nextcloud's overlay
+ * rather than nc-vue's. It ships here because it has the identical failure
+ * shape, every consuming app is a Nextcloud app, and nothing else in the fleet
+ * owns a shared e2e layer — leaving it out meant 13 apps re-solving it, which
+ * is exactly the duplication this module was created to end.
  *
  * The duplication this replaces was real and measurable: openconnector had
  * reimplemented overlay dismissal THREE separate times inside one repository
@@ -143,6 +153,48 @@ const SUPPORT_DIALOG = '[data-testid-modal="cn-support-dialog"]'
 const APP_ROOT_ID_ATTR = 'data-nldesign-theme-scope'
 
 /**
+ * Nextcloud's own first-run wizard dismissal route.
+ *
+ * @type {string}
+ */
+const FIRST_RUN_WIZARD_ROUTE = '/index.php/apps/firstrunwizard/wizard'
+
+/**
+ * Selectors for `[role="dialog"]` elements that are NOT the application's own
+ * modal — see {@link appDialog}.
+ *
+ * WHAT IS DELIBERATELY ABSENT: `.modal-mask`.
+ *
+ * A consumer asked for it, and shipping it would have broken every app in the
+ * fleet. `@nextcloud/vue` v9's `NcModal` renders its ROOT element as
+ * `<div class="modal-mask" role="dialog" aria-modal="true">` (verified in
+ * `@nextcloud/vue/dist/chunks/NcModal-*.mjs`), and `NcDialog` is built on
+ * `NcModal`. So `.modal-mask` is not a chrome wrapper sitting on top of app
+ * dialogs — it IS the app's dialog, for every `NcModal`/`NcDialog` in every
+ * Conduction app. `[role="dialog"]:not(.modal-mask)` would therefore match
+ * NOTHING in a typical app, which is the same green-but-dead shape this helper
+ * exists to prevent: the locator resolves to zero elements, and an
+ * `expect(...).toBeHidden()` style assertion passes against absence.
+ *
+ * The chrome that motivated the request is already covered by name:
+ * `#firstrunwizard` (which carries `modal-mask--opaque`) and the nc-vue support
+ * dialog. An app that has a genuine reason to exclude `.modal-mask` — or any
+ * other overlay — can pass it via `options.exclude`.
+ *
+ * @type {string[]}
+ */
+const CHROME_DIALOG_SELECTORS = [
+	// Nextcloud's own welcome overlay.
+	'#firstrunwizard',
+	// nc-vue's support prompt, both the class and the stable test hook.
+	'.cn-support-dialog',
+	SUPPORT_DIALOG,
+	// Nextcloud's legacy jQuery dialog (`OC.dialogs.*`), still used by core for
+	// file pickers and confirmations.
+	'.oc-dialog',
+]
+
+/**
  * Normalise the `appId` argument shared by the seeding helpers.
  *
  * @param {string|string[]|undefined} appId One id, several, `'*'`, or nothing.
@@ -157,42 +209,61 @@ function normaliseAppIds(appId) {
 }
 
 /**
- * Install the storage shim that makes a set of `{prefix}{appId}` keys read
- * back as already-seen, for both future navigations and the current document.
+ * Is this a Playwright `BrowserContext` rather than a `Page`?
  *
- * The shim intercepts `Storage.prototype.getItem` rather than only writing the
- * keys, because of the nested-`CnAppRoot` caveat documented on
- * {@link seedSupportDialogSeen}: the id of a nested root is composed at run
- * time and cannot be enumerated before the page loads.
+ * Both expose `addInitScript`, which is why the seeding helpers can accept
+ * either. `newPage` + `pages` is what only a context has; `goto` is what only a
+ * page has. Duck-typed, like everything else in this module, so the same check
+ * works for `playwright-core` and for a fixture stand-in.
  *
- * @param {object} page Playwright `Page` (duck-typed).
- * @param {string} prefix Storage key prefix.
- * @param {string[]} ids Exact app ids to cover (also covers `id + '-*'`).
- * @param {boolean} matchAll Cover every app id under the prefix.
- * @param {string} value Value the shimmed key reads back as.
- * @return {Promise<void>}
+ * @param {object} target Page or BrowserContext.
+ * @return {boolean} True for a BrowserContext.
  */
-async function installSeenShim(page, prefix, ids, matchAll, value) {
-	const payload = { prefix, ids, matchAll, value }
+function isBrowserContext(target) {
+	return !!target
+		&& typeof target.newPage === 'function'
+		&& typeof target.pages === 'function'
+		&& typeof target.goto !== 'function'
+}
 
-	/**
-	 * Runs inside the browser. Kept as a single self-contained function so it
-	 * can be handed to both `addInitScript` (future navigations) and
-	 * `evaluate` (the document already open).
-	 *
-	 * @param {object} args The serialised payload.
-	 * @return {void}
-	 */
-	const apply = (args) => {
-		const store = globalThis.__cnSeenSeeds || (globalThis.__cnSeenSeeds = [])
-		store.push(args)
+/**
+ * The explanation attached to every refusal of `'*'` in a persisting scope.
+ *
+ * @param {string} scope Human name of the call that was refused.
+ * @return {string} Error message.
+ */
+function matchAllRefusal(scope) {
+	return `${scope}: '*' (or an omitted appId) cannot be persisted.\n`
+		+ 'The match-all form works by installing a `Storage.prototype.getItem` shim, and a\n'
+		+ 'shim is a live function on one page — it writes no concrete keys, so it cannot\n'
+		+ 'serialise into `context.storageState()`. Measured: with \'*\' the in-page\n'
+		+ '`getItem` reads back "1" while the saved storageState contains NO key at all,\n'
+		+ 'so a global-setup looks correct and then silently fails for every spec.\n'
+		+ 'Pass the explicit app id(s) instead — e.g. seedFirstVisitOverlaysSeen(context,\n'
+		+ "'openconnector') — which takes the write-through branch and rides in\n"
+		+ 'storageState. `mountedAppIds(page)` will tell you the ids in play, including\n'
+		+ 'nested CnAppRoots.'
+}
 
-		if (!globalThis.__cnSeenShimInstalled) {
-			globalThis.__cnSeenShimInstalled = true
-			const proto = globalThis.Storage && globalThis.Storage.prototype
-			if (!proto) {
-				return
-			}
+/**
+ * Runs inside the browser. Kept as a single self-contained function so it can
+ * be handed to `addInitScript` (future navigations) and to `evaluate` (a
+ * document that is already open) without the two drifting apart.
+ *
+ * Returns the number of CONCRETE keys it managed to write, which is what the
+ * context-scoped path uses to tell a real seed from a no-op.
+ *
+ * @param {object} args The serialised `{ prefix, ids, matchAll, value }`.
+ * @return {number} Concrete keys written to the backing store.
+ */
+const applySeed = (args) => {
+	const store = globalThis.__cnSeenSeeds || (globalThis.__cnSeenSeeds = [])
+	store.push(args)
+
+	if (!globalThis.__cnSeenShimInstalled) {
+		globalThis.__cnSeenShimInstalled = true
+		const proto = globalThis.Storage && globalThis.Storage.prototype
+		if (proto) {
 			const original = proto.getItem
 			proto.getItem = function getItem(key) {
 				const seeds = globalThis.__cnSeenSeeds || []
@@ -210,25 +281,115 @@ async function installSeenShim(page, prefix, ids, matchAll, value) {
 				return original.call(this, key)
 			}
 		}
+	}
 
-		// Also write the concrete keys through, so any consumer reading the
-		// backing store directly (or after the shim is torn down by a hard
-		// reload of a different origin) sees the same answer.
-		if (!args.matchAll) {
-			for (const id of args.ids) {
-				try {
-					globalThis.localStorage.setItem(args.prefix + id, args.value)
-				} catch (e) {
-					/* private mode / quota — the shim already covers reads */
-				}
+	// Write the concrete keys THROUGH to the backing store. This is the only
+	// part that survives into `storageState`, and it is why an explicit app id
+	// is durable while `'*'` is not: there is no such thing as a concrete key
+	// for "every app".
+	let written = 0
+	if (!args.matchAll) {
+		for (const id of args.ids) {
+			try {
+				globalThis.localStorage.setItem(args.prefix + id, args.value)
+				written++
+			} catch (e) {
+				/* private mode / quota / opaque origin — the shim still covers reads */
 			}
 		}
 	}
+	return written
+}
 
-	await page.addInitScript(apply, payload)
+/**
+ * Make `context.storageState()` throw for the rest of the run, because a
+ * match-all seed was installed on one of its pages and CANNOT be in there.
+ *
+ * This is the part that makes the footgun unreachable rather than merely
+ * documented. `seedSupportDialogSeen(page, '*')` reads back `"1"` from inside
+ * the page, so the setup step that saves the state has no way to notice it
+ * saved nothing — the failure only shows up later, in every spec, as an overlay
+ * that "should have been seeded". Poisoning `storageState` moves the failure to
+ * the exact line that is wrong.
+ *
+ * The original method is preserved as `__cnOriginalStorageState` for the rare
+ * caller that knows what it is doing.
+ *
+ * @param {object} page Playwright `Page` (duck-typed).
+ * @param {string} scope Human name of the seeding call, for the message.
+ * @return {void}
+ */
+function poisonStorageState(page, scope) {
+	if (!page || typeof page.context !== 'function') {
+		return
+	}
+	let context
+	try {
+		context = page.context()
+	} catch (e) {
+		return
+	}
+	if (!context || typeof context.storageState !== 'function' || context.__cnStorageStatePoisoned) {
+		return
+	}
+	const original = context.storageState.bind(context)
+	context.__cnStorageStatePoisoned = true
+	context.__cnOriginalStorageState = original
+	context.storageState = async () => {
+		throw new Error(matchAllRefusal(scope)
+			+ '\n\nThis context therefore refuses to save a storageState that would be a\n'
+			+ 'silent no-op. Re-seed with explicit ids, or call\n'
+			+ '`context.__cnOriginalStorageState()` if you really do want the state without\n'
+			+ 'the seed in it.')
+	}
+}
+
+/**
+ * Install the seed on a `Page` or on a `BrowserContext`.
+ *
+ * PAGE scope covers the current document plus every later navigation of that
+ * one page. CONTEXT scope covers every page the context already has and every
+ * page it will open — and it is the scope to use when the state is going to be
+ * saved with `context.storageState()`, because it REFUSES the match-all form
+ * that cannot be saved.
+ *
+ * @param {object} target Playwright `Page` or `BrowserContext` (duck-typed).
+ * @param {string} prefix Storage key prefix.
+ * @param {string[]} ids Exact app ids to cover (also covers `id + '-*'`).
+ * @param {boolean} matchAll Cover every app id under the prefix.
+ * @param {string} value Value the seeded key reads back as.
+ * @param {string} scope Human name of the calling helper, for error messages.
+ * @return {Promise<void>}
+ * @throws {Error} When a BrowserContext is seeded with `'*'`.
+ */
+async function installSeenShim(target, prefix, ids, matchAll, value, scope) {
+	const payload = { prefix, ids, matchAll, value }
+
+	if (isBrowserContext(target)) {
+		if (matchAll) {
+			// Refused by construction: a context-scoped seed exists to be saved,
+			// and this form cannot be. Throwing here is the whole point — the
+			// alternative is the measured failure in the message.
+			throw new Error(matchAllRefusal(scope))
+		}
+		// Covers pages opened later, and later navigations of pages already open.
+		await target.addInitScript(applySeed, payload)
+		// …and the documents that are already loaded, so a context seeded after
+		// the first `goto()` still lands in `storageState()`.
+		for (const page of target.pages()) {
+			await page.evaluate(applySeed, payload).catch(() => 0)
+		}
+		return
+	}
+
+	await target.addInitScript(applySeed, payload)
 	// Best-effort for a page that is already open: `addInitScript` only affects
 	// subsequent navigations, and callers do sometimes seed mid-test.
-	await page.evaluate(apply, payload).catch(() => {})
+	await target.evaluate(applySeed, payload).catch(() => 0)
+
+	if (matchAll) {
+		poisonStorageState(target, scope)
+	}
 }
 
 /**
@@ -256,9 +417,31 @@ async function installSeenShim(page, prefix, ids, matchAll, value) {
  * nested id does not follow that convention, pass `'*'` (or the explicit list)
  * to cover every app on the page.
  *
- * @param {object} page Playwright `Page`.
- * @param {string|string[]} [appId] App id(s); `'*'` or omitted covers all.
+ * `'*'` AND `storageState` DO NOT MIX — and the helper now enforces that.
+ * The match-all form has no concrete keys to write, so it works by shimming
+ * `Storage.prototype.getItem`. A shim is a live function on one page; it cannot
+ * serialise. Measured on openconnector:
+ *
+ * ```
+ * explicit 'openconnector'  in-page getItem: "1"  persisted: cn-support-dialog-shown:openconnector=1
+ * matchAll  '*'             in-page getItem: "1"  persisted: NONE
+ * ```
+ *
+ * Both read back `"1"` inside the page, which is why a `global-setup` that
+ * saves `storageState` looked correct and then failed for every spec. So:
+ *
+ *  - passing a `BrowserContext` with `'*'` THROWS immediately, and
+ *  - passing a `Page` with `'*'` poisons that page's `context.storageState()`,
+ *    so the save fails loudly instead of writing a state with nothing in it.
+ *
+ * Use the BrowserContext form with explicit ids whenever the state is going to
+ * be saved — see {@link seedFirstVisitOverlaysSeen}.
+ *
+ * @param {object} target Playwright `Page` or `BrowserContext`.
+ * @param {string|string[]} [appId] App id(s). `'*'`/omitted covers all, but is
+ *   page-scoped only and can never be persisted.
  * @return {Promise<void>}
+ * @throws {Error} When a `BrowserContext` is seeded with `'*'` or no appId.
  *
  * @example
  * test.beforeEach(async ({ page }) => {
@@ -266,9 +449,9 @@ async function installSeenShim(page, prefix, ids, matchAll, value) {
  *   await page.goto('/apps/openbuild/')
  * })
  */
-async function seedSupportDialogSeen(page, appId) {
+async function seedSupportDialogSeen(target, appId) {
 	const { ids, matchAll } = normaliseAppIds(appId)
-	await installSeenShim(page, SUPPORT_DIALOG_STORAGE_PREFIX, ids, matchAll, '1')
+	await installSeenShim(target, SUPPORT_DIALOG_STORAGE_PREFIX, ids, matchAll, '1', 'seedSupportDialogSeen')
 }
 
 /**
@@ -281,29 +464,48 @@ async function seedSupportDialogSeen(page, appId) {
  * that answers `{"value": null}` (never written) falls back to this mirror,
  * which is the common case.
  *
- * Same nested-`CnAppRoot` coverage rule as {@link seedSupportDialogSeen}.
+ * Same nested-`CnAppRoot` coverage rule — and the same `'*'`/`storageState`
+ * refusal — as {@link seedSupportDialogSeen}.
  *
- * @param {object} page Playwright `Page`.
- * @param {string|string[]} [appId] App id(s); `'*'` or omitted covers all.
+ * @param {object} target Playwright `Page` or `BrowserContext`.
+ * @param {string|string[]} [appId] App id(s); `'*'`/omitted covers all, and is
+ *   page-scoped only.
  * @param {string} [version] Version to record as seen.
  * @return {Promise<void>}
+ * @throws {Error} When a `BrowserContext` is seeded with `'*'` or no appId.
  */
-async function seedWalkthroughSeen(page, appId, version = FUTURE_VERSION) {
+async function seedWalkthroughSeen(target, appId, version = FUTURE_VERSION) {
 	const { ids, matchAll } = normaliseAppIds(appId)
-	await installSeenShim(page, WALKTHROUGH_STORAGE_PREFIX, ids, matchAll, String(version))
+	await installSeenShim(target, WALKTHROUGH_STORAGE_PREFIX, ids, matchAll, String(version), 'seedWalkthroughSeen')
 }
 
 /**
  * Seed both first-visit overlays in one call — the pre-emptive counterpart of
  * {@link dismissFirstVisitOverlays}.
  *
- * @param {object} page Playwright `Page`.
- * @param {string|string[]} [appId] App id(s); `'*'` or omitted covers all.
+ * PREFER THE `BrowserContext` FORM IN A `global-setup`. A context-scoped seed
+ * covers every page the context already has AND every page it opens later, and
+ * it refuses the `'*'` form outright — which is the form that reads back
+ * correctly inside the page and then persists nothing.
+ *
+ * @param {object} target Playwright `Page` or `BrowserContext`.
+ * @param {string|string[]} [appId] App id(s). Required (and explicit) when
+ *   `target` is a `BrowserContext`.
  * @return {Promise<void>}
+ * @throws {Error} When a `BrowserContext` is seeded with `'*'` or no appId.
+ *
+ * @example
+ * // global-setup.js — durable for every spec, context and browser in the run.
+ * const context = await browser.newContext()
+ * await seedFirstVisitOverlaysSeen(context, 'openconnector')
+ * const page = await context.newPage()
+ * await page.goto('/apps/openconnector/')
+ * await retireFirstRunWizard(page)
+ * await context.storageState({ path: STORAGE_STATE })
  */
-async function seedFirstVisitOverlaysSeen(page, appId) {
-	await seedSupportDialogSeen(page, appId)
-	await seedWalkthroughSeen(page, appId)
+async function seedFirstVisitOverlaysSeen(target, appId) {
+	await seedSupportDialogSeen(target, appId)
+	await seedWalkthroughSeen(target, appId)
 }
 
 /**
@@ -415,6 +617,116 @@ async function dismissSupportDialog(page, options = {}) {
 async function dismissFirstVisitOverlays(page, options = {}) {
 	await dismissWalkthrough(page, options)
 	await dismissSupportDialog(page, options)
+}
+
+/**
+ * A `Locator` for the application's OWN modal — never the chrome on top of it.
+ *
+ * `page.getByRole('dialog').first()` is the obvious way to grab a modal and the
+ * wrong one. On a Nextcloud page at least two other things claim
+ * `role="dialog"`: `#firstrunwizard`, Nextcloud's welcome overlay, and
+ * `CnSupportDialog`, nc-vue's support prompt. Both are full-viewport masks that
+ * HIDE nothing a visibility assertion inspects, so they break clicks rather
+ * than renders — the button under them stays `toBeVisible()` while the click is
+ * swallowed with "subtree intercepts pointer events".
+ *
+ * The trap is what happens next. Because the overlays are themselves dialogs, a
+ * spec that clicks, misses, and then asserts on `getByRole('dialog').first()`
+ * matches the OVERLAY, goes green, and reports that a modal it never opened is
+ * showing. That is a passing test for a broken flow, and it is why this belongs
+ * in the shared layer rather than in one app's `support/` folder: nc-vue is what
+ * puts `CnSupportDialog` on the page, so nc-vue owns the workaround.
+ *
+ * Returns a `Locator`, so it composes:
+ * `appDialog(page).getByRole('button', { name: 'Save' })`.
+ *
+ * ON `.modal-mask`: it is NOT excluded by default, on purpose. It is
+ * `@nextcloud/vue`'s `NcModal` ROOT — the element that carries `role="dialog"`
+ * for every `NcModal` and `NcDialog`, including the app's own. Excluding it
+ * would make this locator match nothing at all. Pass it in `options.exclude` if
+ * a specific app really needs it.
+ *
+ * @param {object} page Playwright `Page`.
+ * @param {object} [options] `{ exclude, all }`.
+ * @param {string[]} [options.exclude] Extra selectors to treat as chrome, added
+ *   to {@link CHROME_DIALOG_SELECTORS}.
+ * @param {boolean} [options.all] Return the full match set instead of `.first()`.
+ * @return {object} Playwright `Locator`.
+ *
+ * @example
+ * await page.getByRole('button', { name: 'Add source' }).click()
+ * await expect(appDialog(page)).toBeVisible()
+ * await appDialog(page).getByRole('textbox', { name: 'Name' }).fill('demo')
+ */
+function appDialog(page, options = {}) {
+	const exclude = CHROME_DIALOG_SELECTORS.concat(options.exclude || [])
+	// Self-exclusion, not descendant-exclusion: `filter({ hasNot })` asks about
+	// a dialog's CHILDREN, whereas the overlays being ruled out ARE the matched
+	// element. A `:not()` chain is the honest way to say it.
+	const notChrome = exclude.map((selector) => `:not(${selector})`).join('')
+	const located = page.locator(`[role="dialog"]${notChrome}`)
+	return options.all ? located : located.first()
+}
+
+/**
+ * Retire Nextcloud's own first-run wizard for the logged-in user, SERVER-SIDE.
+ *
+ * The wizard mounts as `#firstrunwizard`, a `[role="dialog"]` carrying
+ * `modal-mask--opaque`, and it is the other full-viewport overlay a fresh
+ * instance puts in front of an app — the `CnSupportDialog` seed says nothing
+ * about it. Its failure mode is the nasty one described on {@link appDialog}:
+ * it hides nothing, so `toBeVisible()` keeps passing and only the CLICK is
+ * intercepted.
+ *
+ * `DELETE /apps/firstrunwizard/wizard` is the wizard app's own dismissal route
+ * and records the result against the user, so unlike a `localStorage` seed it
+ * holds for every spec, every context and every browser in the run — one call
+ * in `global-setup` instead of a re-dismissal in every `beforeEach`. Issued
+ * from inside the page so the session cookie and the CSRF token come along for
+ * free.
+ *
+ * GRACEFUL WHEN THE APP IS NOT INSTALLED: a `404` means there is no wizard to
+ * retire, which is a success for the caller's purposes, not a failure. It is
+ * reported as `{ cleared: true, installed: false }` rather than thrown, so a
+ * shared `global-setup` works on instances with and without the app.
+ *
+ * @param {object} page Playwright `Page`, already logged in and on a Nextcloud
+ *   page (the request is same-origin and needs `window.OC.requestToken`).
+ * @param {object} [options] `{ route }` to override the dismissal route.
+ * @return {Promise<{status: number, cleared: boolean, installed: boolean}>}
+ *   `status` is the HTTP status, or `-1` when the request itself threw.
+ *   `cleared` is true when nothing will block clicks (2xx, or 404 = not
+ *   installed). `installed` distinguishes the two.
+ *
+ * @example
+ * const { cleared, status } = await retireFirstRunWizard(page)
+ * if (!cleared) {
+ *   console.warn(`first-run wizard dismissal returned ${status}`)
+ * }
+ */
+async function retireFirstRunWizard(page, options = {}) {
+	const route = options.route || FIRST_RUN_WIZARD_ROUTE
+
+	const status = await page.evaluate(async (url) => {
+		try {
+			const oc = globalThis.OC || {}
+			const res = await globalThis.fetch(url, {
+				method: 'DELETE',
+				// Nextcloud rejects a state-changing request without this header.
+				headers: { requesttoken: oc.requestToken || '' },
+			})
+			return res.status
+		} catch (e) {
+			return -1
+		}
+	}, route).catch(() => -1)
+
+	const installed = status !== 404
+	return {
+		status,
+		installed,
+		cleared: (status >= 200 && status < 300) || status === 404,
+	}
 }
 
 /**
@@ -640,14 +952,21 @@ async function readComponentProp(page, componentName, propName) {
 }
 
 module.exports = {
+	// Exported because consumers assert against a saved `storageState` file
+	// directly — `state.origins[0].localStorage` keyed by these prefixes is the
+	// only way to prove a seed actually persisted rather than merely read back.
 	SUPPORT_DIALOG_STORAGE_PREFIX,
 	WALKTHROUGH_STORAGE_PREFIX,
+	CHROME_DIALOG_SELECTORS,
+	FIRST_RUN_WIZARD_ROUTE,
 	seedSupportDialogSeen,
 	seedWalkthroughSeen,
 	seedFirstVisitOverlaysSeen,
 	dismissWalkthrough,
 	dismissSupportDialog,
 	dismissFirstVisitOverlays,
+	appDialog,
+	retireFirstRunWizard,
 	mountedAppIds,
 	mountedComponents,
 	mountedComponentNames,

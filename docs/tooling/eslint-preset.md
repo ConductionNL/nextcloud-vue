@@ -111,13 +111,42 @@ Vue 2 API.
 
 ### 2. A modern language level
 
-`ecmaVersion: 2022` and `sourceType: 'module'`, set on **both**
+`ecmaVersion: 'latest'` and `sourceType: 'module'`, set on **both**
 `languageOptions` and `languageOptions.parserOptions`. The second one is not
 redundant: `eslint-plugin-import` resolves the language level from
 `context.parserOptions`, which in flat config maps to
 `languageOptions.parserOptions` and *not* to `languageOptions.ecmaVersion`.
 Omitting it is how a stale `ecmaVersion` keeps manufacturing warnings about
 `?.` and `??`.
+
+:::danger Never pin a year here
+
+The preset used to set `ecmaVersion: 2022`. openconnector adopted it over a
+config carrying a top-level `ecmaVersion: 'latest'`, and the adoption silently
+**lowered** it. Harmless in that repository — and the exact class of failure the
+pin was introduced to fix.
+
+A shared preset that pins a year can only ever downgrade a consumer, and the
+downgrade is not cosmetic. Measured against ESLint 8.57 / espree 9.6, with the
+ES2024 `v` (unicodeSets) regexp flag as the probe:
+
+| `ecmaVersion` | Result |
+| --- | --- |
+| `2022` | `Parsing error: Invalid regular expression flag` (**fatal**) |
+| `'latest'` | clean |
+
+A file ESLint cannot parse gets a `fatal` message and **no other rule runs on
+it** — so the `vue/no-deprecated-*` gate this preset exists to arm goes silent
+on exactly the files using modern syntax.
+
+An app that genuinely wants a pin can spread its own layer after the preset;
+flat config's last-wins ordering makes that a one-liner. That is the consumer's
+call to make, not the shared preset's.
+
+`tests/eslint/preset.spec.js` pins this: `tests/fixtures/eslint-preset/modern-syntax.js`
+must lint clean through the preset, and a positive control re-lints the same
+fixture at `2022` to prove it still fatals there.
+:::
 
 ### 3. `vue/v-on-event-hyphenation` with `update:modelValue` excluded
 
@@ -168,7 +197,8 @@ whose genuinely bad `:key` must **still** error.
 | `vueDeprecationRules` | The armed `vue/no-deprecated-*` family (+ the `filters:` guard) as a plain rules object. |
 | `vueEventCasingRules` | `vue/v-on-event-hyphenation` with the `update:modelValue` escape. |
 | `vueSfcParserOptions` | The object-form `parserOptions` block for `.vue` files. |
-| `ECMA_VERSION` | `2022` — reuse it rather than re-guessing a number. |
+| `ECMA_LANGUAGE_LEVEL` | `'latest'` — what the preset actually sets. |
+| `ECMA_VERSION` | `2022` — the numeric syntax **floor**, for tooling that refuses the `'latest'` string. Reuse it rather than re-guessing a number; it is *not* what the preset configures. |
 
 ## Verifying an app actually adopted it
 

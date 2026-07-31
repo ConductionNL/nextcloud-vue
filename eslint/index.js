@@ -35,10 +35,12 @@
  *     (`no-deprecated-delete-set`, `no-deprecated-model-definition`) are NOT in
  *     that preset, and because an explicit list is what makes the guarantee
  *     auditable — `--print-config` shows them by name.
- *  2. A modern `ecmaVersion` / `sourceType`, set on BOTH `languageOptions` and
- *     `languageOptions.parserOptions`, so `eslint-plugin-import` (which reads
- *     `context.parserOptions`) can parse optional chaining, nullish
- *     coalescing and spread instead of inventing warnings about them.
+ *  2. `ecmaVersion: 'latest'` / `sourceType: 'module'`, set on BOTH
+ *     `languageOptions` and `languageOptions.parserOptions`, so
+ *     `eslint-plugin-import` (which reads `context.parserOptions`) can parse
+ *     optional chaining, nullish coalescing and spread instead of inventing
+ *     warnings about them. `'latest'` and not a pinned year: a shared preset
+ *     that pins can only ever LOWER a consumer — see {@link ECMA_LANGUAGE_LEVEL}.
  *  3. `vue/v-on-event-hyphenation` configured with
  *     `ignore: ['update:modelValue']` — see the block comment on the rule.
  *  4. `parserOptions.parser` in vue-eslint-parser's documented OBJECT form,
@@ -102,17 +104,57 @@ const pluginVue = require('eslint-plugin-vue')
 const vueParser = require('vue-eslint-parser')
 
 /**
- * The ECMAScript level every Conduction app is written against.
+ * The ECMAScript syntax FLOOR every Conduction app may rely on.
  *
- * 2022 is the floor that makes `?.`, `??`, `??=`, class fields and top-level
- * `await`-adjacent syntax parseable. It is deliberately a named export: an app
- * that must reconfigure a parser of its own should reuse this constant instead
- * of re-guessing a number (guessing is how `ecmaVersion: 6` survived a Vue 3
- * migration and produced 20 phantom `import/*` warnings).
+ * 2022 is the level that makes `?.`, `??`, `??=`, class fields, private methods
+ * and static blocks parseable. It is deliberately a named export: an app that
+ * must reconfigure a parser of its own and needs a NUMBER (some third-party
+ * tooling refuses the `'latest'` string) should reuse this constant instead of
+ * re-guessing one — guessing is how `ecmaVersion: 6` survived a Vue 3 migration
+ * and produced 20 phantom `import/*` warnings.
+ *
+ * It is a FLOOR, not the value the preset sets. See
+ * {@link ECMA_LANGUAGE_LEVEL}.
  *
  * @type {number}
  */
 const ECMA_VERSION = 2022
+
+/**
+ * The ECMAScript level the preset actually configures — `'latest'`, never a
+ * pinned year.
+ *
+ * READ THIS BEFORE PINNING A NUMBER HERE AGAIN.
+ *
+ * A shared preset that pins a year can only ever LOWER a consumer. openconnector
+ * adopted this preset over a config that carried a top-level
+ * `ecmaVersion: 'latest'`, and the adoption silently downgraded it to 2022. It
+ * was harmless in that repository — but the harm is not hypothetical, it is the
+ * SAME failure the pin was introduced to fix: openconnector's older
+ * `ecmaVersion: 6` left `eslint-plugin-import` unable to parse `?.`, `??` and
+ * object spread, and it manufactured 20 warnings about perfectly valid code.
+ *
+ * Measured against this repository's ESLint (8.57 / espree 9.6), with the
+ * ES2024 `v` (unicodeSets) regexp flag as the probe:
+ *
+ * ```
+ * ecmaVersion: 2022     → FATAL "Parsing error: Invalid regular expression flag"
+ * ecmaVersion: 'latest' → clean
+ * ```
+ *
+ * A parse error is not a soft downgrade: ESLint reports a `fatal` message and
+ * every other rule on that file is skipped, so the deprecation gate this preset
+ * exists to arm goes SILENT on exactly the files using modern syntax.
+ *
+ * `'latest'` is ESLint's own supported spelling for "whatever this ESLint can
+ * parse" and moves forward with the consumer's toolchain instead of against it.
+ * A consumer that genuinely wants a pin can spread its own layer after the
+ * preset — flat config's last-wins ordering makes that a one-liner, and it is
+ * the consumer's call to make, not the shared preset's.
+ *
+ * @type {string}
+ */
+const ECMA_LANGUAGE_LEVEL = 'latest'
 
 /**
  * Resolve an optional module path, returning `null` when it is not installed.
@@ -164,7 +206,7 @@ const espreePath = resolveOptional('espree')
  * @type {object}
  */
 const vueSfcParserOptions = {
-	ecmaVersion: ECMA_VERSION,
+	ecmaVersion: ECMA_LANGUAGE_LEVEL,
 	sourceType: 'module',
 	requireConfigFile: false,
 	parser: {
@@ -298,7 +340,7 @@ const conductionVue3Fixes = [
 		name: 'conduction/language-level',
 		files: ALL_SCRIPT_FILES,
 		languageOptions: {
-			ecmaVersion: ECMA_VERSION,
+			ecmaVersion: ECMA_LANGUAGE_LEVEL,
 			sourceType: 'module',
 			// Repeated on `parserOptions` deliberately: `eslint-plugin-import`
 			// resolves the language level from `context.parserOptions`, which in
@@ -306,7 +348,7 @@ const conductionVue3Fixes = [
 			// `languageOptions.ecmaVersion`. Leaving it off is what let a stale
 			// `ecmaVersion: 6` make the import plugin choke on `?.` and `??`.
 			parserOptions: {
-				ecmaVersion: ECMA_VERSION,
+				ecmaVersion: ECMA_LANGUAGE_LEVEL,
 				sourceType: 'module',
 			},
 		},
@@ -316,7 +358,7 @@ const conductionVue3Fixes = [
 		files: ['**/*.vue'],
 		languageOptions: {
 			parser: vueParser,
-			ecmaVersion: ECMA_VERSION,
+			ecmaVersion: ECMA_LANGUAGE_LEVEL,
 			sourceType: 'module',
 			parserOptions: vueSfcParserOptions,
 		},
@@ -349,6 +391,7 @@ const conductionVue3 = [
 
 module.exports = {
 	ECMA_VERSION,
+	ECMA_LANGUAGE_LEVEL,
 	vueSfcParserOptions,
 	vueDeprecationRules,
 	vueEventCasingRules,

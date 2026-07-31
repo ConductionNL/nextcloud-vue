@@ -30,6 +30,40 @@ export interface CnTestPage {
 	keyboard: { press(key: string): Promise<void> }
 }
 
+/**
+ * Minimal structural stand-in for Playwright's `BrowserContext`.
+ *
+ * Accepted by the seeding helpers so a seed can cover every page the context
+ * opens AND survive into `storageState()` — which the page-scoped match-all
+ * form cannot do. See {@link seedFirstVisitOverlaysSeen}.
+ */
+export interface CnTestBrowserContext {
+	addInitScript(script: ((...args: any[]) => void) | string, arg?: any): Promise<void>
+	pages(): CnTestPage[]
+	newPage(): Promise<CnTestPage>
+}
+
+/** Anything the seeding helpers can be pointed at. */
+export type CnSeedTarget = CnTestPage | CnTestBrowserContext
+
+/** Options for {@link appDialog}. */
+export interface CnAppDialogOptions {
+	/** Extra selectors treated as chrome, added to `CHROME_DIALOG_SELECTORS`. */
+	exclude?: string[]
+	/** Return the full match set instead of `.first()`. */
+	all?: boolean
+}
+
+/** Outcome of {@link retireFirstRunWizard}. */
+export interface CnWizardRetirement {
+	/** HTTP status of the DELETE, or `-1` when the request itself threw. */
+	status: number
+	/** False when the firstrunwizard app is not installed (404). */
+	installed: boolean
+	/** True when no wizard will block clicks — a 2xx, or a 404. */
+	cleared: boolean
+}
+
 /** One mounted component instance, reduced to a JSON-safe shape. */
 export interface CnMountedComponent {
 	/** The component's `name` option, or the `<script setup>` `__name` fallback. */
@@ -48,19 +82,50 @@ export interface CnDismissOptions {
 	maxDialogs?: number
 }
 
-/** localStorage key prefix `useSupportDialog` writes its "seen" flag under. */
+/**
+ * localStorage key prefix `useSupportDialog` writes its "seen" flag under.
+ * Exported so a spec can assert against a saved `storageState` directly.
+ */
 export const SUPPORT_DIALOG_STORAGE_PREFIX: string
 
-/** localStorage key prefix `useWalkthrough` mirrors the last-seen version under. */
+/**
+ * localStorage key prefix `useWalkthrough` mirrors the last-seen version under.
+ * Exported so a spec can assert against a saved `storageState` directly.
+ */
 export const WALKTHROUGH_STORAGE_PREFIX: string
 
-export function seedSupportDialogSeen(page: CnTestPage, appId?: string | string[]): Promise<void>
-export function seedWalkthroughSeen(page: CnTestPage, appId?: string | string[], version?: string): Promise<void>
-export function seedFirstVisitOverlaysSeen(page: CnTestPage, appId?: string | string[]): Promise<void>
+/** `[role="dialog"]` selectors that are NC / nc-vue chrome, not the app's modal. */
+export const CHROME_DIALOG_SELECTORS: string[]
+
+/** Nextcloud's own first-run wizard dismissal route. */
+export const FIRST_RUN_WIZARD_ROUTE: string
+
+/**
+ * Seed the support dialog as already seen.
+ *
+ * Passing a `CnTestBrowserContext` requires EXPLICIT app ids: `'*'` installs a
+ * `getItem` shim, which cannot serialise into `storageState()`, and is rejected
+ * rather than silently persisting nothing.
+ *
+ * @throws When `target` is a BrowserContext and `appId` is `'*'` or omitted.
+ */
+export function seedSupportDialogSeen(target: CnSeedTarget, appId?: string | string[]): Promise<void>
+
+/** As {@link seedSupportDialogSeen}, for the `CnWalkthrough` tour. */
+export function seedWalkthroughSeen(target: CnSeedTarget, appId?: string | string[], version?: string): Promise<void>
+
+/** Both first-visit overlays at once. Prefer the BrowserContext form in a global-setup. */
+export function seedFirstVisitOverlaysSeen(target: CnSeedTarget, appId?: string | string[]): Promise<void>
 
 export function dismissWalkthrough(page: CnTestPage, options?: CnDismissOptions): Promise<boolean>
 export function dismissSupportDialog(page: CnTestPage, options?: CnDismissOptions): Promise<number>
 export function dismissFirstVisitOverlays(page: CnTestPage, options?: CnDismissOptions): Promise<void>
+
+/** A `Locator` for the app's own modal, excluding NC and nc-vue chrome dialogs. */
+export function appDialog(page: CnTestPage, options?: CnAppDialogOptions): CnTestLocator
+
+/** Retire Nextcloud's `#firstrunwizard` server-side. A 404 is reported, not thrown. */
+export function retireFirstRunWizard(page: CnTestPage, options?: { route?: string }): Promise<CnWizardRetirement>
 
 export function mountedAppIds(page: CnTestPage): Promise<string[]>
 export function mountedComponents(page: CnTestPage): Promise<CnMountedComponent[]>
