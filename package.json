@@ -23,6 +23,7 @@
     "dist/",
     "src/",
     "css/",
+    "eslint/",
     "l10n/",
     "testing/"
   ],
@@ -45,7 +46,7 @@
     "test:e2e": "playwright test",
     "harness": "vite --config e2e/vite.config.mjs",
     "test:types": "tsd",
-    "lint": "eslint src/",
+    "lint": "eslint src/ eslint/ testing/",
     "lint-fix": "npm run lint -- --fix",
     "stylelint": "stylelint 'src/**/*.vue' 'src/**/*.css'",
     "update:manifest-fixtures": "node scripts/update-fleet-manifest-fixtures.js",
@@ -121,10 +122,13 @@
     "axe-core": "^4.10.0",
     "dexie": "^4.0.8",
     "dompurify": "^3.0.0",
+    "eslint": "^8.56.0 || ^9.0.0",
+    "eslint-plugin-vue": "^9.21.0 || ^10.0.0",
     "gridstack": "^12.0.0",
     "marked": "^12.0.0",
     "pinia": "^2.0.0",
     "vue": "^3.5.0",
+    "vue-eslint-parser": "^9.4.0 || ^10.0.0",
     "vue-material-design-icons": "^5.0.0"
   },
   "peerDependenciesMeta": {
@@ -137,7 +141,16 @@
     "dompurify": {
       "optional": true
     },
+    "eslint": {
+      "optional": true
+    },
+    "eslint-plugin-vue": {
+      "optional": true
+    },
     "marked": {
+      "optional": true
+    },
+    "vue-eslint-parser": {
       "optional": true
     }
   },
@@ -210,6 +223,7 @@
     "typescript": "^5.7.0",
     "vite": "^5.4.0",
     "vue": "^3.5.13",
+    "vue-eslint-parser": "^9.4.3",
     "vue-material-design-icons": "^5.2.0"
   }
 }
