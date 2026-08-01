@@ -68,4 +68,55 @@ describe('useSetupStatus', () => {
 		expect(s.completed.value).toBe(true)
 		expect(axios.get).not.toHaveBeenCalled()
 	})
+
+	// A 403 is the server ANSWERING, not failing: setup endpoints are admin-only.
+	// Treating it as "nothing done" put every non-admin in front of a wizard they
+	// could not complete, instead of the app. Measured on openbuild, where
+	// /api/setup/status returns 200 {completed:true} to an admin and 403 to
+	// everyone else.
+	it.each([401, 403])('reports completed when the server answers %i — setup is admin-only', async (statusCode) => {
+		const err = new Error('forbidden')
+		err.response = { status: statusCode }
+		axios.get.mockRejectedValue(err)
+
+		const s = useSetupStatus('openbuild', manifest)
+		await s.refresh()
+
+		expect(s.forbidden.value).toBe(true)
+		expect(s.completed.value).toBe(true)
+		// requiredUnmet still reflects the (unknown) server state — only the
+		// gate that decides whether to SHOW the wizard is affected.
+		expect(s.requiredUnmet.value.map((x) => x.id)).toEqual(['region'])
+	})
+
+	it('keeps a non-auth error unknown so an admin can still reach the wizard', async () => {
+		const err = new Error('server exploded')
+		err.response = { status: 500 }
+		axios.get.mockRejectedValue(err)
+
+		const s = useSetupStatus('procest', manifest)
+		await s.refresh()
+
+		expect(s.forbidden.value).toBe(false)
+		expect(s.completed.value).toBe(false)
+	})
+
+	it('clears a previous forbidden verdict once a later fetch succeeds', async () => {
+		const err = new Error('forbidden')
+		err.response = { status: 403 }
+		axios.get.mockRejectedValue(err)
+
+		const s = useSetupStatus('procest', manifest)
+		await s.refresh()
+		expect(s.completed.value).toBe(true)
+
+		// Same page, caller gains admin (or the grant lands): the real status
+		// must win again rather than the stale "not your concern" verdict.
+		axios.get.mockReset()
+		axios.get.mockResolvedValue({ data: { version: 1, completed: false, steps: { region: { done: false } } } })
+		await s.refresh()
+
+		expect(s.forbidden.value).toBe(false)
+		expect(s.completed.value).toBe(false)
+	})
 })
