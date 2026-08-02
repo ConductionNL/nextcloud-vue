@@ -25,7 +25,8 @@
     "css/",
     "eslint/",
     "l10n/",
-    "testing/"
+    "testing/",
+    "webpack/"
   ],
   "sideEffects": [
     "**/*.css",
@@ -53,6 +54,7 @@
     "check:docs": "node scripts/check-docs.js",
     "check:jsdoc": "node scripts/check-jsdoc.js",
     "check:integration-parity": "node scripts/check-integration-parity.js",
+    "check:peers": "node scripts/check-peer-consistency.js",
     "check:css-entry": "node scripts/check-css-entry.js",
     "check:a11y": "jest --config jest.a11y.config.js",
     "jsdoc-baselines:update": "node scripts/check-jsdoc.js --update",
@@ -114,7 +116,7 @@
     "@nextcloud/auth": "^2.0.0 || ^3.0.0",
     "@nextcloud/axios": "^2.0.0",
     "@nextcloud/capabilities": "^1.2.1",
-    "@nextcloud/initial-state": "^2.2.0",
+    "@nextcloud/initial-state": "^2.2.0 || ^3.0.0",
     "@nextcloud/l10n": "^2.0.0 || ^3.0.0",
     "@nextcloud/router": "^2.0.0 || ^3.0.0",
     "@nextcloud/vue": "^9.0.0",

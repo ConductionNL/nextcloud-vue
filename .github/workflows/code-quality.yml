@@ -48,6 +48,17 @@ jobs:
       - name: Integration parity gate
         run: npm run check:integration-parity
 
+      # Peer-dependency consistency gate.
+      # A peer block can contradict itself: `@nextcloud/capabilities@^1.2.1`
+      # and `@nextcloud/vue@^9.0.0` both require `@nextcloud/initial-state@^3`,
+      # while we declared `^2.2.0` — no version satisfies both, so every
+      # correctly-behaving consumer hit ERESOLVE and openregister had to add an
+      # override to install at all. Nothing caught it, because THIS repo's
+      # `npm ci` resolves the peers from devDependencies, where the
+      # contradiction never surfaces. Runs offline, against node_modules.
+      - name: Peer consistency gate
+        run: npm run check:peers
+
       # The "Integration template-compile gate" (Phase K / K1, ADR-019) was
       # REMOVED with the Vue-3 migration. It existed because Vue 2 transpiled
       # every <template> expression through buble (vue-template-compiler →
