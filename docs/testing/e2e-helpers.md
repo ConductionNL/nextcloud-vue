@@ -409,7 +409,59 @@ instance, an event handler) cannot blank the whole entry. When a component is
 not found, the thrown error names every component that *was* found — so a
 rename reads as a rename instead of as a phantom "not mounted".
 
-## Not included: `baseUrl`
+## Which instance is the suite talking to?
 
-Deliberately. Which host a suite points at is app-level configuration, not
-something the component library can or should know.
+```js
+import { resolveBaseUrl, absoluteUrl, baseUrlParts } from '@conduction/nextcloud-vue/testing/playwright'
+
+// playwright.config.ts
+export default defineConfig({ use: { baseURL: resolveBaseUrl() } })
+```
+
+| Helper | Returns |
+| --- | --- |
+| `resolveBaseUrl(options?)` | The base URL, trailing slashes stripped. **Throws** when unset. |
+| `absoluteUrl(pathname, options?)` | `pathname` resolved against it. |
+| `baseUrlParts(options?)` | `{ protocol, hostname, port }` for Node's `http.request()`. |
+| `BASE_URL_ENV_VARS` | `['PLAYWRIGHT_BASE_URL', 'BASE_URL']`, in precedence order. |
+
+Pass `{ env }` to read a different environment object — useful in a config test.
+
+### Two rules, both learned the hard way
+
+**1. There is no default, ever.** Configs that read
+`process.env.NEXTCLOUD_URL || 'http://localhost:8080'`, and specs that
+hardcoded `http://localhost:8080` outright, pointed at the **shared dev
+container**. Those suites created fixtures in an environment other sessions
+were using and reported measurements taken somewhere nobody intended. Two specs
+went further and used Node's `http.request()` with a structured `port: 8080` —
+which neither reads `use.baseURL` nor looks like a URL to anyone grepping for
+"localhost:8080" — firing failed logins, and therefore brute-force lockouts on
+`admin`, into somebody else's instance. Failing loudly on an unset variable is
+strictly better than defaulting to someone else's Nextcloud.
+
+**2. Both variable names are accepted.** `PLAYWRIGHT_BASE_URL` is what you set
+locally; `BASE_URL` is what the shared `ConductionNL/.github` quality workflow
+exports. An earlier app-local revision read `PLAYWRIGHT_BASE_URL` only, and
+openconnector's "E2E Tests (Playwright)" job hard-failed on **every** CI run
+with `Error: PLAYWRIGHT_BASE_URL is not set` — locally correct, dead everywhere
+it mattered (openconnector#1115). Strict about never inventing a target;
+permissive about which variable names it.
+
+### Why this lives here after all
+
+An earlier version of this page said the opposite — that "which host a suite
+points at is app-level configuration, not something the component library can
+or should know". That was the right instinct applied to the wrong noun. The
+library still never knows the host: `resolveBaseUrl()` refuses to invent one.
+What is shared is the **contract** — which variables name it, and the refusal
+to default — and that contract is what three apps re-derived and two got wrong
+in opposite directions.
+
+### It throws when called, not when imported
+
+The app-local originals ran the check at module scope. That is fine in a file
+only e2e specs import; it is wrong for a shared module, where it would make
+`require('@conduction/nextcloud-vue/testing/playwright')` fatal in every
+process with no e2e environment — a unit-test run, a lint pass, a docs build
+that only wanted `appDialog`.

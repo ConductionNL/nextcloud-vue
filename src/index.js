@@ -178,6 +178,8 @@ export {
 	CnMenuItemEditor,
 	CnTextTableEditor,
 	CnNcWidgetGridPicker,
+	CnTabs,
+	CnTab,
 	CnIcon,
 	CnPageHeader,
 	CnNoteCard,
@@ -306,7 +308,49 @@ export { useListView, useDetailView, useSubResource, useDashboardView, useContex
 export { createObjectSearchSource } from './utils/commandPaletteObjectSource.js'
 
 // Integration registry (pluggable integrations — sidebar tabs and widgets)
-export { integrations, createIntegrationRegistry, installIntegrationRegistry, registerIntegration, getSharedRegistry, sharedRegistryIfInstalled, VALID_SURFACES, builtinIntegrations, registerBuiltinIntegrations, leafIntegrations, registerLeafIntegrations, talkIntegration, fieldInspectionIntegration, registerIntegrationIcons, INTEGRATION_ICON_COMPONENTS } from './integrations/index.js'
+export { integrations, createIntegrationRegistry, installIntegrationRegistry, registerIntegration, getSharedRegistry, sharedRegistryIfInstalled, VALID_SURFACES, builtinIntegrations, registerBuiltinIntegrations, leafIntegrations, registerLeafIntegrations, registerIntegrationIcons, INTEGRATION_ICON_COMPONENTS } from './integrations/index.js'
+
+// Every built-in integration descriptor, by name.
+//
+// This list used to hold two of the twenty-six (`talkIntegration`,
+// `fieldInspectionIntegration`). The other twenty-four — `flowIntegration`
+// among them — were defined, wired into `builtinIntegrations[]`, given bespoke
+// tab/card components, and then unreachable from the package root. The failure
+// is silent end to end: the named import resolves to `undefined`, the registry
+// no-ops on an undefined descriptor, and the absent tab is indistinguishable
+// from "that Nextcloud app isn't installed on this instance".
+//
+// `npm run check:integration-parity` fails when this list and
+// `builtinIntegrations[]` disagree, so a descriptor added later cannot be
+// half-shipped the same way.
+export {
+	filesIntegration,
+	notesIntegration,
+	tagsIntegration,
+	tasksIntegration,
+	auditTrailIntegration,
+	versionHistoryIntegration,
+	calendarIntegration,
+	contactsIntegration,
+	emailIntegration,
+	talkIntegration,
+	bookmarksIntegration,
+	collectivesIntegration,
+	mapsIntegration,
+	photosIntegration,
+	deckIntegration,
+	pollsIntegration,
+	sharesIntegration,
+	activityIntegration,
+	analyticsIntegration,
+	cospendIntegration,
+	flowIntegration,
+	formsIntegration,
+	timeTrackerIntegration,
+	fieldInspectionIntegration,
+	openprojectIntegration,
+	xwikiIntegration,
+} from './integrations/index.js'
 
 // Offline data-collection core (generic IndexedDB cache + mutation queue, pure
 // sync-queue engine, replay-on-reconnect, planning-fetch contract, sync-state

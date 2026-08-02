@@ -192,3 +192,28 @@ export function mountedComponents(page: CnTestPage): Promise<CnMountedComponent[
 export function mountedComponentNames(page: CnTestPage): Promise<string[]>
 export function findMounted(page: CnTestPage, componentName: string): Promise<CnMountedComponent[]>
 export function readComponentProp(page: CnTestPage, componentName: string, propName: string): Promise<unknown>
+
+/** Options accepted by the base-URL resolvers. */
+export interface CnBaseUrlOptions {
+	/** Environment object to read. Defaults to `process.env`. */
+	env?: Record<string, string | undefined>
+}
+
+/** The env vars that may name the instance under test, in precedence order. */
+export const BASE_URL_ENV_VARS: string[]
+
+/**
+ * The base URL of the Nextcloud under test, trailing slashes removed.
+ *
+ * Reads `PLAYWRIGHT_BASE_URL`, then `BASE_URL` (what CI exports). There is
+ * deliberately NO fallback: a silent `http://localhost:8080` default pointed
+ * suites at the shared dev container and wrote fixtures into other people's
+ * environment. Throws when neither is set.
+ */
+export function resolveBaseUrl(options?: CnBaseUrlOptions): string
+
+/** Resolve `pathname` against {@link resolveBaseUrl}. */
+export function absoluteUrl(pathname: string, options?: CnBaseUrlOptions): string
+
+/** The instance under test, split for Node's `http`/`https` request options. */
+export function baseUrlParts(options?: CnBaseUrlOptions): { protocol: string, hostname: string, port: number }

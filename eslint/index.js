@@ -46,12 +46,12 @@
  *  4. `parserOptions.parser` in vue-eslint-parser's documented OBJECT form,
  *     which is the difference between a working gate and 385 false positives —
  *     see the block comment on {@link vueSfcParserOptions}.
- *  5. The two INVERTED Vue-2 rules — `vue/no-v-model-argument` and
- *     `vue/no-v-for-template-key` — are OFF. Both forbid syntax Vue 3
- *     requires, and every migrated app was re-adding the same two disables by
- *     hand. The Vue-3 half of the key pair
- *     (`vue/no-v-for-template-key-on-child`) is untouched and stays armed —
- *     see {@link vueInvertedVue2Rules}.
+ *  5. The three INVERTED Vue-2 rules — `vue/no-v-model-argument`,
+ *     `vue/no-v-for-template-key` and `vue/no-multiple-template-root` — are
+ *     OFF. All three forbid syntax Vue 3 requires or explicitly permits, and
+ *     every migrated app was re-adding the same disables by hand. The Vue-3
+ *     half of the key pair (`vue/no-v-for-template-key-on-child`) is untouched
+ *     and stays armed — see {@link vueInvertedVue2Rules}.
  *  6. It changes HOW you lint, never WHICH FILES you lint. Exactly one layer
  *     carries a `files` glob — `**\/*.vue`, the only extension this preset
  *     supplies a parser for. A `files` glob in flat config also ENROLS the
@@ -304,12 +304,12 @@ const vueDeprecationRules = {
 }
 
 /**
- * The two Vue-2 rules that are INVERTED under Vue 3 — they forbid syntax
- * Vue 3 requires — switched OFF.
+ * The Vue-2 rules that are INVERTED under Vue 3 — they forbid syntax
+ * Vue 3 requires or explicitly permits — switched OFF.
  *
  * These are not style opinions and turning them off does not weaken the gate.
- * Both live in `eslint-plugin-vue`'s **vue2** rulesets (`vue2-essential`), and
- * both describe constructs that Vue 3 not only permits but mandates:
+ * All three live in `eslint-plugin-vue`'s **vue2** rulesets (`vue2-essential`),
+ * and all three describe constructs that Vue 3 permits or mandates:
  *
  *  - `vue/no-v-for-template-key` — in Vue 2 the `key` had to sit on the
  *    `<template v-for>`'s CHILD, so putting it on the `<template>` was an
@@ -322,8 +322,18 @@ const vueDeprecationRules = {
  *    above, at `error`) forces `:foo.sync="x"` to be rewritten as
  *    `v-model:foo="x"` — so leaving this rule on makes the preset demand a
  *    migration and then reject its only correct outcome.
+ *  - `vue/no-multiple-template-root` — Vue 2's single-root-element constraint.
+ *    Vue 3 introduced fragments: a `<template>` with several root nodes is
+ *    valid and is the idiomatic way to write a component that contributes
+ *    siblings to its parent's layout (a table row group, a set of toolbar
+ *    buttons) without an inert wrapper `<div>`. This one was missed when the
+ *    other two were switched off, so consumers still had to disable it by
+ *    hand — and the workaround people reach for first is to reintroduce the
+ *    wrapper element, which changes the rendered DOM and the CSS that targets
+ *    it. Turning a Vue-3 feature into a lint error is how a preset teaches
+ *    people to write worse markup.
  *
- * Every app that migrated had to add these same two disables by hand; the
+ * Every app that migrated had to add these same disables by hand; the
  * Nextcloud app template carried them with a `TODO(nc-vue)` comment pointing
  * here. Folding them into the preset is what makes that TODO deletable.
  *
@@ -335,6 +345,7 @@ const vueDeprecationRules = {
 const vueInvertedVue2Rules = {
 	'vue/no-v-model-argument': 'off',
 	'vue/no-v-for-template-key': 'off',
+	'vue/no-multiple-template-root': 'off',
 }
 
 /**

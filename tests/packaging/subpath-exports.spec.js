@@ -70,6 +70,30 @@ const PUBLISHED_SUBPATHS = [
 		symbol: 'seedSupportDialogSeen',
 		spelling: "require('@conduction/nextcloud-vue/testing/playwright')",
 	},
+	{
+		// `webpack/` is a NEW top-level directory, which means a NEW line in the
+		// `files` allowlist — the exact omission that made 2.1.0-vue3.9 ship an
+		// `eslint` subpath that did not exist. Pinned here from the first
+		// release that carries it.
+		subpath: 'webpack',
+		entry: 'package/webpack/index.js',
+		types: 'package/webpack/index.d.ts',
+		symbol: 'withPublicPath',
+		spelling: "require('@conduction/nextcloud-vue/webpack')",
+	},
+]
+
+/**
+ * Symbols added to an EXISTING packed subpath. A directory already in `files`
+ * cannot fail the allowlist check, but it can still ship without the symbol a
+ * consumer was told to import — a stale build, a missed export line. Each entry
+ * is required out of the extracted tarball.
+ */
+const PUBLISHED_SYMBOLS = [
+	{ subpath: 'testing/playwright', relative: 'testing/playwright.js', symbol: 'resolveBaseUrl' },
+	{ subpath: 'testing/playwright', relative: 'testing/playwright.js', symbol: 'absoluteUrl' },
+	{ subpath: 'testing/playwright', relative: 'testing/playwright.js', symbol: 'baseUrlParts' },
+	{ subpath: 'eslint', relative: 'eslint/index.js', symbol: 'vueInvertedVue2Rules' },
 ]
 
 let workdir
@@ -196,6 +220,15 @@ describe.each(PUBLISHED_SUBPATHS)(
 		it(`is loadable the way the docs spell it — ${spelling}`, () => {
 			const loaded = require(path.join(packageRoot, entry.replace(/^package\//, '')))
 			expect(loaded[symbol]).toBeDefined()
+		})
+	},
+)
+
+describe.each(PUBLISHED_SYMBOLS)(
+	'packaging — $subpath exports $symbol',
+	({ relative, symbol }) => {
+		it('is present in the packed module', () => {
+			expect(exportsOf(relative)).toContain(symbol)
 		})
 	},
 )

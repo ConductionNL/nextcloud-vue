@@ -130,6 +130,16 @@ function main() {
 		}
 	}
 
+	// --- HARD half, part 2: barrel-export completeness. --------------------
+	// A parity-complete descriptor that no consumer can import is still dead.
+	// `flowIntegration` shipped for months in `builtinIntegrations[]`, with a
+	// bespoke tab and card, and was exported from neither `src/integrations/
+	// index.js` nor `src/index.js` — so `import { flowIntegration } from
+	// '@conduction/nextcloud-vue'` yielded `undefined` and registering it was a
+	// silent no-op. Nothing threw at any layer. This check makes that state a
+	// build failure instead of a support ticket.
+	failures.push(...checkBarrelExports())
+
 	report(failures)
 
 	// --- WARN half (ADR-066): server↔JS leaf parity on the target repo. -----
@@ -147,6 +157,80 @@ function main() {
 	}
 
 	process.exit(failures.length === 0 ? 0 : 1)
+}
+
+/**
+ * Verify that every descriptor listed in `builtinIntegrations[]` is also a
+ * named export of BOTH public barrels — `src/integrations/index.js` and the
+ * package root `src/index.js`.
+ *
+ * The identifiers are read from the array literal in
+ * `src/integrations/builtin/index.js` rather than from the required module,
+ * because the array holds descriptor *objects* at runtime and the binding
+ * names (which are what a consumer imports) are only visible in the source.
+ *
+ * @return {string[]} One failure string per descriptor missing from a barrel.
+ */
+function checkBarrelExports() {
+	const failures = []
+	const root = path.resolve(__dirname, '..')
+	const builtinIndex = path.join(root, 'src', 'integrations', 'builtin', 'index.js')
+
+	let source
+	try {
+		source = fs.readFileSync(builtinIndex, 'utf8')
+	} catch {
+		// Nothing to check against — never turn a missing file into a false
+		// "everything is fine"; say so and let the tab/widget half stand.
+		return ['src/integrations/builtin/index.js is unreadable — barrel-export check skipped']
+	}
+
+	const arrayMatch = source.match(/export\s+const\s+builtinIntegrations\s*=\s*\[([\s\S]*?)\]/)
+	if (!arrayMatch) {
+		return ['could not locate the `builtinIntegrations` array literal — barrel-export check skipped']
+	}
+
+	const names = arrayMatch[1]
+		.split('\n')
+		.map((line) => line.replace(/\/\/.*$/, '').trim().replace(/,$/, ''))
+		.filter((name) => /^[A-Za-z_$][\w$]*$/.test(name))
+
+	if (names.length === 0) {
+		return ['`builtinIntegrations` array parsed as empty — barrel-export check skipped']
+	}
+
+	const barrels = [
+		['src/integrations/index.js', path.join(root, 'src', 'integrations', 'index.js')],
+		['src/index.js', path.join(root, 'src', 'index.js')],
+	]
+
+	for (const [label, file] of barrels) {
+		let barrel
+		try {
+			barrel = fs.readFileSync(file, 'utf8')
+		} catch {
+			failures.push(`${label} is unreadable — cannot verify integration exports`)
+			continue
+		}
+		// Strip comments BEFORE matching. The first cut of this check searched
+		// the raw file and passed while `flowIntegration` was absent from every
+		// export statement — the docblock explaining the bug mentioned the name,
+		// and a bare substring search cannot tell prose from an export. Prose
+		// restating a symbol is not the symbol.
+		const code = barrel
+			.replace(/\/\*[\s\S]*?\*\//g, '')
+			.replace(/(^|[^:])\/\/.*$/gm, '$1')
+		for (const name of names) {
+			if (!new RegExp(`\\b${name}\\b`).test(code)) {
+				failures.push(
+					`${name} is in builtinIntegrations[] but is not exported from ${label} — `
+					+ 'consumers importing it get `undefined` and register nothing, silently',
+				)
+			}
+		}
+	}
+
+	return failures
 }
 
 /**

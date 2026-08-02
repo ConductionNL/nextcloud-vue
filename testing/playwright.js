@@ -1197,6 +1197,130 @@ async function readComponentProp(page, componentName, propName) {
 	return result.value
 }
 
+// ---------------------------------------------------------------------------
+// Which Nextcloud is the suite talking to?
+// ---------------------------------------------------------------------------
+
+/**
+ * The environment variables that may name the instance under test, in
+ * precedence order.
+ *
+ * `PLAYWRIGHT_BASE_URL` is what developers set locally; `BASE_URL` is what the
+ * shared `ConductionNL/.github` quality workflow exports. Both are accepted,
+ * because a resolver that reads only the first is locally correct and dead in
+ * CI (openconnector#1115: "E2E Tests (Playwright)" hard-failed on every run
+ * with `PLAYWRIGHT_BASE_URL is not set`), and a resolver that reads only the
+ * second is the reverse.
+ *
+ * @type {string[]}
+ */
+const BASE_URL_ENV_VARS = ['PLAYWRIGHT_BASE_URL', 'BASE_URL']
+
+/**
+ * Resolve the base URL of the Nextcloud under test.
+ *
+ * THERE IS NO DEFAULT, AND THAT IS THE POINT
+ * ------------------------------------------
+ * Three apps wrote their own version of this and two got it wrong in opposite
+ * directions. The worse direction is a fallback: configs that read
+ * `process.env.NEXTCLOUD_URL || 'http://localhost:8080'`, and specs that
+ * hardcoded `http://localhost:8080` outright, silently pointed at the SHARED
+ * dev container. Suites then created fixtures in an environment other sessions
+ * were using, and reported measurements taken somewhere nobody intended. Two
+ * specs went further and used Node's `http.request()` with a structured
+ * `port: 8080` — which neither reads `use.baseURL` nor looks like a URL to
+ * anyone grepping for "localhost:8080" — firing failed logins, and therefore
+ * brute-force lockouts on `admin`, into somebody else's instance.
+ *
+ * Failing loudly on an unset variable is strictly better than defaulting to
+ * someone else's Nextcloud. Strict about never inventing a target; permissive
+ * about which variable names it.
+ *
+ * WHY THIS THROWS WHEN CALLED, NOT WHEN IMPORTED
+ * ----------------------------------------------
+ * The app-local originals ran the check at module scope. That is fine in a file
+ * only e2e specs import; it is wrong for a shared library module, where it
+ * would make `require('@conduction/nextcloud-vue/testing/playwright')` fatal in
+ * every process that has no e2e environment — a unit-test run, a lint pass, a
+ * docs build that only wanted `appDialog`. Call it from your Playwright config
+ * and from any spec that needs an absolute URL.
+ *
+ * @param {object} [options] Options.
+ * @param {object} [options.env] Environment object to read (default `process.env`).
+ *   Injectable so a test can exercise the resolver without mutating the real
+ *   environment.
+ *
+ * @return {string} The base URL, with any trailing slashes removed.
+ *
+ * @throws {Error} When none of {@link BASE_URL_ENV_VARS} is set to a non-empty
+ *   value. The message names both variables and says how to set one.
+ */
+function resolveBaseUrl(options = {}) {
+	const env = options.env || process.env
+
+	for (const name of BASE_URL_ENV_VARS) {
+		const value = typeof env[name] === 'string' ? env[name].trim() : ''
+		if (value !== '') {
+			return value.replace(/\/+$/, '')
+		}
+	}
+
+	throw new Error(
+		'Neither ' + BASE_URL_ENV_VARS.join(' nor ') + ' is set.\n\n'
+		+ 'The e2e suite deliberately has no default: suites used to fall back to\n'
+		+ 'http://localhost:8080, which is the SHARED dev container, and then wrote\n'
+		+ 'fixtures into an environment other sessions were using.\n\n'
+		+ 'Point it at your own isolated instance, e.g.\n'
+		+ '  PLAYWRIGHT_BASE_URL=http://localhost:8097 npm run test:e2e\n\n'
+		+ 'In CI the shared quality workflow exports BASE_URL, which is also\n'
+		+ 'accepted; if you are seeing this in CI, that export is missing.\n',
+	)
+}
+
+/**
+ * Build an absolute URL against the instance under test.
+ *
+ * Use this anywhere a bare string URL is unavoidable — a raw `http.get`, an
+ * `apiRequest.newContext({ baseURL })`, a printed diagnostic. Prefer plain
+ * relative paths with `page.goto('/index.php/apps/…')` and let Playwright apply
+ * `use.baseURL`. Specs that build their own `http://host:port/…` strings drift
+ * away from `use.baseURL` the moment either changes; deriving them from the
+ * same resolver means there is only one thing to get right.
+ *
+ * @param {string} pathname Path, with or without the leading slash.
+ * @param {object} [options] Passed through to {@link resolveBaseUrl}.
+ *
+ * @return {string} `pathname` resolved against the base URL.
+ */
+function absoluteUrl(pathname, options = {}) {
+	const base = resolveBaseUrl(options)
+	const suffix = String(pathname || '')
+	return base + (suffix.startsWith('/') ? suffix : '/' + suffix)
+}
+
+/**
+ * The instance under test, split for Node's `http`/`https` request options.
+ *
+ * Some specs bypass Playwright and use `http.request()` so the call carries no
+ * cookies from `storageState` — a legitimate need when asserting an
+ * unauthenticated response. The trap is that `http.request()` takes `hostname`
+ * and `port` as separate structured fields, so a hardcoded `port: 8080` is
+ * invisible to anyone grepping for the URL.
+ *
+ * @param {object} [options] Passed through to {@link resolveBaseUrl}.
+ *
+ * @return {{protocol: string, hostname: string, port: number}} Request parts,
+ *   with the port defaulted from the protocol when the URL omits it.
+ */
+function baseUrlParts(options = {}) {
+	const url = new URL(resolveBaseUrl(options))
+	return {
+		protocol: url.protocol,
+		hostname: url.hostname,
+		port: Number(url.port || (url.protocol === 'https:' ? 443 : 80)),
+	}
+}
+
 module.exports = {
 	// Exported because consumers assert against a saved `storageState` file
 	// directly — `state.origins[0].localStorage` keyed by these prefixes is the
@@ -1223,4 +1347,9 @@ module.exports = {
 	mountedComponentNames,
 	findMounted,
 	readComponentProp,
+	// Target resolution. No fallback, ever — see resolveBaseUrl.
+	BASE_URL_ENV_VARS,
+	resolveBaseUrl,
+	absoluteUrl,
+	baseUrlParts,
 }

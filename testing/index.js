@@ -50,4 +50,8 @@ export {
 	mountedComponentNames,
 	findMounted,
 	readComponentProp,
+	BASE_URL_ENV_VARS,
+	resolveBaseUrl,
+	absoluteUrl,
+	baseUrlParts,
 } from './playwright.js'

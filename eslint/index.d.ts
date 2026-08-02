@@ -36,9 +36,10 @@ export const vueDeprecationRules: Record<string, unknown>
 export const vueEventCasingRules: Record<string, unknown>
 
 /**
- * The two Vue-2 rules that forbid Vue-3-REQUIRED syntax, switched off:
- * `vue/no-v-model-argument` and `vue/no-v-for-template-key`. The Vue-3 half of
- * the key pair (`vue/no-v-for-template-key-on-child`) stays armed.
+ * The three Vue-2 rules that forbid syntax Vue 3 requires or permits, switched
+ * off: `vue/no-v-model-argument`, `vue/no-v-for-template-key` and
+ * `vue/no-multiple-template-root` (Vue 3 fragments). The Vue-3 half of the key
+ * pair (`vue/no-v-for-template-key-on-child`) stays armed.
  */
 export const vueInvertedVue2Rules: Record<string, unknown>
 
