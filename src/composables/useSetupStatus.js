@@ -72,8 +72,18 @@ export function useSetupStatus(appId, manifest) {
 		const st = (status.value.steps && status.value.steps[s.id]) || {}
 		return { ...s, done: st.done === true, detail: st.detail }
 	}))
-	const requiredUnmet = computed(() => steps.value.filter((s) => requiredById[s.id] && !s.done))
-	const optionalUnmet = computed(() => steps.value.filter((s) => !requiredById[s.id] && !s.done))
+	// `forbidden` empties BOTH lists, and that is what actually suppresses the
+	// wizard: CnAppRoot gates on `requiredUnmet.length > 0` (blocking) and on
+	// `requiredUnmet.length === 0 && optionalUnmet.length > 0` (auto-open) —
+	// it never reads `completed`. A caller who may not READ setup state has no
+	// unmet setup work *of their own*, so reporting steps as unmet to them
+	// described work they could neither see nor do.
+	const requiredUnmet = computed(() => (forbidden.value === true
+		? []
+		: steps.value.filter((s) => requiredById[s.id] && !s.done)))
+	const optionalUnmet = computed(() => (forbidden.value === true
+		? []
+		: steps.value.filter((s) => !requiredById[s.id] && !s.done)))
 	const completed = computed(() => {
 		if (!enabled) {
 			return true
