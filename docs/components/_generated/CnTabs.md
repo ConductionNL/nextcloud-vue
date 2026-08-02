@@ -17,6 +17,6 @@
 
 ### Slots
 
-| Name      | Bindings | Description |
-| --------- | -------- | ----------- |
-| `default` | —        |             |
+| Name      | Bindings | Description                                                                  |
+| --------- | -------- | ---------------------------------------------------------------------------- |
+| `default` | —        | The CnTab children. Anything else is rendered into the panel area untouched. |

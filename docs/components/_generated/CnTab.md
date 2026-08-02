@@ -16,6 +16,6 @@
 
 ### Slots
 
-| Name      | Bindings | Description |
-| --------- | -------- | ----------- |
-| `default` | —        |             |
+| Name      | Bindings | Description     |
+| --------- | -------- | --------------- |
+| `default` | —        | The panel body. |
