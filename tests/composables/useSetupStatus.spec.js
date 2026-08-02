@@ -111,9 +111,13 @@ describe('useSetupStatus', () => {
 
 		expect(s.forbidden.value).toBe(true)
 		expect(s.completed.value).toBe(true)
-		// requiredUnmet still reflects the (unknown) server state — only the
-		// gate that decides whether to SHOW the wizard is affected.
-		expect(s.requiredUnmet.value.map((x) => x.id)).toEqual(['region'])
+		// BOTH lists must be empty, and this is the assertion that matters:
+		// CnAppRoot gates the blocking wizard on `requiredUnmet.length > 0` and
+		// the auto-open on `optionalUnmet.length > 0`. It never reads
+		// `completed`, so short-circuiting only `completed` left the wizard
+		// showing — verified live before this was added.
+		expect(s.requiredUnmet.value).toEqual([])
+		expect(s.optionalUnmet.value).toEqual([])
 	})
 
 	it('keeps a non-auth error unknown so an admin can still reach the wizard', async () => {
@@ -126,6 +130,8 @@ describe('useSetupStatus', () => {
 
 		expect(s.forbidden.value).toBe(false)
 		expect(s.completed.value).toBe(false)
+		// An admin hitting a 500 must still be shown the wizard.
+		expect(s.requiredUnmet.value.map((x) => x.id)).toEqual(['region'])
 	})
 
 	it('clears a previous forbidden verdict once a later fetch succeeds', async () => {
@@ -145,5 +151,8 @@ describe('useSetupStatus', () => {
 
 		expect(s.forbidden.value).toBe(false)
 		expect(s.completed.value).toBe(false)
+		// The unmet lists must come back too, or the wizard would stay hidden
+		// from someone who now genuinely needs it.
+		expect(s.requiredUnmet.value.map((x) => x.id)).toEqual(['region'])
 	})
 })

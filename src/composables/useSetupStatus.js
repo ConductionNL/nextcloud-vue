@@ -79,8 +79,18 @@ export function useSetupStatus(appId, manifest) {
 	// app on every fresh browser profile no matter how complete setup was.
 	// Only actionable steps can be unmet.
 	const isActionable = (s) => s.type !== 'info' && s.type !== 'summary'
-	const requiredUnmet = computed(() => steps.value.filter((s) => isActionable(s) && requiredById[s.id] && !s.done))
-	const optionalUnmet = computed(() => steps.value.filter((s) => isActionable(s) && !requiredById[s.id] && !s.done))
+	// `forbidden` empties BOTH lists, and that is what actually suppresses the
+	// wizard: CnAppRoot gates on `requiredUnmet.length > 0` (blocking) and on
+	// `requiredUnmet.length === 0 && optionalUnmet.length > 0` (auto-open) —
+	// it never reads `completed`. A caller who may not READ setup state has no
+	// unmet setup work *of their own*, so reporting steps as unmet to them
+	// described work they could neither see nor do.
+	const requiredUnmet = computed(() => (forbidden.value === true
+		? []
+		: steps.value.filter((s) => isActionable(s) && requiredById[s.id] && !s.done)))
+	const optionalUnmet = computed(() => (forbidden.value === true
+		? []
+		: steps.value.filter((s) => isActionable(s) && !requiredById[s.id] && !s.done)))
 	const completed = computed(() => {
 		if (!enabled) {
 			return true
