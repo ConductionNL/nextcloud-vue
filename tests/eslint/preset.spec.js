@@ -342,6 +342,27 @@ describe('@conduction/nextcloud-vue/eslint — the inverted Vue-2 rules are OFF'
 		expect(messages.map((m) => `${m.ruleId} (${m.line}): ${m.message}`)).toEqual([])
 	})
 
+	it('CONTROL: the base config really does report the fragment rule', async () => {
+		// Same reason as the control above: `flat/essential` (Vue 3) never arms
+		// `vue/no-multiple-template-root`, so asserting "clean under the preset"
+		// without this control would measure nothing.
+		const messages = await lintWith('Vue3Fragment.vue', VUE2_BASE)
+		expect(ruleIds(messages)).toContain('vue/no-multiple-template-root')
+	})
+
+	it('lints a Vue-3 fragment CLEAN once the fix layer is spread last', async () => {
+		const messages = await lintWith('Vue3Fragment.vue', [
+			...VUE2_BASE,
+			...conductionVue3Fixes,
+		])
+		expect(messages.map((m) => `${m.ruleId} (${m.line}): ${m.message}`)).toEqual([])
+	})
+
+	it('lints the fragment fixture clean through the standalone preset too', async () => {
+		const messages = await lintFixture('Vue3Fragment.vue')
+		expect(messages.map((m) => `${m.ruleId} (${m.line}): ${m.message}`)).toEqual([])
+	})
+
 	it('ARMED: the Vue-3 half of the key pair still reports', async () => {
 		// `no-v-for-template-key` (Vue 2) is off; `no-v-for-template-key-on-child`
 		// (Vue 3) must not be. Disabling both would silence the migration
@@ -365,14 +386,15 @@ describe('@conduction/nextcloud-vue/eslint — the inverted Vue-2 rules are OFF'
 		expect(ruleIds(messages)).toContain('vue/no-deprecated-v-bind-sync')
 	})
 
-	it('switches off exactly these two rules and no others', async () => {
+	it('switches off exactly these three rules and no others', async () => {
 		expect(vueInvertedVue2Rules).toEqual({
 			'vue/no-v-model-argument': 'off',
 			'vue/no-v-for-template-key': 'off',
+			'vue/no-multiple-template-root': 'off',
 		})
 	})
 
-	it('carries both disables in the SHIPPED fix layer, not just in the export', () => {
+	it('carries all three disables in the SHIPPED fix layer, not just in the export', () => {
 		// The export could be right while the layer never spread it.
 		const rules = conductionVue3Fixes
 			.map((c) => c.rules)
@@ -380,6 +402,7 @@ describe('@conduction/nextcloud-vue/eslint — the inverted Vue-2 rules are OFF'
 			.reduce((acc, r) => ({ ...acc, ...r }), {})
 		expect(rules['vue/no-v-model-argument']).toBe('off')
 		expect(rules['vue/no-v-for-template-key']).toBe('off')
+		expect(rules['vue/no-multiple-template-root']).toBe('off')
 		expect(rules['vue/no-v-for-template-key-on-child']).toBeUndefined()
 		expect(rules['vue/valid-v-for']).toBeUndefined()
 	})
