@@ -293,3 +293,7 @@ export { default as CnRelationLinkModal } from '../dialogs/CnRelationLinkModal.v
 export { CnMenuItemEditor } from './CnMenuItemEditor/index.js'
 export { CnTextTableEditor } from './CnTextTableEditor/index.js'
 export { CnNcWidgetGridPicker } from './CnNcWidgetGridPicker/index.js'
+
+// Generic tab strip. `NcAppSidebarTab` only works inside an `NcAppSidebar`, and
+// `bootstrap-vue@2` — what apps reached for instead — has no Vue 3 release.
+export { CnTabs, CnTab, CN_TABS_INJECTION_KEY } from './CnTabs/index.js'
