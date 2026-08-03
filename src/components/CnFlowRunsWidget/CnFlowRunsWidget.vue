@@ -484,10 +484,6 @@ function normaliseLimit(raw) {
 	cursor: pointer;
 }
 
-.cn-flow-runs-widget__row--linked:hover .cn-flow-runs-widget__name {
-	text-decoration: underline;
-}
-
 .cn-flow-runs-widget__dot {
 	flex: 0 0 auto;
 	width: 8px;
@@ -522,6 +518,15 @@ function normaliseLimit(raw) {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+/* Must sit AFTER the plain `__name` rule: the compound selector is more
+   specific, and stylelint's no-descending-specificity flags the reverse
+   order because the cascade then depends on specificity rather than
+   source order — the shape that quietly stops working when someone adds
+   a competing rule. */
+.cn-flow-runs-widget__row--linked:hover .cn-flow-runs-widget__name {
+	text-decoration: underline;
 }
 
 .cn-flow-runs-widget__meta {

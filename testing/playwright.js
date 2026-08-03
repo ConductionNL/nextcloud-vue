@@ -160,6 +160,77 @@ const APP_ROOT_ID_ATTR = 'data-nldesign-theme-scope'
 const FIRST_RUN_WIZARD_ROUTE = '/index.php/apps/firstrunwizard/wizard'
 
 /**
+ * `reason` returned by {@link retireFirstRunWizard} when the page has no user
+ * session, so Nextcloud's wizard could not render there whatever the server
+ * said.
+ *
+ * @type {string}
+ */
+const NO_USER_SESSION = 'no-user-session'
+
+/**
+ * `reason` returned by {@link dismissFirstVisitOverlays} when the page is a
+ * Nextcloud GUEST surface: it is a Nextcloud page (it carries a request token)
+ * but has no user session and mounts no `CnAppRoot`, so none of the overlays
+ * these helpers clear can exist on it.
+ *
+ * @type {string}
+ */
+const GUEST_SURFACE = 'guest-surface'
+
+/**
+ * Read the page's Nextcloud session, IN THE BROWSER.
+ *
+ * A module-level arrow with no closure references, so Playwright can serialise
+ * it into `page.evaluate` — and so {@link retireFirstRunWizard} and
+ * {@link guestSurfaceStatus} cannot drift apart on what "logged in" means.
+ *
+ * Three sources, in descending order of authority:
+ *
+ *  1. `OC.getCurrentUser()` — the documented accessor, present on any page that
+ *     loaded `core/js/dist/main`;
+ *  2. `OC.currentUser` — the older global some pages still expose;
+ *  3. the `data-user` attribute Nextcloud stamps on `<head>` — the only one of
+ *     the three that survives on a stripped-down public template.
+ *
+ * `isNextcloudPage` is derived from the request TOKEN, not the user, and that
+ * separation is the point. Measured on a portaliq guest portal page: it emits
+ * `data-requesttoken` and NO `data-user`. Token-without-user is therefore
+ * positive evidence of a guest surface, whereas "neither present" just means
+ * this is not a Nextcloud page at all (an `about:blank`, a fixture, a page
+ * seeded before `goto()`) and nothing may be concluded from it.
+ *
+ * @return {{user: (string|null), isNextcloudPage: boolean}} Session facts.
+ */
+const readSurfaceSession = () => {
+	const oc = globalThis.OC || {}
+	const head = (globalThis.document && globalThis.document.head) || null
+	const attr = (name) => (head && typeof head.getAttribute === 'function' ? head.getAttribute(name) : null)
+
+	let user = null
+	try {
+		if (typeof oc.getCurrentUser === 'function') {
+			const current = oc.getCurrentUser()
+			user = (current && current.uid) || null
+		}
+	} catch (e) {
+		/* a partially-initialised OC can throw; absence is the answer we want */
+	}
+	if (!user && typeof oc.currentUser === 'string' && oc.currentUser !== '') {
+		user = oc.currentUser
+	}
+	if (!user) {
+		user = attr('data-user') || null
+	}
+
+	const token = (typeof oc.requestToken === 'string' && oc.requestToken !== '')
+		? oc.requestToken
+		: attr('data-requesttoken')
+
+	return { user: user || null, isNextcloudPage: Boolean(token) }
+}
+
+/**
  * Selectors for `[role="dialog"]` elements that are NOT the application's own
  * modal — see {@link appDialog}.
  *
@@ -437,6 +508,20 @@ async function installSeenShim(target, prefix, ids, matchAll, value, scope) {
  * Use the BrowserContext form with explicit ids whenever the state is going to
  * be saved — see {@link seedFirstVisitOverlaysSeen}.
  *
+ * INERT ON A GUEST SURFACE — READ THIS BEFORE DEBUGGING A SEED THAT "DID
+ * NOTHING". `CnSupportDialog` is auto-mounted by `CnAppRoot`, and a page with
+ * no user session does not mount one. Measured on a portaliq public portal
+ * page: `data-requesttoken` present, `data-user` absent, no `CnAppRoot` in the
+ * DOM. The seed still writes its key and still reads back `"1"` — it simply has
+ * no reader, because `useSupportDialog` never runs there.
+ *
+ * That is the RIGHT behaviour (there is no dialog to suppress) and the seed is
+ * deliberately left unconditional: it is normally called BEFORE `page.goto()`,
+ * where there is no document yet to interrogate, so a "is this a guest surface"
+ * probe here would be measuring `about:blank` and would answer wrong every
+ * time. Call {@link guestSurfaceStatus} AFTER the page has loaded when you need
+ * the answer, and {@link dismissFirstVisitOverlays} reports it for you.
+ *
  * @param {object} target Playwright `Page` or `BrowserContext`.
  * @param {string|string[]} [appId] App id(s). `'*'`/omitted covers all, but is
  *   page-scoped only and can never be persisted.
@@ -464,8 +549,12 @@ async function seedSupportDialogSeen(target, appId) {
  * that answers `{"value": null}` (never written) falls back to this mirror,
  * which is the common case.
  *
- * Same nested-`CnAppRoot` coverage rule — and the same `'*'`/`storageState`
- * refusal — as {@link seedSupportDialogSeen}.
+ * Same nested-`CnAppRoot` coverage rule, the same `'*'`/`storageState` refusal,
+ * and the same GUEST-SURFACE caveat — the tour is mounted by `CnAppRoot`, so on
+ * a page with no user session and no app root this seed writes a key nothing
+ * ever reads. See {@link seedSupportDialogSeen} for all three, and
+ * {@link guestSurfaceStatus} for the probe that tells you which surface you are
+ * on.
  *
  * @param {object} target Playwright `Page` or `BrowserContext`.
  * @param {string|string[]} [appId] App id(s); `'*'`/omitted covers all, and is
@@ -487,6 +576,12 @@ async function seedWalkthroughSeen(target, appId, version = FUTURE_VERSION) {
  * covers every page the context already has AND every page it opens later, and
  * it refuses the `'*'` form outright — which is the form that reads back
  * correctly inside the page and then persists nothing.
+ *
+ * Both seeds are INERT on a guest surface, for the reason spelled out on
+ * {@link seedSupportDialogSeen}: nc-vue mounts neither overlay without a
+ * `CnAppRoot`, and a logged-out page has none. Harmless, and worth knowing
+ * before you spend an afternoon on a seed that "did not take" —
+ * {@link guestSurfaceStatus} answers it in one call.
  *
  * @param {object} target Playwright `Page` or `BrowserContext`.
  * @param {string|string[]} [appId] App id(s). Required (and explicit) when
@@ -610,13 +705,56 @@ async function dismissSupportDialog(page, options = {}) {
  * Order matters: the walkthrough's dimmer sits above the support dialog, so
  * the tour goes first or the dialog's close button is unreachable.
  *
+ * REPORTS "NOT APPLICABLE" ON A GUEST SURFACE INSTEAD OF SILENTLY DOING
+ * NOTHING. `CnWalkthrough` and `CnSupportDialog` are both auto-mounted BY
+ * `CnAppRoot`, so on a page that mounts no app root neither overlay exists and
+ * this helper has nothing to clear. That is correct behaviour and the wrong
+ * SHAPE: measured on a portaliq public portal page (request token present,
+ * `data-user` absent, no `CnAppRoot`), the call spent its full timeout budget
+ * twice over polling for elements that could not appear, and then returned the
+ * same `undefined` a successful dismissal returns. The consuming spec had no
+ * way to tell "cleared two overlays" from "there was nothing here" — so the
+ * next consumer gets to guess, or works around it locally.
+ *
+ * Now it returns a result. On a guest surface it short-circuits
+ * ({@link guestSurfaceStatus} decides), returning
+ * `{ notApplicable: true, reason: 'guest-surface' }` immediately instead of
+ * burning two timeouts. Everywhere else it reports what it actually did.
+ *
+ * The return value is additive: callers that ignore it are unaffected.
+ *
  * @param {object} page Playwright `Page`.
  * @param {object} [options] Forwarded to both helpers.
- * @return {Promise<void>}
+ * @return {Promise<{notApplicable: boolean, reason: (string|null),
+ *   walkthroughDismissed: boolean, supportDialogsDismissed: number}>} What was
+ *   cleared, or why nothing could be.
+ *
+ * @example
+ * const cleared = await dismissFirstVisitOverlays(page)
+ * if (cleared.notApplicable) {
+ *   // guest surface: nc-vue mounts no overlays here, nothing was skipped
+ * }
  */
 async function dismissFirstVisitOverlays(page, options = {}) {
-	await dismissWalkthrough(page, options)
-	await dismissSupportDialog(page, options)
+	const surface = await guestSurfaceStatus(page)
+	if (surface.guest) {
+		return {
+			notApplicable: true,
+			reason: GUEST_SURFACE,
+			walkthroughDismissed: false,
+			supportDialogsDismissed: 0,
+		}
+	}
+
+	const walkthroughDismissed = await dismissWalkthrough(page, options)
+	const supportDialogsDismissed = await dismissSupportDialog(page, options)
+
+	return {
+		notApplicable: false,
+		reason: null,
+		walkthroughDismissed,
+		supportDialogsDismissed,
+	}
 }
 
 /**
@@ -690,17 +828,59 @@ function appDialog(page, options = {}) {
  * reported as `{ cleared: true, installed: false }` rather than thrown, so a
  * shared `global-setup` works on instances with and without the app.
  *
- * @param {object} page Playwright `Page`, already logged in and on a Nextcloud
- *   page (the request is same-origin and needs `window.OC.requestToken`).
+ * TRUTHFUL ON A GUEST SURFACE — and it used to lie here.
+ * Unauthenticated, `DELETE /apps/firstrunwizard/wizard` answers `401`. The
+ * helper used to fold that into its catch-all failure branch and report
+ * `{ installed: true, cleared: false }` — i.e. "a blocking overlay remains".
+ * That is not merely unhelpful, it is FALSE: Nextcloud's first-run wizard is a
+ * per-user overlay and cannot render for a visitor with no session, so there
+ * was never anything there to block a click. A public-portal spec that trusted
+ * the return value would fail its own setup over an overlay that does not
+ * exist.
+ *
+ * So the session is consulted, not just the status code:
+ *
+ * | condition                          | result                                                                  |
+ * | ---------------------------------- | ----------------------------------------------------------------------- |
+ * | 2xx                                | `{installed: true,  cleared: true,  notApplicable: false}`               |
+ * | 404                                | `{installed: false, cleared: true,  notApplicable: false}`               |
+ * | 401, or a Nextcloud page with no user | `{installed: null, cleared: true,  notApplicable: true, reason: 'no-user-session'}` |
+ * | anything else                      | `{installed: true,  cleared: false, notApplicable: false}`               |
+ *
+ * WHY `cleared: true` FOR A GUEST. `cleared` documents one thing: "nothing will
+ * block clicks". On a guest surface nothing will, so `true` is the honest
+ * answer — reporting `false` would make every caller that guards on it treat a
+ * perfectly usable page as broken. `notApplicable: true` is what keeps it
+ * distinguishable from a real dismissal, so a spec that wants to assert the
+ * wizard was genuinely retired asserts `notApplicable === false` and gets a
+ * failure if it silently ran as a guest.
+ *
+ * WHY `installed: null` RATHER THAN A BOOLEAN. A `401` is answered by
+ * Nextcloud's auth layer before the wizard app is consulted at all, so the
+ * response carries no information about whether the app is installed. `true`
+ * and `false` would both be inventions; `null` says "not known from here". It
+ * is falsy, so existing `if (installed)` checks behave as they did.
+ *
+ * The 2xx and 404 branches are evaluated BEFORE the session check on purpose:
+ * if the server actually accepted the dismissal, that is dispositive and there
+ * is nothing to second-guess.
+ *
+ * @param {object} page Playwright `Page`, on a Nextcloud page (the request is
+ *   same-origin and needs `window.OC.requestToken`). A logged-out page is
+ *   handled rather than misreported — see the table above.
  * @param {object} [options] `{ route }` to override the dismissal route.
- * @return {Promise<{status: number, cleared: boolean, installed: boolean}>}
+ * @return {Promise<{status: number, cleared: boolean, installed: (boolean|null),
+ *   notApplicable: boolean, reason: (string|null)}>}
  *   `status` is the HTTP status, or `-1` when the request itself threw.
- *   `cleared` is true when nothing will block clicks (2xx, or 404 = not
- *   installed). `installed` distinguishes the two.
+ *   `cleared` is true when nothing will block clicks. `installed` is `null`
+ *   when the status could not tell us. `notApplicable` is true when the wizard
+ *   could never have rendered on this surface, with `reason` naming why.
  *
  * @example
- * const { cleared, status } = await retireFirstRunWizard(page)
- * if (!cleared) {
+ * const { cleared, notApplicable, status } = await retireFirstRunWizard(page)
+ * if (notApplicable) {
+ *   // guest surface — there is no wizard here, and that is fine
+ * } else if (!cleared) {
  *   console.warn(`first-run wizard dismissal returned ${status}`)
  * }
  */
@@ -721,11 +901,77 @@ async function retireFirstRunWizard(page, options = {}) {
 		}
 	}, route).catch(() => -1)
 
-	const installed = status !== 404
+	if (status >= 200 && status < 300) {
+		return { status, installed: true, cleared: true, notApplicable: false, reason: null }
+	}
+	if (status === 404) {
+		return { status, installed: false, cleared: true, notApplicable: false, reason: null }
+	}
+
+	const session = await page.evaluate(readSurfaceSession)
+		.catch(() => ({ user: null, isNextcloudPage: false }))
+
+	// A 401 is Nextcloud's auth layer saying "no session" outright. The second
+	// arm covers instances that answer differently (403, or a redirect that
+	// resolves to something else) but whose page still shows the guest
+	// signature: a request token, no user.
+	if (status === 401 || (session.isNextcloudPage && !session.user)) {
+		return {
+			status,
+			installed: null,
+			cleared: true,
+			notApplicable: true,
+			reason: NO_USER_SESSION,
+		}
+	}
+
+	return { status, installed: true, cleared: false, notApplicable: false, reason: null }
+}
+
+/**
+ * What kind of Nextcloud surface this page is — logged-in app, or guest.
+ *
+ * Exported because the seeding helpers CANNOT answer this for you. They are
+ * meant to be called BEFORE `page.goto()` (that is what makes `addInitScript`
+ * work), and before a navigation there is no document to interrogate: probing
+ * at seed time would be measuring `about:blank`. So the honest split is that
+ * the seeds stay unconditional and cheap, and this is the probe you call AFTER
+ * the page has loaded when you need to know whether any of it mattered.
+ *
+ * Measured on a portaliq public portal page: `data-requesttoken` present,
+ * `data-user` absent, no `CnAppRoot` mounted. That combination is the
+ * signature, and all three parts are required:
+ *
+ *  - a request token proves this is a Nextcloud page, so "no user" means
+ *    logged-out rather than "not a Nextcloud page at all";
+ *  - no user means `CnSupportDialog`'s and `CnWalkthrough`'s per-user state
+ *    cannot be read or written;
+ *  - no mounted `CnAppRoot` means neither overlay was ever instantiated —
+ *    nc-vue auto-mounts both FROM the app root, so no root is no overlays.
+ *
+ * A guest page that DOES mount a `CnAppRoot` is not reported as a guest
+ * surface, because the overlays it mounts are real and still need clearing.
+ *
+ * @param {object} page Playwright `Page`.
+ * @return {Promise<{guest: boolean, user: (string|null), isNextcloudPage: boolean,
+ *   appRoots: string[]}>} The surface facts, and the verdict derived from them.
+ *
+ * @example
+ * const surface = await guestSurfaceStatus(page)
+ * if (surface.guest) {
+ *   // seedSupportDialogSeen / dismissFirstVisitOverlays are no-ops here
+ * }
+ */
+async function guestSurfaceStatus(page) {
+	const session = await page.evaluate(readSurfaceSession)
+		.catch(() => ({ user: null, isNextcloudPage: false }))
+	const appRoots = await mountedAppIds(page).catch(() => [])
+
 	return {
-		status,
-		installed,
-		cleared: (status >= 200 && status < 300) || status === 404,
+		guest: Boolean(session.isNextcloudPage) && !session.user && appRoots.length === 0,
+		user: session.user || null,
+		isNextcloudPage: Boolean(session.isNextcloudPage),
+		appRoots,
 	}
 }
 
@@ -951,6 +1197,130 @@ async function readComponentProp(page, componentName, propName) {
 	return result.value
 }
 
+// ---------------------------------------------------------------------------
+// Which Nextcloud is the suite talking to?
+// ---------------------------------------------------------------------------
+
+/**
+ * The environment variables that may name the instance under test, in
+ * precedence order.
+ *
+ * `PLAYWRIGHT_BASE_URL` is what developers set locally; `BASE_URL` is what the
+ * shared `ConductionNL/.github` quality workflow exports. Both are accepted,
+ * because a resolver that reads only the first is locally correct and dead in
+ * CI (openconnector#1115: "E2E Tests (Playwright)" hard-failed on every run
+ * with `PLAYWRIGHT_BASE_URL is not set`), and a resolver that reads only the
+ * second is the reverse.
+ *
+ * @type {string[]}
+ */
+const BASE_URL_ENV_VARS = ['PLAYWRIGHT_BASE_URL', 'BASE_URL']
+
+/**
+ * Resolve the base URL of the Nextcloud under test.
+ *
+ * THERE IS NO DEFAULT, AND THAT IS THE POINT
+ * ------------------------------------------
+ * Three apps wrote their own version of this and two got it wrong in opposite
+ * directions. The worse direction is a fallback: configs that read
+ * `process.env.NEXTCLOUD_URL || 'http://localhost:8080'`, and specs that
+ * hardcoded `http://localhost:8080` outright, silently pointed at the SHARED
+ * dev container. Suites then created fixtures in an environment other sessions
+ * were using, and reported measurements taken somewhere nobody intended. Two
+ * specs went further and used Node's `http.request()` with a structured
+ * `port: 8080` — which neither reads `use.baseURL` nor looks like a URL to
+ * anyone grepping for "localhost:8080" — firing failed logins, and therefore
+ * brute-force lockouts on `admin`, into somebody else's instance.
+ *
+ * Failing loudly on an unset variable is strictly better than defaulting to
+ * someone else's Nextcloud. Strict about never inventing a target; permissive
+ * about which variable names it.
+ *
+ * WHY THIS THROWS WHEN CALLED, NOT WHEN IMPORTED
+ * ----------------------------------------------
+ * The app-local originals ran the check at module scope. That is fine in a file
+ * only e2e specs import; it is wrong for a shared library module, where it
+ * would make `require('@conduction/nextcloud-vue/testing/playwright')` fatal in
+ * every process that has no e2e environment — a unit-test run, a lint pass, a
+ * docs build that only wanted `appDialog`. Call it from your Playwright config
+ * and from any spec that needs an absolute URL.
+ *
+ * @param {object} [options] Options.
+ * @param {object} [options.env] Environment object to read (default `process.env`).
+ *   Injectable so a test can exercise the resolver without mutating the real
+ *   environment.
+ *
+ * @return {string} The base URL, with any trailing slashes removed.
+ *
+ * @throws {Error} When none of {@link BASE_URL_ENV_VARS} is set to a non-empty
+ *   value. The message names both variables and says how to set one.
+ */
+function resolveBaseUrl(options = {}) {
+	const env = options.env || process.env
+
+	for (const name of BASE_URL_ENV_VARS) {
+		const value = typeof env[name] === 'string' ? env[name].trim() : ''
+		if (value !== '') {
+			return value.replace(/\/+$/, '')
+		}
+	}
+
+	throw new Error(
+		'Neither ' + BASE_URL_ENV_VARS.join(' nor ') + ' is set.\n\n'
+		+ 'The e2e suite deliberately has no default: suites used to fall back to\n'
+		+ 'http://localhost:8080, which is the SHARED dev container, and then wrote\n'
+		+ 'fixtures into an environment other sessions were using.\n\n'
+		+ 'Point it at your own isolated instance, e.g.\n'
+		+ '  PLAYWRIGHT_BASE_URL=http://localhost:8097 npm run test:e2e\n\n'
+		+ 'In CI the shared quality workflow exports BASE_URL, which is also\n'
+		+ 'accepted; if you are seeing this in CI, that export is missing.\n',
+	)
+}
+
+/**
+ * Build an absolute URL against the instance under test.
+ *
+ * Use this anywhere a bare string URL is unavoidable — a raw `http.get`, an
+ * `apiRequest.newContext({ baseURL })`, a printed diagnostic. Prefer plain
+ * relative paths with `page.goto('/index.php/apps/…')` and let Playwright apply
+ * `use.baseURL`. Specs that build their own `http://host:port/…` strings drift
+ * away from `use.baseURL` the moment either changes; deriving them from the
+ * same resolver means there is only one thing to get right.
+ *
+ * @param {string} pathname Path, with or without the leading slash.
+ * @param {object} [options] Passed through to {@link resolveBaseUrl}.
+ *
+ * @return {string} `pathname` resolved against the base URL.
+ */
+function absoluteUrl(pathname, options = {}) {
+	const base = resolveBaseUrl(options)
+	const suffix = String(pathname || '')
+	return base + (suffix.startsWith('/') ? suffix : '/' + suffix)
+}
+
+/**
+ * The instance under test, split for Node's `http`/`https` request options.
+ *
+ * Some specs bypass Playwright and use `http.request()` so the call carries no
+ * cookies from `storageState` — a legitimate need when asserting an
+ * unauthenticated response. The trap is that `http.request()` takes `hostname`
+ * and `port` as separate structured fields, so a hardcoded `port: 8080` is
+ * invisible to anyone grepping for the URL.
+ *
+ * @param {object} [options] Passed through to {@link resolveBaseUrl}.
+ *
+ * @return {{protocol: string, hostname: string, port: number}} Request parts,
+ *   with the port defaulted from the protocol when the URL omits it.
+ */
+function baseUrlParts(options = {}) {
+	const url = new URL(resolveBaseUrl(options))
+	return {
+		protocol: url.protocol,
+		hostname: url.hostname,
+		port: Number(url.port || (url.protocol === 'https:' ? 443 : 80)),
+	}
+}
+
 module.exports = {
 	// Exported because consumers assert against a saved `storageState` file
 	// directly — `state.origins[0].localStorage` keyed by these prefixes is the
@@ -959,6 +1329,11 @@ module.exports = {
 	WALKTHROUGH_STORAGE_PREFIX,
 	CHROME_DIALOG_SELECTORS,
 	FIRST_RUN_WIZARD_ROUTE,
+	// The two `reason` strings. Exported so a spec can compare against the
+	// constant instead of retyping the literal and drifting.
+	NO_USER_SESSION,
+	GUEST_SURFACE,
+	guestSurfaceStatus,
 	seedSupportDialogSeen,
 	seedWalkthroughSeen,
 	seedFirstVisitOverlaysSeen,
@@ -972,4 +1347,9 @@ module.exports = {
 	mountedComponentNames,
 	findMounted,
 	readComponentProp,
+	// Target resolution. No fallback, ever — see resolveBaseUrl.
+	BASE_URL_ENV_VARS,
+	resolveBaseUrl,
+	absoluteUrl,
+	baseUrlParts,
 }

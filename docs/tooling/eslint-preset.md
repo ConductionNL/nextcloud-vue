@@ -188,11 +188,98 @@ errors go away is to switch `vue/valid-v-for` off, which silences the gate
 instead of fixing it. `tests/eslint/preset.spec.js` includes a control fixture
 whose genuinely bad `:key` must **still** error.
 
+### 5. It changes **how** you lint, never **which files** you lint
+
+The preset scopes exactly one layer with a `files` glob — `**/*.vue`, the one
+extension it supplies a parser for. Every other layer omits `files` entirely.
+
+That is deliberate, and it is the fix for a shipped regression. In flat config a
+`files` glob does two jobs at once:
+
+1. it **scopes** the layer — "apply my options to these files"; and
+2. it **enrols** them — a path matched by any layer's `files` becomes a file
+   ESLint lints, even though ESLint's own default set is only `**/*.js`,
+   `**/*.mjs` and `**/*.cjs`.
+
+Earlier releases scoped the language-level and deprecation layers to a nine-entry
+glob including `.jsx`, `.ts`, `.tsx`, `.mts` and `.cts`. Adopting the preset
+therefore dragged those extensions into the consuming app's lint run — while
+supplying a parser for `.vue` alone. Measured on portaliq's base
+(`@nextcloud/eslint-config/vue3`, whose non-SFC parser is `@babel/eslint-parser`
+with no JSX plugin):
+
+```
+base alone         + Probe.jsx  → NOT LINTED  (0 findings — a vacuous zero)
+base alone         + Probe.js   → linted, 1 no-unused-vars      (positive control)
+base + preset      + Probe.jsx  → linted, FATAL "requires … parser plugin(s): jsx"
+standalone preset  + Probe.ts   → linted, FATAL
+standalone preset  + Probe.tsx  → linted, FATAL
+```
+
+A `fatal` message stops ESLint evaluating **every other rule on that file**, so an
+app with a React (or plain-TypeScript) surface silently lost lint coverage of all
+of it — the same failure shape as the `ecmaVersion: 2022` pin in §2.
+
+Note what the cause was **not**. Flat config *deep-merges*
+`languageOptions.parserOptions`, so the preset never replaced a base's
+`requireConfigFile` or `ecmaFeatures.jsx`; spreading it last yields the union.
+"Merge instead of replace" would have been a no-op fix for a cause that was never
+there. `tests/eslint/preset.spec.js` asserts the merge directly so nobody has to
+re-derive it.
+
+**What this means for you.** If your app has `.jsx`, `.ts` or `.tsx` files, enrol
+them yourself, paired with a parser that can read them:
+
+```js
+module.exports = [
+  ...conductionVue3,
+  {
+    name: 'app/jsx',
+    files: ['**/*.jsx'],
+    languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+  },
+]
+```
+
+The preset's layers then apply to those files automatically, because a layer with
+no `files` matches whatever *you* lint. `eslint-plugin-vue` treats `.jsx` and
+`.tsx` as Vue component files, so a render-function component in a `.jsx` gets the
+full deprecation gate — verified by a `VueJsxLegacy.jsx` fixture whose
+`beforeDestroy` and `this.$on` must still error.
+
+### 6. The inverted Vue-2 rules are off
+
+Three `eslint-plugin-vue` rules encode Vue **2** constraints that Vue 3 reverses.
+Leaving them armed makes the preset reject code Vue 3 requires, so the preset
+switches exactly these three off — and nothing else:
+
+| Rule | Why it is wrong under Vue 3 |
+| --- | --- |
+| `vue/no-v-model-argument` | `v-model:foo="x"` is Vue 3's replacement for the removed `.sync` modifier — which `vue/no-deprecated-v-bind-sync` (armed at `error` by this same preset) forces you to migrate *to*. |
+| `vue/no-v-for-template-key` | Vue 2 put the `:key` on the child of a `<template v-for>`; Vue 3 puts it on the `<template>` itself. |
+| `vue/no-multiple-template-root` | Vue 3 has fragments. A multi-root template is valid and is the correct spelling for a component that contributes siblings to its parent's layout (table rows, toolbar buttons). |
+
+The Vue-**3** half of the key pair, `vue/no-v-for-template-key-on-child`, is
+untouched and stays armed: disabling both halves would silence the migration
+entirely while looking identical from the app side.
+
+`vue/no-multiple-template-root` was missed when the first two were switched off,
+so consumers kept disabling it by hand — and the workaround people reach for
+first is to reintroduce a wrapper `<div>`, which changes the rendered DOM and the
+CSS written against it. Fixed in `2.1.0-vue3.16`; apps carrying a hand-written
+`'vue/no-multiple-template-root': 'off'` can delete it.
+
+None of the three is armed by `eslint-plugin-vue`'s Vue-3 `flat/essential`, so
+`tests/eslint/preset.spec.js` proves the disables with fixtures linted through
+the plugin's own `flat/vue2-essential` — which *does* arm them — first without
+the preset (the control that the fixture triggers the rule at all), then with it.
+
 ## Exports
 
 | Export | What it is |
 | --- | --- |
 | `conductionVue3` | Standalone flat-config array: `eslint-plugin-vue`'s `flat/essential` plus the fix layer. |
+| `vueInvertedVue2Rules` | The three inverted Vue-2 rules, switched off, as a plain rules object. |
 | `conductionVue3Fixes` | The fix layer alone. Registers no plugins — spread it **last** onto an existing config. |
 | `vueDeprecationRules` | The armed `vue/no-deprecated-*` family (+ the `filters:` guard) as a plain rules object. |
 | `vueEventCasingRules` | `vue/v-on-event-hyphenation` with the `update:modelValue` escape. |

@@ -20,8 +20,16 @@ concurrency:
 # Least privilege for the called quality pipeline: the Quality Report job
 # posts a sticky PR comment (issues/pull-requests write); everything else
 # only reads the checkout.
+# Permission CEILING for the called quality pipeline. GitHub statically
+# validates the called workflow's declared job permissions against this
+# grant — even for jobs that are disabled — so it must cover the maximum
+# any nested job declares: journeydoc-capture (contents+actions write),
+# update-baseline / features-extract (contents write), and the Quality
+# Report PR comment (issues / pull-requests write). A narrower grant makes
+# the whole call fail at STARTUP: zero jobs, no annotations.
 permissions:
-  contents: read
+  contents: write
+  actions: write
   issues: write
   pull-requests: write
 
@@ -42,11 +50,15 @@ jobs:
       # (prebuild:docs); the setup command runs in every check leg.
       frontend-setup-command: "cd docusaurus && npm ci"
       # Each entry runs as its own "quality / Frontend Check (<script>)" job.
-      # check:build bundles build + check:css-entry (css-entry needs dist/).
+      # check:build bundles build + check:css-entry (css-entry needs dist/;
+      # the packaging spec in `test` builds on demand when dist/ is absent).
+      # check:peers is the offline peer-dependency consistency gate — a peer
+      # block contradiction (initial-state ^2 vs ^3) once broke every
+      # consumer's npm ci while this repo's own install stayed green.
       # check:integration-build is intentionally absent: the Vue-2 buble
       # template gate was removed with the Vue-3 migration (Vue 3's compiler
       # handles `?.`/`??` natively).
       frontend-checks: >-
         ["test", "check:build", "check:docs", "check:jsdoc",
-         "check:integration-parity", "check:docs-fresh"]
+         "check:integration-parity", "check:peers", "check:docs-fresh"]
       enable-sbom: false

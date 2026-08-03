@@ -34,6 +34,9 @@ export {
 	WALKTHROUGH_STORAGE_PREFIX,
 	CHROME_DIALOG_SELECTORS,
 	FIRST_RUN_WIZARD_ROUTE,
+	NO_USER_SESSION,
+	GUEST_SURFACE,
+	guestSurfaceStatus,
 	seedSupportDialogSeen,
 	seedWalkthroughSeen,
 	seedFirstVisitOverlaysSeen,
@@ -47,4 +50,8 @@ export {
 	mountedComponentNames,
 	findMounted,
 	readComponentProp,
+	BASE_URL_ENV_VARS,
+	resolveBaseUrl,
+	absoluteUrl,
+	baseUrlParts,
 } from './playwright.js'

@@ -54,6 +54,7 @@ export { CnRegisterSchemaSelect } from './CnRegisterSchemaSelect/index.js'
 export { CnThemePreview } from './CnThemePreview/index.js'
 export { CnRelationshipGraph } from './CnRelationshipGraph/index.js'
 export { CnGraphCanvas } from './CnGraphCanvas/index.js'
+export { CnFlowDetail, CnFlowSidebar, CnFlowIndexPage } from './CnFlowDetail/index.js'
 export { CnIcon, ICON_MAP, registerIcons } from './CnIcon/index.js'
 export { CnPageHeader } from './CnPageHeader/index.js'
 export { CnActionsBar } from './CnActionsBar/index.js'
@@ -99,6 +100,7 @@ export { CnContactPicker } from './CnContactPicker/index.js'
 export { CnContactCreate } from './CnContactCreate/index.js'
 export { CnResourceSelect } from './CnResourceSelect/index.js'
 export { CnIntegrationTab } from './CnIntegrationTab/index.js'
+export { CnObjectAccessTab } from './CnObjectAccessTab/index.js'
 export { CnIntegrationCard } from './CnIntegrationCard/index.js'
 export { CnIntegrationWidgetGrid } from './CnIntegrationWidgetGrid/index.js'
 export { CnIntegrationWidget } from './CnIntegrationWidget/index.js'
@@ -293,3 +295,7 @@ export { default as CnRelationLinkModal } from '../dialogs/CnRelationLinkModal.v
 export { CnMenuItemEditor } from './CnMenuItemEditor/index.js'
 export { CnTextTableEditor } from './CnTextTableEditor/index.js'
 export { CnNcWidgetGridPicker } from './CnNcWidgetGridPicker/index.js'
+
+// Generic tab strip. `NcAppSidebarTab` only works inside an `NcAppSidebar`, and
+// `bootstrap-vue@2` — what apps reached for instead — has no Vue 3 release.
+export { CnTabs, CnTab, CN_TABS_INJECTION_KEY } from './CnTabs/index.js'

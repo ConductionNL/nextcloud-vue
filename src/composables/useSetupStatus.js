@@ -21,6 +21,12 @@ const cache = new Map()
  * the wizard can drive itself. On error it falls back to "nothing done" so a
  * failed lookup never crashes the shell — the wizard simply shows the steps.
  *
+ * One error is treated as an answer rather than a failure: a **401/403** means
+ * the caller may not read setup state (setup endpoints are admin-only), so
+ * `completed` reports `true` and the wizard stays out of the way. Without that,
+ * every non-admin user of an app with a `setup` block met a wizard they had no
+ * permission to complete instead of the app itself.
+ *
  * @param {string} appId Nextcloud app id (e.g. `"procest"`).
  * @param {object} manifest The app manifest (reads `manifest.setup`).
  * @return {{
@@ -32,6 +38,7 @@ const cache = new Map()
  *   enabled: boolean,
  *   loading: import('vue').Ref<boolean>,
  *   error: import('vue').Ref<Error|null>,
+ *   forbidden: import('vue').Ref<boolean>,
  *   refresh: () => Promise<void>
  * }}
  *
@@ -53,11 +60,13 @@ export function useSetupStatus(appId, manifest) {
 			status: ref({ version: null, completed: false, steps: {} }),
 			loading: ref(enabled),
 			error: ref(null),
+			// Set when the server answers 401/403 — see `completed` below.
+			forbidden: ref(false),
 			fetched: false,
 		}
 		cache.set(appId, entry)
 	}
-	const { status, loading, error } = entry
+	const { status, loading, error, forbidden } = entry
 
 	const steps = computed(() => stepDefs.map((s) => {
 		const st = (status.value.steps && status.value.steps[s.id]) || {}
@@ -70,10 +79,31 @@ export function useSetupStatus(appId, manifest) {
 	// app on every fresh browser profile no matter how complete setup was.
 	// Only actionable steps can be unmet.
 	const isActionable = (s) => s.type !== 'info' && s.type !== 'summary'
-	const requiredUnmet = computed(() => steps.value.filter((s) => isActionable(s) && requiredById[s.id] && !s.done))
-	const optionalUnmet = computed(() => steps.value.filter((s) => isActionable(s) && !requiredById[s.id] && !s.done))
+	// `forbidden` empties BOTH lists, and that is what actually suppresses the
+	// wizard: CnAppRoot gates on `requiredUnmet.length > 0` (blocking) and on
+	// `requiredUnmet.length === 0 && optionalUnmet.length > 0` (auto-open) —
+	// it never reads `completed`. A caller who may not READ setup state has no
+	// unmet setup work *of their own*, so reporting steps as unmet to them
+	// described work they could neither see nor do.
+	const requiredUnmet = computed(() => (forbidden.value === true
+		? []
+		: steps.value.filter((s) => isActionable(s) && requiredById[s.id] && !s.done)))
+	const optionalUnmet = computed(() => (forbidden.value === true
+		? []
+		: steps.value.filter((s) => isActionable(s) && !requiredById[s.id] && !s.done)))
 	const completed = computed(() => {
 		if (!enabled) {
+			return true
+		}
+		// A 401/403 means the caller may not READ setup state — first-time setup
+		// is admin-only. That is not "setup is unfinished"; it is "not this
+		// user's concern". Reporting incomplete here put every non-admin in
+		// front of a setup wizard they cannot complete, INSTEAD of the app:
+		// `/api/setup/status` answers 200 {completed:true} to an admin and 403
+		// to everyone else, and the generic error path below then left status at
+		// its "nothing done" default. Measured on openbuild, where it made the
+		// app unusable for every non-admin as soon as they could see it at all.
+		if (forbidden.value === true) {
 			return true
 		}
 		// Authoritative server flag, but never report complete while a required
@@ -101,9 +131,16 @@ export function useSetupStatus(appId, manifest) {
 			])
 			const { data } = await axios.get(generateUrl(`/apps/${appId}/api/setup/status`))
 			status.value = (data && typeof data === 'object') ? data : { steps: {} }
+			forbidden.value = false
 		} catch (err) {
 			error.value = err
-			// Leave status at its default (nothing done) — never crash the shell.
+			// 401/403 is a DIFFERENT outcome from a failed lookup: the server
+			// answered, and its answer was "you may not see this". Setup is
+			// admin-only, so for everyone else it is settled, not unknown.
+			// Anything else (network error, 500) stays unknown and falls back to
+			// "nothing done" so the wizard is still reachable for an admin.
+			const httpStatus = err && err.response && err.response.status
+			forbidden.value = (httpStatus === 401 || httpStatus === 403)
 		} finally {
 			loading.value = false
 			entry.fetched = true
@@ -114,7 +151,7 @@ export function useSetupStatus(appId, manifest) {
 		refresh()
 	}
 
-	return { steps, status, requiredUnmet, optionalUnmet, completed, enabled, loading, error, refresh }
+	return { steps, status, requiredUnmet, optionalUnmet, completed, enabled, loading, error, forbidden, refresh }
 }
 
 /**

@@ -165,14 +165,10 @@
 			v-if="showDataModal"
 			:manifest="effectiveManifest"
 			@close="showDataModal = false" />
-		<CnEditFlowsModal
-			v-if="showFlowsModal"
-			:manifest="effectiveManifest"
-			@close="showFlowsModal = false" />
-		<CnFlowCanvasModal
+		<CnFlowEditModal
 			v-if="showFlowsCanvasModal"
-			:manifest="effectiveManifest"
-			:on-open-form="openFlowsForm"
+			:app="flowApp"
+			flow-id="new"
 			@close="showFlowsCanvasModal = false" />
 		<CnEditSetupModal
 			v-if="showSetupModal"
@@ -213,8 +209,7 @@ import CnEditSidebarModal from '../../dialogs/CnEditSidebarModal.vue'
 import CnEditActionsModal from '../../dialogs/CnEditActionsModal.vue'
 import CnAddWidgetModal from '../../dialogs/CnAddWidgetModal.vue'
 import CnEditDataModal from '../../dialogs/CnEditDataModal.vue'
-import CnEditFlowsModal from '../../dialogs/CnEditFlowsModal.vue'
-import CnFlowCanvasModal from '../../dialogs/CnFlowCanvasModal.vue'
+import CnFlowEditModal from '../../dialogs/CnFlowEditModal.vue'
 import CnEditSetupModal from '../../dialogs/CnEditSetupModal.vue'
 import CnEditWalkthroughModal from '../../dialogs/CnEditWalkthroughModal.vue'
 import CnEditSupportModal from '../../dialogs/CnEditSupportModal.vue'
@@ -249,8 +244,7 @@ export default {
 		CnEditActionsModal,
 		CnAddWidgetModal,
 		CnEditDataModal,
-		CnEditFlowsModal,
-		CnFlowCanvasModal,
+		CnFlowEditModal,
 		CnEditSetupModal,
 		CnEditWalkthroughModal,
 		CnEditSupportModal,
@@ -325,7 +319,6 @@ export default {
 			showAddWidgetModal: false,
 			showActionsModal: false,
 			showDataModal: false,
-			showFlowsModal: false,
 			showFlowsCanvasModal: false,
 			showSetupModal: false,
 			showWalkthroughModal: false,
@@ -336,6 +329,20 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The app id a flow created from here belongs to.
+		 *
+		 * Read from Nextcloud's own app context rather than the manifest,
+		 * because the manifest describes the PAGES an app renders and does not
+		 * carry the app's id. Falling back to `openregister` keeps a new flow in
+		 * the shared store rather than in an app namespace that does not exist.
+		 *
+		 * @return {string} The owning app id.
+		 */
+		flowApp() {
+			return (window?.OCA?.Theming?.name && window?.appName) || window?.appName || 'openregister'
+		},
+
 		/** Whether to render — the `available` prop OR the injected availability. */
 		isAvailable() {
 			return Boolean(this.available || this.unref(this.cnOpenBuildAvailable))
@@ -673,24 +680,22 @@ export default {
 			this.$emit('edit-data')
 		},
 		/**
-		 * Open the flows editor. Like Edit data, this edits OpenRegister schema
-		 * configuration (`x-openregister-flows`) directly via the API and does
-		 * NOT enter manifest edit mode.
+		 * Open the flow editor. Like Edit data, this edits OpenRegister directly
+		 * and does NOT enter manifest edit mode.
+		 *
+		 * This used to edit a schema's `x-openregister-flows` as a flat
+		 * `{name, trigger, actions[]}` list, through two interchangeable editors
+		 * (a form and a canvas). That dialect and the service that executed it
+		 * are gone: a flow is now a node/edge document in OpenRegister's one flow
+		 * store, and there is one editor for it.
 		 */
 		onEditFlows() {
-			// Open the VISUAL builder by default (the form editor stays reachable
-			// via the canvas modal's "Use the form editor instead" link).
 			this.showFlowsCanvasModal = true
 			this.menuOpen = false
 			/**
 			 * @event edit-flows Emitted when the flows editor opens.
 			 */
 			this.$emit('edit-flows')
-		},
-		/** Switch from the visual canvas to the legacy form editor. */
-		openFlowsForm() {
-			this.showFlowsCanvasModal = false
-			this.showFlowsModal = true
 		},
 	},
 }
