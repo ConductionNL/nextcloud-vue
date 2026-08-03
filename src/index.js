@@ -125,6 +125,7 @@ export {
 	CnContactCreate,
 	CnResourceSelect,
 	CnIntegrationTab,
+	CnObjectAccessTab,
 	CnIntegrationCard,
 	CnIntegrationWidgetGrid,
 	CnIntegrationWidget,
