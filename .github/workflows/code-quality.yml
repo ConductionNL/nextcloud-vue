@@ -10,6 +10,8 @@ jobs:
   frontend-quality:
     name: Frontend Quality
     runs-on: ubuntu-latest
+    # Observed median 4.2 min / max 5.3 min over n=49 runs; 20 is a loose upper bound.
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code

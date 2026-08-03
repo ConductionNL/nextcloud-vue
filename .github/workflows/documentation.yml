@@ -36,6 +36,8 @@ jobs:
   deploy:
     name: Deploy Documentation
     runs-on: ubuntu-latest
+    # Observed max 2.5 min over n=23 runs; 20 is a loose upper bound.
+    timeout-minutes: 20
     # Only deploy on push, not on pull requests
     if: github.event_name == 'push'
     permissions:
