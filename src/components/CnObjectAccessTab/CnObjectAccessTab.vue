@@ -16,7 +16,7 @@
     GET    {apiBase}/objects/{register}/{schema}/{id}/scope
     PUT    {apiBase}/objects/{register}/{schema}/{id}/scope        { scope }
     GET    {apiBase}/objects/{register}/{schema}/{id}/shares
-    POST   {apiBase}/objects/{register}/{schema}/{id}/shares       { shareType, shareWith, permissions }
+    POST   {apiBase}/objects/{register}/{schema}/{id}/shares       { type, shareWith, permissions }
     DELETE {apiBase}/objects/{register}/{schema}/{id}/shares/{shareId}
     POST   {apiBase}/objects/{register}/{schema}/{id}/links        { password?, expiration? }
     POST   {apiBase}/objects/{register}/{schema}/{id}/invitations  { email, password?, expiration? }
@@ -74,6 +74,16 @@
 				<h4 class="cn-object-access-tab__heading">
 					{{ grantsHeadingLabel }}
 				</h4>
+
+				<!-- The file coupling, said out loud (task 5.9). A grant IS a
+				     share on the object's folder, so everything in that folder
+				     travels with it. Leaving this implicit made the control
+				     look narrower than it is: somebody granting read on an
+				     object has no way to guess from this panel that the
+				     attachments went too. -->
+				<p class="cn-object-access-tab__hint">
+					{{ fileCouplingLabel }}
+				</p>
 
 				<div v-if="error" class="cn-object-access-tab__error" role="alert">
 					{{ error }}
@@ -284,6 +294,10 @@ export default {
 			return t('nextcloud-vue', 'Shared with')
 		},
 
+		fileCouplingLabel() {
+			return t('nextcloud-vue', 'Everyone listed here can also open the files attached to this item.')
+		},
+
 		addHeadingLabel() {
 			return t('nextcloud-vue', 'Add access')
 		},
@@ -466,8 +480,20 @@ export default {
 				} else if (type === 'email') {
 					res = await this.post(`${this.base}/invitations`, { email: this.newPrincipal.trim() })
 				} else {
+					// `type` carries the STRING label, not core's numeric share
+					// type. ObjectSharingController::createShare() reads
+					// `getParam('type')` and defaults it to 'user', and
+					// ObjectSharingService::grant() validates it against
+					// GRANTABLE_TYPES ('user', 'group', 'remote',
+					// 'remote_group') before mapping it to IShare::TYPE_*.
+					//
+					// This used to send `shareType: 0 | 1`. The server never
+					// reads that key, so it fell through to the 'user' default:
+					// picking "Group" created a USER grant to a uid that
+					// happened to be spelled like the group. User grants
+					// worked by coincidence, which is why nothing caught it.
 					res = await this.post(`${this.base}/shares`, {
-						shareType: type === 'group' ? 1 : 0,
+						type,
 						shareWith: this.newPrincipal.trim(),
 						permissions,
 					})
