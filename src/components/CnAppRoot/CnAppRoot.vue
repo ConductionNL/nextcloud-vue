@@ -187,7 +187,11 @@
 			  keeping the rest of CnAppRoot's shell.
 			-->
 			<slot name="menu">
-				<CnAppNav :manifest="menuManifest" :permissions="permissions" :is-owner="isOwner" />
+				<CnAppNav :manifest="menuManifest"
+					:permissions="permissions"
+					:is-owner="isOwner"
+					:is-admin="isAdmin"
+					:app-id="appId" />
 			</slot>
 			<NcAppContent>
 				<!--
@@ -2233,6 +2237,15 @@ export default {
 		 * hit `settings/apps/enable`, so both dependency surfaces branch on
 		 * this: admins get the in-place install/enable action, non-admins
 		 * get "ask your administrator" copy (REQ-DIA-2 / REQ-DIA-3).
+		 *
+		 * ALSO passed to CnAppNav as `is-admin` to gate visibility of the
+		 * "Admin settings" link to `/settings/admin/<appId>` (ADR-079 §3).
+		 * Read from `getCurrentUser()?.isAdmin` (`@nextcloud/auth`), never
+		 * the legacy `OC.isUserAdmin()` global. Presentation only — the
+		 * access boundary is Nextcloud's settings framework, which refuses
+		 * that page server-side for non-admins. A DIFFERENT signal from
+		 * `isOwner` (which means "owns this app", not "administers this
+		 * instance"); the two must not be conflated.
 		 *
 		 * @return {boolean}
 		 */
