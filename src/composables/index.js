@@ -63,3 +63,4 @@ export {
 } from './useTenantContext.js'
 export { useManifestEditHistory } from './useManifestEditHistory.js'
 export { useScopedTheme } from './useScopedTheme.js'
+export { useFlowStore } from './useFlowStore.js'
