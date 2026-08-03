@@ -2130,10 +2130,36 @@ export default {
 		 * every required step is met but at least one optional step isn't
 		 * (REQ-SETUP-NV-012). Never true while the gating phase is active —
 		 * required-unmet already renders `CnSetupWizard` itself.
+		 *
+		 * ⚠️ THE SERVER'S `completed` FLAG WINS.
+		 *
+		 * "Non-gating" describes the app PHASE, not the DOM: this still renders
+		 * a full `dialog__modal modal-mask` over the shell, and the dismissal it
+		 * offers is persisted in `localStorage`. So on any browser profile that
+		 * has not dismissed it — a new machine, a private window, and EVERY
+		 * Playwright test context — an app with one permanently-unmet optional
+		 * step is covered by the setup wizard, every time, forever.
+		 *
+		 * Permanently-unmet is not hypothetical. `useSetupStatus` derives the
+		 * unmet lists from the MANIFEST's step list, looking each id up in the
+		 * `setup/status` response; any manifest step id the server does not
+		 * report resolves to `done: false` with no action able to change it.
+		 * Observed on pipelinq (manifest declared 7 steps, endpoint reported 4)
+		 * and on openbuild (a remote-template-store step nobody ever configures).
+		 *
+		 * `useSetupStatus` already computes `completed` from the server's own
+		 * authoritative flag, and nothing read it. Now it does: an app that says
+		 * "my setup is complete" is taken at its word and is not covered by a
+		 * modal about optional work. Apps whose endpoint omits `completed` get
+		 * `false` from that computed and keep exactly today's behaviour.
 		 */
 		optionalSetupGating() {
 			const s = this.setupState
-			return !!s && s.loading.value === false && s.requiredUnmet.value.length === 0 && s.optionalUnmet.value.length > 0
+			return !!s
+				&& s.loading.value === false
+				&& s.completed.value !== true
+				&& s.requiredUnmet.value.length === 0
+				&& s.optionalUnmet.value.length > 0
 		},
 		/**
 		 * Ids of setup steps the server already reports done. Passed to
