@@ -74,6 +74,29 @@
 			</template>
 		</CnVersionInfoCard>
 
+		<!--
+			Organisation credential broker (ADR-079 Step 2).
+
+			This is the ONE home for org-wide credentials. It used to live in a
+			generic modal on CnAppRoot, rendered from `manifest.adminSettings[]`
+			and gated on app ownership — but no app ever declared that array, so
+			the surface was unreachable in every app in the fleet. It belongs
+			here: an org-wide secret store is app-level configuration, and
+			/settings/admin/<app> is authorized by Nextcloud server-side rather
+			than by a client-side flag.
+
+			Opt-in, because only an app that actually brokers credentials should
+			show it — the manifest `credentials[]` declarations drive the
+			informational "apps requesting credentials" list inside.
+		-->
+		<CnCredentials
+			v-if="showOrganisationCredentials"
+			scope="organisation"
+			:app-id="appId"
+			:app-name="appName"
+			:app-credentials="appCredentials"
+			data-testid="cn-admin-organisation-credentials" />
+
 		<!-- @slot default The app's own settings sections, rendered below the version card. -->
 		<slot />
 
@@ -104,6 +127,7 @@ import { NcButton, NcLoadingIcon, NcSettingsSection } from '@nextcloud/vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import AutoFix from 'vue-material-design-icons/AutoFix.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
+import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import { CnVersionInfoCard } from '../CnVersionInfoCard/index.js'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
 import CnSuggestFeatureModal from '../CnSuggestFeatureModal/CnSuggestFeatureModal.vue'
@@ -146,6 +170,7 @@ export default {
 
 	components: {
 		NcSettingsSection,
+		CnCredentials,
 		CnVersionInfoCard,
 		CnSetupWizard,
 		CnSuggestFeatureModal,
@@ -157,6 +182,30 @@ export default {
 	},
 
 	props: {
+		/**
+		 * Render the organisation credential broker on this admin page
+		 * (ADR-079 Step 2). Opt-in: only an app that actually brokers org-wide
+		 * secrets should surface it.
+		 *
+		 * This replaces the generic `manifest.adminSettings[]` modal that used
+		 * to live on CnAppRoot. That modal was gated on app OWNERSHIP and on an
+		 * array no app in the fleet ever declared, so the broker was
+		 * unreachable everywhere. Here it is reachable and the access decision
+		 * is Nextcloud's, made server-side for /settings/admin/<app>.
+		 */
+		showOrganisationCredentials: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * The app's manifest `credentials[]` declarations, forwarded to the
+		 * broker to drive its informational "apps requesting credentials"
+		 * list. Only read when `showOrganisationCredentials` is true.
+		 */
+		appCredentials: {
+			type: Array,
+			default: () => [],
+		},
 		/** The Nextcloud app id (used for the default re-import endpoint + version loadState). */
 		appId: {
 			type: String,
