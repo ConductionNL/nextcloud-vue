@@ -162,3 +162,94 @@ describe('CnAppRoot setup gate', () => {
 		expect(wrapper.vm.phase).toBe('shell')
 	})
 })
+
+/**
+ * The second way "the setup gate never clears" happens, and the one that
+ * survives a 200. Reproduced with pipelinq's REAL manifest step list and the
+ * REAL payload its SetupController returns.
+ */
+describe('CnAppRoot optional setup wizard — an UNREPORTED step is not an UNDONE step', () => {
+	// pipelinq declares 7 steps; its SetupController reports status keys for
+	// only 4. `demo-data` is an optional run-action it never reports at all.
+	const plqManifest = {
+		version: '1.0.0',
+		menu: [{ id: 'home', label: 'app.home', route: 'home' }],
+		pages: [{ id: 'home', route: '/', type: 'index', title: 'app.home' }],
+		dependencies: [],
+		setup: {
+			enabled: true,
+			version: 1,
+			steps: [
+				{ id: 'welcome', type: 'info' },
+				{ id: 'currency', type: 'choice', required: true },
+				{ id: 'provision', type: 'run-action' },
+				{ id: 'demo-data', type: 'run-action' },
+				{ id: 'organisation', type: 'config-fields' },
+				{ id: 'integrations', type: 'config-fields' },
+				{ id: 'done', type: 'summary' },
+			],
+		},
+	}
+	// Verbatim shape of pipelinq SetupController::status() for a set-up app.
+	const plqServerSaysComplete = {
+		version: 1,
+		completed: true,
+		steps: {
+			currency: { done: true },
+			provision: { done: true },
+			organisation: { done: true },
+			integrations: { done: true },
+		},
+	}
+
+	beforeEach(() => {
+		__resetSetupStatusCacheForTests()
+		axios.get.mockReset()
+	})
+
+	/**
+	 * Mount with pipelinq's manifest.
+	 *
+	 * @return {object} The mounted wrapper.
+	 */
+	function mountPlq() {
+		return mount(CnAppRoot, {
+			propsData: { manifest: plqManifest, appId: 'pipelinq', isLoading: false, translate: (k) => k, requiresApps: [] },
+			mocks: { $route: { name: 'home' } },
+			stubs: { 'router-view': { template: '<div class="router-view-stub" />' } },
+		})
+	}
+
+	it('POSITIVE CONTROL: a genuinely incomplete setup DOES auto-open the optional wizard', async () => {
+		// Same manifest, but the server has NOT declared setup complete —
+		// the wizard is supposed to appear here. Without this the test below
+		// could pass simply because the overlay never renders in this harness.
+		serveStatus({ version: 1, completed: false, steps: { currency: { done: true } } })
+		const wrapper = mountPlq()
+		await flush(wrapper)
+
+		expect(wrapper.vm.optionalSetupGating).toBe(true)
+		expect(wrapper.vm.setupWizardOpen).toBe(true)
+		expect(wrapper.find('.cn-app-root__setup-optional').exists()).toBe(true)
+	})
+
+	it('does NOT auto-open the wizard when the server reports completed', async () => {
+		// `demo-data` has no status key, so `optionalUnmet` is non-empty and
+		// stays that way for ever. Before the fix the wizard opened over the
+		// app on every fresh browser profile — no dismissal in localStorage —
+		// which is precisely "the setup gate never clears" despite a 200.
+		serveStatus(plqServerSaysComplete)
+		const wrapper = mountPlq()
+		await flush(wrapper)
+
+		// The unreported step is still visible as unmet — that is expected.
+		expect(wrapper.vm.setupState.optionalUnmet.value.map((s) => s.id)).toEqual(['demo-data'])
+		// ...but the authoritative `completed` flag must win.
+		expect(wrapper.vm.setupState.completed.value).toBe(true)
+		expect(wrapper.vm.optionalSetupGating).toBe(false)
+		expect(wrapper.vm.setupWizardOpen).toBe(false)
+		expect(wrapper.find('.cn-app-root__setup-optional').exists()).toBe(false)
+		// And the app itself is reachable.
+		expect(wrapper.vm.phase).toBe('shell')
+	})
+})

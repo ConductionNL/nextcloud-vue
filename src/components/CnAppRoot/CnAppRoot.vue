@@ -2130,10 +2130,25 @@ export default {
 		 * every required step is met but at least one optional step isn't
 		 * (REQ-SETUP-NV-012). Never true while the gating phase is active —
 		 * required-unmet already renders `CnSetupWizard` itself.
+		 *
+		 * The server's `completed` flag is AUTHORITATIVE and short-circuits
+		 * this. An app may declare optional steps its SetupController never
+		 * reports a status key for — pipelinq's `demo-data` run-action is one
+		 * — and an UNREPORTED step is indistinguishable from an UNDONE one, so
+		 * `optionalUnmet` stays non-empty forever. Auto-opening on that
+		 * difference parked the wizard over the app on every fresh browser
+		 * profile even though `/api/setup/status` answered
+		 * `200 {completed:true}`, which read as "the setup gate never clears"
+		 * and timed out every UI e2e spec in the consuming app.
+		 *
+		 * @return {boolean} True when an optional step is genuinely outstanding.
 		 */
 		optionalSetupGating() {
 			const s = this.setupState
-			return !!s && s.loading.value === false && s.requiredUnmet.value.length === 0 && s.optionalUnmet.value.length > 0
+			if (!s || s.loading.value !== false || s.completed.value === true) {
+				return false
+			}
+			return s.requiredUnmet.value.length === 0 && s.optionalUnmet.value.length > 0
 		},
 		/**
 		 * Ids of setup steps the server already reports done. Passed to
