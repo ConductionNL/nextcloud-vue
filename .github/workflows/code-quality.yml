@@ -4,7 +4,22 @@ on:
   push:
     branches: [main, beta, development, 'feat/vue-3', feature/**, bugfix/**, hotfix/**]
   pull_request:
-    types: [opened, reopened]
+    # `synchronize` is load-bearing, not tidiness. Without it a PR is checked
+    # ONLY at the moment it is opened, so every commit pushed afterwards — the
+    # review fixes, the conflict resolution, the merge commit — is unchecked, and
+    # the PR still shows the green tick earned by its first commit.
+    #
+    # The `push` trigger above hides this for branches named `feature/**`,
+    # `bugfix/**` or `hotfix/**`, and hides it for nothing else. Measured on
+    # 2026-08-03: a merge commit pushed to `fix/object-access-grant-type` (#591)
+    # produced NO run at all, while `mergeStateStatus` reported CLEAN and the
+    # stale success from the first commit was still the visible answer. `fix/**`
+    # is one of the most common prefixes in this repo, so the gap is not exotic.
+    #
+    # Adding branch prefixes to `push` would be the wrong fix — the list can
+    # never be complete, and each missing prefix fails silently in the one
+    # direction nobody checks. `synchronize` covers every branch name there is.
+    types: [opened, reopened, synchronize]
     # `feat/vue-3` is the long-lived Vue-3 integration branch and MUST be
     # listed here. While it was missing, every PR into it merged with zero
     # checks (e.g. #541, "no checks reported") — which is how the branch ended
