@@ -148,15 +148,21 @@ describe('CnAppRoot — generic admin-settings surface', () => {
 			],
 		}
 
-		it('shows the admin surface for an owner via the runtime.user.isOwner signal', () => {
+		// ADR-079: the nav's "Admin settings" entry moved off `isOwner` onto
+		// `isAdmin` and became a LINK to /settings/admin/<app>. Owning an app is
+		// not administering the instance, so the owner signals below still
+		// compute `isOwner` correctly — they simply no longer surface that entry.
+		// CnAppNav.spec.js carries the matching positive case and the
+		// owner-who-is-not-admin negative control.
+		it('computes isOwner from runtime.user.isOwner but no longer surfaces the nav entry', () => {
 			const wrapper = mountRoot({
 				manifest: { ...manifestWithOrgCredentials, runtime: { user: { isOwner: true } } },
 			})
 			expect(wrapper.vm.isOwner).toBe(true)
-			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(false)
 		})
 
-		it('shows the admin surface for an owner via the currentUserGroups ∩ permissions.owners fallback', () => {
+		it('computes isOwner from the currentUserGroups ∩ permissions.owners fallback without surfacing the nav entry', () => {
 			loadState.mockImplementation((app, key, fallback) => (
 				app === 'openbuild' && key === 'currentUserGroups' ? ['owners'] : fallback
 			))
@@ -165,7 +171,7 @@ describe('CnAppRoot — generic admin-settings surface', () => {
 				permissions: ['group:owners'],
 			})
 			expect(wrapper.vm.isOwner).toBe(true)
-			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(false)
 		})
 
 		it('hides the admin surface for a non-owner (no group intersection, no runtime signal)', () => {

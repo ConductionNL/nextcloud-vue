@@ -54,8 +54,10 @@ function mountNav({
 	translate,
 	openUserSettings,
 	replayWalkthrough,
-	openAdminSettings,
 	isOwner,
+	isAdmin,
+	appId,
+	cnAppId,
 } = {}) {
 	const provide = useProps
 		? {}
@@ -64,11 +66,13 @@ function mountNav({
 			cnTranslate: translate ?? ((k) => k),
 			...(openUserSettings ? { cnOpenUserSettings: openUserSettings } : {}),
 			...(replayWalkthrough ? { cnReplayWalkthrough: replayWalkthrough } : {}),
-			...(openAdminSettings ? { cnOpenAdminSettings: openAdminSettings } : {}),
+			...(cnAppId !== undefined ? { cnAppId } : {}),
 		}
 	const propsData = {
 		permissions,
 		...(isOwner !== undefined ? { isOwner } : {}),
+		...(isAdmin !== undefined ? { isAdmin } : {}),
+		...(appId !== undefined ? { appId } : {}),
 		...(useProps
 			? {
 				manifest,
@@ -185,43 +189,58 @@ describe('CnAppNav', () => {
 		})
 	})
 
-	describe('auto-included "Admin settings" nav entry (admin-settings-owner-gating)', () => {
-		const manifestWithAdminSettings = {
-			...baseManifest,
-			adminSettings: [{ id: 'org-credentials', type: 'organisation-credentials', label: 'Org credentials' }],
-		}
+	describe('auto-included "Admin settings" link-out (ADR-079)', () => {
+		const sel = '[data-testid="cn-nav-admin-settings"]'
 
-		it('shows the entry when isOwner is true AND adminSettings is non-empty', () => {
-			const wrapper = mountNav({ manifest: manifestWithAdminSettings, isOwner: true })
-			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(true)
+		it('shows the link for an instance admin', () => {
+			const wrapper = mountNav({ isAdmin: true, appId: 'openconnector' })
+			expect(wrapper.find(sel).exists()).toBe(true)
 		})
 
-		it('hides the entry when isOwner is false, even with adminSettings declared', () => {
-			const wrapper = mountNav({ manifest: manifestWithAdminSettings, isOwner: false })
-			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(false)
+		it('links to the app section of the Nextcloud admin settings, not a modal', () => {
+			const wrapper = mountNav({ isAdmin: true, appId: 'openconnector' })
+			expect(wrapper.find(sel).attributes('href')).toContain('/settings/admin/openconnector')
 		})
 
-		it('hides the entry when isOwner is true but adminSettings is absent', () => {
-			const wrapper = mountNav({ manifest: baseManifest, isOwner: true })
-			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(false)
+		it('hides the link for a non-admin', () => {
+			const wrapper = mountNav({ isAdmin: false, appId: 'openconnector' })
+			expect(wrapper.find(sel).exists()).toBe(false)
 		})
 
-		it('hides the entry when isOwner is true but adminSettings is an empty array', () => {
-			const wrapper = mountNav({ manifest: { ...baseManifest, adminSettings: [] }, isOwner: true })
-			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(false)
+		it('defaults isAdmin to false when the prop is omitted (standalone mount)', () => {
+			const wrapper = mountNav({ appId: 'openconnector' })
+			expect(wrapper.vm.isAdmin).toBe(false)
+			expect(wrapper.find(sel).exists()).toBe(false)
 		})
 
-		it('defaults isOwner to false when the prop is omitted (standalone mount)', () => {
-			const wrapper = mountNav({ manifest: manifestWithAdminSettings })
-			expect(wrapper.vm.isOwner).toBe(false)
-			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(false)
+		// ADR-079 §3: isOwner ("owns this app") and isAdmin ("administers this
+		// instance") are DIFFERENT signals. An owner who is not an admin must
+		// not see the link — this is the negative control that proves the two
+		// were not conflated during the migration off the owner-gated modal.
+		it('does NOT show the link for an app owner who is not an instance admin', () => {
+			const wrapper = mountNav({ isOwner: true, isAdmin: false, appId: 'openconnector' })
+			expect(wrapper.find(sel).exists()).toBe(false)
 		})
 
-		it('invokes cnOpenAdminSettings when the entry is clicked', async () => {
-			const openAdminSettings = jest.fn()
-			const wrapper = mountNav({ manifest: manifestWithAdminSettings, isOwner: true, openAdminSettings })
-			await wrapper.find('[data-testid="cn-nav-admin-settings"]').trigger('click')
-			expect(openAdminSettings).toHaveBeenCalled()
+		it('falls back to the injected cnAppId when no appId prop is given', () => {
+			const wrapper = mountNav({ isAdmin: true, cnAppId: 'openbuild' })
+			expect(wrapper.find(sel).attributes('href')).toContain('/settings/admin/openbuild')
+		})
+
+		it('suppresses the link entirely when no app id can be resolved', () => {
+			const wrapper = mountNav({ isAdmin: true })
+			expect(wrapper.find(sel).exists()).toBe(false)
+		})
+
+		// The removed surface: manifest.adminSettings[] no longer gates or
+		// renders anything (zero fleet consumers at removal time).
+		it('ignores a legacy manifest adminSettings[] declaration', () => {
+			const manifest = {
+				...baseManifest,
+				adminSettings: [{ id: 'org-credentials', type: 'organisation-credentials', label: 'Org credentials' }],
+			}
+			const wrapper = mountNav({ manifest, isAdmin: false, appId: 'openconnector' })
+			expect(wrapper.find(sel).exists()).toBe(false)
 		})
 	})
 
