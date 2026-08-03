@@ -12,8 +12,8 @@
 
 ### Events
 
-| Name            | Payload | Description |
-| --------------- | ------- | ----------- |
-| `granted`       | —       |             |
-| `revoked`       | —       |             |
-| `scope-changed` | —       |             |
+| Name            | Payload | Description                                                                                                                                        |
+| --------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `granted`       | —       | Emitted after a grant is created — a user, group, email invitation or public link.                                                                 |
+| `revoked`       | —       | Emitted after a grant is revoked. Effective on the next request — the resolver memoises for one request only — so no propagation delay is implied. |
+| `scope-changed` | —       | Emitted after the visibility scope is PERSISTED — never on the optimistic toggle, since a refused change reverts the switch and emits nothing.     |

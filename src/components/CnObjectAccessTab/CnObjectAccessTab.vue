@@ -432,6 +432,10 @@ export default {
 				}
 
 				this.scope = scope
+				/**
+				 * @event scope-changed Emitted after the visibility scope is PERSISTED — never on the optimistic toggle, since a refused change reverts the switch and emits nothing.
+				 * @type {string} `'private'` or `'organisation'`.
+				 */
 				this.$emit('scope-changed', scope)
 			} catch (e) {
 				// Revert the switch rather than leaving the UI asserting a change
@@ -481,6 +485,10 @@ export default {
 				}
 
 				this.newPrincipal = ''
+				/**
+				 * @event granted Emitted after a grant is created — a user, group, email invitation or public link.
+				 * @type {object} The created grant as the server returned it; a link carries its `token`.
+				 */
 				this.$emit('granted', created)
 				await this.reload()
 			} catch (e) {
@@ -512,6 +520,10 @@ export default {
 					throw new Error(String(res.status))
 				}
 
+				/**
+				 * @event revoked Emitted after a grant is revoked. Effective on the next request — the resolver memoises for one request only — so no propagation delay is implied.
+				 * @type {object} The grant that was removed.
+				 */
 				this.$emit('revoked', grant)
 				await this.reload()
 			} catch (e) {

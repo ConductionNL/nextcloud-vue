@@ -20,7 +20,16 @@ const DEFAULT_PROPS = {
 	schema: 'schema',
 }
 
-/** Build a fetch stub that answers per URL + method. */
+/**
+ * Build a fetch stub that answers per URL + method.
+ *
+ * Matching is first-hit on a URL substring plus method, so ORDER MATTERS: put the
+ * narrower match (e.g. `/shares/` for a DELETE) before the broader one
+ * (`/shares`), or the list read would answer the delete.
+ *
+ * @param {Array<{match: string, method?: string, status?: number, body?: object}>} handlers Response table.
+ * @return {Function} A jest.fn() suitable for global.fetch.
+ */
 function stubFetch(handlers) {
 	return jest.fn((url, opts = {}) => {
 		const method = (opts.method || 'GET').toUpperCase()
