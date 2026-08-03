@@ -327,13 +327,13 @@ export default {
 	opacity: 0.7;
 }
 
-.cn-ai-input__chip-remove:hover:not(:disabled),
-.cn-ai-input__chip-remove:focus-visible {
-	opacity: 1;
-}
-
 .cn-ai-input__chip-remove:disabled {
 	cursor: not-allowed;
+}
+
+.cn-ai-input__chip-remove:focus-visible,
+.cn-ai-input__chip-remove:hover:not(:disabled) {
+	opacity: 1;
 }
 
 .cn-ai-input__row {
