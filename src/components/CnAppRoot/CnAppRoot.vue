@@ -498,65 +498,17 @@
 			</NcAppSettingsDialog>
 
 			<!--
-			  Admin-settings modal. Distinct from the user-settings dialog
-			  above — this hosts APP-level (not per-user) configuration
-			  surfaces that only app OWNERS should reach, rendered GENERICALLY
-			  from `manifest.adminSettings[]` (sorted by `order`), one
-			  `NcAppSettingsSection` per entry. `type: "organisation-credentials"`
-			  renders the organisation credential broker
-			  (`CnCredentials scope="organisation"`); a `component` entry
-			  resolves from the `customComponents` registry, forwarding
-			  `props`. Only mounted when BOTH the caller is an owner
-			  (`isOwner`) AND `adminSettings` is non-empty (`hasAdminSettings`)
-			  — an app with no `adminSettings` shows no admin dialog at all
-			  (D4 backward-compat). Opened via the `cnOpenAdminSettings`
-			  inject (CnAppNav wires this to the auto-prepended "Admin
-			  settings" entry and to manifest entries with
-			  `action: "admin-settings"`). A per-entry `permission` further
-			  narrows a section WITHIN this already owner-gated dialog — it
-			  can never widen access to a non-owner.
+			  ADR-079 Step 2: the generic admin-settings modal has been REMOVED.
+
+			  It rendered `manifest.adminSettings[]` behind an app-OWNERSHIP gate.
+			  No app in the fleet ever declared that array, so the surface was
+			  unreachable everywhere — and its one real payload, the organisation
+			  credential broker, was unreachable with it. The broker now lives on
+			  the app's Nextcloud admin page via CnAdminSettingsShell's
+			  `show-organisation-credentials` prop, where the access decision is
+			  made SERVER-SIDE for /settings/admin/<app> rather than by a
+			  client-side ownership flag.
 			-->
-			<NcAppSettingsDialog
-				v-if="isOwner && hasAdminSettings"
-				:open="adminSettingsOpen"
-				:show-navigation="true"
-				:name="resolvedAdminSettingsTitle"
-				@update:open="adminSettingsOpen = $event">
-				<!-- @slot admin-settings Sections rendered inside the host admin-settings NcAppSettingsDialog. Pass NcAppSettingsSection children to override the generic manifest.adminSettings[] render entirely. -->
-				<slot name="admin-settings">
-					<template v-for="section in visibleAdminSettingsSections">
-						<NcAppSettingsSection
-							v-if="adminSettingsOpen"
-							:id="section.id"
-							:key="section.id"
-							:name="translate(section.label)">
-							<!--
-								Built-in: organisation credential broker (OpenRegister).
-								Lets an owner manage the secrets OR holds on behalf of
-								the whole organisation; apps call external providers
-								through OR without ever seeing the secret. The app's
-								manifest `credentials[]` declarations drive the
-								informational "Apps requesting credentials" list.
-							-->
-							<CnCredentials
-								v-if="section.type === 'organisation-credentials'"
-								scope="organisation"
-								:app-id="appId"
-								:app-name="appDisplayName || (manifest && manifest.name) || appId"
-								:app-credentials="(manifest && manifest.credentials) || []" />
-							<!--
-								Custom: resolved from the customComponents registry
-								(the same registry CnPageRenderer uses for
-								type:"custom" pages), forwarding the entry's props.
-							-->
-							<component
-								:is="resolveAdminSettingsComponent(section.component)"
-								v-else-if="section.component && resolveAdminSettingsComponent(section.component)"
-								v-bind="section.props || {}" />
-						</NcAppSettingsSection>
-					</template>
-				</slot>
-			</NcAppSettingsDialog>
 
 			<!--
 			  V2 registry modal — mounted when cnOpenModal(key, props) is
@@ -790,9 +742,7 @@ export default {
 			 * "admin-settings"` manifest entries; consumer apps can also
 			 * call it directly via inject for custom triggers.
 			 */
-			cnOpenAdminSettings: () => {
-				this.adminSettingsOpen = true
-			},
+
 			/**
 			 * Restart entry for the product walkthrough (ADR-043). Descendants
 			 * (a menu/settings "Replay walkthrough" entry, or a manifest menu
@@ -1537,15 +1487,6 @@ export default {
 			 */
 			userSettingsOpen: false,
 			/**
-			 * Open state of the host admin-settings NcAppSettingsDialog.
-			 * Toggled to `true` by the provided `cnOpenAdminSettings()`
-			 * method (CnAppNav binds this to the auto-prepended "Admin
-			 * settings" entry and to manifest entries with `action:
-			 * "admin-settings"`); the dialog flips it back via its
-			 * `update:open` event.
-			 */
-			adminSettingsOpen: false,
-			/**
 			 * Id of the dependency whose install/enable action is currently
 			 * in flight (REQ-DIA-3 / REQ-DIA-6). Drives the per-button spinner
 			 * so, with several soft-dependency banners on screen, only the
@@ -1807,51 +1748,6 @@ export default {
 			const owners = this.ownerGidsFromPermissions
 			if (groups.length === 0 || owners.length === 0) return false
 			return groups.some((g) => owners.includes(g))
-		},
-		/**
-		 * Whether the manifest declares any `adminSettings` entries. An
-		 * absent key and an empty array are treated identically — no admin
-		 * dialog mounts either way (manifest-admin-settings D4).
-		 *
-		 * @return {boolean}
-		 */
-		hasAdminSettings() {
-			return Array.isArray(this.manifest && this.manifest.adminSettings)
-				&& this.manifest.adminSettings.length > 0
-		},
-		/**
-		 * `manifest.adminSettings[]` sorted by `order` (ascending), falling
-		 * back to array position when `order` is absent — mirrors
-		 * CnAppNav's `visibleItems` sort convention.
-		 *
-		 * @return {Array<object>}
-		 */
-		sortedAdminSettings() {
-			if (!this.hasAdminSettings) return []
-			return this.manifest.adminSettings
-				.map((entry, index) => ({ entry, index }))
-				.sort((a, b) => {
-					const aHas = typeof a.entry.order === 'number'
-					const bHas = typeof b.entry.order === 'number'
-					if (aHas && !bHas) return -1
-					if (!aHas && bHas) return 1
-					if (!aHas && !bHas) return a.index - b.index
-					return (a.entry.order - b.entry.order) || (a.index - b.index)
-				})
-				.map((wrapped) => wrapped.entry)
-		},
-		/**
-		 * `sortedAdminSettings` filtered by each entry's optional
-		 * `permission` — narrow-only within the already owner-gated dialog
-		 * (admin-settings-owner-gating "per-section permission narrows"
-		 * requirement). Entries with no `permission` always pass; the
-		 * dialog itself is only ever mounted for owners (`isOwner`), so a
-		 * `permission` can never widen visibility to a non-owner.
-		 *
-		 * @return {Array<object>}
-		 */
-		visibleAdminSettingsSections() {
-			return this.sortedAdminSettings.filter((section) => this.passesAdminSectionPermission(section))
 		},
 		/**
 		 * The manifest the default `<CnAppNav>` renders — the editor's working
@@ -2566,22 +2462,6 @@ export default {
 			})()
 
 			return this._dataSourcesInFlight
-		},
-		/**
-		 * Whether an `adminSettings` entry's optional `permission` passes
-		 * for the current caller, mirroring `CnAppNav.passesPermission`'s
-		 * grammar exactly (a section with no `permission` always passes;
-		 * an empty/absent `permissions` prop passes everything). Narrow-
-		 * only: called only from within the already owner-gated admin
-		 * dialog, so this can never grant a non-owner visibility.
-		 *
-		 * @param {{ permission?: string }} section An `adminSettings` entry.
-		 * @return {boolean}
-		 */
-		passesAdminSectionPermission(section) {
-			if (!section || !section.permission) return true
-			if (!this.permissions || this.permissions.length === 0) return true
-			return this.permissions.includes(section.permission)
 		},
 		/**
 		 * Resolve a custom `adminSettings` entry's `component` key against
