@@ -85,9 +85,6 @@ export {
 	CnThemePreview,
 	CnRelationshipGraph,
 	CnGraphCanvas,
-	CnFlowDetail,
-	CnFlowSidebar,
-	CnFlowIndexPage,
 	CnDashboardPage,
 	CnDashboardGrid,
 	CnWidgetWrapper,
@@ -269,7 +266,6 @@ export { default as CnAiHistoryDialog } from './dialogs/CnAiHistoryDialog.vue'
 
 // Generic dialogs (NcDialog-based, one file per dialog — modal-isolation rule)
 export { default as CnConfirmDialog } from './dialogs/CnConfirmDialog.vue'
-export { default as CnFlowEditModal } from './dialogs/CnFlowEditModal.vue'
 
 // Store
 export { useObjectStore, createObjectStore } from './store/index.js'
