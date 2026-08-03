@@ -191,4 +191,77 @@ describe('CnObjectAccessTab', () => {
 		expect(body.permissions).toBe(3)
 		expect(body.permissions & 16).toBe(0)
 	})
+
+	/*
+	 * The grant type is sent as the STRING the server's vocabulary uses.
+	 *
+	 * These two exist because the test above did not have them. It asserted
+	 * `permissions` and nothing else, so it passed while the body carried
+	 * `shareType: 0 | 1` — a key ObjectSharingController::createShare() does
+	 * not read. Every grant therefore fell through to the controller's 'user'
+	 * default: user grants worked by coincidence and GROUP grants silently
+	 * became user grants to a uid spelled like the group.
+	 *
+	 * Asserting the whole body rather than one field is the point. A test that
+	 * checks only the fields it already knows about cannot notice a field that
+	 * is missing.
+	 */
+	it('sends the grant type as the string the server validates, not a numeric shareType', async () => {
+		global.fetch = stubFetch([
+			{ match: '/shares', method: 'POST', body: { id: 'ocinternal:9' } },
+			{ match: '/scope', body: { scope: 'private' } },
+			{ match: '/shares', body: { results: [] } },
+		])
+
+		const wrapper = mount(CnObjectAccessTab, { props: DEFAULT_PROPS })
+		await settle(wrapper)
+
+		wrapper.vm.newPrincipal = 'bob'
+		await wrapper.vm.submit()
+		await settle(wrapper)
+
+		const post = global.fetch.mock.calls.find(c => (c[1]?.method === 'POST'))
+		expect(JSON.parse(post[1].body)).toEqual({
+			type: 'user',
+			shareWith: 'bob',
+			permissions: 1,
+		})
+	})
+
+	it('sends type=group for a group grant — the case the numeric key silently broke', async () => {
+		global.fetch = stubFetch([
+			{ match: '/shares', method: 'POST', body: { id: 'ocinternal:9' } },
+			{ match: '/scope', body: { scope: 'private' } },
+			{ match: '/shares', body: { results: [] } },
+		])
+
+		const wrapper = mount(CnObjectAccessTab, { props: DEFAULT_PROPS })
+		await settle(wrapper)
+
+		wrapper.vm.newType = { value: 'group', label: 'Group' }
+		wrapper.vm.newPrincipal = 'team'
+		await wrapper.vm.submit()
+		await settle(wrapper)
+
+		const post = global.fetch.mock.calls.find(c => (c[1]?.method === 'POST'))
+		const body = JSON.parse(post[1].body)
+		expect(body.type).toBe('group')
+		// The discriminating half: with the old code this key was present and
+		// `type` was absent, and the server read neither as a group.
+		expect(body.shareType).toBeUndefined()
+	})
+
+	it('states the file coupling — a grant reaches the object\'s files (task 5.9)', async () => {
+		global.fetch = stubFetch([
+			{ match: '/scope', body: { scope: 'private' } },
+			{ match: '/shares', body: { results: [] } },
+		])
+
+		const wrapper = mount(CnObjectAccessTab, { props: DEFAULT_PROPS })
+		await settle(wrapper)
+
+		// A grant IS a share on the object's folder, so this is not a nicety:
+		// without it the panel understates what the control does.
+		expect(wrapper.text()).toContain('can also open the files attached to this item')
+	})
 })
