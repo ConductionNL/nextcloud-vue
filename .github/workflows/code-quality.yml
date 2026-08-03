@@ -2,119 +2,63 @@ name: Code Quality
 
 on:
   push:
-    branches: [main, beta, 'feat/vue-3']
+    branches: [main, beta, development, 'feat/vue-3', feature/**, bugfix/**, hotfix/**]
   pull_request:
+    types: [opened, reopened]
     # `feat/vue-3` is the long-lived Vue-3 integration branch and MUST be
     # listed here. While it was missing, every PR into it merged with zero
     # checks (e.g. #541, "no checks reported") — which is how the branch ended
     # up with a hard-broken `npm ci`, Vue-2 render functions in shipped source
     # and a test suite that could not run at all.
     branches: [main, beta, development, 'feat/vue-3']
+  workflow_dispatch:
+
+concurrency:
+  group: quality-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+# Least privilege for the called quality pipeline: the Quality Report job
+# posts a sticky PR comment (issues/pull-requests write); everything else
+# only reads the checkout.
+# Permission CEILING for the called quality pipeline. GitHub statically
+# validates the called workflow's declared job permissions against this
+# grant — even for jobs that are disabled — so it must cover the maximum
+# any nested job declares: journeydoc-capture (contents+actions write),
+# update-baseline / features-extract (contents write), and the Quality
+# Report PR comment (issues / pull-requests write). A narrower grant makes
+# the whole call fail at STARTUP: zero jobs, no annotations.
+permissions:
+  contents: write
+  actions: write
+  issues: write
+  pull-requests: write
 
 jobs:
-  frontend-quality:
-    name: Frontend Quality
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install docusaurus dependencies (needed by check:jsdoc + prebuild:docs)
-        run: cd docusaurus && npm ci
-
-      - name: Documentation coverage
-        run: npm run check:docs
-
-      # G2 — Phase 2.5 of the unify-component-docs change.
-      # Fails the build if any Cn* component's JSDoc completeness score
-      # has regressed below the per-component baseline at
-      # scripts/.jsdoc-baselines.json. New components must score 100%.
-      - name: JSDoc completeness ratchet
-        run: npm run check:jsdoc
-
-      # Pluggable integration registry parity gate (AD-11/AD-13).
-      # Fails the build if any integration descriptor shipped in
-      # src/integrations/ is missing its `tab` or `widget` component.
-      - name: Integration parity gate
-        run: npm run check:integration-parity
-
-      # Peer-dependency consistency gate.
-      # A peer block can contradict itself: `@nextcloud/capabilities@^1.2.1`
-      # and `@nextcloud/vue@^9.0.0` both require `@nextcloud/initial-state@^3`,
-      # while we declared `^2.2.0` — no version satisfies both, so every
-      # correctly-behaving consumer hit ERESOLVE and openregister had to add an
-      # override to install at all. Nothing caught it, because THIS repo's
-      # `npm ci` resolves the peers from devDependencies, where the
-      # contradiction never surfaces. Runs offline, against node_modules.
-      - name: Peer consistency gate
-        run: npm run check:peers
-
-      # The "Integration template-compile gate" (Phase K / K1, ADR-019) was
-      # REMOVED with the Vue-3 migration. It existed because Vue 2 transpiled
-      # every <template> expression through buble (vue-template-compiler →
-      # vue-template-es2015-compiler), which rejected `?.` and `??`. Vue 3's
-      # compiler handles both natively, so the constraint no longer exists —
-      # and the gate had degraded to a static fallback scan that still printed
-      # "every integration SFC template compiles through buble" after
-      # vue-template-compiler was dropped from the toolchain.
-
-      # G1 — Phase 2.5 of the unify-component-docs change.
-      # Fails the build if a SFC change wasn't accompanied by regenerating
-      # the auto-doc partial via vue-docgen-cli. Run docusaurus's prebuild
-      # hook then verify the generated tree is unchanged.
-      - name: Auto-doc partials are fresh
-        run: |
-          cd docusaurus
-          npm run prebuild:docs
-          cd ..
-          if ! git diff --exit-code docs/components/_generated/; then
-            echo ""
-            echo "::error::docs/components/_generated/ is stale. Run:"
-            echo "::error::  cd docusaurus && npm run prebuild:docs"
-            echo "::error::and commit the diff."
-            exit 1
-          fi
-
-      - name: ESLint
-        run: npm run lint
-
-      - name: Stylelint
-        run: npm run stylelint
-        continue-on-error: true
-
-      # Phase K / K1 — authoritative template-ES2020 gate. `rollup -c`
-      # runs rollup-plugin-vue → vue-template-compiler → buble over every
-      # SFC; a template-side `?.`/`??` (or any other buble-incompatible
-      # syntax) fails here. The `check:integration-build` step above is the
-      # fast, integration-scoped early-warning for the same class of bug.
-      #
-      # Runs BEFORE the tests: `tests/packaging/subpath-exports.spec.js` packs
-      # the package and asserts things about `dist/` — most importantly that no
-      # CommonJS require call survives in `dist/esm/**`. Against a tree with no
-      # `dist/` that assertion is vacuously true, which is the exact shape of
-      # the green-but-meaningless results that suite exists to rule out. (The
-      # spec builds on demand if `dist/` is missing, so a bare `npx jest` still
-      # measures something; this ordering just keeps it from building twice.)
-      - name: Build
-        run: npm run build
-
-      - name: Tests
-        run: npm test
-
-      # Needs dist/, so it runs after the build. Asserts that every scope id the
-      # built JS stamps onto elements has a matching rule in the CSS reachable
-      # from css/index.css — the entry consumers import. When that invariant
-      # broke, dist-consuming apps rendered whole components unstyled with no
-      # error anywhere.
-      - name: Published CSS entry ships the scoped styles
-        run: npm run check:css-entry
+  quality:
+    if: github.event_name != 'push' || github.event.created != true
+    uses: ConductionNL/.github/.github/workflows/quality.yml@main
+    with:
+      app-name: nextcloud-vue
+      # JS-only component library: no composer.json, so the whole PHP
+      # toolchain (php-quality, PHPUnit, composer security/license, SBOM)
+      # is off via the master switch.
+      enable-php: false
+      enable-frontend: true
+      enable-eslint: true
+      node-version: "24"
+      # docusaurus deps are needed by check:jsdoc and check:docs-fresh
+      # (prebuild:docs); the setup command runs in every check leg.
+      frontend-setup-command: "cd docusaurus && npm ci"
+      # Each entry runs as its own "quality / Frontend Check (<script>)" job.
+      # check:build bundles build + check:css-entry (css-entry needs dist/;
+      # the packaging spec in `test` builds on demand when dist/ is absent).
+      # check:peers is the offline peer-dependency consistency gate — a peer
+      # block contradiction (initial-state ^2 vs ^3) once broke every
+      # consumer's npm ci while this repo's own install stayed green.
+      # check:integration-build is intentionally absent: the Vue-2 buble
+      # template gate was removed with the Vue-3 migration (Vue 3's compiler
+      # handles `?.`/`??` natively).
+      frontend-checks: >-
+        ["test", "check:build", "check:docs", "check:jsdoc",
+         "check:integration-parity", "check:peers", "check:docs-fresh"]
+      enable-sbom: false
