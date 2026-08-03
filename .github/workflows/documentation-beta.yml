@@ -19,6 +19,8 @@ jobs:
   deploy-beta:
     name: Deploy Beta Styleguide
     runs-on: ubuntu-latest
+    # Observed max 1.0 min over n=2 runs; 20 is a loose upper bound.
+    timeout-minutes: 20
     permissions:
       contents: write
     steps:
