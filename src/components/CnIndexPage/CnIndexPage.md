@@ -342,7 +342,7 @@ export default {
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `description` | String | `''` | Optional description shown below the title in the page header |
-| `showTitle` | Boolean | `false` | Whether to show the inline page header (title, icon, description) |
+| `showTitle` | Boolean | `false` | Whether to show the inline page header (title, icon, description) VISIBLY. When `false` the `<h1>` is still rendered visually-hidden, so `<main>` always has an accessible heading (WCAG 2.4.6 / 1.3.1) |
 | `icon` | String | `''` | Optional MDI icon name; falls back to `schema.icon` |
 | `columns` | Array | `[]` | Manual column definitions (overrides schema-generated columns) |
 | `selectable` | Boolean | `true` | Whether rows/cards can be selected for mass actions |
