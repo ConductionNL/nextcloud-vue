@@ -1,5 +1,8 @@
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import { mount } from '@vue/test-utils'
 import CnContextMenu from '@/components/CnContextMenu/CnContextMenu.vue'
+import { CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR } from '@/composables/useContextMenu.js'
 
 describe('CnContextMenu visible predicate', () => {
 	it('filters actions by visible function against targetItem', () => {
@@ -231,5 +234,107 @@ describe('CnContextMenu outside-click dismissal', () => {
 		expect(spy).not.toHaveBeenCalled()
 		outside.remove()
 		wrapper.unmount()
+	})
+})
+
+describe('CnContextMenu cursor-position scoping', () => {
+	// Regression: the cursor-positioning transform was keyed on the `<html>`
+	// data attribute alone, so it matched *every* `.v-popper__popper` on the
+	// page — a table row's own actions menu opened at the last right-click
+	// coordinates instead of under its button. The transform must be scoped to
+	// the one popper this component owns.
+
+	// The shared @nextcloud/vue mock stubs NcActions without a popover child,
+	// so recreate just the ref chain `tagPopper()` walks.
+	const mountWithPopper = (propsData = {}) => {
+		const popper = document.createElement('div')
+		popper.className = 'v-popper__popper'
+		const NcPopoverStub = {
+			name: 'NcPopover',
+			template: '<div />',
+			methods: {
+				getPopoverContentElement: () => popper,
+			},
+		}
+		const wrapper = mount(CnContextMenu, {
+			propsData: { actions: [{ label: 'Edit' }], ...propsData },
+			stubs: {
+				NcActions: {
+					name: 'NcActions',
+					components: { NcPopoverStub },
+					template: '<div><NcPopoverStub ref="popover" /><slot /></div>',
+				},
+			},
+		})
+		return { wrapper, popper }
+	}
+
+	it('stamps the marker on its own popper at mount', () => {
+		const { wrapper, popper } = mountWithPopper()
+		expect(popper.hasAttribute(CTX_MENU_POPPER_ATTR)).toBe(true)
+		wrapper.unmount()
+	})
+
+	it('marks with an attribute, which survives floating-vue rewriting className', () => {
+		// Regression: the marker was first shipped as a class. floating-vue binds
+		// a dynamic `class` on the popper (`--shown` / `--hidden` / `--show-from`
+		// / …) and Vue's patchClass assigns `el.className` wholesale, so the class
+		// was wiped on the first open — the transform stopped matching and the
+		// menu rendered at its offscreen trigger (≈ -9905px) instead of the
+		// cursor. Simulate that patch and require the marker to outlive it.
+		const { wrapper, popper } = mountWithPopper({ open: true })
+
+		popper.className = 'v-popper__popper v-popper__popper--shown'
+
+		expect(popper.hasAttribute(CTX_MENU_POPPER_ATTR)).toBe(true)
+		expect(popper.matches(`.v-popper__popper[${CTX_MENU_POPPER_ATTR}]`)).toBe(true)
+		wrapper.unmount()
+	})
+
+	it('leaves any other popper on the page untouched', () => {
+		const foreign = document.createElement('div')
+		foreign.className = 'v-popper__popper action-item__popper'
+		document.body.appendChild(foreign)
+
+		const { wrapper } = mountWithPopper({ open: true })
+
+		expect(foreign.hasAttribute(CTX_MENU_POPPER_ATTR)).toBe(false)
+
+		foreign.remove()
+		wrapper.unmount()
+	})
+
+	it('drops the "menu is open" attribute when it closes', async () => {
+		const { wrapper } = mountWithPopper({ open: true })
+		// useContextMenu().open() sets this; simulate it so the watcher has
+		// something to clear.
+		document.documentElement.setAttribute(CTX_MENU_DATA_ATTR, '')
+
+		await wrapper.setProps({ open: false })
+
+		// NcActions' @closed never fires (upstream binds an event NcPopover does
+		// not emit), so the close transition is the only place this can happen.
+		expect(document.documentElement.hasAttribute(CTX_MENU_DATA_ATTR)).toBe(false)
+		wrapper.unmount()
+	})
+
+	it('scopes the shared CSS to the marker attribute, not to the document attribute', () => {
+		const css = readFileSync(join(__dirname, '../../src/css/context-menu.css'), 'utf8')
+		const rules = css
+			.replace(/\/\*[\s\S]*?\*\//g, '')
+			.split('}')
+			.map((chunk) => chunk.split('{')[0].trim())
+			.filter(Boolean)
+
+		// Every popper-targeting rule must name the marker, or it applies to
+		// unrelated popovers again.
+		const popperRules = rules.filter((selector) => selector.includes('.v-popper__popper'))
+		expect(popperRules.length).toBeGreaterThan(0)
+		for (const selector of popperRules) {
+			expect(selector).toContain(`[${CTX_MENU_POPPER_ATTR}]`)
+		}
+		// The destructive-action colour is shared with CnRowActions and must not
+		// be gated on a context menu being open.
+		expect(rules).toContain('.cn-row-action--destructive')
 	})
 })

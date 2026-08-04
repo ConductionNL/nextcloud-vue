@@ -75,7 +75,7 @@
 
 <script>
 import { NcActionButton, NcActions } from '@nextcloud/vue'
-import { clearContextMenuPositionDom } from '../../composables/useContextMenu.js'
+import { CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, clearContextMenuPositionDom } from '../../composables/useContextMenu.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -221,9 +221,15 @@ export default {
 			this.$emit('update:open', val)
 
 			if (val) {
+				this.tagPopper()
 				this.startOutsideWatch()
 			} else {
 				this.stopOutsideWatch()
+				// NcActions' `@closed` never fires (see `onClosed`), so drop the
+				// "a context menu is open" attribute here. The CSS vars stay put
+				// — the hide animation still needs the transform, and the next
+				// `open()` overwrites them before the popper shows again.
+				document.documentElement.removeAttribute(CTX_MENU_DATA_ATTR)
 			}
 		},
 	},
@@ -273,6 +279,8 @@ export default {
 			ncPopover.checkTriggerA11y = () => {}
 		}
 
+		this.tagPopper()
+
 		// Mounting with `open` already true never trips the watcher.
 		if (this.internalOpen) {
 			this.startOutsideWatch()
@@ -284,6 +292,39 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Mark this menu's own popper element so the cursor-positioning CSS in
+		 * `src/css/context-menu.css` can target it — and nothing else.
+		 *
+		 * That CSS used to key on the `<html>` data attribute alone, which
+		 * matches *every* `.v-popper__popper` in the document: any other popover
+		 * alive while a context menu was open (a table row's actions menu, most
+		 * visibly) got dragged to the last right-click coordinates.
+		 *
+		 * The marker has to be applied imperatively — NcActions hardcodes
+		 * `popoverBaseClass: 'action-item__popper'` on its NcPopover and spreads
+		 * no `$attrs` onto it, so there is no prop to pass one in through.
+		 *
+		 * It must be an *attribute*, not a class. floating-vue binds a dynamic
+		 * `class` on this element (`--shown` / `--hidden` / `--show-from` / …)
+		 * and Vue's `patchClass` assigns `el.className` wholesale, so a class
+		 * added here is wiped the first time the popper opens — the rule then
+		 * matches nothing and the menu renders at its offscreen trigger. Vue
+		 * only patches props present in the vnode, so an attribute it never
+		 * renders is left alone.
+		 *
+		 * The element itself is stable: floating-vue keeps one `$_popperNode`
+		 * and `appendChild`s it into the container on first show, so marking it
+		 * once at `mounted()` holds for the component's lifetime. Re-running on
+		 * open is a cheap, idempotent guard for a not-yet-ready ref chain.
+		 *
+		 * @return {void}
+		 */
+		tagPopper() {
+			const el = this.$refs.actions?.$refs?.popover?.getPopoverContentElement?.()
+			el?.setAttribute?.(CTX_MENU_POPPER_ATTR, '')
+		},
+
 		/**
 		 * Start watching for a press outside the menu. Driven from both the
 		 * `internalOpen` watcher and `mounted()`, because a consumer may mount
@@ -406,7 +447,7 @@ export default {
 				this.$emit('update:activePanel', null)
 			}
 			/**
-			 * @event close Fired when the menu starts closing (before the popper's hide animation). Use `@closed` for the post-animation point.
+			 * @event close Fired when the menu starts closing (before the popper's hide animation). This is the reliable one — prefer it over `closed`.
 			 */
 			this.$emit('close')
 		},
@@ -429,16 +470,22 @@ export default {
 		},
 
 		/**
-		 * Fired by NcActions after the popper's hide animation completes
-		 * (`@closed` → NcPopover's `after-hide`). We clear the cursor-position
-		 * CSS vars + data attribute here so the transform stays applied for the
-		 * full duration of the animation — clearing it earlier would snap the
-		 * popper to ≈ 0,0 for one frame before unmount.
+		 * Meant to fire after the popper's hide animation completes, clearing
+		 * the cursor-position CSS vars.
+		 *
+		 * **Currently dead.** @nextcloud/vue 9 binds `onAfterClose` on its
+		 * NcPopover while NcPopover only emits `afterHide`, so NcActions never
+		 * emits `closed` and neither do we. Nothing depends on it any more —
+		 * positioning is scoped to this menu's own popper (see `tagPopper`), the
+		 * data attribute is dropped in the `internalOpen` watcher, and the CSS
+		 * vars are refreshed by the next `open()` / wiped by the composable's
+		 * unmount hook. Kept wired so the tear-down lands at the correct moment
+		 * if upstream ever fixes the binding.
 		 */
 		onClosed() {
 			clearContextMenuPositionDom()
 			/**
-			 * @event closed Fired after the popper's hide animation completes. Use this (rather than `@close`) when the parent needs the menu's DOM to be gone before doing the next thing.
+			 * @event closed Intended to fire after the popper's hide animation completes. Does not currently fire — @nextcloud/vue 9's NcActions listens for an `afterClose` event NcPopover never emits. Use `close` instead.
 			 */
 			this.$emit('closed')
 		},
