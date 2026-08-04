@@ -24,7 +24,7 @@
 					viewBox="0 0 24 24"
 					fill="currentColor"
 					aria-hidden="true">
-					<path d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18-.21 0-.41-.06-.57-.18l-7.9-4.44A.991.991 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18.21 0 .41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9M12 4.15 6.04 7.5 12 10.85 17.96 7.5 12 4.15M5 15.91l6 3.38v-6.71L5 9.21v6.7m14 0v-6.7l-6 3.37v6.71l6-3.38Z" />
+					<path d="M12 0L3 7L4.63 8.27L12 14L19.36 8.27L21 7L12 0M19.37 10.73L12 16.47L4.62 10.74L3 12L12 19L21 12L19.37 10.73M19.37 15.73L12 21.47L4.62 15.74L3 17L12 24L21 17L19.37 15.73Z" />
 				</svg>
 			</template>
 
@@ -201,18 +201,18 @@ import Sitemap from 'vue-material-design-icons/Sitemap.vue'
 import AutoFix from 'vue-material-design-icons/AutoFix.vue'
 import MapMarkerPath from 'vue-material-design-icons/MapMarkerPath.vue'
 import HeartOutline from 'vue-material-design-icons/HeartOutline.vue'
-import CnEditMenuModal from '../../modals/CnEditMenuModal.vue'
-import CnEditPagesModal from '../../modals/CnEditPagesModal.vue'
-import CnEditSettingsModal from '../../modals/CnEditSettingsModal.vue'
-import CnEditSidebarModal from '../../modals/CnEditSidebarModal.vue'
-import CnEditActionsModal from '../../modals/CnEditActionsModal.vue'
-import CnAddWidgetModal from '../../modals/CnAddWidgetModal.vue'
-import CnEditDataModal from '../../modals/CnEditDataModal.vue'
-import CnEditFlowsModal from '../../modals/CnEditFlowsModal.vue'
-import CnEditSetupModal from '../../modals/CnEditSetupModal.vue'
-import CnEditWalkthroughModal from '../../modals/CnEditWalkthroughModal.vue'
-import CnEditSupportModal from '../../modals/CnEditSupportModal.vue'
-import { getDefaultContent } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+import CnEditMenuModal from '../../dialogs/CnEditMenuModal.vue'
+import CnEditPagesModal from '../../dialogs/CnEditPagesModal.vue'
+import CnEditSettingsModal from '../../dialogs/CnEditSettingsModal.vue'
+import CnEditSidebarModal from '../../dialogs/CnEditSidebarModal.vue'
+import CnEditActionsModal from '../../dialogs/CnEditActionsModal.vue'
+import CnAddWidgetModal from '../../dialogs/CnAddWidgetModal.vue'
+import CnEditDataModal from '../../dialogs/CnEditDataModal.vue'
+import CnEditFlowsModal from '../../dialogs/CnEditFlowsModal.vue'
+import CnEditSetupModal from '../../dialogs/CnEditSetupModal.vue'
+import CnEditWalkthroughModal from '../../dialogs/CnEditWalkthroughModal.vue'
+import CnEditSupportModal from '../../dialogs/CnEditSupportModal.vue'
+import { getDefaultContent, getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 
 export default {
@@ -348,7 +348,15 @@ export default {
 		isDetailPage() {
 			return !!(this.currentPage && this.currentPage.type === 'detail')
 		},
-		/** Whether the active page hosts a widget grid that "Add widget" can target. */
+		/**
+		 * Whether the active page hosts a widget grid that "Add widget" can target.
+		 * Only dashboard and detail pages do: their bodies are adjustable widget
+		 * grids. A `type:"custom"` page is the manifest's escape hatch — it renders
+		 * a bespoke `component` (or `slots.main`) and owns its own body, so it has
+		 * no widget grid to add to. Widget canvases are dashboard pages.
+		 *
+		 * @return {boolean}
+		 */
 		pageSupportsWidgets() {
 			return this.isDashboardPage || this.isDetailPage
 		},
@@ -452,9 +460,17 @@ export default {
 			// Appearance (chrome) chosen in the modal — title visibility/label,
 			// icon and background — applied to the widget entry the renderer reads.
 			const chrome = payload.chrome && typeof payload.chrome === 'object' ? payload.chrome : {}
+			const entry = getWidgetTypeEntry(payload.type)
+			const isCard = Boolean(entry && entry.card === true)
 			const chromeFields = {
-				title: chrome.customTitle || content.title || payload.type,
-				showTitle: chrome.showTitle !== false,
+				// Never fall back to the raw type key — that shipped widgets titled
+				// literally "stat". A card's own `content.label` is the best name,
+				// then the registry's display name.
+				title: chrome.customTitle || content.title || content.label
+					|| entry?.displayName || payload.type,
+				// Cards headline themselves via `content.label`, so they default
+				// headerless unless the modal explicitly asked for a header.
+				showTitle: typeof chrome.showTitle === 'boolean' ? chrome.showTitle : !isCard,
 				...(chrome.customIcon ? { icon: chrome.customIcon } : {}),
 				...(chrome.backgroundColor ? { styleConfig: { backgroundColor: chrome.backgroundColor } } : {}),
 			}
@@ -464,6 +480,14 @@ export default {
 			// ejectDetailGridIfNeeded). A v2 page keeps them in pages[].widgets[]
 			// (slot-based). Append to whichever this page uses so the new widget
 			// lands where the renderer reads.
+			// Append IN PLACE (`push`), never by replacing the array. These arrays
+			// reach the grid as props via CnPageRenderer's `resolvedProps`, which
+			// does NOT re-derive when `config.widgets` / `config.layout` are
+			// swapped for new arrays — the page component keeps its original array
+			// and the widget never appears at all. Mutating the array the props
+			// already point at is what makes the addition visible. (Rendering the
+			// new card correctly also needs CnDashboardPage to resolve widget defs
+			// through a live lookup rather than a cached map — see getWidgetDef.)
 			const cfg = page.config && typeof page.config === 'object' && !Array.isArray(page.config) ? page.config : null
 			if ((page.type === 'dashboard' || page.type === 'detail') && cfg) {
 				if (!Array.isArray(cfg.widgets)) this.$set(cfg, 'widgets', [])

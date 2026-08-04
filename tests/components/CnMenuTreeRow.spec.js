@@ -35,12 +35,21 @@ describe('CnMenuTreeRow', () => {
 		expect(item.label).toBe('Dogs')
 	})
 
-	it('onIcon sets the icon and closes the editor', () => {
+	it('onIcon stores the value CnIconBrowser emits, not an option object', () => {
+		// The old NcSelect handed over `{ value }`; CnIconBrowser emits the value
+		// itself — a registry key / SVG path / URL, which is the vocabulary
+		// CnMenuItemIcon actually renders at runtime.
 		const item = { id: 'm', label: 'M' }
 		const wrapper = mountRow(item)
-		wrapper.vm.onIcon({ value: 'icon-group' })
-		expect(item.icon).toBe('icon-group')
-		expect(wrapper.vm.editing).toBe(null)
+		wrapper.vm.onIcon('Star')
+		expect(item.icon).toBe('Star')
+	})
+
+	it('clears the icon when the picker emits null', () => {
+		const item = { id: 'm', label: 'M', icon: 'Star' }
+		const wrapper = mountRow(item)
+		wrapper.vm.onIcon(null)
+		expect(item.icon).toBe('')
 	})
 
 	it('onPage sets the target route (page id) and closes the editor', () => {
@@ -56,8 +65,8 @@ describe('CnMenuTreeRow', () => {
 		expect(wrapper.vm.pageLabel).toBe('Dogs')
 	})
 
-	it('iconClass falls back to a generic dot for a non-icon value', () => {
-		expect(mountRow({ id: 'm', icon: 'icon-group' }).vm.iconClass).toBe('icon-group')
-		expect(mountRow({ id: 'm', icon: '' }).vm.iconClass).toBe('cn-menu-tree__icon--generic')
+	it('shows a generic dot until an icon is picked', () => {
+		expect(mountRow({ id: 'm', icon: '' }).find('.cn-menu-tree__icon--generic').exists()).toBe(true)
+		expect(mountRow({ id: 'm', icon: 'Star' }).find('.cn-menu-tree__icon--generic').exists()).toBe(false)
 	})
 })

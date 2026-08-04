@@ -18,14 +18,15 @@ Schema-driven editable data grid widget. Displays object properties in a CSS gri
 |------|------|---------|-------------|
 | `title` | `String` | `'Data'` | Widget title in the card header |
 | `icon` | `Object\|Function` | `null` | Optional MDI icon component for the header |
-| `object-data` | `Object` | *required* | The object to display and edit. Keys must match the schema property keys. |
-| `schema` | `Object` | *required* | JSON Schema defining properties. Must have a `properties` field. |
+| `object-data` | `Object` | `null` | The object to display and edit. Keys must match the schema property keys. Optional — `null` while the object is still loading (internal reads are null-guarded). |
+| `schema` | `Object` | `null` | JSON Schema defining properties. Must have a `properties` field. Optional — `null` renders the empty state (e.g. before the schema is fetched). |
 | `object-type` | `String` | `''` | Registered object type slug in the objectStore. Required for saving via `objectStore.saveObject()`. |
 | `store` | `Object` | `null` | Optional objectStore instance. When provided, used directly for saving instead of auto-detecting via Pinia. |
 | `overrides` | `Object` | `{}` | Per-property configuration overrides (see below) |
 | `columns` | `Number` | `3` | Number of grid columns |
 | `editable` | `Boolean` | `true` | Whether editing is enabled globally — gates both inline (click-to-edit) and the full-form **Edit** action item |
 | `edit-label` | `String` | `'Edit'` | Label for the Edit action item, which opens a schema-driven `CnFormDialog` pre-filled with the object (alongside inline editing) |
+| `hide-empty` | `Boolean` | `false` | Hide fields that have no value instead of rendering them with an em dash. Read grid only — a field being edited, a field with an unsaved change, and the full Edit form stay visible. |
 | `exclude` | `Array` | `[]` | Property keys to hide from display |
 | `include` | `Array` | `null` | Property keys to show (whitelist — all others hidden) |
 | `save-label` | `String` | `'Save'` | Label for the save button |
@@ -57,6 +58,23 @@ Schema-driven editable data grid widget. Displays object properties in a CSS gri
 The `overrides` / `exclude` / `include` props drive a **single** [`fieldsFromSchema`](../../src/utils/schema.js) pipeline that both the inline display **and** the full-form **Edit** modal ([`CnFormDialog`](./cn-form-dialog.md)) consume. So a property hidden via `overrides.id.hidden = true` is hidden in the widget grid *and* dropped from the edit form; an `order` set on a property reorders both. `gridColumn`/`gridRow` (span) are display-only; the modal is single-column (stacked).
 
 `fieldsFromSchema` honors, per property: `hidden` (drop the field), `order` (wins over the schema's own `order` for sorting), `readOnly: false` (un-skip a schema-readonly field), plus any field props to merge (`label`, `widget`, `enum`, …).
+
+## Discriminated supertypes (`hide-empty`)
+
+`exclude` / `include` / `overrides.hidden` are **static** — they hide the same keys for every object. That is the wrong tool for a schema whose properties are only relevant to *some* of its objects.
+
+The canonical case is a supertype with a discriminator: one `ticket` schema holding `request | complaint | contactmoment`, where a complaint never carries the telephony fields (`ctiExtension`, `recordingUrl`, `dispositionNotes`, …) a contactmoment does. Rendering the union statically means every complaint shows a wall of em dashes.
+
+Set `hide-empty` and the grid shows only what the object actually has, so the page becomes type-aware **without** the schema (or the manifest) having to enumerate which fields belong to which variant:
+
+```vue
+<CnObjectDataWidget
+  :object-data="ticket"
+  :schema="ticketSchema"
+  hide-empty />
+```
+
+It is display-only and non-destructive: the field currently being edited, any field with an unsaved change, and the full **Edit** form all stay visible — so an empty field is always still reachable to fill in. `false` and `0` count as values, not absences, and are never hidden.
 
 ### Configuring it in-app
 
@@ -139,3 +157,38 @@ state (still shown, never editable). Both are honoured by `isEditable`; a
 per-field `overrides[key].editable` still takes priority. Read-only here is a UI
 affordance — pair it with server-side enforcement (an OpenRegister write guard /
 listener) for the authoritative boundary.
+
+## Reference (relation) display
+
+Relation properties display the referenced object's **name, never its raw
+uuid** (ADR-062). Two property shapes are recognised:
+
+- `x-openregister-relation: { target: "<register>/<schema>" }` (explicit,
+  works on every surface), and
+- the canonical OpenRegister shorthand `"$ref": "<schemaSlug>"` on a
+  uuid-string property or its array `items` — the slug resolves against the
+  **same register**, taken from the detail-page object context
+  (`cnObjectContext` inject). On surfaces without that context the shorthand
+  falls back to the shortened-id display.
+
+Names resolve via one `GET /api/objects/{register}/{schema}/{id}` per distinct
+id (cached per widget instance): `name` → `title` → `displayName` →
+`firstName lastName` → `@self.name` → the id itself.
+
+### Scoping picker options: `x-relation-filter`
+
+A relation property may declare `x-relation-filter` to narrow its edit-picker
+options to objects that fit the CURRENT object:
+
+```json
+"status": {
+  "type": "string", "format": "uuid", "$ref": "statusType",
+  "x-relation-filter": { "caseType": "@object.caseType" }
+}
+```
+
+Filter values are token-resolved (`@objectId` / `@object.<field>`), with the
+widget's **dirty values winning** — picking a new caseType immediately scopes
+the status options to it, before any save. Entries whose token stays
+unresolved are dropped (an unfiltered picker beats an empty one). Options
+reload on every edit start for the same reason.

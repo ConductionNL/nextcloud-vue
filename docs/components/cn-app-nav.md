@@ -136,10 +136,10 @@ The host listens once at `CnAppRoot` (events bubble through `CnPageRenderer`):
 
 ```json
 {
-  "id": "view-in-mydash",
-  "label": "scholiq.nav.viewInMydash",
-  "href": "/index.php/apps/mydash#scholiq",
-  "visibleIf": { "appInstalled": "mydash" }
+  "id": "view-in-launchpad",
+  "label": "scholiq.nav.viewInLaunchpad",
+  "href": "/index.php/apps/launchpad#scholiq",
+  "visibleIf": { "appInstalled": "launchpad" }
 }
 ```
 
@@ -191,9 +191,9 @@ The backend (OpenRegister) injects `manifest.runtime` when serving the manifest 
 {
   "id": "combined",
   "label": "scholiq.nav.combined",
-  "href": "/apps/mydash#scholiq",
+  "href": "/apps/launchpad#scholiq",
   "visibleIf": {
-    "appInstalled": "mydash",
+    "appInstalled": "launchpad",
     "user.primaryRole": { "in": ["compliance-officer"] }
   }
 }
@@ -206,6 +206,7 @@ The backend (OpenRegister) injects `manifest.runtime` when serving the manifest 
 | `manifest` | `Object \| null` | `null` | Manifest object. Falls back to injected `cnManifest`. |
 | `translate` | `Function \| null` | `null` | Translator used for labels. Falls back to injected `cnTranslate` (identity by default). |
 | `permissions` | `Array<string>` | `[]` | Permissions held by the current user. Empty means all items render regardless of their `permission` field. |
+| `isOwner` | `Boolean` | `false` | Whether the current user is an app OWNER — computed by `CnAppRoot` from `currentUserGroups` ∩ `permissions.owners`, and/or a manifest `runtime.user` owner signal; deliberately NOT `OC.isUserAdmin()`. Gates the auto-prepended "Admin settings" foldout entry together with the manifest declaring at least one `adminSettings[]` entry. Defaults to `false` so `CnAppNav` mounted standalone (without a `CnAppRoot` ancestor) never shows the entry. |
 
 ## Behaviour
 
@@ -218,7 +219,7 @@ The backend (OpenRegister) injects `manifest.runtime` when serving the manifest 
 
 ## Dynamic per-tenant menu entries
 
-The menu CnAppNav renders is whatever [`useAppManifest`](../utilities/composables/use-app-manifest.md) ultimately resolves to — including `menu[]` arrays supplied by the backend `/api/manifest` endpoint. Apps that need per-tenant menu fan-out (e.g. one entry per catalogue or organisation) populate the resolved list in their backend; CnAppNav renders whatever the merged manifest contains. See the [Dynamic per-tenant menu entries](../utilities/composables/use-app-manifest.md#dynamic-per-tenant-menu-entries) section for the contract.
+The menu CnAppNav renders is whatever [`useAppManifest`](../utilities/composables/use-app-manifest.md) ultimately resolves to — including `menu[]` arrays (and nested `children[]`) supplied by the backend `/api/manifest` endpoint. Apps that need per-tenant menu fan-out (e.g. one entry per catalogue, organisation, or case type) populate the resolved entries in their backend; CnAppNav renders whatever the merged manifest contains. See [Overriding an app's manifest at runtime](../manifest-runtime-override.md) for the full feature — the endpoint contract, the `deepMerge` vs `delta` strategies, and how nested children merge by `id`.
 
 ## Related
 

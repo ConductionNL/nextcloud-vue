@@ -28,10 +28,16 @@
 		:documentation-url="documentationUrl"
 		:refreshing="loading"
 		flush>
+		<!-- Total beside the card title. Carries the count that the tab strip
+		     would otherwise show — notably when `hideSingleTabTitle` hid it. -->
+		<template v-if="useTabs && showTotalCount && totalCount > 0" #title-meta>
+			<span class="cn-related-objects-widget__count">{{ totalCount }}</span>
+		</template>
+
 		<div class="cn-related-objects-widget">
 			<!-- Tabbed self-fetch mode -->
 			<template v-if="useTabs">
-				<div v-if="visibleGroups.length" class="cn-related-objects-widget__tabs" role="tablist">
+				<div v-if="tabStripVisible" class="cn-related-objects-widget__tabs" role="tablist">
 					<button v-for="group in visibleGroups"
 						:key="`tab-${group.key}`"
 						type="button"
@@ -69,9 +75,13 @@
 				<div v-if="loading && !visibleGroups.length" class="cn-related-objects-widget__empty">
 					{{ loadingLabel }}
 				</div>
-				<div v-else-if="hasLoaded && !visibleGroups.length" class="cn-related-objects-widget__empty">
-					{{ emptyLabel }}
-				</div>
+				<NcEmptyContent v-else-if="hasLoaded && !visibleGroups.length"
+					class="cn-related-objects-widget__empty-state"
+					:name="resolvedEmptyLabel">
+					<template #icon>
+						<CnIcon :name="emptyIconName" :size="48" />
+					</template>
+				</NcEmptyContent>
 			</template>
 
 			<!-- Legacy list mode (deprecated) -->
@@ -164,11 +174,71 @@
 				<div v-if="loading && isEmpty" class="cn-related-objects-widget__empty">
 					{{ loadingLabel }}
 				</div>
-				<div v-else-if="hasLoaded && isEmpty" class="cn-related-objects-widget__empty">
-					{{ emptyLabel }}
-				</div>
+				<NcEmptyContent v-else-if="hasLoaded && isEmpty"
+					class="cn-related-objects-widget__empty-state"
+					:name="resolvedEmptyLabel">
+					<template #icon>
+						<CnIcon :name="emptyIconName" :size="48" />
+					</template>
+				</NcEmptyContent>
 			</template>
 		</div>
+
+		<!-- Add footer — lets the user actually create related content
+		     (upload files, write notes) instead of only viewing it. Rendered
+		     only on the tabbed self-fetch path (uploads need register/schema/id). -->
+		<template v-if="addFooterVisible" #footer>
+			<div class="cn-related-objects-widget__footer">
+				<NcButton v-if="soleAddable && soleAddable.key === 'files'"
+					type="secondary"
+					:disabled="uploading"
+					@click="openFilePicker">
+					<template #icon>
+						<Plus :size="20" />
+					</template>
+					{{ uploading ? t('nextcloud-vue', 'Uploading…') : addLabelFor(soleAddable) }}
+				</NcButton>
+				<NcActions v-else
+					:menu-name="t('nextcloud-vue', 'Add')"
+					type="secondary"
+					:force-menu="true">
+					<template #icon>
+						<Plus :size="20" />
+					</template>
+					<NcActionButton v-if="groupAllowed('files')" :close-after-click="true" @click="openFilePicker">
+						<template #icon>
+							<Paperclip :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Upload file') }}
+					</NcActionButton>
+					<NcActionInput v-if="groupAllowed('notes')"
+						:value="noteDraft"
+						:label="t('nextcloud-vue', 'Add note')"
+						@update:value="noteDraft = $event"
+						@submit="onAddNote">
+						<template #icon>
+							<CnIcon name="CommentTextOutline" :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Add note') }}
+					</NcActionInput>
+					<NcActionButton v-for="group in emitAddableGroups"
+						:key="`add-${group.key}`"
+						:close-after-click="true"
+						@click="onAddGroup(group.key)">
+						<template #icon>
+							<CnIcon :name="group.icon" :size="20" />
+						</template>
+						{{ addLabelFor(group) }}
+					</NcActionButton>
+				</NcActions>
+				<span v-if="addError" class="cn-related-objects-widget__add-error">{{ addError }}</span>
+				<input ref="fileInput"
+					type="file"
+					multiple
+					class="cn-related-objects-widget__file-input"
+					@change="onFilesPicked">
+			</div>
+		</template>
 	</CnWidgetWrapper>
 </template>
 
@@ -176,6 +246,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { NcActions, NcActionButton, NcActionInput, NcButton, NcEmptyContent } from '@nextcloud/vue'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { buildHeaders } from '../../utils/headers.js'
@@ -184,6 +255,7 @@ import { useObjectStore } from '../../store/index.js'
 import FileTreeOutline from 'vue-material-design-icons/FileTreeOutline.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 
 /** Event-bus channel CnWidgetWrapper's Refresh action broadcasts on. */
 const REFRESH_BUS_CHANNEL = 'cn:widget:refresh'
@@ -255,6 +327,12 @@ export default {
 		FileTreeOutline,
 		Paperclip,
 		ChevronRight,
+		Plus,
+		NcActions,
+		NcActionButton,
+		NcActionInput,
+		NcButton,
+		NcEmptyContent,
 	},
 
 	props: {
@@ -401,10 +479,41 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Open in sidebar'),
 		},
-		/** Empty-state label shown when nothing is related. */
+		/**
+		 * Empty-state label shown when nothing is related. When left at its
+		 * default, a contextual label is derived instead: a widget scoped to a
+		 * single relation group (`includeGroups: ['files']`) shows
+		 * "No files yet", an unscoped one shows "No relations yet".
+		 */
 		emptyLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Nothing related yet'),
+		},
+		/**
+		 * Render the "Add" footer (upload file / add note / per-group add
+		 * events) on the tabbed self-fetch path. Disable for read-only hosts.
+		 */
+		showAddFooter: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Suppress the tab strip when only one group is visible. A lone tab
+		 * repeats the widget title verbatim ("Files" card carrying a "Files"
+		 * tab), so hide it and let the card header stand alone.
+		 */
+		hideSingleTabTitle: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Render a count pill beside the widget title totalling every visible
+		 * group. Keeps the count reachable once `hideSingleTabTitle` has taken
+		 * the sole tab — and its pill — away.
+		 */
+		showTotalCount: {
+			type: Boolean,
+			default: true,
 		},
 	},
 
@@ -429,23 +538,44 @@ export default {
 			activeKey: '',
 			/** Key of the inline-expanded row (`{group}-{id}`) for leaves with no owning-app page (e.g. notes). */
 			expandedKey: '',
+			/** Whether a footer file upload is in flight. */
+			uploading: false,
+			/** Last add-footer error message (upload / note create). */
+			addError: '',
+			/** Bound text of the footer's "Add note" input. */
+			noteDraft: '',
 		}
 	},
 
 	computed: {
+		/**
+		 * The object-data record, guaranteed to be a plain object. The
+		 * `object-data` prop is often `null` while the host's object is still
+		 * loading (CnDetailPage binds `:object-data="currentObject"`), so guard
+		 * it here — the resolver computeds below must never dereference null.
+		 *
+		 * @return {object} the object data, or an empty object.
+		 */
+		safeObjectData() {
+			return (this.objectData && typeof this.objectData === 'object') ? this.objectData : {}
+		},
+
 		/** Resolved object id — explicit prop wins, else from object data. */
 		resolvedId() {
-			return this.objectId || this.objectData.id || (this.objectData['@self'] && this.objectData['@self'].id) || ''
+			const self = this.safeObjectData['@self'] || {}
+			return this.objectId || this.safeObjectData.id || self.id || ''
 		},
 
 		/** Resolved register slug — explicit prop wins, else from `@self`. */
 		resolvedRegister() {
-			return this.register || (this.objectData['@self'] && this.objectData['@self'].register) || ''
+			const self = this.safeObjectData['@self'] || {}
+			return this.register || self.register || ''
 		},
 
 		/** Resolved schema slug — explicit prop wins, else from `@self`. */
 		resolvedSchema() {
-			return this.schema || (this.objectData['@self'] && this.objectData['@self'].schema) || ''
+			const self = this.safeObjectData['@self'] || {}
+			return this.schema || self.schema || ''
 		},
 
 		/** True when the tabbed self-fetch path is usable. */
@@ -463,6 +593,31 @@ export default {
 			return this.groups.filter((group) =>
 				(group.total > 0 || group.items.length > 0)
 				&& (allow.length === 0 || allow.includes(group.key)),
+			)
+		},
+
+		/**
+		 * Whether the tab strip renders. A single visible group makes the strip
+		 * a restatement of the card header, so `hideSingleTabTitle` drops it.
+		 *
+		 * @return {boolean} true when the tab strip should be shown.
+		 */
+		tabStripVisible() {
+			if (!this.visibleGroups.length) return false
+			return !(this.hideSingleTabTitle && this.visibleGroups.length === 1)
+		},
+
+		/**
+		 * Items across every visible group — rendered as a pill beside the
+		 * widget title. Falls back to the loaded item count when a group
+		 * reports no server-side total.
+		 *
+		 * @return {number} the summed total.
+		 */
+		totalCount() {
+			return this.visibleGroups.reduce(
+				(sum, group) => sum + (group.total || group.items.length || 0),
+				0,
 			)
 		},
 
@@ -490,6 +645,67 @@ export default {
 			if (this.showIntegrations && this.linkedApps.length) return false
 			return true
 		},
+
+		/** Single configured relation group key, or '' when unscoped/multi. */
+		singleSourceKey() {
+			const allow = Array.isArray(this.includeGroups) ? this.includeGroups : []
+			return allow.length === 1 ? allow[0] : ''
+		},
+
+		/**
+		 * Effective empty-state label: an explicit `emptyLabel` wins; otherwise
+		 * a single-source widget names its source ("No files yet") and an
+		 * unscoped/multi-source one shows the generic "No relations yet".
+		 */
+		resolvedEmptyLabel() {
+			const legacyDefault = t('nextcloud-vue', 'Nothing related yet')
+			if (this.emptyLabel && this.emptyLabel !== legacyDefault) return this.emptyLabel
+			if (this.singleSourceKey) {
+				return t('nextcloud-vue', 'No {source} yet', { source: this.groupLabelFor(this.singleSourceKey).toLowerCase() })
+			}
+			return t('nextcloud-vue', 'No relations yet')
+		},
+
+		/** Empty-state icon: the single source's own icon, else a generic link. */
+		emptyIconName() {
+			if (this.singleSourceKey) return this.groupIconFor(this.singleSourceKey)
+			return 'LinkVariant'
+		},
+
+		/** Whether the Add footer renders (prop + tabbed path with a real object). */
+		addFooterVisible() {
+			return this.showAddFooter && this.useTabs && this.addableGroups.length > 0
+		},
+
+		/**
+		 * Relation groups the footer can add to, honouring `includeGroups`
+		 * and the show* switches. Files and notes have built-in flows; other
+		 * groups surface an entry that emits `add` for the host to handle.
+		 */
+		addableGroups() {
+			const candidates = [
+				...(this.showObjects ? [{ key: 'objects', label: this.objectsLabel, icon: 'FileTreeOutline' }] : []),
+				...(this.showFiles ? [{ key: 'files', label: this.filesLabel, icon: 'Paperclip' }] : []),
+				...LEAF_GROUPS.map((def) => ({ key: def.key, label: this.leafLabel(def.key), icon: def.icon })),
+			]
+			const allow = Array.isArray(this.includeGroups) ? this.includeGroups : []
+			if (allow.length === 0) {
+				// Unscoped widgets keep the footer focused on the two built-in
+				// flows instead of listing every conceivable leaf group.
+				return candidates.filter((g) => ['files', 'notes'].includes(g.key))
+			}
+			return candidates.filter((g) => allow.includes(g.key))
+		},
+
+		/** The only addable group when exactly one is configured, else null. */
+		soleAddable() {
+			return this.addableGroups.length === 1 ? this.addableGroups[0] : null
+		},
+
+		/** Addable groups without a built-in flow — rendered as emit-`add` entries. */
+		emitAddableGroups() {
+			return this.addableGroups.filter((g) => !['files', 'notes'].includes(g.key))
+		},
 	},
 
 	watch: {
@@ -508,6 +724,140 @@ export default {
 	},
 
 	methods: {
+		t,
+
+		/**
+		 * Display label for a relation group key.
+		 * @param {string} key - Group key (`objects`, `files`, or a leaf key).
+		 * @return {string}
+		 */
+		groupLabelFor(key) {
+			if (key === 'objects') return this.objectsLabel
+			if (key === 'files') return this.filesLabel
+			return this.leafLabel(key)
+		},
+
+		/**
+		 * Icon name for a relation group key.
+		 * @param {string} key - Group key.
+		 * @return {string}
+		 */
+		groupIconFor(key) {
+			if (key === 'objects') return 'FileTreeOutline'
+			if (key === 'files') return 'Paperclip'
+			const def = LEAF_GROUPS.find((g) => g.key === key)
+			return (def && (this.integrationIcon(def.integrationId) || def.icon)) || 'LinkVariant'
+		},
+
+		/**
+		 * Whether a group is available to the Add footer.
+		 * @param {string} key - Group key.
+		 * @return {boolean}
+		 */
+		groupAllowed(key) {
+			return this.addableGroups.some((g) => g.key === key)
+		},
+
+		/**
+		 * "Add …" label for a group entry.
+		 * @param {{ key: string, label: string }} group - The addable group.
+		 * @return {string}
+		 */
+		addLabelFor(group) {
+			return t('nextcloud-vue', 'Add {source}', { source: String(group.label || group.key).toLowerCase() })
+		},
+
+		/** Open the hidden file input for the footer upload flow. */
+		openFilePicker() {
+			this.addError = ''
+			if (this.$refs.fileInput) this.$refs.fileInput.click()
+		},
+
+		/**
+		 * Upload the picked files to the object and refresh the groups.
+		 * @param {Event} event - The file input change event.
+		 * @return {Promise<void>}
+		 */
+		async onFilesPicked(event) {
+			const files = Array.from((event.target && event.target.files) || [])
+			event.target.value = ''
+			if (!files.length || this.uploading) return
+			this.uploading = true
+			this.addError = ''
+			try {
+				const formData = new FormData()
+				files.forEach((file) => formData.append('files[]', file))
+				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}/filesMultipart', {
+					register: this.resolvedRegister,
+					schema: this.resolvedSchema,
+					id: this.resolvedId,
+				})
+				// buildHeaders(null): let the browser set the multipart boundary.
+				const response = await fetch(url, { method: 'POST', headers: buildHeaders(null), body: formData })
+				if (!response.ok) throw new Error(`${response.status}`)
+				/**
+				 * @event file-uploaded Files were uploaded via the Add footer.
+				 * @type {File[]}
+				 */
+				this.$emit('file-uploaded', files)
+				await this.loadAll()
+			} catch (e) {
+				this.addError = t('nextcloud-vue', 'Upload failed')
+			} finally {
+				this.uploading = false
+			}
+		},
+
+		/**
+		 * Create a note on the object from the footer's note input.
+		 *
+		 * Reads `noteDraft` rather than the submitted form: NcActionInput's
+		 * input carries no `name`, so a FormData lookup always comes back null
+		 * and the note is silently dropped.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async onAddNote() {
+			const message = String(this.noteDraft || '').trim()
+			if (!message) return
+			this.addError = ''
+			try {
+				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}/notes', {
+					register: this.resolvedRegister,
+					schema: this.resolvedSchema,
+					id: this.resolvedId,
+				})
+				const response = await fetch(url, {
+					method: 'POST',
+					headers: buildHeaders(),
+					body: JSON.stringify({ message }),
+				})
+				if (!response.ok) throw new Error(`${response.status}`)
+				this.noteDraft = ''
+				/**
+				 * @event note-added A note was created via the Add footer.
+				 * @type {string}
+				 */
+				this.$emit('note-added', message)
+				await this.loadAll()
+			} catch (e) {
+				this.addError = t('nextcloud-vue', 'Could not add note')
+			}
+		},
+
+		/**
+		 * Emit the add request for groups without a built-in flow.
+		 * @param {string} key - The group key (objects, mails, events, …).
+		 */
+		onAddGroup(key) {
+			/**
+			 * @event add An Add-footer entry without a built-in flow was
+			 * activated; the host routes it (e.g. open a link-object dialog).
+			 * @type {string}
+			 */
+			this.$emit('add', key)
+		},
+
 		/**
 		 * Emit the related-object selection for the host to route.
 		 * @param {object} raw - The related object record.
@@ -719,7 +1069,16 @@ export default {
 		toObjectRow(raw) {
 			const self = raw['@self'] || {}
 			const id = raw.id || self.id || self.uuid || ''
-			const label = raw.title || raw.name || self.title || self.name || self.schema || String(id)
+			const isUuid = (v) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v.trim())
+			// Pick a human label. Skip `@self.name` when OpenRegister has fallen
+			// back to the bare uuid (schemas with no configured name field), and
+			// cover common display properties across schemas — including Dutch
+			// ones (onderwerp, omschrijving, naam, titel) — before the schema/id.
+			const label = [
+				raw.title, raw.name, raw.displayName, raw.label,
+				raw.onderwerp, raw.subject, raw.omschrijving, raw.naam, raw.titel,
+				self.title, self.name, raw.summary, raw.description,
+			].find((v) => typeof v === 'string' && v.trim() && !isUuid(v)) || self.schema || String(id)
 			const meta = self.schema || raw.schema || ''
 			return { id, label, meta: typeof meta === 'string' ? meta : '', raw }
 		},
@@ -1125,5 +1484,29 @@ export default {
 	padding: calc(3 * var(--default-grid-baseline, 4px)) calc(2 * var(--default-grid-baseline, 4px));
 	color: var(--color-text-maxcontrast);
 	font-style: italic;
+}
+
+.cn-related-objects-widget__empty-state {
+	/* NcEmptyContent defaults to filling tall parents; inside a widget cell a
+	   compact block reads better. */
+	padding: calc(4 * var(--default-grid-baseline, 4px)) 0;
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-related-objects-widget__footer {
+	display: flex;
+	align-items: center;
+	gap: calc(2 * var(--default-grid-baseline, 4px));
+	padding: calc(2 * var(--default-grid-baseline, 4px));
+}
+
+.cn-related-objects-widget__add-error {
+	color: var(--color-error);
+	font-size: 0.85em;
+}
+
+.cn-related-objects-widget__file-input {
+	display: none;
 }
 </style>

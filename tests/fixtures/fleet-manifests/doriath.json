@@ -1,0 +1,371 @@
+{
+	"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+	"version": "1.0.0",
+	"dependencies": [],
+	"menu": [
+		{
+			"id": "Dashboard",
+			"label": "Dashboard",
+			"icon": "icon-category-dashboard",
+			"route": "Dashboard",
+			"order": 10
+		},
+		{
+			"id": "Vault",
+			"label": "Vault",
+			"icon": "icon-password",
+			"route": "SecretList",
+			"order": 20
+		},
+		{
+			"id": "ApplicationsMenu",
+			"label": "Applications",
+			"icon": "icon-category-integration",
+			"route": "ApplicationRegister",
+			"order": 30
+		},
+		{
+			"id": "Documentation",
+			"label": "Documentation",
+			"icon": "icon-info",
+			"href": "https://doriath.conduction.nl",
+			"section": "footer",
+			"order": 80
+		},
+		{
+			"id": "FeaturesRoadmapMenu",
+			"label": "Features & roadmap",
+			"icon": "icon-toggle",
+			"route": "FeaturesRoadmap",
+			"section": "footer",
+			"order": 85
+		},
+		{
+			"id": "MyActivityMenu",
+			"label": "My activity",
+			"icon": "icon-history",
+			"route": "PersonalActivity",
+			"section": "footer",
+			"order": 86
+		},
+		{
+			"id": "PasswordHealthMenu",
+			"label": "Password health",
+			"icon": "icon-checkmark",
+			"route": "PasswordHealth",
+			"section": "footer",
+			"order": 87
+		},
+		{
+			"id": "LockVault",
+			"label": "Lock vault",
+			"icon": "icon-password",
+			"route": "Lock",
+			"section": "settings",
+			"order": 90
+		},
+		{
+			"id": "UserSettings",
+			"label": "Settings",
+			"icon": "icon-settings",
+			"action": "user-settings",
+			"section": "settings",
+			"order": 99
+		}
+	],
+	"pages": [
+		{
+			"id": "Dashboard",
+			"route": "/",
+			"type": "dashboard",
+			"title": "Dashboard",
+			"config": {
+				"documentationUrl": "https://doriath.conduction.nl"
+			},
+			"widgets": [
+				{
+					"id": "migration-in-progress-banner",
+					"widgetKey": "banner",
+					"slot": "body",
+					"gridX": 0,
+					"gridY": 0,
+					"gridWidth": 12,
+					"gridHeight": 1,
+					"_note": "ADR-049 dissolution of the doriath-migration-banner custom widget. The two-state warning/error variant mapping cannot live in ONE banner config (variant is static), so two banner entries carry complementary visibleWhen predicates against GET /api/v1/migrations/status. The legacy widget's click emitted a 'navigate' event that had no consumer (no 'migration' route exists; the migration UI lives in user settings), so no route is configured.",
+					"props": {
+						"variant": "warning",
+						"text": "Compromise recovery in progress — open the migration screen (Settings → Security) for live progress.",
+						"visibleWhen": {
+							"endpoint": "/apps/doriath/api/v1/migrations/status",
+							"field": "status",
+							"op": "eq",
+							"value": "in_progress"
+						}
+					}
+				},
+				{
+					"id": "migration-errors-banner",
+					"widgetKey": "banner",
+					"slot": "body",
+					"gridX": 0,
+					"gridY": 1,
+					"gridWidth": 12,
+					"gridHeight": 1,
+					"_note": "Complement of migration-in-progress-banner (error state). NOTE: /api/v1/migrations/status currently only ever returns 'in_progress' or 'none' (MigrationService::getInProgressMigration filters status='in_progress'), so this state is unreachable server-side today — exactly like the legacy widget, whose completed_with_errors branch read summary.migration_status, a key DashboardService::fetchSummary never emits. Fail-safe hidden until the endpoint grows the state.",
+					"props": {
+						"variant": "error",
+						"text": "Compromise recovery completed with errors — open the migration screen (Settings → Security) for details.",
+						"visibleWhen": {
+							"endpoint": "/apps/doriath/api/v1/migrations/status",
+							"field": "status",
+							"op": "eq",
+							"value": "completed_with_errors"
+						}
+					}
+				},
+				{
+					"id": "pending-apps-banner",
+					"widgetKey": "banner",
+					"slot": "body",
+					"gridX": 0,
+					"gridY": 2,
+					"gridWidth": 12,
+					"gridHeight": 1,
+					"_note": "ADR-049 dissolution of the doriath-pending-apps custom widget (admin-only, hidden at zero). Expressed as a banner because hide-when-zero against an app endpoint has no stat-widget equivalent: hideWhenZero exists only on stats-block entries[], which are OR-source-only (register+schema required). visibleWhen pending_apps_count > 0 reproduces both gates in one predicate — non-admins get null (hidden) and admins with an empty queue get 0 (hidden). Routes to ApplicationRegister (the approval queue itself lives in admin settings, which is not a router route).",
+					"props": {
+						"variant": "warning",
+						"text": "Application(s) awaiting approval — open the applications page.",
+						"visibleWhen": {
+							"endpoint": "/apps/doriath/api/dashboard/summary",
+							"field": "pending_apps_count",
+							"op": "gt",
+							"value": 0
+						},
+						"route": "ApplicationRegister"
+					}
+				},
+				{
+					"id": "kpi-total-secrets",
+					"widgetKey": "stat",
+					"slot": "body",
+					"gridX": 0,
+					"gridY": 3,
+					"gridWidth": 4,
+					"gridHeight": 2,
+					"_note": "ADR-049 dissolution of the doriath-kpi-card custom widget — endpoint-bound KPI tiles against GET /api/dashboard/summary. Bound to the payload keys DashboardService::fetchSummary actually emits (total_secrets / shared_with_me_count / folders_count); the legacy view read shared_secrets / folder_count / compromised_count, which the backend never sends. The 'Possibly compromised' card is dropped: compromised_count does not exist in the summary payload, so it was a permanently-zero dead binding.",
+					"props": {
+						"content": {
+							"label": "Total secrets",
+							"icon": "ClipboardList",
+							"valueColor": "var(--color-primary-element)",
+							"endpointSource": {
+								"url": "/apps/doriath/api/dashboard/summary"
+							},
+							"valueField": "total_secrets"
+						}
+					}
+				},
+				{
+					"id": "kpi-shared-with-me",
+					"widgetKey": "stat",
+					"slot": "body",
+					"gridX": 4,
+					"gridY": 3,
+					"gridWidth": 4,
+					"gridHeight": 2,
+					"props": {
+						"content": {
+							"label": "Shared with you",
+							"icon": "AccountGroup",
+							"endpointSource": {
+								"url": "/apps/doriath/api/dashboard/summary"
+							},
+							"valueField": "shared_with_me_count"
+						}
+					}
+				},
+				{
+					"id": "kpi-folders",
+					"widgetKey": "stat",
+					"slot": "body",
+					"gridX": 8,
+					"gridY": 3,
+					"gridWidth": 4,
+					"gridHeight": 2,
+					"props": {
+						"content": {
+							"label": "Folders",
+							"icon": "FolderOutline",
+							"endpointSource": {
+								"url": "/apps/doriath/api/dashboard/summary"
+							},
+							"valueField": "folders_count"
+						}
+					}
+				},
+				{
+					"id": "recent-activity-text",
+					"widgetKey": "text",
+					"slot": "body",
+					"gridX": 0,
+					"gridY": 5,
+					"gridWidth": 6,
+					"gridHeight": 4,
+					"_note": "ADR-049 dissolution of the doriath-recent-activity static placeholder widget. Replace with a real feed widget once an underlying activity schema lands.",
+					"props": {
+						"content": {
+							"contentMode": "markdown",
+							"text": "**Recent activity**\n\n- Placeholder: user opened a record\n- Placeholder: status changed to Review\n- Placeholder: comment added"
+						}
+					}
+				},
+				{
+					"id": "quick-actions-text",
+					"widgetKey": "text",
+					"slot": "body",
+					"gridX": 6,
+					"gridY": 5,
+					"gridWidth": 6,
+					"gridHeight": 4,
+					"_note": "ADR-049 dissolution of the doriath-quick-actions static placeholder widget. Replace with real action buttons once the create/list deep links exist.",
+					"props": {
+						"content": {
+							"contentMode": "markdown",
+							"text": "**Quick actions**\n\nWire buttons here to create records, open lists, or deep links. Use the sidebar for Settings and Documentation."
+						}
+					}
+				}
+			]
+		},
+		{
+			"id": "FeaturesRoadmap",
+			"route": "/features-roadmap",
+			"type": "roadmap",
+			"title": "Features & roadmap",
+			"config": {
+				"documentationUrl": "https://doriath.conduction.nl"
+			}
+		},
+		{
+			"id": "PersonalActivity",
+			"route": "/my-activity",
+			"type": "custom",
+			"title": "My activity",
+			"component": "PersonalActivityView",
+			"_note": "The session user's own audit-trail entries (add-secret-audit-trail §5.3). type:\"custom\" — a simple actor-scoped feed view, no built-in page type models it."
+		},
+		{
+			"id": "PasswordHealth",
+			"route": "/password-health",
+			"type": "custom",
+			"title": "Password health",
+			"component": "HealthReportView",
+			"_note": "Client-side vault health report (password-health). type:\"custom\" — the analysis runs in-browser over the unlocked vault; no built-in page type models a memory-only analysis surface."
+		},
+		{
+			"id": "Lock",
+			"route": "/lock",
+			"type": "custom",
+			"title": "Unlock Doriath",
+			"component": "LockScreen",
+			"_note": "Master-password setup + unlock flow. Cannot use a built-in page type because the lock screen owns its own full-page layout (no app nav / header / sidebar) and gates router navigation via App.vue's lock-redirect watcher. Stays type:\"custom\" until the lib gains a dedicated unlock-page primitive."
+		},
+		{
+			"id": "SecretList",
+			"route": "/secrets",
+			"type": "custom",
+			"title": "Vault",
+			"component": "SecretList",
+			"_note": "Main vault: folder sidebar + searchable/sortable/paginated secret list. type:\"custom\" because it owns a bespoke two-pane layout and on-demand client-side decryption that no built-in page type models yet."
+		},
+		{
+			"id": "SecretListFolder",
+			"route": "/folders/:folderId",
+			"type": "custom",
+			"title": "Vault",
+			"component": "SecretList",
+			"_note": "Same vault view filtered to a folder (folderId route param)."
+		},
+		{
+			"id": "SecretDetail",
+			"route": "/secrets/:id",
+			"type": "custom",
+			"title": "Secret",
+			"component": "SecretDetail",
+			"_note": "Secret detail with type-specific fields, decrypted client-side; show/hide toggle keeps the key masked until revealed."
+		},
+		{
+			"id": "ApplicationRegister",
+			"route": "/applications",
+			"type": "custom",
+			"title": "Applications",
+			"component": "ApplicationRegisterView",
+			"_note": "Developer-facing app registration page. Owner sees their own apps + can register new ones; admin queue lives on AdminApplicationsView under settings."
+		},
+		{
+			"id": "ApplicationDetail",
+			"route": "/applications/:id",
+			"type": "custom",
+			"title": "Application",
+			"component": "ApplicationDetail",
+			"_note": "Per-application detail page. Shows metadata, EncryptionSuite info, application-attributed secrets list, and the write-secret-for-app dialog. Owner sees own + active; admin sees all (server enforces)."
+		},
+		{
+			"id": "SecretRequestFill",
+			"route": "/share/request/:token",
+			"type": "custom",
+			"title": "Fill in secret",
+			"component": "SecretRequestFill",
+			"_note": "Public fill-in page (no auth). The lock-screen redirect guard in App.vue exempts this route by name — see PUBLIC_ROUTE_NAMES — so an external recipient can complete the flow without a Nextcloud account; the controller runs as #[PublicPage]."
+		},
+		{
+			"id": "LinkShareAccess",
+			"route": "/share/link/:token",
+			"type": "custom",
+			"title": "Shared secret",
+			"component": "LinkShareAccess",
+			"_note": "Public link-share access page (no auth). The lock-screen redirect guard in App.vue exempts this route by name — see PUBLIC_ROUTE_NAMES — so an external recipient can complete the password-protected flow without a Nextcloud account; the LinkShareAccessController endpoints run as #[PublicPage]. Implements the two-phase recipient protocol: Phase 1 fetches the ciphertext + Argon2id salt; Phase 2 confirms a successful client-side decrypt so the server can increment the usage count and auto-delete on cap."
+		}
+	],
+	"observability": {
+		"_note": "Declarative observability via the OpenRegister AppHost engine (ADR-040 / ADR-006). These descriptors reproduce the output of the deleted hand-written HealthController + MetricsController. /api/health and /api/metrics are aliased to AppHost\\Controller\\GenericHealthController / GenericMetricsController by Bootstrap::register, so the engine reads this block at request time. Auth-posture deltas (intentional, ADR-006): health is now PUBLIC (was authenticated) and metrics are now ADMIN-ONLY (was any authenticated user). No secret material is exposed — health carries only status/app/version/checks; metrics carry only the aggregate active-suite COUNT, never any suite identifier, key material, or owner. The suites_total source is now a SQL COUNT(*) over an allowlisted table (was a PHP count() over a fetch-all). Implicit doriath_info and doriath_up metrics are added by the engine.",
+		"health": {
+			"statusCodePolicy": "adr006",
+			"checks": [
+				{
+					"id": "database",
+					"type": "database",
+					"severity": "critical"
+				},
+				{
+					"id": "filesystem",
+					"type": "filesystem",
+					"severity": "degraded"
+				}
+			]
+		},
+		"metrics": [
+			{
+				"name": "suites_total",
+				"type": "gauge",
+				"help": "Total number of active encryption suites",
+				"source": {
+					"kind": "tableCount",
+					"table": "doriath_enc_suites",
+					"filter": {
+						"status": {
+							"eq": "active"
+						}
+					}
+				}
+			}
+		]
+	},
+	"deepLinks": [
+		{
+			"registerSlug": "doriath",
+			"schemaSlug": "example",
+			"urlTemplate": "/apps/doriath/#/examples/{uuid}"
+		}
+	]
+}

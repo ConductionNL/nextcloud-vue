@@ -114,6 +114,21 @@ describe('CnOpenBuildEditButton', () => {
 		expect(btn(wrapper, 'Add widget')).not.toBeUndefined()
 	})
 
+	it('hides Add widget on custom pages — custom is the bespoke-component escape hatch, not a widget canvas', () => {
+		// Blank, component-backed, and (defensively) widget-carrying custom pages
+		// all hide "Add widget": custom pages are not widget canvases. Widget
+		// canvases are dashboard pages.
+		const blank = mountButton({ editor: makeEditor(true, [{ id: 'blank', type: 'custom' }]), pageId: 'blank' })
+		expect(blank.vm.pageSupportsWidgets).toBe(false)
+		expect(btn(blank, 'Add widget')).toBeUndefined()
+
+		const withComp = mountButton({ editor: makeEditor(true, [{ id: 'c', type: 'custom', component: 'MyPage' }]), pageId: 'c' })
+		expect(btn(withComp, 'Add widget')).toBeUndefined()
+
+		const withWidget = mountButton({ editor: makeEditor(true, [{ id: 'w', type: 'custom', widgets: [{ id: 'x', slot: 'body' }] }]), pageId: 'w' })
+		expect(btn(withWidget, 'Add widget')).toBeUndefined()
+	})
+
 	it('ejects the default Data + Related grid into a detail page config on entering edit mode', () => {
 		const page = { id: 'det', type: 'detail', config: { register: 'r', schema: 'dogs' } }
 		const wrapper = mountButton({ editor: makeEditor(false, [page]), pageId: 'det' })

@@ -1,45 +1,64 @@
 # CnRelatedObjectsWidget
 
-Everything linked to an object, in one widget. Aggregates what an object relates to — through OpenRegister relations and leaf integrations — into grouped, clickable sections:
+Everything linked to an object, in one widget. It has two rendering modes that share the [`CnWidgetWrapper`](./cn-widget-wrapper.md) chrome.
 
-- **Objects** — outgoing (`uses`), incoming (`used`) and contractual (`contracts`) relations, resolved from the object store.
-- **Files** — files attached to the object.
-- **Linked apps** — entry points into the leaf integrations that carry related content (mails, calendar events, …) for this object.
+## Tabbed self-fetch mode (default)
 
-It is a **Widget** (not a Card): it renders on the shared [`CnWidgetWrapper`](./cn-widget-wrapper.md) chrome, so it carries the standard overflow Actions menu (Refresh / Documentation / Request a feature). Refresh refetches every section.
+With `layout="tabs"` (the default), the widget resolves the object's `register` / `schema` / `id` — from the `register` / `schema` props, falling back to `object-data['@self']` — and fetches its relations **directly from OpenRegister**, with no object-store wiring required:
 
-The detail-page auto-body renders this widget beneath [`CnObjectDataWidget`](./cn-object-data-widget.md) automatically (manifest `type: "detail"` pages), and it is registered as the `related` built-in widget key for manifest grids.
+- **`/relations`** — the aggregated leaf groups: **Mails**, **Meetings**, **Contacts**, **Notes**, **Tasks**, **Deck**.
+- **`/uses` + `/used`** — merged (and deduped) into a single **Objects** group; **`/contracts`** is folded in only when `show-contracts` is set.
+- **`/files`** — the **Files** group.
+
+It renders **one tab per non-empty group**, each with a count badge equal to the group's `total`, and shows that group's items inline. Clicking an item **deep-links to its owning Nextcloud app**: files open via the canonical `/f/{fileid}` permalink (Files + Viewer), records carrying a `url`/`link`/`accessUrl` open that, and known leaf types (contacts, deck) build their app route; related **objects** emit `@select-object` for the host to route to their detail page. When no link can be resolved, `@select-related` is emitted so the host can route it. When every group is empty, no tab renders and the empty state shows.
+
+> Earlier builds offered an "open in sidebar" action per tab. That was removed — it only worked when the host mounted `CnObjectSidebar`, and silently did nothing otherwise. Deep-linking to the owning app works regardless of host wiring. (`open-in-sidebar-label` is kept as a deprecated no-op prop.)
+
+## Legacy list mode (deprecated)
+
+With `layout="list"` — or when no `register`/`schema` can be resolved — the widget falls back to the original flat sections driven by the object store's `fetchUses` / `fetchUsed` / `fetchContracts` / `fetchFiles` actions, plus the static leaf-integration **Linked apps** list. This path logs a one-time deprecation warning. Prefer the tabbed mode.
+
+It is a **Widget** (not a Card): it carries the standard overflow Actions menu (Refresh / Documentation / Request a feature); Refresh refetches every group. The detail-page auto-body renders this widget beneath [`CnObjectDataWidget`](./cn-object-data-widget.md) automatically (manifest `type: "detail"` pages), and it is registered as the `related` built-in widget key for manifest grids.
 
 ## Usage
 
 ```vue
+<!-- Tabbed self-fetch (default): just pass the loaded object -->
 <CnRelatedObjectsWidget
-  object-type="lead"
-  :object-id="lead.id"
   :object-data="lead"
-  :store="objectStore"
   @select-object="openObject"
   @select-file="openFile"
+  @select-related="openLeafItem"
   @open-integration="openSidebarTab" />
+
+<!-- Or pass register/schema/id explicitly to override @self -->
+<CnRelatedObjectsWidget
+  register="crm"
+  schema="lead"
+  :object-id="lead.id"
+  :show-contracts="true" />
 ```
 
-Relation and file sections only render when the store exposes the matching actions (`relationsPlugin` / `filesPlugin`). Collections the store can't resolve generically (e.g. mails surfaced by a specific leaf) can be passed in via `extra-sections`.
+In the deprecated list mode, relation and file sections only render when the store exposes the matching actions (`relationsPlugin` / `filesPlugin`). Collections the store can't resolve generically can be passed in via `extra-sections`.
 
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `title` | `String` | `'Related'` | Widget title shown in the header |
-| `object-type` | `String` | `''` | Registered object type slug (used for store fetches) |
+| `object-type` | `String` | `''` | Registered object type slug (used for legacy store fetches) |
 | `object-id` | `String\|Number` | `''` | The object's id |
-| `object-data` | `Object` | `{}` | The object data — used to derive id/type when not passed explicitly |
-| `schema` | `String` | `''` | OpenRegister schema slug. When omitted, derived from `objectData['@self'].schema`. Required (with `register`) for the tabbed self-fetch path. |
-| `layout` | `String` | `'tabs'` | Render mode. `'tabs'` (default) self-fetches from OpenRegister and renders a tab per non-empty group. `'list'` forces the legacy store-action list path. |
-| `store` | `Object` | `null` | Object store instance. When omitted, the widget tries Pinia auto-detection. |
+| `object-data` | `Object` | `{}` | The object data — used to derive id/`register`/`schema` (from `@self`) when not passed explicitly |
+| `register` | `String` | `''` | OpenRegister register slug. When omitted, derived from `object-data['@self'].register`. Required (with `schema`) for the tabbed self-fetch path |
+| `schema` | `String` | `''` | OpenRegister schema slug. When omitted, derived from `object-data['@self'].schema`. Required (with `register`) for the tabbed self-fetch path |
+| `layout` | `String` | `'tabs'` | Render mode: `'tabs'` (self-fetch, tab per non-empty group) or `'list'` (deprecated store-action list) |
+| `store` | `Object` | `null` | Object store instance (legacy list path only). When omitted, the widget tries Pinia auto-detection. |
 | `show-objects` | `Boolean` | `true` | Show the related-objects (uses/used/contracts) section |
 | `show-files` | `Boolean` | `true` | Show the files section |
 | `show-contracts` | `Boolean` | `false` | Include `/contracts` relations in the Objects group (opt-in). |
 | `show-integrations` | `Boolean` | `true` | Show the leaf-integration entry-point section |
+| `hide-single-tab-title` | `Boolean` | `true` | Suppress the tab strip when only one group is visible. A lone tab repeats the widget title verbatim (a "Files" card carrying a "Files" tab), so hide it and let the card header stand alone. |
+| `show-total-count` | `Boolean` | `false` | Render a count pill beside the widget title totalling every visible group. Keeps the count reachable once `hide-single-tab-title` has taken the sole tab — and its pill — away. |
 | `include-groups` | `Array` | `[]` | Whitelist of relation-group keys to display (tabbed path). When non-empty, ONLY these render (e.g. `['objects', 'files', 'mails']`); empty shows every non-empty group. Lets a detail page carry several Related widgets scoped to different relations. Keys: `objects`, `files`, and the leaf groups (mails, events, contacts, notes, tasks, deck, talk, forms, maps, polls, …). Configurable in-app via the widget's cog. |
 | `exclude-integrations` | `Array` | `[]` | Integration ids to omit from "Linked apps" (on top of the always-omitted core tabs) |
 | `extra-sections` | `Array` | `[]` | Extra related sections the store can't resolve generically. Each: `{ key, label, icon?, items: [] }` |
@@ -47,15 +66,20 @@ Relation and file sections only render when the store exposes the matching actio
 | `widget-id` | `String` | `''` | Stable id forwarded to the widget chrome (falls back to `object-type`) |
 | `objects-label` | `String` | `'Objects'` | Section heading for related objects |
 | `files-label` | `String` | `'Files'` | Section heading for files |
-| `linked-apps-label` | `String` | `'Linked apps'` | Section heading for leaf-integration entry points |
-| `open-in-sidebar-label` | `String` | `'Open in sidebar'` | Deprecated no-op label kept for backward compatibility. No longer rendered in tabbed mode. |
-| `empty-label` | `String` | `'Nothing related yet'` | Empty-state label shown when nothing is related |
+| `linked-apps-label` | `String` | `'Linked apps'` | Section heading for leaf-integration entry points (legacy list path) |
+| `open-in-sidebar-label` | `String` | `'Open in sidebar'` | **Deprecated, no-op.** The per-tab open-in-sidebar affordance was removed in favour of deep-linking; kept for backward compatibility. No longer rendered in tabbed mode |
+| `empty-label` | `String` | `'Nothing related yet'` | Empty-state label. When left at its default a contextual label is derived instead: a widget scoped to a single group (`include-groups: ['files']`) shows "No files yet", an unscoped/multi-source one shows "No relations yet". The state renders as an `NcEmptyContent` with the group's icon (generic link icon when unscoped) |
+| `show-add-footer` | `Boolean` | `true` | Render the "Add" footer on the tabbed self-fetch path: upload file (built-in, posts to the object's `filesMultipart` endpoint), add note (built-in, posts to the object's `notes` endpoint), and one emit-`add` entry per other configured group. Disable for read-only hosts |
 
 ## Events
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `@select-object` | related object record | A related-object row was clicked |
-| `@select-file` | file record | A file row was clicked |
-| `@select-extra` | `{ section, item }` | A row in a host-supplied `extra-sections` group was clicked |
-| `@open-integration` | integration id (string) | A "Linked apps" row was clicked — the host opens that leaf (the detail-page auto-body deep-links the sidebar tab) |
+| `@select-object` | related object record | An Objects row was clicked |
+| `@select-file` | file record | A Files row was clicked |
+| `@select-related` | `{ group, item }` | A leaf-group row (mails, events, contacts, …) was clicked in tabbed mode and no owning-app deep link could be resolved |
+| `@select-extra` | `{ section, item }` | A row in a host-supplied `extra-sections` group was clicked (legacy list path) |
+| `@open-integration` | integration id (string) | A "Linked apps" row or a tab's "open in sidebar" affordance was activated — the host opens that leaf (the detail-page auto-body deep-links the sidebar tab) |
+| `@add` | group key (string) | An Add-footer entry without a built-in flow was activated (e.g. `objects`, `mails`); the host routes it (open a link-object dialog, compose a mail, …) |
+| `@file-uploaded` | `File[]` | Files were uploaded to the object via the Add footer's built-in upload flow |
+| `@note-added` | note message (string) | A note was created on the object via the Add footer's built-in note flow |

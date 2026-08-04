@@ -11,10 +11,61 @@ CnAppRoot is the full-shell convenience for the JSON manifest renderer. Apps tha
 | Phase | When | Default rendering | Override slot |
 |-------|------|-------------------|---------------|
 | `loading` | While `isLoading` is `true` | `<CnAppLoading />` | `#loading` |
-| `dependency-missing` | After loading; any entry in `manifest.dependencies` is not installed/enabled | `<CnDependencyMissing />` | `#dependency-missing` |
-| `shell` | Manifest loaded + dependencies satisfied | `<CnAppNav />` + default slot content | `#menu`, default slot, `#header-actions`, `#sidebar`, `#footer` |
+| `dependency-missing` | After loading; an unresolved **HARD** dependency in `manifest.dependencies` | `<CnDependencyMissing />` | `#dependency-missing` |
+| `setup` | HARD dependencies satisfied; a **required** `manifest.setup` step is unmet | `<CnSetupWizard :cancellable="false" />` | `#setup` |
+| `shell` | Manifest loaded + all HARD dependencies satisfied + no required setup step unmet | `<CnAppNav />` + default slot content | `#menu`, default slot, `#header-actions`, `#sidebar`, `#footer` |
 
 Dependency status is resolved by [`useAppStatus`](../utilities/composables/use-app-status.md) — one call per id in `manifest.dependencies`, cached for the page lifetime.
+
+## HARD vs SOFT dependencies
+
+Each entry in `manifest.dependencies` is either a **string** (a HARD dependency — the app cannot run without it) or an **object** `{ id, required?, name? }` where `required: false` marks a **SOFT** (optional) integration. `required` defaults to `true`, so existing string-only manifests behave exactly as before.
+
+```jsonc
+"dependencies": [
+  "openregister",                              // HARD: blocks the shell when missing
+  { "id": "deck", "required": false, "name": "Deck" }  // SOFT: dismissible in-shell notice
+]
+```
+
+| | Unresolved behaviour |
+|---|---|
+| **HARD** (string, or `required` not `false`) | Blocks the shell — phase `dependency-missing`, `<CnDependencyMissing>` full-page screen. |
+| **SOFT** (`required: false`) | Never blocks. Renders a dismissible `NcNoteCard` banner inside the shell carrying the same install/enable action. Dismissal persists per app+dependency under `localStorage` key `cn-soft-dep-dismissed:{appId}:{depId}`. |
+
+### In-place install / enable
+
+Both dependency surfaces (`CnDependencyMissing` and the `or-missing` guard) and every soft-dependency banner render an admin-aware action driven by [`useAppInstaller`](../utilities/composables/use-app-installer.md): an admin clicks **Install and enable** (not installed) or **Enable** (installed but disabled) and nc-vue downloads, installs and enables the app via Nextcloud's install endpoint — the NC34+ bundled-`appstore` OCS API, falling back to the legacy `settings/apps/enable` route on ≤NC33 — then reloads. Non-admins — who cannot hit that admin-only endpoint — see "ask your administrator to enable {name}" copy instead of a dead-end link. On failure the error shows inline and the original store link stays as a fallback.
+
+When no server-side `dependency_statuses` initial-state is present and the JS heuristic cannot distinguish "not installed" from "installed but disabled", the action defaults to the **Install and enable** label — a genuinely-missing app must never be mislabelled **Enable**.
+
+The `or-missing` guard (the capabilities check driven by the `requiresApps` prop) now renders English default copy for the `app-availability.title` / `app-availability.description` / `app-availability.action` keys when the `translate` prop leaves them unchanged, so the raw keys never render.
+
+## First-time setup (ADR-042)
+
+When the manifest declares a `setup` block, CnAppRoot resolves its status through [`useSetupStatus`](../utilities/composables/use-setup-status.md) and surfaces [`CnSetupWizard`](./cn-setup-wizard.md) on one of two paths. No new props — both are driven entirely by the manifest and the server's `GET /apps/{appId}/api/setup/status` response.
+
+| Path | Condition | Behaviour |
+|------|-----------|-----------|
+| **Gating** | A **required** step is unmet | The whole shell is replaced (`phase === 'setup'`). The wizard is mounted with `cancellable="false"` — no Cancel button, no ESC, no backdrop close — because there is nothing useful to fall back to. Override with the `#setup` slot. |
+| **Non-gating** | Every required step is met, but at least one **actionable** optional step isn't | The shell renders normally and the wizard auto-opens **once** as a dismissible overlay (`cancellable="true"`). |
+
+Both instances receive `completedStepIds`, so a wizard mounted mid-way resumes at the first genuinely unmet step rather than re-asking what a previous session already persisted. A fresh setup (nothing done yet) always starts at step one so a leading `info` / welcome step is seen.
+
+"Actionable" excludes `info` and `summary` steps. The server has nothing to persist for those, so they report `done: false` forever; counting them would auto-prompt every user on every version, including fully-configured ones.
+
+### Dismissal
+
+The non-gating overlay records dismissal in `localStorage` under:
+
+```
+cn-setup-wizard-dismissed:{appId}:{manifest.setup.version}
+```
+
+- Both **Cancel** and **Finish** write the flag. Finishing counts as dismissal because `Next` is allowed to skip optional steps — a user can legitimately reach Finish with an optional step still un-done, and the server will keep reporting it unmet. Without this, completing the wizard would re-prompt on every page load while cancelling bought permanent peace.
+- Because the key includes `setup.version`, bumping it in the manifest (e.g. after adding a new optional step) re-prompts everyone exactly once.
+- Storage failures (private mode, disabled storage) are non-fatal: dismissal falls back to a session-only flag.
+- On `@complete` the overlay stays mounted so `CnSetupWizard`'s result phase ("Setup complete.") is visible; its **Close** button drives the unmount.
 
 ## Usage
 
@@ -64,19 +115,25 @@ export default {
 |------|------|---------|-------------|
 | `manifest` | `Object` | — (required) | Reactive manifest. The renderer reads `manifest.dependencies` and `manifest.menu`; descendants `inject('cnManifest')`. |
 | `appId` | `String` | — (required) | Nextcloud app id. Forwarded to `NcContent` as `app-name` and to `CnDependencyMissing`. |
+| `appDisplayName` (`app-display-name`) | `String` | `''` | Human-readable name shown in the Nextcloud top bar. When set it overrides the technical `appId` so a virtual app shows its own name (e.g. "Pet Store") instead of the host app id. |
 | `persistManifestDelta` | `Function` | `null` | Optional persistence hook for in-app editing (ADR-041). Called with the minimal manifest delta when the user saves an edit. When omitted, Save updates the rendered manifest in memory but persists nothing — wire it to the OpenBuild app-override endpoint to make edits durable. When OpenBuild is reachable for the user, CnAppRoot surfaces a Conduction-orange edit button (`CnOpenBuildEditButton`) top-right of the content and provides a shared `cnManifestEditor`; the body grid becomes drag/resizable in edit mode. Emits `@manifest-save(delta)`. |
-| `dataSources` | `Object \| null` | `null` | App registers/schemas for the in-app pages editor (ADR-041). Lets the Edit-pages modal offer Register / Schema / Columns dropdowns for `index`/`detail` pages instead of free-text slug inputs, so a created page actually renders a table. Shape: `{ registers: [{ value, label, schemas: [{ value, label, columns: string[] }] }] }`. Provided to descendants as `cnDataSources`; when omitted the editor falls back to free-text register/schema fields. |
+| `dataSources` | `Object \| null` | `null` | App registers/schemas for the in-app pages editor (ADR-041). Lets the Edit-pages modal offer Register / Schema / Columns dropdowns for `index`/`detail` pages instead of free-text slug inputs, so a created page actually renders a table. Shape: `{ registers: [{ value, label, schemas: [{ value, label, columns: string[] }] }] }`. Provided to descendants as `cnDataSources`; when omitted the editor falls back to free-text register/schema fields. **A snapshot** — captured once, so it cannot show anything created after boot. Prefer `dataSourcesLoader`. |
+| `dataSourcesLoader` (`data-sources-loader`) | `Function \| null` | `null` | Async loader for the same data, re-invoked every time a pages-editor modal opens: `async () => ({ registers: [...] })`. Because `provide()` runs once, the static `dataSources` snapshot can never change — so a register or schema created after the app booted (in another tab, the OpenRegister UI, or via the API) would never appear in the dropdowns. A loader fixes that with no page reload, and moves the fetch off the app-boot path onto the far rarer editor-open path. When both props are given, `dataSources` seeds the initial list and the loader's result replaces it on the first refresh. |
+| `routerViewKey` (`router-view-key`) | `String \| Number` | `'cn-router-view'` | Remount key for the routed `<router-view>`. Hosts that rebuild the router at runtime (e.g. the OpenBuild builder adding a page mid-edit) bump this **after** the rebuild so the view drops its stale component-instance cache and mounts the new routes — a Vue Router 3 matcher swap alone resolves the new hrefs but leaves SPA-navigation to a just-added route rendering a blank view. Keep the default for static apps: the key is stable across ordinary navigation, so the view is never needlessly remounted (and the shell / teleported modals are untouched). |
 | `isLoading` | `Boolean` | `false` | Wire to `useAppManifest().isLoading`. Apps using only the bundled manifest skip the loading phase. |
 | `customComponents` | `Object` | `{}` | Registry consumed by `CnPageRenderer` for `type: "custom"` pages and slot overrides. Provided as `cnCustomComponents`. |
 | `formatters` | `Object` | `{}` | Cell-formatter registry — map of formatter-id → `(value, row, property) => string\|number`. Resolves the `pages[].config.columns[].formatter` ids that `index` / `logs` pages declare, so per-column value formatting lives in small pure data functions instead of bespoke `type:"custom"` table views. Provided to descendant `CnDataTable` / `CnCellRenderer` as `cnFormatters`. See [migrating-to-manifest → Column formatters](../migrating-to-manifest.md#column-formatters). |
 | `cellWidgets` | `Object` | `{}` | Cell-widget registry — map of widget-id → Vue component, rendered for a column that declares `pages[].config.columns[].widget`. The component receives `{ value, row, property, formatted, ...widgetProps }`. The library ships one built-in id, `"badge"` (renders `CnStatusBadge`); consumer entries cover everything else (status pills, inline toggles, link cells, …). Provided to descendant `CnDataTable` / `CnCellRenderer` as `cnCellWidgets`. See [migrating-to-manifest → Column widgets](../migrating-to-manifest.md#column-widgets). |
+| `kbSearchProviders` | `Object` | `{}` | Pluggable knowledge-base search providers (#91 Wave 3) — map of provider-key → `{ search(query, opts), externalOpen? }`, merged OVER the library built-in `default` (endpoint) provider and provided to descendant `CnKbSearchWidget` as `cnKbSearchProviders`. A `kb-search` widget picks its provider via `content.provider`; an app talking to a bespoke KB backend (the xwiki proxy) registers its client here — the library ships only the seam. See [CnActionButtons / kb-search](./cn-kb-search-widget.md). |
 | `pageTypes` | `Object \| null` | `null` | Map of `pages[].type` → Vue component. Provided to descendant renderers as `cnPageTypes`. When omitted, the renderer falls back to `defaultPageTypes`. |
 | `translate` | `Function` | identity | App-supplied translator — typically `(key) => t(appId, key)`. Named `translate` (not `t`) to avoid shadowing the global `t()` mixin. Provided as `cnTranslate`. |
 | `permissions` | `Array<string>` | `[]` | Permission strings the current user holds. Forwarded to `CnAppNav` for menu filtering. |
 | `userSettingsTitle` | `String` | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to `translate('User settings')` so the title follows the user's locale. Override per app to brand the modal (e.g. `'Decidesk preferences'`). |
-| `requiresApps` | `Array<string>` | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the `or-missing` slot (default `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. mydash, the docs/styleguide app). See [App-availability guard](../architecture/schemas-and-registers.md#app-availability-guard-opt-out). |
+| `adminSettingsTitle` | `String` | `''` | Title shown at the top of the admin-settings `NcAppSettingsDialog`. Empty (the default) resolves to `translate('Administration')`. Override per app (e.g. `'Pipelinq administration'`). |
+| `requiresApps` | `Array<string>` | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the `or-missing` slot (default `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. launchpad, the docs/styleguide app). See [App-availability guard](../architecture/schemas-and-registers.md#app-availability-guard-opt-out). |
 | `initialOrganisationUuid` | `String \| null` | `null` | Seed value for the multi-tenancy provider's `activeOrganisationUuid`. CnAppRoot calls [`provideTenantContext`](../utilities/provide-tenant-context.md)`(initialOrganisationUuid, initialOrganisation)` on mount, so consumers wired to [`useTenantContext`](../utilities/composables/use-tenant-context.md) see the seeded tenant from the first render. Single-tenant deployments leave both props `null`. |
 | `initialOrganisation` | `Object \| null` | `null` | Optional resolved organisation entity matching `initialOrganisationUuid`. Stored on `activeOrganisation` so downstream components ([`CnTenantBadge`](./cn-tenant-badge.md), [`CnFormDialog`](./cn-form-dialog.md) auto-fill) have the name/icon available immediately without a follow-up fetch. |
+| `chatAppId` | `String` | `'openregister'` | Backend app id the hosted [`CnAiCompanion`](./cn-ai-companion.md) targets for its chat/agent HTTP calls (see [`chatApiBase`](../utilities/chat-api-base.md) / [`DEFAULT_CHAT_APP_ID`](../utilities/default-chat-app-id.md)). Override (e.g. `'hermiq'`) to point the companion at another backend. |
 
 ## Provided values
 
@@ -93,6 +150,9 @@ CnAppRoot calls `provide()` with the following keys; descendants `inject` these:
 | `cnFeatureRequestRepo` | Target repo slug for the in-product feature-request deep link (e.g. `"Conduction/pipelinq"`). Read from `manifest.nav.featureRequestRepo` when set; otherwise falls back to `Conduction/<appId>` (the convention for every Conduction app on Codeberg). Used by `CnWidgetWrapper`'s built-in **Request a feature** default. |
 | `cnFeatureRequestForge` | Forge config `{ type, baseUrl }` for the feature-request deep link. Read from `manifest.nav.forge` (merged over the Codeberg default). Switching the fleet's forge — back to GitHub, or onto a self-hosted Forgejo/Gitea — is just this one manifest field. Consumed by `CnActionsMenu` / `CnSuggestFeatureModal`. |
 | `cnMenuCounts` | Reactive `{ [register]: { [schema]: number } }` map of `useObjectStore` totals. Populated at mount for every `menu[].count: "auto"` entry whose resolved page is `type: "index"` with `register + schema` in its `config`. Read by [`CnAppNav`](./cn-app-nav.md) inside `resolveCount()` to render `NcCounterBubble` badges. One `?_limit=1` fetch per unique `(register, schema)` pair; failures degrade silently to "no badge" so a broken endpoint never blanks the navigation. |
+| `cnDataSources` | The `dataSources` prop, as passed. A plain value captured once — kept for backwards compatibility; prefer `cnDataSourcesState` below. |
+| `cnDataSourcesState` | Live data-source holder: `{ value, loading, error, hasLoader }`, where `value` is the `{ registers: [...] }` payload. **Provided by reference and mutated in place** — its identity never changes, which is what lets the one-shot `provide()` see every update. Descendants resolve `cnDataSourcesState.value ?? cnDataSources`, so a host passing only the legacy snapshot still works. |
+| `cnRefreshDataSources` | `async () => void` — re-runs `dataSourcesLoader` and updates the holder. Called by the pages-editor modals on open; a no-op when no loader is configured. Concurrent calls share one in-flight fetch, and a failure keeps the last good list while recording `error`. |
 
 ## Slots
 
@@ -102,6 +162,7 @@ CnAppRoot calls `provide()` with the following keys; descendants `inject` these:
 | `loading` | — | `<CnAppLoading />` | Shown during the loading phase |
 | `dependency-missing` | `{ dependencies }` | `<CnDependencyMissing :dependencies />` | Shown when any dependency is missing or disabled |
 | `or-missing` | `{ missingApps }` | Default `<NcEmptyContent>` linking to the OpenRegister app-store integration page | Shown when any app in `requiresApps` is missing per the OCS capabilities check. Override to fully replace the empty state. |
+| `setup` | `{ steps, status }` | `<CnSetupWizard :cancellable="false" />` | Replaces the **gating** first-time-setup surface (a required `manifest.setup` step is unmet). `steps` is `manifest.setup.steps`; `status` is the [`useSetupStatus`](../utilities/composables/use-setup-status.md) state. Does not affect the non-gating overlay — see [First-time setup](#first-time-setup-adr-042). |
 | `menu` | — | `<CnAppNav :permissions />` | Replaces the default app navigation |
 | `header-actions` | — | — | Mounted inside `NcAppContent`, alongside the default slot |
 | `sidebar` | — | The resolved `cnPageSidebarComponent` when set, otherwise empty | Mounted next to `NcAppContent` (e.g. for `NcAppSidebar`). Gated by the `cnPageSidebarVisible` inject — when a descendant `CnPageRenderer` flips it to `false` (because the current manifest page declares `sidebar.show: false`), this slot stops rendering. The default (no provider) is value-true so the slot keeps rendering. The slot's **default content** is driven by the `cnPageSidebarComponent` inject — when the current page declares a `sidebarComponent` registry name, the resolved component renders here unless the consumer supplies a `#sidebar` slot override (override wins). See [Per-page sidebar visibility](./cn-page-renderer.md#per-page-sidebar-visibility) and [Per-page sidebar component](./cn-page-renderer.md#per-page-sidebar-component). |
@@ -198,3 +259,10 @@ Before this overload existed, virtual-app hosts had to fake an HTTP fetch by pas
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `supportDialog` | Boolean \| Object | `true` | Auto-mount the built-in support/feedback dialog. Pass `false` to disable, or an options object to configure it. |
+
+## AI companion
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `aiCompanion` (`ai-companion`) | Boolean | `false` | Opt-in floating AI-chat companion (`CnAiCompanion`). Off by default; pass `true` to mount it. When enabled it still self-gates on its own backend health probe and hides on chat pages. The companion is an AI capability provided by the Hermiq app — apps opt in explicitly rather than every app auto-mounting it whenever a chat backend is reachable. |
+| `commandPalette` (`command-palette`) | Boolean \| Object | `false` | Opt-in Ctrl/Cmd+K command palette (`CnCommandPalette`, see its own doc page). Off by default; pass `true` for zero-config navigation + registered actions, or an object to override any `CnCommandPalette` prop (most commonly `{ objectSearch: createObjectSearchSource({...}) }` to wire live OpenRegister search). |

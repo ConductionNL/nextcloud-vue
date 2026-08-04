@@ -188,6 +188,8 @@ export default {
 | `subtitle` | String | `''` | Subtitle shown in the sidebar header |
 | `sidebarProps` | Object | `{}` | Extra sidebar configuration (`register`, `schema`, `hiddenTabs`, `title`, `subtitle`) |
 | `sidebarTabs` (`sidebar-tabs`) | Array | `[]` | Manifest-driven sidebar-tab descriptors published to the host's `objectSidebarState.tabs`. The hoisted `CnObjectSidebar` (mounted at `NcContent` level by `CnAppRoot` per ADR-017) renders them; the page itself only publishes. Each descriptor mirrors a `pages[].sidebar.tabs[]` entry (`{ id, label, component, props?, integrationKey? }`). When empty, the page emits no tabs and the host falls back to its own discovery (integration registry / schema-derived). |
+| `hideEmpty` (`hide-empty`) | Boolean | `false` | Hide valueless fields on the auto-rendered `CnObjectDataWidget` instead of showing them with an em dash. Set from the manifest as `config.hideEmpty` for a **discriminated supertype** — one schema holding several variants (e.g. a `ticket` holding request / complaint / contactmoment), where each object only carries the fields its own variant uses. A widget declaring its own `content.hideEmpty` wins over this page-level default. |
+| data-widget `content.editable` | Boolean | `true` | Whether a `type: "data"` widget's auto-rendered `CnObjectDataWidget` exposes its built-in inline edit (the pencil → schema-driven `CnFormDialog`). Set `editable: false` in the widget's `content` to suppress it — e.g. when the page already offers a richer bespoke edit modal via a `headerAction`/`#form-dialog`, so the object is edited in exactly one place. Mirrors the `object-geo` widget's existing `editable` key. |
 | `error` | Boolean | `false` | Whether the page is in an error state |
 | `errorMessage` | String | `'An error occurred'` | Error message shown in the error state |
 | `onRetry` | Function | `null` | Callback for the retry button; when `null` no retry button is shown |
@@ -202,6 +204,7 @@ export default {
 | `objectStore` | Object | `null` | Pinia store instance (typically `useObjectStore()`). Required for `subscribe` to take effect. |
 | `sidebarTabs` | Array | `[]` | Tab definitions forwarded to the host App's `CnObjectSidebar` via the injected `objectSidebarState`. Each entry follows the `CnObjectSidebar` tab shape (`{ id, label, icon?, widgets?, component?, order? }`). When empty (default), the sidebar falls back to its own default tab set. The actual `<CnObjectSidebar>` is rendered at `NcContent` level by `CnAppRoot` (ADR-017 — external sidebar pattern); this page only publishes the tabs. |
 | `appConfig` (`app-config`) | Object | `{}` | App configuration map provided to descendants on `cnAppConfig` so declarative widget/section config can resolve `@config.<key>` tokens (e.g. a stat widget's reporting currency). A manifest renderer typically seeds it from `loadState(appId, 'config', {})`; empty leaves every token to fall back to its literal default. |
+| `createRoute` (`create-route`) | String | `''` | Vue-router route NAME to navigate to after a create-form save (the create archetype: a `type:"detail"` page whose route carries no `:id`). The created object's id is passed as the `id` route param. When empty (the default) the page navigates back in history after a successful create instead. See `isCreateMode`. |
 
 ## Slots
 

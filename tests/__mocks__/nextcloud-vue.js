@@ -34,6 +34,120 @@ export const NcContent = createStub('NcContent')
 export const NcEmptyContent = createStub('NcEmptyContent')
 export const NcActions = createStub('NcActions')
 export const NcActionButton = createStub('NcActionButton')
+export const NcActionCaption = createStub('NcActionCaption')
+export const NcActionCheckbox = createStub('NcActionCheckbox')
+export const NcActionSeparator = createStub('NcActionSeparator')
+
+/**
+ * NcActionInput needs a real stateful stub: the component under test binds
+ * `:value` / `@update:value` and submits, and the real NcActionInput's input
+ * carries no `name` attribute — so a stub that emits the typed text is what
+ * keeps consumers honest about reading their own bound state.
+ */
+export const NcActionInput = {
+	name: 'NcActionInput',
+	props: { value: { type: String, default: '' } },
+	render(h) {
+		return h('li', { class: ['stub', 'NcActionInput'] }, [
+			h('form', {
+				on: { submit: (event) => { event.preventDefault(); this.$emit('submit', event) } },
+			}, [
+				h('input', {
+					domProps: { value: this.value },
+					on: { input: (event) => this.$emit('update:value', event.target.value) },
+				}),
+			]),
+		])
+	},
+}
+/**
+ * NcRichContenteditable needs a real stateful stub: the component under test
+ * binds `:value` / `@update:value` and passes an `auto-complete` function that
+ * the real component calls with `(searchText, callback)` when the user types
+ * `@query`. This stub mirrors that contract on top of a plain <textarea> so
+ * jsdom tests can drive typing, suggestion display, keyboard navigation
+ * (ArrowUp/ArrowDown/Enter/Escape) and mouse selection. Token insertion uses
+ * the same `@id` / `@"id"` convention as the real Tribute integration.
+ */
+export const NcRichContenteditable = {
+	name: 'NcRichContenteditable',
+	props: {
+		value: { type: String, default: '' },
+		autoComplete: { type: Function, default: () => [] },
+		placeholder: { type: String, default: '' },
+		multiline: { type: Boolean, default: false },
+	},
+	data() {
+		return {
+			suggestions: [],
+			open: false,
+			activeIndex: 0,
+		}
+	},
+	methods: {
+		onInput(event) {
+			const text = event.target.value
+			this.$emit('update:value', text)
+			const match = text.match(/(?:^|\s)@([A-Za-z0-9_.'-]*)$/)
+			if (match) {
+				this.autoComplete(match[1], (results) => {
+					this.suggestions = Array.isArray(results) ? results : []
+					this.open = this.suggestions.length > 0
+					this.activeIndex = 0
+				})
+			} else {
+				this.close()
+			}
+		},
+		onKeydown(event) {
+			if (!this.open) return
+			if (event.key === 'ArrowDown') {
+				event.preventDefault()
+				this.activeIndex = Math.min(this.activeIndex + 1, this.suggestions.length - 1)
+			} else if (event.key === 'ArrowUp') {
+				event.preventDefault()
+				this.activeIndex = Math.max(this.activeIndex - 1, 0)
+			} else if (event.key === 'Enter') {
+				event.preventDefault()
+				this.select(this.suggestions[this.activeIndex])
+			} else if (event.key === 'Escape') {
+				event.preventDefault()
+				this.close()
+			}
+		},
+		select(suggestion) {
+			if (!suggestion) return
+			const id = String(suggestion.id)
+			const token = /^[A-Za-z0-9_.'-]+$/.test(id) ? `@${id}` : `@"${id}"`
+			const newText = this.value.replace(/@[A-Za-z0-9_.'-]*$/, `${token} `)
+			this.$emit('update:value', newText)
+			this.close()
+		},
+		close() {
+			this.open = false
+			this.suggestions = []
+			this.activeIndex = 0
+		},
+	},
+	render(h) {
+		const children = [
+			h('textarea', {
+				class: 'rich-contenteditable__input',
+				domProps: { value: this.value },
+				attrs: { placeholder: this.placeholder },
+				on: { input: this.onInput, keydown: this.onKeydown },
+			}),
+		]
+		if (this.open) {
+			children.push(h('ul', { class: 'tribute-container' }, this.suggestions.map((suggestion, index) => h('li', {
+				class: ['tribute-item', { 'tribute-item--active': index === this.activeIndex }],
+				key: suggestion.id,
+				on: { click: () => this.select(suggestion) },
+			}, suggestion.label || suggestion.id))))
+		}
+		return h('div', { class: ['stub', 'NcRichContenteditable'] }, children)
+	},
+}
 export const NcSelect = createStub('NcSelect')
 export const NcSettingsSection = createStub('NcSettingsSection')
 export const NcAppSidebar = createStub('NcAppSidebar')
@@ -87,14 +201,14 @@ export const NcDateTime = {
 	functional: true,
 	render(h, { props, data }) {
 		const ts = props && props.timestamp
-		// Render an ISO string for a Date object (the canonical, stable form
-		// the cell/card specs assert against); fall back to String() for a
-		// numeric epoch. `nc-date-time` matches the real component's class
-		// hook so specs can target `time.nc-date-time`.
-		let text = ''
-		if (ts !== undefined && ts !== null) {
-			text = ts instanceof Date ? ts.toISOString() : String(ts)
-		}
+		// A Date instance is rendered as its ISO string (the real NcDateTime
+		// emits a <time> element); other primitives are stringified as-is so
+		// relative-time rows keep observable text. The `nc-date-time` class
+		// hook (below) matches the real component so specs can target
+		// `time.nc-date-time`.
+		const text = ts === undefined || ts === null
+			? ''
+			: (ts instanceof Date ? ts.toISOString() : String(ts))
 		return h('time', { class: ['stub', 'NcDateTime', 'nc-date-time'], ...data }, text)
 	},
 }
@@ -115,6 +229,9 @@ export default {
 	NcEmptyContent,
 	NcActions,
 	NcActionButton,
+	NcActionCaption,
+	NcActionCheckbox,
+	NcActionSeparator,
 	NcSelect,
 	NcSettingsSection,
 	NcAppSidebar,
@@ -126,4 +243,5 @@ export default {
 	NcAvatar,
 	NcCounterBubble,
 	NcDateTime,
+	NcRichContenteditable,
 }

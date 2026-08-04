@@ -122,12 +122,19 @@
 				{{ String(enumValue) }}
 			</NcActionButton>
 		</template>
+		<!--
+			Use @submit, not @keydown.enter: NcActionInput wraps the field and its
+			trailing arrow button in a <form> and emits `submit` for BOTH Enter and
+			an arrow click. Listening only for keydown.enter left the arrow — the
+			visible affordance most users reach for — doing nothing. Mirrors the
+			note-add input in CnRelatedObjectsWidget.
+		-->
 		<NcActionInput
 			:value="enumInputValue"
 			:label="t('nextcloud-vue', 'Add enum value')"
-			:placeholder="t('nextcloud-vue', 'Type value and press Enter')"
+			:placeholder="t('nextcloud-vue', 'Type a value and press Enter or the arrow')"
 			@update:value="enumInputValue = $event"
-			@keydown.enter.prevent="addEnumValueAndClear(propertyKey)" />
+			@submit="addEnumValueAndClear(propertyKey)" />
 
 		<!-- Default Value Configuration -->
 		<NcActionSeparator />
@@ -264,25 +271,25 @@
 					:input-label="t('nextcloud-vue', 'Object handling')"
 					:label="t('nextcloud-vue', 'Object handling')" />
 				<NcActionInput
-					:value="schema.properties[propertyKey].items.$ref"
+					:value="arrayItemSchemaRefValueFor(propertyKey)"
 					type="multiselect"
-					:options="availableSchemas"
+					:options="schemaRefOptions"
 					:input-label="t('nextcloud-vue', 'Schema reference')"
 					:label="t('nextcloud-vue', 'Schema reference')"
-					@update:value="updateArrayItemSchemaReference(propertyKey, $event)" />
+					@input="updateArrayItemSchemaReference(propertyKey, $event)" />
 				<NcActionCaption
 					v-if="isArrayItemRefInvalid(propertyKey)"
 					:name="'⚠️ ' + t('nextcloud-vue', 'Invalid schema reference: Expected string, got number ({value}). This will be sent to backend as-is.', { value: schema.properties[propertyKey].items.$ref })"
 					style="color: var(--color-error); font-weight: bold;" />
 				<NcActionInput
-					:value="getArrayItemRegisterValue(propertyKey)"
+					:value="arrayItemRegisterValueFor(propertyKey)"
 					type="multiselect"
-					:options="availableRegisters"
+					:options="registerSelectOptions"
 					:input-label="t('nextcloud-vue', 'Register')"
 					:label="t('nextcloud-vue', 'Register (required when schema is selected)')"
 					:required="!!schema.properties[propertyKey].items.$ref"
 					:disabled="!schema.properties[propertyKey].items.$ref"
-					@update:value="updateArrayItemRegisterReference(propertyKey, $event)" />
+					@input="updateArrayItemRegisterReference(propertyKey, $event)" />
 				<NcActionInput
 					v-model="schema.properties[propertyKey].items.inversedBy"
 					type="multiselect"
@@ -324,25 +331,25 @@
 				:input-label="t('nextcloud-vue', 'Object handling')"
 				:label="t('nextcloud-vue', 'Object handling')" />
 			<NcActionInput
-				:value="schema.properties[propertyKey].$ref"
+				:value="schemaRefValueFor(propertyKey)"
 				type="multiselect"
-				:options="availableSchemas"
+				:options="schemaRefOptions"
 				:input-label="t('nextcloud-vue', 'Schema reference')"
 				:label="t('nextcloud-vue', 'Schema reference')"
-				@update:value="updateSchemaReference(propertyKey, $event)" />
+				@input="updateSchemaReference(propertyKey, $event)" />
 			<NcActionCaption
 				v-if="isRefInvalid(propertyKey)"
 				:name="'⚠️ ' + t('nextcloud-vue', 'Invalid schema reference: Expected string, got number ({value}). This will be sent to backend as-is.', { value: schema.properties[propertyKey].$ref })"
 				style="color: var(--color-error); font-weight: bold;" />
 			<NcActionInput
-				:value="getRegisterValue(propertyKey)"
+				:value="registerValueFor(propertyKey)"
 				type="multiselect"
-				:options="availableRegisters"
+				:options="registerSelectOptions"
 				:input-label="t('nextcloud-vue', 'Register')"
 				:label="t('nextcloud-vue', 'Register (required when schema is selected)')"
 				:required="!!schema.properties[propertyKey].$ref"
 				:disabled="!schema.properties[propertyKey].$ref"
-				@update:value="updateRegisterReference(propertyKey, $event)" />
+				@input="updateRegisterReference(propertyKey, $event)" />
 			<NcActionInput
 				v-model="schema.properties[propertyKey].inversedBy"
 				type="multiselect"
@@ -592,6 +599,34 @@ export default {
 				{ id: 'related-schema', label: t('nextcloud-vue', 'Related schema') },
 				{ id: 'uri', label: 'URI' },
 			]
+		},
+		/**
+		 * Schema-reference select options as {id, label}. NcSelect renders
+		 * `option.label`, and the raw availableSchemas objects are keyed by
+		 * title/slug with NO label — binding them directly rendered every option as
+		 * literal "undefined". `id` is the $ref the backend expects (the schema's
+		 * reference, or `#/components/schemas/<slug>`), which updateSchemaReference
+		 * reads back off `value.id`.
+		 *
+		 * @return {Array<{id: string, label: string, schema: object}>} Options.
+		 */
+		schemaRefOptions() {
+			return (this.availableSchemas || []).map((s) => ({
+				id: s.reference || `#/components/schemas/${s.slug || s.title || s.id}`,
+				label: s.title || s.name || s.slug || `Schema ${s.id}`,
+				schema: s,
+			}))
+		},
+		/**
+		 * Register select options as {id, label} — same reason as schemaRefOptions.
+		 *
+		 * @return {Array<{id: (string|number), label: string}>} Options.
+		 */
+		registerSelectOptions() {
+			return (this.availableRegisters || []).map((r) => ({
+				id: r.id !== undefined ? r.id : (r.slug || r.title),
+				label: r.title || r.name || r.label || r.slug || `Register ${r.id}`,
+			}))
 		},
 		arrayItemTypeOptions() {
 			return [
@@ -1005,6 +1040,79 @@ export default {
 				return items.register
 			}
 			return null
+		},
+
+		// --- Select value resolvers (return the matched {id,label} option so the
+		//     multiselect displays the current selection instead of a raw string) ---
+
+		/**
+		 * The schema-reference option currently selected for a property.
+		 *
+		 * @param {string} key The property key.
+		 * @return {?object} The matching {id,label} option, or a display fallback.
+		 */
+		schemaRefValueFor(key) {
+			const ref = this.schema.properties[key] && this.schema.properties[key].$ref
+			return this.matchSchemaRefOption(ref)
+		},
+		/**
+		 * The schema-reference option currently selected for an array property's items.
+		 *
+		 * @param {string} key The property key.
+		 * @return {?object} The matching {id,label} option, or a display fallback.
+		 */
+		arrayItemSchemaRefValueFor(key) {
+			const items = this.schema.properties[key] && this.schema.properties[key].items
+			return this.matchSchemaRefOption(items && items.$ref)
+		},
+		/**
+		 * Resolve a stored $ref to a schemaRefOptions entry, matching on the option
+		 * id or the referenced schema's slug/title/id so a value persisted in any of
+		 * those forms still shows a name. Falls back to showing the raw ref.
+		 *
+		 * @param {(string|number|object)} ref The stored $ref.
+		 * @return {?object} The matching option, a raw-ref fallback, or null.
+		 */
+		matchSchemaRefOption(ref) {
+			if (ref === undefined || ref === null || ref === '') return null
+			const raw = typeof ref === 'object' && ref.id !== undefined ? ref.id : ref
+			const tail = typeof raw === 'string' && raw.includes('/') ? raw.substring(raw.lastIndexOf('/') + 1) : raw
+			return this.schemaRefOptions.find((o) => o.id === raw)
+				|| this.schemaRefOptions.find((o) => {
+					const s = o.schema || {}
+					return s.slug === tail || s.title === tail || String(s.id) === String(tail)
+				})
+				|| { id: raw, label: String(raw) }
+		},
+		/**
+		 * The register option currently selected for a property.
+		 *
+		 * @param {string} key The property key.
+		 * @return {?object} The matching {id,label} option, or a display fallback.
+		 */
+		registerValueFor(key) {
+			return this.matchRegisterOption(this.getRegisterValue(key))
+		},
+		/**
+		 * The register option currently selected for an array property's items.
+		 *
+		 * @param {string} key The property key.
+		 * @return {?object} The matching {id,label} option, or a display fallback.
+		 */
+		arrayItemRegisterValueFor(key) {
+			return this.matchRegisterOption(this.getArrayItemRegisterValue(key))
+		},
+		/**
+		 * Resolve a stored register id to a registerSelectOptions entry.
+		 *
+		 * @param {(string|number|object)} value The stored register value.
+		 * @return {?object} The matching option, a raw fallback, or null.
+		 */
+		matchRegisterOption(value) {
+			if (value === undefined || value === null || value === '') return null
+			const raw = typeof value === 'object' && value.id !== undefined ? value.id : value
+			return this.registerSelectOptions.find((o) => String(o.id) === String(raw))
+				|| { id: raw, label: String(raw) }
 		},
 
 		// --- InversedBy ---

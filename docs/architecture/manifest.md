@@ -220,6 +220,38 @@ The `sidebar` and `header-actions` slot constraints are enforced by the v2 JSON 
 
 When `type` is omitted, the Ajv instance (compiled with `useDefaults: true`) fills in `"handler"` for back-compatibility with v1.3.0 action declarations.
 
+### MCP visibility hints (`mcp`)
+
+The optional top-level `mcp` block carries **advisory MCP tool visibility/UX hints only** — it is inert in `nextcloud-vue` (no renderer, composable, or component reads `manifest.mcp`). It exists so an app manifest can declare, next to the pages it describes, which of its OpenRegister-derived MCP tools are contextually relevant where.
+
+Per **ADR-063** (MCP as Platform Abstraction), OpenRegister's register (the `x-openregister-mcp` schema dialect + `#[McpTool]` PHP attributes) is the single source of CRUD-tool truth, and OpenRegister RBAC is the authoritative invoke-time gate. The `mcp` block grants nothing and gates nothing — it is read later by Hermiq (agent tool picker, per-agent scoping) and openbuild (tool browser) surfaces, in separately-specced work.
+
+```json
+{
+  "mcp": {
+    "expose": true,
+    "pageTools": {
+      "leads-index": ["pipelinq.lead.search", "pipelinq.lead.get"]
+    },
+    "agentHints": {
+      "summary": "Manage sales leads and tickets",
+      "defaultTools": ["pipelinq.lead.search"],
+      "keywords": ["crm", "sales", "leads"]
+    }
+  }
+}
+```
+
+| Property | Type | Meaning |
+|----------|------|---------|
+| `expose` | `boolean` (default `false`) | Advisory app-wide default for whether this app's tools should be shown in agent/tool-picker surfaces. Opt-in, matching ADR-063's default-OFF exposure model. |
+| `pageTools` | `object` | Maps a `pages[].id` to an ordered array of MCP tool ids relevant on that page. |
+| `agentHints` | `object` | Advisory agent-facing metadata (`summary`, `defaultTools`, `keywords`); open for future advisory keys (`additionalProperties: true`). |
+
+Tool ids follow the register's derived-CRUD shape `{appId}.{schemaSlug}.{verb}`, where `verb` is one of `search | get | create | update | delete` (enforced by a schema `pattern`, e.g. `pipelinq.lead.search`). The schema pattern is a **shape guard only** — it does not verify the tool actually exists; the register remains authoritative for that.
+
+The `mcp` block is entirely optional and additive: a manifest without it validates exactly as before this addition.
+
 ### Migration guide
 
 The `manifest-migrate` CLI codemod automates the mechanical parts of the v1 → v2 migration. See **[Migrating to v2](../migrating-to-v2.md)** for the full guide.

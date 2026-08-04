@@ -3,7 +3,8 @@
 `mergeManifestDelta(base, delta)` applies a keyed structural delta to a base
 manifest. Unlike a plain deep-merge (which replaces arrays wholesale), it
 merges the manifest's identity-bearing arrays **by key**: `pages[]` by
-`page.id`, `widgets[]` by `widget.id`, and `menu[]` by `menu.id`.
+`page.id`, `widgets[]` by `widget.id`, `menu[]` by `menu.id`, and a menu
+entry's nested `children[]` by child `id`.
 
 This is the engine behind the opt-in `delta` merge mode of `useAppManifest` /
 `useRuntimeManifest`, and the basis for OpenBuilt storing a built app as
@@ -29,9 +30,13 @@ function mergeManifestDelta(base: object, delta: object): {
 
 - Plain objects merge recursively; scalars and **non-keyed** arrays are
   replaced (delta wins) — preserving today's deep-merge behaviour.
-- In a keyed array (`pages` / `widgets` / `menu`), a delta entry whose key
-  **matches** a base entry is merged into it; a delta entry whose key is
-  **new** is appended.
+- In a keyed array (`pages` / `widgets` / `menu` / a menu entry's `children`),
+  a delta entry whose key **matches** a base entry is merged into it; a delta
+  entry whose key is **new** is appended. This nesting is what lets a backend
+  `/api/manifest` override **add** navigation children to an existing group
+  (e.g. one entry per case type under a "Cases" group) without resending or
+  clobbering the group's other children — see
+  [Overriding an app's manifest at runtime](../manifest-runtime-override.md).
 - `{ "<key>": "x", "$op": "remove" }` deletes the matching base entry. A
   `remove` whose key is **not** present in the base is an **orphan**: skipped,
   `console.warn`-ed, and its path recorded in `orphanedDeltaPaths`.

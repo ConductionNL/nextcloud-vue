@@ -2,92 +2,50 @@ name: Code Quality
 
 on:
   push:
-    branches: [main, beta]
+    branches: [main, beta, development, feature/**, bugfix/**, hotfix/**]
   pull_request:
+    types: [opened, reopened]
     branches: [main, beta, development]
+  workflow_dispatch:
+
+concurrency:
+  group: quality-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+# Permission CEILING for the called quality pipeline. GitHub statically
+# validates the called workflow's declared job permissions against this
+# grant — even for jobs that are disabled — so it must cover the maximum
+# any nested job declares: journeydoc-capture (contents+actions write),
+# update-baseline / features-extract (contents write), and the Quality
+# Report PR comment (issues / pull-requests write).
+permissions:
+  contents: write
+  actions: write
+  issues: write
+  pull-requests: write
 
 jobs:
-  frontend-quality:
-    name: Frontend Quality
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install docusaurus dependencies (needed by check:jsdoc + prebuild:docs)
-        run: cd docusaurus && npm ci
-
-      - name: Documentation coverage
-        run: npm run check:docs
-
-      # G2 — Phase 2.5 of the unify-component-docs change.
-      # Fails the build if any Cn* component's JSDoc completeness score
-      # has regressed below the per-component baseline at
-      # scripts/.jsdoc-baselines.json. New components must score 100%.
-      - name: JSDoc completeness ratchet
-        run: npm run check:jsdoc
-
-      # Pluggable integration registry parity gate (AD-11/AD-13).
-      # Fails the build if any integration descriptor shipped in
-      # src/integrations/ is missing its `tab` or `widget` component.
-      - name: Integration parity gate
-        run: npm run check:integration-parity
-
-      # Phase K / K1 — integration-leaf template-compile gate (ADR-019).
-      # Fast-feedback companion to the full `npm run build` step below.
-      # Compiles every src/integrations/builtin/**.vue <template> through
-      # vue-template-compiler + buble (the same path rollup-plugin-vue
-      # uses at build time) and fails — attributed to the exact .vue
-      # file — when a template uses ES2020 syntax buble rejects (`?.`/`??`).
-      # Guards against the rollout's biggest near-miss: a template-side
-      # optional-chain in CnContactsCard.vue that passed jest but broke
-      # `npm run build`. The build step below remains the authoritative
-      # gate; this step just surfaces the failure in seconds with a
-      # precise message.
-      - name: Integration template-compile gate
-        run: npm run check:integration-build
-
-      # G1 — Phase 2.5 of the unify-component-docs change.
-      # Fails the build if a SFC change wasn't accompanied by regenerating
-      # the auto-doc partial via vue-docgen-cli. Run docusaurus's prebuild
-      # hook then verify the generated tree is unchanged.
-      - name: Auto-doc partials are fresh
-        run: |
-          cd docusaurus
-          npm run prebuild:docs
-          cd ..
-          if ! git diff --exit-code docs/components/_generated/; then
-            echo ""
-            echo "::error::docs/components/_generated/ is stale. Run:"
-            echo "::error::  cd docusaurus && npm run prebuild:docs"
-            echo "::error::and commit the diff."
-            exit 1
-          fi
-
-      - name: ESLint
-        run: npm run lint
-
-      - name: Stylelint
-        run: npm run stylelint
-        continue-on-error: true
-
-      - name: Tests
-        run: npm test
-
-      # Phase K / K1 — authoritative template-ES2020 gate. `rollup -c`
-      # runs rollup-plugin-vue → vue-template-compiler → buble over every
-      # SFC; a template-side `?.`/`??` (or any other buble-incompatible
-      # syntax) fails here. The `check:integration-build` step above is the
-      # fast, integration-scoped early-warning for the same class of bug.
-      - name: Build
-        run: npm run build
+  quality:
+    if: github.event_name != 'push' || github.event.created != true
+    uses: ConductionNL/.github/.github/workflows/quality.yml@main
+    with:
+      app-name: nextcloud-vue
+      # JS-only component library: no composer.json, so the whole PHP
+      # toolchain (php-quality, PHPUnit, composer security/license) is off.
+      enable-php: false
+      enable-frontend: true
+      enable-eslint: true
+      node-version: "24"
+      # docusaurus deps are needed by check:jsdoc and check:docs-fresh
+      # (prebuild:docs); the setup command runs in every check leg.
+      frontend-setup-command: "cd docusaurus && npm ci"
+      # Each entry runs as its own "quality / Frontend Check (<script>)" job.
+      # check:build bundles build + check:css-entry (css-entry needs dist/).
+      # check:integration-build is the Vue-2 buble template gate — drop it
+      # from this list on the feat/vue-3 branch.
+      frontend-checks: >-
+        ["test", "check:build", "check:docs", "check:jsdoc",
+         "check:integration-parity", "check:integration-build",
+         "check:docs-fresh"]
+      # SBOM generation is composer-based; not applicable to this repo.
+      enable-sbom: false

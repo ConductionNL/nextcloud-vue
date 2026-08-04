@@ -175,8 +175,8 @@ describe('validateManifest — extended page types (manifest-page-type-extension
 		expect(result.errors.some((e) => e.startsWith('/pages/3/config/folder'))).toBe(true)
 	})
 
-	it('schema declares its version as 1.6.0', () => {
-		expect(schema.version).toBe('1.6.0')
+	it('schema declares its version as 1.8.0', () => {
+		expect(schema.version).toBe('1.8.0')
 	})
 })
 
@@ -475,11 +475,12 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 	})
 
 	describe('schema metadata bump', () => {
-		it('bumps the schema version field to at least 1.3.0 (current: 1.6.0)', () => {
+		it('bumps the schema version field to at least 1.3.0 (current: 1.8.0)', () => {
 			// 1.3.0 introduced sidebarComponent/slots; 1.4.0 adds runtime + visibleIf context predicates.
 			// 1.5.0 adds the `action` field (closed enum: "user-settings") to menuItem + menuItemLeaf.
 			// 1.6.0 adds the `dateChip` boolean to the layoutItem $def (custom-widget date chip opt-in).
-			expect(schema.version).toBe('1.6.0')
+			// 1.7.0 adds the top-level `credentials[]` array (credential-broker capability).
+			expect(schema.version).toBe('1.8.0')
 		})
 
 		it("page.config description references the new 'sidebar' field", () => {
@@ -591,8 +592,8 @@ describe('validateManifest — settings rich sections (manifest-settings-rich-se
 		expect(description).toContain('register-mapping')
 	})
 
-	it('REQ-MSRS-6: schema top-level version field is at 1.6.0 (1.4.0 adds runtime+visibleIf; 1.5.0 adds menuItem.action; 1.6.0 adds layoutItem.dateChip)', () => {
-		expect(schema.version).toBe('1.6.0')
+	it('REQ-MSRS-6: schema top-level version field is at 1.8.0 (1.4.0 adds runtime+visibleIf; 1.5.0 adds menuItem.action; 1.6.0 adds layoutItem.dateChip; 1.7.0 adds top-level credentials[]; 1.8.0 adds HARD/SOFT dependency entries)', () => {
+		expect(schema.version).toBe('1.8.0')
 	})
 })
 
@@ -811,13 +812,14 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 	})
 
 	describe('schema metadata stability', () => {
-		it('schema version is at 1.5.0 (1.3.0 introduced card/actions; 1.4.0 adds runtime+visibleIf; 1.5.0 adds menuItem.action)', () => {
+		it('schema version is at 1.8.0 (1.5.0 adds menuItem.action; 1.6.0 adds layoutItem.dateChip; 1.7.0 adds credentials[]; 1.8.0 adds HARD/SOFT deps)', () => {
 			// `manifest-detail-sidebar-config` kept version at 1.1.0; `manifest-config-refs`
 			// bumped to 1.2.0; `manifest-card-index-component` + `manifest-actions-dispatch`
 			// bumped to 1.3.0; `manifest-visible-if-context` bumps to 1.4.0;
 			// `manifest-user-settings-action` bumps to 1.5.0;
-			// `layoutItem.dateChip` (custom-widget date chip) bumps to 1.6.0.
-			expect(schema.version).toBe('1.6.0')
+			// `layoutItem.dateChip` (custom-widget date chip) bumps to 1.6.0;
+			// top-level `credentials[]` (credential-broker capability) bumps to 1.7.0.
+			expect(schema.version).toBe('1.8.0')
 		})
 
 		it('mentions config.sidebar.show in the page.config description', () => {
@@ -1274,8 +1276,8 @@ describe('validateManifest — settings orchestration (manifest-settings-orchest
 		)
 	})
 
-	it('REQ-MSO-8: schema top-level version field is at the current schema version (1.6.0)', () => {
-		expect(schema.version).toBe('1.6.0')
+	it('REQ-MSO-8: schema top-level version field is at the current schema version (1.8.0)', () => {
+		expect(schema.version).toBe('1.8.0')
 	})
 })
 
@@ -1389,10 +1391,10 @@ describe('validateManifest — visibleIf.appInstalled nav filter', () => {
 	it('accepts a menu item with a valid visibleIf.appInstalled string', () => {
 		const result = validateManifest(baseWithMenu([
 			{
-				id: 'view-in-mydash',
-				label: 'scholiq.nav.viewInMydash',
-				href: '/index.php/apps/mydash#scholiq',
-				visibleIf: { appInstalled: 'mydash' },
+				id: 'view-in-launchpad',
+				label: 'scholiq.nav.viewInLaunchpad',
+				href: '/index.php/apps/launchpad#scholiq',
+				visibleIf: { appInstalled: 'launchpad' },
 			},
 		]))
 		expect(result.valid).toBe(true)
@@ -1406,10 +1408,10 @@ describe('validateManifest — visibleIf.appInstalled nav filter', () => {
 				label: 'app.parent',
 				children: [
 					{
-						id: 'child-mydash',
-						label: 'app.child-mydash',
-						href: '/index.php/apps/mydash',
-						visibleIf: { appInstalled: 'mydash' },
+						id: 'child-launchpad',
+						label: 'app.child-launchpad',
+						href: '/index.php/apps/launchpad',
+						visibleIf: { appInstalled: 'launchpad' },
 					},
 				],
 			},
@@ -1420,7 +1422,7 @@ describe('validateManifest — visibleIf.appInstalled nav filter', () => {
 
 	it('rejects visibleIf that is not an object', () => {
 		const result = validateManifest(baseWithMenu([
-			{ id: 'x', label: 'x', visibleIf: 'mydash' },
+			{ id: 'x', label: 'x', visibleIf: 'launchpad' },
 		]))
 		expect(result.valid).toBe(false)
 		expect(result.errors.some((e) => e.includes('/menu/0/visibleIf') && e.includes('must be an object'))).toBe(true)
@@ -1447,7 +1449,7 @@ describe('validateManifest — visibleIf.appInstalled nav filter', () => {
 		// "appIsInstalled" (likely a typo for "appInstalled") is silently treated
 		// as a runtime path. Typo detection is now a consumer responsibility.
 		const result = validateManifest(baseWithMenu([
-			{ id: 'x', label: 'x', visibleIf: { appIsInstalled: 'mydash' } },
+			{ id: 'x', label: 'x', visibleIf: { appIsInstalled: 'launchpad' } },
 		]))
 		// Single non-empty segment is a valid path → no error.
 		expect(result.valid).toBe(true)

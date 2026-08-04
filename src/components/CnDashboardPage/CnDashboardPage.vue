@@ -22,7 +22,16 @@
 				</p>
 			</div>
 			<div class="cn-dashboard-page__header-actions">
-				<!-- @slot header-actions Inline buttons rendered in the dashboard header next to the edit toggle. Used by every existing consumer (decidesk, mydash, opencatalogi, pipelinq, procest). -->
+				<!-- Declarative header actions (#91 Wave 3): a manifest
+				     `headerActions[]` renders as buttons (open-form / api-call /
+				     toggle / navigate / refresh) with visibleWhen gating,
+				     before the slot content so app-provided buttons stay
+				     right-most next to the edit toggle. -->
+				<CnActionButtons
+					v-if="headerActions && headerActions.length"
+					:actions="headerActions"
+					data-testid="cn-dashboard-page-header-actions" />
+				<!-- @slot header-actions Inline buttons rendered in the dashboard header next to the edit toggle. Used by every existing consumer (decidesk, launchpad, opencatalogi, pipelinq, procest). -->
 				<slot name="header-actions" />
 				<!-- @slot actions Back-compat alias for `#header-actions`. Prefer `#header-actions` in new code. -->
 				<slot name="actions" />
@@ -183,8 +192,11 @@
 		<!-- Loading state -->
 		<NcLoadingIcon v-if="loading" />
 
-		<!-- Empty state -->
-		<div v-else-if="!hasWidgets" class="cn-dashboard-page__empty">
+		<!-- Empty state. Suppressed when the page renders declarative body
+		     sections (before-grid / after-grid / end): a page can legitimately
+		     have no grid widgets yet still show bodyWidget content, so
+		     "No widgets configured" would be a false negative. -->
+		<div v-else-if="!hasWidgets && !hasBodyWidgets" class="cn-dashboard-page__empty">
 			<!-- @slot empty Replaces the default empty state shown when the dashboard has no widgets. Defaults to an `NcEmptyContent` block. -->
 			<slot name="empty">
 				<NcEmptyContent :description="emptyLabel">
@@ -212,9 +224,16 @@
 		<!-- Dashboard grid (classic widgets+layout mode).
 		     Uses v-else so the `v-else-if="!hasWidgets"` empty state and the
 		     `v-else-if="widgetRefItems.length > 0"` content-items section
-		     are mutually exclusive with the grid. -->
+		     are mutually exclusive with the grid.
+		     :key remounts the grid when in-app edit mode flips (ADR-041): the
+		     manifest is raw (non-reactive) until useManifestEditor.enter()
+		     observes it in place, so a grid mounted pre-edit never subscribed
+		     to the layout/widgets arrays — in-place pushes (Add widget) keep
+		     the same array identity and can't re-render it. One remount per
+		     edit flip re-subscribes against the now-reactive graph. -->
 		<CnDashboardGrid
 			v-else
+			:key="`cn-dashboard-grid-${gridEditable ? 'editing' : 'live'}`"
 			:layout="layout"
 			:editable="gridEditable"
 			:columns="columns"
@@ -243,7 +262,7 @@
 				<CnWidgetWrapper
 					v-if="missingRequiredApp(item)"
 					:title="getWidgetTitle(item)"
-					:show-title="item.showTitle !== false">
+					:show-title="widgetShowTitle(item)">
 					<NcEmptyContent
 						:name="installAppLabel(missingRequiredApp(item))"
 						:description="t('nextcloud-vue', 'This widget shows data from another app that isn\'t installed yet.')"
@@ -275,15 +294,15 @@
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
-						:show-title="item.showTitle !== false"
-						:borderless="item.showTitle === false"
+						:show-title="widgetShowTitle(item)"
+						:borderless="!widgetShowTitle(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
 						:show-refresh="getWidgetShowRefresh(item)"
-						:show-actions="item.showActions !== false"
+						:show-actions="widgetShowActions(item)"
 						:documentation-url="getWidgetDocumentationUrl(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
@@ -349,8 +368,8 @@
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
-						:show-title="item.showTitle !== false"
-						:borderless="item.showTitle === false"
+						:show-title="widgetShowTitle(item)"
+						:borderless="!widgetShowTitle(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
@@ -360,7 +379,7 @@
 						:documentation-url="getWidgetDocumentationUrl(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
-						<template v-if="dateRangeEnabled && formatChartDateRange(item)" #title-meta>
+						<template v-if="dateRangeEnabled && (item.dateChip === true || formatChartDateRange(item))" #title-meta>
 							<NcActions
 								:force-menu="true"
 								:open.sync="openChipPicker[item.widgetId]"
@@ -369,7 +388,7 @@
 								class="cn-dashboard-page__date-chip-trigger">
 								<template #icon>
 									<span class="cn-dashboard-page__date-chip" :title="dateChipTitle">
-										{{ formatChartDateRange(item) }}
+										{{ formatChartDateRange(item) || dashboardRangeChipLabel }}
 									</span>
 								</template>
 								<NcActionButton
@@ -424,8 +443,8 @@
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
-						:show-title="item.showTitle !== false"
-						:borderless="item.showTitle === false"
+						:show-title="widgetShowTitle(item)"
+						:borderless="!widgetShowTitle(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
@@ -451,7 +470,7 @@
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
-						:show-title="item.showTitle !== false"
+						:show-title="widgetShowTitle(item)"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
 						:show-refresh="getWidgetShowRefresh(item)"
@@ -470,8 +489,9 @@
 				<template v-else-if="registryRenderer(item)">
 					<CnWidgetWrapper
 						:title="getWidgetTitle(item)"
-						:show-title="item.showTitle !== false"
-						:show-actions="item.showActions !== false"
+						:show-title="widgetShowTitle(item)"
+						:show-actions="widgetShowActions(item)"
+						:show-refresh="getWidgetShowRefresh(item)"
 						:flush="item.flush !== false"
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
@@ -532,7 +552,7 @@
 				<CnWidgetWrapper
 					v-else
 					:title="getWidgetTitle(item)"
-					:show-title="item.showTitle !== false"
+					:show-title="widgetShowTitle(item)"
 					:show-refresh="false">
 					<div class="cn-dashboard-page__unknown">
 						{{ unavailableLabel }}
@@ -606,8 +626,9 @@ import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
 import CnBodySections from '../CnBodySections/CnBodySections.vue'
 import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } from '../CnDateRangePicker/CnDateRangePicker.vue'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
+import { CnActionButtons } from '../CnActionButtons/index.js'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
-import CnWidgetStyleEditorModal from '../../modals/CnWidgetStyleEditorModal.vue'
+import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
@@ -634,6 +655,23 @@ const CHART_PROP_KEYS = [
 	'height',
 	'width',
 	'unavailableLabel',
+	// Display passthrough (Wave 1, nextcloud-vue#91): additive presentation
+	// keys forwarded verbatim to CnChartWidget.
+	'horizontal',
+	'legendPosition',
+	'valueFormat',
+	'colorMap',
+	'emptyLabel',
+	// In-widget view switcher (Wave 3, nextcloud-vue#91): named display
+	// views toggling which series / value format render.
+	'views',
+	// Endpoint data binding (Wave 2, nextcloud-vue#91): WITHOUT this key the
+	// chart's endpointSource never reaches CnChartWidget on a dashboard
+	// surface (getChartProps only forwards this allowlist), so the fleet's
+	// trend charts silently render empty. `dataSource` is forwarded
+	// separately via the template's :data-source binding (getWidgetDataSource),
+	// so the Wave-3 aggregate/drilldown inside it already flow through.
+	'endpointSource',
 ]
 
 /**
@@ -730,6 +768,7 @@ export default {
 		CnBodySections,
 		CnDateRangePicker,
 		CnActionsMenu,
+		CnActionButtons,
 		CnOpenBuildEditButton,
 		CnWidgetStyleEditorModal,
 	},
@@ -1008,6 +1047,21 @@ export default {
 		dateRange: {
 			type: Object,
 			default: null,
+		},
+		/**
+		 * Optional declarative header actions (#91 Wave 3) rendered as buttons
+		 * in the dashboard header via CnActionButtons — `open-form` (schema
+		 * create dialog), `api-call` (POST/PUT + toast + refresh), `toggle`
+		 * (two-way state button), `navigate` / `open-modal` / `refresh`, each
+		 * with an optional `visibleWhen` predicate. Empty (the default) renders
+		 * nothing; the `#header-actions` slot still works alongside it for
+		 * bespoke buttons.
+		 *
+		 * @type {Array<object>}
+		 */
+		headerActions: {
+			type: Array,
+			default: () => [],
 		},
 		/**
 		 * Optional page-level filter controls rendered in the dashboard header.
@@ -1375,6 +1429,14 @@ export default {
 		 * `layout`) or declarative `content[]` widget-ref items to render.
 		 */
 		hasWidgets() {
+			// Depend on the (always-reactive) edit flag so this computed
+			// re-evaluates when in-app edit mode flips. Manifest arrays are raw
+			// until useManifestEditor.enter() observes them in place — a cache
+			// built pre-edit has no reactive deps and would stay frozen forever,
+			// keeping the empty state on screen after the first Add widget.
+			// Re-evaluating post-enter re-subscribes against the reactive graph.
+			// eslint-disable-next-line no-unused-expressions
+			this.gridEditable
 			return this.layout.length > 0 || this.widgetRefItems.length > 0
 		},
 
@@ -1410,19 +1472,13 @@ export default {
 				type: def.type || '',
 				title: def.title || '',
 				styleConfig: def.styleConfig || {},
-				showTitle: def.showTitle !== false,
+				// Left raw (possibly undefined) so the modal can apply the
+				// card-aware default rather than being handed a coerced `true`.
+				showTitle: def.showTitle,
 				customTitle: def.customTitle || '',
 				customIcon: def.customIcon || '',
 				content,
 			}
-		},
-
-		widgetMap() {
-			const map = {}
-			for (const w of this.widgets) {
-				map[w.id] = w
-			}
-			return map
 		},
 
 		/**
@@ -2023,8 +2079,24 @@ export default {
 			this.$emit('layout-change', this.layout)
 		},
 
+		/**
+		 * Resolve a layout item's widget definition from `widgets[]`.
+		 *
+		 * Deliberately a METHOD, not a cached computed `widgetMap`. The
+		 * `widgets` prop array is mutated IN PLACE by the in-app editor
+		 * (CnOpenBuildEditButton's "Add widget…" pushes onto
+		 * `page.config.widgets`), and a computed over a prop array does not
+		 * subscribe to that array's observer — so the map never invalidated
+		 * and every freshly added widget rendered the `unavailableLabel`
+		 * placeholder (with its raw id as the title) until a full reload.
+		 * A method re-runs on every render, so the lookup cannot go stale.
+		 *
+		 * @param {string} widgetId The layout item's `widgetId`.
+		 * @return {object|null} The matching widget definition, or null.
+		 */
 		getWidgetDef(widgetId) {
-			return this.widgetMap[widgetId] || null
+			const list = Array.isArray(this.widgets) ? this.widgets : []
+			return list.find((w) => w && w.id === widgetId) || null
 		},
 
 		/**
@@ -2154,19 +2226,44 @@ export default {
 		 * `config.widgets` + `config.layout` (the working manifest, by reference)
 		 * and emits the updated layout so consumers persist.
 		 *
+		 * Splices in place rather than emitting fresh arrays. `widgets` / `layout`
+		 * ARE the working manifest's arrays — CnOpenBuildEditButton.onAddWidgetSubmit
+		 * pushes straight into them, and onWidgetConfigSave mutates a def in place —
+		 * so mutation is what actually removes the widget from the page. Filtering
+		 * into new arrays and emitting them only told listeners about the removal,
+		 * and nothing listens (`@widget-remove` has no consumer in the library or in
+		 * OpenBuild), so Delete was a no-op.
+		 *
 		 * @spec openspec/changes/dashboard-widget-system/specs/dashboard-page/spec.md
 		 * @param {object} item Layout item to remove.
 		 */
 		removeWidget(item) {
 			const id = item.widgetId
-			const newLayout = this.layout.filter((l) => l.widgetId !== id)
-			const newWidgets = Array.isArray(this.widgets) ? this.widgets.filter((w) => w.id !== id) : this.widgets
-			this.$emit('layout-change', newLayout)
+			const layoutIndex = this.layout.findIndex((l) => l.widgetId === id)
+			/*
+			 * `layout` and `widgets` are the working manifest's own arrays, passed by
+			 * reference on purpose: the edit button pushes into them to add a widget,
+			 * and onWidgetConfigSave mutates a def in place to save one. Emitting a
+			 * copy instead leaves the manifest untouched — exactly the bug this
+			 * replaces — so the mutation is deliberate here.
+			 */
+			if (layoutIndex !== -1) {
+				// eslint-disable-next-line vue/no-mutating-props
+				this.layout.splice(layoutIndex, 1)
+			}
+			if (Array.isArray(this.widgets)) {
+				const widgetIndex = this.widgets.findIndex((w) => w.id === id)
+				if (widgetIndex !== -1) {
+					// eslint-disable-next-line vue/no-mutating-props
+					this.widgets.splice(widgetIndex, 1)
+				}
+			}
+			this.$emit('layout-change', this.layout)
 			/**
 			 * @event widget-remove Emitted when a widget is removed via the in-place editor.
 			 * @type {{ id: string, widgets: Array }}
 			 */
-			this.$emit('widget-remove', id, newWidgets)
+			this.$emit('widget-remove', id, this.widgets)
 		},
 
 		/**
@@ -2228,6 +2325,46 @@ export default {
 		},
 
 		/**
+		 * Whether a widget's title header renders. Tri-state, resolved from the
+		 * layout placement first, then the widget def. The def fallback matters
+		 * because the in-place style editor persists `showTitle` onto the
+		 * widget def (see onWidgetConfigSave), while hand-written manifests
+		 * may set it on either object — mirrors getWidgetTitle's def fallback.
+		 *
+		 * When neither sets it, the default depends on the family: card widgets
+		 * (stat / gauge / delta) headline themselves via `content.label`, so a
+		 * chrome header would only repeat it — or, when no title was ever set,
+		 * show the raw type name ("stat"). Cards therefore default headerless;
+		 * every other widget defaults to showing the header.
+		 *
+		 * @param {object} item the layout placement.
+		 * @return {boolean}
+		 */
+		widgetShowTitle(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			const value = item.showTitle !== undefined ? item.showTitle : def?.showTitle
+			if (value === undefined || value === null) return !this.isCardWidget(item)
+			return value !== false
+		},
+
+		/**
+		 * Whether a widget's overflow Actions menu renders. Same tri-state +
+		 * layout-then-def resolution as widgetShowTitle, and the same card
+		 * default: cards are the "card" family (docs/architecture/cards-and-widgets.md)
+		 * and carry no Actions menu — a KPI tile has no refreshable surface of
+		 * its own and the menu eats the header width it needs.
+		 *
+		 * @param {object} item the layout placement.
+		 * @return {boolean}
+		 */
+		widgetShowActions(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			const value = item.showActions !== undefined ? item.showActions : def?.showActions
+			if (value === undefined || value === null) return !this.isCardWidget(item)
+			return value !== false
+		},
+
+		/**
 		 * Documentation URL for a widget's overflow Actions menu. Prefers a
 		 * per-widget `documentationUrl` on the widget def, then falls back to
 		 * the page-level `documentationUrl` so every widget on a documented
@@ -2260,11 +2397,13 @@ export default {
 		 * Whether a widget's overflow Actions menu shows the Refresh item.
 		 * An explicit per-widget flag wins — on the widget definition or
 		 * the layout item, as either `hideRefresh: true` or
-		 * `showRefresh: false`. Otherwise the widget inherits the page-level
-		 * `showRefresh` prop, so a dashboard that turns Refresh off (e.g. a
-		 * read-only overview whose widgets have no refetch wired) drops the
-		 * dead Refresh item from every widget menu while keeping
-		 * Request-a-feature.
+		 * `showRefresh: false`. Otherwise custom-slot widgets (which have no
+		 * built-in refetch path) resolve via the `widgetShowRefresh` tri-state
+		 * — the explicit prop, else whether a `@widget-refresh` listener is
+		 * wired (see `effectiveWidgetShowRefresh`) — while built-in widgets
+		 * (chart / NC / integration) inherit the page-level `showRefresh`. So a
+		 * read-only overview whose widgets have no refetch wired drops the dead
+		 * Refresh item from every widget menu while keeping Request-a-feature.
 		 *
 		 * @param {object} item Layout placement entry.
 		 * @return {boolean}
@@ -2274,6 +2413,7 @@ export default {
 			if (def.hideRefresh === true || item.hideRefresh === true) return false
 			if (typeof def.showRefresh === 'boolean') return def.showRefresh
 			if (typeof item.showRefresh === 'boolean') return item.showRefresh
+			if (this.hasWidgetSlot(item.widgetId)) return this.effectiveWidgetShowRefresh
 			return this.showRefresh
 		},
 
@@ -2426,6 +2566,23 @@ export default {
 			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'route', 'iconClass']) {
 				if (props[key] !== undefined) out[key] = props[key]
 			}
+			// Multi-entry mode (ADR-049): prefer `content.entries`, then
+			// `props.entries`. A legacy manifest that declared `entries` at the
+			// widgetDef ROOT (a common opencatalogi shape) was silently dropped
+			// because the dispatcher only forwards `content` — honour it with a
+			// one-time deprecation warning so those cards render while authors
+			// migrate the key under `content`.
+			const contentEntries = content.entries !== undefined ? content.entries : props.entries
+			if (contentEntries !== undefined) {
+				out.entries = contentEntries
+			} else if (Array.isArray(def?.entries)) {
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnDashboardPage] stats-block "${item.widgetId}" declares \`entries\` at the widget-def root — `
+					+ 'move it under `content.entries`. Root-level `entries` is deprecated and will stop being read.',
+				)
+				out.entries = def.entries
+			}
 			return out
 		},
 
@@ -2436,7 +2593,8 @@ export default {
 		 * apexcharts' own reserved `type` prop) and forwards the
 		 * supported subset (`series`, `categories`, `labels`, `options`,
 		 * `colors`, `toolbar`, `legend`, `height`, `width`,
-		 * `unavailableLabel`).
+		 * `unavailableLabel`, plus the display passthrough `horizontal`,
+		 * `legendPosition`, `valueFormat`, `colorMap`, `emptyLabel`).
 		 *
 		 * Unknown keys on `props` (including the reserved `dataSource`
 		 * union) are ignored at render time so manifest authors can ship
@@ -2509,70 +2667,26 @@ export default {
 	color: var(--color-text-maxcontrast);
 }
 
-/* Date-range chip rendered in a chart widget's title bar via the
-   CnWidgetWrapper `#title-meta` slot. Wrapped in an NcActions trigger
-   so clicking opens a popover with preset + from/to inputs — same
-   controls as the global picker, just inline at the chart. */
-.cn-dashboard-page__date-chip-trigger {
-	/* Eat the default NcActions trigger button styling so the only
-	   visible chrome is the chip span itself. */
-	display: inline-flex;
-}
-
-.cn-dashboard-page__date-chip-trigger :deep(.action-item__menutoggle) {
-	min-width: 0;
-	min-height: 0;
-	padding: 0;
-	background: transparent;
-	border: none;
-}
-
-/* The chip text lives in NcActions' icon slot, whose default toggle is
-   sized for a single ~44px icon and clips wider content (the cause of the
-   "8 → 2" truncation). Let the toggle + its icon wrapper grow to the
-   chip's natural width so the full "18 May – 25 May" range reads. */
-.cn-dashboard-page__date-chip-trigger :deep(.button-vue),
-.cn-dashboard-page__date-chip-trigger :deep(.button-vue__wrapper),
-.cn-dashboard-page__date-chip-trigger :deep(.button-vue__icon) {
-	width: auto !important;
-	min-width: 0 !important;
-	overflow: visible !important;
-}
-
-.cn-dashboard-page__date-chip {
-	display: inline-flex;
-	align-items: center;
-	padding: 2px 10px;
-	border-radius: 999px;
-	background: var(--color-background-hover);
-	color: var(--color-text-maxcontrast);
-	font-size: 12px;
-	font-variant-numeric: tabular-nums;
-	white-space: nowrap;
-	cursor: pointer;
-	transition: background 100ms ease;
-}
-
-.cn-dashboard-page__date-chip-trigger:hover .cn-dashboard-page__date-chip,
-.cn-dashboard-page__date-chip-trigger:focus-within .cn-dashboard-page__date-chip {
-	background: var(--color-primary-element-light, var(--color-background-darker));
-	color: var(--color-main-text);
-}
-
-/* Empty span used to keep preset NcActionButtons' label aligned with
-   the row that shows the current-selection CalendarRange icon. NcActionButton
-   icon slot is roughly 20px wide. */
-.cn-dashboard-page__date-chip-preset-spacer {
-	display: inline-block;
-	width: 16px;
-	height: 16px;
-}
+/* NOTE: the date-range chip's trigger/chip/preset-spacer rules live in the
+   UNSCOPED <style> block below, anchored on the trigger's `data-testid`, not
+   here. Consumers (pipelinq, …) split the library across webpack chunks with
+   no shared runtime chunk, so a rendered CnDashboardPage instance can carry a
+   different `data-v-*` scope id than the one baked into this scoped CSS — the
+   scoped chip rules then silently don't match and the chip collapses into
+   NcActions' ~30px icon slot (text wraps to "Last / 30 / days"). The
+   data-testid is stable across chunks, so those rules match regardless. */
 
 .cn-dashboard-page__header-actions {
 	display: flex;
 	gap: 8px;
 	flex-wrap: wrap;
 	flex-shrink: 0;
+	/* Keeps the actions hard right even when a wide action set (pipelinq's six
+	   buttons) wraps onto its own line. The header's `justify-content:
+	   space-between` only distributes items WITHIN a line, so once the actions
+	   wrap they become the sole item on line 2 and would otherwise sit flush
+	   left, under the title. No-op while title and actions share a line. */
+	margin-left: auto;
 }
 
 /* Date-range header band. Kept compact so it doesn't open a tall gap
@@ -2733,12 +2847,70 @@ export default {
 }
 </style>
 
-<!-- Unscoped: the chip's NcActions menu is teleported to <body> (container="body"),
-     so scoped :deep() can't reach it. NcActions forwards the trigger's data-testid
-     onto the popper, so we target it here to (a) give the custom From/To
-     datetime-local inputs comfortable width and (b) keep the menu content from
-     clipping the native picker. -->
+<!-- Unscoped, anchored on the stable `data-testid` NcActions renders on both
+     the trigger and (forwarded) the teleported <body> popper. Everything about
+     the date chip lives here rather than in scoped CSS because a consumer that
+     splits the library across webpack chunks (pipelinq) can render a
+     CnDashboardPage instance whose `data-v-*` scope id differs from the one
+     compiled into the scoped stylesheet — scoped rules then don't match and the
+     chip collapses into NcActions' ~30px icon slot. The data-testid is chunk-
+     stable, so these rules always match. Classes stay `cn-`-prefixed so the
+     unscoped rules can't collide with anything outside this widget. -->
 <style>
+/* Trigger: strip NcActions' default button chrome down to just the chip span. */
+[data-testid^="cn-dashboard-page-date-chip-"].cn-dashboard-page__date-chip-trigger {
+	display: inline-flex;
+}
+
+[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle {
+	min-width: 0;
+	min-height: 0;
+	padding: 0;
+	background: transparent;
+	border: none;
+}
+
+/* The chip text lives in NcActions' icon slot, whose default toggle is sized
+   for a single ~44px icon and clips/wraps wider content. Let the toggle + its
+   icon wrapper grow to the chip's natural width so "Last 30 days" reads on one
+   line. */
+[data-testid^="cn-dashboard-page-date-chip-"] .button-vue,
+[data-testid^="cn-dashboard-page-date-chip-"] .button-vue__wrapper,
+[data-testid^="cn-dashboard-page-date-chip-"] .button-vue__icon {
+	width: auto !important;
+	min-width: 0 !important;
+	overflow: visible !important;
+}
+
+.cn-dashboard-page__date-chip {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 10px;
+	border-radius: 999px;
+	background: var(--color-background-hover);
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: background 100ms ease;
+}
+
+[data-testid^="cn-dashboard-page-date-chip-"]:hover .cn-dashboard-page__date-chip,
+[data-testid^="cn-dashboard-page-date-chip-"]:focus-within .cn-dashboard-page__date-chip {
+	background: var(--color-primary-element-light, var(--color-background-darker));
+	color: var(--color-main-text);
+}
+
+/* Empty span keeping preset NcActionButtons' labels aligned with the row that
+   shows the current-selection CalendarRange icon (NcActionButton icon slot is
+   ~20px). Lives in the teleported popper, so it's unscoped too. */
+.cn-dashboard-page__date-chip-preset-spacer {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+}
+
 .action-item__popper[data-testid^="cn-dashboard-page-date-chip-"] .v-popper__inner,
 [data-testid^="cn-dashboard-page-date-chip-"].v-popper__popper .v-popper__inner {
 	overflow: visible;

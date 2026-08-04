@@ -61,8 +61,13 @@ Date/UUID — formatted with monospace styling:
 
 Column formatter — when a `formatter` id is set and resolves in the injected
 `cnFormatters` registry (provided by `CnAppRoot`), the cell renders
-`cnFormatters[formatter](value, row, property)` as text, overriding the
-type-aware paths above. `CnDataTable` passes `:formatter="col.formatter"` and
+`cnFormatters[formatter](value, row, property, formatterOptions)` as text,
+overriding the type-aware paths above. The `formatterOptions` prop is the
+column's declarative options map passed as the formatter's fourth argument
+(e.g. `{ currency: 'USD' }` for the built-in `currency` formatter, or the
+`{ negative, zero, positive }` phrases for `conditionalPhrase`) — additive,
+three-argument formatters simply ignore it. `CnDataTable` passes
+`:formatter="col.formatter"`, `:formatter-options="col.formatterOptions"`, and
 `:row="row"` for schema columns; for manual columns it runs the value through
 `formatCell(row, col)`. Unknown ids / a missing registry / a throwing formatter
 fall back to the normal rendering. See `docs/migrating-to-manifest.md` →
@@ -81,7 +86,7 @@ fall back to the normal rendering. See `docs/migrating-to-manifest.md` →
 > `cnFormatters: { automationTrigger: v => ({ 'lead.created': 'Lead created' }[v] ?? v) }`);
 > standalone (no provider) it falls back to rendering the raw value.
 
-Column widget — `widget="badge"` and `widget="link"` are built-in; any other id resolves against the app's `cellWidgets` registry (`CnAppRoot`'s `cellWidgets` prop → `cnCellWidgets`), and that component receives `{ value, row, property, formatted, ...widgetProps }`. `widget` takes precedence over `formatter`; when both are set the widget gets the formatter-shaped value as `formatted`. See `docs/migrating-to-manifest.md` → "Column widgets" + "Built-in cell formatters / widgets".
+Column widget — `widget="badge"`, `widget="fkResolve"` (uuid → related object label via the shared object store with per-schema caching; config `widgetProps { register, schema, labelField }`), and `widget="link"` are built-in; any other id resolves against the app's `cellWidgets` registry (`CnAppRoot`'s `cellWidgets` prop → `cnCellWidgets`), and that component receives `{ value, row, property, formatted, ...widgetProps }`. `widget` takes precedence over `formatter`; when both are set the widget gets the formatter-shaped value as `formatted`. See `docs/migrating-to-manifest.md` → "Column widgets" + "Built-in cell formatters / widgets".
 
 - `widget="badge"` — `CnStatusBadge` pill; `widgetProps.variant` picks the colour.
 - `widget="link"` — `<router-link>` when `widgetProps.route` is a manifest page id; `<a target="_blank">` when `widgetProps.href` is set (with `{key}` placeholders substituted from the row); plain text + once-per-session `console.warn` when neither resolves (silence with `widgetProps.fallback:"silent"`). For non-`id` route params: `widgetProps.params: { routeParam: "rowField" }`. Default param map is `{ id: row[rowKey] }` — see the `row-key` prop below.

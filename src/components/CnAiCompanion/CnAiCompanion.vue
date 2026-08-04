@@ -2,7 +2,7 @@
   CnAiCompanion — top-level mount for the AI Chat Companion widget.
 
   On created():
-  - Issues GET /index.php/apps/openregister/api/chat/health via axios.
+  - Issues GET /index.php/apps/{chatAppId}/api/chat/health via axios.
   - Renders nothing on non-2xx, network error, or timeout (5s).
   - Probe result cached for component lifetime.
   - Only console.info() on failure (never warn/error).
@@ -23,6 +23,7 @@
 			ref="panel"
 			:visible="isPanelOpen"
 			:stream-state="stream.state"
+			:chat-app-id="chatAppId"
 			:fab-ref="$refs.fabButton"
 			@close="closePanel"
 			@send="onSend"
@@ -34,10 +35,10 @@
 <script>
 import axios from '@nextcloud/axios'
 import { useAiChatStream } from '../../composables/useAiChatStream.js'
+import { DEFAULT_CHAT_APP_ID, chatHealthUrl } from '../../composables/aiChatConfig.js'
 import CnAiFloatingButton from './CnAiFloatingButton.vue'
 import CnAiChatPanel from './CnAiChatPanel.vue'
 
-const HEALTH_URL = '/index.php/apps/openregister/api/chat/health'
 const HEALTH_TIMEOUT = 5000
 
 export default {
@@ -61,13 +62,27 @@ export default {
 			type: String,
 			default: 'bottom-right',
 		},
+		/**
+		 * Backend app id that answers the chat/health/conversation HTTP calls
+		 * (`/index.php/apps/{chatAppId}/api/...`). Single configuration point for
+		 * the AI Chat Companion's backend — see composables/aiChatConfig.js.
+		 * Defaults to `hermiq` (the agent engine's home per hydra ADR-034
+		 * "Amendment 2026-07-05"); `CnAppRoot` forwards its own `chatAppId`
+		 * prop here so a consuming app can point the widget at another backend
+		 * (e.g. `openregister` during its compat window) in one place.
+		 * @type {string}
+		 */
+		chatAppId: {
+			type: String,
+			default: DEFAULT_CHAT_APP_ID,
+		},
 	},
 
 	data() {
 		return {
 			probeSucceeded: false,
 			isPanelOpen: false,
-			stream: useAiChatStream(this),
+			stream: useAiChatStream(this, { chatAppId: this.chatAppId }),
 		}
 	},
 
@@ -85,14 +100,14 @@ export default {
 	methods: {
 		async runHealthProbe() {
 			try {
-				const response = await axios.get(HEALTH_URL, {
+				const response = await axios.get(chatHealthUrl(this.chatAppId), {
 					timeout: HEALTH_TIMEOUT,
 					validateStatus: (status) => status >= 200 && status < 300,
 				})
 				this.probeSucceeded = response.status >= 200 && response.status < 300
 			} catch {
 				// eslint-disable-next-line no-console
-				console.info('[CnAiCompanion] OpenRegister health probe did not return 2xx — widget hidden')
+				console.info(`[CnAiCompanion] chat backend "${this.chatAppId}" health probe did not return 2xx — widget hidden`)
 				this.probeSucceeded = false
 			}
 		},
@@ -110,8 +125,8 @@ export default {
 			this.isPanelOpen = false
 		},
 
-		onSend(text) {
-			this.stream.send(text).catch((err) => {
+		onSend(text, agentUuid, attachments) {
+			this.stream.send(text, { agentUuid, attachments }).catch((err) => {
 				// Stream errors are tracked in stream.state.error — no extra handling needed
 				// eslint-disable-next-line no-console
 				console.info('[CnAiCompanion] send error:', err?.message)

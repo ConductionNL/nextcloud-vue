@@ -27,10 +27,30 @@
  *   Concurrent calls to fetchObject(type, id) or fetchCollection(type, params)
  *   for the same key are coalesced into one HTTP request. The dedup maps live as
  *   plain (non-reactive) Maps on the store instance to avoid Vue 2 overhead.
+ *   Dedup activates on the FIRST `subscribe()` call — before that, fetch actions
+ *   pass straight through to the base implementations. This keeps the plugin
+ *   fully inert (zero behaviour change) on stores that never subscribe, which
+ *   matters now that createObjectStore installs this plugin by default
+ *   (live-updates-default-on).
+ *
+ * Laziness guarantee:
+ *   Installing the plugin causes NO transport activity. The transport singleton
+ *   (and therefore the notify_push `listen()` probe / websocket connection /
+ *   polling timers) is only created inside the `subscribe()` action.
+ *
+ * Event coalescing:
+ *   Live events are HINTS ("something changed"), not payloads — each one
+ *   triggers a refetch. A burst of events (mass import, bulk save, another
+ *   user's rapid edits) would fire a refetch per event, so the dispatch is
+ *   coalesced per subscription: the FIRST event refetches immediately, and
+ *   any further events inside the `refetchDebounce` window (default 750 ms)
+ *   collapse into ONE trailing refetch when the window closes. Pending
+ *   trailing refetches are cancelled by `unsubscribe()`.
  *
  * @param {object} [opts] Plugin options
  * @param {number} [opts.pollIntervalCollection=30000] Collection poll interval (ms)
  * @param {number} [opts.pollIntervalObject=60000]     Object poll interval (ms)
+ * @param {number} [opts.refetchDebounce=750]          Event-burst coalescing window (ms); 0 disables
  * @return {object} Plugin definition for use with createObjectStore
  *
  * @example
@@ -83,9 +103,57 @@ function objectDedupKey(type, id) {
 	return `${type}:${id}`
 }
 
+/**
+ * Wrap a refetch dispatcher in a leading+trailing burst coalescer.
+ *
+ * Events are hints, so the exact invocation count doesn't matter — only
+ * that the data ends up fresh. The first `run()` dispatches immediately
+ * (snappy single-event case); further `run()`s inside the `waitMs` window
+ * collapse into one trailing dispatch when the window closes (which opens
+ * a new window, so a sustained burst dispatches at most once per window).
+ * `cancel()` clears any pending trailing dispatch — called on
+ * unsubscribe so a torn-down subscription never fires a late refetch.
+ *
+ * @param {Function} fn The refetch dispatcher.
+ * @param {number} waitMs Coalescing window in ms; `<= 0` disables (every run dispatches).
+ * @return {{run: Function, cancel: Function}} The coalesced dispatcher.
+ */
+function createHintCoalescer(fn, waitMs) {
+	let timer = null
+	let pending = false
+
+	function run() {
+		if (!(waitMs > 0)) {
+			fn()
+			return
+		}
+		if (timer) {
+			pending = true
+			return
+		}
+		fn()
+		timer = setTimeout(() => {
+			timer = null
+			if (pending) {
+				pending = false
+				run()
+			}
+		}, waitMs)
+	}
+
+	function cancel() {
+		if (timer) clearTimeout(timer)
+		timer = null
+		pending = false
+	}
+
+	return { run, cancel }
+}
+
 export function liveUpdatesPlugin(opts = {}) {
 	const pluginPollCollection = opts.pollIntervalCollection || 30000
 	const pluginPollObject = opts.pollIntervalObject || 60000
+	const pluginRefetchDebounce = opts.refetchDebounce === undefined ? 750 : opts.refetchDebounce
 
 	return {
 		name: 'liveUpdates',
@@ -103,7 +171,7 @@ export function liveUpdatesPlugin(opts = {}) {
 			/**
 			 * Get the current transport status.
 			 *
-			 * @param {object} state
+			 * @param {object} state Pinia state
 			 * @return {string}
 			 */
 			getLiveStatus: (state) => state.liveStatus,
@@ -111,7 +179,7 @@ export function liveUpdatesPlugin(opts = {}) {
 			/**
 			 * Get the number of active subscriptions.
 			 *
-			 * @param {object} state
+			 * @param {object} state Pinia state
 			 * @return {number}
 			 */
 			getLiveSubscriptions: (state) => state.liveSubscriptions,
@@ -119,7 +187,7 @@ export function liveUpdatesPlugin(opts = {}) {
 			/**
 			 * Get the timestamp of the last received live event.
 			 *
-			 * @param {object} state
+			 * @param {object} state Pinia state
 			 * @return {Date|null}
 			 */
 			getLiveLastEventAt: (state) => state.liveLastEventAt,
@@ -149,6 +217,11 @@ export function liveUpdatesPlugin(opts = {}) {
 				if (!config) {
 					throw new Error(`"${type}" is not registered. Call registerObjectType('${type}', ...) first.`)
 				}
+
+				// First subscribe() activates the in-flight dedup wrappers set
+				// up in the plugin's setup() hook. Before this point the store
+				// behaves exactly as if the plugin were not installed.
+				this.__liveDedupActive = true
 
 				const liveUpdates = getLiveUpdates({
 					pollIntervalCollection: pluginPollCollection,
@@ -214,18 +287,26 @@ export function liveUpdatesPlugin(opts = {}) {
 
 				const store = this
 
-				const callback = isObject
+				// Events are hints — coalesce refetch bursts per subscription
+				// (see "Event coalescing" in the module docblock). A per-call
+				// `subscribeOpts.debounce` overrides the plugin default; 0 disables.
+				const debounceMs = subscribeOpts.debounce === undefined ? pluginRefetchDebounce : subscribeOpts.debounce
+				const dispatch = isObject
 					? () => {
-						store.liveLastEventAt = new Date()
 						// Dispatch fetchObject with dedup
 						store.fetchObject(type, id)
 					}
 					: () => {
-						store.liveLastEventAt = new Date()
 						// Dispatch fetchCollection with last stashed params + dedup
 						const lastParams = store.__lastCollectionParams?.get(type) || {}
 						store.fetchCollection(type, lastParams)
 					}
+				const coalesced = createHintCoalescer(dispatch, debounceMs)
+
+				const callback = () => {
+					store.liveLastEventAt = new Date()
+					coalesced.run()
+				}
 
 				const transportOpts = {
 					isObject,
@@ -249,6 +330,9 @@ export function liveUpdatesPlugin(opts = {}) {
 					id,
 					eventKey,
 					transportHandle,
+					// Cancels a pending coalesced (trailing) refetch — called by
+					// unsubscribe() so a torn-down subscription never fires late.
+					_cancelPendingRefetch: coalesced.cancel,
 				}
 
 				// Auto-cleanup via tryOnScopeDispose (Vue 2.7 composition API scopes)
@@ -266,12 +350,23 @@ export function liveUpdatesPlugin(opts = {}) {
 			},
 
 			/**
-			 * Unsubscribe from live updates.
+			 * Unsubscribe from live updates. Idempotent — releasing the same
+			 * handle twice (e.g. the plugin's own scope-dispose cleanup racing
+			 * a composable's explicit detach) is a no-op the second time, so
+			 * `liveSubscriptions` never double-decrements.
 			 *
 			 * @param {object} handle Handle returned by subscribe()
 			 */
 			unsubscribe(handle) {
-				if (!handle || !handle._livePlugin) return
+				if (!handle || !handle._livePlugin || handle._released) return
+				handle._released = true
+
+				// Cancel any pending coalesced refetch before tearing down the
+				// transport subscription — a late trailing dispatch after
+				// unsubscribe would refetch for a scope nobody renders anymore.
+				if (typeof handle._cancelPendingRefetch === 'function') {
+					handle._cancelPendingRefetch()
+				}
 
 				const liveUpdates = getLiveUpdates()
 				liveUpdates.unsubscribe(handle.transportHandle)
@@ -289,6 +384,12 @@ export function liveUpdatesPlugin(opts = {}) {
 		 * @param {object} store The Pinia store instance
 		 */
 		setup(store) {
+			// Dedup activation flag — flipped to true by the first subscribe()
+			// call. Until then the fetch wrappers below pass straight through,
+			// so a default-installed plugin causes zero behaviour change on
+			// stores that never subscribe (live-updates-default-on).
+			store.__liveDedupActive = false
+
 			// -- Last-params stash for collection re-fetch on events --
 			// Plain (non-reactive) Map: type → last params object
 			store.__lastCollectionParams = new Map()
@@ -308,6 +409,9 @@ export function liveUpdatesPlugin(opts = {}) {
 
 			const originalFetchObject = store.fetchObject.bind(store)
 			store.fetchObject = async function dedupedFetchObject(type, id) {
+				if (!store.__liveDedupActive) {
+					return originalFetchObject(type, id)
+				}
 				const key = objectDedupKey(type, id)
 				if (objectInFlight.has(key)) {
 					return objectInFlight.get(key)
@@ -324,6 +428,9 @@ export function liveUpdatesPlugin(opts = {}) {
 
 			const originalFetchCollection = store.fetchCollection.bind(store)
 			store.fetchCollection = async function dedupedFetchCollection(type, params = {}) {
+				if (!store.__liveDedupActive) {
+					return originalFetchCollection(type, params)
+				}
 				const key = collectionDedupKey(type, params)
 				if (collectionInFlight.has(key)) {
 					return collectionInFlight.get(key)

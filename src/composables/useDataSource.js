@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: 2026 Conduction B.V.
 
-import { computed, isRef, ref } from 'vue'
+import { computed, getCurrentInstance, inject, isRef, ref } from 'vue'
 import { useGraphQL, selectByPath } from './useGraphQL.js'
+import { useBrokeredCall } from './useBrokeredCall.js'
 
 /**
  * GraphQL `TimeInterval` enum values, kept in sync with OR's
@@ -44,6 +45,21 @@ const AGGREGATION_METRICS = ['COUNT', 'SUM', 'AVG', 'MIN', 'MAX']
  *     `data.value`. Use this when you need richer aggregates than
  *     `count` (chart series, breakdowns, ...).
  *
+ * - **Brokered** (`{ broker: { credentialId, provider?, method?, path,
+ *     query?, headers?, body?, responsePath? } }`)
+ *   - Routes to {@link useBrokeredCall} instead of GraphQL: fetches from an
+ *     external provider THROUGH the OpenRegister credential broker
+ *     (`POST /apps/openregister/api/credentials/{credentialId}/session-request`),
+ *     so a no-code manifest app renders authenticated third-party API data
+ *     without ever handling the secret. `data.value` is the parsed upstream
+ *     body (JSON when it looks like JSON), optionally sliced by `responsePath`.
+ *   - The broker needs the manifest app id (it must be in the credential's
+ *     `allowedApps`). It comes from `options.appId` when given, otherwise
+ *     from the `cnAppId` provide `CnAppRoot` installs — resolved
+ *     automatically when the composable runs inside a component setup.
+ *   - `provider` is advisory metadata for the manifest/editor only; the
+ *     broker resolves the upstream base URL from the credential server-side.
+ *
  * Backwards-compat: when `dataSource` is `null`/`undefined` the
  * composable returns nulls and never queries — callers should also
  * accept static fallback props (`series`, `count`, …).
@@ -59,6 +75,10 @@ const AGGREGATION_METRICS = ['COUNT', 'SUM', 'AVG', 'MIN', 'MAX']
  *   Reactive date-range source feeding the bucket shorthand's
  *   `fromVar` / `toVar` variables. Typically the consumer wires
  *   `inject('cnDashboardDateRange', ref(null))` into this slot.
+ * @param {string} [options.appId] Manifest app id for the **brokered** form.
+ *   Overrides the injected `cnAppId`. Required (via either source) when the
+ *   dataSource carries a `broker` block — the broker enforces it against the
+ *   credential's `allowedApps`.
  * @return {{ data: import('vue').Ref<object|null>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<Error|null>, refetch: () => Promise<void> }}
  *   Reactive resolution state.
  */
@@ -76,6 +96,36 @@ export function useDataSource(dataSource, options = {}) {
 		const r = options.range
 		return isRef(r) ? r.value : (typeof r === 'function' ? r() : r)
 	})
+
+	// Manifest app id for the brokered form. `options.appId` wins; otherwise
+	// read CnAppRoot's `cnAppId` provide. Guarded by getCurrentInstance() so a
+	// bare (non-component) call — unit tests, imperative use — doesn't warn.
+	const injectedAppId = getCurrentInstance() ? inject('cnAppId', null) : null
+	const appId = computed(() => {
+		const o = options.appId
+		const explicit = isRef(o) ? o.value : (typeof o === 'function' ? o() : o)
+		if (explicit) return explicit
+		return (isRef(injectedAppId) ? injectedAppId.value : injectedAppId) || null
+	})
+
+	// Brokered discriminant: a `broker` block routes to useBrokeredCall instead
+	// of GraphQL. Null (and thus a no-op) for every other dataSource shape.
+	const brokerConfig = computed(() => {
+		const s = ds.value
+		if (!s || !s.broker) return null
+		const b = s.broker
+		return {
+			credentialId: b.credentialId,
+			appId: appId.value,
+			method: b.method || 'GET',
+			path: b.path,
+			query: b.query,
+			headers: b.headers,
+			body: b.body,
+			responsePath: b.responsePath,
+		}
+	})
+	const isBroker = computed(() => !!(ds.value && ds.value.broker))
 
 	// `bucketError` surfaces synchronous validation issues
 	// (unknown interval, missing metricField) without firing a
@@ -124,17 +174,27 @@ export function useDataSource(dataSource, options = {}) {
 	const variables = computed(() => queryAndVars.value.variables)
 	const selectors = computed(() => resolveSelectors(ds.value))
 
-	const { data: rawData, loading, error: gqlError, refetch } = useGraphQL(query, variables, {
+	const { data: rawData, loading: gqlLoading, error: gqlError, refetch: gqlRefetch } = useGraphQL(query, variables, {
 		immediate: false,
 	})
 
-	// One-shot bootstrap when the input arrives synchronously. Reactive
-	// inputs (refs) are handled by useGraphQL's internal watchers.
-	if (query.value) refetch()
+	// Brokered branch — a no-op (config null) for every non-broker shape, so it
+	// coexists with the GraphQL branch exactly the way the GraphQL query goes
+	// null for the broker shape. Reactive `brokerConfig` changes are watched
+	// inside useBrokeredCall.
+	const brokered = useBrokeredCall(brokerConfig, { immediate: false })
 
-	const error = computed(() => bucketError.value || gqlError.value)
+	// One-shot bootstrap when the input arrives synchronously. Reactive inputs
+	// (refs) are handled by each composable's internal watchers.
+	if (query.value) gqlRefetch()
+	if (brokerConfig.value) brokered.refetch()
+
+	const loading = computed(() => (isBroker.value ? brokered.loading.value : gqlLoading.value))
+	const error = computed(() => (isBroker.value ? brokered.error.value : (bucketError.value || gqlError.value)))
+	const refetch = () => (isBroker.value ? brokered.refetch() : gqlRefetch())
 
 	const data = computed(() => {
+		if (isBroker.value) return brokered.data.value
 		if (!rawData.value || !selectors.value) return null
 		const out = {}
 		for (const [key, path] of Object.entries(selectors.value)) {

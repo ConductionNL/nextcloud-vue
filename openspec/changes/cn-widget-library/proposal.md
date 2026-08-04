@@ -1,6 +1,6 @@
 ## Why
 
-LaunchPad/MyDash owns a rich, self-contained dashboard widget catalog — 21 widget types, an Add-widget modal, a `widgetRegistry.js` single-source-of-truth, a `useWidgetForm` composable, and the widget chrome (wrapper, style editor, visibility rules). None of it is reusable: every other Conduction app that wants drag-and-drop, configurable dashboard widgets (via the v2 manifest renderer or the sibling `cn-openbuild-edit-shell` edit mode) would have to copy it. Moving the catalog into `@conduction/nextcloud-vue` makes the same widgets available fleet-wide, composes cleanly with the library's existing `BUILT_IN_WIDGETS` v2 registry, and lets MyDash become a thin consumer instead of the owner.
+LaunchPad owns a rich, self-contained dashboard widget catalog — 21 widget types, an Add-widget modal, a `widgetRegistry.js` single-source-of-truth, a `useWidgetForm` composable, and the widget chrome (wrapper, style editor, visibility rules). None of it is reusable: every other Conduction app that wants drag-and-drop, configurable dashboard widgets (via the v2 manifest renderer or the sibling `cn-openbuild-edit-shell` edit mode) would have to copy it. Moving the catalog into `@conduction/nextcloud-vue` makes the same widgets available fleet-wide, composes cleanly with the library's existing `BUILT_IN_WIDGETS` v2 registry, and lets LaunchPad become a thin consumer instead of the owner.
 
 ## What Changes
 
@@ -13,7 +13,7 @@ LaunchPad/MyDash owns a rich, self-contained dashboard widget catalog — 21 wid
 - **NEW** `useWidgetForm` composable + the `MenuItemEditor`, `TextTableEditor`, and `NcWidgetGridPicker` sub-editors moved to the library.
 - **MODIFIED** widget chrome: the existing `CnWidgetWrapper` is reused (not duplicated) for header/actions; the style editor and visibility-rules surfaces move to the library as `CnWidgetStyleEditorModal` and `CnWidgetVisibilityRulesModal` under `src/modals/`.
 - **MODIFIED** library barrel + docs + jsdoc baselines + registry composition in `grid-widget-system` to cover the new component surface.
-- **Backwards-compat**: LaunchPad/MyDash re-imports all of the above from `@conduction/nextcloud-vue` instead of its local copies. No breaking change to any existing v2 widget key (`object-table`, `form-renderer`, `map-viewer`, `card-grid`, `data`, `metadata`, `related`, `integration`).
+- **Backwards-compat**: LaunchPad re-imports all of the above from `@conduction/nextcloud-vue` instead of its local copies. No breaking change to any existing v2 widget key (`object-table`, `form-renderer`, `map-viewer`, `card-grid`, `data`, `metadata`, `related`, `integration`).
 
 ## Capabilities
 
@@ -29,4 +29,4 @@ LaunchPad/MyDash owns a rich, self-contained dashboard widget catalog — 21 wid
 
 - **Library (`@conduction/nextcloud-vue`)**: ~42 new component files (21 renderers + 21 forms) plus 3 modals, 1 composable, 2 sub-editors, the registry module, barrel entries in `src/components/index.js` + `src/index.js`, per-component docs (`check:docs`), jsdoc baselines at 100% for new exports. Bundle size grows; widgets must stay tree-shakeable (`sideEffects` discipline) and lazy where they pull `@nextcloud/*` helpers.
 - **Dependencies**: `gridstack` is already a library dep (used by CnDashboardGrid); the container widget's recursive sub-grid relies on it. No new sibling-app dependency is introduced — spend-analytics reads its data through an injected/prop data source.
-- **Consumers**: MyDash/LaunchPad becomes a consumer (re-import, delete local copies); OpenRegister, OpenCatalogi, Procest, Pipelinq gain the catalog via the manifest renderer + `cn-openbuild-edit-shell`. All NC CSS-variable / `cn-` prefix / lib `t()` conventions apply.
+- **Consumers**: LaunchPad becomes a consumer (re-import, delete local copies); OpenRegister, OpenCatalogi, Procest, Pipelinq gain the catalog via the manifest renderer + `cn-openbuild-edit-shell`. All NC CSS-variable / `cn-` prefix / lib `t()` conventions apply.

@@ -50,20 +50,20 @@
 		     without their own colours). -->
 		<label class="cn-link-button-widget-form__color-label">
 			{{ t('nextcloud-vue', 'Background color') }}
-			<input
-				type="color"
-				:value="backgroundColor || '#0070c0'"
-				class="cn-link-button-widget-form__color"
-				@input="updateField('backgroundColor', $event.target.value)">
+			<CnColorPicker
+				:value="backgroundColor"
+				clearable
+				@input="updateField('backgroundColor', $event.hex)"
+				@clear="updateField('backgroundColor', '')" />
 		</label>
 
 		<label class="cn-link-button-widget-form__color-label">
 			{{ t('nextcloud-vue', 'Text color') }}
-			<input
-				type="color"
-				:value="textColor || '#ffffff'"
-				class="cn-link-button-widget-form__color"
-				@input="updateField('textColor', $event.target.value)">
+			<CnColorPicker
+				:value="textColor"
+				clearable
+				@input="updateField('textColor', $event.hex)"
+				@clear="updateField('textColor', '')" />
 		</label>
 
 		<!-- List-mode editor. -->
@@ -180,6 +180,7 @@
 import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 
 const ACTION_TYPES = Object.freeze({
 	EXTERNAL: 'external',
@@ -270,6 +271,7 @@ export default {
 		NcTextField,
 		NcSelect,
 		CnIconBrowser,
+		CnColorPicker,
 	},
 
 	props: {

@@ -39,9 +39,14 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `selectable` | Boolean | `true` | Enable row selection checkboxes |
 | `rowClickToView` | Boolean | `false` | When true, a row/card click emits `row-click` (to open/navigate) even while `selectable` — selection then via the checkbox only. Manifest-driven pages set this automatically when a matching detail page exists. |
 | `selectedIds` | Array | `[]` | Currently selected IDs |
-| `viewMode` | String | `'table'` | `'table'` or `'cards'` |
+| `viewMode` | String | `'table'` | `'table'`, `'cards'`, or `'map'`. The `'map'` mode is only offered when the page opts in — see [Map view mode](#map-view-mode). |
+| `mapConfig` | Object | `\{\}` | Marker geometry mapping for the opt-in [map view mode](#map-view-mode), mirroring manifest `config.map` 1:1: `\{ latField, lngField, geoField?, popupField?, center? \}`. When non-empty (and not excluded by `viewModes`), a third "Map" toggle segment appears. `latField`/`lngField` are object (or `@self`) property paths (dotted paths supported); `geoField` is an alternative GeoJSON Point property that wins over lat/lng; `center` is a `[lat, lng]` fallback for an empty set. |
+| `mapLabel` | String | `''` | Label for the map view-toggle segment (defaults to "Map"). Fed from `pages[].config.mapLabel`. |
+| `mapIcon` | String | `''` | MDI icon name for the map view-toggle segment (defaults to the built-in map-marker icon). |
+| `viewModes` | Array | `null` | Explicit whitelist of toggle segments to offer, e.g. `['table', 'cards', 'map']`. Fed from `pages[].config.viewModes`. When set it takes precedence over inferred availability (map otherwise appears iff `mapConfig` is non-empty). |
 | `sortKey` | String | `null` | Current sort column key. `null` means no column is actively sorted. |
 | `sortOrder` | String | `'asc'` | `'asc'`, `'desc'`, or `null` (no sort) |
+| `sortKeys` | Array | `[]` | External/host-controlled multi-column sort key list, `[{ key, order }, …]`; mirrors `sortKey`/`sortOrder` for shift+click multi-sort. In self-fetch mode the active multi-sort is instead persisted to and restored from `$route.query._order`. |
 | `defaultSort` | Array | `[]` | Default multi-key **client-side** sort applied to the already-loaded rows whenever no explicit column sort is active (no `sortKey`). Each entry is `\{ field, order? \}` with `order` one of `'asc'` / `'desc'` (default `'asc'`); rows compare by the first field, ties broken by the next, etc. (type-aware: numbers numerically, dates by timestamp, else `localeCompare`; empties sort last). Clicking a sortable header takes over and suppresses this default. Fed from `pages[].config.defaultSort`. Useful for a fixed presentation order such as group-by-type-then-name. |
 | `rowKey` | String | `'id'` | Unique row identifier field |
 | `rowIcon` | String \| Function | `null` | Optional leading icon for every table row — a static MDI icon name or `(row) => iconName`. Forwarded to `CnDataTable`. Fed from the manifest as `pages[].config.rowIcon`. |
@@ -60,6 +65,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showMassExport` | Boolean | `true` | Show mass export action |
 | `showMassCopy` | Boolean | `true` | Show mass copy action |
 | `showMassDelete` | Boolean | `true` | Show mass delete action |
+| `allowExport` | Boolean | `false` | Opt-in flag for the native Export menu (CSV/Excel) rendered next to the Add button. Renders only when `true` AND the resolved schema is flagged `exportable: true`; navigates to `GET /apps/openregister/api/objects/{register}/{schema}/export`, passing `$route.query` through as filters. Distinct from `showMassExport`, which exports the fetched/selected rows via a blob download instead. |
+| `allowSavedViews` | Boolean | `false` | Opt-in flag for the saved-views control (saved-views-ui): a Views dropdown listing the user's OpenRegister saved-search views (`GET /apps/openregister/api/views`). Applying a view writes its stored filters/search/sort into the route query (non-underscore keys are filters; `_search`/`_sortKey`/`_sortOrder` are reserved); "Save current view…" persists the current route-query state via `POST /apps/openregister/api/views`; own views can be deleted after confirmation. Emits `apply-view` when a view is applied. |
 | `massActionNameField` | String | `'title'` | Field for display names in mass action dialogs |
 | `nameFormatter` | Function | `null` | Optional function `(item) => string` to format item names in dialogs. Overrides `massActionNameField` when provided. Passed to all delete and copy dialogs. |
 | `exportFormats` | Array | `[]` | Available export formats |
@@ -78,6 +85,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showAdd` | Boolean | `true` | Show the Add button in the actions bar |
 | `addDisabled` | Boolean | `false` | Disable the Add button (e.g. when required selections are missing) |
 | `refreshDisabled` | Boolean | `false` | Disable the refresh button (e.g. when required selections are missing) |
+| `subscribe` | Boolean | `true` | [Self-fetch mode](#self-fetch-mode) only — auto-subscribe to live collection updates for the page's register/schema scope and refetch (coalesced) on remote changes. Set `false` (manifest: `config.subscribe: false`) for static views. See [Live updates](#live-updates--collection-subscription). |
 | `showViewToggle` | Boolean | `true` | Show table/card view toggle |
 | `inlineSearch` | Boolean | `false` | Show an inline search field in the actions bar (manifest: `config.inlineSearch`) |
 | `filterMenu` | Boolean | `false` | Show a filter menu (funnel) in the table header listing each enum/badge column's values as toggleable facet filters (manifest: `config.filterMenu`) |
@@ -109,7 +117,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `mass-export` | `\{ ids, format \}` | Mass export confirmed |
 | `mass-import` | `importData` | Mass import confirmed |
 | `refresh` | — | Refresh button clicked |
-| `row-click` | `row` | Row or card clicked. **Only fires when `selectable` is `false`** — when `selectable` is `true`, a deliberate click anywhere on a row/card toggles its selection (emitting `select`) instead — a text-selection drag is not treated as a click. Conceptually distinct from `view`; for click-to-open in a selectable list, use the built-in View action (`@view`). |
+| `row-click` | `row` | Row, card, **or map marker** clicked. **Only fires when `selectable` is `false`** — when `selectable` is `true`, a deliberate click anywhere on a row/card toggles its selection (emitting `select`) instead — a text-selection drag is not treated as a click. In the [map view mode](#map-view-mode) a marker click resolves back to its source row and emits the identical payload, so detail-page navigation is uniform across table, cards, and map. Conceptually distinct from `view`; for click-to-open in a selectable list, use the built-in View action (`@view`). |
 | `view` | `row` | Built-in View row action triggered. Conceptually "open the detail view of this row". For a non-selectable list bind alongside `row-click` (same handler) for click-to-view; for a **selectable** list, plain clicks toggle selection, so use `@view` (the eye action) as the open-detail affordance. |
 | `sort` | `\{ key, order \}` | Sort changed. Cycles through `asc → desc → null` (disabled). When cleared, both `key` and `order` are `null`. |
 | `page-changed` | `pageNum` | Pagination page changed |
@@ -120,6 +128,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `columns-change` | `keys[]` | Visible columns changed in the embedded sidebar (only emitted when `sidebar.enabled`). |
 | `filter-change` | `\{ key, values \}` | Facet filter changed in the embedded sidebar (only emitted when `sidebar.enabled`). |
 | `quick-filter-change` | `index` | Zero-based active tab index changed (only emitted when `quickFilters` is set). The fetch is automatically triggered — listen for observability / analytics. |
+| `apply-view` | `view` | A saved view was applied via the Views dropdown (only emitted when `allowSavedViews`). The route query has already been replaced with the view's stored state — listen for observability / analytics. |
 
 ## Slots
 
@@ -369,9 +378,71 @@ Form save (create/edit), **mass export**, and **mass import** are also self-hand
 }
 ```
 
+### Live updates — collection subscription
+
+In self-fetch mode the page also **subscribes to live collection updates** for its `or-collection-{register}-{schema}` scope (via [`useObjectSubscription`](../utilities/composables/use-object-subscription.md) and the store's [`liveUpdatesPlugin`](../../store/plugins/live-updates.md)). When another user creates, updates, or deletes an object in the register/schema pair, the list refetches with its **current** params (page, sort, search, filters) — events are hints, so bursts (mass import, bulk edits) are coalesced into at most one refetch per ~750 ms window, deduped against in-flight requests. When notify_push is unavailable the transport falls back to visibility-gated polling; nothing else changes for the page.
+
+The subscription attaches on mount and is released on unmount; the epoch guard inside `useObjectSubscription` prevents a navigation-away during the async subscribe from leaking a stale subscription.
+
+Opt out per page with the `subscribe` prop (default `true`):
+
+```json
+{
+  "type": "index",
+  "title": "Archive",
+  "config": { "register": "decidesk", "schema": "decision", "subscribe": false }
+}
+```
+
 ### Consumer-managed mode is unchanged
 
-When the `objects` prop **is** supplied (every current consumer), nothing changes — no `useObjectStore` / `useListView` call, no `registerObjectType` / `fetchCollection`, `objects` and the other props are used as today and `filter` has no effect. The switch is purely "did the caller pass `objects`?".
+When the `objects` prop **is** supplied (every current consumer), nothing changes — no `useObjectStore` / `useListView` call, no `registerObjectType` / `fetchCollection`, no live-updates subscription; `objects` and the other props are used as today and `filter` has no effect. The switch is purely "did the caller pass `objects`?".
+
+## Map view mode
+
+Alongside `table` and `cards`, CnIndexPage offers an **opt-in `map` view mode** — a third view-toggle segment that plots the **current filtered rows** on a [CnMapWidget](./cn-map-widget.md). It is strictly opt-in and fully backward compatible: pages that don't configure it render exactly as before.
+
+**Key properties of the map view:**
+
+- **Same data, same filters.** The map plots exactly the rows the table/cards show (`displayObjects`) — there is no separate fetch path, so the sidebar facets, quick-filters, and search all narrow the markers too.
+- **Geometry from object metadata.** Marker coordinates are read from each object via `mapConfig`, typically off the OpenRegister `@self` metadata block that the maps-overview leaf populates — not a bespoke per-app endpoint.
+- **Navigation parity.** A marker click resolves back to its source row and emits the same `@row-click` payload as a table row-click, so detail-page navigation is identical across all three modes.
+- **Graceful geometry gaps.** Rows without finite, resolvable coordinates are skipped silently; an empty set falls back to `mapConfig.center` (or a neutral world view).
+
+**Opting in (manifest):**
+
+```json
+{
+  "id": "Cases",
+  "type": "index",
+  "route": "/cases",
+  "config": {
+    "register": "procest",
+    "schema": "case",
+    "viewModes": ["table", "cards", "map"],
+    "map": {
+      "geoField": "@self.geo",
+      "latField": "@self.geo.lat",
+      "lngField": "@self.geo.lng",
+      "popupField": "title"
+    }
+  }
+}
+```
+
+`config.map` maps 1:1 onto the `mapConfig` prop. `config.viewModes` is optional — when omitted, the map segment appears automatically whenever `config.map` is non-empty. Set an explicit `viewModes` list to force or suppress it. `geoField` (a GeoJSON `Point`) takes precedence over `latField`/`lngField` when present and resolvable; all three accept dotted paths.
+
+**Direct (non-manifest) use:**
+
+```vue
+<CnIndexPage
+  :objects="cases"
+  :schema="caseSchema"
+  view-mode="map"
+  :map-config="{ latField: 'lat', lngField: 'lng', popupField: 'title' }"
+  :selectable="false"
+  @row-click="openCase" />
+```
 
 ## Context Menu
 
@@ -631,3 +702,35 @@ Set `documentationUrl` (and optionally `documentationLabel`) to surface a **Docu
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnIndexPage.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnIndexPage/CnIndexPage.vue) — props, events, and named slots — and update automatically whenever the component changes (see [CLAUDE.md "Documenting components"](https://github.com/ConductionNL/nextcloud-vue/blob/beta/CLAUDE.md#documenting-components-enforced)).
 
 <GeneratedRef />
+
+## List view & sorting
+
+The list view (`view-mode="list"`) and standalone sort dropdown add these props:
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `availableViewModes` | Array | `['cards','table']` | View-toggle segments; add `list` to offer the list view. |
+| `listLabel` | String | `''` | Label for the list view-toggle option. |
+| `listIcon` | String | `''` | MDI icon for the list view-toggle option. |
+| `listConfig` | Object | `{}` | Field mapping for the default list rows (`CnObjectRow`). |
+| `listComponent` | String | `''` | Custom row component (customComponents registry). |
+| `showSortSelect` | Boolean | `false` | Show a standalone sort dropdown in the actions bar. |
+| `sortSelectOptions` | Array | `[]` | Options `{ value, label }` for the sort dropdown. |
+| `sortSelectValue` | String | `''` | Selected sort dropdown value (controlled). |
+
+The `#list-item`, `#row-icon`, `#row-badges`, and `#row-actions` slots override the list rows (see [CnObjectList](./cn-object-list.md)). Emits `@sort-change` with the chosen sort value.
+
+## Folder sidebar
+
+Set the `folderSidebar` config to render a folder navigation pane left of the list. Selecting a folder filters the list by the config's `filterField` (via the self-fetch filter); "All" clears it. Emits `@folder-change` with the selected id (and `@folder-create` when the opt-in New-folder button is used).
+
+Sources: `register` (fetch the folder list from an OpenRegister `register`/`schema`, mapping `idField`/`nameField`), `field` (distinct values of the current rows' `field`), `custom` (explicit `folders`), or `files` (Nextcloud folders). Example — case types as folders that filter cases:
+
+```json
+"folderSidebar": {
+  "source": "register", "register": "procest", "schema": "caseType",
+  "idField": "@self.uuid", "nameField": "title",
+  "filterField": "caseType", "allLabel": "All cases"
+}
+```
+

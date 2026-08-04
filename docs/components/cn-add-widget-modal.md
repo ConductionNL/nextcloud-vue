@@ -39,7 +39,8 @@ export default {
 | `show` | `Boolean` | `false` | Toggles visibility. Going `false → true` triggers `resetForm()` (create mode) or `loadEditingWidget()` when `editing-widget` is set. |
 | `preselected-type` | `String` | `null` | When set, the type `<select>` is hidden and the form opens directly on this type (toolbar deep-links). |
 | `editing-widget` | `{ type: string, content: object }` \| `null` | `null` | When set, the modal opens in edit mode: the type select is hidden (placement type is immutable) and the sub-form is pre-filled from `editingWidget.content`. Must expose `type` and `content`. The Appearance chrome is also seeded from it (`showTitle` / `customTitle` / `customIcon` / `styleConfig.backgroundColor`, falling back to `content`). |
-| `upload-fn` | `Function` \| `null` | `null` | Optional upload transport for the Appearance icon picker: `async (file) => dataUrlOrUrl`. When null, the icon picker embeds the uploaded image as a data URL (same-origin, CSP-safe). |
+| `upload-fn` | `Function` \| `null` | `null` | Optional upload transport for the Appearance icon picker: `async (dataUrl: string) => ({ url })` — the icon picker reads the chosen file to a data URL and hands *that* to this function. When null, the icon picker embeds the uploaded image as a data URL (same-origin, CSP-safe). |
+| `file-upload-fn` | `Function` \| `null` | `null` | Optional raw-file upload transport forwarded to the active sub-form as its `file-upload-fn`: `async (file: File) => ({ url })`. A separate prop from `upload-fn` (icon picker, data URL) so the File-typed transport can never reach a sub-form expecting a data URL (e.g. the header form). Sub-forms such as the image widget defer the upload to submit and hand over the raw `File`; the modal awaits the sub-form's `commit()` before emitting `submit`. |
 
 The modal also renders a shared **Appearance** section beneath the per-type
 sub-form — Show title, Custom title, Background (`NcColorPicker`) and Icon
@@ -51,7 +52,7 @@ chrome rides alongside the content in the submit payload (see below).
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `close` | — | Fired on the cancel button, backdrop click, or Esc key. |
-| `submit` | `{ type, content, chrome: { showTitle, customTitle, customIcon, backgroundColor } }` | Fired with the assembled payload (content + Appearance chrome) for the parent to persist. |
+| `submit` | `{ type, content, chrome: { showTitle, customTitle, customIcon, backgroundColor } }` | Fired with the assembled payload (content + Appearance chrome) for the parent to persist. When the active sub-form exposes an async `commit()` (e.g. the image widget uploads its pending file), the modal awaits it first — a commit failure keeps the modal open and suppresses this event. |
 
 ## Related
 

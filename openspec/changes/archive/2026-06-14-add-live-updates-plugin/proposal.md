@@ -31,7 +31,7 @@ This change wires the frontend to those events via a single-tab WebSocket connec
 - Reconnect with exponential backoff + jitter
 - Diagnostic state — `store.liveStatus`, `store.liveSubscriptions`, `store.liveLastEventAt`
 - `@nextcloud/notify_push` added as a runtime dependency
-- `@vueuse/core` added as a **direct runtime dependency** (for `tryOnScopeDispose` and `useDocumentVisibility`). 5 of 7 consumer apps (procest, pipelinq, docudesk, mydash, larpingapp) do not depend on VueUse today; only openregister and opencatalogi do. Making it a direct dep avoids forcing 5 apps to add the dep just to consume `@conduction/nextcloud-vue`. Bundle cost of importing only `tryOnScopeDispose` and `useDocumentVisibility` is ~400 bytes gzipped via tree-shaking.
+- `@vueuse/core` added as a **direct runtime dependency** (for `tryOnScopeDispose` and `useDocumentVisibility`). 5 of 7 consumer apps (procest, pipelinq, docudesk, launchpad, larpingapp) do not depend on VueUse today; only openregister and opencatalogi do. Making it a direct dep avoids forcing 5 apps to add the dep just to consume `@conduction/nextcloud-vue`. Bundle cost of importing only `tryOnScopeDispose` and `useDocumentVisibility` is ~400 bytes gzipped via tree-shaking.
 
 ### Out of Scope
 

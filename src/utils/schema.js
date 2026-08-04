@@ -145,11 +145,27 @@ export function formatValue(value, property = {}, options = {}) {
 	if (type === 'array' || Array.isArray(value)) {
 		if (!Array.isArray(value)) return String(value)
 		if (value.length === 0) return '—'
+		// Stringify each entry so an array of OBJECTS never collapses to the
+		// useless "[object Object]" that `Array.prototype.join` produces — a
+		// nested object renders as compact JSON instead (ADR-062: a value cell
+		// must never show "[object Object]"). Rich array rendering (inline
+		// tables / chips) lives in CnObjectDataWidget; this is the flat-string
+		// fallback used by tables and truncated cells.
+		const parts = value.map((v) => {
+			if (v !== null && typeof v === 'object') {
+				try {
+					return JSON.stringify(v)
+				} catch {
+					return '[Object]'
+				}
+			}
+			return String(v)
+		})
 		// For short arrays, join values
-		if (value.length <= 3) {
-			return value.join(', ')
+		if (parts.length <= 3) {
+			return parts.join(', ')
 		}
-		return `${value.slice(0, 3).join(', ')} +${value.length - 3}`
+		return `${parts.slice(0, 3).join(', ')} +${parts.length - 3}`
 	}
 
 	// Object — render as JSON; tables truncate, multi-line value cells wrap with `<pre>`.
@@ -251,32 +267,63 @@ function truncateString(str, maxLength) {
  *    `'select'`; `array` + `items.$ref` → `'multiselect'`. The consuming
  *    surface (CnFormDialog) resolves the reference to a searchable dropdown
  *    of the referenced objects (label = human name, value = UUID).
- * 4. Type-based: `boolean` → `'checkbox'`, `integer`/`number` → `'number'`,
+ * 4. Nextcloud user reference: `referenceType: 'nextcloud-user'` (or
+ *    `format: 'user'`/`'username'`) → `'user'`; an array of such
+ *    properties → `'user-multiselect'`. CnFormDialog resolves these to a
+ *    searchable dropdown of real Nextcloud users (label = display name,
+ *    value = UID).
+ * 5. Type-based: `boolean` → `'checkbox'`, `integer`/`number` → `'number'`,
  *    `array` + `items.enum` → `'multiselect'`, `array` → `'tags'`
- * 5. Format-based: `date-time` → `'datetime'`, `date` → `'date'`,
+ * 6. Format-based: `date-time` → `'datetime'`, `date` → `'date'`,
  *    `email` → `'email'`, `uri`/`url` → `'url'`,
  *    `markdown`/`textarea` → `'textarea'`
- * 6. Long text: `maxLength > 255` → `'textarea'`
- * 7. Fallback → `'text'`
+ * 7. Long text: `maxLength > 255` → `'textarea'`
+ * 8. Fallback → `'text'`
  *
  * @param {object} prop The schema property definition (type, format, enum, widget, items, maxLength)
- * @return {string} Widget identifier: 'text'|'email'|'url'|'number'|'checkbox'|'select'|'multiselect'|'tags'|'textarea'|'date'|'datetime' or a custom string
+ * @return {string} Widget identifier: 'text'|'email'|'url'|'number'|'checkbox'|'select'|'multiselect'|'user'|'user-multiselect'|'tags'|'textarea'|'date'|'datetime' or a custom string
  */
 /**
  * Normalise a JSON-Schema `$ref` value into an OpenRegister schema reference
  * identifier. OpenRegister authors a `$ref` as a schema *slug* (string) but
  * persists/serves it as the numeric schema *id* (e.g. `85`). Both forms are
- * valid object-reference targets (the objects API resolves either), so accept
- * a non-empty string or a number and return it unchanged; return `null` for
- * anything else (missing, empty string, object, etc.).
+ * valid object-reference targets (the objects API resolves either).
+ *
+ * The schema editor writes the JSON-Pointer form — `#/components/schemas/<slug>`
+ * — so a `$ref` reaching here may be a pointer rather than a bare slug. Passing
+ * the whole pointer through as the schema identifier made the object picker query
+ * a schema literally named "#/components/schemas/cow", which matches nothing: the
+ * dropdown rendered but came back empty. Take the tail after the last `/`, which
+ * is what the editor itself does when it resolves a $ref back to a schema.
  *
  * @param {*} ref A `$ref` value (`prop.$ref` or `prop.items.$ref`).
  * @return {string|number|null} The reference identifier, or null.
  */
 function normalizeRef(ref) {
-	if (typeof ref === 'string' && ref !== '') return ref
+	if (typeof ref === 'string' && ref !== '') {
+		const tail = ref.includes('/') ? ref.substring(ref.lastIndexOf('/') + 1) : ref
+		return tail !== '' ? tail : null
+	}
 	if (typeof ref === 'number' && !Number.isNaN(ref)) return ref
 	return null
+}
+
+/**
+ * Whether a (single-value) schema property represents a Nextcloud user.
+ *
+ * A property is a user field when it declares `referenceType: 'nextcloud-user'`
+ * (preferred) OR `format: 'user'` / `format: 'username'`. The consuming surface
+ * (CnFormDialog) renders such a property as a searchable dropdown of real
+ * Nextcloud users (label = display name, value = UID) instead of a free-text box.
+ *
+ * @param {object} prop A schema property definition (or `items` for an array).
+ * @return {boolean} True when the property marks a Nextcloud user.
+ */
+function isUserProp(prop) {
+	if (!prop || typeof prop !== 'object') return false
+	if (prop.referenceType === 'nextcloud-user') return true
+	const format = prop.format || ''
+	return format === 'user' || format === 'username'
 }
 
 function resolveWidget(prop) {
@@ -296,6 +343,14 @@ function resolveWidget(prop) {
 	// $ref: '<slug-or-id>' }` property renders as a dropdown, not a UUID box.
 	if (normalizeRef(prop.$ref) !== null) return 'select'
 	if (type === 'array' && prop.items && normalizeRef(prop.items.$ref) !== null) return 'multiselect'
+
+	// Nextcloud user reference (referenceType 'nextcloud-user' or
+	// format 'user'/'username'): a searchable dropdown of real Nextcloud
+	// users (label = display name, value = UID). An array of users is a
+	// multi-select. Checked before the plain type/format fallback so a
+	// user-marked property renders as a picker, not a free-text box.
+	if (isUserProp(prop)) return 'user'
+	if (type === 'array' && isUserProp(prop.items)) return 'user-multiselect'
 
 	// Boolean → switch/checkbox
 	if (type === 'boolean') return 'checkbox'
@@ -335,7 +390,7 @@ function resolveWidget(prop) {
  * @param {string[]} [options.include] Property keys to include (whitelist mode)
  * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`. Recognised keys: `hidden` (true → drop the field), `order` (number → wins over the schema property's `order` for sorting), `readOnly` (false on a schema-readOnly key un-skips it), plus any field props to merge (`label`, `widget`, `enum`, …). A single overrides map therefore controls visibility, ordering and rendering on every surface that consumes this pipeline (data widget + form dialog).
  * @param {boolean} [options.includeReadOnly] Whether to include readOnly properties
- * @return {Array<{key: string, label: string, description: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, items: object|null, referenceType: string|null, reference: {schema: string|number, multiple: boolean}|null, validation: object, order: number}>}
+ * @return {Array<{key: string, label: string, description: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean}|null, userPicker: {multiple: boolean}|null, fillFrom: object|null, validation: object, order: number}>}
  */
 export function fieldsFromSchema(schema, options = {}) {
 	const { exclude = [], include = null, overrides = {}, includeReadOnly = false } = options
@@ -365,8 +420,12 @@ export function fieldsFromSchema(schema, options = {}) {
 			// Apply include whitelist
 			if (include && !include.includes(key)) return false
 			// Skip complex object types unless the caller opts in with an explicit widget
-			// (e.g. `widget: 'json'` or `widget: 'code'` in CnFormDialog).
-			if (prop.type === 'object' && !prop.widget) return false
+			// (e.g. `widget: 'json'` or `widget: 'code'` in CnFormDialog) — or unless the
+			// property is an OpenRegister object REFERENCE (`$ref`). A reference is a
+			// relation to another schema's object, which resolveWidget maps to a
+			// searchable 'select'; dropping it here meant a related-object property
+			// (e.g. cow.barn → barn) silently never rendered in the form at all.
+			if (prop.type === 'object' && !prop.widget && normalizeRef(prop.$ref) === null) return false
 			return true
 		})
 		.sort(([keyA, propA], [keyB, propB]) => {
@@ -392,6 +451,17 @@ export function fieldsFromSchema(schema, options = {}) {
 			type: prop.type || 'string',
 			format: prop.format || null,
 			widget: resolveWidget(prop),
+			// Icon picker (`widget: 'icon'`) config forwarded to CnIconBrowser via
+			// CnFormDialog: which sources to offer (`iconSources`), consumer icon
+			// catalogues (JSON entries — FontAwesome/OpenGemeenten data is usually
+			// supplied via a fieldOverride instead), and whether custom-SVG is
+			// enabled. `searchable` is obsolete — the browser always searches.
+			// Omitted keys fall back to CnIconBrowser's own defaults, which include
+			// the bundled NL-government sets.
+			iconSources: prop.iconSources || undefined,
+			catalogues: prop.catalogues || undefined,
+			allowCustomSvg: prop.allowCustomSvg || undefined,
+			searchable: prop.searchable,
 			required: requiredKeys.includes(key),
 			readOnly: prop.readOnly || false,
 			default: prop.default !== undefined ? prop.default : null,
@@ -402,6 +472,20 @@ export function fieldsFromSchema(schema, options = {}) {
 			// surfaces (CnFormDialog, CnDetailGrid) render that
 			// integration's single-entity widget instead of a plain input.
 			referenceType: prop.referenceType || null,
+			// Cross-app semantic reference (ADR-048): a property can declare
+			// `referenceSemanticType: '<canonical-uri>'` (e.g.
+			// 'https://schema.org/Organization') plus an optional
+			// `referenceSemanticApp: '<appid>'` naming the app expected to
+			// provide it. The consuming surface (CnFormDialog) resolves the
+			// URI against OpenRegister's discovery endpoint: when SOME
+			// installed schema implements it, the field renders as a
+			// searchable object picker over that provider schema's register;
+			// when NONE does, the field renders DISABLED with a tooltip. This
+			// is the semantic sibling of `referenceType` (integration id).
+			// `null` when the keys are absent (no behaviour change). Pure: no
+			// resolution happens here.
+			referenceSemanticType: prop.referenceSemanticType || null,
+			referenceSemanticApp: prop.referenceSemanticApp || null,
 			// OpenRegister object reference (`$ref`): when a property points
 			// at another schema (`$ref: '<slug>'`, or `items.$ref` for an
 			// array), record the referenced schema slug + whether it is a
@@ -409,10 +493,32 @@ export function fieldsFromSchema(schema, options = {}) {
 			// resolves this to a searchable dropdown of the referenced
 			// objects, storing the chosen UUID(s). `null` for non-reference
 			// properties. Pure: no fetching happens here.
+			//
+			// Cross-app object relation (ADR-066): a reference property may
+			// carry `x-external-register: '<app>'` naming the register the
+			// referenced schema lives in — a link into ANOTHER fleet app
+			// (e.g. a procest case referencing a decidesk decision). When
+			// present it is recorded as `reference.register` so the picker
+			// resolves/scopes/creates against that register instead of the
+			// form's own; absent, the reference stays same-register (the form's
+			// `register` prop is used). Consolidates the ad-hoc caseReference /
+			// approvalDecisionId / x-mirror-of variants onto one convention.
 			reference: (normalizeRef(prop.$ref) !== null)
-				? { schema: normalizeRef(prop.$ref), multiple: false }
+				? { schema: normalizeRef(prop.$ref), multiple: false, ...(prop['x-external-register'] ? { register: prop['x-external-register'] } : {}) }
 				: (prop.type === 'array' && prop.items && normalizeRef(prop.items.$ref) !== null)
-					? { schema: normalizeRef(prop.items.$ref), multiple: true }
+					? { schema: normalizeRef(prop.items.$ref), multiple: true, ...((prop.items['x-external-register'] || prop['x-external-register']) ? { register: prop.items['x-external-register'] || prop['x-external-register'] } : {}) }
+					: null,
+			// Nextcloud user reference: when a property marks a NC user
+			// (`referenceType: 'nextcloud-user'`, or `format: 'user'`/
+			// `'username'`), tag it so CnFormDialog renders a searchable
+			// dropdown of real Nextcloud users (label = display name,
+			// value = UID) instead of a free-text box. `multiple` is true
+			// for an array of users (`items` marks the user). `null` for
+			// non-user properties. Pure: no fetching happens here.
+			userPicker: isUserProp(prop)
+				? { multiple: false }
+				: (prop.type === 'array' && isUserProp(prop.items))
+					? { multiple: true }
 					: null,
 			// Conditional immutability (AD: x-openregister-readonly-when): a
 			// property can declare it becomes read-only when another field on the

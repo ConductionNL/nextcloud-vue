@@ -18,3 +18,137 @@
 .mx-calendar-content .cell.disabled:hover {
 	background-color: var(--color-background-dark) !important;
 }
+
+/*
+ * OpenBuild edit button — brand orange, ALWAYS applied.
+ * CnOpenBuildEditButton styles its trigger orange via `<style scoped>`, but the
+ * scoped `data-v-*` hash can miss the live element when the library is bundled
+ * in duplicate in a consuming app (the trigger then falls back to the tertiary
+ * transparent default and the button is intermittently not orange). These
+ * unscoped globals guarantee the ADR-041 brand orange regardless of the hash.
+ */
+.cn-openbuild-edit__actions .button-vue,
+.cn-openbuild-edit__actions .action-item__menutoggle {
+	background-color: var(--c-orange-knvb, #f36c21) !important;
+	color: #fff !important;
+	border-radius: var(--border-radius-element, var(--border-radius-large, 8px));
+}
+
+.cn-openbuild-edit__actions .button-vue__wrapper {
+	justify-content: center;
+}
+
+.cn-openbuild-edit__actions .button-vue__icon {
+	display: flex !important;
+	align-items: center;
+	justify-content: center;
+	color: #fff;
+}
+
+.cn-openbuild-edit__glyph {
+	color: #fff !important;
+}
+
+/*
+ * KPI date-chip overlay — keep the headerless `title-meta` chip out of normal
+ * flow so a compact flush stat tile never overflows its grid cell (which shows
+ * an inner scrollbar). Same scoped-hash caveat as above: the scoped rule can
+ * miss under duplicate bundling, so anchor it globally. `position: relative` on
+ * the wrapper gives the absolute chip something to anchor to without moving any
+ * content (no offsets on the wrapper itself).
+ */
+.cn-widget-wrapper {
+	position: relative;
+}
+
+.cn-widget-wrapper__floating-meta {
+	position: absolute;
+	top: 8px;
+	inset-inline-end: 10px;
+	z-index: 2;
+}
+
+/*
+ * KPI stat widget layout — same scoped-hash caveat as above. In a consuming app
+ * that ends up with two compilations of the lib, the CnStatWidget `<style
+ * scoped>` misses the live element and the card collapses to `display:inline`
+ * with a full-width block icon band and a big empty void (looks broken). These
+ * unscoped globals mirror the component's own scoped rules so the icon renders
+ * as a small circle and the label/value/caption stack compactly regardless of
+ * the data-v hash. Values are identical to CnStatWidget.vue.
+ */
+.cn-stat-widget {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 8px 4px;
+	min-height: 64px;
+	min-width: 0;
+	max-width: 100%;
+}
+
+.cn-stat-widget--linked {
+	cursor: pointer;
+	text-decoration: none;
+	color: inherit;
+	border-radius: var(--border-radius-large, 8px);
+	transition: background-color 0.1s ease-in-out;
+}
+
+.cn-stat-widget--linked:hover {
+	background-color: var(--color-background-hover);
+}
+
+.cn-stat-widget__icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.cn-stat-widget__body {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-stat-widget__label {
+	font-size: 0.95em;
+	font-weight: 600;
+	color: var(--color-main-text);
+}
+
+.cn-stat-widget__value-row {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	min-width: 0;
+}
+
+.cn-stat-widget__value {
+	font-size: 1.6em;
+	font-weight: 700;
+	line-height: 1.15;
+	color: var(--color-primary-element);
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cn-stat-widget__trend {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	font-size: 0.85em;
+	font-weight: 600;
+}
+
+.cn-stat-widget__caption {
+	font-size: 0.85em;
+	color: var(--color-text-maxcontrast);
+}

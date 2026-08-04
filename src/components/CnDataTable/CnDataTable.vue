@@ -5,6 +5,7 @@
 		:class="{
 			'cn-table-container--scrollable': scrollable,
 			'cn-table-container--borderless': borderless,
+			'cn-table-container--fill': fillHeight,
 		}">
 		<!-- Optional card header (folded from the retired CnTableWidget): a title
 		     + total-count badge. Only rendered when `title` is set; bare table
@@ -20,13 +21,17 @@
 
 		<!-- Loading State -->
 		<div v-if="isLoading" class="cn-table-loading" data-testid="cn-object-list-loading">
-			<NcLoadingIcon :size="32" />
+			<!-- Decorative: the adjacent <p> already carries the accessible
+			     name (loadingText), so the spinner is hidden from the
+			     accessibility tree rather than exposed as an unlabelled
+			     role="img" (WCAG 1.1.1 / axe "role-img-alt"). -->
+			<NcLoadingIcon :size="32" aria-hidden="true" />
 			<p>{{ loadingText }}</p>
 		</div>
 
 		<!-- Table -->
 		<table v-else class="cn-data-table" data-testid="cn-object-list-table">
-			<thead>
+			<thead v-if="!hideHeader">
 				<tr>
 					<!-- Checkbox column -->
 					<th v-if="selectable" class="cn-table-col--checkbox">
@@ -49,17 +54,26 @@
 							col.class || '',
 						]"
 						:style="col.width ? { width: col.width } : {}"
-						@click="col.sortable ? onSort(col.key) : null">
+						:tabindex="col.sortable ? 0 : null"
+						:aria-sort="ariaSortFor(col)"
+						@click="col.sortable ? onHeaderClick(col.key, $event) : null"
+						@keydown.enter="col.sortable ? onHeaderKeydown(col.key, $event) : null">
 						{{ col.label }}
 						<span
-							v-if="col.sortable && sortKey === col.key"
+							v-if="col.sortable && sortKeyIndex(col.key) !== -1"
 							class="cn-table-sort-indicator">
-							{{ sortOrder === 'asc' ? '▲' : '▼' }}
+							{{ effectiveSortKeys[sortKeyIndex(col.key)].order === 'asc' ? '▲' : '▼' }}
+						</span>
+						<span
+							v-if="col.sortable && effectiveSortKeys.length > 1 && sortKeyIndex(col.key) !== -1"
+							class="cn-table-sort-badge">
+							{{ sortKeyIndex(col.key) + 1 }}
 						</span>
 					</th>
 
 					<!-- Actions column -->
 					<th v-if="$scopedSlots['row-actions']" class="cn-table-col--actions">
+						<!-- @slot Header cell content above the row-actions column (blank by default). -->
 						<slot name="actions-header" />
 					</th>
 				</tr>
@@ -69,6 +83,7 @@
 				<!-- Empty state -->
 				<tr v-if="effectiveRows.length === 0" class="cn-table-empty" data-testid="cn-object-list-empty">
 					<td :colspan="totalColumns">
+						<!-- @slot Empty-state content shown when there are no rows (defaults to `emptyText`). -->
 						<slot name="empty">
 							{{ emptyText }}
 						</slot>
@@ -89,7 +104,7 @@
 					]"
 					@mousedown="onPointerDown"
 					@click="onRowClick(row, $event)"
-					@contextmenu.prevent="$emit('row-context-menu', { row, event: $event })">
+					@contextmenu.prevent="onRowContextMenu(row, $event)">
 					<!-- Checkbox -->
 					<td v-if="selectable" class="cn-table-col--checkbox" @click.stop>
 						<NcCheckboxRadioSwitch
@@ -109,6 +124,7 @@
 						:key="col.key"
 						:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '']"
 						:style="col.width ? { maxWidth: col.width } : {}">
+						<!-- @slot Per-column cell override (`#column-<key>`), scoped with { row, value }. Wins over CnCellRenderer. -->
 						<slot :name="'column-' + col.key" :row="row" :value="cellValue(row, col)">
 							<!-- Every column renders through CnCellRenderer: it resolves
 							     col.formatter / col.widget against the injected registries
@@ -121,9 +137,10 @@
 								:value="cellValue(row, col)"
 								:property="columnProperty(col)"
 								:formatter="col.formatter || null"
+								:formatter-options="col.formatterOptions || null"
 								:widget="col.widget || null"
 								:widget-props="col.widgetProps || undefined"
-								:format="col.format || null"
+								:format="columnFormat(col)"
 								:row="row"
 								:row-key="rowKey" />
 						</slot>
@@ -131,23 +148,30 @@
 
 					<!-- Row actions -->
 					<td v-if="$scopedSlots['row-actions']" :class="['cn-table-col--actions', cellClass ? cellClass(row, { key: 'actions' }) : '']" @click.stop>
+						<!-- @slot Per-row actions menu (e.g. a CnRowActions), scoped with { row }. Supplying it adds the trailing actions column. -->
 						<slot name="row-actions" :row="row" />
 					</td>
 				</tr>
 			</tbody>
 		</table>
 
-		<!-- Optional "View all" footer (folded from the retired CnTableWidget):
-		     shown when a route is given and the displayed rows are a `limit`-ed
-		     subset of the total. -->
+		<!-- Optional footer. A `#footer` scoped slot lets a host render its own
+		     footer link (e.g. a "+ New" create action or an always-shown
+		     "View all") with its own click handler — useful when the widget runs
+		     outside a vue-router context (the built-in link uses $router). When
+		     no slot is given, the built-in "View all" link (folded from the
+		     retired CnTableWidget) is shown for a `limit`-ed subset. -->
 		<div
-			v-if="viewAllRoute && totalRowCount > effectiveRows.length"
+			v-if="$scopedSlots.footer || (viewAllRoute && totalRowCount > effectiveRows.length)"
 			class="cn-data-table__footer">
-			<a
-				class="cn-data-table__view-all"
-				@click.prevent="onViewAll">
-				{{ viewAllLabel }}
-			</a>
+			<!-- @slot Custom footer content, scoped with { total, shown } (defaults to the built-in "View all" link). -->
+			<slot name="footer" :total="totalRowCount" :shown="effectiveRows.length">
+				<a
+					class="cn-data-table__view-all"
+					@click.prevent="onViewAll">
+					{{ viewAllLabel }}
+				</a>
+			</slot>
 		</div>
 	</div>
 </template>
@@ -161,6 +185,11 @@ import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
+import { nextSortState } from '../../utils/multiColumnSort.js'
+// CnDataTable has no scoped styles of its own — its entire look lives in the
+// shared table stylesheet. Import it here so the table is styled even when the
+// consuming app does not pull in the library's global css/index.css.
+import '../../css/table.css'
 
 /**
  * CnDataTable — Generic sortable data table for list views.
@@ -169,6 +198,16 @@ import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
  * every list view across OpenRegister, Pipelinq, and Procest. Supports sorting,
  * row selection, custom cell rendering via scoped slots, loading states,
  * and empty states.
+ *
+ * Sorting: a plain click on a sortable header is single-sort (cycle asc →
+ * desc → cleared), unchanged from before. Shift+click (or Shift+Enter on a
+ * focused header) appends the column as a secondary/tertiary sort key —
+ * capped at 3 — with numbered priority badges (1, 2, 3) once more than one
+ * key is active. Pass `sortKeys: [{key, order}, ...]` for multi-sort (falls
+ * back to the legacy `sortKey`/`sortOrder` props when empty). The `sort`
+ * event payload is extended, not replaced: `{key, order}` still mirrors the
+ * primary key exactly as before; a new `keys` field carries the full
+ * ordered list. See `src/utils/multiColumnSort.js` for the state machine.
  *
  * When a `schema` prop is provided, columns are auto-generated from schema
  * properties and cells render through CnCellRenderer for type-aware formatting
@@ -282,6 +321,19 @@ export default {
 			default: 'asc',
 			validator: (v) => v === null || ['asc', 'desc'].includes(v),
 		},
+		/**
+		 * Ordered multi-column sort state: `[{ key, order }, ...]` (priority
+		 * order, 0 to 3 entries). Optional — when empty (the default), the
+		 * table falls back to the legacy `sortKey`/`sortOrder` props, so
+		 * single-sort hosts are completely unaffected. Shift+click a
+		 * sortable header to append/cycle a secondary or tertiary key (see
+		 * `src/utils/multiColumnSort.js`).
+		 * @type {Array<{key: string, order: 'asc'|'desc'}>}
+		 */
+		sortKeys: {
+			type: Array,
+			default: () => [],
+		},
 		/** Whether rows can be selected with checkboxes */
 		selectable: {
 			type: Boolean,
@@ -360,6 +412,26 @@ export default {
 			default: false,
 		},
 		/**
+		 * Fill the height of the parent (a flex-column card / widget content
+		 * area) so the optional `#footer` is pushed to the bottom instead of
+		 * floating directly under a short list. When the list is long enough to
+		 * overflow, the footer stays pinned via its sticky rule. No-op outside a
+		 * height-constrained parent. Opt-in so ordinary in-flow tables are
+		 * unaffected.
+		 */
+		fillHeight: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Hide the column-header row (`<thead>`). Useful for compact dashboard
+		 * list widgets that want a plain bordered-row list without column labels.
+		 */
+		hideHeader: {
+			type: Boolean,
+			default: false,
+		},
+		/**
 		 * Max number of rows to display. When the total exceeds it, only the first
 		 * `limit` render and the "View all" footer appears (with `viewAllRoute`).
 		 * 0 = show all. Folded in from CnTableWidget.
@@ -400,6 +472,19 @@ export default {
 		 */
 		schemaId: {
 			type: [String, Number],
+			default: null,
+		},
+		/**
+		 * Extra query parameters sent with the self-fetch request (register +
+		 * schemaId mode) — e.g. a resolved filter map, `_order[field]` ordering,
+		 * or `_limit`. Changing it re-triggers the self-fetch, so a host widget
+		 * (CnWidgetObjectTable's declarative `source`) can drive filtering and
+		 * ordering without re-implementing the fetch. Ignored when external
+		 * `rows` are supplied.
+		 * @type {object|null}
+		 */
+		fetchParams: {
+			type: Object,
 			default: null,
 		},
 		/**
@@ -517,12 +602,41 @@ export default {
 			})
 		},
 
+		/**
+		 * The active ordered sort-key list: the `sortKeys` prop when non-empty,
+		 * else a single-entry list derived from the legacy `sortKey`/`sortOrder`
+		 * props (empty when neither is active). Every header/badge/aria-sort
+		 * computation reads this so single-sort hosts (no `sortKeys` passed)
+		 * render exactly as before.
+		 *
+		 * @return {Array<{key: string, order: 'asc'|'desc'}>}
+		 */
+		effectiveSortKeys() {
+			if (this.sortKeys && this.sortKeys.length > 0) return this.sortKeys
+			if (this.sortKey) return [{ key: this.sortKey, order: this.sortOrder || 'asc' }]
+			return []
+		},
+
 		totalColumns() {
 			let count = this.effectiveColumns.length
 			if (this.selectable) count++
 			if (this.rowIcon) count++
 			if (this.$scopedSlots['row-actions']) count++
 			return count
+		},
+
+		/**
+		 * Stable signature of the self-fetch inputs so the watcher refetches
+		 * only on a real change (register / schemaId / fetchParams).
+		 *
+		 * @return {string}
+		 */
+		selfFetchKey() {
+			return JSON.stringify({
+				register: this.register,
+				schemaId: this.schemaId,
+				fetchParams: this.fetchParams || null,
+			})
 		},
 
 		allSelected() {
@@ -542,6 +656,16 @@ export default {
 		effectiveColumns: {
 			handler() { this.loadAggregates() },
 			deep: false,
+		},
+		/**
+		 * Re-run the self-fetch when its inputs (register, schemaId, or the
+		 * host-driven `fetchParams`) change — a token-resolved filter (e.g.
+		 * `@workspace.*`) can change after mount. External rows still win.
+		 */
+		selfFetchKey() {
+			if ((!this.rows || this.rows.length === 0) && this.register != null && this.schemaId != null) {
+				this.fetchData()
+			}
 		},
 	},
 
@@ -568,7 +692,10 @@ export default {
 					register: String(this.register),
 					schemaId: String(this.schemaId),
 				})
-				const { data } = await axios.get(url, { headers: { 'OCS-APIREQUEST': 'true' } })
+				const { data } = await axios.get(url, {
+					headers: { 'OCS-APIREQUEST': 'true' },
+					...(this.fetchParams ? { params: this.fetchParams } : {}),
+				})
 				this.fetchedRows = (data && data.results) || (Array.isArray(data) ? data : [])
 			} catch (e) {
 				this.fetchedRows = []
@@ -658,6 +785,22 @@ export default {
 				}
 			}
 			return base
+		},
+
+		/**
+		 * Declarative cell-format spec handed to CnCellRenderer's `format` prop
+		 * (an object: `{ style, currency, decimals, ... }`). `col.format` is
+		 * overloaded — for schema-derived columns it is the schema format STRING
+		 * (`'date'`, `'uri'`, ...), which is NOT a declarative spec and drives
+		 * type-aware rendering via `columnProperty()` instead. Only forward an
+		 * object here, so a string schema-format no longer trips CnCellRenderer's
+		 * `Object`-typed `format` prop (Vue prop-type warning).
+		 *
+		 * @param {object} col Column definition.
+		 * @return {object|null} The declarative format spec, or null.
+		 */
+		columnFormat(col) {
+			return (col && typeof col.format === 'object') ? col.format : null
 		},
 
 		/**
@@ -783,26 +926,93 @@ export default {
 		},
 
 		/**
-		 * Handle sort column click.
-		 * @param {string} key Column key
+		 * Row right-click: forward the row + originating event so a host can
+		 * open a context menu (the browser default is prevented).
+		 *
+		 * @param {object} row The right-clicked row object.
+		 * @param {MouseEvent} event The originating contextmenu event.
 		 */
-		onSort(key) {
-			let newKey = key
-			let order = 'asc'
-			if (this.sortKey === key) {
-				if (this.sortOrder === 'asc') {
-					order = 'desc'
-				} else {
-					// desc → disabled: clear sort entirely
-					newKey = null
-					order = null
-				}
-			}
+		onRowContextMenu(row, event) {
 			/**
-			 * @event sort Emitted when a sortable column header is clicked.
-			 * @type {{ key: string|null, order: 'asc'|'desc'|null }}
+			 * @event row-context-menu Emitted on a row right-click (contextmenu) for hosts that render a context menu.
+			 * @type {{ row: object, event: MouseEvent }}
 			 */
-			this.$emit('sort', { key: newKey, order })
+			this.$emit('row-context-menu', { row, event })
+		},
+
+		/**
+		 * Index of `key` within `effectiveSortKeys`, or -1 when not active.
+		 * Used by the template for the arrow, the numbered badge, and aria-sort.
+		 *
+		 * @param {string} key Column key.
+		 * @return {number}
+		 */
+		sortKeyIndex(key) {
+			return this.effectiveSortKeys.findIndex((k) => k && k.key === key)
+		},
+
+		/**
+		 * `aria-sort` value for a column header: `'ascending'`/`'descending'`
+		 * for the PRIMARY (index 0) active sort key only — secondary/tertiary
+		 * keys carry the visible numbered badge instead, per WCAG guidance
+		 * that `aria-sort` describes single-column sort state. `null` omits
+		 * the attribute entirely (unsorted / not sortable).
+		 *
+		 * @param {object} col Column definition.
+		 * @return {string|null}
+		 */
+		ariaSortFor(col) {
+			if (!col.sortable) return null
+			const primary = this.effectiveSortKeys[0]
+			if (!primary || primary.key !== col.key) return null
+			return primary.order === 'asc' ? 'ascending' : 'descending'
+		},
+
+		/**
+		 * Header click: plain click = single-sort (existing behavior,
+		 * unchanged); shift+click appends/cycles the column as a secondary or
+		 * tertiary sort key. See `src/utils/multiColumnSort.js`.
+		 *
+		 * @param {string} key Column key.
+		 * @param {MouseEvent} [event] The originating click event.
+		 */
+		onHeaderClick(key, event) {
+			this.applySort(key, !!(event && event.shiftKey))
+		},
+
+		/**
+		 * Header keydown: `Enter` = plain click, `Shift+Enter` = shift+click.
+		 *
+		 * @param {string} key Column key.
+		 * @param {KeyboardEvent} event The originating keydown event.
+		 */
+		onHeaderKeydown(key, event) {
+			if (event.key !== 'Enter') return
+			event.preventDefault()
+			this.applySort(key, !!event.shiftKey)
+		},
+
+		/**
+		 * Compute and emit the next sort state for a header interaction.
+		 *
+		 * @param {string} key Column key.
+		 * @param {boolean} append `true` for a shift+click/shift+Enter (append/cycle a secondary key).
+		 */
+		applySort(key, append) {
+			const keys = nextSortState(this.effectiveSortKeys, key, { append })
+			const primary = keys[0] || null
+			/**
+			 * @event sort Emitted when a sortable column header is clicked (plain click) or shift-clicked (multi-sort).
+			 * @type {{ key: string|null, order: 'asc'|'desc'|null, keys: Array<{key: string, order: 'asc'|'desc'}> }}
+			 * `key`/`order` mirror the PRIMARY (first) active sort key exactly as the pre-multi-sort single-key
+			 * contract did (`null`/`null` when cleared) — existing listeners destructuring `{ key, order }` are
+			 * unaffected. `keys` is new: the full ordered list (0 to 3 entries) for multi-sort-aware hosts.
+			 */
+			this.$emit('sort', {
+				key: primary ? primary.key : null,
+				order: primary ? primary.order : null,
+				keys,
+			})
 		},
 
 		toggleSelect(row) {

@@ -85,7 +85,7 @@ describe('CnAppRoot — in-memory manifest mount (REQ-IMM-001..REQ-IMM-004)', ()
 
 	// REQ-IMM-001 + REQ-IMM-002: in-memory overload + CnAppRoot mount
 	// produces no manifest HTTP traffic and propagates the manifest by reference.
-	// NOTE: the unrelated AI-companion health probe (GET /apps/openregister/api/chat/health)
+	// NOTE: the unrelated AI-companion health probe (GET /apps/hermiq/api/chat/health)
 	// may issue a single axios call from CnAppRoot's mounted child — that is not
 	// the manifest endpoint and is irrelevant to REQ-IMM-002. We assert that
 	// no call hits a `*/api/manifest` URL.
@@ -227,7 +227,15 @@ describe('CnAppRoot — in-memory manifest mount (REQ-IMM-001..REQ-IMM-004)', ()
 			validate: true,
 		})
 
-		// Composable emitted the `[useAppManifest]` warn before mount.
+		// The validator is LAZY-LOADED (fire-and-forget, see loadInMemory in
+		// useAppManifest.js — the ~340KB Ajv artifact is chunk-split so apps
+		// that never validate don't pay for it), so the informational warn
+		// lands a microtask after the composable returns. Flush the dynamic
+		// import + validation promise chain before asserting (a macrotask so
+		// the import's own microtasks all settle in jsdom).
+		await new Promise((resolve) => setTimeout(resolve, 0))
+
+		// Composable emitted the `[useAppManifest]` warn (asynchronously).
 		expect(warnSpy).toHaveBeenCalled()
 		const warnArgs = warnSpy.mock.calls[0]
 		expect(typeof warnArgs[0]).toBe('string')

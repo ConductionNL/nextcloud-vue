@@ -2,7 +2,9 @@
 
 Video widget supporting YouTube/Vimeo/PeerTube embeds and Nextcloud-file/HTML5 playback.
 
-Part of the dashboard widget library (v2). Registered with the dashboard widget registry and consumed by MyDash/LaunchPad's widget grid. See [the widget library overview](./cn-widget-grid.md) and `docs/architecture/cards-and-widgets.md`.
+Part of the dashboard widget library (v2). Registered with the dashboard widget registry and consumed by LaunchPad's widget grid. See [the widget library overview](./cn-widget-grid.md) and `docs/architecture/cards-and-widgets.md`.
+
+The iframe used for `youtube`/`vimeo`/`peertube` sources sets `referrerpolicy="strict-origin-when-cross-origin"`. Without it, the iframe inherits Nextcloud's own default `Referrer-Policy: no-referrer` security header, and YouTube's player rejects the embed with "Error 153: Video player configuration error" since it requires a referrer to validate the request.
 
 ## Reference
 

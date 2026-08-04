@@ -31,7 +31,7 @@ Stakeholders:
 - One mount-everywhere AI surface that every Conduction app inherits by bumping `@conduction/nextcloud-vue`.
 - Context-aware: the widget knows what the user is looking at (app, page kind, object UUID, register/schema slugs).
 - Streaming UX where available, with graceful fallback to the non-streaming `/api/chat/send` endpoint when the orchestrator change has not yet shipped or when SSE transport fails.
-- Zero install-time PHP/composer dependency on OpenRegister induced by upgrading the library — the runtime no-op when OR is unreachable preserves the `mydash`-can-still-use-the-widget invariant.
+- Zero install-time PHP/composer dependency on OpenRegister induced by upgrading the library — the runtime no-op when OR is unreachable preserves the `launchpad`-can-still-use-the-widget invariant.
 - WCAG AA accessibility from day one (keyboard navigation, focus management, aria-labels, prefers-reduced-motion).
 
 ### Non-Goals

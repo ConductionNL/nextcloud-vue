@@ -35,10 +35,19 @@
 			:show-mass-delete="showMassDelete"
 			:view-mode="currentViewMode"
 			:show-view-toggle="showViewToggle"
+			:available-view-modes="effectiveToggleModes"
 			:cards-label="cardsLabel"
 			:table-label="tableLabel"
+			:list-label="listLabel"
 			:cards-icon="cardsIcon"
 			:table-icon="tableIcon"
+			:show-map="showMapSegment"
+			:map-label="mapLabel"
+			:map-icon="mapIcon"
+			:list-icon="listIcon"
+			:show-sort-select="showSortSelect"
+			:sort-options="sortSelectOptions"
+			:sort-value="sortSelectValue"
 			:show-search="inlineSearch"
 			:search-value="effectiveSearchValue"
 			:search-placeholder="searchPlaceholder"
@@ -51,6 +60,7 @@
 			:header-actions="mergedHeaderActions"
 			:documentation-url="documentationUrl"
 			:documentation-label="documentationLabel || undefined"
+			@sort-change="$emit('sort-change', $event)"
 			@add="onAddClick"
 			@toggle-sidebar="sidebarOpen = !sidebarOpen"
 			@refresh="onRefreshEvent"
@@ -67,8 +77,44 @@
 			<template v-if="$scopedSlots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$scopedSlots['actions'] || isEditMode" #actions>
+			<template v-if="$scopedSlots['actions'] || isEditMode || showExportMenu || allowSavedViews" #actions>
 				<slot name="actions" />
+				<!-- Saved views (opt-in via `allowSavedViews`): lists the user's
+				     OpenRegister saved-search views; applying one writes its stored
+				     filters/search/sort into the route query. -->
+				<CnSavedViewsControl
+					v-if="allowSavedViews"
+					:views="savedViews"
+					:loading="savedViewsLoading"
+					:current-user-id="currentSavedViewsUserId"
+					@apply="onApplySavedView"
+					@save-request="showSaveViewDialog = true"
+					@delete-request="onDeleteViewRequest" />
+				<!-- Native Export menu (opt-in via `allowExport` + schema.exportable):
+				     CSV/Excel entries navigate to OR's export-leaf URL, passing the
+				     current route's query params through as filters. -->
+				<NcActions
+					v-if="showExportMenu"
+					:force-name="true"
+					:menu-name="t('nextcloud-vue', 'Export')"
+					data-testid="cn-index-export-menu"
+					:aria-label="t('nextcloud-vue', 'Export')">
+					<template #icon>
+						<Export :size="20" />
+					</template>
+					<NcActionButton data-testid="cn-index-export-csv" @click="onExportClick('csv')">
+						<template #icon>
+							<Export :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Export as CSV') }}
+					</NcActionButton>
+					<NcActionButton data-testid="cn-index-export-excel" @click="onExportClick('excel')">
+						<template #icon>
+							<Export :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Export as Excel') }}
+					</NcActionButton>
+				</NcActions>
 				<!-- Edit-mode config cog: opens the page's full config editor
 				     (CnPageRenderer wires @configure to CnPageConfigModal). -->
 				<NcButton v-if="isEditMode"
@@ -136,6 +182,24 @@
 				<slot name="import-fields" :file="file" />
 			</template>
 		</CnMassImportDialog>
+
+		<!-- Save-current-view dialog (saved-views-ui) -->
+		<CnSaveViewDialog
+			v-if="showSaveViewDialog"
+			ref="saveViewDialog"
+			@confirm="onSaveViewConfirm"
+			@close="showSaveViewDialog = false" />
+
+		<!-- Delete-saved-view confirm (saved-views-ui) -->
+		<CnConfirmDialog
+			v-if="viewPendingDelete"
+			ref="deleteViewConfirmDialog"
+			variant="error"
+			:dialog-title="t('nextcloud-vue', 'Delete view')"
+			:message="deleteViewMessage"
+			:confirm-label="t('nextcloud-vue', 'Delete')"
+			@confirm="onDeleteViewConfirm"
+			@close="viewPendingDelete = null" />
 
 		<!-- @slot delete-dialog Replace the single-item delete dialog. -->
 		<!-- @binding {object} item The item targeted for deletion. -->
@@ -212,10 +276,32 @@
 		</slot>
 
 		<!-- Body -->
-		<div class="cn-index-page__body">
-			<div class="cn-index-page__main">
-				<!-- Loading state -->
-				<div v-if="effectiveLoading" class="cn-index-page__loading">
+		<div class="cn-index-page__body" :class="{ 'cn-index-page__body--with-folders': folderSidebar }">
+			<!-- Optional folder navigation pane (opt-in via the `folderSidebar`
+			     config). Selecting a folder filters the list by the config's
+			     `filterField`; "All" clears it. -->
+			<div v-if="folderSidebar" class="cn-index-page__folder-pane">
+				<CnFolderSidebar
+					:source="folderSidebarSource"
+					:folders="folderSidebarFolders"
+					:objects="effectiveObjects"
+					:group-by="folderSidebar.groupBy || folderSidebar.field || ''"
+					:files-path="folderSidebar.filesPath || '/'"
+					:selected-id="selectedFolderId"
+					:all-label="folderSidebar.allLabel || undefined"
+					:title="folderSidebar.title || ''"
+					:id-field="folderPassthroughIdField"
+					:name-field="folderPassthroughNameField"
+					:allow-create="Boolean(folderSidebar.allowCreate)"
+					@select="onFolderSelect"
+					@create="$emit('folder-create', $event)" />
+			</div>
+
+			<div
+				class="cn-index-page__main"
+				:class="{ 'cn-index-page__main--map': currentViewMode === 'map' }">
+				<!-- Loading state — initial fetch only; a background refresh keeps the table visible -->
+				<div v-if="showInitialLoader" class="cn-index-page__loading">
 					<!-- name gives NcLoadingIcon a non-empty aria-label (WCAG role-img-alt); empty name ships an unlabeled role="img" -->
 					<NcLoadingIcon :size="32" :name="loadingText" />
 				</div>
@@ -241,6 +327,7 @@
 					:rows="displayObjects"
 					:sort-key="effectiveSortKey"
 					:sort-order="effectiveSortOrder"
+					:sort-keys="effectiveSortKeys"
 					:selectable="selectable"
 					:row-click-to-view="rowClickToView"
 					:selected-ids="internalSelectedIds"
@@ -315,6 +402,74 @@
 						</NcActions>
 					</template>
 				</CnDataTable>
+
+				<!-- Map view — plots the CURRENT filtered rows (displayObjects) as
+				     inline markers; no separate fetch path, so it reuses the same
+				     filter / sidebar / quick-filter machinery as table and cards.
+				     A marker click routes back through onRowClick for identical
+				     detail-page navigation. -->
+				<CnMapWidget
+					v-else-if="currentViewMode === 'map'"
+					class="cn-index-page__map"
+					:center="mapCenter"
+					:layers="mapLayers"
+					:basemaps="mapBasemaps"
+					:markers="mapMarkers"
+					:auto-fit="true"
+					height="100%"
+					@marker-click="onMarkerClick" />
+
+				<!-- List view -->
+				<CnObjectList
+					v-else-if="currentViewMode === 'list'"
+					:objects="displayObjects"
+					:schema="effectiveSchema"
+					:config="listConfig"
+					:selectable="selectable"
+					:selected-ids="internalSelectedIds"
+					:row-key="rowKey"
+					:empty-text="emptyText"
+					@click="onRowClick"
+					@select="onSelect">
+					<!--
+						List-item slot resolution priority (highest first):
+						1. Parent-provided `#list-item` scoped slot — App.vue overrides win.
+						2. `listComponent` prop (or manifest `pages[].config.listComponent`)
+						   resolved against the customComponents registry.
+						3. CnObjectList's default CnObjectRow.
+					-->
+					<template v-if="$scopedSlots['list-item']" #list-item="{ object, selected }">
+						<slot name="list-item" :object="object" :selected="selected" />
+					</template>
+					<template v-else-if="resolvedListComponent" #list-item="{ object, selected }">
+						<component
+							:is="resolvedListComponent"
+							:item="object"
+							:object="object"
+							:schema="effectiveSchema"
+							:register="register"
+							:selected="selected"
+							@click="onRowClick(object)"
+							@select="onSelect(toggleIdInArray(internalSelectedIds, object[rowKey]))" />
+					</template>
+					<!-- Per-part row slots (list view only): forwarded to CnObjectRow
+					     so an app can override just the leading icon or the badge
+					     while keeping the config-driven title/subtitle. -->
+					<template v-if="$scopedSlots['row-icon']" #row-icon="{ object }">
+						<slot name="row-icon" :object="object" />
+					</template>
+					<template v-if="$scopedSlots['row-badges']" #row-badges="{ object }">
+						<slot name="row-badges" :object="object" />
+					</template>
+					<template v-if="hasRowActions || $scopedSlots['row-actions']" #row-actions="{ object }">
+						<slot name="row-actions" :row="object">
+							<CnRowActions
+								:actions="mergedActions"
+								:row="object"
+								@action="onRowAction" />
+						</slot>
+					</template>
+				</CnObjectList>
 
 				<!-- Card view -->
 				<CnCardGrid
@@ -413,20 +568,29 @@
 </template>
 
 <script>
-import { NcActions, NcActionCaption, NcActionCheckbox, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { getCurrentUser } from '@nextcloud/auth'
+import { translate as t } from '@nextcloud/l10n'
+import { NcActions, NcActionButton, NcActionCaption, NcActionCheckbox, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import { getCurrentInstance, inject } from 'vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
+import Export from 'vue-material-design-icons/Export.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import { useContextMenu } from '../../composables/index.js'
+import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
+import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
+import { buildExportUrl } from '../../utils/indexExportHelpers.js'
+import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
+import { CnObjectList } from '../CnObjectList/index.js'
+import { CnFolderSidebar } from '../CnFolderSidebar/index.js'
 import { CnContextMenu } from '../CnContextMenu/index.js'
 import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnDataTable } from '../CnDataTable/index.js'
@@ -434,6 +598,7 @@ import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
+import { CnMapWidget } from '../CnMapWidget/index.js'
 import { CnMassCopyDialog } from '../CnMassCopyDialog/index.js'
 import { CnMassDeleteDialog } from '../CnMassDeleteDialog/index.js'
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
@@ -442,6 +607,8 @@ import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnPagination } from '../CnPagination/index.js'
 import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
 import { CnRowActions } from '../CnRowActions/index.js'
+import { CnSavedViewsControl } from '../CnSavedViewsControl/index.js'
+import { CnSaveViewDialog } from '../CnSaveViewDialog/index.js'
 import { applyAiContext } from './aiContext.js'
 import { buildDefaultActions } from './defaultActions.js'
 import { dispatchAction } from './manifestActionDispatch.js'
@@ -462,6 +629,16 @@ import { useSelfFetchList } from './useSelfFetchList.js'
  * - `#form-fields` — Replace only the form content inside the built-in form dialog (CnFormDialog only)
  *
  * Use the `useAdvancedFormDialog` prop to use CnAdvancedFormDialog for create/edit (properties table, JSON tab, optional metadata).
+ *
+ * Multi-column sort (self-fetch mode: `register` + `schema`, no external
+ * `objects`): shift+click a second/third sortable header in the embedded
+ * CnDataTable to build a priority-ordered sort. The active key list is
+ * translated into OpenRegister's `_order` query param (`{field: 'asc'|
+ * 'desc', ...}`, key order = priority — the exact shape `ObjectsController::
+ * normalizeOrderParameter` / `MagicMapper` consume) and persisted in
+ * `$route.query._order` (JSON-encoded), so a reload or a shared link
+ * restores the same sort. Host-controlled (non-self-fetch) pages pass their
+ * own `sortKeys` prop instead.
  *
  * Minimal usage (auto-generated dialogs from schema)
  * ```vue
@@ -504,6 +681,7 @@ import { useSelfFetchList } from './useSelfFetchList.js'
  * @event {number} page-size-changed — Pagination page size changed
  * @event {string[]} select — Selection changed. Payload: array of selected IDs
  * @event {object} action — Row action triggered. Payload: { action, row }
+ * @event {object} apply-view — A saved view was applied (saved-views-ui). Payload: the View API object. Only emitted when `allowSavedViews`.
  * @event {string} search — Search input changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  * @event {string[]} columns-change — Visible columns changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  * @event {{ key: string, values: any[] }} filter-change — Facet filter changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
@@ -528,11 +706,13 @@ export default {
 		NcLoadingIcon,
 		NcEmptyContent,
 		NcActions,
+		NcActionButton,
 		NcActionCaption,
 		NcActionCheckbox,
 		NcButton,
 		Cog,
 		DatabaseSearch,
+		Export,
 		FilterOutline,
 		ViewColumnOutline,
 		CnPageHeader,
@@ -541,6 +721,9 @@ export default {
 		CnIcon,
 		CnDataTable,
 		CnCardGrid,
+		CnMapWidget,
+		CnObjectList,
+		CnFolderSidebar,
 		CnPagination,
 		CnRowActions,
 		CnMassDeleteDialog,
@@ -553,6 +736,9 @@ export default {
 		CnAdvancedFormDialog,
 		CnContextMenu,
 		CnIndexSidebar,
+		CnSavedViewsControl,
+		CnSaveViewDialog,
+		CnConfirmDialog,
 	},
 
 	/**
@@ -742,11 +928,74 @@ export default {
 			default: () => [],
 		},
 
-		/** View mode: 'table' or 'cards' */
+		/**
+		 * View mode: 'table', 'cards', 'list', or 'map'. Default 'table'. List is
+		 * opted in via `availableViewModes`; map via `mapConfig` / `config.viewModes`.
+		 */
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards'].includes(v),
+			validator: (v) => ['table', 'cards', 'list', 'map'].includes(v),
+		},
+
+		/**
+		 * Marker geometry mapping for the opt-in `map` view mode, mirroring the
+		 * manifest `config.map` block 1:1. When non-empty (and not excluded by an
+		 * explicit `config.viewModes`), a third "Map" segment appears in the view
+		 * toggle and the current filtered rows are plotted on a CnMapWidget.
+		 *
+		 * - `latField` / `lngField` — object (or `@self`) property paths holding the
+		 *   marker's latitude / longitude. Dotted paths are supported (e.g.
+		 *   `@self.geo.lat`).
+		 * - `geoField` — alternative single property holding a GeoJSON Point
+		 *   geometry (`{ type: 'Point', coordinates: [lng, lat] }`); takes
+		 *   precedence over lat/lngField when present and resolvable.
+		 * - `popupField` — object property rendered in the marker popup.
+		 * - `center` — optional `[lat, lng]` fallback centre when the filtered set
+		 *   has no plottable rows.
+		 * @type {{ latField?: string, lngField?: string, geoField?: string, popupField?: string, center?: [number, number] }}
+		 */
+		mapConfig: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/** Label for the map view-toggle segment (defaults to "Map"). */
+		mapLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the map view-toggle segment (defaults to the built-in map-marker icon). */
+		mapIcon: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Explicit whitelist of view-toggle segments to offer, e.g.
+		 * `['table', 'cards', 'map']`. Fed from the manifest as
+		 * `pages[].config.viewModes`. When set it takes precedence over the
+		 * inferred availability (map otherwise appears iff `mapConfig` is
+		 * non-empty). Cards/table always render regardless of this list.
+		 * @type {Array<'table' | 'cards' | 'list' | 'map'>}
+		 */
+		viewModes: {
+			type: Array,
+			default: null,
+		},
+
+		/**
+		 * Which view-mode toggle segments to expose (cards/table/list), in order.
+		 * Defaults to the historical Cards/Table pair; include `'list'` to offer the
+		 * list view. Fed from the manifest as `pages[].config.availableViewModes`.
+		 * Map is added separately via `mapConfig` / `viewModes`.
+		 * @type {Array<'cards' | 'table' | 'list' | 'map'>}
+		 */
+		availableViewModes: {
+			type: Array,
+			default: () => ['cards', 'table'],
+			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'map'].includes(m)),
 		},
 
 		/** Current sort key */
@@ -759,6 +1008,19 @@ export default {
 		sortOrder: {
 			type: String,
 			default: 'asc',
+		},
+
+		/**
+		 * Ordered multi-column sort state (host-controlled / non-self-fetch
+		 * mode): `[{ key, order }, ...]`, mirroring the `sortKey`/`sortOrder`
+		 * pair but for more than one active key. Ignored in self-fetch mode
+		 * (register + schema), which manages its own multi-sort state via
+		 * `useSelfFetchList`/`useListView` and persists it in the route query.
+		 * @type {Array<{key: string, order: 'asc'|'desc'}>}
+		 */
+		sortKeys: {
+			type: Array,
+			default: () => [],
 		},
 
 		/**
@@ -871,6 +1133,39 @@ export default {
 		showMassDelete: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Opt-in flag for the native Export menu (CSV/Excel) rendered in the
+		 * toolbar next to the Add button. Defaults to `false` — an app must
+		 * explicitly enable it per page. The menu only renders when this is
+		 * `true` AND the resolved schema is flagged `exportable: true`; it
+		 * navigates the browser to OpenRegister's export leaf
+		 * (`GET /apps/openregister/api/objects/{register}/{schema}/export`),
+		 * passing the current route's query params through as filters. This
+		 * is distinct from the `showMassExport` mass-action, which exports
+		 * only the fetched/selected rows via a blob download.
+		 */
+		allowExport: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Opt-in flag for the saved-views control (saved-views-ui) rendered
+		 * in the toolbar. Defaults to `false` — an app must explicitly
+		 * enable it per page. When `true`, a Views dropdown lists the
+		 * current user's OpenRegister saved-search views
+		 * (`GET /apps/openregister/api/views`); applying one writes its
+		 * stored filters/search/sort into the route query (reusing the
+		 * existing deep-link contract — non-underscore keys are filters,
+		 * `_search`/`_sortKey`/`_sortOrder` are reserved), "Save current
+		 * view…" persists the current route-query state via POST, and own
+		 * views can be deleted after confirmation.
+		 */
+		allowSavedViews: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Property name used to display item names in dialogs */
@@ -1029,6 +1324,76 @@ export default {
 			default: '',
 		},
 
+		/** Label for the list view-toggle option (manifest `config.listLabel`, e.g. "Rows") */
+		listLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Show a standalone sort dropdown in the actions bar (for card/list
+		 * views without sortable headers). Emits `@sort-change` with the value.
+		 * Fed from the manifest as `pages[].config.showSortSelect`.
+		 */
+		showSortSelect: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Options for the standalone sort dropdown (manifest `config.sortSelectOptions`).
+		 * @type {Array<{ value: string, label: string }>}
+		 */
+		sortSelectOptions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/** Selected value of the standalone sort dropdown (controlled). */
+		sortSelectValue: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the list view-toggle option (manifest `config.listIcon`) */
+		listIcon: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Field mapping for the default list-view rows (CnObjectRow). Overrides
+		 * the schema-configuration defaults. Fed from the manifest as
+		 * `pages[].config.listConfig`.
+		 * @type {{ titleField?: string, subtitleField?: string, imageField?: string, iconField?: string, iconName?: string, badgeField?: string, badgeVariantField?: string, badgeVariant?: string, badgeColorMap?: object }}
+		 */
+		listConfig: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * Opt-in folder navigation pane (rendered left of the list). Selecting a
+		 * folder filters the list by `filterField` (via the self-fetch filter);
+		 * "All" clears it. Fed from the manifest as `pages[].config.folderSidebar`.
+		 *
+		 * - `source` — `'register'` (fetch the folder list from an OpenRegister
+		 *   register/schema), `'field'` (distinct values of the current rows'
+		 *   `field`), `'custom'` (use `folders`), or `'files'` (NC folders).
+		 * - `register` / `schema` — the OR source for `source:'register'`.
+		 * - `idField` / `nameField` — which folder object props map to the folder
+		 *   id (the filter value) and display name. Dotted paths supported.
+		 * - `field` / `filterField` — the row field to group/filter by (filterField
+		 *   defaults to `field`).
+		 * - `folders` — explicit folder list for `source:'custom'`.
+		 * - `allLabel` / `title` / `allowCreate` — passed to CnFolderSidebar.
+		 * @type {object}
+		 */
+		folderSidebar: {
+			type: Object,
+			default: null,
+		},
+
 		/**
 		 * Show a filter menu (funnel button) in the table header, above the
 		 * row-actions column. Its menu lists every enum/badge column's values as
@@ -1056,6 +1421,24 @@ export default {
 		refreshing: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Whether to auto-subscribe to live collection updates in self-fetch
+		 * mode. Defaults to true. When `register` + `schema` are set (and no
+		 * `objects` prop is passed), the page subscribes to the collection's
+		 * `or-collection-{register}-{schema}` scope on mount and refetches
+		 * (coalesced — events are hints) when an update event arrives; the
+		 * subscription is released on unmount. Set `false` (manifest:
+		 * `config.subscribe: false`) for static / read-once views. No-op in
+		 * consumer-managed mode (an `objects` prop was passed) and on stores
+		 * without live-updates support.
+		 *
+		 * @type {boolean}
+		 */
+		subscribe: {
+			type: Boolean,
+			default: true,
 		},
 
 		/** Whether the refresh action is disabled (e.g. when required selections are missing) */
@@ -1177,6 +1560,20 @@ export default {
 		},
 
 		/**
+		 * Name of a custom row component for list view, resolved against the
+		 * customComponents registry (manifest `pages[].config.listComponent`).
+		 * Same resolution priority as `cardComponent`: the `#list-item` slot
+		 * wins, then this component, then the default `CnObjectRow`. Unknown
+		 * names warn once and fall back to the default.
+		 *
+		 * @type {string}
+		 */
+		listComponent: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Optional explicit customComponents registry. When set, this
 		 * overrides the registry injected from `CnAppRoot` via
 		 * `cnCustomComponents`. Provided primarily so unit tests can
@@ -1284,6 +1681,9 @@ export default {
 		return {
 			currentViewMode: this.viewMode,
 			internalSelectedIds: [...this.selectedIds],
+			// Folder-sidebar state: selected folder id + the register-fetched list.
+			selectedFolderId: null,
+			folderRegisterList: [],
 			// Mass action dialogs
 			showMassDeleteDialog: false,
 			showMassCopyDialog: false,
@@ -1303,6 +1703,13 @@ export default {
 			// content (table / cards) starts at the top and fills the width;
 			// opened on demand via the actions-bar toggle.
 			sidebarOpen: false,
+			// Saved views (saved-views-ui): the fetched view list, its
+			// loading flag, the save-dialog toggle, and the view awaiting
+			// delete confirmation.
+			savedViews: [],
+			savedViewsLoading: false,
+			showSaveViewDialog: false,
+			viewPendingDelete: null,
 		}
 	},
 
@@ -1374,8 +1781,175 @@ export default {
 			if (this.effectiveSortKey) return this.effectiveObjects
 			return multiKeySort(this.effectiveObjects, this.defaultSort)
 		},
+
+		/**
+		 * Whether the `map` segment is offered in the view toggle. An explicit
+		 * `viewModes` whitelist wins; otherwise map is available iff `mapConfig`
+		 * carries at least one field. Cards/table are always available.
+		 *
+		 * @return {boolean}
+		 */
+		showMapSegment() {
+			if (Array.isArray(this.viewModes)) return this.viewModes.includes('map')
+			return Object.keys(this.mapConfig || {}).length > 0
+		},
+
+		/**
+		 * The base view-toggle segments (cards/table/list) passed to CnActionsBar.
+		 * Beta's explicit `viewModes` whitelist wins when set; otherwise the
+		 * `availableViewModes` list. Map is excluded here — it's added by the
+		 * actions bar via the `showMap` bridge driven by `showMapSegment`.
+		 *
+		 * @return {Array<string>} The ordered toggle segments minus 'map'.
+		 */
+		effectiveToggleModes() {
+			const list = (Array.isArray(this.viewModes) && this.viewModes.length)
+				? this.viewModes
+				: this.availableViewModes
+			return list.filter((m) => m !== 'map')
+		},
+
+		/**
+		 * The CnFolderSidebar source. A `register` source is fetched by this
+		 * component and handed to CnFolderSidebar as a `custom` folder list.
+		 *
+		 * @return {string} The resolved CnFolderSidebar source.
+		 */
+		folderSidebarSource() {
+			const s = this.folderSidebar && this.folderSidebar.source
+			return (s === 'register' || !s) ? 'custom' : s
+		},
+
+		/**
+		 * The folder list for CnFolderSidebar's custom source: register-fetched
+		 * objects (source:'register') or the explicit `folders` (source:'custom').
+		 * Empty for the field/files sources, which derive their own list.
+		 *
+		 * @return {Array<object>} The folder list.
+		 */
+		folderSidebarFolders() {
+			if (!this.folderSidebar) return []
+			if (this.folderSidebar.source === 'register') return this.folderRegisterList
+			return this.folderSidebar.folders || []
+		},
+
+		/**
+		 * id/name field names passed to CnFolderSidebar for the custom folder
+		 * list. The `register` source is pre-mapped to `{ id, name }` by
+		 * `loadFolderRegister`, so it uses the plain keys; a `custom` source
+		 * passes the objects through untouched and honours the config's fields.
+		 *
+		 * @return {string} The id field key.
+		 */
+		folderPassthroughIdField() {
+			if (this.folderSidebar && this.folderSidebar.source === 'register') return 'id'
+			return (this.folderSidebar && this.folderSidebar.idField) || 'id'
+		},
+
+		/**
+		 * @return {string} The name field key for CnFolderSidebar's custom list.
+		 */
+		folderPassthroughNameField() {
+			if (this.folderSidebar && this.folderSidebar.source === 'register') return 'name'
+			return (this.folderSidebar && this.folderSidebar.nameField) || 'name'
+		},
+
+		/**
+		 * Inline GeoJSON markers for the map view, built from the CURRENT filtered
+		 * `displayObjects` using `mapConfig`. Each feature stashes the row's
+		 * `rowKey` in `properties` so a marker click can resolve back to its source
+		 * row. Rows without finite, resolvable geometry are skipped silently.
+		 *
+		 * @return {{ features: object[], popupField: (string|undefined) }}
+		 */
+		mapMarkers() {
+			const features = []
+			for (const row of this.displayObjects) {
+				const geometry = this.resolveRowGeometry(row)
+				if (!geometry) continue
+				features.push({
+					type: 'Feature',
+					geometry,
+					properties: {
+						[this.rowKey]: row[this.rowKey],
+						...(this.mapConfig.popupField ? { [this.mapConfig.popupField]: row[this.mapConfig.popupField] } : {}),
+					},
+				})
+			}
+			return { features, popupField: this.mapConfig.popupField }
+		},
+
+		/**
+		 * Extra (non-background) map layers — WMS / WFS / GeoJSON overlays declared in
+		 * `mapConfig.layers`. The background map comes from `mapBasemaps` instead, so
+		 * this is empty unless the consumer configured overlays.
+		 *
+		 * @return {Array<object>}
+		 */
+		mapLayers() {
+			if (Array.isArray(this.mapConfig.layers) && this.mapConfig.layers.length > 0) {
+				return this.mapConfig.layers
+			}
+			return []
+		},
+
+		/**
+		 * Switchable background maps.
+		 *
+		 * Defaults to OpenStreetMap standard ONLY. Every extra basemap is an `<img>`
+		 * load from a third-party host, which a Nextcloud app's Content-Security-Policy
+		 * (`img-src`) blocks unless that app explicitly allowlists the host — so a
+		 * richer default would ship dead options to consumers that never widened their
+		 * CSP. Apps that want a switcher declare the set in `mapConfig.basemaps` AND
+		 * allowlist those hosts (see Procest's `relaxCspForMapTiles()`).
+		 *
+		 * @return {Array<object>}
+		 */
+		mapBasemaps() {
+			if (Array.isArray(this.mapConfig.basemaps) && this.mapConfig.basemaps.length > 0) {
+				return this.mapConfig.basemaps
+			}
+			return [{
+				name: t('nextcloud-vue', 'Standard'),
+				url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+				attribution: '© OpenStreetMap contributors',
+			}]
+		},
+
+		/**
+		 * Initial map centre `[lat, lng]`. Uses the centroid of the plotted markers
+		 * when any exist (CnMapWidget's autoFit then tightens to the bounds); falls
+		 * back to `mapConfig.center`, then a neutral world view when the set is empty.
+		 *
+		 * @return {[number, number]}
+		 */
+		mapCenter() {
+			const feats = this.mapMarkers.features
+			if (feats.length > 0) {
+				let sumLat = 0
+				let sumLng = 0
+				for (const f of feats) {
+					const _p = this.firstLatLng(f.geometry); if (!_p) continue; sumLng += _p.lng
+					sumLat += _p.lat
+				}
+				return [sumLat / feats.length, sumLng / feats.length]
+			}
+			if (Array.isArray(this.mapConfig.center) && this.mapConfig.center.length === 2) {
+				return this.mapConfig.center
+			}
+			return [0, 0]
+		},
 		/** Loading flag: store loading in self-fetch mode, else the `loading` prop. */
 		effectiveLoading() { return this.isSelfFetchMode ? !!this.list.loading.value : this.loading },
+		/**
+		 * Whether to replace the page with the full loading spinner. Only on an
+		 * INITIAL fetch — i.e. while loading AND there is no data to show yet.
+		 * A background refresh (e.g. the on-visibility refetch) keeps the
+		 * existing rows on screen and updates them in place instead of flashing
+		 * the spinner over already-rendered content (fetchCollection preserves
+		 * the prior collection until the new results arrive).
+		 */
+		showInitialLoader() { return this.effectiveLoading && this.effectiveObjects.length === 0 },
 		/**
 		 * Refresh-spinner flag for the Actions menu: the `refreshing` prop
 		 * OR (self-fetch mode) the internally-tracked refresh. Lets manifest
@@ -1391,9 +1965,57 @@ export default {
 			return (this.schema && typeof this.schema === 'object') ? this.schema : null
 		},
 
+		/**
+		 * Schema slug for the export-leaf URL — the `schema` prop directly
+		 * when it's a string (self-fetch mode's precondition), else the
+		 * resolved schema object's `slug`/`name`.
+		 */
+		exportSchemaSlug() {
+			if (typeof this.schema === 'string') return this.schema
+			return this.effectiveSchema?.slug || this.effectiveSchema?.name || ''
+		},
+
+		/**
+		 * Whether the native Export menu renders in the toolbar: opt-in via
+		 * `allowExport` AND the resolved schema flagged `exportable: true`.
+		 * Default-safe — false unless both hold.
+		 */
+		showExportMenu() {
+			return Boolean(this.allowExport) && Boolean(this.effectiveSchema?.exportable) && Boolean(this.register) && Boolean(this.exportSchemaSlug)
+		},
+
+		/**
+		 * The signed-in NC user id — passed to CnSavedViewsControl to gate
+		 * the per-view delete affordance (saved-views-ui).
+		 *
+		 * @return {string}
+		 */
+		currentSavedViewsUserId() {
+			const user = getCurrentUser()
+			return (user && user.uid) || ''
+		},
+
+		/**
+		 * Confirmation message for the delete-saved-view dialog.
+		 *
+		 * @return {string}
+		 */
+		deleteViewMessage() {
+			if (!this.viewPendingDelete) return ''
+			return t('nextcloud-vue', 'Delete the view "{name}"? This cannot be undone.', { name: this.viewPendingDelete.name })
+		},
+
 		/** Sort key / order: list state in self-fetch mode, else the props. */
 		effectiveSortKey() { return this.isSelfFetchMode ? this.list.sortKey.value : this.sortKey },
 		effectiveSortOrder() { return this.isSelfFetchMode ? this.list.sortOrder.value : this.sortOrder },
+		/**
+		 * Ordered multi-column sort state fed to CnDataTable: the self-fetch
+		 * list's `sortKeys` in self-fetch mode, else the host-controlled
+		 * `sortKeys` prop.
+		 *
+		 * @return {Array<{key: string, order: 'asc'|'desc'}>}
+		 */
+		effectiveSortKeys() { return this.isSelfFetchMode ? (this.list.sortKeys.value || []) : this.sortKeys },
 		/** Search term / visible columns / active facet filters for the embedded sidebar. */
 		effectiveSearchValue() { return this.isSelfFetchMode ? (this.list.searchTerm.value || '') : (this.searchValue || '') },
 		effectiveVisibleColumns() { return this.isSelfFetchMode ? this.list.visibleColumns.value : this.visibleColumns },
@@ -1687,6 +2309,25 @@ export default {
 			}
 			return resolved
 		},
+
+		/**
+		 * Custom list-row component resolved against the customComponents
+		 * registry, or `null` when `listComponent` is empty / unknown (default
+		 * `CnObjectRow` is used). Mirrors `resolvedCardComponent`.
+		 *
+		 * @return {?object} The resolved component, or null.
+		 */
+		resolvedListComponent() {
+			if (!this.listComponent) {
+				return null
+			}
+			const resolved = this.effectiveCustomComponents[this.listComponent]
+			if (!resolved) {
+				console.warn(`[CnIndexPage] listComponent "${this.listComponent}" not found in customComponents registry. Falling back to CnObjectRow.`)
+				return null
+			}
+			return resolved
+		},
 	},
 
 	watch: {
@@ -1762,15 +2403,33 @@ export default {
 				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh(1)
 			},
 		},
+
+		// When `?action=create` is injected into the query via router navigation
+		// (e.g. a "New Case" button on another page), auto-open the create dialog
+		// so the user lands on the index page with the form already open.
+		'$route.query.action': {
+			handler(val) {
+				if (val === 'create') this.maybeOpenCreateFromQuery()
+			},
+		},
 	},
 
 	mounted() {
 		this.publishHoistedSidebar()
 		this.pushAiContext()
+		this.maybeOpenCreateFromQuery()
+		if (this.folderSidebar) {
+			this.loadFolderRegister()
+			// Reflect a deep-link filter (e.g. ?caseType=<id>) as the active folder.
+			const key = this.folderSidebar.filterField || this.folderSidebar.field
+			const active = key && this.effectiveActiveFilters[key]
+			if (active) this.selectedFolderId = Array.isArray(active) ? active[0] : active
+		}
 	},
 
 	created() {
 		this.pushAiContext()
+		if (this.allowSavedViews) this.fetchSavedViews()
 		this.selfActions = createSelfModeActions({
 			isSelfFetchMode: () => this.isSelfFetchMode,
 			selfObjectStore: () => this.selfObjectStore,
@@ -1944,12 +2603,40 @@ export default {
 		},
 
 		/**
-		 * @param {{key: string, order: string}} payload Sort change from CnDataTable.
+		 * @param {{key: string, order: string, keys?: Array<{key: string, order: string}>}} payload Sort change from CnDataTable.
 		 * @return {void}
 		 */
 		onSortEvent(payload) {
 			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') this.list.onSort(payload)
+			if (this.isSelfFetchMode) {
+				const keys = Array.isArray(payload.keys)
+					? payload.keys
+					: (payload.key ? [{ key: payload.key, order: payload.order || 'asc' }] : [])
+				this.persistSortToRoute(keys)
+			}
 			this.$emit('sort', payload)
+		},
+
+		/**
+		 * Persist the active multi-column sort to `$route.query._order`
+		 * (JSON-encoded ordered array) so a reload or a shared/bookmarked
+		 * link reproduces the same sort. An empty `keys` list removes the
+		 * param entirely. Best-effort: a duplicate-navigation rejection
+		 * (same resulting path/query) is swallowed, matching every other
+		 * `$router.replace` call in this component.
+		 *
+		 * @param {Array<{key: string, order: string}>} keys The active ordered sort-key list.
+		 * @return {void}
+		 */
+		persistSortToRoute(keys) {
+			if (!this.$router || !this.$route) return
+			const query = { ...this.$route.query }
+			if (Array.isArray(keys) && keys.length > 0) {
+				query._order = JSON.stringify(keys)
+			} else {
+				delete query._order
+			}
+			this.$router.replace({ query }).catch(() => {})
 		},
 
 		/**
@@ -1968,6 +2655,56 @@ export default {
 		onFilterEvent(payload) {
 			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') this.list.onFilterChange(payload.key, payload.values)
 			this.$emit('filter-change', payload)
+		},
+
+		/**
+		 * Folder selection from the opt-in folder sidebar: filter the list by the
+		 * config's `filterField` (or `field`); a null id clears it.
+		 *
+		 * @param {(string|number|null)} folderId The selected folder id (null = All).
+		 * @return {void}
+		 */
+		onFolderSelect(folderId) {
+			this.selectedFolderId = folderId
+			const key = (this.folderSidebar && (this.folderSidebar.filterField || this.folderSidebar.field)) || ''
+			if (key) {
+				this.onFilterEvent({ key, values: (folderId === null || folderId === undefined) ? [] : [folderId] })
+			}
+			/**
+			 * @event folder-change Emitted when a folder is selected in the sidebar.
+			 * @type {(string|number|null)} The selected folder id (null = All).
+			 */
+			this.$emit('folder-change', folderId)
+		},
+
+		/**
+		 * Load the folder list from an OpenRegister register/schema for a
+		 * `folderSidebar.source === 'register'` config. Maps each object to
+		 * `{ id: <idField|@self.uuid>, name: <nameField|title> }`.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadFolderRegister() {
+			const cfg = this.folderSidebar
+			if (!cfg || cfg.source !== 'register' || !cfg.register || !cfg.schema) return
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: cfg.register, schema: cfg.schema })
+				const res = await axios.get(url, { params: { _limit: cfg.limit || 200 } })
+				const rows = (res && res.data && (res.data.results || res.data)) || []
+				const idField = cfg.idField || '@self.uuid'
+				const nameField = cfg.nameField || 'title'
+				this.folderRegisterList = rows
+					.map((row) => ({ id: this.getByPath(row, idField), name: this.getByPath(row, nameField) || this.getByPath(row, idField) }))
+					.filter((f) => f.id != null)
+					.sort((a, b) => String(a.name).localeCompare(String(b.name)))
+			} catch (e) {
+				console.error('[CnIndexPage] failed to load folder register', e)
+				this.folderRegisterList = []
+			}
 		},
 
 		/**
@@ -2101,6 +2838,129 @@ export default {
 		},
 
 		/**
+		 * Resolve a marker click on the map back to its source row and route it
+		 * through `onRowClick`, so `@row-click` fires with the identical payload a
+		 * table/card click would emit — giving uniform detail-page navigation
+		 * across all three view modes.
+		 *
+		 * @param {{ feature: object }} payload CnMapWidget marker-click payload.
+		 */
+		onMarkerClick(payload) {
+			const feature = payload && payload.feature
+			const key = feature && feature.properties ? feature.properties[this.rowKey] : undefined
+			if (key === undefined || key === null) return
+			const row = this.displayObjects.find((o) => o[this.rowKey] === key)
+			if (row) this.onRowClick(row)
+		},
+
+		/**
+		 * Extract a `{ lat, lng }` pair from a row using `mapConfig`. Prefers a
+		 * GeoJSON Point on `geoField` (`coordinates: [lng, lat]`), else reads the
+		 * dotted `latField` / `lngField` paths. Returns null when the geometry is
+		 * missing or non-finite, so callers can skip the row.
+		 *
+		 * @param {object} row The source object.
+		 * @return {{ lat: number, lng: number } | null}
+		 */
+		resolveRowLatLng(row) {
+			if (!row) return null
+			const cfg = this.mapConfig || {}
+			if (cfg.geoField) {
+				let geo = this.getByPath(row, cfg.geoField)
+				// OpenRegister often stores geometry as a JSON-encoded string on
+				// object metadata; parse it before reading `coordinates`.
+				if (typeof geo === 'string') {
+					try {
+						geo = JSON.parse(geo)
+					} catch {
+						geo = null
+					}
+				}
+				const coords = geo && Array.isArray(geo.coordinates) ? geo.coordinates : null
+				if (coords && Number.isFinite(coords[0]) && Number.isFinite(coords[1])) {
+					return { lat: Number(coords[1]), lng: Number(coords[0]) }
+				}
+			}
+			const lat = Number(this.getByPath(row, cfg.latField))
+			const lng = Number(this.getByPath(row, cfg.lngField))
+			if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng }
+			return null
+		},
+
+		/**
+		 * Resolve a row's GeoJSON geometry for the map view. Prefers a full
+		 * geometry on `geoField`: a Point renders as a marker, a Polygon /
+		 * MultiPolygon / LineString renders as an area/line — so location cases
+		 * plot as both points AND areas. `geoField` is parsed from a JSON string
+		 * when OpenRegister stores it encoded. Falls back to a Point built from
+		 * `latField` / `lngField`. Returns null when nothing resolvable is present.
+		 *
+		 * @param {object} row The source object.
+		 * @return {object|null} A GeoJSON geometry object, or null.
+		 */
+		resolveRowGeometry(row) {
+			if (!row) return null
+			const cfg = this.mapConfig || {}
+			const GEO_TYPES = ['Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon', 'GeometryCollection']
+			if (cfg.geoField) {
+				let geo = this.getByPath(row, cfg.geoField)
+				if (typeof geo === 'string') {
+					try { geo = JSON.parse(geo) } catch { geo = null }
+				}
+				if (geo && GEO_TYPES.includes(geo.type)) {
+					const hasShape = geo.type === 'GeometryCollection'
+						? Array.isArray(geo.geometries)
+						: Array.isArray(geo.coordinates)
+					if (hasShape) return geo
+				}
+			}
+			const lat = Number(this.getByPath(row, cfg.latField))
+			const lng = Number(this.getByPath(row, cfg.lngField))
+			if (Number.isFinite(lat) && Number.isFinite(lng)) {
+				return { type: 'Point', coordinates: [lng, lat] }
+			}
+			return null
+		},
+
+		/**
+		 * Dig out the first `[lng, lat]` coordinate pair from any GeoJSON geometry
+		 * (Point, Polygon ring, GeometryCollection, …) for a rough centroid.
+		 *
+		 * @param {object} geometry A GeoJSON geometry.
+		 * @return {{lat: number, lng: number}|null}
+		 */
+		firstLatLng(geometry) {
+			if (!geometry) return null
+			if (geometry.type === 'GeometryCollection') {
+				for (const g of (geometry.geometries || [])) {
+					const p = this.firstLatLng(g)
+					if (p) return p
+				}
+				return null
+			}
+			let c = geometry.coordinates
+			while (Array.isArray(c) && Array.isArray(c[0])) c = c[0]
+			if (Array.isArray(c) && Number.isFinite(c[0]) && Number.isFinite(c[1])) {
+				return { lat: Number(c[1]), lng: Number(c[0]) }
+			}
+			return null
+		},
+
+		/**
+		 * Read a possibly-dotted property path off an object (e.g. `@self.geo.lat`).
+		 * Returns undefined on any missing segment. No path = undefined.
+		 *
+		 * @param {object} obj The object to read from.
+		 * @param {string} path Dot-separated property path.
+		 * @return {*} The resolved value or undefined.
+		 */
+		getByPath(obj, path) {
+			if (!obj || !path) return undefined
+			if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path]
+			return path.split('.').reduce((acc, seg) => (acc == null ? undefined : acc[seg]), obj)
+		},
+
+		/**
 		 * Handle the built-in View action — emits a dedicated `view` event.
 		 * Kept distinct from `row-click` because the two are conceptually
 		 * different: a row click might mean select/expand/drilldown, while
@@ -2122,6 +2982,33 @@ export default {
 			} else if (this.showFormDialog) {
 				this.editItem = null
 				this.showFormDialogVisible = true
+			}
+		},
+
+		/**
+		 * Open the built-in create dialog when the route carries `?action=create`.
+		 * Called on `mounted()` and whenever `$route.query.action` changes, so it
+		 * works both on initial navigation and on same-page deep-links (e.g. a
+		 * "New Case" button on a sibling page that routes here with the query).
+		 *
+		 * After opening the dialog the query param is cleared via
+		 * `$router.replace` so a page refresh does not re-open it and browser
+		 * history stays clean. No-op when there is no router, when `showFormDialog`
+		 * is false (consumer manages its own dialog), or when the query param is
+		 * absent / not `'create'`.
+		 */
+		maybeOpenCreateFromQuery() {
+			if (!this.$route || !this.$route.query || this.$route.query.action !== 'create') return
+			if (!this.showFormDialog) return
+			this.openFormDialog(null)
+			// Clear the query param; guard against redundant navigation errors.
+			if (this.$router) {
+				const query = { ...this.$route.query }
+				delete query.action
+				const nav = this.$router.replace({ query })
+				// $router.replace returns a Promise in Vue Router 3 but may
+				// return undefined in mocked / legacy environments — guard.
+				if (nav && typeof nav.catch === 'function') nav.catch(() => {})
 			}
 		},
 
@@ -2161,6 +3048,109 @@ export default {
 		async onMassExportConfirm(payload) {
 			if (await this.selfActions.handleMassExport(payload)) return
 			this.$emit('mass-export', payload)
+		},
+
+		/**
+		 * Native Export menu entry click (`allowExport` + `schema.exportable`).
+		 * Navigates the browser to OpenRegister's export leaf, passing the
+		 * current route's query params through so a filtered index exports
+		 * only the visible rows.
+		 *
+		 * @param {'csv'|'excel'} format The requested export format.
+		 */
+		onExportClick(format) {
+			const routeQuery = (this.$route && this.$route.query) || {}
+			const url = buildExportUrl(this.register, this.exportSchemaSlug, routeQuery, format)
+			window.location.assign(url)
+		},
+
+		// ── Saved views (saved-views-ui) ─────────────────────────────────────
+
+		/**
+		 * Fetch the current user's saved views (own + public) from
+		 * OpenRegister's views API. Called from created() when
+		 * `allowSavedViews` is enabled.
+		 */
+		async fetchSavedViews() {
+			this.savedViewsLoading = true
+			try {
+				this.savedViews = await useSavedViewsApi().fetchViews()
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('CnIndexPage: failed to fetch saved views', error)
+			} finally {
+				this.savedViewsLoading = false
+			}
+		},
+
+		/**
+		 * Apply a saved view: replace the route query with the view's
+		 * stored filters/search/sort. `$router.replace` (not push) so the
+		 * browser Back button doesn't step through every applied view —
+		 * same precedent as the `?action=create` query cleanup. Dropping
+		 * the whole previous query implicitly resets `_page` to 1.
+		 *
+		 * @param {object} view The View API object to apply.
+		 */
+		onApplySavedView(view) {
+			const query = buildRouteQueryFromViewState(extractViewState(view))
+			if (!this.$router) return
+			const nav = this.$router.replace({ query })
+			// Swallow the duplicate-navigation rejection (Vue Router 3)
+			// when the applied view matches the current query.
+			if (nav && typeof nav.catch === 'function') nav.catch(() => {})
+			this.$emit('apply-view', view)
+		},
+
+		/**
+		 * Persist the current route-query state as a named view via
+		 * OpenRegister's views API (CnSaveViewDialog `@confirm`). On
+		 * success the new view joins the list and the dialog closes; on
+		 * failure the dialog stays open with the error surfaced.
+		 *
+		 * @param {{ name: string, isPublic: boolean }} payload Dialog payload.
+		 */
+		async onSaveViewConfirm({ name, isPublic }) {
+			const state = extractViewStateFromRouteQuery((this.$route && this.$route.query) || {})
+			const payload = buildViewCreatePayload({ name, description: '', isPublic, isDefault: false, state })
+			try {
+				const view = await useSavedViewsApi().createView(payload)
+				if (view) this.savedViews = [...this.savedViews, view]
+				this.showSaveViewDialog = false
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('CnIndexPage: failed to save view', error)
+				this.$refs.saveViewDialog?.setError(error?.response?.data?.error || error?.message)
+			}
+		},
+
+		/**
+		 * Open the delete-confirmation dialog for a saved view
+		 * (CnSavedViewsControl `@delete-request`).
+		 *
+		 * @param {object} view The View API object to delete.
+		 */
+		onDeleteViewRequest(view) {
+			this.viewPendingDelete = view
+		},
+
+		/**
+		 * Delete the pending view after confirmation (CnConfirmDialog
+		 * `@confirm`), then report back via the dialog's setResult()
+		 * contract and remove it from the local list.
+		 */
+		async onDeleteViewConfirm() {
+			const view = this.viewPendingDelete
+			if (!view) return
+			try {
+				await useSavedViewsApi().deleteView(view.id)
+				this.savedViews = this.savedViews.filter((v) => v.id !== view.id)
+				this.$refs.deleteViewConfirmDialog?.setResult({ success: true })
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('CnIndexPage: failed to delete view', error)
+				this.$refs.deleteViewConfirmDialog?.setResult({ error: error?.response?.data?.error || error?.message || 'Failed to delete view' })
+			}
 		},
 
 		async onMassImportConfirm(payload) {

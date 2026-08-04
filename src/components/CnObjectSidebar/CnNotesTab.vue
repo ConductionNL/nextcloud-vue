@@ -1,12 +1,19 @@
+<!--
+  - SPDX-FileCopyrightText: 2026 Conduction B.V.
+  - SPDX-License-Identifier: EUPL-1.2
+-->
+
 <template>
 	<div class="cn-sidebar-tab">
 		<!-- Add / Edit note -->
 		<div class="cn-sidebar-tab__action">
-			<textarea
-				v-model="newNoteText"
-				class="cn-sidebar-tab__textarea"
+			<NcRichContenteditable
+				class="cn-sidebar-tab__composer"
+				:value="newNoteText"
+				:auto-complete="fetchMentionSuggestions"
 				:placeholder="addNotePlaceholder"
-				rows="3" />
+				multiline
+				@update:value="newNoteText = $event" />
 			<div class="cn-sidebar-tab__action--row">
 				<NcButton
 					v-if="editingNoteId"
@@ -27,11 +34,16 @@
 		</div>
 
 		<!-- Notes list -->
-		<NcLoadingIcon v-if="loading" />
+		<!-- Standalone spinner: give it an accessible name so screen readers
+		     announce the loading state (WCAG 1.1.1 / 4.1.2 — a bare
+		     NcLoadingIcon renders an unlabelled role="img"). -->
+		<NcLoadingIcon v-if="loading" :name="loadingLabel" />
 		<div v-else-if="notes.length === 0" class="cn-sidebar-tab__empty">
 			{{ noNotesLabel }}
 		</div>
-		<div v-else class="cn-sidebar-tab__list">
+		<!-- <ul>, not <div>: NcListItem renders an <li>, which WCAG 1.3.1
+		     requires to be contained in a <ul>/<ol> (axe "listitem"). -->
+		<ul v-else class="cn-sidebar-tab__list">
 			<NcListItem
 				v-for="note in notes"
 				:key="note.id"
@@ -42,7 +54,16 @@
 					<CommentTextOutline :size="32" />
 				</template>
 				<template #subname>
-					{{ note.message || note.content }}
+					<span class="cn-sidebar-tab__message">
+						<template v-for="(segment, index) in noteSegments(note)">
+							<span
+								v-if="segment.type === 'mention'"
+								:key="`m-${note.id}-${index}`"
+								class="cn-notes-tab__mention"
+								:class="{ 'cn-notes-tab__mention--unknown': isUnknownMention(segment.id) }">{{ mentionDisplayName(segment.id) }}</span>
+							<template v-else>{{ segment.value }}</template>
+						</template>
+					</span>
 				</template>
 				<template #details>
 					{{ formatDate(note.creationDateTime || note.created) }}
@@ -62,23 +83,25 @@
 					</NcActionButton>
 				</template>
 			</NcListItem>
-		</div>
+		</ul>
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcListItem, NcActionButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcListItem, NcActionButton, NcLoadingIcon, NcRichContenteditable } from '@nextcloud/vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
 import Send from 'vue-material-design-icons/Send.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import { buildHeaders } from '../../utils/index.js'
+import { parseMentions, extractMentionedIds } from '../../utils/mentions.js'
+import { searchNextcloudUsers } from '../../utils/userAutocomplete.js'
 
 export default {
 	name: 'CnNotesTab',
 
-	components: { NcButton, NcListItem, NcActionButton, NcLoadingIcon, CommentTextOutline, Send, Pencil, Delete },
+	components: { NcButton, NcListItem, NcActionButton, NcLoadingIcon, NcRichContenteditable, CommentTextOutline, Send, Pencil, Delete },
 
 	props: {
 		/** ID of the object this tab belongs to */
@@ -103,7 +126,20 @@ export default {
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 		/** Text shown when there are no notes */
 		noNotesLabel: { type: String, default: () => t('nextcloud-vue', 'No notes yet') },
+		loadingLabel: { type: String, default: () => t('nextcloud-vue', 'Loading notes…') },
 	},
+
+	emits: [
+		/**
+		 * Emitted after a note containing at least one `@mention` was
+		 * successfully created or edited, with payload
+		 * `{ objectId, register, schema, noteId, mentionedUserIds }`.
+		 * nc-vue never dispatches server-side notifications itself —
+		 * consuming apps listen to this event and notify from their own
+		 * backend.
+		 */
+		'mention',
+	],
 
 	data() {
 		return {
@@ -112,6 +148,12 @@ export default {
 			newNoteText: '',
 			saving: false,
 			editingNoteId: null,
+			/**
+			 * Per-instance cache of mentioned-user display names, keyed by
+			 * user id. `null` marks an id that could not be resolved (unknown
+			 * or deleted user) so it is only looked up once.
+			 */
+			mentionNames: {},
 		}
 	},
 
@@ -134,6 +176,7 @@ export default {
 				if (response.ok) {
 					const data = await response.json()
 					this.notes = data.results || data || []
+					this.resolveMentionNames()
 				}
 			} catch (err) {
 				console.error('CnNotesTab: Failed to fetch notes', err)
@@ -142,18 +185,121 @@ export default {
 			}
 		},
 
+		/**
+		 * Supply `@mention` suggestions to NcRichContenteditable's Tribute
+		 * integration. Results come from the core autocomplete OCS endpoint
+		 * via `searchNextcloudUsers` (fail-soft: errors resolve to []).
+		 *
+		 * @param {string} search The partial id/name typed after `@`.
+		 * @param {Function} callback Receives the suggestion array.
+		 */
+		async fetchMentionSuggestions(search, callback) {
+			const users = await searchNextcloudUsers(search)
+			callback(users.map((user) => ({
+				id: user.id,
+				label: user.label,
+				subline: user.subline,
+				icon: 'icon-user',
+				source: 'users',
+			})))
+		},
+
+		/**
+		 * Parse a note's message into text/mention segments for rendering.
+		 *
+		 * @param {object} note The note object from the backend.
+		 * @return {Array<object>} Segments from `parseMentions`.
+		 */
+		noteSegments(note) {
+			const message = note.message || note.content || ''
+			return parseMentions(message)
+		},
+
+		/**
+		 * Resolve display names for every mentioned id across the current
+		 * notes list. Each id is looked up at most once per component
+		 * instance; unresolvable ids are cached as `null`.
+		 */
+		async resolveMentionNames() {
+			const ids = new Set()
+			for (const note of this.notes) {
+				for (const id of extractMentionedIds(note.message || note.content || '')) {
+					ids.add(id)
+				}
+			}
+			await Promise.all([...ids]
+				.filter((id) => !(id in this.mentionNames))
+				.map(async (id) => {
+					// Mark as pending (null) first so concurrent calls skip it.
+					this.$set(this.mentionNames, id, null)
+					const results = await searchNextcloudUsers(id)
+					const match = results.find((user) => user.id === id)
+					if (match) {
+						this.$set(this.mentionNames, id, match.label)
+					}
+				}))
+		},
+
+		/**
+		 * Display name for a mentioned id — the resolved label, or the raw
+		 * id when the user is unknown/deleted.
+		 *
+		 * @param {string} id The mentioned user id.
+		 * @return {string} Chip text.
+		 */
+		mentionDisplayName(id) {
+			return this.mentionNames[id] || id
+		},
+
+		/**
+		 * Whether a mentioned id failed to resolve to a real user.
+		 *
+		 * @param {string} id The mentioned user id.
+		 * @return {boolean} True when unresolved (renders the muted chip).
+		 */
+		isUnknownMention(id) {
+			return !this.mentionNames[id]
+		},
+
+		/**
+		 * Emit the `mention` notification hook for a successfully saved note.
+		 *
+		 * @param {string} savedText The note text that was persisted.
+		 * @param {string|null} noteId The created/edited note's id.
+		 */
+		emitMentionEvent(savedText, noteId) {
+			const mentionedUserIds = extractMentionedIds(savedText)
+			if (mentionedUserIds.length === 0) return
+			this.$emit('mention', {
+				objectId: this.objectId,
+				register: this.register,
+				schema: this.schema,
+				noteId,
+				mentionedUserIds,
+			})
+		},
+
 		async addNote() {
 			if (!this.newNoteText.trim()) return
 			this.saving = true
+			const savedText = this.newNoteText.trim()
 			try {
-				await fetch(
+				const response = await fetch(
 					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes`,
 					{
 						method: 'POST',
 						headers: buildHeaders(),
-						body: JSON.stringify({ message: this.newNoteText.trim() }),
+						body: JSON.stringify({ message: savedText }),
 					},
 				)
+				let noteId = null
+				try {
+					const created = await response.json()
+					noteId = (created && (created.id || (created.results && created.results.id))) || null
+				} catch {
+					// Body not JSON — the event still fires with noteId null.
+				}
+				this.emitMentionEvent(savedText, noteId)
 				this.newNoteText = ''
 				await this.fetchNotes()
 			} catch (err) {
@@ -176,15 +322,18 @@ export default {
 		async saveEdit() {
 			if (!this.newNoteText.trim() || !this.editingNoteId) return
 			this.saving = true
+			const savedText = this.newNoteText.trim()
+			const noteId = this.editingNoteId
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes/${this.editingNoteId}`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes/${noteId}`,
 					{
 						method: 'PUT',
 						headers: buildHeaders(),
-						body: JSON.stringify({ message: this.newNoteText.trim() }),
+						body: JSON.stringify({ message: savedText }),
 					},
 				)
+				this.emitMentionEvent(savedText, noteId)
 				this.editingNoteId = null
 				this.newNoteText = ''
 				await this.fetchNotes()
@@ -230,24 +379,10 @@ export default {
 <style scoped>
 .cn-sidebar-tab { padding: 12px; }
 .cn-sidebar-tab__action { margin-bottom: 16px; }
-.cn-sidebar-tab__action--row { display: flex; gap: 8px; align-items: flex-end; }
+.cn-sidebar-tab__action--row { display: flex; gap: 8px; align-items: flex-end; margin-top: 8px; }
 
-.cn-sidebar-tab__textarea {
+.cn-sidebar-tab__composer {
 	width: 100%;
-	padding: 8px;
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius);
-	resize: vertical;
-	font-family: inherit;
-	font-size: 13px;
-	margin-bottom: 8px;
-	background: var(--color-main-background);
-	color: var(--color-main-text);
-}
-
-.cn-sidebar-tab__textarea:focus {
-	border-color: var(--color-primary-element);
-	outline: none;
 }
 
 .cn-sidebar-tab__empty {
@@ -257,5 +392,19 @@ export default {
 	font-size: 13px;
 }
 
-.cn-sidebar-tab__list { display: flex; flex-direction: column; gap: 2px; }
+.cn-sidebar-tab__list { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+
+.cn-notes-tab__mention {
+	display: inline-block;
+	padding: 0 6px;
+	border-radius: var(--border-radius-pill, 100px);
+	background-color: var(--color-primary-element-light);
+	color: var(--color-main-text);
+	font-weight: bold;
+}
+
+.cn-notes-tab__mention--unknown {
+	opacity: 0.6;
+	font-weight: normal;
+}
 </style>

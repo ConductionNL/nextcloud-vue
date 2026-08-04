@@ -253,8 +253,10 @@ describe('CnIconBrowserPanel — upload', () => {
 		OrigFileReader = global.FileReader
 		lastReader = null
 		global.FileReader = class {
+
 			constructor() { lastReader = this; this.onload = null; this.onerror = null }
 			readAsDataURL() { /* test fires onload/onerror manually */ }
+
 		}
 	})
 	afterEach(() => {
@@ -422,5 +424,263 @@ describe('CnIconBrowser — catalogue resolution', () => {
 		// Dashboard-registry icon AND a widget-only icon (e.g. the Delta/Stat default).
 		expect(keys).toContain('ViewDashboard')
 		expect(keys).toContain('Cash')
+	})
+})
+
+describe('CnIconBrowser — default NL-government url-icon groups', () => {
+	it('offers the bundled NL sets when the consumer passes nothing', () => {
+		// The regression this guards: widget config forms render CnIconBrowser deep
+		// inside CnAddWidgetModal and cannot pass a prop, and url-icons had no
+		// inject, so the NL sets could never reach a widget's icon picker.
+		const w = mount(CnIconBrowser, { propsData: { value: null, inline: true }, mocks })
+		const groups = w.findComponent(CnIconBrowserPanel).props('urlIconGroups')
+		expect(groups.map((g) => g.key)).toEqual(['open-gemeenten', 'den-haag', 'rvo'])
+	})
+	it('keeps the two small sets eager and defers RVO behind load()', () => {
+		const w = mount(CnIconBrowser, { propsData: { value: null, inline: true }, mocks })
+		const groups = w.findComponent(CnIconBrowserPanel).props('urlIconGroups')
+		const [gemeente, denHaag, rvo] = groups
+		expect(gemeente.icons.length).toBeGreaterThan(0)
+		expect(denHaag.icons.length).toBeGreaterThan(0)
+		// RVO ships no icons up front — only a loader — so its ~1.9MB stays out of
+		// the eager bundle until a user opens its tab.
+		expect(rvo.icons).toEqual([])
+		expect(typeof rvo.load).toBe('function')
+	})
+	it('lets a provided cnIconUrlGroups override the default, and [] opt out', () => {
+		const custom = [{ key: 'brand', label: 'Brand', icons: [{ label: 'B', url: '/b.svg' }] }]
+		const w = mount(CnIconBrowser, {
+			propsData: { value: null, inline: true },
+			provide: { cnIconUrlGroups: custom },
+			mocks,
+		})
+		expect(w.findComponent(CnIconBrowserPanel).props('urlIconGroups')).toBe(custom)
+
+		const off = mount(CnIconBrowser, {
+			propsData: { value: null, inline: true },
+			provide: { cnIconUrlGroups: [] },
+			mocks,
+		})
+		expect(off.findComponent(CnIconBrowserPanel).props('urlIconGroups')).toEqual([])
+	})
+})
+
+describe('CnIconBrowserPanel — lazily-loaded url-icon groups', () => {
+	const icons = mdiCatalogue(FAKE_MDI)
+	const eager = { key: 'eager', label: 'Eager', icons: [{ label: 'E', url: '/e.svg' }] }
+
+	function lazyGroup(load) {
+		return { key: 'lazy', label: 'Lazy', icons: [], load }
+	}
+
+	// Selecting a set's tab kicks off load() from a watcher without awaiting it, so
+	// let the promise settle and the re-render land before asserting.
+	async function activateGroup(w, key) {
+		w.vm.mode = 'group:' + key
+		await w.vm.$nextTick()
+		await new Promise((resolve) => setTimeout(resolve, 0))
+		await w.vm.$nextTick()
+	}
+
+	it('keeps a lazy group visible as a tab before its icons exist', () => {
+		const w = mount(CnIconBrowserPanel, {
+			propsData: { value: null, icons, urlIconGroups: [eager, lazyGroup(async () => [])] },
+			mocks,
+		})
+		// An empty-but-loadable group must survive resolvedGroups' empty filter,
+		// or its tab would never render and could never be activated.
+		expect(w.vm.resolvedGroups.map((g) => g.key)).toEqual(['eager', 'lazy'])
+		expect(w.vm.tabs.map((tabDef) => tabDef.label)).toEqual(['Icons', 'Eager', 'Lazy'])
+	})
+
+	it('does not call load() until the group is actually activated', async () => {
+		const load = jest.fn(async () => [{ label: 'L', url: '/l.svg' }])
+		const w = mount(CnIconBrowserPanel, {
+			propsData: { value: null, icons, urlIconGroups: [eager, lazyGroup(load)] },
+			mocks,
+		})
+		// Sitting on another set's tab must not fetch the lazy one.
+		await activateGroup(w, 'eager')
+		expect(load).not.toHaveBeenCalled()
+
+		await activateGroup(w, 'lazy')
+		expect(load).toHaveBeenCalledTimes(1)
+	})
+
+	it('renders the loaded icons and only loads once', async () => {
+		const load = jest.fn(async () => [{ label: 'Lazy icon', url: '/l.svg' }])
+		const w = mount(CnIconBrowserPanel, {
+			propsData: { value: null, icons, urlIconGroups: [eager, lazyGroup(load)] },
+			mocks,
+		})
+		await activateGroup(w, 'lazy')
+
+		expect(w.vm.activeGroup.icons).toEqual([{ label: 'Lazy icon', url: '/l.svg' }])
+		expect(w.find('.cn-icon-browser-panel__cell-img').attributes('src')).toBe('/l.svg')
+
+		// Re-activating must not re-fetch.
+		await activateGroup(w, 'eager')
+		await activateGroup(w, 'lazy')
+		expect(load).toHaveBeenCalledTimes(1)
+	})
+
+	it('surfaces a failed load and retries on the next activation', async () => {
+		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
+		const load = jest.fn()
+			.mockRejectedValueOnce(new Error('chunk 404'))
+			.mockResolvedValueOnce([{ label: 'Recovered', url: '/r.svg' }])
+		const w = mount(CnIconBrowserPanel, {
+			propsData: { value: null, icons, urlIconGroups: [eager, lazyGroup(load)] },
+			mocks,
+		})
+		await activateGroup(w, 'lazy')
+
+		// The set is reported as broken, not silently dropped — a vanishing tab
+		// looks exactly like the missing-icons bug this mechanism fixes.
+		expect(w.find('.cn-icon-browser-panel__error').text()).toBe('Could not load this icon set.')
+		expect(w.vm.resolvedGroups.map((g) => g.key)).toContain('lazy')
+
+		// A failure leaves the group unresolved, so returning to the tab retries.
+		await activateGroup(w, 'eager')
+		await activateGroup(w, 'lazy')
+		expect(load).toHaveBeenCalledTimes(2)
+		expect(w.vm.activeGroup.icons).toEqual([{ label: 'Recovered', url: '/r.svg' }])
+		expect(w.find('.cn-icon-browser-panel__error').exists()).toBe(false)
+		spy.mockRestore()
+	})
+})
+
+describe('CnIconBrowserPanel — named sets are promoted to top-level tabs', () => {
+	const icons = mdiCatalogue(FAKE_MDI)
+	const groups = [
+		{ key: 'open-gemeenten', label: 'Gemeente', icons: [{ id: 'g1', label: 'G', url: '/g.svg' }] },
+		{ key: 'den-haag', label: 'Den Haag', icons: [{ id: 'd1', label: 'D', url: '/d.svg' }] },
+	]
+
+	it('gives each named set its own tab instead of burying it under Custom', () => {
+		// The reason for the model: users could not find the sets one level down
+		// behind a tab labelled "Custom".
+		const w = mount(CnIconBrowserPanel, {
+			propsData: { value: null, icons, urlIconGroups: groups },
+			mocks,
+		})
+		const labels = w.findAll('.cn-icon-browser-panel__tab').wrappers.map((b) => b.text())
+		expect(labels).toEqual(['Icons', 'Gemeente', 'Den Haag'])
+	})
+
+	it('offers no Custom tab when the only sources are named sets', () => {
+		const w = mount(CnIconBrowserPanel, {
+			propsData: { value: null, icons, urlIconGroups: groups },
+			mocks,
+		})
+		// Nothing bring-your-own is configured, so "Custom" would be an empty tab.
+		expect(w.vm.hasCustomTab).toBe(false)
+	})
+
+	it('keeps the legacy flat urlIcons inside Custom, unpromoted', () => {
+		// Back-compat: a flat `urlIcons` list has no set name to put on a tab.
+		const w = mount(CnIconBrowserPanel, {
+			propsData: {
+				value: null,
+				icons,
+				urlIcons: [{ label: 'Brand', url: '/b.svg' }],
+				allowUrl: true,
+			},
+			mocks,
+		})
+		const labels = w.findAll('.cn-icon-browser-panel__tab').wrappers.map((b) => b.text())
+		expect(labels).toEqual(['Icons', 'Custom'])
+		expect(w.vm.unnamedIcons).toEqual([{ label: 'Brand', url: '/b.svg' }])
+	})
+
+	it('roves the tablist with arrow keys, wrapping at both ends', async () => {
+		const w = mount(CnIconBrowserPanel, {
+			propsData: { value: null, icons, urlIconGroups: groups },
+			mocks,
+			attachTo: document.body,
+		})
+		const tabs = w.findAll('.cn-icon-browser-panel__tab')
+		await tabs.at(0).trigger('keydown', { key: 'ArrowRight' })
+		expect(w.vm.mode).toBe('group:open-gemeenten')
+
+		await tabs.at(1).trigger('keydown', { key: 'End' })
+		expect(w.vm.mode).toBe('group:den-haag')
+
+		// Wraps forward off the end, and back off the start.
+		await tabs.at(2).trigger('keydown', { key: 'ArrowRight' })
+		expect(w.vm.mode).toBe('icons')
+		await tabs.at(0).trigger('keydown', { key: 'ArrowLeft' })
+		expect(w.vm.mode).toBe('group:den-haag')
+		w.destroy()
+	})
+})
+
+describe('CnIconBrowserPanel — duplicate icon payloads', () => {
+	const icons = mdiCatalogue(FAKE_MDI)
+
+	it('renders every icon when two share an identical url', () => {
+		// Real data: rvo-bestelbus/rvo-bus and og-paspoort/og-paspoortinternationaal
+		// are distinct icons with byte-identical SVGs. Keying cells by `url` gave
+		// Vue duplicate keys ("may cause an update error"); `id` is unique.
+		const dupUrl = 'data:image/svg+xml,<svg/>'
+		const group = {
+			key: 'dupes',
+			label: 'Dupes',
+			icons: [
+				{ id: 'a', label: 'Bestelbus', url: dupUrl },
+				{ id: 'b', label: 'Bus', url: dupUrl },
+			],
+		}
+		const w = mount(CnIconBrowserPanel, {
+			propsData: { value: null, icons, urlIconGroups: [group] },
+			mocks,
+		})
+		w.vm.mode = 'group:dupes'
+
+		return w.vm.$nextTick().then(() => {
+			const cells = w.findAll('.cn-icon-browser-panel__cell-img')
+			expect(cells.length).toBe(2)
+			expect(cells.at(0).attributes('alt')).toBe('Bestelbus')
+			expect(cells.at(1).attributes('alt')).toBe('Bus')
+		})
+	})
+})
+
+describe('CnIconBrowserPanel — clearable', () => {
+	const icons = mdiCatalogue(FAKE_MDI)
+
+	it('offers no clear control by default', () => {
+		const w = mount(CnIconBrowserPanel, { propsData: { value: 'M1 2 3', icons }, mocks })
+		expect(w.find('.cn-icon-browser-panel__clear').exists()).toBe(false)
+	})
+
+	it('shows the clear control only once something is selected', async () => {
+		const w = mount(CnIconBrowserPanel, {
+			propsData: { value: null, icons, clearable: true },
+			mocks,
+		})
+		expect(w.find('.cn-icon-browser-panel__clear').exists()).toBe(false)
+
+		await w.setProps({ value: 'M1 2 3' })
+		expect(w.find('.cn-icon-browser-panel__clear').exists()).toBe(true)
+	})
+
+	it('emits a null input and a pick when cleared', async () => {
+		const w = mount(CnIconBrowserPanel, {
+			propsData: { value: 'M1 2 3', icons, clearable: true },
+			mocks,
+		})
+		await w.find('.cn-icon-browser-panel__clear').trigger('click')
+		expect(w.emitted('input')[0]).toEqual([null])
+		expect(w.emitted('pick')).toHaveLength(1)
+	})
+
+	it('clears a picked url icon too, not just catalogue icons', async () => {
+		const w = mount(CnIconBrowserPanel, {
+			propsData: { value: 'data:image/svg+xml,<svg/>', icons, clearable: true },
+			mocks,
+		})
+		await w.find('.cn-icon-browser-panel__clear').trigger('click')
+		expect(w.emitted('input')[0]).toEqual([null])
 	})
 })

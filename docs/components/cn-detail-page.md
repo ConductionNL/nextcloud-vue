@@ -31,6 +31,7 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `objectId` | String\|Number | `''` | Object ID passed to the sidebar and (in schema-driven mode) to `objectStore.fetchObject`. |
 | `register` | String | `''` | **Schema-driven mode** — OpenRegister register slug. When paired with `schema` (and `objectId`), the page fuses them into an internal `${register}-${schema}` object-type slug, registers it on the store, fetches the object + its schema via `useObjectStore`, and auto-renders `CnObjectDataWidget` + `CnObjectMetadataWidget` when the default slot is empty. `objectType` wins on collision so existing direct mounts stay untouched. |
 | `schema` | String | `''` | **Schema-driven mode** — OpenRegister schema slug. See `register`. |
+| `hideEmpty` | Boolean | `false` | Hide valueless fields on the auto-rendered data widget (see [`CnObjectDataWidget`](./cn-object-data-widget.md)'s `hide-empty`). Set it from the manifest as `config.hideEmpty` for a **discriminated supertype** — one schema holding several variants, where each object only carries the fields its variant uses. A widget declaring its own `content.hideEmpty` still wins over this page-level default. |
 | `sidebarTabs` | Array | `[]` | Tab definitions for the host App's `CnObjectSidebar`. Forwarded via the injected `objectSidebarState`; mirrors `sidebar.tabs` / `sidebarProps.tabs` but lives at the top level so the manifest's `config.sidebarTabs` flows in directly. Empty array → the consumer's `CnObjectSidebar` falls back to its default tab set. |
 | `sidebarProps` | Object | `{}` | Extra sidebar configuration forwarded to `CnObjectSidebar` (`register`, `schema`, `hiddenTabs`, `title`, `subtitle`, `tabs`). Set `sidebarProps.tabs` to an open-enum tab array to drive the host app's mounted `CnObjectSidebar` from `manifest.json` — see [CnObjectSidebar custom tabs](./cn-object-sidebar.md#custom-tabs). The array flows through the existing `objectSidebarState` provide/inject channel. **Note:** when both `sidebar` (Object) AND `sidebarProps` set the same field, the Object form wins and a `console.warn` lists the conflicting fields once per component instance. |
 | `error` | Boolean | `false` | Error state |
@@ -98,6 +99,18 @@ The detail body is, at its core, a real drag/resize grid powered by
 - **Widget types** rendered by the grid: `data`, `related`, `integration`, and
   any registered content-driven catalog type (stat / chart / delta / gauge /
   object-list / …). A `#widget-<widgetId>` slot overrides any cell.
+- **Field-scoped data widgets (ADR-062).** A `data` widget's `content` accepts
+  `include` (field whitelist) / `exclude` (blacklist), forwarded to
+  `CnObjectDataWidget` — so one object can be presented as several purposeful
+  data widgets ("Core case data" / "Process"), each sized to its field count.
+- **Content-only catalog widgets get card chrome.** `object-list` / `table`
+  cells render on `CnWidgetWrapper` with the widget def's `title` (they have no
+  chrome of their own); self-chromed catalog widgets (stat / chart / …) render
+  bare, as before.
+- **Cell-overflow dev warning (ADR-062: the cell is the budget).** In
+  non-production builds the page console.warns any grid cell whose rendered
+  content is taller than its `gridHeight` — overflow is a design bug (enlarge
+  the cell or scope the widget's content), never a scroll surface.
 
 ## Sidebar config object
 
@@ -305,16 +318,21 @@ The schema's typed `mode` enum (`edit | create | public`) gives consumers IDE co
 
 ## Collaborative editing defaults
 
-`CnDetailPage` auto-subscribes to live updates for the current object when both `objectStore` and (`objectType` + `objectId`) are provided. This wires [`useObjectSubscription`](../utilities/composables/use-object-subscription.md) into the page lifecycle so users see remote changes without polling — including remote pessimistic locks.
+`CnDetailPage` auto-subscribes to live updates for the current object. This wires [`useObjectSubscription`](../utilities/composables/use-object-subscription.md) into the page lifecycle so users see remote changes without polling — including remote pessimistic locks. The store it binds to resolves in two ways:
+
+1. **Explicit `objectStore` prop** (existing behaviour, unchanged) — pass your own store instance; the page subscribes when `objectType`/`objectId` (or `register`+`schema`+`objectId`) are known.
+2. **Schema-driven / manifest mode** — when `register` + `schema` are set and no `objectStore` prop is passed (the `CnPageRenderer` path), the page falls back to the library's default `useObjectStore()` — the same store its self-fetch uses — so **manifest-driven detail pages get live updates with zero app-side wiring**. Legacy `objectType`-only mounts without an explicit store keep today's behaviour (no subscription).
+
+Live events are hints: the underlying `liveUpdatesPlugin` refetches the object (burst-coalesced, in-flight-deduped), the store cache updates, and the page re-renders reactively. When notify_push is unavailable the transport falls back to visibility-gated polling.
 
 When the cached `@self.locked` block indicates another user holds the lock, `CnDetailPage` mounts [`CnLockedBanner`](./cn-locked-banner.md) above the content. The banner renders only when `lockedByMe === false`.
 
-Two opt-out props:
+Opt-out props:
 
 | Prop | Default | Behaviour |
 |------|---------|-----------|
-| `subscribe` | `true` | When `false`, skips the auto-subscribe (useful for read-only / archive views). |
-| `objectStore` | `null` | Pinia store instance. When omitted, both subscribe and lock-state are skipped. Pass the result of `useObjectStore()` from your app. |
+| `subscribe` | `true` | When `false`, skips the auto-subscribe (useful for read-only / archive views). From a manifest: `pages[].config.subscribe: false`. |
+| `objectStore` | `null` | Pinia store instance. When set it always wins over the schema-driven fallback. When omitted **and** the page is not in schema-driven mode, both subscribe and lock-state are skipped. |
 
 See [`useObjectLock`](../utilities/composables/use-object-lock.md) for the lock state contract; the lib does not yet auto-acquire on edit-mode toggle (planned for a follow-up cycle that wires the form dialogs).
 
@@ -360,3 +378,13 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `showRelatedObjects` | Boolean | `true` | Whether to render the Related section beneath the data widget. Set `false` on pages that surface relations elsewhere (e.g. the sidebar) to drop the section. |
+| `createRoute` | String \| Object | `''` | Route pushed when the page's "create" action fires (empty disables it). |
+
+### Widget icons (ADR-062)
+
+Every `config.widgets[]` def may carry `icon` (an MDI component name, e.g.
+`"CheckboxMarkedOutline"`). Data widgets forward it to their card header via
+`CnIcon`; content-only catalog widgets (object-list / table) render it in
+their `CnWidgetWrapper` title. Together with the shared
+`var(--border-radius-large, 8px)` card radius this keeps all detail-page
+widgets in one visual family.

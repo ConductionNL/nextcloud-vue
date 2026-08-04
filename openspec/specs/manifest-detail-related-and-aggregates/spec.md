@@ -1,4 +1,10 @@
+---
+status: in-progress
+---
+
 # manifest-detail-related-and-aggregates Specification
+
+**OpenSpec changes**: cn-related-widget-tabbed (in-progress — CnRelatedObjectsWidget self-fetches OpenRegister related content and renders a tabbed browser with count badges + per-tab open-in-sidebar)
 
 ## Purpose
 TBD - created by archiving change manifest-detail-related-and-aggregates. Update Purpose after archive.

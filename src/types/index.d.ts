@@ -128,5 +128,38 @@ export interface UseAiChatStreamReturn {
 /** Inject the reactive cnAiContext from the nearest CnAppRoot ancestor. */
 export function useAiContext(instance?: object | null): CnAiContext
 
+/** Options for {@link useAiChatStream}. */
+export interface UseAiChatStreamOptions {
+	/**
+	 * Backend app id the chat/conversation URLs resolve against
+	 * (`/index.php/apps/{chatAppId}/api/...`). Defaults to
+	 * {@link DEFAULT_CHAT_APP_ID} (`hermiq`).
+	 */
+	chatAppId?: string
+}
+
 /** Create a streaming chat state + transport for the AI Chat Companion. */
-export function useAiChatStream(contextInstance?: object | null): UseAiChatStreamReturn
+export function useAiChatStream(
+	contextInstance?: object | null,
+	options?: UseAiChatStreamOptions,
+): UseAiChatStreamReturn
+
+/**
+ * Default chat/agent backend app id the AI Chat Companion targets. Single
+ * configuration point for the chat backend — `openregister` today; the flip to
+ * `hermiq` is a deferred coordinated change (hydra ADR-034 Amendment 2026-07-05).
+ */
+export const DEFAULT_CHAT_APP_ID: string
+
+/** Base API path for a chat backend app (`/index.php/apps/{appId}/api`). */
+export function chatApiBase(appId?: string): string
+/** SSE streaming endpoint for a chat backend app (`POST`). */
+export function chatStreamUrl(appId?: string): string
+/** Non-streaming fallback endpoint for a chat backend app (`POST`). */
+export function chatSendUrl(appId?: string): string
+/** Health probe endpoint for a chat backend app (`GET`). */
+export function chatHealthUrl(appId?: string): string
+/** Conversation list endpoint for a chat backend app (`GET`). */
+export function conversationsUrl(appId?: string): string
+/** Messages of one conversation for a chat backend app (`GET`). */
+export function conversationMessagesUrl(appId: string | undefined, conversationUuid: string): string

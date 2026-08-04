@@ -1,4 +1,7 @@
-node_modules/
+# No trailing slash: `node_modules/` matches only directories, so a SYMLINK named
+# node_modules is a file to git and slips through — which is how an absolute-path
+# symlink got committed onto beta (8cf337bb).
+node_modules
 dist/
 .DS_Store
 *.log
@@ -13,3 +16,7 @@ docusaurus/build
 # Styleguide build output
 styleguide/build
 .styleguide
+# Playwright e2e
+/test-results/
+/playwright-report/
+/e2e/harness/node_modules/

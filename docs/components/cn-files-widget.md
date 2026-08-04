@@ -2,7 +2,7 @@
 
 Files browser widget (folder navigation, thumbnails, mime filter, sort).
 
-Part of the dashboard widget library (v2). Registered with the dashboard widget registry and consumed by MyDash/LaunchPad's widget grid. See [the widget library overview](./cn-widget-grid.md) and `docs/architecture/cards-and-widgets.md`.
+Part of the dashboard widget library (v2). Registered with the dashboard widget registry and consumed by LaunchPad's widget grid. See [the widget library overview](./cn-widget-grid.md) and `docs/architecture/cards-and-widgets.md`.
 
 ## Reference
 
@@ -21,4 +21,15 @@ Part of the dashboard widget library (v2). Registered with the dashboard widget 
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `apiBase` | String | `/apps/files` | App base for the host files-widget endpoints (`{apiBase}/api/widgets/files/{placementId}/...`). Set to point the widget at a consuming app's backend (e.g. `/apps/mydash`). |
+| `apiBase` | String | `/apps/files` | App base for the host files-widget endpoints (`{apiBase}/api/widgets/files/{placementId}/...`). Set to point the widget at a consuming app's backend (e.g. `/apps/launchpad`). |
+
+### Object-bound mode
+
+Setting `objectId` + `register` + `schema` together switches the widget from the dashboard placement contract (`/api/widgets/files/...`) to the object's own Nextcloud folder via the OpenRegister object endpoints. `CnWidgetGrid`'s detail-page context merge supplies all three automatically, so a detail page normally needs none of them by hand. Leaving `objectId` empty (the default) keeps the dashboard behaviour unchanged.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `objectId` | String | `''` | The OpenRegister object id this widget attaches files to. Enables object-bound mode when set together with `register` and `schema`. |
+| `register` | String | `''` | OpenRegister register slug of the bound object. See `objectId`. |
+| `schema` | String\|Object | `''` | OpenRegister schema of the bound object — a slug string, or the resolved schema object as merged by `CnWidgetGrid` (the slug is derived internally). See `objectId`. |
+| `objectApiBase` | String | `/apps/openregister/api` | App base for the object-file endpoints used in object-bound mode (`{objectApiBase}/objects/{register}/{schema}/{id}/...`). |

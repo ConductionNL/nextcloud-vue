@@ -117,11 +117,11 @@
 								@input="(v) => { link.icon = v; onContentChange() }" />
 						</td>
 						<td v-if="showColorColumn">
-							<input
-								type="color"
-								:value="link.color || '#0070c0'"
-								class="cn-quicklinks-widget-form__color"
-								@input="onLinkColor(index, $event.target.value)">
+							<CnColorPicker
+								:value="link.color"
+								clearable
+								@input="onLinkColor(index, $event.hex)"
+								@clear="onLinkColor(index, '')" />
 						</td>
 						<td>
 							<button
@@ -167,8 +167,8 @@
 import { NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 import { sanitiseUrl, validateUrl } from '../../utils/widgetUrl.js'
-import CnIconPicker from '../CnIconPicker/CnIconPicker.vue'
 
 const DEFAULT_CONTENT = Object.freeze({
 	links: [],
@@ -197,6 +197,7 @@ export default {
 	components: {
 		NcSelect,
 		CnIconBrowser,
+		CnColorPicker,
 	},
 
 	props: {
@@ -359,7 +360,7 @@ export default {
 		},
 
 		/**
-		 * Set a link's icon from the compact CnIconPicker and re-emit.
+		 * Set a link's icon from the CnIconBrowser and re-emit.
 		 *
 		 * @param {object} link the link row.
 		 * @param {string|null} value the chosen icon key/URL.

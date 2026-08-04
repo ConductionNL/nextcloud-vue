@@ -41,9 +41,9 @@
 			:post-url="postUrl"
 			:schema="schema">
 			<iframe
-				v-if="safeConversationSource"
+				v-if="safeSrc"
 				class="cn-chat-page__iframe"
-				:src="safeConversationSource"
+				:src="safeSrc"
 				:title="title"
 				allow="microphone; camera; display-capture"
 				:sandbox="sandbox" />
@@ -64,6 +64,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcEmptyContent } from '@nextcloud/vue'
 import MessageOutline from 'vue-material-design-icons/MessageOutline.vue'
+import { safeHref } from '../../utils/safeHref.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 
 /**
@@ -127,13 +128,21 @@ export default {
 			default: '',
 		},
 		/**
-		 * URL of the embedded conversation (NC Talk iframe URL by
-		 * default). Required for v1 unless the consumer supplies a
-		 * `#conversation` slot.
+		 * URL of the embedded conversation (NC Talk iframe URL by default).
+		 * Validated by `safeHref` — `javascript:`, `data:`, `vbscript:`, and
+		 * protocol-relative (`//`) URLs are blocked; the iframe will not render
+		 * when an unsafe value is passed. Required for v1 unless the consumer
+		 * supplies a `#conversation` slot.
 		 */
 		conversationSource: {
 			type: String,
 			default: '',
+			validator(value) {
+				if (!value) return true
+				// Block dangerous schemes before Vue even renders.
+				// safeHref returns '#' for javascript:/data:/vbscript:// etc.
+				return safeHref(value) !== '#'
+			},
 		},
 		/**
 		 * Custom thread-API endpoint. Used by consumers building their
@@ -171,42 +180,20 @@ export default {
 
 	computed: {
 		/**
-		 * Sanitized iframe source (C2 defence). Only same-origin
-		 * root-relative paths (`/talk/abc`) and absolute http(s) URLs are
-		 * allowed to reach the iframe `:src`. `javascript:`, `data:`, and
-		 * protocol-relative (`//host`) URLs are rejected — the iframe is
-		 * not rendered and the empty-state placeholder shows instead.
+		 * Sanitised `conversationSource` safe for use in an iframe `:src`.
+		 * Returns the validated URL, or `null` when the input is empty or
+		 * contains a dangerous scheme (suppresses the iframe render).
 		 *
-		 * @return {string} The safe URL, or an empty string when unsafe.
+		 * `safeHref` rejects `javascript:`, `data:`, `vbscript:`, and
+		 * protocol-relative (`//host`) URLs (C2 defence) and allows only
+		 * same-origin root-relative paths and absolute http(s)/mailto URLs.
+		 *
+		 * @return {string|null}
 		 */
-		safeConversationSource() {
-			const source = (this.conversationSource || '').trim()
-			if (source === '') {
-				return ''
-			}
-			// Protocol-relative (`//host`) resolves to http(s)://host in a
-			// browser — reject it even though it starts with a slash.
-			if (source.startsWith('//')) {
-				// eslint-disable-next-line no-console
-				console.warn('[CnChatPage] Blocked unsafe conversationSource', source)
-				return ''
-			}
-			// Same-origin root-relative path — always safe.
-			if (source.startsWith('/')) {
-				return source
-			}
-			// Absolute URL — only http(s) schemes are permitted.
-			try {
-				const url = new URL(source, window.location.origin)
-				if (url.protocol === 'http:' || url.protocol === 'https:') {
-					return source
-				}
-			} catch (e) {
-				// Falls through to the warning below.
-			}
-			// eslint-disable-next-line no-console
-			console.warn('[CnChatPage] Blocked unsafe conversationSource', source)
-			return ''
+		safeSrc() {
+			if (!this.conversationSource) return null
+			const validated = safeHref(this.conversationSource)
+			return validated === '#' ? null : validated
 		},
 	},
 }

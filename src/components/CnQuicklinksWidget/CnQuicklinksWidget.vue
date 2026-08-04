@@ -31,6 +31,7 @@
 					:target="link.target"
 					:rel="link.rel"
 					:aria-label="link.ariaLabel"
+					:title="linkTitleAttr(link, index)"
 					:style="link.tileStyle"
 					@click="onLinkClick($event, link)">
 					<span
@@ -43,6 +44,7 @@
 					</span>
 					<span
 						v-if="showLabels"
+						:ref="`quicklink-label-${index}`"
 						class="cn-quicklinks-widget__label"
 						:class="labelClasses">
 						{{ link.label }}
@@ -90,6 +92,14 @@ const ALLOWED_LABEL_POSITIONS = Object.freeze(['below', 'overlay'])
  * `<img>`, a bare MDI name as the icon component, an empty value falls back to
  * a default. Sizes (32/48/64/96 px) and shapes (square/rounded/circle) are
  * widget-level settings applied uniformly.
+ *
+ * The label always stays reachable via a native `title` tooltip when it isn't
+ * fully visible in the tile itself: when `showLabels` is `false` (always), or
+ * when `labelPosition` is `below` and the label has actually been measured as
+ * ellipsis-truncated (`scrollWidth > clientWidth`, re-checked on mount, on
+ * content change, and on container resize — see `measureLabelTruncation`). A
+ * short `below` label that fits gets no tooltip. The `overlay` position
+ * already reveals the label on hover/focus, so no tooltip is added there.
  *
  * When the link list is empty an `edit` event is emitted on click of the
  * placeholder so a host can open the widget settings.
@@ -143,6 +153,17 @@ export default {
 		 */
 		'edit',
 	],
+
+	data() {
+		return {
+			/**
+			 * Per-index truncation state for `below`-position label spans, keyed
+			 * by the link's index in `renderedLinks`. Populated by
+			 * {@link measureLabelTruncation}.
+			 */
+			truncatedLabels: {},
+		}
+	},
 
 	computed: {
 		/** The sanitised list of link objects from content. */
@@ -257,7 +278,10 @@ export default {
 			}
 			return {
 				display: 'grid',
-				'grid-template-columns': `repeat(${this.columns}, 1fr)`,
+				// minmax(0, 1fr), not a bare 1fr: a bare `1fr` track is
+				// `minmax(auto, 1fr)`, so a long unbroken label would still
+				// blow the column past its fair share instead of truncating.
+				'grid-template-columns': `repeat(${this.columns}, minmax(0, 1fr))`,
 			}
 		},
 
@@ -265,6 +289,38 @@ export default {
 		renderedLinks() {
 			return this.links.map((link) => this.decorateLink(link))
 		},
+	},
+
+	watch: {
+		/**
+		 * Re-measure truncation whenever the persisted content changes — link
+		 * count, labels, icon size, and columns can all change which labels
+		 * fit, and none of that is caught by the resize observer below (the
+		 * widget's own box size may not change).
+		 */
+		content: {
+			deep: true,
+			handler() {
+				this.$nextTick(() => this.measureLabelTruncation())
+			},
+		},
+	},
+
+	mounted() {
+		this.$nextTick(() => this.measureLabelTruncation())
+		// The dashboard grid (GridStack) lets users resize this widget without
+		// remounting it, which changes how many labels fit — re-measure whenever
+		// that happens. Guarded for environments/tests without ResizeObserver.
+		if (typeof ResizeObserver !== 'undefined') {
+			this._resizeObserver = new ResizeObserver(() => this.measureLabelTruncation())
+			this._resizeObserver.observe(this.$el)
+		}
+	},
+
+	beforeDestroy() {
+		if (this._resizeObserver) {
+			this._resizeObserver.disconnect()
+		}
 	},
 
 	methods: {
@@ -310,6 +366,60 @@ export default {
 				iconWrapperStyle: this.computeIconWrapperStyle(tileColor),
 				tileStyle: {},
 			}
+		},
+
+		/**
+		 * Compute the native `title` tooltip for a rendered link. When labels
+		 * are hidden entirely (`showLabels: false`) the tooltip always carries
+		 * the label, since it's otherwise invisible. When labels are shown
+		 * `below`, the tooltip is added only once the label span has actually
+		 * been measured as ellipsis-truncated ({@link measureLabelTruncation})
+		 * — a short label that fits needs no tooltip. The `overlay` position
+		 * already reveals the label on hover/focus, so no tooltip is added
+		 * there.
+		 *
+		 * @param {object} link the decorated link.
+		 * @param {number} index the link's index in `renderedLinks`.
+		 * @return {string|null} the title attribute value, or null to omit it.
+		 */
+		linkTitleAttr(link, index) {
+			if (link.label === '') {
+				return null
+			}
+			if (!this.showLabels) {
+				return link.label
+			}
+			if (this.labelPosition === 'below' && this.truncatedLabels[index]) {
+				return link.label
+			}
+			return null
+		},
+
+		/**
+		 * Measure which `below`-position label spans are actually
+		 * ellipsis-truncated (`scrollWidth > clientWidth`) and update
+		 * {@link truncatedLabels} accordingly. Runs after mount, after any
+		 * content change that could alter link count / sizing, and on
+		 * container resize (dashboard widgets are user-resizable via
+		 * GridStack). A no-op outside the `below` label position.
+		 *
+		 * @return {void}
+		 */
+		measureLabelTruncation() {
+			if (this.labelPosition !== 'below') {
+				return
+			}
+			this.renderedLinks.forEach((_, index) => {
+				const el = this.$refs[`quicklink-label-${index}`]
+				const target = Array.isArray(el) ? el[0] : el
+				if (!target) {
+					return
+				}
+				const isTruncated = target.scrollWidth > target.clientWidth
+				if (this.truncatedLabels[index] !== isTruncated) {
+					this.$set(this.truncatedLabels, index, isTruncated)
+				}
+			})
 		},
 
 		/**
@@ -425,6 +535,10 @@ export default {
 
 .cn-quicklinks-widget__item {
 	list-style: none;
+	/* Without this, flex/grid give the item an automatic minimum size equal
+	   to its unbreakable (nowrap) label text, overriding max-width below and
+	   silently defeating the label's ellipsis truncation. */
+	min-width: 0;
 }
 
 .cn-quicklinks-widget__link {
@@ -434,6 +548,9 @@ export default {
 	justify-content: flex-start;
 	gap: 4px;
 	padding: 6px;
+	box-sizing: border-box;
+	margin: 0 auto;
+	max-width: calc(var(--cn-quicklinks-icon-size) * 2);
 	color: var(--color-main-text);
 	text-decoration: none;
 	border-radius: var(--border-radius, 4px);
@@ -472,6 +589,12 @@ export default {
 
 .cn-quicklinks-widget__label--below {
 	display: block;
+	width: 100%;
+	/* align-items: center on the tile above does not stretch children to its
+	   width by default — without this the label still shrink-wraps to its
+	   own content and never hits the overflow/ellipsis rules above. */
+	align-self: stretch;
+	min-width: 0;
 	text-align: center;
 }
 

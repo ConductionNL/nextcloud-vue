@@ -39,6 +39,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
 
 const ALLOWED_OVERLAY_MODES = ['none', 'tint', 'gradient-bottom']
 const ALLOWED_HEIGHTS = ['small', 'medium', 'large', 'xlarge']
@@ -148,9 +149,11 @@ export default {
 			// Accept http(s) plus uploaded/same-origin sources: data: and blob:
 			// (from the form's upload) and root-relative paths (NC files/preview).
 			// External http(s) images may still be blocked by the instance CSP —
-			// uploading is the reliable, same-origin path.
+			// uploading is the reliable, same-origin path. resolveImageUrl() adds
+			// the webroot + /index.php to `/apps/...` resource paths so they load
+			// on index.php-routed instances (other shapes pass through).
 			if (typeof url === 'string' && /^(https?:\/\/|data:|blob:|\/)/i.test(url)) {
-				return url
+				return resolveImageUrl(url)
 			}
 			return ''
 		},

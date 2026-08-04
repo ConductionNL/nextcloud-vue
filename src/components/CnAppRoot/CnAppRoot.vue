@@ -29,12 +29,29 @@
   with explicit props (the props-vs-inject fallback). CnAppRoot is the
   full-shell convenience.
 
-  Hosts a single `NcAppSettingsDialog` that any descendant can open
+  Hosts a per-user `NcAppSettingsDialog` that any descendant can open
   via the injected `cnOpenUserSettings()` method. CnAppNav binds the
   inject to manifest entries with `action: "user-settings"`. Apps
   populate the modal by passing `NcAppSettingsSection`s into the
   `#user-settings` slot; the slot falls back to a single placeholder
   section when no content is supplied.
+
+  A SECOND, distinct `NcAppSettingsDialog` hosts admin-only, app-level
+  (not per-user) settings, driven GENERICALLY by `manifest.adminSettings[]`
+  (sorted by `order`) — one `NcAppSettingsSection` per entry. The built-in
+  `type: "organisation-credentials"` renders the organisation credential
+  broker (`CnCredentials scope="organisation"`); a `component` entry
+  resolves from the `customComponents` registry, forwarding `props`. Any
+  descendant opens the dialog via the injected `cnOpenAdminSettings()`
+  method; CnAppNav auto-prepends an "Admin settings" entry (visible only
+  to app OWNERS — `currentUserGroups` ∩ `permissions.owners`, or a
+  `runtime.user` owner signal; NOT `OC.isUserAdmin()`) that opens it, and
+  also binds manifest entries with `action: "admin-settings"`. An app
+  with no (or empty) `adminSettings` mounts no admin dialog and no admin
+  nav entry at all — the org-credentials pane is no longer hardcoded;
+  apps declare it explicitly as one `adminSettings` entry. Apps can still
+  populate it via the `#admin-settings` slot (which overrides the
+  generic render entirely).
 
   See REQ-JMR-003 and REQ-JMR-013 of the json-manifest-renderer spec,
   and REQ-OR-1..REQ-OR-7 of the cnapproot-app-availability-guard spec.
@@ -63,17 +80,47 @@
 			<slot name="or-missing" :missing-apps="missingApps">
 				<div class="cn-app-root__or-missing">
 					<NcEmptyContent
-						:name="translate('app-availability.title')"
-						:description="translate('app-availability.description')">
+						:name="orMissingTitle"
+						:description="orMissingDescription">
 						<template #icon>
 							<DatabaseSearchOutline :size="64" />
 						</template>
 						<template #action>
-							<a
-								class="cn-app-root__or-missing-action"
-								:href="orStoreLink">
-								{{ translate('app-availability.action') }}
-							</a>
+							<!--
+							  Admin: one click installs-and-enables (or enables)
+							  the missing app via Nextcloud's own settings/apps/
+							  enable endpoint, then reloads. On failure the error
+							  shows inline and the store link stays as a fallback
+							  (REQ-DIA-3).
+							-->
+							<template v-if="isAdmin">
+								<NcButton
+									type="primary"
+									data-testid="cn-app-root-or-missing-install"
+									:disabled="depInstalling"
+									@click="installDependency(orMissingPrimaryApp)">
+									<template #icon>
+										<NcLoadingIcon v-if="depInstalling" :size="20" />
+									</template>
+									{{ orMissingInstallLabel }}
+								</NcButton>
+								<p v-if="depInstallError" class="cn-app-root__or-missing-error">
+									{{ depInstallError }}
+								</p>
+								<a
+									v-if="depInstallError"
+									class="cn-app-root__or-missing-action"
+									:href="orStoreLink">
+									{{ orMissingActionLabel }}
+								</a>
+							</template>
+							<!--
+							  Non-admin: no dead-end link they cannot act on —
+							  point them at their administrator instead (REQ-DIA-3).
+							-->
+							<p v-else class="cn-app-root__or-missing-ask-admin" data-testid="cn-app-root-or-missing-ask-admin">
+								{{ orMissingAskAdmin }}
+							</p>
 						</template>
 					</NcEmptyContent>
 				</div>
@@ -101,9 +148,9 @@
 		  `<CnDependencyMissing>`. See REQ-JMR-011.
 		-->
 		<template v-else-if="phase === 'dependency-missing'">
-			<slot name="dependency-missing" :dependencies="unresolvedDependencies">
+			<slot name="dependency-missing" :dependencies="unresolvedHardDependencies">
 				<CnDependencyMissing
-					:dependencies="unresolvedDependencies"
+					:dependencies="unresolvedHardDependencies"
 					:app-name="appId" />
 			</slot>
 		</template>
@@ -123,6 +170,8 @@
 					<CnSetupWizard
 						:app-id="appId"
 						:steps="manifest.setup.steps"
+						:cancellable="false"
+						:completed-step-ids="setupCompletedStepIds"
 						@complete="onSetupComplete" />
 				</div>
 			</slot>
@@ -138,9 +187,55 @@
 			  keeping the rest of CnAppRoot's shell.
 			-->
 			<slot name="menu">
-				<CnAppNav :permissions="permissions" />
+				<CnAppNav :manifest="menuManifest" :permissions="permissions" :is-owner="isOwner" />
 			</slot>
 			<NcAppContent>
+				<!--
+				  Soft-dependency notices (REQ-DIA-6). One dismissible,
+				  NON-BLOCKING NcNoteCard per unresolved+undismissed SOFT
+				  dependency, each carrying the same admin-aware install/enable
+				  action as the hard surfaces. Dismissal persists per
+				  app+dependency in localStorage so a dismissed notice does not
+				  reappear on reload.
+				-->
+				<NcNoteCard
+					v-for="dep in unresolvedSoftDependencies"
+					:key="'cn-soft-dep-' + dep.id"
+					type="warning"
+					:heading="softDepHeading(dep)"
+					class="cn-app-root__soft-dep"
+					:data-testid="'cn-app-root-soft-dep-' + dep.id">
+					<div class="cn-app-root__soft-dep-body">
+						<p class="cn-app-root__soft-dep-text">
+							{{ softDepText(dep) }}
+						</p>
+						<div class="cn-app-root__soft-dep-actions">
+							<NcButton
+								v-if="isAdmin"
+								type="secondary"
+								:data-testid="'cn-app-root-soft-dep-install-' + dep.id"
+								:disabled="depInstalling"
+								@click="installDependency(dep.id)">
+								<template #icon>
+									<NcLoadingIcon v-if="depInstalling && installingDepId === dep.id" :size="20" />
+								</template>
+								{{ dep.enabled === false ? softDepEnableLabel : softDepInstallLabel }}
+							</NcButton>
+							<span v-else class="cn-app-root__soft-dep-ask-admin">
+								{{ softDepAskAdmin(dep) }}
+							</span>
+							<NcButton
+								type="tertiary"
+								:data-testid="'cn-app-root-soft-dep-dismiss-' + dep.id"
+								@click="dismissSoftDep(dep.id)">
+								{{ softDepDismissLabel }}
+							</NcButton>
+						</div>
+						<p v-if="depInstallError && erroredDepId === dep.id" class="cn-app-root__soft-dep-error">
+							{{ depInstallError }}
+						</p>
+					</div>
+				</NcNoteCard>
 				<!--
 				  In-app edit shell (ADR-041). The Conduction-orange OpenBuild edit
 				  button is rendered INSIDE each page's action row (CnDashboardPage /
@@ -148,7 +243,7 @@
 				  and `cnOpenBuildAvailable` this component provides, so it sits inline
 				  with the page's normal buttons rather than as a floating overlay.
 				-->
-				<router-view />
+				<router-view :key="routerViewKey" />
 				<!--
 				  @slot tenant-badge
 				  @description Top-bar tenant indicator surface
@@ -206,8 +301,8 @@
 			-->
 			<slot v-if="cnPageSidebarVisible.value !== false" name="sidebar">
 				<component
-					:is="cnPageSidebarComponent.value"
-					v-if="cnPageSidebarComponent.value" />
+					:is="pageSidebarComponent"
+					v-if="pageSidebarComponent" />
 			</slot>
 			<!--
 			  Hoisted index-page sidebar. CnIndexPage publishes its
@@ -250,6 +345,8 @@
 				:tabs="effectiveObjectSidebarState.tabs"
 				:object-type="effectiveObjectSidebarState.objectType"
 				:object-id="effectiveObjectSidebarState.objectId"
+				:object-data="effectiveObjectSidebarState.object"
+				:object-schema="effectiveObjectSidebarState.schemaObject"
 				:register="effectiveObjectSidebarState.register"
 				:schema="effectiveObjectSidebarState.schema"
 				:title="effectiveObjectSidebarState.title"
@@ -264,9 +361,41 @@
 			  edge (positioning relies on being the last NcContent sibling,
 			  same trick the hoisted index-page sidebar above uses).
 			  Gating (health probe, pageKind overrides) happens inside the
-			  component. No per-app wiring required.
+			  component; app opt-in is via the `aiCompanion` prop (default off).
 			-->
-			<CnAiCompanion />
+			<CnAiCompanion v-if="aiCompanion" :chat-app-id="chatAppId" />
+
+			<!--
+			  Non-gating setup wizard (REQ-SETUP-NV-012 optional path). Shown
+			  when every required setup step is met but an optional one isn't;
+			  auto-opens once per manifest `setup.version` and stays dismissible
+			  (Cancel/ESC/backdrop) — unlike the gating phase 2b instance above.
+			-->
+			<div v-if="setupWizardOpen" class="cn-app-root__setup-optional">
+				<CnSetupWizard
+					:app-id="appId"
+					:steps="manifest.setup.steps"
+					:cancellable="true"
+					:completed-step-ids="setupCompletedStepIds"
+					@complete="onSetupComplete"
+					@close="dismissSetupWizard" />
+			</div>
+
+			<!--
+			  Command palette (Ctrl/Cmd+K) — auto-mounted, opt-in via the
+			  `commandPalette` prop (default off). Zero-config navigation
+			  source from `manifest.menu`; the "objects" live-search source
+			  is wired by passing `commandPalette: { objectSearch: ... }`
+			  (see `createObjectSearchSource`). Actions register themselves
+			  via `useCommandPalette().register(...)` from anywhere in the
+			  app — no additional wiring here.
+			-->
+			<CnCommandPalette
+				v-if="cnCommandPaletteVisible"
+				:manifest="manifest"
+				:router="$router"
+				:app-id="appId"
+				v-bind="cnCommandPaletteOverrides" />
 
 			<!--
 			  Support note — auto-mounted on first open per the fleet
@@ -321,6 +450,22 @@
 				<slot name="user-settings">
 					<CnNotificationPreferences v-if="userSettingsOpen" />
 					<!--
+						Credential broker (OpenRegister). Lets the user manage the
+						secrets OR holds on their behalf; apps call external providers
+						through OR without ever seeing the secret. The app's manifest
+						`credentials[]` declarations drive the informational "Apps
+						requesting credentials" list.
+					-->
+					<NcAppSettingsSection v-if="userSettingsOpen"
+						id="credentials"
+						:name="translate('Credentials')">
+						<CnCredentials
+							scope="personal"
+							:app-id="appId"
+							:app-name="appDisplayName || (manifest && manifest.name) || appId"
+							:app-credentials="(manifest && manifest.credentials) || []" />
+					</NcAppSettingsSection>
+					<!--
 						Self-service walkthrough replay (ADR-043). Only mounts
 						when the manifest declares an enabled tour, so apps
 						without a walkthrough never show an empty section.
@@ -342,6 +487,67 @@
 			</NcAppSettingsDialog>
 
 			<!--
+			  Admin-settings modal. Distinct from the user-settings dialog
+			  above — this hosts APP-level (not per-user) configuration
+			  surfaces that only app OWNERS should reach, rendered GENERICALLY
+			  from `manifest.adminSettings[]` (sorted by `order`), one
+			  `NcAppSettingsSection` per entry. `type: "organisation-credentials"`
+			  renders the organisation credential broker
+			  (`CnCredentials scope="organisation"`); a `component` entry
+			  resolves from the `customComponents` registry, forwarding
+			  `props`. Only mounted when BOTH the caller is an owner
+			  (`isOwner`) AND `adminSettings` is non-empty (`hasAdminSettings`)
+			  — an app with no `adminSettings` shows no admin dialog at all
+			  (D4 backward-compat). Opened via the `cnOpenAdminSettings`
+			  inject (CnAppNav wires this to the auto-prepended "Admin
+			  settings" entry and to manifest entries with
+			  `action: "admin-settings"`). A per-entry `permission` further
+			  narrows a section WITHIN this already owner-gated dialog — it
+			  can never widen access to a non-owner.
+			-->
+			<NcAppSettingsDialog
+				v-if="isOwner && hasAdminSettings"
+				:open="adminSettingsOpen"
+				:show-navigation="true"
+				:name="resolvedAdminSettingsTitle"
+				@update:open="adminSettingsOpen = $event">
+				<!-- @slot admin-settings Sections rendered inside the host admin-settings NcAppSettingsDialog. Pass NcAppSettingsSection children to override the generic manifest.adminSettings[] render entirely. -->
+				<slot name="admin-settings">
+					<template v-for="section in visibleAdminSettingsSections">
+						<NcAppSettingsSection
+							v-if="adminSettingsOpen"
+							:id="section.id"
+							:key="section.id"
+							:name="translate(section.label)">
+							<!--
+								Built-in: organisation credential broker (OpenRegister).
+								Lets an owner manage the secrets OR holds on behalf of
+								the whole organisation; apps call external providers
+								through OR without ever seeing the secret. The app's
+								manifest `credentials[]` declarations drive the
+								informational "Apps requesting credentials" list.
+							-->
+							<CnCredentials
+								v-if="section.type === 'organisation-credentials'"
+								scope="organisation"
+								:app-id="appId"
+								:app-name="appDisplayName || (manifest && manifest.name) || appId"
+								:app-credentials="(manifest && manifest.credentials) || []" />
+							<!--
+								Custom: resolved from the customComponents registry
+								(the same registry CnPageRenderer uses for
+								type:"custom" pages), forwarding the entry's props.
+							-->
+							<component
+								:is="resolveAdminSettingsComponent(section.component)"
+								v-else-if="section.component && resolveAdminSettingsComponent(section.component)"
+								v-bind="section.props || {}" />
+						</NcAppSettingsSection>
+					</template>
+				</slot>
+			</NcAppSettingsDialog>
+
+			<!--
 			  V2 registry modal — mounted when cnOpenModal(key, props) is
 			  called by the actions dispatcher. The resolved component is
 			  whatever was registered under that key in the `registry` prop.
@@ -358,7 +564,10 @@
 </template>
 
 <script>
-import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import axios from '@nextcloud/axios'
+import { generateUrl } from '@nextcloud/router'
+import { getCurrentUser } from '@nextcloud/auth'
+import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
 import Restart from 'vue-material-design-icons/Restart.vue'
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
@@ -367,21 +576,26 @@ import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
 import CnWalkthrough from '../CnWalkthrough/CnWalkthrough.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
+import { DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
+import CnCommandPalette from '../CnCommandPalette/CnCommandPalette.vue'
 import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
+import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
 import { provideTenantContext } from '../../composables/useTenantContext.js'
-import Vue, { computed, ref, watch } from 'vue'
+import Vue, { computed, shallowRef, watch } from 'vue'
 import { useManifestEditor } from '../../composables/useManifestEditor.js'
 import { useOpenBuildEditAvailability } from '../../composables/useOpenBuildEditAvailability.js'
 import { loadState } from '@nextcloud/initial-state'
 import { useAppStatus } from '../../composables/useAppStatus.js'
+import { useAppInstaller } from '../../composables/useAppInstaller.js'
 import { useSetupStatus } from '../../composables/useSetupStatus.js'
 import { useWalkthrough } from '../../composables/useWalkthrough.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { useObjectStore } from '../../store/index.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
+import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
 import { DEFAULT_FORGE } from '../../utils/forge.js'
 import { RegistryKindError } from '../../errors/RegistryKindError.js'
 
@@ -442,6 +656,7 @@ export default {
 		NcContent,
 		NcEmptyContent,
 		NcLoadingIcon,
+		NcNoteCard,
 		DatabaseSearchOutline,
 		Restart,
 		CnAppNav,
@@ -450,9 +665,11 @@ export default {
 		CnSetupWizard,
 		CnWalkthrough,
 		CnAiCompanion,
+		CnCommandPalette,
 		CnObjectSidebar,
 		CnSupportDialog,
 		CnNotificationPreferences,
+		CnCredentials,
 		CnTenantBadge,
 	},
 
@@ -470,7 +687,19 @@ export default {
 			// App registers/schemas for the in-app pages editor (index/detail
 			// data source). Plain value (not a getter) so deep descendants —
 			// the page-tree rows under the edit button — resolve it reliably.
+			// Being a plain value is also why it goes stale: provide() runs
+			// once, so this can never reflect a schema created after boot.
+			// Kept as-is for backwards compatibility; `cnDataSourcesState`
+			// below is the live path, and descendants prefer it.
 			cnDataSources: this.dataSources,
+			// Live data sources for the pages editor. Provided BY REFERENCE —
+			// the holder's identity never changes, only its fields — so the
+			// one-shot provide() still sees every update. Descendants resolve
+			// `cnDataSourcesState.value ?? cnDataSources`.
+			cnDataSourcesState: this.dataSourcesState,
+			// Re-fetch the data sources via `dataSourcesLoader`. The pages-editor
+			// modals call this on open. No-op when no loader is configured.
+			cnRefreshDataSources: this.refreshDataSources,
 			// Provided as the raw refs (not getters): Vue 2 inject resolves plain
 			// provided properties at any depth, but getter-defined provide
 			// properties don't reliably reach deep descendants (e.g. the edit
@@ -482,6 +711,11 @@ export default {
 			cnPageTypes: this.pageTypes,
 			cnFormatters: { ...BUILT_IN_FORMATTERS, ...this.formatters },
 			cnCellWidgets: this.cellWidgets,
+			// Pluggable kb-search providers (#91 Wave 3): library built-ins
+			// (`default`) merged UNDER the consumer registry — the same
+			// last-wins spread as cnFormatters. CnKbSearchWidget resolves
+			// `content.provider` against this.
+			cnKbSearchProviders: { ...BUILT_IN_KB_PROVIDERS, ...this.kbSearchProviders },
 			/**
 			 * V2 component registry. Provided to all descendants so
 			 * CnWidgetGrid and CnPageRenderer can resolve widget keys.
@@ -520,6 +754,19 @@ export default {
 			 */
 			cnOpenUserSettings: () => {
 				this.userSettingsOpen = true
+			},
+			/**
+			 * Open the host app's admin-settings NcAppSettingsDialog —
+			 * the app-level (not per-user) surface introduced to hold
+			 * the organisation credential broker out of the personal
+			 * settings modal. Bound to `this` so descendants don't have
+			 * to. Used by CnAppNav to dispatch the auto-prepended "Admin
+			 * settings" entry (admins only) and `action:
+			 * "admin-settings"` manifest entries; consumer apps can also
+			 * call it directly via inject for custom triggers.
+			 */
+			cnOpenAdminSettings: () => {
+				this.adminSettingsOpen = true
 			},
 			/**
 			 * Restart entry for the product walkthrough (ADR-043). Descendants
@@ -691,6 +938,22 @@ export default {
 			required: true,
 		},
 		/**
+		 * Remount key for the routed `<router-view>`. Hosts that rebuild the
+		 * router at runtime (e.g. the OpenBuild builder adding a page mid-edit)
+		 * bump this AFTER the rebuild so the view drops its stale component-
+		 * instance cache and mounts the new routes — a Vue Router 3 matcher swap
+		 * alone resolves the new hrefs but leaves SPA-navigation to a just-added
+		 * route rendering a blank view. Keep at the default for static apps: the
+		 * key is stable across ordinary navigation, so the view is never
+		 * needlessly remounted (and the shell / teleported modals are untouched).
+		 *
+		 * @type {string|number}
+		 */
+		routerViewKey: {
+			type: [String, Number],
+			default: 'cn-router-view',
+		},
+		/**
 		 * Optional persistence hook for in-app editing (ADR-041). Called with the
 		 * minimal manifest delta when the user saves an edit. When omitted, Save
 		 * still updates the rendered manifest in memory but persists nothing —
@@ -715,6 +978,25 @@ export default {
 		 */
 		dataSources: {
 			type: Object,
+			default: null,
+		},
+		/**
+		 * Async loader for the same data sources, re-invoked every time a
+		 * pages-editor modal opens — so a register or schema created after
+		 * app boot shows up without a page reload. Prefer this over the
+		 * static `dataSources` snapshot, which is captured once and cannot
+		 * change (`provide()` runs a single time).
+		 *
+		 * Signature: `async () => ({ registers: [...] })`, returning the
+		 * same shape as `dataSources`. Passing it also moves the fetch off
+		 * the app-boot path onto the (much rarer) editor-open path. When
+		 * both props are given, `dataSources` seeds the initial list and
+		 * the loader's result replaces it on the first refresh.
+		 *
+		 * @type {Function|null}
+		 */
+		dataSourcesLoader: {
+			type: Function,
 			default: null,
 		},
 		/**
@@ -751,6 +1033,55 @@ export default {
 		supportDialog: {
 			type: [Boolean, Object],
 			default: true,
+		},
+		/**
+		 * Whether to mount the floating AI-chat companion (`CnAiCompanion`).
+		 * Opt-in: `false` (default) keeps the companion off; pass `true` to
+		 * show it. When enabled the companion still self-gates on its own
+		 * backend health probe and hides on chat pages. The companion is an
+		 * AI capability provided by the Hermiq app, so apps opt in explicitly
+		 * rather than every app auto-mounting it whenever a chat backend
+		 * happens to be reachable.
+		 *
+		 * @type {boolean}
+		 */
+		aiCompanion: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Whether to mount the Ctrl/Cmd+K command palette (`CnCommandPalette`).
+		 * Opt-in: `false` (default) keeps it off, so existing apps are
+		 * unaffected until they enable it. Pass `true` for the zero-config
+		 * default (navigation from `manifest.menu` + any commands the app
+		 * registers via `useCommandPalette().register(...)`, no live
+		 * object search), or an object to override any `CnCommandPalette`
+		 * prop — most commonly `{ objectSearch: createObjectSearchSource({...}) }`
+		 * (see `src/utils/commandPaletteObjectSource.js`) to wire live
+		 * OpenRegister search into the palette's "objects" source.
+		 *
+		 * @type {boolean|object}
+		 */
+		commandPalette: {
+			type: [Boolean, Object],
+			default: false,
+		},
+		/**
+		 * Backend app id the AI Chat Companion targets for its chat / health /
+		 * conversation HTTP calls (`/index.php/apps/{chatAppId}/api/...`). This is
+		 * the single configuration point for switching the chat backend — see
+		 * composables/aiChatConfig.js. Defaults to `hermiq`.
+		 *
+		 * Per hydra ADR-034 "Amendment 2026-07-05" the agent engine moved from
+		 * OpenRegister to Hermiq and the default flipped to `hermiq`
+		 * (`chat-appid-default-flip`). Deployments riding OpenRegister's compat
+		 * window (openregister#305) can pass `chatAppId="openregister"` explicitly.
+		 *
+		 * @type {string}
+		 */
+		chatAppId: {
+			type: String,
+			default: DEFAULT_CHAT_APP_ID,
 		},
 		/**
 		 * Whether the manifest is still loading from the backend.
@@ -804,6 +1135,23 @@ export default {
 		 * @type {object}
 		 */
 		cellWidgets: {
+			type: Object,
+			default: () => ({}),
+		},
+		/**
+		 * Pluggable knowledge-base search providers (#91 Wave 3). Map of
+		 * provider-key → provider object (`{ search(query, opts), externalOpen? }`),
+		 * merged OVER the library built-ins (`default`) and provided to
+		 * descendant `CnKbSearchWidget` via inject (`cnKbSearchProviders`).
+		 * A `kb-search` widget selects its provider by `content.provider`;
+		 * an app talking to a bespoke KB backend (the xwiki proxy) registers
+		 * its client here — the library ships only the `default` endpoint
+		 * provider + the seam. Empty by default (the built-in `default`
+		 * provider then serves every `kb-search` widget).
+		 *
+		 * @type {object}
+		 */
+		kbSearchProviders: {
 			type: Object,
 			default: () => ({}),
 		},
@@ -911,6 +1259,18 @@ export default {
 			type: String,
 			default: '',
 		},
+		/**
+		 * Title rendered at the top of the admin-settings modal
+		 * (NcAppSettingsDialog `name` prop). Defaults to the
+		 * translated string "Administration"; pass a custom label
+		 * (e.g. "Pipelinq administration") to override per app.
+		 *
+		 * @type {string}
+		 */
+		adminSettingsTitle: {
+			type: String,
+			default: '',
+		},
 
 		/**
 		 * Initial active organisation UUID (multi-tenancy-context). When
@@ -992,12 +1352,20 @@ export default {
 				return { cnSupportVisible: visible, cnSupportHide: hide }
 			})()
 
-		// In-app editing (ADR-041). `baseRef` tracks the live manifest prop while
-		// NOT editing; on Save the editor adopts the working copy so the saved
-		// state keeps rendering until the host reloads the prop. `source` is what
-		// descendants render (working while editing, the live manifest otherwise),
-		// so the edit shell is behaviour-neutral until the user enters edit mode.
-		const baseRef = ref(props.manifest)
+		// In-app editing (ADR-041) + the raw/reactive boundary (audit item 9,
+		// `manifest-markraw-reactivity`). `baseRef` is the SINGLE reactive holder
+		// for the manifest — it reconciles the prop read path and the editor's
+		// live source into one wrap site. It is a `shallowRef`, NOT a `ref`: a
+		// plain `ref(obj)` deep-observes the whole immutable manifest graph (up to
+		// ~434 KB of nested objects) at boot for a structure the renderer only
+		// ever reads. `shallowRef` holds the manifest RAW — `isReactive(baseRef
+		// .value) === false` — so ordinary navigation and rendering never trigger
+		// per-node observer conversion. The ADR-041 editor opts the live manifest
+		// into deep reactivity IN PLACE on edit-enter (see `useManifestEditor`),
+		// preserving object identity so already-mounted renderers see the edits;
+		// on the next manifest publish the watch below re-installs a fresh raw
+		// manifest, returning the read path to non-reactive.
+		const baseRef = shallowRef(props.manifest)
 		const manifestEditor = useManifestEditor(baseRef, {
 			persist: (delta) => (typeof props.persistManifestDelta === 'function'
 				? props.persistManifestDelta(delta)
@@ -1006,6 +1374,13 @@ export default {
 		watch(() => props.manifest, (m) => {
 			if (!manifestEditor.editing.value) baseRef.value = m
 		})
+		// One shared install/enable action for the or-missing guard and the
+		// soft-dependency banners (REQ-DIA-3 / REQ-DIA-6). `depInstalling` /
+		// `depInstallError` are the composable refs, returned top-level so the
+		// template auto-unwraps them; `installAndEnable` is called from the
+		// `installDependency` method.
+		const appInstaller = useAppInstaller()
+
 		const { available: openBuildAvailable } = useOpenBuildEditAvailability()
 		// A manifest may opt OUT of the OpenBuild in-app edit button by setting
 		// `openbuildEditable: false` (e.g. OpenBuild's own pages — an app does not
@@ -1020,6 +1395,9 @@ export default {
 			cnTenantContext: tenantContext,
 			manifestEditor,
 			openBuildAvailable: openBuildEditable,
+			appInstaller,
+			depInstalling: appInstaller.installing,
+			depInstallError: appInstaller.error,
 		}
 	},
 
@@ -1069,6 +1447,29 @@ export default {
 				route: { path: (typeof window !== 'undefined' ? window.location.pathname : '') },
 			}),
 			/**
+			 * Reactive holder for the pages editor's register/schema
+			 * data sources. Provided as `cnDataSourcesState`.
+			 *
+			 * The object reference is STABLE for the lifetime of
+			 * CnAppRoot — `refreshDataSources()` mutates its fields and
+			 * never reassigns it. That is load-bearing: provide() runs
+			 * once, so a value provided from a prop can never change
+			 * (which is exactly why the legacy `cnDataSources` snapshot
+			 * goes stale). Descendants read `.value`, mirroring how they
+			 * already unwrap `cnOpenBuildAvailable` / `cnEditingBody`.
+			 *
+			 * `value` holds the `{ registers: [...] }` payload (seeded
+			 * from the `dataSources` snapshot when one is passed), and
+			 * `hasLoader` lets descendants render the pickers instead of
+			 * free-text fields before the first fetch resolves.
+			 */
+			dataSourcesState: {
+				value: this.dataSources || null,
+				loading: false,
+				error: null,
+				hasLoader: typeof this.dataSourcesLoader === 'function',
+			},
+			/**
 			 * Reactive `{ [register]: { [schema]: number } }` map of
 			 * object-store totals — one entry per unique
 			 * `(register, schema)` pair declared on a menu item with
@@ -1090,6 +1491,82 @@ export default {
 			 * via its `update:open` event.
 			 */
 			userSettingsOpen: false,
+			/**
+			 * Open state of the host admin-settings NcAppSettingsDialog.
+			 * Toggled to `true` by the provided `cnOpenAdminSettings()`
+			 * method (CnAppNav binds this to the auto-prepended "Admin
+			 * settings" entry and to manifest entries with `action:
+			 * "admin-settings"`); the dialog flips it back via its
+			 * `update:open` event.
+			 */
+			adminSettingsOpen: false,
+			/**
+			 * Id of the dependency whose install/enable action is currently
+			 * in flight (REQ-DIA-3 / REQ-DIA-6). Drives the per-button spinner
+			 * so, with several soft-dependency banners on screen, only the
+			 * clicked one shows busy. `null` when nothing is installing.
+			 *
+			 * @type {string|null}
+			 */
+			installingDepId: null,
+			/**
+			 * Id of the dependency whose last install/enable attempt failed —
+			 * scopes the inline soft-dependency banner error to that dep even
+			 * after `installingDepId` clears on settle.
+			 *
+			 * @type {string|null}
+			 */
+			erroredDepId: null,
+			/**
+			 * Ids of SOFT dependencies whose in-shell banner the user has
+			 * dismissed (REQ-DIA-6). Seeded synchronously from `localStorage`
+			 * (`cn-soft-dep-dismissed:{appId}:{depId}`) so a previously
+			 * dismissed notice never flashes on mount; a fresh dismissal pushes
+			 * the id here (reactive hide) and persists the key.
+			 *
+			 * @type {Array<string>}
+			 */
+			dismissedSoftDeps: (() => {
+				const out = []
+				try {
+					const deps = Array.isArray(this.manifest?.dependencies)
+						? this.manifest.dependencies
+						: []
+					for (const entry of deps) {
+						const isObject = entry !== null && typeof entry === 'object'
+						const id = isObject ? entry.id : entry
+						const required = isObject ? entry.required !== false : true
+						if (required || typeof id !== 'string' || id === '') continue
+						if (window.localStorage.getItem('cn-soft-dep-dismissed:' + this.appId + ':' + id)) {
+							out.push(id)
+						}
+					}
+				} catch (e) {
+					// localStorage unavailable (private mode) — nothing dismissed.
+				}
+				return out
+			})(),
+			/**
+			 * Session-only flag: the user dismissed (or finished) the non-gating
+			 * setup wizard during THIS page load. The durable answer lives in
+			 * `localStorage` and is read through `isSetupWizardDismissed()` —
+			 * deliberately NOT seeded here, because `manifest` can still be
+			 * replaced by `useAppManifest`'s async backend merge and a seed
+			 * would then have been checked against a stale `setup.version`.
+			 *
+			 * @type {boolean}
+			 */
+			setupWizardDismissed: false,
+			/**
+			 * Whether the non-gating setup wizard overlay is currently open.
+			 * Flips true once (auto-open) when only optional steps are unmet
+			 * and the user hasn't already dismissed this manifest version; the
+			 * user can reopen later from wherever the host surfaces it (e.g.
+			 * admin settings), independent of this auto-open state.
+			 *
+			 * @type {boolean}
+			 */
+			setupWizardOpen: false,
 			/**
 			 * Key of the currently active modal (opened via cnOpenModal).
 			 * null when no modal is open.
@@ -1125,6 +1602,12 @@ export default {
 				subtitle: '',
 				register: '',
 				schema: '',
+				// The loaded object, published by CnDetailPage so the hoisted
+				// sidebar's data/metadata tab widgets get it as `objectData`.
+				// Pre-declared here so Vue 2 keeps it reactive.
+				object: null,
+				// The resolved schema OBJECT, for the `data` tab widget.
+				schemaObject: null,
 				hiddenTabs: [],
 				tabs: undefined,
 				// Host-requested active tab id (e.g. a detail-page "Linked
@@ -1152,6 +1635,181 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The component to render as this page's sidebar.
+		 *
+		 * Two sources, in order:
+		 *  1. `pages[].sidebarComponent` on the routed manifest page, resolved
+		 *     here — see `resolvePageSidebarComponent()` for why it cannot be
+		 *     resolved by the renderer that declares it.
+		 *  2. The injected `cnPageSidebarComponent` holder, kept so an app that
+		 *     genuinely provides one from an ANCESTOR still works.
+		 *
+		 * A consumer's own `#sidebar` slot content always wins over both, via
+		 * Vue's standard slot mechanic.
+		 *
+		 * @return {import('vue').Component|null} The component, or null.
+		 */
+		pageSidebarComponent() {
+			return this.resolvePageSidebarComponent() ?? this.cnPageSidebarComponent?.value ?? null
+		},
+		/**
+		 * Whether the current user is an OWNER of this app — the gate for
+		 * the admin-settings nav entry + dialog (admin-settings-owner-gating
+		 * capability). Deliberately NOT `OC.isUserAdmin()`: a Nextcloud
+		 * super-admin who is not an app owner does not see the admin
+		 * surface, and an app owner who is not a super-admin does.
+		 *
+		 * PRIMARY signal: `manifest.runtime.user.isOwner === true`, a
+		 * read-only projection the backend computes via
+		 * `PermissionResolver::matchesCaller(...['owners'])` (D5) — the
+		 * reliable path for the ordinary manifest-render case.
+		 *
+		 * FALLBACK: a non-empty intersection of the caller's groups
+		 * (`openbuild.currentUserGroups` initial state) with the owner GIDs
+		 * parsed from the `permissions` prop using the same `group:<gid>` /
+		 * bare-GID grammar as per-item `permission` narrowing — for hosts
+		 * (e.g. an OpenBuilt virtual app) that pass the app's
+		 * `Application.permissions.owners` principals through `permissions`
+		 * rather than (or in addition to) the backend runtime.user
+		 * projection. Read via `loadState` initial-state, never DOM
+		 * data-attributes (hydra initial-state gate).
+		 *
+		 * @return {boolean}
+		 */
+		isOwner() {
+			const runtime = this.manifest && this.manifest.runtime
+			const runtimeUser = runtime && typeof runtime.user === 'object' && runtime.user !== null
+				? runtime.user
+				: null
+			if (runtimeUser && runtimeUser.isOwner === true) return true
+			return this.ownerGroupsIntersect
+		},
+		/**
+		 * Caller's Nextcloud group GIDs, published by OpenBuild's
+		 * `DashboardController::publishCurrentUserGroups()` initial state.
+		 * Read via `loadState`, never DOM attributes. Defensive try/catch
+		 * mirrors `serverAppStatuses` — apps without the `openbuild`
+		 * initial-state key (non-OpenBuild hosts, tests) simply resolve to
+		 * an empty list, so the fallback gate stays false rather than
+		 * throwing.
+		 *
+		 * @return {Array<string>}
+		 */
+		currentUserGroups() {
+			try {
+				const groups = loadState('openbuild', 'currentUserGroups', [])
+				return Array.isArray(groups) ? groups : []
+			} catch {
+				return []
+			}
+		},
+		/**
+		 * Owner GIDs parsed from the `permissions` prop using the existing
+		 * per-item permission grammar (`group:<gid>` or a bare GID). Not
+		 * every `permissions` entry is necessarily an owner GID (a host may
+		 * also pass unrelated permission strings) — this is a best-effort
+		 * parse, and only feeds the FALLBACK gate; the PRIMARY signal is
+		 * `runtime.user.isOwner`.
+		 *
+		 * @return {Array<string>}
+		 */
+		ownerGidsFromPermissions() {
+			if (!Array.isArray(this.permissions)) return []
+			return this.permissions
+				.filter((p) => typeof p === 'string' && p.length > 0)
+				.map((p) => (p.startsWith('group:') ? p.slice('group:'.length) : p))
+		},
+		/**
+		 * Whether `currentUserGroups` and `ownerGidsFromPermissions`
+		 * intersect — the FALLBACK half of `isOwner`.
+		 *
+		 * @return {boolean}
+		 */
+		ownerGroupsIntersect() {
+			const groups = this.currentUserGroups
+			const owners = this.ownerGidsFromPermissions
+			if (groups.length === 0 || owners.length === 0) return false
+			return groups.some((g) => owners.includes(g))
+		},
+		/**
+		 * Whether the manifest declares any `adminSettings` entries. An
+		 * absent key and an empty array are treated identically — no admin
+		 * dialog mounts either way (manifest-admin-settings D4).
+		 *
+		 * @return {boolean}
+		 */
+		hasAdminSettings() {
+			return Array.isArray(this.manifest && this.manifest.adminSettings)
+				&& this.manifest.adminSettings.length > 0
+		},
+		/**
+		 * `manifest.adminSettings[]` sorted by `order` (ascending), falling
+		 * back to array position when `order` is absent — mirrors
+		 * CnAppNav's `visibleItems` sort convention.
+		 *
+		 * @return {Array<object>}
+		 */
+		sortedAdminSettings() {
+			if (!this.hasAdminSettings) return []
+			return this.manifest.adminSettings
+				.map((entry, index) => ({ entry, index }))
+				.sort((a, b) => {
+					const aHas = typeof a.entry.order === 'number'
+					const bHas = typeof b.entry.order === 'number'
+					if (aHas && !bHas) return -1
+					if (!aHas && bHas) return 1
+					if (!aHas && !bHas) return a.index - b.index
+					return (a.entry.order - b.entry.order) || (a.index - b.index)
+				})
+				.map((wrapped) => wrapped.entry)
+		},
+		/**
+		 * `sortedAdminSettings` filtered by each entry's optional
+		 * `permission` — narrow-only within the already owner-gated dialog
+		 * (admin-settings-owner-gating "per-section permission narrows"
+		 * requirement). Entries with no `permission` always pass; the
+		 * dialog itself is only ever mounted for owners (`isOwner`), so a
+		 * `permission` can never widen visibility to a non-owner.
+		 *
+		 * @return {Array<object>}
+		 */
+		visibleAdminSettingsSections() {
+			return this.sortedAdminSettings.filter((section) => this.passesAdminSectionPermission(section))
+		},
+		/**
+		 * The manifest the default `<CnAppNav>` renders — the editor's working
+		 * `source` while in-app editing, else the live `manifest` prop. Passed to
+		 * CnAppNav as a REACTIVE prop (not left to the provide/inject fallback):
+		 * Vue 2 `inject` resolves the provided `cnManifest` getter once at the
+		 * child's create time, so an async manifest update (e.g. a backend
+		 * `/api/manifest` delta merged in by `useAppManifest`) never reaches the
+		 * injected value. Binding the prop makes the nav update reactively.
+		 * Mirrors the `cnManifest` provide getter so deep descendants stay
+		 * consistent with the menu.
+		 *
+		 * @return {object}
+		 */
+		menuManifest() {
+			const m = this.manifestEditor ? this.manifestEditor.source.value : this.manifest
+			// Raw/reactive boundary (audit item 9). The manifest is held raw at
+			// boot (CnAppRoot's shallowRef), so the default CnAppNav establishes
+			// its render dependencies against a NON-reactive `menu` at first
+			// render. When the in-app editor opts the manifest into reactivity on
+			// edit-enter (`useManifestEditor.enter()` → `reactive()` in place),
+			// CnAppNav would otherwise keep its stale dep-less render and miss live
+			// menu edits. Handing it a FRESH wrapper identity while editing forces
+			// one re-render that re-subscribes to the now-reactive `menu` array, so
+			// menu add/label/reorder edits render live exactly as before — while
+			// the spread's `menu` is the SAME reactive array, so in-place edits
+			// flow through. Outside edit mode the live manifest is returned BY
+			// IDENTITY (regression guard: the CnAppNav prop must === the manifest
+			// prop for async backend-merge updates — see the reactive-menu tests).
+			if (this.manifestEditor && this.manifestEditor.editing.value && m && typeof m === 'object') {
+				return { ...m }
+			}
+			return m
+		},
 		/**
 		 * Active object-sidebar holder for the auto-mount block.
 		 * Mirrors the local holder; if an ancestor already provides
@@ -1261,6 +1919,27 @@ export default {
 			return out
 		},
 		/**
+		 * Whether the `CnCommandPalette` auto-mount is active — `true`, or
+		 * an override object (per the `supportDialog` Boolean|Object
+		 * convention above).
+		 *
+		 * @return {boolean}
+		 */
+		cnCommandPaletteVisible() {
+			return this.commandPalette === true || (!!this.commandPalette && typeof this.commandPalette === 'object')
+		},
+		/**
+		 * Prop overrides supplied via the `commandPalette` object form,
+		 * spread onto `CnCommandPalette` OVER the auto-wired `manifest` /
+		 * `router` / `app-id` — so an app can override e.g. `objectSearch`
+		 * or `shortcut` without losing the zero-config navigation source.
+		 *
+		 * @return {object}
+		 */
+		cnCommandPaletteOverrides() {
+			return (this.commandPalette && typeof this.commandPalette === 'object') ? this.commandPalette : {}
+		},
+		/**
 		 * Per-dependency status, computed once per `appId` declared in
 		 * `manifest.dependencies`. Reading the value here triggers the
 		 * useAppStatus composable for each id; results are cached
@@ -1270,7 +1949,21 @@ export default {
 			const deps = Array.isArray(this.manifest?.dependencies)
 				? this.manifest.dependencies
 				: []
-			return deps.map((id) => ({ id, status: useAppStatus(id) }))
+			// HARD/SOFT dependency model (REQ-DIA-4/REQ-DIA-5). Each manifest
+			// entry is normalised to `{ id, required, name, status }`:
+			//  - string        → HARD (`required: true`), name = id
+			//  - { id, required?, name? } → `required` defaults to true;
+			//    `required: false` marks a SOFT (optional) dependency.
+			return deps
+				.map((entry) => {
+					const isObject = entry !== null && typeof entry === 'object'
+					const id = isObject ? entry.id : entry
+					if (typeof id !== 'string' || id === '') return null
+					const required = isObject ? entry.required !== false : true
+					const name = (isObject && entry.name) || id
+					return { id, required, name, status: useAppStatus(id) }
+				})
+				.filter((entry) => entry !== null)
 		},
 		/**
 		 * App statuses injected by the PHP boot() via IInitialStateService.
@@ -1293,7 +1986,7 @@ export default {
 					if (server !== undefined) return !server.installed || !server.enabled
 					return !status.installed.value || !status.enabled.value
 				})
-				.map(({ id }) => {
+				.map(({ id, required, name }) => {
 					const server = this.serverAppStatuses[id]
 					if (server !== undefined) {
 						// Server data available: correctly distinguish the two states.
@@ -1301,14 +1994,43 @@ export default {
 						// enabled: undefined → not installed (→ "Install")
 						return {
 							id,
-							name: id,
+							name,
+							required,
 							category: server.category ?? 'featured',
 							enabled: server.installed ? false : undefined,
 						}
 					}
-					// No server data — cannot tell installed from disabled, show "Enable"
-					return { id, name: id, category: 'featured', enabled: false }
+					// No server data and the JS heuristic cannot tell not-installed
+					// from installed-but-disabled. Default to the safe "not
+					// installed" shape (enabled: undefined → "Install and enable"):
+					// a genuinely-missing app must never be mislabelled "Enable".
+					return { id, name, required, category: 'featured', enabled: undefined }
 				})
+		},
+		/**
+		 * Unresolved HARD dependencies — the app cannot run without these,
+		 * so their presence gates the shell behind the blocking
+		 * `dependency-missing` phase / `CnDependencyMissing` screen
+		 * (REQ-DIA-5).
+		 *
+		 * @return {Array<object>} Unresolved entries with `required === true`.
+		 */
+		unresolvedHardDependencies() {
+			return this.unresolvedDependencies.filter((dep) => dep.required)
+		},
+		/**
+		 * Unresolved SOFT dependencies — optional integrations whose
+		 * absence must NOT block the shell. Each surfaces as a dismissible
+		 * in-shell `NcNoteCard` banner (REQ-DIA-6), filtered here to those
+		 * not yet dismissed in `localStorage`.
+		 *
+		 * @return {Array<object>} Undismissed unresolved entries with
+		 *   `required === false`.
+		 */
+		unresolvedSoftDependencies() {
+			return this.unresolvedDependencies
+				.filter((dep) => !dep.required)
+				.filter((dep) => !this.dismissedSoftDeps.includes(dep.id))
 		},
 		/**
 		 * First-time-setup status for this app (ADR-042), or null when the
@@ -1330,6 +2052,35 @@ export default {
 		setupGating() {
 			const s = this.setupState
 			return !!s && s.loading.value === false && s.requiredUnmet.value.length > 0
+		},
+		/**
+		 * Whether the setup wizard should be OFFERED (non-gating) because
+		 * every required step is met but at least one ACTIONABLE optional step
+		 * isn't (REQ-SETUP-NV-012). Never true while the gating phase is active —
+		 * required-unmet already renders `CnSetupWizard` itself.
+		 *
+		 * `info` and `summary` steps are excluded: the server has nothing to
+		 * persist for them, so they report `done: false` forever and would keep
+		 * this permanently true (auto-prompting fully-configured users).
+		 */
+		optionalSetupPending() {
+			const s = this.setupState
+			if (!s || s.loading.value !== false || s.requiredUnmet.value.length > 0) {
+				return false
+			}
+			return s.optionalUnmet.value.some((st) => st.type !== 'info' && st.type !== 'summary')
+		},
+		/**
+		 * Ids of setup steps the server already reports done. Passed to
+		 * `CnSetupWizard` so a freshly (re)mounted wizard resumes at the
+		 * first actually-unmet step instead of restarting from the top —
+		 * the wizard's own local state only tracks the current session.
+		 *
+		 * @return {Array<string>}
+		 */
+		setupCompletedStepIds() {
+			const s = this.setupState
+			return s ? s.steps.value.filter((st) => st.done).map((st) => st.id) : []
 		},
 		/**
 		 * Whether the manifest declares an enabled walkthrough with at least one
@@ -1373,7 +2124,10 @@ export default {
 		},
 		phase() {
 			if (this.isLoading) return 'loading'
-			if (this.unresolvedDependencies.length > 0) return 'dependency-missing'
+			// Only unresolved HARD dependencies block the shell (REQ-DIA-5);
+			// unresolved SOFT dependencies surface as a non-blocking in-shell
+			// banner and let the app advance to setup/shell.
+			if (this.unresolvedHardDependencies.length > 0) return 'dependency-missing'
 			if (this.setupGating) return 'setup'
 			return 'shell'
 		},
@@ -1385,6 +2139,113 @@ export default {
 		 */
 		orStoreLink() {
 			return OR_STORE_LINK
+		},
+		/**
+		 * Whether the current user is a Nextcloud admin. Only admins can
+		 * hit `settings/apps/enable`, so both dependency surfaces branch on
+		 * this: admins get the in-place install/enable action, non-admins
+		 * get "ask your administrator" copy (REQ-DIA-2 / REQ-DIA-3).
+		 *
+		 * @return {boolean}
+		 */
+		isAdmin() {
+			try {
+				return getCurrentUser()?.isAdmin === true
+			} catch (e) {
+				return false
+			}
+		},
+		/**
+		 * The missing app the or-missing guard's primary install/enable
+		 * action targets — the first entry of `missingApps` (typically
+		 * `openregister`). Empty string when nothing is missing.
+		 *
+		 * @return {string}
+		 */
+		orMissingPrimaryApp() {
+			return this.missingApps[0] || ''
+		},
+		/**
+		 * Human-readable list of the missing apps for the guard copy.
+		 *
+		 * @return {string}
+		 */
+		missingAppsLabel() {
+			return this.missingApps.join(', ')
+		},
+		/**
+		 * Guard title — the translated `app-availability.title`, or a
+		 * sensible English default when the key is untranslated (REQ-DIA-7).
+		 *
+		 * @return {string}
+		 */
+		orMissingTitle() {
+			return this.availabilityCopy('app-availability.title', 'Required app not available')
+		},
+		/**
+		 * Guard description — translated `app-availability.description` or an
+		 * English default naming the missing app(s) (REQ-DIA-7).
+		 *
+		 * @return {string}
+		 */
+		orMissingDescription() {
+			return this.availabilityCopy(
+				'app-availability.description',
+				`This app requires ${this.missingAppsLabel || 'another Nextcloud app'} to be installed and enabled.`,
+			)
+		},
+		/**
+		 * Fallback store-link label — translated `app-availability.action`
+		 * or an English default (REQ-DIA-7).
+		 *
+		 * @return {string}
+		 */
+		orMissingActionLabel() {
+			return this.availabilityCopy('app-availability.action', 'Open app settings')
+		},
+		/**
+		 * Admin install button label for the or-missing guard.
+		 *
+		 * @return {string}
+		 */
+		orMissingInstallLabel() {
+			return this.availabilityCopy('app-availability.install', 'Install and enable')
+		},
+		/**
+		 * Non-admin "ask your administrator" copy for the or-missing guard
+		 * (REQ-DIA-3), naming the missing app(s).
+		 *
+		 * @return {string}
+		 */
+		orMissingAskAdmin() {
+			return this.availabilityCopy(
+				'app-availability.ask-admin',
+				`Ask your administrator to enable ${this.missingAppsLabel || 'the required app'}.`,
+			)
+		},
+		/**
+		 * Soft-dependency install-action label (app not installed).
+		 *
+		 * @return {string}
+		 */
+		softDepInstallLabel() {
+			return this.availabilityCopy('app-availability.soft.install', 'Install and enable')
+		},
+		/**
+		 * Soft-dependency enable-action label (installed but disabled).
+		 *
+		 * @return {string}
+		 */
+		softDepEnableLabel() {
+			return this.availabilityCopy('app-availability.soft.enable', 'Enable')
+		},
+		/**
+		 * Soft-dependency dismiss-action label.
+		 *
+		 * @return {string}
+		 */
+		softDepDismissLabel() {
+			return this.availabilityCopy('app-availability.soft.dismiss', 'Dismiss')
 		},
 		/**
 		 * Repo target for the built-in feature-request deep link.
@@ -1421,6 +2282,15 @@ export default {
 			return this.userSettingsTitle || this.translate('User settings')
 		},
 		/**
+		 * Title for the admin-settings modal. Prop override, else the
+		 * translated "Administration". Mirrors `resolvedUserSettingsTitle`.
+		 *
+		 * @return {string}
+		 */
+		resolvedAdminSettingsTitle() {
+			return this.adminSettingsTitle || this.translate('Administration')
+		},
+		/**
 		 * Section heading for the walkthrough-replay block in user settings.
 		 *
 		 * @return {string}
@@ -1454,6 +2324,23 @@ export default {
 			if (!this.activeModalKey) return null
 			const entry = (this.registry || {})[this.activeModalKey]
 			return (entry && entry.component) ? entry.component : null
+		},
+	},
+
+	watch: {
+		/**
+		 * Auto-open the non-gating setup wizard once optional-unmet becomes
+		 * true, unless the user already dismissed this manifest version.
+		 * `immediate: true` so a fresh mount that's already optional-unmet
+		 * opens it without waiting for a later reactive change.
+		 */
+		optionalSetupPending: {
+			immediate: true,
+			handler(pending) {
+				if (pending && !this.isSetupWizardDismissed()) {
+					this.setupWizardOpen = true
+				}
+			},
 		},
 	},
 
@@ -1507,6 +2394,203 @@ export default {
 
 	methods: {
 		/**
+		 * Re-fetch the pages editor's register/schema data sources via the
+		 * `dataSourcesLoader` prop. Provided to descendants as
+		 * `cnRefreshDataSources`; the pages-editor modals call it on open.
+		 *
+		 * Mutates `dataSourcesState` in place (never reassigns it — see the
+		 * stable-identity contract in `data()`). A refresh already in flight
+		 * is reused rather than duplicated, so two modals opening at once
+		 * issue one fetch. The previous list stays in `value` while a refresh
+		 * runs and survives a failure, so the user can keep editing against
+		 * the last known-good data instead of an empty dropdown.
+		 *
+		 * @return {Promise<void>} Resolves when the refresh settles. Never rejects.
+		 */
+		async refreshDataSources() {
+			if (typeof this.dataSourcesLoader !== 'function') return
+			if (this._dataSourcesInFlight) return this._dataSourcesInFlight
+
+			this.dataSourcesState.loading = true
+			this.dataSourcesState.error = null
+
+			// Wrapped so a loader that throws synchronously is handled
+			// identically to one that returns a rejecting promise.
+			this._dataSourcesInFlight = (async () => {
+				try {
+					const next = await this.dataSourcesLoader()
+					this.dataSourcesState.value = next || { registers: [] }
+				} catch (e) {
+					this.dataSourcesState.error = e
+					// Keep the last good `value` — a failed refresh must not
+					// blank a list the user is mid-edit against.
+				} finally {
+					this.dataSourcesState.loading = false
+					this._dataSourcesInFlight = null
+				}
+			})()
+
+			return this._dataSourcesInFlight
+		},
+		/**
+		 * Whether an `adminSettings` entry's optional `permission` passes
+		 * for the current caller, mirroring `CnAppNav.passesPermission`'s
+		 * grammar exactly (a section with no `permission` always passes;
+		 * an empty/absent `permissions` prop passes everything). Narrow-
+		 * only: called only from within the already owner-gated admin
+		 * dialog, so this can never grant a non-owner visibility.
+		 *
+		 * @param {{ permission?: string }} section An `adminSettings` entry.
+		 * @return {boolean}
+		 */
+		passesAdminSectionPermission(section) {
+			if (!section || !section.permission) return true
+			if (!this.permissions || this.permissions.length === 0) return true
+			return this.permissions.includes(section.permission)
+		},
+		/**
+		 * Resolve a custom `adminSettings` entry's `component` key against
+		 * the same registries `CnBodySections.resolveSectionComponent` /
+		 * `CnPageRenderer.resolveCustomComponent` use for slot components:
+		 * the v2 `registry` prop (any kind exposing a `.component`) wins,
+		 * falling back to the legacy `customComponents` map. Returns `null`
+		 * (renders nothing) when neither has the key registered.
+		 *
+		 * @param {string} key The entry's `component` registry key.
+		 * @return {import('vue').Component|null}
+		 */
+		/**
+		 * Resolve the routed manifest page's `sidebarComponent`.
+		 *
+		 * Resolved HERE rather than received from `CnPageRenderer`, which is
+		 * why the manifest key works at all. The renderer *provides*
+		 * `cnPageSidebarComponent` and this component *injects* it — but the
+		 * renderer is our descendant, and provide/inject only flows downward,
+		 * so that value could never reach this slot. `pages[].sidebarComponent`
+		 * was dead config for every app that tried it (#528).
+		 *
+		 * The route name is the page id (the same match `_hydrateMenuCounts`
+		 * uses), and the component name resolves through the same registries
+		 * every other slot component uses.
+		 *
+		 * @return {import('vue').Component|null} The sidebar component, or null.
+		 */
+		resolvePageSidebarComponent() {
+			const routeName = this.$route?.name
+			if (!routeName) return null
+
+			const page = (this.manifest?.pages ?? []).find((p) => p?.id === routeName)
+			if (!page || typeof page.sidebarComponent !== 'string' || page.sidebarComponent === '') return null
+
+			// `sidebar.show: false` suppresses the rail entirely, so a page
+			// declaring both is contradictory; visibility wins, matching what
+			// CnPageRenderer already warns about.
+			if (page?.sidebar?.show === false) return null
+
+			return this.resolveAdminSettingsComponent(page.sidebarComponent)
+		},
+		resolveAdminSettingsComponent(key) {
+			if (typeof key !== 'string' || key === '') return null
+			const reg = (this.registry && this.registry[key]) || null
+			if (reg && reg.component) return reg.component
+			const legacy = this.customComponents && this.customComponents[key]
+			return legacy || null
+		},
+		/**
+		 * Return the translated copy for `key`, or `fallback` when the
+		 * `translate` prop leaves the key unchanged (its default is the
+		 * identity function and no consumer app defines the
+		 * `app-availability.*` keys). Keeps real l10n working for apps that
+		 * DO supply the strings while guaranteeing English prose otherwise
+		 * (REQ-DIA-7).
+		 *
+		 * @param {string} key The i18n key.
+		 * @param {string} fallback The English default.
+		 * @return {string}
+		 */
+		availabilityCopy(key, fallback) {
+			const translated = this.translate(key)
+			return (translated === undefined || translated === null || translated === key)
+				? fallback
+				: translated
+		},
+		/**
+		 * Install-and-enable (or enable) a missing dependency via the shared
+		 * `useAppInstaller` (REQ-DIA-3 / REQ-DIA-6). Marks the dependency
+		 * busy for the per-button spinner, reloads on success (a freshly
+		 * installed app's assets only exist after a full load), and on
+		 * failure leaves `depInstallError` set so the store link stays as a
+		 * fallback.
+		 *
+		 * @param {string} id The Nextcloud app id to install/enable.
+		 * @return {Promise<void>}
+		 */
+		async installDependency(id) {
+			if (!id) return
+			this.installingDepId = id
+			this.erroredDepId = null
+			try {
+				await this.appInstaller.installAndEnable(id)
+				window.location.reload()
+			} catch (e) {
+				// Error is surfaced inline via `depInstallError`; the store
+				// link remains available as a manual fallback. A cancelled
+				// password confirmation also lands here (no error text).
+				this.erroredDepId = id
+			} finally {
+				this.installingDepId = null
+			}
+		},
+		/**
+		 * Dismiss a soft-dependency banner (REQ-DIA-6). Persists the
+		 * dismissal under `cn-soft-dep-dismissed:{appId}:{depId}` and hides
+		 * the banner reactively. Independent per dependency.
+		 *
+		 * @param {string} id The soft dependency's app id.
+		 * @return {void}
+		 */
+		dismissSoftDep(id) {
+			try {
+				window.localStorage.setItem('cn-soft-dep-dismissed:' + this.appId + ':' + id, '1')
+			} catch (e) {
+				// Best-effort persistence (private mode / no storage).
+			}
+			if (!this.dismissedSoftDeps.includes(id)) {
+				this.dismissedSoftDeps.push(id)
+			}
+		},
+		/**
+		 * Heading for a soft-dependency banner.
+		 *
+		 * @param {object} dep The normalised dependency `{ id, name, ... }`.
+		 * @return {string}
+		 */
+		softDepHeading(dep) {
+			return this.availabilityCopy('app-availability.soft.heading', `Optional: ${dep.name}`)
+		},
+		/**
+		 * Body text for a soft-dependency banner.
+		 *
+		 * @param {object} dep The normalised dependency `{ id, name, ... }`.
+		 * @return {string}
+		 */
+		softDepText(dep) {
+			return this.availabilityCopy(
+				'app-availability.soft.description',
+				`${dep.name} unlocks optional features in this app but is not installed or enabled.`,
+			)
+		},
+		/**
+		 * Non-admin "ask your administrator" copy for a soft-dependency
+		 * banner.
+		 *
+		 * @param {object} dep The normalised dependency `{ id, name, ... }`.
+		 * @return {string}
+		 */
+		softDepAskAdmin(dep) {
+			return this.availabilityCopy('app-availability.soft.ask-admin', `Ask your administrator to enable ${dep.name}.`)
+		},
+		/**
 		 * Warn before unload when the manifest editor has unsaved (or still-
 		 * persisting) changes, so a refresh can't silently discard an in-app
 		 * edit. No-op when not editing / nothing dirty.
@@ -1531,14 +2615,74 @@ export default {
 		 * @return {void}
 		 */
 		onSetupComplete() {
+			// Finishing counts as dismissal. A user may legitimately reach Finish
+			// with an optional step still un-done (Next skips optional steps), and
+			// the server keeps reporting it unmet — so without this the wizard
+			// auto-opens again on every visit. Cancel must not be the only way to
+			// get peace.
+			this.persistSetupWizardDismissal()
 			if (this.setupState && typeof this.setupState.refresh === 'function') {
 				this.setupState.refresh()
 			}
+			// NOT closing here: CnSetupWizard has just flipped CnWizardDialog into
+			// its result phase ("Setup complete."). Unmounting now would swallow it.
+			// The result phase's Close emits `@close` → dismissSetupWizard().
 			/**
 			 * @event setup-complete Emitted after the gating setup wizard reports
 			 * completion and the status has been re-fetched.
 			 */
 			this.$emit('setup-complete')
+		},
+		/**
+		 * Dismiss the non-gating optional-setup wizard (REQ-SETUP-NV-012) and
+		 * unmount it.
+		 *
+		 * @return {void}
+		 */
+		dismissSetupWizard() {
+			this.persistSetupWizardDismissal()
+			this.setupWizardOpen = false
+		},
+		/**
+		 * `localStorage` key holding the non-gating setup wizard's dismissal for
+		 * the manifest's CURRENT `setup.version`. Read at use time rather than
+		 * cached, so an async manifest merge that bumps the version is honoured.
+		 *
+		 * @return {string}
+		 */
+		setupWizardDismissKey() {
+			const version = (this.manifest && this.manifest.setup && this.manifest.setup.version) || 0
+			return 'cn-setup-wizard-dismissed:' + this.appId + ':' + version
+		},
+		/**
+		 * Whether the non-gating setup wizard has already been dismissed for
+		 * this manifest `setup.version` — this session or a previous visit.
+		 *
+		 * @return {boolean}
+		 */
+		isSetupWizardDismissed() {
+			if (this.setupWizardDismissed) {
+				return true
+			}
+			try {
+				return window.localStorage.getItem(this.setupWizardDismissKey()) === '1'
+			} catch (e) {
+				return false
+			}
+		},
+		/**
+		 * Record the non-gating setup wizard as dismissed for this manifest
+		 * `setup.version` so it doesn't auto-open again.
+		 *
+		 * @return {void}
+		 */
+		persistSetupWizardDismissal() {
+			try {
+				window.localStorage.setItem(this.setupWizardDismissKey(), '1')
+			} catch (e) {
+				// Best-effort persistence (private mode / no storage).
+			}
+			this.setupWizardDismissed = true
 		},
 		/**
 		 * Persist the current app version as the user's last-seen walkthrough
@@ -1688,6 +2832,56 @@ export default {
 				uniquePairs.push(pair)
 			}
 
+			// Prefer ONE batched round-trip (audit item 26): shillinq's nav
+			// alone hits ~dozens of unique (register, schema) pairs, each of
+			// which was a separate `?_limit=1` request at boot. On an
+			// OpenRegister without the batch route (404) or any error, fall
+			// back to the per-entry store path below so badges still render.
+			this._hydrateMenuCountsBatched(uniquePairs).catch(() => {
+				this._hydrateMenuCountsPerEntry(uniquePairs)
+			})
+		},
+
+		/**
+		 * Hydrate all menu counts with a single `POST /api/objects/counts`
+		 * (OpenRegister batched-counts endpoint). Distributes each returned
+		 * count into the reactive `cnMenuCounts` map. Rejects (so the caller
+		 * falls back) on a non-2xx status, a missing/404 route, or a malformed
+		 * response — never leaving a half-populated batch masquerading as done.
+		 *
+		 * @param {Array<{register: string, schema: string}>} uniquePairs Deduped pairs.
+		 * @return {Promise<void>}
+		 * @private
+		 */
+		async _hydrateMenuCountsBatched(uniquePairs) {
+			const url = generateUrl('/apps/openregister/api/objects/counts')
+			const { data } = await axios.post(url, {
+				counts: uniquePairs.map(({ register, schema }) => ({ register, schema })),
+			})
+			const results = data?.results
+			if (!Array.isArray(results)) {
+				throw new Error('batched counts: malformed response')
+			}
+			for (const result of results) {
+				const { register, schema, count } = result ?? {}
+				if (typeof count !== 'number' || count < 0) continue
+				if (!this.cnMenuCounts[register]) {
+					Vue.set(this.cnMenuCounts, register, {})
+				}
+				Vue.set(this.cnMenuCounts[register], schema, count)
+			}
+		},
+
+		/**
+		 * Legacy per-entry hydration: one `?_limit=1` store fetch per pair.
+		 * The pre-batch behaviour, retained verbatim as the fallback for an
+		 * OpenRegister without the batch route.
+		 *
+		 * @param {Array<{register: string, schema: string}>} uniquePairs Deduped pairs.
+		 * @return {void}
+		 * @private
+		 */
+		_hydrateMenuCountsPerEntry(uniquePairs) {
 			let store
 			try {
 				store = useObjectStore()
@@ -1787,5 +2981,40 @@ export default {
 .cn-app-root__walkthrough-hint {
 	margin-bottom: 12px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-app-root__or-missing-error {
+	margin: calc(2 * var(--default-grid-baseline)) 0 calc(1 * var(--default-grid-baseline));
+	color: var(--color-error);
+}
+
+.cn-app-root__or-missing-ask-admin {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-app-root__soft-dep {
+	margin: calc(2 * var(--default-grid-baseline));
+}
+
+.cn-app-root__soft-dep-body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--default-grid-baseline);
+}
+
+.cn-app-root__soft-dep-actions {
+	display: flex;
+	align-items: center;
+	gap: calc(2 * var(--default-grid-baseline));
+	flex-wrap: wrap;
+}
+
+.cn-app-root__soft-dep-ask-admin {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-app-root__soft-dep-error {
+	margin: 0;
+	color: var(--color-error);
 }
 </style>

@@ -41,17 +41,6 @@
 		     (e.g. an `object-table` widget in `body`) still wins over
 		     the default. -->
 		<template v-if="isV2Manifest">
-			<!-- ADR-041 universal in-app edit affordance. The body-widget-grid
-			     path below renders no page component, so (unlike the typed
-			     fall-through pages — CnIndexPage via CnActionsBar, CnDetailPage,
-			     CnDashboardPage — which each mount their own button) nothing here
-			     surfaces the OpenBuild editor. Mount it once for the body-grid
-			     path. CnOpenBuildEditButton self-gates on OpenBuild availability
-			     (renders nothing when unreachable) and self-wires from the
-			     cnManifestEditor / cnOpenBuildAvailable provided by CnAppRoot. -->
-			<div v-if="widgetsBySlot.has('body')" class="cn-page-renderer__edit-affordance">
-				<CnOpenBuildEditButton :page-id="currentPage.id" />
-			</div>
 			<!-- body slot — widgets first, default typed component otherwise -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('body')"
@@ -124,18 +113,56 @@
 			</template>
 		</component>
 
+		<!-- Builder empty-state. A page with no renderable body — e.g. a
+		     freshly-created custom page that has no `component` / body widgets
+		     yet — would otherwise render nothing at all, leaving no
+		     "Edit with OpenBuild" affordance to start adding content. Render the
+		     edit button (it self-gates to builder mode via CnAppRoot's
+		     `cnOpenBuildAvailable`) plus a neutral prompt, so a new page is
+		     always editable. ADR-041. -->
+		<div v-if="!hasRenderableBody" class="cn-page-renderer__empty">
+			<div class="cn-page-renderer__empty-actions">
+				<CnOpenBuildEditButton />
+			</div>
+			<NcEmptyContent :name="tr('This page is empty')"
+				:description="tr('Open the OpenBuild editor to start adding content to this page.')">
+				<template #icon>
+					<ShapeOutline :size="20" />
+				</template>
+			</NcEmptyContent>
+		</div>
+
 		<!-- Per-page config editor, opened by an index page's edit-mode cog. -->
 		<CnPageConfigModal v-if="showConfigModal && currentPage"
 			:page="currentPage"
 			@close="showConfigModal = false" />
+
+		<!-- Shared export launcher, opened by a `type:"export"` manifest
+		     action (Wave 1, nextcloud-vue#91). Configured from the action's
+		     entities[] / formats[] / description; the confirm payload routes
+		     to the action's optional `handler` (manifest actions map). -->
+		<CnMassExportDialog
+			v-if="exportAction"
+			ref="exportDialog"
+			:entities="exportDialogEntities"
+			:formats="exportDialogFormats"
+			:description="exportAction.description || ''"
+			@confirm="onExportConfirm"
+			@close="exportAction = null" />
 	</div>
 </template>
 
 <script>
+import { ref } from 'vue'
+import { NcEmptyContent } from '@nextcloud/vue'
+import { translate as t } from '@nextcloud/l10n'
+import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
 import { defaultPageTypes } from './pageTypes.js'
+import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
-import CnPageConfigModal from '../../modals/CnPageConfigModal.vue'
+import CnPageConfigModal from '../../dialogs/CnPageConfigModal.vue'
+import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { useObjectStore } from '../../store/index.js'
@@ -180,8 +207,11 @@ export default {
 
 	components: {
 		CnWidgetGrid,
-		CnOpenBuildEditButton,
 		CnPageConfigModal,
+		CnOpenBuildEditButton,
+		CnMassExportDialog,
+		NcEmptyContent,
+		ShapeOutline,
 	},
 
 	inject: {
@@ -234,16 +264,26 @@ export default {
 			 * Bound dispatchAction for the v2 render path. Child widget
 			 * components inject `cnDispatchAction` to dispatch manifest
 			 * actions. Context is pre-bound with this component's
-			 * $router and the injected cnRegistry.
+			 * $router and the injected cnRegistry; a caller may merge
+			 * extra context (e.g. CnWidgetObjectTable passes
+			 * `{ objectStore, source, row }` for `object-op` actions).
+			 * The dispatch result is returned so async `object-op`
+			 * dispatches can be awaited.
 			 *
 			 * @param {object} action The action to dispatch.
+			 * @param {object} [extraContext] Extra context merged over the pre-bound one.
+			 * @return {*} The dispatchAction return value (a promise for object-op).
 			 */
-			cnDispatchAction: (action) => {
-				dispatchAction(action, {
+			cnDispatchAction: (action, extraContext = {}) => {
+				return dispatchAction(action, {
 					router: this.$router ?? null,
 					registry: this.cnRegistry,
 					handlers: this.effectiveManifest?.actions ?? {},
 					openModal: this._cnOpenModal,
+					// `type:"export"` opens the shared CnMassExportDialog this
+					// component mounts (Wave 1, nextcloud-vue#91).
+					openExport: (exportAction) => { this.exportAction = exportAction },
+					...extraContext,
 				})
 			},
 		}
@@ -319,6 +359,56 @@ export default {
 		},
 	},
 
+	/**
+	 * Live updates for the v2 widget-grid detail path (#222). A
+	 * `type:"detail"` page rendered through CnWidgetGrid gets its object
+	 * from the `cnDetailObjectContext` holder (see `loadDetailObject`),
+	 * NOT from a page component with its own subscription — so the
+	 * renderer itself subscribes to `or-object-{id}` for the loaded
+	 * object. The plugin's event-driven refetch then lands in
+	 * `store.objects[slug][id]`, which the holder reads through
+	 * reactively.
+	 *
+	 * The refs returned here are DRIVEN by `loadDetailObject`:
+	 *   - `liveSubType` / `liveSubId` re-scope the subscription on route
+	 *     or object change (the composable's epoch guard swaps handles).
+	 *   - `liveSubEnabled` gates on (a) a v2 manifest page that actually
+	 *     renders widget grids — the typed CnDetailPage dispatch path
+	 *     manages its own subscription — and (b) the same
+	 *     `config.subscribe: false` opt-out CnIndexPage / CnDetailPage
+	 *     honour (manifest-live-updates).
+	 *
+	 * Laziness: `enabled` starts `false`, so mounting the renderer on
+	 * any non-detail page causes zero transport activity (resolving the
+	 * default store is inert per the plugin's laziness guarantee).
+	 * Unmount and route changes release via the composable's own
+	 * lifecycle; the polling fallback is the transport's concern.
+	 *
+	 * @return {object} Refs exposed on `this` for `loadDetailObject`.
+	 */
+	setup() {
+		const liveSubType = ref('')
+		const liveSubId = ref('')
+		const liveSubEnabled = ref(false)
+		let liveStore = null
+		try {
+			liveStore = useObjectStore()
+		} catch (err) {
+			// Pinia not installed (stand-alone / unit-test mounts) — no
+			// live updates; loadDetailObject degrades the same way.
+			liveStore = null
+		}
+		if (liveStore) {
+			useObjectSubscription(
+				liveStore,
+				liveSubType,
+				liveSubId,
+				{ enabled: () => Boolean(liveSubEnabled.value && liveSubType.value && liveSubId.value) },
+			)
+		}
+		return { liveSubType, liveSubId, liveSubEnabled }
+	},
+
 	data() {
 		// Reactive holders for the per-page sidebar visibility flag and
 		// sidebar-component override. Both live on data() so Vue 2
@@ -340,6 +430,10 @@ export default {
 			// `file-manager` widgets receive the object with no per-widget
 			// manifest props.
 			detailObjectContext: { value: null },
+			// The `type:"export"` action currently shown in the shared
+			// CnMassExportDialog export launcher (null = dialog closed). Set
+			// by the `openExport` bound into the cnDispatchAction context.
+			exportAction: null,
 		}
 	},
 
@@ -362,6 +456,34 @@ export default {
 		 */
 		pageSidebarVisibleValue() {
 			return this.pageSidebarVisible.value !== false
+		},
+		/**
+		 * Entity options for the export launcher, from the active export
+		 * action's `entities[]` (empty hides the picker).
+		 *
+		 * @return {Array<{id: string, label: string}>}
+		 */
+		exportDialogEntities() {
+			const entities = this.exportAction && this.exportAction.entities
+			if (!Array.isArray(entities)) return []
+			return entities
+				.map((e) => (typeof e === 'string' ? { id: e, label: e } : e))
+				.filter((e) => e && e.id)
+		},
+		/**
+		 * Format options for the export launcher, from the active export
+		 * action's `formats[]` (bare ids are lifted to `{id, label}`).
+		 * `undefined` when the action declares none, so the dialog's
+		 * built-in Excel/CSV defaults apply.
+		 *
+		 * @return {Array<{id: string, label: string}>|undefined}
+		 */
+		exportDialogFormats() {
+			const formats = this.exportAction && this.exportAction.formats
+			if (!Array.isArray(formats) || formats.length === 0) return undefined
+			return formats
+				.map((f) => (typeof f === 'string' ? { id: f, label: f.toUpperCase() } : f))
+				.filter((f) => f && f.id)
 		},
 		/** Effective manifest: explicit prop wins over injected value. */
 		effectiveManifest() {
@@ -457,15 +579,48 @@ export default {
 		},
 		/** Page definition matching the current route name, or null. */
 		currentPage() {
-			const manifest = this.effectiveManifest
-			if (!manifest || !Array.isArray(manifest.pages)) {
-				return null
-			}
 			const routeName = this.$route?.name
 			if (!routeName) {
 				return null
 			}
-			return manifest.pages.find((page) => page.id === routeName) ?? null
+			return this.pageById.get(routeName) ?? null
+		},
+		/**
+		 * `Map<pageId, page>` built once per manifest identity (Vue caches this
+		 * computed until `effectiveManifest` changes), replacing per-recompute
+		 * linear `pages.find()` — O(n) per navigation on large manifests
+		 * (shillinq ships 223 pages). 2026-07-06 audit item 10.
+		 */
+		pageById() {
+			const pages = this.effectiveManifest?.pages
+			const index = new Map()
+			if (Array.isArray(pages)) {
+				for (const page of pages) {
+					if (page && typeof page.id === 'string' && !index.has(page.id)) {
+						index.set(page.id, page)
+					}
+				}
+			}
+			return index
+		},
+		/**
+		 * `Map<"register schema", detailPage>` — the first detail page bound to
+		 * each register+schema pair. Backs the index→detail row-click wiring
+		 * without re-scanning all pages per index page and per row click.
+		 * Memoized on `effectiveManifest`.
+		 */
+		detailPageByRegisterSchema() {
+			const pages = this.effectiveManifest?.pages
+			const index = new Map()
+			if (Array.isArray(pages)) {
+				for (const page of pages) {
+					if (!page || page.type !== 'detail') continue
+					const cfg = page.config || {}
+					const key = `${cfg.register} ${cfg.schema}`
+					if (!index.has(key)) index.set(key, page)
+				}
+			}
+			return index
 		},
 		/**
 		 * Remount key for the dispatched page component. Includes the data source
@@ -493,6 +648,20 @@ export default {
 		 * `defineAsyncComponent`); the renderer treats any value in the
 		 * map as a Vue component.
 		 */
+		/**
+		 * Whether the current page renders any body content — a dispatched page
+		 * component (index/detail/dashboard/custom-with-component) or a v2 `body`
+		 * widget slot. False for a freshly-created custom page with no component
+		 * and no widgets, which drives the builder empty-state (ADR-041) so the
+		 * page still exposes the "Edit with OpenBuild" affordance.
+		 *
+		 * @return {boolean}
+		 */
+		hasRenderableBody() {
+			if (this.resolvedComponent) return true
+			if (this.isV2Manifest && this.widgetsBySlot && this.widgetsBySlot.has('body')) return true
+			return false
+		},
 		resolvedComponent() {
 			const page = this.currentPage
 			if (!page) {
@@ -590,11 +759,7 @@ export default {
 			// page is selectable. Selection stays available via the checkbox.
 			// An explicit `config.rowClickToView` still wins (merged below).
 			if (isIndex) {
-				const allPages = this.effectiveManifest?.pages
-				const hasDetail = Array.isArray(allPages) && allPages.some((p) => p
-					&& p.type === 'detail'
-					&& (p.config || {}).register === config.register
-					&& (p.config || {}).schema === config.schema)
+				const hasDetail = this.detailPageByRegisterSchema.has(`${config.register} ${config.schema}`)
 				if (hasDetail) topLevel.rowClickToView = true
 			}
 			let normalizedConfig = config
@@ -877,6 +1042,52 @@ export default {
 
 	methods: {
 		/**
+		 * Resolve a UI string through the consumer's translate function
+		 * (`translate` prop, else injected `cnTranslate`), falling back to the
+		 * English source key. Used for the builder empty-state copy.
+		 *
+		 * @param {string} key The English source string.
+		 * @return {string} The translated (or source) string.
+		 */
+		tr(key) {
+			const fn = this.translate || this.cnTranslate
+			return typeof fn === 'function' ? fn(key) : key
+		},
+
+		/**
+		 * Route the export launcher's confirm payload (`{ format, entity? }`)
+		 * to the export action's `handler` (resolved against the manifest
+		 * actions map — the same registry `type:"handler"` actions use). The
+		 * handler does the actual download (e.g. an app's ExportService) and
+		 * its resolved/rejected promise drives the dialog's result phase. A
+		 * missing handler surfaces as a dialog error (never a silent success).
+		 *
+		 * @param {{format: string, entity?: string}} payload The dialog's confirm payload.
+		 * @return {Promise<void>}
+		 */
+		async onExportConfirm(payload) {
+			const action = this.exportAction
+			const dialog = this.$refs.exportDialog
+			const setResult = (result) => {
+				if (dialog && typeof dialog.setResult === 'function') dialog.setResult(result)
+			}
+			const handlers = this.effectiveManifest?.actions ?? {}
+			const fn = action && action.handler && handlers[action.handler]
+			if (typeof fn !== 'function') {
+				// eslint-disable-next-line no-console
+				console.warn(`[CnPageRenderer] export action "${action && action.id}" has no resolvable handler "${action && action.handler}" in the manifest actions map.`)
+				setResult({ error: t('nextcloud-vue', 'No export handler is configured') })
+				return
+			}
+			try {
+				await fn(payload, action)
+				setResult({ success: true })
+			} catch (e) {
+				setResult({ error: (e && e.message) || t('nextcloud-vue', 'Export failed') })
+			}
+		},
+
+		/**
 		 * Open a row's detail page. Bound to an index page's `@view` (the
 		 * built-in eye action) and `@row-click`, this is what makes "View"
 		 * navigate for manifest-driven index pages — `CnIndexPage` only emits
@@ -896,12 +1107,7 @@ export default {
 				return
 			}
 			const cfg = page.config || {}
-			const pages = this.effectiveManifest?.pages
-			if (!Array.isArray(pages)) return
-			const detail = pages.find((p) => p
-				&& p.type === 'detail'
-				&& (p.config || {}).register === cfg.register
-				&& (p.config || {}).schema === cfg.schema)
+			const detail = this.detailPageByRegisterSchema.get(`${cfg.register} ${cfg.schema}`)
 			if (!detail) return
 			const self = row['@self'] || {}
 			const id = row.id ?? self.id ?? self.uuid ?? row.uuid
@@ -994,19 +1200,40 @@ export default {
 		 * context null, so the page still mounts):
 		 *   1. Resolve `detailLoadContext` (null → clear + return).
 		 *   2. Register the `${register}-${schema}` object type (idempotent).
-		 *   3. Fetch schema + object in parallel.
-		 *   4. Publish `{ objectData, schema, objectType, objectId,
-		 *      register, store }`.
+		 *   3. Publish `{ objectData, schema, objectType, objectId,
+		 *      register, store }` — with `objectData` / `schema` as
+		 *      READ-THROUGH getters over the store cache (see below).
+		 *   4. Re-scope the live `or-object-{id}` subscription (see setup()).
+		 *   5. Fetch schema + object in parallel to warm the cache.
 		 *
-		 * The holder is published immediately with the known ids (and a
-		 * null objectData/schema) so widgets that only need objectId /
-		 * register (e.g. file-manager) render without waiting for the
-		 * object body; objectData/schema are filled in when the fetch
-		 * resolves.
+		 * Read-through holder (#222): `objectData` and `schema` are
+		 * accessors over `store.objects[slug][id]` / `store.schemas[slug]`
+		 * rather than stashed copies, so when the live-updates plugin's
+		 * event-driven refetch replaces the cache entry, every consumer
+		 * reading the holder during render (CnWidgetGrid's
+		 * `detailContextProps`, `resolveObjectTokenContext` callers)
+		 * re-renders with the fresh object — the holder never freezes a
+		 * snapshot. The external contract is unchanged: same keys, same
+		 * `{ value }` holder shape. Vue's observer preserves the accessors
+		 * and makes top-level writes to `objectData` / `schema` silent
+		 * no-ops (accessor without setter), so a consumer cannot clobber
+		 * the live view; all shipped widgets copy before mutating.
+		 *
+		 * The holder is published before the fetches so widgets that only
+		 * need objectId / register (e.g. file-manager) render without
+		 * waiting for the object body; the getters go non-null the moment
+		 * the fetches populate the cache — no re-publish needed.
 		 */
 		async loadDetailObject() {
 			const ctx = this.detailLoadContext
 			if (!ctx) {
+				// Not a detail page (or incomplete triple): clear the holder
+				// and close the live-subscription gate — the composable in
+				// setup() releases any held subscription when it sees the
+				// scope go invalid (the renderer persists across routes).
+				this.liveSubEnabled = false
+				this.liveSubType = ''
+				this.liveSubId = ''
 				this.detailObjectContext.value = null
 				return
 			}
@@ -1016,7 +1243,9 @@ export default {
 				store = useObjectStore()
 			} catch (err) {
 				// Pinia not installed (unit tests). Publish the ids so
-				// id-only widgets still work; skip the object fetch.
+				// id-only widgets still work; skip the object fetch and
+				// leave the live subscription disabled.
+				this.liveSubEnabled = false
 				this.detailObjectContext.value = {
 					objectData: null,
 					schema: null,
@@ -1029,7 +1258,9 @@ export default {
 			}
 
 			// Register the object type (idempotent — registerObjectType
-			// replaces the entry each call).
+			// replaces the entry each call). Must precede the subscription
+			// re-scope below: the plugin's subscribe() rejects unregistered
+			// types.
 			try {
 				if (typeof store.registerObjectType === 'function') {
 					store.registerObjectType(ctx.slug, ctx.schema, ctx.register)
@@ -1039,17 +1270,38 @@ export default {
 				console.warn(`[CnPageRenderer] Failed to register object type "${ctx.slug}" for detail page "${this.currentPage?.id}":`, err)
 			}
 
-			// Publish ids immediately (objectData/schema fill in on fetch).
+			// Publish the read-through holder (see method docblock). The ids
+			// are available immediately; the getters resolve once the cache
+			// fills.
 			this.detailObjectContext.value = {
-				objectData: store.getObject?.(ctx.slug, ctx.objectId) ?? null,
-				schema: store.getSchema?.(ctx.slug) ?? null,
+				get objectData() {
+					return store.getObject?.(ctx.slug, ctx.objectId) ?? null
+				},
+				get schema() {
+					return store.getSchema?.(ctx.slug) ?? null
+				},
 				objectType: ctx.slug,
 				objectId: ctx.objectId,
 				register: ctx.register,
 				store,
 			}
 
-			// Fetch schema + object; tolerate either failing.
+			// Re-scope the live subscription (see setup()). Gated to the v2
+			// widget-grid path — CnWidgetGrid (the holder's only render-time
+			// consumer surface) mounts only for v2 manifests with widget
+			// entries; the typed CnDetailPage dispatch path manages its own
+			// subscription. `config.subscribe: false` opts out, mirroring
+			// CnIndexPage / CnDetailPage (manifest-live-updates).
+			const subscribeOptOut = this.currentPage?.config?.subscribe === false
+			const rendersWidgetGrids = this.isV2Manifest && this.widgetsBySlot.size > 0
+			this.liveSubType = ctx.slug
+			this.liveSubId = ctx.objectId
+			this.liveSubEnabled = !subscribeOptOut && rendersWidgetGrids
+
+			// Warm the cache: fetch schema + object, tolerating either
+			// failing. No re-publish afterwards — the holder's getters read
+			// the cache these fetches populate, so there is nothing to
+			// clobber if the user navigated away mid-fetch either.
 			const tasks = []
 			if (typeof store.fetchSchema === 'function') {
 				tasks.push(store.fetchSchema(ctx.slug).catch(() => null))
@@ -1061,21 +1313,7 @@ export default {
 			} else {
 				tasks.push(Promise.resolve(null))
 			}
-			const [schema, objectData] = await Promise.all(tasks)
-
-			// Guard against a race: only publish if the context still
-			// matches (the user may have navigated away mid-fetch).
-			if (this.detailLoadContext?.objectId !== ctx.objectId) {
-				return
-			}
-			this.detailObjectContext.value = {
-				objectData: objectData ?? store.getObject?.(ctx.slug, ctx.objectId) ?? null,
-				schema: schema ?? store.getSchema?.(ctx.slug) ?? null,
-				objectType: ctx.slug,
-				objectId: ctx.objectId,
-				register: ctx.register,
-				store,
-			}
+			await Promise.all(tasks)
 		},
 		/**
 		 * Auto-register object types declared on the current
@@ -1213,22 +1451,6 @@ export default {
 }
 
 /*
- * ADR-041 in-app edit affordance for the v2 body-widget-grid path. The
- * `.cn-page-renderer` host is `display: contents` (no box of its own), so this
- * pins to the nearest positioned ancestor — the Nextcloud app-content area —
- * placing the OpenBuild edit button at the content's top-right corner, inline
- * with the page header. Empty (zero-cost) when OpenBuild is unavailable, since
- * CnOpenBuildEditButton renders nothing.
- */
-.cn-page-renderer__edit-affordance {
-	position: absolute;
-	inset-block-start: 8px;
-	inset-inline-end: 12px;
-	z-index: 100;
-	display: flex;
-}
-
-/*
  * Toggle-clearance padding lives PER-COMPONENT on each page's HEADER
  * element (CnPageHeader, CnDashboardPage, CnDetailPage,
  * CnFeaturesAndRoadmapView, etc.). Earlier attempts at an abstract
@@ -1254,5 +1476,17 @@ export default {
  */
 .cn-page-renderer--no-sidebar {
 	/* intentionally empty — consumer-styled */
+}
+
+/* Builder empty-state: keep the edit button top-right (mirrors a page
+   header's actions area) above a centred empty prompt. */
+.cn-page-renderer__empty {
+	padding-inline-start: 56px;
+}
+
+.cn-page-renderer__empty-actions {
+	display: flex;
+	justify-content: flex-end;
+	padding: 8px 8px 0;
 }
 </style>

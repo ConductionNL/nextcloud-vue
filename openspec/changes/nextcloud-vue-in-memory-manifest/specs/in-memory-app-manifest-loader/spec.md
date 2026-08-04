@@ -105,7 +105,7 @@ When `validate` is `false`, `undefined`, or omitted, the composable MUST NOT inv
 
 ### Requirement: REQ-IMM-004 Legacy positional signature preserved
 
-The composable SHALL preserve the existing positional signature `useAppManifest(appId, bundledManifest, options?)` unchanged, and MUST discriminate between the two call shapes by inspecting `typeof arguments[0]` — a `string` enters the legacy fetch-and-merge branch; a non-null `object` enters the new in-memory branch. No existing consumer (OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash, decidesk, docudesk, larpingapp, softwarecatalog) MUST require any code change.
+The composable SHALL preserve the existing positional signature `useAppManifest(appId, bundledManifest, options?)` unchanged, and MUST discriminate between the two call shapes by inspecting `typeof arguments[0]` — a `string` enters the legacy fetch-and-merge branch; a non-null `object` enters the new in-memory branch. No existing consumer (OpenRegister, OpenCatalogi, Procest, Pipelinq, LaunchPad, decidesk, docudesk, larpingapp, softwarecatalog) MUST require any code change.
 
 #### Scenario: Legacy string-first call shape still works
 

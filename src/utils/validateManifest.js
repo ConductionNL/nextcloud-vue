@@ -66,7 +66,7 @@ function ajvErrorToString(err) {
  * the rule when those widgets ship. New built-ins added to the
  * library MUST be appended to this list in the same PR.
  *
- * @type {ReadonlySet<string>}
+ * @type {Set<string>}
  */
 const LIBRARY_BUILT_IN_WIDGET_KEYS = new Set([
 	'object-table',
@@ -75,6 +75,13 @@ const LIBRARY_BUILT_IN_WIDGET_KEYS = new Set([
 	'map-viewer',
 	'chart',
 	'stats-block',
+	// Wave 1 (nextcloud-vue#91): banner + audit-trail built-ins, and the
+	// dashboard-catalog presentation widgets ported to the v2 grid.
+	'banner',
+	'audit-trail',
+	'header',
+	'text',
+	'divider',
 ])
 
 /**
@@ -126,6 +133,33 @@ export function validateManifestV2(manifest) {
 				}
 			}
 		})
+	}
+
+	// 1b. Entity-scaffold templating (manifest-entity-scaffold-templating):
+	//     pageTemplates[].id uniqueness + pageInstances[].templateRef resolves.
+	//     Cheap early feedback so a dangling ref is caught at validation time,
+	//     not only when the expander runs. No-op for a manifest without
+	//     templating (the fleet corpus), so it can't break the regression.
+	if (Array.isArray(clone.pageTemplates) || Array.isArray(clone.pageInstances)) {
+		const templateIds = new Set()
+		if (Array.isArray(clone.pageTemplates)) {
+			clone.pageTemplates.forEach((tpl, index) => {
+				if (!tpl || typeof tpl.id !== 'string') return
+				if (templateIds.has(tpl.id)) {
+					errors.push(`pageTemplates[${index}]/id: "${tpl.id}" must be unique within pageTemplates[]`)
+				} else {
+					templateIds.add(tpl.id)
+				}
+			})
+		}
+		if (Array.isArray(clone.pageInstances)) {
+			clone.pageInstances.forEach((inst, index) => {
+				if (!inst || typeof inst.templateRef !== 'string') return
+				if (!templateIds.has(inst.templateRef)) {
+					errors.push(`pageInstances[${index}]/templateRef: "${inst.templateRef}" references no pageTemplates[] entry`)
+				}
+			})
+		}
 	}
 
 	// 2. gridX + gridWidth <= 12 for widget entries (sidebar already
@@ -242,6 +276,113 @@ export function validateManifestV2(manifest) {
 		})
 	}
 
+	// 3d. stats-block dataSource | entries mutual exclusion. A multi-entry
+	//     stats-block (`props.entries[]`) declares one source PER entry, so a
+	//     widget-level `dataSource` (entry-level or `props.dataSource`) at the
+	//     same time is ambiguous — exactly one of the two forms is allowed.
+	//     Cross-field rule → post-schema check (clear message), matching the
+	//     gridX+gridWidth precedent. A stats-block with NEITHER is left to the
+	//     component (CnStatsBlockWidget flags it at mount time) because the
+	//     in-app widget editor legitimately creates not-yet-configured widgets.
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			if (!page || !Array.isArray(page.widgets)) return
+			page.widgets.forEach((widget, wIndex) => {
+				if (!widget || widget.widgetKey !== 'stats-block') return
+				const props = isPlainObject(widget.props) ? widget.props : {}
+				const hasEntries = Array.isArray(props.entries) && props.entries.length > 0
+				const hasDataSource = (widget.dataSource !== undefined && widget.dataSource !== null)
+					|| (props.dataSource !== undefined && props.dataSource !== null)
+				if (hasEntries && hasDataSource) {
+					errors.push(
+						`pages[${pIndex}]/widgets[${wIndex}]: stats-block widget declares BOTH a dataSource and props.entries[] — exactly one of the two source forms is allowed (single-KPI dataSource OR multi-entry entries[])`,
+					)
+				}
+			})
+		})
+	}
+
+	// 3e. endpointSource mutual exclusion (Wave 2, nextcloud-vue#91). Every
+	//     endpoint-capable widget binds to exactly ONE data source: the stat /
+	//     delta KPI tiles to `content.source` OR `content.endpointSource`, the
+	//     chart to `dataSource` OR `props.endpointSource`, the object-table to
+	//     `props.source` OR `props.endpointSource`. Cross-field rule →
+	//     post-schema check (clear message), matching the stats-block 3d
+	//     precedent. An OpenRegister source only counts when it is MEANINGFULLY
+	//     configured (register+schema, an endpoint kind, or a url) — the
+	//     in-app widget editor seeds stat/delta content with an EMPTY
+	//     `source: { register: '', schema: '', … }` blob, which must not trip
+	//     the rule when an endpointSource is added. Covers BOTH placements:
+	//     the v2 pages[].widgets[] grid (content under props.content) and the
+	//     legacy pages[].config.widgets[] dashboard catalog (content under
+	//     widget.content, chart inputs under widget.props).
+	const _hasConfiguredOrSource = (source) => isPlainObject(source) && (
+		(typeof source.register === 'string' && source.register !== ''
+			&& typeof source.schema === 'string' && source.schema !== '')
+		|| source.kind === 'endpoint'
+		|| typeof source.url === 'string'
+	)
+	const _hasEndpointSource = (es) => isPlainObject(es)
+	const _checkKpiContent = (content, path) => {
+		if (!isPlainObject(content)) return
+		if (_hasConfiguredOrSource(content.source) && _hasEndpointSource(content.endpointSource)) {
+			errors.push(
+				`${path}: widget content declares BOTH a source and an endpointSource — exactly one of the two data bindings is allowed (OpenRegister source OR endpointSource)`,
+			)
+		}
+	}
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			if (!page) return
+			// v2 grid placement: pages[].widgets[]
+			if (Array.isArray(page.widgets)) {
+				page.widgets.forEach((widget, wIndex) => {
+					if (!widget) return
+					const props = isPlainObject(widget.props) ? widget.props : {}
+					if (widget.widgetKey === 'stat' || widget.widgetKey === 'delta') {
+						_checkKpiContent(props.content, `pages[${pIndex}]/widgets[${wIndex}]`)
+					}
+					if (widget.widgetKey === 'chart') {
+						const hasDataSource = (widget.dataSource !== undefined && widget.dataSource !== null)
+							|| (props.dataSource !== undefined && props.dataSource !== null)
+						if (hasDataSource && _hasEndpointSource(props.endpointSource)) {
+							errors.push(
+								`pages[${pIndex}]/widgets[${wIndex}]: chart widget declares BOTH a dataSource and props.endpointSource — exactly one of the two data bindings is allowed`,
+							)
+						}
+					}
+					if (widget.widgetKey === 'object-table') {
+						if (_hasConfiguredOrSource(props.source) && _hasEndpointSource(props.endpointSource)) {
+							errors.push(
+								`pages[${pIndex}]/widgets[${wIndex}]: object-table widget declares BOTH a props.source and a props.endpointSource — exactly one of the two data bindings is allowed`,
+							)
+						}
+					}
+				})
+			}
+			// Legacy dashboard catalog placement: pages[].config.widgets[]
+			const legacy = page.config && Array.isArray(page.config.widgets) ? page.config.widgets : null
+			if (legacy) {
+				legacy.forEach((def, wIndex) => {
+					if (!def) return
+					if (def.type === 'stat' || def.type === 'delta') {
+						_checkKpiContent(def.content, `pages[${pIndex}]/config/widgets[${wIndex}]`)
+					}
+					if (def.type === 'chart') {
+						const props = isPlainObject(def.props) ? def.props : {}
+						const hasDataSource = (def.dataSource !== undefined && def.dataSource !== null)
+							|| (props.dataSource !== undefined && props.dataSource !== null)
+						if (hasDataSource && _hasEndpointSource(props.endpointSource)) {
+							errors.push(
+								`pages[${pIndex}]/config/widgets[${wIndex}]: chart widget declares BOTH a dataSource and props.endpointSource — exactly one of the two data bindings is allowed`,
+							)
+						}
+					}
+				})
+			}
+		})
+	}
+
 	// 4. @resolve: sentinel rejection on registry-key paths
 	const _v2Sentinel = /^@resolve:[a-z][a-z0-9_-]*$/
 	if (typeof clone.version === 'string' && _v2Sentinel.test(clone.version)) {
@@ -249,7 +390,9 @@ export function validateManifestV2(manifest) {
 	}
 	if (Array.isArray(clone.dependencies)) {
 		clone.dependencies.forEach((dep, index) => {
-			if (typeof dep === 'string' && _v2Sentinel.test(dep)) {
+			// String (HARD) or { id, required?, name? } (required:false = SOFT).
+			const id = typeof dep === 'string' ? dep : (dep && typeof dep === 'object' ? dep.id : null)
+			if (typeof id === 'string' && _v2Sentinel.test(id)) {
 				errors.push(`/dependencies/${index} must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
 			}
 		})
@@ -367,6 +510,111 @@ export function validateManifestV2(manifest) {
 						`pages[${pageId}]/config/widgets[${wIndex}]: custom widget "${id}" has no slot-component mapping at pages[${pIndex}]/slots["${slotKey}"]. `
 						+ `It will render the unavailable placeholder. Add "${slotKey}": "<ComponentName>" to the page-top-level slots map, or use a built-in widget type.`,
 					)
+				}
+			})
+		})
+	}
+
+	// 7. Form logic (manifest-form-logic): cross-shape rules over
+	//    `type: "form"` pages' `config.steps[]` / `config.fields[].visibleWhen`
+	//    / `config.fields[].validation` that JSON Schema cannot express —
+	//    step id uniqueness, step→field key reference integrity, complete
+	//    step/field partition, min<=max, pattern compilability,
+	//    type-inapplicable rules, and LOCAL visibleWhen field-ref resolution.
+	//    The v2 path does not call validateTypeConfig(); the v1 `form`
+	//    branch is untouched.
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			if (!page || page.type !== 'form') return
+			const config = isPlainObject(page.config) ? page.config : null
+			if (!config) return
+			const pathBase = `/pages/${pIndex}/config`
+
+			const fieldList = Array.isArray(config.fields) ? config.fields : []
+			const declaredKeys = new Set(
+				fieldList
+					.filter((f) => f && typeof f.key === 'string')
+					.map((f) => f.key),
+			)
+			// steps[] cross-shape rules
+			if (Array.isArray(config.steps)) {
+				const seenStepIds = new Set()
+				const assignmentCount = new Map()
+				config.steps.forEach((step, sIndex) => {
+					if (!step) return
+					if (typeof step.id === 'string') {
+						if (seenStepIds.has(step.id)) {
+							errors.push(`${pathBase}/steps[${sIndex}]/id: duplicate step id "${step.id}" — step ids must be unique within the page`)
+						}
+						seenStepIds.add(step.id)
+					}
+					if (Array.isArray(step.fields)) {
+						step.fields.forEach((key, fIndex) => {
+							if (typeof key !== 'string' || !declaredKeys.has(key)) {
+								errors.push(`${pathBase}/steps[${sIndex}]/fields[${fIndex}]: "${key}" does not match any declared config.fields[].key`)
+								return
+							}
+							assignmentCount.set(key, (assignmentCount.get(key) || 0) + 1)
+						})
+					}
+				})
+
+				// Complete partition: every declared field key MUST appear in
+				// exactly one step.
+				const unassigned = []
+				const duplicated = []
+				declaredKeys.forEach((key) => {
+					const count = assignmentCount.get(key) || 0
+					if (count === 0) unassigned.push(key)
+					else if (count > 1) duplicated.push(key)
+				})
+				if (unassigned.length > 0) {
+					errors.push(`${pathBase}/steps: field key(s) ${unassigned.map((k) => `"${k}"`).join(', ')} are not assigned to any step — every declared field must appear in exactly one step when steps is present`)
+				}
+				if (duplicated.length > 0) {
+					errors.push(`${pathBase}/steps: field key(s) ${duplicated.map((k) => `"${k}"`).join(', ')} are assigned to more than one step — every declared field must appear in exactly one step`)
+				}
+			}
+
+			// fields[].validation / fields[].visibleWhen cross-shape rules
+			fieldList.forEach((field, fIndex) => {
+				if (!field || typeof field !== 'object') return
+				const fieldPath = `${pathBase}/fields[${fIndex}]`
+				const fieldType = field.type
+
+				const validation = isPlainObject(field.validation) ? field.validation : null
+				if (validation) {
+					if (typeof validation.min === 'number' && typeof validation.max === 'number' && validation.min > validation.max) {
+						errors.push(`${fieldPath}/validation: min (${validation.min}) must be <= max (${validation.max})`)
+					}
+					if (typeof validation.pattern === 'string') {
+						try {
+							// eslint-disable-next-line no-new
+							new RegExp(validation.pattern)
+						} catch (e) {
+							errors.push(`${fieldPath}/validation/pattern: "${validation.pattern}" does not compile as a regular expression (${e.message})`)
+						}
+						if (fieldType !== 'string' && fieldType !== 'password') {
+							errors.push(`${fieldPath}/validation/pattern: pattern only applies to string/password fields, not "${fieldType}"`)
+						}
+					}
+					const boundsApplicable = fieldType === 'string' || fieldType === 'password' || fieldType === 'number'
+					if (!boundsApplicable) {
+						if (typeof validation.min === 'number') {
+							errors.push(`${fieldPath}/validation/min: min only applies to string/password/number fields, not "${fieldType}"`)
+						}
+						if (typeof validation.max === 'number') {
+							errors.push(`${fieldPath}/validation/max: max only applies to string/password/number fields, not "${fieldType}"`)
+						}
+					}
+				}
+
+				const visibleWhen = isPlainObject(field.visibleWhen) ? field.visibleWhen : null
+				if (visibleWhen && !visibleWhen.endpoint && !visibleWhen.source && typeof visibleWhen.field === 'string') {
+					const firstSegment = visibleWhen.field.split('.')[0]
+					if (!declaredKeys.has(firstSegment)) {
+						errors.push(`${fieldPath}/visibleWhen/field: "${firstSegment}" does not match any declared config.fields[].key`)
+					}
 				}
 			})
 		})
@@ -610,13 +858,30 @@ export function validateManifest(manifest, options = {}) {
 
 	if (manifest.dependencies !== undefined) {
 		if (!Array.isArray(manifest.dependencies)) {
-			errors.push('/dependencies must be an array of strings')
+			errors.push('/dependencies must be an array of strings or { id, required?, name? } objects')
 		} else {
 			manifest.dependencies.forEach((dep, index) => {
-				if (typeof dep !== 'string') {
-					errors.push(`/dependencies/${index} must be a string`)
-				} else if (isSentinel(dep)) {
-					errors.push(`/dependencies/${index} must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+				// HARD/SOFT dependency model: an entry is either a string
+				// (HARD) or an object { id, required?, name? } (required:false
+				// = SOFT). See REQ-DIA-4.
+				if (typeof dep === 'string') {
+					if (isSentinel(dep)) {
+						errors.push(`/dependencies/${index} must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+					}
+				} else if (dep && typeof dep === 'object' && !Array.isArray(dep)) {
+					if (typeof dep.id !== 'string' || dep.id === '') {
+						errors.push(`/dependencies/${index}/id must be a non-empty string`)
+					} else if (isSentinel(dep.id)) {
+						errors.push(`/dependencies/${index}/id must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+					}
+					if (dep.required !== undefined && typeof dep.required !== 'boolean') {
+						errors.push(`/dependencies/${index}/required must be a boolean`)
+					}
+					if (dep.name !== undefined && typeof dep.name !== 'string') {
+						errors.push(`/dependencies/${index}/name must be a string`)
+					}
+				} else {
+					errors.push(`/dependencies/${index} must be a string or a { id, required?, name? } object`)
 				}
 			})
 		}

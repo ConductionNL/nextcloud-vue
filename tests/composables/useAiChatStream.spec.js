@@ -29,14 +29,16 @@ jest.mock('@nextcloud/axios', () => ({
 }))
 
 const { fetchEventSource } = require('@microsoft/fetch-event-source')
+// eslint-disable-next-line n/no-missing-require -- ESM-only package; jest resolves it via moduleNameMapper (tests/__mocks__/nextcloud-axios.js)
 const axios = require('@nextcloud/axios').default
 const { useAiChatStream } = require('../../src/composables/useAiChatStream.js')
 
 /**
  * Helper: simulate SSE by capturing the onmessage callback from fetchEventSource
  * and replaying events through it.
+ * @param {Array<object>} events - SSE frames ({ event, data }) to replay through onmessage
  */
-function setupSse(events, rejectWithError) {
+function setupSse(events) {
 	fetchEventSource.mockImplementation((_url, options) => {
 		return new Promise((resolve, reject) => {
 			// Simulate successful open
@@ -143,27 +145,6 @@ describe('useAiChatStream', () => {
 	})
 
 	it('falls back to /api/chat/send when streaming endpoint returns 404', async () => {
-		// Simulate 404 response from SSE endpoint
-		fetchEventSource.mockImplementation((_url, options) => {
-			return new Promise((resolve, reject) => {
-				const fakeOpen = async () => {
-					// onopen throws with isFallback when status is 404
-					const err = Object.assign(new Error('streaming_unavailable'), {
-						isFallback: true,
-						status: 404,
-					})
-					throw err
-				}
-				if (options.onopen) {
-					options.onopen({ ok: false, status: 404 }).catch(reject)
-					resolve()
-				}
-			}).catch((err) => {
-				if (err && err.isFallback) return
-				throw err
-			})
-		})
-
 		// Mock the 404 from onopen by using the real error path
 		fetchEventSource.mockImplementation((_url, options) => {
 			const fakeResponse = { ok: false, status: 404 }
@@ -197,9 +178,8 @@ describe('useAiChatStream', () => {
 
 	it('abort() cancels the stream and rejects the Promise', async () => {
 		// Simulate a long-running stream that won't resolve on its own
-		let capturedAbort
 		fetchEventSource.mockImplementation((_url, options) => {
-			return new Promise((resolve, reject) => {
+			return new Promise(() => {
 				if (options.onopen) {
 					options.onopen({ ok: true, status: 200 }).then(() => {
 						// Emit a few tokens but don't send final
@@ -220,6 +200,123 @@ describe('useAiChatStream', () => {
 
 		await expect(sendPromise).rejects.toMatchObject({ code: 'cancelled' })
 		expect(stream.state.isStreaming).toBe(false)
+	})
+
+	it('loadConversation() fetches conversation#messages and maps OR fields onto the local message shape', async () => {
+		// Shape returned by OR's ConversationController::messages()
+		// (Message::jsonSerialize(): id/uuid/conversationId/role/content/sources/context/created)
+		axios.get.mockResolvedValue({
+			data: {
+				results: [
+					{
+						id: 1,
+						uuid: 'msg-1',
+						conversationId: 5,
+						role: 'user',
+						content: 'Hi there',
+						sources: null,
+						context: null,
+						created: '2026-07-05T10:00:00+00:00',
+					},
+					{
+						id: 2,
+						uuid: 'msg-2',
+						conversationId: 5,
+						role: 'assistant',
+						content: 'Hello! How can I help?',
+						sources: [],
+						context: null,
+						created: '2026-07-05T10:00:05+00:00',
+					},
+				],
+				total: 2,
+				limit: 200,
+				offset: 0,
+			},
+		})
+
+		const stream = useAiChatStream(null)
+		// Simulate a pending new-thread flag — resuming must clear it
+		stream.startNewThread()
+		await stream.loadConversation('conv-123')
+
+		expect(axios.get).toHaveBeenCalledWith(
+			expect.stringContaining('/api/conversations/conv-123/messages'),
+			expect.objectContaining({ params: expect.objectContaining({ limit: expect.any(Number) }) }),
+		)
+		expect(stream.state.messages).toEqual([
+			{ role: 'user', content: 'Hi there', toolCalls: [] },
+			{ role: 'assistant', content: 'Hello! How can I help?', toolCalls: [] },
+		])
+		expect(stream.state._newThread).toBe(false)
+	})
+
+	it('loadConversation() degrades safely when the request fails', async () => {
+		axios.get.mockRejectedValue(new Error('Network error'))
+
+		const stream = useAiChatStream(null)
+		stream.state.messages = [{ role: 'user', content: 'Existing', toolCalls: [] }]
+
+		await expect(stream.loadConversation('conv-404')).resolves.toBeUndefined()
+		// Existing thread is left intact — no crash, no wipe
+		expect(stream.state.messages).toEqual([{ role: 'user', content: 'Existing', toolCalls: [] }])
+	})
+
+	// --- chatAppId parameterization (chat-appid-flip, default flipped to
+	// hermiq by chat-appid-default-flip) -------------------------------------
+
+	it('streams against the default backend app id (hermiq) when no chatAppId is given', async () => {
+		setupSse([FINAL_EVENT])
+
+		const stream = useAiChatStream(null)
+		await stream.send('Hi')
+
+		expect(fetchEventSource.mock.calls[0][0]).toBe('/index.php/apps/hermiq/api/chat/stream')
+	})
+
+	it('streams against an overridden chatAppId (openregister compat window)', async () => {
+		setupSse([FINAL_EVENT])
+
+		const stream = useAiChatStream(null, { chatAppId: 'openregister' })
+		await stream.send('Hi')
+
+		expect(fetchEventSource.mock.calls[0][0]).toBe('/index.php/apps/openregister/api/chat/stream')
+	})
+
+	it('non-streaming fallback posts to the send URL of the overridden chatAppId', async () => {
+		fetchEventSource.mockImplementation((_url, options) => {
+			const fakeResponse = { ok: false, status: 404 }
+			return (async () => {
+				if (options.onopen) await options.onopen(fakeResponse)
+			})()
+		})
+		axios.post.mockResolvedValue({ data: { content: 'Fallback', role: 'assistant' }, status: 200 })
+
+		const stream = useAiChatStream(null, { chatAppId: 'openregister' })
+		await stream.send('Hi')
+
+		expect(axios.post).toHaveBeenCalledWith(
+			'/index.php/apps/openregister/api/chat/send',
+			expect.objectContaining({ content: 'Hi' }),
+		)
+	})
+
+	it('loadConversation resolves the messages URL against the chatAppId (default + override)', async () => {
+		axios.get.mockResolvedValue({ data: { results: [] } })
+
+		const defaultStream = useAiChatStream(null)
+		await defaultStream.loadConversation('conv-1')
+		expect(axios.get).toHaveBeenLastCalledWith(
+			'/index.php/apps/hermiq/api/conversations/conv-1/messages',
+			expect.objectContaining({ params: expect.objectContaining({ limit: expect.any(Number) }) }),
+		)
+
+		const orStream = useAiChatStream(null, { chatAppId: 'openregister' })
+		await orStream.loadConversation('conv-2')
+		expect(axios.get).toHaveBeenLastCalledWith(
+			'/index.php/apps/openregister/api/conversations/conv-2/messages',
+			expect.objectContaining({ params: expect.objectContaining({ limit: expect.any(Number) }) }),
+		)
 	})
 
 	it('outgoing request body contains current cnAiContext snapshot', async () => {
@@ -247,5 +344,28 @@ describe('useAiChatStream', () => {
 			pageKind: 'detail',
 			objectUuid: 'abc-123',
 		})
+	})
+
+	it('outgoing request body carries attachments when send() is called with some', async () => {
+		setupSse([FINAL_EVENT])
+
+		const stream = useAiChatStream(null)
+		const attachments = [{ path: '/uploads/foo.txt', name: 'foo.txt' }]
+		await stream.send('Hi', { attachments })
+
+		const callArgs = fetchEventSource.mock.calls[0]
+		const body = JSON.parse(callArgs[1].body)
+		expect(body.attachments).toEqual(attachments)
+	})
+
+	it('outgoing request body omits the attachments key entirely when none are passed', async () => {
+		setupSse([FINAL_EVENT])
+
+		const stream = useAiChatStream(null)
+		await stream.send('Hi')
+
+		const callArgs = fetchEventSource.mock.calls[0]
+		const body = JSON.parse(callArgs[1].body)
+		expect(body).not.toHaveProperty('attachments')
 	})
 })

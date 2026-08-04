@@ -1,6 +1,17 @@
 // CSS — auto-imported so consumers get styles with components
 import './css/index.css'
 
+// Dashboard widget catalog — bare side-effect import so the widget types
+// self-register whenever this barrel is imported. This MUST live in the barrel
+// itself (which is always included when a consumer imports anything from it):
+// the equivalent import in components/index.js is dropped by `sideEffects`
+// tree-shaking (ADR-061) when a consumer's used symbols never reach that
+// sub-barrel, which collapses the Add-Widget picker to only the few types the
+// consumer imports directly. The aggregator IS `sideEffects`-listed, so a bare
+// import of it here is retained. Consumers on a bundler that still strips it can
+// additionally call `registerBuiltinDashboardWidgets()` at bootstrap.
+import './components/CnWidgetGrid/registerDashboardWidgets.js'
+
 // Re-export every Nc* component from @nextcloud/vue so consumer apps
 // can import all Nextcloud-Vue + Conduction components from a single
 // barrel, per ADR-004: "NEVER import from @nextcloud/vue directly —
@@ -36,6 +47,11 @@ export {
 	CnCellRenderer,
 	CnObjectCard,
 	CnCardGrid,
+	CnObjectRow,
+	CnObjectList,
+	CnFolderTree,
+	CnFolderSidebar,
+	fetchWebdavFolderTree,
 	CnFacetSidebar,
 	CnFederationStatus,
 	CnRowActions,
@@ -68,6 +84,7 @@ export {
 	CnRegisterSchemaSelect,
 	CnThemePreview,
 	CnRelationshipGraph,
+	CnGraphCanvas,
 	CnDashboardPage,
 	CnDashboardGrid,
 	CnWidgetWrapper,
@@ -82,7 +99,10 @@ export {
 	CnTimelineView,
 	CnItemCard,
 	CnSchemaFormDialog,
+	CnSavedViewsControl,
+	CnSaveViewDialog,
 	CnSearchPage,
+	CnCommandPalette,
 	CnTabbedFormDialog,
 	CnTimelineStages,
 	CnTreeView,
@@ -91,8 +111,10 @@ export {
 	CnTasksCard,
 	CnFilesCard,
 	CnFileManager,
+	CnRelatedFiles,
 	CnTagsCard,
 	CnAuditTrailCard,
+	CnVersionHistory,
 	CnEmailCard,
 	CnEmailTab,
 	CnContactsCard,
@@ -137,6 +159,7 @@ export {
 	CnTableWidget,
 	CnActionsBar,
 	CnActionsMenu,
+	CnActionButtons,
 	CnOpenBuildEditButton,
 	CnEditMenuModal,
 	CnEditPagesModal,
@@ -157,6 +180,8 @@ export {
 	CnObjectMetadataWidget,
 	CnObjectMetadataModal,
 	CnRelatedObjectsWidget,
+	CnObjectGeoWidget,
+	CnMapWidget,
 	CnLogsPage,
 	CnSettingsPage,
 	CnChatPage,
@@ -179,6 +204,7 @@ export {
 	CnSuggestFeatureModal,
 	CnSupportDialog,
 	CnNotificationPreferences,
+	CnCredentials,
 	CnDeckCardPicker,
 	CnDeckCardCreate,
 	registerIcons,
@@ -226,8 +252,20 @@ export {
 } from './components/index.js'
 
 // AI Chat Companion component family
-export { CnAiCompanion, CnAiFloatingButton, CnAiChatPanel, CnAiMessageList, CnAiInput } from './components/CnAiCompanion/index.js'
+export {
+	CnAiCompanion,
+	CnAiFloatingButton,
+	CnAiChatPanel,
+	CnAiMessageList,
+	CnAiInput,
+	CnAiAgentPicker,
+	CnAiRecentSessions,
+	CnAiHistoryList,
+} from './components/CnAiCompanion/index.js'
 export { default as CnAiHistoryDialog } from './dialogs/CnAiHistoryDialog.vue'
+
+// Generic dialogs (NcDialog-based, one file per dialog — modal-isolation rule)
+export { default as CnConfirmDialog } from './dialogs/CnConfirmDialog.vue'
 
 // Store
 export { useObjectStore, createObjectStore } from './store/index.js'
@@ -252,7 +290,15 @@ export {
 
 // Composables
 export { useAiContext, useAiChatStream } from './composables/index.js'
-export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, clearContextMenuPositionDom, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, useAppManifest, useAppStatus, useSetupStatus, useWalkthrough, useGraphQL, useDataSource, selectByPath, buildCountQuery, buildBucketQuery, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest, useSupportDialog, useClickDragGuard, useTenantContext, provideTenantContext, createTenantContext, TENANT_CONTEXT_KEY, useManifestEditor, useOpenBuildEditAvailability } from './composables/index.js'
+// AI Chat Companion backend config (single point for the chat backend app id)
+export { DEFAULT_CHAT_APP_ID, chatApiBase, chatStreamUrl, chatSendUrl, chatHealthUrl, conversationsUrl, conversationMessagesUrl } from './composables/index.js'
+export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, clearContextMenuPositionDom, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, useAppManifest, useAppStatus, useAppInstaller, useSetupStatus, useWalkthrough, useGraphQL, useDataSource, selectByPath, buildCountQuery, buildBucketQuery, useBrokeredCall, useEndpointSource, fetchEndpointSource, invalidateEndpointSourceCache, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest, useSupportDialog, useClickDragGuard, useTenantContext, provideTenantContext, createTenantContext, TENANT_CONTEXT_KEY, useManifestEditor, useOpenBuildEditAvailability, useManifestEditHistory, useCommandPalette } from './composables/index.js'
+
+// Command palette — the "objects" source adapter (see docs/utilities/create-object-search-source.md).
+// `resolveManifestDetailRoute` is intentionally subpath-only (not re-exported here), same
+// precedent as the NL-government icon sets below — import it directly from
+// '@conduction/nextcloud-vue/src/utils/commandPaletteObjectSource.js' when you need it.
+export { createObjectSearchSource } from './utils/commandPaletteObjectSource.js'
 
 // Integration registry (pluggable integrations — sidebar tabs and widgets)
 export { integrations, createIntegrationRegistry, installIntegrationRegistry, registerIntegration, getSharedRegistry, sharedRegistryIfInstalled, VALID_SURFACES, builtinIntegrations, registerBuiltinIntegrations, leafIntegrations, registerLeafIntegrations, talkIntegration, fieldInspectionIntegration, registerIntegrationIcons, INTEGRATION_ICON_COMPONENTS } from './integrations/index.js'
@@ -278,19 +324,56 @@ export { ROADMAP_LABEL_BLOCKLIST } from './utils/roadmapLabelBlocklist.js'
 export { registerTranslations } from './l10n/index.js'
 
 // Utilities
-export { buildHeaders, buildQueryString, parseResponseError, networkError, genericError } from './utils/index.js'
+export { buildHeaders, buildQueryString, parseResponseError, parseAxiosError, networkError, genericError } from './utils/index.js'
 export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema, validateValue } from './utils/index.js'
+// The OpenRegister schema API contract — shared so OpenBuild and OpenRegister cannot
+// drift on what a 409 means (breaking change / schema still has objects).
+export { saveSchema, deleteSchema, describeSchemaChange, SchemaBreakingChangeError, SchemaHasObjectsError } from './utils/index.js'
 export { validateManifest, validateManifestV2 } from './utils/validateManifest.js'
 export { resolveManifestSentinels, clearResolveCache } from './utils/resolveManifestSentinels.js'
 export { resolveRouteSentinels, clearRouteSentinelWarnings } from './utils/resolveRouteSentinels.js'
+export {
+	SENTINEL_TOKEN_PATTERNS,
+	SENTINEL_CONTEXTS,
+	SENTINEL_VOCABULARY,
+	SENTINEL_DEPRECATIONS,
+	looksLikeSentinel,
+	contextOf,
+	isKnownToken,
+	matchDeprecation,
+	classifyToken,
+	scanManifestTokens,
+} from './utils/sentinelTokens.js'
+export {
+	SENTINEL_RESOLVERS,
+	resolveManifestSubtree,
+	warnIfDeprecated,
+	clearDeprecationWarnings,
+} from './utils/resolveManifestTokens.js'
 export { filterWidgetsByVisibility, isWidgetVisible, getCurrentUserId, getCurrentUserGroups, resetVisibilityCache } from './utils/index.js'
 export { safeHref, safeImageSrc, safeSvgPath } from './utils/index.js'
 export { dispatchAction } from './utils/actionsDispatcher.js'
 export { placeNewWidget, getDashboardColumnOpts } from './utils/dashboardPlacement.js'
 export { DASHBOARD_ICONS, DEFAULT_ICON, getIconComponent, isCustomIconUrl } from './components/CnIconPicker/index.js'
+// NB: the NL-government icon sets are deliberately NOT re-exported here.
+//
+// `NL_DESIGN_ICONS` / `NL_DESIGN_ICON_GROUPS` / `rvoIcons` all reference RVO,
+// whose 1164 icons are ~1.9MB of inlined data URIs. Re-exporting them from the
+// barrel put that on the eager path of every consumer that imports ANYTHING from
+// this package, and left it to each app's tree-shaking to prove the export was
+// unused — which openbuild and pipelinq managed but LaunchPad did not, silently
+// shipping the whole pack in its entry bundle.
+//
+// CnIconBrowser offers the sets by default (Gemeente + Den Haag eagerly at
+// ~405KB; RVO behind an `import()`), so consumers need nothing. Anyone who
+// genuinely wants the eager pack imports it by subpath:
+//     import { NL_DESIGN_ICON_GROUPS } from '@conduction/nextcloud-vue/src/icons/index.js'
+export { fromMdiJs, fromFontAwesome, fromOpenGemeenten, dedupeCatalogue } from './components/CnIconPicker/index.js'
 export { mergeManifestDelta } from './utils/mergeManifestDelta.js'
 export { buildManifest, applyMenuLayout, mergeMenuItems, mergePages, applyMenuRelocations, applyMenuRemovals, applySettingsSection } from './utils/buildManifest.js'
+export { expandPageTemplates } from './utils/expandPageTemplates.js'
 export { diffManifest } from './utils/diffManifest.js'
+export { createManifestEditHistory } from './utils/manifestEditHistory.js'
 export { resolveSlotColumns } from './utils/resolveSlotColumns.js'
 // Dashboard widget library (cn-widget-library) — registry helpers + form composable.
 export { dashboardWidgetRegistry, registerDashboardWidget, listWidgetTypes, getWidgetTypeEntry, getDefaultContent } from './components/CnWidgetGrid/dashboardWidgetRegistry.js'
