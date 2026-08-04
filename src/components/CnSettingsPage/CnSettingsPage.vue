@@ -32,17 +32,22 @@
 -->
 <template>
 	<div class="cn-settings-page" data-testid="cn-settings-page">
-		<!-- Header — overridable via #header slot -->
+		<!-- Header — overridable via #header slot. CnPageHeader renders whenever
+		     there is a title: `visuallyHidden` keeps the <h1> in the
+		     accessibility tree (and out of the visual layout) when showTitle is
+		     false, so <main> is never left with no heading at all
+		     (WCAG 2.4.6 / 1.3.1). -->
 		<slot
 			name="header"
 			:title="title"
 			:description="description"
 			:icon="icon">
 			<CnPageHeader
-				v-if="showTitle && title"
+				v-if="title"
 				:title="title"
 				:description="description"
-				:icon="icon" />
+				:icon="icon"
+				:visually-hidden="!showTitle" />
 		</slot>
 
 		<!-- Actions slot for save / discard / reset overrides -->
@@ -355,7 +360,11 @@ export default {
 			type: String,
 			default: '',
 		},
-		/** Whether to render the inline page header. */
+		/**
+		 * Whether to render the inline page header VISIBLY. When false the
+		 * `<h1>` is still rendered visually-hidden, so the `<main>` landmark
+		 * always has an accessible heading (WCAG 2.4.6 / 1.3.1).
+		 */
 		showTitle: {
 			type: Boolean,
 			default: false,

@@ -16,7 +16,7 @@ Mounted automatically by `CnPageRenderer` when a manifest page declares `type: "
 |------|------|---------|-------------|
 | `title` | String | `'Conversation'` | Page title |
 | `description` | String | `''` | Subtitle shown under the title when `showTitle` is set |
-| `showTitle` | Boolean | `false` | Whether to render the inline `CnPageHeader` |
+| `showTitle` | Boolean | `false` | Whether to render the inline `CnPageHeader` **visibly**. When `false` the `<h1>` is still rendered visually-hidden, so `<main>` always has an accessible heading (WCAG 2.4.6 / 1.3.1) |
 | `icon` | String | `''` | MDI icon name |
 | `conversationSource` | String | `''` | URL of the embedded conversation (NC Talk embed by default) |
 | `postUrl` | String | `''` | Custom thread-API endpoint, used by consumers building their own chat UI via the `#conversation` slot |

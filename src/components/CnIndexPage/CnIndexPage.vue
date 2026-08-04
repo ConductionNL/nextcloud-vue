@@ -1,7 +1,13 @@
 <template>
 	<div class="cn-index-page" data-testid="cn-index-page">
-		<!-- Header — overridable via #header slot. Default renders CnPageHeader
-		     when showTitle is true (existing behaviour, hidden by default). -->
+		<!-- Header — overridable via #header slot. CnPageHeader ALWAYS renders:
+		     with showTitle it is the full visual header (icon, title,
+		     description); without it, `visuallyHidden` clips everything but the
+		     <h1> out of the layout. The page therefore looks identical either
+		     way, but the <main> landmark always carries a heading — the sidebar
+		     title this component used to rely on lives outside <main>, so
+		     screen-reader users and "skip to main content" got an unlabelled
+		     region (WCAG 2.4.6 / 1.3.1). -->
 		<slot
 			name="header"
 			:title="title"
@@ -9,10 +15,10 @@
 			:icon="resolvedIcon"
 			:show-title="showTitle">
 			<CnPageHeader
-				v-if="showTitle"
 				:title="title"
 				:description="description"
-				:icon="resolvedIcon" />
+				:icon="resolvedIcon"
+				:visually-hidden="!showTitle" />
 		</slot>
 
 		<!-- Optional content below header, above actions bar -->
@@ -816,7 +822,11 @@ export default {
 
 		/**
 		 * Whether to show the page header (icon, title, description) inline.
-		 * When false (default), the title is shown in the sidebar header instead.
+		 * When false (default), only the sidebar header shows the title
+		 * visually — but the `<h1>` is still rendered visually-hidden inside
+		 * the page, so the `<main>` landmark always has an accessible heading.
+		 * This prop controls VISIBILITY only; it can no longer remove the
+		 * heading from the accessibility tree.
 		 */
 		showTitle: {
 			type: Boolean,
