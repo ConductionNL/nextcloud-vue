@@ -219,6 +219,12 @@ export default {
 			 * @type {boolean}
 			 */
 			this.$emit('update:open', val)
+
+			if (val) {
+				this.startOutsideWatch()
+			} else {
+				this.stopOutsideWatch()
+			}
 		},
 	},
 
@@ -266,9 +272,85 @@ export default {
 		if (ncPopover) {
 			ncPopover.checkTriggerA11y = () => {}
 		}
+
+		// Mounting with `open` already true never trips the watcher.
+		if (this.internalOpen) {
+			this.startOutsideWatch()
+		}
+	},
+
+	beforeUnmount() {
+		this.stopOutsideWatch()
 	},
 
 	methods: {
+		/**
+		 * Start watching for a press outside the menu. Driven from both the
+		 * `internalOpen` watcher and `mounted()`, because a consumer may mount
+		 * with `open` already true — in which case there is no state transition
+		 * for the watcher to see.
+		 *
+		 * @return {void}
+		 */
+		startOutsideWatch() {
+			// nextTick: the contextmenu/click that opened the menu is still
+			// propagating and would dismiss it again on the same gesture.
+			this.$nextTick(() => {
+				if (this.internalOpen) {
+					document.addEventListener('mousedown', this.onDocumentMouseDown)
+				}
+			})
+		},
+
+		/**
+		 * Stop watching for outside presses.
+		 *
+		 * @return {void}
+		 */
+		stopOutsideWatch() {
+			document.removeEventListener('mousedown', this.onDocumentMouseDown)
+		},
+
+		/**
+		 * Close the menu when the press lands outside it.
+		 *
+		 * NcActions has to run in `manual-open` mode here (the menu is opened
+		 * from a right-click via the `open` prop, not by activating the trigger
+		 * button). @nextcloud/vue 9 couples that mode to
+		 * `noCloseOnClickOutside: this.manualOpen`, and NcPopover derives
+		 * `autoHide: !noCloseOnClickOutside && closeOnClickOutside` — so the
+		 * popper's own outside-click dismissal is switched off and nothing else
+		 * closes the menu. v8 only cleared the popper's open `triggers`, leaving
+		 * autoHide intact, which is why dismissing worked before the Vue 3
+		 * upgrade. NcActions spreads no `$attrs` onto NcPopover, so the prop
+		 * cannot be overridden from outside — hence handling it here.
+		 *
+		 * @param {MouseEvent} event The document mousedown.
+		 * @return {void}
+		 */
+		onDocumentMouseDown(event) {
+			if (!this.internalOpen || this.isInsideMenu(event.target)) return
+			this.onClose()
+		},
+
+		/**
+		 * Whether a node sits inside the menu's own surface — the custom panel,
+		 * or the popper NcActions teleports to `container="body"` (so it is not
+		 * inside `this.$el` and `contains()` on the root would miss it).
+		 *
+		 * @param {EventTarget} target The event target to test.
+		 * @return {boolean} True when the target belongs to this menu.
+		 */
+		isInsideMenu(target) {
+			if (!(target instanceof Node)) return false
+			if (this.$refs.panel?.contains(target)) return true
+			const content = this.$refs.actions?.$refs?.popover?.getPopoverContentElement?.()
+			if (content?.contains(target)) return true
+			// Fallback for when the popover ref chain is unavailable —
+			// `action-item__popper` is the base class NcActions gives its popper.
+			return target instanceof Element && !!target.closest('.action-item__popper')
+		},
+
 		resolveDisabled(action) {
 			if (typeof action.disabled === 'function') {
 				return action.disabled(this.targetItem)

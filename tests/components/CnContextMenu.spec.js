@@ -133,3 +133,103 @@ describe('CnContextMenu panels API', () => {
 		expect(wrapper.emitted('update:open')[0]).toEqual([false])
 	})
 })
+
+describe('CnContextMenu outside-click dismissal', () => {
+	// Regression: @nextcloud/vue 9's NcActions sets
+	// `noCloseOnClickOutside: this.manualOpen`, which zeroes NcPopover's own
+	// autoHide. v8 only cleared the popper's `triggers`, so pressing off the
+	// menu stopped closing it in the Vue 3 upgrade.
+	const mountOpen = () => mount(CnContextMenu, {
+		propsData: { open: true, actions: [{ label: 'Edit' }] },
+		attachTo: document.body,
+	})
+
+	const pressOn = async (wrapper, node) => {
+		node.dispatchEvent(new window.MouseEvent('mousedown', { bubbles: true }))
+		await wrapper.vm.$nextTick()
+	}
+
+	it('closes when the press lands outside the menu', async () => {
+		const wrapper = mountOpen()
+		await wrapper.vm.$nextTick()
+
+		const outside = document.createElement('div')
+		document.body.appendChild(outside)
+		await pressOn(wrapper, outside)
+
+		expect(wrapper.vm.internalOpen).toBe(false)
+		expect(wrapper.emitted('close')).toBeTruthy()
+		expect(wrapper.emitted('update:open').at(-1)).toEqual([false])
+
+		outside.remove()
+		wrapper.unmount()
+	})
+
+	it('stays open for a press inside the popper NcActions teleports to body', async () => {
+		const wrapper = mountOpen()
+		await wrapper.vm.$nextTick()
+
+		// The popper is not inside the component root, so containment has to be
+		// resolved against the teleported element, not `$el`.
+		const popper = document.createElement('div')
+		popper.className = 'action-item__popper'
+		document.body.appendChild(popper)
+		await pressOn(wrapper, popper)
+
+		expect(wrapper.vm.internalOpen).toBe(true)
+		expect(wrapper.emitted('close')).toBeFalsy()
+
+		popper.remove()
+		wrapper.unmount()
+	})
+
+	it('stays open for a press inside a custom panel', async () => {
+		const wrapper = mount(CnContextMenu, {
+			propsData: { open: true, activePanel: 'filters' },
+			slots: { 'panel:filters': '<div class="inner-panel-content">x</div>' },
+			attachTo: document.body,
+		})
+		await wrapper.vm.$nextTick()
+
+		await pressOn(wrapper, wrapper.find('.inner-panel-content').element)
+
+		expect(wrapper.vm.internalOpen).toBe(true)
+		expect(wrapper.emitted('close')).toBeFalsy()
+		wrapper.unmount()
+	})
+
+	it('does not dismiss on the same gesture that opened it', async () => {
+		// The listener is attached on nextTick precisely so the contextmenu /
+		// click still propagating does not close the menu it just opened.
+		const wrapper = mount(CnContextMenu, {
+			propsData: { open: false, actions: [{ label: 'Edit' }] },
+			attachTo: document.body,
+		})
+		await wrapper.setProps({ open: true })
+
+		const outside = document.createElement('div')
+		document.body.appendChild(outside)
+		outside.dispatchEvent(new window.MouseEvent('mousedown', { bubbles: true }))
+
+		expect(wrapper.vm.internalOpen).toBe(true)
+
+		outside.remove()
+		wrapper.unmount()
+	})
+
+	it('detaches the document listener once closed', async () => {
+		const wrapper = mountOpen()
+		await wrapper.vm.$nextTick()
+		await wrapper.setProps({ open: false })
+		await wrapper.vm.$nextTick()
+
+		const spy = jest.spyOn(wrapper.vm, 'onClose')
+		const outside = document.createElement('div')
+		document.body.appendChild(outside)
+		await pressOn(wrapper, outside)
+
+		expect(spy).not.toHaveBeenCalled()
+		outside.remove()
+		wrapper.unmount()
+	})
+})
