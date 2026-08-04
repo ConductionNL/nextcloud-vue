@@ -64,6 +64,7 @@ export {
 	CnMassActionBar,
 	CnDeleteDialog,
 	CnCopyDialog,
+	CnFieldHelper,
 	CnFormDialog,
 	CnFormBuilder,
 	CnAdvancedFormDialog,
