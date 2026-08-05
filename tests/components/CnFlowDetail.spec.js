@@ -154,4 +154,52 @@ describe('CnFlowDetail', () => {
 			expect(d).toContain('Q')
 		})
 	})
+
+	describe('following the route', () => {
+		/**
+		 * THE DEFECT: the canvas kept the previous flow, and so did the store.
+		 *
+		 * Vue reuses this instance when only the route PARAM changes, so
+		 * `mounted` does not fire again. Without a watcher the store still held
+		 * the flow the user had open — including its id — while the route said
+		 * a different one. `save()` picks PUT over POST from `flow.id`, so
+		 * Save on what looked like a blank "new flow" issued a PUT against the
+		 * previous flow and overwrote it.
+		 */
+		it('reloads when the route names a different flow', async () => {
+			const { wrapper, store } = await mountDetail()
+			const load = jest.spyOn(store, 'load').mockResolvedValue(undefined)
+
+			await wrapper.setProps({ id: 'flow-b' })
+			await wrapper.vm.$nextTick()
+
+			expect(load).toHaveBeenCalledWith(
+				expect.objectContaining({ id: 'flow-b' }),
+			)
+		})
+
+		it('reloads when leaving a saved flow for a blank one', async () => {
+			const { wrapper, store } = await mountDetail()
+			const load = jest.spyOn(store, 'load').mockResolvedValue(undefined)
+
+			await wrapper.setProps({ id: 'new' })
+			await wrapper.vm.$nextTick()
+
+			expect(load).toHaveBeenCalledWith(
+				expect.objectContaining({ id: 'new' }),
+			)
+		})
+
+		it('does not reload when the id is set to what it already was', async () => {
+			const { wrapper, store } = await mountDetail()
+			await wrapper.setProps({ id: 'flow-a' })
+			await wrapper.vm.$nextTick()
+
+			const load = jest.spyOn(store, 'load').mockResolvedValue(undefined)
+			await wrapper.setProps({ id: 'flow-a' })
+			await wrapper.vm.$nextTick()
+
+			expect(load).not.toHaveBeenCalled()
+		})
+	})
 })

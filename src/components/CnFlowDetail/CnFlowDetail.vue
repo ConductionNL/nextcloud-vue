@@ -136,6 +136,45 @@ export default {
 		}
 	},
 
+	watch: {
+		/**
+		 * Reload when the route names a different flow.
+		 *
+		 * `mounted` alone was not enough, and the gap was not cosmetic. Vue
+		 * reuses this component instance when only the route PARAM changes —
+		 * `/flows/:id` -> `/flows/new` and `/flows/a` -> `/flows/b` are the same
+		 * route record — so `mounted` does not fire again and the store keeps
+		 * the flow it already had.
+		 *
+		 * That left the canvas showing the previous flow AND the store still
+		 * holding its id, on a page the user believes is a different flow.
+		 * `save()` picks PUT over POST from `flow.id`, so pressing Save on what
+		 * looks like a blank "new flow" issued a PUT against the flow the user
+		 * had open a moment earlier — overwriting a real flow with a graph
+		 * meant for a new one.
+		 *
+		 * Reproduced on openregister 2026-08-05: opening "Hydra label
+		 * transition", then moving to /flows/new, left the Name field reading
+		 * "Hydra label transition" with that flow's nodes on the canvas.
+		 *
+		 * The first load stays in `mounted` rather than moving here behind
+		 * `immediate: true`: an immediate watcher fires before the component is
+		 * mounted, and this one awaits a network call whose result the canvas
+		 * renders. Guarding on `next === prev` keeps the two from racing.
+		 *
+		 * @param {string} next The incoming flow id, or 'new'.
+		 * @param {string} prev The outgoing one.
+		 * @return {Promise<void>}
+		 */
+		async id(next, prev) {
+			if (next === prev) {
+				return
+			}
+
+			await this.store.load({ app: this.app, id: next })
+		},
+	},
+
 	async mounted() {
 		await this.store.load({ app: this.app, id: this.id })
 	},
