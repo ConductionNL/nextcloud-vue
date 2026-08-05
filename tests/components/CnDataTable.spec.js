@@ -240,6 +240,26 @@ describe('CnDataTable — #footer slot', () => {
 		const wrapper = mountTable({ rows, columns: ['name'] })
 		expect(wrapper.find('.cn-data-table__footer').exists()).toBe(false)
 	})
+
+	// The sticky footer only pins if it is OUTSIDE the element that owns the
+	// horizontal scroll. `overflow-x: auto` coerces `overflow-y` to `auto`, so
+	// whichever element carries it becomes the nearest scrollport — and a
+	// footer inside that scrollport scrolls away with the rows instead of
+	// pinning to the bottom of the enclosing widget. Structure is the
+	// invariant; jsdom cannot assert the resulting layout.
+	it('keeps the footer OUTSIDE the horizontal scroll wrapper so it can stick', () => {
+		const wrapper = mount(CnDataTable, {
+			propsData: { rows, columns: ['name'] },
+			stubs: { CnCellRenderer: { props: ['value'], template: '<span class="cell">{{ value }}</span>' } },
+			scopedSlots: { footer: '<a class="my-footer">+ New thing</a>' },
+		})
+		const scroll = wrapper.find('.cn-data-table__scroll')
+		expect(scroll.exists()).toBe(true)
+		// The table IS inside the scroll wrapper; the footer is NOT.
+		expect(scroll.find('table.cn-data-table').exists()).toBe(true)
+		expect(scroll.find('.cn-data-table__footer').exists()).toBe(false)
+		expect(wrapper.find('.cn-data-table__footer').exists()).toBe(true)
+	})
 })
 
 // Column headers come from schema property titles, which are authored in

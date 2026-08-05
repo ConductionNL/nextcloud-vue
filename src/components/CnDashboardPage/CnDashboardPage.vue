@@ -135,12 +135,12 @@
 					</template>
 					<NcActionInput
 						type="datetime-local"
-						:model-value="toLocalDateTimeInput(currentRange && currentRange.from)"
+						:model-value="toPickerDate(currentRange && currentRange.from)"
 						:label="t('nextcloud-vue', 'From')"
 						@update:model-value="onChipDateInput('from', $event)" />
 					<NcActionInput
 						type="datetime-local"
-						:model-value="toLocalDateTimeInput(currentRange && currentRange.to)"
+						:model-value="toPickerDate(currentRange && currentRange.to)"
 						:label="t('nextcloud-vue', 'To')"
 						@update:model-value="onChipDateInput('to', $event)" />
 				</NcActions>
@@ -347,12 +347,12 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
-									:model-value="toLocalDateTimeInput(currentRange.from)"
+									:model-value="toPickerDate(currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
 									@update:model-value="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
-									:model-value="toLocalDateTimeInput(currentRange.to)"
+									:model-value="toPickerDate(currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
 									@update:model-value="onChipDateInput('to', $event)" />
 							</NcActions>
@@ -405,12 +405,12 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
-									:model-value="toLocalDateTimeInput(currentRange.from)"
+									:model-value="toPickerDate(currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
 									@update:model-value="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
-									:model-value="toLocalDateTimeInput(currentRange.to)"
+									:model-value="toPickerDate(currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
 									@update:model-value="onChipDateInput('to', $event)" />
 							</NcActions>
@@ -538,12 +538,12 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
-									:model-value="toLocalDateTimeInput(currentRange && currentRange.from)"
+									:model-value="toPickerDate(currentRange && currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
 									@update:model-value="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
-									:model-value="toLocalDateTimeInput(currentRange && currentRange.to)"
+									:model-value="toPickerDate(currentRange && currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
 									@update:model-value="onChipDateInput('to', $event)" />
 							</NcActions>
@@ -1853,36 +1853,44 @@ export default {
 		 * `{ from, to, preset: 'custom' }` to `onDateRangeChange`.
 		 *
 		 * @param {'from'|'to'} field The half being edited.
-		 * @param {string|Event} value Local datetime string or input Event.
+		 * @param {Date|string|Event} value Date from the picker, local
+		 *   datetime string, or a raw input Event.
 		 * @return {void}
 		 */
 		onChipDateInput(field, value) {
-			const raw = typeof value === 'string'
-				? value
-				: (value && value.target ? value.target.value : '')
 			const next = {
 				from: this.currentRange?.from || '',
 				to: this.currentRange?.to || '',
 				preset: 'custom',
 			}
-			next[field] = raw ? this.localDateTimeInputToIso(raw) : ''
+			// NcActionInput's date types are backed by a date picker that
+			// emits a Date — NOT a string and NOT an input Event. Handle the
+			// Date first; without it every manual edit fell through to '' and
+			// silently CLEARED the half being edited.
+			if (value instanceof Date) {
+				next[field] = Number.isNaN(value.getTime()) ? '' : value.toISOString()
+			} else {
+				const raw = typeof value === 'string'
+					? value
+					: (value && value.target ? value.target.value : '')
+				next[field] = raw ? this.localDateTimeInputToIso(raw) : ''
+			}
 			this.onDateRangeChange(next)
 		},
 
 		/**
-		 * Format a stored ISO-8601 string as the local "YYYY-MM-DDTHH:mm"
-		 * value an `<input type="datetime-local">` expects. Returns empty
-		 * string for null / unparseable input.
+		 * Coerce a stored ISO-8601 string into the `Date` that
+		 * `NcActionInput`'s date types require — they are backed by a date
+		 * picker whose model is typed `Date` and which renders EMPTY for a
+		 * string. Returns null for missing / unparseable input.
 		 *
 		 * @param {string} iso ISO-8601 timestamp.
-		 * @return {string} Local datetime-local input value.
+		 * @return {Date|null} Date for the picker model, or null.
 		 */
-		toLocalDateTimeInput(iso) {
-			if (!iso) return ''
+		toPickerDate(iso) {
+			if (!iso) return null
 			const d = new Date(iso)
-			if (Number.isNaN(d.getTime())) return ''
-			const pad = (n) => String(n).padStart(2, '0')
-			return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+			return Number.isNaN(d.getTime()) ? null : d
 		},
 
 		/**
@@ -2957,29 +2965,50 @@ export default {
 	display: inline-flex;
 }
 
-[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle {
-	min-width: 0;
-	min-height: 0;
-	padding: 0;
-	background: transparent;
-	border: none;
+/* The toggle is a chrome-less carrier for the pill — the pill IS the control.
+   NcButton paints its own background, ~30px box and `--border-radius-element`
+   corners on hover / focus / :active / aria-expanded; left alone that draws a
+   rounded SQUARE behind (and around) the wider, fully-rounded pill. Every
+   state is neutralised with `!important` because NcButton's own state rules
+   are more specific than a plain class selector. */
+[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle,
+[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle:hover,
+[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle:focus,
+[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle:focus-visible,
+[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle:active,
+[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle[aria-expanded="true"] {
+	min-width: 0 !important;
+	min-height: 0 !important;
+	height: auto !important;
+	padding: 0 !important;
+	background: transparent !important;
+	background-color: transparent !important;
+	border: none !important;
+	box-shadow: none !important;
+	border-radius: 999px;
 }
 
 /* The chip text lives in NcActions' icon slot, whose default toggle is sized
    for a single ~44px icon and clips/wraps wider content. Let the toggle + its
    icon wrapper grow to the chip's natural width so "Last 30 days" reads on one
-   line. */
+   line — and keep them shrink-wrapped so the pill isn't offset inside a wider
+   box (which is what pushed the chip outside its own trigger). */
 [data-testid^="cn-dashboard-page-date-chip-"] .button-vue,
 [data-testid^="cn-dashboard-page-date-chip-"] .button-vue__wrapper,
 [data-testid^="cn-dashboard-page-date-chip-"] .button-vue__icon {
 	width: auto !important;
 	min-width: 0 !important;
+	height: auto !important;
+	min-height: 0 !important;
 	overflow: visible !important;
 }
 
 .cn-dashboard-page__date-chip {
 	display: inline-flex;
 	align-items: center;
+	/* Breathing room from the widget title / header edge — the chip sits in
+	   CnWidgetWrapper's `#title-meta` slot, flush against its neighbours. */
+	margin-inline: 4px;
 	padding: 2px 10px;
 	border-radius: 999px;
 	background: var(--color-background-hover);
@@ -2988,13 +3017,26 @@ export default {
 	font-variant-numeric: tabular-nums;
 	white-space: nowrap;
 	cursor: pointer;
-	transition: background 100ms ease;
+	transition: background 100ms ease, color 100ms ease;
 }
 
 [data-testid^="cn-dashboard-page-date-chip-"]:hover .cn-dashboard-page__date-chip,
 [data-testid^="cn-dashboard-page-date-chip-"]:focus-within .cn-dashboard-page__date-chip {
 	background: var(--color-primary-element-light, var(--color-background-darker));
 	color: var(--color-main-text);
+}
+
+/* Open state: the pill itself goes primary. The active affordance is the
+   pill's own colour — never a separate box painted behind it. */
+[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle[aria-expanded="true"] .cn-dashboard-page__date-chip {
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+}
+
+/* Keyboard focus needs a visible ring now that the button chrome is gone. */
+[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle:focus-visible .cn-dashboard-page__date-chip {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
 }
 
 /* Empty span keeping preset NcActionButtons' labels aligned with the row that
