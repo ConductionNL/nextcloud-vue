@@ -52,7 +52,7 @@ describe('CnMapsTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No locations linked yet')
 		expect(wrapper.text()).toContain('Open Locations')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders one row per POI with name + category + coords', async () => {
@@ -97,7 +97,7 @@ describe('CnMapsTab', () => {
 		expect(link.exists()).toBe(true)
 		expect(link.attributes('href')).toBe('/index.php/apps/maps/?point=52.36844,4.88379')
 		expect(link.text()).toContain('Open on map')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('strips the [or:{uuid}] marker from a name-as-title fallback', async () => {
@@ -117,7 +117,7 @@ describe('CnMapsTab', () => {
 		expect(titleEl.exists()).toBe(true)
 		expect(titleEl.text()).toBe('Field office')
 		expect(titleEl.text()).not.toContain('[or:')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('strips a bare or:{uuid} marker from the category field and suppresses the chip', async () => {
@@ -154,7 +154,7 @@ describe('CnMapsTab', () => {
 		expect(wrapper.text()).not.toContain('3c33eefc2e88')
 		// Chip should NOT render when category is marker-only.
 		expect(wrapper.find('.cn-maps-tab__category').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the unavailable banner when the provider returns 503', async () => {
@@ -164,7 +164,7 @@ describe('CnMapsTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Location is currently unavailable.')
 		expect(wrapper.find('.cn-maps-tab__row').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the generic error label when fetch throws', async () => {
@@ -174,7 +174,7 @@ describe('CnMapsTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Could not load locations.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 })

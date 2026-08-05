@@ -46,7 +46,7 @@ describe('CnPhotosCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No albums linked yet')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a count headline and total photo count on the user-dashboard surface', async () => {
@@ -69,7 +69,7 @@ describe('CnPhotosCard', () => {
 		expect(txt).toContain('19 photos')
 		// First album shows
 		expect(txt).toContain('Alpha')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders the compact 2-column grid with view-all trail-off on the detail-page surface', async () => {
@@ -93,7 +93,7 @@ describe('CnPhotosCard', () => {
 		// COMPACT_LIMIT = 4
 		expect(tiles).toHaveLength(4)
 		expect(wrapper.find('.cn-photos-card__view-all').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a cover-thumbnail chip on the single-entity surface', async () => {
@@ -108,7 +108,7 @@ describe('CnPhotosCard', () => {
 		const chip = wrapper.find('.cn-photos-card__chip')
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Quarterly review')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the unavailable label when the provider returns 503', async () => {
@@ -117,7 +117,7 @@ describe('CnPhotosCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Photos is currently unavailable.')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not throw when fetch fails on the detail-page surface', async () => {
@@ -127,7 +127,7 @@ describe('CnPhotosCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No albums linked yet')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 })

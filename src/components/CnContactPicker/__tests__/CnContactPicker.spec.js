@@ -5,7 +5,10 @@
  * Tests for CnContactPicker — search + select + emit `link`.
  */
 
-const { mount } = require('@vue/test-utils')
+// See CnEmailPicker.spec.js: a Vue-3 `nextTick()` no longer implies the
+// render queued by an async `mounted()` has flushed, so wait on the promise
+// queue instead of counting ticks.
+const { mount, flushPromises } = require('@vue/test-utils')
 const CnContactPicker = require('../CnContactPicker.vue').default
 
 describe('CnContactPicker', () => {
@@ -23,10 +26,9 @@ describe('CnContactPicker', () => {
 	it('renders empty content when no results are returned', async () => {
 		const wrapper = mount(CnContactPicker)
 		// Initial mounted() fetch
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.find('.stub.NcEmptyContent').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders rows for each fetched contact', async () => {
@@ -40,13 +42,12 @@ describe('CnContactPicker', () => {
 			}),
 		})
 		const wrapper = mount(CnContactPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('[data-testid="cn-contact-picker-row"]')
 		expect(rows.length).toBe(2)
 		expect(wrapper.text()).toContain('Jan de Vries')
 		expect(wrapper.text()).toContain('Lisa')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('marks a row selected when clicked', async () => {
@@ -57,13 +58,12 @@ describe('CnContactPicker', () => {
 			}),
 		})
 		const wrapper = mount(CnContactPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		await wrapper.find('[data-testid="cn-contact-picker-row"]').trigger('click')
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.selected).not.toBeNull()
 		expect(wrapper.vm.selected.contactUid).toBe('jan-uid')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('emits `link` with the selection payload on confirm', async () => {
@@ -74,8 +74,7 @@ describe('CnContactPicker', () => {
 			}),
 		})
 		const wrapper = mount(CnContactPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		wrapper.vm.select(wrapper.vm.results[0])
 		wrapper.vm.role = { value: 'applicant' }
 		wrapper.vm.confirm()
@@ -84,7 +83,7 @@ describe('CnContactPicker', () => {
 		const payload = wrapper.emitted('link')[0][0]
 		expect(payload.contactUid).toBe('jan-uid')
 		expect(payload.role).toBe('applicant')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not emit `link` when nothing is selected', async () => {
@@ -92,19 +91,18 @@ describe('CnContactPicker', () => {
 		await wrapper.vm.$nextTick()
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('debounces search input', async () => {
 		const wrapper = mount(CnContactPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const initialCalls = global.fetch.mock.calls.length
 		wrapper.vm.query = 'jan'
 		wrapper.vm.onSearch()
 		// The debounce timer is 250ms; without advancing it, fetch
 		// shouldn't have been called yet beyond the mounted() call.
 		expect(global.fetch.mock.calls.length).toBe(initialCalls)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

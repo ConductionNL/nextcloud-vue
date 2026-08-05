@@ -18,7 +18,16 @@ const CnVersionHistory = require('../../src/components/CnVersionHistory/CnVersio
 // suite (e.g. `tests/components/CnPropertyValueCell.spec.js`).
 const stubs = {
 	NcButton: { template: '<button :disabled="disabled" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>', props: ['disabled', 'variant'] },
-	NcCheckboxRadioSwitch: { template: '<input type="checkbox" class="nc-switch" :checked="checked" @change="$emit(\'update:checked\', $event.target.checked)" />', props: ['checked', 'disabled'] },
+	// Contract note: `@nextcloud/vue` 9 (Vue 3) renamed this component's
+	// `checked` prop / `update:checked` event to the standard `modelValue` /
+	// `update:modelValue` pair. A stub still speaking the v8 names binds
+	// nothing and emits an event no caller listens for, so the toggle looks
+	// wired but is dead.
+	NcCheckboxRadioSwitch: {
+		template: '<input type="checkbox" class="nc-switch" :checked="modelValue" :disabled="disabled" @change="$emit(\'update:modelValue\', $event.target.checked)" />',
+		props: ['modelValue', 'disabled'],
+		emits: ['update:modelValue'],
+	},
 }
 
 function mockFetchOnce(payload, ok = true) {
@@ -48,7 +57,7 @@ describe('CnVersionHistory — history list', () => {
 		const wrapper = mountHistory({ register: 'r1', schema: 's1', objectId: 'o1' })
 		await flush(wrapper)
 		expect(wrapper.text()).toContain('No version history yet')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders entries newest-first with version/action/user and shows load-more when total exceeds the page', async () => {
@@ -66,7 +75,7 @@ describe('CnVersionHistory — history list', () => {
 		expect(rows.at(0).text()).toContain('1.1.0')
 		expect(rows.at(0).text()).toContain('bob')
 		expect(wrapper.text()).toContain('Load more')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('fetches against the OpenRegister audit-trails endpoint with the expected pagination params', async () => {
@@ -116,7 +125,7 @@ describe('CnVersionHistory — single-entry diff', () => {
 		expect(wrapper.text()).toContain('Acme')
 		expect(wrapper.text()).toContain('Acme B.V.')
 		expect(wrapper.text()).toContain('email')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the no-changes label when the entry has no changed fields', async () => {
@@ -129,7 +138,7 @@ describe('CnVersionHistory — single-entry diff', () => {
 		await wrapper.find('.cn-version-history__row-main').trigger('click')
 		await flush(wrapper)
 		expect(wrapper.text()).toContain('No field changes to show')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('the "Show all fields" toggle reveals unchanged nested rows', async () => {
@@ -164,7 +173,7 @@ describe('CnVersionHistory — single-entry diff', () => {
 		await flush(wrapper)
 
 		expect(wrapper.text()).toContain('city')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('applies add/remove/change tint classes to nested JSON lines', async () => {
@@ -192,7 +201,7 @@ describe('CnVersionHistory — single-entry diff', () => {
 
 		expect(wrapper.find('.cn-version-history__diff-line--changed').exists()).toBe(true)
 		expect(wrapper.find('.cn-version-history__diff-line--added').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('closing the diff returns to the list', async () => {
@@ -211,7 +220,7 @@ describe('CnVersionHistory — single-entry diff', () => {
 		await flush(wrapper)
 		expect(wrapper.find('.cn-version-history__diff-table').exists()).toBe(false)
 		expect(wrapper.find('.cn-version-history__rows').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -242,7 +251,7 @@ describe('CnVersionHistory — two-entry compare', () => {
 		await flush(wrapper)
 
 		const compareButton = wrapper.findAll('button').filter((b) => b.text().includes('Compare selected')).at(0)
-		expect(compareButton.attributes('disabled')).toBeFalsy()
+		expect(compareButton.attributes('disabled')).toBeUndefined()
 		await compareButton.trigger('click')
 		await flush(wrapper)
 
@@ -251,9 +260,9 @@ describe('CnVersionHistory — two-entry compare', () => {
 		expect(wrapper.text()).toContain('published')
 		// The intermediate "review" value should not leak into the folded diff.
 		const cells = wrapper.findAll('.cn-version-history__diff-value')
-		const cellTexts = cells.wrappers.map((c) => c.text())
+		const cellTexts = cells.map((c) => c.text())
 		expect(cellTexts).not.toContain('review')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('the compare button is disabled until exactly two entries are checked', async () => {
@@ -268,12 +277,12 @@ describe('CnVersionHistory — two-entry compare', () => {
 		await flush(wrapper)
 
 		const compareButton = () => wrapper.findAll('button').filter((b) => b.text().includes('Compare selected')).at(0)
-		expect(compareButton().attributes('disabled')).toBeTruthy()
+		expect(compareButton().attributes('disabled')).toBeDefined()
 
 		const checkboxes = wrapper.findAll('.cn-version-history__row .nc-switch')
 		await checkboxes.at(0).setChecked(true)
 		await flush(wrapper)
-		expect(compareButton().attributes('disabled')).toBeTruthy()
-		wrapper.destroy()
+		expect(compareButton().attributes('disabled')).toBeDefined()
+		wrapper.unmount()
 	})
 })

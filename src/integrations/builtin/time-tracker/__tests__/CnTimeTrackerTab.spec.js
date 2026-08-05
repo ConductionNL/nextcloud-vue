@@ -71,7 +71,7 @@ describe('CnTimeTrackerTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No tracked time linked yet')
 		expect(wrapper.text()).toContain('Open TimeManager')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders each kind with its own chip + duration / billable / started-at metadata', async () => {
@@ -90,8 +90,7 @@ describe('CnTimeTrackerTab', () => {
 		expect(wrapper.find('.cn-time-tracker-tab__kind-chip--time').exists()).toBe(true)
 		// Titles are passed to NcListItem via the `name` prop (rendered as
 		// an attribute by the test-env stub), not inline text.
-		const names = wrapper.findAll('.cn-time-tracker-tab__row').wrappers
-			.map((w) => w.attributes('name'))
+		const names = wrapper.findAll('.cn-time-tracker-tab__row').map((w) => w.attributes('name'))
 		expect(names).toContain('Acme Corp')
 		expect(names).toContain('Migrate database')
 		expect(names).toContain('Morning session')
@@ -103,7 +102,7 @@ describe('CnTimeTrackerTab', () => {
 		expect(wrapper.find('.cn-time-tracker-tab__summary-value').text()).toContain('2h 30m')
 		// billable indicator
 		expect(wrapper.find('.cn-time-tracker-tab__billable').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('defaults kind to client when the provider omits the discriminator', async () => {
@@ -119,7 +118,7 @@ describe('CnTimeTrackerTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.find('.cn-time-tracker-tab__kind-chip--client').exists()).toBe(true)
 		expect(wrapper.find('.cn-time-tracker-tab__row').attributes('name')).toBe('Legacy project')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the unavailable banner when the provider returns 503', async () => {
@@ -129,7 +128,7 @@ describe('CnTimeTrackerTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC TimeManager is currently unavailable.')
 		expect(wrapper.find('.cn-time-tracker-tab__row').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the generic error label when fetch throws', async () => {
@@ -139,7 +138,7 @@ describe('CnTimeTrackerTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Could not load tracked time.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 })

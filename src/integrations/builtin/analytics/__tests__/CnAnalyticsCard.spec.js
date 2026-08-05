@@ -47,7 +47,7 @@ describe('CnAnalyticsCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No reports linked yet')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a count headline + most-recent on the user-dashboard surface', async () => {
@@ -69,7 +69,7 @@ describe('CnAnalyticsCard', () => {
 		expect(txt).toContain('3 reports')
 		// most-recent (highest modifiedAt) shows
 		expect(txt).toContain('Bravo')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a compact list with view-all trail-off on the detail-page surface', async () => {
@@ -94,7 +94,7 @@ describe('CnAnalyticsCard', () => {
 		// COMPACT_LIMIT = 5
 		expect(rows).toHaveLength(5)
 		expect(wrapper.find('.cn-analytics-card__view-all').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a chip on the single-entity surface', async () => {
@@ -109,7 +109,7 @@ describe('CnAnalyticsCard', () => {
 		const chip = wrapper.find('.cn-analytics-card__chip')
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Status report')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the unavailable label when the provider returns 503', async () => {
@@ -118,7 +118,7 @@ describe('CnAnalyticsCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Analytics is currently unavailable.')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not throw when fetch fails on the detail-page surface', async () => {
@@ -128,7 +128,7 @@ describe('CnAnalyticsCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No reports linked yet')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 })

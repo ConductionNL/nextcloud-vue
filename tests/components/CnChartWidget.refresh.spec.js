@@ -12,7 +12,8 @@
 var mockBusHandlers = {}
 var mockRefetch = jest.fn()
 
-jest.mock('vue-apexcharts', () => ({ name: 'vue-apexcharts-stub', render: (h) => h('div') }), { virtual: true })
+// Apexcharts is stubbed globally via jest.config.js moduleNameMapper; the
+// local Vue-2 `render: (h) => h('div')` mock that lived here throws under Vue 3.
 
 // Capture event-bus subscriptions so we can fire them manually. Guarded:
 // @nextcloud/auth (imported transitively via resolveFilterTokens) subscribes
@@ -81,7 +82,7 @@ describe('CnChartWidget — refresh (#6)', () => {
 	it('unsubscribes on destroy', () => {
 		const { unsubscribe } = require('@nextcloud/event-bus')
 		const wrapper = mountChart({ widgetId: 'jobs-daily' })
-		wrapper.destroy()
+		wrapper.unmount()
 		expect(unsubscribe).toHaveBeenCalledWith('cn:widget:refresh', expect.any(Function))
 	})
 })

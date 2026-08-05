@@ -28,7 +28,7 @@ describe('CnShareCreate', () => {
 		const wrapper = mountWith()
 		expect(wrapper.vm.shareType).toBe(0)
 		expect(wrapper.vm.permissions).toBe(1)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('toggles permission bits', () => {
@@ -38,7 +38,7 @@ describe('CnShareCreate', () => {
 		expect(wrapper.vm.permissions & 2).toBe(2)
 		wrapper.vm.togglePermission(1, false) // remove Read
 		expect(wrapper.vm.hasPermission(1)).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('blocks submit when no file is selected', () => {
@@ -47,7 +47,7 @@ describe('CnShareCreate', () => {
 		expect(wrapper.vm.canSubmit).toBe(false)
 		wrapper.vm.submit()
 		expect(wrapper.emitted('create')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('requires a principal for a user share', () => {
@@ -56,7 +56,7 @@ describe('CnShareCreate', () => {
 		expect(wrapper.vm.canSubmit).toBe(false)
 		wrapper.setData({ selectedPrincipal: { value: 'bob', label: 'Bob' } })
 		expect(wrapper.vm.canSubmit).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('requires a valid email for an email share', () => {
@@ -69,7 +69,7 @@ describe('CnShareCreate', () => {
 		expect(wrapper.vm.canSubmit).toBe(false)
 		wrapper.setData({ email: 'bob@example.com' })
 		expect(wrapper.vm.canSubmit).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('needs no recipient for a public link share', () => {
@@ -79,7 +79,7 @@ describe('CnShareCreate', () => {
 			shareType: 3,
 		})
 		expect(wrapper.vm.canSubmit).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('emits create with the resolved payload for a user share', () => {
@@ -96,7 +96,7 @@ describe('CnShareCreate', () => {
 		expect(payload.shareWith).toBe('bob')
 		expect(payload.permissions).toBe(1)
 		expect(payload.password).toBeNull()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('passes a password only for public/email shares', () => {
@@ -110,7 +110,7 @@ describe('CnShareCreate', () => {
 		const payload = wrapper.emitted('create')[0][0]
 		expect(payload.shareWith).toBeNull()
 		expect(payload.password).toBe('secret')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('resets recipient state when the share type changes', async () => {
@@ -120,6 +120,6 @@ describe('CnShareCreate', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.selectedPrincipal).toBeNull()
 		expect(wrapper.vm.email).toBe('')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
