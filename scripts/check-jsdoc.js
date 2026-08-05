@@ -37,9 +37,15 @@ let parse
 try {
 	parse = require(DOCGEN_API_PATH).parse
 } catch (err) {
+	// `npm ci` — NOT `npm install --legacy-peer-deps`, which this hint used to
+	// recommend and which CLAUDE.md forbids outright. The lockfile resolves
+	// cleanly and CI installs these deps with a plain `npm ci`
+	// (code-quality.yml: `frontend-setup-command: cd docusaurus && npm ci`), so
+	// the flag was never needed. A hint pointing at a banned workaround makes
+	// the gate look unrunnable, which gets it skipped rather than fixed.
 	console.error(
 		'[check-jsdoc] Failed to load vue-docgen-api from docusaurus/node_modules.\n'
-		+ '             Run `cd docusaurus && npm install --legacy-peer-deps` first.',
+		+ '             Run `cd docusaurus && npm ci` first.',
 	)
 	process.exit(2)
 }
