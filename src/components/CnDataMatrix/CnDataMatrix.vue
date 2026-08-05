@@ -153,7 +153,6 @@ export default {
 		/** Label preceding the column-totals row. */
 		columnTotalsLabel: { type: String, default: 'Total' },
 	},
-	emits: ['cell-edit'],
 	data() {
 		return {
 			editing: null, // { rowId, colKey }

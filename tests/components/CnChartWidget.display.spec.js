@@ -9,10 +9,7 @@
  * the pre-existing rendering byte-for-byte.
  */
 
-// The apexcharts stub is supplied globally via jest.config.js moduleNameMapper
-// (both `vue-apexcharts` and the Vue-3 `vue3-apexcharts` map to it). The local
-// mock that used to live here carried a Vue-2 `render: (h) => h('div')`, which
-// throws "h is not a function" under Vue 3.
+jest.mock('vue-apexcharts', () => ({ name: 'vue-apexcharts-stub', render: (h) => h('div') }), { virtual: true })
 
 jest.mock('../../src/composables/useDataSource.js', () => ({
 	useDataSource: () => ({

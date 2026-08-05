@@ -11,7 +11,7 @@
 
 jest.mock('gridstack', () => ({ GridStack: { init: jest.fn() } }), { virtual: true })
 jest.mock('gridstack/dist/gridstack.min.css', () => ({}), { virtual: true })
-// Apexcharts is stubbed globally via jest.config.js moduleNameMapper.
+jest.mock('vue-apexcharts', () => ({ name: 'vue-apexcharts-stub' }), { virtual: true })
 
 import { mount } from '@vue/test-utils'
 import CnDashboardPage from '@/components/CnDashboardPage/CnDashboardPage.vue'
@@ -235,9 +235,9 @@ describe('CnDashboardPage — dateRange prop', () => {
 			stubs,
 		})
 		// Vue 2.7 stores provides on the component instance under
-		// `$.provides`. The ref is provided unconditionally; when the
+		// `_provided`. The ref is provided unconditionally; when the
 		// feature is off, ref.value stays null.
-		const provided = wrapper.vm.$.provides.cnDashboardDateRange
+		const provided = wrapper.vm._provided.cnDashboardDateRange
 		expect(provided).toBeDefined()
 		expect(provided.value).toBeNull()
 	})
@@ -247,7 +247,7 @@ describe('CnDashboardPage — dateRange prop', () => {
 			propsData: { dateRange: { enabled: true }, layout: [], widgets: [] },
 			stubs,
 		})
-		const provided = wrapper.vm.$.provides.cnDashboardDateRange
+		const provided = wrapper.vm._provided.cnDashboardDateRange
 		// After mount, last-7 was assigned.
 		expect(provided.value).not.toBeNull()
 		expect(provided.value.preset).toBe('last-7')

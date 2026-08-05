@@ -561,20 +561,6 @@ export default {
 		},
 	},
 
-	emits: [
-		'add',
-		'header-action',
-		'refresh',
-		'search',
-		'show-copy',
-		'show-delete',
-		'show-export',
-		'show-import',
-		'sort-change',
-		'toggle-sidebar',
-		'view-mode-change',
-	],
-
 	computed: {
 		countText() {
 			if (!this.pagination) return ''

@@ -134,6 +134,7 @@ import { CnWidgetHostShell } from './hostShell.js'
  */
 export default {
 	name: 'CnWidgetObjectTable',
+	inheritAttrs: false,
 
 	components: { CnDataTable, CnWidgetWrapper, CnWidgetHostShell, CnRowActions, CnIcon, NcButton, CnConfirmDialog },
 
@@ -166,7 +167,6 @@ export default {
 		 */
 		cnDispatchAction: { default: null },
 	},
-	inheritAttrs: false,
 
 	props: {
 		/**
@@ -357,8 +357,6 @@ export default {
 			default: null,
 		},
 	},
-
-	emits: ['object-op'],
 
 	setup(props) {
 		// Endpoint binding (Wave 2, #91): the shared useEndpointSource engine

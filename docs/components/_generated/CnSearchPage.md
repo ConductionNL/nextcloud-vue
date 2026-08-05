@@ -27,9 +27,9 @@
 | --------------- | ------- | ------------------------------------------------------------------ |
 | `facets-change` | —       | Emitted on any facet toggle / clear.                               |
 | `query-change`  | —       | Emitted on every query mutation.                                   |
-| `result-click`  | —       | Emitted on result-row click.                                       |
-| `search`        | —       | Emitted on Submit or facet change. Combines query + active facets. |
 | `update:query`  | —       | v-model-friendly alias.                                            |
+| `search`        | —       | Emitted on Submit or facet change. Combines query + active facets. |
+| `result-click`  | —       | Emitted on result-row click.                                       |
 
 ### Slots
 

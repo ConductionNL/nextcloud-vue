@@ -9,11 +9,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-// Vue 3 hands components reactive Proxies for object props, so an identity
-// check against the original object fails even though it IS that object.
-// `toRaw` unwraps the proxy and keeps the assertion's intent: the prop is
-// forwarded as-is, not copied.
-import { toRaw } from 'vue'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 import CnIndexSidebar from '../../src/components/CnIndexSidebar/CnIndexSidebar.vue'
 
@@ -70,19 +65,19 @@ describe('CnIndexPage — sidebar prop', () => {
 
 		it('forwards the schema prop to the embedded sidebar', () => {
 			const wrapper = mountIndexPage({ sidebar: { enabled: true } })
-			expect(toRaw(wrapper.findComponent(CnIndexSidebar).props('schema'))).toBe(baseProps.schema)
+			expect(wrapper.findComponent(CnIndexSidebar).props('schema')).toBe(baseProps.schema)
 		})
 
 		it('forwards columnGroups', () => {
 			const groups = [{ id: 'extra', label: 'Extra', columns: [{ key: 'foo', label: 'Foo' }] }]
 			const wrapper = mountIndexPage({ sidebar: { enabled: true, columnGroups: groups } })
-			expect(toRaw(wrapper.findComponent(CnIndexSidebar).props('columnGroups'))).toBe(groups)
+			expect(wrapper.findComponent(CnIndexSidebar).props('columnGroups')).toBe(groups)
 		})
 
 		it('forwards facets as facetData', () => {
 			const facets = { status: { values: [{ value: 'open', count: 3 }] } }
 			const wrapper = mountIndexPage({ sidebar: { enabled: true, facets } })
-			expect(toRaw(wrapper.findComponent(CnIndexSidebar).props('facetData'))).toBe(facets)
+			expect(wrapper.findComponent(CnIndexSidebar).props('facetData')).toBe(facets)
 		})
 
 		it('forwards showMetadata (defaults to true)', () => {

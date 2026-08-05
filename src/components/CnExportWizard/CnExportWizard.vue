@@ -54,9 +54,9 @@
 				<NcSelect v-if="regulations.length > 0"
 					:input-id="fieldIdFor('regulation')"
 					:options="regulations"
-					:model-value="formData.regulation"
+					:value="formData.regulation"
 					:clearable="false"
-					@update:modelValue="formData.regulation = $event" />
+					@input="formData.regulation = $event" />
 				<input v-else
 					:id="fieldIdFor('regulation')"
 					v-model="formData.regulation"
@@ -259,7 +259,6 @@ export default {
 			default: () => ({}),
 		},
 	},
-	emits: ['close', 'confirm'],
 	data() {
 		return {
 			loading: false,

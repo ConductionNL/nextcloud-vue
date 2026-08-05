@@ -40,7 +40,7 @@
 						<p
 							v-if="showSummary && item.summary"
 							class="cn-news-widget__summary"
-							v-html="formattedSummary(item)" /><!-- eslint-disable-line vue/no-v-html -- formattedSummary() sanitises through DOMPurify (SAFE_MARKDOWN_DOMPURIFY_CONFIG) -->
+							v-html="formattedSummary(item)" />
 						<div class="cn-news-widget__meta">
 							<span class="cn-news-widget__source">{{ item.sourceTitle }}</span>
 							<span class="cn-news-widget__date">{{ formatDate(item.pubDate) }}</span>
@@ -60,7 +60,7 @@
 						<p
 							v-if="showSummary && item.summary"
 							class="cn-news-widget__summary"
-							v-html="formattedSummary(item)" /><!-- eslint-disable-line vue/no-v-html -- formattedSummary() sanitises through DOMPurify (SAFE_MARKDOWN_DOMPURIFY_CONFIG) -->
+							v-html="formattedSummary(item)" />
 						<div class="cn-news-widget__meta">
 							<span class="cn-news-widget__source">{{ item.sourceTitle }}</span>
 							<span class="cn-news-widget__date">{{ formatDate(item.pubDate) }}</span>
@@ -73,10 +73,8 @@
 </template>
 
 <script>
-import DOMPurify from 'dompurify'
 import { translate as t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
-import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 
 const ALLOWED_LAYOUTS = ['list', 'grid', 'carousel']
 const DEFAULT_LAYOUT = 'list'
@@ -337,25 +335,17 @@ export default {
 		},
 
 		/**
-		 * Truncate a feed item's summary to the char budget and sanitise it.
+		 * Truncate the (already-sanitised) summary to the char budget.
 		 *
-		 * `summary` arrives verbatim from a third-party RSS/Atom feed by way of
-		 * the consumer's `itemsEndpoint`, so it is untrusted markup and MUST NOT
-		 * reach the `v-html` binding unsanitised. Truncation runs first (it
-		 * preserves the historical `summaryMaxChars` budget, which counts markup
-		 * characters), then DOMPurify both strips XSS vectors — `<script>`,
-		 * `on*` handlers, `javascript:` URLs — and repairs the unbalanced tag a
-		 * mid-element cut would otherwise leave behind.
-		 *
-		 * @param {object} item the news item, whose `summary` may contain HTML.
-		 * @return {string} sanitised summary HTML, safe for `v-html` injection.
+		 * @param {object} item the news item.
+		 * @return {string} the truncated summary HTML.
 		 */
 		formattedSummary(item) {
 			const raw = typeof item.summary === 'string' ? item.summary : ''
-			const truncated = raw.length <= this.summaryMaxChars
-				? raw
-				: raw.slice(0, this.summaryMaxChars) + '…'
-			return DOMPurify.sanitize(truncated, SAFE_MARKDOWN_DOMPURIFY_CONFIG)
+			if (raw.length <= this.summaryMaxChars) {
+				return raw
+			}
+			return raw.slice(0, this.summaryMaxChars) + '…'
 		},
 
 		/**

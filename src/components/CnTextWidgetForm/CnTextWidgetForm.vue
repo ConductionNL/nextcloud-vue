@@ -22,7 +22,7 @@
 				:reduce="option => option.value"
 				label="label"
 				class="cn-text-widget-form__mode"
-				@update:modelValue="updateField('contentMode', $event)" />
+				@input="updateField('contentMode', $event)" />
 
 			<!-- NB: a plain <div>, NOT a <label>. Wrapping the markdown editor in a
 			     <label> forwards any stray click inside it (caption, toolbar gaps,
@@ -126,7 +126,7 @@ const VALID_CONTENT_MODES = Object.freeze(['html', 'markdown'])
 
 /**
  * CnTextWidgetForm — the `CnAddWidgetModal` sub-form for creating or editing
- * a `text` widget placement (renderer: `CnTextWidget`).
+ * a `text` widget placement (renderer: {@link CnTextWidget}).
  *
  * A top-level "Content type" picker switches between text mode (textarea +
  * Markdown/HTML toggle, font size, two colour pickers, alignment) and table

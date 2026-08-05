@@ -20,10 +20,10 @@
 
 | Name          | Payload | Description                                            |
 | ------------- | ------- | ------------------------------------------------------ |
+| `mass-import` | —       | Emitted when the Import action is clicked. No payload. |
+| `mass-export` | —       | Emitted when the Export action is clicked. No payload. |
 | `mass-copy`   | —       | Emitted when the Copy action is clicked. No payload.   |
 | `mass-delete` | —       | Emitted when the Delete action is clicked. No payload. |
-| `mass-export` | —       | Emitted when the Export action is clicked. No payload. |
-| `mass-import` | —       | Emitted when the Import action is clicked. No payload. |
 
 ### Slots
 

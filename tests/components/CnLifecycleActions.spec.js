@@ -36,12 +36,7 @@ import CnLifecycleActions from '../../src/components/CnLifecycleActions/CnLifecy
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
 const stubs = {
-	// `emits: ['click']` is load-bearing under Vue 3: an undeclared event name
-	// stays in `$attrs` as an `onClick` prop and falls through onto this stub's
-	// single root `<button>`, so the parent's `@click` fires once natively and
-	// once via `$emit('click')`. Vue 2's separate listener channel made that
-	// impossible. Declaring it removes `onClick` from `$attrs`.
-	NcButton: { name: 'NcButton', template: '<button :disabled="disabled" @click="$emit(\'click\')"><slot /></button>', props: ['disabled', 'variant'], emits: ['click'] },
+	NcButton: { name: 'NcButton', template: '<button :disabled="disabled" @click="$emit(\'click\')"><slot /></button>', props: ['disabled', 'variant'] },
 	NcLoadingIcon: { name: 'NcLoadingIcon', template: '<span class="loading" />' },
 }
 

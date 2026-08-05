@@ -68,19 +68,18 @@
  * store.unsubscribe(handle)
  */
 
-// `tryOnScopeDispose` comes from @vueuse/core, a DECLARED (non-optional) peer
-// dependency, so it is imported statically.
-//
-// It used to be pulled in through a CommonJS call inside a try/catch "to avoid
-// a hard failure if @vueuse/core is absent". That could not work: this module
-// ships to `dist/esm/**` where that function is not defined, and @vueuse/core's
-// own `exports` map resolves "." to a single ESM file with no CommonJS
-// condition. The catch therefore fired every time, `_tryOnScopeDispose` was
-// permanently null, and auto-cleanup on scope dispose silently never happened —
-// subscriptions leaked with no warning anywhere.
-import { tryOnScopeDispose as _tryOnScopeDispose } from '@vueuse/core'
 import { getLiveUpdates } from '../liveUpdates/transport.js'
 import { buildObjectKey, buildCollectionKey } from '../liveUpdates/eventKeys.js'
+
+// tryOnScopeDispose is from @vueuse/core — available as peerDependency
+let _tryOnScopeDispose = null
+try {
+	// Dynamic import guard: avoid hard failure if @vueuse/core is absent
+	const vueuse = require('@vueuse/core')
+	_tryOnScopeDispose = vueuse.tryOnScopeDispose
+} catch {
+	// @vueuse/core not installed — auto-cleanup unavailable; manual unsubscribe required
+}
 
 /**
  * Compute a stable cache key for dedup of fetchCollection calls.

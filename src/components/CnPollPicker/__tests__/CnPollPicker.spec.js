@@ -9,10 +9,7 @@
  *  - search input filters the visible list client-side.
  */
 
-// See CnEmailPicker.spec.js: a Vue-3 `nextTick()` no longer implies the
-// render queued by an async `mounted()` has flushed, so wait on the promise
-// queue instead of counting ticks.
-const { mount, flushPromises } = require('@vue/test-utils')
+const { mount } = require('@vue/test-utils')
 const CnPollPicker = require('../CnPollPicker.vue').default
 
 function resolveOnce(payload, status = 200) {
@@ -37,13 +34,14 @@ describe('CnPollPicker', () => {
 		}))
 
 		const wrapper = mount(CnPollPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		const rows = wrapper.findAll('.cn-poll-picker__row-button')
 		expect(rows).toHaveLength(2)
 		expect(wrapper.text()).toContain('Lunch')
 		expect(wrapper.text()).toContain('Meeting time')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('selecting a poll enables confirm and emits link', async () => {
@@ -52,7 +50,8 @@ describe('CnPollPicker', () => {
 		}))
 
 		const wrapper = mount(CnPollPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		await wrapper.find('.cn-poll-picker__row-button').trigger('click')
 		await wrapper.vm.$nextTick()
@@ -62,7 +61,7 @@ describe('CnPollPicker', () => {
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0]).toEqual([{ pollId: 99 }])
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('surfaces an inline error when /available fails', async () => {
@@ -70,10 +69,11 @@ describe('CnPollPicker', () => {
 		global.fetch.mockRejectedValueOnce(new Error('boom'))
 
 		const wrapper = mount(CnPollPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('Could not load polls.')
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 
@@ -86,14 +86,15 @@ describe('CnPollPicker', () => {
 		}))
 
 		const wrapper = mount(CnPollPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		wrapper.vm.search = 'lunch'
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.vm.visiblePolls).toHaveLength(1)
 		expect(wrapper.vm.visiblePolls[0].id).toBe(1)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('does not emit link when no poll is selected', () => {
@@ -102,6 +103,6 @@ describe('CnPollPicker', () => {
 
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeFalsy()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

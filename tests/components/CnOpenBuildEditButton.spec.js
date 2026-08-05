@@ -50,7 +50,7 @@ function mountButton(props = {}) {
 
 /** Find an action button by (a substring of) its visible label. */
 function btn(wrapper, label) {
-	return wrapper.findAllComponents(NcActionButtonStub).find((b) => b.text().includes(label))
+	return wrapper.findAllComponents(NcActionButtonStub).wrappers.find((b) => b.text().includes(label))
 }
 
 describe('CnOpenBuildEditButton', () => {

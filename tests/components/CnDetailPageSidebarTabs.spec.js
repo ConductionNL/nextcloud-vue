@@ -10,9 +10,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-// Arrays published into reactive state come back as Proxies in Vue 3, so the
-// identity assertions below unwrap them (see useRuntimeManifest.spec.js).
-import { toRaw } from 'vue'
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 
 function makeState() {
@@ -52,7 +49,7 @@ describe('CnDetailPage — sidebarProps.tabs forwarding', () => {
 			sidebarProps: { tabs, register: 'r', schema: 's' },
 		}, state)
 		expect(state.active).toBe(true)
-		expect(toRaw(state.tabs)).toBe(tabs)
+		expect(state.tabs).toBe(tabs)
 		expect(state.register).toBe('r')
 		expect(state.schema).toBe('s')
 	})
@@ -141,7 +138,7 @@ describe('CnDetailPage — sidebarProps.tabs forwarding', () => {
 			expect(state.active).toBe(true)
 			expect(state.objectType).toBe('procest-case')
 			expect(state.objectId).toBe('abc-123')
-			expect(toRaw(state.tabs)).toBe(tabs)
+			expect(state.tabs).toBe(tabs)
 		})
 
 		it('stays inactive when sidebarTabs is empty and no sidebar config', () => {

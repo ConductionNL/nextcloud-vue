@@ -30,7 +30,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@update:modelValue="updateField('padding', $event)" />
+			@input="updateField('padding', $event)" />
 
 		<NcTextField
 			:model-value="title"

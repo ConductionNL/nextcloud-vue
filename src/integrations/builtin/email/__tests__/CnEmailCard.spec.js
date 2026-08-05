@@ -27,7 +27,7 @@ describe('CnEmailCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No linked emails yet')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders rows for each fetched message up to maxDisplay', async () => {
@@ -54,7 +54,7 @@ describe('CnEmailCard', () => {
 		expect(wrapper.text()).toContain('Hello world')
 		expect(wrapper.text()).toContain('alice@example.com')
 		expect(wrapper.text()).toContain('Show all')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('emits show-all when the overflow control is clicked', async () => {
@@ -78,7 +78,7 @@ describe('CnEmailCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.find('.cn-email-card__show-all').trigger('click')
 		expect(wrapper.emitted('show-all')).toBeTruthy()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders the error label on a failed fetch', async () => {
@@ -89,7 +89,7 @@ describe('CnEmailCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Could not load emails')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('falls back to "(no subject)" + "Unknown sender" when fields are missing', async () => {
@@ -107,7 +107,7 @@ describe('CnEmailCard', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('(no subject)')
 		expect(wrapper.text()).toContain('Unknown sender')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('limits to a single row on the single-entity surface', async () => {
@@ -128,6 +128,6 @@ describe('CnEmailCard', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.findAll('.cn-email-card__row')).toHaveLength(1)
 		expect(wrapper.text()).toContain('one')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

@@ -22,7 +22,6 @@ const columns = columnsFromSchema(schema, {
 | `options.exclude` | `string[]` | `[]` | Property keys to drop. |
 | `options.include` | `string[] \| null` | `null` | Whitelist of keys to include. When provided, every other key is dropped. |
 | `options.overrides` | `object` | `{}` | Keyed by property name; values are merged onto the generated column via `Object.assign`. |
-| `options.translate` | `(text: string) => string` | — | Display-layer translation applied to each column label. Schema property titles are authored in English as the canonical source; pass your bound `t()` (via the injected `cnTranslate`) so the visible header follows the user's language. Omitted leaves the English source string unchanged. |
 
 ## Returns
 

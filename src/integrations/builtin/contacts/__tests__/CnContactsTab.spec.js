@@ -31,7 +31,7 @@ describe('CnContactsTab', () => {
 		// the (slot-bound) prop text.
 		expect(wrapper.find('.stub.NcEmptyContent').exists()).toBe(true)
 		expect(wrapper.vm.contacts.length).toBe(0)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders the two header buttons (link existing + add new)', async () => {
@@ -42,7 +42,7 @@ describe('CnContactsTab', () => {
 		await wrapper.vm.$nextTick()
 		const buttons = wrapper.findAll('.stub.NcButton')
 		expect(buttons.length).toBeGreaterThanOrEqual(2)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the picker dialog when the link button toggles showLinkDialog', async () => {
@@ -55,7 +55,7 @@ describe('CnContactsTab', () => {
 		wrapper.vm.showLinkDialog = true
 		await wrapper.vm.$nextTick()
 		expect(wrapper.findComponent({ name: 'CnContactPicker' }).exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the create dialog when showCreateDialog toggles', async () => {
@@ -67,7 +67,7 @@ describe('CnContactsTab', () => {
 		wrapper.vm.showCreateDialog = true
 		await wrapper.vm.$nextTick()
 		expect(wrapper.findComponent({ name: 'CnContactCreate' }).exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('POSTs to `/contacts` on picker link + refreshes', async () => {
@@ -98,7 +98,7 @@ describe('CnContactsTab', () => {
 		expect(JSON.parse(postCall[1].body).contactUid).toBe('jan')
 		expect(wrapper.vm.showLinkDialog).toBe(false)
 		expect(wrapper.vm.contacts.length).toBe(1)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('POSTs to `/contacts/new` on create + refreshes', async () => {
@@ -125,7 +125,7 @@ describe('CnContactsTab', () => {
 		expect(JSON.parse(postCall[1].body).displayName).toBe('Lisa')
 		expect(wrapper.vm.showCreateDialog).toBe(false)
 		expect(wrapper.vm.contacts.length).toBe(1)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('DELETEs `/contacts/{contactUid}` on row-unlink', async () => {
@@ -152,7 +152,7 @@ describe('CnContactsTab', () => {
 		expect(deleteCall).toBeTruthy()
 		expect(deleteCall[0]).toContain('/contacts/jan-uid')
 		expect(wrapper.vm.contacts.length).toBe(0)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('skips the fetch when register or schema is empty', async () => {
@@ -163,6 +163,6 @@ describe('CnContactsTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(global.fetch).not.toHaveBeenCalled()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

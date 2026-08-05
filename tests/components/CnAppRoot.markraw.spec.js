@@ -20,7 +20,7 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { isReactive, h, toRaw } from 'vue'
+import { isReactive } from 'vue'
 
 jest.mock('@nextcloud/capabilities', () => ({ getCapabilities: jest.fn(() => ({})) }))
 const { __resetAppStatusCacheForTests } = require('../../src/composables/useAppStatus.js')
@@ -45,12 +45,10 @@ const makeManifest = () => ({
 function mountNested(manifest, extraProps = {}) {
 	const Wrapper = {
 		components: { CnAppRoot },
-		render() {
-			// Vue 3's `h()` takes a FLAT props object — the Vue-2 vnode-data
-			// nesting (`{ props: { ... } }`) is gone, and passing it now hands
-			// the child a single attribute literally named "props" while every
-			// declared prop stays undefined.
-			return h(CnAppRoot, { manifest, appId: 'myapp', isLoading: false, translate: (k) => k, requiresApps: [], ...extraProps })
+		render(h) {
+			return h(CnAppRoot, {
+				props: { manifest, appId: 'myapp', isLoading: false, translate: (k) => k, requiresApps: [], ...extraProps },
+			})
 		},
 	}
 	const wrapper = mount(Wrapper, {
@@ -77,23 +75,14 @@ describe('CnAppRoot — raw/reactive manifest boundary (audit item 9)', () => {
 		expect(isReactive(held.menu[0])).toBe(false)
 	})
 
-	// Vue 2 could observe an object IN PLACE — `Vue.observable()` rewrote its
-	// properties into getters/setters and handed back the SAME reference, so
-	// `held === manifest` held before and after opt-in. Vue 3's `reactive()`
-	// leaves the target untouched and returns a PROXY, so reference identity
-	// through `.value` cannot survive the opt-in. What survives — and what this
-	// test is really guarding — is that the proxy wraps the host's own object:
-	// edits write through to it and `cancel()` restores it in place (asserted by
-	// the discard test below, which reads `manifest.menu[0].label` directly).
-	// Hence `toRaw` on the received side, with `toBe` kept.
-	it('opts the manifest into reactivity on edit-enter (host object still the write target)', async () => {
+	it('opts the manifest into reactivity in place on edit-enter (identity preserved)', async () => {
 		const manifest = makeManifest()
 		const { wrapper, root } = mountNested(manifest)
 		expect(isReactive(root.vm.manifestEditor.source.value)).toBe(false)
 		root.vm.manifestEditor.enter()
 		await wrapper.vm.$nextTick()
 		const held = root.vm.manifestEditor.source.value
-		expect(toRaw(held)).toBe(manifest) // the reactive view wraps the host's object
+		expect(held).toBe(manifest) // identity preserved (reactive IN PLACE)
 		expect(isReactive(held)).toBe(true)
 		expect(isReactive(held.pages[0])).toBe(true)
 	})

@@ -12,7 +12,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { h } from 'vue'
 
 /**
  * A factory for a fake sub-form component whose `validate()` / `assembledContent`
@@ -40,7 +39,7 @@ function fakeForm({ errors = [], assembled = null, commit = undefined } = {}) {
 			value: { default: () => ({}) },
 			fileUploadFn: { default: null },
 		},
-		render() {
+		render(h) {
 			return h('div', { class: 'fake-form' })
 		},
 		methods,
@@ -89,7 +88,7 @@ describe('CnAddWidgetModal', () => {
 		const select = wrapper.find('[data-testid="widget-type-select"]')
 		expect(select.exists()).toBe(true)
 		const options = wrapper.findAll('option')
-		const values = options.map((o) => o.attributes('value'))
+		const values = options.wrappers.map((o) => o.attributes('value'))
 		expect(values).toEqual(['label', 'text'])
 		expect(values).not.toContain('renderer-only')
 	})
@@ -129,10 +128,10 @@ describe('CnAddWidgetModal', () => {
 		})
 		// Default (dashboard) surface excludes it.
 		const dash = mount(CnAddWidgetModal, { propsData: { show: true } })
-		expect(dash.findAll('option').map((o) => o.attributes('value'))).not.toContain('data')
+		expect(dash.findAll('option').wrappers.map((o) => o.attributes('value'))).not.toContain('data')
 		// Detail surface includes it (alongside the universal type).
 		const detail = mount(CnAddWidgetModal, { propsData: { show: true, surface: 'detail-page' } })
-		const values = detail.findAll('option').map((o) => o.attributes('value'))
+		const values = detail.findAll('option').wrappers.map((o) => o.attributes('value'))
 		expect(values).toContain('data')
 		expect(values).toContain('label')
 	})

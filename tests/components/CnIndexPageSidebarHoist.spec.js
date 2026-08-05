@@ -67,7 +67,7 @@ describe('CnIndexPage — sidebar hoist', () => {
 		it('clears the holder on beforeDestroy', () => {
 			const { wrapper, holder } = mountWithHost({ sidebar: { enabled: true } })
 			expect(holder.value).not.toBeNull()
-			wrapper.unmount()
+			wrapper.destroy()
 			expect(holder.value).toBeNull()
 		})
 

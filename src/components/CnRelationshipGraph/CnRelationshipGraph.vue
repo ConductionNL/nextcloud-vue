@@ -169,7 +169,6 @@ export default {
 		 */
 		legend: { type: Array, default: () => [] },
 	},
-	emits: ['node-click'],
 	computed: {
 		/**
 		 * Pick the root node — the first entry with `isRoot: true`,

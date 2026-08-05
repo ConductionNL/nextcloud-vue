@@ -218,7 +218,6 @@ export default {
 		/** Title/aria label for the per-row delete icon button. */
 		deleteLabel: { type: String, default: 'Delete' },
 	},
-	emits: ['input', 'save'],
 	data() {
 		return {
 			model: [...this.value],

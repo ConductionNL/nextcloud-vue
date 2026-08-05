@@ -11,10 +11,7 @@
  *  - no link is emitted when nothing is selected.
  */
 
-// See CnEmailPicker.spec.js: a Vue-3 `nextTick()` no longer implies the
-// render queued by an async `mounted()` has flushed, so wait on the promise
-// queue instead of counting ticks.
-const { mount, flushPromises } = require('@vue/test-utils')
+const { mount } = require('@vue/test-utils')
 const CnPhotoAlbumPicker = require('../CnPhotoAlbumPicker.vue').default
 
 function resolveOnce(payload, status = 200) {
@@ -39,13 +36,14 @@ describe('CnPhotoAlbumPicker', () => {
 		}))
 
 		const wrapper = mount(CnPhotoAlbumPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		const tiles = wrapper.findAll('.cn-photo-album-picker__tile-button')
 		expect(tiles).toHaveLength(2)
 		expect(wrapper.text()).toContain('Holiday')
 		expect(wrapper.text()).toContain('Family')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('selecting an album enables confirm and emits link', async () => {
@@ -54,7 +52,8 @@ describe('CnPhotoAlbumPicker', () => {
 		}))
 
 		const wrapper = mount(CnPhotoAlbumPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		await wrapper.find('.cn-photo-album-picker__tile-button').trigger('click')
 		await wrapper.vm.$nextTick()
@@ -64,7 +63,7 @@ describe('CnPhotoAlbumPicker', () => {
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0]).toEqual([{ albumId: 99 }])
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('surfaces an inline error when /available fails', async () => {
@@ -72,10 +71,11 @@ describe('CnPhotoAlbumPicker', () => {
 		global.fetch.mockRejectedValueOnce(new Error('boom'))
 
 		const wrapper = mount(CnPhotoAlbumPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('Could not load albums.')
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 
@@ -83,10 +83,11 @@ describe('CnPhotoAlbumPicker', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ error: 'nope' }, 501))
 
 		const wrapper = mount(CnPhotoAlbumPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('NC Photos is not installed.')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('filters albums client-side via search', async () => {
@@ -98,14 +99,15 @@ describe('CnPhotoAlbumPicker', () => {
 		}))
 
 		const wrapper = mount(CnPhotoAlbumPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		wrapper.vm.search = 'holiday'
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.vm.visibleAlbums).toHaveLength(1)
 		expect(wrapper.vm.visibleAlbums[0].id).toBe(1)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('does not emit link when no album is selected', () => {
@@ -114,6 +116,6 @@ describe('CnPhotoAlbumPicker', () => {
 
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeFalsy()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

@@ -271,8 +271,6 @@ export default {
 		objectEditorHeight: { type: String, default: '300px' },
 	},
 
-	emits: ['update:value'],
-
 	data() {
 		return {
 			/**

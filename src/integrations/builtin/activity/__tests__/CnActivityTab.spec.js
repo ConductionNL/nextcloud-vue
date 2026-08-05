@@ -78,7 +78,7 @@ describe('CnActivityTab', () => {
 		const wrapper = mount(CnActivityTab, { propsData: { ...DEFAULT_PROPS } })
 		await flush(wrapper)
 		expect(wrapper.text()).toContain('No activity yet for this object')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('groups entries by day with Today and Yesterday headers', async () => {
@@ -103,7 +103,7 @@ describe('CnActivityTab', () => {
 		expect(text).toContain('Yesterday')
 		expect(text).toContain('Today event 1')
 		expect(text).toContain('Yesterday event')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders subject and actor for each entry', async () => {
@@ -117,7 +117,7 @@ describe('CnActivityTab', () => {
 		await flush(wrapper)
 		expect(wrapper.text()).toContain('Bob added a comment')
 		expect(wrapper.text()).toContain('bob')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('populates the type and actor dropdowns from the dropdown endpoints', async () => {
@@ -129,10 +129,10 @@ describe('CnActivityTab', () => {
 		await flush(wrapper)
 		expect(wrapper.vm.types).toEqual(['files', 'or:decision'])
 		expect(wrapper.vm.actors).toEqual(['alice', 'bob'])
-		const options = wrapper.findAll('option').map((w) => w.text())
+		const options = wrapper.findAll('option').wrappers.map((w) => w.text())
 		expect(options).toContain('files')
 		expect(options).toContain('bob')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('re-fetches with the type query param when the type filter changes', async () => {
@@ -152,7 +152,7 @@ describe('CnActivityTab', () => {
 			.map((c) => c[0])
 			.find((u) => u.includes('/activity?'))
 		expect(entryCall).toContain('type=files')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('sets the after query param when a date range is selected', async () => {
@@ -168,7 +168,7 @@ describe('CnActivityTab', () => {
 			.map((c) => c[0])
 			.find((u) => u.includes('/activity?'))
 		expect(entryCall).toContain('after=')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('appends the next page via the cursor when load-more is clicked', async () => {
@@ -213,7 +213,7 @@ describe('CnActivityTab', () => {
 		expect(entryCalls[entryCalls.length - 1]).toContain(`cursor=${now - 60}`)
 		expect(wrapper.text()).toContain('Page1 event A')
 		expect(wrapper.text()).toContain('Page2 event A')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders the unavailable banner on 501', async () => {
@@ -221,7 +221,7 @@ describe('CnActivityTab', () => {
 		const wrapper = mount(CnActivityTab, { propsData: { ...DEFAULT_PROPS } })
 		await flush(wrapper)
 		expect(wrapper.text()).toContain('NC Activity is currently unavailable.')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders the unavailable banner on 503', async () => {
@@ -229,7 +229,7 @@ describe('CnActivityTab', () => {
 		const wrapper = mount(CnActivityTab, { propsData: { ...DEFAULT_PROPS } })
 		await flush(wrapper)
 		expect(wrapper.text()).toContain('NC Activity is currently unavailable.')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('falls back to an error banner when fetch throws', async () => {
@@ -243,7 +243,7 @@ describe('CnActivityTab', () => {
 		const wrapper = mount(CnActivityTab, { propsData: { ...DEFAULT_PROPS } })
 		await flush(wrapper)
 		expect(wrapper.text()).toContain('Could not load activity.')
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 })

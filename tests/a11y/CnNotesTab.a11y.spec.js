@@ -23,7 +23,7 @@ describe('CnNotesTab — accessibility', () => {
 	let wrapper
 
 	afterEach(() => {
-		wrapper?.unmount()
+		wrapper?.destroy()
 	})
 
 	it('has no WCAG 2.1 AA violations in the empty state (composer + empty list)', async () => {

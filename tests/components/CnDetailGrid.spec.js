@@ -31,7 +31,7 @@ describe('CnDetailGrid — referenceType hook', () => {
 		const w = wrapper.find('.contact-entity-widget')
 		expect(w.exists()).toBe(true)
 		expect(w.text()).toBe('single-entity|c-42')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('forwards referenceContext to the widget', () => {
@@ -43,7 +43,7 @@ describe('CnDetailGrid — referenceType hook', () => {
 			},
 		})
 		expect(wrapper.findComponent(ContactEntityWidget).props('register')).toBe('r1')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders the plain value when no integration is registered for the referenceType', () => {
@@ -52,7 +52,7 @@ describe('CnDetailGrid — referenceType hook', () => {
 		})
 		expect(wrapper.find('.contact-entity-widget').exists()).toBe(false)
 		expect(wrapper.text()).toContain('c-42')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders the plain value for items without a referenceType', () => {
@@ -60,7 +60,7 @@ describe('CnDetailGrid — referenceType hook', () => {
 			propsData: { items: [{ label: 'ID', value: '12345' }] },
 		})
 		expect(wrapper.text()).toContain('12345')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('a consumer #item-<index> slot overrides the referenceType widget', () => {
@@ -71,6 +71,6 @@ describe('CnDetailGrid — referenceType hook', () => {
 		})
 		expect(wrapper.find('.slot-override').exists()).toBe(true)
 		expect(wrapper.find('.contact-entity-widget').exists()).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

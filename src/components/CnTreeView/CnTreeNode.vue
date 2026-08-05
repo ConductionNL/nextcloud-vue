@@ -70,8 +70,8 @@ export default {
 		indent: { type: Number, default: 18 },
 		/** Set of expanded node ids. */
 		expandedIds: { type: Object, required: true },
-		/** Currently selected node id, read off `node[idKey]` (or null). */
-		selectedId: { type: [String, Number], default: null },
+		/** Currently selected node id (or null). */
+		selectedId: { default: null },
 		/** Node-field key for the id. */
 		idKey: { type: String, default: 'id' },
 		/** Node-field key for the display label. */
@@ -83,7 +83,6 @@ export default {
 		/** A11y label for the collapse button. */
 		collapseLabel: { type: String, default: 'Collapse' },
 	},
-	emits: ['select', 'toggle'],
 	computed: {
 		/**
 		 * Whether this node has any children at all.

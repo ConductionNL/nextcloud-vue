@@ -23,5 +23,4 @@
 | Name                                                                   | Payload | Description   |
 | ---------------------------------------------------------------------- | ------- | ------------- |
 | `input`                                                                | —       | v-model emit. |
-| `update:mode`                                                          | —       |               |
 | `update:mode v-model:mode emit so consumers can bind the layout mode.` | —       |               |

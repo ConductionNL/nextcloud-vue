@@ -317,7 +317,7 @@
 				<template v-if="isDataPage">
 					<NcNoteCard v-if="dataSourcesError" type="error">
 						{{ t('nextcloud-vue', 'Could not load registers and schemas.') }}
-						<NcButton variant="tertiary" @click="retryDataSources">
+						<NcButton type="tertiary" @click="retryDataSources">
 							{{ t('nextcloud-vue', 'Retry') }}
 						</NcButton>
 					</NcNoteCard>
@@ -543,11 +543,12 @@
 					</span>
 				</div>
 			</div>
+
 		</div>
 
 		<template #actions>
 			<span class="cn-page-config__id">{{ page.id }}</span>
-			<NcButton variant="primary" :disabled="saving || hasJsonError" @click="onDone">
+			<NcButton type="primary" :disabled="saving || hasJsonError" @click="onDone">
 				<template v-if="saving" #icon>
 					<NcLoadingIcon :size="20" />
 				</template>
@@ -685,8 +686,6 @@ export default {
 			required: true,
 		},
 	},
-
-	emits: ['close'],
 
 	data() {
 		return {
@@ -919,7 +918,7 @@ export default {
 		 */
 		ensureConfig() {
 			if (!this.page.config || typeof this.page.config !== 'object' || Array.isArray(this.page.config)) {
-				this.page.config = {}
+				this.page['config'] = {}
 			}
 			return this.page.config
 		},
@@ -985,7 +984,7 @@ export default {
 		 * @return {void}
 		 */
 		setType(option) {
-			this.page.type = option ? option.value : 'custom'
+			this.page['type'] = option ? option.value : 'custom'
 		},
 		/**
 		 * Set the default view mode (drops the key when it equals the 'table' default).
@@ -995,8 +994,8 @@ export default {
 		setViewMode(option) {
 			const config = this.ensureConfig()
 			const v = option ? option.value : 'table'
-			if (v && v !== 'table') config.viewMode = v
-			else delete config.viewMode
+			if (v && v !== 'table') config['viewMode'] = v
+			else delete config['viewMode']
 		},
 		/**
 		 * Set the enabled view layouts (`config.viewModes`), preserving the picked
@@ -1011,15 +1010,15 @@ export default {
 			const modes = (options || []).map((o) => o.value)
 			const isDefault = modes.length === 2
 				&& modes.includes('cards') && modes.includes('table')
-			if (!modes.length || isDefault) delete config.viewModes
-			else config.viewModes = modes
+			if (!modes.length || isDefault) delete config['viewModes']
+			else config['viewModes'] = modes
 			// Keep the default view within the enabled set.
 			const effective = modes.length ? modes : ['cards', 'table']
 			const current = this.configValue('viewMode') || 'table'
 			if (!effective.includes(current)) {
 				const next = effective[0]
-				if (next && next !== 'table') config.viewMode = next
-				else delete config.viewMode
+				if (next && next !== 'table') config['viewMode'] = next
+				else delete config['viewMode']
 			}
 		},
 		/**
@@ -1043,11 +1042,11 @@ export default {
 			let map = config.mapConfig
 			if (!map || typeof map !== 'object' || Array.isArray(map)) {
 				map = {}
-				config.mapConfig = map
+				config['mapConfig'] = map
 			}
 			if (value) map[key] = value
 			else delete map[key]
-			if (!Object.keys(config.mapConfig).length) delete config.mapConfig
+			if (!Object.keys(config.mapConfig).length) delete config['mapConfig']
 		},
 		/**
 		 * Set the register; clears schema + columns.
@@ -1076,8 +1075,8 @@ export default {
 		setColumns(options) {
 			const config = this.ensureConfig()
 			const cols = (options || []).map((o) => o.value)
-			if (cols.length) config.columns = cols
-			else delete config.columns
+			if (cols.length) config['columns'] = cols
+			else delete config['columns']
 		},
 		/**
 		 * Set columns from a comma-separated string.
@@ -1087,8 +1086,8 @@ export default {
 		setColumnsText(text) {
 			const config = this.ensureConfig()
 			const cols = String(text || '').split(',').map((s) => s.trim()).filter(Boolean)
-			if (cols.length) config.columns = cols
-			else delete config.columns
+			if (cols.length) config['columns'] = cols
+			else delete config['columns']
 		},
 		/**
 		 * The override object for a column (empty object when none).
@@ -1119,11 +1118,11 @@ export default {
 			let map = config.columnOverrides
 			if (!map || typeof map !== 'object' || Array.isArray(map)) {
 				map = {}
-				config.columnOverrides = map
+				config['columnOverrides'] = map
 			}
 			if (override && Object.keys(override).length) map[col] = override
 			else delete map[col]
-			if (!Object.keys(config.columnOverrides).length) delete config.columnOverrides
+			if (!Object.keys(config.columnOverrides).length) delete config['columnOverrides']
 		},
 		/**
 		 * Set a column's custom label.
@@ -1175,9 +1174,9 @@ export default {
 		 */
 		setSortField(option) {
 			const config = this.ensureConfig()
-			if (!option) { delete config.defaultSort; return }
+			if (!option) { delete config['defaultSort']; return }
 			const order = (this.defaultSortArray[0] && this.defaultSortArray[0].order) || 'asc'
-			config.defaultSort = [{ field: option.value, order }]
+			config['defaultSort'] = [{ field: option.value, order }]
 		},
 		/**
 		 * Set the default-sort direction (no-op until a field is chosen).
@@ -1188,7 +1187,7 @@ export default {
 			const sort = this.defaultSortArray
 			if (!sort.length || !sort[0].field) return
 			const config = this.ensureConfig()
-			config.defaultSort = [{ field: sort[0].field, order: option ? option.value : 'asc' }]
+			config['defaultSort'] = [{ field: sort[0].field, order: option ? option.value : 'asc' }]
 		},
 		/**
 		 * Edit an Advanced JSON field: parse, flag errors, and persist on success

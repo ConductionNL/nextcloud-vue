@@ -63,7 +63,7 @@ describe('CnXwikiTab', () => {
 		expect(wrapper.text()).toContain('No XWiki pages linked yet')
 		expect(wrapper.find('.cn-xwiki-tab__row').exists()).toBe(false)
 		expect(wrapper.find('.cn-xwiki-tab__banner').exists()).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders an XWiki-style row with title, breadcrumb (chevron, ancestors only), last-modified and excerpt', async () => {
@@ -91,7 +91,7 @@ describe('CnXwikiTab', () => {
 		// anchor from its `href`/`target` props at runtime).
 		expect(rows.at(0).attributes('href')).toBe('https://wiki.example.org/bin/view/Knowledge/PolicyManual')
 		expect(rows.at(0).attributes('target')).toBe('_blank')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the "Configure XWiki connection" CTA when the OpenConnector source is missing', async () => {
@@ -107,7 +107,7 @@ describe('CnXwikiTab', () => {
 		expect(wrapper.text()).toContain('Configure XWiki connection')
 		// No rows fall through.
 		expect(wrapper.find('.cn-xwiki-tab__row').exists()).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the unconfigured banner when OpenConnector itself is down', async () => {
@@ -120,7 +120,7 @@ describe('CnXwikiTab', () => {
 		expect(banner.exists()).toBe(true)
 		expect(banner.classes()).toContain('cn-xwiki-tab__banner--unconfigured')
 		expect(wrapper.text()).toContain('Configure XWiki connection')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the auth-failure banner with a Reconnect CTA when the source credentials are bad', async () => {
@@ -135,7 +135,7 @@ describe('CnXwikiTab', () => {
 		expect(wrapper.text()).toContain('XWiki authentication failed')
 		expect(wrapper.text()).toContain('XWiki returned 401')
 		expect(wrapper.text()).toContain('Reconnect')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the upstream-unavailable banner with a Retry CTA when XWiki itself is down', async () => {
@@ -149,7 +149,7 @@ describe('CnXwikiTab', () => {
 		expect(banner.classes()).toContain('cn-xwiki-tab__banner--upstream')
 		expect(wrapper.text()).toContain('XWiki is currently unavailable')
 		expect(wrapper.text()).toContain('Retry')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the generic error banner when fetch throws', async () => {
@@ -162,7 +162,7 @@ describe('CnXwikiTab', () => {
 		expect(banner.exists()).toBe(true)
 		expect(banner.classes()).toContain('cn-xwiki-tab__banner--error')
 		expect(wrapper.text()).toContain('Could not load XWiki pages')
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 })

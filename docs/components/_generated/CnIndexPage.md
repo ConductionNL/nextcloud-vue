@@ -105,29 +105,29 @@
 | `configure`           | —       |                                                                                                                                                          |
 | `folder-create`       | —       |                                                                                                                                                          |
 | `page-size-changed`   | —       |                                                                                                                                                          |
-| `action`              | —       |                                                                                                                                                          |
-| `add`                 | —       |                                                                                                                                                          |
-| `apply-view`          | —       |                                                                                                                                                          |
-| `columns-change`      | —       |                                                                                                                                                          |
-| `copy`                | —       |                                                                                                                                                          |
-| `create`              | —       | Emitted after a create is confirmed (store, self-store, or createOverride).                                                                              |
-| `delete`              | —       |                                                                                                                                                          |
+| `header-action`       | —       |                                                                                                                                                          |
+| `search`              | —       |                                                                                                                                                          |
+| `quick-filter-change` | —       |                                                                                                                                                          |
+| `sort`                | —       |                                                                                                                                                          |
+| `page-changed`        | —       |                                                                                                                                                          |
 | `filter-change`       | —       |                                                                                                                                                          |
 | `folder-change`       | —       | Emitted when a folder is selected in the sidebar.                                                                                                        |
-| `header-action`       | —       |                                                                                                                                                          |
-| `mass-copy`           | —       |                                                                                                                                                          |
-| `mass-delete`         | —       |                                                                                                                                                          |
-| `mass-export`         | —       |                                                                                                                                                          |
-| `mass-import`         | —       |                                                                                                                                                          |
-| `page-changed`        | —       |                                                                                                                                                          |
-| `quick-filter-change` | —       |                                                                                                                                                          |
+| `columns-change`      | —       |                                                                                                                                                          |
 | `refresh`             | —       |                                                                                                                                                          |
+| `action`              | —       |                                                                                                                                                          |
 | `row-click`           | —       | Emitted on a row/card click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox). |
-| `search`              | —       |                                                                                                                                                          |
-| `select`              | —       |                                                                                                                                                          |
-| `sort`                | —       |                                                                                                                                                          |
 | `view`                | —       |                                                                                                                                                          |
+| `add`                 | —       |                                                                                                                                                          |
 | `view-mode-change`    | —       |                                                                                                                                                          |
+| `select`              | —       |                                                                                                                                                          |
+| `mass-delete`         | —       |                                                                                                                                                          |
+| `mass-copy`           | —       |                                                                                                                                                          |
+| `mass-export`         | —       |                                                                                                                                                          |
+| `apply-view`          | —       |                                                                                                                                                          |
+| `mass-import`         | —       |                                                                                                                                                          |
+| `delete`              | —       |                                                                                                                                                          |
+| `copy`                | —       |                                                                                                                                                          |
+| `create`              | —       | Emitted after a create is confirmed (store, self-store, or createOverride).                                                                              |
 
 ### Slots
 

@@ -55,13 +55,6 @@
 				@view="onRowOpen"
 				@row-click="onRowOpen"
 				@configure="showConfigModal = true">
-				<!-- This `<template v-for>` defines dynamic SLOTS, not a
-				     rendered list, so the rule's advice is inverted here:
-				     `@vue/compiler-sfc` DISCARDS a `:key` on a slot-defining
-				     `<template>` (verified — the generated `createSlots` entry
-				     carries only `name`) and honours it only on the child.
-				     Moving the key up would throw it away. -->
-				<!-- eslint-disable vue/no-v-for-template-key-on-child -->
 				<template
 					v-for="entry in resolvedSlotEntries"
 					#[entry.name]="slotProps">
@@ -70,7 +63,6 @@
 						:key="entry.name"
 						v-bind="slotProps" />
 				</template>
-				<!-- eslint-enable vue/no-v-for-template-key-on-child -->
 			</component>
 			<!-- header-actions slot -->
 			<CnWidgetGrid
@@ -108,9 +100,6 @@
 			@view="onRowOpen"
 			@row-click="onRowOpen"
 			@configure="showConfigModal = true">
-			<!-- Dynamic slot definition, not a rendered list — see the note on
-			     the identical block above. -->
-			<!-- eslint-disable vue/no-v-for-template-key-on-child -->
 			<template
 				v-for="entry in resolvedSlotEntries"
 				#[entry.name]="slotProps">
@@ -119,7 +108,6 @@
 					:key="entry.name"
 					v-bind="slotProps" />
 			</template>
-			<!-- eslint-enable vue/no-v-for-template-key-on-child -->
 		</component>
 
 		<!-- Builder empty-state. A page with no renderable body — e.g. a
@@ -255,11 +243,6 @@ export default {
 	 * field.
 	 */
 	provide() {
-		// `self` is load-bearing: `cnSlotColumns` below is a GETTER, and inside
-		// a getter on that object literal `this` is the literal — not the
-		// component. The getter is what keeps the provide tracking the active
-		// page, and a getter cannot be an arrow function.
-		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const self = this
 		return {
 			// Per-page slot→columns override (page.config.slotColumns), read by
@@ -767,25 +750,14 @@ export default {
 			// container before forwarding — CnIndexPage has no
 			// `actionToggles` prop.
 			const isIndex = page?.type === 'index'
-			// When an index page has somewhere to open a row, make a row click
-			// go there: set `rowClickToView` so the row body emits `row-click`
-			// (→ onRowOpen navigates) even though the page is selectable.
-			// Selection stays available via the checkbox. An explicit
-			// `config.rowClickToView` still wins (merged below).
-			//
-			// Two ways to have somewhere to open:
-			//   1. `config.rowRoute` — an explicit route/page NAME. Needed
-			//      whenever the row's detail surface is NOT a `type:"detail"`
-			//      page: a `type:"custom"` authoring canvas, a form page, a
-			//      page in another register. Without this the key parsed,
-			//      validated and did nothing, so a manifest that authored it
-			//      shipped an index whose rows were simply dead on click
-			//      (observed on hermiq GraphIndex → GraphDetail).
-			//   2. A matching `type:"detail"` page (same register + schema).
+			// When an index page has a matching detail page (same register +
+			// schema), make a row click open it: set `rowClickToView` so the
+			// row body emits `row-click` (→ onRowOpen navigates) even though the
+			// page is selectable. Selection stays available via the checkbox.
+			// An explicit `config.rowClickToView` still wins (merged below).
 			if (isIndex) {
-				const hasRowRoute = typeof config.rowRoute === 'string' && config.rowRoute !== ''
 				const hasDetail = this.detailPageByRegisterSchema.has(`${config.register} ${config.schema}`)
-				if (hasRowRoute || hasDetail) topLevel.rowClickToView = true
+				if (hasDetail) topLevel.rowClickToView = true
 			}
 			let normalizedConfig = config
 			if (isIndex && config.actionToggles && typeof config.actionToggles === 'object' && !Array.isArray(config.actionToggles)) {
@@ -1132,49 +1104,12 @@ export default {
 				return
 			}
 			const cfg = page.config || {}
-			// `config.rowRoute` names the target explicitly and WINS: it is the
-			// only way to reach a detail surface that is not a `type:"detail"`
-			// page (an authoring canvas, a form page), and an author who named
-			// a route meant that route.
-			const rowRoute = (typeof cfg.rowRoute === 'string' && cfg.rowRoute !== '') ? cfg.rowRoute : null
 			const detail = this.detailPageByRegisterSchema.get(`${cfg.register} ${cfg.schema}`)
-			const target = rowRoute ?? detail?.id ?? null
-			if (!target) return
+			if (!detail) return
 			const self = row['@self'] || {}
 			const id = row.id ?? self.id ?? self.uuid ?? row.uuid
 			if (id === undefined || id === null || id === '') return
-			// A name the router does not have makes every row click a no-op that
-			// looks exactly like a broken table, so name the mistake instead of
-			// letting push() reject into a silent catch. Feature-detected: only
-			// some router versions can be asked.
-			if (this.routeNameIsKnown(target) === false) {
-				// eslint-disable-next-line no-console
-				console.warn(`[CnPageRenderer] Index page "${page.id}" opens rows on route "${target}", which the router does not have. Row clicks will do nothing.`)
-				return
-			}
-			router.push({ name: target, params: { id: String(id) } }).catch(() => {})
-		},
-
-		/**
-		 * Whether the router has a route by this name.
-		 *
-		 * Returns `true` when the router cannot be asked (an older router, or a
-		 * test double), so an unanswerable question never blocks navigation.
-		 *
-		 * @param {string} name The route name.
-		 * @return {boolean} False only when the router positively lacks it.
-		 */
-		routeNameIsKnown(name) {
-			const router = this.$router
-			if (!router) return false
-			if (typeof router.hasRoute === 'function') {
-				return router.hasRoute(name)
-			}
-			if (typeof router.getRoutes === 'function') {
-				const routes = router.getRoutes() || []
-				return routes.some((route) => route && route.name === name)
-			}
-			return true
+			router.push({ name: detail.id, params: { id: String(id) } }).catch(() => {})
 		},
 
 		/**
@@ -1339,21 +1274,9 @@ export default {
 				get objectData() {
 					return store.getObject?.(ctx.slug, ctx.objectId) ?? null
 				},
-				// Explicit no-op setters keep a consumer's stray write harmless.
-				// Under Vue 2 the getter-only accessor was enough: `defineReactive`
-				// replaced each property with its own get/set pair that delegated
-				// reads to the original getter, so an assignment was swallowed.
-				// Vue 3 leaves the accessor on the target and its `set` trap
-				// forwards to `Reflect.set`, which returns false for a
-				// setter-less accessor — and a `set` trap returning false throws
-				// `TypeError: 'set' on proxy: trap returned falsish` in strict
-				// mode. That would turn a benign mistake in a consumer app into a
-				// crash, so the swallow is now written out rather than implied.
-				set objectData(_ignored) {},
 				get schema() {
 					return store.getSchema?.(ctx.slug) ?? null
 				},
-				set schema(_ignored) {},
 				objectType: ctx.slug,
 				objectId: ctx.objectId,
 				register: ctx.register,

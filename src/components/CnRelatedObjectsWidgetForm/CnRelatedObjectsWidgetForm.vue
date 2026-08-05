@@ -126,11 +126,8 @@ export default {
 		t,
 		/**
 		 * Set a top-level field and emit.
-		 *
-		 * @param {'title'|'hideSingleTabTitle'|'showTotalCount'} field The data key to write.
-		 * @param {string|boolean} value The widget title, or the toggle state for
-		 *   the two display options.
-		 * @return {void}
+		 * @param field
+		 * @param value
 		 */
 		updateField(field, value) { this[field] = value; this.emitChange() },
 		/**

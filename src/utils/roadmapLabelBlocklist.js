@@ -24,7 +24,7 @@
  * Regex patterns matching hydra pipeline / workflow labels that should never
  * be rendered as a user-facing chip on a roadmap item card.
  *
- * @type {Readonly<RegExp[]>}
+ * @type {ReadonlyArray<RegExp>}
  */
 export const ROADMAP_LABEL_BLOCKLIST = Object.freeze([
 	/^build:/,

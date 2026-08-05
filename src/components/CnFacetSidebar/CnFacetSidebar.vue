@@ -91,18 +91,6 @@ export default {
 		NcLoadingIcon,
 	},
 
-	inject: {
-		/**
-		 * Consumer translation function, provided by CnAppRoot as
-		 * `cnTranslate: this.translate` (bound to the host app's id). Filter
-		 * labels come from schema property titles, authored in English as the
-		 * canonical source; the visible label is resolved through this function
-		 * so it follows the user's language. Defaults to identity when used
-		 * standalone (no CnAppRoot ancestor).
-		 */
-		cnTranslate: { default: () => (key) => key },
-	},
-
 	props: {
 		/** Schema definition — reads facetable properties */
 		schema: {
@@ -144,11 +132,9 @@ export default {
 		},
 	},
 
-	emits: ['clear-all', 'filter-change'],
-
 	computed: {
 		effectiveFilters() {
-			return filtersFromSchema(this.schema, { isAdmin: this.userIsAdmin, translate: this.cnTranslate })
+			return filtersFromSchema(this.schema, { isAdmin: this.userIsAdmin })
 		},
 
 		hasActiveFilters() {

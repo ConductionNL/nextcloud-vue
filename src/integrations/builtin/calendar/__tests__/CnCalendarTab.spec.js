@@ -50,7 +50,7 @@ describe('CnCalendarTab', () => {
 		await flush()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No meetings linked yet')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('groups events into upcoming and past sections', async () => {
@@ -75,7 +75,7 @@ describe('CnCalendarTab', () => {
 		expect(wrapper.vm.pastEvents).toHaveLength(1)
 		expect(wrapper.text()).toContain('Future')
 		expect(wrapper.text()).toContain('Upcoming')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows an error state when the fetch fails', async () => {
@@ -87,7 +87,7 @@ describe('CnCalendarTab', () => {
 		await flush()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Could not load meetings.')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the unavailable banner when the registry returns 503', async () => {
@@ -99,7 +99,7 @@ describe('CnCalendarTab', () => {
 		await flush()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Nextcloud Calendar is currently unavailable.')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('POSTs {calendarUri,eventUid} to /events/link when picker confirms', async () => {
@@ -128,7 +128,7 @@ describe('CnCalendarTab', () => {
 		expect(linkCall).toBeDefined()
 		expect(JSON.parse(linkCall.body)).toEqual({ calendarUri: 'personal', eventUid: 'ev-uid-1' })
 		expect(wrapper.emitted('linked')).toBeTruthy()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('unlink hits /events/{uid}/link (preserves the VEVENT)', async () => {
@@ -155,7 +155,7 @@ describe('CnCalendarTab', () => {
 		const lastCall = global.fetch.mock.calls[global.fetch.mock.calls.length - 1]
 		expect(lastCall[0]).toContain('/events/ev1/link')
 		expect(lastCall[1].method).toBe('DELETE')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('delete hits /events/{uri} (destroys the VEVENT)', async () => {
@@ -181,6 +181,6 @@ describe('CnCalendarTab', () => {
 		const lastCall = global.fetch.mock.calls[global.fetch.mock.calls.length - 1]
 		expect(lastCall[0]).toMatch(/\/events\/e\.ics$/)
 		expect(lastCall[1].method).toBe('DELETE')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

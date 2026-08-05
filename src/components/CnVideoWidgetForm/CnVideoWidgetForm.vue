@@ -33,7 +33,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@update:modelValue="updateField('aspectRatio', $event)" />
+			@input="updateField('aspectRatio', $event)" />
 
 		<NcCheckboxRadioSwitch
 			:model-value="autoplay"

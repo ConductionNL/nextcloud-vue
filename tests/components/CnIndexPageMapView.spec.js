@@ -41,7 +41,6 @@ jest.mock('../../src/store/index.js', () => ({
 }))
 
 const { mount } = require('@vue/test-utils')
-const { toRaw } = require('vue')
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
 
 const stubs = {
@@ -101,25 +100,25 @@ describe('CnIndexPage map view mode', () => {
 		expect(wrapper.findComponent({ name: 'CnMapWidget' }).exists()).toBe(true)
 		expect(wrapper.findComponent({ name: 'CnDataTable' }).exists()).toBe(false)
 		expect(wrapper.findComponent({ name: 'CnCardGrid' }).exists()).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('does not offer the map segment when the page has not opted in', () => {
 		const wrapper = mountPage({ viewMode: 'table' })
 		expect(wrapper.vm.showMapSegment).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('offers the map segment when mapConfig is non-empty', () => {
 		const wrapper = mountPage({ viewMode: 'table', mapConfig: MAP_CONFIG })
 		expect(wrapper.vm.showMapSegment).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('respects an explicit viewModes whitelist that excludes map even with mapConfig', () => {
 		const wrapper = mountPage({ mapConfig: MAP_CONFIG, viewModes: ['table', 'cards'] })
 		expect(wrapper.vm.showMapSegment).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('builds one inline marker per resolvable row and never passes a dataSource.url', () => {
@@ -131,7 +130,7 @@ describe('CnIndexPage map view mode', () => {
 		// rowKey is stashed on the feature for click-parity.
 		expect(markers.features[0].properties.id).toBe('a')
 		expect(markers.dataSource).toBeUndefined()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('narrows the plotted markers when the displayed set narrows', async () => {
@@ -139,7 +138,7 @@ describe('CnIndexPage map view mode', () => {
 		expect(wrapper.vm.mapMarkers.features).toHaveLength(2)
 		await wrapper.setProps({ objects: [ROWS[0]] })
 		expect(wrapper.vm.mapMarkers.features).toHaveLength(1)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('skips rows without finite geometry without throwing', () => {
@@ -152,7 +151,7 @@ describe('CnIndexPage map view mode', () => {
 		expect(() => wrapper.vm.mapMarkers).not.toThrow()
 		expect(wrapper.vm.mapMarkers.features).toHaveLength(1)
 		expect(wrapper.vm.mapMarkers.features[0].properties.id).toBe('a')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('resolves a GeoJSON Point geoField (dotted @self path) over lat/lngField', () => {
@@ -164,7 +163,7 @@ describe('CnIndexPage map view mode', () => {
 		})
 		expect(wrapper.vm.mapMarkers.features).toHaveLength(1)
 		expect(wrapper.vm.mapMarkers.features[0].geometry.coordinates).toEqual([4.9, 52.3])
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('parses a JSON-encoded string geoField (OpenRegister metadata shape)', () => {
@@ -172,7 +171,7 @@ describe('CnIndexPage map view mode', () => {
 		const wrapper = mountPage({ viewMode: 'map', objects: rows, mapConfig: { geoField: 'geometry' } })
 		expect(wrapper.vm.mapMarkers.features).toHaveLength(1)
 		expect(wrapper.vm.mapMarkers.features[0].geometry.coordinates).toEqual([5.29, 52.13])
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('skips an unparseable string geoField without throwing', () => {
@@ -180,7 +179,7 @@ describe('CnIndexPage map view mode', () => {
 		const wrapper = mountPage({ viewMode: 'map', objects: rows, mapConfig: { geoField: 'geometry' } })
 		expect(() => wrapper.vm.mapMarkers).not.toThrow()
 		expect(wrapper.vm.mapMarkers.features).toHaveLength(0)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('emits @row-click with the same payload for a marker click as a table row-click', () => {
@@ -195,13 +194,8 @@ describe('CnIndexPage map view mode', () => {
 		wrapper.vm.onMarkerClick({ feature })
 		const markerClickPayload = wrapper.emitted('row-click')[1][0]
 
-		// Compare the raw targets: `onRowClick` was called with the fixture row
-		// directly, while the marker path resolves the row out of reactive
-		// state and so emits a Proxy around it. `toBe` on the raws keeps the
-		// point of the test — both entry points emit THE SAME row object, not
-		// two equal-looking ones.
-		expect(toRaw(markerClickPayload)).toBe(toRaw(rowClickPayload))
+		expect(markerClickPayload).toBe(rowClickPayload)
 		expect(markerClickPayload.id).toBe('b')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

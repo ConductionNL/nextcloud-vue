@@ -105,8 +105,6 @@ export default {
 		unavailableLabel: { type: String, default: () => t('nextcloud-vue', 'This integration is currently unavailable.') },
 	},
 
-	emits: ['unlinked'],
-
 	data() {
 		return {
 			rows: [],

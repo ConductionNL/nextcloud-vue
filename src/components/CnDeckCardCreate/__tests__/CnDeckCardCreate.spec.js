@@ -30,7 +30,7 @@ describe('CnDeckCardCreate', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.boards).toEqual([{ id: 1, title: 'Sprint' }])
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('cascades stacks on board change', async () => {
@@ -47,7 +47,7 @@ describe('CnDeckCardCreate', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.vm.stacks).toEqual([{ id: 11, title: 'To Do' }])
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('emits create with the full payload on submit', async () => {
@@ -75,7 +75,7 @@ describe('CnDeckCardCreate', () => {
 			description: 'Steps to repro',
 			duedate: '2026-06-01',
 		}])
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('blocks submit when required fields are missing', async () => {
@@ -88,6 +88,6 @@ describe('CnDeckCardCreate', () => {
 		expect(wrapper.vm.canSubmit).toBe(false)
 		wrapper.vm.submit()
 		expect(wrapper.emitted('create')).toBeFalsy()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

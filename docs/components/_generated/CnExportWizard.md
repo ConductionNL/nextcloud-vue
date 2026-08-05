@@ -23,5 +23,5 @@
 
 | Name      | Payload | Description                                                                         |
 | --------- | ------- | ----------------------------------------------------------------------------------- |
-| `close`   | —       | Emitted when the dialog should close.                                               |
 | `confirm` | —       | Emitted when the user clicks the export button. Payload is the collected form data. |
+| `close`   | —       | Emitted when the dialog should close.                                               |

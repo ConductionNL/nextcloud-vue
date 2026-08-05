@@ -16,7 +16,7 @@
  * reactive mock cache and assert the DOM updates.
  */
 
-const { reactive, nextTick, h } = require('vue')
+const { reactive, nextTick } = require('vue')
 
 // Reactive cache backing the mock store — mirrors the real store's
 // `objects` / `schemas` state so the holder's read-through getters
@@ -67,7 +67,7 @@ const LiveStub = {
 		objectData: { type: Object, default: null },
 		objectId: { type: String, default: '' },
 	},
-	render() {
+	render(h) {
 		return h('div', { class: 'live-stub' }, this.objectData ? this.objectData.title : 'none')
 	},
 }
@@ -138,7 +138,7 @@ describe('CnPageRenderer — v2 widget-grid live detail context (#222)', () => {
 		// Registration precedes subscribe — the plugin rejects unregistered types.
 		expect(mockStore.objectTypeRegistry['publication-publication']).toBeTruthy()
 
-		w.unmount()
+		w.destroy()
 	})
 
 	it('widgets re-render through the holder when the store cache updates (plugin refetch)', async () => {
@@ -158,7 +158,7 @@ describe('CnPageRenderer — v2 widget-grid live detail context (#222)', () => {
 		// The holder itself reads through too — no stale snapshot.
 		expect(w.vm.detailObjectContext.value.objectData.title).toBe('Updated live')
 
-		w.unmount()
+		w.destroy()
 	})
 
 	it('re-scopes the subscription when the route object changes', async () => {
@@ -176,7 +176,7 @@ describe('CnPageRenderer — v2 widget-grid live detail context (#222)', () => {
 		)
 		expect(mockStore.subscribe).toHaveBeenCalledWith('publication-publication', 'pub-2')
 
-		w.unmount()
+		w.destroy()
 	})
 
 	it('releases the subscription on unmount', async () => {
@@ -184,7 +184,7 @@ describe('CnPageRenderer — v2 widget-grid live detail context (#222)', () => {
 		await flush()
 		expect(mockStore.subscribe).toHaveBeenCalled()
 
-		w.unmount()
+		w.destroy()
 		await flush()
 		expect(mockStore.unsubscribe).toHaveBeenCalledWith(
 			expect.objectContaining({ id: 'pub-1' }),
@@ -208,7 +208,7 @@ describe('CnPageRenderer — v2 widget-grid live detail context (#222)', () => {
 		)
 		expect(w.vm.detailObjectContext.value).toBeNull()
 
-		w.unmount()
+		w.destroy()
 	})
 
 	it('config.subscribe: false disables the widget-grid subscription (holder still loads)', async () => {
@@ -219,7 +219,7 @@ describe('CnPageRenderer — v2 widget-grid live detail context (#222)', () => {
 		// The object still loads and renders — only the live wiring is off.
 		expect(w.find('.live-stub').text()).toBe('Hello')
 
-		w.unmount()
+		w.destroy()
 	})
 
 	it('a consumer writing to the holder cannot clobber the live view or the store cache', async () => {
@@ -238,6 +238,6 @@ describe('CnPageRenderer — v2 widget-grid live detail context (#222)', () => {
 		expect(ctx.schema).toEqual({ properties: { title: { type: 'string' } } })
 		expect(mockState.objects['publication-publication']['pub-1'].title).toBe('Hello')
 
-		w.unmount()
+		w.destroy()
 	})
 })

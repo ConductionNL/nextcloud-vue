@@ -11,10 +11,7 @@
  *  - no link is emitted when nothing is selected.
  */
 
-// See CnEmailPicker.spec.js: a Vue-3 `nextTick()` no longer implies the
-// render queued by an async `mounted()` has flushed, so wait on the promise
-// queue instead of counting ticks.
-const { mount, flushPromises } = require('@vue/test-utils')
+const { mount } = require('@vue/test-utils')
 const CnAnalyticsReportPicker = require('../CnAnalyticsReportPicker.vue').default
 
 function resolveOnce(payload, status = 200) {
@@ -39,7 +36,8 @@ describe('CnAnalyticsReportPicker', () => {
 		}))
 
 		const wrapper = mount(CnAnalyticsReportPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		const rows = wrapper.findAll('.cn-analytics-report-picker__row-button')
 		expect(rows).toHaveLength(2)
@@ -47,7 +45,7 @@ describe('CnAnalyticsReportPicker', () => {
 		expect(wrapper.text()).toContain('Ops')
 		expect(wrapper.text()).toContain('Group')
 		expect(wrapper.text()).toContain('Database')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('selecting a report enables confirm and emits link', async () => {
@@ -56,7 +54,8 @@ describe('CnAnalyticsReportPicker', () => {
 		}))
 
 		const wrapper = mount(CnAnalyticsReportPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		await wrapper.find('.cn-analytics-report-picker__row-button').trigger('click')
 		await wrapper.vm.$nextTick()
@@ -66,7 +65,7 @@ describe('CnAnalyticsReportPicker', () => {
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0]).toEqual([{ reportId: 99 }])
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('surfaces an inline error when /available fails', async () => {
@@ -74,10 +73,11 @@ describe('CnAnalyticsReportPicker', () => {
 		global.fetch.mockRejectedValueOnce(new Error('boom'))
 
 		const wrapper = mount(CnAnalyticsReportPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('Could not load reports.')
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 
@@ -85,10 +85,11 @@ describe('CnAnalyticsReportPicker', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ error: 'nope' }, 501))
 
 		const wrapper = mount(CnAnalyticsReportPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('NC Analytics is not installed.')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('filters reports client-side via search', async () => {
@@ -100,14 +101,15 @@ describe('CnAnalyticsReportPicker', () => {
 		}))
 
 		const wrapper = mount(CnAnalyticsReportPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		wrapper.vm.search = 'sales'
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.vm.visibleReports).toHaveLength(1)
 		expect(wrapper.vm.visibleReports[0].id).toBe(1)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('does not emit link when no report is selected', () => {
@@ -116,6 +118,6 @@ describe('CnAnalyticsReportPicker', () => {
 
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeFalsy()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

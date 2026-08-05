@@ -50,7 +50,7 @@ describe('CnPhotosTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No albums linked yet')
 		expect(wrapper.text()).toContain('Open Photos')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders one tile per album with name + photo count + deep-link href', async () => {
@@ -75,7 +75,7 @@ describe('CnPhotosTab', () => {
 		expect(wrapper.text()).toContain('11 photos')
 		const links = wrapper.findAll('.cn-photos-tab__tile-link')
 		expect(links.at(0).attributes('href')).toBe('/index.php/apps/photos/albums/Alpha')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('strips the [or:{uuid}] marker from the displayed album name', async () => {
@@ -94,7 +94,7 @@ describe('CnPhotosTab', () => {
 		const text = wrapper.text()
 		expect(text).toContain('Site visit')
 		expect(text).not.toContain('[or:obj-1]')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('falls back to a placeholder icon when the cover image errors', async () => {
@@ -116,7 +116,7 @@ describe('CnPhotosTab', () => {
 		// placeholder icon takes over
 		expect(wrapper.find('img.cn-photos-tab__cover-img').exists()).toBe(false)
 		expect(wrapper.find('.cn-photos-tab__cover-fallback').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the unavailable banner when the provider returns 503', async () => {
@@ -126,7 +126,7 @@ describe('CnPhotosTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Photos is currently unavailable.')
 		expect(wrapper.find('.cn-photos-tab__tile').exists()).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the generic error label when fetch throws', async () => {
@@ -136,7 +136,7 @@ describe('CnPhotosTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Could not load albums.')
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 
@@ -147,7 +147,7 @@ describe('CnPhotosTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Link existing album')
 		expect(wrapper.text()).toContain('Create new album')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('POSTs the albumId to the Tier-2 endpoint on link pick', async () => {
@@ -164,7 +164,7 @@ describe('CnPhotosTab', () => {
 		expect(linkCall[0]).toBe('/apps/openregister/api/objects/reg/schema/obj-1/photos')
 		expect(linkCall[1].method).toBe('POST')
 		expect(JSON.parse(linkCall[1].body)).toEqual({ albumId: 7 })
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('surfaces the duplicate-link error on 409', async () => {
@@ -177,7 +177,7 @@ describe('CnPhotosTab', () => {
 
 		await wrapper.vm.onLinkPick({ albumId: 7 })
 		expect(wrapper.vm.error).toContain('already linked')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('DELETEs the album on unlink', async () => {
@@ -193,6 +193,6 @@ describe('CnPhotosTab', () => {
 		const delCall = global.fetch.mock.calls[1]
 		expect(delCall[0]).toBe('/apps/openregister/api/objects/reg/schema/obj-1/photos/42')
 		expect(delCall[1].method).toBe('DELETE')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

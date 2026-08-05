@@ -274,7 +274,7 @@ import { isCustomIconUrl } from '../CnIconPicker/dashboardIcons.js'
 
 /**
  * CnIconBrowserPanel — the always-open picker panel used by
- * `CnIconBrowser` (rendered inline, or inside the popover). Private to the
+ * {@link CnIconBrowser} (rendered inline, or inside the popover). Private to the
  * CnIconBrowser directory; not a public export. Owns the search/grid/custom-tab
  * UI and state; the parent owns the catalogue resolution, label, and popover.
  *

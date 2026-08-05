@@ -83,7 +83,7 @@ describe('CnFormsTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No forms linked yet')
 		expect(wrapper.text()).toContain('Open Forms')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a row with title, description and open status', async () => {
@@ -105,7 +105,7 @@ describe('CnFormsTab', () => {
 		expect(wrapper.find('.cn-forms-tab__status--open').exists()).toBe(true)
 		// The row deep-links into Forms via NcListItem's href.
 		expect(rows.at(0).attributes('href')).toBe('/index.php/apps/forms/hash-42')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('groups submissions into a per-form submission count', async () => {
@@ -130,7 +130,7 @@ describe('CnFormsTab', () => {
 		const count = wrapper.find('.cn-forms-tab__count')
 		expect(count.exists()).toBe(true)
 		expect(count.text()).toContain('3')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a "Closed" status pill when the form has expired', async () => {
@@ -145,7 +145,7 @@ describe('CnFormsTab', () => {
 		expect(wrapper.find('.cn-forms-tab__row--closed').exists()).toBe(true)
 		expect(wrapper.find('.cn-forms-tab__status--closed').exists()).toBe(true)
 		expect(wrapper.text()).toContain('Closed')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders the expiry date (NcDateTime) and an open chip when expiresAt is in the future', async () => {
@@ -159,7 +159,7 @@ describe('CnFormsTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.find('.cn-forms-tab__expiry').exists()).toBe(true)
 		expect(wrapper.find('.cn-forms-tab__status--open').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the unavailable banner when the provider returns 503', async () => {
@@ -169,7 +169,7 @@ describe('CnFormsTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Forms is currently unavailable.')
 		expect(wrapper.find('.cn-forms-tab__row').exists()).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the generic error label when fetch throws', async () => {
@@ -179,7 +179,7 @@ describe('CnFormsTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Could not load forms.')
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 
@@ -190,7 +190,7 @@ describe('CnFormsTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Link existing form')
 		expect(wrapper.text()).toContain('Create new form')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('fetches from the Tier-2 link endpoint (/api/objects/{r}/{s}/{id}/forms)', async () => {
@@ -202,7 +202,7 @@ describe('CnFormsTab', () => {
 			expect.stringMatching(/\/api\/objects\/reg\/schema\/obj-1\/forms$/),
 			expect.any(Object),
 		)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders an unlink button on each row', async () => {
@@ -215,6 +215,6 @@ describe('CnFormsTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.find('.cn-forms-tab__unlink').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

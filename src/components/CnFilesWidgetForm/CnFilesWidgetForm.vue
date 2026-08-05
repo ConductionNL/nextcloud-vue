@@ -15,7 +15,7 @@
 					{{ isObjectBound ? t('nextcloud-vue', 'Current object') : (folderPath || '/') }}
 				</span>
 				<NcButton
-					variant="secondary"
+					type="secondary"
 					:disabled="isObjectBound"
 					:title="isObjectBound ? objectBoundNote : null"
 					@click="openFolderPicker">
@@ -37,7 +37,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@update:modelValue="updateField('viewMode', $event)" />
+			@input="updateField('viewMode', $event)" />
 
 		<NcSelect
 			:model-value="sortBy"
@@ -46,7 +46,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@update:modelValue="updateField('sortBy', $event)" />
+			@input="updateField('sortBy', $event)" />
 
 		<label class="cn-files-widget-form__toggle">
 			<input
@@ -118,7 +118,7 @@ const DEFAULT_CONTENT = Object.freeze({
 
 /**
  * CnFilesWidgetForm — the `CnAddWidgetModal` sub-form for creating or editing
- * a `files` widget placement (renderer: `CnFilesWidget`).
+ * a `files` widget placement (renderer: {@link CnFilesWidget}).
  *
  * The folder is chosen with the native Nextcloud folder picker (a "Browse…"
  * button opens {@link https://www.npmjs.com/package/@nextcloud/dialogs | getFilePickerBuilder}

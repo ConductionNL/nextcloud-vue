@@ -149,11 +149,34 @@ one itself, mirroring how it never mutates positions.
 						<span class="cn-graph-canvas__node-fallback">{{ node.id }}</span>
 					</slot>
 
-					<!-- Connection handle. Hidden when the canvas is not connectable. -->
-					<button v-if="connectable && !readOnly"
+					<!--
+						Connection ports. A node declares them (`node.ports`) and
+						gets exactly those; a node that declares none keeps the
+						single right-hand out-port, so no existing consumer
+						changes behaviour.
+
+						Ports sit ON the border, not beside it: each is centred
+						on its edge with `translate(-50%, -50%)`, so a line
+						drawn to a port's centre meets the card exactly where the
+						eye expects. Offsetting them outward (the old
+						`right: -8px`) left a visible gap that read as a
+						disconnected line.
+
+						`top` is where a LOOP puts its body ports — the nodes a
+						loop repeats hang off the top edge as a visible sub-list,
+						kept clear of the left-to-right flow of the main chain.
+					-->
+					<button v-for="port in portsFor(node)"
+						:key="port.id"
 						class="cn-graph-canvas__handle"
-						:aria-label="t('nextcloud-vue', 'Drag to connect, or press c to connect with the keyboard')"
-						@mousedown.stop="onConnectionStart(node, $event)"
+						:class="[
+							`cn-graph-canvas__handle--${port.side}`,
+							`cn-graph-canvas__handle--${port.kind}`,
+						]"
+						:style="portStyle(node, port)"
+						:aria-label="portLabel(node, port)"
+						:disabled="port.kind === 'in'"
+						@mousedown.stop="onConnectionStart(node, $event, port)"
 						@click.stop />
 				</div>
 			</div>
@@ -471,6 +494,101 @@ export default {
 		},
 
 		/**
+		 * The ports a node renders.
+		 *
+		 * A node MAY declare `ports: [{id, side, kind, label}]`. One that does
+		 * not gets the historical single right-hand out-port, so every existing
+		 * consumer keeps its behaviour — this is additive.
+		 *
+		 * `side` is `left` | `right` | `top`. `top` is where a loop node puts
+		 * its body ports: the nodes a loop repeats hang off the top edge as a
+		 * visible sub-list, clear of the left-to-right flow of the main chain.
+		 * Pagination is the case that motivates it — the loop yields a page of
+		 * objects and re-enters until the source is exhausted, and the steps
+		 * that run per page are legible as a group rather than as a detour in
+		 * the middle of the line.
+		 *
+		 * @param {object} node The node.
+		 * @return {Array<object>} Its ports, in render order.
+		 */
+		portsFor(node) {
+			if (this.connectable === false || this.readOnly === true) {
+				return []
+			}
+
+			const declared = Array.isArray(node.ports) ? node.ports : null
+			if (declared === null) {
+				return [{ id: 'out', side: 'right', kind: 'out', label: null }]
+			}
+
+			return declared.map((port, index) => ({
+				id: (port.id ?? `port-${index}`),
+				side: (port.side ?? 'right'),
+				// A left port receives and cannot originate a connection; every
+				// other side is an origin unless it says otherwise.
+				kind: (port.kind ?? (port.side === 'left' ? 'in' : 'out')),
+				label: (port.label ?? null),
+			}))
+		},
+
+		/**
+		 * Position one port ON its border, spread evenly when a side has several.
+		 *
+		 * Several ports on one side is the branching case: a node with three
+		 * exits shows three origins, so which branch a line leaves from is
+		 * readable without opening the node's configuration. They are spread at
+		 * `(i + 1) / (n + 1)` so the set stays centred and symmetric whatever
+		 * `n` is, rather than bunching at one end.
+		 *
+		 * Siblings are that NODE's ports on that side — never a list shared
+		 * across nodes. Grouping globally would position a node's single port by
+		 * its index among every port in the graph, so one node gaining a branch
+		 * would move the ports of every other node.
+		 *
+		 * @param {object} node The node the port belongs to.
+		 * @param {object} port The port.
+		 * @return {object} The style object.
+		 */
+		portStyle(node, port) {
+			const siblings = this.portsFor(node).filter((candidate) => candidate.side === port.side)
+			const index = Math.max(0, siblings.findIndex((candidate) => candidate.id === port.id))
+			const offset = `${((index + 1) / (siblings.length + 1)) * 100}%`
+
+			if (port.side === 'top') {
+				return { left: offset, top: '0%' }
+			}
+
+			if (port.side === 'left') {
+				return { left: '0%', top: offset }
+			}
+
+			return { left: '100%', top: offset }
+		},
+
+		/**
+		 * Accessible name for a port.
+		 *
+		 * A branch port names its branch, because "drag to connect" on three
+		 * identical buttons tells a keyboard or screen-reader user nothing about
+		 * which one they are on.
+		 *
+		 * @param {object} node The node.
+		 * @param {object} port The port.
+		 * @return {string} The label.
+		 */
+		portLabel(node, port) {
+			if (port.label) {
+				return port.label
+			}
+
+			if (port.kind === 'in') {
+				return t('nextcloud-vue', 'Incoming connections')
+			}
+
+			return t('nextcloud-vue', 'Drag to connect, or press c to connect with the keyboard')
+		},
+
+		/**
 		 * Convert a mouse event to canvas-space coordinates, undoing pan and zoom.
 		 *
 		 * @param {MouseEvent} event The mouse event.
@@ -507,32 +625,86 @@ export default {
 			if (this.drawingConnection && this.drawingConnection.source !== node.id) {
 				/**
 				 * @event connect A connection was drawn between two nodes.
-				 * @type {{source: string, target: string}}
+				 * `sourcePort` names the port it left from, when the source
+				 * node declares ports — that is what tells a consumer WHICH
+				 * branch was drawn. Absent for a node using the default port,
+				 * so a consumer that ignores it keeps working.
+				 * @type {{source: string, target: string, sourcePort: ?string}}
 				 */
-				this.$emit('connect', { source: this.drawingConnection.source, target: node.id })
+				// `sourcePort` is OMITTED, not set to null, when the drag came
+				// from a node using the default port. Adding a key changes the
+				// payload's shape for every existing consumer — an equality
+				// assertion on `{source, target}` fails on the extra key alone,
+				// which is how this was caught. Absent means "no port involved".
+				const connection = { source: this.drawingConnection.source, target: node.id }
+				if (this.drawingConnection.sourcePort) {
+					connection.sourcePort = this.drawingConnection.sourcePort
+				}
+
+				this.$emit('connect', connection)
 			}
 			this.drawingConnection = null
 			this.draggingNode = null
 		},
 
 		/**
-		 * Start drawing a connection from a node's handle.
+		 * Start drawing a connection from one of a node's ports.
 		 *
 		 * @param {object} node The source node.
 		 * @param {MouseEvent} event The mousedown event.
+		 * @param {object|null} port The port dragged from, or null for a node
+		 *                           using the default single out-port.
 		 * @return {void}
 		 */
-		onConnectionStart(node, event) {
+		onConnectionStart(node, event, port = null) {
 			if (this.readOnly) return
-			const centre = this.nodeCentre(node)
+			// An `in` port receives; it never originates. Without this a user
+			// could drag backwards out of an inbound port and create an edge
+			// pointing the wrong way, which reads on the canvas as the flow
+			// running in reverse.
+			if (port !== null && port.kind === 'in') return
+
+			// The draft line starts AT THE PORT, not at the node's centre, so
+			// what the user drags is anchored where they grabbed. Starting from
+			// the centre made the line appear to emerge from under the card.
+			const start = (port === null) ? this.nodeCentre(node) : this.portPoint(node, port)
 			const point = this.toCanvasPoint(event)
 			this.drawingConnection = {
 				source: node.id,
-				startX: centre.x,
-				startY: centre.y,
+				sourcePort: (port === null ? null : port.id),
+				startX: start.x,
+				startY: start.y,
 				currentX: point.x,
 				currentY: point.y,
 			}
+		},
+
+		/**
+		 * A port's position in canvas space.
+		 *
+		 * The same arithmetic as `portStyle()`, in canvas units rather than
+		 * percentages, so an edge drawn to a port and the port itself land on
+		 * the same pixel. Consumers use it to route lines port-to-port instead
+		 * of centre-to-centre.
+		 *
+		 * @param {object} node The node.
+		 * @param {object} port The port.
+		 * @return {{x: number, y: number}} The port's centre.
+		 */
+		portPoint(node, port) {
+			const siblings = this.portsFor(node).filter((candidate) => candidate.side === port.side)
+			const index = Math.max(0, siblings.findIndex((candidate) => candidate.id === port.id))
+			const fraction = (index + 1) / (siblings.length + 1)
+
+			if (port.side === 'top') {
+				return { x: node.x + (this.nodeWidth * fraction), y: node.y }
+			}
+
+			if (port.side === 'left') {
+				return { x: node.x, y: node.y + (this.nodeHeight * fraction) }
+			}
+
+			return { x: node.x + this.nodeWidth, y: node.y + (this.nodeHeight * fraction) }
 		},
 
 		/**
@@ -798,17 +970,52 @@ export default {
 	color: var(--color-text-maxcontrast);
 }
 
+/* A port sits ON the border, centred on it.
+ *
+ * `left`/`top` are supplied inline per port and are the point on the edge;
+ * the translate centres the port over that point, so half of it sits inside
+ * the card and half outside. Offsetting outward instead (the old
+ * `right: -8px`) parked the port BESIDE the border with a gap, and a line
+ * drawn to it appeared not to touch the node.
+ *
+ * The explicit `min-*`/`max-*` are not redundant. Nextcloud gives every
+ * `<button>` a minimum clickable height, which silently overrode `height` —
+ * a port declared 16x16 measured 16x34 on a live instance, rendering as a bar
+ * rather than a dot and, once several ports share one side, overlapping its
+ * neighbours. */
 .cn-graph-canvas__handle {
 	position: absolute;
-	right: -8px;
-	top: 50%;
-	transform: translateY(-50%);
-	width: 16px;
-	height: 16px;
+	transform: translate(-50%, -50%);
+	width: 12px;
+	height: 12px;
+	min-width: 12px;
+	min-height: 12px;
+	max-width: 12px;
+	max-height: 12px;
 	padding: 0;
 	border: 2px solid var(--color-main-background);
-	border-radius: 50%;
+	border-radius: 3px;
 	background-color: var(--color-primary-element);
+	cursor: crosshair;
+}
+
+/* An inbound port is an indicator, not a grab handle: it is where lines LAND.
+   Rendered as a bar along the border rather than a square, so entry and exit
+   are distinguishable by shape and not only by which side they are on. */
+.cn-graph-canvas__handle--in {
+	width: 4px;
+	min-width: 4px;
+	max-width: 4px;
+	height: 22px;
+	min-height: 22px;
+	max-height: 22px;
+	border-radius: 2px;
+	cursor: default;
+	background-color: var(--color-border-dark);
+}
+
+/* Loop ports leave from the top edge, where the repeated sub-list hangs. */
+.cn-graph-canvas__handle--top {
 	cursor: crosshair;
 }
 

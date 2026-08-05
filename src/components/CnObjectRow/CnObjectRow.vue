@@ -125,15 +125,6 @@ export default {
 		},
 	},
 
-	// Vue 2 had a separate listener channel, so a consumer's `@click` only ever
-	// saw `$emit('click')`. In Vue 3 an UNDECLARED event name stays a
-	// fallthrough attribute: `onClick` lands on the root `<div>` as a native
-	// handler, so the consumer's handler fires once from the DOM click and
-	// again from `$emit('click', object)` — twice per click, with different
-	// payloads. Declaring the names here removes them from `$attrs`, which is
-	// also what stops VTU v2 recording the native DOM event into `emitted()`.
-	emits: ['select', 'click'],
-
 	setup() {
 		// Tell a deliberate row click apart from a text-selection drag.
 		return useClickDragGuard()

@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * Icon-catalogue adapters for `CnIconPicker`'s multi-source mode.
+ * Icon-catalogue adapters for {@link CnIconPicker}'s multi-source mode.
  *
  * The library imports NO icon pack itself — the consuming app owns (and
  * licenses) that choice and passes the raw source in. These helpers turn a

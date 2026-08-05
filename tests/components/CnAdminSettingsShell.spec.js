@@ -109,38 +109,4 @@ describe('CnAdminSettingsShell', () => {
 		const wrapper = mountShell({ showVersionCard: false })
 		expect(wrapper.findComponent({ name: 'CnVersionInfoCard' }).exists()).toBe(false)
 	})
-
-	// ADR-079 Step 2 — the organisation credential broker's ONE home.
-	//
-	// It previously lived in a generic modal on CnAppRoot, rendered from
-	// `manifest.adminSettings[]` and gated on app OWNERSHIP. No app in the
-	// fleet ever declared that array, so the broker was unreachable in every
-	// app. It now renders here, on the app's Nextcloud admin page, where the
-	// access decision is made server-side for /settings/admin/<app>.
-	describe('organisation credential broker (ADR-079 Step 2)', () => {
-
-		it('does not render the broker by default', () => {
-			const wrapper = mountShell()
-			expect(wrapper.findComponent({ name: 'CnCredentials' }).exists()).toBe(false)
-		})
-
-		it('renders the broker at organisation scope when opted in', () => {
-			const wrapper = mountShell({ showOrganisationCredentials: true })
-			const broker = wrapper.findComponent({ name: 'CnCredentials' })
-			expect(broker.exists()).toBe(true)
-			expect(broker.props('scope')).toBe('organisation')
-		})
-
-		it('forwards the app identity and its manifest credential declarations', () => {
-			const appCredentials = [{ id: 'kvk', label: 'KvK API key' }]
-			const wrapper = mountShell({
-				showOrganisationCredentials: true,
-				appName: 'OpenConnector',
-				appCredentials,
-			})
-			const broker = wrapper.findComponent({ name: 'CnCredentials' })
-			expect(broker.props('appName')).toBe('OpenConnector')
-			expect(broker.props('appCredentials')).toEqual(appCredentials)
-		})
-	})
 })

@@ -2,7 +2,6 @@
 // SPDX-FileCopyrightText: 2026 Conduction B.V.
 
 import { mount } from '@vue/test-utils'
-import { h } from 'vue'
 import CnIconBrowser from '../../src/components/CnIconBrowser/CnIconBrowser.vue'
 import CnIconBrowserPanel from '../../src/components/CnIconBrowser/CnIconBrowserPanel.vue'
 import {
@@ -23,12 +22,9 @@ const FAKE_MDI = {
 }
 
 function fakeVmdiContext() {
-	// Vue 2 passed `createElement` as `render()`'s first argument; Vue 3 passes
-	// none and `h` is imported from the package instead, so the old signature
-	// left the parameter `undefined` ("h is not a function" at render time).
 	const modules = {
-		'./Account.vue': { default: { name: 'AccountIcon', render: () => h('span', 'A') } },
-		'./CalendarRange.vue': { default: { name: 'CalendarRangeIcon', render: () => h('span', 'C') } },
+		'./Account.vue': { default: { name: 'AccountIcon', render: (h) => h('span', 'A') } },
+		'./CalendarRange.vue': { default: { name: 'CalendarRangeIcon', render: (h) => h('span', 'C') } },
 	}
 	const ctx = (file) => modules[file]
 	ctx.keys = () => Object.keys(modules)
@@ -161,7 +157,7 @@ describe('CnIconBrowserPanel — icons grid', () => {
 		expect(w.vm.activeIndex).toBe(icons.length - 1)
 		await cells.at(icons.length - 1).trigger('keydown', { key: 'Home' })
 		expect(w.vm.activeIndex).toBe(0)
-		w.unmount()
+		w.destroy()
 	})
 	it('resets the roving cursor when the filtered list changes', async () => {
 		const w = mount(CnIconBrowserPanel, { propsData: { value: null, icons }, mocks })
@@ -235,7 +231,7 @@ describe('CnIconBrowserPanel — custom tab', () => {
 		expect(tabs.at(1).attributes('aria-selected')).toBe('true')
 		await tabs.at(1).trigger('keydown', { key: 'Home' })
 		expect(w.vm.mode).toBe('icons')
-		w.unmount()
+		w.destroy()
 	})
 	it('omits tab semantics when there is no Custom tab (icons panel is plain)', () => {
 		const w = mount(CnIconBrowserPanel, { propsData: { value: null, icons }, mocks })
@@ -568,7 +564,7 @@ describe('CnIconBrowserPanel — named sets are promoted to top-level tabs', () 
 			propsData: { value: null, icons, urlIconGroups: groups },
 			mocks,
 		})
-		const labels = w.findAll('.cn-icon-browser-panel__tab').map((b) => b.text())
+		const labels = w.findAll('.cn-icon-browser-panel__tab').wrappers.map((b) => b.text())
 		expect(labels).toEqual(['Icons', 'Gemeente', 'Den Haag'])
 	})
 
@@ -592,7 +588,7 @@ describe('CnIconBrowserPanel — named sets are promoted to top-level tabs', () 
 			},
 			mocks,
 		})
-		const labels = w.findAll('.cn-icon-browser-panel__tab').map((b) => b.text())
+		const labels = w.findAll('.cn-icon-browser-panel__tab').wrappers.map((b) => b.text())
 		expect(labels).toEqual(['Icons', 'Custom'])
 		expect(w.vm.unnamedIcons).toEqual([{ label: 'Brand', url: '/b.svg' }])
 	})
@@ -615,7 +611,7 @@ describe('CnIconBrowserPanel — named sets are promoted to top-level tabs', () 
 		expect(w.vm.mode).toBe('icons')
 		await tabs.at(0).trigger('keydown', { key: 'ArrowLeft' })
 		expect(w.vm.mode).toBe('group:den-haag')
-		w.unmount()
+		w.destroy()
 	})
 })
 

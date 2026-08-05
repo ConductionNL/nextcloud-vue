@@ -138,7 +138,7 @@ describe('CnWalkthrough', () => {
 		w.vm.revealTarget()
 		expect(clicks).toBe(1)
 
-		w.unmount()
+		w.destroy()
 		document.body.removeChild(nav)
 	})
 
@@ -151,11 +151,10 @@ describe('CnWalkthrough', () => {
 		}
 		const w = mount(CnWalkthrough, { propsData: { appId: 'pq', manifest: manifestH } })
 		expect(w.vm.isHandoff).toBe(true)
-		// Vue 3 removed the instance event API (`$on`/`$off`/`$once`); read the
-		// emitted payload from the wrapper's recorded events instead. (The engine
-		// also sets window.location, which is why the payload is asserted here.)
+		const built = []
+		// stub navigation by spying on the emitted handoff payload (engine also sets window.location)
+		w.vm.$on('handoff', (p) => built.push(p))
 		w.vm.doHandoff()
-		const built = w.emitted('handoff').map(([p]) => p)
 		expect(built[0].app).toBe('Shillinq')
 		expect(built[0].url).toContain('cn_resume_tour=shillinq%3Abill')
 	})

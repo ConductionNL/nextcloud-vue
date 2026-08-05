@@ -27,43 +27,18 @@
 module.exports = {
 	globalSetup: '<rootDir>/tests/globalSetup.js',
 	testEnvironment: 'jsdom',
-	// `mjs` is required here but NOT in jest.config.js: `@nextcloud/vue` 9 is
-	// ESM-only and ships every component as `dist/components/<Name>/index.mjs`.
-	// The main lane never touches those files (it maps the package to a stub);
-	// this lane loads them for real, so Jest must both RESOLVE and TRANSFORM
-	// the `.mjs` extension. Without the extension in the list a bare directory
-	// require can't find `index.mjs`; without the `m?` in the transform key the
-	// file is handed to the runtime untransformed and dies on `import`.
-	moduleFileExtensions: ['js', 'mjs', 'vue', 'json'],
+	moduleFileExtensions: ['js', 'vue', 'json'],
 	transform: {
-		'^.+\\.m?js$': 'babel-jest',
-		'^.+\\.vue$': '@vue/vue3-jest',
+		'^.+\\.js$': 'babel-jest',
+		'^.+\\.vue$': '@vue/vue2-jest',
 	},
-	// Four packages beyond jest.config.js's list, all ESM-only and all reached
-	// ONLY through the real `@nextcloud/vue` components this lane mounts (the
-	// main lane's stub tree never imports them):
-	//   nostics        — NcButton and most other components (dev diagnostics)
-	//   debounce       — NcAppSidebar / NcAppNavigation
-	//   perfect-debounce — NcActions / NcContent
-	//   tributejs      — NcRichContenteditable's @mention autocomplete
-	// Each was added only after it actually blocked a component; see
-	// `tests/a11y/support/realNextcloudVue.js` for the chain that is NOT
-	// resolvable this way (unist-builder) and is stubbed instead.
 	transformIgnorePatterns: [
-		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|vue-codemirror6|codemirror|@codemirror|@ckpack|nostics|debounce|perfect-debounce|tributejs)/)',
+		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|vue-codemirror6|codemirror|@codemirror)/)',
 	],
 	moduleNameMapper: {
 		'^@/(.*)$': '<rootDir>/src/$1',
-		// See jest.config.js — VTU v1 -> v2 mount-options adapter.
-		'^@vue/test-utils$': '<rootDir>/tests/support/vueTestUtilsCompat.js',
-		// See jest.config.js — pin `vue` to one module instance. This lane needs
-		// it at least as much as the main one: the real `@nextcloud/vue`
-		// components are loaded through a DIFFERENT module path than the specs'
-		// own `require('vue')`, and two copies of the runtime would leave
-		// `inject()` / `getCurrentInstance()` silently null across the boundary.
-		'^vue$': '<rootDir>/tests/support/vueSingleton.js',
 		'\\.(css)$': 'jest-transform-stub',
-		'^@toast-ui/editor$': '<rootDir>/tests/__mocks__/toast-ui-editor.js',
+		'^@toast-ui/vue-editor$': '<rootDir>/tests/__mocks__/toast-ui-vue-editor.js',
 		'^@mdi/js$': '<rootDir>/tests/__mocks__/mdi-js.js',
 		'^vue-codemirror6$': '<rootDir>/tests/__mocks__/vue-codemirror6.js',
 		'^@codemirror/lang-json$': '<rootDir>/tests/__mocks__/codemirror-lang-json.js',
@@ -78,23 +53,14 @@ module.exports = {
 		'^@microsoft/fetch-event-source$': '<rootDir>/tests/__mocks__/fetch-event-source.js',
 		'^@nextcloud/notify_push$': '<rootDir>/tests/__mocks__/nextcloud-notify-push.js',
 		'^@nextcloud/dialogs$': '<rootDir>/tests/__mocks__/nextcloud-dialogs.js',
-		// `@vueuse/core` is DELIBERATELY not mapped here (jest.config.js maps it
-		// to a one-function stub). It is a real installed dependency now, and
-		// the real `@nextcloud/vue` components this lane mounts call a wide
-		// surface of it during setup — `createSharedComposable`, `useElementSize`,
-		// `useSwipe`, `useFocusWithin`, ... A stub is guaranteed to lag that
-		// surface, and every gap aborts the mount with `core.<fn> is not a
-		// function` — i.e. a component that never renders, which is exactly the
-		// false-pass this lane exists to prevent. Let the real package load.
-		//
-		// `@nextcloud/vue-select` (NcSelect's dependency) is ESM-only and its
-		// `exports` map offers ONLY an `import` condition, so Jest's CJS
-		// resolver cannot find it by name at all. Point at the file directly —
-		// the same escape hatch `tests/support/vueSingleton.js` documents.
-		'^@nextcloud/vue-select$': '<rootDir>/node_modules/@nextcloud/vue-select/dist/index.mjs',
-		// See jest.config.js — the Vue-3 line imports `vue3-apexcharts`.
+		// Richer @vueuse/core stub than jest.config.js's one-function mock:
+		// the a11y lane mounts REAL @nextcloud/vue components (NcModal/NcDialog/
+		// NcAppSidebar/...) that call real @vueuse/core composables during
+		// setup/mount. @vueuse/core is an uninstalled peer dep, so we stub the
+		// full surface those components use with inert refs (none affect ARIA
+		// markup) — see the stub's docblock.
+		'^@vueuse/core$': '<rootDir>/tests/a11y/support/vueuseCoreStub.js',
 		'^vue-apexcharts$': '<rootDir>/tests/__mocks__/vue-apexcharts.js',
-		'^vue3-apexcharts$': '<rootDir>/tests/__mocks__/vue-apexcharts.js',
 		'^gridstack$': '<rootDir>/tests/__mocks__/gridstack.js',
 		'^gridstack/dist/gridstack\\.min\\.css$': 'jest-transform-stub',
 	},
@@ -102,10 +68,7 @@ module.exports = {
 		'<rootDir>/tests/a11y/**/*.spec.js',
 	],
 	setupFiles: [
-		'<rootDir>/tests/a11y/support/jsdomEnvPolyfill.js',
-	],
-	// See jest.config.js — tests/setup.js needs the test framework in place.
-	setupFilesAfterEnv: [
 		'<rootDir>/tests/setup.js',
+		'<rootDir>/tests/a11y/support/jsdomEnvPolyfill.js',
 	],
 }

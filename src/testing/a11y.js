@@ -44,101 +44,15 @@
 export const WCAG_AA_TAGS = Object.freeze(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
 
 /**
- * `Node.ELEMENT_NODE` — the only node type axe-core accepts as a context root.
- *
- * @type {number}
- */
-const ELEMENT_NODE = 1
-
-/**
- * Collect the real `Element` nodes a Vue 3 vnode tree actually rendered.
- *
- * WHY THIS EXISTS: under Vue 3, `wrapper.element` / `vm.$el` is NOT always an
- * element. When a component's root is a `<Teleport>` — which is how
- * `@nextcloud/vue` 9 renders `NcModal` and `NcDialog`, and therefore how
- * every dialog-rooted component in this library renders — Vue leaves an empty
- * anchor COMMENT node (`nodeType === 8`) at the original mount point and moves
- * the real markup to the teleport target (usually `document.body`). A
- * multi-root (fragment) component leaves a comment anchor for the same reason.
- *
- * Handing that comment to `axe.run()` fails with the thoroughly unhelpful
- * `No elements found for include in page Context`: no violations, no markup,
- * and no hint that the component rendered perfectly well a couple of nodes
- * away. Under Vue 2 this could not happen — there was no `<Teleport>`,
- * `NcModal` relocated its own element imperatively, and `$el` was always a
- * real element — so every consumer that scans a dialog only discovers this
- * when it migrates.
- *
- * So: walk the instance's vnode subtree and gather the elements it genuinely
- * produced, descending THROUGH the anchors. `component` is checked before
- * `el` because a component vnode's `el` is its subtree's el — which, for a
- * teleporting child, is the very anchor comment we are trying to see past.
- *
- * @param {object|Array} vnode A Vue 3 vnode, or array of them, to walk.
- * @param {Element[]} out Accumulator for the elements found.
- * @return {Element[]} The same accumulator, for convenience.
- */
-function collectRenderedElements(vnode, out) {
-	if (!vnode || typeof vnode !== 'object') {
-		return out
-	}
-	if (Array.isArray(vnode)) {
-		for (const child of vnode) {
-			collectRenderedElements(child, out)
-		}
-		return out
-	}
-	if (vnode.component) {
-		// Child component: descend into what it rendered, not its own vnode.el.
-		return collectRenderedElements(vnode.component.subTree, out)
-	}
-	if (vnode.el && vnode.el.nodeType === ELEMENT_NODE) {
-		out.push(vnode.el)
-		return out
-	}
-	// Teleport / fragment / comment anchor — the real nodes are the children.
-	return collectRenderedElements(vnode.children, out)
-}
-
-/**
- * Resolve the elements behind a mount result whose root node is an anchor
- * rather than an element.
- *
- * @param {object} instance The Vue 3 internal instance (`vm.$`).
- * @param {Node} fallback The raw root node to return when nothing is found.
- * @return {Element|object|Node} A single element, an axe `{ include }` context, or `fallback`.
- */
-function resolveAnchoredRoot(instance, fallback) {
-	const elements = instance ? collectRenderedElements(instance.subTree, []) : []
-	if (elements.length === 1) {
-		return elements[0]
-	}
-	if (elements.length > 1) {
-		// Several roots (fragment, or a teleport plus in-place siblings). Scan
-		// all of them rather than picking one — but as an explicit `include`
-		// list, NOT by widening to `document.body`, which would drag unrelated
-		// siblings of the teleport target into the result.
-		return { include: elements }
-	}
-	// Nothing rendered at all: hand back the raw node so axe's own error
-	// surfaces, rather than silently scanning nothing and "passing".
-	return fallback
-}
-
-/**
- * Resolve an axe-core scan context from whatever the caller handed us.
+ * Resolve a DOM node from whatever the caller handed us.
  *
  * Accepts:
- *  - a Vue Test Utils wrapper (`.element` is the mounted root node)
+ *  - a Vue Test Utils v1 wrapper (`.element` is the mounted root node)
  *  - a Vue instance (`.$el`)
  *  - a raw `Element` / `Document` / `DocumentFragment`
  *
- * When the root node is a Teleport/fragment anchor rather than an element,
- * the genuinely rendered elements are located instead — see
- * {@link collectRenderedElements}.
- *
  * @param {object|Element|Document} target The mount result or DOM node to resolve.
- * @return {Element|Document|object} The resolved axe-core context.
+ * @return {Element|Document} The resolved DOM node axe-core should scan.
  * @throws {TypeError} When `target` is none of the above.
  */
 function resolveNode(target) {
@@ -150,16 +64,12 @@ function resolveNode(target) {
 		// though the node is perfectly valid. `typeof .nodeType === 'number'`
 		// is the reliable, realm-agnostic duck-type check.
 		if (target.element && typeof target.element.nodeType === 'number') {
-			// Vue Test Utils wrapper.
-			return target.element.nodeType === ELEMENT_NODE
-				? target.element
-				: resolveAnchoredRoot(target.vm && target.vm.$, target.element)
+			// Vue Test Utils wrapper (Vue 2 / @vue/test-utils v1).
+			return target.element
 		}
 		if (target.$el && typeof target.$el.nodeType === 'number') {
 			// Raw Vue instance.
-			return target.$el.nodeType === ELEMENT_NODE
-				? target.$el
-				: resolveAnchoredRoot(target.$, target.$el)
+			return target.$el
 		}
 		if (typeof target.nodeType === 'number') {
 			// Already a DOM node (Element, Document, DocumentFragment, ...).

@@ -23,9 +23,9 @@
 | Name               | Payload | Description                                                                                                 |
 | ------------------ | ------- | ----------------------------------------------------------------------------------------------------------- |
 | `close`            | —       | Emitted when the dialog should be closed.                                                                   |
-| `confirm`          | —       | Emitted when the user clicks Save/Create. The parent should perform the API call and then call setResult(). |
-| `reset`            | —       | Emitted after a successful save in create-another mode. The parent should clear its form data.              |
 | `update:activeTab` | —       |                                                                                                             |
+| `reset`            | —       | Emitted after a successful save in create-another mode. The parent should clear its form data.              |
+| `confirm`          | —       | Emitted when the user clicks Save/Create. The parent should perform the API call and then call setResult(). |
 
 ### Slots
 

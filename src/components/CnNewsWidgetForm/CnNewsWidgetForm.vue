@@ -39,7 +39,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@update:modelValue="updateField('layout', $event)" />
+			@input="updateField('layout', $event)" />
 
 		<NcTextField
 			:model-value="String(itemLimit)"
@@ -72,7 +72,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@update:modelValue="updateField('dateFormat', $event)" />
+			@input="updateField('dateFormat', $event)" />
 
 		<NcCheckboxRadioSwitch
 			:model-value="metadataFilterEnabled"

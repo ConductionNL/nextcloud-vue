@@ -269,9 +269,7 @@ export default {
 
 		/**
 		 * Human label for a breakdown mode.
-		 *
-		 * @param {'category'|'timeseries'} id The breakdown-mode id from `modeOptions`.
-		 * @return {string} The translated label for the mode dropdown.
+		 * @param id
 		 */
 		modeLabel(id) {
 			return id === 'category' ? t('nextcloud-vue', 'By category') : t('nextcloud-vue', 'Over time')
@@ -279,10 +277,8 @@ export default {
 
 		/**
 		 * Set a top-level field and emit.
-		 *
-		 * @param {'chartKind'|'mode'|'metric'|'metricField'} field The data key to write.
-		 * @param {string} value The new value for that key.
-		 * @return {void}
+		 * @param field
+		 * @param value
 		 */
 		updateField(field, value) {
 			this[field] = value
@@ -291,10 +287,8 @@ export default {
 
 		/**
 		 * Set a source sub-field and emit.
-		 *
-		 * @param {'register'|'schema'} field The `source` sub-key to write.
-		 * @param {string} value The chosen register or schema slug.
-		 * @return {void}
+		 * @param field
+		 * @param value
 		 */
 		updateSource(field, value) {
 			this.source[field] = value
@@ -302,11 +296,9 @@ export default {
 		},
 
 		/**
-		 * Set a bucket sub-field and emit (timeseries breakdown).
-		 *
-		 * @param {'field'|'interval'} field The `bucket` sub-key to write.
-		 * @param {string} value The date field name, or an `intervalOptions` value.
-		 * @return {void}
+		 * Set a bucket sub-field and emit.
+		 * @param field
+		 * @param value
 		 */
 		updateBucket(field, value) {
 			this.bucket[field] = value
@@ -314,11 +306,9 @@ export default {
 		},
 
 		/**
-		 * Set a group sub-field and emit (category breakdown).
-		 *
-		 * @param {'field'|'sort'|'limit'} field The `group` sub-key to write.
-		 * @param {string|number} value The field name, a `sortOptions` value, or the slice limit.
-		 * @return {void}
+		 * Set a group sub-field and emit.
+		 * @param field
+		 * @param value
 		 */
 		updateGroup(field, value) {
 			this.group[field] = value
@@ -327,11 +317,7 @@ export default {
 
 		/**
 		 * Receive updated filter rows from the shared editor.
-		 *
-		 * @param {Array<{key: string, op: string, value: string}>} rows The
-		 *   editor's full row list, serialised back to an OpenRegister filter
-		 *   object by `rowsToFilter()` when the content blob is assembled.
-		 * @return {void}
+		 * @param rows
 		 */
 		onFilterRows(rows) {
 			this.filterRows = rows

@@ -13,7 +13,6 @@
  * @module integrations/builtin/notes
  */
 
-import { h } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import CnNotesTab from '../../components/CnObjectSidebar/CnNotesTab.vue'
 import CnNotesCard from '../../components/CnNotesCard/CnNotesCard.vue'
@@ -34,12 +33,14 @@ const CnNotesCardAdapter = {
 		surface: { type: String, default: 'detail-page' },
 		objectType: { type: String, default: '' },
 	},
-	render() {
+	render(h) {
 		return h(CnNotesCard, {
-			registerId: this.register,
-			schemaId: this.schema,
-			objectId: this.objectId ? String(this.objectId) : '',
-			apiBase: this.apiBase,
+			props: {
+				registerId: this.register,
+				schemaId: this.schema,
+				objectId: this.objectId ? String(this.objectId) : '',
+				apiBase: this.apiBase,
+			},
 		})
 	},
 }

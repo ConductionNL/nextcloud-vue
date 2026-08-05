@@ -232,29 +232,19 @@ export default {
 		},
 		/**
 		 * Set a top-level field and emit.
-		 *
-		 * @param {'label'|'formatStyle'|'decimals'|'currency'|'metric'|'field'|'targetKind'|'targetValue'|'targetMetric'|'targetField'|'warn'|'danger'|'invert'} field The data key to write.
-		 * @param {string|number|boolean} value The new value — numeric for
-		 *   `decimals`/`targetValue`/`warn`/`danger`, boolean for `invert`,
-		 *   otherwise a string.
-		 * @return {void}
+		 * @param field
+		 * @param value
 		 */
 		updateField(field, value) { this[field] = value; this.emitChange() },
 		/**
 		 * Set a source sub-field and emit.
-		 *
-		 * @param {'register'|'schema'} field The `source` sub-key to write.
-		 * @param {string} value The chosen register or schema slug.
-		 * @return {void}
+		 * @param field
+		 * @param value
 		 */
 		updateSource(field, value) { this.source[field] = value; this.emitChange() },
 		/**
 		 * Receive updated filter rows.
-		 *
-		 * @param {Array<{key: string, op: string, value: string}>} rows The editor's
-		 *   full row list, serialised by `rowsToFilter()` for both the source and
-		 *   target aggregates.
-		 * @return {void}
+		 * @param rows
 		 */
 		onFilterRows(rows) { this.filterRows = rows; this.emitChange() },
 		/** Emit the assembled content. */

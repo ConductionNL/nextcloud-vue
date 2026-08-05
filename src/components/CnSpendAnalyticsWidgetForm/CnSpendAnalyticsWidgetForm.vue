@@ -12,7 +12,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@update:modelValue="updateField('viewMode', $event)" />
+			@input="updateField('viewMode', $event)" />
 
 		<NcSelect
 			:model-value="period"
@@ -21,7 +21,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@update:modelValue="updateField('period', $event)" />
+			@input="updateField('period', $event)" />
 
 		<NcTextField
 			:model-value="categoryIdsString"
@@ -46,7 +46,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@update:modelValue="updateField('drillThroughTarget', $event)" />
+			@input="updateField('drillThroughTarget', $event)" />
 
 		<label class="cn-spend-analytics-widget-form__toggle">
 			<input

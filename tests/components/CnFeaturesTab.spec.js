@@ -36,7 +36,7 @@ describe('CnFeaturesTab', () => {
 				],
 			},
 		})
-		const titles = wrapper.findAll('.cn-features-tab__title').map((w) => w.text())
+		const titles = wrapper.findAll('.cn-features-tab__title').wrappers.map((w) => w.text())
 		expect(titles).toEqual(['Alpha', 'beta', 'gamma'])
 	})
 

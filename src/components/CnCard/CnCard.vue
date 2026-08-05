@@ -210,8 +210,6 @@ export default {
 		},
 	},
 
-	emits: ['click'],
-
 	data() {
 		return {
 			isTitleEllipsized: false,

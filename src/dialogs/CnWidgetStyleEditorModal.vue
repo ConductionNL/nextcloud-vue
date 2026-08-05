@@ -67,7 +67,7 @@
 					<span class="cn-widget-style-editor__label">{{ t('nextcloud-vue', 'Color') }}</span>
 					<NcColorPicker v-model="draft.backgroundColor">
 						<NcButton
-							variant="secondary"
+							type="secondary"
 							:aria-label="t('nextcloud-vue', 'Pick background color')"
 							data-testid="cn-widget-style-color">
 							<template #icon>
@@ -96,6 +96,7 @@
 					data-testid="cn-widget-style-icon"
 					@input="draft.customIcon = $event || ''" />
 			</div>
+
 		</div>
 
 		<!-- Actions: optional delete, reset to defaults, save. -->
@@ -108,13 +109,13 @@
 				{{ t('nextcloud-vue', 'Delete') }}
 			</NcButton>
 			<div class="cn-widget-style-editor__actions-right">
-				<NcButton variant="tertiary" @click="onCancel">
+				<NcButton type="tertiary" @click="onCancel">
 					{{ t('nextcloud-vue', 'Cancel') }}
 				</NcButton>
-				<NcButton variant="secondary" data-testid="cn-widget-style-reset" @click="resetDraft">
+				<NcButton type="secondary" data-testid="cn-widget-style-reset" @click="resetDraft">
 					{{ t('nextcloud-vue', 'Reset') }}
 				</NcButton>
-				<NcButton variant="primary" data-testid="cn-widget-style-save" @click="onSave">
+				<NcButton type="primary" data-testid="cn-widget-style-save" @click="onSave">
 					{{ t('nextcloud-vue', 'Save') }}
 				</NcButton>
 			</div>
@@ -441,19 +442,19 @@ export default {
 		 */
 		onSave() {
 			if (!this.widget.styleConfig || typeof this.widget.styleConfig !== 'object') {
-				this.widget.styleConfig = {}
+				this.widget['styleConfig'] = {}
 			}
 			const sc = this.widget.styleConfig
-			sc.backgroundColor = this.draft.backgroundColor || null
-			sc.borderStyle = this.draft.borderStyle
-			sc.borderColor = this.draft.borderColor || null
-			sc.borderWidth = this.draft.borderWidth
-			sc.borderRadius = this.draft.borderRadius
-			sc.padding = { ...this.draft.padding }
+			sc['backgroundColor'] = this.draft.backgroundColor || null
+			sc['borderStyle'] = this.draft.borderStyle
+			sc['borderColor'] = this.draft.borderColor || null
+			sc['borderWidth'] = this.draft.borderWidth
+			sc['borderRadius'] = this.draft.borderRadius
+			sc['padding'] = { ...this.draft.padding }
 
-			this.widget.showTitle = this.draft.showTitle
-			this.widget.customTitle = this.draft.customTitle || null
-			this.widget.customIcon = this.draft.customIcon || null
+			this.widget['showTitle'] = this.draft.showTitle
+			this.widget['customTitle'] = this.draft.customTitle || null
+			this.widget['customIcon'] = this.draft.customIcon || null
 
 			// For typed widgets, also commit the content config edited via the
 			// registered sub-form (validated first; a non-empty result blocks save).
@@ -466,7 +467,7 @@ export default {
 				}
 				this.contentErrors = []
 				if (this.draftContent !== null) {
-					this.widget.content = this.draftContent
+					this.widget['content'] = this.draftContent
 				}
 			}
 

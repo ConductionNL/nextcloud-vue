@@ -18,7 +18,7 @@ export const MAX_URL_LENGTH = 2048
 /**
  * URL schemes the widgets explicitly refuse (XSS / local-file vectors).
  *
- * @type {Readonly<string[]>}
+ * @type {readonly string[]}
  */
 export const DANGEROUS_SCHEMES = Object.freeze([
 	'javascript:',
@@ -30,7 +30,7 @@ export const DANGEROUS_SCHEMES = Object.freeze([
 /**
  * URL schemes the widgets accept in addition to the relative-path prefix.
  *
- * @type {Readonly<string[]>}
+ * @type {readonly string[]}
  */
 export const ALLOWED_SCHEMES = Object.freeze([
 	'http://',

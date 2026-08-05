@@ -20,7 +20,7 @@ describe('CnTimeTrackerCreate', () => {
 		wrapper.vm.name = 'Acme'
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.canSubmit).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('emits create with the trimmed name', async () => {
@@ -33,7 +33,7 @@ describe('CnTimeTrackerCreate', () => {
 		wrapper.vm.submit()
 		expect(wrapper.emitted('create')).toBeTruthy()
 		expect(wrapper.emitted('create')[0]).toEqual([{ name: 'Acme' }])
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('does not emit create when the name is empty', async () => {
@@ -45,6 +45,6 @@ describe('CnTimeTrackerCreate', () => {
 
 		wrapper.vm.submit()
 		expect(wrapper.emitted('create')).toBeFalsy()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

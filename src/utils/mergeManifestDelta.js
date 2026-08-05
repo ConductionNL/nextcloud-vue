@@ -189,10 +189,7 @@ function applyOrder(entries, order, keyField) {
 
 /**
  * Strip all delta-only markers from an entry before it lands in the manifest.
- *
- * @param {object} entry A delta array entry, possibly carrying the `$op` and
- *   `__order` markers.
- * @return {object} A shallow copy with both markers removed.
+ * @param entry
  */
 function stripMarkers(entry) {
 	const out = { ...entry }
@@ -203,9 +200,7 @@ function stripMarkers(entry) {
 
 /**
  * Strip only `$op`, preserving `__order` for a recursive merge to consume.
- *
- * @param {object} entry A delta array entry, possibly carrying the `$op` marker.
- * @return {object} A shallow copy with `$op` removed and `__order` intact.
+ * @param entry
  */
 function stripOp(entry) {
 	const out = { ...entry }
@@ -219,10 +214,7 @@ function isPlainObject(value) {
 
 /**
  * Structured clone via JSON (manifests are plain JSON — no cycles/functions).
- *
- * @param {*} value Any manifest fragment. `undefined` and primitives are
- *   returned as-is; objects and arrays are deep-copied.
- * @return {*} The deep copy, or `value` itself when it is not an object.
+ * @param value
  */
 function clone(value) {
 	if (value === undefined) return undefined

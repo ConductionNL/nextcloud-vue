@@ -21,7 +21,7 @@ import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 /**
  * CnContainerChild — registry-driven dispatcher for a single child placement
- * inside a `CnContainerWidget`.
+ * inside a {@link CnContainerWidget}.
  *
  * Looks up the placement's `type` in the shared dashboardWidgetRegistry and
  * mounts the matching `renderer`, forwarding the placement's `content`. Because

@@ -13,7 +13,6 @@
  */
 
 import { shallowMount } from '@vue/test-utils'
-import { toRaw } from 'vue'
 import CnPageRenderer from '../../src/components/CnPageRenderer/CnPageRenderer.vue'
 
 const SearchSidebarStub = {
@@ -94,13 +93,7 @@ describe('CnPageRenderer — per-page sidebarComponent (REQ-MNVS)', () => {
 	describe('cnPageSidebarComponent provide channel', () => {
 		it('resolves a registered sidebarComponent and pushes it into the holder', () => {
 			const wrapper = mountRenderer('search')
-			// `toRaw` on the RECEIVED side only: the holder lives in reactive
-			// state, so Vue 3 hands back a Proxy around the very component that
-			// was registered. The assertion is still identity — "the registered
-			// component was forwarded, not copied" — which `toEqual` would not
-			// catch. Vue 2's per-property reactivity left the object itself
-			// untouched, so `toBe` matched directly.
-			expect(toRaw(wrapper.vm.pageSidebarComponent.value)).toBe(SearchSidebarStub)
+			expect(wrapper.vm.pageSidebarComponent.value).toBe(SearchSidebarStub)
 		})
 
 		it('leaves the holder null when no sidebarComponent is set', () => {
@@ -138,7 +131,7 @@ describe('CnPageRenderer — per-page sidebarComponent (REQ-MNVS)', () => {
 			expect(plain.vm.pageSidebarComponent.value).toBeNull()
 
 			const search = mountRenderer('search')
-			expect(toRaw(search.vm.pageSidebarComponent.value)).toBe(SearchSidebarStub)
+			expect(search.vm.pageSidebarComponent.value).toBe(SearchSidebarStub)
 		})
 	})
 
@@ -149,7 +142,7 @@ describe('CnPageRenderer — per-page sidebarComponent (REQ-MNVS)', () => {
 			// downstream consumers can inspect it; CnAppRoot's
 			// `cnPageSidebarVisible` gate suppresses rendering at the
 			// slot level. See REQ-MNVS-4.
-			expect(toRaw(wrapper.vm.pageSidebarComponent.value)).toBe(SearchSidebarStub)
+			expect(wrapper.vm.pageSidebarComponent.value).toBe(SearchSidebarStub)
 			expect(wrapper.vm.pageSidebarVisible.value).toBe(false)
 		})
 

@@ -55,7 +55,7 @@ describe('CnCollectivePagePicker', () => {
 		expect(rows).toHaveLength(2)
 		expect(wrapper.text()).toContain('Runbook')
 		expect(wrapper.text()).toContain('Onboarding')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('selecting a page enables confirm and emits link', async () => {
@@ -77,7 +77,7 @@ describe('CnCollectivePagePicker', () => {
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0]).toEqual([{ pageId: 99 }])
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('surfaces an inline error when /available fails', async () => {
@@ -92,7 +92,7 @@ describe('CnCollectivePagePicker', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('Could not load pages.')
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 
@@ -105,7 +105,7 @@ describe('CnCollectivePagePicker', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('NC Collectives is not installed.')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('filters pages client-side via search', async () => {
@@ -129,7 +129,7 @@ describe('CnCollectivePagePicker', () => {
 
 		expect(wrapper.vm.visiblePages).toHaveLength(1)
 		expect(wrapper.vm.visiblePages[0].pageId).toBe(1)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('narrows pages by collective filter', async () => {
@@ -153,7 +153,7 @@ describe('CnCollectivePagePicker', () => {
 
 		expect(wrapper.vm.visiblePages).toHaveLength(1)
 		expect(wrapper.vm.visiblePages[0].pageId).toBe(2)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('does not emit link when no page is selected', () => {
@@ -162,6 +162,6 @@ describe('CnCollectivePagePicker', () => {
 
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeFalsy()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

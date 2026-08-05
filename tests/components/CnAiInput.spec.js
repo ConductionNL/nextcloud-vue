@@ -58,8 +58,8 @@ describe('CnAiInput', () => {
 		const textarea = wrapper.find('textarea')
 		const sendBtn = wrapper.find('.cn-ai-input__send-button')
 
-		expect(textarea.attributes('disabled')).toBeDefined()
-		expect(sendBtn.attributes('disabled')).toBeDefined()
+		expect(textarea.attributes('disabled')).toBeTruthy()
+		expect(sendBtn.attributes('disabled')).toBeTruthy()
 	})
 
 	it('disabled prop shows NcLoadingIcon on send button', async () => {
@@ -76,7 +76,7 @@ describe('CnAiInput', () => {
 		const sendBtn = wrapper.find('.cn-ai-input__send-button')
 
 		await textarea.setValue('   ')
-		expect(sendBtn.attributes('disabled')).toBeDefined()
+		expect(sendBtn.attributes('disabled')).toBeTruthy()
 	})
 
 	it('send button enabled when textarea has non-whitespace text', async () => {
@@ -94,7 +94,7 @@ describe('CnAiInput', () => {
 		wrapper.vm.attachments = [{ path: '/uploads/foo.txt', name: 'foo.txt' }]
 		await wrapper.vm.$nextTick()
 		const sendBtn = wrapper.find('.cn-ai-input__send-button')
-		expect(sendBtn.attributes('disabled')).toBeUndefined()
+		expect(sendBtn.attributes('disabled')).toBeFalsy()
 	})
 
 	it('uploads the picked file via multipart POST to the attachments endpoint and renders a chip', async () => {

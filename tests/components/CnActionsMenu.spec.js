@@ -202,18 +202,11 @@ describe('CnActionsMenu — refresh spinner', () => {
 		provide: { cnAppId: 'pipelinq', cnFeatureRequestRepo: 'ConductionNL/pipelinq' },
 	})
 
-	// A boolean attribute is asserted by PRESENCE, not truthiness. Vue 2 wrote
-	// `disabled="disabled"` via setAttribute; Vue 3 recognises `disabled` as a
-	// DOM property of <button> and assigns `el.disabled = true`, whose reflected
-	// attribute value is the EMPTY STRING. So `attributes('disabled')` flipped
-	// from "disabled" (truthy) to "" (falsy) with no behaviour change, silently
-	// inverting toBeTruthy/toBeFalsy. toBeDefined/toBeUndefined say what the
-	// spec means and are stricter: absent is `undefined`, present is `""`.
 	it('does NOT spin or disable on click alone — the spinner only follows :refreshing', async () => {
 		const wrapper = mountWithIcons()
 		const refreshBtn = wrapper.find('[data-testid="cn-actions-menu-action-refresh"]')
 		await refreshBtn.trigger('click')
-		expect(refreshBtn.attributes('disabled')).toBeUndefined()
+		expect(refreshBtn.attributes('disabled')).toBeFalsy()
 		expect(wrapper.findComponent({ name: 'NcLoadingIcon' }).exists()).toBe(false)
 		expect(wrapper.findComponent({ name: 'Refresh' }).exists()).toBe(true)
 	})
@@ -221,12 +214,12 @@ describe('CnActionsMenu — refresh spinner', () => {
 	it('while :refreshing the Refresh item is disabled and shows the loading spinner (not the static icon)', async () => {
 		const wrapper = mountWithIcons({ refreshing: true })
 		const refreshBtn = wrapper.find('[data-testid="cn-actions-menu-action-refresh"]')
-		expect(refreshBtn.attributes('disabled')).toBeDefined()
+		expect(refreshBtn.attributes('disabled')).toBeTruthy()
 		expect(wrapper.findComponent({ name: 'NcLoadingIcon' }).exists()).toBe(true)
 		expect(wrapper.findComponent({ name: 'Refresh' }).exists()).toBe(false)
 
 		await wrapper.setProps({ refreshing: false })
-		expect(refreshBtn.attributes('disabled')).toBeUndefined()
+		expect(refreshBtn.attributes('disabled')).toBeFalsy()
 		expect(wrapper.findComponent({ name: 'NcLoadingIcon' }).exists()).toBe(false)
 		expect(wrapper.findComponent({ name: 'Refresh' }).exists()).toBe(true)
 	})

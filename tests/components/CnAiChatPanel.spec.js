@@ -107,9 +107,9 @@ describe('CnAiChatPanel', () => {
 		const wrapper = mountPanel()
 		const actions = wrapper.findAllComponents({ name: 'NcActionButton' })
 		expect(actions.length).toBe(2)
-		expect(actions.map((a) => a.props('ariaLabel'))).toEqual(['Start new chat', 'History'])
+		expect(actions.wrappers.map((a) => a.props('ariaLabel'))).toEqual(['Start new chat', 'History'])
 		// Both labelled for a11y.
-		actions.forEach((btn) => expect(btn.props('ariaLabel')).toBeTruthy())
+		actions.wrappers.forEach((btn) => expect(btn.props('ariaLabel')).toBeTruthy())
 	})
 
 	it('emits "close" when NcAppSidebar requests close', () => {

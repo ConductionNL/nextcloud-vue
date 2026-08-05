@@ -16,7 +16,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@update:modelValue="updateField('style', $event)" />
+			@input="updateField('style', $event)" />
 
 		<template v-if="style === 'line'">
 			<label class="cn-divider-widget-form__color-label">
@@ -44,7 +44,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@update:modelValue="updateField('lineStyle', $event)" />
+				@input="updateField('lineStyle', $event)" />
 		</template>
 
 		<template v-if="style === 'whitespace'">
@@ -55,7 +55,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@update:modelValue="updateField('whitespaceSize', $event)" />
+				@input="updateField('whitespaceSize', $event)" />
 		</template>
 
 		<template v-if="style === 'heading-break'">
@@ -82,7 +82,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@update:modelValue="updateField('lineStyle', $event)" />
+				@input="updateField('lineStyle', $event)" />
 		</template>
 	</div>
 </template>

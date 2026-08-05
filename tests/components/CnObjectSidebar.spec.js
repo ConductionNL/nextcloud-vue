@@ -83,7 +83,7 @@ describe('CnObjectSidebar — useRegistry default (ADR-019)', () => {
 		})
 		expect(wrapper.props('useRegistry')).toBe(true)
 		expect(wrapper.vm.isRegistryMode).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders registry providers by default (no explicit useRegistry prop)', () => {
@@ -104,7 +104,7 @@ describe('CnObjectSidebar — useRegistry default (ADR-019)', () => {
 		const html = wrapper.html()
 		expect(html).toContain('id="files"')
 		expect(html).toContain('id="notes"')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('backward compat: useRegistry=false renders the legacy hardcoded built-in tabs', () => {
@@ -126,7 +126,7 @@ describe('CnObjectSidebar — useRegistry default (ADR-019)', () => {
 		expect(html).toContain('id="tags"')
 		expect(html).toContain('id="tasks"')
 		expect(html).toContain('id="auditTrail"')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })
 
@@ -443,7 +443,7 @@ describe('CnObjectSidebar — pluggable integration registry mode', () => {
 		expect(html).toContain('id="files"')
 		expect(html).toContain('id="notes"')
 		expect(wrapper.findAll('.registry-tab').length).toBe(2)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('excludes providers listed in excludeIntegrations', () => {
@@ -453,7 +453,7 @@ describe('CnObjectSidebar — pluggable integration registry mode', () => {
 		const html = wrapper.html()
 		expect(html).toContain('id="files"')
 		expect(html).not.toContain('id="notes"')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('also honours hiddenTabs for registry providers', () => {
@@ -461,7 +461,7 @@ describe('CnObjectSidebar — pluggable integration registry mode', () => {
 		integrations.register({ id: 'tags', label: 'Tags', tab: RegistryTab, widget: RegistryWidget })
 		const wrapper = mountRegistrySidebar({ hiddenTabs: ['tags'] })
 		expect(wrapper.html()).not.toContain('id="tags"')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('re-renders reactively when a late registration arrives', async () => {
@@ -471,7 +471,7 @@ describe('CnObjectSidebar — pluggable integration registry mode', () => {
 		integrations.register({ id: 'late', label: 'Late', tab: RegistryTab, widget: RegistryWidget })
 		await wrapper.vm.$nextTick()
 		expect(wrapper.findAll('.registry-tab').length).toBe(2)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('appends consumer-supplied tabs via the #extra-tabs slot', () => {
@@ -483,7 +483,7 @@ describe('CnObjectSidebar — pluggable integration registry mode', () => {
 		})
 		expect(wrapper.html()).toContain('extra-tab')
 		expect(wrapper.findAll('.registry-tab').length).toBe(1)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('warns and falls back to `tabs` when both useRegistry and tabs are set', () => {
@@ -497,6 +497,6 @@ describe('CnObjectSidebar — pluggable integration registry mode', () => {
 		expect(wrapper.html()).toContain('id="manual"')
 		expect(wrapper.html()).not.toContain('id="files"')
 		warn.mockRestore()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

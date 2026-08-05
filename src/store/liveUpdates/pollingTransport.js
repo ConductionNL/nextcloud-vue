@@ -70,10 +70,7 @@ export function createPollingTransport() {
 	/**
 	 * Invoke all callbacks for a key entry (if tab is visible).
 	 *
-	 * @param {{ callbacks: Set<Function> }} entry The per-event-key entry whose
-	 *   subscriber callbacks to run. A throwing callback is logged and does not
-	 *   stop the remaining ones.
-	 * @return {void}
+	 * @param {{ callbacks: Set<Function> }} entry
 	 */
 	function fireCallbacks(entry) {
 		if (!isVisible()) return
@@ -89,10 +86,7 @@ export function createPollingTransport() {
 	/**
 	 * Clear and restart the interval for an entry.
 	 *
-	 * @param {{ callbacks: Set<Function>, intervalId: (number|null), interval: number }} entry
-	 *   The per-event-key entry to re-arm; any existing `intervalId` is cleared
-	 *   first so visibility changes cannot stack timers.
-	 * @return {void}
+	 * @param {object} entry
 	 */
 	function resetInterval(entry) {
 		if (entry.intervalId !== null) {
@@ -114,8 +108,7 @@ export function createPollingTransport() {
 		/**
 		 * Register a status observer (always receives `'polling'` immediately on first call).
 		 *
-		 * @param {Function} cb Observer invoked with the transport status string.
-		 * @return {void}
+		 * @param {Function} cb
 		 */
 		onStatusChange(cb) {
 			statusObservers.push(cb)

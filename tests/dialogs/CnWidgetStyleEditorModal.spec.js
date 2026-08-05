@@ -10,9 +10,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-// The emitted payload is the reactive prop proxy in Vue 3; `toRaw` keeps the
-// assertion's point — the SAME widget object is emitted, not a copy.
-import { toRaw } from 'vue'
 import CnWidgetStyleEditorModal from '../../src/dialogs/CnWidgetStyleEditorModal.vue'
 
 /**
@@ -63,7 +60,7 @@ describe('CnWidgetStyleEditorModal', () => {
 		expect(widget.showTitle).toBe(true)
 		expect(widget.customTitle).toBe('Overridden')
 		expect(wrapper.emitted('save')).toBeTruthy()
-		expect(toRaw(wrapper.emitted('save')[0][0])).toBe(widget)
+		expect(wrapper.emitted('save')[0][0]).toBe(widget)
 	})
 
 	it('creates styleConfig when the widget has none', () => {
@@ -150,7 +147,7 @@ describe('CnWidgetStyleEditorModal', () => {
 		const wrapper = mountModal(widget, { deletable: true })
 		wrapper.vm.onDelete()
 		expect(wrapper.emitted('delete')).toBeTruthy()
-		expect(toRaw(wrapper.emitted('delete')[0][0])).toBe(widget)
+		expect(wrapper.emitted('delete')[0][0]).toBe(widget)
 	})
 
 	it('hides the Delete button when not deletable', () => {

@@ -30,15 +30,14 @@ function mountDialog({ uuid, org, props = {} } = {}) {
 	const Wrapper = defineComponent({
 		setup() {
 			provideTenantContext(uuid, org)
-			// Vue 2's `h` took a DATA OBJECT whose `props` key carried the
-			// component props. Vue 3 flattened that: the second argument IS
-			// the props object. Keeping the `props:` wrapper would pass a
-			// single unknown attribute literally named "props", and
-			// `schema` / `item` / `open` would all fall back to their
-			// defaults instead of reaching CnFormDialog.
+			// Vue 2.7's `h` only maps the `props` key of the data object to
+			// declared component props — top-level keys land in `$attrs`. Wrap
+			// in `props` so `schema`/`item` actually reach CnFormDialog.
 			return () => h(CnFormDialog, {
-				...props,
-				open: true,
+				props: {
+					...props,
+					open: true,
+				},
 			})
 		},
 	})

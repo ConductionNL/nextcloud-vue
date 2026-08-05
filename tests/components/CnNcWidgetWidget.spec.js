@@ -5,14 +5,8 @@
  * via the `OCA.Dashboard` global, and the self-registering registry entry.
  */
 
-import { mount, flushPromises } from '@vue/test-utils'
-import axios from '@nextcloud/axios'
+import { mount } from '@vue/test-utils'
 import CnNcWidgetWidget from '@/components/CnNcWidgetWidget/CnNcWidgetWidget.vue'
-
-jest.mock('@nextcloud/axios', () => ({
-	__esModule: true,
-	default: { get: jest.fn(() => Promise.resolve({ status: 200, data: {} })) },
-}))
 
 describe('CnNcWidgetWidget renderer', () => {
 	afterEach(() => {
@@ -58,24 +52,12 @@ describe('CnNcWidgetWidget renderer', () => {
 				getWidget: () => ({ title: 'Calls', callback }),
 			},
 		}
-		// The API must actually return an item. `loadApiItems()` re-enters the
-		// native path when the list comes back EMPTY (a widget with no
-		// IAPIWidgetV2 provider must not render a false "no items" state), so
-		// with the default empty payload the settled mode is `native` again and
-		// this spec would be asserting a transient state.
-		axios.get.mockResolvedValueOnce({
-			status: 200,
-			data: { ocs: { data: { 'pipelinq-calls': { items: [{ id: 'i1', title: 'Missed call' }] } } } },
-		})
 		const wrapper = mount(CnNcWidgetWidget, { propsData: { content: { widgetId: 'pipelinq-calls' } } })
-		// Vue 3's `nextTick()` only awaits the scheduler flush — it no longer
-		// implies every pending microtask (the callback's rejection handler, then
-		// the awaited axios GET inside the fallback) has run. Under Vue 2 the
-		// nextTick + Promise.resolve chain happened to cover them; here it lands
-		// mid-fallback and reads a stale `native`. flushPromises drains them all.
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		// let the rejected promise settle
+		await Promise.resolve()
+		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.mode).toBe('api')
-		expect(axios.get).toHaveBeenCalled()
 	})
 })
 

@@ -157,7 +157,7 @@ describe('CnContactsCard — compact surfaces (detail-page / dashboards)', () =>
 
 		expect(wrapper.find('.cn-contacts-card__header-count').text()).toBe('3')
 		// Newest two shown
-		const names = wrapper.findAll('.cn-contacts-card__item-name').map((w) => w.text())
+		const names = wrapper.findAll('.cn-contacts-card__item-name').wrappers.map((w) => w.text())
 		expect(names).toEqual(['C', 'B'])
 
 		// View-all footer

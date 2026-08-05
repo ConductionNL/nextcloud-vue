@@ -69,7 +69,7 @@ describe('CnAdvancedFormDialog', () => {
 					template: '<div><slot /><slot name="actions" /></div>',
 				},
 				NcButton: {
-					template: '<button @click="$attrs.onClick && $attrs.onClick()"><slot /></button>',
+					template: '<button @click="$listeners.click"><slot /></button>',
 				},
 				NcNoteCard: true,
 				NcLoadingIcon: true,

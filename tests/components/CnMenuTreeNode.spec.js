@@ -7,7 +7,6 @@
  * section preservation), depth-1 drag guard, and add/remove.
  */
 import { mount } from '@vue/test-utils'
-import { toRaw } from 'vue'
 import CnMenuTreeNode from '../../src/components/CnMenuTreeNode/CnMenuTreeNode.vue'
 
 const DraggableStub = { name: 'draggable', props: ['value', 'list', 'group', 'move'], template: '<ul><slot /></ul>' }
@@ -58,11 +57,7 @@ describe('CnMenuTreeNode', () => {
 		wrapper.vm.tree = [{ ref: s1, children: [{ ref: s2, children: [] }] }]
 		wrapper.vm.flatten()
 		expect(s1.section).toBe('settings')
-		// `toRaw` on the received side: `flatten()` writes the child back
-		// through reactive state, so `s1.children[0]` is a Proxy around `s2`.
-		// The assertion is still identity — the same node object is nested,
-		// not a clone of it.
-		expect(Array.isArray(s1.children) && toRaw(s1.children[0])).toBe(s2)
+		expect(Array.isArray(s1.children) && s1.children[0]).toBe(s2)
 		expect(s2.section).toBeUndefined() // child carries no section
 	})
 

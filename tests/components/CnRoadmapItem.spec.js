@@ -98,7 +98,7 @@ describe('CnRoadmapItem', () => {
 			],
 		}
 		const wrapper = mount(CnRoadmapItem, { ...mountOpts, propsData: { item } })
-		const chips = wrapper.findAll('.cn-roadmap-item__label-chip').map((w) => w.text())
+		const chips = wrapper.findAll('.cn-roadmap-item__label-chip').wrappers.map((w) => w.text())
 		expect(chips).toContain('enhancement')
 		expect(chips).toContain('feature')
 		expect(chips).not.toContain('build:queued')

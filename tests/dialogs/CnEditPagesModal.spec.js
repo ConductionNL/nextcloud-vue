@@ -7,7 +7,6 @@
  * auto-stubbed via tests/__mocks__/nextcloud-vue.js.
  */
 import { mount } from '@vue/test-utils'
-import { toRaw } from 'vue'
 import CnEditPagesModal from '../../src/dialogs/CnEditPagesModal.vue'
 
 const CnPageTreeNodeStub = { name: 'CnPageTreeNode', props: ['list', 'parentId', 'depth', 'maxDepth'], template: '<div class="page-tree-stub" />' }
@@ -40,10 +39,7 @@ describe('CnEditPagesModal', () => {
 		const working = { pages: [{ id: 'a' }] }
 		const wrapper = mountModal(working)
 		const node = wrapper.findComponent(CnPageTreeNodeStub)
-		// `toRaw` on the received side: props arrive through a reactive Proxy.
-		// Identity still matters — the tree node edits the working copy's own
-		// array in place, so it must receive that array and not a slice of it.
-		expect(toRaw(node.props('list'))).toBe(working.pages)
+		expect(node.props('list')).toBe(working.pages)
 		expect(node.props('maxDepth')).toBe(1)
 	})
 

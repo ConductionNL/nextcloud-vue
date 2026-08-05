@@ -60,8 +60,6 @@ export default {
 		},
 	},
 
-	emits: ['select'],
-
 	methods: {
 		/**
 		 * Emit `select` for a clicked folder (own level or a descendant).

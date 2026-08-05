@@ -7,7 +7,7 @@
  * importing the renderer's self-registering index.
  */
 
-import { flushPromises, mount } from '@vue/test-utils'
+import { mount } from '@vue/test-utils'
 import CnQuicklinksWidget from '@/components/CnQuicklinksWidget/CnQuicklinksWidget.vue'
 import CnQuicklinksWidgetForm from '@/components/CnQuicklinksWidgetForm/CnQuicklinksWidgetForm.vue'
 
@@ -65,12 +65,7 @@ describe('CnQuicklinksWidget renderer', () => {
 		const label = wrapper.find('.cn-quicklinks-widget__label').element
 		Object.defineProperty(label, 'scrollWidth', { configurable: true, value: 200 })
 		Object.defineProperty(label, 'clientWidth', { configurable: true, value: 80 })
-		// Two flushes are needed under Vue 3: `mounted()` defers
-		// `measureLabelTruncation()` to `$nextTick`, and the state it writes
-		// only schedules the re-render on the NEXT flush. Vue 2 drained the
-		// nextTick callbacks and the render scheduler in one microtask, so a
-		// single `$nextTick()` sufficed; Vue 3 does not.
-		await flushPromises()
+		await wrapper.vm.$nextTick()
 		expect(wrapper.find('.cn-quicklinks-widget__link').attributes('title'))
 			.toBe('A Very Long Quicklink Label That Overflows')
 	})

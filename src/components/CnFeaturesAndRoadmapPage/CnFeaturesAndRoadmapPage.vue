@@ -32,18 +32,14 @@
 </template>
 
 <script>
-// `@nextcloud/initial-state` is a DECLARED (non-optional) peer dependency, so
-// it is imported statically — a lazy CommonJS resolution can never succeed from
-// `dist/esm/**` (the package's `exports` map is import-only and the ESM build
-// has no such function), which meant this helper used to return its fallback
-// unconditionally.
-import { loadState } from '@nextcloud/initial-state'
 import CnFeaturesAndRoadmapView from '../CnFeaturesAndRoadmapView/CnFeaturesAndRoadmapView.vue'
 import { DEFAULT_FORGE } from '../../utils/forge.js'
 
 /**
- * Read a key from `@nextcloud/initial-state`, tolerating an unprovisioned
- * slot (mirrors resolveManifestSentinels.js).
+ * Read a key from `@nextcloud/initial-state`. `@nextcloud/initial-state`
+ * is an optional peer (mirrors resolveManifestSentinels.js); the host
+ * page may not provision the slot at all. Returns the default when the
+ * package is not installed or the slot is missing.
  *
  * @param {string} appId Nextcloud app ID.
  * @param {string} key Initial-state key (full key, not prefixed).
@@ -52,13 +48,13 @@ import { DEFAULT_FORGE } from '../../utils/forge.js'
  */
 function readInitialState(appId, key, fallback) {
 	try {
-		// `loadState` throws only when the `#initial-state-*` element is absent
-		// AND no fallback is given; a fallback IS given here, so this catch
-		// covers the parse-error case only. It is a runtime condition, never a
-		// module-resolution failure.
-		return loadState(appId, key, fallback)
+		// eslint-disable-next-line global-require, import/no-unresolved, n/no-extraneous-require
+		const mod = require('@nextcloud/initial-state')
+		if (typeof mod.loadState === 'function') {
+			return mod.loadState(appId, key, fallback)
+		}
 	} catch (e) {
-		// Slot present but unparseable — fall back.
+		// Package not installed or no slot provisioned — fall through.
 	}
 	return fallback
 }

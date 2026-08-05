@@ -50,7 +50,7 @@ describe('CnTalkTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No conversations linked yet')
 		expect(wrapper.text()).toContain('Open Talk')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders linked rooms with title + unread badge', async () => {
@@ -72,14 +72,14 @@ describe('CnTalkTab', () => {
 		expect(rows).toHaveLength(2)
 		// Conversation names are bound to the NcListItem `name` attribute
 		// (the functional stub spreads bound attrs onto its root element).
-		const names = rows.map((r) => r.attributes('name'))
+		const names = rows.wrappers.map((r) => r.attributes('name'))
 		expect(names).toContain('Alpha')
 		expect(names).toContain('Beta')
 		// Only the unread room shows a counter bubble badge.
 		const badges = wrapper.findAll('.cn-talk-tab__badge')
 		expect(badges).toHaveLength(1)
 		expect(badges.at(0).text()).toBe('3')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the unavailable banner when the provider returns 503', async () => {
@@ -88,7 +88,7 @@ describe('CnTalkTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Talk is currently unavailable.')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the generic error label when fetch throws', async () => {
@@ -98,7 +98,7 @@ describe('CnTalkTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Could not load conversations.')
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 
@@ -109,7 +109,7 @@ describe('CnTalkTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Link existing room')
 		expect(wrapper.text()).toContain('Create new room')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('opens the picker when "Link existing room" is clicked', async () => {
@@ -120,7 +120,7 @@ describe('CnTalkTab', () => {
 		wrapper.vm.openPicker()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.pickerOpen).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('opens the create dialog when "Create new room" is clicked', async () => {
@@ -131,7 +131,7 @@ describe('CnTalkTab', () => {
 		wrapper.vm.openCreate()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.createOpen).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('POSTs the link payload to /talk on link pick', async () => {
@@ -147,7 +147,7 @@ describe('CnTalkTab', () => {
 		const linkCall = calls.find(c => /\/talk$/.test(String(c.url)) && c.opts && c.opts.method === 'POST')
 		expect(linkCall).toBeTruthy()
 		expect(JSON.parse(linkCall.opts.body)).toEqual({ roomToken: 'tok-42' })
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('POSTs the create payload to /talk/new on create submit', async () => {
@@ -163,7 +163,7 @@ describe('CnTalkTab', () => {
 		const createCall = calls.find(c => /\/talk\/new$/.test(String(c.url)) && c.opts && c.opts.method === 'POST')
 		expect(createCall).toBeTruthy()
 		expect(JSON.parse(createCall.opts.body)).toEqual({ name: 'Sprint', description: 'd', type: 2 })
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('surfaces a 409 conflict as "already linked" when picking an existing room', async () => {
@@ -175,7 +175,7 @@ describe('CnTalkTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.onPickerLink({ roomToken: 'dup' })
 		expect(wrapper.vm.error).toContain('already linked')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('DELETEs /talk/{token} on unlink', async () => {
@@ -190,7 +190,7 @@ describe('CnTalkTab', () => {
 		await wrapper.vm.unlinkRoom({ roomToken: 'tok-x' })
 		const delCall = calls.find(c => /\/talk\/tok-x$/.test(String(c.url)) && c.opts && c.opts.method === 'DELETE')
 		expect(delCall).toBeTruthy()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('humanises Talk system messages instead of rendering raw JSON', () => {
@@ -207,6 +207,6 @@ describe('CnTalkTab', () => {
 			.not.toContain('{')
 		// Plain chat text passes through.
 		expect(vm.roomPreview({ lastMessage: { message: 'Hello team' } })).toBe('Hello team')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

@@ -52,7 +52,7 @@ describe('CnOpenprojectCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No work packages linked yet')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a count headline + status distribution on the user-dashboard surface', async () => {
@@ -79,7 +79,7 @@ describe('CnOpenprojectCard', () => {
 		expect(wrapper.findAll('.cn-openproject-card__distribution-row')).toHaveLength(3)
 		// "Connected" auth badge surfaces when source is configured + responsive.
 		expect(text).toContain('Connected')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('groups statuses into pill-class buckets even when the source labels vary', async () => {
@@ -102,7 +102,7 @@ describe('CnOpenprojectCard', () => {
 		// One progress dot, two done-class dots ("Done" and "Resolved" both map to done).
 		expect(wrapper.findAll('.cn-openproject-card__distribution-dot.cn-openproject-card__chip-pill--progress').length).toBeGreaterThan(0)
 		expect(wrapper.findAll('.cn-openproject-card__distribution-dot.cn-openproject-card__chip-pill--done').length).toBeGreaterThan(0)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a bounded row list on the detail-page surface and highlights the linked WP', async () => {
@@ -125,7 +125,7 @@ describe('CnOpenprojectCard', () => {
 		const highlighted = wrapper.findAll('.cn-openproject-card__row--highlight')
 		expect(highlighted).toHaveLength(1)
 		expect(highlighted.at(0).text()).toContain('Second')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a chip on the single-entity surface with subject + status pill', async () => {
@@ -142,7 +142,7 @@ describe('CnOpenprojectCard', () => {
 		expect(chip.text()).toContain('Migrate DB')
 		expect(chip.text()).toContain('In progress')
 		expect(chip.find('.cn-openproject-card__chip-pill--progress').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('surfaces the unconfigured auth state (412) on the dashboard surface', async () => {
@@ -152,7 +152,7 @@ describe('CnOpenprojectCard', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('OpenProject not configured in OpenConnector')
 		expect(wrapper.find('.cn-openproject-card__auth-badge--warn').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('surfaces the auth-expired state (401) on the detail-page surface', async () => {
@@ -163,7 +163,7 @@ describe('CnOpenprojectCard', () => {
 		expect(wrapper.text()).toContain('Authorisation for OpenProject expired')
 		expect(wrapper.find('.cn-openproject-card__auth-badge--error').exists()).toBe(true)
 		expect(wrapper.find('.cn-openproject-card__row').exists()).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the unavailable label when the provider returns 503', async () => {
@@ -172,7 +172,7 @@ describe('CnOpenprojectCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('OpenProject is currently unavailable.')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('does not throw when fetch fails on the detail-page surface', async () => {
@@ -182,7 +182,7 @@ describe('CnOpenprojectCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No work packages linked yet')
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 })

@@ -13,5 +13,5 @@
 | Name             | Payload | Description                                            |
 | ---------------- | ------- | ------------------------------------------------------ |
 | `apply`          | —       | A view entry was clicked; apply its stored state.      |
-| `delete-request` | —       | A view's delete entry was clicked; confirm and delete. |
 | `save-request`   | —       | "Save current view…" clicked; open the save dialog.    |
+| `delete-request` | —       | A view's delete entry was clicked; confirm and delete. |

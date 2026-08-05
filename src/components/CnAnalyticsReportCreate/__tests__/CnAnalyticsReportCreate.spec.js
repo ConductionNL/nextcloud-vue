@@ -15,7 +15,7 @@ describe('CnAnalyticsReportCreate', () => {
 	it('defaults the type to Group (0)', () => {
 		const wrapper = mount(CnAnalyticsReportCreate)
 		expect(wrapper.vm.selectedType.value).toBe(0)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('disables submit until a name is entered', async () => {
@@ -24,7 +24,7 @@ describe('CnAnalyticsReportCreate', () => {
 		wrapper.vm.name = 'Quarterly KPIs'
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.canSubmit).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('emits create with trimmed name and selected type', async () => {
@@ -36,7 +36,7 @@ describe('CnAnalyticsReportCreate', () => {
 		wrapper.vm.submit()
 		expect(wrapper.emitted('create')).toBeTruthy()
 		expect(wrapper.emitted('create')[0]).toEqual([{ name: 'Sales pipeline', type: 2 }])
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('does not emit create when the name is blank', () => {
@@ -44,6 +44,6 @@ describe('CnAnalyticsReportCreate', () => {
 		wrapper.vm.name = '   '
 		wrapper.vm.submit()
 		expect(wrapper.emitted('create')).toBeFalsy()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

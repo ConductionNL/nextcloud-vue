@@ -63,56 +63,6 @@
 	text-align: center;
 }
 
-/* Explicit `0` rather than dropping the declaration: this element carries both
-   `.cn-pagination` and `.cn-index-page__pagination`, and `.cn-pagination` sets
-   `margin-top: calc(8 * baseline)` at the same (0,1,0) specificity. Only the
-   later import (index-page.css, see index.css) wins the tie — deleting the
-   declaration here would hand the element the larger 8-baseline margin instead
-   of none. CnPagination's own 5-baseline padding supplies the spacing. */
 .cn-index-page__pagination {
-	margin-top: 0;
-}
-
-/* Table view owns both scroll axes. With the page column scrolling instead, the
-   table's horizontal scrollbar sat at the bottom of the (taller-than-viewport)
-   table, so it only appeared after scrolling down, and the pagination was
-   likewise out of reach. Moving overflow onto the table container puts the
-   horizontal scrollbar at the bottom edge of the visible table and keeps the
-   pagination pinned below it. Must stay after the base `__main` /
-   `__pagination` rules above — it overrides both. */
-.cn-index-page__main--table {
-	display: flex;
-	flex-direction: column;
-	overflow: hidden;
-}
-
-.cn-index-page__main--table > .cn-table-container {
-	flex: 1;
-	min-height: 0;
-	overflow: auto;
-	/* CnPagination's own padding supplies the spacing below the table; the
-	   container's bottom margin would only add dead space above the pinned
-	   pagination row. */
-	margin-bottom: 0;
-}
-
-.cn-index-page__main--table > .cn-index-page__pagination {
-	flex: 0 0 auto;
-}
-
-/* Pin the column headers while the rows scroll. Only viable in this view mode,
-   where the container above is the scroll container — elsewhere CnDataTable's
-   nearest scrolling ancestor is the page or a widget body, and pinning to that
-   is wrong. Sticky sits on the `th`, NOT on `thead`/`tr`: `.cn-data-table` is
-   `border-collapse: collapse`, and browsers don't reliably honour sticky on the
-   row/group elements under the collapsed-border model. `th` already carries an
-   opaque background, so rows can't show through. */
-.cn-index-page__main--table .cn-data-table thead th {
-	position: sticky;
-	top: 0;
-	z-index: 1;
-	/* The collapsed bottom border belongs to the table's border layer and stays
-	   behind when the cell pins, leaving the pinned header with no bottom rule —
-	   redraw it as an inset shadow, which travels with the cell. */
-	box-shadow: inset 0 -1px 0 var(--color-border);
+	margin-top: calc(4 * var(--default-grid-baseline));
 }

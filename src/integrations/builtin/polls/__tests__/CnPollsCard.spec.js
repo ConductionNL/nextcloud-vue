@@ -60,7 +60,7 @@ describe('CnPollsCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No polls linked yet')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a count headline + leading option on the user-dashboard surface', async () => {
@@ -85,7 +85,7 @@ describe('CnPollsCard', () => {
 		// Leading option from most-recent poll (yes 7/12 = 58%)
 		expect(txt).toContain('Yes')
 		expect(wrapper.find('.cn-polls-card__headline').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('falls back to the "all closed" headline when nothing is open', async () => {
@@ -104,7 +104,7 @@ describe('CnPollsCard', () => {
 		await wrapper.vm.$nextTick()
 		const txt = wrapper.text()
 		expect(txt.toLowerCase()).toContain('all closed')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a list of rows with mini bars on the detail-page surface', async () => {
@@ -128,7 +128,7 @@ describe('CnPollsCard', () => {
 		expect(bars).toHaveLength(6)
 		// Each row carries its meta countdown
 		expect(wrapper.text()).toContain('Closes in')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a chip on the single-entity surface with the leading option', async () => {
@@ -144,7 +144,7 @@ describe('CnPollsCard', () => {
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Charter vote')
 		expect(chip.text()).toContain('Yes')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the unavailable label when the provider returns 503', async () => {
@@ -153,7 +153,7 @@ describe('CnPollsCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Polls is currently unavailable.')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('does not throw when fetch fails on the detail-page surface', async () => {
@@ -163,7 +163,7 @@ describe('CnPollsCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No polls linked yet')
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 
@@ -180,6 +180,6 @@ describe('CnPollsCard', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.find('.cn-polls-card__row--closed').exists()).toBe(true)
 		expect(wrapper.text()).toContain('Closed')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

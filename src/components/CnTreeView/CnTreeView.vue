@@ -97,13 +97,11 @@ export default {
 		 */
 		expandedIds: { type: Array, default: () => [] },
 		/**
-		 * Currently-selected node id (or null). Node ids are read off
-		 * `node[idKey]`, so the same `string | number` domain as `expandedIds`.
-		 * Pass with `.sync`.
+		 * Currently-selected node id (or null). Pass with `.sync`.
 		 *
-		 * @type {string|number|null}
+		 * @type {*}
 		 */
-		selectedId: { type: [String, Number], default: null },
+		selectedId: { default: null },
 		/** Override the `id` key on node objects. */
 		idKey: { type: String, default: 'id' },
 		/** Override the `label` key. */
@@ -125,7 +123,6 @@ export default {
 		/** Expand all nodes on mount. */
 		expandAllOnMount: { type: Boolean, default: false },
 	},
-	emits: ['select', 'update:expanded-ids', 'update:selected-id'],
 	computed: {
 		/**
 		 * The `nodes` prop coerced to a real array. Guards against a parent
@@ -160,14 +157,8 @@ export default {
 				if (Array.isArray(cs)) cs.forEach(walk)
 			}
 			this.safeNodes.forEach(walk)
-			// Description goes ABOVE `@event`, not inline after it:
-			// vue-docgen-api's event-name splitter stops at the first `:`, so
-			// `@event update:expanded-ids <description>` is read as one long
-			// event NAME and the generated docs show an empty description.
 			/**
-			 * `v-model:expanded-ids` counterpart. Payload is the new full set.
-			 *
-			 * @event update:expanded-ids
+			 * @event update:expanded-ids `.sync` of `expandedIds`. Payload is the new full set.
 			 */
 			this.$emit('update:expanded-ids', ids)
 		}
@@ -188,14 +179,8 @@ export default {
 			} else {
 				next.push(id)
 			}
-			// Description goes ABOVE `@event`, not inline after it:
-			// vue-docgen-api's event-name splitter stops at the first `:`, so
-			// `@event update:expanded-ids <description>` is read as one long
-			// event NAME and the generated docs show an empty description.
 			/**
-			 * `v-model:expanded-ids` counterpart. Payload is the new full set.
-			 *
-			 * @event update:expanded-ids
+			 * @event update:expanded-ids `.sync` of `expandedIds`. Payload is the new full set.
 			 */
 			this.$emit('update:expanded-ids', next)
 		},
@@ -206,11 +191,8 @@ export default {
 		 * @return {void}
 		 */
 		selectNode(node) {
-			// Description above the tag — see the note on `update:expanded-ids`.
 			/**
-			 * `v-model:selected-id` counterpart. Payload is the new id (or null).
-			 *
-			 * @event update:selected-id
+			 * @event update:selected-id `.sync` of `selectedId`. Payload is the new id (or null).
 			 */
 			this.$emit('update:selected-id', node[this.idKey])
 			/**
@@ -233,14 +215,8 @@ export default {
 				if (Array.isArray(cs)) cs.forEach(walk)
 			}
 			this.safeNodes.forEach(walk)
-			// Description goes ABOVE `@event`, not inline after it:
-			// vue-docgen-api's event-name splitter stops at the first `:`, so
-			// `@event update:expanded-ids <description>` is read as one long
-			// event NAME and the generated docs show an empty description.
 			/**
-			 * `v-model:expanded-ids` counterpart. Payload is the new full set.
-			 *
-			 * @event update:expanded-ids
+			 * @event update:expanded-ids `.sync` of `expandedIds`. Payload is the new full set.
 			 */
 			this.$emit('update:expanded-ids', ids)
 		},
@@ -250,14 +226,8 @@ export default {
 		 * @return {void}
 		 */
 		collapseAll() {
-			// Description goes ABOVE `@event`, not inline after it:
-			// vue-docgen-api's event-name splitter stops at the first `:`, so
-			// `@event update:expanded-ids <description>` is read as one long
-			// event NAME and the generated docs show an empty description.
 			/**
-			 * `v-model:expanded-ids` counterpart. Payload is the new full set.
-			 *
-			 * @event update:expanded-ids
+			 * @event update:expanded-ids `.sync` of `expandedIds`. Payload is the new full set.
 			 */
 			this.$emit('update:expanded-ids', [])
 		},

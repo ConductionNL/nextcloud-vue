@@ -118,7 +118,7 @@
 				<!-- Edit-mode config cog: opens the page's full config editor
 				     (CnPageRenderer wires @configure to CnPageConfigModal). -->
 				<NcButton v-if="isEditMode"
-					variant="tertiary"
+					type="tertiary"
 					:aria-label="t('nextcloud-vue', 'Configure page')"
 					@click="$emit('configure')">
 					<template #icon>
@@ -299,10 +299,7 @@
 
 			<div
 				class="cn-index-page__main"
-				:class="{
-					'cn-index-page__main--map': currentViewMode === 'map',
-					'cn-index-page__main--table': currentViewMode === 'table',
-				}">
+				:class="{ 'cn-index-page__main--map': currentViewMode === 'map' }">
 				<!-- Loading state — initial fetch only; a background refresh keeps the table visible -->
 				<div v-if="showInitialLoader" class="cn-index-page__loading">
 					<!-- name gives NcLoadingIcon a non-empty aria-label (WCAG role-img-alt); empty name ships an unlabeled role="img" -->
@@ -400,7 +397,7 @@
 								:key="`col-${col.key}`"
 								:model-value="isColumnVisible(col.key)"
 								@update:model-value="toggleColumn(col.key)">
-								{{ cnTranslate(col.label || col.key) }}
+								{{ col.label || col.key }}
 							</NcActionCheckbox>
 						</NcActions>
 					</template>
@@ -759,16 +756,6 @@ export default {
 	 */
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
-		/**
-		 * Consumer translation function, provided by CnAppRoot as
-		 * `cnTranslate: this.translate` (bound to the host app's id). Column and
-		 * filter labels come from schema property titles, authored in English as
-		 * the canonical source; the visible label is resolved through this
-		 * function so it follows the user's language. Defaults to identity when
-		 * used standalone (no CnAppRoot ancestor). The embedded CnDataTable
-		 * resolves its own header labels through the same injection.
-		 */
-		cnTranslate: { default: () => (key) => key },
 		/**
 		 * Reactive edit-mode flag from CnAppRoot's manifest editor. When truthy
 		 * the page shows a config cog in its actions bar (emits `configure`).
@@ -1659,36 +1646,6 @@ export default {
 		},
 	},
 
-	emits: [
-		'action',
-		'add',
-		'apply-view',
-		'columns-change',
-		'configure',
-		'copy',
-		'create',
-		'delete',
-		'filter-change',
-		'folder-change',
-		'folder-create',
-		'header-action',
-		'mass-copy',
-		'mass-delete',
-		'mass-export',
-		'mass-import',
-		'page-changed',
-		'page-size-changed',
-		'quick-filter-change',
-		'refresh',
-		'row-click',
-		'search',
-		'select',
-		'sort',
-		'sort-change',
-		'view',
-		'view-mode-change',
-	],
-
 	setup(props) {
 		const {
 			isOpen: contextMenuOpen,
@@ -2092,7 +2049,7 @@ export default {
 					values = Object.keys(colObj.widgetProps.colorMap)
 				}
 				if (values && values.length) {
-					out.push({ key, label: this.cnTranslate(colObj.label || def.title || key), values: values.map((v) => String(v)) })
+					out.push({ key, label: colObj.label || def.title || key, values: values.map((v) => String(v)) })
 				}
 			}
 			return out
@@ -2108,11 +2065,6 @@ export default {
 		governedColumns() {
 			const defs = []
 			if (this.effectiveSchema) {
-				// English labels here: `governedColumns` feeds `tableColumns`,
-				// which CnDataTable render-translates via its own `cnTranslate`
-				// injection. Translating here too would double-translate. The
-				// column-picker menu that renders these labels directly applies
-				// `cnTranslate` at render instead.
 				defs.push(...columnsFromSchema(this.effectiveSchema, {}))
 				if (this.resolvedSidebar.showMetadata !== false) {
 					defs.push(...METADATA_COLUMNS)
@@ -3025,9 +2977,7 @@ export default {
 		 * emit the event (backward compatible). Otherwise open the form dialog.
 		 */
 		onAddClick() {
-			// `$.vnode.props`, not `$attrs`: `add` is a declared emit, and Vue
-			// keeps declared emits out of `$attrs`.
-			if (this.$.vnode.props?.onAdd) {
+			if (this.$attrs && this.$attrs.onAdd) {
 				this.$emit('add')
 			} else if (this.showFormDialog) {
 				this.editItem = null

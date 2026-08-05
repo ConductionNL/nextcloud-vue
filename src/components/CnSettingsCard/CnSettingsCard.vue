@@ -74,8 +74,6 @@ export default {
 		},
 	},
 
-	emits: ['toggle'],
-
 	data() {
 		return {
 			isCollapsed: this.defaultCollapsed,

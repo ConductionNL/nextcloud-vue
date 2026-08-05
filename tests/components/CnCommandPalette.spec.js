@@ -55,7 +55,7 @@ function mountPalette(propsData = {}) {
 describe('CnCommandPalette', () => {
 	afterEach(() => {
 		for (const wrapper of mountedWrappers) {
-			wrapper.unmount()
+			wrapper.destroy()
 		}
 		mountedWrappers = []
 		// `state.isOpen` is a module-level singleton independent of the

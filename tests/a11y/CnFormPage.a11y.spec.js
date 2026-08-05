@@ -38,7 +38,7 @@ describe('CnFormPage — accessibility', () => {
 	let wrapper
 
 	afterEach(() => {
-		wrapper?.unmount()
+		wrapper?.destroy()
 	})
 
 	it('has no WCAG 2.1 AA violations across every field type', async () => {

@@ -102,7 +102,7 @@ describe('CnRelatedObjectsWidget', () => {
 		await flush()
 		const rows = wrapper.findAll('.cn-related-objects-widget__row')
 		// a1 deduped → Alpha + Beta only (no linked apps registered).
-		const labels = rows.map((w) => w.find('.cn-related-objects-widget__label').text())
+		const labels = rows.wrappers.map((w) => w.find('.cn-related-objects-widget__label').text())
 		expect(labels).toContain('Alpha')
 		expect(labels).toContain('Beta')
 		expect(labels.filter((l) => l.startsWith('Alpha')).length).toBe(1)
@@ -126,7 +126,7 @@ describe('CnRelatedObjectsWidget', () => {
 		expect(text).toContain('Meetings')
 		// `files` is a core tab — excluded from the Linked apps section.
 		const appRows = wrapper.findAll('.cn-related-objects-widget__row--app')
-		const appLabels = appRows.map((w) => w.find('.cn-related-objects-widget__label').text())
+		const appLabels = appRows.wrappers.map((w) => w.find('.cn-related-objects-widget__label').text())
 		expect(appLabels).not.toContain('Files')
 	})
 
@@ -199,11 +199,11 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 		const wrapper = mountTabbed()
 		await flush()
 		const tabs = wrapper.findAll('.cn-related-objects-widget__tab')
-		const labels = tabs.map((w) => w.find('.cn-related-objects-widget__tab-label').text())
+		const labels = tabs.wrappers.map((w) => w.find('.cn-related-objects-widget__tab-label').text())
 		// Objects (1), Files (1), Mails (1) are non-empty; Meetings (0) is omitted.
 		expect(labels).toEqual(expect.arrayContaining(['Objects', 'Files', 'Mails']))
 		expect(labels).not.toContain('Meetings')
-		const counts = tabs.map((w) => w.find('.cn-related-objects-widget__count').text())
+		const counts = tabs.wrappers.map((w) => w.find('.cn-related-objects-widget__count').text())
 		expect(counts).toContain('1')
 	})
 

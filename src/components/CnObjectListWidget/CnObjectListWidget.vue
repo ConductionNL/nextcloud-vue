@@ -133,8 +133,6 @@ export default {
 		},
 	},
 
-	emits: ['created', 'row-click', 'view-all'],
-
 	data() {
 		return {
 			rows: [],

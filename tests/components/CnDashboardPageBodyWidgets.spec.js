@@ -51,7 +51,7 @@ describe('CnDashboardPage — bodyWidgets (in-body sections)', () => {
 	it('renders nothing when bodyWidgets is omitted / empty', () => {
 		const wrapper = mount(CnDashboardPage, { propsData: { title: 'D' }, stubs: { CnDashboardGrid: true } })
 		expect(wrapper.find('[data-testid="cn-body-sections"]').exists()).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('resolves a registered component (v2 registry) and renders it in the body', () => {
@@ -63,7 +63,7 @@ describe('CnDashboardPage — bodyWidgets (in-body sections)', () => {
 		const echo = wrapper.find('.props-echo')
 		expect(echo.exists()).toBe(true)
 		expect(echo.text()).toContain('Q1')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('resolves from the legacy customComponents map', () => {
@@ -72,14 +72,14 @@ describe('CnDashboardPage — bodyWidgets (in-body sections)', () => {
 			{ customComponents: { LegacyChart: PropsEcho } },
 		)
 		expect(wrapper.find('.props-echo').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders an inline error for an unresolved component without throwing', () => {
 		const wrapper = mountDash([{ id: 'nope', component: 'DoesNotExist' }])
 		expect(wrapper.find('[data-testid="cn-body-section-error-nope"]').exists()).toBe(true)
 		expect(wrapper.find('[data-testid="cn-dashboard-page"]').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('places sections by placement: before-grid / after-grid / end', () => {
@@ -96,7 +96,7 @@ describe('CnDashboardPage — bodyWidgets (in-body sections)', () => {
 		expect(wrapper.find('[data-testid="cn-dashboard-body-sections-end"] [data-section-id="tail"]').exists()).toBe(true)
 		// The before-grid section must NOT also appear in the end host.
 		expect(wrapper.find('[data-testid="cn-dashboard-body-sections-end"] [data-section-id="top"]').exists()).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('token-resolves props against workspace + config and drops unresolved optionals', () => {
@@ -121,7 +121,7 @@ describe('CnDashboardPage — bodyWidgets (in-body sections)', () => {
 		// period from workspace (seeded by the page filter default), currency from
 		// config, optional unresolved workspace token dropped (child sees undefined).
 		expect(echo.text()).toBe('Q1|USD|UNDEF')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('provides config on cnSectionContext for components that inject', () => {
@@ -131,6 +131,6 @@ describe('CnDashboardPage — bodyWidgets (in-body sections)', () => {
 			{ registry, appConfig: { currency: 'JPY' }, integrationContext: { register: 'reg', schema: 'sch' } },
 		)
 		expect(wrapper.find('.context-echo').text()).toBe('reg|sch|JPY')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

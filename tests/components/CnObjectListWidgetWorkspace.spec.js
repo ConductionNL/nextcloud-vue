@@ -7,7 +7,7 @@
  * selected client), and renders a prompt (instead of fetching the whole
  * register) while that state is unset.
  */
-import { reactive } from 'vue'
+import Vue from 'vue'
 import { shallowMount } from '@vue/test-utils'
 import CnObjectListWidget from '../../src/components/CnObjectListWidget/CnObjectListWidget.vue'
 
@@ -16,7 +16,7 @@ describe('CnObjectListWidget — workspace context', () => {
 	// reassigning `.value` notifies the widget's computeds (as a Vue ref does).
 	const mount = (content, workspace = null) => shallowMount(CnObjectListWidget, {
 		propsData: { content },
-		provide: workspace ? { cnWorkspaceContext: reactive({ value: workspace }) } : {},
+		provide: workspace ? { cnWorkspaceContext: Vue.observable({ value: workspace }) } : {},
 		stubs: { CnDataTable: true },
 	})
 

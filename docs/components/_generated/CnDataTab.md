@@ -11,5 +11,5 @@
 
 | Name           | Payload | Description |
 | -------------- | ------- | ----------- |
-| `format`       | —       |             |
 | `update:value` | —       |             |
+| `format`       | —       |             |

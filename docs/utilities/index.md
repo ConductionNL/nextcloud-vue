@@ -56,15 +56,6 @@ Used by the dashboard composable and any custom widget loader that wants the sam
 | [getCurrentUserGroups](./get-current-user-groups.md) | Fetch (and cache) the current user's groups |
 | [resetVisibilityCache](./reset-visibility-cache.md) | Clear the cached groups |
 
-## Modal stacking
-
-`@nextcloud/vue` puts every `NcModal` / `NcDialog` mask on the same `z-index`, so two open dialogs tie and the lower one intercepts the clicks aimed at the upper one. These give each open modal its own layer in open order. `CnAppRoot` wires them up automatically.
-
-| Function | Purpose |
-|----------|---------|
-| [installModalStack](./install-modal-stack.md) | Make the most recently opened modal the one that receives pointer events |
-| [uninstallModalStack](./uninstall-modal-stack.md) | Stop the observer and release every layer |
-
 ## Composables
 
 Vue 3 composables live under [utilities/composables/](./composables/index.md).

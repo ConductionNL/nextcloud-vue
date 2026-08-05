@@ -56,8 +56,6 @@ With a real up-to-date check (when the backend reports a configured version):
 | `description` | String | `''` | Page description. Defaults to `"Configure your <appName> installation"` |
 | `docUrl` | String | `''` | Documentation URL (renders the info icon next to the title) |
 | `showVersionCard` | Boolean | `true` | Whether to render the version card |
-| `showOrganisationCredentials` | Boolean | `false` | Render the organisation credential broker (`CnCredentials scope="organisation"`) on this admin page. Opt-in — only an app that actually brokers org-wide secrets should surface it. This is the broker's home since ADR-079 Step 2: it previously lived in a generic `manifest.adminSettings[]` modal on `CnAppRoot`, gated on app ownership, which no app ever declared — so it was unreachable everywhere. Here the access decision is Nextcloud's, made server-side for `/settings/admin/<app>`. |
-| `appCredentials` | Array | `[]` | The app's manifest `credentials[]` declarations, forwarded to the broker to drive its informational "apps requesting credentials" list. Only read when `showOrganisationCredentials` is true. |
 | `versionTitle` | String | `'Version information'` | Version card heading |
 | `versionDescription` | String | `''` | Version card description. Defaults to `"Information about the current <appName> installation"` |
 | `configuredVersion` | String | `''` | Configured version. When omitted, read from `loadState(appId, 'configuredVersion', '')` (AppHost stamps it on each config import) |

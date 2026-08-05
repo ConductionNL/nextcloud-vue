@@ -308,8 +308,6 @@ export default {
 		errorsLabel: { type: String, default: () => t('nextcloud-vue', 'Errors') },
 	},
 
-	emits: ['close', 'confirm'],
-
 	data() {
 		const optionValues = {}
 		this.options.forEach((opt) => {

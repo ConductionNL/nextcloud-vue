@@ -14,16 +14,7 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  */
 
-// `flushPromises` rather than a fixed number of `$nextTick()`s: the component
-// loads through an async `mounted()` (`await fetch` -> `await json()`), and a
-// Vue-3 `nextTick()` no longer implies the render has flushed. Vue 2 put
-// `nextTick` callbacks and the scheduler flush in ONE queue drained by a
-// single microtask, so an awaiting test always resumed after any re-render
-// queued in that batch. Vue 3 chains on `currentFlushPromise`, which is null
-// until a job is queued — so two ticks resolve BEFORE the fetch continuation
-// queues the render, and the spec reads a stale DOM while `wrapper.vm` state
-// is already correct.
-const { mount, flushPromises } = require('@vue/test-utils')
+const { mount } = require('@vue/test-utils')
 const CnEmailPicker = require('../CnEmailPicker.vue').default
 
 function resolveOnce(payload, status = 200) {
@@ -48,13 +39,14 @@ describe('CnEmailPicker', () => {
 		}))
 
 		const wrapper = mount(CnEmailPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		const rows = wrapper.findAll('.cn-email-picker__row-button')
 		expect(rows).toHaveLength(2)
 		expect(wrapper.text()).toContain('Work')
 		expect(wrapper.text()).toContain('Personal')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('advances to the mailbox step on account pick', async () => {
@@ -63,14 +55,16 @@ describe('CnEmailPicker', () => {
 			.mockReturnValueOnce(resolveOnce({ results: [{ id: 11, name: 'INBOX', displayName: 'INBOX' }] }))
 
 		const wrapper = mount(CnEmailPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		await wrapper.find('.cn-email-picker__row-button').trigger('click')
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		expect(wrapper.vm.step).toBe(2)
 		expect(wrapper.text()).toContain('INBOX')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('advances to the message step and emits link on confirm', async () => {
@@ -83,13 +77,16 @@ describe('CnEmailPicker', () => {
 			}))
 
 		const wrapper = mount(CnEmailPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		await wrapper.find('.cn-email-picker__row-button').trigger('click')
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		await wrapper.find('.cn-email-picker__row-button').trigger('click')
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		expect(wrapper.vm.step).toBe(3)
 		await wrapper.find('.cn-email-picker__row-button').trigger('click')
@@ -102,7 +99,7 @@ describe('CnEmailPicker', () => {
 			messageId: '700',
 			messageUid: 'uid-700',
 		}])
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('back from mailbox step returns to account step', async () => {
@@ -111,15 +108,17 @@ describe('CnEmailPicker', () => {
 			.mockReturnValueOnce(resolveOnce({ results: [{ id: 11, name: 'INBOX', displayName: 'INBOX' }] }))
 
 		const wrapper = mount(CnEmailPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		await wrapper.find('.cn-email-picker__row-button').trigger('click')
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		expect(wrapper.vm.step).toBe(2)
 		wrapper.vm.goBack()
 		expect(wrapper.vm.step).toBe(1)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('filters messages by subject/sender client-side', async () => {
@@ -135,19 +134,22 @@ describe('CnEmailPicker', () => {
 			}))
 
 		const wrapper = mount(CnEmailPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		await wrapper.find('.cn-email-picker__row-button').trigger('click')
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 		await wrapper.find('.cn-email-picker__row-button').trigger('click')
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		expect(wrapper.vm.filteredMessages).toHaveLength(2)
 		wrapper.setData({ filterText: 'hello' })
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.filteredMessages).toHaveLength(1)
 		expect(wrapper.vm.filteredMessages[0].subject).toBe('Hello world')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('surfaces an inline error when /accounts fails', async () => {
@@ -155,10 +157,11 @@ describe('CnEmailPicker', () => {
 		global.fetch.mockRejectedValueOnce(new Error('boom'))
 
 		const wrapper = mount(CnEmailPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		expect(wrapper.vm.error).not.toBe('')
 		spy.mockRestore()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

@@ -76,16 +76,10 @@ export default {
 
 	components: { CnIcon, NcSelect },
 
-	// NO `model: { prop, event }` OPTION.
-	//
-	// The Vue-2 `model` option is REMOVED in Vue 3 — read by nothing, warned
-	// about by nothing — so it survived the migration as a declaration that
-	// looked authoritative while doing exactly zero. The component's real
-	// contract is the explicit `:active-index` / `@update:active-index` pair
-	// (and `:selected-indices` / `@update:selected-indices` in `multiple`
-	// mode), which is what `CnIndexPage` binds. Surfaced by
-	// `vue/no-deprecated-model-definition`, which this repo now arms through
-	// its own published preset.
+	model: {
+		prop: 'activeIndex',
+		event: 'update:active-index',
+	},
 
 	props: {
 		/**
@@ -151,8 +145,6 @@ export default {
 		},
 	},
 
-	emits: ['update:active-index', 'update:selected-indices'],
-
 	computed: {
 		/**
 		 * Dropdown options: every tab that carries a non-empty `filter`,
@@ -193,10 +185,7 @@ export default {
 		},
 		/**
 		 * Whether a tab's `filter` map is absent/empty (the "All" tab).
-		 *
-		 * @param {{label: string, filter?: object}} tab An entry from the `tabs` prop.
-		 * @return {boolean} True when the tab applies no filter, so selecting it
-		 *   clears the multi-selection rather than adding to it.
+		 * @param tab
 		 */
 		isEmptyFilter(tab) {
 			return !tab || !tab.filter || Object.keys(tab.filter).length === 0

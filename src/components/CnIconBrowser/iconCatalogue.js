@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * Icon-catalogue adapters for `CnIconBrowser`. The library imports NO
+ * Icon-catalogue adapters for {@link CnIconBrowser}. The library imports NO
  * icon package itself — the consuming app owns that choice and passes a
  * normalized catalogue in via the browser's `icons` prop. These helpers turn a
  * popular icon source into that shape.

@@ -20,7 +20,6 @@ jest.mock('@nextcloud/axios', () => ({
 }))
 
 import { mount } from '@vue/test-utils'
-import { h } from 'vue'
 import CnFormPage from '@/components/CnFormPage/CnFormPage.vue'
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0))
@@ -40,22 +39,13 @@ const stubs = {
 		template: '<label class="nc-checkbox-stub"><input type="checkbox" :checked="checked" @change="$emit(\'update:checked\', $event.target.checked)"><slot /></label>',
 		props: ['checked', 'label'],
 	},
-	// `modelValue` / `update:modelValue` — @nextcloud/vue 9's real contract for
-	// both components (NcTextField declares `modelValue`; NcSelect declares
-	// `emits: [" ", "update:modelValue"]` and never emits `input`). Mirrors the
-	// composable fix in src/composables/cnFormFieldRenderer.js: that renderer
-	// used to bind the Vue-2-era `value` / `update:value` / `input` names, which
-	// silently never round-tripped against the real components — and these
-	// local stubs used to accept the same wrong names, so this spec stayed
-	// green while the real library was broken. See that file's inline comments
-	// for the full explanation.
 	NcTextField: {
-		template: '<input class="nc-textfield-stub" :type="type" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
-		props: ['label', 'type', 'modelValue', 'error', 'helperText'],
+		template: '<input class="nc-textfield-stub" :type="type" :value="value" @input="$emit(\'update:value\', $event.target.value)" />',
+		props: ['label', 'type', 'value', 'error', 'helperText'],
 	},
 	NcSelect: {
-		template: '<select class="nc-select-stub" @change="$emit(\'update:modelValue\', { value: $event.target.value })"><option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option></select>',
-		props: ['inputLabel', 'options', 'modelValue'],
+		template: '<select class="nc-select-stub" @change="$emit(\'input\', { value: $event.target.value })"><option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option></select>',
+		props: ['inputLabel', 'options', 'value'],
 	},
 	CnJsonViewer: { template: '<pre class="cn-json-viewer-stub" />', props: ['value', 'label'] },
 }
@@ -387,7 +377,7 @@ describe('CnFormPage — manifest-form-logic', () => {
 			const input = wrapper.find('[data-field-key="name"] input')
 			expect(document.activeElement).toBe(input.element)
 
-			wrapper.unmount()
+			wrapper.destroy()
 		})
 
 		it('submit failure jumps to the earliest step containing an invalid field', async () => {
@@ -524,11 +514,7 @@ describe('CnFormPage — manifest-form-logic', () => {
 			const wrapper = mountForm({ fields, submitHandler: 'submit' })
 			await wrapper.vm.submit()
 			await wrapper.vm.$nextTick()
-			// VTU v1's `find('.class')` returned a *component* wrapper when the
-			// class sat on a child component's root, so `.props()` worked. VTU
-			// v2 split the two: `find()` is DOM-only (DOMWrapper, no `props()`)
-			// and component lookups go through `findComponent()`.
-			const input = wrapper.findComponent({ name: 'NcTextField' })
+			const input = wrapper.find('.nc-textfield-stub')
 			expect(input.props('error')).toBe(true)
 			expect(input.props('helperText')).toBeTruthy()
 		})
@@ -546,11 +532,8 @@ describe('CnFormPage — manifest-form-logic', () => {
 			const wrapper = mountForm({ fields, submitHandler: 'submit' }, {
 				mountOptions: {
 					scopedSlots: {
-						// Vue 3 has no `this.$createElement`, no `staticClass`, and no
-						// nested `attrs:` — slot functions import `h` and pass a flat
-						// props object.
 						'field-rating'(props) {
-							return h('div', { class: 'custom-rating', 'data-error': props.error || '' })
+							return this.$createElement('div', { staticClass: 'custom-rating', attrs: { 'data-error': props.error || '' } })
 						},
 					},
 				},

@@ -66,7 +66,7 @@ describe('CnFlowTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No automations linked yet')
 		expect(wrapper.text()).toContain('Open Workflow settings')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a row with title, entity and operation summary', async () => {
@@ -84,7 +84,7 @@ describe('CnFlowTab', () => {
 		expect(wrapper.text()).toContain('tag')
 		expect(wrapper.find('.cn-flow-tab__enabled--on').exists()).toBe(true)
 		expect(wrapper.text()).toContain('Enabled')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders trigger-event chips shortened to the method name', async () => {
@@ -95,7 +95,7 @@ describe('CnFlowTab', () => {
 		const chips = wrapper.findAll('.cn-flow-tab__chip')
 		expect(chips.length).toBeGreaterThan(0)
 		expect(chips.at(0).text()).toBe('postCreate')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a condition count when checks are present', async () => {
@@ -104,7 +104,7 @@ describe('CnFlowTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('1 conditions')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('marks operations with explicit enabled:false as disabled', async () => {
@@ -115,7 +115,7 @@ describe('CnFlowTab', () => {
 		expect(wrapper.find('.cn-flow-tab__row--disabled').exists()).toBe(true)
 		expect(wrapper.find('.cn-flow-tab__enabled--off').exists()).toBe(true)
 		expect(wrapper.text()).toContain('Disabled')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('admin sees the "Link existing automation" button + per-row unlink', async () => {
@@ -126,7 +126,7 @@ describe('CnFlowTab', () => {
 		expect(wrapper.vm.isAdmin).toBe(true)
 		expect(wrapper.find('[data-testid="cn-flow-tab-link"]').exists()).toBe(true)
 		expect(wrapper.find('[data-testid="cn-flow-tab-unlink"]').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('non-admin sees neither link button nor per-row unlink', async () => {
@@ -137,7 +137,7 @@ describe('CnFlowTab', () => {
 		expect(wrapper.vm.isAdmin).toBe(false)
 		expect(wrapper.find('[data-testid="cn-flow-tab-link"]').exists()).toBe(false)
 		expect(wrapper.find('[data-testid="cn-flow-tab-unlink"]').exists()).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the 501 banner when Flow is not installed', async () => {
@@ -146,7 +146,7 @@ describe('CnFlowTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Workflow Engine is not installed.')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the unavailable banner when the provider returns 503', async () => {
@@ -156,7 +156,7 @@ describe('CnFlowTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Flow is currently unavailable.')
 		expect(wrapper.find('.cn-flow-tab__row').exists()).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the generic error label when fetch throws', async () => {
@@ -166,7 +166,7 @@ describe('CnFlowTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Could not load automations.')
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 
@@ -177,6 +177,6 @@ describe('CnFlowTab', () => {
 		await wrapper.vm.$nextTick()
 		// Fallback name is bound to the NcListItem `name` attribute.
 		expect(wrapper.find('.cn-flow-tab__row').attributes('name')).toBe('GenericOperation')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

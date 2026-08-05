@@ -13,8 +13,6 @@
  *
  * @return {{useWidgetForm: Function, registry: object}} the wired exports.
  */
-const { toRaw } = require('vue')
-
 function setup() {
 	let useWidgetForm
 	let registry
@@ -66,11 +64,7 @@ describe('useWidgetForm', () => {
 		form.loadEditingWidget(widget)
 		expect(form.state.type).toBe('text')
 		expect(form.state.content).toEqual({ text: 'hello', contentMode: 'markdown' })
-		// `toRaw` on the received side: `state` is reactive, so reading the
-		// stored widget hands back a Proxy. The assertion is still identity —
-		// the caller's widget is held, not a merged copy of it (the merge only
-		// applies to `content`, asserted above).
-		expect(toRaw(form.state.editingWidget)).toBe(widget)
+		expect(form.state.editingWidget).toBe(widget)
 	})
 
 	it('loadEditingWidget is a no-op for a falsy widget', () => {

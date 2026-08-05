@@ -55,7 +55,7 @@ describe('CnCalendarEventPicker', () => {
 		expect(wrapper.vm.calendars).toHaveLength(2)
 		expect(wrapper.text()).toContain('Personal')
 		expect(wrapper.text()).toContain('Work')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('transitions to step 2 and loads events on calendar selection', async () => {
@@ -91,7 +91,7 @@ describe('CnCalendarEventPicker', () => {
 
 		const evtCall = global.fetch.mock.calls[1][0]
 		expect(evtCall).toContain('/integrations/calendar/calendars/personal/events')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('filters events client-side by summary substring', async () => {
@@ -121,7 +121,7 @@ describe('CnCalendarEventPicker', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.filteredEvents).toHaveLength(1)
 		expect(wrapper.vm.filteredEvents[0].uid).toBe('ev1')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('emits link with {calendarUri,eventUid} on confirm', async () => {
@@ -146,7 +146,7 @@ describe('CnCalendarEventPicker', () => {
 		wrapper.vm.confirmSelection()
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0]).toEqual([{ calendarUri: 'work', eventUid: 'evX' }])
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('emits close on cancel', async () => {
@@ -156,6 +156,6 @@ describe('CnCalendarEventPicker', () => {
 		await wrapper.vm.$nextTick()
 		wrapper.vm.onClose()
 		expect(wrapper.emitted('close')).toBeTruthy()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

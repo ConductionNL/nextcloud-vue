@@ -39,7 +39,7 @@ describe('CnStatWidget — label/caption translation', () => {
 		})
 		expect(wrapper.find('.cn-stat-widget__label').text()).toBe('Nieuwe zaken')
 		expect(wrapper.find('.cn-stat-widget__caption').text()).toBe('deze maand')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('prefers the explicit translate prop over the injected cnTranslate', () => {
@@ -49,13 +49,13 @@ describe('CnStatWidget — label/caption translation', () => {
 			provide: { cnTranslate: () => 'FROM_INJECT' },
 		})
 		expect(wrapper.find('.cn-stat-widget__label').text()).toBe('FROM_PROP')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders the raw source string when no translator is provided (identity fallback)', () => {
 		const wrapper = mount(CnStatWidget, { propsData: { content }, stubs })
 		expect(wrapper.find('.cn-stat-widget__label').text()).toBe('New cases')
 		expect(wrapper.find('.cn-stat-widget__caption').text()).toBe('this month')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

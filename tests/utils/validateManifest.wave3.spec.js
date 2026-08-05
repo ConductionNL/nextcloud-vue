@@ -59,8 +59,7 @@ describe('Wave 3 — chart aggregate + drilldown + views', () => {
 
 	it('still accepts the STRING aggregate: count shorthand (back-compat)', () => {
 		const result = validateManifest(manifestWith([{
-			widgetKey: 'chart',
-			...grid,
+			widgetKey: 'chart', ...grid,
 			props: { chartKind: 'bar' },
 			dataSource: { register: 'crm', schema: 'request', aggregate: 'count' },
 		}]))
@@ -69,8 +68,7 @@ describe('Wave 3 — chart aggregate + drilldown + views', () => {
 
 	it('rejects an aggregate object missing groupBy', () => {
 		const result = validateManifest(manifestWith([{
-			widgetKey: 'chart',
-			...grid,
+			widgetKey: 'chart', ...grid,
 			props: { chartKind: 'donut' },
 			dataSource: { register: 'crm', schema: 'request', aggregate: { metric: 'count' } },
 		}]))
@@ -79,8 +77,7 @@ describe('Wave 3 — chart aggregate + drilldown + views', () => {
 
 	it('rejects a drilldown missing filterParam', () => {
 		const result = validateManifest(manifestWith([{
-			widgetKey: 'chart',
-			...grid,
+			widgetKey: 'chart', ...grid,
 			props: { chartKind: 'donut' },
 			dataSource: { register: 'crm', schema: 'request', aggregate: { groupBy: 'status' }, drilldown: { route: 'X' } },
 		}]))
@@ -97,25 +94,16 @@ describe('Wave 3 — headerActions action types', () => {
 		const result = validateManifest(withHeaderActions([
 			{ id: 'new-lead', label: 'New lead', type: 'open-form', register: 'crm', schema: 'lead', onSuccessRoute: 'Leads', variant: 'primary' },
 			{
-				id: 'approve',
-				label: 'Approve',
-				type: 'api-call',
-				url: '/apps/shillinq/api/payment-runs/@objectId/approve',
-				method: 'POST',
-				confirm: true,
-				successMessage: 'Approved',
+				id: 'approve', label: 'Approve', type: 'api-call',
+				url: '/apps/shillinq/api/payment-runs/@objectId/approve', method: 'POST',
+				confirm: true, successMessage: 'Approved',
 				visibleWhen: { field: 'state', op: 'eq', value: 'pending' },
 			},
 			{
-				id: 'werkplek',
-				type: 'toggle',
-				label: 'Werkplek',
-				labelOn: 'Open',
-				labelOff: 'Closed',
-				field: 'open',
+				id: 'werkplek', type: 'toggle', label: 'Werkplek',
+				labelOn: 'Open', labelOff: 'Closed', field: 'open',
 				stateSource: { url: '/apps/pipelinq/api/werkplek/state', responsePath: 'open' },
-				writeUrl: '/apps/pipelinq/api/werkplek/state',
-				method: 'PUT',
+				writeUrl: '/apps/pipelinq/api/werkplek/state', method: 'PUT',
 			},
 			{ id: 'refresh', label: 'Refresh', type: 'refresh' },
 		]))
@@ -126,27 +114,6 @@ describe('Wave 3 — headerActions action types', () => {
 	it('rejects an api-call without a url', () => {
 		const result = validateManifest(withHeaderActions([{ id: 'x', label: 'X', type: 'api-call' }]))
 		expect(result.valid).toBe(false)
-	})
-
-	it('accepts an api-call with payload / download / filename', () => {
-		const result = validateManifest(withHeaderActions([
-			{
-				id: 'generate-pdf',
-				label: 'Generate PDF',
-				type: 'api-call',
-				url: '/apps/docudesk/api/documents/generate',
-				method: 'POST',
-				payload: {
-					template: 'invoice',
-					dataRefs: [{ register: 'crm', schema: 'lead', id: '@objectId' }],
-				},
-				download: true,
-				filename: 'invoice-@objectId.pdf',
-				successMessage: 'Document generated',
-			},
-		]))
-		expect(result.errors).toEqual([])
-		expect(result.valid).toBe(true)
 	})
 
 	it('rejects an open-form without a schema', () => {
@@ -165,55 +132,15 @@ describe('Wave 3 — headerActions action types', () => {
 		]))
 		expect(result.valid).toBe(false)
 	})
-
-	it('accepts a type:agent action (hermiq#41) with skill / prompt / resultField / register / schema', () => {
-		const result = validateManifest(withHeaderActions([
-			{
-				id: 'summarise',
-				label: 'Summarise',
-				type: 'agent',
-				agent: 'agent-uuid-1',
-				skill: 'summarise-v1',
-				prompt: 'Summarise @object.title',
-				resultField: 'aiSummary',
-				register: 'crm',
-				schema: 'lead',
-				objectId: '@objectId',
-				confirm: true,
-				successMessage: 'Run queued',
-				visibleWhen: { field: 'state', op: 'eq', value: 'open' },
-			},
-		]))
-		expect(result.errors).toEqual([])
-		expect(result.valid).toBe(true)
-	})
-
-	it('accepts a minimal type:agent action (agent only — register/schema/objectId default to page context)', () => {
-		const result = validateManifest(withHeaderActions([
-			{ id: 'run', label: 'Run', type: 'agent', agent: 'agent-uuid-1' },
-		]))
-		expect(result.errors).toEqual([])
-		expect(result.valid).toBe(true)
-	})
-
-	it('rejects a type:agent action without an agent', () => {
-		const result = validateManifest(withHeaderActions([{ id: 'x', label: 'X', type: 'agent' }]))
-		expect(result.valid).toBe(false)
-	})
 })
 
 describe('Wave 3 — workspace-filter + kb-search catalog widgets', () => {
 	it('accepts a workspace-filter widget with an OR-source and counts', () => {
 		const result = validateManifest(manifestWith([{
-			widgetKey: 'workspace-filter',
-			...grid,
+			widgetKey: 'workspace-filter', ...grid,
 			props: {
 				content: {
-					label: 'Queue',
-					writes: '@workspace.queue',
-					style: 'radio',
-					allLabel: 'All',
-					showCounts: true,
+					label: 'Queue', writes: '@workspace.queue', style: 'radio', allLabel: 'All', showCounts: true,
 					source: { register: 'pipelinq', schema: 'werkitem', groupBy: 'queue' },
 				},
 			},
@@ -224,8 +151,7 @@ describe('Wave 3 — workspace-filter + kb-search catalog widgets', () => {
 
 	it('rejects a workspace-filter with an invalid style', () => {
 		const result = validateManifest(manifestWith([{
-			widgetKey: 'workspace-filter',
-			...grid,
+			widgetKey: 'workspace-filter', ...grid,
 			props: { content: { writes: '@workspace.q', style: 'dropdown' } },
 		}]))
 		expect(result.valid).toBe(false)
@@ -233,18 +159,12 @@ describe('Wave 3 — workspace-filter + kb-search catalog widgets', () => {
 
 	it('accepts a kb-search widget with a provider + space/tags + fallback', () => {
 		const result = validateManifest(manifestWith([{
-			widgetKey: 'kb-search',
-			...grid,
+			widgetKey: 'kb-search', ...grid,
 			props: {
 				content: {
-					provider: 'xwiki',
-					space: 'Support',
-					tags: ['printer', 'network'],
-					bindTo: 'activeSummary',
-					minChars: 3,
-					limit: 8,
-					externalOpen: true,
-					unavailableFallback: 'KB offline',
+					provider: 'xwiki', space: 'Support', tags: ['printer', 'network'],
+					bindTo: 'activeSummary', minChars: 3, limit: 8,
+					externalOpen: true, unavailableFallback: 'KB offline',
 				},
 			},
 		}]))

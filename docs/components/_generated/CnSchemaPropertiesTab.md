@@ -25,5 +25,5 @@
 | `add-property`             | —       |             |
 | `copy-property`            | —       |             |
 | `delete-property`          | —       |             |
-| `update:property-key`      | —       |             |
 | `update:selected-property` | —       |             |
+| `update:property-key`      | —       |             |

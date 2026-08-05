@@ -4,11 +4,11 @@
 
 | Name      | Type                                                                | Required | Default       | Description                                                                                                                           |
 | --------- | ------------------------------------------------------------------- | -------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `value`   | `string`                                                            |          | `''`          | The currently-selected widget id. Bind `:value` + `@input` explicitly — Vue 3 does not desugar a bare `v-model` onto this pair.       |
+| `v-model` | `string`                                                            |          | `''`          | The currently-selected widget id (`v-model` value).                                                                                   |
 | `widgets` | `Array<{id: string, title?: string, iconUrl?: string}>&#124;object` |          | `() =&gt; []` | The Nextcloud-discovered widgets to pick from. Accepts an array or an object map (PHP may serialise a sequential array as an object). |
 
 ### Events
 
-| Name    | Payload | Description                                                  |
-| ------- | ------- | ------------------------------------------------------------ |
-| `input` | —       | Selection changed; payload is the selected widget id string. |
+| Name    | Payload | Description                                                 |
+| ------- | ------- | ----------------------------------------------------------- |
+| `input` | —       | `v-model` update; payload is the selected widget id string. |

@@ -59,27 +59,27 @@
 		</NcActionCheckbox>
 		<NcActionInput
 			v-if="isFacetableEnabled(property)"
-			:model-value="getFacetConfig(property).title || ''"
+			:value="getFacetConfig(property).title || ''"
 			:label="t('nextcloud-vue', 'Facet title')"
-			@update:model-value="updateFacetConfigField(propertyKey, property, 'title', $event)" />
+			@update:value="updateFacetConfigField(propertyKey, property, 'title', $event)" />
 		<NcActionInput
 			v-if="isFacetableEnabled(property)"
-			:model-value="getFacetConfig(property).description || ''"
+			:value="getFacetConfig(property).description || ''"
 			:label="t('nextcloud-vue', 'Facet description')"
-			@update:model-value="updateFacetConfigField(propertyKey, property, 'description', $event)" />
+			@update:value="updateFacetConfigField(propertyKey, property, 'description', $event)" />
 		<NcActionInput
 			v-if="isFacetableEnabled(property)"
-			:model-value="getFacetConfig(property).order != null ? String(getFacetConfig(property).order) : ''"
+			:value="getFacetConfig(property).order != null ? String(getFacetConfig(property).order) : ''"
 			type="number"
 			:label="t('nextcloud-vue', 'Facet order')"
-			@update:model-value="updateFacetConfigField(propertyKey, property, 'order', $event)" />
+			@update:value="updateFacetConfigField(propertyKey, property, 'order', $event)" />
 
 		<NcActionSeparator />
 		<NcActionCaption :name="t('nextcloud-vue', 'Properties')" />
 		<NcActionInput
-			:model-value="property.title || ''"
+			:value="property.title || ''"
 			:label="t('nextcloud-vue', 'Title')"
-			@update:model-value="updatePropertySetting(propertyKey, 'title', $event)" />
+			@update:value="updatePropertySetting(propertyKey, 'title', $event)" />
 		<NcActionInput
 			v-if="getFormatOptionsForType(property.type).length > 0"
 			v-model="schema.properties[propertyKey].format"
@@ -88,26 +88,26 @@
 			:input-label="t('nextcloud-vue', 'Format')"
 			:label="t('nextcloud-vue', 'Format')" />
 		<NcActionInput
-			:model-value="property.description || ''"
+			:value="property.description || ''"
 			:label="t('nextcloud-vue', 'Description')"
-			@update:model-value="updatePropertySetting(propertyKey, 'description', $event)" />
+			@update:value="updatePropertySetting(propertyKey, 'description', $event)" />
 		<NcActionInput
-			:model-value="property.example || ''"
+			:value="property.example || ''"
 			:label="t('nextcloud-vue', 'Example')"
-			@update:model-value="updatePropertySetting(propertyKey, 'example', $event)" />
+			@update:value="updatePropertySetting(propertyKey, 'example', $event)" />
 		<NcActionInput
-			:model-value="property.order || 0"
+			:value="property.order || 0"
 			type="number"
 			:label="t('nextcloud-vue', 'Order')"
-			@update:model-value="updatePropertySetting(propertyKey, 'order', Number($event))" />
+			@update:value="updatePropertySetting(propertyKey, 'order', Number($event))" />
 
 		<!-- Const and Enum Configuration -->
 		<NcActionSeparator />
 		<NcActionCaption :name="t('nextcloud-vue', 'Value constraints')" />
 		<NcActionInput
-			:model-value="property.const || ''"
+			:value="property.const || ''"
 			:label="t('nextcloud-vue', 'Constant')"
-			@update:model-value="updatePropertySetting(propertyKey, 'const', $event === '' ? undefined : $event)" />
+			@update:value="updatePropertySetting(propertyKey, 'const', $event === '' ? undefined : $event)" />
 		<template v-if="property.enum && property.enum.length > 0">
 			<NcActionCaption :name="t('nextcloud-vue', 'Current enum values ({count})', { count: property.enum.length })" />
 			<NcActionButton
@@ -128,23 +128,12 @@
 			an arrow click. Listening only for keydown.enter left the arrow — the
 			visible affordance most users reach for — doing nothing. Mirrors the
 			note-add input in CnRelatedObjectsWidget.
-
-			MODEL PROP — applies to EVERY NcActionInput in this file:
-			`model-value` / `@update:model-value`, never `value` / `@update:value`
-			(and never `@input`, which the component does not emit at all).
-			@nextcloud/vue 9's NcActionInput declares exactly one model prop,
-			`modelValue`, and exactly two events, `submit` and
-			`update:modelValue`. Anything else is not a warning — it is silently
-			inert: a `:value` binding degrades to a DOM attribute on the wrapping
-			<li>, and an `@update:value` / `@input` listener simply never fires,
-			so the field shows nothing and reports nothing. That is what made
-			this whole actions menu read-only.
 		-->
 		<NcActionInput
-			:model-value="enumInputValue"
+			:value="enumInputValue"
 			:label="t('nextcloud-vue', 'Add enum value')"
 			:placeholder="t('nextcloud-vue', 'Type a value and press Enter or the arrow')"
-			@update:model-value="enumInputValue = $event"
+			@update:value="enumInputValue = $event"
 			@submit="addEnumValueAndClear(propertyKey)" />
 
 		<!-- Default Value Configuration -->
@@ -152,16 +141,16 @@
 		<NcActionCaption :name="t('nextcloud-vue', 'Default value configuration')" />
 		<template v-if="property.type === 'string'">
 			<NcActionInput
-				:model-value="property.default || ''"
+				:value="property.default || ''"
 				:label="t('nextcloud-vue', 'Default value')"
-				@update:model-value="updatePropertySetting(propertyKey, 'default', $event === '' ? undefined : $event)" />
+				@update:value="updatePropertySetting(propertyKey, 'default', $event === '' ? undefined : $event)" />
 		</template>
 		<template v-else-if="property.type === 'number' || property.type === 'integer'">
 			<NcActionInput
-				:model-value="property.default || 0"
+				:value="property.default || 0"
 				type="number"
 				:label="t('nextcloud-vue', 'Default value')"
-				@update:model-value="updatePropertySetting(propertyKey, 'default', Number($event))" />
+				@update:value="updatePropertySetting(propertyKey, 'default', Number($event))" />
 		</template>
 		<template v-else-if="property.type === 'boolean'">
 			<NcActionCheckbox
@@ -172,16 +161,16 @@
 		</template>
 		<template v-else-if="property.type === 'array' && property.items && property.items.type === 'string'">
 			<NcActionInput
-				:model-value="getArrayDefaultAsString(property.default)"
+				:value="getArrayDefaultAsString(property.default)"
 				:label="t('nextcloud-vue', 'Default values (comma separated)')"
 				placeholder="value1, value2, value3"
-				@update:model-value="updateArrayDefault(propertyKey, $event)" />
+				@update:value="updateArrayDefault(propertyKey, $event)" />
 		</template>
 		<template v-else-if="property.type === 'object'">
 			<NcActionInput
-				:model-value="typeof property.default === 'object' ? JSON.stringify(property.default, null, 2) : (property.default || '{}')"
+				:value="typeof property.default === 'object' ? JSON.stringify(property.default, null, 2) : (property.default || '{}')"
 				:label="t('nextcloud-vue', 'Default value (JSON)')"
-				@update:model-value="updateObjectDefault(propertyKey, $event)" />
+				@update:value="updateObjectDefault(propertyKey, $event)" />
 		</template>
 
 		<!-- Default Behavior Toggle -->
@@ -206,39 +195,39 @@
 			<NcActionSeparator />
 			<NcActionCaption :name="t('nextcloud-vue', 'String configuration')" />
 			<NcActionInput
-				:model-value="property.minLength || 0"
+				:value="property.minLength || 0"
 				type="number"
 				:label="t('nextcloud-vue', 'Minimum length')"
-				@update:model-value="updatePropertySetting(propertyKey, 'minLength', Number($event))" />
+				@update:value="updatePropertySetting(propertyKey, 'minLength', Number($event))" />
 			<NcActionInput
-				:model-value="property.maxLength || 0"
+				:value="property.maxLength || 0"
 				type="number"
 				:label="t('nextcloud-vue', 'Maximum length')"
-				@update:model-value="updatePropertySetting(propertyKey, 'maxLength', Number($event))" />
+				@update:value="updatePropertySetting(propertyKey, 'maxLength', Number($event))" />
 			<NcActionInput
-				:model-value="property.pattern || ''"
+				:value="property.pattern || ''"
 				:label="t('nextcloud-vue', 'Pattern (regex)')"
-				@update:model-value="updatePropertySetting(propertyKey, 'pattern', $event)" />
+				@update:value="updatePropertySetting(propertyKey, 'pattern', $event)" />
 		</template>
 
 		<template v-if="property.type === 'number' || property.type === 'integer'">
 			<NcActionSeparator />
 			<NcActionCaption :name="t('nextcloud-vue', 'Number configuration')" />
 			<NcActionInput
-				:model-value="property.minimum || 0"
+				:value="property.minimum || 0"
 				type="number"
 				:label="t('nextcloud-vue', 'Minimum value')"
-				@update:model-value="updatePropertySetting(propertyKey, 'minimum', Number($event))" />
+				@update:value="updatePropertySetting(propertyKey, 'minimum', Number($event))" />
 			<NcActionInput
-				:model-value="property.maximum || 0"
+				:value="property.maximum || 0"
 				type="number"
 				:label="t('nextcloud-vue', 'Maximum value')"
-				@update:model-value="updatePropertySetting(propertyKey, 'maximum', Number($event))" />
+				@update:value="updatePropertySetting(propertyKey, 'maximum', Number($event))" />
 			<NcActionInput
-				:model-value="property.multipleOf || 0"
+				:value="property.multipleOf || 0"
 				type="number"
 				:label="t('nextcloud-vue', 'Multiple of')"
-				@update:model-value="updatePropertySetting(propertyKey, 'multipleOf', Number($event))" />
+				@update:value="updatePropertySetting(propertyKey, 'multipleOf', Number($event))" />
 			<NcActionCheckbox
 				:model-value="property.exclusiveMin || false"
 				@update:model-value="updatePropertySetting(propertyKey, 'exclusiveMin', $event)">
@@ -261,15 +250,15 @@
 				:input-label="t('nextcloud-vue', 'Array item type')"
 				:label="t('nextcloud-vue', 'Array item type')" />
 			<NcActionInput
-				:model-value="property.minItems || 0"
+				:value="property.minItems || 0"
 				type="number"
 				:label="t('nextcloud-vue', 'Minimum items')"
-				@update:model-value="updatePropertySetting(propertyKey, 'minItems', Number($event))" />
+				@update:value="updatePropertySetting(propertyKey, 'minItems', Number($event))" />
 			<NcActionInput
-				:model-value="property.maxItems || 0"
+				:value="property.maxItems || 0"
 				type="number"
 				:label="t('nextcloud-vue', 'Maximum items')"
-				@update:model-value="updatePropertySetting(propertyKey, 'maxItems', Number($event))" />
+				@update:value="updatePropertySetting(propertyKey, 'maxItems', Number($event))" />
 
 			<!-- Show object configuration for array items when item type is object -->
 			<template v-if="property.items && property.items.type === 'object'">
@@ -282,25 +271,25 @@
 					:input-label="t('nextcloud-vue', 'Object handling')"
 					:label="t('nextcloud-vue', 'Object handling')" />
 				<NcActionInput
-					:model-value="arrayItemSchemaRefValueFor(propertyKey)"
+					:value="arrayItemSchemaRefValueFor(propertyKey)"
 					type="multiselect"
 					:options="schemaRefOptions"
 					:input-label="t('nextcloud-vue', 'Schema reference')"
 					:label="t('nextcloud-vue', 'Schema reference')"
-					@update:model-value="updateArrayItemSchemaReference(propertyKey, $event)" />
+					@input="updateArrayItemSchemaReference(propertyKey, $event)" />
 				<NcActionCaption
 					v-if="isArrayItemRefInvalid(propertyKey)"
 					:name="'⚠️ ' + t('nextcloud-vue', 'Invalid schema reference: Expected string, got number ({value}). This will be sent to backend as-is.', { value: schema.properties[propertyKey].items.$ref })"
 					style="color: var(--color-error); font-weight: bold;" />
 				<NcActionInput
-					:model-value="arrayItemRegisterValueFor(propertyKey)"
+					:value="arrayItemRegisterValueFor(propertyKey)"
 					type="multiselect"
 					:options="registerSelectOptions"
 					:input-label="t('nextcloud-vue', 'Register')"
 					:label="t('nextcloud-vue', 'Register (required when schema is selected)')"
 					:required="!!schema.properties[propertyKey].items.$ref"
 					:disabled="!schema.properties[propertyKey].items.$ref"
-					@update:model-value="updateArrayItemRegisterReference(propertyKey, $event)" />
+					@input="updateArrayItemRegisterReference(propertyKey, $event)" />
 				<NcActionInput
 					v-model="schema.properties[propertyKey].items.inversedBy"
 					type="multiselect"
@@ -308,12 +297,12 @@
 					:input-label="t('nextcloud-vue', 'Inversed by property')"
 					:label="t('nextcloud-vue', 'Inversed by')"
 					:disabled="!schema.properties[propertyKey].items.$ref"
-					@update:model-value="updateInversedByForArrayItems(propertyKey, $event)" />
+					@update:value="updateInversedByForArrayItems(propertyKey, $event)" />
 				<NcActionInput
-					:model-value="getArrayItemQueryParams(propertyKey)"
+					:value="getArrayItemQueryParams(propertyKey)"
 					:label="t('nextcloud-vue', 'Query parameters')"
 					placeholder="e.g. gemmaType=referentiecomponent&_extend=aanbevolenStandaarden"
-					@update:model-value="updateArrayItemQueryParams(propertyKey, $event)" />
+					@update:value="updateArrayItemQueryParams(propertyKey, $event)" />
 				<NcActionCheckbox
 					:model-value="property.items.writeBack || false"
 					@update:model-value="updateArrayItemObjectConfigurationSetting(propertyKey, 'writeBack', $event)">
@@ -342,25 +331,25 @@
 				:input-label="t('nextcloud-vue', 'Object handling')"
 				:label="t('nextcloud-vue', 'Object handling')" />
 			<NcActionInput
-				:model-value="schemaRefValueFor(propertyKey)"
+				:value="schemaRefValueFor(propertyKey)"
 				type="multiselect"
 				:options="schemaRefOptions"
 				:input-label="t('nextcloud-vue', 'Schema reference')"
 				:label="t('nextcloud-vue', 'Schema reference')"
-				@update:model-value="updateSchemaReference(propertyKey, $event)" />
+				@input="updateSchemaReference(propertyKey, $event)" />
 			<NcActionCaption
 				v-if="isRefInvalid(propertyKey)"
 				:name="'⚠️ ' + t('nextcloud-vue', 'Invalid schema reference: Expected string, got number ({value}). This will be sent to backend as-is.', { value: schema.properties[propertyKey].$ref })"
 				style="color: var(--color-error); font-weight: bold;" />
 			<NcActionInput
-				:model-value="registerValueFor(propertyKey)"
+				:value="registerValueFor(propertyKey)"
 				type="multiselect"
 				:options="registerSelectOptions"
 				:input-label="t('nextcloud-vue', 'Register')"
 				:label="t('nextcloud-vue', 'Register (required when schema is selected)')"
 				:required="!!schema.properties[propertyKey].$ref"
 				:disabled="!schema.properties[propertyKey].$ref"
-				@update:model-value="updateRegisterReference(propertyKey, $event)" />
+				@input="updateRegisterReference(propertyKey, $event)" />
 			<NcActionInput
 				v-model="schema.properties[propertyKey].inversedBy"
 				type="multiselect"
@@ -368,12 +357,12 @@
 				:input-label="t('nextcloud-vue', 'Inversed by property')"
 				:label="t('nextcloud-vue', 'Inversed by')"
 				:disabled="!schema.properties[propertyKey].$ref"
-				@update:model-value="updateInversedBy(propertyKey, $event)" />
+				@update:value="updateInversedBy(propertyKey, $event)" />
 			<NcActionInput
-				:model-value="getObjectQueryParams(propertyKey)"
+				:value="getObjectQueryParams(propertyKey)"
 				:label="t('nextcloud-vue', 'Query parameters')"
 				placeholder="e.g. gemmaType=referentiecomponent&_extend=aanbevolenStandaarden"
-				@update:model-value="updateObjectQueryParams(propertyKey, $event)" />
+				@update:value="updateObjectQueryParams(propertyKey, $event)" />
 			<NcActionCheckbox
 				:model-value="property.writeBack || false"
 				@update:model-value="updatePropertySetting(propertyKey, 'writeBack', $event)">
@@ -405,32 +394,32 @@
 				:name="'ℹ️ ' + t('nextcloud-vue', 'Files uploaded to this property will be automatically publicly shared')"
 				style="color: var(--color-text-lighter); font-size: 11px;" />
 			<NcActionInput
-				:model-value="(property.allowedTypes || []).join(', ')"
+				:value="(property.allowedTypes || []).join(', ')"
 				:label="t('nextcloud-vue', 'Allowed MIME types (comma separated)')"
 				placeholder="image/png, image/jpeg, application/pdf"
-				@update:model-value="updateFileProperty(propertyKey, 'allowedTypes', $event)" />
+				@update:value="updateFileProperty(propertyKey, 'allowedTypes', $event)" />
 			<NcActionInput
-				:model-value="property.maxSize || ''"
+				:value="property.maxSize || ''"
 				type="number"
 				:label="t('nextcloud-vue', 'Maximum file size (bytes)')"
 				placeholder="5242880"
-				@update:model-value="updateFileProperty(propertyKey, 'maxSize', $event)" />
+				@update:value="updateFileProperty(propertyKey, 'maxSize', $event)" />
 			<NcActionInput
-				:model-value="getFilePropertyTags(propertyKey, 'allowedTags')"
+				:value="getFilePropertyTags(propertyKey, 'allowedTags')"
 				type="multiselect"
 				:options="availableTagsOptions"
 				:input-label="t('nextcloud-vue', 'Allowed tags')"
 				:label="t('nextcloud-vue', 'Allowed tags (select from available tags)')"
 				multiple
-				@update:model-value="updateFilePropertyTags(propertyKey, 'allowedTags', $event)" />
+				@update:value="updateFilePropertyTags(propertyKey, 'allowedTags', $event)" />
 			<NcActionInput
-				:model-value="getFilePropertyTags(propertyKey, 'autoTags')"
+				:value="getFilePropertyTags(propertyKey, 'autoTags')"
 				type="multiselect"
 				:options="availableTagsOptions"
 				:input-label="t('nextcloud-vue', 'Auto tags')"
 				:label="t('nextcloud-vue', 'Auto tags (automatically applied to uploaded files)')"
 				multiple
-				@update:model-value="updateFilePropertyTags(propertyKey, 'autoTags', $event)" />
+				@update:value="updateFilePropertyTags(propertyKey, 'autoTags', $event)" />
 		</template>
 
 		<!-- Property-level Table Configuration -->
@@ -587,7 +576,6 @@ export default {
 		/** Whether user groups are still loading */
 		loadingGroups: { type: Boolean, default: false },
 	},
-	emits: ['copy-property', 'delete-property'],
 	data() {
 		return {
 			enumInputValue: '',
@@ -688,14 +676,14 @@ export default {
 		updatePropertyRequired(key, isRequired) {
 			if (this.schema.properties[key]) {
 				if (isRequired) {
-					this.schema.properties[key].required = true
+					this.schema.properties[key]['required'] = true
 				} else {
-					delete this.schema.properties[key].required
+					delete this.schema.properties[key]['required']
 				}
 			}
 
 			if (!this.schema.required) {
-				this.schema.required = []
+				this.schema['required'] = []
 			}
 
 			const currentRequired = [...this.schema.required]
@@ -730,9 +718,9 @@ export default {
 
 		toggleFacetable(key, enabled) {
 			if (enabled) {
-				this.schema.properties[key].facetable = true
+				this.schema.properties[key]['facetable'] = true
 			} else {
-				this.schema.properties[key].facetable = false
+				this.schema.properties[key]['facetable'] = false
 			}
 		},
 
@@ -753,14 +741,14 @@ export default {
 				|| (config.order != null)
 
 			if (hasCustomConfig) {
-				this.schema.properties[key].facetable = {
+				this.schema.properties[key]['facetable'] = {
 					aggregated: config.aggregated,
 					title: config.title?.trim() || null,
 					description: config.description?.trim() || null,
 					order: config.order,
 				}
 			} else {
-				this.schema.properties[key].facetable = true
+				this.schema.properties[key]['facetable'] = true
 			}
 		},
 
@@ -832,12 +820,12 @@ export default {
 
 			if (this.schema.properties[key]) {
 				if (!this.schema.properties[key].enum) {
-					this.schema.properties[key].enum = []
+					this.schema.properties[key]['enum'] = []
 				}
 
 				if (!this.schema.properties[key].enum.includes(trimmedValue)) {
 					const newEnum = [...this.schema.properties[key].enum, trimmedValue]
-					this.schema.properties[key].enum = newEnum
+					this.schema.properties[key]['enum'] = newEnum
 				}
 			}
 		},
@@ -854,9 +842,9 @@ export default {
 				const newEnum = this.schema.properties[key].enum.filter((_, i) => i !== index)
 
 				if (newEnum.length === 0) {
-					delete this.schema.properties[key].enum
+					delete this.schema.properties[key]['enum']
 				} else {
-					this.schema.properties[key].enum = newEnum
+					this.schema.properties[key]['enum'] = newEnum
 				}
 			}
 		},
@@ -874,10 +862,10 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			if (!value || value.trim() === '') {
-				this.schema.properties[key].default = undefined
+				this.schema.properties[key]['default'] = undefined
 			} else {
 				const arrayValues = value.split(',').map(item => item.trim()).filter(item => item !== '')
-				this.schema.properties[key].default = arrayValues
+				this.schema.properties[key]['default'] = arrayValues
 			}
 		},
 
@@ -885,13 +873,13 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			if (!value || value.trim() === '' || value.trim() === '{}') {
-				this.schema.properties[key].default = undefined
+				this.schema.properties[key]['default'] = undefined
 				return
 			}
 
 			try {
 				const parsedValue = JSON.parse(value)
-				this.schema.properties[key].default = parsedValue
+				this.schema.properties[key]['default'] = parsedValue
 			} catch (e) {
 				console.warn('Invalid JSON for default value:', e.message)
 			}
@@ -937,10 +925,10 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			const schemaRef = typeof value === 'object' && value?.id ? value.id : value
-			this.schema.properties[key].$ref = schemaRef
+			this.schema.properties[key]['$ref'] = schemaRef
 
 			if (!this.schema.properties[key].objectConfiguration) {
-				this.schema.properties[key].objectConfiguration = { handling: 'related-object' }
+				this.schema.properties[key]['objectConfiguration'] = { handling: 'related-object' }
 			}
 
 			if (schemaRef) {
@@ -951,17 +939,17 @@ export default {
 
 				const referencedSchema = this.findSchemaBySlug(schemaSlug)
 				if (referencedSchema) {
-					this.schema.properties[key].objectConfiguration.schema = referencedSchema.id
+					this.schema.properties[key].objectConfiguration['schema'] = referencedSchema.id
 				}
 
 				if (this.schema.properties[key].register && !this.schema.properties[key].objectConfiguration.register) {
 					const oldRegister = this.schema.properties[key].register
 					const registerId = typeof oldRegister === 'object' && oldRegister.id ? oldRegister.id : oldRegister
-					this.schema.properties[key].objectConfiguration.register = registerId
+					this.schema.properties[key].objectConfiguration['register'] = registerId
 				}
 			} else {
-				delete this.schema.properties[key].objectConfiguration.schema
-				delete this.schema.properties[key].objectConfiguration.register
+				delete this.schema.properties[key].objectConfiguration['schema']
+				delete this.schema.properties[key].objectConfiguration['register']
 			}
 		},
 
@@ -969,10 +957,10 @@ export default {
 			if (!this.schema.properties[key] || !this.schema.properties[key].items) return
 
 			const schemaRef = typeof value === 'object' && value?.id ? value.id : value
-			this.schema.properties[key].items.$ref = schemaRef
+			this.schema.properties[key].items['$ref'] = schemaRef
 
 			if (!this.schema.properties[key].items.objectConfiguration) {
-				this.schema.properties[key].items.objectConfiguration = { handling: 'related-object' }
+				this.schema.properties[key].items['objectConfiguration'] = { handling: 'related-object' }
 			}
 
 			if (schemaRef) {
@@ -983,11 +971,11 @@ export default {
 
 				const referencedSchema = this.findSchemaBySlug(schemaSlug)
 				if (referencedSchema) {
-					this.schema.properties[key].items.objectConfiguration.schema = referencedSchema.id
+					this.schema.properties[key].items.objectConfiguration['schema'] = referencedSchema.id
 				}
 			} else {
-				delete this.schema.properties[key].items.objectConfiguration.schema
-				delete this.schema.properties[key].items.objectConfiguration.register
+				delete this.schema.properties[key].items.objectConfiguration['schema']
+				delete this.schema.properties[key].items.objectConfiguration['register']
 			}
 		},
 
@@ -997,18 +985,18 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			if (!this.schema.properties[key].objectConfiguration) {
-				this.schema.properties[key].objectConfiguration = { handling: 'related-object' }
+				this.schema.properties[key]['objectConfiguration'] = { handling: 'related-object' }
 			}
 
 			const registerId = typeof value === 'object' && value?.id ? value.id : value
 
 			if (registerId) {
-				this.schema.properties[key].objectConfiguration.register = registerId
+				this.schema.properties[key].objectConfiguration['register'] = registerId
 				if (this.schema.properties[key].register) {
-					delete this.schema.properties[key].register
+					delete this.schema.properties[key]['register']
 				}
 			} else {
-				delete this.schema.properties[key].objectConfiguration.register
+				delete this.schema.properties[key].objectConfiguration['register']
 			}
 		},
 
@@ -1016,15 +1004,15 @@ export default {
 			if (!this.schema.properties[key] || !this.schema.properties[key].items) return
 
 			if (!this.schema.properties[key].items.objectConfiguration) {
-				this.schema.properties[key].items.objectConfiguration = { handling: 'related-object' }
+				this.schema.properties[key].items['objectConfiguration'] = { handling: 'related-object' }
 			}
 
 			const registerId = typeof value === 'object' && value?.id ? value.id : value
 
 			if (registerId) {
-				this.schema.properties[key].items.objectConfiguration.register = registerId
+				this.schema.properties[key].items.objectConfiguration['register'] = registerId
 			} else {
-				delete this.schema.properties[key].items.objectConfiguration.register
+				delete this.schema.properties[key].items.objectConfiguration['register']
 			}
 		},
 
@@ -1176,14 +1164,14 @@ export default {
 		updateInversedBy(key, value) {
 			if (this.schema.properties[key]) {
 				const inversedByValue = typeof value === 'object' && value?.id ? value.id : value
-				this.schema.properties[key].inversedBy = inversedByValue
+				this.schema.properties[key]['inversedBy'] = inversedByValue
 			}
 		},
 
 		updateInversedByForArrayItems(key, value) {
 			if (this.schema.properties[key] && this.schema.properties[key].items) {
 				const inversedByValue = typeof value === 'object' && value?.id ? value.id : value
-				this.schema.properties[key].items.inversedBy = inversedByValue
+				this.schema.properties[key].items['inversedBy'] = inversedByValue
 			}
 		},
 
@@ -1192,10 +1180,10 @@ export default {
 		updateArrayItemObjectConfigurationSetting(key, setting, value) {
 			if (this.schema.properties[key]) {
 				if (!this.schema.properties[key].items) {
-					this.schema.properties[key].items = {}
+					this.schema.properties[key]['items'] = {}
 				}
 				if (!this.schema.properties[key].items.objectConfiguration) {
-					this.schema.properties[key].items.objectConfiguration = {}
+					this.schema.properties[key].items['objectConfiguration'] = {}
 				}
 				const settingValue = typeof value === 'object' && value?.id ? value.id : value
 				this.schema.properties[key].items[setting] = settingValue
@@ -1213,13 +1201,13 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			if (!this.schema.properties[key].objectConfiguration) {
-				this.schema.properties[key].objectConfiguration = { handling: 'related-object' }
+				this.schema.properties[key]['objectConfiguration'] = { handling: 'related-object' }
 			}
 
 			if (value && value.trim()) {
-				this.schema.properties[key].objectConfiguration.queryParams = value.trim()
+				this.schema.properties[key].objectConfiguration['queryParams'] = value.trim()
 			} else {
-				delete this.schema.properties[key].objectConfiguration.queryParams
+				delete this.schema.properties[key].objectConfiguration['queryParams']
 			}
 		},
 
@@ -1232,13 +1220,13 @@ export default {
 			if (!this.schema.properties[key] || !this.schema.properties[key].items) return
 
 			if (!this.schema.properties[key].items.objectConfiguration) {
-				this.schema.properties[key].items.objectConfiguration = { handling: 'related-object' }
+				this.schema.properties[key].items['objectConfiguration'] = { handling: 'related-object' }
 			}
 
 			if (value && value.trim()) {
-				this.schema.properties[key].items.objectConfiguration.queryParams = value.trim()
+				this.schema.properties[key].items.objectConfiguration['queryParams'] = value.trim()
 			} else {
-				delete this.schema.properties[key].items.objectConfiguration.queryParams
+				delete this.schema.properties[key].items.objectConfiguration['queryParams']
 			}
 		},
 
@@ -1327,7 +1315,7 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			if (!this.schema.properties[key].table) {
-				this.schema.properties[key].table = {}
+				this.schema.properties[key]['table'] = {}
 			}
 
 			this.schema.properties[key].table[setting] = value
@@ -1337,7 +1325,7 @@ export default {
 			const shouldKeepExplicitFalse = setting === 'default' && becameExplicitFalse && wasTrueOriginally
 
 			if (this.isTableConfigDefault(key) && !shouldKeepExplicitFalse) {
-				delete this.schema.properties[key].table
+				delete this.schema.properties[key]['table']
 			}
 		},
 
@@ -1448,7 +1436,7 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			if (!this.schema.properties[key].authorization) {
-				this.schema.properties[key].authorization = {}
+				this.schema.properties[key]['authorization'] = {}
 			}
 
 			if (!this.schema.properties[key].authorization[action]) {
@@ -1469,7 +1457,7 @@ export default {
 			}
 
 			if (Object.keys(this.schema.properties[key].authorization).length === 0) {
-				delete this.schema.properties[key].authorization
+				delete this.schema.properties[key]['authorization']
 			}
 		},
 
@@ -1481,7 +1469,7 @@ export default {
 				: this.propertyNewPermissionGroup
 
 			if (!this.schema.properties[key].authorization) {
-				this.schema.properties[key].authorization = {}
+				this.schema.properties[key]['authorization'] = {}
 			}
 
 			if (this.propertyNewPermissionCreate) {

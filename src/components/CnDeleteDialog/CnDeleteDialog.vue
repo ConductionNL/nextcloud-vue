@@ -132,8 +132,6 @@ export default {
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 	},
 
-	emits: ['close', 'confirm'],
-
 	data() {
 		return {
 			loading: false,

@@ -27,7 +27,7 @@ describe('useAiContext', () => {
 	})
 
 	it('returns the injected cnAiContext when the instance has one', () => {
-		const provided = Vue.reactive({ appId: 'opencatalogi', pageKind: 'custom', route: { path: '/' } })
+		const provided = Vue.observable({ appId: 'opencatalogi', pageKind: 'custom', route: { path: '/' } })
 		// Simulate an instance that has the injected value
 		const fakeInstance = { cnAiContext: provided }
 		const ctx = useAiContext(fakeInstance)
@@ -36,7 +36,7 @@ describe('useAiContext', () => {
 	})
 
 	it('returns the live reactive reference (not a snapshot)', () => {
-		const provided = Vue.reactive({ appId: 'opencatalogi', pageKind: 'custom', route: { path: '/' } })
+		const provided = Vue.observable({ appId: 'opencatalogi', pageKind: 'custom', route: { path: '/' } })
 		const fakeInstance = { cnAiContext: provided }
 		const ctx = useAiContext(fakeInstance)
 		// Mutate the provided object
@@ -46,28 +46,28 @@ describe('useAiContext', () => {
 	})
 
 	it('reactive watcher fires when a field is overwritten', async () => {
-		const provided = Vue.reactive({ appId: 'test', pageKind: 'custom', route: { path: '' } })
+		const provided = Vue.observable({ appId: 'test', pageKind: 'custom', route: { path: '' } })
 		const fakeInstance = { cnAiContext: provided }
 		const ctx = useAiContext(fakeInstance)
 
-		// Vue 3 has no `new Vue()` / `$destroy()`. The composition-API `watch()`
-		// observes the same reactive source directly and returns a stop handle,
-		// which is what this test needs — no component instance is involved.
 		const observed = []
-		const stop = Vue.watch(() => ctx.pageKind, (val) => {
-			observed.push(val)
+		const vm = new Vue({
+			data() { return { context: ctx } },
+			watch: {
+				'context.pageKind': function(val) {
+					observed.push(val)
+				},
+			},
 		})
 
 		// Trigger the reactive mutation
 		provided.pageKind = 'index'
 
-		// Let Vue flush the watcher queue. Vue 3 has no default export, so the
-		// tick helper comes off the namespace like `watch`/`reactive` above —
-		// there is no global `Vue.nextTick` to fall back on any more.
+		// Let Vue flush the watcher queue
 		await Vue.nextTick()
 
 		expect(observed).toContain('index')
-		stop()
+		vm.$destroy()
 	})
 
 	it('returns stable module-level default object across multiple calls without instance', () => {

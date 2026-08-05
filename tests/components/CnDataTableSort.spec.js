@@ -136,20 +136,13 @@ describe('CnDataTable — aria-sort', () => {
 describe('CnDataTable — keyboard operability', () => {
 	it('Enter on a focused sortable header behaves like a plain click', async () => {
 		const wrapper = mountTable({})
-		// VTU v2's `trigger('keydown.enter')` synthesises `key: 'enter'` — the
-		// lowercase MODIFIER name, which no browser ever emits — and that value
-		// overrides an explicit `key` option. Vue 3's `withKeys` hyphenates, so
-		// the handler still fires, but `onHeaderKeydown`'s `event.key ===
-		// 'Enter'` guard (matching the real DOM value) rejects it. Trigger a
-		// plain `keydown` with the browser-accurate `key` instead.
-		await headerFor(wrapper, 'Name').trigger('keydown', { key: 'Enter' })
+		await headerFor(wrapper, 'Name').trigger('keydown.enter')
 		expect(wrapper.emitted('sort')[0][0]).toEqual({ key: 'name', order: 'asc', keys: [{ key: 'name', order: 'asc' }] })
 	})
 
 	it('Shift+Enter appends a secondary key like shift+click', async () => {
 		const wrapper = mountTable({ sortKeys: [{ key: 'name', order: 'asc' }] })
-		// See above — browser-accurate `key: 'Enter'`, not VTU's `'enter'`.
-		await headerFor(wrapper, 'Created').trigger('keydown', { key: 'Enter', shiftKey: true })
+		await headerFor(wrapper, 'Created').trigger('keydown.enter', { shiftKey: true })
 		expect(wrapper.emitted('sort')[0][0].keys).toEqual([
 			{ key: 'name', order: 'asc' },
 			{ key: 'createdAt', order: 'asc' },

@@ -23,7 +23,7 @@ export default defineConfig({
 		{ name: 'chromium', use: { ...devices['Desktop Chrome'] } },
 	],
 	webServer: {
-		command: 'npx vite --config e2e/vite.config.mjs',
+		command: 'npx vite --config e2e/vite.config.js',
 		url: 'http://localhost:5199',
 		reuseExistingServer: !process.env.CI,
 		timeout: 60_000,

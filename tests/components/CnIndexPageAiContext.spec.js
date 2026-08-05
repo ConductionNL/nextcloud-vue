@@ -18,7 +18,7 @@ const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').
 const baseSchema = { id: 'organisation', title: 'Organisation', properties: {} }
 
 function makeAiContext(overrides = {}) {
-	return Vue.reactive({ appId: 'test', pageKind: 'custom', route: { path: '/' }, ...overrides })
+	return Vue.observable({ appId: 'test', pageKind: 'custom', route: { path: '/' }, ...overrides })
 }
 
 const minProps = {
@@ -78,7 +78,7 @@ describe('CnIndexPage — AI context push', () => {
 		const wrapper = mountIndex({}, ctx)
 
 		expect(ctx.pageKind).toBe('index')
-		wrapper.unmount()
+		wrapper.destroy()
 		expect(ctx.pageKind).toBe('custom')
 		expect(ctx.registerSlug).toBeUndefined()
 		expect(ctx.schemaSlug).toBeUndefined()

@@ -248,8 +248,6 @@ export default {
 		shareFileLabel: { type: String, default: () => t('nextcloud-vue', 'Share file') },
 	},
 
-	emits: ['search-principals', 'share-created', 'share-revoked'],
-
 	data() {
 		return {
 			shares: [],

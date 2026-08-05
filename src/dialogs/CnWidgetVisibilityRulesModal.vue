@@ -26,7 +26,7 @@
 				<div class="cn-visibility-rules__rule-header">
 					<strong>{{ ruleHeading(ruleIndex) }}</strong>
 					<NcButton
-						variant="tertiary"
+						type="tertiary"
 						:aria-label="t('nextcloud-vue', 'Remove rule')"
 						data-testid="cn-visibility-rule-remove"
 						@click="removeRule(ruleIndex)">
@@ -45,7 +45,7 @@
 						<span class="cn-visibility-rules__condition-kind">{{ kindLabel(condition.kind) }}</span>
 						<code class="cn-visibility-rules__condition-summary">{{ summariseCondition(condition) }}</code>
 						<NcButton
-							variant="tertiary"
+							type="tertiary"
 							:aria-label="t('nextcloud-vue', 'Remove condition')"
 							data-testid="cn-visibility-condition-remove"
 							@click="removeCondition(ruleIndex, condIndex)">
@@ -60,7 +60,7 @@
 				</ul>
 
 				<NcButton
-					variant="tertiary"
+					type="tertiary"
 					data-testid="cn-visibility-condition-target"
 					@click="targetRule = ruleIndex">
 					{{ ruleIndex === targetRule ? t('nextcloud-vue', 'Adding condition here') : t('nextcloud-vue', 'Add condition to this rule') }}
@@ -72,7 +72,7 @@
 		</p>
 
 		<NcButton
-			variant="secondary"
+			type="secondary"
 			data-testid="cn-visibility-add-rule"
 			@click="addRule">
 			{{ t('nextcloud-vue', 'Add a new rule (OR)') }}
@@ -160,7 +160,7 @@
 
 			<div class="cn-visibility-rules__actions">
 				<NcButton
-					variant="primary"
+					type="primary"
 					:disabled="!canAddCondition"
 					data-testid="cn-visibility-add-condition"
 					@click="addCondition">
@@ -170,10 +170,10 @@
 		</div>
 
 		<template #actions>
-			<NcButton variant="tertiary" @click="onCancel">
+			<NcButton type="tertiary" @click="onCancel">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
-			<NcButton variant="primary" data-testid="cn-visibility-save" @click="onSave">
+			<NcButton type="primary" data-testid="cn-visibility-save" @click="onSave">
 				{{ t('nextcloud-vue', 'Save') }}
 			</NcButton>
 		</template>

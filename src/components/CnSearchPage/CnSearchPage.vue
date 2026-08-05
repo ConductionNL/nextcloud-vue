@@ -186,7 +186,6 @@ export default {
 			default: (total, shown) => `Showing ${shown} of ${total} results.`,
 		},
 	},
-	emits: ['facets-change', 'query-change', 'result-click', 'search', 'update:query'],
 	data() {
 		return {
 			localQuery: this.query,

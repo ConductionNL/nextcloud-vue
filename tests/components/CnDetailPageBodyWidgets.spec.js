@@ -78,7 +78,7 @@ describe('CnDetailPage — bodyWidgets (in-body sections)', () => {
 			propsData: { register: 'r', schema: 's', objectId: 'o1', objectStore: makeFakeStore({ id: 'o1' }) },
 		})
 		expect(wrapper.find('[data-testid="cn-body-sections"]').exists()).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('resolves a registered component (v2 registry) and renders it in the body', () => {
@@ -93,7 +93,7 @@ describe('CnDetailPage — bodyWidgets (in-body sections)', () => {
 		expect(echo.text()).toBe('123456789|o1|client|UNDEF')
 		// rendered inside the body sections host
 		expect(wrapper.find('[data-testid="cn-body-section-component-brp"]').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('resolves from the legacy customComponents map', () => {
@@ -102,7 +102,7 @@ describe('CnDetailPage — bodyWidgets (in-body sections)', () => {
 			{ customComponents: { LegacyPanel: PropsEcho } },
 		)
 		expect(wrapper.find('.props-echo').text()).toBe('undefined|o1|undefined|UNDEF')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('drops unresolved / optional tokens from props (child sees undefined)', () => {
@@ -113,7 +113,7 @@ describe('CnDetailPage — bodyWidgets (in-body sections)', () => {
 		)
 		// maybe resolves to an unset optional workspace token → dropped → UNDEF
 		expect(wrapper.find('.props-echo').text()).toBe('undefined|o1|undefined|UNDEF')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('provides the object context for inject-based section components', () => {
@@ -123,7 +123,7 @@ describe('CnDetailPage — bodyWidgets (in-body sections)', () => {
 			{ registry, object: { id: 'o1', name: 'Acme' } },
 		)
 		expect(wrapper.find('.context-echo').text()).toBe('o1|Acme')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('orders sections by placement (before-body → after-data → after-related → end)', () => {
@@ -151,7 +151,7 @@ describe('CnDetailPage — bodyWidgets (in-body sections)', () => {
 		expect(ia).toBeLessThan(ib)
 		expect(ib).toBeLessThan(ic)
 		expect(ic).toBeLessThan(id)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('treats a section with no placement as the END placement', () => {
@@ -161,7 +161,7 @@ describe('CnDetailPage — bodyWidgets (in-body sections)', () => {
 		const end = wrapper.find('[data-testid="cn-detail-body-sections-end"]')
 		expect(end.exists()).toBe(true)
 		expect(end.find('.props-echo').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('a throwing section degrades to an inline error and does not break the page', async () => {
@@ -182,13 +182,13 @@ describe('CnDetailPage — bodyWidgets (in-body sections)', () => {
 		// the broken section shows its inline error fallback
 		expect(wrapper.find('[data-testid="cn-body-section-threw-boom"]').exists()).toBe(true)
 		spy.mockRestore()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows an inline error when the component name is not registered', () => {
 		const wrapper = mountPage([{ id: 'missing', component: 'NopeComponent' }], { registry: {} })
 		expect(wrapper.find('[data-testid="cn-body-section-error-missing"]').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('requires NO sidebar tab — sidebar stays inactive for a body section', () => {
@@ -196,6 +196,6 @@ describe('CnDetailPage — bodyWidgets (in-body sections)', () => {
 		const wrapper = mountPage([{ id: 'p', component: 'P', props: { objectId: '@objectId' } }], { registry })
 		// the section rendered without any integration/sidebar registration
 		expect(wrapper.find('.props-echo').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

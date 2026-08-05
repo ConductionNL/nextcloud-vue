@@ -244,21 +244,8 @@ export interface ExtendConfig<
 > {
 	/** State factory returning extra state properties merged into the store. */
 	state?: () => ExtState
-	/**
-	 * Extra getters, or overrides of base/plugin getters with the same name.
-	 *
-	 * `_GettersTree<…>` is intersected in front of `ExtGetters` purely to give
-	 * the `state` parameter a contextual type. Inferring `ExtGetters` from the
-	 * object literal satisfies the CONSTRAINT but never contextually types the
-	 * parameter, so `getters: { doubled(state) { … } }` reported
-	 * "Parameter 'state' implicitly has an 'any' type" under `noImplicitAny` —
-	 * every consumer had to annotate it by hand. The intersection is
-	 * inference-only: `ExtGetters` still drives the store's getter return types
-	 * (`test-d/createCrudStore.test-d.ts` asserts `doubled` is `number`, not
-	 * `unknown`).
-	 */
-	getters?: _GettersTree<BaseState<T> & ExtState> & ExtGetters
-		& ThisType<StoreThis<T, ExtState, ExtGetters, ExtActions, F>>
+	/** Extra getters, or overrides of base/plugin getters with the same name. */
+	getters?: ExtGetters & ThisType<StoreThis<T, ExtState, ExtGetters, ExtActions, F>>
 	/** Extra actions, or overrides of base/plugin actions with the same name. */
 	actions?: ExtActions & ThisType<StoreThis<T, ExtState, ExtGetters, ExtActions, F>>
 }

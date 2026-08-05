@@ -63,7 +63,7 @@
 				class="cn-object-list-form__col-row__header"
 				@update:model-value="updateColumn(i, 'label', $event)" />
 			<NcButton
-				variant="tertiary"
+				type="tertiary"
 				:aria-label="t('nextcloud-vue', 'Remove column')"
 				@click="removeColumn(i)">
 				<template #icon>
@@ -71,7 +71,7 @@
 				</template>
 			</NcButton>
 		</div>
-		<NcButton variant="tertiary" @click="addColumn">
+		<NcButton type="tertiary" @click="addColumn">
 			<template #icon>
 				<Plus :size="18" />
 			</template>
@@ -203,10 +203,8 @@ export default {
 
 		/**
 		 * Set a source sub-field and emit.
-		 *
-		 * @param {'register'|'schema'} field The `source` sub-key to write.
-		 * @param {string} value The chosen register or schema slug.
-		 * @return {void}
+		 * @param field
+		 * @param value
 		 */
 		updateSource(field, value) {
 			this.source[field] = value
@@ -215,10 +213,8 @@ export default {
 
 		/**
 		 * Set a sort sub-field and emit.
-		 *
-		 * @param {'field'|'dir'} field The `sort` sub-key to write.
-		 * @param {string} value The property to sort on, or a `dirOptions` value.
-		 * @return {void}
+		 * @param field
+		 * @param value
 		 */
 		updateSort(field, value) {
 			this.sort[field] = value
@@ -227,10 +223,7 @@ export default {
 
 		/**
 		 * Set the limit and emit.
-		 *
-		 * @param {string|number} value The maximum row count from the number input;
-		 *   non-numeric or zero input falls back to the default of 5.
-		 * @return {void}
+		 * @param value
 		 */
 		updateLimit(value) {
 			this.limit = Number(value) || 5
@@ -239,11 +232,7 @@ export default {
 
 		/**
 		 * Receive updated filter rows from the shared editor.
-		 *
-		 * @param {Array<{key: string, op: string, value: string}>} rows The editor's
-		 *   full row list, serialised by `rowsToFilter()` when the content blob is
-		 *   assembled.
-		 * @return {void}
+		 * @param rows
 		 */
 		onFilterRows(rows) {
 			this.filterRows = rows
@@ -257,9 +246,7 @@ export default {
 
 		/**
 		 * Remove a column by index.
-		 *
-		 * @param {number} i Zero-based index into `columns`.
-		 * @return {void}
+		 * @param i
 		 */
 		removeColumn(i) {
 			this.columns.splice(i, 1)
@@ -291,10 +278,9 @@ export default {
 		 * the header is still empty or untouched (i.e. it matches the previous
 		 * key's auto-derived title), so a manually edited header is preserved.
 		 *
-		 * @param {number} i Zero-based index into `columns`.
-		 * @param {'key'|'label'} cell Which cell of the column to write.
-		 * @param {string} value The property name, or the header text.
-		 * @return {void}
+		 * @param i
+		 * @param cell
+		 * @param value
 		 */
 		updateColumn(i, cell, value) {
 			const col = this.columns[i]

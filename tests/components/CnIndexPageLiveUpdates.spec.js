@@ -77,7 +77,7 @@ describe('CnIndexPage — live collection updates (self-fetch mode)', () => {
 		// Collection form: type slug only, no object id.
 		expect(mockStore.subscribe).toHaveBeenCalledWith('decidesk-decision', undefined)
 
-		w.unmount()
+		w.destroy()
 		await flush()
 		expect(mockStore.unsubscribe).toHaveBeenCalledTimes(1)
 	})
@@ -88,7 +88,7 @@ describe('CnIndexPage — live collection updates (self-fetch mode)', () => {
 		// The list still self-fetches — only the live subscription is skipped.
 		expect(mockStore.fetchCollection).toHaveBeenCalled()
 		expect(mockStore.subscribe).not.toHaveBeenCalled()
-		w.unmount()
+		w.destroy()
 	})
 
 	it('consumer-managed mode (objects prop) never subscribes', async () => {
@@ -100,7 +100,7 @@ describe('CnIndexPage — live collection updates (self-fetch mode)', () => {
 		})
 		await flush()
 		expect(mockStore.subscribe).not.toHaveBeenCalled()
-		w.unmount()
+		w.destroy()
 		await flush()
 		expect(mockStore.unsubscribe).not.toHaveBeenCalled()
 	})
@@ -110,7 +110,7 @@ describe('CnIndexPage — live collection updates (self-fetch mode)', () => {
 		await flush()
 		expect(mockStore.subscribe).not.toHaveBeenCalled()
 		expect(mockStore.fetchCollection).not.toHaveBeenCalled()
-		w.unmount()
+		w.destroy()
 	})
 
 	it('a store without live-updates support is a silent no-op', async () => {
@@ -126,7 +126,7 @@ describe('CnIndexPage — live collection updates (self-fetch mode)', () => {
 				(c) => String(c[0]).includes('useObjectSubscription'),
 			)
 			expect(subscriptionWarns).toHaveLength(0)
-			w.unmount()
+			w.destroy()
 		} finally {
 			mockStore.subscribe = original
 			warnSpy.mockRestore()

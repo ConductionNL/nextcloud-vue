@@ -805,16 +805,14 @@ export default {
 	min-width: 0;
 }
 
-/* The value NEVER shrinks. It shared a flex row with the caption while being
-   the only shrinkable item, so any caption longer than the tile was wide won
-   the space and the NUMBER — the entire point of a KPI tile — ellipsised to
-   "3.." while its decoration rendered in full. */
 .cn-stat-widget__value {
-	flex: 0 0 auto;
 	font-size: 1.6em;
 	font-weight: 700;
 	line-height: 1.15;
 	color: var(--color-primary-element);
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
@@ -826,16 +824,9 @@ export default {
 	font-weight: 600;
 }
 
-/* The caption is what gives way in a narrow tile — it truncates, the value
-   does not. */
 .cn-stat-widget__caption {
-	flex: 1 1 auto;
-	min-width: 0;
 	font-size: 0.85em;
 	color: var(--color-text-maxcontrast);
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
 }
 
 .cn-stat-widget__error {

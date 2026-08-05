@@ -18,9 +18,9 @@
 			{{ t('nextcloud-vue', 'Show the walkthrough') }}
 		</NcCheckboxRadioSwitch>
 
-		<NcTextField v-model="tour.title"
-			class="cn-edit-walkthrough__field"
-			:label="t('nextcloud-vue', 'Tour title')" />
+		<NcTextField class="cn-edit-walkthrough__field"
+			:label="t('nextcloud-vue', 'Tour title')"
+			v-model="tour.title" />
 
 		<label class="cn-edit-walkthrough__trigger">
 			<span>{{ t('nextcloud-vue', 'When it runs') }}</span>
@@ -42,9 +42,9 @@
 		<ul class="cn-edit-walkthrough__list">
 			<li v-for="(step, index) in steps" :key="step.id" class="cn-edit-walkthrough__step">
 				<div class="cn-edit-walkthrough__row">
-					<NcTextField v-model="step.title"
-						:label="t('nextcloud-vue', 'Step title')" />
-					<NcButton variant="tertiary"
+					<NcTextField :label="t('nextcloud-vue', 'Step title')"
+						v-model="step.title" />
+					<NcButton type="tertiary"
 						:aria-label="t('nextcloud-vue', 'Remove step')"
 						@click="remove(index)">
 						<template #icon>
@@ -52,10 +52,10 @@
 						</template>
 					</NcButton>
 				</div>
-				<NcTextArea v-model="step.body"
-					:label="t('nextcloud-vue', 'Body')" />
-				<NcTextField v-model="step.task"
-					:label="t('nextcloud-vue', 'Task (the one action for this step)')" />
+				<NcTextArea :label="t('nextcloud-vue', 'Body')"
+					v-model="step.body" />
+				<NcTextField :label="t('nextcloud-vue', 'Task (the one action for this step)')"
+					v-model="step.task" />
 				<NcTextField :label="t('nextcloud-vue', 'Target (optional CSS selector to spotlight; blank = centred)')"
 					:model-value="targetRef(step)"
 					@update:model-value="setTarget(step, $event)" />
@@ -63,13 +63,13 @@
 		</ul>
 
 		<template #actions>
-			<NcButton variant="secondary" @click="add">
+			<NcButton type="secondary" @click="add">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
 				{{ t('nextcloud-vue', 'Add step') }}
 			</NcButton>
-			<NcButton variant="primary" :disabled="saving" @click="onDone">
+			<NcButton type="primary" :disabled="saving" @click="onDone">
 				<template #icon>
 					<NcLoadingIcon v-if="saving" :size="20" />
 					<ContentSaveOutline v-else :size="20" />
@@ -106,8 +106,6 @@ export default {
 		},
 	},
 
-	emits: ['close'],
-
 	computed: {
 		/** The working manifest's walkthrough block. */
 		walkthrough() {
@@ -136,17 +134,17 @@ export default {
 		// track later mutations (added steps wouldn't render).
 		if (!this.working) return
 		if (!this.working.walkthrough || typeof this.working.walkthrough !== 'object') {
-			this.working.walkthrough = { enabled: true, tours: [] }
+			this.working['walkthrough'] = { enabled: true, tours: [] }
 		}
 		if (!Array.isArray(this.working.walkthrough.tours)) {
-			this.working.walkthrough.tours = []
+			this.working.walkthrough['tours'] = []
 		}
 		if (this.working.walkthrough.tours.length === 0) {
 			// eslint-disable-next-line vue/no-mutating-props
 			this.working.walkthrough.tours.push({ id: 'getting-started', title: '', trigger: 'first-visit', steps: [] })
 		}
 		if (!Array.isArray(this.working.walkthrough.tours[0].steps)) {
-			this.working.walkthrough.tours[0].steps = []
+			this.working.walkthrough.tours[0]['steps'] = []
 		}
 	},
 
@@ -185,11 +183,11 @@ export default {
 		setTarget(step, value) {
 			const v = (value || '').trim()
 			if (v === '') {
-				delete step.target
+				delete step['target']
 			} else {
 				// CnWalkthrough's resolveTarget reads `target.selector` for
 				// kind:"selector" (not `ref`), so store it under selector.
-				step.target = { kind: 'selector', selector: v }
+				step['target'] = { kind: 'selector', selector: v }
 			}
 		},
 	},

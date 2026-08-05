@@ -15,7 +15,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { toRaw } from 'vue'
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 
 function makeState() {
@@ -170,10 +169,7 @@ describe('CnDetailPage — sidebar Object form + show flag', () => {
 			expect(state.hiddenTabs).toEqual(['notes'])
 			expect(state.title).toBe('Override title')
 			expect(state.subtitle).toBe('Override sub')
-			// `toRaw` on the received side — the sidebar state is reactive, so
-			// the tabs array comes back as a Proxy. Still an identity check:
-			// the configured array is forwarded, not rebuilt.
-			expect(toRaw(state.tabs)).toBe(tabs)
+			expect(state.tabs).toBe(tabs)
 		})
 
 		it('show: false suppresses the sidebar even with full config', () => {

@@ -12,7 +12,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@update:modelValue="updateField('layout', $event)" />
+			@input="updateField('layout', $event)" />
 
 		<NcSelect
 			:model-value="sortBy"
@@ -21,7 +21,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@update:modelValue="updateField('sortBy', $event)" />
+			@input="updateField('sortBy', $event)" />
 
 		<label class="cn-people-widget-form__field">
 			{{ t('nextcloud-vue', 'Group filter (comma-separated, blank for all)') }}

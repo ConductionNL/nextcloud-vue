@@ -10,13 +10,11 @@
  * the broken subtree, so one failing section never tears down the whole
  * detail page. The error is also logged once to the console for debugging.
  *
- * Caveat: `errorCaptured` catches errors thrown by descendants, not the
- * boundary's own render — which is exactly what we want here (the descendant
- * is the host component). Returning `false` from `errorCaptured` stops the
- * error from propagating further up.
+ * Vue 2 caveat: `errorCaptured` catches errors thrown by descendants, not
+ * the boundary's own render — which is exactly what we want here (the
+ * descendant is the host component). Returning `false` from `errorCaptured`
+ * stops the error from propagating further up.
  */
-import { h } from 'vue'
-
 export default {
 	name: 'CnSectionBoundary',
 
@@ -48,14 +46,14 @@ export default {
 		return false
 	},
 
-	render() {
+	render(h) {
 		if (this.failed) {
 			return h('div', {
 				class: 'cn-body-sections__error',
-				'data-testid': `cn-body-section-threw-${this.sectionId}`,
+				attrs: { 'data-testid': `cn-body-section-threw-${this.sectionId}` },
 			}, this.errorLabel)
 		}
 		const slot = this.$slots.default
-		return h('div', { class: 'cn-body-sections__boundary' }, slot ? slot() : undefined)
+		return h('div', { class: 'cn-body-sections__boundary' }, slot)
 	},
 }

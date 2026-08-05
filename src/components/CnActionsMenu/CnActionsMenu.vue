@@ -131,6 +131,7 @@ function createSyntheticEvent() {
  */
 export default {
 	name: 'CnActionsMenu',
+	inheritAttrs: false,
 
 	components: {
 		NcActions,
@@ -175,7 +176,6 @@ export default {
 		 */
 		cnFeatureRequestForge: { default: () => ({ type: 'codeberg', baseUrl: 'https://codeberg.org' }) },
 	},
-	inheritAttrs: false,
 
 	props: {
 		/**
@@ -306,8 +306,6 @@ export default {
 			default: 'cn-actions-menu',
 		},
 	},
-
-	emits: ['refresh', 'request-feature'],
 
 	data() {
 		return {

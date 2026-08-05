@@ -121,7 +121,6 @@ export default {
 		 */
 		sort: { type: String, default: 'status' },
 	},
-	emits: ['node-click'],
 	computed: {
 		/**
 		 * Status counts across all nodes.

@@ -45,7 +45,7 @@ describe('CnTalkCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No conversations linked yet')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders an unread headline on the user-dashboard surface', async () => {
@@ -69,7 +69,7 @@ describe('CnTalkCard', () => {
 		expect(txt).toContain('3')
 		// Headline element is present
 		expect(wrapper.find('.cn-talk-card__headline').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('falls back to the "N conversations" headline when nothing is unread', async () => {
@@ -90,7 +90,7 @@ describe('CnTalkCard', () => {
 		// "2 conversations" should appear; no "unread" headline word.
 		expect(txt).toContain('2')
 		expect(txt.toLowerCase()).not.toContain('unread')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a list with unread badges on the detail-page surface', async () => {
@@ -112,7 +112,7 @@ describe('CnTalkCard', () => {
 		const badges = wrapper.findAll('.cn-talk-card__badge')
 		expect(badges).toHaveLength(1)
 		expect(badges.at(0).text()).toBe('2')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a chip on the single-entity surface', async () => {
@@ -128,7 +128,7 @@ describe('CnTalkCard', () => {
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Status updates')
 		expect(chip.text()).toContain('5')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the unavailable label when the provider returns 503', async () => {
@@ -137,7 +137,7 @@ describe('CnTalkCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Talk is currently unavailable.')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('does not throw when fetch fails on the detail-page surface', async () => {
@@ -147,7 +147,7 @@ describe('CnTalkCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No conversations linked yet')
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 })

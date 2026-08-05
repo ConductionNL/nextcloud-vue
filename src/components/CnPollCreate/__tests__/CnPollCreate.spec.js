@@ -17,7 +17,7 @@ describe('CnPollCreate', () => {
 		const wrapper = mount(CnPollCreate)
 		expect(wrapper.vm.options).toEqual(['', ''])
 		expect(wrapper.vm.type).toBe('textPoll')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('blocks submit when title is empty', () => {
@@ -26,7 +26,7 @@ describe('CnPollCreate', () => {
 		expect(wrapper.vm.canSubmit).toBe(false)
 		wrapper.vm.submit()
 		expect(wrapper.emitted('create')).toBeFalsy()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('blocks submit when fewer than 2 options are filled', () => {
@@ -35,7 +35,7 @@ describe('CnPollCreate', () => {
 		expect(wrapper.vm.canSubmit).toBe(false)
 		wrapper.vm.submit()
 		expect(wrapper.emitted('create')).toBeFalsy()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('emits create with the full payload on submit', () => {
@@ -56,14 +56,14 @@ describe('CnPollCreate', () => {
 		expect(payload.type).toBe('datePoll')
 		expect(payload.options).toEqual(['Mon', 'Tue'])
 		expect(payload.deadline).toBeNull()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('addOption appends a new empty slot', () => {
 		const wrapper = mount(CnPollCreate)
 		wrapper.vm.addOption()
 		expect(wrapper.vm.options).toEqual(['', '', ''])
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('removeOption strips at the given index', () => {
@@ -71,7 +71,7 @@ describe('CnPollCreate', () => {
 		wrapper.setData({ options: ['A', 'B', 'C'] })
 		wrapper.vm.removeOption(1)
 		expect(wrapper.vm.options).toEqual(['A', 'C'])
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('removeOption is a no-op when only 2 options remain', () => {
@@ -79,7 +79,7 @@ describe('CnPollCreate', () => {
 		wrapper.setData({ options: ['A', 'B'] })
 		wrapper.vm.removeOption(0)
 		expect(wrapper.vm.options).toEqual(['A', 'B'])
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('encodes the deadline as ISO-8601 when provided', () => {
@@ -97,6 +97,6 @@ describe('CnPollCreate', () => {
 		// produced a non-null ISO-formatted string here.
 		expect(typeof payload.deadline).toBe('string')
 		expect(payload.deadline).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

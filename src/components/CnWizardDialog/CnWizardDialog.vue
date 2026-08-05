@@ -2,11 +2,9 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="large"
-		:open="dialogOpen"
-		:no-close="loading || !cancellable"
+		:no-close="loading"
 		data-testid="cn-modal"
 		data-testid-modal="cn-wizard-dialog"
-		@update:open="dialogOpen = $event"
 		@closing="onClose">
 		<!-- Result phase: rendered after a successful `submit()`. -->
 		<div v-if="result !== null"
@@ -89,7 +87,7 @@
 
 			<!-- Wizard phase actions: Cancel + Back + Next/Submit. -->
 			<template v-else>
-				<NcButton v-if="cancellable" @click="onClose">
+				<NcButton @click="onClose">
 					{{ cancelLabel }}
 				</NcButton>
 				<NcButton v-if="!isFirst"
@@ -254,21 +252,7 @@ export default {
 		closeLabel: { type: String, default: 'Close' },
 		/** Success banner default text when result.message is empty. */
 		successText: { type: String, default: 'Done.' },
-		/**
-		 * Whether the dialog can be dismissed (Cancel button, ESC, backdrop
-		 * click) before reaching the result phase. `false` hides Cancel and
-		 * disables all other close affordances — use for a step that must
-		 * be completed, not merely skipped. The result-phase Close button is
-		 * unaffected (a completed wizard is always dismissible).
-		 *
-		 * @type {boolean}
-		 */
-		cancellable: {
-			type: Boolean,
-			default: true,
-		},
 	},
-	emits: ['close', 'step-change', 'submit'],
 	data() {
 		const initialIndex = this.resolveInitialIndex()
 		return {
@@ -277,15 +261,6 @@ export default {
 			loading: false,
 			result: null,
 			validationError: '',
-			/**
-			 * Drives NcDialog's `open` prop directly. NcDialog's own `open`
-			 * prop defaults to `true` and is NOT self-managing on close — its
-			 * internal `showModal` flag resets back to `true` ~300ms after
-			 * any close (animation bookkeeping for next time it's reopened
-			 * via the prop), so without an explicit `false` here the dialog
-			 * reopens itself right after Cancel/ESC/backdrop-click.
-			 */
-			dialogOpen: true,
 		}
 	},
 	computed: {
@@ -482,7 +457,6 @@ export default {
 			this.validationError = ''
 			this.currentIndex = this.resolveInitialIndex()
 			this.stepData = { ...this.defaults }
-			this.dialogOpen = false
 			/**
 			 * @event close Emitted when the dialog should close.
 			 */

@@ -55,11 +55,7 @@ describe('CnFeaturesAndRoadmapLink', () => {
 			propsData: { disabled: true },
 		})
 		expect(wrapper.findComponent(NcAppNavigationItemStub).exists()).toBe(false)
-		// Vue 2 rendered a falsy root `v-if` as an empty text node, so
-		// `wrapper.html()` was ''. Vue 3 emits an anchor comment placeholder
-		// (`<!--v-if-->`) so the block can be patched back in later. Same
-		// property asserted — the component contributes no markup at all.
-		expect(wrapper.html()).toBe('<!--v-if-->')
+		expect(wrapper.html()).toBe('')
 	})
 
 	it('uses the default localized label when label prop is empty', () => {

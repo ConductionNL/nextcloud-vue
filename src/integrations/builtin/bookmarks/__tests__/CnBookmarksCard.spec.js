@@ -45,7 +45,7 @@ describe('CnBookmarksCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No bookmarks linked yet')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a count headline on the user-dashboard surface', async () => {
@@ -68,7 +68,7 @@ describe('CnBookmarksCard', () => {
 		expect(wrapper.find('.cn-bookmarks-card__headline').exists()).toBe(true)
 		// most-recent (highest `added`) shows
 		expect(txt).toContain('Charlie')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a compact list with view-all trail-off on the detail-page surface', async () => {
@@ -93,7 +93,7 @@ describe('CnBookmarksCard', () => {
 		// COMPACT_LIMIT = 5
 		expect(rows).toHaveLength(5)
 		expect(wrapper.find('.cn-bookmarks-card__view-all').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a chip on the single-entity surface', async () => {
@@ -108,7 +108,7 @@ describe('CnBookmarksCard', () => {
 		const chip = wrapper.find('.cn-bookmarks-card__chip')
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Status doc')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the unavailable label when the provider returns 503', async () => {
@@ -117,7 +117,7 @@ describe('CnBookmarksCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Bookmarks is currently unavailable.')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('does not throw when fetch fails on the detail-page surface', async () => {
@@ -127,7 +127,7 @@ describe('CnBookmarksCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No bookmarks linked yet')
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 })

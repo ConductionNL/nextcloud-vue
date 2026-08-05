@@ -54,8 +54,6 @@ shell while a `required` step is unmet.
 | `backLabel` | `string` | `"Back"` | Back label. |
 | `runLabel` | `string` | `"Run"` | Run-action button label. |
 | `successText` | `string` | `"Setup complete."` | Result-phase success text. |
-| `cancellable` | `boolean` | `true` | Whether the wizard can be dismissed before finishing. Pass `false` when a REQUIRED step is unmet and the host is gating its shell behind this wizard — an offered-but-non-functional Cancel would be misleading. |
-| `completedStepIds` | `Array<string>` | `[]` | Ids of steps the server already reports done (e.g. from `useSetupStatus(...).steps`). Lets a freshly (re)mounted wizard resume at the first actually-unmet step and show correct done-markers, instead of restarting from the top — this component's own local state only tracks the current session. |
 
 ## Events
 

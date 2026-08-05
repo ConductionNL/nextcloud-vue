@@ -58,7 +58,7 @@ describe('CnFlowCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No automations linked yet')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a count headline + most-recent line on the user-dashboard surface', async () => {
@@ -80,7 +80,7 @@ describe('CnFlowCard', () => {
 		expect(txt).toContain('Rule A')
 		expect(txt).toContain('File')
 		expect(wrapper.find('.cn-flow-card__headline').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows a "N automations · M active" headline when some are disabled', async () => {
@@ -99,7 +99,7 @@ describe('CnFlowCard', () => {
 		await wrapper.vm.$nextTick()
 		const txt = wrapper.text().toLowerCase()
 		expect(txt).toContain('active')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a list of rows with entity / operation meta on the detail-page surface', async () => {
@@ -122,7 +122,7 @@ describe('CnFlowCard', () => {
 		expect(wrapper.text()).toContain('File')
 		expect(wrapper.text()).toContain('tag')
 		expect(wrapper.text()).toContain('1 conditions')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a chip on the single-entity surface with an enabled dot', async () => {
@@ -138,7 +138,7 @@ describe('CnFlowCard', () => {
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Approve uploads')
 		expect(wrapper.find('.cn-flow-card__enabled--on').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the admin-only banner when the provider returns 403', async () => {
@@ -147,7 +147,7 @@ describe('CnFlowCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Flow operations are only visible to administrators.')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the unavailable label when the provider returns 503', async () => {
@@ -156,7 +156,7 @@ describe('CnFlowCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Flow is currently unavailable.')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('does not throw when fetch fails on the detail-page surface', async () => {
@@ -166,7 +166,7 @@ describe('CnFlowCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No automations linked yet')
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 
@@ -183,6 +183,6 @@ describe('CnFlowCard', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.find('.cn-flow-card__row--disabled').exists()).toBe(true)
 		expect(wrapper.find('.cn-flow-card__enabled--off').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

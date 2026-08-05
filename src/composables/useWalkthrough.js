@@ -4,182 +4,12 @@
  */
 
 import { ref, computed } from 'vue'
-import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
 
 /**
  * Per-`appId` cache so all consumers of one app share a single walkthrough
  * machine + persisted progress for the page lifetime (mirrors useSetupStatus).
  */
 const cache = new Map()
-
-/**
- * localStorage key prefix for the per-browser mirror of the last-seen version.
- * The AUTHORITATIVE store is the per-user server preference addressed by
- * `manifest.walkthrough.completionConfigKey`; this is the synchronous cache /
- * offline fallback so the tour never flashes before the GET resolves.
- */
-export const WALKTHROUGH_SEEN_STORAGE_PREFIX = 'cn-walkthrough-seen:'
-
-/**
- * Build the per-user preferences endpoint for a walkthrough completion key.
- * Read (`GET`) and write (`PUT`) MUST address the same URL — a persist that
- * lands on a different key reads back as "never seen" forever.
- *
- * @param {string} appId The Nextcloud app id.
- * @param {string} configKey `manifest.walkthrough.completionConfigKey`.
- * @return {string} The generated `/apps/{appId}/api/preferences/{key}` URL.
- */
-export function walkthroughPreferenceUrl(appId, configKey) {
-	return generateUrl('/apps/' + appId + '/api/preferences/' + configKey)
-}
-
-/**
- * Normalise a stored completion value into the string the version engine
- * compares against.
- *
- * Only `null` / `undefined` / `''` mean "never seen". Anything else counts as
- * seen — including the JS-falsy scalars `false`, `0` and `'0'`, which a plain
- * truthiness check would misread as a fresh user and re-open the tour on every
- * visit. This is the read-side counterpart of `persistWalkthroughSeenVersion`.
- *
- * @param {*} value The raw stored / API value.
- * @return {string} The last-seen version, or `''` when never seen.
- */
-export function normaliseSeenVersion(value) {
-	if (value === null || value === undefined) return ''
-	if (typeof value === 'string') return value
-	return String(value)
-}
-
-/**
- * Resolve the injectable `localStorage` backend (null in SSR / locked-down
- * browsers, where persistence degrades to session-only).
- *
- * @param {Storage} [injected] Test-injected storage.
- * @return {Storage|null} The storage backend or null.
- */
-function resolveStorage(injected) {
-	if (injected) return injected
-	if (typeof window === 'undefined') return null
-	try {
-		return window.localStorage
-	} catch (e) {
-		return null
-	}
-}
-
-/**
- * Read the per-browser mirror of the last-seen walkthrough version.
- * Synchronous, so callers can seed state before the server GET resolves.
- *
- * @param {string} appId The Nextcloud app id.
- * @param {Storage} [storage] Injectable storage backend.
- * @return {string} The last-seen version, or `''`.
- */
-export function readLocalWalkthroughSeenVersion(appId, storage) {
-	const s = resolveStorage(storage)
-	if (!s) return ''
-	try {
-		return normaliseSeenVersion(s.getItem(WALKTHROUGH_SEEN_STORAGE_PREFIX + appId))
-	} catch (e) {
-		return ''
-	}
-}
-
-/**
- * Write the per-browser mirror of the last-seen walkthrough version.
- *
- * @param {string} appId The Nextcloud app id.
- * @param {string} version The version to record.
- * @param {Storage} [storage] Injectable storage backend.
- * @return {void}
- */
-function writeLocalWalkthroughSeenVersion(appId, version, storage) {
-	const s = resolveStorage(storage)
-	if (!s) return
-	try {
-		s.setItem(WALKTHROUGH_SEEN_STORAGE_PREFIX + appId, version)
-	} catch (e) {
-		/* quota / private mode — persistence is best-effort */
-	}
-}
-
-/**
- * Type guard — true for a plain (non-null, non-array) object. Used to reject
- * the SPA index HTML Nextcloud returns (with status 200) when an app does not
- * actually serve `/api/preferences/{key}`.
- *
- * @param {*} value Candidate.
- * @return {boolean} True when value is a plain object.
- */
-function isPlainObject(value) {
-	return value !== null && typeof value === 'object' && !Array.isArray(value)
-}
-
-/**
- * Load the user's last-seen walkthrough version (ADR-043, REQ-WALK-NV-004).
- *
- * The per-USER server preference addressed by `completionConfigKey` is
- * authoritative (cross-device); the localStorage mirror is the fallback used
- * when no key is declared, the endpoint is absent, or the request fails. A
- * `{ value: null }` response is a definitive "never seen" and correctly yields
- * the local mirror (usually `''`).
- *
- * @param {string} appId The Nextcloud app id.
- * @param {string} configKey `manifest.walkthrough.completionConfigKey` (may be empty).
- * @param {object} [options] `{ http, storage }` injection points for tests.
- * @return {Promise<string>} The last-seen version, or `''` for a fresh user.
- */
-export async function loadWalkthroughSeenVersion(appId, configKey, options = {}) {
-	const local = readLocalWalkthroughSeenVersion(appId, options.storage)
-	if (!configKey) return local
-	const http = options.http || axios
-	try {
-		const { data } = await http.get(walkthroughPreferenceUrl(appId, configKey))
-		// Only a real preferences payload counts. An HTML string (SPA fallback
-		// from an app that doesn't serve the route) is NOT a "never seen"
-		// signal — fall back to the local mirror instead.
-		if (!isPlainObject(data) || !('value' in data)) return local
-		const seen = normaliseSeenVersion(data.value)
-		if (seen) {
-			writeLocalWalkthroughSeenVersion(appId, seen, options.storage)
-			return seen
-		}
-		return local
-	} catch (e) {
-		// Unauthenticated / endpoint missing / offline.
-		return local
-	}
-}
-
-/**
- * Persist the user's last-seen walkthrough version (ADR-043, REQ-WALK-NV-006).
- *
- * Writes the localStorage mirror synchronously AND `PUT`s the same
- * `completionConfigKey` preference the load path reads, so a returning user —
- * on this browser or any other — is not shown the tour again. Never throws:
- * a failed write only means the tour may re-open elsewhere.
- *
- * @param {string} appId The Nextcloud app id.
- * @param {string} configKey `manifest.walkthrough.completionConfigKey` (may be empty).
- * @param {string} version The app version to record as seen.
- * @param {object} [options] `{ http, storage }` injection points for tests.
- * @return {Promise<boolean>} True when the server preference was written.
- */
-export function persistWalkthroughSeenVersion(appId, configKey, version, options = {}) {
-	const value = normaliseSeenVersion(version)
-	writeLocalWalkthroughSeenVersion(appId, value, options.storage)
-	if (!configKey) return Promise.resolve(false)
-	const http = options.http || axios
-	try {
-		return Promise.resolve(http.put(walkthroughPreferenceUrl(appId, configKey), { value }))
-			.then(() => true)
-			.catch(() => false)
-	} catch (e) {
-		return Promise.resolve(false)
-	}
-}
 
 /**
  * Compare two semver-ish strings. Missing / unparseable parts sort as 0.
@@ -225,9 +55,7 @@ export function interpolateTokens(input, context) {
  * a context bag interpolated into later steps via `{{var}}`.
  *
  * Persistence is decoupled: pass `seenVersion` (the user's last-seen app version)
- * and an `onComplete(appVersion)` callback. CnAppRoot wires these to the per-user
- * `manifest.walkthrough.completionConfigKey` preference via
- * {@link loadWalkthroughSeenVersion} / {@link persistWalkthroughSeenVersion}.
+ * and an `onComplete(appVersion)` callback; CnAppRoot wires these to app-config.
  *
  * @param {string} appId The Nextcloud app id (cache key).
  * @param {object} manifest The app manifest (reads `manifest.walkthrough` + `manifest.version`).
@@ -244,9 +72,7 @@ export function useWalkthrough(appId, manifest, options = {}) {
 	if (!entry) {
 		const walkthrough = (manifest && manifest.walkthrough) || {}
 		const appVersion = options.appVersion || (manifest && manifest.version) || '0.0.0'
-		// Normalised, NOT `|| ''`: a completed user whose recorded version is a
-		// JS-falsy scalar (`0` / `false`) must still read as "has seen it".
-		const seenVersion = normaliseSeenVersion(options.seenVersion)
+		const seenVersion = options.seenVersion || ''
 		const enabled = walkthrough.enabled !== false && Array.isArray(walkthrough.tours) && walkthrough.tours.length > 0
 
 		const tours = walkthrough.tours || []

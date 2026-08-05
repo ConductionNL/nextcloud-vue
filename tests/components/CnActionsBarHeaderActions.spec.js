@@ -22,12 +22,6 @@ function mountBar(extra = {}) {
 			NcActionButton: {
 				template: '<button class="nc-action-button-stub" :data-disabled="disabled" @click="$emit(\'click\')"><span class="nc-action-button-stub__icon"><slot name="icon" /></span><span class="nc-action-button-stub__label"><slot /></span></button>',
 				props: ['disabled', 'title'],
-				// Vue 3: an undeclared event name stays a fallthrough attribute,
-				// so the parent's `@click` lands on this single-root `<button>`
-				// as a native handler AND is invoked again by `$emit('click')` —
-				// every click dispatched twice. Vue 2's separate listener channel
-				// made that impossible. Declaring the emit is the fix.
-				emits: ['click'],
 			},
 			NcActionSeparator: { template: '<hr class="nc-action-separator-stub" />' },
 			NcButton: { template: '<button class="nc-button-stub" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>', props: ['type', 'disabled'] },
@@ -52,7 +46,7 @@ describe('CnActionsBar — headerActions rendering', () => {
 		// only because showMass* defaults are true; the count text on
 		// the disabled mass-action gating doesn't matter — the BUTTON is
 		// still rendered).
-		const labels = buttons.map(b => b.find('.nc-action-button-stub__label').text())
+		const labels = buttons.wrappers.map(b => b.find('.nc-action-button-stub__label').text())
 		expect(labels).toContain('Refresh')
 		expect(labels).not.toContain('View logs')
 	})
@@ -65,7 +59,7 @@ describe('CnActionsBar — headerActions rendering', () => {
 			],
 		})
 		const buttons = wrapper.findAll('.nc-action-button-stub')
-		const labels = buttons.map(b => b.find('.nc-action-button-stub__label').text())
+		const labels = buttons.wrappers.map(b => b.find('.nc-action-button-stub__label').text())
 		expect(labels).toContain('View logs')
 		expect(labels).toContain('Open API docs')
 	})
@@ -75,7 +69,7 @@ describe('CnActionsBar — headerActions rendering', () => {
 			headerActions: [{ id: 'view-logs', label: 'View logs' }],
 		})
 		const buttons = wrapper.findAll('.nc-action-button-stub')
-		const target = buttons.find(b => b.find('.nc-action-button-stub__label').text() === 'View logs')
+		const target = buttons.wrappers.find(b => b.find('.nc-action-button-stub__label').text() === 'View logs')
 		expect(target).toBeDefined()
 		await target.trigger('click')
 		expect(wrapper.emitted('header-action')).toEqual([[{ action: 'view-logs', id: 'view-logs' }]])
@@ -103,7 +97,8 @@ describe('CnActionsBar — headerActions rendering', () => {
 		const wrapper = mountBar({
 			headerActions: [{ id: 'h', label: 'H', disabled: true }],
 		})
-		const target = wrapper.findAll('.nc-action-button-stub')			.find(b => b.find('.nc-action-button-stub__label').text() === 'H')
+		const target = wrapper.findAll('.nc-action-button-stub').wrappers
+			.find(b => b.find('.nc-action-button-stub__label').text() === 'H')
 		// The stub coerces `disabled` to the DOM attribute as the literal "true" string
 		expect(target.attributes('data-disabled')).toBe('true')
 	})

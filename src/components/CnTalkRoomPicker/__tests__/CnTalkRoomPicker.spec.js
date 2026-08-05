@@ -7,10 +7,7 @@
  *  - inline error banner surfaces when the API call fails.
  */
 
-// See CnEmailPicker.spec.js: a Vue-3 `nextTick()` no longer implies the
-// render queued by an async `mounted()` has flushed, so wait on the promise
-// queue instead of counting ticks.
-const { mount, flushPromises } = require('@vue/test-utils')
+const { mount } = require('@vue/test-utils')
 const CnTalkRoomPicker = require('../CnTalkRoomPicker.vue').default
 
 function resolveOnce(payload, status = 200) {
@@ -34,13 +31,14 @@ describe('CnTalkRoomPicker', () => {
 			],
 		}))
 		const wrapper = mount(CnTalkRoomPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		const rows = wrapper.findAll('.cn-talk-room-picker__row-button')
 		expect(rows).toHaveLength(2)
 		expect(wrapper.text()).toContain('Sprint planning')
 		expect(wrapper.text()).toContain('Standup')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('emits link with the selected roomToken on confirm', async () => {
@@ -48,7 +46,8 @@ describe('CnTalkRoomPicker', () => {
 			results: [{ token: 'tok-c', name: 'Pre-prod', type: 3 }],
 		}))
 		const wrapper = mount(CnTalkRoomPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		await wrapper.find('.cn-talk-room-picker__row-button').trigger('click')
 		await wrapper.vm.$nextTick()
@@ -56,7 +55,7 @@ describe('CnTalkRoomPicker', () => {
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0]).toEqual([{ roomToken: 'tok-c' }])
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('surfaces an inline error when /rooms fails', async () => {
@@ -64,10 +63,11 @@ describe('CnTalkRoomPicker', () => {
 		global.fetch.mockRejectedValueOnce(new Error('boom'))
 
 		const wrapper = mount(CnTalkRoomPicker)
-		await flushPromises()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 
 		expect(wrapper.text()).toContain('Could not load rooms.')
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 })

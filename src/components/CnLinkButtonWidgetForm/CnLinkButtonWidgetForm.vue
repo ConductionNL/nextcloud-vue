@@ -12,7 +12,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@update:modelValue="updateDisplayMode($event)" />
+			@input="updateDisplayMode($event)" />
 
 		<!-- Single-button fields (hidden in list mode). -->
 		<template v-if="!isListMode">
@@ -30,7 +30,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@update:modelValue="updateField('actionType', $event)" />
+				@input="updateField('actionType', $event)" />
 
 			<NcTextField
 				:model-value="url"
@@ -75,7 +75,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@update:modelValue="updateField('listOrientation', $event)" />
+				@input="updateField('listOrientation', $event)" />
 
 			<NcSelect
 				:model-value="listItemGap"
@@ -84,7 +84,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@update:modelValue="updateField('listItemGap', $event)" />
+				@input="updateField('listItemGap', $event)" />
 
 			<div class="cn-link-button-widget-form__list-editor">
 				<h4 class="cn-link-button-widget-form__list-title">
@@ -131,7 +131,7 @@
 								:reduce="(option) => option.value"
 								label="label"
 								:clearable="false"
-								@update:modelValue="updateLinkField(index, 'actionType', $event)" />
+								@input="updateLinkField(index, 'actionType', $event)" />
 							<NcTextField
 								:model-value="link.url"
 								:label="t('nextcloud-vue', 'URL')"
@@ -253,7 +253,7 @@ function normaliseLink(raw) {
 
 /**
  * CnLinkButtonWidgetForm — the `CnAddWidgetModal` sub-form for creating or
- * editing a `link` widget placement (renderer: `CnLinkButtonWidget`).
+ * editing a `link` widget placement (renderer: {@link CnLinkButtonWidget}).
  *
  * In `displayMode = 'button'` (default) it exposes label, action type, URL,
  * icon, and the two colour pickers; the URL placeholder swaps with the action

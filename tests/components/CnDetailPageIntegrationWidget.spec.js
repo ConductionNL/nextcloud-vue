@@ -41,7 +41,7 @@ describe('CnDetailPage — integration widget grid slot fallback', () => {
 		const w = wrapper.find('.integration-widget')
 		expect(w.exists()).toBe(true)
 		expect(w.text()).toBe('detail-page|reg-a|sch-b|obj-7')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('honours an explicit integrationContext prop over the derived one', () => {
@@ -56,7 +56,7 @@ describe('CnDetailPage — integration widget grid slot fallback', () => {
 			},
 		})
 		expect(wrapper.find('.integration-widget').text()).toBe('detail-page|override-r|override-s|override-o')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders nothing extra when the integration is not registered', () => {
@@ -64,7 +64,7 @@ describe('CnDetailPage — integration widget grid slot fallback', () => {
 			propsData: { layout, widgets, objectId: 'obj-7' },
 		})
 		expect(wrapper.find('.integration-widget').exists()).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('a consumer-supplied #widget-<id> slot overrides the integration fallback', () => {
@@ -75,6 +75,6 @@ describe('CnDetailPage — integration widget grid slot fallback', () => {
 		})
 		expect(wrapper.find('.slot-override').exists()).toBe(true)
 		expect(wrapper.find('.integration-widget').exists()).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

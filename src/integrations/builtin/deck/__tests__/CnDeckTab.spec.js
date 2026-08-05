@@ -47,7 +47,7 @@ describe('CnDeckTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No cards linked yet')
 		expect(wrapper.text()).toContain('Open Deck')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('groups cards by stack into kanban columns', async () => {
@@ -71,7 +71,7 @@ describe('CnDeckTab', () => {
 		expect(wrapper.text()).toContain('Doing')
 		const cards = wrapper.findAll('.cn-deck-tab__card')
 		expect(cards).toHaveLength(3)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('marks cards with a past duedate as overdue', async () => {
@@ -90,7 +90,7 @@ describe('CnDeckTab', () => {
 		await wrapper.vm.$nextTick()
 		const overdue = wrapper.findAll('.cn-deck-tab__card--overdue')
 		expect(overdue).toHaveLength(1)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the unavailable banner when the provider returns 503', async () => {
@@ -100,7 +100,7 @@ describe('CnDeckTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Deck is currently unavailable.')
 		expect(wrapper.find('.cn-deck-tab__card').exists()).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the generic error label when fetch throws', async () => {
@@ -110,7 +110,7 @@ describe('CnDeckTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Could not load cards.')
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 
@@ -121,7 +121,7 @@ describe('CnDeckTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Link existing card')
 		expect(wrapper.text()).toContain('Create new card')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('opens the picker when "Link existing card" is clicked', async () => {
@@ -132,7 +132,7 @@ describe('CnDeckTab', () => {
 		wrapper.vm.openPicker()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.pickerOpen).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('opens the create dialog when "Create new card" is clicked', async () => {
@@ -143,7 +143,7 @@ describe('CnDeckTab', () => {
 		wrapper.vm.openCreate()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.createOpen).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('POSTs the link payload to /deck on link pick', async () => {
@@ -157,7 +157,7 @@ describe('CnDeckTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.onLinkPick({ cardId: 42 })
 		expect(calls.some(c => /\/deck$/.test(String(c.url)) && c.opts && c.opts.method === 'POST')).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('POSTs the create payload to /deck/new on create pick', async () => {
@@ -171,6 +171,6 @@ describe('CnDeckTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.onCreatePick({ boardId: 1, stackId: 2, title: 'X' })
 		expect(calls.some(c => /\/deck\/new$/.test(String(c.url)) && c.opts && c.opts.method === 'POST')).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

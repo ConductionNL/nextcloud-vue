@@ -784,10 +784,6 @@ export default {
 			}
 			if (buttons.length === 0) return
 
-			// `onAdd()` below is invoked by Leaflet with `this` bound to the
-			// L.Control instance, so the component has to be captured here to
-			// stash the fullscreen button ref on it.
-			// eslint-disable-next-line @typescript-eslint/no-this-alias
 			const self = this
 			const ControlBar = L.Control.extend({
 				onAdd() {

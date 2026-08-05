@@ -13,20 +13,10 @@
 				class="cn-nc-dashboard-widget-form__search"
 				:placeholder="t('nextcloud-vue', 'Search widgets…')">
 			<div class="cn-nc-dashboard-widget-form__picker">
-				<!--
-				  CnNcWidgetGridPicker still exposes the Vue-2 model pair
-				  (`value` prop / `input` event). A bare `v-model` here
-				  desugared to `:value` + `@input` under Vue 2, but Vue 3
-				  desugars it to `:modelValue` + `@update:modelValue` — neither
-				  of which the picker declares — so the selected id never
-				  reached `widgetId`, the form never validated, and the Add
-				  button stayed disabled forever. Bind both halves explicitly,
-				  matching CnTextWidgetForm's CnMarkdownEditor binding.
-				-->
 				<CnNcWidgetGridPicker
-					:value="widgetId"
+					v-model="widgetId"
 					:widgets="filteredWidgetOptions"
-					@input="onPickWidget" />
+					@input="emitContent" />
 				<p v-if="filteredWidgetOptions.length === 0" class="cn-nc-dashboard-widget-form__empty">
 					{{ t('nextcloud-vue', 'No widgets match your search.') }}
 				</p>
@@ -157,20 +147,6 @@ export default {
 		/** Emit the assembled content to the parent. */
 		emitContent() {
 			this.$emit('update:content', this.assembledContent)
-		},
-
-		/**
-		 * Record the picker's selection and republish the content blob.
-		 *
-		 * Replaces the `v-model` that Vue 3 no longer wires to the picker's
-		 * `value`/`input` pair — the assignment used to be v-model's job.
-		 *
-		 * @param {string} id the selected Nextcloud widget id.
-		 * @return {void}
-		 */
-		onPickWidget(id) {
-			this.widgetId = typeof id === 'string' ? id : ''
-			this.emitContent()
 		},
 
 		/**

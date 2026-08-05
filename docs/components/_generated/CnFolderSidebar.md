@@ -26,5 +26,5 @@
 
 | Name     | Payload | Description                                    |
 | -------- | ------- | ---------------------------------------------- |
-| `create` | —       | Emitted when the New-folder button is clicked. |
 | `select` | —       | Emitted when a folder (or "All") is chosen.    |
+| `create` | —       | Emitted when the New-folder button is clicked. |

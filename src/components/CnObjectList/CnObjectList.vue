@@ -145,8 +145,6 @@ export default {
 		},
 	},
 
-	emits: ['click', 'select'],
-
 	methods: {
 		isSelected(object) {
 			return this.selectedIds.includes(object[this.rowKey])

@@ -241,7 +241,7 @@
 									{{ t('nextcloud-vue', 'Cancel') }}
 								</NcButton>
 								<NcButton variant="primary"
-									type="submit"
+									native-type="submit"
 									:disabled="!canSubmit">
 									{{ t('nextcloud-vue', 'Add credential') }}
 								</NcButton>

@@ -11,7 +11,7 @@
 
 jest.mock('gridstack', () => ({ GridStack: { init: jest.fn() } }), { virtual: true })
 jest.mock('gridstack/dist/gridstack.min.css', () => ({}), { virtual: true })
-// Apexcharts is stubbed globally via jest.config.js moduleNameMapper.
+jest.mock('vue-apexcharts', () => ({ name: 'vue-apexcharts-stub' }), { virtual: true })
 
 // The widget's setup() calls useDataSource which kicks off a real
 // network fetch by default; stub it so the test stays synchronous and

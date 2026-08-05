@@ -54,7 +54,7 @@ describe('CnFilesTab.openFile — safeHref protection (C4)', () => {
 			'_blank',
 			'noopener,noreferrer',
 		)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('does NOT open a javascript: accessUrl (C4 regression)', () => {
@@ -66,7 +66,7 @@ describe('CnFilesTab.openFile — safeHref protection (C4)', () => {
 			(args) => typeof args[0] === 'string' && args[0].startsWith('javascript:'),
 		)
 		expect(unsafeCalls).toHaveLength(0)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('does NOT open a data: accessUrl', () => {
@@ -77,7 +77,7 @@ describe('CnFilesTab.openFile — safeHref protection (C4)', () => {
 			(args) => typeof args[0] === 'string' && args[0].startsWith('data:'),
 		)
 		expect(unsafeCalls).toHaveLength(0)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('falls back to NC files URL path when accessUrl is absent and file.id present', () => {
@@ -87,6 +87,6 @@ describe('CnFilesTab.openFile — safeHref protection (C4)', () => {
 		expect(windowOpenSpy).toHaveBeenCalledTimes(1)
 		const [url] = windowOpenSpy.mock.calls[0]
 		expect(url).toContain('/files/999')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

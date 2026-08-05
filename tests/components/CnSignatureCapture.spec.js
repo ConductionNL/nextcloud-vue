@@ -4,14 +4,8 @@ import CnSignatureCapture from '@/components/CnSignatureCapture/CnSignatureCaptu
 // jsdom doesn't implement canvas — provide a minimal stub so the
 // component can mount and `toDataURL` returns a deterministic string.
 function stubCanvas(wrapper) {
-	// `exists()` FIRST. VTU v1 handed back an empty wrapper whose `.element`
-	// was simply `undefined`, so the guard below was reachable. VTU v2 throws
-	// "Cannot call element on an empty DOMWrapper" from the accessor itself, so
-	// reading `.element` before the guard is what fails — in typed mode there
-	// is no <canvas> in the DOM at all.
-	const found = wrapper.find('canvas')
-	if (!found.exists()) return
-	const canvas = found.element
+	const canvas = wrapper.find('canvas').element
+	if (!canvas) return
 	const noop = () => {}
 	canvas.getContext = () => ({
 		lineCap: '',

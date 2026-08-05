@@ -15,9 +15,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-// Arrays published into reactive state are Proxies in Vue 3; `toRaw` keeps the
-// identity assertion meaningful (see useRuntimeManifest.spec.js).
-import { toRaw } from 'vue'
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 
 function makeState() {
@@ -180,7 +177,7 @@ describe('CnDetailPage — schema-driven mode', () => {
 				provide: { objectSidebarState: state },
 			})
 			expect(state.active).toBe(true)
-			expect(toRaw(state.tabs)).toBe(tabs)
+			expect(state.tabs).toBe(tabs)
 			expect(state.objectType).toBe('openbuilt-application')
 		})
 
@@ -199,7 +196,7 @@ describe('CnDetailPage — schema-driven mode', () => {
 				provide: { objectSidebarState: state },
 			})
 			expect(state.active).toBe(true)
-			wrapper.unmount()
+			wrapper.destroy()
 			expect(state.active).toBe(false)
 			expect(state.tabs).toBeUndefined()
 		})

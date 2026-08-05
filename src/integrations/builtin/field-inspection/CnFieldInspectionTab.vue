@@ -20,7 +20,7 @@
 		</div>
 
 		<div class="cn-field-inspection-tab__actions">
-			<NcButton variant="primary"
+			<NcButton type="primary"
 				data-testid="cn-fi-tab-sync-day"
 				:disabled="syncing || offline"
 				@click="syncDay">

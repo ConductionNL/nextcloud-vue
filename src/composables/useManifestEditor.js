@@ -68,35 +68,20 @@ export function useManifestEditor(baseRef, options = {}) {
 
 	/**
 	 * Enter edit mode: snapshot the live manifest for diff + cancel, then opt
-	 * the live manifest into deep reactivity so in-place edits render.
+	 * the live manifest into deep reactivity IN PLACE so in-place edits render.
 	 *
 	 * The manifest is held raw (shallowRef) at boot to skip deep observation of
-	 * the immutable graph.
-	 *
-	 * VUE 2 -> VUE 3: this used to be `reactive(baseRef.value)` with the return
-	 * value discarded. Under Vue 2 that was correct — `Vue.observable()` walked
-	 * the object and rewrote its properties into getters/setters, so it MUTATED
-	 * the object in place and returned the very same reference. Under Vue 3
-	 * `reactive()` leaves the target untouched and returns a PROXY, so ignoring
-	 * the return value made the whole call a no-op: the manifest stayed raw,
-	 * nothing subscribed to it, and every in-app edit (menu rename, widget move,
-	 * page add) mutated silently without re-rendering.
-	 *
-	 * Installing the proxy into the ref is the Vue-3 equivalent. Reference
-	 * identity through `.value` necessarily changes — a proxy is not its target —
-	 * but the invariant that actually matters is preserved: the proxy's target IS
-	 * the object the host passed in, so `toRaw(baseRef.value)` is still that
-	 * object, writes land in it, and `cancel()` restores it in place. The
-	 * `editing` flip re-renders the shell so descendants re-read `source` /
-	 * `working` and subscribe to the now-reactive graph.
-	 *
-	 * Idempotent: `reactive()` of an existing proxy returns that same proxy, so a
-	 * second edit session in the same SPA lifetime is a no-op.
+	 * the immutable graph. `reactive()` attaches an observer to the SAME object
+	 * (identity preserved — critical because CnPageRenderer captured this object
+	 * once via `inject('cnManifest')` at create time), and the subsequent
+	 * `editing` flip re-renders the shell so it re-reads and subscribes to the
+	 * now-reactive nodes. Idempotent: a no-op if the manifest is already
+	 * reactive (a second edit session in the same SPA lifetime).
 	 */
 	function enter() {
 		snapshot.value = deepClone(baseRef.value)
 		if (baseRef.value != null && typeof baseRef.value === 'object') {
-			baseRef.value = reactive(baseRef.value)
+			reactive(baseRef.value)
 		}
 		editing.value = true
 	}

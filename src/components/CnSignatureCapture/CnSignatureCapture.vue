@@ -181,7 +181,6 @@ export default {
 		/** Clear-button label. */
 		clearLabel: { type: String, default: 'Clear' },
 	},
-	emits: ['change'],
 	data() {
 		return {
 			mode: this.resolveInitialMode(),
@@ -240,16 +239,8 @@ export default {
 		 * @return {void}
 		 */
 		prepareCanvas() {
-			// `getContext('2d')` can return null — the canvas may already be
-			// bound to another context type, and jsdom returns null outright.
-			// The null-deref used to be absorbed: Vue 2 wrapped every nextTick
-			// callback in try/catch and routed the throw through `handleError`.
-			// Vue 3's `nextTick` is a bare `promise.then(fn)`, so the same throw
-			// escapes as an UNHANDLED REJECTION and takes the whole process down
-			// — under jest that reads as "Test suite failed to run", with no
-			// failing test to point at.
-			const ctx = this.$refs.canvas?.getContext('2d')
-			if (!ctx) return
+			if (!this.$refs.canvas) return
+			const ctx = this.$refs.canvas.getContext('2d')
 			ctx.lineCap = 'round'
 			ctx.lineJoin = 'round'
 			ctx.lineWidth = this.lineWidth
@@ -337,8 +328,8 @@ export default {
 		 * @return {void}
 		 */
 		drawSegment(x1, y1, x2, y2) {
-			const ctx = this.$refs.canvas?.getContext('2d')
-			if (!ctx) return
+			if (!this.$refs.canvas) return
+			const ctx = this.$refs.canvas.getContext('2d')
 			ctx.beginPath()
 			ctx.moveTo(x1, y1)
 			ctx.lineTo(x2, y2)
@@ -351,11 +342,8 @@ export default {
 		 * @return {void}
 		 */
 		clearCanvas() {
-			const ctx = this.$refs.canvas?.getContext('2d')
-			if (!ctx) {
-				this.hasDrawnContent = false
-				return
-			}
+			if (!this.$refs.canvas) return
+			const ctx = this.$refs.canvas.getContext('2d')
 			ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight)
 			this.hasDrawnContent = false
 		},

@@ -44,12 +44,10 @@ function getDefaultWidth(type, format) {
  * @param {string[]} [options.exclude] Property keys to exclude
  * @param {string[]} [options.include] Property keys to include (whitelist mode)
  * @param {object} [options.overrides] Per-key column overrides, e.g. `{ status: { width: '200px' } }`
- * @param {(text: string) => string} [options.translate] Optional display-layer translation function applied to each column label. Schema property titles are authored in English as the canonical source; consumers pass their bound `t()` (via the injected `cnTranslate`) so the visible header follows the user's language. When omitted, the label is the English source string unchanged (pure, backward-compatible).
  * @return {Array<{key: string, label: string, sortable: boolean, type: string, format: string, width: string}>}
  */
 export function columnsFromSchema(schema, options = {}) {
-	const { exclude = [], include = null, overrides = {}, translate } = options
-	const tr = typeof translate === 'function' ? translate : (text) => text
+	const { exclude = [], include = null, overrides = {} } = options
 
 	if (!schema || !schema.properties) {
 		return []
@@ -78,7 +76,7 @@ export function columnsFromSchema(schema, options = {}) {
 	return entries.map(([key, prop]) => {
 		const column = {
 			key,
-			label: tr(prop.title || key),
+			label: prop.title || key,
 			sortable: true,
 			type: prop.type || 'string',
 			format: prop.format || null,
@@ -392,12 +390,10 @@ function resolveWidget(prop) {
  * @param {string[]} [options.include] Property keys to include (whitelist mode)
  * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`. Recognised keys: `hidden` (true → drop the field), `order` (number → wins over the schema property's `order` for sorting), `readOnly` (false on a schema-readOnly key un-skips it), plus any field props to merge (`label`, `widget`, `enum`, …). A single overrides map therefore controls visibility, ordering and rendering on every surface that consumes this pipeline (data widget + form dialog).
  * @param {boolean} [options.includeReadOnly] Whether to include readOnly properties
- * @param {(text: string) => string} [options.translate] Optional display-layer translation function applied to each field's `label` and `description`. Schema property titles/descriptions are authored in English as the canonical source; consumers pass their bound `t()` (via the injected `cnTranslate`) so the rendered field label follows the user's language. When omitted, label/description are the English source strings unchanged (pure, backward-compatible).
  * @return {Array<{key: string, label: string, description: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean}|null, userPicker: {multiple: boolean}|null, fillFrom: object|null, validation: object, order: number}>}
  */
 export function fieldsFromSchema(schema, options = {}) {
-	const { exclude = [], include = null, overrides = {}, includeReadOnly = false, translate } = options
-	const tr = typeof translate === 'function' ? translate : (text) => text
+	const { exclude = [], include = null, overrides = {}, includeReadOnly = false } = options
 
 	if (!schema || !schema.properties) {
 		return []
@@ -450,8 +446,8 @@ export function fieldsFromSchema(schema, options = {}) {
 	return entries.map(([key, prop]) => {
 		const field = {
 			key,
-			label: tr(prop.title || key),
-			description: prop.description ? tr(prop.description) : '',
+			label: prop.title || key,
+			description: prop.description || '',
 			type: prop.type || 'string',
 			format: prop.format || null,
 			widget: resolveWidget(prop),
@@ -557,17 +553,12 @@ export function fieldsFromSchema(schema, options = {}) {
  * widget types (select, checkbox, text).
  *
  * @param {object} schema The schema object with a `properties` field
- * @param {object} [options] Configuration options
- * @param {(text: string) => string} [options.translate] Optional display-layer translation function applied to each filter's `label` and `description`. Schema property titles are authored in English as the canonical source; consumers pass their bound `t()` (via the injected `cnTranslate`) so the rendered filter label follows the user's language. When omitted, label/description are the English source strings unchanged (pure, backward-compatible).
  * @return {Array<{key: string, label: string, type: string, propertyType: string, options: Array}>}
  */
-export function filtersFromSchema(schema, options = {}) {
+export function filtersFromSchema(schema) {
 	if (!schema || !schema.properties) {
 		return []
 	}
-
-	const { translate } = options
-	const tr = typeof translate === 'function' ? translate : (text) => text
 
 	return Object.entries(schema.properties)
 		.filter(([, prop]) => {
@@ -583,8 +574,8 @@ export function filtersFromSchema(schema, options = {}) {
 		.map(([key, prop]) => {
 			const filter = {
 				key,
-				label: tr(prop.title || key),
-				description: prop.description ? tr(prop.description) : '',
+				label: prop.title || key,
+				description: prop.description || '',
 				propertyType: prop.type || 'string',
 				options: [],
 				value: null,

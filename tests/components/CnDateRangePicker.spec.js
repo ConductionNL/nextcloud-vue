@@ -120,11 +120,7 @@ describe('CnDateRangePicker', () => {
 			propsData: { value: baseValue },
 			stubs,
 		})
-		// @nextcloud/vue's Vue-3 line renamed NcSelect's v-model channel from
-		// `value`/`input` to `modelValue`/`update:modelValue`, so the component
-		// now listens on `@update:model-value` — emitting the old `input` here
-		// would reach no handler at all.
-		wrapper.findComponent({ name: 'NcSelect' }).vm.$emit('update:model-value', { id: 'today', label: 'Today', days: 1 })
+		wrapper.findComponent({ name: 'NcSelect' }).vm.$emit('input', { id: 'today', label: 'Today', days: 1 })
 		await wrapper.vm.$nextTick()
 		const events = wrapper.emitted('input')
 		expect(events).toBeTruthy()
@@ -138,8 +134,7 @@ describe('CnDateRangePicker', () => {
 			propsData: { value: baseValue },
 			stubs,
 		})
-		// See above: NcSelect's Vue-3 v-model channel is `update:modelValue`.
-		wrapper.findComponent({ name: 'NcSelect' }).vm.$emit('update:model-value', { id: 'custom', label: 'Custom', days: null })
+		wrapper.findComponent({ name: 'NcSelect' }).vm.$emit('input', { id: 'custom', label: 'Custom', days: null })
 		await wrapper.vm.$nextTick()
 		const event = wrapper.emitted('input')[0][0]
 		expect(event.preset).toBe('custom')

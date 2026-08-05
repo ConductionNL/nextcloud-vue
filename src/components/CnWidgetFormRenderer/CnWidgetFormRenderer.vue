@@ -38,9 +38,9 @@ import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
  */
 export default {
 	name: 'CnWidgetFormRenderer',
+	inheritAttrs: false,
 
 	components: { CnFormPage, CnWidgetWrapper },
-	inheritAttrs: false,
 
 	props: {
 		/**

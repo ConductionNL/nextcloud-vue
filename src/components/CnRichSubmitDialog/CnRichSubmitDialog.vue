@@ -224,7 +224,6 @@ export default {
 		 */
 		defaults: { type: Object, default: () => ({}) },
 	},
-	emits: ['close', 'confirm'],
 	data() {
 		return {
 			loading: false,

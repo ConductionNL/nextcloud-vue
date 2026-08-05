@@ -67,8 +67,8 @@ export function createIntegrationRegistry() {
 	 * @param {?string} [entry.group] Named group (core/comms/docs/workflow/external).
 	 * @param {?string} [entry.requiresPermission] Permission string.
 	 * @param {?string} [entry.referenceType] Marker for schema property targeting.
-	 * @param {object} [entry.tab] Vue component for the sidebar tab — REQUIRED in `component` mode; optional (same-major fast path) in `mount` mode.
-	 * @param {object} [entry.widget] Vue component for dashboard/detail surfaces — REQUIRED in `component` mode; optional (same-major fast path) in `mount` mode.
+	 * @param {object} entry.tab Vue component for the sidebar tab — REQUIRED.
+	 * @param {object} entry.widget Vue component for dashboard/detail surfaces — REQUIRED.
 	 * @param {object} [entry.widgetCompact] Override for `user-dashboard` surface.
 	 * @param {object} [entry.widgetExpanded] Override for `detail-page` surface.
 	 * @param {object} [entry.widgetEntity] Override for `single-entity` surface.
@@ -79,11 +79,8 @@ export function createIntegrationRegistry() {
 	 * @param {?string} [entry.appName] Human-readable backing-app name for empty-state copy ("{App} not available"); defaults to `label` when omitted.
 	 * @param {?string} [entry.docsUrl] Setup-docs URL for the empty state; defaults to `https://openregister.conduction.nl/docs/Integrations/{id}/`.
 	 * @param {?object} [entry.offlineConfig] Opaque per-integration config bag forwarded verbatim to the integration's components (e.g. the field-inspection leaf's offline schema/filter config). A consuming app overrides it by pre-registering the same id.
-	 * @param {'component'|'mount'} [entry.renderMode] Render strategy (openregister#2127 / ADR-066). `'component'` (default) interprets the SFC `tab`/`widget` under the host's own Vue runtime. `'mount'` hands the leaf a bare host-owned DOM element via `mount`/`unmount`, so a leaf built against a different Vue major than the host renders its own framework instance inside that element.
-	 * @param {(el: Element, props: object) => any} [entry.mount] Mount hand-off. Required together with `unmount` when `renderMode` is `'mount'`; the host calls it against a bare element with the same context an SFC widget/tab receives (`{ register, schema, objectId, surface, integrationContext, … }`). May also be supplied alongside an SFC pair as a same-major fast path.
-	 * @param {(el: Element) => void} [entry.unmount] Teardown hand-off, called by the host before it removes the element and on surface hide / bound-object change. Travels as a pair with `mount`.
 	 *
-	 * @return {?object} Normalised entry, or null on collision / malformed mount pair in prod.
+	 * @return {?object} Normalised entry, or null on collision in prod.
 	 */
 	function register(entry) {
 		if (entry === null || typeof entry !== 'object') {
@@ -95,55 +92,11 @@ export function createIntegrationRegistry() {
 		if (typeof entry.label !== 'string' || entry.label === '') {
 			throw new TypeError(`[integrations] integration "${entry.id}" requires a non-empty string \`label\``)
 		}
-		// renderMode gates which render pair is required (openregister#2127,
-		// ADR-066). `component` (default) keeps the SFC contract — tab +
-		// widget interpreted under the host's Vue. `mount` swaps in a
-		// mount/unmount DOM hand-off so a cross-Vue-major leaf renders its
-		// own framework instance; tab/widget become an optional same-major
-		// fast path.
-		const renderMode = (entry.renderMode === undefined || entry.renderMode === null)
-			? 'component'
-			: entry.renderMode
-		if (renderMode !== 'component' && renderMode !== 'mount') {
-			throw new TypeError(`[integrations] integration "${entry.id}" has invalid \`renderMode\` "${entry.renderMode}" — expected 'component' or 'mount'`)
+		if (entry.tab === undefined || entry.tab === null) {
+			throw new TypeError(`[integrations] integration "${entry.id}" is missing required \`tab\` component`)
 		}
-
-		const hasMount = typeof entry.mount === 'function'
-		const hasUnmount = typeof entry.unmount === 'function'
-
-		// The mount pair travels together — supplying one half without the
-		// other is invalid in either render mode. Mirror the AD-13 duplicate
-		// policy: throw in dev, warn-and-drop in prod.
-		if (hasMount !== hasUnmount) {
-			const message = `[integrations] integration "${entry.id}" supplies only one of \`mount\`/\`unmount\` — the mount pair must travel together`
-			if (DEV) {
-				throw new Error(message)
-			}
-			// eslint-disable-next-line no-console
-			console.warn(message)
-			return null
-		}
-
-		if (renderMode === 'mount') {
-			// mount mode: the mount pair is the render artefact; tab/widget
-			// are optional. A missing pair is a malformed descriptor.
-			if (hasMount === false) {
-				const message = `[integrations] integration "${entry.id}" declares renderMode 'mount' but is missing the \`mount\`/\`unmount\` pair`
-				if (DEV) {
-					throw new Error(message)
-				}
-				// eslint-disable-next-line no-console
-				console.warn(message)
-				return null
-			}
-		} else {
-			// component mode: the SFC pair is required, exactly as before.
-			if (entry.tab === undefined || entry.tab === null) {
-				throw new TypeError(`[integrations] integration "${entry.id}" is missing required \`tab\` component`)
-			}
-			if (entry.widget === undefined || entry.widget === null) {
-				throw new TypeError(`[integrations] integration "${entry.id}" is missing required \`widget\` component`)
-			}
+		if (entry.widget === undefined || entry.widget === null) {
+			throw new TypeError(`[integrations] integration "${entry.id}" is missing required \`widget\` component`)
 		}
 
 		if (providers.has(entry.id)) {
@@ -165,14 +118,8 @@ export function createIntegrationRegistry() {
 			group: entry.group || null,
 			requiresPermission: entry.requiresPermission || null,
 			referenceType: entry.referenceType || null,
-			// Render strategy + the mount hand-off pair (openregister#2127).
-			// `tab`/`widget` are null when a mount-mode leaf omits the SFC
-			// fast path; `mount`/`unmount` are null for component-mode leaves.
-			renderMode,
-			mount: hasMount ? entry.mount : null,
-			unmount: hasUnmount ? entry.unmount : null,
-			tab: entry.tab || null,
-			widget: entry.widget || null,
+			tab: entry.tab,
+			widget: entry.widget,
 			widgetCompact: entry.widgetCompact || null,
 			widgetExpanded: entry.widgetExpanded || null,
 			widgetEntity: entry.widgetEntity || null,

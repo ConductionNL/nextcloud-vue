@@ -94,8 +94,6 @@ export default {
 		},
 	},
 
-	emits: ['close', 'confirm'],
-
 	data() {
 		return {
 			/** The view name being typed. */

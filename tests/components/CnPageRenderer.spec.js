@@ -8,9 +8,6 @@
  */
 
 import { mount, shallowMount } from '@vue/test-utils'
-// Component definitions held in reactive state are Proxies in Vue 3; `toRaw`
-// keeps the identity assertions meaningful (see useRuntimeManifest.spec.js).
-import { toRaw } from 'vue'
 import CnPageRenderer from '../../src/components/CnPageRenderer/CnPageRenderer.vue'
 
 const SettingsPageStub = {
@@ -246,7 +243,7 @@ describe('CnPageRenderer', () => {
 
 		it('renders the resolved custom component synchronously', () => {
 			const wrapper = mountRenderer('settings')
-			expect(toRaw(wrapper.vm.resolvedComponent)).toBe(SettingsPageStub)
+			expect(wrapper.vm.resolvedComponent).toBe(SettingsPageStub)
 			expect(wrapper.attributes('data-page-id')).toBe('settings')
 		})
 
@@ -416,9 +413,7 @@ describe('CnPageRenderer', () => {
 			const page = wrapper.findComponent(PageStub)
 			expect(page.exists()).toBe(true)
 			// id + (empty) register + (empty) schema for a config-less custom page.
-			// Vue 2 exposed the parent placeholder as `$vnode`; Vue 3 removed it —
-			// the instance's own vnode is `$.vnode`.
-			expect(page.vm.$.vnode.key).toBe('leads::')
+			expect(page.vm.$vnode.key).toBe('leads::')
 		})
 
 		it('pageRenderKey encodes the data source so a schema change remounts the page', () => {
@@ -689,7 +684,7 @@ describe('CnPageRenderer', () => {
 
 		it('uses customComponents prop for custom-type resolution when no inject is available', () => {
 			const wrapper = mountRenderer('settings', { useProps: true })
-			expect(toRaw(wrapper.vm.resolvedComponent)).toBe(SettingsPageStub)
+			expect(wrapper.vm.resolvedComponent).toBe(SettingsPageStub)
 		})
 
 		it('falls back to inject when no manifest prop is given', () => {
@@ -701,7 +696,7 @@ describe('CnPageRenderer', () => {
 				mocks: { $route: { name: 'settings' } },
 			})
 			expect(wrapper.vm.effectiveManifest).toEqual(sampleManifest)
-			expect(toRaw(wrapper.vm.resolvedComponent)).toBe(SettingsPageStub)
+			expect(wrapper.vm.resolvedComponent).toBe(SettingsPageStub)
 		})
 	})
 
@@ -746,7 +741,7 @@ describe('CnPageRenderer', () => {
 				},
 				mocks: { $route: { name: 'report' } },
 			})
-			expect(toRaw(wrapper.vm.resolvedComponent)).toBe(ReportPage)
+			expect(wrapper.vm.resolvedComponent).toBe(ReportPage)
 		})
 
 		it('warns and renders nothing for an unknown type, recommending the pageTypes registry', () => {

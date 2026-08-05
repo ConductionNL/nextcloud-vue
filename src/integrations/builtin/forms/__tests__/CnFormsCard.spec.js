@@ -68,7 +68,7 @@ describe('CnFormsCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No forms linked yet')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a count + submission headline on the user-dashboard surface', async () => {
@@ -94,7 +94,7 @@ describe('CnFormsCard', () => {
 		expect(txt.toLowerCase()).toContain('open')
 		expect(txt).toContain('3 submissions')
 		expect(wrapper.find('.cn-forms-card__headline').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('falls back to the "all closed" headline when nothing is open', async () => {
@@ -112,7 +112,7 @@ describe('CnFormsCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text().toLowerCase()).toContain('all closed')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a list of rows with a status pill on the detail-page surface', async () => {
@@ -134,7 +134,7 @@ describe('CnFormsCard', () => {
 		expect(wrapper.find('.cn-forms-card__status--open').exists()).toBe(true)
 		expect(wrapper.find('.cn-forms-card__status--closed').exists()).toBe(true)
 		expect(wrapper.text()).toContain('Closes in')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders a chip on the single-entity surface with a status pill', async () => {
@@ -150,7 +150,7 @@ describe('CnFormsCard', () => {
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Charter intake')
 		expect(chip.text()).toContain('Open')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the unavailable label when the provider returns 503', async () => {
@@ -159,7 +159,7 @@ describe('CnFormsCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Forms is currently unavailable.')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('does not throw when fetch fails on the detail-page surface', async () => {
@@ -169,7 +169,7 @@ describe('CnFormsCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No forms linked yet')
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 
@@ -186,6 +186,6 @@ describe('CnFormsCard', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.find('.cn-forms-card__row--closed').exists()).toBe(true)
 		expect(wrapper.text()).toContain('Closed')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

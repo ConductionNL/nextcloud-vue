@@ -20,7 +20,7 @@ describe('CnSavedViewsControl — accessibility', () => {
 	let wrapper
 
 	afterEach(() => {
-		wrapper?.unmount()
+		wrapper?.destroy()
 	})
 
 	it('has no WCAG 2.1 AA violations in the closed (default) state', async () => {

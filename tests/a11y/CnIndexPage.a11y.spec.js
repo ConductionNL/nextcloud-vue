@@ -13,12 +13,7 @@
 // `mock`-prefixed so jest.mock()'s hoisted factory can reference it. Mirrors
 // the store shape used by the behavioural spec (tests/components/CnIndexPage.spec.js).
 const mockStore = {
-	collections: {},
-	loading: {},
-	pagination: {},
-	facets: {},
-	errors: {},
-	objects: {},
+	collections: {}, loading: {}, pagination: {}, facets: {}, errors: {}, objects: {},
 	registerObjectType: jest.fn(),
 	unregisterObjectType: jest.fn(),
 	fetchCollection: jest.fn().mockResolvedValue([]),
@@ -74,7 +69,7 @@ describe('CnIndexPage — accessibility', () => {
 	})
 
 	afterEach(() => {
-		wrapper?.unmount()
+		wrapper?.destroy()
 	})
 
 	it('has no WCAG 2.1 AA violations in the empty state', async () => {

@@ -13,7 +13,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@update:modelValue="updateOption('iconSize', $event)" />
+				@input="updateOption('iconSize', $event)" />
 
 			<NcSelect
 				:model-value="iconShape"
@@ -22,7 +22,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@update:modelValue="updateOption('iconShape', $event)" />
+				@input="updateOption('iconShape', $event)" />
 
 			<label class="cn-quicklinks-widget-form__checkbox-label">
 				<input
@@ -40,7 +40,7 @@
 				label="label"
 				:clearable="false"
 				:disabled="!showLabels"
-				@update:modelValue="updateOption('labelPosition', $event)" />
+				@input="updateOption('labelPosition', $event)" />
 
 			<NcSelect
 				:model-value="columns"
@@ -49,7 +49,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@update:modelValue="updateOption('columns', $event)" />
+				@input="updateOption('columns', $event)" />
 
 			<NcSelect
 				:model-value="tileBackgroundStyle"
@@ -58,7 +58,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@update:modelValue="updateOption('tileBackgroundStyle', $event)" />
+				@input="updateOption('tileBackgroundStyle', $event)" />
 
 			<NcSelect
 				:model-value="hoverEffect"
@@ -67,7 +67,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@update:modelValue="updateOption('hoverEffect', $event)" />
+				@input="updateOption('hoverEffect', $event)" />
 		</div>
 
 		<div class="cn-quicklinks-widget-form__links">
@@ -183,7 +183,7 @@ const DEFAULT_CONTENT = Object.freeze({
 
 /**
  * CnQuicklinksWidgetForm — the `CnAddWidgetModal` sub-form for the
- * `quicklinks` widget type (renderer: `CnQuicklinksWidget`).
+ * `quicklinks` widget type (renderer: {@link CnQuicklinksWidget}).
  *
  * Layout: a dropdown grid for the eight widget-level fields, an editable
  * table of links (label / URL / icon / colour), and a collapsible CSV

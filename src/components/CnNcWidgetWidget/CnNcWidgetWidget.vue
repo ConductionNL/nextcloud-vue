@@ -279,7 +279,7 @@ export default {
 		mountNative(callback) {
 			this.mode = 'native'
 			this.$nextTick(() => {
-				const container = this.$refs.nativeContainer
+				const container = this.$refsContainer
 				if (!container) {
 					return
 				}

@@ -225,7 +225,6 @@ Before this overload existed, virtual-app hosts had to fake an HTTP fetch by pas
 - [defaultPageTypes](../utilities/default-page-types.md) — Built-in page-type registry.
 - [validateManifest](../utilities/validate-manifest.md) — The validator used inside `useAppManifest`.
 - [migrating-to-manifest](../migrating-to-manifest.md) — Tier-by-tier adoption guide.
-- [useScopedTheme](../utilities/composables/use-scoped-theme.md) — Backs the `runtime.theme` scoped-theming wiring above.
 
 ## Support dialog
 
@@ -239,17 +238,3 @@ Before this overload existed, virtual-app hosts had to fake an HTTP fetch by pas
 |------|------|---------|-------------|
 | `aiCompanion` (`ai-companion`) | Boolean | `false` | Opt-in floating AI-chat companion (`CnAiCompanion`). Off by default; pass `true` to mount it. When enabled it still self-gates on its own backend health probe and hides on chat pages. The companion is an AI capability provided by the Hermiq app — apps opt in explicitly rather than every app auto-mounting it whenever a chat backend is reachable. |
 | `commandPalette` (`command-palette`) | Boolean \| Object | `false` | Opt-in Ctrl/Cmd+K command palette (`CnCommandPalette`, see its own doc page). Off by default; pass `true` for zero-config navigation + registered actions, or an object to override any `CnCommandPalette` prop (most commonly `{ objectSearch: createObjectSearchSource({...}) }` to wire live OpenRegister search). |
-
-## Scoped theming (`runtime.theme`)
-
-CnAppRoot's root `<NcContent>` always carries `data-nldesign-theme-scope="<appId>"` (inert when no theme is applied — an unused `data-*` attribute costs nothing). When the effective manifest declares `runtime.theme` — `{ source: "nldesign", tokenSet, tokenSetName?, preview? }`, validated by `$defs/runtimeTheme` in `app-manifest-v2.schema.json` — CnAppRoot calls [`useScopedTheme()`](../utilities/composables/use-scoped-theme.md)`.apply(effectiveManifest, appId)` automatically, no per-app code required:
-
-```json
-{ "runtime": { "theme": { "source": "nldesign", "tokenSet": "gemeente-blauw" } } }
-```
-
-- Re-applies whenever the effective manifest's `runtime.theme` changes — including an in-app manifest-editor (ADR-041) live-preview edit — via a `deep`, `immediate` watcher over the same editing-vs-`props.manifest` branch the `cnManifest` provide getter uses.
-- Tears the scoped style down on `beforeDestroy()`.
-- A manifest that declares no `runtime.theme` renders identically to before — no style element, no behaviour change. nldesign absent, unreachable, or serving non-conformant token CSS degrades silently to default styling (at most a `console.warn`), never a throw and never a blocked shell.
-
-`CnPageRenderer` needs no change — the scope lives at this container level (one managed `<style>` per app instance), so CSS custom properties cascade to every page automatically.

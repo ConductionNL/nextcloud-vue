@@ -89,7 +89,7 @@ describe('CnNotesTab mentions', () => {
 			expect(items).toHaveLength(2)
 			expect(items.at(0).text()).toBe('Jan de Vries')
 			expect(items.at(1).text()).toBe('Piet Post')
-			wrapper.unmount()
+			wrapper.destroy()
 		})
 
 		it('ArrowDown + Enter inserts the selected mention token', async () => {
@@ -110,7 +110,7 @@ describe('CnNotesTab mentions', () => {
 
 			expect(wrapper.vm.newNoteText).toBe('hi @piet ')
 			expect(wrapper.find('.tribute-container').exists()).toBe(false)
-			wrapper.unmount()
+			wrapper.destroy()
 		})
 
 		it('clicking a suggestion inserts its mention token', async () => {
@@ -128,7 +128,7 @@ describe('CnNotesTab mentions', () => {
 
 			expect(wrapper.vm.newNoteText).toBe('@jan.doe ')
 			expect(wrapper.find('.tribute-container').exists()).toBe(false)
-			wrapper.unmount()
+			wrapper.destroy()
 		})
 
 		it('Escape closes the dropdown without changing the text', async () => {
@@ -147,7 +147,7 @@ describe('CnNotesTab mentions', () => {
 
 			expect(wrapper.find('.tribute-container').exists()).toBe(false)
 			expect(wrapper.vm.newNoteText).toBe('hi @ja')
-			wrapper.unmount()
+			wrapper.destroy()
 		})
 	})
 
@@ -167,7 +167,7 @@ describe('CnNotesTab mentions', () => {
 			expect(chip.text()).toBe('Jan de Vries')
 			expect(chip.classes()).not.toContain('cn-notes-tab__mention--unknown')
 			expect(wrapper.text()).toContain('please review')
-			wrapper.unmount()
+			wrapper.destroy()
 		})
 
 		it('renders an unresolvable mention as a muted chip with the raw id', async () => {
@@ -185,7 +185,7 @@ describe('CnNotesTab mentions', () => {
 			// Surrounding plain text still renders.
 			expect(wrapper.text()).toContain('cc')
 			expect(wrapper.text()).toContain('for this')
-			wrapper.unmount()
+			wrapper.destroy()
 		})
 
 		it('renders a plain note without any chips', async () => {
@@ -197,7 +197,7 @@ describe('CnNotesTab mentions', () => {
 
 			expect(wrapper.find('.cn-notes-tab__mention').exists()).toBe(false)
 			expect(wrapper.text()).toContain('no mentions here, mail a@b.com')
-			wrapper.unmount()
+			wrapper.destroy()
 		})
 
 		it('resolves each mentioned id at most once across notes', async () => {
@@ -214,7 +214,7 @@ describe('CnNotesTab mentions', () => {
 			const lookups = searchNextcloudUsers.mock.calls.filter(([query]) => query === 'jan.doe')
 			expect(lookups).toHaveLength(1)
 			expect(wrapper.findAll('.cn-notes-tab__mention')).toHaveLength(2)
-			wrapper.unmount()
+			wrapper.destroy()
 		})
 	})
 
@@ -244,7 +244,7 @@ describe('CnNotesTab mentions', () => {
 				noteId: 'note-1',
 				mentionedUserIds: ['jan.doe', 'piet'],
 			})
-			wrapper.unmount()
+			wrapper.destroy()
 		})
 
 		it('does not emit `mention` when the saved note has no mentions', async () => {
@@ -261,7 +261,7 @@ describe('CnNotesTab mentions', () => {
 			await flush(wrapper)
 
 			expect(wrapper.emitted('mention')).toBeUndefined()
-			wrapper.unmount()
+			wrapper.destroy()
 		})
 
 		it('emits `mention` with the edited note id after saving an edit', async () => {
@@ -293,7 +293,7 @@ describe('CnNotesTab mentions', () => {
 				noteId: 'note-2',
 				mentionedUserIds: ['piet'],
 			})
-			wrapper.unmount()
+			wrapper.destroy()
 		})
 	})
 })

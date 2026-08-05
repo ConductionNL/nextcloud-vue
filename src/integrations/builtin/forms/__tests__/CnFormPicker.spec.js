@@ -62,7 +62,7 @@ describe('CnFormPicker', () => {
 			expect.stringContaining('/integrations/forms/available?objectUuid=obj-1'),
 			expect.objectContaining({ headers: expect.any(Object) }),
 		)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('filters rows by the search field', async () => {
@@ -83,7 +83,7 @@ describe('CnFormPicker', () => {
 		await flushAll(wrapper)
 		expect(wrapper.findAll('.cn-form-picker__row')).toHaveLength(1)
 		expect(wrapper.text()).toContain('Holiday survey')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('emits link with the selected formId', async () => {
@@ -98,11 +98,11 @@ describe('CnFormPicker', () => {
 		await flushAll(wrapper)
 		// Click the Link button — the primary action.
 		const buttons = wrapper.findAllComponents({ name: 'NcButton' })
-		const linkButton = buttons.find((b) => b.text().toLowerCase().includes('link'))
+		const linkButton = buttons.wrappers.find((b) => b.text().toLowerCase().includes('link'))
 		await linkButton.trigger('click')
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0][0]).toEqual({ formId: 42 })
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('disables linking an already-linked form (form-level mode)', async () => {
@@ -116,7 +116,7 @@ describe('CnFormPicker', () => {
 		await wrapper.find('.cn-form-picker__row').trigger('click')
 		await flushAll(wrapper)
 		expect(wrapper.vm.canSubmit).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the empty state when no forms', async () => {
@@ -130,7 +130,7 @@ describe('CnFormPicker', () => {
 		// NcDialog body is stubbed away in jest; check vm state directly.
 		expect(wrapper.vm.forms).toEqual([])
 		expect(wrapper.vm.error).toBe('')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the error label when fetch throws', async () => {
@@ -141,7 +141,7 @@ describe('CnFormPicker', () => {
 		// NcDialog body is stubbed away; verify the error state via vm.
 		expect(wrapper.vm.error).toContain('boom')
 		expect(wrapper.vm.forms).toEqual([])
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 })

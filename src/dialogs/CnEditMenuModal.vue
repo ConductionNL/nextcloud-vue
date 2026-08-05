@@ -14,13 +14,13 @@
 			:pages="pageOptions" />
 
 		<template #actions>
-			<NcButton variant="secondary" @click="add">
+			<NcButton type="secondary" @click="add">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
 				{{ t('nextcloud-vue', 'Add menu item') }}
 			</NcButton>
-			<NcButton variant="primary" :disabled="saving" @click="onDone">
+			<NcButton type="primary" :disabled="saving" @click="onDone">
 				<template #icon>
 					<NcLoadingIcon v-if="saving" :size="20" />
 					<ContentSaveOutline v-else :size="20" />
@@ -58,8 +58,6 @@ export default {
 			default: null,
 		},
 	},
-
-	emits: ['close'],
 
 	computed: {
 		/** The working manifest's menu array (always an array). */

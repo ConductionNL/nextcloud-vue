@@ -48,12 +48,8 @@ export function parseDispositionFilename(disposition, fallback) {
 }
 
 /**
- * @param {{ register: string, schema: string, format: string }} params The export
- *   target: the OpenRegister `register` and `schema` slugs, plus the export
- *   `format` (`'csv'`, `'excel'`, …) sent as the `type` query parameter. `'excel'`
- *   is the only format whose downloaded extension differs (`xlsx`).
- * @return {Promise<void>} Resolves once the browser download has been triggered;
- *   rejects when the server responds non-2xx.
+ * @param {{ register: string, schema: string, format: string }} params
+ * @return {Promise<void>}
  */
 export async function runSelfExportRequest({ register, schema, format }) {
 	const base = `/apps/openregister/api/objects/${register}/${schema}/export`
@@ -72,12 +68,8 @@ export async function runSelfExportRequest({ register, schema, format }) {
 }
 
 /**
- * @param {{ register: string, schema: string|null, file: File }} params The import
- *   target: the OpenRegister `register` slug, the `schema` slug (required for a
- *   CSV upload, which cannot carry its own schema; `null` otherwise), and the
- *   user-picked `file` posted as multipart form data.
- * @return {Promise<void>} Resolves once the upload succeeded; rejects when no
- *   file was selected or the server responds non-2xx.
+ * @param {{ register: string, schema: string|null, file: File }} params
+ * @return {Promise<void>}
  */
 export async function runSelfImportRequest({ register, schema, file }) {
 	if (!file) {

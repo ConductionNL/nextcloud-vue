@@ -288,7 +288,7 @@
 						     is in OpenBuild edit mode. The modal's own Delete affordance
 						     covers removal, so no separate remove button here. -->
 						<div v-if="editingBody && registryFormFor(item)" class="cn-detail-page__widget-edit">
-							<NcButton variant="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
+							<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
 								<template #icon>
 									<Cog :size="18" />
 								</template>
@@ -373,14 +373,6 @@
 								:height="widgetContentFor(item).height || '360px'"
 								:default-zoom="widgetContentFor(item).defaultZoom || 7"
 								@saved="onGeoSaved" />
-							<!-- Mount-mode integration leaf (openregister#2127):
-							     a `renderMode: 'mount'` provider renders through
-							     CnLeafMountHost — a bare host-owned element the
-							     leaf mounts its own framework into. -->
-							<CnLeafMountHost
-								v-else-if="isMountIntegrationWidget(item)"
-								:provider="integrationProviderFor(item)"
-								:mount-props="getIntegrationMountProps(item)" />
 							<!-- Fallback for `type: 'integration'` widget defs:
 							     render the registry widget on the detail-page
 							     surface. A consumer-supplied #widget-<id> slot
@@ -432,7 +424,7 @@
 							<CnWidgetWrapper
 								v-else-if="registryRendererFor(item) && isCardWidget(item)"
 								:title="findWidget(item).title || widgetContentFor(item).title || ''"
-								:show-title="showCardTitle(item)"
+								:show-title="findWidget(item).title !== undefined || widgetContentFor(item).title !== undefined"
 								title-icon-position="left"
 								flush
 								:show-refresh="false"
@@ -645,7 +637,7 @@
 </template>
 
 <script>
-import { Comment, Fragment, Text, provide, ref, watch } from 'vue'
+import { provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -679,33 +671,10 @@ import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 import { useObjectStore } from '../../store/index.js'
 import { CnIcon } from '../CnIcon/index.js'
-import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
-
-/**
- * Whether a rendered slot produced anything a user can actually see.
- *
- * A non-empty vnode array is NOT evidence of content: Vue hands back a
- * `Comment` placeholder for a falsy `v-if`, and a whitespace-only `Text`
- * node for a stray newline between tags. Both have to read as "empty" so a
- * consumer who wrote `<CnDetailPage>` across two lines does not
- * accidentally suppress the auto-body.
- *
- * @param {Array} nodes Vnodes returned by calling a slot function.
- * @return {boolean} True when at least one vnode renders visible content.
- */
-function hasRenderableContent(nodes) {
-	if (!Array.isArray(nodes)) return false
-	return nodes.some((vnode) => {
-		if (!vnode || vnode.type === Comment) return false
-		if (vnode.type === Text) return String(vnode.children ?? '').trim() !== ''
-		if (vnode.type === Fragment) return hasRenderableContent(vnode.children)
-		return true
-	})
-}
 
 /**
  * CnDetailPage — Generic detail/overview page.
@@ -805,7 +774,6 @@ export default {
 		CnRelatedCollections,
 		CnBodySections,
 		CnTranslatedBadge,
-		CnLeafMountHost,
 		CnWidgetStyleEditorModal,
 		CnRelationLinkModal,
 		Cog,
@@ -1349,28 +1317,13 @@ export default {
 		},
 	},
 
-	emits: [
-		'create-cancel',
-		'created',
-		'geo-saved',
-		'layout-change',
-		'open-integration',
-		'refresh',
-		'related-row-click',
-		'relation-linked',
-		'request-feature',
-		'transitioned',
-		'update:layout',
-		'widget-config-change',
-	],
-
 	setup(props) {
 		// Pluggable integration registry — used to resolve `type:
 		// 'integration'` widgets in the grid layout to their Vue
 		// component (AD-19 surface fallback). Always wired; cheap when
 		// no integration widgets are configured.
-		const { resolveWidget, getById } = useIntegrationRegistry()
-		const registryExposed = { resolveRegistryWidget: resolveWidget, getRegistryProvider: getById }
+		const { resolveWidget } = useIntegrationRegistry()
+		const registryExposed = { resolveRegistryWidget: resolveWidget }
 
 		// Object context for detail-page abstract widgets (ADR-041): a reactive
 		// `{ objectId, object, register, schema }` holder kept current by the
@@ -1646,9 +1599,7 @@ export default {
 		 */
 		effectiveHeaderShowRefresh() {
 			if (this.showRefresh !== null) return this.showRefresh
-			// `$.vnode.props`, not `$attrs`: `refresh` is a declared emit, and
-			// Vue keeps declared emits out of `$attrs`.
-			return Boolean(this.$.vnode.props?.onRefresh) || this.hasSchemaDrivenFetch
+			return Boolean(this.$attrs.onRefresh) || this.hasSchemaDrivenFetch
 		},
 
 		/**
@@ -1790,21 +1741,15 @@ export default {
 		},
 
 		/**
-		 * True when consumer-supplied default slot content IS present.
-		 * Treats comment placeholders and whitespace-only text vnodes as
-		 * no content so a stray newline in the template doesn't
-		 * accidentally suppress the auto-body.
-		 *
-		 * `$slots.default` is a FUNCTION in Vue 3 — it has to be called to
-		 * get the vnodes. Reading `.length` off it yields the function's
-		 * arity (always 0 for a compiled slot), which made this read
-		 * `false` unconditionally and let the auto-body render on top of
-		 * whatever the consumer had put in the slot.
+		 * True when no consumer-supplied default slot content is
+		 * present. Treats whitespace-only / empty vnodes as no content
+		 * so a stray newline in the template doesn't accidentally
+		 * suppress the auto-body.
 		 */
 		hasDefaultSlotContent() {
-			const slot = this.$slots.default
-			if (typeof slot !== 'function') return false
-			return hasRenderableContent(slot())
+			const nodes = this.$slots.default
+			if (!nodes || !nodes.length) return false
+			return nodes.some((vnode) => !(vnode.text !== undefined && vnode.text.trim() === ''))
 		},
 
 		/**
@@ -2424,61 +2369,6 @@ export default {
 		},
 
 		/**
-		 * The registry provider descriptor behind an integration widget def,
-		 * carrying `mount`/`unmount` when it is a mount-mode leaf
-		 * (openregister#2127). Null when unregistered.
-		 *
-		 * @param {object} item Layout item
-		 * @return {object|null} Provider descriptor, or null.
-		 */
-		integrationProviderFor(item) {
-			const def = this.findWidget(item)
-			if (!def || typeof def.integrationId !== 'string' || typeof this.getRegistryProvider !== 'function') {
-				return null
-			}
-			return this.getRegistryProvider(def.integrationId)
-		},
-
-		/**
-		 * Whether an integration widget def resolves to a mount-mode leaf
-		 * (`renderMode: 'mount'`) — rendered through CnLeafMountHost rather
-		 * than as a component under the host's Vue runtime.
-		 *
-		 * @param {object} item Layout item
-		 * @return {boolean} true when the integration is mount-mode.
-		 */
-		isMountIntegrationWidget(item) {
-			if (!this.isIntegrationWidget(item)) {
-				return false
-			}
-			const provider = this.integrationProviderFor(item)
-			return Boolean(provider)
-				&& provider.renderMode === 'mount'
-				&& typeof provider.mount === 'function'
-				&& typeof provider.unmount === 'function'
-		},
-
-		/**
-		 * Props forwarded to a mount-mode leaf's `mount(el, props)` — the same
-		 * context an SFC integration widget receives, plus an explicit
-		 * `integrationContext` bag for leaves that read it directly.
-		 *
-		 * @param {object} item Layout item
-		 * @return {object} Mount props.
-		 */
-		getIntegrationMountProps(item) {
-			const base = this.getIntegrationProps(item)
-			return {
-				...base,
-				integrationContext: {
-					register: base.register,
-					schema: base.schema,
-					objectId: base.objectId,
-				},
-			}
-		},
-
-		/**
 		 * Whether a grid item is a schema-driven `data` widget — rendered via
 		 * CnObjectDataWidget with the page's loaded object + the def's overrides.
 		 *
@@ -2629,28 +2519,6 @@ export default {
 		},
 
 		/**
-		 * Whether a card widget (stat / gauge / delta) shows its CnWidgetWrapper
-		 * header. These renderers draw their OWN label from `content.label`, so a
-		 * wrapper header carrying the same manifest title prints the title twice —
-		 * once as card chrome, once inside the tile.
-		 *
-		 * `item.showTitle === false` is the opt-out, exactly as it is for the grid
-		 * `<h3>` in `showGridTitle`: one layout key, the same meaning on both of
-		 * this component's title-rendering paths. It was previously honoured only
-		 * by the `<h3>`, so a consumer that set it on a stat tile still got the
-		 * duplicate header with no way to switch it off short of dropping the
-		 * widget's title entirely (which also removes its name from edit mode).
-		 *
-		 * @param {object} item Layout item.
-		 * @return {boolean} true when the card header should render.
-		 */
-		showCardTitle(item) {
-			if (item.showTitle === false) return false
-			return this.findWidget(item)?.title !== undefined
-				|| this.widgetContentFor(item).title !== undefined
-		},
-
-		/**
 		 * Resolve the widget definition for a layout item. Overrides the
 		 * gridLayout mixin's `findWidget` (which only reads the `widgets` prop) so
 		 * the materialized default auto-body widgets resolve too. Searches the
@@ -2730,18 +2598,14 @@ export default {
 			 * @type {Array}
 			 */
 			this.$emit('layout-change', updated)
-			// Description goes ABOVE `@event`, not inline after it:
-			// vue-docgen-api's event-name splitter stops at the first `:`, so
-			// `@event update:layout <description>` is read as one long event
-			// NAME and the generated docs show an empty description.
+			/* eslint-disable jsdoc/valid-types -- the colon in the event name is valid Vue but not a jsdoc namepath */
 			/**
-			 * Sibling of `layout-change` so `v-model:layout` consumers stay in
-			 * sync.
-			 *
-			 * @event update:layout
+			 * @event update:layout Sibling of `layout-change` so `:layout.sync`
+			 *   consumers stay in sync.
 			 * @type {Array}
 			 */
 			this.$emit('update:layout', updated)
+			/* eslint-enable jsdoc/valid-types */
 		},
 
 		/**
@@ -2839,9 +2703,9 @@ export default {
 		onWidgetConfigSave(edited) {
 			const def = this.bodyGridWidgets.find((w) => w.id === this.configWidgetId)
 			if (def) {
-				if (edited.title !== undefined) def.title = edited.title
-				if (edited.content !== undefined) def.content = edited.content
-				def.styleConfig = edited.styleConfig || {}
+				if (edited.title !== undefined) def['title'] = edited.title
+				if (edited.content !== undefined) def['content'] = edited.content
+				def['styleConfig'] = edited.styleConfig || {}
 			}
 			this.showWidgetConfig = false
 			/**

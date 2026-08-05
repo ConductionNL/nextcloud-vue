@@ -252,32 +252,6 @@ Tool ids follow the register's derived-CRUD shape `{appId}.{schemaSlug}.{verb}`,
 
 The `mcp` block is entirely optional and additive: a manifest without it validates exactly as before this addition.
 
-### Scoped NL Design theming (`runtime.theme`)
-
-The optional `runtime.theme` field (`$defs/runtimeTheme`) declares a leaf app's NL Design System token-set selection, as returned by nldesign's `GET /api/token-sets` catalogue (`app-token-set-selection`). It is consumed ONLY by [`CnAppRoot`](/docs/components/cn-app-root)'s [`useScopedTheme`](/docs/utilities/composables/use-scoped-theme) wiring on the frontend — the backend does not read this field.
-
-```json
-{
-  "runtime": {
-    "theme": {
-      "source": "nldesign",
-      "tokenSet": "gemeente-blauw",
-      "tokenSetName": "Gemeente Blauw",
-      "preview": { "primaryColor": "#154273", "backgroundColor": "#FFFFFF" }
-    }
-  }
-}
-```
-
-| Property | Type | Meaning |
-|----------|------|---------|
-| `source` | `string` enum `["nldesign"]` (required) | Theme provider. Closed to `"nldesign"` — the only scoped-theme source this schema (and `useScopedTheme`) currently supports. |
-| `tokenSet` | `string`, kebab-case pattern (required) | The nldesign token-set id (a catalogue entry's `id`). Resolves the token CSS at `css/tokens/<tokenSet>.css`. |
-| `tokenSetName` | `string` (optional) | Cached human-readable name (the matching catalogue entry's `name`), so a picker can display it without a second catalogue fetch. |
-| `preview` | `object` (optional), `additionalProperties: false` | Cached swatch preview (`primaryColor?`, `backgroundColor?`, both strings) from the matching catalogue entry, so a picker can render a preview chip without re-fetching the catalogue. |
-
-`runtimeTheme` is closed (`additionalProperties: false`) — an unknown key is rejected. The field is entirely optional and additive: a manifest without `runtime.theme` validates exactly as before this addition. See [useScopedTheme](/docs/utilities/composables/use-scoped-theme) for the full application contract (fetch → verify-flat-`:root` → rewrite → inject → teardown, with bail-and-degrade on any non-conformant CSS).
-
 ### Migration guide
 
 The `manifest-migrate` CLI codemod automates the mechanical parts of the v1 → v2 migration. See **[Migrating to v2](../migrating-to-v2.md)** for the full guide.

@@ -1,5 +1,4 @@
 import { mount } from '@vue/test-utils'
-import { h } from 'vue'
 import CnRowActions from '@/components/CnRowActions/CnRowActions.vue'
 import CnIcon from '@/components/CnIcon/CnIcon.vue'
 
@@ -69,11 +68,7 @@ describe('CnRowActions icon rendering', () => {
 	})
 
 	it('renders a component icon directly without CnIcon (runtime actions)', () => {
-		// Vue 2 passed `createElement` as `render()`'s first argument; Vue 3
-		// passes none and `h` is imported from the package instead. The old
-		// signature shadowed nothing, so the parameter was simply `undefined`
-		// and the stub blew up with "h is not a function" at render time.
-		const StubIcon = { name: 'StubIcon', render: () => h('span', 'icon') }
+		const StubIcon = { name: 'StubIcon', render: (h) => h('span', 'icon') }
 		const wrapper = mount(CnRowActions, {
 			propsData: { actions: [{ label: 'View', icon: StubIcon, handler: jest.fn() }] },
 		})

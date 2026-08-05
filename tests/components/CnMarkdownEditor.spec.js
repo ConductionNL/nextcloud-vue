@@ -116,18 +116,10 @@ describe('CnMarkdownEditor', () => {
 		expect(wrapper.vm.localValue).toBe('two')
 	})
 
-	// `@toast-ui/vue-editor` is published for Vue 2 only, so the Vue-3 line
-	// drives the framework-agnostic `@toast-ui/editor` CLASS imperatively
-	// against a plain host element instead of rendering a wrapper COMPONENT.
-	// The editor is therefore no longer reachable as `vm.toastEditorComponent`
-	// / `$refs.toast` / a `.toastui-editor-mock` element — the same three
-	// properties are asserted through the instance (`vm.toastEditor`, its
-	// constructor options, and `toastEditorReady`).
 	describe('WYSIWYG mode', () => {
 		it('default (textarea) mode never loads the Toast UI editor', () => {
 			const wrapper = mount(CnMarkdownEditor)
-			expect(wrapper.vm.toastEditor).toBeUndefined()
-			expect(wrapper.vm.toastEditorReady).toBe(false)
+			expect(wrapper.vm.toastEditorComponent).toBeNull()
 			expect(wrapper.find('[data-testid="cn-markdown-wysiwyg"]').exists()).toBe(false)
 			expect(wrapper.find('textarea').exists()).toBe(true)
 		})
@@ -138,19 +130,16 @@ describe('CnMarkdownEditor', () => {
 			expect(wrapper.find('textarea').exists()).toBe(false)
 			await wrapper.vm.loadWysiwyg()
 			await wrapper.vm.$nextTick()
-			expect(wrapper.vm.toastEditor).not.toBeNull()
-			// The editor instance was attached to the component's host element
-			// — the Vue-3 equivalent of the old `.toastui-editor-mock` node.
-			expect(wrapper.vm.toastEditor.el).toBe(wrapper.vm.$refs.toastHost)
-			expect(wrapper.vm.toastEditorReady).toBe(true)
+			expect(wrapper.vm.toastEditorComponent).not.toBeNull()
+			expect(wrapper.find('.toastui-editor-mock').exists()).toBe(true)
 		})
 
 		it('wysiwyg round-trips through v-model (initial value + input on change)', async () => {
 			const wrapper = mount(CnMarkdownEditor, { propsData: { mode: 'wysiwyg', value: '# start' } })
 			await wrapper.vm.loadWysiwyg()
 			await wrapper.vm.$nextTick()
-			const editor = wrapper.vm.toastEditor
-			expect(editor.options.initialValue).toBe('# start')
+			const editor = wrapper.vm.$refs.toast
+			expect(editor.initialValue).toBe('# start')
 			editor.__setMarkdown('# edited')
 			await wrapper.vm.$nextTick()
 			expect(wrapper.emitted('input').pop()[0]).toBe('# edited')

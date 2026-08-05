@@ -18,7 +18,7 @@ describe('CnBookmarkCreate', () => {
 		expect(wrapper.vm.canSubmit).toBe(false)
 		wrapper.vm.submit()
 		expect(wrapper.emitted('create')).toBeFalsy()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('blocks submit when URL is missing or invalid', () => {
@@ -28,14 +28,14 @@ describe('CnBookmarkCreate', () => {
 		expect(wrapper.vm.canSubmit).toBe(false)
 		wrapper.vm.submit()
 		expect(wrapper.emitted('create')).toBeFalsy()
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('rejects non-http(s) protocols', () => {
 		const wrapper = mount(CnBookmarkCreate)
 		wrapper.setData({ title: 'X', url: 'ftp://example.org/file' })
 		expect(wrapper.vm.urlValid).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('accepts a valid https URL', () => {
@@ -43,7 +43,7 @@ describe('CnBookmarkCreate', () => {
 		wrapper.setData({ title: 'Conduction', url: 'https://conduction.nl' })
 		expect(wrapper.vm.urlValid).toBe(true)
 		expect(wrapper.vm.canSubmit).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('emits create with the full payload on submit', () => {
@@ -62,13 +62,13 @@ describe('CnBookmarkCreate', () => {
 		expect(payload.url).toBe('https://conduction.nl')
 		expect(payload.description).toBe('Company site')
 		expect(payload.tags).toEqual(['vendor', 'reference'])
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('parses comma-separated tags, trimming + dropping empties', () => {
 		const wrapper = mount(CnBookmarkCreate)
 		wrapper.setData({ tagsInput: '  a , ,b,  c  ' })
 		expect(wrapper.vm.parsedTags).toEqual(['a', 'b', 'c'])
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 })

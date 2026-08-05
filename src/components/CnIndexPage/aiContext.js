@@ -5,11 +5,7 @@
  *
  * @param {object|null} holder The cnAiContext inject value.
  * @param {string} pageKind e.g. 'index' or 'custom'.
- * @param {{ register: any, schema: any, effectiveSchema: object|null }} [ctx] The
- *   page's current data binding, used only when `pageKind === 'index'`. `schema`
- *   may be a slug string or a schema object; `effectiveSchema` is the resolved
- *   schema and supplies the fallback `id`/`slug`.
- * @return {void}
+ * @param {{ register: any, schema: any, effectiveSchema: object|null }} [ctx]
  */
 export function applyAiContext(holder, pageKind, ctx = {}) {
 	if (!holder) return

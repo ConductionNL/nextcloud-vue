@@ -29,9 +29,9 @@
 | Name         | Payload | Description |
 | ------------ | ------- | ----------- |
 | `discard`    | —       |             |
-| `save`       | —       |             |
-| `save-error` | —       |             |
 | `saved`      | —       |             |
+| `save-error` | —       |             |
+| `save`       | —       |             |
 
 ### Slots
 

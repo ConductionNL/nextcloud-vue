@@ -5,14 +5,11 @@ import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 /**
  * Build CnIndexPage's built-in row actions from the show*Action flags.
  *
- * @param {object} opts The action-building options.
+ * @param {object} opts
  * @param {{ view: boolean, edit: boolean, copy: boolean, del: boolean }} opts.flags
- *   Which built-in actions to include, from the page's `show*Action` props.
  * @param {object} opts.viewIcon Component to use as the View action icon.
  * @param {{ onView: Function, onEdit: Function, onCopy: Function, onDelete: Function }} opts.handlers
- *   Click handlers bound to each emitted action, in the same order as `flags`.
- * @return {Array<object>} The enabled actions in menu order (view, edit, copy,
- *   delete), each `{label, icon, handler}` — delete additionally `destructive`.
+ * @return {Array<object>}
  */
 export function buildDefaultActions({ flags, viewIcon, handlers }) {
 	const out = []

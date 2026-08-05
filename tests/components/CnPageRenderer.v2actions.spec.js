@@ -7,8 +7,7 @@
  */
 
 import { shallowMount } from '@vue/test-utils'
-// Vue 3 has no default export — `nextTick` is a named import.
-import { nextTick as vueNextTick } from 'vue'
+import Vue from 'vue'
 
 const CnPageRenderer = require('../../src/components/CnPageRenderer/CnPageRenderer.vue').default
 
@@ -34,7 +33,7 @@ describe('CnPageRenderer v2 — cnDispatchAction provide', () => {
 			mocks: { $route: { name: 'home', params: {} } },
 		})
 		// The provided function should exist
-		expect(typeof wrapper.vm.$.provides.cnDispatchAction).toBe('function')
+		expect(typeof wrapper.vm._provided.cnDispatchAction).toBe('function')
 	})
 
 	it('cnDispatchAction routes open-modal to cnOpenModal inject', () => {
@@ -47,7 +46,7 @@ describe('CnPageRenderer v2 — cnDispatchAction provide', () => {
 			mocks: { $route: { name: 'home', params: {} } },
 			provide: { cnOpenModal: openModal, cnRegistry: registry },
 		})
-		const dispatch = wrapper.vm.$.provides.cnDispatchAction
+		const dispatch = wrapper.vm._provided.cnDispatchAction
 		dispatch({ type: 'open-modal', target: 'my-modal', props: { title: 'Hello' } })
 		expect(openModal).toHaveBeenCalledWith('my-modal', { title: 'Hello' })
 	})
@@ -58,7 +57,7 @@ describe('CnPageRenderer v2 — cnDispatchAction provide', () => {
 			propsData: { manifest: v2Manifest },
 			mocks: { $route: { name: 'home', params: {} }, $router: { push } },
 		})
-		const dispatch = wrapper.vm.$.provides.cnDispatchAction
+		const dispatch = wrapper.vm._provided.cnDispatchAction
 		dispatch({ type: 'navigate', target: '/custom/path' })
 		expect(push).toHaveBeenCalledWith('/custom/path')
 	})
@@ -91,8 +90,8 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 	it('a type:"export" dispatch opens CnMassExportDialog configured from the action', async () => {
 		const wrapper = mountRenderer()
 		expect(wrapper.findComponent({ name: 'CnMassExportDialog' }).exists()).toBe(false)
-		wrapper.vm.$.provides.cnDispatchAction(exportAction)
-		await vueNextTick()
+		wrapper.vm._provided.cnDispatchAction(exportAction)
+		await Vue.nextTick()
 		const dialog = wrapper.findComponent({ name: 'CnMassExportDialog' })
 		expect(dialog.exists()).toBe(true)
 		expect(dialog.props('entities')).toEqual(exportAction.entities)
@@ -106,8 +105,8 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 
 	it('falls back to the dialog default formats when the action declares none', async () => {
 		const wrapper = mountRenderer()
-		wrapper.vm.$.provides.cnDispatchAction({ ...exportAction, formats: undefined })
-		await vueNextTick()
+		wrapper.vm._provided.cnDispatchAction({ ...exportAction, formats: undefined })
+		await Vue.nextTick()
 		const dialog = wrapper.findComponent({ name: 'CnMassExportDialog' })
 		// undefined → CnMassExportDialog's own Excel/CSV defaults apply.
 		expect(dialog.props('formats').map((f) => f.id)).toEqual(['excel', 'csv'])
@@ -116,8 +115,8 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 	it('confirm routes to the manifest actions handler and reports success', async () => {
 		const exportReport = jest.fn().mockResolvedValue()
 		const wrapper = mountRenderer({ exportReport })
-		wrapper.vm.$.provides.cnDispatchAction(exportAction)
-		await vueNextTick()
+		wrapper.vm._provided.cnDispatchAction(exportAction)
+		await Vue.nextTick()
 		await wrapper.vm.onExportConfirm({ format: 'csv', entity: 'leads' })
 		expect(exportReport).toHaveBeenCalledWith({ format: 'csv', entity: 'leads' }, exportAction)
 	})
@@ -126,14 +125,9 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 		const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
 		const setResult = jest.fn()
 		const wrapper = mountRenderer()
-		wrapper.vm.$.provides.cnDispatchAction(exportAction)
-		await vueNextTick()
-		// `vm.$refs` was a plain writable object under Vue 2. Vue 3 exposes it
-		// as `shallowReadonly(instance.refs)` in dev, so writing through it is
-		// REJECTED (a [Vue warn], no throw) and the stub dialog stays in place —
-		// `setResult` would silently never be called. `vm.$.refs` is the same
-		// raw object Vue 2's `$refs` was, and is writable.
-		wrapper.vm.$.refs.exportDialog = { setResult }
+		wrapper.vm._provided.cnDispatchAction(exportAction)
+		await Vue.nextTick()
+		wrapper.vm.$refs.exportDialog = { setResult }
 		await wrapper.vm.onExportConfirm({ format: 'csv' })
 		expect(warnSpy).toHaveBeenCalled()
 		expect(setResult).toHaveBeenCalledWith({ error: expect.any(String) })
@@ -144,20 +138,19 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 		const exportReport = jest.fn().mockRejectedValue(new Error('backend down'))
 		const setResult = jest.fn()
 		const wrapper = mountRenderer({ exportReport })
-		wrapper.vm.$.provides.cnDispatchAction(exportAction)
-		await vueNextTick()
-		// See the note above: Vue 3's `vm.$refs` is shallowReadonly in dev.
-		wrapper.vm.$.refs.exportDialog = { setResult }
+		wrapper.vm._provided.cnDispatchAction(exportAction)
+		await Vue.nextTick()
+		wrapper.vm.$refs.exportDialog = { setResult }
 		await wrapper.vm.onExportConfirm({ format: 'csv', entity: 'leads' })
 		expect(setResult).toHaveBeenCalledWith({ error: 'backend down' })
 	})
 
 	it('closing the dialog clears the active export action', async () => {
 		const wrapper = mountRenderer()
-		wrapper.vm.$.provides.cnDispatchAction(exportAction)
-		await vueNextTick()
+		wrapper.vm._provided.cnDispatchAction(exportAction)
+		await Vue.nextTick()
 		wrapper.findComponent({ name: 'CnMassExportDialog' }).vm.$emit('close')
-		await vueNextTick()
+		await Vue.nextTick()
 		expect(wrapper.findComponent({ name: 'CnMassExportDialog' }).exists()).toBe(false)
 	})
 })

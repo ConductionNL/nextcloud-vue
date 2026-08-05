@@ -13,7 +13,6 @@
  * @module integrations/builtin/tasks
  */
 
-import { h } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import CnTasksTab from '../../components/CnObjectSidebar/CnTasksTab.vue'
 import CnTasksCard from '../../components/CnTasksCard/CnTasksCard.vue'
@@ -33,12 +32,14 @@ const CnTasksCardAdapter = {
 		surface: { type: String, default: 'detail-page' },
 		objectType: { type: String, default: '' },
 	},
-	render() {
+	render(h) {
 		return h(CnTasksCard, {
-			registerId: this.register,
-			schemaId: this.schema,
-			objectId: this.objectId ? String(this.objectId) : '',
-			apiBase: this.apiBase,
+			props: {
+				registerId: this.register,
+				schemaId: this.schema,
+				objectId: this.objectId ? String(this.objectId) : '',
+				apiBase: this.apiBase,
+			},
 		})
 	},
 }

@@ -44,21 +44,7 @@
 				data-testid="cn-confirm-dialog-confirm"
 				@click="executeConfirm">
 				<template #icon>
-					<!--
-						`name` is REQUIRED for accessibility, not decoration.
-						NcLoadingIcon always renders `role="img"`, and without a
-						`name` it emits `aria-label=""` — a role="img" with no
-						accessible name, which fails WCAG 1.1.1 / 4.1.2 (axe
-						`role-img-alt`). The spinner is also the ONLY thing that
-						announces the in-flight state here: the button is
-						`:disabled` while loading and its visible text does not
-						change, so a screen-reader user otherwise gets no signal
-						that the confirm is running.
-					-->
-					<NcLoadingIcon
-						v-if="loading"
-						:size="20"
-						:name="t('nextcloud-vue', 'Loading …')" />
+					<NcLoadingIcon v-if="loading" :size="20" />
 				</template>
 				{{ confirmLabel }}
 			</NcButton>
@@ -153,8 +139,6 @@ export default {
 		},
 	},
 
-	emits: ['close', 'confirm'],
-
 	data() {
 		return {
 			/** True between the confirm click and the parent's setResult() call. */
@@ -171,11 +155,6 @@ export default {
 	},
 
 	methods: {
-		// Exposed to the template for the loading spinner's accessible name —
-		// the same `methods: { t }` pattern the other dialogs in this folder
-		// use (e.g. CnEditPagesModal). The prop defaults above call `t()`
-		// directly at module scope, which the template cannot do.
-		t,
 		/**
 		 * Primary-button click: enter the loading state and hand control to
 		 * the parent, which performs the confirmed operation.

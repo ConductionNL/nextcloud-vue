@@ -9,8 +9,7 @@
  * ref-callable refresh() force-refetch.
  */
 
-// Apexcharts is stubbed globally via jest.config.js moduleNameMapper; the
-// local Vue-2 `render: (h) => h('div')` mock that lived here throws under Vue 3.
+jest.mock('vue-apexcharts', () => ({ name: 'vue-apexcharts-stub', render: (h) => h('div') }), { virtual: true })
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
 	default: { get: jest.fn() },

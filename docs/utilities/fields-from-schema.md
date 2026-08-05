@@ -23,7 +23,6 @@ const fields = fieldsFromSchema(schema, {
 | `options.include` | `string[] \| null` | `null` | Whitelist. |
 | `options.overrides` | `object` | `{}` | Per-key overrides merged onto the descriptor. A `{ readOnly: false }` override on a schema-`readOnly` key also **un-skips** it (surfacing a single read-only field as editable — e.g. a denormalised name editable only on create — without flipping the whole form to `includeReadOnly`). |
 | `options.includeReadOnly` | `boolean` | `false` | When `false`, properties with `readOnly: true` are dropped (except a key whose override sets `readOnly: false`). |
-| `options.translate` | `(text: string) => string` | — | Display-layer translation applied to each field's `label` and `description`. Schema titles/descriptions are authored in English as the canonical source; pass your bound `t()` (via the injected `cnTranslate`) so the rendered label follows the user's language. Omitted leaves the English source strings unchanged. |
 
 ## Returns
 

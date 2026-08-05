@@ -28,7 +28,7 @@ const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0))
 
 const stubs = {
 	NcDialog: { template: '<div><slot /><slot name="actions" /></div>' },
-	NcButton: { template: '<button @click="$attrs.onClick && $attrs.onClick()"><slot /></button>' },
+	NcButton: { template: '<button @click="$listeners.click"><slot /></button>' },
 	NcNoteCard: true,
 	NcLoadingIcon: true,
 	NcTextField: true,

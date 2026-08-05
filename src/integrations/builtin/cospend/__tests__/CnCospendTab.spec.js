@@ -59,7 +59,7 @@ describe('CnCospendTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No costs linked yet')
 		expect(wrapper.text()).toContain('Open Costs')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders project rows with the [Project] chip', async () => {
@@ -74,7 +74,7 @@ describe('CnCospendTab', () => {
 		expect(wrapper.text()).toContain('Office trip')
 		expect(wrapper.text()).toContain('Project')
 		expect(wrapper.find('.cn-cospend-tab__type-chip--project').exists()).toBe(true)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('renders bill rows with the [Bill] chip and amount + currency', async () => {
@@ -93,7 +93,7 @@ describe('CnCospendTab', () => {
 		// Prominent right-aligned amount + payer/date subline.
 		expect(wrapper.find('.cn-cospend-tab__amount').text()).toBe('42.50 EUR')
 		expect(wrapper.find('.cn-cospend-tab__subline-text').text()).toContain('alice')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows a per-currency total footer that sums bill amounts', async () => {
@@ -114,7 +114,7 @@ describe('CnCospendTab', () => {
 		expect(totals.exists()).toBe(true)
 		expect(totals.text()).toContain('Total')
 		expect(totals.text()).toContain('50.00 EUR')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('omits the total footer when no row carries an amount', async () => {
@@ -127,7 +127,7 @@ describe('CnCospendTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.find('.cn-cospend-tab__totals').exists()).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('defaults type to project when the provider omits the discriminator', async () => {
@@ -143,7 +143,7 @@ describe('CnCospendTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.find('.cn-cospend-tab__type-chip--project').exists()).toBe(true)
 		expect(wrapper.text()).toContain('Legacy')
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the unavailable banner when the provider returns 503', async () => {
@@ -153,7 +153,7 @@ describe('CnCospendTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Costs is currently unavailable.')
 		expect(wrapper.find('.cn-cospend-tab__row').exists()).toBe(false)
-		wrapper.unmount()
+		wrapper.destroy()
 	})
 
 	it('shows the generic error label when fetch throws', async () => {
@@ -163,7 +163,7 @@ describe('CnCospendTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Could not load costs.')
-		wrapper.unmount()
+		wrapper.destroy()
 		spy.mockRestore()
 	})
 })

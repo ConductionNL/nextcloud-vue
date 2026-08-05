@@ -12,7 +12,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { toRaw } from 'vue'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 import CnObjectCard from '../../src/components/CnObjectCard/CnObjectCard.vue'
 
@@ -49,21 +48,6 @@ const TestCard = {
 	`,
 }
 
-/**
- * A router double. `mergedActions` reads `this.$router` while rendering the
- * row-actions column, and Vue 3's instance proxy logs
- * "Property "$router" was accessed during render but is not defined on
- * instance" for an unset `$`-prefixed property (Vue 2 handed back a silent
- * `undefined`). That warning lands on the same `console.warn` spy this file
- * uses to count the component's OWN warnings, so mounting without a router
- * would inflate the count with framework chatter.
- */
-const routerMock = () => ({
-	push: jest.fn(() => Promise.resolve()),
-	replace: jest.fn(() => Promise.resolve()),
-	resolve: jest.fn(() => ({ href: '#' })),
-})
-
 function mountIndexPage(extraProps = {}, mountOptions = {}) {
 	return mount(CnIndexPage, {
 		propsData: { ...baseProps, ...extraProps },
@@ -74,7 +58,6 @@ function mountIndexPage(extraProps = {}, mountOptions = {}) {
 			CnContextMenu: true,
 			CnIndexSidebar: true,
 		},
-		mocks: { $router: routerMock() },
 		...mountOptions,
 	})
 }
@@ -120,10 +103,7 @@ describe('CnIndexPage — cardComponent prop', () => {
 			const cards = wrapper.findAllComponents(TestCard)
 			expect(cards.at(0).props('item')).toEqual(baseProps.objects[0])
 			expect(cards.at(0).props('object')).toEqual(baseProps.objects[0])
-			// `toRaw` on the received side: props reach the card through a
-			// reactive Proxy under Vue 3. Identity still matters here — the
-			// page must hand the card its own schema object.
-			expect(toRaw(cards.at(0).props('schema'))).toBe(baseProps.schema)
+			expect(cards.at(0).props('schema')).toBe(baseProps.schema)
 			expect(cards.at(0).props('register')).toBe('softwarecatalog')
 			expect(cards.at(0).props('selected')).toBe(true)
 			expect(cards.at(1).props('selected')).toBe(false)

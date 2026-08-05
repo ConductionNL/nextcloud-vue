@@ -111,7 +111,6 @@ Each `#step-{id}` slot receives:
 | `submitLabel` | String | `'Submit'` | Final-step submit-button label. |
 | `closeLabel` | String | `'Close'` | Close-button label (result phase). |
 | `successText` | String | `'Done.'` | Default success-banner text when `result.message` is empty. |
-| `cancellable` | Boolean | `true` | Whether the dialog can be dismissed (Cancel button, ESC, backdrop click) before reaching the result phase. `false` hides Cancel and disables all other close affordances — use for a step that must be completed, not merely skipped. The result-phase Close button is always available. |
 
 ## Events
 

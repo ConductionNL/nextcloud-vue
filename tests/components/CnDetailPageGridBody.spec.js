@@ -145,7 +145,7 @@ describe('CnDetailPage — adjustable body grid', () => {
 			const wrapper = mount(CnDetailPage, { propsData: { layout, widgets } })
 			await wrapper.vm.$nextTick()
 			expect(wrapper.vm.widgetDisplayTitle(layout[0])).toBe('Renamed')
-			wrapper.unmount()
+			wrapper.destroy()
 		})
 
 		it('returns undefined for a title-owning widget with an empty content.title (widget default)', async () => {
@@ -154,7 +154,7 @@ describe('CnDetailPage — adjustable body grid', () => {
 			const wrapper = mount(CnDetailPage, { propsData: { layout, widgets } })
 			await wrapper.vm.$nextTick()
 			expect(wrapper.vm.widgetDisplayTitle(layout[0])).toBeUndefined()
-			wrapper.unmount()
+			wrapper.destroy()
 		})
 
 		it('keeps the chrome title authoritative for non-title-owning types', async () => {
@@ -163,7 +163,7 @@ describe('CnDetailPage — adjustable body grid', () => {
 			const wrapper = mount(CnDetailPage, { propsData: { layout, widgets } })
 			await wrapper.vm.$nextTick()
 			expect(wrapper.vm.widgetDisplayTitle(layout[0])).toBe('KPI')
-			wrapper.unmount()
+			wrapper.destroy()
 		})
 	})
 
