@@ -9,9 +9,33 @@
 -->
 <template>
 	<div class="harness">
+		<!--
+			Dashboard layout harness (?dash=1). Mounts a CnDataTable inside a
+			height-constrained scrolling box that stands in for a widget card,
+			with more rows than fit. Both things it proves are LAYOUT facts that
+			only a real browser can settle: whether the "View all" footer stays
+			pinned while the rows scroll under it, and whether the sticky
+			positioning resolves against the right scrollport. jsdom computes no
+			layout at all, so the jest suite can assert the DOM structure and
+			nothing about where anything ends up.
+		-->
+		<template v-if="showDashboard">
+			<h2>Dashboard layout</h2>
+			<div class="dash-card" data-testid="dash-card">
+				<CnDataTable
+					:rows="dashRows"
+					:columns="['name']"
+					borderless
+					:total-row-count="dashRows.length"
+					:view-all-route="{ name: 'anything' }"
+					view-all-label="View all"
+					:limit="5" />
+			</div>
+		</template>
+
 		<!-- Walkthrough harness (gated behind ?wt=1 so its full-screen overlay
 		     doesn't block the icon/markdown sections). -->
-		<template v-if="showWalkthrough">
+		<template v-else-if="showWalkthrough">
 			<h2>Walkthrough</h2>
 			<CnWalkthrough app-id="harness" :manifest="wtManifest" seen-version="" />
 		</template>
@@ -142,6 +166,7 @@ import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
 import CnFormPage from '../../src/components/CnFormPage/CnFormPage.vue'
 import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
 import CnSchemaFormDialog from '../../src/components/CnSchemaFormDialog/CnSchemaFormDialog.vue'
+import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
 
 const wtStep = (id, title, body) => ({ id, sinceVersion: '1.0.0', placement: 'center', title, body, target: { kind: 'page', ref: 'harness' }, advanceOn: { type: 'manual' } })
@@ -163,9 +188,12 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog },
+	components: { CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable },
 	data() {
 		return {
+			// Dashboard layout harness (?dash=1) — see the template comment.
+			showDashboard: (typeof window !== 'undefined' && window.location.search.includes('dash')),
+			dashRows: Array.from({ length: 30 }, (_, i) => ({ id: i + 1, name: 'Row ' + (i + 1) })),
 			// Schema-deletion harness (?sd=1). The register slug is what the modal
 			// matches against; the spec's page.route() stubs supply the register.
 			showSchemaDelete: (typeof window !== 'undefined' && window.location.search.includes('sd')),
@@ -258,6 +286,16 @@ export default {
 </script>
 
 <style>
+/* Stands in for a dashboard widget card: a fixed-height scrolling content area
+   with a border. Deliberately SHORTER than its rows, so the footer has to
+   survive scrolling rather than merely existing. */
+.dash-card {
+	height: 240px;
+	overflow-y: auto;
+	border: 1px solid #ccc;
+	width: 420px;
+}
+
 body { font-family: sans-serif; padding: 16px; }
 section { margin-bottom: 32px; max-width: 480px; }
 pre { background: #f4f4f4; padding: 6px; }
