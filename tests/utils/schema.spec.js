@@ -1,4 +1,4 @@
-import { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema } from '@/utils/schema.js'
+import { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema, splitDescription } from '@/utils/schema.js'
 
 // ---------- Test schema fixtures ----------
 
@@ -1045,5 +1045,71 @@ describe('fieldsFromSchema — object references', () => {
 		})
 		expect(fields.find((f) => f.key === 'bySlug').reference.schema).toBe('cow')
 		expect(fields.find((f) => f.key === 'byId').reference.schema).toBe(4501)
+	})
+})
+
+describe('splitDescription', () => {
+	const LONG = 'Source kind dispatched at runtime by CallService. Recognised types: '
+		+ "'api' (default HTTP), 'database' (DB query), 'file' (filesystem), 'soap' (SOAPService dispatch). "
+		+ 'Free-form to keep custom adapter types unblocked.'
+
+	it('leaves a normal one-line description alone and reports no long form', () => {
+		expect(splitDescription('Human-readable name')).toEqual({ short: 'Human-readable name', long: '' })
+	})
+
+	it('keeps the full text as the long form and the first sentence inline', () => {
+		const { short, long } = splitDescription(LONG)
+		expect(short).toBe('Source kind dispatched at runtime by CallService.')
+		expect(long).toBe(LONG)
+	})
+
+	it('clamps on a word boundary when the first sentence is itself too long', () => {
+		const runOn = 'A single enormous run-on description with absolutely no sentence terminator anywhere in it at all so it has to be clamped instead'
+		const { short, long } = splitDescription(runOn)
+		expect(short.length).toBeLessThanOrEqual(121)
+		expect(short.endsWith('\u2026')).toBe(true)
+		expect(short).not.toMatch(/\s\u2026$/)
+		expect(long).toBe(runOn)
+	})
+
+	it('does not treat an abbreviation as the end of the first sentence', () => {
+		const withAbbrev = 'Base URL, e.g. https://example.com/api, used for every outbound call this source makes at runtime including retries and probes.'
+		expect(splitDescription(withAbbrev).short).not.toBe('Base URL, e.g.')
+	})
+
+	it('handles empty and non-string input', () => {
+		expect(splitDescription('')).toEqual({ short: '', long: '' })
+		expect(splitDescription(null)).toEqual({ short: '', long: '' })
+		expect(splitDescription(undefined)).toEqual({ short: '', long: '' })
+	})
+})
+
+describe('fieldsFromSchema — description splitting', () => {
+	const schema = {
+		properties: {
+			name: { type: 'string', title: 'Name', description: 'Human-readable name' },
+			type: { type: 'string', title: 'Type', description: 'Source kind dispatched at runtime by CallService. Recognised types: api, database, file, soap, dso and a good deal more besides this list.' },
+			bare: { type: 'string', title: 'Bare' },
+		},
+	}
+
+	it('exposes the inline text on description and the full text on descriptionLong', () => {
+		const fields = fieldsFromSchema(schema)
+		const type = fields.find((f) => f.key === 'type')
+		expect(type.description).toBe('Source kind dispatched at runtime by CallService.')
+		expect(type.descriptionLong).toBe(schema.properties.type.description)
+	})
+
+	it('leaves short and absent descriptions with an empty descriptionLong', () => {
+		const fields = fieldsFromSchema(schema)
+		expect(fields.find((f) => f.key === 'name')).toMatchObject({ description: 'Human-readable name', descriptionLong: '' })
+		expect(fields.find((f) => f.key === 'bare')).toMatchObject({ description: '', descriptionLong: '' })
+	})
+
+	it('splits the translated text, not the source string', () => {
+		const fields = fieldsFromSchema(schema, { translate: (text) => text.toUpperCase() })
+		const type = fields.find((f) => f.key === 'type')
+		expect(type.description).toBe('SOURCE KIND DISPATCHED AT RUNTIME BY CALLSERVICE.')
+		expect(type.descriptionLong).toBe(schema.properties.type.description.toUpperCase())
 	})
 })

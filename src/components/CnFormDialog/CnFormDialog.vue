@@ -85,29 +85,39 @@
 
 					<!-- Auto-generated field -->
 					<template v-else>
-						<!-- Text / Email / URL -->
-						<NcTextField
-							v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'"
-							:label="field.label + (field.required ? ' *' : '')"
-							:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
-							:helper-text="errors[field.key] || field.description"
-							:error="!!errors[field.key]"
-							:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
-							:disabled="field.readOnly"
-							:placeholder="field.description"
-							@update:model-value="value => updateField(field.key, value)" />
+						<!-- Text / Email / URL. The helper line lives outside the
+						     input (rather than on `helper-text`) so an over-long
+						     description can hang its info popover off it. -->
+						<template v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'">
+							<NcTextField
+								:label="field.label + (field.required ? ' *' : '')"
+								:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
+								:error="!!errors[field.key]"
+								:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
+								:disabled="field.readOnly"
+								:placeholder="field.description"
+								@update:model-value="value => updateField(field.key, value)" />
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
+						</template>
 
 						<!-- Number -->
-						<NcTextField
-							v-else-if="field.widget === 'number'"
-							:label="field.label + (field.required ? ' *' : '')"
-							:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
-							:helper-text="errors[field.key] || field.description"
-							:error="!!errors[field.key]"
-							type="number"
-							:disabled="field.readOnly"
-							:placeholder="field.description"
-							@update:model-value="value => updateField(field.key, value !== '' ? Number(value) : null)" />
+						<template v-else-if="field.widget === 'number'">
+							<NcTextField
+								:label="field.label + (field.required ? ' *' : '')"
+								:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
+								:error="!!errors[field.key]"
+								type="number"
+								:disabled="field.readOnly"
+								:placeholder="field.description"
+								@update:model-value="value => updateField(field.key, value !== '' ? Number(value) : null)" />
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
+						</template>
 
 						<!-- Textarea -->
 						<div v-else-if="field.widget === 'textarea'" class="cn-form-dialog__textarea-wrapper">
@@ -122,12 +132,10 @@
 								:placeholder="field.description"
 								rows="4"
 								@input="updateField(field.key, $event.target.value)" />
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
 						</div>
 
 						<!-- Object reference with inline create (`x-allow-create`):
@@ -148,12 +156,10 @@
 								:clearable="!field.required"
 								@update:modelValue="value => onReferenceSelected(field, value)"
 								@create="obj => onReferenceCreated(field, obj)" />
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
 						</div>
 
 						<!-- Enum toggle (`widget: "switch"` on a 2-value enum):
@@ -197,12 +203,10 @@
 									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
 								</template>
 							</NcSelect>
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
 						</div>
 
 						<!-- Multiselect (array enum items / $ref array / Nextcloud users, supports async function) -->
@@ -231,12 +235,10 @@
 									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
 								</template>
 							</NcSelect>
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
 						</div>
 
 						<!-- Tags (array, freeform, supports async suggestions) -->
@@ -267,12 +269,10 @@
 									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
 								</template>
 							</NcSelect>
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
 						</div>
 
 						<!-- Checkbox / Switch (boolean) -->
@@ -301,12 +301,10 @@
 								:model-value="dateValueFor(field)"
 								:disabled="field.readOnly"
 								@update:model-value="date => onDateFieldInput(field, date)" />
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
 						</div>
 
 						<!-- JSON (type: 'object'|'array'|... with widget: 'json'): parses on input, stores parsed value in formData -->
@@ -320,12 +318,10 @@
 								:read-only="field.readOnly"
 								:error-text="jsonErrors[field.key] || ''"
 								@update:value="value => onJsonFieldInput(field, value)" />
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
 						</div>
 
 						<!-- Code (freeform editor, stored as raw string; optional `field.language` chooses highlighting) -->
@@ -338,12 +334,10 @@
 								:language="field.language || 'auto'"
 								:read-only="field.readOnly"
 								@update:value="value => updateField(field.key, value)" />
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
 						</div>
 
 						<!-- Icon (widget: 'icon'): renders CnIconBrowser, forwarding the field's icon config.
@@ -359,24 +353,26 @@
 								:allow-custom-svg="!!field.allowCustomSvg"
 								:clearable="!field.required"
 								@input="value => updateField(field.key, value)" />
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
 						</div>
 
 						<!-- Fallback: text input -->
-						<NcTextField
-							v-else
-							:label="field.label + (field.required ? ' *' : '')"
-							:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
-							:helper-text="errors[field.key] || field.description"
-							:error="!!errors[field.key]"
-							:disabled="field.readOnly"
-							:placeholder="field.description"
-							@update:model-value="value => updateField(field.key, value)" />
+						<template v-else>
+							<NcTextField
+								:label="field.label + (field.required ? ' *' : '')"
+								:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
+								:error="!!errors[field.key]"
+								:disabled="field.readOnly"
+								:placeholder="field.description"
+								@update:model-value="value => updateField(field.key, value)" />
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
+						</template>
 					</template>
 				</div>
 
@@ -412,6 +408,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
+import CnFieldHelper from '../CnFieldHelper/CnFieldHelper.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
@@ -595,6 +592,7 @@ export default {
 		CnJsonViewer,
 		CnIconBrowser,
 		CnResourceSelect,
+		CnFieldHelper,
 		Plus,
 		ContentSaveOutline,
 	},
