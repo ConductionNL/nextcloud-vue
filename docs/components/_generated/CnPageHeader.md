@@ -2,12 +2,13 @@
 
 ### Props
 
-| Name          | Type     | Required | Default | Description                                  |
-| ------------- | -------- | -------- | ------- | -------------------------------------------- |
-| `title`       | `string` | ✓        | —       | Page title text                              |
-| `description` | `string` |          | `''`    | Optional description shown below the title   |
-| `icon`        | `string` |          | `''`    | Optional MDI icon name (rendered via CnIcon) |
-| `iconSize`    | `number` |          | `28`    | Icon size in pixels                          |
+| Name             | Type      | Required | Default | Description                                                                                                                                                                                                                                                               |
+| ---------------- | --------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`          | `string`  | ✓        | —       | Page title text                                                                                                                                                                                                                                                           |
+| `description`    | `string`  |          | `''`    | Optional description shown below the title                                                                                                                                                                                                                                |
+| `icon`           | `string`  |          | `''`    | Optional MDI icon name (rendered via CnIcon)                                                                                                                                                                                                                              |
+| `iconSize`       | `number`  |          | `28`    | Icon size in pixels                                                                                                                                                                                                                                                       |
+| `visuallyHidden` | `boolean` |          | `false` | Render the `&lt;h1&gt;` for assistive technology only — clipped to a 1px box and removed from layout flow, so the page looks exactly as it does with no header at all while the main landmark still carries a heading. See the component docblock for the full rationale. |
 
 ### Slots
 

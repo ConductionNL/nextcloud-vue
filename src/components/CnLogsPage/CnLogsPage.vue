@@ -26,10 +26,11 @@
 			:description="description"
 			:icon="icon">
 			<CnPageHeader
-				v-if="showTitle && title"
+				v-if="title"
 				:title="title"
 				:description="description"
-				:icon="icon" />
+				:icon="icon"
+				:visually-hidden="!showTitle" />
 		</slot>
 
 		<!-- Actions slot — for refresh/export buttons (renderer fills via actionsComponent or slots.actions) -->
@@ -152,10 +153,13 @@ export default {
 			default: '',
 		},
 		/**
-		 * Whether to render the inline page header. Defaults to true: unlike
-		 * CnIndexPage (which surfaces the title in its sidebar header when this
-		 * is false), a logs page has no sidebar fallback, so a false default
-		 * left the page with no heading at all.
+		 * Whether to render the inline page header VISIBLY. Defaults to true:
+		 * unlike CnIndexPage (which surfaces the title in its sidebar header
+		 * when this is false), a logs page has no sidebar fallback, so a false
+		 * default left the page with no heading at all. Setting it to false is
+		 * now safe for accessibility either way — the `<h1>` is still rendered
+		 * visually-hidden, so the `<main>` landmark keeps its accessible
+		 * heading (WCAG 2.4.6 / 1.3.1).
 		 */
 		showTitle: {
 			type: Boolean,

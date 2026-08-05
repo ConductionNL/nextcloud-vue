@@ -73,7 +73,20 @@ jobs:
       # check:integration-build is intentionally absent: the Vue-2 buble
       # template gate was removed with the Vue-3 migration (Vue 3's compiler
       # handles `?.`/`??` natively).
+      #
+      # check:a11y is NOT optional and NOT covered by `test`. `jest.config.js`
+      # excludes `tests/a11y/` via `testPathIgnorePatterns` on purpose (the
+      # main lane mocks `@nextcloud/vue` down to a bare `<div class="stub">`,
+      # which would make every axe-core assertion pass against markup that has
+      # no ARIA in it — a textbook false green). The consequence is that
+      # `npm test` runs zero a11y specs, so until this entry existed the whole
+      # `tests/a11y/` lane — 9 suites, 38 tests, the `wcag-a11y-anchor`
+      # deliverable — had never executed in CI even once. Its absence was
+      # indistinguishable from its success. Added 2026-08-04 together with the
+      # CnPageHeading spec, which exists precisely to keep an accessible <h1>
+      # inside <main> and would otherwise have been unenforced.
       frontend-checks: >-
         ["test", "check:build", "check:docs", "check:jsdoc",
-         "check:integration-parity", "check:peers", "check:docs-fresh"]
+         "check:integration-parity", "check:peers", "check:docs-fresh",
+         "check:a11y"]
       enable-sbom: false
