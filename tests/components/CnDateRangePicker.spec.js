@@ -75,6 +75,69 @@ describe('resolvePresetWindow', () => {
 		expect(w.to).toBe('2026-05-21T23:59:59.999Z')
 	})
 
+	describe('calendar-aligned `period` presets', () => {
+		// A `period` preset means the CURRENT calendar unit to date. These
+		// windows must NOT equal the rolling `days` equivalents — that
+		// difference is the whole point of the kind.
+		const periods = [
+			{ id: 'week', label: 'Current week', period: 'week' },
+			{ id: 'month', label: 'Current month', period: 'month' },
+			{ id: 'quarter', label: 'Current quarter', period: 'quarter' },
+			{ id: 'year', label: 'Current year', period: 'year' },
+		]
+		// Thursday 21 May 2026 — mid-week, mid-month, mid-Q2.
+		const now = new Date('2026-05-21T10:00:00Z')
+
+		it('week starts on the Monday of the current ISO week', () => {
+			const w = resolvePresetWindow('week', periods, now)
+			expect(w.from).toBe('2026-05-18T00:00:00.000Z')
+			expect(w.to).toBe('2026-05-21T23:59:59.999Z')
+		})
+
+		it('week starting on a Sunday still anchors to the previous Monday', () => {
+			const sunday = new Date('2026-05-24T10:00:00Z')
+			const w = resolvePresetWindow('week', periods, sunday)
+			expect(w.from).toBe('2026-05-18T00:00:00.000Z')
+		})
+
+		it('month starts on the 1st of the current month', () => {
+			const w = resolvePresetWindow('month', periods, now)
+			expect(w.from).toBe('2026-05-01T00:00:00.000Z')
+			expect(w.to).toBe('2026-05-21T23:59:59.999Z')
+		})
+
+		it('quarter starts on the first day of the current quarter', () => {
+			const w = resolvePresetWindow('quarter', periods, now)
+			expect(w.from).toBe('2026-04-01T00:00:00.000Z')
+		})
+
+		it('year starts on 1 January', () => {
+			const w = resolvePresetWindow('year', periods, now)
+			expect(w.from).toBe('2026-01-01T00:00:00.000Z')
+		})
+
+		// Positive control: prove the period window genuinely differs from the
+		// rolling window it replaces, so a regression to `days` fails loudly.
+		it('month does NOT resolve to the rolling last-30-days window', () => {
+			const period = resolvePresetWindow('month', periods, now)
+			const rolling = resolvePresetWindow(
+				'roll', [{ id: 'roll', label: 'Last 30 days', days: 30 }], now,
+			)
+			expect(period.from).not.toBe(rolling.from)
+		})
+
+		it('ignores a legacy `days` hint when `period` is present', () => {
+			const both = [{ id: 'month', label: 'Current month', period: 'month', days: 30 }]
+			const w = resolvePresetWindow('month', both, now)
+			expect(w.from).toBe('2026-05-01T00:00:00.000Z')
+		})
+
+		it('returns null for an unknown period value', () => {
+			const bad = [{ id: 'decade', label: 'Decade', period: 'decade' }]
+			expect(resolvePresetWindow('decade', bad, now)).toBeNull()
+		})
+	})
+
 	it('last-8h resolves to a rolling 8-hour window ending at now (exact time)', () => {
 		const now = new Date('2026-05-21T10:30:00Z')
 		const w = resolvePresetWindow('last-8h', presets, now)

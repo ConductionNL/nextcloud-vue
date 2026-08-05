@@ -70,12 +70,48 @@ export const DEFAULT_DATE_RANGE_PRESETS = Object.freeze([
 ])
 
 /**
+ * Resolve a `period` preset into its calendar-aligned `{ from, to }`
+ * window — the CURRENT week / month / quarter / year to date, not a
+ * rolling span. ISO week semantics: weeks start on Monday.
+ *
+ * @param {'week'|'month'|'quarter'|'year'} period The calendar unit.
+ * @param {Date} now Reference instant.
+ * @return {{ from: string, to: string } | null} ISO-8601 UTC window or null.
+ */
+function resolveCalendarPeriod(period, now) {
+	const y = now.getUTCFullYear()
+	const m = now.getUTCMonth()
+	const d = now.getUTCDate()
+	let start
+	if (period === 'week') {
+		// getUTCDay() is 0 for Sunday; shift so Monday is the first day.
+		const offset = (now.getUTCDay() + 6) % 7
+		start = new Date(Date.UTC(y, m, d - offset, 0, 0, 0, 0))
+	} else if (period === 'month') {
+		start = new Date(Date.UTC(y, m, 1, 0, 0, 0, 0))
+	} else if (period === 'quarter') {
+		start = new Date(Date.UTC(y, Math.floor(m / 3) * 3, 1, 0, 0, 0, 0))
+	} else if (period === 'year') {
+		start = new Date(Date.UTC(y, 0, 1, 0, 0, 0, 0))
+	} else {
+		return null
+	}
+	const end = new Date(Date.UTC(y, m, d, 23, 59, 59, 999))
+	return { from: start.toISOString(), to: end.toISOString() }
+}
+
+/**
  * Resolve a preset id into a `{ from, to }` ISO-8601 UTC window
  * ending at end-of-day today. `custom` returns `null` (the caller
  * SHALL preserve the previously selected dates).
  *
+ * Three preset kinds, checked in order — a preset SHALL declare only one:
+ * `period` (calendar-aligned: current week/month/quarter/year to date),
+ * `hours` (rolling window ending now), `days` (rolling window of whole
+ * days ending end-of-day today).
+ *
  * @param {string|null} presetId Preset id to resolve.
- * @param {Array<{ id: string, days?: number|null, hours?: number }>} presets Preset list.
+ * @param {Array<{ id: string, days?: number|null, hours?: number, period?: string }>} presets Preset list.
  * @param {Date} [now] Override `now` for deterministic tests.
  * @return {{ from: string, to: string } | null} ISO-8601 UTC window or null.
  */
@@ -83,6 +119,12 @@ export function resolvePresetWindow(presetId, presets, now = new Date()) {
 	if (!presetId || presetId === 'custom') return null
 	const preset = (presets || []).find((p) => p.id === presetId)
 	if (!preset) return null
+	// Calendar-aligned presets ("Current month") anchor to the start of the
+	// calendar unit, NOT to `now − N days`. Checked first so a preset that
+	// carries both `period` and a legacy `days` hint resolves as a period.
+	if (typeof preset.period === 'string') {
+		return resolveCalendarPeriod(preset.period, now)
+	}
 	// Hour-granularity presets are ROLLING windows ending at the exact
 	// current instant — `now − N hours → now` — so "Last 8 hours" means
 	// the trailing 8h, not a calendar-day-aligned span.
@@ -147,11 +189,15 @@ export default {
 			default: null,
 		},
 		/**
-		 * Preset list. Each entry: `{ id, label, days }`. Use `days:
-		 * null` to mark a preset as manual (e.g. the canonical
-		 * `custom` entry). Defaults to `DEFAULT_DATE_RANGE_PRESETS`.
+		 * Preset list. Each entry declares ONE window kind: `period`
+		 * (`'week'|'month'|'quarter'|'year'` — the current calendar unit
+		 * to date, e.g. "Current month" = the 1st through today), `hours`
+		 * (rolling window ending now), or `days` (rolling whole days
+		 * ending today). Use `days: null` to mark a preset as manual (e.g.
+		 * the canonical `custom` entry). Defaults to
+		 * `DEFAULT_DATE_RANGE_PRESETS`.
 		 *
-		 * @type {Array<{ id: string, label: string, days: number|null }>}
+		 * @type {Array<{ id: string, label: string, days?: number|null, hours?: number, period?: 'week'|'month'|'quarter'|'year' }>}
 		 */
 		presets: {
 			type: Array,

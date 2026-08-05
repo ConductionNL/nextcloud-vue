@@ -31,7 +31,7 @@ Selecting a preset (other than `custom`) auto-fills both pickers to `now − day
 | Prop         | Type     | Default                          | Description                                           |
 | ------------ | -------- | -------------------------------- | ----------------------------------------------------- |
 | `value`      | Object   | `null`                           | Current `{ from, to, preset }` value (ISO-8601 UTC).  |
-| `presets`    | Array    | `DEFAULT_DATE_RANGE_PRESETS`     | Preset list: `{ id, label, days }` or `{ id, label, hours }`. `days: null` = manual. `hours: N` = rolling N-hour window. |
+| `presets`    | Array    | `DEFAULT_DATE_RANGE_PRESETS`     | Preset list. Each entry declares ONE window kind: `period` (current calendar week/month/quarter/year to date), `hours` (rolling N-hour window) or `days` (rolling N whole days). `days: null` = manual. |
 | `disabled`   | Boolean  | `false`                          | Disables both date pickers and the preset select.    |
 | `dateFormat` | String   | `'YYYY-MM-DD'`                   | Forwarded to `NcDateTimePicker`'s `format` prop.     |
 | `presetLabel`| String   | `'Range preset'`                 | A11y label for the preset dropdown.                  |
@@ -60,11 +60,31 @@ The exported `DEFAULT_DATE_RANGE_PRESETS` constant mirrors the defaults applied 
 ]
 ```
 
-**Day vs hour presets.** A preset with `days: N` resolves to a calendar-aligned
-window (midnight UTC start through end-of-day UTC today). A preset with
-`hours: N` resolves to a **rolling** window ending at the exact current instant
-(`now − N hours → now`), so "Last 8 hours" tracks the trailing 8h rather than a
-day boundary.
+## Preset kinds
+
+A preset declares exactly one window kind. They are resolved in this order:
+
+| Kind      | Shape                                        | Window                                                        |
+| --------- | -------------------------------------------- | ------------------------------------------------------------- |
+| `period`  | `{ id, label, period: 'week' \| 'month' \| 'quarter' \| 'year' }` | The **current calendar unit to date** — start of the unit through end-of-day today. |
+| `hours`   | `{ id, label, hours: N }`                    | **Rolling**, ending at the exact current instant (`now − N hours → now`). |
+| `days`    | `{ id, label, days: N }`                     | **Rolling** whole days: midnight UTC of the `(N-1)`-th day back through end-of-day UTC today. |
+
+**`period` is not the same as `days`.** `{ period: 'month' }` on 21 May resolves
+to **1 May → 21 May**; `{ days: 30 }` resolves to **22 April → 21 May**. Use
+`period` whenever the label says "current" / "this" — labelling a rolling
+`days: 30` window "Current month" misstates what the numbers cover. Weeks use
+ISO semantics and start on Monday.
+
+```js
+[
+  { id: 'week',    label: 'Current week',    period: 'week' },
+  { id: 'month',   label: 'Current month',   period: 'month' },
+  { id: 'quarter', label: 'Current quarter', period: 'quarter' },
+  { id: 'year',    label: 'Current year',    period: 'year' },
+  { id: 'all',     label: 'All',             days: null },
+]
+```
 
 **Starting range from the manifest.** `CnDashboardPage`'s `dateRange.default`
 accepts either an explicit `{ from, to }` window or just a preset id — e.g.
