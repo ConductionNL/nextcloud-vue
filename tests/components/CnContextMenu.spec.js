@@ -1,5 +1,8 @@
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import { mount } from '@vue/test-utils'
 import CnContextMenu from '@/components/CnContextMenu/CnContextMenu.vue'
+import { CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR } from '@/composables/useContextMenu.js'
 
 describe('CnContextMenu visible predicate', () => {
 	it('filters actions by visible function against targetItem', () => {
@@ -131,5 +134,207 @@ describe('CnContextMenu panels API', () => {
 		expect(wrapper.emitted('update:activePanel')[0]).toEqual([null])
 		expect(wrapper.emitted('close')).toBeTruthy()
 		expect(wrapper.emitted('update:open')[0]).toEqual([false])
+	})
+})
+
+describe('CnContextMenu outside-click dismissal', () => {
+	// Regression: @nextcloud/vue 9's NcActions sets
+	// `noCloseOnClickOutside: this.manualOpen`, which zeroes NcPopover's own
+	// autoHide. v8 only cleared the popper's `triggers`, so pressing off the
+	// menu stopped closing it in the Vue 3 upgrade.
+	const mountOpen = () => mount(CnContextMenu, {
+		propsData: { open: true, actions: [{ label: 'Edit' }] },
+		attachTo: document.body,
+	})
+
+	const pressOn = async (wrapper, node) => {
+		node.dispatchEvent(new window.MouseEvent('mousedown', { bubbles: true }))
+		await wrapper.vm.$nextTick()
+	}
+
+	it('closes when the press lands outside the menu', async () => {
+		const wrapper = mountOpen()
+		await wrapper.vm.$nextTick()
+
+		const outside = document.createElement('div')
+		document.body.appendChild(outside)
+		await pressOn(wrapper, outside)
+
+		expect(wrapper.vm.internalOpen).toBe(false)
+		expect(wrapper.emitted('close')).toBeTruthy()
+		expect(wrapper.emitted('update:open').at(-1)).toEqual([false])
+
+		outside.remove()
+		wrapper.unmount()
+	})
+
+	it('stays open for a press inside the popper NcActions teleports to body', async () => {
+		const wrapper = mountOpen()
+		await wrapper.vm.$nextTick()
+
+		// The popper is not inside the component root, so containment has to be
+		// resolved against the teleported element, not `$el`.
+		const popper = document.createElement('div')
+		popper.className = 'action-item__popper'
+		document.body.appendChild(popper)
+		await pressOn(wrapper, popper)
+
+		expect(wrapper.vm.internalOpen).toBe(true)
+		expect(wrapper.emitted('close')).toBeFalsy()
+
+		popper.remove()
+		wrapper.unmount()
+	})
+
+	it('stays open for a press inside a custom panel', async () => {
+		const wrapper = mount(CnContextMenu, {
+			propsData: { open: true, activePanel: 'filters' },
+			slots: { 'panel:filters': '<div class="inner-panel-content">x</div>' },
+			attachTo: document.body,
+		})
+		await wrapper.vm.$nextTick()
+
+		await pressOn(wrapper, wrapper.find('.inner-panel-content').element)
+
+		expect(wrapper.vm.internalOpen).toBe(true)
+		expect(wrapper.emitted('close')).toBeFalsy()
+		wrapper.unmount()
+	})
+
+	it('does not dismiss on the same gesture that opened it', async () => {
+		// The listener is attached on nextTick precisely so the contextmenu /
+		// click still propagating does not close the menu it just opened.
+		const wrapper = mount(CnContextMenu, {
+			propsData: { open: false, actions: [{ label: 'Edit' }] },
+			attachTo: document.body,
+		})
+		await wrapper.setProps({ open: true })
+
+		const outside = document.createElement('div')
+		document.body.appendChild(outside)
+		outside.dispatchEvent(new window.MouseEvent('mousedown', { bubbles: true }))
+
+		expect(wrapper.vm.internalOpen).toBe(true)
+
+		outside.remove()
+		wrapper.unmount()
+	})
+
+	it('detaches the document listener once closed', async () => {
+		const wrapper = mountOpen()
+		await wrapper.vm.$nextTick()
+		await wrapper.setProps({ open: false })
+		await wrapper.vm.$nextTick()
+
+		const spy = jest.spyOn(wrapper.vm, 'onClose')
+		const outside = document.createElement('div')
+		document.body.appendChild(outside)
+		await pressOn(wrapper, outside)
+
+		expect(spy).not.toHaveBeenCalled()
+		outside.remove()
+		wrapper.unmount()
+	})
+})
+
+describe('CnContextMenu cursor-position scoping', () => {
+	// Regression: the cursor-positioning transform was keyed on the `<html>`
+	// data attribute alone, so it matched *every* `.v-popper__popper` on the
+	// page — a table row's own actions menu opened at the last right-click
+	// coordinates instead of under its button. The transform must be scoped to
+	// the one popper this component owns.
+
+	// The shared @nextcloud/vue mock stubs NcActions without a popover child,
+	// so recreate just the ref chain `tagPopper()` walks.
+	const mountWithPopper = (propsData = {}) => {
+		const popper = document.createElement('div')
+		popper.className = 'v-popper__popper'
+		const NcPopoverStub = {
+			name: 'NcPopover',
+			template: '<div />',
+			methods: {
+				getPopoverContentElement: () => popper,
+			},
+		}
+		const wrapper = mount(CnContextMenu, {
+			propsData: { actions: [{ label: 'Edit' }], ...propsData },
+			stubs: {
+				NcActions: {
+					name: 'NcActions',
+					components: { NcPopoverStub },
+					template: '<div><NcPopoverStub ref="popover" /><slot /></div>',
+				},
+			},
+		})
+		return { wrapper, popper }
+	}
+
+	it('stamps the marker on its own popper at mount', () => {
+		const { wrapper, popper } = mountWithPopper()
+		expect(popper.hasAttribute(CTX_MENU_POPPER_ATTR)).toBe(true)
+		wrapper.unmount()
+	})
+
+	it('marks with an attribute, which survives floating-vue rewriting className', () => {
+		// Regression: the marker was first shipped as a class. floating-vue binds
+		// a dynamic `class` on the popper (`--shown` / `--hidden` / `--show-from`
+		// / …) and Vue's patchClass assigns `el.className` wholesale, so the class
+		// was wiped on the first open — the transform stopped matching and the
+		// menu rendered at its offscreen trigger (≈ -9905px) instead of the
+		// cursor. Simulate that patch and require the marker to outlive it.
+		const { wrapper, popper } = mountWithPopper({ open: true })
+
+		popper.className = 'v-popper__popper v-popper__popper--shown'
+
+		expect(popper.hasAttribute(CTX_MENU_POPPER_ATTR)).toBe(true)
+		expect(popper.matches(`.v-popper__popper[${CTX_MENU_POPPER_ATTR}]`)).toBe(true)
+		wrapper.unmount()
+	})
+
+	it('leaves any other popper on the page untouched', () => {
+		const foreign = document.createElement('div')
+		foreign.className = 'v-popper__popper action-item__popper'
+		document.body.appendChild(foreign)
+
+		const { wrapper } = mountWithPopper({ open: true })
+
+		expect(foreign.hasAttribute(CTX_MENU_POPPER_ATTR)).toBe(false)
+
+		foreign.remove()
+		wrapper.unmount()
+	})
+
+	it('drops the "menu is open" attribute when it closes', async () => {
+		const { wrapper } = mountWithPopper({ open: true })
+		// useContextMenu().open() sets this; simulate it so the watcher has
+		// something to clear.
+		document.documentElement.setAttribute(CTX_MENU_DATA_ATTR, '')
+
+		await wrapper.setProps({ open: false })
+
+		// NcActions' @closed never fires (upstream binds an event NcPopover does
+		// not emit), so the close transition is the only place this can happen.
+		expect(document.documentElement.hasAttribute(CTX_MENU_DATA_ATTR)).toBe(false)
+		wrapper.unmount()
+	})
+
+	it('scopes the shared CSS to the marker attribute, not to the document attribute', () => {
+		const css = readFileSync(join(__dirname, '../../src/css/context-menu.css'), 'utf8')
+		const rules = css
+			.replace(/\/\*[\s\S]*?\*\//g, '')
+			.split('}')
+			.map((chunk) => chunk.split('{')[0].trim())
+			.filter(Boolean)
+
+		// Every popper-targeting rule must name the marker, or it applies to
+		// unrelated popovers again.
+		const popperRules = rules.filter((selector) => selector.includes('.v-popper__popper'))
+		expect(popperRules.length).toBeGreaterThan(0)
+		for (const selector of popperRules) {
+			expect(selector).toContain(`[${CTX_MENU_POPPER_ATTR}]`)
+		}
+		// The destructive-action colour is shared with CnRowActions and must not
+		// be gated on a context menu being open.
+		expect(rules).toContain('.cn-row-action--destructive')
 	})
 })

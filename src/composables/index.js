@@ -21,6 +21,7 @@ export {
 	CTX_MENU_CSS_VAR_X,
 	CTX_MENU_CSS_VAR_Y,
 	CTX_MENU_DATA_ATTR,
+	CTX_MENU_POPPER_ATTR,
 } from './useContextMenu.js'
 export { useAppManifest } from './useAppManifest.js'
 export { useAppStatus } from './useAppStatus.js'
