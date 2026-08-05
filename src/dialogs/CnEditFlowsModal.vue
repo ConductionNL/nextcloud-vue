@@ -247,6 +247,14 @@ export default {
 
 	components: { NcDialog, NcButton, NcTextField, NcSelect, NcLoadingIcon, NcNoteCard, NcEmptyContent, NcCheckboxRadioSwitch, Plus, Delete, ContentSave, Sitemap },
 
+	/**
+	 * Declaring these is not a formality. In Vue 3 an UNDECLARED event name
+	 * stays in `$attrs` as an `onX` prop, so any `v-bind="$attrs"` on a child
+	 * re-attaches the parent's handler and it fires TWICE — once from the DOM
+	 * and once from `$emit`. CnActionButtons shipped exactly that bug.
+	 */
+	emits: ['close', 'saved'],
+
 	props: {
 		/**
 		 * The app manifest (working or live). Its `pages[].config.register`
@@ -481,18 +489,18 @@ export default {
 		 */
 		setActionType(action, option) {
 			const type = option ? option.id : 'calendar-event'
-			action['type'] = type
+			action.type = type
 			// Seed the required fields for the new type so a freshly-switched
 			// action is valid for FlowActionService without further edits.
 			if (type === 'agent') {
-				if (action.agent === undefined) action['agent'] = ''
-				if (action.resultField === undefined) action['resultField'] = ''
-				if (action.prompt === undefined) action['prompt'] = ''
-				if (action.mode === undefined) action['mode'] = 'async'
-				if (action.requiresApproval === undefined) action['requiresApproval'] = false
+				if (action.agent === undefined) action.agent = ''
+				if (action.resultField === undefined) action.resultField = ''
+				if (action.prompt === undefined) action.prompt = ''
+				if (action.mode === undefined) action.mode = 'async'
+				if (action.requiresApproval === undefined) action.requiresApproval = false
 			} else if (type === 'federate-share') {
-				if (action.sharedWith === undefined) action['sharedWith'] = ''
-				if (action.permissions === undefined) action['permissions'] = 'read'
+				if (action.sharedWith === undefined) action.sharedWith = ''
+				if (action.permissions === undefined) action.permissions = 'read'
 			}
 		},
 		/** Append a new flow. */
@@ -524,7 +532,7 @@ export default {
 		 * @return {void}
 		 */
 		addAction(flow) {
-			if (!Array.isArray(flow.actions)) flow['actions'] = []
+			if (!Array.isArray(flow.actions)) flow.actions = []
 			flow.actions.push(this.newAction())
 		},
 		/**
@@ -606,7 +614,7 @@ export default {
 					{ headers: this.headers() },
 				)
 				// Reflect the saved config locally so re-selecting shows the new state.
-				schema['configuration'] = configuration
+				schema.configuration = configuration
 				/**
 				 * @event saved Emitted after flows are persisted to a schema.
 				 * @type {{ schemaId: number, flows: Array<object> }}
