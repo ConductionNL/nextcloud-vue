@@ -22,7 +22,7 @@ Mounted automatically by `CnPageRenderer` when a manifest page declares `type: "
 |------|------|---------|-------------|
 | `title` | String | `'Settings'` | Page title |
 | `description` | String | `''` | Subtitle shown under the title when `showTitle` is set |
-| `showTitle` | Boolean | `false` | Whether to render the inline `CnPageHeader` **visibly**. When `false` the `<h1>` is still rendered visually-hidden, so `<main>` always has an accessible heading (WCAG 2.4.6 / 1.3.1) |
+| `showTitle` | Boolean | `false` | Whether to render the inline `CnPageHeader` |
 | `icon` | String | `''` | MDI icon name |
 | `sections` | Array | `[]` | Section definitions for the flat shape (see schema below). Mutually exclusive with `tabs`. |
 | `tabs` | Array | `[]` | Tab definitions for the orchestration shape: `[{ id, label, icon?, sections }]`. When non-empty, a tab strip renders above the section area. Mutually exclusive with `sections`. |
