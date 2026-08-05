@@ -6,10 +6,22 @@
 .cn-table-container {
 	background: var(--color-main-background);
 	border-radius: var(--border-radius);
-	overflow-x: auto;
 	box-shadow: 0 2px 4px var(--color-box-shadow);
 	border: 1px solid var(--color-border);
 	margin-bottom: calc(5 * var(--default-grid-baseline));
+}
+
+/* Horizontal scroll for wide tables lives HERE, not on `.cn-table-container`.
+   `overflow-x: auto` on the container coerces its `overflow-y` from `visible`
+   to `auto` (CSS forbids mixing `visible` with a non-visible value), which
+   silently turns the container into the nearest scrollport. The sticky footer
+   below then anchors to a container that never scrolls, so "View all" scrolled
+   out of view with the rows instead of pinning to the bottom of the enclosing
+   widget card. Keeping the overflow on an inner wrapper leaves the container
+   transparent to scrolling, so the footer sticks to whichever ancestor really
+   scrolls. */
+.cn-data-table__scroll {
+	overflow-x: auto;
 }
 
 .cn-table-container.cn-table-container--scrollable {
