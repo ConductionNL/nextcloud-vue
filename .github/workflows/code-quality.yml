@@ -2,100 +2,91 @@ name: Code Quality
 
 on:
   push:
-    branches: [main, beta]
+    branches: [main, beta, development, 'feat/vue-3', feature/**, bugfix/**, hotfix/**]
   pull_request:
-    branches: [main, beta, development]
+    # `synchronize` is load-bearing, not tidiness. Without it a PR is checked
+    # ONLY at the moment it is opened, so every commit pushed afterwards — the
+    # review fixes, the conflict resolution, the merge commit — is unchecked, and
+    # the PR still shows the green tick earned by its first commit.
+    #
+    # The `push` trigger above hides this for branches named `feature/**`,
+    # `bugfix/**` or `hotfix/**`, and hides it for nothing else. Measured on
+    # 2026-08-03: a merge commit pushed to `fix/object-access-grant-type` (#591)
+    # produced NO run at all, while `mergeStateStatus` reported CLEAN and the
+    # stale success from the first commit was still the visible answer. `fix/**`
+    # is one of the most common prefixes in this repo, so the gap is not exotic.
+    #
+    # Adding branch prefixes to `push` would be the wrong fix — the list can
+    # never be complete, and each missing prefix fails silently in the one
+    # direction nobody checks. `synchronize` covers every branch name there is.
+    types: [opened, reopened, synchronize]
+    # `feat/vue-3` is the long-lived Vue-3 integration branch and MUST be
+    # listed here. While it was missing, every PR into it merged with zero
+    # checks (e.g. #541, "no checks reported") — which is how the branch ended
+    # up with a hard-broken `npm ci`, Vue-2 render functions in shipped source
+    # and a test suite that could not run at all.
+    branches: [main, beta, development, 'feat/vue-3']
+  workflow_dispatch:
+
+concurrency:
+  group: quality-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+# Least privilege for the called quality pipeline: the Quality Report job
+# posts a sticky PR comment (issues/pull-requests write); everything else
+# only reads the checkout.
+# Permission CEILING for the called quality pipeline. GitHub statically
+# validates the called workflow's declared job permissions against this
+# grant — even for jobs that are disabled — so it must cover the maximum
+# any nested job declares: journeydoc-capture (contents+actions write),
+# update-baseline / features-extract (contents write), and the Quality
+# Report PR comment (issues / pull-requests write). A narrower grant makes
+# the whole call fail at STARTUP: zero jobs, no annotations.
+permissions:
+  contents: write
+  actions: write
+  issues: write
+  pull-requests: write
 
 jobs:
-  frontend-quality:
-    name: Frontend Quality
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install docusaurus dependencies (needed by check:jsdoc + prebuild:docs)
-        run: cd docusaurus && npm ci
-
-      - name: Documentation coverage
-        run: npm run check:docs
-
-      # G2 — Phase 2.5 of the unify-component-docs change.
-      # Fails the build if any Cn* component's JSDoc completeness score
-      # has regressed below the per-component baseline at
-      # scripts/.jsdoc-baselines.json. New components must score 100%.
-      - name: JSDoc completeness ratchet
-        run: npm run check:jsdoc
-
-      # Pluggable integration registry parity gate (AD-11/AD-13).
-      # Fails the build if any integration descriptor shipped in
-      # src/integrations/ is missing its `tab` or `widget` component.
-      - name: Integration parity gate
-        run: npm run check:integration-parity
-
-      # Phase K / K1 — integration-leaf template-compile gate (ADR-019).
-      # Fast-feedback companion to the full `npm run build` step below.
-      # Compiles every src/integrations/builtin/**.vue <template> through
-      # vue-template-compiler + buble (the same path rollup-plugin-vue
-      # uses at build time) and fails — attributed to the exact .vue
-      # file — when a template uses ES2020 syntax buble rejects (`?.`/`??`).
-      # Guards against the rollout's biggest near-miss: a template-side
-      # optional-chain in CnContactsCard.vue that passed jest but broke
-      # `npm run build`. The build step below remains the authoritative
-      # gate; this step just surfaces the failure in seconds with a
-      # precise message.
-      - name: Integration template-compile gate
-        run: npm run check:integration-build
-
-      # G1 — Phase 2.5 of the unify-component-docs change.
-      # Fails the build if a SFC change wasn't accompanied by regenerating
-      # the auto-doc partial via vue-docgen-cli. Run docusaurus's prebuild
-      # hook then verify the generated tree is unchanged.
-      - name: Auto-doc partials are fresh
-        run: |
-          cd docusaurus
-          npm run prebuild:docs
-          cd ..
-          if ! git diff --exit-code docs/components/_generated/; then
-            echo ""
-            echo "::error::docs/components/_generated/ is stale. Run:"
-            echo "::error::  cd docusaurus && npm run prebuild:docs"
-            echo "::error::and commit the diff."
-            exit 1
-          fi
-
-      - name: ESLint
-        run: npm run lint
-
-      - name: Stylelint
-        run: npm run stylelint
-        continue-on-error: true
-
-      - name: Tests
-        run: npm test
-
-      # Phase K / K1 — authoritative template-ES2020 gate. `rollup -c`
-      # runs rollup-plugin-vue → vue-template-compiler → buble over every
-      # SFC; a template-side `?.`/`??` (or any other buble-incompatible
-      # syntax) fails here. The `check:integration-build` step above is the
-      # fast, integration-scoped early-warning for the same class of bug.
-      - name: Build
-        run: npm run build
-
-      # Needs dist/, so it runs after the build. Asserts that every scope id the
-      # built JS stamps onto elements has a matching rule in the CSS reachable
-      # from css/index.css — the entry consumers import. When that invariant
-      # broke, dist-consuming apps rendered whole components unstyled with no
-      # error anywhere.
-      - name: Published CSS entry ships the scoped styles
-        run: npm run check:css-entry
+  quality:
+    if: github.event_name != 'push' || github.event.created != true
+    uses: ConductionNL/.github/.github/workflows/quality.yml@main
+    with:
+      app-name: nextcloud-vue
+      # JS-only component library: no composer.json, so the whole PHP
+      # toolchain (php-quality, PHPUnit, composer security/license, SBOM)
+      # is off via the master switch.
+      enable-php: false
+      enable-frontend: true
+      enable-eslint: true
+      node-version: "24"
+      # docusaurus deps are needed by check:jsdoc and check:docs-fresh
+      # (prebuild:docs); the setup command runs in every check leg.
+      frontend-setup-command: "cd docusaurus && npm ci"
+      # Each entry runs as its own "quality / Frontend Check (<script>)" job.
+      # check:build bundles build + check:css-entry (css-entry needs dist/;
+      # the packaging spec in `test` builds on demand when dist/ is absent).
+      # check:peers is the offline peer-dependency consistency gate — a peer
+      # block contradiction (initial-state ^2 vs ^3) once broke every
+      # consumer's npm ci while this repo's own install stayed green.
+      # check:integration-build is intentionally absent: the Vue-2 buble
+      # template gate was removed with the Vue-3 migration (Vue 3's compiler
+      # handles `?.`/`??` natively).
+      #
+      # check:a11y is NOT optional and NOT covered by `test`. `jest.config.js`
+      # excludes `tests/a11y/` via `testPathIgnorePatterns` on purpose (the
+      # main lane mocks `@nextcloud/vue` down to a bare `<div class="stub">`,
+      # which would make every axe-core assertion pass against markup that has
+      # no ARIA in it — a textbook false green). The consequence is that
+      # `npm test` runs zero a11y specs, so until this entry existed the whole
+      # `tests/a11y/` lane — 9 suites, 38 tests, the `wcag-a11y-anchor`
+      # deliverable — had never executed in CI even once. Its absence was
+      # indistinguishable from its success. Added 2026-08-04 together with the
+      # CnPageHeading spec, which exists precisely to keep an accessible <h1>
+      # inside <main> and would otherwise have been unenforced.
+      frontend-checks: >-
+        ["test", "check:build", "check:docs", "check:jsdoc",
+         "check:integration-parity", "check:peers", "check:docs-fresh",
+         "check:a11y"]
+      enable-sbom: false

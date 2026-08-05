@@ -19,7 +19,7 @@ Mounted automatically by `CnPageRenderer` when a manifest page declares `type: "
 |------|------|---------|-------------|
 | `title` | String | `'Activity log'` | Page title (used by the optional inline header) |
 | `description` | String | `''` | Subtitle shown under the title when `showTitle` is set |
-| `showTitle` | Boolean | `false` | Whether to render the inline `CnPageHeader` |
+| `showTitle` | Boolean | `true` | Whether to render the inline `CnPageHeader` **visibly** (a logs page has no sidebar title fallback, hence the `true` default). When `false` the `<h1>` is still rendered visually-hidden, so `<main>` always has an accessible heading (WCAG 2.4.6 / 1.3.1) |
 | `icon` | String | `''` | MDI icon name |
 | `register` | String | `''` | OpenRegister register slug (paired with `schema`) |
 | `schema` | String | `''` | OpenRegister schema slug (paired with `register`) |

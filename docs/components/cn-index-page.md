@@ -25,7 +25,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 |------|------|---------|-------------|
 | `title` | String | *(required)* | Page title |
 | `description` | String | `''` | Optional subtitle |
-| `showTitle` | Boolean | `false` | Show the page header (icon, title, description) inline above the table. When `false` (default), the title is shown in the sidebar header instead. |
+| `showTitle` | Boolean | `false` | Show the page header (icon, title, description) inline above the table. When `false` (default), only the sidebar header shows the title *visually* — the `<h1>` is still rendered visually-hidden inside the page, so the `<main>` landmark always has an accessible heading (WCAG 2.4.6 / 1.3.1). This prop controls **visibility only**. |
 | `icon` | String | `''` | MDI icon name for the page header. Defaults to `schema.icon` when a schema is provided. |
 | `schema` | Object \| String | `null` | OpenRegister schema for auto-generating columns, filters, and form fields. In [self-fetch mode](#self-fetch-mode) a String is the schema **slug** — the resolved schema object then drives column generation. |
 | `objects` | Array | `[]` | Row data. **Omitting this prop** while `register` + `schema` are set switches the page into [self-fetch mode](#self-fetch-mode) — it drives the list off the object store itself. |
