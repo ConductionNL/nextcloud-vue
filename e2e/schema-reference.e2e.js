@@ -39,17 +39,10 @@ test.describe('CnSchemaFormDialog — Schema reference dropdown', () => {
 		// Pick "Cow" and confirm the property's items.$ref was actually set.
 		await listbox.locator('.vs__dropdown-option', { hasText: 'Cow' }).first().click()
 
-		// `element.__vue__` is a VUE 2 back-reference and does not exist in Vue 3 —
-		// it returns undefined for every node, so this walk silently found
-		// nothing and the assertions below failed on `null` rather than on the
-		// component's real state. Vue 3's equivalent is `__vueParentComponent`
-		// (the internal instance whose subtree owns the element); its `.proxy`
-		// is the public instance that `__vue__` used to be.
 		const cows = await page.evaluate(() => {
 			let found = null
 			document.querySelectorAll('*').forEach((e) => {
-				const instance = e.__vueParentComponent
-				const v = instance && instance.proxy
+				const v = e.__vue__
 				if (v && v.schemaItem && v.schemaItem.properties && v.schemaItem.properties.cows) found = v.schemaItem.properties.cows
 			})
 			return found ? JSON.parse(JSON.stringify(found)) : null

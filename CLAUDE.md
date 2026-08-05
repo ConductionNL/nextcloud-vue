@@ -116,7 +116,6 @@ Note: `NcModal`'s `name` prop does **not** render a visible title in our version
 - `parseResponseError(response)` — Extract error message from API response
 - `networkError()` / `genericError()` — Standard error message helpers
 - `validateManifest(manifest)` — Validate an app manifest against the JSON Schema. Returns `{ valid, errors }`. Use at build time or in test fixtures; the same validator runs at runtime inside `useAppManifest`.
-- `installModalStack()` / `uninstallModalStack()` — Give each open `.modal-mask` its own z-index layer in open order, so the most recently opened modal is the one that receives pointer events. `@nextcloud/vue` puts every mask on a flat `z-index: 9998`, so two open dialogs tie and the painting order falls back to DOM order between two nodes teleported to `<body>` — clicks aimed at a nested dialog land on the dialog underneath it. **`CnAppRoot` installs this itself**; only apps that do not mount `CnAppRoot` need to call it from `main.js`. Never make the `.modal-mask` baseline in `src/css/patches.css` `!important` — that beats the inline layer and reinstates the bug.
 
 ### Available Store
 - `useObjectStore` — Generic Pinia store for OpenRegister objects (CRUD, pagination, search, caching)
