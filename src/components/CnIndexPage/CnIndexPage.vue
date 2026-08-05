@@ -245,12 +245,14 @@
 		<!-- @binding {boolean} show Whether the form dialog is currently visible. -->
 		<!-- @binding {?object} item The item being edited, or null in create mode. -->
 		<!-- @binding {object} schema The effective JSON schema driving the form. -->
+		<!-- @binding {Function} confirm Persists the form data through the page's own save path (store / self-store / createOverride) and refreshes the list. Call this instead of saving in the replacement dialog, so a create or edit made there behaves exactly like one made in the built-in dialog. Takes the complete object to save. -->
 		<!-- @binding {Function} close Closes the form dialog. -->
 		<slot
 			name="form-dialog"
 			:show="showFormDialogVisible"
 			:item="editItem"
 			:schema="effectiveSchema"
+			:confirm="onFormConfirm"
 			:close="closeFormDialog">
 			<CnFormDialog
 				v-if="showFormDialogVisible && !useAdvancedFormDialog"
