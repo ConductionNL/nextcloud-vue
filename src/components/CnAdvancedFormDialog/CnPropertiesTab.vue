@@ -147,6 +147,18 @@ export default {
 		CnPropertyValueCell,
 	},
 
+	inject: {
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). The
+		 * property display name comes from the schema property title, authored
+		 * in English as the canonical source; the visible label is resolved
+		 * through this function so it follows the user's language. Defaults to
+		 * identity when used standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	props: {
 		/** JSON Schema definition for the object */
 		schema: { type: Object, default: null },
@@ -198,6 +210,8 @@ export default {
 		/** Whether this is a new item (create mode) */
 		isNew: { type: Boolean, default: false },
 	},
+
+	emits: ['update:property-value', 'update:selected-property'],
 
 	computed: {
 		hasUnsavedChanges() {
@@ -395,7 +409,7 @@ export default {
 		// `value` is intentionally unused — kept in the signature for callers
 		// that already pass it (slot consumers, the cell, the row click
 		// handler). Editability is now driven by the persisted `item`.
-		// eslint-disable-next-line no-unused-vars
+		// eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
 		isPropertyEditable(key, value) {
 			const prop = this.schema?.properties?.[key]
 			if (!prop) return true
@@ -414,16 +428,19 @@ export default {
 		},
 
 		getPropertyDisplayName(key) {
-			return (this.schema?.properties?.[key]?.title) || key
+			// The property title is the English canonical source; resolve it
+			// through the consumer's translation function for display.
+			return this.cnTranslate((this.schema?.properties?.[key]?.title) || key)
 		},
 
 		getPropertyTooltip(key) {
 			const prop = this.schema?.properties?.[key]
 			if (prop?.description) {
+				const description = this.cnTranslate(prop.description)
 				if (prop.title && prop.title !== key) {
-					return `${prop.title}: ${prop.description}`
+					return `${this.cnTranslate(prop.title)}: ${description}`
 				}
-				return prop.description
+				return description
 			}
 			return `Property: ${key}`
 		},

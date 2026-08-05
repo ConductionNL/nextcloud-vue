@@ -3,113 +3,112 @@
 	     plus a conditional warning card. Consumer passes declared props only,
 	     so no $attrs fall-through to preserve. -->
 	<div class="cn-schema-form__scrollable">
-			<CnDataTable
-				:columns="tableColumns"
-				:rows="propertyRows"
-				row-key="_id"
-				:selectable="false"
-				:row-class="getRowClass"
-				:cell-class="getCellClass"
-				:empty-text="t('nextcloud-vue', 'No properties found. Click &quot;Add property&quot; to create one.')"
-				@row-click="onRowClick">
-				<template #actions-header>
-					<NcButton
-						variant="primary"
-						:disabled="loading"
-						@click="$emit('add-property')">
-						<template #icon>
-							<Plus :size="20" />
-						</template>
-						{{ t('nextcloud-vue', 'Add property') }}
-					</NcButton>
-				</template>
+		<CnDataTable
+			:columns="tableColumns"
+			:rows="propertyRows"
+			row-key="_id"
+			:selectable="false"
+			:row-class="getRowClass"
+			:cell-class="getCellClass"
+			:empty-text="t('nextcloud-vue', 'No properties found. Click &quot;Add property&quot; to create one.')"
+			@row-click="onRowClick">
+			<template #actions-header>
+				<NcButton
+					variant="primary"
+					:disabled="loading"
+					@click="$emit('add-property')">
+					<template #icon>
+						<Plus :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Add property') }}
+				</NcButton>
+			</template>
 
-				<template #column-_key="{ row }">
-					<div v-if="selectedProperty === row._key" class="cn-schema-form__name-input-container" @click.stop>
-						<AlertOutline v-if="isPropertyModified(row._key)"
-							:size="16"
-							class="cn-schema-form__warning-icon"
-							:title="t('nextcloud-vue', 'Property has been modified. Changes will only take effect after the schema is saved.')" />
-						<NcTextField
-							ref="propertyNameInput"
-							:model-value="row._key"
-							:label="t('nextcloud-vue', '(technical) Property name')"
-							@update:model-value="onPropertyKeyUpdate(row._key, $event)"
-							@click.stop />
-					</div>
-					<div v-else class="cn-schema-form__name-display-container">
-						<LockOutline v-if="row._inherited"
-							:size="16"
-							class="cn-schema-form__lock-icon"
-							:title="t('nextcloud-vue', 'Inherited from parent schema (read-only)')" />
-						<AlertOutline v-else-if="isPropertyModified(row._key)"
-							:size="16"
-							class="cn-schema-form__warning-icon"
-							:title="t('nextcloud-vue', 'Property has been modified. Changes will only take effect after the schema is saved.')" />
-						<div class="cn-schema-form__name-with-chips">
-							<span class="cn-schema-form__property-name">{{ row._key }}</span>
-							<div class="cn-schema-form__inline-chips">
-								<span v-if="row._inherited"
-									class="cn-schema-form__property-chip cn-schema-form__chip-inherited">{{ t('nextcloud-vue', 'Inherited') }}</span>
-								<span v-if="isPropertyRequired(schema, row._key)"
-									class="cn-schema-form__property-chip cn-schema-form__chip-primary">{{ t('nextcloud-vue', 'Required') }}</span>
-								<span v-if="row.immutable"
-									class="cn-schema-form__property-chip cn-schema-form__chip-secondary">{{ t('nextcloud-vue', 'Immutable') }}</span>
-								<span v-if="row.deprecated"
-									class="cn-schema-form__property-chip cn-schema-form__chip-warning">{{ t('nextcloud-vue', 'Deprecated') }}</span>
-								<span v-if="row.visible === false"
-									class="cn-schema-form__property-chip cn-schema-form__chip-secondary">{{ t('nextcloud-vue', 'Hidden in view') }}</span>
-								<span v-if="row.hideOnCollection"
-									class="cn-schema-form__property-chip cn-schema-form__chip-secondary">{{ t('nextcloud-vue', 'Hidden in collection') }}</span>
-								<span v-if="row.hideOnForm"
-									class="cn-schema-form__property-chip cn-schema-form__chip-secondary">{{ t('nextcloud-vue', 'Hidden in form') }}</span>
-								<span v-if="row.const !== undefined"
-									class="cn-schema-form__property-chip cn-schema-form__chip-success">{{ t('nextcloud-vue', 'Constant') }}</span>
-								<span v-if="row.enum && row.enum.length > 0"
-									class="cn-schema-form__property-chip cn-schema-form__chip-success">{{ t('nextcloud-vue', 'Enumeration ({count})', { count: row.enum.length }) }}</span>
-								<span v-if="row.facetable === true || (typeof row.facetable === 'object' && row.facetable !== null)"
-									class="cn-schema-form__property-chip cn-schema-form__chip-info">{{ t('nextcloud-vue', 'Facetable') }}</span>
-								<span v-if="hasCustomTableSettings(row._key)"
-									class="cn-schema-form__property-chip cn-schema-form__chip-table">{{ t('nextcloud-vue', 'Table') }}</span>
-							</div>
+			<template #column-_key="{ row }">
+				<div v-if="selectedProperty === row._key" class="cn-schema-form__name-input-container" @click.stop>
+					<AlertOutline v-if="isPropertyModified(row._key)"
+						:size="16"
+						class="cn-schema-form__warning-icon"
+						:title="t('nextcloud-vue', 'Property has been modified. Changes will only take effect after the schema is saved.')" />
+					<NcTextField
+						ref="propertyNameInput"
+						:model-value="row._key"
+						:label="t('nextcloud-vue', '(technical) Property name')"
+						@update:model-value="onPropertyKeyUpdate(row._key, $event)"
+						@click.stop />
+				</div>
+				<div v-else class="cn-schema-form__name-display-container">
+					<LockOutline v-if="row._inherited"
+						:size="16"
+						class="cn-schema-form__lock-icon"
+						:title="t('nextcloud-vue', 'Inherited from parent schema (read-only)')" />
+					<AlertOutline v-else-if="isPropertyModified(row._key)"
+						:size="16"
+						class="cn-schema-form__warning-icon"
+						:title="t('nextcloud-vue', 'Property has been modified. Changes will only take effect after the schema is saved.')" />
+					<div class="cn-schema-form__name-with-chips">
+						<span class="cn-schema-form__property-name">{{ row._key }}</span>
+						<div class="cn-schema-form__inline-chips">
+							<span v-if="row._inherited"
+								class="cn-schema-form__property-chip cn-schema-form__chip-inherited">{{ t('nextcloud-vue', 'Inherited') }}</span>
+							<span v-if="isPropertyRequired(schema, row._key)"
+								class="cn-schema-form__property-chip cn-schema-form__chip-primary">{{ t('nextcloud-vue', 'Required') }}</span>
+							<span v-if="row.immutable"
+								class="cn-schema-form__property-chip cn-schema-form__chip-secondary">{{ t('nextcloud-vue', 'Immutable') }}</span>
+							<span v-if="row.deprecated"
+								class="cn-schema-form__property-chip cn-schema-form__chip-warning">{{ t('nextcloud-vue', 'Deprecated') }}</span>
+							<span v-if="row.visible === false"
+								class="cn-schema-form__property-chip cn-schema-form__chip-secondary">{{ t('nextcloud-vue', 'Hidden in view') }}</span>
+							<span v-if="row.hideOnCollection"
+								class="cn-schema-form__property-chip cn-schema-form__chip-secondary">{{ t('nextcloud-vue', 'Hidden in collection') }}</span>
+							<span v-if="row.hideOnForm"
+								class="cn-schema-form__property-chip cn-schema-form__chip-secondary">{{ t('nextcloud-vue', 'Hidden in form') }}</span>
+							<span v-if="row.const !== undefined"
+								class="cn-schema-form__property-chip cn-schema-form__chip-success">{{ t('nextcloud-vue', 'Constant') }}</span>
+							<span v-if="row.enum && row.enum.length > 0"
+								class="cn-schema-form__property-chip cn-schema-form__chip-success">{{ t('nextcloud-vue', 'Enumeration ({count})', { count: row.enum.length }) }}</span>
+							<span v-if="row.facetable === true || (typeof row.facetable === 'object' && row.facetable !== null)"
+								class="cn-schema-form__property-chip cn-schema-form__chip-info">{{ t('nextcloud-vue', 'Facetable') }}</span>
+							<span v-if="hasCustomTableSettings(row._key)"
+								class="cn-schema-form__property-chip cn-schema-form__chip-table">{{ t('nextcloud-vue', 'Table') }}</span>
 						</div>
 					</div>
-				</template>
+				</div>
+			</template>
 
-				<template #column-type="{ row }">
-					<NcSelect
-						v-if="selectedProperty === row._key"
-						v-model="schema.properties[row._key].type"
-						:options="typeOptionsForSelect"
-						:input-label="t('nextcloud-vue', 'Property type')"
-						@click.stop />
-					<span v-else>{{ row.type }}</span>
-				</template>
+			<template #column-type="{ row }">
+				<NcSelect
+					v-if="selectedProperty === row._key"
+					v-model="schema.properties[row._key].type"
+					:options="typeOptionsForSelect"
+					:input-label="t('nextcloud-vue', 'Property type')"
+					@click.stop />
+				<span v-else>{{ row.type }}</span>
+			</template>
 
-				<template #row-actions="{ row }">
-					<CnSchemaPropertyActions
-						v-if="!row._inherited"
-						:property-key="row._key"
-						:property="schema.properties[row._key]"
-						:schema-item="schema"
-						:original-properties="originalProperties"
-						:available-schemas="availableSchemas"
-						:available-registers="availableRegisters"
-						:available-tags-options="availableTagsOptions"
-						:user-groups="userGroups"
-						:sorted-user-groups="sortedUserGroups"
-						:loading-groups="loadingGroups"
-						@copy-property="$emit('copy-property', $event)"
-						@delete-property="$emit('delete-property', $event)" />
-				</template>
-			</CnDataTable>
-		</div>
-		<CnNoteCard v-if="propertiesModified && !loading" variant="warning" class="cn-schema-form__properties-warning">
-			<p>{{ t('nextcloud-vue', 'Properties have been modified. Changes will only take effect after the schema is saved.') }}</p>
-		</CnNoteCard>
+			<template #row-actions="{ row }">
+				<CnSchemaPropertyActions
+					v-if="!row._inherited"
+					:property-key="row._key"
+					:property="schema.properties[row._key]"
+					:schema-item="schema"
+					:original-properties="originalProperties"
+					:available-schemas="availableSchemas"
+					:available-registers="availableRegisters"
+					:available-tags-options="availableTagsOptions"
+					:user-groups="userGroups"
+					:sorted-user-groups="sortedUserGroups"
+					:loading-groups="loadingGroups"
+					@copy-property="$emit('copy-property', $event)"
+					@delete-property="$emit('delete-property', $event)" />
+			</template>
+		</CnDataTable>
+	</div>
+	<CnNoteCard v-if="propertiesModified && !loading" variant="warning" class="cn-schema-form__properties-warning">
+		<p>{{ t('nextcloud-vue', 'Properties have been modified. Changes will only take effect after the schema is saved.') }}</p>
+	</CnNoteCard>
 </template>
 
-<!-- eslint-disable jsdoc/valid-types -->
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcTextField, NcSelect } from '@nextcloud/vue'
@@ -135,7 +134,6 @@ import LockOutline from 'vue-material-design-icons/LockOutline.vue'
  */
 export default {
 	name: 'CnSchemaPropertiesTab',
-	inheritAttrs: false,
 	components: {
 		NcButton,
 		NcTextField,
@@ -147,6 +145,7 @@ export default {
 		AlertOutline,
 		LockOutline,
 	},
+	inheritAttrs: false,
 	props: {
 		/** The full schema item (needs .properties, .required) */
 		schemaItem: { type: Object, required: true },
@@ -175,6 +174,13 @@ export default {
 		/** Properties inherited from parent schemas (allOf) — shown as locked/read-only rows */
 		inheritedProperties: { type: Object, default: () => ({}) },
 	},
+	emits: [
+		'add-property',
+		'copy-property',
+		'delete-property',
+		'update:property-key',
+		'update:selected-property',
+	],
 	data() {
 		return {
 			propertyStableIds: {},

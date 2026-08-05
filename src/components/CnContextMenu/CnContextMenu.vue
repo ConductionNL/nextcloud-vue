@@ -175,6 +175,8 @@ export default {
 		},
 	},
 
+	emits: ['action', 'close', 'closed', 'update:activePanel', 'update:open'],
+
 	data() {
 		return {
 			internalOpen: this.open,
@@ -205,8 +207,15 @@ export default {
 		},
 
 		internalOpen(val) {
+			// Description goes ABOVE `@event`, not inline after it:
+			// vue-docgen-api's event-name splitter stops at the first `:`, so
+			// `@event update:open <description>` is read as one long event NAME
+			// and the generated docs show an empty description.
 			/**
-			 * @event update:open Fired whenever the menu's internal open state flips. Used by callers that bind `:open.sync` to track visibility.
+			 * Fired whenever the menu's internal open state flips. Used by
+			 * callers that bind `v-model:open` to track visibility.
+			 *
+			 * @event update:open
 			 * @type {boolean}
 			 */
 			this.$emit('update:open', val)
@@ -325,8 +334,13 @@ export default {
 		 * Exposed to custom panel slots via the `back` scope binding.
 		 */
 		back() {
+			// Description above the tag — see the note on `update:open`.
 			/**
-			 * @event update:activePanel Emitted with `null` to clear the active panel — fired by the panel's `back()` binding and whenever the menu closes while a panel is open. Bind with `:active-panel.sync`.
+			 * Emitted with `null` to clear the active panel — fired by the
+			 * panel's `back()` binding and whenever the menu closes while a
+			 * panel is open. Bind with `v-model:active-panel`.
+			 *
+			 * @event update:activePanel
 			 * @type {null}
 			 */
 			this.$emit('update:activePanel', null)
@@ -351,7 +365,16 @@ export default {
 </script>
 
 <style scoped>
-.cn-context-menu {
+/* Selector is deliberately two classes deep. `.cn-context-menu` lands on
+   NcActions' root, which NcActions itself styles as `.action-item[data-v-…]
+   { position: relative; display: inline-block }`. Scoped CSS appends the attr
+   to the last compound only, so a bare `.cn-context-menu` tied that rule at
+   specificity (0,2,0) and lost on injection order — the trigger stayed
+   `position: relative`, so it kept its in-flow box (top/left just offset it
+   visually) and showed up as a full-width ~34px-tall phantom row between the
+   table and the pagination on CnIndexPage. Adding the parent class makes this
+   (0,3,0) so it wins regardless of order. */
+.cn-context-menu-root > .cn-context-menu {
 	/* Hide the NcActions trigger button — menu opens only via right-click.
 	   Off-screen rather than display:none / visibility:hidden so NcPopover's
 	   a11y check (`tabbable(triggerContainer)[0]`) still finds the NcButton

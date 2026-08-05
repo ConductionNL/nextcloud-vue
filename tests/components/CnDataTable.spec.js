@@ -63,7 +63,7 @@ describe('CnDataTable — string columns normalisation', () => {
 			columns: ['name', 'type'],
 		})
 		await wrapper.vm.$nextTick()
-		const cells = wrapper.findAll('.cell').wrappers.map((w) => w.text())
+		const cells = wrapper.findAll('.cell').map((w) => w.text())
 		expect(cells).toEqual(expect.arrayContaining(['foo', 'bar']))
 		expect(cells).not.toContain('—')
 	})
@@ -74,7 +74,7 @@ describe('CnDataTable — string columns normalisation', () => {
 			columns: ['name', { key: 'status', label: 'Status' }],
 		})
 		await wrapper.vm.$nextTick()
-		const cells = wrapper.findAll('.cell').wrappers.map((w) => w.text())
+		const cells = wrapper.findAll('.cell').map((w) => w.text())
 		expect(cells).toEqual(expect.arrayContaining(['hello', 'active']))
 	})
 })
@@ -88,7 +88,7 @@ describe('CnDataTable — columns[].aggregate', () => {
 			.mockReturnValueOnce(new Promise((resolve) => { resolveB = resolve }))
 		const wrapper = mountTable({ rows, columns: [{ key: 'name', label: 'Name' }, aggregateCol] })
 		await wrapper.vm.$nextTick()
-		expect(wrapper.findAll('.cell').wrappers.map((w) => w.text())).toContain('…')
+		expect(wrapper.findAll('.cell').map((w) => w.text())).toContain('…')
 		// the where filter was interpolated per row
 		expect(axios.get).toHaveBeenCalledTimes(2)
 		expect(axios.get.mock.calls[0][0]).toBe('/index.php/apps/openregister/api/objects/pipelinq/automationLog')
@@ -97,7 +97,7 @@ describe('CnDataTable — columns[].aggregate', () => {
 		resolveA({ data: { total: 3 } })
 		resolveB({ data: { results: [{}, {}] } }) // falls back to results.length
 		await flush(wrapper)
-		expect(wrapper.findAll('.cell').wrappers.map((w) => w.text()))
+		expect(wrapper.findAll('.cell').map((w) => w.text()))
 			.toEqual(expect.arrayContaining(['Welcome flow', '3', 'Lost-deal flow', '2']))
 	})
 
@@ -108,7 +108,7 @@ describe('CnDataTable — columns[].aggregate', () => {
 			.mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mountTable({ rows, columns: [aggregateCol] })
 		await flush(wrapper)
-		expect(wrapper.findAll('.cell').wrappers.map((w) => w.text())).toEqual(expect.arrayContaining(['5', '—']))
+		expect(wrapper.findAll('.cell').map((w) => w.text())).toEqual(expect.arrayContaining(['5', '—']))
 		expect(warn).toHaveBeenCalled()
 		warn.mockRestore()
 	})
@@ -117,7 +117,7 @@ describe('CnDataTable — columns[].aggregate', () => {
 		const wrapper = mountTable({ rows, columns: [{ key: 'name', label: 'Name' }] })
 		await wrapper.vm.$nextTick()
 		expect(axios.get).not.toHaveBeenCalled()
-		expect(wrapper.findAll('.cell').wrappers.map((w) => w.text())).toEqual(['Welcome flow', 'Lost-deal flow'])
+		expect(wrapper.findAll('.cell').map((w) => w.text())).toEqual(['Welcome flow', 'Lost-deal flow'])
 	})
 
 	it('re-runs the batch and discards the stale one when rows change', async () => {
@@ -130,7 +130,7 @@ describe('CnDataTable — columns[].aggregate', () => {
 		await flush(wrapper)
 		expect(axios.get.mock.calls.length).toBe(firstCalls + 1)
 		expect(axios.get.mock.calls[firstCalls][1]).toEqual({ params: { automation: 'c', _limit: 0 } })
-		expect(wrapper.findAll('.cell').wrappers.map((w) => w.text())).toEqual(['1'])
+		expect(wrapper.findAll('.cell').map((w) => w.text())).toEqual(['1'])
 	})
 })
 
@@ -201,7 +201,7 @@ describe('CnDataTable — @self metadata fallback', () => {
 
 	it('renders an enabled metadata column from @self', () => {
 		const wrapper = mountTable({ rows: [row], columns: [{ key: 'name', label: 'Name' }, { key: 'uri', label: 'URI' }] })
-		expect(wrapper.findAll('.cell').wrappers.map((w) => w.text())).toEqual(expect.arrayContaining(['Acme', 'https://x/y']))
+		expect(wrapper.findAll('.cell').map((w) => w.text())).toEqual(expect.arrayContaining(['Acme', 'https://x/y']))
 	})
 })
 
@@ -239,5 +239,34 @@ describe('CnDataTable — #footer slot', () => {
 	it('renders no footer when neither a slot nor a subset view-all applies', () => {
 		const wrapper = mountTable({ rows, columns: ['name'] })
 		expect(wrapper.find('.cn-data-table__footer').exists()).toBe(false)
+	})
+})
+
+// Column headers come from schema property titles, which are authored in
+// English (canonical source, for API predictability). The visible header is
+// resolved through the consumer's translation function, provided by CnAppRoot
+// as `cnTranslate` (bound to the host app id). This is what makes an
+// English-authored `signatureLevel: { title: 'Level' }` render as "Niveau" for
+// a Dutch user instead of leaking whichever language the schema was typed in.
+describe('CnDataTable — column header translation via cnTranslate', () => {
+	it('translates column labels through the injected cnTranslate', () => {
+		const dict = { Name: 'Naam', Level: 'Niveau' }
+		const wrapper = mount(CnDataTable, {
+			propsData: { rows, columns: [{ key: 'name', label: 'Name' }, { key: 'level', label: 'Level' }] },
+			provide: { cnTranslate: (key) => dict[key] || key },
+			stubs: { CnCellRenderer: { props: ['value'], template: '<span class="cell">{{ value }}</span>' } },
+		})
+		const headers = wrapper.findAll('thead th').map((w) => w.text())
+		expect(headers).toContain('Naam')
+		expect(headers).toContain('Niveau')
+		// The English source label is never shown when a translation exists.
+		expect(headers).not.toContain('Name')
+		expect(headers).not.toContain('Level')
+	})
+
+	it('falls back to the source label when no cnTranslate is provided', () => {
+		const wrapper = mountTable({ rows, columns: [{ key: 'name', label: 'Name' }] })
+		const headers = wrapper.findAll('thead th').map((w) => w.text())
+		expect(headers).toContain('Name')
 	})
 })

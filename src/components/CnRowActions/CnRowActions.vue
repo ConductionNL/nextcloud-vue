@@ -92,6 +92,8 @@ export default {
 		},
 	},
 
+	emits: ['action'],
+
 	computed: {
 		/**
 		 * Filter actions by their `visible` predicate. An action without a

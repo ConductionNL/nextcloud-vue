@@ -45,6 +45,8 @@ export default {
 		dark: { type: Boolean, default: false },
 	},
 
+	emits: ['format', 'update:value'],
+
 	data() {
 		return {
 			jsonLangExtension: jsonLang(),

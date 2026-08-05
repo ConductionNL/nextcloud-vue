@@ -51,7 +51,7 @@
 			</button>
 
 			<!-- Cog → inline settings panel (toggled, in-DOM so the dropdowns work). -->
-			<NcButton type="tertiary"
+			<NcButton variant="tertiary"
 				:aria-label="t('nextcloud-vue', 'Page settings')"
 				:pressed="expanded"
 				@click="expanded = !expanded">
@@ -99,7 +99,7 @@
 					class="cn-page-tree__panel-field"
 					type="error">
 					{{ t('nextcloud-vue', 'Could not load registers and schemas.') }}
-					<NcButton type="tertiary" @click="retryDataSources">
+					<NcButton variant="tertiary" @click="retryDataSources">
 						{{ t('nextcloud-vue', 'Retry') }}
 					</NcButton>
 				</NcNoteCard>
@@ -159,13 +159,13 @@
 			</template>
 
 			<div class="cn-page-tree__panel-actions">
-				<NcButton v-if="canAddChild" type="tertiary" @click="$emit('add-child')">
+				<NcButton v-if="canAddChild" variant="tertiary" @click="$emit('add-child')">
 					<template #icon>
 						<Plus :size="18" />
 					</template>
 					{{ t('nextcloud-vue', 'Add sub-page') }}
 				</NcButton>
-				<NcButton type="tertiary" @click="$emit('remove')">
+				<NcButton variant="tertiary" @click="$emit('remove')">
 					<template #icon>
 						<Delete :size="18" />
 					</template>
@@ -252,6 +252,8 @@ export default {
 			default: false,
 		},
 	},
+
+	emits: ['add-child', 'remove', 'rename'],
 
 	data() {
 		return {
@@ -400,7 +402,7 @@ export default {
 		 * @return {void}
 		 */
 		setTitle(value) {
-			this.page['title'] = value
+			this.page.title = value
 		},
 		/**
 		 * Set the page route in place.
@@ -408,7 +410,7 @@ export default {
 		 * @return {void}
 		 */
 		setRoute(value) {
-			this.page['route'] = value
+			this.page.route = value
 		},
 		/**
 		 * Commit a slug (page id) rename. Emits `rename` so the parent can cascade
@@ -429,7 +431,7 @@ export default {
 		 * @return {void}
 		 */
 		onType(option) {
-			this.page['type'] = option ? option.value : 'custom'
+			this.page.type = option ? option.value : 'custom'
 			this.stopEdit()
 		},
 		/**
@@ -439,7 +441,7 @@ export default {
 		 */
 		ensureConfig() {
 			if (!this.page.config || typeof this.page.config !== 'object' || Array.isArray(this.page.config)) {
-				this.page['config'] = {}
+				this.page.config = {}
 			}
 			return this.page.config
 		},
@@ -489,8 +491,8 @@ export default {
 		setColumns(options) {
 			const config = this.ensureConfig()
 			const cols = (options || []).map((o) => o.value)
-			if (cols.length) config['columns'] = cols
-			else delete config['columns']
+			if (cols.length) config.columns = cols
+			else delete config.columns
 		},
 		/**
 		 * Set the columns from a comma-separated string (free-text fallback).
@@ -500,8 +502,8 @@ export default {
 		setColumnsText(text) {
 			const config = this.ensureConfig()
 			const cols = String(text || '').split(',').map((s) => s.trim()).filter(Boolean)
-			if (cols.length) config['columns'] = cols
-			else delete config['columns']
+			if (cols.length) config.columns = cols
+			else delete config.columns
 		},
 	},
 }

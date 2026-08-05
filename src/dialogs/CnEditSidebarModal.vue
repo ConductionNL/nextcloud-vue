@@ -28,7 +28,7 @@
 							@update:model-value="(v) => setTabVisible(tab.id, v)" />
 						<NcTextField v-model="tab.label" :label="t('nextcloud-vue', 'Tab label')" :label-visible="true" />
 						<NcTextField v-model="tab.id" :label="t('nextcloud-vue', 'Tab id')" :label-visible="true" />
-						<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="removeTab(index)">
+						<NcButton variant="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="removeTab(index)">
 							<template #icon>
 								<Delete :size="20" />
 							</template>
@@ -45,7 +45,7 @@
 					</label>
 				</li>
 			</ul>
-			<NcButton type="secondary" @click="addTab">
+			<NcButton variant="secondary" @click="addTab">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
@@ -55,7 +55,7 @@
 		<NcEmptyContent v-else :name="t('nextcloud-vue', 'No editable page')" />
 
 		<template #actions>
-			<NcButton type="primary" :disabled="saving" @click="onDone">
+			<NcButton variant="primary" :disabled="saving" @click="onDone">
 				<template #icon>
 					<NcLoadingIcon v-if="saving" :size="20" />
 					<ContentSaveOutline v-else :size="20" />
@@ -101,6 +101,8 @@ export default {
 		},
 	},
 
+	emits: ['close'],
+
 	computed: {
 		/** The active page object from the working manifest, or null. */
 		page() {
@@ -113,11 +115,11 @@ export default {
 			// Normalise the working page in place so the editor can bind to it —
 			// the working manifest is ours to mutate by design (see CnEditPagesModal).
 			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-			if (!this.page.config || typeof this.page.config !== 'object') this.page['config'] = {}
+			if (!this.page.config || typeof this.page.config !== 'object') this.page.config = {}
 			const cfg = this.page.config
 			if (typeof cfg.sidebar !== 'object' || cfg.sidebar === null) {
 				// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-				cfg['sidebar'] = typeof cfg.sidebar === 'boolean' ? { show: cfg.sidebar } : {}
+				cfg.sidebar = typeof cfg.sidebar === 'boolean' ? { show: cfg.sidebar } : {}
 			}
 			return cfg.sidebar
 		},
@@ -148,7 +150,7 @@ export default {
 			const s = this.sidebar
 			if (!s) return []
 			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-			if (!Array.isArray(s.tabs)) s['tabs'] = []
+			if (!Array.isArray(s.tabs)) s.tabs = []
 			return s.tabs
 		},
 		/** The page's hiddenTabs array (ensured to exist). */
@@ -156,7 +158,7 @@ export default {
 			const s = this.sidebar
 			if (!s) return []
 			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-			if (!Array.isArray(s.hiddenTabs)) s['hiddenTabs'] = []
+			if (!Array.isArray(s.hiddenTabs)) s.hiddenTabs = []
 			return s.hiddenTabs
 		},
 		/** Selectable content types for a tab (mapped to a built-in widget). */
@@ -192,9 +194,9 @@ export default {
 		setContent(tab, option) {
 			const type = option ? option.id : ''
 			if (type === '') {
-				tab['widgets'] = []
+				tab.widgets = []
 			} else {
-				tab['widgets'] = [{ type }]
+				tab.widgets = [{ type }]
 			}
 		},
 		/**

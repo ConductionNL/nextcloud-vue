@@ -133,6 +133,8 @@ export default {
 		},
 	},
 
+	emits: ['apply', 'delete-request', 'save-request'],
+
 	computed: {
 		/** @return {string} The dropdown trigger label. */
 		menuLabel() {

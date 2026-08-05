@@ -20,10 +20,10 @@
 			{{ t('nextcloud-vue', 'Show the support note on first open') }}
 		</NcCheckboxRadioSwitch>
 
-		<NcTextField class="cn-edit-support__field"
+		<NcTextField v-model="support.title"
+			class="cn-edit-support__field"
 			:label="t('nextcloud-vue', 'Dialog title')"
-			:placeholder="t('nextcloud-vue', 'Support {appName}', { appName: appName })"
-			v-model="support.title" />
+			:placeholder="t('nextcloud-vue', 'Support {appName}', { appName: appName })" />
 		<NcTextArea class="cn-edit-support__field"
 			:label="t('nextcloud-vue', 'Body (one paragraph per line, blank for the default note)')"
 			:model-value="bodyText"
@@ -32,13 +32,13 @@
 		<h3 class="cn-edit-support__section">
 			{{ t('nextcloud-vue', 'Signature') }}
 		</h3>
-		<NcTextField class="cn-edit-support__field"
-			:label="t('nextcloud-vue', 'Signatory name')"
-			v-model="support.founderName" />
-		<NcTextField class="cn-edit-support__field"
+		<NcTextField v-model="support.founderName"
+			class="cn-edit-support__field"
+			:label="t('nextcloud-vue', 'Signatory name')" />
+		<NcTextField v-model="support.founderTitle"
+			class="cn-edit-support__field"
 			:label="t('nextcloud-vue', 'Signatory role')"
-			:placeholder="t('nextcloud-vue', 'e.g. Owner, CTO, Founder, Team')"
-			v-model="support.founderTitle" />
+			:placeholder="t('nextcloud-vue', 'e.g. Owner, CTO, Founder, Team')" />
 
 		<div class="cn-edit-support__avatar">
 			<img v-if="avatarPreview"
@@ -46,17 +46,17 @@
 				:src="avatarPreview"
 				alt="">
 			<div class="cn-edit-support__avatar-fields">
-				<NcTextField :label="t('nextcloud-vue', 'Avatar URL (blank for the default portrait)')"
-					v-model="support.founderAvatarUrl" />
+				<NcTextField v-model="support.founderAvatarUrl"
+					:label="t('nextcloud-vue', 'Avatar URL (blank for the default portrait)')" />
 				<div class="cn-edit-support__avatar-actions">
-					<NcButton type="secondary" @click="$refs.avatarFile.click()">
+					<NcButton variant="secondary" @click="$refs.avatarFile.click()">
 						<template #icon>
 							<Upload :size="20" />
 						</template>
 						{{ t('nextcloud-vue', 'Upload image') }}
 					</NcButton>
 					<NcButton v-if="support.founderAvatarUrl"
-						type="tertiary"
+						variant="tertiary"
 						@click="clearAvatar">
 						{{ t('nextcloud-vue', 'Reset to default') }}
 					</NcButton>
@@ -69,9 +69,9 @@
 			</div>
 		</div>
 
-		<NcTextField class="cn-edit-support__field"
-			:label="t('nextcloud-vue', 'Avatar link URL (where the avatar points)')"
-			v-model="support.founderProfileUrl" />
+		<NcTextField v-model="support.founderProfileUrl"
+			class="cn-edit-support__field"
+			:label="t('nextcloud-vue', 'Avatar link URL (where the avatar points)')" />
 
 		<h3 class="cn-edit-support__section">
 			{{ t('nextcloud-vue', 'Buttons') }}
@@ -85,12 +85,12 @@
 				<h4 class="cn-edit-support__button-name">
 					{{ def.name }}
 				</h4>
-				<NcTextField :label="t('nextcloud-vue', 'Label')"
-					:placeholder="def.label"
-					v-model="buttonFor(def.id).label" />
-				<NcTextField :label="t('nextcloud-vue', 'Link URL')"
-					:placeholder="def.url || t('nextcloud-vue', 'Default for this app')"
-					v-model="buttonFor(def.id).url" />
+				<NcTextField v-model="buttonFor(def.id).label"
+					:label="t('nextcloud-vue', 'Label')"
+					:placeholder="def.label" />
+				<NcTextField v-model="buttonFor(def.id).url"
+					:label="t('nextcloud-vue', 'Link URL')"
+					:placeholder="def.url || t('nextcloud-vue', 'Default for this app')" />
 				<NcCheckboxRadioSwitch v-model="buttonFor(def.id).enabled">
 					{{ t('nextcloud-vue', 'Show this button') }}
 				</NcCheckboxRadioSwitch>
@@ -103,14 +103,14 @@
 						label="label"
 						:input-label="t('nextcloud-vue', 'Button style')" />
 				</label>
-				<NcTextField :label="t('nextcloud-vue', 'Icon (PascalCase MDI name)')"
-					:placeholder="def.icon"
-					v-model="buttonFor(def.id).icon" />
+				<NcTextField v-model="buttonFor(def.id).icon"
+					:label="t('nextcloud-vue', 'Icon (PascalCase MDI name)')"
+					:placeholder="def.icon" />
 			</li>
 		</ul>
 
 		<template #actions>
-			<NcButton type="primary" :disabled="saving" @click="onDone">
+			<NcButton variant="primary" :disabled="saving" @click="onDone">
 				<template #icon>
 					<NcLoadingIcon v-if="saving" :size="20" />
 					<ContentSaveOutline v-else :size="20" />
@@ -155,6 +155,8 @@ export default {
 		},
 	},
 
+	emits: ['close'],
+
 	computed: {
 		/** The working manifest's support block. */
 		support() {
@@ -196,10 +198,10 @@ export default {
 		// re-styled, re-iconed or dropped.
 		if (!this.working) return
 		if (!this.working.support || typeof this.working.support !== 'object') {
-			this.working['support'] = { enabled: true }
+			this.working.support = { enabled: true }
 		}
 		if (!this.working.support.buttons || typeof this.working.support.buttons !== 'object') {
-			this.working.support['buttons'] = {}
+			this.working.support.buttons = {}
 		}
 		for (const def of BUTTON_DEFS) {
 			if (!this.working.support.buttons[def.id]) {
@@ -235,9 +237,9 @@ export default {
 		setBody(value) {
 			const paras = (value || '').split('\n').map((p) => p.trim()).filter((p) => p !== '')
 			if (paras.length === 0) {
-				delete this.support['bodyParagraphs']
+				delete this.support.bodyParagraphs
 			} else {
-				this.support['bodyParagraphs'] = paras
+				this.support.bodyParagraphs = paras
 			}
 		},
 		/**
@@ -251,14 +253,14 @@ export default {
 			if (!file) return
 			const reader = new FileReader()
 			reader.onload = () => {
-				this.support['founderAvatarUrl'] = String(reader.result)
+				this.support.founderAvatarUrl = String(reader.result)
 			}
 			reader.readAsDataURL(file)
 			event.target.value = ''
 		},
 		/** Clear the avatar override so the bundled default portrait applies. */
 		clearAvatar() {
-			delete this.support['founderAvatarUrl']
+			delete this.support.founderAvatarUrl
 		},
 	},
 }

@@ -34,7 +34,7 @@
 							:label-visible="true" />
 					</div>
 					<div class="cn-edit-actions__row-actions">
-						<NcButton type="tertiary"
+						<NcButton variant="tertiary"
 							:aria-label="t('nextcloud-vue', 'Move up')"
 							:disabled="index === 0"
 							@click="move(index, -1)">
@@ -42,7 +42,7 @@
 								<ArrowUp :size="20" />
 							</template>
 						</NcButton>
-						<NcButton type="tertiary"
+						<NcButton variant="tertiary"
 							:aria-label="t('nextcloud-vue', 'Move down')"
 							:disabled="index === actions.length - 1"
 							@click="move(index, 1)">
@@ -50,7 +50,7 @@
 								<ArrowDown :size="20" />
 							</template>
 						</NcButton>
-						<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="remove(index)">
+						<NcButton variant="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="remove(index)">
 							<template #icon>
 								<Delete :size="20" />
 							</template>
@@ -61,13 +61,13 @@
 		</template>
 
 		<template #actions>
-			<NcButton type="secondary" @click="add">
+			<NcButton variant="secondary" @click="add">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
 				{{ t('nextcloud-vue', 'Add action') }}
 			</NcButton>
-			<NcButton type="primary" :disabled="saving" @click="onDone">
+			<NcButton variant="primary" :disabled="saving" @click="onDone">
 				<template #icon>
 					<NcLoadingIcon v-if="saving" :size="20" />
 					<ContentSaveOutline v-else :size="20" />
@@ -117,6 +117,8 @@ export default {
 		},
 	},
 
+	emits: ['close'],
+
 	computed: {
 		/** Closed enum of action types (open-page / navigate / open-modal / handler). */
 		actionTypes() {
@@ -133,9 +135,9 @@ export default {
 			// Normalise the working page in place so the editor can bind to it —
 			// the working manifest is ours to mutate by design (see CnEditPagesModal).
 			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-			if (!this.page.config || typeof this.page.config !== 'object') this.page['config'] = {}
+			if (!this.page.config || typeof this.page.config !== 'object') this.page.config = {}
 			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-			if (!Array.isArray(this.page.config.actions)) this.page.config['actions'] = []
+			if (!Array.isArray(this.page.config.actions)) this.page.config.actions = []
 			return this.page.config.actions
 		},
 	},
@@ -144,7 +146,10 @@ export default {
 		t,
 		/**
 		 * Human label for the target field, hinting what each type targets.
-		 * @param action
+		 *
+		 * @param {{type: string, target: string}} action The action row being edited;
+		 *   only its `type` (one of `actionTypes`) selects the label.
+		 * @return {string} The translated label for that action type's target input.
 		 */
 		targetLabel(action) {
 			switch (action.type) {
@@ -160,15 +165,20 @@ export default {
 		},
 		/**
 		 * Remove the action at `index`.
-		 * @param index
+		 *
+		 * @param {number} index Zero-based index into the page's `config.actions`.
+		 * @return {void}
 		 */
 		remove(index) {
 			this.actions.splice(index, 1)
 		},
 		/**
 		 * Move the action at `index` by `delta` positions (reorder).
-		 * @param index
-		 * @param delta
+		 *
+		 * @param {number} index Zero-based index into the page's `config.actions`.
+		 * @param {number} delta Signed offset — `-1` moves up, `+1` moves down.
+		 *   No-op when the resulting position falls outside the array.
+		 * @return {void}
 		 */
 		move(index, delta) {
 			const to = index + delta

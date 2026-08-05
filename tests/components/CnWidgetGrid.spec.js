@@ -9,6 +9,7 @@
  */
 
 import { shallowMount } from '@vue/test-utils'
+import { toRaw } from 'vue'
 import CnWidgetGrid from '../../src/components/CnWidgetGrid/CnWidgetGrid.vue'
 import { BUILT_IN_WIDGETS } from '../../src/components/CnWidgetGrid/builtInWidgets.js'
 
@@ -108,7 +109,10 @@ describe('CnWidgetGrid — custom registry override', () => {
 		const wrapper = mount('body', [
 			{ widgetKey: 'object-table', slot: 'body', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 1 },
 		], { 'object-table': { component: CustomTable, kind: 'widget' } })
-		expect(wrapper.vm.resolvedWidgets[0].component).toBe(CustomTable)
+		// `toRaw` on the received side: the resolved list is computed from
+		// reactive state, so the component definition comes back wrapped.
+		// Identity is the point — the custom entry must win over the built-in.
+		expect(toRaw(wrapper.vm.resolvedWidgets[0].component)).toBe(CustomTable)
 	})
 })
 

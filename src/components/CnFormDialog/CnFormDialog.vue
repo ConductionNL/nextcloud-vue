@@ -604,6 +604,15 @@ export default {
 			from: TENANT_CONTEXT_KEY,
 			default: null,
 		},
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Field
+		 * labels/descriptions come from schema property titles, authored in
+		 * English as the canonical source; the visible label is resolved
+		 * through this function so it follows the user's language. Defaults to
+		 * identity when used standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -729,6 +738,8 @@ export default {
 		},
 	},
 
+	emits: ['close', 'confirm'],
+
 	setup() {
 		// Pluggable integration registry — used to resolve fields that
 		// declare `referenceType: '<integration-id>'` (AD-18) to the
@@ -829,6 +840,7 @@ export default {
 					exclude: this.excludeFields,
 					include: this.includeFields,
 					overrides: this.fieldOverrides,
+					translate: this.cnTranslate,
 				})
 
 			// Render locked fields (parent references seeded via initialData) as
@@ -1200,7 +1212,7 @@ export default {
 			if (!hasOrgField) return
 			const current = this.formData.organisation
 			if (current !== null && current !== undefined && current !== '') return
-			this.formData['organisation'] = uuid
+			this.formData.organisation = uuid
 		},
 
 		/**
@@ -1849,7 +1861,7 @@ export default {
 			const state = this.asyncState[field.key]
 			if (!state) return
 
-			state['loading'] = true
+			state.loading = true
 
 			try {
 				let results
@@ -1872,12 +1884,12 @@ export default {
 					const enumFn = typeof field.enum === 'function' ? field.enum : field.items.enum
 					results = await enumFn(query)
 				}
-				state['options'] = Array.isArray(results) ? results : []
+				state.options = Array.isArray(results) ? results : []
 			} catch (err) {
 				console.error(`CnFormDialog: async enum error for field "${field.key}":`, err)
-				state['options'] = []
+				state.options = []
 			} finally {
-				state['loading'] = false
+				state.loading = false
 			}
 		},
 

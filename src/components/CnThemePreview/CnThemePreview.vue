@@ -139,6 +139,7 @@ export default {
 		/** Reset-button label. */
 		resetLabel: { type: String, default: 'Reset to defaults' },
 	},
+	emits: ['change', 'input'],
 	data() {
 		return {
 			model: this.buildInitialModel(),

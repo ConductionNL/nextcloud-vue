@@ -45,6 +45,18 @@
 export default {
 	name: 'CnInfoWidget',
 
+	inject: {
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Field
+		 * labels come from schema property titles, authored in English as the
+		 * canonical source; the visible label is resolved through this function
+		 * so it follows the user's language. Defaults to identity when used
+		 * standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	props: {
 		/**
 		 * Manual field definitions. Array of `{ label, value }` objects.
@@ -151,7 +163,7 @@ export default {
 				.filter(key => !this.excludeFields.includes(key))
 				.filter(key => properties[key])
 				.map(key => ({
-					label: properties[key].title || key,
+					label: this.cnTranslate(properties[key].title || key),
 					value: this.formatFieldValue(this.object[key], properties[key]),
 				}))
 		},

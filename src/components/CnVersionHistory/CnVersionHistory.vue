@@ -27,7 +27,7 @@
 						:model-value="isSelected(entry.id)"
 						:disabled="isSelected(entry.id) === false && selectedIds.length >= 2"
 						:aria-label="selectForCompareLabel"
-						@update:checked="toggleSelected(entry.id, $event)" />
+						@update:model-value="toggleSelected(entry.id, $event)" />
 					<button class="cn-version-history__row-main" type="button" @click="openSingleDiff(entry)">
 						<span class="cn-version-history__version">{{ entry.version || fallbackVersionLabel }}</span>
 						<span class="cn-version-history__action">{{ entry.action || '' }}</span>

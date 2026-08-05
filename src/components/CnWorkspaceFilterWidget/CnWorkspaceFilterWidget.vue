@@ -117,6 +117,8 @@ export default {
 		},
 	},
 
+	emits: ['change'],
+
 	data() {
 		return {
 			/** Fetched options (from source / endpointSource); static options use content.options directly. */

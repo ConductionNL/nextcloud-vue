@@ -97,13 +97,13 @@
 		</fieldset>
 
 		<template #actions>
-			<NcButton type="secondary" @click="add">
+			<NcButton variant="secondary" @click="add">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
 				{{ t('nextcloud-vue', 'Add settings item') }}
 			</NcButton>
-			<NcButton type="primary" :disabled="saving" @click="onDone">
+			<NcButton variant="primary" :disabled="saving" @click="onDone">
 				<template #icon>
 					<NcLoadingIcon v-if="saving" :size="20" />
 					<ContentSaveOutline v-else :size="20" />
@@ -142,6 +142,8 @@ export default {
 			default: null,
 		},
 	},
+
+	emits: ['close'],
 
 	computed: {
 		/** The working manifest's menu array (always an array). */
@@ -222,64 +224,83 @@ export default {
 		},
 		/** Ensure `working.nav` is an object, then return it for mutation. */
 		ensureNav() {
-			if (!this.working.nav || typeof this.working.nav !== 'object') this.working['nav'] = {}
+			if (!this.working.nav || typeof this.working.nav !== 'object') this.working.nav = {}
 			return this.working.nav
 		},
 		/**
 		 * Toggle the auto personal-settings entry.
-		 * @param checked
+		 *
+		 * @param {boolean} checked The NcCheckboxRadioSwitch state; coerced with
+		 *   `Boolean()` before it is written to `working.nav`.
+		 * @return {void}
 		 */
 		setIncludePersonalSettings(checked) {
-			this.ensureNav()['includePersonalSettings'] = Boolean(checked)
+			this.ensureNav().includePersonalSettings = Boolean(checked)
 		},
 		/**
 		 * Set the settings foldout label.
-		 * @param value
+		 *
+		 * @param {string} value The label text shown on the settings foldout.
+		 * @return {void}
 		 */
 		setSettingsLabel(value) {
-			this.ensureNav()['settingsLabel'] = value
+			this.ensureNav().settingsLabel = value
 		},
 		/**
 		 * Toggle the roadmap foldout entry.
-		 * @param checked
+		 *
+		 * @param {boolean} checked The NcCheckboxRadioSwitch state; coerced with
+		 *   `Boolean()` before it is written to `working.nav`.
+		 * @return {void}
 		 */
 		setIncludeRoadmap(checked) {
-			this.ensureNav()['includeRoadmap'] = Boolean(checked)
+			this.ensureNav().includeRoadmap = Boolean(checked)
 		},
 		/**
 		 * Set the roadmap entry label.
-		 * @param value
+		 *
+		 * @param {string} value The label text shown on the roadmap foldout entry.
+		 * @return {void}
 		 */
 		setRoadmapLabel(value) {
-			this.ensureNav()['roadmapLabel'] = value
+			this.ensureNav().roadmapLabel = value
 		},
 		/**
 		 * Set the roadmap entry link/route.
-		 * @param value
+		 *
+		 * @param {string} value An absolute URL or an in-app route for the entry.
+		 * @return {void}
 		 */
 		setRoadmapUrl(value) {
-			this.ensureNav()['roadmapUrl'] = value
+			this.ensureNav().roadmapUrl = value
 		},
 		/**
 		 * Toggle the documentation foldout entry.
-		 * @param checked
+		 *
+		 * @param {boolean} checked The NcCheckboxRadioSwitch state; coerced with
+		 *   `Boolean()` before it is written to `working.nav`.
+		 * @return {void}
 		 */
 		setIncludeDocumentation(checked) {
-			this.ensureNav()['includeDocumentation'] = Boolean(checked)
+			this.ensureNav().includeDocumentation = Boolean(checked)
 		},
 		/**
 		 * Set the documentation entry label.
-		 * @param value
+		 *
+		 * @param {string} value The label text shown on the documentation entry.
+		 * @return {void}
 		 */
 		setDocumentationLabel(value) {
-			this.ensureNav()['documentationLabel'] = value
+			this.ensureNav().documentationLabel = value
 		},
 		/**
 		 * Set the documentation entry URL.
-		 * @param value
+		 *
+		 * @param {string} value An absolute URL or an in-app route for the entry.
+		 * @return {void}
 		 */
 		setDocumentationUrl(value) {
-			this.ensureNav()['documentationUrl'] = value
+			this.ensureNav().documentationUrl = value
 		},
 	},
 }

@@ -13,7 +13,12 @@ function mountWithContext({ uuid, org, props = {} } = {}) {
 		components: { CnTenantBadge },
 		setup() {
 			provideTenantContext(uuid, org)
-			return () => h(CnTenantBadge, { props })
+			// Vue 2's `h()` took a DATA OBJECT whose `props` key held the
+			// component props. Vue 3 flattened that: the second argument IS
+			// the props object, so `{ props: {...} }` would pass a single
+			// unknown attribute literally named "props" and every real prop
+			// would silently fall back to its default.
+			return () => h(CnTenantBadge, { ...props })
 		},
 	})
 	return mount(Wrapper)

@@ -12,7 +12,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('style', $event)" />
+			@update:modelValue="updateField('style', $event)" />
 
 		<NcSelect
 			v-if="style !== 'tree'"
@@ -22,7 +22,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('orientation', $event)" />
+			@update:modelValue="updateField('orientation', $event)" />
 
 		<NcSelect
 			:model-value="activeItemHighlight"
@@ -31,7 +31,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('activeItemHighlight', $event)" />
+			@update:modelValue="updateField('activeItemHighlight', $event)" />
 
 		<label class="cn-menu-form__toggle">
 			<input

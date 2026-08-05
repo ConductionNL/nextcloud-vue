@@ -452,9 +452,9 @@ export default {
 		 */
 		setInheritFromPublic(value) {
 			if (!this.schemaItem.authorization) {
-				this.schemaItem['authorization'] = {}
+				this.schemaItem.authorization = {}
 			}
-			this.schemaItem.authorization['inheritFromPublic'] = Boolean(value)
+			this.schemaItem.authorization.inheritFromPublic = Boolean(value)
 		},
 
 		availablePropertyOptions(action, ruleIdx) {
@@ -492,7 +492,7 @@ export default {
 
 		updateGroupPermission(groupId, action, hasPermission) {
 			if (!this.schema.authorization) {
-				this.schema['authorization'] = {}
+				this.schema.authorization = {}
 			}
 			if (!this.schema.authorization[action]) {
 				this.schema.authorization[action] = []
@@ -508,7 +508,7 @@ export default {
 				delete this.schema.authorization[action]
 			}
 			if (Object.keys(this.schema.authorization).length === 0) {
-				this.schema['authorization'] = {}
+				this.schema.authorization = {}
 			}
 		},
 
@@ -534,7 +534,7 @@ export default {
 
 		addConditionalRule(action) {
 			if (!this.schema.authorization) {
-				this.schema['authorization'] = {}
+				this.schema.authorization = {}
 			}
 			if (!this.schema.authorization[action]) {
 				this.schema.authorization[action] = []
@@ -564,7 +564,7 @@ export default {
 
 		setRuleGroup(action, originalIndex, option) {
 			if (option && option.id) {
-				this.schema.authorization[action][originalIndex]['group'] = option.id
+				this.schema.authorization[action][originalIndex].group = option.id
 			}
 		},
 
@@ -573,7 +573,7 @@ export default {
 			if (!rule.match) return
 			const updated = { ...rule.match }
 			delete updated[propKey]
-			rule['match'] = updated
+			rule.match = updated
 		},
 
 		// ─── Add-condition form state ─────────────────────────────────────
@@ -643,7 +643,7 @@ export default {
 			const rule = this.schema.authorization[action][originalIndex]
 			// Replace the entire match object so Vue 2's property-level dep on `rule.match`
 			// fires and the condition table v-for updates correctly.
-			rule['match'] = { ...(rule.match || {}), [property]: { [operator]: conditionValue } }
+			rule.match = { ...(rule.match || {}), [property]: { [operator]: conditionValue } }
 
 			this.cancelAddCondition()
 		},

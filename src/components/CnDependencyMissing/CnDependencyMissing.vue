@@ -31,7 +31,7 @@
 					-->
 					<div v-if="isAdmin" class="cn-dependency-missing__item-action">
 						<NcButton
-							type="primary"
+							variant="primary"
 							data-testid="cn-dependency-missing-install"
 							:disabled="installing"
 							@click="install(dep)">

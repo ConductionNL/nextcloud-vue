@@ -318,6 +318,8 @@ export default {
 		},
 	},
 
+	emits: ['submitted'],
+
 	data() {
 		return {
 			activeView: 'features',

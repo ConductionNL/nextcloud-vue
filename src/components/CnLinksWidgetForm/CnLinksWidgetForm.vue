@@ -413,7 +413,7 @@ export default {
 		 */
 		updateSectionTitle(index, title) {
 			if (this.sections[index]) {
-				this.sections[index]['title'] = title
+				this.sections[index].title = title
 				this.emitUpdate()
 			}
 		},

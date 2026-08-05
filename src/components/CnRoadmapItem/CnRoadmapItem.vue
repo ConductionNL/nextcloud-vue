@@ -1,14 +1,6 @@
 <template>
 	<article class="cn-roadmap-item">
 		<header class="cn-roadmap-item__header">
-			<!-- Plain <img> rather than <NcAvatar>: the GitHub login is not a
-			     Nextcloud user, and NcAvatar's resolution path triggers a
-			     `/avatar/<user>` lookup that returns 404 + initials instead
-			     of using the GitHub-hosted `avatar_url`. CSP `img-src *`
-			     allows external images on this surface. -->
-			<!-- Eager-load: `loading="lazy"` deferred the fetch indefinitely for
-			     cards below the fold, leaving the avatar as a broken-image
-			     glyph. These are 24px images so eager is cheap. -->
 			<img
 				v-if="item.user && item.user.avatar_url"
 				:src="item.user.avatar_url"
@@ -37,14 +29,10 @@
 			</div>
 		</header>
 
-		<!-- Sanitized markdown body — DOMPurify-cleaned HTML from cnRenderMarkdown.
-		     v-html is intentional here AND safe: cnRenderMarkdown runs marked then
-		     sanitises with SAFE_MARKDOWN_DOMPURIFY_CONFIG (strips <script>, on*
-		     attrs, javascript: URLs, <iframe>, <style>). Never bind raw item.body. -->
 		<div
 			v-if="sanitizedBody !== ''"
 			class="cn-roadmap-item__body"
-			v-html="sanitizedBody" />
+			v-html="sanitizedBody" /><!-- eslint-disable-line vue/no-v-html -- sanitizedBody comes from cnRenderMarkdown(), which sanitises through DOMPurify -->
 
 		<footer v-if="visibleLabels.length > 0" class="cn-roadmap-item__labels">
 			<span
@@ -71,6 +59,23 @@
  * `marked` wrapper) → `DOMPurify.sanitize(html, SAFE_MARKDOWN_DOMPURIFY_CONFIG)`.
  * Labels are filtered through `ROADMAP_LABEL_BLOCKLIST` so hydra workflow
  * labels never appear on the card.
+ *
+ * Template notes (kept here, NOT as `<!-- -->` comments inside `<template>`:
+ * the Vue 3 SFC compiler preserves template comments as real DOM comment
+ * nodes in dev builds, where Vue 2's compiler stripped them — so anything
+ * written there leaks into the rendered markup):
+ *
+ *   - The avatar is a plain `<img>` rather than `<NcAvatar>`: the GitHub login
+ *     is not a Nextcloud user, and NcAvatar's resolution path triggers an
+ *     `/avatar/<user>` lookup that returns 404 + initials instead of using the
+ *     GitHub-hosted `avatar_url`. CSP `img-src *` allows external images here.
+ *   - The avatar is eager-loaded: `loading="lazy"` deferred the fetch
+ *     indefinitely for cards below the fold, leaving a broken-image glyph.
+ *     These are 24px images, so eager is cheap.
+ *   - `v-html` on the body is intentional AND safe: `cnRenderMarkdown` runs
+ *     `marked` then sanitises with SAFE_MARKDOWN_DOMPURIFY_CONFIG (strips
+ *     script elements, `on...` handler attributes, `javascript:` URLs, and
+ *     iframe + style elements). Never bind raw `item.body`.
  *
  * Spec: features-roadmap-component — Requirement "RoadmapItem".
  */

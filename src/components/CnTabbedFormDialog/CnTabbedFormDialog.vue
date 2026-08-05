@@ -77,9 +77,9 @@
 			<!-- Create another checkbox (only in create mode) -->
 			<NcCheckboxRadioSwitch
 				v-if="showCreateAnother && isCreateMode"
+				v-model="createAnother"
 				class="cn-tabbed-form-dialog__create-another"
-				:disabled="loading"
-				v-model="createAnother">
+				:disabled="loading">
 				{{ createAnotherLabel }}
 			</NcCheckboxRadioSwitch>
 
@@ -281,6 +281,7 @@ export default {
 			default: () => t('nextcloud-vue', 'Create another'),
 		},
 	},
+	emits: ['close', 'confirm', 'reset', 'update:activeTab'],
 	data() {
 		return {
 			/** @type {number} Current active tab index */

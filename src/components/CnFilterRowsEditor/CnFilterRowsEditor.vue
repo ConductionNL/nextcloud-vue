@@ -35,7 +35,7 @@
 				placeholder="won"
 				@update:model-value="update(i, 'value', $event)" />
 			<NcButton
-				type="tertiary"
+				variant="tertiary"
 				:aria-label="t('nextcloud-vue', 'Remove filter')"
 				@click="remove(i)">
 				<template #icon>
@@ -43,7 +43,7 @@
 				</template>
 			</NcButton>
 		</div>
-		<NcButton type="tertiary" @click="add">
+		<NcButton variant="tertiary" @click="add">
 			<template #icon>
 				<Plus :size="18" />
 			</template>
@@ -123,7 +123,9 @@ export default {
 
 		/**
 		 * Human label (`=`, `≠`, …) for an operator id.
-		 * @param id
+		 *
+		 * @param {string} id An operator id from `FILTER_OPERATORS` (e.g. `'eq'`, `'gt'`).
+		 * @return {string} The operator's display label, or `id` itself when unknown.
 		 */
 		opLabel(id) {
 			const op = FILTER_OPERATORS.find((o) => o.id === id)
@@ -138,7 +140,9 @@ export default {
 
 		/**
 		 * Remove a row by index.
-		 * @param i
+		 *
+		 * @param {number} i Zero-based index of the row in `rows`.
+		 * @return {void}
 		 */
 		remove(i) {
 			this.rows.splice(i, 1)
@@ -147,9 +151,12 @@ export default {
 
 		/**
 		 * Update one cell of a row and emit.
-		 * @param i
-		 * @param cell
-		 * @param value
+		 *
+		 * @param {number} i Zero-based index of the row in `rows`.
+		 * @param {'key'|'op'|'value'} cell Which cell of the row to write.
+		 * @param {string} value The new cell value — a property name, an operator
+		 *   id from `opIds`, or the free-text comparison value.
+		 * @return {void}
 		 */
 		update(i, cell, value) {
 			this.rows[i][cell] = value

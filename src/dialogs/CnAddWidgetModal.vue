@@ -94,11 +94,11 @@
 		</div>
 
 		<template #actions>
-			<NcButton type="tertiary" :disabled="submitting" @click="onCancel">
+			<NcButton variant="tertiary" :disabled="submitting" @click="onCancel">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="!canSubmit || submitting"
 				:title="firstError || ''"
 				data-testid="add-widget-save"
@@ -625,7 +625,7 @@ export default {
 		/**
 		 * Esc-key fallback listener (in case NcModal's own handler is
 		 * suppressed by a parent focus-trap). Emits `close`, never `submit`.
-		 * Suppressed while a commit() is in flight (see {@link onCancel}).
+		 * Suppressed while a commit() is in flight (see `onCancel`).
 		 *
 		 * @param {KeyboardEvent} event the keydown event.
 		 * @return {void}

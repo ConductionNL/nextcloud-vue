@@ -1,9 +1,9 @@
 <template>
 	<NcAppSidebar
+		v-model:open="internalOpen"
 		:name="resolvedName"
 		:title="resolvedName"
 		:subname="resolvedSubname"
-		v-model:open="internalOpen"
 		:active="internalActiveTab"
 		:compact="!!resolvedIcon"
 		@close="$emit('update:open', false)"
@@ -206,6 +206,18 @@ export default {
 		InformationOutline,
 	},
 
+	inject: {
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Column and
+		 * filter labels come from schema property titles, authored in English as
+		 * the canonical source; the visible label is resolved through this
+		 * function so it follows the user's language. Defaults to identity when
+		 * used standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	props: {
 		/** Sidebar title. Defaults to schema.title when not set. */
 		title: {
@@ -319,6 +331,8 @@ export default {
 		},
 	},
 
+	emits: ['columns-change', 'filter-change', 'search', 'tab-change', 'update:open'],
+
 	data() {
 		return {
 			internalOpen: this.open,
@@ -354,13 +368,13 @@ export default {
 		/** All available columns from schema */
 		allColumns() {
 			if (!this.schema) return []
-			return columnsFromSchema(this.schema, {})
+			return columnsFromSchema(this.schema, { translate: this.cnTranslate })
 		},
 
 		/** Filter definitions from schema (facetable properties, respecting RBAC) */
 		schemaFilters() {
 			if (!this.schema) return []
-			return filtersFromSchema(this.schema, { isAdmin: this.userIsAdmin })
+			return filtersFromSchema(this.schema, { isAdmin: this.userIsAdmin, translate: this.cnTranslate })
 		},
 
 		/** Combined column groups: built-in Metadata + external groups */

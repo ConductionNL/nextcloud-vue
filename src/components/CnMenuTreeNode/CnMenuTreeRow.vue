@@ -70,7 +70,7 @@
 		<NcPopover v-model:shown="popoverOpen" :focus-trap="false">
 			<template #trigger="{ attrs }">
 				<NcButton v-bind="attrs"
-					type="tertiary"
+					variant="tertiary"
 					:aria-label="t('nextcloud-vue', 'Menu item settings')">
 					<template #icon>
 						<Cog :size="18" />
@@ -79,14 +79,14 @@
 			</template>
 			<div class="cn-menu-tree__config">
 				<NcButton v-if="canAddChild"
-					type="tertiary"
+					variant="tertiary"
 					@click="$emit('add-child')">
 					<template #icon>
 						<Plus :size="18" />
 					</template>
 					{{ t('nextcloud-vue', 'Add sub-item') }}
 				</NcButton>
-				<NcButton type="tertiary"
+				<NcButton variant="tertiary"
 					@click="$emit('remove')">
 					<template #icon>
 						<Delete :size="18" />
@@ -151,6 +151,8 @@ export default {
 		},
 	},
 
+	emits: ['add-child', 'remove'],
+
 	data() {
 		return {
 			// Which field is in inline-edit mode: null | 'icon' | 'label' | 'page'.
@@ -200,7 +202,7 @@ export default {
 		 * @return {void}
 		 */
 		setLabel(value) {
-			this.item['label'] = value
+			this.item.label = value
 		},
 		/**
 		 * Set the item icon. CnIconBrowser emits the value directly (a registry
@@ -210,7 +212,7 @@ export default {
 		 * @return {void}
 		 */
 		onIcon(icon) {
-			this.item['icon'] = icon || ''
+			this.item.icon = icon || ''
 		},
 		/**
 		 * Set the item's target page (route name) and leave edit mode.
@@ -218,7 +220,7 @@ export default {
 		 * @return {void}
 		 */
 		onPage(option) {
-			this.item['route'] = option ? option.value : ''
+			this.item.route = option ? option.value : ''
 			this.stopEdit()
 		},
 	},

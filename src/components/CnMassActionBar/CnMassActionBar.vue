@@ -136,6 +136,8 @@ export default {
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 	},
 
+	emits: ['mass-copy', 'mass-delete', 'mass-export', 'mass-import'],
+
 	computed: {
 		menuLabel() {
 			return this.menuLabelTemplate.replace('{count}', String(this.count))

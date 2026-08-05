@@ -88,6 +88,18 @@ export default {
 		CnCellRenderer,
 	},
 
+	inject: {
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Metadata
+		 * labels come from schema property titles, authored in English as the
+		 * canonical source; the visible label is resolved through this function
+		 * so it follows the user's language. Defaults to identity when used
+		 * standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	props: {
 		/** The object data */
 		object: {
@@ -115,6 +127,8 @@ export default {
 			default: 4,
 		},
 	},
+
+	emits: ['click', 'select'],
 
 	setup() {
 		// Tell a deliberate card click apart from a text-selection drag.
@@ -188,7 +202,7 @@ export default {
 				.slice(0, this.maxMetadata)
 				.map(([key, prop]) => ({
 					key,
-					label: prop.title || key,
+					label: this.cnTranslate(prop.title || key),
 					value: this.object[key],
 					property: prop,
 				}))
@@ -214,7 +228,9 @@ export default {
 				this.$emit('select', this.object)
 				// Deprecation: selectable cards used to emit `click`. Keep emitting it
 				// for listeners that still rely on it, but warn them to migrate to `select`.
-				if (this.$attrs.onClick) {
+				// `$.vnode.props`, not `$attrs`: `click` is a declared emit, and
+				// Vue keeps declared emits out of `$attrs`.
+				if (this.$.vnode.props?.onClick) {
 					console.warn('[CnObjectCard] @click on selectable cards is deprecated; use @select instead.')
 					this.$emit('click', this.object)
 				}

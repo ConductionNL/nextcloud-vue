@@ -7,7 +7,11 @@
  */
 
 import { GridStack } from 'gridstack'
-import 'gridstack/dist/gridstack.min.css'
+// `gridstack` is a peerDependency, not bundled — see the matching comment in
+// CnDashboardGrid.vue. The consumer must install `gridstack` themselves and
+// import its stylesheet (`gridstack/dist/gridstack.min.css`) from that same
+// copy; nc-vue ships no GridStack CSS of its own so the JS driving the grid
+// and the CSS sizing it can never come from two different versions.
 
 /**
  * Initialise a GridStack instance on a `.grid-stack` element.

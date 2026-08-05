@@ -38,7 +38,7 @@
 			</label>
 			<NcButton
 				v-if="pendingFile"
-				type="tertiary"
+				variant="tertiary"
 				:disabled="uploading"
 				@click="clearPendingFile">
 				{{ t('nextcloud-vue', 'Remove') }}
@@ -74,7 +74,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('overlayMode', $event)" />
+			@update:modelValue="updateField('overlayMode', $event)" />
 
 		<label v-if="overlayMode !== 'none'" class="cn-header-widget-form__color-label">
 			{{ t('nextcloud-vue', 'Overlay color') }}
@@ -115,7 +115,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('textAlign', $event)" />
+			@update:modelValue="updateField('textAlign', $event)" />
 
 		<NcSelect
 			:model-value="verticalAlign"
@@ -124,7 +124,7 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('verticalAlign', $event)" />
+			@update:modelValue="updateField('verticalAlign', $event)" />
 
 		<!-- The banner fills its dashboard grid cell, so a fixed Height preset
 		     no longer changes anything — resize the widget on the grid instead.
@@ -155,7 +155,7 @@
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateCta('style', $event)" />
+				@update:modelValue="updateCta('style', $event)" />
 		</fieldset>
 	</div>
 </template>
@@ -190,7 +190,7 @@ const DEFAULT_CONTENT = Object.freeze({
 
 /**
  * CnHeaderWidgetForm — the `CnAddWidgetModal` sub-form for creating or editing
- * a `header` widget placement (renderer: {@link CnHeaderWidget}).
+ * a `header` widget placement (renderer: `CnHeaderWidget`).
  *
  * Controls cover every persisted field: title, subtitle, background image URL,
  * background colour, overlay mode/colour/opacity, text colour/alignment/
@@ -249,7 +249,7 @@ export default {
 		/**
 		 * Legacy base64 upload transport, superseded by `fileUploadFn`.
 		 *
-		 * @deprecated Use {@link fileUploadFn} instead. Legacy base64 transport
+		 * @deprecated Use `fileUploadFn` instead. Legacy base64 transport
 		 * `async (dataUrl: string) => ({ url })`, kept for backward compatibility.
 		 * When `fileUploadFn` is not set but this is, `commit()` reads the file to
 		 * a data URL and hands that to this function (emitting a one-time

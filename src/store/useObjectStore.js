@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { buildHeaders, buildQueryString, prefixUrl, capitalize } from '../utils/headers.js'
 import { parseResponseError, networkError, genericError } from '../utils/errors.js'
 import { extractId } from '../utils/id.js'
+import { discardResponseBody } from '../utils/discardResponseBody.js'
 import { mergePluginState, mergePluginGetters, mergePluginActions } from './pluginMerge.js'
 import { liveUpdatesPlugin } from './plugins/liveUpdates.js'
 
@@ -488,7 +489,14 @@ const baseActions = {
 				{ method: 'GET', headers: this._buildHeaders() },
 			)
 
-			if (!response.ok) return null
+			if (!response.ok) {
+				// #573: a schema 404 is routine (the app registered a type with
+				// no schema behind it), but returning here without touching the
+				// body leaves the request in flight for the life of the page and
+				// `networkidle` never arrives.
+				discardResponseBody(response)
+				return null
+			}
 
 			const schema = await response.json()
 			this.schemas = { ...this.schemas, [type]: schema }
@@ -518,7 +526,11 @@ const baseActions = {
 				{ method: 'GET', headers: this._buildHeaders() },
 			)
 
-			if (!response.ok) return null
+			if (!response.ok) {
+				// Same leak as fetchSchema above (#573) — same shape, same fix.
+				discardResponseBody(response)
+				return null
+			}
 
 			const register = await response.json()
 			this.registers = { ...this.registers, [type]: register }
@@ -763,6 +775,10 @@ const baseActions = {
 				return false
 			}
 
+			// A successful DELETE's body is never read either (#573) — same
+			// in-flight request, just on the happy path.
+			discardResponseBody(response)
+
 			if (this.objects[type]) {
 				const { [id]: _, ...remaining } = this.objects[type]
 				this.objects = { ...this.objects, [type]: remaining }
@@ -812,6 +828,10 @@ const baseActions = {
 						method: 'DELETE',
 						headers: this._buildHeaders(),
 					})
+					// Only the status is used, so nothing ever reads the body
+					// (#573). A bulk delete of N objects would otherwise leave N
+					// requests in flight.
+					discardResponseBody(response)
 					return { id, success: response.ok }
 				} catch (error) {
 					console.error(`Error deleting ${type}/${id}:`, error)

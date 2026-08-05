@@ -30,14 +30,14 @@
     foldout (opens the host app's NcAppSettingsDialog via
     cnOpenUserSettings); opt out with `nav.includePersonalSettings:
     false`. Right below it, an "Admin settings" entry is auto-prepended
-    for app OWNERS only — gated on the `isOwner` prop (computed by
-    CnAppRoot from `currentUserGroups` ∩ `permissions.owners`, and/or a
-    manifest `runtime.user` owner signal; NOT `OC.isUserAdmin()`) AND on
-    the manifest declaring at least one `adminSettings[]` entry. It
-    opens the host app's SEPARATE admin-settings NcAppSettingsDialog via
-    cnOpenAdminSettings — see CnAppRoot; this is where app-level, not
-    per-user, configuration such as the organisation credential broker
-    lives, rendered generically from `manifest.adminSettings[]`. The
+    for INSTANCE ADMINS only — gated on the `isAdmin` prop (computed by
+    CnAppRoot from `getCurrentUser()?.isAdmin`). It is a LINK to
+    `/settings/admin/<appId>`, not a modal: per ADR-079 app-level
+    configuration lives in Nextcloud's own settings framework, which
+    authorizes it server-side. `isAdmin` gates VISIBILITY only and is
+    never an authorization decision; it is also NOT interchangeable with
+    `isOwner`, which means "owns this app" rather than "administers this
+    instance" and keeps its own separate uses. The
     foldout mounts whenever there are settings items OR personal
     settings is enabled — so every app shows a Settings gear with at
     least Personal settings. It is only fully suppressed when there are
@@ -51,8 +51,7 @@
   setting `action` on the manifest entry. Supported keywords:
   `"user-settings"` invokes the `cnOpenUserSettings` provide-injected
   by CnAppRoot, which opens the host app's NcAppSettingsDialog modal;
-  `"admin-settings"` invokes `cnOpenAdminSettings`, which opens the
-  host app's admin-settings NcAppSettingsDialog;
+  `"admin-settings"` navigates to `/settings/admin/<appId>` (ADR-079);
   `"replay-walkthrough"` invokes `cnReplayWalkthrough` (optionally
   with the item's `tourId`) to re-run the product walkthrough from
   the first step (ADR-043). Both `route` and `href` are ignored when
@@ -227,10 +226,10 @@
 						</template>
 					</NcAppNavigationItem>
 					<NcAppNavigationItem
-						v-if="isOwner && hasAdminSettings"
+						v-if="showAdminSettingsLink"
 						:name="adminSettingsLabel"
-						data-testid="cn-nav-admin-settings"
-						@click="onAdminSettingsClick">
+						:href="adminSettingsHref"
+						data-testid="cn-nav-admin-settings">
 						<template #icon>
 							<ShieldAccountOutline :size="20" />
 						</template>
@@ -277,6 +276,7 @@ import MapMarkerPath from 'vue-material-design-icons/MapMarkerPath.vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import ShieldAccountOutline from 'vue-material-design-icons/ShieldAccountOutline.vue'
 import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { ICON_MAP } from '../CnIcon/CnIcon.vue'
 import CnMenuItemIcon from '../CnMenuWidget/CnMenuItemIcon.vue'
 import { isCustomIconUrl, hasRegistryIcon } from '../CnWidgetGrid/widgetIcons.js'
@@ -467,14 +467,13 @@ export default {
 		 */
 		cnOpenUserSettings: { default: () => () => {} },
 		/**
-		 * Provided by CnAppRoot — opens the host app's admin-settings
-		 * NcAppSettingsDialog (the app-level, not per-user, surface
-		 * that hosts the organisation credential broker). Defaults to
-		 * a no-op so CnAppNav is still usable when mounted outside a
-		 * CnAppRoot ancestor; the click silently does nothing in that
-		 * case rather than throwing.
+		 * Provided by CnAppRoot — the consuming app's slug, used to build
+		 * the "Admin settings" link target `/settings/admin/<appId>`.
+		 * Overridden by the explicit `appId` prop when both are present.
+		 * Null outside a CnAppRoot ancestor, in which case the link is
+		 * suppressed (ADR-079 §2).
 		 */
-		cnOpenAdminSettings: { default: () => () => {} },
+		cnAppId: { default: null },
 		/**
 		 * Provided by CnAppRoot — restarts the product walkthrough (ADR-043)
 		 * from the first step. Bound to menu entries declaring
@@ -544,7 +543,40 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+		/**
+		 * Whether the current user administers this Nextcloud instance.
+		 * Computed by CnAppRoot from `getCurrentUser()?.isAdmin`
+		 * (`@nextcloud/auth`) — NOT the legacy `OC.isUserAdmin()` global,
+		 * and NOT interchangeable with `isOwner`, which is about owning a
+		 * given app rather than administering the instance (ADR-079 §3).
+		 *
+		 * Gates VISIBILITY of the "Admin settings" link only. It is not an
+		 * authorization decision and MUST NOT be used as one: the boundary
+		 * is Nextcloud's settings framework, which refuses
+		 * `/settings/admin/<app>` server-side for non-admins. Defaults to
+		 * `false` so CnAppNav mounted standalone never shows the link.
+		 *
+		 * @type {boolean}
+		 */
+		isAdmin: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * App id used to build the "Admin settings" link target
+		 * (`/settings/admin/<appId>`). Falls back to the injected
+		 * `cnAppId` provided by CnAppRoot. With neither available the
+		 * link is suppressed rather than pointing at a broken URL.
+		 *
+		 * @type {string|null}
+		 */
+		appId: {
+			type: String,
+			default: null,
+		},
 	},
+
+	emits: ['primary-action', 'primary-action-click'],
 
 	data() {
 		return {
@@ -737,17 +769,37 @@ export default {
 			return t('nextcloud-vue', 'Admin settings')
 		},
 		/**
-		 * Whether the manifest declares any `adminSettings` entries. Gates
-		 * the auto-included "Admin settings" nav entry together with
-		 * `isOwner` — an app with no (or empty) `adminSettings` shows no
-		 * admin nav entry at all, even for an owner (manifest-admin-settings
-		 * D4 backward-compat).
+		 * Resolved app id for the Admin-settings link — the explicit
+		 * `appId` prop, else the `cnAppId` provided by CnAppRoot.
+		 *
+		 * @return {string}
+		 */
+		effectiveAppId() {
+			const id = this.appId || this.cnAppId
+			return (typeof id === 'string' && id.trim()) ? id.trim() : ''
+		},
+		/**
+		 * Target of the Admin-settings entry: the app's section in
+		 * Nextcloud's own admin settings (ADR-079 §1). This is a LINK, not
+		 * a modal — the app never re-implements the settings surface, and
+		 * the destination is authorized server-side by the settings
+		 * framework.
+		 *
+		 * @return {string}
+		 */
+		adminSettingsHref() {
+			if (!this.effectiveAppId) return ''
+			return generateUrl('/settings/admin/{appId}', { appId: this.effectiveAppId })
+		},
+		/**
+		 * Whether to show the Admin-settings link: the user administers the
+		 * instance AND we can build a target. Visibility only — see the
+		 * `isAdmin` prop docs; the access check lives in Nextcloud.
 		 *
 		 * @return {boolean}
 		 */
-		hasAdminSettings() {
-			const adminSettings = this.effectiveManifest?.adminSettings
-			return Array.isArray(adminSettings) && adminSettings.length > 0
+		showAdminSettingsLink() {
+			return this.isAdmin === true && this.adminSettingsHref !== ''
 		},
 		/**
 		 * Route name of the menu item that best matches the current route.
@@ -786,6 +838,18 @@ export default {
 			}
 			return best ?? routeName ?? null
 		},
+	},
+
+	created() {
+		// Non-reactive one-shot latch for warnAutoCountMisconfigured(). It has
+		// to be seeded here rather than lazily on first use: `resolveCount()`
+		// runs DURING RENDER, and Vue 3's instance proxy emits
+		// "Property "_autoCountWarned" was accessed during render but is not
+		// defined on instance" for the first read of an unset instance field
+		// (Vue 2 read it back as plain `undefined`, silently). It deliberately
+		// stays out of `data()`: a reactive Set mutated inside render would
+		// re-trigger the render effect.
+		this._autoCountWarned = new Set()
 	},
 
 	methods: {
@@ -998,7 +1062,6 @@ export default {
 		 * @private
 		 */
 		warnAutoCountMisconfigured(item) {
-			if (!this._autoCountWarned) this._autoCountWarned = new Set()
 			if (this._autoCountWarned.has(item.id)) return
 			this._autoCountWarned.add(item.id)
 			// eslint-disable-next-line no-console
@@ -1134,8 +1197,8 @@ export default {
 		 * Click handler. Dispatch order: action keyword → group toggle.
 		 * For `action: "user-settings"` invokes the injected
 		 * `cnOpenUserSettings` (provided by CnAppRoot) and prevents
-		 * default; for `action: "admin-settings"` invokes the injected
-		 * `cnOpenAdminSettings` and prevents default; for `action:
+		 * default; for `action: "admin-settings"` navigates to
+		 * `/settings/admin/<appId>` and prevents default; for `action:
 		 * "replay-walkthrough"` invokes the injected
 		 * `cnReplayWalkthrough(item.tourId)` and prevents default. `href`
 		 * items are NOT handled here — they render a real anchor via
@@ -1162,7 +1225,13 @@ export default {
 				if (event && typeof event.preventDefault === 'function') {
 					event.preventDefault()
 				}
-				this.cnOpenAdminSettings()
+				// ADR-079: admin config lives in Nextcloud's settings
+				// framework, not in an in-app modal. Navigate rather than
+				// open a dialog. No-op when the app id is unresolvable —
+				// better than sending the user to a broken URL.
+				if (this.adminSettingsHref) {
+					window.location.href = this.adminSettingsHref
+				}
 				return
 			}
 			if (item.action === 'replay-walkthrough') {
@@ -1189,18 +1258,6 @@ export default {
 		 */
 		onPersonalSettingsClick() {
 			this.cnOpenUserSettings()
-		},
-		/**
-		 * Click handler for the auto-prepended Admin-settings entry in the
-		 * settings foldout (visible only when `isOwner && hasAdminSettings`
-		 * is true). Invokes the injected `cnOpenAdminSettings` (provided by
-		 * CnAppRoot → opens the host's admin-settings NcAppSettingsDialog).
-		 * No-op inject when mounted standalone.
-		 *
-		 * @return {void}
-		 */
-		onAdminSettingsClick() {
-			this.cnOpenAdminSettings()
 		},
 		/**
 		 * Click handler for the manifest-declared primary action. Emits

@@ -135,14 +135,14 @@
 					</template>
 					<NcActionInput
 						type="datetime-local"
-						:value="toLocalDateTimeInput(currentRange && currentRange.from)"
+						:model-value="toLocalDateTimeInput(currentRange && currentRange.from)"
 						:label="t('nextcloud-vue', 'From')"
-						@input="onChipDateInput('from', $event)" />
+						@update:model-value="onChipDateInput('from', $event)" />
 					<NcActionInput
 						type="datetime-local"
-						:value="toLocalDateTimeInput(currentRange && currentRange.to)"
+						:model-value="toLocalDateTimeInput(currentRange && currentRange.to)"
 						:label="t('nextcloud-vue', 'To')"
-						@input="onChipDateInput('to', $event)" />
+						@update:model-value="onChipDateInput('to', $event)" />
 				</NcActions>
 			</div>
 			<!-- Default (picker) mode: the original select + two date inputs. -->
@@ -247,7 +247,7 @@
 				     remove button here. Shown only while the page is in edit
 				     mode. -->
 				<div v-if="gridEditable" class="cn-dashboard-page__widget-edit">
-					<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
+					<NcButton variant="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
 						<template #icon>
 							<Cog :size="18" />
 						</template>
@@ -295,7 +295,7 @@
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
 						:show-title="widgetShowTitle(item)"
-						:borderless="!widgetShowTitle(item)"
+						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
@@ -323,8 +323,8 @@
 						     two blocks in sync when editing either. -->
 						<template v-if="dateRangeEnabled && item.dateChip === true" #title-meta>
 							<NcActions
-								:force-menu="true"
 								v-model:open="openChipPicker[item.widgetId]"
+								:force-menu="true"
 								container="body"
 								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
 								class="cn-dashboard-page__date-chip-trigger">
@@ -347,14 +347,14 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
-									:value="toLocalDateTimeInput(currentRange.from)"
+									:model-value="toLocalDateTimeInput(currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
-									@input="onChipDateInput('from', $event)" />
+									@update:model-value="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
-									:value="toLocalDateTimeInput(currentRange.to)"
+									:model-value="toLocalDateTimeInput(currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
-									@input="onChipDateInput('to', $event)" />
+									@update:model-value="onChipDateInput('to', $event)" />
 							</NcActions>
 						</template>
 						<!-- @slot widget-{widgetId} Per-widget body content (e.g. `#widget-my-work`). Apps inject custom widget rendering here. Scope: `{ item, widget }`. -->
@@ -369,7 +369,7 @@
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
 						:show-title="widgetShowTitle(item)"
-						:borderless="!widgetShowTitle(item)"
+						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
@@ -381,8 +381,8 @@
 						@request-feature="onWidgetRequestFeature(item)">
 						<template v-if="dateRangeEnabled && (item.dateChip === true || formatChartDateRange(item))" #title-meta>
 							<NcActions
-								:force-menu="true"
 								v-model:open="openChipPicker[item.widgetId]"
+								:force-menu="true"
 								container="body"
 								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
 								class="cn-dashboard-page__date-chip-trigger">
@@ -405,14 +405,14 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
-									:value="toLocalDateTimeInput(currentRange.from)"
+									:model-value="toLocalDateTimeInput(currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
-									@input="onChipDateInput('from', $event)" />
+									@update:model-value="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
-									:value="toLocalDateTimeInput(currentRange.to)"
+									:model-value="toLocalDateTimeInput(currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
-									@input="onChipDateInput('to', $event)" />
+									@update:model-value="onChipDateInput('to', $event)" />
 							</NcActions>
 						</template>
 						<CnChartWidget
@@ -444,7 +444,7 @@
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
 						:show-title="widgetShowTitle(item)"
-						:borderless="!widgetShowTitle(item)"
+						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
@@ -454,9 +454,16 @@
 						:documentation-url="getWidgetDocumentationUrl(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
+						<!-- Mount-mode integration leaf (openregister#2127):
+						     rendered through CnLeafMountHost so a cross-Vue-major
+						     leaf mounts its own framework into a bare element. -->
+						<CnLeafMountHost
+							v-if="isMountIntegration(item)"
+							:provider="integrationProviderFor(item)"
+							:mount-props="getIntegrationMountProps(item)" />
 						<component
 							:is="resolveIntegrationWidget(item)"
-							v-if="resolveIntegrationWidget(item)"
+							v-else-if="resolveIntegrationWidget(item)"
 							v-bind="getIntegrationProps(item)" />
 						<div v-else class="cn-dashboard-page__unknown">
 							{{ unavailableLabel }}
@@ -507,8 +514,8 @@
 						     custom-slot chip block. -->
 						<template v-if="dateRangeEnabled && item.dateChip === true" #title-meta>
 							<NcActions
-								:force-menu="true"
 								v-model:open="openChipPicker[item.widgetId]"
+								:force-menu="true"
 								container="body"
 								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
 								class="cn-dashboard-page__date-chip-trigger">
@@ -531,14 +538,14 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
-									:value="toLocalDateTimeInput(currentRange && currentRange.from)"
+									:model-value="toLocalDateTimeInput(currentRange && currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
-									@input="onChipDateInput('from', $event)" />
+									@update:model-value="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
-									:value="toLocalDateTimeInput(currentRange && currentRange.to)"
+									:model-value="toLocalDateTimeInput(currentRange && currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
-									@input="onChipDateInput('to', $event)" />
+									@update:model-value="onChipDateInput('to', $event)" />
 							</NcActions>
 						</template>
 						<component
@@ -629,6 +636,7 @@ import { CnActionsMenu } from '../CnActionsMenu/index.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
+import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
@@ -771,6 +779,7 @@ export default {
 		CnActionButtons,
 		CnOpenBuildEditButton,
 		CnWidgetStyleEditorModal,
+		CnLeafMountHost,
 	},
 
 	inject: {
@@ -1185,13 +1194,23 @@ export default {
 		},
 	},
 
-	emits: ['layout-change', 'edit-toggle', 'date-range-change', 'page-filter-change', 'refresh', 'request-feature'],
+	emits: [
+		'date-range-change',
+		'edit-toggle',
+		'layout-change',
+		'page-filter-change',
+		'refresh',
+		'request-feature',
+		'widget-refresh',
+		'widget-remove',
+		'widget-request-feature',
+	],
 
 	setup(props) {
 		// Wire the pluggable integration registry so widgets of type
 		// `integration` resolve their component reactively. No-op cost
 		// when no integration widgets are configured.
-		const { integrations: registryIntegrations, resolveWidget } = useIntegrationRegistry()
+		const { integrations: registryIntegrations, resolveWidget, getById } = useIntegrationRegistry()
 
 		// Provide a reactive date-range ref to every descendant widget,
 		// ALWAYS — even when the feature is off. Descendants can then
@@ -1228,6 +1247,7 @@ export default {
 		return {
 			registryIntegrations,
 			resolveRegistryWidget: resolveWidget,
+			getRegistryProvider: getById,
 			dashboardDateRange,
 			workspaceContext,
 			appConfigRef,
@@ -1295,7 +1315,12 @@ export default {
 		 */
 		effectiveWidgetShowRefresh() {
 			if (this.widgetShowRefresh !== null) return this.widgetShowRefresh
-			return Boolean(this.$attrs['onWidget-refresh'])
+			// `$.vnode.props`, not `$attrs`: a declared emit is stripped out of
+			// `$attrs`. And the key is `onWidgetRefresh` — Vue's compiler
+			// camelizes every `v-on` argument, so the hyphenated
+			// `$attrs['onWidget-refresh']` this used to read was `undefined`
+			// unconditionally and the auto-detect never once fired.
+			return Boolean(this.$.vnode.props?.onWidgetRefresh)
 		},
 		/**
 		 * Stable id for the page-level Actions menu. Prefers the explicit
@@ -1978,9 +2003,9 @@ export default {
 		 */
 		syncRangeToWorkspace(value) {
 			const v = value || {}
-			this.workspaceContext['dateFrom'] = v.from || ''
-			this.workspaceContext['dateTo'] = v.to || ''
-			this.workspaceContext['datePreset'] = v.preset || ''
+			this.workspaceContext.dateFrom = v.from || ''
+			this.workspaceContext.dateTo = v.to || ''
+			this.workspaceContext.datePreset = v.preset || ''
 		},
 
 		/**
@@ -2067,10 +2092,10 @@ export default {
 					const item = this.layout.find((l) => String(l.id) === String(u.id))
 						|| this.layout.find((l) => l.widgetId === u.widgetId)
 					if (!item) continue
-					if (u.gridX !== undefined) item['gridX'] = u.gridX
-					if (u.gridY !== undefined) item['gridY'] = u.gridY
-					if (u.gridWidth !== undefined) item['gridWidth'] = u.gridWidth
-					if (u.gridHeight !== undefined) item['gridHeight'] = u.gridHeight
+					if (u.gridX !== undefined) item.gridX = u.gridX
+					if (u.gridY !== undefined) item.gridY = u.gridY
+					if (u.gridWidth !== undefined) item.gridWidth = u.gridWidth
+					if (u.gridHeight !== undefined) item.gridHeight = u.gridHeight
 				}
 			}
 			/**
@@ -2291,16 +2316,16 @@ export default {
 				? this.widgets.find((w) => w.id === this.configWidgetId)
 				: null
 			if (def) {
-				def['title'] = edited.title !== undefined ? edited.title : def.title
-				def['styleConfig'] = edited.styleConfig || {}
-				def['showTitle'] = edited.showTitle !== false
-				def['customTitle'] = edited.customTitle || null
-				def['customIcon'] = edited.customIcon || null
-				if (edited.content !== undefined) def['content'] = edited.content
+				def.title = edited.title !== undefined ? edited.title : def.title
+				def.styleConfig = edited.styleConfig || {}
+				def.showTitle = edited.showTitle !== false
+				def.customTitle = edited.customTitle || null
+				def.customIcon = edited.customIcon || null
+				if (edited.content !== undefined) def.content = edited.content
 			}
 			const layoutItem = this.layout.find((l) => l.widgetId === this.configWidgetId)
 			if (layoutItem) {
-				layoutItem['styleConfig'] = edited.styleConfig || {}
+				layoutItem.styleConfig = edited.styleConfig || {}
 			}
 			this.showWidgetConfig = false
 			this.$emit('layout-change', this.layout)
@@ -2345,6 +2370,26 @@ export default {
 			const value = item.showTitle !== undefined ? item.showTitle : def?.showTitle
 			if (value === undefined || value === null) return !this.isCardWidget(item)
 			return value !== false
+		},
+
+		/**
+		 * Whether a widget's card chrome is suppressed. An explicit
+		 * `layout[].borderless` wins; otherwise a widget with no header is drawn
+		 * borderless, as before.
+		 *
+		 * The explicit override exists because "no header" and "no card" are
+		 * different intentions, and conflating them pushed authors into the
+		 * wrong shape: a headerless tile (a KPI whose label IS its content) lost
+		 * its card, so the widget drew its OWN bordered box inside the grid
+		 * cell — a card inside a card. Now `borderless: false` keeps the chrome
+		 * and the widget can stay flat, which is what a tile wants.
+		 *
+		 * @param {object} item the layout placement.
+		 * @return {boolean}
+		 */
+		widgetBorderless(item) {
+			if (typeof item.borderless === 'boolean') return item.borderless
+			return !this.widgetShowTitle(item)
 		},
 
 		/**
@@ -2495,6 +2540,56 @@ export default {
 				surface: this.surface,
 				...(this.integrationContext || {}),
 				...(def?.props || {}),
+			}
+		},
+
+		/**
+		 * The registry provider descriptor behind an integration widget def,
+		 * carrying `mount`/`unmount` when it is a mount-mode leaf
+		 * (openregister#2127). Null when unregistered.
+		 *
+		 * @param {object} item Layout item
+		 * @return {object|null} Provider descriptor, or null.
+		 */
+		integrationProviderFor(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			if (!def || typeof def.integrationId !== 'string' || typeof this.getRegistryProvider !== 'function') {
+				return null
+			}
+			return this.getRegistryProvider(def.integrationId)
+		},
+
+		/**
+		 * Whether an integration widget resolves to a mount-mode leaf
+		 * (`renderMode: 'mount'`) — rendered through CnLeafMountHost rather
+		 * than as a component under the host's Vue runtime.
+		 *
+		 * @param {object} item Layout item
+		 * @return {boolean} true when the integration is mount-mode.
+		 */
+		isMountIntegration(item) {
+			if (!this.isIntegration(item)) {
+				return false
+			}
+			const provider = this.integrationProviderFor(item)
+			return Boolean(provider)
+				&& provider.renderMode === 'mount'
+				&& typeof provider.mount === 'function'
+				&& typeof provider.unmount === 'function'
+		},
+
+		/**
+		 * Props forwarded to a mount-mode leaf's `mount(el, props)` — the same
+		 * context an SFC integration widget receives, plus an explicit
+		 * `integrationContext` bag for leaves that read it directly.
+		 *
+		 * @param {object} item Layout item
+		 * @return {object} Mount props.
+		 */
+		getIntegrationMountProps(item) {
+			return {
+				...this.getIntegrationProps(item),
+				integrationContext: { ...(this.integrationContext || {}) },
 			}
 		},
 

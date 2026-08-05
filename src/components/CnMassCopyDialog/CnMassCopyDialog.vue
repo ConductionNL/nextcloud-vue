@@ -179,6 +179,8 @@ export default {
 		removeLabel: { type: String, default: () => t('nextcloud-vue', 'Remove from list') },
 	},
 
+	emits: ['close', 'confirm'],
+
 	data() {
 		return {
 			localItems: [...this.items],
