@@ -400,7 +400,21 @@ export default {
 		clone() {
 			return JSON.parse(JSON.stringify(this.modelValue))
 		},
+		/**
+		 * Publish a mutated copy of the flow document.
+		 *
+		 * Every mutation helper clones, edits the clone and emits it, so the
+		 * `modelValue` prop is never written in place — the parent owns the
+		 * document and decides whether to accept the change.
+		 *
+		 * @param {object} next The mutated document.
+		 * @return {void}
+		 */
 		emit(next) {
+			/**
+			 * @event update:modelValue The edited flow document, for `v-model`.
+			 * @type {object}
+			 */
 			this.$emit('update:modelValue', next)
 		},
 		onNodeSelect(id) {

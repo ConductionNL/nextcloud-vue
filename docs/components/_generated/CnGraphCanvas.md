@@ -19,15 +19,15 @@
 
 ### Events
 
-| Name           | Payload | Description                                                                                                                                        |
-| -------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `canvas-click` | —       | The empty canvas was clicked — consumers usually clear their selection.                                                                            |
-| `canvas-drop`  | —       | Something was dropped onto the canvas. The payload's `x`/`y` are in canvas space (pan and zoom undone); the native `event` carries `dataTransfer`. |
-| `connect`      | —       | A connection was drawn between two nodes.                                                                                                          |
-| `edge-select`  | —       | An edge was clicked.                                                                                                                               |
-| `node-move`    | —       | A node was dragged. Positions are owned by the consumer: the canvas reports intent and does not mutate `nodes`.                                    |
-| `node-select`  | —       | A node was clicked or focused.                                                                                                                     |
-| `update:zoom`  | —       | The zoom factor changed (supports `v-model:zoom`).                                                                                                 |
+| Name           | Payload | Description                                                                                                                                                                                                                                                            |
+| -------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `canvas-click` | —       | The empty canvas was clicked — consumers usually clear their selection.                                                                                                                                                                                                |
+| `canvas-drop`  | —       | Something was dropped onto the canvas. The payload's `x`/`y` are in canvas space (pan and zoom undone); the native `event` carries `dataTransfer`.                                                                                                                     |
+| `connect`      | —       | A connection was drawn between two nodes. `sourcePort` names the port it left from, when the source node declares ports — that is what tells a consumer WHICH branch was drawn. Absent for a node using the default port, so a consumer that ignores it keeps working. |
+| `edge-select`  | —       | An edge was clicked.                                                                                                                                                                                                                                                   |
+| `node-move`    | —       | A node was dragged. Positions are owned by the consumer: the canvas reports intent and does not mutate `nodes`.                                                                                                                                                        |
+| `node-select`  | —       | A node was clicked or focused.                                                                                                                                                                                                                                         |
+| `update:zoom`  | —       | The zoom factor changed (supports `v-model:zoom`).                                                                                                                                                                                                                     |
 
 ### Slots
 

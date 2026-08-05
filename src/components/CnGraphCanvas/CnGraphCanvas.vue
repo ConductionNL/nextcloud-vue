@@ -623,14 +623,6 @@ export default {
 		 */
 		onNodeMouseUp(node) {
 			if (this.drawingConnection && this.drawingConnection.source !== node.id) {
-				/**
-				 * @event connect A connection was drawn between two nodes.
-				 * `sourcePort` names the port it left from, when the source
-				 * node declares ports — that is what tells a consumer WHICH
-				 * branch was drawn. Absent for a node using the default port,
-				 * so a consumer that ignores it keeps working.
-				 * @type {{source: string, target: string, sourcePort: ?string}}
-				 */
 				// `sourcePort` is OMITTED, not set to null, when the drag came
 				// from a node using the default port. Adding a key changes the
 				// payload's shape for every existing consumer — an equality
@@ -641,6 +633,14 @@ export default {
 					connection.sourcePort = this.drawingConnection.sourcePort
 				}
 
+				/**
+				 * @event connect A connection was drawn between two nodes.
+				 * `sourcePort` names the port it left from, when the source node
+				 * declares ports — that is what tells a consumer WHICH branch was
+				 * drawn. Absent for a node using the default port, so a consumer
+				 * that ignores it keeps working.
+				 * @type {{source: string, target: string, sourcePort: ?string}}
+				 */
 				this.$emit('connect', connection)
 			}
 			this.drawingConnection = null
