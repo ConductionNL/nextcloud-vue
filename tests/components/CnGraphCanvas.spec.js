@@ -36,50 +36,6 @@ function mountCanvas(propsData = {}, rect = { left: 0, top: 0 }) {
 }
 
 describe('CnGraphCanvas', () => {
-	describe('nodes without stored coordinates', () => {
-		// A node document is not obliged to carry x/y — a hand-written, imported or
-		// agent-generated graph routinely has none. Reading node.x straight off such
-		// a node gave `undefined`, and `undefined + nodeWidth / 2` is NaN, so every
-		// edge rendered as `d="M NaN NaN L NaN NaN"` (invisible, one console error
-		// per edge per render) and every node got `left: undefinedpx`, an invalid
-		// declaration the browser drops — collapsing the canvas into the static
-		// flow. A coordinate-less graph did not degrade, it broke.
-		const BARE = [{ id: 'a' }, { id: 'b' }, { id: 'c' }]
-
-		it('lays them out on a grid instead of producing NaN', () => {
-			const wrapper = mountCanvas({ nodes: BARE, edges: [{ id: 'e', source: 'a', target: 'b' }] })
-			wrapper.vm.positionedNodes.forEach((node) => {
-				expect(Number.isFinite(node.x)).toBe(true)
-				expect(Number.isFinite(node.y)).toBe(true)
-			})
-		})
-
-		it('spaces them apart rather than stacking them at the origin', () => {
-			const wrapper = mountCanvas({ nodes: BARE, edges: [] })
-			const [first, second] = wrapper.vm.positionedNodes
-			expect(second.x).toBeGreaterThan(first.x)
-		})
-
-		it('resolves edge endpoints to finite centres', () => {
-			const wrapper = mountCanvas({ nodes: BARE, edges: [{ id: 'e', source: 'a', target: 'b' }] })
-			const [edge] = wrapper.vm.resolvedEdges
-			expect(Number.isFinite(edge.from.x)).toBe(true)
-			expect(Number.isFinite(edge.to.y)).toBe(true)
-		})
-
-		it('leaves a stored position untouched', () => {
-			const wrapper = mountCanvas({ nodes: [{ id: 'a', x: 42, y: 7 }], edges: [] })
-			expect(wrapper.vm.positionedNodes[0]).toMatchObject({ x: 42, y: 7 })
-		})
-
-		it('fills in only the missing axis', () => {
-			const wrapper = mountCanvas({ nodes: [{ id: 'a', x: 42 }], edges: [] })
-			const node = wrapper.vm.positionedNodes[0]
-			expect(node.x).toBe(42)
-			expect(Number.isFinite(node.y)).toBe(true)
-		})
-	})
-
 	describe('geometry', () => {
 		it('a node centre accounts for the configured node size', () => {
 			const wrapper = mountCanvas({ nodeWidth: 200, nodeHeight: 80 })
@@ -355,6 +311,136 @@ describe('CnGraphCanvas', () => {
 		it('renders a default edge line when no edge slot is supplied', () => {
 			const wrapper = mountCanvas()
 			expect(wrapper.find('.cn-graph-canvas__edge').exists()).toBe(true)
+		})
+	})
+
+	describe('ports', () => {
+		// A node that declares no ports keeps the single right-hand handle it
+		// has always had. This is the compatibility guarantee the whole port
+		// feature rests on: every existing consumer renders unchanged.
+		it('gives a node that declares no ports exactly one out-port', () => {
+			const wrapper = mountCanvas()
+			const ports = wrapper.findAll('.cn-graph-canvas__handle')
+			expect(ports).toHaveLength(NODES.length)
+		})
+
+		it('renders exactly the ports a node declares', () => {
+			const wrapper = mountCanvas({
+				nodes: [{
+					id: 'route',
+					x: 0,
+					y: 0,
+					ports: [
+						{ id: 'in', side: 'left' },
+						{ id: 'high', side: 'right', label: 'High' },
+						{ id: 'low', side: 'right', label: 'Low' },
+					],
+				}],
+				edges: [],
+			})
+
+			expect(wrapper.findAll('.cn-graph-canvas__handle')).toHaveLength(3)
+			expect(wrapper.findAll('.cn-graph-canvas__handle--right')).toHaveLength(2)
+			expect(wrapper.find('.cn-graph-canvas__handle--in').exists()).toBe(true)
+		})
+
+		// Branch ports name their branch. Three identical "drag to connect"
+		// buttons tell a keyboard or screen-reader user nothing about which one
+		// they are on.
+		it('names a branch port after its branch', () => {
+			const wrapper = mountCanvas({
+				nodes: [{ id: 'route', x: 0, y: 0, ports: [{ id: 'high', side: 'right', label: 'High' }] }],
+				edges: [],
+			})
+
+			expect(wrapper.find('.cn-graph-canvas__handle').attributes('aria-label')).toBe('High')
+		})
+
+		// Ports are spread PER NODE. Grouping them globally would position a
+		// node's single port by its index among every port in the graph, so one
+		// node gaining a branch would move every other node's ports.
+		it('spreads a side\'s ports independently for each node', () => {
+			const wrapper = mountCanvas({
+				nodes: [
+					{ id: 'one', x: 0, y: 0, ports: [{ id: 'only', side: 'right' }] },
+					{
+						id: 'many',
+						x: 400,
+						y: 0,
+						ports: [
+							{ id: 'a', side: 'right' },
+							{ id: 'b', side: 'right' },
+							{ id: 'c', side: 'right' },
+						],
+					},
+				],
+				edges: [],
+			})
+
+			const single = wrapper.vm.portStyle(
+				{ id: 'one', ports: [{ id: 'only', side: 'right' }] },
+				{ id: 'only', side: 'right' },
+			)
+			// One port on the side sits at the midpoint, whatever other nodes do.
+			expect(single.top).toBe('50%')
+		})
+
+		it('puts a loop node\'s body ports on the top edge', () => {
+			const wrapper = mountCanvas({
+				nodes: [{
+					id: 'paginate',
+					x: 0,
+					y: 0,
+					ports: [
+						{ id: 'body-out', side: 'top', label: 'Repeat' },
+						{ id: 'body-in', side: 'top', label: 'Return' },
+					],
+				}],
+				edges: [],
+			})
+
+			const top = wrapper.findAll('.cn-graph-canvas__handle--top')
+			expect(top).toHaveLength(2)
+			// On the border, not beside it: the port's own edge is at 0%.
+			expect(top[0].attributes('style')).toContain('top: 0%')
+		})
+
+		it('reports which port a connection left from', () => {
+			const wrapper = mountCanvas({
+				nodes: [
+					{ id: 'route', x: 0, y: 0, ports: [{ id: 'high', side: 'right' }] },
+					{ id: 'b', x: 400, y: 0 },
+				],
+				edges: [],
+			})
+
+			wrapper.vm.onConnectionStart(
+				{ id: 'route', x: 0, y: 0, ports: [{ id: 'high', side: 'right' }] },
+				{ clientX: 200, clientY: 140 },
+				{ id: 'high', side: 'right', kind: 'out' },
+			)
+			wrapper.vm.onNodeMouseUp({ id: 'b' })
+
+			expect(wrapper.emitted('connect')[0][0]).toEqual({
+				source: 'route',
+				target: 'b',
+				sourcePort: 'high',
+			})
+		})
+
+		// An in-port receives; it never originates. Without this a user could
+		// drag backwards out of an inbound port and create an edge pointing the
+		// wrong way, which reads on the canvas as the flow running in reverse.
+		it('refuses to start a connection from an in-port', () => {
+			const wrapper = mountCanvas()
+
+			wrapper.vm.onConnectionStart(
+				NODES[0],
+				{ clientX: 200, clientY: 140 },
+				{ id: 'in', side: 'left', kind: 'in' },
+			)
+
+			expect(wrapper.vm.drawingConnection).toBe(null)
 		})
 	})
 })

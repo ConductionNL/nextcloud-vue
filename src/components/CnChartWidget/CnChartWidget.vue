@@ -1286,7 +1286,16 @@ export default {
 					agg.labelResolve,
 					rawKeys,
 				)
-				labels = resolved.map((r, i) => r.label || labels[i])
+				// A configured `labelResolve` means the groupBy value IS an
+				// opaque reference id, so the raw key is never a usable label —
+				// falling back to it renders a bare UUID in the chart. The
+				// usual cause is a DANGLING reference (the target object was
+				// deleted, or never existed), which resolves to an empty label.
+				// Empty keys keep their existing '—' placeholder.
+				labels = resolved.map((r, i) => {
+					if (r.label) return r.label
+					return rawKeys[i] === '' ? labels[i] : t('nextcloud-vue', 'Unknown')
+				})
 				const withColor = resolved.filter((r) => r.color)
 				if (withColor.length > 0) {
 					colorMap = {}

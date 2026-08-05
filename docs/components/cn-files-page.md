@@ -16,7 +16,7 @@ Mounted automatically by `CnPageRenderer` when a manifest page declares `type: "
 |------|------|---------|-------------|
 | `title` | String | `'Files'` | Page title |
 | `description` | String | `''` | Subtitle shown under the title when `showTitle` is set |
-| `showTitle` | Boolean | `false` | Whether to render the inline `CnPageHeader` **visibly**. When `false` the `<h1>` is still rendered visually-hidden, so `<main>` always has an accessible heading (WCAG 2.4.6 / 1.3.1) |
+| `showTitle` | Boolean | `false` | Whether to render the inline `CnPageHeader` |
 | `icon` | String | `''` | MDI icon name |
 | `folder` | String | **required** | Folder path within the user's Nextcloud filesystem |
 | `allowedTypes` | `Array<String>` | `[]` | MIME-type filter. Literal (`'application/pdf'`) or wildcard (`'image/*'`). |

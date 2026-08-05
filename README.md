@@ -194,64 +194,11 @@ nextcloud-vue/
 │   ├── utils/                # schema, headers, errors, formatting
 │   ├── css/                  # Modular CSS (one file per component group)
 │   └── types/index.d.ts      # TypeScript definitions
-├── eslint/                   # Published subpath: shared flat-config preset
-├── testing/                  # Published subpath: a11y + Playwright e2e helpers
 ├── tests/                    # Jest test suite
 ├── dist/                     # Built output (ESM, CJS, CSS)
 ├── rollup.config.js          # Build configuration
 └── package.json
 ```
-
-## Shared tooling subpaths
-
-Two things every consuming app used to reimplement are solved once here.
-
-### `@conduction/nextcloud-vue/eslint`
-
-The fleet's Vue 3 flat-config ESLint preset. Arms the whole
-`vue/no-deprecated-*` family at `error`, sets `ecmaVersion: 'latest'` on both
-`languageOptions` and `languageOptions.parserOptions` (never a pinned year — a
-shared preset that pins can only ever *lower* the app adopting it), wires
-`parserOptions.parser` in vue-eslint-parser's **object** form, and configures
-`vue/v-on-event-hyphenation` with `ignore: ['update:modelValue']`.
-
-```js
-// eslint.config.js — on top of @nextcloud/eslint-config/vue3
-const { conductionVue3Fixes } = require('@conduction/nextcloud-vue/eslint')
-
-module.exports = [
-	...compat.extends('@nextcloud/eslint-config/vue3'),
-	...conductionVue3Fixes,
-]
-```
-
-See [docs/tooling/eslint-preset.md](docs/tooling/eslint-preset.md) — including
-why a Vue 2 lint config left four silent memory leaks in a migrated app.
-
-### `@conduction/nextcloud-vue/testing/playwright`
-
-Dependency-free e2e helpers for the overlays and bundle constraints this
-library imposes: `dismissFirstVisitOverlays`, `seedSupportDialogSeen`,
-`appDialog`, `retireFirstRunWizard`, and a component-tree accessor that works
-against a production bundle with `__VUE_PROD_DEVTOOLS__ = false`.
-
-```js
-// In a global-setup, seed the CONTEXT with explicit ids so the flag rides in
-// storageState. `'*'` reads back correctly in the page and persists NOTHING,
-// so the helpers refuse that combination outright.
-await seedFirstVisitOverlaysSeen(context, 'openbuild') // also covers openbuild-<slug>
-
-const page = await context.newPage()
-await page.goto('/apps/openbuild/')
-await retireFirstRunWizard(page)     // NC's own overlay, retired server-side
-
-// `appDialog()` never matches NC/nc-vue chrome, so a click that missed cannot
-// pass against a modal the spec never opened.
-await expect(appDialog(page)).toBeVisible()
-```
-
-See [docs/testing/e2e-helpers.md](docs/testing/e2e-helpers.md) — including the
-nested-`CnAppRoot` caveat and the `'*'`/`storageState` trap.
 
 ## Development
 

@@ -10,7 +10,16 @@ resolvePresetWindow('last-7', DEFAULT_DATE_RANGE_PRESETS)
 
 resolvePresetWindow('custom', DEFAULT_DATE_RANGE_PRESETS)
 // null  — `custom` (and any preset with days: null) is manual; caller preserves the current window
+
+// A `period` preset is calendar-aligned — the CURRENT unit to date, not a rolling span.
+resolvePresetWindow('month', [{ id: 'month', label: 'Current month', period: 'month' }])
+// { from: '2026-05-01T00:00:00.000Z', to: '2026-05-21T23:59:59.999Z' }  (on 21 May)
 ```
+
+A preset declares one of three window kinds, checked in this order — `period`
+(`'week' | 'month' | 'quarter' | 'year'`, calendar-aligned, weeks start Monday),
+`hours` (rolling, ending now), `days` (rolling whole days). When a preset
+carries both `period` and a legacy `days` hint, `period` wins.
 
 Arguments:
 
