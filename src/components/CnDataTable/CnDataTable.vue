@@ -29,131 +29,139 @@
 			<p>{{ loadingText }}</p>
 		</div>
 
-		<!-- Table -->
-		<table v-else class="cn-data-table" data-testid="cn-object-list-table">
-			<thead v-if="!hideHeader">
-				<tr>
-					<!-- Checkbox column -->
-					<th v-if="selectable" class="cn-table-col--checkbox">
-						<NcCheckboxRadioSwitch
-							:model-value="allSelected"
-							:indeterminate="someSelected && !allSelected"
-							:aria-label="selectAllLabel"
-							@update:model-value="toggleSelectAll" />
-					</th>
+		<!-- Table. The horizontal scroll lives on this wrapper, NOT on
+		     `.cn-table-container`: `overflow-x: auto` on the container coerces
+		     its `overflow-y` from `visible` to `auto` (CSS forbids mixing
+		     `visible` with a non-visible value), which silently made the
+		     container the nearest scrollport. The sticky footer then anchored
+		     to a container that never scrolls, so "View all" scrolled away with
+		     the rows instead of pinning to the bottom of the enclosing widget. -->
+		<div v-else class="cn-data-table__scroll">
+			<table class="cn-data-table" data-testid="cn-object-list-table">
+				<thead v-if="!hideHeader">
+					<tr>
+						<!-- Checkbox column -->
+						<th v-if="selectable" class="cn-table-col--checkbox">
+							<NcCheckboxRadioSwitch
+								:model-value="allSelected"
+								:indeterminate="someSelected && !allSelected"
+								:aria-label="selectAllLabel"
+								@update:model-value="toggleSelectAll" />
+						</th>
 
-					<!-- Leading icon column (header is intentionally blank) -->
-					<th v-if="rowIcon" class="cn-table-col--icon" />
+						<!-- Leading icon column (header is intentionally blank) -->
+						<th v-if="rowIcon" class="cn-table-col--icon" />
 
-					<!-- Data columns -->
-					<th
-						v-for="col in effectiveColumns"
-						:key="col.key"
+						<!-- Data columns -->
+						<th
+							v-for="col in effectiveColumns"
+							:key="col.key"
+							:class="[
+								col.sortable ? 'cn-table-header--sortable' : '',
+								col.class || '',
+							]"
+							:style="col.width ? { width: col.width } : {}"
+							:tabindex="col.sortable ? 0 : null"
+							:aria-sort="ariaSortFor(col)"
+							@click="col.sortable ? onHeaderClick(col.key, $event) : null"
+							@keydown.enter="col.sortable ? onHeaderKeydown(col.key, $event) : null">
+							{{ translateLabel(col.label) }}
+							<span
+								v-if="col.sortable && sortKeyIndex(col.key) !== -1"
+								class="cn-table-sort-indicator">
+								{{ effectiveSortKeys[sortKeyIndex(col.key)].order === 'asc' ? '▲' : '▼' }}
+							</span>
+							<span
+								v-if="col.sortable && effectiveSortKeys.length > 1 && sortKeyIndex(col.key) !== -1"
+								class="cn-table-sort-badge">
+								{{ sortKeyIndex(col.key) + 1 }}
+							</span>
+						</th>
+
+						<!-- Actions column -->
+						<th v-if="$slots['row-actions']" class="cn-table-col--actions">
+							<!-- @slot Header cell content above the row-actions column (blank by default). -->
+							<slot name="actions-header" />
+						</th>
+					</tr>
+				</thead>
+
+				<tbody>
+					<!-- Empty state -->
+					<tr v-if="effectiveRows.length === 0" class="cn-table-empty" data-testid="cn-object-list-empty">
+						<td :colspan="totalColumns">
+							<!-- @slot Empty-state content shown when there are no rows (defaults to `emptyText`). -->
+							<slot name="empty">
+								{{ emptyText }}
+							</slot>
+						</td>
+					</tr>
+
+					<!-- Data rows -->
+					<tr
+						v-for="row in effectiveRows"
+						v-else
+						:key="row[rowKey]"
+						class="cn-table-row"
+						data-testid="cn-object-row"
+						:data-testid-row-id="row[rowKey]"
 						:class="[
-							col.sortable ? 'cn-table-header--sortable' : '',
-							col.class || '',
+							isSelected(row) ? 'cn-table-row--selected' : '',
+							rowClass ? rowClass(row) : '',
 						]"
-						:style="col.width ? { width: col.width } : {}"
-						:tabindex="col.sortable ? 0 : null"
-						:aria-sort="ariaSortFor(col)"
-						@click="col.sortable ? onHeaderClick(col.key, $event) : null"
-						@keydown.enter="col.sortable ? onHeaderKeydown(col.key, $event) : null">
-						{{ translateLabel(col.label) }}
-						<span
-							v-if="col.sortable && sortKeyIndex(col.key) !== -1"
-							class="cn-table-sort-indicator">
-							{{ effectiveSortKeys[sortKeyIndex(col.key)].order === 'asc' ? '▲' : '▼' }}
-						</span>
-						<span
-							v-if="col.sortable && effectiveSortKeys.length > 1 && sortKeyIndex(col.key) !== -1"
-							class="cn-table-sort-badge">
-							{{ sortKeyIndex(col.key) + 1 }}
-						</span>
-					</th>
+						@mousedown="onPointerDown"
+						@click="onRowClick(row, $event)"
+						@contextmenu.prevent="onRowContextMenu(row, $event)">
+						<!-- Checkbox -->
+						<td v-if="selectable" class="cn-table-col--checkbox" @click.stop>
+							<NcCheckboxRadioSwitch
+								:model-value="isSelected(row)"
+								:aria-label="selectRowLabel"
+								@update:model-value="toggleSelect(row)" />
+						</td>
 
-					<!-- Actions column -->
-					<th v-if="$slots['row-actions']" class="cn-table-col--actions">
-						<!-- @slot Header cell content above the row-actions column (blank by default). -->
-						<slot name="actions-header" />
-					</th>
-				</tr>
-			</thead>
+						<!-- Leading icon -->
+						<td v-if="rowIcon" class="cn-table-col--icon">
+							<CnIcon :name="getRowIcon(row)" :size="20" />
+						</td>
 
-			<tbody>
-				<!-- Empty state -->
-				<tr v-if="effectiveRows.length === 0" class="cn-table-empty" data-testid="cn-object-list-empty">
-					<td :colspan="totalColumns">
-						<!-- @slot Empty-state content shown when there are no rows (defaults to `emptyText`). -->
-						<slot name="empty">
-							{{ emptyText }}
-						</slot>
-					</td>
-				</tr>
-
-				<!-- Data rows -->
-				<tr
-					v-for="row in effectiveRows"
-					v-else
-					:key="row[rowKey]"
-					class="cn-table-row"
-					data-testid="cn-object-row"
-					:data-testid-row-id="row[rowKey]"
-					:class="[
-						isSelected(row) ? 'cn-table-row--selected' : '',
-						rowClass ? rowClass(row) : '',
-					]"
-					@mousedown="onPointerDown"
-					@click="onRowClick(row, $event)"
-					@contextmenu.prevent="onRowContextMenu(row, $event)">
-					<!-- Checkbox -->
-					<td v-if="selectable" class="cn-table-col--checkbox" @click.stop>
-						<NcCheckboxRadioSwitch
-							:model-value="isSelected(row)"
-							:aria-label="selectRowLabel"
-							@update:model-value="toggleSelect(row)" />
-					</td>
-
-					<!-- Leading icon -->
-					<td v-if="rowIcon" class="cn-table-col--icon">
-						<CnIcon :name="getRowIcon(row)" :size="20" />
-					</td>
-
-					<!-- Data cells -->
-					<td
-						v-for="col in effectiveColumns"
-						:key="col.key"
-						:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '']"
-						:style="col.width ? { maxWidth: col.width } : {}">
-						<!-- @slot Per-column cell override (`#column-<key>`), scoped with { row, value }. Wins over CnCellRenderer. -->
-						<slot :name="'column-' + col.key" :row="row" :value="cellValue(row, col)">
-							<!-- Every column renders through CnCellRenderer: it resolves
+						<!-- Data cells -->
+						<td
+							v-for="col in effectiveColumns"
+							:key="col.key"
+							:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '']"
+							:style="col.width ? { maxWidth: col.width } : {}">
+							<!-- @slot Per-column cell override (`#column-<key>`), scoped with { row, value }. Wins over CnCellRenderer. -->
+							<slot :name="'column-' + col.key" :row="row" :value="cellValue(row, col)">
+								<!-- Every column renders through CnCellRenderer: it resolves
 							     col.formatter / col.widget against the injected registries
 							     (cnFormatters / cnCellWidgets), uses the schema property when
 							     one is available (else {}) for type-aware rendering, and
 							     falls back to formatValue(). Columns with `aggregate` get a
 							     count of related objects (see cellValue/loadAggregates). The
 							     #column-{key} slot still wins. -->
-							<CnCellRenderer
-								:value="cellValue(row, col)"
-								:property="columnProperty(col)"
-								:formatter="col.formatter || null"
-								:formatter-options="col.formatterOptions || null"
-								:widget="col.widget || null"
-								:widget-props="col.widgetProps || undefined"
-								:format="columnFormat(col)"
-								:row="row"
-								:row-key="rowKey" />
-						</slot>
-					</td>
+								<CnCellRenderer
+									:value="cellValue(row, col)"
+									:property="columnProperty(col)"
+									:formatter="col.formatter || null"
+									:formatter-options="col.formatterOptions || null"
+									:widget="col.widget || null"
+									:widget-props="col.widgetProps || undefined"
+									:format="columnFormat(col)"
+									:row="row"
+									:row-key="rowKey" />
+							</slot>
+						</td>
 
-					<!-- Row actions -->
-					<td v-if="$slots['row-actions']" :class="['cn-table-col--actions', cellClass ? cellClass(row, { key: 'actions' }) : '']" @click.stop>
-						<!-- @slot Per-row actions menu (e.g. a CnRowActions), scoped with { row }. Supplying it adds the trailing actions column. -->
-						<slot name="row-actions" :row="row" />
-					</td>
-				</tr>
-			</tbody>
-		</table>
+						<!-- Row actions -->
+						<td v-if="$slots['row-actions']" :class="['cn-table-col--actions', cellClass ? cellClass(row, { key: 'actions' }) : '']" @click.stop>
+							<!-- @slot Per-row actions menu (e.g. a CnRowActions), scoped with { row }. Supplying it adds the trailing actions column. -->
+							<slot name="row-actions" :row="row" />
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
 
 		<!-- Optional footer. A `#footer` scoped slot lets a host render its own
 		     footer link (e.g. a "+ New" create action or an always-shown
