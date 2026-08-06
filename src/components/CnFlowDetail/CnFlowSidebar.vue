@@ -114,13 +114,31 @@
 
 		<!-- ── Actions ─────────────────────────────────────────────── -->
 		<section class="cn-flow-sidebar__actions">
-			<NcButton type="primary" :disabled="store.saving" @click="$emit('save')">
+			<NcButton type="primary" :disabled="store.saving || !store.flow.name" @click="$emit('save')">
 				{{ store.saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Save') }}
 			</NcButton>
 			<NcButton :disabled="store.running || !store.flow.id" @click="$emit('run')">
 				{{ store.running ? t('nextcloud-vue', 'Starting…') : t('nextcloud-vue', 'Run now') }}
 			</NcButton>
 		</section>
+
+		<!--
+			The server's reason for refusing a save or a run.
+
+			`store.error` was set on every failure and rendered NOWHERE, so a
+			refused save looked exactly like a save that worked: the button
+			flickered and nothing else happened. There is no server log line to
+			fall back on either, because a 400 JSONResponse is not an exception
+			(#607).
+
+			`store.save()` and `store.run()` both swallow the failure into
+			`return null`, and the consumer's `onSave()` then skips its
+			`$router.replace` — so the only remaining evidence that anything went
+			wrong is this card.
+		-->
+		<NcNoteCard v-if="store.error" type="error" class="cn-flow-sidebar__failure">
+			{{ errorText }}
+		</NcNoteCard>
 		<p v-if="!store.flow.id" class="cn-flow-sidebar__hint">
 			{{ t('nextcloud-vue', 'Save the flow before running it — the engine runs the stored flow, not the unsaved canvas.') }}
 		</p>
@@ -194,6 +212,29 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * What to show the user when a save or a run was refused.
+		 *
+		 * Prefers the API's own `error` field, because that is the sentence
+		 * written for a person — "A flow needs a name." says what to do, where
+		 * "Request failed with status code 400" does not. Falls back to the
+		 * axios message, and then to a generic line, so the card is never empty
+		 * while `store.error` is set.
+		 *
+		 * @return {string} The message.
+		 */
+		errorText() {
+			const error = this.store.error
+			if (!error) {
+				return ''
+			}
+
+			return error?.response?.data?.error
+				|| error?.response?.data?.message
+				|| error?.message
+				|| this.t('nextcloud-vue', 'The last action failed.')
+		},
+
 		/**
 		 * @return {string} The selected node's config as pretty JSON.
 		 */
