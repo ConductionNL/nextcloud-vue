@@ -25,9 +25,33 @@ import { fileURLToPath } from 'url'
 
 const dir = path.dirname(fileURLToPath(import.meta.url))
 
+/**
+ * Neutralise `<docs>` custom blocks.
+ *
+ * Several SFCs in this library carry a `<docs>` block for the styleguide.
+ * plugin-vue turns each into a `?vue&type=docs` import, and Vite's import
+ * analysis then tries to parse prose as JavaScript:
+ *
+ *   Failed to parse source for import analysis because the content contains
+ *   invalid JS syntax — CnGraphCanvas.vue?vue&type=docs
+ *
+ * That is a 500 on the whole module graph, so ANY component transitively
+ * importing such an SFC could not be mounted in this harness at all — which
+ * quietly put most of the library out of reach of an e2e test. Returning an
+ * empty module keeps the block available to the styleguide (which reads the
+ * SFC directly) while making it inert here.
+ */
+const stripDocsBlocks = {
+	name: 'harness-strip-docs-blocks',
+	enforce: 'pre',
+	load(id) {
+		return id.includes('vue&type=docs') ? 'export default {}' : null
+	},
+}
+
 export default defineConfig({
 	root: path.resolve(dir, 'harness'),
-	plugins: [vue()],
+	plugins: [stripDocsBlocks, vue()],
 	server: { port: 5199, strictPort: true },
 	resolve: {
 		dedupe: ['vue'],
