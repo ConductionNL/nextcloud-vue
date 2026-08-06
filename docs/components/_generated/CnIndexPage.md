@@ -141,7 +141,7 @@
 | `import-fields`   | `file`                                       |                                                                                             |
 | `delete-dialog`   | `item`, `close`                              | delete-dialog Replace the single-item delete dialog.                                        |
 | `copy-dialog`     | `item`, `close`                              | copy-dialog Replace the single-item copy dialog.                                            |
-| `form-dialog`     | `show`, `item`, `schema`, `close`            | form-dialog Replace the create/edit form dialog (use CnFormDialog or CnAdvancedFormDialog). |
+| `form-dialog`     | `show`, `item`, `schema`, `confirm`, `close` | form-dialog Replace the create/edit form dialog (use CnFormDialog or CnAdvancedFormDialog). |
 | `form-fields`     | —                                            |                                                                                             |
 | `empty`           | —                                            |                                                                                             |
 | `'column-' + col` | `name`, `row`, `value`                       |                                                                                             |

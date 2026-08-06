@@ -1505,7 +1505,7 @@
 				},
 				"route": {
 					"type": "string",
-					"description": "Destination route name for handler: 'navigate'. The dispatcher (manifestActionDispatch) calls $router.push({ name: route, params }). For row-level actions params include { id: row[rowKey] }; page-level header actions navigate without row context (e.g. a 'New X' action to a detail route)."
+					"description": "Destination route name for handler: 'navigate'. The dispatcher (manifestActionDispatch) calls $router.push({ name: route, params }). For row-level actions params include { id: row[rowKey] } automatically — do NOT restate it as params: { id: \"{id}\" }, though that placeholder does resolve (see `params`). Page-level header actions navigate without row context (e.g. a 'New X' action to a detail route)."
 				},
 				"icon": {
 					"type": "string",
@@ -1563,7 +1563,7 @@
 				"params": {
 					"type": "object",
 					"additionalProperties": true,
-					"description": "api-call / toggle only: the JSON request body (legacy — prefer `payload` for anything with nested objects/arrays; ignored when `payload` is set). Values run the shared filter-token grammar ONE level deep (@me, @today±Nd, @workspace.<key>/@config.<key> with a trailing `?` for optional values dropped when unresolved; a required unresolved token skips the call)."
+					"description": "Two distinct uses depending on the action's dispatch. (1) api-call / toggle: the JSON request body (legacy — prefer `payload` for anything with nested objects/arrays; ignored when `payload` is set). Values run the shared filter-token grammar ONE level deep (@me, @today±Nd, @workspace.<key>/@config.<key> with a trailing `?` for optional values dropped when unresolved; a required unresolved token skips the call). (2) handler: 'navigate' (index-page row actions, manifestActionDispatch): vue-router params merged OVER the default { id: row[rowKey] }. OMIT it for the ordinary 'open this row's detail page' action — the row id is already injected. String values run the `{field}` ROW-token grammar (NOT the @-token grammar): \"{id}\" resolves to row.id with its type preserved, \"run-{id}\" interpolates as text, and a brace-less \"new\" stays literal (that is what makes a 'New X' action navigate with { id: 'new' }). A token naming a field the row does not carry is dropped with a console.warn — so `id` falls back to the row id — instead of being pushed as a literal %7Bid%7D path segment."
 				},
 				"download": {
 					"type": "boolean",
