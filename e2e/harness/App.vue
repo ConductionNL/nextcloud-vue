@@ -33,6 +33,27 @@
 			</div>
 		</template>
 
+		<!--
+			Date-range chip harness (?chip=1). A real CnDashboardPage with the
+			range feature on and one custom widget opting into the chip, so the
+			popover's From/To inputs are the real NcActionInput date pickers.
+			The bug they cover was a TYPE mismatch — a string handed to a
+			Date-typed picker model renders EMPTY — which is invisible to jsdom
+			because the stub never runs the picker's own formatter.
+		-->
+		<template v-else-if="showDateChip">
+			<h2>Dashboard date chip</h2>
+			<CnDashboardPage
+				:widgets="chipWidgets"
+				:layout="chipLayout"
+				:date-range="chipDateRange"
+				title="Chip harness">
+				<template #widget-chip-widget>
+					<p data-testid="chip-widget-body">widget body</p>
+				</template>
+			</CnDashboardPage>
+		</template>
+
 		<!-- Walkthrough harness (gated behind ?wt=1 so its full-screen overlay
 		     doesn't block the icon/markdown sections). -->
 		<template v-else-if="showWalkthrough">
@@ -167,6 +188,7 @@ import CnFormPage from '../../src/components/CnFormPage/CnFormPage.vue'
 import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
 import CnSchemaFormDialog from '../../src/components/CnSchemaFormDialog/CnSchemaFormDialog.vue'
 import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
+import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
 
 const wtStep = (id, title, body) => ({ id, sinceVersion: '1.0.0', placement: 'center', title, body, target: { kind: 'page', ref: 'harness' }, advanceOn: { type: 'manual' } })
@@ -188,11 +210,26 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable },
+	components: { CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnDashboardPage },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
 			showDashboard: (typeof window !== 'undefined' && window.location.search.includes('dash')),
+			// Date-range chip harness (?chip=1) — see the template comment.
+			showDateChip: (typeof window !== 'undefined' && window.location.search.includes('chip')),
+			chipWidgets: [{ id: 'chip-widget', title: 'Chip widget', type: 'custom' }],
+			chipLayout: [{ id: 1, widgetId: 'chip-widget', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 3, dateChip: true }],
+			chipDateRange: {
+				enabled: true,
+				showHeaderPicker: false,
+				default: { preset: 'month' },
+				presets: [
+					{ id: 'week', label: 'Current week', period: 'week' },
+					{ id: 'month', label: 'Current month', period: 'month' },
+					{ id: 'quarter', label: 'Current quarter', period: 'quarter' },
+					{ id: 'year', label: 'Current year', period: 'year' },
+				],
+			},
 			dashRows: Array.from({ length: 30 }, (_, i) => ({ id: i + 1, name: 'Row ' + (i + 1) })),
 			// Schema-deletion harness (?sd=1). The register slug is what the modal
 			// matches against; the spec's page.route() stubs supply the register.
