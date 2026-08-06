@@ -128,6 +128,38 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @return {Promise<void>}
 		 */
 		async load({ app = null, id = null } = {}) {
+			// A BLANK flow is initialised BEFORE the network, and this ordering
+			// is the fix for #607 rather than a tidy-up.
+			//
+			// `emptyFlow()` has `name: ''`, and only `open('new')` supplies the
+			// default name. `open()` used to run at the tail of this method,
+			// behind `await GET /api/flows` — a flow LIST that starting a blank
+			// flow does not need. Meanwhile the sidebar is already rendered and
+			// Save already enabled, because `nodeCatalog` was populated by the
+			// index page's own `load()` and this store is a singleton that
+			// survives the route change.
+			//
+			// So there was a window in which the editor invited a Save of a flow
+			// with no name, which `FlowController::create()` answers 400 "A flow
+			// needs a name." — measured at 9 of 10 attempts against a fresh
+			// instance. The same late `open('new')` also reset `this.flow`, so a
+			// step placed during the window was wiped, and a save landing after
+			// it stored `nodes: []`.
+			//
+			// Nothing about a blank flow depends on the server, so it is set up
+			// first, and NOT re-opened at the tail — re-opening is what threw the
+			// user's work away.
+			//
+			// `id === 'new'` ONLY, never `id === null`. `save()` calls this
+			// method as `load({ app })` to refresh the list, and a null id has
+			// always meant "reload the list, leave the open flow alone". Treating
+			// that as blank would reset the flow immediately after storing it,
+			// discarding the id the server had just returned.
+			const isBlank = (id === 'new')
+			if (isBlank === true) {
+				this.open('new', app)
+			}
+
 			this.loading = true
 			this.error = null
 			try {
@@ -150,7 +182,11 @@ export const useFlowStore = defineStore('cnFlow', {
 			this.loadNodeCatalog()
 			this.loadEventCatalog()
 
-			if (id !== null) {
+			// A blank flow was already opened above, before the network. Opening
+			// it again here is what used to wipe a step the user had placed in
+			// the meantime, so only a STORED flow is opened at this point — it
+			// genuinely needs `this.flows`, which the request above just filled.
+			if (id !== null && isBlank === false) {
 				this.open(id, app)
 			}
 		},

@@ -9,9 +9,54 @@
 -->
 <template>
 	<div class="harness">
+		<!--
+			Dashboard layout harness (?dash=1). Mounts a CnDataTable inside a
+			height-constrained scrolling box that stands in for a widget card,
+			with more rows than fit. Both things it proves are LAYOUT facts that
+			only a real browser can settle: whether the "View all" footer stays
+			pinned while the rows scroll under it, and whether the sticky
+			positioning resolves against the right scrollport. jsdom computes no
+			layout at all, so the jest suite can assert the DOM structure and
+			nothing about where anything ends up.
+		-->
+		<template v-if="showDashboard">
+			<h2>Dashboard layout</h2>
+			<div class="dash-card" data-testid="dash-card">
+				<CnDataTable
+					:rows="dashRows"
+					:columns="['name']"
+					borderless
+					:total-row-count="dashRows.length"
+					:view-all-route="{ name: 'anything' }"
+					view-all-label="View all"
+					:limit="5" />
+			</div>
+		</template>
+
+		<!--
+			Date-range chip harness (?chip=1). A real CnDashboardPage with the
+			range feature on and one custom widget opting into the chip, so the
+			popover's From/To inputs are the real NcActionInput date pickers.
+			The bug they cover was a TYPE mismatch — a string handed to a
+			Date-typed picker model renders EMPTY — which is invisible to jsdom
+			because the stub never runs the picker's own formatter.
+		-->
+		<template v-else-if="showDateChip">
+			<h2>Dashboard date chip</h2>
+			<CnDashboardPage
+				:widgets="chipWidgets"
+				:layout="chipLayout"
+				:date-range="chipDateRange"
+				title="Chip harness">
+				<template #widget-chip-widget>
+					<p data-testid="chip-widget-body">widget body</p>
+				</template>
+			</CnDashboardPage>
+		</template>
+
 		<!-- Walkthrough harness (gated behind ?wt=1 so its full-screen overlay
 		     doesn't block the icon/markdown sections). -->
-		<template v-if="showWalkthrough">
+		<template v-else-if="showWalkthrough">
 			<h2>Walkthrough</h2>
 			<CnWalkthrough app-id="harness" :manifest="wtManifest" seen-version="" />
 		</template>
@@ -142,6 +187,8 @@ import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
 import CnFormPage from '../../src/components/CnFormPage/CnFormPage.vue'
 import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
 import CnSchemaFormDialog from '../../src/components/CnSchemaFormDialog/CnSchemaFormDialog.vue'
+import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
+import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
 
 const wtStep = (id, title, body) => ({ id, sinceVersion: '1.0.0', placement: 'center', title, body, target: { kind: 'page', ref: 'harness' }, advanceOn: { type: 'manual' } })
@@ -163,9 +210,27 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog },
+	components: { CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnDashboardPage },
 	data() {
 		return {
+			// Dashboard layout harness (?dash=1) — see the template comment.
+			showDashboard: (typeof window !== 'undefined' && window.location.search.includes('dash')),
+			// Date-range chip harness (?chip=1) — see the template comment.
+			showDateChip: (typeof window !== 'undefined' && window.location.search.includes('chip')),
+			chipWidgets: [{ id: 'chip-widget', title: 'Chip widget', type: 'custom' }],
+			chipLayout: [{ id: 1, widgetId: 'chip-widget', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 3, dateChip: true }],
+			chipDateRange: {
+				enabled: true,
+				showHeaderPicker: false,
+				default: { preset: 'month' },
+				presets: [
+					{ id: 'week', label: 'Current week', period: 'week' },
+					{ id: 'month', label: 'Current month', period: 'month' },
+					{ id: 'quarter', label: 'Current quarter', period: 'quarter' },
+					{ id: 'year', label: 'Current year', period: 'year' },
+				],
+			},
+			dashRows: Array.from({ length: 30 }, (_, i) => ({ id: i + 1, name: 'Row ' + (i + 1) })),
 			// Schema-deletion harness (?sd=1). The register slug is what the modal
 			// matches against; the spec's page.route() stubs supply the register.
 			showSchemaDelete: (typeof window !== 'undefined' && window.location.search.includes('sd')),
@@ -258,6 +323,16 @@ export default {
 </script>
 
 <style>
+/* Stands in for a dashboard widget card: a fixed-height scrolling content area
+   with a border. Deliberately SHORTER than its rows, so the footer has to
+   survive scrolling rather than merely existing. */
+.dash-card {
+	height: 240px;
+	overflow-y: auto;
+	border: 1px solid #ccc;
+	width: 420px;
+}
+
 body { font-family: sans-serif; padding: 16px; }
 section { margin-bottom: 32px; max-width: 480px; }
 pre { background: #f4f4f4; padding: 6px; }
