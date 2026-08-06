@@ -65,6 +65,45 @@ describe('manifestActionDispatch — v1.3.0 handler dispatch (back-compat)', () 
 		expect(c.router.push).toHaveBeenCalledWith({ name: 'detail', params: { id: 'row-3' } })
 	})
 
+	it('handler:navigate resolves a "{id}" param token against the row', () => {
+		const c = ctx()
+		const fn = resolveActionHandler({ id: 'a', handler: 'navigate', route: 'detail', params: { id: '{id}' } }, c)
+		fn({ id: 'row-3' })
+		expect(c.router.push).toHaveBeenCalledWith({ name: 'detail', params: { id: 'row-3' } })
+	})
+
+	it('handler:navigate resolves non-id field tokens and preserves their type', () => {
+		const c = ctx()
+		const fn = resolveActionHandler({
+			id: 'a',
+			handler: 'navigate',
+			route: 'detail',
+			params: { id: '{ref}', tab: 'logs', label: 'run-{name}' },
+		}, c)
+		fn({ id: 'row-3', ref: 42, name: 'nightly' })
+		expect(c.router.push).toHaveBeenCalledWith({
+			name: 'detail',
+			params: { id: 42, tab: 'logs', label: 'run-nightly' },
+		})
+	})
+
+	it('handler:navigate keeps a brace-less literal param (the "New X" pattern)', () => {
+		const c = ctx()
+		const fn = resolveActionHandler({ id: 'a', handler: 'navigate', route: 'detail', params: { id: 'new' } }, c)
+		fn({ id: 'row-3' })
+		expect(c.router.push).toHaveBeenCalledWith({ name: 'detail', params: { id: 'new' } })
+	})
+
+	it('handler:navigate drops an unresolvable token and falls back to the row id', () => {
+		const c = ctx()
+		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		const fn = resolveActionHandler({ id: 'a', handler: 'navigate', route: 'detail', params: { id: '{missing}' } }, c)
+		fn({ id: 'row-3' })
+		expect(c.router.push).toHaveBeenCalledWith({ name: 'detail', params: { id: 'row-3' } })
+		expect(warn).toHaveBeenCalled()
+		warn.mockRestore()
+	})
+
 	it('handler registry function is wrapped', () => {
 		const spy = jest.fn()
 		const c = ctx({ customComponents: { doThing: spy } })
