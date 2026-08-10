@@ -80,6 +80,19 @@ one itself, mirroring how it never mutates positions.
 			@wheel="onCanvasWheel"
 			@dragover="onDragOver"
 			@drop="onDrop">
+			<!--
+				The grid is painted on its own layer under the world rather than
+				ON the world, because the world is viewport-sized: a background
+				there would stop at the original viewport's edge and leave blank
+				space the moment the graph was panned. This layer stays still
+				and moves its PATTERN instead, so it covers everything visible
+				at every pan and zoom.
+			-->
+			<div v-if="showGrid"
+				class="cn-graph-canvas__grid"
+				:style="gridStyle"
+				aria-hidden="true" />
+
 			<div class="cn-graph-canvas__world" :style="worldStyle">
 				<!-- Edge layer. Sits under the nodes so node bodies stay clickable. -->
 				<svg class="cn-graph-canvas__svg" :viewBox="viewBox">
@@ -158,6 +171,23 @@ one itself, mirroring how it never mutates positions.
 					</slot>
 
 					<!--
+						The resize grip. Only when the consumer asks for it: a
+						canvas whose nodes are a fixed size by design should not
+						grow a handle nobody can use meaningfully.
+
+						`mousedown.stop` so gripping the corner resizes rather
+						than dragging the node — the grip sits inside the node,
+						so without it both gestures would start at once.
+					-->
+					<button v-if="resizable && !readOnly"
+						class="cn-graph-canvas__resize"
+						type="button"
+						:aria-label="`Resize ${node.label || node.id}`"
+						@mousedown.stop="onResizeMouseDown(node, $event)"
+						@click.stop
+						@keydown="onResizeKeydown(node, $event)" />
+
+					<!--
 						Connection ports. A node declares them (`node.ports`) and
 						gets exactly those; a node that declares none keeps the
 						single right-hand out-port, so no existing consumer
@@ -204,6 +234,9 @@ const KEY_STEP_COARSE = 50
 /** Key that starts/completes a keyboard-driven connection. */
 const CONNECT_KEY = 'c'
 /** Columns used when laying out nodes that carry no stored position. */
+/** The smallest a node may be resized to, so it can never be lost to a stray drag. */
+const MIN_NODE_SIZE = 40
+
 const AUTO_LAYOUT_COLUMNS = 4
 /** Gap between auto-laid-out nodes, in canvas units. */
 const AUTO_LAYOUT_GAP = 60
@@ -338,6 +371,37 @@ export default {
 			default: false,
 		},
 		/**
+		 * Whether to draw a dot grid behind the graph.
+		 *
+		 * The dots are painted on the WORLD, so they pan and zoom with the
+		 * content: a grid that stayed still while the graph moved would say
+		 * nothing about where anything sits, which is the one thing a grid is
+		 * for. Off by default — a canvas used as a diagram surface does not
+		 * always want one.
+		 */
+		showGrid: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Whether nodes carry a corner grip that resizes them.
+		 *
+		 * The size lands on the node as `width`/`height` through
+		 * `@node-resize`; the canvas never mutates `nodes` itself, exactly as
+		 * it never mutates positions.
+		 */
+		resizable: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * The spacing between grid dots, in canvas units.
+		 */
+		gridSize: {
+			type: Number,
+			default: 24,
+		},
+		/**
 		 * Whether nodes expose a connection handle.
 		 *
 		 * @type {boolean}
@@ -348,7 +412,7 @@ export default {
 		},
 	},
 
-	emits: ['canvas-click', 'canvas-drop', 'connect', 'edge-select', 'node-move', 'node-select', 'update:zoom'],
+	emits: ['canvas-click', 'canvas-drop', 'connect', 'edge-select', 'node-move', 'node-resize', 'node-select', 'update:zoom'],
 
 	data() {
 		return {
@@ -360,6 +424,8 @@ export default {
 			panning: false,
 			/** @type {{x: number, y: number}} Pan offset in screen pixels. */
 			panOffset: { x: 0, y: 0 },
+			/** @type {?object} The node being resized, and the size it started at. */
+			resizingNode: null,
 			/** @type {{x: number, y: number}} Pan gesture origin. */
 			panStart: { x: 0, y: 0 },
 			/** @type {string|null} Source node id of a keyboard connection in progress. */
@@ -374,6 +440,24 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The dot grid, aligned to the world.
+		 *
+		 * The pattern is scaled by the zoom and offset by the pan, which is
+		 * what keeps a dot on the same canvas coordinate as the graph moves —
+		 * the layer itself never transforms, so it always fills the viewport
+		 * however far the author has panned.
+		 *
+		 * @return {object} The style bindings.
+		 */
+		gridStyle() {
+			const spacing = Math.max(2, this.gridSize * this.zoom)
+
+			return {
+				backgroundSize: `${spacing}px ${spacing}px`,
+				backgroundPosition: `${this.panOffset.x}px ${this.panOffset.y}px`,
+			}
+		},
 		/** Transform for the world layer (pan + zoom). */
 		worldStyle() {
 			return {
@@ -490,11 +574,69 @@ export default {
 		 * @return {object} The style object.
 		 */
 		nodeStyle(node) {
+			// A node's OWN size wins over the canvas default, so one long note
+			// or one wide card can be given room without every node growing.
+			// The default is unchanged for a node that declares none, so no
+			// existing consumer moves.
+			const width = (Number(node.width) > 0 ? Number(node.width) : this.nodeWidth)
+			const height = (Number(node.height) > 0 ? Number(node.height) : this.nodeHeight)
+
 			return {
 				left: `${node.x}px`,
 				top: `${node.y}px`,
-				width: `${this.nodeWidth}px`,
-				minHeight: `${this.nodeHeight}px`,
+				width: `${width}px`,
+				minHeight: `${height}px`,
+			}
+		},
+
+		/**
+		 * Resize a node from the keyboard.
+		 *
+		 * A grip is a pointer gesture, and a pointer gesture cannot be the only
+		 * way to perform an action (WCAG 2.1 AA 2.1.1). Arrow keys on the
+		 * focused grip resize in the same steps the arrows move a node by, so
+		 * the two gestures are learned once.
+		 *
+		 * @param {object}        node  The node.
+		 * @param {KeyboardEvent} event The key event.
+		 * @return {void}
+		 */
+		onResizeKeydown(node, event) {
+			if (this.readOnly) return
+			const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']
+			if (keys.includes(event.key) === false) return
+
+			event.preventDefault()
+			event.stopPropagation()
+			const step = event.shiftKey ? KEY_STEP_COARSE : KEY_STEP
+			const dx = (event.key === 'ArrowLeft' ? -step : 0) + (event.key === 'ArrowRight' ? step : 0)
+			const dy = (event.key === 'ArrowUp' ? -step : 0) + (event.key === 'ArrowDown' ? step : 0)
+			const width = (Number(node.width) > 0 ? Number(node.width) : this.nodeWidth)
+			const height = (Number(node.height) > 0 ? Number(node.height) : this.nodeHeight)
+
+			this.$emit('node-resize', {
+				id: node.id,
+				width: Math.max(MIN_NODE_SIZE, width + dx),
+				height: Math.max(MIN_NODE_SIZE, height + dy),
+			})
+		},
+
+		/**
+		 * Begin resizing a node from its corner grip.
+		 *
+		 * @param {object}     node  The node.
+		 * @param {MouseEvent} event The mousedown event.
+		 * @return {void}
+		 */
+		onResizeMouseDown(node, event) {
+			if (this.readOnly) return
+			const point = this.toCanvasPoint(event)
+			this.resizingNode = {
+				id: node.id,
+				startX: point.x,
+				startY: point.y,
+				width: (Number(node.width) > 0 ? Number(node.width) : this.nodeWidth),
+				height: (Number(node.height) > 0 ? Number(node.height) : this.nodeHeight),
 			}
 		},
 
@@ -661,6 +803,7 @@ export default {
 			}
 			this.drawingConnection = null
 			this.draggingNode = null
+			this.resizingNode = null
 		},
 
 		/**
@@ -750,17 +893,39 @@ export default {
 		 * @return {void}
 		 */
 		onCanvasMouseMove(event) {
-			if (this.draggingNode) {
+			if (this.resizingNode) {
+				const point = this.toCanvasPoint(event)
+				/**
+				 * @event node-resize A node was resized. Sizes are owned by the
+				 * consumer exactly as positions are: the canvas reports intent
+				 * and never mutates `nodes`.
+				 * @type {{id: string, width: number, height: number}}
+				 */
+				this.$emit('node-resize', {
+					id: this.resizingNode.id,
+					width: Math.max(MIN_NODE_SIZE, this.resizingNode.width + (point.x - this.resizingNode.startX)),
+					height: Math.max(MIN_NODE_SIZE, this.resizingNode.height + (point.y - this.resizingNode.startY)),
+				})
+			} else if (this.draggingNode) {
 				const point = this.toCanvasPoint(event)
 				/**
 				 * @event node-move A node was dragged. Positions are owned by the
 				 * consumer: the canvas reports intent and does not mutate `nodes`.
 				 * @type {{id: string, x: number, y: number}}
 				 */
+				// NOT clamped to the origin. A graph has no top-left corner: the
+				// author decides where the drawing sits, and pinning it to
+				// (0,0) means nothing can ever be placed ABOVE or LEFT of
+				// whatever is currently highest — so adding a trigger to a
+				// finished flow was impossible without dragging every other
+				// node down first.
+				//
+				// Negative coordinates are reachable: the world is panned, so
+				// the origin is not an edge of anything.
 				this.$emit('node-move', {
 					id: this.draggingNode.id,
-					x: Math.max(0, point.x - this.draggingNode.offsetX),
-					y: Math.max(0, point.y - this.draggingNode.offsetY),
+					x: point.x - this.draggingNode.offsetX,
+					y: point.y - this.draggingNode.offsetY,
 				})
 			} else if (this.drawingConnection) {
 				const point = this.toCanvasPoint(event)
@@ -839,10 +1004,14 @@ export default {
 			const step = event.shiftKey ? KEY_STEP_COARSE : KEY_STEP
 			const dx = (event.key === 'ArrowLeft' ? -step : 0) + (event.key === 'ArrowRight' ? step : 0)
 			const dy = (event.key === 'ArrowUp' ? -step : 0) + (event.key === 'ArrowDown' ? step : 0)
+			// Unclamped for the same reason as the drag: the keyboard must be
+			// able to reach every position the pointer can (WCAG 2.1 AA 2.1.1),
+			// and a clamp here would make "above the flow" mouse-only if the
+			// drag allowed it and the keyboard did not.
 			this.$emit('node-move', {
 				id: node.id,
-				x: Math.max(0, node.x + dx),
-				y: Math.max(0, node.y + dy),
+				x: node.x + dx,
+				y: node.y + dy,
 			})
 		},
 
@@ -990,6 +1159,52 @@ export default {
 
 .cn-graph-canvas--panning .cn-graph-canvas__viewport {
 	cursor: grabbing;
+}
+
+.cn-graph-canvas__resize {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	width: 14px;
+	height: 14px;
+	padding: 0;
+	border: none;
+	background: transparent;
+	cursor: nwse-resize;
+	/* The diagonal is drawn rather than iconed: two hairlines read as a grip at
+	   14px where a glyph would be mush. */
+	background-image: linear-gradient(
+		135deg,
+		transparent 0 45%,
+		var(--color-border-dark) 45% 55%,
+		transparent 55% 100%
+	);
+	opacity: 0;
+}
+
+/* Revealed on hover or focus: a grip on every node at all times is visual
+   noise on a graph of thirty. It stays keyboard-reachable because focus shows
+   it (WCAG 2.1 AA 2.4.7). */
+.cn-graph-canvas__node:hover .cn-graph-canvas__resize,
+.cn-graph-canvas__resize:focus-visible {
+	opacity: 1;
+}
+
+.cn-graph-canvas__resize:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 1px;
+}
+
+.cn-graph-canvas__grid {
+	position: absolute;
+	inset: 0;
+	/* Decoration only: it must never take a click meant for the canvas. */
+	pointer-events: none;
+	/* One dot per cell, in the theme's border colour so it reads as texture
+	   rather than as content. `--color-border` is the lightest structural line
+	   NC defines, which is what a grid should be. */
+	background-image: radial-gradient(circle, var(--color-border) 1px, transparent 1px);
+	background-repeat: repeat;
 }
 
 .cn-graph-canvas__world {

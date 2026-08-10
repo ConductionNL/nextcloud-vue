@@ -74,6 +74,84 @@ describe('CnGraphCanvas', () => {
 		})
 	})
 
+	describe('resizing', () => {
+		// The canvas reports intent and never mutates `nodes`, exactly as it
+		// does for positions — so a resize is an EVENT, and a consumer that
+		// ignores it sees no change.
+		it('reports a new size from the corner grip without mutating the node', () => {
+			const nodes = [{ id: 'a', x: 0, y: 0, width: 200, height: 100 }]
+			const wrapper = mountCanvas({ nodes, resizable: true })
+
+			wrapper.vm.onResizeMouseDown(nodes[0], { clientX: 0, clientY: 0 })
+			wrapper.vm.onCanvasMouseMove({ clientX: 60, clientY: 40 })
+
+			expect(wrapper.emitted('node-resize')[0][0]).toEqual({ id: 'a', width: 260, height: 140 })
+			// The canvas must not mutate the node it was given.
+			expect(nodes[0].width).toBe(200)
+		})
+
+		// A stray drag past the top-left must not leave a node too small to
+		// grab again.
+		it('never resizes below the minimum', () => {
+			const nodes = [{ id: 'a', x: 0, y: 0, width: 200, height: 100 }]
+			const wrapper = mountCanvas({ nodes, resizable: true })
+
+			wrapper.vm.onResizeMouseDown(nodes[0], { clientX: 0, clientY: 0 })
+			wrapper.vm.onCanvasMouseMove({ clientX: -9000, clientY: -9000 })
+
+			const size = wrapper.emitted('node-resize')[0][0]
+			expect(size.width).toBe(40)
+			expect(size.height).toBe(40)
+		})
+
+		// A grip is a pointer gesture, and a pointer gesture cannot be the only
+		// way to perform an action (WCAG 2.1 AA 2.1.1).
+		it('resizes from the keyboard', () => {
+			const nodes = [{ id: 'a', x: 0, y: 0, width: 200, height: 100 }]
+			const wrapper = mountCanvas({ nodes, resizable: true })
+
+			wrapper.vm.onResizeKeydown(nodes[0], {
+				key: 'ArrowRight',
+				shiftKey: false,
+				preventDefault() {},
+				stopPropagation() {},
+			})
+
+			expect(wrapper.emitted('node-resize')[0][0]).toEqual({ id: 'a', width: 210, height: 100 })
+		})
+
+		it('does not resize when read-only', () => {
+			const nodes = [{ id: 'a', x: 0, y: 0, width: 200, height: 100 }]
+			const wrapper = mountCanvas({ nodes, resizable: true, readOnly: true })
+
+			wrapper.vm.onResizeMouseDown(nodes[0], { clientX: 0, clientY: 0 })
+			wrapper.vm.onCanvasMouseMove({ clientX: 60, clientY: 40 })
+
+			expect(wrapper.emitted('node-resize')).toBeFalsy()
+		})
+	})
+
+	describe('the dot grid', () => {
+		it('is absent unless asked for', () => {
+			expect(mountCanvas().find('.cn-graph-canvas__grid').exists()).toBe(false)
+			expect(mountCanvas({ showGrid: true }).find('.cn-graph-canvas__grid').exists()).toBe(true)
+		})
+
+		// The dots must sit on the same canvas coordinate as the graph at every
+		// pan and zoom — a grid that stayed still while the content moved would
+		// say nothing about where anything is, which is the only thing a grid
+		// is for.
+		it('scales with the zoom and follows the pan', () => {
+			const wrapper = mountCanvas({ showGrid: true, gridSize: 20, zoom: 2 })
+			wrapper.vm.panOffset = { x: 30, y: -15 }
+
+			expect(wrapper.vm.gridStyle).toEqual({
+				backgroundSize: '40px 40px',
+				backgroundPosition: '30px -15px',
+			})
+		})
+	})
+
 	describe('node dragging', () => {
 		it('emits node-move rather than mutating the nodes prop', async () => {
 			const wrapper = mountCanvas()
@@ -95,11 +173,16 @@ describe('CnGraphCanvas', () => {
 			expect(wrapper.emitted('node-move')[0][0]).toEqual({ id: 'a', x: 200, y: 200 })
 		})
 
-		it('clamps a node to the positive quadrant', () => {
+		// A graph has no top-left corner. Clamping to (0,0) meant nothing could
+		// ever be placed ABOVE or LEFT of whatever was currently highest, so
+		// adding a trigger to a finished flow was impossible without first
+		// dragging every other node down. Negative coordinates are reachable
+		// because the world is panned — the origin is not an edge of anything.
+		it('lets a node move above and left of the origin', () => {
 			const wrapper = mountCanvas()
 			wrapper.vm.onNodeMouseDown(NODES[0], { clientX: 100, clientY: 100 })
 			wrapper.vm.onCanvasMouseMove({ clientX: -500, clientY: -500 })
-			expect(wrapper.emitted('node-move')[0][0]).toEqual({ id: 'a', x: 0, y: 0 })
+			expect(wrapper.emitted('node-move')[0][0]).toEqual({ id: 'a', x: -500, y: -500 })
 		})
 
 		it('does not drag when read-only', () => {
@@ -355,10 +438,13 @@ describe('CnGraphCanvas', () => {
 			expect(wrapper.emitted('node-move')[0][0]).toEqual({ id: 'a', x: 100, y: 150 })
 		})
 
-		it('keyboard movement is clamped to the positive quadrant too', () => {
+		// The keyboard must reach every position the pointer can (WCAG 2.1 AA
+		// 2.1.1), so it is unclamped for the same reason the drag is: a clamp
+		// here alone would make "above the flow" mouse-only.
+		it('keyboard movement reaches negative coordinates too', () => {
 			const wrapper = mountCanvas({ nodes: [{ id: 'a', x: 5, y: 5 }] })
 			wrapper.vm.onNodeKeydown({ id: 'a', x: 5, y: 5 }, { key: 'ArrowLeft', shiftKey: false, preventDefault() {} })
-			expect(wrapper.emitted('node-move')[0][0]).toEqual({ id: 'a', x: 0, y: 5 })
+			expect(wrapper.emitted('node-move')[0][0]).toEqual({ id: 'a', x: -5, y: 5 })
 		})
 
 		it('ignores non-arrow keys so typing in a node slot still works', () => {
