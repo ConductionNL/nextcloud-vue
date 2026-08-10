@@ -1,3 +1,4 @@
+import { toRaw } from 'vue'
 import { defineStore } from 'pinia'
 import { buildHeaders, buildQueryString, prefixUrl, capitalize } from '../utils/headers.js'
 import { parseResponseError, networkError, genericError } from '../utils/errors.js'
@@ -671,7 +672,30 @@ const baseActions = {
 
 			if (!response.ok) {
 				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
-				console.error(`Error fetching ${type}/${id}:`, this.errors[type])
+				// A 404 on a fetch-by-id is an EXPECTED answer, not a fault:
+				// asking whether an object exists is how a consumer finds out
+				// that it does not. scholiq's credential-verification page is
+				// built on exactly that question, so an unknown or revoked id is
+				// the designed path — and the page renders the invalid state
+				// correctly while this line failed its "no fatal JS errors" e2e
+				// check, which the app has no way to suppress (#612).
+				//
+				// The outcome is already recorded in `this.errors[type]` for the
+				// component to render, so the console write adds nothing the
+				// consumer can act on. The same guard is on the sub-resource
+				// path in createSubResourcePlugin / useSubResource; this is the
+				// single-object path it missed, and it is the one that shipped
+				// the message scholiq actually sees.
+				//
+				// Genuine faults (5xx, 403, …) still surface, and now say WHAT
+				// went wrong: `parseResponseError` returns a reactive proxy,
+				// which the console renders as an unreadable `Proxy(Object)`.
+				if (response.status !== 404) {
+					console.error(
+						`Error fetching ${type}/${id}: ${response.status} ${response.statusText}`,
+						toRaw(this.errors[type]),
+					)
+				}
 				return null
 			}
 
