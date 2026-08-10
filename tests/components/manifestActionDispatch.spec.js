@@ -87,6 +87,21 @@ describe('manifestActionDispatch — v1.3.0 handler dispatch (back-compat)', () 
 		})
 	})
 
+	it('handler:navigate preserves falsy-but-defined field values (null, 0, false) as route params', () => {
+		const c = ctx()
+		const fn = resolveActionHandler({
+			id: 'a',
+			handler: 'navigate',
+			route: 'detail',
+			params: { id: '{id}', parent: '{parentId}', priority: '{priority}', archived: '{archived}' },
+		}, c)
+		fn({ id: 'row-3', parentId: null, priority: 0, archived: false })
+		expect(c.router.push).toHaveBeenCalledWith({
+			name: 'detail',
+			params: { id: 'row-3', parent: null, priority: 0, archived: false },
+		})
+	})
+
 	it('handler:navigate keeps a brace-less literal param (the "New X" pattern)', () => {
 		const c = ctx()
 		const fn = resolveActionHandler({ id: 'a', handler: 'navigate', route: 'detail', params: { id: 'new' } }, c)

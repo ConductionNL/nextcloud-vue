@@ -130,8 +130,8 @@ export function resolveActionHandler(action, ctx) {
 					params[key] = value
 				} else {
 					console.warn(`[CnIndexPage] action "${action.id}" param "${key}" references `
-						+ `"${declared}" but the row carries no such field; dropping the param `
-						+ '("id" falls back to the row id).')
+						+ `"${declared}" but the row carries no such field; dropping the param`
+						+ (key === 'id' ? ' ("id" falls back to the row id).' : '.'))
 				}
 			}
 			ctx.router.push({ name: route, params })
