@@ -45,6 +45,28 @@
 		</template>
 
 		<!--
+			NcSelect inside a dialog (gated behind ?selz=1).
+
+			`NcSelect.appendToBody` defaults to TRUE, so vue-select teleports its
+			menu to <body> and gives it `--vs-dropdown-z-index: 9999`. This library
+			raises every dialog mask to 10005, so the dialog paints OVER its own
+			dropdown and the options cannot be clicked. Plain NcDialog + plain
+			NcSelect, no library component in between, so the spec measures the
+			stacking contract itself and not some wrapper's behaviour.
+		-->
+		<template v-else-if="showSelectZ">
+			<h2>NcSelect inside a dialog</h2>
+			<NcDialog name="Select in dialog" :open="true" size="normal">
+				<div style="min-height: 220px;">
+					<NcSelect v-model="selZValue"
+						input-label="Pick a fruit"
+						:options="selZOptions" />
+				</div>
+			</NcDialog>
+			<pre data-testid="selz-value">{{ selZValue === null ? 'null' : selZValue }}</pre>
+		</template>
+
+		<!--
 			CnSchemaFormDialog schema-reference dropdown (gated behind ?sref=1).
 			available-schemas are shaped like OpenBuild passes them — keyed by
 			title/slug with NO `label` — so the e2e reproduces the "undefined" options
@@ -142,6 +164,7 @@ import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
 import CnFormPage from '../../src/components/CnFormPage/CnFormPage.vue'
 import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
 import CnSchemaFormDialog from '../../src/components/CnSchemaFormDialog/CnSchemaFormDialog.vue'
+import { NcDialog, NcSelect } from '@nextcloud/vue'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
 
 const wtStep = (id, title, body) => ({ id, sinceVersion: '1.0.0', placement: 'center', title, body, target: { kind: 'page', ref: 'harness' }, advanceOn: { type: 'manual' } })
@@ -163,7 +186,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog },
+	components: { CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, NcDialog, NcSelect },
 	data() {
 		return {
 			// Schema-deletion harness (?sd=1). The register slug is what the modal
@@ -172,6 +195,10 @@ export default {
 			// Schema editor with one string property, for the enum-add arrow test (?spa=1).
 			showSchemaForm: (typeof window !== 'undefined' && window.location.search.includes('spa')),
 			spaSchema: { title: 'Cow', properties: { size: { type: 'string' } }, required: [] },
+			// NcSelect-inside-a-dialog stacking harness (?selz=1).
+			showSelectZ: (typeof window !== 'undefined' && window.location.search.includes('selz')),
+			selZValue: null,
+			selZOptions: ['Apple', 'Banana', 'Cherry'],
 			// Schema-reference dropdown harness (?sref=1).
 			showSchemaRef: (typeof window !== 'undefined' && window.location.search.includes('sref')),
 			srefSchemas: [
