@@ -223,10 +223,23 @@
  *
  * `NcSelect` wraps vue-select, whose `.vs__search` is the type-to-filter input
  * that sits BESIDE the selected value inside one control. Stock vue-select
- * gives it no border, but Nextcloud's global `input` styling does — so every
- * single-select rendered an empty bordered box to the right of its own value,
- * which reads as a second, broken field. Visible on every Provider, Agent and
+ * gives it a transparent border; the LA SUITE theme sets
+ *
+ *     input[type="text"], input[type="search"], … {
+ *         border: 1px solid var(--lasuite-color-gray-300) !important;
+ *     }
+ *
+ * which lands on it and draws an empty bordered box to the right of the
+ * selected value — a second, broken-looking field on every Provider, Agent and
  * Execution dropdown in the fleet.
+ *
+ * `!important` is REQUIRED here and not laziness: the theme's rule carries it,
+ * so no amount of specificity can win. The override is narrow — `.vs__search`
+ * is never a standalone input, always the inner field of a composite control —
+ * so this cannot reach a real text box the theme meant to style.
+ *
+ * The root cause is the theme reaching into a composite control it does not
+ * own; fixing it there would be better, and this stays until it does.
  *
  * Unscoped and here rather than in a component, because the control belongs to
  * @nextcloud/vue: no Conduction component owns the element, and each app
@@ -237,8 +250,8 @@
  */
 .v-select .vs__search,
 .v-select .vs__search:focus {
-	border: none;
-	box-shadow: none;
+	border: none !important;
+	box-shadow: none !important;
 	min-height: unset;
 	background-color: transparent;
 }
