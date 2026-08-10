@@ -10,6 +10,11 @@ import Vue from 'vue'
 // Nextcloud CSS custom properties so the harness reflects real theming
 // (the library styles everything with var(--color-*) tokens).
 import '../../styleguide/nextcloud-tokens.css'
+// The library's global patch stylesheet. A consuming app gets this through
+// `src/css/index.css`; the harness needs it so specs that assert on globally
+// patched behaviour (e.g. where a body-portaled popup stacks relative to a
+// dialog) measure what a consumer actually renders.
+import '../../src/css/patches.css'
 import App from './App.vue'
 
 // Minimal l10n shims so library components that call the global `t`/`n` render.
