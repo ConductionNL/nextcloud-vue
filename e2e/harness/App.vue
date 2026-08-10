@@ -90,6 +90,30 @@
 		</template>
 
 		<!--
+			NcSelect inside a dialog (gated behind ?selz=1).
+
+			`NcSelect.appendToBody` defaults to TRUE, so vue-select teleports its
+			menu to <body>. @nextcloud/vue gives that menu
+			`--vs-dropdown-z-index: 9999`, while this library raises every dialog
+			mask to 10005 — so the dialog paints over its own dropdown.
+
+			Plain NcDialog + plain NcSelect with no library component in between,
+			so the spec measures the stacking contract itself rather than some
+			wrapper's behaviour.
+		-->
+		<template v-else-if="showSelectZ">
+			<h2>NcSelect inside a dialog</h2>
+			<NcDialog name="Select in dialog" :open="true">
+				<div style="min-height: 220px;">
+					<NcSelect v-model="selZValue"
+						input-label="Pick a fruit"
+						:options="selZOptions" />
+				</div>
+			</NcDialog>
+			<pre data-testid="selz-value">{{ selZValue === null ? 'null' : selZValue }}</pre>
+		</template>
+
+		<!--
 			CnSchemaFormDialog schema-reference dropdown (gated behind ?sref=1).
 			available-schemas are shaped like OpenBuild passes them — keyed by
 			title/slug with NO `label` — so the e2e reproduces the "undefined" options
@@ -189,6 +213,8 @@ import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
 import CnSchemaFormDialog from '../../src/components/CnSchemaFormDialog/CnSchemaFormDialog.vue'
 import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
 import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
+import { NcDialog, NcSelect } from '@nextcloud/vue'
+import { installModalStack } from '../../src/utils/modalStack.js'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
 
 const wtStep = (id, title, body) => ({ id, sinceVersion: '1.0.0', placement: 'center', title, body, target: { kind: 'page', ref: 'harness' }, advanceOn: { type: 'manual' } })
@@ -210,7 +236,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnDashboardPage },
+	components: { CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnDashboardPage, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -238,6 +264,10 @@ export default {
 			showSchemaForm: (typeof window !== 'undefined' && window.location.search.includes('spa')),
 			spaSchema: { title: 'Cow', properties: { size: { type: 'string' } }, required: [] },
 			// Schema-reference dropdown harness (?sref=1).
+			// NcSelect-inside-a-dialog stacking harness (?selz=1).
+			showSelectZ: (typeof window !== 'undefined' && window.location.search.includes('selz')),
+			selZValue: null,
+			selZOptions: ['Apple', 'Banana', 'Cherry'],
 			showSchemaRef: (typeof window !== 'undefined' && window.location.search.includes('sref')),
 			srefSchemas: [
 				{ id: 100, slug: 'cow', title: 'Cow' },
@@ -317,6 +347,17 @@ export default {
 					}],
 				},
 			},
+		}
+	},
+	mounted() {
+		// A real app gets the modal stack for free — `CnAppRoot` installs it on
+		// mount, and apps that do not mount `CnAppRoot` are told to call this
+		// from `main.js`. The harness mounts bare SFCs, so without this the
+		// mask keeps @nextcloud/vue's own 9998 and any spec about how something
+		// stacks against a dialog would be measuring a layout no user ever sees.
+		// Scoped to this scenario so the other harness sections are untouched.
+		if (this.showSelectZ) {
+			installModalStack()
 		}
 	},
 }
