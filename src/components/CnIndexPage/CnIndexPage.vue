@@ -257,7 +257,7 @@
 		<!-- @binding {boolean} show Whether the form dialog is currently visible. -->
 		<!-- @binding {?object} item The item being edited, or null in create mode. -->
 		<!-- @binding {object} schema The effective JSON schema driving the form. -->
-		<!-- @binding {Function} confirm Saves the form data — the same path the default dialog's `@confirm` runs. -->
+		<!-- @binding {Function} confirm Persists the form data through the page's own save path (store / self-store / createOverride) and emits `create`/`edit`. Call this instead of saving in the replacement dialog, so a create or edit made there behaves exactly like one made in the built-in dialog. Takes the complete object to save. List refresh is automatic on the self-fetch and `createOverride` paths; with the `store` prop, refresh is driven by the consumer's `create`/`edit` handler as usual. -->
 		<!-- @binding {Function} close Closes the form dialog. -->
 		<!--
 		     `confirm` is bound as a PROP, not left as an `@confirm` listener on
