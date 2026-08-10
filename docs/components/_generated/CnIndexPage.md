@@ -139,8 +139,8 @@
 | `action-items`    | —                                            |                                                                                             |
 | `actions`         | —                                            |                                                                                             |
 | `import-fields`   | `file`                                       |                                                                                             |
-| `delete-dialog`   | `item`, `close`                              | delete-dialog Replace the single-item delete dialog.                                        |
-| `copy-dialog`     | `item`, `close`                              | copy-dialog Replace the single-item copy dialog.                                            |
+| `delete-dialog`   | `show`, `item`, `confirm`, `close`           | delete-dialog Replace the single-item delete dialog.                                        |
+| `copy-dialog`     | `show`, `item`, `confirm`, `close`           | copy-dialog Replace the single-item copy dialog.                                            |
 | `form-dialog`     | `show`, `item`, `schema`, `confirm`, `close` | form-dialog Replace the create/edit form dialog (use CnFormDialog or CnAdvancedFormDialog). |
 | `form-fields`     | —                                            |                                                                                             |
 | `empty`           | —                                            |                                                                                             |

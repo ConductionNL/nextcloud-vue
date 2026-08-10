@@ -208,11 +208,17 @@
 			@close="viewPendingDelete = null" />
 
 		<!-- @slot delete-dialog Replace the single-item delete dialog. -->
+		<!-- @binding {boolean} show Whether the delete dialog is currently visible. -->
 		<!-- @binding {object} item The item targeted for deletion. -->
+		<!-- @binding {Function} confirm Performs the delete — the same path the default dialog's `@confirm` runs. -->
 		<!-- @binding {Function} close Closes the delete dialog. -->
+		<!-- `show` and `confirm` are props for the same reason as `form-dialog`
+		     above: a manifest-mounted replacement receives props only. -->
 		<slot
 			name="delete-dialog"
+			:show="showSingleDeleteDialog"
 			:item="actionTargetItem"
+			:confirm="onSingleDeleteConfirm"
 			:close="closeSingleDelete">
 			<CnDeleteDialog
 				v-if="showSingleDeleteDialog && actionTargetItem"
@@ -225,11 +231,17 @@
 		</slot>
 
 		<!-- @slot copy-dialog Replace the single-item copy dialog. -->
+		<!-- @binding {boolean} show Whether the copy dialog is currently visible. -->
 		<!-- @binding {object} item The item targeted for copy. -->
+		<!-- @binding {Function} confirm Performs the copy — the same path the default dialog's `@confirm` runs. -->
 		<!-- @binding {Function} close Closes the copy dialog. -->
+		<!-- `show` and `confirm` are props for the same reason as `form-dialog`
+		     above: a manifest-mounted replacement receives props only. -->
 		<slot
 			name="copy-dialog"
+			:show="showSingleCopyDialog"
 			:item="actionTargetItem"
+			:confirm="onSingleCopyConfirm"
 			:close="closeSingleCopy">
 			<CnCopyDialog
 				v-if="showSingleCopyDialog && actionTargetItem"
@@ -247,6 +259,14 @@
 		<!-- @binding {object} schema The effective JSON schema driving the form. -->
 		<!-- @binding {Function} confirm Persists the form data through the page's own save path (store / self-store / createOverride) and refreshes the list. Call this instead of saving in the replacement dialog, so a create or edit made there behaves exactly like one made in the built-in dialog. Takes the complete object to save. -->
 		<!-- @binding {Function} close Closes the form dialog. -->
+		<!--
+		     `confirm` is bound as a PROP, not left as an `@confirm` listener on
+		     the default child. A manifest-declared replacement is mounted by
+		     CnPageRenderer as `<component :is=… v-bind="slotProps" />`, which
+		     binds props only — so a listener is unreachable from a manifest
+		     even in principle, and a replacement dialog could render and close
+		     but never save (openconnector#1150).
+		-->
 		<slot
 			name="form-dialog"
 			:show="showFormDialogVisible"
@@ -670,8 +690,8 @@ import { useSelfFetchList } from './useSelfFetchList.js'
  * With custom form dialog
  * ```vue
  * <CnIndexPage ...>
- *   <template #form-dialog="{ item, schema, close }">
- *     <MyCustomFormDialog :item="item" @close="close" />
+ *   <template #form-dialog="{ item, schema, confirm, close }">
+ *     <MyCustomFormDialog :item="item" @save="confirm" @close="close" />
  *   </template>
  * </CnIndexPage>
  * ```
@@ -700,9 +720,9 @@ import { useSelfFetchList } from './useSelfFetchList.js'
  * @slot mass-actions — Extra mass action buttons (shown when items are selected)
  * @slot action-items — Extra action bar buttons
  * @slot header-actions — Extra buttons in the page header
- * @slot delete-dialog — Replace the single-item delete dialog. Scope: `{ item, close }`
- * @slot copy-dialog — Replace the single-item copy dialog. Scope: `{ item, close }`
- * @slot form-dialog — Replace the create/edit form dialog. Scope: `{ item, schema, close }`
+ * @slot delete-dialog — Replace the single-item delete dialog. Scope: `{ show, item, confirm, close }`. Call `confirm()` to perform the delete.
+ * @slot copy-dialog — Replace the single-item copy dialog. Scope: `{ show, item, confirm, close }`. Call `confirm(payload)` to perform the copy.
+ * @slot form-dialog — Replace the create/edit form dialog. Scope: `{ show, item, schema, confirm, close }`. Call `confirm(formData)` to save through the host's normal persistence path.
  * @slot form-fields — Replace form content inside the built-in CnFormDialog. Scope: `{ fields, formData, errors, updateField }`
  * @slot import-fields — Extra fields in the import dialog
  * @slot empty — Custom empty state content

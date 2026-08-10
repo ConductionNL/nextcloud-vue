@@ -34,6 +34,30 @@
 		</template>
 
 		<!--
+			CnDataTable horizontal-scroll keyboard access (?dtscroll=1).
+
+			Two tables: one in a narrow box so its columns genuinely overflow,
+			and one with a single column in the same box so it genuinely does
+			not. Only a real browser settles which is which — jsdom computes no
+			layout, so `scrollWidth`/`clientWidth` are both 0 there and axe's
+			`scrollable-region-focusable` can never fire in the jest a11y lane.
+		-->
+		<template v-else-if="showDtScroll">
+			<h2>Data table — horizontal scroll</h2>
+			<div class="dt-narrow" data-testid="dt-overflowing">
+				<CnDataTable
+					:rows="dtRows"
+					:columns="dtWideColumns"
+					title="Courses"
+					borderless />
+			</div>
+			<h3>Not overflowing</h3>
+			<div class="dt-narrow" data-testid="dt-fitting">
+				<CnDataTable :rows="dtRows" :columns="dtNarrowColumns" borderless />
+			</div>
+		</template>
+
+		<!--
 			Date-range chip harness (?chip=1). A real CnDashboardPage with the
 			range feature on and one custom widget opting into the chip, so the
 			popover's From/To inputs are the real NcActionInput date pickers.
@@ -87,6 +111,30 @@
 				:show-delete="false"
 				@confirm="() => {}"
 				@close="() => {}" />
+		</template>
+
+		<!--
+			NcSelect inside a dialog (gated behind ?selz=1).
+
+			`NcSelect.appendToBody` defaults to TRUE, so vue-select teleports its
+			menu to <body>. @nextcloud/vue gives that menu
+			`--vs-dropdown-z-index: 9999`, while this library raises every dialog
+			mask to 10005 — so the dialog paints over its own dropdown.
+
+			Plain NcDialog + plain NcSelect with no library component in between,
+			so the spec measures the stacking contract itself rather than some
+			wrapper's behaviour.
+		-->
+		<template v-else-if="showSelectZ">
+			<h2>NcSelect inside a dialog</h2>
+			<NcDialog name="Select in dialog" :open="true">
+				<div style="min-height: 220px;">
+					<NcSelect v-model="selZValue"
+						input-label="Pick a fruit"
+						:options="selZOptions" />
+				</div>
+			</NcDialog>
+			<pre data-testid="selz-value">{{ selZValue === null ? 'null' : selZValue }}</pre>
 		</template>
 
 		<!--
@@ -189,6 +237,8 @@ import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
 import CnSchemaFormDialog from '../../src/components/CnSchemaFormDialog/CnSchemaFormDialog.vue'
 import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
 import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
+import { NcDialog, NcSelect } from '@nextcloud/vue'
+import { installModalStack } from '../../src/utils/modalStack.js'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
 
 const wtStep = (id, title, body) => ({ id, sinceVersion: '1.0.0', placement: 'center', title, body, target: { kind: 'page', ref: 'harness' }, advanceOn: { type: 'manual' } })
@@ -210,13 +260,35 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnDashboardPage },
+	components: { CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnDashboardPage, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
 			showDashboard: (typeof window !== 'undefined' && window.location.search.includes('dash')),
 			// Date-range chip harness (?chip=1) — see the template comment.
 			showDateChip: (typeof window !== 'undefined' && window.location.search.includes('chip')),
+			// CnDataTable horizontal-scroll harness (?dtscroll=1).
+			showDtScroll: (typeof window !== 'undefined' && window.location.search.includes('dtscroll')),
+			// Non-sortable, exactly like scholiq's failing "manage-courses" widget
+			// table. A STRING column normalises to `sortable: true`, which puts a
+			// tabindex on every <th> — the scrollport then HAS focusable content
+			// and axe correctly passes, so a string-column harness cannot
+			// reproduce the reported defect at all.
+			dtWideColumns: [
+				{ key: 'id', label: 'ID', sortable: false },
+				{ key: 'name', label: 'Name', sortable: false },
+				{ key: 'teacher', label: 'Teacher', sortable: false },
+				{ key: 'location', label: 'Location', sortable: false },
+				{ key: 'startDate', label: 'Start date', sortable: false },
+				{ key: 'endDate', label: 'End date', sortable: false },
+				{ key: 'status', label: 'Status', sortable: false },
+				{ key: 'description', label: 'Description', sortable: false },
+			],
+			dtNarrowColumns: [{ key: 'id', label: 'ID', sortable: false }],
+			dtRows: [
+				{ id: 'c-1', name: 'Introduction to Civics', teacher: 'A. de Vries', location: 'Building A, room 210', startDate: '2026-09-01', endDate: '2026-12-19', status: 'Planned', description: 'A long description column so the table overflows its narrow container.' },
+				{ id: 'c-2', name: 'Public Administration', teacher: 'B. Jansen', location: 'Building C, room 4', startDate: '2026-09-08', endDate: '2027-01-30', status: 'Open', description: 'Another long description so the row is comfortably wider than the box.' },
+			],
 			chipWidgets: [{ id: 'chip-widget', title: 'Chip widget', type: 'custom' }],
 			chipLayout: [{ id: 1, widgetId: 'chip-widget', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 3, dateChip: true }],
 			chipDateRange: {
@@ -238,6 +310,10 @@ export default {
 			showSchemaForm: (typeof window !== 'undefined' && window.location.search.includes('spa')),
 			spaSchema: { title: 'Cow', properties: { size: { type: 'string' } }, required: [] },
 			// Schema-reference dropdown harness (?sref=1).
+			// NcSelect-inside-a-dialog stacking harness (?selz=1).
+			showSelectZ: (typeof window !== 'undefined' && window.location.search.includes('selz')),
+			selZValue: null,
+			selZOptions: ['Apple', 'Banana', 'Cherry'],
 			showSchemaRef: (typeof window !== 'undefined' && window.location.search.includes('sref')),
 			srefSchemas: [
 				{ id: 100, slug: 'cow', title: 'Cow' },
@@ -319,6 +395,17 @@ export default {
 			},
 		}
 	},
+	mounted() {
+		// A real app gets the modal stack for free — `CnAppRoot` installs it on
+		// mount, and apps that do not mount `CnAppRoot` are told to call this
+		// from `main.js`. The harness mounts bare SFCs, so without this the
+		// mask keeps @nextcloud/vue's own 9998 and any spec about how something
+		// stacks against a dialog would be measuring a layout no user ever sees.
+		// Scoped to this scenario so the other harness sections are untouched.
+		if (this.showSelectZ) {
+			installModalStack()
+		}
+	},
 }
 </script>
 
@@ -326,6 +413,13 @@ export default {
 /* Stands in for a dashboard widget card: a fixed-height scrolling content area
    with a border. Deliberately SHORTER than its rows, so the footer has to
    survive scrolling rather than merely existing. */
+/* Deliberately narrower than the wide table's natural width, so the scrollport
+   really does overflow rather than merely being declared scrollable. */
+.dt-narrow {
+	width: 320px;
+	margin-bottom: 24px;
+}
+
 .dash-card {
 	height: 240px;
 	overflow-y: auto;

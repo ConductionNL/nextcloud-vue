@@ -93,6 +93,51 @@ describe('useSubResource', () => {
 		expect(sub.data.results).toEqual([])
 	})
 
+	// An expected 404 must not be written to the console. scholiq's credential
+	// -verification page exists to answer "is this credential real?", so an
+	// unknown id is the DESIGNED path; the console.error failed its
+	// "no fatal JS errors" e2e check on a page that behaved correctly, and no
+	// consuming app could suppress it (#612).
+	it('does NOT console.error on an expected 404, but still records the error', async () => {
+		const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+		jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+			ok: false,
+			status: 404,
+			statusText: 'Not Found',
+			text: async () => 'not found',
+			json: async () => { throw new Error('no json') },
+		})
+
+		const sub = useSubResource(makeStore(), 'tasks')
+		const out = await sub.fetch('task', 'missing-id')
+
+		expect(errSpy).not.toHaveBeenCalled()
+		// The outcome is still REPORTED — silencing the console must not silence
+		// the state the component renders.
+		expect(sub.error.value).not.toBeNull()
+		expect(out).toEqual([])
+	})
+
+	it('still console.errors a genuine fault, naming the status', async () => {
+		const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+		jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+			ok: false,
+			status: 503,
+			statusText: 'Service Unavailable',
+			text: async () => 'down',
+			json: async () => { throw new Error('no json') },
+		})
+
+		const sub = useSubResource(makeStore(), 'tasks')
+		await sub.fetch('task', 'parent')
+
+		expect(errSpy).toHaveBeenCalledTimes(1)
+		// The old line named the resource but not the failure, so the console
+		// read `Proxy(Object)` and said nothing about what went wrong.
+		expect(String(errSpy.mock.calls[0][0])).toContain('503')
+		expect(String(errSpy.mock.calls[0][0])).toContain('Service Unavailable')
+	})
+
 	it('captures parsed error envelopes on non-ok responses', async () => {
 		jest.spyOn(globalThis, 'fetch').mockResolvedValue({
 			ok: false,

@@ -36,7 +36,33 @@
 		     container the nearest scrollport. The sticky footer then anchored
 		     to a container that never scrolls, so "View all" scrolled away with
 		     the rows instead of pinning to the bottom of the enclosing widget. -->
-		<div v-else class="cn-data-table__scroll">
+		<!-- The horizontal scrollport must be reachable by keyboard: a region
+		     that scrolls but cannot take focus gives a keyboard-only user no
+		     way to reach the columns past the fold (axe
+		     `scrollable-region-focusable`, serious; WCAG 2.1.1).
+
+		     Gated on ACTUAL overflow rather than applied unconditionally, for
+		     two reasons. A table that fits needs no scrolling, so a permanent
+		     tab stop would put every table in the fleet on the keyboard path
+		     for nothing. And the axe rule itself only applies to elements that
+		     really are scrollable, so the conditional attribute is present in
+		     exactly the cases the rule evaluates.
+
+		     `role="group"`, NOT `role="region"`: this element is nested inside
+		     `.cn-widget-wrapper__content[role="region"]` on the dashboard-widget
+		     path, and a second landmark there would surface as a duplicate.
+		     `group` is nameable but is not a landmark. A name is required
+		     rather than optional — `aria-label` is PROHIBITED on a role-less
+		     generic element, so a bare `tabindex` div would trade this
+		     violation for `aria-prohibited-attr` plus an unlabelled mystery
+		     stop in the tab order. -->
+		<div
+			v-else
+			ref="scrollEl"
+			class="cn-data-table__scroll"
+			:tabindex="isScrollable ? 0 : undefined"
+			:role="isScrollable ? 'group' : undefined"
+			:aria-label="isScrollable ? scrollRegionLabel : undefined">
 			<table class="cn-data-table" data-testid="cn-object-list-table">
 				<thead v-if="!hideHeader">
 					<tr>
@@ -549,6 +575,14 @@ export default {
 			 * @type {{[rowId: string]: {[colKey: string]: number}}}
 			 */
 			aggregateValues: {},
+			/**
+			 * Whether the table currently overflows its scrollport horizontally.
+			 * Drives the keyboard tab stop on `.cn-data-table__scroll`; see the
+			 * comment on that element.
+			 *
+			 * @type {boolean}
+			 */
+			isScrollable: false,
 			/** True while a batch of aggregate-count requests is in flight. */
 			aggregateLoading: false,
 			/** Monotonic id used to discard a stale aggregate batch when `rows` changes mid-flight. */
@@ -561,6 +595,18 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Accessible name for the horizontal scrollport when it becomes a tab
+		 * stop. Prefers the table's own `title` so the announcement identifies
+		 * WHICH table the user has landed in — several can share a dashboard.
+		 *
+		 * @return {string}
+		 */
+		scrollRegionLabel() {
+			return this.title
+				? t('nextcloud-vue', '{title} — scrollable table', { title: this.title })
+				: t('nextcloud-vue', 'Scrollable table')
+		},
 		/**
 		 * The row source: external `rows` when provided, else the self-fetched
 		 * rows (register + schemaId mode). External rows always win.
@@ -700,9 +746,67 @@ export default {
 		if ((!this.rows || this.rows.length === 0) && this.register != null && this.schemaId != null) {
 			this.fetchData()
 		}
+		this.observeScrollOverflow()
+	},
+
+	updated() {
+		// Columns and rows can change after mount (self-fetch resolving, a
+		// column toggled), and either can flip the table between fitting and
+		// overflowing. ResizeObserver alone would miss a change that alters
+		// content width without resizing the box.
+		this.measureScrollOverflow()
+	},
+
+	beforeUnmount() {
+		this.disconnectScrollOverflow()
 	},
 
 	methods: {
+		/**
+		 * Start watching the scrollport for horizontal overflow.
+		 *
+		 * @return {void}
+		 */
+		observeScrollOverflow() {
+			this.measureScrollOverflow()
+			if (typeof ResizeObserver === 'undefined') return
+			this._scrollObserver = new ResizeObserver(() => this.measureScrollOverflow())
+			const el = this.$refs.scrollEl
+			if (el) {
+				this._scrollObserver.observe(el)
+				// The table itself, not just the port: a column widening pushes
+				// the content past the fold without the port changing size.
+				const table = el.querySelector('table')
+				if (table) this._scrollObserver.observe(table)
+			}
+		},
+
+		/**
+		 * Recompute whether the scrollport overflows horizontally.
+		 *
+		 * @return {void}
+		 */
+		measureScrollOverflow() {
+			const el = this.$refs.scrollEl
+			// 1px of tolerance: sub-pixel layout rounding otherwise reports a
+			// table that visually fits as scrollable, which would put a tab
+			// stop on it for no reachable content.
+			const next = !!el && (el.scrollWidth - el.clientWidth) > 1
+			if (next !== this.isScrollable) this.isScrollable = next
+		},
+
+		/**
+		 * Tear down the overflow observer.
+		 *
+		 * @return {void}
+		 */
+		disconnectScrollOverflow() {
+			if (this._scrollObserver) {
+				this._scrollObserver.disconnect()
+				this._scrollObserver = null
+			}
+		},
+
 		/**
 		 * Resolve a column header label through the consumer's translation
 		 * function. Column labels originate from schema property titles

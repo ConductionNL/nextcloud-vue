@@ -175,3 +175,45 @@
 .modal-mask.dialog__modal {
 	z-index: 10005;
 }
+
+/*
+ * NcSelect's dropdown, when it is inside a dialog.
+ *
+ * `NcSelect.appendToBody` defaults to TRUE, so vue-select teleports its menu
+ * out of the dialog and makes it a `<body>` sibling — leaving the dialog's
+ * stacking context entirely — and `@nextcloud/vue` gives that menu
+ * `--vs-dropdown-z-index: 9999`.
+ *
+ * 9999 clears a STOCK NcModal mask, which sits at 9998. It does not clear the
+ * baseline directly above: this library raises dialog masks to 10005 (and
+ * `modalStack.js` writes 10005 + 5n inline for nested dialogs). So the dialog
+ * paints over its own dropdown. The options render, they are visible, and every
+ * click on them is swallowed by the mask — Playwright reports it as
+ * "subtree intercepts pointer events", and a real user simply cannot pick an
+ * option. Measured on pipelinq (#757).
+ *
+ * This is ours to fix, not upstream's: at @nextcloud/vue's own 9998 the
+ * combination works, and it is THIS stylesheet that moved the mask above the
+ * dropdown.
+ *
+ * `@nextcloud/vue` ships exactly this override for the timezone select inside
+ * NcDateTimePicker — `.vs__dropdown-menu--floating { z-index: 100001 !important }`
+ * — so this adopts the same selector and the same value rather than inventing a
+ * layer. Do NOT rely on that upstream rule: it lives in NcDateTimePicker's own
+ * stylesheet chunk, so an app gets it only if it happens to load that component's
+ * CSS. That accident is why this bug looks intermittent across apps — and why the
+ * rule belongs here, where every consumer of this library gets it.
+ *
+ * `!important` for the same reason upstream uses it: the value it must beat is
+ * `.vs__dropdown-menu`'s own single-class rule, so without it the winner would
+ * come down to stylesheet order — and a lazily-imported chunk can load after
+ * this file. Unlike the mask baseline above, nothing writes an inline z-index on
+ * this element, so `!important` here overrides no one.
+ *
+ * Scoped to the `--floating` variant deliberately: that is the appended-to-body
+ * case. A dropdown left in the DOM stacks correctly inside its own dialog and
+ * must not be lifted over unrelated chrome.
+ */
+.vs__dropdown-menu--floating {
+	z-index: 100001 !important;
+}
