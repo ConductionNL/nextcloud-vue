@@ -1182,17 +1182,20 @@ export default {
 	opacity: 0;
 }
 
-/* Revealed on hover or focus: a grip on every node at all times is visual
-   noise on a graph of thirty. It stays keyboard-reachable because focus shows
-   it (WCAG 2.1 AA 2.4.7). */
-.cn-graph-canvas__node:hover .cn-graph-canvas__resize,
+/* Focus first, then hover: the focus rule is the less specific of the two, and
+   stylelint's no-descending-specificity wants ascending order so a later rule
+   cannot be silently overridden by an earlier, stronger one. */
 .cn-graph-canvas__resize:focus-visible {
 	opacity: 1;
-}
-
-.cn-graph-canvas__resize:focus-visible {
 	outline: 2px solid var(--color-primary-element);
 	outline-offset: 1px;
+}
+
+/* Revealed on hover too: a grip on every node at all times is visual noise on a
+   graph of thirty. It stays keyboard-reachable because focus shows it
+   (WCAG 2.1 AA 2.4.7). */
+.cn-graph-canvas__node:hover .cn-graph-canvas__resize {
+	opacity: 1;
 }
 
 .cn-graph-canvas__grid {
