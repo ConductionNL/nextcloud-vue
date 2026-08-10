@@ -217,3 +217,33 @@
 .vs__dropdown-menu--floating {
 	z-index: 100001 !important;
 }
+
+/*
+ * vue-select's search input must not look like a second field.
+ *
+ * `NcSelect` wraps vue-select, whose `.vs__search` is the type-to-filter input
+ * that sits BESIDE the selected value inside one control. Stock vue-select
+ * gives it no border, but Nextcloud's global `input` styling does — so every
+ * single-select rendered an empty bordered box to the right of its own value,
+ * which reads as a second, broken field. Visible on every Provider, Agent and
+ * Execution dropdown in the fleet.
+ *
+ * Unscoped and here rather than in a component, because the control belongs to
+ * @nextcloud/vue: no Conduction component owns the element, and each app
+ * patching it locally is the same rule written sixteen times.
+ *
+ * The input keeps its focus ring — it is a real, typable control, and removing
+ * the visible focus would trade one defect for a WCAG 2.4.7 failure.
+ */
+.v-select .vs__search,
+.v-select .vs__search:focus {
+	border: none;
+	box-shadow: none;
+	min-height: unset;
+	background-color: transparent;
+}
+
+.v-select .vs__search:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: -2px;
+}
