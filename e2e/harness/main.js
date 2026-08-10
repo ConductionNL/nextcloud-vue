@@ -23,6 +23,10 @@ import { createApp } from 'vue'
 // Nextcloud CSS custom properties so the harness reflects real theming
 // (the library styles everything with var(--color-*) tokens).
 import '../../styleguide/nextcloud-tokens.css'
+// The library's global patch stylesheet — a consuming app gets this through
+// `src/css/index.css`. It carries the modal stacking baseline, so the harness
+// needs it for any spec that measures how something stacks against a dialog.
+import '../../src/css/patches.css'
 import App from './App.vue'
 
 // Minimal l10n shims so library components that call the global `t`/`n` render.
