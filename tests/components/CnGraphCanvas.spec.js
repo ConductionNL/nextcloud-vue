@@ -213,6 +213,92 @@ describe('CnGraphCanvas', () => {
 			wrapper.vm.onNodeKeydown(NODES[0], { key: 'c', preventDefault() {} })
 			expect(wrapper.vm.pendingConnectSource).toBeNull()
 		})
+	})
+
+	describe('keyboard connect chooses the origin port', () => {
+		// A routing node has one out-port per branch, and the mouse picks the
+		// branch by pointing at it. Without this the keyboard armed the node and
+		// connected from whichever port was first, so every branch after the
+		// first was mouse-only (WCAG 2.1.1).
+		const BRANCHED = [
+			{
+				id: 'gate',
+				x: 100,
+				y: 100,
+				label: 'Route',
+				ports: [
+					{ id: 'in', side: 'left', kind: 'in' },
+					{ id: 'out:work', side: 'right', kind: 'out', label: 'work' },
+					{ id: 'out:idle', side: 'right', kind: 'out', label: 'idle' },
+				],
+			},
+			{ id: 'b', x: 400, y: 300, label: 'Approved' },
+		]
+
+		it('repeating c on the source steps to the NEXT branch', () => {
+			const wrapper = mountCanvas({ nodes: BRANCHED })
+			wrapper.vm.onNodeKeydown(BRANCHED[0], { key: 'c', preventDefault() {} })
+			// The first repeat advances rather than cancelling, because this node
+			// has a second branch to offer.
+			wrapper.vm.onNodeKeydown(BRANCHED[0], { key: 'c', preventDefault() {} })
+			expect(wrapper.vm.pendingConnectSource).toBe('gate')
+
+			wrapper.vm.onNodeKeydown(BRANCHED[1], { key: 'c', preventDefault() {} })
+			expect(wrapper.emitted('connect')[0][0]).toEqual({ source: 'gate', target: 'b', sourcePort: 'out:idle' })
+		})
+
+		it('without repeating, it leaves from the FIRST branch', () => {
+			// The inverse of the test above. Without it, an implementation that
+			// always armed the last port would satisfy the stepping assertion.
+			const wrapper = mountCanvas({ nodes: BRANCHED })
+			wrapper.vm.onNodeKeydown(BRANCHED[0], { key: 'c', preventDefault() {} })
+			wrapper.vm.onNodeKeydown(BRANCHED[1], { key: 'c', preventDefault() {} })
+			expect(wrapper.emitted('connect')[0][0]).toEqual({ source: 'gate', target: 'b', sourcePort: 'out:work' })
+		})
+
+		it('stepping past the LAST branch cancels, as one exit always did', () => {
+			const wrapper = mountCanvas({ nodes: BRANCHED })
+			wrapper.vm.onNodeKeydown(BRANCHED[0], { key: 'c', preventDefault() {} })
+			wrapper.vm.onNodeKeydown(BRANCHED[0], { key: 'c', preventDefault() {} })
+			wrapper.vm.onNodeKeydown(BRANCHED[0], { key: 'c', preventDefault() {} })
+			expect(wrapper.vm.pendingConnectSource).toBeNull()
+			expect(wrapper.emitted('connect')).toBeFalsy()
+		})
+
+		it('the in-port is never an origin', () => {
+			// `in` is declared first. If out-ports were not filtered, the first
+			// armed port would be the one that CANNOT originate a connection.
+			const wrapper = mountCanvas({ nodes: BRANCHED })
+			expect(wrapper.vm.outPortsFor(BRANCHED[0]).map((port) => port.id)).toEqual(['out:work', 'out:idle'])
+		})
+
+		it('a node declaring NO ports omits sourcePort, exactly as the mouse does', () => {
+			// `portsFor` synthesises an `out` port for such a node so it still has
+			// something to draw. Reading it here would send a `sourcePort` the
+			// mouse path never sends, and the two inputs would disagree.
+			const wrapper = mountCanvas()
+			wrapper.vm.onNodeKeydown(NODES[0], { key: 'c', preventDefault() {} })
+			wrapper.vm.onNodeKeydown(NODES[1], { key: 'c', preventDefault() {} })
+			expect(wrapper.emitted('connect')[0][0]).toEqual({ source: 'a', target: 'b' })
+		})
+
+		it('the armed PORT is marked, not just the node', () => {
+			// The choice has to be visible rather than remembered — otherwise the
+			// only feedback for stepping is that nothing appears to happen.
+			const wrapper = mountCanvas({ nodes: BRANCHED })
+			wrapper.vm.onNodeKeydown(BRANCHED[0], { key: 'c', preventDefault() {} })
+			expect(wrapper.vm.isArmedPort(BRANCHED[0], { id: 'out:work' })).toBe(true)
+			expect(wrapper.vm.isArmedPort(BRANCHED[0], { id: 'out:idle' })).toBe(false)
+
+			wrapper.vm.onNodeKeydown(BRANCHED[0], { key: 'c', preventDefault() {} })
+			expect(wrapper.vm.isArmedPort(BRANCHED[0], { id: 'out:idle' })).toBe(true)
+			expect(wrapper.vm.isArmedPort(BRANCHED[0], { id: 'out:work' })).toBe(false)
+		})
+
+		it('no port is armed on a node that is not the pending source', () => {
+			const wrapper = mountCanvas({ nodes: BRANCHED })
+			expect(wrapper.vm.isArmedPort(BRANCHED[0], { id: 'out:work' })).toBe(false)
+		})
 
 		it('the armed source node is visually marked', async () => {
 			const wrapper = mountCanvas()

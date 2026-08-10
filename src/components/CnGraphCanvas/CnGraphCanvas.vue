@@ -35,8 +35,16 @@ edges will attach off-centre.
 A drag-only canvas is not keyboard-operable (WCAG 2.1 AA 2.1.1). Nodes are
 focusable; arrow keys move a focused node (Shift = coarse step); and a
 connection can be made without a mouse — press `c` on a focused node to start a
-connection, then `c` on another node to complete it (`Escape` cancels). A
-canvas must not be a consumer's only authoring surface.
+connection, then `c` on another node to complete it (`Escape` cancels).
+
+Where a node has SEVERAL exits — a routing node draws one out-port per branch —
+pressing `c` again on the source steps through them, and the armed port is
+ringed and marked `aria-pressed`. Dragging picks a branch by pointing at it;
+without this the keyboard could only ever reach the first, so every other branch
+was mouse-only. On a node with one exit nothing changes: the repeat runs off the
+end and cancels, as it always did.
+
+A canvas must not be a consumer's only authoring surface.
 
 ### Adding nodes from a palette
 
@@ -172,7 +180,9 @@ one itself, mirroring how it never mutates positions.
 						:class="[
 							`cn-graph-canvas__handle--${port.side}`,
 							`cn-graph-canvas__handle--${port.kind}`,
+							{ 'cn-graph-canvas__handle--armed': isArmedPort(node, port) },
 						]"
+						:aria-pressed="isArmedPort(node, port) ? 'true' : undefined"
 						:style="portStyle(node, port)"
 						:aria-label="portLabel(node, port)"
 						:disabled="port.kind === 'in'"
@@ -354,6 +364,12 @@ export default {
 			panStart: { x: 0, y: 0 },
 			/** @type {string|null} Source node id of a keyboard connection in progress. */
 			pendingConnectSource: null,
+			/**
+			 * @type {number} Which of the armed node's out-ports the next `c`
+			 * connects FROM. Only meaningful while `pendingConnectSource` is set.
+			 * A node with one exit never leaves 0.
+			 */
+			pendingConnectPortIndex: 0,
 		}
 	},
 
@@ -840,14 +856,83 @@ export default {
 		onConnectKey(node) {
 			if (this.pendingConnectSource === null) {
 				this.pendingConnectSource = node.id
+				this.pendingConnectPortIndex = 0
 				return
 			}
-			if (this.pendingConnectSource !== node.id) {
-				this.$emit('connect', { source: this.pendingConnectSource, target: node.id })
+
+			// Pressing `c` again on the SOURCE steps through its exits.
+			//
+			// A routing node has one out-port per branch, and dragging picks the
+			// branch by pointing at it. The keyboard had no equivalent: it armed
+			// the node and connected from whichever port happened to be first,
+			// so every branch after the first was mouse-only (WCAG 2.1.1).
+			//
+			// One key still does it. On a node with a single exit the behaviour
+			// is unchanged — the first repeat runs off the end and cancels, as
+			// it always did. On a node with three branches the repeats walk
+			// them, and the armed port is highlighted so the choice is visible
+			// rather than remembered.
+			if (this.pendingConnectSource === node.id) {
+				const exits = this.outPortsFor(node)
+				if (this.pendingConnectPortIndex + 1 < exits.length) {
+					this.pendingConnectPortIndex += 1
+					return
+				}
+
+				this.pendingConnectSource = null
+				this.pendingConnectPortIndex = 0
+				return
 			}
-			// Pressing `c` again on the source cancels; either way the pending
-			// state clears so the next `c` starts fresh.
+
+			const source = this.nodes.find((candidate) => candidate.id === this.pendingConnectSource)
+			const exits = source ? this.outPortsFor(source) : []
+			const port = exits[this.pendingConnectPortIndex]
+
+			const connection = { source: this.pendingConnectSource, target: node.id }
+
+			// Match the MOUSE payload exactly: `sourcePort` is omitted, not set,
+			// when the source declares no ports. `portsFor` synthesises an `out`
+			// port for such a node so it still has something to draw and arm —
+			// so reading the armed port here would attach a `sourcePort: 'out'`
+			// the mouse path never sends, and the two input methods would emit
+			// different payloads for the same action. A consumer asserting on
+			// `{source, target}` fails on the extra key alone.
+			if (Array.isArray(source?.ports) && port && port.id) {
+				connection.sourcePort = port.id
+			}
+
+			/**
+			 * @event connect A connection was drawn between two nodes.
+			 */
+			this.$emit('connect', connection)
+
 			this.pendingConnectSource = null
+			this.pendingConnectPortIndex = 0
+		},
+
+		/**
+		 * The ports a node can originate a connection FROM.
+		 *
+		 * @param {object} node The node.
+		 * @return {Array<object>} Its out-ports, in render order.
+		 */
+		outPortsFor(node) {
+			return this.portsFor(node).filter((port) => port.kind !== 'in')
+		},
+
+		/**
+		 * Whether this port is the one a keyboard connection would leave from.
+		 *
+		 * @param {object} node The node the port belongs to.
+		 * @param {object} port The port.
+		 * @return {boolean} True when it is armed.
+		 */
+		isArmedPort(node, port) {
+			if (this.pendingConnectSource !== node.id) {
+				return false
+			}
+
+			return this.outPortsFor(node)[this.pendingConnectPortIndex]?.id === port.id
 		},
 
 		/**
@@ -956,6 +1041,15 @@ export default {
 
 .cn-graph-canvas__node--selected {
 	border-color: var(--color-primary-element);
+}
+
+/* The port a keyboard connection would leave FROM. On a routing node `c`
+   steps through the branches, and without this the author would have to
+   remember which one is armed. Ringed AND exposed as aria-pressed, so the
+   state is available to a screen reader too — this whole affordance exists
+   because branch connections were otherwise mouse-only (WCAG 2.1.1). */
+.cn-graph-canvas__handle--armed {
+	box-shadow: 0 0 0 3px var(--color-primary-element);
 }
 
 /* The armed source of a keyboard connection, so the pending state is visible. */
