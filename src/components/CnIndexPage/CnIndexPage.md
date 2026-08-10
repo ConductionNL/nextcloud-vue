@@ -496,9 +496,9 @@ No new props are required on `CnIndexPage`.
 
 | Slot | Scope | Description |
 |------|-------|-------------|
-| `delete-dialog` | `{ item, close }` | Replace the single-item delete dialog |
-| `copy-dialog` | `{ item, close }` | Replace the single-item copy dialog |
-| `form-dialog` | `{ item, schema, close }` | Replace the create/edit form dialog |
+| `delete-dialog` | `{ show, item, confirm, close }` | Replace the single-item delete dialog |
+| `copy-dialog` | `{ show, item, confirm, close }` | Replace the single-item copy dialog |
+| `form-dialog` | `{ show, item, schema, confirm, close }` | Replace the create/edit form dialog |
 | `form-fields` | `{ fields, formData, errors, updateField }` | Replace form content inside the built-in `CnFormDialog` |
 | `import-fields` | `{ file }` | Extra fields in the import dialog |
 | `empty` | — | Custom empty state content |

@@ -216,7 +216,9 @@ standard dialog.
 
 **Save through the scope's `confirm`, not your own store call.** `confirm(object)` runs the
 page's normal save path — `createOverride` / the `store` prop / the self-fetch store,
-whichever applies — then emits `@create` or `@edit` **and refreshes the list**. A
+whichever applies — then emits `@create` or `@edit` **and refreshes the list** (the
+self-fetch and `createOverride` paths refresh automatically; with the `store` prop, list
+refresh is driven by your own `@create`/`@edit` handler, same as it always has been). A
 replacement dialog that persists on its own instead bypasses all of that: the row will not
 appear until the user reloads, because the built-in refresh never runs. (Live
 `or-collection-*` updates do cover this eventually, but only where server push is actually
