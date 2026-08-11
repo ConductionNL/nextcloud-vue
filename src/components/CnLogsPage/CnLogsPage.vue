@@ -1,10 +1,14 @@
 <!--
   CnLogsPage — Read-only audit-trail / activity-log surface.
 
-  Wraps CnDataTable with timestamp / actor / action columns and
-  pagination + filtering. Reads its data source from `config`:
+  Wraps CnDataTable with server-side sorting, pagination and filtering.
+  Reads its data source from `config`:
     - { register, schema } → fetched via the OpenRegister object store
     - { source: '/api/url' } → fetched via axios.get(source)
+
+  In store mode the list state (params, paging, sort, filters) is owned by
+  the shared `useListView` composable, so a `?jobId=<uuid>`-style deep link
+  lands the page pre-filtered — the same behaviour CnIndexPage has.
 
   Mounted by CnPageRenderer when a manifest page declares
   `type: "logs"`. Honours `headerComponent`, `actionsComponent`, and
@@ -19,7 +23,10 @@
 -->
 <template>
 	<div class="cn-logs-page" data-testid="cn-logs-page">
-		<!-- Header — overridable via #header slot (renderer fills via headerComponent or slots.header) -->
+		<!-- @slot Replaces the default CnPageHeader. CnPageRenderer fills it from `pages[].headerComponent` / `slots.header`. -->
+		<!-- @binding {string} title The page title. -->
+		<!-- @binding {string} description The page description. -->
+		<!-- @binding {string} icon The header's MDI icon name. -->
 		<slot
 			name="header"
 			:title="title"
@@ -33,8 +40,8 @@
 				:visually-hidden="!showTitle" />
 		</slot>
 
-		<!-- Actions slot — for refresh/export buttons (renderer fills via actionsComponent or slots.actions) -->
-		<div v-if="$slots.actions || $slots.actions" class="cn-logs-page__actions">
+		<div v-if="$slots.actions" class="cn-logs-page__actions">
+			<!-- @slot Right-aligned action area (refresh, export, …). CnPageRenderer fills it from `pages[].actionsComponent`. -->
 			<slot name="actions" />
 		</div>
 
@@ -45,8 +52,8 @@
 				<NcLoadingIcon :size="32" />
 			</div>
 
-			<!-- Empty state — overridable via #empty slot -->
 			<div v-else-if="rows.length === 0" class="cn-logs-page__empty">
+				<!-- @slot Replaces the empty-state block shown when there are no log entries. -->
 				<slot name="empty">
 					<NcEmptyContent :name="emptyText">
 						<template #icon>
@@ -57,24 +64,48 @@
 			</div>
 
 			<!-- Table -->
-			<CnDataTable
-				v-else
-				:columns="resolvedColumns"
-				:rows="rows"
-				:row-key="rowKey"
-				:empty-text="emptyText">
-				<template
-					v-for="col in slotColumns"
-					#[`column-${col}`]="{ row, value }">
-					<slot :name="'column-' + col" :row="row" :value="value" />
-				</template>
-				<template v-if="$slots['row-actions']" #row-actions="{ row }">
-					<slot name="row-actions" :row="row" />
-				</template>
-			</CnDataTable>
+			<template v-else>
+				<CnDataTable
+					:schema="tableSchema"
+					:columns="resolvedColumns"
+					:rows="rows"
+					:row-key="rowKey"
+					:fixed-layout="fixedLayout"
+					:sort-key="effectiveSortKey"
+					:sort-order="effectiveSortOrder"
+					:sort-keys="effectiveSortKeys"
+					:empty-text="emptyText"
+					@sort="onSort"
+					@row-click="onRowClick">
+					<template
+						v-for="col in slotColumns"
+						#[`column-${col}`]="{ row, value }">
+						<!-- @slot Per-column cell renderer (`#column-<key>`), one per configured column key. -->
+						<!-- @binding {object} row The log entry being rendered. -->
+						<!-- @binding {*} value The cell's resolved value. -->
+						<slot :name="'column-' + col" :row="row" :value="value" />
+					</template>
+					<template v-if="$slots['row-actions']" #row-actions="{ row }">
+						<!-- @slot Per-row action menu cell. Supplying it adds the trailing actions column. -->
+						<!-- @binding {object} row The log entry for this row. -->
+						<slot name="row-actions" :row="row" />
+					</template>
+				</CnDataTable>
 
-			<!-- Error state -->
+				<CnPagination
+					v-if="paginationState && paginationState.pages > 1"
+					class="cn-logs-page__pagination"
+					:current-page="paginationState.page || 1"
+					:total-pages="paginationState.pages || 1"
+					:total-items="paginationState.total || 0"
+					:current-page-size="paginationState.limit || 20"
+					@page-changed="onPageChange"
+					@page-size-changed="onPageSizeChange" />
+			</template>
+
 			<div v-if="error" class="cn-logs-page__error">
+				<!-- @slot Replaces the error block shown when the fetch fails. -->
+				<!-- @binding {*} error The recorded fetch error. -->
 				<slot name="error" :error="error">
 					<NcEmptyContent :name="errorText">
 						<template #icon>
@@ -84,34 +115,107 @@
 				</slot>
 			</div>
 		</div>
+
+		<!-- Row-detail dialog (opt-in via `rowDetail`). A log row's interesting
+		     payload is usually a nested object (a stack trace, an argument bag)
+		     that a table cell can only summarise. -->
+		<NcDialog
+			v-if="detailRow"
+			:open="true"
+			:name="detailTitle"
+			size="large"
+			@update:open="closeDetail">
+			<!-- @slot Replaces the built-in row-detail dialog body. -->
+			<!-- @binding {object} row The clicked log row. -->
+			<slot name="row-detail" :row="detailRow">
+				<div class="cn-logs-page__detail">
+					<CnDetailGrid
+						v-if="detailScalarItems.length > 0"
+						layout="horizontal"
+						:items="detailScalarItems" />
+					<template v-for="block in detailObjectBlocks" :key="block.key">
+						<h4 class="cn-logs-page__detail-heading">
+							{{ block.label }}
+						</h4>
+						<CnDetailGrid
+							v-if="block.items"
+							layout="horizontal"
+							:items="block.items" />
+						<pre v-else class="cn-logs-page__detail-json">{{ block.json }}</pre>
+					</template>
+				</div>
+			</slot>
+			<template #actions>
+				<NcButton @click="closeDetail">
+					{{ closeLabel }}
+				</NcButton>
+			</template>
+		</NcDialog>
 	</div>
 </template>
 
 <script>
+import { getCurrentInstance } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
-import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import HistoryIcon from 'vue-material-design-icons/History.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import { CnDataTable } from '../CnDataTable/index.js'
+import { CnDetailGrid } from '../CnDetailGrid/index.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
+import { CnPagination } from '../CnPagination/index.js'
+import { useListView } from '../../composables/index.js'
 import { useObjectStore } from '../../store/index.js'
+import { multiKeySort } from '../../utils/multiKeySort.js'
+import { resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
+
+/**
+ * Legacy default columns. Retained ONLY for `source` mode and for a store
+ * mode whose schema could not be loaded — see `resolvedColumns`. They match
+ * no OpenRegister log schema, so a store-backed page derives its columns
+ * from the schema instead.
+ *
+ * A function, not a constant: `t()` at module scope would resolve before the
+ * consuming app calls `registerTranslations()`, pinning the labels to English.
+ *
+ * @return {Array<{key: string, label: string, sortable?: boolean}>} The legacy column set.
+ */
+function legacyDefaultColumns() {
+	return [
+		{ key: 'timestamp', label: t('nextcloud-vue', 'Timestamp'), sortable: true },
+		{ key: 'actor', label: t('nextcloud-vue', 'Actor'), sortable: true },
+		{ key: 'action', label: t('nextcloud-vue', 'Action'), sortable: true },
+		{ key: 'target', label: t('nextcloud-vue', 'Target') },
+		{ key: 'details', label: t('nextcloud-vue', 'Details') },
+	]
+}
 
 /**
  * CnLogsPage — Read-only audit-trail / activity-log page.
  *
- * Renders a CnDataTable with default columns of `timestamp / actor /
- * action / target / details`. The columns are overridable via the
- * `columns` prop (manifest: `pages[].config.columns`).
+ * Renders a CnDataTable of log entries with server-side sorting,
+ * pagination and filtering. Columns come from `columns` (manifest:
+ * `pages[].config.columns`); when none are given, a store-backed page
+ * derives them from the schema.
  *
  * Two data-fetch modes:
  *  - `register` + `schema`: fetched via `useObjectStore` as a regular
  *    OpenRegister collection. The store registers the type as
- *    `${register}-${schema}` per existing convention.
+ *    `${register}-${schema}` per existing convention. List state is
+ *    owned by `useListView`, so `_limit` / `_page` / `_order` and any
+ *    `$route.query` / `filter` entries are sent with every request.
  *  - `source`: a custom URL fetched via `axios.get(source)`. The
  *    response shape may be either `{ results: [...] }` or a bare
  *    array; the component handles both. This escape hatch supports
  *    apps whose log surface is not OR-backed (e.g. a flat file).
+ *    Sorting is applied client-side; there is no pagination.
+ *
+ * Filtering (store mode) merges two sources, `filter` winning a collision:
+ *  1. `$route.query` — every non-`_`-prefixed entry becomes a filter, so
+ *     `/jobs/logs?jobId=<uuid>` lands the page scoped to one job.
+ *  2. `filter` — the manifest's own scoping, with `@route.<param>` /
+ *     `:<param>` / `@me` / `@today±Nd` tokens resolved at fetch time.
  *
  * Slots:
  *  - `#header` — Replaces the default CnPageHeader.
@@ -122,6 +226,7 @@ import { useObjectStore } from '../../store/index.js'
  *  - `#error` — Replaces the error block. Scope: `{ error }`.
  *  - `#row-actions` — Per-row action menu in the table. Scope:
  *    `{ row }`.
+ *  - `#row-detail` — Replaces the row-detail dialog body. Scope: `{ row }`.
  *  - `#column-<key>` — Per-column custom cell renderer. Scope:
  *    `{ row, value }`.
  *
@@ -133,12 +238,16 @@ export default {
 	name: 'CnLogsPage',
 
 	components: {
+		NcButton,
+		NcDialog,
 		NcEmptyContent,
 		NcLoadingIcon,
 		HistoryIcon,
 		AlertCircleOutline,
 		CnDataTable,
+		CnDetailGrid,
 		CnPageHeader,
+		CnPagination,
 	},
 
 	props: {
@@ -170,12 +279,20 @@ export default {
 			type: String,
 			default: '',
 		},
-		/** OpenRegister register slug. Required (with `schema`) for store-backed mode. */
+		/**
+		 * OpenRegister register slug. Required (with `schema`) for store-backed
+		 * mode. Changing it after mount requires a remount — CnPageRenderer keys
+		 * the dispatched page on register+schema, so a manifest page swap already
+		 * remounts.
+		 */
 		register: {
 			type: String,
 			default: '',
 		},
-		/** OpenRegister schema slug. Required (with `register`) for store-backed mode. */
+		/**
+		 * OpenRegister schema slug. Required (with `register`) for store-backed
+		 * mode. Changing it after mount requires a remount (see `register`).
+		 */
 		schema: {
 			type: String,
 			default: '',
@@ -186,8 +303,10 @@ export default {
 			default: '',
 		},
 		/**
-		 * Column definitions for the table. When omitted, the component
-		 * uses a sensible default of `[timestamp, actor, action, target, details]`.
+		 * Column definitions for the table. When omitted, a store-backed page
+		 * derives its columns from the loaded schema; a `source`-backed page
+		 * (or one whose schema failed to load) falls back to
+		 * `[timestamp, actor, action, target, details]`.
 		 * Pass either an array of strings (treated as keys + auto-labels)
 		 * OR an array of `{ key, label, sortable, width }` objects.
 		 *
@@ -196,6 +315,75 @@ export default {
 		columns: {
 			type: Array,
 			default: () => [],
+		},
+		/**
+		 * Fixed filter map merged into every fetch, ABOVE the `$route.query`
+		 * deep-link filters so the page's own scoping wins on a key collision.
+		 * Values support the shared token grammar: `@route.<param>` / `:<param>`
+		 * (route params), `@me`, `@today±Nd`, `@workspace.<key>`. Null = no fixed
+		 * filter. Store mode only.
+		 *
+		 * @type {object|null}
+		 */
+		filter: {
+			type: Object,
+			default: null,
+		},
+		/**
+		 * Pagination config; only `limit` is read, as the page size sent as
+		 * `_limit`. Null = the store default of 20. Store mode only.
+		 *
+		 * @type {{limit?: number}|null}
+		 */
+		pagination: {
+			type: Object,
+			default: null,
+		},
+		/**
+		 * Initial sort column. Null (the default) sends no `_order`, leaving the
+		 * server's own ordering in place.
+		 */
+		sortKey: {
+			type: String,
+			default: null,
+		},
+		/** Initial sort direction. Inert while `sortKey` is null. */
+		sortOrder: {
+			type: String,
+			default: 'asc',
+			validator: (v) => v === null || ['asc', 'desc'].includes(v),
+		},
+		/**
+		 * Initial MULTI-column sort as an ordered priority list. Takes precedence
+		 * over `sortKey`/`sortOrder` when non-empty; empty (the default) is inert.
+		 *
+		 * @type {Array<{key: string, order: 'asc'|'desc'}>}
+		 */
+		sortKeys: {
+			type: Array,
+			default: () => [],
+		},
+		/**
+		 * Make the columns' declared `width` authoritative (`table-layout: fixed`)
+		 * instead of a hint the browser may override from cell content. Worth
+		 * setting on a log table: message text and long unbreakable values like a
+		 * PHP FQCN otherwise dictate the column widths between them. Long values
+		 * then wrap inside their cell rather than overflowing it. Default false
+		 * keeps the previous auto layout.
+		 */
+		fixedLayout: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Open a read-only detail dialog when a row is clicked, rendering the
+		 * entry's fields — including nested bags like a stack trace or an
+		 * argument map that a table cell can only summarise. Default false
+		 * keeps a row click inert, as before.
+		 */
+		rowDetail: {
+			type: Boolean,
+			default: false,
 		},
 		/** Row identifier property. Defaults to `id` (matches OR + most custom log shapes). */
 		rowKey: {
@@ -212,6 +400,11 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Could not load log entries'),
 		},
+		/** Label for the row-detail dialog's close button. */
+		closeLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Close'),
+		},
 		/**
 		 * Override the object store. Useful when the consuming app calls
 		 * `createObjectStore` with a custom ID. When null, the default
@@ -226,60 +419,150 @@ export default {
 		},
 	},
 
-	emits: ['action'],
+	emits: [
+		/**
+		 * @event action Declared for hosts that dispatch log-row actions through
+		 * the `#row-actions` slot. Never emitted by this component itself; kept
+		 * in the surface because consumers may already listen for it.
+		 */
+		'action',
+		/**
+		 * @event row-click Emitted when a log row's body is clicked, whether or
+		 * not `rowDetail` opened the detail dialog — so a host can navigate
+		 * instead of (or as well as) showing the dialog.
+		 * @type {object}
+		 */
+		'row-click',
+	],
+
+	setup(props) {
+		// Always returned, even when the composable is not used: Vue warns when
+		// a computed reads a key setup() omitted, and `source` mode reads these.
+		const NO_LIST = { list: null, objectType: '', listStore: null }
+		if (!props.register || !props.schema) return NO_LIST
+
+		const store = props.store || useObjectStore()
+		// The `store` prop has always accepted a hand-rolled object, but
+		// useListView assumes a full OpenRegister store (pagination/errors/
+		// fetchSchema). Duck-type it and fall back to the legacy no-params
+		// fetch rather than throwing on a partial store.
+		if (typeof store.fetchCollection !== 'function' || !store.pagination) return NO_LIST
+
+		const objectType = `${props.register}-${props.schema}`
+		// Must run synchronously: useListView's onMounted calls fetchSchema(),
+		// which throws when the type is not registered yet. Positional
+		// signature: (slug, schemaId, registerId).
+		if (typeof store.registerObjectType === 'function') {
+			store.registerObjectType(objectType, props.schema, props.register)
+		}
+
+		const instance = getCurrentInstance()
+		const list = useListView(objectType, {
+			objectStore: store,
+			defaultPageSize: (props.pagination && props.pagination.limit) || undefined,
+			defaultSort: props.sortKey ? { key: props.sortKey, order: props.sortOrder || 'asc' } : undefined,
+			defaultSortKeys: props.sortKeys.length > 0 ? props.sortKeys : undefined,
+			// A getter, not a plain map: it is re-read on every fetch, so a
+			// `?jobId=` change re-scopes the list without re-creating the list.
+			fixedFilters: () => {
+				const route = instance && instance.proxy && instance.proxy.$route
+				return {
+					...resolveQueryFilters(route && route.query),
+					...resolveFilterMap(props.filter, (route && route.params) || {}),
+				}
+			},
+		})
+
+		return { list, objectType, listStore: store }
+	},
 
 	data() {
 		return {
 			localRows: [],
-			loading: false,
-			error: null,
+			localLoading: false,
+			localError: null,
+			localSortKeys: [],
+			detailRow: null,
 		}
 	},
 
 	computed: {
-		/** Resolved object-type slug for the store: `${register}-${schema}`. */
-		objectType() {
-			if (this.register && this.schema) {
-				return `${this.register}-${this.schema}`
-			}
-			return ''
-		},
-		/** Whether the component should fetch via the object store. */
+		/** Whether the component fetches via the object store + useListView. */
 		usesStore() {
-			return !!this.objectType
-		},
-		/** Whether the component should fetch via axios. */
-		usesSource() {
-			return !this.usesStore && !!this.source
-		},
-		/** Effective object store instance. */
-		objectStore() {
-			if (!this.usesStore) return null
-			return this.store || useObjectStore()
-		},
-		/** Rows to render: store-backed collection or local rows from axios. */
-		rows() {
-			if (this.usesStore && this.objectStore) {
-				return this.objectStore.collections?.[this.objectType] ?? []
-			}
-			return this.localRows
+			return !!this.list
 		},
 		/**
-		 * Resolved columns. A consumer-provided list wins; otherwise we
-		 * use the conventional log columns. String entries are expanded
-		 * to `{ key, label }` objects.
+		 * Whether the component should fetch via axios. Store mode needs BOTH
+		 * `register` and `schema`, so a half-configured pair with a `source` set
+		 * still falls back to the URL rather than the empty state.
+		 */
+		usesSource() {
+			return !(this.register && this.schema) && !!this.source
+		},
+		/** Loading state of the active fetch mode. */
+		loading() {
+			// `list` is a bag of refs returned from setup(); only TOP-LEVEL setup
+			// refs are auto-unwrapped, so every read below goes through `.value`.
+			return this.list ? this.list.loading.value : this.localLoading
+		},
+		/**
+		 * Fetch error. `fetchCollection` records failures on the store rather
+		 * than throwing, so store mode reads them from there — without this the
+		 * `#error` slot never rendered for a store-backed page.
+		 */
+		error() {
+			if (this.localError) return this.localError
+			if (this.list && this.listStore) return this.listStore.errors[this.objectType] || null
+			return null
+		},
+		/** Rows to render: the store collection, or locally sorted axios rows. */
+		rows() {
+			if (this.list) return this.list.objects.value
+			if (this.localSortKeys.length === 0) return this.localRows
+			// CnDataTable is presentational — it never sorts its own rows — so
+			// `source` mode has to apply the header sort itself.
+			return multiKeySort(this.localRows, this.localSortKeys.map((k) => ({ field: k.key, order: k.order })))
+		},
+		/**
+		 * Server pagination STATE (`{ total, page, pages, limit }`); null in
+		 * source mode, which has no paging. Distinct from the `pagination`
+		 * prop, which is the manifest's page-size config.
+		 */
+		paginationState() {
+			return this.list ? this.list.pagination.value : null
+		},
+		/**
+		 * The LOADED schema object (not the `schema` slug prop), forwarded to
+		 * CnDataTable for type-aware cell rendering and schema-derived columns.
+		 */
+		tableSchema() {
+			return (this.list && this.list.schema.value) || null
+		},
+		/** Active ordered sort keys, from the composable or local source state. */
+		effectiveSortKeys() {
+			return this.list ? this.list.sortKeys.value : this.localSortKeys
+		},
+		/** Primary sort key (mirrors `effectiveSortKeys[0]`) for CnDataTable. */
+		effectiveSortKey() {
+			return this.effectiveSortKeys[0]?.key ?? null
+		},
+		/** Primary sort direction (mirrors `effectiveSortKeys[0]`). */
+		effectiveSortOrder() {
+			return this.effectiveSortKeys[0]?.order ?? 'asc'
+		},
+		/**
+		 * Resolved columns. A consumer-provided list wins. Otherwise, when a
+		 * schema is loaded, return `[]` so CnDataTable derives the columns from
+		 * it — the legacy `timestamp/actor/action/target/details` default matched
+		 * no OpenRegister log schema and rendered five blank cells. `source` mode
+		 * and a failed schema load still get that legacy default.
 		 */
 		resolvedColumns() {
-			const cols = this.columns.length > 0
-				? this.columns
-				: [
-					{ key: 'timestamp', label: t('nextcloud-vue', 'Timestamp'), sortable: true },
-					{ key: 'actor', label: t('nextcloud-vue', 'Actor'), sortable: true },
-					{ key: 'action', label: t('nextcloud-vue', 'Action'), sortable: true },
-					{ key: 'target', label: t('nextcloud-vue', 'Target') },
-					{ key: 'details', label: t('nextcloud-vue', 'Details') },
-				]
-			return cols.map((c) => (typeof c === 'string' ? { key: c, label: this.humanise(c) } : c))
+			if (this.columns.length > 0) {
+				return this.columns.map((c) => (typeof c === 'string' ? { key: c, label: this.humanise(c) } : c))
+			}
+			if (this.tableSchema) return []
+			return legacyDefaultColumns()
 		},
 		/** Column slot names that the parent has provided (for pass-through). */
 		slotColumns() {
@@ -287,16 +570,73 @@ export default {
 				.filter((name) => name.startsWith('column-'))
 				.map((name) => name.replace('column-', ''))
 		},
+		/** Dialog heading: the entry's message when it has one, else its id. */
+		detailTitle() {
+			if (!this.detailRow) return ''
+			const message = this.detailRow.message
+			if (typeof message === 'string' && message !== '') return message
+			const id = this.detailRow[this.rowKey]
+			return id ? String(id) : t('nextcloud-vue', 'Log entry')
+		},
+		/** The clicked row's primitive fields, as CnDetailGrid items. */
+		detailScalarItems() {
+			return this.detailEntries
+				.filter(([, value]) => !this.isBag(value))
+				.map(([key, value]) => ({ label: this.propertyLabel(key), value: String(value) }))
+		},
+		/**
+		 * The clicked row's nested fields. A bag of primitives (a stack trace's
+		 * frames, an argument map) renders as its own labelled grid; anything
+		 * deeper falls back to pretty-printed JSON.
+		 */
+		detailObjectBlocks() {
+			return this.detailEntries
+				.filter(([, value]) => this.isBag(value))
+				.map(([key, value]) => {
+					const entries = Object.entries(value)
+					const flat = entries.every(([, v]) => v === null || typeof v !== 'object')
+					return {
+						key,
+						label: this.propertyLabel(key),
+						items: flat ? entries.map(([k, v]) => ({ label: this.humanise(k), value: String(v) })) : null,
+						json: flat ? null : JSON.stringify(value, null, 2),
+					}
+				})
+		},
+		/** The clicked row's renderable entries — `@self` and empties dropped. */
+		detailEntries() {
+			if (!this.detailRow) return []
+			return Object.entries(this.detailRow)
+				.filter(([key, value]) => key !== '@self' && value !== null && value !== undefined && value !== '')
+		},
 	},
 
 	watch: {
-		register() { this.fetch() },
-		schema() { this.fetch() },
-		source() { this.fetch() },
+		// A same-path query change (e.g. a "View logs" row action pushing
+		// `?jobId=<uuid>` onto an already-mounted page) must re-scope the list.
+		// `fixedFilters` re-reads $route on every fetch, so a refresh is all
+		// that's needed. No `immediate` — useListView owns the initial fetch.
+		'$route.query': {
+			deep: true,
+			handler() {
+				if (this.list) this.list.refresh(1)
+			},
+		},
+		'$route.params': {
+			deep: true,
+			handler() {
+				if (this.list) this.list.refresh(1)
+			},
+		},
+		register() { if (!this.list) this.fetch() },
+		schema() { if (!this.list) this.fetch() },
+		source() { if (!this.list) this.fetch() },
 	},
 
 	mounted() {
-		this.fetch()
+		// In store mode useListView's own onMounted owns the initial fetch;
+		// calling fetch() here too would double-request on every page load.
+		if (!this.list) this.fetch()
 	},
 
 	methods: {
@@ -307,38 +647,62 @@ export default {
 		 * @return {string} The sentence-cased label, e.g. `'Created at'` / `'User agent'`.
 		 */
 		humanise(key) {
-			const spaced = key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').toLowerCase()
+			const spaced = String(key).replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').toLowerCase()
 			return spaced.charAt(0).toUpperCase() + spaced.slice(1)
+		},
+
+		/**
+		 * Label for a row property — the schema's own title when one is loaded.
+		 *
+		 * @param {string} key The property name.
+		 * @return {string} The display label.
+		 */
+		propertyLabel(key) {
+			const title = this.tableSchema?.properties?.[key]?.title
+			return (typeof title === 'string' && title !== '') ? title : this.humanise(key)
+		},
+
+		/**
+		 * Whether a value is a nested bag (object/array) rather than a scalar.
+		 *
+		 * @param {*} value The value to test.
+		 * @return {boolean} True for non-null objects and arrays.
+		 */
+		isBag(value) {
+			return value !== null && typeof value === 'object'
 		},
 
 		/**
 		 * Fetch log entries from the resolved data source.
 		 *
-		 * Falls through silently when neither mode is configured — the
-		 * empty-state covers that case.
+		 * Only used in `source` mode and in the legacy store fallback — the
+		 * composable owns fetching whenever it is active.
 		 */
 		async fetch() {
-			if (this.usesStore && this.objectStore) {
-				this.loading = true
-				this.error = null
+			if (this.register && this.schema) {
+				// Legacy fallback: a partial `store` prop that useListView
+				// cannot drive (see setup). Unfiltered + unpaginated, as before.
+				const store = this.store || useObjectStore()
+				this.localLoading = true
+				this.localError = null
 				try {
-					if (typeof this.objectStore.registerObjectType === 'function') {
-						// Positional signature: (slug, schemaId, registerId, slugs?).
-						this.objectStore.registerObjectType(this.objectType, this.schema, this.register)
+					if (typeof store.registerObjectType === 'function') {
+						store.registerObjectType(`${this.register}-${this.schema}`, this.schema, this.register)
 					}
-					if (typeof this.objectStore.fetchCollection === 'function') {
-						await this.objectStore.fetchCollection(this.objectType)
+					if (typeof store.fetchCollection === 'function') {
+						await store.fetchCollection(`${this.register}-${this.schema}`)
 					}
+					this.localRows = store.collections?.[`${this.register}-${this.schema}`] ?? []
 				} catch (err) {
-					this.error = err
+					this.localError = err
 				} finally {
-					this.loading = false
+					this.localLoading = false
 				}
 				return
 			}
 			if (this.usesSource) {
-				this.loading = true
-				this.error = null
+				this.localLoading = true
+				this.localError = null
 				try {
 					const response = await axios.get(this.source)
 					const body = response?.data
@@ -352,10 +716,10 @@ export default {
 						this.localRows = []
 					}
 				} catch (err) {
-					this.error = err
+					this.localError = err
 					this.localRows = []
 				} finally {
-					this.loading = false
+					this.localLoading = false
 				}
 				return
 			}
@@ -365,12 +729,69 @@ export default {
 		},
 
 		/**
+		 * Apply a header sort. Server-side in store mode, client-side otherwise.
+		 *
+		 * @param {{key: string|null, order: string|null, keys?: Array<{key: string, order: string}>}} sort CnDataTable's sort payload.
+		 */
+		onSort(sort) {
+			if (this.list) {
+				this.list.onSort(sort)
+				return
+			}
+			this.localSortKeys = Array.isArray(sort.keys)
+				? sort.keys
+				: (sort.key ? [{ key: sort.key, order: sort.order || 'asc' }] : [])
+		},
+
+		/**
+		 * Navigate to a page of results.
+		 *
+		 * @param {number} page The 1-based page number.
+		 */
+		onPageChange(page) {
+			this.list?.onPageChange(page)
+		},
+
+		/**
+		 * Change the page size, returning to page 1.
+		 *
+		 * @param {number} size The new page size.
+		 */
+		onPageSizeChange(size) {
+			this.list?.onPageSizeChange(size)
+		},
+
+		/**
+		 * Handle a row-body click: open the detail dialog when `rowDetail` is
+		 * set, and always re-emit for hosts that want to navigate instead.
+		 *
+		 * @param {object} row The clicked log entry.
+		 */
+		onRowClick(row) {
+			if (this.rowDetail) this.detailRow = row
+			/**
+			 * @event row-click Emitted when a log row's body is clicked.
+			 * @type {object}
+			 */
+			this.$emit('row-click', row)
+		},
+
+		/** Close the row-detail dialog. */
+		closeDetail() {
+			this.detailRow = null
+		},
+
+		/**
 		 * Re-fetch from the source. Exposed so refresh buttons in
 		 * actionsComponent can call `$parent.refresh()`.
 		 *
 		 * @public
 		 */
 		refresh() {
+			if (this.list) {
+				this.list.refresh(1)
+				return
+			}
 			this.fetch()
 		},
 	},
@@ -378,16 +799,22 @@ export default {
 </script>
 
 <style scoped>
+/* Padding matches CnIndexPage / CnDetailPage (see css/index-page.css and
+   css/detail-page.css) — a logs page had none at all, so its table ran flush
+   into both edges of the app content area. Gaps are expressed in the same
+   grid-baseline unit as the rest of the fleet rather than raw pixels. */
 .cn-logs-page {
 	display: flex;
 	flex-direction: column;
-	gap: 16px;
+	gap: calc(4 * var(--default-grid-baseline));
+	padding: calc(5 * var(--default-grid-baseline));
+	box-sizing: border-box;
 }
 
 .cn-logs-page__actions {
 	display: flex;
 	justify-content: flex-end;
-	gap: 8px;
+	gap: calc(2 * var(--default-grid-baseline));
 }
 
 .cn-logs-page__loading,
@@ -397,5 +824,39 @@ export default {
 	align-items: center;
 	justify-content: center;
 	min-height: 200px;
+}
+
+.cn-logs-page__pagination {
+	margin-top: calc(3 * var(--default-grid-baseline));
+}
+
+.cn-logs-page__detail {
+	display: flex;
+	flex-direction: column;
+	gap: calc(2 * var(--default-grid-baseline));
+	padding: 0 calc(3 * var(--default-grid-baseline)) calc(3 * var(--default-grid-baseline));
+}
+
+.cn-logs-page__detail-heading {
+	margin: calc(3 * var(--default-grid-baseline)) 0 0;
+	font-weight: bold;
+}
+
+.cn-logs-page__detail-json {
+	margin: 0;
+	padding: calc(2 * var(--default-grid-baseline));
+	overflow-x: auto;
+	border-radius: var(--border-radius);
+	background-color: var(--color-background-dark);
+	font-family: monospace;
+	white-space: pre;
+}
+
+/* Same breakpoint + step-down as CnDetailPage, so the three page types stay in
+   sync on narrow viewports. */
+@media (max-width: 768px) {
+	.cn-logs-page {
+		padding: calc(3 * var(--default-grid-baseline));
+	}
 }
 </style>

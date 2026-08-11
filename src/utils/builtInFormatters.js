@@ -225,6 +225,37 @@ export function formatConditionalPhrase(value, _row, _property, options) {
 }
 
 /**
+ * Entry-count summariser (`count` registry key) — renders a collection-valued
+ * cell as "5 frames" instead of the truncated JSON blob `formatValue` would
+ * produce. Counts array entries or object keys; a scalar counts as 1. The
+ * column's `formatterOptions` supply pre-translated `{ singular, plural, zero }`
+ * phrases with `{n}` substituted, following the `conditionalPhrase` convention
+ * of keeping i18n in the app layer. Without phrases it renders the bare count.
+ *
+ * Null-safe per the built-in-formatter contract: `zero` (or `''`) for
+ * null/empty — never throws.
+ *
+ * @param {*} value An array, object, or scalar.
+ * @param {object} [_row] The full row (unused).
+ * @param {object} [_property] The schema property (unused).
+ * @param {{singular?: string, plural?: string, zero?: string}} [options] The column's `formatterOptions`.
+ * @return {string} The selected phrase with `{n}` substituted, or the bare count.
+ */
+export function formatCount(value, _row, _property, options) {
+	const opts = options || {}
+	const zero = typeof opts.zero === 'string' ? opts.zero : ''
+	if (value == null || value === '') return zero
+	let n
+	if (Array.isArray(value)) n = value.length
+	else if (typeof value === 'object') n = Object.keys(value).length
+	else n = 1
+	if (n === 0) return zero
+	const phrase = n === 1 ? (opts.singular ?? opts.plural) : (opts.plural ?? opts.singular)
+	if (typeof phrase !== 'string' || phrase === '') return String(n)
+	return phrase.replace(/\{n\}/g, String(n))
+}
+
+/**
  * Built-in formatter registry merged under any consumer-registered
  * `formatters` in `CnAppRoot`'s `cnFormatters` provide.
  */
@@ -236,4 +267,5 @@ export const BUILT_IN_FORMATTERS = {
 	daysUntil: formatDaysUntil,
 	currency: formatCurrency,
 	conditionalPhrase: formatConditionalPhrase,
+	count: formatCount,
 }

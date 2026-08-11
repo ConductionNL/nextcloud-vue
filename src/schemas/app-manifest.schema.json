@@ -578,7 +578,12 @@
 				},
 				"formatter": {
 					"type": "string",
-					"description": "Optional cell-formatter id (e.g. \"date\", \"currency\"). Resolves against the consuming app's formatter registry; left as a free-form string because formatter sets vary per app."
+					"description": "Optional cell-formatter id (e.g. \"date\", \"currency\", \"count\"). Resolves against the consuming app's formatter registry; left as a free-form string because formatter sets vary per app."
+				},
+				"formatterOptions": {
+					"type": "object",
+					"description": "Optional options object passed as the formatter's 4th argument. Consumed by the built-ins that need configuring — `currency` (`{ currency, decimals }`), `conditionalPhrase` (`{ negative, zero, positive }`) and `count` (`{ singular, plural, zero }`, with `{n}` substituted). Ignored when `formatter` is unset.",
+					"additionalProperties": true
 				},
 				"widget": {
 					"type": "string",
@@ -610,8 +615,8 @@
 						},
 						"unit": {
 							"type": "string",
-							"enum": ["seconds", "minutes", "hours"],
-							"description": "Input unit for `style:\"duration\"`. Defaults to \"seconds\"."
+							"enum": ["milliseconds", "seconds", "minutes", "hours"],
+							"description": "Input unit for `style:\"duration\"`. Defaults to \"seconds\". Sub-second \"milliseconds\" values render as \"245ms\" rather than rounding down to \"0s\"."
 						},
 						"prefix": {
 							"type": "string",

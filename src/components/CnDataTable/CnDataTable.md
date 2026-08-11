@@ -197,6 +197,7 @@ export default {
 | `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the header select-all checkbox, so screen readers announce a named control (WCAG 4.1.2) |
 | `selectRowLabel` | String | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2) |
 | `hideHeader` | Boolean | `false` | Hide the column-header row (`<thead>`) — for compact dashboard list widgets that want a plain bordered-row list without column labels |
+| `fixedLayout` | Boolean | `false` | Switch to `table-layout: fixed` so each column's `width` is authoritative rather than a hint the browser may override from cell content. Long unbreakable values (a PHP FQCN, a UUID) then wrap inside their cell instead of widening the column or painting past it, and no single unsized column soaks up all remaining width. Size every column when using it — percentages summing to 100 are easiest to reason about |
 | `fillHeight` | Boolean | `false` | Fill the parent's height (a flex-column card / widget content area) so an optional `#footer` is pushed to the bottom instead of floating under a short list; the footer stays pinned via its sticky rule when the list overflows. No-op outside a height-constrained parent — opt-in |
 
 ## Slots

@@ -63,7 +63,10 @@
 			:tabindex="isScrollable ? 0 : undefined"
 			:role="isScrollable ? 'group' : undefined"
 			:aria-label="isScrollable ? scrollRegionLabel : undefined">
-			<table class="cn-data-table" data-testid="cn-object-list-table">
+			<table
+				class="cn-data-table"
+				:class="{ 'cn-data-table--fixed': fixedLayout }"
+				data-testid="cn-object-list-table">
 				<thead v-if="!hideHeader">
 					<tr>
 						<!-- Checkbox column -->
@@ -476,6 +479,21 @@ export default {
 		 * list widgets that want a plain bordered-row list without column labels.
 		 */
 		hideHeader: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Switch the table to `table-layout: fixed`, making each column's `width`
+		 * authoritative instead of a hint the browser may override. Opt in when a
+		 * column's content would otherwise dictate the layout — a long unbreakable
+		 * value (a PHP FQCN, a UUID) widens its column under the default auto
+		 * layout and can render past the cell box into its neighbour, while any
+		 * column left unsized soaks up all remaining width. Cells also break long
+		 * words rather than overflowing. Columns with no `width` share whatever
+		 * space is left, so size every column when you want exact control.
+		 * @type {boolean}
+		 */
+		fixedLayout: {
 			type: Boolean,
 			default: false,
 		},

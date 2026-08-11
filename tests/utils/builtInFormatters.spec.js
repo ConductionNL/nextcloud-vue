@@ -8,7 +8,7 @@
  * value for unparseable input, empty string for null/empty).
  */
 
-const { formatDate, formatDateTime, formatRelativeTime, formatDaysSince, formatDaysUntil, formatCurrency, formatConditionalPhrase, BUILT_IN_FORMATTERS } = require('../../src/utils/builtInFormatters.js')
+const { formatDate, formatDateTime, formatRelativeTime, formatDaysSince, formatDaysUntil, formatCurrency, formatConditionalPhrase, formatCount, BUILT_IN_FORMATTERS } = require('../../src/utils/builtInFormatters.js')
 
 /**
  * A date `days` whole days from today, at local noon so DST shifts and
@@ -209,6 +209,51 @@ describe('builtInFormatters', () => {
 		})
 	})
 
+	describe('formatCount', () => {
+		const frames = { singular: '{n} frame', plural: '{n} frames', zero: '—' }
+
+		it('counts object keys — the job_log stackTrace case', () => {
+			expect(formatCount({ frame_0: 'a', frame_1: 'b', frame_2: 'c' }, {}, {}, frames)).toBe('3 frames')
+		})
+
+		it('counts array entries', () => {
+			expect(formatCount(['a', 'b'], {}, {}, frames)).toBe('2 frames')
+		})
+
+		it('uses the singular phrase for exactly one', () => {
+			expect(formatCount({ frame_0: 'a' }, {}, {}, frames)).toBe('1 frame')
+		})
+
+		it('counts a scalar as one', () => {
+			expect(formatCount('boom', {}, {}, frames)).toBe('1 frame')
+		})
+
+		it('renders the zero phrase for an empty bag', () => {
+			expect(formatCount({}, {}, {}, frames)).toBe('—')
+			expect(formatCount([], {}, {}, frames)).toBe('—')
+		})
+
+		it('renders the zero phrase for null / empty input', () => {
+			expect(formatCount(null, {}, {}, frames)).toBe('—')
+			expect(formatCount(undefined, {}, {}, frames)).toBe('—')
+			expect(formatCount('', {}, {}, frames)).toBe('—')
+		})
+
+		it('falls back to the bare count when no phrases are given', () => {
+			expect(formatCount({ a: 1, b: 2 })).toBe('2')
+			expect(formatCount(null)).toBe('')
+		})
+
+		it('falls back to the other phrase when only one is given', () => {
+			expect(formatCount({ a: 1, b: 2 }, {}, {}, { singular: '{n} frame' })).toBe('2 frame')
+			expect(formatCount({ a: 1 }, {}, {}, { plural: '{n} frames' })).toBe('1 frames')
+		})
+
+		it('substitutes every {n} occurrence', () => {
+			expect(formatCount([1, 2], {}, {}, { plural: '{n} of {n}' })).toBe('2 of 2')
+		})
+	})
+
 	describe('BUILT_IN_FORMATTERS map', () => {
 		it('exports date / datetime / relative-time entries', () => {
 			expect(typeof BUILT_IN_FORMATTERS.date).toBe('function')
@@ -219,6 +264,10 @@ describe('builtInFormatters', () => {
 		it('exports currency / conditionalPhrase entries resolvable by a column formatter name', () => {
 			expect(BUILT_IN_FORMATTERS.currency).toBe(formatCurrency)
 			expect(BUILT_IN_FORMATTERS.conditionalPhrase).toBe(formatConditionalPhrase)
+		})
+
+		it('exports a count entry resolvable by a column formatter name', () => {
+			expect(BUILT_IN_FORMATTERS.count).toBe(formatCount)
 		})
 
 		it('exports daysSince / daysUntil entries resolvable by a column formatter name', () => {

@@ -811,13 +811,15 @@ If you want a few of the read-only defaults overridden, mix them in:
 | `relative-time` | `Intl.RelativeTimeFormat` — "3 days ago" / "in 2 hours". |
 | `currency` | `Intl.NumberFormat` currency — EUR default; the column's `formatterOptions` may set `currency` (ISO-4217, guarded — an invalid code falls back to EUR) and `decimals` (default 2). |
 | `conditionalPhrase` | Sign/zero-based phrase selection over a numeric field (generalizes `daysUntil`): `formatterOptions { negative, zero, positive }` supply pre-translated phrases; `{n}` is replaced by the absolute value (e.g. `-3` + `"{n} days overdue"` → "3 days overdue"). |
+| `count` | Summarises a collection-valued cell as an entry count instead of a truncated JSON blob — array entries or object keys, a scalar counting as 1. `formatterOptions { singular, plural, zero }` supply pre-translated phrases with `{n}` substituted; without them it renders the bare count. |
 
 ```jsonc
 "columns": [
   { "key": "createdAt", "label": "Created", "formatter": "date" },
   { "key": "lastSeenAt", "label": "Last seen", "formatter": "relative-time" },
   { "key": "amount", "label": "Amount", "formatter": "currency", "formatterOptions": { "currency": "USD", "decimals": 0 } },
-  { "key": "daysLeft", "label": "Deadline", "formatter": "conditionalPhrase", "formatterOptions": { "negative": "{n} days overdue", "zero": "Due today", "positive": "{n} days remaining" } }
+  { "key": "daysLeft", "label": "Deadline", "formatter": "conditionalPhrase", "formatterOptions": { "negative": "{n} days overdue", "zero": "Due today", "positive": "{n} days remaining" } },
+  { "key": "stackTrace", "label": "Stack trace", "formatter": "count", "formatterOptions": { "singular": "{n} frame", "plural": "{n} frames", "zero": "—" } }
 ]
 ```
 
@@ -827,7 +829,7 @@ Formatters are invoked as `fn(value, row, property, formatterOptions)` — the f
 
 | id | What |
 |---|---|
-| `badge` | Renders the value as a `CnStatusBadge` pill. `widgetProps.variant` picks the colour (default `"default"`). Lives on the *widget* mechanism (not a formatter) because it renders a component; pair it with a `formatter` to shape the pill's label. |
+| `badge` | Renders the value as a `CnStatusBadge` pill. `widgetProps.variant` picks the colour (default `"default"`), and `widgetProps.colorMap` — a `{ value: variant }` map, matched case-insensitively — colours each value individually (e.g. `{ "info": "info", "error": "error" }`), which is how you colour a status column whose schema property carries no `enum`. Lives on the *widget* mechanism (not a formatter) because it renders a component; pair it with a `formatter` to shape the pill's label. |
 | `fkResolve` | Resolves a reference uuid (or an array of them) to the related object's display label, fetched through the shared object store with per-schema caching (one request per distinct id, in-flight de-dup). Config: `widgetProps { register, schema, labelField }` — `labelField` default `"name"`, falling back to `title` → `@self.name` → the raw id. |
 | `link` | Renders the value as a navigable link. Resolution order: `widgetProps.route` (a manifest page id) → `<router-link>` to `{name: route, params: {id: row[rowKey]}}`; else `widgetProps.href` → `<a target="_blank" rel="noopener">` (with `{key}` placeholders substituted from the row); else plain text + a once-per-session `console.warn` (silence with `widgetProps.fallback: "silent"`). For non-`id` route params, pass `widgetProps.params: { routeParamName: "rowFieldName" }`. |
 
