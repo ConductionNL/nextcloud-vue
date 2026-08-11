@@ -25,6 +25,7 @@
     "css/",
     "eslint/",
     "l10n/",
+    "scripts/",
     "testing/",
     "webpack/"
   ],
