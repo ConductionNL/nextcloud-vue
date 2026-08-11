@@ -204,6 +204,12 @@ views: [
 
 Each entry is `{ key, label?, series?, valueFormat? }`: `series` (an array of series **names**) filters which resolved cartesian series render (a filter that matches nothing falls back to all series, so a typo never blanks the chart; pie-family series have no names to filter on), and `valueFormat` overrides the widget-level `valueFormat` while the view is active. The first view is active by default; fewer than two views render no switcher.
 
+## Theming
+
+The chart follows the Nextcloud theme in both light and dark mode, with no configuration. Everything drawn inside the SVG is themed through chart options (`foreColor`, grid, legend and axis label colours all read `var(--color-*)`), and apexcharts' HTML chrome — the hover tooltip, the crosshair axis tooltips, the toolbar menu and its icons — is restyled from the same tokens in the component's stylesheet.
+
+That override is why `options.tooltip.theme` has no visible effect: both apexcharts themes are hardcoded palettes, so either one is wrong in the other mode. The tokens flip themselves, which also covers high-contrast and custom (nldesign) themes.
+
 ### Props
 
 | Prop | Type | Default | Description |
