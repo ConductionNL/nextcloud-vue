@@ -31,7 +31,8 @@ Mounted automatically by `CnPageRenderer` when a manifest page declares `type: "
 | `sortOrder` | String | `'asc'` | Initial sort direction. Inert while `sortKey` is null |
 | `sortKeys` | Array | `[]` | Initial multi-column sort as an ordered priority list — `[{ key, order }, …]`. Takes precedence over `sortKey`/`sortOrder` when non-empty |
 | `fixedLayout` | Boolean | `false` | Make the columns' declared `width` authoritative (`table-layout: fixed`) rather than a hint the browser may override from cell content — see [Column widths](#column-widths) |
-| `rowDetail` | Boolean | `false` | Open a read-only detail dialog on a row click, rendering the entry's fields including nested bags (a stack trace, an argument map). Default false keeps a row click inert |
+| `rowDetail` | Boolean | `false` | Open a read-only detail dialog on a row click, rendering the entry's fields including nested bags (a stack trace, an argument map). Default false keeps a row click inert. Ignored when `rowRoute` is set |
+| `rowRoute` | String | `''` | Manifest page id to open on a row click, pushed as `{ name: rowRoute, params: { id: row[rowKey] } }` — the same shape `CnIndexPage`'s `open-page` actions use. For a log whose detail surface is a real page (a step timeline, a replay action) rather than a read-only dump. Takes precedence over `rowDetail` |
 | `rowKey` | String | `'id'` | Property used as the unique row identifier |
 | `emptyText` | String | `'No log entries to show'` | Text rendered when there are no entries |
 | `errorText` | String | `'Could not load log entries'` | Text rendered when fetch fails |
@@ -76,6 +77,16 @@ A same-path query change re-fetches, so pushing a new `?jobId=` onto an already-
 - **`source` mode, or a schema that failed to load** → the legacy default of `[timestamp, actor, action, target, details]`.
 
 That legacy default matches no OpenRegister log schema, which is why a store-backed page prefers the schema. Curate the set explicitly when you want specific widths, badges or formatters.
+
+## Opening a row
+
+Three mutually-exclusive behaviours, in precedence order:
+
+1. **`rowRoute`** — navigate to a real page. Use this when the log's detail surface does something a dialog cannot: a step timeline, a replay action, anything with its own verbs.
+2. **`rowDetail`** — open the built-in read-only dialog. Good for a log whose payload is just data: nested bags of primitives render as labelled grids, anything deeper as pretty-printed JSON. Replace the body wholesale with `#row-detail`.
+3. **Neither (the default)** — a row click does nothing but emit `row-click`, which a host can handle itself.
+
+`row-click` is emitted in all three cases, so a host can always add its own behaviour on top.
 
 ## Column widths
 

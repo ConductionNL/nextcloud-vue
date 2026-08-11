@@ -160,6 +160,49 @@ describe('CnLogsPage — row detail', () => {
 		expect(wrapper.vm.detailTitle).toBe('log-9')
 	})
 
+	it('rowRoute navigates instead of opening the dialog, passing the row id as :id', async () => {
+		const push = jest.fn().mockResolvedValue()
+		mockStore.collections['openconnector-job_log'] = [ROW]
+		const wrapper = mount(CnLogsPage, {
+			propsData: { register: 'openconnector', schema: 'job_log', rowRoute: 'TraceDetail' },
+			stubs,
+			mocks: { $route: { query: {}, params: {} }, $router: { push } },
+		})
+		await flush()
+		wrapper.findComponent({ name: 'CnDataTable' }).vm.$emit('row-click', ROW)
+		await wrapper.vm.$nextTick()
+		expect(push).toHaveBeenCalledWith({ name: 'TraceDetail', params: { id: ROW.id } })
+		expect(wrapper.vm.detailRow).toBeNull()
+	})
+
+	it('rowRoute wins over rowDetail — a real page beats a generic dialog', async () => {
+		const push = jest.fn().mockResolvedValue()
+		mockStore.collections['openconnector-job_log'] = [ROW]
+		const wrapper = mount(CnLogsPage, {
+			propsData: { register: 'openconnector', schema: 'job_log', rowRoute: 'TraceDetail', rowDetail: true },
+			stubs,
+			mocks: { $route: { query: {}, params: {} }, $router: { push } },
+		})
+		await flush()
+		wrapper.findComponent({ name: 'CnDataTable' }).vm.$emit('row-click', ROW)
+		await wrapper.vm.$nextTick()
+		expect(push).toHaveBeenCalled()
+		expect(wrapper.findComponent({ name: 'NcDialog' }).exists()).toBe(false)
+	})
+
+	it('swallows a rejected push (NavigationDuplicated on an already-open row)', async () => {
+		const push = jest.fn().mockRejectedValue(new Error('NavigationDuplicated'))
+		mockStore.collections['openconnector-job_log'] = [ROW]
+		const wrapper = mount(CnLogsPage, {
+			propsData: { register: 'openconnector', schema: 'job_log', rowRoute: 'TraceDetail' },
+			stubs,
+			mocks: { $route: { query: {}, params: {} }, $router: { push } },
+		})
+		await flush()
+		expect(() => wrapper.findComponent({ name: 'CnDataTable' }).vm.$emit('row-click', ROW)).not.toThrow()
+		await flush()
+	})
+
 	it('closeDetail dismisses the dialog', async () => {
 		const wrapper = mountPage({ rowDetail: true })
 		await flush()

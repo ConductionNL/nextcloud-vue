@@ -379,11 +379,23 @@ export default {
 		 * Open a read-only detail dialog when a row is clicked, rendering the
 		 * entry's fields — including nested bags like a stack trace or an
 		 * argument map that a table cell can only summarise. Default false
-		 * keeps a row click inert, as before.
+		 * keeps a row click inert, as before. Ignored when `rowRoute` is set:
+		 * a purpose-built page beats a generic dialog.
 		 */
 		rowDetail: {
 			type: Boolean,
 			default: false,
+		},
+		/**
+		 * Manifest page id (route name) to open on a row click, pushed as
+		 * `{ name: rowRoute, params: { id: row[rowKey] } }` — the same shape
+		 * CnIndexPage's `open-page` actions use. For a log whose detail surface
+		 * is a real page (a step timeline, a replay action) rather than a
+		 * read-only dump. Takes precedence over `rowDetail`.
+		 */
+		rowRoute: {
+			type: String,
+			default: '',
 		},
 		/** Row identifier property. Defaults to `id` (matches OR + most custom log shapes). */
 		rowKey: {
@@ -762,13 +774,21 @@ export default {
 		},
 
 		/**
-		 * Handle a row-body click: open the detail dialog when `rowDetail` is
-		 * set, and always re-emit for hosts that want to navigate instead.
+		 * Handle a row-body click: navigate to `rowRoute` when one is declared,
+		 * else open the detail dialog when `rowDetail` is set. Always re-emits
+		 * so a host can do its own thing regardless.
 		 *
 		 * @param {object} row The clicked log entry.
 		 */
 		onRowClick(row) {
-			if (this.rowDetail) this.detailRow = row
+			if (this.rowRoute) {
+				// `.catch` swallows vue-router's NavigationDuplicated when the
+				// row is already open — a rejected push is not an error here.
+				const push = this.$router?.push({ name: this.rowRoute, params: { id: row?.[this.rowKey] } })
+				if (push && typeof push.catch === 'function') push.catch(() => {})
+			} else if (this.rowDetail) {
+				this.detailRow = row
+			}
 			/**
 			 * @event row-click Emitted when a log row's body is clicked.
 			 * @type {object}
