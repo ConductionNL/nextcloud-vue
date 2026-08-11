@@ -3011,8 +3011,8 @@ export default {
 }
 
 /* The chip text lives in NcActions' icon slot, whose default toggle is sized
-   for a single ~44px icon and clips/wraps wider content. Let the toggle + its
-   icon wrapper grow to the chip's natural width so "Last 30 days" reads on one
+   for a single icon and clips/wraps wider content. Let the toggle + its icon
+   wrapper grow to the chip's natural width so "Last 30 days" reads on one
    line — and keep them shrink-wrapped so the pill isn't offset inside a wider
    box (which is what pushed the chip outside its own trigger). */
 [data-testid^="cn-dashboard-page-date-chip-"] .button-vue,
@@ -3023,6 +3023,35 @@ export default {
 	height: auto !important;
 	min-height: 0 !important;
 	overflow: visible !important;
+}
+
+/* The width above is NOT enough on its own, and this rule is what actually
+   frees the pill. NcButton pins an icon-only button to a square clickable area
+   with an `!important` of its own:
+
+     .button-vue[data-v-…]:has(.button-vue__text:empty):not(.button-vue--wide) {
+       width: var(--button-size) !important;   // --default-clickable-area, 34px
+     }
+
+   NcActions fills the trigger's text slot from its `menuName` prop, which the
+   chip does not use (its label is markup, not a string), so `.button-vue__text`
+   renders empty and that rule always matches here. Two `!important`
+   declarations are settled by SPECIFICITY, and theirs is (0,5,0) against the
+   (0,2,0) of the plain descendant selector above — so the button stayed 34px
+   wide while its icon wrapper grew to the pill's ~106px. Combined with the
+   `overflow: visible` above, the pill then rendered centred on a 34px box and
+   spilled ~36px out each side, over the widget title.
+
+   This selector re-states their `:has()` predicate — so it applies exactly
+   where theirs does, and drops out with it on a browser without `:has()` — and
+   adds the trigger's own three hooks, reaching (0,7,0). Keep it ahead of
+   whatever NcButton declares: tests/components/CnDashboardPageDateChip.spec.js
+   reads both selectors out of the installed NcButton stylesheet and fails when
+   this margin disappears. */
+[data-testid^="cn-dashboard-page-date-chip-"].cn-dashboard-page__date-chip-trigger.action-item
+	.button-vue.action-item__menutoggle:has(.button-vue__text:empty) {
+	width: auto !important;
+	min-width: 0 !important;
 }
 
 .cn-dashboard-page__date-chip {
