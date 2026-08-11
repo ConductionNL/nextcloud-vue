@@ -83,6 +83,12 @@ import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 const REFRESH_BUS_CHANNEL = 'cn:widget:refresh'
 
 /**
+ * Event-bus channel the PAGE-level Refresh action broadcasts on
+ * (CnDashboardPage / CnDetailPage pass it to their CnActionsMenu).
+ */
+const PAGE_REFRESH_BUS_CHANNEL = 'cn:page:refresh'
+
+/**
  * Sentinel raw key of the folded "Other" bucket (Wave 3 aggregate top-N).
  * Never a real category value, so drilldown clicks on it are skipped.
  */
@@ -972,6 +978,22 @@ export default {
 		}
 		subscribe(REFRESH_BUS_CHANNEL, this._onWidgetRefresh)
 
+		// Page-level Refresh means "refresh everything on the page", so it
+		// carries no widgetId to match on. Without this the action reached ONLY
+		// charts bound to an `endpointSource` — useEndpointSource subscribes to
+		// this channel itself — while every chart fed by `dataSource` (the
+		// bucket / group-by / aggregate REST paths) silently ignored it.
+		//
+		// It deliberately skips the endpoint half rather than calling refresh():
+		// the composable already force-refetches on this same channel, and a
+		// second forced fetch is a real duplicate request, not a no-op —
+		// `fetchSharedResponse()` DELETES the in-flight dedup entry when
+		// `force` is set, so two back-to-back forces cannot collapse into one.
+		this._onPageRefresh = () => {
+			this.refreshLocalSources()
+		}
+		subscribe(PAGE_REFRESH_BUS_CHANNEL, this._onPageRefresh)
+
 		if (typeof ResizeObserver === 'undefined') return
 		this._lastWidth = this.$el.offsetWidth
 		this._lastHeight = this.$el.offsetHeight
@@ -1012,6 +1034,10 @@ export default {
 			unsubscribe(REFRESH_BUS_CHANNEL, this._onWidgetRefresh)
 			this._onWidgetRefresh = null
 		}
+		if (this._onPageRefresh) {
+			unsubscribe(PAGE_REFRESH_BUS_CHANNEL, this._onPageRefresh)
+			this._onPageRefresh = null
+		}
 	},
 
 	methods: {
@@ -1025,11 +1051,23 @@ export default {
 		 * @return {void}
 		 */
 		refresh() {
-			if (typeof this.dsRefetch === 'function') {
-				this.dsRefetch()
-			}
+			this.refreshLocalSources()
 			if (typeof this.epRefetch === 'function') {
 				this.epRefetch()
+			}
+		},
+		/**
+		 * Re-query every source this component fetches ITSELF: the `dataSource`
+		 * GraphQL path plus the three REST aggregations (time bucket, group-by,
+		 * aggregate). Excludes `endpointSource`, which useEndpointSource owns
+		 * and refetches on its own event-bus subscriptions — see the
+		 * page-refresh handler in `mounted()`.
+		 *
+		 * @return {void}
+		 */
+		refreshLocalSources() {
+			if (typeof this.dsRefetch === 'function') {
+				this.dsRefetch()
 			}
 			this.fetchGroupBy()
 			this.fetchTimeBucket()

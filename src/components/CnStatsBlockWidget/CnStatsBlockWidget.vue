@@ -50,9 +50,16 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import CnStatsBlock from '../CnStatsBlock/CnStatsBlock.vue'
 import { useDataSource } from '../../composables/useDataSource.js'
 import { resolveFilterTokens, dropOptionalUnresolved, hasUnresolvedTokens } from '../../utils/resolveFilterTokens.js'
+
+/**
+ * Event-bus channel the PAGE-level Refresh action broadcasts on
+ * (CnDashboardPage / CnDetailPage pass it to their CnActionsMenu).
+ */
+const PAGE_REFRESH_BUS_CHANNEL = 'cn:page:refresh'
 
 /**
  * CnStatsBlockWidget — Stats-block dashboard widget.
@@ -234,8 +241,8 @@ export default {
 			if (ds && ds.register && ds.schema && !ds.graphql) return null
 			return ds
 		}
-		const { data, loading, error } = useDataSource(dsForGraphql)
-		return { dsData: data, loading, error }
+		const { data, loading, error, refetch } = useDataSource(dsForGraphql)
+		return { dsData: data, loading, error, dsRefetch: refetch }
 	},
 
 	data() {
@@ -385,9 +392,42 @@ export default {
 	mounted() {
 		this.fetchRest()
 		this.fetchEntries()
+		// Page-level Refresh. This tile is the one dashboard widget rendered
+		// WITHOUT CnWidgetWrapper (CnStatsBlock brings its own card chrome), so
+		// it has no per-widget Refresh item either — the page action was its
+		// only refresh affordance, and it reached nothing: the counts come from
+		// `fetchRest` / `fetchEntries` and the useDataSource GraphQL path, none
+		// of which subscribe to anything. No widgetId to match: a page refresh
+		// refreshes everything on the page.
+		this._onPageRefresh = () => {
+			this.refresh()
+		}
+		subscribe(PAGE_REFRESH_BUS_CHANNEL, this._onPageRefresh)
+	},
+
+	beforeUnmount() {
+		if (this._onPageRefresh) {
+			unsubscribe(PAGE_REFRESH_BUS_CHANNEL, this._onPageRefresh)
+			this._onPageRefresh = null
+		}
 	},
 
 	methods: {
+		/**
+		 * Re-query the tile's counts — the REST `/value` aggregation, the
+		 * per-entry counts of multi-entry mode, and the `dataSource` GraphQL
+		 * path. Exposed as a ref-callable method for parity with the other data
+		 * widgets, and invoked by the page-level Refresh subscription.
+		 *
+		 * @return {void}
+		 */
+		refresh() {
+			if (typeof this.dsRefetch === 'function') {
+				this.dsRefetch()
+			}
+			this.fetchRest()
+			this.fetchEntries()
+		},
 		/**
 		 * An entry's `route` deep link with `@`-tokens in `query` / `params`
 		 * resolved against `tokenCtx` (same treatment as `entry.filter`), so

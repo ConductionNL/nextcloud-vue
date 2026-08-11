@@ -254,3 +254,7 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `widgetId` | String | `''` | Matches `cn:widget:refresh` event-bus events (broadcast by CnWidgetWrapper's Refresh); on a matching id the chart re-queries its `dataSource`. |
+
+The chart also subscribes to `cn:page:refresh`, the channel the **page-level** Refresh action broadcasts on (`CnDashboardPage` / `CnDetailPage`). That one carries no widget id — a page refresh refreshes everything on the page — so a chart placed without a `widgetId` still reloads.
+
+Both channels re-query `dataSource` (the GraphQL, time-bucket, group-by and aggregate paths). They differ on `endpointSource`: the per-widget channel and the ref-callable `refresh()` refetch it, while the page channel leaves it to `useEndpointSource`, which subscribes to `cn:page:refresh` itself. Refetching it twice would issue two HTTP requests, not one — a forced fetch drops the in-flight dedup entry.

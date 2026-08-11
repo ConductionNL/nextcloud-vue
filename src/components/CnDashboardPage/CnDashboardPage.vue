@@ -1095,7 +1095,10 @@ export default {
 		/**
 		 * Show the built-in Refresh item in the page-level overflow Actions
 		 * menu. On by default. The default handler emits `@refresh` and,
-		 * unless suppressed, fires the `cn:page:refresh` event-bus channel.
+		 * unless suppressed, fires the `cn:page:refresh` event-bus channel —
+		 * which the built-in data widgets subscribe to, so the action works
+		 * with no host wiring at all. A `@refresh` listener that calls
+		 * `preventDefault()` replaces that default rather than adding to it.
 		 *
 		 * This is ALSO the default for each widget's own overflow menu: when
 		 * `false`, the Refresh item is dropped from every widget too (handy
