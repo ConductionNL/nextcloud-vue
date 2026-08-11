@@ -9,7 +9,7 @@
   install `apexcharts` and `vue-apexcharts` in their own package.json.
 -->
 <template>
-	<div class="cn-chart-widget">
+	<div class="cn-chart-widget" :class="{ 'cn-chart-widget--fit': fitToContainer }">
 		<!-- In-widget view switcher (Wave-4 amendment folded into Wave 3,
 		     #91): a compact pill row that switches which named series /
 		     value format render. Pure display — no series arithmetic.
@@ -35,15 +35,26 @@
 		<div v-if="showEmptyState" class="cn-chart-widget__empty" data-testid="cn-chart-widget-empty">
 			{{ emptyLabel }}
 		</div>
-		<component
-			:is="chartComponent"
-			v-else-if="chartComponent"
-			ref="chart"
-			:type="type"
-			:height="computedHeight"
-			:width="computedWidth"
-			:options="mergedOptions"
-			:series="displayedSeries" />
+		<!-- Sizing box for the apexcharts mount. apexcharts resolves a
+		     percentage `height` against its element's PARENT (Core.js
+		     setSVGDimensions → Utils.getDimensions(el.parentNode)), so a
+		     container-fitting chart needs a parent whose height is the space
+		     left over — not one sized by the chart itself. This box is
+		     `flex: 1 1 0` inside the flex column, so its height is the
+		     leftover after the view-switcher row, independent of the chart's
+		     own height. Without it the percentage would resolve against the
+		     content-sized root and either collapse to 0 or ignore the pill
+		     row. -->
+		<div v-else-if="chartComponent" class="cn-chart-widget__canvas">
+			<component
+				:is="chartComponent"
+				ref="chart"
+				:type="type"
+				:height="computedHeight"
+				:width="computedWidth"
+				:options="mergedOptions"
+				:series="displayedSeries" />
+		</div>
 		<div v-else class="cn-chart-widget__fallback">
 			<!-- @slot Rendered when the ApexCharts peer dependency is not available (defaults to the unavailableLabel text). -->
 			<slot name="fallback">
@@ -166,7 +177,12 @@ export default {
 			default: () => [],
 		},
 		/**
-		 * Chart height in pixels. Use 'auto' for container-based sizing.
+		 * Chart height. A number (or `'250px'`) pins the height in pixels. A
+		 * percentage — `'100%'` — fits the chart to its container instead, which
+		 * is what a fixed-height surface such as a dashboard tile wants: a
+		 * pinned height taller than the tile turns the tile into a scroll
+		 * region. `'auto'` derives the height from the width (16:10 for axis
+		 * charts). Container fitting needs an ancestor with a resolved height.
 		 * @type {number|string}
 		 */
 		height: {
@@ -497,6 +513,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether `height` asks the chart to fit its container (a percentage)
+		 * rather than pin a pixel height. Switches the root to a flex column
+		 * with a leftover-sized canvas box so apexcharts' own percentage maths
+		 * resolves against the available space.
+		 *
+		 * @return {boolean} true for a percentage height.
+		 */
+		fitToContainer() {
+			return typeof this.height === 'string' && this.height.trim().endsWith('%')
+		},
 		computedHeight() {
 			return this.height
 		},
@@ -942,11 +969,24 @@ export default {
 
 		if (typeof ResizeObserver === 'undefined') return
 		this._lastWidth = this.$el.offsetWidth
+		this._lastHeight = this.$el.offsetHeight
 		this._resizeTimer = null
 		this._resizeObserver = new ResizeObserver((entries) => {
-			const newWidth = entries[0]?.contentRect?.width ?? this.$el.offsetWidth
-			if (newWidth === this._lastWidth) return
+			const rect = entries[0]?.contentRect
+			const newWidth = rect?.width ?? this.$el.offsetWidth
+			const newHeight = rect?.height ?? this.$el.offsetHeight
+			// A container-fitting chart must also re-render when only the
+			// HEIGHT changes: apexcharts reads the parent's height once, at
+			// create time, and its own re-measure hook is the window resize —
+			// which a GridStack tile resize is not. This is also what recovers
+			// a chart created while its tile had no height yet (percentage of
+			// zero is zero), so it is correctness, not just resize polish.
+			// Pinned-height charts keep the width-only behaviour: their height
+			// never depends on the box.
+			const heightChanged = this.fitToContainer && newHeight !== this._lastHeight
+			if (newWidth === this._lastWidth && !heightChanged) return
 			this._lastWidth = newWidth
+			this._lastHeight = newHeight
 			clearTimeout(this._resizeTimer)
 			this._resizeTimer = setTimeout(() => {
 				if (this.$refs.chart?.refresh) {
@@ -1526,6 +1566,32 @@ export default {
 	min-height: 100px;
 }
 
+/* Container-fitting mode (`height` given as a percentage). The root claims the
+   full height it is given and lays its children out as a column; the canvas box
+   takes what is left, so the chart is sized by the box rather than sizing it.
+   `min-height: 0` drops the 100px floor — on a fixed-height surface a floor is
+   the thing that produces the overflow it was meant to prevent. */
+.cn-chart-widget--fit {
+	height: 100%;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.cn-chart-widget__canvas {
+	min-width: 0;
+}
+
+/* `flex: 1 1 0` (not `1 1 auto`) is load-bearing: with an `auto` basis the box
+   would grow to its content, i.e. to the chart, and the percentage height would
+   resolve against a box the chart itself defined. `overflow: hidden` keeps a
+   sub-pixel rounding difference from reintroducing a scrollbar. */
+.cn-chart-widget--fit .cn-chart-widget__canvas {
+	flex: 1 1 0;
+	min-height: 0;
+	overflow: hidden;
+}
+
 .cn-chart-widget__fallback {
 	display: flex;
 	align-items: center;
@@ -1543,6 +1609,16 @@ export default {
 	font-size: 14px;
 	text-align: center;
 	padding: 12px;
+}
+
+/* The empty / fallback placeholders carry a 150px floor for the normal
+   content-sized case; in fit mode they take the leftover space and centre in it
+   instead, since the floor would overflow a short tile. Declared after the base
+   rules so the cascade order matches specificity (no-descending-specificity). */
+.cn-chart-widget--fit .cn-chart-widget__empty,
+.cn-chart-widget--fit .cn-chart-widget__fallback {
+	flex: 1 1 0;
+	min-height: 0;
 }
 
 .cn-chart-widget__error {

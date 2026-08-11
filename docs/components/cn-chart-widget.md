@@ -62,6 +62,12 @@ When `CnDashboardPage` resolves a widget definition with `type: "chart"`, it mou
 
 The dispatcher forwards `props.chartKind` as the apex `type` and passes through `series`, `categories`, `labels`, `options`, `colors`, `toolbar`, `legend`, `height`, `width`, `unavailableLabel`.
 
+### Height on a dashboard tile
+
+A dashboard tile's height is fixed by its grid units, so a chart tile that authors no `height` gets `'100%'` — the chart fits the tile. The standalone default (a pinned 250px) is taller than the content box of a typical `gridHeight: 4` tile, which made the tile scroll the graph instead of showing it. Author a `height` in the widget's `props` (or its in-app `content`) to pin one deliberately.
+
+Percentage heights need an ancestor with a resolved height. Inside `CnWidgetWrapper` that is already true; in a page region sized by its content, pin a pixel height instead.
+
 ## `dataSource` — resolving series + categories from OpenRegister
 
 `CnChartWidget` accepts a `dataSource` block that resolves `series` / `categories` / `labels` from a GraphQL query against OpenRegister. Three shapes are supported:
@@ -206,7 +212,7 @@ Each entry is `{ key, label?, series?, valueFormat? }`: `series` (an array of se
 | `series` | Array | `[]` | Data series. Format: `[{ name, data[] }]` for cartesian charts; `number[]` for pie/donut |
 | `categories` | Array | `[]` | X-axis category labels (line, area, bar charts) |
 | `labels` | Array | `[]` | Segment labels (pie, donut charts) |
-| `height` | Number \| String | `250` | Chart height in pixels |
+| `height` | Number \| String | `250` | Chart height. A number pins pixels; a percentage (`'100%'`) fits the container; `'auto'` derives it from the width |
 | `width` | Number \| String | `'100%'` | Chart width (defaults to full container width) |
 | `options` | Object | `{}` | Custom ApexCharts options deep-merged with Nextcloud defaults |
 | `colors` | Array | `[]` | Color palette — defaults to Nextcloud CSS variable colors |

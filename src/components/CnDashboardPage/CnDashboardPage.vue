@@ -365,6 +365,7 @@
 				<!-- Chart widget — manifest-driven apexcharts mount -->
 				<template v-else-if="isChart(item)">
 					<CnWidgetWrapper
+						class="cn-dashboard-page__chart-fit"
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
@@ -2719,6 +2720,14 @@ export default {
 				const v = content[key] !== undefined ? content[key] : props[key]
 				if (v !== undefined) out[key] = v
 			}
+			// A dashboard tile's height is fixed by its grid units, so the chart
+			// has to fit the tile — CnChartWidget's standalone default is a
+			// pinned 250px, which is taller than the content box of a typical
+			// h=4 tile (4 × cellHeight, less the widget header) and turned every
+			// chart tile into a scroll region: the tile scrolled the graph
+			// instead of showing it. An authored `height` still wins, so a
+			// manifest can pin one deliberately.
+			if (out.height === undefined) out.height = '100%'
 			return out
 		},
 
@@ -2916,6 +2925,19 @@ export default {
 	flex-direction: column;
 	justify-content: center;
 	padding: 8px 14px;
+}
+
+/* Chart tiles: the graph fits the tile (getChartProps passes height:'100%'), so
+   the wrapper's default `overflow: auto` content area has nothing to scroll —
+   and leaving it on means any rounding difference between the box and the SVG
+   shows up as a scrollbar the user has to drag to see the whole graph. Same
+   shape as the card-fit rule above, minus the padding: chart tiles render
+   `flush`, and apexcharts already draws its own margins. */
+.cn-dashboard-page__chart-fit :deep(.cn-widget-wrapper__content) {
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
 }
 
 /* Card content (stat / gauge / delta) must fit the tile width: let the
