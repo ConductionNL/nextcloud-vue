@@ -576,6 +576,14 @@
 					"enum": ["left", "center", "right"],
 					"description": "Cell text alignment. Closed enum."
 				},
+				"class": {
+					"type": "string",
+					"description": "CSS class(es) applied to BOTH the column's header cell and its data cells."
+				},
+				"cellClass": {
+					"type": "string",
+					"description": "CSS class(es) applied to the column's data cells only. Built-in utilities: `cn-cell--strong`, `cn-cell--muted`, `cn-cell--end` (right-aligned, no wrap) and `cn-cell--truncate` (single line with a trailing ellipsis, for a long unbreakable value like a URL — pair it with `fixedLayout` on the table)."
+				},
 				"formatter": {
 					"type": "string",
 					"description": "Optional cell-formatter id (e.g. \"date\", \"currency\", \"count\"). Resolves against the consuming app's formatter registry; left as a free-form string because formatter sets vary per app."

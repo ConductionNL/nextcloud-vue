@@ -233,3 +233,18 @@ For a compact "name + trailing status" list widget (à la a dashboard panel),
 combine `hideHeader` + `borderless` with the reusable cell utilities on each
 column's `cellClass`: `cn-cell--strong` (name), `cn-cell--muted cn-cell--end`
 (right-aligned muted status).
+
+## Cell utilities (`cellClass`)
+
+| Class | Effect |
+|---|---|
+| `cn-cell--strong` | Heavier font weight — for the row's primary identifier |
+| `cn-cell--muted` | Secondary text colour |
+| `cn-cell--end` | Right-aligned, no wrap — for numbers and trailing status |
+| `cn-cell--truncate` | One line with a trailing ellipsis; the full value stays reachable through the cell's `title` tooltip |
+
+Reach for `cn-cell--truncate` when a value is a single long unbreakable token — a
+URL, a fully-qualified class name. Wrapping such a value breaks it mid-token
+across several lines and makes every row that tall, so clipping reads better.
+Pair it with `fixedLayout`, which is what gives the column a width to clip
+against.

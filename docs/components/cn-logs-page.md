@@ -97,6 +97,8 @@ A log table is a bad fit for the browser's default `table-layout: auto`, where a
 
 Set `fixedLayout` to make the declared widths binding. Long values then wrap inside their cell instead of overflowing it. Size **every** column when you do (percentages summing to 100 are the easiest to reason about) — columns left unsized share whatever is left, which reintroduces the first problem.
 
+For a value that is one long unbreakable token — a URL, a fully-qualified class name — wrapping is usually worse than clipping: it breaks mid-token over several lines and makes every row that tall. Give that column `"cellClass": "cn-cell--truncate"` for a single line with a trailing ellipsis; the full value stays reachable through the cell's `title` tooltip.
+
 ## Manifest configuration
 
 ```jsonc

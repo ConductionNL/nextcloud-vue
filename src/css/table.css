@@ -144,6 +144,19 @@
 	overflow-wrap: anywhere;
 }
 
+/* `overflow-wrap` on the cell is not enough on its own. CnCellRenderer wraps
+   every value in an INLINE span, whose box is sized by its own content rather
+   than by the cell, so a long unbreakable value (a URL, a PHP FQCN) makes the
+   span measurably wider than its `td` and paints over the next column —
+   exactly the overlap fixed layout was meant to end. Promoting the wrapper to
+   a block gives it the column's width, which is what the inherited
+   `overflow-wrap` needs to break against. `min-width: 0` stops it floor-ing at
+   its min-content size. */
+.cn-data-table--fixed td > .cn-cell-renderer {
+	display: block;
+	min-width: 0;
+}
+
 .cn-data-table th {
 	background: var(--color-background-dark);
 	font-weight: 500;
@@ -162,6 +175,29 @@
 
 .cn-data-table td.cn-cell--end {
 	text-align: right;
+	white-space: nowrap;
+}
+
+/* Single-line cell with a trailing ellipsis. For a value that is one long
+   unbreakable token — a URL, a fully-qualified class name — where wrapping is
+   worse than clipping: `overflow-wrap` would break it mid-token across three
+   lines and make every row that tall. The full text stays reachable through
+   the `title` tooltip CnCellRenderer already sets on the value.
+
+   The inner rule is the one that actually clips. `text-overflow` on a
+   `display: table-cell` box is unreliable, so the constraint is placed on
+   CnCellRenderer's own wrapper span, promoted to a block so it takes the
+   cell's width. Pair with `fixedLayout`, which is what gives the column a
+   width worth clipping against. */
+.cn-data-table td.cn-cell--truncate {
+	overflow: hidden;
+	white-space: nowrap;
+}
+
+.cn-data-table td.cn-cell--truncate > .cn-cell-renderer {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
