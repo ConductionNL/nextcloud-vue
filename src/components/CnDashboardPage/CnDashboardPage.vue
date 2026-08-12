@@ -135,11 +135,13 @@
 					</template>
 					<NcActionInput
 						type="datetime-local"
+						is-native-picker
 						:model-value="toPickerDate(currentRange && currentRange.from)"
 						:label="t('nextcloud-vue', 'From')"
 						@update:model-value="onChipDateInput('from', $event)" />
 					<NcActionInput
 						type="datetime-local"
+						is-native-picker
 						:model-value="toPickerDate(currentRange && currentRange.to)"
 						:label="t('nextcloud-vue', 'To')"
 						@update:model-value="onChipDateInput('to', $event)" />
@@ -347,11 +349,13 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
+									is-native-picker
 									:model-value="toPickerDate(currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
 									@update:model-value="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
+									is-native-picker
 									:model-value="toPickerDate(currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
 									@update:model-value="onChipDateInput('to', $event)" />
@@ -406,11 +410,13 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
+									is-native-picker
 									:model-value="toPickerDate(currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
 									@update:model-value="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
+									is-native-picker
 									:model-value="toPickerDate(currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
 									@update:model-value="onChipDateInput('to', $event)" />
@@ -539,11 +545,13 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
+									is-native-picker
 									:model-value="toPickerDate(currentRange && currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
 									@update:model-value="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
+									is-native-picker
 									:model-value="toPickerDate(currentRange && currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
 									@update:model-value="onChipDateInput('to', $event)" />
@@ -669,6 +677,9 @@ const CHART_PROP_KEYS = [
 	'horizontal',
 	'legendPosition',
 	'valueFormat',
+	// Value-axis baseline guard: lets a manifest opt a chart out of the
+	// zero-baseline default (`'fit'`) when its series lives far from zero.
+	'valueAxisBaseline',
 	'colorMap',
 	'emptyLabel',
 	// In-widget view switcher (Wave 3, nextcloud-vue#91): named display

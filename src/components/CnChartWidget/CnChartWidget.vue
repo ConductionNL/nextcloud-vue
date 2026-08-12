@@ -79,6 +79,29 @@ import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 
+/**
+ * Round a value up to the next "nice" axis ceiling — a round multiple of a
+ * power of ten (7 → 8, 62 → 80, 210 → 250). Gives the top mark breathing room
+ * and lands the axis on round ticks instead of ending exactly on the data's
+ * maximum, where the peak sits glued to the plot's ceiling.
+ *
+ * The ladder is deliberately fine-grained: a coarse one (1 / 2 / 5 / 10) sends
+ * 62 all the way to 100 and wastes a third of the plot on empty space.
+ *
+ * @param {number} value Data maximum (must be > 0).
+ * @return {number} The next nice ceiling at or above `value`.
+ */
+const NICE_CEIL_STEPS = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]
+function niceCeil(value) {
+	if (!Number.isFinite(value) || value <= 0) return 1
+	const magnitude = 10 ** Math.floor(Math.log10(value))
+	for (const step of NICE_CEIL_STEPS) {
+		const candidate = step * magnitude
+		if (value <= candidate) return candidate
+	}
+	return 10 * magnitude
+}
+
 /** Event-bus channel CnWidgetWrapper's Refresh action broadcasts on. */
 const REFRESH_BUS_CHANNEL = 'cn:widget:refresh'
 
@@ -252,6 +275,27 @@ export default {
 		horizontal: {
 			type: Boolean,
 			default: false,
+		},
+		/**
+		 * How the value axis picks its baseline — the guard against a chart
+		 * that turns a trivial difference into a dramatic one.
+		 *
+		 * - `"auto"` (default) — anchor magnitude marks (bar / area) at zero,
+		 *   and stop line charts from zooming so far in that noise fills the
+		 *   plot. Never clamps when the data goes negative.
+		 * - `"zero"` — always anchor at zero (ignored when data goes negative).
+		 * - `"fit"` — the old behaviour: let ApexCharts frame the data range.
+		 *   Use for series that live far from zero (a percentage hovering
+		 *   95–99, a temperature) where a zero baseline flattens the signal.
+		 *
+		 * An explicit `options.yaxis.min` / `max` still wins through the
+		 * deep-merge.
+		 * @type {string}
+		 */
+		valueAxisBaseline: {
+			type: String,
+			default: 'auto',
+			validator: (v) => ['auto', 'zero', 'fit'].includes(v),
 		},
 		/**
 		 * Legend placement override: `top | bottom | left | right`. Empty (the
@@ -676,11 +720,30 @@ export default {
 				groupBy: gb,
 			})
 		},
+		/**
+		 * The injected dashboard date range as a plain `{from, to, preset}`
+		 * object, or null.
+		 *
+		 * Vue 3 auto-unwraps a ref reached through the Options `inject:`
+		 * declaration, so `this.cnDashboardDateRange` is ALREADY the value and
+		 * reading `.value` off it yields undefined. That deref survived the
+		 * Vue 2.7 → Vue 3 move and pinned every bucket chart to its fallback
+		 * window — while the chip label, which reads the value correctly, kept
+		 * updating. Still tolerates a raw ref, for a consumer that provides one
+		 * outside the Options inject path.
+		 *
+		 * @return {{from: string, to: string, preset?: string}|null} The active range.
+		 */
+		activeRange() {
+			const r = this.cnDashboardDateRange
+			if (!r || typeof r !== 'object') return null
+			return ('value' in r) ? (r.value || null) : r
+		},
 		/** Stable signature of a time-bucket source + the active range (else null). */
 		bucketKey() {
 			const b = this.dataSource && this.dataSource.bucket
 			if (!b || !this.dataSource.schema) return null
-			const r = this.cnDashboardDateRange && this.cnDashboardDateRange.value
+			const r = this.activeRange
 			return JSON.stringify({
 				register: this.dataSource.register || '',
 				schema: this.dataSource.schema,
@@ -729,6 +792,67 @@ export default {
 			if (!Array.isArray(series)) return series
 			const filtered = series.filter((s) => s && view.series.includes(s.name))
 			return filtered.length > 0 ? filtered : series
+		},
+		/**
+		 * Every plotted number across the displayed series, flattened.
+		 * Handles both cartesian (`[{name, data: []}]`) and flat
+		 * (`[1, 2, 3]`) series shapes. Non-numeric entries are dropped.
+		 *
+		 * @return {number[]} The plotted values.
+		 */
+		plottedValues() {
+			const out = []
+			const push = (v) => {
+				const n = Number(typeof v === 'object' && v !== null ? v.y : v)
+				if (Number.isFinite(n)) out.push(n)
+			}
+			for (const s of (Array.isArray(this.displayedSeries) ? this.displayedSeries : [])) {
+				if (Array.isArray(s)) s.forEach(push)
+				else if (s && Array.isArray(s.data)) s.data.forEach(push)
+				else push(s)
+			}
+			return out
+		},
+		/**
+		 * Value-axis bounds that keep a small difference looking small.
+		 *
+		 * ApexCharts frames the data range by default, so a series of 7 and 6
+		 * renders as a full-height drop — the reader sees a collapse where the
+		 * data says "one fewer". Bar and area encode magnitude by length and
+		 * area, so their baseline MUST be zero or the mark misstates the ratio;
+		 * line encodes position, so it may sit off zero but still shouldn't
+		 * zoom until noise fills the plot.
+		 *
+		 * Returns null to leave ApexCharts' own scaling alone — for pie-family
+		 * charts, `"fit"`, empty data, or any series that goes negative (where
+		 * clamping to zero would crop real values).
+		 *
+		 * @return {{min: number, max: number}|null} Axis bounds, or null to autoscale.
+		 */
+		valueAxisBounds() {
+			if (this.valueAxisBaseline === 'fit') return null
+			if (['pie', 'donut', 'radialBar'].includes(this.type)) return null
+			const values = this.plottedValues
+			if (values.length === 0) return null
+			const dataMin = Math.min(...values)
+			const dataMax = Math.max(...values)
+			// Negative values: a zero floor would crop them. Leave the framing
+			// to ApexCharts, which already spans zero for magnitude marks.
+			if (dataMin < 0) return null
+			// A flat all-zero series has no scale to infer — give it a token
+			// ceiling so the axis renders instead of collapsing.
+			if (dataMax === 0) return { min: 0, max: 1 }
+			const zeroBaseline = this.valueAxisBaseline === 'zero'
+				|| ['bar', 'area'].includes(this.type)
+			if (zeroBaseline) return { min: 0, max: niceCeil(dataMax) }
+			// Line/scatter: keep a non-zero baseline, but require the visible
+			// window to cover at least a quarter of the data's magnitude so a
+			// 1-in-1000 wiggle can't fill the plot.
+			const spread = dataMax - dataMin
+			const minSpread = dataMax * 0.25
+			if (spread >= minSpread) return null
+			const pad = (minSpread - spread) / 2
+			return { min: Math.max(0, dataMin - pad), max: niceCeil(dataMax + pad) }
 		},
 		/**
 		 * The value-formatter function derived from `valueFormat` (the
@@ -919,9 +1043,17 @@ export default {
 				}
 				// The VALUE axis is the y-axis normally, the x-axis when bars
 				// render horizontally (ApexCharts flips the axes).
+				const valueAxis = (this.type === 'bar' && this.horizontal) ? defaults.xaxis : defaults.yaxis
 				if (this.valueFormatterFn) {
-					const valueAxis = (this.type === 'bar' && this.horizontal) ? defaults.xaxis : defaults.yaxis
 					valueAxis.labels = { ...valueAxis.labels, formatter: this.valueFormatterFn }
+				}
+				// Baseline guard — see `valueAxisBounds`. `forceNiceScale` keeps
+				// the ticks on round numbers rather than slicing the span into
+				// fractions (a 0–8 count axis ticks 0/2/4/6/8, not 0/1.6/3.2/…).
+				if (this.valueAxisBounds) {
+					valueAxis.min = this.valueAxisBounds.min
+					valueAxis.max = this.valueAxisBounds.max
+					valueAxis.forceNiceScale = true
 				}
 			}
 
@@ -1077,9 +1209,10 @@ export default {
 		 * Fetch a time series from OpenRegister's REST `/timeseries` aggregation
 		 * when `dataSource.bucket` is set, mapping `{groups:[{key,value}]}` into
 		 * ApexCharts `series` + date `categories`. The window comes from the
-		 * dashboard date chip; a too-narrow chip (< ~90 days) widens to a 12-month
-		 * lookback so the curve stays meaningful. Replaces the GraphQL bucket
-		 * path. Lazily imports axios/router.
+		 * dashboard date chip and is sent as-is; `bucket.staticRange` fills any
+		 * half the chip leaves empty, and a 12-month lookback covers the case
+		 * where neither supplies a bound. Replaces the GraphQL bucket path.
+		 * Lazily imports axios/router.
 		 *
 		 * @spec openspec/changes/add-dashboard-date-range-and-chart-bucket/specs/chart-bucket-data-source/spec.md
 		 * @return {Promise<void>}
@@ -1097,13 +1230,22 @@ export default {
 					import('@nextcloud/router'),
 				])
 				// Resolve the [from, to] window: chip range, else staticRange,
-				// else a 12-month lookback; widen a too-narrow chip.
-				const r = (this.cnDashboardDateRange && this.cnDashboardDateRange.value) || b.staticRange || {}
-				const to = r.to || new Date().toISOString()
-				let from = r.from
-				const span = (from && to) ? (new Date(to).getTime() - new Date(from).getTime()) : 0
-				if (!from || span < (90 * 86400000)) {
-					from = new Date(new Date(to).getTime() - (365 * 86400000)).toISOString()
+				// else a 12-month lookback. The chip window is used VERBATIM —
+				// an earlier revision widened any span under 90 days to a
+				// 365-day lookback, which silently discarded the user's `from`
+				// for every built-in preset (all are shorter than 90 days) and
+				// left the chip label disagreeing with the plotted data.
+				const chip = this.activeRange || {}
+				const sr = b.staticRange || {}
+				let from = chip.from || sr.from || ''
+				let to = chip.to || sr.to || ''
+				// A cleared ("All") range leaves both halves empty, but the OR
+				// /timeseries endpoint 400s on a missing bound whenever
+				// `interval` is set — so fall back to a 12-month lookback
+				// rather than firing a request we know is rejected.
+				if (!from || !to) {
+					to = to || new Date().toISOString()
+					from = from || new Date(new Date(to).getTime() - (365 * 86400000)).toISOString()
 				}
 				const url = generateUrl(
 					'/apps/openregister/api/objects/aggregations/{register}/{schema}/timeseries',
@@ -1129,7 +1271,7 @@ export default {
 				}
 				const res = await axios.get(url, { params })
 				const groups = (res && res.data && res.data.groups) || []
-				const categories = groups.map((g) => this.formatBucketKey(g.key))
+				const categories = groups.map((g) => this.formatBucketKey(g.key, b.interval))
 				const values = groups.map((g) => Number(g.value) || 0)
 				this.bucketData = { series: [{ name: b.metricField || b.metric || 'count', data: values }], categories, labels: categories }
 			} catch (e) {
@@ -1137,16 +1279,38 @@ export default {
 			}
 		},
 		/**
-		 * Format a time-bucket key (ISO date) into a short axis label.
+		 * Format a time-bucket key (ISO date) into a short axis label, at the
+		 * granularity of the bucket's own interval. Without the interval every
+		 * key rendered as month + year, so a day-bucketed week collapsed onto
+		 * one repeated label ("Aug 26" for all of August 2026).
+		 *
+		 * The year is added to day / week labels only when the bucket falls
+		 * outside the current year, mirroring `formatRangeLabel` on the
+		 * dashboard chip.
 		 *
 		 * @param {string} key The bucket key (ISO date string).
+		 * @param {string} [interval] Bucket interval (`minute|hour|day|week|month|quarter|year`, case-insensitive). Defaults to the month/year form.
 		 * @return {string} A short, locale-aware label.
 		 */
-		formatBucketKey(key) {
+		formatBucketKey(key, interval) {
 			if (!key) return ''
 			const d = new Date(key)
 			if (Number.isNaN(d.getTime())) return String(key)
-			return d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' })
+			const thisYear = new Date().getFullYear()
+			const year = d.getFullYear() === thisYear ? {} : { year: 'numeric' }
+			switch (String(interval || '').toLowerCase()) {
+			case 'minute':
+				return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+			case 'hour':
+				return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit' })
+			case 'day':
+			case 'week':
+				return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', ...year })
+			case 'year':
+				return d.toLocaleDateString(undefined, { year: 'numeric' })
+			default:
+				return d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' })
+			}
 		},
 		/**
 		 * Fetch a categorical breakdown from OpenRegister's REST `/grouped`
