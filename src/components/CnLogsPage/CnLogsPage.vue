@@ -52,10 +52,18 @@
 				<NcLoadingIcon :size="32" />
 			</div>
 
-			<!-- `&& !error` is load-bearing: the error block below is a SIBLING of
-			     this chain, not part of it, so a failed fetch (which leaves the
-			     collection empty) would otherwise render both — "no log entries"
-			     stacked above "could not load log entries", two 64px icons. -->
+			<!-- The error block below is a SIBLING of this chain, not part of it, so
+			     BOTH guards here are load-bearing and neither is sufficient alone.
+			     A failed fetch leaves the collection empty, so:
+			       - without `&& !error`, this branch renders "no log entries"
+			         stacked above "could not load log entries";
+			       - without the `rows.length > 0` guard on the table branch, the
+			         `v-else` catches that same state instead and mounts CnDataTable
+			         with zero rows, which renders its OWN empty row from the same
+			         `emptyText` — the identical contradiction, just inside a table.
+			     So: error + no rows shows the error alone; no error + no rows shows
+			     this block; rows present shows the table, with the error beneath it
+			     when a refresh failed over a still-populated collection. -->
 			<div v-else-if="rows.length === 0 && !error" class="cn-logs-page__empty">
 				<!-- @slot Replaces the empty-state block shown when there are no log entries. -->
 				<slot name="empty">
@@ -67,8 +75,9 @@
 				</slot>
 			</div>
 
-			<!-- Table -->
-			<template v-else>
+			<!-- Table. `v-else-if="rows.length > 0"` rather than a bare `v-else` —
+			     see the guard note above. -->
+			<template v-else-if="rows.length > 0">
 				<CnDataTable
 					:schema="tableSchema"
 					:columns="resolvedColumns"

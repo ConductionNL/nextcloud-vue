@@ -190,21 +190,58 @@ describe('CnLogsPage — store-backed list', () => {
 	// The error block is a SIBLING of the loading/empty/table chain, not a branch
 	// of it, so a failed fetch — which leaves the collection empty — rendered the
 	// empty state AND the error state: "no log entries" stacked above "could not
-	// load log entries", two 64px icons. Asserting the `error` computed (above)
-	// cannot catch that; only the render can.
-	it('renders the error state ALONE on a failed fetch, not stacked with the empty state', async () => {
+	// load log entries". Asserting the `error` computed (above) cannot catch that;
+	// only the render can.
+	//
+	// CnDataTable is deliberately NOT stubbed in these three. The first version of
+	// this fix guarded only the empty branch, so `v-else` caught the same state and
+	// mounted CnDataTable with zero rows — which renders its own empty row from the
+	// same `emptyText`, reproducing the contradiction inside the table. A stubbed
+	// table renders nothing, so the assertion passed against the broken markup.
+	const realTableStubs = { ...stubs }
+	delete realTableStubs.CnDataTable
+
+	/**
+	 * Mount with a REAL CnDataTable so an empty table row is observable.
+	 *
+	 * @return {object} The wrapper.
+	 */
+	const mountWithRealTable = () => mount(CnLogsPage, {
+		propsData: { register: 'openconnector', schema: 'job_log' },
+		stubs: realTableStubs,
+		mocks: { $route: { query: {}, params: {} }, $router: { push: jest.fn() } },
+	})
+
+	it('renders the error state ALONE on a failed fetch — no empty block, no empty table', async () => {
 		mockStore.errors['openconnector-job_log'] = 'Request failed with status code 500'
-		const wrapper = mountPage()
+		const wrapper = mountWithRealTable()
 		await flush()
 		expect(wrapper.find('.cn-logs-page__error').exists()).toBe(true)
 		expect(wrapper.find('.cn-logs-page__empty').exists()).toBe(false)
+		// The table must not mount at all: an empty CnDataTable says "No log
+		// entries to show", contradicting the error directly above it.
+		expect(wrapper.find('table').exists()).toBe(false)
+		expect(wrapper.find('.cn-table-empty').exists()).toBe(false)
 	})
 
 	it('still renders the empty state when the fetch succeeded with no rows', async () => {
-		const wrapper = mountPage()
+		const wrapper = mountWithRealTable()
 		await flush()
 		expect(wrapper.find('.cn-logs-page__empty').exists()).toBe(true)
 		expect(wrapper.find('.cn-logs-page__error').exists()).toBe(false)
+		expect(wrapper.find('table').exists()).toBe(false)
+	})
+
+	// An error over a still-populated collection is the one case where both
+	// surfaces are correct: stale rows stay readable with the failure beneath them.
+	it('keeps the table AND the error when a refresh fails over existing rows', async () => {
+		mockStore.collections['openconnector-job_log'] = [{ id: '1', message: 'boot' }]
+		mockStore.errors['openconnector-job_log'] = 'Request failed with status code 500'
+		const wrapper = mountWithRealTable()
+		await flush()
+		expect(wrapper.find('table').exists()).toBe(true)
+		expect(wrapper.find('.cn-logs-page__error').exists()).toBe(true)
+		expect(wrapper.find('.cn-logs-page__empty').exists()).toBe(false)
 	})
 
 	// `resolveFilterMap` takes a third `ctx` argument for the `@workspace.<key>` /
