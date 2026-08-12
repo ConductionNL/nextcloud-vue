@@ -47,13 +47,16 @@ const stubs = {
  *
  * @param {object} propsData Component props.
  * @param {object} [route] Mocked `$route` (defaults to an empty query + params).
+ * @param {object} [provide] Injected bags (`cnWorkspaceContext` / `cnAppConfig`)
+ *   for the `filter` prop's token grammar.
  * @return {object} The Vue Test Utils wrapper.
  */
-function mountPage(propsData, route) {
+function mountPage(propsData, route, provide) {
 	return mount(CnLogsPage, {
 		propsData: { register: 'openconnector', schema: 'job_log', ...propsData },
 		stubs,
 		mocks: { $route: route || { query: {}, params: {} }, $router: { push: jest.fn() } },
+		...(provide ? { provide } : {}),
 	})
 }
 
@@ -182,6 +185,86 @@ describe('CnLogsPage — store-backed list', () => {
 		const wrapper = mountPage()
 		await flush()
 		expect(wrapper.vm.error).toBe('Request failed with status code 500')
+	})
+
+	// The error block is a SIBLING of the loading/empty/table chain, not a branch
+	// of it, so a failed fetch — which leaves the collection empty — rendered the
+	// empty state AND the error state: "no log entries" stacked above "could not
+	// load log entries", two 64px icons. Asserting the `error` computed (above)
+	// cannot catch that; only the render can.
+	it('renders the error state ALONE on a failed fetch, not stacked with the empty state', async () => {
+		mockStore.errors['openconnector-job_log'] = 'Request failed with status code 500'
+		const wrapper = mountPage()
+		await flush()
+		expect(wrapper.find('.cn-logs-page__error').exists()).toBe(true)
+		expect(wrapper.find('.cn-logs-page__empty').exists()).toBe(false)
+	})
+
+	it('still renders the empty state when the fetch succeeded with no rows', async () => {
+		const wrapper = mountPage()
+		await flush()
+		expect(wrapper.find('.cn-logs-page__empty').exists()).toBe(true)
+		expect(wrapper.find('.cn-logs-page__error').exists()).toBe(false)
+	})
+
+	// `resolveFilterMap` takes a third `ctx` argument for the `@workspace.<key>` /
+	// `@config.<key>` tokens the `filter` prop documents. CnLogsPage passed none,
+	// and `resolveFilterValue` returns an unresolvable token VERBATIM — so the
+	// literal string "@workspace.selectedClient" went to OpenRegister as a
+	// property filter and the table came back empty with no error.
+	describe('filter-prop token context', () => {
+		it('resolves @workspace.<key> from the injected workspace bag', async () => {
+			mountPage(
+				{ filter: { client: '@workspace.selectedClient' } },
+				undefined,
+				{ cnWorkspaceContext: { selectedClient: 'acme' } },
+			)
+			await flush()
+			expect(paramsOfCall(0).client).toBe('acme')
+		})
+
+		it('resolves @config.<key> from the injected app-config bag', async () => {
+			mountPage(
+				{ filter: { tenant: '@config.tenantId' } },
+				undefined,
+				{ cnAppConfig: { tenantId: 't-1' } },
+			)
+			await flush()
+			expect(paramsOfCall(0).tenant).toBe('t-1')
+		})
+
+		// With no bag provided, the grammar's own rules apply — and they differ by
+		// token form, which is the part worth pinning. A REQUIRED token passes
+		// through verbatim on purpose, so a downstream consumer can fall back to a
+		// literal default; only the OPTIONAL `?` form is dropped. Wiring the ctx
+		// does not (and should not) change either.
+		it('passes a required token through verbatim when the bag is absent', async () => {
+			mountPage({ filter: { client: '@workspace.selectedClient' } })
+			await flush()
+			expect(paramsOfCall(0).client).toBe('@workspace.selectedClient')
+		})
+
+		it('drops an optional token entirely when the bag is absent', async () => {
+			mountPage({ filter: { client: '@workspace.selectedClient?' } })
+			await flush()
+			expect('client' in paramsOfCall(0)).toBe(false)
+		})
+
+		// `fixedFilters` is a plain getter read at fetch time, so Vue does not
+		// track the bag; without the signature watchers the token resolved once on
+		// mount and the list never re-scoped.
+		it('re-fetches when the workspace bag changes', async () => {
+			const wrapper = mountPage(
+				{ filter: { client: '@workspace.selectedClient' } },
+				undefined,
+				{ cnWorkspaceContext: { selectedClient: 'acme' } },
+			)
+			await flush()
+			expect(mockStore.fetchCollection).toHaveBeenCalledTimes(1)
+			await wrapper.vm.$options.watch.workspaceSignature.call(wrapper.vm)
+			await flush()
+			expect(mockStore.fetchCollection).toHaveBeenCalledTimes(2)
+		})
 	})
 
 	it('lets CnDataTable derive columns from the loaded schema when none are configured', async () => {

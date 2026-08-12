@@ -80,18 +80,20 @@ import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 
 /**
+ * Nice-ceiling ladder. Deliberately fine-grained: a coarse one (1 / 2 / 5 / 10)
+ * sends 62 all the way to 100 and wastes a third of the plot on empty space.
+ */
+const NICE_CEIL_STEPS = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]
+
+/**
  * Round a value up to the next "nice" axis ceiling — a round multiple of a
  * power of ten (7 → 8, 62 → 80, 210 → 250). Gives the top mark breathing room
  * and lands the axis on round ticks instead of ending exactly on the data's
  * maximum, where the peak sits glued to the plot's ceiling.
  *
- * The ladder is deliberately fine-grained: a coarse one (1 / 2 / 5 / 10) sends
- * 62 all the way to 100 and wastes a third of the plot on empty space.
- *
  * @param {number} value Data maximum (must be > 0).
  * @return {number} The next nice ceiling at or above `value`.
  */
-const NICE_CEIL_STEPS = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]
 function niceCeil(value) {
 	if (!Number.isFinite(value) || value <= 0) return 1
 	const magnitude = 10 ** Math.floor(Math.log10(value))
@@ -824,14 +826,23 @@ export default {
 		 * zoom until noise fills the plot.
 		 *
 		 * Returns null to leave ApexCharts' own scaling alone — for pie-family
-		 * charts, `"fit"`, empty data, or any series that goes negative (where
-		 * clamping to zero would crop real values).
+		 * charts, `"fit"`, empty data, any series that goes negative (where
+		 * clamping to zero would crop real values), and stacked charts.
+		 *
+		 * Stacked is the subtle one: `plottedValues` flattens INDIVIDUAL
+		 * datapoints, but a stacked mark's height is the per-category SUM, which is
+		 * larger — two series of [6, 7] and [5, 4] reach 11 against a ceiling of
+		 * niceCeil(7) = 8, so the bars would clip. ApexCharts already baselines
+		 * stacked charts at zero, so deferring to it costs only the rounded
+		 * headroom, not the honest baseline. There is no `stacked` prop; it arrives
+		 * via `options.chart.stacked`, which the deep-merge honours.
 		 *
 		 * @return {{min: number, max: number}|null} Axis bounds, or null to autoscale.
 		 */
 		valueAxisBounds() {
 			if (this.valueAxisBaseline === 'fit') return null
 			if (['pie', 'donut', 'radialBar'].includes(this.type)) return null
+			if (this.options?.chart?.stacked) return null
 			const values = this.plottedValues
 			if (values.length === 0) return null
 			const dataMin = Math.min(...values)

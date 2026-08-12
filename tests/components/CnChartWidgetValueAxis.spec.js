@@ -71,6 +71,35 @@ describe('CnChartWidget — value-axis baseline', () => {
 		expect(mountChart([5, -3]).vm.valueAxisBounds).toBeNull()
 	})
 
+	// plottedValues flattens INDIVIDUAL datapoints, but a stacked mark's height is
+	// the per-category SUM, which is larger — so a ceiling derived from the single
+	// largest value clips the bars. Two series of [6, 7] and [5, 4] reach 11
+	// against niceCeil(7) = 8. There is no `stacked` prop; it arrives through
+	// options.chart.stacked, which the deep-merge honours.
+	it('defers to ApexCharts for a stacked chart rather than clipping the bars', () => {
+		const wrapper = shallowMount(CnChartWidget, {
+			propsData: {
+				type: 'bar',
+				series: [{ name: 'a', data: [6, 7] }, { name: 'b', data: [5, 4] }],
+				categories: ['d0', 'd1'],
+				options: { chart: { stacked: true } },
+			},
+		})
+		expect(wrapper.vm.valueAxisBounds).toBeNull()
+		expect(wrapper.vm.mergedOptions.yaxis.min).toBeUndefined()
+	})
+
+	it('still anchors an UNSTACKED multi-series chart at zero', () => {
+		const wrapper = shallowMount(CnChartWidget, {
+			propsData: {
+				type: 'bar',
+				series: [{ name: 'a', data: [6, 7] }, { name: 'b', data: [5, 4] }],
+				categories: ['d0', 'd1'],
+			},
+		})
+		expect(wrapper.vm.valueAxisBounds).toEqual({ min: 0, max: 8 })
+	})
+
 	it('gives an all-zero series a token ceiling instead of collapsing', () => {
 		expect(mountChart([0, 0]).vm.valueAxisBounds).toEqual({ min: 0, max: 1 })
 	})

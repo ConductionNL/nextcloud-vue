@@ -52,7 +52,11 @@
 				<NcLoadingIcon :size="32" />
 			</div>
 
-			<div v-else-if="rows.length === 0" class="cn-logs-page__empty">
+			<!-- `&& !error` is load-bearing: the error block below is a SIBLING of
+			     this chain, not part of it, so a failed fetch (which leaves the
+			     collection empty) would otherwise render both — "no log entries"
+			     stacked above "could not load log entries", two 64px icons. -->
+			<div v-else-if="rows.length === 0 && !error" class="cn-logs-page__empty">
 				<!-- @slot Replaces the empty-state block shown when there are no log entries. -->
 				<slot name="empty">
 					<NcEmptyContent :name="emptyText">
@@ -155,7 +159,7 @@
 </template>
 
 <script>
-import { getCurrentInstance } from 'vue'
+import { computed, getCurrentInstance, inject } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
 import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
@@ -450,7 +454,15 @@ export default {
 	setup(props) {
 		// Always returned, even when the composable is not used: Vue warns when
 		// a computed reads a key setup() omitted, and `source` mode reads these.
-		const NO_LIST = { list: null, objectType: '', listStore: null }
+		// The two signatures are included for the same reason — the watchers
+		// below target them by name, and `source` mode takes this early return.
+		const NO_LIST = {
+			list: null,
+			objectType: '',
+			listStore: null,
+			workspaceSignature: '',
+			appConfigSignature: '',
+		}
 		if (!props.register || !props.schema) return NO_LIST
 
 		const store = props.store || useObjectStore()
@@ -469,6 +481,35 @@ export default {
 		}
 
 		const instance = getCurrentInstance()
+
+		// Token-resolution context for the `filter` prop's `@workspace.<key>` /
+		// `@config.<key>` / `@object.<field>` tokens. Same injects + unwrap shape
+		// as useSelfFetchList's `tokenCtx`. Without it `resolveFilterMap` was
+		// called with no ctx, and `resolveFilterValue` returns an unresolvable
+		// token VERBATIM — so a page declaring `filter: { client:
+		// '@workspace.selectedClient' }` sent the literal string
+		// "@workspace.selectedClient" to OpenRegister as a property filter and got
+		// an empty table with no error, despite the prop doc naming that token.
+		// All three default to absent, so an app that never provides them is
+		// unaffected.
+		const objectCtxRaw = inject('cnObjectContext', null)
+		const workspaceCtxRaw = inject('cnWorkspaceContext', null)
+		const appConfigRaw = inject('cnAppConfig', null)
+		const unwrapCtx = (v) => ((v && typeof v === 'object' && 'value' in v) ? v.value : v)
+		const tokenCtx = () => {
+			const objCtx = unwrapCtx(objectCtxRaw)
+			const base = (objCtx && typeof objCtx === 'object') ? { ...objCtx } : {}
+			base.workspace = unwrapCtx(workspaceCtxRaw) || {}
+			base.config = unwrapCtx(appConfigRaw) || {}
+			return base
+		}
+		// `fixedFilters` is a plain getter called at fetch time, NOT auto-tracked
+		// by Vue, so a change to either bag would otherwise never re-scope the
+		// list — the token would resolve once on mount and stay stale. Stringified
+		// so the watchers below fire on real content changes, not identity.
+		const workspaceSignature = computed(() => JSON.stringify(unwrapCtx(workspaceCtxRaw) || {}))
+		const appConfigSignature = computed(() => JSON.stringify(unwrapCtx(appConfigRaw) || {}))
+
 		const list = useListView(objectType, {
 			objectStore: store,
 			defaultPageSize: (props.pagination && props.pagination.limit) || undefined,
@@ -480,12 +521,12 @@ export default {
 				const route = instance && instance.proxy && instance.proxy.$route
 				return {
 					...resolveQueryFilters(route && route.query),
-					...resolveFilterMap(props.filter, (route && route.params) || {}),
+					...resolveFilterMap(props.filter, (route && route.params) || {}, tokenCtx()),
 				}
 			},
 		})
 
-		return { list, objectType, listStore: store }
+		return { list, objectType, listStore: store, workspaceSignature, appConfigSignature }
 	},
 
 	data() {
@@ -530,10 +571,21 @@ export default {
 		/** Rows to render: the store collection, or locally sorted axios rows. */
 		rows() {
 			if (this.list) return this.list.objects.value
-			if (this.localSortKeys.length === 0) return this.localRows
+			// Legacy-store fallback: read the store's collection LIVE rather than
+			// the snapshot `fetch()` took. `rows` used to reach the collection
+			// through a computed; snapshotting into `localRows` meant a store that
+			// REPLACES the array (rather than mutating it in place) no longer
+			// reached the table. Only `this.store` is consulted — in this path it is
+			// the partial store prop that made setup() bail — so `source` mode,
+			// which has no store, still falls through to localRows.
+			const live = (this.register && this.schema && this.store)
+				? this.store.collections?.[`${this.register}-${this.schema}`]
+				: null
+			const base = Array.isArray(live) ? live : this.localRows
+			if (this.localSortKeys.length === 0) return base
 			// CnDataTable is presentational — it never sorts its own rows — so
 			// `source` mode has to apply the header sort itself.
-			return multiKeySort(this.localRows, this.localSortKeys.map((k) => ({ field: k.key, order: k.order })))
+			return multiKeySort(base, this.localSortKeys.map((k) => ({ field: k.key, order: k.order })))
 		},
 		/**
 		 * Server pagination STATE (`{ total, page, pages, limit }`); null in
@@ -639,6 +691,17 @@ export default {
 			handler() {
 				if (this.list) this.list.refresh(1)
 			},
+		},
+		// Same reason as the route watchers above: `fixedFilters` re-reads the
+		// token ctx on every fetch, so a refresh is all that's needed when the
+		// workspace / app-config bag behind a `@workspace.<key>` / `@config.<key>`
+		// filter token changes. Without these the token resolves once and the list
+		// never re-scopes.
+		workspaceSignature() {
+			if (this.list) this.list.refresh(1)
+		},
+		appConfigSignature() {
+			if (this.list) this.list.refresh(1)
 		},
 		register() { if (!this.list) this.fetch() },
 		schema() { if (!this.list) this.fetch() },

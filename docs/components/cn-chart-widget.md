@@ -218,7 +218,7 @@ The split is not arbitrary. Bar and area encode magnitude by **length and area**
 
 The ceiling is rounded up to a nice number (7 → 8, 62 → 80, 210 → 250) so the peak is not glued to the top of the plot and the ticks land on round values.
 
-Three cases always fall back to autoscaling, because a zero floor would be wrong or useless: pie-family charts, any series that goes negative (clamping would crop real values), and an empty series. An explicit `options.yaxis.min` / `max` still wins through the deep-merge.
+Four cases always fall back to autoscaling, because a zero floor would be wrong, useless, or too low: pie-family charts, any series that goes negative (clamping would crop real values), an empty series, and **stacked** charts (`options.chart.stacked`) — a stacked mark's height is the per-category sum, which exceeds the largest single datapoint, so a ceiling derived from that datapoint would clip the bars. ApexCharts already baselines stacked charts at zero. An explicit `options.yaxis.min` / `max` still wins through the deep-merge.
 
 Reach for `'fit'` when the series genuinely lives far from zero — a percentage hovering between 95 and 99, a temperature — where a zero baseline flattens the whole signal into one line. On a dashboard it can be set per widget from the manifest:
 
