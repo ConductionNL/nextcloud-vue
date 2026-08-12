@@ -89,11 +89,32 @@
 .cn-index-page__main--table > .cn-table-container {
 	flex: 1;
 	min-height: 0;
-	overflow: auto;
+	/* Clip rather than scroll: the scrollport is `.cn-data-table__scroll` below.
+	   A flex column so that wrapper can take the leftover height. */
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
 	/* CnPagination's own padding supplies the spacing below the table; the
 	   container's bottom margin would only add dead space above the pinned
 	   pagination row. */
 	margin-bottom: 0;
+}
+
+/* CnDataTable puts horizontal overflow on its own `.cn-data-table__scroll`
+   wrapper, NOT on `.cn-table-container`, so a dashboard widget-card's sticky
+   footer anchors to the card instead of the table (see table.css). Per the
+   overflow spec its `overflow-y` then computes from `visible` to `auto`, making
+   that wrapper the nearest scrollport for everything inside the table — but its
+   height is content-driven, so it never actually scrolls. Both of this view's
+   guarantees broke on it: the sticky `th` pinned to a box that never moves, and
+   the horizontal scrollbar sat at the bottom of the full table instead of the
+   visible edge. Constraining its height makes it the real scrollport on BOTH
+   axes, which also keeps the keyboard tab stop CnDataTable puts on this element
+   (`scrollable-region-focusable`) on the element that genuinely scrolls. */
+.cn-index-page__main--table .cn-data-table__scroll {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
 }
 
 .cn-index-page__main--table > .cn-index-page__pagination {
@@ -101,7 +122,7 @@
 }
 
 /* Pin the column headers while the rows scroll. Only viable in this view mode,
-   where the container above is the scroll container — elsewhere CnDataTable's
+   where the scroll wrapper above is height-constrained — elsewhere CnDataTable's
    nearest scrolling ancestor is the page or a widget body, and pinning to that
    is wrong. Sticky sits on the `th`, NOT on `thead`/`tr`: `.cn-data-table` is
    `border-collapse: collapse`, and browsers don't reliably honour sticky on the
