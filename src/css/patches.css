@@ -245,8 +245,8 @@
  * @nextcloud/vue: no Conduction component owns the element, and each app
  * patching it locally is the same rule written sixteen times.
  *
- * The input keeps its focus ring — it is a real, typable control, and removing
- * the visible focus would trade one defect for a WCAG 2.4.7 failure.
+ * Focus stays visible — see the rule below, which is the other half of this
+ * patch and not optional.
  */
 .v-select .vs__search,
 .v-select .vs__search:focus {
@@ -256,7 +256,45 @@
 	background-color: transparent;
 }
 
+/*
+ * ...and the focus indicator it removes goes back on the WHOLE control.
+ *
+ * `box-shadow: none` above does not just delete a border. Nextcloud draws input
+ * focus WITH box-shadow, so suppressing it suppresses the focus indicator too,
+ * and nothing else puts one back: core's global focus rule deliberately skips
+ * Vue apps — `.content:not(#content-vue) :focus-visible`, commented "let vue
+ * apps handle the focus themselves" — and the accessibility themes (high
+ * contrast, dyslexia font) only swap colours and fonts. Deleting this rule is
+ * therefore a WCAG 2.4.7 failure on every select in the fleet, which is exactly
+ * what it does not look like from the diff.
+ *
+ * It rings `.vs__dropdown-toggle` rather than `.vs__search`, where it used to
+ * live. The search input is the empty strip beside the selected value, so a ring
+ * on it framed blank space — the second-field look this whole patch exists to
+ * remove, redrawn in the focus colour. The toggle is what the user perceives as
+ * the control, so that is what lights up.
+ *
+ * `.vs__search` must then have its own outline explicitly cleared: nothing in
+ * vue-select or @nextcloud/vue suppresses it, so the user agent's default ring
+ * would step straight into the vacancy and reinstate the box we just removed.
+ * The indicator is not lost with it — `:focus-within` fires on the toggle
+ * whenever that input is focused, which is the only way this control takes focus.
+ *
+ * `!important` because NcSelect sets `outline` on this same element at equal
+ * specificity (`…:not(.vs--disabled, .vs--open) .vs__dropdown-toggle:focus-within`,
+ * a background-coloured spacer ring). Equal specificity makes stylesheet order
+ * the tie-breaker, and NcSelect's CSS is a lazily-imported chunk that can load
+ * after this file — the same race the z-index patch above documents.
+ *
+ * `--color-main-text` and not the primary colour: NcSelect already uses it for
+ * its own focus and open states, so a focused select reads as a Nextcloud
+ * select rather than a Conduction one.
+ */
+.v-select .vs__dropdown-toggle:focus-within {
+	outline: 2px solid var(--color-main-text) !important;
+	outline-offset: 2px;
+}
+
 .v-select .vs__search:focus-visible {
-	outline: 2px solid var(--color-primary-element);
-	outline-offset: -2px;
+	outline: none;
 }
