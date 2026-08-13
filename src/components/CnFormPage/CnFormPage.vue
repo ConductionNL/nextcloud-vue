@@ -84,7 +84,7 @@
 				:description="description" />
 		</slot>
 
-		<div v-if="$slots.actions || $scopedSlots.actions" class="cn-form-page__actions">
+		<div v-if="$slots.actions || $slots.actions" class="cn-form-page__actions">
 			<!-- @slot actions Action buttons (back, cancel, …) rendered above the form. -->
 			<slot name="actions" />
 		</div>
@@ -177,14 +177,14 @@
 				<NcButton
 					v-if="hasSteps && !isFirstStep"
 					variant="secondary"
-					native-type="button"
+					type="button"
 					@click="back">
 					{{ t('nextcloud-vue', 'Back') }}
 				</NcButton>
 				<NcButton
 					v-if="hasSteps && !isLastStep"
 					variant="primary"
-					native-type="button"
+					type="button"
 					@click="next">
 					{{ t('nextcloud-vue', 'Next') }}
 				</NcButton>
@@ -198,9 +198,25 @@
 					:submitting="submitting"
 					:dirty="dirty"
 					:submit="submit">
+					<!--
+						`type`, not `native-type` — @nextcloud/vue 9's NcButton declares
+						its native HTML button-type prop as `type` (`ButtonType = 'submit'
+						| 'reset' | 'button'`, default `'button'`) and has no `nativeType`
+						prop at all. `native-type` therefore fell through as an inert
+						attribute and every button silently rendered as the component's
+						default `type="button"` — including THIS one. A `type="button"`
+						button inside a `<form>` does NOT fire the form's native `submit`
+						event on click, so `<form @submit.prevent="submit">` above never
+						ran: clicking "Submit" did nothing, silently, in a real browser.
+						Jest's own local NcButton stub (`tests/components/CnFormPage.spec.js`)
+						never bound `:type` either, so its plain `<button>` defaulted to
+						the OPPOSITE — the HTML spec's implicit `type="submit"` for a
+						type-less button in a form — which is why every jest submit test
+						passed while the real component was broken.
+					-->
 					<NcButton
 						variant="primary"
-						native-type="submit"
+						type="submit"
 						:disabled="submitting">
 						<template #icon>
 							<NcLoadingIcon v-if="submitting" :size="20" />
@@ -579,7 +595,7 @@ export default {
 		 * @return {boolean}
 		 */
 		fieldHasNativeErrorSupport(field) {
-			if (this.$scopedSlots[`field-${field.key}`] || this.$slots[`field-${field.key}`]) return false
+			if (this.$slots[`field-${field.key}`] || this.$slots[`field-${field.key}`]) return false
 			const render = this.resolveFieldRender(field)
 			if (!render) return false
 			if (['string', 'number', 'password', 'fallback'].includes(render.kind)) return true
@@ -636,7 +652,7 @@ export default {
 			)
 			await Promise.all(remoteFields.map(async (field) => {
 				const result = await evaluateVisibleWhen(field.visibleWhen, { object: this.formData })
-				this.$set(this.remoteVisibility, field.key, result)
+				this.remoteVisibility[field.key] = result
 			}))
 		},
 
@@ -654,15 +670,15 @@ export default {
 			fieldsList.forEach((field) => {
 				if (!field || typeof field.key !== 'string') return
 				if (!this.isFieldVisible(field.key)) {
-					this.$delete(this.fieldErrors, field.key)
+					delete this.fieldErrors[field.key]
 					return
 				}
 				const message = validateFieldValue(field, this.formData[field.key], this.resolveLabel)
 				if (message) {
-					this.$set(this.fieldErrors, field.key, message)
+					this.fieldErrors[field.key] = message
 					if (!firstInvalidKey) firstInvalidKey = field.key
 				} else {
-					this.$delete(this.fieldErrors, field.key)
+					delete this.fieldErrors[field.key]
 				}
 			})
 			return firstInvalidKey
@@ -743,8 +759,8 @@ export default {
 		},
 
 		updateField(key, value) {
-			this.$set(this.formData, key, value)
-			this.$delete(this.fieldErrors, key)
+			this.formData[key] = value
+			delete this.fieldErrors[key]
 			/**
 			 * Field-level update event.
 			 *

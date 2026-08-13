@@ -54,9 +54,9 @@
 				<NcSelect v-if="regulations.length > 0"
 					:input-id="fieldIdFor('regulation')"
 					:options="regulations"
-					:value="formData.regulation"
+					:model-value="formData.regulation"
 					:clearable="false"
-					@input="formData.regulation = $event" />
+					@update:modelValue="formData.regulation = $event" />
 				<input v-else
 					:id="fieldIdFor('regulation')"
 					v-model="formData.regulation"
@@ -78,9 +78,9 @@
 				<label :for="fieldIdFor('format')">{{ labelOr('format', formatLabel) }}</label>
 				<NcSelect :input-id="fieldIdFor('format')"
 					:options="formats"
-					:value="formData.format"
+					:model-value="formData.format"
 					:clearable="false"
-					@input="formData.format = $event" />
+					@update:model-value="formData.format = $event" />
 			</div>
 
 			<!-- Delivery channel. -->
@@ -88,9 +88,9 @@
 				<label :for="fieldIdFor('delivery')">{{ labelOr('delivery', deliveryLabel) }}</label>
 				<NcSelect :input-id="fieldIdFor('delivery')"
 					:options="deliveries"
-					:value="formData.delivery"
+					:model-value="formData.delivery"
 					:clearable="false"
-					@input="formData.delivery = $event" />
+					@update:model-value="formData.delivery = $event" />
 				<input v-if="formData.delivery === 'email'"
 					:id="fieldIdFor('emailRecipient')"
 					v-model="formData.emailRecipient"
@@ -259,6 +259,7 @@ export default {
 			default: () => ({}),
 		},
 	},
+	emits: ['close', 'confirm'],
 	data() {
 		return {
 			loading: false,

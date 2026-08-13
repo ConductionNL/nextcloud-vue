@@ -33,7 +33,7 @@ describe('CnDataTable — accessibility', () => {
 	let wrapper
 
 	afterEach(() => {
-		wrapper?.destroy()
+		wrapper?.unmount()
 	})
 
 	it('has no WCAG 2.1 AA violations with sortable columns and selectable rows', async () => {

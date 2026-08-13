@@ -225,6 +225,68 @@ export function formatConditionalPhrase(value, _row, _property, options) {
 }
 
 /**
+ * Read a value that may be a collection SERIALISED as JSON back into the
+ * collection itself. OpenRegister hands a stringified array back for some
+ * property types (and an app's own import path may persist one), which
+ * `formatCount` would otherwise report as a single entry.
+ *
+ * Only `[`/`{`-leading strings are tried, so an ordinary text value never pays
+ * for a parse attempt, and a string that merely looks like JSON but isn't falls
+ * back to being one entry.
+ *
+ * @param {*} value The raw cell value.
+ * @return {*} The parsed collection, or `value` unchanged.
+ */
+function parseCollection(value) {
+	if (typeof value !== 'string') return value
+	const trimmed = value.trim()
+	if (trimmed[0] !== '[' && trimmed[0] !== '{') return value
+	try {
+		const parsed = JSON.parse(trimmed)
+		return (parsed !== null && typeof parsed === 'object') ? parsed : value
+	} catch (e) {
+		return value
+	}
+}
+
+/**
+ * Entry-count summariser (`count` registry key) — renders a collection-valued
+ * cell as "5 frames" instead of the truncated JSON blob `formatValue` would
+ * produce. Counts array entries or object keys; a PRESENT scalar counts as 1.
+ * The column's `formatterOptions` supply pre-translated
+ * `{ singular, plural, zero }` phrases with `{n}` substituted, following the
+ * `conditionalPhrase` convention of keeping i18n in the app layer. Without
+ * phrases it renders the bare count.
+ *
+ * Null-safe per the built-in-formatter contract: `zero` (or `''`) for
+ * null/empty — never throws.
+ *
+ * @param {*} value An array, object, JSON-encoded collection, or scalar.
+ * @param {object} [_row] The full row (unused).
+ * @param {object} [_property] The schema property (unused).
+ * @param {{singular?: string, plural?: string, zero?: string}} [options] The column's `formatterOptions`.
+ * @return {string} The selected phrase with `{n}` substituted, or the bare count.
+ */
+export function formatCount(value, _row, _property, options) {
+	const opts = options || {}
+	const zero = typeof opts.zero === 'string' ? opts.zero : ''
+	// Every EMPTY value takes the zero phrase, not just null/''. `0` and `false`
+	// used to fall through to the scalar branch and count as one entry, so a
+	// column over a `0` rendered "1 retry" — the singular of a thing that isn't
+	// there.
+	if (value == null || value === '' || value === 0 || value === false) return zero
+	const collection = parseCollection(value)
+	let n
+	if (Array.isArray(collection)) n = collection.length
+	else if (typeof collection === 'object') n = Object.keys(collection).length
+	else n = 1
+	if (n === 0) return zero
+	const phrase = n === 1 ? (opts.singular ?? opts.plural) : (opts.plural ?? opts.singular)
+	if (typeof phrase !== 'string' || phrase === '') return String(n)
+	return phrase.replace(/\{n\}/g, String(n))
+}
+
+/**
  * Built-in formatter registry merged under any consumer-registered
  * `formatters` in `CnAppRoot`'s `cnFormatters` provide.
  */
@@ -236,4 +298,5 @@ export const BUILT_IN_FORMATTERS = {
 	daysUntil: formatDaysUntil,
 	currency: formatCurrency,
 	conditionalPhrase: formatConditionalPhrase,
+	count: formatCount,
 }

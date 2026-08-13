@@ -15,7 +15,7 @@
 					{{ isObjectBound ? t('nextcloud-vue', 'Current object') : (folderPath || '/') }}
 				</span>
 				<NcButton
-					type="secondary"
+					variant="secondary"
 					:disabled="isObjectBound"
 					:title="isObjectBound ? objectBoundNote : null"
 					@click="openFolderPicker">
@@ -31,22 +31,22 @@
 		</div>
 
 		<NcSelect
-			:value="viewMode"
+			:model-value="viewMode"
 			:options="viewModeOptions"
 			:input-label="t('nextcloud-vue', 'View mode')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('viewMode', $event)" />
+			@update:modelValue="updateField('viewMode', $event)" />
 
 		<NcSelect
-			:value="sortBy"
+			:model-value="sortBy"
 			:options="sortByOptions"
 			:input-label="t('nextcloud-vue', 'Sort by')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('sortBy', $event)" />
+			@update:modelValue="updateField('sortBy', $event)" />
 
 		<label class="cn-files-widget-form__toggle">
 			<input
@@ -65,10 +65,10 @@
 		</label>
 
 		<NcTextField
-			:value="mimeTypeFilterString"
+			:model-value="mimeTypeFilterString"
 			:label="t('nextcloud-vue', 'MIME type filter (comma separated)')"
 			:placeholder="t('nextcloud-vue', 'e.g. image/*, application/pdf')"
-			@update:value="updateMimeFilter" />
+			@update:model-value="updateMimeFilter" />
 
 		<label class="cn-files-widget-form__toggle">
 			<input
@@ -118,7 +118,7 @@ const DEFAULT_CONTENT = Object.freeze({
 
 /**
  * CnFilesWidgetForm — the `CnAddWidgetModal` sub-form for creating or editing
- * a `files` widget placement (renderer: {@link CnFilesWidget}).
+ * a `files` widget placement (renderer: `CnFilesWidget`).
  *
  * The folder is chosen with the native Nextcloud folder picker (a "Browse…"
  * button opens {@link https://www.npmjs.com/package/@nextcloud/dialogs | getFilePickerBuilder}

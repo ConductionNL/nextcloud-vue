@@ -22,9 +22,9 @@
 
 | Name          | Payload | Description                                                                                                                                                         |
 | ------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `close`       | —       | Emitted when the dialog should close.                                                                                                                               |
 | `step-change` | —       | Emitted on every step navigation (next / back / jumpTo / submit).                                                                                                   |
 | `submit`      | —       | Emitted when the user reaches the final step and clicks Submit (or `submit()` is called programmatically from a slot scope). Payload is the accumulated `stepData`. |
-| `close`       | —       | Emitted when the dialog should close.                                                                                                                               |
 
 ### Slots
 

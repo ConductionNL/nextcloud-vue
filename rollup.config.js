@@ -97,6 +97,76 @@ const unwrapVueDeep = () => ({
 })
 unwrapVueDeep.postcss = true
 
+/**
+ * Anchor every SFC's default export to a module-LOCAL binding.
+ *
+ * `rollup-plugin-vue` emits an SFC as three modules under `preserveModules`:
+ *
+ *   Foo.vue2.js  the script object      Foo.vue3.js  the render function
+ *   Foo.vue.js   `import script from './Foo.vue2.js'
+ *                 import { render } from './Foo.vue3.js'
+ *                 script.render = render
+ *                 export default script`            ← wiring, by MUTATION
+ *
+ * Because `export default script` re-exports an IMPORTED binding, Rollup
+ * resolves the export straight through to `Foo.vue2.js` and rewrites every
+ * importer (including `dist/esm/index.js`) as:
+ *
+ *   import './Foo.vue.js'                                 // side effect only
+ *   export { default as Foo } from './Foo.vue2.js'        // the real binding
+ *
+ * That shape is fatal in a webpack consumer. `dist/esm/index.js` is not (and
+ * must not be) flagged side-effectful, so webpack's SideEffectsFlagPlugin
+ * redirects `import { Foo } from '@conduction/nextcloud-vue'` directly at
+ * `Foo.vue2.js` and then drops the barrel entirely — and the barrel was the
+ * ONLY thing importing `Foo.vue.js`. The consumer receives the script object
+ * with NO render function. Vue 3 production silently renders a comment node:
+ * `#content` becomes `<!---->`, `__vue_app__` exists, zero console errors.
+ * (Live 2026-07-27: openbuild's root IS `CnAppRoot`, so the whole app was
+ * blank. Components a parent component pulls in via its own `.vue.js` import
+ * were unaffected, which is why the failure looked arbitrary.)
+ *
+ * `sideEffects` globs cannot fix this — flagging the `.vue.js` wrappers only
+ * stops webpack shaking such a module once it is IN the graph; here nothing
+ * imports it at all. Flagging the barrel itself would work but forces every
+ * consumer to bundle all 335 components (measured: 13.9MB to 18.4MB, unminified).
+ *
+ * So fix the emit shape instead: assign the wired script to a local `const`
+ * and export THAT. The exported binding now lives in `Foo.vue.js`, so neither
+ * Rollup nor webpack can resolve past it — `import { Foo } from '…'` reaches
+ * the module that performs `script.render = render`, by construction, with no
+ * dependence on bundler side-effect heuristics.
+ *
+ * @return {import('rollup').Plugin} A rollup plugin localising SFC default exports.
+ */
+function anchorSfcDefaultExport() {
+	// Matches ONLY rollup-plugin-vue's own generated trailer.
+	const DEFAULT_EXPORT = /(^|\n)export default script(?=\n|$)/
+	return {
+		name: 'anchor-sfc-default-export',
+		transform(code, id) {
+			// The SFC "main" module has no `?vue&type=…` query; the script /
+			// template / style sub-blocks do, and must be left alone.
+			const [filename, query] = id.split('?')
+			if (query !== undefined || !filename.endsWith('.vue')) {
+				return null
+			}
+			if (!DEFAULT_EXPORT.test(code)) {
+				return null
+			}
+			return {
+				code: code.replace(
+					DEFAULT_EXPORT,
+					'$1const __sfc_main = script\nexport { __sfc_main as default }',
+				),
+				// rollup-plugin-vue already emits an empty mapping for this
+				// generated wrapper; keep it empty rather than claim a bogus one.
+				map: { mappings: '' },
+			}
+		},
+	}
+}
+
 export default {
 	input: 'src/index.js',
 	output: [
@@ -165,6 +235,24 @@ export default {
 			// The Toast UI WYSIWYG editor (loaded only in CnMarkdownEditor's
 			// `mode: 'wysiwyg'`) — kept external so it stays lazy at the consumer.
 			|| /^@toast-ui\//.test(id)
+			// `gridstack` is a peerDependency (package.json), not a bundled
+			// dependency — MUST stay external. CnDashboardGrid's JS sets a CSS
+			// custom property (`--gs-column-width`, v12+) that only GridStack's
+			// OWN matching stylesheet reads. A consumer imports
+			// `gridstack/dist/gridstack.min.css` from their own installed copy;
+			// if this bundler vendored a *different* resolved copy of the JS
+			// into dist (as it previously did — see dist/esm/node_modules/gridstack
+			// before this fix), the vendored JS and the consumer's CSS could be
+			// different majors and silently disagree, which is exactly how every
+			// CnDashboardGrid item rendered at 0px width (nc-vue's own bundled
+			// `^10.3.1` dependency vendored v10 JS underneath a consumer's v12
+			// CSS import). Keeping `gridstack` external makes the compiled
+			// output `import { GridStack } from 'gridstack'` a bare specifier,
+			// so the consumer's bundler resolves it to the SAME single copy
+			// whose CSS they import — the only way JS and CSS are guaranteed to
+			// agree.
+			|| id === 'gridstack'
+			|| /^gridstack\//.test(id)
 		)
 	},
 	plugins: [
@@ -190,12 +278,16 @@ export default {
 			//   2. The `.cjs` re-exports Vue's named exports via a RUNTIME
 			//      `Object.keys(require('vue'))` loop, which drops `defineComponent`
 			//      when the external `vue` is provided as a bare constructor.
-			// Since this library targets Vue 2.7, pin every `vue-demi` copy to its
-			// `lib/v2.7/index.mjs` variant — it statically `export *`s from `vue`,
-			// so rollup re-exports Vue 2.7's `defineComponent` (and friends)
-			// correctly regardless of the consumer's vue interop shape. Falls back
-			// to the resolved id when the v2.7 variant is absent.
-			name: 'resolve-vue-demi-v27',
+			// Since this library now targets Vue 3, pin every `vue-demi` copy to
+			// its `lib/v3/index.mjs` variant — it does `import * as Vue from 'vue'`
+			// and statically re-exports Vue 3's named exports (`defineComponent`
+			// and friends), so a consumer bundling this dist gets a real
+			// `defineComponent` regardless of its own vue interop shape. Pinning
+			// the v2.7 variant here (a leftover from the Vue-2 line) is what made
+			// the published dist crash at mount with "Cannot read properties of
+			// undefined (reading 'defineComponent')" inside a Vue-3 consumer.
+			// Falls back to the resolved id when the v3 variant is absent.
+			name: 'resolve-vue-demi-v3',
 			async resolveId(source, importer, options) {
 				if (source !== 'vue-demi') {
 					return null
@@ -204,15 +296,24 @@ export default {
 				if (!resolved || resolved.external) {
 					return resolved
 				}
-				// e.g. .../vue-demi/lib/index.mjs → .../vue-demi/lib/v2.7/index.mjs
-				const v27 = resolved.id.replace(/lib[/\\]index\.(mjs|cjs|js)$/, 'lib/v2.7/index.mjs')
-				return (v27 !== resolved.id && fs.existsSync(v27)) ? { ...resolved, id: v27 } : resolved
+				// e.g. .../vue-demi/lib/index.mjs → .../vue-demi/lib/v3/index.mjs
+				const v3 = resolved.id.replace(/lib[/\\]index\.(mjs|cjs|js)$/, 'lib/v3/index.mjs')
+				return (v3 !== resolved.id && fs.existsSync(v3)) ? { ...resolved, id: v3 } : resolved
 			},
 		},
 		vue({ css: false }),
+		// MUST come after vue() — it rewrites that plugin's generated trailer.
+		anchorSfcDefaultExport(),
 		postcss({ extract: 'nextcloud-vue.css', plugins: [postcssImport(), unwrapVueDeep()] }),
 		json(),
 		nodeResolve({ extensions: ['.mjs', '.js', '.json', '.node'] }),
-		commonjs(),
+		// `esmExternals: ['vue']` makes the commonjs plugin treat the external
+		// `vue` as an ES module: a bundled CJS dependency's `require('vue')`
+		// (notably vuedraggable's `Object(L.defineComponent)(...)`) is wired via
+		// `import * as L from 'vue'` + namespace access, so `L.defineComponent`
+		// resolves to Vue 3's real export in a consumer. Without it the CJS
+		// default-interop left `L` undefined → "Cannot read properties of
+		// undefined (reading 'defineComponent')" crash in a Vue-3 consumer.
+		commonjs({ esmExternals: ['vue'] }),
 	],
 }

@@ -44,10 +44,12 @@ function getDefaultWidth(type, format) {
  * @param {string[]} [options.exclude] Property keys to exclude
  * @param {string[]} [options.include] Property keys to include (whitelist mode)
  * @param {object} [options.overrides] Per-key column overrides, e.g. `{ status: { width: '200px' } }`
+ * @param {(text: string) => string} [options.translate] Optional display-layer translation function applied to each column label. Schema property titles are authored in English as the canonical source; consumers pass their bound `t()` (via the injected `cnTranslate`) so the visible header follows the user's language. When omitted, the label is the English source string unchanged (pure, backward-compatible).
  * @return {Array<{key: string, label: string, sortable: boolean, type: string, format: string, width: string}>}
  */
 export function columnsFromSchema(schema, options = {}) {
-	const { exclude = [], include = null, overrides = {} } = options
+	const { exclude = [], include = null, overrides = {}, translate } = options
+	const tr = typeof translate === 'function' ? translate : (text) => text
 
 	if (!schema || !schema.properties) {
 		return []
@@ -76,7 +78,7 @@ export function columnsFromSchema(schema, options = {}) {
 	return entries.map(([key, prop]) => {
 		const column = {
 			key,
-			label: prop.title || key,
+			label: tr(prop.title || key),
 			sortable: true,
 			type: prop.type || 'string',
 			format: prop.format || null,
@@ -378,6 +380,72 @@ function resolveWidget(prop) {
 }
 
 /**
+ * Longest description rendered inline as helper text. Beyond this a field's
+ * description is split — a short lead-in stays under the input, the full text
+ * moves behind the info popover — because some schema properties document a
+ * whole adapter dispatch table and would otherwise dwarf the field itself.
+ */
+const DESCRIPTION_INLINE_MAX = 120
+
+/** Tokens ending in a period that do not end a sentence. */
+const NON_TERMINAL_ABBREVIATIONS = ['e.g', 'i.e', 'etc', 'vs', 'cf', 'incl', 'approx', 'resp', 'no']
+
+/**
+ * The first sentence of `text`, or '' when it has no sentence boundary.
+ *
+ * @param {string} text The text to scan.
+ * @return {string} The first sentence including its terminator.
+ */
+function firstSentenceOf(text) {
+	const boundary = /[.!?](?=\s|$)/g
+	let match
+	while ((match = boundary.exec(text)) !== null) {
+		const lastWord = text.slice(0, match.index).split(/\s+/).pop().toLowerCase()
+		// "e.g." and single-letter initials carry a period mid-sentence.
+		if (NON_TERMINAL_ABBREVIATIONS.includes(lastWord) || /^[a-z]$/i.test(lastWord)) continue
+		return text.slice(0, match.index + 1)
+	}
+	return ''
+}
+
+/**
+ * Truncate to `max` characters on a word boundary, with an ellipsis.
+ *
+ * @param {string} text The text to clamp.
+ * @param {number} max The maximum length before the ellipsis.
+ * @return {string} The clamped text.
+ */
+function clampToWord(text, max) {
+	const cut = text.slice(0, max)
+	const lastSpace = cut.lastIndexOf(' ')
+	// Only honour the word boundary when it isn't hacking off most of the clamp.
+	return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`
+}
+
+/**
+ * Split a description into the part rendered inline and the full text.
+ *
+ * Short descriptions (the overwhelming majority — "Human-readable name") pass
+ * through untouched with no long form. Longer ones yield their first sentence
+ * as `short` when that alone fits, else a word-clamped prefix, and the whole
+ * original as `long` for the caller to put behind an info affordance.
+ *
+ * @param {string} text The raw description.
+ * @param {number} [max] Longest text kept inline.
+ * @return {{short: string, long: string}} The inline text and the full text ('' when nothing was split off).
+ */
+export function splitDescription(text, max = DESCRIPTION_INLINE_MAX) {
+	const full = typeof text === 'string' ? text.trim() : ''
+	if (!full || full.length <= max) return { short: full, long: '' }
+
+	const sentence = firstSentenceOf(full)
+	return {
+		short: sentence && sentence.length <= max ? sentence : clampToWord(full, max),
+		long: full,
+	}
+}
+
+/**
  * Generate form field definitions from a schema's properties.
  *
  * Reads `schema.properties` and creates field descriptor objects suitable
@@ -390,10 +458,12 @@ function resolveWidget(prop) {
  * @param {string[]} [options.include] Property keys to include (whitelist mode)
  * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`. Recognised keys: `hidden` (true → drop the field), `order` (number → wins over the schema property's `order` for sorting), `readOnly` (false on a schema-readOnly key un-skips it), plus any field props to merge (`label`, `widget`, `enum`, …). A single overrides map therefore controls visibility, ordering and rendering on every surface that consumes this pipeline (data widget + form dialog).
  * @param {boolean} [options.includeReadOnly] Whether to include readOnly properties
- * @return {Array<{key: string, label: string, description: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean}|null, userPicker: {multiple: boolean}|null, fillFrom: object|null, validation: object, order: number}>}
+ * @param {(text: string) => string} [options.translate] Optional display-layer translation function applied to each field's `label` and `description`. Schema property titles/descriptions are authored in English as the canonical source; consumers pass their bound `t()` (via the injected `cnTranslate`) so the rendered field label follows the user's language. When omitted, label/description are the English source strings unchanged (pure, backward-compatible).
+ * @return {Array<{key: string, label: string, description: string, descriptionLong: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean}|null, userPicker: {multiple: boolean}|null, fillFrom: object|null, validation: object, order: number}>} `description` is the inline helper text (see `splitDescription`); `descriptionLong` carries the full text when it was too long to render inline, else ''.
  */
 export function fieldsFromSchema(schema, options = {}) {
-	const { exclude = [], include = null, overrides = {}, includeReadOnly = false } = options
+	const { exclude = [], include = null, overrides = {}, includeReadOnly = false, translate } = options
+	const tr = typeof translate === 'function' ? translate : (text) => text
 
 	if (!schema || !schema.properties) {
 		return []
@@ -444,10 +514,12 @@ export function fieldsFromSchema(schema, options = {}) {
 		})
 
 	return entries.map(([key, prop]) => {
+		const description = splitDescription(prop.description ? tr(prop.description) : '')
 		const field = {
 			key,
-			label: prop.title || key,
-			description: prop.description || '',
+			label: tr(prop.title || key),
+			description: description.short,
+			descriptionLong: description.long,
 			type: prop.type || 'string',
 			format: prop.format || null,
 			widget: resolveWidget(prop),
@@ -553,12 +625,17 @@ export function fieldsFromSchema(schema, options = {}) {
  * widget types (select, checkbox, text).
  *
  * @param {object} schema The schema object with a `properties` field
+ * @param {object} [options] Configuration options
+ * @param {(text: string) => string} [options.translate] Optional display-layer translation function applied to each filter's `label` and `description`. Schema property titles are authored in English as the canonical source; consumers pass their bound `t()` (via the injected `cnTranslate`) so the rendered filter label follows the user's language. When omitted, label/description are the English source strings unchanged (pure, backward-compatible).
  * @return {Array<{key: string, label: string, type: string, propertyType: string, options: Array}>}
  */
-export function filtersFromSchema(schema) {
+export function filtersFromSchema(schema, options = {}) {
 	if (!schema || !schema.properties) {
 		return []
 	}
+
+	const { translate } = options
+	const tr = typeof translate === 'function' ? translate : (text) => text
 
 	return Object.entries(schema.properties)
 		.filter(([, prop]) => {
@@ -574,8 +651,8 @@ export function filtersFromSchema(schema) {
 		.map(([key, prop]) => {
 			const filter = {
 				key,
-				label: prop.title || key,
-				description: prop.description || '',
+				label: tr(prop.title || key),
+				description: prop.description ? tr(prop.description) : '',
 				propertyType: prop.type || 'string',
 				options: [],
 				value: null,

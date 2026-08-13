@@ -23,13 +23,11 @@
 					@click="navigateTo('/')">
 					{{ t('nextcloud-vue', 'Root') }}
 				</button>
-				<template v-for="(segment, index) in pathSegments">
+				<template v-for="(segment, index) in pathSegments" :key="index">
 					<span
-						:key="`sep-${index}`"
 						aria-hidden="true"
 						class="cn-files-widget__separator">/</span>
 					<button
-						:key="`seg-${index}`"
 						type="button"
 						class="cn-files-widget__crumb"
 						:aria-current="index === pathSegments.length - 1 ? 'page' : null"
@@ -208,7 +206,7 @@ export default {
 	props: {
 		/**
 		 * Persisted content blob configuring the folder + toolbar — see
-		 * {@link CnFilesWidgetForm} for the full shape (`folderPath`, `fileId`,
+		 * `CnFilesWidgetForm` for the full shape (`folderPath`, `fileId`,
 		 * `viewMode`, `allowUpload`, `allowDelete`, …).
 		 */
 		content: {
@@ -778,7 +776,7 @@ export default {
 		 * @return {void}
 		 */
 		onThumbError(item) {
-			this.$set(this.failedThumbs, item.fileId, true)
+			this.failedThumbs[item.fileId] = true
 		},
 
 		/**

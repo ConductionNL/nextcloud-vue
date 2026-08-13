@@ -74,6 +74,84 @@ describe('CnGraphCanvas', () => {
 		})
 	})
 
+	describe('resizing', () => {
+		// The canvas reports intent and never mutates `nodes`, exactly as it
+		// does for positions — so a resize is an EVENT, and a consumer that
+		// ignores it sees no change.
+		it('reports a new size from the corner grip without mutating the node', () => {
+			const nodes = [{ id: 'a', x: 0, y: 0, width: 200, height: 100 }]
+			const wrapper = mountCanvas({ nodes, resizable: true })
+
+			wrapper.vm.onResizeMouseDown(nodes[0], { clientX: 0, clientY: 0 })
+			wrapper.vm.onCanvasMouseMove({ clientX: 60, clientY: 40 })
+
+			expect(wrapper.emitted('node-resize')[0][0]).toEqual({ id: 'a', width: 260, height: 140 })
+			// The canvas must not mutate the node it was given.
+			expect(nodes[0].width).toBe(200)
+		})
+
+		// A stray drag past the top-left must not leave a node too small to
+		// grab again.
+		it('never resizes below the minimum', () => {
+			const nodes = [{ id: 'a', x: 0, y: 0, width: 200, height: 100 }]
+			const wrapper = mountCanvas({ nodes, resizable: true })
+
+			wrapper.vm.onResizeMouseDown(nodes[0], { clientX: 0, clientY: 0 })
+			wrapper.vm.onCanvasMouseMove({ clientX: -9000, clientY: -9000 })
+
+			const size = wrapper.emitted('node-resize')[0][0]
+			expect(size.width).toBe(40)
+			expect(size.height).toBe(40)
+		})
+
+		// A grip is a pointer gesture, and a pointer gesture cannot be the only
+		// way to perform an action (WCAG 2.1 AA 2.1.1).
+		it('resizes from the keyboard', () => {
+			const nodes = [{ id: 'a', x: 0, y: 0, width: 200, height: 100 }]
+			const wrapper = mountCanvas({ nodes, resizable: true })
+
+			wrapper.vm.onResizeKeydown(nodes[0], {
+				key: 'ArrowRight',
+				shiftKey: false,
+				preventDefault() {},
+				stopPropagation() {},
+			})
+
+			expect(wrapper.emitted('node-resize')[0][0]).toEqual({ id: 'a', width: 210, height: 100 })
+		})
+
+		it('does not resize when read-only', () => {
+			const nodes = [{ id: 'a', x: 0, y: 0, width: 200, height: 100 }]
+			const wrapper = mountCanvas({ nodes, resizable: true, readOnly: true })
+
+			wrapper.vm.onResizeMouseDown(nodes[0], { clientX: 0, clientY: 0 })
+			wrapper.vm.onCanvasMouseMove({ clientX: 60, clientY: 40 })
+
+			expect(wrapper.emitted('node-resize')).toBeFalsy()
+		})
+	})
+
+	describe('the dot grid', () => {
+		it('is absent unless asked for', () => {
+			expect(mountCanvas().find('.cn-graph-canvas__grid').exists()).toBe(false)
+			expect(mountCanvas({ showGrid: true }).find('.cn-graph-canvas__grid').exists()).toBe(true)
+		})
+
+		// The dots must sit on the same canvas coordinate as the graph at every
+		// pan and zoom — a grid that stayed still while the content moved would
+		// say nothing about where anything is, which is the only thing a grid
+		// is for.
+		it('scales with the zoom and follows the pan', () => {
+			const wrapper = mountCanvas({ showGrid: true, gridSize: 20, zoom: 2 })
+			wrapper.vm.panOffset = { x: 30, y: -15 }
+
+			expect(wrapper.vm.gridStyle).toEqual({
+				backgroundSize: '40px 40px',
+				backgroundPosition: '30px -15px',
+			})
+		})
+	})
+
 	describe('node dragging', () => {
 		it('emits node-move rather than mutating the nodes prop', async () => {
 			const wrapper = mountCanvas()
@@ -95,11 +173,16 @@ describe('CnGraphCanvas', () => {
 			expect(wrapper.emitted('node-move')[0][0]).toEqual({ id: 'a', x: 200, y: 200 })
 		})
 
-		it('clamps a node to the positive quadrant', () => {
+		// A graph has no top-left corner. Clamping to (0,0) meant nothing could
+		// ever be placed ABOVE or LEFT of whatever was currently highest, so
+		// adding a trigger to a finished flow was impossible without first
+		// dragging every other node down. Negative coordinates are reachable
+		// because the world is panned — the origin is not an edge of anything.
+		it('lets a node move above and left of the origin', () => {
 			const wrapper = mountCanvas()
 			wrapper.vm.onNodeMouseDown(NODES[0], { clientX: 100, clientY: 100 })
 			wrapper.vm.onCanvasMouseMove({ clientX: -500, clientY: -500 })
-			expect(wrapper.emitted('node-move')[0][0]).toEqual({ id: 'a', x: 0, y: 0 })
+			expect(wrapper.emitted('node-move')[0][0]).toEqual({ id: 'a', x: -500, y: -500 })
 		})
 
 		it('does not drag when read-only', () => {
@@ -213,6 +296,92 @@ describe('CnGraphCanvas', () => {
 			wrapper.vm.onNodeKeydown(NODES[0], { key: 'c', preventDefault() {} })
 			expect(wrapper.vm.pendingConnectSource).toBeNull()
 		})
+	})
+
+	describe('keyboard connect chooses the origin port', () => {
+		// A routing node has one out-port per branch, and the mouse picks the
+		// branch by pointing at it. Without this the keyboard armed the node and
+		// connected from whichever port was first, so every branch after the
+		// first was mouse-only (WCAG 2.1.1).
+		const BRANCHED = [
+			{
+				id: 'gate',
+				x: 100,
+				y: 100,
+				label: 'Route',
+				ports: [
+					{ id: 'in', side: 'left', kind: 'in' },
+					{ id: 'out:work', side: 'right', kind: 'out', label: 'work' },
+					{ id: 'out:idle', side: 'right', kind: 'out', label: 'idle' },
+				],
+			},
+			{ id: 'b', x: 400, y: 300, label: 'Approved' },
+		]
+
+		it('repeating c on the source steps to the NEXT branch', () => {
+			const wrapper = mountCanvas({ nodes: BRANCHED })
+			wrapper.vm.onNodeKeydown(BRANCHED[0], { key: 'c', preventDefault() {} })
+			// The first repeat advances rather than cancelling, because this node
+			// has a second branch to offer.
+			wrapper.vm.onNodeKeydown(BRANCHED[0], { key: 'c', preventDefault() {} })
+			expect(wrapper.vm.pendingConnectSource).toBe('gate')
+
+			wrapper.vm.onNodeKeydown(BRANCHED[1], { key: 'c', preventDefault() {} })
+			expect(wrapper.emitted('connect')[0][0]).toEqual({ source: 'gate', target: 'b', sourcePort: 'out:idle' })
+		})
+
+		it('without repeating, it leaves from the FIRST branch', () => {
+			// The inverse of the test above. Without it, an implementation that
+			// always armed the last port would satisfy the stepping assertion.
+			const wrapper = mountCanvas({ nodes: BRANCHED })
+			wrapper.vm.onNodeKeydown(BRANCHED[0], { key: 'c', preventDefault() {} })
+			wrapper.vm.onNodeKeydown(BRANCHED[1], { key: 'c', preventDefault() {} })
+			expect(wrapper.emitted('connect')[0][0]).toEqual({ source: 'gate', target: 'b', sourcePort: 'out:work' })
+		})
+
+		it('stepping past the LAST branch cancels, as one exit always did', () => {
+			const wrapper = mountCanvas({ nodes: BRANCHED })
+			wrapper.vm.onNodeKeydown(BRANCHED[0], { key: 'c', preventDefault() {} })
+			wrapper.vm.onNodeKeydown(BRANCHED[0], { key: 'c', preventDefault() {} })
+			wrapper.vm.onNodeKeydown(BRANCHED[0], { key: 'c', preventDefault() {} })
+			expect(wrapper.vm.pendingConnectSource).toBeNull()
+			expect(wrapper.emitted('connect')).toBeFalsy()
+		})
+
+		it('the in-port is never an origin', () => {
+			// `in` is declared first. If out-ports were not filtered, the first
+			// armed port would be the one that CANNOT originate a connection.
+			const wrapper = mountCanvas({ nodes: BRANCHED })
+			expect(wrapper.vm.outPortsFor(BRANCHED[0]).map((port) => port.id)).toEqual(['out:work', 'out:idle'])
+		})
+
+		it('a node declaring NO ports omits sourcePort, exactly as the mouse does', () => {
+			// `portsFor` synthesises an `out` port for such a node so it still has
+			// something to draw. Reading it here would send a `sourcePort` the
+			// mouse path never sends, and the two inputs would disagree.
+			const wrapper = mountCanvas()
+			wrapper.vm.onNodeKeydown(NODES[0], { key: 'c', preventDefault() {} })
+			wrapper.vm.onNodeKeydown(NODES[1], { key: 'c', preventDefault() {} })
+			expect(wrapper.emitted('connect')[0][0]).toEqual({ source: 'a', target: 'b' })
+		})
+
+		it('the armed PORT is marked, not just the node', () => {
+			// The choice has to be visible rather than remembered — otherwise the
+			// only feedback for stepping is that nothing appears to happen.
+			const wrapper = mountCanvas({ nodes: BRANCHED })
+			wrapper.vm.onNodeKeydown(BRANCHED[0], { key: 'c', preventDefault() {} })
+			expect(wrapper.vm.isArmedPort(BRANCHED[0], { id: 'out:work' })).toBe(true)
+			expect(wrapper.vm.isArmedPort(BRANCHED[0], { id: 'out:idle' })).toBe(false)
+
+			wrapper.vm.onNodeKeydown(BRANCHED[0], { key: 'c', preventDefault() {} })
+			expect(wrapper.vm.isArmedPort(BRANCHED[0], { id: 'out:idle' })).toBe(true)
+			expect(wrapper.vm.isArmedPort(BRANCHED[0], { id: 'out:work' })).toBe(false)
+		})
+
+		it('no port is armed on a node that is not the pending source', () => {
+			const wrapper = mountCanvas({ nodes: BRANCHED })
+			expect(wrapper.vm.isArmedPort(BRANCHED[0], { id: 'out:work' })).toBe(false)
+		})
 
 		it('the armed source node is visually marked', async () => {
 			const wrapper = mountCanvas()
@@ -269,10 +438,13 @@ describe('CnGraphCanvas', () => {
 			expect(wrapper.emitted('node-move')[0][0]).toEqual({ id: 'a', x: 100, y: 150 })
 		})
 
-		it('keyboard movement is clamped to the positive quadrant too', () => {
+		// The keyboard must reach every position the pointer can (WCAG 2.1 AA
+		// 2.1.1), so it is unclamped for the same reason the drag is: a clamp
+		// here alone would make "above the flow" mouse-only.
+		it('keyboard movement reaches negative coordinates too', () => {
 			const wrapper = mountCanvas({ nodes: [{ id: 'a', x: 5, y: 5 }] })
 			wrapper.vm.onNodeKeydown({ id: 'a', x: 5, y: 5 }, { key: 'ArrowLeft', shiftKey: false, preventDefault() {} })
-			expect(wrapper.emitted('node-move')[0][0]).toEqual({ id: 'a', x: 0, y: 5 })
+			expect(wrapper.emitted('node-move')[0][0]).toEqual({ id: 'a', x: -5, y: 5 })
 		})
 
 		it('ignores non-arrow keys so typing in a node slot still works', () => {
@@ -311,6 +483,136 @@ describe('CnGraphCanvas', () => {
 		it('renders a default edge line when no edge slot is supplied', () => {
 			const wrapper = mountCanvas()
 			expect(wrapper.find('.cn-graph-canvas__edge').exists()).toBe(true)
+		})
+	})
+
+	describe('ports', () => {
+		// A node that declares no ports keeps the single right-hand handle it
+		// has always had. This is the compatibility guarantee the whole port
+		// feature rests on: every existing consumer renders unchanged.
+		it('gives a node that declares no ports exactly one out-port', () => {
+			const wrapper = mountCanvas()
+			const ports = wrapper.findAll('.cn-graph-canvas__handle')
+			expect(ports).toHaveLength(NODES.length)
+		})
+
+		it('renders exactly the ports a node declares', () => {
+			const wrapper = mountCanvas({
+				nodes: [{
+					id: 'route',
+					x: 0,
+					y: 0,
+					ports: [
+						{ id: 'in', side: 'left' },
+						{ id: 'high', side: 'right', label: 'High' },
+						{ id: 'low', side: 'right', label: 'Low' },
+					],
+				}],
+				edges: [],
+			})
+
+			expect(wrapper.findAll('.cn-graph-canvas__handle')).toHaveLength(3)
+			expect(wrapper.findAll('.cn-graph-canvas__handle--right')).toHaveLength(2)
+			expect(wrapper.find('.cn-graph-canvas__handle--in').exists()).toBe(true)
+		})
+
+		// Branch ports name their branch. Three identical "drag to connect"
+		// buttons tell a keyboard or screen-reader user nothing about which one
+		// they are on.
+		it('names a branch port after its branch', () => {
+			const wrapper = mountCanvas({
+				nodes: [{ id: 'route', x: 0, y: 0, ports: [{ id: 'high', side: 'right', label: 'High' }] }],
+				edges: [],
+			})
+
+			expect(wrapper.find('.cn-graph-canvas__handle').attributes('aria-label')).toBe('High')
+		})
+
+		// Ports are spread PER NODE. Grouping them globally would position a
+		// node's single port by its index among every port in the graph, so one
+		// node gaining a branch would move every other node's ports.
+		it('spreads a side\'s ports independently for each node', () => {
+			const wrapper = mountCanvas({
+				nodes: [
+					{ id: 'one', x: 0, y: 0, ports: [{ id: 'only', side: 'right' }] },
+					{
+						id: 'many',
+						x: 400,
+						y: 0,
+						ports: [
+							{ id: 'a', side: 'right' },
+							{ id: 'b', side: 'right' },
+							{ id: 'c', side: 'right' },
+						],
+					},
+				],
+				edges: [],
+			})
+
+			const single = wrapper.vm.portStyle(
+				{ id: 'one', ports: [{ id: 'only', side: 'right' }] },
+				{ id: 'only', side: 'right' },
+			)
+			// One port on the side sits at the midpoint, whatever other nodes do.
+			expect(single.top).toBe('50%')
+		})
+
+		it('puts a loop node\'s body ports on the top edge', () => {
+			const wrapper = mountCanvas({
+				nodes: [{
+					id: 'paginate',
+					x: 0,
+					y: 0,
+					ports: [
+						{ id: 'body-out', side: 'top', label: 'Repeat' },
+						{ id: 'body-in', side: 'top', label: 'Return' },
+					],
+				}],
+				edges: [],
+			})
+
+			const top = wrapper.findAll('.cn-graph-canvas__handle--top')
+			expect(top).toHaveLength(2)
+			// On the border, not beside it: the port's own edge is at 0%.
+			expect(top[0].attributes('style')).toContain('top: 0%')
+		})
+
+		it('reports which port a connection left from', () => {
+			const wrapper = mountCanvas({
+				nodes: [
+					{ id: 'route', x: 0, y: 0, ports: [{ id: 'high', side: 'right' }] },
+					{ id: 'b', x: 400, y: 0 },
+				],
+				edges: [],
+			})
+
+			wrapper.vm.onConnectionStart(
+				{ id: 'route', x: 0, y: 0, ports: [{ id: 'high', side: 'right' }] },
+				{ clientX: 200, clientY: 140 },
+				{ id: 'high', side: 'right', kind: 'out' },
+			)
+			wrapper.vm.onNodeMouseUp({ id: 'b' })
+
+			expect(wrapper.emitted('connect')[0][0]).toEqual({
+				source: 'route',
+				target: 'b',
+				sourcePort: 'high',
+			})
+		})
+
+		// An in-port receives; it never originates. Without this a user could
+		// drag backwards out of an inbound port and create an edge pointing the
+		// wrong way, which reads on the canvas as the flow running in reverse.
+		it('refuses to start a connection from an in-port', () => {
+			const wrapper = mountCanvas()
+
+			wrapper.vm.onConnectionStart(
+				NODES[0],
+				{ clientX: 200, clientY: 140 },
+				{ id: 'in', side: 'left', kind: 'in' },
+			)
+
+			expect(wrapper.vm.drawingConnection).toBe(null)
 		})
 	})
 })

@@ -101,8 +101,8 @@
 
 			<!-- Agenda view: chronological list grouped by day. -->
 			<ul v-else class="cn-calendar-widget__agenda">
-				<template v-for="group in agendaGroups">
-					<li :key="'h-' + group.iso" class="cn-calendar-widget__agenda-header">
+				<template v-for="group in agendaGroups" :key="group.iso">
+					<li class="cn-calendar-widget__agenda-header">
 						{{ group.label }}
 					</li>
 					<li
@@ -296,7 +296,7 @@ export default {
 		/**
 		 * Events bucketed by `YYYY-MM-DD` for grid lookup.
 		 *
-		 * @return {Object<string, object[]>} iso-date → events.
+		 * @return {Record<string, object[]>} iso-date → events.
 		 */
 		eventsByDay() {
 			const buckets = {}

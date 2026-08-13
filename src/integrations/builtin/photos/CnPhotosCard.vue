@@ -269,7 +269,7 @@ export default {
 		},
 
 		onCoverError(album) {
-			this.$set(this.brokenCovers, this.albumKey(album), true)
+			this.brokenCovers[this.albumKey(album)] = true
 		},
 
 		photoCount(album) {

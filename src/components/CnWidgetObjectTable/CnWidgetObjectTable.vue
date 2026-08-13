@@ -22,7 +22,7 @@
 		:is="hideWrapper ? 'CnWidgetHostShell' : 'CnWidgetWrapper'"
 		v-bind="hideWrapper ? {} : { title, widgetId, documentationUrl, flush: true }">
 		<div class="cn-widget-object-table">
-			<CnDataTable ref="dataTable" v-bind="innerProps" v-on="$listeners">
+			<CnDataTable ref="dataTable" v-bind="{ ...innerProps, ...$attrs }">
 				<!-- Forward every host-supplied CnDataTable scoped slot verbatim
 				     (#footer { total, shown }, #empty, #column-<key>, …). The
 				     #row-actions slot is NOT forwarded while the widget renders
@@ -166,6 +166,7 @@ export default {
 		 */
 		cnDispatchAction: { default: null },
 	},
+	inheritAttrs: false,
 
 	props: {
 		/**
@@ -356,6 +357,8 @@ export default {
 			default: null,
 		},
 	},
+
+	emits: ['object-op'],
 
 	setup(props) {
 		// Endpoint binding (Wave 2, #91): the shared useEndpointSource engine
@@ -656,7 +659,7 @@ export default {
 		 */
 		forwardedScopedSlots() {
 			const out = {}
-			for (const name of Object.keys(this.$scopedSlots || {})) {
+			for (const name of Object.keys(this.$slots || {})) {
 				if (name === 'row-actions' && this.rowScopedActions.length > 0) continue
 				out[name] = true
 			}

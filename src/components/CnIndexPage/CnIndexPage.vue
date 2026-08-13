@@ -1,7 +1,13 @@
 <template>
 	<div class="cn-index-page" data-testid="cn-index-page">
-		<!-- Header — overridable via #header slot. Default renders CnPageHeader
-		     when showTitle is true (existing behaviour, hidden by default). -->
+		<!-- Header — overridable via #header slot. CnPageHeader ALWAYS renders:
+		     with showTitle it is the full visual header (icon, title,
+		     description); without it, `visuallyHidden` clips everything but the
+		     <h1> out of the layout. The page therefore looks identical either
+		     way, but the <main> landmark always carries a heading — the sidebar
+		     title this component used to rely on lives outside <main>, so
+		     screen-reader users and "skip to main content" got an unlabelled
+		     region (WCAG 2.4.6 / 1.3.1). -->
 		<slot
 			name="header"
 			:title="title"
@@ -9,14 +15,14 @@
 			:icon="resolvedIcon"
 			:show-title="showTitle">
 			<CnPageHeader
-				v-if="showTitle"
 				:title="title"
 				:description="description"
-				:icon="resolvedIcon" />
+				:icon="resolvedIcon"
+				:visually-hidden="!showTitle" />
 		</slot>
 
 		<!-- Optional content below header, above actions bar -->
-		<div v-if="$scopedSlots['below-header']" class="cn-index-page__below-header">
+		<div v-if="$slots['below-header']" class="cn-index-page__below-header">
 			<slot name="below-header" />
 		</div>
 
@@ -71,13 +77,13 @@
 			@show-delete="showMassDeleteDialog = true"
 			@search="onSearchEvent"
 			@view-mode-change="onViewModeChange">
-			<template v-if="$scopedSlots['mass-actions']" #mass-actions="{ count, selectedIds: ids }">
+			<template v-if="$slots['mass-actions']" #mass-actions="{ count, selectedIds: ids }">
 				<slot name="mass-actions" :count="count" :selected-ids="ids" />
 			</template>
-			<template v-if="$scopedSlots['action-items']" #action-items>
+			<template v-if="$slots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$scopedSlots['actions'] || isEditMode || showExportMenu || allowSavedViews" #actions>
+			<template v-if="$slots['actions'] || isEditMode || showExportMenu || allowSavedViews" #actions>
 				<slot name="actions" />
 				<!-- Saved views (opt-in via `allowSavedViews`): lists the user's
 				     OpenRegister saved-search views; applying one writes its stored
@@ -118,7 +124,7 @@
 				<!-- Edit-mode config cog: opens the page's full config editor
 				     (CnPageRenderer wires @configure to CnPageConfigModal). -->
 				<NcButton v-if="isEditMode"
-					type="tertiary"
+					variant="tertiary"
 					:aria-label="t('nextcloud-vue', 'Configure page')"
 					@click="$emit('configure')">
 					<template #icon>
@@ -178,7 +184,7 @@
 			:options="importOptions"
 			@confirm="onMassImportConfirm"
 			@close="showImportDialog = false">
-			<template v-if="$scopedSlots['import-fields']" #fields="{ file }">
+			<template v-if="$slots['import-fields']" #fields="{ file }">
 				<slot name="import-fields" :file="file" />
 			</template>
 		</CnMassImportDialog>
@@ -202,11 +208,17 @@
 			@close="viewPendingDelete = null" />
 
 		<!-- @slot delete-dialog Replace the single-item delete dialog. -->
+		<!-- @binding {boolean} show Whether the delete dialog is currently visible. -->
 		<!-- @binding {object} item The item targeted for deletion. -->
+		<!-- @binding {Function} confirm Performs the delete — the same path the default dialog's `@confirm` runs. -->
 		<!-- @binding {Function} close Closes the delete dialog. -->
+		<!-- `show` and `confirm` are props for the same reason as `form-dialog`
+		     above: a manifest-mounted replacement receives props only. -->
 		<slot
 			name="delete-dialog"
+			:show="showSingleDeleteDialog"
 			:item="actionTargetItem"
+			:confirm="onSingleDeleteConfirm"
 			:close="closeSingleDelete">
 			<CnDeleteDialog
 				v-if="showSingleDeleteDialog && actionTargetItem"
@@ -219,11 +231,17 @@
 		</slot>
 
 		<!-- @slot copy-dialog Replace the single-item copy dialog. -->
+		<!-- @binding {boolean} show Whether the copy dialog is currently visible. -->
 		<!-- @binding {object} item The item targeted for copy. -->
+		<!-- @binding {Function} confirm Performs the copy — the same path the default dialog's `@confirm` runs. -->
 		<!-- @binding {Function} close Closes the copy dialog. -->
+		<!-- `show` and `confirm` are props for the same reason as `form-dialog`
+		     above: a manifest-mounted replacement receives props only. -->
 		<slot
 			name="copy-dialog"
+			:show="showSingleCopyDialog"
 			:item="actionTargetItem"
+			:confirm="onSingleCopyConfirm"
 			:close="closeSingleCopy">
 			<CnCopyDialog
 				v-if="showSingleCopyDialog && actionTargetItem"
@@ -239,12 +257,22 @@
 		<!-- @binding {boolean} show Whether the form dialog is currently visible. -->
 		<!-- @binding {?object} item The item being edited, or null in create mode. -->
 		<!-- @binding {object} schema The effective JSON schema driving the form. -->
+		<!-- @binding {Function} confirm Persists the form data through the page's own save path (store / self-store / createOverride) and emits `create`/`edit`. Call this instead of saving in the replacement dialog, so a create or edit made there behaves exactly like one made in the built-in dialog. Takes the complete object to save. List refresh is automatic on the self-fetch and `createOverride` paths; with the `store` prop, refresh is driven by the consumer's `create`/`edit` handler as usual. -->
 		<!-- @binding {Function} close Closes the form dialog. -->
+		<!--
+		     `confirm` is bound as a PROP, not left as an `@confirm` listener on
+		     the default child. A manifest-declared replacement is mounted by
+		     CnPageRenderer as `<component :is=… v-bind="slotProps" />`, which
+		     binds props only — so a listener is unreachable from a manifest
+		     even in principle, and a replacement dialog could render and close
+		     but never save (openconnector#1150).
+		-->
 		<slot
 			name="form-dialog"
 			:show="showFormDialogVisible"
 			:item="editItem"
 			:schema="effectiveSchema"
+			:confirm="onFormConfirm"
 			:close="closeFormDialog">
 			<CnFormDialog
 				v-if="showFormDialogVisible && !useAdvancedFormDialog"
@@ -258,7 +286,7 @@
 				:name-field="massActionNameField"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog">
-				<template v-if="$scopedSlots['form-fields']" #form="scope">
+				<template v-if="$slots['form-fields']" #form="scope">
 					<slot name="form-fields" v-bind="scope" />
 				</template>
 			</CnFormDialog>
@@ -299,7 +327,10 @@
 
 			<div
 				class="cn-index-page__main"
-				:class="{ 'cn-index-page__main--map': currentViewMode === 'map' }">
+				:class="{
+					'cn-index-page__main--map': currentViewMode === 'map',
+					'cn-index-page__main--table': currentViewMode === 'table',
+				}">
 				<!-- Loading state — initial fetch only; a background refresh keeps the table visible -->
 				<div v-if="showInitialLoader" class="cn-index-page__loading">
 					<!-- name gives NcLoadingIcon a non-empty aria-label (WCAG role-img-alt); empty name ships an unlabeled role="img" -->
@@ -373,8 +404,8 @@
 							<template #icon>
 								<FilterOutline :size="20" />
 							</template>
-							<template v-for="field in filterableFields">
-								<NcActionCaption :key="`${field.key}-caption`" :name="field.label" />
+							<template v-for="field in filterableFields" :key="field.key">
+								<NcActionCaption :name="field.label" />
 								<NcActionCheckbox
 									v-for="val in field.values"
 									:key="`${field.key}-${val}`"
@@ -397,7 +428,7 @@
 								:key="`col-${col.key}`"
 								:model-value="isColumnVisible(col.key)"
 								@update:model-value="toggleColumn(col.key)">
-								{{ col.label || col.key }}
+								{{ cnTranslate(col.label || col.key) }}
 							</NcActionCheckbox>
 						</NcActions>
 					</template>
@@ -438,7 +469,7 @@
 						   resolved against the customComponents registry.
 						3. CnObjectList's default CnObjectRow.
 					-->
-					<template v-if="$scopedSlots['list-item']" #list-item="{ object, selected }">
+					<template v-if="$slots['list-item']" #list-item="{ object, selected }">
 						<slot name="list-item" :object="object" :selected="selected" />
 					</template>
 					<template v-else-if="resolvedListComponent" #list-item="{ object, selected }">
@@ -455,13 +486,13 @@
 					<!-- Per-part row slots (list view only): forwarded to CnObjectRow
 					     so an app can override just the leading icon or the badge
 					     while keeping the config-driven title/subtitle. -->
-					<template v-if="$scopedSlots['row-icon']" #row-icon="{ object }">
+					<template v-if="$slots['row-icon']" #row-icon="{ object }">
 						<slot name="row-icon" :object="object" />
 					</template>
-					<template v-if="$scopedSlots['row-badges']" #row-badges="{ object }">
+					<template v-if="$slots['row-badges']" #row-badges="{ object }">
 						<slot name="row-badges" :object="object" />
 					</template>
-					<template v-if="hasRowActions || $scopedSlots['row-actions']" #row-actions="{ object }">
+					<template v-if="hasRowActions || $slots['row-actions']" #row-actions="{ object }">
 						<slot name="row-actions" :row="object">
 							<CnRowActions
 								:actions="mergedActions"
@@ -489,7 +520,7 @@
 						   resolved against the customComponents registry.
 						3. CnCardGrid's default CnObjectCard.
 					-->
-					<template v-if="$scopedSlots.card" #card="{ object, selected }">
+					<template v-if="$slots.card" #card="{ object, selected }">
 						<slot name="card" :object="object" :selected="selected" />
 					</template>
 					<template v-else-if="resolvedCardComponent" #card="{ object, selected }">
@@ -515,7 +546,7 @@
 
 				<!-- Right-click context menu (positioned at cursor via CSS) -->
 				<CnContextMenu
-					:open.sync="contextMenuOpen"
+					v-model:open="contextMenuOpen"
 					:actions="mergedActions"
 					:target-item="contextMenuRow"
 					@action="onRowAction"
@@ -659,8 +690,8 @@ import { useSelfFetchList } from './useSelfFetchList.js'
  * With custom form dialog
  * ```vue
  * <CnIndexPage ...>
- *   <template #form-dialog="{ item, schema, close }">
- *     <MyCustomFormDialog :item="item" @close="close" />
+ *   <template #form-dialog="{ item, schema, confirm, close }">
+ *     <MyCustomFormDialog :item="item" @save="confirm" @close="close" />
  *   </template>
  * </CnIndexPage>
  * ```
@@ -689,9 +720,9 @@ import { useSelfFetchList } from './useSelfFetchList.js'
  * @slot mass-actions — Extra mass action buttons (shown when items are selected)
  * @slot action-items — Extra action bar buttons
  * @slot header-actions — Extra buttons in the page header
- * @slot delete-dialog — Replace the single-item delete dialog. Scope: `{ item, close }`
- * @slot copy-dialog — Replace the single-item copy dialog. Scope: `{ item, close }`
- * @slot form-dialog — Replace the create/edit form dialog. Scope: `{ item, schema, close }`
+ * @slot delete-dialog — Replace the single-item delete dialog. Scope: `{ show, item, confirm, close }`. Call `confirm()` to perform the delete.
+ * @slot copy-dialog — Replace the single-item copy dialog. Scope: `{ show, item, confirm, close }`. Call `confirm(payload)` to perform the copy.
+ * @slot form-dialog — Replace the create/edit form dialog. Scope: `{ show, item, schema, confirm, close }`. Call `confirm(formData)` to save through the host's normal persistence path.
  * @slot form-fields — Replace form content inside the built-in CnFormDialog. Scope: `{ fields, formData, errors, updateField }`
  * @slot import-fields — Extra fields in the import dialog
  * @slot empty — Custom empty state content
@@ -757,6 +788,16 @@ export default {
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
 		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Column and
+		 * filter labels come from schema property titles, authored in English as
+		 * the canonical source; the visible label is resolved through this
+		 * function so it follows the user's language. Defaults to identity when
+		 * used standalone (no CnAppRoot ancestor). The embedded CnDataTable
+		 * resolves its own header labels through the same injection.
+		 */
+		cnTranslate: { default: () => (key) => key },
+		/**
 		 * Reactive edit-mode flag from CnAppRoot's manifest editor. When truthy
 		 * the page shows a config cog in its actions bar (emits `configure`).
 		 */
@@ -782,7 +823,7 @@ export default {
 		 * Reactive AI context holder provided by CnAppRoot. This page
 		 * component writes pageKind, registerSlug, schemaSlug in
 		 * created() and watches props for subsequent changes. On
-		 * beforeDestroy(), fields are reset to avoid stale context on
+		 * beforeUnmount(), fields are reset to avoid stale context on
 		 * subsequent custom pages.
 		 */
 		cnAiContext: { default: null },
@@ -803,7 +844,11 @@ export default {
 
 		/**
 		 * Whether to show the page header (icon, title, description) inline.
-		 * When false (default), the title is shown in the sidebar header instead.
+		 * When false (default), only the sidebar header shows the title
+		 * visually — but the `<h1>` is still rendered visually-hidden inside
+		 * the page, so the `<main>` landmark always has an accessible heading.
+		 * This prop controls VISIBILITY only; it can no longer remove the
+		 * heading from the accessibility tree.
 		 */
 		showTitle: {
 			type: Boolean,
@@ -1646,6 +1691,36 @@ export default {
 		},
 	},
 
+	emits: [
+		'action',
+		'add',
+		'apply-view',
+		'columns-change',
+		'configure',
+		'copy',
+		'create',
+		'delete',
+		'filter-change',
+		'folder-change',
+		'folder-create',
+		'header-action',
+		'mass-copy',
+		'mass-delete',
+		'mass-export',
+		'mass-import',
+		'page-changed',
+		'page-size-changed',
+		'quick-filter-change',
+		'refresh',
+		'row-click',
+		'search',
+		'select',
+		'sort',
+		'sort-change',
+		'view',
+		'view-mode-change',
+	],
+
 	setup(props) {
 		const {
 			isOpen: contextMenuOpen,
@@ -2049,7 +2124,7 @@ export default {
 					values = Object.keys(colObj.widgetProps.colorMap)
 				}
 				if (values && values.length) {
-					out.push({ key, label: colObj.label || def.title || key, values: values.map((v) => String(v)) })
+					out.push({ key, label: this.cnTranslate(colObj.label || def.title || key), values: values.map((v) => String(v)) })
 				}
 			}
 			return out
@@ -2065,6 +2140,11 @@ export default {
 		governedColumns() {
 			const defs = []
 			if (this.effectiveSchema) {
+				// English labels here: `governedColumns` feeds `tableColumns`,
+				// which CnDataTable render-translates via its own `cnTranslate`
+				// injection. Translating here too would double-translate. The
+				// column-picker menu that renders these labels directly applies
+				// `cnTranslate` at render instead.
 				defs.push(...columnsFromSchema(this.effectiveSchema, {}))
 				if (this.resolvedSidebar.showMetadata !== false) {
 					defs.push(...METADATA_COLUMNS)
@@ -2195,7 +2275,7 @@ export default {
 		},
 
 		hasRowActions() {
-			return this.$scopedSlots['row-actions'] || this.mergedActions.length > 0
+			return this.$slots['row-actions'] || this.mergedActions.length > 0
 		},
 
 		/** Whether all visible items are selected */
@@ -2211,7 +2291,7 @@ export default {
 
 		/** Column slot names that the parent has provided (for pass-through) */
 		slotColumns() {
-			return Object.keys(this.$scopedSlots)
+			return Object.keys(this.$slots)
 				.filter((name) => name.startsWith('column-'))
 				.map((name) => name.replace('column-', ''))
 		},
@@ -2455,7 +2535,7 @@ export default {
 		})
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		// Clear the holder so the hoisted sidebar disappears when
 		// the user navigates away from the index page.
 		if (this.cnHostsIndexSidebar && this.cnIndexSidebarConfig) {
@@ -2977,7 +3057,9 @@ export default {
 		 * emit the event (backward compatible). Otherwise open the form dialog.
 		 */
 		onAddClick() {
-			if (this.$listeners && this.$listeners.add) {
+			// `$.vnode.props`, not `$attrs`: `add` is a declared emit, and Vue
+			// keeps declared emits out of `$attrs`.
+			if (this.$.vnode.props?.onAdd) {
 				this.$emit('add')
 			} else if (this.showFormDialog) {
 				this.editItem = null

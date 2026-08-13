@@ -287,3 +287,62 @@ describe('endpointSource — legacy pages[].config.widgets[] catalog', () => {
 		expect(result.errors.join('\n')).toMatch(/chart widget declares BOTH/)
 	})
 })
+
+// `valueAxisBaseline` shipped without reaching any validator: its siblings in the
+// chart display passthrough (`legendPosition`, `valueFormat`) are enum-typed, but
+// this key was not, so a typo validated clean and then fell back to `auto` — the
+// exact framing the author was overriding.
+describe('chart valueAxisBaseline enum', () => {
+	it('accepts each value of the closed enum', () => {
+		for (const baseline of ['auto', 'zero', 'fit']) {
+			const result = validateManifest(manifestWith([{
+				widgetKey: 'chart',
+				...grid,
+				props: { valueAxisBaseline: baseline },
+			}]))
+			expect(result.errors).toEqual([])
+			expect(result.valid).toBe(true)
+		}
+	})
+
+	it('rejects a misspelt value on a v2 grid widget', () => {
+		const result = validateManifest(manifestWith([{
+			widgetKey: 'chart',
+			...grid,
+			props: { valueAxisBaseline: 'zeor' },
+		}]))
+		expect(result.valid).toBe(false)
+		expect(result.errors.join('\n')).toMatch(/valueAxisBaseline/)
+	})
+
+	it('rejects a misspelt value on the in-app `content` config', () => {
+		const result = validateManifest(manifestWith([{
+			widgetKey: 'chart',
+			...grid,
+			props: { content: { valueAxisBaseline: 'none' } },
+		}]))
+		expect(result.valid).toBe(false)
+		expect(result.errors.join('\n')).toMatch(/valueAxisBaseline/)
+	})
+
+	it('rejects a misspelt value in the legacy dashboard catalog', () => {
+		const result = validateManifest(manifestWith([], {
+			widgets: [{
+				id: 'chart-1',
+				title: 'Trend',
+				type: 'chart',
+				props: { valueAxisBaseline: 'ZERO' },
+			}],
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.join('\n')).toMatch(/valueAxisBaseline/)
+	})
+
+	it('leaves an omitted baseline alone', () => {
+		const result = validateManifest(manifestWith([], {
+			widgets: [{ id: 'chart-1', title: 'Trend', type: 'chart', props: { horizontal: true } }],
+		}))
+		expect(result.errors).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+})

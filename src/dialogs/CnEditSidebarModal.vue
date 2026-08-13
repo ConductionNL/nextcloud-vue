@@ -9,7 +9,7 @@
 <template>
 	<NcDialog size="normal" :name="t('nextcloud-vue', 'Edit sidebar')" @closing="$emit('close')">
 		<template v-if="page">
-			<NcCheckboxRadioSwitch :checked.sync="sidebarShown" type="switch">
+			<NcCheckboxRadioSwitch v-model="sidebarShown" type="switch">
 				{{ t('nextcloud-vue', 'Show sidebar on this page') }}
 			</NcCheckboxRadioSwitch>
 
@@ -23,12 +23,12 @@
 				<li v-for="(tab, index) in editableTabs" :key="index" class="cn-edit-sidebar__tab">
 					<div class="cn-edit-sidebar__tab-row">
 						<NcCheckboxRadioSwitch
-							:checked="!isHidden(tab.id)"
+							:model-value="!isHidden(tab.id)"
 							:aria-label="t('nextcloud-vue', 'Visible')"
-							@update:checked="(v) => setTabVisible(tab.id, v)" />
-						<NcTextField :value.sync="tab.label" :label="t('nextcloud-vue', 'Tab label')" :label-visible="true" />
-						<NcTextField :value.sync="tab.id" :label="t('nextcloud-vue', 'Tab id')" :label-visible="true" />
-						<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="removeTab(index)">
+							@update:model-value="(v) => setTabVisible(tab.id, v)" />
+						<NcTextField v-model="tab.label" :label="t('nextcloud-vue', 'Tab label')" :label-visible="true" />
+						<NcTextField v-model="tab.id" :label="t('nextcloud-vue', 'Tab id')" :label-visible="true" />
+						<NcButton variant="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="removeTab(index)">
 							<template #icon>
 								<Delete :size="20" />
 							</template>
@@ -36,16 +36,16 @@
 					</div>
 					<label class="cn-edit-sidebar__content">
 						<span>{{ t('nextcloud-vue', 'Content') }}</span>
-						<NcSelect :value="selectedContent(tab)"
+						<NcSelect :model-value="selectedContent(tab)"
 							:options="contentOptions"
 							:clearable="false"
 							label="label"
 							:input-label="t('nextcloud-vue', 'Tab content')"
-							@input="(o) => setContent(tab, o)" />
+							@update:model-value="(o) => setContent(tab, o)" />
 					</label>
 				</li>
 			</ul>
-			<NcButton type="secondary" @click="addTab">
+			<NcButton variant="secondary" @click="addTab">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
@@ -55,7 +55,7 @@
 		<NcEmptyContent v-else :name="t('nextcloud-vue', 'No editable page')" />
 
 		<template #actions>
-			<NcButton type="primary" :disabled="saving" @click="onDone">
+			<NcButton variant="primary" :disabled="saving" @click="onDone">
 				<template #icon>
 					<NcLoadingIcon v-if="saving" :size="20" />
 					<ContentSaveOutline v-else :size="20" />
@@ -101,6 +101,8 @@ export default {
 		},
 	},
 
+	emits: ['close'],
+
 	computed: {
 		/** The active page object from the working manifest, or null. */
 		page() {
@@ -113,11 +115,11 @@ export default {
 			// Normalise the working page in place so the editor can bind to it —
 			// the working manifest is ours to mutate by design (see CnEditPagesModal).
 			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-			if (!this.page.config || typeof this.page.config !== 'object') this.$set(this.page, 'config', {})
+			if (!this.page.config || typeof this.page.config !== 'object') this.page.config = {}
 			const cfg = this.page.config
 			if (typeof cfg.sidebar !== 'object' || cfg.sidebar === null) {
 				// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-				this.$set(cfg, 'sidebar', typeof cfg.sidebar === 'boolean' ? { show: cfg.sidebar } : {})
+				cfg.sidebar = typeof cfg.sidebar === 'boolean' ? { show: cfg.sidebar } : {}
 			}
 			return cfg.sidebar
 		},
@@ -133,8 +135,9 @@ export default {
 				// both so the toggle mounts/suppresses the sidebar on either page
 				// type — a modal-authored `{ show: true }` alone is inert on an
 				// index page (no `enabled`, so CnIndexPage renders nothing).
-				this.$set(this.sidebar, 'show', value)
-				this.$set(this.sidebar, 'enabled', value)
+				// Vue 3: reactive objects accept direct assignment (no $set).
+				this.sidebar.show = value
+				this.sidebar.enabled = value
 			},
 		},
 		/** Declared sidebar tabs on this page (or empty). */
@@ -147,7 +150,7 @@ export default {
 			const s = this.sidebar
 			if (!s) return []
 			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-			if (!Array.isArray(s.tabs)) this.$set(s, 'tabs', [])
+			if (!Array.isArray(s.tabs)) s.tabs = []
 			return s.tabs
 		},
 		/** The page's hiddenTabs array (ensured to exist). */
@@ -155,7 +158,7 @@ export default {
 			const s = this.sidebar
 			if (!s) return []
 			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-			if (!Array.isArray(s.hiddenTabs)) this.$set(s, 'hiddenTabs', [])
+			if (!Array.isArray(s.hiddenTabs)) s.hiddenTabs = []
 			return s.hiddenTabs
 		},
 		/** Selectable content types for a tab (mapped to a built-in widget). */
@@ -191,9 +194,9 @@ export default {
 		setContent(tab, option) {
 			const type = option ? option.id : ''
 			if (type === '') {
-				this.$set(tab, 'widgets', [])
+				tab.widgets = []
 			} else {
-				this.$set(tab, 'widgets', [{ type }])
+				tab.widgets = [{ type }]
 			}
 		},
 		/**
@@ -221,8 +224,9 @@ export default {
 			if (this.sidebar) {
 				// Enable on both gates (see `sidebarShown`) so adding a tab mounts
 				// the sidebar on index pages too, not just detail pages.
-				this.$set(this.sidebar, 'show', true)
-				this.$set(this.sidebar, 'enabled', true)
+				// Vue 3: reactive objects accept direct assignment (no $set).
+				this.sidebar.show = true
+				this.sidebar.enabled = true
 			}
 			this.editableTabs.push({ id: `tab-${this.editableTabs.length + 1}`, label: '', widgets: [] })
 		},

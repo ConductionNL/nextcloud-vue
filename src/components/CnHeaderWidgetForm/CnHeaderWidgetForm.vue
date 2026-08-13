@@ -6,17 +6,17 @@
 <template>
 	<div class="cn-header-widget-form">
 		<NcTextField
-			:value="title"
+			:model-value="title"
 			:label="t('nextcloud-vue', 'Title')"
 			:placeholder="t('nextcloud-vue', 'Header title')"
 			required
-			@update:value="updateField('title', $event)" />
+			@update:model-value="updateField('title', $event)" />
 
 		<NcTextField
-			:value="subtitle"
+			:model-value="subtitle"
 			:label="t('nextcloud-vue', 'Subtitle (optional)')"
 			:placeholder="t('nextcloud-vue', 'Optional subtitle')"
-			@update:value="updateField('subtitle', $event)" />
+			@update:model-value="updateField('subtitle', $event)" />
 
 		<!-- Pick a background image. Selection does NOT upload — the file is held
 		     and only uploaded when the host modal calls commit() on submit, so
@@ -38,7 +38,7 @@
 			</label>
 			<NcButton
 				v-if="pendingFile"
-				type="tertiary"
+				variant="tertiary"
 				:disabled="uploading"
 				@click="clearPendingFile">
 				{{ t('nextcloud-vue', 'Remove') }}
@@ -52,11 +52,11 @@
 		</p>
 
 		<NcTextField
-			:value="backgroundImageUrl"
+			:model-value="backgroundImageUrl"
 			:label="t('nextcloud-vue', 'Background image URL')"
 			placeholder="https://example.com/banner.jpg"
 			:disabled="!!pendingFile"
-			@update:value="updateField('backgroundImageUrl', $event)" />
+			@update:model-value="updateField('backgroundImageUrl', $event)" />
 
 		<label class="cn-header-widget-form__color-label">
 			{{ t('nextcloud-vue', 'Background color') }}
@@ -68,13 +68,13 @@
 		</label>
 
 		<NcSelect
-			:value="overlayMode"
+			:model-value="overlayMode"
 			:options="overlayModeOptions"
 			:input-label="t('nextcloud-vue', 'Overlay mode')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('overlayMode', $event)" />
+			@update:modelValue="updateField('overlayMode', $event)" />
 
 		<label v-if="overlayMode !== 'none'" class="cn-header-widget-form__color-label">
 			{{ t('nextcloud-vue', 'Overlay color') }}
@@ -109,22 +109,22 @@
 		</label>
 
 		<NcSelect
-			:value="textAlign"
+			:model-value="textAlign"
 			:options="textAlignOptions"
 			:input-label="t('nextcloud-vue', 'Text alignment')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('textAlign', $event)" />
+			@update:modelValue="updateField('textAlign', $event)" />
 
 		<NcSelect
-			:value="verticalAlign"
+			:model-value="verticalAlign"
 			:options="verticalAlignOptions"
 			:input-label="t('nextcloud-vue', 'Vertical alignment')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('verticalAlign', $event)" />
+			@update:modelValue="updateField('verticalAlign', $event)" />
 
 		<!-- The banner fills its dashboard grid cell, so a fixed Height preset
 		     no longer changes anything — resize the widget on the grid instead.
@@ -137,25 +137,25 @@
 			</legend>
 
 			<NcTextField
-				:value="ctaLabel"
+				:model-value="ctaLabel"
 				:label="t('nextcloud-vue', 'Button text')"
 				:placeholder="t('nextcloud-vue', 'Sign up')"
-				@update:value="updateCta('label', $event)" />
+				@update:model-value="updateCta('label', $event)" />
 
 			<NcTextField
-				:value="ctaUrl"
+				:model-value="ctaUrl"
 				:label="t('nextcloud-vue', 'Target URL')"
 				placeholder="https://..."
-				@update:value="updateCta('url', $event)" />
+				@update:model-value="updateCta('url', $event)" />
 
 			<NcSelect
-				:value="ctaStyle"
+				:model-value="ctaStyle"
 				:options="ctaStyleOptions"
 				:input-label="t('nextcloud-vue', 'Button style')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateCta('style', $event)" />
+				@update:modelValue="updateCta('style', $event)" />
 		</fieldset>
 	</div>
 </template>
@@ -190,7 +190,7 @@ const DEFAULT_CONTENT = Object.freeze({
 
 /**
  * CnHeaderWidgetForm — the `CnAddWidgetModal` sub-form for creating or editing
- * a `header` widget placement (renderer: {@link CnHeaderWidget}).
+ * a `header` widget placement (renderer: `CnHeaderWidget`).
  *
  * Controls cover every persisted field: title, subtitle, background image URL,
  * background colour, overlay mode/colour/opacity, text colour/alignment/
@@ -249,7 +249,7 @@ export default {
 		/**
 		 * Legacy base64 upload transport, superseded by `fileUploadFn`.
 		 *
-		 * @deprecated Use {@link fileUploadFn} instead. Legacy base64 transport
+		 * @deprecated Use `fileUploadFn` instead. Legacy base64 transport
 		 * `async (dataUrl: string) => ({ url })`, kept for backward compatibility.
 		 * When `fileUploadFn` is not set but this is, `commit()` reads the file to
 		 * a data URL and hands that to this function (emitting a one-time

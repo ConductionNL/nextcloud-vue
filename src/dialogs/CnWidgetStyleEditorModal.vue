@@ -42,19 +42,19 @@
 				</h3>
 
 				<NcCheckboxRadioSwitch
-					:checked="draft.showTitle"
+					:model-value="draft.showTitle"
 					data-testid="cn-widget-style-show-title"
-					@update:checked="draft.showTitle = $event">
+					@update:model-value="draft.showTitle = $event">
 					{{ t('nextcloud-vue', 'Show title') }}
 				</NcCheckboxRadioSwitch>
 
 				<NcTextField
 					v-if="draft.showTitle"
-					:value="draft.customTitle"
+					:model-value="draft.customTitle"
 					:label="t('nextcloud-vue', 'Custom title')"
 					:placeholder="titlePlaceholder"
 					data-testid="cn-widget-style-custom-title"
-					@update:value="draft.customTitle = $event" />
+					@update:model-value="draft.customTitle = $event" />
 			</div>
 
 			<!-- Background section: colour picker over the chrome background. -->
@@ -67,7 +67,7 @@
 					<span class="cn-widget-style-editor__label">{{ t('nextcloud-vue', 'Color') }}</span>
 					<NcColorPicker v-model="draft.backgroundColor">
 						<NcButton
-							type="secondary"
+							variant="secondary"
 							:aria-label="t('nextcloud-vue', 'Pick background color')"
 							data-testid="cn-widget-style-color">
 							<template #icon>
@@ -96,7 +96,6 @@
 					data-testid="cn-widget-style-icon"
 					@input="draft.customIcon = $event || ''" />
 			</div>
-
 		</div>
 
 		<!-- Actions: optional delete, reset to defaults, save. -->
@@ -109,13 +108,13 @@
 				{{ t('nextcloud-vue', 'Delete') }}
 			</NcButton>
 			<div class="cn-widget-style-editor__actions-right">
-				<NcButton type="tertiary" @click="onCancel">
+				<NcButton variant="tertiary" @click="onCancel">
 					{{ t('nextcloud-vue', 'Cancel') }}
 				</NcButton>
-				<NcButton type="secondary" data-testid="cn-widget-style-reset" @click="resetDraft">
+				<NcButton variant="secondary" data-testid="cn-widget-style-reset" @click="resetDraft">
 					{{ t('nextcloud-vue', 'Reset') }}
 				</NcButton>
-				<NcButton type="primary" data-testid="cn-widget-style-save" @click="onSave">
+				<NcButton variant="primary" data-testid="cn-widget-style-save" @click="onSave">
 					{{ t('nextcloud-vue', 'Save') }}
 				</NcButton>
 			</div>
@@ -379,7 +378,7 @@ export default {
 		document.addEventListener('keydown', this.onKeydown)
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		document.removeEventListener('keydown', this.onKeydown)
 	},
 
@@ -442,19 +441,19 @@ export default {
 		 */
 		onSave() {
 			if (!this.widget.styleConfig || typeof this.widget.styleConfig !== 'object') {
-				this.$set(this.widget, 'styleConfig', {})
+				this.widget.styleConfig = {}
 			}
 			const sc = this.widget.styleConfig
-			this.$set(sc, 'backgroundColor', this.draft.backgroundColor || null)
-			this.$set(sc, 'borderStyle', this.draft.borderStyle)
-			this.$set(sc, 'borderColor', this.draft.borderColor || null)
-			this.$set(sc, 'borderWidth', this.draft.borderWidth)
-			this.$set(sc, 'borderRadius', this.draft.borderRadius)
-			this.$set(sc, 'padding', { ...this.draft.padding })
+			sc.backgroundColor = this.draft.backgroundColor || null
+			sc.borderStyle = this.draft.borderStyle
+			sc.borderColor = this.draft.borderColor || null
+			sc.borderWidth = this.draft.borderWidth
+			sc.borderRadius = this.draft.borderRadius
+			sc.padding = { ...this.draft.padding }
 
-			this.$set(this.widget, 'showTitle', this.draft.showTitle)
-			this.$set(this.widget, 'customTitle', this.draft.customTitle || null)
-			this.$set(this.widget, 'customIcon', this.draft.customIcon || null)
+			this.widget.showTitle = this.draft.showTitle
+			this.widget.customTitle = this.draft.customTitle || null
+			this.widget.customIcon = this.draft.customIcon || null
 
 			// For typed widgets, also commit the content config edited via the
 			// registered sub-form (validated first; a non-empty result blocks save).
@@ -467,7 +466,7 @@ export default {
 				}
 				this.contentErrors = []
 				if (this.draftContent !== null) {
-					this.$set(this.widget, 'content', this.draftContent)
+					this.widget.content = this.draftContent
 				}
 			}
 

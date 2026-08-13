@@ -10,7 +10,10 @@
  *  - `or:*` marker tags are stripped from the displayed chips.
  */
 
-const { mount } = require('@vue/test-utils')
+// See CnEmailPicker.spec.js: a Vue-3 `nextTick()` no longer implies the
+// render queued by an async `mounted()` has flushed, so wait on the promise
+// queue instead of counting ticks.
+const { mount, flushPromises } = require('@vue/test-utils')
 const CnBookmarkPicker = require('../CnBookmarkPicker.vue').default
 
 function resolveOnce(payload, status = 200) {
@@ -35,14 +38,13 @@ describe('CnBookmarkPicker', () => {
 		}))
 
 		const wrapper = mount(CnBookmarkPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		const rows = wrapper.findAll('.cn-bookmark-picker__row-button')
 		expect(rows).toHaveLength(2)
 		expect(wrapper.text()).toContain('Conduction')
 		expect(wrapper.text()).toContain('Docs')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('selecting a bookmark enables confirm and emits link', async () => {
@@ -51,8 +53,7 @@ describe('CnBookmarkPicker', () => {
 		}))
 
 		const wrapper = mount(CnBookmarkPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.find('.cn-bookmark-picker__row-button').trigger('click')
 		await wrapper.vm.$nextTick()
@@ -62,7 +63,7 @@ describe('CnBookmarkPicker', () => {
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0]).toEqual([{ bookmarkId: 99 }])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces an inline error when /available fails', async () => {
@@ -70,11 +71,10 @@ describe('CnBookmarkPicker', () => {
 		global.fetch.mockRejectedValueOnce(new Error('boom'))
 
 		const wrapper = mount(CnBookmarkPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('Could not load bookmarks.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 
@@ -87,15 +87,14 @@ describe('CnBookmarkPicker', () => {
 		}))
 
 		const wrapper = mount(CnBookmarkPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		wrapper.vm.search = 'example'
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.vm.visibleBookmarks).toHaveLength(1)
 		expect(wrapper.vm.visibleBookmarks[0].id).toBe(2)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('strips or:* marker tags from displayed chips', async () => {
@@ -104,7 +103,7 @@ describe('CnBookmarkPicker', () => {
 
 		const tags = wrapper.vm.displayTags({ tags: ['vendor', 'or:abc-123', '', 'reference'] })
 		expect(tags).toEqual(['vendor', 'reference'])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not emit link when no bookmark is selected', () => {
@@ -113,6 +112,6 @@ describe('CnBookmarkPicker', () => {
 
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

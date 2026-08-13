@@ -21,7 +21,7 @@ const stubs = {
 	ChevronLeft: true,
 }
 
-const footerLabels = (wrapper) => wrapper.findAll('.footer button').wrappers.map((b) => b.text())
+const footerLabels = (wrapper) => wrapper.findAll('.footer button').map((b) => b.text())
 
 describe('CnCalendarEventPicker — footer actions', () => {
 	beforeEach(() => {

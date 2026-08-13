@@ -6,7 +6,7 @@ const stubs = {
 		template: '<div><slot /><slot name="actions" /></div>',
 	},
 	NcButton: {
-		template: '<button @click="$listeners.click"><slot /></button>',
+		template: '<button @click="$attrs.onClick && $attrs.onClick()"><slot /></button>',
 	},
 	NcNoteCard: true,
 	NcLoadingIcon: true,
@@ -44,9 +44,11 @@ describe('CnExportWizard', () => {
 			},
 			stubs,
 		})
-		const inputs = wrapper.findAll('input#cn-export-wizard-regulation')
-		// Free-form input not present; select stub present
-		expect(inputs.exists()).toBe(false)
+		// Free-form input not present; select stub present.
+		// VTU v1's `findAll()` returned a WrapperArray with `.exists()` meaning
+		// "at least one match". VTU v2 returns a plain Array, so the same
+		// question is asked through `find().exists()` (identical assertion).
+		expect(wrapper.find('input#cn-export-wizard-regulation').exists()).toBe(false)
 	})
 
 	it('renders regulation as a free-form input when regulations[] is empty', () => {

@@ -11,6 +11,7 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { h } from 'vue'
 
 jest.mock('@nextcloud/capabilities', () => ({ getCapabilities: jest.fn(() => ({})) }))
 const CnAppRoot = require('../../src/components/CnAppRoot/CnAppRoot.vue').default
@@ -60,14 +61,17 @@ const makeManifest = (page = {}) => ({
  * @return {object} The wrapper.
  */
 const mountRoot = (manifest, extraProps = {}, routeName = 'Detail') => {
-	// Nested inside a wrapper render function, and `mocks`/`stubs` at the top
-	// level — this project is on @vue/test-utils v1, where `global.mocks` is
-	// silently ignored and `$route` arrives undefined.
+	// CnAppRoot is nested inside a wrapper render function so `mocks`/`stubs`
+	// given at the top level apply app-wide (see tests/support/vueTestUtilsCompat.js).
+	//
+	// Props are passed FLAT: Vue 2's `h()` took a data object whose `props` key
+	// carried the component props, while Vue 3's second argument IS the props
+	// object. A `{ props: {...} }` wrapper would reach CnAppRoot as one unknown
+	// attribute literally named "props", leaving `manifest` / `registry` /
+	// `customComponents` on their defaults — so no page, and no sidebar.
 	return mount({
-		render(h) {
-			return h(CnAppRoot, {
-				props: { manifest, appId: 'testapp', translate: (k) => k, requiresApps: [], ...extraProps },
-			})
+		render() {
+			return h(CnAppRoot, { manifest, appId: 'testapp', translate: (k) => k, requiresApps: [], ...extraProps })
 		},
 	}, {
 		mocks: { $route: { name: routeName, params: {} } },

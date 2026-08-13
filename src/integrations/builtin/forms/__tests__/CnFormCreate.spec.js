@@ -28,7 +28,7 @@ describe('CnFormCreate', () => {
 		expect(html).toContain('Description')
 		expect(wrapper.text()).toContain('Cancel')
 		expect(wrapper.text()).toContain('Create + link')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('disables the submit button until a title is entered', async () => {
@@ -38,7 +38,7 @@ describe('CnFormCreate', () => {
 		wrapper.setData({ title: 'My form' })
 		await flushAll(wrapper)
 		expect(wrapper.vm.canSubmit).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('emits create with trimmed title + description', async () => {
@@ -51,7 +51,7 @@ describe('CnFormCreate', () => {
 			title: 'My new form',
 			description: 'Some description',
 		})
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not emit create when the title is blank', async () => {
@@ -60,7 +60,7 @@ describe('CnFormCreate', () => {
 		await flushAll(wrapper)
 		wrapper.vm.submit()
 		expect(wrapper.emitted('create')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders the parent-supplied submitError inline', async () => {
@@ -69,6 +69,6 @@ describe('CnFormCreate', () => {
 		})
 		await flushAll(wrapper)
 		expect(wrapper.text()).toContain('NC Forms refused: 503')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

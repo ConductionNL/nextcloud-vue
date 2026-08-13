@@ -44,6 +44,7 @@ Page header with an optional MDI icon, title, and description. Used at the top o
 | `description` | String | | `''` | Optional description shown below the title |
 | `icon` | String | | `''` | MDI icon name rendered via CnIcon |
 | `iconSize` | Number | | `28` | Icon size in pixels |
+| `visuallyHidden` | Boolean | | `false` | Render the title for assistive technology only. Several page primitives (CnIndexPage, CnSettingsPage, CnChatPage, CnFilesPage, CnLogsPage) hide their inline header because the design surfaces the page title in the sidebar — but that heading sits OUTSIDE the `<main>` landmark, leaving the main region with no heading at all. This keeps an accessible heading inside `<main>` without showing it (WCAG 2.4.6 / 1.3.1). Icon, description and the `extra` slot are suppressed with it; only the heading text remains. |
 
 ### Slots
 

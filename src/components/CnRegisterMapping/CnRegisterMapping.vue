@@ -72,7 +72,7 @@
 						:loading="registersLoading"
 						label="label"
 						track-by="value"
-						@input="handleRegisterChange(groupIdx, $event)" />
+						@update:model-value="handleRegisterChange(groupIdx, $event)" />
 				</div>
 
 				<!-- Type list -->
@@ -86,9 +86,8 @@
 					</div>
 
 					<!-- Type rows -->
-					<template v-for="type in group.types">
+					<template v-for="type in group.types" :key="type.slug + '-row'">
 						<div
-							:key="type.slug + '-row'"
 							class="cn-register-mapping__type-row"
 							:class="{ 'cn-register-mapping__type-row--expanded': isExpanded(groupIdx, type.slug) }"
 							@click="toggleExpand(groupIdx, type.slug)">
@@ -110,7 +109,7 @@
 						</div>
 
 						<!-- Expanded detail -->
-						<transition :key="type.slug + '-detail'" name="slide">
+						<transition name="slide">
 							<div
 								v-if="isExpanded(groupIdx, type.slug)"
 								class="cn-register-mapping__type-detail">
@@ -124,7 +123,7 @@
 									:input-label="labels.schema"
 									label="label"
 									track-by="value"
-									@input="handleSchemaChange(groupIdx, type, $event)" />
+									@update:model-value="handleSchemaChange(groupIdx, type, $event)" />
 							</div>
 						</transition>
 					</template>

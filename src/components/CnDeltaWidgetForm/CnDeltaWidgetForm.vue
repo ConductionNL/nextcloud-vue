@@ -10,10 +10,10 @@
 		</h4>
 
 		<NcTextField
-			:value="label"
+			:model-value="label"
 			:label="t('nextcloud-vue', 'Label')"
 			placeholder="Revenue (MTD)"
-			@update:value="updateField('label', $event)" />
+			@update:model-value="updateField('label', $event)" />
 
 		<div class="cn-delta-form__row2">
 			<CnRegisterSchemaSelect
@@ -25,11 +25,11 @@
 
 		<div class="cn-delta-form__row2">
 			<NcSelect
-				:value="metric"
+				:model-value="metric"
 				:options="metricOptions"
 				:input-label="t('nextcloud-vue', 'Aggregation')"
 				:clearable="false"
-				@input="updateField('metric', $event)" />
+				@update:model-value="updateField('metric', $event)" />
 			<CnFieldPicker
 				v-if="metric !== 'count'"
 				:value="field"
@@ -55,25 +55,25 @@
 
 		<div class="cn-delta-form__row2">
 			<NcSelect
-				:value="goodDirection"
+				:model-value="goodDirection"
 				:options="directionOptions"
 				:input-label="t('nextcloud-vue', 'Good direction')"
 				:clearable="false"
-				@input="updateField('goodDirection', $event)" />
+				@update:model-value="updateField('goodDirection', $event)" />
 			<NcSelect
-				:value="formatStyle"
+				:model-value="formatStyle"
 				:options="formatOptions"
 				:input-label="t('nextcloud-vue', 'Number format')"
 				:clearable="false"
-				@input="updateField('formatStyle', $event)" />
+				@update:model-value="updateField('formatStyle', $event)" />
 		</div>
 
 		<div class="cn-delta-form__row2">
 			<NcTextField
 				type="number"
-				:value="String(decimals)"
+				:model-value="String(decimals)"
 				:label="t('nextcloud-vue', 'Decimals')"
-				@update:value="updateField('decimals', Number($event))" />
+				@update:model-value="updateField('decimals', Number($event))" />
 			<CnIconBrowser
 				:value="icon"
 				:label="t('nextcloud-vue', 'Icon')"
@@ -192,24 +192,34 @@ export default {
 		},
 		/**
 		 * Set a top-level field and emit.
-		 * @param field
-		 * @param value
+		 *
+		 * @param {'label'|'icon'|'formatStyle'|'decimals'|'currency'|'metric'|'field'|'goodDirection'} field The data key to write.
+		 * @param {string|number} value The new value for that key (`decimals` is numeric; the rest are strings).
+		 * @return {void}
 		 */
 		updateField(field, value) { this[field] = value; this.emitChange() },
 		/**
 		 * Set a source sub-field and emit.
-		 * @param field
-		 * @param value
+		 *
+		 * @param {'register'|'schema'} field The `source` sub-key to write.
+		 * @param {string} value The chosen register or schema slug.
+		 * @return {void}
 		 */
-		updateSource(field, value) { this.$set(this.source, field, value); this.emitChange() },
+		updateSource(field, value) { this.source[field] = value; this.emitChange() },
 		/**
 		 * Receive updated current-period filter rows.
-		 * @param rows
+		 *
+		 * @param {Array<{key: string, op: string, value: string}>} rows The editor's
+		 *   full row list for the current period, serialised by `rowsToFilter()`.
+		 * @return {void}
 		 */
 		onCurrentRows(rows) { this.currentRows = rows; this.emitChange() },
 		/**
 		 * Receive updated previous-period filter rows.
-		 * @param rows
+		 *
+		 * @param {Array<{key: string, op: string, value: string}>} rows The editor's
+		 *   full row list for the comparison period, serialised by `rowsToFilter()`.
+		 * @return {void}
 		 */
 		onPreviousRows(rows) { this.previousRows = rows; this.emitChange() },
 		/** Emit the assembled content. */

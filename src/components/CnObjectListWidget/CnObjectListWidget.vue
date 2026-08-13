@@ -133,6 +133,8 @@ export default {
 		},
 	},
 
+	emits: ['created', 'row-click', 'view-all'],
+
 	data() {
 		return {
 			rows: [],
@@ -348,7 +350,7 @@ export default {
 		this.$nextTick(() => this.measureFit())
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this._fitObserver) this._fitObserver.disconnect()
 	},
 

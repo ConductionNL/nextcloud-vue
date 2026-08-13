@@ -49,6 +49,8 @@ export {
 	CnCardGrid,
 	CnObjectRow,
 	CnObjectList,
+	CnObjectKanban,
+	CnObjectCalendar,
 	CnFolderTree,
 	CnFolderSidebar,
 	fetchWebdavFolderTree,
@@ -62,6 +64,7 @@ export {
 	CnMassActionBar,
 	CnDeleteDialog,
 	CnCopyDialog,
+	CnFieldHelper,
 	CnFormDialog,
 	CnFormBuilder,
 	CnAdvancedFormDialog,
@@ -85,6 +88,9 @@ export {
 	CnThemePreview,
 	CnRelationshipGraph,
 	CnGraphCanvas,
+	CnFlowDetail,
+	CnFlowSidebar,
+	CnFlowIndexPage,
 	CnDashboardPage,
 	CnDashboardGrid,
 	CnWidgetWrapper,
@@ -123,9 +129,11 @@ export {
 	CnContactCreate,
 	CnResourceSelect,
 	CnIntegrationTab,
+	CnObjectAccessTab,
 	CnIntegrationCard,
 	CnIntegrationWidgetGrid,
 	CnIntegrationWidget,
+	CnLeafMountHost,
 	CnDetailCard,
 	CnDetailPage,
 	CnLifecycleActions,
@@ -149,6 +157,8 @@ export {
 	CnDeltaWidgetForm,
 	CnGaugeWidget,
 	CnGaugeWidgetForm,
+	CnFlowRunsWidget,
+	CnFlowRunsWidgetForm,
 	CnObjectListWidget,
 	CnObjectListWidgetForm,
 	CnChartWidgetForm,
@@ -173,6 +183,8 @@ export {
 	CnMenuItemEditor,
 	CnTextTableEditor,
 	CnNcWidgetGridPicker,
+	CnTabs,
+	CnTab,
 	CnIcon,
 	CnPageHeader,
 	CnNoteCard,
@@ -266,6 +278,7 @@ export { default as CnAiHistoryDialog } from './dialogs/CnAiHistoryDialog.vue'
 
 // Generic dialogs (NcDialog-based, one file per dialog — modal-isolation rule)
 export { default as CnConfirmDialog } from './dialogs/CnConfirmDialog.vue'
+export { default as CnFlowEditModal } from './dialogs/CnFlowEditModal.vue'
 
 // Store
 export { useObjectStore, createObjectStore } from './store/index.js'
@@ -292,7 +305,7 @@ export {
 export { useAiContext, useAiChatStream } from './composables/index.js'
 // AI Chat Companion backend config (single point for the chat backend app id)
 export { DEFAULT_CHAT_APP_ID, chatApiBase, chatStreamUrl, chatSendUrl, chatHealthUrl, conversationsUrl, conversationMessagesUrl } from './composables/index.js'
-export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, clearContextMenuPositionDom, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, useAppManifest, useAppStatus, useAppInstaller, useSetupStatus, useWalkthrough, useGraphQL, useDataSource, selectByPath, buildCountQuery, buildBucketQuery, useBrokeredCall, useEndpointSource, fetchEndpointSource, invalidateEndpointSourceCache, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest, useSupportDialog, useClickDragGuard, useTenantContext, provideTenantContext, createTenantContext, TENANT_CONTEXT_KEY, useManifestEditor, useOpenBuildEditAvailability, useManifestEditHistory, useCommandPalette } from './composables/index.js'
+export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, clearContextMenuPositionDom, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, useAppManifest, useAppStatus, useAppInstaller, useSetupStatus, useWalkthrough, loadWalkthroughSeenVersion, persistWalkthroughSeenVersion, useGraphQL, useDataSource, selectByPath, buildCountQuery, buildBucketQuery, useBrokeredCall, useEndpointSource, fetchEndpointSource, invalidateEndpointSourceCache, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest, useSupportDialog, useClickDragGuard, useTenantContext, provideTenantContext, createTenantContext, TENANT_CONTEXT_KEY, useManifestEditor, useOpenBuildEditAvailability, useManifestEditHistory, useCommandPalette, useScopedTheme } from './composables/index.js'
 
 // Command palette — the "objects" source adapter (see docs/utilities/create-object-search-source.md).
 // `resolveManifestDetailRoute` is intentionally subpath-only (not re-exported here), same
@@ -301,7 +314,49 @@ export { useListView, useDetailView, useSubResource, useDashboardView, useContex
 export { createObjectSearchSource } from './utils/commandPaletteObjectSource.js'
 
 // Integration registry (pluggable integrations — sidebar tabs and widgets)
-export { integrations, createIntegrationRegistry, installIntegrationRegistry, registerIntegration, getSharedRegistry, sharedRegistryIfInstalled, VALID_SURFACES, builtinIntegrations, registerBuiltinIntegrations, leafIntegrations, registerLeafIntegrations, talkIntegration, fieldInspectionIntegration, registerIntegrationIcons, INTEGRATION_ICON_COMPONENTS } from './integrations/index.js'
+export { integrations, createIntegrationRegistry, installIntegrationRegistry, registerIntegration, getSharedRegistry, sharedRegistryIfInstalled, VALID_SURFACES, builtinIntegrations, registerBuiltinIntegrations, leafIntegrations, registerLeafIntegrations, registerIntegrationIcons, INTEGRATION_ICON_COMPONENTS } from './integrations/index.js'
+
+// Every built-in integration descriptor, by name.
+//
+// This list used to hold two of the twenty-six (`talkIntegration`,
+// `fieldInspectionIntegration`). The other twenty-four — `flowIntegration`
+// among them — were defined, wired into `builtinIntegrations[]`, given bespoke
+// tab/card components, and then unreachable from the package root. The failure
+// is silent end to end: the named import resolves to `undefined`, the registry
+// no-ops on an undefined descriptor, and the absent tab is indistinguishable
+// from "that Nextcloud app isn't installed on this instance".
+//
+// `npm run check:integration-parity` fails when this list and
+// `builtinIntegrations[]` disagree, so a descriptor added later cannot be
+// half-shipped the same way.
+export {
+	filesIntegration,
+	notesIntegration,
+	tagsIntegration,
+	tasksIntegration,
+	auditTrailIntegration,
+	versionHistoryIntegration,
+	calendarIntegration,
+	contactsIntegration,
+	emailIntegration,
+	talkIntegration,
+	bookmarksIntegration,
+	collectivesIntegration,
+	mapsIntegration,
+	photosIntegration,
+	deckIntegration,
+	pollsIntegration,
+	sharesIntegration,
+	activityIntegration,
+	analyticsIntegration,
+	cospendIntegration,
+	flowIntegration,
+	formsIntegration,
+	timeTrackerIntegration,
+	fieldInspectionIntegration,
+	openprojectIntegration,
+	xwikiIntegration,
+} from './integrations/index.js'
 
 // Offline data-collection core (generic IndexedDB cache + mutation queue, pure
 // sync-queue engine, replay-on-reconnect, planning-fetch contract, sync-state
@@ -314,6 +369,7 @@ export { DEFAULT_FIELD_INSPECTION_CONFIG, offlineCollection } from './integratio
 
 // Composables — Features & roadmap menu (add-features-roadmap-menu)
 export { useSpecRef } from './composables/useSpecRef.js'
+export { useFlowStore } from './composables/useFlowStore.js'
 export { useSuggestFeatureAction } from './composables/useSuggestFeatureAction.js'
 
 // Utilities — Features & roadmap menu (add-features-roadmap-menu)
@@ -353,6 +409,13 @@ export {
 export { filterWidgetsByVisibility, isWidgetVisible, getCurrentUserId, getCurrentUserGroups, resetVisibilityCache } from './utils/index.js'
 export { safeHref, safeImageSrc, safeSvgPath } from './utils/index.js'
 export { dispatchAction } from './utils/actionsDispatcher.js'
+// Nested-modal stacking. `CnAppRoot` installs this itself; apps that do not
+// mount `CnAppRoot` should call `installModalStack()` once from `main.js`, or
+// two open dialogs tie on z-index and the lower one intercepts the clicks.
+// The stack's internals (`acquireModalLayer`, `topModalZIndex`, …) stay
+// module-private — import them from `src/utils/modalStack.js` if you need to
+// slot something between two dialog layers.
+export { installModalStack, uninstallModalStack } from './utils/modalStack.js'
 export { placeNewWidget, getDashboardColumnOpts } from './utils/dashboardPlacement.js'
 export { DASHBOARD_ICONS, DEFAULT_ICON, getIconComponent, isCustomIconUrl } from './components/CnIconPicker/index.js'
 // NB: the NL-government icon sets are deliberately NOT re-exported here.

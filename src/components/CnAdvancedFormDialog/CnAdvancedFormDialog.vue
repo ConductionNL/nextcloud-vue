@@ -26,7 +26,7 @@
 			data-testid-phase="form">
 			<!-- Full form override slot -->
 			<slot
-				v-if="$scopedSlots.form"
+				v-if="$slots.form"
 				name="form"
 				:form-data="formData"
 				:update-field="updateField"
@@ -39,7 +39,7 @@
 			<template v-else>
 				<!-- Register/schema selection step (optional slot) -->
 				<slot
-					v-if="$scopedSlots['register-schema-selection']"
+					v-if="$slots['register-schema-selection']"
 					name="register-schema-selection" />
 
 				<!-- Main tabs — hand-rolled to drop the bootstrap-vue → bootstrap@4 → jquery
@@ -202,6 +202,15 @@ export default {
 			from: TENANT_CONTEXT_KEY,
 			default: null,
 		},
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Field
+		 * labels/descriptions come from schema property titles, authored in
+		 * English as the canonical source; the visible label is resolved
+		 * through this function so it follows the user's language. Defaults to
+		 * identity when used standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -240,6 +249,8 @@ export default {
 		/** Enable dark mode for the JSON editor */
 		jsonEditorDark: { type: Boolean, default: false },
 	},
+
+	emits: ['close', 'confirm'],
 
 	data() {
 		return {
@@ -340,6 +351,7 @@ export default {
 				include: this.includeFields,
 				overrides: this.fieldOverrides,
 				includeReadOnly: true,
+				translate: this.cnTranslate,
 			})
 		},
 
@@ -427,7 +439,7 @@ export default {
 		},
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.closeTimeout) {
 			clearTimeout(this.closeTimeout)
 			this.closeTimeout = null
@@ -488,17 +500,17 @@ export default {
 			if (!hasOrgField) return
 			const current = this.formData.organisation
 			if (current !== null && current !== undefined && current !== '') return
-			this.$set(this.formData, 'organisation', uuid)
+			this.formData.organisation = uuid
 		},
 
 		updateField(key, value) {
-			this.$set(this.formData, key, value)
-			if (this.errors[key]) this.$delete(this.errors, key)
+			this.formData[key] = value
+			if (this.errors[key]) delete this.errors[key]
 		},
 
 		onPropertyValueUpdate({ key, value }) {
-			this.$set(this.formData, key, value)
-			if (this.errors[key]) this.$delete(this.errors, key)
+			this.formData[key] = value
+			if (this.errors[key]) delete this.errors[key]
 		},
 
 		/**

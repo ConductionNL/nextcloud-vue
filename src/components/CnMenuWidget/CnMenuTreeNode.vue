@@ -60,7 +60,7 @@ import { translate as t } from '@nextcloud/l10n'
 import CnMenuItemIcon from './CnMenuItemIcon.vue'
 
 /**
- * CnMenuTreeNode — recursive tree-style row used by {@link CnMenuWidget} when
+ * CnMenuTreeNode — recursive tree-style row used by `CnMenuWidget` when
  * `style === 'tree'`. The caret toggles children; the label routes to the
  * parent's navigation handler. Active-state classes come from the dotted-key
  * path map computed once in the parent.

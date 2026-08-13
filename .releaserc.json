@@ -4,6 +4,11 @@
 		{
 			"name": "beta",
 			"prerelease": true
+		},
+		{
+			"name": "feat/vue-3",
+			"channel": "vue3",
+			"prerelease": "vue3"
 		}
 	],
 	"plugins": [

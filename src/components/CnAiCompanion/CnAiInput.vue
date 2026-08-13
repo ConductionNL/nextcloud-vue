@@ -327,11 +327,18 @@ export default {
 	opacity: 0.7;
 }
 
+/* `:focus-visible` and `:disabled` are declared BEFORE the compound
+   `:hover:not(:disabled)` rule: stylelint's no-descending-specificity wants
+   lower-specificity selectors first, and `:hover:not(:disabled)` outranks
+   both. Ordering only — the cascade result is unchanged. */
+.cn-ai-input__chip-remove:focus-visible {
+	opacity: 1;
+}
+
 .cn-ai-input__chip-remove:disabled {
 	cursor: not-allowed;
 }
 
-.cn-ai-input__chip-remove:focus-visible,
 .cn-ai-input__chip-remove:hover:not(:disabled) {
 	opacity: 1;
 }

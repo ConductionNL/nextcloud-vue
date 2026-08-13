@@ -31,7 +31,7 @@ describe('CnFilesCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No files attached')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders rows for each fetched file capped at maxDisplay', async () => {
@@ -53,7 +53,7 @@ describe('CnFilesCard', () => {
 		expect(wrapper.findAll('.cn-files-card__row')).toHaveLength(5)
 		// Footer overflow shows the total
 		expect(wrapper.text()).toContain('Show all')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('emits show-all when the overflow control is clicked', async () => {
@@ -70,7 +70,7 @@ describe('CnFilesCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.find('.cn-files-card__show-all').trigger('click')
 		expect(wrapper.emitted('show-all')).toBeTruthy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('refetches when objectId changes', async () => {
@@ -86,7 +86,7 @@ describe('CnFilesCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(global.fetch).toHaveBeenCalledTimes(2)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('handles fetch failure gracefully without throwing', async () => {
@@ -97,6 +97,6 @@ describe('CnFilesCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No files attached')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

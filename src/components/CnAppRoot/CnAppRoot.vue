@@ -57,7 +57,7 @@
   and REQ-OR-1..REQ-OR-7 of the cnapproot-app-availability-guard spec.
 -->
 <template>
-	<NcContent :app-name="appDisplayName || (manifest && manifest.name) || appId" data-testid="cn-app-root">
+	<NcContent :app-name="appDisplayName || (manifest && manifest.name) || appId" :data-nldesign-theme-scope="appId" data-testid="cn-app-root">
 		<!-- Phase 0a: capabilities check in flight -->
 		<template v-if="capabilitiesLoading">
 			<div class="cn-app-root__capabilities-loading" data-testid="cn-app-root-capabilities-loading">
@@ -95,7 +95,7 @@
 							-->
 							<template v-if="isAdmin">
 								<NcButton
-									type="primary"
+									variant="primary"
 									data-testid="cn-app-root-or-missing-install"
 									:disabled="depInstalling"
 									@click="installDependency(orMissingPrimaryApp)">
@@ -187,7 +187,11 @@
 			  keeping the rest of CnAppRoot's shell.
 			-->
 			<slot name="menu">
-				<CnAppNav :manifest="menuManifest" :permissions="permissions" :is-owner="isOwner" />
+				<CnAppNav :manifest="menuManifest"
+					:permissions="permissions"
+					:is-owner="isOwner"
+					:is-admin="isAdmin"
+					:app-id="appId" />
 			</slot>
 			<NcAppContent>
 				<!--
@@ -212,7 +216,7 @@
 						<div class="cn-app-root__soft-dep-actions">
 							<NcButton
 								v-if="isAdmin"
-								type="secondary"
+								variant="secondary"
 								:data-testid="'cn-app-root-soft-dep-install-' + dep.id"
 								:disabled="depInstalling"
 								@click="installDependency(dep.id)">
@@ -225,7 +229,7 @@
 								{{ softDepAskAdmin(dep) }}
 							</span>
 							<NcButton
-								type="tertiary"
+								variant="tertiary"
 								:data-testid="'cn-app-root-soft-dep-dismiss-' + dep.id"
 								@click="dismissSoftDep(dep.id)">
 								{{ softDepDismissLabel }}
@@ -419,8 +423,15 @@
 			  auto-starts a tour that qualifies for the user's app version. No
 			  per-app wiring; declare a `walkthrough` block to opt in.
 			-->
+			<!--
+			  Gated on `walkthroughSeenResolved` as well: when the manifest
+			  declares `walkthrough.completionConfigKey`, the per-user
+			  preference is fetched first so a returning user never sees the
+			  tour flash open before the answer arrives. Without a key the
+			  flag is already true at data() time (localStorage-only, sync).
+			-->
 			<!-- @slot walkthrough Override the gating-free walkthrough overlay. Scope: { manifest, seenVersion }. -->
-			<slot v-if="walkthroughEnabled"
+			<slot v-if="walkthroughEnabled && walkthroughSeenResolved"
 				name="walkthrough"
 				:manifest="manifest"
 				:seen-version="walkthroughSeenVersion">
@@ -476,7 +487,7 @@
 						<p class="cn-app-root__walkthrough-hint">
 							{{ restartWalkthroughHint }}
 						</p>
-						<NcButton type="secondary" @click="restartWalkthroughFromSettings">
+						<NcButton variant="secondary" @click="restartWalkthroughFromSettings">
 							<template #icon>
 								<Restart :size="20" />
 							</template>
@@ -487,65 +498,17 @@
 			</NcAppSettingsDialog>
 
 			<!--
-			  Admin-settings modal. Distinct from the user-settings dialog
-			  above — this hosts APP-level (not per-user) configuration
-			  surfaces that only app OWNERS should reach, rendered GENERICALLY
-			  from `manifest.adminSettings[]` (sorted by `order`), one
-			  `NcAppSettingsSection` per entry. `type: "organisation-credentials"`
-			  renders the organisation credential broker
-			  (`CnCredentials scope="organisation"`); a `component` entry
-			  resolves from the `customComponents` registry, forwarding
-			  `props`. Only mounted when BOTH the caller is an owner
-			  (`isOwner`) AND `adminSettings` is non-empty (`hasAdminSettings`)
-			  — an app with no `adminSettings` shows no admin dialog at all
-			  (D4 backward-compat). Opened via the `cnOpenAdminSettings`
-			  inject (CnAppNav wires this to the auto-prepended "Admin
-			  settings" entry and to manifest entries with
-			  `action: "admin-settings"`). A per-entry `permission` further
-			  narrows a section WITHIN this already owner-gated dialog — it
-			  can never widen access to a non-owner.
+			  ADR-079 Step 2: the generic admin-settings modal has been REMOVED.
+
+			  It rendered `manifest.adminSettings[]` behind an app-OWNERSHIP gate.
+			  No app in the fleet ever declared that array, so the surface was
+			  unreachable everywhere — and its one real payload, the organisation
+			  credential broker, was unreachable with it. The broker now lives on
+			  the app's Nextcloud admin page via CnAdminSettingsShell's
+			  `show-organisation-credentials` prop, where the access decision is
+			  made SERVER-SIDE for /settings/admin/<app> rather than by a
+			  client-side ownership flag.
 			-->
-			<NcAppSettingsDialog
-				v-if="isOwner && hasAdminSettings"
-				:open="adminSettingsOpen"
-				:show-navigation="true"
-				:name="resolvedAdminSettingsTitle"
-				@update:open="adminSettingsOpen = $event">
-				<!-- @slot admin-settings Sections rendered inside the host admin-settings NcAppSettingsDialog. Pass NcAppSettingsSection children to override the generic manifest.adminSettings[] render entirely. -->
-				<slot name="admin-settings">
-					<template v-for="section in visibleAdminSettingsSections">
-						<NcAppSettingsSection
-							v-if="adminSettingsOpen"
-							:id="section.id"
-							:key="section.id"
-							:name="translate(section.label)">
-							<!--
-								Built-in: organisation credential broker (OpenRegister).
-								Lets an owner manage the secrets OR holds on behalf of
-								the whole organisation; apps call external providers
-								through OR without ever seeing the secret. The app's
-								manifest `credentials[]` declarations drive the
-								informational "Apps requesting credentials" list.
-							-->
-							<CnCredentials
-								v-if="section.type === 'organisation-credentials'"
-								scope="organisation"
-								:app-id="appId"
-								:app-name="appDisplayName || (manifest && manifest.name) || appId"
-								:app-credentials="(manifest && manifest.credentials) || []" />
-							<!--
-								Custom: resolved from the customComponents registry
-								(the same registry CnPageRenderer uses for
-								type:"custom" pages), forwarding the entry's props.
-							-->
-							<component
-								:is="resolveAdminSettingsComponent(section.component)"
-								v-else-if="section.component && resolveAdminSettingsComponent(section.component)"
-								v-bind="section.props || {}" />
-						</NcAppSettingsSection>
-					</template>
-				</slot>
-			</NcAppSettingsDialog>
 
 			<!--
 			  V2 registry modal — mounted when cnOpenModal(key, props) is
@@ -584,19 +547,27 @@ import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificati
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
 import { provideTenantContext } from '../../composables/useTenantContext.js'
-import Vue, { computed, shallowRef, watch } from 'vue'
+import { computed, shallowRef, watch, reactive } from 'vue'
 import { useManifestEditor } from '../../composables/useManifestEditor.js'
 import { useOpenBuildEditAvailability } from '../../composables/useOpenBuildEditAvailability.js'
+import { useScopedTheme } from '../../composables/useScopedTheme.js'
 import { loadState } from '@nextcloud/initial-state'
 import { useAppStatus } from '../../composables/useAppStatus.js'
 import { useAppInstaller } from '../../composables/useAppInstaller.js'
 import { useSetupStatus } from '../../composables/useSetupStatus.js'
-import { useWalkthrough } from '../../composables/useWalkthrough.js'
+import {
+	useWalkthrough,
+	loadWalkthroughSeenVersion,
+	persistWalkthroughSeenVersion,
+	readLocalWalkthroughSeenVersion,
+	normaliseSeenVersion,
+} from '../../composables/useWalkthrough.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { useObjectStore } from '../../store/index.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
 import { DEFAULT_FORGE } from '../../utils/forge.js'
+import { installModalStack, uninstallModalStack } from '../../utils/modalStack.js'
 import { RegistryKindError } from '../../errors/RegistryKindError.js'
 
 /**
@@ -674,6 +645,12 @@ export default {
 	},
 
 	provide() {
+		// `self` is load-bearing: the returned object exposes `cnManifest` as a
+		// GETTER, and inside a getter on that literal `this` is the literal —
+		// not the component. A getter is what keeps the provide reactive, and a
+		// getter cannot be an arrow function, so the alias is the only way to
+		// reach the instance from inside it.
+		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const self = this
 		return {
 			// In-app editing (ADR-041): descendants read the editor's `source`
@@ -765,9 +742,7 @@ export default {
 			 * "admin-settings"` manifest entries; consumer apps can also
 			 * call it directly via inject for custom triggers.
 			 */
-			cnOpenAdminSettings: () => {
-				this.adminSettingsOpen = true
-			},
+
 			/**
 			 * Restart entry for the product walkthrough (ADR-043). Descendants
 			 * (a menu/settings "Replay walkthrough" entry, or a manifest menu
@@ -1300,6 +1275,8 @@ export default {
 		},
 	},
 
+	emits: ['setup-complete', 'walkthrough-complete'],
+
 	/**
 	 * Component-instance state for the capabilities guard.
 	 *
@@ -1390,6 +1367,23 @@ export default {
 			() => openBuildAvailable.value && props.manifest?.openbuildEditable !== false,
 		)
 
+		// Scoped NL Design token-set theming (scoped-theme-applier). Watches the
+		// SAME editing/props branch `cnManifest`'s getter already uses, so the
+		// applied theme tracks whichever manifest is currently effective —
+		// including an in-app live-preview editing session (ADR-041) — with no
+		// separate wiring needed for that case. `apply()` is a progressive
+		// enhancement: nldesign absent/unreachable/non-conformant degrades
+		// silently to default styling, never a throw (REQ-STA-1/REQ-STA-3).
+		const scopedTheme = useScopedTheme()
+		watch(
+			() => (manifestEditor.editing.value ? manifestEditor.source.value : props.manifest)?.runtime?.theme,
+			() => scopedTheme.apply(
+				manifestEditor.editing.value ? manifestEditor.source.value : props.manifest,
+				props.appId,
+			),
+			{ deep: true, immediate: true },
+		)
+
 		return {
 			...supportPair,
 			cnTenantContext: tenantContext,
@@ -1398,6 +1392,7 @@ export default {
 			appInstaller,
 			depInstalling: appInstaller.installing,
 			depInstallError: appInstaller.error,
+			cnScopedTheme: scopedTheme,
 		}
 	},
 
@@ -1441,7 +1436,7 @@ export default {
 			 *   { appId, pageKind, objectUuid?, registerSlug?,
 			 *     schemaSlug?, route? }
 			 */
-			cnAiContext: Vue.observable({
+			cnAiContext: reactive({
 				appId: this.appId || 'unknown',
 				pageKind: 'custom',
 				route: { path: (typeof window !== 'undefined' ? window.location.pathname : '') },
@@ -1482,7 +1477,7 @@ export default {
 			 * (`this.cnMenuCounts[register][schema] = total`) are
 			 * picked up by CnAppNav's reactive render.
 			 */
-			cnMenuCounts: Vue.observable({}),
+			cnMenuCounts: reactive({}),
 			/**
 			 * Open state of the host NcAppSettingsDialog. Toggled
 			 * to `true` by the provided `cnOpenUserSettings()`
@@ -1491,15 +1486,6 @@ export default {
 			 * via its `update:open` event.
 			 */
 			userSettingsOpen: false,
-			/**
-			 * Open state of the host admin-settings NcAppSettingsDialog.
-			 * Toggled to `true` by the provided `cnOpenAdminSettings()`
-			 * method (CnAppNav binds this to the auto-prepended "Admin
-			 * settings" entry and to manifest entries with `action:
-			 * "admin-settings"`); the dialog flips it back via its
-			 * `update:open` event.
-			 */
-			adminSettingsOpen: false,
 			/**
 			 * Id of the dependency whose install/enable action is currently
 			 * in flight (REQ-DIA-3 / REQ-DIA-6). Drives the per-button spinner
@@ -1568,6 +1554,30 @@ export default {
 			 */
 			setupWizardOpen: false,
 			/**
+			 * The user's last-seen walkthrough app version (ADR-043).
+			 *
+			 * Seeded SYNCHRONOUSLY from the per-browser localStorage mirror so
+			 * nothing flashes, then overwritten by the `walkthroughConfigKey`
+			 * watcher from the authoritative per-user preference addressed by
+			 * `manifest.walkthrough.completionConfigKey`. `''` means the user
+			 * has never completed or dismissed the tour.
+			 *
+			 * @type {string}
+			 */
+			walkthroughSeenVersionValue: readLocalWalkthroughSeenVersion(this.appId),
+			/**
+			 * Whether `walkthroughSeenVersionValue` is settled. Starts `true`
+			 * when the manifest declares no `completionConfigKey` (the local
+			 * read above is already the final answer) and `false` when it does,
+			 * so the overlay waits for the server round trip instead of
+			 * auto-opening a tour the user already finished on another device.
+			 *
+			 * @type {boolean}
+			 */
+			walkthroughSeenResolved: !(this.manifest
+				&& this.manifest.walkthrough
+				&& this.manifest.walkthrough.completionConfigKey),
+			/**
 			 * Key of the currently active modal (opened via cnOpenModal).
 			 * null when no modal is open.
 			 *
@@ -1593,7 +1603,7 @@ export default {
 			 * supplied a `#sidebar` slot AND no ancestor already
 			 * owns the channel.
 			 */
-			localObjectSidebarState: Vue.observable({
+			localObjectSidebarState: reactive({
 				active: false,
 				open: false,
 				objectType: '',
@@ -1622,7 +1632,7 @@ export default {
 			 * leaks an `active: true` write into the object-sidebar
 			 * channel.
 			 */
-			localIndexSidebarState: Vue.observable({
+			localIndexSidebarState: reactive({
 				active: false,
 				open: false,
 				searchValue: '',
@@ -1733,51 +1743,6 @@ export default {
 			return groups.some((g) => owners.includes(g))
 		},
 		/**
-		 * Whether the manifest declares any `adminSettings` entries. An
-		 * absent key and an empty array are treated identically — no admin
-		 * dialog mounts either way (manifest-admin-settings D4).
-		 *
-		 * @return {boolean}
-		 */
-		hasAdminSettings() {
-			return Array.isArray(this.manifest && this.manifest.adminSettings)
-				&& this.manifest.adminSettings.length > 0
-		},
-		/**
-		 * `manifest.adminSettings[]` sorted by `order` (ascending), falling
-		 * back to array position when `order` is absent — mirrors
-		 * CnAppNav's `visibleItems` sort convention.
-		 *
-		 * @return {Array<object>}
-		 */
-		sortedAdminSettings() {
-			if (!this.hasAdminSettings) return []
-			return this.manifest.adminSettings
-				.map((entry, index) => ({ entry, index }))
-				.sort((a, b) => {
-					const aHas = typeof a.entry.order === 'number'
-					const bHas = typeof b.entry.order === 'number'
-					if (aHas && !bHas) return -1
-					if (!aHas && bHas) return 1
-					if (!aHas && !bHas) return a.index - b.index
-					return (a.entry.order - b.entry.order) || (a.index - b.index)
-				})
-				.map((wrapped) => wrapped.entry)
-		},
-		/**
-		 * `sortedAdminSettings` filtered by each entry's optional
-		 * `permission` — narrow-only within the already owner-gated dialog
-		 * (admin-settings-owner-gating "per-section permission narrows"
-		 * requirement). Entries with no `permission` always pass; the
-		 * dialog itself is only ever mounted for owners (`isOwner`), so a
-		 * `permission` can never widen visibility to a non-owner.
-		 *
-		 * @return {Array<object>}
-		 */
-		visibleAdminSettingsSections() {
-			return this.sortedAdminSettings.filter((section) => this.passesAdminSectionPermission(section))
-		},
-		/**
 		 * The manifest the default `<CnAppNav>` renders — the editor's working
 		 * `source` while in-app editing, else the live `manifest` prop. Passed to
 		 * CnAppNav as a REACTIVE prop (not left to the provide/inject fallback):
@@ -1838,7 +1803,7 @@ export default {
 		 */
 		shouldAutoMountObjectSidebar() {
 			if (this.$slots && this.$slots.sidebar) return false
-			if (this.$scopedSlots && this.$scopedSlots.sidebar) return false
+			if (this.$slots && this.$slots.sidebar) return false
 			if (this.ancestorObjectSidebarState) return false
 			const holder = this.localObjectSidebarState
 			if (!holder || !holder.active) return false
@@ -2059,13 +2024,35 @@ export default {
 		 * isn't (REQ-SETUP-NV-012). Never true while the gating phase is active —
 		 * required-unmet already renders `CnSetupWizard` itself.
 		 *
-		 * `info` and `summary` steps are excluded: the server has nothing to
-		 * persist for them, so they report `done: false` forever and would keep
-		 * this permanently true (auto-prompting fully-configured users).
+		 * Two independent guards keep this from being permanently true, because
+		 * a step can look "unmet" for two unrelated reasons:
+		 *
+		 * 1. The server's `completed` flag is AUTHORITATIVE and short-circuits
+		 *    this. An app may declare optional steps its SetupController never
+		 *    reports a status key for — pipelinq's `demo-data` run-action is one
+		 *    — and an UNREPORTED step is indistinguishable from an UNDONE one, so
+		 *    `optionalUnmet` stays non-empty forever. Auto-opening on that
+		 *    difference parked the wizard over the app on every fresh browser
+		 *    profile even though `/api/setup/status` answered
+		 *    `200 {completed:true}`, which read as "the setup gate never clears"
+		 *    and timed out every UI e2e spec in the consuming app.
+		 *
+		 * 2. `info` and `summary` steps are excluded: the server has nothing to
+		 *    persist for them, so they report `done: false` forever and would
+		 *    keep this permanently true (auto-prompting fully-configured users)
+		 *    even when `completed` is absent or false.
+		 *
+		 * Neither guard subsumes the other — (1) is about steps the server never
+		 * reports, (2) about steps it can never mark done — so both are needed.
+		 *
+		 * @return {boolean} True when an actionable optional step is genuinely outstanding.
 		 */
 		optionalSetupPending() {
 			const s = this.setupState
-			if (!s || s.loading.value !== false || s.requiredUnmet.value.length > 0) {
+			if (!s || s.loading.value !== false || s.completed.value === true) {
+				return false
+			}
+			if (s.requiredUnmet.value.length > 0) {
 				return false
 			}
 			return s.optionalUnmet.value.some((st) => st.type !== 'info' && st.type !== 'summary')
@@ -2093,18 +2080,26 @@ export default {
 			return !!(w && w.enabled !== false && Array.isArray(w.tours) && w.tours.length > 0)
 		},
 		/**
-		 * The user's last-seen app version for walkthrough composition. Read from
-		 * a per-user/browser key; CnAppRoot writes it on completion. Apps wanting
-		 * cross-device persistence can override the `#walkthrough` slot.
+		 * The per-user preference key holding the last app version whose tour the
+		 * user has seen (`manifest.walkthrough.completionConfigKey`). Empty when
+		 * the manifest declares none, in which case persistence stays per-browser.
+		 *
+		 * @return {string} The preference key, or ''.
+		 */
+		walkthroughConfigKey() {
+			const w = this.manifest && this.manifest.walkthrough
+			return (w && typeof w.completionConfigKey === 'string' && w.completionConfigKey) || ''
+		},
+		/**
+		 * The user's last-seen app version for walkthrough composition. Resolved
+		 * from the per-user `completionConfigKey` preference (cross-device) with
+		 * the localStorage mirror as fallback; CnAppRoot writes BOTH on completion
+		 * or dismissal, so a returning user is not shown the tour again.
 		 *
 		 * @return {string} The last-seen version, or '' for a fresh user.
 		 */
 		walkthroughSeenVersion() {
-			try {
-				return window.localStorage.getItem('cn-walkthrough-seen:' + this.appId) || ''
-			} catch (e) {
-				return ''
-			}
+			return this.walkthroughSeenVersionValue
 		},
 		/**
 		 * Cross-app / refresh resume token parsed from the URL query
@@ -2145,6 +2140,15 @@ export default {
 		 * hit `settings/apps/enable`, so both dependency surfaces branch on
 		 * this: admins get the in-place install/enable action, non-admins
 		 * get "ask your administrator" copy (REQ-DIA-2 / REQ-DIA-3).
+		 *
+		 * ALSO passed to CnAppNav as `is-admin` to gate visibility of the
+		 * "Admin settings" link to `/settings/admin/<appId>` (ADR-079 §3).
+		 * Read from `getCurrentUser()?.isAdmin` (`@nextcloud/auth`), never
+		 * the legacy `OC.isUserAdmin()` global. Presentation only — the
+		 * access boundary is Nextcloud's settings framework, which refuses
+		 * that page server-side for non-admins. A DIFFERENT signal from
+		 * `isOwner` (which means "owns this app", not "administers this
+		 * instance"); the two must not be conflated.
 		 *
 		 * @return {boolean}
 		 */
@@ -2342,9 +2346,38 @@ export default {
 				}
 			},
 		},
+		/**
+		 * Resolve the per-user walkthrough completion preference whenever the
+		 * declared `completionConfigKey` appears or changes (ADR-043).
+		 * `immediate: true` covers the common static-manifest case; the watch
+		 * also covers a manifest that arrives asynchronously, where a
+		 * mount-time-only read would have found no key and let the tour open
+		 * for a user who already finished it.
+		 */
+		walkthroughConfigKey: {
+			immediate: true,
+			handler(key) {
+				if (!key) {
+					this.walkthroughSeenResolved = true
+					return
+				}
+				this.walkthroughSeenResolved = false
+				this.resolveWalkthroughSeenVersion()
+			},
+		},
 	},
 
 	mounted() {
+		// Nested modals: without this every `.modal-mask` in the app shares one
+		// z-index, so two open dialogs tie and the painting order falls back to
+		// DOM order between two nodes teleported to <body> — clicks aimed at the
+		// top dialog get swallowed by the one underneath. Installed on the app
+		// root (not per dialog) because the colliding dialogs are not all ours:
+		// the consuming app's own NcDialogs need the same layering, and
+		// @nextcloud/vue exposes no z-index prop. Reference-counted, so the
+		// nested CnAppRoot in OpenBuild's BuilderHost is safe.
+		installModalStack()
+
 		// Guard against silently losing unsaved in-app edits. The manifest
 		// editor stays `dirty` for the whole Save (the persist PUT can take a
 		// few seconds), so a refresh mid-save would drop the edit before the
@@ -2388,8 +2421,13 @@ export default {
 		this._hydrateMenuCounts()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		window.removeEventListener('beforeunload', this.onBeforeUnload)
+		this.cnScopedTheme.teardown(this.appId)
+		// Scope the side effect to the shell's lifetime. Layers already written
+		// stay on screen (see `uninstallModalStack`), so a dialog outliving the
+		// shell does not lose its stacking.
+		uninstallModalStack()
 	},
 
 	methods: {
@@ -2431,22 +2469,6 @@ export default {
 			})()
 
 			return this._dataSourcesInFlight
-		},
-		/**
-		 * Whether an `adminSettings` entry's optional `permission` passes
-		 * for the current caller, mirroring `CnAppNav.passesPermission`'s
-		 * grammar exactly (a section with no `permission` always passes;
-		 * an empty/absent `permissions` prop passes everything). Narrow-
-		 * only: called only from within the already owner-gated admin
-		 * dialog, so this can never grant a non-owner visibility.
-		 *
-		 * @param {{ permission?: string }} section An `adminSettings` entry.
-		 * @return {boolean}
-		 */
-		passesAdminSectionPermission(section) {
-			if (!section || !section.permission) return true
-			if (!this.permissions || this.permissions.length === 0) return true
-			return this.permissions.includes(section.permission)
 		},
 		/**
 		 * Resolve a custom `adminSettings` entry's `component` key against
@@ -2685,18 +2707,48 @@ export default {
 			this.setupWizardDismissed = true
 		},
 		/**
+		 * Resolve the user's last-seen walkthrough version from the per-user
+		 * `completionConfigKey` preference before the overlay is allowed to
+		 * mount (ADR-043, REQ-WALK-NV-004). Without a declared key the value
+		 * seeded synchronously in `data()` is already final.
+		 *
+		 * Never rejects: an absent endpoint / unauthenticated user falls back to
+		 * the localStorage mirror inside the loader.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async resolveWalkthroughSeenVersion() {
+			if (!this.walkthroughEnabled || !this.walkthroughConfigKey) {
+				this.walkthroughSeenResolved = true
+				return
+			}
+			try {
+				this.walkthroughSeenVersionValue = await loadWalkthroughSeenVersion(
+					this.appId,
+					this.walkthroughConfigKey,
+				)
+			} finally {
+				this.walkthroughSeenResolved = true
+			}
+		},
+		/**
 		 * Persist the current app version as the user's last-seen walkthrough
 		 * version (so an upgrade later surfaces only newer steps) and notify.
+		 *
+		 * Writes BOTH the localStorage mirror and — when the manifest declares
+		 * `walkthrough.completionConfigKey` — the per-user preference the load
+		 * path reads, so completing or dismissing the tour actually sticks for
+		 * that user instead of re-opening on the next visit.
 		 *
 		 * @return {void}
 		 */
 		onWalkthroughComplete() {
-			try {
-				const v = (this.manifest && this.manifest.version) || '1.0.0'
-				window.localStorage.setItem('cn-walkthrough-seen:' + this.appId, String(v))
-			} catch (e) {
-				// Non-fatal: persistence is best-effort (private mode / no storage).
-			}
+			const v = normaliseSeenVersion((this.manifest && this.manifest.version) || '1.0.0')
+			this.walkthroughSeenVersionValue = v
+			this.walkthroughSeenResolved = true
+			// Fire-and-forget: the loader never rejects and the local mirror is
+			// already written, so a failed PUT must not surface as an error.
+			persistWalkthroughSeenVersion(this.appId, this.walkthroughConfigKey, v)
 			/**
 			 * @event walkthrough-complete Emitted when the walkthrough finishes or is dismissed.
 			 */
@@ -2866,9 +2918,9 @@ export default {
 				const { register, schema, count } = result ?? {}
 				if (typeof count !== 'number' || count < 0) continue
 				if (!this.cnMenuCounts[register]) {
-					Vue.set(this.cnMenuCounts, register, {})
+					this.cnMenuCounts[register] = {}
 				}
-				Vue.set(this.cnMenuCounts[register], schema, count)
+				this.cnMenuCounts[register][schema] = count
 			}
 		},
 
@@ -2931,9 +2983,9 @@ export default {
 				const total = pagination?.total
 				if (typeof total === 'number' && total >= 0) {
 					if (!this.cnMenuCounts[register]) {
-						Vue.set(this.cnMenuCounts, register, {})
+						this.cnMenuCounts[register] = {}
 					}
-					Vue.set(this.cnMenuCounts[register], schema, total)
+					this.cnMenuCounts[register][schema] = total
 				}
 			} catch (err) {
 				// Non-fatal — leave the badge unrendered.

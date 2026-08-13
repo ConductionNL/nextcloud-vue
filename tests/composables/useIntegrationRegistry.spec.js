@@ -19,7 +19,7 @@ function buildHarness(registry) {
 			return { ids, integrations, getById, resolveWidget }
 		},
 		render() {
-			return h('div', { attrs: { 'data-ids': this.ids } })
+			return h('div', { 'data-ids': this.ids })
 		},
 	})
 }
@@ -39,7 +39,7 @@ describe('useIntegrationRegistry', () => {
 		const Harness = buildHarness(registry)
 		const wrapper = mount(Harness)
 		expect(wrapper.vm.ids).toBe('a')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('updates reactively when a late registration arrives', async () => {
@@ -50,7 +50,7 @@ describe('useIntegrationRegistry', () => {
 		registry.register({ id: 'late', label: 'Late', tab, widget })
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.ids).toBe('late')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('exposes getById and resolveWidget helpers', () => {
@@ -61,14 +61,14 @@ describe('useIntegrationRegistry', () => {
 		expect(wrapper.vm.getById('x').id).toBe('x')
 		expect(wrapper.vm.resolveWidget('x', 'detail-page')).toBe(widget)
 		expect(wrapper.vm.getById('missing')).toBe(null)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('unsubscribes on component unmount so destroyed harnesses do not receive updates', async () => {
 		const registry = createIntegrationRegistry()
 		const Harness = buildHarness(registry)
 		const wrapper = mount(Harness)
-		wrapper.destroy()
+		wrapper.unmount()
 		// After unmount the underlying ref no longer mutates, but more
 		// importantly the listener count is back to zero so further
 		// registrations are silent. We assert through the registry's

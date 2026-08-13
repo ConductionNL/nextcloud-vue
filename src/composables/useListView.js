@@ -76,7 +76,15 @@ export function useListView(objectTypeOrOptions, options) {
 
 	// ── Computed refs from the store ─────────────────────────────────────
 	const objects = computed(() => objectStore.collections[objectType] || [])
-	const loading = computed(() => objectStore.loading[objectType] || false)
+	// True from creation until the mount sequence below has issued its first
+	// fetch. The store's own flag only goes up once `fetchCollection` runs, and
+	// `onMounted` awaits `fetchSchema()` first — so for the length of that round
+	// trip the list was "not loading" with zero rows, and every consumer
+	// rendered its empty state ("No log entries to show") before any data had
+	// been asked for. Folded into `loading` rather than exposed separately so
+	// existing consumers get the fix without touching their templates.
+	const bootstrapping = ref(true)
+	const loading = computed(() => bootstrapping.value || objectStore.loading[objectType] || false)
 	const pagination = computed(
 		() => objectStore.pagination[objectType] || { total: 0, page: 1, pages: 1, limit: 20 },
 	)
@@ -254,11 +262,17 @@ export function useListView(objectTypeOrOptions, options) {
 	// ── Lifecycle ────────────────────────────────────────────────────────
 
 	onMounted(async () => {
-		schema.value = await objectStore.fetchSchema(objectType)
-		if (sidebarState) {
-			setupSidebar()
+		try {
+			schema.value = await objectStore.fetchSchema(objectType)
+			if (sidebarState) {
+				setupSidebar()
+			}
+			await refresh(1)
+		} finally {
+			// Hand the loading state back to the store either way: a schema
+			// fetch that rejects must not leave the list spinning forever.
+			bootstrapping.value = false
 		}
-		await refresh(1)
 	})
 
 	onBeforeUnmount(() => {

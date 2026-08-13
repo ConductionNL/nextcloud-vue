@@ -62,6 +62,12 @@ When `CnDashboardPage` resolves a widget definition with `type: "chart"`, it mou
 
 The dispatcher forwards `props.chartKind` as the apex `type` and passes through `series`, `categories`, `labels`, `options`, `colors`, `toolbar`, `legend`, `height`, `width`, `unavailableLabel`.
 
+### Height on a dashboard tile
+
+A dashboard tile's height is fixed by its grid units, so a chart tile that authors no `height` gets `'100%'` — the chart fits the tile. The standalone default (a pinned 250px) is taller than the content box of a typical `gridHeight: 4` tile, which made the tile scroll the graph instead of showing it. Author a `height` in the widget's `props` (or its in-app `content`) to pin one deliberately.
+
+Percentage heights need an ancestor with a resolved height. Inside `CnWidgetWrapper` that is already true; in a page region sized by its content, pin a pixel height instead.
+
 ## `dataSource` — resolving series + categories from OpenRegister
 
 `CnChartWidget` accepts a `dataSource` block that resolves `series` / `categories` / `labels` from a GraphQL query against OpenRegister. Three shapes are supported:
@@ -198,6 +204,36 @@ views: [
 
 Each entry is `{ key, label?, series?, valueFormat? }`: `series` (an array of series **names**) filters which resolved cartesian series render (a filter that matches nothing falls back to all series, so a typo never blanks the chart; pie-family series have no names to filter on), and `valueFormat` overrides the widget-level `valueFormat` while the view is active. The first view is active by default; fewer than two views render no switcher.
 
+## Value-axis baseline
+
+ApexCharts frames the value axis to the data range by default. For a series like `[7, 6]` that puts 7 at the very top of the plot and 6 at the very bottom, so a difference of **one** reads as a total collapse. `valueAxisBaseline` is the guard against that.
+
+| Value | Behaviour |
+| --- | --- |
+| `'auto'` (default) | Anchors **bar** and **area** at zero; keeps **line** off zero but widens the window when it gets too narrow to be honest. |
+| `'zero'` | Always anchors at zero. |
+| `'fit'` | Plain ApexCharts autoscaling. |
+
+The split is not arbitrary. Bar and area encode magnitude by **length and area**, so a truncated baseline makes the mark misstate the ratio — a bar twice as tall must mean twice as much. Line encodes **position**, so it may legitimately sit off zero; there the rule is instead that the visible window must span at least a quarter of the data's magnitude, which stops a 1-in-1000 wiggle from filling the plot.
+
+The ceiling is rounded up to a nice number (7 → 8, 62 → 80, 210 → 250) so the peak is not glued to the top of the plot and the ticks land on round values.
+
+Four cases always fall back to autoscaling, because a zero floor would be wrong, useless, or too low: pie-family charts, any series that goes negative (clamping would crop real values), an empty series, and **stacked** charts (`options.chart.stacked`) — a stacked mark's height is the per-category sum, which exceeds the largest single datapoint, so a ceiling derived from that datapoint would clip the bars. ApexCharts already baselines stacked charts at zero. An explicit `options.yaxis.min` / `max` still wins through the deep-merge.
+
+The baseline applies to every cartesian chart, whether its series are plain numbers alongside `categories` or raw datapoints in the `{x, y}` / `[x, y]` forms. On a horizontal bar chart the bounds move to the x-axis, since ApexCharts flips the axes.
+
+Reach for `'fit'` when the series genuinely lives far from zero — a percentage hovering between 95 and 99, a temperature — where a zero baseline flattens the whole signal into one line. On a dashboard it can be set per widget from the manifest:
+
+```json
+{ "type": "chart", "props": { "chartKind": "line", "valueAxisBaseline": "fit" } }
+```
+
+## Theming
+
+The chart follows the Nextcloud theme in both light and dark mode, with no configuration. Everything drawn inside the SVG is themed through chart options (`foreColor`, grid, legend and axis label colours all read `var(--color-*)`), and apexcharts' HTML chrome — the hover tooltip, the crosshair axis tooltips, the toolbar menu and its icons — is restyled from the same tokens in the component's stylesheet.
+
+That override is why `options.tooltip.theme` has no visible effect: both apexcharts themes are hardcoded palettes, so either one is wrong in the other mode. The tokens flip themselves, which also covers high-contrast and custom (nldesign) themes.
+
 ### Props
 
 | Prop | Type | Default | Description |
@@ -206,7 +242,7 @@ Each entry is `{ key, label?, series?, valueFormat? }`: `series` (an array of se
 | `series` | Array | `[]` | Data series. Format: `[{ name, data[] }]` for cartesian charts; `number[]` for pie/donut |
 | `categories` | Array | `[]` | X-axis category labels (line, area, bar charts) |
 | `labels` | Array | `[]` | Segment labels (pie, donut charts) |
-| `height` | Number \| String | `250` | Chart height in pixels |
+| `height` | Number \| String | `250` | Chart height. A number pins pixels; a percentage (`'100%'`) fits the container; `'auto'` derives it from the width |
 | `width` | Number \| String | `'100%'` | Chart width (defaults to full container width) |
 | `options` | Object | `{}` | Custom ApexCharts options deep-merged with Nextcloud defaults |
 | `colors` | Array | `[]` | Color palette — defaults to Nextcloud CSS variable colors |
@@ -216,6 +252,7 @@ Each entry is `{ key, label?, series?, valueFormat? }`: `series` (an array of se
 | `dataSource` | Object | `null` | Optional OpenRegister GraphQL block — see [`dataSource`](#datasource--resolving-series--categories-from-openregister) above |
 | `horizontal` | Boolean | `false` | Render `type: "bar"` charts horizontally (row bars). An explicit `options.plotOptions.bar.horizontal` still wins. |
 | `legendPosition` | String | `''` | Legend placement override: `top \| bottom \| left \| right`. Empty keeps the automatic placement (bottom for pie-family, top otherwise). |
+| `valueAxisBaseline` | String | `'auto'` | How the value axis picks its baseline — see [Value-axis baseline](#value-axis-baseline) below. `auto` anchors bar/area at zero and stops line charts over-zooming; `zero` always anchors at zero; `fit` restores plain ApexCharts autoscaling. |
 | `valueFormat` | String \| Object | `null` | Named value formatter applied to the VALUE axis labels AND the tooltip: `"currency"` (Intl currency, 0 decimals), `"currency-compact"` (compact notation, e.g. `€ 1,2K`), `"percent"`. Object form `{ name, currency?, decimals? }` overrides the ISO code (EUR default, guarded) and fraction digits. With `horizontal` bars the formatter moves to the x-axis (the value axis flips). |
 | `colorMap` | Object | `null` | Per-category colour map (`{ categoryLabel: cssColor }`) for pie/donut/radialBar slices and bar categories (bars switch to `distributed` rendering so each category gets its colour). Unmapped categories keep the default palette colour. |
 | `emptyLabel` | String | `''` | Empty-state message rendered INSTEAD of the chart when the resolved series contain no data points. Empty keeps the pre-existing empty-canvas behaviour. |
@@ -242,3 +279,7 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `widgetId` | String | `''` | Matches `cn:widget:refresh` event-bus events (broadcast by CnWidgetWrapper's Refresh); on a matching id the chart re-queries its `dataSource`. |
+
+The chart also subscribes to `cn:page:refresh`, the channel the **page-level** Refresh action broadcasts on (`CnDashboardPage` / `CnDetailPage`). That one carries no widget id — a page refresh refreshes everything on the page — so a chart placed without a `widgetId` still reloads.
+
+Both channels re-query `dataSource` (the GraphQL, time-bucket, group-by and aggregate paths). They differ on `endpointSource`: the per-widget channel and the ref-callable `refresh()` refetch it, while the page channel leaves it to `useEndpointSource`, which subscribes to `cn:page:refresh` itself. Refetching it twice would issue two HTTP requests, not one — a forced fetch drops the in-flight dedup entry.

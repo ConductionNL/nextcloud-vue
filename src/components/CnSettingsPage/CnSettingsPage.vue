@@ -32,21 +32,26 @@
 -->
 <template>
 	<div class="cn-settings-page" data-testid="cn-settings-page">
-		<!-- Header — overridable via #header slot -->
+		<!-- Header — overridable via #header slot. CnPageHeader renders whenever
+		     there is a title: `visuallyHidden` keeps the <h1> in the
+		     accessibility tree (and out of the visual layout) when showTitle is
+		     false, so <main> is never left with no heading at all
+		     (WCAG 2.4.6 / 1.3.1). -->
 		<slot
 			name="header"
 			:title="title"
 			:description="description"
 			:icon="icon">
 			<CnPageHeader
-				v-if="showTitle && title"
+				v-if="title"
 				:title="title"
 				:description="description"
-				:icon="icon" />
+				:icon="icon"
+				:visually-hidden="!showTitle" />
 		</slot>
 
 		<!-- Actions slot for save / discard / reset overrides -->
-		<div v-if="$slots.actions || $scopedSlots.actions" class="cn-settings-page__actions">
+		<div v-if="$slots.actions || $slots.actions" class="cn-settings-page__actions">
 			<slot name="actions" />
 		</div>
 
@@ -116,25 +121,25 @@
 								v-else-if="field.type === 'number'"
 								:label="resolveLabel(field.label)"
 								type="number"
-								:value="String(fieldValue(field.key, ''))"
-								@update:value="updateField(field.key, $event === '' ? null : Number($event))" />
+								:model-value="String(fieldValue(field.key, ''))"
+								@update:model-value="updateField(field.key, $event === '' ? null : Number($event))" />
 							<NcTextField
 								v-else-if="field.type === 'password'"
 								:label="resolveLabel(field.label)"
 								type="password"
-								:value="fieldValue(field.key, '')"
-								@update:value="updateField(field.key, $event)" />
+								:model-value="fieldValue(field.key, '')"
+								@update:model-value="updateField(field.key, $event)" />
 							<NcSelect
 								v-else-if="field.type === 'enum' && Array.isArray(field.options)"
-								:value="selectedOption(field)"
+								:model-value="selectedOption(field)"
 								:options="field.options"
 								:input-label="resolveLabel(field.label)"
-								@input="updateField(field.key, optionValue($event))" />
+								@update:model-value="updateField(field.key, optionValue($event))" />
 							<NcTextField
 								v-else
 								:label="resolveLabel(field.label)"
-								:value="fieldValue(field.key, '')"
-								@update:value="updateField(field.key, $event)" />
+								:model-value="fieldValue(field.key, '')"
+								@update:model-value="updateField(field.key, $event)" />
 						</slot>
 						<small
 							v-if="field.help"
@@ -355,7 +360,11 @@ export default {
 			type: String,
 			default: '',
 		},
-		/** Whether to render the inline page header. */
+		/**
+		 * Whether to render the inline page header VISIBLY. When false the
+		 * `<h1>` is still rendered visually-hidden, so the `<main>` landmark
+		 * always has an accessible heading (WCAG 2.4.6 / 1.3.1).
+		 */
 		showTitle: {
 			type: Boolean,
 			default: false,
@@ -643,7 +652,7 @@ export default {
 		},
 
 		updateField(key, value) {
-			this.$set(this.formData, key, value)
+			this.formData[key] = value
 			this.$emit('input', { key, value })
 		},
 

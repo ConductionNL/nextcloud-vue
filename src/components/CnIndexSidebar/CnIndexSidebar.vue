@@ -1,9 +1,9 @@
 <template>
 	<NcAppSidebar
+		v-model:open="internalOpen"
 		:name="resolvedName"
 		:title="resolvedName"
 		:subname="resolvedSubname"
-		:open.sync="internalOpen"
 		:active="internalActiveTab"
 		:compact="!!resolvedIcon"
 		@close="$emit('update:open', false)"
@@ -31,10 +31,10 @@
 
 				<div class="cn-index-sidebar__section">
 					<NcTextField
-						:value="searchValue"
+						:model-value="searchValue || ''"
 						:placeholder="searchPlaceholder"
 						:label="searchLabel"
-						@update:value="$emit('search', $event)" />
+						@update:model-value="$emit('search', $event)" />
 				</div>
 
 				<div v-if="schemaFilters.length > 0" class="cn-index-sidebar__section">
@@ -63,14 +63,14 @@
 						</div>
 						<NcSelect
 							class="cn-index-sidebar__select"
-							:value="getSelectedFilterOptions(filter)"
+							:model-value="getSelectedFilterOptions(filter)"
 							:options="getFilterOptions(filter)"
 							placeholder="Select..."
 							:input-label="filter.label"
 							:multiple="true"
 							:keep-open="true"
 							:clearable="true"
-							@input="onFilterChange(filter.key, $event)" />
+							@update:model-value="onFilterChange(filter.key, $event)" />
 					</div>
 				</div>
 
@@ -103,7 +103,7 @@
 								<NcCheckboxRadioSwitch
 									:model-value="isGroupAllVisible(allColumns)"
 									class="cn-sidebar-columns__select-all"
-									@click.native.stop
+									@click.stop
 									@update:model-value="toggleGroupAll(allColumns)">
 									All
 								</NcCheckboxRadioSwitch>
@@ -131,7 +131,7 @@
 								<NcCheckboxRadioSwitch
 									:model-value="isGroupAllVisible(group.columns)"
 									class="cn-sidebar-columns__select-all"
-									@click.native.stop
+									@click.stop
 									@update:model-value="toggleGroupAll(group.columns)">
 									All
 								</NcCheckboxRadioSwitch>
@@ -204,6 +204,18 @@ export default {
 		ChevronDown,
 		ChevronRight,
 		InformationOutline,
+	},
+
+	inject: {
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Column and
+		 * filter labels come from schema property titles, authored in English as
+		 * the canonical source; the visible label is resolved through this
+		 * function so it follows the user's language. Defaults to identity when
+		 * used standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -319,6 +331,8 @@ export default {
 		},
 	},
 
+	emits: ['columns-change', 'filter-change', 'search', 'tab-change', 'update:open'],
+
 	data() {
 		return {
 			internalOpen: this.open,
@@ -354,13 +368,13 @@ export default {
 		/** All available columns from schema */
 		allColumns() {
 			if (!this.schema) return []
-			return columnsFromSchema(this.schema, {})
+			return columnsFromSchema(this.schema, { translate: this.cnTranslate })
 		},
 
 		/** Filter definitions from schema (facetable properties, respecting RBAC) */
 		schemaFilters() {
 			if (!this.schema) return []
-			return filtersFromSchema(this.schema, { isAdmin: this.userIsAdmin })
+			return filtersFromSchema(this.schema, { isAdmin: this.userIsAdmin, translate: this.cnTranslate })
 		},
 
 		/** Combined column groups: built-in Metadata + external groups */
@@ -401,7 +415,7 @@ export default {
 			handler(groups) {
 				for (const group of groups) {
 					if (!(group.id in this.expandedGroups)) {
-						this.$set(this.expandedGroups, group.id, group.expanded !== false)
+						this.expandedGroups[group.id] = group.expanded !== false
 					}
 				}
 			},
@@ -480,7 +494,7 @@ export default {
 		 * @param {string} groupId Filter group identifier
 		 */
 		toggleGroup(groupId) {
-			this.$set(this.expandedGroups, groupId, !this.expandedGroups[groupId])
+			this.expandedGroups[groupId] = !this.expandedGroups[groupId]
 		},
 
 		/**

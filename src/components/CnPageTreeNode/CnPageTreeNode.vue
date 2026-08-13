@@ -101,6 +101,8 @@ export default {
 		},
 	},
 
+	emits: ['navigate'],
+
 	data() {
 		return {
 			// Local nested mirror of `list` (real page refs) that vuedraggable
@@ -192,10 +194,10 @@ export default {
 		flatten() {
 			const flat = []
 			for (const node of this.tree) {
-				if (node.ref.parent) this.$delete(node.ref, 'parent')
+				if (node.ref.parent) delete node.ref.parent
 				flat.push(node.ref)
 				for (const child of node.children) {
-					this.$set(child.ref, 'parent', node.ref.id)
+					child.ref.parent = node.ref.id
 					flat.push(child.ref)
 				}
 			}
@@ -251,17 +253,17 @@ export default {
 			if (!newId || newId === oldId) return
 			if (this.list.some((p) => p && p.id === newId)) return
 			for (const p of this.list) {
-				if (p && p.parent === oldId) this.$set(p, 'parent', newId)
+				if (p && p.parent === oldId) p.parent = newId
 			}
 			if (Array.isArray(this.menu)) {
 				const walk = (items) => (items || []).forEach((it) => {
 					if (!it) return
-					if (it.route === oldId) this.$set(it, 'route', newId)
+					if (it.route === oldId) it.route = newId
 					walk(it.children)
 				})
 				walk(this.menu)
 			}
-			this.$set(ref, 'id', newId)
+			ref.id = newId
 			this.flatten()
 			this.tree = this.buildTree()
 		},

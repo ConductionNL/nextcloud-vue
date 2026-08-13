@@ -159,6 +159,8 @@ export default {
 		},
 	},
 
+	emits: ['stage-click'],
+
 	data() {
 		return {
 			/** @type {number} Index of the currently focused stage (roving tabindex) */

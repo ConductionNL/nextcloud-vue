@@ -19,7 +19,7 @@ describe('CnTranslatedBadge', () => {
 		})
 		expect(wrapper.find('.cn-translated-badge').exists()).toBe(false)
 		expect(wrapper.find('[data-testid="cn-translated-badge"]').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders nothing when object has no _translationMeta', () => {
@@ -27,7 +27,7 @@ describe('CnTranslatedBadge', () => {
 			propsData: { object: { id: 'x', title: 'Y' } },
 		})
 		expect(wrapper.find('.cn-translated-badge').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders nothing when _translationMeta.translatedFrom is null', () => {
@@ -40,7 +40,7 @@ describe('CnTranslatedBadge', () => {
 			},
 		})
 		expect(wrapper.find('.cn-translated-badge').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders nothing when _translationMeta.translatedFrom is empty string', () => {
@@ -52,7 +52,7 @@ describe('CnTranslatedBadge', () => {
 			},
 		})
 		expect(wrapper.find('.cn-translated-badge').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders the badge when _translationMeta.translatedFrom is set', () => {
@@ -76,7 +76,7 @@ describe('CnTranslatedBadge', () => {
 		const text = badge.text()
 		const hasSourceToken = text.includes('nl') || /dutch|nederlands|niederländisch/i.test(text)
 		expect(hasSourceToken).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('honours `localeNameFormatter` for the source-language label', () => {
@@ -91,7 +91,7 @@ describe('CnTranslatedBadge', () => {
 		const badge = wrapper.find('.cn-translated-badge')
 		expect(badge.exists()).toBe(true)
 		expect(badge.text()).toMatch(/Dutch/)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('exposes translatedAt via the title attribute', () => {
@@ -111,7 +111,7 @@ describe('CnTranslatedBadge', () => {
 		// Either the locale-formatted date OR the raw ISO string is
 		// acceptable per spec; either includes "2026".
 		expect(title).toMatch(/2026/)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('falls back to raw BCP-47 when localeNameFormatter throws', () => {
@@ -129,6 +129,6 @@ describe('CnTranslatedBadge', () => {
 		const text = badge.text()
 		const hasSomeLabel = text.includes('nl') || /dutch|nederlands/i.test(text)
 		expect(hasSomeLabel).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

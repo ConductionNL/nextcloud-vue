@@ -47,7 +47,7 @@ describe('CnCospendCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No costs linked yet')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a count headline + per-currency totals on the user-dashboard surface', async () => {
@@ -75,7 +75,7 @@ describe('CnCospendCard', () => {
 		expect(txt).toContain('USD')
 		expect(wrapper.find('.cn-cospend-card__headline').exists()).toBe(true)
 		expect(wrapper.find('.cn-cospend-card__totals').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders the detail-page list with type pills + highlights the linked row', async () => {
@@ -98,7 +98,7 @@ describe('CnCospendCard', () => {
 		expect(highlighted).toHaveLength(1)
 		expect(wrapper.find('.cn-cospend-card__chip-pill--bill').exists()).toBe(true)
 		expect(wrapper.find('.cn-cospend-card__chip-pill--project').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a chip on the single-entity surface', async () => {
@@ -114,7 +114,7 @@ describe('CnCospendCard', () => {
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Hotel')
 		expect(chip.text()).toContain('Bill')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the unavailable label when the provider returns 503', async () => {
@@ -123,7 +123,7 @@ describe('CnCospendCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Costs is currently unavailable.')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not throw when fetch fails on the detail-page surface', async () => {
@@ -133,7 +133,7 @@ describe('CnCospendCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No costs linked yet')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 })

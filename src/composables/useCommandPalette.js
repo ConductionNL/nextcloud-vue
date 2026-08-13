@@ -18,7 +18,7 @@
  *       run: () => this.$router.push({ name: 'invoice-create' }),
  *     })
  *   },
- *   beforeDestroy() {
+ *   beforeUnmount() {
  *     this._cmdPalette.unregister('my-app.create-invoice')
  *   },
  * }
@@ -43,7 +43,7 @@
  * @module composables/useCommandPalette
  */
 
-import Vue from 'vue'
+import { reactive } from 'vue'
 import { commandPaletteRegistry } from '../commandPalette/registry.js'
 
 /**
@@ -54,7 +54,7 @@ import { commandPaletteRegistry } from '../commandPalette/registry.js'
  *
  * @type {{isOpen: boolean}}
  */
-const paletteState = Vue.observable({ isOpen: false })
+const paletteState = reactive({ isOpen: false })
 
 /**
  * Reactive snapshot of the DEFAULT registry's command list, kept in sync
@@ -64,7 +64,7 @@ const paletteState = Vue.observable({ isOpen: false })
  *
  * @type {{items: object[]}}
  */
-const defaultSnapshot = Vue.observable({ items: commandPaletteRegistry.list() })
+const defaultSnapshot = reactive({ items: commandPaletteRegistry.list() })
 commandPaletteRegistry.onChange((next) => {
 	defaultSnapshot.items = next
 })
@@ -89,7 +89,7 @@ export function useCommandPalette(registry) {
 	// Non-default registries (test isolation) get their own reactive
 	// snapshot + subscription; the shared default path reuses the single
 	// module-level snapshot/subscription above.
-	const snapshot = isDefaultRegistry ? defaultSnapshot : Vue.observable({ items: target.list() })
+	const snapshot = isDefaultRegistry ? defaultSnapshot : reactive({ items: target.list() })
 	if (!isDefaultRegistry) {
 		target.onChange((next) => {
 			snapshot.items = next

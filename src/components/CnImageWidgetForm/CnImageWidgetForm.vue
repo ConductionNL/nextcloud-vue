@@ -25,7 +25,7 @@
 			</label>
 			<NcButton
 				v-if="pendingFile"
-				type="tertiary"
+				variant="tertiary"
 				:disabled="uploading"
 				@click="clearPendingFile">
 				{{ t('nextcloud-vue', 'Remove') }}
@@ -39,11 +39,11 @@
 		</p>
 
 		<NcTextField
-			:value="url"
+			:model-value="url"
 			:label="t('nextcloud-vue', 'Image URL')"
 			:placeholder="t('nextcloud-vue', 'Or paste an image URL')"
 			:disabled="!!pendingFile"
-			@update:value="updateField('url', $event)" />
+			@update:model-value="updateField('url', $event)" />
 
 		<div v-if="previewSrc" class="cn-image-widget-form__preview-wrap">
 			<img
@@ -57,24 +57,24 @@
 		</div>
 
 		<NcTextField
-			:value="alt"
+			:model-value="alt"
 			:label="t('nextcloud-vue', 'Alt text')"
-			@update:value="updateField('alt', $event)" />
+			@update:model-value="updateField('alt', $event)" />
 
 		<NcTextField
-			:value="link"
+			:model-value="link"
 			:label="t('nextcloud-vue', 'Link (optional)')"
 			placeholder="https://example.com"
-			@update:value="updateField('link', $event)" />
+			@update:model-value="updateField('link', $event)" />
 
 		<NcSelect
-			:value="fit"
+			:model-value="fit"
 			:options="fitOptions"
 			:input-label="t('nextcloud-vue', 'Fit')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('fit', $event)" />
+			@update:modelValue="updateField('fit', $event)" />
 	</div>
 </template>
 
@@ -95,7 +95,7 @@ const DEFAULT_CONTENT = Object.freeze({
 
 /**
  * CnImageWidgetForm — the `CnAddWidgetModal` sub-form for creating or editing
- * an `image` widget placement (renderer: {@link CnImageWidget}).
+ * an `image` widget placement (renderer: `CnImageWidget`).
  *
  * Exposes four controls — image URL, alt text, optional click-through link,
  * and an object-fit select (`cover | contain | fill | none`, default
@@ -154,7 +154,7 @@ export default {
 		/**
 		 * Legacy base64 upload transport, superseded by `fileUploadFn`.
 		 *
-		 * @deprecated Use {@link fileUploadFn} instead. Legacy base64 transport
+		 * @deprecated Use `fileUploadFn` instead. Legacy base64 transport
 		 * `async (dataUrl: string) => ({ url })`, kept for backward compatibility.
 		 * When `fileUploadFn` is not set but this is, `commit()` reads the file to
 		 * a data URL and hands that to this function (emitting a one-time
@@ -240,7 +240,7 @@ export default {
 		},
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		this.revokePreview()
 	},
 

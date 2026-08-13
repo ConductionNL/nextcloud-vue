@@ -1,16 +1,35 @@
+import { h } from 'vue'
+
 /**
  * Internal helper component used by CnSettingsPage.
  *
- * Mounts a dynamic component as a child, intercepts every `$emit` it
- * makes, and re-emits the event as a `widget-event` on itself with
- * payload `{ widgetType, widgetIndex, sectionIndex, name, args }`.
+ * Mounts a dynamic component as a child and re-emits every event the
+ * child fires as a single `widget-event` on itself with payload
+ * `{ widgetType, widgetIndex, sectionIndex, name, args }`.
  *
- * Why a helper component instead of `v-on="proxyObj"` on the dynamic
- * `<component>`: Vue 2's `v-on="object"` binding iterates `Object.keys`,
- * not via `Reflect.ownKeys` on a Proxy, so a `has`-trap proxy doesn't
- * intercept arbitrary event names. A render-function child with a
- * patched `$emit` is the most reliable way to capture every event the
- * widget emits regardless of name.
+ * Vue 3 render function: `h` is imported from `vue` (NOT passed as a
+ * render argument — the Vue 2 `render(h)` signature yields an undefined
+ * `h` under Vue 3, i.e. `TypeError: h is not a function` at render). The
+ * VNode data is the flat Vue 3 shape (`h(component, { ...props, ref })`),
+ * not the Vue 2 `{ props, attrs }` nesting.
+ *
+ * Generic emit capture: on mount we wrap the mounted child's internal
+ * `emit` (`instance.emit`). Vue 3's public `$emit` getter resolves to
+ * `instance.emit` at call time, so replacing it makes every
+ * `this.$emit(...)` the child fires bubble up here as a single
+ * `widget-event`, regardless of the event name — without enumerating names
+ * and without a props Proxy (a Proxy that answers every `onXxx` lookup
+ * corrupts Vue's `onVnodeXxx` lifecycle probing).
+ *
+ * The child is reached through the template `ref`, NOT through the vnode
+ * `render()` returned. Vue 3's `renderComponentRoot` CLONES a
+ * single-root render result whenever the component has fallthrough attrs
+ * (`cloneVNode(root, fallthroughAttrs)`), and it is the clone that gets
+ * patched — so the vnode captured in `render()` keeps `component === null`
+ * and the emit wrapper silently never installs. Vue 2 had no such clone
+ * (listeners lived outside `$attrs`), which is why the vnode handle worked
+ * there. `emits` is declared below so the parent's `@widget-event` is not
+ * ALSO left in `$attrs` and forwarded onto the child.
  *
  * NOT exported from the library barrel — this is a private
  * implementation detail of CnSettingsPage and lives next to it. The
@@ -37,21 +56,22 @@ export default {
 		/** Index of the widget in the section's `widgets[]` (0 for `component`-style sections). */
 		widgetIndex: { type: Number, required: true },
 	},
-	render(h) {
-		return h(this.component, {
-			ref: 'inner',
-			props: this.componentProps,
-			attrs: this.componentProps,
-		})
+	emits: ['widget-event'],
+	render() {
+		return h(this.component, { ...(this.componentProps || {}), ref: 'inner' })
 	},
 	mounted() {
-		const inner = this.$refs.inner
-		if (!inner || typeof inner.$emit !== 'function') return
-		const originalEmit = inner.$emit.bind(inner)
+		// `$refs.inner` is the child's public instance proxy; `.$` is its
+		// internal instance, which owns `emit`. See the docblock for why the
+		// vnode returned by `render()` cannot be used here under Vue 3.
+		const proxy = this.$refs.inner
+		const inst = proxy && proxy.$
+		if (!inst || typeof inst.emit !== 'function') return
+		const originalEmit = inst.emit
 		const self = this
-		// Patch $emit so every event the child emits also bubbles up
-		// here as a wrapped widget-event with the manifest path.
-		inner.$emit = function patchedEmit(name, ...args) {
+		// Vue 3's public `$emit` getter returns `instance.emit` at call
+		// time, so replacing it here captures every event the child fires.
+		inst.emit = function wrappedEmit(name, ...args) {
 			self.$emit('widget-event', {
 				widgetType: self.widgetType,
 				widgetIndex: self.widgetIndex,
@@ -59,7 +79,7 @@ export default {
 				name,
 				args,
 			})
-			return originalEmit(name, ...args)
+			return originalEmit.call(this, name, ...args)
 		}
 	},
 }

@@ -10,10 +10,10 @@
 		</h4>
 
 		<NcTextField
-			:value="title"
+			:model-value="title"
 			:label="t('nextcloud-vue', 'Title')"
 			placeholder="Sources"
-			@update:value="updateField('title', $event)" />
+			@update:model-value="updateField('title', $event)" />
 
 		<div class="cn-stats-block-form__row2">
 			<CnRegisterSchemaSelect
@@ -25,11 +25,11 @@
 
 		<div class="cn-stats-block-form__row2">
 			<NcSelect
-				:value="metric"
+				:model-value="metric"
 				:options="metricOptions"
 				:input-label="t('nextcloud-vue', 'Aggregation')"
 				:clearable="false"
-				@input="updateField('metric', $event)" />
+				@update:model-value="updateField('metric', $event)" />
 			<CnFieldPicker
 				v-if="metric !== 'count'"
 				:value="field"
@@ -47,16 +47,16 @@
 
 		<div class="cn-stats-block-form__row2">
 			<NcTextField
-				:value="countLabel"
+				:model-value="countLabel"
 				:label="t('nextcloud-vue', 'Count label')"
 				placeholder="sources"
-				@update:value="updateField('countLabel', $event)" />
+				@update:model-value="updateField('countLabel', $event)" />
 			<NcSelect
-				:value="variant"
+				:model-value="variant"
 				:options="variantOptions"
 				:input-label="t('nextcloud-vue', 'Color')"
 				:clearable="false"
-				@input="updateField('variant', $event)" />
+				@update:model-value="updateField('variant', $event)" />
 		</div>
 
 		<CnIconBrowser
@@ -167,19 +167,26 @@ export default {
 		},
 		/**
 		 * Set a top-level field and emit.
-		 * @param field
-		 * @param value
+		 *
+		 * @param {'title'|'countLabel'|'variant'|'iconClass'|'metric'|'field'} field The data key to write.
+		 * @param {string} value The new value for that key.
+		 * @return {void}
 		 */
 		updateField(field, value) { this[field] = value; this.emitChange() },
 		/**
 		 * Set a source sub-field and emit.
-		 * @param field
-		 * @param value
+		 *
+		 * @param {'register'|'schema'} field The `source` sub-key to write.
+		 * @param {string} value The chosen register or schema slug.
+		 * @return {void}
 		 */
-		updateSource(field, value) { this.$set(this.source, field, value); this.emitChange() },
+		updateSource(field, value) { this.source[field] = value; this.emitChange() },
 		/**
 		 * Receive updated filter rows.
-		 * @param rows
+		 *
+		 * @param {Array<{key: string, op: string, value: string}>} rows The editor's
+		 *   full row list, serialised by `rowsToFilter()` into `dataSource.filter`.
+		 * @return {void}
 		 */
 		onFilterRows(rows) { this.filterRows = rows; this.emitChange() },
 		/** Emit the assembled content. */

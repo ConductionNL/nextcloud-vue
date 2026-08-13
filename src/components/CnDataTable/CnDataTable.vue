@@ -29,131 +29,168 @@
 			<p>{{ loadingText }}</p>
 		</div>
 
-		<!-- Table -->
-		<table v-else class="cn-data-table" data-testid="cn-object-list-table">
-			<thead v-if="!hideHeader">
-				<tr>
-					<!-- Checkbox column -->
-					<th v-if="selectable" class="cn-table-col--checkbox">
-						<NcCheckboxRadioSwitch
-							:model-value="allSelected"
-							:indeterminate="someSelected && !allSelected"
-							:aria-label="selectAllLabel"
-							@update:model-value="toggleSelectAll" />
-					</th>
+		<!-- Table. The horizontal scroll lives on this wrapper, NOT on
+		     `.cn-table-container`: `overflow-x: auto` on the container coerces
+		     its `overflow-y` from `visible` to `auto` (CSS forbids mixing
+		     `visible` with a non-visible value), which silently made the
+		     container the nearest scrollport. The sticky footer then anchored
+		     to a container that never scrolls, so "View all" scrolled away with
+		     the rows instead of pinning to the bottom of the enclosing widget. -->
+		<!-- The horizontal scrollport must be reachable by keyboard: a region
+		     that scrolls but cannot take focus gives a keyboard-only user no
+		     way to reach the columns past the fold (axe
+		     `scrollable-region-focusable`, serious; WCAG 2.1.1).
 
-					<!-- Leading icon column (header is intentionally blank) -->
-					<th v-if="rowIcon" class="cn-table-col--icon" />
+		     Gated on ACTUAL overflow rather than applied unconditionally, for
+		     two reasons. A table that fits needs no scrolling, so a permanent
+		     tab stop would put every table in the fleet on the keyboard path
+		     for nothing. And the axe rule itself only applies to elements that
+		     really are scrollable, so the conditional attribute is present in
+		     exactly the cases the rule evaluates.
 
-					<!-- Data columns -->
-					<th
-						v-for="col in effectiveColumns"
-						:key="col.key"
+		     `role="group"`, NOT `role="region"`: this element is nested inside
+		     `.cn-widget-wrapper__content[role="region"]` on the dashboard-widget
+		     path, and a second landmark there would surface as a duplicate.
+		     `group` is nameable but is not a landmark. A name is required
+		     rather than optional — `aria-label` is PROHIBITED on a role-less
+		     generic element, so a bare `tabindex` div would trade this
+		     violation for `aria-prohibited-attr` plus an unlabelled mystery
+		     stop in the tab order. -->
+		<div
+			v-else
+			ref="scrollEl"
+			class="cn-data-table__scroll"
+			:tabindex="isScrollable ? 0 : undefined"
+			:role="isScrollable ? 'group' : undefined"
+			:aria-label="isScrollable ? scrollRegionLabel : undefined">
+			<table
+				class="cn-data-table"
+				:class="{ 'cn-data-table--fixed': fixedLayout }"
+				data-testid="cn-object-list-table">
+				<thead v-if="!hideHeader">
+					<tr>
+						<!-- Checkbox column -->
+						<th v-if="selectable" class="cn-table-col--checkbox">
+							<NcCheckboxRadioSwitch
+								:model-value="allSelected"
+								:indeterminate="someSelected && !allSelected"
+								:aria-label="selectAllLabel"
+								@update:model-value="toggleSelectAll" />
+						</th>
+
+						<!-- Leading icon column (header is intentionally blank) -->
+						<th v-if="rowIcon" class="cn-table-col--icon" />
+
+						<!-- Data columns -->
+						<th
+							v-for="col in effectiveColumns"
+							:key="col.key"
+							:class="[
+								col.sortable ? 'cn-table-header--sortable' : '',
+								col.class || '',
+							]"
+							:style="col.width ? { width: col.width } : {}"
+							:tabindex="col.sortable ? 0 : null"
+							:aria-sort="ariaSortFor(col)"
+							@click="col.sortable ? onHeaderClick(col.key, $event) : null"
+							@keydown.enter="col.sortable ? onHeaderKeydown(col.key, $event) : null">
+							{{ translateLabel(col.label) }}
+							<span
+								v-if="col.sortable && sortKeyIndex(col.key) !== -1"
+								class="cn-table-sort-indicator">
+								{{ effectiveSortKeys[sortKeyIndex(col.key)].order === 'asc' ? '▲' : '▼' }}
+							</span>
+							<span
+								v-if="col.sortable && effectiveSortKeys.length > 1 && sortKeyIndex(col.key) !== -1"
+								class="cn-table-sort-badge">
+								{{ sortKeyIndex(col.key) + 1 }}
+							</span>
+						</th>
+
+						<!-- Actions column -->
+						<th v-if="$slots['row-actions']" class="cn-table-col--actions">
+							<!-- @slot Header cell content above the row-actions column (blank by default). -->
+							<slot name="actions-header" />
+						</th>
+					</tr>
+				</thead>
+
+				<tbody>
+					<!-- Empty state -->
+					<tr v-if="effectiveRows.length === 0" class="cn-table-empty" data-testid="cn-object-list-empty">
+						<td :colspan="totalColumns">
+							<!-- @slot Empty-state content shown when there are no rows (defaults to `emptyText`). -->
+							<slot name="empty">
+								{{ emptyText }}
+							</slot>
+						</td>
+					</tr>
+
+					<!-- Data rows -->
+					<tr
+						v-for="row in effectiveRows"
+						v-else
+						:key="row[rowKey]"
+						class="cn-table-row"
+						data-testid="cn-object-row"
+						:data-testid-row-id="row[rowKey]"
 						:class="[
-							col.sortable ? 'cn-table-header--sortable' : '',
-							col.class || '',
+							isSelected(row) ? 'cn-table-row--selected' : '',
+							rowClass ? rowClass(row) : '',
 						]"
-						:style="col.width ? { width: col.width } : {}"
-						:tabindex="col.sortable ? 0 : null"
-						:aria-sort="ariaSortFor(col)"
-						@click="col.sortable ? onHeaderClick(col.key, $event) : null"
-						@keydown.enter="col.sortable ? onHeaderKeydown(col.key, $event) : null">
-						{{ col.label }}
-						<span
-							v-if="col.sortable && sortKeyIndex(col.key) !== -1"
-							class="cn-table-sort-indicator">
-							{{ effectiveSortKeys[sortKeyIndex(col.key)].order === 'asc' ? '▲' : '▼' }}
-						</span>
-						<span
-							v-if="col.sortable && effectiveSortKeys.length > 1 && sortKeyIndex(col.key) !== -1"
-							class="cn-table-sort-badge">
-							{{ sortKeyIndex(col.key) + 1 }}
-						</span>
-					</th>
+						@mousedown="onPointerDown"
+						@click="onRowClick(row, $event)"
+						@contextmenu.prevent="onRowContextMenu(row, $event)">
+						<!-- Checkbox -->
+						<td v-if="selectable" class="cn-table-col--checkbox" @click.stop>
+							<NcCheckboxRadioSwitch
+								:model-value="isSelected(row)"
+								:aria-label="selectRowLabel"
+								@update:model-value="toggleSelect(row)" />
+						</td>
 
-					<!-- Actions column -->
-					<th v-if="$scopedSlots['row-actions']" class="cn-table-col--actions">
-						<!-- @slot Header cell content above the row-actions column (blank by default). -->
-						<slot name="actions-header" />
-					</th>
-				</tr>
-			</thead>
+						<!-- Leading icon -->
+						<td v-if="rowIcon" class="cn-table-col--icon">
+							<CnIcon :name="getRowIcon(row)" :size="20" />
+						</td>
 
-			<tbody>
-				<!-- Empty state -->
-				<tr v-if="effectiveRows.length === 0" class="cn-table-empty" data-testid="cn-object-list-empty">
-					<td :colspan="totalColumns">
-						<!-- @slot Empty-state content shown when there are no rows (defaults to `emptyText`). -->
-						<slot name="empty">
-							{{ emptyText }}
-						</slot>
-					</td>
-				</tr>
-
-				<!-- Data rows -->
-				<tr
-					v-for="row in effectiveRows"
-					v-else
-					:key="row[rowKey]"
-					class="cn-table-row"
-					data-testid="cn-object-row"
-					:data-testid-row-id="row[rowKey]"
-					:class="[
-						isSelected(row) ? 'cn-table-row--selected' : '',
-						rowClass ? rowClass(row) : '',
-					]"
-					@mousedown="onPointerDown"
-					@click="onRowClick(row, $event)"
-					@contextmenu.prevent="onRowContextMenu(row, $event)">
-					<!-- Checkbox -->
-					<td v-if="selectable" class="cn-table-col--checkbox" @click.stop>
-						<NcCheckboxRadioSwitch
-							:model-value="isSelected(row)"
-							:aria-label="selectRowLabel"
-							@update:model-value="toggleSelect(row)" />
-					</td>
-
-					<!-- Leading icon -->
-					<td v-if="rowIcon" class="cn-table-col--icon">
-						<CnIcon :name="getRowIcon(row)" :size="20" />
-					</td>
-
-					<!-- Data cells -->
-					<td
-						v-for="col in effectiveColumns"
-						:key="col.key"
-						:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '']"
-						:style="col.width ? { maxWidth: col.width } : {}">
-						<!-- @slot Per-column cell override (`#column-<key>`), scoped with { row, value }. Wins over CnCellRenderer. -->
-						<slot :name="'column-' + col.key" :row="row" :value="cellValue(row, col)">
-							<!-- Every column renders through CnCellRenderer: it resolves
+						<!-- Data cells -->
+						<td
+							v-for="col in effectiveColumns"
+							:key="col.key"
+							:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '']"
+							:style="col.width ? { maxWidth: col.width } : {}">
+							<!-- @slot Per-column cell override (`#column-<key>`), scoped with { row, value }. Wins over CnCellRenderer. -->
+							<slot :name="'column-' + col.key" :row="row" :value="cellValue(row, col)">
+								<!-- Every column renders through CnCellRenderer: it resolves
 							     col.formatter / col.widget against the injected registries
 							     (cnFormatters / cnCellWidgets), uses the schema property when
 							     one is available (else {}) for type-aware rendering, and
 							     falls back to formatValue(). Columns with `aggregate` get a
 							     count of related objects (see cellValue/loadAggregates). The
 							     #column-{key} slot still wins. -->
-							<CnCellRenderer
-								:value="cellValue(row, col)"
-								:property="columnProperty(col)"
-								:formatter="col.formatter || null"
-								:formatter-options="col.formatterOptions || null"
-								:widget="col.widget || null"
-								:widget-props="col.widgetProps || undefined"
-								:format="columnFormat(col)"
-								:row="row"
-								:row-key="rowKey" />
-						</slot>
-					</td>
+								<CnCellRenderer
+									:value="cellValue(row, col)"
+									:property="columnProperty(col)"
+									:formatter="col.formatter || null"
+									:formatter-options="col.formatterOptions || null"
+									:widget="col.widget || null"
+									:widget-props="col.widgetProps || undefined"
+									:format="columnFormat(col)"
+									:row="row"
+									:row-key="rowKey" />
+							</slot>
+						</td>
 
-					<!-- Row actions -->
-					<td v-if="$scopedSlots['row-actions']" :class="['cn-table-col--actions', cellClass ? cellClass(row, { key: 'actions' }) : '']" @click.stop>
-						<!-- @slot Per-row actions menu (e.g. a CnRowActions), scoped with { row }. Supplying it adds the trailing actions column. -->
-						<slot name="row-actions" :row="row" />
-					</td>
-				</tr>
-			</tbody>
-		</table>
+						<!-- Row actions -->
+						<td v-if="$slots['row-actions']" :class="['cn-table-col--actions', cellClass ? cellClass(row, { key: 'actions' }) : '']" @click.stop>
+							<!-- @slot Per-row actions menu (e.g. a CnRowActions), scoped with { row }. Supplying it adds the trailing actions column. -->
+							<slot name="row-actions" :row="row" />
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
 
 		<!-- Optional footer. A `#footer` scoped slot lets a host render its own
 		     footer link (e.g. a "+ New" create action or an always-shown
@@ -162,7 +199,7 @@
 		     no slot is given, the built-in "View all" link (folded from the
 		     retired CnTableWidget) is shown for a `limit`-ed subset. -->
 		<div
-			v-if="$scopedSlots.footer || (viewAllRoute && totalRowCount > effectiveRows.length)"
+			v-if="$slots.footer || (viewAllRoute && totalRowCount > effectiveRows.length)"
 			class="cn-data-table__footer">
 			<!-- @slot Custom footer content, scoped with { total, shown } (defaults to the built-in "View all" link). -->
 			<slot name="footer" :total="totalRowCount" :shown="effectiveRows.length">
@@ -251,6 +288,20 @@ export default {
 		NcCheckboxRadioSwitch,
 		CnCellRenderer,
 		CnIcon,
+	},
+
+	inject: {
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id, e.g.
+		 * `t.bind(null, 'docudesk')`). Column headers come from schema
+		 * property titles, which are authored in English as the canonical
+		 * source (API predictability); the visible label is resolved through
+		 * this function so it follows the user's language, with the English
+		 * source key living in each app's l10n files. Defaults to identity
+		 * when the table is used standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -432,6 +483,21 @@ export default {
 			default: false,
 		},
 		/**
+		 * Switch the table to `table-layout: fixed`, making each column's `width`
+		 * authoritative instead of a hint the browser may override. Opt in when a
+		 * column's content would otherwise dictate the layout — a long unbreakable
+		 * value (a PHP FQCN, a UUID) widens its column under the default auto
+		 * layout and can render past the cell box into its neighbour, while any
+		 * column left unsized soaks up all remaining width. Cells also break long
+		 * words rather than overflowing. Columns with no `width` share whatever
+		 * space is left, so size every column when you want exact control.
+		 * @type {boolean}
+		 */
+		fixedLayout: {
+			type: Boolean,
+			default: false,
+		},
+		/**
 		 * Max number of rows to display. When the total exceeds it, only the first
 		 * `limit` render and the "View all" footer appears (with `viewAllRoute`).
 		 * 0 = show all. Folded in from CnTableWidget.
@@ -510,6 +576,8 @@ export default {
 		},
 	},
 
+	emits: ['row-click', 'row-context-menu', 'select', 'select-all', 'sort'],
+
 	setup() {
 		// Tell a deliberate row click apart from a text-selection drag.
 		return useClickDragGuard()
@@ -525,6 +593,14 @@ export default {
 			 * @type {{[rowId: string]: {[colKey: string]: number}}}
 			 */
 			aggregateValues: {},
+			/**
+			 * Whether the table currently overflows its scrollport horizontally.
+			 * Drives the keyboard tab stop on `.cn-data-table__scroll`; see the
+			 * comment on that element.
+			 *
+			 * @type {boolean}
+			 */
+			isScrollable: false,
 			/** True while a batch of aggregate-count requests is in flight. */
 			aggregateLoading: false,
 			/** Monotonic id used to discard a stale aggregate batch when `rows` changes mid-flight. */
@@ -537,6 +613,18 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Accessible name for the horizontal scrollport when it becomes a tab
+		 * stop. Prefers the table's own `title` so the announcement identifies
+		 * WHICH table the user has landed in — several can share a dashboard.
+		 *
+		 * @return {string}
+		 */
+		scrollRegionLabel() {
+			return this.title
+				? t('nextcloud-vue', '{title} — scrollable table', { title: this.title })
+				: t('nextcloud-vue', 'Scrollable table')
+		},
 		/**
 		 * The row source: external `rows` when provided, else the self-fetched
 		 * rows (register + schemaId mode). External rows always win.
@@ -621,7 +709,7 @@ export default {
 			let count = this.effectiveColumns.length
 			if (this.selectable) count++
 			if (this.rowIcon) count++
-			if (this.$scopedSlots['row-actions']) count++
+			if (this.$slots['row-actions']) count++
 			return count
 		},
 
@@ -676,9 +764,82 @@ export default {
 		if ((!this.rows || this.rows.length === 0) && this.register != null && this.schemaId != null) {
 			this.fetchData()
 		}
+		this.observeScrollOverflow()
+	},
+
+	updated() {
+		// Columns and rows can change after mount (self-fetch resolving, a
+		// column toggled), and either can flip the table between fitting and
+		// overflowing. ResizeObserver alone would miss a change that alters
+		// content width without resizing the box.
+		this.measureScrollOverflow()
+	},
+
+	beforeUnmount() {
+		this.disconnectScrollOverflow()
 	},
 
 	methods: {
+		/**
+		 * Start watching the scrollport for horizontal overflow.
+		 *
+		 * @return {void}
+		 */
+		observeScrollOverflow() {
+			this.measureScrollOverflow()
+			if (typeof ResizeObserver === 'undefined') return
+			this._scrollObserver = new ResizeObserver(() => this.measureScrollOverflow())
+			const el = this.$refs.scrollEl
+			if (el) {
+				this._scrollObserver.observe(el)
+				// The table itself, not just the port: a column widening pushes
+				// the content past the fold without the port changing size.
+				const table = el.querySelector('table')
+				if (table) this._scrollObserver.observe(table)
+			}
+		},
+
+		/**
+		 * Recompute whether the scrollport overflows horizontally.
+		 *
+		 * @return {void}
+		 */
+		measureScrollOverflow() {
+			const el = this.$refs.scrollEl
+			// 1px of tolerance: sub-pixel layout rounding otherwise reports a
+			// table that visually fits as scrollable, which would put a tab
+			// stop on it for no reachable content.
+			const next = !!el && (el.scrollWidth - el.clientWidth) > 1
+			if (next !== this.isScrollable) this.isScrollable = next
+		},
+
+		/**
+		 * Tear down the overflow observer.
+		 *
+		 * @return {void}
+		 */
+		disconnectScrollOverflow() {
+			if (this._scrollObserver) {
+				this._scrollObserver.disconnect()
+				this._scrollObserver = null
+			}
+		},
+
+		/**
+		 * Resolve a column header label through the consumer's translation
+		 * function. Column labels originate from schema property titles
+		 * (English canonical source); this makes the rendered header follow
+		 * the user's language when the host app provides `cnTranslate`, and
+		 * returns the label unchanged when it does not.
+		 *
+		 * @param {string} label The English source label (schema property title).
+		 * @return {string} The translated label, or the input unchanged.
+		 */
+		translateLabel(label) {
+			if (!label) return ''
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return fn(label)
+		},
 		/**
 		 * Self-fetch rows from OpenRegister (register + schemaId mode). Best-effort:
 		 * any failure leaves the fetched rows empty. Folded from CnTableWidget.

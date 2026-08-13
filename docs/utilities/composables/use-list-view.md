@@ -48,7 +48,7 @@ const {
 Store-derived refs (read-only from the component's perspective):
 - `schema` — JSON Schema loaded via `objectStore.fetchSchema(objectType)` on mount.
 - `objects` — Current collection (`objectStore.collections[objectType]`).
-- `loading` — `objectStore.loading[objectType]`.
+- `loading` — `objectStore.loading[objectType]`, **plus** the mount sequence that precedes the first fetch. `onMounted` awaits `fetchSchema()` before requesting any rows, and the store's own flag only rises once `fetchCollection` runs — so a list that reported only the store flag was "not loading" with zero rows for the length of the schema round trip, and consumers painted their empty state before anything had been asked for. It now reads `true` from creation until the first fetch has been issued (or the mount sequence has failed).
 - `pagination` — `{ total, page, pages, limit }`, defaulted when the store hasn't populated yet.
 
 Local state refs:

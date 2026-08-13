@@ -31,5 +31,5 @@
 
 | Name      | Payload | Description                                                               |
 | --------- | ------- | ------------------------------------------------------------------------- |
-| `confirm` | —       | Emitted when the user clicks Submit. Payload: `{ reason, notes, files }`. |
 | `close`   | —       | Emitted when the dialog should close.                                     |
+| `confirm` | —       | Emitted when the user clicks Submit. Payload: `{ reason, notes, files }`. |

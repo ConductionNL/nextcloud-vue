@@ -32,8 +32,8 @@ import { isSvgPath } from '../../utils/iconUtils.js'
  * CnDashboardIcon — renders an icon for any value following the dashboard
  * `icon` convention: a registry key (→ built-in MDI component), a URL (→
  * `<img>`), a raw SVG path string (→ inline `<svg>`, as emitted by
- * {@link CnIconBrowser}), or null/empty/unknown (→ the default icon). Pair with
- * {@link CnIconPicker} or {@link CnIconBrowser} for selection.
+ * `CnIconBrowser`), or null/empty/unknown (→ the default icon). Pair with
+ * `CnIconPicker` or `CnIconBrowser` for selection.
  */
 export default {
 	name: 'CnDashboardIcon',

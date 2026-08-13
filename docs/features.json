@@ -98,6 +98,13 @@
     "docsUrl": "openspec/specs/schema-utilities/spec.md"
   },
   {
+    "slug": "scoped-theme-applier",
+    "title": "Scoped Theme Applier",
+    "summary": "Host the CLIENT-SIDE scoped theming applier for the fleet in @conduction/nextcloud-vue.",
+    "status": "stable",
+    "docsUrl": "openspec/specs/scoped-theme-applier/spec.md"
+  },
+  {
     "slug": "settings-components",
     "title": "Settings Components",
     "summary": "Specifies the admin settings components: CnSettingsCard, CnSettingsSection, CnConfigurationCard, CnVersionInfoCard, CnStatsBlock, and CnRegisterMapping.",

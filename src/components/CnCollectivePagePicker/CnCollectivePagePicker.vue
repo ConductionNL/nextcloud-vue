@@ -54,7 +54,7 @@
 				:label="t('nextcloud-vue', 'Search pages')"
 				:placeholder="t('nextcloud-vue', 'Type to filter…')"
 				class="cn-collective-page-picker__search"
-				@update:value="onSearch" />
+				@update:model-value="onSearch" />
 
 			<NcLoadingIcon v-if="loading" />
 			<NcEmptyContent
@@ -177,7 +177,7 @@ export default {
 		this.fetchPages()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.searchTimer) {
 			clearTimeout(this.searchTimer)
 		}

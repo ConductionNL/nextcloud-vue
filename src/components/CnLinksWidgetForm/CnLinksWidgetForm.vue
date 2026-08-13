@@ -413,7 +413,7 @@ export default {
 		 */
 		updateSectionTitle(index, title) {
 			if (this.sections[index]) {
-				this.$set(this.sections[index], 'title', title)
+				this.sections[index].title = title
 				this.emitUpdate()
 			}
 		},
@@ -487,7 +487,7 @@ export default {
 			if (!link) {
 				return
 			}
-			this.$set(link, field, value)
+			link[field] = value
 			this.emitUpdate()
 		},
 

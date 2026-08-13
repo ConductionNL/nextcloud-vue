@@ -52,7 +52,7 @@ const editor = useManifestEditor(manifestRef, { persist: persistDelta })
 | `add-widget` | — | Emitted when "Add widget…" is activated in edit mode (wired to `CnAddWidgetModal` by the `cn-widget-library` change). |
 | `edit-menu` | — | Emitted when the menu editor opens. |
 | `edit-sidebar` | — | Emitted when the sidebar editor opens. |
-| `edit-flows` | — | Emitted when the flows editor ("Edit flows…") opens. Edits a schema's `x-openregister-flows` via `CnEditFlowsModal`. |
+| `edit-flows` | — | Emitted when the flow editor ("Edit flows…") opens. Opens [`CnFlowEditModal`](./cn-flow-edit-modal.md) on OpenRegister's flow store. |
 
 ## Related
 

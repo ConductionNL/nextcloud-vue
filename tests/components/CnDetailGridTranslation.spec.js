@@ -28,7 +28,7 @@ describe('CnDetailGrid — translation-aware surfacing', () => {
 
 		expect(wrapper.find('.cn-detail-grid__translation-header').exists()).toBe(true)
 		expect(wrapper.find('.cn-translated-badge').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders the header block but no visible badge when translatedFrom is null', () => {
@@ -45,7 +45,7 @@ describe('CnDetailGrid — translation-aware surfacing', () => {
 		// The header block stays in the DOM (object prop is non-null)
 		// but the badge's own v-if hides the chip.
 		expect(wrapper.find('.cn-translated-badge').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('omits the header block entirely when no object prop is passed', () => {
@@ -57,7 +57,7 @@ describe('CnDetailGrid — translation-aware surfacing', () => {
 
 		expect(wrapper.find('.cn-detail-grid__translation-header').exists()).toBe(false)
 		expect(wrapper.find('.cn-translated-badge').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('lets a consumer `#header` slot override the default header block', () => {
@@ -76,6 +76,6 @@ describe('CnDetailGrid — translation-aware surfacing', () => {
 		// Default block MUST NOT render when a #header slot is present
 		expect(wrapper.find('.cn-detail-grid__translation-header').exists()).toBe(false)
 		expect(wrapper.find('.custom-header').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

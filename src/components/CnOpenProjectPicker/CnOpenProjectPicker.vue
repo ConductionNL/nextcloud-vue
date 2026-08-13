@@ -76,7 +76,7 @@
 					:label="t('nextcloud-vue', 'Search work packages')"
 					:placeholder="t('nextcloud-vue', 'Type to filter…')"
 					class="cn-openproject-picker__search"
-					@update:value="onSearch" />
+					@update:model-value="onSearch" />
 
 				<NcLoadingIcon v-if="loading" />
 				<NcEmptyContent
@@ -221,7 +221,7 @@ export default {
 		this.fetchWorkPackages()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.searchTimer) {
 			clearTimeout(this.searchTimer)
 		}

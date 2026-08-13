@@ -138,7 +138,7 @@ describe('CnAiCompanion', () => {
 
 	it('hides FAB when cnAiContext.pageKind === "chat"', async () => {
 		const Vue = require('vue').default || require('vue')
-		const aiContext = Vue.observable({ appId: 'test', pageKind: 'chat', route: { path: '/' } })
+		const aiContext = Vue.reactive({ appId: 'test', pageKind: 'chat', route: { path: '/' } })
 		axios.get.mockResolvedValue({ status: 200, data: {} })
 
 		const wrapper = mount(CnAiCompanion, {

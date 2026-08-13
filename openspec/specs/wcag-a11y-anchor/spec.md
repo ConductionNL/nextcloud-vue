@@ -117,6 +117,49 @@ The default `npm test` MUST NOT run the a11y lane.
 - WHEN `npm test` runs
 - THEN it MUST NOT execute `tests/a11y/**` (they run only via `check:a11y`), so the lane is neither double-run nor evaluated against the stub tree
 
+#### Scenario: CI actually runs the a11y lane
+- GIVEN `.github/workflows/code-quality.yml`
+- WHEN its `frontend-checks` list is read
+- THEN it MUST contain `check:a11y`, because `npm test` deliberately excludes `tests/a11y/**` and the lane would otherwise never execute in CI — an absent check being indistinguishable from a passing one
+
+### Requirement: Every page primitive MUST render a heading inside the `<main>` landmark
+
+`CnIndexPage`, `CnSettingsPage`, `CnChatPage`, `CnFilesPage` and
+`CnLogsPage` render inside Nextcloud's `NcAppContent`, which IS the
+`<main>` landmark. Each MUST render its `<h1>` unconditionally whenever it
+has a title, regardless of `showTitle`. `showTitle` MUST control visual
+presentation only: when it is false the heading MUST be rendered
+visually-hidden (clipped, out of layout flow) and MUST remain in the
+accessibility tree.
+
+Rationale: these components previously gated the `<h1>` behind
+`showTitle`, which defaults to `false` because the title is surfaced in the
+app sidebar. The sidebar is OUTSIDE `<main>`, so the main content region
+carried no heading at all — no page announcement for screen-reader users
+and an unlabelled target for "skip to main content" (WCAG 2.4.6 Headings
+and Labels, 1.3.1 Info and Relationships). Measured at 608 of 625
+index-page surfaces across 19 consuming apps.
+
+The hiding mechanism MUST NOT be `display: none` or `visibility: hidden`,
+which remove the heading from the accessibility tree and reinstate the
+defect. Focusable content (the `extra` slot) MUST NOT be rendered in the
+visually-hidden state, so nothing is clipped-but-tabbable.
+
+#### Scenario: An index page has an accessible heading with showTitle at its default
+- GIVEN `CnIndexPage` mounted inside a `<main>` element with `showTitle` left unset
+- WHEN the landmark is queried for a heading element
+- THEN an `<h1>` naming the page MUST be present and MUST NOT be hidden from assistive technology by `aria-hidden`, the `hidden` attribute, `display: none` or `visibility: hidden`
+
+#### Scenario: showTitle changes visibility, not the heading count
+- GIVEN `CnIndexPage` mounted with `showTitle` false and again with `showTitle` true
+- WHEN the headings inside the landmark are counted in each case
+- THEN both MUST render exactly one heading, and only the `showTitle: true` case MUST lack the visually-hidden class
+
+#### Scenario: The visually-hidden recipe keeps the heading announced
+- GIVEN the `.cn-page-header--visually-hidden` rule
+- WHEN its declarations are read
+- THEN it MUST clip and remove the element from layout flow, and MUST NOT use `display: none` or `visibility: hidden`
+
 ### Requirement: Core interactive components MUST have no WCAG 2.1 AA violations under the anchor
 
 The sampled core components MUST pass `expectAccessible` in their

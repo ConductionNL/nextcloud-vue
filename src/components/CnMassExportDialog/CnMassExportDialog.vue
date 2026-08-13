@@ -36,7 +36,7 @@
 					:options="entities"
 					:model-value="selectedEntity"
 					:clearable="false"
-					@input="selectedEntity = $event" />
+					@update:model-value="selectedEntity = $event" />
 			</div>
 
 			<div class="cn-mass-export__field">
@@ -47,7 +47,7 @@
 					:options="formats"
 					:model-value="selectedFormat"
 					:clearable="false"
-					@input="selectedFormat = $event" />
+					@update:model-value="selectedFormat = $event" />
 			</div>
 		</div>
 
@@ -187,6 +187,8 @@ export default {
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Export') },
 	},
 
+	emits: ['close', 'confirm'],
+
 	data() {
 		const defaultOption = this.formats.find((f) => f.id === this.defaultFormat) || this.formats[0]
 		const defaultEntityOption = this.entities.find((e) => e.id === this.defaultEntity) || this.entities[0] || null
@@ -199,7 +201,7 @@ export default {
 		}
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.closeTimeout) clearTimeout(this.closeTimeout)
 	},
 

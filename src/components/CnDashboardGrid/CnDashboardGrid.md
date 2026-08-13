@@ -1,5 +1,13 @@
 CnDashboardGrid is the low-level GridStack layout engine. Use `CnDashboardPage` for the full dashboard experience — CnDashboardGrid handles just the drag/drop/resize grid.
 
+**`gridstack` is a peer dependency** (`^12.0.0`), not bundled by nc-vue. Install it and import its stylesheet yourself, from the same copy:
+
+```js
+import 'gridstack/dist/gridstack.min.css'
+```
+
+GridStack's JS drives sizing through CSS custom properties (`--gs-column-width` etc.) that only its own matching stylesheet reads — mixing JS from one GridStack version with CSS from another silently renders every grid item at 0 width.
+
 Static grid — fixed layout without editing:
 
 ```vue
@@ -97,3 +105,56 @@ export default {
 | `columnOpts` | Object | `null` | GridStack v12 responsive `columnOpts` bag; when set the grid reflows its column count across screen sizes. Build with `getDashboardColumnOpts()`. Default `null` = fixed `columns`. |
 | `cellHeightCssVar` | String | `null` | When set, `cellHeight` is mirrored into this CSS custom property on the document root at init. Default `null` = none. |
 | `itemKey` | Function | `null` | Optional `(item) => string\|number` to derive each item's render key; forces a re-render when an item changes in a way its `id` doesn't capture (e.g. style edits). Default `null` = key on `item.id`. |
+| `keyboardRepositioning` | Boolean | `true` | Make grid items keyboard-operable: focusable in edit mode and repositionable with the arrow keys. |
+| `itemLabel` | Function | `null` | Optional `(item, index) => string` returning a grid item's accessible name. Used verbatim. Default `null` = derive it from the item. |
+| `activateOpensContextMenu` | Boolean | `true` | Whether `Enter`/`Space` on a focused item also dispatches a bubbling `contextmenu` event from inside it, so right-click widget menus work from the keyboard. |
+
+## Keyboard operation and accessibility
+
+GridStack's drag and resize gestures are pointer-only. CnDashboardGrid ships
+the keyboard equivalent required by WCAG 2.1 SC 2.1.1, on by default:
+
+- Every grid item is an ARIA `group` with an accessible name. In edit mode the
+  name also carries the item's grid coordinates ("Revenue, column 5 of 12, row
+  1, 4 columns wide, 2 rows tall") — without them a screen-reader user tabbing
+  an edit-mode dashboard has no idea where anything sits.
+- In edit mode (`editable` + `keyboardRepositioning`) each item is a tab stop
+  with a visible focus ring and an `aria-describedby` pointer at a shared,
+  visually-hidden key map.
+- Move and resize results are spoken through a polite live region.
+
+With a grid item focused:
+
+| Key | Action |
+| --- | ------ |
+| `ArrowLeft` / `ArrowRight` | move one column left / right |
+| `ArrowUp` / `ArrowDown` | move one row up / down |
+| `Shift` + `ArrowLeft` / `ArrowRight` | shrink / grow width by one column |
+| `Shift` + `ArrowUp` / `ArrowDown` | shrink / grow height by one row |
+| `Home` / `End` | jump to the first / last column of the current row |
+| `Enter` / `Space` | activate — emits `item-activate` and (by default) a synthetic `contextmenu` |
+
+Keys are only honoured while the grid item element itself holds focus, so
+buttons, inputs and menus rendered inside the `#widget` slot keep their own key
+handling.
+
+Every keyboard change is applied with `GridStack.update()` — the same engine
+call drag and resize end in — so collision handling, the `layout-change`
+payload and the consumer's persistence are identical for both input modes.
+There is deliberately no second, keyboard-only update path.
+
+### Wiring a widget menu to the keyboard
+
+Consumers that open a per-widget menu on right-click get the keyboard path for
+free: `Enter` dispatches a bubbling `contextmenu` from inside the item, anchored
+to its top-left corner, exactly as browsers do for the `Menu` key. Prefer the
+explicit event when you are writing new code:
+
+```vue
+<CnDashboardGrid
+  :layout="placements"
+  :editable="isEditing"
+  :activate-opens-context-menu="false"
+  @item-activate="({ item, clientX, clientY }) => openMenu(item, clientX, clientY)"
+  @layout-change="onLayoutChange" />
+```

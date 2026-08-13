@@ -7,11 +7,11 @@
 -->
 <template>
 	<NcAppSidebar
+		v-model:active="activeTab"
 		:name="sidebarTitle"
 		:title="sidebarTitle"
 		:subtitle="sidebarSubtitle"
 		:open="open"
-		:active.sync="activeTab"
 		data-testid="cn-object-sidebar"
 		@update:open="$emit('update:open', $event)"
 		@close="$emit('update:open', false)">
@@ -35,8 +35,18 @@
 				<template #icon>
 					<CnIcon v-if="provider.icon" :name="provider.icon" :size="20" />
 				</template>
+				<!-- MOUNT BRANCH (openregister#2127): a `renderMode: 'mount'`
+				     leaf renders through CnLeafMountHost — a bare host-owned
+				     element the leaf mounts its own framework into. Mounted
+				     lazily when the tab is active; unmounted on hide/teardown. -->
+				<CnLeafMountHost
+					v-if="isMountProvider(provider)"
+					:provider="provider"
+					:active="activeTab === provider.id"
+					:mount-props="sidebarMountProps" />
 				<component
 					:is="resolveRegistryTab(provider)"
+					v-else
 					v-bind="sharedTabProps" />
 			</NcAppSidebarTab>
 			<slot name="extra-tabs" />
@@ -215,6 +225,7 @@ import CnTasksTab from './CnTasksTab.vue'
 import CnAuditTrailTab from './CnAuditTrailTab.vue'
 
 import { CnIcon } from '../CnIcon/index.js'
+import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
 import { CnObjectDataWidget } from '../CnObjectDataWidget/index.js'
 import { CnObjectMetadataWidget } from '../CnObjectMetadataWidget/index.js'
 import CnWidgetObjectTable from '../CnWidgetObjectTable/CnWidgetObjectTable.vue'
@@ -299,6 +310,7 @@ export default {
 		CnTasksTab,
 		CnAuditTrailTab,
 		CnIcon,
+		CnLeafMountHost,
 	},
 
 	inject: {
@@ -655,6 +667,23 @@ export default {
 				apiBase: this.apiBase,
 			}
 		},
+		/**
+		 * Context forwarded to a mount-mode leaf's `mount(el, props)` for the
+		 * single-entity sidebar surface — the same shape an SFC tab receives,
+		 * plus the `surface` name and an `integrationContext` bag. Reactive
+		 * on the object identity so CnLeafMountHost re-mounts on object change.
+		 */
+		sidebarMountProps() {
+			return {
+				...this.sharedTabProps,
+				surface: 'single-entity',
+				integrationContext: {
+					register: this.register,
+					schema: this.schema,
+					objectId: this.objectId,
+				},
+			}
+		},
 	},
 
 	watch: {
@@ -705,6 +734,22 @@ export default {
 				return local
 			}
 			return provider.tab || null
+		},
+
+		/**
+		 * Whether a registry provider renders via the mount hand-off
+		 * (`renderMode: 'mount'`, openregister#2127) rather than an SFC tab.
+		 * Mount-mode leaves carry `mount`/`unmount` functions the host calls
+		 * against a bare element via CnLeafMountHost.
+		 *
+		 * @param {object} provider Normalised registry entry.
+		 * @return {boolean} true when the provider is mount-mode.
+		 */
+		isMountProvider(provider) {
+			return Boolean(provider)
+				&& provider.renderMode === 'mount'
+				&& typeof provider.mount === 'function'
+				&& typeof provider.unmount === 'function'
 		},
 
 		/**

@@ -9,11 +9,11 @@
 		<div class="cn-sidebar-tab__action">
 			<NcRichContenteditable
 				class="cn-sidebar-tab__composer"
-				:value="newNoteText"
+				:model-value="newNoteText"
 				:auto-complete="fetchMentionSuggestions"
 				:placeholder="addNotePlaceholder"
 				multiline
-				@update:value="newNoteText = $event" />
+				@update:model-value="newNoteText = $event" />
 			<div class="cn-sidebar-tab__action--row">
 				<NcButton
 					v-if="editingNoteId"
@@ -231,11 +231,11 @@ export default {
 				.filter((id) => !(id in this.mentionNames))
 				.map(async (id) => {
 					// Mark as pending (null) first so concurrent calls skip it.
-					this.$set(this.mentionNames, id, null)
+					this.mentionNames[id] = null
 					const results = await searchNextcloudUsers(id)
 					const match = results.find((user) => user.id === id)
 					if (match) {
-						this.$set(this.mentionNames, id, match.label)
+						this.mentionNames[id] = match.label
 					}
 				}))
 		},

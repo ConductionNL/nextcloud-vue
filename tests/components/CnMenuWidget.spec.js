@@ -68,7 +68,7 @@ describe('CnMenuWidget renderer', () => {
 		expect(wrapper.vm.dropOpenIndex).toBe(null)
 		expect(wrapper.find('.cn-menu-widget__dropdown').exists()).toBe(false)
 
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not immediately re-close a dropdown opened by the same click bubbling to document', async () => {
@@ -84,7 +84,7 @@ describe('CnMenuWidget renderer', () => {
 		await wrapper.find('.cn-menu-widget__bar-button').trigger('click')
 		expect(wrapper.vm.dropOpenIndex).toBe(0)
 
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('closes an open megamenu panel when clicking outside the widget', async () => {
@@ -101,7 +101,7 @@ describe('CnMenuWidget renderer', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.megaOpenIndex).toBe(null)
 
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('stays open when clicking non-interactive space inside its own dropdown panel', async () => {
@@ -120,7 +120,7 @@ describe('CnMenuWidget renderer', () => {
 		await wrapper.find('.cn-menu-widget__dropdown').trigger('click')
 		expect(wrapper.vm.dropOpenIndex).toBe(0)
 
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('closes an open dropdown when clicking empty space elsewhere in the widget (not the open item)', async () => {
@@ -138,7 +138,7 @@ describe('CnMenuWidget renderer', () => {
 		await wrapper.find('.cn-menu-widget').trigger('click')
 		expect(wrapper.vm.dropOpenIndex).toBe(null)
 
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('closes an open megamenu panel when clicking empty space elsewhere in the widget', async () => {
@@ -154,7 +154,7 @@ describe('CnMenuWidget renderer', () => {
 		await wrapper.find('.cn-menu-widget').trigger('click')
 		expect(wrapper.vm.megaOpenIndex).toBe(null)
 
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('closes a dropdown when clicking a DIFFERENT top-level item\'s empty bar space, not just its button', async () => {
@@ -178,7 +178,7 @@ describe('CnMenuWidget renderer', () => {
 		await wrapper.find('.cn-menu-widget__bar').trigger('click')
 		expect(wrapper.vm.dropOpenIndex).toBe(null)
 
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('switches to a different top-level dropdown when its button is clicked while another is open', async () => {
@@ -211,7 +211,7 @@ describe('CnMenuWidget renderer', () => {
 		await buttons.at(1).trigger('click')
 		expect(wrapper.vm.dropOpenIndex).toBe(1)
 
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
