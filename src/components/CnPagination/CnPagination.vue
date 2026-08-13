@@ -66,6 +66,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcSelect } from '@nextcloud/vue'
+import { nextUid } from '../../utils/uid.js'
 
 /**
  * CnPagination — Full pagination with page numbers, navigation, and page size selector.
@@ -171,9 +172,18 @@ export default {
 
 	emits: ['page-changed', 'page-size-changed'],
 
+	data() {
+		return {
+			// Per-instance id suffix. In `data()` rather than a computed so it is
+			// fixed for the instance's lifetime — the value is referenced by a
+			// `<label for>`, which breaks if the id changes between renders.
+			uid: nextUid(),
+		}
+	},
+
 	computed: {
 		pageSizeId() {
-			return 'cn-page-size-' + this._uid
+			return 'cn-page-size-' + this.uid
 		},
 
 		currentPageSizeOption() {

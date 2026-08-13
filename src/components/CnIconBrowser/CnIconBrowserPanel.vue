@@ -270,6 +270,7 @@ import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import { findIconByValue } from './iconCatalogue.js'
 import { fuzzyFilter } from './fuzzy.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
+import { nextUid } from '../../utils/uid.js'
 import { isCustomIconUrl } from '../CnIconPicker/dashboardIcons.js'
 
 /**
@@ -428,6 +429,10 @@ export default {
 
 	data() {
 		return {
+			// Per-instance id suffix, fixed for the instance's lifetime — the tab
+			// buttons' `aria-controls` and the panels' `aria-labelledby` point at
+			// these ids, so they must not change between renders.
+			uid: nextUid(),
 			query: '',
 			debouncedQuery: '',
 			mode: 'icons',
@@ -947,7 +952,7 @@ export default {
 		 * @return {string} the element id.
 		 */
 		tabId(key) {
-			return 'cn-icon-browser-tab-' + key.replace(':', '-') + '-' + this._uid
+			return 'cn-icon-browser-tab-' + key.replace(':', '-') + '-' + this.uid
 		},
 
 		/**
@@ -957,7 +962,7 @@ export default {
 		 * @return {string} the element id.
 		 */
 		panelId(key) {
-			return 'cn-icon-browser-panel-' + key.replace(':', '-') + '-' + this._uid
+			return 'cn-icon-browser-panel-' + key.replace(':', '-') + '-' + this.uid
 		},
 
 		/**
