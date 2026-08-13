@@ -131,3 +131,31 @@ export default {
 }
 </script>
 ```
+
+Naming the navigation landmark — the rendered `<nav>` is an ARIA landmark, and one with no accessible name is announced as just "navigation", indistinguishable from any other nav in the landmark list a screen-reader user tabs through (WCAG 2.4.6 / 1.3.1). `@nextcloud/vue` 9 enforces this: `NcAppNavigation` warns unless `ariaLabel` or `ariaLabelledby` is set.
+
+`ariaLabel` defaults to a translated "Main navigation", so every consumer is covered without a code change. Pass your own when an app renders more than one navigation — telling them apart is the entire purpose of the name:
+
+```vue {static}
+<template>
+  <div style="height: 200px; width: 260px; background: var(--color-main-background); border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden;">
+    <CnAppNav
+      :manifest="manifest"
+      aria-label="Project navigation"
+      :translate="(key) => key" />
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      manifest: {
+        menu: [
+          { id: 'home', label: 'Home', icon: 'icon-home', route: 'home', order: 1 },
+        ],
+      },
+    }
+  },
+}
+</script>
+```

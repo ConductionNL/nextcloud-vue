@@ -33,10 +33,26 @@ Selecting a preset (other than `custom`) auto-fills both pickers to `now − day
 | `value`      | Object   | `null`                           | Current `{ from, to, preset }` value (ISO-8601 UTC).  |
 | `presets`    | Array    | `DEFAULT_DATE_RANGE_PRESETS`     | Preset list. Each entry declares ONE window kind: `period` (current calendar week/month/quarter/year to date), `hours` (rolling N-hour window) or `days` (rolling N whole days). `days: null` = manual. |
 | `disabled`   | Boolean  | `false`                          | Disables both date pickers and the preset select.    |
-| `dateFormat` | String   | `'YYYY-MM-DD'`                   | Forwarded to `NcDateTimePicker`'s `format` prop.     |
+| `dateFormat` | String   | `'yyyy-MM-dd'`                   | Forwarded to `NcDateTimePicker`'s `format` prop. **date-fns tokens** — see note below. |
 | `presetLabel`| String   | `'Range preset'`                 | A11y label for the preset dropdown.                  |
 | `fromLabel`  | String   | `'From'`                         | A11y label for the start-of-range picker.            |
 | `toLabel`    | String   | `'To'`                           | A11y label for the end-of-range picker.              |
+
+### `dateFormat` uses date-fns tokens, not moment's
+
+`@nextcloud/vue` 9 replaced `NcDateTimePicker`'s moment.js backend with
+date-fns. date-fns **throws** — it does not warn — on `YYYY` (year-of-week) and
+`DD` (day-of-year) where `yyyy` and `dd` are meant, so a moment-style format
+string stops the picker rendering at all.
+
+The default changed from `'YYYY-MM-DD'` to `'yyyy-MM-dd'` for this reason. If
+you pass `dateFormat` explicitly, substitute accordingly:
+
+| moment (v8) | date-fns (v9) |
+| ----------- | ------------- |
+| `YYYY`      | `yyyy`        |
+| `DD`        | `dd`          |
+| `MM`        | `MM` (unchanged) |
 
 ## Events
 
