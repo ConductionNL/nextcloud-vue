@@ -67,6 +67,14 @@ card when its resolved count is `0`).
 | `route` | `object\|null` | `null` | Vue-router location; when set, the inner card becomes a `<router-link>` (single-KPI mode). |
 | `iconClass` | `string` | `''` | Optional NC core icon class (`icon-link`, `icon-mail`, …) applied to the wrapping `<div>`. |
 
+## Refresh wiring
+
+The tile subscribes to `cn:page:refresh` — the channel the page-level Refresh action broadcasts on — and re-runs all three count paths: the REST `/value` aggregation, the per-entry counts of multi-entry mode, and the `dataSource` GraphQL query. There is no widget id to match on: a page refresh refreshes everything on the page.
+
+This is the tile's only refresh affordance. `CnDashboardPage` renders it *without* `CnWidgetWrapper` (`CnStatsBlock` brings its own card chrome), so unlike the other data widgets it has no per-widget Refresh item in an overflow menu.
+
+A ref-callable `refresh()` is also exposed, for parity with `CnChartWidget`.
+
 ## Notes
 
 - Designed only for the manifest path. If you already have a count number in JS, mount [`CnStatsBlock`](./cn-stats-block.md) directly.

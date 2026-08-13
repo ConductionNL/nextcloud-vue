@@ -826,12 +826,6 @@ export default {
 
 :deep(.grid-stack-item-content) {
 	background: var(--color-main-background);
-	/* Match CnWidgetWrapper's container radius: this backing surface sits
-	   BEHIND the rounded widget card, and a square (radius 0) backing pokes
-	   out at the card's corners whenever --color-main-background differs
-	   from the page background (dark mode / tinted themes) — a dark grey
-	   square under every rounded corner. */
-	border-radius: var(--border-radius-container-large, 16px);
 	border: none;
 	box-shadow: none;
 	overflow: hidden;

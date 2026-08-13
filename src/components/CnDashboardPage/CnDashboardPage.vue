@@ -135,11 +135,13 @@
 					</template>
 					<NcActionInput
 						type="datetime-local"
+						is-native-picker
 						:model-value="toPickerDate(currentRange && currentRange.from)"
 						:label="t('nextcloud-vue', 'From')"
 						@update:model-value="onChipDateInput('from', $event)" />
 					<NcActionInput
 						type="datetime-local"
+						is-native-picker
 						:model-value="toPickerDate(currentRange && currentRange.to)"
 						:label="t('nextcloud-vue', 'To')"
 						@update:model-value="onChipDateInput('to', $event)" />
@@ -347,11 +349,13 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
+									is-native-picker
 									:model-value="toPickerDate(currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
 									@update:model-value="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
+									is-native-picker
 									:model-value="toPickerDate(currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
 									@update:model-value="onChipDateInput('to', $event)" />
@@ -365,6 +369,7 @@
 				<!-- Chart widget — manifest-driven apexcharts mount -->
 				<template v-else-if="isChart(item)">
 					<CnWidgetWrapper
+						:class="{ 'cn-dashboard-page__chart-fit': isChartFitted(item) }"
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
@@ -405,11 +410,13 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
+									is-native-picker
 									:model-value="toPickerDate(currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
 									@update:model-value="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
+									is-native-picker
 									:model-value="toPickerDate(currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
 									@update:model-value="onChipDateInput('to', $event)" />
@@ -538,11 +545,13 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
+									is-native-picker
 									:model-value="toPickerDate(currentRange && currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
 									@update:model-value="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
+									is-native-picker
 									:model-value="toPickerDate(currentRange && currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
 									@update:model-value="onChipDateInput('to', $event)" />
@@ -668,6 +677,9 @@ const CHART_PROP_KEYS = [
 	'horizontal',
 	'legendPosition',
 	'valueFormat',
+	// Value-axis baseline guard: lets a manifest opt a chart out of the
+	// zero-baseline default (`'fit'`) when its series lives far from zero.
+	'valueAxisBaseline',
 	'colorMap',
 	'emptyLabel',
 	// In-widget view switcher (Wave 3, nextcloud-vue#91): named display
@@ -1094,7 +1106,10 @@ export default {
 		/**
 		 * Show the built-in Refresh item in the page-level overflow Actions
 		 * menu. On by default. The default handler emits `@refresh` and,
-		 * unless suppressed, fires the `cn:page:refresh` event-bus channel.
+		 * unless suppressed, fires the `cn:page:refresh` event-bus channel —
+		 * which the built-in data widgets subscribe to, so the action works
+		 * with no host wiring at all. A `@refresh` listener that calls
+		 * `preventDefault()` replaces that default rather than adding to it.
 		 *
 		 * This is ALSO the default for each widget's own overflow menu: when
 		 * `false`, the Refresh item is dropped from every widget too (handy
@@ -2719,7 +2734,35 @@ export default {
 				const v = content[key] !== undefined ? content[key] : props[key]
 				if (v !== undefined) out[key] = v
 			}
+			// A dashboard tile's height is fixed by its grid units, so the chart
+			// has to fit the tile — CnChartWidget's standalone default is a
+			// pinned 250px, which is taller than the content box of a typical
+			// h=4 tile (4 × cellHeight, less the widget header) and turned every
+			// chart tile into a scroll region: the tile scrolled the graph
+			// instead of showing it. An authored `height` still wins, so a
+			// manifest can pin one deliberately.
+			if (out.height === undefined) out.height = '100%'
 			return out
+		},
+
+		/**
+		 * Whether a chart tile's graph sizes itself to the tile — i.e. the
+		 * resolved height is a percentage. Only those tiles get the
+		 * `chart-fit` class, whose `overflow: hidden` is what stops the
+		 * wrapper showing a scrollbar for a sub-pixel rounding difference.
+		 *
+		 * An AUTHORED pixel height survives `getChartProps`, and clipping that
+		 * is not a rounding difference: on a tile shorter than the authored
+		 * height the bottom of the graph became unreachable, with the scroll
+		 * affordance removed. Such a tile keeps the wrapper's default
+		 * `overflow: auto` so the graph stays reachable.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} True when the chart fits its tile.
+		 */
+		isChartFitted(item) {
+			const height = this.getChartProps(item).height
+			return typeof height === 'string' && height.trim().endsWith('%')
 		},
 
 		hasWidgetSlot(widgetId) {
@@ -2918,6 +2961,20 @@ export default {
 	padding: 8px 14px;
 }
 
+/* Chart tiles whose graph FITS the tile (see isChartFitted — a percentage
+   height, which getChartProps supplies unless the author pinned pixels), so
+   the wrapper's default `overflow: auto` content area has nothing to scroll —
+   and leaving it on means any rounding difference between the box and the SVG
+   shows up as a scrollbar the user has to drag to see the whole graph. Same
+   shape as the card-fit rule above, minus the padding: chart tiles render
+   `flush`, and apexcharts already draws its own margins. */
+.cn-dashboard-page__chart-fit :deep(.cn-widget-wrapper__content) {
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
 /* Card content (stat / gauge / delta) must fit the tile width: let the
    widget shrink and its value/label truncate instead of pushing past the
    tile edge (the horizontal clip on long currency values). */
@@ -2989,8 +3046,8 @@ export default {
 }
 
 /* The chip text lives in NcActions' icon slot, whose default toggle is sized
-   for a single ~44px icon and clips/wraps wider content. Let the toggle + its
-   icon wrapper grow to the chip's natural width so "Last 30 days" reads on one
+   for a single icon and clips/wraps wider content. Let the toggle + its icon
+   wrapper grow to the chip's natural width so "Last 30 days" reads on one
    line — and keep them shrink-wrapped so the pill isn't offset inside a wider
    box (which is what pushed the chip outside its own trigger). */
 [data-testid^="cn-dashboard-page-date-chip-"] .button-vue,
@@ -3001,6 +3058,35 @@ export default {
 	height: auto !important;
 	min-height: 0 !important;
 	overflow: visible !important;
+}
+
+/* The width above is NOT enough on its own, and this rule is what actually
+   frees the pill. NcButton pins an icon-only button to a square clickable area
+   with an `!important` of its own:
+
+     .button-vue[data-v-…]:has(.button-vue__text:empty):not(.button-vue--wide) {
+       width: var(--button-size) !important;   // --default-clickable-area, 34px
+     }
+
+   NcActions fills the trigger's text slot from its `menuName` prop, which the
+   chip does not use (its label is markup, not a string), so `.button-vue__text`
+   renders empty and that rule always matches here. Two `!important`
+   declarations are settled by SPECIFICITY, and theirs is (0,5,0) against the
+   (0,2,0) of the plain descendant selector above — so the button stayed 34px
+   wide while its icon wrapper grew to the pill's ~106px. Combined with the
+   `overflow: visible` above, the pill then rendered centred on a 34px box and
+   spilled ~36px out each side, over the widget title.
+
+   This selector re-states their `:has()` predicate — so it applies exactly
+   where theirs does, and drops out with it on a browser without `:has()` — and
+   adds the trigger's own three hooks, reaching (0,7,0). Keep it ahead of
+   whatever NcButton declares: tests/components/CnDashboardPageDateChip.spec.js
+   reads both selectors out of the installed NcButton stylesheet and fails when
+   this margin disappears. */
+[data-testid^="cn-dashboard-page-date-chip-"].cn-dashboard-page__date-chip-trigger.action-item
+	.button-vue.action-item__menutoggle:has(.button-vue__text:empty) {
+	width: auto !important;
+	min-width: 0 !important;
 }
 
 .cn-dashboard-page__date-chip {

@@ -118,6 +118,33 @@ describe('CnCellRenderer — declarative format', () => {
 			})
 			expect(wrapper.text()).toBe('1u 30m')
 		})
+
+		it('accepts a milliseconds input unit', () => {
+			const wrapper = mountRenderer({
+				value: 6245,
+				property: { type: 'integer' },
+				format: { style: 'duration', unit: 'milliseconds' },
+			})
+			expect(wrapper.text()).toBe('6s')
+		})
+
+		it('renders a sub-second milliseconds value in ms rather than flooring to 0s', () => {
+			const wrapper = mountRenderer({
+				value: 245,
+				property: { type: 'integer' },
+				format: { style: 'duration', unit: 'milliseconds' },
+			})
+			expect(wrapper.text()).toBe('245ms')
+		})
+
+		it('scales a large milliseconds value up through the compact units', () => {
+			const wrapper = mountRenderer({
+				value: 3725000,
+				property: { type: 'integer' },
+				format: { style: 'duration', unit: 'milliseconds' },
+			})
+			expect(wrapper.text()).toBe('1u 2m')
+		})
 	})
 
 	describe('swatch', () => {
