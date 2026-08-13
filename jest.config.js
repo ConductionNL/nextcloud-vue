@@ -76,14 +76,18 @@ module.exports = {
 		'<rootDir>/src/**/__tests__/**/*.spec.js',
 		'<rootDir>/src/**/__tests__/**/*.test.js',
 	],
-	// `tests/a11y/` has its own project (jest.a11y.config.js, run via
-	// `npm run check:a11y`) that swaps the @nextcloud/vue mock for real
-	// components so axe-core inspects real markup — see that config's
-	// docblock. Excluded here so `npm test` doesn't also run those specs
-	// against the generic stub tree (double-run + false pass).
+	// `tests/a11y/` and `tests/smoke/` have their own projects
+	// (jest.a11y.config.js via `npm run check:a11y`, jest.smoke.config.js via
+	// `npm run check:smoke`) that swap the @nextcloud/vue mock for real
+	// components — so axe-core inspects real markup, and so the smoke sweep
+	// meets real prop validation. See those configs' docblocks. Excluded here
+	// so `npm test` doesn't also run those specs against the generic stub tree
+	// (double-run + false pass: against the stub the smoke sweep in particular
+	// would pass for every component while checking nothing).
 	testPathIgnorePatterns: [
 		'/node_modules/',
 		'<rootDir>/tests/a11y/',
+		'<rootDir>/tests/smoke/',
 	],
 	// `setupFilesAfterEnv` (not `setupFiles`) because the setup installs a
 	// per-test pinia via `beforeEach`, which only exists once the test

@@ -85,8 +85,17 @@ jobs:
       # indistinguishable from its success. Added 2026-08-04 together with the
       # CnPageHeading spec, which exists precisely to keep an accessible <h1>
       # inside <main> and would otherwise have been unenforced.
+      #
+      # check:smoke is the real-render sweep and, like check:a11y, is NOT
+      # covered by `test`. `jest.config.js` excludes `tests/smoke/` because the
+      # main lane stubs @nextcloud/vue down to a permissive `<div>` — against
+      # that stub the sweep would mount all 233 components and pass every one
+      # while validating nothing, the same false green check:a11y guards
+      # against. It is the only lane that meets the real @nextcloud/vue 9 API
+      # surface across the whole library, which is where a Vue 2 -> 3 leftover
+      # ($set, $scopedSlots, _uid, moment-style date formats) actually shows up.
       frontend-checks: >-
         ["test", "check:build", "check:docs", "check:jsdoc",
          "check:integration-parity", "check:peers", "check:docs-fresh",
-         "check:a11y"]
+         "check:a11y", "check:smoke"]
       enable-sbom: false

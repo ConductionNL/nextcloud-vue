@@ -2,7 +2,15 @@
  * SPDX-License-Identifier: EUPL-1.2
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  *
- * Real `@nextcloud/vue` components for the `check:a11y` lane.
+ * Real `@nextcloud/vue` components for the lanes that need genuine markup:
+ * `check:a11y` (axe-core needs real ARIA) and `check:smoke` (the real-render
+ * sweep needs real prop validation and real child resolution).
+ *
+ * Lives in `tests/support/` rather than `tests/a11y/support/` BECAUSE it is
+ * shared. It was a11y-only until the smoke lane arrived; both now map
+ * `@nextcloud/vue` here through the common base in
+ * `tests/support/realNcJestBase.js`, so a component added below is real for
+ * both lanes at once and the two can never disagree about what is real.
  *
  * WHY THIS FILE EXISTS: the repo's main `jest.config.js` maps
  * `@nextcloud/vue` to `tests/__mocks__/nextcloud-vue.js`, a set of generic
@@ -77,6 +85,9 @@
  */
 
 const path = require('path')
+// Resolved through the same `tests/support/vueSingleton.js` mapping the configs
+// install, so this shares the ONE Vue instance the specs use.
+const { h } = require('vue')
 
 const REAL_COMPONENT_NAMES = [
 	'NcButton',
@@ -104,6 +115,56 @@ const REAL_COMPONENT_NAMES = [
 	// Real as of @nextcloud/vue 9 — previously hand-stubbed, see docblock.
 	'NcSelect',
 	'NcListItem',
+	// Added with the `check:smoke` lane. Every one of these is referenced from
+	// `src/` and was previously UNMAPPED, which means it resolved to nothing:
+	// Vue logged `Failed to resolve component: <name>` and rendered an empty
+	// placeholder. For the a11y lane that was a silent hole — axe inspected
+	// markup with the component missing and passed. Each was verified to load
+	// cleanly by the same method the docblock prescribes.
+	'NcActionInput',
+	'NcActionText',
+	'NcAppContent',
+	'NcAppNavigationCaption',
+	'NcAppNavigationNew',
+	'NcAppNavigationSearch',
+	'NcAppNavigationSettings',
+	'NcAppSettingsDialog',
+	'NcAppSettingsSection',
+	'NcColorPicker',
+	'NcCounterBubble',
+	'NcDateTimePicker',
+	'NcDateTimePickerNative',
+	'NcIconSvgWrapper',
+	'NcInputField',
+	'NcSelectTags',
+	'NcSettingsSection',
+]
+
+/**
+ * Names that CANNOT be loaded for real and fall back to the generic stub.
+ *
+ * All five die on `SyntaxError: Unexpected token 'export'` from the ESM-only
+ * `unist-builder` / `string-length` chains described in the docblock above —
+ * re-verified against `@nextcloud/vue` 9.9.0 when this list was written, by
+ * requiring each per-component entry point directly.
+ *
+ * They are listed EXPLICITLY, rather than being caught by a try/catch around
+ * the real loader, so that the set is visible and countable: the smoke lane
+ * prints it on every run (see `tests/smoke/renderAll.smoke.spec.js`). A
+ * silently-swallowed load failure would degrade a lane back into the
+ * false-pass it exists to prevent, which is exactly the failure mode that
+ * left the seventeen names above unmapped and unnoticed.
+ *
+ * Reviving one is a strict improvement — try the `transformIgnorePatterns`
+ * route the docblock describes, and if the chain terminates, move the name up
+ * into REAL_COMPONENT_NAMES.
+ */
+const STUBBED_COMPONENT_NAMES = [
+	'NcAvatar',
+	'NcRichText',
+	'NcRichContenteditable',
+	'NcDashboardWidget',
+	'NcDashboardWidgetItem',
 ]
 
 /**
@@ -112,7 +173,7 @@ const REAL_COMPONENT_NAMES = [
  * `exports` map is `import`-only and would otherwise be unresolvable from
  * Jest's CJS resolver — see the module docblock.
  */
-const COMPONENTS_DIR = path.join(__dirname, '../../../node_modules/@nextcloud/vue/dist/components')
+const COMPONENTS_DIR = path.join(__dirname, '../../node_modules/@nextcloud/vue/dist/components')
 
 const real = {}
 for (const name of REAL_COMPONENT_NAMES) {
@@ -134,10 +195,40 @@ for (const name of REAL_COMPONENT_NAMES) {
  * `<textarea>` with a `placeholder`.
  */
 // eslint-disable-next-line import/no-dynamic-require, global-require
-const { NcRichContenteditable: NcRichContenteditableStub } = require('../../__mocks__/nextcloud-vue.js')
+const genericStubs = require('../__mocks__/nextcloud-vue.js')
+
+/**
+ * Minimal passthrough for a stubbed name the generic mock does not export.
+ *
+ * Renders its children so a parent's slot content still executes, which keeps
+ * the failure mode "child chrome missing" rather than "whole subtree gone".
+ *
+ * @param {string} name Component name, used for the marker class.
+ * @return {object} A render-only component definition.
+ */
+function passthroughStub(name) {
+	return {
+		name,
+		render() {
+			return h('div', { class: 'stub stub--' + name }, this.$slots.default?.())
+		},
+	}
+}
+
+const stubbed = {}
+for (const name of STUBBED_COMPONENT_NAMES) {
+	stubbed[name] = genericStubs[name] ?? passthroughStub(name)
+}
 
 module.exports = {
 	__esModule: true,
 	...real,
-	NcRichContenteditable: NcRichContenteditableStub,
+	...stubbed,
+	/**
+	 * Introspection for the smoke lane's coverage report. Not part of
+	 * `@nextcloud/vue`'s surface — a component that reads these deserves to
+	 * break.
+	 */
+	__cnRealNames: [...REAL_COMPONENT_NAMES],
+	__cnStubbedNames: [...STUBBED_COMPONENT_NAMES],
 }
