@@ -92,9 +92,12 @@
 							:style="col.width ? { width: col.width } : {}"
 							:tabindex="col.sortable ? 0 : null"
 							:aria-sort="ariaSortFor(col)"
+							:title="translateLabel(col.description) || null"
 							@click="col.sortable ? onHeaderClick(col.key, $event) : null"
 							@keydown.enter="col.sortable ? onHeaderKeydown(col.key, $event) : null">
-							{{ translateLabel(col.label) }}
+							<span :class="col.description ? 'cn-table-header--described' : ''">
+								{{ translateLabel(col.label) }}
+							</span>
 							<span
 								v-if="col.sortable && sortKeyIndex(col.key) !== -1"
 								class="cn-table-sort-indicator">
@@ -311,7 +314,13 @@ export default {
 		 * Each entry may be a full column object OR a bare string key; bare strings
 		 * are normalised to `{ key, label }` by `effectiveColumns` so manifest-driven
 		 * pages that pass `config.columns` as a string array work without extra mapping.
-		 * @type {Array<{key: string, label: string, sortable: boolean, width: string, class: string, cellClass: string}|string>}
+		 *
+		 * `description` renders as the header cell's tooltip and marks the label with a
+		 * dotted underline, so a column whose meaning is not obvious from its name (a
+		 * maturity level, a computed score, a domain term) can explain itself where the
+		 * reader is looking. `columnsFromSchema` fills it from the JSON Schema property
+		 * description automatically, so schema-driven tables get it for free.
+		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string}|string>}
 		 */
 		columns: {
 			type: Array,
