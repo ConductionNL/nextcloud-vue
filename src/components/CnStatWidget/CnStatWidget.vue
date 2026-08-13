@@ -16,8 +16,30 @@
 		</div>
 
 		<div class="cn-stat-widget__body">
-			<div v-if="content.label" class="cn-stat-widget__label">
-				{{ resolvedLabel }}
+			<div v-if="content.label || rangePresets.length" class="cn-stat-widget__label">
+				<span v-if="content.label">{{ resolvedLabel }}</span>
+
+				<!-- Per-tile range override. Rendered ONLY when the tile declares its
+				     own `content.dateRange.presets`; a tile that merely follows the
+				     dashboard range shows no control, because the page already has one
+				     and two controls for one range read as two ranges. Stops click
+				     propagation so choosing a range inside a linked tile does not also
+				     navigate. -->
+				<select
+					v-if="rangePresets.length"
+					class="cn-stat-widget__range"
+					data-testid="cn-stat-widget-range"
+					:aria-label="rangeAriaLabel"
+					:value="activeRangePreset"
+					@click.stop.prevent
+					@change="selectRange($event.target.value)">
+					<option
+						v-for="preset in rangePresets"
+						:key="preset.id"
+						:value="preset.id">
+						{{ effectiveTranslate(preset.label || preset.id) }}
+					</option>
+				</select>
 			</div>
 
 			<div class="cn-stat-widget__value-row">
@@ -26,6 +48,12 @@
 				<template v-else>
 					<span class="cn-stat-widget__value" :style="valueStyle">
 						{{ formattedValue }}
+					</span>
+					<span
+						v-if="formattedLimit !== ''"
+						class="cn-stat-widget__limit"
+						data-testid="cn-stat-widget-limit">
+						/ {{ formattedLimit }}
 					</span>
 					<span
 						v-if="trendPct !== null"
@@ -181,6 +209,16 @@ export default {
 		 * @type {(key: string) => string}
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * Reactive date range provided by an ancestor `CnDashboardPage` when its
+		 * `dateRange.enabled` is true — `{ from, to, preset }`, else null. Same
+		 * ref `CnChartWidget` injects, so a tile and a chart on one dashboard
+		 * always agree on the period. A tile follows it only once it declares
+		 * `content.dateRange` (see the `content` prop docs for why).
+		 *
+		 * @type {{value: ({from: string, to: string, preset: string}|null)}}
+		 */
+		cnDashboardDateRange: { default: () => ref(null) },
 	},
 
 	props: {
@@ -207,7 +245,22 @@ export default {
 		 * percent-vs-previous, tinted by `goodDirection`, default `'up'`);
 		 * `variantWhen` (`[{ op, value, variant, icon? }]`, first match wins)
 		 * re-tints the value/icon by threshold.
-		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variantWhen?: Array<{op: string, value: *, variant: string, icon?: string}>}}
+		 *
+		 * `limitField` (dot-path into the payload) or a static `limit` renders the
+		 * tile as a capacity pair — `0 / 100` — and tints it `warning` once the
+		 * value reaches the limit, unless a `variantWhen` rule already claims the
+		 * colour. Use `limitField` for a server-configured quota so the ceiling is
+		 * read live rather than duplicated in the manifest.
+		 *
+		 * `dateRange` opts the tile into the dashboard's period. Present and empty
+		 * (`{}`) = follow the ancestor `CnDashboardPage` range; add `presets`
+		 * (`[{ id, label?, from?, to? }]`) to render a per-tile picker that
+		 * overrides it. The active range is exposed to `endpointSource` as
+		 * `@range.from` / `@range.to` / `@range.preset` tokens. A tile that
+		 * declares no `dateRange` is unaffected by the page range — that is
+		 * deliberate, so adding a range to a dashboard cannot silently change what
+		 * an existing tile requests.
+		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variantWhen?: Array<{op: string, value: *, variant: string, icon?: string}>}}
 		 */
 		content: {
 			type: Object,
@@ -238,7 +291,16 @@ export default {
 		const detailCtxRaw = inject('cnDetailObjectContext', null)
 		const workspaceRaw = inject('cnWorkspaceContext', ref({}))
 		const appConfigRaw = inject('cnAppConfig', ref({}))
+		const pageRangeRaw = inject('cnDashboardDateRange', ref(null))
 		const unwrap = (v) => ((v && typeof v === 'object' && 'value' in v) ? v.value : v)
+
+		// The per-tile range override. Null = follow the dashboard range; set by
+		// selectRange() when the tile renders its own preset picker. It lives in
+		// setup, not data(), because the ctx closure below must read it reactively
+		// — a data() property would be resolved once and never refetch.
+		const tileRange = ref(null)
+		const activeRange = () => (tileRange.value || unwrap(pageRangeRaw) || null)
+
 		const { data, loading, error, refetch } = useEndpointSource(
 			() => (props.content && props.content.endpointSource) || null,
 			{
@@ -246,10 +308,13 @@ export default {
 					...(resolveObjectTokenContext(objectCtxRaw, detailCtxRaw) || {}),
 					workspace: unwrap(workspaceRaw) || {},
 					config: unwrap(appConfigRaw) || {},
+					// `@range.from` / `@range.to` / `@range.preset` tokens, usable in the
+					// endpointSource url and params exactly like `@workspace.*`.
+					range: activeRange() || {},
 				}),
 			},
 		)
-		return { epData: data, epLoading: loading, epError: error, epRefetch: refetch }
+		return { epData: data, epLoading: loading, epError: error, epRefetch: refetch, tileRange, activeRange }
 	},
 
 	data() {
@@ -437,8 +502,11 @@ export default {
 		 */
 		variantColor() {
 			const rule = this.activeVariantRule
-			if (!rule || !rule.variant) return ''
-			return VARIANT_COLORS[rule.variant] || ''
+			if (rule && rule.variant) return VARIANT_COLORS[rule.variant] || ''
+			// An explicit variantWhen rule always wins: a tile that says how it
+			// wants to be coloured is not overruled by the generic at-limit tint.
+			if (this.atLimit) return VARIANT_COLORS.warning || ''
+			return ''
 		},
 		/**
 		 * The icon shown in the circle: a matched variant rule's `icon`
@@ -472,6 +540,72 @@ export default {
 		formattedValue() {
 			return formatMetricValue(this.displayValue, this.content.format, this.configCtx)
 		},
+		/**
+		 * The capacity this tile is measured against — `content.limitField`
+		 * (dot-path into the endpoint payload, so a server-configured quota is
+		 * read live) or a static `content.limit`. Null when neither is set or
+		 * the resolved value is not a finite number, which is what keeps the
+		 * "value / limit" rendering off every tile that has no limit.
+		 *
+		 * @return {number|null}
+		 */
+		limitValue() {
+			let raw = this.content.limit
+			if (this.endpointMode && this.content.limitField) {
+				raw = getByPath(this.epData, this.content.limitField)
+			}
+			const n = Number(raw)
+			return Number.isFinite(n) ? n : null
+		},
+		/**
+		 * The limit rendered beside the value, e.g. the "100" in "0 / 100".
+		 * Formatted with the value's own `format` spec minus prefix/suffix —
+		 * a suffix belongs to the pair, not to each half, so "0 % / 100 %" is
+		 * never produced.
+		 *
+		 * @return {string}
+		 */
+		formattedLimit() {
+			if (this.limitValue === null) return ''
+			const { prefix, suffix, ...rest } = (this.content.format || {})
+			return formatMetricValue(this.limitValue, rest, this.configCtx)
+		},
+		/**
+		 * Whether the tile has reached or passed its limit. Drives the warning
+		 * tint when no explicit `variantWhen` rule already claims the colour.
+		 *
+		 * @return {boolean}
+		 */
+		atLimit() {
+			if (this.limitValue === null) return false
+			const current = Number(this.displayValue)
+			return Number.isFinite(current) && current >= this.limitValue
+		},
+		/**
+		 * The tile's own range presets (`content.dateRange.presets`). Empty when
+		 * the tile has no override, which is also what hides the picker.
+		 *
+		 * @return {Array<{id: string, label?: string, from?: string, to?: string}>}
+		 */
+		rangePresets() {
+			const presets = this.content.dateRange?.presets
+			return Array.isArray(presets) ? presets.filter(Boolean) : []
+		},
+		/**
+		 * The preset id currently selected — the tile's own override when set,
+		 * else whatever the dashboard range reports, so the picker opens showing
+		 * the page's period rather than a stale default.
+		 *
+		 * @return {string}
+		 */
+		activeRangePreset() {
+			return (this.tileRange || this.activeRange() || {}).preset || ''
+		},
+		/** Accessible name for the range picker (no visible label on a compact tile). */
+		rangeAriaLabel() {
+			const label = this.resolvedLabel || this.effectiveTranslate('Date range')
+			return `${label} — ${this.effectiveTranslate('date range')}`
+		},
 		/** Stable signature of the data source so the watcher only refetches on real change. */
 		sourceKey() {
 			return JSON.stringify({
@@ -501,6 +635,19 @@ export default {
 		 * @param {string} color The base colour (hex or CSS var).
 		 * @return {string} A translucent or token background.
 		 */
+		/**
+		 * Apply a per-tile range preset. Writes the tile override, which the
+		 * endpoint ctx reads, so the tile refetches on its own period while the
+		 * rest of the dashboard stays on the page range.
+		 *
+		 * @param {string} presetId The chosen preset's id.
+		 * @return {void}
+		 */
+		selectRange(presetId) {
+			const preset = this.rangePresets.find((p) => p.id === presetId)
+			if (!preset) return
+			this.tileRange = { preset: preset.id, from: preset.from ?? null, to: preset.to ?? null }
+		},
 		tint(color) {
 			if (typeof color === 'string' && /^#([0-9a-f]{6})$/i.test(color)) {
 				return color + '1f' // ~12% alpha
@@ -793,8 +940,34 @@ export default {
 }
 
 .cn-stat-widget__label {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	min-width: 0;
 	font-size: 0.95em;
 	font-weight: 600;
+	color: var(--color-main-text);
+}
+
+/* Sized down to sit inside the label row without pushing the tile taller —
+   the tile's height is fixed by its grid cell (ADR-062). */
+.cn-stat-widget__range {
+	flex: 0 0 auto;
+	max-width: 50%;
+	padding: 0 4px;
+	border: none;
+	border-radius: var(--border-radius);
+	background: transparent;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.8em;
+	font-weight: normal;
+	cursor: pointer;
+}
+
+.cn-stat-widget__range:hover,
+.cn-stat-widget__range:focus-visible {
+	background: var(--color-background-hover);
 	color: var(--color-main-text);
 }
 
@@ -815,6 +988,18 @@ export default {
 	font-weight: 700;
 	line-height: 1.15;
 	color: var(--color-primary-element);
+	white-space: nowrap;
+}
+
+/* The denominator of a "value / limit" pair. Deliberately quieter and smaller
+   than the value: the tile's subject is what the number IS, not what it is
+   allowed to reach. Shares the value's `nowrap` so the pair never breaks. */
+.cn-stat-widget__limit {
+	flex: 0 0 auto;
+	font-size: 1.05em;
+	font-weight: 600;
+	line-height: 1.15;
+	color: var(--color-text-maxcontrast);
 	white-space: nowrap;
 }
 
