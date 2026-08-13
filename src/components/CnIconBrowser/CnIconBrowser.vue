@@ -96,6 +96,7 @@ import { NcPopover } from '@nextcloud/vue'
 import CnIconBrowserPanel from './CnIconBrowserPanel.vue'
 import { findIconByValue } from './iconCatalogue.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
+import { nextUid } from '../../utils/uid.js'
 import { isCustomIconUrl, DASHBOARD_ICONS } from '../CnIconPicker/dashboardIcons.js'
 import { DASHBOARD_ICONS as WIDGET_ICONS } from '../CnWidgetGrid/widgetIcons.js'
 import { nlDesignIconGroups } from '../../icons/nlDesignGroups.js'
@@ -343,6 +344,10 @@ export default {
 	data() {
 		return {
 			open: false,
+			// Per-instance id suffix, fixed for the instance's lifetime — the
+			// trigger's `aria-labelledby` points at it, and an id that changed
+			// between renders would break that reference.
+			uid: nextUid(),
 		}
 	},
 
@@ -354,7 +359,7 @@ export default {
 		 * @return {string} the trigger button id.
 		 */
 		triggerId() {
-			return 'cn-icon-browser-trigger-' + this._uid
+			return 'cn-icon-browser-trigger-' + this.uid
 		},
 		/**
 		 * Stable id for the field label, referenced by the trigger button's
@@ -364,7 +369,7 @@ export default {
 		 * @return {string} the field label id.
 		 */
 		labelId() {
-			return 'cn-icon-browser-label-' + this._uid
+			return 'cn-icon-browser-label-' + this.uid
 		},
 		/**
 		 * The catalogue actually browsed: the `icons` prop if given, else the

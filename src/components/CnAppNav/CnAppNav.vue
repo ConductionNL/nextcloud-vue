@@ -61,7 +61,7 @@
   See REQ-JMR-004 of the json-manifest-renderer specification.
 -->
 <template>
-	<NcAppNavigation data-testid="cn-nav">
+	<NcAppNavigation :aria-label="ariaLabel" data-testid="cn-nav">
 		<template v-if="$slots.search || $slots.search" #search>
 			<!--
 				@slot search
@@ -573,6 +573,24 @@ export default {
 		appId: {
 			type: String,
 			default: null,
+		},
+		/**
+		 * Accessible name for the navigation landmark, forwarded to
+		 * `NcAppNavigation`'s `aria-label`.
+		 *
+		 * `@nextcloud/vue` 9 requires `ariaLabel` or `ariaLabelledby` and warns
+		 * when neither is set: a `<nav>` with no accessible name is announced as
+		 * an unlabelled landmark, so a screen-reader user tabbing the landmark
+		 * list cannot tell it from any other nav on the page (WCAG 2.4.6 /
+		 * 1.3.1). The default covers every consumer without a code change; pass
+		 * your own when an app shows more than one navigation, since the point
+		 * of the name is to tell them apart.
+		 *
+		 * @type {string}
+		 */
+		ariaLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Main navigation'),
 		},
 	},
 

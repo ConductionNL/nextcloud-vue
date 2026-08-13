@@ -214,14 +214,23 @@ export default {
 			default: false,
 		},
 		/**
-		 * Date input visual format string. Forwarded to the
-		 * underlying `NcDateTimePicker`s. Default: `'YYYY-MM-DD'`.
+		 * Date input visual format string, forwarded to the underlying
+		 * `NcDateTimePicker`s. Default: `'yyyy-MM-dd'`.
+		 *
+		 * DATE-FNS TOKENS, not moment's. `@nextcloud/vue` 9 replaced the
+		 * picker's moment.js backend with date-fns, which rejects `YYYY`
+		 * (year-of-week) and `DD` (day-of-year) where `yyyy` / `dd` are meant —
+		 * and it THROWS rather than warning, so the whole picker fails to render.
+		 * This default was `'YYYY-MM-DD'`, correct under v8 and broken under v9:
+		 * the component threw with its own default props until the real-render
+		 * smoke lane surfaced it. A consumer still passing a moment-style string
+		 * needs the same substitution.
 		 *
 		 * @type {string}
 		 */
 		dateFormat: {
 			type: String,
-			default: 'YYYY-MM-DD',
+			default: 'yyyy-MM-dd',
 		},
 		/**
 		 * Accessible label for the preset dropdown.

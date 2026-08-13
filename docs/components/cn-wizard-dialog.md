@@ -121,6 +121,12 @@ Each `#step-{id}` slot receives:
 | `step-change` | `{ stepId, stepIndex, direction }` | After every step navigation (`next`, `back`, `jump`). |
 | `close` | — | Dialog was dismissed. |
 
+## Closing and reopening
+
+The dialog owns its own open state and closes itself for good. Handle `@close` by **unmounting** it — `v-if="show"` with `@close="show = false"` — and let a fresh mount reopen it. There is no `open` prop and no public reopen method: a still-mounted instance that has closed stays closed.
+
+This is deliberate. `NcDialog` does not self-manage `open`: on any close it clears its internal `showModal` flag and then sets it back to `true` about 300 ms later (bookkeeping for the next open). Since it renders on `open && showModal`, a dialog that leaves `open` at its `true` default silently reopens itself after every Cancel / ESC / backdrop click. `CnWizardDialog` therefore drives `open` explicitly and pins it `false` on close, which also means it cannot be revived in place.
+
 ## Public methods
 
 | Method | Signature | Description |

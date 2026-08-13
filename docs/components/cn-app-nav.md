@@ -59,6 +59,26 @@ The host listens once at `CnAppRoot` (events bubble through `CnPageRenderer`):
 
 `payload` arrives unchanged so the host dispatcher can branch on it.
 
+### Accessibility: the navigation landmark's name
+
+The rendered `<nav>` is an ARIA landmark, and a landmark with no accessible name
+is announced as just "navigation" — indistinguishable from any other nav in the
+landmark list a screen-reader user tabs through (WCAG 2.4.6 / 1.3.1).
+`@nextcloud/vue` 9 enforces this: `NcAppNavigation` warns unless `ariaLabel` or
+`ariaLabelledby` is set.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `ariaLabel` | String | `'Main navigation'` (translated) | Accessible name for the navigation landmark, forwarded to `NcAppNavigation`'s `aria-label`. |
+
+The default covers every consumer with no code change. Pass your own when an app
+renders more than one navigation — telling them apart is the entire purpose of
+the name:
+
+```vue
+<CnAppNav :aria-label="t('myapp', 'Project navigation')" />
+```
+
 ### Slots
 
 | Slot | Description |
