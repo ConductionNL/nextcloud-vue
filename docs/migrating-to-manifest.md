@@ -811,7 +811,7 @@ If you want a few of the read-only defaults overridden, mix them in:
 | `relative-time` | `Intl.RelativeTimeFormat` — "3 days ago" / "in 2 hours". |
 | `currency` | `Intl.NumberFormat` currency — EUR default; the column's `formatterOptions` may set `currency` (ISO-4217, guarded — an invalid code falls back to EUR) and `decimals` (default 2). |
 | `conditionalPhrase` | Sign/zero-based phrase selection over a numeric field (generalizes `daysUntil`): `formatterOptions { negative, zero, positive }` supply pre-translated phrases; `{n}` is replaced by the absolute value (e.g. `-3` + `"{n} days overdue"` → "3 days overdue"). |
-| `count` | Summarises a collection-valued cell as an entry count instead of a truncated JSON blob — array entries or object keys, a scalar counting as 1. `formatterOptions { singular, plural, zero }` supply pre-translated phrases with `{n}` substituted; without them it renders the bare count. |
+| `count` | Summarises a collection-valued cell as an entry count instead of a truncated JSON blob — array entries or object keys, a collection persisted as a JSON string, or a present scalar counting as 1. Every empty value (`null`, `''`, `0`, `false`, an empty collection) takes the zero phrase. `formatterOptions { singular, plural, zero }` supply pre-translated phrases with `{n}` substituted; without them it renders the bare count. |
 
 ```jsonc
 "columns": [

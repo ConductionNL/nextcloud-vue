@@ -104,6 +104,46 @@ function niceCeil(value) {
 	return 10 * magnitude
 }
 
+/**
+ * Calendar fields of an aggregation bucket key: `2026`, `2026-08`, `2026-08-10`,
+ * and any of those with a `T`/space time part, optional millis, and an optional
+ * `Z`/±offset suffix. Anchored, so a shape this does not model (a quarter key
+ * like `2026-Q1`) falls through to the Date constructor instead of being
+ * mis-parsed as its year alone.
+ */
+const BUCKET_KEY_RE = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/
+
+/**
+ * Parse a bucket key into a Date carrying the key's OWN calendar fields, read in
+ * local time so `toLocale*` renders back exactly what the key said.
+ *
+ * `new Date(key)` cannot be used directly: its assumed zone depends on the key's
+ * FORMAT, so one axis mixed both. A date-only `2026-08-10` is UTC midnight per
+ * spec, which a formatter west of UTC then renders as "9 Aug" — and a
+ * `2026-01-01T00:00:00Z` year bucket renders as "2025" — while `2026-08-10
+ * 14:00:00` is parsed as local and would break the other way if the whole axis
+ * were simply formatted in UTC. Echoing the key's fields is right for either:
+ * the backend mints these as period LABELS, not instants to be re-zoned.
+ *
+ * @param {string} key The bucket key from the aggregation response.
+ * @return {Date|null} The parsed date, or null when the key is not a date at all.
+ */
+function parseBucketKey(key) {
+	const m = BUCKET_KEY_RE.exec(String(key))
+	if (!m) {
+		const parsed = new Date(key)
+		return Number.isNaN(parsed.getTime()) ? null : parsed
+	}
+	return new Date(
+		Number(m[1]),
+		Number(m[2] || 1) - 1,
+		Number(m[3] || 1),
+		Number(m[4] || 0),
+		Number(m[5] || 0),
+		Number(m[6] || 0),
+	)
+}
+
 /** Event-bus channel CnWidgetWrapper's Refresh action broadcasts on. */
 const REFRESH_BUS_CHANNEL = 'cn:widget:refresh'
 
@@ -798,14 +838,22 @@ export default {
 		/**
 		 * Every plotted number across the displayed series, flattened.
 		 * Handles both cartesian (`[{name, data: []}]`) and flat
-		 * (`[1, 2, 3]`) series shapes. Non-numeric entries are dropped.
+		 * (`[1, 2, 3]`) series shapes, and all three datapoint forms
+		 * ApexCharts accepts: a bare number, `{x, y}`, and `[x, y]`.
+		 * Non-numeric entries are dropped.
 		 *
 		 * @return {number[]} The plotted values.
 		 */
 		plottedValues() {
 			const out = []
 			const push = (v) => {
-				const n = Number(typeof v === 'object' && v !== null ? v.y : v)
+				// A datapoint's VALUE is `y` — the second slot in the tuple form.
+				// Without the tuple case an `[x, y]` series read as all-NaN and
+				// dropped every point, which silently disabled `valueAxisBounds`.
+				let raw = v
+				if (Array.isArray(v)) raw = v[1]
+				else if (typeof v === 'object' && v !== null) raw = v.y
+				const n = Number(raw)
 				if (Number.isFinite(n)) out.push(n)
 			}
 			for (const s of (Array.isArray(this.displayedSeries) ? this.displayedSeries : [])) {
@@ -845,8 +893,16 @@ export default {
 			if (this.options?.chart?.stacked) return null
 			const values = this.plottedValues
 			if (values.length === 0) return null
-			const dataMin = Math.min(...values)
-			const dataMax = Math.max(...values)
+			// A single pass, not `Math.min(...values)`: the spread passes one
+			// ARGUMENT per datapoint, which throws RangeError once the series
+			// outgrows the engine's argument limit (~65k). Minute buckets over
+			// the 12-month window `fetchTimeBucket` falls back to reach that.
+			let dataMin = values[0]
+			let dataMax = values[0]
+			for (const v of values) {
+				if (v < dataMin) dataMin = v
+				if (v > dataMax) dataMax = v
+			}
 			// Negative values: a zero floor would crop them. Leave the framing
 			// to ApexCharts, which already spans zero for magnitude marks.
 			if (dataMin < 0) return null
@@ -1036,35 +1092,48 @@ export default {
 			}
 
 			// Add categories for cartesian charts
-			if (!isPieType && this.resolvedCategories.length > 0) {
-				defaults.xaxis = {
-					categories: this.resolvedCategories,
-					labels: {
-						style: {
-							colors: 'var(--color-text-maxcontrast, #767676)',
+			if (!isPieType) {
+				if (this.resolvedCategories.length > 0) {
+					defaults.xaxis = {
+						categories: this.resolvedCategories,
+						labels: {
+							style: {
+								colors: 'var(--color-text-maxcontrast, #767676)',
+							},
 						},
-					},
-				}
-				defaults.yaxis = {
-					labels: {
-						style: {
-							colors: 'var(--color-text-maxcontrast, #767676)',
+					}
+					defaults.yaxis = {
+						labels: {
+							style: {
+								colors: 'var(--color-text-maxcontrast, #767676)',
+							},
 						},
-					},
+					}
 				}
-				// The VALUE axis is the y-axis normally, the x-axis when bars
-				// render horizontally (ApexCharts flips the axes).
-				const valueAxis = (this.type === 'bar' && this.horizontal) ? defaults.xaxis : defaults.yaxis
-				if (this.valueFormatterFn) {
-					valueAxis.labels = { ...valueAxis.labels, formatter: this.valueFormatterFn }
-				}
-				// Baseline guard — see `valueAxisBounds`. `forceNiceScale` keeps
-				// the ticks on round numbers rather than slicing the span into
-				// fractions (a 0–8 count axis ticks 0/2/4/6/8, not 0/1.6/3.2/…).
-				if (this.valueAxisBounds) {
-					valueAxis.min = this.valueAxisBounds.min
-					valueAxis.max = this.valueAxisBounds.max
-					valueAxis.forceNiceScale = true
+				// The value formatter and the baseline guard apply to EVERY
+				// cartesian chart, not only a categorical one: a series of
+				// `{x, y}` datapoints (or `[x, y]` tuples) needs no `categories`,
+				// and while these lived inside the block above such a chart
+				// ignored even an explicit `valueAxisBaseline="zero"`. The axis
+				// object is created on demand so a chart that had no `xaxis` /
+				// `yaxis` default before still gets none unless it needs one.
+				const bounds = this.valueAxisBounds
+				if (this.valueFormatterFn || bounds) {
+					// The VALUE axis is the y-axis normally, the x-axis when bars
+					// render horizontally (ApexCharts flips the axes).
+					const axisKey = (this.type === 'bar' && this.horizontal) ? 'xaxis' : 'yaxis'
+					const valueAxis = defaults[axisKey] || (defaults[axisKey] = {})
+					if (this.valueFormatterFn) {
+						valueAxis.labels = { ...valueAxis.labels, formatter: this.valueFormatterFn }
+					}
+					// Baseline guard — see `valueAxisBounds`. `forceNiceScale` keeps
+					// the ticks on round numbers rather than slicing the span into
+					// fractions (a 0–8 count axis ticks 0/2/4/6/8, not 0/1.6/3.2/…).
+					if (bounds) {
+						valueAxis.min = bounds.min
+						valueAxis.max = bounds.max
+						valueAxis.forceNiceScale = true
+					}
 				}
 			}
 
@@ -1159,9 +1228,7 @@ export default {
 			this._lastHeight = newHeight
 			clearTimeout(this._resizeTimer)
 			this._resizeTimer = setTimeout(() => {
-				if (this.$refs.chart?.refresh) {
-					this.$refs.chart.refresh()
-				}
+				this.redrawForResize()
 			}, 100)
 		})
 		this._resizeObserver.observe(this.$el)
@@ -1200,6 +1267,38 @@ export default {
 			}
 		},
 		/**
+		 * Re-measure and redraw the chart after its box changed size, without
+		 * rebuilding it.
+		 *
+		 * `vue3-apexcharts`' `refresh()` is `destroy()` + `init()`: it throws the
+		 * ApexCharts instance away, builds a new one, and replays the entry
+		 * animation. With container-fitting charts now the dashboard default,
+		 * every GridStack layout settle ran that for every chart tile on the page.
+		 *
+		 * `_windowResize()` is the path ApexCharts itself uses for its own
+		 * parent/window resize observers: it flags the redraw as a resize (so the
+		 * entry animation does NOT replay) and calls `update()`, which re-runs
+		 * `setupElements` — the step that re-resolves a percentage height against
+		 * the parent — while keeping the instance and its listeners. It is
+		 * private, hence the capability check and the `refresh()` fallback; note
+		 * that the public `updateOptions()` is NOT usable here, because
+		 * ApexCharts skips an update whose options are identical to the last one
+		 * and a fitted chart's height stays the literal string `'100%'` on every
+		 * resize.
+		 *
+		 * @return {void}
+		 */
+		redrawForResize() {
+			const apex = this.$refs.chart?.chart
+			if (typeof apex?._windowResize === 'function') {
+				apex._windowResize()
+				return
+			}
+			if (this.$refs.chart?.refresh) {
+				this.$refs.chart.refresh()
+			}
+		},
+		/**
 		 * Re-query every source this component fetches ITSELF: the `dataSource`
 		 * GraphQL path plus the three REST aggregations (time bucket, group-by,
 		 * aggregate). Excludes `endpointSource`, which useEndpointSource owns
@@ -1235,6 +1334,12 @@ export default {
 				this.bucketData = null
 				return
 			}
+			// Stale-response guard, same shape as `fetchAggregateSource`. The date
+			// chip changes `bucketKey`, which re-enters here while the previous
+			// request is still open; a narrower window usually answers faster, so
+			// without this the slower WIDER series could land last and sit under
+			// the new chip's label.
+			const requestKey = this.bucketKey
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),
@@ -1281,12 +1386,13 @@ export default {
 					}
 				}
 				const res = await axios.get(url, { params })
+				if (requestKey !== this.bucketKey) return
 				const groups = (res && res.data && res.data.groups) || []
 				const categories = groups.map((g) => this.formatBucketKey(g.key, b.interval))
 				const values = groups.map((g) => Number(g.value) || 0)
 				this.bucketData = { series: [{ name: b.metricField || b.metric || 'count', data: values }], categories, labels: categories }
 			} catch (e) {
-				this.bucketData = null
+				if (requestKey === this.bucketKey) this.bucketData = null
 			}
 		},
 		/**
@@ -1305,8 +1411,8 @@ export default {
 		 */
 		formatBucketKey(key, interval) {
 			if (!key) return ''
-			const d = new Date(key)
-			if (Number.isNaN(d.getTime())) return String(key)
+			const d = parseBucketKey(key)
+			if (!d) return String(key)
 			const thisYear = new Date().getFullYear()
 			const year = d.getFullYear() === thisYear ? {} : { year: 'numeric' }
 			switch (String(interval || '').toLowerCase()) {
@@ -1340,6 +1446,10 @@ export default {
 				this.groupByData = null
 				return
 			}
+			// Stale-response guard — see `fetchTimeBucket`. This path has the extra
+			// `resolveGroupByLabels` round trip after the fetch, so its window for
+			// a filter-token change to overtake it is the wider of the two.
+			const requestKey = this.groupByKey
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),
@@ -1364,6 +1474,7 @@ export default {
 					}
 				}
 				const res = await axios.get(url, { params })
+				if (requestKey !== this.groupByKey) return
 				let groups = (res && res.data && res.data.groups) || []
 				// Client-side sort + top-N (robust even if the backend ignored them).
 				if (gb.sort === 'asc' || gb.sort === 'desc') {
@@ -1379,6 +1490,7 @@ export default {
 				// the referenced objects' display labels (e.g. client name).
 				if (gb.reference && gb.reference.schema) {
 					keys = await this.resolveGroupByLabels(ds.register, gb.reference, groups)
+					if (requestKey !== this.groupByKey) return
 				}
 				if (['pie', 'donut', 'radialBar'].includes(this.type)) {
 					this.groupByData = { series: values, labels: keys, categories: keys, rawKeys }
@@ -1386,7 +1498,7 @@ export default {
 					this.groupByData = { series: [{ name: gb.metricField || gb.metric || 'count', data: values }], categories: keys, labels: keys, rawKeys }
 				}
 			} catch (e) {
-				this.groupByData = null
+				if (requestKey === this.groupByKey) this.groupByData = null
 			}
 		},
 		/**

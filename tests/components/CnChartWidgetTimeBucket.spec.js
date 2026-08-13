@@ -156,6 +156,35 @@ describe('CnChartWidget — dataSource.bucket time series', () => {
 		expect(wrapper.vm.bucketKey).toContain(LAST_7.from)
 	})
 
+	// Switching the date chip re-enters fetchTimeBucket while the previous request
+	// is still open, and a narrower window usually answers faster — so without a
+	// generation guard the slower WIDER series lands last and sits under the new
+	// chip's label. Newly reachable once the inject-unwrap fix above let a range
+	// change refetch at all.
+	it('ignores a slow response that a newer range has superseded', async () => {
+		const range = ref({ ...LAST_7 })
+		let resolveFirst
+		axios.get
+			.mockImplementationOnce(() => new Promise((resolve) => {
+				resolveFirst = () => resolve({ data: { groups: [{ key: '2026-08-06', value: 111 }] } })
+			}))
+			.mockResolvedValueOnce({ data: { groups: [{ key: '2026-08-11', value: 222 }] } })
+
+		const wrapper = mountChart({}, range)
+		await flush()
+
+		// Second window: fires, and answers first.
+		range.value = { from: '2026-08-11T00:00:00.000Z', to: '2026-08-12T23:59:59.999Z', preset: 'last-2' }
+		await flush()
+		expect(axios.get).toHaveBeenCalledTimes(2)
+		expect(wrapper.vm.bucketData.series[0].data).toEqual([222])
+
+		// The first window's response now lands. It must be dropped.
+		resolveFirst()
+		await flush()
+		expect(wrapper.vm.bucketData.series[0].data).toEqual([222])
+	})
+
 	it('passes the bucket interval through uppercased and flattens filters', async () => {
 		mountChart({
 			dataSource: {
@@ -225,5 +254,80 @@ describe('CnChartWidget — formatBucketKey granularity', () => {
 	it('passes through empty and unparseable keys unchanged', () => {
 		expect(vm.formatBucketKey('', 'day')).toBe('')
 		expect(vm.formatBucketKey('not-a-date', 'day')).toBe('not-a-date')
+	})
+
+	it('reads the key it was given, whatever the key\'s own format', () => {
+		// The three shapes an aggregation can return for the same day must land on
+		// the same label: `new Date()` assumes UTC for the date-only form and LOCAL
+		// time for the space-separated one, so anything that leans on the
+		// constructor's default zone renders one axis in two zones.
+		const dateOnly = vm.formatBucketKey('2026-08-10', 'day')
+		expect(vm.formatBucketKey('2026-08-10T00:00:00Z', 'day')).toBe(dateOnly)
+		expect(vm.formatBucketKey('2026-08-10 00:00:00', 'day')).toBe(dateOnly)
+	})
+
+	it('keeps a quarter-style key it cannot model as-is', () => {
+		// The date regex must not match a PREFIX and quietly report "Jan 2026" for
+		// every quarter of the year.
+		expect(vm.formatBucketKey('2026-Q1', 'quarter')).toBe('2026-Q1')
+	})
+})
+
+// Bucket keys are period LABELS minted by the backend, not instants to re-zone.
+// Routing them through the Date constructor's assumed zone shifted every
+// date-only bucket back a day west of UTC — a US user read the 10 Aug bucket as
+// "9 Aug" — and pushed a `2026-01-01T00:00:00Z` year bucket into the previous
+// year, while the dashboard date chip (which reads the date part only) kept
+// showing the right day.
+//
+// The runner's own zone cannot be changed from inside a spec (Jest's process.env
+// copy does not reach Node's timezone cache), so the first group below pins the
+// contract with keys carrying an explicit non-UTC OFFSET, which shifts the day in
+// EVERY zone including CI's UTC. The second group states the same contract for
+// the shapes the bug was reported against; those are necessarily quiet in a UTC
+// runner and fail in a west-of-UTC one, which is the environment that had the bug.
+describe('CnChartWidget — formatBucketKey reads the key, not a re-zoned instant', () => {
+	let vm
+
+	beforeAll(() => {
+		axios.get.mockResolvedValue({ data: { groups: [] } })
+		vm = mountChart().vm
+	})
+
+	it('labels an offset-bearing day bucket with the day the key names', () => {
+		// Re-zoned to UTC this instant is 9 Aug 20:00 — the previous day.
+		const own = vm.formatBucketKey('2026-08-10T01:00:00+05:00', 'day')
+		expect(own).toBe(vm.formatBucketKey('2026-08-10', 'day'))
+	})
+
+	it('labels an offset-bearing year bucket with the year the key names', () => {
+		// Re-zoned to UTC this is 31 Dec 2025.
+		expect(vm.formatBucketKey('2026-01-01T05:00:00+07:00', 'year')).toBe('2026')
+	})
+
+	it('labels an offset-bearing month bucket with the month the key names', () => {
+		const label = vm.formatBucketKey('2026-01-01T05:00:00+07:00', 'month')
+		expect(label).toBe(vm.formatBucketKey('2026-01-15', 'month'))
+	})
+
+	describe('the reported shapes (quiet under a UTC runner, failing west of it)', () => {
+		it('labels a date-only day bucket with its own day', () => {
+			const expected = new Date(2026, 7, 10).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+			expect(vm.formatBucketKey('2026-08-10', 'day')).toBe(expected)
+		})
+
+		it('labels a UTC-midnight year bucket with its own year', () => {
+			expect(vm.formatBucketKey('2026-01-01T00:00:00Z', 'year')).toBe('2026')
+		})
+
+		it('labels a UTC-midnight month bucket with its own month', () => {
+			const expected = new Date(2026, 0, 1).toLocaleDateString(undefined, { month: 'short', year: '2-digit' })
+			expect(vm.formatBucketKey('2026-01-01T00:00:00Z', 'month')).toBe(expected)
+		})
+
+		it('keeps the time of day a timestamped bucket carries', () => {
+			const expected = new Date(2026, 7, 10, 14).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit' })
+			expect(vm.formatBucketKey('2026-08-10 14:00:00', 'hour')).toBe(expected)
+		})
 	})
 })

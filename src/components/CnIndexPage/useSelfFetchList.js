@@ -5,33 +5,7 @@ import { useObjectStore } from '../../store/index.js'
 // Both filter resolvers live in `utils/routeFilters.js` so CnLogsPage applies
 // the same two grammars (route-param interpolation + `?key=value` deep links)
 // without pulling in this composable's index-only sidebar/subscription wiring.
-import { resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
-
-/**
- * Parse the persisted multi-column sort out of `$route.query._order`
- * (JSON-encoded ordered array of `{key, order}`, written by
- * `CnIndexPage.persistSortToRoute`) so a reload or a shared/bookmarked
- * link restores the same sort. Malformed or absent input yields `null`
- * (caller falls back to `props.sortKey`/`props.sortKeys`).
- *
- * @param {object} route The current `$route` (may be undefined/null).
- * @return {Array<{key: string, order: 'asc'|'desc'}>|null} The parsed ordered sort-key list, or `null`.
- */
-function parseInitialSortKeysFromRoute(route) {
-	const raw = route && route.query && route.query._order
-	if (typeof raw !== 'string' || raw === '') return null
-	let parsed
-	try {
-		parsed = JSON.parse(raw)
-	} catch (e) {
-		return null
-	}
-	if (!Array.isArray(parsed) || parsed.length === 0) return null
-	const keys = parsed
-		.filter((k) => k && typeof k.key === 'string')
-		.map((k) => ({ key: k.key, order: k.order === 'desc' ? 'desc' : 'asc' }))
-	return keys.length > 0 ? keys : null
-}
+import { parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
 
 function resolveInitialQuickFilterIndex(quickFilters) {
 	const tabs = Array.isArray(quickFilters) ? quickFilters : null
@@ -164,7 +138,7 @@ export function useSelfFetchList(props, instance, inject) {
 	// link / reload); fall back to a host-passed `sortKeys` prop, then the
 	// legacy single-key `sortKey`/`sortOrder` props.
 	const initialRoute = instance && instance.proxy && instance.proxy.$route
-	const initialSortKeys = parseInitialSortKeysFromRoute(initialRoute)
+	const initialSortKeys = parseSortKeysFromQuery(initialRoute)
 		|| (Array.isArray(props.sortKeys) && props.sortKeys.length > 0 ? props.sortKeys : undefined)
 
 	const list = useListView(objectType, {

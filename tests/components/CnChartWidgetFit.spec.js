@@ -146,4 +146,49 @@ describe('CnDashboardPage — chart tiles fit their tile', () => {
 		const wrapper = mountDashboard(chartWidgetDef())
 		expect(wrapper.find('.cn-widget-wrapper-stub').classes()).toContain('cn-dashboard-page__chart-fit')
 	})
+
+	// That class carries `overflow: hidden`, which is right for a graph sized to
+	// the tile and wrong for one pinned taller than it: the bottom of the chart
+	// became unreachable, with the scroll affordance removed.
+	it('does NOT clip a tile whose chart has an authored pixel height', () => {
+		const wrapper = mountDashboard(chartWidgetDef({ height: 400 }))
+		expect(wrapper.find('.cn-widget-wrapper-stub').classes()).not.toContain('cn-dashboard-page__chart-fit')
+	})
+
+	it('treats an authored percentage height as fitting', () => {
+		const wrapper = mountDashboard(chartWidgetDef({ height: '80%' }))
+		expect(wrapper.find('.cn-widget-wrapper-stub').classes()).toContain('cn-dashboard-page__chart-fit')
+	})
+
+	it('does not clip an authored height on the in-app `content` config either', () => {
+		const widgets = [{ id: 'sla', title: 'SLA trend', type: 'chart', content: { chartKind: 'line', height: 200 } }]
+		expect(mountDashboard(widgets).find('.cn-widget-wrapper-stub').classes())
+			.not.toContain('cn-dashboard-page__chart-fit')
+	})
+})
+
+// `vue3-apexcharts`' refresh() is destroy() + init(): it throws the instance
+// away, rebuilds it and replays the entry animation. With fitted charts now the
+// dashboard default, every GridStack layout settle ran that for every chart tile.
+describe('CnChartWidget — resize redraw', () => {
+	it('re-measures through apexcharts own resize path, not a rebuild', () => {
+		const wrapper = mountChart({ ...barProps, height: '100%' })
+		const windowResize = jest.fn()
+		const refresh = jest.spyOn(wrapper.vm.$refs.chart, 'refresh')
+		wrapper.vm.$refs.chart.chart = { _windowResize: windowResize }
+
+		wrapper.vm.redrawForResize()
+
+		expect(windowResize).toHaveBeenCalledTimes(1)
+		expect(refresh).not.toHaveBeenCalled()
+	})
+
+	it('falls back to a rebuild when the instance is not reachable', () => {
+		const wrapper = mountChart({ ...barProps, height: '100%' })
+		const refresh = jest.spyOn(wrapper.vm.$refs.chart, 'refresh')
+
+		wrapper.vm.redrawForResize()
+
+		expect(refresh).toHaveBeenCalledTimes(1)
+	})
 })

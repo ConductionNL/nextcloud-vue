@@ -85,6 +85,15 @@ const LIBRARY_BUILT_IN_WIDGET_KEYS = new Set([
 ])
 
 /**
+ * Closed enum of valid chart `valueAxisBaseline` values — mirrors
+ * `CnChartWidget`'s own prop validator. Checked post-schema because the key
+ * sits inside the free-form widget `props` / `content` bag.
+ *
+ * @type {string[]}
+ */
+const CHART_VALUE_AXIS_BASELINES = ['auto', 'zero', 'fit']
+
+/**
  * Validate a v2 manifest using the Ajv-compiled `app-manifest-v2.schema.json`.
  *
  * In addition to JSON Schema validation, applies the following post-schema
@@ -323,6 +332,8 @@ export function validateManifestV2(manifest) {
 		|| typeof source.url === 'string'
 	)
 	const _hasEndpointSource = (es) => isPlainObject(es)
+	// Shared with the v1 path — see `validateChartBaseline`.
+	const _checkChartBaseline = (bag, path) => validateChartBaseline(bag, path, errors)
 	const _checkKpiContent = (content, path) => {
 		if (!isPlainObject(content)) return
 		if (_hasConfiguredOrSource(content.source) && _hasEndpointSource(content.endpointSource)) {
@@ -350,6 +361,10 @@ export function validateManifestV2(manifest) {
 								`pages[${pIndex}]/widgets[${wIndex}]: chart widget declares BOTH a dataSource and props.endpointSource — exactly one of the two data bindings is allowed`,
 							)
 						}
+						// Both bags, in the same precedence CnDashboardPage's
+						// getChartProps reads them: `content` (in-app editor) then `props`.
+						_checkChartBaseline(props.content, `pages[${pIndex}]/widgets[${wIndex}]/props/content`)
+						_checkChartBaseline(props, `pages[${pIndex}]/widgets[${wIndex}]/props`)
 					}
 					if (widget.widgetKey === 'object-table') {
 						if (_hasConfiguredOrSource(props.source) && _hasEndpointSource(props.endpointSource)) {
@@ -377,6 +392,8 @@ export function validateManifestV2(manifest) {
 								`pages[${pIndex}]/config/widgets[${wIndex}]: chart widget declares BOTH a dataSource and props.endpointSource — exactly one of the two data bindings is allowed`,
 							)
 						}
+						_checkChartBaseline(def.content, `pages[${pIndex}]/config/widgets[${wIndex}]/content`)
+						_checkChartBaseline(props, `pages[${pIndex}]/config/widgets[${wIndex}]/props`)
 					}
 				})
 			}
@@ -1676,7 +1693,34 @@ function validateWidgetsArray(cfg, pathSlash, pathBracket, errors) {
 		if (typeof widget.type !== 'string' || widget.type.length === 0) {
 			errors.push(`${widgetPath}/type: must be a non-empty string`)
 		}
+		if (widget.type === 'chart') {
+			validateChartBaseline(widget.content, `${widgetPath}/content`, errors)
+			validateChartBaseline(widget.props, `${widgetPath}/props`, errors)
+		}
 	})
+}
+
+/**
+ * Validate a chart widget's `valueAxisBaseline` against its closed enum.
+ *
+ * The key lives inside the deliberately free-form widget `props` / `content`
+ * bag, which no JSON Schema in this repo constrains — so a misspelt value
+ * validated clean and then fell back to `auto` at render time, which is the
+ * exact framing the author was overriding, with nothing in the manifest to
+ * explain it. Omitted is fine (the component's default applies).
+ *
+ * @param {object|null} bag The widget's `props` or `content` block.
+ * @param {string} path JSON-pointer-style path prefix for the message.
+ * @param {string[]} errors Accumulator.
+ * @return {void}
+ */
+function validateChartBaseline(bag, path, errors) {
+	if (!isPlainObject(bag)) return
+	const value = bag.valueAxisBaseline
+	if (value === undefined || value === null) return
+	if (typeof value !== 'string' || !CHART_VALUE_AXIS_BASELINES.includes(value)) {
+		errors.push(`${path}/valueAxisBaseline: must be one of ${CHART_VALUE_AXIS_BASELINES.join(' | ')}`)
+	}
 }
 
 /**

@@ -29,6 +29,7 @@ jest.mock('../../src/store/index.js', () => ({
 }))
 
 const { mount } = require('@vue/test-utils')
+const { reactive } = require('vue')
 const CnLogsPage = require('../../src/components/CnLogsPage/CnLogsPage.vue').default
 
 const stubs = {
@@ -161,21 +162,54 @@ describe('CnLogsPage — store-backed list', () => {
 		expect(paramsOfCall(1)).toMatchObject({ jobId: 'j-1', _page: 2 })
 	})
 
+	// A reactive `$route` mock, so these drive the component's real watcher
+	// instead of calling a handler by name — the previous shape, which could not
+	// have caught either of the defects the tests below pin, since both are about
+	// WHICH fires the watcher gets and what it does with them.
+	const reactiveRoute = (query = {}, params = {}, name = 'job-logs') =>
+		reactive({ name, query, params })
+
 	it('a $route.query change re-fetches exactly once with the new filter', async () => {
-		const route = { query: { jobId: 'j-1' }, params: {} }
-		const wrapper = mountPage({}, route)
+		const route = reactiveRoute({ jobId: 'j-1' })
+		mountPage({}, route)
 		await flush()
 		expect(mockStore.fetchCollection).toHaveBeenCalledTimes(1)
 
 		route.query = { jobId: 'j-2' }
-		wrapper.vm.$forceUpdate()
-		await wrapper.vm.$nextTick()
-		// The watcher is on the reactive `$route.query` reference; drive it the
-		// way a router push would by reassigning and letting the watcher run.
-		await wrapper.vm.$options.watch['$route.query'].handler.call(wrapper.vm)
 		await flush()
+		// Exactly one more: `$route.query` and `$route.params` used to be watched
+		// separately, and a single navigation fired BOTH — two identical
+		// concurrent requests that fetchCollection does not dedup.
 		expect(mockStore.fetchCollection).toHaveBeenCalledTimes(2)
 		expect(paramsOfCall(1).jobId).toBe('j-2')
+	})
+
+	// The high-severity case: the route updates BEFORE this component tears down,
+	// so a navigation away used to refetch the shared store collection scoped by
+	// the DESTINATION route's query — `/cases?status=open` issued
+	// `GET …/job_log?status=open`, poisoning the collection every other mounted
+	// widget on the same objectType reads.
+	it('does NOT re-fetch when the navigation is away from this page', async () => {
+		const route = reactiveRoute({ jobId: 'j-1' })
+		mountPage({}, route)
+		await flush()
+		expect(mockStore.fetchCollection).toHaveBeenCalledTimes(1)
+
+		route.name = 'cases-index'
+		route.query = { status: 'open' }
+		await flush()
+		expect(mockStore.fetchCollection).toHaveBeenCalledTimes(1)
+	})
+
+	it('re-fetches when the `filter` prop itself changes', async () => {
+		const wrapper = mountPage({ filter: { level: 'error' } }, reactiveRoute())
+		await flush()
+		expect(paramsOfCall(0).level).toBe('error')
+
+		await wrapper.setProps({ filter: { level: 'warning' } })
+		await flush()
+		expect(mockStore.fetchCollection).toHaveBeenCalledTimes(2)
+		expect(paramsOfCall(1).level).toBe('warning')
 	})
 
 	it('surfaces a store-recorded fetch error (fetchCollection never throws)', async () => {
@@ -288,19 +322,65 @@ describe('CnLogsPage — store-backed list', () => {
 		})
 
 		// `fixedFilters` is a plain getter read at fetch time, so Vue does not
-		// track the bag; without the signature watchers the token resolved once on
-		// mount and the list never re-scoped.
+		// track the bag on its own; the resolved-filter signature is what makes a
+		// bag write re-scope the list, and the token resolve once on mount without
+		// it.
 		it('re-fetches when the workspace bag changes', async () => {
-			const wrapper = mountPage(
+			const workspace = reactive({ selectedClient: 'acme' })
+			mountPage(
 				{ filter: { client: '@workspace.selectedClient' } },
 				undefined,
-				{ cnWorkspaceContext: { selectedClient: 'acme' } },
+				{ cnWorkspaceContext: workspace },
 			)
 			await flush()
 			expect(mockStore.fetchCollection).toHaveBeenCalledTimes(1)
-			await wrapper.vm.$options.watch.workspaceSignature.call(wrapper.vm)
+			workspace.selectedClient = 'globex'
 			await flush()
 			expect(mockStore.fetchCollection).toHaveBeenCalledTimes(2)
+			expect(paramsOfCall(1).client).toBe('globex')
+		})
+
+		// The flip side: the signature is the RESOLVED filter map, so a page whose
+		// filter reads nothing out of the bag is unaffected by writes to it. The
+		// per-bag watchers this replaced refetched unconditionally, so a volatile
+		// workspace bag reset a token-free logs page to page 1 on every mutation.
+		it('does NOT re-fetch on a bag write no filter token reads', async () => {
+			const workspace = reactive({ selectedClient: 'acme' })
+			mountPage(
+				{ filter: { level: 'error' } },
+				undefined,
+				{ cnWorkspaceContext: workspace },
+			)
+			await flush()
+			expect(mockStore.fetchCollection).toHaveBeenCalledTimes(1)
+			workspace.selectedClient = 'globex'
+			await flush()
+			expect(mockStore.fetchCollection).toHaveBeenCalledTimes(1)
+		})
+	})
+
+	// `?_order=` is the param CnIndexPage writes when a header is clicked. An
+	// index page restored it on reload; a logs page silently ignored it and
+	// opened on the configured default instead.
+	describe('sort deep link', () => {
+		it('restores a persisted multi-column sort from ?_order=', async () => {
+			const order = JSON.stringify([{ key: 'created', order: 'desc' }, { key: 'level', order: 'asc' }])
+			mountPage({}, reactiveRoute({ _order: order }))
+			await flush()
+			expect(paramsOfCall(0)._order).toEqual({ created: 'desc', level: 'asc' })
+		})
+
+		it('the deep link outranks the configured sortKey', async () => {
+			const order = JSON.stringify([{ key: 'created', order: 'desc' }])
+			mountPage({ sortKey: 'message', sortOrder: 'asc' }, reactiveRoute({ _order: order }))
+			await flush()
+			expect(paramsOfCall(0)._order).toEqual({ created: 'desc' })
+		})
+
+		it('falls back to the configured sort when the param is malformed', async () => {
+			mountPage({ sortKey: 'message' }, reactiveRoute({ _order: '{not json' }))
+			await flush()
+			expect(paramsOfCall(0)._order).toEqual({ message: 'asc' })
 		})
 	})
 

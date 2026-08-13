@@ -37,6 +37,38 @@ export function resolveFilterMap(filterMap, params, ctx) {
 }
 
 /**
+ * Read a persisted multi-column sort back out of `$route.query._order` (the
+ * JSON-encoded ordered array `CnIndexPage.persistSortToRoute` writes), so a
+ * reload or a shared link reproduces the sort it carried.
+ *
+ * Shared by CnIndexPage's `useSelfFetchList` and CnLogsPage: both feed the
+ * result to `useListView`'s `defaultSortKeys`, and while this lived privately in
+ * the former, a `?_order=` link was silently ignored on a logs page.
+ *
+ * Defensive by design — a hand-edited or truncated param must not break the
+ * page: anything that is not a non-empty array of `{ key }` entries returns
+ * null, which callers read as "no persisted sort, use the configured default".
+ *
+ * @param {object|null} route The current `$route` (or null when there is no router).
+ * @return {Array<{key: string, order: 'asc'|'desc'}>|null} The restored sort, or null.
+ */
+export function parseSortKeysFromQuery(route) {
+	const raw = route && route.query && route.query._order
+	if (typeof raw !== 'string' || raw === '') return null
+	let parsed
+	try {
+		parsed = JSON.parse(raw)
+	} catch (e) {
+		return null
+	}
+	if (!Array.isArray(parsed) || parsed.length === 0) return null
+	const keys = parsed
+		.filter((k) => k && typeof k.key === 'string')
+		.map((k) => ({ key: k.key, order: k.order === 'desc' ? 'desc' : 'asc' }))
+	return keys.length > 0 ? keys : null
+}
+
+/**
  * Extract deep-link filters from `$route.query`. Lets a widget/link navigate to
  * `/cases?caseType=X&status=Y` and land the list pre-filtered. Reserved
  * underscore-prefixed list params (`_search`, `_page`, `_limit`, `_order`) are

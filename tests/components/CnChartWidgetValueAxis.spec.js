@@ -140,4 +140,68 @@ describe('CnChartWidget — value-axis baseline', () => {
 		const vm = mountChart([7, 6], { options: { yaxis: { min: 5 } } }).vm
 		expect(vm.mergedOptions.yaxis.min).toBe(5)
 	})
+
+	// The bounds used to be written onto the axis only inside the block that adds
+	// `categories`, so a series of raw datapoints — which needs no categories —
+	// computed a baseline and then dropped it, ignoring even an explicit
+	// `valueAxisBaseline="zero"`.
+	describe('datapoint series (no categories)', () => {
+		/**
+		 * Mount a cartesian chart over datapoints rather than categories.
+		 *
+		 * @param {Array} data Datapoints in either the `{x, y}` or `[x, y]` form.
+		 * @param {object} props Extra component props.
+		 * @return {object} The VTU wrapper.
+		 */
+		const mountPoints = (data, props = {}) => shallowMount(CnChartWidget, {
+			propsData: { type: 'bar', series: [{ name: 'calls', data }], ...props },
+		})
+
+		it('reads {x, y} datapoints and anchors the axis at zero', () => {
+			const vm = mountPoints([{ x: 'd0', y: 7 }, { x: 'd1', y: 6 }]).vm
+			expect(vm.plottedValues).toEqual([7, 6])
+			expect(vm.valueAxisBounds).toEqual({ min: 0, max: 8 })
+			expect(vm.mergedOptions.yaxis.min).toBe(0)
+			expect(vm.mergedOptions.yaxis.max).toBe(8)
+		})
+
+		it('reads [x, y] tuples, whose value is the second slot', () => {
+			const vm = mountPoints([[1, 7], [2, 6]]).vm
+			expect(vm.plottedValues).toEqual([7, 6])
+			expect(vm.mergedOptions.yaxis.min).toBe(0)
+		})
+
+		it('honours an explicit baseline="zero" on a line chart', () => {
+			const vm = mountPoints(
+				[{ x: 1, y: 1000 }, { x: 2, y: 999 }],
+				{ type: 'line', valueAxisBaseline: 'zero' },
+			).vm
+			expect(vm.mergedOptions.yaxis.min).toBe(0)
+			expect(vm.mergedOptions.yaxis.max).toBe(1000)
+		})
+
+		it('puts the bounds on the x-axis for horizontal bars here too', () => {
+			const vm = mountPoints([{ x: 'd0', y: 7 }], { horizontal: true }).vm
+			expect(vm.mergedOptions.xaxis.min).toBe(0)
+			expect(vm.mergedOptions.yaxis).toBeUndefined()
+		})
+
+		it('adds no axis object at all when there is nothing to put on one', () => {
+			// `fit` yields no bounds and there is no value formatter, so neither
+			// axis should be conjured up just to hold nothing.
+			const vm = mountPoints([{ x: 1, y: 7 }], { valueAxisBaseline: 'fit' }).vm
+			expect(vm.mergedOptions.xaxis).toBeUndefined()
+			expect(vm.mergedOptions.yaxis).toBeUndefined()
+		})
+	})
+
+	// `Math.min(...values)` passes one argument per datapoint, so it throws
+	// RangeError once the series outgrows the engine's argument limit — reachable
+	// with minute buckets over the 12-month fallback window.
+	it('handles a series far past the argument-spread limit', () => {
+		const huge = new Array(200000).fill(5)
+		huge[1234] = 42
+		const vm = mountChart(huge, { type: 'bar' }).vm
+		expect(vm.valueAxisBounds).toEqual({ min: 0, max: 50 })
+	})
 })

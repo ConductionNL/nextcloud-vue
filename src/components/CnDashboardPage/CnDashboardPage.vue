@@ -369,7 +369,7 @@
 				<!-- Chart widget — manifest-driven apexcharts mount -->
 				<template v-else-if="isChart(item)">
 					<CnWidgetWrapper
-						class="cn-dashboard-page__chart-fit"
+						:class="{ 'cn-dashboard-page__chart-fit': isChartFitted(item) }"
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
@@ -2745,6 +2745,26 @@ export default {
 			return out
 		},
 
+		/**
+		 * Whether a chart tile's graph sizes itself to the tile — i.e. the
+		 * resolved height is a percentage. Only those tiles get the
+		 * `chart-fit` class, whose `overflow: hidden` is what stops the
+		 * wrapper showing a scrollbar for a sub-pixel rounding difference.
+		 *
+		 * An AUTHORED pixel height survives `getChartProps`, and clipping that
+		 * is not a rounding difference: on a tile shorter than the authored
+		 * height the bottom of the graph became unreachable, with the scroll
+		 * affordance removed. Such a tile keeps the wrapper's default
+		 * `overflow: auto` so the graph stays reachable.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} True when the chart fits its tile.
+		 */
+		isChartFitted(item) {
+			const height = this.getChartProps(item).height
+			return typeof height === 'string' && height.trim().endsWith('%')
+		},
+
 		hasWidgetSlot(widgetId) {
 			return !!this.$slots['widget-' + widgetId]
 		},
@@ -2941,7 +2961,8 @@ export default {
 	padding: 8px 14px;
 }
 
-/* Chart tiles: the graph fits the tile (getChartProps passes height:'100%'), so
+/* Chart tiles whose graph FITS the tile (see isChartFitted — a percentage
+   height, which getChartProps supplies unless the author pinned pixels), so
    the wrapper's default `overflow: auto` content area has nothing to scroll —
    and leaving it on means any rounding difference between the box and the SVG
    shows up as a scrollbar the user has to drag to see the whole graph. Same

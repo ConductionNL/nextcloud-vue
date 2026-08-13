@@ -21,15 +21,15 @@ Mounted automatically by `CnPageRenderer` when a manifest page declares `type: "
 | `description` | String | `''` | Subtitle shown under the title when `showTitle` is set |
 | `showTitle` | Boolean | `true` | Whether to render the inline `CnPageHeader` **visibly**. When false the `<h1>` is still rendered visually-hidden, so the `<main>` landmark keeps its accessible heading |
 | `icon` | String | `''` | MDI icon name |
-| `register` | String | `''` | OpenRegister register slug (paired with `schema`). Changing it after mount requires a remount — `CnPageRenderer` already keys the page on register+schema |
+| `register` | String | `''` | OpenRegister register slug (paired with `schema`). Changing it after mount requires a remount — `CnPageRenderer` already keys the page on register+schema, and a direct consumer that rebinds it instead gets a development console warning |
 | `schema` | String | `''` | OpenRegister schema slug (paired with `register`). Same remount note as `register` |
 | `source` | String | `''` | Custom log-source URL — used when register+schema is not set |
 | `columns` | Array | `[]` | Column definitions (strings → `{key, label}`; or full objects). When empty, a store-backed page derives its columns from the loaded schema — see [Columns](#columns) |
-| `filter` | Object | `null` | Fixed filter map merged into every fetch, **above** the `$route.query` deep-link filters. Supports the `@route.<param>` / `:<param>` / `@me` / `@today±Nd` / `@workspace.<key>` token grammar. Store mode only |
+| `filter` | Object | `null` | Fixed filter map merged into every fetch, **above** the `$route.query` deep-link filters. Supports the `@route.<param>` / `:<param>` / `@me` / `@today±Nd` / `@workspace.<key>` token grammar. Reactive — changing the map, or what a token in it resolves to, re-fetches from page 1. Store mode only |
 | `pagination` | Object | `null` | Page-size config; only `limit` is read, sent as `_limit`. Null = the store default of 20. Store mode only |
 | `sortKey` | String | `null` | Initial sort column. Null sends no `_order`, leaving the server's own ordering in place |
 | `sortOrder` | String | `'asc'` | Initial sort direction. Inert while `sortKey` is null |
-| `sortKeys` | Array | `[]` | Initial multi-column sort as an ordered priority list — `[{ key, order }, …]`. Takes precedence over `sortKey`/`sortOrder` when non-empty |
+| `sortKeys` | Array | `[]` | Initial multi-column sort as an ordered priority list — `[{ key, order }, …]`. Takes precedence over `sortKey`/`sortOrder` when non-empty; a `?_order=` param on the URL outranks both — see [Sorting](#sorting) |
 | `fixedLayout` | Boolean | `false` | Make the columns' declared `width` authoritative (`table-layout: fixed`) rather than a hint the browser may override from cell content — see [Column widths](#column-widths) |
 | `rowDetail` | Boolean | `false` | Open a read-only detail dialog on a row click, rendering the entry's fields including nested bags (a stack trace, an argument map). Default false keeps a row click inert. Ignored when `rowRoute` is set |
 | `rowRoute` | String | `''` | Manifest page id to open on a row click, pushed as `{ name: rowRoute, params: { id: row[rowKey] } }` — the same shape `CnIndexPage`'s `open-page` actions use. For a log whose detail surface is a real page (a step timeline, a replay action) rather than a read-only dump. Takes precedence over `rowDetail` |
@@ -67,7 +67,7 @@ In store mode two filter sources are merged into every request, with `filter` wi
 1. **`$route.query`** — every non-`_`-prefixed entry becomes a filter, so a "View logs" link like `/jobs/logs?jobId=<uuid>` lands the page scoped to one parent. Reserved list params (`_page`, `_limit`, `_search`, `_order`) are skipped. Array values (`?status[]=a&status[]=b`) stay arrays, which the API reads as an IN match.
 2. **`filter`** — the page's own scoping from the manifest, with tokens resolved at fetch time.
 
-A same-path query change re-fetches, so pushing a new `?jobId=` onto an already-mounted page re-scopes the list.
+The merged result is watched as a whole, so the list re-fetches (from page 1) whenever the **scope it resolves to** changes — a same-path query change, a route param, a new `filter` prop, or a write to the workspace / app-config bag a `@workspace.<key>` / `@config.<key>` token reads. Nothing else re-fetches: a bag write that no token in the filter reads leaves the list alone, and a navigation *away* from the page does not re-fetch under the destination route's query (which would otherwise overwrite the shared store collection that other mounted widgets on the same objectType read).
 
 ## Columns
 
@@ -87,6 +87,18 @@ Three mutually-exclusive behaviours, in precedence order:
 3. **Neither (the default)** — a row click does nothing but emit `row-click`, which a host can handle itself.
 
 `row-click` is emitted in all three cases, so a host can always add its own behaviour on top.
+
+## Sorting
+
+Store mode sorts server-side (the sort becomes `_order` on the request); `source` mode has no server to ask, so the header sort is applied client-side over the loaded rows.
+
+The initial sort is resolved in this precedence order:
+
+1. **`?_order=`** on the URL — the JSON-encoded ordered list `CnIndexPage` writes when a header is clicked. A shared or reloaded logs link therefore opens on the sort it carried. A malformed param is ignored rather than throwing.
+2. **`sortKeys`** — the manifest's own multi-column default.
+3. **`sortKey` + `sortOrder`** — the single-column form.
+
+With none of the three set, no `_order` is sent at all and the server's own ordering stands.
 
 ## Column widths
 

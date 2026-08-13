@@ -247,4 +247,7 @@ Reach for `cn-cell--truncate` when a value is a single long unbreakable token â€
 URL, a fully-qualified class name. Wrapping such a value breaks it mid-token
 across several lines and makes every row that tall, so clipping reads better.
 Pair it with `fixedLayout`, which is what gives the column a width to clip
-against.
+against. Note that only some hosts forward that prop from a manifest: a
+`type: 'logs'` page passes `config.fixedLayout` straight through, while
+`CnIndexPage` accepts the key and ignores it, leaving the class to truncate
+against the browser's own auto layout.

@@ -168,7 +168,7 @@
 </template>
 
 <script>
-import { computed, getCurrentInstance, inject } from 'vue'
+import { getCurrentInstance, inject } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
 import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
@@ -181,7 +181,7 @@ import { CnPagination } from '../CnPagination/index.js'
 import { useListView } from '../../composables/index.js'
 import { useObjectStore } from '../../store/index.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
-import { resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
+import { parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
 
 /**
  * Legacy default columns. Retained ONLY for `source` mode and for a store
@@ -229,6 +229,10 @@ function legacyDefaultColumns() {
  *     `/jobs/logs?jobId=<uuid>` lands the page scoped to one job.
  *  2. `filter` — the manifest's own scoping, with `@route.<param>` /
  *     `:<param>` / `@me` / `@today±Nd` tokens resolved at fetch time.
+ *
+ * The merged result is watched, so anything that moves it — a same-path query
+ * change, a route param, the `filter` prop, or the workspace / app-config bag a
+ * token in it reads — refetches from page 1, and nothing else does.
  *
  * Slots:
  *  - `#header` — Replaces the default CnPageHeader.
@@ -296,7 +300,8 @@ export default {
 		 * OpenRegister register slug. Required (with `schema`) for store-backed
 		 * mode. Changing it after mount requires a remount — CnPageRenderer keys
 		 * the dispatched page on register+schema, so a manifest page swap already
-		 * remounts.
+		 * remounts. A direct consumer that rebinds it instead gets a development
+		 * console warning, since the bound data source does not follow.
 		 */
 		register: {
 			type: String,
@@ -334,7 +339,8 @@ export default {
 		 * deep-link filters so the page's own scoping wins on a key collision.
 		 * Values support the shared token grammar: `@route.<param>` / `:<param>`
 		 * (route params), `@me`, `@today±Nd`, `@workspace.<key>`. Null = no fixed
-		 * filter. Store mode only.
+		 * filter. Store mode only. Reactive: changing the map — or changing what a
+		 * token in it resolves to — refetches from page 1.
 		 *
 		 * @type {object|null}
 		 */
@@ -369,6 +375,9 @@ export default {
 		/**
 		 * Initial MULTI-column sort as an ordered priority list. Takes precedence
 		 * over `sortKey`/`sortOrder` when non-empty; empty (the default) is inert.
+		 * A `?_order=` param on the URL (the JSON-encoded list CnIndexPage
+		 * persists when a header is clicked) outranks both, so a shared or
+		 * reloaded logs link opens on the sort it carried.
 		 *
 		 * @type {Array<{key: string, order: 'asc'|'desc'}>}
 		 */
@@ -463,14 +472,14 @@ export default {
 	setup(props) {
 		// Always returned, even when the composable is not used: Vue warns when
 		// a computed reads a key setup() omitted, and `source` mode reads these.
-		// The two signatures are included for the same reason — the watchers
-		// below target them by name, and `source` mode takes this early return.
+		// `resolveFixedFilters` is included for the same reason — the
+		// `filterSignature` computed calls it by name, and `source` mode (which
+		// has no fixed filters at all) takes this early return.
 		const NO_LIST = {
 			list: null,
 			objectType: '',
 			listStore: null,
-			workspaceSignature: '',
-			appConfigSignature: '',
+			resolveFixedFilters: () => ({}),
 		}
 		if (!props.register || !props.schema) return NO_LIST
 
@@ -512,30 +521,31 @@ export default {
 			base.config = unwrapCtx(appConfigRaw) || {}
 			return base
 		}
-		// `fixedFilters` is a plain getter called at fetch time, NOT auto-tracked
-		// by Vue, so a change to either bag would otherwise never re-scope the
-		// list — the token would resolve once on mount and stay stale. Stringified
-		// so the watchers below fire on real content changes, not identity.
-		const workspaceSignature = computed(() => JSON.stringify(unwrapCtx(workspaceCtxRaw) || {}))
-		const appConfigSignature = computed(() => JSON.stringify(unwrapCtx(appConfigRaw) || {}))
+		// The complete fetch scope: the deep-link query filters plus the `filter`
+		// prop's route/`@`-token resolution. A getter, not a computed — it is
+		// re-read on every fetch, so a `?jobId=` change re-scopes the list
+		// without re-creating it, and `tokenCtx()` reflects the latest bags.
+		const resolveFixedFilters = () => {
+			const route = instance && instance.proxy && instance.proxy.$route
+			return {
+				...resolveQueryFilters(route && route.query),
+				...resolveFilterMap(props.filter, (route && route.params) || {}, tokenCtx()),
+			}
+		}
 
 		const list = useListView(objectType, {
 			objectStore: store,
 			defaultPageSize: (props.pagination && props.pagination.limit) || undefined,
+			// A `?_order=` deep link wins over the configured default, so a
+			// reloaded or shared logs URL reproduces the sort the link carried —
+			// the same precedence CnIndexPage's useSelfFetchList applies.
 			defaultSort: props.sortKey ? { key: props.sortKey, order: props.sortOrder || 'asc' } : undefined,
-			defaultSortKeys: props.sortKeys.length > 0 ? props.sortKeys : undefined,
-			// A getter, not a plain map: it is re-read on every fetch, so a
-			// `?jobId=` change re-scopes the list without re-creating the list.
-			fixedFilters: () => {
-				const route = instance && instance.proxy && instance.proxy.$route
-				return {
-					...resolveQueryFilters(route && route.query),
-					...resolveFilterMap(props.filter, (route && route.params) || {}, tokenCtx()),
-				}
-			},
+			defaultSortKeys: parseSortKeysFromQuery(instance && instance.proxy && instance.proxy.$route)
+				|| (props.sortKeys.length > 0 ? props.sortKeys : undefined),
+			fixedFilters: resolveFixedFilters,
 		})
 
-		return { list, objectType, listStore: store, workspaceSignature, appConfigSignature }
+		return { list, objectType, listStore: store, resolveFixedFilters }
 	},
 
 	data() {
@@ -676,6 +686,21 @@ export default {
 					}
 				})
 		},
+		/**
+		 * Stable signature of the RESOLVED fetch scope — the query deep-link
+		 * filters plus the `filter` prop after route-param and `@`-token
+		 * resolution. Reading through the same getter the fetch uses is what
+		 * makes it exact: it tracks `$route`, `props.filter` and the injected
+		 * workspace / app-config bags, and it changes only when the request the
+		 * list would issue actually changes. Stringified so the watcher fires on
+		 * content, not identity. Empty string in `source` mode (no list).
+		 *
+		 * @return {string} The serialized filter map.
+		 */
+		filterSignature() {
+			if (!this.list) return ''
+			return JSON.stringify(this.resolveFixedFilters())
+		},
 		/** The clicked row's renderable entries — `@self` and empties dropped. */
 		detailEntries() {
 			if (!this.detailRow) return []
@@ -685,36 +710,48 @@ export default {
 	},
 
 	watch: {
-		// A same-path query change (e.g. a "View logs" row action pushing
-		// `?jobId=<uuid>` onto an already-mounted page) must re-scope the list.
-		// `fixedFilters` re-reads $route on every fetch, so a refresh is all
-		// that's needed. No `immediate` — useListView owns the initial fetch.
-		'$route.query': {
-			deep: true,
-			handler() {
-				if (this.list) this.list.refresh(1)
-			},
+		// ONE watcher over the whole fetch scope, rather than one per reactive
+		// source that feeds it. `fixedFilters` is a plain getter re-read at fetch
+		// time, so a refresh is all any of them needs — but watching them
+		// individually got three things wrong:
+		//
+		//  - `$route.query` and `$route.params` both fire on a single navigation,
+		//    so one route change issued TWO identical concurrent fetches, which
+		//    `fetchCollection` does not dedup and whose responses can land in
+		//    either order;
+		//  - they fired on navigation AWAY as well, because the route updates
+		//    before this component tears down. The refetch was then scoped by the
+		//    DESTINATION route's query (`/cases?status=open` → `GET
+		//    …/job_log?status=open`), overwriting the shared store collection that
+		//    any other mounted widget on the same objectType reads;
+		//  - a workspace / app-config bag mutation refetched even when no
+		//    `@workspace.`/`@config.` token was in play, so a volatile bag reset a
+		//    token-free page to page 1 on every write.
+		//
+		// The signature is the RESOLVED filter map, so it changes only when the
+		// scope actually changes, and the route-name guard drops the fire that
+		// belongs to the page being navigated to. No `immediate` — useListView
+		// owns the initial fetch. This also covers a reactive `filter` prop
+		// change, which had no watcher of its own at all.
+		filterSignature(next, prev) {
+			if (!this.list || next === prev) return
+			// Guarded only when this page HAS a route name to compare against —
+			// a router-less host, or one whose routes are unnamed, keeps the
+			// unguarded behaviour rather than losing refetches to a comparison
+			// that can never match.
+			if (this._ownRouteName !== undefined && this.$route?.name !== this._ownRouteName) return
+			this.list.refresh(1)
 		},
-		'$route.params': {
-			deep: true,
-			handler() {
-				if (this.list) this.list.refresh(1)
-			},
-		},
-		// Same reason as the route watchers above: `fixedFilters` re-reads the
-		// token ctx on every fetch, so a refresh is all that's needed when the
-		// workspace / app-config bag behind a `@workspace.<key>` / `@config.<key>`
-		// filter token changes. Without these the token resolves once and the list
-		// never re-scopes.
-		workspaceSignature() {
-			if (this.list) this.list.refresh(1)
-		},
-		appConfigSignature() {
-			if (this.list) this.list.refresh(1)
-		},
-		register() { if (!this.list) this.fetch() },
-		schema() { if (!this.list) this.fetch() },
-		source() { if (!this.list) this.fetch() },
+		register(value, previous) { this.onSourcePropChange('register', value, previous) },
+		schema(value, previous) { this.onSourcePropChange('schema', value, previous) },
+		source(value, previous) { this.onSourcePropChange('source', value, previous) },
+	},
+
+	created() {
+		// The route this page belongs to, captured BEFORE any navigation can
+		// change it — the `filterSignature` watcher's guard. CnPageRenderer mounts
+		// a page when `$route.name === page.id`, so this is the page's own id.
+		this._ownRouteName = this.$route ? this.$route.name : undefined
 	},
 
 	mounted() {
@@ -810,6 +847,38 @@ export default {
 			// Misconfigured — surface a console warning so a developer notices.
 			// eslint-disable-next-line no-console
 			console.warn('[CnLogsPage] Neither register+schema nor source configured; rendering empty state.')
+		},
+
+		/**
+		 * React to a data-source prop changing on a mounted page.
+		 *
+		 * Only the legacy / `source` paths can act on it, by refetching. Store
+		 * mode cannot: the object type, its store registration and the
+		 * `useListView` instance are all built once in `setup()` from the
+		 * initial pair, so a new `register`/`schema` needs a remount to take
+		 * effect (which CnPageRenderer does on a manifest page swap). That is
+		 * documented on the props, but it used to happen in complete silence —
+		 * a direct consumer rebinding the prop saw the old collection and no
+		 * indication why. Warns in development only, once per change.
+		 *
+		 * @param {string} name The prop that changed.
+		 * @param {*} value The new value.
+		 * @param {*} previous The previous value.
+		 * @return {void}
+		 */
+		onSourcePropChange(name, value, previous) {
+			if (!this.list) {
+				this.fetch()
+				return
+			}
+			if (process.env.NODE_ENV !== 'production') {
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnLogsPage] \`${name}\` changed from "${previous}" to "${value}" on a mounted store-backed page. `
+					+ 'The data source is bound once at setup, so this has no effect — remount the page (e.g. give it a '
+					+ ':key) to pick up the new register/schema.',
+				)
+			}
 		},
 
 		/**
