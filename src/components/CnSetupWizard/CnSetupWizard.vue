@@ -324,15 +324,21 @@ export default {
 				})
 		},
 		/**
-		 * Id of the step the wizard should open on: the first non-`info`/
-		 * `summary` step not already done — per the CURRENT session's local
-		 * state OR the server-reported `completedStepIds` (a prior session).
-		 * Falls back to `''` (CnWizardDialog's own first-step default) when
-		 * every actionable step is already done.
+		 * Id of the step the wizard should open on when RESUMING: the first
+		 * non-`info`/`summary` step not already done, per the CURRENT session's
+		 * local state OR the server-reported `completedStepIds` (a prior
+		 * session). Falls back to `''` (CnWizardDialog's own first-step default)
+		 * on a fresh setup and when every actionable step is already done.
 		 *
 		 * @return {string}
 		 */
 		initialStepId() {
+			// Fresh setup — nothing done anywhere yet, so there is nothing to
+			// resume past. Start at step one so a leading `info`/welcome step is
+			// actually seen; resuming is only for returning sessions.
+			if (this.completedStepIds.length === 0) {
+				return ''
+			}
 			const actionable = this.setupSteps.filter((s) => s.type !== 'info' && s.type !== 'summary')
 			const firstUnmet = actionable.find((s) => {
 				if (s.type === 'choice') return !(this.hasChoice(s) || this.isServerDone(s.id))
@@ -454,6 +460,12 @@ export default {
 			if (!step) return true
 			if (step.type === 'choice') {
 				if (!this.hasChoice(step)) {
+					// Already persisted server-side and the user only back-navigated
+					// onto it — `choiceModel` is blank because it's session-local, not
+					// because nothing is set. Don't force a re-pick, and don't re-POST.
+					if (this.isServerDone(step.id)) {
+						return true
+					}
 					return step.required === true
 						? t('nextcloud-vue', 'Please make a selection to continue.')
 						: true

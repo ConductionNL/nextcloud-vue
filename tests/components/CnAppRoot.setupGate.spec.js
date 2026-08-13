@@ -228,7 +228,7 @@ describe('CnAppRoot optional setup wizard — an UNREPORTED step is not an UNDON
 		const wrapper = mountPlq()
 		await flush(wrapper)
 
-		expect(wrapper.vm.optionalSetupGating).toBe(true)
+		expect(wrapper.vm.optionalSetupPending).toBe(true)
 		expect(wrapper.vm.setupWizardOpen).toBe(true)
 		expect(wrapper.find('.cn-app-root__setup-optional').exists()).toBe(true)
 	})
@@ -246,7 +246,7 @@ describe('CnAppRoot optional setup wizard — an UNREPORTED step is not an UNDON
 		expect(wrapper.vm.setupState.optionalUnmet.value.map((s) => s.id)).toEqual(['demo-data'])
 		// ...but the authoritative `completed` flag must win.
 		expect(wrapper.vm.setupState.completed.value).toBe(true)
-		expect(wrapper.vm.optionalSetupGating).toBe(false)
+		expect(wrapper.vm.optionalSetupPending).toBe(false)
 		expect(wrapper.vm.setupWizardOpen).toBe(false)
 		expect(wrapper.find('.cn-app-root__setup-optional').exists()).toBe(false)
 		// And the app itself is reachable.

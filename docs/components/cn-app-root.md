@@ -12,7 +12,8 @@ CnAppRoot is the full-shell convenience for the JSON manifest renderer. Apps tha
 |-------|------|-------------------|---------------|
 | `loading` | While `isLoading` is `true` | `<CnAppLoading />` | `#loading` |
 | `dependency-missing` | After loading; an unresolved **HARD** dependency in `manifest.dependencies` | `<CnDependencyMissing />` | `#dependency-missing` |
-| `shell` | Manifest loaded + all HARD dependencies satisfied | `<CnAppNav />` + default slot content | `#menu`, default slot, `#header-actions`, `#sidebar`, `#footer` |
+| `setup` | HARD dependencies satisfied; a **required** `manifest.setup` step is unmet | `<CnSetupWizard :cancellable="false" />` | `#setup` |
+| `shell` | Manifest loaded + all HARD dependencies satisfied + no required setup step unmet | `<CnAppNav />` + default slot content | `#menu`, default slot, `#header-actions`, `#sidebar`, `#footer` |
 
 Dependency status is resolved by [`useAppStatus`](../utilities/composables/use-app-status.md) — one call per id in `manifest.dependencies`, cached for the page lifetime.
 
@@ -39,6 +40,32 @@ Both dependency surfaces (`CnDependencyMissing` and the `or-missing` guard) and 
 When no server-side `dependency_statuses` initial-state is present and the JS heuristic cannot distinguish "not installed" from "installed but disabled", the action defaults to the **Install and enable** label — a genuinely-missing app must never be mislabelled **Enable**.
 
 The `or-missing` guard (the capabilities check driven by the `requiresApps` prop) now renders English default copy for the `app-availability.title` / `app-availability.description` / `app-availability.action` keys when the `translate` prop leaves them unchanged, so the raw keys never render.
+
+## First-time setup (ADR-042)
+
+When the manifest declares a `setup` block, CnAppRoot resolves its status through [`useSetupStatus`](../utilities/composables/use-setup-status.md) and surfaces [`CnSetupWizard`](./cn-setup-wizard.md) on one of two paths. No new props — both are driven entirely by the manifest and the server's `GET /apps/{appId}/api/setup/status` response.
+
+| Path | Condition | Behaviour |
+|------|-----------|-----------|
+| **Gating** | A **required** step is unmet | The whole shell is replaced (`phase === 'setup'`). The wizard is mounted with `cancellable="false"` — no Cancel button, no ESC, no backdrop close — because there is nothing useful to fall back to. Override with the `#setup` slot. |
+| **Non-gating** | Every required step is met, but at least one **actionable** optional step isn't | The shell renders normally and the wizard auto-opens **once** as a dismissible overlay (`cancellable="true"`). |
+
+Both instances receive `completedStepIds`, so a wizard mounted mid-way resumes at the first genuinely unmet step rather than re-asking what a previous session already persisted. A fresh setup (nothing done yet) always starts at step one so a leading `info` / welcome step is seen.
+
+"Actionable" excludes `info` and `summary` steps. The server has nothing to persist for those, so they report `done: false` forever; counting them would auto-prompt every user on every version, including fully-configured ones.
+
+### Dismissal
+
+The non-gating overlay records dismissal in `localStorage` under:
+
+```
+cn-setup-wizard-dismissed:{appId}:{manifest.setup.version}
+```
+
+- Both **Cancel** and **Finish** write the flag. Finishing counts as dismissal because `Next` is allowed to skip optional steps — a user can legitimately reach Finish with an optional step still un-done, and the server will keep reporting it unmet. Without this, completing the wizard would re-prompt on every page load while cancelling bought permanent peace.
+- Because the key includes `setup.version`, bumping it in the manifest (e.g. after adding a new optional step) re-prompts everyone exactly once.
+- Storage failures (private mode, disabled storage) are non-fatal: dismissal falls back to a session-only flag.
+- On `@complete` the overlay stays mounted so `CnSetupWizard`'s result phase ("Setup complete.") is visible; its **Close** button drives the unmount.
 
 ## Usage
 
@@ -135,6 +162,7 @@ CnAppRoot calls `provide()` with the following keys; descendants `inject` these:
 | `loading` | — | `<CnAppLoading />` | Shown during the loading phase |
 | `dependency-missing` | `{ dependencies }` | `<CnDependencyMissing :dependencies />` | Shown when any dependency is missing or disabled |
 | `or-missing` | `{ missingApps }` | Default `<NcEmptyContent>` linking to the OpenRegister app-store integration page | Shown when any app in `requiresApps` is missing per the OCS capabilities check. Override to fully replace the empty state. |
+| `setup` | `{ steps, status }` | `<CnSetupWizard :cancellable="false" />` | Replaces the **gating** first-time-setup surface (a required `manifest.setup` step is unmet). `steps` is `manifest.setup.steps`; `status` is the [`useSetupStatus`](../utilities/composables/use-setup-status.md) state. Does not affect the non-gating overlay — see [First-time setup](#first-time-setup-adr-042). |
 | `menu` | — | `<CnAppNav :permissions />` | Replaces the default app navigation |
 | `header-actions` | — | — | Mounted inside `NcAppContent`, alongside the default slot |
 | `sidebar` | — | The resolved `cnPageSidebarComponent` when set, otherwise empty | Mounted next to `NcAppContent` (e.g. for `NcAppSidebar`). Gated by the `cnPageSidebarVisible` inject — when a descendant `CnPageRenderer` flips it to `false` (because the current manifest page declares `sidebar.show: false`), this slot stops rendering. The default (no provider) is value-true so the slot keeps rendering. The slot's **default content** is driven by the `cnPageSidebarComponent` inject — when the current page declares a `sidebarComponent` registry name, the resolved component renders here unless the consumer supplies a `#sidebar` slot override (override wins). See [Per-page sidebar visibility](./cn-page-renderer.md#per-page-sidebar-visibility) and [Per-page sidebar component](./cn-page-renderer.md#per-page-sidebar-component). |
