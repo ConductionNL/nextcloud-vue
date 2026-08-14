@@ -14,14 +14,14 @@
  * @returns {object} Reactive CnAiContext object
  */
 
-import Vue from 'vue'
+import { reactive } from 'vue'
 
 /**
  * Default context used when no CnAppRoot ancestor is present.
  * Created once at module level so the reference is stable across calls
  * in environments without a provider.
  */
-const defaultContext = Vue.observable({
+const defaultContext = reactive({
 	appId: 'unknown',
 	pageKind: 'custom',
 	route: { path: '' },

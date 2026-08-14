@@ -26,6 +26,8 @@
  * @module components/CnIntegrationWidget/availability
  */
 
+import { getCapabilities as ncGetCapabilities } from '@nextcloud/capabilities'
+
 /**
  * Read the OpenRegister integrations capability providers map.
  *
@@ -36,16 +38,19 @@
  * @return {{[id: string]: object}|null} Map of id → provider payload, or null.
  */
 export function readCapabilityProviders(getCapabilities) {
+	// Default accessor: the statically imported `getCapabilities`. It used to
+	// be resolved lazily inside a try/catch "to avoid a hard dependency", but
+	// @nextcloud/capabilities is a DECLARED (non-optional) peer and its
+	// `exports` map has no CommonJS condition — so from `dist/esm/**` that call
+	// could never succeed and this function returned `null` for every caller
+	// that did not inject an accessor itself, making the whole
+	// capability-providers path silently dead.
 	let accessor = getCapabilities
 	if (typeof accessor !== 'function') {
-		// Lazy default — avoids a hard dependency in environments that
-		// don't ship @nextcloud/capabilities (some unit suites).
-		try {
-			// eslint-disable-next-line global-require
-			accessor = require('@nextcloud/capabilities').getCapabilities
-		} catch (e) {
-			return null
-		}
+		accessor = ncGetCapabilities
+	}
+	if (typeof accessor !== 'function') {
+		return null
 	}
 	let caps = null
 	try {

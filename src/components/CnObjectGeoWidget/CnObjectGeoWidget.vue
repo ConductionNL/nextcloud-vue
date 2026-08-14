@@ -22,10 +22,10 @@
 		<div class="cn-object-geo-widget">
 			<div v-if="editable && addressSearch" class="cn-object-geo-widget__search">
 				<NcTextField
-					:value="query"
+					:model-value="query"
 					:label="t('nextcloud-vue', 'Search for an address or place')"
 					:show-trailing-button="false"
-					@update:value="onQueryInput">
+					@update:model-value="onQueryInput">
 					<Magnify :size="18" />
 				</NcTextField>
 				<NcLoadingIcon v-if="searching" :size="20" />
@@ -66,19 +66,19 @@
 		<template v-if="editable" #footer>
 			<div class="cn-object-geo-widget__footer">
 				<template v-if="dirty">
-					<NcButton type="primary" :disabled="saving" @click="save">
+					<NcButton variant="primary" :disabled="saving" @click="save">
 						<template #icon>
 							<NcLoadingIcon v-if="saving" :size="20" />
 							<ContentSave v-else :size="20" />
 						</template>
 						{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Save location') }}
 					</NcButton>
-					<NcButton type="tertiary" :disabled="saving" @click="cancel">
+					<NcButton variant="tertiary" :disabled="saving" @click="cancel">
 						{{ t('nextcloud-vue', 'Cancel') }}
 					</NcButton>
 				</template>
 				<NcButton v-else-if="activePoint"
-					type="tertiary"
+					variant="tertiary"
 					:disabled="saving"
 					@click="clear">
 					<template #icon>
@@ -304,13 +304,11 @@ export default {
 		 * @type {object|null}
 		 */
 		'saved',
-		/* eslint-disable jsdoc/valid-types -- the colon in the event name is valid Vue but not a jsdoc namepath */
 		/**
 		 * @event update:geo Sibling of `saved` for `.sync`-style consumers.
 		 * @type {object|null}
 		 */
 		'update:geo',
-		/* eslint-enable jsdoc/valid-types */
 	],
 
 	data() {
@@ -459,7 +457,7 @@ export default {
 		},
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		clearTimeout(this.searchTimer)
 	},
 
@@ -657,13 +655,11 @@ export default {
 				 * @type {object|null}
 				 */
 				this.$emit('saved', newGeo)
-				/* eslint-disable jsdoc/valid-types -- the colon in the event name is valid Vue but not a jsdoc namepath */
 				/**
 				 * @event update:geo Sibling of `saved` for `.sync`-style consumers.
 				 * @type {object|null}
 				 */
 				this.$emit('update:geo', newGeo)
-				/* eslint-enable jsdoc/valid-types */
 			} catch (e) {
 				this.error = t('nextcloud-vue', 'Could not save the location.')
 			} finally {

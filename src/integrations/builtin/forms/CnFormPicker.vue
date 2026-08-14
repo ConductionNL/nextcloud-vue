@@ -33,12 +33,12 @@
 		@closing="$emit('close')">
 		<div class="cn-form-picker">
 			<NcTextField
-				:value="search"
+				:model-value="search"
 				:label="searchPlaceholder"
 				:placeholder="searchPlaceholder"
 				:show-trailing-button="false"
 				class="cn-form-picker__search"
-				@update:value="search = $event" />
+				@update:model-value="search = $event" />
 
 			<NcLoadingIcon v-if="loading" />
 

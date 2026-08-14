@@ -56,7 +56,11 @@ export default {
 </script>
 ```
 
-Admin settings gating — the `isOwner` prop controls whether the auto-prepended "Admin settings" entry appears inside the settings foldout (alongside the manifest declaring at least one `adminSettings[]` entry). `CnAppRoot` computes it from `currentUserGroups` ∩ `permissions.owners` and/or a manifest `runtime.user` owner signal — deliberately not `OC.isUserAdmin()`. Defaults to `false`, so `CnAppNav` mounted standalone (without a `CnAppRoot` ancestor) never shows the entry.
+Admin settings link-out (ADR-079) — the `isAdmin` prop controls whether the auto-prepended "Admin settings" entry appears inside the settings foldout, and the `appId` prop supplies its target. The entry is a **link** to `/settings/admin/<appId>`, not a modal: app-level configuration lives in Nextcloud's own settings framework, which authorizes that page server-side. `CnAppRoot` computes `isAdmin` from `getCurrentUser()?.isAdmin` (`@nextcloud/auth`) — never the legacy `OC.isUserAdmin()` global — and passes `appId` through; `appId` falls back to the injected `cnAppId`, and with neither available the link is suppressed rather than pointing at a broken URL. Both default to a state that hides the entry, so `CnAppNav` mounted standalone never shows it.
+
+`isAdmin` gates **visibility only** and is never an authorization decision — the access boundary is Nextcloud, which refuses `/settings/admin/<app>` for non-admins regardless of what the navigation renders.
+
+Owner gating — the `isOwner` prop is a **different** signal, meaning "owns this app" rather than "administers this instance". `CnAppRoot` computes it from `currentUserGroups` ∩ `permissions.owners` and/or a manifest `runtime.user` owner signal. It no longer gates the Admin settings entry, and the two props must not be conflated.
 
 `visibleIf.appInstalled` filter — a menu item can declare a `visibleIf` condition to hide cross-app links when the target app is not installed. The item only renders when the named Nextcloud app is found in `OC.appswebroots` (primary) or the capabilities API (fallback). Items without `visibleIf` are always visible (backwards-compatible).
 
@@ -115,6 +119,34 @@ Search slot — the `search` slot is forwarded into `NcAppNavigation`'s `#search
 import { NcAppNavigationNew } from '@nextcloud/vue'
 export default {
   components: { NcAppNavigationNew },
+  data() {
+    return {
+      manifest: {
+        menu: [
+          { id: 'home', label: 'Home', icon: 'icon-home', route: 'home', order: 1 },
+        ],
+      },
+    }
+  },
+}
+</script>
+```
+
+Naming the navigation landmark — the rendered `<nav>` is an ARIA landmark, and one with no accessible name is announced as just "navigation", indistinguishable from any other nav in the landmark list a screen-reader user tabs through (WCAG 2.4.6 / 1.3.1). `@nextcloud/vue` 9 enforces this: `NcAppNavigation` warns unless `ariaLabel` or `ariaLabelledby` is set.
+
+`ariaLabel` defaults to a translated "Main navigation", so every consumer is covered without a code change. Pass your own when an app renders more than one navigation — telling them apart is the entire purpose of the name:
+
+```vue {static}
+<template>
+  <div style="height: 200px; width: 260px; background: var(--color-main-background); border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden;">
+    <CnAppNav
+      :manifest="manifest"
+      aria-label="Project navigation"
+      :translate="(key) => key" />
+  </div>
+</template>
+<script>
+export default {
   data() {
     return {
       manifest: {

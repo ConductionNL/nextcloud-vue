@@ -7,16 +7,18 @@
  * already renders the card chrome, so mounting the widget's own
  * CnWidgetWrapper would double-card it.
  *
- * Kept in its own module (not inline in the SFC script) because
- * `@vue/vue2-jest` flags any SFC whose script contains a literal
- * `functional: true` as a functional component, which breaks the SFC's
- * template render in tests.
+ * Kept in its own module (not inline in the SFC script) to keep the SFC's
+ * template render clean in tests.
  */
+
+import { h } from 'vue'
 
 export const CnWidgetHostShell = {
 	name: 'CnWidgetHostShell',
-	functional: true,
-	render: (h, ctx) => h('div', { class: 'cn-widget-object-table__host' }, ctx.children),
+	// Vue 3: functional components are plain render functions (no `functional: true`).
+	render() {
+		return h('div', { class: 'cn-widget-object-table__host' }, this.$slots.default ? this.$slots.default() : [])
+	},
 }
 
 export default CnWidgetHostShell

@@ -105,7 +105,7 @@ describe('CnPageRenderer → CnDetailPage live updates', () => {
 		// could resolve (guards the "type not registered" race).
 		expect(mockStore.objectTypeRegistry.publication).toBeTruthy()
 
-		w.destroy()
+		w.unmount()
 		await flush()
 		expect(mockStore.unsubscribe).toHaveBeenCalled()
 	})
@@ -114,6 +114,6 @@ describe('CnPageRenderer → CnDetailPage live updates', () => {
 		const w = mountRenderer(makeManifest({ subscribe: false }))
 		await flush()
 		expect(mockStore.subscribe).not.toHaveBeenCalled()
-		w.destroy()
+		w.unmount()
 	})
 })

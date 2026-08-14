@@ -12,17 +12,17 @@
 
 		<div class="cn-chart-widget-form__row2">
 			<NcSelect
-				:value="chartKind"
+				:model-value="chartKind"
 				:options="chartKindOptions"
 				:input-label="t('nextcloud-vue', 'Chart type')"
 				:clearable="false"
-				@input="updateField('chartKind', $event)" />
+				@update:model-value="updateField('chartKind', $event)" />
 			<NcSelect
-				:value="mode"
+				:model-value="mode"
 				:options="modeOptions"
 				:input-label="t('nextcloud-vue', 'Breakdown')"
 				:clearable="false"
-				@input="updateField('mode', $event)">
+				@update:model-value="updateField('mode', $event)">
 				<template #option="{ label: id }">
 					{{ modeLabel(id) }}
 				</template>
@@ -54,11 +54,11 @@
 				placeholder="expectedCloseDate"
 				@update="updateBucket('field', $event)" />
 			<NcSelect
-				:value="bucket.interval"
+				:model-value="bucket.interval"
 				:options="intervalOptions"
 				:input-label="t('nextcloud-vue', 'Interval')"
 				:clearable="false"
-				@input="updateBucket('interval', $event)" />
+				@update:model-value="updateBucket('interval', $event)" />
 		</div>
 
 		<!-- Category breakdown. -->
@@ -70,26 +70,26 @@
 				placeholder="stage"
 				@update="updateGroup('field', $event)" />
 			<NcSelect
-				:value="group.sort"
+				:model-value="group.sort"
 				:options="sortOptions"
 				:input-label="t('nextcloud-vue', 'Sort')"
 				:clearable="false"
-				@input="updateGroup('sort', $event)" />
+				@update:model-value="updateGroup('sort', $event)" />
 			<NcTextField
-				:value="String(group.limit)"
+				:model-value="String(group.limit)"
 				type="number"
 				:label="t('nextcloud-vue', 'Top N')"
-				@update:value="updateGroup('limit', Number($event) || 0)" />
+				@update:model-value="updateGroup('limit', Number($event) || 0)" />
 		</div>
 
 		<!-- Shared metric (both modes). -->
 		<div class="cn-chart-widget-form__row2">
 			<NcSelect
-				:value="metric"
+				:model-value="metric"
 				:options="metricOptions"
 				:input-label="t('nextcloud-vue', 'Aggregation')"
 				:clearable="false"
-				@input="updateField('metric', $event)" />
+				@update:model-value="updateField('metric', $event)" />
 			<CnFieldPicker
 				v-if="metric && metric !== 'count'"
 				:value="metricField"
@@ -269,7 +269,9 @@ export default {
 
 		/**
 		 * Human label for a breakdown mode.
-		 * @param id
+		 *
+		 * @param {'category'|'timeseries'} id The breakdown-mode id from `modeOptions`.
+		 * @return {string} The translated label for the mode dropdown.
 		 */
 		modeLabel(id) {
 			return id === 'category' ? t('nextcloud-vue', 'By category') : t('nextcloud-vue', 'Over time')
@@ -277,8 +279,10 @@ export default {
 
 		/**
 		 * Set a top-level field and emit.
-		 * @param field
-		 * @param value
+		 *
+		 * @param {'chartKind'|'mode'|'metric'|'metricField'} field The data key to write.
+		 * @param {string} value The new value for that key.
+		 * @return {void}
 		 */
 		updateField(field, value) {
 			this[field] = value
@@ -287,37 +291,47 @@ export default {
 
 		/**
 		 * Set a source sub-field and emit.
-		 * @param field
-		 * @param value
+		 *
+		 * @param {'register'|'schema'} field The `source` sub-key to write.
+		 * @param {string} value The chosen register or schema slug.
+		 * @return {void}
 		 */
 		updateSource(field, value) {
-			this.$set(this.source, field, value)
+			this.source[field] = value
 			this.emitChange()
 		},
 
 		/**
-		 * Set a bucket sub-field and emit.
-		 * @param field
-		 * @param value
+		 * Set a bucket sub-field and emit (timeseries breakdown).
+		 *
+		 * @param {'field'|'interval'} field The `bucket` sub-key to write.
+		 * @param {string} value The date field name, or an `intervalOptions` value.
+		 * @return {void}
 		 */
 		updateBucket(field, value) {
-			this.$set(this.bucket, field, value)
+			this.bucket[field] = value
 			this.emitChange()
 		},
 
 		/**
-		 * Set a group sub-field and emit.
-		 * @param field
-		 * @param value
+		 * Set a group sub-field and emit (category breakdown).
+		 *
+		 * @param {'field'|'sort'|'limit'} field The `group` sub-key to write.
+		 * @param {string|number} value The field name, a `sortOptions` value, or the slice limit.
+		 * @return {void}
 		 */
 		updateGroup(field, value) {
-			this.$set(this.group, field, value)
+			this.group[field] = value
 			this.emitChange()
 		},
 
 		/**
 		 * Receive updated filter rows from the shared editor.
-		 * @param rows
+		 *
+		 * @param {Array<{key: string, op: string, value: string}>} rows The
+		 *   editor's full row list, serialised back to an OpenRegister filter
+		 *   object by `rowsToFilter()` when the content blob is assembled.
+		 * @return {void}
 		 */
 		onFilterRows(rows) {
 			this.filterRows = rows

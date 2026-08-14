@@ -54,7 +54,7 @@
 				</p>
 			</slot>
 		</div>
-		<div v-if="$slots.legend || $scopedSlots.legend" class="cn-map-widget__legend">
+		<div v-if="$slots.legend || $slots.legend" class="cn-map-widget__legend">
 			<!--
 				@slot legend
 				@description Custom legend overlay. Receives `{ layers, markers }` as scoped props.
@@ -420,7 +420,7 @@ export default {
 		this.initMap()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		clearTimeout(this.boundsTimer)
 		clearTimeout(this.resizeTimer)
 		if (this.resizeObserver) {
@@ -784,6 +784,10 @@ export default {
 			}
 			if (buttons.length === 0) return
 
+			// `onAdd()` below is invoked by Leaflet with `this` bound to the
+			// L.Control instance, so the component has to be captured here to
+			// stash the fullscreen button ref on it.
+			// eslint-disable-next-line @typescript-eslint/no-this-alias
 			const self = this
 			const ControlBar = L.Control.extend({
 				onAdd() {

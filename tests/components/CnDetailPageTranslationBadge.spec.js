@@ -50,7 +50,7 @@ describe('CnDetailPage — translation badge surface', () => {
 
 		expect(wrapper.find('.cn-detail-page__header-text').exists()).toBe(true)
 		expect(wrapper.find('.cn-translated-badge').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders no badge when the resolved object is the source row', () => {
@@ -70,7 +70,7 @@ describe('CnDetailPage — translation badge surface', () => {
 		})
 
 		expect(wrapper.find('.cn-translated-badge').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders no badge when objectType is unset (resolvedObject is null)', () => {
@@ -81,7 +81,7 @@ describe('CnDetailPage — translation badge surface', () => {
 			},
 		})
 		expect(wrapper.find('.cn-translated-badge').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('lets a consumer #translation-badge slot override the default', () => {
@@ -107,6 +107,6 @@ describe('CnDetailPage — translation badge surface', () => {
 		expect(wrapper.find('.custom-badge').exists()).toBe(true)
 		expect(wrapper.find('.custom-badge').text()).toBe('obj-3')
 		expect(wrapper.find('.cn-translated-badge').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

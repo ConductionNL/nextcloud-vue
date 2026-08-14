@@ -56,7 +56,7 @@
 				:label="t('nextcloud-vue', 'Search automations')"
 				:placeholder="t('nextcloud-vue', 'Type to filter…')"
 				class="cn-flow-operation-picker__search"
-				@update:value="onSearch" />
+				@update:model-value="onSearch" />
 
 			<NcLoadingIcon v-if="loading" />
 			<NcEmptyContent
@@ -174,7 +174,7 @@ export default {
 		this.fetchOperations()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.searchTimer) {
 			clearTimeout(this.searchTimer)
 		}

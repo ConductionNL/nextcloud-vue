@@ -58,7 +58,7 @@ describe('CnTimeTrackerCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No tracked time linked yet')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a count headline + total tracked time on the user-dashboard surface', async () => {
@@ -83,7 +83,7 @@ describe('CnTimeTrackerCard', () => {
 		expect(txt).toContain('1h 45m')
 		expect(wrapper.find('.cn-time-tracker-card__headline').exists()).toBe(true)
 		expect(wrapper.find('.cn-time-tracker-card__distribution').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders the detail-page list with kind pills + highlights the linked row', async () => {
@@ -103,7 +103,7 @@ describe('CnTimeTrackerCard', () => {
 		expect(highlighted).toHaveLength(1)
 		expect(wrapper.find('.cn-time-tracker-card__chip-pill--task').exists()).toBe(true)
 		expect(wrapper.find('.cn-time-tracker-card__chip-pill--time').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a chip on the single-entity surface', async () => {
@@ -119,7 +119,7 @@ describe('CnTimeTrackerCard', () => {
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Code review')
 		expect(chip.text()).toContain('Task')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the unavailable label when the provider returns 503', async () => {
@@ -128,7 +128,7 @@ describe('CnTimeTrackerCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC TimeManager is currently unavailable.')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not throw when fetch fails on the detail-page surface', async () => {
@@ -138,7 +138,7 @@ describe('CnTimeTrackerCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No tracked time linked yet')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 })

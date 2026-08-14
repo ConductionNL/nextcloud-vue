@@ -11,7 +11,7 @@
 				:input-label="channelLabel"
 				label="label"
 				:clearable="false"
-				@input="onChannelInput" />
+				@update:model-value="onChannelInput" />
 		</div>
 
 		<div class="cn-interaction-form-widget__field">
@@ -27,11 +27,11 @@
 
 		<div class="cn-interaction-form-widget__field">
 			<NcTextField
-				:value="form.subject"
+				:model-value="form.subject"
 				:label="subjectLabel"
 				:error="!!subjectError"
 				:helper-text="subjectError"
-				@update:value="v => form.subject = v" />
+				@update:model-value="v => form.subject = v" />
 		</div>
 
 		<div class="cn-interaction-form-widget__field">
@@ -53,11 +53,11 @@
 				:input-label="outcomeLabel"
 				label="label"
 				:clearable="true"
-				@input="onOutcomeInput" />
+				@update:model-value="onOutcomeInput" />
 		</div>
 
 		<div class="cn-interaction-form-widget__actions">
-			<NcButton type="primary" :disabled="saving || !canRegister" @click="onRegister">
+			<NcButton variant="primary" :disabled="saving || !canRegister" @click="onRegister">
 				{{ saving ? savingLabel : registerLabel }}
 			</NcButton>
 		</div>
@@ -287,7 +287,7 @@ export default {
 				holder.value = { ...(holder.value || {}), [key]: value }
 				return
 			}
-			this.$set(holder, key, value)
+			holder[key] = value
 		},
 
 		/**

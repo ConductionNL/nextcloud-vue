@@ -14,13 +14,13 @@
 			{{ t('nextcloud-vue', 'A walkthrough is a guided tour that spotlights parts of the app and explains each step. It runs on a user\'s first visit and can be replayed from settings.') }}
 		</p>
 
-		<NcCheckboxRadioSwitch :checked.sync="walkthrough.enabled">
+		<NcCheckboxRadioSwitch v-model="walkthrough.enabled">
 			{{ t('nextcloud-vue', 'Show the walkthrough') }}
 		</NcCheckboxRadioSwitch>
 
-		<NcTextField class="cn-edit-walkthrough__field"
-			:label="t('nextcloud-vue', 'Tour title')"
-			:value.sync="tour.title" />
+		<NcTextField v-model="tour.title"
+			class="cn-edit-walkthrough__field"
+			:label="t('nextcloud-vue', 'Tour title')" />
 
 		<label class="cn-edit-walkthrough__trigger">
 			<span>{{ t('nextcloud-vue', 'When it runs') }}</span>
@@ -42,9 +42,9 @@
 		<ul class="cn-edit-walkthrough__list">
 			<li v-for="(step, index) in steps" :key="step.id" class="cn-edit-walkthrough__step">
 				<div class="cn-edit-walkthrough__row">
-					<NcTextField :label="t('nextcloud-vue', 'Step title')"
-						:value.sync="step.title" />
-					<NcButton type="tertiary"
+					<NcTextField v-model="step.title"
+						:label="t('nextcloud-vue', 'Step title')" />
+					<NcButton variant="tertiary"
 						:aria-label="t('nextcloud-vue', 'Remove step')"
 						@click="remove(index)">
 						<template #icon>
@@ -52,24 +52,24 @@
 						</template>
 					</NcButton>
 				</div>
-				<NcTextArea :label="t('nextcloud-vue', 'Body')"
-					:value.sync="step.body" />
-				<NcTextField :label="t('nextcloud-vue', 'Task (the one action for this step)')"
-					:value.sync="step.task" />
+				<NcTextArea v-model="step.body"
+					:label="t('nextcloud-vue', 'Body')" />
+				<NcTextField v-model="step.task"
+					:label="t('nextcloud-vue', 'Task (the one action for this step)')" />
 				<NcTextField :label="t('nextcloud-vue', 'Target (optional CSS selector to spotlight; blank = centred)')"
-					:value="targetRef(step)"
-					@update:value="setTarget(step, $event)" />
+					:model-value="targetRef(step)"
+					@update:model-value="setTarget(step, $event)" />
 			</li>
 		</ul>
 
 		<template #actions>
-			<NcButton type="secondary" @click="add">
+			<NcButton variant="secondary" @click="add">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
 				{{ t('nextcloud-vue', 'Add step') }}
 			</NcButton>
-			<NcButton type="primary" :disabled="saving" @click="onDone">
+			<NcButton variant="primary" :disabled="saving" @click="onDone">
 				<template #icon>
 					<NcLoadingIcon v-if="saving" :size="20" />
 					<ContentSaveOutline v-else :size="20" />
@@ -106,6 +106,8 @@ export default {
 		},
 	},
 
+	emits: ['close'],
+
 	computed: {
 		/** The working manifest's walkthrough block. */
 		walkthrough() {
@@ -134,17 +136,17 @@ export default {
 		// track later mutations (added steps wouldn't render).
 		if (!this.working) return
 		if (!this.working.walkthrough || typeof this.working.walkthrough !== 'object') {
-			this.$set(this.working, 'walkthrough', { enabled: true, tours: [] })
+			this.working.walkthrough = { enabled: true, tours: [] }
 		}
 		if (!Array.isArray(this.working.walkthrough.tours)) {
-			this.$set(this.working.walkthrough, 'tours', [])
+			this.working.walkthrough.tours = []
 		}
 		if (this.working.walkthrough.tours.length === 0) {
 			// eslint-disable-next-line vue/no-mutating-props
 			this.working.walkthrough.tours.push({ id: 'getting-started', title: '', trigger: 'first-visit', steps: [] })
 		}
 		if (!Array.isArray(this.working.walkthrough.tours[0].steps)) {
-			this.$set(this.working.walkthrough.tours[0], 'steps', [])
+			this.working.walkthrough.tours[0].steps = []
 		}
 	},
 
@@ -183,11 +185,11 @@ export default {
 		setTarget(step, value) {
 			const v = (value || '').trim()
 			if (v === '') {
-				this.$delete(step, 'target')
+				delete step.target
 			} else {
 				// CnWalkthrough's resolveTarget reads `target.selector` for
 				// kind:"selector" (not `ref`), so store it under selector.
-				this.$set(step, 'target', { kind: 'selector', selector: v })
+				step.target = { kind: 'selector', selector: v }
 			}
 		},
 	},

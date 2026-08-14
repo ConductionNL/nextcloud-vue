@@ -164,10 +164,10 @@ export default {
 		 */
 		async fetchOne(agg, i, ctx) {
 			if (!agg.register || !agg.schema) {
-				this.$set(this.values, i, null)
+				this.values[i] = null
 				return
 			}
-			this.$set(this.loadingMap, i, true)
+			this.loadingMap[i] = true
 			try {
 				const value = await fetchAggregateValue({
 					register: agg.register,
@@ -176,11 +176,11 @@ export default {
 					field: agg.field,
 					filter: agg.filter || {},
 				}, ctx)
-				this.$set(this.values, i, value)
+				this.values[i] = value
 			} catch (e) {
-				this.$set(this.values, i, null)
+				this.values[i] = null
 			} finally {
-				this.$set(this.loadingMap, i, false)
+				this.loadingMap[i] = false
 			}
 		},
 	},

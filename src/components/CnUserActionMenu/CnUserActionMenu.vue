@@ -22,7 +22,7 @@
 
 		<NcPopover
 			v-if="interactive"
-			:shown.sync="isOpen"
+			v-model:shown="isOpen"
 			:trigger="triggerElements"
 			placement="bottom-start"
 			@after-hide="onClose">

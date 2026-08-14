@@ -12,6 +12,7 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { toRaw } from 'vue'
 
 jest.mock('@nextcloud/capabilities', () => ({
 	getCapabilities: jest.fn(() => ({})),
@@ -178,12 +179,16 @@ describe('CnAppRoot registry validation', () => {
 			myModal: { kind: 'modal', component: MockModal, propsSchema: null },
 		}
 		const wrapper = mountRoot({ registry })
-		expect(wrapper.vm._provided.cnRegistry).toBe(registry)
+		// `toRaw` on the received side: the registry is provided out of
+		// reactive state, so descendants inject a Proxy around it. The
+		// assertion is still identity — the caller's registry object is what
+		// gets provided, not a rebuilt one.
+		expect(toRaw(wrapper.vm.$.provides.cnRegistry)).toBe(registry)
 	})
 
 	it('provides empty object when no registry prop is passed', () => {
 		const wrapper = mountRoot({})
-		expect(wrapper.vm._provided.cnRegistry).toEqual({})
+		expect(wrapper.vm.$.provides.cnRegistry).toEqual({})
 	})
 })
 

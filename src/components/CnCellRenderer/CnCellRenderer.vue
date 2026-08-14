@@ -240,8 +240,9 @@ export default {
 		 * - `'number'` / `'percent'` → localized number (percent appends `%`),
 		 *   honouring `decimals` (default 0).
 		 * - `'duration'` → a seconds value rendered compact (`1u 23m`, `45m 10s`,
-		 *   `12s`); pass `unit: 'minutes'` / `'hours'` when the raw value is not
-		 *   in seconds.
+		 *   `12s`); pass `unit: 'milliseconds'` / `'minutes'` / `'hours'` when the
+		 *   raw value is not in seconds. Sub-second millisecond values render as
+		 *   `245ms` rather than rounding down to `0s`.
 		 * - `'swatch'` → a colour dot read from a sibling row field named by
 		 *   `colorField` (the value renders as the cell text beside it).
 		 *
@@ -249,7 +250,7 @@ export default {
 		 * Resolved AFTER `formatter` / `widget` (those win), but BEFORE the
 		 * type-aware rendering, so a manifest column can opt into currency or a
 		 * colour swatch without registering a function.
-		 * @type {{style?: 'currency'|'number'|'percent'|'duration'|'swatch', currency?: string, decimals?: number, unit?: 'seconds'|'minutes'|'hours', prefix?: string, suffix?: string, colorField?: string}}
+		 * @type {{style?: 'currency'|'number'|'percent'|'duration'|'swatch', currency?: string, decimals?: number, unit?: 'milliseconds'|'seconds'|'minutes'|'hours', prefix?: string, suffix?: string, colorField?: string}}
 		 */
 		format: {
 			type: Object,
@@ -569,9 +570,9 @@ export default {
 		},
 		/**
 		 * Render a numeric duration compactly (`1u 23m`, `45m 10s`, `12s`). The
-		 * raw value is seconds unless `format.unit` is `'minutes'` / `'hours'`.
-		 * The hour suffix is `u` (uur) to read naturally under NL theming while
-		 * staying digit-led for other locales.
+		 * raw value is seconds unless `format.unit` is `'milliseconds'` /
+		 * `'minutes'` / `'hours'`. The hour suffix is `u` (uur) to read naturally
+		 * under NL theming while staying digit-led for other locales.
 		 *
 		 * @return {string}
 		 */
@@ -581,7 +582,14 @@ export default {
 			if (!Number.isFinite(secs)) {
 				return formatValue(this.value, this.property, { truncate: this.truncate })
 			}
-			if (fmt.unit === 'minutes') secs *= 60
+			if (fmt.unit === 'milliseconds') {
+				// Sub-second durations are the common case for a millisecond
+				// field (request/step timings), and they would all collapse to
+				// the `0s` floor below — so render them in ms directly.
+				const ms = Math.round(secs)
+				if (Math.abs(ms) < 1000) return `${fmt.prefix || ''}${ms}ms${fmt.suffix || ''}`
+				secs = ms / 1000
+			} else if (fmt.unit === 'minutes') secs *= 60
 			else if (fmt.unit === 'hours') secs *= 3600
 			secs = Math.round(secs)
 			const sign = secs < 0 ? '-' : ''

@@ -190,7 +190,7 @@
 		<template v-if="addFooterVisible" #footer>
 			<div class="cn-related-objects-widget__footer">
 				<NcButton v-if="soleAddable && soleAddable.key === 'files'"
-					type="secondary"
+					variant="secondary"
 					:disabled="uploading"
 					@click="openFilePicker">
 					<template #icon>
@@ -211,10 +211,18 @@
 						</template>
 						{{ t('nextcloud-vue', 'Upload file') }}
 					</NcActionButton>
+					<!--
+						`model-value` / `@update:model-value`, not `value` /
+						`@update:value`: @nextcloud/vue 9's NcActionInput declares
+						only `modelValue` and emits only `submit` /
+						`update:modelValue`. The old pair fell through as an inert
+						DOM attribute and a listener that never fired, so the note
+						draft stayed empty and Add note submitted nothing.
+					-->
 					<NcActionInput v-if="groupAllowed('notes')"
-						:value="noteDraft"
+						:model-value="noteDraft"
 						:label="t('nextcloud-vue', 'Add note')"
-						@update:value="noteDraft = $event"
+						@update:model-value="noteDraft = $event"
 						@submit="onAddNote">
 						<template #icon>
 							<CnIcon name="CommentTextOutline" :size="20" />
@@ -517,6 +525,17 @@ export default {
 		},
 	},
 
+	emits: [
+		'add',
+		'file-uploaded',
+		'note-added',
+		'open-integration',
+		'select-extra',
+		'select-file',
+		'select-object',
+		'select-related',
+	],
+
 	setup() {
 		const { integrations, getById } = useIntegrationRegistry()
 		return { integrations, getById }
@@ -719,7 +738,7 @@ export default {
 		subscribe(REFRESH_BUS_CHANNEL, this.onBusRefresh)
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		unsubscribe(REFRESH_BUS_CHANNEL, this.onBusRefresh)
 	},
 

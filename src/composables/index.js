@@ -21,12 +21,13 @@ export {
 	CTX_MENU_CSS_VAR_X,
 	CTX_MENU_CSS_VAR_Y,
 	CTX_MENU_DATA_ATTR,
+	CTX_MENU_POPPER_ATTR,
 } from './useContextMenu.js'
 export { useAppManifest } from './useAppManifest.js'
 export { useAppStatus } from './useAppStatus.js'
 export { useAppInstaller } from './useAppInstaller.js'
 export { useSetupStatus } from './useSetupStatus.js'
-export { useWalkthrough, compareSemver, interpolateTokens } from './useWalkthrough.js'
+export { useWalkthrough, compareSemver, interpolateTokens, loadWalkthroughSeenVersion, persistWalkthroughSeenVersion, readLocalWalkthroughSeenVersion, normaliseSeenVersion, walkthroughPreferenceUrl, WALKTHROUGH_SEEN_STORAGE_PREFIX } from './useWalkthrough.js'
 export { useGraphQL, selectByPath } from './useGraphQL.js'
 export { useDataSource, buildCountQuery, buildBucketQuery } from './useDataSource.js'
 export {
@@ -63,3 +64,4 @@ export {
 } from './useTenantContext.js'
 export { useManifestEditHistory } from './useManifestEditHistory.js'
 export { useScopedTheme } from './useScopedTheme.js'
+export { useFlowStore } from './useFlowStore.js'

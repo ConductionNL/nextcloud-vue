@@ -8,7 +8,7 @@ const stubs = {
 		template: '<div><slot /><slot name="actions" /></div>',
 	},
 	NcButton: {
-		template: '<button @click="$listeners.click"><slot /></button>',
+		template: '<button @click="$attrs.onClick && $attrs.onClick()"><slot /></button>',
 	},
 	NcNoteCard: true,
 	NcLoadingIcon: true,
@@ -378,7 +378,7 @@ describe('CnFormDialog', () => {
 		wrapper.vm.onAsyncSearch(field, 'test')
 
 		// Destroy before debounce fires
-		wrapper.destroy()
+		wrapper.unmount()
 
 		// Advance timers — the search should NOT fire
 		jest.advanceTimersByTime(500)
@@ -686,7 +686,7 @@ describe('CnFormDialog — referenceType (pluggable integration registry)', () =
 		const w = wrapper.find('.contact-entity-widget')
 		expect(w.exists()).toBe(true)
 		expect(w.text()).toBe('single-entity|c-42')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('forwards referenceContext to the widget', () => {
@@ -700,7 +700,7 @@ describe('CnFormDialog — referenceType (pluggable integration registry)', () =
 			stubs,
 		})
 		expect(wrapper.findComponent(ContactEntityWidget).props('register')).toBe('r1')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('falls back to the plain field when no integration is registered for the referenceType', () => {
@@ -711,7 +711,7 @@ describe('CnFormDialog — referenceType (pluggable integration registry)', () =
 		expect(wrapper.find('.contact-entity-widget').exists()).toBe(false)
 		// the owner field still renders (as a plain NcTextField stub)
 		expect(wrapper.findAll('nctextfield-stub, [name]').length).toBeGreaterThanOrEqual(0)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	// === Conditional field visibility (#327) ===

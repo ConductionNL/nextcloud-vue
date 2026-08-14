@@ -38,22 +38,22 @@
 				<NcSelect
 					v-else-if="filter.type === 'select'"
 					class="cn-facet-sidebar__select"
-					:value="getSelectedOptions(filter)"
+					:model-value="getSelectedOptions(filter)"
 					:options="getFilterOptions(filter)"
 					:placeholder="filter.label"
 					:input-label="filter.label"
 					:multiple="true"
 					:keep-open="true"
 					:clearable="true"
-					@input="onSelectChange(filter.key, $event)" />
+					@update:model-value="onSelectChange(filter.key, $event)" />
 
 				<!-- Text filter (fallback) -->
 				<NcTextField
 					v-else
-					:value="getFilterValue(filter.key) || ''"
+					:model-value="getFilterValue(filter.key) || ''"
 					:placeholder="filter.label"
 					:label="filter.label"
-					@update:value="onFilterChange(filter.key, $event)" />
+					@update:model-value="onFilterChange(filter.key, $event)" />
 			</div>
 		</div>
 	</div>
@@ -89,6 +89,18 @@ export default {
 		NcTextField,
 		NcCheckboxRadioSwitch,
 		NcLoadingIcon,
+	},
+
+	inject: {
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Filter
+		 * labels come from schema property titles, authored in English as the
+		 * canonical source; the visible label is resolved through this function
+		 * so it follows the user's language. Defaults to identity when used
+		 * standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -132,9 +144,11 @@ export default {
 		},
 	},
 
+	emits: ['clear-all', 'filter-change'],
+
 	computed: {
 		effectiveFilters() {
-			return filtersFromSchema(this.schema, { isAdmin: this.userIsAdmin })
+			return filtersFromSchema(this.schema, { isAdmin: this.userIsAdmin, translate: this.cnTranslate })
 		},
 
 		hasActiveFilters() {

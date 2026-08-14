@@ -10,7 +10,8 @@
  * and `dataSource.drilldown` segment-click navigation with the RAW key.
  */
 
-jest.mock('vue-apexcharts', () => ({ name: 'vue-apexcharts-stub', render: (h) => h('div') }), { virtual: true })
+// Apexcharts is stubbed globally via jest.config.js moduleNameMapper; the
+// local Vue-2 `render: (h) => h('div')` mock that lived here throws under Vue 3.
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
 	default: { get: jest.fn() },
@@ -23,11 +24,31 @@ jest.mock('@nextcloud/router', () => ({
 		return `/nc${out}`
 	}),
 }))
+// `resolveAggregateRefs` prefers the SHARED pinia object store and only falls
+// back to the direct axios GET these labelResolve specs mock when NO store is
+// active. Under Vue 2, pinia was installed as a plugin but no pinia was made
+// `setActivePinia`, so a bare `useObjectStore()` threw and the axios branch
+// ran. The Vue-3 `tests/setup.js` must call `setActivePinia()` per test
+// (pinia 2 resolves stores from the active instance, not a global Vue mixin),
+// which silently moved this file onto the store branch — labels stayed as raw
+// uuids because the store's own fetch has nothing mocked behind it. Force the
+// documented "no Pinia store is active" branch so the axios path named in the
+// test titles is the one under test.
+jest.mock('../../src/store/useObjectStore.js', () => ({
+	__esModule: true,
+	useObjectStore: () => {
+		throw new Error('no active pinia')
+	},
+}))
 
+/* eslint-disable import/first -- these imports sit BELOW the jest.mock() above
+   on purpose: the mock documents the "no active pinia" branch these specs
+   exercise, and keeping the two adjacent is what makes that readable. */
 import axios from '@nextcloud/axios'
 import { shallowMount } from '@vue/test-utils'
 
 import CnChartWidget from '../../src/components/CnChartWidget/CnChartWidget.vue'
+/* eslint-enable import/first */
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
@@ -216,6 +237,49 @@ describe('CnChartWidget — dataSource.aggregate (Wave 3)', () => {
 		// The colour map feeds the per-category palette (mappedColors path).
 		expect(wrapper.vm.effectiveColorMap).toEqual({ Consulting: '#ff0000', Support: '#00ff00' })
 		expect(wrapper.vm.mappedColors).toEqual(['#ff0000', '#00ff00'])
+	})
+
+	it('a DANGLING labelResolve reference renders "Unknown", never the raw id', async () => {
+		// Observed on procest's "Cases by Type" chart: one case pointed at a
+		// case-type id with no surviving object, and the chart printed the bare
+		// UUID as a category label. A configured labelResolve means the key is
+		// an opaque reference — it is never a usable label.
+		axios.get.mockImplementation((url) => {
+			if (url === GROUPED_URL) {
+				return Promise.resolve({
+					data: {
+						groups: [
+							{ key: 'uuid-1', value: 6 },
+							{ key: '11111111-2222-3333-4444-555555555555', value: 1 },
+						],
+					},
+				})
+			}
+			if (url.endsWith('/uuid-1')) {
+				return Promise.resolve({ data: { name: 'Building Permit' } })
+			}
+			// The dangling target 404s.
+			return Promise.reject(new Error('404'))
+		})
+		const wrapper = mountChart({
+			type: 'bar',
+			dataSource: {
+				register: 'crm',
+				schema: 'request',
+				aggregate: {
+					groupBy: 'caseType',
+					labelResolve: { schema: 'caseType', labelField: 'name' },
+				},
+			},
+		})
+		await flush()
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.resolvedLabels).toEqual(['Building Permit', 'Unknown'])
+		expect(wrapper.vm.resolvedLabels[1]).not.toContain('11111111')
+		// Drilldown still carries the RAW key so the broken row stays reachable.
+		expect(wrapper.vm.drilldownKeys)
+			.toEqual(['uuid-1', '11111111-2222-3333-4444-555555555555'])
 	})
 
 	it('an explicit colorMap prop wins over labelResolve colours', async () => {

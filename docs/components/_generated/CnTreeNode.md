@@ -2,18 +2,18 @@
 
 ### Props
 
-| Name            | Type     | Required | Default      | Description                            |
-| --------------- | -------- | -------- | ------------ | -------------------------------------- |
-| `node`          | `object` | ✓        | —            | The node data.                         |
-| `depth`         | `number` |          | `0`          | Depth (drives indent).                 |
-| `indent`        | `number` |          | `18`         | Pixels of padding per depth level.     |
-| `expandedIds`   | `object` | ✓        | —            | Set of expanded node ids.              |
-| `selectedId`    | `object` |          | `null`       | Currently selected node id (or null).  |
-| `idKey`         | `string` |          | `'id'`       | Node-field key for the id.             |
-| `labelKey`      | `string` |          | `'label'`    | Node-field key for the display label.  |
-| `childrenKey`   | `string` |          | `'children'` | Node-field key for the children array. |
-| `expandLabel`   | `string` |          | `'Expand'`   | A11y label for the expand button.      |
-| `collapseLabel` | `string` |          | `'Collapse'` | A11y label for the collapse button.    |
+| Name            | Type                 | Required | Default      | Description                                                   |
+| --------------- | -------------------- | -------- | ------------ | ------------------------------------------------------------- |
+| `node`          | `object`             | ✓        | —            | The node data.                                                |
+| `depth`         | `number`             |          | `0`          | Depth (drives indent).                                        |
+| `indent`        | `number`             |          | `18`         | Pixels of padding per depth level.                            |
+| `expandedIds`   | `object`             | ✓        | —            | Set of expanded node ids.                                     |
+| `selectedId`    | `string&#124;number` |          | `null`       | Currently selected node id, read off `node[idKey]` (or null). |
+| `idKey`         | `string`             |          | `'id'`       | Node-field key for the id.                                    |
+| `labelKey`      | `string`             |          | `'label'`    | Node-field key for the display label.                         |
+| `childrenKey`   | `string`             |          | `'children'` | Node-field key for the children array.                        |
+| `expandLabel`   | `string`             |          | `'Expand'`   | A11y label for the expand button.                             |
+| `collapseLabel` | `string`             |          | `'Collapse'` | A11y label for the collapse button.                           |
 
 ### Events
 

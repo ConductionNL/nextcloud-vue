@@ -10,6 +10,40 @@ function isExternalUrl(target) {
 }
 
 /**
+ * Substitute `{field}` row tokens in a single manifest param value.
+ *
+ * A value that is exactly one token (`"{id}"`) resolves to `row.id` with its
+ * type preserved, so numeric ids stay numbers. Tokens embedded in a longer
+ * string (`"item-{id}"`) interpolate as text. Values without braces
+ * (`"new"`) pass through verbatim — that is what keeps a literal
+ * `params: { id: "new" }` working.
+ *
+ * @param {*} value The declared param value.
+ * @param {object} row The row the action was triggered on.
+ * @return {{ resolved: boolean, value: * }} `resolved` is false when a token names a field the row does not carry.
+ */
+function resolveRowToken(value, row) {
+	if (typeof value !== 'string' || !value.includes('{')) return { resolved: true, value }
+
+	const exact = value.match(/^\{([^{}]+)\}$/)
+	if (exact) {
+		const found = row?.[exact[1]]
+		return found === undefined ? { resolved: false, value } : { resolved: true, value: found }
+	}
+
+	let resolved = true
+	const interpolated = value.replace(/\{([^{}]+)\}/g, (token, field) => {
+		const found = row?.[field]
+		if (found === undefined) {
+			resolved = false
+			return token
+		}
+		return String(found)
+	})
+	return { resolved, value: resolved ? interpolated : value }
+}
+
+/**
  * Resolve a manifest-declared action into a `(row) => void` function. Returns
  * null when the action should fall back to the page's `@action`-event-only path.
  *
@@ -24,8 +58,12 @@ function isExternalUrl(target) {
  *
  * Handler dispatch (`type: 'handler'`, the default) reads `action.handler`:
  *   - `navigate` → $router.push to `action.route` with `{ id: row[rowKey] }`,
- *     merged with the literal `action.params` map (literals win — so a
+ *     merged with the `action.params` map (declared params win — so a
  *     "New X" action can navigate to a detail route with `{ id: "new" }`).
+ *     Param strings run the `{field}` row-token grammar: `"{id}"` resolves to
+ *     `row.id` (type preserved), `"item-{id}"` interpolates, and a brace-less
+ *     `"new"` stays literal. A token naming a field the row lacks is dropped
+ *     with a warning instead of being pushed as a literal `%7Bid%7D` segment.
  *   - `emit` → null (page still bubbles `@action`).
  *   - `none` → no-op handler. Caller must also suppress the `@action` emit
  *     (handled via the `_dispatchSuppress` flag set in dispatchAction).
@@ -79,11 +117,23 @@ export function resolveActionHandler(action, ctx) {
 				+ 'but route is missing; falling back to @action-only.')
 			return null
 		}
-		// Literal params (e.g. `{ id: "new" }`) override the default row-id
-		// param, so "New X → detail with id:'new'" is expressible declaratively.
-		const literalParams = (action.params && typeof action.params === 'object') ? action.params : null
+		// Declared params override the default row-id param, so "New X → detail
+		// with id:'new'" is expressible declaratively. String values run the
+		// `{field}` row-token grammar first — an unresolved token is dropped
+		// rather than pushed as a literal `%7Bid%7D` path segment.
+		const declaredParams = (action.params && typeof action.params === 'object') ? action.params : null
 		return (row) => {
-			const params = { id: row[ctx.rowKey], ...(literalParams || {}) }
+			const params = { id: row?.[ctx.rowKey] }
+			for (const [key, declared] of Object.entries(declaredParams || {})) {
+				const { resolved, value } = resolveRowToken(declared, row)
+				if (resolved) {
+					params[key] = value
+				} else {
+					console.warn(`[CnIndexPage] action "${action.id}" param "${key}" references `
+						+ `"${declared}" but the row carries no such field; dropping the param`
+						+ (key === 'id' ? ' ("id" falls back to the row id).' : '.'))
+				}
+			}
 			ctx.router.push({ name: route, params })
 		}
 	}

@@ -96,10 +96,9 @@
 		<table class="cn-text-table-editor__grid">
 			<tbody>
 				<tr v-for="(row, rIdx) in value.rows" :key="`r-${rIdx}`">
-					<template v-for="(cell, cIdx) in row">
+					<template v-for="(cell, cIdx) in row" :key="`c-${rIdx}-${cIdx}`">
 						<td
 							v-show="!isPlaceholder(rIdx, cIdx)"
-							:key="`c-${rIdx}-${cIdx}`"
 							:rowspan="cell.rowSpan || 1"
 							:colspan="cell.colSpan || 1"
 							:class="cellClass(rIdx, cIdx)"

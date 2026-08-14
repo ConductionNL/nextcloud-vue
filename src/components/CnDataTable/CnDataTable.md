@@ -197,6 +197,7 @@ export default {
 | `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the header select-all checkbox, so screen readers announce a named control (WCAG 4.1.2) |
 | `selectRowLabel` | String | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2) |
 | `hideHeader` | Boolean | `false` | Hide the column-header row (`<thead>`) — for compact dashboard list widgets that want a plain bordered-row list without column labels |
+| `fixedLayout` | Boolean | `false` | Switch to `table-layout: fixed` so each column's `width` is authoritative rather than a hint the browser may override from cell content. Long unbreakable values (a PHP FQCN, a UUID) then wrap inside their cell instead of widening the column or painting past it, and no single unsized column soaks up all remaining width. Size every column when using it — percentages summing to 100 are easiest to reason about |
 | `fillHeight` | Boolean | `false` | Fill the parent's height (a flex-column card / widget content area) so an optional `#footer` is pushed to the bottom instead of floating under a short list; the footer stays pinned via its sticky rule when the list overflows. No-op outside a height-constrained parent — opt-in |
 
 ## Slots
@@ -232,3 +233,21 @@ For a compact "name + trailing status" list widget (à la a dashboard panel),
 combine `hideHeader` + `borderless` with the reusable cell utilities on each
 column's `cellClass`: `cn-cell--strong` (name), `cn-cell--muted cn-cell--end`
 (right-aligned muted status).
+
+## Cell utilities (`cellClass`)
+
+| Class | Effect |
+|---|---|
+| `cn-cell--strong` | Heavier font weight — for the row's primary identifier |
+| `cn-cell--muted` | Secondary text colour |
+| `cn-cell--end` | Right-aligned, no wrap — for numbers and trailing status |
+| `cn-cell--truncate` | One line with a trailing ellipsis; the full value stays reachable through the cell's `title` tooltip |
+
+Reach for `cn-cell--truncate` when a value is a single long unbreakable token — a
+URL, a fully-qualified class name. Wrapping such a value breaks it mid-token
+across several lines and makes every row that tall, so clipping reads better.
+Pair it with `fixedLayout`, which is what gives the column a width to clip
+against. Note that only some hosts forward that prop from a manifest: a
+`type: 'logs'` page passes `config.fixedLayout` straight through, while
+`CnIndexPage` accepts the key and ignores it, leaving the class to truncate
+against the browser's own auto layout.

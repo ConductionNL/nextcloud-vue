@@ -42,7 +42,7 @@
 				:description="description" />
 		</slot>
 
-		<div v-if="$slots.filters || $scopedSlots.filters" class="cn-map-page__filters">
+		<div v-if="$slots.filters || $slots.filters" class="cn-map-page__filters">
 			<!--
 				@slot filters
 				@description Filter chrome rendered between header and map. Used by procest's
@@ -76,7 +76,7 @@
 				@marker-click="onMarkerClick"
 				@bounds-change="onBoundsChange"
 				@click="onMapClick">
-				<template v-if="$slots.legend || $scopedSlots.legend" #legend="ctx">
+				<template v-if="$slots.legend || $slots.legend" #legend="ctx">
 					<!--
 						@slot legend
 						@description Custom legend overlay rendered over the map. Pass-through to
@@ -84,7 +84,7 @@
 					-->
 					<slot name="legend" v-bind="ctx" />
 				</template>
-				<template v-if="$slots.popup || $scopedSlots.popup" #popup="ctx">
+				<template v-if="$slots.popup || $slots.popup" #popup="ctx">
 					<!--
 						@slot popup
 						@description Per-marker popup body override. Pass-through to CnMapWidget's

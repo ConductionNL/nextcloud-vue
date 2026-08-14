@@ -63,6 +63,8 @@ Right sidebar for entity detail pages. Provides standardized tabs — Files, Not
 | `objectId` | String | ✓ | — | Object UUID passed to all tab components |
 | `register` | String | | `''` | OpenRegister register ID |
 | `schema` | String | | `''` | OpenRegister schema ID |
+| `objectData` | Object | | `null` | The loaded object, forwarded to prop-driven tab widgets (the `data` / `metadata` built-ins) as `objectData`. The sidebar is otherwise coordinate-based; hosts like `CnDetailPage` (via `CnAppRoot`) publish the loaded object here. |
+| `objectSchema` | Object | | `null` | The resolved JSON Schema object, forwarded to the `data` built-in tab widget (which needs the schema definition, not the `schema` slug). Published by hosts like `CnDetailPage` (via `CnAppRoot`). |
 | `hiddenTabs` | Array | | `[]` | Tab IDs to hide: `'files'`, `'notes'`, `'tags'`, `'tasks'`, `'auditTrail'` |
 | `open` | Boolean | | `true` | Whether the sidebar is visible |
 | `title` | String | | `''` | Sidebar title (defaults to `objectType`) |

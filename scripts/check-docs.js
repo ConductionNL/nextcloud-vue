@@ -465,6 +465,26 @@ function classify(name) {
 			expectedPath: `docs/store/${file} (must mention \`${name}\`)`,
 		}
 	}
+	// Built-in integration descriptors (`flowIntegration`, `deckIntegration`, …).
+	//
+	// These are data, not API: each is a frozen `{ id, label, icon, tab, widget,
+	// … }` object with no parameters to document, and there are 26 of them. A
+	// page each would be 26 near-identical stubs, and the requirement to write
+	// one is precisely what kept 24 of them unexported from the barrel for
+	// months (see scripts/check-integration-parity.js). One table in
+	// builtin-integrations.md is the useful documentation; this rule requires
+	// every descriptor to appear in it by name, exactly like STORE_MENTION_ONLY.
+	//
+	// `registerBuiltinIntegrations` / `registerLeafIntegrations` are functions,
+	// not descriptors, and keep their own pages — hence the `register` guard.
+	if (/Integration$/.test(name) && !name.startsWith('register')) {
+		return {
+			category: 'Integration descriptors',
+			mentionFile: path.join(DOCS_DIR, 'utilities', 'builtin-integrations.md'),
+			mentionSymbol: name,
+			expectedPath: `docs/utilities/builtin-integrations.md (must mention \`${name}\`)`,
+		}
+	}
 	if (/^Cn[A-Z]/.test(name)) {
 		const stem = toKebab(name)
 		return {

@@ -10,6 +10,7 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { h, toRaw } from 'vue'
 
 jest.mock('@nextcloud/capabilities', () => ({
 	getCapabilities: jest.fn(),
@@ -291,11 +292,11 @@ describe('CnAppRoot', () => {
 		// compiler at runtime.
 		const NamedSidebar = {
 			name: 'NamedSidebar',
-			render(h) { return h('div', { class: 'named-sidebar' }, 'named') },
+			render() { return h('div', { class: 'named-sidebar' }, 'named') },
 		}
 		const ConsumerSidebar = {
 			name: 'ConsumerSidebar',
-			render(h) { return h('div', { class: 'consumer-sidebar' }, 'consumer') },
+			render() { return h('div', { class: 'consumer-sidebar' }, 'consumer') },
 		}
 
 		it('mounts the resolved component as the slot default content when no #sidebar override', () => {
@@ -704,7 +705,7 @@ describe('CnAppRoot', () => {
 			const nav = wrapper.findComponent({ name: 'CnAppNav' })
 			expect(nav.exists()).toBe(true)
 			expect(nav.props('manifest')).toBe(wrapper.props('manifest'))
-			wrapper.destroy()
+			wrapper.unmount()
 		})
 
 		it('updates the CnAppNav manifest prop when the manifest prop changes', async () => {
@@ -721,9 +722,12 @@ describe('CnAppRoot', () => {
 			}
 			await wrapper.setProps({ manifest: merged })
 			const nav = wrapper.findComponent({ name: 'CnAppNav' })
-			expect(nav.props('manifest')).toBe(merged)
+			// `toRaw` on the received side: props arrive through a reactive
+			// Proxy under Vue 3, but the assertion is still identity — the new
+			// manifest object itself must reach CnAppNav, not a copy of it.
+			expect(toRaw(nav.props('manifest'))).toBe(merged)
 			expect(nav.props('manifest').menu[0].children[0].query.caseType).toBe('u1')
-			wrapper.destroy()
+			wrapper.unmount()
 		})
 	})
 
@@ -847,7 +851,7 @@ describe('CnAppRoot', () => {
 			expect(style.textContent).toContain('[data-nldesign-theme-scope="myapp"]')
 			expect(style.textContent).not.toContain(':root')
 
-			wrapper.destroy()
+			wrapper.unmount()
 		})
 
 		it('a manifest with no runtime.theme injects no style (unaffected)', async () => {
@@ -856,7 +860,7 @@ describe('CnAppRoot', () => {
 			await wrapper.vm.$nextTick()
 
 			expect(document.head.querySelector('style[data-nldesign-theme="myapp"]')).toBeNull()
-			wrapper.destroy()
+			wrapper.unmount()
 		})
 
 		it('unmounting tears down the scoped style', async () => {
@@ -866,7 +870,7 @@ describe('CnAppRoot', () => {
 			await wrapper.vm.$nextTick()
 			expect(document.head.querySelector('style[data-nldesign-theme="myapp"]')).not.toBeNull()
 
-			wrapper.destroy()
+			wrapper.unmount()
 			expect(document.head.querySelector('style[data-nldesign-theme="myapp"]')).toBeNull()
 		})
 	})

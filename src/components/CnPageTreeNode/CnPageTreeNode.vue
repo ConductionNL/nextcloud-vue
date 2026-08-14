@@ -11,7 +11,7 @@
 		handle=".cn-page-tree__handle"
 		:move="onMove"
 		@end="flatten">
-		<li v-for="node in tree" :key="node.ref.id" class="cn-page-tree__node">
+		<li v-for="node in tree" :key="nodeKey(node.ref)" class="cn-page-tree__node">
 			<CnPageTreeRow :page="node.ref"
 				:can-add-child="maxDepth > 0"
 				@add-child="addChild(node)"
@@ -30,7 +30,7 @@
 				handle=".cn-page-tree__handle"
 				:move="onMove"
 				@end="flatten">
-				<li v-for="child in node.children" :key="child.ref.id" class="cn-page-tree__node">
+				<li v-for="child in node.children" :key="nodeKey(child.ref)" class="cn-page-tree__node">
 					<CnPageTreeRow :page="child.ref"
 						:can-add-child="false"
 						@rename="(id) => renamePage(child.ref, id)"
@@ -46,6 +46,13 @@
 import draggable from 'vuedraggable'
 import { translate as t } from '@nextcloud/l10n'
 import CnPageTreeRow from './CnPageTreeRow.vue'
+
+// Stable per-page-object render keys, independent of the mutable `id`. Keyed by
+// the page ref itself (a WeakMap, so removed pages are GC'd) so a slug rename —
+// which changes `id` in place — does NOT change the `<li>` key and therefore
+// does NOT tear down the row (which would close its inline settings panel).
+let pageKeySeq = 0
+const pageKeys = new WeakMap()
 
 /**
  * CnPageTreeNode — the pages editor's drag-and-drop tree (ADR-041).
@@ -94,6 +101,8 @@ export default {
 		},
 	},
 
+	emits: ['navigate'],
+
 	data() {
 		return {
 			// Local nested mirror of `list` (real page refs) that vuedraggable
@@ -119,6 +128,24 @@ export default {
 
 	methods: {
 		t,
+		/**
+		 * Stable render key for a page's `<li>`, tied to the page object rather
+		 * than its `id`. Renaming a slug mutates `id` in place; keying by `id`
+		 * would change the key and tear the row down, closing its open settings
+		 * panel. Keyed by the ref (via WeakMap) so it survives renames and tree
+		 * rebuilds (which reuse the same page objects).
+		 *
+		 * @param {object} ref The page object.
+		 * @return {string} A stable key for this page.
+		 */
+		nodeKey(ref) {
+			let key = pageKeys.get(ref)
+			if (!key) {
+				key = `cn-page-${++pageKeySeq}`
+				pageKeys.set(ref, key)
+			}
+			return key
+		},
 		/**
 		 * Bubble a row's "Go to page" request up to the modal, which navigates.
 		 *
@@ -167,10 +194,10 @@ export default {
 		flatten() {
 			const flat = []
 			for (const node of this.tree) {
-				if (node.ref.parent) this.$delete(node.ref, 'parent')
+				if (node.ref.parent) delete node.ref.parent
 				flat.push(node.ref)
 				for (const child of node.children) {
-					this.$set(child.ref, 'parent', node.ref.id)
+					child.ref.parent = node.ref.id
 					flat.push(child.ref)
 				}
 			}
@@ -226,17 +253,17 @@ export default {
 			if (!newId || newId === oldId) return
 			if (this.list.some((p) => p && p.id === newId)) return
 			for (const p of this.list) {
-				if (p && p.parent === oldId) this.$set(p, 'parent', newId)
+				if (p && p.parent === oldId) p.parent = newId
 			}
 			if (Array.isArray(this.menu)) {
 				const walk = (items) => (items || []).forEach((it) => {
 					if (!it) return
-					if (it.route === oldId) this.$set(it, 'route', newId)
+					if (it.route === oldId) it.route = newId
 					walk(it.children)
 				})
 				walk(this.menu)
 			}
-			this.$set(ref, 'id', newId)
+			ref.id = newId
 			this.flatten()
 			this.tree = this.buildTree()
 		},

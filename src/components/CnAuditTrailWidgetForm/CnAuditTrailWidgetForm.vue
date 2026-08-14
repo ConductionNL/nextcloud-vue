@@ -6,14 +6,14 @@
 <template>
 	<div class="cn-audit-trail-form">
 		<NcTextField
-			:value="title"
+			:model-value="title"
 			:label="t('nextcloud-vue', 'Title')"
-			@update:value="update('title', $event)" />
+			@update:model-value="update('title', $event)" />
 		<NcTextField
-			:value="String(maxDisplay)"
+			:model-value="String(maxDisplay)"
 			type="number"
 			:label="t('nextcloud-vue', 'Max rows')"
-			@update:value="updateMaxDisplay($event)" />
+			@update:model-value="updateMaxDisplay($event)" />
 		<p class="cn-audit-trail-form__hint">
 			{{ t('nextcloud-vue', 'The audited object comes from the page context (detail pages).') }}
 		</p>

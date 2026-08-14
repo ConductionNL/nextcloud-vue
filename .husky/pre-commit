@@ -3,3 +3,7 @@
 # this file thin so the script is the single source of truth and easy
 # to test by running it directly.
 bash scripts/precommit-regenerate-partials.sh
+
+# Fleet convention: docs/features.json is generated at commit time, never by
+# CI (ConductionNL/.github CONVENTIONS.md). Same thin-hook pattern as above.
+bash scripts/precommit-regenerate-features.sh

@@ -16,13 +16,13 @@
 		<!-- Select style -->
 		<NcSelect
 			v-else-if="style === 'select'"
-			:value="selectedOption"
+			:model-value="selectedOption"
 			:options="displayOptions"
 			:clearable="false"
 			:input-label="label || writeKey"
 			label="label"
 			data-testid="cn-workspace-filter-select"
-			@input="onSelect" />
+			@update:model-value="onSelect" />
 
 		<!-- Radio-list style (default) -->
 		<ul v-else
@@ -38,7 +38,6 @@
 					:name="radioGroupName"
 					:model-value="isActive(option) ? String(option.value) : ''"
 					:value="String(option.value)"
-					:checked="isActive(option)"
 					:data-testid="`cn-workspace-filter-option-${option.value}`"
 					@update:model-value="onRadioPick(option)">
 					<span class="cn-workspace-filter-widget__option-label">{{ option.label }}</span>
@@ -117,6 +116,8 @@ export default {
 			default: () => ({}),
 		},
 	},
+
+	emits: ['change'],
 
 	data() {
 		return {
@@ -397,7 +398,7 @@ export default {
 				holder.value = { ...(holder.value || {}), [this.writeKey]: value }
 				return
 			}
-			this.$set(holder, this.writeKey, value)
+			holder[this.writeKey] = value
 		},
 	},
 }

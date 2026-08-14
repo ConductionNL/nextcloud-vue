@@ -121,10 +121,10 @@
 
 						<!-- Personal: only toggle THIS app in/out of the credential. -->
 						<div v-if="scope === 'personal'" class="cn-credentials__item-toggle">
-							<NcCheckboxRadioSwitch :checked="appAllowed(cred)"
+							<NcCheckboxRadioSwitch :model-value="appAllowed(cred)"
 								:disabled="cred.saving"
 								type="switch"
-								@update:checked="toggleThisApp(cred, $event)">
+								@update:model-value="toggleThisApp(cred, $event)">
 								{{ t('nextcloud-vue', '{app} may use this credential', { app: appDisplayName }) }}
 							</NcCheckboxRadioSwitch>
 							<p v-if="otherApps(cred).length" class="cn-credentials__also muted">
@@ -136,14 +136,14 @@
 						<NcSelect v-else
 							class="cn-credentials__item-apps"
 							:options="appOptions"
-							:value="cred.allowedApps"
+							:model-value="cred.allowedApps"
 							:multiple="true"
 							:taggable="true"
 							:close-on-select="false"
 							:disabled="cred.saving"
 							:input-label="t('nextcloud-vue', 'Allowed apps')"
 							:placeholder="t('nextcloud-vue', 'No app may use this credential yet')"
-							@input="onAllowedAppsChange(cred, $event)" />
+							@update:model-value="onAllowedAppsChange(cred, $event)" />
 					</li>
 				</ul>
 			</section>
@@ -224,14 +224,14 @@
 							<!-- Organisation add: admin also chooses the allowed apps up-front. -->
 							<NcSelect v-if="scope === 'organisation'"
 								:options="appOptions"
-								:value="form.allowedApps"
+								:model-value="form.allowedApps"
 								:multiple="true"
 								:taggable="true"
 								:close-on-select="false"
 								:disabled="saving"
 								:input-label="t('nextcloud-vue', 'Allowed apps')"
 								:placeholder="t('nextcloud-vue', 'Choose which apps may use it')"
-								@input="form.allowedApps = normaliseApps($event)" />
+								@update:model-value="form.allowedApps = normaliseApps($event)" />
 							<p v-else class="cn-credentials__muted cn-credentials__addnote">
 								{{ t('nextcloud-vue', '{app} will be allowed to use this credential. You can change that afterwards.', { app: appDisplayName }) }}
 							</p>
@@ -241,7 +241,7 @@
 									{{ t('nextcloud-vue', 'Cancel') }}
 								</NcButton>
 								<NcButton variant="primary"
-									native-type="submit"
+									type="submit"
 									:disabled="!canSubmit">
 									{{ t('nextcloud-vue', 'Add credential') }}
 								</NcButton>

@@ -15,11 +15,11 @@
 
 ### Events
 
-| Name                                                                  | Payload | Description                                                                                            |
-| --------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------ |
-| `update:visibleDate Emitted on month navigation for `.sync` binding.` | —       |                                                                                                        |
-| `range-change`                                                        | —       | Emitted on mount and after every month navigation so the host can re-fetch objects for the new window. |
-| `object-click`                                                        | —       | Emitted when a plotted object is clicked.                                                              |
+| Name                 | Payload | Description                                                                                            |
+| -------------------- | ------- | ------------------------------------------------------------------------------------------------------ |
+| `object-click`       | —       | Emitted when a plotted object is clicked.                                                              |
+| `range-change`       | —       | Emitted on mount and after every month navigation so the host can re-fetch objects for the new window. |
+| `update:visibleDate` | —       | Emitted on month navigation, for `v-model:visible-date` binding.                                       |
 
 ### Slots
 

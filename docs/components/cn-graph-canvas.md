@@ -104,12 +104,16 @@ The canvas never mutates `nodes`. Dragging emits `node-move` with the intended p
 | `viewBox` | `String` | `'0 0 2000 1500'` | SVG viewBox for the edge layer. Widen it if the graph extends past the default area. |
 | `readOnly` | `Boolean` | `false` | Blocks node moves and connections. Pan and zoom stay live so the graph is still explorable. |
 | `connectable` | `Boolean` | `true` | Whether nodes expose a connection handle. |
+| `resizable` | `Boolean` | `false` | Gives each node a corner grip. The new size arrives as `node-resize`; a node's own `width`/`height` then win over `nodeWidth`/`nodeHeight`. |
+| `showGrid` | `Boolean` | `false` | Draws a dot grid behind the graph. The dots pan and zoom with the content, so a dot keeps the same canvas coordinate as the graph moves. |
+| `gridSize` | `Number` | `24` | Spacing between grid dots, in canvas units. |
 
 ## Events
 
 | Event | Payload | When |
 |---|---|---|
-| `node-move` | `{ id, x, y }` | A node was dragged, or nudged with the arrow keys. Clamped to the positive quadrant. |
+| `node-move` | `{ id, x, y }` | A node was dragged, or nudged with the arrow keys. **Not** clamped: a graph has no top-left corner, so a node may sit above or left of the origin. |
+| `node-resize` | `{ id, width, height }` | A node was resized by its grip or with the arrow keys on that grip. Sizes are yours to store, exactly as positions are. Never smaller than 40×40. |
 | `connect` | `{ source, target }` | A connection was made — by dragging a handle onto a node, or with the keyboard (`c` on the source then `c` on the target). Self-connections are refused. |
 | `canvas-drop` | `{ x, y, event }` | Something was dropped onto the canvas. `x`/`y` are in canvas space (pan/zoom undone); `event` is the native `DragEvent`, so you can read `dataTransfer`. The canvas does not add the node — you do. |
 | `node-select` | `id` | A node was clicked or focused. |

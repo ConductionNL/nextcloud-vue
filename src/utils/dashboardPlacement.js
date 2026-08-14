@@ -46,7 +46,7 @@ export const DEFAULT_VIEWPORT_ROWS = 8
  * monotonically descending window widths mapped to column counts
  * (1400→12, 1100→8, 768→4, 480→1). Consumers may pass their own.
  *
- * @type {ReadonlyArray<{ w: number, c: number }>}
+ * @type {Readonly<Array<{ w: number, c: number }>>}
  */
 export const DEFAULT_GRID_BREAKPOINTS = Object.freeze([
 	{ w: 1400, c: 12 },

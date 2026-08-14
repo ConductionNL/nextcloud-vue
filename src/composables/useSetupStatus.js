@@ -72,6 +72,13 @@ export function useSetupStatus(appId, manifest) {
 		const st = (status.value.steps && status.value.steps[s.id]) || {}
 		return { ...s, done: st.done === true, detail: st.detail }
 	}))
+	// Presentational step types carry no work, so the server never reports a
+	// `done` flag for them. Counting them as "unmet" made `optionalUnmet`
+	// permanently non-empty for any manifest with a welcome/summary step,
+	// which kept CnAppRoot's non-gating setup wizard auto-opening over the
+	// app on every fresh browser profile no matter how complete setup was.
+	// Only actionable steps can be unmet.
+	const isActionable = (s) => s.type !== 'info' && s.type !== 'summary'
 	// `forbidden` empties BOTH lists, and that is what actually suppresses the
 	// wizard: CnAppRoot gates on `requiredUnmet.length > 0` (blocking) and on
 	// `requiredUnmet.length === 0 && optionalUnmet.length > 0` (auto-open) —
@@ -80,10 +87,10 @@ export function useSetupStatus(appId, manifest) {
 	// described work they could neither see nor do.
 	const requiredUnmet = computed(() => (forbidden.value === true
 		? []
-		: steps.value.filter((s) => requiredById[s.id] && !s.done)))
+		: steps.value.filter((s) => isActionable(s) && requiredById[s.id] && !s.done)))
 	const optionalUnmet = computed(() => (forbidden.value === true
 		? []
-		: steps.value.filter((s) => !requiredById[s.id] && !s.done)))
+		: steps.value.filter((s) => isActionable(s) && !requiredById[s.id] && !s.done)))
 	const completed = computed(() => {
 		if (!enabled) {
 			return true

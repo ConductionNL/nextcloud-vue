@@ -41,7 +41,7 @@
 				:label="t('nextcloud-vue', 'Search albums')"
 				:placeholder="t('nextcloud-vue', 'Type to filter…')"
 				class="cn-photo-album-picker__search"
-				@update:value="onSearch" />
+				@update:model-value="onSearch" />
 
 			<NcLoadingIcon v-if="loading" />
 			<NcEmptyContent
@@ -148,7 +148,7 @@ export default {
 		this.fetchAlbums()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.searchTimer) {
 			clearTimeout(this.searchTimer)
 		}
@@ -217,7 +217,7 @@ export default {
 		},
 
 		onCoverError(album) {
-			this.$set(this.brokenCovers, album.id, true)
+			this.brokenCovers[album.id] = true
 		},
 
 		countLabel(album) {

@@ -145,6 +145,8 @@ export default {
 		},
 	},
 
+	emits: ['suggest', 'support'],
+
 	computed: {
 		suggestUrlIsExternal() {
 			return /^https?:\/\//i.test(this.suggestUrl)

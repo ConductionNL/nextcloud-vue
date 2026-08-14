@@ -6,22 +6,22 @@
 <template>
 	<div class="cn-people-widget-form">
 		<NcSelect
-			:value="layout"
+			:model-value="layout"
 			:options="layoutOptions"
 			:input-label="t('nextcloud-vue', 'Layout')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('layout', $event)" />
+			@update:modelValue="updateField('layout', $event)" />
 
 		<NcSelect
-			:value="sortBy"
+			:model-value="sortBy"
 			:options="sortByOptions"
 			:input-label="t('nextcloud-vue', 'Sort by')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('sortBy', $event)" />
+			@update:modelValue="updateField('sortBy', $event)" />
 
 		<label class="cn-people-widget-form__field">
 			{{ t('nextcloud-vue', 'Group filter (comma-separated, blank for all)') }}

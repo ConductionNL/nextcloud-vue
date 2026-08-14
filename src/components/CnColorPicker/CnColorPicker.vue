@@ -1,7 +1,7 @@
 <template>
 	<div class="cn-color-picker">
 		<NcPopover
-			:shown.sync="open"
+			v-model:shown="open"
 			:disabled="disabled"
 			:triggers="[]"
 			popup-role="dialog"
@@ -18,13 +18,18 @@
 					@click="open = !open" />
 			</template>
 			<div class="cn-color-picker__panel">
+				<!-- `@ckpack/vue-color` (the Vue-3 successor of `vue-color`)
+				     follows the Vue-3 v-model convention: the colour comes in
+				     as `modelValue`, not `value`. Passing `value` leaves it
+				     undefined and the picker throws on its first colour
+				     change. `value` is kept as this component's own public
+				     prop name so consumers are unaffected. -->
 				<ChromeColorPicker
 					ref="picker"
 					v-bind="$attrs"
 					class="cn-color-picker__chrome"
 					:class="{ 'cn-color-picker__chrome--locked-mode': mode !== null }"
-					:value="value"
-					v-on="$listeners" />
+					:model-value="value || '#000000'" />
 			</div>
 		</NcPopover>
 		<!-- Inline clear affordance: sits next to the swatch and only appears
@@ -45,7 +50,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcPopover } from '@nextcloud/vue'
-import { Chrome as ChromeColorPicker } from 'vue-color'
+import { Chrome as ChromeColorPicker } from '@ckpack/vue-color'
 import Close from 'vue-material-design-icons/Close.vue'
 
 /**
@@ -136,6 +141,8 @@ export default {
 			default: false,
 		},
 	},
+
+	emits: ['clear'],
 
 	data() {
 		return {

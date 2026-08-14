@@ -30,9 +30,9 @@
 					input-id="cn-copy-pattern"
 					:label-outside="true"
 					:options="patternOptions"
-					:value="selectedPattern"
+					:model-value="selectedPattern"
 					:clearable="false"
-					@input="selectedPattern = $event" />
+					@update:model-value="selectedPattern = $event" />
 			</div>
 
 			<div class="cn-copy__preview">
@@ -149,6 +149,8 @@ export default {
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Copy') },
 	},
 
+	emits: ['close', 'confirm'],
+
 	data() {
 		return {
 			loading: false,
@@ -186,7 +188,7 @@ export default {
 		},
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.closeTimeout) clearTimeout(this.closeTimeout)
 	},
 

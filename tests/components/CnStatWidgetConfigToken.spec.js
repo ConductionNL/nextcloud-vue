@@ -63,7 +63,7 @@ describe('CnStatWidget — @config.<key> token', () => {
 		// @config.currency token is resolved, not rendered raw.
 		expect(wrapper.text()).toContain('$')
 		expect(wrapper.text()).not.toContain('@config')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('falls back to the literal EUR default when @config.currency is unset', async () => {
@@ -81,7 +81,7 @@ describe('CnStatWidget — @config.<key> token', () => {
 		// Unresolved → the guard applies the EUR default (no raw token, no RangeError).
 		expect(wrapper.text()).toContain('€')
 		expect(wrapper.text()).not.toContain('@config')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('keeps a literal currency string working (backwards compatible)', async () => {
@@ -96,7 +96,7 @@ describe('CnStatWidget — @config.<key> token', () => {
 		await flush()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('£')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('interpolates @config.<key> in an endpoint URL', async () => {
@@ -109,7 +109,7 @@ describe('CnStatWidget — @config.<key> token', () => {
 		await wrapper.vm.$nextTick()
 		expect(generateUrl).toHaveBeenCalledWith('/api/stats/2026')
 		expect(wrapper.vm.value).toBe(9)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('resolves @config.<key> in an aggregate filter', async () => {
@@ -131,6 +131,6 @@ describe('CnStatWidget — @config.<key> token', () => {
 		// The flattened filter param must carry the resolved config value.
 		const call = axios.get.mock.calls[0]
 		expect(call[1].params['filter[currency]']).toBe('USD')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

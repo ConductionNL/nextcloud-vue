@@ -9,8 +9,8 @@
 		     from the `defaultShare` prop. Hidden via `showShareToggle=false`. -->
 		<NcCheckboxRadioSwitch
 			v-if="showShareToggle"
+			v-model="share"
 			class="cn-sidebar-tab__share"
-			:checked.sync="share"
 			:disabled="loading"
 			type="switch">
 			{{ shareLabel }}

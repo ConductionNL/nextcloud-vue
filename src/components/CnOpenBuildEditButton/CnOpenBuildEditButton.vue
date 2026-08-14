@@ -14,7 +14,7 @@
 <template>
 	<div v-if="isAvailable" class="cn-openbuild-edit">
 		<NcActions
-			:open.sync="menuOpen"
+			v-model:open="menuOpen"
 			:aria-label="t('nextcloud-vue', 'Edit with OpenBuild')"
 			:class="['cn-openbuild-edit__actions', { 'cn-openbuild-edit__actions--editing': isEditing }]">
 			<template #icon>
@@ -165,10 +165,11 @@
 			v-if="showDataModal"
 			:manifest="effectiveManifest"
 			@close="showDataModal = false" />
-		<CnEditFlowsModal
-			v-if="showFlowsModal"
-			:manifest="effectiveManifest"
-			@close="showFlowsModal = false" />
+		<CnFlowEditModal
+			v-if="showFlowsCanvasModal"
+			:app="flowApp"
+			flow-id="new"
+			@close="showFlowsCanvasModal = false" />
 		<CnEditSetupModal
 			v-if="showSetupModal"
 			:working="workingManifest"
@@ -208,7 +209,7 @@ import CnEditSidebarModal from '../../dialogs/CnEditSidebarModal.vue'
 import CnEditActionsModal from '../../dialogs/CnEditActionsModal.vue'
 import CnAddWidgetModal from '../../dialogs/CnAddWidgetModal.vue'
 import CnEditDataModal from '../../dialogs/CnEditDataModal.vue'
-import CnEditFlowsModal from '../../dialogs/CnEditFlowsModal.vue'
+import CnFlowEditModal from '../../dialogs/CnFlowEditModal.vue'
 import CnEditSetupModal from '../../dialogs/CnEditSetupModal.vue'
 import CnEditWalkthroughModal from '../../dialogs/CnEditWalkthroughModal.vue'
 import CnEditSupportModal from '../../dialogs/CnEditSupportModal.vue'
@@ -243,7 +244,7 @@ export default {
 		CnEditActionsModal,
 		CnAddWidgetModal,
 		CnEditDataModal,
-		CnEditFlowsModal,
+		CnFlowEditModal,
 		CnEditSetupModal,
 		CnEditWalkthroughModal,
 		CnEditSupportModal,
@@ -291,6 +292,24 @@ export default {
 		},
 	},
 
+	emits: [
+		'add-widget',
+		'cancel',
+		'edit',
+		'edit-actions',
+		'edit-data',
+		'edit-flows',
+		'edit-menu',
+		'edit-pages',
+		'edit-settings',
+		'edit-setup',
+		'edit-sidebar',
+		'edit-support',
+		'edit-walkthrough',
+		'save',
+		'widget-added',
+	],
+
 	data() {
 		return {
 			showMenuModal: false,
@@ -300,7 +319,7 @@ export default {
 			showAddWidgetModal: false,
 			showActionsModal: false,
 			showDataModal: false,
-			showFlowsModal: false,
+			showFlowsCanvasModal: false,
 			showSetupModal: false,
 			showWalkthroughModal: false,
 			showSupportModal: false,
@@ -310,6 +329,20 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The app id a flow created from here belongs to.
+		 *
+		 * Read from Nextcloud's own app context rather than the manifest,
+		 * because the manifest describes the PAGES an app renders and does not
+		 * carry the app's id. Falling back to `openregister` keeps a new flow in
+		 * the shared store rather than in an app namespace that does not exist.
+		 *
+		 * @return {string} The owning app id.
+		 */
+		flowApp() {
+			return (window?.OCA?.Theming?.name && window?.appName) || window?.appName || 'openregister'
+		},
+
 		/** Whether to render — the `available` prop OR the injected availability. */
 		isAvailable() {
 			return Boolean(this.available || this.unref(this.cnOpenBuildAvailable))
@@ -349,24 +382,16 @@ export default {
 			return !!(this.currentPage && this.currentPage.type === 'detail')
 		},
 		/**
-		 * Whether the active page is a blank custom page with no body yet — no
-		 * `component`, no `slots.main`, and no `body`-slot widgets. Such a page
-		 * renders the builder empty-state; letting "Add widget" target it turns a
-		 * freshly-created page into a widget grid (the V2 `body` slot renders for
-		 * any page type), so a new page is buildable from empty. ADR-041.
+		 * Whether the active page hosts a widget grid that "Add widget" can target.
+		 * Only dashboard and detail pages do: their bodies are adjustable widget
+		 * grids. A `type:"custom"` page is the manifest's escape hatch — it renders
+		 * a bespoke `component` (or `slots.main`) and owns its own body, so it has
+		 * no widget grid to add to. Widget canvases are dashboard pages.
 		 *
 		 * @return {boolean}
 		 */
-		isEmptyBodyPage() {
-			const p = this.currentPage
-			if (!p || p.type !== 'custom') return false
-			if (p.component || (p.slots && p.slots.main)) return false
-			const widgets = Array.isArray(p.widgets) ? p.widgets : []
-			return !widgets.some((w) => w && (w.slot || 'body') === 'body')
-		},
-		/** Whether the active page hosts a widget grid that "Add widget" can target. */
 		pageSupportsWidgets() {
-			return this.isDashboardPage || this.isDetailPage || this.isEmptyBodyPage
+			return this.isDashboardPage || this.isDetailPage
 		},
 		/**
 		 * The widget-picker surface for "Add widget". Detail pages get
@@ -498,13 +523,13 @@ export default {
 			// through a live lookup rather than a cached map — see getWidgetDef.)
 			const cfg = page.config && typeof page.config === 'object' && !Array.isArray(page.config) ? page.config : null
 			if ((page.type === 'dashboard' || page.type === 'detail') && cfg) {
-				if (!Array.isArray(cfg.widgets)) this.$set(cfg, 'widgets', [])
-				if (!Array.isArray(cfg.layout)) this.$set(cfg, 'layout', [])
+				if (!Array.isArray(cfg.widgets)) cfg.widgets = []
+				if (!Array.isArray(cfg.layout)) cfg.layout = []
 				const nextY = cfg.layout.reduce((max, l) => Math.max(max, (l.gridY || 0) + (l.gridHeight || 1)), 0)
 				cfg.widgets.push({ id: wid, type: payload.type, ...chromeFields, content })
 				cfg.layout.push({ id: cfg.layout.length + 1, widgetId: wid, gridX: 0, gridY: nextY, gridWidth: 6, gridHeight: 3 })
 			} else {
-				if (!Array.isArray(page.widgets)) this.$set(page, 'widgets', [])
+				if (!Array.isArray(page.widgets)) page.widgets = []
 				const bodyWidgets = page.widgets.filter((w) => w && w.slot === 'body')
 				const nextY = bodyWidgets.reduce((max, w) => Math.max(max, (w.gridY || 0) + (w.gridHeight || 1)), 0)
 				page.widgets.push({
@@ -556,7 +581,7 @@ export default {
 			const page = pages.find((p) => p && p.id === this.effectivePageId) ?? null
 			if (!page || page.type !== 'detail') return
 			if (!page.config || typeof page.config !== 'object' || Array.isArray(page.config)) {
-				this.$set(page, 'config', {})
+				page.config = {}
 			}
 			const cfg = page.config
 			// Already customised (ejected before, or a hand-authored grid page).
@@ -566,8 +591,8 @@ export default {
 				schema: cfg.schema || '',
 				showRelated: cfg.showRelatedObjects !== false,
 			})
-			this.$set(cfg, 'widgets', grid.widgets)
-			this.$set(cfg, 'layout', grid.layout)
+			cfg.widgets = grid.widgets
+			cfg.layout = grid.layout
 		},
 		/** Enter edit mode (if needed) and open the pages editor modal. */
 		onEditPages() {
@@ -655,12 +680,17 @@ export default {
 			this.$emit('edit-data')
 		},
 		/**
-		 * Open the flows editor. Like Edit data, this edits OpenRegister schema
-		 * configuration (`x-openregister-flows`) directly via the API and does
-		 * NOT enter manifest edit mode.
+		 * Open the flow editor. Like Edit data, this edits OpenRegister directly
+		 * and does NOT enter manifest edit mode.
+		 *
+		 * This used to edit a schema's `x-openregister-flows` as a flat
+		 * `{name, trigger, actions[]}` list, through two interchangeable editors
+		 * (a form and a canvas). That dialect and the service that executed it
+		 * are gone: a flow is now a node/edge document in OpenRegister's one flow
+		 * store, and there is one editor for it.
 		 */
 		onEditFlows() {
-			this.showFlowsModal = true
+			this.showFlowsCanvasModal = true
 			this.menuOpen = false
 			/**
 			 * @event edit-flows Emitted when the flows editor opens.

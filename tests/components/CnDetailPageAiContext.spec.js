@@ -14,7 +14,7 @@ jest.mock('@nextcloud/axios', () => ({
 const CnDetailPage = require('../../src/components/CnDetailPage/CnDetailPage.vue').default
 
 function makeAiContext(overrides = {}) {
-	return Vue.observable({ appId: 'test', pageKind: 'custom', route: { path: '/' }, ...overrides })
+	return Vue.reactive({ appId: 'test', pageKind: 'custom', route: { path: '/' }, ...overrides })
 }
 
 const stubs = {
@@ -67,7 +67,7 @@ describe('CnDetailPage — AI context push', () => {
 		const wrapper = mountDetail({}, ctx)
 
 		expect(ctx.pageKind).toBe('detail')
-		wrapper.destroy()
+		wrapper.unmount()
 		expect(ctx.pageKind).toBe('custom')
 		expect(ctx.objectUuid).toBeUndefined()
 	})

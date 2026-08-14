@@ -11,8 +11,8 @@
  *
  * `mountAttached` is `@vue/test-utils`'s `mount` plus: attach a fresh
  * `<div>` to `document.body` first, mount into it, and return a wrapper
- * whose `destroy()` also removes that container — so specs get a normal
- * `afterEach(() => wrapper.destroy())` without leaking `<div>`s across
+ * whose `unmount()` also removes that container — so specs get a normal
+ * `afterEach(() => wrapper.unmount())` without leaking `<div>`s across
  * tests in the same file.
  */
 
@@ -23,16 +23,16 @@ const { mount } = require('@vue/test-utils')
  *
  * @param {object} Component The Vue component (or options object) to mount.
  * @param {object} [options] `@vue/test-utils` mount options (propsData, slots, stubs, ...).
- * @return {object} The Vue Test Utils wrapper, with `destroy()` overridden to also clean up its container.
+ * @return {object} The Vue Test Utils wrapper, with `unmount()` overridden to also clean up its container.
  */
 function mountAttached(Component, options = {}) {
 	const container = document.createElement('div')
 	document.body.appendChild(container)
 
 	const wrapper = mount(Component, { ...options, attachTo: container })
-	const originalDestroy = wrapper.destroy.bind(wrapper)
-	wrapper.destroy = () => {
-		originalDestroy()
+	const originalUnmount = wrapper.unmount.bind(wrapper)
+	wrapper.unmount = () => {
+		originalUnmount()
 		container.remove()
 	}
 	return wrapper

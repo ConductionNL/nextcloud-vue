@@ -44,7 +44,7 @@ describe('CnCalendarCard', () => {
 		await flush()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No meetings')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('caps the displayed events at maxDisplay on dashboard surfaces', async () => {
@@ -71,7 +71,7 @@ describe('CnCalendarCard', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.findAll('.cn-calendar-card__row')).toHaveLength(5)
 		expect(wrapper.text()).toContain('Show all')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders the detail-page surface with the Open in Calendar CTA', async () => {
@@ -91,7 +91,7 @@ describe('CnCalendarCard', () => {
 		const cta = wrapper.find('.cn-calendar-card__cta')
 		expect(cta.exists()).toBe(true)
 		expect(cta.attributes('href')).toBe('/apps/calendar')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders the single-entity surface as a chip with summary + date', async () => {
@@ -124,7 +124,7 @@ describe('CnCalendarCard', () => {
 		// Single-entity surface uses /integrations/calendar/{entityId}.
 		const url = global.fetch.mock.calls[0][0]
 		expect(url).toContain('/integrations/calendar/cal-a/ev1')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders an error message when the list fetch fails', async () => {
@@ -136,7 +136,7 @@ describe('CnCalendarCard', () => {
 		await flush()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Could not load meetings.')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders empty state without firing fetch when context is incomplete', async () => {
@@ -149,6 +149,6 @@ describe('CnCalendarCard', () => {
 		await wrapper.vm.$nextTick()
 		expect(global.fetch).not.toHaveBeenCalled()
 		expect(wrapper.text()).toContain('No meetings')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

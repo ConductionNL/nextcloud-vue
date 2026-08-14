@@ -33,7 +33,7 @@ describe('CnLeafMountHost', () => {
 		const [el, props] = provider.mount.mock.calls[0]
 		expect(el).toBe(wrapper.find('.cn-leaf-mount-host__container').element)
 		expect(props).toMatchObject({ register: 'reg-a', schema: 'sch-b', objectId: 'obj-1', surface: 'single-entity' })
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does NOT mount while inactive, then mounts when the tab becomes active', async () => {
@@ -45,7 +45,7 @@ describe('CnLeafMountHost', () => {
 
 		await wrapper.setProps({ active: true })
 		expect(provider.mount).toHaveBeenCalledTimes(1)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('unmounts when the surface is hidden (active → false)', async () => {
@@ -58,7 +58,7 @@ describe('CnLeafMountHost', () => {
 		await wrapper.setProps({ active: false })
 		expect(provider.unmount).toHaveBeenCalledTimes(1)
 		expect(provider.unmount.mock.calls[0][0]).toBe(wrapper.find('.cn-leaf-mount-host__container').element)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('unmounts on component teardown', () => {
@@ -67,7 +67,7 @@ describe('CnLeafMountHost', () => {
 			propsData: { provider, active: true, mountProps: { objectId: 'obj-1' } },
 		})
 		expect(provider.unmount).not.toHaveBeenCalled()
-		wrapper.destroy()
+		wrapper.unmount()
 		expect(provider.unmount).toHaveBeenCalledTimes(1)
 	})
 
@@ -85,7 +85,7 @@ describe('CnLeafMountHost', () => {
 		expect(provider.unmount).toHaveBeenCalledTimes(1)
 		expect(provider.mount).toHaveBeenCalledTimes(2)
 		expect(provider.mount.mock.calls[1][1].objectId).toBe('obj-2')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does NOT re-mount when a non-identity prop changes', async () => {
@@ -99,7 +99,7 @@ describe('CnLeafMountHost', () => {
 		await wrapper.vm.$nextTick()
 		expect(provider.mount).toHaveBeenCalledTimes(1)
 		expect(provider.unmount).not.toHaveBeenCalled()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('isolates a throwing leaf mount to its own error container', async () => {
@@ -119,7 +119,7 @@ describe('CnLeafMountHost', () => {
 		expect(wrapper.find('[data-testid="cn-leaf-mount-host-error"]').exists()).toBe(true)
 		expect(spy).toHaveBeenCalled()
 		spy.mockRestore()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a custom #error slot when the leaf mount throws', async () => {
@@ -137,6 +137,6 @@ describe('CnLeafMountHost', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.find('.my-error').text()).toBe('custom nope')
 		spy.mockRestore()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

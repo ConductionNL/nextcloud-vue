@@ -6,23 +6,23 @@
 <template>
 	<div class="cn-text-widget-form">
 		<NcSelect
-			:value="modeOption"
+			:model-value="modeOption"
 			:options="modeOptions"
 			:input-label="t('nextcloud-vue', 'Content type')"
 			:clearable="false"
 			label="label"
-			@input="onModeChange" />
+			@update:model-value="onModeChange" />
 
 		<template v-if="!tableMode">
 			<NcSelect
-				:value="contentMode"
+				:model-value="contentMode"
 				:options="contentModeOptions"
 				:input-label="t('nextcloud-vue', 'Mode')"
 				:clearable="false"
 				:reduce="option => option.value"
 				label="label"
 				class="cn-text-widget-form__mode"
-				@input="updateField('contentMode', $event)" />
+				@update:modelValue="updateField('contentMode', $event)" />
 
 			<!-- NB: a plain <div>, NOT a <label>. Wrapping the markdown editor in a
 			     <label> forwards any stray click inside it (caption, toolbar gaps,
@@ -61,10 +61,10 @@
 			     emphasis and alignment, so these would be misleading. -->
 			<NcTextField
 				v-if="contentMode !== 'markdown'"
-				:value="fontSize"
+				:model-value="fontSize"
 				:label="t('nextcloud-vue', 'Font size')"
 				placeholder="14px"
-				@update:value="updateField('fontSize', $event)" />
+				@update:model-value="updateField('fontSize', $event)" />
 
 			<label v-if="contentMode !== 'markdown'" class="cn-text-widget-form__color-label">
 				{{ t('nextcloud-vue', 'Text color') }}
@@ -86,11 +86,11 @@
 
 			<NcSelect
 				v-if="contentMode !== 'markdown'"
-				:value="textAlign"
+				:model-value="textAlign"
 				:options="textAlignOptions"
 				:input-label="t('nextcloud-vue', 'Alignment')"
 				:clearable="false"
-				@input="updateField('textAlign', $event)" />
+				@update:model-value="updateField('textAlign', $event)" />
 		</template>
 
 		<template v-else>
@@ -126,7 +126,7 @@ const VALID_CONTENT_MODES = Object.freeze(['html', 'markdown'])
 
 /**
  * CnTextWidgetForm — the `CnAddWidgetModal` sub-form for creating or editing
- * a `text` widget placement (renderer: {@link CnTextWidget}).
+ * a `text` widget placement (renderer: `CnTextWidget`).
  *
  * A top-level "Content type" picker switches between text mode (textarea +
  * Markdown/HTML toggle, font size, two colour pickers, alignment) and table

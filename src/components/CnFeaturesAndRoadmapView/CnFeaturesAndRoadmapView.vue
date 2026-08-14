@@ -84,7 +84,7 @@
  * sidebar slot renders correctly (next to NcAppContent, not inside it).
  * When mounted under CnAppRoot the view publishes
  * `CnFeaturesAndRoadmapSidebar` + props into the holder on mounted()
- * and clears it on beforeDestroy(). Sidebar carries four pitch
+ * and clears it on beforeUnmount(). Sidebar carries four pitch
  * sections: Suggest, OpenBuilt, LLM, Support. Suggest emits `@suggest`
  * (forwarded to the modal opener); Support emits `@support` (forwarded
  * to a freshly-mounted `CnSupportDialog`).
@@ -318,6 +318,8 @@ export default {
 		},
 	},
 
+	emits: ['submitted'],
+
 	data() {
 		return {
 			activeView: 'features',
@@ -390,7 +392,7 @@ export default {
 		this.publishHoistedSidebar()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		// Clear the holder so the hoisted sidebar disappears when the
 		// user navigates away from this route. Mirrors CnIndexPage.
 		if (this.cnHostsIndexSidebar && this.cnIndexSidebarConfig) {

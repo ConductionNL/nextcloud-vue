@@ -10,13 +10,13 @@
 		</p>
 
 		<NcSelect
-			:value="style"
+			:model-value="style"
 			:options="styleOptions"
 			:input-label="t('nextcloud-vue', 'Style')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('style', $event)" />
+			@update:modelValue="updateField('style', $event)" />
 
 		<template v-if="style === 'line'">
 			<label class="cn-divider-widget-form__color-label">
@@ -30,41 +30,41 @@
 
 			<NcTextField
 				type="number"
-				:value="String(lineThickness)"
+				:model-value="String(lineThickness)"
 				:label="t('nextcloud-vue', 'Thickness (pixels)')"
 				placeholder="1"
 				:min="1"
 				:max="8"
-				@update:value="updateThickness($event)" />
+				@update:model-value="updateThickness($event)" />
 
 			<NcSelect
-				:value="lineStyle"
+				:model-value="lineStyle"
 				:options="lineStyleOptions"
 				:input-label="t('nextcloud-vue', 'Line style')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateField('lineStyle', $event)" />
+				@update:modelValue="updateField('lineStyle', $event)" />
 		</template>
 
 		<template v-if="style === 'whitespace'">
 			<NcSelect
-				:value="whitespaceSize"
+				:model-value="whitespaceSize"
 				:options="whitespaceSizeOptions"
 				:input-label="t('nextcloud-vue', 'Spacing size')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateField('whitespaceSize', $event)" />
+				@update:modelValue="updateField('whitespaceSize', $event)" />
 		</template>
 
 		<template v-if="style === 'heading-break'">
 			<NcTextField
-				:value="headingText"
+				:model-value="headingText"
 				:label="t('nextcloud-vue', 'Heading text')"
 				:placeholder="t('nextcloud-vue', 'Section heading')"
 				required
-				@update:value="updateField('headingText', $event)" />
+				@update:model-value="updateField('headingText', $event)" />
 
 			<label class="cn-divider-widget-form__color-label">
 				{{ t('nextcloud-vue', 'Line color') }}
@@ -76,13 +76,13 @@
 			</label>
 
 			<NcSelect
-				:value="lineStyle"
+				:model-value="lineStyle"
 				:options="lineStyleOptions"
 				:input-label="t('nextcloud-vue', 'Line style')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateField('lineStyle', $event)" />
+				@update:modelValue="updateField('lineStyle', $event)" />
 		</template>
 	</div>
 </template>

@@ -34,8 +34,8 @@
 					</tr>
 				</thead>
 				<tbody>
-					<template v-for="(sheet, key) in result.summary">
-						<tr :key="key">
+					<template v-for="(sheet, key) in result.summary" :key="key">
+						<tr>
 							<td class="cn-mass-import__sheet-name">
 								{{ key }}
 							</td>
@@ -196,7 +196,7 @@ import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
  *   @confirm="onImportConfirm"
  *   @close="showImportDialog = false">
  *   <template #fields="{ file }">
- *     <NcSelect v-if="file" :options="schemas" @input="selectedSchema = $event" />
+ *     <NcSelect v-if="file" :options="schemas" @update:model-value="selectedSchema = $event" />
  *   </template>
  * </CnMassImportDialog>
  * ```
@@ -308,6 +308,8 @@ export default {
 		errorsLabel: { type: String, default: () => t('nextcloud-vue', 'Errors') },
 	},
 
+	emits: ['close', 'confirm'],
+
 	data() {
 		const optionValues = {}
 		this.options.forEach((opt) => {
@@ -338,7 +340,7 @@ export default {
 		},
 
 		setOption(key, value) {
-			this.$set(this.optionValues, key, value)
+			this.optionValues[key] = value
 		},
 
 		formatFileSize(bytes) {
@@ -356,7 +358,7 @@ export default {
 		},
 
 		toggleErrors(key) {
-			this.$set(this.expandedErrors, key, !this.expandedErrors[key])
+			this.expandedErrors[key] = !this.expandedErrors[key]
 		},
 
 		executeImport() {

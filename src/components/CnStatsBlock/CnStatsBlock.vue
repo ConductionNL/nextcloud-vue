@@ -193,9 +193,11 @@ export default {
 		},
 	},
 
+	emits: ['click'],
+
 	computed: {
 		hasIcon() {
-			return this.icon !== null || this.$scopedSlots.icon || this.$slots.icon
+			return this.icon !== null || this.$slots.icon || this.$slots.icon
 		},
 
 		/**
@@ -203,7 +205,7 @@ export default {
 		 * area always renders (the slot decides what to show, even at count 0).
 		 */
 		hasValueSlot() {
-			return !!this.$scopedSlots.value || !!this.$slots.value
+			return !!this.$slots.value || !!this.$slots.value
 		},
 
 		formattedCount() {

@@ -9,7 +9,9 @@
  * The fix is a stable reactive holder (`cnDataSourcesState`) plus a provided
  * `cnRefreshDataSources()` that the pages-editor modals call on open.
  */
-import Vue from 'vue'
+// `toRaw` unwraps the reactive Proxy so the identity assertions still prove the
+// holder exposes the very object it was given (see useRuntimeManifest.spec.js).
+import { reactive, toRaw } from 'vue'
 import { mount } from '@vue/test-utils'
 import CnPageTreeRow from '../../src/components/CnPageTreeNode/CnPageTreeRow.vue'
 
@@ -39,7 +41,7 @@ const REFRESHED = {
 // reason mutating the holder in place reaches descendants. A plain object handed
 // to provide() would never be reactive.
 function makeHolder(overrides = {}) {
-	return Vue.observable({ value: null, loading: false, error: null, hasLoader: false, ...overrides })
+	return reactive({ value: null, loading: false, error: null, hasLoader: false, ...overrides })
 }
 
 function mountRow(page, provide = {}) {
@@ -198,7 +200,7 @@ describe('CnAppRoot — refreshDataSources()', () => {
 	it('replaces the value on success and clears loading', async () => {
 		const ctx = harness(jest.fn().mockResolvedValue(REFRESHED), SNAPSHOT)
 		await ctx.refreshDataSources()
-		expect(ctx.dataSourcesState.value).toBe(REFRESHED)
+		expect(toRaw(ctx.dataSourcesState.value)).toBe(REFRESHED)
 		expect(ctx.dataSourcesState.loading).toBe(false)
 		expect(ctx.dataSourcesState.error).toBeNull()
 	})
@@ -215,13 +217,13 @@ describe('CnAppRoot — refreshDataSources()', () => {
 
 		// Two modals opening at once must issue one fetch, not two.
 		expect(loader).toHaveBeenCalledTimes(1)
-		expect(ctx.dataSourcesState.value).toBe(REFRESHED)
+		expect(toRaw(ctx.dataSourcesState.value)).toBe(REFRESHED)
 	})
 
 	it('keeps the last good value and records the error when the loader rejects', async () => {
 		const ctx = harness(jest.fn().mockRejectedValue(new Error('network')), SNAPSHOT)
 		await ctx.refreshDataSources()
-		expect(ctx.dataSourcesState.value).toBe(SNAPSHOT)
+		expect(toRaw(ctx.dataSourcesState.value)).toBe(SNAPSHOT)
 		expect(ctx.dataSourcesState.error).toBeInstanceOf(Error)
 		expect(ctx.dataSourcesState.loading).toBe(false)
 	})
@@ -230,7 +232,7 @@ describe('CnAppRoot — refreshDataSources()', () => {
 		const ctx = harness(() => { throw new Error('sync boom') }, SNAPSHOT)
 		await expect(ctx.refreshDataSources()).resolves.toBeUndefined()
 		expect(ctx.dataSourcesState.error).toBeInstanceOf(Error)
-		expect(ctx.dataSourcesState.value).toBe(SNAPSHOT)
+		expect(toRaw(ctx.dataSourcesState.value)).toBe(SNAPSHOT)
 		expect(ctx.dataSourcesState.loading).toBe(false)
 	})
 })

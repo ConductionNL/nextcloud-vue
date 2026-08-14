@@ -9,12 +9,12 @@
  *   - localStorage failure is non-fatal
  */
 
-jest.mock('gridstack', () => ({ GridStack: { init: jest.fn() } }), { virtual: true })
-jest.mock('gridstack/dist/gridstack.min.css', () => ({}), { virtual: true })
-jest.mock('vue-apexcharts', () => ({ name: 'vue-apexcharts-stub' }), { virtual: true })
+// Apexcharts is stubbed globally via jest.config.js moduleNameMapper.
 
 import { mount } from '@vue/test-utils'
 import CnDashboardPage from '@/components/CnDashboardPage/CnDashboardPage.vue'
+jest.mock('gridstack', () => ({ GridStack: { init: jest.fn() } }), { virtual: true })
+jest.mock('gridstack/dist/gridstack.min.css', () => ({}), { virtual: true })
 
 const stubs = {
 	CnDashboardGrid: {
@@ -85,7 +85,8 @@ describe('CnDashboardPage — dateRange prop', () => {
 						preset: 'custom',
 					},
 				},
-				layout: [], widgets: [],
+				layout: [],
+				widgets: [],
 			},
 			stubs,
 		})
@@ -104,7 +105,8 @@ describe('CnDashboardPage — dateRange prop', () => {
 		const wrapper = mount(CnDashboardPage, {
 			propsData: {
 				dateRange: { enabled: true, persistKey: 'test.key' },
-				layout: [], widgets: [],
+				layout: [],
+				widgets: [],
 			},
 			stubs,
 		})
@@ -131,7 +133,8 @@ describe('CnDashboardPage — dateRange prop', () => {
 						preset: 'custom',
 					},
 				},
-				layout: [], widgets: [],
+				layout: [],
+				widgets: [],
 			},
 			stubs,
 		})
@@ -162,7 +165,8 @@ describe('CnDashboardPage — dateRange prop', () => {
 		const wrapper = mount(CnDashboardPage, {
 			propsData: {
 				dateRange: { enabled: true, persistKey: 'test.key' },
-				layout: [], widgets: [],
+				layout: [],
+				widgets: [],
 			},
 			stubs,
 		})
@@ -198,7 +202,8 @@ describe('CnDashboardPage — dateRange prop', () => {
 			const wrapper = mount(CnDashboardPage, {
 				propsData: {
 					dateRange: { enabled: true, persistKey: 'test.key' },
-					layout: [], widgets: [],
+					layout: [],
+					widgets: [],
 				},
 				stubs,
 			})
@@ -221,7 +226,8 @@ describe('CnDashboardPage — dateRange prop', () => {
 		const wrapper = mount(CnDashboardPage, {
 			propsData: {
 				dateRange: { enabled: true, persistKey: 'test.key' },
-				layout: [], widgets: [],
+				layout: [],
+				widgets: [],
 			},
 			stubs,
 		})
@@ -235,9 +241,9 @@ describe('CnDashboardPage — dateRange prop', () => {
 			stubs,
 		})
 		// Vue 2.7 stores provides on the component instance under
-		// `_provided`. The ref is provided unconditionally; when the
+		// `$.provides`. The ref is provided unconditionally; when the
 		// feature is off, ref.value stays null.
-		const provided = wrapper.vm._provided.cnDashboardDateRange
+		const provided = wrapper.vm.$.provides.cnDashboardDateRange
 		expect(provided).toBeDefined()
 		expect(provided.value).toBeNull()
 	})
@@ -247,7 +253,7 @@ describe('CnDashboardPage — dateRange prop', () => {
 			propsData: { dateRange: { enabled: true }, layout: [], widgets: [] },
 			stubs,
 		})
-		const provided = wrapper.vm._provided.cnDashboardDateRange
+		const provided = wrapper.vm.$.provides.cnDashboardDateRange
 		// After mount, last-7 was assigned.
 		expect(provided.value).not.toBeNull()
 		expect(provided.value.preset).toBe('last-7')
@@ -348,25 +354,48 @@ describe('CnDashboardPage — dateRange prop', () => {
 			stubs,
 		})
 
-		it('localDateTimeInputToIso round-trips with toLocalDateTimeInput', () => {
+		// NcActionInput's date types are backed by a picker whose model is
+		// typed `Date`; it renders EMPTY for a string and emits a `Date`
+		// back. These assert that contract at the boundary — the previous
+		// round-trip test only compared the two helpers against each other,
+		// so it stayed green while the popover showed two blank fields.
+		it('toPickerDate returns a Date the picker model accepts', () => {
 			const wrapper = mountPage()
-			const local = wrapper.vm.toLocalDateTimeInput('2026-05-19T08:30:00.000Z')
-			// Local string has no zone; converting back yields the same instant.
-			expect(wrapper.vm.localDateTimeInputToIso(local)).toBe('2026-05-19T08:30:00.000Z')
+			const value = wrapper.vm.toPickerDate('2026-05-19T08:30:00.000Z')
+			expect(value).toBeInstanceOf(Date)
+			expect(value.toISOString()).toBe('2026-05-19T08:30:00.000Z')
 		})
 
-		it('onChipDateInput stores an ISO instant and flips preset to custom', () => {
+		it('onChipDateInput accepts the Date the picker emits', () => {
 			const wrapper = mountPage()
-			const local = wrapper.vm.toLocalDateTimeInput('2026-05-19T08:30:00.000Z')
-			wrapper.vm.onChipDateInput('from', local)
+			wrapper.vm.onChipDateInput('from', new Date('2026-05-19T08:30:00.000Z'))
 			expect(wrapper.vm.currentRange.preset).toBe('custom')
 			expect(wrapper.vm.currentRange.from).toBe('2026-05-19T08:30:00.000Z')
 		})
 
-		it('toLocalDateTimeInput returns empty string for null / bad input', () => {
+		it('onChipDateInput preserves the other half instead of clearing it', () => {
 			const wrapper = mountPage()
-			expect(wrapper.vm.toLocalDateTimeInput('')).toBe('')
-			expect(wrapper.vm.toLocalDateTimeInput('not-a-date')).toBe('')
+			wrapper.vm.onChipDateInput('to', new Date('2026-05-30T00:00:00.000Z'))
+			// Assert the concrete stored instant, not just "unchanged" — an
+			// unhandled payload writes '' to BOTH halves, which an
+			// equality-to-previous check would have accepted as preserved.
+			expect(wrapper.vm.currentRange.to).toBe('2026-05-30T00:00:00.000Z')
+			wrapper.vm.onChipDateInput('from', new Date('2026-05-19T08:30:00.000Z'))
+			expect(wrapper.vm.currentRange.to).toBe('2026-05-30T00:00:00.000Z')
+			expect(wrapper.vm.currentRange.from).toBe('2026-05-19T08:30:00.000Z')
+		})
+
+		it('onChipDateInput still accepts a local string / input Event', () => {
+			const wrapper = mountPage()
+			wrapper.vm.onChipDateInput('from', { target: { value: '2026-05-19T10:30' } })
+			expect(wrapper.vm.currentRange.from)
+				.toBe(new Date('2026-05-19T10:30').toISOString())
+		})
+
+		it('toPickerDate returns null for null / bad input', () => {
+			const wrapper = mountPage()
+			expect(wrapper.vm.toPickerDate('')).toBeNull()
+			expect(wrapper.vm.toPickerDate('not-a-date')).toBeNull()
 		})
 	})
 
@@ -388,7 +417,8 @@ describe('CnDashboardPage — dateRange prop', () => {
 						enabled: true,
 						default: { from: '2026-01-01T00:00:00.000Z', to: '2026-01-31T23:59:59.999Z', preset: 'custom' },
 					},
-					layout: [], widgets: [],
+					layout: [],
+					widgets: [],
 				},
 				stubs,
 			})
@@ -415,7 +445,8 @@ describe('CnDashboardPage — dateRange prop', () => {
 			const wrapper = mount(CnDashboardPage, {
 				propsData: {
 					dateRange: { enabled: true, control: 'pills', presets: pillsPresets, default: { preset: 'month' } },
-					layout: [], widgets: [],
+					layout: [],
+					widgets: [],
 				},
 				stubs: pillStubs,
 			})
@@ -431,7 +462,8 @@ describe('CnDashboardPage — dateRange prop', () => {
 			const wrapper = mount(CnDashboardPage, {
 				propsData: {
 					dateRange: { enabled: true, presets: pillsPresets, default: { preset: 'month' } },
-					layout: [], widgets: [],
+					layout: [],
+					widgets: [],
 				},
 				stubs: pillStubs,
 			})
@@ -443,7 +475,8 @@ describe('CnDashboardPage — dateRange prop', () => {
 			const wrapper = mount(CnDashboardPage, {
 				propsData: {
 					dateRange: { enabled: true, control: 'pills', presets: pillsPresets, default: { preset: 'month' } },
-					layout: [], widgets: [],
+					layout: [],
+					widgets: [],
 				},
 				stubs: pillStubs,
 			})
@@ -455,7 +488,8 @@ describe('CnDashboardPage — dateRange prop', () => {
 			const wrapper = mount(CnDashboardPage, {
 				propsData: {
 					dateRange: { enabled: true, control: 'pills', presets: pillsPresets, default: { preset: 'month' } },
-					layout: [], widgets: [],
+					layout: [],
+					widgets: [],
 				},
 				stubs: pillStubs,
 			})
@@ -472,7 +506,8 @@ describe('CnDashboardPage — dateRange prop', () => {
 			const wrapper = mount(CnDashboardPage, {
 				propsData: {
 					dateRange: { enabled: true, control: 'pills', presets: pillsPresets, default: { preset: 'month' } },
-					layout: [], widgets: [],
+					layout: [],
+					widgets: [],
 				},
 				stubs: pillStubs,
 			})
@@ -534,7 +569,8 @@ describe('CnDashboardPage — dateRange prop', () => {
 			const wrapper = mount(CnDashboardPage, {
 				propsData: {
 					dateRange: { enabled: true, control: 'pills', presets: presetsWithAll, default: { preset: 'last-30' } },
-					layout: [], widgets: [],
+					layout: [],
+					widgets: [],
 				},
 				stubs: pillStubs,
 			})
@@ -550,7 +586,8 @@ describe('CnDashboardPage — dateRange prop', () => {
 			const wrapper = mount(CnDashboardPage, {
 				propsData: {
 					dateRange: { enabled: true, control: 'pills', presets: presetsWithAll, default: { preset: 'all' } },
-					layout: [], widgets: [],
+					layout: [],
+					widgets: [],
 				},
 				stubs: pillStubs,
 			})

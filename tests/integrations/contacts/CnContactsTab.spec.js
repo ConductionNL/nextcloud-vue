@@ -134,7 +134,7 @@ describe('CnContactsTab', () => {
 		const groups = wrapper.findAll('.cn-contacts-tab__group')
 		// applicant (Jan + Piet), handler (Mia + Behandelaar B), other (Anne)
 		expect(groups.length).toBe(3)
-		const titles = groups.wrappers.map((g) => g.find('.cn-contacts-tab__group-title').text())
+		const titles = groups.map((g) => g.find('.cn-contacts-tab__group-title').text())
 		expect(titles[0]).toContain('Applicants')
 		expect(titles[1]).toContain('Handlers')
 		expect(titles[2]).toContain('Other')

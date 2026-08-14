@@ -6,7 +6,7 @@
 				<NcTextField
 					v-model="newTagName"
 					:label="addTagPlaceholder"
-					@input="filterSuggestions"
+					@update:model-value="filterSuggestions"
 					@keyup.enter="addTag"
 					@focus="showSuggestions = true" />
 				<NcButton

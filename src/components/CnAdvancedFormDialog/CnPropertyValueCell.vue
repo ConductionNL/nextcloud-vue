@@ -17,7 +17,7 @@
 				</NcCheckboxRadioSwitch>
 				<InformationOutline
 					v-if="schemaProp && schemaProp.description"
-					v-tooltip="schemaProp.description"
+					:title="schemaProp.description"
 					class="cn-advanced-form-dialog__info-icon"
 					:size="16" />
 			</div>
@@ -31,29 +31,29 @@
 					@input="onChromeColorInput" />
 				<NcTextField
 					ref="inputRef"
-					:value="colorTextValue"
+					:model-value="colorTextValue"
 					:placeholder="colorPlaceholder"
-					@update:value="onColorTextInput($event)" />
+					@update:model-value="onColorTextInput($event)" />
 			</div>
 			<NcDateTimePicker
 				v-else-if="resolvedWidget === 'datetime'"
-				:value="datetimeValue"
+				:model-value="datetimeValue"
 				:type="datetimePickerType"
 				:placeholder="displayName"
 				:input-label="displayName"
-				@input="emitDatetime($event)" />
+				@update:model-value="emitDatetime($event)" />
 			<NcTextArea
 				v-else-if="resolvedWidget === 'textarea'"
 				ref="inputRef"
-				:value="stringValue"
+				:model-value="stringValue"
 				:placeholder="displayName"
 				:rows="textareaRows"
 				:maxlength="maxLengthAttr"
 				class="cn-advanced-form-dialog__textarea"
-				@update:value="emit($event)" />
+				@update:model-value="emit($event)" />
 			<NcSelect
 				v-else-if="resolvedWidget === 'select'"
-				:value="effectiveSelectValue"
+				:model-value="effectiveSelectValue"
 				:options="effectiveSelectOptions"
 				:multiple="effectiveSelectMultiple"
 				:taggable="effectiveSelectTaggable"
@@ -61,7 +61,7 @@
 				:keep-open="effectiveSelectMultiple"
 				:input-label="displayName"
 				:placeholder="displayName"
-				@input="emitSelect($event)" />
+				@update:model-value="emitSelect($event)" />
 			<CnJsonViewer
 				v-else-if="resolvedWidget === 'object'"
 				:value="objectJsonString"
@@ -113,7 +113,7 @@
 			<NcTextField
 				v-else
 				ref="inputRef"
-				:value="stringValue"
+				:model-value="stringValue"
 				:type="inputType"
 				:placeholder="displayName"
 				:min="minimum"
@@ -122,7 +122,7 @@
 				:pattern="pattern"
 				:minlength="minLengthAttr"
 				:maxlength="maxLengthAttr"
-				@update:value="emitConverted($event)" />
+				@update:model-value="emitConverted($event)" />
 		</div>
 
 		<!-- Display mode -->
@@ -178,7 +178,6 @@ import {
 	NcSelect,
 	NcButton,
 	NcDateTimePicker,
-	Tooltip,
 } from '@nextcloud/vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -211,8 +210,6 @@ const TEXTAREA_FORMATS = new Set(['html', 'markdown'])
 
 export default {
 	name: 'CnPropertyValueCell',
-
-	directives: { tooltip: Tooltip },
 
 	components: {
 		NcTextField,
@@ -273,6 +270,8 @@ export default {
 		/** CSS height for the `object` widget's CodeMirror editor. */
 		objectEditorHeight: { type: String, default: '300px' },
 	},
+
+	emits: ['update:value'],
 
 	data() {
 		return {
@@ -624,7 +623,7 @@ export default {
 		},
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.pendingColorTimer) {
 			clearTimeout(this.pendingColorTimer)
 			this.pendingColorTimer = null

@@ -389,6 +389,8 @@ export default {
 		},
 	},
 
+	emits: ['refresh', 'request-feature'],
+
 	computed: {
 		displayTitle() {
 			return this.title || 'Widget'
@@ -419,7 +421,9 @@ export default {
 		effectiveShowRefresh() {
 			if (this.hideRefresh) return false
 			if (this.showRefresh !== null) return this.showRefresh
-			return Boolean(this.$listeners && this.$listeners.refresh)
+			// `$.vnode.props`, not `$attrs`: `refresh` is a declared emit, and
+			// Vue keeps declared emits out of `$attrs`.
+			return Boolean(this.$.vnode.props?.onRefresh)
 		},
 		/**
 		 * Effective Request-a-feature visibility — same OR-of-opt-outs
@@ -455,7 +459,7 @@ export default {
 		 * @return {boolean}
 		 */
 		hasActionItemsSlot() {
-			return Boolean(this.$slots['action-items']) || Boolean(this.$scopedSlots && this.$scopedSlots['action-items'])
+			return Boolean(this.$slots['action-items']) || Boolean(this.$slots && this.$slots['action-items'])
 		},
 
 		wrapperStyles() {

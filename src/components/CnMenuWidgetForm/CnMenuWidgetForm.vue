@@ -6,32 +6,32 @@
 <template>
 	<div class="cn-menu-form">
 		<NcSelect
-			:value="style"
+			:model-value="style"
 			:options="styleOptions"
 			:input-label="t('nextcloud-vue', 'Menu Style')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('style', $event)" />
+			@update:modelValue="updateField('style', $event)" />
 
 		<NcSelect
 			v-if="style !== 'tree'"
-			:value="orientation"
+			:model-value="orientation"
 			:options="orientationOptions"
 			:input-label="t('nextcloud-vue', 'Orientation')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('orientation', $event)" />
+			@update:modelValue="updateField('orientation', $event)" />
 
 		<NcSelect
-			:value="activeItemHighlight"
+			:model-value="activeItemHighlight"
 			:options="highlightOptions"
 			:input-label="t('nextcloud-vue', 'Active Item Highlight')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateField('activeItemHighlight', $event)" />
+			@update:modelValue="updateField('activeItemHighlight', $event)" />
 
 		<label class="cn-menu-form__toggle">
 			<input

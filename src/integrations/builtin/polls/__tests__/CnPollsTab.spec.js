@@ -60,7 +60,7 @@ describe('CnPollsTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No polls linked yet')
 		expect(wrapper.text()).toContain('Open Polls')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a row with option progress bars and vote counts', async () => {
@@ -89,7 +89,7 @@ describe('CnPollsTab', () => {
 		expect(txt).toContain('58%')
 		expect(txt).toContain('25%')
 		expect(txt).toContain('17%')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('strips a leading [or:{uuid}] marker (D-3 real-world fixture)', async () => {
@@ -121,7 +121,7 @@ describe('CnPollsTab', () => {
 		expect(title.text()).toBe('verification poll')
 		expect(title.text()).not.toContain('[or:')
 		expect(title.text()).not.toContain('1fc4dc2e')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows "Closed" when the deadline has elapsed', async () => {
@@ -135,7 +135,7 @@ describe('CnPollsTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Closed')
 		expect(wrapper.find('.cn-polls-tab__row--closed').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the unavailable banner when the provider returns 503', async () => {
@@ -145,7 +145,7 @@ describe('CnPollsTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Polls is currently unavailable.')
 		expect(wrapper.find('.cn-polls-tab__row').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the generic error label when fetch throws', async () => {
@@ -155,7 +155,7 @@ describe('CnPollsTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Could not load polls.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 
@@ -179,7 +179,7 @@ describe('CnPollsTab', () => {
 		expect(wrapper.findAll('.cn-polls-tab__row')).toHaveLength(1)
 		expect(wrapper.find('.cn-polls-tab__option').exists()).toBe(false)
 		expect(wrapper.text()).toContain('Bare poll')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('opens the picker modal when "Link existing poll" is clicked', async () => {
@@ -191,7 +191,7 @@ describe('CnPollsTab', () => {
 		expect(wrapper.vm.pickerOpen).toBe(false)
 		wrapper.vm.openPicker()
 		expect(wrapper.vm.pickerOpen).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('opens the create modal when "Create new poll" is clicked', async () => {
@@ -203,7 +203,7 @@ describe('CnPollsTab', () => {
 		expect(wrapper.vm.createOpen).toBe(false)
 		wrapper.vm.openCreate()
 		expect(wrapper.vm.createOpen).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('POSTs to /polls when the picker emits link', async () => {
@@ -223,7 +223,7 @@ describe('CnPollsTab', () => {
 		expect(linkCall[0]).toContain('/api/objects/reg/schema/obj-1/polls')
 		expect(linkCall[1].method).toBe('POST')
 		expect(JSON.parse(linkCall[1].body)).toEqual({ pollId: 99 })
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces a 409 error when linking a duplicate', async () => {
@@ -238,7 +238,7 @@ describe('CnPollsTab', () => {
 		await wrapper.vm.onLinkPick({ pollId: 99 })
 
 		expect(wrapper.vm.error).toContain('already linked')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('POSTs to /polls/new when the create dialog emits create', async () => {
@@ -264,7 +264,7 @@ describe('CnPollsTab', () => {
 		expect(createCall[0]).toContain('/api/objects/reg/schema/obj-1/polls/new')
 		expect(createCall[1].method).toBe('POST')
 		expect(JSON.parse(createCall[1].body)).toEqual(payload)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('DELETEs the link when unlinkPoll is called', async () => {
@@ -282,6 +282,6 @@ describe('CnPollsTab', () => {
 		const deleteCall = global.fetch.mock.calls[1]
 		expect(deleteCall[0]).toContain('/api/objects/reg/schema/obj-1/polls/42')
 		expect(deleteCall[1].method).toBe('DELETE')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

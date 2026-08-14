@@ -18,9 +18,15 @@
 -->
 <template>
 	<div class="cn-ai-agent-picker" data-testid="cn-ai-agent-picker">
+		<!-- `input-label` WITHOUT `aria-label-combobox`. NcSelect warns when both
+		     are set, because they are alternatives: `input-label` renders a real
+		     visible <label> wired to the input, which already gives the combobox
+		     its accessible name, while `aria-label-combobox` is for the
+		     label-less case. Setting both asks for a visible label and then
+		     overrides the name that label provides. -->
 		<NcSelect
 			v-if="!fetchError"
-			:value="selectedOption"
+			:model-value="selectedOption"
 			:options="options"
 			:loading="loading"
 			:disabled="loading || options.length === 0"
@@ -28,10 +34,9 @@
 			:close-on-select="true"
 			label="label"
 			:input-label="cnTranslate('Agent')"
-			:aria-label-combobox="cnTranslate('Agent')"
 			:placeholder="pickerPlaceholder"
 			data-testid="cn-ai-agent-picker-select"
-			@input="onInput" />
+			@update:model-value="onInput" />
 		<p v-else class="cn-ai-agent-picker__error" data-testid="cn-ai-agent-picker-error">
 			{{ cnTranslate('Could not load agents — you can still send a message.') }}
 		</p>

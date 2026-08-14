@@ -11,7 +11,10 @@
  *  - no link is emitted when nothing is selected.
  */
 
-const { mount } = require('@vue/test-utils')
+// See CnEmailPicker.spec.js: a Vue-3 `nextTick()` no longer implies the
+// render queued by an async `mounted()` has flushed, so wait on the promise
+// queue instead of counting ticks.
+const { mount, flushPromises } = require('@vue/test-utils')
 const CnMapPoiPicker = require('../CnMapPoiPicker.vue').default
 
 function resolveOnce(payload, status = 200) {
@@ -36,14 +39,13 @@ describe('CnMapPoiPicker', () => {
 		}))
 
 		const wrapper = mount(CnMapPoiPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		const rows = wrapper.findAll('.cn-map-poi-picker__row-button')
 		expect(rows).toHaveLength(2)
 		expect(wrapper.text()).toContain('Office')
 		expect(wrapper.text()).toContain('Home')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('selecting a POI enables confirm and emits link', async () => {
@@ -52,8 +54,7 @@ describe('CnMapPoiPicker', () => {
 		}))
 
 		const wrapper = mount(CnMapPoiPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.find('.cn-map-poi-picker__row-button').trigger('click')
 		await wrapper.vm.$nextTick()
@@ -63,7 +64,7 @@ describe('CnMapPoiPicker', () => {
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeTruthy()
 		expect(wrapper.emitted('link')[0]).toEqual([{ favoriteId: 99 }])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces an inline error when /available fails', async () => {
@@ -71,11 +72,10 @@ describe('CnMapPoiPicker', () => {
 		global.fetch.mockRejectedValueOnce(new Error('boom'))
 
 		const wrapper = mount(CnMapPoiPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('Could not load locations.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 
@@ -83,11 +83,10 @@ describe('CnMapPoiPicker', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ error: 'nope' }, 501))
 
 		const wrapper = mount(CnMapPoiPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('NC Maps is not installed.')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('filters POIs client-side via search', async () => {
@@ -99,15 +98,14 @@ describe('CnMapPoiPicker', () => {
 		}))
 
 		const wrapper = mount(CnMapPoiPicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		wrapper.vm.search = 'office'
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.vm.visiblePois).toHaveLength(1)
 		expect(wrapper.vm.visiblePois[0].id).toBe(1)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not emit link when no POI is selected', () => {
@@ -116,6 +114,6 @@ describe('CnMapPoiPicker', () => {
 
 		wrapper.vm.confirm()
 		expect(wrapper.emitted('link')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

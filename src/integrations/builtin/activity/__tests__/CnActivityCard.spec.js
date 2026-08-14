@@ -56,7 +56,7 @@ describe('CnActivityCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toMatch(/2 today/)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders the empty state on dashboard surface when no entries', async () => {
@@ -65,7 +65,7 @@ describe('CnActivityCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No activity yet for this object')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders grouped timeline sections on detail-page surface', async () => {
@@ -90,7 +90,7 @@ describe('CnActivityCard', () => {
 		expect(days).toHaveLength(2)
 		expect(wrapper.text()).toContain('Today A')
 		expect(wrapper.text()).toContain('Yesterday A')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders single-entity chip from fetchSingle response', async () => {
@@ -113,7 +113,7 @@ describe('CnActivityCard', () => {
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('carol')
 		expect(chip.text()).toContain('Carol shared the file')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not fetch on single-entity surface when value is missing', async () => {
@@ -123,7 +123,7 @@ describe('CnActivityCard', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No activity yet for this object')
 		expect(global.fetch).not.toHaveBeenCalled()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the unavailable label on 503', async () => {
@@ -132,7 +132,7 @@ describe('CnActivityCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('NC Activity is currently unavailable.')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('falls back to an empty list when fetch throws', async () => {
@@ -142,7 +142,7 @@ describe('CnActivityCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No activity yet for this object')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 })

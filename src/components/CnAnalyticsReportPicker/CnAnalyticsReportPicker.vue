@@ -42,7 +42,7 @@
 				:label="t('nextcloud-vue', 'Search reports')"
 				:placeholder="t('nextcloud-vue', 'Type to filter…')"
 				class="cn-analytics-report-picker__search"
-				@update:value="onSearch" />
+				@update:model-value="onSearch" />
 
 			<NcLoadingIcon v-if="loading" />
 			<NcEmptyContent
@@ -148,7 +148,7 @@ export default {
 		this.fetchReports()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.searchTimer) {
 			clearTimeout(this.searchTimer)
 		}

@@ -154,6 +154,29 @@
 }
 
 /*
+ * Modal / dialog stacking baseline.
+ *
+ * `@nextcloud/vue` v9 ships a flat `.modal-mask { z-index: 9998 }` in NcModal's
+ * scoped stylesheet, which lands every dialog on the same layer. 9998 also sits
+ * below Nextcloud chrome that apps expect a dialog to cover, so this baseline
+ * lifts dialog masks clear of it — it is the value this library used to hardcode
+ * as `!important` from inside CnEditDataModal's unscoped <style> block.
+ *
+ * It MUST NOT be `!important`. `src/utils/modalStack.js` writes a per-modal
+ * layer as an inline `z-index` so the most recently opened modal receives
+ * pointer events, and an `!important` baseline would beat that inline value —
+ * flattening every open dialog back onto one layer, where the winner is decided
+ * by DOM order between two nodes teleported to <body>. That race is what made
+ * clicks on a nested dialog land on the dialog underneath it.
+ *
+ * Deliberately unscoped: the mask is teleported out of the component tree, so a
+ * `data-v-*` scoped rule would never match it.
+ */
+.modal-mask.dialog__modal {
+	z-index: 10005;
+}
+
+/*
  * NcSelect's dropdown, when it is inside a dialog.
  *
  * `NcSelect.appendToBody` defaults to TRUE, so vue-select teleports its menu
@@ -162,31 +185,30 @@
  * `--vs-dropdown-z-index: 9999`.
  *
  * 9999 clears a STOCK NcModal mask, which sits at 9998. It does not clear the
- * baseline directly above: this library raises dialog masks to 10005 (the
- * unscoped `.modal-mask.dialog__modal` rule shipped from CnEditDataModal, and
- * 10010 for `.cn-dialog--nested`). So the dialog paints over its own dropdown.
- * The options render, they are visible, and every click on them is swallowed by
- * the mask — a real user simply cannot pick an option. Measured on pipelinq
- * (#757), whose built bundle carries `--vs-dropdown-z-index: 1000` / `9999`
- * against a `.modal-mask.dialog__modal { z-index: 10005 !important }`.
+ * baseline directly above: this library raises dialog masks to 10005 (and
+ * `modalStack.js` writes 10005 + 5n inline for nested dialogs). So the dialog
+ * paints over its own dropdown. The options render, they are visible, and every
+ * click on them is swallowed by the mask — Playwright reports it as
+ * "subtree intercepts pointer events", and a real user simply cannot pick an
+ * option. Measured on pipelinq (#757).
  *
  * This is ours to fix, not upstream's: at @nextcloud/vue's own 9998 the
- * combination works, and it is THIS library that moved the mask above the
+ * combination works, and it is THIS stylesheet that moved the mask above the
  * dropdown.
  *
  * `@nextcloud/vue` ships exactly this override for the timezone select inside
  * NcDateTimePicker — `.vs__dropdown-menu--floating { z-index: 100001 !important }`
  * — so this adopts the same selector and the same value rather than inventing a
  * layer. Do NOT rely on that upstream rule: it lives in NcDateTimePicker's own
- * stylesheet chunk, so an app gets it only if it happens to load that
- * component's CSS. pipelinq's bundle does not, which is why the bug is real
- * there and invisible in a harness that does. That accident is exactly why the
+ * stylesheet chunk, so an app gets it only if it happens to load that component's
+ * CSS. That accident is why this bug looks intermittent across apps — and why the
  * rule belongs here, where every consumer of this library gets it.
  *
  * `!important` for the same reason upstream uses it: the value it must beat is
- * `.vs__dropdown-menu`'s own single-class rule, so without it the winner comes
- * down to stylesheet order — and a lazily-imported chunk can load after this
- * file. Nothing writes an inline z-index on this element, so it overrides no one.
+ * `.vs__dropdown-menu`'s own single-class rule, so without it the winner would
+ * come down to stylesheet order — and a lazily-imported chunk can load after
+ * this file. Unlike the mask baseline above, nothing writes an inline z-index on
+ * this element, so `!important` here overrides no one.
  *
  * Scoped to the `--floating` variant deliberately: that is the appended-to-body
  * case. A dropdown left in the DOM stacks correctly inside its own dialog and
@@ -194,4 +216,85 @@
  */
 .vs__dropdown-menu--floating {
 	z-index: 100001 !important;
+}
+
+/*
+ * vue-select's search input must not look like a second field.
+ *
+ * `NcSelect` wraps vue-select, whose `.vs__search` is the type-to-filter input
+ * that sits BESIDE the selected value inside one control. Stock vue-select
+ * gives it a transparent border; the LA SUITE theme sets
+ *
+ *     input[type="text"], input[type="search"], … {
+ *         border: 1px solid var(--lasuite-color-gray-300) !important;
+ *     }
+ *
+ * which lands on it and draws an empty bordered box to the right of the
+ * selected value — a second, broken-looking field on every Provider, Agent and
+ * Execution dropdown in the fleet.
+ *
+ * `!important` is REQUIRED here and not laziness: the theme's rule carries it,
+ * so no amount of specificity can win. The override is narrow — `.vs__search`
+ * is never a standalone input, always the inner field of a composite control —
+ * so this cannot reach a real text box the theme meant to style.
+ *
+ * The root cause is the theme reaching into a composite control it does not
+ * own; fixing it there would be better, and this stays until it does.
+ *
+ * Unscoped and here rather than in a component, because the control belongs to
+ * @nextcloud/vue: no Conduction component owns the element, and each app
+ * patching it locally is the same rule written sixteen times.
+ *
+ * Focus stays visible — see the rule below, which is the other half of this
+ * patch and not optional.
+ */
+.v-select .vs__search,
+.v-select .vs__search:focus {
+	border: none !important;
+	box-shadow: none !important;
+	min-height: unset;
+	background-color: transparent;
+}
+
+/*
+ * ...and the focus indicator it removes goes back on the WHOLE control.
+ *
+ * `box-shadow: none` above does not just delete a border. Nextcloud draws input
+ * focus WITH box-shadow, so suppressing it suppresses the focus indicator too,
+ * and nothing else puts one back: core's global focus rule deliberately skips
+ * Vue apps — `.content:not(#content-vue) :focus-visible`, commented "let vue
+ * apps handle the focus themselves" — and the accessibility themes (high
+ * contrast, dyslexia font) only swap colours and fonts. Deleting this rule is
+ * therefore a WCAG 2.4.7 failure on every select in the fleet, which is exactly
+ * what it does not look like from the diff.
+ *
+ * It rings `.vs__dropdown-toggle` rather than `.vs__search`, where it used to
+ * live. The search input is the empty strip beside the selected value, so a ring
+ * on it framed blank space — the second-field look this whole patch exists to
+ * remove, redrawn in the focus colour. The toggle is what the user perceives as
+ * the control, so that is what lights up.
+ *
+ * `.vs__search` must then have its own outline explicitly cleared: nothing in
+ * vue-select or @nextcloud/vue suppresses it, so the user agent's default ring
+ * would step straight into the vacancy and reinstate the box we just removed.
+ * The indicator is not lost with it — `:focus-within` fires on the toggle
+ * whenever that input is focused, which is the only way this control takes focus.
+ *
+ * `!important` because NcSelect sets `outline` on this same element at equal
+ * specificity (`…:not(.vs--disabled, .vs--open) .vs__dropdown-toggle:focus-within`,
+ * a background-coloured spacer ring). Equal specificity makes stylesheet order
+ * the tie-breaker, and NcSelect's CSS is a lazily-imported chunk that can load
+ * after this file — the same race the z-index patch above documents.
+ *
+ * `--color-main-text` and not the primary colour: NcSelect already uses it for
+ * its own focus and open states, so a focused select reads as a Nextcloud
+ * select rather than a Conduction one.
+ */
+.v-select .vs__dropdown-toggle:focus-within {
+	outline: 2px solid var(--color-main-text) !important;
+	outline-offset: 2px;
+}
+
+.v-select .vs__search:focus-visible {
+	outline: none;
 }
