@@ -7,19 +7,19 @@ browser, without a round trip.
 import { validateBsn } from '@conduction/nextcloud-vue'
 
 const result = validateBsn('111222333')
-// { isFormeelGeldig: true, elfproefScore: 0, errorCode: null, maskedBsn: '***2223*' }
+// { isFormallyValid: true, elevenTestScore: 0, errorCode: null, maskedBsn: '***2223*' }
 ```
 
 | Param | Type | Description |
 |-------|------|-------------|
 | `input` | `string` | The candidate BSN. `null`/`undefined` are tolerated and reported invalid. |
 
-Returns `{ isFormeelGeldig, elfproefScore, errorCode, maskedBsn }`.
+Returns `{ isFormallyValid, elevenTestScore, errorCode, maskedBsn }`.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `isFormeelGeldig` | `boolean` | Nine digits satisfying the elfproef. |
-| `elfproefScore` | `number` | The modulo — `0` when valid, `-1` when the input was not nine digits. |
+| `isFormallyValid` | `boolean` | Nine digits satisfying the elfproef. |
+| `elevenTestScore` | `number` | The modulo — `0` when valid, `-1` when the input was not nine digits. |
 | `errorCode` | `string\|null` | [`BSN_ERROR_LENGTH`](./bsn-error-length.md), [`BSN_ERROR_CHECKSUM`](./bsn-error-checksum.md), or `null`. |
 | `maskedBsn` | `string` | See [`maskBsn`](./mask-bsn.md). The raw input is never echoed back. |
 

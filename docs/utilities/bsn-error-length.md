@@ -17,5 +17,5 @@ say *"a BSN is nine digits"* while the user is still typing, and only complain
 about the checksum once the length is right. Reporting a checksum failure on a
 half-typed number is noise.
 
-When this code is returned, `elfproefScore` is `-1` — the elfproef was never
+When this code is returned, `elevenTestScore` is `-1` — the elfproef was never
 computed.
