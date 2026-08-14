@@ -323,6 +323,18 @@ export { useSuggestFeatureAction } from './composables/useSuggestFeatureAction.j
 export { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from './utils/safeMarkdownDompurifyConfig.js'
 export { ROADMAP_LABEL_BLOCKLIST } from './utils/roadmapLabelBlocklist.js'
 
+// Shared field validators. These are UX affordances that run in the browser —
+// they do NOT replace server-side validation, which stays authoritative at the
+// write boundary (OpenRegister's schema property validators). What they replace
+// is a per-keystroke HTTP round trip to answer a question the browser can
+// answer itself.
+export {
+	BSN_ERROR_CHECKSUM,
+	BSN_ERROR_LENGTH,
+	maskBsn,
+	validateBsn,
+} from './utils/validators/bsn.js'
+
 // Localization
 export { registerTranslations } from './l10n/index.js'
 
