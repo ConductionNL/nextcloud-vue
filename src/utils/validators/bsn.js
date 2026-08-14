@@ -79,18 +79,18 @@ export function maskBsn(input) {
 }
 
 /**
- * Validate a BSN against the elfproef.
+ * Validate a BSN against the eleven-test.
  *
- * The elfproef: sum(digit[i] * (9 - i)) for i = 0..7, then SUBTRACT digit[8];
- * the number is formally valid when that sum is divisible by eleven. The final
- * digit carrying a weight of -1 rather than +1 is the part most
- * reimplementations get wrong, and getting it wrong accepts roughly one in
- * eleven invalid numbers rather than rejecting them.
+ * The eleven-test (known in Dutch as the `elfproef`): sum(digit[i] * (9 - i))
+ * for i = 0..7, then SUBTRACT digit[8]; the number is formally valid when that
+ * sum is divisible by eleven. The final digit carrying a weight of -1 rather
+ * than +1 is the part most reimplementations get wrong, and getting it wrong
+ * accepts roughly one in eleven invalid numbers rather than rejecting them.
  *
  * @param {string} input The candidate BSN.
- * @return {{isFormeelGeldig: boolean, elfproefScore: number, errorCode: (string|null), maskedBsn: string}}
- *         `elfproefScore` is the modulo (0 when valid) or -1 when the input was
- *         not nine digits. `errorCode` is null when valid. The raw input is
+ * @return {{isFormallyValid: boolean, elevenTestScore: number, errorCode: (string|null), maskedBsn: string}}
+ *         `elevenTestScore` is the modulo (0 when valid) or -1 when the input
+ *         was not nine digits. `errorCode` is null when valid. The raw input is
  *         never echoed back — only `maskedBsn`.
  */
 export function validateBsn(input) {
@@ -98,8 +98,8 @@ export function validateBsn(input) {
 
 	if (value.length !== 9 || /^\d{9}$/.test(value) === false) {
 		return {
-			isFormeelGeldig: false,
-			elfproefScore: -1,
+			isFormallyValid: false,
+			elevenTestScore: -1,
 			errorCode: BSN_ERROR_LENGTH,
 			maskedBsn: maskBsn(value),
 		}
@@ -117,8 +117,8 @@ export function validateBsn(input) {
 	const isValid = modulo === 0
 
 	return {
-		isFormeelGeldig: isValid,
-		elfproefScore: modulo,
+		isFormallyValid: isValid,
+		elevenTestScore: modulo,
 		errorCode: isValid ? null : BSN_ERROR_CHECKSUM,
 		maskedBsn: maskBsn(value),
 	}
