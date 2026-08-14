@@ -59,6 +59,26 @@ The host listens once at `CnAppRoot` (events bubble through `CnPageRenderer`):
 
 `payload` arrives unchanged so the host dispatcher can branch on it.
 
+### Accessibility: the navigation landmark's name
+
+The rendered `<nav>` is an ARIA landmark, and a landmark with no accessible name
+is announced as just "navigation" — indistinguishable from any other nav in the
+landmark list a screen-reader user tabs through (WCAG 2.4.6 / 1.3.1).
+`@nextcloud/vue` 9 enforces this: `NcAppNavigation` warns unless `ariaLabel` or
+`ariaLabelledby` is set.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `ariaLabel` | String | `'Main navigation'` (translated) | Accessible name for the navigation landmark, forwarded to `NcAppNavigation`'s `aria-label`. |
+
+The default covers every consumer with no code change. Pass your own when an app
+renders more than one navigation — telling them apart is the entire purpose of
+the name:
+
+```vue
+<CnAppNav :aria-label="t('myapp', 'Project navigation')" />
+```
+
 ### Slots
 
 | Slot | Description |
@@ -206,7 +226,9 @@ The backend (OpenRegister) injects `manifest.runtime` when serving the manifest 
 | `manifest` | `Object \| null` | `null` | Manifest object. Falls back to injected `cnManifest`. |
 | `translate` | `Function \| null` | `null` | Translator used for labels. Falls back to injected `cnTranslate` (identity by default). |
 | `permissions` | `Array<string>` | `[]` | Permissions held by the current user. Empty means all items render regardless of their `permission` field. |
-| `isOwner` | `Boolean` | `false` | Whether the current user is an app OWNER — computed by `CnAppRoot` from `currentUserGroups` ∩ `permissions.owners`, and/or a manifest `runtime.user` owner signal; deliberately NOT `OC.isUserAdmin()`. Gates the auto-prepended "Admin settings" foldout entry together with the manifest declaring at least one `adminSettings[]` entry. Defaults to `false` so `CnAppNav` mounted standalone (without a `CnAppRoot` ancestor) never shows the entry. |
+| `isOwner` | `Boolean` | `false` | Whether the current user OWNS this app — computed by `CnAppRoot` from `currentUserGroups` ∩ `permissions.owners`, and/or a manifest `runtime.user` owner signal; deliberately NOT `OC.isUserAdmin()`. A DIFFERENT signal from `isAdmin` ("administers this instance"); since ADR-079 it no longer gates the Admin settings entry. |
+| `isAdmin` | `Boolean` | `false` | Whether the current user administers this Nextcloud instance — computed by `CnAppRoot` from `getCurrentUser()?.isAdmin` (`@nextcloud/auth`), never the legacy `OC.isUserAdmin()` global. Gates VISIBILITY of the auto-prepended "Admin settings" link to `/settings/admin/<appId>` (ADR-079). Presentation only — it is never an authorization decision; Nextcloud's settings framework refuses that page server-side for non-admins. Defaults to `false` so `CnAppNav` mounted standalone never shows the link. |
+| `appId` | `String` | `null` | App id used to build the Admin-settings link target `/settings/admin/<appId>`. Falls back to the `cnAppId` provided by `CnAppRoot`; with neither available the link is suppressed rather than pointing at a broken URL. |
 
 ## Behaviour
 

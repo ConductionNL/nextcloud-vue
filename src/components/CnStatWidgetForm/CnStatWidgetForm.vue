@@ -19,11 +19,11 @@
 		</div>
 
 		<NcSelect
-			:value="kind"
+			:model-value="kind"
 			:options="kindOptions"
 			:input-label="t('nextcloud-vue', 'Source type')"
 			:clearable="false"
-			@input="updateField('kind', $event)">
+			@update:model-value="updateField('kind', $event)">
 			<template #option="{ label: id }">
 				{{ kindLabel(id) }}
 			</template>
@@ -35,11 +35,11 @@
 		<!-- Aggregate / Ratio share metric + field. Weighted uses field × weight. -->
 		<div v-if="kind !== 'weighted'" class="cn-stat-widget-form__row2">
 			<NcSelect
-				:value="metric"
+				:model-value="metric"
 				:options="metricOptions"
 				:input-label="t('nextcloud-vue', 'Aggregation')"
 				:clearable="false"
-				@input="updateField('metric', $event)" />
+				@update:model-value="updateField('metric', $event)" />
 			<CnFieldPicker
 				v-if="metric && metric !== 'count'"
 				:value="field"
@@ -62,21 +62,21 @@
 				placeholder="probability"
 				@update="updateWeighted('weightField', $event)" />
 			<NcTextField
-				:value="String(weighted.divisor)"
+				:model-value="String(weighted.divisor)"
 				type="number"
 				:label="t('nextcloud-vue', 'Weight divisor')"
 				placeholder="100"
-				@update:value="updateWeighted('divisor', Number($event) || 1)" />
+				@update:model-value="updateWeighted('divisor', Number($event) || 1)" />
 		</div>
 
 		<!-- Aggregate + Weighted use one filter; Ratio + Computed use two parts. -->
 		<template v-if="kind === 'ratio' || kind === 'computed'">
 			<NcTextField
 				v-if="kind === 'computed'"
-				:value="formula"
+				:model-value="formula"
 				:label="t('nextcloud-vue', 'Formula (A, B)')"
 				placeholder="A/B*100"
-				@update:value="updateField('formula', $event)" />
+				@update:model-value="updateField('formula', $event)" />
 			<label class="cn-stat-widget-form__sublabel">{{ kind === 'computed' ? t('nextcloud-vue', 'Part A') : t('nextcloud-vue', 'Numerator (the part)') }}</label>
 			<CnFilterRowsEditor :value="numeratorRows" :fields="availableFields" @input="onRows('numeratorRows', $event)" />
 			<label class="cn-stat-widget-form__sublabel">{{ kind === 'computed' ? t('nextcloud-vue', 'Part B') : t('nextcloud-vue', 'Denominator (the whole)') }}</label>
@@ -93,10 +93,10 @@
 		</h4>
 
 		<NcTextField
-			:value="label"
+			:model-value="label"
 			:label="t('nextcloud-vue', 'Label')"
 			placeholder="Revenue"
-			@update:value="updateField('label', $event)" />
+			@update:model-value="updateField('label', $event)" />
 
 		<CnIconBrowser
 			:value="icon"
@@ -104,10 +104,10 @@
 			@input="updateField('icon', $event)" />
 
 		<NcTextField
-			:value="caption"
+			:model-value="caption"
 			:label="t('nextcloud-vue', 'Caption (optional)')"
 			:placeholder="t('nextcloud-vue', 'vs previous period')"
-			@update:value="updateField('caption', $event)" />
+			@update:model-value="updateField('caption', $event)" />
 
 		<div class="cn-stat-widget-form__row2">
 			<label class="cn-stat-widget-form__color-label">
@@ -135,22 +135,22 @@
 
 		<div class="cn-stat-widget-form__row2">
 			<NcSelect
-				:value="format.style"
+				:model-value="format.style"
 				:options="styleOptions"
 				:input-label="t('nextcloud-vue', 'Style')"
 				:clearable="false"
-				@input="updateFormat('style', $event)" />
+				@update:model-value="updateFormat('style', $event)" />
 			<NcTextField
 				v-if="format.style === 'currency'"
-				:value="format.currency"
+				:model-value="format.currency"
 				:label="t('nextcloud-vue', 'Currency')"
 				placeholder="EUR"
-				@update:value="updateFormat('currency', $event)" />
+				@update:model-value="updateFormat('currency', $event)" />
 			<NcTextField
-				:value="String(format.decimals)"
+				:model-value="String(format.decimals)"
 				type="number"
 				:label="t('nextcloud-vue', 'Decimals')"
-				@update:value="updateFormat('decimals', Number($event) || 0)" />
+				@update:model-value="updateFormat('decimals', Number($event) || 0)" />
 		</div>
 	</div>
 </template>
@@ -336,7 +336,9 @@ export default {
 
 		/**
 		 * Human label for a source kind.
-		 * @param id
+		 *
+		 * @param {'aggregate'|'ratio'|'computed'|'weighted'} id A `kindOptions` value.
+		 * @return {string} The translated label; unknown ids fall back to "Aggregate".
 		 */
 		kindLabel(id) {
 			if (id === 'ratio') return t('nextcloud-vue', 'Ratio (%)')
@@ -347,8 +349,10 @@ export default {
 
 		/**
 		 * Set a top-level field and emit.
-		 * @param field
-		 * @param value
+		 *
+		 * @param {'label'|'icon'|'iconColor'|'valueColor'|'caption'|'kind'|'metric'|'field'|'formula'} field The data key to write.
+		 * @param {string} value The new value for that key.
+		 * @return {void}
 		 */
 		updateField(field, value) {
 			this[field] = value
@@ -357,38 +361,50 @@ export default {
 
 		/**
 		 * Set a format sub-field and emit.
-		 * @param field
-		 * @param value
+		 *
+		 * @param {'style'|'currency'|'decimals'} field The `format` sub-key to write.
+		 * @param {string|number} value A `styleOptions` value, an ISO currency code,
+		 *   or the decimal precision.
+		 * @return {void}
 		 */
 		updateFormat(field, value) {
-			this.$set(this.format, field, value)
+			this.format[field] = value
 			this.emitChange()
 		},
 
 		/**
 		 * Set a source sub-field and emit.
-		 * @param field
-		 * @param value
+		 *
+		 * @param {'register'|'schema'} field The `source` sub-key to write.
+		 * @param {string} value The chosen register or schema slug.
+		 * @return {void}
 		 */
 		updateSource(field, value) {
-			this.$set(this.source, field, value)
+			this.source[field] = value
 			this.emitChange()
 		},
 
 		/**
-		 * Set a weighted sub-field and emit.
-		 * @param field
-		 * @param value
+		 * Set a weighted sub-field and emit (the `weighted` source kind).
+		 *
+		 * @param {'field'|'weightField'|'divisor'} field The `weighted` sub-key to write.
+		 * @param {string|number} value The value or weight property name, or the
+		 *   numeric divisor applied to the weighted sum.
+		 * @return {void}
 		 */
 		updateWeighted(field, value) {
-			this.$set(this.weighted, field, value)
+			this.weighted[field] = value
 			this.emitChange()
 		},
 
 		/**
 		 * Receive updated filter rows from a shared editor (by data key).
-		 * @param key
-		 * @param rows
+		 *
+		 * @param {'filterRows'|'numeratorRows'|'denominatorRows'} key Which row set
+		 *   to replace — the plain filter, or the ratio's numerator/denominator.
+		 * @param {Array<{key: string, op: string, value: string}>} rows The editor's
+		 *   full row list, serialised by `rowsToFilter()`.
+		 * @return {void}
 		 */
 		onRows(key, rows) {
 			this[key] = rows

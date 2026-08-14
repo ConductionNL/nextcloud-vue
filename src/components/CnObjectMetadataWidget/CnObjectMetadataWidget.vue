@@ -104,10 +104,16 @@ export default {
 		/**
 		 * The object data containing metadata.
 		 * Supports flat objects and objects with `@self` metadata block.
+		 * Optional: null renders the empty state (and avoids a required-prop
+		 * warning on surfaces that mount before the object loads, e.g. a
+		 * `metadata` tab in CnObjectSidebar). Handled internally via
+		 * `this.objectData || {}`.
+		 *
+		 * @type {object|null}
 		 */
 		objectData: {
 			type: Object,
-			required: true,
+			default: null,
 		},
 		/**
 		 * Layout mode for the grid: 'grid' or 'horizontal'.
@@ -181,9 +187,9 @@ export default {
 		 * @self fields take priority over top-level for shared keys.
 		 */
 		metadataSource() {
-			// objectData is `required` but can be momentarily undefined/null during
-			// async loads (and when a parent binds a not-yet-resolved object), so
-			// guard before reading `@self` to avoid a render-time TypeError.
+			// objectData is optional (and momentarily null during async loads or
+			// when a parent binds a not-yet-resolved object), so guard before
+			// reading `@self` to avoid a render-time TypeError.
 			const data = this.objectData || {}
 			const selfBlock = data['@self'] || {}
 			return { ...data, ...selfBlock }

@@ -11,13 +11,14 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { h } from 'vue'
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 import { registerDashboardWidget } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 
 const Probe = {
 	name: 'ProbeWidget',
 	props: ['objectId', 'register', 'schema', 'objectData', 'objectType', 'content'],
-	render(h) {
+	render() {
 		return h('div', { class: 'probe' })
 	},
 }

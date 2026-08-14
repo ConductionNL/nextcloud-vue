@@ -98,7 +98,7 @@
 						class="cn-object-data-widget__editor">
 						<!-- Per-field slot override -->
 						<slot
-							v-if="$scopedSlots['field-' + field.key]"
+							v-if="$slots['field-' + field.key]"
 							:name="'field-' + field.key"
 							:field="field"
 							:value="editData[field.key]"
@@ -111,23 +111,23 @@
 							<NcTextField
 								v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'"
 								ref="activeEditor"
-								:value="editData[field.key] != null ? String(editData[field.key]) : ''"
+								:model-value="editData[field.key] != null ? String(editData[field.key]) : ''"
 								:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
 								:placeholder="field.description"
-								@update:value="val => updateField(field.key, val)"
-								@keydown.native.enter="commitEdit"
-								@keydown.native.escape="cancelEdit" />
+								@update:model-value="val => updateField(field.key, val)"
+								@keydown.enter="commitEdit"
+								@keydown.escape="cancelEdit" />
 
 							<!-- Number -->
 							<NcTextField
 								v-else-if="field.widget === 'number'"
 								ref="activeEditor"
-								:value="editData[field.key] != null ? String(editData[field.key]) : ''"
+								:model-value="editData[field.key] != null ? String(editData[field.key]) : ''"
 								type="number"
 								:placeholder="field.description"
-								@update:value="val => updateField(field.key, val !== '' ? Number(val) : null)"
-								@keydown.native.enter="commitEdit"
-								@keydown.native.escape="cancelEdit" />
+								@update:model-value="val => updateField(field.key, val !== '' ? Number(val) : null)"
+								@keydown.enter="commitEdit"
+								@keydown.escape="cancelEdit" />
 
 							<!-- Textarea -->
 							<textarea
@@ -149,11 +149,11 @@
 								v-else-if="isSingleRelationField(field.key)"
 								ref="activeEditor"
 								:options="relationOptions[field.key] || []"
-								:value="relationSelectedOption(field)"
+								:model-value="relationSelectedOption(field)"
 								:loading="relationOptionsLoading"
 								label="label"
 								:clearable="!field.required"
-								@input="onRelationChange(field, $event)"
+								@update:model-value="onRelationChange(field, $event)"
 								@close="commitEdit" />
 
 							<!-- Select -->
@@ -161,9 +161,9 @@
 								v-else-if="field.widget === 'select'"
 								ref="activeEditor"
 								:options="getSelectOptions(field)"
-								:value="getSelectedOption(field)"
+								:model-value="getSelectedOption(field)"
 								:clearable="!field.required"
-								@input="onSelectChange(field, $event)"
+								@update:model-value="onSelectChange(field, $event)"
 								@close="commitEdit" />
 
 							<!-- Multiselect -->
@@ -171,22 +171,22 @@
 								v-else-if="field.widget === 'multiselect'"
 								ref="activeEditor"
 								:options="getMultiselectOptions(field)"
-								:value="getSelectedMultiselectOptions(field)"
+								:model-value="getSelectedMultiselectOptions(field)"
 								:multiple="true"
 								:keep-open="true"
 								:clearable="true"
-								@input="onMultiselectChange(field, $event)" />
+								@update:model-value="onMultiselectChange(field, $event)" />
 
 							<!-- Tags -->
 							<NcSelect
 								v-else-if="field.widget === 'tags'"
 								ref="activeEditor"
-								:value="editData[field.key] || []"
+								:model-value="editData[field.key] || []"
 								:multiple="true"
 								:keep-open="true"
 								:taggable="true"
 								:clearable="true"
-								@input="val => updateField(field.key, val)" />
+								@update:model-value="val => updateField(field.key, val)" />
 
 							<!-- Checkbox / Switch -->
 							<NcCheckboxRadioSwitch
@@ -201,31 +201,31 @@
 							<NcTextField
 								v-else-if="field.widget === 'date'"
 								ref="activeEditor"
-								:value="editData[field.key] || ''"
+								:model-value="editData[field.key] || ''"
 								type="date"
-								@update:value="val => updateField(field.key, val)"
-								@keydown.native.enter="commitEdit"
-								@keydown.native.escape="cancelEdit" />
+								@update:model-value="val => updateField(field.key, val)"
+								@keydown.enter="commitEdit"
+								@keydown.escape="cancelEdit" />
 
 							<!-- Datetime -->
 							<NcTextField
 								v-else-if="field.widget === 'datetime'"
 								ref="activeEditor"
-								:value="editData[field.key] || ''"
+								:model-value="editData[field.key] || ''"
 								type="datetime-local"
-								@update:value="val => updateField(field.key, val)"
-								@keydown.native.enter="commitEdit"
-								@keydown.native.escape="cancelEdit" />
+								@update:model-value="val => updateField(field.key, val)"
+								@keydown.enter="commitEdit"
+								@keydown.escape="cancelEdit" />
 
 							<!-- Fallback: text -->
 							<NcTextField
 								v-else
 								ref="activeEditor"
-								:value="editData[field.key] != null ? String(editData[field.key]) : ''"
+								:model-value="editData[field.key] != null ? String(editData[field.key]) : ''"
 								:placeholder="field.description"
-								@update:value="val => updateField(field.key, val)"
-								@keydown.native.enter="commitEdit"
-								@keydown.native.escape="cancelEdit" />
+								@update:model-value="val => updateField(field.key, val)"
+								@keydown.enter="commitEdit"
+								@keydown.escape="cancelEdit" />
 						</template>
 
 						<!-- Confirm/Cancel for non-auto-committing editors -->
@@ -260,11 +260,11 @@
 						@keydown.enter="isEditable(field) && startEdit(field)">
 						<!-- Per-field display slot override -->
 						<slot
-							v-if="$scopedSlots['display-' + field.key]"
+							v-if="$slots['display-' + field.key]"
 							:name="'display-' + field.key"
 							:field="field"
 							:value="displayValues[field.key]"
-							:raw="objectData[field.key]" />
+							:raw="(objectData || {})[field.key]" />
 						<template v-else>
 							<img v-if="isImageField(field) && rawOf(field)"
 								:src="rawOf(field)"
@@ -318,11 +318,11 @@
 							<dl
 								v-else-if="fieldValueKind(field) === 'object'"
 								class="cn-object-data-widget__deflist">
-								<template v-for="(pair, pi) in objectEntries(rawOf(field))">
-									<dt :key="'k' + pi">
+								<template v-for="(pair, pi) in objectEntries(rawOf(field))" :key="pi">
+									<dt>
 										{{ pair[0] }}
 									</dt>
-									<dd :key="'v' + pi">
+									<dd>
 										{{ stringifyCell(pair[1]) }}
 									</dd>
 								</template>
@@ -368,7 +368,7 @@
 			:schema="schema"
 			:item="objectData"
 			:dialog-title="editLabel"
-			:overrides="overrides"
+			:overrides="resolvedOverrides"
 			:exclude-fields="exclude"
 			:include-fields="include"
 			@confirm="onEditConfirm"
@@ -455,6 +455,15 @@ export default {
 		 * bare-slug refs then stay unresolved (shortened id fallback).
 		 */
 		cnObjectContext: { default: null },
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Field
+		 * labels/descriptions come from schema property titles, authored in
+		 * English as the canonical source; the visible label is resolved
+		 * through this function so it follows the user's language. Defaults to
+		 * identity when used standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -489,18 +498,27 @@ export default {
 		/**
 		 * The JSON Schema describing the object's properties.
 		 * Must have a `properties` field.
+		 * Optional: null renders the empty state (no fields) — e.g. while the
+		 * schema is still being fetched on surfaces that mount before it loads
+		 * (a `data` tab in CnObjectSidebar).
+		 *
+		 * @type {object|null}
 		 */
 		schema: {
 			type: Object,
-			required: true,
+			default: null,
 		},
 		/**
 		 * The object data to display and edit.
 		 * Keys should match the schema property keys.
+		 * Optional: null while the object is still loading; all internal reads
+		 * guard with `this.objectData || {}`.
+		 *
+		 * @type {object|null}
 		 */
 		objectData: {
 			type: Object,
-			required: true,
+			default: null,
 		},
 		/**
 		 * The registered object type slug in the objectStore.
@@ -530,10 +548,15 @@ export default {
 		 * - `editable` (boolean) — Override editability (default: based on schema readOnly)
 		 * - `label` (string) — Override the display label
 		 * - `widget` (string) — Override the widget type for editing
+		 *
+		 * Accepts an Array too: an empty overrides map (`{}`) round-trips through
+		 * PHP/JSON as an empty Array (`[]`), so a persisted manifest can deliver
+		 * `[]`. `resolvedOverrides` coerces that back to `{}`.
+		 *
 		 * @type {object}
 		 */
 		overrides: {
-			type: Object,
+			type: [Object, Array],
 			default: () => ({}),
 		},
 		/**
@@ -611,6 +634,8 @@ export default {
 		},
 	},
 
+	emits: ['discard', 'save', 'save-error', 'saved'],
+
 	data() {
 		return {
 			/** Whether the read-only metadata modal is open. */
@@ -655,6 +680,17 @@ export default {
 		},
 
 		/**
+		 * The overrides map, coerced to a plain object. An empty `{}` persists
+		 * through PHP/JSON as `[]`; treat any Array as "no overrides" so lookups
+		 * (`overrides[key]`) stay well-defined.
+		 *
+		 * @return {object}
+		 */
+		resolvedOverrides() {
+			return (this.overrides && !Array.isArray(this.overrides)) ? this.overrides : {}
+		},
+
+		/**
 		 * Resolved field definitions from schema + overrides.
 		 * Sorted by order, filtered by hidden/exclude/include.
 		 */
@@ -667,16 +703,17 @@ export default {
 			const fields = fieldsFromSchema(this.schema, {
 				exclude: this.exclude,
 				include: this.include,
-				overrides: this.overrides,
+				overrides: this.resolvedOverrides,
 				includeReadOnly: true,
+				translate: this.cnTranslate,
 			})
 
 			// Attach grid span info (a display-only concern, not part of the
 			// shared field pipeline) from the same overrides map.
 			const withSpans = fields.map(field => ({
 				...field,
-				gridColumn: (this.overrides[field.key] && this.overrides[field.key].gridColumn) || 1,
-				gridRow: (this.overrides[field.key] && this.overrides[field.key].gridRow) || 1,
+				gridColumn: (this.resolvedOverrides[field.key] && this.resolvedOverrides[field.key].gridColumn) || 1,
+				gridRow: (this.resolvedOverrides[field.key] && this.resolvedOverrides[field.key].gridRow) || 1,
 			}))
 
 			if (!this.hideEmpty) {
@@ -778,7 +815,7 @@ export default {
 		this.scheduleOverflowMeasure()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this._overflowObserver) this._overflowObserver.disconnect()
 		if (this._overflowTimer) clearTimeout(this._overflowTimer)
 	},
@@ -888,7 +925,7 @@ export default {
 
 		/**
 		 * Raw (possibly dirty) value for a field.
-		 * @param field
+		 * @param {object} field The field descriptor (from `fieldsFromSchema`).
 		 */
 		rawOf(field) {
 			const o = this.objectData || {}
@@ -976,7 +1013,7 @@ export default {
 		},
 		/**
 		 * Whether a field should render as an image preview.
-		 * @param field
+		 * @param {object} field The field descriptor (from `fieldsFromSchema`).
 		 */
 		isImageField(field) {
 			if (field.widget === 'image') return true
@@ -987,7 +1024,7 @@ export default {
 		},
 		/**
 		 * The x-openregister-relation block for a property (scalar or array), or null.
-		 * @param prop
+		 * @param {object} prop The schema property definition.
 		 */
 		relationProp(prop) {
 			if (!prop) return null
@@ -1018,7 +1055,7 @@ export default {
 		},
 		/**
 		 * Whether a property is a relation.
-		 * @param prop
+		 * @param {object} prop The schema property definition.
 		 */
 		isRelationField(prop) {
 			return this.relationProp(prop) !== null
@@ -1142,11 +1179,11 @@ export default {
 					const id = (o['@self'] && o['@self'].id) || o.id
 					return { id, label: this.objectDisplayName(o, id) }
 				}).filter((o) => o.id)
-				this.$set(this.relationOptions, key, opts)
+				this.relationOptions[key] = opts
 				// Cache the labels so display resolution reuses them.
-				opts.forEach((o) => { if (!(o.id in this.relatedLabels)) this.$set(this.relatedLabels, o.id, o.label) })
+				opts.forEach((o) => { if (!(o.id in this.relatedLabels)) this.relatedLabels[o.id] = o.label })
 			} catch (e) {
-				this.$set(this.relationOptions, key, [])
+				this.relationOptions[key] = []
 			} finally {
 				this.relationOptionsLoading = false
 			}
@@ -1170,7 +1207,7 @@ export default {
 		 * @param {object|null} opt Chosen option or null (cleared).
 		 */
 		onRelationChange(field, opt) {
-			if (opt && opt.id) this.$set(this.relatedLabels, opt.id, opt.label)
+			if (opt && opt.id) this.relatedLabels[opt.id] = opt.label
 			this.updateField(field.key, opt ? opt.id : null)
 		},
 		/** Fetch related objects' display names into relatedLabels. */
@@ -1199,9 +1236,9 @@ export default {
 					const res = await axios.get(url)
 					const d = (res && res.data) ? res.data : {}
 					const obj = (d.results && d.results[0]) ? d.results[0] : d
-					this.$set(this.relatedLabels, id, this.objectDisplayName(obj, id))
+					this.relatedLabels[id] = this.objectDisplayName(obj, id)
 				} catch (e) {
-					this.$set(this.relatedLabels, id, id)
+					this.relatedLabels[id] = id
 				}
 			}))
 		},
@@ -1212,7 +1249,7 @@ export default {
 		isEditable(field) {
 			if (!this.editable) return false
 			// Per-field override takes priority
-			const override = this.overrides[field.key]
+			const override = this.resolvedOverrides[field.key]
 			if (override && typeof override.editable === 'boolean') {
 				return override.editable
 			}

@@ -34,10 +34,10 @@
 		<NcTextField v-if="editing === 'label'"
 			ref="labelField"
 			class="cn-menu-tree__inline-field"
-			:value="item.label || ''"
+			:model-value="item.label || ''"
 			:label="t('nextcloud-vue', 'Label')"
 			:label-outside="true"
-			@update:value="setLabel"
+			@update:model-value="setLabel"
 			@keydown.enter="stopEdit"
 			@blur="stopEdit" />
 		<button v-else
@@ -51,13 +51,13 @@
 		<!-- Target page: click to change inline. -->
 		<NcSelect v-if="editing === 'page'"
 			class="cn-menu-tree__inline-select"
-			:value="selectedPage"
+			:model-value="selectedPage"
 			:options="pages"
 			:input-label="t('nextcloud-vue', 'Page')"
 			label="label"
 			:clearable="true"
 			:placeholder="pages.length ? t('nextcloud-vue', 'Pick a page') : t('nextcloud-vue', 'No pages')"
-			@input="onPage"
+			@update:model-value="onPage"
 			@close="stopEdit" />
 		<button v-else
 			type="button"
@@ -67,10 +67,10 @@
 		</button>
 
 		<!-- Cog → actions popover (add sub-item + delete). -->
-		<NcPopover :shown.sync="popoverOpen" :focus-trap="false">
+		<NcPopover v-model:shown="popoverOpen" :focus-trap="false">
 			<template #trigger="{ attrs }">
 				<NcButton v-bind="attrs"
-					type="tertiary"
+					variant="tertiary"
 					:aria-label="t('nextcloud-vue', 'Menu item settings')">
 					<template #icon>
 						<Cog :size="18" />
@@ -79,14 +79,14 @@
 			</template>
 			<div class="cn-menu-tree__config">
 				<NcButton v-if="canAddChild"
-					type="tertiary"
+					variant="tertiary"
 					@click="$emit('add-child')">
 					<template #icon>
 						<Plus :size="18" />
 					</template>
 					{{ t('nextcloud-vue', 'Add sub-item') }}
 				</NcButton>
-				<NcButton type="tertiary"
+				<NcButton variant="tertiary"
 					@click="$emit('remove')">
 					<template #icon>
 						<Delete :size="18" />
@@ -151,6 +151,8 @@ export default {
 		},
 	},
 
+	emits: ['add-child', 'remove'],
+
 	data() {
 		return {
 			// Which field is in inline-edit mode: null | 'icon' | 'label' | 'page'.
@@ -200,7 +202,7 @@ export default {
 		 * @return {void}
 		 */
 		setLabel(value) {
-			this.$set(this.item, 'label', value)
+			this.item.label = value
 		},
 		/**
 		 * Set the item icon. CnIconBrowser emits the value directly (a registry
@@ -210,7 +212,7 @@ export default {
 		 * @return {void}
 		 */
 		onIcon(icon) {
-			this.$set(this.item, 'icon', icon || '')
+			this.item.icon = icon || ''
 		},
 		/**
 		 * Set the item's target page (route name) and leave edit mode.
@@ -218,7 +220,7 @@ export default {
 		 * @return {void}
 		 */
 		onPage(option) {
-			this.$set(this.item, 'route', option ? option.value : '')
+			this.item.route = option ? option.value : ''
 			this.stopEdit()
 		},
 	},

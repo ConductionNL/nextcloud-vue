@@ -31,7 +31,7 @@
 
 			<!-- Full form override slot -->
 			<slot
-				v-if="$scopedSlots.form"
+				v-if="$slots.form"
 				name="form"
 				:fields="resolvedFields"
 				:form-data="formData"
@@ -48,7 +48,7 @@
 					class="cn-form-dialog__field">
 					<!-- Per-field override slot -->
 					<slot
-						v-if="$scopedSlots['field-' + field.key]"
+						v-if="$slots['field-' + field.key]"
 						:name="'field-' + field.key"
 						:field="field"
 						:value="formData[field.key]"
@@ -85,29 +85,39 @@
 
 					<!-- Auto-generated field -->
 					<template v-else>
-						<!-- Text / Email / URL -->
-						<NcTextField
-							v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'"
-							:label="field.label + (field.required ? ' *' : '')"
-							:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
-							:helper-text="errors[field.key] || field.description"
-							:error="!!errors[field.key]"
-							:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
-							:disabled="field.readOnly"
-							:placeholder="field.description"
-							@update:value="value => updateField(field.key, value)" />
+						<!-- Text / Email / URL. The helper line lives outside the
+						     input (rather than on `helper-text`) so an over-long
+						     description can hang its info popover off it. -->
+						<template v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'">
+							<NcTextField
+								:label="field.label + (field.required ? ' *' : '')"
+								:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
+								:error="!!errors[field.key]"
+								:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
+								:disabled="field.readOnly"
+								:placeholder="field.description"
+								@update:model-value="value => updateField(field.key, value)" />
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
+						</template>
 
 						<!-- Number -->
-						<NcTextField
-							v-else-if="field.widget === 'number'"
-							:label="field.label + (field.required ? ' *' : '')"
-							:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
-							:helper-text="errors[field.key] || field.description"
-							:error="!!errors[field.key]"
-							type="number"
-							:disabled="field.readOnly"
-							:placeholder="field.description"
-							@update:value="value => updateField(field.key, value !== '' ? Number(value) : null)" />
+						<template v-else-if="field.widget === 'number'">
+							<NcTextField
+								:label="field.label + (field.required ? ' *' : '')"
+								:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
+								:error="!!errors[field.key]"
+								type="number"
+								:disabled="field.readOnly"
+								:placeholder="field.description"
+								@update:model-value="value => updateField(field.key, value !== '' ? Number(value) : null)" />
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
+						</template>
 
 						<!-- Textarea -->
 						<div v-else-if="field.widget === 'textarea'" class="cn-form-dialog__textarea-wrapper">
@@ -122,12 +132,10 @@
 								:placeholder="field.description"
 								rows="4"
 								@input="updateField(field.key, $event.target.value)" />
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
 						</div>
 
 						<!-- Object reference with inline create (`x-allow-create`):
@@ -148,12 +156,10 @@
 								:clearable="!field.required"
 								@update:modelValue="value => onReferenceSelected(field, value)"
 								@create="obj => onReferenceCreated(field, obj)" />
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
 						</div>
 
 						<!-- Enum toggle (`widget: "switch"` on a 2-value enum):
@@ -184,25 +190,23 @@
 								:loading="isFieldLoading(field)"
 								:filterable="!isAsyncEnum(field)"
 								:user-select="isUserField(field)"
-								@input="onEffectiveSelectChange(field, $event)"
+								@update:model-value="onEffectiveSelectChange(field, $event)"
 								@search="isAsyncEnum(field) ? onAsyncSearch(field, $event) : undefined">
 								<template
-									v-if="$scopedSlots['field-' + field.key + '-option']"
+									v-if="$slots['field-' + field.key + '-option']"
 									#option="optionProps">
 									<slot :name="'field-' + field.key + '-option'" v-bind="optionProps" />
 								</template>
 								<template
-									v-if="$scopedSlots['field-' + field.key + '-selected-option']"
+									v-if="$slots['field-' + field.key + '-selected-option']"
 									#selected-option="optionProps">
 									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
 								</template>
 							</NcSelect>
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
 						</div>
 
 						<!-- Multiselect (array enum items / $ref array / Nextcloud users, supports async function) -->
@@ -218,25 +222,23 @@
 								:disabled="field.readOnly"
 								:loading="isFieldLoading(field)"
 								:filterable="!isAsyncItemsEnum(field)"
-								@input="onEffectiveMultiSelectChange(field, $event)"
+								@update:model-value="onEffectiveMultiSelectChange(field, $event)"
 								@search="isAsyncItemsEnum(field) ? onAsyncSearch(field, $event) : undefined">
 								<template
-									v-if="$scopedSlots['field-' + field.key + '-option']"
+									v-if="$slots['field-' + field.key + '-option']"
 									#option="optionProps">
 									<slot :name="'field-' + field.key + '-option'" v-bind="optionProps" />
 								</template>
 								<template
-									v-if="$scopedSlots['field-' + field.key + '-selected-option']"
+									v-if="$slots['field-' + field.key + '-selected-option']"
 									#selected-option="optionProps">
 									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
 								</template>
 							</NcSelect>
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
 						</div>
 
 						<!-- Tags (array, freeform, supports async suggestions) -->
@@ -254,25 +256,23 @@
 								:disabled="field.readOnly"
 								:loading="isFieldLoading(field)"
 								:filterable="!isFieldAsync(field)"
-								@input="updateField(field.key, $event)"
+								@update:model-value="updateField(field.key, $event)"
 								@search="isFieldAsync(field) ? onAsyncSearch(field, $event) : undefined">
 								<template
-									v-if="$scopedSlots['field-' + field.key + '-option']"
+									v-if="$slots['field-' + field.key + '-option']"
 									#option="optionProps">
 									<slot :name="'field-' + field.key + '-option'" v-bind="optionProps" />
 								</template>
 								<template
-									v-if="$scopedSlots['field-' + field.key + '-selected-option']"
+									v-if="$slots['field-' + field.key + '-selected-option']"
 									#selected-option="optionProps">
 									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
 								</template>
 							</NcSelect>
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
 						</div>
 
 						<!-- Checkbox / Switch (boolean) -->
@@ -301,12 +301,10 @@
 								:model-value="dateValueFor(field)"
 								:disabled="field.readOnly"
 								@update:model-value="date => onDateFieldInput(field, date)" />
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
 						</div>
 
 						<!-- JSON (type: 'object'|'array'|... with widget: 'json'): parses on input, stores parsed value in formData -->
@@ -320,12 +318,10 @@
 								:read-only="field.readOnly"
 								:error-text="jsonErrors[field.key] || ''"
 								@update:value="value => onJsonFieldInput(field, value)" />
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
 						</div>
 
 						<!-- Code (freeform editor, stored as raw string; optional `field.language` chooses highlighting) -->
@@ -338,12 +334,10 @@
 								:language="field.language || 'auto'"
 								:read-only="field.readOnly"
 								@update:value="value => updateField(field.key, value)" />
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
 						</div>
 
 						<!-- Icon (widget: 'icon'): renders CnIconBrowser, forwarding the field's icon config.
@@ -359,24 +353,26 @@
 								:allow-custom-svg="!!field.allowCustomSvg"
 								:clearable="!field.required"
 								@input="value => updateField(field.key, value)" />
-							<span
-								v-if="errors[field.key] || field.description"
-								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
-								{{ errors[field.key] || field.description }}
-							</span>
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
 						</div>
 
 						<!-- Fallback: text input -->
-						<NcTextField
-							v-else
-							:label="field.label + (field.required ? ' *' : '')"
-							:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
-							:helper-text="errors[field.key] || field.description"
-							:error="!!errors[field.key]"
-							:disabled="field.readOnly"
-							:placeholder="field.description"
-							@update:value="value => updateField(field.key, value)" />
+						<template v-else>
+							<NcTextField
+								:label="field.label + (field.required ? ' *' : '')"
+								:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
+								:error="!!errors[field.key]"
+								:disabled="field.readOnly"
+								:placeholder="field.description"
+								@update:model-value="value => updateField(field.key, value)" />
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
+						</template>
 					</template>
 				</div>
 
@@ -412,6 +408,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
+import CnFieldHelper from '../CnFieldHelper/CnFieldHelper.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
@@ -595,6 +592,7 @@ export default {
 		CnJsonViewer,
 		CnIconBrowser,
 		CnResourceSelect,
+		CnFieldHelper,
 		Plus,
 		ContentSaveOutline,
 	},
@@ -604,6 +602,15 @@ export default {
 			from: TENANT_CONTEXT_KEY,
 			default: null,
 		},
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Field
+		 * labels/descriptions come from schema property titles, authored in
+		 * English as the canonical source; the visible label is resolved
+		 * through this function so it follows the user's language. Defaults to
+		 * identity when used standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -729,6 +736,8 @@ export default {
 		},
 	},
 
+	emits: ['close', 'confirm'],
+
 	setup() {
 		// Pluggable integration registry — used to resolve fields that
 		// declare `referenceType: '<integration-id>'` (AD-18) to the
@@ -829,6 +838,7 @@ export default {
 					exclude: this.excludeFields,
 					include: this.includeFields,
 					overrides: this.fieldOverrides,
+					translate: this.cnTranslate,
 				})
 
 			// Render locked fields (parent references seeded via initialData) as
@@ -882,15 +892,15 @@ export default {
 			const newKeys = new Set(newFields.map((f) => f.key))
 			for (const oldField of oldFields) {
 				if (!newKeys.has(oldField.key) && Object.prototype.hasOwnProperty.call(this.formData, oldField.key)) {
-					this.$delete(this.formData, oldField.key)
+					delete this.formData[oldField.key]
 					if (Object.prototype.hasOwnProperty.call(this.errors, oldField.key)) {
-						this.$delete(this.errors, oldField.key)
+						delete this.errors[oldField.key]
 					}
 					if (Object.prototype.hasOwnProperty.call(this.jsonErrors, oldField.key)) {
-						this.$delete(this.jsonErrors, oldField.key)
+						delete this.jsonErrors[oldField.key]
 					}
 					if (Object.prototype.hasOwnProperty.call(this.jsonDrafts, oldField.key)) {
-						this.$delete(this.jsonDrafts, oldField.key)
+						delete this.jsonDrafts[oldField.key]
 					}
 				}
 			}
@@ -909,7 +919,7 @@ export default {
 		this.resolveSemanticReferences()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		for (const state of Object.values(this.asyncState)) {
 			if (state.searchTimeout) clearTimeout(state.searchTimeout)
 		}
@@ -972,9 +982,9 @@ export default {
 			}
 			for (const uri of uris) {
 				if (this.semanticResolutions[uri]) continue
-				this.$set(this.semanticResolutions, uri, { status: 'loading', resolved: false })
+				this.semanticResolutions[uri] = { status: 'loading', resolved: false }
 				this.resolveSemanticReference(uri).then((result) => {
-					this.$set(this.semanticResolutions, uri, { status: 'done', ...result })
+					this.semanticResolutions[uri] = { status: 'done', ...result }
 					// Re-init async fields so a newly-resolved reference picker
 					// starts fetching its options, and resolve any edit-mode
 					// label for a value already stored on the field.
@@ -1200,7 +1210,7 @@ export default {
 			if (!hasOrgField) return
 			const current = this.formData.organisation
 			if (current !== null && current !== undefined && current !== '') return
-			this.$set(this.formData, 'organisation', uuid)
+			this.formData.organisation = uuid
 		},
 
 		/**
@@ -1251,11 +1261,11 @@ export default {
 		},
 
 		updateField(key, value) {
-			this.$set(this.formData, key, value)
-			this.$set(this.touchedFields, key, true)
+			this.formData[key] = value
+			this.touchedFields[key] = true
 			// Clear errors when a field is edited
 			if (this.errors[key]) {
-				this.$delete(this.errors, key)
+				delete this.errors[key]
 			}
 			this.formError = null
 			// A field change may flip the visibility of conditional fields.
@@ -1271,9 +1281,9 @@ export default {
 		pruneHiddenFields() {
 			for (const field of this.resolvedFields) {
 				if (!this.fieldVisible(field) && Object.hasOwn(this.formData, field.key)) {
-					this.$delete(this.formData, field.key)
+					delete this.formData[field.key]
 					if (this.errors[field.key]) {
-						this.$delete(this.errors, field.key)
+						delete this.errors[field.key]
 					}
 				}
 			}
@@ -1310,19 +1320,19 @@ export default {
 		 * @param {string} newString Current editor content.
 		 */
 		onJsonFieldInput(field, newString) {
-			this.$set(this.jsonDrafts, field.key, newString)
+			this.jsonDrafts[field.key] = newString
 			const trimmed = (newString || '').trim()
 			if (!trimmed) {
 				this.updateField(field.key, null)
-				this.$delete(this.jsonErrors, field.key)
+				delete this.jsonErrors[field.key]
 				return
 			}
 			try {
 				const parsed = JSON.parse(trimmed)
 				this.updateField(field.key, parsed)
-				this.$delete(this.jsonErrors, field.key)
+				delete this.jsonErrors[field.key]
 			} catch (e) {
-				this.$set(this.jsonErrors, field.key, t('nextcloud-vue', 'Invalid JSON: {msg}', { msg: e.message }))
+				this.jsonErrors[field.key] = t('nextcloud-vue', 'Invalid JSON: {msg}', { msg: e.message })
 			}
 		},
 
@@ -1411,7 +1421,7 @@ export default {
 				if (raw === null || raw === undefined || raw === '') continue
 				const date = this.dateValueFor(field)
 				if (date instanceof Date && !isNaN(date.getTime())) {
-					this.$set(this.formData, field.key, this.formatDateValue(field.widget, date))
+					this.formData[field.key] = this.formatDateValue(field.widget, date)
 				}
 			}
 		},
@@ -1849,7 +1859,7 @@ export default {
 			const state = this.asyncState[field.key]
 			if (!state) return
 
-			this.$set(state, 'loading', true)
+			state.loading = true
 
 			try {
 				let results
@@ -1872,12 +1882,12 @@ export default {
 					const enumFn = typeof field.enum === 'function' ? field.enum : field.items.enum
 					results = await enumFn(query)
 				}
-				this.$set(state, 'options', Array.isArray(results) ? results : [])
+				state.options = Array.isArray(results) ? results : []
 			} catch (err) {
 				console.error(`CnFormDialog: async enum error for field "${field.key}":`, err)
-				this.$set(state, 'options', [])
+				state.options = []
 			} finally {
-				this.$set(state, 'loading', false)
+				state.loading = false
 			}
 		},
 

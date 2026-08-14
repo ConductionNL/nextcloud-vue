@@ -57,7 +57,7 @@ describe('CnCalendarEventCreate', () => {
 		expect(wrapper.vm.canSubmit).toBe(false)
 		wrapper.vm.form.summary = 'Hello'
 		expect(wrapper.vm.canSubmit).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('POSTs the new meeting to /events on submit', async () => {
@@ -78,14 +78,14 @@ describe('CnCalendarEventCreate', () => {
 		expect(body.summary).toBe('Kickoff')
 		expect(body.dtstart).toBeDefined()
 		expect(wrapper.emitted('created')).toBeTruthy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('emits close on cancel', () => {
 		const wrapper = mountCreate()
 		wrapper.vm.onClose()
 		expect(wrapper.emitted('close')).toBeTruthy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows an error banner when the server responds 400', async () => {
@@ -101,6 +101,6 @@ describe('CnCalendarEventCreate', () => {
 		await flush()
 
 		expect(wrapper.vm.error).toBe('Invalid')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

@@ -270,11 +270,12 @@ import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import { findIconByValue } from './iconCatalogue.js'
 import { fuzzyFilter } from './fuzzy.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
+import { nextUid } from '../../utils/uid.js'
 import { isCustomIconUrl } from '../CnIconPicker/dashboardIcons.js'
 
 /**
  * CnIconBrowserPanel — the always-open picker panel used by
- * {@link CnIconBrowser} (rendered inline, or inside the popover). Private to the
+ * `CnIconBrowser` (rendered inline, or inside the popover). Private to the
  * CnIconBrowser directory; not a public export. Owns the search/grid/custom-tab
  * UI and state; the parent owns the catalogue resolution, label, and popover.
  *
@@ -428,6 +429,10 @@ export default {
 
 	data() {
 		return {
+			// Per-instance id suffix, fixed for the instance's lifetime — the tab
+			// buttons' `aria-controls` and the panels' `aria-labelledby` point at
+			// these ids, so they must not change between renders.
+			uid: nextUid(),
 			query: '',
 			debouncedQuery: '',
 			mode: 'icons',
@@ -783,7 +788,7 @@ export default {
 		this.loadMdiCatalogue()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		clearTimeout(this.debounceTimer)
 	},
 
@@ -808,16 +813,16 @@ export default {
 				return
 			}
 
-			this.$set(this.groupLoading, group.key, true)
-			this.$set(this.groupError, group.key, '')
+			this.groupLoading[group.key] = true
+			this.groupError[group.key] = ''
 			try {
 				const icons = await group.load()
-				this.$set(this.groupIcons, group.key, Array.isArray(icons) ? icons : [])
+				this.groupIcons[group.key] = Array.isArray(icons) ? icons : []
 			} catch (error) {
-				this.$set(this.groupError, group.key, t('nextcloud-vue', 'Could not load this icon set.'))
+				this.groupError[group.key] = t('nextcloud-vue', 'Could not load this icon set.')
 				console.error('Icon set "' + group.key + '" failed to load:', error)
 			} finally {
-				this.$set(this.groupLoading, group.key, false)
+				this.groupLoading[group.key] = false
 			}
 		},
 
@@ -947,7 +952,7 @@ export default {
 		 * @return {string} the element id.
 		 */
 		tabId(key) {
-			return 'cn-icon-browser-tab-' + key.replace(':', '-') + '-' + this._uid
+			return 'cn-icon-browser-tab-' + key.replace(':', '-') + '-' + this.uid
 		},
 
 		/**
@@ -957,7 +962,7 @@ export default {
 		 * @return {string} the element id.
 		 */
 		panelId(key) {
-			return 'cn-icon-browser-panel-' + key.replace(':', '-') + '-' + this._uid
+			return 'cn-icon-browser-panel-' + key.replace(':', '-') + '-' + this.uid
 		},
 
 		/**

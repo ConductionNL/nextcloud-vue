@@ -15,8 +15,9 @@ const filters = filtersFromSchema(schema)
 | Arg | Type | Description |
 |-----|------|-------------|
 | `schema` | `object` | Schema with a `properties` object. Returns `[]` when missing. |
+| `options.translate` | `(text: string) => string` | Display-layer translation applied to each filter's `label` and `description`. Schema property titles are authored in English as the canonical source; pass your bound `t()` (via the injected `cnTranslate`) so the rendered filter label follows the user's language. Omitted leaves the English source strings unchanged. |
 
-No options — unlike [`columnsFromSchema`](./columns-from-schema.md) / [`fieldsFromSchema`](./fields-from-schema.md) this helper is config-free; tweak output by editing the schema's `facetable` flags.
+Apart from `translate`, this helper is config-free — unlike [`columnsFromSchema`](./columns-from-schema.md) / [`fieldsFromSchema`](./fields-from-schema.md) there is no include/exclude/overrides; tweak which filters appear by editing the schema's `facetable` flags.
 
 ## Returns
 

@@ -46,7 +46,7 @@ describe('CnTalkTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No conversations linked yet')
 		expect(wrapper.text()).toContain('Open Talk')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders one row per room with title + preview', async () => {
@@ -74,7 +74,7 @@ describe('CnTalkTab', () => {
 		// (subname slot), so it shows up as real text.
 		expect(wrapper.text()).toContain('hi a')
 		expect(wrapper.text()).toContain('hi b')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders an unread badge only for rooms with unread > 0 and caps at 99+', async () => {
@@ -94,10 +94,10 @@ describe('CnTalkTab', () => {
 		await wrapper.vm.$nextTick()
 		const badges = wrapper.findAll('.cn-talk-tab__badge')
 		expect(badges).toHaveLength(2)
-		const texts = badges.wrappers.map((b) => b.text())
+		const texts = badges.map((b) => b.text())
 		expect(texts).toContain('7')
 		expect(texts).toContain('99+')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the unavailable banner when the provider returns 503', async () => {
@@ -108,7 +108,7 @@ describe('CnTalkTab', () => {
 		expect(wrapper.text()).toContain('NC Talk is currently unavailable.')
 		// Also still renders the empty state (rooms cleared)
 		expect(wrapper.find('.cn-talk-tab__row').exists()).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows the generic error label when fetch throws', async () => {
@@ -119,7 +119,7 @@ describe('CnTalkTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Could not load conversations.')
-		wrapper.destroy()
+		wrapper.unmount()
 		spy.mockRestore()
 	})
 })

@@ -323,7 +323,7 @@ export default {
 		this.fetchData()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.debounceTimer) {
 			clearTimeout(this.debounceTimer)
 		}

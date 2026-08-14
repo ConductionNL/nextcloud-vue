@@ -132,7 +132,7 @@ export default {
 		}
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.refreshInterval) {
 			clearInterval(this.refreshInterval)
 		}

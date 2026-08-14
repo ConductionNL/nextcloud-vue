@@ -16,7 +16,7 @@ describe('CnPhotoAlbumCreate', () => {
 		const wrapper = mount(CnPhotoAlbumCreate)
 		expect(wrapper.vm.name).toBe('')
 		expect(wrapper.vm.canSubmit).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('blocks submit when name is whitespace only', () => {
@@ -25,7 +25,7 @@ describe('CnPhotoAlbumCreate', () => {
 		expect(wrapper.vm.canSubmit).toBe(false)
 		wrapper.vm.submit()
 		expect(wrapper.emitted('create')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('emits create with the trimmed name on submit', () => {
@@ -36,13 +36,13 @@ describe('CnPhotoAlbumCreate', () => {
 		wrapper.vm.submit()
 		expect(wrapper.emitted('create')).toBeTruthy()
 		expect(wrapper.emitted('create')[0]).toEqual([{ name: 'Holiday 2026' }])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not emit create when name is blank', () => {
 		const wrapper = mount(CnPhotoAlbumCreate)
 		wrapper.vm.submit()
 		expect(wrapper.emitted('create')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

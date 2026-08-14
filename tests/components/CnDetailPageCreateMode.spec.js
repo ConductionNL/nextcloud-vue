@@ -51,9 +51,13 @@ describe('CnDetailPage — create archetype', () => {
 		const w = mount(CnDetailPage, {
 			propsData: { title: 'New task', register: 'proc', schema: 'task', createRoute: 'task-detail', objectStore: makeStore() },
 			mocks: { $route: { query: {} }, $router: { push, back: jest.fn() } },
-			stubs: { CnFormDialog: { name: 'CnFormDialog', template: '<div />' } },
+			// The double belongs ON the stub, not poked into `$refs` afterwards.
+			// Vue 3 re-registers template refs on every patch, and
+			// `onCreateFormConfirm` mutates state (and so re-renders) before it
+			// calls `setResult` — which put the real stub instance, with no such
+			// method, back into `$refs` mid-flight.
+			stubs: { CnFormDialog: { name: 'CnFormDialog', template: '<div />', methods: { setResult() {} } } },
 		})
-		w.vm.$refs.createFormDialog = { setResult: jest.fn() }
 		await w.vm.onCreateFormConfirm({ title: 'Do it' })
 		expect(mockPost).toHaveBeenCalled()
 		expect(w.emitted('created')).toBeTruthy()

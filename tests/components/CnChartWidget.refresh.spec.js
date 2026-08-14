@@ -11,8 +11,10 @@
 // may reference. Declared with var so hoisting keeps them defined.
 var mockBusHandlers = {}
 var mockRefetch = jest.fn()
+var mockEpRefetch = jest.fn()
 
-jest.mock('vue-apexcharts', () => ({ name: 'vue-apexcharts-stub', render: (h) => h('div') }), { virtual: true })
+// Apexcharts is stubbed globally via jest.config.js moduleNameMapper; the
+// local Vue-2 `render: (h) => h('div')` mock that lived here throws under Vue 3.
 
 // Capture event-bus subscriptions so we can fire them manually. Guarded:
 // @nextcloud/auth (imported transitively via resolveFilterTokens) subscribes
@@ -32,6 +34,19 @@ jest.mock('../../src/composables/useDataSource.js', () => ({
 		error: { value: null },
 		refetch: mockRefetch,
 	}),
+}))
+
+// Mock useEndpointSource too: the page-refresh path must NOT drive its refetch
+// (the real composable subscribes to that channel itself), and asserting that
+// needs its refetch to be distinguishable from useDataSource's.
+jest.mock('../../src/composables/useEndpointSource.js', () => ({
+	useEndpointSource: () => ({
+		data: { value: null },
+		loading: { value: false },
+		error: { value: null },
+		refetch: mockEpRefetch,
+	}),
+	getByPath: (obj, path) => (path ? undefined : obj),
 }))
 
 import { mount } from '@vue/test-utils'
@@ -81,7 +96,66 @@ describe('CnChartWidget — refresh (#6)', () => {
 	it('unsubscribes on destroy', () => {
 		const { unsubscribe } = require('@nextcloud/event-bus')
 		const wrapper = mountChart({ widgetId: 'jobs-daily' })
-		wrapper.destroy()
+		wrapper.unmount()
 		expect(unsubscribe).toHaveBeenCalledWith('cn:widget:refresh', expect.any(Function))
+	})
+})
+
+/**
+ * The page-level Refresh action broadcasts on `cn:page:refresh`, and the chart
+ * used to ignore it: only useEndpointSource subscribes to that channel, so the
+ * action reached endpoint-bound charts and silently did nothing for every chart
+ * fed by `dataSource` — which is every chart on OpenConnector's dashboard.
+ */
+describe('CnChartWidget — page-level refresh', () => {
+	beforeEach(() => {
+		jest.clearAllMocks()
+		for (const k of Object.keys(mockBusHandlers)) delete mockBusHandlers[k]
+	})
+
+	it('subscribes to cn:page:refresh on mount', () => {
+		mountChart({ widgetId: 'jobs-daily' })
+		expect(mockBusHandlers['cn:page:refresh']).toBeInstanceOf(Function)
+	})
+
+	it('refetches its own sources with no widgetId to match on', () => {
+		// A page refresh refreshes the whole page, so it carries no widget id —
+		// and a chart placed without one must still refresh.
+		mountChart({ widgetId: '' })
+		mockBusHandlers['cn:page:refresh']({})
+		expect(mockRefetch).toHaveBeenCalledTimes(1)
+	})
+
+	it('refetches regardless of which widget the payload names', () => {
+		mountChart({ widgetId: 'jobs-daily' })
+		mockBusHandlers['cn:page:refresh']({ widgetId: 'some-dashboard' })
+		expect(mockRefetch).toHaveBeenCalledTimes(1)
+	})
+
+	it('leaves the endpoint source to its own subscription', () => {
+		// useEndpointSource force-refetches on this same channel. A second
+		// forced fetch would be a real duplicate HTTP request, not a no-op:
+		// fetchSharedResponse() deletes the in-flight dedup entry when `force`
+		// is set, so two back-to-back forces cannot collapse into one.
+		mountChart({ widgetId: 'jobs-daily', endpointSource: { url: '/apps/x/api/y' } })
+		mockBusHandlers['cn:page:refresh']({})
+		expect(mockRefetch).toHaveBeenCalledTimes(1)
+		expect(mockEpRefetch).not.toHaveBeenCalled()
+	})
+
+	it('still drives the endpoint source from the widget-level refresh', () => {
+		// The per-widget action and the ref-callable method keep refreshing
+		// everything — only the page channel splits the two halves.
+		const wrapper = mountChart({ widgetId: 'jobs-daily', endpointSource: { url: '/apps/x/api/y' } })
+		wrapper.vm.refresh()
+		expect(mockRefetch).toHaveBeenCalledTimes(1)
+		expect(mockEpRefetch).toHaveBeenCalledTimes(1)
+	})
+
+	it('unsubscribes from cn:page:refresh on destroy', () => {
+		const { unsubscribe } = require('@nextcloud/event-bus')
+		const wrapper = mountChart({ widgetId: 'jobs-daily' })
+		wrapper.unmount()
+		expect(unsubscribe).toHaveBeenCalledWith('cn:page:refresh', expect.any(Function))
 	})
 })

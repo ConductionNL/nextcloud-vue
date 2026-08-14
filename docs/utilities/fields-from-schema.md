@@ -23,6 +23,7 @@ const fields = fieldsFromSchema(schema, {
 | `options.include` | `string[] \| null` | `null` | Whitelist. |
 | `options.overrides` | `object` | `{}` | Per-key overrides merged onto the descriptor. A `{ readOnly: false }` override on a schema-`readOnly` key also **un-skips** it (surfacing a single read-only field as editable — e.g. a denormalised name editable only on create — without flipping the whole form to `includeReadOnly`). |
 | `options.includeReadOnly` | `boolean` | `false` | When `false`, properties with `readOnly: true` are dropped (except a key whose override sets `readOnly: false`). |
+| `options.translate` | `(text: string) => string` | — | Display-layer translation applied to each field's `label` and `description`. Schema titles/descriptions are authored in English as the canonical source; pass your bound `t()` (via the injected `cnTranslate`) so the rendered label follows the user's language. Omitted leaves the English source strings unchanged. |
 
 ## Returns
 
@@ -30,7 +31,8 @@ const fields = fieldsFromSchema(schema, {
 {
   key: string,
   label: string,          // prop.title ?? key
-  description: string,    // prop.description ?? ''
+  description: string,      // inline helper text — see "Long descriptions"
+  descriptionLong: string,  // full text when it was split off, else ''
   type: string,           // prop.type ?? 'string'
   format: string | null,
   widget: string,         // resolved — see table below
@@ -45,6 +47,30 @@ const fields = fieldsFromSchema(schema, {
   order: number,          // prop.order ?? Infinity
 }[]
 ```
+
+## Long descriptions
+
+Most schema descriptions are a single line (`"Human-readable name"`) and pass
+through to `description` untouched, with `descriptionLong` left as `''`.
+
+Some are not. A property documenting, say, every adapter type a value dispatches
+to can run to well over a thousand characters — rendered inline it dwarfs the
+field it belongs to and pushes the rest of the form off screen. Descriptions
+longer than 120 characters are therefore split:
+
+- `description` — the first sentence when that alone fits within the limit,
+  otherwise a word-boundary-clamped prefix ending in `…`.
+- `descriptionLong` — the complete original text.
+
+`CnFormDialog` renders `description` as the helper line under the input and, when
+`descriptionLong` is set, adds an ⓘ button that reveals the full text in a
+popover. Consumers rendering their own fields (via the `#form-fields` or
+`#field-<key>` slots) get both values on the field descriptor and should follow
+the same pattern.
+
+The splitter skips abbreviations (`e.g.`, `i.e.`, `etc.`) and single-letter
+initials when looking for the first sentence boundary, so a description opening
+with `"Base URL, e.g. https://…"` is not cut after `e.g.`.
 
 ## Widget resolution
 

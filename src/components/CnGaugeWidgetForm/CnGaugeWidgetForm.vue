@@ -10,10 +10,10 @@
 		</h4>
 
 		<NcTextField
-			:value="label"
+			:model-value="label"
 			:label="t('nextcloud-vue', 'Label')"
 			placeholder="Pipeline coverage"
-			@update:value="updateField('label', $event)" />
+			@update:model-value="updateField('label', $event)" />
 
 		<div class="cn-gauge-form__row2">
 			<CnRegisterSchemaSelect
@@ -25,11 +25,11 @@
 
 		<div class="cn-gauge-form__row2">
 			<NcSelect
-				:value="metric"
+				:model-value="metric"
 				:options="metricOptions"
 				:input-label="t('nextcloud-vue', 'Aggregation')"
 				:clearable="false"
-				@input="updateField('metric', $event)" />
+				@update:model-value="updateField('metric', $event)" />
 			<CnFieldPicker
 				v-if="metric !== 'count'"
 				:value="field"
@@ -47,27 +47,27 @@
 
 		<div class="cn-gauge-form__row2">
 			<NcSelect
-				:value="targetKind"
+				:model-value="targetKind"
 				:options="targetKindOptions"
 				:input-label="t('nextcloud-vue', 'Target type')"
 				:clearable="false"
-				@input="updateField('targetKind', $event)" />
+				@update:model-value="updateField('targetKind', $event)" />
 			<NcTextField
 				v-if="targetKind === 'static'"
 				type="number"
-				:value="String(targetValue)"
+				:model-value="String(targetValue)"
 				:label="t('nextcloud-vue', 'Target value')"
 				placeholder="500000"
-				@update:value="updateField('targetValue', Number($event))" />
+				@update:model-value="updateField('targetValue', Number($event))" />
 		</div>
 
 		<div v-if="targetKind === 'aggregate'" class="cn-gauge-form__row2">
 			<NcSelect
-				:value="targetMetric"
+				:model-value="targetMetric"
 				:options="metricOptions"
 				:input-label="t('nextcloud-vue', 'Target aggregation')"
 				:clearable="false"
-				@input="updateField('targetMetric', $event)" />
+				@update:model-value="updateField('targetMetric', $event)" />
 			<CnFieldPicker
 				v-if="targetMetric !== 'count'"
 				:value="targetField"
@@ -84,29 +84,29 @@
 		<div class="cn-gauge-form__row2">
 			<NcTextField
 				type="number"
-				:value="String(warn)"
+				:model-value="String(warn)"
 				:label="t('nextcloud-vue', 'Warning at %')"
-				@update:value="updateField('warn', Number($event))" />
+				@update:model-value="updateField('warn', Number($event))" />
 			<NcTextField
 				type="number"
-				:value="String(danger)"
+				:model-value="String(danger)"
 				:label="t('nextcloud-vue', 'Danger at %')"
-				@update:value="updateField('danger', Number($event))" />
+				@update:model-value="updateField('danger', Number($event))" />
 		</div>
 
 		<div class="cn-gauge-form__row2">
 			<NcCheckboxRadioSwitch
-				:checked="invert"
+				:model-value="invert"
 				type="switch"
-				@update:checked="updateField('invert', $event)">
+				@update:model-value="updateField('invert', $event)">
 				{{ t('nextcloud-vue', 'Low is bad (invert colours)') }}
 			</NcCheckboxRadioSwitch>
 			<NcSelect
-				:value="formatStyle"
+				:model-value="formatStyle"
 				:options="formatOptions"
 				:input-label="t('nextcloud-vue', 'Number format')"
 				:clearable="false"
-				@input="updateField('formatStyle', $event)" />
+				@update:model-value="updateField('formatStyle', $event)" />
 		</div>
 	</div>
 </template>
@@ -232,19 +232,29 @@ export default {
 		},
 		/**
 		 * Set a top-level field and emit.
-		 * @param field
-		 * @param value
+		 *
+		 * @param {'label'|'formatStyle'|'decimals'|'currency'|'metric'|'field'|'targetKind'|'targetValue'|'targetMetric'|'targetField'|'warn'|'danger'|'invert'} field The data key to write.
+		 * @param {string|number|boolean} value The new value — numeric for
+		 *   `decimals`/`targetValue`/`warn`/`danger`, boolean for `invert`,
+		 *   otherwise a string.
+		 * @return {void}
 		 */
 		updateField(field, value) { this[field] = value; this.emitChange() },
 		/**
 		 * Set a source sub-field and emit.
-		 * @param field
-		 * @param value
+		 *
+		 * @param {'register'|'schema'} field The `source` sub-key to write.
+		 * @param {string} value The chosen register or schema slug.
+		 * @return {void}
 		 */
-		updateSource(field, value) { this.$set(this.source, field, value); this.emitChange() },
+		updateSource(field, value) { this.source[field] = value; this.emitChange() },
 		/**
 		 * Receive updated filter rows.
-		 * @param rows
+		 *
+		 * @param {Array<{key: string, op: string, value: string}>} rows The editor's
+		 *   full row list, serialised by `rowsToFilter()` for both the source and
+		 *   target aggregates.
+		 * @return {void}
 		 */
 		onFilterRows(rows) { this.filterRows = rows; this.emitChange() },
 		/** Emit the assembled content. */

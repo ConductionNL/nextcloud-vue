@@ -26,17 +26,17 @@
 				placeholder="expectedCloseDate"
 				@update="updateSort('field', $event)" />
 			<NcSelect
-				:value="sort.dir"
+				:model-value="sort.dir"
 				:options="dirOptions"
 				:input-label="t('nextcloud-vue', 'Direction')"
 				:clearable="false"
-				@input="updateSort('dir', $event)" />
+				@update:model-value="updateSort('dir', $event)" />
 			<NcTextField
 				class="cn-object-list-form__limit"
-				:value="String(limit)"
+				:model-value="String(limit)"
 				type="number"
 				:label="t('nextcloud-vue', 'Max rows')"
-				@update:value="updateLimit($event)" />
+				@update:model-value="updateLimit($event)" />
 		</div>
 
 		<!-- Filters with operators. -->
@@ -57,13 +57,13 @@
 				:placeholder="t('nextcloud-vue', 'Select a property')"
 				@update="updateColumn(i, 'key', $event)" />
 			<NcTextField
-				:value="col.label"
+				:model-value="col.label"
 				:label="t('nextcloud-vue', 'Header')"
 				placeholder="Deal"
 				class="cn-object-list-form__col-row__header"
-				@update:value="updateColumn(i, 'label', $event)" />
+				@update:model-value="updateColumn(i, 'label', $event)" />
 			<NcButton
-				type="tertiary"
+				variant="tertiary"
 				:aria-label="t('nextcloud-vue', 'Remove column')"
 				@click="removeColumn(i)">
 				<template #icon>
@@ -71,7 +71,7 @@
 				</template>
 			</NcButton>
 		</div>
-		<NcButton type="tertiary" @click="addColumn">
+		<NcButton variant="tertiary" @click="addColumn">
 			<template #icon>
 				<Plus :size="18" />
 			</template>
@@ -203,27 +203,34 @@ export default {
 
 		/**
 		 * Set a source sub-field and emit.
-		 * @param field
-		 * @param value
+		 *
+		 * @param {'register'|'schema'} field The `source` sub-key to write.
+		 * @param {string} value The chosen register or schema slug.
+		 * @return {void}
 		 */
 		updateSource(field, value) {
-			this.$set(this.source, field, value)
+			this.source[field] = value
 			this.emitChange()
 		},
 
 		/**
 		 * Set a sort sub-field and emit.
-		 * @param field
-		 * @param value
+		 *
+		 * @param {'field'|'dir'} field The `sort` sub-key to write.
+		 * @param {string} value The property to sort on, or a `dirOptions` value.
+		 * @return {void}
 		 */
 		updateSort(field, value) {
-			this.$set(this.sort, field, value)
+			this.sort[field] = value
 			this.emitChange()
 		},
 
 		/**
 		 * Set the limit and emit.
-		 * @param value
+		 *
+		 * @param {string|number} value The maximum row count from the number input;
+		 *   non-numeric or zero input falls back to the default of 5.
+		 * @return {void}
 		 */
 		updateLimit(value) {
 			this.limit = Number(value) || 5
@@ -232,7 +239,11 @@ export default {
 
 		/**
 		 * Receive updated filter rows from the shared editor.
-		 * @param rows
+		 *
+		 * @param {Array<{key: string, op: string, value: string}>} rows The editor's
+		 *   full row list, serialised by `rowsToFilter()` when the content blob is
+		 *   assembled.
+		 * @return {void}
 		 */
 		onFilterRows(rows) {
 			this.filterRows = rows
@@ -246,7 +257,9 @@ export default {
 
 		/**
 		 * Remove a column by index.
-		 * @param i
+		 *
+		 * @param {number} i Zero-based index into `columns`.
+		 * @return {void}
 		 */
 		removeColumn(i) {
 			this.columns.splice(i, 1)
@@ -278,19 +291,23 @@ export default {
 		 * the header is still empty or untouched (i.e. it matches the previous
 		 * key's auto-derived title), so a manually edited header is preserved.
 		 *
-		 * @param i
-		 * @param cell
-		 * @param value
+		 * @param {number} i Zero-based index into `columns`.
+		 * @param {'key'|'label'} cell Which cell of the column to write.
+		 * @param {string} value The property name, or the header text.
+		 * @return {void}
 		 */
 		updateColumn(i, cell, value) {
 			const col = this.columns[i]
 			if (cell === 'key') {
+				// Auto-fill the header label from the property key when the user
+				// hasn't set a custom one (blank, or still the previous auto value).
 				const prevAuto = this.humanizeKey(col.key)
 				if (!col.label || col.label.trim() === '' || col.label === prevAuto) {
-					this.$set(col, 'label', this.humanizeKey(value))
+					// Vue 3: reactive objects accept direct assignment (no $set).
+					col.label = this.humanizeKey(value)
 				}
 			}
-			this.$set(this.columns[i], cell, value)
+			this.columns[i][cell] = value
 			this.emitChange()
 		},
 

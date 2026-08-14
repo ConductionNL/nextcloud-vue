@@ -1,0 +1,473 @@
+<!--
+  CnFlowDetail — the canvas half of the flow editor.
+
+  Geometry and interaction (pan, zoom, drag, drag-to-connect) come from
+  CnGraphCanvas; this component supplies typed node cards, directional edge
+  routing, and per-hop result badges. Every control — palette, node config, flow
+  settings, Save/Run — lives in CnFlowSidebar. The two halves render in
+  different parts of the tree (page body vs Nextcloud's app sidebar), so they
+  share `useFlowStore` rather than passing props.
+
+  Ported from hermiq's GraphBuilder, with ONE behavioural fix carried through
+  the port: every label and config pane keys on the CATALOGUE id
+  (`openregister.set-fields`, `hermiq.agent-step`), never a bare id. hermiq's
+  builder fed its palette from the catalogue but matched bare ids everywhere
+  else, so a node placed from the palette had no config pane and was skipped at
+  run time — with the run reporting success.
+
+  SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
+  SPDX-License-Identifier: EUPL-1.2
+-->
+<template>
+	<div class="cn-flow-detail">
+		<CnGraphCanvas
+			:nodes="store.nodes"
+			:edges="store.edges"
+			:selected-node-id="store.selectedNodeId"
+			:node-width="nodeWidth"
+			:node-height="nodeHeight"
+			@node-select="store.selectedNodeId = $event"
+			@canvas-click="store.selectedNodeId = null"
+			@node-move="store.moveNode($event)"
+			@connect="store.connect($event)"
+			@canvas-drop="onCanvasDrop">
+			<!-- Orthogonal routing plus an explicit arrowhead: a flow has to read
+			     in one direction, which a plain line does not convey. -->
+			<template #edge="{ from, to }">
+				<g>
+					<path
+						class="cn-flow-detail__edge"
+						:d="edgePath(from, to)"
+						fill="none"
+						:marker-end="`url(#${arrowId})`" />
+				</g>
+			</template>
+
+			<template #node="{ node }">
+				<div
+					class="cn-flow-detail__node"
+					:class="[
+						`cn-flow-detail__node--${typeSlug(node.type)}`,
+						{ 'cn-flow-detail__node--unknown': isUnknown(node.type) },
+					]">
+					<span class="cn-flow-detail__node-type">{{ typeLabel(node.type) }}</span>
+					<span class="cn-flow-detail__node-label">{{ nodeLabel(node) }}</span>
+					<span
+						v-if="isUnknown(node.type)"
+						class="cn-flow-detail__node-warning"
+						:title="t('nextcloud-vue', 'The engine does not know this node type, so this step will fail when the flow runs.')">
+						{{ t('nextcloud-vue', 'Unknown step') }}
+					</span>
+				</div>
+			</template>
+		</CnGraphCanvas>
+
+		<!-- Arrowhead marker, defined here so its colour and size are ours. -->
+		<svg class="cn-flow-detail__defs" aria-hidden="true" focusable="false">
+			<defs>
+				<marker
+					:id="arrowId"
+					viewBox="0 0 10 10"
+					refX="9"
+					refY="5"
+					markerWidth="5"
+					markerHeight="5"
+					orient="auto-start-reverse">
+					<path d="M 0 0 L 10 5 L 0 10 z" class="cn-flow-detail__arrowhead" />
+				</marker>
+			</defs>
+		</svg>
+
+		<NcEmptyContent
+			v-if="store.nodes.length === 0"
+			class="cn-flow-detail__empty"
+			:name="t('nextcloud-vue', 'No steps yet')"
+			:description="t('nextcloud-vue', 'Add a step from the sidebar to start building this flow.')">
+			<template #icon>
+				<Sitemap :size="20" />
+			</template>
+		</NcEmptyContent>
+	</div>
+</template>
+
+<script>
+import { NcEmptyContent } from '@nextcloud/vue'
+import Sitemap from 'vue-material-design-icons/Sitemap.vue'
+import CnGraphCanvas from '../CnGraphCanvas/CnGraphCanvas.vue'
+import { useFlowStore } from '../../composables/useFlowStore.js'
+
+export default {
+	name: 'CnFlowDetail',
+
+	components: {
+		CnGraphCanvas,
+		NcEmptyContent,
+		Sitemap,
+	},
+
+	props: {
+		/**
+		 * Flow uuid from the route. The literal `new` starts a blank flow, so
+		 * creating and editing share one page.
+		 */
+		id: {
+			type: String,
+			default: null,
+		},
+
+		/**
+		 * The owning app id to scope to, and to stamp on a new flow.
+		 */
+		app: {
+			type: String,
+			default: null,
+		},
+	},
+
+	setup() {
+		return { store: useFlowStore() }
+	},
+
+	data() {
+		return {
+			arrowId: 'cn-flow-detail-arrow',
+			nodeWidth: 200,
+			nodeHeight: 80,
+		}
+	},
+
+	watch: {
+		/**
+		 * Reload when the route names a different flow.
+		 *
+		 * `mounted` alone was not enough, and the gap was not cosmetic. Vue
+		 * reuses this component instance when only the route PARAM changes —
+		 * `/flows/:id` -> `/flows/new` and `/flows/a` -> `/flows/b` are the same
+		 * route record — so `mounted` does not fire again and the store keeps
+		 * the flow it already had.
+		 *
+		 * That left the canvas showing the previous flow AND the store still
+		 * holding its id, on a page the user believes is a different flow.
+		 * `save()` picks PUT over POST from `flow.id`, so pressing Save on what
+		 * looks like a blank "new flow" issued a PUT against the flow the user
+		 * had open a moment earlier — overwriting a real flow with a graph
+		 * meant for a new one.
+		 *
+		 * Reproduced on openregister 2026-08-05: opening "Hydra label
+		 * transition", then moving to /flows/new, left the Name field reading
+		 * "Hydra label transition" with that flow's nodes on the canvas.
+		 *
+		 * The first load stays in `mounted` rather than moving here behind
+		 * `immediate: true`: an immediate watcher fires before the component is
+		 * mounted, and this one awaits a network call whose result the canvas
+		 * renders. Guarding on `next === prev` keeps the two from racing.
+		 *
+		 * @param {string} next The incoming flow id, or 'new'.
+		 * @param {string} prev The outgoing one.
+		 * @return {Promise<void>}
+		 */
+		async id(next, prev) {
+			if (next === prev) {
+				return
+			}
+
+			await this.store.load({ app: this.app, id: next })
+		},
+	},
+
+	async mounted() {
+		await this.store.load({ app: this.app, id: this.id })
+	},
+
+	methods: {
+		/**
+		 * Place a palette node where it was dropped.
+		 *
+		 * @param {object} point   The drop point.
+		 * @param {number} point.x Canvas x.
+		 * @param {number} point.y Canvas y.
+		 * @return {void}
+		 */
+		onCanvasDrop({ x, y }) {
+			if (!this.store.paletteDragType) {
+				return
+			}
+
+			this.store.addNode(this.store.paletteDragType, x, y)
+			this.store.paletteDragType = null
+		},
+
+		/**
+		 * Whether the engine knows this node type.
+		 *
+		 * Shown on the card rather than hidden. A node the catalogue cannot
+		 * explain WILL fail its step, and a flow that looks fine on the canvas
+		 * and dies at run time is the exact failure this component's ancestor
+		 * shipped.
+		 *
+		 * @param {string} type The node type.
+		 * @return {boolean} True when the catalogue does not know it.
+		 */
+		isUnknown(type) {
+			// An empty catalogue means it could not be loaded, not that every
+			// node is unknown — flagging all of them then would be noise.
+			if (!this.store.nodeCatalog.length) {
+				return false
+			}
+
+			return this.store.catalogEntry(type) === null
+		},
+
+		/**
+		 * Human label for a node type, from the catalogue.
+		 *
+		 * No local name table: a type the catalogue cannot explain is shown as
+		 * its raw id rather than guessed at from a list that may not match the
+		 * engine.
+		 *
+		 * @param {string} type The node type.
+		 * @return {string} The label.
+		 */
+		typeLabel(type) {
+			const entry = this.store.catalogEntry(type)
+
+			return entry ? (entry.displayName || entry.id) : (type || '—')
+		},
+
+		/**
+		 * A node type turned into a usable CSS class suffix.
+		 *
+		 * Engine ids are namespaced (`hermiq.agent-step`), and a dot in the
+		 * middle of a class name is a compound selector rather than a name — so
+		 * a per-type accent silently matched nothing for every catalogue type.
+		 *
+		 * @param {string} type The node type.
+		 * @return {string} The slug.
+		 */
+		typeSlug(type) {
+			return String(type || '').replace(/[^a-zA-Z0-9]+/g, '-')
+		},
+
+		/**
+		 * Short summary of a node's configuration, shown on the card.
+		 *
+		 * Deliberately GENERIC. The version this was ported from switched on a
+		 * hard-coded list of bare node ids, so it described exactly the four
+		 * types one app knew about and said nothing about any other app's
+		 * nodes — including the ones its own palette offered. Summarising the
+		 * config that is actually set describes every node type, present and
+		 * future, without the builder having to know any of them.
+		 *
+		 * @param {object} node The node.
+		 * @return {string} The label.
+		 */
+		nodeLabel(node) {
+			const config = (node.config || {})
+			const keys = Object.keys(config).filter((k) => config[k] !== '' && config[k] !== null)
+
+			if (!keys.length) {
+				return this.t('nextcloud-vue', 'not configured')
+			}
+
+			const first = keys[0]
+			const value = config[first]
+			const shown = (typeof value === 'object') ? '…' : String(value)
+
+			if (keys.length === 1) {
+				return `${first}: ${shown}`
+			}
+
+			return `${first}: ${shown} +${keys.length - 1}`
+		},
+
+		/**
+		 * The SVG `d` for one edge.
+		 *
+		 * @param {{x: number, y: number}} from Source centre.
+		 * @param {{x: number, y: number}} to   Target centre.
+		 * @return {string} The path.
+		 */
+		edgePath(from, to) {
+			return this.edgeGeometry(from, to).d
+		},
+
+		/**
+		 * Route one edge.
+		 *
+		 * Two decisions, in order:
+		 *
+		 * 1. Trim the endpoints from the node CENTRES (what the canvas hands the
+		 *    slot) back to the node borders, plus a small gap. Drawn centre to
+		 *    centre, the last stretch — arrowhead included — sits under the
+		 *    target card, so the flow reads as an undirected line.
+		 *
+		 * 2. Bend only when a straight run would not fit. Bending on any
+		 *    difference in centres produced a staircase for a modest offset and,
+		 *    for a near-aligned pair, two corner arcs with a zero-length leg
+		 *    between them — a wobble in place of a line. A corner should mean
+		 *    "these nodes are not in line", not "these nodes are a few pixels
+		 *    apart".
+		 *
+		 * @param {{x: number, y: number}} from Source centre.
+		 * @param {{x: number, y: number}} to   Target centre.
+		 * @return {{d: string, mid: {x: number, y: number}}} Path and midpoint.
+		 */
+		edgeGeometry(from, to) {
+			const gap = 6
+			const margin = 24
+			const vertical = Math.abs(to.y - from.y) >= Math.abs(to.x - from.x)
+
+			const [a, b] = vertical
+				? this.trimOn('y', this.nodeHeight, gap, from, to)
+				: this.trimOn('x', this.nodeWidth, gap, from, to)
+
+			const across = vertical ? Math.abs(to.x - from.x) : Math.abs(to.y - from.y)
+			const span = vertical ? this.nodeWidth : this.nodeHeight
+			if (across <= (span - margin)) {
+				const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+				const [start, end] = vertical
+					? [{ x: mid.x, y: a.y }, { x: mid.x, y: b.y }]
+					: [{ x: a.x, y: mid.y }, { x: b.x, y: mid.y }]
+
+				return { d: `M ${start.x} ${start.y} L ${end.x} ${end.y}`, mid }
+			}
+
+			return this.elbow(a, b, vertical)
+		},
+
+		/**
+		 * Pull both endpoints in along one axis by half a node plus a gap.
+		 *
+		 * @param {string} axis The axis, `'x'` or `'y'`.
+		 * @param {number} size The node's extent on that axis.
+		 * @param {number} gap  Clearance to leave beyond the border.
+		 * @param {object} from Source centre.
+		 * @param {object} to   Target centre.
+		 * @return {Array<object>} Trimmed `[from, to]`.
+		 */
+		trimOn(axis, size, gap, from, to) {
+			const delta = to[axis] - from[axis]
+			const inset = Math.min((size / 2) + gap, Math.abs(delta) / 2)
+			const step = Math.sign(delta) * inset
+
+			return [
+				{ ...from, [axis]: from[axis] + step },
+				{ ...to, [axis]: to[axis] - step },
+			]
+		},
+
+		/**
+		 * Orthogonal path between two trimmed points, with rounded corners.
+		 *
+		 * @param {{x: number, y: number}} from     Trimmed source point.
+		 * @param {{x: number, y: number}} to       Trimmed target point.
+		 * @param {boolean}                vertical Whether the run is vertical.
+		 * @return {{d: string, mid: {x: number, y: number}}} Path and midpoint.
+		 */
+		elbow(from, to, vertical) {
+			const dx = to.x - from.x
+			const dy = to.y - from.y
+			// A corner radius must never eat more than half of either leg.
+			const rad = Math.min(12, Math.abs(dx) / 2, Math.abs(dy) / 2)
+			const sx = Math.sign(dx)
+			const sy = Math.sign(dy)
+
+			if (vertical) {
+				const midY = from.y + (dy / 2)
+
+				return {
+					mid: { x: from.x + (dx / 2), y: midY },
+					d: [
+						`M ${from.x} ${from.y}`,
+						`L ${from.x} ${midY - (rad * sy)}`,
+						`Q ${from.x} ${midY} ${from.x + (rad * sx)} ${midY}`,
+						`L ${to.x - (rad * sx)} ${midY}`,
+						`Q ${to.x} ${midY} ${to.x} ${midY + (rad * sy)}`,
+						`L ${to.x} ${to.y}`,
+					].join(' '),
+				}
+			}
+
+			const midX = from.x + (dx / 2)
+
+			return {
+				mid: { x: midX, y: from.y + (dy / 2) },
+				d: [
+					`M ${from.x} ${from.y}`,
+					`L ${midX - (rad * sx)} ${from.y}`,
+					`Q ${midX} ${from.y} ${midX} ${from.y + (rad * sy)}`,
+					`L ${midX} ${to.y - (rad * sy)}`,
+					`Q ${midX} ${to.y} ${midX + (rad * sx)} ${to.y}`,
+					`L ${to.x} ${to.y}`,
+				].join(' '),
+			}
+		},
+	},
+}
+</script>
+
+<style scoped>
+.cn-flow-detail {
+	position: relative;
+	block-size: 100%;
+	inline-size: 100%;
+}
+
+.cn-flow-detail__defs {
+	position: absolute;
+	inline-size: 0;
+	block-size: 0;
+}
+
+.cn-flow-detail__edge {
+	stroke: var(--color-border-dark);
+	stroke-width: 2;
+}
+
+.cn-flow-detail__arrowhead {
+	fill: var(--color-border-dark);
+}
+
+.cn-flow-detail__node {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	justify-content: center;
+	block-size: 100%;
+	padding: 8px 12px;
+	border: 2px solid var(--color-border);
+	border-radius: var(--border-radius-large);
+	background: var(--color-main-background);
+	overflow: hidden;
+}
+
+.cn-flow-detail__node--unknown {
+	border-color: var(--color-error);
+}
+
+.cn-flow-detail__node-type {
+	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.cn-flow-detail__node-label,
+.cn-flow-detail__node-warning {
+	font-size: 0.85em;
+	color: var(--color-text-maxcontrast);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.cn-flow-detail__node-warning {
+	color: var(--color-error-text);
+}
+
+.cn-flow-detail__empty {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+</style>

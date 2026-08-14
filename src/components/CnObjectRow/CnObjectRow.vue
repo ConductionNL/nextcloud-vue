@@ -35,7 +35,7 @@
 		</span>
 
 		<!-- Badges (default: config-driven status badge) -->
-		<span v-if="$scopedSlots.badges || badgeLabel" class="cn-object-row__badges">
+		<span v-if="$slots.badges || badgeLabel" class="cn-object-row__badges">
 			<!-- @slot badges Replace the badge area (overrides the config-driven badge). -->
 			<!-- @binding {object} object The row's object. -->
 			<slot name="badges" :object="object">
@@ -49,7 +49,7 @@
 		</span>
 
 		<!-- Trailing actions -->
-		<span v-if="$scopedSlots.actions" class="cn-object-row__actions" @click.stop>
+		<span v-if="$slots.actions" class="cn-object-row__actions" @click.stop>
 			<!-- @slot actions Trailing actions (copy button, menu, …). -->
 			<!-- @binding {object} object The row's object. -->
 			<slot name="actions" :object="object" />
@@ -125,6 +125,15 @@ export default {
 		},
 	},
 
+	// Vue 2 had a separate listener channel, so a consumer's `@click` only ever
+	// saw `$emit('click')`. In Vue 3 an UNDECLARED event name stays a
+	// fallthrough attribute: `onClick` lands on the root `<div>` as a native
+	// handler, so the consumer's handler fires once from the DOM click and
+	// again from `$emit('click', object)` — twice per click, with different
+	// payloads. Declaring the names here removes them from `$attrs`, which is
+	// also what stops VTU v2 recording the native DOM event into `emitted()`.
+	emits: ['select', 'click'],
+
 	setup() {
 		// Tell a deliberate row click apart from a text-selection drag.
 		return useClickDragGuard()
@@ -170,7 +179,7 @@ export default {
 
 		/** Whether to render the leading icon column at all. */
 		hasLeadingIcon() {
-			return Boolean(this.imageUrl || this.iconName || this.$scopedSlots.icon)
+			return Boolean(this.imageUrl || this.iconName || this.$slots.icon)
 		},
 
 		badgeLabel() {

@@ -24,7 +24,7 @@ describe('CnTagsCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No tags')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders one pill per fetched tag', async () => {
@@ -46,7 +46,7 @@ describe('CnTagsCard', () => {
 		expect(wrapper.findAll('.cn-tags-card__pill')).toHaveLength(3)
 		expect(wrapper.text()).toContain('urgent')
 		expect(wrapper.text()).toContain('archived')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not throw when the API returns an error', async () => {
@@ -57,6 +57,6 @@ describe('CnTagsCard', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No tags')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

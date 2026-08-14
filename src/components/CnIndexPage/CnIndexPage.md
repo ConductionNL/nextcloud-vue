@@ -342,7 +342,7 @@ export default {
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `description` | String | `''` | Optional description shown below the title in the page header |
-| `showTitle` | Boolean | `false` | Whether to show the inline page header (title, icon, description) |
+| `showTitle` | Boolean | `false` | Whether to show the inline page header (title, icon, description) VISIBLY. When `false` the `<h1>` is still rendered visually-hidden, so `<main>` always has an accessible heading (WCAG 2.4.6 / 1.3.1) |
 | `icon` | String | `''` | Optional MDI icon name; falls back to `schema.icon` |
 | `columns` | Array | `[]` | Manual column definitions (overrides schema-generated columns) |
 | `selectable` | Boolean | `true` | Whether rows/cards can be selected for mass actions |
@@ -496,9 +496,9 @@ No new props are required on `CnIndexPage`.
 
 | Slot | Scope | Description |
 |------|-------|-------------|
-| `delete-dialog` | `{ item, close }` | Replace the single-item delete dialog |
-| `copy-dialog` | `{ item, close }` | Replace the single-item copy dialog |
-| `form-dialog` | `{ item, schema, close }` | Replace the create/edit form dialog |
+| `delete-dialog` | `{ show, item, confirm, close }` | Replace the single-item delete dialog |
+| `copy-dialog` | `{ show, item, confirm, close }` | Replace the single-item copy dialog |
+| `form-dialog` | `{ show, item, schema, confirm, close }` | Replace the create/edit form dialog |
 | `form-fields` | `{ fields, formData, errors, updateField }` | Replace form content inside the built-in `CnFormDialog` |
 | `import-fields` | `{ file }` | Extra fields in the import dialog |
 | `empty` | — | Custom empty state content |
@@ -574,7 +574,7 @@ Each row-action object in `actions[]` may declare a string `handler`. The value 
 
 | `handler` value | Behaviour |
 |-----------------|-----------|
-| `"navigate"` | Calls `$router.push({ name: action.route, params: { id: row[rowKey] } })`. `route` is required. |
+| `"navigate"` | Calls `$router.push({ name: action.route, params: { id: row[rowKey] } })`. `route` is required. An optional `action.params` object is merged over the default (see [Navigate params](#navigate-params)). |
 | `"emit"` | Skips any registry call; CnIndexPage still bubbles `@action`. |
 | `"none"` | Disables the click entirely. CnIndexPage suppresses both the call AND the `@action` emit. |
 | Registry name (`/^[A-Za-z][A-Za-z0-9_]*$/`) | Looked up in `customComponents`. If a function, invoked as `fn({ actionId, item })` on row click. If a non-function or missing, falls back to `@action`-only with a `console.warn`. |
@@ -614,6 +614,29 @@ export default {
 	},
 }
 ```
+
+### Navigate params
+
+`handler: "navigate"` always seeds `params` with `{ id: row[rowKey] }`, so the common
+"open this row's detail page" action needs **no** `params` at all:
+
+```json
+{ "id": "open", "label": "Open detail", "handler": "navigate", "route": "queues-detail" }
+```
+
+Declare `action.params` only to add or override route params. Each string value runs
+the `{field}` row-token grammar:
+
+| Declared value | Resolves to | Notes |
+|----------------|-------------|-------|
+| `"{id}"` | `row.id` | Exact-token form — the value's **type is preserved**, so a numeric id stays a number. |
+| `"{name}"` | `row.name` | Any row field, not just the row key. |
+| `"run-{id}"` | `"run-42"` | Embedded tokens interpolate as text. |
+| `"new"` | `"new"` | No braces → literal. This is what makes a "New X" action (`params: { "id": "new" }`) navigate to the create route. |
+
+A token naming a field the row does not carry is **dropped** with a `console.warn`
+(so `id` falls back to the row id) rather than being pushed as a literal
+`%7Bid%7D` path segment.
 
 ## Map view mode
 

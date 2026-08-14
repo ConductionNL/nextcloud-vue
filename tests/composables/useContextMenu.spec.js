@@ -5,14 +5,15 @@
  * Tests for useContextMenu() — cursor-positioned right-click menu state.
  *
  * Covers the open/close DOM contract (CSS vars + data attribute), action
- * disablement, handler invocation, and unmount cleanup. These guarantees back
- * the shared `src/css/context-menu.css` override that targets the data
- * attribute — if the attribute or the CSS vars regress the popper snaps back
- * to (0,0) instead of following the cursor.
+ * disablement, handler invocation, and unmount cleanup. The CSS vars back the
+ * shared `src/css/context-menu.css` transform override — if they regress the
+ * popper snaps back to (0,0) instead of following the cursor. The override
+ * itself is scoped by a marker class on the popper, not by the data attribute;
+ * see `tests/components/CnContextMenu.spec.js`.
  */
 
 import { mount } from '@vue/test-utils'
-import { defineComponent, h } from 'vue'
+import { defineComponent, h, toRaw } from 'vue'
 import {
 	useContextMenu,
 	clearContextMenuPositionDom,
@@ -46,21 +47,26 @@ describe('useContextMenu', () => {
 		ctx.open({ item, event: { clientX: 120, clientY: 240 } })
 
 		expect(ctx.isOpen.value).toBe(true)
-		expect(ctx.targetItem.value).toBe(item)
+		// `toRaw` on the received side: the composable stores the item in a
+		// ref, and Vue 3 deep-wraps the object on read. Identity is what the
+		// test is for — `open()` stores the caller's item, not a copy.
+		expect(toRaw(ctx.targetItem.value)).toBe(item)
 		const dom = readPosition()
 		expect(dom.x).toBe('120px')
 		expect(dom.y).toBe('240px')
 		expect(dom.attr).toBe(true)
 	})
 
-	it('close() flips reactive state but leaves DOM cleanup to the @closed handler', () => {
+	it('close() flips reactive state but leaves DOM cleanup to the consumer', () => {
 		const ctx = useContextMenu()
 		ctx.open({ item: { id: 1 }, event: { clientX: 10, clientY: 20 } })
 		ctx.close()
 
 		expect(ctx.isOpen.value).toBe(false)
 		expect(ctx.targetItem.value).toBeNull()
-		// DOM must NOT be cleared synchronously — that's the consumer's @closed handler.
+		// DOM must NOT be cleared synchronously — CnContextMenu drops the
+		// attribute on its close transition, and the vars survive until the next
+		// open() so the hide animation keeps its transform.
 		const dom = readPosition()
 		expect(dom.attr).toBe(true)
 		expect(dom.x).toBe('10px')

@@ -6,7 +6,7 @@ const stubs = {
 		template: '<div><slot /><slot name="actions" /></div>',
 	},
 	NcButton: {
-		template: '<button :disabled="disabled" @click="$listeners.click"><slot /></button>',
+		template: '<button :disabled="disabled" @click="$attrs.onClick && $attrs.onClick()"><slot /></button>',
 		props: ['disabled', 'type'],
 	},
 	NcNoteCard: { template: '<div class="note-card" :data-type="type"><slot /></div>', props: ['type'] },
@@ -182,6 +182,79 @@ describe('CnWizardDialog', () => {
 		expect(wrapper.vm.loading).toBe(false)
 		expect(wrapper.text()).toContain('Slug already taken.')
 		expect(wrapper.find('[data-testid-phase="form"]').exists()).toBe(true)
+	})
+
+	describe('controlled open + cancellable', () => {
+		// NcDialog's real close path sets its internal showModal false, then ~300ms
+		// later sets it back TRUE and emits update:open=false. Because `show` is
+		// `props.open && showModal`, a dialog left with `open` hardcoded true
+		// reopens itself after every close — so these tests assert `open` is
+		// actually driven, and that nothing flips it back.
+		const openStubs = {
+			...stubs,
+			NcDialog: {
+				name: 'NcDialog',
+				template: '<div v-if="open" class="nc-dialog-stub"><slot /><slot name="actions" /></div>',
+				props: ['open', 'noClose', 'name', 'size'],
+			},
+		}
+
+		const mountDialog = (propsData) => mount(CnWizardDialog, {
+			propsData: { steps, ...propsData },
+			scopedSlots: buildSlots(),
+			stubs: openStubs,
+		})
+
+		const dialogOf = (wrapper) => wrapper.findComponent({ name: 'NcDialog' })
+
+		it('binds NcDialog open and closes it on onClose', async () => {
+			const wrapper = mountDialog()
+			expect(dialogOf(wrapper).props('open')).toBe(true)
+			expect(wrapper.find('.nc-dialog-stub').exists()).toBe(true)
+			wrapper.vm.onClose()
+			await wrapper.vm.$nextTick()
+			expect(wrapper.vm.dialogOpen).toBe(false)
+			expect(dialogOf(wrapper).props('open')).toBe(false)
+			expect(wrapper.find('.nc-dialog-stub').exists()).toBe(false)
+		})
+
+		it('stays closed after NcDialog emits its delayed update:open (regression)', async () => {
+			const wrapper = mountDialog()
+			const dialog = dialogOf(wrapper)
+			dialog.vm.$emit('closing')
+			await wrapper.vm.$nextTick()
+			expect(wrapper.vm.dialogOpen).toBe(false)
+			expect(wrapper.emitted('close')).toBeTruthy()
+			// The ~300ms bookkeeping emit must not resurrect the dialog.
+			dialog.vm.$emit('update:open', false)
+			await wrapper.vm.$nextTick()
+			expect(wrapper.vm.dialogOpen).toBe(false)
+			expect(dialogOf(wrapper).props('open')).toBe(false)
+			expect(wrapper.find('.nc-dialog-stub').exists()).toBe(false)
+		})
+
+		it('cancellable=false hides Cancel and sets no-close', () => {
+			const wrapper = mountDialog({ cancellable: false })
+			expect(dialogOf(wrapper).props('noClose')).toBe(true)
+			expect(wrapper.text()).not.toContain('Cancel')
+			// First step: only the primary Next remains.
+			expect(wrapper.findAll('button')).toHaveLength(1)
+		})
+
+		it('cancellable=true (default) offers Cancel and leaves no-close off', () => {
+			const wrapper = mountDialog()
+			expect(dialogOf(wrapper).props('noClose')).toBe(false)
+			expect(wrapper.text()).toContain('Cancel')
+			expect(wrapper.findAll('button')).toHaveLength(2)
+		})
+
+		it('still offers Close in the result phase when not cancellable', async () => {
+			const wrapper = mountDialog({ cancellable: false })
+			wrapper.vm.setResult({ success: true, message: 'All done.' })
+			await wrapper.vm.$nextTick()
+			expect(wrapper.text()).toContain('Close')
+			expect(wrapper.findAll('button')).toHaveLength(1)
+		})
 	})
 
 	it('marks completed steps with a checkmark and renders connectors', async () => {

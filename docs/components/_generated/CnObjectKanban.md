@@ -19,8 +19,8 @@
 
 | Name            | Payload | Description                                                                                                                                                                                                                                |
 | --------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `load-more`     | —       | Emitted when a column's "load more" is clicked.                                                                                                                                                                                            |
 | `card-click`    | —       | Emitted when a card is clicked (not dragged).                                                                                                                                                                                              |
+| `load-more`     | —       | Emitted when a column's "load more" is clicked.                                                                                                                                                                                            |
 | `move`          | —       | Emitted after a card is optimistically moved to another column. The host performs the actual object write through the existing guarded PATCH/PUT endpoint and calls `resolveMove`/ `rejectMove` on this component to confirm or roll back. |
 | `move-rejected` | —       | Emitted after `rejectMove()` rolls a card back to its origin column.                                                                                                                                                                       |
 

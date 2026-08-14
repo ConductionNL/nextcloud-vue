@@ -47,7 +47,10 @@ const state = {
 /**
  * Notify all registered status observers.
  *
- * @param {string} newStatus
+ * @param {'offline'|'connecting'|'live'|'reconnecting'|'polling'} newStatus The
+ *   transport status to broadcast, as emitted by the websocket transport (or
+ *   `'polling'` when this module forces the fallback).
+ * @return {void}
  */
 function notifyStatus(newStatus) {
 	for (const observer of state.statusObservers) {
@@ -60,6 +63,10 @@ function notifyStatus(newStatus) {
  * Called when the websocket transport emits `'polling'` status.
  *
  * @param {Array<{ handle: object, eventKey: string, cb: Function, interval: number }>} activeSubscriptions
+ *   Every live subscription, re-registered one-for-one against the polling
+ *   transport; `handle` is the caller-facing handle whose mapping is rewritten
+ *   to the new internal handle so `unsubscribe` keeps working.
+ * @return {void}
  */
 function switchToPolling(activeSubscriptions) {
 	if (!state.pollTransport) {

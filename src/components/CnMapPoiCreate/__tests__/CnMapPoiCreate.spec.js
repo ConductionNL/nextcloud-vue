@@ -17,7 +17,7 @@ describe('CnMapPoiCreate', () => {
 		const wrapper = mount(CnMapPoiCreate)
 		expect(wrapper.vm.name).toBe('')
 		expect(wrapper.vm.canSubmit).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('blocks submit when name present but coordinates missing', () => {
@@ -26,14 +26,14 @@ describe('CnMapPoiCreate', () => {
 		expect(wrapper.vm.canSubmit).toBe(false)
 		wrapper.vm.submit()
 		expect(wrapper.emitted('create')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('blocks submit when coordinates are out of range', () => {
 		const wrapper = mount(CnMapPoiCreate)
 		wrapper.setData({ name: 'Office', lat: '120', lng: '4.89' })
 		expect(wrapper.vm.canSubmit).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('emits create with parsed numeric payload', () => {
@@ -56,7 +56,7 @@ describe('CnMapPoiCreate', () => {
 			category: 'Work',
 			comment: 'HQ',
 		}])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('normalises blank category and comment to null', () => {
@@ -71,6 +71,6 @@ describe('CnMapPoiCreate', () => {
 			category: null,
 			comment: null,
 		}])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

@@ -29,9 +29,8 @@
 
 		<!-- One entry per view: apply on click; own views get a delete entry. -->
 		<template v-else>
-			<template v-for="view in views">
+			<template v-for="view in views" :key="`view-${view.id}`">
 				<NcActionButton
-					:key="`view-${view.id}`"
 					data-testid="cn-saved-views-item"
 					:data-view-id="view.id"
 					:aria-label="view.name"
@@ -133,6 +132,8 @@ export default {
 			default: '',
 		},
 	},
+
+	emits: ['apply', 'delete-request', 'save-request'],
 
 	computed: {
 		/** @return {string} The dropdown trigger label. */

@@ -31,6 +31,14 @@ name: Release
 # Conduction package currently shipping cleanly via semantic-release +
 # OIDC.
 
+# `feat/vue-3` is the Vue-3 line. `.releaserc.json` maps it to the `vue3`
+# dist-tag with a `vue3` prerelease preid, but that config only decides HOW
+# a release is versioned once this workflow runs — it does not decide WHEN.
+# Without the branch listed here the workflow simply never fires on a push
+# to it, and the Vue-3 package only ever ships when somebody remembers to
+# dispatch it by hand (which is exactly how 2.1.0-vue3.1 got out). Keep the
+# two lists in agreement: a branch added to `.releaserc.json` and not to
+# this trigger is a release channel that silently never publishes.
 on:
   push:
     branches: [main, beta]

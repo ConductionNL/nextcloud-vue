@@ -10,7 +10,7 @@
 
 jest.mock('gridstack', () => ({ GridStack: { init: jest.fn() } }), { virtual: true })
 jest.mock('gridstack/dist/gridstack.min.css', () => ({}), { virtual: true })
-jest.mock('vue-apexcharts', () => ({ name: 'vue-apexcharts-stub' }), { virtual: true })
+// Apexcharts is stubbed globally via jest.config.js moduleNameMapper.
 
 import { mount } from '@vue/test-utils'
 import CnDashboardPage from '@/components/CnDashboardPage/CnDashboardPage.vue'
@@ -28,10 +28,17 @@ const stubs = {
 	NcLoadingIcon: { template: '<div />' },
 	CnDateRangePicker: { template: '<div />', props: ['value', 'presets', 'disabled'] },
 	// Lightweight NcSelect: renders option labels, emits the option object on click.
+	// Model contract: `modelValue` / `update:modelValue`. `@nextcloud/vue` 9
+	// (Vue 3) dropped vue-select's Vue-2-era `value` prop + `input` event for
+	// Vue 3's standard `v-model` names, and CnDashboardPage binds the new ones —
+	// a stub still emitting `input` fires an event nobody listens for, so the
+	// selection never reaches `onPageFilterChange` and the assertion reads the
+	// seeded default instead.
 	NcSelect: {
 		name: 'NcSelect',
-		props: ['value', 'options', 'inputLabel', 'label', 'clearable'],
-		template: '<div class="nc-select-stub"><button v-for="o in options" :key="o.value" class="opt" :data-value="o.value" @click="$emit(\'input\', o)">{{ o.label }}</button></div>',
+		props: ['modelValue', 'options', 'inputLabel', 'label', 'clearable'],
+		emits: ['update:modelValue'],
+		template: '<div class="nc-select-stub"><button v-for="o in options" :key="o.value" class="opt" :data-value="o.value" @click="$emit(\'update:modelValue\', o)">{{ o.label }}</button></div>',
 	},
 }
 
@@ -74,7 +81,7 @@ describe('CnDashboardPage — pageFilters', () => {
 	it('writes a new selection into the workspace context and emits @page-filter-change', async () => {
 		const wrapper = mountDash({ pageFilters: [PERIOD_FILTER] })
 		// Click the "Last 7 days" option in the stubbed select.
-		const opt = wrapper.findAll('.opt').wrappers.find((w) => w.attributes('data-value') === 'last-7')
+		const opt = wrapper.findAll('.opt').find((w) => w.attributes('data-value') === 'last-7')
 		await opt.trigger('click')
 
 		expect(wrapper.vm.workspaceContext.period).toBe('last-7')
@@ -87,7 +94,8 @@ describe('CnDashboardPage — pageFilters', () => {
 		// Pre-set the key via a parent-provided reactive context is awkward in a
 		// unit mount; instead assert initPageFilters is a no-op when present.
 		const wrapper = mountDash({ pageFilters: [PERIOD_FILTER] })
-		wrapper.vm.$set(wrapper.vm.workspaceContext, 'period', 'custom')
+		// Vue 3 removed `$set` — reactivity tracks added keys natively.
+		wrapper.vm.workspaceContext.period = 'custom'
 		wrapper.vm.initPageFilters()
 		expect(wrapper.vm.workspaceContext.period).toBe('custom')
 	})

@@ -45,7 +45,7 @@
 				:label="t('nextcloud-vue', 'Search bookmarks')"
 				:placeholder="t('nextcloud-vue', 'Type to filter…')"
 				class="cn-bookmark-picker__search"
-				@update:value="onSearch" />
+				@update:model-value="onSearch" />
 
 			<NcLoadingIcon v-if="loading" />
 			<NcEmptyContent
@@ -168,7 +168,7 @@ export default {
 		this.fetchBookmarks()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.searchTimer) {
 			clearTimeout(this.searchTimer)
 		}
@@ -250,7 +250,7 @@ export default {
 		},
 
 		onFaviconError(bookmark) {
-			this.$set(this.brokenFavicons, bookmark.id, true)
+			this.brokenFavicons[bookmark.id] = true
 		},
 
 		confirm() {

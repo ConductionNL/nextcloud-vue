@@ -15,9 +15,9 @@
 				<NcSelect
 					input-id="cn-mass-copy-pattern"
 					:options="patternOptions"
-					:value="selectedPattern"
+					:model-value="selectedPattern"
 					:clearable="false"
-					@input="onPatternChange" />
+					@update:model-value="onPatternChange" />
 			</div>
 
 			<div class="cn-mass-copy__list">
@@ -179,6 +179,8 @@ export default {
 		removeLabel: { type: String, default: () => t('nextcloud-vue', 'Remove from list') },
 	},
 
+	emits: ['close', 'confirm'],
+
 	data() {
 		return {
 			localItems: [...this.items],
@@ -205,7 +207,7 @@ export default {
 		},
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.closeTimeout) clearTimeout(this.closeTimeout)
 	},
 

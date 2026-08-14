@@ -8,7 +8,7 @@ const Vue = require('vue').default || require('vue')
 
 jest.mock('gridstack', () => ({ GridStack: { init: jest.fn() } }), { virtual: true })
 jest.mock('gridstack/dist/gridstack.min.css', () => ({}), { virtual: true })
-jest.mock('vue-apexcharts', () => ({ name: 'vue-apexcharts-stub' }), { virtual: true })
+// Apexcharts is stubbed globally via jest.config.js moduleNameMapper.
 
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
@@ -18,7 +18,7 @@ jest.mock('@nextcloud/axios', () => ({
 const CnDashboardPage = require('../../src/components/CnDashboardPage/CnDashboardPage.vue').default
 
 function makeAiContext(overrides = {}) {
-	return Vue.observable({ appId: 'test', pageKind: 'custom', route: { path: '/' }, ...overrides })
+	return Vue.reactive({ appId: 'test', pageKind: 'custom', route: { path: '/' }, ...overrides })
 }
 
 const stubs = {
@@ -65,7 +65,7 @@ describe('CnDashboardPage — AI context push', () => {
 		const wrapper = mountDashboard({}, ctx)
 
 		expect(ctx.pageKind).toBe('dashboard')
-		wrapper.destroy()
+		wrapper.unmount()
 		expect(ctx.pageKind).toBe('custom')
 	})
 

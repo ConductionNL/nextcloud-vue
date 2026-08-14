@@ -11,7 +11,7 @@
 		type="tertiary"
 		class="cn-widget-edit-cog"
 		data-testid="cn-widget-edit-cog"
-		@click.native.stop>
+		@click.stop>
 		<template #icon>
 			<Cog :size="20" />
 		</template>

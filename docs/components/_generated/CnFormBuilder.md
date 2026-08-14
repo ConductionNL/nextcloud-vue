@@ -31,5 +31,5 @@
 
 | Name    | Payload | Description                                                                     |
 | ------- | ------- | ------------------------------------------------------------------------------- |
-| `save`  | —       | Emitted on explicit consumer-triggered save (parent renders the action button). |
 | `input` | —       | v-model emit.                                                                   |
+| `save`  | —       | Emitted on explicit consumer-triggered save (parent renders the action button). |

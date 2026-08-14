@@ -29,7 +29,7 @@
  * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
  */
 
-import Vue from 'vue'
+import { reactive } from 'vue'
 import { getDefaultContent } from '../components/CnWidgetGrid/dashboardWidgetRegistry.js'
 
 /**
@@ -47,7 +47,7 @@ export function useWidgetForm() {
 	// Vue.observable wraps the object so any component that touches
 	// state.content / state.type re-renders on change, the same way a
 	// data() field would.
-	const state = Vue.observable({
+	const state = reactive({
 		type: '',
 		content: {},
 		editingWidget: null,

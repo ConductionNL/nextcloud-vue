@@ -38,22 +38,18 @@
 			<div v-if="mode !== 'edit'"
 				class="cn-markdown-editor__preview"
 				data-testid="cn-markdown-preview"
-				v-html="renderedHtml" />
+				v-html="renderedHtml" /><!-- eslint-disable-line vue/no-v-html -- renderedHtml comes from cnRenderMarkdown(), which sanitises through DOMPurify -->
 		</div>
 
-		<!-- WYSIWYG mode: lazily-mounted Toast UI editor. -->
+		<!-- WYSIWYG mode: lazily-instantiated Toast UI editor. The editor is
+		     driven imperatively against `toastHost` rather than through a Vue
+		     wrapper component — `@toast-ui/vue-editor` is Vue-2 only, so the
+		     Vue-3 line uses the framework-agnostic `@toast-ui/editor` API. -->
 		<div v-else class="cn-markdown-editor__wysiwyg" data-testid="cn-markdown-wysiwyg">
-			<component
-				:is="toastEditorComponent"
-				v-if="toastEditorComponent"
-				ref="toast"
-				:initial-value="localValue"
-				:options="wysiwygOptions"
-				initial-edit-type="wysiwyg"
-				preview-style="tab"
-				:height="wysiwygHeight"
-				@change="onWysiwygChange" />
-			<p v-else class="cn-markdown-editor__hint">{{ t('nextcloud-vue', 'Loading editor…') }}</p>
+			<div v-show="toastEditorReady" ref="toastHost" />
+			<p v-if="!toastEditorReady" class="cn-markdown-editor__hint">
+				{{ t('nextcloud-vue', 'Loading editor…') }}
+			</p>
 		</div>
 
 		<!-- Hint row. -->
@@ -203,11 +199,19 @@ export default {
 		/** WYSIWYG mode only: editor height (any CSS length). */
 		wysiwygHeight: { type: String, default: '300px' },
 	},
+	// Declaring the emitted events is not cosmetic under Vue 3: an UNdeclared
+	// event name also stays in `$attrs` and falls through to the root element,
+	// so the NATIVE `input` event the `<textarea>` bubbles up is re-emitted by
+	// the component as its own `input` — after the component's own
+	// `$emit('input', value)` — and listeners receive the raw InputEvent
+	// instead of the string.
+	emits: ['input', 'update:mode'],
 	data() {
 		return {
 			localValue: this.value,
-			// Lazily-loaded Toast UI Editor component (WYSIWYG mode only).
-			toastEditorComponent: null,
+			// Whether the lazily-created Toast UI editor instance is live
+			// (WYSIWYG mode only). Drives the loading hint.
+			toastEditorReady: false,
 		}
 	},
 	computed: {
@@ -257,6 +261,13 @@ export default {
 		value(next) {
 			if (next !== this.localValue) {
 				this.localValue = next
+				// The imperative editor holds its own copy of the document, so
+				// an external v-model change has to be pushed into it. Guarded
+				// on the current markdown so we don't clobber the caret while
+				// the user is typing (our own change handler round-trips here).
+				if (this.toastEditor && this.toastEditor.getMarkdown() !== next) {
+					this.toastEditor.setMarkdown(next || '')
+				}
 			}
 		},
 		mode(next) {
@@ -270,25 +281,52 @@ export default {
 			this.loadWysiwyg()
 		}
 	},
+	beforeUnmount() {
+		// The editor is created imperatively, so Vue will not tear it down.
+		if (this.toastEditor && typeof this.toastEditor.destroy === 'function') {
+			this.toastEditor.destroy()
+		}
+		this.toastEditor = null
+	},
 	methods: {
 		t,
 		/**
-		 * Lazily import the Toast UI editor (and its CSS) the first time WYSIWYG
-		 * mode is entered. Keeps the ~200 KB editor out of the default textarea
-		 * path.
+		 * Lazily import and instantiate the Toast UI editor (and its CSS) the
+		 * first time WYSIWYG mode is entered. Keeps the ~200 KB editor out of
+		 * the default textarea path.
+		 *
+		 * Uses the framework-agnostic `@toast-ui/editor` constructor rather
+		 * than a Vue wrapper: `@toast-ui/vue-editor` is published for Vue 2
+		 * only and has no Vue-3 build. The instance is held as a plain (NON
+		 * reactive) instance property — putting a third-party class instance
+		 * in `data()` would wrap it in Vue 3's reactive proxy and break its
+		 * internal identity checks.
 		 *
 		 * @return {Promise<void>}
 		 */
 		async loadWysiwyg() {
-			if (this.toastEditorComponent) {
+			if (this.toastEditor) {
 				return
 			}
 			try {
-				const [{ Editor }] = await Promise.all([
-					import('@toast-ui/vue-editor'),
+				const [{ default: Editor }] = await Promise.all([
+					import('@toast-ui/editor'),
 					import('@toast-ui/editor/dist/toastui-editor.css'),
 				])
-				this.toastEditorComponent = Editor
+				await this.$nextTick()
+				const el = this.$refs.toastHost
+				if (!el) {
+					return
+				}
+				this.toastEditor = new Editor({
+					el,
+					...this.wysiwygOptions,
+					initialValue: this.localValue,
+					previewStyle: 'tab',
+					height: this.wysiwygHeight,
+					events: { change: this.onWysiwygChange },
+				})
+				this.toastEditorReady = true
 			} catch (e) {
 				console.error('CnMarkdownEditor: failed to load the WYSIWYG editor', e)
 			}
@@ -300,11 +338,10 @@ export default {
 		 * @return {void}
 		 */
 		onWysiwygChange() {
-			const editor = this.$refs.toast
-			if (!editor || typeof editor.invoke !== 'function') {
+			if (!this.toastEditor || typeof this.toastEditor.getMarkdown !== 'function') {
 				return
 			}
-			const markdown = editor.invoke('getMarkdown')
+			const markdown = this.toastEditor.getMarkdown()
 			this.localValue = markdown
 			/**
 			 * @event input v-model emit.

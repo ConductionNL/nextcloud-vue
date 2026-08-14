@@ -9,13 +9,13 @@
   surfaces stay in lockstep.
 -->
 <template>
-	<!-- Fragment (renders no DOM node) so NcActions stays in its host's
-	     flex/grid flow while the modal mounts as a SIBLING of NcActions,
-	     not inside it. The NcActions default slot is the floating-vue
-	     popover, which unmounts the instant the menu closes on an
-	     action-item click — mounting the modal there would destroy the
-	     dialog the moment it opens. -->
-	<Fragment v-if="hasOverflowMenu">
+	<!-- Root <template v-if> (Vue 3 native fragment, renders no DOM node — was
+	     vue-frag <Fragment>) so NcActions stays in its host's flex/grid flow
+	     while the modal mounts as a SIBLING of NcActions, not inside it. The
+	     NcActions default slot is the floating-vue popover, which unmounts the
+	     instant the menu closes on an action-item click — mounting the modal
+	     there would destroy the dialog the moment it opens. -->
+	<template v-if="hasOverflowMenu">
 		<NcActions
 			:force-menu="true"
 			:force-name="true"
@@ -79,12 +79,11 @@
 			:surface="surface"
 			:conduction-submit-enabled="false"
 			@close="onFeatureRequestModalClose" />
-	</Fragment>
+	</template>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { Fragment } from 'vue-frag'
 import { NcActions, NcActionButton, NcActionLink, NcLoadingIcon } from '@nextcloud/vue'
 import { emit as emitOnBus } from '@nextcloud/event-bus'
 import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
@@ -134,7 +133,6 @@ export default {
 	name: 'CnActionsMenu',
 
 	components: {
-		Fragment,
 		NcActions,
 		NcActionButton,
 		NcActionLink,
@@ -177,6 +175,7 @@ export default {
 		 */
 		cnFeatureRequestForge: { default: () => ({ type: 'codeberg', baseUrl: 'https://codeberg.org' }) },
 	},
+	inheritAttrs: false,
 
 	props: {
 		/**
@@ -308,6 +307,8 @@ export default {
 		},
 	},
 
+	emits: ['refresh', 'request-feature'],
+
 	data() {
 		return {
 			/**
@@ -331,7 +332,7 @@ export default {
 			if (this.showRefresh) return true
 			if (this.documentationUrl) return true
 			if (this.showRequestFeature) return true
-			return Boolean(this.$slots['action-items']) || Boolean(this.$scopedSlots && this.$scopedSlots['action-items'])
+			return Boolean(this.$slots['action-items']) || Boolean(this.$slots && this.$slots['action-items'])
 		},
 	},
 

@@ -41,7 +41,7 @@
 				:label="t('nextcloud-vue', 'Search locations')"
 				:placeholder="t('nextcloud-vue', 'Type to filter…')"
 				class="cn-map-poi-picker__search"
-				@update:value="onSearch" />
+				@update:model-value="onSearch" />
 
 			<NcLoadingIcon v-if="loading" />
 			<NcEmptyContent
@@ -145,7 +145,7 @@ export default {
 		this.fetchPois()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.searchTimer) {
 			clearTimeout(this.searchTimer)
 		}

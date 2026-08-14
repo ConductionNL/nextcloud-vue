@@ -51,7 +51,7 @@ describe('CnXwikiPagePicker', () => {
 		expect(rows).toHaveLength(2)
 		expect(wrapper.text()).toContain('Pitch')
 		expect(wrapper.text()).toContain('Handbook')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('emits link with the selected pageReference on confirm', async () => {
@@ -68,7 +68,7 @@ describe('CnXwikiPagePicker', () => {
 		wrapper.vm.confirm()
 		expect(wrapper.emitted().link).toBeTruthy()
 		expect(wrapper.emitted().link[0][0]).toEqual({ pageReference: 'Sales.Pitch' })
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders the Configure CTA on unconfigured-source 503', async () => {
@@ -84,7 +84,7 @@ describe('CnXwikiPagePicker', () => {
 		expect(wrapper.find('.cn-xwiki-page-picker__unconfigured').exists()).toBe(true)
 		expect(wrapper.text()).toContain('Configure XWiki connection')
 		expect(wrapper.findAll('.cn-xwiki-page-picker__row-button')).toHaveLength(0)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders the auth message on provider-auth 503', async () => {
@@ -98,7 +98,7 @@ describe('CnXwikiPagePicker', () => {
 
 		expect(wrapper.vm.degradedCause).toBe('auth')
 		expect(wrapper.text()).toContain('XWiki authentication failed')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces a generic error banner on a non-503 failure', async () => {
@@ -109,7 +109,7 @@ describe('CnXwikiPagePicker', () => {
 
 		expect(wrapper.vm.error).toBeTruthy()
 		expect(wrapper.vm.unconfigured).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('filters the visible list client-side by search term', async () => {
@@ -127,7 +127,7 @@ describe('CnXwikiPagePicker', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.visiblePages).toHaveLength(1)
 		expect(wrapper.vm.visiblePages[0].reference).toBe('Legal.Handbook')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does not emit link when nothing is selected', async () => {
@@ -138,6 +138,6 @@ describe('CnXwikiPagePicker', () => {
 
 		wrapper.vm.confirm()
 		expect(wrapper.emitted().link).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

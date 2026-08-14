@@ -2,91 +2,10 @@ import { ref, computed, watch } from 'vue'
 import { useListView } from '../../composables/index.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { useObjectStore } from '../../store/index.js'
-import { resolveFilterTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
-
-/**
- * Resolve an index base/quick filter map at fetch time.
- *
- * Two grammars are applied, in order:
- *  1. Route-param interpolation — `@route.<name>` / `:<name>` string values are
- *     replaced with the matching `$route.params` entry (index-specific).
- *  2. The shared fetch-time `@`-token grammar (via `resolveFilterTokens`):
- *     `@me` (current user), `@today`/`@today±Nd`, `@monthStart`/`@quarterStart`/
- *     `@yearStart`, etc. — the same tokens widget/KPI filters use — so an index
- *     base filter can scope to the signed-in user (e.g. `{ assignee: '@me' }`)
- *     or a relative date window without a bespoke wrapper. `@workspace.<key>` /
- *     `@config.<key>` tokens resolve too, against the `ctx` the caller supplies
- *     (the page-level `cnWorkspaceContext`/`cnAppConfig` bags — see
- *     `useSelfFetchList`) — the same grammar `CnObjectListWidget` uses. An
- *     UNRESOLVED OPTIONAL token (`@workspace.<key>?`) is dropped from the
- *     result (see `dropOptionalUnresolved`) so an unset selection shows all
- *     rows instead of sending the literal token string to the API. Literals
- *     and unknown strings pass through unchanged.
- *
- * @param {object} filterMap The configured filter map.
- * @param {object} params The current `$route.params`.
- * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Token-resolution
- *   context for `@workspace.<key>` / `@config.<key>` / `@objectId` / `@object.<field>` tokens.
- * @return {object} The resolved filter map.
- */
-function resolveFilterMap(filterMap, params, ctx) {
-	if (!filterMap || typeof filterMap !== 'object') return {}
-	const out = {}
-	for (const [k, v] of Object.entries(filterMap)) {
-		if (typeof v === 'string' && v.startsWith('@route.')) out[k] = params[v.slice('@route.'.length)]
-		else if (typeof v === 'string' && v.startsWith(':')) out[k] = params[v.slice(1)]
-		else out[k] = v
-	}
-	return dropOptionalUnresolved(resolveFilterTokens(out, ctx))
-}
-
-/**
- * Extract deep-link filters from `$route.query`. Lets a widget/link navigate to
- * `/cases?caseType=X&status=Y` and land the index pre-filtered. Reserved
- * underscore-prefixed list params (`_search`, `_page`, `_limit`, `_order`) are
- * skipped; everything else is passed through to the fetch (scalars + arrays, so
- * `?status[]=a&status[]=b` becomes an IN match). Merged BELOW the page's
- * `config.filter` so a page's own scoping still wins on a key collision.
- *
- * @param {object} query The `$route.query` object.
- * @return {object} The query-derived filter map.
- */
-function resolveQueryFilters(query) {
-	if (!query || typeof query !== 'object') return {}
-	const out = {}
-	for (const [k, v] of Object.entries(query)) {
-		if (k.startsWith('_')) continue
-		if (v === undefined || v === null || v === '') continue
-		out[k] = v
-	}
-	return out
-}
-
-/**
- * Parse the persisted multi-column sort out of `$route.query._order`
- * (JSON-encoded ordered array of `{key, order}`, written by
- * `CnIndexPage.persistSortToRoute`) so a reload or a shared/bookmarked
- * link restores the same sort. Malformed or absent input yields `null`
- * (caller falls back to `props.sortKey`/`props.sortKeys`).
- *
- * @param {object} route The current `$route` (may be undefined/null).
- * @return {Array<{key: string, order: 'asc'|'desc'}>|null} The parsed ordered sort-key list, or `null`.
- */
-function parseInitialSortKeysFromRoute(route) {
-	const raw = route && route.query && route.query._order
-	if (typeof raw !== 'string' || raw === '') return null
-	let parsed
-	try {
-		parsed = JSON.parse(raw)
-	} catch (e) {
-		return null
-	}
-	if (!Array.isArray(parsed) || parsed.length === 0) return null
-	const keys = parsed
-		.filter((k) => k && typeof k.key === 'string')
-		.map((k) => ({ key: k.key, order: k.order === 'desc' ? 'desc' : 'asc' }))
-	return keys.length > 0 ? keys : null
-}
+// Both filter resolvers live in `utils/routeFilters.js` so CnLogsPage applies
+// the same two grammars (route-param interpolation + `?key=value` deep links)
+// without pulling in this composable's index-only sidebar/subscription wiring.
+import { parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
 
 function resolveInitialQuickFilterIndex(quickFilters) {
 	const tabs = Array.isArray(quickFilters) ? quickFilters : null
@@ -219,7 +138,7 @@ export function useSelfFetchList(props, instance, inject) {
 	// link / reload); fall back to a host-passed `sortKeys` prop, then the
 	// legacy single-key `sortKey`/`sortOrder` props.
 	const initialRoute = instance && instance.proxy && instance.proxy.$route
-	const initialSortKeys = parseInitialSortKeysFromRoute(initialRoute)
+	const initialSortKeys = parseSortKeysFromQuery(initialRoute)
 		|| (Array.isArray(props.sortKeys) && props.sortKeys.length > 0 ? props.sortKeys : undefined)
 
 	const list = useListView(objectType, {

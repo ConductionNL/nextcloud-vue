@@ -159,7 +159,7 @@ export default {
 			/**
 			 * Per-index truncation state for `below`-position label spans, keyed
 			 * by the link's index in `renderedLinks`. Populated by
-			 * {@link measureLabelTruncation}.
+			 * `measureLabelTruncation`.
 			 */
 			truncatedLabels: {},
 		}
@@ -317,7 +317,7 @@ export default {
 		}
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this._resizeObserver) {
 			this._resizeObserver.disconnect()
 		}
@@ -373,7 +373,7 @@ export default {
 		 * are hidden entirely (`showLabels: false`) the tooltip always carries
 		 * the label, since it's otherwise invisible. When labels are shown
 		 * `below`, the tooltip is added only once the label span has actually
-		 * been measured as ellipsis-truncated ({@link measureLabelTruncation})
+		 * been measured as ellipsis-truncated (`measureLabelTruncation`)
 		 * — a short label that fits needs no tooltip. The `overlay` position
 		 * already reveals the label on hover/focus, so no tooltip is added
 		 * there.
@@ -398,7 +398,7 @@ export default {
 		/**
 		 * Measure which `below`-position label spans are actually
 		 * ellipsis-truncated (`scrollWidth > clientWidth`) and update
-		 * {@link truncatedLabels} accordingly. Runs after mount, after any
+		 * `truncatedLabels` accordingly. Runs after mount, after any
 		 * content change that could alter link count / sizing, and on
 		 * container resize (dashboard widgets are user-resizable via
 		 * GridStack). A no-op outside the `below` label position.
@@ -417,7 +417,7 @@ export default {
 				}
 				const isTruncated = target.scrollWidth > target.clientWidth
 				if (this.truncatedLabels[index] !== isTruncated) {
-					this.$set(this.truncatedLabels, index, isTruncated)
+					this.truncatedLabels[index] = isTruncated
 				}
 			})
 		},

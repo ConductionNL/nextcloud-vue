@@ -77,9 +77,9 @@
 			<!-- Create another checkbox (only in create mode) -->
 			<NcCheckboxRadioSwitch
 				v-if="showCreateAnother && isCreateMode"
+				v-model="createAnother"
 				class="cn-tabbed-form-dialog__create-another"
-				:disabled="loading"
-				:checked.sync="createAnother">
+				:disabled="loading">
 				{{ createAnotherLabel }}
 			</NcCheckboxRadioSwitch>
 
@@ -106,7 +106,7 @@
 			<!-- Primary action button (Save / Create) -->
 			<NcButton
 				v-if="createAnother || result === null"
-				v-tooltip="disableSave && disableSaveTooltip ? disableSaveTooltip : undefined"
+				:title="disableSave && disableSaveTooltip ? disableSaveTooltip : undefined"
 				variant="primary"
 				:disabled="loading || disableSave"
 				:aria-label="disableSave && disableSaveTooltip ? disableSaveTooltip : undefined"
@@ -281,6 +281,7 @@ export default {
 			default: () => t('nextcloud-vue', 'Create another'),
 		},
 	},
+	emits: ['close', 'confirm', 'reset', 'update:activeTab'],
 	data() {
 		return {
 			/** @type {number} Current active tab index */
@@ -351,7 +352,7 @@ export default {
 			return this.isCreateMode ? t('nextcloud-vue', 'Create') : t('nextcloud-vue', 'Save')
 		},
 	},
-	beforeDestroy() {
+	beforeUnmount() {
 		clearTimeout(this.closeTimeout)
 		clearTimeout(this.successClearTimeout)
 	},

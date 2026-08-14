@@ -6,11 +6,11 @@
 <template>
 	<div class="cn-dash-tile-form">
 		<NcTextField
-			:value="title"
+			:model-value="title"
 			:label="t('nextcloud-vue', 'Title')"
 			:placeholder="t('nextcloud-vue', 'Tile title')"
 			required
-			@update:value="updateField('title', $event)" />
+			@update:model-value="updateField('title', $event)" />
 
 		<CnIconBrowser
 			:value="icon"
@@ -19,11 +19,11 @@
 			@input="onIconChange($event)" />
 
 		<NcSelect
-			:value="iconType"
+			:model-value="iconType"
 			:options="iconTypeOptions"
 			:input-label="t('nextcloud-vue', 'Icon type')"
 			:clearable="false"
-			@input="updateField('iconType', $event)" />
+			@update:model-value="updateField('iconType', $event)" />
 
 		<div class="cn-dash-tile-form__color-row">
 			<label class="cn-dash-tile-form__color-label">
@@ -46,18 +46,18 @@
 		</div>
 
 		<NcSelect
-			:value="linkType"
+			:model-value="linkType"
 			:options="linkTypeOptions"
 			:input-label="t('nextcloud-vue', 'Link type')"
 			:clearable="false"
-			@input="updateField('linkType', $event)" />
+			@update:model-value="updateField('linkType', $event)" />
 
 		<NcTextField
-			:value="linkValue"
+			:model-value="linkValue"
 			:label="linkValueLabel"
 			:placeholder="linkValuePlaceholder"
 			required
-			@update:value="updateField('linkValue', $event)" />
+			@update:model-value="updateField('linkValue', $event)" />
 	</div>
 </template>
 

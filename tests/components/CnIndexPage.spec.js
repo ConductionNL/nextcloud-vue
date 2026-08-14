@@ -108,7 +108,7 @@ describe('dialog-override slots', () => {
 		// The default CnFormDialog stub renders as a div[stub]
 		// presence of the stub means the default slot is active
 		expect(wrapper.find('[data-testid="cn-index-page"]').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a custom form-dialog slot override when provided', () => {
@@ -120,7 +120,7 @@ describe('dialog-override slots', () => {
 		)
 		// The custom dialog markup should appear in the rendered output
 		expect(wrapper.html()).toContain('custom-form-dialog')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders a custom delete-dialog slot override when provided', () => {
@@ -131,7 +131,7 @@ describe('dialog-override slots', () => {
 			},
 		)
 		expect(wrapper.html()).toContain('custom-delete-dialog')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -146,7 +146,7 @@ describe('register threading to CnFormDialog', () => {
 		const dialog = wrapper.findComponent({ ref: 'formDialog' })
 		expect(dialog.exists()).toBe(true)
 		expect(dialog.props('register')).toBe('zaken')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -166,7 +166,7 @@ describe('save → collection refresh', () => {
 			expect(mockStore.saveObject).toHaveBeenCalled()
 		}
 
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -195,7 +195,7 @@ describe('form validation errors', () => {
 		// switch to the result phase (which would hide the form).
 		expect(keepForm).toHaveBeenCalledWith(null, "Property 'client' should match format 'uuid'.")
 		expect(showResult).not.toHaveBeenCalled()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('keeps the form open on a validation error in self-fetch mode (register/schema)', async () => {
@@ -220,7 +220,7 @@ describe('form validation errors', () => {
 		expect(keepForm).toHaveBeenCalledWith(null, "Property 'client' should match format 'uuid'.")
 		expect(showResult).not.toHaveBeenCalled()
 		mockStore.getError.mockReturnValue(null)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows a terminal result for non-validation save failures', async () => {
@@ -237,7 +237,7 @@ describe('form validation errors', () => {
 
 		expect(showResult).toHaveBeenCalledWith({ error: 'Server error' })
 		expect(keepForm).not.toHaveBeenCalled()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -256,7 +256,7 @@ describe('delete confirmation flow', () => {
 			await deleteHandler.call(wrapper.vm, { id: 'obj-1', title: 'Doomed Item' })
 			expect(mockStore.deleteObject).toHaveBeenCalled()
 		}
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -267,7 +267,7 @@ describe('search and filter parameter forwarding', () => {
 		const filters = { status: 'active' }
 		const wrapper = mountPage({ title: 'Items', register: 'r1', schema: 's1', filters })
 		expect(wrapper.find('[data-testid="cn-index-page"]').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders without error when activeFilters prop is provided', () => {
@@ -279,7 +279,7 @@ describe('search and filter parameter forwarding', () => {
 			activeFilters: { status: ['active'] },
 		})
 		expect(wrapper.find('[data-testid="cn-index-page"]').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders self-fetch mode and calls fetchCollection on mount', async () => {
@@ -315,7 +315,7 @@ describe('createOverride hook', () => {
 		// @create is emitted with the override's returned object, not the form data.
 		expect(wrapper.emitted('create')).toBeTruthy()
 		expect(wrapper.emitted('create')[0][0]).toBe(created)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('falls back to saveObject when no createOverride is provided', async () => {
@@ -325,7 +325,7 @@ describe('createOverride hook', () => {
 		await wrapper.vm.onFormConfirm({ name: 'Acme' })
 
 		expect(mockStore.saveObject).toHaveBeenCalledWith('crm-client', { name: 'Acme' })
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does NOT route an EDIT through createOverride (create-only)', async () => {
@@ -339,7 +339,7 @@ describe('createOverride hook', () => {
 
 		expect(override).not.toHaveBeenCalled()
 		expect(mockStore.saveObject).toHaveBeenCalledWith('crm-client', { id: 'c-1', name: 'Existing Renamed' })
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces a terminal error when createOverride throws', async () => {
@@ -353,7 +353,7 @@ describe('createOverride hook', () => {
 
 		expect(showResult).toHaveBeenCalledWith({ error: 'contact resolve failed' })
 		expect(mockStore.saveObject).not.toHaveBeenCalled()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surfaces a failure when createOverride returns falsy', async () => {
@@ -367,7 +367,7 @@ describe('createOverride hook', () => {
 
 		expect(showResult).toHaveBeenCalledWith({ error: 'Save failed' })
 		expect(wrapper.emitted('create')).toBeFalsy()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -396,7 +396,7 @@ describe('?action=create deep-link', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.showFormDialogVisible).toBe(true)
 		expect(wrapper.vm.editItem).toBeNull()
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('clears the action query param after opening', async () => {
@@ -411,7 +411,7 @@ describe('?action=create deep-link', () => {
 		})
 		await wrapper.vm.$nextTick()
 		expect(replace).toHaveBeenCalledWith({ query: {} })
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does NOT open the dialog when showFormDialog is false (consumer manages its own dialog)', async () => {
@@ -425,14 +425,14 @@ describe('?action=create deep-link', () => {
 		})
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.showFormDialogVisible).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('does NOT open the dialog when ?action is absent', async () => {
 		const wrapper = mountPage({ title: 'Items', showFormDialog: true })
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.showFormDialogVisible).toBe(false)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('opens the dialog when the watcher fires on same-page navigation', async () => {
@@ -445,6 +445,6 @@ describe('?action=create deep-link', () => {
 		wrapper.vm.maybeOpenCreateFromQuery()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.showFormDialogVisible).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

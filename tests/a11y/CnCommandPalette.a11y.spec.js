@@ -39,7 +39,7 @@ describe('CnCommandPalette — accessibility', () => {
 	})
 
 	afterEach(() => {
-		wrapper?.destroy()
+		wrapper?.unmount()
 		cp.state.isOpen = false
 	})
 

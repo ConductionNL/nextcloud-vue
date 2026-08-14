@@ -159,6 +159,8 @@ export default {
 		},
 	},
 
+	emits: ['created'],
+
 	setup() {
 		// Read the two detail-surface injects once so the object token context
 		// resolves identically to the endpoint-bound widgets (Wave 3).
@@ -262,11 +264,11 @@ export default {
 			for (const action of this.actions || []) {
 				if (!action || !action.id) continue
 				if (!action.visibleWhen) {
-					this.$set(this.visibility, action.id, true)
+					this.visibility[action.id] = true
 					continue
 				}
 				const ok = await evaluateVisibleWhen(action.visibleWhen, this.tokenCtx)
-				this.$set(this.visibility, action.id, ok)
+				this.visibility[action.id] = ok
 			}
 		},
 
@@ -280,12 +282,12 @@ export default {
 		async initToggles() {
 			for (const action of this.actions || []) {
 				if (!action || action.type !== 'toggle' || !action.id) continue
-				this.$set(this.toggleState, action.id, false)
+				this.toggleState[action.id] = false
 				if (!action.stateSource || !action.stateSource.url) continue
 				try {
 					const payload = await fetchEndpointSource(action.stateSource, this.tokenCtx)
 					const value = action.field ? this.readField(payload, action.field) : payload
-					this.$set(this.toggleState, action.id, Boolean(value))
+					this.toggleState[action.id] = Boolean(value)
 				} catch (e) {
 					// Leave the default (off); a failed state read never breaks the bar.
 				}
@@ -316,8 +318,8 @@ export default {
 			if (this.togglePending[entry.id]) return
 			const previous = Boolean(this.toggleState[entry.id])
 			const next = !previous
-			this.$set(this.toggleState, entry.id, next)
-			this.$set(this.togglePending, entry.id, true)
+			this.toggleState[entry.id] = next
+			this.togglePending[entry.id] = true
 			const writeParams = { ...(entry.params || {}) }
 			if (entry.field) writeParams[entry.field] = next
 			const result = await this.dispatch({
@@ -331,9 +333,9 @@ export default {
 			})
 			if (!result || result.ok === false) {
 				// Revert the optimistic flip.
-				this.$set(this.toggleState, entry.id, previous)
+				this.toggleState[entry.id] = previous
 			}
-			this.$set(this.togglePending, entry.id, false)
+			this.togglePending[entry.id] = false
 		},
 
 		/**
@@ -382,9 +384,9 @@ export default {
 				await this.openForm(entry)
 				return undefined
 			}
-			this.$set(this.actionPending, entry.id, true)
+			this.actionPending[entry.id] = true
 			const result = await this.dispatch(entry)
-			this.$set(this.actionPending, entry.id, false)
+			this.actionPending[entry.id] = false
 			return result
 		},
 

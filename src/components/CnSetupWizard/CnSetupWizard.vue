@@ -11,9 +11,17 @@
 		:back-label="backLabel"
 		:success-text="successText"
 		:validate="validateStep"
+		:cancellable="cancellable"
+		:initial-step="initialStepId"
 		@step-change="onStepChange"
 		@submit="onSubmit"
 		@close="onClose">
+		<!-- This `<template v-for>` defines dynamic SLOTS, not a rendered list.
+		     `@vue/compiler-sfc` DISCARDS a `:key` on a slot-defining
+		     `<template>` (verified against the generated `createSlots` call)
+		     and honours it only on the child, so the rule's advice is inverted
+		     here — moving the key up would throw it away. -->
+		<!-- eslint-disable vue/no-v-for-template-key-on-child -->
 		<template v-for="step in setupSteps" #[stepSlot(step)]="scope">
 			<div :key="step.id" class="cn-setup-step" :data-step-type="step.type">
 				<!-- @slot step-{id} Override a step's body (for `component` steps or
@@ -45,8 +53,8 @@
 						:multiple="step.multiple === true"
 						:disabled="isChoiceDisabled(step)"
 						label="label"
-						:value="choiceModel[step.id]"
-						@input="(v) => onChoice(step, v)" />
+						:model-value="choiceModel[step.id]"
+						@update:model-value="(v) => onChoice(step, v)" />
 					<NcNoteCard v-if="isChoiceDisabled(step)" type="warning">
 						{{ dependsOnHint(step) }}
 					</NcNoteCard>
@@ -60,22 +68,22 @@
 						class="cn-setup-field">
 						<NcCheckboxRadioSwitch
 							v-if="field.widget === 'checkbox'"
-							:checked="!!configModel[field.key]"
-							@update:checked="(v) => $set(configModel, field.key, v)">
+							:model-value="!!configModel[field.key]"
+							@update:model-value="(v) => configModel[field.key] = v">
 							{{ field.label }}
 						</NcCheckboxRadioSwitch>
 						<NcSelect
 							v-else-if="field.widget === 'select'"
 							:input-label="field.label"
 							:options="field.enum || []"
-							:value="configModel[field.key]"
-							@input="(v) => $set(configModel, field.key, v)" />
+							:model-value="configModel[field.key]"
+							@update:model-value="(v) => configModel[field.key] = v" />
 						<NcTextField
 							v-else
 							:label="field.label"
 							:type="field.widget === 'number' ? 'number' : 'text'"
-							:value="configModel[field.key] != null ? String(configModel[field.key]) : ''"
-							@update:value="(v) => $set(configModel, field.key, v)" />
+							:model-value="configModel[field.key] != null ? String(configModel[field.key]) : ''"
+							@update:model-value="(v) => configModel[field.key] = v" />
 					</div>
 				</template>
 
@@ -90,7 +98,7 @@
 						{{ actionResult[step.id].message }}
 					</NcNoteCard>
 					<div class="cn-setup-step__nav">
-						<NcButton type="primary" :disabled="running[step.id]" @click="runAction(step)">
+						<NcButton variant="primary" :disabled="running[step.id]" @click="runAction(step)">
 							<template v-if="running[step.id]" #icon>
 								<NcLoadingIcon :size="20" />
 							</template>
@@ -118,6 +126,7 @@
 				</template>
 			</div>
 		</template>
+		<!-- eslint-enable vue/no-v-for-template-key-on-child -->
 	</CnWizardDialog>
 </template>
 
@@ -161,6 +170,18 @@ export default {
 		NcTextField,
 		NcCheckboxRadioSwitch,
 		NcLoadingIcon,
+	},
+
+	inject: {
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Step field
+		 * labels come from schema property titles, authored in English as the
+		 * canonical source; the visible label is resolved through this function
+		 * so it follows the user's language. Defaults to identity when used
+		 * standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -208,6 +229,34 @@ export default {
 		successText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Setup complete.'),
+		},
+		/**
+		 * Whether the wizard can be dismissed before finishing (Cancel
+		 * button, ESC, backdrop click). Pass `false` when a REQUIRED step
+		 * is unmet and the host is gating its shell behind this wizard
+		 * (ADR-042) — an offered-but-non-functional Cancel would be
+		 * misleading. Optional-only setup stays cancellable (default).
+		 *
+		 * @type {boolean}
+		 */
+		cancellable: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Ids of steps the SERVER already reports as done (e.g.
+		 * `useSetupStatus(...).steps` filtered to `done === true`), passed by
+		 * the host so a freshly (re)mounted wizard doesn't re-ask something
+		 * already persisted in an earlier session — this component's own
+		 * `localDone`/`choiceModel` only track the CURRENT session and reset
+		 * blank on every mount. Drives both the initial step (`initialStepId`)
+		 * and the summary page's done markers.
+		 *
+		 * @type {Array<string>}
+		 */
+		completedStepIds: {
+			type: Array,
+			default: () => [],
 		},
 	},
 
@@ -267,12 +316,35 @@ export default {
 					if (step.type === 'info') {
 						done = true
 					} else if (step.type === 'choice') {
-						done = this.hasChoice(step)
+						done = this.hasChoice(step) || this.isServerDone(step.id)
 					} else {
 						done = this.isStepDone(step.id)
 					}
 					return { id: step.id, title: step.title || step.id, value, done }
 				})
+		},
+		/**
+		 * Id of the step the wizard should open on when RESUMING: the first
+		 * non-`info`/`summary` step not already done, per the CURRENT session's
+		 * local state OR the server-reported `completedStepIds` (a prior
+		 * session). Falls back to `''` (CnWizardDialog's own first-step default)
+		 * on a fresh setup and when every actionable step is already done.
+		 *
+		 * @return {string}
+		 */
+		initialStepId() {
+			// Fresh setup — nothing done anywhere yet, so there is nothing to
+			// resume past. Start at step one so a leading `info`/welcome step is
+			// actually seen; resuming is only for returning sessions.
+			if (this.completedStepIds.length === 0) {
+				return ''
+			}
+			const actionable = this.setupSteps.filter((s) => s.type !== 'info' && s.type !== 'summary')
+			const firstUnmet = actionable.find((s) => {
+				if (s.type === 'choice') return !(this.hasChoice(s) || this.isServerDone(s.id))
+				return !this.isStepDone(s.id)
+			})
+			return firstUnmet ? firstUnmet.id : ''
 		},
 	},
 
@@ -281,11 +353,11 @@ export default {
 			return 'step-' + step.id
 		},
 		hasCustomSlot(id) {
-			return !!this.$scopedSlots['step-' + id] || !!this.$slots['step-' + id]
+			return !!this.$slots['step-' + id] || !!this.$slots['step-' + id]
 		},
 		fieldsFor(step) {
 			if (step.schema && typeof step.schema === 'object') {
-				return fieldsFromSchema(step.schema)
+				return fieldsFromSchema(step.schema, { translate: this.cnTranslate })
 			}
 			// Fallback: a plain text field per declared config key.
 			return (step.configKeys || []).map((key) => ({ key, label: key, widget: 'text' }))
@@ -333,17 +405,17 @@ export default {
 			return raw && raw.value !== undefined ? raw.value : raw
 		},
 		onChoice(step, value) {
-			this.$set(this.userTouched, step.id, true)
-			this.$set(this.choiceModel, step.id, value)
+			this.userTouched[step.id] = true
+			this.choiceModel[step.id] = value
 			if (step.configKey) {
-				this.$set(this.choiceValues, step.configKey, this.scalarChoice(step))
+				this.choiceValues[step.configKey] = this.scalarChoice(step)
 			}
 			// Reset any dependent child choices when the parent changes.
 			for (const child of this.setupSteps) {
 				if (child.dependsOn && child.dependsOn === step.configKey) {
-					this.$set(this.choiceModel, child.id, child.multiple === true ? [] : null)
-					this.$set(this.userTouched, child.id, false)
-					if (child.configKey) this.$set(this.choiceValues, child.configKey, '')
+					this.choiceModel[child.id] = child.multiple === true ? [] : null
+					this.userTouched[child.id] = false
+					if (child.configKey) this.choiceValues[child.configKey] = ''
 				}
 			}
 			// Re-apply auto-suggestions for steps that derive a default from this one.
@@ -369,8 +441,8 @@ export default {
 			const wanted = (step.suggestMap || {})[parentValue]
 			if (wanted == null) return
 			const opt = this.optionsFor(step).find((o) => o.value === wanted) || { value: wanted, label: String(wanted) }
-			this.$set(this.choiceModel, step.id, opt)
-			if (step.configKey) this.$set(this.choiceValues, step.configKey, wanted)
+			this.choiceModel[step.id] = opt
+			if (step.configKey) this.choiceValues[step.configKey] = wanted
 		},
 		/**
 		 * CnWizardDialog `validate` hook — intercepts Next/Submit to persist
@@ -388,13 +460,19 @@ export default {
 			if (!step) return true
 			if (step.type === 'choice') {
 				if (!this.hasChoice(step)) {
+					// Already persisted server-side and the user only back-navigated
+					// onto it — `choiceModel` is blank because it's session-local, not
+					// because nothing is set. Don't force a re-pick, and don't re-POST.
+					if (this.isServerDone(step.id)) {
+						return true
+					}
 					return step.required === true
 						? t('nextcloud-vue', 'Please make a selection to continue.')
 						: true
 				}
 				try {
 					await this.saveConfig({ [step.configKey]: this.scalarChoice(step) })
-					this.$set(this.localDone, step.id, true)
+					this.localDone[step.id] = true
 					return true
 				} catch (err) {
 					return this.errorMessage(err)
@@ -407,7 +485,7 @@ export default {
 						patch[field.key] = this.configModel[field.key]
 					}
 					await this.saveConfig(patch)
-					this.$set(this.localDone, step.id, true)
+					this.localDone[step.id] = true
 					return true
 				} catch (err) {
 					return this.errorMessage(err)
@@ -432,8 +510,8 @@ export default {
 			await axios.post(generateUrl(`/apps/${this.appId}/api/setup/config`), patch)
 		},
 		async runAction(step) {
-			this.$set(this.running, step.id, true)
-			this.$set(this.actionResult, step.id, null)
+			this.running[step.id] = true
+			this.actionResult[step.id] = null
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),
@@ -446,9 +524,9 @@ export default {
 					success: data && data.success !== false,
 					message: (data && data.message) || t('nextcloud-vue', 'Done.'),
 				}
-				this.$set(this.actionResult, step.id, result)
+				this.actionResult[step.id] = result
 				if (result.success) {
-					this.$set(this.localDone, step.id, true)
+					this.localDone[step.id] = true
 				}
 				/**
 				 * @event action-result Emitted when a `run-action` step finishes.
@@ -456,14 +534,24 @@ export default {
 				 */
 				this.$emit('action-result', { stepId: step.id, action: step.action, ...result })
 			} catch (err) {
-				this.$set(this.actionResult, step.id, { success: false, message: this.errorMessage(err) })
+				this.actionResult[step.id] = { success: false, message: this.errorMessage(err) }
 				this.$emit('action-result', { stepId: step.id, action: step.action, success: false, message: this.errorMessage(err) })
 			} finally {
-				this.$set(this.running, step.id, false)
+				this.running[step.id] = false
 			}
 		},
 		isStepDone(id) {
-			return this.localDone[id] === true || (this.actionResult[id] && this.actionResult[id].success)
+			return this.isServerDone(id) || this.localDone[id] === true || (this.actionResult[id] && this.actionResult[id].success)
+		},
+		/**
+		 * Whether the server already reported this step done in a prior
+		 * session, via the `completedStepIds` prop.
+		 *
+		 * @param {string} id Step id.
+		 * @return {boolean}
+		 */
+		isServerDone(id) {
+			return this.completedStepIds.includes(id)
 		},
 		onSubmit() {
 			if (this.$refs.wizard && this.$refs.wizard.setResult) {

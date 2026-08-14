@@ -135,14 +135,16 @@
 					</template>
 					<NcActionInput
 						type="datetime-local"
-						:value="toLocalDateTimeInput(currentRange && currentRange.from)"
+						is-native-picker
+						:model-value="toPickerDate(currentRange && currentRange.from)"
 						:label="t('nextcloud-vue', 'From')"
-						@input="onChipDateInput('from', $event)" />
+						@update:model-value="onChipDateInput('from', $event)" />
 					<NcActionInput
 						type="datetime-local"
-						:value="toLocalDateTimeInput(currentRange && currentRange.to)"
+						is-native-picker
+						:model-value="toPickerDate(currentRange && currentRange.to)"
 						:label="t('nextcloud-vue', 'To')"
-						@input="onChipDateInput('to', $event)" />
+						@update:model-value="onChipDateInput('to', $event)" />
 				</NcActions>
 			</div>
 			<!-- Default (picker) mode: the original select + two date inputs. -->
@@ -167,13 +169,13 @@
 				class="cn-dashboard-page__page-filter">
 				<span v-if="pf.label" class="cn-dashboard-page__page-filter-label">{{ pf.label }}</span>
 				<NcSelect
-					:value="selectedPageFilterOption(pf)"
+					:model-value="selectedPageFilterOption(pf)"
 					:options="pf.options || []"
 					:clearable="false"
 					:input-label="pf.label || pf.key"
 					label="label"
 					:data-testid="'cn-page-filter-' + pf.key"
-					@input="onPageFilterChange(pf, $event)" />
+					@update:model-value="onPageFilterChange(pf, $event)" />
 			</label>
 		</div>
 
@@ -247,7 +249,7 @@
 				     remove button here. Shown only while the page is in edit
 				     mode. -->
 				<div v-if="gridEditable" class="cn-dashboard-page__widget-edit">
-					<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
+					<NcButton variant="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
 						<template #icon>
 							<Cog :size="18" />
 						</template>
@@ -295,7 +297,7 @@
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
 						:show-title="widgetShowTitle(item)"
-						:borderless="!widgetShowTitle(item)"
+						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
@@ -323,8 +325,8 @@
 						     two blocks in sync when editing either. -->
 						<template v-if="dateRangeEnabled && item.dateChip === true" #title-meta>
 							<NcActions
+								v-model:open="openChipPicker[item.widgetId]"
 								:force-menu="true"
-								:open.sync="openChipPicker[item.widgetId]"
 								container="body"
 								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
 								class="cn-dashboard-page__date-chip-trigger">
@@ -347,14 +349,16 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
-									:value="toLocalDateTimeInput(currentRange.from)"
+									is-native-picker
+									:model-value="toPickerDate(currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
-									@input="onChipDateInput('from', $event)" />
+									@update:model-value="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
-									:value="toLocalDateTimeInput(currentRange.to)"
+									is-native-picker
+									:model-value="toPickerDate(currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
-									@input="onChipDateInput('to', $event)" />
+									@update:model-value="onChipDateInput('to', $event)" />
 							</NcActions>
 						</template>
 						<!-- @slot widget-{widgetId} Per-widget body content (e.g. `#widget-my-work`). Apps inject custom widget rendering here. Scope: `{ item, widget }`. -->
@@ -365,11 +369,12 @@
 				<!-- Chart widget — manifest-driven apexcharts mount -->
 				<template v-else-if="isChart(item)">
 					<CnWidgetWrapper
+						:class="{ 'cn-dashboard-page__chart-fit': isChartFitted(item) }"
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
 						:show-title="widgetShowTitle(item)"
-						:borderless="!widgetShowTitle(item)"
+						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
@@ -381,8 +386,8 @@
 						@request-feature="onWidgetRequestFeature(item)">
 						<template v-if="dateRangeEnabled && (item.dateChip === true || formatChartDateRange(item))" #title-meta>
 							<NcActions
+								v-model:open="openChipPicker[item.widgetId]"
 								:force-menu="true"
-								:open.sync="openChipPicker[item.widgetId]"
 								container="body"
 								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
 								class="cn-dashboard-page__date-chip-trigger">
@@ -405,14 +410,16 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
-									:value="toLocalDateTimeInput(currentRange.from)"
+									is-native-picker
+									:model-value="toPickerDate(currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
-									@input="onChipDateInput('from', $event)" />
+									@update:model-value="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
-									:value="toLocalDateTimeInput(currentRange.to)"
+									is-native-picker
+									:model-value="toPickerDate(currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
-									@input="onChipDateInput('to', $event)" />
+									@update:model-value="onChipDateInput('to', $event)" />
 							</NcActions>
 						</template>
 						<CnChartWidget
@@ -444,7 +451,7 @@
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
 						:show-title="widgetShowTitle(item)"
-						:borderless="!widgetShowTitle(item)"
+						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
@@ -514,8 +521,8 @@
 						     custom-slot chip block. -->
 						<template v-if="dateRangeEnabled && item.dateChip === true" #title-meta>
 							<NcActions
+								v-model:open="openChipPicker[item.widgetId]"
 								:force-menu="true"
-								:open.sync="openChipPicker[item.widgetId]"
 								container="body"
 								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
 								class="cn-dashboard-page__date-chip-trigger">
@@ -538,14 +545,16 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
-									:value="toLocalDateTimeInput(currentRange && currentRange.from)"
+									is-native-picker
+									:model-value="toPickerDate(currentRange && currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
-									@input="onChipDateInput('from', $event)" />
+									@update:model-value="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
-									:value="toLocalDateTimeInput(currentRange && currentRange.to)"
+									is-native-picker
+									:model-value="toPickerDate(currentRange && currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
-									@input="onChipDateInput('to', $event)" />
+									@update:model-value="onChipDateInput('to', $event)" />
 							</NcActions>
 						</template>
 						<component
@@ -668,6 +677,9 @@ const CHART_PROP_KEYS = [
 	'horizontal',
 	'legendPosition',
 	'valueFormat',
+	// Value-axis baseline guard: lets a manifest opt a chart out of the
+	// zero-baseline default (`'fit'`) when its series lives far from zero.
+	'valueAxisBaseline',
 	'colorMap',
 	'emptyLabel',
 	// In-widget view switcher (Wave 3, nextcloud-vue#91): named display
@@ -791,7 +803,7 @@ export default {
 		cnEditingBody: { default: false },
 		/**
 		 * Reactive AI context holder provided by CnAppRoot. Overwritten
-		 * on created() and watched for prop changes. Reset on beforeDestroy().
+		 * on created() and watched for prop changes. Reset on beforeUnmount().
 		 */
 		cnAiContext: { default: null },
 	},
@@ -1094,7 +1106,10 @@ export default {
 		/**
 		 * Show the built-in Refresh item in the page-level overflow Actions
 		 * menu. On by default. The default handler emits `@refresh` and,
-		 * unless suppressed, fires the `cn:page:refresh` event-bus channel.
+		 * unless suppressed, fires the `cn:page:refresh` event-bus channel —
+		 * which the built-in data widgets subscribe to, so the action works
+		 * with no host wiring at all. A `@refresh` listener that calls
+		 * `preventDefault()` replaces that default rather than adding to it.
 		 *
 		 * This is ALSO the default for each widget's own overflow menu: when
 		 * `false`, the Refresh item is dropped from every widget too (handy
@@ -1194,7 +1209,17 @@ export default {
 		},
 	},
 
-	emits: ['layout-change', 'edit-toggle', 'date-range-change', 'page-filter-change', 'refresh', 'request-feature'],
+	emits: [
+		'date-range-change',
+		'edit-toggle',
+		'layout-change',
+		'page-filter-change',
+		'refresh',
+		'request-feature',
+		'widget-refresh',
+		'widget-remove',
+		'widget-request-feature',
+	],
 
 	setup(props) {
 		// Wire the pluggable integration registry so widgets of type
@@ -1305,7 +1330,12 @@ export default {
 		 */
 		effectiveWidgetShowRefresh() {
 			if (this.widgetShowRefresh !== null) return this.widgetShowRefresh
-			return Boolean(this.$listeners['widget-refresh'])
+			// `$.vnode.props`, not `$attrs`: a declared emit is stripped out of
+			// `$attrs`. And the key is `onWidgetRefresh` — Vue's compiler
+			// camelizes every `v-on` argument, so the hyphenated
+			// `$attrs['onWidget-refresh']` this used to read was `undefined`
+			// unconditionally and the auto-detect never once fired.
+			return Boolean(this.$.vnode.props?.onWidgetRefresh)
 		},
 		/**
 		 * Stable id for the page-level Actions menu. Prefers the explicit
@@ -1327,7 +1357,7 @@ export default {
 		 * @return {boolean}
 		 */
 		hasActionItemsSlot() {
-			return Boolean(this.$slots['action-items']) || Boolean(this.$scopedSlots && this.$scopedSlots['action-items'])
+			return Boolean(this.$slots['action-items']) || Boolean(this.$slots && this.$slots['action-items'])
 		},
 
 		/**
@@ -1567,7 +1597,7 @@ export default {
 		this.initPageFilters()
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.cnAiContext) {
 			this.cnAiContext.pageKind = 'custom'
 			this.cnAiContext.registerSlug = undefined
@@ -1591,7 +1621,7 @@ export default {
 				const fallback = (pf.options && pf.options.length) ? pf.options[0].value : undefined
 				const value = pf.default !== undefined ? pf.default : fallback
 				if (value !== undefined) {
-					this.$set(this.workspaceContext, pf.key, value)
+					this.workspaceContext[pf.key] = value
 				}
 			}
 		},
@@ -1618,7 +1648,7 @@ export default {
 		onPageFilterChange(pf, option) {
 			if (!pf || !pf.key) return
 			const value = option && typeof option === 'object' ? option.value : option
-			this.$set(this.workspaceContext, pf.key, value)
+			this.workspaceContext[pf.key] = value
 			/**
 			 * @event page-filter-change Emitted when a page-level filter selection changes.
 			 * @type {{ key: string, value: (string|number|null) }}
@@ -1838,36 +1868,44 @@ export default {
 		 * `{ from, to, preset: 'custom' }` to `onDateRangeChange`.
 		 *
 		 * @param {'from'|'to'} field The half being edited.
-		 * @param {string|Event} value Local datetime string or input Event.
+		 * @param {Date|string|Event} value Date from the picker, local
+		 *   datetime string, or a raw input Event.
 		 * @return {void}
 		 */
 		onChipDateInput(field, value) {
-			const raw = typeof value === 'string'
-				? value
-				: (value && value.target ? value.target.value : '')
 			const next = {
 				from: this.currentRange?.from || '',
 				to: this.currentRange?.to || '',
 				preset: 'custom',
 			}
-			next[field] = raw ? this.localDateTimeInputToIso(raw) : ''
+			// NcActionInput's date types are backed by a date picker that
+			// emits a Date — NOT a string and NOT an input Event. Handle the
+			// Date first; without it every manual edit fell through to '' and
+			// silently CLEARED the half being edited.
+			if (value instanceof Date) {
+				next[field] = Number.isNaN(value.getTime()) ? '' : value.toISOString()
+			} else {
+				const raw = typeof value === 'string'
+					? value
+					: (value && value.target ? value.target.value : '')
+				next[field] = raw ? this.localDateTimeInputToIso(raw) : ''
+			}
 			this.onDateRangeChange(next)
 		},
 
 		/**
-		 * Format a stored ISO-8601 string as the local "YYYY-MM-DDTHH:mm"
-		 * value an `<input type="datetime-local">` expects. Returns empty
-		 * string for null / unparseable input.
+		 * Coerce a stored ISO-8601 string into the `Date` that
+		 * `NcActionInput`'s date types require — they are backed by a date
+		 * picker whose model is typed `Date` and which renders EMPTY for a
+		 * string. Returns null for missing / unparseable input.
 		 *
 		 * @param {string} iso ISO-8601 timestamp.
-		 * @return {string} Local datetime-local input value.
+		 * @return {Date|null} Date for the picker model, or null.
 		 */
-		toLocalDateTimeInput(iso) {
-			if (!iso) return ''
+		toPickerDate(iso) {
+			if (!iso) return null
 			const d = new Date(iso)
-			if (Number.isNaN(d.getTime())) return ''
-			const pad = (n) => String(n).padStart(2, '0')
-			return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+			return Number.isNaN(d.getTime()) ? null : d
 		},
 
 		/**
@@ -1988,9 +2026,9 @@ export default {
 		 */
 		syncRangeToWorkspace(value) {
 			const v = value || {}
-			this.$set(this.workspaceContext, 'dateFrom', v.from || '')
-			this.$set(this.workspaceContext, 'dateTo', v.to || '')
-			this.$set(this.workspaceContext, 'datePreset', v.preset || '')
+			this.workspaceContext.dateFrom = v.from || ''
+			this.workspaceContext.dateTo = v.to || ''
+			this.workspaceContext.datePreset = v.preset || ''
 		},
 
 		/**
@@ -2077,10 +2115,10 @@ export default {
 					const item = this.layout.find((l) => String(l.id) === String(u.id))
 						|| this.layout.find((l) => l.widgetId === u.widgetId)
 					if (!item) continue
-					if (u.gridX !== undefined) this.$set(item, 'gridX', u.gridX)
-					if (u.gridY !== undefined) this.$set(item, 'gridY', u.gridY)
-					if (u.gridWidth !== undefined) this.$set(item, 'gridWidth', u.gridWidth)
-					if (u.gridHeight !== undefined) this.$set(item, 'gridHeight', u.gridHeight)
+					if (u.gridX !== undefined) item.gridX = u.gridX
+					if (u.gridY !== undefined) item.gridY = u.gridY
+					if (u.gridWidth !== undefined) item.gridWidth = u.gridWidth
+					if (u.gridHeight !== undefined) item.gridHeight = u.gridHeight
 				}
 			}
 			/**
@@ -2301,16 +2339,16 @@ export default {
 				? this.widgets.find((w) => w.id === this.configWidgetId)
 				: null
 			if (def) {
-				this.$set(def, 'title', edited.title !== undefined ? edited.title : def.title)
-				this.$set(def, 'styleConfig', edited.styleConfig || {})
-				this.$set(def, 'showTitle', edited.showTitle !== false)
-				this.$set(def, 'customTitle', edited.customTitle || null)
-				this.$set(def, 'customIcon', edited.customIcon || null)
-				if (edited.content !== undefined) this.$set(def, 'content', edited.content)
+				def.title = edited.title !== undefined ? edited.title : def.title
+				def.styleConfig = edited.styleConfig || {}
+				def.showTitle = edited.showTitle !== false
+				def.customTitle = edited.customTitle || null
+				def.customIcon = edited.customIcon || null
+				if (edited.content !== undefined) def.content = edited.content
 			}
 			const layoutItem = this.layout.find((l) => l.widgetId === this.configWidgetId)
 			if (layoutItem) {
-				this.$set(layoutItem, 'styleConfig', edited.styleConfig || {})
+				layoutItem.styleConfig = edited.styleConfig || {}
 			}
 			this.showWidgetConfig = false
 			this.$emit('layout-change', this.layout)
@@ -2355,6 +2393,26 @@ export default {
 			const value = item.showTitle !== undefined ? item.showTitle : def?.showTitle
 			if (value === undefined || value === null) return !this.isCardWidget(item)
 			return value !== false
+		},
+
+		/**
+		 * Whether a widget's card chrome is suppressed. An explicit
+		 * `layout[].borderless` wins; otherwise a widget with no header is drawn
+		 * borderless, as before.
+		 *
+		 * The explicit override exists because "no header" and "no card" are
+		 * different intentions, and conflating them pushed authors into the
+		 * wrong shape: a headerless tile (a KPI whose label IS its content) lost
+		 * its card, so the widget drew its OWN bordered box inside the grid
+		 * cell — a card inside a card. Now `borderless: false` keeps the chrome
+		 * and the widget can stay flat, which is what a tile wants.
+		 *
+		 * @param {object} item the layout placement.
+		 * @return {boolean}
+		 */
+		widgetBorderless(item) {
+			if (typeof item.borderless === 'boolean') return item.borderless
+			return !this.widgetShowTitle(item)
 		},
 
 		/**
@@ -2676,11 +2734,39 @@ export default {
 				const v = content[key] !== undefined ? content[key] : props[key]
 				if (v !== undefined) out[key] = v
 			}
+			// A dashboard tile's height is fixed by its grid units, so the chart
+			// has to fit the tile — CnChartWidget's standalone default is a
+			// pinned 250px, which is taller than the content box of a typical
+			// h=4 tile (4 × cellHeight, less the widget header) and turned every
+			// chart tile into a scroll region: the tile scrolled the graph
+			// instead of showing it. An authored `height` still wins, so a
+			// manifest can pin one deliberately.
+			if (out.height === undefined) out.height = '100%'
 			return out
 		},
 
+		/**
+		 * Whether a chart tile's graph sizes itself to the tile — i.e. the
+		 * resolved height is a percentage. Only those tiles get the
+		 * `chart-fit` class, whose `overflow: hidden` is what stops the
+		 * wrapper showing a scrollbar for a sub-pixel rounding difference.
+		 *
+		 * An AUTHORED pixel height survives `getChartProps`, and clipping that
+		 * is not a rounding difference: on a tile shorter than the authored
+		 * height the bottom of the graph became unreachable, with the scroll
+		 * affordance removed. Such a tile keeps the wrapper's default
+		 * `overflow: auto` so the graph stays reachable.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} True when the chart fits its tile.
+		 */
+		isChartFitted(item) {
+			const height = this.getChartProps(item).height
+			return typeof height === 'string' && height.trim().endsWith('%')
+		},
+
 		hasWidgetSlot(widgetId) {
-			return !!this.$scopedSlots['widget-' + widgetId]
+			return !!this.$slots['widget-' + widgetId]
 		},
 	},
 }
@@ -2875,6 +2961,20 @@ export default {
 	padding: 8px 14px;
 }
 
+/* Chart tiles whose graph FITS the tile (see isChartFitted — a percentage
+   height, which getChartProps supplies unless the author pinned pixels), so
+   the wrapper's default `overflow: auto` content area has nothing to scroll —
+   and leaving it on means any rounding difference between the box and the SVG
+   shows up as a scrollbar the user has to drag to see the whole graph. Same
+   shape as the card-fit rule above, minus the padding: chart tiles render
+   `flush`, and apexcharts already draws its own margins. */
+.cn-dashboard-page__chart-fit :deep(.cn-widget-wrapper__content) {
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
 /* Card content (stat / gauge / delta) must fit the tile width: let the
    widget shrink and its value/label truncate instead of pushing past the
    tile edge (the horizontal clip on long currency values). */
@@ -2922,29 +3022,79 @@ export default {
 	display: inline-flex;
 }
 
-[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle {
-	min-width: 0;
-	min-height: 0;
-	padding: 0;
-	background: transparent;
-	border: none;
+/* The toggle is a chrome-less carrier for the pill — the pill IS the control.
+   NcButton paints its own background, ~30px box and `--border-radius-element`
+   corners on hover / focus / :active / aria-expanded; left alone that draws a
+   rounded SQUARE behind (and around) the wider, fully-rounded pill. Every
+   state is neutralised with `!important` because NcButton's own state rules
+   are more specific than a plain class selector. */
+[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle,
+[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle:hover,
+[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle:focus,
+[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle:focus-visible,
+[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle:active,
+[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle[aria-expanded="true"] {
+	min-width: 0 !important;
+	min-height: 0 !important;
+	height: auto !important;
+	padding: 0 !important;
+	background: transparent !important;
+	background-color: transparent !important;
+	border: none !important;
+	box-shadow: none !important;
+	border-radius: 999px;
 }
 
 /* The chip text lives in NcActions' icon slot, whose default toggle is sized
-   for a single ~44px icon and clips/wraps wider content. Let the toggle + its
-   icon wrapper grow to the chip's natural width so "Last 30 days" reads on one
-   line. */
+   for a single icon and clips/wraps wider content. Let the toggle + its icon
+   wrapper grow to the chip's natural width so "Last 30 days" reads on one
+   line — and keep them shrink-wrapped so the pill isn't offset inside a wider
+   box (which is what pushed the chip outside its own trigger). */
 [data-testid^="cn-dashboard-page-date-chip-"] .button-vue,
 [data-testid^="cn-dashboard-page-date-chip-"] .button-vue__wrapper,
 [data-testid^="cn-dashboard-page-date-chip-"] .button-vue__icon {
 	width: auto !important;
 	min-width: 0 !important;
+	height: auto !important;
+	min-height: 0 !important;
 	overflow: visible !important;
+}
+
+/* The width above is NOT enough on its own, and this rule is what actually
+   frees the pill. NcButton pins an icon-only button to a square clickable area
+   with an `!important` of its own:
+
+     .button-vue[data-v-…]:has(.button-vue__text:empty):not(.button-vue--wide) {
+       width: var(--button-size) !important;   // --default-clickable-area, 34px
+     }
+
+   NcActions fills the trigger's text slot from its `menuName` prop, which the
+   chip does not use (its label is markup, not a string), so `.button-vue__text`
+   renders empty and that rule always matches here. Two `!important`
+   declarations are settled by SPECIFICITY, and theirs is (0,5,0) against the
+   (0,2,0) of the plain descendant selector above — so the button stayed 34px
+   wide while its icon wrapper grew to the pill's ~106px. Combined with the
+   `overflow: visible` above, the pill then rendered centred on a 34px box and
+   spilled ~36px out each side, over the widget title.
+
+   This selector re-states their `:has()` predicate — so it applies exactly
+   where theirs does, and drops out with it on a browser without `:has()` — and
+   adds the trigger's own three hooks, reaching (0,7,0). Keep it ahead of
+   whatever NcButton declares: tests/components/CnDashboardPageDateChip.spec.js
+   reads both selectors out of the installed NcButton stylesheet and fails when
+   this margin disappears. */
+[data-testid^="cn-dashboard-page-date-chip-"].cn-dashboard-page__date-chip-trigger.action-item
+	.button-vue.action-item__menutoggle:has(.button-vue__text:empty) {
+	width: auto !important;
+	min-width: 0 !important;
 }
 
 .cn-dashboard-page__date-chip {
 	display: inline-flex;
 	align-items: center;
+	/* Breathing room from the widget title / header edge — the chip sits in
+	   CnWidgetWrapper's `#title-meta` slot, flush against its neighbours. */
+	margin-inline: 4px;
 	padding: 2px 10px;
 	border-radius: 999px;
 	background: var(--color-background-hover);
@@ -2953,13 +3103,26 @@ export default {
 	font-variant-numeric: tabular-nums;
 	white-space: nowrap;
 	cursor: pointer;
-	transition: background 100ms ease;
+	transition: background 100ms ease, color 100ms ease;
 }
 
 [data-testid^="cn-dashboard-page-date-chip-"]:hover .cn-dashboard-page__date-chip,
 [data-testid^="cn-dashboard-page-date-chip-"]:focus-within .cn-dashboard-page__date-chip {
 	background: var(--color-primary-element-light, var(--color-background-darker));
 	color: var(--color-main-text);
+}
+
+/* Open state: the pill itself goes primary. The active affordance is the
+   pill's own colour — never a separate box painted behind it. */
+[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle[aria-expanded="true"] .cn-dashboard-page__date-chip {
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+}
+
+/* Keyboard focus needs a visible ring now that the button chrome is gone. */
+[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle:focus-visible .cn-dashboard-page__date-chip {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
 }
 
 /* Empty span keeping preset NcActionButtons' labels aligned with the row that

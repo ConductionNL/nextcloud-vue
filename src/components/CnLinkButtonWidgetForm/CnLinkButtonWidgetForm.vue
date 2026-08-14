@@ -6,38 +6,38 @@
 <template>
 	<div class="cn-link-button-widget-form">
 		<NcSelect
-			:value="displayMode"
+			:model-value="displayMode"
 			:options="displayModeOptions"
 			:input-label="t('nextcloud-vue', 'Display mode')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@input="updateDisplayMode($event)" />
+			@update:modelValue="updateDisplayMode($event)" />
 
 		<!-- Single-button fields (hidden in list mode). -->
 		<template v-if="!isListMode">
 			<NcTextField
-				:value="label"
+				:model-value="label"
 				:label="t('nextcloud-vue', 'Label')"
 				:placeholder="t('nextcloud-vue', 'Label')"
 				required
-				@update:value="updateField('label', $event)" />
+				@update:model-value="updateField('label', $event)" />
 
 			<NcSelect
-				:value="actionType"
+				:model-value="actionType"
 				:options="actionTypeOptions"
 				:input-label="t('nextcloud-vue', 'Action type')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateField('actionType', $event)" />
+				@update:modelValue="updateField('actionType', $event)" />
 
 			<NcTextField
-				:value="url"
+				:model-value="url"
 				:label="t('nextcloud-vue', 'URL')"
 				:placeholder="urlPlaceholder"
 				required
-				@update:value="updateField('url', $event)" />
+				@update:model-value="updateField('url', $event)" />
 
 			<CnIconBrowser
 				:value="icon"
@@ -69,22 +69,22 @@
 		<!-- List-mode editor. -->
 		<template v-if="isListMode">
 			<NcSelect
-				:value="listOrientation"
+				:model-value="listOrientation"
 				:options="orientationOptions"
 				:input-label="t('nextcloud-vue', 'List orientation')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateField('listOrientation', $event)" />
+				@update:modelValue="updateField('listOrientation', $event)" />
 
 			<NcSelect
-				:value="listItemGap"
+				:model-value="listItemGap"
 				:options="gapOptions"
 				:input-label="t('nextcloud-vue', 'List item spacing')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateField('listItemGap', $event)" />
+				@update:modelValue="updateField('listItemGap', $event)" />
 
 			<div class="cn-link-button-widget-form__list-editor">
 				<h4 class="cn-link-button-widget-form__list-title">
@@ -119,25 +119,25 @@
 						</button>
 						<div class="cn-link-button-widget-form__row-fields">
 							<NcTextField
-								:value="link.label"
+								:model-value="link.label"
 								:label="t('nextcloud-vue', 'Label')"
 								:placeholder="t('nextcloud-vue', 'Label')"
 								required
-								@update:value="updateLinkField(index, 'label', $event)" />
+								@update:model-value="updateLinkField(index, 'label', $event)" />
 							<NcSelect
-								:value="link.actionType"
+								:model-value="link.actionType"
 								:options="actionTypeOptions"
 								:input-label="t('nextcloud-vue', 'Action type')"
 								:reduce="(option) => option.value"
 								label="label"
 								:clearable="false"
-								@input="updateLinkField(index, 'actionType', $event)" />
+								@update:modelValue="updateLinkField(index, 'actionType', $event)" />
 							<NcTextField
-								:value="link.url"
+								:model-value="link.url"
 								:label="t('nextcloud-vue', 'URL')"
 								:placeholder="urlPlaceholderFor(link.actionType)"
 								required
-								@update:value="updateLinkField(index, 'url', $event)" />
+								@update:model-value="updateLinkField(index, 'url', $event)" />
 							<CnIconBrowser
 								:value="link.icon"
 								:label="t('nextcloud-vue', 'Icon (optional)')"
@@ -145,10 +145,10 @@
 								@input="updateLinkField(index, 'icon', $event)" />
 							<NcTextField
 								v-if="link.actionType === 'createFile'"
-								:value="link.value"
+								:model-value="link.value"
 								:label="t('nextcloud-vue', 'File extension')"
 								:placeholder="'docx'"
-								@update:value="updateLinkField(index, 'value', $event)" />
+								@update:model-value="updateLinkField(index, 'value', $event)" />
 						</div>
 						<button
 							type="button"
@@ -253,7 +253,7 @@ function normaliseLink(raw) {
 
 /**
  * CnLinkButtonWidgetForm — the `CnAddWidgetModal` sub-form for creating or
- * editing a `link` widget placement (renderer: {@link CnLinkButtonWidget}).
+ * editing a `link` widget placement (renderer: `CnLinkButtonWidget`).
  *
  * In `displayMode = 'button'` (default) it exposes label, action type, URL,
  * icon, and the two colour pickers; the URL placeholder swaps with the action

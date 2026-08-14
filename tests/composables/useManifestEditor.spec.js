@@ -12,7 +12,7 @@
  * - injected persist is called with the delta; a persist throw aborts the save
  */
 
-import { ref, shallowRef, isReactive } from 'vue'
+import { ref, shallowRef, isReactive, toRaw } from 'vue'
 
 const { useManifestEditor } = require('../../src/composables/useManifestEditor.js')
 const { mergeManifestDelta } = require('../../src/utils/mergeManifestDelta.js')
@@ -118,7 +118,14 @@ describe('useManifestEditor', () => {
 	// is the reactivity opt-in — it observes the live manifest IN PLACE, keeping
 	// object identity so already-mounted (inject-once) renderers pick up edits.
 	describe('raw/reactive boundary (audit item 9)', () => {
-		it('holds the manifest raw and opts it into reactivity in place on enter', () => {
+		// Vue 2's `observable()` rewrote the object's properties in place and
+		// returned the SAME reference, so the opt-in preserved `===`. Vue 3's
+		// `reactive()` returns a PROXY and leaves the target untouched, so the
+		// reference read back through `.value` is necessarily the proxy. The
+		// invariant that survives — and that the editor depends on — is that the
+		// proxy's target is the host's object: `toRaw(...) === live`, so writes
+		// land there and `cancel()` restores it in place.
+		it('holds the manifest raw and opts it into reactivity on enter (host object still the write target)', () => {
 			const base = shallowRef(baseManifest())
 			const live = base.value
 			// Boot read path: raw, no per-node observer conversion.
@@ -128,8 +135,8 @@ describe('useManifestEditor', () => {
 			ed.enter()
 			// reactive IN PLACE — same object identity (critical: CnPageRenderer
 			// captured this object once via inject('cnManifest')), now deep-observed.
-			expect(base.value).toBe(live)
-			expect(ed.working.value).toBe(live)
+			expect(toRaw(base.value)).toBe(live)
+			expect(toRaw(ed.working.value)).toBe(live)
 			expect(isReactive(base.value)).toBe(true)
 			expect(isReactive(base.value.pages[0])).toBe(true)
 		})

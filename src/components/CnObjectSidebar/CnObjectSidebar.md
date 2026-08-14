@@ -79,6 +79,8 @@ export default {
 | `register` | String | `''` | OpenRegister register ID passed to each tab for API calls |
 | `schema` | String | `''` | OpenRegister schema ID passed to each tab for API calls |
 | `apiBase` | String | `'/apps/openregister/api'` | Base API URL for OpenRegister tab endpoints |
+| `objectData` | Object | `null` | The loaded object, forwarded to prop-driven tab widgets (the `data` / `metadata` built-ins) as `objectData`. The sidebar is otherwise coordinate-based; hosts like `CnDetailPage` (via `CnAppRoot`) publish it here |
+| `objectSchema` | Object | `null` | The resolved JSON Schema object, forwarded to the `data` built-in tab widget (which needs the schema definition, not the `schema` slug). Published by hosts like `CnDetailPage` (via `CnAppRoot`) |
 | `open` | Boolean | `true` | Whether the sidebar is visible |
 | `title` | String | `''` | Sidebar header title (defaults to `objectType`) |
 | `subtitle` | String | `''` | Sidebar header subtitle |

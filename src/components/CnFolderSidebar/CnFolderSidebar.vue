@@ -29,7 +29,7 @@
 		<NcButton
 			v-if="allowCreate"
 			class="cn-folder-sidebar__new"
-			type="tertiary"
+			variant="tertiary"
 			wide
 			@click="create">
 			<template #icon>
@@ -185,6 +185,8 @@ export default {
 			default: () => t('nextcloud-vue', 'New folder'),
 		},
 	},
+
+	emits: ['create', 'select'],
 
 	data() {
 		return {

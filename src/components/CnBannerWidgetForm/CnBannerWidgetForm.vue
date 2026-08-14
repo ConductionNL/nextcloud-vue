@@ -6,19 +6,19 @@
 <template>
 	<div class="cn-banner-form">
 		<NcTextField
-			:value="text"
+			:model-value="text"
 			:label="t('nextcloud-vue', 'Banner text')"
-			@update:value="update('text', $event)" />
+			@update:model-value="update('text', $event)" />
 		<NcSelect
-			:value="variant"
+			:model-value="variant"
 			:options="variantOptions"
 			:input-label="t('nextcloud-vue', 'Variant')"
 			:clearable="false"
-			@input="update('variant', $event)" />
+			@update:model-value="update('variant', $event)" />
 		<NcTextField
-			:value="route"
+			:model-value="route"
 			:label="t('nextcloud-vue', 'Route (page id, optional)')"
-			@update:value="update('route', $event)" />
+			@update:model-value="update('route', $event)" />
 		<p class="cn-banner-form__hint">
 			{{ t('nextcloud-vue', 'A conditional banner (visibleWhen) is declared in the manifest.') }}
 		</p>

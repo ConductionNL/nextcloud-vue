@@ -42,37 +42,37 @@
 		</label>
 
 		<NcTextField
-			:value="height"
+			:model-value="height"
 			:label="t('nextcloud-vue', 'Height')"
 			:label-visible="true"
 			placeholder="400px"
-			@update:value="height = $event" />
+			@update:model-value="height = $event" />
 
 		<div class="cn-map-widget-form__row">
 			<NcTextField
-				:value="String(center[0])"
+				:model-value="String(center[0])"
 				type="number"
 				:label="t('nextcloud-vue', 'Centre latitude')"
 				:label-visible="true"
-				@update:value="onCentre(0, $event)" />
+				@update:model-value="onCentre(0, $event)" />
 
 			<NcTextField
-				:value="String(center[1])"
+				:model-value="String(center[1])"
 				type="number"
 				:label="t('nextcloud-vue', 'Centre longitude')"
 				:label-visible="true"
-				@update:value="onCentre(1, $event)" />
+				@update:model-value="onCentre(1, $event)" />
 		</div>
 
-		<NcCheckboxRadioSwitch :checked.sync="centerMarker" type="switch">
+		<NcCheckboxRadioSwitch v-model="centerMarker" type="switch">
 			{{ t('nextcloud-vue', 'Show a marker at the centre') }}
 		</NcCheckboxRadioSwitch>
 
-		<NcCheckboxRadioSwitch :checked.sync="autoFit" type="switch">
+		<NcCheckboxRadioSwitch v-model="autoFit" type="switch">
 			{{ t('nextcloud-vue', 'Zoom to fit the plotted objects') }}
 		</NcCheckboxRadioSwitch>
 
-		<NcCheckboxRadioSwitch :checked.sync="clustering" type="switch">
+		<NcCheckboxRadioSwitch v-model="clustering" type="switch">
 			{{ t('nextcloud-vue', 'Group nearby objects into clusters') }}
 		</NcCheckboxRadioSwitch>
 	</div>
@@ -259,7 +259,7 @@ export default {
 		onCentre(index, value) {
 			const n = Number(value)
 			if (!Number.isFinite(n)) return
-			this.$set(this.center, index, n)
+			this.center[index] = n
 		},
 
 		/**

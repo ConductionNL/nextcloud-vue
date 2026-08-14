@@ -151,6 +151,8 @@ export default {
 		},
 	},
 
+	emits: ['object-click', 'range-change', 'update:visibleDate'],
+
 	data() {
 		return {
 			internalDate: this.parseDate(this.visibleDate) || new Date(),
@@ -385,8 +387,15 @@ export default {
 		 * @return {void}
 		 */
 		afterNavigate() {
+			// Description goes ABOVE `@event`, not inline after it:
+			// vue-docgen-api's event-name splitter stops at the first `:`, so
+			// `@event update:visibleDate <description>` is read as one long
+			// event NAME and the generated docs show an empty description.
+			// Only colon-bearing (`update:*`) names are affected.
 			/**
-			 * @event update:visibleDate Emitted on month navigation for `.sync` binding.
+			 * Emitted on month navigation, for `v-model:visible-date` binding.
+			 *
+			 * @event update:visibleDate
 			 * @type {Date}
 			 */
 			this.$emit('update:visibleDate', this.internalDate)

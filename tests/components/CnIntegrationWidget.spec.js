@@ -17,6 +17,7 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { h } from 'vue'
 
 import CnIntegrationWidget from '../../src/components/CnIntegrationWidget/CnIntegrationWidget.vue'
 import { createIntegrationRegistry } from '../../src/integrations/registry.js'
@@ -28,8 +29,8 @@ function leafStub(id) {
 	return {
 		name: `Stub${id}Tab`,
 		props: ['integrationId', 'register', 'schema', 'objectId', 'surface', 'apiBase', 'objectType'],
-		render(h) {
-			return h('div', { class: 'leaf-content', attrs: { 'data-leaf': this.integrationId } }, `${id} content`)
+		render() {
+			return h('div', { class: 'leaf-content', 'data-leaf': this.integrationId }, `${id} content`)
 		},
 	}
 }
@@ -71,19 +72,24 @@ function mountWidget(registry, propsData = {}) {
 			NcEmptyContent: {
 				name: 'NcEmptyContent',
 				props: ['name', 'description'],
-				render(h) {
+				render() {
+					// Vue 3 unified `$slots` to FUNCTIONS — `$slots.icon` is no
+					// longer the vnode array Vue 2 exposed. Passing the function
+					// itself as a child renders nothing at all, so the action
+					// link never appeared and `find('.nc-button')` came back
+					// empty. Call each slot to get its vnodes.
 					const slots = this.$slots
-					return h('div', { class: 'nc-empty', attrs: { 'data-name': this.name } }, [
-						slots.icon,
-						slots.action,
+					return h('div', { class: 'nc-empty', 'data-name': this.name }, [
+						slots.icon?.(),
+						slots.action?.(),
 					])
 				},
 			},
 			NcButton: {
 				name: 'NcButton',
 				props: ['href', 'type'],
-				render(h) {
-					return h('a', { class: 'nc-button', attrs: { href: this.href } }, this.$slots.default)
+				render() {
+					return h('a', { class: 'nc-button', href: this.href }, this.$slots.default)
 				},
 			},
 		},
@@ -102,7 +108,7 @@ describe('CnIntegrationWidget — tabbed mode', () => {
 		// order-sorted: calendar (1) before deck (2)
 		expect(tabs.at(0).attributes('data-testid')).toBe('cn-integration-widget-tab-calendar')
 		expect(tabs.at(1).attributes('data-testid')).toBe('cn-integration-widget-tab-deck')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders the first tab content active and switches on click', async () => {
@@ -115,7 +121,7 @@ describe('CnIntegrationWidget — tabbed mode', () => {
 
 		await wrapper.find('[data-testid="cn-integration-widget-tab-deck"]').trigger('click')
 		expect(wrapper.find('.leaf-content').attributes('data-leaf')).toBe('deck')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('marks the active tab with aria-selected', async () => {
@@ -125,7 +131,7 @@ describe('CnIntegrationWidget — tabbed mode', () => {
 		expect(tabA.attributes('aria-selected')).toBe('true')
 		await wrapper.find('[data-testid="cn-integration-widget-tab-b"]').trigger('click')
 		expect(tabA.attributes('aria-selected')).toBe('false')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('shows NcEmptyContent when there are no integrations', () => {
@@ -133,7 +139,7 @@ describe('CnIntegrationWidget — tabbed mode', () => {
 		const wrapper = mountWidget(registry)
 		expect(wrapper.find('[role="tab"]').exists()).toBe(false)
 		expect(wrapper.find('.nc-empty').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -145,7 +151,7 @@ describe('CnIntegrationWidget — single mode', () => {
 		expect(wrapper.find('.leaf-content').attributes('data-leaf')).toBe('deck')
 		// compact header with the label
 		expect(wrapper.text()).toContain('Deck')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders an empty state when `only` references an unknown leaf', () => {
@@ -153,7 +159,7 @@ describe('CnIntegrationWidget — single mode', () => {
 		const wrapper = mountWidget(registry, { only: 'does-not-exist' })
 		expect(wrapper.find('.leaf-content').exists()).toBe(false)
 		expect(wrapper.find('.nc-empty').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -172,7 +178,7 @@ describe('CnIntegrationWidget — empty / unavailable state', () => {
 		expect(empty.attributes('data-name')).toContain('Deck')
 		const link = wrapper.find('.nc-button')
 		expect(link.attributes('href')).toBe('https://openregister.conduction.nl/docs/Integrations/deck/')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('still renders a tab for an unavailable integration in tabbed mode', () => {
@@ -182,7 +188,7 @@ describe('CnIntegrationWidget — empty / unavailable state', () => {
 		const wrapper = mountWidget(registry)
 		expect(wrapper.find('[data-testid="cn-integration-widget-tab-deck"]').exists()).toBe(true)
 		expect(wrapper.find('.nc-empty').exists()).toBe(true)
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('uses "not configured" copy for external integrations', () => {
@@ -191,7 +197,7 @@ describe('CnIntegrationWidget — empty / unavailable state', () => {
 		])
 		const wrapper = mountWidget(registry, { only: 'xwiki' })
 		expect(wrapper.find('.nc-empty').attributes('data-name')).toContain('not configured')
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
 
@@ -203,12 +209,12 @@ describe('CnIntegrationWidget — filtering', () => {
 			baseEntry('c', { order: 3 }),
 		])
 		const wrapper = mountWidget(registry, { include: ['a', 'c'] })
-		const ids = wrapper.findAll('[role="tab"]').wrappers.map((w) => w.attributes('data-testid'))
+		const ids = wrapper.findAll('[role="tab"]').map((w) => w.attributes('data-testid'))
 		expect(ids).toEqual([
 			'cn-integration-widget-tab-a',
 			'cn-integration-widget-tab-c',
 		])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('surface filtering honours a descriptor surfaces allowlist', () => {
@@ -217,8 +223,8 @@ describe('CnIntegrationWidget — filtering', () => {
 			baseEntry('b', { order: 2, surfaces: ['user-dashboard'] }),
 		])
 		const wrapper = mountWidget(registry, { surface: 'detail-page' })
-		const ids = wrapper.findAll('[role="tab"]').wrappers.map((w) => w.attributes('data-testid'))
+		const ids = wrapper.findAll('[role="tab"]').map((w) => w.attributes('data-testid'))
 		expect(ids).toEqual(['cn-integration-widget-tab-a'])
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })

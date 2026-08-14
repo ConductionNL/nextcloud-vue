@@ -15,15 +15,17 @@
  * moduleNameMapper) means no test ever loads real apexcharts, so the stub
  * applies deterministically regardless of file order.
  *
- * The stub is a minimal Vue 2 functional-ish component named
- * `vue-apexcharts-stub` (the name the chart specs assert on) that renders an
- * empty div and accepts every prop as an attribute.
+ * The stub is a minimal component named `vue-apexcharts-stub` (the name the
+ * chart specs assert on) that renders an empty div and accepts every prop as
+ * an attribute.
  */
+const { h } = require('vue')
+
 module.exports = {
 	__esModule: true,
 	default: {
 		name: 'vue-apexcharts-stub',
-		render(h) {
+		render() {
 			return h('div', { class: 'vue-apexcharts-stub' })
 		},
 		methods: {

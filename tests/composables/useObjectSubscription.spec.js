@@ -23,7 +23,7 @@ const Host = (composable) => defineComponent({
 		composable(props)
 		return () => h('div')
 	},
-	render(h) { return h('div') },
+	render() { return h('div') },
 })
 
 describe('useObjectSubscription', () => {
@@ -37,7 +37,7 @@ describe('useObjectSubscription', () => {
 		await w.vm.$nextTick()
 		expect(store.subscribe).toHaveBeenCalledTimes(1)
 		expect(store.subscribe).toHaveBeenCalledWith('meeting', 'uuid-1')
-		w.destroy()
+		w.unmount()
 		await Promise.resolve()
 		expect(store.unsubscribe).toHaveBeenCalledTimes(1)
 	})
@@ -50,7 +50,7 @@ describe('useObjectSubscription', () => {
 				useObjectSubscription(store, 'meeting', idRef)
 				return () => h('div')
 			},
-			render(h) { return h('div') },
+			render() { return h('div') },
 		})
 		const w = mount(Comp)
 		await Promise.resolve()
@@ -64,7 +64,7 @@ describe('useObjectSubscription', () => {
 
 		expect(store.unsubscribe).toHaveBeenCalled()
 		expect(store.subscribe).toHaveBeenCalledWith('meeting', 'uuid-2')
-		w.destroy()
+		w.unmount()
 	})
 
 	test('enabled=false skips subscribe', async () => {
@@ -74,13 +74,13 @@ describe('useObjectSubscription', () => {
 				useObjectSubscription(store, 'meeting', 'uuid-1', { enabled: false })
 				return () => h('div')
 			},
-			render(h) { return h('div') },
+			render() { return h('div') },
 		})
 		const w = mount(Comp)
 		await Promise.resolve()
 		await w.vm.$nextTick()
 		expect(store.subscribe).not.toHaveBeenCalled()
-		w.destroy()
+		w.unmount()
 	})
 
 	test('enabled flips reactively', async () => {
@@ -91,7 +91,7 @@ describe('useObjectSubscription', () => {
 				useObjectSubscription(store, 'meeting', 'uuid-1', { enabled })
 				return () => h('div')
 			},
-			render(h) { return h('div') },
+			render() { return h('div') },
 		})
 		const w = mount(Comp)
 		await Promise.resolve()
@@ -103,7 +103,7 @@ describe('useObjectSubscription', () => {
 		await Promise.resolve()
 		await w.vm.$nextTick()
 		expect(store.subscribe).toHaveBeenCalledTimes(1)
-		w.destroy()
+		w.unmount()
 	})
 
 	test('getter-function inputs resolve and stay reactive (CnDetailPage call shape)', async () => {
@@ -119,7 +119,7 @@ describe('useObjectSubscription', () => {
 				)
 				return () => h('div')
 			},
-			render(h) { return h('div') },
+			render() { return h('div') },
 		})
 		const w = mount(Comp)
 		await Promise.resolve()
@@ -133,7 +133,7 @@ describe('useObjectSubscription', () => {
 		await Promise.resolve()
 		await w.vm.$nextTick()
 		expect(store.subscribe).toHaveBeenCalledWith('meeting', 'uuid-2')
-		w.destroy()
+		w.unmount()
 	})
 
 	test('store without a subscribe action is a silent no-op', async () => {
@@ -144,13 +144,13 @@ describe('useObjectSubscription', () => {
 				useObjectSubscription(store, 'meeting', 'uuid-1')
 				return () => h('div')
 			},
-			render(h) { return h('div') },
+			render() { return h('div') },
 		})
 		const w = mount(Comp)
 		await Promise.resolve()
 		await w.vm.$nextTick()
 		expect(warnSpy).not.toHaveBeenCalled()
-		w.destroy()
+		w.unmount()
 		warnSpy.mockRestore()
 	})
 
@@ -169,14 +169,14 @@ describe('useObjectSubscription', () => {
 				useObjectSubscription(store, 'meeting', 'uuid-1')
 				return () => h('div')
 			},
-			render(h) { return h('div') },
+			render() { return h('div') },
 		})
 		const w = mount(Comp)
 		await w.vm.$nextTick()
 		expect(store.subscribe).toHaveBeenCalledTimes(1)
 
 		// Unmount while subscribe() is still in flight…
-		w.destroy()
+		w.unmount()
 		await Promise.resolve()
 		expect(store.unsubscribe).not.toHaveBeenCalled() // nothing held yet
 
@@ -200,7 +200,7 @@ describe('useObjectSubscription', () => {
 				useObjectSubscription(store, 'meeting', idRef)
 				return () => h('div')
 			},
-			render(h) { return h('div') },
+			render() { return h('div') },
 		})
 		const w = mount(Comp)
 		await w.vm.$nextTick()
@@ -224,7 +224,7 @@ describe('useObjectSubscription', () => {
 		expect(store.unsubscribe).not.toHaveBeenCalledWith('handle-current')
 
 		// Unmount releases the current handle.
-		w.destroy()
+		w.unmount()
 		await Promise.resolve()
 		expect(store.unsubscribe).toHaveBeenCalledWith('handle-current')
 	})

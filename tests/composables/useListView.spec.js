@@ -7,7 +7,7 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { defineComponent, h, ref } from 'vue'
+import { defineComponent, h, reactive, ref } from 'vue'
 import { useListView } from '../../src/composables/useListView.js'
 
 /**
@@ -33,9 +33,10 @@ function makeStore() {
  *
  * @param {object} store The fake object store.
  * @param {object} opts Extra options merged into the `useListView` call.
+ * @param {object} [mountOptions] Extra VTU mounting options (e.g. an app-level errorHandler).
  * @return {object} The Vue Test Utils wrapper.
  */
-function mountList(store, opts) {
+function mountList(store, opts, mountOptions) {
 	const Comp = defineComponent({
 		setup() {
 			const list = useListView('t', { objectStore: store, ...opts })
@@ -43,7 +44,7 @@ function mountList(store, opts) {
 		},
 		render() { return h('div') },
 	})
-	return mount(Comp)
+	return mount(Comp, mountOptions)
 }
 
 describe('useListView — fixedFilters', () => {
@@ -178,5 +179,55 @@ describe('useListView — multi-column sort (_order building from sortKeys)', ()
 		})
 		expect(w.vm.list.sortKeys.value).toEqual([{ key: 'name', order: 'asc' }])
 		expect(w.vm.list.sortKey.value).toBe('name')
+	})
+})
+
+// `loading` used to be the store flag alone, which only rises once
+// `fetchCollection` runs — and onMounted awaits `fetchSchema()` first. For the
+// length of that round trip the list was "not loading" with zero rows, so every
+// consumer painted its empty state ("No log entries to show") before anything
+// had been requested.
+describe('useListView — loading covers the whole mount sequence', () => {
+	it('is loading from creation, before the schema round trip resolves', async () => {
+		const store = makeStore()
+		let resolveSchema
+		store.fetchSchema.mockImplementation(() => new Promise((resolve) => {
+			resolveSchema = () => resolve({ title: 'T', properties: {} })
+		}))
+
+		const w = mountList(store, {})
+		expect(w.vm.list.loading.value).toBe(true)
+		// Still loading while the schema is in flight and no fetch has gone out.
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(store.fetchCollection).not.toHaveBeenCalled()
+		expect(w.vm.list.loading.value).toBe(true)
+
+		resolveSchema()
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(store.fetchCollection).toHaveBeenCalledTimes(1)
+		expect(w.vm.list.loading.value).toBe(false)
+	})
+
+	it('hands the flag back to the store once the first fetch has been issued', async () => {
+		const store = makeStore()
+		// The real store is a reactive Pinia state; this fake's `loading` bag has
+		// to be reactive too or the computed cannot see a later write.
+		store.loading = reactive({})
+		const w = mountList(store, {})
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(w.vm.list.loading.value).toBe(false)
+		store.loading.t = true
+		expect(w.vm.list.loading.value).toBe(true)
+	})
+
+	it('stops loading even when the schema fetch rejects', async () => {
+		const store = makeStore()
+		store.fetchSchema.mockRejectedValue(new Error('type not registered'))
+		// A rejected schema fetch propagates out of onMounted for Vue to report —
+		// unchanged by this fix, and silenced here so the assertion is about the
+		// loading flag, which must NOT be left stuck on.
+		const w = mountList(store, {}, { global: { config: { errorHandler: () => {} } } })
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(w.vm.list.loading.value).toBe(false)
 	})
 })

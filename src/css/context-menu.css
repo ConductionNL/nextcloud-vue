@@ -1,20 +1,39 @@
 /* useContextMenu — Position the context menu popper at cursor coordinates.
  *
- * Works with any NcActions that uses useContextMenu().
- * The data attribute ensures transforms only apply when a context menu is active,
- * avoiding interference with regular NcActions poppers.
+ * Scoped to `[data-cn-ctx-menu-popper]`, the marker attribute CnContextMenu
+ * stamps on its *own* popper element (see CnContextMenu#tagPopper).
+ *
+ * This used to be keyed on `html[data-cn-ctx-menu]` alone, which matches EVERY
+ * `.v-popper__popper` in the document — that attribute says "a context menu is
+ * open", it does not identify which popper belongs to it. So any other popover
+ * alive at the same time (most visibly a table row's own actions menu) was
+ * yanked to the last right-click coordinates instead of rendering under its
+ * trigger. That was permanent rather than transient because the attribute was
+ * cleared from NcActions' `@closed` event, which never fires: @nextcloud/vue 9
+ * binds `onAfterClose` on NcPopover, which only emits `afterHide`. Keying on the
+ * per-popper marker makes both problems moot.
+ *
+ * The marker must NOT be a class. floating-vue binds a dynamic `class` on this
+ * element (`--shown` / `--hidden` / `--show-from` / …); Vue's `patchClass`
+ * assigns `el.className` wholesale, so a class added from JS is wiped the first
+ * time the popper opens — the rule then matches nothing and the menu renders at
+ * its offscreen trigger (≈ -9905px) instead of at the cursor.
  */
-html[data-cn-ctx-menu] .v-popper__popper {
+.v-popper__popper[data-cn-ctx-menu-popper] {
 	transform: translate3d(var(--cn-ctx-menu-x), var(--cn-ctx-menu-y), 0px) !important;
 }
-html[data-cn-ctx-menu] .v-popper__popper[data-popper-placement="top"] {
+.v-popper__popper[data-cn-ctx-menu-popper][data-popper-placement="top"] {
 	transform: translate3d(var(--cn-ctx-menu-x), calc(var(--cn-ctx-menu-y) - 50vh + 34px), 0px) !important;
 }
-html[data-cn-ctx-menu] .v-popper__popper .v-popper__arrow-container {
+.v-popper__popper[data-cn-ctx-menu-popper] .v-popper__arrow-container {
 	display: none;
 }
 
-/* Destructive action styling (shared across all context menus) */
-html[data-cn-ctx-menu] .cn-row-action--destructive {
+/* Destructive action styling. Shared across every action menu — CnRowActions
+   sets the same class — so it must not be gated on a context menu being open.
+   It previously sat behind `html[data-cn-ctx-menu]`, which meant a row actions
+   menu only picked up the error colour while a right-click menu happened to be
+   open (or, thanks to the stale attribute above, ever after the first one). */
+.cn-row-action--destructive {
 	color: var(--color-error) !important;
 }

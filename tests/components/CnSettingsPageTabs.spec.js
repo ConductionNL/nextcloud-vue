@@ -18,6 +18,7 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { h } from 'vue'
 import CnSettingsPage from '@/components/CnSettingsPage/CnSettingsPage.vue'
 
 jest.mock('@nextcloud/axios', () => ({
@@ -34,10 +35,14 @@ jest.mock('@/components/CnVersionInfoCard/CnVersionInfoCard.vue', () => ({
 	default: {
 		name: 'CnVersionInfoCard',
 		props: ['appName', 'appVersion', 'showUpdateButton', 'isUpToDate'],
-		render(h) {
+		render() {
+			// `jest.mock` factories are hoisted above the imports, so the
+			// module-scope `h` import is out of scope here — require it inline.
+			// eslint-disable-next-line global-require
+			const { h } = require('vue')
 			return h('div', {
 				class: 'cn-version-info-card-stub',
-				attrs: { 'data-app-name': this.appName },
+				'data-app-name': this.appName,
 			}, 'version-info')
 		},
 	},
@@ -48,10 +53,13 @@ jest.mock('@/components/CnRegisterMapping/CnRegisterMapping.vue', () => ({
 	default: {
 		name: 'CnRegisterMapping',
 		props: ['name', 'groups', 'configuration', 'showReimportButton'],
-		render(h) {
+		render() {
+			// Hoisted factory — require `h` inline (see the mock above).
+			// eslint-disable-next-line global-require
+			const { h } = require('vue')
 			return h('div', {
 				class: 'cn-register-mapping-stub',
-				attrs: { 'data-name': this.name },
+				'data-name': this.name,
 			}, 'register-mapping')
 		},
 	},
@@ -186,10 +194,10 @@ describe('CnSettingsPage — tabs orchestration (REQ-MSO-*)', () => {
 		const WorkflowEditor = {
 			name: 'WorkflowEditor',
 			props: ['schemaSlug'],
-			render(h) {
+			render() {
 				return h('div', {
 					class: 'workflow-editor-stub',
-					attrs: { 'data-schema': this.schemaSlug },
+					'data-schema': this.schemaSlug,
 				}, 'workflow editor')
 			},
 		}
@@ -264,7 +272,7 @@ describe('CnSettingsPage — tabs orchestration (REQ-MSO-*)', () => {
 	it('REQ-MSO-6: sibling widgets keep rendering after a missed component lookup', () => {
 		const SiblingPanel = {
 			name: 'SiblingPanel',
-			render(h) { return h('div', { class: 'sibling-panel-stub' }, 'sibling') },
+			render() { return h('div', { class: 'sibling-panel-stub' }, 'sibling') },
 		}
 		const tabs = [
 			{
@@ -292,7 +300,7 @@ describe('CnSettingsPage — tabs orchestration (REQ-MSO-*)', () => {
 		// type string, not through the new discriminator.
 		const WorkflowEditor = {
 			name: 'WorkflowEditor',
-			render(h) { return h('div', { class: 'legacy-workflow-stub' }, 'legacy') },
+			render() { return h('div', { class: 'legacy-workflow-stub' }, 'legacy') },
 		}
 		const sections = [{
 			title: 'Workflow',

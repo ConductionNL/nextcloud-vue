@@ -69,9 +69,8 @@
 				role="listbox"
 				:aria-label="paletteLabel"
 				class="cn-command-palette__list">
-				<template v-for="group in groupedResults">
-					<li :key="'section:' + (group.section || '_default')"
-						role="presentation"
+				<template v-for="group in groupedResults" :key="'section:' + (group.section || '_default')">
+					<li role="presentation"
 						class="cn-command-palette__section-label">
 						{{ group.section || defaultSectionLabel }}
 					</li>
@@ -212,6 +211,7 @@ export default {
 		 */
 		commandRegistry: { type: Object, default: null },
 	},
+	emits: ['select'],
 	data() {
 		return {
 			domId: `cn-command-palette-${++domIdCounter}`,
@@ -407,7 +407,7 @@ export default {
 			document.addEventListener('keydown', this.onGlobalKeydown)
 		}
 	},
-	beforeDestroy() {
+	beforeUnmount() {
 		document.removeEventListener('keydown', this.onGlobalKeydown)
 		this.clearDebounce()
 		this.destroyed = true

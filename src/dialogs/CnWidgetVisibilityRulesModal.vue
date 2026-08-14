@@ -26,7 +26,7 @@
 				<div class="cn-visibility-rules__rule-header">
 					<strong>{{ ruleHeading(ruleIndex) }}</strong>
 					<NcButton
-						type="tertiary"
+						variant="tertiary"
 						:aria-label="t('nextcloud-vue', 'Remove rule')"
 						data-testid="cn-visibility-rule-remove"
 						@click="removeRule(ruleIndex)">
@@ -45,7 +45,7 @@
 						<span class="cn-visibility-rules__condition-kind">{{ kindLabel(condition.kind) }}</span>
 						<code class="cn-visibility-rules__condition-summary">{{ summariseCondition(condition) }}</code>
 						<NcButton
-							type="tertiary"
+							variant="tertiary"
 							:aria-label="t('nextcloud-vue', 'Remove condition')"
 							data-testid="cn-visibility-condition-remove"
 							@click="removeCondition(ruleIndex, condIndex)">
@@ -60,7 +60,7 @@
 				</ul>
 
 				<NcButton
-					type="tertiary"
+					variant="tertiary"
 					data-testid="cn-visibility-condition-target"
 					@click="targetRule = ruleIndex">
 					{{ ruleIndex === targetRule ? t('nextcloud-vue', 'Adding condition here') : t('nextcloud-vue', 'Add condition to this rule') }}
@@ -72,7 +72,7 @@
 		</p>
 
 		<NcButton
-			type="secondary"
+			variant="secondary"
 			data-testid="cn-visibility-add-rule"
 			@click="addRule">
 			{{ t('nextcloud-vue', 'Add a new rule (OR)') }}
@@ -108,17 +108,17 @@
 			<template v-else-if="activeKind === 'time'">
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:value="conditionDraft.startTime"
+						:model-value="conditionDraft.startTime"
 						:label="t('nextcloud-vue', 'Start time (HH:MM)')"
 						placeholder="09:00"
-						@update:value="conditionDraft.startTime = $event" />
+						@update:model-value="conditionDraft.startTime = $event" />
 				</div>
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:value="conditionDraft.endTime"
+						:model-value="conditionDraft.endTime"
 						:label="t('nextcloud-vue', 'End time (HH:MM)')"
 						placeholder="17:00"
-						@update:value="conditionDraft.endTime = $event" />
+						@update:model-value="conditionDraft.endTime = $event" />
 				</div>
 			</template>
 
@@ -126,17 +126,17 @@
 			<template v-else-if="activeKind === 'date'">
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:value="conditionDraft.startDate"
+						:model-value="conditionDraft.startDate"
 						:label="t('nextcloud-vue', 'Start date (YYYY-MM-DD)')"
 						placeholder="2026-12-01"
-						@update:value="conditionDraft.startDate = $event" />
+						@update:model-value="conditionDraft.startDate = $event" />
 				</div>
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:value="conditionDraft.endDate"
+						:model-value="conditionDraft.endDate"
 						:label="t('nextcloud-vue', 'End date (YYYY-MM-DD)')"
 						placeholder="2026-12-31"
-						@update:value="conditionDraft.endDate = $event" />
+						@update:model-value="conditionDraft.endDate = $event" />
 				</div>
 			</template>
 
@@ -144,23 +144,23 @@
 			<template v-else-if="activeKind === 'attribute'">
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:value="conditionDraft.attribute"
+						:model-value="conditionDraft.attribute"
 						:label="t('nextcloud-vue', 'Attribute')"
 						placeholder="language"
-						@update:value="conditionDraft.attribute = $event" />
+						@update:model-value="conditionDraft.attribute = $event" />
 				</div>
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:value="conditionDraft.value"
+						:model-value="conditionDraft.value"
 						:label="t('nextcloud-vue', 'Equals value')"
 						placeholder="nl"
-						@update:value="conditionDraft.value = $event" />
+						@update:model-value="conditionDraft.value = $event" />
 				</div>
 			</template>
 
 			<div class="cn-visibility-rules__actions">
 				<NcButton
-					type="primary"
+					variant="primary"
 					:disabled="!canAddCondition"
 					data-testid="cn-visibility-add-condition"
 					@click="addCondition">
@@ -170,10 +170,10 @@
 		</div>
 
 		<template #actions>
-			<NcButton type="tertiary" @click="onCancel">
+			<NcButton variant="tertiary" @click="onCancel">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
-			<NcButton type="primary" data-testid="cn-visibility-save" @click="onSave">
+			<NcButton variant="primary" data-testid="cn-visibility-save" @click="onSave">
 				{{ t('nextcloud-vue', 'Save') }}
 			</NcButton>
 		</template>
@@ -319,7 +319,7 @@ export default {
 		document.addEventListener('keydown', this.onKeydown)
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		document.removeEventListener('keydown', this.onKeydown)
 	},
 

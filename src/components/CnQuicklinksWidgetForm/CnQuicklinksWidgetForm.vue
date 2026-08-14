@@ -7,22 +7,22 @@
 	<div class="cn-quicklinks-widget-form">
 		<div class="cn-quicklinks-widget-form__settings">
 			<NcSelect
-				:value="iconSize"
+				:model-value="iconSize"
 				:options="iconSizeOptions"
 				:input-label="t('nextcloud-vue', 'Icon size')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateOption('iconSize', $event)" />
+				@update:modelValue="updateOption('iconSize', $event)" />
 
 			<NcSelect
-				:value="iconShape"
+				:model-value="iconShape"
 				:options="iconShapeOptions"
 				:input-label="t('nextcloud-vue', 'Icon shape')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateOption('iconShape', $event)" />
+				@update:modelValue="updateOption('iconShape', $event)" />
 
 			<label class="cn-quicklinks-widget-form__checkbox-label">
 				<input
@@ -33,41 +33,41 @@
 			</label>
 
 			<NcSelect
-				:value="labelPosition"
+				:model-value="labelPosition"
 				:options="labelPositionOptions"
 				:input-label="t('nextcloud-vue', 'Label position')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
 				:disabled="!showLabels"
-				@input="updateOption('labelPosition', $event)" />
+				@update:modelValue="updateOption('labelPosition', $event)" />
 
 			<NcSelect
-				:value="columns"
+				:model-value="columns"
 				:options="columnsOptions"
 				:input-label="t('nextcloud-vue', 'Columns')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateOption('columns', $event)" />
+				@update:modelValue="updateOption('columns', $event)" />
 
 			<NcSelect
-				:value="tileBackgroundStyle"
+				:model-value="tileBackgroundStyle"
 				:options="tileBackgroundOptions"
 				:input-label="t('nextcloud-vue', 'Tile background')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateOption('tileBackgroundStyle', $event)" />
+				@update:modelValue="updateOption('tileBackgroundStyle', $event)" />
 
 			<NcSelect
-				:value="hoverEffect"
+				:model-value="hoverEffect"
 				:options="hoverEffectOptions"
 				:input-label="t('nextcloud-vue', 'Hover effect')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
-				@input="updateOption('hoverEffect', $event)" />
+				@update:modelValue="updateOption('hoverEffect', $event)" />
 		</div>
 
 		<div class="cn-quicklinks-widget-form__links">
@@ -183,7 +183,7 @@ const DEFAULT_CONTENT = Object.freeze({
 
 /**
  * CnQuicklinksWidgetForm — the `CnAddWidgetModal` sub-form for the
- * `quicklinks` widget type (renderer: {@link CnQuicklinksWidget}).
+ * `quicklinks` widget type (renderer: `CnQuicklinksWidget`).
  *
  * Layout: a dropdown grid for the eight widget-level fields, an editable
  * table of links (label / URL / icon / colour), and a collapsible CSV
@@ -380,7 +380,7 @@ export default {
 		 */
 		onLinkColor(index, value) {
 			if (this.links[index]) {
-				this.$set(this.links, index, { ...this.links[index], color: value })
+				this.links[index] = { ...this.links[index], color: value }
 			}
 			this.onContentChange()
 		},

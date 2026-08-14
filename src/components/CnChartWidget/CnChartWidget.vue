@@ -9,7 +9,7 @@
   install `apexcharts` and `vue-apexcharts` in their own package.json.
 -->
 <template>
-	<div class="cn-chart-widget">
+	<div class="cn-chart-widget" :class="{ 'cn-chart-widget--fit': fitToContainer }">
 		<!-- In-widget view switcher (Wave-4 amendment folded into Wave 3,
 		     #91): a compact pill row that switches which named series /
 		     value format render. Pure display — no series arithmetic.
@@ -35,15 +35,26 @@
 		<div v-if="showEmptyState" class="cn-chart-widget__empty" data-testid="cn-chart-widget-empty">
 			{{ emptyLabel }}
 		</div>
-		<component
-			:is="chartComponent"
-			v-else-if="chartComponent"
-			ref="chart"
-			:type="type"
-			:height="computedHeight"
-			:width="computedWidth"
-			:options="mergedOptions"
-			:series="displayedSeries" />
+		<!-- Sizing box for the apexcharts mount. apexcharts resolves a
+		     percentage `height` against its element's PARENT (Core.js
+		     setSVGDimensions → Utils.getDimensions(el.parentNode)), so a
+		     container-fitting chart needs a parent whose height is the space
+		     left over — not one sized by the chart itself. This box is
+		     `flex: 1 1 0` inside the flex column, so its height is the
+		     leftover after the view-switcher row, independent of the chart's
+		     own height. Without it the percentage would resolve against the
+		     content-sized root and either collapse to 0 or ignore the pill
+		     row. -->
+		<div v-else-if="chartComponent" class="cn-chart-widget__canvas">
+			<component
+				:is="chartComponent"
+				ref="chart"
+				:type="type"
+				:height="computedHeight"
+				:width="computedWidth"
+				:options="mergedOptions"
+				:series="displayedSeries" />
+		</div>
 		<div v-else class="cn-chart-widget__fallback">
 			<!-- @slot Rendered when the ApexCharts peer dependency is not available (defaults to the unavailableLabel text). -->
 			<slot name="fallback">
@@ -59,7 +70,7 @@
 import { inject, ref } from 'vue'
 import { translate as t, getLanguage } from '@nextcloud/l10n'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import VueApexCharts from 'vue-apexcharts'
+import VueApexCharts from 'vue3-apexcharts'
 import { useDataSource } from '../../composables/useDataSource.js'
 import { useEndpointSource, getByPath } from '../../composables/useEndpointSource.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
@@ -68,8 +79,79 @@ import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 
+/**
+ * Nice-ceiling ladder. Deliberately fine-grained: a coarse one (1 / 2 / 5 / 10)
+ * sends 62 all the way to 100 and wastes a third of the plot on empty space.
+ */
+const NICE_CEIL_STEPS = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]
+
+/**
+ * Round a value up to the next "nice" axis ceiling — a round multiple of a
+ * power of ten (7 → 8, 62 → 80, 210 → 250). Gives the top mark breathing room
+ * and lands the axis on round ticks instead of ending exactly on the data's
+ * maximum, where the peak sits glued to the plot's ceiling.
+ *
+ * @param {number} value Data maximum (must be > 0).
+ * @return {number} The next nice ceiling at or above `value`.
+ */
+function niceCeil(value) {
+	if (!Number.isFinite(value) || value <= 0) return 1
+	const magnitude = 10 ** Math.floor(Math.log10(value))
+	for (const step of NICE_CEIL_STEPS) {
+		const candidate = step * magnitude
+		if (value <= candidate) return candidate
+	}
+	return 10 * magnitude
+}
+
+/**
+ * Calendar fields of an aggregation bucket key: `2026`, `2026-08`, `2026-08-10`,
+ * and any of those with a `T`/space time part, optional millis, and an optional
+ * `Z`/±offset suffix. Anchored, so a shape this does not model (a quarter key
+ * like `2026-Q1`) falls through to the Date constructor instead of being
+ * mis-parsed as its year alone.
+ */
+const BUCKET_KEY_RE = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/
+
+/**
+ * Parse a bucket key into a Date carrying the key's OWN calendar fields, read in
+ * local time so `toLocale*` renders back exactly what the key said.
+ *
+ * `new Date(key)` cannot be used directly: its assumed zone depends on the key's
+ * FORMAT, so one axis mixed both. A date-only `2026-08-10` is UTC midnight per
+ * spec, which a formatter west of UTC then renders as "9 Aug" — and a
+ * `2026-01-01T00:00:00Z` year bucket renders as "2025" — while `2026-08-10
+ * 14:00:00` is parsed as local and would break the other way if the whole axis
+ * were simply formatted in UTC. Echoing the key's fields is right for either:
+ * the backend mints these as period LABELS, not instants to be re-zoned.
+ *
+ * @param {string} key The bucket key from the aggregation response.
+ * @return {Date|null} The parsed date, or null when the key is not a date at all.
+ */
+function parseBucketKey(key) {
+	const m = BUCKET_KEY_RE.exec(String(key))
+	if (!m) {
+		const parsed = new Date(key)
+		return Number.isNaN(parsed.getTime()) ? null : parsed
+	}
+	return new Date(
+		Number(m[1]),
+		Number(m[2] || 1) - 1,
+		Number(m[3] || 1),
+		Number(m[4] || 0),
+		Number(m[5] || 0),
+		Number(m[6] || 0),
+	)
+}
+
 /** Event-bus channel CnWidgetWrapper's Refresh action broadcasts on. */
 const REFRESH_BUS_CHANNEL = 'cn:widget:refresh'
+
+/**
+ * Event-bus channel the PAGE-level Refresh action broadcasts on
+ * (CnDashboardPage / CnDetailPage pass it to their CnActionsMenu).
+ */
+const PAGE_REFRESH_BUS_CHANNEL = 'cn:page:refresh'
 
 /**
  * Sentinel raw key of the folded "Other" bucket (Wave 3 aggregate top-N).
@@ -166,7 +248,12 @@ export default {
 			default: () => [],
 		},
 		/**
-		 * Chart height in pixels. Use 'auto' for container-based sizing.
+		 * Chart height. A number (or `'250px'`) pins the height in pixels. A
+		 * percentage — `'100%'` — fits the chart to its container instead, which
+		 * is what a fixed-height surface such as a dashboard tile wants: a
+		 * pinned height taller than the tile turns the tile into a scroll
+		 * region. `'auto'` derives the height from the width (16:10 for axis
+		 * charts). Container fitting needs an ancestor with a resolved height.
 		 * @type {number|string}
 		 */
 		height: {
@@ -230,6 +317,27 @@ export default {
 		horizontal: {
 			type: Boolean,
 			default: false,
+		},
+		/**
+		 * How the value axis picks its baseline — the guard against a chart
+		 * that turns a trivial difference into a dramatic one.
+		 *
+		 * - `"auto"` (default) — anchor magnitude marks (bar / area) at zero,
+		 *   and stop line charts from zooming so far in that noise fills the
+		 *   plot. Never clamps when the data goes negative.
+		 * - `"zero"` — always anchor at zero (ignored when data goes negative).
+		 * - `"fit"` — the old behaviour: let ApexCharts frame the data range.
+		 *   Use for series that live far from zero (a percentage hovering
+		 *   95–99, a temperature) where a zero baseline flattens the signal.
+		 *
+		 * An explicit `options.yaxis.min` / `max` still wins through the
+		 * deep-merge.
+		 * @type {string}
+		 */
+		valueAxisBaseline: {
+			type: String,
+			default: 'auto',
+			validator: (v) => ['auto', 'zero', 'fit'].includes(v),
 		},
 		/**
 		 * Legend placement override: `top | bottom | left | right`. Empty (the
@@ -497,6 +605,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether `height` asks the chart to fit its container (a percentage)
+		 * rather than pin a pixel height. Switches the root to a flex column
+		 * with a leftover-sized canvas box so apexcharts' own percentage maths
+		 * resolves against the available space.
+		 *
+		 * @return {boolean} true for a percentage height.
+		 */
+		fitToContainer() {
+			return typeof this.height === 'string' && this.height.trim().endsWith('%')
+		},
 		computedHeight() {
 			return this.height
 		},
@@ -643,11 +762,30 @@ export default {
 				groupBy: gb,
 			})
 		},
+		/**
+		 * The injected dashboard date range as a plain `{from, to, preset}`
+		 * object, or null.
+		 *
+		 * Vue 3 auto-unwraps a ref reached through the Options `inject:`
+		 * declaration, so `this.cnDashboardDateRange` is ALREADY the value and
+		 * reading `.value` off it yields undefined. That deref survived the
+		 * Vue 2.7 → Vue 3 move and pinned every bucket chart to its fallback
+		 * window — while the chip label, which reads the value correctly, kept
+		 * updating. Still tolerates a raw ref, for a consumer that provides one
+		 * outside the Options inject path.
+		 *
+		 * @return {{from: string, to: string, preset?: string}|null} The active range.
+		 */
+		activeRange() {
+			const r = this.cnDashboardDateRange
+			if (!r || typeof r !== 'object') return null
+			return ('value' in r) ? (r.value || null) : r
+		},
 		/** Stable signature of a time-bucket source + the active range (else null). */
 		bucketKey() {
 			const b = this.dataSource && this.dataSource.bucket
 			if (!b || !this.dataSource.schema) return null
-			const r = this.cnDashboardDateRange && this.cnDashboardDateRange.value
+			const r = this.activeRange
 			return JSON.stringify({
 				register: this.dataSource.register || '',
 				schema: this.dataSource.schema,
@@ -696,6 +834,92 @@ export default {
 			if (!Array.isArray(series)) return series
 			const filtered = series.filter((s) => s && view.series.includes(s.name))
 			return filtered.length > 0 ? filtered : series
+		},
+		/**
+		 * Every plotted number across the displayed series, flattened.
+		 * Handles both cartesian (`[{name, data: []}]`) and flat
+		 * (`[1, 2, 3]`) series shapes, and all three datapoint forms
+		 * ApexCharts accepts: a bare number, `{x, y}`, and `[x, y]`.
+		 * Non-numeric entries are dropped.
+		 *
+		 * @return {number[]} The plotted values.
+		 */
+		plottedValues() {
+			const out = []
+			const push = (v) => {
+				// A datapoint's VALUE is `y` — the second slot in the tuple form.
+				// Without the tuple case an `[x, y]` series read as all-NaN and
+				// dropped every point, which silently disabled `valueAxisBounds`.
+				let raw = v
+				if (Array.isArray(v)) raw = v[1]
+				else if (typeof v === 'object' && v !== null) raw = v.y
+				const n = Number(raw)
+				if (Number.isFinite(n)) out.push(n)
+			}
+			for (const s of (Array.isArray(this.displayedSeries) ? this.displayedSeries : [])) {
+				if (Array.isArray(s)) s.forEach(push)
+				else if (s && Array.isArray(s.data)) s.data.forEach(push)
+				else push(s)
+			}
+			return out
+		},
+		/**
+		 * Value-axis bounds that keep a small difference looking small.
+		 *
+		 * ApexCharts frames the data range by default, so a series of 7 and 6
+		 * renders as a full-height drop — the reader sees a collapse where the
+		 * data says "one fewer". Bar and area encode magnitude by length and
+		 * area, so their baseline MUST be zero or the mark misstates the ratio;
+		 * line encodes position, so it may sit off zero but still shouldn't
+		 * zoom until noise fills the plot.
+		 *
+		 * Returns null to leave ApexCharts' own scaling alone — for pie-family
+		 * charts, `"fit"`, empty data, any series that goes negative (where
+		 * clamping to zero would crop real values), and stacked charts.
+		 *
+		 * Stacked is the subtle one: `plottedValues` flattens INDIVIDUAL
+		 * datapoints, but a stacked mark's height is the per-category SUM, which is
+		 * larger — two series of [6, 7] and [5, 4] reach 11 against a ceiling of
+		 * niceCeil(7) = 8, so the bars would clip. ApexCharts already baselines
+		 * stacked charts at zero, so deferring to it costs only the rounded
+		 * headroom, not the honest baseline. There is no `stacked` prop; it arrives
+		 * via `options.chart.stacked`, which the deep-merge honours.
+		 *
+		 * @return {{min: number, max: number}|null} Axis bounds, or null to autoscale.
+		 */
+		valueAxisBounds() {
+			if (this.valueAxisBaseline === 'fit') return null
+			if (['pie', 'donut', 'radialBar'].includes(this.type)) return null
+			if (this.options?.chart?.stacked) return null
+			const values = this.plottedValues
+			if (values.length === 0) return null
+			// A single pass, not `Math.min(...values)`: the spread passes one
+			// ARGUMENT per datapoint, which throws RangeError once the series
+			// outgrows the engine's argument limit (~65k). Minute buckets over
+			// the 12-month window `fetchTimeBucket` falls back to reach that.
+			let dataMin = values[0]
+			let dataMax = values[0]
+			for (const v of values) {
+				if (v < dataMin) dataMin = v
+				if (v > dataMax) dataMax = v
+			}
+			// Negative values: a zero floor would crop them. Leave the framing
+			// to ApexCharts, which already spans zero for magnitude marks.
+			if (dataMin < 0) return null
+			// A flat all-zero series has no scale to infer — give it a token
+			// ceiling so the axis renders instead of collapsing.
+			if (dataMax === 0) return { min: 0, max: 1 }
+			const zeroBaseline = this.valueAxisBaseline === 'zero'
+				|| ['bar', 'area'].includes(this.type)
+			if (zeroBaseline) return { min: 0, max: niceCeil(dataMax) }
+			// Line/scatter: keep a non-zero baseline, but require the visible
+			// window to cover at least a quarter of the data's magnitude so a
+			// 1-in-1000 wiggle can't fill the plot.
+			const spread = dataMax - dataMin
+			const minSpread = dataMax * 0.25
+			if (spread >= minSpread) return null
+			const pad = (minSpread - spread) / 2
+			return { min: Math.max(0, dataMin - pad), max: niceCeil(dataMax + pad) }
 		},
 		/**
 		 * The value-formatter function derived from `valueFormat` (the
@@ -835,6 +1059,11 @@ export default {
 					enabled: isPieType,
 				},
 				tooltip: {
+					// Nominal: it only decides which class apexcharts stamps on
+					// the tooltip, and BOTH of its themes are restyled with
+					// Nextcloud tokens in this component's stylesheet. Neither
+					// apexcharts theme is theme-responsive on its own — see the
+					// `apexcharts-tooltip` block at the bottom of <style>.
 					theme: 'light',
 				},
 			}
@@ -863,27 +1092,48 @@ export default {
 			}
 
 			// Add categories for cartesian charts
-			if (!isPieType && this.resolvedCategories.length > 0) {
-				defaults.xaxis = {
-					categories: this.resolvedCategories,
-					labels: {
-						style: {
-							colors: 'var(--color-text-maxcontrast, #767676)',
+			if (!isPieType) {
+				if (this.resolvedCategories.length > 0) {
+					defaults.xaxis = {
+						categories: this.resolvedCategories,
+						labels: {
+							style: {
+								colors: 'var(--color-text-maxcontrast, #767676)',
+							},
 						},
-					},
-				}
-				defaults.yaxis = {
-					labels: {
-						style: {
-							colors: 'var(--color-text-maxcontrast, #767676)',
+					}
+					defaults.yaxis = {
+						labels: {
+							style: {
+								colors: 'var(--color-text-maxcontrast, #767676)',
+							},
 						},
-					},
+					}
 				}
-				// The VALUE axis is the y-axis normally, the x-axis when bars
-				// render horizontally (ApexCharts flips the axes).
-				if (this.valueFormatterFn) {
-					const valueAxis = (this.type === 'bar' && this.horizontal) ? defaults.xaxis : defaults.yaxis
-					valueAxis.labels = { ...valueAxis.labels, formatter: this.valueFormatterFn }
+				// The value formatter and the baseline guard apply to EVERY
+				// cartesian chart, not only a categorical one: a series of
+				// `{x, y}` datapoints (or `[x, y]` tuples) needs no `categories`,
+				// and while these lived inside the block above such a chart
+				// ignored even an explicit `valueAxisBaseline="zero"`. The axis
+				// object is created on demand so a chart that had no `xaxis` /
+				// `yaxis` default before still gets none unless it needs one.
+				const bounds = this.valueAxisBounds
+				if (this.valueFormatterFn || bounds) {
+					// The VALUE axis is the y-axis normally, the x-axis when bars
+					// render horizontally (ApexCharts flips the axes).
+					const axisKey = (this.type === 'bar' && this.horizontal) ? 'xaxis' : 'yaxis'
+					const valueAxis = defaults[axisKey] || (defaults[axisKey] = {})
+					if (this.valueFormatterFn) {
+						valueAxis.labels = { ...valueAxis.labels, formatter: this.valueFormatterFn }
+					}
+					// Baseline guard — see `valueAxisBounds`. `forceNiceScale` keeps
+					// the ticks on round numbers rather than slicing the span into
+					// fractions (a 0–8 count axis ticks 0/2/4/6/8, not 0/1.6/3.2/…).
+					if (bounds) {
+						valueAxis.min = bounds.min
+						valueAxis.max = bounds.max
+						valueAxis.forceNiceScale = true
+					}
 				}
 			}
 
@@ -940,24 +1190,51 @@ export default {
 		}
 		subscribe(REFRESH_BUS_CHANNEL, this._onWidgetRefresh)
 
+		// Page-level Refresh means "refresh everything on the page", so it
+		// carries no widgetId to match on. Without this the action reached ONLY
+		// charts bound to an `endpointSource` — useEndpointSource subscribes to
+		// this channel itself — while every chart fed by `dataSource` (the
+		// bucket / group-by / aggregate REST paths) silently ignored it.
+		//
+		// It deliberately skips the endpoint half rather than calling refresh():
+		// the composable already force-refetches on this same channel, and a
+		// second forced fetch is a real duplicate request, not a no-op —
+		// `fetchSharedResponse()` DELETES the in-flight dedup entry when
+		// `force` is set, so two back-to-back forces cannot collapse into one.
+		this._onPageRefresh = () => {
+			this.refreshLocalSources()
+		}
+		subscribe(PAGE_REFRESH_BUS_CHANNEL, this._onPageRefresh)
+
 		if (typeof ResizeObserver === 'undefined') return
 		this._lastWidth = this.$el.offsetWidth
+		this._lastHeight = this.$el.offsetHeight
 		this._resizeTimer = null
 		this._resizeObserver = new ResizeObserver((entries) => {
-			const newWidth = entries[0]?.contentRect?.width ?? this.$el.offsetWidth
-			if (newWidth === this._lastWidth) return
+			const rect = entries[0]?.contentRect
+			const newWidth = rect?.width ?? this.$el.offsetWidth
+			const newHeight = rect?.height ?? this.$el.offsetHeight
+			// A container-fitting chart must also re-render when only the
+			// HEIGHT changes: apexcharts reads the parent's height once, at
+			// create time, and its own re-measure hook is the window resize —
+			// which a GridStack tile resize is not. This is also what recovers
+			// a chart created while its tile had no height yet (percentage of
+			// zero is zero), so it is correctness, not just resize polish.
+			// Pinned-height charts keep the width-only behaviour: their height
+			// never depends on the box.
+			const heightChanged = this.fitToContainer && newHeight !== this._lastHeight
+			if (newWidth === this._lastWidth && !heightChanged) return
 			this._lastWidth = newWidth
+			this._lastHeight = newHeight
 			clearTimeout(this._resizeTimer)
 			this._resizeTimer = setTimeout(() => {
-				if (this.$refs.chart?.refresh) {
-					this.$refs.chart.refresh()
-				}
+				this.redrawForResize()
 			}, 100)
 		})
 		this._resizeObserver.observe(this.$el)
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		clearTimeout(this._resizeTimer)
 		if (this._resizeObserver) {
 			this._resizeObserver.disconnect()
@@ -966,6 +1243,10 @@ export default {
 		if (this._onWidgetRefresh) {
 			unsubscribe(REFRESH_BUS_CHANNEL, this._onWidgetRefresh)
 			this._onWidgetRefresh = null
+		}
+		if (this._onPageRefresh) {
+			unsubscribe(PAGE_REFRESH_BUS_CHANNEL, this._onPageRefresh)
+			this._onPageRefresh = null
 		}
 	},
 
@@ -980,11 +1261,55 @@ export default {
 		 * @return {void}
 		 */
 		refresh() {
-			if (typeof this.dsRefetch === 'function') {
-				this.dsRefetch()
-			}
+			this.refreshLocalSources()
 			if (typeof this.epRefetch === 'function') {
 				this.epRefetch()
+			}
+		},
+		/**
+		 * Re-measure and redraw the chart after its box changed size, without
+		 * rebuilding it.
+		 *
+		 * `vue3-apexcharts`' `refresh()` is `destroy()` + `init()`: it throws the
+		 * ApexCharts instance away, builds a new one, and replays the entry
+		 * animation. With container-fitting charts now the dashboard default,
+		 * every GridStack layout settle ran that for every chart tile on the page.
+		 *
+		 * `_windowResize()` is the path ApexCharts itself uses for its own
+		 * parent/window resize observers: it flags the redraw as a resize (so the
+		 * entry animation does NOT replay) and calls `update()`, which re-runs
+		 * `setupElements` — the step that re-resolves a percentage height against
+		 * the parent — while keeping the instance and its listeners. It is
+		 * private, hence the capability check and the `refresh()` fallback; note
+		 * that the public `updateOptions()` is NOT usable here, because
+		 * ApexCharts skips an update whose options are identical to the last one
+		 * and a fitted chart's height stays the literal string `'100%'` on every
+		 * resize.
+		 *
+		 * @return {void}
+		 */
+		redrawForResize() {
+			const apex = this.$refs.chart?.chart
+			if (typeof apex?._windowResize === 'function') {
+				apex._windowResize()
+				return
+			}
+			if (this.$refs.chart?.refresh) {
+				this.$refs.chart.refresh()
+			}
+		},
+		/**
+		 * Re-query every source this component fetches ITSELF: the `dataSource`
+		 * GraphQL path plus the three REST aggregations (time bucket, group-by,
+		 * aggregate). Excludes `endpointSource`, which useEndpointSource owns
+		 * and refetches on its own event-bus subscriptions — see the
+		 * page-refresh handler in `mounted()`.
+		 *
+		 * @return {void}
+		 */
+		refreshLocalSources() {
+			if (typeof this.dsRefetch === 'function') {
+				this.dsRefetch()
 			}
 			this.fetchGroupBy()
 			this.fetchTimeBucket()
@@ -994,9 +1319,10 @@ export default {
 		 * Fetch a time series from OpenRegister's REST `/timeseries` aggregation
 		 * when `dataSource.bucket` is set, mapping `{groups:[{key,value}]}` into
 		 * ApexCharts `series` + date `categories`. The window comes from the
-		 * dashboard date chip; a too-narrow chip (< ~90 days) widens to a 12-month
-		 * lookback so the curve stays meaningful. Replaces the GraphQL bucket
-		 * path. Lazily imports axios/router.
+		 * dashboard date chip and is sent as-is; `bucket.staticRange` fills any
+		 * half the chip leaves empty, and a 12-month lookback covers the case
+		 * where neither supplies a bound. Replaces the GraphQL bucket path.
+		 * Lazily imports axios/router.
 		 *
 		 * @spec openspec/changes/add-dashboard-date-range-and-chart-bucket/specs/chart-bucket-data-source/spec.md
 		 * @return {Promise<void>}
@@ -1008,19 +1334,34 @@ export default {
 				this.bucketData = null
 				return
 			}
+			// Stale-response guard, same shape as `fetchAggregateSource`. The date
+			// chip changes `bucketKey`, which re-enters here while the previous
+			// request is still open; a narrower window usually answers faster, so
+			// without this the slower WIDER series could land last and sit under
+			// the new chip's label.
+			const requestKey = this.bucketKey
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),
 					import('@nextcloud/router'),
 				])
 				// Resolve the [from, to] window: chip range, else staticRange,
-				// else a 12-month lookback; widen a too-narrow chip.
-				const r = (this.cnDashboardDateRange && this.cnDashboardDateRange.value) || b.staticRange || {}
-				const to = r.to || new Date().toISOString()
-				let from = r.from
-				const span = (from && to) ? (new Date(to).getTime() - new Date(from).getTime()) : 0
-				if (!from || span < (90 * 86400000)) {
-					from = new Date(new Date(to).getTime() - (365 * 86400000)).toISOString()
+				// else a 12-month lookback. The chip window is used VERBATIM —
+				// an earlier revision widened any span under 90 days to a
+				// 365-day lookback, which silently discarded the user's `from`
+				// for every built-in preset (all are shorter than 90 days) and
+				// left the chip label disagreeing with the plotted data.
+				const chip = this.activeRange || {}
+				const sr = b.staticRange || {}
+				let from = chip.from || sr.from || ''
+				let to = chip.to || sr.to || ''
+				// A cleared ("All") range leaves both halves empty, but the OR
+				// /timeseries endpoint 400s on a missing bound whenever
+				// `interval` is set — so fall back to a 12-month lookback
+				// rather than firing a request we know is rejected.
+				if (!from || !to) {
+					to = to || new Date().toISOString()
+					from = from || new Date(new Date(to).getTime() - (365 * 86400000)).toISOString()
 				}
 				const url = generateUrl(
 					'/apps/openregister/api/objects/aggregations/{register}/{schema}/timeseries',
@@ -1045,25 +1386,48 @@ export default {
 					}
 				}
 				const res = await axios.get(url, { params })
+				if (requestKey !== this.bucketKey) return
 				const groups = (res && res.data && res.data.groups) || []
-				const categories = groups.map((g) => this.formatBucketKey(g.key))
+				const categories = groups.map((g) => this.formatBucketKey(g.key, b.interval))
 				const values = groups.map((g) => Number(g.value) || 0)
 				this.bucketData = { series: [{ name: b.metricField || b.metric || 'count', data: values }], categories, labels: categories }
 			} catch (e) {
-				this.bucketData = null
+				if (requestKey === this.bucketKey) this.bucketData = null
 			}
 		},
 		/**
-		 * Format a time-bucket key (ISO date) into a short axis label.
+		 * Format a time-bucket key (ISO date) into a short axis label, at the
+		 * granularity of the bucket's own interval. Without the interval every
+		 * key rendered as month + year, so a day-bucketed week collapsed onto
+		 * one repeated label ("Aug 26" for all of August 2026).
+		 *
+		 * The year is added to day / week labels only when the bucket falls
+		 * outside the current year, mirroring `formatRangeLabel` on the
+		 * dashboard chip.
 		 *
 		 * @param {string} key The bucket key (ISO date string).
+		 * @param {string} [interval] Bucket interval (`minute|hour|day|week|month|quarter|year`, case-insensitive). Defaults to the month/year form.
 		 * @return {string} A short, locale-aware label.
 		 */
-		formatBucketKey(key) {
+		formatBucketKey(key, interval) {
 			if (!key) return ''
-			const d = new Date(key)
-			if (Number.isNaN(d.getTime())) return String(key)
-			return d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' })
+			const d = parseBucketKey(key)
+			if (!d) return String(key)
+			const thisYear = new Date().getFullYear()
+			const year = d.getFullYear() === thisYear ? {} : { year: 'numeric' }
+			switch (String(interval || '').toLowerCase()) {
+			case 'minute':
+				return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+			case 'hour':
+				return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit' })
+			case 'day':
+			case 'week':
+				return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', ...year })
+			case 'year':
+				return d.toLocaleDateString(undefined, { year: 'numeric' })
+			default:
+				return d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' })
+			}
 		},
 		/**
 		 * Fetch a categorical breakdown from OpenRegister's REST `/grouped`
@@ -1082,6 +1446,10 @@ export default {
 				this.groupByData = null
 				return
 			}
+			// Stale-response guard — see `fetchTimeBucket`. This path has the extra
+			// `resolveGroupByLabels` round trip after the fetch, so its window for
+			// a filter-token change to overtake it is the wider of the two.
+			const requestKey = this.groupByKey
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),
@@ -1106,6 +1474,7 @@ export default {
 					}
 				}
 				const res = await axios.get(url, { params })
+				if (requestKey !== this.groupByKey) return
 				let groups = (res && res.data && res.data.groups) || []
 				// Client-side sort + top-N (robust even if the backend ignored them).
 				if (gb.sort === 'asc' || gb.sort === 'desc') {
@@ -1121,6 +1490,7 @@ export default {
 				// the referenced objects' display labels (e.g. client name).
 				if (gb.reference && gb.reference.schema) {
 					keys = await this.resolveGroupByLabels(ds.register, gb.reference, groups)
+					if (requestKey !== this.groupByKey) return
 				}
 				if (['pie', 'donut', 'radialBar'].includes(this.type)) {
 					this.groupByData = { series: values, labels: keys, categories: keys, rawKeys }
@@ -1128,7 +1498,7 @@ export default {
 					this.groupByData = { series: [{ name: gb.metricField || gb.metric || 'count', data: values }], categories: keys, labels: keys, rawKeys }
 				}
 			} catch (e) {
-				this.groupByData = null
+				if (requestKey === this.groupByKey) this.groupByData = null
 			}
 		},
 		/**
@@ -1286,7 +1656,16 @@ export default {
 					agg.labelResolve,
 					rawKeys,
 				)
-				labels = resolved.map((r, i) => r.label || labels[i])
+				// A configured `labelResolve` means the groupBy value IS an
+				// opaque reference id, so the raw key is never a usable label —
+				// falling back to it renders a bare UUID in the chart. The
+				// usual cause is a DANGLING reference (the target object was
+				// deleted, or never existed), which resolves to an empty label.
+				// Empty keys keep their existing '—' placeholder.
+				labels = resolved.map((r, i) => {
+					if (r.label) return r.label
+					return rawKeys[i] === '' ? labels[i] : t('nextcloud-vue', 'Unknown')
+				})
 				const withColor = resolved.filter((r) => r.color)
 				if (withColor.length > 0) {
 					colorMap = {}
@@ -1517,6 +1896,32 @@ export default {
 	min-height: 100px;
 }
 
+/* Container-fitting mode (`height` given as a percentage). The root claims the
+   full height it is given and lays its children out as a column; the canvas box
+   takes what is left, so the chart is sized by the box rather than sizing it.
+   `min-height: 0` drops the 100px floor — on a fixed-height surface a floor is
+   the thing that produces the overflow it was meant to prevent. */
+.cn-chart-widget--fit {
+	height: 100%;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.cn-chart-widget__canvas {
+	min-width: 0;
+}
+
+/* `flex: 1 1 0` (not `1 1 auto`) is load-bearing: with an `auto` basis the box
+   would grow to its content, i.e. to the chart, and the percentage height would
+   resolve against a box the chart itself defined. `overflow: hidden` keeps a
+   sub-pixel rounding difference from reintroducing a scrollbar. */
+.cn-chart-widget--fit .cn-chart-widget__canvas {
+	flex: 1 1 0;
+	min-height: 0;
+	overflow: hidden;
+}
+
 .cn-chart-widget__fallback {
 	display: flex;
 	align-items: center;
@@ -1534,6 +1939,16 @@ export default {
 	font-size: 14px;
 	text-align: center;
 	padding: 12px;
+}
+
+/* The empty / fallback placeholders carry a 150px floor for the normal
+   content-sized case; in fit mode they take the leftover space and centre in it
+   instead, since the floor would overflow a short tile. Declared after the base
+   rules so the cascade order matches specificity (no-descending-specificity). */
+.cn-chart-widget--fit .cn-chart-widget__empty,
+.cn-chart-widget--fit .cn-chart-widget__fallback {
+	flex: 1 1 0;
+	min-height: 0;
 }
 
 .cn-chart-widget__error {
@@ -1564,5 +1979,115 @@ export default {
 	background: var(--color-primary-element-light, #aad2ed);
 	color: var(--color-main-text);
 	border-color: var(--color-primary-element, #0082c9);
+}
+
+/* ─── ApexCharts HTML chrome ───────────────────────────────────────────────
+   Everything apexcharts draws INSIDE the SVG takes its colour from
+   `mergedOptions` (foreColor, grid.borderColor, legend.labels.colors, axis
+   label styles), so it already follows the Nextcloud theme. Its HTML chrome —
+   the hover tooltip, the crosshair axis tooltips, the toolbar menu — does not:
+   apexcharts styles those from a stylesheet it injects itself at chart-create
+   time (`<style id="apexcharts-css">`) using hardcoded hex values. In dark mode
+   the hover tooltip stayed a white box while its text inherited the near-white
+   `--color-main-text` — white on white, unreadable.
+
+   `tooltip.theme` is not the fix: both apexcharts themes are hardcoded
+   palettes, neither of them Nextcloud's, and choosing between them would need
+   JS theme detection that a themed or nldesign install would still get wrong.
+   Restyling with tokens means ONE rule set that is correct in light, dark,
+   high-contrast and custom themes, because the tokens flip themselves. Both
+   theme classes are listed so an `options.tooltip.theme` override cannot drop
+   a consumer back onto a hardcoded palette.
+
+   The specificity is deliberate. apexcharts injects its stylesheet when the
+   first chart is created, so it lands AFTER the app's CSS and wins every tie —
+   each override below therefore carries one more class than the apexcharts rule
+   it replaces, and holds even without the scope attribute this block compiles
+   with. */
+.cn-chart-widget :deep(.apexcharts-tooltip.apexcharts-theme-light),
+.cn-chart-widget :deep(.apexcharts-tooltip.apexcharts-theme-dark) {
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	color: var(--color-main-text);
+	box-shadow: 0 1px 5px var(--color-box-shadow, rgba(0, 0, 0, 0.2));
+}
+
+/* The title row is the date/category header ("Aug 26"). Its own background is
+   what made it unreadable rather than merely off-theme. */
+.cn-chart-widget :deep(.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title),
+.cn-chart-widget :deep(.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title) {
+	background: var(--color-background-hover);
+	border-bottom: 1px solid var(--color-border);
+	color: var(--color-main-text);
+}
+
+/* Crosshair axis tooltips. apexcharts puts light hex values on the BASE class
+   here and only overrides them for its dark theme, so the base rule has to be
+   replaced too — not just the theme variants. */
+.cn-chart-widget :deep(.apexcharts-xaxistooltip),
+.cn-chart-widget :deep(.apexcharts-yaxistooltip) {
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	color: var(--color-main-text);
+}
+
+/* Their pointer arrows are two stacked triangles: `::before` paints the border
+   edge, `::after` the fill. Both need the tokens the box above uses, or the
+   arrow keeps the old palette and reads as a stray light wedge. */
+.cn-chart-widget :deep(.apexcharts-xaxistooltip-bottom)::after,
+.cn-chart-widget :deep(.apexcharts-xaxistooltip-top)::after {
+	border-bottom-color: var(--color-main-background);
+	border-top-color: var(--color-main-background);
+}
+
+.cn-chart-widget :deep(.apexcharts-xaxistooltip-bottom)::before,
+.cn-chart-widget :deep(.apexcharts-xaxistooltip-top)::before {
+	border-bottom-color: var(--color-border);
+	border-top-color: var(--color-border);
+}
+
+.cn-chart-widget :deep(.apexcharts-yaxistooltip-left)::after,
+.cn-chart-widget :deep(.apexcharts-yaxistooltip-right)::after {
+	border-left-color: var(--color-main-background);
+	border-right-color: var(--color-main-background);
+}
+
+.cn-chart-widget :deep(.apexcharts-yaxistooltip-left)::before,
+.cn-chart-widget :deep(.apexcharts-yaxistooltip-right)::before {
+	border-left-color: var(--color-border);
+	border-right-color: var(--color-border);
+}
+
+/* Toolbar menu — only reachable with `toolbar: true`, but the same defect: a
+   hardcoded `#fff` panel under inherited near-white text. */
+.cn-chart-widget :deep(.apexcharts-menu) {
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	color: var(--color-main-text);
+}
+
+.cn-chart-widget :deep(.apexcharts-menu .apexcharts-menu-item:hover) {
+	background: var(--color-background-hover);
+}
+
+/* Toolbar icons: `#6e8192` at rest and `#333` on hover, i.e. the hover state
+   vanishes against a dark background. One selector per icon class, matching
+   apexcharts' own list, to clear its (0,3,1) hover rules. */
+.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-menu-icon svg),
+.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-reset-icon svg),
+.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-selection-icon svg),
+.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoom-icon svg),
+.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoomin-icon svg),
+.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoomout-icon svg) {
+	fill: var(--color-text-maxcontrast);
+}
+
+.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-menu-icon:hover svg),
+.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-reset-icon:hover svg),
+.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-selection-icon:hover svg),
+.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoom-icon:hover svg),
+.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoomin-icon:hover svg),
+.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoomout-icon:hover svg) {
+	fill: var(--color-main-text);
 }
 </style>

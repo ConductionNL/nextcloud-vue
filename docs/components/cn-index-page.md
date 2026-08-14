@@ -140,7 +140,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `#header-actions` | — | Extra header buttons |
 | `#delete-dialog` | `\{ item, close \}` | Replace single-item delete dialog |
 | `#copy-dialog` | `\{ item, close \}` | Replace single-item copy dialog |
-| `#form-dialog` | `\{ show, item, schema, close \}` | Replace create/edit dialog (any variant). Use `show` as a `v-if` guard so the dialog unmounts after `close`; otherwise an always-mounted override re-opens when its internal close animation finishes. |
+| `#form-dialog` | `\{ show, item, schema, confirm, close \}` | Replace create/edit dialog (any variant). Use `show` as a `v-if` guard so the dialog unmounts after `close`; otherwise an always-mounted override re-opens when its internal close animation finishes. Call `await confirm(object)` to save — see [Replacing the form dialog](#replacing-the-form-dialog). |
 | `#form-fields` | `\{ fields, formData, errors, updateField \}` | Form content override (CnFormDialog only; ignored when `useAdvancedFormDialog` is true) |
 | `#field-\{key\}-option` | *option object properties* | Custom dropdown option rendering for a select field (forwarded to NcSelect `#option`) |
 | `#field-\{key\}-selected-option` | *option object properties* | Custom selected option display for a select field (forwarded to NcSelect `#selected-option`) |
@@ -206,6 +206,43 @@ Set `use-advanced-form-dialog` to use [CnAdvancedFormDialog](./cn-advanced-form-
   @refresh="fetchItems"
 />
 ```
+
+### Replacing the form dialog
+
+The `#form-dialog` slot swaps the whole dialog out — use it when the replacement needs
+control the built-in dialog cannot give it (a wider `size`, a multi-pane layout, its own
+footer). Reach for `#form-fields` first if you only need different fields inside the
+standard dialog.
+
+**Save through the scope's `confirm`, not your own store call.** `confirm(object)` runs the
+page's normal save path — `createOverride` / the `store` prop / the self-fetch store,
+whichever applies — then emits `@create` or `@edit` **and refreshes the list** (the
+self-fetch and `createOverride` paths refresh automatically; with the `store` prop, list
+refresh is driven by your own `@create`/`@edit` handler, same as it always has been). A
+replacement dialog that persists on its own instead bypasses all of that: the row will not
+appear until the user reloads, because the built-in refresh never runs. (Live
+`or-collection-*` updates do cover this eventually, but only where server push is actually
+delivered, so do not rely on them.) Saving through `confirm` also keeps writes in the same
+store the list reads from, rather than a second cache of the same objects.
+
+`confirm` is async — await it, then `close()`:
+
+```vue
+<CnIndexPage title="Mappings" register="openconnector" schema="mapping">
+  <template #form-dialog="{ show, item, confirm, close }">
+    <MyWideDialog
+      v-if="show"
+      :item="item"
+      @save="async (draft) => { await confirm({ ...item, ...draft }); close() }"
+      @cancel="close" />
+  </template>
+</CnIndexPage>
+```
+
+An object carrying no id creates; otherwise it updates, so spread the incoming `item` under
+your edits to preserve fields the replacement dialog does not touch. Result-phase helpers
+(`setFormResult`, `setFormValidationErrors`) target the built-in dialog's `ref` and become
+no-ops once it is replaced — surface success and failure in your own dialog.
 
 ### Store integration
 

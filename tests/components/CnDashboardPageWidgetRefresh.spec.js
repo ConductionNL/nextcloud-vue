@@ -14,7 +14,7 @@ import CnDashboardPage from '@/components/CnDashboardPage/CnDashboardPage.vue'
 
 jest.mock('gridstack', () => ({ GridStack: { init: jest.fn() } }), { virtual: true })
 jest.mock('gridstack/dist/gridstack.min.css', () => ({}), { virtual: true })
-jest.mock('vue-apexcharts', () => ({ name: 'vue-apexcharts-stub' }), { virtual: true })
+// Apexcharts is stubbed globally via jest.config.js moduleNameMapper.
 
 // CnWidgetWrapper stub that records the resolved show-refresh per widget id.
 const WidgetWrapperStub = {
@@ -55,7 +55,7 @@ const mountPage = (propsData = {}) => mount(CnDashboardPage, {
 })
 
 const refreshOf = (wrapper, title) => wrapper.findAll('.cn-widget-wrapper-stub')
-	.wrappers.find((w) => w.attributes('data-title') === title)
+	.find((w) => w.attributes('data-title') === title)
 	.attributes('data-show-refresh')
 
 describe('CnDashboardPage — per-widget Refresh visibility', () => {

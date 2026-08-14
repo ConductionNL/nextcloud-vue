@@ -19,7 +19,7 @@
 		     v-if when `_translationMeta.translatedFrom` is null, so
 		     the header block harmlessly stays in the DOM for source
 		     objects with no visible content. -->
-		<div v-if="object && !$scopedSlots.header" class="cn-detail-grid__translation-header">
+		<div v-if="object && !$slots.header" class="cn-detail-grid__translation-header">
 			<CnTranslatedBadge :object="object" />
 		</div>
 		<!-- @slot header Replaces the default translation-badge header row above the grid. -->
@@ -27,7 +27,7 @@
 		<slot name="header" :object="object" />
 
 		<!-- Empty state -->
-		<div v-if="!items.length && !$scopedSlots.default" class="cn-detail-grid__empty">
+		<div v-if="!items.length && !$slots.default" class="cn-detail-grid__empty">
 			<!-- @slot empty Replaces the default empty-state text shown when there are no items. -->
 			<slot name="empty">
 				{{ emptyLabel }}
@@ -70,7 +70,7 @@
 			</div>
 
 			<!-- Optional per-item actions -->
-			<div v-if="$scopedSlots['item-actions-' + index]" class="cn-detail-grid__actions">
+			<div v-if="$slots['item-actions-' + index]" class="cn-detail-grid__actions">
 				<!-- @slot item-actions-{index} Optional per-item action buttons rendered after the value (e.g. `#item-actions-0`). -->
 				<!-- @binding {object} item The item definition being rendered. -->
 				<!-- @binding {number} index The item's position in `items`. -->

@@ -28,7 +28,7 @@
 		     is teleported to the body, so it isn't clipped by a modal's overflow. -->
 		<NcPopover
 			v-else
-			:shown.sync="open"
+			v-model:shown="open"
 			:triggers="[]"
 			popup-role="dialog"
 			popover-base-class="cn-icon-browser__popper">
@@ -96,6 +96,7 @@ import { NcPopover } from '@nextcloud/vue'
 import CnIconBrowserPanel from './CnIconBrowserPanel.vue'
 import { findIconByValue } from './iconCatalogue.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
+import { nextUid } from '../../utils/uid.js'
 import { isCustomIconUrl, DASHBOARD_ICONS } from '../CnIconPicker/dashboardIcons.js'
 import { DASHBOARD_ICONS as WIDGET_ICONS } from '../CnWidgetGrid/widgetIcons.js'
 import { nlDesignIconGroups } from '../../icons/nlDesignGroups.js'
@@ -136,7 +137,7 @@ const DEFAULT_URL_ICON_GROUPS = Object.freeze(nlDesignIconGroups())
 /**
  * CnIconBrowser — a searchable, visual icon picker. The library imports no icon
  * package: the consumer injects a normalized catalogue via the `icons` prop
- * (build one with the {@link mdiCatalogue} / {@link vmdiCatalogue} adapters) or
+ * (build one with the `mdiCatalogue` / `vmdiCatalogue` adapters) or
  * by providing `cnIconCatalogue` higher up the tree; otherwise a small curated
  * set is used. Each catalogue entry renders by `path` (inline `<svg>`) or
  * `component` (`<component :is>`), and the entry's `value` is emitted.
@@ -196,7 +197,7 @@ export default {
 		},
 		/**
 		 * The icon catalogue to browse: `[{ key, label, value, search?, path?, component? }]`.
-		 * Build with {@link mdiCatalogue} / {@link vmdiCatalogue}. When empty, an
+		 * Build with `mdiCatalogue` / `vmdiCatalogue`. When empty, an
 		 * injected `cnIconCatalogue` or the curated fallback is used.
 		 *
 		 * @type {Array<{key: string, label: string, value: string, search?: string, path?: string, component?: object}>}
@@ -343,6 +344,10 @@ export default {
 	data() {
 		return {
 			open: false,
+			// Per-instance id suffix, fixed for the instance's lifetime — the
+			// trigger's `aria-labelledby` points at it, and an id that changed
+			// between renders would break that reference.
+			uid: nextUid(),
 		}
 	},
 
@@ -354,7 +359,7 @@ export default {
 		 * @return {string} the trigger button id.
 		 */
 		triggerId() {
-			return 'cn-icon-browser-trigger-' + this._uid
+			return 'cn-icon-browser-trigger-' + this.uid
 		},
 		/**
 		 * Stable id for the field label, referenced by the trigger button's
@@ -364,7 +369,7 @@ export default {
 		 * @return {string} the field label id.
 		 */
 		labelId() {
-			return 'cn-icon-browser-label-' + this._uid
+			return 'cn-icon-browser-label-' + this.uid
 		},
 		/**
 		 * The catalogue actually browsed: the `icons` prop if given, else the

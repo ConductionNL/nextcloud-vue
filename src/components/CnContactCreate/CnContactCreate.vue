@@ -60,11 +60,11 @@
 				<NcSelect
 					input-id="cn-contact-create-role"
 					:options="roleOptions"
-					:value="form.role"
+					:model-value="form.role"
 					:clearable="true"
 					:taggable="true"
 					:input-label="roleLabel"
-					@input="form.role = $event" />
+					@update:model-value="form.role = $event" />
 			</div>
 		</div>
 
