@@ -930,6 +930,32 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * Whether a schema-bound page without an object id shows an empty
+		 * CnFormDialog for its schema instead of a blank page.
+		 *
+		 * Set from the manifest as `config.createForm`:
+		 *   - `'auto'` (default) — heuristic: only when the page is schema-bound,
+		 *     has no object id, and supplies no body of its own (no default slot,
+		 *     no grid layout). Existing behaviour.
+		 *   - `'never'` — never render it. Use when the body owns data entry, e.g.
+		 *     a page whose CnObjectDataWidget (or a registry component) already
+		 *     provides the form; this is what stops two form dialogs stacking.
+		 *   - `'always'` — render it even when the page has a body, for a page
+		 *     that deliberately pairs custom content with a create form.
+		 *
+		 * The dialog itself is always the generic, schema-driven CnFormDialog, so
+		 * whichever way it is summoned it follows the same OpenRegister/schema
+		 * form rules (required, readOnly, enum/$ref, `visibleWhen`).
+		 *
+		 * @type {'auto'|'never'|'always'}
+		 */
+		createForm: {
+			type: String,
+			default: 'auto',
+			validator: (value) => ['auto', 'never', 'always'].includes(value),
+		},
+
 		/** Subtitle shown in the sidebar header */
 		subtitle: {
 			type: String,
@@ -1614,8 +1640,18 @@ export default {
 		 * @return {boolean}
 		 */
 		isCreateMode() {
-			return Boolean(this.register && this.schema) && !this.objectId
-				&& !this.hasDefaultSlotContent && !this.hasGridLayout
+			// `createForm` (manifest `config.createForm`) is the explicit switch;
+			// 'auto' keeps the original heuristic. A page still needs a schema to
+			// build a form from, and one already showing an object is editing,
+			// not creating — so those two conditions hold even for 'always'.
+			if (this.createForm === 'never') {
+				return false
+			}
+			const schemaBound = Boolean(this.register && this.schema) && !this.objectId
+			if (this.createForm === 'always') {
+				return schemaBound
+			}
+			return schemaBound && !this.hasDefaultSlotContent && !this.hasGridLayout
 		},
 
 		/**

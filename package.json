@@ -69,7 +69,8 @@
     "styleguide": "cd styleguide && npm run server",
     "styleguide:build": "cd styleguide && npm run build",
     "build:vue3": "rollup -c rollup.config.vue3.mjs",
-    "check:vue3-compile": "node scripts/vue3-compile-sweep.cjs"
+    "check:vue3-compile": "node scripts/vue3-compile-sweep.cjs",
+    "check:dist-sideeffects": "node scripts/check-dist-sideeffects.mjs"
   },
   "tsd": {
     "directory": "test-d",
@@ -130,7 +131,7 @@
     "axe-core": "^4.10.0",
     "dexie": "^4.0.8",
     "dompurify": "^3.0.0",
-    "eslint": "^8.56.0 || ^9.0.0",
+    "eslint": "^8.56.0 || ^9.0.0 || ^10.0.0",
     "eslint-plugin-vue": "^9.21.0 || ^10.0.0",
     "gridstack": "^12.0.0",
     "marked": "^12.0.0",
