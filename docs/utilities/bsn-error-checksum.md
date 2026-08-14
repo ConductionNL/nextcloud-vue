@@ -16,7 +16,7 @@ well-formed BSN — most often a typo. That is a different message to the user t
 [`BSN_ERROR_LENGTH`](./bsn-error-length.md), which means they have not finished
 typing.
 
-When this code is returned, `elfproefScore` carries the non-zero modulo, which is
+When this code is returned, `elevenTestScore` carries the non-zero modulo, which is
 useful when debugging a validator but should not be surfaced to a user.
 
 **Formal validity is not issuance.** A number that clears the elfproef is

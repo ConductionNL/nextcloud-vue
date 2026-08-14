@@ -25,8 +25,8 @@ describe('validateBsn', () => {
 	it('accepts a number that satisfies the elfproef', () => {
 		const result = validateBsn('111222333')
 
-		expect(result.isFormeelGeldig).toBe(true)
-		expect(result.elfproefScore).toBe(0)
+		expect(result.isFormallyValid).toBe(true)
+		expect(result.elevenTestScore).toBe(0)
 		expect(result.errorCode).toBeNull()
 	})
 
@@ -35,21 +35,21 @@ describe('validateBsn', () => {
 	it('rejects a number that fails the elfproef', () => {
 		const result = validateBsn('111222334')
 
-		expect(result.isFormeelGeldig).toBe(false)
+		expect(result.isFormallyValid).toBe(false)
 		expect(result.errorCode).toBe(BSN_ERROR_CHECKSUM)
-		expect(result.elfproefScore).not.toBe(0)
+		expect(result.elevenTestScore).not.toBe(0)
 	})
 
 	it('rejects the ninth digit being ADDED rather than subtracted', () => {
 		// 123456782: weighted sum over the first eight digits is 1*9+2*8+3*7+
 		// 4*6+5*5+6*4+7*3+8*2 = 9+16+21+24+25+24+21+16 = 156.
 		// 156 - 2 = 154, and 154 % 11 === 0  -> valid, correctly.
-		expect(validateBsn('123456782').isFormeelGeldig).toBe(true)
+		expect(validateBsn('123456782').isFormallyValid).toBe(true)
 
 		// 123456788: 156 - 8 = 148, 148 % 11 === 5 -> invalid.
 		// Under the WRONG (+1) weighting it would be 156 + 8 = 164 ... also not
 		// divisible, so pair it with the case below which flips the verdict.
-		expect(validateBsn('123456788').isFormeelGeldig).toBe(false)
+		expect(validateBsn('123456788').isFormallyValid).toBe(false)
 	})
 
 	it.each([
@@ -61,9 +61,9 @@ describe('validateBsn', () => {
 	])('rejects %j as malformed', (input, expected) => {
 		const result = validateBsn(input)
 
-		expect(result.isFormeelGeldig).toBe(false)
+		expect(result.isFormallyValid).toBe(false)
 		expect(result.errorCode).toBe(expected)
-		expect(result.elfproefScore).toBe(-1)
+		expect(result.elevenTestScore).toBe(-1)
 	})
 
 	it('never echoes the raw BSN back', () => {
@@ -73,8 +73,8 @@ describe('validateBsn', () => {
 	})
 
 	it('tolerates null and undefined without throwing', () => {
-		expect(validateBsn(null).isFormeelGeldig).toBe(false)
-		expect(validateBsn(undefined).isFormeelGeldig).toBe(false)
+		expect(validateBsn(null).isFormallyValid).toBe(false)
+		expect(validateBsn(undefined).isFormallyValid).toBe(false)
 	})
 })
 
