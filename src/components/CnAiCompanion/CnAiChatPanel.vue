@@ -80,7 +80,20 @@
 			:order="1"
 			data-testid="cn-ai-panel-tab-chat">
 			<template #icon>
-				<Creation :size="20" />
+				<!--
+					A chat bubble, NOT the AI sparkles. This tab names a place —
+					the conversation — and it sits beside History, which names
+					another place. The sparkles mean "the model", and using them
+					here made them mean two things at once: the tab said "AI"
+					while the tab next to it said "History", so the pair read as
+					a kind/time distinction rather than as two views of the same
+					thing.
+
+					The sparkles are kept where they still mean the model and
+					nothing else: the launcher hex, and this tab's own empty
+					state below.
+				-->
+				<MessageTextOutline :size="20" />
 			</template>
 			<div class="cn-ai-chat-tab">
 				<div class="cn-ai-chat-tab__messages">
@@ -151,6 +164,7 @@ import axios from '@nextcloud/axios'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import History from 'vue-material-design-icons/History.vue'
 import Creation from 'vue-material-design-icons/Creation.vue'
+import MessageTextOutline from 'vue-material-design-icons/MessageTextOutline.vue'
 import CnAiMessageList from './CnAiMessageList.vue'
 import CnAiInput from './CnAiInput.vue'
 import CnAiAgentPicker from './CnAiAgentPicker.vue'
@@ -177,6 +191,7 @@ export default {
 		Plus,
 		History,
 		Creation,
+		MessageTextOutline,
 		CnAiMessageList,
 		CnAiInput,
 		CnAiAgentPicker,
