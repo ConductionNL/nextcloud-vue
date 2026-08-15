@@ -1,32 +1,82 @@
 <template>
-	<NcActions
-		:open.sync="internalOpen"
-		:manual-open="true"
-		:force-menu="true"
-		class="cn-context-menu"
-		container="body"
-		@close="onClose">
-		<!-- Dynamic actions from array prop -->
-		<NcActionButton
-			v-for="action in actions"
-			:key="action.label"
-			:disabled="resolveDisabled(action)"
-			:class="{ 'cn-row-action--destructive': action.destructive }"
-			close-after-click
-			@click="onAction(action)">
-			<template v-if="action.icon" #icon>
-				<component :is="action.icon" :size="20" />
-			</template>
-			{{ action.label }}
-		</NcActionButton>
+	<div class="cn-context-menu-root">
+		<NcActions
+			v-if="!activePanel"
+			ref="actions"
+			v-model:open="internalOpen"
+			:manual-open="true"
+			:force-menu="true"
+			class="cn-context-menu"
+			container="body"
+			data-testid="cn-context-menu"
+			@close="onClose"
+			@closed="onClosed">
+			<!-- Dynamic actions from array prop -->
+			<NcActionButton
+				v-for="action in visibleActions"
+				:key="action.label"
+				:title="resolveTitle(action)"
+				:disabled="resolveDisabled(action)"
+				:class="{ 'cn-row-action--destructive': action.destructive }"
+				:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
+				close-after-click
+				@click="onAction(action)">
+				<template v-if="action.icon" #icon>
+					<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
+					<component :is="action.icon" v-else :size="20" />
+				</template>
+				{{ action.label }}
+			</NcActionButton>
 
-		<!-- Custom content slot (for hardcoded buttons) -->
-		<slot />
-	</NcActions>
+			<!--
+			@slot default
+			@description Custom NcActionButton-family content rendered inside the
+			NcActions menu. Use this for hardcoded buttons (Doriath pattern) when
+			the `actions` prop is empty.
+		-->
+			<slot />
+		</NcActions>
+
+		<!-- CUSTOM PANEL — bypass NcActions, render arbitrary slot content
+		     anchored at the cursor. The `#panel:<name>` slot may contain any
+		     markup (grids, inputs, custom components) without the NcActions
+		     child-allowlist filter. -->
+		<template v-if="activePanel && internalOpen">
+			<div
+				class="cn-context-menu__backdrop"
+				@click="onClose"
+				@contextmenu.prevent="onClose" />
+			<div
+				ref="panel"
+				class="cn-context-menu__panel"
+				role="menu"
+				tabindex="-1"
+				data-testid="cn-context-menu-panel"
+				:data-panel="activePanel"
+				@keydown.esc.stop="onClose"
+				@click.stop>
+				<!-- @slot panel:<name> Free-form custom panel content shown when
+				     `activePanel === '<name>'`. Bypasses the NcActions child
+				     allowlist — put any markup here (grids, inputs, custom
+				     components, etc.). The slot name is dynamic: define one
+				     `#panel:<name>` per panel you want to support. -->
+				<!-- @binding {Function} back Clear `activePanel`, returning to the default action list. -->
+				<!-- @binding {Function} close Close the entire menu, equivalent to clicking outside. -->
+				<!-- @binding {*} targetItem The right-clicked item, forwarded from the `targetItem` prop. -->
+				<slot
+					:name="`panel:${activePanel}`"
+					:back="back"
+					:close="onClose"
+					:target-item="targetItem" />
+			</div>
+		</template>
+	</div>
 </template>
 
 <script>
-import { NcActions, NcActionButton } from '@nextcloud/vue'
+import { NcActionButton, NcActions } from '@nextcloud/vue'
+import { CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, clearContextMenuPositionDom } from '../../composables/useContextMenu.js'
+import { CnIcon } from '../CnIcon/index.js'
 
 /**
  * CnContextMenu — Right-click context menu wrapper around NcActions.
@@ -40,23 +90,27 @@ import { NcActions, NcActionButton } from '@nextcloud/vue'
  * cursor positioning). The composable handles the DOM attributes; this component
  * handles the NcActions template boilerplate.
  *
- * @example Dynamic actions (CnIndexPage pattern)
+ * Dynamic actions (CnIndexPage pattern)
+ * ```vue
  * <CnContextMenu
- *   :open.sync="contextMenuOpen"
+ *   v-model:open="contextMenuOpen"
  *   :actions="mergedActions"
  *   :target-item="contextMenuRow"
  *   @action="$emit('action', $event)"
  *   @close="closeContextMenu" />
+ * ```
  *
- * @example Custom buttons via slot (Doriath pattern)
+ * Custom buttons via slot (Doriath pattern)
+ * ```vue
  * <CnContextMenu
- *   :open.sync="contextMenuOpen"
+ *   v-model:open="contextMenuOpen"
  *   @close="closeContextMenu">
  *   <NcActionButton close-after-click @click="onRename">
  *     <template #icon><PencilIcon :size="20" /></template>
  *     Rename
  *   </NcActionButton>
  * </CnContextMenu>
+ * ```
  */
 export default {
 	name: 'CnContextMenu',
@@ -64,6 +118,7 @@ export default {
 	components: {
 		NcActions,
 		NcActionButton,
+		CnIcon,
 	},
 
 	props: {
@@ -75,16 +130,26 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Action definitions rendered as NcActionButton items.
-		 * Same format as CnRowActions: `{ label, icon?, handler?, disabled?, destructive? }`.
-		 * When empty, only the default slot content is rendered.
-		 * @type {Array<{label: string, icon?: Component, handler?: Function, disabled?: boolean | Function, destructive?: boolean}>}
+		 * Same format as CnRowActions: `{ label, icon?, handler?, disabled?, visible?, title?, destructive? }`.
+		 * `icon` accepts either a component (rendered directly) or a string —
+		 * a string is treated as an MDI name and rendered via `CnIcon` (e.g.
+		 * `"Eye"`), which lets manifest (JSON) actions declare icons by name.
+		 * `visible` (boolean | (targetItem) => boolean) hides the entry when falsy
+		 * (default: shown). `title` (string | (targetItem) => string) renders as
+		 * a native tooltip — useful for explaining why an entry is disabled.
+		 * When the entire array is empty (or all entries are filtered out), only
+		 * the default slot content is rendered.
+		 *
+		 * @type {Array<{label: string, icon: object | string, handler: Function, disabled: boolean | Function, visible: boolean | Function, title: string | Function, destructive: boolean}>}
 		 */
 		actions: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * The right-clicked item (row, folder, etc.). Passed to action `handler`
 		 * and `disabled` callbacks, and included in the `action` event payload.
@@ -94,7 +159,23 @@ export default {
 			type: [Object, String, Number],
 			default: null,
 		},
+
+		/**
+		 * Name of the currently-active custom panel. When set (and the menu is
+		 * open), the default NcActions list is replaced by the matching
+		 * `#panel:<name>` slot, rendered free-form (no NcActions child filter).
+		 * Use with `.sync` — the component emits `update:activePanel(null)` when
+		 * the panel's `back()` binding is invoked or the menu closes.
+		 *
+		 * @type {string|null}
+		 */
+		activePanel: {
+			type: String,
+			default: null,
+		},
 	},
+
+	emits: ['action', 'close', 'closed', 'update:activePanel', 'update:open'],
 
 	data() {
 		return {
@@ -102,16 +183,215 @@ export default {
 		}
 	},
 
+	computed: {
+		/**
+		 * Filter actions by their `visible` predicate. Entries without
+		 * `visible` are always shown (backwards compatible).
+		 *
+		 * @return {Array} Visible actions for the current targetItem.
+		 */
+		visibleActions() {
+			return this.actions.filter((action) => {
+				if (action.visible === undefined) return true
+				if (typeof action.visible === 'function') {
+					return !!action.visible(this.targetItem)
+				}
+				return !!action.visible
+			})
+		},
+	},
+
 	watch: {
 		open(val) {
 			this.internalOpen = val
 		},
+
 		internalOpen(val) {
+			// Description goes ABOVE `@event`, not inline after it:
+			// vue-docgen-api's event-name splitter stops at the first `:`, so
+			// `@event update:open <description>` is read as one long event NAME
+			// and the generated docs show an empty description.
+			/**
+			 * Fired whenever the menu's internal open state flips. Used by
+			 * callers that bind `v-model:open` to track visibility.
+			 *
+			 * @event update:open
+			 * @type {boolean}
+			 */
 			this.$emit('update:open', val)
+
+			if (val) {
+				this.tagPopper()
+				this.startOutsideWatch()
+			} else {
+				this.stopOutsideWatch()
+				// NcActions' `@closed` never fires (see `onClosed`), so drop the
+				// "a context menu is open" attribute here. The CSS vars stay put
+				// — the hide animation still needs the transform, and the next
+				// `open()` overwrites them before the popper shows again.
+				document.documentElement.removeAttribute(CTX_MENU_DATA_ATTR)
+			}
 		},
 	},
 
+	mounted() {
+		// NcActions renders its own NcButton as the popover trigger; the menu
+		// opens only via right-click (via `:open.sync`), so the button is
+		// offscreen-positioned (see the `.cn-context-menu` rule below).
+		//
+		// Use `inert` rather than `aria-hidden`: when the menu is dismissed
+		// without picking an item, NcPopover's focus-trap restores focus to the
+		// trigger button. With `aria-hidden` that produces a "Blocked
+		// aria-hidden on an element because its descendant retained focus"
+		// warning (focused element must not be hidden from AT). `inert` both
+		// hides the button from the accessibility tree *and* makes it
+		// unfocusable, so the trap's focus restore falls back to <body> instead
+		// of landing on a hidden element. (The button never needs focus — the
+		// menu opens via `:open.sync`, not by focusing the trigger.)
+		const trigger = this.$el?.querySelector('.action-item__menutoggle')
+		if (trigger) {
+			trigger.setAttribute('inert', '')
+		}
+
+		// Silence NcPopover's dev-mode a11y warning for this specific instance.
+		//
+		// NcPopover (when `window.OC?.debug` is on) calls
+		// `tabbable(triggerContainer)[0]` on every open and warns
+		// "It looks like you are using a custom button as a <NcPopover>
+		// trigger…" if nothing tabbable is found. We *are* using NcButton —
+		// the warning's escape hatch — but the button is offscreen-positioned
+		// and tabbable's visibility checks won't reliably find it across
+		// browsers (Chromium's `Element.checkVisibility()` excludes some
+		// offscreen / clipped elements). The advice in the warning ("bind
+		// #trigger slot attrs") doesn't apply: NcActions controls its own
+		// trigger and doesn't expose a `#trigger` slot to override.
+		//
+		// Neutralising the check on our own NcPopover instance (one level
+		// down inside NcActions) leaves every other popover untouched and
+		// keeps the check live for real custom triggers elsewhere.
+		//
+		// Vue 3: `this.$children` was removed (it hard-errors under @vue/compat
+		// MODE 3 with "INSTANCE_CHILDREN compat has been disabled"), so reach the
+		// NcActions instance through an explicit template ref instead.
+		const ncActions = this.$refs.actions
+		const ncPopover = ncActions?.$refs?.popover
+		if (ncPopover) {
+			ncPopover.checkTriggerA11y = () => {}
+		}
+
+		this.tagPopper()
+
+		// Mounting with `open` already true never trips the watcher.
+		if (this.internalOpen) {
+			this.startOutsideWatch()
+		}
+	},
+
+	beforeUnmount() {
+		this.stopOutsideWatch()
+	},
+
 	methods: {
+		/**
+		 * Mark this menu's own popper element so the cursor-positioning CSS in
+		 * `src/css/context-menu.css` can target it — and nothing else.
+		 *
+		 * That CSS used to key on the `<html>` data attribute alone, which
+		 * matches *every* `.v-popper__popper` in the document: any other popover
+		 * alive while a context menu was open (a table row's actions menu, most
+		 * visibly) got dragged to the last right-click coordinates.
+		 *
+		 * The marker has to be applied imperatively — NcActions hardcodes
+		 * `popoverBaseClass: 'action-item__popper'` on its NcPopover and spreads
+		 * no `$attrs` onto it, so there is no prop to pass one in through.
+		 *
+		 * It must be an *attribute*, not a class. floating-vue binds a dynamic
+		 * `class` on this element (`--shown` / `--hidden` / `--show-from` / …)
+		 * and Vue's `patchClass` assigns `el.className` wholesale, so a class
+		 * added here is wiped the first time the popper opens — the rule then
+		 * matches nothing and the menu renders at its offscreen trigger. Vue
+		 * only patches props present in the vnode, so an attribute it never
+		 * renders is left alone.
+		 *
+		 * The element itself is stable: floating-vue keeps one `$_popperNode`
+		 * and `appendChild`s it into the container on first show, so marking it
+		 * once at `mounted()` holds for the component's lifetime. Re-running on
+		 * open is a cheap, idempotent guard for a not-yet-ready ref chain.
+		 *
+		 * @return {void}
+		 */
+		tagPopper() {
+			const el = this.$refs.actions?.$refs?.popover?.getPopoverContentElement?.()
+			el?.setAttribute?.(CTX_MENU_POPPER_ATTR, '')
+		},
+
+		/**
+		 * Start watching for a press outside the menu. Driven from both the
+		 * `internalOpen` watcher and `mounted()`, because a consumer may mount
+		 * with `open` already true — in which case there is no state transition
+		 * for the watcher to see.
+		 *
+		 * @return {void}
+		 */
+		startOutsideWatch() {
+			// nextTick: the contextmenu/click that opened the menu is still
+			// propagating and would dismiss it again on the same gesture.
+			this.$nextTick(() => {
+				if (this.internalOpen) {
+					document.addEventListener('mousedown', this.onDocumentMouseDown)
+				}
+			})
+		},
+
+		/**
+		 * Stop watching for outside presses.
+		 *
+		 * @return {void}
+		 */
+		stopOutsideWatch() {
+			document.removeEventListener('mousedown', this.onDocumentMouseDown)
+		},
+
+		/**
+		 * Close the menu when the press lands outside it.
+		 *
+		 * NcActions has to run in `manual-open` mode here (the menu is opened
+		 * from a right-click via the `open` prop, not by activating the trigger
+		 * button). @nextcloud/vue 9 couples that mode to
+		 * `noCloseOnClickOutside: this.manualOpen`, and NcPopover derives
+		 * `autoHide: !noCloseOnClickOutside && closeOnClickOutside` — so the
+		 * popper's own outside-click dismissal is switched off and nothing else
+		 * closes the menu. v8 only cleared the popper's open `triggers`, leaving
+		 * autoHide intact, which is why dismissing worked before the Vue 3
+		 * upgrade. NcActions spreads no `$attrs` onto NcPopover, so the prop
+		 * cannot be overridden from outside — hence handling it here.
+		 *
+		 * @param {MouseEvent} event The document mousedown.
+		 * @return {void}
+		 */
+		onDocumentMouseDown(event) {
+			if (!this.internalOpen || this.isInsideMenu(event.target)) return
+			this.onClose()
+		},
+
+		/**
+		 * Whether a node sits inside the menu's own surface — the custom panel,
+		 * or the popper NcActions teleports to `container="body"` (so it is not
+		 * inside `this.$el` and `contains()` on the root would miss it).
+		 *
+		 * @param {EventTarget} target The event target to test.
+		 * @return {boolean} True when the target belongs to this menu.
+		 */
+		isInsideMenu(target) {
+			if (!(target instanceof Node)) return false
+			if (this.$refs.panel?.contains(target)) return true
+			const content = this.$refs.actions?.$refs?.popover?.getPopoverContentElement?.()
+			if (content?.contains(target)) return true
+			// Fallback for when the popover ref chain is unavailable —
+			// `action-item__popper` is the base class NcActions gives its popper.
+			return target instanceof Element && !!target.closest('.action-item__popper')
+		},
+
 		resolveDisabled(action) {
 			if (typeof action.disabled === 'function') {
 				return action.disabled(this.targetItem)
@@ -119,24 +399,143 @@ export default {
 			return !!action.disabled
 		},
 
+		/**
+		 * Resolve the `title` field on an action descriptor — supports both
+		 * a static string and a function `(targetItem) => string`. Returns
+		 * undefined when no title is provided so the attribute isn't rendered.
+		 *
+		 * @param {object} action The action descriptor.
+		 * @return {string|undefined} The tooltip text, or undefined.
+		 */
+		resolveTitle(action) {
+			if (typeof action.title === 'function') {
+				return action.title(this.targetItem) || undefined
+			}
+			return action.title || undefined
+		},
+
+		/**
+		 * Slugify an action label for use in stable `data-testid` selectors.
+		 * Lowercase, kebab-case, strip non-alphanumeric. Used solely by the
+		 * `:data-testid` binding on NcActionButton — does not affect runtime
+		 * behaviour or rendered text.
+		 *
+		 * @param {string} label The action's display label.
+		 * @return {string} kebab-case slug suitable for a testid suffix.
+		 */
+		slugifyLabel(label) {
+			return String(label || '')
+				.toLowerCase()
+				.replace(/[^a-z0-9]+/g, '-')
+				.replace(/^-+|-+$/g, '')
+		},
+
 		onAction(action) {
 			if (action.handler && typeof action.handler === 'function') {
 				action.handler(this.targetItem)
 			}
+			/**
+			 * @event action User picked an entry from the menu. The action's own `handler(targetItem)` (when present) ran synchronously before this event fires; the event lets parents observe / log the choice.
+			 * @type {{ action: string, row: object|null }}
+			 */
 			this.$emit('action', { action: action.label, row: this.targetItem })
 		},
 
 		onClose() {
 			this.internalOpen = false
+			if (this.activePanel) {
+				this.$emit('update:activePanel', null)
+			}
+			/**
+			 * @event close Fired when the menu starts closing (before the popper's hide animation). This is the reliable one — prefer it over `closed`.
+			 */
 			this.$emit('close')
+		},
+
+		/**
+		 * Clear the active panel and return to the default action list.
+		 * Exposed to custom panel slots via the `back` scope binding.
+		 */
+		back() {
+			// Description above the tag — see the note on `update:open`.
+			/**
+			 * Emitted with `null` to clear the active panel — fired by the
+			 * panel's `back()` binding and whenever the menu closes while a
+			 * panel is open. Bind with `v-model:active-panel`.
+			 *
+			 * @event update:activePanel
+			 * @type {null}
+			 */
+			this.$emit('update:activePanel', null)
+		},
+
+		/**
+		 * Meant to fire after the popper's hide animation completes, clearing
+		 * the cursor-position CSS vars.
+		 *
+		 * **Currently dead.** @nextcloud/vue 9 binds `onAfterClose` on its
+		 * NcPopover while NcPopover only emits `afterHide`, so NcActions never
+		 * emits `closed` and neither do we. Nothing depends on it any more —
+		 * positioning is scoped to this menu's own popper (see `tagPopper`), the
+		 * data attribute is dropped in the `internalOpen` watcher, and the CSS
+		 * vars are refreshed by the next `open()` / wiped by the composable's
+		 * unmount hook. Kept wired so the tear-down lands at the correct moment
+		 * if upstream ever fixes the binding.
+		 */
+		onClosed() {
+			clearContextMenuPositionDom()
+			/**
+			 * @event closed Intended to fire after the popper's hide animation completes. Does not currently fire — @nextcloud/vue 9's NcActions listens for an `afterClose` event NcPopover never emits. Use `close` instead.
+			 */
+			this.$emit('closed')
 		},
 	},
 }
 </script>
 
 <style scoped>
-.cn-context-menu {
-	/* Hide the NcActions trigger button — menu opens only via right-click */
-	display: none;
+/* Selector is deliberately two classes deep. `.cn-context-menu` lands on
+   NcActions' root, which NcActions itself styles as `.action-item[data-v-…]
+   { position: relative; display: inline-block }`. Scoped CSS appends the attr
+   to the last compound only, so a bare `.cn-context-menu` tied that rule at
+   specificity (0,2,0) and lost on injection order — the trigger stayed
+   `position: relative`, so it kept its in-flow box (top/left just offset it
+   visually) and showed up as a full-width ~34px-tall phantom row between the
+   table and the pagination on CnIndexPage. Adding the parent class makes this
+   (0,3,0) so it wins regardless of order. */
+.cn-context-menu-root > .cn-context-menu {
+	/* Hide the NcActions trigger button — menu opens only via right-click.
+	   Off-screen rather than display:none / visibility:hidden so NcPopover's
+	   a11y check (`tabbable(triggerContainer)[0]`) still finds the NcButton
+	   and the "custom button as a <NcPopover> trigger" warning stays quiet.
+	   Avoid `clip` / `clip-path` here — modern browsers' `Element.checkVisibility()`,
+	   which tabbable calls into, treats those as invisible. Pure offscreen
+	   positioning leaves the element fully "visible" to layout while being
+	   off the user's screen. */
+	position: absolute;
+	top: -9999px;
+	left: -9999px;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.cn-context-menu__backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 9998;
+}
+
+.cn-context-menu__panel {
+	position: fixed;
+	top: var(--cn-ctx-menu-y, 0);
+	left: var(--cn-ctx-menu-x, 0);
+	z-index: 9999;
+	min-width: 220px;
+	padding: 4px;
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large, 12px);
+	box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+	outline: none;
 }
 </style>

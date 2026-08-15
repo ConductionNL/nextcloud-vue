@@ -1,4 +1,8 @@
-import { buildHeaders, buildQueryString, capitalize } from '../utils/headers.js'
+import { toRaw } from 'vue'
+import { buildQueryString, capitalize } from '../utils/headers.js'
+// `buildHeaders` is reached via `this._buildHeaders()` (declared on
+// the base object store) so sub-resource fetches inherit the active
+// tenant UUID (multi-tenancy-context).
 import { parseResponseError, networkError } from '../utils/errors.js'
 
 /**
@@ -80,12 +84,32 @@ export function createSubResourcePlugin(name, endpoint, options = {}) {
 
 					const response = await fetch(url, {
 						method: 'GET',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 					})
 
 					if (!response.ok) {
 						this[`${name}Error`] = await parseResponseError(response, name)
-						console.error(`Error fetching ${name} for ${type}/${objectId}:`, this[`${name}Error`])
+						// A 404 is an EXPECTED outcome here, not a fault: asking
+						// whether an object has a sub-resource collection is how a
+						// consumer finds out that it does not. The failure is
+						// already recorded in `${name}Error` for the component to
+						// render, so the console write adds nothing actionable —
+						// it only turns a handled path into noise that fails a
+						// consumer's "no console errors" e2e assertion, which the
+						// app cannot suppress (#612).
+						//
+						// Genuine faults (5xx, 403, …) still surface, and now say
+						// WHAT went wrong: the status/statusText, plus the raw
+						// payload — `parseResponseError` returns a reactive proxy,
+						// which the console renders as an unreadable
+						// `Proxy(Object)`.
+						if (response.status !== 404) {
+							console.error(
+								`Error fetching ${name} for ${type}/${objectId}: `
+								+ `${response.status} ${response.statusText}`,
+								toRaw(this[`${name}Error`]),
+							)
+						}
 						return []
 					}
 

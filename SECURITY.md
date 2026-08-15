@@ -1,88 +1,30 @@
 # Security Policy
 
-## Reporting a Vulnerability
-
-If you discover a security vulnerability in any Conduction Nextcloud app, please report it responsibly.
-
-**Do NOT open a public GitHub issue for security vulnerabilities.**
-
-Instead, please email us at: **security@conduction.nl**
-
-Include the following in your report:
-
-- Description of the vulnerability
-- Steps to reproduce the issue
-- Potential impact
-- Suggested fix (if any)
-
-## Response Timeline
-
-- **Acknowledgement:** Within 48 hours of receiving your report
-- **Initial assessment:** Within 1 week
-- **Fix and disclosure:** We aim to resolve critical vulnerabilities within 30 days
-
 ## Supported Versions
 
-We provide security updates for the latest stable release of each app. Older versions may not receive security patches.
+Only the latest release of `@conduction/nextcloud-vue` receives security fixes.
 
-## Scope
+## Reporting a Vulnerability
 
-This security policy applies to all repositories under the [ConductionNL](https://github.com/ConductionNL) organization.
+Please report security vulnerabilities to **security@conduction.nl** rather than opening a public GitHub issue.
 
-## Recognition
+We aim to acknowledge reports within 2 business days and to ship a fix within 14 days for critical vulnerabilities.
 
-We appreciate responsible disclosure and will credit reporters (with permission) in our release notes.
+## Known Accepted Risks
 
-## Software Bill of Materials (SBOM)
+### Vue 2 End-of-Life (ReDoS — low severity)
 
-We publish a [CycloneDX](https://cyclonedx.org/) 1.5 JSON SBOM for every release of every Conduction Nextcloud app. The SBOM lists every production dependency (Composer + npm, merged, dev-dependencies excluded) with name, version, license, and PURL. Each SBOM is CVE-scanned with [Grype](https://github.com/anchore/grype) at build time and the release fails if any **critical** vulnerability is detected.
+`vue@2.7.x` has a known ReDoS vulnerability (low severity) in its template compiler that is unfixable without migrating to Vue 3. Vue 2 reached end-of-life in December 2023.
 
-### Stable URLs
+**Accepted posture:** The Vue 3 migration is planned. Until it lands, consumers should be aware that:
 
-For every app `<app>` under [ConductionNL](https://github.com/ConductionNL), two URLs always work:
+- All user-supplied content rendered via `v-html` in this library passes through `DOMPurify.sanitize()` using the `SAFE_MARKDOWN_DOMPURIFY_CONFIG` configuration.
+- The Vue 2 ReDoS affects template compilation, not runtime rendering of data. Applications that do not compile untrusted strings as Vue templates at runtime are not exposed.
 
-| Use case                                                           | URL pattern                                                                    |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
-| **Always-latest released SBOM** (auto-redirects to newest release) | `https://github.com/ConductionNL/<app>/releases/latest/download/sbom.cdx.json` |
-| **Specific release SBOM** (pinned, for compliance archives)        | `https://github.com/ConductionNL/<app>/releases/download/<tag>/sbom.cdx.json`  |
+### `vue-template-compiler` (build-time only)
 
-Example — fetch the latest mydash SBOM:
+`vue-template-compiler` is a **devDependency** — it is only required at build time to compile `.vue` SFC templates. It is not included in the published `dist/` bundle and is not installed when consumers add `@conduction/nextcloud-vue` to their own `node_modules` via npm. Any CVEs reported against this package do not affect end users of the built library.
 
-```bash
-curl -sL https://github.com/ConductionNL/mydash/releases/latest/download/sbom.cdx.json | jq .
-```
+## Dependency Audit
 
-Example — fetch the SBOM for a specific historical release:
-
-```bash
-curl -sL https://github.com/ConductionNL/mydash/releases/download/v1.0.0/sbom.cdx.json | jq .
-```
-
-### Update cadence
-
-A new SBOM is generated and attached on every release tag. We do not commit SBOMs into the repository tree — they are published exclusively as release assets to keep main-branch history clean and to guarantee every SBOM corresponds to an immutable release artifact.
-
-### Format
-
-- **Specification:** CycloneDX 1.5
-- **Encoding:** JSON
-- **Filename:** `sbom.cdx.json` (consistent across all apps)
-- **Scope:** Production dependencies only — `--omit=dev` for both Composer (`composer CycloneDX:make-sbom`) and npm (`@cyclonedx/cyclonedx-npm`). Composer plugins are also omitted.
-
-### Verification before publication
-
-Each release SBOM passes through these gates before it ships:
-
-1. **Grype CVE scan** — `--fail-on critical` against the SBOM itself.
-2. **`composer audit`** — informational, captured in CI logs.
-3. **`npm audit --audit-level=critical`** — informational, captured in CI logs.
-
-If any of these block, the release is held until the underlying issue is patched.
-
-### Workflow artifact (CI-only)
-
-A 90-day workflow artifact named `sbom-<app>` is also produced on every successful CI run on `main` / `beta` / `development`. This is for internal audit / replay only — external consumers should always use the release-asset URLs above for stable, version-pinned access.
-
-### Reporting SBOM-related issues
-
-If you spot a missing dependency, an incorrect version, or a CVE we should be alerted to, email `security@conduction.nl` per the disclosure process at the top of this document.
+Run `npm audit` in the project root for the current vulnerability list. A number of vulnerabilities reported are in build-time devDependencies only and are not present in the distributed bundle.

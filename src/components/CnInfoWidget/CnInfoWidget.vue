@@ -29,17 +29,33 @@
 /**
  * CnInfoWidget — Renders label-value pairs in a responsive CSS grid.
  *
- * @example Manual fields
+ * Manual fields
+ * ```vue
  * <CnInfoWidget :fields="[
  *   { label: 'Email', value: 'test@example.com' },
  *   { label: 'Phone', value: '+31 6 12345678' },
  * ]" :columns="2" />
+ * ```
  *
- * @example Auto-generated from schema
+ * Auto-generated from schema
+ * ```vue
  * <CnInfoWidget :object="myObject" :schema="mySchema" :columns="3" />
+ * ```
  */
 export default {
 	name: 'CnInfoWidget',
+
+	inject: {
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Field
+		 * labels come from schema property titles, authored in English as the
+		 * canonical source; the visible label is resolved through this function
+		 * so it follows the user's language. Defaults to identity when used
+		 * standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
+	},
 
 	props: {
 		/**
@@ -147,7 +163,7 @@ export default {
 				.filter(key => !this.excludeFields.includes(key))
 				.filter(key => properties[key])
 				.map(key => ({
-					label: properties[key].title || key,
+					label: this.cnTranslate(properties[key].title || key),
 					value: this.formatFieldValue(this.object[key], properties[key]),
 				}))
 		},
@@ -156,7 +172,6 @@ export default {
 		 * Format a field value for display based on its schema type.
 		 *
 		 * @param {*} value - The raw value.
-		 * @param {object} schemaProp - The JSON Schema property definition.
 		 * @return {string} Formatted display value.
 		 */
 		formatFieldValue(value) {

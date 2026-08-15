@@ -8,15 +8,17 @@
 					v-model="filterAction"
 					:options="actionOptions"
 					:placeholder="actionFilterLabel"
+					:input-label="actionFilterLabel"
 					:multiple="true"
-					:close-on-select="false"
+					:keep-open="true"
 					class="cn-audit-filters__select" />
 				<NcSelect
 					v-model="filterUser"
 					:options="userOptions"
 					:placeholder="userFilterLabel"
+					:input-label="userFilterLabel"
 					:multiple="true"
-					:close-on-select="false"
+					:keep-open="true"
 					class="cn-audit-filters__select" />
 				<NcDateTimePickerNative
 					id="audit-date-from"
@@ -96,7 +98,7 @@
 				<!-- Load more -->
 				<NcButton
 					v-if="hasMore"
-					type="tertiary"
+					variant="tertiary"
 					:wide="true"
 					:disabled="loadingMore"
 					class="cn-sidebar-tab__load-more"
@@ -104,7 +106,7 @@
 					<template v-if="loadingMore" #icon>
 						<NcLoadingIcon :size="20" />
 					</template>
-					{{ loadingMore ? '' : loadMoreLabel }}
+					{{ loadMoreLabel }}
 				</NcButton>
 			</div>
 		</template>
@@ -115,6 +117,8 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcListItem, NcLoadingIcon, NcSelect, NcDateTimePickerNative } from '@nextcloud/vue'
 import History from 'vue-material-design-icons/History.vue'
 import { buildHeaders } from '../../utils/index.js'
@@ -125,17 +129,28 @@ export default {
 	components: { NcButton, NcListItem, NcLoadingIcon, NcSelect, NcDateTimePickerNative, History },
 
 	props: {
+		/** ID of the object this tab belongs to */
 		objectId: { type: String, required: true },
+		/** OpenRegister register slug */
 		register: { type: String, default: '' },
+		/** JSON Schema definition for the object */
 		schema: { type: String, default: '' },
+		/** Base URL for the OpenRegister API */
 		apiBase: { type: String, default: '/apps/openregister/api' },
-		noAuditTrailLabel: { type: String, default: 'No audit trail entries' },
-		noMatchLabel: { type: String, default: 'No matching entries' },
-		actionFilterLabel: { type: String, default: 'Action' },
-		userFilterLabel: { type: String, default: 'User' },
-		fromLabel: { type: String, default: 'From' },
-		toLabel: { type: String, default: 'To' },
-		loadMoreLabel: { type: String, default: 'Load more' },
+		/** Text shown when there are no audit trail entries */
+		noAuditTrailLabel: { type: String, default: () => t('nextcloud-vue', 'No audit trail entries') },
+		/** Text shown when no entries match the current filter */
+		noMatchLabel: { type: String, default: () => t('nextcloud-vue', 'No matching entries') },
+		/** Label for the action filter control */
+		actionFilterLabel: { type: String, default: () => t('nextcloud-vue', 'Action') },
+		/** Label for the user filter control */
+		userFilterLabel: { type: String, default: () => t('nextcloud-vue', 'User') },
+		/** Label for the date-from filter */
+		fromLabel: { type: String, default: () => t('nextcloud-vue', 'From') },
+		/** Label for the date-to filter */
+		toLabel: { type: String, default: () => t('nextcloud-vue', 'To') },
+		/** Label for the load-more button */
+		loadMoreLabel: { type: String, default: () => t('nextcloud-vue', 'Load more') },
 	},
 
 	data() {
@@ -202,8 +217,11 @@ export default {
 			this.loadingMore = this.page > 1
 			try {
 				const query = this.buildQueryParams()
+				// generateUrl prepends the Nextcloud webroot + `/index.php` so the
+				// request resolves on instances without URL rewriting.
+				const url = generateUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/audit-trails`)
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/audit-trails?${query}`,
+					`${url}?${query}`,
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {

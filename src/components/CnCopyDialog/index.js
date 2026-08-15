@@ -1,1 +1,4 @@
-export { default as CnCopyDialog } from './CnCopyDialog.vue'
+import CnCopyDialog from './CnCopyDialog.vue'
+
+export default CnCopyDialog
+export { CnCopyDialog }

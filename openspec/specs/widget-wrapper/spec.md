@@ -1,8 +1,10 @@
 ---
-status: reviewed
+status: in-progress
 ---
 
 # CnWidgetWrapper Specification
+
+**OpenSpec changes**: cn-app-nav-shell-refactor (in-progress — built-in default handlers for Refresh + Request a feature, refresh opt-in contract documented)
 
 ## Purpose
 
@@ -316,7 +318,7 @@ CnWidgetWrapper SHALL maintain correct proportions across different widget sizes
 - **Accessibility**: Semantic `<h3>` for titles; `alt` text on icon images.
 - **GridStack integration**: Flex layout adapts passively to grid cell resizing. Drag/resize managed by parent CnDashboardGrid.
 
-**Consumer usage (MyDash):** MyDash has its own `WidgetWrapper.vue` that mirrors CnWidgetWrapper's structure but adds `editMode` with a settings cog button and `headerStyles` for header color customization -- features not yet in the shared library component.
+**Consumer usage (LaunchPad):** LaunchPad has its own `WidgetWrapper.vue` that mirrors CnWidgetWrapper's structure but adds `editMode` with a settings cog button and `headerStyles` for header color customization -- features not yet in the shared library component.
 
 ## Standards & References
 
@@ -330,6 +332,6 @@ CnWidgetWrapper SHALL maintain correct proportions across different widget sizes
 
 - **Specific enough to implement?** Yes -- all 13 requirements with 25 scenarios are clearly defined and match the implementation.
 - **Potential enhancements from consumer patterns:**
-  - MyDash adds `editMode` prop with settings cog button -- could be upstreamed
-  - MyDash adds `headerStyles` for header background/text color customization -- could be added to `styleConfig`
+  - LaunchPad adds `editMode` prop with settings cog button -- could be upstreamed
+  - LaunchPad adds `headerStyles` for header background/text color customization -- could be added to `styleConfig`
   - Heading level is hardcoded to `<h3>` -- could be configurable for different nesting contexts

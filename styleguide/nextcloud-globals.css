@@ -1,0 +1,547 @@
+/**
+ * nextcloud-globals.css
+ *
+ * Simulates the Nextcloud global CSS that a real server injects on every page.
+ * Loaded by the styleguide so the cascade matches what components see in-app —
+ * in particular the global button/input resets that styles.js overrides with &&&.
+ *
+ * Sources:
+ *   core/css/styles.scss  — element reset + typography
+ *   core/css/inputs.scss  — form element defaults
+ *
+ * Hover/focus/active rules for buttons are taken from the compiled output of a
+ * running Nextcloud instance (newer than the SCSS in this workspace) so they
+ * match what the &&&-override in styles.js is actually fighting against.
+ */
+
+
+/* ==========================================================================
+   Element reset  (styles.scss)
+   ========================================================================== */
+
+html, body,
+div, span, object, iframe,
+h1, h2, h3, h4, h5, h6,
+p, blockquote, pre,
+a, abbr, acronym, address, code,
+del, dfn, em, img, q,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, dialog, figure, footer, header, hgroup, nav, section, main {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-weight: inherit;
+	font-size: 100%;
+	font-family: inherit;
+	vertical-align: baseline;
+	cursor: default;
+	scrollbar-color: var(--color-border-dark) transparent;
+	scrollbar-width: thin;
+}
+
+article, aside, dialog, figure, footer, header, hgroup, nav, section {
+	display: block;
+}
+
+html, body {
+	height: 100%;
+}
+
+body {
+	line-height: 1.5;
+	font-weight: normal;
+	font-size: var(--default-font-size);
+	line-height: var(--default-line-height);
+	font-family: var(--font-face);
+	color: var(--color-main-text);
+}
+
+
+/* ==========================================================================
+   Scrollbar  (styles.scss)
+   ========================================================================== */
+
+::-webkit-scrollbar {
+	width: 12px;
+	height: 12px;
+}
+
+::-webkit-scrollbar-corner {
+	background-color: transparent;
+}
+
+::-webkit-scrollbar-track-piece {
+	background-color: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--color-scrollbar);
+	border-radius: var(--border-radius-large);
+	border: 2px solid transparent;
+	background-clip: content-box;
+}
+
+
+/* ==========================================================================
+   Selection  (styles.scss)
+   ========================================================================== */
+
+::selection {
+	background-color: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+}
+
+
+/* ==========================================================================
+   Typography  (styles.scss)
+   ========================================================================== */
+
+code {
+	font-family: 'Lucida Console', 'Lucida Sans Typewriter', 'DejaVu Sans Mono', monospace;
+}
+
+ul {
+	list-style: none;
+}
+
+
+/* ==========================================================================
+   Tables  (styles.scss)
+   ========================================================================== */
+
+table {
+	border-collapse: separate;
+	border-spacing: 0;
+	white-space: nowrap;
+}
+
+caption, th, td {
+	text-align: left;
+	font-weight: normal;
+}
+
+table, td, th {
+	vertical-align: middle;
+}
+
+
+/* ==========================================================================
+   Links  (styles.scss)
+   ========================================================================== */
+
+a {
+	border: 0;
+	color: var(--color-main-text);
+	text-decoration: none;
+	cursor: pointer;
+}
+
+a * {
+	cursor: pointer;
+}
+
+a.external {
+	margin: 0 3px;
+	text-decoration: underline;
+}
+
+
+/* ==========================================================================
+   Misc cursors  (styles.scss)
+   ========================================================================== */
+
+input {
+	cursor: pointer;
+}
+
+input * {
+	cursor: pointer;
+}
+
+select, .button span, label {
+	cursor: pointer;
+}
+
+
+/* ==========================================================================
+   Form element font  (inputs.scss)
+   ========================================================================== */
+
+input, textarea, select, button, div[contenteditable=true], div[contenteditable=false] {
+	font-family: var(--font-face);
+}
+
+
+/* ==========================================================================
+   Base sizing  (inputs.scss — simple selector block)
+   ========================================================================== */
+
+select,
+button:not(.button-vue, [class^="vs__"]),
+input,
+textarea,
+div[contenteditable=true],
+div[contenteditable=false] {
+	width: 130px;
+	min-height: var(--default-clickable-area);
+	box-sizing: border-box;
+}
+
+
+/* ==========================================================================
+   Disabled state for generic inputs  (inputs.scss)
+   ========================================================================== */
+
+button:not(.button-vue):disabled,
+input:not([type='range']):disabled,
+textarea:disabled {
+	cursor: default;
+	color: var(--color-text-maxcontrast);
+	border-color: var(--color-border-dark);
+	opacity: 0.7;
+}
+
+input:not([type="range"]) {
+	outline: none;
+}
+
+
+/* ==========================================================================
+   Default global button / .button / submit values  (inputs.scss)
+   ========================================================================== */
+
+input[type='submit'],
+input[type='button'],
+input[type='reset'],
+button:not(.button-vue, [class^="vs__"]),
+.button,
+.pager li a {
+	padding: 7px 14px;
+	font-size: var(--default-font-size);
+	background-color: var(--color-main-background);
+	color: var(--color-main-text);
+	border: 1px solid var(--color-border-dark);
+	outline: none;
+	border-radius: var(--border-radius);
+	cursor: text;
+}
+
+input[type='submit']:not(.app-navigation-entry-button),
+input[type='button']:not(.app-navigation-entry-button),
+input[type='reset']:not(.app-navigation-entry-button),
+button:not(.button-vue, [class^="vs__"]):not(.app-navigation-entry-button),
+.button:not(.app-navigation-entry-button),
+.pager li a:not(.app-navigation-entry-button) {
+	margin: 3px;
+	margin-inline-start: 0;
+}
+
+/* hover / focus / .active */
+input[type='submit']:not(:disabled, .primary):not(.app-navigation-entry-button):hover,
+input[type='submit']:not(:disabled, .primary):not(.app-navigation-entry-button):focus,
+input[type='submit']:not(:disabled, .primary):not(.app-navigation-entry-button).active,
+input[type='button']:not(:disabled, .primary):not(.app-navigation-entry-button):hover,
+input[type='button']:not(:disabled, .primary):not(.app-navigation-entry-button):focus,
+input[type='button']:not(:disabled, .primary):not(.app-navigation-entry-button).active,
+input[type='reset']:not(:disabled, .primary):not(.app-navigation-entry-button):hover,
+input[type='reset']:not(:disabled, .primary):not(.app-navigation-entry-button):focus,
+input[type='reset']:not(:disabled, .primary):not(.app-navigation-entry-button).active,
+button:not(.button-vue, [class^="vs__"]):not(:disabled, .primary):not(.app-navigation-entry-button):hover,
+button:not(.button-vue, [class^="vs__"]):not(:disabled, .primary):not(.app-navigation-entry-button):focus,
+button:not(.button-vue, [class^="vs__"]):not(:disabled, .primary):not(.app-navigation-entry-button).active,
+.button:not(:disabled, .primary):not(.app-navigation-entry-button):hover,
+.button:not(:disabled, .primary):not(.app-navigation-entry-button):focus,
+.button:not(:disabled, .primary):not(.app-navigation-entry-button).active,
+.pager li a:not(:disabled, .primary):not(.app-navigation-entry-button):hover,
+.pager li a:not(:disabled, .primary):not(.app-navigation-entry-button):focus,
+.pager li a:not(:disabled, .primary):not(.app-navigation-entry-button).active {
+	border-color: var(--color-main-text);
+	outline: none;
+}
+
+/* active */
+input[type='submit']:not(:disabled, .primary):not(.app-navigation-entry-button):active,
+input[type='button']:not(:disabled, .primary):not(.app-navigation-entry-button):active,
+input[type='reset']:not(:disabled, .primary):not(.app-navigation-entry-button):active,
+button:not(.button-vue, [class^="vs__"]):not(:disabled, .primary):not(.app-navigation-entry-button):active,
+.button:not(:disabled, .primary):not(.app-navigation-entry-button):active,
+.pager li a:not(:disabled, .primary):not(.app-navigation-entry-button):active {
+	outline: none;
+	background-color: var(--color-main-background);
+	color: var(--color-main-text);
+}
+
+/* focus-visible */
+input[type='submit']:not(:disabled, .primary):focus-visible,
+input[type='button']:not(:disabled, .primary):focus-visible,
+input[type='reset']:not(:disabled, .primary):focus-visible,
+button:not(.button-vue, [class^="vs__"]):not(:disabled, .primary):focus-visible,
+.button:not(:disabled, .primary):focus-visible,
+.pager li a:not(:disabled, .primary):focus-visible {
+	box-shadow: 0 0 0 4px var(--color-main-background) !important;
+	outline: 2px solid var(--color-main-text) !important;
+}
+
+/* disabled */
+input[type='submit']:disabled,
+input[type='button']:disabled,
+input[type='reset']:disabled,
+button:not(.button-vue, [class^="vs__"]):disabled,
+.button:disabled {
+	background-color: var(--color-background-dark);
+	color: var(--color-main-text);
+	cursor: default;
+	opacity: 0.5;
+}
+
+/* primary */
+input[type='submit'].primary,
+input[type='button'].primary,
+input[type='reset'].primary,
+button:not(.button-vue, [class^="vs__"]).primary,
+.button.primary {
+	background-color: var(--color-primary-element);
+	border-color: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+	cursor: pointer;
+}
+
+input[type='submit'].primary:not(:disabled):hover,
+input[type='submit'].primary:not(:disabled):focus,
+input[type='submit'].primary:not(:disabled):active,
+input[type='button'].primary:not(:disabled):hover,
+input[type='button'].primary:not(:disabled):focus,
+input[type='button'].primary:not(:disabled):active,
+input[type='reset'].primary:not(:disabled):hover,
+input[type='reset'].primary:not(:disabled):focus,
+input[type='reset'].primary:not(:disabled):active,
+button:not(.button-vue, [class^="vs__"]).primary:not(:disabled):hover,
+button:not(.button-vue, [class^="vs__"]).primary:not(:disabled):focus,
+button:not(.button-vue, [class^="vs__"]).primary:not(:disabled):active,
+.button.primary:not(:disabled):hover,
+.button.primary:not(:disabled):focus,
+.button.primary:not(:disabled):active {
+	background-color: var(--color-primary-element-hover);
+	border-color: var(--color-primary-element-hover);
+}
+
+input[type='submit'].primary:not(:disabled):focus,
+input[type='submit'].primary:not(:disabled):focus-visible,
+input[type='button'].primary:not(:disabled):focus,
+input[type='button'].primary:not(:disabled):focus-visible,
+button:not(.button-vue, [class^="vs__"]).primary:not(:disabled):focus,
+button:not(.button-vue, [class^="vs__"]).primary:not(:disabled):focus-visible,
+.button.primary:not(:disabled):focus,
+.button.primary:not(:disabled):focus-visible {
+	box-shadow: 0 0 0 2px var(--color-main-text);
+}
+
+
+/* ==========================================================================
+   Input appearance overrides  (inputs.scss)
+   ========================================================================== */
+
+input:not([type='radio']):not([type='checkbox']):not([type='range']):not([type='submit']):not([type='button']):not([type='reset']):not([type='color']):not([type='file']):not([type='image']) {
+	-webkit-appearance: textfield;
+	-moz-appearance: textfield;
+	appearance: textfield;
+	height: 36px;
+}
+
+input[type='radio'],
+input[type='checkbox'],
+input[type='file'],
+input[type='image'] {
+	height: auto;
+	width: auto;
+}
+
+input[type='color'] {
+	margin: 3px;
+	padding: 0 2px;
+	min-height: 30px;
+	width: 40px;
+	cursor: pointer;
+}
+
+input[type='hidden'] {
+	height: 0;
+	width: 0;
+}
+
+input[type='time'] {
+	width: initial;
+}
+
+
+/* ==========================================================================
+   Click inputs — select, button, input[type=button|submit|reset]  (inputs.scss)
+   These are the rules the &&& override in styles.js is fighting against.
+   Values here reflect the compiled output of a running Nextcloud instance.
+   ========================================================================== */
+
+select,
+button:not(.button-vue, [class^="vs__"]),
+.button,
+input[type='button'],
+input[type='submit'],
+input[type='reset'] {
+	padding: calc((var(--default-clickable-area) - 1lh) / 2) calc(3 * var(--default-grid-baseline));
+	font-size: var(--default-font-size);
+	width: auto;
+	min-height: var(--default-clickable-area);
+	cursor: pointer;
+	box-sizing: border-box;
+	color: var(--color-primary-element-light-text);
+	background-color: var(--color-primary-element-light);
+	border: none;
+}
+
+select:hover,
+select:focus,
+button:not(.button-vue, [class^="vs__"]):hover,
+button:not(.button-vue, [class^="vs__"]):focus,
+.button:hover,
+.button:focus,
+input[type='button']:hover,
+input[type='button']:focus,
+input[type='submit']:hover,
+input[type='submit']:focus,
+input[type='reset']:hover,
+input[type='reset']:focus {
+	background-color: var(--color-primary-element-light-hover);
+}
+
+
+/* ==========================================================================
+   Text input fields  (inputs.scss)
+   ========================================================================== */
+
+input:not([type='range']):not(.input-field__input):not([type='submit']):not([type='button']):not([type='reset']):not(.multiselect__input):not(.select2-input):not(.action-input__input):not([class^="vs__"]),
+div[contenteditable=true],
+textarea {
+	margin: 3px 3px 3px 0;
+	padding: 0 12px;
+	font-size: var(--default-font-size);
+	background-color: var(--color-main-background);
+	color: var(--color-main-text);
+	border: 2px solid var(--color-border-maxcontrast);
+	height: 36px;
+	outline: none;
+	border-radius: var(--border-radius-large);
+	text-overflow: ellipsis;
+	cursor: pointer;
+}
+
+input:not([type='range']):not(.input-field__input):not([type='submit']):not([type='button']):not([type='reset']):not(.multiselect__input):not(.select2-input):not(.action-input__input):not([class^="vs__"]):not(:disabled):hover,
+input:not([type='range']):not(.input-field__input):not([type='submit']):not([type='button']):not([type='reset']):not(.multiselect__input):not(.select2-input):not(.action-input__input):not([class^="vs__"]):not(:disabled):focus,
+div[contenteditable=true]:not(:disabled):hover,
+div[contenteditable=true]:not(:disabled):focus,
+textarea:not(:disabled):hover,
+textarea:not(:disabled):focus {
+	border-color: var(--color-main-text);
+	box-shadow: 0 0 0 2px var(--color-main-background);
+}
+
+input:not([type='range']):not(.input-field__input):not([type='submit']):not([type='button']):not([type='reset']):not(.multiselect__input):not(.select2-input):not(.action-input__input):not([class^="vs__"]):not(:disabled):focus {
+	cursor: text;
+}
+
+textarea,
+div[contenteditable=true] {
+	padding: 12px;
+	height: auto;
+}
+
+div[contenteditable=false] {
+	margin: 3px 3px 3px 0;
+	padding: 7px 6px;
+	font-size: var(--default-font-size);
+	background-color: var(--color-background-dark);
+	color: var(--color-text-maxcontrast);
+	border: 1px solid var(--color-background-darker);
+	outline: none;
+	border-radius: var(--border-radius);
+	cursor: default;
+	opacity: 0.5;
+}
+
+
+/* ==========================================================================
+   Select arrow  (inputs.scss)
+   ========================================================================== */
+
+select {
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+	background-color: var(--color-main-background);
+	padding-right: 28px !important;
+}
+
+
+/* ==========================================================================
+   Button typography  (inputs.scss)
+   ========================================================================== */
+
+button:not(.button-vue, [class^="vs__"]),
+.button,
+input[type='button'],
+input[type='submit'],
+input[type='reset'] {
+	font-weight: bold;
+	border-radius: var(--border-radius-element);
+}
+
+/* Firefox: remove inner dotted focus ring */
+button:not(.button-vue, [class^="vs__"])::-moz-focus-inner,
+.button::-moz-focus-inner,
+input[type='button']::-moz-focus-inner,
+input[type='submit']::-moz-focus-inner,
+input[type='reset']::-moz-focus-inner {
+	border: 0;
+}
+
+
+/* ==========================================================================
+   Placeholder  (inputs.scss)
+   ========================================================================== */
+
+::placeholder {
+	color: var(--color-text-maxcontrast);
+	font-size: var(--default-font-size);
+}
+
+::-webkit-input-placeholder {
+	color: var(--color-text-maxcontrast);
+	font-size: var(--default-font-size);
+}
+
+::-ms-input-placeholder {
+	color: var(--color-text-maxcontrast);
+	font-size: var(--default-font-size);
+}
+
+
+/* ==========================================================================
+   Skip navigation links  (header.scss)
+   Hidden off-screen by default; revealed only on keyboard focus.
+   ========================================================================== */
+
+#skip-actions {
+	position: absolute;
+	overflow: hidden;
+	z-index: 9999;
+	top: -999px;
+	left: 3px;
+	padding: 11px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 11px;
+}
+
+#skip-actions:focus-within {
+	top: var(--header-height);
+}

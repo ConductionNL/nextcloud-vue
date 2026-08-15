@@ -1,0 +1,100 @@
+CnObjectSidebar provides a standardized right sidebar with Files, Notes, Tags, Tasks, and Audit Trail tabs for any OpenRegister object. It uses `NcAppSidebar` and integrates with OpenRegister API endpoints.
+
+It renders within the Nextcloud app layout. In the styleguide, it appears in a constrained container:
+
+```vue
+<template>
+  <div style="height: 450px; width: fit-content; --app-sidebar-padding: 8px; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; position: relative;">
+    <CnObjectSidebar
+      :open="true"
+      :object-id="'obj-001'"
+      object-type="contacts-contact"
+      sidebar-title="Jane Smith"
+      sidebar-subtitle="Contact"
+      :hidden-tabs="['tasks', 'audit']"
+      @update:open="() => {}" />
+  </div>
+</template>
+```
+
+Custom tab content via slot:
+
+```vue
+<template>
+  <div style="height: 450px; width: fit-content; --app-sidebar-padding: 8px; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; position: relative;">
+    <CnObjectSidebar
+      :open="true"
+      :object-id="'obj-002'"
+      object-type="projects-project"
+      sidebar-title="Project Alpha"
+      sidebar-subtitle="Project"
+      :hidden-tabs="['tags', 'tasks', 'audit']"
+      @update:open="() => {}">
+      <template #tab-notes="{ objectId }">
+        <div style="padding: 12px; color: var(--color-text-maxcontrast); font-size: 14px;">
+          Custom notes content for object {{ objectId }}
+        </div>
+      </template>
+    </CnObjectSidebar>
+  </div>
+</template>
+```
+
+With custom tab labels:
+
+```vue
+<template>
+  <div style="height: 450px; width: fit-content; --app-sidebar-padding: 8px; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; position: relative;">
+    <CnObjectSidebar
+      :open="open"
+      :object-id="caseId"
+      object-type="procest-case"
+      sidebar-title="Case 001"
+      files-label="Bijlagen"
+      notes-label="Notities"
+      tags-label="Labels"
+      tasks-label="Taken"
+      audit-trail-label="Geschiedenis"
+      @update:open="open = $event" />
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      open: true,
+      caseId: 'case-001',
+    }
+  },
+}
+</script>
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `objectType` | String | Required | The entity type slug (e.g. `'pipelinq_lead'`, `'procest_case'`). Used as the sidebar title fallback |
+| `objectId` | String | Required | The UUID of the object to display |
+| `register` | String | `''` | OpenRegister register ID passed to each tab for API calls |
+| `schema` | String | `''` | OpenRegister schema ID passed to each tab for API calls |
+| `apiBase` | String | `'/apps/openregister/api'` | Base API URL for OpenRegister tab endpoints |
+| `objectData` | Object | `null` | The loaded object, forwarded to prop-driven tab widgets (the `data` / `metadata` built-ins) as `objectData`. The sidebar is otherwise coordinate-based; hosts like `CnDetailPage` (via `CnAppRoot`) publish it here |
+| `objectSchema` | Object | `null` | The resolved JSON Schema object, forwarded to the `data` built-in tab widget (which needs the schema definition, not the `schema` slug). Published by hosts like `CnDetailPage` (via `CnAppRoot`) |
+| `open` | Boolean | `true` | Whether the sidebar is visible |
+| `title` | String | `''` | Sidebar header title (defaults to `objectType`) |
+| `subtitle` | String | `''` | Sidebar header subtitle |
+| `subtitleProp` | String | `''` | Deprecated alias for `subtitle`. Use `subtitle` instead |
+| `hiddenTabs` | Array | `[]` | Tab IDs to hide: `'files'`, `'notes'`, `'tags'`, `'tasks'`, `'auditTrail'` |
+| `filesLabel` | String | `'Files'` | Pre-translated label for the Files tab |
+| `notesLabel` | String | `'Notes'` | Pre-translated label for the Notes tab |
+| `tagsLabel` | String | `'Tags'` | Pre-translated label for the Tags tab |
+| `tasksLabel` | String | `'Tasks'` | Pre-translated label for the Tasks tab |
+| `auditTrailLabel` | String | `'Audit trail'` | Pre-translated label for the Audit Trail tab |
+| `tabs` | Array | `null` | Open-enum tab definitions `[{ id, label, icon?, widgets?, component?, order? }]`. When set with at least one entry, REPLACES the hard-coded built-in tab set (Files / Notes / Tags / Tasks / Audit Trail). Each tab declares either a `widgets` list (built-in `data` → `CnObjectDataWidget`, `metadata` → `CnObjectMetadataWidget`; other types resolve via `customComponents`) OR a `component` registry name. When unset, the built-in tabs render as today. |
+| `subscribe` | Boolean | `true` | When `true` and `objectStore` is provided, auto-subscribes to live updates for `objectType` + `objectId` via `useObjectSubscription`. |
+| `objectStore` | Object | `null` | Pinia store instance (typically `useObjectStore()`). Required for `subscribe` to take effect. |
+| `customComponents` | Object | `null` | Custom-component registry for tab `component` names and unknown widget `type` values. Falls back to the injected `cnCustomComponents` from a `CnAppRoot` ancestor. |
+| `useRegistry` (`use-registry`) | Boolean | `true` | Use the pluggable integration registry (ADR-019) — renders one tab per provider registered on `window.OCA.OpenRegister.integrations`. The canonical five built-ins (files / notes / tags / tasks / audit-trail) ship as providers in `builtinIntegrations`, registered by OpenRegister's bootstrap, so the default surface is unchanged. Set `false` to opt back into the legacy hardcoded-tabs path (renders the five built-in tabs directly and supports `#tab-<id>` slot overrides) — for consumers that don't call `registerBuiltinIntegrations()`. `hiddenTabs` / `excludeIntegrations` apply in both modes. Mutually exclusive with `tabs` (which wins when both are set). |
+| `excludeIntegrations` (`exclude-integrations`) | String[] | `[]` | Integration ids to exclude when rendering registry-driven tabs. Mirrors `hiddenTabs` for the legacy mode. |
+| `requested-tab` | String | `null` | Externally-requested active tab id — lets a host deep-link into a specific leaf, e.g. a 'Linked apps' row opening the Mails tab. |

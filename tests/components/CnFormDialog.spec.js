@@ -8,13 +8,17 @@ const stubs = {
 		template: '<div><slot /><slot name="actions" /></div>',
 	},
 	NcButton: {
-		template: '<button @click="$listeners.click"><slot /></button>',
+		template: '<button @click="$attrs.onClick && $attrs.onClick()"><slot /></button>',
 	},
 	NcNoteCard: true,
 	NcLoadingIcon: true,
 	NcTextField: true,
 	NcSelect: true,
 	NcCheckboxRadioSwitch: true,
+	CnJsonViewer: {
+		props: ['value', 'language', 'readOnly'],
+		template: '<div class="stub-cn-json-viewer" />',
+	},
 }
 
 const testSchema = {
@@ -82,6 +86,30 @@ describe('CnFormDialog', () => {
 		wrapper.vm.setResult({ success: true })
 		expect(wrapper.vm.loading).toBe(false)
 		expect(wrapper.vm.result).toEqual({ success: true })
+	})
+
+	it('setValidationErrors keeps the form visible and shows a form-level error', async () => {
+		const wrapper = mount(CnFormDialog, {
+			propsData: { schema: testSchema, item: null },
+			stubs,
+		})
+		wrapper.vm.loading = true
+		wrapper.vm.setValidationErrors({ title: 'Title is required' }, "Property 'client' should match format 'uuid'.")
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.loading).toBe(false)
+		// The form must NOT be replaced by the result phase.
+		expect(wrapper.vm.result).toBeNull()
+		expect(wrapper.find('[data-testid-phase="form"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid-phase="result"]').exists()).toBe(false)
+		// Form-level message shown, per-field error recorded.
+		expect(wrapper.vm.formError).toBe("Property 'client' should match format 'uuid'.")
+		expect(wrapper.find('[data-testid="cn-form-dialog-error"]').exists()).toBe(true)
+		expect(wrapper.vm.errors.title).toBe('Title is required')
+
+		// Editing a field clears the form-level error so the user can retry.
+		wrapper.vm.updateField('title', 'Acme')
+		expect(wrapper.vm.formError).toBeNull()
 	})
 
 	// === Async enum detection ===
@@ -350,7 +378,7 @@ describe('CnFormDialog', () => {
 		wrapper.vm.onAsyncSearch(field, 'test')
 
 		// Destroy before debounce fires
-		wrapper.destroy()
+		wrapper.unmount()
 
 		// Advance timers — the search should NOT fire
 		jest.advanceTimersByTime(500)
@@ -384,5 +412,481 @@ describe('CnFormDialog', () => {
 		expect(consoleSpy).toHaveBeenCalled()
 
 		consoleSpy.mockRestore()
+	})
+
+	// === JSON widget ===
+
+	it('json widget pre-fills pretty-printed string and emits parsed value on confirm', () => {
+		const item = { id: '1', config: { foo: 'bar', nested: { n: 1 } } }
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				fields: [
+					{ key: 'config', widget: 'json', label: 'Config' },
+				],
+				item,
+			},
+			stubs,
+		})
+
+		const field = wrapper.vm.resolvedFields[0]
+		expect(wrapper.vm.jsonStringFor(field)).toBe(JSON.stringify(item.config, null, 2))
+
+		wrapper.vm.executeConfirm()
+		const emitted = wrapper.emitted('confirm')
+		expect(emitted).toBeTruthy()
+		expect(emitted[0][0].config).toEqual(item.config)
+	})
+
+	it('json widget parses valid input and stores the parsed value in formData', () => {
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				fields: [{ key: 'config', widget: 'json', label: 'Config' }],
+				item: null,
+			},
+			stubs,
+		})
+		const field = wrapper.vm.resolvedFields[0]
+
+		wrapper.vm.onJsonFieldInput(field, '{"a": 1}')
+		expect(wrapper.vm.formData.config).toEqual({ a: 1 })
+		expect(wrapper.vm.jsonErrors.config).toBeUndefined()
+		expect(wrapper.vm.jsonFieldsValid).toBe(true)
+	})
+
+	it('json widget empty string collapses to null', () => {
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				fields: [{ key: 'config', widget: 'json', label: 'Config' }],
+				item: { config: { a: 1 } },
+			},
+			stubs,
+		})
+		const field = wrapper.vm.resolvedFields[0]
+
+		wrapper.vm.onJsonFieldInput(field, '   ')
+		expect(wrapper.vm.formData.config).toBeNull()
+		expect(wrapper.vm.jsonErrors.config).toBeUndefined()
+	})
+
+	it('json widget invalid input sets error, preserves last value, and blocks confirm', () => {
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				fields: [{ key: 'config', widget: 'json', label: 'Config' }],
+				item: { config: { a: 1 } },
+			},
+			stubs,
+		})
+		const field = wrapper.vm.resolvedFields[0]
+
+		wrapper.vm.onJsonFieldInput(field, '{ not json')
+		expect(wrapper.vm.formData.config).toEqual({ a: 1 }) // untouched
+		expect(wrapper.vm.jsonErrors.config).toBeTruthy()
+		expect(wrapper.vm.jsonFieldsValid).toBe(false)
+
+		// Fixing the JSON re-enables confirm
+		wrapper.vm.onJsonFieldInput(field, '{"a": 2}')
+		expect(wrapper.vm.formData.config).toEqual({ a: 2 })
+		expect(wrapper.vm.jsonErrors.config).toBeUndefined()
+		expect(wrapper.vm.jsonFieldsValid).toBe(true)
+	})
+
+	it('executeConfirm early-returns when a json field is invalid', () => {
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				fields: [{ key: 'config', widget: 'json', label: 'Config' }],
+				item: { config: { a: 1 } },
+			},
+			stubs,
+		})
+		const field = wrapper.vm.resolvedFields[0]
+
+		wrapper.vm.onJsonFieldInput(field, 'broken')
+		wrapper.vm.executeConfirm()
+		expect(wrapper.emitted('confirm')).toBeFalsy()
+	})
+
+	// === Code widget ===
+
+	it('code widget stores the raw string verbatim', () => {
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				fields: [{ key: 'template', widget: 'code', label: 'Template', language: 'html' }],
+				item: null,
+			},
+			stubs,
+		})
+		expect(wrapper.vm.formData.template).toBe('')
+
+		wrapper.vm.updateField('template', '<div>{{ name }}</div>')
+		expect(wrapper.vm.formData.template).toBe('<div>{{ name }}</div>')
+
+		wrapper.vm.executeConfirm()
+		expect(wrapper.emitted('confirm')[0][0].template).toBe('<div>{{ name }}</div>')
+	})
+
+	// === BUG 1: required enum select commits and enables submit ===
+
+	it('selecting a required enum commits the value and enables submit', () => {
+		const schema = {
+			title: 'Meeting',
+			properties: {
+				meetingType: { type: 'string', title: 'Type', enum: ['regular', 'special'] },
+			},
+			required: ['meetingType'],
+		}
+		const wrapper = mount(CnFormDialog, { propsData: { schema, item: null }, stubs })
+
+		// Nothing selected yet → submit disabled.
+		expect(wrapper.vm.requiredFieldsFilled).toBe(false)
+
+		const field = wrapper.vm.resolvedFields.find(f => f.key === 'meetingType')
+		// Simulate the NcSelect @input firing with the chosen option object.
+		wrapper.vm.onEffectiveSelectChange(field, { id: 'special', label: 'special' })
+
+		expect(wrapper.vm.formData.meetingType).toBe('special')
+		expect(wrapper.vm.requiredFieldsFilled).toBe(true)
+	})
+
+	it('getSelectedEnumOption returns the same option-list reference (so NcSelect marks it selected)', () => {
+		const schema = {
+			title: 'Meeting',
+			properties: { mode: { type: 'string', title: 'Mode', enum: ['in-person', 'remote'] } },
+		}
+		const wrapper = mount(CnFormDialog, { propsData: { schema, item: { mode: 'remote' } }, stubs })
+		const field = wrapper.vm.resolvedFields.find(f => f.key === 'mode')
+		const options = wrapper.vm.getEnumOptions(field)
+		const selected = wrapper.vm.getSelectedEnumOption(field)
+		// Identity match — must be the very object from the option list.
+		expect(selected).toBe(options.find(o => o.id === 'remote'))
+	})
+
+	// === BUG 2a: edit dialog accepts persisted (space-separated) date-time ===
+
+	it('normalises a persisted space-separated date-time on edit-open into a schema-valid value', () => {
+		const schema = {
+			title: 'Meeting',
+			properties: {
+				title: { type: 'string', title: 'Title' },
+				scheduledDate: { type: 'string', title: 'Scheduled', format: 'date-time' },
+			},
+		}
+		const wrapper = mount(CnFormDialog, {
+			propsData: { schema, item: { id: '1', title: 'M', scheduledDate: '2026-10-15 14:30:00' } },
+			stubs,
+		})
+		const v = wrapper.vm.formData.scheduledDate
+		// RFC3339 with seconds + timezone offset (so ajv date-time accepts it).
+		expect(v).toMatch(/^2026-10-15T14:30:00[+-]\d{2}:\d{2}$/)
+	})
+
+	it('editing only the title does not reject a persisted date-time / uuid (no format error)', () => {
+		const schema = {
+			title: 'Decision',
+			properties: {
+				title: { type: 'string', title: 'Title' },
+				caseId: { type: 'string', title: 'Case', format: 'uuid' },
+				scheduledDate: { type: 'string', title: 'Scheduled', format: 'date-time' },
+			},
+		}
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				schema,
+				item: { id: '1', title: 'D', caseId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301', scheduledDate: '2026-10-15 14:30:00' },
+			},
+			stubs,
+		})
+		// User edits only the title.
+		wrapper.vm.updateField('title', 'D-edited')
+		expect(wrapper.vm.validate()).toBe(true)
+		expect(wrapper.vm.errors.caseId).toBeUndefined()
+		expect(wrapper.vm.errors.scheduledDate).toBeUndefined()
+	})
+
+	it('coerces a persisted-but-empty uuid field to null on submit (so the backend format check passes)', () => {
+		const schema = {
+			title: 'Decision',
+			properties: {
+				title: { type: 'string', title: 'Title' },
+				caseId: { type: 'string', title: 'Case', format: 'uuid' },
+			},
+		}
+		const wrapper = mount(CnFormDialog, {
+			propsData: { schema, item: { id: '1', title: 'D', caseId: '' } },
+			stubs,
+		})
+		wrapper.vm.updateField('title', 'D-edited')
+		wrapper.vm.executeConfirm()
+		const payload = wrapper.emitted('confirm')[0][0]
+		expect(payload.caseId).toBeNull()
+		expect(payload.title).toBe('D-edited')
+	})
+
+	// === BUG 3: maxLength null means "no limit" ===
+
+	it('treats maxLength null/undefined as no limit (does not block save)', () => {
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				fields: [
+					{ key: 'versie', widget: 'text', label: 'Versie', required: true, validation: { maxLength: null, minLength: null } },
+				],
+				item: null,
+			},
+			stubs,
+		})
+		wrapper.vm.updateField('versie', 'a'.repeat(500))
+		expect(wrapper.vm.validate()).toBe(true)
+		expect(wrapper.vm.errors.versie).toBeUndefined()
+	})
+
+	it('still enforces a real numeric maxLength', () => {
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				fields: [
+					{ key: 'code', widget: 'text', label: 'Code', validation: { maxLength: 3 } },
+				],
+				item: null,
+			},
+			stubs,
+		})
+		wrapper.vm.updateField('code', 'abcd')
+		expect(wrapper.vm.validate()).toBe(false)
+		expect(wrapper.vm.errors.code).toBe('Maximum 3 characters.')
+	})
+})
+
+describe('CnFormDialog — referenceType (pluggable integration registry)', () => {
+	const { integrations } = require('@/integrations/registry.js')
+	const { h } = require('vue')
+
+	const ContactEntityWidget = {
+		name: 'ContactEntityWidget',
+		props: ['surface', 'value', 'field', 'register', 'schema', 'objectId'],
+		render() {
+			return h('div', { class: 'contact-entity-widget' }, `${this.surface}|${this.value || ''}`)
+		},
+	}
+	const RegistryTab = { name: 'RegistryTab', render() { return h('div') } }
+
+	const refSchema = {
+		title: 'Lead',
+		properties: {
+			name: { type: 'string', title: 'Name' },
+			owner: { type: 'string', title: 'Owner', referenceType: 'contacts' },
+		},
+	}
+
+	afterEach(() => integrations.__resetForTests())
+
+	it('renders the integration single-entity widget for a referenceType field', () => {
+		integrations.register({ id: 'contacts', label: 'Contacts', tab: RegistryTab, widget: ContactEntityWidget })
+		const wrapper = mount(CnFormDialog, {
+			propsData: { schema: refSchema, item: { name: 'Acme', owner: 'c-42' } },
+			stubs,
+		})
+		const w = wrapper.find('.contact-entity-widget')
+		expect(w.exists()).toBe(true)
+		expect(w.text()).toBe('single-entity|c-42')
+		wrapper.unmount()
+	})
+
+	it('forwards referenceContext to the widget', () => {
+		integrations.register({ id: 'contacts', label: 'Contacts', tab: RegistryTab, widget: ContactEntityWidget })
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				schema: refSchema,
+				item: { name: 'Acme', owner: 'c-42' },
+				referenceContext: { register: 'r1', schema: 's1', objectId: 'o1' },
+			},
+			stubs,
+		})
+		expect(wrapper.findComponent(ContactEntityWidget).props('register')).toBe('r1')
+		wrapper.unmount()
+	})
+
+	it('falls back to the plain field when no integration is registered for the referenceType', () => {
+		const wrapper = mount(CnFormDialog, {
+			propsData: { schema: refSchema, item: { name: 'Acme', owner: 'c-42' } },
+			stubs,
+		})
+		expect(wrapper.find('.contact-entity-widget').exists()).toBe(false)
+		// the owner field still renders (as a plain NcTextField stub)
+		expect(wrapper.findAll('nctextfield-stub, [name]').length).toBeGreaterThanOrEqual(0)
+		wrapper.unmount()
+	})
+
+	// === Conditional field visibility (#327) ===
+
+	describe('condition / visibleWhen', () => {
+		const conditionFields = [
+			{ key: 'jobClass', widget: 'select', label: 'Job class', enum: ['SyncAction', 'PingAction'] },
+			{
+				key: 'arguments',
+				widget: 'json',
+				label: 'Arguments',
+				condition: { field: 'jobClass', equals: 'SyncAction' },
+			},
+			{
+				key: 'syncId',
+				widget: 'text',
+				label: 'Sync',
+				required: true,
+				condition: { field: 'jobClass', equals: 'SyncAction' },
+			},
+		]
+
+		it('hides a field whose equals predicate does not match', () => {
+			const wrapper = mount(CnFormDialog, {
+				propsData: { fields: conditionFields, item: { jobClass: 'PingAction' } },
+				stubs,
+			})
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['jobClass'])
+		})
+
+		it('shows a field whose equals predicate matches', () => {
+			const wrapper = mount(CnFormDialog, {
+				propsData: { fields: conditionFields, item: { jobClass: 'SyncAction' } },
+				stubs,
+			})
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['jobClass', 'arguments', 'syncId'])
+		})
+
+		it('clears form-data for fields that transition visible → hidden', async () => {
+			const wrapper = mount(CnFormDialog, {
+				propsData: { fields: conditionFields, item: { jobClass: 'SyncAction', arguments: { a: 1 }, syncId: 'sync-1' } },
+				stubs,
+			})
+			expect(wrapper.vm.formData.arguments).toEqual({ a: 1 })
+			wrapper.vm.updateField('jobClass', 'PingAction')
+			await wrapper.vm.$nextTick()
+			expect(Object.prototype.hasOwnProperty.call(wrapper.vm.formData, 'arguments')).toBe(false)
+			expect(Object.prototype.hasOwnProperty.call(wrapper.vm.formData, 'syncId')).toBe(false)
+		})
+
+		it('skips hidden required fields in requiredFieldsFilled', () => {
+			const wrapper = mount(CnFormDialog, {
+				propsData: { fields: conditionFields, item: { jobClass: 'PingAction' } },
+				stubs,
+			})
+			// syncId is required + hidden → still considered filled
+			expect(wrapper.vm.requiredFieldsFilled).toBe(true)
+		})
+
+		it('skips hidden fields in validate()', () => {
+			const wrapper = mount(CnFormDialog, {
+				propsData: { fields: conditionFields, item: { jobClass: 'PingAction' } },
+				stubs,
+			})
+			expect(wrapper.vm.validate()).toBe(true)
+			expect(wrapper.vm.errors.syncId).toBeUndefined()
+		})
+
+		it('supports notEquals predicate', () => {
+			const fields = [
+				{ key: 'mode', widget: 'select', enum: ['a', 'b'] },
+				{ key: 'note', widget: 'text', condition: { field: 'mode', notEquals: 'a' } },
+			]
+			const wrapper = mount(CnFormDialog, { propsData: { fields, item: { mode: 'a' } }, stubs })
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['mode'])
+			wrapper.vm.updateField('mode', 'b')
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['mode', 'note'])
+		})
+
+		it('supports in / notIn predicates', () => {
+			const fields = [
+				{ key: 'role', widget: 'select', enum: ['admin', 'editor', 'viewer'] },
+				{ key: 'adminOpts', widget: 'text', condition: { field: 'role', in: ['admin', 'editor'] } },
+				{ key: 'guestOpts', widget: 'text', condition: { field: 'role', notIn: ['admin'] } },
+			]
+			const wrapper = mount(CnFormDialog, { propsData: { fields, item: { role: 'admin' } }, stubs })
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['role', 'adminOpts'])
+			wrapper.vm.updateField('role', 'viewer')
+			// adminOpts hides (viewer ∉ [admin, editor]) and guestOpts shows (viewer ∉ [admin])
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['role', 'guestOpts'])
+		})
+
+		it('supports truthy / falsy predicates', () => {
+			const fields = [
+				{ key: 'optIn', widget: 'checkbox' },
+				{ key: 'reason', widget: 'text', condition: { field: 'optIn', truthy: true } },
+				{ key: 'altReason', widget: 'text', condition: { field: 'optIn', falsy: true } },
+			]
+			const wrapper = mount(CnFormDialog, { propsData: { fields, item: { optIn: false } }, stubs })
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['optIn', 'altReason'])
+			wrapper.vm.updateField('optIn', true)
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['optIn', 'reason'])
+		})
+
+		it('accepts the visibleWhen alias', () => {
+			const fields = [
+				{ key: 'mode', widget: 'select', enum: ['a', 'b'] },
+				{ key: 'note', widget: 'text', visibleWhen: { field: 'mode', equals: 'b' } },
+			]
+			const wrapper = mount(CnFormDialog, { propsData: { fields, item: { mode: 'b' } }, stubs })
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['mode', 'note'])
+		})
+
+		it('keeps the field visible (and warns) when condition has no recognised predicate', () => {
+			const spy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+			const fields = [
+				{ key: 'mode', widget: 'text' },
+				{ key: 'note', widget: 'text', condition: { field: 'mode' } },
+			]
+			const wrapper = mount(CnFormDialog, { propsData: { fields, item: { mode: 'x' } }, stubs })
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['mode', 'note'])
+			expect(spy).toHaveBeenCalled()
+			spy.mockRestore()
+		})
+	})
+
+	// === Icon widget (widget: 'icon') ===
+
+	describe('icon widget', () => {
+		const iconStubs = {
+			...stubs,
+			CnIconBrowser: {
+				props: ['value', 'sources', 'catalogues', 'allowCustomSvg', 'clearable'],
+				template: '<div class="stub-cn-icon-browser" @click="$emit(\'input\', \'mdiStar\')" />',
+			},
+		}
+
+		it('renders a CnIconBrowser for a widget:"icon" field and forwards iconSources', () => {
+			const wrapper = mount(CnFormDialog, {
+				propsData: {
+					fields: [{ key: 'icon', widget: 'icon', label: 'Icon', iconSources: ['mdi', 'fontawesome'], allowCustomSvg: true }],
+					item: null,
+				},
+				stubs: iconStubs,
+			})
+			expect(wrapper.find('.stub-cn-icon-browser').exists()).toBe(true)
+			const child = wrapper.findComponent(iconStubs.CnIconBrowser)
+			expect(child.props('sources')).toEqual(['mdi', 'fontawesome'])
+			expect(child.props('allowCustomSvg')).toBe(true)
+		})
+
+		it('makes the field clearable only when it is optional', () => {
+			const optional = mount(CnFormDialog, {
+				propsData: { fields: [{ key: 'icon', widget: 'icon', label: 'Icon' }], item: null },
+				stubs: iconStubs,
+			})
+			expect(optional.findComponent(iconStubs.CnIconBrowser).props('clearable')).toBe(true)
+
+			const required = mount(CnFormDialog, {
+				propsData: { fields: [{ key: 'icon', widget: 'icon', label: 'Icon', required: true }], item: null },
+				stubs: iconStubs,
+			})
+			expect(required.findComponent(iconStubs.CnIconBrowser).props('clearable')).toBe(false)
+		})
+
+		it('updates formData when the picker emits an icon value', async () => {
+			const wrapper = mount(CnFormDialog, {
+				propsData: {
+					fields: [{ key: 'icon', widget: 'icon', label: 'Icon' }],
+					item: null,
+				},
+				stubs: iconStubs,
+			})
+			await wrapper.find('.stub-cn-icon-browser').trigger('click')
+			expect(wrapper.vm.formData.icon).toBe('mdiStar')
+		})
 	})
 })

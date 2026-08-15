@@ -2,9 +2,16 @@
 sidebar_position: 20
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnMassCopyDialog.md'
+
 # CnMassCopyDialog
 
 Two-phase mass copy dialog with naming pattern. Allows users to define a naming pattern for copied items.
+
+## Try it
+
+<Playground component="CnMassCopyDialog" />
 
 **Wraps**: NcDialog, NcButton, NcTextField
 
@@ -20,8 +27,12 @@ Two-phase mass copy dialog with naming pattern. Allows users to define a naming 
 | `dialogTitle` | String | `'Copy items'` | |
 | `patternLabel` | String | `'Naming pattern'` | |
 | `patternPlaceholder` | String | `'\{name\} (copy)'` | |
-| `confirmLabel` | String | `'Copy'` | |
+| `emptyText` | String | `'No items selected for copying.'` | Message shown when all items have been removed from the list |
+| `successText` | String | `'Items successfully copied.'` | Message shown in the result phase on success |
 | `cancelLabel` | String | `'Cancel'` | |
+| `closeLabel` | String | `'Close'` | Label for the close button shown in the result phase |
+| `confirmLabel` | String | `'Copy'` | |
+| `removeLabel` | String | `'Remove from list'` | Tooltip/label for the per-item remove button |
 
 ## Events
 
@@ -36,12 +47,45 @@ Two-phase mass copy dialog with naming pattern. Allows users to define a naming 
 |--------|-------------|
 | `setResult(\{ success?, error?, results? \})` | Set result per item |
 
-## Usage
+## Live demo
 
 ```vue
+<template>
+  <div>
+    <button @click="open = true" style="padding: 6px 16px; border-radius: 4px; background: var(--color-primary-element); color: white; border: none; cursor: pointer;">Copy selected (2)</button>
+    <CnMassCopyDialog
+      v-if="open"
+      ref="dlg"
+      :items="[{ id: 1, title: 'Report A' }, { id: 2, title: 'Report B' }]"
+      @confirm="onConfirm"
+      @close="open = false" />
+  </div>
+</template>
+<script>
+export default {
+  data() { return { open: false } },
+  methods: {
+    async onConfirm(payload) {
+      await new Promise(r => setTimeout(r, 800))
+      this.$refs.dlg.setResult({ success: true })
+    },
+  },
+}
+</script>
+```
+
+## Usage
+
+```vue {static}
 <CnMassCopyDialog
   ref="massCopyDialog"
   :items="selectedItems"
   @confirm="onMassCopy"
   @close="showMassCopy = false" />
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnMassCopyDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnMassCopyDialog/CnMassCopyDialog.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

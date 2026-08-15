@@ -1,1 +1,4 @@
-export { default as CnChartWidget } from './CnChartWidget.vue'
+import CnChartWidget from './CnChartWidget.vue'
+
+export default CnChartWidget
+export { CnChartWidget }

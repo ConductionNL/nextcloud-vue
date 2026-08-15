@@ -19,6 +19,9 @@ import { useObjectStore } from '../store/index.js'
  * @param {number} [options.defaultPageSize] Default `_limit` sent to the API
  * @param {number} [options.debounceMs] Search debounce in milliseconds
  * @param {object} [options.defaultSort] Default sort applied on mount e.g. `{ key: 'createdAt', order: 'desc' }`
+ * @param {Array<{key: string, order: 'asc'|'desc'}>} [options.defaultSortKeys] Default MULTI-column sort applied on mount (ordered priority list). Takes precedence over `defaultSort` when both are given; used e.g. to restore a sort persisted in the route query.
+ * @param {Array<string>|null} [options.defaultVisibleColumns] Initial visible-column key set. Seeds the sidebar's Columns tab with the curated default (e.g. a manifest `columns` list) so toggles add/remove from it. Omit (or `null`) for schema-driven tables where every column starts visible.
+ * @param {object|Function} [options.fixedFilters] A filter map (or getter returning one) merged into every fetch AFTER the user's facet filters, so the fixed entries always win. Used e.g. by `CnIndexPage` to apply a route-param-scoped `pages[].config.filter`. Default `{}` — omitting it is behaviourally identical to before.
  * @return {object} Reactive state and event handlers
  *
  * @example
@@ -55,15 +58,33 @@ export function useListView(objectTypeOrOptions, options) {
 	// ── State refs ───────────────────────────────────────────────────────
 	const schema = ref(null)
 	const searchTerm = ref('')
-	const sortKey = ref(opts.defaultSort?.key || null)
-	const sortOrder = ref(opts.defaultSort?.order || 'asc')
+	// `sortKeys` is the source of truth (ordered multi-column priority list);
+	// `sortKey`/`sortOrder` are kept as a primary-entry mirror so every
+	// existing reader of the pre-multi-sort refs keeps working unchanged.
+	const initialSortKeys = Array.isArray(opts.defaultSortKeys) && opts.defaultSortKeys.length > 0
+		? opts.defaultSortKeys
+		: (opts.defaultSort?.key ? [{ key: opts.defaultSort.key, order: opts.defaultSort.order || 'asc' }] : [])
+	const sortKeys = ref(initialSortKeys)
+	const sortKey = ref(initialSortKeys[0]?.key || null)
+	const sortOrder = ref(initialSortKeys[0]?.order || 'asc')
 	const activeFilters = ref({})
-	const visibleColumns = ref(null)
+	// Seed the visible-column set to the configured columns so the sidebar's
+	// Columns tab reflects the curated default and toggles add/remove from it.
+	// `null` (no seed) means "all columns visible" (schema-driven tables).
+	const visibleColumns = ref(opts.defaultVisibleColumns ?? null)
 	const pageSize = ref(opts.defaultPageSize || 20)
 
 	// ── Computed refs from the store ─────────────────────────────────────
 	const objects = computed(() => objectStore.collections[objectType] || [])
-	const loading = computed(() => objectStore.loading[objectType] || false)
+	// True from creation until the mount sequence below has issued its first
+	// fetch. The store's own flag only goes up once `fetchCollection` runs, and
+	// `onMounted` awaits `fetchSchema()` first — so for the length of that round
+	// trip the list was "not loading" with zero rows, and every consumer
+	// rendered its empty state ("No log entries to show") before any data had
+	// been asked for. Folded into `loading` rather than exposed separately so
+	// existing consumers get the fix without touching their templates.
+	const bootstrapping = ref(true)
+	const loading = computed(() => bootstrapping.value || objectStore.loading[objectType] || false)
 	const pagination = computed(
 		() => objectStore.pagination[objectType] || { total: 0, page: 1, pages: 1, limit: 20 },
 	)
@@ -71,6 +92,18 @@ export function useListView(objectTypeOrOptions, options) {
 	let searchTimeout = null
 
 	// ── Param construction ───────────────────────────────────────────────
+
+	/**
+	 * Resolve `opts.fixedFilters` to a plain map. Accepts a plain object OR a
+	 * function/getter returning one (so callers can derive it from reactive
+	 * sources — e.g. route params — and have it re-read on every fetch).
+	 *
+	 * @return {object} The fixed-filter map (may be empty).
+	 */
+	function resolveFixedFilters() {
+		const f = typeof opts.fixedFilters === 'function' ? opts.fixedFilters() : opts.fixedFilters
+		return (f && typeof f === 'object') ? f : {}
+	}
 
 	/**
 	 * Build API fetch params from current reactive state.
@@ -85,14 +118,26 @@ export function useListView(objectTypeOrOptions, options) {
 			params._search = searchTerm.value
 		}
 
-		if (sortKey.value) {
-			params._order = { [sortKey.value]: sortOrder.value }
+		if (sortKeys.value.length > 0) {
+			// Object key insertion order = sort priority order, matching
+			// OpenRegister's `_order` format exactly (`ObjectsController::
+			// normalizeOrderParameter` / `MagicMapper`'s ordering loop). A
+			// single active key produces byte-identical output to before.
+			params._order = Object.fromEntries(sortKeys.value.map((k) => [k.key, k.order]))
 		}
 
 		for (const [key, values] of Object.entries(activeFilters.value)) {
 			if (values && values.length > 0) {
 				// Single-value arrays are unwrapped to scalar params
 				params[key] = values.length === 1 ? values[0] : values
+			}
+		}
+
+		// Fixed filters (e.g. a route-param-scoped `pages[].config.filter`) are
+		// merged LAST so they always win over a colliding facet `activeFilter`.
+		for (const [key, value] of Object.entries(resolveFixedFilters())) {
+			if (value !== undefined && value !== null && value !== '') {
+				params[key] = value
 			}
 		}
 
@@ -127,11 +172,18 @@ export function useListView(objectTypeOrOptions, options) {
 	/**
 	 * Handle sort change. Updates sort state and triggers refresh.
 	 *
-	 * @param {{key: string, order: string}} sort New sort definition
+	 * Accepts CnDataTable's extended `sort` event payload: `keys` (the full
+	 * ordered multi-column list) is used when present; a legacy caller
+	 * passing only `{ key, order }` (no `keys`) still works exactly as
+	 * before — it's normalised to a single-entry `sortKeys` list.
+	 *
+	 * @param {{key: string|null, order: string|null, keys?: Array<{key: string, order: string}>}} sort New sort definition.
 	 */
-	function onSort({ key, order }) {
-		sortKey.value = key
-		sortOrder.value = order || 'asc'
+	function onSort({ key, order, keys }) {
+		const nextKeys = Array.isArray(keys) ? keys : (key ? [{ key, order: order || 'asc' }] : [])
+		sortKeys.value = nextKeys
+		sortKey.value = nextKeys[0]?.key ?? null
+		sortOrder.value = nextKeys[0]?.order ?? 'asc'
 		refresh(1)
 	}
 
@@ -210,11 +262,17 @@ export function useListView(objectTypeOrOptions, options) {
 	// ── Lifecycle ────────────────────────────────────────────────────────
 
 	onMounted(async () => {
-		schema.value = await objectStore.fetchSchema(objectType)
-		if (sidebarState) {
-			setupSidebar()
+		try {
+			schema.value = await objectStore.fetchSchema(objectType)
+			if (sidebarState) {
+				setupSidebar()
+			}
+			await refresh(1)
+		} finally {
+			// Hand the loading state back to the store either way: a schema
+			// fetch that rejects must not leave the list spinning forever.
+			bootstrapping.value = false
 		}
-		await refresh(1)
 	})
 
 	onBeforeUnmount(() => {
@@ -234,6 +292,7 @@ export function useListView(objectTypeOrOptions, options) {
 		searchTerm,
 		sortKey,
 		sortOrder,
+		sortKeys,
 		activeFilters,
 		visibleColumns,
 		pageSize,

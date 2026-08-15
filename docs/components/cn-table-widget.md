@@ -34,6 +34,7 @@ Compact data table with a card wrapper, title header, and optional "View all" fo
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `title` | String | `''` | Widget title shown in the card header with a total count badge |
+| `borderless` | Boolean | `false` | Drop the widget's own card chrome (border, background, radius) so the table sits flush inside a container that already provides a card (e.g. a `CnWidgetWrapper` dashboard slot) — avoids the double-card look |
 | `rows` | Array | `null` | External row data. When provided, no API calls are made |
 | `columns` | Array | `[]` | Column definitions: `[{ key, label, sortable? }]` |
 | `register` | String \| Number | `null` | OpenRegister register ID for self-fetch mode |

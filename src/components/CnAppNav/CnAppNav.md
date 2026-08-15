@@ -1,0 +1,161 @@
+CnAppNav renders the Nextcloud app sidebar navigation from a manifest's `menu[]` array. It is normally used inside CnAppRoot which provides the manifest via injection.
+
+Standalone usage with a manifest prop (for use without CnAppRoot):
+
+```vue {static}
+<template>
+  <div style="height: 400px; width: 260px; background: var(--color-main-background); border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden;">
+    <CnAppNav
+      :manifest="manifest"
+      :translate="(key) => key" />
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      manifest: {
+        menu: [
+          { id: 'dashboard', label: 'Dashboard', icon: 'icon-home', route: 'dashboard', order: 1 },
+          { id: 'objects', label: 'Objects', icon: 'icon-category-files', route: 'objects-index', order: 2 },
+          { id: 'schemas', label: 'Schemas', icon: 'icon-template', route: 'schemas-index', order: 3 },
+          { id: 'settings', label: 'Settings', icon: 'icon-settings', route: 'settings', section: 'settings', order: 10 },
+        ],
+      },
+    }
+  },
+}
+</script>
+```
+
+Permission filtering — pass a `permissions` array to hide menu items the user does not hold. Items with a `permission` field only render when their permission string appears in the `permissions` prop. When `permissions` is omitted or empty, all items are shown regardless:
+
+```vue {static}
+<template>
+  <div style="height: 300px; width: 260px; background: var(--color-main-background); border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden;">
+    <CnAppNav
+      :manifest="manifest"
+      :permissions="userPermissions"
+      :translate="(key) => key" />
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      userPermissions: ['objects:read'],
+      manifest: {
+        menu: [
+          { id: 'objects', label: 'Objects', icon: 'icon-category-files', route: 'objects-index', order: 1 },
+          { id: 'admin', label: 'Admin', icon: 'icon-settings', route: 'admin', order: 2, permission: 'admin:access' },
+        ],
+      },
+    }
+  },
+}
+</script>
+```
+
+Admin settings link-out (ADR-079) — the `isAdmin` prop controls whether the auto-prepended "Admin settings" entry appears inside the settings foldout, and the `appId` prop supplies its target. The entry is a **link** to `/settings/admin/<appId>`, not a modal: app-level configuration lives in Nextcloud's own settings framework, which authorizes that page server-side. `CnAppRoot` computes `isAdmin` from `getCurrentUser()?.isAdmin` (`@nextcloud/auth`) — never the legacy `OC.isUserAdmin()` global — and passes `appId` through; `appId` falls back to the injected `cnAppId`, and with neither available the link is suppressed rather than pointing at a broken URL. Both default to a state that hides the entry, so `CnAppNav` mounted standalone never shows it.
+
+`isAdmin` gates **visibility only** and is never an authorization decision — the access boundary is Nextcloud, which refuses `/settings/admin/<app>` for non-admins regardless of what the navigation renders.
+
+Owner gating — the `isOwner` prop is a **different** signal, meaning "owns this app" rather than "administers this instance". `CnAppRoot` computes it from `currentUserGroups` ∩ `permissions.owners` and/or a manifest `runtime.user` owner signal. It no longer gates the Admin settings entry, and the two props must not be conflated.
+
+`visibleIf.appInstalled` filter — a menu item can declare a `visibleIf` condition to hide cross-app links when the target app is not installed. The item only renders when the named Nextcloud app is found in `OC.appswebroots` (primary) or the capabilities API (fallback). Items without `visibleIf` are always visible (backwards-compatible).
+
+Typical use: a "View in launchpad" link that should only show when launchpad is enabled:
+
+```vue {static}
+<template>
+  <div style="height: 200px; width: 260px; background: var(--color-main-background); border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden;">
+    <CnAppNav
+      :manifest="manifest"
+      :translate="(key) => key" />
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      manifest: {
+        menu: [
+          { id: 'home', label: 'Home', icon: 'icon-home', route: 'home', order: 1 },
+          {
+            id: 'view-in-launchpad',
+            label: 'View in launchpad',
+            icon: 'icon-external',
+            href: '/index.php/apps/launchpad#scholiq-compliance',
+            order: 2,
+            visibleIf: { appInstalled: 'launchpad' },
+          },
+        ],
+      },
+    }
+  },
+}
+</script>
+```
+
+In the example above, "View in launchpad" renders only when `launchpad` is detected in `OC.appswebroots` or the capabilities bootstrap. In a fresh Nextcloud without launchpad the item is hidden entirely; once launchpad is installed and enabled it appears automatically on the next page load (results are cached per load). This satisfies the `feedback_mydash-no-or-dependency` guideline — cross-app links are runtime-conditional, not install-time dependencies.
+
+Primary action — render a "new" button or active-context switcher above the main list. The `primary-action` slot gives full control over dynamic content and click handling (use it when the label reflects live state, e.g. OpenRegister's active-organisation button); it takes precedence over a static `nav.primaryAction` ({ label, icon?, route?, href? }) manifest field. A page-scoped `pages[].primaryAction` for the active route wins over `nav.primaryAction`. Nothing renders when neither is provided.
+
+Search slot — the `search` slot is forwarded into `NcAppNavigation`'s `#search` slot. Mount your `NcAppNavigationSearch` here when the app exposes a global filter; otherwise the navigation renders no search input.
+
+```vue {static}
+<template>
+  <div style="height: 300px; width: 260px; background: var(--color-main-background); border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden;">
+    <CnAppNav
+      :manifest="manifest"
+      :translate="(key) => key">
+      <template #primary-action>
+        <NcAppNavigationNew text="Acme Corp" @click="() => {}" />
+      </template>
+    </CnAppNav>
+  </div>
+</template>
+<script>
+import { NcAppNavigationNew } from '@nextcloud/vue'
+export default {
+  components: { NcAppNavigationNew },
+  data() {
+    return {
+      manifest: {
+        menu: [
+          { id: 'home', label: 'Home', icon: 'icon-home', route: 'home', order: 1 },
+        ],
+      },
+    }
+  },
+}
+</script>
+```
+
+Naming the navigation landmark — the rendered `<nav>` is an ARIA landmark, and one with no accessible name is announced as just "navigation", indistinguishable from any other nav in the landmark list a screen-reader user tabs through (WCAG 2.4.6 / 1.3.1). `@nextcloud/vue` 9 enforces this: `NcAppNavigation` warns unless `ariaLabel` or `ariaLabelledby` is set.
+
+`ariaLabel` defaults to a translated "Main navigation", so every consumer is covered without a code change. Pass your own when an app renders more than one navigation — telling them apart is the entire purpose of the name:
+
+```vue {static}
+<template>
+  <div style="height: 200px; width: 260px; background: var(--color-main-background); border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden;">
+    <CnAppNav
+      :manifest="manifest"
+      aria-label="Project navigation"
+      :translate="(key) => key" />
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      manifest: {
+        menu: [
+          { id: 'home', label: 'Home', icon: 'icon-home', route: 'home', order: 1 },
+        ],
+      },
+    }
+  },
+}
+</script>
+```

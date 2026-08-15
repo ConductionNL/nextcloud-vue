@@ -1,1 +1,4 @@
-export { default as CnDeleteDialog } from './CnDeleteDialog.vue'
+import CnDeleteDialog from './CnDeleteDialog.vue'
+
+export default CnDeleteDialog
+export { CnDeleteDialog }

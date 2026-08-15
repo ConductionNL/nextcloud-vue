@@ -1,4 +1,4 @@
-import { ref, reactive } from 'vue'
+import { ref, reactive, toRaw } from 'vue'
 import { buildHeaders, buildQueryString } from '../utils/headers.js'
 import { parseResponseError, networkError } from '../utils/errors.js'
 
@@ -88,7 +88,17 @@ export function useSubResource(store, endpoint, options = {}) {
 
 			if (!response.ok) {
 				error.value = await parseResponseError(response, endpoint)
-				console.error(`Error fetching ${endpoint} for ${type}/${objectId}:`, error.value)
+				// Same contract as `createSubResourcePlugin` — see the long note
+				// there. A 404 is an expected answer for a sub-resource lookup and
+				// is already exposed via `error`; only genuine faults are logged,
+				// with the status and an unwrapped payload.
+				if (response.status !== 404) {
+					console.error(
+						`Error fetching ${endpoint} for ${type}/${objectId}: `
+						+ `${response.status} ${response.statusText}`,
+						toRaw(error.value),
+					)
+				}
 				return []
 			}
 

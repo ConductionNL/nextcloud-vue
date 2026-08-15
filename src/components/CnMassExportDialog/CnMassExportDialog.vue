@@ -2,10 +2,14 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="small"
-		:can-close="!loading"
+		:no-close="loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
-		<div v-if="result !== null" class="cn-mass-export__result">
+		<div v-if="result !== null"
+			class="cn-mass-export__result"
+			data-testid="cn-modal"
+			data-testid-modal="cn-mass-export-dialog"
+			data-testid-phase="result">
 			<NcNoteCard v-if="result.success" type="success">
 				{{ successText }}
 			</NcNoteCard>
@@ -15,19 +19,35 @@
 		</div>
 
 		<!-- Form phase -->
-		<div v-else class="cn-mass-export__form">
+		<div v-else
+			class="cn-mass-export__form"
+			data-testid="cn-modal"
+			data-testid-modal="cn-mass-export-dialog"
+			data-testid-phase="form">
 			<p v-if="description" class="cn-mass-export__description">
 				{{ description }}
 			</p>
+
+			<div v-if="entities.length > 0" class="cn-mass-export__field">
+				<label for="cn-mass-export-entity">{{ entityLabel }}</label>
+				<NcSelect
+					input-id="cn-mass-export-entity"
+					:label-outside="true"
+					:options="entities"
+					:model-value="selectedEntity"
+					:clearable="false"
+					@update:model-value="selectedEntity = $event" />
+			</div>
 
 			<div class="cn-mass-export__field">
 				<label for="cn-mass-export-format">{{ formatLabel }}</label>
 				<NcSelect
 					input-id="cn-mass-export-format"
-					:options="formatOptions"
-					:value="selectedFormat"
+					:label-outside="true"
+					:options="formats"
+					:model-value="selectedFormat"
 					:clearable="false"
-					@input="selectedFormat = $event" />
+					@update:model-value="selectedFormat = $event" />
 			</div>
 		</div>
 
@@ -37,7 +57,7 @@
 			</NcButton>
 			<NcButton
 				v-if="result === null"
-				type="primary"
+				variant="primary"
 				:disabled="loading"
 				@click="executeExport">
 				<template #icon>
@@ -52,7 +72,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
+import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
 import ExportIcon from 'vue-material-design-icons/Export.vue'
 
 /**
@@ -62,13 +82,14 @@ import ExportIcon from 'vue-material-design-icons/Export.vue'
  * The parent handles the actual download. Based on the OpenRegister
  * ExportRegister pattern.
  *
- * @example
+ * ```vue
  * <CnMassExportDialog
  *   v-if="showExportDialog"
  *   ref="exportDialog"
  *   description="Export 42 objects from Cases"
  *   @confirm="onExportConfirm"
  *   @close="showExportDialog = false" />
+ * ```
  *
  * // In methods:
  * async onExportConfirm({ format }) {
@@ -104,11 +125,13 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Export objects'),
 		},
+
 		/** Description text shown above the format selector */
 		description: {
 			type: String,
 			default: '',
 		},
+
 		/** Available export formats */
 		formats: {
 			type: Array,
@@ -117,46 +140,87 @@ export default {
 				{ id: 'csv', label: 'CSV (.csv)' },
 			],
 		},
+
 		/** Default selected format ID */
 		defaultFormat: {
 			type: String,
 			default: 'excel',
 		},
+
+		/**
+		 * Optional selectable entity types (`[{ id, label }]`) rendered as an
+		 * extra picker above the format selector — the export-launcher case
+		 * ("which dataset am I exporting?"). Empty (the default) hides the
+		 * picker and keeps the pre-existing format-only dialog. When set, the
+		 * `confirm` payload carries the chosen `entity` id.
+		 * @type {Array<{id: string, label: string}>}
+		 */
+		entities: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Optional default selected entity ID (first entity when unset).
+		 */
+		defaultEntity: {
+			type: String,
+			default: '',
+		},
+
+		/** Label for the entity selector. */
+		entityLabel: { type: String, default: () => t('nextcloud-vue', 'Entity') },
+
 		/** Success message */
 		successText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Export completed successfully.'),
 		},
+
+		/** Label for the export format selector */
 		formatLabel: { type: String, default: () => t('nextcloud-vue', 'Export format') },
+		/** Label for the cancel button */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the close button */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		/** Label for the confirm / primary action button */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Export') },
 	},
 
+	emits: ['close', 'confirm'],
+
 	data() {
 		const defaultOption = this.formats.find((f) => f.id === this.defaultFormat) || this.formats[0]
+		const defaultEntityOption = this.entities.find((e) => e.id === this.defaultEntity) || this.entities[0] || null
 		return {
 			selectedFormat: defaultOption,
+			selectedEntity: defaultEntityOption,
 			loading: false,
 			result: null,
 			closeTimeout: null,
 		}
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.closeTimeout) clearTimeout(this.closeTimeout)
 	},
 
 	methods: {
 		executeExport() {
 			this.loading = true
+			/**
+			 * @event confirm Emitted when the primary Export button is clicked.
+			 * @type {{ format: string, entity?: string }} `entity` is present only when the `entities` picker is configured.
+			 */
 			this.$emit('confirm', {
 				format: this.selectedFormat.id,
+				...(this.selectedEntity ? { entity: this.selectedEntity.id } : {}),
 			})
 		},
 
 		/**
 		 * Set the result of the export operation.
+		 *
 		 * @param {{ success?: boolean, error?: string }} resultData - Result data to pass to the dialog
 		 * @public
 		 */

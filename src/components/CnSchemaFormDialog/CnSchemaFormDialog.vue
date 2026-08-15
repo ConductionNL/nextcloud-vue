@@ -6,7 +6,8 @@
 		:dialog-title="dialogTitle"
 		entity-name="Schema"
 		:size="size"
-		:disable-save="!schemaItem.title"
+		:disable-save="!!saveDisabledReason"
+		:disable-save-tooltip="saveDisabledReason"
 		:success-text="resolvedSuccessText"
 		:cancel-label="cancelLabel"
 		:close-label="closeLabel"
@@ -19,14 +20,14 @@
 				<div v-if="schemaItem.id"
 					class="cn-schema-form__detail-item cn-schema-form__id-card">
 					<div class="cn-schema-form__id-card-header">
-						<span class="cn-schema-form__detail-label">ID / UUID:</span>
+						<span class="cn-schema-form__detail-label">{{ t('nextcloud-vue', 'ID / UUID:') }}</span>
 						<NcButton class="cn-schema-form__copy-button"
 							@click="copyToClipboard(schemaItem.uuid || schemaItem.id)">
 							<template #icon>
 								<Check v-if="isCopied" :size="20" />
 								<ContentCopy v-else :size="20" />
 							</template>
-							{{ isCopied ? 'Copied' : 'Copy' }}
+							{{ isCopied ? t('nextcloud-vue', 'Copied') : t('nextcloud-vue', 'Copy') }}
 						</NcButton>
 					</div>
 					<span class="cn-schema-form__detail-value">{{ schemaItem.id }}</span>
@@ -34,9 +35,9 @@
 						class="cn-schema-form__detail-value cn-schema-form__uuid-value">{{ schemaItem.uuid }}</span>
 				</div>
 				<div class="cn-schema-form__detail-item cn-schema-form__title-with-badge">
-					<NcTextField :disabled="dialogLoading"
-						label="Title *"
-						:value.sync="schemaItem.title" />
+					<NcTextField v-model="schemaItem.title"
+						:disabled="dialogLoading"
+						:label="t('nextcloud-vue', 'Title *')" />
 					<span v-if="schemaItem.allOf && schemaItem.allOf.length > 0"
 						class="cn-schema-form__statusPill cn-schema-form__statusPill--success">
 						allOf
@@ -51,20 +52,20 @@
 					</span>
 				</div>
 				<div v-if="schemaItem.created" class="cn-schema-form__detail-item">
-					<span class="cn-schema-form__detail-label">Created:</span>
+					<span class="cn-schema-form__detail-label">{{ t('nextcloud-vue', 'Created:') }}</span>
 					<span class="cn-schema-form__detail-value">{{ new Date(schemaItem.created).toLocaleString() }}</span>
 				</div>
 				<div v-if="schemaItem.updated" class="cn-schema-form__detail-item">
-					<span class="cn-schema-form__detail-label">Updated:</span>
+					<span class="cn-schema-form__detail-label">{{ t('nextcloud-vue', 'Updated:') }}</span>
 					<span class="cn-schema-form__detail-value">{{ new Date(schemaItem.updated).toLocaleString() }}</span>
 				</div>
 				<div class="cn-schema-form__detail-item">
-					<span class="cn-schema-form__detail-label">Version:</span>
-					<span class="cn-schema-form__detail-value">{{ schemaItem.version || 'Not set' }}</span>
+					<span class="cn-schema-form__detail-label">{{ t('nextcloud-vue', 'Version:') }}</span>
+					<span class="cn-schema-form__detail-value">{{ schemaItem.version || t('nextcloud-vue', 'Not set') }}</span>
 				</div>
 				<div class="cn-schema-form__detail-item">
-					<span class="cn-schema-form__detail-label">Owner:</span>
-					<span class="cn-schema-form__detail-value">{{ schemaItem.owner || 'Not set' }}</span>
+					<span class="cn-schema-form__detail-label">{{ t('nextcloud-vue', 'Owner:') }}</span>
+					<span class="cn-schema-form__detail-value">{{ schemaItem.owner || t('nextcloud-vue', 'Not set') }}</span>
 				</div>
 			</div>
 		</template>
@@ -77,6 +78,7 @@
 				:selected-property="selectedProperty"
 				:properties-modified="propertiesModified"
 				:original-properties="originalProperties"
+				:inherited-properties="inheritedProperties"
 				:type-options-for-select="typeOptionsForSelect"
 				:available-schemas="availableSchemas"
 				:available-registers="availableRegisters"
@@ -109,7 +111,8 @@
 				:sorted-user-groups="sortedUserGroups"
 				:loading-groups="loadingGroups"
 				:has-any-permissions="hasAnyPermissions"
-				:is-restrictive-schema="isRestrictiveSchema" />
+				:is-restrictive-schema="isRestrictiveSchema"
+				:inherited-properties="inheritedProperties" />
 		</template>
 
 		<!-- Optional Action Buttons (edit mode only) -->
@@ -144,7 +147,7 @@
 				</NcButton>
 				<NcButton
 					v-if="showDeleteObjects"
-					v-tooltip="objectCount > 0 ? deleteObjectsTooltip : noDeleteObjectsTooltip"
+					:title="objectCount > 0 ? deleteObjectsTooltip : noDeleteObjectsTooltip"
 					:disabled="dialogLoading || objectCount === 0"
 					@click="$emit('delete-objects')">
 					<template #icon>
@@ -154,7 +157,7 @@
 				</NcButton>
 				<NcButton
 					v-if="showPublishObjects"
-					v-tooltip="objectCount > 0 ? publishObjectsTooltip : noPublishObjectsTooltip"
+					:title="objectCount > 0 ? publishObjectsTooltip : noPublishObjectsTooltip"
 					:disabled="dialogLoading || objectCount === 0"
 					@click="$emit('publish-objects')">
 					<template #icon>
@@ -164,9 +167,9 @@
 				</NcButton>
 				<NcButton
 					v-if="showDelete"
-					v-tooltip="objectCount > 0 ? cannotDeleteTooltip : ''"
+					:title="objectCount > 0 ? cannotDeleteTooltip : ''"
 					:disabled="dialogLoading || objectCount > 0"
-					type="error"
+					variant="error"
 					@click="$emit('delete-schema')">
 					<template #icon>
 						<TrashCanOutline :size="20" />
@@ -179,6 +182,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import {
 	NcButton,
 	NcTextField,
@@ -252,6 +256,8 @@ export default {
 		availableTags: { type: Array, default: () => [] },
 		/** Whether user groups are still loading */
 		loadingGroups: { type: Boolean, default: false },
+		/** Properties inherited from parent schemas (allOf) — shown as locked rows in the properties tab */
+		inheritedProperties: { type: Object, default: () => ({}) },
 		/** Number of objects attached to this schema (used for action button disable logic) */
 		objectCount: { type: Number, default: 0 },
 		// Optional action button visibility
@@ -268,26 +274,47 @@ export default {
 		/** Show "Delete" button */
 		showDelete: { type: Boolean, default: false },
 		// Labels (pre-translated strings with English defaults)
-		cancelLabel: { type: String, default: 'Cancel' },
-		closeLabel: { type: String, default: 'Close' },
+		/** Label for the cancel button shown while editing. */
+		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the close button shown after a save or error. */
+		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
 		/** Confirm button label. Defaults to "Create" or "Save". */
 		confirmLabel: { type: String, default: '' },
 		/** Success message. Defaults to "Schema saved successfully." */
 		successText: { type: String, default: '' },
-		extendSchemaLabel: { type: String, default: 'Extend Schema' },
-		analyzePropertiesLabel: { type: String, default: 'Analyze Properties' },
-		validateObjectsLabel: { type: String, default: 'Validate Objects' },
-		deleteObjectsLabel: { type: String, default: 'Delete Objects' },
-		publishObjectsLabel: { type: String, default: 'Publish Objects' },
-		deleteLabel: { type: String, default: 'Delete' },
-		deleteObjectsTooltip: { type: String, default: 'Delete all objects in this schema' },
-		publishObjectsTooltip: { type: String, default: 'Publish all objects in this schema' },
+		/** Label for the Extend Schema action button. */
+		extendSchemaLabel: { type: String, default: () => t('nextcloud-vue', 'Extend schema') },
+		/** Label for the Analyze Properties action button. */
+		analyzePropertiesLabel: { type: String, default: () => t('nextcloud-vue', 'Analyze properties') },
+		/** Label for the Validate Objects action button. */
+		validateObjectsLabel: { type: String, default: () => t('nextcloud-vue', 'Validate objects') },
+		/** Label for the Delete Objects action button. */
+		deleteObjectsLabel: { type: String, default: () => t('nextcloud-vue', 'Delete objects') },
+		/** Label for the Publish Objects action button. */
+		publishObjectsLabel: { type: String, default: () => t('nextcloud-vue', 'Publish objects') },
+		/** Label for the Delete schema button shown in edit mode. */
+		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
+		/** Tooltip for the Delete Objects button when objects exist. */
+		deleteObjectsTooltip: { type: String, default: () => t('nextcloud-vue', 'Delete all objects in this schema') },
+		/** Tooltip for the Publish Objects button when objects exist. */
+		publishObjectsTooltip: { type: String, default: () => t('nextcloud-vue', 'Publish all objects in this schema') },
 		/** Tooltip for the Delete Objects button when no objects exist */
-		noDeleteObjectsTooltip: { type: String, default: 'No objects to delete' },
+		noDeleteObjectsTooltip: { type: String, default: () => t('nextcloud-vue', 'No objects to delete') },
 		/** Tooltip for the Publish Objects button when no objects exist */
-		noPublishObjectsTooltip: { type: String, default: 'No objects to publish' },
-		cannotDeleteTooltip: { type: String, default: 'Cannot delete: objects are still attached' },
+		noPublishObjectsTooltip: { type: String, default: () => t('nextcloud-vue', 'No objects to publish') },
+		/** Tooltip for the Delete schema button while objects are still attached. */
+		cannotDeleteTooltip: { type: String, default: () => t('nextcloud-vue', 'Cannot delete: objects are still attached') },
 	},
+	emits: [
+		'analyze-properties',
+		'close',
+		'confirm',
+		'delete-objects',
+		'delete-schema',
+		'extend-schema',
+		'publish-objects',
+		'validate-objects',
+	],
 	data() {
 		return {
 			isCopied: false,
@@ -309,11 +336,13 @@ export default {
 					allowFiles: false,
 					allowedTags: [],
 					autoPublish: false,
+					defaultAutoShare: false,
 				},
 				authorization: {},
 				hardValidation: false,
 				immutable: false,
 				searchable: true,
+				icon: null,
 				maxDepth: 0,
 			},
 		}
@@ -326,14 +355,14 @@ export default {
 		 */
 		dialogTabs() {
 			return [
-				{ id: 'properties', title: 'Properties' },
-				{ id: 'configuration', title: 'Configuration' },
-				{ id: 'security', title: 'Security' },
+				{ id: 'properties', title: t('nextcloud-vue', 'Properties') },
+				{ id: 'configuration', title: t('nextcloud-vue', 'Configuration') },
+				{ id: 'security', title: t('nextcloud-vue', 'Security') },
 			]
 		},
 		sortedUserGroups() {
 			return this.userGroups
-				.filter(group => group.id !== 'admin' && group.id !== 'public')
+				.filter(group => group.id !== 'admin' && group.id !== 'public' && group.id !== 'authenticated')
 				.sort((a, b) => {
 					const nameA = a.displayname || a.id
 					const nameB = b.displayname || b.id
@@ -356,20 +385,21 @@ export default {
 		},
 		typeOptionsForSelect() {
 			return [
-				{ id: 'string', label: 'String' },
-				{ id: 'number', label: 'Number' },
-				{ id: 'integer', label: 'Integer' },
-				{ id: 'boolean', label: 'Boolean' },
-				{ id: 'array', label: 'Array' },
-				{ id: 'object', label: 'Object' },
-				{ id: 'dictionary', label: 'Dictionary' },
-				{ id: 'file', label: 'File' },
-				{ id: 'oneOf', label: 'One Of' },
+				{ id: 'string', label: t('nextcloud-vue', 'String') },
+				{ id: 'number', label: t('nextcloud-vue', 'Number') },
+				{ id: 'integer', label: t('nextcloud-vue', 'Integer') },
+				{ id: 'boolean', label: t('nextcloud-vue', 'Boolean') },
+				{ id: 'array', label: t('nextcloud-vue', 'Array') },
+				{ id: 'object', label: t('nextcloud-vue', 'Object') },
+				{ id: 'dictionary', label: t('nextcloud-vue', 'Dictionary') },
+				{ id: 'file', label: t('nextcloud-vue', 'File') },
+				{ id: 'oneOf', label: t('nextcloud-vue', 'One of') },
 			]
 		},
 		propertyOptions() {
-			const properties = this.schemaItem.properties || {}
-			return ['', ...Object.keys(properties)]
+			const ownKeys = Object.keys(this.schemaItem.properties || {}).filter(k => k !== '')
+			const inheritedKeys = Object.keys(this.inheritedProperties || {}).filter(k => k !== '')
+			return [...new Set([...inheritedKeys, ...ownKeys])]
 		},
 		availableTagsOptions() {
 			return this.availableTags.map(tag => ({
@@ -384,8 +414,25 @@ export default {
 		 */
 		resolvedSuccessText() {
 			if (this.successText) return this.successText
-			return 'Schema saved successfully.'
+			return t('nextcloud-vue', '{title} saved successfully.', { title: t('nextcloud-vue', 'Schema') })
 		},
+		/**
+		 * Returns a human-readable reason the save button is disabled, or '' when saving is allowed.
+		 * Used for both :disable-save and the WCAG tooltip/aria-label on the button.
+		 *
+		 * @return {string}
+		 */
+		saveDisabledReason() {
+			if (!this.schemaItem.title) {
+				return t('nextcloud-vue', 'A schema title is required before saving')
+			}
+			const hasUnnamedProperty = Object.keys(this.schemaItem.properties || {}).some(key => key === '')
+			if (hasUnnamedProperty) {
+				return t('nextcloud-vue', 'All properties must have a name before saving')
+			}
+			return ''
+		},
+
 		allOfSchemaNames() {
 			if (!this.schemaItem.allOf || !Array.isArray(this.schemaItem.allOf) || this.schemaItem.allOf.length === 0) {
 				return []
@@ -415,52 +462,52 @@ export default {
 						if (property) {
 							// Initialize nested objects if they don't exist
 							if (property.type === 'array' && !property.items) {
-								this.$set(this.schemaItem.properties[key], 'items', { type: 'string' })
+								this.schemaItem.properties[key].items = { type: 'string' }
 							}
 							if (property.type === 'object' && !property.objectConfiguration) {
-								this.$set(this.schemaItem.properties[key], 'objectConfiguration', { handling: 'nested-object' })
+								this.schemaItem.properties[key].objectConfiguration = { handling: 'nested-object' }
 							}
 							if (property.type === 'array' && property.items && property.items.type === 'object' && !property.items.objectConfiguration) {
-								this.$set(this.schemaItem.properties[key].items, 'objectConfiguration', { handling: 'nested-object' })
+								this.schemaItem.properties[key].items.objectConfiguration = { handling: 'nested-object' }
 							}
 
 							// Convert property type from object to string
 							if (property.type && typeof property.type === 'object' && property.type.id) {
-								this.$set(this.schemaItem.properties[key], 'type', property.type.id)
+								this.schemaItem.properties[key].type = property.type.id
 							}
 
 							// Convert property format from object to string
 							if (property.format && typeof property.format === 'object' && property.format.id) {
-								this.$set(this.schemaItem.properties[key], 'format', property.format.id)
+								this.schemaItem.properties[key].format = property.format.id
 							}
 
 							// Convert array item type from object to string
 							if (property.items && property.items.type && typeof property.items.type === 'object' && property.items.type.id) {
-								this.$set(this.schemaItem.properties[key].items, 'type', property.items.type.id)
+								this.schemaItem.properties[key].items.type = property.items.type.id
 							}
 
 							// Convert object handling from object to string
 							if (property.objectConfiguration && property.objectConfiguration.handling
 								&& typeof property.objectConfiguration.handling === 'object' && property.objectConfiguration.handling.id) {
-								this.$set(this.schemaItem.properties[key].objectConfiguration, 'handling', property.objectConfiguration.handling.id)
+								this.schemaItem.properties[key].objectConfiguration.handling = property.objectConfiguration.handling.id
 							}
 
 							// Convert register from object to ID
 							if (property.objectConfiguration && property.objectConfiguration.register
 								&& typeof property.objectConfiguration.register === 'object' && property.objectConfiguration.register.id) {
-								this.$set(this.schemaItem.properties[key].objectConfiguration, 'register', property.objectConfiguration.register.id)
+								this.schemaItem.properties[key].objectConfiguration.register = property.objectConfiguration.register.id
 							}
 
 							// Convert array item object handling from object to string
 							if (property.items && property.items.objectConfiguration && property.items.objectConfiguration.handling
 								&& typeof property.items.objectConfiguration.handling === 'object' && property.items.objectConfiguration.handling.id) {
-								this.$set(this.schemaItem.properties[key].items.objectConfiguration, 'handling', property.items.objectConfiguration.handling.id)
+								this.schemaItem.properties[key].items.objectConfiguration.handling = property.items.objectConfiguration.handling.id
 							}
 
 							// Convert array item register from object to ID
 							if (property.items && property.items.objectConfiguration && property.items.objectConfiguration.register
 								&& typeof property.items.objectConfiguration.register === 'object' && property.items.objectConfiguration.register.id) {
-								this.$set(this.schemaItem.properties[key].items.objectConfiguration, 'register', property.items.objectConfiguration.register.id)
+								this.schemaItem.properties[key].items.objectConfiguration.register = property.items.objectConfiguration.register.id
 							}
 
 							// Ensure $ref is always a string
@@ -468,12 +515,12 @@ export default {
 
 							// Ensure inversedBy is always a string for regular properties
 							if (property.inversedBy && typeof property.inversedBy === 'object' && property.inversedBy.id) {
-								this.$set(this.schemaItem.properties[key], 'inversedBy', property.inversedBy.id)
+								this.schemaItem.properties[key].inversedBy = property.inversedBy.id
 							}
 
 							// Ensure inversedBy is always a string for array items
 							if (property.items && property.items.inversedBy && typeof property.items.inversedBy === 'object' && property.items.inversedBy.id) {
-								this.$set(this.schemaItem.properties[key].items, 'inversedBy', property.items.inversedBy.id)
+								this.schemaItem.properties[key].items.inversedBy = property.items.inversedBy.id
 							}
 						}
 					})
@@ -484,6 +531,7 @@ export default {
 		},
 	},
 	methods: {
+		t,
 		findSchemaBySlug(schemaSlug) {
 			if (!schemaSlug) return undefined
 			return this.availableSchemas.find(schema =>
@@ -519,76 +567,17 @@ export default {
 				this.$refs.dialog.resetDialog()
 			}
 
-			if (this.item && this.item.id) {
-				this.schemaItem = {
-					...this.schemaItem,
-					...JSON.parse(JSON.stringify(this.item)),
-				}
-
-				// Ensure configuration object exists
-				if (!this.schemaItem.configuration) {
-					this.schemaItem.configuration = {
-						objectNameField: '',
-						objectDescriptionField: '',
-						objectImageField: '',
-						objectSummaryField: '',
-						allowFiles: false,
-						allowedTags: [],
-					}
-				} else {
-					if (!this.schemaItem.configuration.objectNameField) {
-						this.schemaItem.configuration.objectNameField = ''
-					}
-					if (!this.schemaItem.configuration.objectDescriptionField) {
-						this.schemaItem.configuration.objectDescriptionField = ''
-					}
-					if (!this.schemaItem.configuration.objectImageField) {
-						this.schemaItem.configuration.objectImageField = ''
-					}
-					if (!this.schemaItem.configuration.objectSummaryField) {
-						this.schemaItem.configuration.objectSummaryField = ''
-					}
-					if (this.schemaItem.configuration.allowFiles === undefined) {
-						this.schemaItem.configuration.allowFiles = false
-					}
-					if (!this.schemaItem.configuration.allowedTags) {
-						this.schemaItem.configuration.allowedTags = []
-					}
-					if (this.schemaItem.configuration.autoPublish === undefined) {
-						this.schemaItem.configuration.autoPublish = false
-					}
-				}
-
-				// Ensure authorization object exists
-				if (!this.schemaItem.authorization) {
-					this.schemaItem.authorization = {}
-				}
-
-				// Ensure existing properties have facetable set to false by default
-				Object.keys(this.schemaItem.properties || {}).forEach(key => {
-					if (this.schemaItem.properties[key].facetable === undefined) {
-						this.$set(this.schemaItem.properties[key], 'facetable', false)
-					}
-
-					if (this.schemaItem.properties[key].enum && Array.isArray(this.schemaItem.properties[key].enum)) {
-						this.$set(this.schemaItem.properties[key], 'enum', [...this.schemaItem.properties[key].enum])
-					}
-
-					const property = this.schemaItem.properties[key]
-					if (property.type === 'array' && property.items && property.items.type === 'object' && !property.items.objectConfiguration) {
-						this.$set(this.schemaItem.properties[key].items, 'objectConfiguration', { handling: 'nested-object' })
-					}
-				})
-
-				// Ensure all $ref values are strings and migrate old structure
-				Object.keys(this.schemaItem.properties || {}).forEach(key => {
-					this.ensureRefIsString(this.schemaItem.properties, key)
-					this.migratePropertyToNewStructure(key)
-				})
-
-				this.originalProperties = JSON.parse(JSON.stringify(this.schemaItem.properties || {}))
-			} else {
-				this.schemaItem.configuration = {
+			// Always rebuild schemaItem from defaults + incoming item. This handles
+			// create mode (item null), edit mode (item with id), and extend mode
+			// (item non-null with no id) without leaking stale state across opens.
+			const defaults = {
+				title: '',
+				version: '0.0.0',
+				description: '',
+				summary: '',
+				slug: '',
+				properties: {},
+				configuration: {
 					objectNameField: '',
 					objectDescriptionField: '',
 					objectImageField: '',
@@ -596,9 +585,84 @@ export default {
 					allowFiles: false,
 					allowedTags: [],
 					autoPublish: false,
-				}
-				this.originalProperties = {}
+					defaultAutoShare: false,
+				},
+				authorization: {},
+				hardValidation: false,
+				immutable: false,
+				searchable: true,
+				icon: null,
+				maxDepth: 0,
 			}
+			this.schemaItem = this.item
+				? { ...defaults, ...JSON.parse(JSON.stringify(this.item)) }
+				: { ...defaults }
+
+			// Ensure configuration object has all expected keys (the spread above may
+			// have replaced our defaults with a partial configuration from the item)
+			if (!this.schemaItem.configuration) {
+				this.schemaItem.configuration = { ...defaults.configuration }
+			} else {
+				if (!this.schemaItem.configuration.objectNameField) {
+					this.schemaItem.configuration.objectNameField = ''
+				}
+				if (!this.schemaItem.configuration.objectDescriptionField) {
+					this.schemaItem.configuration.objectDescriptionField = ''
+				}
+				if (!this.schemaItem.configuration.objectImageField) {
+					this.schemaItem.configuration.objectImageField = ''
+				}
+				if (!this.schemaItem.configuration.objectSummaryField) {
+					this.schemaItem.configuration.objectSummaryField = ''
+				}
+				if (this.schemaItem.configuration.allowFiles === undefined) {
+					this.schemaItem.configuration.allowFiles = false
+				}
+				if (!this.schemaItem.configuration.allowedTags) {
+					this.schemaItem.configuration.allowedTags = []
+				}
+				if (this.schemaItem.configuration.autoPublish === undefined) {
+					this.schemaItem.configuration.autoPublish = false
+				}
+				if (this.schemaItem.configuration.defaultAutoShare === undefined) {
+					this.schemaItem.configuration.defaultAutoShare = false
+				}
+			}
+
+			// Ensure authorization object exists
+			if (!this.schemaItem.authorization) {
+				this.schemaItem.authorization = {}
+			}
+
+			// Ensure existing properties have facetable set to false by default
+			Object.keys(this.schemaItem.properties || {}).forEach(key => {
+				if (this.schemaItem.properties[key].facetable === undefined) {
+					this.schemaItem.properties[key].facetable = false
+				}
+
+				if (this.schemaItem.properties[key].enum && Array.isArray(this.schemaItem.properties[key].enum)) {
+					this.schemaItem.properties[key].enum = [...this.schemaItem.properties[key].enum]
+				}
+
+				const property = this.schemaItem.properties[key]
+				if (property.type === 'array' && property.items && property.items.type === 'object' && !property.items.objectConfiguration) {
+					this.schemaItem.properties[key].items.objectConfiguration = { handling: 'nested-object' }
+				}
+			})
+
+			// Ensure all $ref values are strings and migrate old structure
+			Object.keys(this.schemaItem.properties || {}).forEach(key => {
+				this.ensureRefIsString(this.schemaItem.properties, key)
+				this.migratePropertyToNewStructure(key)
+			})
+
+			// Snapshot original properties for change detection. For new/extending
+			// items (no id), there's no "original" — start empty so any added
+			// properties register as modifications.
+			this.originalProperties = this.schemaItem.id
+				? JSON.parse(JSON.stringify(this.schemaItem.properties || {}))
+				: {}
+
 			this.propertiesModified = false
 		},
 
@@ -622,41 +686,33 @@ export default {
 		},
 
 		addProperty() {
-			let newPropertyName = 'new'
-			let counter = 1
-
-			while (this.schemaItem.properties[newPropertyName]) {
-				counter++
-				newPropertyName = `new_${counter}`
-			}
-
-			this.$set(this.schemaItem.properties, newPropertyName, {
+			this.schemaItem.properties[''] = {
 				type: 'string',
 				format: '',
-				title: newPropertyName,
+				title: '',
 				description: '',
 				facetable: false,
-			})
+			}
 
 			this.checkPropertiesModified()
-			this.selectedProperty = newPropertyName
+			this.selectedProperty = ''
 		},
 
 		updatePropertyKey(oldKey, newKey) {
-			if (!newKey || newKey === oldKey) return
-			if (this.schemaItem.properties[newKey] && newKey !== oldKey) return
+			if (newKey === oldKey) return
+			if (this.schemaItem.properties[newKey] !== undefined && newKey !== oldKey) return
 
 			const propertyData = { ...this.schemaItem.properties[oldKey] }
 
-			this.$set(this.schemaItem.properties, newKey, propertyData)
-			this.$delete(this.schemaItem.properties, oldKey)
+			this.schemaItem.properties[newKey] = propertyData
+			delete this.schemaItem.properties[oldKey]
 
 			this.selectedProperty = newKey
 			this.checkPropertiesModified()
 		},
 
 		deleteProperty(key) {
-			this.$delete(this.schemaItem.properties, key)
+			delete this.schemaItem.properties[key]
 
 			if (this.selectedProperty === key) {
 				this.selectedProperty = null
@@ -678,10 +734,10 @@ export default {
 				}
 
 				const originalTitle = originalProperty.title || key
-				this.$set(this.schemaItem.properties, newPropertyName, {
+				this.schemaItem.properties[newPropertyName] = {
 					...originalProperty,
 					title: `${originalTitle} (copy)`,
-				})
+				}
 
 				this.checkPropertiesModified()
 				this.selectedProperty = newPropertyName
@@ -711,6 +767,19 @@ export default {
 				}
 			})
 
+			// NcSelect (track-by="id") can convert plain IDs to full option objects.
+			// Normalise back to plain IDs before emitting so the backend always gets scalars.
+			for (const field of ['allOf', 'oneOf', 'anyOf']) {
+				if (Array.isArray(cleanedSchemaItem[field])) {
+					cleanedSchemaItem[field] = cleanedSchemaItem[field]
+						.map(ref => (typeof ref === 'object' && ref !== null ? ref.id : ref))
+						.filter(id => id != null && id !== '')
+					if (cleanedSchemaItem[field].length === 0) {
+						delete cleanedSchemaItem[field]
+					}
+				}
+			}
+
 			this.$emit('confirm', cleanedSchemaItem)
 		},
 
@@ -736,14 +805,14 @@ export default {
 
 			if (property.$ref && property.register && !property.objectConfiguration?.register) {
 				if (!property.objectConfiguration) {
-					this.$set(this.schemaItem.properties[key], 'objectConfiguration', { handling: 'related-object' })
+					this.schemaItem.properties[key].objectConfiguration = { handling: 'related-object' }
 				}
 
 				const registerId = typeof property.register === 'object' && property.register.id
 					? property.register.id
 					: property.register
 
-				this.$set(this.schemaItem.properties[key].objectConfiguration, 'register', registerId)
+				this.schemaItem.properties[key].objectConfiguration.register = registerId
 
 				if (property.$ref) {
 					let schemaSlug = property.$ref
@@ -753,21 +822,21 @@ export default {
 
 					const referencedSchema = this.findSchemaBySlug(schemaSlug)
 					if (referencedSchema) {
-						this.$set(this.schemaItem.properties[key].objectConfiguration, 'schema', referencedSchema.id)
+						this.schemaItem.properties[key].objectConfiguration.schema = referencedSchema.id
 					}
 				}
 			}
 
 			if (property.items && property.items.$ref && property.items.register && !property.items.objectConfiguration?.register) {
 				if (!property.items.objectConfiguration) {
-					this.$set(this.schemaItem.properties[key].items, 'objectConfiguration', { handling: 'related-object' })
+					this.schemaItem.properties[key].items.objectConfiguration = { handling: 'related-object' }
 				}
 
 				const registerId = typeof property.items.register === 'object' && property.items.register.id
 					? property.items.register.id
 					: property.items.register
 
-				this.$set(this.schemaItem.properties[key].items.objectConfiguration, 'register', registerId)
+				this.schemaItem.properties[key].items.objectConfiguration.register = registerId
 
 				if (property.items.$ref) {
 					let schemaSlug = property.items.$ref
@@ -777,7 +846,7 @@ export default {
 
 					const referencedSchema = this.findSchemaBySlug(schemaSlug)
 					if (referencedSchema) {
-						this.$set(this.schemaItem.properties[key].items.objectConfiguration, 'schema', referencedSchema.id)
+						this.schemaItem.properties[key].items.objectConfiguration.schema = referencedSchema.id
 					}
 				}
 			}

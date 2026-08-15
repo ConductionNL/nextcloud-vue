@@ -15,10 +15,11 @@ A generic tabbed dialog for create/edit forms. Provides the standard dialog shel
 | `tabs` | `Array<{ id, title, icon?, disabled? }>` | required | Tab definitions. `icon` is a Vue component reference |
 | `item` | `Object\|null` | `null` | Existing item = edit mode; `null` = create mode |
 | `dialogTitle` | `String` | `''` | Custom title (overrides auto-generated) |
-| `entityName` | `String` | `'Item'` | Used in auto-titles: "Create {name}" / "Edit {name}" |
+| `entityName` | `String` | `'Item'` | Used in auto-titles: `"Create \{name\}"` / `"Edit \{name\}"` |
 | `size` | `String` | `'large'` | NcDialog size |
 | `showCreateAnother` | `Boolean` | `false` | Show "Create Another" checkbox in create mode |
 | `disableSave` | `Boolean` | `false` | Disable primary button (parent controls validation) |
+| `disableSaveTooltip` | `String` | `''` | Tooltip shown on the save button when it is disabled — explains the blocked state to the user (also used as `aria-label` for accessibility). |
 | `successText` | `String` | `''` | Custom success message |
 | `cancelLabel` | `String` | `'Cancel'` | Cancel button text |
 | `closeLabel` | `String` | `'Close'` | Close button text (result phase) |

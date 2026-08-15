@@ -1,8 +1,15 @@
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnNotesCard.md'
+
 # CnNotesCard
 
 Inline notes widget for detail pages. Fetches notes from the OpenRegister API, shows the most recent entries (up to `maxDisplay`), and includes an add-note form. Author names are wrapped with `CnUserActionMenu` for quick communication. Own notes show a delete button on hover.
 
 **Wraps**: CnDetailCard, CnUserActionMenu
+
+## Try it
+
+<Playground component="CnNotesCard" />
 
 ## Usage
 
@@ -53,3 +60,9 @@ Pass pre-translated labels when your app handles i18n:
 | `note-added` | — | Emitted after a note has been successfully created |
 | `note-deleted` | — | Emitted after a note has been successfully deleted |
 | `show-all` | — | Emitted when the "Show all" footer link is clicked |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnNotesCard.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnNotesCard/CnNotesCard.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

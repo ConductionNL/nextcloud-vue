@@ -2,11 +2,18 @@
 sidebar_position: 11
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnStatsBlock.md'
+
 # CnStatsBlock
 
 Statistics display card with icon, count, and optional breakdown. Used inside CnKpiGrid.
 
 **Wraps**: NcLoadingIcon
+
+## Try it
+
+<Playground component="CnStatsBlock" />
 
 ![CnStatsBlock showing pipeline statistics](/img/screenshots/cn-stats-block.png)
 
@@ -27,6 +34,7 @@ Statistics display card with icon, count, and optional breakdown. Used inside Cn
 | `horizontal` | Boolean | `false` | Icon-left layout |
 | `clickable` | Boolean | `false` | Enable click interaction |
 | `showZeroCount` | Boolean | `false` | Display 0 as a count value instead of the empty label |
+| `route` | Object | `null` | Vue Router location object (`{ name, path, query, ... }`). When set, the card renders as a `<router-link>` and clickable styles are applied automatically. |
 
 ## Events
 
@@ -36,9 +44,10 @@ Statistics display card with icon, count, and optional breakdown. Used inside Cn
 
 ## Slots
 
-| Slot | Description |
-|------|-------------|
-| `#icon` | Custom icon content |
+| Slot | Bindings | Description |
+|------|----------|-------------|
+| `#icon` | — | Custom icon content |
+| `#value` | `count` (number), `formatted` (string) | Override the prominently-displayed value with a pre-formatted string (currency, percent, a `—` placeholder, …). `count` stays the raw number — this is presentation only. Defaults to the localized count. When provided, the value area always renders (even at count 0). |
 
 ## Usage
 
@@ -53,3 +62,23 @@ Statistics display card with icon, count, and optional breakdown. Used inside Cn
   :clickable="true"
   @click="navigateToContacts" />
 ```
+
+### Formatted value via the `#value` slot
+
+Keep `count` numeric and format the displayed value in the slot (currency, percent, a `—` placeholder):
+
+```vue
+<CnStatsBlock title="Total Pipeline Value" :count="totalValue" count-label="open opportunities">
+  <template #value>{{ formatCurrency(totalValue) }}</template>
+</CnStatsBlock>
+
+<CnStatsBlock title="Win Rate" :count="winRate ?? 0" count-label="closed deals">
+  <template #value>{{ winRate === null ? '—' : Math.round(winRate * 100) + '%' }}</template>
+</CnStatsBlock>
+```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnStatsBlock.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnStatsBlock/CnStatsBlock.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

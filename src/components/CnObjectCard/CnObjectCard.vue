@@ -2,12 +2,13 @@
 	<div
 		class="cn-object-card"
 		:class="{ 'cn-object-card--selected': selected }"
-		@click="$emit('click', object)">
+		@mousedown="onPointerDown"
+		@click="onCardClick($event)">
 		<!-- Selection checkbox -->
 		<div v-if="selectable" class="cn-object-card__checkbox" @click.stop>
 			<NcCheckboxRadioSwitch
-				:checked="selected"
-				@update:checked="$emit('select', object)" />
+				:model-value="selected"
+				@update:model-value="$emit('select', object)" />
 		</div>
 
 		<!-- Card content -->
@@ -31,7 +32,7 @@
 			</div>
 
 			<!-- Badges slot -->
-			<div v-if="$scopedSlots.badges" class="cn-object-card__badges">
+			<div v-if="$slots.badges" class="cn-object-card__badges">
 				<slot name="badges" :object="object" />
 			</div>
 
@@ -53,7 +54,7 @@
 		</div>
 
 		<!-- Actions slot -->
-		<div v-if="$scopedSlots.actions" class="cn-object-card__actions" @click.stop>
+		<div v-if="$slots.actions" class="cn-object-card__actions" @click.stop>
 			<slot name="actions" :object="object" />
 		</div>
 	</div>
@@ -63,6 +64,7 @@
 import { NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { formatValue } from '../../utils/schema.js'
+import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 
 /**
  * CnObjectCard — Schema-configuration-driven card for object display.
@@ -70,12 +72,13 @@ import { formatValue } from '../../utils/schema.js'
  * Uses `schema.configuration` to determine which fields map to the card title,
  * description, and image. Remaining visible properties are shown as metadata.
  *
- * @example
+ * ```vue
  * <CnObjectCard :object="publication" :schema="pubSchema">
  *   <template #actions="{ object }">
  *     <NcActions><NcActionButton @click="edit(object)">Edit</NcActionButton></NcActions>
  *   </template>
  * </CnObjectCard>
+ * ```
  */
 export default {
 	name: 'CnObjectCard',
@@ -83,6 +86,18 @@ export default {
 	components: {
 		NcCheckboxRadioSwitch,
 		CnCellRenderer,
+	},
+
+	inject: {
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Metadata
+		 * labels come from schema property titles, authored in English as the
+		 * canonical source; the visible label is resolved through this function
+		 * so it follows the user's language. Defaults to identity when used
+		 * standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -111,6 +126,13 @@ export default {
 			type: Number,
 			default: 4,
 		},
+	},
+
+	emits: ['click', 'select'],
+
+	setup() {
+		// Tell a deliberate card click apart from a text-selection drag.
+		return useClickDragGuard()
 	},
 
 	computed: {
@@ -180,7 +202,7 @@ export default {
 				.slice(0, this.maxMetadata)
 				.map(([key, prop]) => ({
 					key,
-					label: prop.title || key,
+					label: this.cnTranslate(prop.title || key),
 					value: this.object[key],
 					property: prop,
 				}))
@@ -189,6 +211,37 @@ export default {
 
 	methods: {
 		formatValue,
+
+		/**
+		 * Card-body click: emits `select` when `selectable` (ignoring drags),
+		 * otherwise emits `click` for navigation.
+		 *
+		 * @param {MouseEvent} [event] The originating click event.
+		 */
+		onCardClick(event) {
+			if (this.selectable) {
+				if (this.wasDrag(event)) return
+				/**
+				 * @event select Emitted when the card toggles selection (clicking the body of a selectable card, or its checkbox).
+				 * @type {object} The card's object.
+				 */
+				this.$emit('select', this.object)
+				// Deprecation: selectable cards used to emit `click`. Keep emitting it
+				// for listeners that still rely on it, but warn them to migrate to `select`.
+				// `$.vnode.props`, not `$attrs`: `click` is a declared emit, and
+				// Vue keeps declared emits out of `$attrs`.
+				if (this.$.vnode.props?.onClick) {
+					console.warn('[CnObjectCard] @click on selectable cards is deprecated; use @select instead.')
+					this.$emit('click', this.object)
+				}
+				return
+			}
+			/**
+			 * @event click Emitted when a non-selectable card is clicked. Selectable cards emit `select`; they also emit `click` (deprecated) when a `click` listener is present, so migrate selectable consumers to `@select`.
+			 * @type {object} The card's object.
+			 */
+			this.$emit('click', this.object)
+		},
 	},
 }
 </script>

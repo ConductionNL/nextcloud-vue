@@ -16,15 +16,17 @@
  * Replaces the various .status-badge / .priority-badge CSS patterns duplicated
  * across Pipelinq and Procest. Supports a colorMap for automatic variant lookup.
  *
- * @example
+ * ```vue
  * <CnStatusBadge label="Open" variant="success" />
  * <CnStatusBadge label="Urgent" variant="error" size="small" />
+ * ```
  *
- * @example
  * <!-- With colorMap: variant auto-resolved from label -->
+ * ```vue
  * <CnStatusBadge
  *   label="overdue"
  *   :color-map="{ open: 'success', closed: 'default', overdue: 'error' }" />
+ * ```
  */
 export default {
 	name: 'CnStatusBadge',
@@ -60,7 +62,7 @@ export default {
 		/**
 		 * Map of label values to variants. When provided, the variant is resolved
 		 * from this map using the label (case-insensitive). Falls back to the variant prop.
-		 * @example { open: 'success', closed: 'default', overdue: 'error' }
+		 * { open: 'success', closed: 'default', overdue: 'error' }
 		 */
 		colorMap: {
 			type: Object,

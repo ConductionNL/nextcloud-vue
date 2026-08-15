@@ -32,12 +32,11 @@
 						:schema="schema"
 						:selectable="selectable"
 						:selected="isSelected(object)"
-						@click="$emit('click', object)"
-						@select="toggleSelect(object)">
-						<template v-if="$scopedSlots['card-actions']" #actions="{ object: obj }">
+						v-on="cardListeners(object)">
+						<template v-if="$slots['card-actions']" #actions="{ object: obj }">
 							<slot name="card-actions" :object="obj" />
 						</template>
-						<template v-if="$scopedSlots['card-badges']" #badges="{ object: obj }">
+						<template v-if="$slots['card-badges']" #badges="{ object: obj }">
 							<slot name="card-badges" :object="obj" />
 						</template>
 					</CnObjectCard>
@@ -48,6 +47,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon, NcEmptyContent } from '@nextcloud/vue'
 import ViewGrid from 'vue-material-design-icons/ViewGrid.vue'
 import { CnObjectCard } from '../CnObjectCard/index.js'
@@ -58,7 +58,7 @@ import { CnObjectCard } from '../CnObjectCard/index.js'
  * Displays objects in a responsive CSS grid layout using schema-driven cards.
  * Supports selection, loading/empty states, and custom card rendering via slots.
  *
- * @example
+ * ```vue
  * <CnCardGrid
  *   :objects="publications"
  *   :schema="pubSchema"
@@ -70,6 +70,7 @@ import { CnObjectCard } from '../CnObjectCard/index.js'
  *     <NcActions><NcActionButton>Edit</NcActionButton></NcActions>
  *   </template>
  * </CnCardGrid>
+ * ```
  */
 export default {
 	name: 'CnCardGrid',
@@ -115,13 +116,33 @@ export default {
 		/** Text shown when there are no objects */
 		emptyText: {
 			type: String,
-			default: 'No items found',
+			default: () => t('nextcloud-vue', 'No items found'),
 		},
 	},
+
+	emits: ['click', 'select'],
 
 	methods: {
 		isSelected(object) {
 			return this.selectedIds.includes(object[this.rowKey])
+		},
+
+		/**
+		 * Listeners bound on each CnObjectCard. Selectable cards select via
+		 * `@select` only; the `@click` (navigation) listener is bound just for
+		 * non-selectable cards — otherwise CnObjectCard's deprecated
+		 * click-to-select path fires (a body click would both select AND
+		 * navigate, unlike a table row which only selects).
+		 *
+		 * @param {object} object The card's object.
+		 * @return {object} Event listeners for the card.
+		 */
+		cardListeners(object) {
+			const listeners = { select: () => this.toggleSelect(object) }
+			if (!this.selectable) {
+				listeners.click = () => this.$emit('click', object)
+			}
+			return listeners
 		},
 
 		toggleSelect(object) {
@@ -140,6 +161,16 @@ export default {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
 	gap: 16px;
+}
+
+/* A card slot whose component renders nothing (e.g. a custom card that hides
+   itself with `v-if` for a client-side filter) leaves an empty grid item that
+   would still occupy a grid track and a row gap — pushing the visible cards
+   down with a large blank gap above them. Collapse those empty cells so the
+   remaining cards start at the top. A comment-only node (`v-if` false) still
+   matches `:empty` per the CSS spec, so this catches the v-if-hidden case. */
+.cn-card-grid__item:empty {
+	display: none;
 }
 
 .cn-card-grid__loading {

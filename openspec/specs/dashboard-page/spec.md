@@ -9,9 +9,7 @@ status: reviewed
 `CnDashboardPage` is a top-level dashboard page component that assembles a header, a `CnDashboardGrid`, and widget rendering with automatic widget type detection. It is the dashboard equivalent of `CnIndexPage` — a single component that handles the full dashboard page lifecycle.
 
 ---
-
 ## Requirements
-
 ### Requirement: page header rendering
 
 CnDashboardPage SHALL render a page header containing a title, an optional description, optional header action slots, and an optional edit toggle button.
@@ -44,7 +42,7 @@ CnDashboardPage SHALL render a page header containing a title, an optional descr
 
 ### Requirement: widget type resolution
 
-CnDashboardPage SHALL resolve the widget type for each layout item in the following priority order: (1) tile widget, (2) custom scoped slot, (3) NC Dashboard API widget, (4) unknown fallback. The widget definition is looked up from the `widgets` array using the layout item's `widgetId` field.
+CnDashboardPage SHALL resolve the widget type for each layout item in the following priority order: (1) tile widget, (2) custom scoped slot, (3) NC Dashboard API widget, (4) registered dashboard-widget-registry kind, (5) unknown fallback. The widget definition is looked up from the `widgets` array using the layout item's `widgetId` field. In addition, CnDashboardPage SHALL provide a reactive `cnWorkspaceContext` bag (a `ref({})`) to all widget descendants — provided unconditionally and starting empty — so widgets can share page-level state (one widget writes a key, sibling widgets read it).
 
 #### Scenario: tile widget detection
 
@@ -64,13 +62,24 @@ CnDashboardPage SHALL resolve the widget type for each layout item in the follow
 - WHEN the grid renders that item
 - THEN `CnWidgetRenderer` is rendered inside a `CnWidgetWrapper`, auto-fetching items from the NC Dashboard API
 
+#### Scenario: registered widget kind
+
+- GIVEN a layout item whose widget definition has a `type` registered in the dashboard widget registry (e.g. `object-list`, `interaction-form`, `kb-search`) and no `#widget-<id>` slot exists and type is not `'tile'`
+- WHEN the grid renders that item
+- THEN the registry renderer for that `type` is rendered inside a `CnWidgetWrapper` with the widget definition's `content` passed as props
+
 #### Scenario: unknown widget fallback
 
-- GIVEN a layout item with `widgetId: 'mystery'` and no matching slot, no `itemApiVersions`, and type is not `'tile'`
+- GIVEN a layout item with `widgetId: 'mystery'` and no matching slot, no registered kind, no `itemApiVersions`, and type is not `'tile'`
 - WHEN the grid renders that item
 - THEN a `CnWidgetWrapper` is rendered containing the `unavailableLabel` text
 
----
+#### Scenario: workspace context provided to widgets
+
+- GIVEN any dashboard page
+- WHEN it renders
+- THEN a reactive `cnWorkspaceContext` bag MUST be provided to descendants so a widget can `inject('cnWorkspaceContext')` and read/write shared page state
+- AND a page whose widgets never touch the bag MUST behave identically to before (the bag stays empty and inert)
 
 ### Requirement: widget wrapper metadata pass-through
 
@@ -389,6 +398,57 @@ CnDashboardPage SHALL provide accessible markup and controls for keyboard and sc
 - THEN `NcEmptyContent` is used, which provides proper ARIA attributes for the empty state message
 
 ---
+
+### Requirement: date-range pills control
+
+CnDashboardPage SHALL support a `dateRange.control` option with values `'picker'` (default) and `'pills'`. When `control` is `'pills'` and the date-range header is shown, CnDashboardPage SHALL render a compact segmented toggle-button row (one pill per preset, excluding the manual `custom` preset) instead of the `CnDateRangePicker`, and SHALL render the pill row as an accessible toggle group (`role="group"` with an accessible label, and `aria-pressed` reflecting the active preset on each pill). Clicking a pill SHALL resolve the preset to a `{ from, to, preset }` window and forward it to the same range-change handler the picker uses, so the active pill drives the identical shared `currentRange` / `cnDashboardDateRange` state. When `control` is omitted or any value other than `'pills'`, CnDashboardPage SHALL render the existing `CnDateRangePicker`. When a `custom` preset exists in the preset list, the pills row SHALL additionally expose a de-emphasised "Custom range" popover pill carrying from/to inputs.
+
+#### Scenario: pills mode renders the pill row instead of the picker
+
+- GIVEN `dateRange: { enabled: true, control: 'pills', presets: [week, month, quarter, custom], default: { preset: 'month' } }`
+- WHEN the dashboard renders the date-range header
+- THEN a pill toggle group is rendered with one pill per non-`custom` preset
+- AND the `CnDateRangePicker` (select + two date inputs) is NOT rendered
+
+#### Scenario: control omitted keeps the default picker
+
+- GIVEN `dateRange: { enabled: true, presets: [...] }` with no `control`
+- WHEN the dashboard renders the date-range header
+- THEN the `CnDateRangePicker` is rendered and no pill toggle group appears
+
+#### Scenario: the active preset pill is marked aria-pressed
+
+- GIVEN pills mode with the current range preset `month`
+- WHEN the pill row renders
+- THEN the `month` pill has `aria-pressed="true"` and every other pill has `aria-pressed="false"`
+
+#### Scenario: clicking a pill changes the shared range
+
+- GIVEN pills mode with the current preset `month`
+- WHEN the user clicks the `quarter` pill
+- THEN the shared range resolves to the `quarter` window, a `date-range-change` event is emitted with `preset: 'quarter'`, and the `quarter` pill becomes `aria-pressed="true"`
+
+#### Scenario: custom-range popover pill present when a custom preset exists
+
+- GIVEN pills mode whose preset list includes a `custom` entry
+- WHEN the pill row renders
+- THEN a de-emphasised "Custom range" popover pill is rendered (carrying from/to inputs) in addition to the per-preset pills
+
+### Requirement: card-fit registry widgets
+
+A dashboard-widget-registry entry MAY declare `card: true` to mark its renderer as a self-contained card surface (a single KPI / gauge / delta tile). When CnDashboardPage renders a registry widget whose entry is flagged `card: true`, it SHALL render the widget `flush` (no `CnWidgetWrapper` content padding) and apply a `cn-dashboard-page__card-fit` class that switches the wrapper content area to a centred, non-scrolling layout (`overflow: hidden`, vertically centred, comfortable padding) so the card sizes to its tile without an inner scrollbar. A registry widget whose entry is NOT flagged `card` SHALL be rendered with the default (scrollable, padded) wrapper content area, unchanged. The `stat`, `gauge`, and `delta` built-in registry widgets SHALL be flagged `card: true`.
+
+#### Scenario: a card widget is rendered flush and centred
+
+- GIVEN a layout item whose widget definition `type` resolves to a registry entry with `card: true` (e.g. `stat`, `gauge`, `delta`)
+- WHEN the grid renders that item
+- THEN the `CnWidgetWrapper` is rendered `flush` with the `cn-dashboard-page__card-fit` class, and its content area does not scroll
+
+#### Scenario: a non-card registry widget keeps the default wrapper
+
+- GIVEN a layout item whose widget definition `type` resolves to a registry entry without the `card` flag
+- WHEN the grid renders that item
+- THEN the `CnWidgetWrapper` is rendered without the `cn-dashboard-page__card-fit` class and keeps its default scrollable, padded content area
 
 ## Current Implementation Status
 

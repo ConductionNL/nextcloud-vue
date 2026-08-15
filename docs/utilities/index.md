@@ -34,6 +34,16 @@ Helpers that derive UI structure from an OpenRegister / JSON Schema.
 | [fieldsFromSchema](./fields-from-schema.md) | Generate form field descriptors (widget, validation, required) |
 | [formatValue](./format-value.md) | Format a raw value for display using a property descriptor |
 
+## Manifest
+
+Helpers that back the JSON-manifest renderer. Most consumers never call these directly — they are wired up automatically inside [`useAppManifest`](./composables/use-app-manifest.md) — but they are exported for advanced loaders and CLI manifest checkers.
+
+| Function | Purpose |
+|----------|---------|
+| [validateManifest](./validate-manifest.md) | Validate an app manifest against the JSON Schema (build-time and runtime) |
+| [resolveManifestSentinels](./resolve-manifest-sentinels.md) | Substitute `@resolve:<key>` strings under `pages[].config` with their `IAppConfig` values |
+| [clearResolveCache](./clear-resolve-cache.md) | Reset the per-page IAppConfig resolution cache (test-only) |
+
 ## Widget visibility
 
 Used by the dashboard composable and any custom widget loader that wants the same user/group visibility rules.
@@ -45,6 +55,15 @@ Used by the dashboard composable and any custom widget loader that wants the sam
 | [getCurrentUserId](./get-current-user-id.md) | Read `OC.currentUser` |
 | [getCurrentUserGroups](./get-current-user-groups.md) | Fetch (and cache) the current user's groups |
 | [resetVisibilityCache](./reset-visibility-cache.md) | Clear the cached groups |
+
+## Modal stacking
+
+`@nextcloud/vue` puts every `NcModal` / `NcDialog` mask on the same `z-index`, so two open dialogs tie and the lower one intercepts the clicks aimed at the upper one. These give each open modal its own layer in open order. `CnAppRoot` wires them up automatically.
+
+| Function | Purpose |
+|----------|---------|
+| [installModalStack](./install-modal-stack.md) | Make the most recently opened modal the one that receives pointer events |
+| [uninstallModalStack](./uninstall-modal-stack.md) | Stop the observer and release every layer |
 
 ## Composables
 

@@ -70,6 +70,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
 import { NcLoadingIcon, NcButton } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
@@ -84,10 +85,13 @@ import Update from 'vue-material-design-icons/Update.vue'
  * Every Conduction Nextcloud app should show this as the first section on its
  * admin settings page.
  *
- * @example Basic usage
+ * Basic usage
+ * ```vue
  * <CnVersionInfoCard app-name="Open Register" app-version="0.2.3" />
+ * ```
  *
- * @example With update button
+ * With update button
+ * ```vue
  * <CnVersionInfoCard
  *   app-name="Open Register"
  *   app-version="0.2.3"
@@ -96,8 +100,10 @@ import Update from 'vue-material-design-icons/Update.vue'
  *   :show-update-button="true"
  *   :updating="isUpdating"
  *   @update="runUpdate" />
+ * ```
  *
- * @example With additional items and actions
+ * With additional items and actions
+ * ```vue
  * <CnVersionInfoCard
  *   app-name="Pipelinq"
  *   app-version="0.1.7"
@@ -106,6 +112,7 @@ import Update from 'vue-material-design-icons/Update.vue'
  *     <NcButton @click="clearCache">Clear App Store Cache</NcButton>
  *   </template>
  * </CnVersionInfoCard>
+ * ```
  */
 export default {
 	name: 'CnVersionInfoCard',
@@ -122,12 +129,12 @@ export default {
 		/** Section title */
 		title: {
 			type: String,
-			default: 'Version Information',
+			default: () => t('nextcloud-vue', 'Version information'),
 		},
 		/** Section description */
 		description: {
 			type: String,
-			default: 'Information about the current application installation',
+			default: () => t('nextcloud-vue', 'Information about the current application installation'),
 		},
 		/** Documentation URL (shows info icon next to title) */
 		docUrl: {
@@ -137,7 +144,7 @@ export default {
 		/** Card heading text */
 		cardTitle: {
 			type: String,
-			default: 'Application Information',
+			default: () => t('nextcloud-vue', 'Application information'),
 		},
 		/** Application name to display */
 		appName: {

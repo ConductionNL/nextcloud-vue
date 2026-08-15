@@ -1,8 +1,15 @@
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnWidgetRenderer.md'
+
 # CnWidgetRenderer
 
 Fetches and renders Nextcloud Dashboard API widgets (v1 and v2) using `NcDashboardWidget`. Handles loading state, empty content, and optional auto-refresh. Used internally by `CnDashboardPage` for NC-native widgets.
 
 **Wraps**: NcDashboardWidget, NcEmptyContent
+
+## Try it
+
+<Playground component="CnWidgetRenderer" />
 
 ## Usage
 
@@ -45,3 +52,9 @@ const widget = {
 | `2` | Fetches from `/apps/dashboard/api/v2/widget-items` |
 | `1` | Fetches from `/apps/dashboard/api/v1/widget-items` |
 | neither | Shows the unavailable fallback |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnWidgetRenderer.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnWidgetRenderer/CnWidgetRenderer.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

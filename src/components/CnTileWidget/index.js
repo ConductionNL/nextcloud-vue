@@ -1,1 +1,4 @@
-export { default as CnTileWidget } from './CnTileWidget.vue'
+import CnTileWidget from './CnTileWidget.vue'
+
+export default CnTileWidget
+export { CnTileWidget }
