@@ -1,1 +1,4 @@
-export { default as CnUserActionMenu } from './CnUserActionMenu.vue'
+import CnUserActionMenu from './CnUserActionMenu.vue'
+
+export default CnUserActionMenu
+export { CnUserActionMenu }

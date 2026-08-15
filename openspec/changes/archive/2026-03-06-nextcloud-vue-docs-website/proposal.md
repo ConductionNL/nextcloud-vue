@@ -2,7 +2,7 @@
 
 ## Why
 
-The `@conduction/nextcloud-vue` library powers 6+ Nextcloud apps (OpenRegister, OpenCatalogi, Pipelinq, Procest, LarpingApp, MyDash) but has **zero public documentation**. Developers building new apps or onboarding onto existing ones have no way to discover available components, understand the design philosophy, or learn how the library fits between Nextcloud's own component system and OpenRegister's schema-driven architecture.
+The `@conduction/nextcloud-vue` library powers 6+ Nextcloud apps (OpenRegister, OpenCatalogi, Pipelinq, Procest, LarpingApp, LaunchPad) but has **zero public documentation**. Developers building new apps or onboarding onto existing ones have no way to discover available components, understand the design philosophy, or learn how the library fits between Nextcloud's own component system and OpenRegister's schema-driven architecture.
 
 Nextcloud documents its layout primitives at [Layout Components](https://docs.nextcloud.com/server/stable/developer_manual/design/layoutcomponents.html) and its Vue component API at [Nextcloud Vue Components](https://nextcloud-vue-components.netlify.app/). Our library builds **on top** of these — composing Nextcloud primitives into higher-level, schema-driven page patterns — but this relationship is undocumented and invisible to anyone outside the core team.
 

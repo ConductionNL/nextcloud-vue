@@ -1,5 +1,19 @@
 /* Entry point for @conduction/nextcloud-vue/css/index.css
- * When installed via npm, this re-exports the library CSS.
- * When resolved via webpack alias (../nextcloud-vue/src), the alias
- * resolves directly to src/css/index.css instead. */
-@import '../src/css/index.css';
+ *
+ * Points at the BUILT stylesheet, not src/css/index.css. dist/nextcloud-vue.css
+ * is a superset: rollup's postcss `extract` folds src/css/index.css (imported by
+ * src/index.js) in alongside every component's scoped SFC style block. The src
+ * sheet carries only the unscoped globals, so re-exporting it shipped consumers
+ * a library whose components rendered `data-v-*` scope attributes with no
+ * matching rules — flex containers silently fell back to `display: block`.
+ *
+ * The scoped CSS cannot be left to the ESM barrel's `import './nextcloud-vue.css'`
+ * banner: dist/esm/index.js is not listed in package.json#sideEffects, so webpack
+ * treats it as side-effect-free and skips the module (and its CSS import) whenever
+ * a consumer imports named components rather than the namespace.
+ *
+ * Consumers resolving the library through a webpack alias to `../nextcloud-vue/src`
+ * bypass this file entirely — the alias lands on src/css/index.css, and vue-loader
+ * compiles their scoped styles in-app with matching scope hashes.
+ */
+@import '../dist/nextcloud-vue.css';

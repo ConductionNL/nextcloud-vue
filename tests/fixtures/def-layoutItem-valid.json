@@ -1,0 +1,9 @@
+{
+	"id": "kpis-position",
+	"widgetId": "kpis",
+	"gridX": 0,
+	"gridY": 0,
+	"gridWidth": 4,
+	"gridHeight": 3,
+	"showTitle": true
+}

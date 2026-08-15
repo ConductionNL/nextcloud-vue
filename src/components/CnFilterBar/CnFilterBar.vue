@@ -1,14 +1,14 @@
 <template>
-	<div class="cn-filter-bar">
+	<div class="cn-filter-bar" data-testid="cn-filter-bar">
 		<!-- Search input -->
-		<div class="cn-filter-bar__search">
+		<div class="cn-filter-bar__search" data-testid="cn-filter-bar-search">
 			<NcTextField
-				:value="searchValue"
+				:model-value="searchValue"
 				:placeholder="searchPlaceholder"
 				:label="searchPlaceholder"
 				trailing-button-icon="close"
 				:show-trailing-button="searchValue !== ''"
-				@update:value="$emit('search', $event)"
+				@update:model-value="$emit('search', $event)"
 				@trailing-button-click="$emit('search', '')">
 				<template #icon>
 					<Magnify :size="20" />
@@ -24,29 +24,29 @@
 					v-if="filter.type === 'select'"
 					:key="filter.key"
 					class="cn-filter-bar__filter"
-					:value="filter.value"
+					:model-value="filter.value"
 					:options="filter.options || []"
 					:placeholder="filter.label"
 					:input-label="filter.label"
 					:clearable="true"
-					@input="onFilterChange(filter.key, $event)" />
+					@update:model-value="onFilterChange(filter.key, $event)" />
 
 				<!-- Text filter -->
 				<NcTextField
 					v-else-if="filter.type === 'text'"
 					:key="filter.key"
 					class="cn-filter-bar__filter"
-					:value="filter.value || ''"
+					:model-value="filter.value || ''"
 					:placeholder="filter.label"
 					:label="filter.label"
-					@update:value="onFilterChange(filter.key, $event)" />
+					@update:model-value="onFilterChange(filter.key, $event)" />
 
 				<!-- Checkbox filter -->
 				<NcCheckboxRadioSwitch
 					v-else-if="filter.type === 'checkbox'"
 					:key="filter.key"
-					:checked="!!filter.value"
-					@update:checked="onFilterChange(filter.key, $event)">
+					:model-value="!!filter.value"
+					@update:model-value="onFilterChange(filter.key, $event)">
 					{{ filter.label }}
 				</NcCheckboxRadioSwitch>
 			</template>
@@ -63,6 +63,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcTextField, NcSelect, NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import Magnify from 'vue-material-design-icons/Magnify.vue'
 
@@ -73,7 +74,7 @@ import Magnify from 'vue-material-design-icons/Magnify.vue'
  * LeadList, RequestList across Pipelinq and Procest. Supports text search,
  * select dropdowns, text inputs, and checkbox filters.
  *
- * @example
+ * ```vue
  * <CnFilterBar
  *   :search-value="searchTerm"
  *   search-placeholder="Search clients..."
@@ -84,6 +85,7 @@ import Magnify from 'vue-material-design-icons/Magnify.vue'
  *   @search="onSearch"
  *   @filter-change="onFilterChange"
  *   @clear-all="clearFilters" />
+ * ```
  */
 export default {
 	name: 'CnFilterBar',
@@ -98,8 +100,9 @@ export default {
 
 	props: {
 		/**
-		 * Filter definitions.
-		 * @type {Array<{key: string, label: string, type: 'select'|'text'|'checkbox', options?: Array, value?: *}>}
+		 * Filter definitions. Each item has `key`, `label`, `type` ('select'|'text'|'checkbox'),
+		 * optional `options` (for select), and optional `value`.
+		 * @type {Array<{key: string, label: string, type: 'select'|'text'|'checkbox', options: Array, value: any}>}
 		 */
 		filters: {
 			type: Array,
@@ -113,7 +116,7 @@ export default {
 		/** Search input placeholder text */
 		searchPlaceholder: {
 			type: String,
-			default: 'Search...',
+			default: () => t('nextcloud-vue', 'Search...'),
 		},
 		/** Whether to show the "Clear all" button */
 		showClearAll: {
@@ -123,9 +126,11 @@ export default {
 		/** Clear all button label */
 		clearAllLabel: {
 			type: String,
-			default: 'Clear filters',
+			default: () => t('nextcloud-vue', 'Clear filters'),
 		},
 	},
+
+	emits: ['clear-all', 'filter-change', 'search'],
 
 	computed: {
 		hasActiveFilters() {
@@ -143,7 +148,7 @@ export default {
 		onFilterChange(key, value) {
 			/**
 			 * @event filter-change Emitted when any filter changes.
-			 * @type {{ key: string, value: * }}
+			 * @type {{ key: string, value: any }}
 			 */
 			this.$emit('filter-change', { key, value })
 		},

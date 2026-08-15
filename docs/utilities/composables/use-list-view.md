@@ -39,13 +39,16 @@ const {
 | `options.defaultPageSize` | `number` | Initial `_limit`. Default `20`. |
 | `options.debounceMs` | `number` | Search debounce. Default `300`. |
 | `options.defaultSort` | `{ key, order }` | Applied on mount. `order` is `'asc'` or `'desc'`. |
+| `options.defaultVisibleColumns` | `Array<string> \| null` | Initial visible-column key set. Seeds the sidebar's Columns tab with the curated default (e.g. a manifest `columns` list) so toggles add/remove from it. Omit (or `null`) for schema-driven tables where every column starts visible. |
+| `options.fixedFilters` | `object \| () => object` | A filter map (or a getter returning one) merged into **every** fetch *after* the user's `activeFilters`, so the fixed entries always win over a colliding facet filter. A getter is re-read on each fetch — pass one to derive the map from reactive sources (e.g. route params). Default `{}` — omitting it is behaviourally identical to before. Used by `CnIndexPage` to apply a route-param-scoped `pages[].config.filter`. |
+| `options.defaultVisibleColumns` | `Array<string> \| null` | Initial visible-column set for the persisted `visibleColumns` ref. When `null` (the default), every column declared by the consuming page is visible on first mount; pass an explicit list to start with a curated subset that the user can then expand via the column-picker. |
 
 ### Return value
 
 Store-derived refs (read-only from the component's perspective):
 - `schema` — JSON Schema loaded via `objectStore.fetchSchema(objectType)` on mount.
 - `objects` — Current collection (`objectStore.collections[objectType]`).
-- `loading` — `objectStore.loading[objectType]`.
+- `loading` — `objectStore.loading[objectType]`, **plus** the mount sequence that precedes the first fetch. `onMounted` awaits `fetchSchema()` before requesting any rows, and the store's own flag only rises once `fetchCollection` runs — so a list that reported only the store flag was "not loading" with zero rows for the length of the schema round trip, and consumers painted their empty state before anything had been asked for. It now reads `true` from creation until the first fetch has been issued (or the mount sequence has failed).
 - `pagination` — `{ total, page, pages, limit }`, defaulted when the store hasn't populated yet.
 
 Local state refs:
@@ -70,6 +73,7 @@ Event handlers (all trigger a re-fetch, most reset to page 1):
 | `_search` | `searchTerm` (only when non-empty) |
 | `_order` | `{ [sortKey]: sortOrder }` (only when `sortKey` is set) |
 | `{filterKey}` | `activeFilters[filterKey]` — scalar when the array has one value, array otherwise |
+| `{fixedKey}` | `fixedFilters` resolved last (skipping `undefined`/`null`/`''`), so it overrides any colliding `activeFilters` entry |
 
 ### Sidebar wiring
 

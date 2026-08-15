@@ -2,9 +2,16 @@
 sidebar_position: 19
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnMassDeleteDialog.md'
+
 # CnMassDeleteDialog
 
 Two-phase mass delete confirmation dialog. Shows list of items to delete, requires confirmation, and displays results.
+
+## Try it
+
+<Playground component="CnMassDeleteDialog" />
 
 **Wraps**: NcDialog, NcButton, NcNoteCard
 
@@ -18,9 +25,13 @@ Two-phase mass delete confirmation dialog. Shows list of items to delete, requir
 | `nameField` | String | `'title'` | Field to display as item name |
 | `nameFormatter` | Function | `null` | Optional function `(item) => string` to format item names. Overrides `nameField` when provided. |
 | `dialogTitle` | String | `'Delete items'` | |
-| `warningText` | String | `''` | Warning message |
-| `confirmLabel` | String | `'Delete'` | |
+| `warningText` | String | `''` | Warning text shown above the item list |
+| `emptyText` | String | `'No items selected for deletion.'` | Message shown when all items have been removed from the list |
+| `successText` | String | `'Items successfully deleted.'` | Message shown in the result phase on success |
 | `cancelLabel` | String | `'Cancel'` | |
+| `closeLabel` | String | `'Close'` | Label for the close button shown in the result phase |
+| `confirmLabel` | String | `'Delete'` | |
+| `removeLabel` | String | `'Remove from list'` | Tooltip/label for the per-item remove button |
 
 ## Events
 
@@ -35,9 +46,36 @@ Two-phase mass delete confirmation dialog. Shows list of items to delete, requir
 |--------|-------------|
 | `setResult(\{ success?, error?, results? \})` | Set result per item |
 
-## Usage
+## Live demo
 
 ```vue
+<template>
+  <div>
+    <button @click="open = true" style="padding: 6px 16px; border-radius: 4px; background: var(--color-primary-element); color: white; border: none; cursor: pointer;">Delete selected (2)</button>
+    <CnMassDeleteDialog
+      v-if="open"
+      ref="dlg"
+      :items="[{ id: 1, title: 'Report A' }, { id: 2, title: 'Report B' }]"
+      @confirm="onConfirm"
+      @close="open = false" />
+  </div>
+</template>
+<script>
+export default {
+  data() { return { open: false } },
+  methods: {
+    async onConfirm(ids) {
+      await new Promise(r => setTimeout(r, 800))
+      this.$refs.dlg.setResult({ success: true })
+    },
+  },
+}
+</script>
+```
+
+## Usage
+
+```vue {static}
 <CnMassDeleteDialog
   ref="massDeleteDialog"
   :items="selectedItems"
@@ -49,10 +87,16 @@ Two-phase mass delete confirmation dialog. Shows list of items to delete, requir
 
 Use `nameFormatter` when items don't have a simple name field:
 
-```vue
+```vue {static}
 <CnMassDeleteDialog
   :items="selectedAuditTrails"
   :name-formatter="(item) => t('myapp', 'Audit Trail #{id}', { id: item.id })"
   @confirm="onMassDelete"
   @close="showMassDelete = false" />
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnMassDeleteDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnMassDeleteDialog/CnMassDeleteDialog.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

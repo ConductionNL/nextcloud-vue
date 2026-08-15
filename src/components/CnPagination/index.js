@@ -1,1 +1,4 @@
-export { default as CnPagination } from './CnPagination.vue'
+import CnPagination from './CnPagination.vue'
+
+export default CnPagination
+export { CnPagination }

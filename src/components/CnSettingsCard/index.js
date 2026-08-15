@@ -1,1 +1,4 @@
-export { default as CnSettingsCard } from './CnSettingsCard.vue'
+import CnSettingsCard from './CnSettingsCard.vue'
+
+export default CnSettingsCard
+export { CnSettingsCard }

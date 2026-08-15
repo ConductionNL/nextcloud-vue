@@ -1,119 +1,119 @@
 <template>
 	<NcActions>
-		<NcActionCaption name="Actions" />
-		<NcActionButton :aria-label="'Copy ' + propertyKey" @click="$emit('copy-property', propertyKey)">
+		<NcActionCaption :name="t('nextcloud-vue', 'Actions')" />
+		<NcActionButton :aria-label="t('nextcloud-vue', 'Copy {key}', { key: propertyKey })" @click="$emit('copy-property', propertyKey)">
 			<template #icon>
 				<ContentCopy :size="16" />
 			</template>
-			Copy Property
+			{{ t('nextcloud-vue', 'Copy property') }}
 		</NcActionButton>
-		<NcActionButton :aria-label="'Delete ' + propertyKey" @click="$emit('delete-property', propertyKey)">
+		<NcActionButton :aria-label="t('nextcloud-vue', 'Delete {key}', { key: propertyKey })" @click="$emit('delete-property', propertyKey)">
 			<template #icon>
 				<TrashCanOutline :size="16" />
 			</template>
-			Delete Property
+			{{ t('nextcloud-vue', 'Delete property') }}
 		</NcActionButton>
 
 		<NcActionSeparator />
-		<NcActionCaption name="General" />
+		<NcActionCaption :name="t('nextcloud-vue', 'General')" />
 		<NcActionCheckbox
-			:checked="isPropertyRequired(schema, propertyKey)"
-			@update:checked="updatePropertyRequired(propertyKey, $event)">
-			Required
+			:model-value="isPropertyRequired(schema, propertyKey)"
+			@update:model-value="updatePropertyRequired(propertyKey, $event)">
+			{{ t('nextcloud-vue', 'Required') }}
 		</NcActionCheckbox>
 		<NcActionCheckbox
-			:checked="property.immutable || false"
-			@update:checked="updatePropertySetting(propertyKey, 'immutable', $event)">
-			Immutable
+			:model-value="property.immutable || false"
+			@update:model-value="updatePropertySetting(propertyKey, 'immutable', $event)">
+			{{ t('nextcloud-vue', 'Immutable') }}
 		</NcActionCheckbox>
 		<NcActionCheckbox
-			:checked="property.deprecated || false"
-			@update:checked="updatePropertySetting(propertyKey, 'deprecated', $event)">
-			Deprecated
+			:model-value="property.deprecated || false"
+			@update:model-value="updatePropertySetting(propertyKey, 'deprecated', $event)">
+			{{ t('nextcloud-vue', 'Deprecated') }}
 		</NcActionCheckbox>
 		<NcActionCheckbox
-			:checked="property.visible !== false"
-			@update:checked="updatePropertySetting(propertyKey, 'visible', $event)">
-			Visible to end users
+			:model-value="property.visible !== false"
+			@update:model-value="updatePropertySetting(propertyKey, 'visible', $event)">
+			{{ t('nextcloud-vue', 'Visible to end users') }}
 		</NcActionCheckbox>
 		<NcActionCheckbox
-			:checked="property.hideOnCollection || false"
-			@update:checked="updatePropertySetting(propertyKey, 'hideOnCollection', $event)">
-			Hide in collection view
+			:model-value="property.hideOnCollection || false"
+			@update:model-value="updatePropertySetting(propertyKey, 'hideOnCollection', $event)">
+			{{ t('nextcloud-vue', 'Hide in collection view') }}
 		</NcActionCheckbox>
 		<NcActionCheckbox
-			:checked="property.hideOnForm || false"
-			@update:checked="updatePropertySetting(propertyKey, 'hideOnForm', $event)">
-			Hide in form view
+			:model-value="property.hideOnForm || false"
+			@update:model-value="updatePropertySetting(propertyKey, 'hideOnForm', $event)">
+			{{ t('nextcloud-vue', 'Hide in form view') }}
 		</NcActionCheckbox>
 		<NcActionCheckbox
-			:checked="isFacetableEnabled(property)"
-			@update:checked="toggleFacetable(propertyKey, $event)">
-			Facetable
+			:model-value="isFacetableEnabled(property)"
+			@update:model-value="toggleFacetable(propertyKey, $event)">
+			{{ t('nextcloud-vue', 'Facetable') }}
 		</NcActionCheckbox>
 		<NcActionCheckbox
 			v-if="isFacetableEnabled(property)"
-			:checked="getFacetConfig(property).aggregated !== false"
-			@update:checked="updateFacetConfigField(propertyKey, property, 'aggregated', $event)">
-			Aggregated across schemas
+			:model-value="getFacetConfig(property).aggregated !== false"
+			@update:model-value="updateFacetConfigField(propertyKey, property, 'aggregated', $event)">
+			{{ t('nextcloud-vue', 'Aggregated across schemas') }}
 		</NcActionCheckbox>
 		<NcActionInput
 			v-if="isFacetableEnabled(property)"
-			:value="getFacetConfig(property).title || ''"
-			label="Facet Title"
-			@update:value="updateFacetConfigField(propertyKey, property, 'title', $event)" />
+			:model-value="getFacetConfig(property).title || ''"
+			:label="t('nextcloud-vue', 'Facet title')"
+			@update:model-value="updateFacetConfigField(propertyKey, property, 'title', $event)" />
 		<NcActionInput
 			v-if="isFacetableEnabled(property)"
-			:value="getFacetConfig(property).description || ''"
-			label="Facet Description"
-			@update:value="updateFacetConfigField(propertyKey, property, 'description', $event)" />
+			:model-value="getFacetConfig(property).description || ''"
+			:label="t('nextcloud-vue', 'Facet description')"
+			@update:model-value="updateFacetConfigField(propertyKey, property, 'description', $event)" />
 		<NcActionInput
 			v-if="isFacetableEnabled(property)"
-			:value="getFacetConfig(property).order != null ? String(getFacetConfig(property).order) : ''"
+			:model-value="getFacetConfig(property).order != null ? String(getFacetConfig(property).order) : ''"
 			type="number"
-			label="Facet Order"
-			@update:value="updateFacetConfigField(propertyKey, property, 'order', $event)" />
+			:label="t('nextcloud-vue', 'Facet order')"
+			@update:model-value="updateFacetConfigField(propertyKey, property, 'order', $event)" />
 
 		<NcActionSeparator />
-		<NcActionCaption name="Properties" />
+		<NcActionCaption :name="t('nextcloud-vue', 'Properties')" />
 		<NcActionInput
-			:value="property.title || ''"
-			label="Title"
-			@update:value="updatePropertySetting(propertyKey, 'title', $event)" />
+			:model-value="property.title || ''"
+			:label="t('nextcloud-vue', 'Title')"
+			@update:model-value="updatePropertySetting(propertyKey, 'title', $event)" />
 		<NcActionInput
 			v-if="getFormatOptionsForType(property.type).length > 0"
 			v-model="schema.properties[propertyKey].format"
 			type="multiselect"
 			:options="getFormatOptionsForType(property.type)"
-			input-label="Format"
-			label="Format" />
+			:input-label="t('nextcloud-vue', 'Format')"
+			:label="t('nextcloud-vue', 'Format')" />
 		<NcActionInput
-			:value="property.description || ''"
-			label="Description"
-			@update:value="updatePropertySetting(propertyKey, 'description', $event)" />
+			:model-value="property.description || ''"
+			:label="t('nextcloud-vue', 'Description')"
+			@update:model-value="updatePropertySetting(propertyKey, 'description', $event)" />
 		<NcActionInput
-			:value="property.example || ''"
-			label="Example"
-			@update:value="updatePropertySetting(propertyKey, 'example', $event)" />
+			:model-value="property.example || ''"
+			:label="t('nextcloud-vue', 'Example')"
+			@update:model-value="updatePropertySetting(propertyKey, 'example', $event)" />
 		<NcActionInput
-			:value="property.order || 0"
+			:model-value="property.order || 0"
 			type="number"
-			label="Order"
-			@update:value="updatePropertySetting(propertyKey, 'order', Number($event))" />
+			:label="t('nextcloud-vue', 'Order')"
+			@update:model-value="updatePropertySetting(propertyKey, 'order', Number($event))" />
 
 		<!-- Const and Enum Configuration -->
 		<NcActionSeparator />
-		<NcActionCaption name="Value Constraints" />
+		<NcActionCaption :name="t('nextcloud-vue', 'Value constraints')" />
 		<NcActionInput
-			:value="property.const || ''"
-			label="Constant"
-			@update:value="updatePropertySetting(propertyKey, 'const', $event === '' ? undefined : $event)" />
+			:model-value="property.const || ''"
+			:label="t('nextcloud-vue', 'Constant')"
+			@update:model-value="updatePropertySetting(propertyKey, 'const', $event === '' ? undefined : $event)" />
 		<template v-if="property.enum && property.enum.length > 0">
-			<NcActionCaption :name="'Current Enum Values (' + property.enum.length + ')'" />
+			<NcActionCaption :name="t('nextcloud-vue', 'Current enum values ({count})', { count: property.enum.length })" />
 			<NcActionButton
 				v-for="(enumValue, index) in property.enum"
 				:key="`enum-chip-${index}-${enumValue}`"
-				:aria-label="'Remove ' + enumValue"
+				:aria-label="t('nextcloud-vue', 'Remove {value}', { value: enumValue })"
 				class="cn-schema-form__enum-action-chip"
 				@click="removeEnumValue(propertyKey, index)">
 				<template #icon>
@@ -122,318 +122,329 @@
 				{{ String(enumValue) }}
 			</NcActionButton>
 		</template>
+		<!--
+			Use @submit, not @keydown.enter: NcActionInput wraps the field and its
+			trailing arrow button in a <form> and emits `submit` for BOTH Enter and
+			an arrow click. Listening only for keydown.enter left the arrow — the
+			visible affordance most users reach for — doing nothing. Mirrors the
+			note-add input in CnRelatedObjectsWidget.
+
+			MODEL PROP — applies to EVERY NcActionInput in this file:
+			`model-value` / `@update:model-value`, never `value` / `@update:value`
+			(and never `@input`, which the component does not emit at all).
+			@nextcloud/vue 9's NcActionInput declares exactly one model prop,
+			`modelValue`, and exactly two events, `submit` and
+			`update:modelValue`. Anything else is not a warning — it is silently
+			inert: a `:value` binding degrades to a DOM attribute on the wrapping
+			<li>, and an `@update:value` / `@input` listener simply never fires,
+			so the field shows nothing and reports nothing. That is what made
+			this whole actions menu read-only.
+		-->
 		<NcActionInput
-			:value="enumInputValue"
-			label="Add Enum Value"
-			placeholder="Type value and press Enter"
-			@update:value="enumInputValue = $event"
-			@keydown.enter.prevent="addEnumValueAndClear(propertyKey)" />
+			:model-value="enumInputValue"
+			:label="t('nextcloud-vue', 'Add enum value')"
+			:placeholder="t('nextcloud-vue', 'Type a value and press Enter or the arrow')"
+			@update:model-value="enumInputValue = $event"
+			@submit="addEnumValueAndClear(propertyKey)" />
 
 		<!-- Default Value Configuration -->
 		<NcActionSeparator />
-		<NcActionCaption name="Default Value Configuration" />
+		<NcActionCaption :name="t('nextcloud-vue', 'Default value configuration')" />
 		<template v-if="property.type === 'string'">
 			<NcActionInput
-				:value="property.default || ''"
-				label="Default Value"
-				@update:value="updatePropertySetting(propertyKey, 'default', $event === '' ? undefined : $event)" />
+				:model-value="property.default || ''"
+				:label="t('nextcloud-vue', 'Default value')"
+				@update:model-value="updatePropertySetting(propertyKey, 'default', $event === '' ? undefined : $event)" />
 		</template>
 		<template v-else-if="property.type === 'number' || property.type === 'integer'">
 			<NcActionInput
-				:value="property.default || 0"
+				:model-value="property.default || 0"
 				type="number"
-				label="Default Value"
-				@update:value="updatePropertySetting(propertyKey, 'default', Number($event))" />
+				:label="t('nextcloud-vue', 'Default value')"
+				@update:model-value="updatePropertySetting(propertyKey, 'default', Number($event))" />
 		</template>
 		<template v-else-if="property.type === 'boolean'">
 			<NcActionCheckbox
-				:checked="property.default === true"
-				@update:checked="updatePropertySetting(propertyKey, 'default', $event)">
-				Default Value
+				:model-value="property.default === true"
+				@update:model-value="updatePropertySetting(propertyKey, 'default', $event)">
+				{{ t('nextcloud-vue', 'Default value') }}
 			</NcActionCheckbox>
 		</template>
 		<template v-else-if="property.type === 'array' && property.items && property.items.type === 'string'">
 			<NcActionInput
-				:value="getArrayDefaultAsString(property.default)"
-				label="Default Values (comma separated)"
+				:model-value="getArrayDefaultAsString(property.default)"
+				:label="t('nextcloud-vue', 'Default values (comma separated)')"
 				placeholder="value1, value2, value3"
-				@update:value="updateArrayDefault(propertyKey, $event)" />
+				@update:model-value="updateArrayDefault(propertyKey, $event)" />
 		</template>
 		<template v-else-if="property.type === 'object'">
 			<NcActionInput
-				:value="typeof property.default === 'object' ? JSON.stringify(property.default, null, 2) : (property.default || '{}')"
-				label="Default Value (JSON)"
-				@update:value="updateObjectDefault(propertyKey, $event)" />
+				:model-value="typeof property.default === 'object' ? JSON.stringify(property.default, null, 2) : (property.default || '{}')"
+				:label="t('nextcloud-vue', 'Default value (JSON)')"
+				@update:model-value="updateObjectDefault(propertyKey, $event)" />
 		</template>
 
 		<!-- Default Behavior Toggle -->
 		<template v-if="property.default !== undefined && property.default !== null && property.default !== ''">
 			<NcActionCheckbox
-				:checked="property.defaultBehavior === 'falsy'"
-				@update:checked="updatePropertySetting(propertyKey, 'defaultBehavior', $event ? 'falsy' : 'false')">
-				Apply default for empty values
+				:model-value="property.defaultBehavior === 'falsy'"
+				@update:model-value="updatePropertySetting(propertyKey, 'defaultBehavior', $event ? 'falsy' : 'false')">
+				{{ t('nextcloud-vue', 'Apply default for empty values') }}
 			</NcActionCheckbox>
 			<NcActionCaption
 				v-if="property.defaultBehavior === 'falsy'"
-				name="ℹ️ Default will be applied when value is missing, null, or empty string"
+				:name="'ℹ️ ' + t('nextcloud-vue', 'Default will be applied when value is missing, null, or empty string')"
 				style="color: var(--color-text-lighter); font-size: 11px;" />
 			<NcActionCaption
 				v-else
-				name="ℹ️ Default will only be applied when value is missing or null"
+				:name="'ℹ️ ' + t('nextcloud-vue', 'Default will only be applied when value is missing or null')"
 				style="color: var(--color-text-lighter); font-size: 11px;" />
 		</template>
 
 		<!-- Type-specific configurations -->
 		<template v-if="property.type === 'string'">
 			<NcActionSeparator />
-			<NcActionCaption name="String Configuration" />
+			<NcActionCaption :name="t('nextcloud-vue', 'String configuration')" />
 			<NcActionInput
-				:value="property.minLength || 0"
+				:model-value="property.minLength || 0"
 				type="number"
-				label="Minimum Length"
-				@update:value="updatePropertySetting(propertyKey, 'minLength', Number($event))" />
+				:label="t('nextcloud-vue', 'Minimum length')"
+				@update:model-value="updatePropertySetting(propertyKey, 'minLength', Number($event))" />
 			<NcActionInput
-				:value="property.maxLength || 0"
+				:model-value="property.maxLength || 0"
 				type="number"
-				label="Maximum Length"
-				@update:value="updatePropertySetting(propertyKey, 'maxLength', Number($event))" />
+				:label="t('nextcloud-vue', 'Maximum length')"
+				@update:model-value="updatePropertySetting(propertyKey, 'maxLength', Number($event))" />
 			<NcActionInput
-				:value="property.pattern || ''"
-				label="Pattern (regex)"
-				@update:value="updatePropertySetting(propertyKey, 'pattern', $event)" />
+				:model-value="property.pattern || ''"
+				:label="t('nextcloud-vue', 'Pattern (regex)')"
+				@update:model-value="updatePropertySetting(propertyKey, 'pattern', $event)" />
 		</template>
 
 		<template v-if="property.type === 'number' || property.type === 'integer'">
 			<NcActionSeparator />
-			<NcActionCaption name="Number Configuration" />
+			<NcActionCaption :name="t('nextcloud-vue', 'Number configuration')" />
 			<NcActionInput
-				:value="property.minimum || 0"
+				:model-value="property.minimum || 0"
 				type="number"
-				label="Minimum Value"
-				@update:value="updatePropertySetting(propertyKey, 'minimum', Number($event))" />
+				:label="t('nextcloud-vue', 'Minimum value')"
+				@update:model-value="updatePropertySetting(propertyKey, 'minimum', Number($event))" />
 			<NcActionInput
-				:value="property.maximum || 0"
+				:model-value="property.maximum || 0"
 				type="number"
-				label="Maximum Value"
-				@update:value="updatePropertySetting(propertyKey, 'maximum', Number($event))" />
+				:label="t('nextcloud-vue', 'Maximum value')"
+				@update:model-value="updatePropertySetting(propertyKey, 'maximum', Number($event))" />
 			<NcActionInput
-				:value="property.multipleOf || 0"
+				:model-value="property.multipleOf || 0"
 				type="number"
-				label="Multiple Of"
-				@update:value="updatePropertySetting(propertyKey, 'multipleOf', Number($event))" />
+				:label="t('nextcloud-vue', 'Multiple of')"
+				@update:model-value="updatePropertySetting(propertyKey, 'multipleOf', Number($event))" />
 			<NcActionCheckbox
-				:checked="property.exclusiveMin || false"
-				@update:checked="updatePropertySetting(propertyKey, 'exclusiveMin', $event)">
-				Exclusive Minimum
+				:model-value="property.exclusiveMin || false"
+				@update:model-value="updatePropertySetting(propertyKey, 'exclusiveMin', $event)">
+				{{ t('nextcloud-vue', 'Exclusive minimum') }}
 			</NcActionCheckbox>
 			<NcActionCheckbox
-				:checked="property.exclusiveMax || false"
-				@update:checked="updatePropertySetting(propertyKey, 'exclusiveMax', $event)">
-				Exclusive Maximum
+				:model-value="property.exclusiveMax || false"
+				@update:model-value="updatePropertySetting(propertyKey, 'exclusiveMax', $event)">
+				{{ t('nextcloud-vue', 'Exclusive maximum') }}
 			</NcActionCheckbox>
 		</template>
 
 		<template v-if="property.type === 'array'">
 			<NcActionSeparator />
-			<NcActionCaption name="Array Configuration" />
+			<NcActionCaption :name="t('nextcloud-vue', 'Array configuration')" />
 			<NcActionInput
 				v-model="schema.properties[propertyKey].items.type"
 				type="multiselect"
-				:options="[
-					{ id: 'string', label: 'String' },
-					{ id: 'number', label: 'Number' },
-					{ id: 'integer', label: 'Integer' },
-					{ id: 'object', label: 'Object' },
-					{ id: 'boolean', label: 'Boolean' },
-					{ id: 'file', label: 'File' }
-				]"
-				input-label="Array Item Type"
-				label="Array Item Type" />
+				:options="arrayItemTypeOptions"
+				:input-label="t('nextcloud-vue', 'Array item type')"
+				:label="t('nextcloud-vue', 'Array item type')" />
 			<NcActionInput
-				:value="property.minItems || 0"
+				:model-value="property.minItems || 0"
 				type="number"
-				label="Minimum Items"
-				@update:value="updatePropertySetting(propertyKey, 'minItems', Number($event))" />
+				:label="t('nextcloud-vue', 'Minimum items')"
+				@update:model-value="updatePropertySetting(propertyKey, 'minItems', Number($event))" />
 			<NcActionInput
-				:value="property.maxItems || 0"
+				:model-value="property.maxItems || 0"
 				type="number"
-				label="Maximum Items"
-				@update:value="updatePropertySetting(propertyKey, 'maxItems', Number($event))" />
+				:label="t('nextcloud-vue', 'Maximum items')"
+				@update:model-value="updatePropertySetting(propertyKey, 'maxItems', Number($event))" />
 
 			<!-- Show object configuration for array items when item type is object -->
 			<template v-if="property.items && property.items.type === 'object'">
 				<NcActionSeparator />
-				<NcActionCaption name="Array Item Object Configuration" />
+				<NcActionCaption :name="t('nextcloud-vue', 'Array item object configuration')" />
 				<NcActionInput
 					v-model="schema.properties[propertyKey].items.objectConfiguration.handling"
 					type="multiselect"
 					:options="objectHandlingOptions"
-					input-label="Object Handling"
-					label="Object Handling" />
+					:input-label="t('nextcloud-vue', 'Object handling')"
+					:label="t('nextcloud-vue', 'Object handling')" />
 				<NcActionInput
-					:value="schema.properties[propertyKey].items.$ref"
+					:model-value="arrayItemSchemaRefValueFor(propertyKey)"
 					type="multiselect"
-					:options="availableSchemas"
-					input-label="Schema Reference"
-					label="Schema Reference"
-					@update:value="updateArrayItemSchemaReference(propertyKey, $event)" />
+					:options="schemaRefOptions"
+					:input-label="t('nextcloud-vue', 'Schema reference')"
+					:label="t('nextcloud-vue', 'Schema reference')"
+					@update:model-value="updateArrayItemSchemaReference(propertyKey, $event)" />
 				<NcActionCaption
 					v-if="isArrayItemRefInvalid(propertyKey)"
-					:name="`⚠️ Invalid Schema Reference: Expected string, got number (${schema.properties[propertyKey].items.$ref}). This will be sent to backend as-is.`"
+					:name="'⚠️ ' + t('nextcloud-vue', 'Invalid schema reference: Expected string, got number ({value}). This will be sent to backend as-is.', { value: schema.properties[propertyKey].items.$ref })"
 					style="color: var(--color-error); font-weight: bold;" />
 				<NcActionInput
-					:value="getArrayItemRegisterValue(propertyKey)"
+					:model-value="arrayItemRegisterValueFor(propertyKey)"
 					type="multiselect"
-					:options="availableRegisters"
-					input-label="Register"
-					label="Register (Required when schema is selected)"
+					:options="registerSelectOptions"
+					:input-label="t('nextcloud-vue', 'Register')"
+					:label="t('nextcloud-vue', 'Register (required when schema is selected)')"
 					:required="!!schema.properties[propertyKey].items.$ref"
 					:disabled="!schema.properties[propertyKey].items.$ref"
-					@update:value="updateArrayItemRegisterReference(propertyKey, $event)" />
+					@update:model-value="updateArrayItemRegisterReference(propertyKey, $event)" />
 				<NcActionInput
 					v-model="schema.properties[propertyKey].items.inversedBy"
 					type="multiselect"
 					:options="getInversedByOptionsForArrayItems(propertyKey)"
-					input-label="Inversed By Property"
-					label="Inversed By"
+					:input-label="t('nextcloud-vue', 'Inversed by property')"
+					:label="t('nextcloud-vue', 'Inversed by')"
 					:disabled="!schema.properties[propertyKey].items.$ref"
-					@update:value="updateInversedByForArrayItems(propertyKey, $event)" />
+					@update:model-value="updateInversedByForArrayItems(propertyKey, $event)" />
 				<NcActionInput
-					:value="getArrayItemQueryParams(propertyKey)"
-					label="Query Parameters"
+					:model-value="getArrayItemQueryParams(propertyKey)"
+					:label="t('nextcloud-vue', 'Query parameters')"
 					placeholder="e.g. gemmaType=referentiecomponent&_extend=aanbevolenStandaarden"
-					@update:value="updateArrayItemQueryParams(propertyKey, $event)" />
+					@update:model-value="updateArrayItemQueryParams(propertyKey, $event)" />
 				<NcActionCheckbox
-					:checked="property.items.writeBack || false"
-					@update:checked="updateArrayItemObjectConfigurationSetting(propertyKey, 'writeBack', $event)">
-					Write Back
+					:model-value="property.items.writeBack || false"
+					@update:model-value="updateArrayItemObjectConfigurationSetting(propertyKey, 'writeBack', $event)">
+					{{ t('nextcloud-vue', 'Write back') }}
 				</NcActionCheckbox>
 				<NcActionCheckbox
-					:checked="property.items.removeAfterWriteBack || false"
-					@update:checked="updateArrayItemObjectConfigurationSetting(propertyKey, 'removeAfterWriteBack', $event)">
-					Remove After Write Back
+					:model-value="property.items.removeAfterWriteBack || false"
+					@update:model-value="updateArrayItemObjectConfigurationSetting(propertyKey, 'removeAfterWriteBack', $event)">
+					{{ t('nextcloud-vue', 'Remove after write back') }}
 				</NcActionCheckbox>
 				<NcActionCheckbox
-					:checked="property.items.cascadeDelete || false"
-					@update:checked="updateArrayItemObjectConfigurationSetting(propertyKey, 'cascadeDelete', $event)">
-					Cascade Delete
+					:model-value="property.items.cascadeDelete || false"
+					@update:model-value="updateArrayItemObjectConfigurationSetting(propertyKey, 'cascadeDelete', $event)">
+					{{ t('nextcloud-vue', 'Cascade delete') }}
 				</NcActionCheckbox>
 			</template>
 		</template>
 
 		<template v-if="property.type === 'object'">
 			<NcActionSeparator />
-			<NcActionCaption name="Object Configuration" />
+			<NcActionCaption :name="t('nextcloud-vue', 'Object configuration')" />
 			<NcActionInput
 				v-model="schema.properties[propertyKey].objectConfiguration.handling"
 				type="multiselect"
 				:options="objectHandlingOptions"
-				input-label="Object Handling"
-				label="Object Handling" />
+				:input-label="t('nextcloud-vue', 'Object handling')"
+				:label="t('nextcloud-vue', 'Object handling')" />
 			<NcActionInput
-				:value="schema.properties[propertyKey].$ref"
+				:model-value="schemaRefValueFor(propertyKey)"
 				type="multiselect"
-				:options="availableSchemas"
-				input-label="Schema Reference"
-				label="Schema Reference"
-				@update:value="updateSchemaReference(propertyKey, $event)" />
+				:options="schemaRefOptions"
+				:input-label="t('nextcloud-vue', 'Schema reference')"
+				:label="t('nextcloud-vue', 'Schema reference')"
+				@update:model-value="updateSchemaReference(propertyKey, $event)" />
 			<NcActionCaption
 				v-if="isRefInvalid(propertyKey)"
-				:name="`⚠️ Invalid Schema Reference: Expected string, got number (${schema.properties[propertyKey].$ref}). This will be sent to backend as-is.`"
+				:name="'⚠️ ' + t('nextcloud-vue', 'Invalid schema reference: Expected string, got number ({value}). This will be sent to backend as-is.', { value: schema.properties[propertyKey].$ref })"
 				style="color: var(--color-error); font-weight: bold;" />
 			<NcActionInput
-				:value="getRegisterValue(propertyKey)"
+				:model-value="registerValueFor(propertyKey)"
 				type="multiselect"
-				:options="availableRegisters"
-				input-label="Register"
-				label="Register (Required when schema is selected)"
+				:options="registerSelectOptions"
+				:input-label="t('nextcloud-vue', 'Register')"
+				:label="t('nextcloud-vue', 'Register (required when schema is selected)')"
 				:required="!!schema.properties[propertyKey].$ref"
 				:disabled="!schema.properties[propertyKey].$ref"
-				@update:value="updateRegisterReference(propertyKey, $event)" />
+				@update:model-value="updateRegisterReference(propertyKey, $event)" />
 			<NcActionInput
 				v-model="schema.properties[propertyKey].inversedBy"
 				type="multiselect"
 				:options="getInversedByOptions(propertyKey)"
-				input-label="Inversed By Property"
-				label="Inversed By"
+				:input-label="t('nextcloud-vue', 'Inversed by property')"
+				:label="t('nextcloud-vue', 'Inversed by')"
 				:disabled="!schema.properties[propertyKey].$ref"
-				@update:value="updateInversedBy(propertyKey, $event)" />
+				@update:model-value="updateInversedBy(propertyKey, $event)" />
 			<NcActionInput
-				:value="getObjectQueryParams(propertyKey)"
-				label="Query Parameters"
+				:model-value="getObjectQueryParams(propertyKey)"
+				:label="t('nextcloud-vue', 'Query parameters')"
 				placeholder="e.g. gemmaType=referentiecomponent&_extend=aanbevolenStandaarden"
-				@update:value="updateObjectQueryParams(propertyKey, $event)" />
+				@update:model-value="updateObjectQueryParams(propertyKey, $event)" />
 			<NcActionCheckbox
-				:checked="property.writeBack || false"
-				@update:checked="updatePropertySetting(propertyKey, 'writeBack', $event)">
-				Write Back
+				:model-value="property.writeBack || false"
+				@update:model-value="updatePropertySetting(propertyKey, 'writeBack', $event)">
+				{{ t('nextcloud-vue', 'Write back') }}
 			</NcActionCheckbox>
 			<NcActionCheckbox
-				:checked="property.removeAfterWriteBack || false"
-				@update:checked="updatePropertySetting(propertyKey, 'removeAfterWriteBack', $event)">
-				Remove After Write Back
+				:model-value="property.removeAfterWriteBack || false"
+				@update:model-value="updatePropertySetting(propertyKey, 'removeAfterWriteBack', $event)">
+				{{ t('nextcloud-vue', 'Remove after write back') }}
 			</NcActionCheckbox>
 			<NcActionCheckbox
-				:checked="property.cascadeDelete || false"
-				@update:checked="updatePropertySetting(propertyKey, 'cascadeDelete', $event)">
-				Cascade Delete
+				:model-value="property.cascadeDelete || false"
+				@update:model-value="updatePropertySetting(propertyKey, 'cascadeDelete', $event)">
+				{{ t('nextcloud-vue', 'Cascade delete') }}
 			</NcActionCheckbox>
 		</template>
 
 		<!-- File Configuration -->
 		<template v-if="property.type === 'file' || (property.type === 'array' && property.items && property.items.type === 'file')">
 			<NcActionSeparator />
-			<NcActionCaption name="File Configuration" />
+			<NcActionCaption :name="t('nextcloud-vue', 'File configuration')" />
 			<NcActionCheckbox
-				:checked="getFilePropertySetting(propertyKey, 'autoPublish')"
-				@update:checked="updateFilePropertySetting(propertyKey, 'autoPublish', $event)">
-				Auto-Publish Files
+				:model-value="getFilePropertySetting(propertyKey, 'autoPublish')"
+				@update:model-value="updateFilePropertySetting(propertyKey, 'autoPublish', $event)">
+				{{ t('nextcloud-vue', 'Auto-publish files') }}
 			</NcActionCheckbox>
 			<NcActionCaption
 				v-if="getFilePropertySetting(propertyKey, 'autoPublish')"
-				name="ℹ️ Files uploaded to this property will be automatically publicly shared"
+				:name="'ℹ️ ' + t('nextcloud-vue', 'Files uploaded to this property will be automatically publicly shared')"
 				style="color: var(--color-text-lighter); font-size: 11px;" />
 			<NcActionInput
-				:value="(property.allowedTypes || []).join(', ')"
-				label="Allowed MIME Types (comma separated)"
+				:model-value="(property.allowedTypes || []).join(', ')"
+				:label="t('nextcloud-vue', 'Allowed MIME types (comma separated)')"
 				placeholder="image/png, image/jpeg, application/pdf"
-				@update:value="updateFileProperty(propertyKey, 'allowedTypes', $event)" />
+				@update:model-value="updateFileProperty(propertyKey, 'allowedTypes', $event)" />
 			<NcActionInput
-				:value="property.maxSize || ''"
+				:model-value="property.maxSize || ''"
 				type="number"
-				label="Maximum File Size (bytes)"
+				:label="t('nextcloud-vue', 'Maximum file size (bytes)')"
 				placeholder="5242880"
-				@update:value="updateFileProperty(propertyKey, 'maxSize', $event)" />
+				@update:model-value="updateFileProperty(propertyKey, 'maxSize', $event)" />
 			<NcActionInput
-				:value="getFilePropertyTags(propertyKey, 'allowedTags')"
+				:model-value="getFilePropertyTags(propertyKey, 'allowedTags')"
 				type="multiselect"
 				:options="availableTagsOptions"
-				input-label="Allowed Tags"
-				label="Allowed Tags (select from available tags)"
+				:input-label="t('nextcloud-vue', 'Allowed tags')"
+				:label="t('nextcloud-vue', 'Allowed tags (select from available tags)')"
 				multiple
-				@update:value="updateFilePropertyTags(propertyKey, 'allowedTags', $event)" />
+				@update:model-value="updateFilePropertyTags(propertyKey, 'allowedTags', $event)" />
 			<NcActionInput
-				:value="getFilePropertyTags(propertyKey, 'autoTags')"
+				:model-value="getFilePropertyTags(propertyKey, 'autoTags')"
 				type="multiselect"
 				:options="availableTagsOptions"
-				input-label="Auto Tags"
-				label="Auto Tags (automatically applied to uploaded files)"
+				:input-label="t('nextcloud-vue', 'Auto tags')"
+				:label="t('nextcloud-vue', 'Auto tags (automatically applied to uploaded files)')"
 				multiple
-				@update:value="updateFilePropertyTags(propertyKey, 'autoTags', $event)" />
+				@update:model-value="updateFilePropertyTags(propertyKey, 'autoTags', $event)" />
 		</template>
 
 		<!-- Property-level Table Configuration -->
 		<NcActionSeparator />
-		<NcActionCaption name="Table" />
+		<NcActionCaption :name="t('nextcloud-vue', 'Table')" />
 		<NcActionCheckbox
-			:checked="getPropertyTableSetting(propertyKey, 'default')"
-			@update:checked="updatePropertyTableSetting(propertyKey, 'default', $event)">
-			Default
+			:model-value="getPropertyTableSetting(propertyKey, 'default')"
+			@update:model-value="updatePropertyTableSetting(propertyKey, 'default', $event)">
+			{{ t('nextcloud-vue', 'Default') }}
 		</NcActionCheckbox>
 
 		<!-- Property-level Security Configuration -->
 		<NcActionSeparator />
-		<NcActionCaption name="Property Security" />
+		<NcActionCaption :name="t('nextcloud-vue', 'Property security')" />
 
 		<template v-if="!loadingGroups">
 			<!-- Current Property Permissions List -->
@@ -445,20 +456,20 @@
 				<NcActionButton
 					v-if="permission.groupId !== 'admin'"
 					:key="`${propertyKey}-perm-remove-${permission.group}`"
-					:aria-label="`Remove ${permission.group} permissions`"
+					:aria-label="t('nextcloud-vue', 'Remove {group} permissions', { group: permission.group })"
 					class="cn-schema-form__property-permission-remove-btn"
 					@click="removePropertyGroupPermissions(propertyKey, permission.group)">
 					<template #icon>
 						<Close :size="16" />
 					</template>
-					Remove {{ permission.group }}
+					{{ t('nextcloud-vue', 'Remove {group}', { group: permission.group }) }}
 				</NcActionButton>
 			</div>
 
 			<!-- Show inheritance status if no specific permissions -->
 			<NcActionCaption
 				v-if="!hasPropertyAnyPermissions(propertyKey)"
-				name="📄 Inherits schema permissions"
+				:name="'📄 ' + t('nextcloud-vue', 'Inherits schema permissions')"
 				style="color: var(--color-success); font-size: 11px;" />
 
 			<!-- Add Permission Interface -->
@@ -467,31 +478,31 @@
 				v-model="propertyNewPermissionGroup"
 				type="multiselect"
 				:options="getAvailableGroupsForProperty()"
-				input-label="Group"
-				label="Add Group Permission"
-				placeholder="Select group..." />
+				:input-label="t('nextcloud-vue', 'Group')"
+				:label="t('nextcloud-vue', 'Add group permission')"
+				:placeholder="t('nextcloud-vue', 'Select group...')" />
 
 			<template v-if="propertyNewPermissionGroup">
-				<NcActionCaption name="Select Permissions:" />
+				<NcActionCaption :name="t('nextcloud-vue', 'Select permissions:')" />
 				<NcActionCheckbox
-					:checked="propertyNewPermissionCreate"
-					@update:checked="propertyNewPermissionCreate = $event">
-					Create (C)
+					:model-value="propertyNewPermissionCreate"
+					@update:model-value="propertyNewPermissionCreate = $event">
+					{{ t('nextcloud-vue', 'Create (C)') }}
 				</NcActionCheckbox>
 				<NcActionCheckbox
-					:checked="propertyNewPermissionRead"
-					@update:checked="propertyNewPermissionRead = $event">
-					Read (R)
+					:model-value="propertyNewPermissionRead"
+					@update:model-value="propertyNewPermissionRead = $event">
+					{{ t('nextcloud-vue', 'Read (R)') }}
 				</NcActionCheckbox>
 				<NcActionCheckbox
-					:checked="propertyNewPermissionUpdate"
-					@update:checked="propertyNewPermissionUpdate = $event">
-					Update (U)
+					:model-value="propertyNewPermissionUpdate"
+					@update:model-value="propertyNewPermissionUpdate = $event">
+					{{ t('nextcloud-vue', 'Update (U)') }}
 				</NcActionCheckbox>
 				<NcActionCheckbox
-					:checked="propertyNewPermissionDelete"
-					@update:checked="propertyNewPermissionDelete = $event">
-					Delete (D)
+					:model-value="propertyNewPermissionDelete"
+					@update:model-value="propertyNewPermissionDelete = $event">
+					{{ t('nextcloud-vue', 'Delete (D)') }}
 				</NcActionCheckbox>
 
 				<NcActionButton
@@ -500,17 +511,18 @@
 					<template #icon>
 						<Plus :size="16" />
 					</template>
-					Add Permission
+					{{ t('nextcloud-vue', 'Add permission') }}
 				</NcActionButton>
 			</template>
 		</template>
 		<template v-else>
-			<NcActionCaption name="Loading groups..." />
+			<NcActionCaption :name="t('nextcloud-vue', 'Loading groups...')" />
 		</template>
 	</NcActions>
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import {
 	NcActions,
 	NcActionButton,
@@ -575,6 +587,7 @@ export default {
 		/** Whether user groups are still loading */
 		loadingGroups: { type: Boolean, default: false },
 	},
+	emits: ['copy-property', 'delete-property'],
 	data() {
 		return {
 			enumInputValue: '',
@@ -583,13 +596,6 @@ export default {
 			propertyNewPermissionRead: false,
 			propertyNewPermissionUpdate: false,
 			propertyNewPermissionDelete: false,
-			objectHandlingOptions: [
-				{ id: 'nested-object', label: 'Nested Object' },
-				{ id: 'related-object', label: 'Related Object' },
-				{ id: 'nested-schema', label: 'Nested Schema' },
-				{ id: 'related-schema', label: 'Related Schema' },
-				{ id: 'uri', label: 'URI' },
-			],
 		}
 	},
 	computed: {
@@ -597,8 +603,57 @@ export default {
 		schema() {
 			return this.schemaItem
 		},
+		objectHandlingOptions() {
+			return [
+				{ id: 'nested-object', label: t('nextcloud-vue', 'Nested object') },
+				{ id: 'related-object', label: t('nextcloud-vue', 'Related object') },
+				{ id: 'nested-schema', label: t('nextcloud-vue', 'Nested schema') },
+				{ id: 'related-schema', label: t('nextcloud-vue', 'Related schema') },
+				{ id: 'uri', label: 'URI' },
+			]
+		},
+		/**
+		 * Schema-reference select options as {id, label}. NcSelect renders
+		 * `option.label`, and the raw availableSchemas objects are keyed by
+		 * title/slug with NO label — binding them directly rendered every option as
+		 * literal "undefined". `id` is the $ref the backend expects (the schema's
+		 * reference, or `#/components/schemas/<slug>`), which updateSchemaReference
+		 * reads back off `value.id`.
+		 *
+		 * @return {Array<{id: string, label: string, schema: object}>} Options.
+		 */
+		schemaRefOptions() {
+			return (this.availableSchemas || []).map((s) => ({
+				id: s.reference || `#/components/schemas/${s.slug || s.title || s.id}`,
+				label: s.title || s.name || s.slug || `Schema ${s.id}`,
+				schema: s,
+			}))
+		},
+		/**
+		 * Register select options as {id, label} — same reason as schemaRefOptions.
+		 *
+		 * @return {Array<{id: (string|number), label: string}>} Options.
+		 */
+		registerSelectOptions() {
+			return (this.availableRegisters || []).map((r) => ({
+				id: r.id !== undefined ? r.id : (r.slug || r.title),
+				label: r.title || r.name || r.label || r.slug || `Register ${r.id}`,
+			}))
+		},
+		arrayItemTypeOptions() {
+			return [
+				{ id: 'string', label: t('nextcloud-vue', 'String') },
+				{ id: 'number', label: t('nextcloud-vue', 'Number') },
+				{ id: 'integer', label: t('nextcloud-vue', 'Integer') },
+				{ id: 'object', label: t('nextcloud-vue', 'Object') },
+				{ id: 'boolean', label: t('nextcloud-vue', 'Boolean') },
+				{ id: 'file', label: t('nextcloud-vue', 'File') },
+			]
+		},
 	},
 	methods: {
+		t,
+
 		// --- General helpers ---
 
 		isPropertyRequired(schema, key) {
@@ -618,7 +673,6 @@ export default {
 
 		checkPropertiesModified() {
 			// Bubble up to parent — the parent's deep watcher handles this
-			// This is a no-op placeholder; modifications are detected by the parent's watcher
 		},
 
 		// --- Property setting updates ---
@@ -626,7 +680,7 @@ export default {
 		updatePropertySetting(key, setting, value) {
 			if (this.schema.properties[key]) {
 				const settingValue = typeof value === 'object' && value?.id ? value.id : value
-				this.$set(this.schema.properties[key], setting, settingValue)
+				this.schema.properties[key][setting] = settingValue
 				this.ensureRefIsString(this.schema.properties, key)
 			}
 		},
@@ -634,14 +688,14 @@ export default {
 		updatePropertyRequired(key, isRequired) {
 			if (this.schema.properties[key]) {
 				if (isRequired) {
-					this.$set(this.schema.properties[key], 'required', true)
+					this.schema.properties[key].required = true
 				} else {
-					this.$delete(this.schema.properties[key], 'required')
+					delete this.schema.properties[key].required
 				}
 			}
 
 			if (!this.schema.required) {
-				this.$set(this.schema, 'required', [])
+				this.schema.required = []
 			}
 
 			const currentRequired = [...this.schema.required]
@@ -676,9 +730,9 @@ export default {
 
 		toggleFacetable(key, enabled) {
 			if (enabled) {
-				this.$set(this.schema.properties[key], 'facetable', true)
+				this.schema.properties[key].facetable = true
 			} else {
-				this.$set(this.schema.properties[key], 'facetable', false)
+				this.schema.properties[key].facetable = false
 			}
 		},
 
@@ -699,14 +753,14 @@ export default {
 				|| (config.order != null)
 
 			if (hasCustomConfig) {
-				this.$set(this.schema.properties[key], 'facetable', {
+				this.schema.properties[key].facetable = {
 					aggregated: config.aggregated,
 					title: config.title?.trim() || null,
 					description: config.description?.trim() || null,
 					order: config.order,
-				})
+				}
 			} else {
-				this.$set(this.schema.properties[key], 'facetable', true)
+				this.schema.properties[key].facetable = true
 			}
 		},
 
@@ -715,50 +769,50 @@ export default {
 		getFormatOptionsForType(type) {
 			const formatMap = {
 				string: [
-					{ id: 'text', label: 'Text' },
-					{ id: 'markdown', label: 'Markdown' },
-					{ id: 'html', label: 'HTML' },
-					{ id: 'date-time', label: 'Date Time' },
-					{ id: 'date', label: 'Date' },
-					{ id: 'time', label: 'Time' },
-					{ id: 'duration', label: 'Duration' },
-					{ id: 'email', label: 'Email' },
-					{ id: 'idn-email', label: 'IDN Email' },
-					{ id: 'hostname', label: 'Hostname' },
-					{ id: 'idn-hostname', label: 'IDN Hostname' },
+					{ id: 'text', label: t('nextcloud-vue', 'Text') },
+					{ id: 'markdown', label: t('nextcloud-vue', 'Markdown') },
+					{ id: 'html', label: t('nextcloud-vue', 'HTML') },
+					{ id: 'date-time', label: t('nextcloud-vue', 'Date time') },
+					{ id: 'date', label: t('nextcloud-vue', 'Date') },
+					{ id: 'time', label: t('nextcloud-vue', 'Time') },
+					{ id: 'duration', label: t('nextcloud-vue', 'Duration') },
+					{ id: 'email', label: t('nextcloud-vue', 'Email') },
+					{ id: 'idn-email', label: t('nextcloud-vue', 'IDN email') },
+					{ id: 'hostname', label: t('nextcloud-vue', 'Hostname') },
+					{ id: 'idn-hostname', label: t('nextcloud-vue', 'IDN hostname') },
 					{ id: 'ipv4', label: 'IPv4' },
 					{ id: 'ipv6', label: 'IPv6' },
 					{ id: 'uri', label: 'URI' },
-					{ id: 'uri-reference', label: 'URI Reference' },
+					{ id: 'uri-reference', label: t('nextcloud-vue', 'URI reference') },
 					{ id: 'iri', label: 'IRI' },
-					{ id: 'iri-reference', label: 'IRI Reference' },
+					{ id: 'iri-reference', label: t('nextcloud-vue', 'IRI reference') },
 					{ id: 'uuid', label: 'UUID' },
-					{ id: 'uri-template', label: 'URI Template' },
-					{ id: 'json-pointer', label: 'JSON Pointer' },
-					{ id: 'relative-json-pointer', label: 'Relative JSON Pointer' },
-					{ id: 'regex', label: 'Regex' },
-					{ id: 'binary', label: 'Binary' },
-					{ id: 'byte', label: 'Byte' },
-					{ id: 'password', label: 'Password' },
+					{ id: 'uri-template', label: t('nextcloud-vue', 'URI template') },
+					{ id: 'json-pointer', label: t('nextcloud-vue', 'JSON pointer') },
+					{ id: 'relative-json-pointer', label: t('nextcloud-vue', 'Relative JSON pointer') },
+					{ id: 'regex', label: t('nextcloud-vue', 'Regex') },
+					{ id: 'binary', label: t('nextcloud-vue', 'Binary') },
+					{ id: 'byte', label: t('nextcloud-vue', 'Byte') },
+					{ id: 'password', label: t('nextcloud-vue', 'Password') },
 					{ id: 'rsin', label: 'RSIN' },
 					{ id: 'kvk', label: 'KVK' },
 					{ id: 'bsn', label: 'BSN' },
 					{ id: 'oidn', label: 'OIDN' },
-					{ id: 'telephone', label: 'Telephone' },
-					{ id: 'accessUrl', label: 'Access URL' },
-					{ id: 'shareUrl', label: 'Share URL' },
-					{ id: 'downloadUrl', label: 'Download URL' },
-					{ id: 'extension', label: 'Extension' },
-					{ id: 'filename', label: 'Filename' },
-					{ id: 'semver', label: 'Semantic Version' },
+					{ id: 'telephone', label: t('nextcloud-vue', 'Telephone') },
+					{ id: 'accessUrl', label: t('nextcloud-vue', 'Access URL') },
+					{ id: 'shareUrl', label: t('nextcloud-vue', 'Share URL') },
+					{ id: 'downloadUrl', label: t('nextcloud-vue', 'Download URL') },
+					{ id: 'extension', label: t('nextcloud-vue', 'Extension') },
+					{ id: 'filename', label: t('nextcloud-vue', 'Filename') },
+					{ id: 'semver', label: t('nextcloud-vue', 'Semantic version') },
 					{ id: 'url', label: 'URL' },
-					{ id: 'color', label: 'Color' },
-					{ id: 'color-hex', label: 'Color Hex' },
-					{ id: 'color-hex-alpha', label: 'Color Hex Alpha' },
-					{ id: 'color-rgb', label: 'Color RGB' },
-					{ id: 'color-rgba', label: 'Color RGBA' },
-					{ id: 'color-hsl', label: 'Color HSL' },
-					{ id: 'color-hsla', label: 'Color HSLA' },
+					{ id: 'color', label: t('nextcloud-vue', 'Color') },
+					{ id: 'color-hex', label: t('nextcloud-vue', 'Color hex') },
+					{ id: 'color-hex-alpha', label: t('nextcloud-vue', 'Color hex alpha') },
+					{ id: 'color-rgb', label: t('nextcloud-vue', 'Color RGB') },
+					{ id: 'color-rgba', label: t('nextcloud-vue', 'Color RGBA') },
+					{ id: 'color-hsl', label: t('nextcloud-vue', 'Color HSL') },
+					{ id: 'color-hsla', label: t('nextcloud-vue', 'Color HSLA') },
 				],
 				number: [],
 				integer: [],
@@ -778,12 +832,12 @@ export default {
 
 			if (this.schema.properties[key]) {
 				if (!this.schema.properties[key].enum) {
-					this.$set(this.schema.properties[key], 'enum', [])
+					this.schema.properties[key].enum = []
 				}
 
 				if (!this.schema.properties[key].enum.includes(trimmedValue)) {
 					const newEnum = [...this.schema.properties[key].enum, trimmedValue]
-					this.$set(this.schema.properties[key], 'enum', newEnum)
+					this.schema.properties[key].enum = newEnum
 				}
 			}
 		},
@@ -800,9 +854,9 @@ export default {
 				const newEnum = this.schema.properties[key].enum.filter((_, i) => i !== index)
 
 				if (newEnum.length === 0) {
-					this.$delete(this.schema.properties[key], 'enum')
+					delete this.schema.properties[key].enum
 				} else {
-					this.$set(this.schema.properties[key], 'enum', newEnum)
+					this.schema.properties[key].enum = newEnum
 				}
 			}
 		},
@@ -820,10 +874,10 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			if (!value || value.trim() === '') {
-				this.$set(this.schema.properties[key], 'default', undefined)
+				this.schema.properties[key].default = undefined
 			} else {
 				const arrayValues = value.split(',').map(item => item.trim()).filter(item => item !== '')
-				this.$set(this.schema.properties[key], 'default', arrayValues)
+				this.schema.properties[key].default = arrayValues
 			}
 		},
 
@@ -831,13 +885,13 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			if (!value || value.trim() === '' || value.trim() === '{}') {
-				this.$set(this.schema.properties[key], 'default', undefined)
+				this.schema.properties[key].default = undefined
 				return
 			}
 
 			try {
 				const parsedValue = JSON.parse(value)
-				this.$set(this.schema.properties[key], 'default', parsedValue)
+				this.schema.properties[key].default = parsedValue
 			} catch (e) {
 				console.warn('Invalid JSON for default value:', e.message)
 			}
@@ -883,10 +937,10 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			const schemaRef = typeof value === 'object' && value?.id ? value.id : value
-			this.$set(this.schema.properties[key], '$ref', schemaRef)
+			this.schema.properties[key].$ref = schemaRef
 
 			if (!this.schema.properties[key].objectConfiguration) {
-				this.$set(this.schema.properties[key], 'objectConfiguration', { handling: 'related-object' })
+				this.schema.properties[key].objectConfiguration = { handling: 'related-object' }
 			}
 
 			if (schemaRef) {
@@ -897,17 +951,17 @@ export default {
 
 				const referencedSchema = this.findSchemaBySlug(schemaSlug)
 				if (referencedSchema) {
-					this.$set(this.schema.properties[key].objectConfiguration, 'schema', referencedSchema.id)
+					this.schema.properties[key].objectConfiguration.schema = referencedSchema.id
 				}
 
 				if (this.schema.properties[key].register && !this.schema.properties[key].objectConfiguration.register) {
 					const oldRegister = this.schema.properties[key].register
 					const registerId = typeof oldRegister === 'object' && oldRegister.id ? oldRegister.id : oldRegister
-					this.$set(this.schema.properties[key].objectConfiguration, 'register', registerId)
+					this.schema.properties[key].objectConfiguration.register = registerId
 				}
 			} else {
-				this.$delete(this.schema.properties[key].objectConfiguration, 'schema')
-				this.$delete(this.schema.properties[key].objectConfiguration, 'register')
+				delete this.schema.properties[key].objectConfiguration.schema
+				delete this.schema.properties[key].objectConfiguration.register
 			}
 		},
 
@@ -915,10 +969,10 @@ export default {
 			if (!this.schema.properties[key] || !this.schema.properties[key].items) return
 
 			const schemaRef = typeof value === 'object' && value?.id ? value.id : value
-			this.$set(this.schema.properties[key].items, '$ref', schemaRef)
+			this.schema.properties[key].items.$ref = schemaRef
 
 			if (!this.schema.properties[key].items.objectConfiguration) {
-				this.$set(this.schema.properties[key].items, 'objectConfiguration', { handling: 'related-object' })
+				this.schema.properties[key].items.objectConfiguration = { handling: 'related-object' }
 			}
 
 			if (schemaRef) {
@@ -929,11 +983,11 @@ export default {
 
 				const referencedSchema = this.findSchemaBySlug(schemaSlug)
 				if (referencedSchema) {
-					this.$set(this.schema.properties[key].items.objectConfiguration, 'schema', referencedSchema.id)
+					this.schema.properties[key].items.objectConfiguration.schema = referencedSchema.id
 				}
 			} else {
-				this.$delete(this.schema.properties[key].items.objectConfiguration, 'schema')
-				this.$delete(this.schema.properties[key].items.objectConfiguration, 'register')
+				delete this.schema.properties[key].items.objectConfiguration.schema
+				delete this.schema.properties[key].items.objectConfiguration.register
 			}
 		},
 
@@ -943,18 +997,18 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			if (!this.schema.properties[key].objectConfiguration) {
-				this.$set(this.schema.properties[key], 'objectConfiguration', { handling: 'related-object' })
+				this.schema.properties[key].objectConfiguration = { handling: 'related-object' }
 			}
 
 			const registerId = typeof value === 'object' && value?.id ? value.id : value
 
 			if (registerId) {
-				this.$set(this.schema.properties[key].objectConfiguration, 'register', registerId)
+				this.schema.properties[key].objectConfiguration.register = registerId
 				if (this.schema.properties[key].register) {
-					this.$delete(this.schema.properties[key], 'register')
+					delete this.schema.properties[key].register
 				}
 			} else {
-				this.$delete(this.schema.properties[key].objectConfiguration, 'register')
+				delete this.schema.properties[key].objectConfiguration.register
 			}
 		},
 
@@ -962,15 +1016,15 @@ export default {
 			if (!this.schema.properties[key] || !this.schema.properties[key].items) return
 
 			if (!this.schema.properties[key].items.objectConfiguration) {
-				this.$set(this.schema.properties[key].items, 'objectConfiguration', { handling: 'related-object' })
+				this.schema.properties[key].items.objectConfiguration = { handling: 'related-object' }
 			}
 
 			const registerId = typeof value === 'object' && value?.id ? value.id : value
 
 			if (registerId) {
-				this.$set(this.schema.properties[key].items.objectConfiguration, 'register', registerId)
+				this.schema.properties[key].items.objectConfiguration.register = registerId
 			} else {
-				this.$delete(this.schema.properties[key].items.objectConfiguration, 'register')
+				delete this.schema.properties[key].items.objectConfiguration.register
 			}
 		},
 
@@ -998,6 +1052,79 @@ export default {
 				return items.register
 			}
 			return null
+		},
+
+		// --- Select value resolvers (return the matched {id,label} option so the
+		//     multiselect displays the current selection instead of a raw string) ---
+
+		/**
+		 * The schema-reference option currently selected for a property.
+		 *
+		 * @param {string} key The property key.
+		 * @return {?object} The matching {id,label} option, or a display fallback.
+		 */
+		schemaRefValueFor(key) {
+			const ref = this.schema.properties[key] && this.schema.properties[key].$ref
+			return this.matchSchemaRefOption(ref)
+		},
+		/**
+		 * The schema-reference option currently selected for an array property's items.
+		 *
+		 * @param {string} key The property key.
+		 * @return {?object} The matching {id,label} option, or a display fallback.
+		 */
+		arrayItemSchemaRefValueFor(key) {
+			const items = this.schema.properties[key] && this.schema.properties[key].items
+			return this.matchSchemaRefOption(items && items.$ref)
+		},
+		/**
+		 * Resolve a stored $ref to a schemaRefOptions entry, matching on the option
+		 * id or the referenced schema's slug/title/id so a value persisted in any of
+		 * those forms still shows a name. Falls back to showing the raw ref.
+		 *
+		 * @param {(string|number|object)} ref The stored $ref.
+		 * @return {?object} The matching option, a raw-ref fallback, or null.
+		 */
+		matchSchemaRefOption(ref) {
+			if (ref === undefined || ref === null || ref === '') return null
+			const raw = typeof ref === 'object' && ref.id !== undefined ? ref.id : ref
+			const tail = typeof raw === 'string' && raw.includes('/') ? raw.substring(raw.lastIndexOf('/') + 1) : raw
+			return this.schemaRefOptions.find((o) => o.id === raw)
+				|| this.schemaRefOptions.find((o) => {
+					const s = o.schema || {}
+					return s.slug === tail || s.title === tail || String(s.id) === String(tail)
+				})
+				|| { id: raw, label: String(raw) }
+		},
+		/**
+		 * The register option currently selected for a property.
+		 *
+		 * @param {string} key The property key.
+		 * @return {?object} The matching {id,label} option, or a display fallback.
+		 */
+		registerValueFor(key) {
+			return this.matchRegisterOption(this.getRegisterValue(key))
+		},
+		/**
+		 * The register option currently selected for an array property's items.
+		 *
+		 * @param {string} key The property key.
+		 * @return {?object} The matching {id,label} option, or a display fallback.
+		 */
+		arrayItemRegisterValueFor(key) {
+			return this.matchRegisterOption(this.getArrayItemRegisterValue(key))
+		},
+		/**
+		 * Resolve a stored register id to a registerSelectOptions entry.
+		 *
+		 * @param {(string|number|object)} value The stored register value.
+		 * @return {?object} The matching option, a raw fallback, or null.
+		 */
+		matchRegisterOption(value) {
+			if (value === undefined || value === null || value === '') return null
+			const raw = typeof value === 'object' && value.id !== undefined ? value.id : value
+			return this.registerSelectOptions.find((o) => String(o.id) === String(raw))
+				|| { id: raw, label: String(raw) }
 		},
 
 		// --- InversedBy ---
@@ -1049,14 +1176,14 @@ export default {
 		updateInversedBy(key, value) {
 			if (this.schema.properties[key]) {
 				const inversedByValue = typeof value === 'object' && value?.id ? value.id : value
-				this.$set(this.schema.properties[key], 'inversedBy', inversedByValue)
+				this.schema.properties[key].inversedBy = inversedByValue
 			}
 		},
 
 		updateInversedByForArrayItems(key, value) {
 			if (this.schema.properties[key] && this.schema.properties[key].items) {
 				const inversedByValue = typeof value === 'object' && value?.id ? value.id : value
-				this.$set(this.schema.properties[key].items, 'inversedBy', inversedByValue)
+				this.schema.properties[key].items.inversedBy = inversedByValue
 			}
 		},
 
@@ -1065,13 +1192,13 @@ export default {
 		updateArrayItemObjectConfigurationSetting(key, setting, value) {
 			if (this.schema.properties[key]) {
 				if (!this.schema.properties[key].items) {
-					this.$set(this.schema.properties[key], 'items', {})
+					this.schema.properties[key].items = {}
 				}
 				if (!this.schema.properties[key].items.objectConfiguration) {
-					this.$set(this.schema.properties[key].items, 'objectConfiguration', {})
+					this.schema.properties[key].items.objectConfiguration = {}
 				}
 				const settingValue = typeof value === 'object' && value?.id ? value.id : value
-				this.$set(this.schema.properties[key].items, setting, settingValue)
+				this.schema.properties[key].items[setting] = settingValue
 			}
 		},
 
@@ -1086,13 +1213,13 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			if (!this.schema.properties[key].objectConfiguration) {
-				this.$set(this.schema.properties[key], 'objectConfiguration', { handling: 'related-object' })
+				this.schema.properties[key].objectConfiguration = { handling: 'related-object' }
 			}
 
 			if (value && value.trim()) {
-				this.$set(this.schema.properties[key].objectConfiguration, 'queryParams', value.trim())
+				this.schema.properties[key].objectConfiguration.queryParams = value.trim()
 			} else {
-				this.$delete(this.schema.properties[key].objectConfiguration, 'queryParams')
+				delete this.schema.properties[key].objectConfiguration.queryParams
 			}
 		},
 
@@ -1105,13 +1232,13 @@ export default {
 			if (!this.schema.properties[key] || !this.schema.properties[key].items) return
 
 			if (!this.schema.properties[key].items.objectConfiguration) {
-				this.$set(this.schema.properties[key].items, 'objectConfiguration', { handling: 'related-object' })
+				this.schema.properties[key].items.objectConfiguration = { handling: 'related-object' }
 			}
 
 			if (value && value.trim()) {
-				this.$set(this.schema.properties[key].items.objectConfiguration, 'queryParams', value.trim())
+				this.schema.properties[key].items.objectConfiguration.queryParams = value.trim()
 			} else {
-				this.$delete(this.schema.properties[key].items.objectConfiguration, 'queryParams')
+				delete this.schema.properties[key].items.objectConfiguration.queryParams
 			}
 		},
 
@@ -1129,9 +1256,9 @@ export default {
 		updateFilePropertySetting(key, setting, value) {
 			if (this.schema.properties[key]) {
 				if (this.schema.properties[key].type === 'file') {
-					this.$set(this.schema.properties[key], setting, value)
+					this.schema.properties[key][setting] = value
 				} else if (this.schema.properties[key].type === 'array' && this.schema.properties[key].items) {
-					this.$set(this.schema.properties[key].items, setting, value)
+					this.schema.properties[key].items[setting] = value
 				}
 			}
 		},
@@ -1141,16 +1268,16 @@ export default {
 				if (['allowedTypes', 'allowedTags', 'autoTags'].includes(setting)) {
 					const arrayValue = value ? value.split(',').map(item => item.trim()).filter(item => item !== '') : []
 					if (this.schema.properties[key].type === 'file') {
-						this.$set(this.schema.properties[key], setting, arrayValue)
+						this.schema.properties[key][setting] = arrayValue
 					} else if (this.schema.properties[key].type === 'array' && this.schema.properties[key].items) {
-						this.$set(this.schema.properties[key].items, setting, arrayValue)
+						this.schema.properties[key].items[setting] = arrayValue
 					}
 				} else if (setting === 'maxSize') {
 					const numValue = value ? Number(value) : undefined
 					if (this.schema.properties[key].type === 'file') {
-						this.$set(this.schema.properties[key], setting, numValue)
+						this.schema.properties[key][setting] = numValue
 					} else if (this.schema.properties[key].type === 'array' && this.schema.properties[key].items) {
-						this.$set(this.schema.properties[key].items, setting, numValue)
+						this.schema.properties[key].items[setting] = numValue
 					}
 				}
 			}
@@ -1178,9 +1305,9 @@ export default {
 				const tags = selectedOptions ? selectedOptions.map(option => option.id || option) : []
 
 				if (this.schema.properties[key].type === 'file') {
-					this.$set(this.schema.properties[key], setting, tags)
+					this.schema.properties[key][setting] = tags
 				} else if (this.schema.properties[key].type === 'array' && this.schema.properties[key].items) {
-					this.$set(this.schema.properties[key].items, setting, tags)
+					this.schema.properties[key].items[setting] = tags
 				}
 			}
 		},
@@ -1200,17 +1327,17 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			if (!this.schema.properties[key].table) {
-				this.$set(this.schema.properties[key], 'table', {})
+				this.schema.properties[key].table = {}
 			}
 
-			this.$set(this.schema.properties[key].table, setting, value)
+			this.schema.properties[key].table[setting] = value
 
 			const wasTrueOriginally = this.getOriginalPropertyTableSetting(key, setting) === true
 			const becameExplicitFalse = value === false
 			const shouldKeepExplicitFalse = setting === 'default' && becameExplicitFalse && wasTrueOriginally
 
 			if (this.isTableConfigDefault(key) && !shouldKeepExplicitFalse) {
-				this.$delete(this.schema.properties[key], 'table')
+				delete this.schema.properties[key].table
 			}
 		},
 
@@ -1239,9 +1366,9 @@ export default {
 		},
 
 		getDisplayGroupName(groupId) {
-			if (groupId === 'public') return 'Public'
-			if (groupId === 'user') return 'User'
-			if (groupId === 'admin') return 'Admin'
+			if (groupId === 'public') return t('nextcloud-vue', 'Public')
+			if (groupId === 'authenticated') return t('nextcloud-vue', 'Authenticated')
+			if (groupId === 'admin') return t('nextcloud-vue', 'Admin')
 
 			const group = this.userGroups.find(g => g.id === groupId)
 			return group ? (group.displayname || group.id) : groupId
@@ -1276,7 +1403,7 @@ export default {
 			})
 
 			permissionsList.push({
-				group: 'Admin',
+				group: t('nextcloud-vue', 'Admin'),
 				groupId: 'admin',
 				rights: 'C,R,U,D',
 			})
@@ -1284,8 +1411,8 @@ export default {
 			return permissionsList.sort((a, b) => {
 				if (a.groupId === 'public') return -1
 				if (b.groupId === 'public') return 1
-				if (a.groupId === 'user') return -1
-				if (b.groupId === 'user') return 1
+				if (a.groupId === 'authenticated') return -1
+				if (b.groupId === 'authenticated') return 1
 				if (a.groupId === 'admin') return 1
 				if (b.groupId === 'admin') return -1
 				return a.group.localeCompare(b.group)
@@ -1294,8 +1421,8 @@ export default {
 
 		getAvailableGroupsForProperty() {
 			return [
-				{ id: 'public', label: 'Public (Unauthenticated)' },
-				{ id: 'user', label: 'User (Authenticated)' },
+				{ id: 'public', label: t('nextcloud-vue', 'Public (unauthenticated)') },
+				{ id: 'authenticated', label: t('nextcloud-vue', 'Authenticated') },
 				...this.sortedUserGroups.map(group => ({
 					id: group.id,
 					label: group.displayname || group.id,
@@ -1321,11 +1448,11 @@ export default {
 			if (!this.schema.properties[key]) return
 
 			if (!this.schema.properties[key].authorization) {
-				this.$set(this.schema.properties[key], 'authorization', {})
+				this.schema.properties[key].authorization = {}
 			}
 
 			if (!this.schema.properties[key].authorization[action]) {
-				this.$set(this.schema.properties[key].authorization, action, [])
+				this.schema.properties[key].authorization[action] = []
 			}
 
 			const currentPermissions = this.schema.properties[key].authorization[action]
@@ -1338,11 +1465,11 @@ export default {
 			}
 
 			if (currentPermissions.length === 0) {
-				this.$delete(this.schema.properties[key].authorization, action)
+				delete this.schema.properties[key].authorization[action]
 			}
 
 			if (Object.keys(this.schema.properties[key].authorization).length === 0) {
-				this.$delete(this.schema.properties[key], 'authorization')
+				delete this.schema.properties[key].authorization
 			}
 		},
 
@@ -1354,7 +1481,7 @@ export default {
 				: this.propertyNewPermissionGroup
 
 			if (!this.schema.properties[key].authorization) {
-				this.$set(this.schema.properties[key], 'authorization', {})
+				this.schema.properties[key].authorization = {}
 			}
 
 			if (this.propertyNewPermissionCreate) {

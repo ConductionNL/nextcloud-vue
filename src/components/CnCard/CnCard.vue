@@ -9,9 +9,9 @@
 				<slot name="icon">
 					<component :is="icon" v-if="icon" :size="iconSize" />
 				</slot>
-				<span ref="titleText" v-tooltip.bottom="computedTooltip" class="cn-card__title-text">{{ title }}</span>
+				<span ref="titleText" :title="computedTooltip" class="cn-card__title-text">{{ title }}</span>
 			</h2>
-			<div v-if="$slots.actions || $scopedSlots.actions" class="cn-card__actions">
+			<div v-if="$slots.actions || $slots.actions" class="cn-card__actions">
 				<slot name="actions" />
 			</div>
 			<slot name="labels">
@@ -35,7 +35,7 @@
 				</p>
 			</slot>
 
-			<div v-if="$slots.default || $scopedSlots.default" class="cn-card__content">
+			<div v-if="$slots.default || $slots.default" class="cn-card__content">
 				<slot />
 			</div>
 
@@ -84,7 +84,8 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
  * CnObjectCard (schema-driven), CnCard takes direct props and is ideal
  * for known, fixed-structure entities.
  *
- * @example Basic usage
+ * Basic usage
+ * ```vue
  * <CnCard
  *   title="My Source"
  *   description="A PostgreSQL data source"
@@ -94,8 +95,10 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
  *     <NcActions><NcActionButton @click="edit">Edit</NcActionButton></NcActions>
  *   </template>
  * </CnCard>
+ * ```
  *
- * @example With labels and active state
+ * With labels and active state
+ * ```vue
  * <CnCard
  *   title="My Organisation"
  *   :icon="OfficeBuilding"
@@ -109,6 +112,7 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
  *     { label: 'Members', value: 12 },
  *     { label: 'Owner', value: 'Admin' },
  *   ]" />
+ * ```
  */
 export default {
 	name: 'CnCard',
@@ -206,6 +210,8 @@ export default {
 		},
 	},
 
+	emits: ['click'],
+
 	data() {
 		return {
 			isTitleEllipsized: false,
@@ -263,7 +269,7 @@ export default {
 		this._resizeObserver.observe(this.$el)
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this._resizeObserver) {
 			this._resizeObserver.disconnect()
 		}

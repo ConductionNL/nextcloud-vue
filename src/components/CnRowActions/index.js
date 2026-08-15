@@ -1,1 +1,4 @@
-export { default as CnRowActions } from './CnRowActions.vue'
+import CnRowActions from './CnRowActions.vue'
+
+export default CnRowActions
+export { CnRowActions }

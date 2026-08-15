@@ -1,1 +1,4 @@
-export { default as CnActionsBar } from './CnActionsBar.vue'
+import CnActionsBar from './CnActionsBar.vue'
+
+export default CnActionsBar
+export { CnActionsBar }

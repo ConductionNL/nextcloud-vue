@@ -12,7 +12,7 @@
 		<template #actions>
 			<NcButton
 				v-if="showSaveButton"
-				type="primary"
+				variant="primary"
 				:disabled="saving || !hasChanges"
 				@click="handleSave">
 				<template #icon>
@@ -23,7 +23,7 @@
 			</NcButton>
 			<NcButton
 				v-if="showReimportButton"
-				type="secondary"
+				variant="secondary"
 				:disabled="reimporting"
 				@click="$emit('reimport')">
 				<template #icon>
@@ -65,13 +65,14 @@
 				<div class="cn-register-mapping__register-select">
 					<label class="cn-register-mapping__label">{{ labels.register }}</label>
 					<NcSelect
-						:value="selectedRegister(groupIdx)"
+						:model-value="selectedRegister(groupIdx)"
 						:options="registerSelectOptions"
 						:placeholder="labels.selectRegister"
+						:input-label="labels.register"
 						:loading="registersLoading"
 						label="label"
 						track-by="value"
-						@input="handleRegisterChange(groupIdx, $event)" />
+						@update:model-value="handleRegisterChange(groupIdx, $event)" />
 				</div>
 
 				<!-- Type list -->
@@ -85,9 +86,8 @@
 					</div>
 
 					<!-- Type rows -->
-					<template v-for="type in group.types">
+					<template v-for="type in group.types" :key="type.slug + '-row'">
 						<div
-							:key="type.slug + '-row'"
 							class="cn-register-mapping__type-row"
 							:class="{ 'cn-register-mapping__type-row--expanded': isExpanded(groupIdx, type.slug) }"
 							@click="toggleExpand(groupIdx, type.slug)">
@@ -109,7 +109,7 @@
 						</div>
 
 						<!-- Expanded detail -->
-						<transition :key="type.slug + '-detail'" name="slide">
+						<transition name="slide">
 							<div
 								v-if="isExpanded(groupIdx, type.slug)"
 								class="cn-register-mapping__type-detail">
@@ -117,12 +117,13 @@
 									{{ type.description }}
 								</p>
 								<NcSelect
-									:value="selectedSchema(groupIdx, type)"
+									:model-value="selectedSchema(groupIdx, type)"
 									:options="schemaSelectOptions(groupIdx)"
 									:placeholder="labels.selectSchema"
+									:input-label="labels.schema"
 									label="label"
 									track-by="value"
-									@input="handleSchemaChange(groupIdx, type, $event)" />
+									@update:model-value="handleSchemaChange(groupIdx, type, $event)" />
 							</div>
 						</transition>
 					</template>
@@ -136,7 +137,7 @@
 				<!-- No schemas available -->
 				<NcNoteCard
 					v-if="selectedRegister(groupIdx) && schemaSelectOptions(groupIdx).length === 0 && !registersLoading"
-					type="warning">
+					variant="warning">
 					{{ labels.noSchemas }}
 				</NcNoteCard>
 			</div>
@@ -150,13 +151,14 @@
 </template>
 
 <script>
-import { CnSettingsSection } from '../CnSettingsSection/index.js'
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
-import ContentSave from 'vue-material-design-icons/ContentSave.vue'
-import Refresh from 'vue-material-design-icons/Refresh.vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
-import { buildHeaders } from '../../utils/headers.js'
+import ContentSave from 'vue-material-design-icons/ContentSave.vue'
+import Refresh from 'vue-material-design-icons/Refresh.vue'
+import { buildHeaders, prefixUrl } from '../../utils/headers.js'
+import { CnSettingsSection } from '../CnSettingsSection/index.js'
 
 /**
  * CnRegisterMapping - OpenRegister register/schema configuration component.
@@ -166,7 +168,8 @@ import { buildHeaders } from '../../utils/headers.js'
  * Supports multiple register groups (stacked sections) with expandable
  * type rows for manual schema override.
  *
- * @example Single register (Pipelinq)
+ * Single register (Pipelinq)
+ * ```vue
  * <CnRegisterMapping
  *   name="Register Configuration"
  *   :groups="[{
@@ -180,8 +183,10 @@ import { buildHeaders } from '../../utils/headers.js'
  *   :show-reimport-button="true"
  *   @save="saveConfig"
  *   @reimport="reimport" />
+ * ```
  *
- * @example Multi-register (SoftwareCatalog)
+ * Multi-register (SoftwareCatalog)
+ * ```vue
  * <CnRegisterMapping
  *   :groups="[
  *     { name: 'Voorzieningen', registerConfigKey: 'voorzieningen_register', types: [...] },
@@ -189,6 +194,7 @@ import { buildHeaders } from '../../utils/headers.js'
  *   ]"
  *   :configuration="config"
  *   @save="saveConfig" />
+ * ```
  */
 export default {
 	name: 'CnRegisterMapping',
@@ -209,21 +215,25 @@ export default {
 		/** Section title */
 		name: {
 			type: String,
-			default: 'Register Configuration',
+			default: () => t('nextcloud-vue', 'Register configuration'),
 		},
+
 		/** Section description */
 		description: {
 			type: String,
-			default: 'Configure OpenRegister schema mappings for your object types',
+			default: () => t('nextcloud-vue', 'Configure OpenRegister schema mappings for your object types'),
 		},
+
 		/** Documentation URL */
 		docUrl: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Groups of object types that share a register.
-		 * @type {Array<{ name: string, description?: string, registerConfigKey?: string, types: Array<{ slug: string, label: string, description?: string, configKey?: string }> }>}
+		 *
+		 * @type {Array<{ name: string, description: string, registerConfigKey: string, types: Array<{ slug: string, label: string, description: string, configKey: string }> }>}
 		 */
 		groups: {
 			type: Array,
@@ -231,59 +241,68 @@ export default {
 			validator: (groups) => groups.length > 0
 				&& groups.every((g) => g.name && Array.isArray(g.types) && g.types.length > 0),
 		},
+
 		/** Current configuration values: { register: '5', client_schema: '28', ... } */
 		configuration: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Show save button */
 		showSaveButton: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether save is in progress */
 		saving: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Show reimport button */
 		showReimportButton: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether reimport is in progress */
 		reimporting: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Save button text */
 		saveButtonText: {
 			type: String,
-			default: 'Save Configuration',
+			default: () => t('nextcloud-vue', 'Save configuration'),
 		},
+
 		/** Reimport button text */
 		reimportButtonText: {
 			type: String,
-			default: 'Re-import configuration',
+			default: () => t('nextcloud-vue', 'Re-import configuration'),
 		},
+
 		/** Auto-match schema titles to type slugs on register change */
 		autoMatch: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** UI labels (i18n) */
 		labels: {
 			type: Object,
 			default: () => ({
-				register: 'Register',
-				schema: 'Schema',
-				configured: 'Configured',
-				notConfigured: 'Not configured',
-				noSchemas: 'No schemas available in this register',
-				selectRegister: 'Select a register',
-				selectSchema: 'Select a schema',
-				allConfigured: 'All types configured',
-				partiallyConfigured: 'configured',
+				register: t('nextcloud-vue', 'Register'),
+				schema: t('nextcloud-vue', 'Schema'),
+				configured: t('nextcloud-vue', 'Configured'),
+				notConfigured: t('nextcloud-vue', 'Not configured'),
+				noSchemas: t('nextcloud-vue', 'No schemas available in this register'),
+				selectRegister: t('nextcloud-vue', 'Select a register'),
+				selectSchema: t('nextcloud-vue', 'Select a schema'),
+				allConfigured: t('nextcloud-vue', 'All types configured'),
+				partiallyConfigured: t('nextcloud-vue', 'configured'),
 			}),
 		},
 	},
@@ -323,6 +342,7 @@ export default {
 			handler(newVal) {
 				this.localConfig = { ...newVal }
 			},
+
 			immediate: true,
 			deep: true,
 		},
@@ -551,7 +571,7 @@ export default {
 			this.registersError = null
 
 			try {
-				const response = await fetch('/apps/openregister/api/registers?_extend[]=schemas', {
+				const response = await fetch(prefixUrl('/apps/openregister/api/registers?_extend[]=schemas'), {
 					method: 'GET',
 					headers: buildHeaders(),
 				})
@@ -597,7 +617,7 @@ export default {
 
 			try {
 				const response = await fetch(
-					`/apps/openregister/api/registers/${id}?_extend[]=schemas`,
+					prefixUrl(`/apps/openregister/api/registers/${encodeURIComponent(id)}?_extend[]=schemas`),
 					{ method: 'GET', headers: buildHeaders() },
 				)
 				if (!response.ok) return

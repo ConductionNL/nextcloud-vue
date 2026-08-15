@@ -1,0 +1,233 @@
+/**
+ * Tests for `useListView`'s `opts.fixedFilters` (REQ-MISF-5 of the
+ * `manifest-index-self-fetch` change): an always-merged filter map (plain
+ * object OR a getter returning one) spread into every fetch AFTER the user's
+ * `activeFilters`, so the fixed entries always win. Omitting it must be
+ * behaviourally identical to before.
+ */
+
+import { mount } from '@vue/test-utils'
+import { defineComponent, h, reactive, ref } from 'vue'
+import { useListView } from '../../src/composables/useListView.js'
+
+/**
+ * Build a minimal fake objectStore exposing only what the new-API
+ * `useListView` touches.
+ *
+ * @return {object} Fake store with a `fetchCollection` jest mock.
+ */
+function makeStore() {
+	return {
+		collections: {},
+		loading: {},
+		pagination: {},
+		facets: {},
+		fetchCollection: jest.fn().mockResolvedValue([]),
+		fetchSchema: jest.fn().mockResolvedValue({ title: 'T', properties: {} }),
+	}
+}
+
+/**
+ * Mount a host component that calls `useListView('t', opts)` and exposes the
+ * returned API on `vm.list`.
+ *
+ * @param {object} store The fake object store.
+ * @param {object} opts Extra options merged into the `useListView` call.
+ * @param {object} [mountOptions] Extra VTU mounting options (e.g. an app-level errorHandler).
+ * @return {object} The Vue Test Utils wrapper.
+ */
+function mountList(store, opts, mountOptions) {
+	const Comp = defineComponent({
+		setup() {
+			const list = useListView('t', { objectStore: store, ...opts })
+			return { list }
+		},
+		render() { return h('div') },
+	})
+	return mount(Comp, mountOptions)
+}
+
+describe('useListView — fixedFilters', () => {
+	it('a plain-object fixedFilters is present in every fetch', async () => {
+		const store = makeStore()
+		const w = mountList(store, { fixedFilters: { a: 1 } })
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(store.fetchCollection).toHaveBeenCalled()
+		expect(store.fetchCollection.mock.calls[0][1].a).toBe(1)
+
+		await w.vm.list.onSearch('hello')
+		await new Promise((resolve) => setTimeout(resolve, 350))
+		const last = store.fetchCollection.mock.calls[store.fetchCollection.mock.calls.length - 1][1]
+		expect(last.a).toBe(1)
+		expect(last._search).toBe('hello')
+	})
+
+	it('a getter fixedFilters is re-read on each fetch', async () => {
+		const store = makeStore()
+		const scope = ref('alpha')
+		const w = mountList(store, { fixedFilters: () => ({ scope: scope.value }) })
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(store.fetchCollection.mock.calls[0][1].scope).toBe('alpha')
+
+		scope.value = 'beta'
+		await w.vm.list.refresh(1)
+		const last = store.fetchCollection.mock.calls[store.fetchCollection.mock.calls.length - 1][1]
+		expect(last.scope).toBe('beta')
+	})
+
+	it('fixedFilters wins over a colliding activeFilter', async () => {
+		const store = makeStore()
+		const w = mountList(store, { fixedFilters: { status: 'open' } })
+		await new Promise((resolve) => setTimeout(resolve))
+
+		w.vm.list.onFilterChange('status', ['closed'])
+		await new Promise((resolve) => setTimeout(resolve))
+		const last = store.fetchCollection.mock.calls[store.fetchCollection.mock.calls.length - 1][1]
+		expect(last.status).toBe('open')
+	})
+
+	it('no fixedFilters → params are the pre-change shape', async () => {
+		const store = makeStore()
+		mountList(store, {})
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(store.fetchCollection).toHaveBeenCalled()
+		const params = store.fetchCollection.mock.calls[0][1]
+		expect(params).toEqual({ _limit: 20, _page: 1 })
+	})
+})
+
+describe('useListView — defaultVisibleColumns', () => {
+	it('seeds the visible-column set from the option', () => {
+		const store = makeStore()
+		const w = mountList(store, { defaultVisibleColumns: ['name', 'type'] })
+		expect(w.vm.list.visibleColumns.value).toEqual(['name', 'type'])
+	})
+
+	it('defaults to null when the option is omitted (every column visible)', () => {
+		const store = makeStore()
+		const w = mountList(store, {})
+		expect(w.vm.list.visibleColumns.value).toBeNull()
+	})
+})
+
+describe('useListView — multi-column sort (_order building from sortKeys)', () => {
+	it('a single onSort({key, order}) call (legacy shape, no keys) builds _order identically to before', async () => {
+		const store = makeStore()
+		const w = mountList(store, {})
+		await new Promise((resolve) => setTimeout(resolve))
+
+		await w.vm.list.onSort({ key: 'name', order: 'asc' })
+		const last = store.fetchCollection.mock.calls[store.fetchCollection.mock.calls.length - 1][1]
+		expect(last._order).toEqual({ name: 'asc' })
+		expect(w.vm.list.sortKey.value).toBe('name')
+		expect(w.vm.list.sortOrder.value).toBe('asc')
+		expect(w.vm.list.sortKeys.value).toEqual([{ key: 'name', order: 'asc' }])
+	})
+
+	it('onSort with a multi-key `keys` array builds _order in priority order', async () => {
+		const store = makeStore()
+		const w = mountList(store, {})
+		await new Promise((resolve) => setTimeout(resolve))
+
+		await w.vm.list.onSort({
+			key: 'status',
+			order: 'asc',
+			keys: [{ key: 'status', order: 'asc' }, { key: 'createdAt', order: 'desc' }],
+		})
+		const last = store.fetchCollection.mock.calls[store.fetchCollection.mock.calls.length - 1][1]
+		expect(last._order).toEqual({ status: 'asc', createdAt: 'desc' })
+		// Object key order carries the priority for OpenRegister's _order parsing.
+		expect(Object.keys(last._order)).toEqual(['status', 'createdAt'])
+		expect(w.vm.list.sortKey.value).toBe('status')
+		expect(w.vm.list.sortKeys.value).toEqual([
+			{ key: 'status', order: 'asc' },
+			{ key: 'createdAt', order: 'desc' },
+		])
+	})
+
+	it('clearing the sort (empty keys) omits _order from the fetch params', async () => {
+		const store = makeStore()
+		const w = mountList(store, {})
+		await new Promise((resolve) => setTimeout(resolve))
+
+		await w.vm.list.onSort({ key: 'name', order: 'asc' })
+		await w.vm.list.onSort({ key: null, order: null, keys: [] })
+		const last = store.fetchCollection.mock.calls[store.fetchCollection.mock.calls.length - 1][1]
+		expect(last._order).toBeUndefined()
+		expect(w.vm.list.sortKey.value).toBeNull()
+		expect(w.vm.list.sortKeys.value).toEqual([])
+	})
+
+	it('defaultSortKeys seeds the initial multi-sort state and the first fetch', async () => {
+		const store = makeStore()
+		const w = mountList(store, {
+			defaultSortKeys: [{ key: 'name', order: 'asc' }, { key: 'createdAt', order: 'desc' }],
+		})
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(w.vm.list.sortKeys.value).toEqual([
+			{ key: 'name', order: 'asc' },
+			{ key: 'createdAt', order: 'desc' },
+		])
+		expect(store.fetchCollection.mock.calls[0][1]._order).toEqual({ name: 'asc', createdAt: 'desc' })
+	})
+
+	it('defaultSortKeys takes precedence over defaultSort when both are given', async () => {
+		const store = makeStore()
+		const w = mountList(store, {
+			defaultSort: { key: 'legacy', order: 'desc' },
+			defaultSortKeys: [{ key: 'name', order: 'asc' }],
+		})
+		expect(w.vm.list.sortKeys.value).toEqual([{ key: 'name', order: 'asc' }])
+		expect(w.vm.list.sortKey.value).toBe('name')
+	})
+})
+
+// `loading` used to be the store flag alone, which only rises once
+// `fetchCollection` runs — and onMounted awaits `fetchSchema()` first. For the
+// length of that round trip the list was "not loading" with zero rows, so every
+// consumer painted its empty state ("No log entries to show") before anything
+// had been requested.
+describe('useListView — loading covers the whole mount sequence', () => {
+	it('is loading from creation, before the schema round trip resolves', async () => {
+		const store = makeStore()
+		let resolveSchema
+		store.fetchSchema.mockImplementation(() => new Promise((resolve) => {
+			resolveSchema = () => resolve({ title: 'T', properties: {} })
+		}))
+
+		const w = mountList(store, {})
+		expect(w.vm.list.loading.value).toBe(true)
+		// Still loading while the schema is in flight and no fetch has gone out.
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(store.fetchCollection).not.toHaveBeenCalled()
+		expect(w.vm.list.loading.value).toBe(true)
+
+		resolveSchema()
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(store.fetchCollection).toHaveBeenCalledTimes(1)
+		expect(w.vm.list.loading.value).toBe(false)
+	})
+
+	it('hands the flag back to the store once the first fetch has been issued', async () => {
+		const store = makeStore()
+		// The real store is a reactive Pinia state; this fake's `loading` bag has
+		// to be reactive too or the computed cannot see a later write.
+		store.loading = reactive({})
+		const w = mountList(store, {})
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(w.vm.list.loading.value).toBe(false)
+		store.loading.t = true
+		expect(w.vm.list.loading.value).toBe(true)
+	})
+
+	it('stops loading even when the schema fetch rejects', async () => {
+		const store = makeStore()
+		store.fetchSchema.mockRejectedValue(new Error('type not registered'))
+		// A rejected schema fetch propagates out of onMounted for Vue to report —
+		// unchanged by this fix, and silenced here so the assertion is about the
+		// loading flag, which must NOT be left stuck on.
+		const w = mountList(store, {}, { global: { config: { errorHandler: () => {} } } })
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(w.vm.list.loading.value).toBe(false)
+	})
+})

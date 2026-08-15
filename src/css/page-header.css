@@ -5,8 +5,10 @@
 	align-items: flex-start;
 	gap: calc(3 * var(--default-grid-baseline));
 	margin-bottom: calc(4 * var(--default-grid-baseline));
-	/* Clear the Nextcloud navigation toggle button (44px wide, absolutely positioned) */
-	padding-left: 44px;
+	/* Clear the Nextcloud navigation toggle button (44px wide, absolutely
+	   positioned at the left edge of .app-content) plus 12px breathing
+	   room. Only the HEADER shifts right — body content keeps full width. */
+	padding-inline-start: 56px;
 }
 
 .cn-page-header__icon {
@@ -32,4 +34,31 @@
 	color: var(--color-text-maxcontrast);
 	margin: 0;
 	font-size: var(--default-font-size);
+}
+
+/* Accessible-heading mode (`:visually-hidden="true"`).
+
+   The page primitives that hide their inline header (CnIndexPage,
+   CnSettingsPage, CnChatPage, CnFilesPage, CnLogsPage) surface the title in
+   the app sidebar instead — which sits OUTSIDE the <main> landmark, leaving
+   the main content region with no heading at all (WCAG 2.4.6 / 1.3.1). This
+   keeps the <h1> in the DOM and in the accessibility tree while removing it
+   from the visual layout entirely, so there is no visual regression.
+
+   `position: absolute` + 1px box + `clip`/`clip-path` is the standard
+   visually-hidden recipe. `display: none` / `visibility: hidden` would
+   remove the heading from the accessibility tree too and defeat the point.
+   The `!important` overrides the flex/padding/margin block above without
+   needing a more specific selector on every property. */
+.cn-page-header--visually-hidden {
+	position: absolute !important;
+	width: 1px !important;
+	height: 1px !important;
+	padding: 0 !important;
+	margin: -1px !important;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
 }

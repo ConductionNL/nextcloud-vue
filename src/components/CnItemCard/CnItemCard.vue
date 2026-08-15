@@ -12,11 +12,11 @@
 					<span v-if="subtitle" class="cn-item-card__subtitle">{{ subtitle }}</span>
 				</div>
 			</div>
-			<div v-if="$slots.actions || $scopedSlots.actions" class="cn-item-card__actions">
+			<div v-if="$slots.actions || $slots.actions" class="cn-item-card__actions">
 				<slot name="actions" />
 			</div>
 		</div>
-		<div v-if="$slots.default || $scopedSlots.default" class="cn-item-card__content">
+		<div v-if="$slots.default || $slots.default" class="cn-item-card__content">
 			<slot />
 		</div>
 	</div>
@@ -30,12 +30,15 @@
  * a flexible content area. Designed for use in sidebar lists such as
  * schema listings, source listings, etc.
  *
- * @example Basic usage
+ * Basic usage
+ * ```vue
  * <CnItemCard title="My Schema" :icon="FileCodeOutline">
  *   <p>Schema content here</p>
  * </CnItemCard>
+ * ```
  *
- * @example With actions and stats
+ * With actions and stats
+ * ```vue
  * <CnItemCard title="My Schema" :icon="FileCodeOutline" subtitle="v1.0">
  *   <template #actions>
  *     <NcActions>
@@ -47,6 +50,7 @@
  *     <CnStatsBlock title="Size" :count="0" :breakdown="{ size: '1.2 MB' }" />
  *   </CnKpiGrid>
  * </CnItemCard>
+ * ```
  */
 export default {
 	name: 'CnItemCard',
@@ -73,6 +77,8 @@ export default {
 			default: 20,
 		},
 	},
+
+	emits: ['click'],
 }
 </script>
 

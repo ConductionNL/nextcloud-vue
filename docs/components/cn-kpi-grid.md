@@ -2,9 +2,16 @@
 sidebar_position: 10
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnKpiGrid.md'
+
 # CnKpiGrid
 
 Responsive grid layout for KPI/statistics cards. Adapts columns to screen width.
+
+## Try it
+
+<Playground component="CnKpiGrid" />
 
 ## Props
 
@@ -31,3 +38,9 @@ Responsive grid layout for KPI/statistics cards. Adapts columns to screen width.
   <CnStatsBlock title="Deals" :count="8" variant="info" />
 </CnKpiGrid>
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnKpiGrid.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnKpiGrid/CnKpiGrid.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

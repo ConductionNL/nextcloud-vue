@@ -2,10 +2,14 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="small"
-		:can-close="!loading"
+		:no-close="loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
-		<div v-if="result !== null" class="cn-copy__result">
+		<div v-if="result !== null"
+			class="cn-copy__result"
+			data-testid="cn-modal"
+			data-testid-modal="cn-copy-dialog"
+			data-testid-phase="result">
 			<NcNoteCard v-if="result.success" type="success">
 				{{ successText }}
 			</NcNoteCard>
@@ -15,15 +19,20 @@
 		</div>
 
 		<!-- Form phase -->
-		<div v-else class="cn-copy__form">
+		<div v-else
+			class="cn-copy__form"
+			data-testid="cn-modal"
+			data-testid-modal="cn-copy-dialog"
+			data-testid-phase="form">
 			<div class="cn-copy__pattern">
 				<label for="cn-copy-pattern">{{ patternLabel }}</label>
 				<NcSelect
 					input-id="cn-copy-pattern"
+					:label-outside="true"
 					:options="patternOptions"
-					:value="selectedPattern"
+					:model-value="selectedPattern"
 					:clearable="false"
-					@input="selectedPattern = $event" />
+					@update:model-value="selectedPattern = $event" />
 			</div>
 
 			<div class="cn-copy__preview">
@@ -41,7 +50,7 @@
 			</NcButton>
 			<NcButton
 				v-if="result === null"
-				type="primary"
+				variant="primary"
 				:disabled="loading"
 				@click="executeCopy">
 				<template #icon>
@@ -67,13 +76,14 @@ import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
  * and the new name. The parent performs the actual API call and calls
  * `setResult()` via a ref.
  *
- * @example
+ * ```vue
  * <CnCopyDialog
  *   v-if="showCopyDialog"
  *   ref="copyDialog"
  *   :item="itemToCopy"
  *   @confirm="onCopyConfirm"
  *   @close="showCopyDialog = false" />
+ * ```
  *
  * // In methods:
  * async onCopyConfirm({ id, newName }) {
@@ -84,6 +94,9 @@ import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
  *     this.$refs.copyDialog.setResult({ error: e.message })
  *   }
  * }
+ *
+ * @event confirm Emitted when the user confirms copying. Payload: `{ id, newName }`.
+ * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
  */
 export default {
 	name: 'CnCopyDialog',
@@ -128,17 +141,22 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Item successfully copied.'),
 		},
+		/** Label for the cancel button (visible before the copy runs). */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the close button (visible after copy completes). */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		/** Label for the primary confirm button that triggers the copy. */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Copy') },
 	},
+
+	emits: ['close', 'confirm'],
 
 	data() {
 		return {
 			loading: false,
 			result: null,
 			closeTimeout: null,
-			selectedPattern: { id: 'copy-of', label: 'Copy of {name}' },
+			selectedPatternId: 'copy-of',
 		}
 	},
 
@@ -156,31 +174,35 @@ export default {
 			]
 		},
 
+		selectedPattern: {
+			get() {
+				return this.patternOptions.find((p) => p.id === this.selectedPatternId) || this.patternOptions[0]
+			},
+			set(pattern) {
+				this.selectedPatternId = pattern ? pattern.id : 'copy-of'
+			},
+		},
+
 		newName() {
-			return this.applyPattern(this.itemName, this.selectedPattern.id)
+			return this.applyPattern(this.itemName, this.selectedPatternId)
 		},
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.closeTimeout) clearTimeout(this.closeTimeout)
 	},
-
-	/**
-	 * @event confirm Emitted when the user confirms copying. Payload: `{ id, newName }`.
-	 * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
-	 */
 
 	methods: {
 		applyPattern(name, patternId) {
 			switch (patternId) {
 			case 'copy-of':
-				return `Copy of ${name}`
+				return t('nextcloud-vue', 'Copy of {name}', { name })
 			case 'name-copy':
-				return `${name} - Copy`
+				return t('nextcloud-vue', '{name} - Copy', { name })
 			case 'name-parens':
-				return `${name} (Copy)`
+				return t('nextcloud-vue', '{name} (Copy)', { name })
 			default:
-				return `Copy of ${name}`
+				return t('nextcloud-vue', 'Copy of {name}', { name })
 			}
 		},
 

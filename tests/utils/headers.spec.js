@@ -53,4 +53,22 @@ describe('buildQueryString', () => {
 		expect(result).toBe('?_order=%7B%22name%22%3A%22asc%22%7D')
 		expect(decodeURIComponent(result)).toBe('?_order={"name":"asc"}')
 	})
+
+	it('serializes array values with PHP bracket notation', () => {
+		const result = buildQueryString({
+			type: ['person', 'organization'],
+		})
+
+		// URLSearchParams percent-encodes the brackets; PHP decodes
+		// `type%5B%5D` back to the `type[]` array param.
+		expect(decodeURIComponent(result)).toBe('?type[]=person&type[]=organization')
+	})
+
+	it('skips empty/nullish array items but keeps brackets', () => {
+		const result = buildQueryString({
+			type: ['person', '', null, 'organization'],
+		})
+
+		expect(decodeURIComponent(result)).toBe('?type[]=person&type[]=organization')
+	})
 })

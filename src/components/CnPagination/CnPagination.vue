@@ -1,5 +1,5 @@
 <template>
-	<div v-if="totalPages > 1 || totalItems > minItemsToShow" class="cn-pagination">
+	<div v-if="totalPages > 1 || totalItems > minItemsToShow" class="cn-pagination" data-testid="cn-pagination">
 		<!-- Page info -->
 		<div class="cn-pagination__info">
 			<span class="cn-pagination__page-info">
@@ -54,7 +54,7 @@
 			<NcSelect
 				:input-id="pageSizeId"
 				class="cn-pagination__page-size-select"
-				:value="currentPageSizeOption"
+				:model-value="currentPageSizeOption"
 				:options="pageSizeOptions"
 				:clearable="false"
 				:input-label="itemsPerPageLabel"
@@ -66,6 +66,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcSelect } from '@nextcloud/vue'
+import { nextUid } from '../../utils/uid.js'
 
 /**
  * CnPagination — Full pagination with page numbers, navigation, and page size selector.
@@ -77,7 +78,7 @@ import { NcButton, NcSelect } from '@nextcloud/vue'
  * NL Design tokens used:
  * - Inherits from cn-pagination CSS class (see css/pagination.css)
  *
- * @example
+ * ```vue
  * <CnPagination
  *   :current-page="page"
  *   :total-pages="totalPages"
@@ -85,6 +86,7 @@ import { NcButton, NcSelect } from '@nextcloud/vue'
  *   :current-page-size="limit"
  *   @page-changed="onPageChange"
  *   @page-size-changed="onPageSizeChange" />
+ * ```
  */
 export default {
 	name: 'CnPagination',
@@ -160,7 +162,7 @@ export default {
 		},
 		/**
 		 * Page info format string. Use {current} and {total} as placeholders.
-		 * @example "Page {current} of {total}"
+		 * "Page {current} of {total}"
 		 */
 		pageInfoFormat: {
 			type: String,
@@ -168,9 +170,20 @@ export default {
 		},
 	},
 
+	emits: ['page-changed', 'page-size-changed'],
+
+	data() {
+		return {
+			// Per-instance id suffix. In `data()` rather than a computed so it is
+			// fixed for the instance's lifetime — the value is referenced by a
+			// `<label for>`, which breaks if the id changes between renders.
+			uid: nextUid(),
+		}
+	},
+
 	computed: {
 		pageSizeId() {
-			return 'cn-page-size-' + this._uid
+			return 'cn-page-size-' + this.uid
 		},
 
 		currentPageSizeOption() {

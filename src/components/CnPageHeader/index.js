@@ -1,1 +1,4 @@
-export { default as CnPageHeader } from './CnPageHeader.vue'
+import CnPageHeader from './CnPageHeader.vue'
+
+export default CnPageHeader
+export { CnPageHeader }

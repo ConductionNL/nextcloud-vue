@@ -2,10 +2,14 @@
 	<NcDialog
 		:name="resolvedTitle"
 		size="large"
-		:can-close="!loading"
+		:no-close="loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
-		<div v-if="result !== null" class="cn-advanced-form-dialog__result">
+		<div v-if="result !== null"
+			class="cn-advanced-form-dialog__result"
+			data-testid="cn-modal"
+			data-testid-modal="cn-advanced-form-dialog"
+			data-testid-phase="result">
 			<NcNoteCard v-if="result.success" type="success">
 				{{ resolvedSuccessText }}
 			</NcNoteCard>
@@ -15,10 +19,14 @@
 		</div>
 
 		<!-- Form phase -->
-		<div v-else class="cn-advanced-form-dialog__form">
+		<div v-else
+			class="cn-advanced-form-dialog__form"
+			data-testid="cn-modal"
+			data-testid-modal="cn-advanced-form-dialog"
+			data-testid-phase="form">
 			<!-- Full form override slot -->
 			<slot
-				v-if="$scopedSlots.form"
+				v-if="$slots.form"
 				name="form"
 				:form-data="formData"
 				:update-field="updateField"
@@ -31,62 +39,93 @@
 			<template v-else>
 				<!-- Register/schema selection step (optional slot) -->
 				<slot
-					v-if="$scopedSlots['register-schema-selection']"
+					v-if="$slots['register-schema-selection']"
 					name="register-schema-selection" />
 
-				<!-- Main tabs -->
+				<!-- Main tabs — hand-rolled to drop the bootstrap-vue → bootstrap@4 → jquery
+				     missing-peer chain. Same UX as the legacy BTabs justified/v-model layout. -->
 				<div v-else class="cn-advanced-form-dialog__tabs tabContainer">
-					<BTabs v-model="activeTab" content-class="mt-3" justified>
-						<!-- Properties tab -->
-						<BTab v-if="showPropertiesTable" title="Properties">
-							<slot
-								name="tab-properties"
+					<ul class="cn-advanced-form-dialog__tab-nav" role="tablist">
+						<li
+							v-for="(tab, idx) in resolvedTabs"
+							:key="tab.key"
+							role="presentation"
+							class="cn-advanced-form-dialog__tab-nav-item">
+							<button
+								type="button"
+								role="tab"
+								:aria-selected="activeTab === idx"
+								:disabled="tab.disabled"
+								:class="['cn-advanced-form-dialog__tab-button', { 'is-active': activeTab === idx }]"
+								@click="activeTab = idx">
+								{{ tab.title }}
+							</button>
+						</li>
+					</ul>
+
+					<!-- Properties tab — disabled when the active schema has no
+					     properties to render (a bare JSON blob is still
+					     editable via the Data tab). -->
+					<div
+						v-if="showPropertiesTable"
+						v-show="activeTab === tabIndex('properties')"
+						role="tabpanel"
+						class="cn-advanced-form-dialog__tab-content">
+						<slot
+							name="tab-properties"
+							:form-data="formData"
+							:update-field="updateField"
+							:object-properties="objectPropertiesForSlot"
+							:selected-property="selectedProperty"
+							:get-property-display-name="getPropertyDisplayName"
+							:get-property-validation-class="getPropertyValidationClass"
+							:is-property-editable="isPropertyEditable"
+							:validation-display="validationDisplay">
+							<CnPropertiesTab
+								ref="propertiesTab"
+								:schema="schema"
+								:item="item"
 								:form-data="formData"
-								:update-field="updateField"
-								:object-properties="objectPropertiesForSlot"
 								:selected-property="selectedProperty"
-								:get-property-display-name="getPropertyDisplayName"
-								:get-property-validation-class="getPropertyValidationClass"
-								:is-property-editable="isPropertyEditable"
-								:validation-display="validationDisplay">
-								<CnPropertiesTab
-									ref="propertiesTab"
-									:schema="schema"
-									:item="item"
-									:form-data="formData"
-									:selected-property="selectedProperty"
-									:editable-types="editableTypes"
-									:validation-display="validationDisplay"
-									:exclude-fields="excludeFields"
-									:include-fields="includeFields"
-									@update:property-value="onPropertyValueUpdate"
-									@update:selected-property="selectedProperty = $event" />
-							</slot>
-						</BTab>
+								:editable-types="editableTypes"
+								:validation-display="validationDisplay"
+								:exclude-fields="excludeFields"
+								:include-fields="includeFields"
+								@update:property-value="onPropertyValueUpdate"
+								@update:selected-property="selectedProperty = $event" />
+						</slot>
+					</div>
 
-						<!-- Metadata tab -->
-						<BTab v-if="resolvedShowMetadataTab" title="Metadata">
-							<slot name="tab-metadata" :item="item" :form-data="formData">
-								<CnMetadataTab :item="item" :form-data="formData" />
-							</slot>
-						</BTab>
+					<!-- Metadata tab -->
+					<div
+						v-if="resolvedShowMetadataTab"
+						v-show="activeTab === tabIndex('metadata')"
+						role="tabpanel"
+						class="cn-advanced-form-dialog__tab-content">
+						<slot name="tab-metadata" :item="item" :form-data="formData">
+							<CnMetadataTab :item="item" :form-data="formData" />
+						</slot>
+					</div>
 
-						<!-- Data (JSON) tab -->
-						<BTab v-if="showJsonTab" title="Data">
-							<slot
-								name="tab-data"
-								:json-data="jsonData"
-								:update-json="updateJsonFromExternal"
-								:is-valid="isValidJson(jsonData)"
-								:format-json="formatJSON">
-								<CnDataTab
-									:value="jsonData"
-									:dark="jsonEditorDark"
-									@update:value="jsonData = $event"
-									@format="onFormatResult" />
-							</slot>
-						</BTab>
-					</BTabs>
+					<!-- Data (JSON) tab -->
+					<div
+						v-if="showJsonTab"
+						v-show="activeTab === tabIndex('data')"
+						role="tabpanel"
+						class="cn-advanced-form-dialog__tab-content">
+						<slot
+							name="tab-data"
+							:json-data="jsonData"
+							:update-json="updateJsonFromExternal"
+							:is-valid="isValidJson(jsonData)"
+							:format-json="formatJSON">
+							<CnDataTab
+								:value="jsonData"
+								:dark="jsonEditorDark"
+								@update:value="jsonData = $event"
+								@format="onFormatResult" />
+						</slot>
+					</div>
 				</div>
 			</template>
 		</div>
@@ -98,7 +137,7 @@
 			</NcButton>
 			<NcButton
 				v-if="result === null"
-				type="primary"
+				variant="primary"
 				:disabled="loading"
 				@click="executeConfirm">
 				<template #icon>
@@ -114,6 +153,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import {
 	NcDialog,
 	NcButton,
@@ -122,14 +162,14 @@ import {
 } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
-import { BTabs, BTab } from 'bootstrap-vue'
 import { fieldsFromSchema } from '../../utils/schema.js'
 import CnPropertiesTab from './CnPropertiesTab.vue'
 import CnMetadataTab from './CnMetadataTab.vue'
 import CnDataTab from './CnDataTab.vue'
+import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 
 /** Schema types for which we have built-in inline editing support in the properties table. */
-const EDITABLE_SUPPORTED_TYPES = ['string', 'number', 'integer', 'boolean']
+const EDITABLE_SUPPORTED_TYPES = ['string', 'number', 'integer', 'boolean', 'array', 'object']
 
 /**
  * CnAdvancedFormDialog — Create/edit dialog with properties table (click-to-edit), JSON tab, and optional store integration.
@@ -152,32 +192,65 @@ export default {
 		NcLoadingIcon,
 		Plus,
 		ContentSaveOutline,
-		BTabs,
-		BTab,
 		CnPropertiesTab,
 		CnMetadataTab,
 		CnDataTab,
 	},
 
+	inject: {
+		_cnTenantContext: {
+			from: TENANT_CONTEXT_KEY,
+			default: null,
+		},
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Field
+		 * labels/descriptions come from schema property titles, authored in
+		 * English as the canonical source; the visible label is resolved
+		 * through this function so it follows the user's language. Defaults to
+		 * identity when used standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	props: {
+		/** JSON Schema definition for the object */
 		schema: { type: Object, default: null },
+		/** The object instance being created or edited */
 		item: { type: Object, default: null },
+		/** Dialog title; falls back to schema.title when empty */
 		dialogTitle: { type: String, default: '' },
+		/** Schema property used as the item name in the title */
 		nameField: { type: String, default: 'title' },
+		/** Message shown after a successful operation */
 		successText: { type: String, default: '' },
-		cancelLabel: { type: String, default: 'Cancel' },
-		closeLabel: { type: String, default: 'Close' },
+		/** Label for the cancel button */
+		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the close button */
+		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		/** Label for the confirm / primary action button */
 		confirmLabel: { type: String, default: '' },
+		/** Field keys to hide from the form */
 		excludeFields: { type: Array, default: () => [] },
+		/** When set, only these field keys are shown */
 		includeFields: { type: Array, default: null },
+		/** Per-field schema overrides keyed by field name */
 		fieldOverrides: { type: Object, default: () => ({}) },
+		/** Whether to render the Properties tab */
 		showPropertiesTable: { type: Boolean, default: true },
+		/** Whether to render the Data (JSON) tab */
 		showJsonTab: { type: Boolean, default: true },
+		/** Whether to render the Metadata tab (auto-detected when null) */
 		showMetadataTab: { type: Boolean, default: null },
+		/** JSON Schema types allowed for inline editing */
 		editablePropertyTypes: { type: Array, default: null },
+		/** How to display validation results: "indicator" or "none" */
 		validationDisplay: { type: String, default: 'indicator', validator: (v) => ['indicator', 'none'].includes(v) },
+		/** Enable dark mode for the JSON editor */
 		jsonEditorDark: { type: Boolean, default: false },
 	},
+
+	emits: ['close', 'confirm'],
 
 	data() {
 		return {
@@ -198,8 +271,34 @@ export default {
 			return !this.item
 		},
 
+		/**
+		 * Visible-tab descriptors, computed from the show* flags so the
+		 * hand-rolled tab nav can render the right buttons + the right
+		 * activeTab index maps to the right panel. Order matters and
+		 * mirrors the legacy BTabs declaration order: properties → metadata → data.
+		 *
+		 * @return {Array<{ key: string, title: string, disabled: boolean }>}
+		 */
+		resolvedTabs() {
+			const tabs = []
+			if (this.showPropertiesTable) {
+				tabs.push({
+					key: 'properties',
+					title: t('nextcloud-vue', 'Properties'),
+					disabled: !this.hasSchemaProperties,
+				})
+			}
+			if (this.resolvedShowMetadataTab) {
+				tabs.push({ key: 'metadata', title: t('nextcloud-vue', 'Metadata'), disabled: false })
+			}
+			if (this.showJsonTab) {
+				tabs.push({ key: 'data', title: t('nextcloud-vue', 'Data'), disabled: false })
+			}
+			return tabs
+		},
+
 		schemaTitle() {
-			return (this.schema && this.schema.title) || 'Item'
+			return (this.schema && this.schema.title) || t('nextcloud-vue', 'Item')
 		},
 
 		currentSchema() {
@@ -209,23 +308,41 @@ export default {
 		resolvedTitle() {
 			if (this.dialogTitle) return this.dialogTitle
 			return this.isCreateMode
-				? `Create ${this.schemaTitle}`
-				: `Edit ${this.schemaTitle}`
+				? t('nextcloud-vue', 'Create {title}', { title: this.schemaTitle })
+				: t('nextcloud-vue', 'Edit {title}', { title: this.schemaTitle })
 		},
 
 		resolvedConfirmLabel() {
 			if (this.confirmLabel) return this.confirmLabel
-			return this.isCreateMode ? 'Create' : 'Save'
+			return this.isCreateMode ? t('nextcloud-vue', 'Create') : t('nextcloud-vue', 'Save')
 		},
 
 		resolvedSuccessText() {
 			if (this.successText) return this.successText
-			return `${this.schemaTitle} saved successfully.`
+			return t('nextcloud-vue', '{title} saved successfully.', { title: this.schemaTitle })
 		},
 
 		resolvedShowMetadataTab() {
 			if (this.showMetadataTab !== null) return this.showMetadataTab
 			return !!this.item
+		},
+
+		/**
+		 * True when the active schema declares at least one (non-metadata)
+		 * property the Properties tab can render. Used to disable the tab
+		 * when there's nothing for it to show — the Data tab still works.
+		 */
+		hasSchemaProperties() {
+			const props = this.schema?.properties || {}
+			const exclude = this.excludeFields || []
+			const include = this.includeFields
+			for (const key of Object.keys(props)) {
+				if (key === '@self' || key === 'id') continue
+				if (exclude.includes(key)) continue
+				if (include && !include.includes(key)) continue
+				return true
+			}
+			return false
 		},
 
 		resolvedFields() {
@@ -234,6 +351,7 @@ export default {
 				include: this.includeFields,
 				overrides: this.fieldOverrides,
 				includeReadOnly: true,
+				translate: this.cnTranslate,
 			})
 		},
 
@@ -296,6 +414,16 @@ export default {
 				this.initFormData(newItem)
 			},
 		},
+		hasSchemaProperties: {
+			immediate: true,
+			handler(hasProps) {
+				// When the Properties tab is disabled, skip past it so we
+				// don't land on a non-interactive tab on first render.
+				if (!hasProps && this.activeTab === 0 && this.showPropertiesTable) {
+					this.activeTab = this.resolvedShowMetadataTab ? 1 : (this.showJsonTab ? 1 : 0)
+				}
+			},
+		},
 		jsonData(newVal) {
 			if (!this.isInternalUpdate && this.isValidJson(newVal)) {
 				this.updateFormFromJson()
@@ -311,7 +439,7 @@ export default {
 		},
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		if (this.closeTimeout) {
 			clearTimeout(this.closeTimeout)
 			this.closeTimeout = null
@@ -319,6 +447,18 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Find the activeTab index for a tab key. Used by the v-show panel
+		 * gating so a hidden tab (e.g. metadata off) doesn't desync the
+		 * tab-nav indexes from the panels.
+		 *
+		 * @param {string} key Tab key — 'properties' | 'metadata' | 'data'.
+		 * @return {number} Index in resolvedTabs, or -1 when not visible.
+		 */
+		tabIndex(key) {
+			return this.resolvedTabs.findIndex((t) => t.key === key)
+		},
+
 		initFormData(item) {
 			if (item) {
 				this.formData = JSON.parse(JSON.stringify(item))
@@ -337,19 +477,40 @@ export default {
 				}
 				this.formData = data
 			}
+			// Multi-tenancy auto-fill (multi-tenancy-context REQ-MT-4) —
+			// stamp the active organisation when the schema declares it
+			// and the form does not already carry a value.
+			this._autofillTenant()
 			this.jsonData = JSON.stringify(this.formData, null, 2)
 			this.errors = {}
 			this.selectedProperty = null
 		},
 
+		/**
+		 * Auto-fill the `organisation` field with the active tenant UUID
+		 * when the schema declares such a field and no value is already
+		 * set (explicit `item` data wins).
+		 */
+		_autofillTenant() {
+			const ctx = this._cnTenantContext
+			if (!ctx) return
+			const uuid = ctx.activeOrganisationUuid && ctx.activeOrganisationUuid.value
+			if (!uuid) return
+			const hasOrgField = this.resolvedFields.some((f) => f.key === 'organisation')
+			if (!hasOrgField) return
+			const current = this.formData.organisation
+			if (current !== null && current !== undefined && current !== '') return
+			this.formData.organisation = uuid
+		},
+
 		updateField(key, value) {
-			this.$set(this.formData, key, value)
-			if (this.errors[key]) this.$delete(this.errors, key)
+			this.formData[key] = value
+			if (this.errors[key]) delete this.errors[key]
 		},
 
 		onPropertyValueUpdate({ key, value }) {
-			this.$set(this.formData, key, value)
-			if (this.errors[key]) this.$delete(this.errors, key)
+			this.formData[key] = value
+			if (this.errors[key]) delete this.errors[key]
 		},
 
 		/**
@@ -565,5 +726,50 @@ export default {
 :deep(.tab-content) {
 	padding: 16px;
 	background-color: var(--color-main-background);
+}
+
+/* Hand-rolled tab nav — replaces bootstrap-vue's BTabs/BTab. */
+.cn-advanced-form-dialog__tab-nav {
+	display: flex;
+	gap: 0;
+	list-style: none;
+	padding: 0;
+	margin: 0 0 16px;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-advanced-form-dialog__tab-nav-item {
+	flex: 1 1 0;
+}
+
+.cn-advanced-form-dialog__tab-button {
+	width: 100%;
+	padding: 10px 14px;
+	background: transparent;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	color: var(--color-text-maxcontrast);
+	font: inherit;
+	cursor: pointer;
+}
+
+.cn-advanced-form-dialog__tab-button:hover:not(:disabled) {
+	border-bottom-color: var(--color-border);
+	color: var(--color-main-text);
+}
+
+.cn-advanced-form-dialog__tab-button.is-active {
+	color: var(--color-main-text);
+	border-bottom-color: var(--color-primary);
+}
+
+/* stylelint-disable-next-line no-descending-specificity */
+.cn-advanced-form-dialog__tab-button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.cn-advanced-form-dialog__tab-content {
+	padding: 16px 0;
 }
 </style>

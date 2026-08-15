@@ -1,6 +1,13 @@
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnTimelineStages.md'
+
 # CnTimelineStages
 
 Visualizes sequential progression through named stages. Stages are automatically classified as **completed** (before current), **current**, or **upcoming** (after current). Supports horizontal and vertical orientations, small/medium sizes, clickable stages with keyboard navigation (roving tabindex), and ARIA roles.
+
+## Try it
+
+<Playground component="CnTimelineStages" />
 
 ## Usage
 
@@ -68,3 +75,9 @@ function onStageClick({ stage, index }) {
 | `'completed'` | Stage index < current stage index |
 | `'current'` | Stage matches `currentStage` |
 | `'upcoming'` | Stage index > current stage index |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnTimelineStages.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnTimelineStages/CnTimelineStages.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

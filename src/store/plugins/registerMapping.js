@@ -1,4 +1,7 @@
-import { buildHeaders, prefixUrl } from '../../utils/headers.js'
+import { prefixUrl } from '../../utils/headers.js'
+import { discardResponseBody } from '../../utils/discardResponseBody.js'
+// `buildHeaders` is reached via `this._buildHeaders()` so registerMapping
+// fetches inherit the active tenant UUID (multi-tenancy-context).
 
 /**
  * Register mapping plugin for the object store.
@@ -100,11 +103,14 @@ export function registerMappingPlugin() {
 
 					const response = await fetch(url, {
 						method: 'GET',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 					})
 
 					if (!response.ok) {
 						this.registersError = `Failed to fetch registers: ${response.statusText}`
+						// Only statusText is read, so the body stream is never
+						// drained — release it (#573).
+						discardResponseBody(response)
 						return []
 					}
 
@@ -166,9 +172,15 @@ export function registerMappingPlugin() {
 				try {
 					const response = await fetch(
 						prefixUrl(`/apps/openregister/api/registers/${id}?_extend[]=schemas`),
-						{ method: 'GET', headers: buildHeaders() },
+						{ method: 'GET', headers: this._buildHeaders() },
 					)
-					if (!response.ok) return []
+					if (!response.ok) {
+						// #573 — see src/utils/discardResponseBody.js. Bailing on
+						// a non-ok response without releasing its stream keeps the
+						// request in flight for the life of the page.
+						discardResponseBody(response)
+						return []
+					}
 
 					const data = await response.json()
 					const schemas = (data.schemas || []).filter(

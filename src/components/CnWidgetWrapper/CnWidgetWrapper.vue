@@ -3,7 +3,9 @@
 
   Provides header (icon + title), scrollable content area, and optional
   footer with action buttons. Applies style configuration for borders,
-  backgrounds, and padding.
+  backgrounds, and padding. The built-in overflow Actions menu (Refresh /
+  Documentation / Request a feature) is delegated to the shared
+  CnActionsMenu so widgets and page surfaces stay in lockstep.
 -->
 <template>
 	<div
@@ -11,10 +13,17 @@
 		:class="{
 			'cn-widget-wrapper--borderless': borderless,
 			'cn-widget-wrapper--flush': flush,
+			'cn-widget-wrapper--nc-dashboard': chrome === 'nc-dashboard',
 		}"
 		:style="wrapperStyles">
 		<!-- Header -->
-		<div v-if="showTitle" class="cn-widget-wrapper__header">
+		<div v-if="showTitle" class="cn-widget-wrapper__header" :style="headerStyles">
+			<!-- Title icon — left: rendered before the title group -->
+			<div v-if="$slots['title-icon'] && titleIconPosition === 'left'"
+				class="cn-widget-wrapper__title-icon"
+				:style="titleIconColor ? { color: titleIconColor } : {}">
+				<slot name="title-icon" />
+			</div>
 			<div class="cn-widget-wrapper__header-left">
 				<img
 					v-if="iconUrl"
@@ -25,17 +34,84 @@
 					v-else-if="iconClass"
 					:class="iconClass"
 					class="cn-widget-wrapper__icon" />
-				<h3 class="cn-widget-wrapper__title">
+				<h3 :id="titleId" class="cn-widget-wrapper__title">
 					{{ displayTitle }}
 				</h3>
+				<!-- @slot title-meta Rendered inside the header's left group,
+				     after the title and before the spacer. Use for small
+				     contextual chips (e.g. a date-range badge on chart
+				     widgets). Kept inside header-left so the chip sits next
+				     to the title rather than floating right next to the
+				     actions menu. -->
+				<div v-if="$slots['title-meta']" class="cn-widget-wrapper__title-meta">
+					<slot name="title-meta" />
+				</div>
 			</div>
-			<div class="cn-widget-wrapper__actions">
+			<div v-if="showActions" class="cn-widget-wrapper__actions">
+				<!-- @slot actions Custom action buttons rendered before the
+				     built-in overflow menu. -->
 				<slot name="actions" />
+				<CnActionsMenu
+					:show-refresh="effectiveShowRefresh"
+					:show-request-feature="effectiveShowRequestFeature"
+					:documentation-url="documentationUrl"
+					:documentation-label="documentationLabel"
+					:refresh-label="refreshLabel"
+					:request-feature-label="requestFeatureLabel"
+					:actions-menu-label="actionsMenuLabel"
+					:refreshing="refreshing"
+					:widget-id="resolvedWidgetId"
+					:title="displayTitle"
+					:surface="`widget:${resolvedWidgetId}`"
+					:spec-ref="specRef"
+					refresh-channel="cn:widget:refresh"
+					testid-base="cn-widget-wrapper"
+					@refresh="onActionsRefresh"
+					@request-feature="onActionsRequestFeature">
+					<!-- @slot action-items Additional NcActionButton-family
+					     items rendered inside the overflow menu, after the
+					     built-in Refresh / Documentation / Request-a-feature
+					     group. -->
+					<template v-if="hasActionItemsSlot" #action-items>
+						<slot name="action-items" />
+					</template>
+				</CnActionsMenu>
+			</div>
+			<!-- Title icon — right: rendered after actions, far right -->
+			<div v-if="$slots['title-icon'] && titleIconPosition === 'right'"
+				class="cn-widget-wrapper__title-icon"
+				:style="titleIconColor ? { color: titleIconColor } : {}">
+				<slot name="title-icon" />
 			</div>
 		</div>
 
+		<!-- Headerless meta (e.g. a KPI date chip on a flush card). When the
+		     header is hidden but a `title-meta` chip is provided, float it in the
+		     top-right corner over the content instead of dropping it — so a
+		     compact flush KPI tile can carry a date-range chip without growing a
+		     full header bar. -->
+		<div
+			v-if="!showTitle && $slots['title-meta']"
+			class="cn-widget-wrapper__floating-meta">
+			<slot name="title-meta" />
+		</div>
+
 		<!-- Content -->
-		<div class="cn-widget-wrapper__content">
+		<!--
+		  The content area is `overflow: auto`, so it can become a scrollable
+		  region. WCAG 2.1.1 (Keyboard) requires scrollable regions to be
+		  keyboard-focusable so keyboard-only users can scroll them, and 4.1.2
+		  requires an accessible name. We expose it as a labelled region and
+		  give it tabindex="0". When the header (and its title) is hidden we
+		  fall back to an explicit aria-label from the widget title so the
+		  region is never anonymous.
+		-->
+		<div
+			class="cn-widget-wrapper__content"
+			tabindex="0"
+			role="region"
+			:aria-labelledby="showTitle ? titleId : null"
+			:aria-label="showTitle ? null : displayTitle">
 			<slot />
 		</div>
 
@@ -55,36 +131,66 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
+import { CnActionsMenu } from '../CnActionsMenu/index.js'
+
 /**
  * CnWidgetWrapper — Widget container with header, content, and footer.
  *
- * @example
+ * ```vue
  * <CnWidgetWrapper title="My Cases" :icon-url="casesIconUrl">
  *   <MyCasesChart :data="chartData" />
  * </CnWidgetWrapper>
+ * ```
  *
- * @example With NC widget object
+ * With NC widget object
+ * ```vue
  * <CnWidgetWrapper
  *   :title="widget.title"
  *   :icon-url="widget.iconUrl"
  *   :icon-class="widget.iconClass"
+ *   :documentation-url="widget.documentationUrl"
  *   :buttons="widget.buttons">
  *   <CnWidgetRenderer :widget="widget" />
  * </CnWidgetWrapper>
+ * ```
  */
 export default {
 	name: 'CnWidgetWrapper',
+
+	components: {
+		CnActionsMenu,
+	},
 
 	props: {
 		/** Widget title */
 		title: {
 			type: String,
-			default: 'Widget',
+			default: () => t('nextcloud-vue', 'Widget'),
 		},
 		/** Whether to show the header with title */
 		showTitle: {
 			type: Boolean,
 			default: true,
+		},
+		/**
+		 * Chrome variant for the wrapper card.
+		 * - `'default'` — the library's own card chrome (opaque background,
+		 *   1px border, compact header).
+		 * - `'nc-dashboard'` — matches the native Nextcloud Dashboard panel
+		 *   exactly using the same design tokens: translucent blurred
+		 *   background (`--color-main-background-blur` + `--filter-background-blur`),
+		 *   `--border-radius-container-large` corners, no border/shadow, a 16px
+		 *   header with a 20px/700 title and 32px leading icon, and content
+		 *   inset 16px on the sides + bottom. `styleConfig` overrides still
+		 *   layer on top so a user can customise any token.
+		 *
+		 * @type {'default'|'nc-dashboard'}
+		 */
+		chrome: {
+			type: String,
+			default: 'default',
+			validator: (v) => ['default', 'nc-dashboard'].includes(v),
 		},
 		/**
 		 * Remove border and background — makes the wrapper transparent.
@@ -112,24 +218,248 @@ export default {
 			type: String,
 			default: null,
 		},
+		/**
+		 * Position of the title-icon slot in the header.
+		 * 'left' places it before the title; 'right' places it after the actions.
+		 */
+		titleIconPosition: {
+			type: String,
+			default: 'right',
+			validator: (v) => ['left', 'right'].includes(v),
+		},
+		/** CSS color value applied to the title-icon slot container */
+		titleIconColor: {
+			type: String,
+			default: null,
+		},
 		/** Footer action buttons: [{ text, link }] */
 		buttons: {
 			type: Array,
 			default: () => [],
 		},
 		/**
+		 * Whether the header's overflow action menu (Refresh / Documentation /
+		 * Request-a-feature + any `#action-items`) renders. Shown by default;
+		 * set `false` for compact surfaces — e.g. a KPI tile whose only header
+		 * affordance is a date chip — to drop the menu and free header width.
+		 */
+		showActions: {
+			type: Boolean,
+			default: true,
+		},
+		/**
 		 * Style configuration for the wrapper.
-		 * @type {{ backgroundColor?: string, borderStyle?: string, borderWidth?: number, borderColor?: string, borderRadius?: number, padding?: { top: number, right: number, bottom: number, left: number } }}
+		 * @type {{ backgroundColor: string, borderStyle: string, borderWidth: number, borderColor: string, borderRadius: number, padding: { top: number, right: number, bottom: number, left: number } }}
 		 */
 		styleConfig: {
 			type: Object,
 			default: () => ({}),
 		},
+		/**
+		 * Hide the built-in Refresh item from the overflow action menu.
+		 * The Refresh item is shown by default — set this when the widget
+		 * has no refreshable data source (e.g. a static tile). Alias for
+		 * the inverse `:show-refresh="false"`; either form opts out.
+		 */
+		hideRefresh: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Hide the built-in Request-a-feature item from the overflow
+		 * action menu. Shown by default; set when the consuming app has
+		 * no public issue tracker to link out to. Alias for the inverse
+		 * `:show-request-feature="false"`; either form opts out.
+		 */
+		hideRequestFeature: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Whether to show the built-in Refresh item. Tri-state:
+		 * - `true` / `false` — force the action on or off.
+		 * - `null` (the default) — **auto**: show the action only when a
+		 *   parent has attached an `@refresh` listener (i.e. something will
+		 *   actually handle the refresh). This keeps widgets that can't
+		 *   refresh — e.g. a prop-driven `CnObjectDataWidget` — from showing
+		 *   a dead button. Widgets that refresh themselves via the
+		 *   `cn:widget:refresh` event bus (with no `@refresh` listener)
+		 *   should set `:show-refresh="true"` explicitly.
+		 *
+		 * `hideRefresh` (or `:show-refresh="false"`) always wins.
+		 *
+		 * @type {boolean|null}
+		 */
+		showRefresh: {
+			type: Boolean,
+			default: null,
+		},
+		/**
+		 * Inverse of `hideRequestFeature`. Defaults to `true` so the
+		 * action renders. Set `:show-request-feature="false"` to hide it.
+		 * Either flag hides the action.
+		 *
+		 * @type {boolean}
+		 */
+		showRequestFeature: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Documentation link for this widget. When a non-empty URL is set,
+		 * the overflow menu renders a "Documentation" item that opens the
+		 * link in a new tab. Host apps supply it from the widget
+		 * configuration. Empty (the default) hides the item.
+		 *
+		 * @type {string}
+		 */
+		documentationUrl: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Optional pre-translated label for the Documentation action.
+		 * Defaults to the lib's translation of "Documentation".
+		 */
+		documentationLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Documentation'),
+		},
+		/**
+		 * Widget id for the built-in default Refresh / Request-a-feature
+		 * handlers (B2). Forwarded as the `surface: "widget:<id>"` value
+		 * on the auto-mounted CnSuggestFeatureModal AND as the
+		 * `widgetId` field on the `cn:widget:refresh` event-bus payload.
+		 * When unset, the wrapper falls back to a slugified `displayTitle`,
+		 * which works but is less stable than an explicit id.
+		 *
+		 * @type {string}
+		 */
+		widgetId: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Optional `specRef` forwarded to the auto-mounted
+		 * CnSuggestFeatureModal so the resulting GitHub issue links to
+		 * the spec capability this widget belongs to.
+		 *
+		 * @type {string}
+		 */
+		specRef: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Whether a refresh is currently in flight. When bound by the host
+		 * (e.g. `:refreshing="loading"` around its refetch), the Refresh
+		 * item is disabled and shows a loading spinner for exactly as long
+		 * as this stays true — so the spinner reflects the real refresh time.
+		 *
+		 * @type {boolean}
+		 */
+		refreshing: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Optional pre-translated label for the Refresh action. Defaults
+		 * to the lib's translation of "Refresh" so callers usually don't
+		 * need to set this.
+		 */
+		refreshLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Refresh'),
+		},
+		/**
+		 * Optional pre-translated label for the Request-a-feature action.
+		 * Defaults to the lib's translation of "Request a feature".
+		 */
+		requestFeatureLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Request a feature'),
+		},
+		/**
+		 * Pre-translated aria-label / tooltip for the overflow menu
+		 * trigger. Defaults to "Actions".
+		 */
+		actionsMenuLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Actions'),
+		},
 	},
+
+	emits: ['refresh', 'request-feature'],
 
 	computed: {
 		displayTitle() {
 			return this.title || 'Widget'
+		},
+
+		/**
+		 * Stable DOM id for the header title `<h3>`, used as the
+		 * `aria-labelledby` target of the scrollable content region so the
+		 * region gets an accessible name from the widget title (WCAG 4.1.2).
+		 * Derived from `resolvedWidgetId` so it is stable and unique per
+		 * widget instance on the page.
+		 *
+		 * @return {string}
+		 */
+		titleId() {
+			return `cn-widget-wrapper-title-${this.resolvedWidgetId}`
+		},
+
+		/**
+		 * Effective Refresh visibility. `hideRefresh: true` (or
+		 * `:show-refresh="false"`) always hides it. When `showRefresh` is
+		 * left unset (`null`), auto-detect: show the action only when a
+		 * parent attached an `@refresh` listener — otherwise the refresh
+		 * would do nothing. `hideRefresh` remains a back-compat alias.
+		 *
+		 * @return {boolean}
+		 */
+		effectiveShowRefresh() {
+			if (this.hideRefresh) return false
+			if (this.showRefresh !== null) return this.showRefresh
+			// `$.vnode.props`, not `$attrs`: `refresh` is a declared emit, and
+			// Vue keeps declared emits out of `$attrs`.
+			return Boolean(this.$.vnode.props?.onRefresh)
+		},
+		/**
+		 * Effective Request-a-feature visibility — same OR-of-opt-outs
+		 * pattern as `effectiveShowRefresh`.
+		 *
+		 * @return {boolean}
+		 */
+		effectiveShowRequestFeature() {
+			return this.showRequestFeature && !this.hideRequestFeature
+		},
+
+		/**
+		 * Stable id used in event-bus payloads and the
+		 * `surface: "widget:<id>"` field on the auto-mounted feature
+		 * modal. Prefers the explicit `widgetId` prop; falls back to a
+		 * slugified `displayTitle` so widgets without an explicit id
+		 * still get a usable identifier.
+		 *
+		 * @return {string}
+		 */
+		resolvedWidgetId() {
+			if (this.widgetId) return this.widgetId
+			return this.displayTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+		},
+
+		/**
+		 * Whether the caller supplied an `action-items` slot. Forwarded
+		 * conditionally so the shared CnActionsMenu doesn't treat an
+		 * always-present pass-through template as content (which would
+		 * keep the overflow menu visible even when every built-in is
+		 * opted out).
+		 *
+		 * @return {boolean}
+		 */
+		hasActionItemsSlot() {
+			return Boolean(this.$slots['action-items']) || Boolean(this.$slots && this.$slots['action-items'])
 		},
 
 		wrapperStyles() {
@@ -154,18 +484,110 @@ export default {
 
 			return styles
 		},
+
+		/**
+		 * Inline styles for the header bar, derived from
+		 * `styleConfig.headerStyle.{backgroundColor, textColor}`. Lets a host
+		 * give individual widgets a custom header colour without a per-app CSS
+		 * workaround. Empty object when no header style is configured.
+		 *
+		 * @return {object} the header style bindings.
+		 */
+		headerStyles() {
+			const hs = this.styleConfig.headerStyle
+			if (!hs || typeof hs !== 'object') {
+				return {}
+			}
+			const styles = {}
+			if (hs.backgroundColor) {
+				styles.backgroundColor = hs.backgroundColor
+			}
+			if (hs.textColor) {
+				styles.color = hs.textColor
+			}
+			return styles
+		},
+	},
+
+	methods: {
+		/**
+		 * Re-emit the shared CnActionsMenu `@refresh` to the host, passing
+		 * the synthetic event through unchanged so a host listener can
+		 * still `preventDefault()` the built-in default (event-bus emit on
+		 * `cn:widget:refresh`).
+		 *
+		 * @param {{ widgetId: string, title: string }} payload Action payload.
+		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
+		 * @return {void}
+		 */
+		onActionsRefresh(payload, ev) {
+			/**
+			 * @event refresh User clicked the Refresh item in the overflow
+			 * action menu. Payload: `{ widgetId, title }`. Handlers may call
+			 * the second arg's `preventDefault()` to suppress the built-in
+			 * default (event-bus emit on `cn:widget:refresh`).
+			 * @type {{ widgetId: string, title: string }}
+			 */
+			this.$emit('refresh', payload, ev)
+		},
+
+		/**
+		 * Re-emit the shared CnActionsMenu `@request-feature` to the host,
+		 * passing the synthetic event through so a host listener can
+		 * `preventDefault()` the built-in default (auto-opening
+		 * CnSuggestFeatureModal).
+		 *
+		 * @param {{ widgetId: string, title: string }} payload Action payload.
+		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
+		 * @return {void}
+		 */
+		onActionsRequestFeature(payload, ev) {
+			/**
+			 * @event request-feature User clicked the Request a feature
+			 * item. Payload: `{ widgetId, title }`. Handlers may call the
+			 * second arg's `preventDefault()` to suppress the built-in
+			 * default (auto-opening CnSuggestFeatureModal).
+			 * @type {{ widgetId: string, title: string }}
+			 */
+			this.$emit('request-feature', payload, ev)
+		},
 	},
 }
 </script>
 
 <style scoped>
 .cn-widget-wrapper {
+	position: relative;
 	height: 100%;
 	display: flex;
 	flex-direction: column;
 	background: var(--color-main-background);
 	border: 1px solid var(--color-border);
+	/* NC design system: every content card is rounded — same token as
+	   CnDetailCard so detail pages read as ONE card family (ADR-062). */
+	border-radius: var(--border-radius-large, 8px);
 	overflow: hidden;
+}
+
+/* Headerless date chip — floated over the top-right of a flush card. */
+.cn-widget-wrapper__floating-meta {
+	position: absolute;
+	top: 8px;
+	inset-inline-end: 10px;
+	z-index: 2;
+}
+
+.cn-widget-wrapper__content {
+	flex: 1;
+	overflow: auto;
+	min-height: 0;
+	padding: 16px;
+}
+
+/* Keyboard focus ring for the now-focusable scrollable content region. */
+.cn-widget-wrapper__content:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: -2px;
 }
 
 .cn-widget-wrapper--borderless {
@@ -181,6 +603,14 @@ export default {
 	padding: 0;
 }
 
+/*
+ * `chrome="nc-dashboard"` — reproduce the native Nextcloud Dashboard panel
+ * (apps/dashboard) exactly, using the same design tokens so an un-customised
+ * widget is pixel-identical to a core dashboard panel. `styleConfig` inline
+ * overrides (wrapperStyles / headerStyles) still win over these class rules,
+ * so users can override any token. Combined selector raises specificity above
+ * the base `.cn-widget-wrapper` rules it supersedes.
+ */
 .cn-widget-wrapper__header {
 	display: flex;
 	align-items: center;
@@ -195,6 +625,9 @@ export default {
 	align-items: center;
 	gap: 8px;
 	min-width: 0;
+	/* Grow so the title hugs the (optional) title-icon on the left instead
+	   of centering between icon and actions (header is space-between). */
+	flex: 1 1 auto;
 }
 
 .cn-widget-wrapper__icon {
@@ -212,16 +645,58 @@ export default {
 	text-overflow: ellipsis;
 }
 
-.cn-widget-wrapper__content {
-	flex: 1;
-	overflow: auto;
-	min-height: 0;
+.cn-widget-wrapper.cn-widget-wrapper--nc-dashboard {
+	background: var(--color-main-background-blur, var(--color-main-background));
+	-webkit-backdrop-filter: var(--filter-background-blur, none);
+	backdrop-filter: var(--filter-background-blur, none);
+	border: none;
+	border-radius: var(--border-radius-container-large, 16px);
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__header {
 	padding: 16px;
+	border-bottom: none;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__header-left {
+	gap: 16px;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__icon {
+	width: 32px;
+	height: 32px;
+	background-size: 32px;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__title {
+	font-size: 20px;
+	font-weight: 700;
+	line-height: 24px;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__content {
+	padding: 0 16px 16px;
+}
+
+.cn-widget-wrapper__title-meta {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
+	white-space: nowrap;
+	flex-shrink: 0;
 }
 
 .cn-widget-wrapper__actions {
 	display: flex;
 	gap: 4px;
+	flex-shrink: 0;
+}
+
+.cn-widget-wrapper__title-icon {
+	display: flex;
+	align-items: center;
 	flex-shrink: 0;
 }
 

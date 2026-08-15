@@ -1,1 +1,4 @@
-export { default as CnSettingsSection } from './CnSettingsSection.vue'
+import CnSettingsSection from './CnSettingsSection.vue'
+
+export default CnSettingsSection
+export { CnSettingsSection }

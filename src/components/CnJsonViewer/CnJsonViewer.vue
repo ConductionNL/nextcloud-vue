@@ -21,14 +21,14 @@
 			<NcButton
 				v-if="!readOnly && resolvedLanguage === 'json'"
 				class="cn-json-viewer__format-btn"
-				type="secondary"
+				variant="secondary"
 				size="small"
 				@click="formatJson">
 				Format JSON
 			</NcButton>
 		</div>
-		<span v-if="!readOnly && resolvedLanguage === 'json' && !isValidJson(value)" class="cn-json-viewer__error">
-			Invalid JSON format
+		<span v-if="shouldShowError" class="cn-json-viewer__error">
+			{{ resolvedErrorText }}
 		</span>
 	</div>
 </template>
@@ -49,17 +49,25 @@ import { getTheme } from '../../utils/getTheme.js'
  * Includes syntax highlighting, and optional formatting/validation for JSON.
  * Use `readOnly` for display-only mode.
  *
- * @example Read-only JSON display (default)
+ * Read-only JSON display (default)
+ * ```vue
  * <CnJsonViewer :value="jsonString" :read-only="true" />
+ * ```
  *
- * @example Auto-detect language from content
+ * Auto-detect language from content
+ * ```vue
  * <CnJsonViewer :value="responseBody" :read-only="true" language="auto" />
+ * ```
  *
- * @example Explicit XML mode
+ * Explicit XML mode
+ * ```vue
  * <CnJsonViewer :value="xmlString" :read-only="true" language="xml" />
+ * ```
  *
- * @example Editable JSON with custom height
+ * Editable JSON with custom height
+ * ```vue
  * <CnJsonViewer :value="jsonString" height="500px" @update:value="onUpdate" />
+ * ```
  */
 export default {
 	name: 'CnJsonViewer',
@@ -89,19 +97,38 @@ export default {
 			default: 'auto',
 			validator: (v) => ['json', 'xml', 'html', 'text', 'auto'].includes(v),
 		},
+		/**
+		 * Custom text for the error banner rendered below the editor.
+		 * - `null` (default): the built-in "Invalid JSON format" banner renders
+		 *   whenever `language === 'json'` and the content fails to parse.
+		 * - Any string: the caller owns the banner — it renders when this
+		 *   string is non-empty, and is hidden when empty. Use this to surface
+		 *   a richer parse error (e.g. the exception message).
+		 */
+		errorText: { type: String, default: null },
 	},
+
+	emits: ['update:value', 'format', 'detected-language'],
 
 	data() {
 		return {
 			githubLight,
 			githubDark,
+			internalValue: this.value,
 		}
 	},
 
 	computed: {
 		localValue: {
-			get() { return this.value },
-			set(v) { this.$emit('update:value', v) },
+			get() { return this.internalValue },
+			set(v) {
+				this.internalValue = v
+				/**
+				 * @event update:value Fired whenever the editor text changes. Payload is the new raw string (not parsed); use the `format` event for the parsed object.
+				 * @type {string}
+				 */
+				this.$emit('update:value', v)
+			},
 		},
 		isDark: {
 			get() { return getTheme() === 'dark' },
@@ -117,7 +144,7 @@ export default {
 			if (this.language !== 'auto') {
 				return this.language
 			}
-			const trimmed = (this.value || '').trim()
+			const trimmed = (this.internalValue || '').trim()
 			if (!trimmed) return 'text'
 			try {
 				JSON.parse(trimmed)
@@ -169,6 +196,53 @@ export default {
 			if (this.langExtension) exts.push(this.langExtension)
 			return exts
 		},
+		/**
+		 * Error text displayed in the banner. Caller-provided `errorText` wins;
+		 * otherwise falls back to the built-in "Invalid JSON format" message.
+		 * @return {string} Message to show.
+		 */
+		resolvedErrorText() {
+			if (this.errorText !== null) return this.errorText
+			return 'Invalid JSON format'
+		},
+		/**
+		 * Whether to show the error banner.
+		 * - If `errorText` is supplied, the caller controls visibility via its
+		 *   emptiness.
+		 * - Otherwise, show iff the content is editable JSON and fails to parse.
+		 * @return {boolean} Visibility flag.
+		 */
+		shouldShowError() {
+			if (this.errorText !== null) return this.errorText !== ''
+			return !this.readOnly
+				&& this.resolvedLanguage === 'json'
+				&& !this.isValidJson(this.internalValue)
+		},
+	},
+
+	watch: {
+		value(v) {
+			if (v !== this.internalValue) {
+				this.internalValue = v
+			}
+		},
+		resolvedLanguage: {
+			immediate: true,
+			handler(lang) {
+				/**
+				 * @event detected-language Fired when the resolved
+				 *   language for syntax highlighting changes — either
+				 *   because the `language` prop was set explicitly OR
+				 *   because the auto-detector flipped between
+				 *   'json' / 'xml' / 'html' / 'text' as the content
+				 *   changed. Lets parent components surface a language
+				 *   indicator without re-implementing the detection
+				 *   heuristic.
+				 * @type {'json'|'xml'|'html'|'text'}
+				 */
+				this.$emit('detected-language', lang)
+			},
+		},
 	},
 
 	methods: {
@@ -178,9 +252,19 @@ export default {
 		 */
 		formatJson() {
 			try {
-				if (this.value) {
-					const parsed = JSON.parse(this.value)
-					this.$emit('update:value', JSON.stringify(parsed, null, 2))
+				if (this.internalValue) {
+					const parsed = JSON.parse(this.internalValue)
+					const formatted = JSON.stringify(parsed, null, 2)
+					this.internalValue = formatted
+					this.$emit('update:value', formatted)
+					/**
+					 * @event format Fired after a successful manual
+					 *   reformat (`formatJson()`) — payload is the
+					 *   parsed object, useful for parents that want to
+					 *   pick up the structured value alongside the
+					 *   formatted string.
+					 * @type {object|Array|string|number|boolean|null}
+					 */
 					this.$emit('format', parsed)
 				}
 			} catch {
@@ -214,8 +298,6 @@ export default {
 }
 
 .cn-json-viewer__codemirror {
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius);
 	position: relative;
 }
 

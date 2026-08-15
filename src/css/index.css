@@ -1,10 +1,38 @@
 /* @conduction/nextcloud-vue — Main CSS entry point */
+
+/* Third-party stylesheets that the library's OWN components hard-require.
+ *
+ * The library must ship every stylesheet its components need — a consumer app
+ * importing `@conduction/nextcloud-vue/css/index.css` gets a complete library,
+ * and must never have to re-import a transitive dependency's CSS itself (that
+ * duplicates the rules in every app and silently rots when this library changes
+ * its internals).
+ *
+ * GridStack specifically: CnDashboardGrid/CnWidgetGrid and utils/gridStack.js
+ * each do `import 'gridstack/dist/gridstack.min.css'`, but a JS-side side-effect
+ * CSS import does not survive to consumers — a consumer's webpack tree-shakes
+ * side-effect imports reached through an aliased package, and the rule set never
+ * reaches dist/nextcloud-vue.css either (verified: 0 occurrences of gridstack's
+ * base rules in the built sheet, while leaflet's 174 rules ARE there). The
+ * consequence is severe and silent: GridStack >= 11 sets left/top INLINE but
+ * takes `position:absolute` on items and `position:relative` on the container
+ * from this stylesheet, so without it every widget falls into normal flow —
+ * correct widths, no horizontal placement, and a whole 12-column dashboard
+ * renders as one stacked column. Routing it through this aggregator instead
+ * makes postcss-import inline it into the extracted sheet, which covers BOTH
+ * resolution paths: consumers on the published dist AND consumers webpack-
+ * aliased to `../nextcloud-vue/src`.
+ */
+@import 'gridstack/dist/gridstack.min.css';
+
+@import './main.css';
 @import './table.css';
 @import './card.css';
 @import './pagination.css';
 @import './detail.css';
 @import './badge.css';
 @import './layout.css';
+@import './grid.css';
 @import './utilities.css';
 @import './page-header.css';
 @import './actions-bar.css';
@@ -15,3 +43,4 @@
 @import './CnSchemaFormDialog.css';
 @import './timeline-stages.css';
 @import './context-menu.css';
+@import './patches.css';

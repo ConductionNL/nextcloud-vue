@@ -1,1 +1,4 @@
-export { default as CnIndexSidebar } from './CnIndexSidebar.vue'
+import CnIndexSidebar from './CnIndexSidebar.vue'
+
+export default CnIndexSidebar
+export { CnIndexSidebar }

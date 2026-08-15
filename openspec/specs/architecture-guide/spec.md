@@ -1,5 +1,5 @@
 ---
-status: reviewed
+status: done
 ---
 
 # architecture-guide Specification
@@ -15,7 +15,7 @@ Explains the design philosophy and layered architecture of `@conduction/nextclou
 The docs site MUST include a `docs/architecture/overview.md` page with a Mermaid diagram showing the three-layer relationship:
 
 ```
-Layer 3: App (LarpingApp, Pipelinq, OpenCatalogi, Procest, MyDash, ...)
+Layer 3: App (LarpingApp, Pipelinq, OpenCatalogi, Procest, LaunchPad, ...)
 Layer 2: @conduction/nextcloud-vue (Cn* components, createObjectStore, composables)
 Layer 1: Nextcloud Vue (@nextcloud/vue — NcAppNavigation, NcAppContent, NcAppSidebar, NcButton, NcDialog, ...)
 ```
@@ -366,7 +366,7 @@ Consumer apps MUST integrate the library using the following pattern:
 
 Consumer apps MUST configure their bundler (Webpack) to deduplicate shared dependencies via resolve aliases pointing to the consumer's own `node_modules` copies. This prevents duplicate Vue or Pinia instances at runtime.
 
-Consumer apps known to use this library: OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash, LarpingApp, SoftwareCatalog, ZaakAfhandelApp, DocuDesk.
+Consumer apps known to use this library: OpenRegister, OpenCatalogi, Procest, Pipelinq, LaunchPad, LarpingApp, SoftwareCatalog, ZaakAfhandelApp, DocuDesk.
 
 #### Scenario: Consumer app sets up the library
 

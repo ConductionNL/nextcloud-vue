@@ -31,6 +31,14 @@ name: Release
 # Conduction package currently shipping cleanly via semantic-release +
 # OIDC.
 
+# `feat/vue-3` is the Vue-3 line. `.releaserc.json` maps it to the `vue3`
+# dist-tag with a `vue3` prerelease preid, but that config only decides HOW
+# a release is versioned once this workflow runs — it does not decide WHEN.
+# Without the branch listed here the workflow simply never fires on a push
+# to it, and the Vue-3 package only ever ships when somebody remembers to
+# dispatch it by hand (which is exactly how 2.1.0-vue3.1 got out). Keep the
+# two lists in agreement: a branch added to `.releaserc.json` and not to
+# this trigger is a release channel that silently never publishes.
 on:
   push:
     branches: [main, beta]
@@ -50,6 +58,8 @@ jobs:
   quality:
     name: Quality Check
     runs-on: ubuntu-latest
+    # Observed max 2.4 min over n=18 runs; 20 is a loose upper bound.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -64,6 +74,10 @@ jobs:
     name: Release
     needs: quality
     runs-on: ubuntu-latest
+    # Observed median 1.3 min / max 4.0 min over n=73 runs; bounded loosely at 45
+    # because a spurious release failure is expensive (frontend build alone has
+    # been measured at 211 s under load).
+    timeout-minutes: 45
     permissions:
       contents: write       # @semantic-release/git pushes the chore(release) bump back to beta/main
       issues: write
@@ -76,6 +90,11 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+          # Track the branch head, not the detached triggering SHA. On an
+          # actively-pushed branch the run can start after new commits land;
+          # a detached checkout makes semantic-release see local as "behind
+          # the remote" and silently skip the publish (green-but-no-publish).
+          ref: ${{ github.ref_name }}
 
       - uses: actions/setup-node@v4
         with:

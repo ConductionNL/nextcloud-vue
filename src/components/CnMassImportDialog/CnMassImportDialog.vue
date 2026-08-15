@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="large"
-		:can-close="!loading"
+		:no-close="loading"
 		@closing="$emit('close')">
 		<!-- Success/error messages -->
 		<NcNoteCard v-if="result && result.success && !hasErrors" type="success">
@@ -16,7 +16,11 @@
 		</NcNoteCard>
 
 		<!-- Results summary table -->
-		<div v-if="result && result.summary" class="cn-mass-import__results">
+		<div v-if="result && result.summary"
+			class="cn-mass-import__results"
+			data-testid="cn-modal"
+			data-testid-modal="cn-mass-import-dialog"
+			data-testid-phase="result">
 			<h3>{{ summaryTitle }}</h3>
 			<table class="cn-mass-import__summary-table">
 				<thead>
@@ -30,8 +34,8 @@
 					</tr>
 				</thead>
 				<tbody>
-					<template v-for="(sheet, key) in result.summary">
-						<tr :key="key">
+					<template v-for="(sheet, key) in result.summary" :key="key">
+						<tr>
 							<td class="cn-mass-import__sheet-name">
 								{{ key }}
 							</td>
@@ -88,7 +92,11 @@
 		</div>
 
 		<!-- Upload form -->
-		<div v-if="!result" class="cn-mass-import__form">
+		<div v-if="!result"
+			class="cn-mass-import__form"
+			data-testid="cn-modal"
+			data-testid-modal="cn-mass-import-dialog"
+			data-testid-phase="form">
 			<input
 				ref="fileInput"
 				type="file"
@@ -127,9 +135,9 @@
 				<NcCheckboxRadioSwitch
 					v-for="opt in options"
 					:key="opt.key"
-					:checked="optionValues[opt.key]"
+					:model-value="optionValues[opt.key]"
 					type="switch"
-					@update:checked="setOption(opt.key, $event)">
+					@update:model-value="setOption(opt.key, $event)">
 					{{ opt.label }}
 					<template v-if="opt.description" #helper>
 						{{ opt.description }}
@@ -149,7 +157,7 @@
 			</NcButton>
 			<NcButton
 				v-if="!result"
-				type="primary"
+				variant="primary"
 				:disabled="loading || !selectedFile || !canSubmit"
 				@click="executeImport">
 				<template #icon>
@@ -180,7 +188,7 @@ import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
  * with the file and options. The parent handles the API call and calls
  * `setResult()` via a ref.
  *
- * @example
+ * ```vue
  * <CnMassImportDialog
  *   v-if="showImportDialog"
  *   ref="importDialog"
@@ -188,9 +196,10 @@ import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
  *   @confirm="onImportConfirm"
  *   @close="showImportDialog = false">
  *   <template #fields="{ file }">
- *     <NcSelect v-if="file" :options="schemas" @input="selectedSchema = $event" />
+ *     <NcSelect v-if="file" :options="schemas" @update:model-value="selectedSchema = $event" />
  *   </template>
  * </CnMassImportDialog>
+ * ```
  *
  * // In data:
  * importOptions: [
@@ -209,6 +218,10 @@ import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
  *     this.$refs.importDialog.setResult({ error: e.message })
  *   }
  * }
+ *
+ * @event confirm Emitted when the user clicks the import button. Payload: `{ file: File, options: Record<string, boolean> }`.
+ * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
+ * @slot fields Custom form fields rendered between the file picker and the options list. Receives `{ file }` as the slot scope so the parent can react to file selection.
  */
 export default {
 	name: 'CnMassImportDialog',
@@ -228,7 +241,7 @@ export default {
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
-			default: 'Import Data',
+			default: () => t('nextcloud-vue', 'Import data'),
 		},
 		/** Accepted file types (input accept attribute) */
 		acceptedTypes: {
@@ -269,19 +282,33 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Importing data — this may take a moment for large files...'),
 		},
+		/** Heading rendered above the per-sheet results table. */
 		summaryTitle: { type: String, default: () => t('nextcloud-vue', 'Import summary') },
+		/** Label for the "Supported file types" intro line. */
 		supportedFormatsLabel: { type: String, default: () => t('nextcloud-vue', 'Supported file types:') },
-		selectFileLabel: { type: String, default: () => t('nextcloud-vue', 'Select File') },
+		/** Label for the file-picker trigger button. */
+		selectFileLabel: { type: String, default: () => t('nextcloud-vue', 'Select file') },
+		/** Label for the cancel button (visible before the import runs). */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the close button (visible after import completes). */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		/** Label for the primary confirm button that triggers the import. */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Import') },
+		/** Column header for the per-sheet results row label. */
 		sheetLabel: { type: String, default: () => t('nextcloud-vue', 'Sheet') },
+		/** Column header for the "rows found" summary count. */
 		foundLabel: { type: String, default: () => t('nextcloud-vue', 'Found') },
+		/** Column header for the "rows created" summary count. */
 		createdLabel: { type: String, default: () => t('nextcloud-vue', 'Created') },
+		/** Column header for the "rows updated" summary count. */
 		updatedLabel: { type: String, default: () => t('nextcloud-vue', 'Updated') },
+		/** Column header for the "rows unchanged" summary count. */
 		unchangedLabel: { type: String, default: () => t('nextcloud-vue', 'Unchanged') },
+		/** Column header / collapsible toggle for the per-sheet errors list. */
 		errorsLabel: { type: String, default: () => t('nextcloud-vue', 'Errors') },
 	},
+
+	emits: ['close', 'confirm'],
 
 	data() {
 		const optionValues = {}
@@ -313,7 +340,7 @@ export default {
 		},
 
 		setOption(key, value) {
-			this.$set(this.optionValues, key, value)
+			this.optionValues[key] = value
 		},
 
 		formatFileSize(bytes) {
@@ -331,7 +358,7 @@ export default {
 		},
 
 		toggleErrors(key) {
-			this.$set(this.expandedErrors, key, !this.expandedErrors[key])
+			this.expandedErrors[key] = !this.expandedErrors[key]
 		},
 
 		executeImport() {

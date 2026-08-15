@@ -1,0 +1,124 @@
+<!--
+  CnEditPagesModal — edit the app's pages (ADR-041 / ADR-004).
+
+  Mutates the working manifest copy ONLY: add, remove, reorder, relabel,
+  re-type, re-parent and re-route the manifest's `pages[]`. Renders the pages as
+  a compact TREE (CnPageTreeNode) — each page is a one-line row with an edit cog
+  that reveals its Title / Type / Parent / Route, plus reorder, delete and
+  add-sub-page — mirroring the menu editor. The hierarchy comes from each page's
+  `parent` (a parent page's id), so an index and its detail nest together and
+  the detail's route builds up from the index's. Isolated NcDialog file per
+  ADR-004.
+-->
+<template>
+	<NcDialog size="normal" :name="t('nextcloud-vue', 'Edit pages')" @closing="$emit('close')">
+		<NcEmptyContent
+			v-if="!pages.length"
+			:name="t('nextcloud-vue', 'No pages yet')"
+			:description="t('nextcloud-vue', 'Add a page to get started.')" />
+
+		<CnPageTreeNode v-else
+			:list="pages"
+			:menu="working && Array.isArray(working.menu) ? working.menu : null"
+			:max-depth="1"
+			@navigate="onNavigate" />
+
+		<template #actions>
+			<NcButton variant="secondary" @click="add">
+				<template #icon>
+					<Plus :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Add page') }}
+			</NcButton>
+			<NcButton variant="primary" :disabled="saving" @click="onDone">
+				<template #icon>
+					<NcLoadingIcon v-if="saving" :size="20" />
+					<ContentSaveOutline v-else :size="20" />
+				</template>
+				{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
+			</NcButton>
+		</template>
+	</NcDialog>
+</template>
+
+<script>
+import { NcDialog, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { translate as t } from '@nextcloud/l10n'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import CnPageTreeNode from '../components/CnPageTreeNode/CnPageTreeNode.vue'
+import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
+
+export default {
+	name: 'CnEditPagesModal',
+
+	components: { NcDialog, NcButton, NcEmptyContent, NcLoadingIcon, Plus, CnPageTreeNode },
+
+	mixins: [manifestModalDoneMixin],
+
+	inject: {
+		/** Re-fetch the pages editor's registers/schemas; null when the host has no loader. */
+		cnRefreshDataSources: { default: null },
+	},
+
+	props: {
+		/**
+		 * The working manifest copy whose `pages[]` is edited in place. Never the
+		 * base — the editor holds the base separately.
+		 *
+		 * @type {object|null}
+		 */
+		working: {
+			type: Object,
+			default: null,
+		},
+	},
+
+	emits: ['close'],
+
+	computed: {
+		/** The working manifest's pages array (always an array). */
+		pages() {
+			if (this.working && !Array.isArray(this.working.pages)) {
+				// The working manifest is ours to mutate by design — never the base.
+				// eslint-disable-next-line vue/no-mutating-props, vue/no-side-effects-in-computed-properties
+				this.working.pages = []
+			}
+			return this.working ? this.working.pages : []
+		},
+	},
+
+	// The modal is `v-if`-mounted, so mount == open: refreshing here picks up
+	// any register/schema created since the app booted, with no page reload.
+	mounted() {
+		if (typeof this.cnRefreshDataSources === 'function') this.cnRefreshDataSources()
+	},
+
+	methods: {
+		t,
+		/** Append a new blank top-level page with a unique stable id. */
+		add() {
+			let n = this.pages.length + 1
+			const ids = new Set(this.pages.map((p) => p && p.id))
+			while (ids.has(`page-${n}`)) n++
+			const id = `page-${n}`
+			this.pages.push({ id, route: `/${id}`, type: 'custom', title: '', config: {} })
+		},
+		/**
+		 * Navigate the app to a page's route (from a row's "Go to page" button)
+		 * and close the modal. Uses the host's vue-router when present.
+		 * @param {string} route The route path to open.
+		 * @return {void}
+		 */
+		onNavigate(route) {
+			if (route && this.$router) this.$router.push(route).catch(() => {})
+			this.$emit('close')
+		},
+	},
+}
+</script>
+
+<!-- No style block: NcDialog owns the padding, the title (via `name`) and the
+     actions row, so the wrapper, heading and footer rules the NcModal markup
+     needed are all gone. An empty `<style scoped>` would still bake a
+     data-v-* scope id into the built JS with no matching CSS rule, which
+     the check:css-entry gate rejects. -->

@@ -4,6 +4,7 @@
 
 <script>
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
+import { DASHBOARD_ICONS } from '../CnIconPicker/dashboardIcons.js'
 
 /**
  * Mutable icon registry.
@@ -12,7 +13,6 @@ import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
  * Apps extend this at boot via registerIcons() — import only the
  * icons you need, keeping bundles small.
  *
- * @example
  * import { registerIcons } from '@conduction/nextcloud-vue'
  * import Sword from 'vue-material-design-icons/Sword.vue'
  * registerIcons({ Sword })
@@ -30,7 +30,6 @@ const _registry = {
  *
  * @param {Record<string, import('vue').Component>} icons - Map of PascalCase icon names to Vue components
  *
- * @example
  * import { registerIcons } from '@conduction/nextcloud-vue'
  * import Sword from 'vue-material-design-icons/Sword.vue'
  * import MagicStaff from 'vue-material-design-icons/MagicStaff.vue'
@@ -54,8 +53,9 @@ export const ICON_MAP = _registry
  * Looks up the name in the shared registry. If not found, renders
  * the fallback icon (HelpCircleOutline by default).
  *
- * @example
+ * ```vue
  * <CnIcon name="AccountGroup" :size="24" />
+ * ```
  *
  * @see https://pictogrammers.com/library/mdi/
  */
@@ -82,7 +82,12 @@ export default {
 
 	computed: {
 		resolvedComponent() {
-			return _registry[this.name] || _registry[this.fallback] || HelpCircleOutline
+			// Registered icons win; then the built-in dashboard-icon set (so an
+			// icon picked via CnIconBrowser always renders, since the picker offers
+			// exactly that set); then the fallback. A direct map lookup (not
+			// getIconComponent) returns undefined for unknown names so they still
+			// fall through to the help-circle fallback.
+			return _registry[this.name] || DASHBOARD_ICONS[this.name] || _registry[this.fallback] || HelpCircleOutline
 		},
 	},
 }

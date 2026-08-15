@@ -2,11 +2,18 @@
 sidebar_position: 3
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnIndexSidebar.md'
+
 # CnIndexSidebar
 
 Schema-driven right sidebar with tabs for search, faceted filters, and column visibility. Typically used alongside `CnIndexPage`.
 
 **Wraps**: NcAppSidebar, NcAppSidebarTab, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcPopover. See [NcAppSidebar](https://nextcloud-vue-components.netlify.app/) for the underlying primitive.
+
+## Try it
+
+<Playground component="CnIndexSidebar" />
 
 ![CnIndexSidebar showing Search tab with search input and filter dropdowns for Industry and Client type](/img/screenshots/cn-index-sidebar.png)
 
@@ -86,6 +93,7 @@ When using `CnIndexPage`, the sidebar is managed internally — you do not need 
 | `filtersLabel` | String | `'Filters'` | Heading above the filter controls |
 | `columnsHeading` | String | `'Column Visibility'` | Heading inside the Columns tab |
 | `columnsDescription` | String | `'Select which columns to display in the table'` | Subtitle inside the Columns tab |
+| `userIsAdmin` | Boolean | `true` | Whether the current user is an admin. When `false`, schema properties with `adminOnly: true` are hidden from the filter list in the Search tab. |
 
 ### Events
 
@@ -109,3 +117,9 @@ When using `CnIndexPage`, the sidebar is managed internally — you do not need 
 ## Icon Resolution
 
 The sidebar header displays an icon from the `icon` prop (or `schema.icon`). Icons are resolved via the [CnIcon](./cn-icon.md) registry — make sure your app has called `registerIcons()` with the required icon components before using this sidebar.
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnIndexSidebar.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnIndexSidebar/CnIndexSidebar.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

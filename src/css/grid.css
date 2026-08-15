@@ -1,0 +1,56 @@
+/* ========================================
+   @conduction/nextcloud-vue — Shared responsive grid engine
+   ========================================
+
+   One 12-column CSS grid used by CnWidgetGrid (v2 manifest slots) and
+   CnDetailPage (explicit grid mode + schema-driven auto-body). Cell
+   placement comes from CSS custom properties emitted by
+   `src/utils/grid.js` (cnGridCellStyle), so the responsive collapse
+   (12 → 6 → 1) lives here in one place instead of per-component.
+
+   Column count is driven by `--cn-grid-cols` (default 12) so single-column
+   slots (e.g. the sidebar) can opt out by setting it to 1. Add the
+   `cn-grid--responsive` modifier to multi-column grids to enable the
+   breakpoint collapse; single-column grids omit it and stay put. */
+
+.cn-grid {
+	display: grid;
+	grid-template-columns: repeat(var(--cn-grid-cols, 12), 1fr);
+	gap: calc(4 * var(--default-grid-baseline, 4px));
+	width: 100%;
+}
+
+.cn-grid__item {
+	min-width: 0;
+	grid-column: var(--cn-grid-cs, auto) / span var(--cn-grid-cspan, var(--cn-grid-cols, 12));
+}
+
+/* Explicit row placement — opt-in via the modifier so flow items stay
+   auto-placed. */
+.cn-grid__item--row {
+	grid-row: var(--cn-grid-rs) / span var(--cn-grid-rspan);
+}
+
+/* Tablet: collapse to 6 columns; items span at most 6 and auto-flow. */
+@media (max-width: 900px) {
+	.cn-grid--responsive {
+		grid-template-columns: repeat(6, 1fr);
+	}
+
+	.cn-grid--responsive > .cn-grid__item {
+		grid-column: span var(--cn-grid-cspan-md, 6);
+		grid-row: auto;
+	}
+}
+
+/* Mobile: single column, every item full width. */
+@media (max-width: 600px) {
+	.cn-grid--responsive {
+		grid-template-columns: 1fr;
+	}
+
+	.cn-grid--responsive > .cn-grid__item {
+		grid-column: 1 / -1;
+		grid-row: auto;
+	}
+}

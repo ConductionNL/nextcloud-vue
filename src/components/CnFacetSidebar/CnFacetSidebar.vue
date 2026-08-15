@@ -6,7 +6,7 @@
 			</h3>
 			<NcButton
 				v-if="hasActiveFilters"
-				type="tertiary"
+				variant="tertiary"
 				class="cn-facet-sidebar__clear"
 				@click="$emit('clear-all')">
 				{{ clearLabel }}
@@ -29,8 +29,8 @@
 				<!-- Checkbox filter (boolean) -->
 				<NcCheckboxRadioSwitch
 					v-if="filter.type === 'checkbox'"
-					:checked="getFilterValue(filter.key) === true"
-					@update:checked="onFilterChange(filter.key, $event)">
+					:model-value="getFilterValue(filter.key) === true"
+					@update:model-value="onFilterChange(filter.key, $event)">
 					{{ filter.label }}
 				</NcCheckboxRadioSwitch>
 
@@ -38,27 +38,29 @@
 				<NcSelect
 					v-else-if="filter.type === 'select'"
 					class="cn-facet-sidebar__select"
-					:value="getSelectedOptions(filter)"
+					:model-value="getSelectedOptions(filter)"
 					:options="getFilterOptions(filter)"
 					:placeholder="filter.label"
 					:input-label="filter.label"
 					:multiple="true"
+					:keep-open="true"
 					:clearable="true"
-					@input="onSelectChange(filter.key, $event)" />
+					@update:model-value="onSelectChange(filter.key, $event)" />
 
 				<!-- Text filter (fallback) -->
 				<NcTextField
 					v-else
-					:value="getFilterValue(filter.key) || ''"
+					:model-value="getFilterValue(filter.key) || ''"
 					:placeholder="filter.label"
 					:label="filter.label"
-					@update:value="onFilterChange(filter.key, $event)" />
+					@update:model-value="onFilterChange(filter.key, $event)" />
 			</div>
 		</div>
 	</div>
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcSelect, NcTextField, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { filtersFromSchema } from '../../utils/schema.js'
 
@@ -69,13 +71,14 @@ import { filtersFromSchema } from '../../utils/schema.js'
  * appropriate filter widgets. Accepts live facet data from the API for
  * dynamic option values with counts.
  *
- * @example
+ * ```vue
  * <CnFacetSidebar
  *   :schema="schema"
  *   :facet-data="facetData"
  *   :active-filters="filters"
  *   @filter-change="onFilterChange"
  *   @clear-all="clearFilters" />
+ * ```
  */
 export default {
 	name: 'CnFacetSidebar',
@@ -88,11 +91,23 @@ export default {
 		NcLoadingIcon,
 	},
 
+	inject: {
+		/**
+		 * Consumer translation function, provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). Filter
+		 * labels come from schema property titles, authored in English as the
+		 * canonical source; the visible label is resolved through this function
+		 * so it follows the user's language. Defaults to identity when used
+		 * standalone (no CnAppRoot ancestor).
+		 */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	props: {
 		/** Schema definition — reads facetable properties */
 		schema: {
 			type: Object,
-			required: true,
+			default: null,
 		},
 		/** Live facet data from API: { fieldName: { values: [{value, count}] } } */
 		facetData: {
@@ -112,12 +127,12 @@ export default {
 		/** Sidebar title */
 		title: {
 			type: String,
-			default: 'Filters',
+			default: () => t('nextcloud-vue', 'Filters'),
 		},
 		/** Clear all button label */
 		clearLabel: {
 			type: String,
-			default: 'Clear all',
+			default: () => t('nextcloud-vue', 'Clear all'),
 		},
 		/**
 		 * Whether the current user is an admin.
@@ -129,9 +144,11 @@ export default {
 		},
 	},
 
+	emits: ['clear-all', 'filter-change'],
+
 	computed: {
 		effectiveFilters() {
-			return filtersFromSchema(this.schema, { isAdmin: this.userIsAdmin })
+			return filtersFromSchema(this.schema, { isAdmin: this.userIsAdmin, translate: this.cnTranslate })
 		},
 
 		hasActiveFilters() {
