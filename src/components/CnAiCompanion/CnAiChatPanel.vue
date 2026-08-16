@@ -19,17 +19,24 @@
   It carries its own close control and never assumes anything about the page it
   is dropped onto.
 
-  Chrome, top-left, icon-only (labels are `title` + `aria-label`, i.e. hover and
-  screen readers, so the header stays narrow enough to leave room for the agent's
-  name):
-  - Close     — plain button.
+  Titlebar: the AGENT's icon and name left-aligned (a long name gets the whole
+  remaining row), then the controls pushed to the RIGHT, icon-only — labels ride
+  on `title` + `aria-label`, so they reach hover and screen readers without
+  spending width the agent's name needs:
+  - Settings  — NcActions menu. The AGENT LIVES IN HERE: choosing one is a
+                setting of the session, not a peer of "close".
   - Sessions  — NcActions menu: start a new chat, pick a recent conversation,
                 or open the full searchable history.
-  - Agent     — NcActions menu listing every accessible agent, checkmarked.
+  - Close     — plain button, at the outside edge where it is hardest to hit by
+                accident.
 
   Both selectors are MENUS rather than inline controls on purpose: the window is
   ~380px wide, and an inline agent dropdown plus a recent-sessions list consumed
   most of the first screen before a single message was visible.
+
+  The window is anchored ABOVE the launcher with a white pointer aimed at it, and
+  animates from that point, so it reads as speech coming out of the hex rather
+  than as an unrelated panel that appeared nearby.
 
   The title is the AGENT, not the product. "Hermiq" was the same string on every
   page for every agent; the one thing a user needs to see before typing is which
@@ -41,138 +48,162 @@
   is how you reach history, which keeps the header to one row.
 -->
 <template>
-	<div
-		v-if="visible"
-		class="cn-ai-chat-window"
-		:class="`cn-ai-chat-window--${position}`"
-		role="dialog"
-		:aria-label="agentLabel"
-		data-testid="cn-ai-panel"
-		@keydown.esc="onClose">
-		<header class="cn-ai-chat-window__titlebar">
-			<div class="cn-ai-chat-window__controls">
-				<NcButton
-					:aria-label="cnTranslate('Close')"
-					:title="cnTranslate('Close')"
-					type="tertiary"
-					data-testid="cn-ai-panel-close"
-					@click="onClose">
-					<template #icon>
-						<Close :size="18" />
-					</template>
-				</NcButton>
+	<!--
+	  The window grows out of the hex and shrinks back into it.
 
-				<NcActions
-					:aria-label="cnTranslate('Sessions')"
-					:title="cnTranslate('Sessions')"
-					:force-menu="true"
-					data-testid="cn-ai-panel-sessions">
-					<template #icon>
-						<History :size="18" />
-					</template>
-					<NcActionButton
-						:disabled="isOnNewChatScreen"
-						:close-after-click="true"
-						@click="onNewChat">
-						<template #icon>
-							<Plus :size="20" />
-						</template>
-						{{ cnTranslate('Start new chat') }}
-					</NcActionButton>
-					<NcActionCaption :name="cnTranslate('Recent conversations')" />
-					<NcActionButton
-						v-for="conversation in recentConversations"
-						:key="conversation.uuid"
-						:close-after-click="true"
-						@click="onConversationSelect(conversation.uuid)">
-						<template #icon>
-							<MessageTextOutline :size="20" />
-						</template>
-						{{ conversationLabel(conversation) }}
-					</NcActionButton>
-					<NcActionButton
-						:close-after-click="true"
-						@click="activeView = 'history'">
-						<template #icon>
-							<History :size="20" />
-						</template>
-						{{ cnTranslate('View all conversations') }}
-					</NcActionButton>
-				</NcActions>
+	  `transform-origin` is set per corner to the pointer's tip — the point the
+	  hex sits under — so the scale animation converges on the launcher rather
+	  than on the window's own centre. That single property is what makes it read
+	  as "this came from there" instead of "a box faded in".
+	-->
+	<transition :name="`cn-ai-chat-window-pop-${position}`">
+		<div
+			v-if="visible"
+			class="cn-ai-chat-window"
+			:class="`cn-ai-chat-window--${position}`"
+			role="dialog"
+			:aria-label="agentLabel"
+			data-testid="cn-ai-panel"
+			@keydown.esc="onClose">
+			<header class="cn-ai-chat-window__titlebar">
+				<!--
+			  Identity FIRST in source order and left-aligned: a long agent name
+			  gets the whole remaining row, and the controls are pushed right by
+			  the identity's `flex: 1`. Reading order matches visual order, so
+			  screen readers announce whose window this is before its controls.
+			-->
+				<div class="cn-ai-chat-window__identity" :title="agentLabel">
+					<Creation :size="16" class="cn-ai-chat-window__identity-icon" />
+					<span class="cn-ai-chat-window__identity-name">{{ agentLabel }}</span>
+				</div>
 
-				<NcActions
-					:aria-label="cnTranslate('Agent')"
-					:title="cnTranslate('Agent')"
-					:force-menu="true"
-					data-testid="cn-ai-panel-agent">
-					<template #icon>
-						<RobotOutline :size="18" />
-					</template>
-					<NcActionCaption :name="cnTranslate('Agent')" />
-					<NcActionButton
-						v-for="agent in agentOptions"
-						:key="agent.id"
-						:close-after-click="true"
-						@click="onAgentSelected(agent.id)">
+				<div class="cn-ai-chat-window__controls">
+					<!--
+				  Settings first, close last — destructive-adjacent controls sit
+				  at the outside edge where they are hardest to hit by accident,
+				  and the menus a user opens repeatedly sit inboard.
+
+				  The AGENT LIVES IN HERE rather than in its own button: picking
+				  an agent is a setting of the session, not a peer of "close".
+				-->
+					<NcActions
+						:aria-label="cnTranslate('Session settings')"
+						:title="cnTranslate('Session settings')"
+						:force-menu="true"
+						data-testid="cn-ai-panel-settings">
 						<template #icon>
-							<Check v-if="agent.id === selectedAgentUuid" :size="20" />
-							<RobotOutline v-else :size="20" />
+							<Cog :size="18" />
 						</template>
-						{{ agent.label }}
-					</NcActionButton>
-					<NcActionCaption
-						v-if="agentOptions.length === 0"
-						:name="agentsFetchError ? cnTranslate('Could not load agents') : cnTranslate('No agents available')" />
-				</NcActions>
+						<NcActionCaption :name="cnTranslate('Agent')" />
+						<NcActionButton
+							v-for="agent in agentOptions"
+							:key="agent.id"
+							:close-after-click="true"
+							@click="onAgentSelected(agent.id)">
+							<template #icon>
+								<Check v-if="agent.id === selectedAgentUuid" :size="20" />
+								<RobotOutline v-else :size="20" />
+							</template>
+							{{ agent.label }}
+						</NcActionButton>
+						<NcActionCaption
+							v-if="agentOptions.length === 0"
+							:name="agentsFetchError ? cnTranslate('Could not load agents') : cnTranslate('No agents available')" />
+					</NcActions>
+
+					<NcActions
+						:aria-label="cnTranslate('Sessions')"
+						:title="cnTranslate('Sessions')"
+						:force-menu="true"
+						data-testid="cn-ai-panel-sessions">
+						<template #icon>
+							<History :size="18" />
+						</template>
+						<NcActionButton
+							:disabled="isOnNewChatScreen"
+							:close-after-click="true"
+							@click="onNewChat">
+							<template #icon>
+								<Plus :size="20" />
+							</template>
+							{{ cnTranslate('Start new chat') }}
+						</NcActionButton>
+						<NcActionCaption :name="cnTranslate('Recent conversations')" />
+						<NcActionButton
+							v-for="conversation in recentConversations"
+							:key="conversation.uuid"
+							:close-after-click="true"
+							@click="onConversationSelect(conversation.uuid)">
+							<template #icon>
+								<MessageTextOutline :size="20" />
+							</template>
+							{{ conversationLabel(conversation) }}
+						</NcActionButton>
+						<NcActionButton
+							:close-after-click="true"
+							@click="activeView = 'history'">
+							<template #icon>
+								<History :size="20" />
+							</template>
+							{{ cnTranslate('View all conversations') }}
+						</NcActionButton>
+					</NcActions>
+
+					<NcButton
+						:aria-label="cnTranslate('Close')"
+						:title="cnTranslate('Close')"
+						type="tertiary"
+						data-testid="cn-ai-panel-close"
+						@click="onClose">
+						<template #icon>
+							<Close :size="18" />
+						</template>
+					</NcButton>
+				</div>
+			</header>
+
+			<div v-if="activeView === 'chat'" class="cn-ai-chat-window__body">
+				<div class="cn-ai-chat-window__messages">
+					<CnAiMessageList
+						:messages="streamState.messages"
+						:current-text="streamState.currentText"
+						:is-streaming="streamState.isStreaming">
+						<template #empty>
+							<div class="cn-ai-chat-window__start" data-testid="cn-ai-chat-tab-start">
+								<NcEmptyContent :name="agentLabel">
+									<template #icon>
+										<Creation :size="40" />
+									</template>
+									<template #description>
+										{{ cnTranslate('Ask me anything about what you are viewing.') }}
+									</template>
+								</NcEmptyContent>
+							</div>
+						</template>
+					</CnAiMessageList>
+				</div>
+				<div class="cn-ai-chat-window__input">
+					<CnAiInput
+						ref="input"
+						:disabled="streamState.isStreaming"
+						:chat-app-id="chatAppId"
+						@send="onSend" />
+				</div>
 			</div>
 
-			<div class="cn-ai-chat-window__identity" :title="agentLabel">
-				<Creation :size="16" class="cn-ai-chat-window__identity-icon" />
-				<span class="cn-ai-chat-window__identity-name">{{ agentLabel }}</span>
-			</div>
-		</header>
-
-		<div v-if="activeView === 'chat'" class="cn-ai-chat-window__body">
-			<div class="cn-ai-chat-window__messages">
-				<CnAiMessageList
-					:messages="streamState.messages"
-					:current-text="streamState.currentText"
-					:is-streaming="streamState.isStreaming">
-					<template #empty>
-						<div class="cn-ai-chat-window__start" data-testid="cn-ai-chat-tab-start">
-							<NcEmptyContent :name="agentLabel">
-								<template #icon>
-									<Creation :size="40" />
-								</template>
-								<template #description>
-									{{ cnTranslate('Ask me anything about what you are viewing.') }}
-								</template>
-							</NcEmptyContent>
-						</div>
-					</template>
-				</CnAiMessageList>
-			</div>
-			<div class="cn-ai-chat-window__input">
-				<CnAiInput
-					ref="input"
-					:disabled="streamState.isStreaming"
+			<div v-else class="cn-ai-chat-window__body cn-ai-chat-window__body--history">
+				<CnAiHistoryList
+					:conversations="conversations"
+					:loading="conversationsLoading"
+					:fetch-error="conversationsFetchError"
+					:active-conversation-uuid="activeConversationUuid"
 					:chat-app-id="chatAppId"
-					@send="onSend" />
+					:searchable="true"
+					@select="onConversationSelect"
+					@renamed="onConversationRenamed" />
 			</div>
 		</div>
-
-		<div v-else class="cn-ai-chat-window__body cn-ai-chat-window__body--history">
-			<CnAiHistoryList
-				:conversations="conversations"
-				:loading="conversationsLoading"
-				:fetch-error="conversationsFetchError"
-				:active-conversation-uuid="activeConversationUuid"
-				:chat-app-id="chatAppId"
-				:searchable="true"
-				@select="onConversationSelect"
-				@renamed="onConversationRenamed" />
-		</div>
-	</div>
+	</transition>
 </template>
 
 <script>
@@ -183,6 +214,7 @@ import History from 'vue-material-design-icons/History.vue'
 import Creation from 'vue-material-design-icons/Creation.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Check from 'vue-material-design-icons/Check.vue'
+import Cog from 'vue-material-design-icons/Cog.vue'
 import RobotOutline from 'vue-material-design-icons/RobotOutline.vue'
 import MessageTextOutline from 'vue-material-design-icons/MessageTextOutline.vue'
 import CnAiMessageList from './CnAiMessageList.vue'
@@ -215,6 +247,7 @@ export default {
 		Creation,
 		Close,
 		Check,
+		Cog,
 		RobotOutline,
 		MessageTextOutline,
 		CnAiMessageList,
@@ -225,13 +258,6 @@ export default {
 	inject: {
 		cnTranslate: { default: () => (key) => key },
 	},
-
-	/**
-	 * Declared so the linter can check them and a consumer can read the
-	 * component's outward surface without grepping for `$emit`. These four were
-	 * always emitted; only the declaration is new.
-	 */
-	emits: ['close', 'send', 'new-thread', 'load-conversation'],
 
 	props: {
 		/** Controls panel visibility */
@@ -275,6 +301,13 @@ export default {
 			default: DEFAULT_CHAT_APP_ID,
 		},
 	},
+
+	/**
+	 * Declared so the linter can check them and a consumer can read the
+	 * component's outward surface without grepping for `$emit`. These four were
+	 * always emitted; only the declaration is new.
+	 */
+	emits: ['close', 'send', 'new-thread', 'load-conversation'],
 
 	data() {
 		return {
@@ -496,34 +529,96 @@ export default {
 	width: 380px;
 	max-width: calc(100vw - 32px);
 	height: 600px;
-	max-height: calc(100vh - 120px);
-	overflow: hidden;
+	max-height: calc(100vh - 160px);
+	/* NOT `overflow: hidden` — the pointer below is drawn outside this box and
+	   would be clipped away. The rounded corners are held by the titlebar and
+	   input rows clipping their own ends instead. */
 	border: 1px solid var(--color-border, #d0d0d0);
 	border-radius: 12px;
 	background: var(--color-background-hover, #f5f5f5);
 	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
-/* Anchored clear of the hex rather than on top of it: the hex is 26x30 at a
-   24px inset, so 70px leaves the launcher visible and clickable to close. */
+/* Anchored ABOVE the hex and inboard of it.
+ *
+ * The hex sits at a 56px inset (see CnAiFloatingButton) to clear the host
+ * application's own bottom-right chrome — an office editor puts a zoom control
+ * and a status bar exactly there. The window clears the hex itself: 56px inset
+ * + 30px tall + 14px for the pointer + breathing room = 108px.
+ *
+ * ⚠️ THE POINTER IS AIMED AT THE HEX, and the arithmetic is the only thing
+ * keeping it there. The hex is 36px wide at a 56px inset, so its centre is
+ * 56 + 18 = 74px from the viewport edge. The window sits at a 44px inset, so the
+ * pointer's own centre must be 74 - 44 = 30px in from the window's edge; the
+ * triangle is 22px wide, so its leading edge is 30 - 11 = 19px.
+ *
+ * Change the hex size, the hex inset, or the window inset, and this number is
+ * wrong — the arrow will point at empty space beside the button, which reads as
+ * a rendering bug rather than a measurement one. */
+.cn-ai-chat-window {
+	--cn-ai-pointer-offset: 19px;
+}
+
 .cn-ai-chat-window--bottom-right {
-	right: 24px;
-	bottom: 70px;
+	right: 44px;
+	bottom: 108px;
 }
 
 .cn-ai-chat-window--bottom-left {
-	left: 24px;
-	bottom: 70px;
+	left: 44px;
+	bottom: 108px;
 }
 
 .cn-ai-chat-window--top-right {
-	top: 70px;
-	right: 24px;
+	top: 108px;
+	right: 44px;
 }
 
 .cn-ai-chat-window--top-left {
-	top: 70px;
-	left: 24px;
+	top: 108px;
+	left: 44px;
+}
+
+/* The pointer: a white triangle under the window, aimed at the hex, so the
+   window reads as speech FROM the launcher rather than as an unrelated panel
+   that happened to appear. Built from two stacked triangles — the lower one is
+   the border colour and sits 1px further down, which is what gives the visible
+   1px edge along the two diagonals. `overflow: hidden` on the window would clip
+   these, which is why the window does not use it. */
+.cn-ai-chat-window--bottom-right::after,
+.cn-ai-chat-window--bottom-left::after,
+.cn-ai-chat-window--bottom-right::before,
+.cn-ai-chat-window--bottom-left::before {
+	position: absolute;
+	top: 100%;
+	width: 0;
+	height: 0;
+	content: '';
+	border-right: 11px solid transparent;
+	border-left: 11px solid transparent;
+}
+
+/* Border layer, 1px lower and 1px wider than the fill. */
+.cn-ai-chat-window--bottom-right::before,
+.cn-ai-chat-window--bottom-left::before {
+	border-top: 12px solid var(--color-border, #d0d0d0);
+}
+
+/* Fill layer, in the titlebar's white so the pointer belongs to the chrome. */
+.cn-ai-chat-window--bottom-right::after,
+.cn-ai-chat-window--bottom-left::after {
+	margin-top: -1px;
+	border-top: 12px solid var(--color-main-background, #ffffff);
+}
+
+.cn-ai-chat-window--bottom-right::before,
+.cn-ai-chat-window--bottom-right::after {
+	right: var(--cn-ai-pointer-offset);
+}
+
+.cn-ai-chat-window--bottom-left::before,
+.cn-ai-chat-window--bottom-left::after {
+	left: var(--cn-ai-pointer-offset);
 }
 
 /* White titlebar over the light-grey body — the one contrast that tells a
@@ -535,6 +630,9 @@ export default {
 	gap: 8px;
 	padding: 4px 8px;
 	border-bottom: 1px solid var(--color-border, #d0d0d0);
+	/* Clips its own top corners, since the window can no longer use
+	   `overflow: hidden` (it would eat the pointer). */
+	border-radius: 11px 11px 0 0;
 	background: var(--color-main-background, #ffffff);
 }
 
@@ -590,7 +688,90 @@ export default {
 	flex: 0 0 auto;
 	padding: 8px;
 	border-top: 1px solid var(--color-border, #d0d0d0);
+	/* Mirrors the titlebar: clips its own bottom corners. */
+	border-radius: 0 0 11px 11px;
 	background: var(--color-main-background, #ffffff);
+}
+
+/* ── The pop animation ──────────────────────────────────────────────────────
+ *
+ * Scale + fade, with `transform-origin` at the corner the hex sits under, so the
+ * window converges on the launcher. 0.14 rather than 0 as the start scale: a
+ * true zero briefly renders a 0x0 box that some engines treat as invisible for
+ * hit-testing, and the tiny non-zero keeps the transition interruptible if the
+ * user toggles the hex twice quickly.
+ *
+ * Leave is faster than enter (140ms vs 180ms) — dismissal should feel immediate,
+ * while appearance can afford to be seen. */
+.cn-ai-chat-window-pop-bottom-right-enter-active,
+.cn-ai-chat-window-pop-bottom-left-enter-active,
+.cn-ai-chat-window-pop-top-right-enter-active,
+.cn-ai-chat-window-pop-top-left-enter-active {
+	transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 0.14s ease-out;
+}
+
+.cn-ai-chat-window-pop-bottom-right-leave-active,
+.cn-ai-chat-window-pop-bottom-left-leave-active,
+.cn-ai-chat-window-pop-top-right-leave-active,
+.cn-ai-chat-window-pop-top-left-leave-active {
+	transition: transform 0.14s ease-in, opacity 0.12s ease-in;
+}
+
+.cn-ai-chat-window-pop-bottom-right-enter,
+.cn-ai-chat-window-pop-bottom-right-enter-from,
+.cn-ai-chat-window-pop-bottom-right-leave-to {
+	transform: scale(0.14);
+	transform-origin: calc(100% - var(--cn-ai-pointer-offset) - 11px) 100%;
+	opacity: 0;
+}
+
+.cn-ai-chat-window-pop-bottom-left-enter,
+.cn-ai-chat-window-pop-bottom-left-enter-from,
+.cn-ai-chat-window-pop-bottom-left-leave-to {
+	transform: scale(0.14);
+	transform-origin: calc(var(--cn-ai-pointer-offset) + 11px) 100%;
+	opacity: 0;
+}
+
+.cn-ai-chat-window-pop-top-right-enter,
+.cn-ai-chat-window-pop-top-right-enter-from,
+.cn-ai-chat-window-pop-top-right-leave-to {
+	transform: scale(0.14);
+	transform-origin: calc(100% - var(--cn-ai-pointer-offset) - 11px) 0%;
+	opacity: 0;
+}
+
+.cn-ai-chat-window-pop-top-left-enter,
+.cn-ai-chat-window-pop-top-left-enter-from,
+.cn-ai-chat-window-pop-top-left-leave-to {
+	transform: scale(0.14);
+	transform-origin: calc(var(--cn-ai-pointer-offset) + 11px) 0%;
+	opacity: 0;
+}
+
+/* Someone who asked not to be moved gets the window without the flight. */
+@media (prefers-reduced-motion: reduce) {
+	.cn-ai-chat-window-pop-bottom-right-enter-active,
+	.cn-ai-chat-window-pop-bottom-left-enter-active,
+	.cn-ai-chat-window-pop-top-right-enter-active,
+	.cn-ai-chat-window-pop-top-left-enter-active,
+	.cn-ai-chat-window-pop-bottom-right-leave-active,
+	.cn-ai-chat-window-pop-bottom-left-leave-active,
+	.cn-ai-chat-window-pop-top-right-leave-active,
+	.cn-ai-chat-window-pop-top-left-leave-active {
+		transition: opacity 0.1s linear;
+	}
+
+	.cn-ai-chat-window-pop-bottom-right-enter,
+	.cn-ai-chat-window-pop-bottom-left-enter,
+	.cn-ai-chat-window-pop-top-right-enter,
+	.cn-ai-chat-window-pop-top-left-enter,
+	.cn-ai-chat-window-pop-bottom-right-leave-to,
+	.cn-ai-chat-window-pop-bottom-left-leave-to,
+	.cn-ai-chat-window-pop-top-right-leave-to,
+	.cn-ai-chat-window-pop-top-left-leave-to {
+		transform: none;
+	}
 }
 
 /* Empty state: just the agent's name and the prompt. The agent picker and the

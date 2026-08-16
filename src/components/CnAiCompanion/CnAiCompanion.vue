@@ -8,17 +8,40 @@
   - Only console.info() on failure (never warn/error).
 
   When probe succeeds:
-  - Renders CnAiFloatingButton (hidden while panel is open).
-  - Renders CnAiChatPanel (when isPanelOpen).
+  - Renders CnAiFloatingButton ALWAYS — it toggles the window rather than only
+    opening it, and stays visible while the window is open.
+  - Renders CnAiChatPanel (when isPanelOpen) as a floating window anchored to the
+    same corner as the hex, offset clear of it so both stay clickable.
 
   FAB and panel both hidden when cnAiContext.pageKind === 'chat'.
 -->
 <template>
 	<div v-if="probeSucceeded && !isChatPage" class="cn-ai-companion" data-testid="cn-ai-companion">
+		<!--
+		  The hex is rendered UNCONDITIONALLY and toggles the window.
+
+		  It used to be `:visible="!isPanelOpen"` — the launcher vanished while
+		  the thing it launched was open. Three reasons it now stays, in order of
+		  weight:
+
+		  1. It is the one control we can guarantee. The window's own close
+		     button lives in markup a host page's stylesheet could hide; the hex
+		     is fixed-position with explicit `!important` properties and has
+		     survived every host it has been dropped into, including third-party
+		     office editors.
+		  2. A launcher that disappears is a dead end — the affordance you used
+		     to summon something should dismiss it.
+		  3. It removes a state transition: no show/hide to coordinate with the
+		     window's own.
+
+		  ⚠️ This is why the window anchors 70px from the edge: the hex is 26x30
+		  at a 24px inset, and the two must not overlap or the guarantee above is
+		  worth nothing.
+		-->
 		<CnAiFloatingButton
-			:visible="!isPanelOpen"
+			:visible="true"
 			:position="position"
-			@click="openPanel" />
+			@click="togglePanel" />
 		<CnAiChatPanel
 			ref="panel"
 			:visible="isPanelOpen"
@@ -77,13 +100,32 @@ export default {
 			type: String,
 			default: DEFAULT_CHAT_APP_ID,
 		},
+
+		/**
+		 * What the user is looking at, stated by whoever mounted the companion.
+		 *
+		 * Inside a Conduction app, CnAppRoot provides this and the prop is
+		 * unnecessary. Mounted standalone on a page belonging to another app —
+		 * an office editor, the Files list — there is no provider, and the
+		 * injected fallback reports `appId: 'unknown'`. The agent then has no
+		 * idea what "this document" refers to and says so.
+		 *
+		 * Shape mirrors the injected context: `{ appId, pageKind, fileId,
+		 * objectUuid, registerSlug, schemaSlug, route }`. All optional; whatever
+		 * the host knows is better than 'unknown'.
+		 * @type {object|null}
+		 */
+		context: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	data() {
 		return {
 			probeSucceeded: false,
 			isPanelOpen: false,
-			stream: useAiChatStream(this, { chatAppId: this.chatAppId }),
+			stream: useAiChatStream(this, { chatAppId: this.chatAppId, context: this.context }),
 		}
 	},
 
@@ -111,6 +153,22 @@ export default {
 				console.info(`[CnAiCompanion] chat backend "${this.chatAppId}" health probe did not return 2xx — widget hidden`)
 				this.probeSucceeded = false
 			}
+		},
+
+		/**
+		 * The hex's own handler: open when closed, close when open.
+		 *
+		 * The launcher stays visible while the window is open (see the template),
+		 * so it has to answer for both directions rather than only opening.
+		 * @return {void}
+		 */
+		togglePanel() {
+			if (this.isPanelOpen) {
+				this.closePanel()
+				return
+			}
+
+			this.openPanel()
 		},
 
 		openPanel() {
