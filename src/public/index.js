@@ -43,6 +43,7 @@
 import CnSiteCard from './components/CnSiteCard.vue'
 import CnSiteCardGrid from './components/CnSiteCardGrid.vue'
 import CnSiteEmptyState from './components/CnSiteEmptyState.vue'
+import CnSiteGlossary from './components/CnSiteGlossary.vue'
 import CnSiteHero from './components/CnSiteHero.vue'
 import CnSiteIcon from './components/CnSiteIcon.vue'
 import CnSiteSearch from './components/CnSiteSearch.vue'
@@ -52,6 +53,7 @@ export {
 	CnSiteCard,
 	CnSiteCardGrid,
 	CnSiteEmptyState,
+	CnSiteGlossary,
 	CnSiteHero,
 	CnSiteIcon,
 	CnSiteSearch,
@@ -79,6 +81,7 @@ export const siteBlockRegistry = {
 	cardGrid: CnSiteCardGrid,
 	card: CnSiteCard,
 	emptyState: CnSiteEmptyState,
+	glossary: CnSiteGlossary,
 }
 
 /**
