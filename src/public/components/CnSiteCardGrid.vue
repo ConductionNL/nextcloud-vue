@@ -12,6 +12,7 @@
 			:description="card.description"
 			:link="card.link"
 			:link-label="card.linkLabel"
+			:icon="card.icon"
 			:heading-level="headingLevel"
 			:variant="card.variant || variant"
 			:padding="padding" />

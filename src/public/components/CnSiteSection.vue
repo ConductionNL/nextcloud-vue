@@ -4,7 +4,7 @@
 -->
 
 <template>
-	<section :class="sectionClass">
+	<section :class="sectionClass" :style="sectionStyle">
 		<div class="container">
 			<slot />
 		</div>
@@ -38,9 +38,39 @@ export default {
 			default: 'spacing',
 			validator: (v) => ['spacing', 'hero', 'flush'].includes(v),
 		},
+
+		/** Optional background image URL, layered over the band's colour. */
+		backgroundImage: {
+			type: String,
+			default: '',
+		},
 	},
 
 	computed: {
+		/**
+		 * Inline background, when the host supplies an image.
+		 *
+		 * Inline rather than a class because the URL is per-portal CONTENT; a
+		 * stylesheet cannot enumerate them. `background-image` is layered OVER
+		 * the band's own colour rather than replacing it, so a slow or blocked
+		 * image leaves the blue behind it and the text stays readable — an
+		 * image that fails is not allowed to become white-on-white.
+		 *
+		 * @return {object|null} Style bindings, or null.
+		 */
+		sectionStyle() {
+			if (this.backgroundImage === '') {
+				return null
+			}
+
+			return {
+				backgroundImage: `url(${JSON.stringify(this.backgroundImage)})`,
+				backgroundSize: 'cover',
+				backgroundPosition: '50% 50%',
+				backgroundRepeat: 'no-repeat',
+			}
+		},
+
 		/**
 		 * @return {Array} The band's classes.
 		 */

@@ -43,10 +43,11 @@
 import CnSiteCard from './components/CnSiteCard.vue'
 import CnSiteCardGrid from './components/CnSiteCardGrid.vue'
 import CnSiteHero from './components/CnSiteHero.vue'
+import CnSiteIcon from './components/CnSiteIcon.vue'
 import CnSiteSearch from './components/CnSiteSearch.vue'
 import CnSiteSection from './components/CnSiteSection.vue'
 
-export { CnSiteCard, CnSiteCardGrid, CnSiteHero, CnSiteSearch, CnSiteSection }
+export { CnSiteCard, CnSiteCardGrid, CnSiteHero, CnSiteIcon, CnSiteSearch, CnSiteSection }
 
 /**
  * The block vocabulary, keyed by the `widgetKey` a page body declares.

@@ -6,8 +6,12 @@
 <template>
 	<article :class="cardClass">
 		<div class="ac-card__content ac-flex ac-flex--column ac-flex--spacing-sm">
-			<component :is="headingTag" v-if="title" class="ac-card__title">
-				{{ title }}
+			<component
+				:is="headingTag"
+				v-if="title"
+				class="ac-card__title ac-flex ac-flex--align-items-center ac-flex--spacing-xs">
+				<CnSiteIcon v-if="icon" :name="icon" />
+				<span>{{ title }}</span>
 			</component>
 
 			<p v-if="description" class="ac-card__description">
@@ -21,12 +25,20 @@
 				screen-reader user listing a page's links hears them out of
 				context, and four identical "lees meer" entries name nothing.
 			-->
-			<a v-if="link" class="ac-card__link" :href="link">{{ linkLabel || title }}</a>
+			<a
+				v-if="link"
+				class="ac-card__link ac-flex ac-flex--align-items-center ac-flex--spacing-xs"
+				:href="link">
+				<span>{{ linkLabel || title }}</span>
+				<CnSiteIcon :name="linkIcon" :size="18" />
+			</a>
 		</div>
 	</article>
 </template>
 
 <script>
+import CnSiteIcon from './CnSiteIcon.vue'
+
 /**
  * One card in a card grid.
  *
@@ -40,7 +52,27 @@
 export default {
 	name: 'CnSiteCard',
 
+	components: { CnSiteIcon },
+
 	props: {
+		/**
+		 * Icon shown beside the title, from the closed vocabulary.
+		 *
+		 * A NAME, never path data: page content is authored input, and raw SVG
+		 * from an author would be attacker-controlled markup inside an <svg> on
+		 * a public government page. An unknown name renders nothing.
+		 */
+		icon: {
+			type: String,
+			default: '',
+		},
+
+		/** Icon trailing the link. The reference uses a right arrow. */
+		linkIcon: {
+			type: String,
+			default: 'arrow-right',
+		},
+
 		/** Card heading. */
 		title: {
 			type: String,

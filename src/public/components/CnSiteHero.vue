@@ -4,7 +4,7 @@
 -->
 
 <template>
-	<CnSiteSection variant="hero">
+	<CnSiteSection variant="hero" :background-image="backgroundImage">
 		<!--
 			THE HEADING IS REAL BUT NOT NECESSARILY PAINTED, and that is a
 			deliberate improvement on the reference rather than a copy of it.
@@ -153,6 +153,18 @@ export default {
 		searchInputId: {
 			type: String,
 			default: 'cn-site-search',
+		},
+
+		/**
+		 * Optional background image for the band.
+		 *
+		 * The reference's hero carries one (`cover`, centred) over its blue.
+		 * A URL rather than a token because it is CONTENT — each portal's own
+		 * photograph — not a design decision the token set can make.
+		 */
+		backgroundImage: {
+			type: String,
+			default: '',
 		},
 
 		/**
