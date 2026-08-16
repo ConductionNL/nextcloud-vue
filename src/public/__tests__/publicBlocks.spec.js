@@ -15,6 +15,7 @@ import { mount } from '@vue/test-utils'
 import {
 	CnSiteCard,
 	CnSiteCardGrid,
+	CnSiteEmptyState,
 	CnSiteHero,
 	CnSiteSearch,
 	CnSiteSection,
@@ -54,6 +55,7 @@ describe('public site blocks — vocabulary', () => {
 		expect(siteBlockRegistry.section).toBe(CnSiteSection)
 		expect(siteBlockRegistry.cardGrid).toBe(CnSiteCardGrid)
 		expect(siteBlockRegistry.card).toBe(CnSiteCard)
+		expect(siteBlockRegistry.emptyState).toBe(CnSiteEmptyState)
 	})
 })
 
@@ -172,6 +174,45 @@ describe('public site blocks — markup contract', () => {
 		// Defaults to the title so a link list read out of context still names
 		// its destination.
 		expect(link.text()).toBe('Voor 336 leveranciers')
+	})
+
+	it('the empty state announces each variant differently', () => {
+		// The three variants differ in what they ANNOUNCE, not in how they look,
+		// and that is the whole reason this is a component instead of a
+		// paragraph. Asserted per variant because picking the wrong
+		// announcement for the right visual is the mistake it prevents.
+
+		// loading: the region is working, and will say so again when it settles
+		const loading = mount(CnSiteEmptyState, {
+			props: { variant: 'loading', title: 'Bezig met laden…' },
+		})
+		expect(loading.attributes('aria-busy')).toBe('true')
+		expect(loading.attributes('aria-live')).toBe('polite')
+		expect(loading.attributes('role')).toBeUndefined()
+
+		// error: announced immediately — a visitor who cannot see the page must
+		// not wait for content that will never arrive
+		const error = mount(CnSiteEmptyState, {
+			props: { variant: 'error', title: 'Er ging iets mis' },
+		})
+		expect(error.attributes('role')).toBe('alert')
+		expect(error.attributes('aria-busy')).toBeUndefined()
+
+		// empty: ordinary content. Announcing "there is nothing here" as an
+		// alert cries wolf.
+		const empty = mount(CnSiteEmptyState, { props: { title: 'Niets gevonden' } })
+		expect(empty.attributes('role')).toBeUndefined()
+		expect(empty.attributes('aria-busy')).toBeUndefined()
+		expect(empty.attributes('aria-live')).toBeUndefined()
+	})
+
+	it('the empty state heading class tracks its level', () => {
+		// The design system styles `.utrecht-heading-3`, not `h3`; a bare tag
+		// renders unstyled, which is how a heading silently loses its type.
+		const wrapper = mount(CnSiteEmptyState, {
+			props: { title: 'Niets gevonden', headingLevel: 3 },
+		})
+		expect(wrapper.find('h3.utrecht-heading-3').exists()).toBe(true)
 	})
 
 	it('the card grid renders one card per entry and reflows by width', () => {
