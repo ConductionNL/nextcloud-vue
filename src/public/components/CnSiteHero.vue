@@ -5,17 +5,43 @@
 
 <template>
 	<CnSiteSection variant="hero">
-		<component :is="headingTag" v-if="title" class="ac-hero__title">
+		<!--
+			THE HEADING IS REAL BUT NOT NECESSARILY PAINTED, and that is a
+			deliberate improvement on the reference rather than a copy of it.
+
+			Measured on the NL Design System reference home page: the hero
+			contains NO heading element at all (its prompt lives inside the
+			search form) and the page therefore has no `h1` anywhere. Copying
+			that would inherit an outline defect.
+
+			Painting a heading directly on the band is the other trap. The band
+			is dark — `rgb(0, 56, 101)` on the reference — while the hero's own
+			computed colour is black, because the design system never puts bare
+			text there and so has no rule for it. A heading dropped onto that
+			band renders dark-on-dark: present, selectable, and unreadable.
+			(Exactly the failure that made this portal's footer links
+			`rgb(0, 68, 136)` on `rgb(0, 69, 137)`.)
+
+			So when the search box is shown, the heading stays in the DOM for
+			the outline and the VISIBLE prompt is the search label, which the
+			design system does style for this band. A host that wants a painted
+			heading asks for it with `heading-visible`.
+		-->
+		<component
+			:is="headingTag"
+			v-if="title"
+			:class="headingClass">
 			{{ title }}
 		</component>
 
-		<p v-if="subtitle" class="ac-hero__subtitle">
+		<p v-if="subtitle" :class="subtitleClass">
 			{{ subtitle }}
 		</p>
 
 		<CnSiteSearch
 			v-if="search"
-			:label="searchLabel"
+			:label="searchLabel || title"
+			:label-visible="true"
 			:placeholder="searchPlaceholder"
 			:submit-label="searchSubmitLabel"
 			:value="searchValue"
@@ -104,6 +130,18 @@ export default {
 			type: String,
 			default: 'cn-site-search',
 		},
+
+		/**
+		 * Paint the heading on the band.
+		 *
+		 * Defaults to the safe answer: visible only when there is no search box
+		 * to carry the prompt. Forcing it on a dark band without a colour rule
+		 * for it is how a heading becomes invisible.
+		 */
+		headingVisible: {
+			type: Boolean,
+			default: null,
+		},
 	},
 
 	emits: ['search'],
@@ -114,6 +152,36 @@ export default {
 		 */
 		headingTag() {
 			return `h${this.headingLevel}`
+		},
+
+		/**
+		 * Whether the heading is painted.
+		 *
+		 * @return {boolean} True when it should be visible.
+		 */
+		showHeading() {
+			if (this.headingVisible !== null) {
+				return this.headingVisible
+			}
+
+			// With a search box the label carries the prompt, so a painted
+			// heading would duplicate it — and duplicate it in the one place
+			// the design system has no text colour for.
+			return this.search === false
+		},
+
+		/**
+		 * @return {Array} Classes for the heading.
+		 */
+		headingClass() {
+			return ['ac-hero__title', this.showHeading ? null : 'sr-only'].filter(Boolean)
+		},
+
+		/**
+		 * @return {Array} Classes for the subtitle.
+		 */
+		subtitleClass() {
+			return ['ac-hero__subtitle', this.showHeading ? null : 'sr-only'].filter(Boolean)
 		},
 	},
 }

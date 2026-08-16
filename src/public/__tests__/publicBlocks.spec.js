@@ -83,6 +83,40 @@ describe('public site blocks — markup contract', () => {
 		expect(on.find('form.ac-search-box').exists()).toBe(true)
 	})
 
+	it('keeps the heading in the DOM but unpainted when the search carries the prompt', () => {
+		// The reference implementation's hero has NO heading element at all, so
+		// its page has no h1 — an outline defect not worth copying. The heading
+		// stays for structure; it is not PAINTED, because the band defines no
+		// colour for text on it and a visible duplicate of the search label
+		// would say the same thing twice.
+		const wrapper = mount(CnSiteHero, {
+			props: { title: 'Waar bent u naar op zoek?', headingLevel: 1, search: true },
+		})
+
+		const heading = wrapper.find('h1')
+		expect(heading.exists()).toBe(true)
+		expect(heading.classes()).toContain('sr-only')
+
+		// And the same words are the visible search label.
+		const label = wrapper.find('.ac-search-box__label')
+		expect(label.classes()).not.toContain('sr-only')
+		expect(label.text()).toBe('Waar bent u naar op zoek?')
+	})
+
+	it('paints the heading when there is no search box to carry the prompt', () => {
+		const wrapper = mount(CnSiteHero, { props: { title: 'Onderwerpen' } })
+		const heading = wrapper.find('h1')
+		expect(heading.exists()).toBe(true)
+		expect(heading.classes()).not.toContain('sr-only')
+	})
+
+	it('lets a host override whether the heading is painted', () => {
+		const forced = mount(CnSiteHero, {
+			props: { title: 'x', search: true, headingVisible: true },
+		})
+		expect(forced.find('h1').classes()).not.toContain('sr-only')
+	})
+
 	it('the search box is a real form with a named input', () => {
 		const wrapper = mount(CnSiteSearch, {
 			props: { label: 'Zoeken', inputId: 'q1' },
@@ -95,6 +129,15 @@ describe('public site blocks — markup contract', () => {
 		expect(label.attributes('for')).toBe('q1')
 		expect(wrapper.find('input#q1').exists()).toBe(true)
 		expect(wrapper.find('button[type="submit"]').exists()).toBe(true)
+	})
+
+	it('hides the label by CLIPPING, never by removing it from the DOM', () => {
+		// `display: none` would hide it from assistive tech too, which is the
+		// entire reason the label exists.
+		const wrapper = mount(CnSiteSearch, { props: { labelVisible: false } })
+		const label = wrapper.find('label')
+		expect(label.exists()).toBe(true)
+		expect(label.classes()).toContain('sr-only')
 	})
 
 	it('the search box emits the term instead of fetching anything', async () => {

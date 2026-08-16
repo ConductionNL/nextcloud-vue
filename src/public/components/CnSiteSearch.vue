@@ -13,10 +13,15 @@
 			A LABEL, not just a placeholder. A placeholder disappears the moment
 			the field has content and is not reliably announced, so a
 			placeholder-only search box leaves a screen-reader user with an
-			unnamed text input. Visually hidden, because the design shows the
-			prompt as the band's heading instead.
+			unnamed text input.
+
+			VISIBLE BY DEFAULT when the host asks for it, because on the NL
+			Design System reference the prompt IS this label — measured on its
+			home page, the hero contains no heading element at all and the
+			question sits inside the form. Hiding it there would delete the only
+			visible prompt on the band.
 		-->
-		<label class="ac-search-box__label sr-only" :for="inputId">
+		<label :class="labelClass" :for="inputId">
 			{{ label }}
 		</label>
 
@@ -26,10 +31,12 @@
 				v-model="term"
 				type="text"
 				name="q"
-				class="ac-search-box__input"
+				class="ac-search-box__input utrecht-textbox"
 				:placeholder="placeholder"
 				autocomplete="off">
-			<button type="submit" class="ac-search-box__button">
+			<button
+				type="submit"
+				class="ac-search-box__button utrecht-button utrecht-button--submit">
 				{{ submitLabel }}
 			</button>
 		</div>
@@ -85,6 +92,19 @@ export default {
 			type: String,
 			default: 'cn-site-search',
 		},
+
+		/**
+		 * Whether the label is shown or only exposed to assistive tech.
+		 *
+		 * It is ALWAYS in the DOM either way — this only decides whether it is
+		 * painted. A search box whose label is hidden with `display: none`
+		 * would be hidden from screen readers too, which is why the hidden
+		 * state is a clip-based `sr-only`, not a display toggle.
+		 */
+		labelVisible: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	emits: ['search'],
@@ -93,6 +113,15 @@ export default {
 		return {
 			term: this.value,
 		}
+	},
+
+	computed: {
+		/**
+		 * @return {Array} Classes for the label.
+		 */
+		labelClass() {
+			return ['ac-search-box__label', this.labelVisible ? null : 'sr-only'].filter(Boolean)
+		},
 	},
 
 	watch: {

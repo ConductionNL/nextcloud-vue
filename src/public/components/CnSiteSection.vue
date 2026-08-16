@@ -54,3 +54,37 @@ export default {
 	},
 }
 </script>
+
+<style scoped>
+/*
+ * ONLY THE TEXT THAT ACTUALLY SITS ON THE BAND IS RECOLOURED.
+ *
+ * `.ac-hero` paints itself `--tilburg-color-blue-500` — dark — and defines no
+ * colour for text placed directly on it, because the reference implementation
+ * never puts any there: its hero holds a white input and a blue button, both
+ * of which bring their own surface. So a heading or paragraph dropped onto the
+ * band inherits the document's dark body colour and lands dark-on-dark.
+ *
+ * THIS RULE WAS FIRST WRITTEN ON `.ac-hero` ITSELF, AND THAT WAS WRONG — it is
+ * the very mistake the rest of this codebase keeps recording. Colour set on an
+ * ancestor cannot know that a descendant paints its own background:
+ * `.ac-search-box` has one, `rgb(230, 246, 255)`, and inheriting white into it
+ * put the label and button at contrast 1.11 and the input's text at 1.0.
+ *
+ * Worse, the "bug" that prompted it was a MEASUREMENT ERROR. The label
+ * computed `rgb(51, 51, 51)`, which was compared against the BAND and scored
+ * 1.06 — but the label does not sit on the band, it sits on the search box's
+ * own light surface, where that colour is entirely correct. The contrast probe
+ * has to walk up to the first ancestor that actually paints a background;
+ * against the nearest NAMED band it reports a failure that is not there, and
+ * then invites a fix that breaks something real.
+ *
+ * So: the hero's own title and subtitle, and nothing else. The system's
+ * inverse token rather than a literal, so a theme with a light hero corrects
+ * both together.
+ */
+.ac-hero__title,
+.ac-hero__subtitle {
+	color: var(--utrecht-document-inverse-color, #ffffff);
+}
+</style>
