@@ -40,7 +40,7 @@
 
 		<CnSiteSearch
 			v-if="search"
-			:label="searchLabel || title"
+			:label="effectiveSearchLabel"
 			:label-visible="true"
 			:placeholder="searchPlaceholder"
 			:submit-label="searchSubmitLabel"
@@ -101,10 +101,18 @@ export default {
 			default: false,
 		},
 
-		/** Accessible name for the search landmark. */
+		/**
+		 * Accessible name for the search landmark.
+		 *
+		 * EMPTY BY DEFAULT so `title` can serve as the prompt. This defaulted
+		 * to 'Zoeken', which made `searchLabel || title` dead code — the
+		 * fallback could never fire, and a host that set only `title` got the
+		 * generic word instead of its own question. Caught by the test that
+		 * asserts the visible label carries the hero's words.
+		 */
 		searchLabel: {
 			type: String,
-			default: 'Zoeken',
+			default: '',
 		},
 
 		/** Placeholder inside the search field. */
@@ -152,6 +160,21 @@ export default {
 		 */
 		headingTag() {
 			return `h${this.headingLevel}`
+		},
+
+		/**
+		 * The search box's accessible name.
+		 *
+		 * Prefers an explicit `searchLabel`, then the hero's own `title` — the
+		 * reference implementation's hero puts its question inside the form, so
+		 * the title IS the prompt there. Falls back to a generic word only when
+		 * a host supplies neither, because an unnamed search field is worse
+		 * than a generically named one.
+		 *
+		 * @return {string} A non-empty label.
+		 */
+		effectiveSearchLabel() {
+			return this.searchLabel || this.title || 'Zoeken'
 		},
 
 		/**
