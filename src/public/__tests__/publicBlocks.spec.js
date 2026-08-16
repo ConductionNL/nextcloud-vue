@@ -16,6 +16,7 @@ import {
 	CnSiteCard,
 	CnSiteCardGrid,
 	CnSiteEmptyState,
+	CnSiteGlossary,
 	CnSiteHero,
 	CnSiteSearch,
 	CnSiteSection,
@@ -56,6 +57,7 @@ describe('public site blocks — vocabulary', () => {
 		expect(siteBlockRegistry.cardGrid).toBe(CnSiteCardGrid)
 		expect(siteBlockRegistry.card).toBe(CnSiteCard)
 		expect(siteBlockRegistry.emptyState).toBe(CnSiteEmptyState)
+		expect(siteBlockRegistry.glossary).toBe(CnSiteGlossary)
 	})
 })
 
@@ -212,6 +214,78 @@ describe('public site blocks — markup contract', () => {
 		const wrapper = mount(CnSiteEmptyState, {
 			props: { title: 'Niets gevonden', headingLevel: 3 },
 		})
+		expect(wrapper.find('h3.utrecht-heading-3').exists()).toBe(true)
+	})
+
+	it('the glossary is a description list, not a stack of divs', () => {
+		// `<dl>`/`<dt>`/`<dd>` is what makes a screen reader announce "term,
+		// definition" pairs instead of an undifferentiated run of text. The
+		// two render identically, which is why this is easy to get wrong and
+		// impossible to notice by looking.
+		const wrapper = mount(CnSiteGlossary, {
+			props: {
+				terms: [
+					{ term: 'Publicatie', definition: 'Een document dat de gemeente openbaar maakt.' },
+					{ term: 'Woo-verzoek', definition: 'Een verzoek om openbaarmaking.' },
+				],
+			},
+		})
+
+		expect(wrapper.find('dl').exists()).toBe(true)
+		expect(wrapper.findAll('dt')).toHaveLength(2)
+		expect(wrapper.findAll('dd')).toHaveLength(2)
+		expect(wrapper.text()).toContain('Publicatie')
+		expect(wrapper.text()).toContain('Een verzoek om openbaarmaking.')
+	})
+
+	it('renders synonyms, because the old name is often the only one a visitor has', () => {
+		// Someone searching for "Wob-verzoek" finds nothing if only the current
+		// term is rendered, and concludes the concept is gone rather than
+		// renamed.
+		const wrapper = mount(CnSiteGlossary, {
+			props: {
+				synonymsLabel: 'Ook bekend als:',
+				terms: [
+					{
+						term: 'Woo-verzoek',
+						definition: 'Een verzoek om openbaarmaking.',
+						synonyms: ['Wob-verzoek'],
+					},
+				],
+			},
+		})
+
+		expect(wrapper.text()).toContain('Wob-verzoek')
+		expect(wrapper.text()).toContain('Ook bekend als:')
+	})
+
+	it('treats a bare string synonym as ONE synonym, not one per character', () => {
+		// `synonyms` arrives as a string or an array depending on the store
+		// that produced it. Spreading the string renders `W, o, b, …` — which
+		// is a real list, correctly styled, and complete nonsense.
+		const wrapper = mount(CnSiteGlossary, {
+			props: { terms: [{ term: 'Woo-verzoek', definition: 'x', synonyms: 'Wob-verzoek' }] },
+		})
+
+		expect(wrapper.text()).toContain('Wob-verzoek')
+		expect(wrapper.text()).not.toContain('W, o, b')
+	})
+
+	it('says something when there are no terms', () => {
+		// A bare heading over nothing reads as a page that failed to load.
+		const wrapper = mount(CnSiteGlossary, {
+			props: { title: 'Begrippenlijst', emptyLabel: 'Nog geen begrippen.' },
+		})
+
+		expect(wrapper.find('dl').exists()).toBe(false)
+		expect(wrapper.text()).toContain('Nog geen begrippen.')
+	})
+
+	it('the glossary heading class tracks its level', () => {
+		const wrapper = mount(CnSiteGlossary, {
+			props: { title: 'Begrippenlijst', headingLevel: 3, terms: [] },
+		})
+
 		expect(wrapper.find('h3.utrecht-heading-3').exists()).toBe(true)
 	})
 

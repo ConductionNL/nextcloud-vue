@@ -67,6 +67,7 @@ Both failure modes are verified by running them, not by reading the code.
 | `cardGrid` | `CnSiteCardGrid` | `auto-fit` grid, reflows without media queries |
 | `card` | `CnSiteCard` | icon, description, named link |
 | `emptyState` | `CnSiteEmptyState` | loading / empty / error, with the right ARIA for each |
+| `glossary` | `CnSiteGlossary` | `<dl>` of terms; renders synonyms, takes its rows as a prop |
 | — | `CnSiteIcon` | closed icon vocabulary, inline SVG |
 
 `siteBlockFor(key)` returns `null` for anything unknown — a renderer needs that
@@ -74,7 +75,13 @@ signal to show "unknown block" rather than silently omit content.
 
 ### Conventions these blocks follow
 
-- **Strings are props.** No `t()`, ever. See above.
+- **Strings are props.** No `t()`, ever. See above. That includes the small
+  connective words — `CnSiteGlossary` takes its "Ook bekend als:" and "Bron:"
+  labels as props, because this library is not entitled to choose the wording,
+  or the language, on behalf of a Dutch government portal.
+- **Data is a prop too.** A block never fetches. The host has already loaded
+  the rows over its own contract; passing them down costs nothing and is what
+  keeps the block renderable where there is no session to fetch with.
 - **Heading levels are props, and the class tracks the level.** The design
   system styles `.utrecht-heading-2`, not `h2`; a bare tag renders unstyled.
   A fixed level also skips outline levels wherever the block is placed.
