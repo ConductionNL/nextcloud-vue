@@ -1,0 +1,144 @@
+/**
+ * SPDX-FileCopyrightText: 2026 Conduction B.V.
+ * SPDX-License-Identifier: EUPL-1.2
+ *
+ * The public site-block entry point: its vocabulary and its ONE promise.
+ *
+ * The promise is that these blocks render where there is no Nextcloud. The
+ * transitive-import guard (`scripts/check-public-safe.js`) enforces that at
+ * build time; these tests cover the parts a static import walk cannot see —
+ * that the registry is populated, that every advertised key resolves to a real
+ * component, and that an unknown key is reported rather than silently dropped.
+ */
+
+import { mount } from '@vue/test-utils'
+import {
+	CnSiteCard,
+	CnSiteCardGrid,
+	CnSiteHero,
+	CnSiteSearch,
+	CnSiteSection,
+	listSiteBlocks,
+	siteBlockFor,
+	siteBlockRegistry,
+} from '../index.js'
+
+describe('public site blocks — vocabulary', () => {
+	it('advertises a non-empty vocabulary', () => {
+		// A registry that emptied out would make every `siteBlockFor()` return
+		// null, and a renderer would show a page of nothing while every test
+		// below still passed on its own terms.
+		expect(listSiteBlocks().length).toBeGreaterThan(0)
+	})
+
+	it('resolves every advertised key to a real component', () => {
+		for (const key of listSiteBlocks()) {
+			const block = siteBlockFor(key)
+			expect(block).toBeTruthy()
+			expect(typeof block).toBe('object')
+			expect(block.name).toMatch(/^CnSite/)
+		}
+	})
+
+	it('reports an unknown key as null rather than guessing', () => {
+		// Null is the signal a renderer needs in order to show "unknown block".
+		// Falling back to some default block would render the WRONG content and
+		// look deliberate.
+		expect(siteBlockFor('no-such-block')).toBeNull()
+		expect(siteBlockFor('')).toBeNull()
+	})
+
+	it('exports each component directly as well as through the registry', () => {
+		expect(siteBlockRegistry.hero).toBe(CnSiteHero)
+		expect(siteBlockRegistry.search).toBe(CnSiteSearch)
+		expect(siteBlockRegistry.section).toBe(CnSiteSection)
+		expect(siteBlockRegistry.cardGrid).toBe(CnSiteCardGrid)
+		expect(siteBlockRegistry.card).toBe(CnSiteCard)
+	})
+})
+
+describe('public site blocks — markup contract', () => {
+	it('the section emits a full-bleed band with a constrained container', () => {
+		const wrapper = mount(CnSiteSection, { props: { variant: 'spacing' } })
+		expect(wrapper.find('section.ac-section.ac-section--spacing').exists()).toBe(true)
+		// The container is what holds the reading column. A band without one
+		// renders body copy against the viewport edge.
+		expect(wrapper.find('section > .container').exists()).toBe(true)
+	})
+
+	it('the hero band is a hero, not a spacing section', () => {
+		const wrapper = mount(CnSiteHero, { props: { title: 'Waar bent u naar op zoek?' } })
+		expect(wrapper.find('section.ac-section.ac-hero').exists()).toBe(true)
+		expect(wrapper.find('.ac-section--spacing').exists()).toBe(false)
+		expect(wrapper.text()).toContain('Waar bent u naar op zoek?')
+	})
+
+	it('the hero renders NO search box unless asked', () => {
+		// An inert search field invites the one interaction it cannot honour,
+		// so it is opt-in rather than default.
+		const off = mount(CnSiteHero, { props: { title: 'x' } })
+		expect(off.find('form').exists()).toBe(false)
+
+		const on = mount(CnSiteHero, { props: { title: 'x', search: true } })
+		expect(on.find('form.ac-search-box').exists()).toBe(true)
+	})
+
+	it('the search box is a real form with a named input', () => {
+		const wrapper = mount(CnSiteSearch, {
+			props: { label: 'Zoeken', inputId: 'q1' },
+		})
+		const form = wrapper.find('form')
+		expect(form.attributes('role')).toBe('search')
+		// A label, not a placeholder: a placeholder vanishes on input and is
+		// not reliably announced, leaving an unnamed field.
+		const label = wrapper.find('label')
+		expect(label.attributes('for')).toBe('q1')
+		expect(wrapper.find('input#q1').exists()).toBe(true)
+		expect(wrapper.find('button[type="submit"]').exists()).toBe(true)
+	})
+
+	it('the search box emits the term instead of fetching anything', async () => {
+		const wrapper = mount(CnSiteSearch)
+		await wrapper.find('input').setValue('zaaksysteem')
+		await wrapper.find('form').trigger('submit')
+		expect(wrapper.emitted('search')).toBeTruthy()
+		expect(wrapper.emitted('search')[0]).toEqual(['zaaksysteem'])
+	})
+
+	it('a card takes its heading level from the host', () => {
+		// Hard-coding <h3> produces a document outline that skips levels
+		// wherever the card is placed under a different heading.
+		const wrapper = mount(CnSiteCard, {
+			props: { title: 'Voor 342 gemeenten', headingLevel: 2 },
+		})
+		expect(wrapper.find('h2.ac-card__title').exists()).toBe(true)
+		expect(wrapper.find('h3').exists()).toBe(false)
+	})
+
+	it('a card link carries the card text, never bare "lees meer"', () => {
+		const wrapper = mount(CnSiteCard, {
+			props: { title: 'Voor 336 leveranciers', link: '/leveranciers' },
+		})
+		const link = wrapper.find('a.ac-card__link')
+		expect(link.attributes('href')).toBe('/leveranciers')
+		// Defaults to the title so a link list read out of context still names
+		// its destination.
+		expect(link.text()).toBe('Voor 336 leveranciers')
+	})
+
+	it('the card grid renders one card per entry and reflows by width', () => {
+		const wrapper = mount(CnSiteCardGrid, {
+			props: {
+				cards: [
+					{ title: 'Voor 342 gemeenten' },
+					{ title: 'Voor 336 leveranciers' },
+					{ title: "Voor 15 community's" },
+				],
+			},
+		})
+		expect(wrapper.findAllComponents(CnSiteCard)).toHaveLength(3)
+		// auto-fit, not a fixed column count: a fixed three-column grid is the
+		// usual reason a card row forces a phone to scroll sideways.
+		expect(wrapper.find('.ac-grid').attributes('style')).toContain('auto-fit')
+	})
+})
