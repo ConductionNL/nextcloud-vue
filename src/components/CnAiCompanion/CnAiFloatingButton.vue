@@ -30,10 +30,10 @@
 		data-testid="cn-ai-fab"
 		@click="$emit('click')">
 		<span class="cn-ai-floating-button__hex">
-			<!-- 40px inside a 72x84 hex — the glyph scales with the badge. The
-			     hexagon's usable inner width at mid-height is ~62px, so 40px sits
+			<!-- 28px inside a 52x60 hex — the glyph scales with the badge. The
+			     hexagon's usable inner width at mid-height is ~45px, so 28px sits
 			     clear of the clip-path on every side. -->
-			<Creation :size="40" class="cn-ai-floating-button__icon" />
+			<Creation :size="28" class="cn-ai-floating-button__icon" />
 		</span>
 	</button>
 </template>
@@ -102,7 +102,7 @@ export default {
 	display: flex !important;
 	align-items: center !important;
 	justify-content: center !important;
-	/* 72:84 ≈ √3:2 — the exact ratio that makes every side of the pointy-top
+	/* 52:60 ≈ √3:2 — the exact ratio that makes every side of the pointy-top
 	   hexagon polygon below equal length. The RATIO is the part that must not
 	   drift: change both numbers together or the hexagon stops being
 	   equilateral while still rendering, which is the failure nobody notices.
@@ -111,8 +111,8 @@ export default {
 	   its triangle at this hex by arithmetic (see the inset block below and
 	   `--cn-ai-pointer-offset` there). Resize here without redoing that and the
 	   arrow points at empty space. */
-	width: 72px !important;
-	height: 84px !important;
+	width: 52px !important;
+	height: 60px !important;
 	/* ⚠️ min-height/min-width MUST be cleared, or `height` is a suggestion.
 	   Nextcloud's own button styling sets `min-height: 34px`, which silently
 	   won against an explicit `height` — measured: the hex rendered 26x34, the
@@ -179,11 +179,11 @@ export default {
  * solved together:
  *
  *   vertical   window sits 108px up; its triangle hangs 12px below it, so the
- *              tip is at 108 - 12 = 96px. The hex is 84px tall, so its bottom
- *              must be at 96 - 84 = 12px for its point to meet that tip.
+ *              tip is at 108 - 12 = 96px. The hex is 60px tall, so its bottom
+ *              must be at 96 - 60 = 36px for its point to meet that tip.
  *   horizontal the triangle's centre is 74px in (window inset 44 + pointer
- *              offset 19 + half of its 22px width). The hex is 72px wide, so its
- *              inset must be 74 - 36 = 38px for the two centres to line up.
+ *              offset 19 + half of its 22px width). The hex is 52px wide, so its
+ *              inset must be 74 - 26 = 48px for the two centres to line up.
  *
  * ⚠️ Change the hex size, the window inset, or `--cn-ai-pointer-offset` in
  * CnAiChatPanel, and all of these numbers move together. They are one geometry
@@ -194,23 +194,23 @@ export default {
  * injected later. Measured: the hex sat at 24px with these rules present and
  * losing. */
 .cn-ai-floating-button--bottom-right.cn-ai-floating-button--bottom-right {
-	right: 38px !important;
-	bottom: 12px !important;
+	right: 48px !important;
+	bottom: 36px !important;
 }
 
 .cn-ai-floating-button--bottom-left.cn-ai-floating-button--bottom-left {
-	bottom: 12px !important;
-	left: 38px !important;
+	bottom: 36px !important;
+	left: 48px !important;
 }
 
 .cn-ai-floating-button--top-right.cn-ai-floating-button--top-right {
-	top: 12px !important;
-	right: 38px !important;
+	top: 36px !important;
+	right: 48px !important;
 }
 
 .cn-ai-floating-button--top-left.cn-ai-floating-button--top-left {
-	top: 12px !important;
-	left: 38px !important;
+	top: 36px !important;
+	left: 48px !important;
 }
 
 /* Respect reduced-motion preference */
