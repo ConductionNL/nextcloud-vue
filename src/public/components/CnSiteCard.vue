@@ -5,32 +5,55 @@
 
 <template>
 	<article :class="cardClass">
-		<div class="ac-card__content ac-flex ac-flex--column ac-flex--spacing-sm">
-			<component
-				:is="headingTag"
-				v-if="title"
-				class="ac-card__title ac-flex ac-flex--align-items-center ac-flex--spacing-xs">
-				<CnSiteIcon v-if="icon" :name="icon" />
-				<span>{{ title }}</span>
-			</component>
+		<div class="ac-card__content">
+			<!--
+				Structure captured from the running reference, not invented:
 
-			<p v-if="description" class="ac-card__description">
+				  .ac-card__content
+				    .ac-flex.ac-flex--spacing-sm.ac-flex--align-items-center
+				      svg
+				      h3.utrecht-heading-3
+				    p.utrecht-paragraph
+				    a.utrecht-link.utrecht-link--html-a
+				      svg
+
+				THE ICON IS A SIBLING OF THE HEADING, not a child, and the flex
+				row is its own wrapper. Nesting the icon inside the heading
+				forces the heading to `display: flex`, and measured that way it
+				came out Roboto 18.72px rgb(51, 51, 51) against the design's
+				Avenir 24px rgb(0, 0, 0).
+
+				`.ac-card__content` also styles itself — adding `ac-flex--spacing-sm`
+				here overrode its own 12px gap with 16px.
+			-->
+			<div
+				v-if="title"
+				class="ac-flex ac-flex--spacing-sm ac-flex--align-items-center">
+				<CnSiteIcon v-if="icon" :name="icon" />
+				<component :is="headingTag" :class="headingClass">
+					{{ title }}
+				</component>
+			</div>
+
+			<p v-if="description" class="utrecht-paragraph">
 				{{ description }}
 			</p>
 
 			<slot />
 
 			<!--
-				The link carries the card's own text, never "lees meer". A
-				screen-reader user listing a page's links hears them out of
-				context, and four identical "lees meer" entries name nothing.
+				`utrecht-link` is what carries the link's colour. Without it the
+				anchor falls back to the BROWSER DEFAULT — measured rgb(0, 0, 238)
+				against the design's rgb(0, 68, 136), the one colour on the page
+				nobody chose.
+
+				The text is the card's own, never "lees meer": a screen reader
+				listing a page's links reads them out of context, and four
+				identical "lees meer" entries name nothing.
 			-->
-			<a
-				v-if="link"
-				class="ac-card__link ac-flex ac-flex--align-items-center ac-flex--spacing-xs"
-				:href="link">
-				<span>{{ linkLabel || title }}</span>
-				<CnSiteIcon :name="linkIcon" :size="18" />
+			<a v-if="link" class="utrecht-link utrecht-link--html-a" :href="link">
+				{{ linkLabel || title }}
+				<CnSiteIcon v-if="linkIcon" :name="linkIcon" :size="16" />
 			</a>
 		</div>
 	</article>
@@ -125,6 +148,18 @@ export default {
 		 */
 		headingTag() {
 			return `h${this.headingLevel}`
+		},
+
+		/**
+		 * The heading's class, tracking its level.
+		 *
+		 * The design system styles the CLASS, not the tag — the same reason a
+		 * bare `<h2>` out of markdown renders unstyled.
+		 *
+		 * @return {string} e.g. `utrecht-heading-3`.
+		 */
+		headingClass() {
+			return `utrecht-heading-${this.headingLevel}`
 		},
 
 		/**
