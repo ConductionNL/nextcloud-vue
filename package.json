@@ -1,7 +1,7 @@
 {
   "name": "@conduction/nextcloud-vue",
   "version": "2.0.5",
-  "description": "Shared Vue component library for Conduction Nextcloud apps \u2014 complements @nextcloud/vue with higher-level components, OpenRegister integration, and NL Design System support",
+  "description": "Shared Vue component library for Conduction Nextcloud apps — complements @nextcloud/vue with higher-level components, OpenRegister integration, and NL Design System support",
   "license": "EUPL-1.2",
   "author": "Conduction B.V. <info@conduction.nl>",
   "homepage": "https://github.com/ConductionNL/nextcloud-vue#readme",
@@ -70,7 +70,8 @@
     "styleguide:build": "cd styleguide && npm run build",
     "build:vue3": "rollup -c rollup.config.vue3.mjs",
     "check:vue3-compile": "node scripts/vue3-compile-sweep.cjs",
-    "check:dist-sideeffects": "node scripts/check-dist-sideeffects.mjs"
+    "check:dist-sideeffects": "node scripts/check-dist-sideeffects.mjs",
+    "check:public-safe": "node scripts/check-public-safe.js"
   },
   "tsd": {
     "directory": "test-d",
@@ -234,5 +235,20 @@
     "vue": "^3.5.13",
     "vue-eslint-parser": "^9.4.3",
     "vue-material-design-icons": "^5.2.0"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/nextcloud-vue.cjs.js",
+      "default": "./dist/nextcloud-vue.cjs.js"
+    },
+    "./public": {
+      "import": "./src/public/index.js",
+      "default": "./src/public/index.js"
+    },
+    "./dist/*": "./dist/*",
+    "./src/*": "./src/*",
+    "./css/*": "./css/*",
+    "./package.json": "./package.json"
   }
 }
