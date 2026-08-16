@@ -38,15 +38,31 @@
 			{{ subtitle }}
 		</p>
 
-		<CnSiteSearch
-			v-if="search"
-			:label="effectiveSearchLabel"
-			:label-visible="true"
-			:placeholder="searchPlaceholder"
-			:submit-label="searchSubmitLabel"
-			:value="searchValue"
-			:input-id="searchInputId"
-			@search="$emit('search', $event)" />
+		<!--
+			THE CARD IS WHAT SIZES THE SEARCH BOX, and it is not decoration.
+			Captured from the reference:
+
+			  .ac-hero > .container > .ac-card.ac-card--blue.ac-card--padding-lg
+			    > .ac-card__content > form.ac-search-box
+
+			`nlds-app.css` says `.ac-hero .ac-card { inline-size: min(100%, 744px) }`,
+			and the card's padding takes the form from 744 down to 648. Rendered
+			without it the form simply filled the content column — measured 1168
+			against the design's 648 — because nothing else in the cascade
+			constrains it.
+		-->
+		<div v-if="search" class="ac-card ac-card--blue ac-card--padding-lg">
+			<div class="ac-card__content">
+				<CnSiteSearch
+					:label="effectiveSearchLabel"
+					:label-visible="true"
+					:placeholder="searchPlaceholder"
+					:submit-label="searchSubmitLabel"
+					:value="searchValue"
+					:input-id="searchInputId"
+					@search="$emit('search', $event)" />
+			</div>
+		</div>
 
 		<slot />
 	</CnSiteSection>

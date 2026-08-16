@@ -21,24 +21,53 @@
 			question sits inside the form. Hiding it there would delete the only
 			visible prompt on the band.
 		-->
-		<label :class="labelClass" :for="inputId">
-			{{ label }}
-		</label>
+		<!--
+			Class names captured from the running reference rather than guessed —
+			`utrecht-form-label`, `utrecht-textbox--html-input` and
+			`utrecht-button--primary-action` are what the design system's CSS
+			actually selects on. Without the primary-action modifier the submit
+			button renders as the SUBTLE variant: measured, transparent
+			background and rgb(10, 39, 80) text where the design wants a filled
+			rgb(0, 68, 136) button with white text.
+		-->
+		<div class="ac-flex ac-flex--column ac-flex--spacing-sm">
+			<label :class="labelClass" :for="inputId">
+				{{ label }}
+			</label>
 
-		<div class="ac-search-box__search">
-			<input
-				:id="inputId"
-				v-model="term"
-				type="text"
-				name="q"
-				class="ac-search-box__input utrecht-textbox"
-				:placeholder="placeholder"
-				autocomplete="off">
-			<button
-				type="submit"
-				class="ac-search-box__button utrecht-button utrecht-button--submit">
-				{{ submitLabel }}
-			</button>
+			<div class="ac-search-box__search">
+				<input
+					:id="inputId"
+					v-model="term"
+					type="text"
+					name="q"
+					class="ac-search-box__input utrecht-textbox utrecht-textbox--html-input"
+					:placeholder="placeholder"
+					autocomplete="off">
+				<button
+					type="submit"
+					class="ac-search-box__button utrecht-button utrecht-button--submit utrecht-button--primary-action">
+					<!--
+						DECORATIVE, so `aria-hidden` and no title: the button
+						already has a text label beside it, and an icon that
+						repeats it is one more thing for a screen reader to read
+						out for no gain.
+					-->
+					<svg
+						class="ac-search-box__search-icon"
+						width="20"
+						height="20"
+						viewBox="0 0 20 20"
+						fill="none"
+						aria-hidden="true"
+						focusable="false">
+						<path
+							d="M8.5 3a5.5 5.5 0 1 0 3.383 9.83l3.643 3.644a.75.75 0 1 0 1.061-1.06l-3.644-3.644A5.5 5.5 0 0 0 8.5 3Zm-4 5.5a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z"
+							fill="currentColor" />
+					</svg>
+					{{ submitLabel }}
+				</button>
+			</div>
 		</div>
 	</form>
 </template>
@@ -120,7 +149,7 @@ export default {
 		 * @return {Array} Classes for the label.
 		 */
 		labelClass() {
-			return ['ac-search-box__label', this.labelVisible ? null : 'sr-only'].filter(Boolean)
+			return ['ac-search-box__label', 'utrecht-form-label', this.labelVisible ? null : 'sr-only'].filter(Boolean)
 		},
 	},
 

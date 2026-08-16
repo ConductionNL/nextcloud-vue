@@ -71,6 +71,31 @@ export const siteBlockRegistry = {
 }
 
 /**
+ * Blocks that are FULL-BLEED BANDS and carry their own container.
+ *
+ * A band paints edge to edge and constrains its content itself. Rendering one
+ * inside a host's content column silently shrinks it: measured against the NL
+ * Design System reference, a hero nested in the page container came out
+ * 1168px wide against the design's 1280, and no amount of styling inside the
+ * hero could recover the missing width because the clamp was an ancestor.
+ *
+ * The reference's own structure is the model — `main` is full-bleed and every
+ * `section` brings a `.container` — so a host must ask this before deciding
+ * whether to wrap a block.
+ *
+ * @param {string} key The block key.
+ * @return {boolean} True when the block must NOT be wrapped in a container.
+ */
+export function siteBlockIsBand(key) {
+	return SITE_BAND_BLOCKS.includes(key)
+}
+
+/**
+ * @type {Array<string>} The band block keys.
+ */
+export const SITE_BAND_BLOCKS = ['hero', 'section']
+
+/**
  * Resolve a block component by key.
  *
  * @param {string} key The `widgetKey` from a page body.
