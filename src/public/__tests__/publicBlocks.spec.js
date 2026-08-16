@@ -154,7 +154,10 @@ describe('public site blocks — markup contract', () => {
 		const wrapper = mount(CnSiteCard, {
 			props: { title: 'Voor 342 gemeenten', headingLevel: 2 },
 		})
-		expect(wrapper.find('h2.ac-card__title').exists()).toBe(true)
+		// The CLASS tracks the level too — the design system styles
+		// `.utrecht-heading-2`, not `h2`, so a host changing the level to keep
+		// a page outline intact must not silently lose the styling with it.
+		expect(wrapper.find('h2.utrecht-heading-2').exists()).toBe(true)
 		expect(wrapper.find('h3').exists()).toBe(false)
 	})
 
@@ -162,7 +165,9 @@ describe('public site blocks — markup contract', () => {
 		const wrapper = mount(CnSiteCard, {
 			props: { title: 'Voor 336 leveranciers', link: '/leveranciers' },
 		})
-		const link = wrapper.find('a.ac-card__link')
+		// `utrecht-link` is what carries the colour; without it the anchor
+		// falls back to the browser default rgb(0, 0, 238).
+		const link = wrapper.find('a.utrecht-link')
 		expect(link.attributes('href')).toBe('/leveranciers')
 		// Defaults to the title so a link list read out of context still names
 		// its destination.
