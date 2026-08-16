@@ -30,7 +30,9 @@
 		data-testid="cn-ai-fab"
 		@click="$emit('click')">
 		<span class="cn-ai-floating-button__hex">
-			<Creation :size="26" class="cn-ai-floating-button__icon" />
+			<!-- 13px inside a 26x30 hex: the glyph has to shrink with the hex or
+			     it overflows the clip-path and reads as a filled blob. -->
+			<Creation :size="13" class="cn-ai-floating-button__icon" />
 		</span>
 	</button>
 </template>
@@ -82,10 +84,14 @@ export default {
 	display: flex !important;
 	align-items: center !important;
 	justify-content: center !important;
-	/* 52:60 ≈ √3:2 — the exact ratio that makes every side of the
-	   pointy-top hexagon polygon below equal length. */
-	width: 52px !important;
-	height: 60px !important;
+	/* 26:30 ≈ √3:2 — the exact ratio that makes every side of the
+	   pointy-top hexagon polygon below equal length. HALVED from 52x60: the
+	   launcher sits on top of someone else's application (a file list, an
+	   office editor), so it is a marker, not a control surface. The ratio is
+	   the part that must not drift — change both numbers together or the
+	   hexagon stops being equilateral. */
+	width: 26px !important;
+	height: 30px !important;
 	padding: 0 !important;
 	margin: 0 !important;
 	border: none !important;

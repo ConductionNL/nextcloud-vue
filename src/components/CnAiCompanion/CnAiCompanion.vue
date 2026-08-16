@@ -24,6 +24,7 @@
 			:visible="isPanelOpen"
 			:stream-state="stream.state"
 			:chat-app-id="chatAppId"
+			:position="position"
 			:fab-ref="$refs.fabButton"
 			@close="closePanel"
 			@send="onSend"
