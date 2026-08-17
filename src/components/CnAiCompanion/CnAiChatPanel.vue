@@ -73,7 +73,17 @@
 			  screen readers announce whose window this is before its controls.
 			-->
 				<div class="cn-ai-chat-window__identity" :title="agentLabel">
-					<Creation :size="16" class="cn-ai-chat-window__identity-icon" />
+					<!--
+				  The AGENT's icon, not a generic sparkle. `Agent.icon` is an MDI
+				  registry name picked with CnIconPicker, so the same icon shown in
+				  the agent list and on its detail page is shown here — the window
+				  is that agent's window, and a shared mark is what says so.
+				  Falls back to the list's default agent icon when unset.
+				-->
+					<CnDashboardIcon
+						:name="agentIconName"
+						:size="16"
+						class="cn-ai-chat-window__identity-icon" />
 					<span class="cn-ai-chat-window__identity-name">{{ agentLabel }}</span>
 				</div>
 
@@ -94,17 +104,33 @@
 						<template #icon>
 							<Cog :size="18" />
 						</template>
-						<NcActionCaption :name="cnTranslate('Agent')" />
+						<NcActionCaption :name="agentCaption" />
 						<NcActionButton
-							v-for="agent in agentOptions"
+							v-for="agent in visibleAgentOptions"
 							:key="agent.id"
 							:close-after-click="true"
 							@click="onAgentSelected(agent.id)">
 							<template #icon>
 								<Check v-if="agent.id === selectedAgentUuid" :size="20" />
-								<RobotOutline v-else :size="20" />
+								<CnDashboardIcon v-else :name="agent.icon" :size="20" />
 							</template>
 							{{ agent.label }}
+						</NcActionButton>
+						<!--
+					  The escape hatch is NOT optional. The relevance rule below is a
+					  heuristic over tool ids, so it will be wrong sometimes; an agent
+					  the user knows exists and cannot reach reads as data loss. This
+					  stays visible whenever anything is being hidden.
+					-->
+						<NcActionButton
+							v-if="hiddenAgentCount > 0"
+							:close-after-click="false"
+							data-testid="cn-ai-panel-all-agents"
+							@click="showAllAgents = true">
+							<template #icon>
+								<DotsHorizontal :size="20" />
+							</template>
+							{{ cnTranslate('All agents') }} ({{ agentOptions.length }})
 						</NcActionButton>
 						<NcActionCaption
 							v-if="agentOptions.length === 0"
@@ -215,17 +241,27 @@ import Creation from 'vue-material-design-icons/Creation.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
-import RobotOutline from 'vue-material-design-icons/RobotOutline.vue'
 import MessageTextOutline from 'vue-material-design-icons/MessageTextOutline.vue'
+import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import CnAiMessageList from './CnAiMessageList.vue'
 import CnAiInput from './CnAiInput.vue'
 import CnAiHistoryList from './CnAiHistoryList.vue'
+import CnDashboardIcon from '../CnIconPicker/CnDashboardIcon.vue'
 import {
 	DEFAULT_CHAT_APP_ID,
 	agentsUrl,
 	conversationsUrl,
 	normalizeConversation,
 } from '../../composables/aiChatConfig.js'
+
+/**
+ * Shown when an agent has no `icon` set, which is most of them. Matches the
+ * icon the agent list has always used, so an agent without an icon does not
+ * change appearance between the list and the window title.
+ *
+ * @type {string}
+ */
+const DEFAULT_AGENT_ICON = 'RobotOutline'
 
 /** Recent conversations offered directly in the sessions menu — top N of the fetched list. */
 const RECENT_CONVERSATIONS_LIMIT = 5
@@ -248,11 +284,12 @@ export default {
 		Close,
 		Check,
 		Cog,
-		RobotOutline,
 		MessageTextOutline,
+		DotsHorizontal,
 		CnAiMessageList,
 		CnAiInput,
 		CnAiHistoryList,
+		CnDashboardIcon,
 	},
 
 	inject: {
@@ -300,6 +337,18 @@ export default {
 			type: String,
 			default: DEFAULT_CHAT_APP_ID,
 		},
+
+		/**
+		 * The page the companion is sitting on: `{ appId, pageKind, fileId, route }`.
+		 *
+		 * Used ONLY to decide which agents are worth offering first. An empty
+		 * object means "no page context", and every agent is listed — the
+		 * behaviour before filtering existed.
+		 */
+		context: {
+			type: Object,
+			default: () => ({}),
+		},
 	},
 
 	/**
@@ -313,6 +362,13 @@ export default {
 		return {
 			activeView: 'chat',
 			activeConversationUuid: null,
+			/**
+			 * Whether the user has asked past the page-relevance filter. Sticky
+			 * for the life of the panel: having asked for everything once, being
+			 * silently re-filtered on the next open is the annoying half of this
+			 * feature.
+			 */
+			showAllAgents: false,
 			agents: [],
 			agentsLoading: false,
 			agentsFetchError: false,
@@ -339,7 +395,93 @@ export default {
 			return this.agents.map((agent) => ({
 				id: agent.uuid || agent.id,
 				label: agent.name || agent.title || this.cnTranslate('Untitled agent'),
+				// `Agent.icon` is an MDI registry name (CnIconPicker); empty means
+				// "use the default agent icon", which is what the list showed for
+				// every agent before any of them had one set.
+				icon: agent.icon || DEFAULT_AGENT_ICON,
+				tools: Array.isArray(agent.tools) ? agent.tools : [],
 			}))
+		},
+
+		/**
+		 * The agents worth offering on THIS page, most specific first.
+		 *
+		 * ⚠️ This is a HEURISTIC over tool ids, and it is written to fail open.
+		 * An agent is relevant when it holds a tool whose owning app is the app
+		 * of the current page, OR — on a file/document page — a tool that is
+		 * about documents at all.
+		 *
+		 * The second clause is not decoration. The demo's document agent holds
+		 * `docudesk.*` tools while the page it is used on is `eurooffice`, so a
+		 * plain "tool app === page app" rule HIDES exactly the agent the user
+		 * wants. Matching page KIND as well as page APP is what makes the rule
+		 * describe capability rather than packaging.
+		 *
+		 * Falls back to every agent when the filter would empty the list — an
+		 * empty agent menu is indistinguishable from a broken one.
+		 *
+		 * @return {Array<object>} Agents judged relevant to the current page.
+		 */
+		relevantAgentOptions() {
+			const appId = (this.context && this.context.appId) || ''
+			const pageKind = (this.context && this.context.pageKind) || ''
+			if (appId === '' && pageKind === '') {
+				return this.agentOptions
+			}
+
+			const isDocumentPage = pageKind === 'file' || pageKind === 'document'
+			const matches = this.agentOptions.filter((agent) => agent.tools.some((tool) => {
+				const id = String(tool).toLowerCase()
+				// Tool ids are `app.verb` or `app_verb`; the app is the first segment.
+				const app = id.split(/[._]/)[0]
+				if (appId !== '' && app === appId.toLowerCase()) {
+					return true
+				}
+				return isDocumentPage && /document|file/.test(id)
+			}))
+
+			return matches.length > 0 ? matches : this.agentOptions
+		},
+
+		/**
+		 * What the menu actually lists: the relevant subset, or everything once
+		 * the user has asked for everything.
+		 *
+		 * @return {Array<object>} Agents to render.
+		 */
+		visibleAgentOptions() {
+			return this.showAllAgents ? this.agentOptions : this.relevantAgentOptions
+		},
+
+		/**
+		 * How many agents the filter is currently hiding.
+		 *
+		 * @return {number} Hidden count, 0 when nothing is hidden.
+		 */
+		hiddenAgentCount() {
+			return this.agentOptions.length - this.visibleAgentOptions.length
+		},
+
+		/**
+		 * The menu heading, which must SAY when the list is filtered — a silently
+		 * shortened list is the same failure as a silently truncated one.
+		 *
+		 * @return {string} Caption text.
+		 */
+		agentCaption() {
+			return this.hiddenAgentCount > 0
+				? this.cnTranslate('Agents for this page')
+				: this.cnTranslate('Agent')
+		},
+
+		/**
+		 * The selected agent's icon name, for the titlebar.
+		 *
+		 * @return {string} An MDI registry name.
+		 */
+		agentIconName() {
+			const selected = this.agentOptions.find((agent) => agent.id === this.selectedAgentUuid)
+			return (selected && selected.icon) || DEFAULT_AGENT_ICON
 		},
 
 		/**

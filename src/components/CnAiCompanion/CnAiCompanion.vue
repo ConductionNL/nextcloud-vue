@@ -47,6 +47,7 @@
 			:visible="isPanelOpen"
 			:stream-state="stream.state"
 			:chat-app-id="chatAppId"
+			:context="context"
 			:position="position"
 			:fab-ref="$refs.fabButton"
 			@close="closePanel"
@@ -64,6 +65,12 @@ import CnAiFloatingButton from './CnAiFloatingButton.vue'
 import CnAiChatPanel from './CnAiChatPanel.vue'
 
 const HEALTH_TIMEOUT = 5000
+
+/** How many times the health probe may fail before the companion hides. */
+const HEALTH_PROBE_ATTEMPTS = 3
+
+/** Base backoff between probe attempts, multiplied by the attempt number. */
+const HEALTH_RETRY_DELAY = 750
 
 export default {
 	name: 'CnAiCompanion',
@@ -142,16 +149,38 @@ export default {
 
 	methods: {
 		async runHealthProbe() {
-			try {
-				const response = await axios.get(chatHealthUrl(this.chatAppId), {
-					timeout: HEALTH_TIMEOUT,
-					validateStatus: (status) => status >= 200 && status < 300,
-				})
-				this.probeSucceeded = response.status >= 200 && response.status < 300
-			} catch {
-				// eslint-disable-next-line no-console
-				console.info(`[CnAiCompanion] chat backend "${this.chatAppId}" health probe did not return 2xx — widget hidden`)
-				this.probeSucceeded = false
+			// RETRY before hiding. A single probe makes the whole companion
+			// disappear on one slow response, and "slow" is normal: measured on a
+			// busy instance (load 48) the health endpoint answered in well under a
+			// second, but the request still lost its 5s budget to contention. The
+			// failure mode is the worst kind — the widget is simply absent, with
+			// nothing on screen saying why, and a reload usually "fixes" it, which
+			// is what makes it read as flakiness rather than as a probe result.
+			//
+			// A backend that is genuinely down fails all attempts and is still
+			// reported; this only stops one unlucky request from deciding.
+			for (let attempt = 1; attempt <= HEALTH_PROBE_ATTEMPTS; attempt++) {
+				try {
+					const response = await axios.get(chatHealthUrl(this.chatAppId), {
+						timeout: HEALTH_TIMEOUT,
+						validateStatus: (status) => status >= 200 && status < 300,
+					})
+					this.probeSucceeded = response.status >= 200 && response.status < 300
+					return
+				} catch {
+					if (attempt < HEALTH_PROBE_ATTEMPTS) {
+						await new Promise((resolve) => {
+							setTimeout(resolve, HEALTH_RETRY_DELAY * attempt)
+						})
+						continue
+					}
+					// eslint-disable-next-line no-console
+					console.info(
+						`[CnAiCompanion] chat backend "${this.chatAppId}" health probe did not return 2xx `
+							+ `after ${HEALTH_PROBE_ATTEMPTS} attempts — widget hidden`,
+					)
+					this.probeSucceeded = false
+				}
 			}
 		},
 

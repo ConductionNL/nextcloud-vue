@@ -50,6 +50,33 @@
 			</li>
 		</ul>
 		<div class="cn-ai-input__row">
+			<!--
+			  Dictation sits LEFT of the paperclip: both are ways of getting content
+			  into the message, and speech is the one reached for first when typing
+			  is the obstacle.
+
+			  Rendered only where the browser can actually do it. A mic button that
+			  silently does nothing is worse than no mic button, and support is
+			  genuinely partial (WebKit-prefixed in Safari, absent in Firefox).
+			-->
+			<button
+				v-if="speechSupported"
+				class="cn-ai-input__mic-button"
+				:class="{ 'cn-ai-input__mic-button--recording': listening }"
+				type="button"
+				:aria-label="listening ? cnTranslate('Stop dictation') : cnTranslate('Dictate message')"
+				:title="listening ? cnTranslate('Stop dictation') : cnTranslate('Dictate message')"
+				:aria-pressed="listening ? 'true' : 'false'"
+				:disabled="disabled"
+				data-testid="cn-ai-input-mic"
+				@click="toggleDictation">
+				<MicrophoneOff
+					v-if="listening"
+					:size="20" />
+				<Microphone
+					v-else
+					:size="20" />
+			</button>
 			<button
 				class="cn-ai-input__attach-button"
 				type="button"
@@ -106,6 +133,8 @@ import axios from '@nextcloud/axios'
 import Send from 'vue-material-design-icons/Send.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import Microphone from 'vue-material-design-icons/Microphone.vue'
+import MicrophoneOff from 'vue-material-design-icons/MicrophoneOff.vue'
 import { DEFAULT_CHAT_APP_ID, attachmentsUrl } from '../../composables/aiChatConfig.js'
 
 export default {
@@ -117,6 +146,8 @@ export default {
 		Send,
 		Paperclip,
 		Close,
+		Microphone,
+		MicrophoneOff,
 	},
 
 	inject: {
@@ -154,10 +185,31 @@ export default {
 			uploading: false,
 			/** Backend `{ error }` message from a rejected (400) upload, or ''. */
 			uploadError: '',
+			/** Whether dictation is currently capturing. */
+			listening: false,
+			/** The live SpeechRecognition instance, or null when idle. */
+			recognition: null,
+			/** Text already in the box when dictation started, so it is not lost. */
+			textBeforeDictation: '',
 		}
 	},
 
 	computed: {
+		/**
+		 * Whether this browser can do speech recognition at all.
+		 *
+		 * Checked rather than assumed: Chrome and Safari expose it (Safari only
+		 * under the `webkit` prefix) and Firefox does not expose it at all. The
+		 * button is not rendered when this is false.
+		 *
+		 * @return {boolean} true when a SpeechRecognition constructor exists.
+		 */
+		speechSupported() {
+			return typeof window !== 'undefined'
+				&& (typeof window.SpeechRecognition === 'function'
+					|| typeof window.webkitSpeechRecognition === 'function')
+		},
+
 		isTextEmpty() {
 			return !this.inputText || !this.inputText.trim()
 		},
@@ -168,7 +220,114 @@ export default {
 		},
 	},
 
+	beforeUnmount() {
+		// A recogniser outliving its component keeps the microphone open — the
+		// indicator stays lit in the browser chrome with nothing on screen
+		// explaining why.
+		this.stopDictation()
+	},
+
 	methods: {
+		/**
+		 * Start dictation, or stop it if already running.
+		 *
+		 * @return {void}
+		 */
+		toggleDictation() {
+			if (this.listening) {
+				this.stopDictation()
+				return
+			}
+			this.startDictation()
+		},
+
+		/**
+		 * Begin capturing speech into the message box.
+		 *
+		 * Interim results are shown as they arrive so the user can see it is
+		 * working — dictation with no visible feedback reads as broken. Whatever
+		 * was already typed is preserved and appended to, rather than replaced.
+		 *
+		 * @return {void}
+		 */
+		startDictation() {
+			if (!this.speechSupported || this.disabled) {
+				return
+			}
+
+			const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition
+			const recognition = new Recognition()
+			recognition.continuous = true
+			recognition.interimResults = true
+			// Follow the page's language rather than hardcoding one: this ships to
+			// Dutch and English instances alike.
+			recognition.lang = (typeof document !== 'undefined' && document.documentElement.lang)
+				? document.documentElement.lang
+				: 'en-US'
+
+			this.textBeforeDictation = this.inputText
+
+			recognition.onresult = (event) => {
+				let finalText = ''
+				let interimText = ''
+				for (let i = event.resultIndex; i < event.results.length; i++) {
+					const result = event.results[i]
+					if (result.isFinal) {
+						finalText += result[0].transcript
+					} else {
+						interimText += result[0].transcript
+					}
+				}
+				if (finalText !== '') {
+					this.textBeforeDictation = `${this.textBeforeDictation}${finalText}`.replace(/\s+/g, ' ')
+				}
+				this.inputText = `${this.textBeforeDictation}${interimText}`.trimStart()
+				this.$nextTick(() => this.autoGrow())
+			}
+
+			// `onend` fires for a user stop AND for the engine giving up on
+			// silence, so the button state is driven from here rather than from
+			// the click — otherwise the button lies after an idle timeout.
+			recognition.onend = () => {
+				this.listening = false
+				this.recognition = null
+			}
+
+			recognition.onerror = () => {
+				this.listening = false
+				this.recognition = null
+			}
+
+			try {
+				recognition.start()
+				this.recognition = recognition
+				this.listening = true
+			} catch (e) {
+				// `start()` throws if called twice; treat as not listening.
+				this.listening = false
+				this.recognition = null
+			}
+		},
+
+		/**
+		 * Stop dictation and release the microphone.
+		 *
+		 * @return {void}
+		 */
+		stopDictation() {
+			if (!this.recognition) {
+				this.listening = false
+				return
+			}
+			try {
+				this.recognition.stop()
+			} catch (e) {
+				// Already stopped; nothing to release.
+			}
+			this.recognition = null
+			this.listening = false
+		},
+
 		handleEnter() {
 			if (this.disabled || this.isSendDisabled) {
 				return
@@ -351,6 +510,41 @@ export default {
 
 .cn-ai-input__file-input {
 	display: none;
+}
+
+/* Mic matches the paperclip exactly — they are peers in the row, and any
+   difference in size or weight would read as one being the primary action. */
+.cn-ai-input__mic-button {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	cursor: pointer;
+}
+
+.cn-ai-input__mic-button:hover:not(:disabled) {
+	background: var(--color-background-hover);
+}
+
+/* Recording is a STATE, not a hover: it stays visible while the user speaks and
+   looks away from the button. Error colour because it is the "something is
+   live" signal, and the icon swaps to a struck-through mic beside it. */
+.cn-ai-input__mic-button--recording {
+	border-color: var(--color-error);
+	background: var(--color-error);
+	color: var(--color-primary-text, #fff);
+}
+
+.cn-ai-input__mic-button:disabled {
+	opacity: .5;
+	cursor: default;
 }
 
 .cn-ai-input__attach-button {

@@ -46,6 +46,10 @@ import ScaleBalanceIcon from 'vue-material-design-icons/ScaleBalance.vue'
 import FilterVariantIcon from 'vue-material-design-icons/FilterVariant.vue'
 import PercentIcon from 'vue-material-design-icons/Percent.vue'
 import AccountIcon from 'vue-material-design-icons/Account.vue'
+// Agents. `Agent.icon` documents "RobotOutline" as its own example and is
+// picked with CnIconPicker, which offers exactly this registry — so its absence
+// meant the schema's documented example resolved to the default dashboard glyph.
+import RobotOutlineIcon from 'vue-material-design-icons/RobotOutline.vue'
 import ClipboardListIcon from 'vue-material-design-icons/ClipboardListOutline.vue'
 import MapIcon from 'vue-material-design-icons/MapOutline.vue'
 import TableColumnIcon from 'vue-material-design-icons/TableColumn.vue'
@@ -113,6 +117,7 @@ export const DASHBOARD_ICONS = Object.freeze({
 	FilterVariant: FilterVariantIcon,
 	Percent: PercentIcon,
 	Account: AccountIcon,
+	RobotOutline: RobotOutlineIcon,
 	ClipboardList: ClipboardListIcon,
 	Map: MapIcon,
 	TableColumn: TableColumnIcon,
