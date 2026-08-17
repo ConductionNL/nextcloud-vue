@@ -28,6 +28,13 @@
 			data-testid="cn-ai-input-error">
 			{{ uploadError }}
 		</NcNoteCard>
+		<NcNoteCard
+			v-if="dictationError"
+			type="warning"
+			class="cn-ai-input__error"
+			data-testid="cn-ai-input-dictation-error">
+			{{ dictationError }}
+		</NcNoteCard>
 		<ul
 			v-if="attachments.length"
 			class="cn-ai-input__chips"
@@ -60,14 +67,14 @@
 			  genuinely partial (WebKit-prefixed in Safari, absent in Firefox).
 			-->
 			<button
-				v-if="speechSupported"
+				v-if="speechButtonVisible"
 				class="cn-ai-input__mic-button"
 				:class="{ 'cn-ai-input__mic-button--recording': listening }"
 				type="button"
-				:aria-label="listening ? cnTranslate('Stop dictation') : cnTranslate('Dictate message')"
-				:title="listening ? cnTranslate('Stop dictation') : cnTranslate('Dictate message')"
+				:aria-label="speechBlockedReason || (listening ? cnTranslate('Stop dictation') : cnTranslate('Dictate message'))"
+				:title="speechBlockedReason || (listening ? cnTranslate('Stop dictation') : cnTranslate('Dictate message'))"
 				:aria-pressed="listening ? 'true' : 'false'"
-				:disabled="disabled"
+				:disabled="disabled || speechBlockedReason !== ''"
 				data-testid="cn-ai-input-mic"
 				@click="toggleDictation">
 				<MicrophoneOff
@@ -191,6 +198,8 @@ export default {
 			recognition: null,
 			/** Text already in the box when dictation started, so it is not lost. */
 			textBeforeDictation: '',
+			/** Last dictation failure, shown to the user. '' when none. */
+			dictationError: '',
 		}
 	},
 
@@ -208,6 +217,42 @@ export default {
 			return typeof window !== 'undefined'
 				&& (typeof window.SpeechRecognition === 'function'
 					|| typeof window.webkitSpeechRecognition === 'function')
+		},
+
+		/**
+		 * Why dictation cannot run here, or '' when it can.
+		 *
+		 * 🔴 The constructor EXISTING is not the capability. On an insecure
+		 * origin Chrome still exposes `webkitSpeechRecognition`, so a
+		 * constructor check passes, and then `start()` fires `onerror:
+		 * not-allowed` immediately — measured on this instance over http://,
+		 * where `isSecureContext` is false and `navigator.mediaDevices` is
+		 * undefined. The first version of this button did exactly that and
+		 * appeared to do nothing at all when pressed.
+		 *
+		 * Reported rather than hidden: the button vanishing reads as a missing
+		 * feature, while a disabled button that says why reads as a
+		 * deployment fact the user can act on (serve over https).
+		 *
+		 * @return {string} A reason to show, or '' when dictation is available.
+		 */
+		speechBlockedReason() {
+			if (!this.speechSupported) {
+				return this.cnTranslate('Dictation is not supported in this browser')
+			}
+			if (typeof window !== 'undefined' && window.isSecureContext === false) {
+				return this.cnTranslate('Dictation needs a secure (https) connection')
+			}
+			return ''
+		},
+
+		/**
+		 * Whether the mic button is offered at all.
+		 *
+		 * @return {boolean} true when the browser has the API in any form.
+		 */
+		speechButtonVisible() {
+			return this.speechSupported
 		},
 
 		isTextEmpty() {
@@ -255,6 +300,7 @@ export default {
 				return
 			}
 
+			this.dictationError = ''
 			const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition
 			const recognition = new Recognition()
 			recognition.continuous = true
@@ -293,7 +339,15 @@ export default {
 				this.recognition = null
 			}
 
-			recognition.onerror = () => {
+			// SHOW the failure. Silently resetting `listening` is what made the
+			// button look inert: the user pressed it, nothing changed, and there
+			// was nowhere to find out why. `not-allowed` is the common one — an
+			// insecure origin or a denied microphone permission.
+			recognition.onerror = (event) => {
+				const code = (event && event.error) ? String(event.error) : 'unknown'
+				this.dictationError = (code === 'not-allowed')
+					? this.cnTranslate('Microphone blocked — allow access, or use https')
+					: this.cnTranslate('Dictation stopped: ') + code
 				this.listening = false
 				this.recognition = null
 			}
@@ -303,7 +357,10 @@ export default {
 				this.recognition = recognition
 				this.listening = true
 			} catch (e) {
-				// `start()` throws if called twice; treat as not listening.
+				// `start()` throws if called twice, and on some browsers when the
+				// origin is not permitted. Either way say so rather than resetting
+				// in silence.
+				this.dictationError = this.cnTranslate('Dictation could not start: ') + (e.message || 'unknown')
 				this.listening = false
 				this.recognition = null
 			}
