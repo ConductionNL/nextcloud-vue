@@ -227,6 +227,56 @@
 						</template>
 					</CnAiMessageList>
 				</div>
+
+				<!--
+				  Decide it HERE. An approval the agent is blocked on is
+				  actionable where the user already is, rather than on an
+				  oversight screen they have to know about and navigate to.
+
+				  Rendered from a GENERIC shape: each entry brings its own `kind`
+				  and its own `resolveUrl`, so a future approval (fetching a URL,
+				  editing a file that is not open) renders and resolves through
+				  this same block unchanged.
+				-->
+				<ul
+					v-if="pendingApprovals.length"
+					class="cn-ai-chat-window__approvals"
+					data-testid="cn-ai-panel-approvals">
+					<li
+						v-for="approval in pendingApprovals"
+						:key="approval.id"
+						class="cn-ai-approval">
+						<div class="cn-ai-approval__head">
+							<span class="cn-ai-approval__title">{{ approval.title }}</span>
+							<!--
+							  Reach is a FACT about the tool. The reason below is
+							  agent-authored text aimed at the person holding the
+							  permission, so the two are kept visually distinct.
+							-->
+							<span class="cn-ai-approval__reach">{{ approval.reach }}</span>
+						</div>
+						<p v-if="approval.reason" class="cn-ai-approval__reason">
+							{{ approval.reason }}
+						</p>
+						<div class="cn-ai-approval__actions">
+							<NcButton
+								type="primary"
+								:disabled="resolvingApprovalId === approval.id"
+								:data-testid="'cn-ai-approval-allow-' + approval.id"
+								@click="onApprovalDecision(approval, 'granted')">
+								{{ cnTranslate('Allow') }}
+							</NcButton>
+							<NcButton
+								type="tertiary"
+								:disabled="resolvingApprovalId === approval.id"
+								:data-testid="'cn-ai-approval-deny-' + approval.id"
+								@click="onApprovalDecision(approval, 'refused')">
+								{{ cnTranslate('Decline') }}
+							</NcButton>
+						</div>
+					</li>
+				</ul>
+
 				<div class="cn-ai-chat-window__input">
 					<CnAiInput
 						ref="input"
@@ -400,6 +450,10 @@ export default {
 			speakReplies: false,
 			/** Text already spoken, so a re-render never repeats an answer. */
 			spokenText: '',
+			/** Approvals decided locally, hidden until the server confirms. */
+			resolvedApprovalIds: [],
+			/** The approval currently being posted, so it cannot double-fire. */
+			resolvingApprovalId: '',
 			agents: [],
 			agentsLoading: false,
 			agentsFetchError: false,
@@ -527,6 +581,20 @@ export default {
 		 *
 		 * @return {boolean} true when speech synthesis is usable.
 		 */
+		/**
+		 * Approvals still awaiting a decision, minus any just decided here.
+		 *
+		 * The local filter matters: the server list is refreshed only on the
+		 * next turn, so without it a card the user just answered would sit there
+		 * looking unanswered until they sent another message.
+		 *
+		 * @return {Array<object>} Approvals to render.
+		 */
+		pendingApprovals() {
+			const list = (this.streamState && this.streamState.pendingApprovals) || []
+			return list.filter((a) => this.resolvedApprovalIds.includes(a.id) === false)
+		},
+
 		speechSynthesisSupported() {
 			return typeof window !== 'undefined'
 				&& typeof window.speechSynthesis !== 'undefined'
@@ -708,6 +776,54 @@ export default {
 			} catch (e) {
 				// Nothing to cancel.
 			}
+		},
+
+		/**
+		 * Record the owner's decision on an approval, then let the agent carry on.
+		 *
+		 * Posts to the approval's OWN `resolveUrl` rather than to a URL built
+		 * here, which is what keeps this generic — a new approval kind supplies
+		 * its endpoint and this code is unchanged. The endpoint is the existing
+		 * owner-only one, so "only the owner decides" is enforced in one place
+		 * and is not re-implemented for the chat.
+		 *
+		 * On a grant the agent is nudged to continue: it stopped because it could
+		 * not proceed, and making the user retype their request would be the
+		 * whole point of deciding in the chat, lost.
+		 *
+		 * @param {object} approval The approval being decided.
+		 * @param {string} decision 'granted' or 'refused'.
+		 * @return {Promise<void>}
+		 */
+		async onApprovalDecision(approval, decision) {
+			if (this.resolvingApprovalId !== '') {
+				return
+			}
+			this.resolvingApprovalId = approval.id
+
+			try {
+				await axios.post(approval.resolveUrl, { decision })
+				this.resolvedApprovalIds = this.resolvedApprovalIds.concat([approval.id])
+
+				if (decision === 'granted') {
+					// A grant only takes effect on the NEXT turn — the agent's tool
+					// set is resolved at turn assembly — so continuing is what makes
+					// the new capability usable without the user repeating themselves.
+					this.$emit(
+						'send',
+						this.cnTranslate('I approved that access. Please continue.'),
+						this.selectedAgentUuid,
+						[],
+					)
+				}
+			} catch (e) {
+				// Leave the card in place: a decision that did not record must not
+				// look as though it did.
+				this.resolvingApprovalId = ''
+				return
+			}
+
+			this.resolvingApprovalId = ''
 		},
 
 		onClose() {
@@ -991,6 +1107,61 @@ export default {
 	min-height: 0;
 	overflow-y: auto;
 	padding: 8px;
+}
+
+/* Approvals sit between the transcript and the composer: the last thing read
+   before the box you would otherwise type into, which is where a blocked
+   agent's request belongs. */
+.cn-ai-chat-window__approvals {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	padding: 8px 12px 0;
+	list-style: none;
+}
+
+.cn-ai-approval {
+	padding: 10px 12px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large, 12px);
+	background: var(--color-main-background);
+}
+
+.cn-ai-approval__head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-ai-approval__title {
+	flex: 1;
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+/* The reach is the fact the decision rests on, so it reads as a label rather
+   than as part of the agent's prose. */
+.cn-ai-approval__reach {
+	flex-shrink: 0;
+	padding: 1px 8px;
+	border-radius: 12px;
+	background: var(--color-background-dark);
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: .04em;
+}
+
+.cn-ai-approval__reason {
+	margin: 6px 0 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-ai-approval__actions {
+	display: flex;
+	gap: 8px;
+	margin-top: 10px;
 }
 
 .cn-ai-chat-window__input {
