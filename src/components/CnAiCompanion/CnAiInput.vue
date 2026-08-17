@@ -66,15 +66,30 @@
 			  silently does nothing is worse than no mic button, and support is
 			  genuinely partial (WebKit-prefixed in Safari, absent in Firefox).
 			-->
+			<!--
+			  ⚠️ NOT the `disabled` attribute when dictation is merely blocked.
+			  Browsers suppress hover events on a disabled control, so its
+			  `title` tooltip can never appear — the button would look dead and
+			  still refuse to say why, which is the bug this is fixing.
+
+			  So: `aria-disabled` for assistive tech, a class for the muted look,
+			  and a live click handler that puts the reason on screen. The real
+			  `disabled` attribute is still used for the one case that is not a
+			  capability problem — a turn already streaming.
+			-->
 			<button
 				v-if="speechButtonVisible"
 				class="cn-ai-input__mic-button"
-				:class="{ 'cn-ai-input__mic-button--recording': listening }"
+				:class="{
+					'cn-ai-input__mic-button--recording': listening,
+					'cn-ai-input__mic-button--blocked': speechBlockedReason !== '',
+				}"
 				type="button"
 				:aria-label="speechBlockedReason || (listening ? cnTranslate('Stop dictation') : cnTranslate('Dictate message'))"
 				:title="speechBlockedReason || (listening ? cnTranslate('Stop dictation') : cnTranslate('Dictate message'))"
 				:aria-pressed="listening ? 'true' : 'false'"
-				:disabled="disabled || speechBlockedReason !== ''"
+				:aria-disabled="speechBlockedReason !== '' ? 'true' : 'false'"
+				:disabled="disabled"
 				data-testid="cn-ai-input-mic"
 				@click="toggleDictation">
 				<MicrophoneOff

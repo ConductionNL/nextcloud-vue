@@ -104,6 +104,25 @@
 						<template #icon>
 							<Cog :size="18" />
 						</template>
+						<!--
+					  Read-aloud lives in SESSION settings, not per message: it is
+					  a preference about how you want to receive answers, not an
+					  action on one of them.
+
+					  Unlike dictation this works on an insecure origin —
+					  speechSynthesis has no secure-context requirement, so it is
+					  offered here even where the microphone cannot be.
+					-->
+						<NcActionCheckbox
+							:model-value="speakReplies"
+							:disabled="speechSynthesisSupported === false"
+							data-testid="cn-ai-panel-speak-toggle"
+							@update:model-value="onSpeakRepliesToggled">
+							{{ speechSynthesisSupported
+								? cnTranslate('Read replies aloud')
+								: cnTranslate('Read replies aloud (not supported here)') }}
+						</NcActionCheckbox>
+						<NcActionSeparator />
 						<NcActionCaption :name="agentCaption" />
 						<NcActionButton
 							v-for="agent in visibleAgentOptions"
@@ -233,7 +252,7 @@
 </template>
 
 <script>
-import { NcActions, NcActionButton, NcActionCaption, NcButton, NcEmptyContent } from '@nextcloud/vue'
+import { NcActions, NcActionButton, NcActionCaption, NcActionCheckbox, NcActionSeparator, NcButton, NcEmptyContent } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import History from 'vue-material-design-icons/History.vue'
@@ -263,6 +282,9 @@ import {
  */
 const DEFAULT_AGENT_ICON = 'RobotOutline'
 
+/** localStorage key remembering whether replies are read aloud. */
+const SPEAK_PREFERENCE_KEY = 'cn-ai-speak-replies'
+
 /** Recent conversations offered directly in the sessions menu — top N of the fetched list. */
 const RECENT_CONVERSATIONS_LIMIT = 5
 
@@ -276,6 +298,8 @@ export default {
 		NcActions,
 		NcActionButton,
 		NcActionCaption,
+		NcActionCheckbox,
+		NcActionSeparator,
 		NcButton,
 		NcEmptyContent,
 		Plus,
@@ -369,6 +393,13 @@ export default {
 			 * feature.
 			 */
 			showAllAgents: false,
+			/**
+			 * Whether assistant replies are read aloud. Remembered across
+			 * sessions — a preference a user turns on once, not per chat.
+			 */
+			speakReplies: false,
+			/** Text already spoken, so a re-render never repeats an answer. */
+			spokenText: '',
 			agents: [],
 			agentsLoading: false,
 			agentsFetchError: false,
@@ -485,6 +516,24 @@ export default {
 		},
 
 		/**
+		 * Whether this browser can speak at all.
+		 *
+		 * Checked as a CAPABILITY, not a constructor: the sibling dictation
+		 * button shipped broken because `webkitSpeechRecognition` exists on an
+		 * insecure origin while refusing to run. `speechSynthesis` differs —
+		 * it has no secure-context requirement — but it is still checked rather
+		 * than assumed, and the toggle says so when absent instead of silently
+		 * doing nothing.
+		 *
+		 * @return {boolean} true when speech synthesis is usable.
+		 */
+		speechSynthesisSupported() {
+			return typeof window !== 'undefined'
+				&& typeof window.speechSynthesis !== 'undefined'
+				&& typeof window.SpeechSynthesisUtterance === 'function'
+		},
+
+		/**
 		 * The window's title: the selected agent's name.
 		 *
 		 * Falls back while the agent list is still loading, and again if it
@@ -536,15 +585,133 @@ export default {
 				this.activeConversationUuid = newVal
 			}
 		},
+
+		/**
+		 * Speak a finished assistant reply when read-aloud is on.
+		 *
+		 * Waits for `isStreaming` to go false rather than speaking the growing
+		 * text: speaking a partial answer and then speaking it again complete is
+		 * worse than a short wait.
+		 *
+		 * @param {boolean} streaming Whether a turn is still in flight.
+		 */
+		'streamState.isStreaming'(streaming) {
+			if (streaming === true || this.speakReplies !== true) {
+				return
+			}
+			this.speakLatestReply()
+		},
 	},
 
 	created() {
 		this.fetchAgents()
 		this.fetchConversations()
+		this.restoreSpeakPreference()
+	},
+
+	beforeUnmount() {
+		// Never leave the browser talking to a panel that has closed.
+		this.stopSpeaking()
 	},
 
 	methods: {
+		/**
+		 * Read the remembered read-aloud preference.
+		 *
+		 * @return {void}
+		 */
+		restoreSpeakPreference() {
+			try {
+				this.speakReplies = (window.localStorage.getItem(SPEAK_PREFERENCE_KEY) === '1')
+			} catch (e) {
+				// Storage can be unavailable (private mode, blocked cookies).
+				// The toggle then simply does not persist.
+				this.speakReplies = false
+			}
+		},
+
+		/**
+		 * Turn read-aloud on or off and remember it.
+		 *
+		 * @param {boolean} value The new state.
+		 * @return {void}
+		 */
+		onSpeakRepliesToggled(value) {
+			this.speakReplies = (value === true)
+			if (this.speakReplies === false) {
+				this.stopSpeaking()
+			}
+			try {
+				window.localStorage.setItem(SPEAK_PREFERENCE_KEY, this.speakReplies ? '1' : '0')
+			} catch (e) {
+				// Preference is still honoured for this session.
+			}
+		},
+
+		/**
+		 * Speak the most recent assistant message, once.
+		 *
+		 * @return {void}
+		 */
+		speakLatestReply() {
+			if (this.speechSynthesisSupported === false) {
+				return
+			}
+
+			const messages = (this.streamState && this.streamState.messages) || []
+			let latest = ''
+			for (let i = messages.length - 1; i >= 0; i--) {
+				if (messages[i] && messages[i].role === 'assistant') {
+					latest = String(messages[i].content || '')
+					break
+				}
+			}
+
+			if (latest === '' || latest === this.spokenText) {
+				return
+			}
+
+			this.stopSpeaking()
+			this.spokenText = latest
+
+			// Strip the markdown the model writes — speaking "asterisk asterisk
+			// Klant asterisk asterisk" is worse than not speaking at all.
+			const spoken = latest
+				.replace(/`{1,3}[^`]*`{1,3}/g, ' ')
+				.replace(/[*_#>|]/g, ' ')
+				.replace(/\[(.*?)\]\(.*?\)/g, '$1')
+				.replace(/\s+/g, ' ')
+				.trim()
+
+			try {
+				const utterance = new window.SpeechSynthesisUtterance(spoken)
+				utterance.lang = (typeof document !== 'undefined' && document.documentElement.lang)
+					? document.documentElement.lang
+					: 'en-US'
+				window.speechSynthesis.speak(utterance)
+			} catch (e) {
+				// Speaking is a convenience; a failure must not disturb the chat.
+			}
+		},
+
+		/**
+		 * Stop any speech in progress.
+		 *
+		 * @return {void}
+		 */
+		stopSpeaking() {
+			if (this.speechSynthesisSupported === false) {
+				return
+			}
+			try {
+				window.speechSynthesis.cancel()
+			} catch (e) {
+				// Nothing to cancel.
+			}
+		},
+
 		onClose() {
+			this.stopSpeaking()
 			this.$emit('close')
 		},
 
