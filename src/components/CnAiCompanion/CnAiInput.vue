@@ -159,6 +159,9 @@ import Microphone from 'vue-material-design-icons/Microphone.vue'
 import MicrophoneOff from 'vue-material-design-icons/MicrophoneOff.vue'
 import { DEFAULT_CHAT_APP_ID, attachmentsUrl } from '../../composables/aiChatConfig.js'
 
+/** How long a dictation failure stays on screen, in ms. */
+const DICTATION_ERROR_TIMEOUT = 6000
+
 export default {
 	name: 'CnAiInput',
 
@@ -215,6 +218,8 @@ export default {
 			textBeforeDictation: '',
 			/** Last dictation failure, shown to the user. '' when none. */
 			dictationError: '',
+			/** Timer clearing that message, so it does not outlive its moment. */
+			dictationErrorTimer: null,
 		}
 	},
 
@@ -285,9 +290,34 @@ export default {
 		// indicator stays lit in the browser chrome with nothing on screen
 		// explaining why.
 		this.stopDictation()
+		if (this.dictationErrorTimer !== null) {
+			clearTimeout(this.dictationErrorTimer)
+		}
 	},
 
 	methods: {
+		/**
+		 * Show a dictation failure, and take it away again.
+		 *
+		 * A banner with no lifetime is a banner that becomes furniture: the
+		 * first version stayed on screen for the rest of the session, sitting
+		 * above the composer long after the moment it described, so it read as a
+		 * permanent state of the chat rather than as the result of a click.
+		 *
+		 * @param {string} message What went wrong.
+		 * @return {void}
+		 */
+		showDictationError(message) {
+			this.dictationError = message
+			if (this.dictationErrorTimer !== null) {
+				clearTimeout(this.dictationErrorTimer)
+			}
+			this.dictationErrorTimer = setTimeout(() => {
+				this.dictationError = ''
+				this.dictationErrorTimer = null
+			}, DICTATION_ERROR_TIMEOUT)
+		},
+
 		/**
 		 * Start dictation, or stop it if already running.
 		 *
@@ -360,9 +390,9 @@ export default {
 			// insecure origin or a denied microphone permission.
 			recognition.onerror = (event) => {
 				const code = (event && event.error) ? String(event.error) : 'unknown'
-				this.dictationError = (code === 'not-allowed')
+				this.showDictationError((code === 'not-allowed')
 					? this.cnTranslate('Microphone blocked — allow access, or use https')
-					: this.cnTranslate('Dictation stopped: ') + code
+					: this.cnTranslate('Dictation stopped: ') + code)
 				this.listening = false
 				this.recognition = null
 			}
@@ -375,7 +405,9 @@ export default {
 				// `start()` throws if called twice, and on some browsers when the
 				// origin is not permitted. Either way say so rather than resetting
 				// in silence.
-				this.dictationError = this.cnTranslate('Dictation could not start: ') + (e.message || 'unknown')
+				this.showDictationError(
+					this.cnTranslate('Dictation could not start: ') + (e.message || 'unknown'),
+				)
 				this.listening = false
 				this.recognition = null
 			}
