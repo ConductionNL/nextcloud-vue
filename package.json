@@ -42,7 +42,7 @@
   "scripts": {
     "build:validators": "node scripts/build-validators.js",
     "prebuild": "npm run build:validators",
-    "build": "rollup -c",
+    "build": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\" && rollup -c",
     "dev": "rollup -c -w",
     "pretest": "npm run build:validators",
     "test": "jest",
