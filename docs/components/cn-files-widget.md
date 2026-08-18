@@ -12,7 +12,7 @@ Part of the dashboard widget library (v2). Registered with the dashboard widget 
 
 | Name        | Type      | Required | Default | Description                                                                                                                                                                         |
 | ----------- | --------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `content`   | `object`  |          | `\{\}`  | Persisted content blob configuring the folder + toolbar — see \{@link CnFilesWidgetForm\} for the full shape (`folderPath`, `fileId`, `viewMode`, `allowUpload`, `allowDelete`, …). |
+| `content`   | `object`  |          | `\{\}`  | Persisted content blob configuring the folder + toolbar — see \`CnFilesWidgetForm` for the full shape (`folderPath`, `fileId`, `viewMode`, `allowUpload`, `allowDelete`, …). |
 | `placement` | `object`  |          | `\{\}`  | Placement entity; its `id` scopes the host Files endpoint.                                                                                                                          |
 | `isAdmin`   | `boolean` |          | `false` | Whether the dashboard shell is in admin mode.                                                                                                                                       |
 | `canEdit`   | `boolean` |          | `false` | Whether the dashboard shell is in edit mode.                                                                                                                                        |
