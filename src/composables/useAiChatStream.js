@@ -67,6 +67,17 @@ export function useAiChatStream(contextInstance, options = {}) {
 		currentText: '',
 		/** Tool call entries: { toolId, arguments, result?, isError? } */
 		toolCalls: [],
+		/**
+		 * Approvals the agent is waiting on, so they can be decided HERE.
+		 *
+		 * Deliberately generic: each entry carries its own `kind` and its own
+		 * `resolveUrl`, so a new approval type (fetching a URL, editing a file
+		 * that is not open) is rendered and resolved by this same code with no
+		 * change — the server says where the decision is posted.
+		 *
+		 * Shape: { id, kind, title, app, reach, reason, agentId, resolveUrl }
+		 */
+		pendingApprovals: [],
 		/** Error state: { code, message } | null */
 		error: null,
 		/** Full conversation message history for the current session */
@@ -95,13 +106,27 @@ export function useAiChatStream(contextInstance, options = {}) {
 	 * @returns {object}
 	 */
 	function getContextSnapshot() {
-		const ctx = useAiContext(contextInstance)
+		// An EXPLICIT context wins over the injected one.
+		//
+		// The injected path assumes a CnAppRoot ancestor provides the context.
+		// A companion mounted standalone on a page that is not ours has no such
+		// ancestor, so it falls back to `defaultContext` — whose `appId` is the
+		// literal string 'unknown'. The agent then receives "app context:
+		// unknown" and, correctly, refuses to act: measured, it answered a
+		// document edit request with "I don't have a clear app context" while
+		// the user was looking straight at the document.
+		//
+		// The host that mounted the companion is the one thing that DOES know
+		// what page it is on, so it may state it.
+		const ctx = options.context || useAiContext(contextInstance)
+
 		return {
 			appId: ctx.appId,
 			pageKind: ctx.pageKind,
 			objectUuid: ctx.objectUuid,
 			registerSlug: ctx.registerSlug,
 			schemaSlug: ctx.schemaSlug,
+			fileId: ctx.fileId,
 			route: ctx.route,
 		}
 	}
@@ -154,6 +179,9 @@ export function useAiChatStream(contextInstance, options = {}) {
 			// `currentText` from the payload so the assistant bubble renders.
 			if (state.currentText === '' && typeof parsed.fullText === 'string') {
 				state.currentText = parsed.fullText
+			}
+			if (Array.isArray(parsed.pendingApprovals)) {
+				state.pendingApprovals = parsed.pendingApprovals
 			}
 			finalise(parsed.messageId, parsed.conversationUuid)
 			break
@@ -232,6 +260,14 @@ export function useAiChatStream(contextInstance, options = {}) {
 			// Treat the response as a final event — populate currentText from the reply
 			const replyContent = data?.content || data?.message || data?.reply || ''
 			state.currentText = replyContent
+			// Same two fields the SSE `final` event carries, so the fallback path
+			// shows tool steps and approvals exactly as the streaming one does.
+			if (Array.isArray(data?.toolCalls)) {
+				state.toolCalls = data.toolCalls
+			}
+			if (Array.isArray(data?.pendingApprovals)) {
+				state.pendingApprovals = data.pendingApprovals
+			}
 			// ChatController::sendMessage() echoes the conversation uuid back as
 			// `conversation` (ChatStreamController's SSE `final` event uses
 			// `conversationUuid` instead — see finalise() caller in handleSseMessage).
