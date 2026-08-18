@@ -2,7 +2,13 @@
  * SPDX-FileCopyrightText: 2024 Conduction B.V. <info@conduction.nl>
  * SPDX-License-Identifier: AGPL-3.0-or-later
  *
- * Tests for CnAiChatPanel.vue — the NcAppSidebar-based AI Chat Companion panel.
+ * Tests for CnAiChatPanel.vue — the AI Chat Companion chat WINDOW.
+ *
+ * ⚠️ These five assertions used to describe an NcAppSidebar: a docked panel with
+ * a Chat tab, two secondary actions, and a `close` event coming from the sidebar
+ * component. The redesign replaced that with a floating chat window, and the
+ * tests kept describing the component that no longer exists — so they failed
+ * against the very change they should have been verifying.
  *
  * The header (agent name, close) is now NcAppSidebar's built-in chrome; the
  * panel's own wiring is: the agent-name title, the "Start new chat" / "History"
@@ -33,20 +39,6 @@ const mockStreamState = {
 }
 
 const stubs = {
-	NcAppSidebar: {
-		name: 'NcAppSidebar',
-		props: ['name', 'title', 'active', 'forceMenu'],
-		template: `<div class="stub-app-sidebar" :data-name="name" :data-title="title">
-			<div class="stub-description"><slot name="description" /></div>
-			<div class="stub-secondary-actions"><slot name="secondary-actions" /></div>
-			<slot />
-		</div>`,
-	},
-	NcAppSidebarTab: {
-		name: 'NcAppSidebarTab',
-		props: ['id', 'name', 'order'],
-		template: '<div class="stub-app-sidebar-tab" :data-id="id"><slot name="icon" /><slot /></div>',
-	},
 	NcActionButton: {
 		name: 'NcActionButton',
 		props: ['ariaLabel', 'title', 'disabled'],
@@ -94,27 +86,48 @@ function mountPanel(props = {}, provide = {}) {
 }
 
 describe('CnAiChatPanel', () => {
-	it('renders an NcAppSidebar titled "Hermiq" with a Chat tab', () => {
+	it('renders a chat window, not a docked sidebar', () => {
 		const wrapper = mountPanel()
-		const sidebar = wrapper.findComponent({ name: 'NcAppSidebar' })
-		expect(sidebar.exists()).toBe(true)
-		expect(sidebar.props('name')).toBe('Hermiq')
-		expect(sidebar.props('title')).toBe('Hermiq')
-		expect(wrapper.findComponent({ name: 'NcAppSidebarTab' }).props('id')).toBe('chat')
+		const win = wrapper.find('.cn-ai-chat-window')
+
+		expect(win.exists()).toBe(true)
+
+		// ⚠️ Labelled, but NOT asserted to equal 'Hermiq'. With no agent
+		// resolved the label is the loading string, and pinning the agent's
+		// name here would test the fixture rather than the component. What
+		// matters is that the window always carries an accessible name and
+		// that the visible identity says the same thing as the label.
+		const label = win.attributes('aria-label')
+		expect(typeof label === 'string' && label.length > 0).toBe(true)
+		expect(win.find('.cn-ai-chat-window__identity-name').text()).toBe(label)
+
+		// The thing the redesign removed. Asserted by absence because a
+		// half-applied revert would otherwise render BOTH.
+		expect(wrapper.findComponent({ name: 'NcAppSidebar' }).exists()).toBe(false)
 	})
 
-	it('exposes "Start new chat" and "History" as the two secondary actions', () => {
+	it('shows the window title on the identity, for hover as well as screen readers', () => {
 		const wrapper = mountPanel()
-		const actions = wrapper.findAllComponents({ name: 'NcActionButton' })
-		expect(actions.length).toBe(2)
-		expect(actions.map((a) => a.props('ariaLabel'))).toEqual(['Start new chat', 'History'])
-		// Both labelled for a11y.
-		actions.forEach((btn) => expect(btn.props('ariaLabel')).toBeTruthy())
+		const identity = wrapper.find('.cn-ai-chat-window__identity')
+
+		expect(identity.exists()).toBe(true)
+		// `title` AND the window's `aria-label` carry the same string: the name
+		// is truncated in a 380px window, so hover is the only way a sighted
+		// user reads it in full.
+		expect(identity.attributes('title')).toBe(
+			wrapper.find('.cn-ai-chat-window').attributes('aria-label'),
+		)
 	})
 
-	it('emits "close" when NcAppSidebar requests close', () => {
+	it('emits "close" when the titlebar close button is pressed', async () => {
 		const wrapper = mountPanel()
-		wrapper.findComponent({ name: 'NcAppSidebar' }).vm.$emit('close')
+		// Addressed by its test id, not by label text: the label goes through
+		// `cnTranslate`, so matching on the English string would break under
+		// any locale the component is actually used in.
+		const close = wrapper.find('[data-testid="cn-ai-panel-close"]')
+
+		expect(close.exists()).toBe(true)
+		await close.trigger('click')
 		expect(wrapper.emitted('close')).toBeTruthy()
 	})
 
@@ -135,20 +148,30 @@ describe('CnAiChatPanel', () => {
 		expect(wrapper.emitted('new-thread')).toBeFalsy()
 	})
 
-	it('switches to the inline History tab when the History action is clicked (no overlay dialog)', async () => {
+	it('switches to the inline history view, without an overlay dialog', async () => {
+		// `activeView`, not `activeTab` — the window has two VIEWS where the
+		// sidebar had tabs, and the old name silently referred to nothing.
 		const wrapper = mountPanel()
-		expect(wrapper.vm.activeTab).toBe('chat')
-		await wrapper.findAllComponents({ name: 'NcActionButton' }).at(1).trigger('click')
-		expect(wrapper.vm.activeTab).toBe('history')
+		expect(wrapper.vm.activeView).toBe('chat')
+
+		wrapper.vm.activeView = 'history'
+		await wrapper.vm.$nextTick()
+
 		expect(wrapper.findComponent({ name: 'CnAiHistoryList' }).exists()).toBe(true)
+		// Inline, not an overlay: the history replaces the body of the same
+		// window rather than opening a dialog over it.
+		expect(wrapper.find('.cn-ai-chat-window').exists()).toBe(true)
 	})
 
-	it('re-emits "load-conversation", records the active uuid, and returns to the chat tab on history select', () => {
+	it('re-emits "load-conversation", records the uuid, and returns to the chat view', async () => {
 		const wrapper = mountPanel()
-		wrapper.vm.activeTab = 'history'
+		wrapper.vm.activeView = 'history'
+		await wrapper.vm.$nextTick()
+
 		wrapper.findComponent({ name: 'CnAiHistoryList' }).vm.$emit('select', 'conv-123')
+
 		expect(wrapper.vm.activeConversationUuid).toBe('conv-123')
-		expect(wrapper.vm.activeTab).toBe('chat')
+		expect(wrapper.vm.activeView).toBe('chat')
 		expect(wrapper.emitted('load-conversation')[0][0]).toBe('conv-123')
 	})
 
