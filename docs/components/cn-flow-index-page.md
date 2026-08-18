@@ -4,6 +4,10 @@ sidebar_position: 47
 
 # CnFlowIndexPage
 
+:::caution Deprecated
+A flow list is an ordinary index surface and belongs on [`CnIndexPage`](./cn-index-page.md) — columns plus the external `:objects` prop fed from `useFlowStore().flows` — per **ADR-096**. This bespoke table stays rendering so existing consumers do not break, but new pages must not use it; see hermiq's `FlowIndex.vue` (or openregister's `FlowsIndex.vue`) for the CnIndexPage template.
+:::
+
 The **browse surface** over OpenRegister's one flow store.
 
 ```vue

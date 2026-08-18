@@ -83,7 +83,12 @@
 			<template v-if="$slots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$slots['actions'] || isEditMode || showExportMenu || allowSavedViews" #actions>
+			<template v-if="$slots['header-actions'] || $slots['actions'] || isEditMode || showExportMenu || allowSavedViews" #actions>
+				<!--
+					@slot header-actions
+					@description Extra buttons in the page header, inline next to the Add button. Documented since the beginning but wired up only later — consumers passing it (hermiq's flow list's "New flow" button) rendered nothing while the page looked fine.
+				-->
+				<slot name="header-actions" />
 				<slot name="actions" />
 				<!-- Saved views (opt-in via `allowSavedViews`): lists the user's
 				     OpenRegister saved-search views; applying one writes its stored

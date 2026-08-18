@@ -137,7 +137,8 @@
 | `below-header`    | —                                            |                                                                                             |
 | `mass-actions`    | `count`, `selected-ids`                      |                                                                                             |
 | `action-items`    | —                                            |                                                                                             |
-| `actions`         | —                                            |                                                                                             |
+| `header-actions`  | —                                            | header-actions                                                                              |
+| `actions`         | —                                            | header-actions                                                                              |
 | `import-fields`   | `file`                                       |                                                                                             |
 | `delete-dialog`   | `show`, `item`, `confirm`, `close`           | delete-dialog Replace the single-item delete dialog.                                        |
 | `copy-dialog`     | `show`, `item`, `confirm`, `close`           | copy-dialog Replace the single-item copy dialog.                                            |
