@@ -33,11 +33,19 @@
 				v-else
 				class="cn-ai-message-list__bubble cn-ai-message-list__bubble--assistant"
 				aria-live="polite">
-				<!-- Streaming partial text (currentText from parent) -->
+				<!--
+				  `use-markdown` alone renders INLINE syntax only — bold, italic,
+				  links — which is why a model's answer showed bold headings while
+				  its tables arrived as raw pipes and dashes. `use-extended-markdown`
+				  is the prop that turns on the block syntax (tables, headings,
+				  lists, code blocks), and an agent answering with data reaches for
+				  a table constantly.
+				-->
 				<NcRichText
 					v-if="message.content"
 					:text="message.content"
-					:use-markdown="true" />
+					:use-markdown="true"
+					:use-extended-markdown="true" />
 
 				<!-- Tool calls / results -->
 				<div
@@ -64,7 +72,12 @@
 		<!-- Streaming in-progress indicator (partial tokens) -->
 		<div v-if="currentText" class="cn-ai-message-list__item cn-ai-message-list__item--assistant">
 			<div class="cn-ai-message-list__bubble cn-ai-message-list__bubble--assistant" aria-live="polite">
-				<NcRichText :text="currentText" :use-markdown="true" />
+				<!-- Same treatment as a finalised message, or a table would render
+				     as pipes while streaming and reflow into a table at the end. -->
+				<NcRichText
+					:text="currentText"
+					:use-markdown="true"
+					:use-extended-markdown="true" />
 			</div>
 		</div>
 

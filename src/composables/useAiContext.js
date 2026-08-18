@@ -64,10 +64,27 @@ const CN_AI_CONTEXT_KEY = 'cnAiContext'
  * @returns {object} Reactive CnAiContext
  */
 export function useAiContext(instance) {
-	if (instance && instance[CN_AI_CONTEXT_KEY] !== undefined) {
+	// ⚠️ `!= null` (loose) catches BOTH undefined and null, and the null case is
+	// the one that mattered.
+	//
+	// Every consumer declares `inject: { cnAiContext: { default: null } }` — the
+	// documented pattern, shown in this file's own example above. With no
+	// provider on the page, Vue injects that default, so the value is NULL, not
+	// undefined. A strict `!== undefined` check passed it straight through, and
+	// the caller then read `ctx.appId` off null.
+	//
+	// It never surfaced inside a Conduction app, because CnAppRoot always
+	// provides the context there. It surfaces the moment the companion is
+	// mounted standalone on a page that is not ours — which is exactly what
+	// Hermiq's always-on companion bundle does. Measured symptom, on the
+	// Euro-Office editor: sending a message threw
+	// `TypeError: Cannot read properties of null (reading 'appId')`
+	// and the turn never left the browser.
+	if (instance && instance[CN_AI_CONTEXT_KEY] != null) {
 		return instance[CN_AI_CONTEXT_KEY]
 	}
-	// No provider found — return the stable default
+
+	// No provider, or a provider that injected the documented null default.
 	return defaultContext
 }
 
