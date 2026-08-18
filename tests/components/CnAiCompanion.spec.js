@@ -43,6 +43,12 @@ function mountCompanion(options = {}) {
 describe('CnAiCompanion', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
+		// One companion renders per page, and the claim lives on `window` so two
+		// separately-bundled copies can see each other. A test file is one
+		// `window` for many "pages", so the slot is released between tests —
+		// without this, the first mounted companion holds it and every later
+		// test asserts against a component that correctly stood down.
+		window.__cnAiCompanionPrimary = null
 	})
 
 	it('health probe targets the default backend app id (hermiq)', async () => {
@@ -150,5 +156,62 @@ describe('CnAiCompanion', () => {
 		expect(wrapper.vm.isChatPage).toBe(true)
 		// The entire cn-ai-companion div should not render when isChatPage
 		expect(wrapper.find('.cn-ai-companion').exists()).toBe(false)
+	})
+
+	describe('one companion per page', () => {
+		it('a second companion on the same page renders nothing', async () => {
+			// 🔴 The reported bug: TWO hexes, a few pixels apart. `CnAppRoot`
+			// renders a companion for any app that sets `aiCompanion`, and a
+			// host app can also mount one standalone on every page of the
+			// instance — so any page with both had two.
+			axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
+
+			const first = mountCompanion()
+			const second = mountCompanion()
+			for (let i = 0; i < 4; i++) {
+				await first.vm.$nextTick()
+				await second.vm.$nextTick()
+			}
+
+			expect(first.find('.cn-ai-companion').exists()).toBe(true)
+			expect(second.find('.cn-ai-companion').exists()).toBe(false)
+		})
+
+		it('the slot is released when the holder unmounts, so a later page gets one', async () => {
+			axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
+
+			const first = mountCompanion()
+			await first.vm.$nextTick()
+			first.unmount()
+
+			const next = mountCompanion()
+			for (let i = 0; i < 4; i++) {
+				await next.vm.$nextTick()
+			}
+
+			expect(next.find('.cn-ai-companion').exists()).toBe(true)
+		})
+
+		it('a stood-down companion unmounting does not release the holder\'s slot', async () => {
+			// Otherwise the pair re-enters the state this guard exists to
+			// prevent: the holder keeps rendering, the slot reads as free, and
+			// the next mount renders a second one alongside it.
+			axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
+
+			const holder = mountCompanion()
+			const stoodDown = mountCompanion()
+			await holder.vm.$nextTick()
+			await stoodDown.vm.$nextTick()
+
+			stoodDown.unmount()
+
+			const third = mountCompanion()
+			for (let i = 0; i < 4; i++) {
+				await third.vm.$nextTick()
+			}
+
+			expect(holder.find('.cn-ai-companion').exists()).toBe(true)
+			expect(third.find('.cn-ai-companion').exists()).toBe(false)
+		})
 	})
 })

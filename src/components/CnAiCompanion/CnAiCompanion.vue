@@ -16,7 +16,10 @@
   FAB and panel both hidden when cnAiContext.pageKind === 'chat'.
 -->
 <template>
-	<div v-if="probeSucceeded && !isChatPage" class="cn-ai-companion" data-testid="cn-ai-companion">
+	<div
+		v-if="probeSucceeded && !isChatPage && isPrimaryCompanion"
+		class="cn-ai-companion"
+		data-testid="cn-ai-companion">
 		<!--
 		  The hex is rendered UNCONDITIONALLY and toggles the window.
 
@@ -71,6 +74,16 @@ const HEALTH_PROBE_ATTEMPTS = 3
 
 /** Base backoff between probe attempts, multiplied by the attempt number. */
 const HEALTH_RETRY_DELAY = 750
+
+/**
+ * The window key one companion claims so a second one stands down.
+ *
+ * On `window` rather than in module scope, because the two companions on a page
+ * do not share a module instance: one comes from the host app's bundle and one
+ * from a standalone bundle attached to every page. Two copies of this file are
+ * loaded, so a module-level flag would be two flags and would guard nothing.
+ */
+const COMPANION_SINGLETON_KEY = '__cnAiCompanionPrimary'
 
 export default {
 	name: 'CnAiCompanion',
@@ -132,6 +145,7 @@ export default {
 		return {
 			probeSucceeded: false,
 			isPanelOpen: false,
+			isPrimaryCompanion: false,
 			stream: useAiChatStream(this, { chatAppId: this.chatAppId, context: this.context }),
 		}
 	},
@@ -144,10 +158,74 @@ export default {
 	},
 
 	created() {
+		this.claimSingleton()
 		this.runHealthProbe()
 	},
 
+	beforeUnmount() {
+		this.releaseSingleton()
+	},
+
 	methods: {
+		/**
+		 * Claim the page's single companion slot, or stand down.
+		 *
+		 * 🔴 TWO COMPANIONS ON ONE PAGE IS A REACHABLE STATE, and it was reached:
+		 * `CnAppRoot` renders a companion for any app that sets `aiCompanion`,
+		 * while a host app can also mount one standalone on every page of the
+		 * instance (Hermiq does exactly this, so the assistant reaches
+		 * third-party office editors that have no CnAppRoot of ours). On any
+		 * page that has both, the user saw TWO hexes stacked a few pixels apart
+		 * — the two mounts pick up different bundled stylesheets, so they do not
+		 * even land in the same place.
+		 *
+		 * The guard lives HERE, in the component, rather than in each host's
+		 * mount script, because only the component knows how many of itself
+		 * exist. A host-side check cannot see a sibling that mounts later: the
+		 * standalone script runs at DOMContentLoaded and the app's own Vue tree
+		 * boots after it, so whichever check runs first sees nothing and both
+		 * render.
+		 *
+		 * First to claim wins and the rest render nothing. That order is stable
+		 * in practice — the standalone mount runs first — but the rule does not
+		 * depend on it: what matters is that exactly one renders, not which.
+		 *
+		 * @return {void}
+		 */
+		claimSingleton() {
+			const scope = typeof window !== 'undefined' ? window : null
+			if (scope === null) {
+				// No window (SSR, a bare unit test): nothing else can be
+				// rendering, so this instance is the only one by definition.
+				this.isPrimaryCompanion = true
+				return
+			}
+
+			if (scope[COMPANION_SINGLETON_KEY] == null) {
+				scope[COMPANION_SINGLETON_KEY] = this
+				this.isPrimaryCompanion = true
+				return
+			}
+
+			this.isPrimaryCompanion = scope[COMPANION_SINGLETON_KEY] === this
+		},
+
+		/**
+		 * Give the slot back, but only if this instance is holding it.
+		 *
+		 * Checked rather than cleared unconditionally: a second, standing-down
+		 * instance unmounting must not release the slot the FIRST one is still
+		 * using, which would let a third mount render alongside it.
+		 *
+		 * @return {void}
+		 */
+		releaseSingleton() {
+			const scope = typeof window !== 'undefined' ? window : null
+			if (scope !== null && scope[COMPANION_SINGLETON_KEY] === this) {
+				scope[COMPANION_SINGLETON_KEY] = null
+			}
+		},
+
 		async runHealthProbe() {
 			// RETRY before hiding. A single probe makes the whole companion
 			// disappear on one slow response, and "slow" is normal: measured on a
