@@ -65,6 +65,12 @@ export const useFlowStore = defineStore('cnFlow', {
 		nodeCatalog: [],
 		eventCatalog: [],
 
+		// Whether the catalogue request is still in flight. Without this flag
+		// the palette cannot tell "loading" from "failed": both are an empty
+		// list, and the sidebar showed "Could not read the flow engine's node
+		// types" on every fresh /flows/new while the request was mid-air.
+		catalogLoading: false,
+
 		// The runs of the flow being edited, and the per-node steps of the run
 		// currently being inspected.
 		runs: [],
@@ -74,6 +80,13 @@ export const useFlowStore = defineStore('cnFlow', {
 		loading: false,
 		saving: false,
 		running: false,
+		checking: false,
+
+		// The engine's verdict on the unsaved canvas, from `check()`. Cleared
+		// by any edit that could change it, so a stale "looks runnable" never
+		// outlives the graph it described.
+		checkResult: null,
+
 		dirty: false,
 		error: null,
 	}),
@@ -102,7 +115,118 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @return {Function} (type) => entry|null
 		 */
 		catalogEntry: (state) => (type) => {
-			return state.nodeCatalog.find((entry) => entry.id === type) || null
+			return state.nodeCatalog.find((entry) => (
+				entry.id === type || (entry.aliases || []).includes(type)
+			)) || null
+		},
+
+		/**
+		 * A node type's role — `trigger`, `step` or `end` — from the catalogue.
+		 *
+		 * Falls back to the id's naming convention only while the catalogue has
+		 * not loaded, so the canvas is not colourless during the first paint.
+		 *
+		 * @return {Function} (type) => 'trigger'|'step'|'end'
+		 */
+		roleOfNodeType() {
+			return (type) => {
+				const entry = this.catalogEntry(type)
+				if (entry?.role) {
+					return entry.role
+				}
+
+				const id = String(type || '')
+				if (id.includes('.trigger-')) {
+					return 'trigger'
+				}
+				if (id.endsWith('.end') || id.endsWith('.stop')) {
+					return 'end'
+				}
+
+				return 'step'
+			}
+		},
+
+		/**
+		 * The edges as the canvas draws them: one line per (source, target)
+		 * pair, whatever dialect the stored flow speaks.
+		 *
+		 * This store writes `{source, target}`, but the engine equally accepts
+		 * `{from, to}` — hermiq's flows are stored that way, and each endpoint
+		 * may be a LIST (several `from` = join, several `to` = split). Handing
+		 * `flow.edges` to the canvas raw therefore rendered every one of those
+		 * flows as unconnected cards: real graphs, silently drawn wrong.
+		 *
+		 * @param {object} state The store state.
+		 * @return {Array<object>} Drawable `{id, source, target, edge}` lines.
+		 */
+		canvasEdges: (state) => {
+			const toList = (value) => {
+				if (Array.isArray(value)) {
+					return value.filter((v) => v !== null && v !== undefined && v !== '')
+				}
+
+				return (value === null || value === undefined || value === '') ? [] : [value]
+			}
+
+			const lines = []
+			for (const [index, edge] of (state.flow.edges || []).entries()) {
+				const sources = toList(edge.source ?? edge.from)
+				const targets = toList(edge.target ?? edge.to)
+				const edgeId = edge.id || `edge-${index}`
+
+				for (const source of sources) {
+					for (const target of targets) {
+						// The line id must not be the edge id: a split renders
+						// one edge as several lines, and v-for keys collide.
+						lines.push({ id: `${edgeId}:${source}:${target}`, source, target, edge })
+					}
+				}
+			}
+
+			return lines
+		},
+
+		/**
+		 * The nodes a run enters through, decided the way the engine decides.
+		 *
+		 * @return {Array<string>} Their ids.
+		 */
+		startNodeIds() {
+			const nodes = this.nodes
+			const explicit = nodes.filter((n) => n.start === true || n.initial === true).map((n) => n.id)
+			if (explicit.length) {
+				return explicit
+			}
+
+			const targeted = new Set(this.canvasEdges.map((line) => line.target))
+			const sources = nodes.filter((n) => !targeted.has(n.id)).map((n) => n.id)
+			if (sources.length) {
+				return sources
+			}
+
+			return nodes.length ? [nodes[0].id] : []
+		},
+
+		/**
+		 * What stops this flow from ever finishing, by node ROLE.
+		 *
+		 * An empty flow reports nothing — there is no point telling the author
+		 * a blank canvas is incomplete.
+		 *
+		 * @return {{trigger: boolean, end: boolean}} The missing roles.
+		 */
+		missingEnds() {
+			if (!this.nodes.length) {
+				return { trigger: false, end: false }
+			}
+
+			const roles = this.nodes.map((n) => this.roleOfNodeType(n.type))
+
+			return {
+				trigger: !roles.includes('trigger'),
+				end: !roles.includes('end'),
+			}
 		},
 
 		/**
@@ -192,12 +316,15 @@ export const useFlowStore = defineStore('cnFlow', {
 		},
 
 		async loadNodeCatalog() {
+			this.catalogLoading = true
 			try {
 				const response = await axios.get(generateUrl('/apps/openregister/api/flow/node-catalog'))
 				this.nodeCatalog = response.data?.results || []
 			} catch (error) {
 				console.error('cn-flow: could not load the node catalogue', error)
 				this.nodeCatalog = []
+			} finally {
+				this.catalogLoading = false
 			}
 		},
 
@@ -223,9 +350,14 @@ export const useFlowStore = defineStore('cnFlow', {
 			this.runs = []
 			this.steps = []
 			this.inspectedRunUuid = null
+			this.checkResult = null
 
 			if (!id || id === 'new') {
-				this.flow = { ...emptyFlow(), name: 'New flow', app: app || 'openregister' }
+				// A new flow is runnable on demand until its author picks a real
+				// trigger, so the flow-level trigger and the seeded start node
+				// say the same thing.
+				this.flow = { ...emptyFlow(), name: 'New flow', app: app || 'openregister', trigger: 'manual' }
+				this.seedStartNode()
 				this.dirty = false
 				return
 			}
@@ -247,6 +379,29 @@ export const useFlowStore = defineStore('cnFlow', {
 			this.dirty = false
 
 			this.loadRuns(id)
+		},
+
+		/**
+		 * Put the one node every flow starts from onto a blank canvas.
+		 *
+		 * A new flow renders the SAME editor as an existing one, holding only a
+		 * starting point — never an empty page that looks like a different
+		 * surface. The id is hard-coded rather than read from the catalogue
+		 * because the catalogue loads after `open('new')` returns; if an
+		 * instance's engine really does not know it, the card wears the
+		 * existing "Unknown step" warning instead of failing silently.
+		 *
+		 * @return {void}
+		 */
+		seedStartNode() {
+			this.flow.nodes = [{
+				id: `start-${Date.now().toString(36)}`,
+				type: 'openregister.trigger-manual',
+				x: 80,
+				y: 60,
+				config: {},
+				start: true,
+			}]
 		},
 
 		/**
@@ -277,6 +432,7 @@ export const useFlowStore = defineStore('cnFlow', {
 			this.flow.nodes = [...this.nodes, node]
 			this.selectedNodeId = node.id
 			this.dirty = true
+			this.checkResult = null
 		},
 
 		moveNode({ id, x, y }) {
@@ -303,6 +459,7 @@ export const useFlowStore = defineStore('cnFlow', {
 
 			this.flow.edges = [...this.edges, { source, target }]
 			this.dirty = true
+			this.checkResult = null
 		},
 
 		removeNode(id) {
@@ -310,6 +467,7 @@ export const useFlowStore = defineStore('cnFlow', {
 			this.flow.edges = this.edges.filter((edge) => edge.source !== id && edge.target !== id)
 			this.selectedNodeId = null
 			this.dirty = true
+			this.checkResult = null
 		},
 
 		/**
@@ -331,6 +489,7 @@ export const useFlowStore = defineStore('cnFlow', {
 				node.id === this.selectedNodeId ? { ...node, config: { ...config } } : node
 			))
 			this.dirty = true
+			this.checkResult = null
 		},
 
 		setNodeConfig(key, value) {
@@ -344,11 +503,109 @@ export const useFlowStore = defineStore('cnFlow', {
 					: node
 			))
 			this.dirty = true
+			this.checkResult = null
 		},
 
 		setFlowField(key, value) {
 			this.flow = { ...this.flow, [key]: value }
 			this.dirty = true
+		},
+
+		/**
+		 * Lay the nodes out left-to-right by how the flow actually runs.
+		 *
+		 * Longest-path layering seeded from the start nodes, so a node sits one
+		 * column past the furthest node that leads to it. Unreachable nodes go
+		 * one column past everything — never at the origin, where they would
+		 * hide under the entry points. Coordinates and NOTHING else change,
+		 * which is what makes this safe to press on a working flow.
+		 *
+		 * @return {void}
+		 */
+		autoSort() {
+			const nodes = this.nodes
+			if (!nodes.length) {
+				return
+			}
+
+			const columnWidth = 260
+			const rowHeight = 170
+			const margin = 60
+
+			const outgoing = new Map()
+			for (const line of this.canvasEdges) {
+				if (!outgoing.has(line.source)) {
+					outgoing.set(line.source, [])
+				}
+				outgoing.get(line.source).push(line.target)
+			}
+
+			const depth = new Map()
+			const queue = this.startNodeIds.map((id) => ({ id, level: 0 }))
+			// n² guard: a cycle must terminate the walk, not the browser.
+			let budget = nodes.length * nodes.length
+			while (queue.length && budget-- > 0) {
+				const { id, level } = queue.shift()
+				if ((depth.get(id) ?? -1) >= level) {
+					continue
+				}
+
+				depth.set(id, level)
+				for (const next of (outgoing.get(id) || [])) {
+					queue.push({ id: next, level: level + 1 })
+				}
+			}
+
+			const unreachableColumn = (Math.max(-1, ...depth.values()) + 1)
+			const rows = new Map()
+			this.flow.nodes = nodes.map((node) => {
+				const column = depth.has(node.id) ? depth.get(node.id) : unreachableColumn
+				const row = rows.get(column) || 0
+				rows.set(column, row + 1)
+
+				return {
+					...node,
+					x: margin + (column * columnWidth),
+					y: margin + (row * rowHeight),
+				}
+			})
+			this.dirty = true
+		},
+
+		/**
+		 * Ask the engine whether the CANVAS is runnable, without saving it.
+		 *
+		 * `POST /api/flow/validate` preflights the document against the live
+		 * node registry — the same check a save performs, minus the write. A
+		 * refusal (400) still carries the preflight's own report, so it is kept
+		 * as the result rather than treated as a transport failure: "this flow
+		 * is not runnable, and here is why" is the answer the button asked for.
+		 *
+		 * @return {Promise<object|null>} `{valid, blocking, warnings, message?}`, or null.
+		 */
+		async check() {
+			this.checking = true
+			this.error = null
+			try {
+				const response = await axios.post(
+					generateUrl('/apps/openregister/api/flow/validate'),
+					{ flow: this.flowForRun },
+				)
+				this.checkResult = response.data || null
+				return this.checkResult
+			} catch (error) {
+				const report = error?.response?.data
+				if (report && typeof report === 'object' && 'valid' in report) {
+					this.checkResult = report
+					return this.checkResult
+				}
+
+				console.error('cn-flow: could not check the flow', error)
+				this.error = error
+				return null
+			} finally {
+				this.checking = false
+			}
 		},
 
 		/**

@@ -22,12 +22,28 @@ await store.run({ uuid, register, schema })  // queue a run against a subject
 
 | Key | What it holds |
 |---|---|
-| `flow` | The flow being edited. |
+| `flow` | The flow being edited. `open('new')` seeds it with the manual-trigger start node (`seedStartNode()`), so a new flow renders as the same editor holding only a starting point. |
 | `flows` | The list, as last loaded. |
 | `nodeCatalog` | The step types the ENGINE can execute. Authoritative — see below. |
+| `catalogLoading` | Whether the catalogue request is in flight — an in-flight catalogue is NOT a failed one. |
 | `eventCatalog` | The triggers a flow may subscribe to. |
 | `runs` / `steps` | Recent runs, and the per-node steps of the run being inspected. |
-| `loading` / `saving` / `running` / `dirty` / `error` | Status flags. |
+| `checkResult` | The engine's verdict on the unsaved canvas, from `check()`. Cleared by any edit that could change it. |
+| `loading` / `saving` / `running` / `checking` / `dirty` / `error` | Status flags. |
+
+## Getters worth knowing
+
+- `canvasEdges` — the edges as drawable `{id, source, target, edge}` lines, whatever dialect the stored flow speaks. This store writes `{source, target}`; the engine equally accepts `{from, to}` with **list** endpoints (several `from` = join, several `to` = split). One stored edge fans out into one line per pair.
+- `roleOfNodeType(type)` — `trigger` / `step` / `end` from the catalogue, with a naming-convention fallback only while the catalogue has not loaded.
+- `missingEnds` — which of trigger/end the flow lacks, decided by node **role**, never graph position. Empty flows report nothing.
+- `startNodeIds` — the nodes a run enters through, decided the way the engine decides: explicit `start`/`initial` wins, else sources, else the first node.
+- `catalogEntry(type)` — alias-aware: an entry matches on its id or any of its published `aliases`.
+
+## Actions beyond CRUD
+
+- `check()` — `POST /api/flow/validate`: the engine's own preflight over the **canvas**, without saving. A 400 still carries the preflight's report and is stored as the verdict, not treated as a transport failure.
+- `autoSort()` — longest-path layering from the start nodes, left-to-right. Coordinates change and nothing else, which is what makes it safe on a working flow. Unreachable nodes go one column past everything, never at the origin where they would hide under the entry points.
+- `seedStartNode()` — puts the one node every flow starts from onto a blank canvas.
 
 ## The catalogue is authoritative
 
