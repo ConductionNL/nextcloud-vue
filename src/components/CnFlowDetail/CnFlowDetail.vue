@@ -619,6 +619,13 @@ export default {
 	background-size: 20px 20px;
 }
 
+/* The canvas paints an opaque main-background of its own, which sat exactly
+   on top of the grid above. Cleared here, for flow editors only — other
+   CnGraphCanvas consumers keep their solid ground. */
+.cn-flow-detail :deep(.cn-graph-canvas) {
+	background: transparent;
+}
+
 .cn-flow-detail__toolbar {
 	position: absolute;
 	inset-block-start: 12px;
