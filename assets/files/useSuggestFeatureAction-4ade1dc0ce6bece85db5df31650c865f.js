@@ -1,0 +1,1 @@
+import{translate as t}from"@nextcloud/l10n";import{useSpecRef}from"./useSpecRef.js";export function useSuggestFeatureAction(e,n){const u=useSpecRef(e);return null===u?null:{label:t("nextcloud-vue","Suggest feature"),icon:"icon-add",specRef:u,action:()=>{"function"==typeof n&&n(u)}}}

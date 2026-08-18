@@ -1,0 +1,1 @@
+import{reactive}from"vue";const defaultContext=reactive({appId:"unknown",pageKind:"custom",route:{path:""}}),CN_AI_CONTEXT_KEY="cnAiContext";export function useAiContext(t){return t&&null!=t.cnAiContext?t.cnAiContext:defaultContext}export{CN_AI_CONTEXT_KEY,defaultContext};

@@ -1,0 +1,1 @@
+export function useSpecRef(n){if(null===n||"object"!=typeof n)return null;let t=n;for(;null!=t;){const n=t.$options;if(null!=n){const t=n.specRef;if("string"==typeof t&&t.length>0)return t}t=t.$parent}const e=n.$route;if(null!=e){const n=e.meta;if(null!=n){const t=n.specRef;if("string"==typeof t&&t.length>0)return t}}return null}
