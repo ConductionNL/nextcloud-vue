@@ -6,3 +6,10 @@
 | ----- | -------- | -------- | ------- | -------------------------------------------------------------------------------------------------------- |
 | `id`  | `string` |          | `null`  | Flow uuid from the route. The literal `new` starts a blank flow, so creating and editing share one page. |
 | `app` | `string` |          | `null`  | The owning app id to scope to, and to stamp on a new flow.                                               |
+
+### Events
+
+| Name   | Payload | Description                                                                                                                                                                   |
+| ------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `save` | —       | The Save button was pressed. The host persists via `useFlowStore().save()` and, for a new flow, swaps the route to the minted id — only the host knows whether one is needed. |
+| `run`  | —       | The Run button was pressed. The host queues a run via `useFlowStore().run()`.                                                                                                 |

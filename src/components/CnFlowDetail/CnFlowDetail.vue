@@ -3,10 +3,12 @@
 
   Geometry and interaction (pan, zoom, drag, drag-to-connect) come from
   CnGraphCanvas; this component supplies typed node cards, directional edge
-  routing, and per-hop result badges. Every control — palette, node config, flow
-  settings, Save/Run — lives in CnFlowSidebar. The two halves render in
-  different parts of the tree (page body vs Nextcloud's app sidebar), so they
-  share `useFlowStore` rather than passing props.
+  routing, and the editor toolbar (Save / Run / Check / arrange / zoom) — the
+  actions that concern the graph live ON the graph. The palette, node config
+  and flow settings live in CnFlowSidebar. The two halves render in different
+  parts of the tree (page body vs Nextcloud's app sidebar), so they share
+  `useFlowStore` rather than passing props. Save and Run are EMITTED, not
+  handled: only the host knows whether a freshly minted id needs a route swap.
 
   Ported from hermiq's GraphBuilder, with ONE behavioural fix carried through
   the port: every label and config pane keys on the CATALOGUE id
@@ -20,12 +22,91 @@
 -->
 <template>
 	<div class="cn-flow-detail">
+		<!-- The editor's controls, ON the canvas: the actions that concern the
+		     graph live with the graph, the way every flow tool draws it. -->
+		<div class="cn-flow-detail__toolbar" role="toolbar" :aria-label="t('nextcloud-vue', 'Flow editor')">
+			<NcButton type="primary"
+				:disabled="store.saving || !store.flow.name"
+				@click="onSaveClick">
+				<template #icon>
+					<NcLoadingIcon v-if="store.saving" :size="20" />
+					<ContentSave v-else :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Save') }}
+			</NcButton>
+			<NcButton :disabled="store.running || !store.flow.id"
+				:title="store.flow.id ? null : t('nextcloud-vue', 'Save the flow before running it — the engine runs the stored flow, not the unsaved canvas.')"
+				@click="onRunClick">
+				<template #icon>
+					<Play :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Run') }}
+			</NcButton>
+			<NcButton type="tertiary"
+				:disabled="store.checking || !store.nodes.length"
+				@click="store.check()">
+				<template #icon>
+					<NcLoadingIcon v-if="store.checking" :size="20" />
+					<CheckDecagram v-else :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Check') }}
+			</NcButton>
+			<NcButton type="tertiary"
+				:disabled="!store.nodes.length"
+				:aria-label="t('nextcloud-vue', 'Arrange steps automatically')"
+				:title="t('nextcloud-vue', 'Arrange steps automatically')"
+				@click="store.autoSort()">
+				<template #icon>
+					<SortVariant :size="20" />
+				</template>
+			</NcButton>
+			<div class="cn-flow-detail__toolbar-group">
+				<NcButton type="tertiary"
+					:disabled="zoom <= minZoom"
+					:aria-label="t('nextcloud-vue', 'Zoom out')"
+					@click="zoomBy(-0.1)">
+					<template #icon>
+						<Minus :size="20" />
+					</template>
+				</NcButton>
+				<NcButton type="tertiary"
+					:aria-label="t('nextcloud-vue', 'Reset zoom')"
+					@click="zoom = 1">
+					{{ Math.round(zoom * 100) }}%
+				</NcButton>
+				<NcButton type="tertiary"
+					:disabled="zoom >= maxZoom"
+					:aria-label="t('nextcloud-vue', 'Zoom in')"
+					@click="zoomBy(0.1)">
+					<template #icon>
+						<Plus :size="20" />
+					</template>
+				</NcButton>
+			</div>
+		</div>
+
+		<!-- The engine's verdict on the canvas, from the Check button. -->
+		<NcNoteCard v-if="store.checkResult"
+			class="cn-flow-detail__check"
+			:type="checkCardType">
+			<p>{{ checkCardText }}</p>
+			<ul v-if="checkCardItems.length" class="cn-flow-detail__check-items">
+				<li v-for="(item, i) in checkCardItems" :key="i">
+					{{ item }}
+				</li>
+			</ul>
+		</NcNoteCard>
+
 		<CnGraphCanvas
 			:nodes="store.nodes"
-			:edges="store.edges"
+			:edges="store.canvasEdges"
 			:selected-node-id="store.selectedNodeId"
 			:node-width="nodeWidth"
 			:node-height="nodeHeight"
+			:zoom="zoom"
+			:min-zoom="minZoom"
+			:max-zoom="maxZoom"
+			@update:zoom="zoom = $event"
 			@node-select="store.selectedNodeId = $event"
 			@canvas-click="store.selectedNodeId = null"
 			@node-move="store.moveNode($event)"
@@ -48,6 +129,7 @@
 					class="cn-flow-detail__node"
 					:class="[
 						`cn-flow-detail__node--${typeSlug(node.type)}`,
+						`cn-flow-detail__node--role-${store.roleOfNodeType(node.type)}`,
 						{ 'cn-flow-detail__node--unknown': isUnknown(node.type) },
 					]">
 					<span class="cn-flow-detail__node-type">{{ typeLabel(node.type) }}</span>
@@ -91,8 +173,14 @@
 </template>
 
 <script>
-import { NcEmptyContent } from '@nextcloud/vue'
+import { NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import CheckDecagram from 'vue-material-design-icons/CheckDecagram.vue'
+import ContentSave from 'vue-material-design-icons/ContentSave.vue'
+import Minus from 'vue-material-design-icons/Minus.vue'
+import Play from 'vue-material-design-icons/Play.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import Sitemap from 'vue-material-design-icons/Sitemap.vue'
+import SortVariant from 'vue-material-design-icons/SortVariant.vue'
 import CnGraphCanvas from '../CnGraphCanvas/CnGraphCanvas.vue'
 import { useFlowStore } from '../../composables/useFlowStore.js'
 
@@ -100,9 +188,18 @@ export default {
 	name: 'CnFlowDetail',
 
 	components: {
+		CheckDecagram,
 		CnGraphCanvas,
+		ContentSave,
+		Minus,
+		NcButton,
 		NcEmptyContent,
+		NcLoadingIcon,
+		NcNoteCard,
+		Play,
+		Plus,
 		Sitemap,
+		SortVariant,
 	},
 
 	props: {
@@ -124,6 +221,8 @@ export default {
 		},
 	},
 
+	emits: ['save', 'run'],
+
 	setup() {
 		return { store: useFlowStore() }
 	},
@@ -133,7 +232,76 @@ export default {
 			arrowId: 'cn-flow-detail-arrow',
 			nodeWidth: 200,
 			nodeHeight: 80,
+
+			// Zoom is owned here, not by the canvas: a consumer that does not
+			// bind it pins the canvas at 1 and silently kills the wheel gesture.
+			zoom: 1,
+			minZoom: 0.3,
+			maxZoom: 2,
 		}
+	},
+
+	computed: {
+		/**
+		 * @return {string} The note-card type for the check verdict.
+		 */
+		checkCardType() {
+			const result = this.store.checkResult
+			if (!result) {
+				return 'success'
+			}
+			if (result.valid === false) {
+				return 'error'
+			}
+
+			return (result.warnings || []).length ? 'warning' : 'success'
+		},
+
+		/**
+		 * @return {string} The one-line verdict.
+		 */
+		checkCardText() {
+			const result = this.store.checkResult
+			if (!result) {
+				return ''
+			}
+			if (result.valid === false) {
+				return result.message || this.t('nextcloud-vue', 'This flow cannot run yet.')
+			}
+			if ((result.warnings || []).length) {
+				return this.t('nextcloud-vue', 'This flow can run, with warnings.')
+			}
+
+			return this.t('nextcloud-vue', 'This flow looks runnable.')
+		},
+
+		/**
+		 * @return {Array<string>} The individual findings, readable.
+		 */
+		checkCardItems() {
+			const result = this.store.checkResult
+			if (!result) {
+				return []
+			}
+
+			const describe = (finding) => {
+				if (typeof finding === 'string') {
+					return finding
+				}
+
+				const parts = [finding.message || finding.reason || '']
+				if (finding.node) {
+					parts.push(`(${finding.node})`)
+				}
+
+				return parts.filter(Boolean).join(' ')
+			}
+
+			return [
+				...(result.blocking || []).map(describe),
+				...(result.warnings || []).map(describe),
+			].filter(Boolean)
+		},
 	},
 
 	watch: {
@@ -195,6 +363,40 @@ export default {
 
 			this.store.addNode(this.store.paletteDragType, x, y)
 			this.store.paletteDragType = null
+		},
+
+		/**
+		 * @return {void}
+		 */
+		onSaveClick() {
+			/**
+			 * @event save The Save button was pressed. The host persists via
+			 *   `useFlowStore().save()` and, for a new flow, swaps the route to
+			 *   the minted id — only the host knows whether one is needed.
+			 */
+			this.$emit('save')
+		},
+
+		/**
+		 * @return {void}
+		 */
+		onRunClick() {
+			/**
+			 * @event run The Run button was pressed. The host queues a run via
+			 *   `useFlowStore().run()`.
+			 */
+			this.$emit('run')
+		},
+
+		/**
+		 * Step the zoom, rounded so repeated presses do not drift on floats.
+		 *
+		 * @param {number} delta The step, e.g. ±0.1.
+		 * @return {void}
+		 */
+		zoomBy(delta) {
+			const next = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom + delta))
+			this.zoom = Math.round(next * 100) / 100
 		},
 
 		/**
@@ -411,6 +613,47 @@ export default {
 	position: relative;
 	block-size: 100%;
 	inline-size: 100%;
+	/* The dotted grid every flow tool draws: it says "canvas", and it makes
+	   drag alignment visible without a snapping feature. */
+	background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
+	background-size: 20px 20px;
+}
+
+.cn-flow-detail__toolbar {
+	position: absolute;
+	inset-block-start: 12px;
+	inset-inline-end: 12px;
+	z-index: 10;
+	display: flex;
+	gap: 4px;
+	align-items: center;
+	padding: 4px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large);
+	background: var(--color-main-background);
+	box-shadow: 0 1px 4px var(--color-box-shadow);
+}
+
+.cn-flow-detail__toolbar-group {
+	display: flex;
+	align-items: center;
+	margin-inline-start: 4px;
+	padding-inline-start: 8px;
+	border-inline-start: 1px solid var(--color-border);
+}
+
+.cn-flow-detail__check {
+	position: absolute;
+	inset-block-start: 64px;
+	inset-inline-end: 12px;
+	z-index: 10;
+	max-inline-size: 360px;
+}
+
+.cn-flow-detail__check-items {
+	margin-block-start: 4px;
+	padding-inline-start: 20px;
+	list-style: disc;
 }
 
 .cn-flow-detail__defs {
@@ -443,6 +686,21 @@ export default {
 
 .cn-flow-detail__node--unknown {
 	border-color: var(--color-error);
+}
+
+/* Role accents, keyed on the CATALOGUE's role — never on graph position,
+   which once painted unconnected steps green. Inset box-shadow rather than a
+   border so the accent adds no layout width. */
+.cn-flow-detail__node--role-trigger {
+	box-shadow: inset 4px 0 0 0 var(--color-success);
+}
+
+.cn-flow-detail__node--role-step {
+	box-shadow: inset 4px 0 0 0 var(--color-primary-element);
+}
+
+.cn-flow-detail__node--role-end {
+	box-shadow: inset 4px 0 0 0 var(--color-error);
 }
 
 .cn-flow-detail__node-type {

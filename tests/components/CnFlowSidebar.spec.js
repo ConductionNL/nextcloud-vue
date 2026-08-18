@@ -89,23 +89,79 @@ describe('CnFlowSidebar', () => {
 		})
 	})
 
-	describe('save is offered only when it can succeed', () => {
-		it('disables Save while the flow has no name', async () => {
+	describe('the palette states', () => {
+		it('says it is loading while the catalogue request is in flight', async () => {
 			const { wrapper } = await mountSidebar({
-				flow: { name: '', nodes: [], edges: [] },
+				nodeCatalog: [],
+				catalogLoading: true,
 			})
 
-			const save = wrapper.findAll('button').find((b) => b.text().includes('Save'))
-			expect(save?.attributes('disabled')).toBeDefined()
+			// An in-flight catalogue is NOT a failed one. The failure text used
+			// to show during every first paint of /flows/new.
+			expect(wrapper.text()).toContain('Loading the available steps')
+			expect(wrapper.text()).not.toContain('could not be read')
 		})
 
-		it('enables Save once the flow is initialised', async () => {
+		it('reports a catalogue that could not be read, once loading is over', async () => {
 			const { wrapper } = await mountSidebar({
-				flow: { name: 'New flow', nodes: [], edges: [] },
+				nodeCatalog: [],
+				catalogLoading: false,
 			})
 
-			const save = wrapper.findAll('button').find((b) => b.text().includes('Save'))
-			expect(save?.attributes('disabled')).toBeUndefined()
+			expect(wrapper.text()).toContain('could not be read')
+		})
+
+		it('offers the catalogue with role badges, triggers first', async () => {
+			const { wrapper } = await mountSidebar({
+				nodeCatalog: [
+					{ id: 'openregister.end', displayName: 'End', role: 'end' },
+					{ id: 'openregister.trigger-manual', displayName: 'When someone runs it', role: 'trigger' },
+					{ id: 'openregister.filter', displayName: 'Filter', role: 'step' },
+				],
+			})
+
+			const names = wrapper.findAll('.cn-flow-sidebar__palette-name').map((n) => n.text())
+			expect(names).toEqual(['When someone runs it', 'Filter', 'End'])
+		})
+
+		it('finds a step by its description, not only its name', async () => {
+			const { wrapper } = await mountSidebar({
+				nodeCatalog: [
+					{ id: 'openregister.filter', displayName: 'Filter', role: 'step', description: 'Drop items that do not match.' },
+					{ id: 'openregister.end', displayName: 'End', role: 'end', description: 'End the flow here.' },
+				],
+			})
+
+			wrapper.vm.paletteSearch = 'drop items'
+			await wrapper.vm.$nextTick()
+
+			const names = wrapper.findAll('.cn-flow-sidebar__palette-name').map((n) => n.text())
+			expect(names).toEqual(['Filter'])
+		})
+	})
+
+	describe('what stops the flow from finishing', () => {
+		it('says a flow with steps but no trigger will never start', async () => {
+			const { wrapper, store } = await mountSidebar({
+				nodeCatalog: [
+					{ id: 'openregister.filter', displayName: 'Filter', role: 'step' },
+					{ id: 'openregister.end', displayName: 'End', role: 'end' },
+				],
+			})
+			store.flow = { name: 'x', nodes: [{ id: 'n1', type: 'openregister.filter', config: {} }], edges: [] }
+			wrapper.vm.tab = 'flow'
+			await wrapper.vm.$nextTick()
+
+			expect(wrapper.text()).toContain('no trigger')
+		})
+
+		it('reports nothing for an empty flow — a blank canvas is not incomplete', async () => {
+			const { wrapper, store } = await mountSidebar({})
+			store.flow = { name: 'x', nodes: [], edges: [] }
+			wrapper.vm.tab = 'flow'
+			await wrapper.vm.$nextTick()
+
+			expect(wrapper.text()).not.toContain('no trigger')
 		})
 	})
 })

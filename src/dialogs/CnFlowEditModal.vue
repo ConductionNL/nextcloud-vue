@@ -20,10 +20,13 @@
 		@closing="onClosing">
 		<div class="cn-flow-modal">
 			<div class="cn-flow-modal__canvas">
-				<CnFlowDetail :id="flowId" :app="app" />
+				<CnFlowDetail :id="flowId"
+					:app="app"
+					@save="onSave"
+					@run="onRun" />
 			</div>
 			<aside class="cn-flow-modal__side">
-				<CnFlowSidebar @save="onSave" @run="onRun" />
+				<CnFlowSidebar />
 			</aside>
 		</div>
 
