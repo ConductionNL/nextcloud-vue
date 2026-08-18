@@ -46,7 +46,7 @@ Apps can override CnAppRoot's `#dependency-missing` slot to customise the screen
 For each dependency the component renders, by user role:
 
 - **Admin** (`getCurrentUser().isAdmin`): an **Install and enable** / **Enable** button driven by [`useAppInstaller`](../utilities/composables/use-app-installer.md). One click confirms the admin's password, then downloads-installs-and-enables the app via Nextcloud's install endpoint — the NC34+ bundled-`appstore` OCS API, falling back to the legacy `settings/apps/enable` route on ≤NC33 — and reloads on success. On failure the error shows inline and the store link (`resolveLink(dep)`) stays as a fallback. See the composable's [Adoption notes](../utilities/composables/use-app-installer.md#adoption-notes) for the `@nextcloud/dialogs` ^6 build requirement.
-- **Non-admin**: "ask your administrator to enable {name}" copy (they cannot hit the admin-only endpoint) — no dead-end link.
+- **Non-admin**: "ask your administrator to enable `{name}`" copy (they cannot hit the admin-only endpoint) — no dead-end link.
 
 The label is **Install and enable** when the app is not installed and **Enable** when `dep.enabled === false` (installed but disabled).
 
