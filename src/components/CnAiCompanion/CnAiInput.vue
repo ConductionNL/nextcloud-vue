@@ -633,6 +633,15 @@ export default {
 	cursor: pointer;
 }
 
+/* Declared BEFORE the hover rule below, which is more specific
+   (`:hover:not(:disabled)`). Source order has to follow specificity here or the
+   cascade's outcome depends on which rule happens to be written last — the
+   thing `no-descending-specificity` exists to stop. */
+.cn-ai-input__mic-button:disabled {
+	opacity: .5;
+	cursor: default;
+}
+
 .cn-ai-input__mic-button:hover:not(:disabled) {
 	background: var(--color-background-hover);
 }
@@ -644,11 +653,6 @@ export default {
 	border-color: var(--color-error);
 	background: var(--color-error);
 	color: var(--color-primary-text, #fff);
-}
-
-.cn-ai-input__mic-button:disabled {
-	opacity: .5;
-	cursor: default;
 }
 
 .cn-ai-input__attach-button {

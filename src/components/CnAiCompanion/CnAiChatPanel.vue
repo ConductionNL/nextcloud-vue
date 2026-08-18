@@ -962,6 +962,17 @@ export default {
 	border-radius: 12px;
 	background: var(--color-background-hover, #f5f5f5);
 	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+
+	/* ⚠️ THE POINTER IS AIMED AT THE HEX, and this number is the only thing
+	   keeping it there. The hex is 36px wide at a 56px inset, so its centre is
+	   56 + 18 = 74px from the viewport edge. The window sits at a 44px inset, so
+	   the pointer's centre must be 74 - 44 = 30px in from the window's edge; the
+	   triangle is 22px wide, so its leading edge is 30 - 11 = 19px.
+
+	   Change the hex size, the hex inset, or the window inset and this is wrong
+	   — the arrow points at empty space beside the button, which reads as a
+	   rendering bug rather than a measurement one. */
+	--cn-ai-pointer-offset: 19px;
 }
 
 /* Anchored ABOVE the hex and inboard of it.
@@ -971,19 +982,10 @@ export default {
  * and a status bar exactly there. The window clears the hex itself: 56px inset
  * + 30px tall + 14px for the pointer + breathing room = 108px.
  *
- * ⚠️ THE POINTER IS AIMED AT THE HEX, and the arithmetic is the only thing
- * keeping it there. The hex is 36px wide at a 56px inset, so its centre is
- * 56 + 18 = 74px from the viewport edge. The window sits at a 44px inset, so the
- * pointer's own centre must be 74 - 44 = 30px in from the window's edge; the
- * triangle is 22px wide, so its leading edge is 30 - 11 = 19px.
- *
- * Change the hex size, the hex inset, or the window inset, and this number is
- * wrong — the arrow will point at empty space beside the button, which reads as
- * a rendering bug rather than a measurement one. */
-.cn-ai-chat-window {
-	--cn-ai-pointer-offset: 19px;
-}
-
+ * The pointer offset these lean on is declared with the rest of the window's
+ * own properties above, not repeated here — a second `.cn-ai-chat-window` block
+ * is a duplicate selector, and the two halves drift the moment someone edits the
+ * one they happen to find first. */
 .cn-ai-chat-window--bottom-right {
 	right: 44px;
 	bottom: 108px;
