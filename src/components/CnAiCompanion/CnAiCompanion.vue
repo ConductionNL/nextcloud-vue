@@ -158,7 +158,6 @@ export default {
 	},
 
 	created() {
-		this.claimSingleton()
 		this.runHealthProbe()
 	},
 
@@ -193,6 +192,21 @@ export default {
 		 * @return {void}
 		 */
 		claimSingleton() {
+			// 🔴 CLAIMED ONLY WHEN THIS INSTANCE WOULD ACTUALLY RENDER.
+			//
+			// An earlier version claimed in `created()`, before the health probe
+			// had answered — so a companion whose probe FAILED still took the
+			// slot and stood the other one down, turning "one companion" into
+			// NONE. Measured on a slow instance, where the probe's 3×5s budget
+			// is genuinely marginal: the slot was claimed and nothing rendered.
+			//
+			// Claiming late is also why the claim is not in a `watch` on the
+			// window key: the slot is contended exactly once per page, at the
+			// moment each candidate learns it can render.
+			if (this.probeSucceeded !== true || this.isChatPage === true) {
+				return
+			}
+
 			const scope = typeof window !== 'undefined' ? window : null
 			if (scope === null) {
 				// No window (SSR, a bare unit test): nothing else can be
@@ -244,6 +258,9 @@ export default {
 						validateStatus: (status) => status >= 200 && status < 300,
 					})
 					this.probeSucceeded = response.status >= 200 && response.status < 300
+					// Contend for the page's single slot only now, with a
+					// backend that answered. See claimSingleton().
+					this.claimSingleton()
 					return
 				} catch {
 					if (attempt < HEALTH_PROBE_ATTEMPTS) {
