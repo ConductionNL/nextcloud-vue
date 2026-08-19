@@ -177,6 +177,31 @@ describe('CnAiCompanion', () => {
 			expect(second.find('.cn-ai-companion').exists()).toBe(false)
 		})
 
+		it('a companion whose probe FAILED does not take the slot from one that works', async () => {
+			// 🔴 The bug the first version of this guard introduced: the slot was
+			// claimed in created(), BEFORE the probe answered. A companion that
+			// then failed its probe rendered nothing and still held the slot, so
+			// the other one stood down too — one companion became NONE.
+			//
+			// Reproduced on a slow instance, where the probe's 3x5s budget is
+			// genuinely marginal, which is exactly where a page can least afford
+			// to lose its assistant.
+			axios.get.mockRejectedValue(new Error('probe timed out'))
+			const failed = mountCompanion()
+			for (let i = 0; i < 8; i++) {
+				await failed.vm.$nextTick()
+			}
+
+			axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
+			const healthy = mountCompanion()
+			for (let i = 0; i < 8; i++) {
+				await healthy.vm.$nextTick()
+			}
+
+			expect(failed.find('.cn-ai-companion').exists()).toBe(false)
+			expect(healthy.find('.cn-ai-companion').exists()).toBe(true)
+		})
+
 		it('the slot is released when the holder unmounts, so a later page gets one', async () => {
 			axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
 
