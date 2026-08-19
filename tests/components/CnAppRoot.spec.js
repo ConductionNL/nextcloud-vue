@@ -692,6 +692,106 @@ describe('CnAppRoot', () => {
 			const wrapper = mountRoot()
 			await expect(wrapper.vm._hydrateMenuCountsBatched([{ register: 'r', schema: 's' }])).rejects.toThrow()
 		})
+
+		// ADR-044 §4 cards-collapse: applyMenuRemovals deletes a collapsed
+		// group's former leaf items from `menu` entirely once relocated into a
+		// nav-card-grid widget, so _hydrateMenuCounts must ALSO walk
+		// pages[].widgets[] for count:"auto" nav-card-grid entries or their
+		// badges would never resolve.
+		it('collects (register, schema) targets from a nav-card-grid widget alongside menu[] targets', async () => {
+			axios.post.mockResolvedValueOnce({
+				data: { results: [
+					{ register: 'game', schema: 'level', count: 42 },
+					{ register: 'decisions', schema: 'decision', count: 17 },
+				] },
+			})
+			const wrapper = mount(CnAppRoot, {
+				propsData: {
+					manifest: {
+						version: '1.0.0',
+						menu: [
+							{ id: 'd', label: 'app.d', route: 'decisions', count: 'auto' },
+						],
+						pages: [
+							{ id: 'decisions', route: '/d', type: 'index', title: 'Decisions', config: { register: 'decisions', schema: 'decision' } },
+							{ id: 'levels', route: '/levels', type: 'index', title: 'Levels', config: { register: 'game', schema: 'level' } },
+							{
+								id: 'progress',
+								route: '/progress',
+								type: 'dashboard',
+								title: 'Progress',
+								widgets: [{
+									widgetKey: 'nav-card-grid',
+									slot: 'body',
+									gridX: 0,
+									gridY: 0,
+									gridWidth: 12,
+									gridHeight: 6,
+									props: {
+										entries: [
+											{ id: 'levels', label: 'Levels', route: 'levels', count: 'auto' },
+										],
+									},
+								}],
+							},
+						],
+					},
+					appId: 'myapp',
+					requiresApps: [],
+				},
+				mocks: { $route: { name: 'decisions' } },
+				stubs: {
+					'router-view': true,
+					NcAppSettingsDialog: true,
+					NcAppSettingsSection: true,
+				},
+			})
+			// mounted() already triggers _hydrateMenuCounts() once — no manual call.
+			await new Promise((resolve) => setTimeout(resolve, 0))
+			await wrapper.vm.$nextTick()
+			expect(axios.post).toHaveBeenCalledTimes(1)
+			const [, body] = axios.post.mock.calls[0]
+			expect(body.counts).toEqual(expect.arrayContaining([
+				{ register: 'decisions', schema: 'decision' },
+				{ register: 'game', schema: 'level' },
+			]))
+			expect(wrapper.vm.cnMenuCounts).toEqual({
+				decisions: { decision: 17 },
+				game: { level: 42 },
+			})
+		})
+
+		it('existing menu[]-only count:"auto" hydration is unchanged when no nav-card-grid widget is present', async () => {
+			axios.post.mockResolvedValueOnce({
+				data: { results: [{ register: 'decisions', schema: 'decision', count: 17 }] },
+			})
+			const wrapper = mount(CnAppRoot, {
+				propsData: {
+					manifest: {
+						version: '1.0.0',
+						menu: [{ id: 'd', label: 'app.d', route: 'decisions', count: 'auto' }],
+						pages: [
+							{ id: 'decisions', route: '/d', type: 'index', title: 'Decisions', config: { register: 'decisions', schema: 'decision' } },
+						],
+					},
+					appId: 'myapp',
+					requiresApps: [],
+				},
+				mocks: { $route: { name: 'decisions' } },
+				stubs: {
+					'router-view': true,
+					NcAppSettingsDialog: true,
+					NcAppSettingsSection: true,
+				},
+			})
+			// mounted() already triggers _hydrateMenuCounts() once — no manual call.
+			await new Promise((resolve) => setTimeout(resolve, 0))
+			await wrapper.vm.$nextTick()
+			expect(axios.post).toHaveBeenCalledTimes(1)
+			const [, body] = axios.post.mock.calls[0]
+			expect(body.counts).toEqual([{ register: 'decisions', schema: 'decision' }])
+			expect(wrapper.vm.cnMenuCounts).toEqual({ decisions: { decision: 17 } })
+		})
 	})
 
 	// The default <CnAppNav> receives the manifest as a REACTIVE prop
