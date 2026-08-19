@@ -40,6 +40,24 @@
 					:placeholder="t('nextcloud-vue', 'GET')"
 					@update:model-value="setKey(key, $event)" />
 
+				<!-- A `select` field with `optionsFrom` renders as a picker fed
+				     by the URL the OWNING APP declared — never a bare uuid
+				     text box. -->
+				<NcSelect v-else-if="widgetFor(key) === 'select'"
+					:model-value="selectedOption(key)"
+					:options="selectOptions[key] || []"
+					:input-label="labelFor(key)"
+					:loading="selectLoading[key] === true"
+					:placeholder="t('nextcloud-vue', 'Pick one…')"
+					@update:model-value="setKey(key, $event ? $event.id : '')" />
+
+				<NcTextArea v-else-if="widgetFor(key) === 'textarea'"
+					:model-value="String(draft.config[key] ?? '')"
+					:label="labelFor(key)"
+					:helper-text="hintFor(key)"
+					rows="4"
+					@update:model-value="setKey(key, $event)" />
+
 				<NcTextField v-else-if="widgetFor(key) === 'number'"
 					:model-value="String(draft.config[key] ?? '')"
 					type="number"
@@ -94,6 +112,8 @@
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
+import { generateUrl } from '@nextcloud/router'
 import {
 	NcButton,
 	NcCheckboxRadioSwitch,
@@ -155,6 +175,11 @@ export default {
 			jsonDrafts: {},
 			jsonErrors: {},
 
+			// Options per select field, loaded from the `optionsFrom` URL the
+			// OWNING APP declares for it in the node's configForm.
+			selectOptions: {},
+			selectLoading: {},
+
 			advancedDraft: null,
 			advancedError: null,
 		}
@@ -184,14 +209,39 @@ export default {
 		},
 
 		/**
-		 * The keys the form renders: the engine's declared vocabulary first,
-		 * in its order, then any key already set that it does not declare.
-		 * `$`-prefixed keys are authoring annotations and stay in Advanced.
+		 * The node's per-field declarations from the catalogue's `configForm`
+		 * ({key, label, type, help, required, optionsFrom}), keyed by config
+		 * key. `configKeys` is the degraded form. Either way the node's OWNER
+		 * declares the vocabulary — this dialog never invents fields.
+		 *
+		 * @return {object} key → field declaration.
+		 */
+		fieldSpecs() {
+			const specs = {}
+			for (const field of (this.entry?.configForm || [])) {
+				if (field && field.key) {
+					specs[field.key] = field
+				}
+			}
+
+			return specs
+		},
+
+		/**
+		 * The keys the form renders: the declared vocabulary first, in its
+		 * order — `configForm` beats `configKeys` where both exist, keys only
+		 * one names are still rendered — then any key already set that neither
+		 * declares. `$`-prefixed keys are authoring annotations and stay in
+		 * Advanced.
 		 *
 		 * @return {Array<string>} The keys.
 		 */
 		formKeys() {
-			const declared = (this.entry?.configKeys || [])
+			const fromForm = (this.entry?.configForm || []).map((f) => f.key).filter(Boolean)
+			const declared = [
+				...fromForm,
+				...(this.entry?.configKeys || []).filter((k) => !fromForm.includes(k)),
+			]
 			const present = Object.keys(this.draft.config).filter(
 				(k) => !k.startsWith('$') && !declared.includes(k),
 			)
@@ -218,14 +268,38 @@ export default {
 		},
 	},
 
+	created() {
+		// Select fields need their options; everything else is local.
+		for (const [key, spec] of Object.entries(this.fieldSpecs)) {
+			if (spec?.type === 'select' && spec?.optionsFrom) {
+				this.loadSelectOptions(key, spec)
+			}
+		}
+	},
+
 	methods: {
 		/**
-		 * Which widget a key gets, from its VALUE first and its name second.
+		 * Which widget a key gets: the owner's declaration first, the VALUE
+		 * second, the key's name last.
 		 *
 		 * @param {string} key The config key.
-		 * @return {string} 'switch' | 'number' | 'json' | 'method' | 'text'
+		 * @return {string} 'select' | 'switch' | 'number' | 'textarea' | 'json' | 'method' | 'text'
 		 */
 		widgetFor(key) {
+			const spec = this.fieldSpecs[key]
+			if (spec?.type === 'select' && spec?.optionsFrom) {
+				return 'select'
+			}
+			if (spec?.type === 'boolean') {
+				return 'switch'
+			}
+			if (spec?.type === 'number') {
+				return 'number'
+			}
+			if (spec?.type === 'textarea') {
+				return 'textarea'
+			}
+
 			const value = this.draft.config[key]
 			if (typeof value === 'boolean') {
 				return 'switch'
@@ -244,12 +318,74 @@ export default {
 		},
 
 		/**
-		 * A key as a field label: `sourceId` → `Source id`.
+		 * The picker option matching a select field's stored value —
+		 * synthesised from the raw value when it is not in the loaded options,
+		 * so an existing configuration is never blanked.
+		 *
+		 * @param {string} key The config key.
+		 * @return {object|null} The selected option.
+		 */
+		selectedOption(key) {
+			const value = this.draft.config[key]
+			if (value === undefined || value === null || value === '') {
+				return null
+			}
+
+			const options = this.selectOptions[key] || []
+			return options.find((o) => o.id === value) || { id: value, label: String(value) }
+		},
+
+		/**
+		 * Load the pickable choices for one select field, from the URL its
+		 * owning app declared (`optionsFrom`).
+		 *
+		 * Accepts `{results: [...]}` or a bare array; items as `{id, label}`,
+		 * `{value, label}`, or OpenRegister objects (uuid from `@self`, label
+		 * from name/title) — the app owns the endpoint, this dialog only has
+		 * to read it.
+		 *
+		 * @param {string} key  The config key.
+		 * @param {object} spec The field declaration carrying `optionsFrom`.
+		 * @return {Promise<void>}
+		 */
+		async loadSelectOptions(key, spec) {
+			this.selectLoading = { ...this.selectLoading, [key]: true }
+			try {
+				const url = String(spec.optionsFrom)
+				const response = await axios.get(url.startsWith('/') && !url.startsWith('/apps') && !url.startsWith('/index.php')
+					? generateUrl(url)
+					: url)
+				const rows = Array.isArray(response.data) ? response.data : (response.data?.results || [])
+				const options = rows.map((row) => {
+					const id = row.id ?? row.value ?? row['@self']?.uuid ?? row.uuid
+					return {
+						id,
+						label: row.label || row.name || row.title || String(id),
+					}
+				}).filter((o) => o.id !== undefined && o.id !== null && o.id !== '')
+				this.selectOptions = { ...this.selectOptions, [key]: options }
+			} catch (error) {
+				// A picker that could not load degrades to showing the stored
+				// value; the Advanced editor still reaches everything.
+				console.error(`cn-flow: could not load options for "${key}"`, error)
+			} finally {
+				this.selectLoading = { ...this.selectLoading, [key]: false }
+			}
+		},
+
+		/**
+		 * A key as a field label: the owner's translated `label` when the
+		 * configForm declares one, else `sourceId` → `Source id`.
 		 *
 		 * @param {string} key The config key.
 		 * @return {string} The label.
 		 */
 		labelFor(key) {
+			const declared = this.fieldSpecs[key]?.label
+			if (declared) {
+				return declared
+			}
+
 			const spaced = key
 				.replace(/[_-]+/g, ' ')
 				.replace(/([a-z0-9])([A-Z])/g, '$1 $2')
@@ -259,10 +395,22 @@ export default {
 		},
 
 		/**
+		 * The helper line under a field: the owner's `help` (prefixed when the
+		 * field is required), else the built-in hints for keys that earn one.
+		 *
 		 * @param {string} key The config key.
-		 * @return {string|undefined} A helper line, for the keys that earn one.
+		 * @return {string|undefined} The helper line.
 		 */
 		hintFor(key) {
+			const spec = this.fieldSpecs[key]
+			if (spec?.help) {
+				return spec.required === true
+					? `${this.t('nextcloud-vue', 'Required.')} ${spec.help}`
+					: spec.help
+			}
+			if (spec?.required === true) {
+				return this.t('nextcloud-vue', 'Required.')
+			}
 			if (key === 'cron') {
 				return this.t('nextcloud-vue', 'For example 0 9 * * 1 — 09:00 every Monday.')
 			}

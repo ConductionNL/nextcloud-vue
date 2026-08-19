@@ -133,6 +133,68 @@ describe('CnFlowNodeEditModal', () => {
 		expect(wrapper.vm.draft.config.headers).toEqual({ a: 1 })
 	})
 
+	it('renders a select field as a picker fed from its declared optionsFrom URL', async () => {
+		const axios = require('@nextcloud/axios').default
+		axios.get.mockResolvedValueOnce({
+			data: {
+				results: [
+					{ '@self': { uuid: 'u-1' }, name: 'CKAN production' },
+					{ '@self': { uuid: 'u-2' }, name: 'CKAN staging' },
+				],
+			},
+		})
+
+		const { wrapper } = mountModal(
+			{ type: 'openconnector.source-call', config: { source: 'u-9' } },
+			[{
+				id: 'openconnector.source-call',
+				displayName: 'Call a source',
+				configForm: [
+					{
+						key: 'source',
+						label: 'Source',
+						type: 'select',
+						optionsFrom: '/apps/openregister/api/objects/openconnector/source',
+					},
+				],
+			}],
+		)
+		await new Promise((resolve) => setTimeout(resolve))
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.widgetFor('source')).toBe('select')
+		expect(wrapper.vm.selectOptions.source.map((o) => o.label)).toEqual([
+			'CKAN production',
+			'CKAN staging',
+		])
+		// A stored value outside the loaded options is preserved, never blanked.
+		expect(wrapper.vm.selectedOption('source')).toEqual({ id: 'u-9', label: 'u-9' })
+	})
+
+	it('lets configForm drive labels, help, widgets and key order over configKeys', () => {
+		const { wrapper } = mountModal(
+			{ config: {} },
+			[{
+				id: 'openregister.end',
+				displayName: 'End',
+				configKeys: ['force', 'maxItems', 'notes', 'legacyOnly'],
+				configForm: [
+					{ key: 'force', label: 'Force a full pass', type: 'boolean' },
+					{ key: 'maxItems', label: 'Ceiling', type: 'number', help: 'Raises, never truncates.', required: true },
+					{ key: 'notes', label: 'Notes', type: 'textarea' },
+				],
+			}],
+		)
+
+		// Form fields first in their order, then keys only configKeys names.
+		expect(wrapper.vm.formKeys).toEqual(['force', 'maxItems', 'notes', 'legacyOnly'])
+		expect(wrapper.vm.widgetFor('force')).toBe('switch')
+		expect(wrapper.vm.widgetFor('maxItems')).toBe('number')
+		expect(wrapper.vm.widgetFor('notes')).toBe('textarea')
+		expect(wrapper.vm.labelFor('maxItems')).toBe('Ceiling')
+		expect(wrapper.vm.hintFor('maxItems')).toBe('Required. Raises, never truncates.')
+	})
+
 	it('humanises key names into labels', () => {
 		const { wrapper } = mountModal()
 
