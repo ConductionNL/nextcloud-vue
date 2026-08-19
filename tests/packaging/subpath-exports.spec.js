@@ -49,6 +49,7 @@
 
 const { execFileSync } = require('child_process')
 const fs = require('fs')
+const { createRequire } = require('module')
 const os = require('os')
 const path = require('path')
 
@@ -99,6 +100,7 @@ const PUBLISHED_SYMBOLS = [
 let workdir
 let entries = []
 let packageRoot
+let consumerRequire
 
 beforeAll(() => {
 	workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'cn-pack-smoke-'))
@@ -135,6 +137,23 @@ beforeAll(() => {
 	// consumer's node_modules would — without that, "the module loads" would be
 	// untestable and the symbol check would be reduced to a grep.
 	fs.symlinkSync(path.join(REPO, 'node_modules'), path.join(packageRoot, 'node_modules'), 'junction')
+
+	// A CONSUMER, not a directory listing: a node_modules that holds the
+	// extracted package under its published name, so requiring by that name
+	// goes through package.json `exports` the way it does in a real app.
+	// Requiring a path INTO the extracted package bypasses the exports map
+	// entirely — which is how 2.6.x shipped `testing/playwright.js` in the
+	// tarball while every consumer's `require('@conduction/nextcloud-vue/
+	// testing/playwright')` failed: the map, added after 2.3.0, sealed every
+	// subpath it did not name, and this suite kept passing.
+	const consumerDir = path.join(workdir, 'consumer')
+	fs.mkdirSync(path.join(consumerDir, 'node_modules', '@conduction'), { recursive: true })
+	fs.symlinkSync(
+		packageRoot,
+		path.join(consumerDir, 'node_modules', '@conduction', 'nextcloud-vue'),
+		'junction',
+	)
+	consumerRequire = createRequire(path.join(consumerDir, 'index.js'))
 }, 600000)
 
 afterAll(() => {
@@ -218,7 +237,12 @@ describe.each(PUBLISHED_SUBPATHS)(
 		})
 
 		it(`is loadable the way the docs spell it — ${spelling}`, () => {
-			const loaded = require(path.join(packageRoot, entry.replace(/^package\//, '')))
+			// Through the package NAME, from a consumer directory — so the
+			// exports map is enforced, exactly as it is in a real app. The
+			// previous form required a path into the extracted package, which
+			// bypasses `exports` and passed while every consumer failed.
+			const specifier = spelling.match(/'([^']+)'/)[1]
+			const loaded = consumerRequire(specifier)
 			expect(loaded[symbol]).toBeDefined()
 		})
 	},
