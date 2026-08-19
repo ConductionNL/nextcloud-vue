@@ -246,9 +246,16 @@
       "import": "./src/public/index.js",
       "default": "./src/public/index.js"
     },
+    "./eslint": "./eslint/index.js",
+    "./stylelint": "./stylelint/index.js",
+    "./testing": "./testing/index.js",
+    "./testing/playwright": "./testing/playwright.js",
+    "./webpack": "./webpack/index.js",
     "./dist/*": "./dist/*",
     "./src/*": "./src/*",
     "./css/*": "./css/*",
+    "./l10n/*": "./l10n/*",
+    "./scripts/*": "./scripts/*",
     "./package.json": "./package.json"
   }
 }
