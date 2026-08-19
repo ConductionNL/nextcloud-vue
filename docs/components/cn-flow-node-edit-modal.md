@@ -31,16 +31,19 @@ Edits land on a draft. **Done** commits it to the store (`setNodeConfigById`
 A field holding unparseable JSON disables Done and says so next to the field
 — the step never receives a broken configuration.
 
-## Reference fields render as pickers
+## Declared forms render as real fields, selects as pickers
 
-When the engine declares a field with a reference (`configFields`:
-`{key, type, reference: {register, schema}}`), the dialog renders a select
-over that register/schema — object names as labels, uuids as values — instead
-of a text box. A stored value not in the loaded page is preserved as a
+When a node declares its form (the catalogue's `configForm`:
+`{key, label, type, help, required, optionsFrom}` — see openregister's
+`IFlowNodeConfigForm`), the dialog uses the owner's translated labels and
+help lines, maps `boolean`/`number`/`textarea` to their widgets, and renders
+a `select` with `optionsFrom` as a picker fed by the URL the OWNING APP
+declared — object names as labels, ids as values, never a bare uuid text
+box. A stored value not among the loaded options is preserved as a
 synthesised option, so an existing configuration is never blanked, and a
 picker that fails to load degrades to the raw value with Advanced as the
-fallback. `configFields` beats `configKeys` when both are present; the engine
-owns the vocabulary either way.
+fallback. `configForm` beats `configKeys` for order and widgets; keys only
+`configKeys` names still render.
 
 ## An app can replace this dialog per node type
 

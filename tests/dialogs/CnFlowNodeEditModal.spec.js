@@ -133,7 +133,7 @@ describe('CnFlowNodeEditModal', () => {
 		expect(wrapper.vm.draft.config.headers).toEqual({ a: 1 })
 	})
 
-	it('renders a reference field as a picker fed from its register/schema', async () => {
+	it('renders a select field as a picker fed from its declared optionsFrom URL', async () => {
 		const axios = require('@nextcloud/axios').default
 		axios.get.mockResolvedValueOnce({
 			data: {
@@ -149,42 +149,50 @@ describe('CnFlowNodeEditModal', () => {
 			[{
 				id: 'openconnector.source-call',
 				displayName: 'Call a source',
-				configFields: [
-					{ key: 'source', type: 'string', reference: { register: 'openconnector', schema: 'source' } },
+				configForm: [
+					{
+						key: 'source',
+						label: 'Source',
+						type: 'select',
+						optionsFrom: '/apps/openregister/api/objects/openconnector/source',
+					},
 				],
 			}],
 		)
 		await new Promise((resolve) => setTimeout(resolve))
 		await wrapper.vm.$nextTick()
 
-		expect(wrapper.vm.widgetFor('source')).toBe('reference')
-		expect(wrapper.vm.referenceOptions.source.map((o) => o.label)).toEqual([
+		expect(wrapper.vm.widgetFor('source')).toBe('select')
+		expect(wrapper.vm.selectOptions.source.map((o) => o.label)).toEqual([
 			'CKAN production',
 			'CKAN staging',
 		])
-		// A stored value outside the loaded page is preserved, never blanked.
-		expect(wrapper.vm.referenceOption('source')).toEqual({ id: 'u-9', label: 'u-9' })
+		// A stored value outside the loaded options is preserved, never blanked.
+		expect(wrapper.vm.selectedOption('source')).toEqual({ id: 'u-9', label: 'u-9' })
 	})
 
-	it('lets configFields beat configKeys and drive widgets by declared type', () => {
+	it('lets configForm drive labels, help, widgets and key order over configKeys', () => {
 		const { wrapper } = mountModal(
 			{ config: {} },
 			[{
 				id: 'openregister.end',
 				displayName: 'End',
-				configKeys: ['old', 'keys'],
-				configFields: [
-					{ key: 'force', type: 'boolean' },
-					{ key: 'maxItems', type: 'integer' },
-					{ key: 'headers', type: 'object' },
+				configKeys: ['force', 'maxItems', 'notes', 'legacyOnly'],
+				configForm: [
+					{ key: 'force', label: 'Force a full pass', type: 'boolean' },
+					{ key: 'maxItems', label: 'Ceiling', type: 'number', help: 'Raises, never truncates.', required: true },
+					{ key: 'notes', label: 'Notes', type: 'textarea' },
 				],
 			}],
 		)
 
-		expect(wrapper.vm.formKeys).toEqual(['force', 'maxItems', 'headers'])
+		// Form fields first in their order, then keys only configKeys names.
+		expect(wrapper.vm.formKeys).toEqual(['force', 'maxItems', 'notes', 'legacyOnly'])
 		expect(wrapper.vm.widgetFor('force')).toBe('switch')
 		expect(wrapper.vm.widgetFor('maxItems')).toBe('number')
-		expect(wrapper.vm.widgetFor('headers')).toBe('json')
+		expect(wrapper.vm.widgetFor('notes')).toBe('textarea')
+		expect(wrapper.vm.labelFor('maxItems')).toBe('Ceiling')
+		expect(wrapper.vm.hintFor('maxItems')).toBe('Required. Raises, never truncates.')
 	})
 
 	it('humanises key names into labels', () => {
