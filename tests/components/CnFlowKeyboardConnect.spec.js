@@ -66,6 +66,12 @@ describe('flow editor — keyboard connect', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(store.edges).toHaveLength(1)
-		expect(store.edges[0]).toMatchObject({ source: 'a', target: 'b' })
+		// `from`/`to` is the dialect the ENGINE reads. This assertion used to
+		// say `{source, target}` — it was written before that spelling was
+		// found to be unreadable by the engine, so it pinned the bug rather
+		// than the contract. See tests/composables/useFlowStoreEdgeDialect.spec.js.
+		expect(store.edges[0]).toMatchObject({ from: 'a', to: 'b' })
+		// What the canvas draws is unchanged either way.
+		expect(store.canvasEdges[0]).toMatchObject({ source: 'a', target: 'b' })
 	})
 })
