@@ -371,6 +371,7 @@ export { DEFAULT_FIELD_INSPECTION_CONFIG, offlineCollection } from './integratio
 // Composables — Features & roadmap menu (add-features-roadmap-menu)
 export { useSpecRef } from './composables/useSpecRef.js'
 export { useFlowStore } from './composables/useFlowStore.js'
+export { registerFlowNodeEditor, resolveFlowNodeEditor, unregisterFlowNodeEditor } from './composables/useFlowNodeEditors.js'
 export { useSuggestFeatureAction } from './composables/useSuggestFeatureAction.js'
 
 // Utilities — Features & roadmap menu (add-features-roadmap-menu)

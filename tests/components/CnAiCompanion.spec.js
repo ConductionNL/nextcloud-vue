@@ -29,14 +29,18 @@ const axios = require('@nextcloud/axios').default
 const CnAiCompanion = require('../../src/components/CnAiCompanion/CnAiCompanion.vue').default
 
 function mountCompanion(options = {}) {
-	const { aiContext = null, axiosGetMock = null } = options
+	const { aiContext = null, axiosGetMock = null, attachTo = null } = options
 
 	if (axiosGetMock) {
 		axios.get.mockImplementation(axiosGetMock)
 	}
 
+	// `attachTo` puts the component in the real document, which the
+	// stand-down guard needs: it looks for a SIBLING companion element, and a
+	// detached wrapper is not in the document to have siblings in.
 	return mount(CnAiCompanion, {
 		provide: aiContext ? { cnAiContext: aiContext } : {},
+		...(attachTo ? { attachTo } : {}),
 	})
 }
 
@@ -200,6 +204,56 @@ describe('CnAiCompanion', () => {
 
 			expect(failed.find('.cn-ai-companion').exists()).toBe(false)
 			expect(healthy.find('.cn-ai-companion').exists()).toBe(true)
+		})
+
+		it('stands down for a companion that cannot read the flag', async () => {
+			// 🔴 Measured on a live instance AFTER shipping the flag: still two
+			// hexes. One came from the host app's own bundle, built against an
+			// older version of this library, which never reads the flag and so
+			// renders regardless. The library fix does not reach a page until
+			// every app on it has rebuilt — and a user with a double hex cannot
+			// wait for that. So the instance that CAN yield does.
+			jest.useFakeTimers()
+			axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
+
+			const wrapper = mountCompanion({ attachTo: document.body })
+			for (let i = 0; i < 4; i++) {
+				await wrapper.vm.$nextTick()
+			}
+			expect(wrapper.find('.cn-ai-companion').exists()).toBe(true)
+
+			// A companion from an older bundle appears after this one mounted —
+			// a bare element, because that is all this instance can observe of it.
+			const legacy = document.createElement('div')
+			legacy.setAttribute('data-testid', 'cn-ai-companion')
+			document.body.appendChild(legacy)
+
+			jest.runAllTimers()
+			await wrapper.vm.$nextTick()
+
+			expect(wrapper.find('.cn-ai-companion').exists()).toBe(false)
+			expect(window.__cnAiCompanionPrimary).toBeNull()
+
+			legacy.remove()
+			jest.useRealTimers()
+		})
+
+		it('a lone companion does NOT stand itself down', async () => {
+			// The control. Without it the guard above would be indistinguishable
+			// from one that hides the companion on every page.
+			jest.useFakeTimers()
+			axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
+
+			const wrapper = mountCompanion({ attachTo: document.body })
+			for (let i = 0; i < 4; i++) {
+				await wrapper.vm.$nextTick()
+			}
+
+			jest.runAllTimers()
+			await wrapper.vm.$nextTick()
+
+			expect(wrapper.find('.cn-ai-companion').exists()).toBe(true)
+			jest.useRealTimers()
 		})
 
 		it('the slot is released when the holder unmounts, so a later page gets one', async () => {
