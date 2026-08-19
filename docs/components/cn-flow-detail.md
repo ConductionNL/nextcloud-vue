@@ -30,7 +30,11 @@ Pair it with [`CnFlowSidebar`](./cn-flow-sidebar.md), which holds the palette, s
 
 ## The toolbar
 
-Save is enabled once the flow has a name; Run once it has been stored (the engine runs the **stored** flow, not the unsaved canvas). **Check** posts the canvas to `POST /api/flow/validate` — the engine's own preflight, without saving — and renders the verdict as a note card on the canvas; a refusal still carries the preflight's report and is shown as the verdict it is, never as a transport error. **Arrange** (`autoSort`) re-lays the nodes left-to-right by how the flow actually runs, changing coordinates and nothing else. Zoom steps the same factor the mouse wheel drives.
+Save is enabled once the flow has a name; Run once it has been stored (the engine runs the **stored** flow, not the unsaved canvas). **Check** posts the canvas to `POST /api/flow/validate` — the engine's own preflight, without saving — and renders the verdict as a note card on the canvas; a refusal still carries the preflight's report and is shown as the verdict it is, never as a transport error. **Arrange** (`autoSort`) re-lays the nodes left-to-right by how the flow actually runs, changing coordinates and nothing else. Zoom steps the same factor the mouse wheel drives. When the sidebar is closed, a **Show the flow controls** button appears here — the way back cannot live in the sidebar itself.
+
+## Editing a step
+
+Double-clicking a node — or the sidebar's **Edit step…** button — opens [`CnFlowNodeEditModal`](./cn-flow-node-edit-modal.md), hosted by this component so it exists wherever the canvas does. Node cards draw as **one** container: the canvas wrapper owns the box (border, radius, selection) and the card only fills it, carrying the role accent.
 
 ## A new flow starts with a starting point
 

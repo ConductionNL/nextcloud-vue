@@ -26,7 +26,9 @@
 					@run="onRun" />
 			</div>
 			<aside class="cn-flow-modal__side">
-				<CnFlowSidebar />
+				<!-- `embedded`: NcAppSidebar's app-layout positioning has no
+				     meaning inside a dialog. -->
+				<CnFlowSidebar embedded />
 			</aside>
 		</div>
 

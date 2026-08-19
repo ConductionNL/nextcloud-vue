@@ -41,12 +41,16 @@ async function mountSidebar(state = {}) {
 	const wrapper = mount(CnFlowSidebar, {
 		global: {
 			stubs: {
+				NcAppSidebar: { template: '<aside class="app-sidebar"><slot /></aside>' },
+				NcAppSidebarTab: { template: '<div class="app-sidebar-tab"><slot /></div>' },
 				NcButton: { template: '<button :disabled="disabled"><slot /></button>', props: ['disabled'] },
 				NcNoteCard: { template: '<div class="note-card" :data-type="type"><slot /></div>', props: ['type'] },
 				NcCheckboxRadioSwitch: true,
 				NcSelect: true,
-				NcTextArea: true,
 				NcTextField: true,
+				Cog: true,
+				History: true,
+				Sitemap: true,
 			},
 			mocks: { t: (app, s) => s },
 		},
@@ -149,7 +153,6 @@ describe('CnFlowSidebar', () => {
 				],
 			})
 			store.flow = { name: 'x', nodes: [{ id: 'n1', type: 'openregister.filter', config: {} }], edges: [] }
-			wrapper.vm.tab = 'flow'
 			await wrapper.vm.$nextTick()
 
 			expect(wrapper.text()).toContain('no trigger')
@@ -158,7 +161,6 @@ describe('CnFlowSidebar', () => {
 		it('reports nothing for an empty flow — a blank canvas is not incomplete', async () => {
 			const { wrapper, store } = await mountSidebar({})
 			store.flow = { name: 'x', nodes: [], edges: [] }
-			wrapper.vm.tab = 'flow'
 			await wrapper.vm.$nextTick()
 
 			expect(wrapper.text()).not.toContain('no trigger')
