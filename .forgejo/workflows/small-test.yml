@@ -1,0 +1,11 @@
+name: Small smoke test
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: codeberg-small
+    container:
+      image: node:24-bookworm
+    steps:
+      - run: echo "small runner reached"
+      - run: node --version

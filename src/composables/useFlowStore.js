@@ -468,6 +468,24 @@ export const useFlowStore = defineStore('cnFlow', {
 		/**
 		 * Connect two nodes (no duplicates, no self-edges).
 		 *
+		 * WRITES `from`/`to`, WHICH IS THE DIALECT THE ENGINE READS.
+		 *
+		 * This used to store `{source, target}`. The canvas rendered it — the
+		 * `canvasEdges` getter accepts either spelling — so the author saw the
+		 * connection, and the save succeeded. But OpenRegister's flow engine
+		 * only understands `from`/`to`, so every edge drawn in the editor was
+		 * INVISIBLE to it: the saved flow validated with a `node-dead-end`
+		 * warning and a run was refused outright with "node … has no outgoing
+		 * edge and does not end the flow".
+		 *
+		 * The editor could therefore not produce a runnable multi-node flow at
+		 * all, while looking like it had. Measured against a live instance:
+		 * `edges: [{source, target}]` returns that warning, `[{from, to}]`
+		 * returns clean.
+		 *
+		 * The duplicate check reads BOTH spellings, so a flow loaded from the
+		 * server (which is `from`/`to`) is not re-connected into a duplicate.
+		 *
 		 * @param {object} payload        The connection.
 		 * @param {string} payload.source Source node id.
 		 * @param {string} payload.target Target node id.
@@ -478,18 +496,27 @@ export const useFlowStore = defineStore('cnFlow', {
 				return
 			}
 
-			if (this.edges.some((edge) => edge.source === source && edge.target === target)) {
+			const exists = this.edges.some(
+				(edge) => (edge.source ?? edge.from) === source && (edge.target ?? edge.to) === target,
+			)
+			if (exists) {
 				return
 			}
 
-			this.flow.edges = [...this.edges, { source, target }]
+			this.flow.edges = [...this.edges, { from: source, to: target }]
 			this.dirty = true
 			this.checkResult = null
 		},
 
 		removeNode(id) {
 			this.flow.nodes = this.nodes.filter((node) => node.id !== id)
-			this.flow.edges = this.edges.filter((edge) => edge.source !== id && edge.target !== id)
+			// BOTH spellings, or removing a node leaves its `from`/`to` edges
+			// behind pointing at a node that no longer exists — and `from`/`to`
+			// is exactly what the server stores, so every edge on a loaded flow
+			// survived the deletion of the node it referenced.
+			this.flow.edges = this.edges.filter(
+				(edge) => (edge.source ?? edge.from) !== id && (edge.target ?? edge.to) !== id,
+			)
 			this.selectedNodeId = null
 			this.dirty = true
 			this.checkResult = null
