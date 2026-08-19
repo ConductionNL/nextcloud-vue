@@ -92,7 +92,7 @@ describe('app-manifest-v2 — all 10 page types (REQ-MV2S-003)', () => {
 	const PAGE_TYPES = ['index', 'detail', 'dashboard', 'logs', 'settings', 'chat', 'files', 'form', 'map', 'custom']
 
 	it('all 11 page types pass validation when _note is provided for custom', () => {
-		const pages = PAGE_TYPES.map((type, i) => {
+		const pages = PAGE_TYPES.map((type) => {
 			const page = {
 				id: `page-${type}`,
 				route: `/${type}`,
@@ -1008,5 +1008,111 @@ describe('app-manifest-v2 — runtime.theme (scoped-theme-applier, REQ-STA-4)', 
 		}
 		const result = validateManifestV2(manifest)
 		expect(result).toEqual({ valid: true, errors: [] })
+	})
+})
+
+describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 cards-collapse)', () => {
+	const navCardGridPage = (entries) => ({
+		id: 'progress',
+		route: '/progress',
+		type: 'dashboard',
+		title: 'app.progress',
+		config: { allowEdit: false },
+		widgets: [{
+			widgetKey: 'nav-card-grid',
+			slot: 'body',
+			gridX: 0,
+			gridY: 0,
+			gridWidth: 12,
+			gridHeight: 6,
+			props: { entries },
+		}],
+	})
+
+	it('a nav-card-grid widget with valid entries validates (route, href, count auto, count integer, neither)', () => {
+		const manifest = {
+			...MINIMAL_V2,
+			pages: [navCardGridPage([
+				{ id: 'levels', label: 'Levels', route: 'Levels', count: 'auto' },
+				{ id: 'responses', label: 'Responses', route: 'Responses', count: 7 },
+				{ id: 'docs', label: 'Documentation', href: 'https://example.org/docs' },
+				{ id: 'warnings', label: 'Warnings', description: 'Flagged items needing review' },
+			])],
+		}
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('a navCardEntry with both route and href fails (mutually exclusive)', () => {
+		const manifest = {
+			...MINIMAL_V2,
+			pages: [navCardGridPage([
+				{ id: 'levels', label: 'Levels', route: 'Levels', href: 'https://example.org' },
+			])],
+		}
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+	})
+
+	it('a nav-card-grid widget missing props.entries fails', () => {
+		const manifest = {
+			...MINIMAL_V2,
+			pages: [{
+				id: 'progress',
+				route: '/progress',
+				type: 'dashboard',
+				title: 'app.progress',
+				widgets: [{
+					widgetKey: 'nav-card-grid',
+					slot: 'body',
+					gridX: 0,
+					gridY: 0,
+					gridWidth: 12,
+					gridHeight: 6,
+				}],
+			}],
+		}
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+	})
+
+	it('a navCardEntry with an unrecognised count string fails', () => {
+		const manifest = {
+			...MINIMAL_V2,
+			pages: [navCardGridPage([
+				{ id: 'levels', label: 'Levels', count: 'sometimes' },
+			])],
+		}
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+	})
+
+	it('a navCardEntry with an unknown property fails (additionalProperties: false)', () => {
+		const manifest = {
+			...MINIMAL_V2,
+			pages: [navCardGridPage([
+				{ id: 'levels', label: 'Levels', badge: 'new' },
+			])],
+		}
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+	})
+
+	it('sentinel guard reaches navCardEntry string leaves transitively via widgetEntry.allOf (no separate ref needed)', () => {
+		const manifest = {
+			...MINIMAL_V2,
+			pages: [navCardGridPage([
+				{ id: 'levels', label: '@bogus.token' },
+			])],
+		}
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(false)
+	})
+
+	it('the manifest schema version reads 2.23.0', () => {
+		// eslint-disable-next-line global-require
+		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
+		expect(schema.version).toBe('2.23.0')
 	})
 })

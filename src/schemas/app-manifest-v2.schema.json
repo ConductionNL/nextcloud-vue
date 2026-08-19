@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.22.0",
+	"version": "2.23.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -825,6 +825,63 @@
 				}
 			}
 		},
+		"navCardEntry": {
+			"type": "object",
+			"required": ["id", "label"],
+			"additionalProperties": false,
+			"description": "One card in a nav-card-grid built-in widget (ADR-044 §4 cards-collapse) — an arbitrary navigation link, not an OpenRegister object. Mirrors the menuItem/primaryAction vocabulary: id + label required, route/href are alternative navigation targets and mutually exclusive, count supports the same integer-or-\"auto\" shape as menuItem.count.",
+			"properties": {
+				"id": {
+					"type": "string",
+					"description": "Unique identifier for this card within its widget's entries[] array."
+				},
+				"label": {
+					"type": "string",
+					"description": "i18n translation key / text rendered as the card's title."
+				},
+				"description": {
+					"type": "string",
+					"description": "Optional explanatory text rendered below the label, associated to the card via aria-describedby (never aria-label)."
+				},
+				"icon": {
+					"type": "string",
+					"description": "MDI icon name (e.g. 'ChartLine'), resolved the same way as menuItem.icon."
+				},
+				"route": {
+					"type": "string",
+					"description": "Vue-router route name (matches a pages[].id) this card navigates to. Mutually exclusive with href."
+				},
+				"href": {
+					"type": "string",
+					"description": "External URL opened per the rendering component's target handling. Mutually exclusive with route."
+				},
+				"count": {
+					"oneOf": [
+						{ "type": "integer", "minimum": 0 },
+						{ "type": "string", "enum": ["auto"] }
+					],
+					"description": "Count badge on the card. Positive integer renders as-is; 'auto' resolves from cnMenuCounts (populated by CnAppRoot) for the card's resolved route page (register + schema), the same mechanism menuItem.count:\"auto\" uses."
+				},
+				"order": {
+					"type": "integer",
+					"description": "Display order among sibling cards. Cards without an order render last."
+				},
+				"permission": {
+					"type": "string",
+					"description": "Permission string the user must hold for this card to render."
+				},
+				"visibleIf": {
+					"$ref": "#/$defs/visibleIfCondition",
+					"description": "Optional display condition evaluated at render time."
+				}
+			},
+			"allOf": [
+				{
+					"description": "route and href are mutually exclusive navigation targets — a card links either in-app or externally, never both.",
+					"not": { "required": ["route", "href"] }
+				}
+			]
+		},
 		"widgetEntry": {
 			"type": "object",
 			"required": ["widgetKey", "slot", "gridX", "gridY", "gridWidth", "gridHeight"],
@@ -953,6 +1010,29 @@
 												"class": { "type": "string", "description": "CSS class added to the row when `when` holds." }
 											}
 										}
+									}
+								}
+							}
+						}
+					}
+				},
+				{
+					"description": "nav-card-grid built-in widget (ADR-044 §4 cards-collapse): props.entries is REQUIRED and each entry must match the navCardEntry shape. Unlike stats-block's optional entries[], nav-card-grid has no dataSource alternative — it renders arbitrary navigation links, not fetched data.",
+					"if": {
+						"properties": { "widgetKey": { "const": "nav-card-grid" } },
+						"required": ["widgetKey"]
+					},
+					"then": {
+						"required": ["props"],
+						"properties": {
+							"props": {
+								"type": "object",
+								"required": ["entries"],
+								"properties": {
+									"entries": {
+										"type": "array",
+										"items": { "$ref": "#/$defs/navCardEntry" },
+										"description": "One card per array entry, rendered by CnNavCardGrid."
 									}
 								}
 							}
