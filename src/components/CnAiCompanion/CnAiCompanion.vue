@@ -85,6 +85,14 @@ const HEALTH_RETRY_DELAY = 750
  */
 const COMPANION_SINGLETON_KEY = '__cnAiCompanionPrimary'
 
+/**
+ * How long to wait before looking for a companion that cannot stand down.
+ *
+ * Long enough for a host app's Vue tree to boot after a standalone mount at
+ * DOMContentLoaded, short enough that a user never sees two hexes settle.
+ */
+const LEGACY_SIBLING_DELAY = 1200
+
 export default {
 	name: 'CnAiCompanion',
 
@@ -146,6 +154,9 @@ export default {
 			probeSucceeded: false,
 			isPanelOpen: false,
 			isPrimaryCompanion: false,
+			// Cleared on unmount so a torn-down companion cannot stand itself
+			// down after the fact.
+			legacySiblingTimer: null,
 			stream: useAiChatStream(this, { chatAppId: this.chatAppId, context: this.context }),
 		}
 	},
@@ -162,10 +173,66 @@ export default {
 	},
 
 	beforeUnmount() {
+		if (this.legacySiblingTimer !== null) {
+			clearTimeout(this.legacySiblingTimer)
+			this.legacySiblingTimer = null
+		}
+
 		this.releaseSingleton()
 	},
 
 	methods: {
+		/**
+		 * Stand down if another companion is on the page that cannot stand down.
+		 *
+		 * 🔴 THE WINDOW FLAG ONLY BINDS INSTANCES THAT CHECK IT. Measured on a
+		 * live instance after shipping the flag: still TWO hexes, stacked at the
+		 * same coordinates — one from `#openregister` (the host app's own bundle,
+		 * built against an older version of this library) and one from
+		 * `#hermiq-companion-root` (the standalone mount, built against the new
+		 * one). The old bundle never reads the flag, so it renders regardless,
+		 * and the guarded instance had already claimed the slot and rendered too.
+		 *
+		 * The library fix alone therefore does not reach a page until EVERY app
+		 * on it has rebuilt — which is not something a user with a double hex
+		 * can wait for. So the instance that CAN yield does.
+		 *
+		 * Deferred rather than checked at mount, because order is against us: a
+		 * standalone companion mounts at DOMContentLoaded and the host app's Vue
+		 * tree boots after it, so at mount time there is nothing to see.
+		 *
+		 * When both companions carry this guard the flag has already stopped the
+		 * second one, so this never fires — it is strictly a bridge for mixed
+		 * versions, and it costs one timeout.
+		 *
+		 * @return void
+		 */
+		yieldToACompanionThatCannotYield() {
+			if (typeof document === 'undefined' || this.isPrimaryCompanion !== true) {
+				return
+			}
+
+			this.legacySiblingTimer = setTimeout(() => {
+				this.legacySiblingTimer = null
+
+				const rendered = document.querySelectorAll('[data-testid="cn-ai-companion"]')
+				if (rendered.length <= 1) {
+					return
+				}
+
+				for (const el of rendered) {
+					if (el !== this.$el) {
+						// Yield to it: the host app's own companion sits inside
+						// that app's tree and carries its page context, which a
+						// standalone mount can only approximate.
+						this.releaseSingleton()
+						this.isPrimaryCompanion = false
+						return
+					}
+				}
+			}, LEGACY_SIBLING_DELAY)
+		},
+
 		/**
 		 * Claim the page's single companion slot, or stand down.
 		 *
@@ -261,6 +328,9 @@ export default {
 					// Contend for the page's single slot only now, with a
 					// backend that answered. See claimSingleton().
 					this.claimSingleton()
+					// A companion built against an older version of this library
+					// cannot read the flag above, so look for one shortly.
+					this.yieldToACompanionThatCannotYield()
 					return
 				} catch {
 					if (attempt < HEALTH_PROBE_ATTEMPTS) {
