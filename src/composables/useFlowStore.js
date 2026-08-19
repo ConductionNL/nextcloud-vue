@@ -175,8 +175,9 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * The edges as the canvas draws them: one line per (source, target)
 		 * pair, whatever dialect the stored flow speaks.
 		 *
-		 * This store writes `{source, target}`, but the engine equally accepts
-		 * `{from, to}` — hermiq's flows are stored that way, and each endpoint
+		 * This store writes `{from, to}` — the ONLY dialect the engine reads —
+		 * but it must still DRAW `{source, target}`, which older documents and
+		 * hermiq's flows carry. Each endpoint
 		 * may be a LIST (several `from` = join, several `to` = split). Handing
 		 * `flow.edges` to the canvas raw therefore rendered every one of those
 		 * flows as unconnected cards: real graphs, silently drawn wrong.
@@ -616,6 +617,16 @@ export const useFlowStore = defineStore('cnFlow', {
 			const columnWidth = 260
 			const rowHeight = 170
 			const margin = 60
+			// The toolbar FLOATS over the canvas (position: absolute, top 12px,
+			// ~52px tall) because the controls belong with the graph. A node
+			// laid out at the old uniform 60px margin therefore landed UNDER
+			// it, and an overlaid node is not merely ugly — it is unreachable:
+			// the toolbar swallows the pointer, so it cannot be clicked,
+			// double-clicked to edit, or dragged out from under itself.
+			// Measured live on a three-node flow: the middle node sat wholly
+			// behind the toolbar and Playwright reported
+			// `cn-flow-detail__toolbar subtree intercepts pointer events`.
+			const toolbarClearance = 96
 
 			const outgoing = new Map()
 			for (const line of this.canvasEdges) {
@@ -651,7 +662,7 @@ export const useFlowStore = defineStore('cnFlow', {
 				return {
 					...node,
 					x: margin + (column * columnWidth),
-					y: margin + (row * rowHeight),
+					y: toolbarClearance + (row * rowHeight),
 				}
 			})
 			this.dirty = true
