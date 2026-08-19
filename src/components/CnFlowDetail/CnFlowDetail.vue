@@ -83,7 +83,20 @@
 					</template>
 				</NcButton>
 			</div>
+
+			<!-- The way back to a closed sidebar has to live OUTSIDE it. -->
+			<NcButton v-if="!store.sidebarOpen"
+				type="tertiary"
+				:aria-label="t('nextcloud-vue', 'Show the flow controls')"
+				:title="t('nextcloud-vue', 'Show the flow controls')"
+				@click="store.sidebarOpen = true">
+				<template #icon>
+					<DockRight :size="20" />
+				</template>
+			</NcButton>
 		</div>
+
+		<CnFlowNodeEditModal v-if="store.editingNodeId !== null" />
 
 		<!-- The engine's verdict on the canvas, from the Check button. -->
 		<NcNoteCard v-if="store.checkResult"
@@ -131,7 +144,8 @@
 						`cn-flow-detail__node--${typeSlug(node.type)}`,
 						`cn-flow-detail__node--role-${store.roleOfNodeType(node.type)}`,
 						{ 'cn-flow-detail__node--unknown': isUnknown(node.type) },
-					]">
+					]"
+					@dblclick.stop="store.editingNodeId = node.id">
 					<span class="cn-flow-detail__node-type">{{ typeLabel(node.type) }}</span>
 					<span class="cn-flow-detail__node-label">{{ nodeLabel(node) }}</span>
 					<span
@@ -176,11 +190,13 @@
 import { NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import CheckDecagram from 'vue-material-design-icons/CheckDecagram.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
+import DockRight from 'vue-material-design-icons/DockRight.vue'
 import Minus from 'vue-material-design-icons/Minus.vue'
 import Play from 'vue-material-design-icons/Play.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Sitemap from 'vue-material-design-icons/Sitemap.vue'
 import SortVariant from 'vue-material-design-icons/SortVariant.vue'
+import CnFlowNodeEditModal from '../../dialogs/CnFlowNodeEditModal.vue'
 import CnGraphCanvas from '../CnGraphCanvas/CnGraphCanvas.vue'
 import { useFlowStore } from '../../composables/useFlowStore.js'
 
@@ -189,8 +205,10 @@ export default {
 
 	components: {
 		CheckDecagram,
+		CnFlowNodeEditModal,
 		CnGraphCanvas,
 		ContentSave,
+		DockRight,
 		Minus,
 		NcButton,
 		NcEmptyContent,
@@ -464,6 +482,11 @@ export default {
 		 * @return {string} The label.
 		 */
 		nodeLabel(node) {
+			// A name the author gave the step beats a derived summary.
+			if (node.name) {
+				return node.name
+			}
+
 			const config = (node.config || {})
 			const keys = Object.keys(config).filter((k) => config[k] !== '' && config[k] !== null)
 
@@ -678,6 +701,9 @@ export default {
 	fill: var(--color-border-dark);
 }
 
+/* ONE container, not a card in a card: the canvas wrapper draws the box —
+   border, radius, background, selection — and this card only fills it. Its
+   earlier own border/background rendered as a visible nested box. */
 .cn-flow-detail__node {
 	display: flex;
 	flex-direction: column;
@@ -685,13 +711,11 @@ export default {
 	justify-content: center;
 	block-size: 100%;
 	padding: 8px 12px;
-	border: 2px solid var(--color-border);
-	border-radius: var(--border-radius-large);
-	background: var(--color-main-background);
+	border-radius: inherit;
 	overflow: hidden;
 }
 
-.cn-flow-detail__node--unknown {
+.cn-flow-detail :deep(.cn-graph-canvas__node:has(.cn-flow-detail__node--unknown)) {
 	border-color: var(--color-error);
 }
 

@@ -59,6 +59,16 @@ export const useFlowStore = defineStore('cnFlow', {
 		selectedNodeId: null,
 		paletteDragType: null,
 
+		// The node whose edit dialog is open, or null. Lives here because the
+		// dialog is hosted by the canvas while it is opened from the sidebar,
+		// a node double-click, or a consumer.
+		editingNodeId: null,
+
+		// Whether the controls sidebar is shown. Lives here because the
+		// re-open affordance sits on the canvas toolbar, in the other half of
+		// the tree.
+		sidebarOpen: true,
+
 		// The node types the engine can actually execute. The catalogue is
 		// AUTHORITATIVE: a builder that invents its own ids produces flows the
 		// engine cannot run, which is exactly the defect this replaces.
@@ -101,6 +111,20 @@ export const useFlowStore = defineStore('cnFlow', {
 			}
 
 			return (state.flow.nodes || []).find((n) => n.id === state.selectedNodeId) || null
+		},
+
+		/**
+		 * The node whose edit dialog is open, or null.
+		 *
+		 * @param {object} state The store state.
+		 * @return {object|null} The node.
+		 */
+		editingNode: (state) => {
+			if (state.editingNodeId === null) {
+				return null
+			}
+
+			return (state.flow.nodes || []).find((n) => n.id === state.editingNodeId) || null
 		},
 
 		/**
@@ -347,6 +371,7 @@ export const useFlowStore = defineStore('cnFlow', {
 		 */
 		open(id, app = null) {
 			this.selectedNodeId = null
+			this.editingNodeId = null
 			this.runs = []
 			this.steps = []
 			this.inspectedRunUuid = null
@@ -509,6 +534,39 @@ export const useFlowStore = defineStore('cnFlow', {
 		setFlowField(key, value) {
 			this.flow = { ...this.flow, [key]: value }
 			this.dirty = true
+		},
+
+		/**
+		 * Rename one node. The name is display only — the card's headline —
+		 * so it does not invalidate a check verdict.
+		 *
+		 * @param {string} id   The node id.
+		 * @param {string} name The new name; empty falls back to the type label.
+		 * @return {void}
+		 */
+		setNodeName(id, name) {
+			this.flow.nodes = this.nodes.map((node) => (
+				node.id === id ? { ...node, name } : node
+			))
+			this.dirty = true
+		},
+
+		/**
+		 * Replace one node's whole config, by id.
+		 *
+		 * The edit dialog needs this: it commits a DRAFT on Done, for whichever
+		 * node it was opened on — which is not necessarily the selected one.
+		 *
+		 * @param {string} id     The node id.
+		 * @param {object} config The new config object.
+		 * @return {void}
+		 */
+		setNodeConfigById(id, config) {
+			this.flow.nodes = this.nodes.map((node) => (
+				node.id === id ? { ...node, config: { ...config } } : node
+			))
+			this.dirty = true
+			this.checkResult = null
 		},
 
 		/**
