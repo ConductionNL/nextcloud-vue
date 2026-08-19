@@ -1,12 +1,15 @@
 <!--
   CnFlowSidebar — the controls half of the flow editor.
 
-  Three tabs: Steps (the palette and the selected step's configuration), Runs
-  (history and per-step traces), Flow (the flow's own settings). Save / Run /
-  Check moved to CnFlowDetail's toolbar — the actions that concern the graph
-  live on the graph. Rendered in Nextcloud's app sidebar so the canvas keeps
-  the full width; shares `useFlowStore` with CnFlowDetail because the two sit
-  in different parts of the tree.
+  Nextcloud's own app sidebar (NcAppSidebar), with three tabs: Steps (the
+  palette and the selected step), Runs (history and per-step traces), Flow
+  (the flow's own settings). Save / Run / Check live on CnFlowDetail's
+  toolbar — the actions that concern the graph live on the graph. The two
+  halves render in different parts of the tree, so they share `useFlowStore`.
+
+  Closing the sidebar sets `store.sidebarOpen = false`; the canvas toolbar
+  offers the re-open button, because a control to bring the sidebar back
+  cannot live in the sidebar.
 
   THE PALETTE IS THE ENGINE'S CATALOGUE, AND NOTHING ELSE. A builder that offers
   a step the engine has never heard of produces a flow that cannot run, which is
@@ -15,15 +18,22 @@
   An empty palette here means the catalogue could not be read — a visible,
   diagnosable state — never a hard-coded fallback list that might disagree with
   the engine. While the catalogue is still LOADING the palette says so: an
-  in-flight request and a failed one are different states, and showing the
-  failure text during the first paint taught every user to distrust it.
+  in-flight request and a failed one are different states.
 
   SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-flow-sidebar">
-		<div class="cn-flow-sidebar__tabs" role="tablist">
+	<!-- `embedded` (CnFlowEditModal) renders the same tabs without
+	     NcAppSidebar, whose app-layout positioning has no meaning inside a
+	     dialog. -->
+	<component :is="embedded ? 'div' : 'NcAppSidebar'"
+		v-if="store.sidebarOpen"
+		:class="embedded ? 'cn-flow-sidebar cn-flow-sidebar--embedded' : 'cn-flow-sidebar'"
+		:name="embedded ? undefined : sidebarName"
+		:subname="embedded ? undefined : sidebarSubname"
+		@close="onClose">
+		<div v-if="embedded" class="cn-flow-sidebar__tabs" role="tablist">
 			<button v-for="entry in tabs"
 				:key="entry.id"
 				class="cn-flow-sidebar__tab"
@@ -35,46 +45,44 @@
 			</button>
 		</div>
 
-		<!--
-			The server's reason for refusing a save or a run, on every tab.
+		<component :is="embedded ? 'div' : 'NcAppSidebarTab'"
+			v-show="embedded ? tab === 'nodes' : true"
+			:id="embedded ? undefined : 'flow-steps'"
+			:name="embedded ? undefined : t('nextcloud-vue', 'Steps')"
+			:order="embedded ? undefined : 1">
+			<template v-if="!embedded" #icon>
+				<Sitemap :size="20" />
+			</template>
 
-			`store.error` was set on every failure and rendered NOWHERE, so a
-			refused save looked exactly like a save that worked (#607).
-		-->
-		<NcNoteCard v-if="store.error" type="error" class="cn-flow-sidebar__failure">
-			{{ errorText }}
-		</NcNoteCard>
+			<!--
+				The server's reason for refusing a save or a run.
 
-		<!-- ── Steps tab ───────────────────────────────────────────── -->
-		<div v-if="tab === 'nodes'" role="tabpanel">
-			<section v-if="store.selectedNode">
-				<h4>{{ t('nextcloud-vue', 'Step configuration') }}</h4>
-				<p class="cn-flow-sidebar__hint">
-					{{ store.selectedNode.type }}
+				`store.error` was set on every failure and rendered NOWHERE, so a
+				refused save looked exactly like a save that worked (#607).
+			-->
+			<NcNoteCard v-if="store.error" type="error" class="cn-flow-sidebar__failure">
+				{{ errorText }}
+			</NcNoteCard>
+
+			<section v-if="store.selectedNode" class="cn-flow-sidebar__section">
+				<h4>{{ t('nextcloud-vue', 'Selected step') }}</h4>
+				<p class="cn-flow-sidebar__selected-name">
+					{{ selectedLabel }}
 				</p>
-
-				<!--
-				  A RAW config editor, deliberately. The catalogue publishes each
-				  node's id, name, description and icon — but not a schema for its
-				  config — so a typed form here could only be hand-written per node
-				  type, which is how the previous builder ended up understanding four
-				  node types and silently ignoring every other app's. Editing the
-				  config as a document works for every node the engine has now and
-				  every one an app adds later.
-				-->
-				<NcTextArea :model-value="configJson"
-					:label="t('nextcloud-vue', 'Configuration (JSON)')"
-					:error="configError !== null"
-					:helper-text="configError || t('nextcloud-vue', 'The options this step takes. See the step description above.')"
-					rows="8"
-					@update:model-value="onConfigInput" />
-
-				<NcButton type="tertiary" @click="store.removeNode(store.selectedNode.id)">
-					{{ t('nextcloud-vue', 'Remove step') }}
-				</NcButton>
+				<p v-if="selectedEntry && selectedEntry.description" class="cn-flow-sidebar__hint">
+					{{ selectedEntry.description }}
+				</p>
+				<div class="cn-flow-sidebar__selected-actions">
+					<NcButton variant="primary" @click="store.editingNodeId = store.selectedNodeId">
+						{{ t('nextcloud-vue', 'Edit step…') }}
+					</NcButton>
+					<NcButton variant="tertiary" @click="store.removeNode(store.selectedNode.id)">
+						{{ t('nextcloud-vue', 'Remove step') }}
+					</NcButton>
+				</div>
 			</section>
 
-			<section>
+			<section class="cn-flow-sidebar__section">
 				<h4>{{ t('nextcloud-vue', 'Steps') }}</h4>
 
 				<NcTextField :model-value="paletteSearch"
@@ -120,11 +128,18 @@
 					</li>
 				</ul>
 			</section>
-		</div>
+		</component>
 
-		<!-- ── Runs tab ────────────────────────────────────────────── -->
-		<div v-else-if="tab === 'runs'" role="tabpanel">
-			<section>
+		<component :is="embedded ? 'div' : 'NcAppSidebarTab'"
+			v-show="embedded ? tab === 'runs' : true"
+			:id="embedded ? undefined : 'flow-runs'"
+			:name="embedded ? undefined : t('nextcloud-vue', 'Runs')"
+			:order="embedded ? undefined : 2">
+			<template v-if="!embedded" #icon>
+				<History :size="20" />
+			</template>
+
+			<section class="cn-flow-sidebar__section">
 				<h4>{{ t('nextcloud-vue', 'Runs') }}</h4>
 
 				<p v-if="!store.flow.id" class="cn-flow-sidebar__hint">
@@ -156,10 +171,17 @@
 					</ol>
 				</div>
 			</section>
-		</div>
+		</component>
 
-		<!-- ── Flow tab ────────────────────────────────────────────── -->
-		<div v-else role="tabpanel">
+		<component :is="embedded ? 'div' : 'NcAppSidebarTab'"
+			v-show="embedded ? tab === 'flow' : true"
+			:id="embedded ? undefined : 'flow-settings'"
+			:name="embedded ? undefined : t('nextcloud-vue', 'Flow')"
+			:order="embedded ? undefined : 3">
+			<template v-if="!embedded" #icon>
+				<Cog :size="20" />
+			</template>
+
 			<NcNoteCard v-if="store.dirty" type="warning">
 				{{ t('nextcloud-vue', 'This flow has unsaved changes.') }}
 			</NcNoteCard>
@@ -168,7 +190,7 @@
 				{{ missingEndsMessage }}
 			</NcNoteCard>
 
-			<section>
+			<section class="cn-flow-sidebar__section">
 				<h4>{{ t('nextcloud-vue', 'Flow') }}</h4>
 
 				<NcTextField :model-value="store.flow.name"
@@ -211,31 +233,51 @@
 					{{ t('nextcloud-vue', 'This flow has no owner yet, so a trigger will not start it. Saving it makes you its owner.') }}
 				</NcNoteCard>
 			</section>
-		</div>
-	</div>
+		</component>
+	</component>
 </template>
 
 <script>
 import {
+	NcAppSidebar,
+	NcAppSidebarTab,
 	NcButton,
 	NcCheckboxRadioSwitch,
 	NcNoteCard,
 	NcSelect,
-	NcTextArea,
 	NcTextField,
 } from '@nextcloud/vue'
+import Cog from 'vue-material-design-icons/Cog.vue'
+import History from 'vue-material-design-icons/History.vue'
+import Sitemap from 'vue-material-design-icons/Sitemap.vue'
 import { useFlowStore } from '../../composables/useFlowStore.js'
 
 export default {
 	name: 'CnFlowSidebar',
 
 	components: {
+		Cog,
+		History,
+		NcAppSidebar,
+		NcAppSidebarTab,
 		NcButton,
 		NcCheckboxRadioSwitch,
 		NcNoteCard,
 		NcSelect,
-		NcTextArea,
 		NcTextField,
+		Sitemap,
+	},
+
+	props: {
+		/**
+		 * Render the tabs without NcAppSidebar chrome. For hosts that are not
+		 * the app layout — CnFlowEditModal renders the sidebar inside a
+		 * dialog, where NcAppSidebar's positioning has no meaning.
+		 */
+		embedded: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	/**
@@ -255,18 +297,31 @@ export default {
 
 			paletteSearch: '',
 			roleFilter: null,
-
-			// Null while the JSON parses. Held separately from the store so an
-			// in-progress edit is not written back as a broken config — the node
-			// keeps its last valid configuration until the text parses again.
-			configError: null,
-			configDraft: null,
 		}
 	},
 
 	computed: {
 		/**
-		 * @return {Array<object>} The tab strip.
+		 * @return {string} The sidebar header: the flow's name.
+		 */
+		sidebarName() {
+			return this.store.flow.name || this.t('nextcloud-vue', 'Flow')
+		},
+
+		/**
+		 * @return {string} The header's second line: how this flow starts.
+		 */
+		sidebarSubname() {
+			const trigger = this.store.flow.trigger
+			if (trigger === 'schedule' && this.store.flow.cron) {
+				return `${this.t('nextcloud-vue', 'On a schedule')} · ${this.store.flow.cron}`
+			}
+
+			return trigger || ''
+		},
+
+		/**
+		 * @return {Array<object>} The tab strip, for the embedded variant.
 		 */
 		tabs() {
 			return [
@@ -274,6 +329,29 @@ export default {
 				{ id: 'runs', label: this.t('nextcloud-vue', 'Runs') },
 				{ id: 'flow', label: this.t('nextcloud-vue', 'Flow') },
 			]
+		},
+
+		/**
+		 * @return {object|null} The catalogue entry of the selected node.
+		 */
+		selectedEntry() {
+			return this.store.selectedNode
+				? this.store.catalogEntry(this.store.selectedNode.type)
+				: null
+		},
+
+		/**
+		 * @return {string} The selected step's headline: name, or type label.
+		 */
+		selectedLabel() {
+			const node = this.store.selectedNode
+			if (!node) {
+				return ''
+			}
+
+			return node.name
+				|| (this.selectedEntry && (this.selectedEntry.displayName || this.selectedEntry.id))
+				|| node.type
 		},
 
 		/**
@@ -347,9 +425,7 @@ export default {
 		 *
 		 * Prefers the API's own `error` field, because that is the sentence
 		 * written for a person — "A flow needs a name." says what to do, where
-		 * "Request failed with status code 400" does not. Falls back to the
-		 * axios message, and then to a generic line, so the card is never empty
-		 * while `store.error` is set.
+		 * "Request failed with status code 400" does not.
 		 *
 		 * @return {string} The message.
 		 */
@@ -363,17 +439,6 @@ export default {
 				|| error?.response?.data?.message
 				|| error?.message
 				|| this.t('nextcloud-vue', 'The last action failed.')
-		},
-
-		/**
-		 * @return {string} The selected node's config as pretty JSON.
-		 */
-		configJson() {
-			if (this.configDraft !== null) {
-				return this.configDraft
-			}
-
-			return JSON.stringify((this.store.selectedNode?.config || {}), null, 2)
 		},
 
 		/**
@@ -400,19 +465,6 @@ export default {
 		},
 	},
 
-	watch: {
-		'store.selectedNodeId'(next) {
-			// A fresh selection starts from the stored config, not the previous
-			// node's half-finished text — and selecting a node on the canvas
-			// should show its configuration, whatever tab was open.
-			this.configDraft = null
-			this.configError = null
-			if (next !== null) {
-				this.tab = 'nodes'
-			}
-		},
-	},
-
 	methods: {
 		/**
 		 * A role id as the word the palette badge shows.
@@ -432,25 +484,12 @@ export default {
 		},
 
 		/**
-		 * Parse and store the node config, keeping the last valid value on error.
+		 * Hide the sidebar. The canvas toolbar offers the way back.
 		 *
-		 * @param {string} value The raw JSON text.
 		 * @return {void}
 		 */
-		onConfigInput(value) {
-			this.configDraft = value
-			try {
-				const parsed = JSON.parse(value || '{}')
-				if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-					this.configError = this.t('nextcloud-vue', 'A step configuration must be a JSON object.')
-					return
-				}
-
-				this.configError = null
-				this.store.setNodeConfigAll(parsed)
-			} catch (e) {
-				this.configError = this.t('nextcloud-vue', 'Not valid JSON, so this step keeps its previous configuration.')
-			}
+		onClose() {
+			this.store.sidebarOpen = false
 		},
 
 		/**
@@ -465,15 +504,18 @@ export default {
 </script>
 
 <style scoped>
-.cn-flow-sidebar {
+.cn-flow-sidebar--embedded {
 	display: flex;
 	flex-direction: column;
 	gap: 20px;
 	padding: 8px 12px;
 }
 
-.cn-flow-sidebar section > * {
-	margin-block-end: 8px;
+.cn-flow-sidebar__section {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 8px 0;
 }
 
 .cn-flow-sidebar__tabs {
@@ -500,6 +542,15 @@ export default {
 .cn-flow-sidebar__tab--active {
 	color: var(--color-main-text);
 	border-block-end-color: var(--color-primary-element);
+}
+
+.cn-flow-sidebar__selected-name {
+	font-weight: 600;
+}
+
+.cn-flow-sidebar__selected-actions {
+	display: flex;
+	gap: 8px;
 }
 
 .cn-flow-sidebar__palette {

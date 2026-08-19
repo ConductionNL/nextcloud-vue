@@ -4,15 +4,21 @@ sidebar_position: 46
 
 # CnFlowSidebar
 
-The **controls half** of the flow editor, in three tabs: **Steps** (the searchable palette and the selected step's configuration), **Runs** (history and per-step traces), **Flow** (the flow's own settings, plus the unsaved-changes and missing-trigger/end banners). Render it in Nextcloud's app sidebar so [`CnFlowDetail`](./cn-flow-detail.md) keeps the full width.
+The **controls half** of the flow editor — Nextcloud's own `NcAppSidebar`, with three tabs: **Steps** (the searchable palette and the selected step), **Runs** (history and per-step traces), **Flow** (the flow's own settings, plus the unsaved-changes and missing-trigger/end banners). Render it in Nextcloud's app sidebar so [`CnFlowDetail`](./cn-flow-detail.md) keeps the full width; the header carries the flow's name and its trigger.
 
-Save and Run moved to `CnFlowDetail`'s toolbar — the actions that concern the graph live on the graph.
+Save and Run moved to `CnFlowDetail`'s toolbar — the actions that concern the graph live on the graph. The selected step is edited through [`CnFlowNodeEditModal`](./cn-flow-node-edit-modal.md) (the **Edit step…** button), not an inline JSON textarea. Closing the sidebar sets `useFlowStore().sidebarOpen = false`; the canvas toolbar offers the way back, because a control to bring the sidebar back cannot live in the sidebar.
 
 ```vue
 <template>
   <CnFlowSidebar />
 </template>
 ```
+
+## Props
+
+| Prop | Type | Default | What it does |
+|---|---|---|---|
+| `embedded` | `Boolean` | `false` | Render the tabs without `NcAppSidebar` chrome — for hosts that are not the app layout. `CnFlowEditModal` sets it: an app sidebar's positioning has no meaning inside a dialog. |
 
 ## Events
 
@@ -27,11 +33,9 @@ A builder that offers a step the engine has never heard of produces a flow that 
 
 Entries are searchable (name, id and description), filterable by role, and sorted triggers → steps → end, each carrying its role as a badge and its description in place.
 
-## Configuration is edited as JSON, deliberately
+## Step configuration lives in a dialog
 
-The catalogue publishes each step's id, name, description and icon — but **no schema for its configuration**. A typed form could therefore only be hand-written per step type, which is exactly how the previous builder ended up understanding four step types and silently ignoring every other app's.
-
-An in-progress edit that does not parse leaves the step's **last valid configuration** in place rather than writing a broken one, and says so.
+The selected step shows its catalogue description and an **Edit step…** button opening [`CnFlowNodeEditModal`](./cn-flow-node-edit-modal.md) — a real form derived from the engine's `configKeys`, with an Advanced JSON escape hatch. See that page for why the widgets are derived rather than hand-written per step type.
 
 ## Enabled is not the same as "will run"
 
