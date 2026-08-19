@@ -96,7 +96,10 @@
 			</NcButton>
 		</div>
 
-		<CnFlowNodeEditModal v-if="store.editingNodeId !== null" />
+		<!-- A node type whose configuration IS another product surface gets
+		     that surface as its editor (the registry); everything else gets
+		     the generic form. Same draft contract either way. -->
+		<component :is="nodeEditorComponent" v-if="store.editingNodeId !== null" />
 
 		<!-- The engine's verdict on the canvas, from the Check button. -->
 		<NcNoteCard v-if="store.checkResult"
@@ -198,6 +201,7 @@ import Sitemap from 'vue-material-design-icons/Sitemap.vue'
 import SortVariant from 'vue-material-design-icons/SortVariant.vue'
 import CnFlowNodeEditModal from '../../dialogs/CnFlowNodeEditModal.vue'
 import CnGraphCanvas from '../CnGraphCanvas/CnGraphCanvas.vue'
+import { resolveFlowNodeEditor } from '../../composables/useFlowNodeEditors.js'
 import { useFlowStore } from '../../composables/useFlowStore.js'
 
 export default {
@@ -260,6 +264,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The editor for the node being edited: an app-registered one for its
+		 * type when there is one, the generic dialog otherwise.
+		 *
+		 * @return {object} The component.
+		 */
+		nodeEditorComponent() {
+			const type = this.store.editingNode?.type
+			return (type && resolveFlowNodeEditor(type)) || CnFlowNodeEditModal
+		},
+
 		/**
 		 * @return {string} The note-card type for the check verdict.
 		 */

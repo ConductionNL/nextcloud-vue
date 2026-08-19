@@ -133,6 +133,60 @@ describe('CnFlowNodeEditModal', () => {
 		expect(wrapper.vm.draft.config.headers).toEqual({ a: 1 })
 	})
 
+	it('renders a reference field as a picker fed from its register/schema', async () => {
+		const axios = require('@nextcloud/axios').default
+		axios.get.mockResolvedValueOnce({
+			data: {
+				results: [
+					{ '@self': { uuid: 'u-1' }, name: 'CKAN production' },
+					{ '@self': { uuid: 'u-2' }, name: 'CKAN staging' },
+				],
+			},
+		})
+
+		const { wrapper } = mountModal(
+			{ type: 'openconnector.source-call', config: { source: 'u-9' } },
+			[{
+				id: 'openconnector.source-call',
+				displayName: 'Call a source',
+				configFields: [
+					{ key: 'source', type: 'string', reference: { register: 'openconnector', schema: 'source' } },
+				],
+			}],
+		)
+		await new Promise((resolve) => setTimeout(resolve))
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.widgetFor('source')).toBe('reference')
+		expect(wrapper.vm.referenceOptions.source.map((o) => o.label)).toEqual([
+			'CKAN production',
+			'CKAN staging',
+		])
+		// A stored value outside the loaded page is preserved, never blanked.
+		expect(wrapper.vm.referenceOption('source')).toEqual({ id: 'u-9', label: 'u-9' })
+	})
+
+	it('lets configFields beat configKeys and drive widgets by declared type', () => {
+		const { wrapper } = mountModal(
+			{ config: {} },
+			[{
+				id: 'openregister.end',
+				displayName: 'End',
+				configKeys: ['old', 'keys'],
+				configFields: [
+					{ key: 'force', type: 'boolean' },
+					{ key: 'maxItems', type: 'integer' },
+					{ key: 'headers', type: 'object' },
+				],
+			}],
+		)
+
+		expect(wrapper.vm.formKeys).toEqual(['force', 'maxItems', 'headers'])
+		expect(wrapper.vm.widgetFor('force')).toBe('switch')
+		expect(wrapper.vm.widgetFor('maxItems')).toBe('number')
+		expect(wrapper.vm.widgetFor('headers')).toBe('json')
+	})
+
 	it('humanises key names into labels', () => {
 		const { wrapper } = mountModal()
 

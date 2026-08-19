@@ -40,6 +40,17 @@
 					:placeholder="t('nextcloud-vue', 'GET')"
 					@update:model-value="setKey(key, $event)" />
 
+				<!-- A field the engine declares as a REFERENCE renders as a
+				     picker over the referenced register/schema — never a bare
+				     uuid text box. -->
+				<NcSelect v-else-if="widgetFor(key) === 'reference'"
+					:model-value="referenceOption(key)"
+					:options="referenceOptions[key] || []"
+					:input-label="labelFor(key)"
+					:loading="referenceLoading[key] === true"
+					:placeholder="t('nextcloud-vue', 'Pick one…')"
+					@update:model-value="setKey(key, $event ? $event.id : '')" />
+
 				<NcTextField v-else-if="widgetFor(key) === 'number'"
 					:model-value="String(draft.config[key] ?? '')"
 					type="number"
@@ -94,6 +105,8 @@
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
+import { generateUrl } from '@nextcloud/router'
 import {
 	NcButton,
 	NcCheckboxRadioSwitch,
@@ -155,6 +168,11 @@ export default {
 			jsonDrafts: {},
 			jsonErrors: {},
 
+			// Options per reference-typed field, loaded from the register and
+			// schema the ENGINE declares for it.
+			referenceOptions: {},
+			referenceLoading: {},
+
 			advancedDraft: null,
 			advancedError: null,
 		}
@@ -184,6 +202,26 @@ export default {
 		},
 
 		/**
+		 * The engine's per-field declarations, keyed by config key.
+		 *
+		 * `configFields` is the richer form ({key, type, reference?});
+		 * `configKeys` the degraded one. Either way the ENGINE owns the
+		 * vocabulary — this dialog never invents fields.
+		 *
+		 * @return {object} key → field declaration.
+		 */
+		fieldSpecs() {
+			const specs = {}
+			for (const field of (this.entry?.configFields || [])) {
+				if (field && field.key) {
+					specs[field.key] = field
+				}
+			}
+
+			return specs
+		},
+
+		/**
 		 * The keys the form renders: the engine's declared vocabulary first,
 		 * in its order, then any key already set that it does not declare.
 		 * `$`-prefixed keys are authoring annotations and stay in Advanced.
@@ -191,7 +229,8 @@ export default {
 		 * @return {Array<string>} The keys.
 		 */
 		formKeys() {
-			const declared = (this.entry?.configKeys || [])
+			const fields = (this.entry?.configFields || []).map((f) => f.key).filter(Boolean)
+			const declared = fields.length ? fields : (this.entry?.configKeys || [])
 			const present = Object.keys(this.draft.config).filter(
 				(k) => !k.startsWith('$') && !declared.includes(k),
 			)
@@ -218,14 +257,38 @@ export default {
 		},
 	},
 
+	created() {
+		// Reference fields need their options; everything else is local.
+		for (const [key, spec] of Object.entries(this.fieldSpecs)) {
+			if (spec?.reference?.register && spec?.reference?.schema) {
+				this.loadReferenceOptions(key, spec)
+			}
+		}
+	},
+
 	methods: {
 		/**
-		 * Which widget a key gets, from its VALUE first and its name second.
+		 * Which widget a key gets: the engine's declaration first, the VALUE
+		 * second, the key's name last.
 		 *
 		 * @param {string} key The config key.
-		 * @return {string} 'switch' | 'number' | 'json' | 'method' | 'text'
+		 * @return {string} 'reference' | 'switch' | 'number' | 'json' | 'method' | 'text'
 		 */
 		widgetFor(key) {
+			const spec = this.fieldSpecs[key]
+			if (spec?.reference?.register && spec?.reference?.schema) {
+				return 'reference'
+			}
+			if (spec?.type === 'boolean') {
+				return 'switch'
+			}
+			if (spec?.type === 'number' || spec?.type === 'integer') {
+				return 'number'
+			}
+			if (spec?.type === 'object' || spec?.type === 'array') {
+				return 'json'
+			}
+
 			const value = this.draft.config[key]
 			if (typeof value === 'boolean') {
 				return 'switch'
@@ -241,6 +304,56 @@ export default {
 			}
 
 			return 'text'
+		},
+
+		/**
+		 * The picker option matching a reference field's stored value —
+		 * synthesised from the raw value when the referenced object is not in
+		 * the loaded page, so an existing configuration is never blanked.
+		 *
+		 * @param {string} key The config key.
+		 * @return {object|null} The selected option.
+		 */
+		referenceOption(key) {
+			const value = this.draft.config[key]
+			if (value === undefined || value === null || value === '') {
+				return null
+			}
+
+			const options = this.referenceOptions[key] || []
+			return options.find((o) => o.id === value) || { id: value, label: String(value) }
+		},
+
+		/**
+		 * Load the pickable objects for one reference field.
+		 *
+		 * @param {string} key  The config key.
+		 * @param {object} spec The field declaration carrying the reference.
+		 * @return {Promise<void>}
+		 */
+		async loadReferenceOptions(key, spec) {
+			this.referenceLoading = { ...this.referenceLoading, [key]: true }
+			try {
+				const { register, schema } = spec.reference
+				const response = await axios.get(
+					generateUrl(`/apps/openregister/api/objects/${register}/${schema}`),
+					{ params: { _limit: 200 } },
+				)
+				const options = (response.data?.results || []).map((object) => {
+					const uuid = object['@self']?.uuid || object.uuid || object.id
+					return {
+						id: uuid,
+						label: object.name || object.title || String(uuid),
+					}
+				}).filter((o) => o.id)
+				this.referenceOptions = { ...this.referenceOptions, [key]: options }
+			} catch (error) {
+				// A picker that could not load degrades to showing the stored
+				// value; the Advanced editor still reaches everything.
+				console.error(`cn-flow: could not load options for "${key}"`, error)
+			} finally {
+				this.referenceLoading = { ...this.referenceLoading, [key]: false }
+			}
 		},
 
 		/**

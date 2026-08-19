@@ -31,6 +31,25 @@ Edits land on a draft. **Done** commits it to the store (`setNodeConfigById`
 A field holding unparseable JSON disables Done and says so next to the field
 — the step never receives a broken configuration.
 
+## Reference fields render as pickers
+
+When the engine declares a field with a reference (`configFields`:
+`{key, type, reference: {register, schema}}`), the dialog renders a select
+over that register/schema — object names as labels, uuids as values — instead
+of a text box. A stored value not in the loaded page is preserved as a
+synthesised option, so an existing configuration is never blanked, and a
+picker that fails to load degrades to the raw value with Advanced as the
+fallback. `configFields` beats `configKeys` when both are present; the engine
+owns the vocabulary either way.
+
+## An app can replace this dialog per node type
+
+[`registerFlowNodeEditor`](../utilities/register-flow-node-editor.md) maps a
+node type to a custom editor component — the real Synchronization dialog for
+`synchronization-run`, the Mapping editor for `apply-mapping` — under the
+same draft contract. This generic dialog is the fallback for every type
+without one.
+
 ## Why the widgets are derived, and why Advanced exists
 
 The catalogue publishes each step's id, name, description and `configKeys` —
