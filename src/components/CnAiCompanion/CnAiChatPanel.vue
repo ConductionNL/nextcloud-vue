@@ -282,7 +282,12 @@
 						ref="input"
 						:disabled="streamState.isStreaming"
 						:chat-app-id="chatAppId"
-						@send="onSend" />
+						:speech-input-engine="speechPolicy.inputEngine"
+						:dictation-silence-timeout="speechPolicy.silenceTimeout"
+						:local-speech-available="localSpeechAvailable"
+						:conversation-enabled="speechPolicy.conversationEnabled"
+						@send="onSend"
+						@conversation-state="onConversationTurn" />
 				</div>
 			</div>
 
@@ -321,7 +326,16 @@ import {
 	agentsUrl,
 	conversationsUrl,
 	normalizeConversation,
+	speechCapabilitiesUrl,
+	speechSynthesisUrl,
 } from '../../composables/aiChatConfig.js'
+import {
+	SPEECH_LOCAL,
+	SPEECH_OFF,
+	browserSynthesisUsable,
+	normalizeAgentSpeechPolicy,
+	resolveSpeakingEngine,
+} from '../../composables/aiSpeechPolicy.js'
 
 /**
  * Shown when an agent has no `icon` set, which is most of them. Matches the
@@ -458,6 +472,19 @@ export default {
 			agentsLoading: false,
 			agentsFetchError: false,
 			selectedAgentUuid: null,
+			/**
+			 * Whether the backend's own speech service answered its probe.
+			 *
+			 * Probed ONCE per panel and passed down, rather than asked by each
+			 * composer. Starts false so nothing offers a private engine before
+			 * the answer arrives — the wrong direction to be wrong in is the one
+			 * where a "private" microphone turns out to be a cloud one.
+			 */
+			localSpeechAvailable: false,
+			/** The `<audio>` element playing a locally synthesised reply, if any. */
+			localSpeechAudio: null,
+			/** Whether the composer is in a hands-free conversation. */
+			conversationActive: false,
 			conversations: [],
 			conversationsLoading: false,
 			conversationsFetchError: false,
@@ -476,6 +503,47 @@ export default {
 		 * others, and both have been seen in the wild.
 		 * @return {Array<{id: string, label: string}>} Selectable agents.
 		 */
+		/**
+		 * The raw agent object currently selected, or null.
+		 *
+		 * ⚠️ The RAW object, not the `agentOptions` entry. Those carry only an
+		 * id, a label and an icon — everything the speech policy needs is
+		 * dropped by that mapping, so reading the policy from an option would
+		 * silently produce defaults for every agent.
+		 *
+		 * @return {object|null} The selected agent.
+		 */
+		selectedAgent() {
+			if (!this.selectedAgentUuid) {
+				return null
+			}
+
+			return this.agents.find(
+				(agent) => (agent.uuid || agent.id) === this.selectedAgentUuid,
+			) || null
+		},
+
+		/**
+		 * The selected agent's speech policy, defaulted.
+		 *
+		 * @return {{inputEngine: string, outputEngine: string, silenceTimeout: number, conversationEnabled: boolean}} The policy.
+		 */
+		speechPolicy() {
+			return normalizeAgentSpeechPolicy(this.selectedAgent)
+		},
+
+		/**
+		 * Which engine may speak this agent's replies.
+		 *
+		 * @return {{engine: string, reason: string}} The decision.
+		 */
+		speakingDecision() {
+			return resolveSpeakingEngine(this.speechPolicy, {
+				browserUsable: browserSynthesisUsable(),
+				localUsable: this.localSpeechAvailable === true,
+			})
+		},
+
 		agentOptions() {
 			return this.agents.map((agent) => ({
 				id: agent.uuid || agent.id,
@@ -664,7 +732,15 @@ export default {
 		 * @param {boolean} streaming Whether a turn is still in flight.
 		 */
 		'streamState.isStreaming'(streaming) {
-			if (streaming === true || this.speakReplies !== true) {
+			if (streaming === true) {
+				return
+			}
+			// A spoken conversation speaks regardless of the toggle: the user is
+			// talking to the agent with the screen out of reach, and a silent
+			// reply in that mode is no reply at all.
+			if (this.speakReplies !== true && this.conversationActive !== true) {
+				// Nothing to speak, so the user's next turn can start now.
+				this.resumeConversationIfActive()
 				return
 			}
 			this.speakLatestReply()
@@ -675,6 +751,7 @@ export default {
 		this.fetchAgents()
 		this.fetchConversations()
 		this.restoreSpeakPreference()
+		this.probeLocalSpeech()
 	},
 
 	beforeUnmount() {
@@ -721,8 +798,101 @@ export default {
 		 *
 		 * @return {void}
 		 */
+		/**
+		 * Track the composer's conversation state.
+		 *
+		 * @param {boolean} active Whether a spoken conversation is running.
+		 * @return {void}
+		 */
+		onConversationTurn(active) {
+			this.conversationActive = (active === true)
+			if (this.conversationActive === false) {
+				this.stopSpeaking()
+			}
+		},
+
+		/**
+		 * Hand the microphone back to the user, if a conversation is running.
+		 *
+		 * 🔴 CALLED WHEN THE SPEAKING STOPS, NOT WHEN THE STREAM DOES. Reopening
+		 * the microphone while the reply is still being spoken records the agent
+		 * through the speakers and sends it back as the user's next turn — the
+		 * agent then answers itself, on a loop, hands-free.
+		 *
+		 * @return {void}
+		 */
+		resumeConversationIfActive() {
+			if (this.conversationActive !== true) {
+				return
+			}
+			const input = this.$refs.input
+
+			if (input && typeof input.resumeConversation === 'function') {
+				input.resumeConversation()
+			}
+		},
+
+		/**
+		 * Ask the backend whether its own speech service can actually perform.
+		 *
+		 * 🔴 ASKED, NOT ASSUMED, and asked ONCE for the whole panel. A backend
+		 * that has the endpoint but no reachable speech service answers
+		 * `available: false`, and a backend that has no such endpoint at all
+		 * (any app other than the agent engine) 404s — both mean the same thing
+		 * here: do not offer the private engine. Failing to the safe answer
+		 * matters more than usual, because the alternative engine is a cloud
+		 * one.
+		 *
+		 * @return {Promise<void>} Resolves once the answer is stored.
+		 */
+		async probeLocalSpeech() {
+			try {
+				const response = await axios.get(speechCapabilitiesUrl(this.chatAppId))
+				this.localSpeechAvailable = !!(response && response.data && response.data.available)
+			} catch (e) {
+				this.localSpeechAvailable = false
+			}
+		},
+
+		/**
+		 * Speak a reply through the instance's own speech service.
+		 *
+		 * @param {string} text The text to speak.
+		 * @return {Promise<void>} Resolves when playback has started.
+		 */
+		async speakLocally(text) {
+			try {
+				const response = await axios.post(
+					speechSynthesisUrl(this.chatAppId),
+					{ text },
+					{ responseType: 'blob' },
+				)
+				const url = URL.createObjectURL(response.data)
+				this.localSpeechAudio = new Audio(url)
+				// Revoked on end, not left to the page's lifetime: a spoken
+				// conversation would otherwise accumulate one object URL per
+				// turn for as long as the panel stays open.
+				this.localSpeechAudio.onended = () => {
+					URL.revokeObjectURL(url)
+					this.localSpeechAudio = null
+					this.resumeConversationIfActive()
+				}
+				await this.localSpeechAudio.play()
+			} catch (e) {
+				// Speaking is a convenience; a failure must not disturb the chat
+				// — but a conversation waiting on it must not stall either.
+				this.resumeConversationIfActive()
+			}
+		},
+
 		speakLatestReply() {
-			if (this.speechSynthesisSupported === false) {
+			// ⚠️ EVERY EARLY RETURN HERE HANDS THE TURN BACK. In a conversation
+			// the microphone reopens when the speaking ENDS, so a path that
+			// returns without speaking and without saying so leaves the user
+			// holding a dead microphone, waiting for an agent that already
+			// answered.
+			if (this.speakingDecision.engine === SPEECH_OFF) {
+				this.resumeConversationIfActive()
 				return
 			}
 
@@ -736,6 +906,7 @@ export default {
 			}
 
 			if (latest === '' || latest === this.spokenText) {
+				this.resumeConversationIfActive()
 				return
 			}
 
@@ -751,14 +922,28 @@ export default {
 				.replace(/\s+/g, ' ')
 				.trim()
 
+			// 🔴 The engine comes from the DECISION, not from what the browser
+			// happens to support. An agent whose replies may quote a case file
+			// is configured `local`, and speaking that reply through the
+			// browser's synthesis would hand the quote to the same vendor the
+			// dictation setting was written to avoid.
+			if (this.speakingDecision.engine === SPEECH_LOCAL) {
+				this.speakLocally(spoken)
+
+				return
+			}
+
 			try {
 				const utterance = new window.SpeechSynthesisUtterance(spoken)
 				utterance.lang = (typeof document !== 'undefined' && document.documentElement.lang)
 					? document.documentElement.lang
 					: 'en-US'
+				utterance.onend = () => this.resumeConversationIfActive()
 				window.speechSynthesis.speak(utterance)
 			} catch (e) {
-				// Speaking is a convenience; a failure must not disturb the chat.
+				// Speaking is a convenience; a failure must not disturb the chat
+				// — but a conversation waiting on it must not stall either.
+				this.resumeConversationIfActive()
 			}
 		},
 
@@ -768,6 +953,17 @@ export default {
 		 * @return {void}
 		 */
 		stopSpeaking() {
+			// Both engines, unconditionally. Stopping only the one currently in
+			// use leaves the other playing when the agent — and with it the
+			// engine — changes mid-sentence.
+			if (this.localSpeechAudio !== null) {
+				try {
+					this.localSpeechAudio.pause()
+				} catch (e) {
+					// Already stopped.
+				}
+				this.localSpeechAudio = null
+			}
 			if (this.speechSynthesisSupported === false) {
 				return
 			}
