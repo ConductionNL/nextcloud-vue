@@ -113,8 +113,12 @@
 					v-else
 					:size="20" />
 			</button>
+			<!-- `:ref`, not `ref` — a fully static input with a cached handler
+			     is hoisted to module scope, and a hoisted vnode's ref has no
+			     owner, which throws in production builds where Vue's guard is
+			     compiled out. See CnFilesTab for the full account. -->
 			<input
-				ref="fileInput"
+				:ref="fileInputRef"
 				type="file"
 				class="cn-ai-input__file-input"
 				data-testid="cn-ai-input-file"
@@ -203,6 +207,8 @@ export default {
 
 	data() {
 		return {
+			/** The hidden file input, set by the template's function ref (kept off `$refs` so the ref stays dynamic). @type {HTMLInputElement|null} */
+			fileInputEl: null,
 			inputText: '',
 			/** Uploaded attachment refs: { path, name } — awaiting send. */
 			attachments: [],
@@ -296,6 +302,17 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Function ref for the hidden file input; a method so the binding is
+		 * stable across renders.
+		 *
+		 * @param {HTMLInputElement|null} el The element, or null on unmount.
+		 * @return {void}
+		 */
+		fileInputRef(el) {
+			this.fileInputEl = el || null
+		},
+
 		/**
 		 * Show a dictation failure, and take it away again.
 		 *
@@ -485,8 +502,8 @@ export default {
 				return
 			}
 			this.uploadError = ''
-			if (this.$refs.fileInput) {
-				this.$refs.fileInput.click()
+			if (this.fileInputEl) {
+				this.fileInputEl.click()
 			}
 		},
 

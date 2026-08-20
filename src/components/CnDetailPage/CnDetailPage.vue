@@ -670,6 +670,8 @@ import CnBodySections from '../CnBodySections/CnBodySections.vue'
 import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
 import CnRelationLinkModal from '../../dialogs/CnRelationLinkModal.vue'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+import { BUILT_IN_WIDGETS } from '../CnWidgetGrid/builtInWidgets.js'
+import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
 import '../CnWidgetGrid/registerDashboardWidgets.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
@@ -815,6 +817,18 @@ export default {
 	mixins: [gridLayout],
 
 	inject: {
+		/**
+		 * Consumer widget registry provided by CnAppRoot — the SAME injection
+		 * CnWidgetGrid reads. A consuming app registers its own components
+		 * here (hrmq registers `stat`, `chart`, `actions`,
+		 * `lifecycle-actions`, …), and per REQ-MVR-005 a consumer entry
+		 * OVERRIDES a built-in of the same name.
+		 *
+		 * Without this, a detail page could only render library widgets: an
+		 * app's own widget resolved on the CnWidgetGrid path and vanished on
+		 * this one, which is half of why the two paths disagreed.
+		 */
+		cnRegistry: { default: () => ({}) },
 		objectSidebarState: { default: null },
 		/**
 		 * Reactive AI context holder provided by CnAppRoot. This page
@@ -2808,8 +2822,32 @@ export default {
 		registryRendererFor(item) {
 			const def = this.findWidget(item)
 			if (!def || !def.type || def.type === 'integration' || def.type === 'data') return null
-			const entry = getWidgetTypeEntry(def.type)
-			return (entry && entry.renderer) || null
+			// Consumer registry FIRST — same order CnWidgetGrid uses, and the
+			// order REQ-MVR-005 mandates ("Custom widget overrides built-in").
+			const consumer = (this.cnRegistry || {})[def.type]
+			if (consumer) return consumer.component ?? consumer
+			const entry = getWidgetTypeEntry(canonicalWidgetType(def.type))
+			if (entry && entry.renderer) return entry.renderer
+			// Fall back to BUILT_IN_WIDGETS — the SAME vocabulary CnWidgetGrid
+			// resolves a `widgetKey` against.
+			//
+			// These were two near-disjoint registries: the dashboard catalog
+			// (chart, map, object-list, related, stats-block, table) and
+			// BUILT_IN_WIDGETS (audit-trail, banner, card-grid, data, divider,
+			// form-renderer, header, integration, map-viewer, metadata,
+			// nav-card-grid, object-geo, object-table, related, text). Only
+			// `related` was in both, and `table`/`object-table` plus
+			// `map`/`map-viewer` were the same concept under two names.
+			//
+			// The consequence was silent: a widget authored for one path was
+			// invisible to the other, so a detail page rendered nothing for it
+			// and said nothing about why. Measured on hrmq: 101 of 236 detail
+			// widgets (43%) — every audit-trail, stat, actions and
+			// lifecycle-actions — had no type this method could resolve.
+			//
+			// One vocabulary, resolved catalog-first so a registered override
+			// still wins.
+			return BUILT_IN_WIDGETS[canonicalWidgetType(def.type)] || BUILT_IN_WIDGETS[def.type] || null
 		},
 
 		/**

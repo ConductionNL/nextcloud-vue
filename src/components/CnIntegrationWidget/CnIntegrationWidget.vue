@@ -217,10 +217,29 @@ export default {
 			type: Object,
 			default: null,
 		},
-		/** OpenRegister register id (slug or uuid). Forwarded to each leaf. */
-		register: { type: String, default: '' },
-		/** OpenRegister schema id (slug or uuid). Forwarded to each leaf. */
-		schema: { type: String, default: '' },
+		/**
+		 * OpenRegister register id — a slug/uuid string, or the register
+		 * OBJECT a detail page injects. Accepts both for the same reason
+		 * `schema` does; see below.
+		 */
+		register: { type: [String, Object], default: '' },
+		/**
+		 * OpenRegister schema — a slug/uuid string, or the schema OBJECT the
+		 * detail-page widget grid injects.
+		 *
+		 * This used to be `type: String`, and a detail page handed it the
+		 * resolved object instead. Vue reported the mismatch as a dev-only
+		 * warning ("Expected String with value \"[object Object]\", got
+		 * Object") and then passed the object through unchanged, so the leaf
+		 * built `/apps/openregister/api/schemas/[object Object]` and got a 404
+		 * — an unreadable URL rather than a named failure, and silent in
+		 * production where the warning is compiled out.
+		 *
+		 * `CnAuditTrailWidget` already accepted both shapes and collapsed the
+		 * object to its slug; this mirrors that so the two widgets cannot
+		 * disagree about what a detail page may hand them.
+		 */
+		schema: { type: [String, Object], default: '' },
 		/** Parent object id. Forwarded to each leaf. */
 		objectId: { type: [String, Number], default: '' },
 		/**
@@ -282,6 +301,34 @@ export default {
 		/** 'single' when `only` is set, else 'tabbed'. */
 		mode() {
 			return this.only ? 'single' : 'tabbed'
+		},
+
+		/**
+		 * The register SLUG. A register object collapses to its slug/name/id,
+		 * mirroring `CnAuditTrailWidget.resolvedRegister`.
+		 *
+		 * @return {string}
+		 */
+		resolvedRegister() {
+			const r = this.register || ''
+			return typeof r === 'string' ? r : (r && (r.slug || r.name || r.id)) || ''
+		},
+
+		/**
+		 * The schema SLUG. A schema object collapses to its slug/name/id.
+		 *
+		 * Leaves interpolate this straight into an OpenRegister URL, so an
+		 * object reaching them produces `/api/schemas/[object Object]` and a
+		 * 404 that names nothing. Collapsing here means every leaf receives
+		 * the string it already documents, and a caller that hands over the
+		 * whole schema object — which the detail-page widget grid does — is
+		 * served rather than silently broken.
+		 *
+		 * @return {string}
+		 */
+		resolvedSchema() {
+			const s = this.schema || ''
+			return typeof s === 'string' ? s : (s && (s.slug || s.name || s.id)) || ''
 		},
 
 		/**
@@ -458,8 +505,8 @@ export default {
 		leafProps(provider) {
 			return {
 				integrationId: provider.id,
-				register: this.register,
-				schema: this.schema,
+				register: this.resolvedRegister,
+				schema: this.resolvedSchema,
 				objectId: this.objectId !== '' && this.objectId !== null && this.objectId !== undefined
 					? String(this.objectId)
 					: '',
