@@ -92,10 +92,27 @@
 				:disabled="disabled"
 				data-testid="cn-ai-input-mic"
 				@click="toggleDictation">
-				<MicrophoneOff
+				<!--
+				  🔴 THE FILLED MIC MEANS LIVE. THIS WAS THE OTHER WAY AROUND.
+				  A struck-through mic (`MicrophoneOff`) rendered WHILE
+				  RECORDING, on the reasoning that a button should picture the
+				  action its click performs. Every other product on the user's
+				  machine uses that glyph for "muted", so the composer read as
+				  off while it was listening and on while it was idle —
+				  reported from a live session where the reporter was watching
+				  their own words appear under an icon saying the mic was off.
+
+				  A control's icon states what IS, not what clicking does; the
+				  label and `aria-pressed` carry the action.
+
+				  Outline vs filled rather than a colour change alone, so the
+				  two states are distinguishable without perceiving the red
+				  (WCAG 2.2 SC 1.4.1 Use of Colour).
+				-->
+				<Microphone
 					v-if="listening"
 					:size="20" />
-				<Microphone
+				<MicrophoneOutline
 					v-else
 					:size="20" />
 			</button>
@@ -160,7 +177,7 @@ import Send from 'vue-material-design-icons/Send.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Microphone from 'vue-material-design-icons/Microphone.vue'
-import MicrophoneOff from 'vue-material-design-icons/MicrophoneOff.vue'
+import MicrophoneOutline from 'vue-material-design-icons/MicrophoneOutline.vue'
 import { DEFAULT_CHAT_APP_ID, attachmentsUrl } from '../../composables/aiChatConfig.js'
 
 /** How long a dictation failure stays on screen, in ms. */
@@ -176,7 +193,7 @@ export default {
 		Paperclip,
 		Close,
 		Microphone,
-		MicrophoneOff,
+		MicrophoneOutline,
 	},
 
 	inject: {
@@ -201,6 +218,25 @@ export default {
 			type: String,
 			default: DEFAULT_CHAT_APP_ID,
 		},
+		/**
+		 * How long a silence may last during dictation before the microphone is
+		 * released, in ms. `0` disables the timer and leaves the mic open until
+		 * the user stops it or the engine gives up on its own.
+		 *
+		 * Releasing the mic is ALL this does — the transcript stays in the box
+		 * for the user to read, edit and send. Dictation that posts by itself
+		 * turns a pause for thought into a sent message, and there is no
+		 * unsending. Conversation mode is where auto-send belongs, behind its
+		 * own control that the user chose to press.
+		 *
+		 * Per-agent, because the right pause length is a property of the work:
+		 * dictating a case note is not the same rhythm as answering a question.
+		 * @type {number}
+		 */
+		dictationSilenceTimeout: {
+			type: Number,
+			default: 2500,
+		},
 	},
 
 	emits: ['send'],
@@ -222,6 +258,8 @@ export default {
 			recognition: null,
 			/** Text already in the box when dictation started, so it is not lost. */
 			textBeforeDictation: '',
+			/** Timer that releases the mic after a silence. null when not armed. */
+			silenceTimer: null,
 			/** Last dictation failure, shown to the user. '' when none. */
 			dictationError: '',
 			/** Timer clearing that message, so it does not outlive its moment. */
@@ -336,6 +374,50 @@ export default {
 		},
 
 		/**
+		 * (Re)start the silence countdown that releases the microphone.
+		 *
+		 * Called on every result — interim ones included, so a long sentence
+		 * keeps the mic open while the words are still arriving rather than
+		 * being cut off between clauses.
+		 *
+		 * ⚠️ ARMED BY SPEECH, NOT BY `start()`. Arming it when dictation begins
+		 * closes the microphone on somebody who pressed the button and then
+		 * spent four seconds deciding what to say — the exact moment the
+		 * feature exists to serve. Until the first result arrives the engine's
+		 * own `no-speech` error is the backstop, and it says something useful.
+		 *
+		 * @return {void}
+		 */
+		armSilenceTimer() {
+			this.clearSilenceTimer()
+			if (this.dictationSilenceTimeout <= 0) {
+				return
+			}
+			this.silenceTimer = setTimeout(() => {
+				this.silenceTimer = null
+				// Only the microphone is released. The text stays put.
+				this.stopDictation()
+			}, this.dictationSilenceTimeout)
+		},
+
+		/**
+		 * Cancel a pending silence countdown.
+		 *
+		 * ⚠️ A LEFTOVER TIMER OUTLIVES THE DICTATION THAT ARMED IT and would
+		 * close the NEXT one mid-sentence, seconds after it started, with no
+		 * silence involved. So this is called from every path that ends a
+		 * dictation — stop, `onend`, `onerror`, unmount — not only the tidy one.
+		 *
+		 * @return {void}
+		 */
+		clearSilenceTimer() {
+			if (this.silenceTimer !== null) {
+				clearTimeout(this.silenceTimer)
+				this.silenceTimer = null
+			}
+		},
+
+		/**
 		 * Start dictation, or stop it if already running.
 		 *
 		 * @return {void}
@@ -391,12 +473,14 @@ export default {
 				}
 				this.inputText = `${this.textBeforeDictation}${interimText}`.trimStart()
 				this.$nextTick(() => this.autoGrow())
+				this.armSilenceTimer()
 			}
 
 			// `onend` fires for a user stop AND for the engine giving up on
 			// silence, so the button state is driven from here rather than from
 			// the click — otherwise the button lies after an idle timeout.
 			recognition.onend = () => {
+				this.clearSilenceTimer()
 				this.listening = false
 				this.recognition = null
 			}
@@ -410,6 +494,7 @@ export default {
 				this.showDictationError((code === 'not-allowed')
 					? this.cnTranslate('Microphone blocked — allow access, or use https')
 					: this.cnTranslate('Dictation stopped: ') + code)
+				this.clearSilenceTimer()
 				this.listening = false
 				this.recognition = null
 			}
@@ -436,6 +521,7 @@ export default {
 		 * @return {void}
 		 */
 		stopDictation() {
+			this.clearSilenceTimer()
 			if (!this.recognition) {
 				this.listening = false
 				return
@@ -665,7 +751,9 @@ export default {
 
 /* Recording is a STATE, not a hover: it stays visible while the user speaks and
    looks away from the button. Error colour because it is the "something is
-   live" signal, and the icon swaps to a struck-through mic beside it. */
+   live" signal, and the icon fills in beside it — it does NOT swap to a
+   struck-through mic, which is what this comment used to describe and what made
+   a listening composer look muted. */
 .cn-ai-input__mic-button--recording {
 	border-color: var(--color-error);
 	background: var(--color-error);
