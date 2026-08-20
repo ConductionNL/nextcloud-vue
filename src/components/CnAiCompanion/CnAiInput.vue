@@ -81,15 +81,17 @@
 				v-if="speechButtonVisible"
 				class="cn-ai-input__mic-button"
 				:class="{
-					'cn-ai-input__mic-button--recording': listening,
+					'cn-ai-input__mic-button--recording': micIsOpen,
+					'cn-ai-input__mic-button--transcribing': transcribing,
 					'cn-ai-input__mic-button--blocked': speechBlockedReason !== '',
 				}"
 				type="button"
-				:aria-label="speechBlockedReason || (listening ? cnTranslate('Stop dictation') : cnTranslate('Dictate message'))"
-				:title="speechBlockedReason || (listening ? cnTranslate('Stop dictation') : cnTranslate('Dictate message'))"
-				:aria-pressed="listening ? 'true' : 'false'"
+				:aria-label="micButtonLabel"
+				:title="micButtonLabel"
+				:aria-pressed="micIsOpen ? 'true' : 'false'"
 				:aria-disabled="speechBlockedReason !== '' ? 'true' : 'false'"
 				:disabled="disabled"
+				:data-engine="dictationDecision.engine"
 				data-testid="cn-ai-input-mic"
 				@click="toggleDictation">
 				<!--
@@ -109,10 +111,40 @@
 				  two states are distinguishable without perceiving the red
 				  (WCAG 2.2 SC 1.4.1 Use of Colour).
 				-->
+				<!-- The clip is recorded; this is the wait for the transcript.
+				     The microphone is already closed, so showing the recording
+				     state through it would be the same lie in a new place. -->
+				<NcLoadingIcon
+					v-if="transcribing"
+					:size="20" />
 				<Microphone
-					v-if="listening"
+					v-else-if="micIsOpen"
 					:size="20" />
 				<MicrophoneOutline
+					v-else
+					:size="20" />
+			</button>
+			<!--
+			  Conversation — a SEPARATE control from the microphone, offered only
+			  where the agent allows it. Same reason it is a separate icon:
+			  pressing "dictate" must never post a message by itself, and
+			  pressing "converse" is the act of agreeing that it will.
+			-->
+			<button
+				v-if="conversationButtonVisible"
+				class="cn-ai-input__converse-button"
+				:class="{ 'cn-ai-input__converse-button--active': conversing }"
+				type="button"
+				:aria-label="converseButtonLabel"
+				:title="converseButtonLabel"
+				:aria-pressed="conversing ? 'true' : 'false'"
+				:disabled="disabled && conversing === false"
+				data-testid="cn-ai-input-converse"
+				@click="toggleConversation">
+				<Headset
+					v-if="conversing"
+					:size="20" />
+				<HeadsetOff
 					v-else
 					:size="20" />
 			</button>
@@ -177,8 +209,19 @@ import Send from 'vue-material-design-icons/Send.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Microphone from 'vue-material-design-icons/Microphone.vue'
+import Headset from 'vue-material-design-icons/Headset.vue'
+import HeadsetOff from 'vue-material-design-icons/HeadsetOff.vue'
 import MicrophoneOutline from 'vue-material-design-icons/MicrophoneOutline.vue'
-import { DEFAULT_CHAT_APP_ID, attachmentsUrl } from '../../composables/aiChatConfig.js'
+import { DEFAULT_CHAT_APP_ID, attachmentsUrl, speechTranscriptionsUrl } from '../../composables/aiChatConfig.js'
+import {
+	SPEECH_AUTO,
+	SPEECH_LOCAL,
+	SPEECH_OFF,
+	browserRecognitionUsable,
+	browserRecordingUsable,
+	resolveDictationEngine,
+} from '../../composables/aiSpeechPolicy.js'
+import { createLocalDictation } from '../../composables/aiLocalDictation.js'
 
 /** How long a dictation failure stays on screen, in ms. */
 const DICTATION_ERROR_TIMEOUT = 6000
@@ -194,6 +237,8 @@ export default {
 		Close,
 		Microphone,
 		MicrophoneOutline,
+		Headset,
+		HeadsetOff,
 	},
 
 	inject: {
@@ -237,9 +282,54 @@ export default {
 			type: Number,
 			default: 2500,
 		},
+		/**
+		 * Which engine this agent's dictation may use: `auto`, `browser`,
+		 * `local` or `off`. Comes from the agent's `voiceInputEngine`.
+		 *
+		 * 🔴 `local` MEANS ONLY LOCAL. It is not a preference to be abandoned
+		 * when the instance's speech service is down — an agent is set to it
+		 * because its subject matter must not reach a cloud service, and the
+		 * browser engine IS a cloud service in Chrome, Edge and Safari alike.
+		 * @type {string}
+		 */
+		speechInputEngine: {
+			type: String,
+			default: SPEECH_AUTO,
+		},
+		/**
+		 * Whether the instance's own speech service answered its capability
+		 * probe. Passed in rather than probed here so one panel makes one call
+		 * for every composer it owns.
+		 *
+		 * ⚠️ Defaults to FALSE, so an app that does not probe never offers a
+		 * private engine it has not confirmed. Wrong in the safe direction: the
+		 * cost is the browser engine where local would have worked, not audio
+		 * leaving an instance that thought it was private.
+		 * @type {boolean}
+		 */
+		localSpeechAvailable: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Whether this agent offers hands-free conversation — a separate
+		 * control from the microphone, and deliberately so.
+		 *
+		 * Dictation and conversation are different acts. Dictating is writing
+		 * with your voice: the words land in the box and you decide when they
+		 * go. Conversing is talking to someone: your turn ends when you stop
+		 * speaking, and it is sent. Putting both on one button would mean every
+		 * dictated pause risks posting a half-finished thought, which is why
+		 * this is a second control the user chose to press.
+		 * @type {boolean}
+		 */
+		conversationEnabled: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
-	emits: ['send'],
+	emits: ['send', 'dictation-complete', 'conversation-state'],
 
 	data() {
 		return {
@@ -260,6 +350,20 @@ export default {
 			textBeforeDictation: '',
 			/** Timer that releases the mic after a silence. null when not armed. */
 			silenceTimer: null,
+			/** Whether a hands-free conversation is running. */
+			conversing: false,
+			/** The local-engine session, or null when idle. */
+			localSession: null,
+			/** Whether the local engine is recording right now. */
+			localRecording: false,
+			/**
+			 * Whether a recorded clip is being transcribed.
+			 *
+			 * Its own state, not folded into `localRecording`: the microphone is
+			 * already closed by then, and showing "recording" through a
+			 * multi-second upload is the same lie the mic icon used to tell.
+			 */
+			transcribing: false,
 			/** Last dictation failure, shown to the user. '' when none. */
 			dictationError: '',
 			/** Timer clearing that message, so it does not outlive its moment. */
@@ -272,15 +376,17 @@ export default {
 		 * Whether this browser can do speech recognition at all.
 		 *
 		 * Checked rather than assumed: Chrome and Safari expose it (Safari only
-		 * under the `webkit` prefix) and Firefox does not expose it at all. The
-		 * button is not rendered when this is false.
+		 * under the `webkit` prefix) and Firefox does not expose it at all.
+		 *
+		 * ⚠️ This answers "is the BROWSER engine available", which since the
+		 * per-agent policy landed is no longer the same question as "may this
+		 * agent dictate" — see `dictationDecision`. Used only by the browser
+		 * path's own guard.
 		 *
 		 * @return {boolean} true when a SpeechRecognition constructor exists.
 		 */
 		speechSupported() {
-			return typeof window !== 'undefined'
-				&& (typeof window.SpeechRecognition === 'function'
-					|| typeof window.webkitSpeechRecognition === 'function')
+			return browserRecognitionUsable()
 		},
 
 		/**
@@ -301,8 +407,8 @@ export default {
 		 * @return {string} A reason to show, or '' when dictation is available.
 		 */
 		speechBlockedReason() {
-			if (!this.speechSupported) {
-				return this.cnTranslate('Dictation is not supported in this browser')
+			if (this.dictationDecision.engine === SPEECH_OFF) {
+				return this.cnTranslate(this.dictationDecision.reason)
 			}
 			if (typeof window !== 'undefined' && window.isSecureContext === false) {
 				return this.cnTranslate('Dictation needs a secure (https) connection')
@@ -311,12 +417,106 @@ export default {
 		},
 
 		/**
+		 * Which engine this agent's dictation may use, and why not when it may not.
+		 *
+		 * The DECISION, not a preference — `startDictation` runs exactly what
+		 * this names. See composables/aiSpeechPolicy.js for the rule that matters:
+		 * an agent pinned to the private engine never falls back to the browser's,
+		 * because that fallback would send confidential audio to a cloud service.
+		 *
+		 * @return {{engine: string, reason: string}} The decision.
+		 */
+		dictationDecision() {
+			return resolveDictationEngine(
+				{ inputEngine: this.speechInputEngine },
+				{
+					browserUsable: browserRecognitionUsable(),
+					localUsable: this.localSpeechAvailable === true && browserRecordingUsable(),
+				},
+			)
+		},
+
+		/**
 		 * Whether the mic button is offered at all.
 		 *
-		 * @return {boolean} true when the browser has the API in any form.
+		 * ⚠️ HIDDEN ONLY WHEN THE AGENT SAYS SO. An unavailable engine still
+		 * renders the button, disabled and carrying its reason: a control that
+		 * vanishes reads as a missing feature, while one that says "this agent
+		 * may only use the private speech service, and it is unavailable" reads
+		 * as a fact somebody can act on. The exception is `off`, where the agent
+		 * has decided there is no dictation — then there is nothing to explain.
+		 *
+		 * @return {boolean} true when the button should render.
 		 */
 		speechButtonVisible() {
-			return this.speechSupported
+			if (this.speechInputEngine === SPEECH_OFF) {
+				return false
+			}
+			return this.dictationDecision.engine !== SPEECH_OFF
+				|| this.dictationDecision.reason !== ''
+		},
+
+		/**
+		 * Whether dictation is currently running on either engine.
+		 *
+		 * @return {boolean} true while the microphone is open.
+		 */
+		micIsOpen() {
+			return this.listening === true || this.localRecording === true
+		},
+
+		/**
+		 * Whether the conversation control is offered.
+		 *
+		 * Both conditions matter: the agent has to allow it, AND there has to be
+		 * an engine that can hear you. A hands-free control on an agent with no
+		 * working microphone is a button that can only disappoint.
+		 *
+		 * @return {boolean} true when the control should render.
+		 */
+		conversationButtonVisible() {
+			return this.conversationEnabled === true
+				&& this.dictationDecision.engine !== SPEECH_OFF
+		},
+
+		/**
+		 * The conversation control's label.
+		 *
+		 * Says what pressing it will DO, including the part people need warning
+		 * about — that a pause sends the message.
+		 *
+		 * @return {string} The label.
+		 */
+		converseButtonLabel() {
+			return this.conversing === true
+				? this.cnTranslate('End the spoken conversation')
+				: this.cnTranslate('Talk to the agent — your turn is sent when you stop speaking')
+		},
+
+		/**
+		 * The mic button's label and tooltip.
+		 *
+		 * Names the ENGINE when dictation is idle and the private one would be
+		 * used, because "which service is about to hear me" is not something a
+		 * user can discover any other way — and the difference between the two
+		 * is whether their words leave the building.
+		 *
+		 * @return {string} The label.
+		 */
+		micButtonLabel() {
+			if (this.speechBlockedReason !== '') {
+				return this.speechBlockedReason
+			}
+			if (this.transcribing === true) {
+				return this.cnTranslate('Transcribing…')
+			}
+			if (this.micIsOpen === true) {
+				return this.cnTranslate('Stop dictation')
+			}
+			if (this.dictationDecision.engine === SPEECH_LOCAL) {
+				return this.cnTranslate('Dictate message (private, on this instance)')
+			}
+			return this.cnTranslate('Dictate message')
 		},
 
 		isTextEmpty() {
@@ -333,6 +533,7 @@ export default {
 		// A recogniser outliving its component keeps the microphone open — the
 		// indicator stays lit in the browser chrome with nothing on screen
 		// explaining why.
+		this.conversing = false
 		this.stopDictation()
 		if (this.dictationErrorTimer !== null) {
 			clearTimeout(this.dictationErrorTimer)
@@ -397,6 +598,10 @@ export default {
 				this.silenceTimer = null
 				// Only the microphone is released. The text stays put.
 				this.stopDictation()
+				// …unless this silence is the end of a conversational turn, which
+				// is the ONE case where a pause sends — and the user pressed a
+				// separate control to say so.
+				this.completeConversationTurn()
 			}, this.dictationSilenceTimeout)
 		},
 
@@ -423,11 +628,172 @@ export default {
 		 * @return {void}
 		 */
 		toggleDictation() {
-			if (this.listening) {
+			// The reason is shown rather than the press being ignored: a button
+			// that does nothing teaches nothing, and this one has something
+			// specific to say — that the agent forbids the fast engine and the
+			// private one is down.
+			if (this.dictationDecision.engine === SPEECH_OFF) {
+				this.showDictationError(this.cnTranslate(this.dictationDecision.reason))
+				return
+			}
+			if (this.micIsOpen) {
 				this.stopDictation()
 				return
 			}
+			if (this.dictationDecision.engine === SPEECH_LOCAL) {
+				this.startLocalDictation()
+				return
+			}
 			this.startDictation()
+		},
+
+		/**
+		 * Start or end a hands-free conversation.
+		 *
+		 * @return {void}
+		 */
+		toggleConversation() {
+			if (this.conversing === true) {
+				this.endConversation()
+				return
+			}
+			if (this.dictationDecision.engine === SPEECH_OFF) {
+				this.showDictationError(this.cnTranslate(this.dictationDecision.reason))
+				return
+			}
+			this.conversing = true
+			this.$emit('conversation-state', true)
+			this.beginConversationTurn()
+		},
+
+		/**
+		 * Stop conversing and release the microphone.
+		 *
+		 * ⚠️ The FIRST thing it does is clear the flag, before stopping
+		 * dictation. `stopDictation` runs the same paths a silence does, and
+		 * with the flag still set the engine's own stop event would be read as
+		 * "your turn ended" and send whatever was captured — so pressing "end
+		 * conversation" would post one last message on the way out.
+		 *
+		 * @return {void}
+		 */
+		endConversation() {
+			this.conversing = false
+			this.$emit('conversation-state', false)
+			this.stopDictation()
+		},
+
+		/**
+		 * Open the microphone for the user's next turn.
+		 *
+		 * @return {void}
+		 */
+		beginConversationTurn() {
+			if (this.conversing === false || this.disabled === true) {
+				return
+			}
+			if (this.dictationDecision.engine === SPEECH_LOCAL) {
+				this.startLocalDictation()
+				return
+			}
+			this.startDictation()
+		},
+
+		/**
+		 * Called by the panel once the agent has finished answering — and, when
+		 * the reply is spoken aloud, once it has finished being spoken.
+		 *
+		 * 🔴 THE MICROPHONE MUST NOT REOPEN WHILE THE AGENT IS TALKING. It would
+		 * record the reply through the speakers and hand it back as the user's
+		 * next turn, and with auto-send on a silence that becomes a conversation
+		 * the agent is having with itself. Which is why the resume is driven
+		 * from outside rather than from a timer in here: only the side that owns
+		 * the speaking knows when it stopped.
+		 *
+		 * @return {void}
+		 */
+		resumeConversation() {
+			this.beginConversationTurn()
+		},
+
+		/**
+		 * End the user's turn: send what was heard.
+		 *
+		 * Nothing is sent when nothing was heard — an empty turn means the
+		 * microphone opened, caught silence and closed, which should leave the
+		 * conversation waiting rather than post a blank message.
+		 *
+		 * @return {void}
+		 */
+		completeConversationTurn() {
+			if (this.conversing === false) {
+				return
+			}
+			if (this.isSendDisabled === true) {
+				return
+			}
+			this.handleSend()
+		},
+
+		/**
+		 * Dictate through the instance's own speech service.
+		 *
+		 * No partial text on the way — whisper answers a finished clip — so the
+		 * feedback is the recording state and then an explicit "transcribing"
+		 * one. The result is APPENDED to whatever is already in the box, the
+		 * same as the browser path, so dictating twice builds a message rather
+		 * than replacing it.
+		 *
+		 * @return {void}
+		 */
+		startLocalDictation() {
+			if (this.disabled) {
+				return
+			}
+			this.dictationError = ''
+			this.localSession = createLocalDictation({
+				silenceTimeout: this.dictationSilenceTimeout,
+				transcribe: (blob) => this.uploadForTranscription(blob),
+				onTranscript: (text) => {
+					const existing = this.inputText.trim()
+					this.inputText = (existing === '') ? text : `${existing} ${text}`
+					this.$nextTick(() => this.autoGrow())
+					this.$emit('dictation-complete', text)
+					// The local engine has no silence event of its own to hang
+					// this on — the transcript ARRIVING is the end of the turn,
+					// seconds after the speaker actually stopped.
+					this.completeConversationTurn()
+				},
+				onError: (message) => {
+					this.showDictationError(this.cnTranslate(message))
+				},
+				onStateChange: (state) => {
+					this.localRecording = (state === 'recording')
+					this.transcribing = (state === 'transcribing')
+				},
+			})
+			this.localSession.start()
+		},
+
+		/**
+		 * Send a recorded clip to the backend for transcription.
+		 *
+		 * @param {Blob} blob The recorded audio.
+		 * @return {Promise<{text: string}>} The transcript.
+		 */
+		async uploadForTranscription(blob) {
+			const formData = new FormData()
+			formData.append('audio', blob, 'dictation.webm')
+			// The page's language, for the same reason the browser engine is
+			// given it: auto-detection misfires on short utterances, and a
+			// Dutch sentence detected as English comes back as nonsense rather
+			// than as an error.
+			if (typeof document !== 'undefined' && document.documentElement.lang) {
+				formData.append('language', document.documentElement.lang)
+			}
+			const response = await axios.post(speechTranscriptionsUrl(this.chatAppId), formData)
+
+			return (response && response.data) || { text: '' }
 		},
 
 		/**
@@ -522,6 +888,14 @@ export default {
 		 */
 		stopDictation() {
 			this.clearSilenceTimer()
+			if (this.localSession !== null) {
+				// The local session owns its own teardown, including releasing
+				// the microphone BEFORE the transcript request goes out.
+				this.localSession.stop()
+				this.localSession = null
+				this.localRecording = false
+				return
+			}
 			if (!this.recognition) {
 				this.listening = false
 				return
@@ -758,6 +1132,41 @@ export default {
 	border-color: var(--color-error);
 	background: var(--color-error);
 	color: var(--color-primary-text, #fff);
+}
+
+/* The conversation control sits beside the mic and matches it in weight —
+   neither is the primary action, and a bigger one would suggest the hands-free
+   mode is the normal way to use the composer rather than a deliberate choice. */
+.cn-ai-input__converse-button {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	cursor: pointer;
+}
+
+.cn-ai-input__converse-button:disabled {
+	opacity: .5;
+	cursor: default;
+}
+
+.cn-ai-input__converse-button:hover:not(:disabled) {
+	background: var(--color-background-hover);
+}
+
+/* Primary rather than error colour: a live conversation is a mode the user is
+   in, not a recording warning — the microphone beside it carries that. */
+.cn-ai-input__converse-button--active {
+	border-color: var(--color-primary-element);
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text, #fff);
 }
 
 .cn-ai-input__attach-button {

@@ -11,8 +11,18 @@ jest.mock('@nextcloud/axios', () => ({
 	},
 }))
 
+jest.mock('../../src/composables/aiLocalDictation.js', () => ({
+	__esModule: true,
+	createLocalDictation: jest.fn(() => ({
+		start: jest.fn(),
+		stop: jest.fn(),
+		isActive: jest.fn(() => false),
+	})),
+}))
+
 // eslint-disable-next-line n/no-missing-require -- ESM-only package; jest resolves it via moduleNameMapper (tests/__mocks__/nextcloud-axios.js)
 const axios = require('@nextcloud/axios').default
+const { createLocalDictation } = require('../../src/composables/aiLocalDictation.js')
 const CnAiInput = require('../../src/components/CnAiCompanion/CnAiInput.vue').default
 
 function mountInput(props = {}) {
@@ -353,5 +363,268 @@ describe('CnAiInput dictation', () => {
 		second.emitResult('tweede dictaat')
 		jest.advanceTimersByTime(2500)
 		expect(second.stopped).toBe(1)
+	})
+})
+
+/**
+ * Which ENGINE the composer starts, per the agent's policy.
+ *
+ * 🔴 The assertions that matter here are negative ones: for an agent pinned to
+ * the instance's own speech service, NO browser recogniser may be constructed —
+ * not even when the browser has a perfectly good one sitting there. Constructing
+ * it is how confidential audio reaches Google.
+ */
+describe('CnAiInput speech engines', () => {
+
+	class FakeRecognition {
+
+		constructor() {
+			FakeRecognition.instances.push(this)
+			this.started = 0
+			this.stopped = 0
+		}
+
+		start() {
+			this.started += 1
+		}
+
+		stop() {
+			this.stopped += 1
+		}
+
+	}
+
+	FakeRecognition.instances = []
+
+	let session
+
+	beforeEach(() => {
+		jest.clearAllMocks()
+		FakeRecognition.instances = []
+		// A browser that CAN do speech recognition, so "local was chosen" is
+		// never an accident of the browser being incapable.
+		window.SpeechRecognition = FakeRecognition
+		window.MediaRecorder = function MediaRecorderStub() {}
+		navigator.mediaDevices = { getUserMedia: jest.fn() }
+
+		session = { start: jest.fn(), stop: jest.fn(), isActive: jest.fn(() => false) }
+		createLocalDictation.mockReturnValue(session)
+	})
+
+	afterEach(() => {
+		delete window.SpeechRecognition
+		delete window.MediaRecorder
+		delete navigator.mediaDevices
+	})
+
+	it('uses the local engine — and NO browser recogniser — for a local-pinned agent', async () => {
+		const wrapper = mountInput({ speechInputEngine: 'local', localSpeechAvailable: true })
+
+		expect(wrapper.find('[data-testid="cn-ai-input-mic"]').attributes('data-engine')).toBe('local')
+
+		await wrapper.find('[data-testid="cn-ai-input-mic"]').trigger('click')
+
+		expect(session.start).toHaveBeenCalled()
+		expect(FakeRecognition.instances).toHaveLength(0)
+	})
+
+	it('🔴 refuses to dictate at all when a local-pinned agent has no local engine', async () => {
+		const wrapper = mountInput({ speechInputEngine: 'local', localSpeechAvailable: false })
+		const button = wrapper.find('[data-testid="cn-ai-input-mic"]')
+
+		// The button is still there, and says why.
+		expect(button.exists()).toBe(true)
+		expect(button.attributes('aria-disabled')).toBe('true')
+		expect(button.attributes('title')).toMatch(/private/i)
+
+		await button.trigger('click')
+
+		// Neither engine ran. Especially not the browser's.
+		expect(FakeRecognition.instances).toHaveLength(0)
+		expect(session.start).not.toHaveBeenCalled()
+		expect(wrapper.vm.dictationError).toMatch(/private/i)
+	})
+
+	it('uses the browser engine on auto, where it is available', async () => {
+		const wrapper = mountInput({ speechInputEngine: 'auto', localSpeechAvailable: true })
+
+		await wrapper.find('[data-testid="cn-ai-input-mic"]').trigger('click')
+
+		expect(FakeRecognition.instances).toHaveLength(1)
+		expect(createLocalDictation).not.toHaveBeenCalled()
+	})
+
+	it('falls back to the local engine on auto in a browser with no recognition (Firefox)', async () => {
+		delete window.SpeechRecognition
+		const wrapper = mountInput({ speechInputEngine: 'auto', localSpeechAvailable: true })
+
+		await wrapper.find('[data-testid="cn-ai-input-mic"]').trigger('click')
+
+		expect(session.start).toHaveBeenCalled()
+	})
+
+	it('offers no microphone at all when the agent switches dictation off', () => {
+		const wrapper = mountInput({ speechInputEngine: 'off', localSpeechAvailable: true })
+
+		expect(wrapper.find('[data-testid="cn-ai-input-mic"]').exists()).toBe(false)
+	})
+
+	it('shows a distinct transcribing state — the mic is shut by then', async () => {
+		const wrapper = mountInput({ speechInputEngine: 'local', localSpeechAvailable: true })
+		await wrapper.find('[data-testid="cn-ai-input-mic"]').trigger('click')
+
+		// Drive the state the local session reports back.
+		const { onStateChange } = createLocalDictation.mock.calls[0][0]
+		onStateChange('transcribing')
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.micIsOpen).toBe(false)
+		expect(wrapper.find('.cn-ai-input__mic-button--recording').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-ai-input-mic"]').attributes('title')).toMatch(/transcrib/i)
+	})
+
+	it('appends the transcript to what is already typed rather than replacing it', async () => {
+		const wrapper = mountInput({ speechInputEngine: 'local', localSpeechAvailable: true })
+		await wrapper.find('textarea').setValue('Beste collega,')
+		await wrapper.find('[data-testid="cn-ai-input-mic"]').trigger('click')
+
+		const { onTranscript } = createLocalDictation.mock.calls[0][0]
+		onTranscript('hierbij de notulen.')
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.inputText).toBe('Beste collega, hierbij de notulen.')
+		// Dictation still never sends by itself.
+		expect(wrapper.emitted('send')).toBeFalsy()
+	})
+})
+
+/**
+ * Conversation mode — the ONE place a pause is allowed to send.
+ *
+ * The dangerous failure here is not a missing message, it is a loop: reopen the
+ * microphone while the agent's reply is still being spoken and it records the
+ * reply through the speakers, sends it as the user's next turn, and the agent
+ * answers itself hands-free until somebody notices.
+ */
+describe('CnAiInput conversation mode', () => {
+
+	class FakeRecognition {
+
+		constructor() {
+			FakeRecognition.instances.push(this)
+			this.stopped = 0
+		}
+
+		start() {}
+
+		stop() {
+			this.stopped += 1
+		}
+
+		emitResult(transcript) {
+			const results = [[{ transcript }]]
+			results[0].isFinal = true
+			this.onresult({ resultIndex: 0, results })
+		}
+
+	}
+
+	FakeRecognition.instances = []
+
+	beforeEach(() => {
+		jest.clearAllMocks()
+		jest.useFakeTimers()
+		FakeRecognition.instances = []
+		window.SpeechRecognition = FakeRecognition
+	})
+
+	afterEach(() => {
+		jest.useRealTimers()
+		delete window.SpeechRecognition
+	})
+
+	it('offers no conversation control unless the agent allows it', () => {
+		expect(mountInput().find('[data-testid="cn-ai-input-converse"]').exists()).toBe(false)
+		expect(
+			mountInput({ conversationEnabled: true }).find('[data-testid="cn-ai-input-converse"]').exists(),
+		).toBe(true)
+	})
+
+	it('sends the turn on a silence — the difference from dictation', async () => {
+		const wrapper = mountInput({ conversationEnabled: true, dictationSilenceTimeout: 2500 })
+
+		await wrapper.find('[data-testid="cn-ai-input-converse"]').trigger('click')
+		FakeRecognition.instances[0].emitResult('hoeveel verlofdagen heb ik nog')
+		await wrapper.vm.$nextTick()
+		jest.advanceTimersByTime(2500)
+
+		expect(wrapper.emitted('send')).toBeTruthy()
+		expect(wrapper.emitted('send')[0][0].text).toBe('hoeveel verlofdagen heb ik nog')
+	})
+
+	it('does NOT send on a silence when only dictating — the same code path, the other mode', async () => {
+		const wrapper = mountInput({ conversationEnabled: true, dictationSilenceTimeout: 2500 })
+
+		// The microphone, not the headset.
+		await wrapper.find('[data-testid="cn-ai-input-mic"]').trigger('click')
+		FakeRecognition.instances[0].emitResult('een losse notitie')
+		await wrapper.vm.$nextTick()
+		jest.advanceTimersByTime(2500)
+
+		expect(wrapper.emitted('send')).toBeFalsy()
+		expect(wrapper.vm.inputText).toBe('een losse notitie')
+	})
+
+	it('🔴 does not reopen the microphone by itself after a turn — the panel does, once speaking has ended', async () => {
+		const wrapper = mountInput({ conversationEnabled: true, dictationSilenceTimeout: 2500 })
+
+		await wrapper.find('[data-testid="cn-ai-input-converse"]').trigger('click')
+		FakeRecognition.instances[0].emitResult('vraag een')
+		await wrapper.vm.$nextTick()
+		jest.advanceTimersByTime(2500)
+
+		// The turn was sent. Nothing may start listening again on a timer —
+		// that is what records the agent's own reply.
+		jest.advanceTimersByTime(30000)
+		expect(FakeRecognition.instances).toHaveLength(1)
+
+		// Only an explicit resume — which the panel calls when the reply has
+		// finished being spoken — opens the microphone again.
+		wrapper.vm.resumeConversation()
+		expect(FakeRecognition.instances).toHaveLength(2)
+	})
+
+	it('does not send a parting message when the conversation is ended by hand', async () => {
+		const wrapper = mountInput({ conversationEnabled: true, dictationSilenceTimeout: 2500 })
+
+		await wrapper.find('[data-testid="cn-ai-input-converse"]').trigger('click')
+		FakeRecognition.instances[0].emitResult('laat maar zitten')
+		await wrapper.vm.$nextTick()
+
+		await wrapper.find('[data-testid="cn-ai-input-converse"]').trigger('click')
+
+		expect(wrapper.vm.conversing).toBe(false)
+		expect(wrapper.emitted('send')).toBeFalsy()
+		// And a resume after ending stays ended.
+		wrapper.vm.resumeConversation()
+		expect(FakeRecognition.instances).toHaveLength(1)
+	})
+
+	it('does not post a blank turn when the microphone caught nothing', async () => {
+		const wrapper = mountInput({ conversationEnabled: true, dictationSilenceTimeout: 2500 })
+
+		await wrapper.find('[data-testid="cn-ai-input-converse"]').trigger('click')
+		jest.advanceTimersByTime(30000)
+
+		expect(wrapper.emitted('send')).toBeFalsy()
+	})
+
+	it('tells the panel when a conversation starts and ends', async () => {
+		const wrapper = mountInput({ conversationEnabled: true })
+
+		await wrapper.find('[data-testid="cn-ai-input-converse"]').trigger('click')
+		await wrapper.find('[data-testid="cn-ai-input-converse"]').trigger('click')
+
+		expect(wrapper.emitted('conversation-state')).toEqual([[true], [false]])
 	})
 })
