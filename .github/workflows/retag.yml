@@ -19,12 +19,35 @@ name: Retag (npm dist-tag)
 # it; re-pointing hands them current code instead. The tag can be retired later
 # once it is known unused.
 #
-# AUTH. Same npm Trusted Publisher (OIDC) path as release.yml: `id-token: write`
-# mints a short-lived credential, so there is no NPM_TOKEN to hold or rotate.
-# If npm's OIDC credential turns out to be publish-scoped and refuses a
-# dist-tag write, this job fails loudly with the registry's own message rather
-# than appearing to succeed — see the verification step, which re-reads the tag
-# from the registry and fails when it did not move.
+# ⚠️ AUTH — MEASURED, NOT ASSUMED: OIDC ALONE IS NOT ENOUGH.
+#
+# This job was written to reuse release.yml's npm Trusted Publisher (OIDC)
+# path, on the theory that `id-token: write` would cover a dist-tag write the
+# same way it covers a publish. It does not. Dispatched 2026-08-20 against
+# `vue3 -> 2.8.2`, run 32414935986:
+#
+#     npm error code E401
+#     npm error Unable to authenticate, your authentication token seems to be invalid.
+#
+# npm's OIDC credential is minted for PUBLISHING. `npm dist-tag add` is a
+# separate registry write and the exchange does not cover it. The job did what
+# it was supposed to do on failure — it stopped with the registry's own message
+# instead of exiting 0 and looking done.
+#
+# So this workflow cannot move a tag as-is. To make it work, give it a
+# credential with publish rights on the package:
+#
+#     env:
+#       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+#
+# and add that secret — accepting that it is a token to rotate, which is
+# exactly what the OIDC setup was adopted to avoid. Until someone decides that
+# trade, moving a tag is a one-liner from an account that already has rights:
+#
+#     npm dist-tag add @conduction/nextcloud-vue@2.8.2 vue3
+#
+# The workflow is kept because the verification step below is the valuable
+# part: it re-reads the tag from the registry and fails when it did not move.
 
 on:
   workflow_dispatch:
