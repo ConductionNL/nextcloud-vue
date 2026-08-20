@@ -41,7 +41,21 @@
 		     (e.g. an `object-table` widget in `body`) still wins over
 		     the default. -->
 		<template v-if="isV2Manifest">
-			<!-- body slot — widgets first, default typed component otherwise -->
+			<!-- body slot — widgets first, default typed component otherwise.
+			     KNOWN GAP (ConductionNL/hrmq#112 follow-up): a body widget
+			     short-circuits the typed component, so a `type: "detail"` page
+			     that adopts ADR-036's page-level `widgets[]` never mounts
+			     CnDetailPage and loses its header, padding, sidebar and grid
+			     discipline. hrmq's 47 detail pages sit visibly misaligned against
+			     apps using `config.widgets` because of this.
+
+			     Hosting the grid in the typed component's default slot was tried
+			     and REVERTED: the unit suite went green while the live page got
+			     worse — the body rendered empty (CnDetailPage gates its default
+			     slot against its own auto-body) and its sidebar fired ~20
+			     integration endpoints that 404 on an instance without them. The
+			     fix needs CnDetailPage to accept a body grid as a first-class
+			     input, not a slot smuggled past its layout logic. -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('body')"
 				:widgets="widgetsBySlot.get('body')"
@@ -760,6 +774,23 @@ export default {
 					topLevel[key] = page[key]
 				}
 			}
+			// NOTE on ADR-036 page-level `widgets[]`: it is NOT translated into
+			// the typed component's `widgets` + `layout` props here.
+			//
+			// An earlier cut of this fix did exactly that, and the suite caught
+			// why it is wrong: body widgets on the widget-grid path are fed
+			// their object context by the live-context HOLDER
+			// (`detailObjectContext`, #222) — subscription, re-render on store
+			// cache updates, re-scoping when the route object changes. Handing
+			// the widgets to the typed component instead silently dropped all
+			// of that; `CnPageRendererV2DetailLiveContext` went red on the
+			// widget rendering "none" where the holder had been supplying the
+			// object.
+			//
+			// So the widgets keep being rendered by CnWidgetGrid, with the
+			// holder intact. The typed component supplies only what was
+			// actually missing — its chrome — by hosting the grid in its
+			// default slot (see the template).
 			// `config.actionToggles` is a typed object sugaring the nine
 			// show*/selectable toggles on type='index' pages. Flatten
 			// each key into the top-level config namespace UNDER any
