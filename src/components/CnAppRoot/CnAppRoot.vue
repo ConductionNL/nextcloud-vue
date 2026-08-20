@@ -2835,9 +2835,19 @@ export default {
 
 		/**
 		 * Scan the manifest for `count: "auto"` menu entries (top-level
-		 * AND nested children) and hydrate `this.cnMenuCounts` from
+		 * AND nested children) AND `count: "auto"` `nav-card-grid` widget
+		 * entries (`pages[].widgets[]`, ADR-044 §4 cards-collapse), and
+		 * hydrate `this.cnMenuCounts` from
 		 * `useObjectStore().getPagination(slug).total` for each unique
 		 * `(register, schema)` pair whose resolved page is `type: "index"`.
+		 *
+		 * The `nav-card-grid` walk exists because `applyMenuRemovals`
+		 * deletes a cards-collapse group's former leaf items from `menu`
+		 * entirely once they're relocated into a card page — without this
+		 * second walk, `cnMenuCounts` would never contain the
+		 * register/schema pairs those cards need, and their
+		 * `count: "auto"` would silently show no badge even though the
+		 * underlying data exists.
 		 *
 		 * Triggers one `fetchCollection(slug, { _limit: 1 })` per pair so
 		 * the store's pagination cache is warmed. Subsequent CnIndexPage
@@ -2852,9 +2862,8 @@ export default {
 		 */
 		_hydrateMenuCounts() {
 			const menu = this.manifest?.menu ?? []
-			if (!Array.isArray(menu) || menu.length === 0) return
-
 			const pages = this.manifest?.pages ?? []
+
 			const collectAutoTargets = (items) => {
 				const targets = []
 				for (const item of items ?? []) {
@@ -2871,7 +2880,32 @@ export default {
 				return targets
 			}
 
-			const pairs = collectAutoTargets(menu)
+			/**
+			 * Collect `(register, schema)` targets from every `nav-card-grid`
+			 * widget's `props.entries[]` across all pages, for entries
+			 * declaring `count: "auto"` with a `route` resolving to an
+			 * index page.
+			 *
+			 * @return {Array<{register: string, schema: string}>}
+			 */
+			const collectNavCardGridTargets = () => {
+				const targets = []
+				for (const page of pages) {
+					for (const widget of page?.widgets ?? []) {
+						if (widget?.widgetKey !== 'nav-card-grid') continue
+						for (const entry of widget?.props?.entries ?? []) {
+							if (entry?.count !== 'auto' || !entry?.route) continue
+							const target = pages.find((p) => p.id === entry.route)
+							if (target?.type === 'index' && target?.config?.register && target?.config?.schema) {
+								targets.push({ register: target.config.register, schema: target.config.schema })
+							}
+						}
+					}
+				}
+				return targets
+			}
+
+			const pairs = [...collectAutoTargets(menu), ...collectNavCardGridTargets()]
 			if (pairs.length === 0) return
 
 			// De-duplicate by (register, schema).

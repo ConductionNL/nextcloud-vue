@@ -155,6 +155,22 @@
 				@close="() => {}" />
 		</template>
 
+		<!--
+			CnNavCardGrid keyboard activation (gated behind ?navcards=1).
+			A real browser is the only honest measurement here: the component
+			renders native <a>/<router-link> cards with NO custom keydown
+			handler, relying entirely on the browser's native "Enter activates
+			a focused link" behaviour — which jsdom does not implement. The
+			"start" button before the grid gives the spec a known Tab origin so
+			it can prove real Tab order reaches the card, not just that the
+			element is present in the DOM.
+		-->
+		<template v-else-if="showNavCards">
+			<h2>Nav card grid — keyboard activation</h2>
+			<button type="button" data-testid="navcards-start">Start</button>
+			<CnNavCardGrid title="Explore" :entries="navCardEntries" />
+		</template>
+
 		<!-- CnFormDialog schema-driven widget:'icon' (gated behind ?fd=1). -->
 		<template v-else-if="showFormDialog">
 			<h2>Form dialog — schema-driven icon field</h2>
@@ -237,6 +253,7 @@ import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
 import CnSchemaFormDialog from '../../src/components/CnSchemaFormDialog/CnSchemaFormDialog.vue'
 import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
 import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
+import CnNavCardGrid from '../../src/components/CnNavCardGrid/CnNavCardGrid.vue'
 import { NcDialog, NcSelect } from '@nextcloud/vue'
 import { installModalStack } from '../../src/utils/modalStack.js'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
@@ -260,7 +277,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnDashboardPage, NcDialog, NcSelect },
+	components: { CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnDashboardPage, CnNavCardGrid, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -339,6 +356,16 @@ export default {
 			plain: 'plain text',
 			sources: ['mdi', 'fontawesome', 'opengemeenten'],
 			catalogues: { fontawesome: faSample, opengemeenten: ogSample },
+			// CnNavCardGrid keyboard-activation harness (?navcards=1).
+			showNavCards: (typeof window !== 'undefined' && window.location.search.includes('navcards')),
+			navCardEntries: [
+				{
+					id: 'explore',
+					label: 'Explore',
+					description: 'Opens an external resource in a new tab',
+					href: 'https://example.org/explore',
+				},
+			],
 			showFormDialog: (typeof window !== 'undefined' && window.location.search.includes('fd')),
 			fdResult: null,
 			fdFields: [
