@@ -19,6 +19,7 @@ import CnWidgetFormRenderer from '../CnWidgetFormRenderer/CnWidgetFormRenderer.v
 import CnWidgetMapViewer from '../CnWidgetMapViewer/CnWidgetMapViewer.vue'
 import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnWidgetCardGrid from '../CnWidgetCardGrid/CnWidgetCardGrid.vue'
+import CnNavCardGrid from '../CnNavCardGrid/CnNavCardGrid.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
@@ -61,6 +62,13 @@ import CnDividerWidget from '../CnDividerWidget/CnDividerWidget.vue'
  * `props.content` object with the same shape their dashboard `content`
  * blob uses (see the components' docblocks).
  *
+ * The `nav-card-grid` key (ADR-044 §4 cards-collapse) places CnNavCardGrid:
+ * a grid of arbitrary navigation-link cards from `props.entries` (the
+ * navCardEntry shape). Unlike `card-grid` (CnWidgetCardGrid, which renders
+ * OpenRegister objects as CnObjectCard), `nav-card-grid` renders links, not
+ * data — the intended remedy for a deep menu group collapsed into one
+ * top-level entry via `menu-layout.json` relocations.
+ *
  * @type {Record<string, import('vue').Component>}
  */
 export const BUILT_IN_WIDGETS = {
@@ -69,6 +77,7 @@ export const BUILT_IN_WIDGETS = {
 	'map-viewer': CnWidgetMapViewer,
 	'object-geo': CnObjectGeoWidget,
 	'card-grid': CnWidgetCardGrid,
+	'nav-card-grid': CnNavCardGrid,
 	data: CnObjectDataWidget,
 	metadata: CnObjectMetadataWidget,
 	related: CnRelatedObjectsWidget,

@@ -204,6 +204,7 @@ export { default as CnWidgetObjectTable } from './CnWidgetObjectTable/CnWidgetOb
 export { default as CnWidgetFormRenderer } from './CnWidgetFormRenderer/CnWidgetFormRenderer.vue'
 export { default as CnWidgetMapViewer } from './CnWidgetMapViewer/CnWidgetMapViewer.vue'
 export { default as CnWidgetCardGrid } from './CnWidgetCardGrid/CnWidgetCardGrid.vue'
+export { default as CnNavCardGrid } from './CnNavCardGrid/CnNavCardGrid.vue'
 
 // Features & roadmap menu (add-features-roadmap-menu)
 export { CnFeaturesAndRoadmapLink } from './CnFeaturesAndRoadmapLink/index.js'
