@@ -3018,7 +3018,18 @@ export default {
 				// of this object). Subsequent syncs must NOT clobber it, otherwise
 				// the user's close/toggle would be undone on the next reactive
 				// change. The shared channel owns `open` after seeding.
-				if (!this.sidebarSeeded) {
+				//
+				// `sidebarSeeded` used to be written here and never read, so
+				// `open` went into assignSidebarState() on EVERY sync and the
+				// paragraph above described behaviour the code did not have. A
+				// detail page emits several syncs while it hydrates (the object
+				// resolves, then the schema), and each one reset `open` to the
+				// prop default — reclosing a sidebar the user had just opened.
+				// Downstream that made openbuild's e2e race the UI: the tab was
+				// clicked and its panel was hidden again before the assertion
+				// ran (openbuild#268 — "resolves 30×, hidden").
+				const seedOpen = (this.sidebarSeeded === false)
+				if (seedOpen) {
 					this.sidebarSeeded = true
 				}
 				// Manifest-driven open-enum tabs (forwarded to the host
@@ -3033,7 +3044,10 @@ export default {
 					: merged.tabs
 				this.assignSidebarState({
 					active: true,
-					open: this.sidebarOpen,
+					// Omitted after the seeding sync — assignSidebarState()
+					// only writes the keys it is given, so leaving `open` out
+					// preserves whatever the shared channel currently holds.
+					...(seedOpen ? { open: this.sidebarOpen } : {}),
 					objectType: this.resolvedObjectType,
 					objectId: this.objectId,
 					// The loaded object, so coordinate-blind sidebar-tab widgets
