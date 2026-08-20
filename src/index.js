@@ -225,6 +225,7 @@ export {
 	CnWidgetFormRenderer,
 	CnWidgetMapViewer,
 	CnWidgetCardGrid,
+	CnNavCardGrid,
 	CnLabelWidget,
 	CnLabelWidgetForm,
 	CnTextWidget,

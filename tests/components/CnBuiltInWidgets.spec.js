@@ -8,7 +8,7 @@
  * - card-grid: resolves; renders CnObjectCard per object
  */
 
-import { shallowMount } from '@vue/test-utils'
+import { shallowMount, mount } from '@vue/test-utils'
 
 // We test the built-in registry directly
 const { BUILT_IN_WIDGETS } = require('../../src/components/CnWidgetGrid/builtInWidgets.js')
@@ -42,6 +42,15 @@ describe('builtInWidgets registry', () => {
 	it('card-grid is CnWidgetCardGrid component', () => {
 		const CnWidgetCardGrid = require('../../src/components/CnWidgetCardGrid/CnWidgetCardGrid.vue').default
 		expect(BUILT_IN_WIDGETS['card-grid']).toBe(CnWidgetCardGrid)
+	})
+
+	it('registers nav-card-grid key', () => {
+		expect(BUILT_IN_WIDGETS['nav-card-grid']).toBeDefined()
+	})
+
+	it('nav-card-grid is CnNavCardGrid component', () => {
+		const CnNavCardGrid = require('../../src/components/CnNavCardGrid/CnNavCardGrid.vue').default
+		expect(BUILT_IN_WIDGETS['nav-card-grid']).toBe(CnNavCardGrid)
 	})
 
 	it('registers the Wave-1 keys: banner + audit-trail', () => {
@@ -162,5 +171,52 @@ describe('CnWidgetCardGrid', () => {
 		const wrapper = shallowMount(CnWidgetCardGrid, { propsData: { objects: [] } })
 		const cards = wrapper.findAllComponents({ name: 'CnObjectCard' })
 		expect(cards.length).toBe(0)
+	})
+})
+
+// openspec/changes/cn-nav-card-grid — "prove the manifest-only path end to
+// end": a nav-card-grid widget declared PURELY in a v2 manifest renders
+// through CnWidgetGrid's normal widgetKey resolution, with NO consumer
+// `registry` prop and NO consuming app shipping any Vue file. If this test
+// could not be written, the component would have failed its purpose (a
+// documented capability that renders nowhere) — it passes, using ONLY
+// library code (real CnWidgetGrid, real BUILT_IN_WIDGETS, real CnNavCardGrid).
+describe('nav-card-grid — manifest-only render (no consumer registry, no consumer Vue file)', () => {
+	it('a v2 widgets[] entry with widgetKey "nav-card-grid" renders CnNavCardGrid with its manifest entries', () => {
+		const CnWidgetGrid = require('../../src/components/CnWidgetGrid/CnWidgetGrid.vue').default
+		const wrapper = mount(CnWidgetGrid, {
+			propsData: {
+				slotName: 'body',
+				// No `registry` prop at all — this is the "no consumer Vue file"
+				// claim: resolution comes purely from the library's own
+				// BUILT_IN_WIDGETS registry.
+				widgets: [{
+					widgetKey: 'nav-card-grid',
+					slot: 'body',
+					gridX: 0,
+					gridY: 0,
+					gridWidth: 12,
+					gridHeight: 6,
+					props: {
+						title: 'Progress',
+						entries: [
+							{ id: 'levels', label: 'Levels', href: 'https://example.org/levels' },
+							{ id: 'responses', label: 'Responses', href: 'https://example.org/responses', count: 7 },
+						],
+					},
+				}],
+			},
+		})
+		const navCardGrid = wrapper.findComponent({ name: 'CnNavCardGrid' })
+		expect(navCardGrid.exists()).toBe(true)
+		expect(navCardGrid.props('title')).toBe('Progress')
+		expect(navCardGrid.props('entries')).toHaveLength(2)
+		// Not just resolved as a component — actually rendered real DOM output.
+		expect(wrapper.text()).toContain('Levels')
+		expect(wrapper.text()).toContain('Responses')
+		expect(wrapper.findAll('a.cn-nav-card-grid__card')).toHaveLength(2)
+		// No CnUnknownWidget fallback — proves the key resolved, it wasn't
+		// caught by the "unknown widgetKey" placeholder path.
+		expect(wrapper.findComponent({ name: 'CnUnknownWidget' }).exists()).toBe(false)
 	})
 })
