@@ -46,16 +46,28 @@
 			     short-circuits the typed component, so a `type: "detail"` page
 			     that adopts ADR-036's page-level `widgets[]` never mounts
 			     CnDetailPage and loses its header, padding, sidebar and grid
-			     discipline. hrmq's 47 detail pages sit visibly misaligned against
-			     apps using `config.widgets` because of this.
+			     discipline. The same applies to `type: "dashboard"` pages and
+			     CnDashboardPage.
+
+			     NOTE the direction of the tension: the v2 schema DOCUMENTS
+			     page-level `widgets[]` as preferred and calls `config.widgets`
+			     legacy, yet only `config.widgets` reaches the typed component.
+			     An app following the documented advice gets the worse result.
+
+			     hrmq was the only app with `widgets[]` on detail pages and has
+			     since moved its 47 pages onto `config.widgets` (hrmq#115), so
+			     nothing in the fleet is currently mis-rendering — but the trap
+			     is still armed for the next app that follows the schema's own
+			     recommendation.
 
 			     Hosting the grid in the typed component's default slot was tried
 			     and REVERTED: the unit suite went green while the live page got
 			     worse — the body rendered empty (CnDetailPage gates its default
 			     slot against its own auto-body) and its sidebar fired ~20
 			     integration endpoints that 404 on an instance without them. The
-			     fix needs CnDetailPage to accept a body grid as a first-class
-			     input, not a slot smuggled past its layout logic. -->
+			     real fix is either to make the typed components accept a body
+			     grid as a first-class input, or to settle the schema on one
+			     spelling and translate the other here. -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('body')"
 				:widgets="widgetsBySlot.get('body')"
