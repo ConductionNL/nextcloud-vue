@@ -1,0 +1,116 @@
+name: Retag (npm dist-tag)
+
+# Point an npm dist-tag at an existing published version. Nothing is built and
+# nothing is published — this only moves a label.
+#
+# WHY THIS EXISTS
+#
+# The `vue3` dist-tag outlived the channel that created it. `feat/vue-3` was
+# folded into main and `.releaserc.json` now lists only `main` and `beta`, but
+# the tag stayed pinned to 2.3.0 while `latest` moved on to 2.8.x.
+#
+# That is not cosmetic. A stale dist-tag reads as a deliberate compatibility
+# floor, and it was believed: twelve apps sat on 2.3.0 and the tag is why it
+# looked intentional. `npm view` shows 2.3.0 and 2.8.x declare IDENTICAL peer
+# dependencies — `vue: ^3.5.0` included — so no Vue-3 boundary ever existed.
+#
+# RE-POINT RATHER THAN REMOVE. `npm dist-tag rm` would make
+# `npm i @conduction/nextcloud-vue@vue3` fail outright for anyone still typing
+# it; re-pointing hands them current code instead. The tag can be retired later
+# once it is known unused.
+#
+# AUTH. Same npm Trusted Publisher (OIDC) path as release.yml: `id-token: write`
+# mints a short-lived credential, so there is no NPM_TOKEN to hold or rotate.
+# If npm's OIDC credential turns out to be publish-scoped and refuses a
+# dist-tag write, this job fails loudly with the registry's own message rather
+# than appearing to succeed — see the verification step, which re-reads the tag
+# from the registry and fails when it did not move.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'dist-tag to move (e.g. vue3)'
+        type: string
+        required: true
+      version:
+        description: 'Published version to point it at (e.g. 2.8.2). Leave blank to follow `latest`.'
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  retag:
+    name: "Move dist-tag"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      id-token: write       # npm Trusted Publisher (OIDC)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # Node 24 for npm 11.x, which carries the OIDC support release.yml relies
+      # on. Pinning the major here rather than inheriting whatever the runner
+      # ships keeps this in step with the publish path.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Resolve the target version
+        id: resolve
+        run: |
+          set -euo pipefail
+          PKG=$(node -p "require('./package.json').name")
+          WANT='${{ inputs.version }}'
+          if [ -z "$WANT" ]; then
+            WANT=$(npm view "$PKG" dist-tags.latest)
+            echo "No version given — following latest ($WANT)."
+          fi
+
+          # A dist-tag can only point at a version that exists. Without this the
+          # `npm dist-tag add` below fails with a registry error that reads like
+          # an auth problem.
+          if ! npm view "$PKG@$WANT" version >/dev/null 2>&1; then
+            echo "::error::$PKG@$WANT is not published. A dist-tag can only point at an existing version."
+            exit 1
+          fi
+
+          echo "pkg=$PKG"   >> "$GITHUB_OUTPUT"
+          echo "want=$WANT" >> "$GITHUB_OUTPUT"
+          echo "before=$(npm view "$PKG" dist-tags.${{ inputs.tag }} 2>/dev/null || echo '(unset)')" >> "$GITHUB_OUTPUT"
+
+      - name: Move the tag
+        run: |
+          set -euo pipefail
+          echo "dist-tags before:"
+          npm view '${{ steps.resolve.outputs.pkg }}' dist-tags
+          npx -y npm@latest dist-tag add \
+            '${{ steps.resolve.outputs.pkg }}@${{ steps.resolve.outputs.want }}' \
+            '${{ inputs.tag }}'
+
+      # THE TAG MUST BE RE-READ FROM THE REGISTRY.
+      #
+      # `npm dist-tag add` exiting 0 is not evidence the tag moved — the same
+      # trap as a green release that publishes nothing. Read it back, and fail
+      # when it still holds the old value.
+      - name: Verify the tag actually moved
+        run: |
+          set -euo pipefail
+          PKG='${{ steps.resolve.outputs.pkg }}'
+          WANT='${{ steps.resolve.outputs.want }}'
+          BEFORE='${{ steps.resolve.outputs.before }}'
+          sleep 5   # registry read-after-write is not instant
+          NOW=$(npm view "$PKG" "dist-tags.${{ inputs.tag }}" 2>/dev/null || echo '(unset)')
+          echo "dist-tag '${{ inputs.tag }}': ${BEFORE} -> ${NOW} (wanted ${WANT})"
+          if [ "$NOW" != "$WANT" ]; then
+            echo "::error::dist-tag '${{ inputs.tag }}' still reads '${NOW}', not '${WANT}'. The command exited 0 but the registry did not move."
+            exit 1
+          fi
+          echo "dist-tags now:"
+          npm view "$PKG" dist-tags
