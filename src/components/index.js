@@ -57,6 +57,15 @@ export { CnRelationshipGraph } from './CnRelationshipGraph/index.js'
 export { CnGraphCanvas } from './CnGraphCanvas/index.js'
 export { CnFlowDetail, CnFlowSidebar, CnFlowIndexPage } from './CnFlowDetail/index.js'
 export { CnIcon, ICON_MAP, registerIcons } from './CnIcon/index.js'
+export {
+	SEMANTIC_ICONS,
+	SEMANTIC_ICONS_TIER_A,
+	SEMANTIC_ICONS_TIER_B,
+	SEMANTIC_ICON_TIERS,
+	SEMANTIC_ICON_COMPONENTS,
+	conceptForIcon,
+	getSemanticIconComponent,
+} from './CnIcon/semanticIcons.js'
 export { CnPageHeader } from './CnPageHeader/index.js'
 export { CnActionsBar } from './CnActionsBar/index.js'
 export { CnActionsMenu } from './CnActionsMenu/index.js'

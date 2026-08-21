@@ -1453,4 +1453,48 @@ describe('CnAppNav — icon rendering', () => {
 		expect(wrapper.vm.isRegistryIcon({})).toBe(false)
 		wrapper.unmount()
 	})
+
+	// ADR-077 rule 3 — the vocabulary resolves without any registerIcons() call.
+	// This manifest registers nothing, which is exactly the state hrmq shipped in
+	// when 29 of its 72 nav entries rendered blank.
+	it('resolves a semantic-vocabulary icon with no app registration', () => {
+		const wrapper = mountNav()
+
+		expect(wrapper.vm.mdiIconComponent({ icon: 'CogOutline' })).toBeTruthy()
+		expect(wrapper.vm.mdiIconComponent({ icon: 'StoreOutline' })).toBeTruthy()
+		expect(wrapper.vm.mdiIconComponent({ icon: 'ViewDashboardOutline' })).toBeTruthy()
+
+		wrapper.unmount()
+	})
+
+	// ADR-077 rule 4 — an unresolvable name degrades to a VISIBLE glyph. Blank is
+	// indistinguishable from a deliberate no-icon choice, so it never got fixed.
+	it('flags an unresolvable icon name so it renders a visible fallback', () => {
+		const wrapper = mountNav()
+
+		expect(wrapper.vm.isUnresolvedIcon({ icon: 'NotARealIconName' })).toBe(true)
+		// Names that DO resolve must not be flagged.
+		expect(wrapper.vm.isUnresolvedIcon({ icon: 'CogOutline' })).toBe(false)
+		expect(wrapper.vm.isUnresolvedIcon({ icon: 'Heart' })).toBe(false)
+		// `icon-*` keeps its own CSS-class fallback path.
+		expect(wrapper.vm.isUnresolvedIcon({ icon: 'icon-comment' })).toBe(false)
+		expect(wrapper.vm.isUnresolvedIcon({ icon: 'icon-not-bridged' })).toBe(false)
+		// Absent icon is not "unresolved" — there is nothing to resolve.
+		expect(wrapper.vm.isUnresolvedIcon({ icon: '' })).toBe(false)
+		expect(wrapper.vm.isUnresolvedIcon({})).toBe(false)
+
+		wrapper.unmount()
+	})
+
+	it('renders an icon slot for every entry, including the unresolvable one', () => {
+		const wrapper = mountNav()
+
+		// The 'bogus' entry carries NotARealIconName. Pre-ADR-077 it rendered with
+		// no icon slot at all; it must now show the help-circle marker.
+		const bogus = wrapper.find('[data-testid="cn-nav-entry-bogus"]')
+		expect(bogus.exists()).toBe(true)
+		expect(bogus.find('svg').exists()).toBe(true)
+
+		wrapper.unmount()
+	})
 })
