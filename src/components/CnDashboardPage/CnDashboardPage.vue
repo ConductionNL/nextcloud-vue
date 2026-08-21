@@ -2269,9 +2269,27 @@ export default {
 			// #709 unified CnWidgetGrid and CnDetailPage but missed this one.
 			const consumer = (this.cnRegistry || {})[def.type]
 			if (consumer) return consumer.component ?? consumer
-			const entry = getWidgetTypeEntry(canonicalWidgetType(def.type))
+			// THE TYPE AS WRITTEN WINS; the alias is only a fallback.
+			//
+			// `object-table` and `table` are two DIFFERENT registered widgets
+			// (CnHostedObjectTable vs CnObjectListWidget2), and
+			// WIDGET_TYPE_ALIASES nonetheless maps the first onto the second.
+			// Canonicalising before the lookup therefore resolved an
+			// `object-table` dashboard widget to the `table` renderer: a widget
+			// still appeared, nothing threw, it was simply the wrong component
+			// and the stored `content` blob never reached the props the host
+			// adapter maps it onto. That is the failure this method's own
+			// comment above calls "worse than a blank".
+			//
+			// Caught by larpingapp e2e on the 2.8.2 -> 2.9.2 bump:
+			// `.cn-widget-object-table` was not in the DOM at all.
+			//
+			// Aliases keep working for a spelling that is NOT registered in its
+			// own right — `map-viewer` still reaches `map`.
+			const entry = getWidgetTypeEntry(def.type)
+				|| getWidgetTypeEntry(canonicalWidgetType(def.type))
 			if (entry && entry.renderer) return entry.renderer
-			return BUILT_IN_WIDGETS[canonicalWidgetType(def.type)] || BUILT_IN_WIDGETS[def.type] || null
+			return BUILT_IN_WIDGETS[def.type] || BUILT_IN_WIDGETS[canonicalWidgetType(def.type)] || null
 		},
 
 		/**
@@ -2290,9 +2308,12 @@ export default {
 		isCardWidget(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			if (!def || !def.type) return false
-			// Canonicalised so an aliased spelling (`table` / `object-table`,
-			// `map` / `map-viewer`) gets the same card treatment either way.
-			const entry = getWidgetTypeEntry(canonicalWidgetType(def.type))
+			// Same precedence as registryRenderer: the type as written first, the
+			// alias only as a fallback. Canonicalising first read the card flag
+			// off a DIFFERENT widget's entry, so the chrome could disagree with
+			// the component actually rendered.
+			const entry = getWidgetTypeEntry(def.type)
+				|| getWidgetTypeEntry(canonicalWidgetType(def.type))
 			return Boolean(entry && entry.card === true)
 		},
 
