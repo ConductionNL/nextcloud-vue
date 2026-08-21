@@ -103,6 +103,7 @@
 					:object-id="objectId"
 					:object="currentObject"
 					:config="lifecycleActions"
+					:schema="currentSchema"
 					@transitioned="onTransitioned"
 					@reload="onLifecycleReload" />
 				<!-- Declarative header actions (#91 Wave 3): a manifest

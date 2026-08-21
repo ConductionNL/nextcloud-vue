@@ -12,6 +12,10 @@
  *   - Clicking a button POSTs to /transition with { action }, emits
  *     `transitioned` + `reload`, and re-fetches the action list.
  *   - A rejected transition (403/422) surfaces the server's `error` message.
+ *   - Transition inputs: an action declaring `inputs` (server-derived OR
+ *     config-declared) opens CnTransitionInputDialog first; confirm POSTs
+ *     { action, data }, cancel POSTs nothing, and a transition WITHOUT inputs
+ *     still POSTs { action } immediately with no dialog.
  */
 
 jest.mock('@nextcloud/axios', () => ({
@@ -136,10 +140,13 @@ describe('CnLifecycleActions', () => {
 			await flush()
 			await wrapper.vm.$nextTick()
 
+			// The payload is exactly { action } — no `data` key for a
+			// transition without declared inputs, and no input dialog either.
 			expect(axios.post).toHaveBeenCalledWith(
 				'/nc/apps/openregister/api/objects/shift-1/transition',
 				{ action: 'close' },
 			)
+			expect(wrapper.findComponent({ name: 'CnTransitionInputDialog' }).exists()).toBe(false)
 			expect(wrapper.emitted('transitioned')[0][0]).toMatchObject({ action: 'close', to: 'closed' })
 			expect(wrapper.emitted('reload')).toBeTruthy()
 			// initial fetch + post-transition re-fetch
@@ -161,6 +168,117 @@ describe('CnLifecycleActions', () => {
 			await wrapper.vm.$nextTick()
 
 			expect(wrapper.find('[data-testid="cn-lifecycle-actions-error"]').text()).toBe('Cannot close: open balance.')
+			expect(wrapper.emitted('reload')).toBeFalsy()
+		})
+	})
+
+	describe('transition inputs', () => {
+		const REJECT_INPUTS = [
+			{ field: 'reason', required: true },
+			{ field: 'notify', required: false },
+		]
+		const SCHEMA = {
+			properties: {
+				reason: { type: 'string', title: 'Reason' },
+				notify: { type: 'boolean', title: 'Notify' },
+			},
+		}
+
+		/** Mount with one server-derived action declaring inputs, click it open. */
+		async function openServerDialog() {
+			axios.get.mockResolvedValue({ data: { actions: [
+				{ action: 'reject', to: 'rejected', description: 'Reject', inputs: REJECT_INPUTS },
+			] } })
+			const wrapper = mount(CnLifecycleActions, {
+				propsData: { objectId: 'req-1', config: { field: 'status' }, schema: SCHEMA },
+				stubs,
+			})
+			await flush()
+			await wrapper.vm.$nextTick()
+			await wrapper.find('[data-testid="cn-lifecycle-action-reject"]').trigger('click')
+			await wrapper.vm.$nextTick()
+			return wrapper
+		}
+
+		it('a server-derived action with inputs opens the dialog instead of POSTing', async () => {
+			const wrapper = await openServerDialog()
+			const dialog = wrapper.findComponent({ name: 'CnTransitionInputDialog' })
+			expect(dialog.exists()).toBe(true)
+			// Inputs + schema are forwarded so the fields render resolved.
+			expect(dialog.props('transition')).toMatchObject({ action: 'reject', inputs: REJECT_INPUTS })
+			expect(dialog.props('schema')).toEqual(SCHEMA)
+			expect(axios.post).not.toHaveBeenCalled()
+		})
+
+		it('a config-declared transition with inputs opens the dialog instead of POSTing', async () => {
+			const wrapper = mount(CnLifecycleActions, {
+				propsData: {
+					objectId: 'req-1',
+					object: { status: 'open' },
+					config: {
+						field: 'status',
+						transitions: [
+							{ from: 'open', to: 'rejected', action: 'reject', label: 'Reject request', inputs: REJECT_INPUTS },
+						],
+					},
+					schema: SCHEMA,
+				},
+				stubs,
+			})
+			await wrapper.vm.$nextTick()
+			await wrapper.find('[data-testid="cn-lifecycle-action-reject"]').trigger('click')
+			await wrapper.vm.$nextTick()
+
+			const dialog = wrapper.findComponent({ name: 'CnTransitionInputDialog' })
+			expect(dialog.exists()).toBe(true)
+			expect(dialog.props('transition')).toMatchObject({ action: 'reject', label: 'Reject request', inputs: REJECT_INPUTS })
+			expect(axios.post).not.toHaveBeenCalled()
+		})
+
+		it('required inputs keep the dialog confirm disabled until filled', async () => {
+			const wrapper = await openServerDialog()
+			// The local NcButton stub renders a NATIVE <button>, so a true
+			// `:disabled` is the empty-string attribute — assert on presence.
+			const confirm = () => wrapper.find('[data-testid="cn-transition-input-confirm"]')
+			expect(confirm().attributes('disabled')).toBeDefined()
+
+			wrapper.find('[data-testid="cn-transition-input-reason"]')
+				.findComponent({ name: 'NcTextField' }).vm.$emit('update:model-value', 'No budget')
+			await wrapper.vm.$nextTick()
+			expect(confirm().attributes('disabled')).toBeUndefined()
+		})
+
+		it('confirming the dialog POSTs { action, data } with exactly the declared keys', async () => {
+			axios.post.mockResolvedValue({ data: { id: 'req-1', status: 'rejected' } })
+			const wrapper = await openServerDialog()
+
+			wrapper.find('[data-testid="cn-transition-input-reason"]')
+				.findComponent({ name: 'NcTextField' }).vm.$emit('update:model-value', 'No budget')
+			await wrapper.vm.$nextTick()
+			await wrapper.find('[data-testid="cn-transition-input-confirm"]').trigger('click')
+			await flush()
+			await wrapper.vm.$nextTick()
+
+			expect(axios.post).toHaveBeenCalledTimes(1)
+			expect(axios.post).toHaveBeenCalledWith(
+				'/nc/apps/openregister/api/objects/req-1/transition',
+				{ action: 'reject', data: { reason: 'No budget', notify: false } },
+			)
+			// The dialog closes and the normal post-transition flow runs.
+			expect(wrapper.findComponent({ name: 'CnTransitionInputDialog' }).exists()).toBe(false)
+			expect(wrapper.emitted('transitioned')[0][0]).toMatchObject({ action: 'reject', to: 'rejected' })
+			expect(wrapper.emitted('reload')).toBeTruthy()
+		})
+
+		it('cancelling the dialog POSTs nothing', async () => {
+			const wrapper = await openServerDialog()
+			await wrapper.find('[data-testid="cn-transition-input-cancel"]').trigger('click')
+			await flush()
+			await wrapper.vm.$nextTick()
+
+			expect(axios.post).not.toHaveBeenCalled()
+			expect(wrapper.findComponent({ name: 'CnTransitionInputDialog' }).exists()).toBe(false)
+			expect(wrapper.emitted('transitioned')).toBeFalsy()
 			expect(wrapper.emitted('reload')).toBeFalsy()
 		})
 	})
