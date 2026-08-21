@@ -40,6 +40,7 @@ import { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
  * recover it, and that is how a 404-vs-403 distinction gets lost.
  */
 export class CnHttpError extends Error {
+
 	/**
 	 * @param {string} message Human-readable message.
 	 * @param {number} status  HTTP status code.
@@ -53,6 +54,7 @@ export class CnHttpError extends Error {
 		this.body = body
 		this.url = url
 	}
+
 }
 
 /**
@@ -111,8 +113,8 @@ export async function cnFetchJson(url, options = {}) {
 	}
 
 	if (!response.ok) {
-		const detail =
-			parsed && typeof parsed === 'object' && typeof parsed.error === 'string'
+		const detail
+			= parsed && typeof parsed === 'object' && typeof parsed.error === 'string'
 				? parsed.error
 				: response.statusText || 'request failed'
 		throw new CnHttpError(
