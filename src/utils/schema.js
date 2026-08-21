@@ -79,6 +79,11 @@ export function columnsFromSchema(schema, options = {}) {
 		const column = {
 			key,
 			label: tr(prop.title || key),
+			// The schema already explains what the property MEANS; carrying that
+			// through as the header tooltip means a column like "Maturity" or a
+			// computed score explains itself in place, instead of the description
+			// living only in the schema editor where no reader of the table looks.
+			description: prop.description ? tr(prop.description) : '',
 			sortable: true,
 			type: prop.type || 'string',
 			format: prop.format || null,

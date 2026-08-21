@@ -216,6 +216,19 @@
 	opacity: 0.6;
 }
 
+/* A column carrying a `description` gets a dotted underline — the long-standing
+   convention for "there is an explanation here". Without it the tooltip is
+   undiscoverable: nobody hovers a header that gives no sign of having more to
+   say. `help` on the cursor rather than `pointer`, since hovering explains
+   rather than navigates; a sortable column keeps its own pointer cursor on the
+   th, which wins because it is the element actually being clicked. */
+.cn-table-header--described {
+	text-decoration: underline dotted;
+	text-underline-offset: 3px;
+	text-decoration-color: var(--color-text-maxcontrast);
+	cursor: help;
+}
+
 .cn-data-table th.cn-table-header--sortable:focus-visible {
 	outline: 2px solid var(--color-main-text);
 	outline-offset: -2px;
