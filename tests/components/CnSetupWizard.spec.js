@@ -124,4 +124,47 @@ describe('CnSetupWizard', () => {
 			await expect(wrapper.vm.validateStep('flavour')).resolves.toBe(true)
 		})
 	})
+
+	describe('step titles follow the user language (ADR-057)', () => {
+		// manifest.setup.steps[].title is authored in English as the canonical
+		// source, exactly like the schema property titles this component already
+		// routes through cnTranslate for FIELD labels. The step titles were the
+		// one place still rendering the manifest string verbatim, so an
+		// nl-locale user saw translated field labels above untranslated step
+		// headings.
+		it('resolves a step title through the injected cnTranslate', () => {
+			const seen = []
+			const wrapper = shallowMount(CnSetupWizard, {
+				propsData: {
+					appId: 'procest',
+					steps: [{ id: 'region', type: 'info', title: 'Choose your region' }],
+				},
+				provide: {
+					cnTranslate: (key) => {
+						seen.push(key)
+						return key === 'Choose your region' ? 'Kies uw regio' : key
+					},
+				},
+			})
+
+			expect(wrapper.vm.stepTitle({ id: 'region', title: 'Choose your region' })).toBe('Kies uw regio')
+			expect(seen).toContain('Choose your region')
+		})
+
+		it('falls back to the step id when a step declares no title', () => {
+			const wrapper = shallowMount(CnSetupWizard, {
+				propsData: { appId: 'procest', steps: [{ id: 'region', type: 'info' }] },
+			})
+
+			expect(wrapper.vm.stepTitle({ id: 'region' })).toBe('region')
+		})
+
+		it('defaults to identity with no CnAppRoot ancestor, so standalone use still renders', () => {
+			const wrapper = shallowMount(CnSetupWizard, {
+				propsData: { appId: 'procest', steps: [{ id: 'region', type: 'info', title: 'Region' }] },
+			})
+
+			expect(wrapper.vm.stepTitle({ id: 'region', title: 'Region' })).toBe('Region')
+		})
+	})
 })
