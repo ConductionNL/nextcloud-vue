@@ -13,14 +13,14 @@ import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 
 const LifecycleStub = {
 	name: 'CnLifecycleActions',
-	props: ['objectId', 'object', 'config'],
+	props: ['objectId', 'object', 'config', 'schema'],
 	template: '<div class="lifecycle-stub" data-testid="lifecycle-stub" />',
 }
 
-function makeFakeStore(object) {
+function makeFakeStore(object, schema = null) {
 	return {
 		objects: object ? { 'r-s': { o1: object } } : {},
-		schemas: {},
+		schemas: schema ? { 'r-s': schema } : {},
 		registerObjectType: jest.fn(),
 		fetchObject: jest.fn(async () => null),
 		fetchSchema: jest.fn(async () => null),
@@ -52,6 +52,21 @@ describe('CnDetailPage — lifecycleActions', () => {
 		expect(child.props('objectId')).toBe('o1')
 		expect(child.props('config')).toEqual({ field: 'status' })
 		expect(child.props('object')).toEqual({ id: 'o1', status: 'open' })
+	})
+
+	it('forwards the fetched schema so transition inputs resolve their fields', () => {
+		const schema = { properties: { reason: { type: 'string', title: 'Reason' } } }
+		const wrapper = mount(CnDetailPage, {
+			propsData: {
+				register: 'r',
+				schema: 's',
+				objectId: 'o1',
+				objectStore: makeFakeStore({ id: 'o1', status: 'open' }, schema),
+				lifecycleActions: { field: 'status' },
+			},
+			stubs: { CnLifecycleActions: LifecycleStub },
+		})
+		expect(wrapper.findComponent(LifecycleStub).props('schema')).toEqual(schema)
 	})
 
 	it('re-fetches the object when CnLifecycleActions emits reload', async () => {
