@@ -485,8 +485,17 @@ const baseActions = {
 		}
 
 		try {
+			// A slug is NOT a namespace: the same schema slug can exist in
+			// several registers on one instance, and the bare endpoint resolves
+			// it instance-wide — a colliding slug then silently serves another
+			// app's schema into this app's forms. Scope the lookup to the
+			// page's own register whenever one is configured; a backend that
+			// does not yet know the parameter ignores it (today's behaviour).
+			const registerScope = config.register
+				? `?register=${encodeURIComponent(config.register)}`
+				: ''
 			const response = await fetch(
-				prefixUrl(`/apps/openregister/api/schemas/${config.schema}`),
+				prefixUrl(`/apps/openregister/api/schemas/${config.schema}${registerScope}`),
 				{ method: 'GET', headers: this._buildHeaders() },
 			)
 

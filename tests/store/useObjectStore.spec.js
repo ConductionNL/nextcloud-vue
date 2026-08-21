@@ -155,6 +155,43 @@ describe('useObjectStore', () => {
 		})
 	})
 
+	describe('fetchSchema', () => {
+		it('scopes the schema lookup to the configured register', async () => {
+			store.registerObjectType('client', 'TimeEntry', 'hrmq')
+
+			global.fetch = jest.fn().mockResolvedValue({
+				ok: true,
+				json: () => Promise.resolve({ slug: 'TimeEntry', properties: {} }),
+			})
+
+			const schema = await store.fetchSchema('client')
+
+			expect(schema).toEqual({ slug: 'TimeEntry', properties: {} })
+			// A slug is not a namespace — the lookup must carry the register
+			// scope so a colliding slug in another register can never serve
+			// that register's schema into this app's forms.
+			expect(global.fetch).toHaveBeenCalledWith(
+				expect.stringContaining('/apps/openregister/api/schemas/TimeEntry?register=hrmq'),
+				expect.any(Object),
+			)
+		})
+
+		it('keeps the bare global lookup when no register is configured', async () => {
+			store.registerObjectType('client', 'TimeEntry', '')
+
+			global.fetch = jest.fn().mockResolvedValue({
+				ok: true,
+				json: () => Promise.resolve({ slug: 'TimeEntry', properties: {} }),
+			})
+
+			await store.fetchSchema('client')
+
+			const calledUrl = global.fetch.mock.calls[0][0]
+			expect(calledUrl).toContain('/apps/openregister/api/schemas/TimeEntry')
+			expect(calledUrl).not.toContain('register=')
+		})
+	})
+
 	describe('fetchObject', () => {
 		it('fetches and caches a single object', async () => {
 			store.registerObjectType('client', '28', '5')
