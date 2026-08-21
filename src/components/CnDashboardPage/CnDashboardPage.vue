@@ -633,6 +633,8 @@ import Download from 'vue-material-design-icons/Download.vue'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+import { BUILT_IN_WIDGETS } from '../CnWidgetGrid/builtInWidgets.js'
+import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
@@ -806,6 +808,13 @@ export default {
 		 * on created() and watched for prop changes. Reset on beforeUnmount().
 		 */
 		cnAiContext: { default: null },
+		/**
+		 * Consumer widget registry provided by CnAppRoot — the SAME injection
+		 * CnWidgetGrid and CnDetailPage read, so an app-registered widget
+		 * resolves identically on all three surfaces (REQ-MVR-005: a custom
+		 * widget overrides a built-in of the same name).
+		 */
+		cnRegistry: { default: () => ({}) },
 	},
 
 	props: {
@@ -2234,8 +2243,35 @@ export default {
 		registryRenderer(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			if (!def || !def.type) return null
-			const entry = getWidgetTypeEntry(def.type)
-			return (entry && entry.renderer) || null
+			// `integration` is NOT ours to resolve — it has its own branch
+			// (isIntegrationWidget -> resolveRegistryWidget(integrationId)),
+			// and one without an `integrationId` must fall through to
+			// `unavailableLabel`. Claiming it here for BUILT_IN_WIDGETS
+			// .integration would render a widget where the page means to say
+			// "unavailable". CnDetailPage excludes the same type for the same
+			// reason.
+			if (def.type === 'integration') return null
+			// Same three-layer order as CnWidgetGrid and CnDetailPage:
+			// consumer registry -> dashboard catalog -> BUILT_IN_WIDGETS.
+			//
+			// This method used to read the catalog ALONE, which made a
+			// dashboard the odd surface out in two ways, both silent:
+			//
+			//  - a consumer override was IGNORED whenever the catalog carried
+			//    the same name. `chart` and `stat` are in both, so an app that
+			//    registers its own (hrmq registers a TrendChartWidget under
+			//    `chart`) got the library's component instead — the widget
+			//    still rendered, just the wrong one, which is worse than a
+			//    blank. REQ-MVR-005 mandates custom-over-built-in.
+			//  - a BUILT_IN-only type — `integration`, `metadata` — resolved
+			//    to nothing and the widget did not appear at all.
+			//
+			// #709 unified CnWidgetGrid and CnDetailPage but missed this one.
+			const consumer = (this.cnRegistry || {})[def.type]
+			if (consumer) return consumer.component ?? consumer
+			const entry = getWidgetTypeEntry(canonicalWidgetType(def.type))
+			if (entry && entry.renderer) return entry.renderer
+			return BUILT_IN_WIDGETS[canonicalWidgetType(def.type)] || BUILT_IN_WIDGETS[def.type] || null
 		},
 
 		/**
@@ -2254,7 +2290,9 @@ export default {
 		isCardWidget(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			if (!def || !def.type) return false
-			const entry = getWidgetTypeEntry(def.type)
+			// Canonicalised so an aliased spelling (`table` / `object-table`,
+			// `map` / `map-viewer`) gets the same card treatment either way.
+			const entry = getWidgetTypeEntry(canonicalWidgetType(def.type))
 			return Boolean(entry && entry.card === true)
 		},
 
