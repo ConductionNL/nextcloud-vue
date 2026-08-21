@@ -628,3 +628,52 @@ describe('CnAiInput conversation mode', () => {
 		expect(wrapper.emitted('conversation-state')).toEqual([[true], [false]])
 	})
 })
+
+/**
+ * The blocked state has to LOOK blocked.
+ *
+ * 🔴 `cn-ai-input__mic-button--blocked` was bound in the template and styled
+ * nowhere for the whole life of the control, so a microphone that cannot run
+ * looked identical to one that can until the user hovered it for a tooltip. A
+ * class set and never read is a comment, not a state — and this is the state
+ * that tells somebody their agent's private engine is unavailable.
+ */
+describe('CnAiInput blocked microphone', () => {
+
+	beforeEach(() => {
+		jest.clearAllMocks()
+		// A browser with no speech recognition and no recorder: nothing can run,
+		// so the control must render blocked rather than absent.
+		delete window.SpeechRecognition
+		delete window.MediaRecorder
+	})
+
+	it('marks the control blocked, and says why, rather than hiding it', () => {
+		const wrapper = mountInput({ speechInputEngine: 'auto' })
+		const button = wrapper.find('[data-testid="cn-ai-input-mic"]')
+
+		expect(button.exists()).toBe(true)
+		expect(button.classes()).toContain('cn-ai-input__mic-button--blocked')
+		expect(button.attributes('aria-disabled')).toBe('true')
+		expect(button.attributes('title')).not.toBe('')
+	})
+
+	it('🔴 keeps the blocked control CLICKABLE — it has to be able to explain itself', () => {
+		const wrapper = mountInput({ speechInputEngine: 'auto' })
+		const button = wrapper.find('[data-testid="cn-ai-input-mic"]')
+
+		// NOT the native `disabled` attribute: a disabled button suppresses
+		// hover, so its tooltip never appears and it refuses in silence. That is
+		// the bug this shape exists to avoid.
+		expect(button.attributes('disabled')).toBeUndefined()
+	})
+
+	it('carries a style rule for the blocked class, not just the class', () => {
+		// The regression itself: the binding existed, the rule did not.
+		const styles = require('fs').readFileSync(
+			require('path').join(__dirname, '../../src/components/CnAiCompanion/CnAiInput.vue'),
+			'utf8',
+		)
+		expect(styles).toMatch(/\.cn-ai-input__mic-button--blocked\s*\{/)
+	})
+})
