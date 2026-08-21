@@ -1134,6 +1134,22 @@ export default {
 	color: var(--color-primary-text, #fff);
 }
 
+/* 🔴 THE BLOCKED LOOK THE COMMENT ABOVE THE BUTTON ALREADY PROMISED.
+   `cn-ai-input__mic-button--blocked` was bound in the template and styled
+   NOWHERE, so a microphone that cannot run — an agent pinned to the private
+   engine while the speech service is down, or a browser with no recognition —
+   looked exactly like a working one until you hovered it for the tooltip. A
+   class set and never read is a comment, not a state.
+
+   ⚠️ Muted rather than `disabled`, and NOT `pointer-events: none`. The button
+   deliberately keeps a live click handler: a natively disabled control
+   suppresses hover, so its `title` can never appear and it refuses without ever
+   saying why. It must stay clickable in order to explain itself. */
+.cn-ai-input__mic-button--blocked {
+	opacity: .5;
+	cursor: not-allowed;
+}
+
 /* The conversation control sits beside the mic and matches it in weight —
    neither is the primary action, and a bigger one would suggest the hands-free
    mode is the normal way to use the composer rather than a deliberate choice. */
