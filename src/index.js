@@ -396,6 +396,7 @@ export { registerTranslations } from './l10n/index.js'
 
 // Utilities
 export { buildHeaders, buildQueryString, parseResponseError, parseAxiosError, networkError, genericError } from './utils/index.js'
+export { cnFetch, cnFetchJson, CnHttpError } from './utils/cnFetch.js'
 export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema, validateValue } from './utils/index.js'
 // The OpenRegister schema API contract — shared so OpenBuild and OpenRegister cannot
 // drift on what a 409 means (breaking change / schema still has objects).
