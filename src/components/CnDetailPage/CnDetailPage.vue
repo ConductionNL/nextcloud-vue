@@ -2056,7 +2056,35 @@ export default {
 
 		// Re-publish once the schema Object resolves (fetched async), so the
 		// hoisted sidebar's `data` tab widget gets its `schema` prop.
-		currentSchema() { this.syncSidebarState() },
+		currentSchema() {
+			this.syncSidebarState()
+
+			// AND REBUILD THE BODY IF IT WAS MATERIALIZED WITHOUT A SCHEMA.
+			//
+			// The auto-body is materialized ONCE, by the shouldRenderAutoBody
+			// watcher, the moment the OBJECT resolves — and materializeAutoBody()
+			// drops the Data widget when no schema is known at that instant. The
+			// schema is a SEPARATE async fetch, as the comment above says, so
+			// whenever the object won that race the page kept a Related widget
+			// and NO FIELDS for the life of the mount. Nothing rebuilt it,
+			// because the only reset is the resolvedObjectType watcher, which
+			// fires on a different object TYPE, not on a late schema.
+			//
+			// Invisible on a fast machine, where the schema usually lands first.
+			// Measured from a shillinq e2e failure whose snapshot showed the
+			// whole `main` region as heading + Actions + "No relations yet" and
+			// none of the sixteen declared fields (shillinq#928).
+			//
+			// Guarded on the widget being ABSENT so a schema re-publish cannot
+			// discard a drag/resize the user already made to a working body.
+			if (
+				this.currentSchema
+				&& Array.isArray(this.autoBodyLayout)
+				&& !this.autoBodyLayout.some((l) => l.widgetId === 'data')
+			) {
+				this.materializeAutoBody()
+			}
+		},
 
 		// Materialize the default body grid (Data + Related) the first time the
 		// schema-driven object resolves so the detail body is an adjustable grid.
