@@ -33,6 +33,27 @@ On a successful transition the component POSTs
 `/apps/openregister/api/objects/{id}/transition` with `{ action }`, emits
 `transitioned` + `reload`, and (in server mode) re-fetches the action list.
 
+## Transition inputs
+
+A transition may declare `inputs: [{ field, required }]` — mirroring the
+schema's `x-openregister-lifecycle.transitions.<action>.inputs` — on **either
+path**: the server's `/available-actions` entries or the config-declared
+`transitions` array. Clicking such a transition first opens
+[`CnTransitionInputDialog`](./cn-transition-input-dialog.md) to collect the
+declared fields, then POSTs `{ action, data: { <field>: <value> } }`.
+Cancelling the dialog POSTs nothing. The endpoint accepts only the declared
+keys and enforces `required: true` server-side (400 otherwise); the dialog
+enforces the same requirement client-side by disabling its confirm button.
+
+A transition **without** `inputs` POSTs `{ action }` immediately — no dialog,
+no `data` key — exactly as before.
+
+Pass the object's JSON Schema via the `schema` prop so each input renders with
+the property's `title` and an appropriate widget (checkbox for boolean, number
+field, textarea for long text). `CnDetailPage` forwards its fetched schema
+automatically; without one, every input falls back to a plain labelled text
+field named after the raw field key.
+
 ## Manifest config (consumed by CnDetailPage)
 
 ```jsonc
@@ -62,7 +83,8 @@ On a successful transition the component POSTs
 |------|------|---------|-------------|
 | `objectId` | `String \| Number` | `''` | Object id/uuid/slug the transitions apply to. |
 | `object` | `Object \| null` | `null` | The loaded object — read for the lifecycle field value and to filter a config-declared `transitions` list. |
-| `config` | `Object` | `{}` | The lifecycle config block: `{ field?, transitions?, autoFetch? }`. |
+| `config` | `Object` | `{}` | The lifecycle config block: `{ field?, transitions?, autoFetch? }`. A declared transition may carry `inputs: [{ field, required }]`. |
+| `schema` | `Object \| null` | `null` | The object's JSON Schema (with `properties`), forwarded to `CnTransitionInputDialog` so declared inputs render resolved fields. |
 
 ## Events
 

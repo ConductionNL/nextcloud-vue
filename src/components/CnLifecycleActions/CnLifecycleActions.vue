@@ -20,12 +20,21 @@
 		<p v-if="error" class="cn-lifecycle-actions__error" data-testid="cn-lifecycle-actions-error">
 			{{ error }}
 		</p>
+		<!-- Input collection for a transition that declares `inputs` — the POST
+		     only happens after the dialog confirms (or never, on cancel). -->
+		<CnTransitionInputDialog
+			v-if="inputTransition"
+			:transition="inputTransition"
+			:schema="schema"
+			@confirm="onInputConfirm"
+			@close="inputTransition = null" />
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import CnTransitionInputDialog from '../../dialogs/CnTransitionInputDialog.vue'
 
 /**
  * CnLifecycleActions — declarative status-gated transition buttons for a
@@ -45,10 +54,18 @@ import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
  *    the object's current state. This is the source of truth and stays correct
  *    as a schema's lifecycle graph evolves.
  *  - **Config-declared:** when an explicit `transitions: [{ from, to, action,
- *    label, confirm?, variant? }]` array is given, the component filters it by
- *    the object's current `status` value itself (no extra request). Useful for
- *    static labelling / confirm prompts, or when the page already holds the
- *    object.
+ *    label, confirm?, variant?, inputs? }]` array is given, the component
+ *    filters it by the object's current `status` value itself (no extra
+ *    request). Useful for static labelling / confirm prompts, or when the page
+ *    already holds the object.
+ *
+ * A transition may declare `inputs: [{ field, required }]` (mirroring the
+ * schema's `x-openregister-lifecycle.transitions.<action>.inputs`) on EITHER
+ * path — the server's `/available-actions` entries or the config-declared
+ * array. Such a transition first opens `CnTransitionInputDialog` to collect
+ * the declared fields, then POSTs `{ action, data }`; cancelling the dialog
+ * POSTs nothing. A transition without `inputs` POSTs `{ action }` immediately,
+ * exactly as before.
  *
  * Mounted by `CnDetailPage` when the manifest page config declares
  * `lifecycleActions`. Standalone use is also supported.
@@ -68,7 +85,7 @@ import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 export default {
 	name: 'CnLifecycleActions',
 
-	components: { NcButton, NcLoadingIcon },
+	components: { NcButton, NcLoadingIcon, CnTransitionInputDialog },
 
 	props: {
 		/** Object id/uuid/slug the transitions apply to. */
@@ -86,12 +103,24 @@ export default {
 			default: null,
 		},
 		/**
-		 * The lifecycle config block.
-		 * @type {{field?: string, transitions?: Array<{from?: (string|Array<string>), to?: string, action?: string, label?: string, confirm?: string, variant?: string}>, autoFetch?: boolean}}
+		 * The lifecycle config block. A declared transition may carry
+		 * `inputs: [{ field, required }]` to collect data before it is applied.
+		 * @type {{field?: string, transitions?: Array<{from?: (string|Array<string>), to?: string, action?: string, label?: string, confirm?: string, variant?: string, inputs?: Array<{field: string, required?: boolean}>}>, autoFetch?: boolean}}
 		 */
 		config: {
 			type: Object,
 			default: () => ({}),
+		},
+		/**
+		 * The object's JSON Schema (with `properties`), forwarded to
+		 * `CnTransitionInputDialog` so a transition's declared inputs render
+		 * with the property's title/type instead of a bare text box. Optional —
+		 * without it every input falls back to a plain labelled text field.
+		 * @type {object|null}
+		 */
+		schema: {
+			type: Object,
+			default: null,
 		},
 	},
 
@@ -107,6 +136,11 @@ export default {
 			pendingAction: null,
 			/** Inline error message (transition rejected / fetch failure). */
 			error: '',
+			/**
+			 * The transition whose declared `inputs` are being collected —
+			 * non-null mounts CnTransitionInputDialog; the POST waits for confirm.
+			 */
+			inputTransition: null,
 		}
 	},
 
@@ -133,9 +167,11 @@ export default {
 		},
 		/**
 		 * The transitions to render as buttons — either the server-derived set or
-		 * the config-declared set filtered to the object's current state.
+		 * the config-declared set filtered to the object's current state. A
+		 * declared `inputs` list is carried through on both paths so clicking
+		 * the button collects the fields before POSTing.
 		 *
-		 * @return {Array<{action: string, to: string, label: string, confirm?: string, variant?: string}>}
+		 * @return {Array<{action: string, to: string, label: string, confirm?: string, variant?: string, inputs?: Array<{field: string, required?: boolean}>}>}
 		 */
 		visibleTransitions() {
 			if (this.useServer) {
@@ -144,6 +180,7 @@ export default {
 					to: a.to,
 					label: this.labelFor(a.action, a.to, a.description),
 					variant: 'secondary',
+					...(Array.isArray(a.inputs) && a.inputs.length > 0 ? { inputs: a.inputs } : {}),
 				}))
 			}
 			const declared = Array.isArray(this.config.transitions) ? this.config.transitions : []
@@ -155,6 +192,7 @@ export default {
 					label: tr.label || this.labelFor(tr.action || tr.to, tr.to),
 					confirm: tr.confirm,
 					variant: tr.variant || 'secondary',
+					...(Array.isArray(tr.inputs) && tr.inputs.length > 0 ? { inputs: tr.inputs } : {}),
 				}))
 		},
 	},
@@ -225,9 +263,8 @@ export default {
 		},
 
 		/**
-		 * Apply a transition: optional confirm, POST to the transition endpoint,
-		 * then ask the host to reload the object so its new state renders. Surfaces
-		 * a 403/422 rejection inline.
+		 * Button click: optional confirm prompt, then either open the input
+		 * dialog (when the transition declares `inputs`) or POST immediately.
 		 *
 		 * @param {object} tr The chosen transition descriptor.
 		 * @return {Promise<void>}
@@ -236,6 +273,38 @@ export default {
 			if (tr.confirm && typeof window !== 'undefined' && typeof window.confirm === 'function') {
 				if (!window.confirm(tr.confirm)) return
 			}
+			if (Array.isArray(tr.inputs) && tr.inputs.length > 0) {
+				this.inputTransition = tr
+				return
+			}
+			await this.postTransition(tr)
+		},
+
+		/**
+		 * Input dialog confirmed: close it and POST the transition with the
+		 * collected `data` payload.
+		 *
+		 * @param {{[key: string]: *}} data The collected input values (exactly the declared keys).
+		 * @return {Promise<void>}
+		 */
+		async onInputConfirm(data) {
+			const tr = this.inputTransition
+			this.inputTransition = null
+			if (!tr) return
+			await this.postTransition(tr, data)
+		},
+
+		/**
+		 * POST a transition to the endpoint, then ask the host to reload the
+		 * object so its new state renders. Surfaces a 403/422 rejection inline.
+		 * Without `data` the payload is `{ action }` only — identical to the
+		 * pre-inputs behaviour.
+		 *
+		 * @param {object} tr The chosen transition descriptor.
+		 * @param {{[key: string]: *}} [data] Collected transition inputs, sent as `data`.
+		 * @return {Promise<void>}
+		 */
+		async postTransition(tr, data) {
 			this.working = true
 			this.pendingAction = tr.action
 			this.error = ''
@@ -248,7 +317,7 @@ export default {
 					'/apps/openregister/api/objects/{id}/transition',
 					{ id: String(this.objectId) },
 				)
-				const res = await axios.post(url, { action: tr.action })
+				const res = await axios.post(url, data !== undefined ? { action: tr.action, data } : { action: tr.action })
 				/**
 				 * @event transitioned A lifecycle transition succeeded. Payload is
 				 * `{ action, to, object }`.

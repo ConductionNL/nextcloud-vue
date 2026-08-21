@@ -103,6 +103,7 @@
 					:object-id="objectId"
 					:object="currentObject"
 					:config="lifecycleActions"
+					:schema="currentSchema"
 					@transitioned="onTransitioned"
 					@reload="onLifecycleReload" />
 				<!-- Declarative header actions (#91 Wave 3): a manifest
@@ -1519,6 +1520,17 @@ export default {
 			/** Widget definitions paired with `autoBodyLayout` (id ↔ widgetId). */
 			autoBodyWidgets: null,
 			/**
+			 * True when `materializeAutoBody()` dropped the Data widget only
+			 * because the schema had not arrived yet — the object won the race
+			 * against `fetchSchema`. The `currentSchema` watcher re-materializes
+			 * once on that signal, which is what stops a lost race from
+			 * permanently hiding every scalar field (shillinq#1073).
+			 *
+			 * A flag rather than an "is the widget missing?" test, so a body the
+			 * user has edited is never rewritten underneath them.
+			 */
+			dataWidgetDeferred: false,
+			/**
 			 * Drives the Actions-menu Refresh spinner during a schema-driven
 			 * self-fetch refresh, where the host has no promise to bind
 			 * `:refreshing` to. Mirrors CnIndexPage.internalRefreshing.
@@ -2042,7 +2054,24 @@ export default {
 
 		// Re-publish once the schema Object resolves (fetched async), so the
 		// hoisted sidebar's `data` tab widget gets its `schema` prop.
-		currentSchema() { this.syncSidebarState() },
+		currentSchema(schema) {
+			this.syncSidebarState()
+
+			// Put the Data widget back if the body materialized before the
+			// schema arrived. See materializeAutoBody(): fetchObject and
+			// fetchSchema race, `shouldRenderAutoBody` gates on the OBJECT
+			// only, and the body materializes once — so losing that race meant
+			// the page rendered its title and Related panel with every scalar
+			// field permanently missing (shillinq#1073).
+			//
+			// Guarded by `dataWidgetDeferred` rather than by "is the data
+			// widget absent", so a body the user has edited is never rewritten
+			// underneath them. The flag is cleared by the re-materialize, so
+			// this runs at most once per materialized body.
+			if (schema && this.dataWidgetDeferred) {
+				this.materializeAutoBody()
+			}
+		},
 
 		// Materialize the default body grid (Data + Related) the first time the
 		// schema-driven object resolves so the detail body is an adjustable grid.
@@ -2058,6 +2087,10 @@ export default {
 		resolvedObjectType() {
 			this.autoBodyLayout = null
 			this.autoBodyWidgets = null
+			// Cleared with the body it described. materializeAutoBody() sets it
+			// afresh, so this only avoids carrying a stale "deferred" across a
+			// type change.
+			this.dataWidgetDeferred = false
 		},
 
 		title() { this.syncSidebarState() },
@@ -2720,6 +2753,28 @@ export default {
 			})
 			// Drop the Data widget when there's no schema to render (the helper
 			// always includes it; the auto-body only shows it with a schema).
+			//
+			// This can happen because the schema HAS NOT ARRIVED YET, not
+			// because there is none: `schemaDrivenFetch` fires fetchObject and
+			// fetchSchema in parallel, and this body materializes as soon as
+			// `shouldRenderAutoBody` turns true — which tests `currentObject`
+			// and NOT `currentSchema`. When the object wins that race the Data
+			// widget is filtered out, and because the body materializes only
+			// once (`if (active && !this.autoBodyLayout)`) and resets only when
+			// `resolvedObjectType` changes, the schema landing a moment later
+			// never puts it back.
+			//
+			// The symptom is a detail page showing its title and Related panel
+			// with EVERY declared scalar field missing, intermittently, on
+			// identical code — shillinq#1073, where the object fetch returned
+			// 200 carrying the values the page then did not render.
+			//
+			// `dataWidgetDeferred` records that this filtering was provisional
+			// so the watcher below can re-materialize exactly once, when the
+			// schema arrives. It is deliberately NOT a plain "re-materialize if
+			// the data widget is absent": a body the user has edited must not
+			// have the widget silently restored underneath them.
+			this.dataWidgetDeferred = !this.currentSchema
 			if (!this.currentSchema) {
 				grid.widgets = grid.widgets.filter((w) => w.widgetId !== 'data')
 				grid.layout = grid.layout.filter((l) => l.widgetId !== 'data')
