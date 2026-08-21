@@ -1464,7 +1464,7 @@ describe('CnAppNav — icon rendering', () => {
 		expect(wrapper.vm.mdiIconComponent({ icon: 'StoreOutline' })).toBeTruthy()
 		expect(wrapper.vm.mdiIconComponent({ icon: 'ViewDashboardOutline' })).toBeTruthy()
 
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	// ADR-077 rule 4 — an unresolvable name degrades to a VISIBLE glyph. Blank is
@@ -1483,7 +1483,7 @@ describe('CnAppNav — icon rendering', () => {
 		expect(wrapper.vm.isUnresolvedIcon({ icon: '' })).toBe(false)
 		expect(wrapper.vm.isUnresolvedIcon({})).toBe(false)
 
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 
 	it('renders an icon slot for every entry, including the unresolvable one', () => {
@@ -1495,6 +1495,6 @@ describe('CnAppNav — icon rendering', () => {
 		expect(bogus.exists()).toBe(true)
 		expect(bogus.find('svg').exists()).toBe(true)
 
-		wrapper.destroy()
+		wrapper.unmount()
 	})
 })
