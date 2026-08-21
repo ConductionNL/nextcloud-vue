@@ -51,6 +51,20 @@
 					:placeholder="t('nextcloud-vue', 'Pick one…')"
 					@update:model-value="setKey(key, $event ? $event.id : '')" />
 
+				<!-- A `reference` field names an OBJECT in a register/schema
+				     pair. Same picker, but the choices are that schema's
+				     objects rather than a catalogue endpoint — this is the
+				     case that used to be a bare uuid box, where a typo and a
+				     correct value look identical until the flow RUNS. -->
+				<NcSelect v-else-if="widgetFor(key) === 'reference'"
+					:model-value="selectedOption(key)"
+					:options="selectOptions[key] || []"
+					:input-label="labelFor(key)"
+					:loading="selectLoading[key] === true"
+					:placeholder="t('nextcloud-vue', 'Pick one…')"
+					:helper-text="hintFor(key)"
+					@update:model-value="setKey(key, $event ? $event.id : '')" />
+
 				<NcTextArea v-else-if="widgetFor(key) === 'textarea'"
 					:model-value="String(draft.config[key] ?? '')"
 					:label="labelFor(key)"
@@ -210,9 +224,10 @@ export default {
 
 		/**
 		 * The node's per-field declarations from the catalogue's `configForm`
-		 * ({key, label, type, help, required, optionsFrom}), keyed by config
-		 * key. `configKeys` is the degraded form. Either way the node's OWNER
-		 * declares the vocabulary — this dialog never invents fields.
+		 * ({key, label, type, help, required, optionsFrom, reference}), keyed
+		 * by config key. `configKeys` is the degraded form. Either way the
+		 * node's OWNER declares the vocabulary — this dialog never invents
+		 * fields.
 		 *
 		 * @return {object} key → field declaration.
 		 */
@@ -269,15 +284,51 @@ export default {
 	},
 
 	created() {
-		// Select fields need their options; everything else is local.
+		// Select and reference fields need their options; everything else is
+		// local. Both end up in `selectOptions`, because once the choices are
+		// loaded a picker does not care where they came from.
 		for (const [key, spec] of Object.entries(this.fieldSpecs)) {
 			if (spec?.type === 'select' && spec?.optionsFrom) {
 				this.loadSelectOptions(key, spec)
+				continue
+			}
+
+			const reference = this.referenceOf(spec)
+			if (reference !== null) {
+				this.loadSelectOptions(key, { optionsFrom: reference })
 			}
 		}
 	},
 
 	methods: {
+		/**
+		 * The objects URL a `reference` field draws its choices from, or null
+		 * when this is not one.
+		 *
+		 * BOTH HALVES ARE REQUIRED, and a half-declared reference falls back
+		 * to a text box rather than guessing. A register with no schema does
+		 * not identify a set of objects, so there is no list to offer — and
+		 * guessing one would put a picker on screen that quietly lists the
+		 * wrong things, which is worse than the text box it replaced.
+		 *
+		 * @param {object} spec The field declaration, if any.
+		 * @return {string|null} The objects endpoint, or null.
+		 */
+		referenceOf(spec) {
+			if (spec?.type !== 'reference') {
+				return null
+			}
+
+			const register = String(spec?.reference?.register ?? '').trim()
+			const schema = String(spec?.reference?.schema ?? '').trim()
+			if (register === '' || schema === '') {
+				console.warn('cn-flow: a `reference` field declared no register/schema pair', spec)
+				return null
+			}
+
+			return `/index.php/apps/openregister/api/objects/${encodeURIComponent(register)}/${encodeURIComponent(schema)}`
+		},
+
 		/**
 		 * Which widget a key gets: the owner's declaration first, the VALUE
 		 * second, the key's name last.
@@ -289,6 +340,9 @@ export default {
 			const spec = this.fieldSpecs[key]
 			if (spec?.type === 'select' && spec?.optionsFrom) {
 				return 'select'
+			}
+			if (this.referenceOf(spec) !== null) {
+				return 'reference'
 			}
 			if (spec?.type === 'boolean') {
 				return 'switch'
@@ -336,8 +390,9 @@ export default {
 		},
 
 		/**
-		 * Load the pickable choices for one select field, from the URL its
-		 * owning app declared (`optionsFrom`).
+		 * Load the pickable choices for one picker field, from the URL its
+		 * owning app declared (`optionsFrom`) or, for a `reference` field, the
+		 * objects endpoint of the register/schema pair it names.
 		 *
 		 * Accepts `{results: [...]}` or a bare array; items as `{id, label}`,
 		 * `{value, label}`, or OpenRegister objects (uuid from `@self`, label

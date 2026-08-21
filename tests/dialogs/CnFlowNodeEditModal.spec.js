@@ -171,6 +171,114 @@ describe('CnFlowNodeEditModal', () => {
 		expect(wrapper.vm.selectedOption('source')).toEqual({ id: 'u-9', label: 'u-9' })
 	})
 
+	it('renders a reference field as a picker over that register/schema\'s objects', async () => {
+		const axios = require('@nextcloud/axios').default
+		axios.get.mockResolvedValueOnce({
+			data: {
+				results: [
+					{ '@self': { uuid: 'm-1' }, name: 'CKAN → dataset' },
+					{ '@self': { uuid: 'm-2' }, name: 'CKAN → organisation' },
+				],
+			},
+		})
+
+		const { wrapper } = mountModal(
+			{ type: 'openconnector.apply-mapping', config: { mappingId: 'm-2' } },
+			[{
+				id: 'openconnector.apply-mapping',
+				displayName: 'Apply a mapping',
+				configForm: [
+					{
+						key: 'mappingId',
+						label: 'Mapping',
+						type: 'reference',
+						reference: { register: 'openconnector', schema: 'mapping' },
+					},
+				],
+			}],
+		)
+		await new Promise((resolve) => setTimeout(resolve))
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.widgetFor('mappingId')).toBe('reference')
+		// The URL is DERIVED from the pair — the declaration carries no URL,
+		// which is the whole difference from optionsFrom.
+		expect(axios.get).toHaveBeenCalledWith(
+			'/index.php/apps/openregister/api/objects/openconnector/mapping',
+		)
+		expect(wrapper.vm.selectOptions.mappingId.map((o) => o.label)).toEqual([
+			'CKAN → dataset',
+			'CKAN → organisation',
+		])
+		// The stored uuid resolves to a NAME — the point of the field. Before
+		// this it was a bare text box showing `m-2` and nothing else.
+		expect(wrapper.vm.selectedOption('mappingId')).toEqual({
+			id: 'm-2',
+			label: 'CKAN → organisation',
+		})
+	})
+
+	it('falls back to a text box when a reference names only half a pair', () => {
+		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+
+		const { wrapper } = mountModal(
+			{ type: 'openconnector.apply-mapping', config: { mappingId: 'm-2' } },
+			[{
+				id: 'openconnector.apply-mapping',
+				displayName: 'Apply a mapping',
+				configForm: [
+					{
+						key: 'mappingId',
+						label: 'Mapping',
+						type: 'reference',
+						// No schema: a register alone does not identify a set
+						// of objects.
+						reference: { register: 'openconnector' },
+					},
+				],
+			}],
+		)
+
+		// Guessing the missing half would put a picker on screen listing the
+		// WRONG things, which is worse than the text box it replaced. The
+		// value stays editable and reachable either way.
+		expect(wrapper.vm.widgetFor('mappingId')).toBe('text')
+		expect(warn).toHaveBeenCalled()
+		warn.mockRestore()
+	})
+
+	it('leaves a reference value editable when the objects endpoint fails', async () => {
+		const axios = require('@nextcloud/axios').default
+		const error = jest.spyOn(console, 'error').mockImplementation(() => {})
+		axios.get.mockRejectedValueOnce(new Error('403'))
+
+		const { wrapper } = mountModal(
+			{ type: 'openconnector.apply-mapping', config: { mappingId: 'm-7' } },
+			[{
+				id: 'openconnector.apply-mapping',
+				displayName: 'Apply a mapping',
+				configForm: [
+					{
+						key: 'mappingId',
+						label: 'Mapping',
+						type: 'reference',
+						reference: { register: 'openconnector', schema: 'mapping' },
+					},
+				],
+			}],
+		)
+		await new Promise((resolve) => setTimeout(resolve))
+		await wrapper.vm.$nextTick()
+
+		// A picker that cannot load must not eat the configured value. An
+		// operator whose objects endpoint is unreachable still has to be able
+		// to see and keep what the node was already set to.
+		expect(wrapper.vm.selectOptions.mappingId).toBeUndefined()
+		expect(wrapper.vm.selectedOption('mappingId')).toEqual({ id: 'm-7', label: 'm-7' })
+		expect(wrapper.vm.selectLoading.mappingId).toBe(false)
+		error.mockRestore()
+	})
+
 	it('lets configForm drive labels, help, widgets and key order over configKeys', () => {
 		const { wrapper } = mountModal(
 			{ config: {} },
