@@ -57,4 +57,4 @@ const editor = useManifestEditor(manifest, {
 ## Related
 
 - [`diffManifest`](../diff-manifest.md) · [`mergeManifestDelta`](../merge-manifest-delta.md)
-- [CnOpenBuildEditButton](../../components/cn-open-build-edit-button.md)
+- [CnBuildiqEditButton](../../components/cn-buildiq-edit-button.md)

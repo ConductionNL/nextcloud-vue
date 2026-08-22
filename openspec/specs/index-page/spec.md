@@ -6,7 +6,7 @@ status: reviewed
 
 ## Purpose
 
-CnIndexPage is the top-level, schema-driven index page component that assembles sub-components (CnPageHeader, CnActionsBar, CnDataTable, CnCardGrid, CnPagination, CnRowActions, CnMassActionBar, and all 7 dialog components) into a single zero-config page for listing, selecting, and managing objects. It serves as the primary entry point for all CRUD-oriented list views across Conduction apps (OpenRegister, Pipelinq, Procest, etc.), eliminating boilerplate by providing built-in pagination, sorting pass-through, dual view modes, three-level dialog overrides, mass actions, and optional store integration. When paired with the `useListView` composable, a consumer can render a fully functional index page with as few as 3 props.
+CnIndexPage is the top-level, schema-driven index page component that assembles sub-components (CnPageHeader, CnActionsBar, CnDataTable, CnCardGrid, CnPagination, CnRowActions, CnMassActionBar, and all 7 dialog components) into a single zero-config page for listing, selecting, and managing objects. It serves as the primary entry point for all CRUD-oriented list views across Conduction apps (OpenRegister, Pipelinq, Dossiq, etc.), eliminating boilerplate by providing built-in pagination, sorting pass-through, dual view modes, three-level dialog overrides, mass actions, and optional store integration. When paired with the `useListView` composable, a consumer can render a fully functional index page with as few as 3 props.
 
 **File**: `src/components/CnIndexPage/CnIndexPage.vue`
 
@@ -220,7 +220,7 @@ CnIndexPage SHALL provide built-in single-object dialogs for create/edit (CnForm
 - **GIVEN** an `@add` listener IS attached to CnIndexPage
 - **WHEN** the user clicks the Add button
 - **THEN** `@add` MUST emit (the form dialog MUST NOT open)
-- **AND** the consumer is responsible for their own creation flow (e.g., Procest CaseList navigates to a custom CaseCreateDialog)
+- **AND** the consumer is responsible for their own creation flow (e.g., Dossiq CaseList navigates to a custom CaseCreateDialog)
 
 #### Scenario: Advanced form dialog mode
 
@@ -660,7 +660,7 @@ CnIndexPage SHALL use a flex column layout that fills available height, with scr
 - **GIVEN** `rowClass` is a function `(row) => row.overdue ? 'row--overdue' : ''`
 - **WHEN** CnDataTable renders
 - **THEN** `rowClass` MUST be passed through to CnDataTable for per-row CSS class application
-- **AND** this is the pattern used by both OpenRegister (managed badge borders) and Procest (overdue case borders)
+- **AND** this is the pattern used by both OpenRegister (managed badge borders) and Dossiq (overdue case borders)
 
 ---
 
@@ -793,7 +793,7 @@ CnPageHeader, CnActionsBar, CnIcon, CnDataTable, CnCardGrid, CnPagination, CnRow
 
 **Pipelinq (ContactList):** Minimal usage with `useListView` composable. Uses `@add` for navigation-based creation. Single `#column-client` slot for linked client name. Sort and pagination wired via composable.
 
-**Procest (CaseList):** Uses `@add` to open custom CaseCreateDialog. Multiple `#column-*` slots for case ID, case type name resolution, QuickStatusDropdown, and deadline countdown. Uses `rowClass` for overdue case red borders. Composable-driven with `defaultSort`.
+**Dossiq (CaseList):** Uses `@add` to open custom CaseCreateDialog. Multiple `#column-*` slots for case ID, case type name resolution, QuickStatusDropdown, and deadline countdown. Uses `rowClass` for overdue case red borders. Composable-driven with `defaultSort`.
 
 ## Standards & References
 

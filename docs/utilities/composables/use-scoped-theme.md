@@ -2,7 +2,7 @@
 
 Shared runtime applier for nldesign's scoped theme-application contract (`app-token-set-selection`, "Scoped Application Contract for Base Token CSS"). Fetches an NL Design System token set's base CSS, verifies it is exactly one flat `:root { }` block, rewrites it to a scope-attribute selector, and injects it as one managed `<style>` element scoped to a consuming app's own surface — without repainting the whole Nextcloud instance.
 
-Ports OpenBuild's proven, already-shipped `useAppTheme` composable into `@conduction/nextcloud-vue` so any manifest-driven Conduction app can reuse it instead of reimplementing the rewriter. [`CnAppRoot`](../../components/cn-app-root.md) wires it in automatically — see the "Automatic consumption via CnAppRoot" section below for the zero-code path.
+Ports Buildiq's proven, already-shipped `useAppTheme` composable into `@conduction/nextcloud-vue` so any manifest-driven Conduction app can reuse it instead of reimplementing the rewriter. [`CnAppRoot`](../../components/cn-app-root.md) wires it in automatically — see the "Automatic consumption via CnAppRoot" section below for the zero-code path.
 
 ## The nldesign contract
 

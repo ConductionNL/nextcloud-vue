@@ -235,7 +235,7 @@ import '../../css/table.css'
  * CnDataTable — Generic sortable data table for list views.
  *
  * Replaces the copy-pasted `<table class="viewTable">` HTML pattern found in
- * every list view across OpenRegister, Pipelinq, and Procest. Supports sorting,
+ * every list view across OpenRegister, Pipelinq, and Dossiq. Supports sorting,
  * row selection, custom cell rendering via scoped slots, loading states,
  * and empty states.
  *

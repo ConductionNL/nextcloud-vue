@@ -153,7 +153,7 @@ nested `CnAppRoot`s.
 :::warning Nested `CnAppRoot` — a real caveat, found in the field
 
 A nested `CnAppRoot` mounts under a **different `appId`** than the outer shell.
-OpenBuild's `/builder/:slug` does exactly this, and any app hosting a "virtual
+Buildiq's `/builder/:slug` does exactly this, and any app hosting a "virtual
 app" does the same: the nested root passes its own id (typically
 `{outerAppId}-{slug}`) down to `useSupportDialog`.
 

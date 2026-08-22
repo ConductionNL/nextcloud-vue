@@ -739,4 +739,4 @@ CnPagination MUST accept all user-visible labels as translatable string props wi
 - **Schema-driven rendering** -- `columnsFromSchema()` extracts columns from OpenRegister JSON Schema `properties` definitions; `filtersFromSchema()` reads `facetable: true` properties; `formatValue()` handles type/format-specific display formatting
 - **CSS** -- `cn-` prefix on all classes, Nextcloud CSS variables for theming (never `--nldesign-*` directly)
 - **WCAG AA** -- Semantic HTML table elements (`<table>`, `<thead>`, `<th>`, etc.); NcCheckboxRadioSwitch for accessible checkboxes; label/for bindings on pagination page size selector; color is never the sole status indicator (text always present)
-- **Consumer apps** -- OpenRegister, OpenCatalogi, Procest, Pipelinq, LaunchPad all depend on these components via `@conduction/nextcloud-vue`
+- **Consumer apps** -- OpenRegister, OpenCatalogi, Dossiq, Pipelinq, Launchpad all depend on these components via `@conduction/nextcloud-vue`

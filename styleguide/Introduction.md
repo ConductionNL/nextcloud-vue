@@ -56,4 +56,4 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 
 ## 📦 Consumer apps
 
-Used by **OpenRegister**, **OpenCatalogi**, **Procest**, **Pipelinq**, and **LaunchPad**. Changes affect all of them — test carefully before releasing.
+Used by **OpenRegister**, **OpenCatalogi**, **Dossiq**, **Pipelinq**, and **Launchpad**. Changes affect all of them — test carefully before releasing.

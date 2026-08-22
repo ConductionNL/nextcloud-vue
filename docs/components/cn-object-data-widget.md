@@ -78,7 +78,7 @@ It is display-only and non-destructive: the field currently being edited, any fi
 
 ### Configuring it in-app
 
-On a detail page in OpenBuild edit mode, the widget's cog opens [`CnObjectDataWidgetForm`](../../src/components/CnObjectDataWidgetForm/CnObjectDataWidgetForm.vue): it lists the schema's properties (resolved from the widget's `register`/`schema`, or the page's injected `cnObjectContext` when the widget inherits them) and lets you, per property, toggle **visibility**, set a **label**, **span**, **editor** type and **editable**, **drag to reorder**, and pick a **layout preset** (Stacked / 2-col / 3-col → the `columns` value). The form emits a minimal `overrides` map persisted on the widget's `content.overrides`.
+On a detail page in Buildiq edit mode, the widget's cog opens [`CnObjectDataWidgetForm`](../../src/components/CnObjectDataWidgetForm/CnObjectDataWidgetForm.vue): it lists the schema's properties (resolved from the widget's `register`/`schema`, or the page's injected `cnObjectContext` when the widget inherits them) and lets you, per property, toggle **visibility**, set a **label**, **span**, **editor** type and **editable**, **drag to reorder**, and pick a **layout preset** (Stacked / 2-col / 3-col → the `columns` value). The form emits a minimal `overrides` map persisted on the widget's `content.overrides`.
 
 ## Property overrides
 

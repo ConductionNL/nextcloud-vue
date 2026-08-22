@@ -5,7 +5,7 @@ menu** in the working manifest copy (ADR-041) — the gear ⚙ foldout at the bo
 of `CnAppNav`, **not** the app's configuration. All edits mutate the passed
 `working` copy **only**.
 
-Opened by [CnOpenBuildEditButton](./cn-open-build-edit-button.md)'s "Edit
+Opened by [CnBuildiqEditButton](./cn-buildiq-edit-button.md)'s "Edit
 settings…" item. It edits:
 
 - the **settings-section menu items** — the `menu[]` entries tagged

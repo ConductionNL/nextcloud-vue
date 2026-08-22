@@ -24,7 +24,7 @@
  * objectId context for the author and fail-closes when hermiq is absent).
  *
  * `api-call`'s request body prefers `payload` (DEEP @-token resolution at
- * any nesting depth — object/array, e.g. a DocuDesk-style
+ * any nesting depth — object/array, e.g. a Filinq-style
  * `{ dataRefs: [{ id: '@objectId' }] }` body) over the legacy `params`
  * (shallow, one-level filter-map resolution, kept for back-compat). Set
  * `download: true` to request a binary blob response and trigger a

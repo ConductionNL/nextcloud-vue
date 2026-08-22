@@ -52,7 +52,7 @@ function extractValidationMessage(errors) {
  * Parse an HTTP error response into a unified ApiError shape.
  *
  * Merges the best of Pipelinq's _parseResponseError (field extraction)
- * and Procest's _parseError (status-specific messages, isValidation flag).
+ * and Dossiq's _parseError (status-specific messages, isValidation flag).
  *
  * @param {Response} response The fetch Response object
  * @param {string} type The object type slug (used in error messages)

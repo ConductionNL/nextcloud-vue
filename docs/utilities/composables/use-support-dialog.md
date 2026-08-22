@@ -49,7 +49,7 @@ Per-`appSlug` handles are cached at module scope; calling `useSupportDialog('dec
 <template>
   <CnSupportDialog
     v-if="visible"
-    app-name="Decidesk"
+    app-name="Decidiq"
     app-slug="decidesk"
     app-store-url="https://apps.nextcloud.com/apps/decidesk"
     feature-request-url="https://github.com/ConductionNL/decidesk/issues/new"

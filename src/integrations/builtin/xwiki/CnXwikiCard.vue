@@ -19,7 +19,7 @@
   `get()` contract).
 
   External-fetch latency is normal for XWiki because the OR provider
-  hops through OpenConnector → external HTTP. The card shows a loading
+  hops through Integriq → external HTTP. The card shows a loading
   spinner for the whole round-trip; failure modes (503 +
   `details.cause` per AD-23) collapse to a compact `authStatus` badge
   on the dashboard surfaces instead of a fat banner.
@@ -233,14 +233,14 @@ export default {
 				return {
 					kind: 'missing',
 					label: t('nextcloud-vue', 'Not configured'),
-					title: t('nextcloud-vue', 'Add an XWiki source in OpenConnector to enable this integration.'),
+					title: t('nextcloud-vue', 'Add an XWiki source in Integriq to enable this integration.'),
 				}
 			}
 			if (this.bannerKind === 'auth') {
 				return {
 					kind: 'unhealthy',
 					label: t('nextcloud-vue', 'Auth failed'),
-					title: t('nextcloud-vue', 'XWiki returned 401 — check the OpenConnector source credentials.'),
+					title: t('nextcloud-vue', 'XWiki returned 401 — check the Integriq source credentials.'),
 				}
 			}
 			if (this.bannerKind === 'upstream' || this.bannerKind === 'error') {
@@ -253,7 +253,7 @@ export default {
 			return {
 				kind: 'configured',
 				label: t('nextcloud-vue', 'Configured'),
-				title: t('nextcloud-vue', 'OpenConnector source is configured.'),
+				title: t('nextcloud-vue', 'Integriq source is configured.'),
 			}
 		},
 
@@ -376,9 +376,9 @@ export default {
 		applyDegradedFromCause(cause) {
 			this.bannerKind = this.bannerFromCause(cause)
 			if (this.bannerKind === 'unconfigured') {
-				this.degraded = t('nextcloud-vue', 'XWiki connection not configured — add a source in OpenConnector.')
+				this.degraded = t('nextcloud-vue', 'XWiki connection not configured — add a source in Integriq.')
 			} else if (this.bannerKind === 'auth') {
-				this.degraded = t('nextcloud-vue', 'XWiki returned 401 — check the OpenConnector source credentials.')
+				this.degraded = t('nextcloud-vue', 'XWiki returned 401 — check the Integriq source credentials.')
 			} else {
 				this.degraded = t('nextcloud-vue', 'XWiki is currently unavailable.')
 			}

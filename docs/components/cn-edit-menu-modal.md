@@ -5,7 +5,7 @@ of the working manifest copy (ADR-041): add, remove, reorder, relabel, re-icon
 and re-route `menu[]` entries. All edits mutate the passed `working` copy
 **only** — never the base manifest, which the editor holds separately until Save.
 
-Opened by [CnOpenBuildEditButton](./cn-open-build-edit-button.md)'s "Edit menu…"
+Opened by [CnBuildiqEditButton](./cn-buildiq-edit-button.md)'s "Edit menu…"
 action. Uses `NcTextField` (no `NcSelect`), so no input-label wiring is required.
 
 ## Import

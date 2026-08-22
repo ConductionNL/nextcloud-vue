@@ -5,7 +5,7 @@ the active page in the working manifest copy (ADR-041): toggle whole-sidebar
 visibility and the visibility of each declared tab (`page.config.sidebar`). All
 edits mutate the passed `working` copy **only** — never the base manifest.
 
-Opened by [CnOpenBuildEditButton](./cn-open-build-edit-button.md)'s "Edit
+Opened by [CnBuildiqEditButton](./cn-buildiq-edit-button.md)'s "Edit
 sidebar…" action. Uses `NcCheckboxRadioSwitch` (no `NcSelect`), so no input-label
 wiring is required.
 

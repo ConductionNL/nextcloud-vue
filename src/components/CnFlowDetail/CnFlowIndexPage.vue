@@ -1,8 +1,8 @@
 <!--
   CnFlowIndexPage — the browse surface over the one flow store.
 
-  Scoped by the `app` prop: OpenConnector passes `openconnector` and sees its
-  own, hermiq passes `hermiq`, and OpenRegister passes nothing and sees every
+  Scoped by the `app` prop: Integriq passes `openconnector` and sees its
+  own, Hermiq passes `hermiq`, and OpenRegister passes nothing and sees every
   app's. That single prop is what replaces "a flow register per app" — the
   reason the fleet previously needed a resolver to arbitrate between stores.
 

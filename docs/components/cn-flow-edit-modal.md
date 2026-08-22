@@ -4,7 +4,7 @@ sidebar_position: 48
 
 # CnFlowEditModal
 
-Edit a flow **without leaving the page**. This is what OpenBuild's "Edit flows…" opens.
+Edit a flow **without leaving the page**. This is what Buildiq's "Edit flows…" opens.
 
 ```vue
 <template>

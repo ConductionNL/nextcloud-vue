@@ -6,7 +6,7 @@
 | ------------------ | -------- | -------- | ---------------------------------------------------------- | -------------------------------------------------------------------------- |
 | `apiBase`          | `string` |          | `'/apps/openregister/api'`                                 | Base API URL for OR.                                                       |
 | `dialogTitle`      | `string` |          | `() =&gt; t('nextcloud-vue', 'Create a new work package')` | Pre-translated dialog title.                                               |
-| `openconnectorUrl` | `string` |          | `'/index.php/apps/openconnector/sources/openproject'`      | URL of the OpenConnector source admin page (for the `openproject` source). |
+| `openconnectorUrl` | `string` |          | `'/index.php/apps/openconnector/sources/openproject'`      | URL of the Integriq source admin page (for the `openproject` source). |
 
 ### Events
 

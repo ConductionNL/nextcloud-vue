@@ -3,12 +3,12 @@
   package to link to the parent OR object.
 
   OpenProject is an external integration: the work packages come from the
-  OpenConnector `openproject` source via
+  Integriq `openproject` source via
   GET /api/integrations/openproject/available (each row carries
   workPackageId + subject + type + status + priority + assignee + project
   + url). Because the source is admin-configured the picker has to handle
   the "unconfigured" state — when the endpoint reports 503 / 501 the modal
-  renders a Configure-in-OpenConnector CTA instead of a broken list
+  renders a Configure-in-Integriq CTA instead of a broken list
   (wave-5.2 4-state auth UX).
 
   Flow:
@@ -43,11 +43,11 @@
 				{{ error }}
 			</NcNoteCard>
 
-			<!-- Unconfigured: the OpenConnector `openproject` source is absent. -->
+			<!-- Unconfigured: the Integriq `openproject` source is absent. -->
 			<NcEmptyContent
 				v-if="unconfigured"
 				:name="t('nextcloud-vue', 'OpenProject is not configured')"
-				:description="t('nextcloud-vue', 'Add an `openproject` source in OpenConnector to start linking work packages.')">
+				:description="t('nextcloud-vue', 'Add an `openproject` source in Integriq to start linking work packages.')">
 				<template #icon>
 					<Briefcase :size="32" />
 				</template>
@@ -129,7 +129,7 @@
  *
  * CnOpenProjectPicker — pick an existing OpenProject work package. Emits
  * `link` with the chosen work-package id. Handles the unconfigured
- * external-source state with a Configure-in-OpenConnector CTA.
+ * external-source state with a Configure-in-Integriq CTA.
  *
  * @see ADR-019 (pluggable integrations) and ADR-022 (sidebar tabs)
  */
@@ -149,7 +149,7 @@ export default {
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Pre-translated dialog title. */
 		dialogTitle: { type: String, default: () => t('nextcloud-vue', 'Link an existing work package') },
-		/** URL of the OpenConnector source admin page (for the `openproject` source). */
+		/** URL of the Integriq source admin page (for the `openproject` source). */
 		openconnectorUrl: { type: String, default: '/index.php/apps/openconnector/sources/openproject' },
 	},
 
@@ -255,7 +255,7 @@ export default {
 					const data = await response.json()
 					this.workPackages = data.results || []
 				} else if (response.status === 501) {
-					this.error = t('nextcloud-vue', 'OpenConnector is not installed.')
+					this.error = t('nextcloud-vue', 'Integriq is not installed.')
 				} else if (response.status === 503 || response.status === 412 || response.status === 404) {
 					this.unconfigured = true
 				} else {

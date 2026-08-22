@@ -52,6 +52,14 @@ const EXEMPT = new Set([
 	// API. The component contract is upstream's; its docs live in
 	// @nextcloud/vue, so there is no standalone Conduction page to require.
 	'NcSelectTags',
+	// Deprecated aliases from the 2026-08-21 fleet rename (OpenBuild → Buildiq).
+	// Each re-exports the SAME implementation as its canonical `*Buildiq*` name
+	// so existing consumer imports keep working. The canonical pages
+	// (docs/components/cn-buildiq-edit-button.md and
+	// docs/utilities/composables/use-buildiq-edit-availability.md) document the
+	// alias, so a second page per alias would only duplicate them.
+	'CnOpenBuildEditButton',
+	'useOpenBuildEditAvailability',
 ])
 
 /**

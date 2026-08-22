@@ -71,7 +71,7 @@ import Magnify from 'vue-material-design-icons/Magnify.vue'
  * CnFilterBar — Search and filter controls row for list views.
  *
  * Extracted from the repeated search + filter pattern in CaseList, ClientList,
- * LeadList, RequestList across Pipelinq and Procest. Supports text search,
+ * LeadList, RequestList across Pipelinq and Dossiq. Supports text search,
  * select dropdowns, text inputs, and checkbox filters.
  *
  * ```vue

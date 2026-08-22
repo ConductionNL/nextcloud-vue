@@ -204,8 +204,6 @@ export default {
 		 * When both companions carry this guard the flag has already stopped the
 		 * second one, so this never fires — it is strictly a bridge for mixed
 		 * versions, and it costs one timeout.
-		 *
-		 * @return void
 		 */
 		yieldToACompanionThatCannotYield() {
 			if (typeof document === 'undefined' || this.isPrimaryCompanion !== true) {

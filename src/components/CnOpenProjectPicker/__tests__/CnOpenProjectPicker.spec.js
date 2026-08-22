@@ -6,7 +6,7 @@
  *  - selecting a row enables confirm and the row gets the selected class;
  *  - confirm emits `link` with the selected workPackageId;
  *  - inline error banner surfaces when the available endpoint fails;
- *  - 501 surfaces the "OpenConnector not installed" copy;
+ *  - 501 surfaces the "Integriq not installed" copy;
  *  - 503 surfaces the unconfigured Configure CTA (external-source state);
  *  - search input filters the visible list client-side;
  *  - the project filter narrows the visible list;
@@ -87,7 +87,7 @@ describe('CnOpenProjectPicker', () => {
 		const wrapper = mount(CnOpenProjectPicker)
 		await flushPromises()
 
-		expect(wrapper.text()).toContain('OpenConnector is not installed.')
+		expect(wrapper.text()).toContain('Integriq is not installed.')
 		wrapper.unmount()
 	})
 

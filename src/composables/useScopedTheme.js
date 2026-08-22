@@ -6,12 +6,12 @@
  * theme-application contract (`app-token-set-selection`,
  * "Scoped Application Contract for Base Token CSS").
  *
- * Ports OpenBuild's proven `useAppTheme` composable
+ * Ports Buildiq's proven `useAppTheme` composable
  * (`openbuild/src/composables/useAppTheme.js`, spec
  * `nldesign-theme-selection` REQ-NTS-003) into `@conduction/nextcloud-vue`
  * so any manifest-driven Conduction app can reuse it instead of
  * reimplementing the rewriter. The behaviour is deliberately close to
- * byte-identical to OpenBuild's original — only the scope-attribute target
+ * byte-identical to Buildiq's original — only the scope-attribute target
  * changes, from `data-openbuild-theme-scope` to the design-system-owned
  * `data-nldesign-theme-scope`.
  *
@@ -64,7 +64,7 @@ const cssCache = new Map()
  * plus CSS comments and whitespace. Anything else (at-rules, non-`:root`
  * selectors, nesting) ⇒ null.
  *
- * Ported deliberately close to byte-identical to OpenBuild's
+ * Ported deliberately close to byte-identical to Buildiq's
  * `rewriteRootScope` (only the scope-attribute target string changes) to
  * avoid introducing a NEW defensive-CSS edge case nldesign's contract
  * doesn't already cover.

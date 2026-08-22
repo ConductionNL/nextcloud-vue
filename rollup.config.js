@@ -83,7 +83,7 @@ function unwrapDeepSelector(selector) {
  * lowers the legacy deep combinators (`::v-deep` / `>>>` / `/deep/`); it passes the
  * modern `:deep(...)` form through untouched. The library authors scoped styles
  * exclusively with `:deep(...)`, so without this every such rule ships as invalid
- * CSS and the browser drops it (e.g. the CnOpenBuildEditButton orange accent).
+ * CSS and the browser drops it (e.g. the CnBuildiqEditButton orange accent).
  * Since the outer compound is already scoped, unwrapping `:deep(.btn)` → `.btn`
  * yields the correct `… [data-v-*] .btn` descendant selector.
  */

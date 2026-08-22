@@ -8,7 +8,7 @@ status: reviewed
 
 ## Purpose
 
-Specifies the Pinia object store (`useObjectStore`), factory function (`createObjectStore`), sub-resource plugin factory (`createSubResourcePlugin`), built-in plugins, and all supporting utilities for OpenRegister CRUD operations. This store is the single data layer shared by all Conduction Nextcloud apps (OpenRegister, Pipelinq, Procest, OpenCatalogi, LaunchPad).
+Specifies the Pinia object store (`useObjectStore`), factory function (`createObjectStore`), sub-resource plugin factory (`createSubResourcePlugin`), built-in plugins, and all supporting utilities for OpenRegister CRUD operations. This store is the single data layer shared by all Conduction Nextcloud apps (OpenRegister, Pipelinq, Dossiq, OpenCatalogi, Launchpad).
 
 **Files**: `src/store/useObjectStore.js`, `src/store/createSubResourcePlugin.js`, `src/store/plugins/`, `src/store/index.js`
 
@@ -561,7 +561,7 @@ The store MUST support the standard consumer app pattern where each app creates 
 - **REQ-ST-012**: `createSubResourcePlugin` factory for custom plugins
 - **REQ-ST-013**: All 7 built-in plugins (files, auditTrails, relations, lifecycle, selection, search, registerMapping)
 - **REQ-ST-014**: All getters with safe defaults
-- **REQ-ST-015**: Verified working in OpenRegister, Pipelinq, and Procest consumer apps
+- **REQ-ST-015**: Verified working in OpenRegister, Pipelinq, and Dossiq consumer apps
 
 ## Standards & References
 

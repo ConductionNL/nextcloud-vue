@@ -3,7 +3,7 @@ CnWidgetRefItem resolves a `widget-ref` content item declared in a manifest page
 component name in the consuming app's `customComponents` registry, and renders
 the resolved component.
 
-## Usage in a manifest (Scholiq compliance dashboard)
+## Usage in a manifest (Learniq compliance dashboard)
 
 ```json
 {
@@ -86,7 +86,7 @@ state automatically while the OR API call is in flight.
 </template>
 ```
 
-## Two widget-refs in a dashboard page (Scholiq pattern)
+## Two widget-refs in a dashboard page (Learniq pattern)
 
 ```vue
 <template>

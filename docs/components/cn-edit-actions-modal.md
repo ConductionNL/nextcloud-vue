@@ -6,7 +6,7 @@ relabel, re-icon and re-target the page's `config.actions[]` — the quick butto
 and overflow Actions items the page renders. All edits mutate the passed
 `working` copy **only**.
 
-Opened by [CnOpenBuildEditButton](./cn-open-build-edit-button.md)'s "Edit
+Opened by [CnBuildiqEditButton](./cn-buildiq-edit-button.md)'s "Edit
 actions…" item. Each action carries a `type` (`open-page` / `navigate` /
 `open-modal` / `handler`) selected via an `NcSelect` (with `inputLabel`); the
 target field's label adapts to the type.
