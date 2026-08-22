@@ -345,7 +345,7 @@
 				<!-- Empty state -->
 				<div v-else-if="effectiveObjects.length === 0" class="cn-index-page__empty">
 					<slot name="empty">
-						<NcEmptyContent :name="emptyText">
+						<NcEmptyContent :name="resolvedEmptyText">
 							<template #icon>
 								<CnIcon v-if="resolvedIcon" :name="resolvedIcon" :size="64" />
 								<DatabaseSearch v-else :size="64" />
@@ -1794,6 +1794,20 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The empty-state copy run through the host translate function
+		 * (the injected `cnTranslate`, identity by default). Only this
+		 * component's OWN `NcEmptyContent` uses it — the raw `emptyText`
+		 * keeps flowing to CnDataTable / CnObjectList / CnCardGrid, which
+		 * translate at their own render boundary, so the string is never
+		 * run through the translator twice.
+		 *
+		 * @return {string}
+		 */
+		resolvedEmptyText() {
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return this.emptyText ? fn(this.emptyText) : this.emptyText
+		},
 		/**
 		 * Whether the host manifest editor is in edit mode (unwraps the injected
 		 * `cnEditingBody`, which may be a Vue ref or a plain boolean). Drives the
