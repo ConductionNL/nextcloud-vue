@@ -43,7 +43,7 @@ import CnDividerWidget from '../CnDividerWidget/CnDividerWidget.vue'
  * needs no per-widget `props`.
  *
  * The `integration` key places an OpenRegister integration leaf
- * (`CnIntegrationWidget`) on the page — e.g. OpenConnector's `sync-contract`
+ * (`CnIntegrationWidget`) on the page — e.g. Integriq's `sync-contract`
  * ("Synced from"). Pick the leaf with `props.only: "<integrationId>"`; the
  * object's `register` / `objectId` arrive via the detail-context merge, and
  * the manifest should set `props.schema` to the schema slug (the merged

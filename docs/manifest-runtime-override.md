@@ -43,7 +43,7 @@ const { manifest, isLoading, validationErrors } = useAppManifest('procest', bund
 
 ## Worked example — one nav entry per case type
 
-Procest builds its shell client-side with `buildManifest(base, fragments, menuLayout)`, which (via `menu-layout.json` relocations) places an "All cases" leaf under a `CasesGroup`. To add **one child per case type** under that group without touching the rest of the menu, procest serves a **delta** whose `children` merge by `id`:
+Dossiq builds its shell client-side with `buildManifest(base, fragments, menuLayout)`, which (via `menu-layout.json` relocations) places an "All cases" leaf under a `CasesGroup`. To add **one child per case type** under that group without touching the rest of the menu, procest serves a **delta** whose `children` merge by `id`:
 
 **Backend `GET /index.php/apps/procest/api/manifest`:**
 

@@ -5,7 +5,7 @@
   - CnCredentials — the settings surface for the OpenRegister credential
   - broker. Apps occasionally need to act on your behalf against an external
   - service (GitHub, GitLab, …). Rather than hand the secret to the app, you
-  - give it once to OpenRegister, which stores it in Doriath — Nextcloud's
+  - give it once to OpenRegister, which stores it in Keepiq — Nextcloud's
   - native, encrypted credential vault. Apps then make the outbound call
   - THROUGH OpenRegister and never see the secret itself. You decide which
   - apps may use each credential, so one credential can be shared across apps
@@ -45,7 +45,7 @@
 				:href="resolvedVaultUrl"
 				class="cn-credentials__vault-link"
 				target="_self">
-				{{ t('nextcloud-vue', 'Learn about Doriath') }} ↗
+				{{ t('nextcloud-vue', 'Learn about Keepiq') }} ↗
 			</a>
 		</p>
 
@@ -216,7 +216,7 @@
 							<NcTextField v-model="form.secret"
 								type="password"
 								:label="activeMeta.secretLabel || t('nextcloud-vue', 'Secret')"
-								:helper-text="t('nextcloud-vue', 'Sent to OpenRegister and stored in Doriath. It is never shown again.')"
+								:helper-text="t('nextcloud-vue', 'Sent to OpenRegister and stored in Keepiq. It is never shown again.')"
 								:disabled="saving"
 								autocomplete="new-password"
 								required />
@@ -354,8 +354,8 @@ export default {
 			validator: (v) => ['personal', 'organisation'].includes(v),
 		},
 		/**
-		 * Optional link target explaining the Doriath vault. Defaults to the
-		 * Doriath app route; pass '' to hide the link.
+		 * Optional link target explaining the Keepiq vault. Defaults to the
+		 * Keepiq app route; pass '' to hide the link.
 		 *
 		 * @type {string}
 		 */
@@ -399,12 +399,12 @@ export default {
 		 */
 		introText() {
 			if (this.scope === 'organisation') {
-				return t('nextcloud-vue', 'Organisation credentials let apps act on behalf of your organisation. The secret is stored in Doriath — Nextcloud\'s native credential vault — never in the app. You choose which apps may use each credential.')
+				return t('nextcloud-vue', 'Organisation credentials let apps act on behalf of your organisation. The secret is stored in Keepiq — Nextcloud\'s native credential vault — never in the app. You choose which apps may use each credential.')
 			}
-			return t('nextcloud-vue', 'Apps sometimes need to act on your behalf against an external service. So they never hold your secrets, you give a secret to Nextcloud once and it is kept in Doriath — a native, encrypted credential vault. Apps then make the call through Doriath and never see the secret. You decide which apps may use each credential — share one across apps, or keep one per app.')
+			return t('nextcloud-vue', 'Apps sometimes need to act on your behalf against an external service. So they never hold your secrets, you give a secret to Nextcloud once and it is kept in Keepiq — a native, encrypted credential vault. Apps then make the call through Keepiq and never see the secret. You decide which apps may use each credential — share one across apps, or keep one per app.')
 		},
 		/**
-		 * Resolved Doriath link (explicit prop, or the app route by default).
+		 * Resolved Keepiq link (explicit prop, or the app route by default).
 		 *
 		 * @return {string} URL or ''.
 		 */

@@ -16,8 +16,8 @@ single leaf app. nldesign (the NL Design System app) owns the token catalogue, t
 math, and the scoped-application CONTRACT (`app-token-set-selection`); this capability is the one
 place that CONTRACT is implemented in JavaScript, so any manifest-driven app gets scoped NL
 Design theming from a `manifest.runtime.theme` declaration with zero per-app applier code. This
-capability replaces OpenBuild's local, first-mover `useAppTheme.js` (which proved the design
-under the OpenBuild-owned `data-openbuild-theme-scope` attribute) with the design-system-owned
+capability replaces Buildiq's local, first-mover `useAppTheme.js` (which proved the design
+under the Buildiq-owned `data-openbuild-theme-scope` attribute) with the design-system-owned
 `data-nldesign-theme-scope` attribute nldesign's contract now fixes.
 
 ## Requirements

@@ -17,7 +17,7 @@ descendant, so the loser of that race has its whole dialog painted *underneath*
 the other dialog's full-viewport mask. Both dialogs look open and visible, but
 every click aimed at the top one is swallowed by the one beneath it.
 
-Observed in OpenBuild: the nested "Generate an app with AI" dialog was visible on
+Observed in Buildiq: the nested "Generate an app with AI" dialog was visible on
 top of the "Create application" wizard, yet every click on it was received by the
 wizard's own `#wizard-app-description` textarea.
 
@@ -61,7 +61,7 @@ new Vue({ render: (h) => h(App) }).$mount('#content')
 Calling it twice never adds a second observer or double-counts a mask, so it is
 safe for both the app root and your own `main.js` to call it. It is
 **reference-counted**: each call registers an owner and the binder only stops
-once every owner has released it. App roots nest — OpenBuild's `BuilderHost`
+once every owner has released it. App roots nest — Buildiq's `BuilderHost`
 renders a second `CnAppRoot` for the app being previewed — and the inner shell
 unmounting must not blind the outer one.
 
@@ -88,7 +88,7 @@ A `MutationObserver` watches `root` for `.modal-mask` insertions and removals:
 
 ### Why a DOM observer rather than a prop
 
-The dialogs that collide are not all this library's. In the OpenBuild case the
+The dialogs that collide are not all this library's. In the Buildiq case the
 wizard is `CnWizardDialog` (ours) but the AI dialog is a plain `NcDialog` written
 in the consuming app, and `@nextcloud/vue` exposes no z-index prop. A
 per-component opt-in would therefore only ever fix half of a collision. Watching

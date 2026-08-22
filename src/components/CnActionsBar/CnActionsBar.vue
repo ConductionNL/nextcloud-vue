@@ -119,7 +119,7 @@
 			<slot name="actions" />
 
 			<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot. -->
-			<CnOpenBuildEditButton />
+			<CnBuildiqEditButton />
 
 			<!-- Actions menu (Refresh, Import, Export, mass actions) -->
 			<NcActions
@@ -243,7 +243,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActions, NcActionSeparator, NcButton, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
-import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Export from 'vue-material-design-icons/Export.vue'
@@ -277,7 +277,7 @@ export default {
 	name: 'CnActionsBar',
 
 	components: {
-		CnOpenBuildEditButton,
+		CnBuildiqEditButton,
 		NcActions,
 		NcActionButton,
 		NcActionLink,

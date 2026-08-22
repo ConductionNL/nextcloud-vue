@@ -79,7 +79,7 @@ describe('CnXwikiCard', () => {
 			wrapper.unmount()
 		})
 
-		it('shows "Not configured" badge on dashboard when OpenConnector source is missing', async () => {
+		it('shows "Not configured" badge on dashboard when Integriq source is missing', async () => {
 			global.fetch = jest.fn().mockResolvedValueOnce(unavailable('openconnector-source-missing'))
 			const wrapper = mount(CnXwikiCard, { propsData: { ...DEFAULT_PROPS, surface: 'app-dashboard' } })
 			await wrapper.vm.$nextTick()

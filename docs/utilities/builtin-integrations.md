@@ -81,7 +81,7 @@ registerIntegration(flowIntegration)
 
 `fieldInspectionIntegration` also has a [dedicated page](./field-inspection-integration.md).
 
-### External (via OpenConnector)
+### External (via Integriq)
 
 | export | id | order | requiredApp |
 |---|---|---|---|

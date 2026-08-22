@@ -2,7 +2,7 @@
 
 View and edit an OpenRegister object's geographical metadata (`@self.geo`) on a map. It renders the object's location as a marker on the [`CnMapWidget`](./cn-map-widget.md) primitive, wrapped in the [`CnWidgetWrapper`](./cn-widget-wrapper.md) chrome (Widget family — carries the shared overflow Actions menu). When `editable`, clicking the map places or moves the location marker and a footer offers **Save** / **Cancel** / **Remove location**.
 
-Registered as the built-in `object-geo` widget key and as a detail-page Add-widget type ("Location / map"), so a `type: "detail"` page can place it via `widgetKey: "object-geo"` or a user can add it in-app from the OpenBuild edit menu.
+Registered as the built-in `object-geo` widget key and as a detail-page Add-widget type ("Location / map"), so a `type: "detail"` page can place it via `widgetKey: "object-geo"` or a user can add it in-app from the Buildiq edit menu.
 
 ## Storage shape
 

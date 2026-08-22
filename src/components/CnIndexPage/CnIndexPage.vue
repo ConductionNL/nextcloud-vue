@@ -1981,7 +1981,7 @@ export default {
 		 * (`img-src`) blocks unless that app explicitly allowlists the host — so a
 		 * richer default would ship dead options to consumers that never widened their
 		 * CSP. Apps that want a switcher declare the set in `mapConfig.basemaps` AND
-		 * allowlist those hosts (see Procest's `relaxCspForMapTiles()`).
+		 * allowlist those hosts (see Dossiq's `relaxCspForMapTiles()`).
 		 *
 		 * @return {Array<object>}
 		 */

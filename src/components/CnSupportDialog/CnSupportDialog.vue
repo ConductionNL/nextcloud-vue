@@ -156,7 +156,7 @@ export default {
 	props: {
 		/**
 		 * Display name of the host app, interpolated into the body copy
-		 * (e.g. "Decidesk", "OpenRegister"). Required.
+		 * (e.g. "Decidiq", "OpenRegister"). Required.
 		 */
 		appName: {
 			type: String,

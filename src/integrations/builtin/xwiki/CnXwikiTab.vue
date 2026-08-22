@@ -13,7 +13,7 @@
     `/api/objects/{register}/{schema}/{objectId}/integrations/xwiki`
   served by `OCA\OpenRegister\Service\Integration\Providers\XwikiProvider`
   (storage strategy `external` — routed through `ExternalIntegrationRouter`
-  → OpenConnector `xwiki` source → remote XWiki REST API). Provider
+  → Integriq `xwiki` source → remote XWiki REST API). Provider
   payload shape per `normalizeRow()`:
     { id, reference, title, space, page, breadcrumb, url, content, ... }
   where `breadcrumb` is an array (the UI joins it with " › "), and
@@ -26,17 +26,17 @@
       returns zero rows.
     - **Unconfigured state**: 503 + cause `openconnector-down` or
       `openconnector-source-missing` → prominent "Configure XWiki
-      connection" CTA pointing at OpenConnector's source admin page.
+      connection" CTA pointing at Integriq's source admin page.
     - **Auth-expired state**: 503 + cause `provider-auth` → "XWiki
-      returned 401 — check the OpenConnector source credentials" with
-      a Reconnect CTA pointing at OpenConnector.
+      returned 401 — check the Integriq source credentials" with
+      a Reconnect CTA pointing at Integriq.
     - **Upstream-down state**: 503 + cause `upstream-service-down` →
       "XWiki is currently unavailable" + Retry CTA.
     - **Generic-error state**: fetch throws or non-OK non-503 → "Could
       not load XWiki pages" + Retry CTA.
     - Loading state via NcLoadingIcon for the full-tab spin.
 
-  XWiki calls go through OpenConnector → external HTTP, so latency can
+  XWiki calls go through Integriq → external HTTP, so latency can
   spike on cold caches. The fetch carries no client-side timeout (the
   router enforces an upstream timeout server-side and surfaces
   upstream-down on expiry), but the loading state is shown for the
@@ -186,7 +186,7 @@ const EXCERPT_MAX_CHARS = 140
  * Renders linked XWiki pages as an XWiki-style document index: document
  * icon, bold title, space breadcrumb, relative last-modified, and a
  * one-line plain-text excerpt — plus prominent auth/config banners when
- * the OpenConnector source is missing/unhealthy.
+ * the Integriq source is missing/unhealthy.
  */
 export default {
 	name: 'CnXwikiTab',
@@ -221,7 +221,7 @@ export default {
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Pre-translated empty-state label. */
 		emptyLabel: { type: String, default: () => t('nextcloud-vue', 'No XWiki pages linked yet') },
-		/** URL of OpenConnector's sources admin page (deep-link target for the configure CTA). */
+		/** URL of Integriq's sources admin page (deep-link target for the configure CTA). */
 		openConnectorSourcesUrl: { type: String, default: '/index.php/apps/openconnector/sources' },
 	},
 
@@ -243,17 +243,17 @@ export default {
 				return {
 					kind: 'unconfigured',
 					title: t('nextcloud-vue', 'XWiki connection not configured'),
-					message: t('nextcloud-vue', 'Add an XWiki source in OpenConnector with the upstream URL and credentials so OpenRegister can link pages.'),
+					message: t('nextcloud-vue', 'Add an XWiki source in Integriq with the upstream URL and credentials so OpenRegister can link pages.'),
 					ctaLabel: t('nextcloud-vue', 'Configure XWiki connection'),
-					ctaHandler: this.openOpenConnector,
+					ctaHandler: this.openIntegriq,
 				}
 			case 'auth':
 				return {
 					kind: 'auth',
 					title: t('nextcloud-vue', 'XWiki authentication failed'),
-					message: t('nextcloud-vue', 'XWiki returned 401 — check the OpenConnector source credentials.'),
+					message: t('nextcloud-vue', 'XWiki returned 401 — check the Integriq source credentials.'),
 					ctaLabel: t('nextcloud-vue', 'Reconnect'),
-					ctaHandler: this.openOpenConnector,
+					ctaHandler: this.openIntegriq,
 				}
 			case 'upstream':
 				return {
@@ -458,7 +458,7 @@ export default {
 			return Number.isNaN(parsed) === true ? null : parsed
 		},
 
-		openOpenConnector() {
+		openIntegriq() {
 			if (typeof window !== 'undefined') {
 				window.open(this.openConnectorSourcesUrl, '_blank', 'noopener')
 			}

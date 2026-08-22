@@ -258,7 +258,7 @@ else `'download.pdf'`. The success toast still shows; unlike a normal
 }
 ```
 
-Generate-and-download a DocuDesk PDF for the current detail-page object:
+Generate-and-download a Filinq PDF for the current detail-page object:
 
 ```jsonc
 {

@@ -458,7 +458,7 @@ scripts/
 
 ## Consumer Apps
 
-This library is used by: OpenRegister, OpenCatalogi, Procest, Pipelinq, LaunchPad.
+This library is used by: OpenRegister, OpenCatalogi, Dossiq, Pipelinq, Launchpad.
 Changes here affect all of them. Test carefully.
 
 Every consumer's `main.js` must include:

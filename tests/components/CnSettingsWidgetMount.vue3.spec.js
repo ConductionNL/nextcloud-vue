@@ -17,10 +17,10 @@ const Child = {
 describe('CnSettingsWidgetMount (Vue 3)', () => {
 	it('renders the dynamic component body (no "h is not a function" crash)', () => {
 		const wrapper = mount(CnSettingsWidgetMount, {
-			props: { component: Child, componentProps: { appName: 'OpenConnector' }, widgetType: 'version-info', sectionIndex: 0, widgetIndex: 0 },
+			props: { component: Child, componentProps: { appName: 'Integriq' }, widgetType: 'version-info', sectionIndex: 0, widgetIndex: 0 },
 		})
 		expect(wrapper.find('.child').exists()).toBe(true)
-		expect(wrapper.text()).toContain('OpenConnector')
+		expect(wrapper.text()).toContain('Integriq')
 	})
 
 	it('bubbles the child event as widget-event with the manifest path', async () => {

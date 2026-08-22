@@ -479,7 +479,7 @@ async function installSeenShim(target, prefix, ids, matchAll, value, scope) {
  *
  * NESTED `CnAppRoot` CAVEAT — found in the field, handle it or the dialog
  * comes back:
- * a nested `CnAppRoot` (OpenBuild's `/builder/:slug` mounts one, and any app
+ * a nested `CnAppRoot` (Buildiq's `/builder/:slug` mounts one, and any app
  * hosting a "virtual app" does the same) passes its OWN `appId` — typically
  * `{outerAppId}-{slug}` — down to `useSupportDialog`. Because the flag is
  * namespaced per app id, a dialog marked seen for the outer shell opens again

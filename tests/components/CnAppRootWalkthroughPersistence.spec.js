@@ -2,7 +2,7 @@
  * Tests for CnAppRoot ↔ CnWalkthrough completion persistence (ADR-043,
  * REQ-WALK-NV-004 / REQ-WALK-NV-006).
  *
- * Observed defect (live, OpenBuild): the manifest declared
+ * Observed defect (live, Buildiq): the manifest declared
  * `walkthrough.completionConfigKey`, `GET /api/preferences/{key}` answered
  * `{"value": null}`, and dismissing the tour issued NO request at all — nothing
  * was ever written back. The first-visit tour therefore reopened on every visit

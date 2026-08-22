@@ -5,7 +5,7 @@
  * The OpenRegister **schema API contract**, in one place.
  *
  * Why this module exists: `CnSchemaFormDialog` is shared by every app that edits
- * schemas (OpenBuild, OpenRegister, …), but it only ever emits `@confirm(payload)` —
+ * schemas (Buildiq, OpenRegister, …), but it only ever emits `@confirm(payload)` —
  * each consumer then wrote its OWN persistence. So the *presentation* was shared
  * while the *contract* (what a 409 means, when to acknowledge, how to cascade a
  * delete) was reimplemented per app and free to drift. It did: the same

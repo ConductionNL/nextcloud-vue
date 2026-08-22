@@ -960,7 +960,7 @@ export default {
 		 *
 		 * `ICON_MAP` only holds what the consuming app passed to `registerIcons()`,
 		 * and an app rendering USER-AUTHORED manifests cannot pre-register whatever
-		 * icon a user might pick — OpenBuild registers none at all. So a picked name
+		 * icon a user might pick — Buildiq registers none at all. So a picked name
 		 * failed `mdiIconComponent` (not registered) AND `isRichIcon` (not a URL or
 		 * SVG path), the `#icon` slot was skipped entirely, and the menu item rendered
 		 * with NO icon — even though CnMenuItemIcon → CnWidgetIcon could resolve it.

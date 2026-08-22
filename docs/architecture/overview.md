@@ -19,11 +19,11 @@ The stack reads top-to-bottom: your app composes Conduction's Layer 2 primitives
   <div style={{ background: 'var(--c-cobalt-50)', borderRadius: '12px', padding: '0.5rem 0', margin: '1.5rem 0' }}>
     <cn-domain-tree>
       <cn-hex slot="apex" size="xl">Your app</cn-hex>
-      <cn-hex size="md">LarpingApp</cn-hex>
+      <cn-hex size="md">Larpinq</cn-hex>
       <cn-hex size="md">Pipelinq</cn-hex>
       <cn-hex size="md">OpenCatalogi</cn-hex>
-      <cn-hex size="md">Procest</cn-hex>
-      <cn-hex size="md">LaunchPad</cn-hex>
+      <cn-hex size="md">Dossiq</cn-hex>
+      <cn-hex size="md">Launchpad</cn-hex>
     </cn-domain-tree>
     <cn-domain-tree compact>
       <cn-hex slot="apex" size="xl" color="orange">@conduction/nextcloud-vue</cn-hex>

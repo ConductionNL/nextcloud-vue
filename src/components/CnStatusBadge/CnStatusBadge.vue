@@ -14,7 +14,7 @@
  * CnStatusBadge — Color-coded pill badge for status, priority, or category display.
  *
  * Replaces the various .status-badge / .priority-badge CSS patterns duplicated
- * across Pipelinq and Procest. Supports a colorMap for automatic variant lookup.
+ * across Pipelinq and Dossiq. Supports a colorMap for automatic variant lookup.
  *
  * ```vue
  * <CnStatusBadge label="Open" variant="success" />

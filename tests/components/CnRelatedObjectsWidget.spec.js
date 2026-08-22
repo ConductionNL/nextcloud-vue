@@ -64,7 +64,7 @@ describe('CnRelatedObjectsWidget', () => {
 
 	it('does not throw when objectData is null (host passes an unloaded object)', () => {
 		// CnDetailPage forwards `currentObject`, which is null until the object
-		// loads (e.g. the grid renders in OpenBuild edit mode). An explicit null
+		// loads (e.g. the grid renders in Buildiq edit mode). An explicit null
 		// bypasses the `() => ({})` prop default, so the resolved* computeds must
 		// tolerate it and fall back to the explicit register/schema/id props.
 		expect(() => {

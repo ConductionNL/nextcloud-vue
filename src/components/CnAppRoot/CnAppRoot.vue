@@ -241,7 +241,7 @@
 					</div>
 				</NcNoteCard>
 				<!--
-				  In-app edit shell (ADR-041). The Conduction-orange OpenBuild edit
+				  In-app edit shell (ADR-041). The Conduction-orange Buildiq edit
 				  button is rendered INSIDE each page's action row (CnDashboardPage /
 				  CnDetailPage / CnIndexPage) — it self-wires from the `cnManifestEditor`
 				  and `cnOpenBuildAvailable` this component provides, so it sits inline
@@ -549,7 +549,7 @@ import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
 import { provideTenantContext } from '../../composables/useTenantContext.js'
 import { computed, shallowRef, watch, reactive } from 'vue'
 import { useManifestEditor } from '../../composables/useManifestEditor.js'
-import { useOpenBuildEditAvailability } from '../../composables/useOpenBuildEditAvailability.js'
+import { useBuildiqEditAvailability } from '../../composables/useBuildiqEditAvailability.js'
 import { useScopedTheme } from '../../composables/useScopedTheme.js'
 import { loadState } from '@nextcloud/initial-state'
 import { useAppStatus } from '../../composables/useAppStatus.js'
@@ -681,7 +681,10 @@ export default {
 			// provided properties at any depth, but getter-defined provide
 			// properties don't reliably reach deep descendants (e.g. the edit
 			// button under a page component). Descendants unwrap with `.value`.
-			cnOpenBuildAvailable: this.openBuildAvailable,
+			// The inject KEY keeps its `cnOpenBuildAvailable` spelling on purpose:
+			// consumer apps may already inject it, so the 2026-08-21 OpenBuild →
+			// Buildiq rename deliberately left this runtime contract untouched.
+			cnOpenBuildAvailable: this.buildiqAvailable,
 			cnEditingBody: this.manifestEditor ? this.manifestEditor.editing : false,
 			cnCustomComponents: this.customComponents,
 			cnTranslate: this.translate,
@@ -914,7 +917,7 @@ export default {
 		},
 		/**
 		 * Remount key for the routed `<router-view>`. Hosts that rebuild the
-		 * router at runtime (e.g. the OpenBuild builder adding a page mid-edit)
+		 * router at runtime (e.g. the Buildiq builder adding a page mid-edit)
 		 * bump this AFTER the rebuild so the view drops its stale component-
 		 * instance cache and mounts the new routes — a Vue Router 3 matcher swap
 		 * alone resolves the new hrefs but leaves SPA-navigation to a just-added
@@ -932,7 +935,7 @@ export default {
 		 * Optional persistence hook for in-app editing (ADR-041). Called with the
 		 * minimal manifest delta when the user saves an edit. When omitted, Save
 		 * still updates the rendered manifest in memory but persists nothing —
-		 * wire this to the OpenBuild app-override endpoint to make edits durable.
+		 * wire this to the Buildiq app-override endpoint to make edits durable.
 		 *
 		 * @type {Function|null}
 		 */
@@ -1226,7 +1229,7 @@ export default {
 		 * Title rendered at the top of the user-settings modal
 		 * (NcAppSettingsDialog `name` prop). Defaults to the
 		 * translated string "User settings"; pass a custom label
-		 * (e.g. "Decidesk preferences") to override per app.
+		 * (e.g. "Decidiq preferences") to override per app.
 		 *
 		 * @type {string}
 		 */
@@ -1317,7 +1320,7 @@ export default {
 
 		// Off when the host opts out (`:support-dialog="false"`) OR the manifest's
 		// support block is explicitly disabled (the "Show the support note on
-		// first open" toggle in OpenBuild's editor). Omitting the block keeps the
+		// first open" toggle in Buildiq's editor). Omitting the block keeps the
 		// default-on first-open behaviour.
 		const manifestSupportDisabled = !!(props.manifest && props.manifest.support
 			&& typeof props.manifest.support === 'object'
@@ -1358,13 +1361,14 @@ export default {
 		// `installDependency` method.
 		const appInstaller = useAppInstaller()
 
-		const { available: openBuildAvailable } = useOpenBuildEditAvailability()
-		// A manifest may opt OUT of the OpenBuild in-app edit button by setting
-		// `openbuildEditable: false` (e.g. OpenBuild's own pages — an app does not
+		const { available: buildiqAvailable } = useBuildiqEditAvailability()
+		// A manifest may opt OUT of the Buildiq in-app edit button by setting
+		// `openbuildEditable: false` (e.g. Buildiq's own pages — an app does not
 		// edit itself with itself). Default true: omitting the flag keeps the
-		// button wherever the OpenBuild app is enabled (ADR-041).
-		const openBuildEditable = computed(
-			() => openBuildAvailable.value && props.manifest?.openbuildEditable !== false,
+		// button wherever the Buildiq app is enabled (ADR-041). The manifest key
+		// keeps its `openbuild` spelling — it is shipped manifest data.
+		const buildiqEditable = computed(
+			() => buildiqAvailable.value && props.manifest?.openbuildEditable !== false,
 		)
 
 		// Scoped NL Design token-set theming (scoped-theme-applier). Watches the
@@ -1388,7 +1392,7 @@ export default {
 			...supportPair,
 			cnTenantContext: tenantContext,
 			manifestEditor,
-			openBuildAvailable: openBuildEditable,
+			buildiqAvailable: buildiqEditable,
 			appInstaller,
 			depInstalling: appInstaller.installing,
 			depInstallError: appInstaller.error,
@@ -1696,11 +1700,11 @@ export default {
 			return this.ownerGroupsIntersect
 		},
 		/**
-		 * Caller's Nextcloud group GIDs, published by OpenBuild's
+		 * Caller's Nextcloud group GIDs, published by Buildiq's
 		 * `DashboardController::publishCurrentUserGroups()` initial state.
 		 * Read via `loadState`, never DOM attributes. Defensive try/catch
 		 * mirrors `serverAppStatuses` — apps without the `openbuild`
-		 * initial-state key (non-OpenBuild hosts, tests) simply resolve to
+		 * initial-state key (non-Buildiq hosts, tests) simply resolve to
 		 * an empty list, so the fallback gate stays false rather than
 		 * throwing.
 		 *
@@ -1812,7 +1816,7 @@ export default {
 		},
 		/**
 		 * Resolved support-dialog config — the manifest's `support` block
-		 * (authored in OpenBuild's "Edit support & donation" editor) overlaid
+		 * (authored in Buildiq's "Edit support & donation" editor) overlaid
 		 * by any host-supplied `supportDialog` override object, so app authors
 		 * can configure the donation/support note entirely from the UI while a
 		 * host can still override per-mount.
@@ -2375,7 +2379,7 @@ export default {
 		// root (not per dialog) because the colliding dialogs are not all ours:
 		// the consuming app's own NcDialogs need the same layering, and
 		// @nextcloud/vue exposes no z-index prop. Reference-counted, so the
-		// nested CnAppRoot in OpenBuild's BuilderHost is safe.
+		// nested CnAppRoot in Buildiq's BuilderHost is safe.
 		installModalStack()
 
 		// Guard against silently losing unsaved in-app edits. The manifest

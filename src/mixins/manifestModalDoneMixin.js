@@ -4,7 +4,7 @@
  */
 
 /**
- * Shared "Done = save" behaviour for the OpenBuild manifest-edit modals
+ * Shared "Done = save" behaviour for the Buildiq manifest-edit modals
  * (pages / menu / settings / sidebar / actions).
  *
  * Those modals all mutate the single working manifest in place; persistence is

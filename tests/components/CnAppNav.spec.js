@@ -1379,18 +1379,18 @@ describe('CnAppNav', () => {
 
 // ---------- Icon rendering (registry names) ----------
 //
-// Reported live on the `cowboy` OpenBuild app: menu items whose icon was picked
+// Reported live on the `cowboy` Buildiq app: menu items whose icon was picked
 // from CnIconBrowser as a NAME ("Heart", "Home") rendered with NO icon at all,
 // while CSS-class icons ("icon-comment") rendered fine.
 //
 // Cause: `mdiIconComponent()` reads ICON_MAP, which only holds what the consuming
 // app passed to registerIcons() — and an app rendering USER-AUTHORED manifests
-// can't pre-register whatever a user might pick (OpenBuild registers none). So the
+// can't pre-register whatever a user might pick (Buildiq registers none). So the
 // name failed mdiIconComponent AND isRichIcon (not a URL/SVG path), the `#icon`
 // slot was skipped entirely, and CnMenuItemIcon — which CAN resolve it via the
 // shared widget-icon registry — never got the chance.
 //
-// These tests deliberately do NOT call registerIcons(), mirroring OpenBuild.
+// These tests deliberately do NOT call registerIcons(), mirroring Buildiq.
 
 describe('CnAppNav — icon rendering', () => {
 	const iconManifest = {

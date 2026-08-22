@@ -140,7 +140,7 @@
 				     closed and an X (`.app-sidebar__close`) when open, so a custom
 				     button would duplicate it. -->
 				<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot. -->
-				<CnOpenBuildEditButton />
+				<CnBuildiqEditButton />
 				<CnActionsMenu
 					:show-refresh="effectiveHeaderShowRefresh"
 					:refreshing="effectiveRefreshing"
@@ -261,7 +261,7 @@
 			<!-- Adjustable widget grid (GridStack). The detail body is, at its
 			     core, a real drag/resize grid: by default it is seeded with the
 			     schema-driven Data + Related widgets (see `bodyGridLayout`), but in
-			     OpenBuild edit mode widgets can be moved, resized, configured and
+			     Buildiq edit mode widgets can be moved, resized, configured and
 			     added. Explicit `layout` + `widgets` props (manifest grid pages)
 			     feed the same engine, so hand-authored grid pages also become
 			     draggable. -->
@@ -285,7 +285,7 @@
 						:aria-labelledby="showGridTitle(item) ? `widget-title-${item.id}` : undefined">
 						<!-- In-app edit overlay (ADR-041): a configure cog appears on
 						     widgets that have a registered config form while the page
-						     is in OpenBuild edit mode. The modal's own Delete affordance
+						     is in Buildiq edit mode. The modal's own Delete affordance
 						     covers removal, so no separate remove button here. -->
 						<div v-if="editingBody && registryFormFor(item)" class="cn-detail-page__widget-edit">
 							<NcButton variant="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
@@ -354,7 +354,7 @@
 								:show-total-count="widgetContentFor(item).showTotalCount !== false"
 								@open-integration="onAutoBodyOpenIntegration" />
 							<!-- `type: 'object-geo'` widget: view/edit the object's
-							     `@self.geo` on a map. Editable in OpenBuild edit mode
+							     `@self.geo` on a map. Editable in Buildiq edit mode
 							     or when the widget config sets `editable`. -->
 							<CnObjectGeoWidget
 								v-else-if="isGeoWidget(item)"
@@ -601,7 +601,7 @@
 		</div>
 
 		<!-- Per-widget style/config editor (ADR-041). Opened by the per-widget
-		     configure cog while in OpenBuild edit mode; the modal's own Delete
+		     configure cog while in Buildiq edit mode; the modal's own Delete
 		     button removes the widget from the grid. -->
 		<CnWidgetStyleEditorModal
 			v-if="showWidgetConfig"
@@ -654,7 +654,7 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
-import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
@@ -793,7 +793,7 @@ export default {
 		InformationOutline,
 		Refresh,
 		CnActionsMenu,
-		CnOpenBuildEditButton,
+		CnBuildiqEditButton,
 		CnLockedBanner,
 		CnObjectDataWidget,
 		CnFormDialog,
@@ -837,7 +837,7 @@ export default {
 		 */
 		cnAiContext: { default: null },
 		/**
-		 * OpenBuild in-app edit state (ADR-041), a ref provided by CnAppRoot /
+		 * Buildiq in-app edit state (ADR-041), a ref provided by CnAppRoot /
 		 * the edit button. When truthy, configurable grid widgets show a
 		 * configure cog. Defaults to null (no edit affordance) for standalone use.
 		 */
@@ -1558,7 +1558,7 @@ export default {
 		 * @return {string}
 		 */
 		/**
-		 * Whether the page is in OpenBuild edit mode — unwraps the injected
+		 * Whether the page is in Buildiq edit mode — unwraps the injected
 		 * `cnEditingBody` ref (or plain boolean). Drives the per-widget cog.
 		 *
 		 * @return {boolean}
@@ -2749,7 +2749,7 @@ export default {
 		 * render their own card chrome.
 		 */
 		materializeAutoBody() {
-			// One source of truth (shared with the OpenBuild edit button's
+			// One source of truth (shared with the Buildiq edit button's
 			// "eject" on edit) so the in-memory default and the manifest-ejected
 			// default are identical. The data widget's content carries the page's
 			// register/schema so its per-property editor can resolve the schema
@@ -2825,7 +2825,7 @@ export default {
 		/**
 		 * The registered config FORM for a grid item's widget type, or null.
 		 * Used to gate the per-widget configure cog (only configurable widgets
-		 * show one) in OpenBuild edit mode.
+		 * show one) in Buildiq edit mode.
 		 *
 		 * @param {object} item Layout item
 		 * @return {object|null} The form component, or null.

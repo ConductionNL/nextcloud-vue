@@ -269,7 +269,7 @@ export function resolveFilterTokens(filter, ctx) {
  * and arrays at ANY depth, unlike {@link resolveFilterTokens} which only
  * understands the flat filter-map shape (equality / operator / IN-list, one
  * level of nesting). Used by the `api-call` action's `payload`: a
- * DocuDesk-style generation body like
+ * Filinq-style generation body like
  * `{ dataRefs: [{ register: 'crm', schema: 'lead', id: '@objectId' }] }`
  * needs the token resolved inside a nested array of objects, which the
  * shallow filter-map resolver can't reach.

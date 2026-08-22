@@ -16,7 +16,7 @@
  *      by provider id — its `available` flag, plus an optional `reason`
  *      ('missing-app' | 'not-configured') that lets the widget tell
  *      missing-app (e.g. Deck not installed) from not-configured (e.g.
- *      xWiki has no OpenConnector source).
+ *      xWiki has no Integriq source).
  *   3. `isAppInstalled(requiredApp)` — the OC.appswebroots / capabilities
  *      fallback when the OCS integrations payload is absent.
  *
