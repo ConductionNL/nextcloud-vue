@@ -56,8 +56,16 @@ on:
         description: 'dist-tag to move (e.g. vue3)'
         type: string
         required: true
+      mode:
+        description: 'move = point the tag at a version. remove = delete the tag outright.'
+        type: choice
+        required: false
+        default: move
+        options:
+          - move
+          - remove
       version:
-        description: 'Published version to point it at (e.g. 2.8.2). Leave blank to follow `latest`.'
+        description: 'Published version to point it at (e.g. 2.8.2). Leave blank to follow `latest`. Ignored when mode=remove.'
         type: string
         required: false
         default: ''
@@ -109,12 +117,40 @@ jobs:
           echo "before=$(npm view "$PKG" dist-tags.${{ inputs.tag }} 2>/dev/null || echo '(unset)')" >> "$GITHUB_OUTPUT"
 
       - name: Move the tag
+        if: ${{ inputs.mode != 'remove' }}
         run: |
           set -euo pipefail
           echo "dist-tags before:"
           npm view '${{ steps.resolve.outputs.pkg }}' dist-tags
           npx -y npm@latest dist-tag add \
             '${{ steps.resolve.outputs.pkg }}@${{ steps.resolve.outputs.want }}' \
+            '${{ inputs.tag }}'
+
+      # REMOVING IS NOW THE RIGHT CALL FOR `vue3`, AND THE HEADER ABOVE SAYS WHY
+      # IT WAS NOT BEFORE: "re-point rather than remove … the tag can be retired
+      # later once it is known unused."
+      #
+      # It is now known unused. MEASURED 2026-08-22 across ConductionNL: every
+      # app declares @conduction/nextcloud-vue with a semver RANGE (^2.3.0,
+      # ^2.8.0, ^2.9.1 …), never `@vue3`, so no install resolves through the tag.
+      # An org-wide code search for `nextcloud-vue@vue3` returns exactly one hit —
+      # this workflow's own header. Nothing else references it: not a Dockerfile,
+      # not a CI step, not a doc install line.
+      #
+      # And the channel it named is gone: `feat/vue-3` was folded into main and
+      # .releaserc.json lists only `main` and `beta`. A tag pointing at a retired
+      # channel, four minors behind, reads as a deliberate compatibility floor —
+      # which is precisely how twelve apps came to sit on 2.3.0 believing it was
+      # a boundary. `npm view` shows 2.3.0 and current both declare `vue: ^3.5.0`,
+      # so no Vue-3 boundary ever existed.
+      - name: Remove the tag
+        if: ${{ inputs.mode == 'remove' }}
+        run: |
+          set -euo pipefail
+          echo "dist-tags before:"
+          npm view '${{ steps.resolve.outputs.pkg }}' dist-tags
+          npx -y npm@latest dist-tag rm \
+            '${{ steps.resolve.outputs.pkg }}' \
             '${{ inputs.tag }}'
 
       # THE TAG MUST BE RE-READ FROM THE REGISTRY.
@@ -130,10 +166,23 @@ jobs:
           BEFORE='${{ steps.resolve.outputs.before }}'
           sleep 5   # registry read-after-write is not instant
           NOW=$(npm view "$PKG" "dist-tags.${{ inputs.tag }}" 2>/dev/null || echo '(unset)')
-          echo "dist-tag '${{ inputs.tag }}': ${BEFORE} -> ${NOW} (wanted ${WANT})"
-          if [ "$NOW" != "$WANT" ]; then
-            echo "::error::dist-tag '${{ inputs.tag }}' still reads '${NOW}', not '${WANT}'. The command exited 0 but the registry did not move."
-            exit 1
+
+          # The verification has to invert with the mode, or `remove` would be
+          # checked against a version it is supposed to have deleted and would
+          # fail every time it SUCCEEDED. A check that cannot pass is as useless
+          # as one that cannot fail.
+          if [ '${{ inputs.mode }}' = 'remove' ]; then
+            echo "dist-tag '${{ inputs.tag }}': ${BEFORE} -> ${NOW} (wanted: gone)"
+            if [ "$NOW" != '(unset)' ]; then
+              echo "::error::dist-tag '${{ inputs.tag }}' still reads '${NOW}'. The command exited 0 but the registry did not drop it."
+              exit 1
+            fi
+          else
+            echo "dist-tag '${{ inputs.tag }}': ${BEFORE} -> ${NOW} (wanted ${WANT})"
+            if [ "$NOW" != "$WANT" ]; then
+              echo "::error::dist-tag '${{ inputs.tag }}' still reads '${NOW}', not '${WANT}'. The command exited 0 but the registry did not move."
+              exit 1
+            fi
           fi
           echo "dist-tags now:"
           npm view "$PKG" dist-tags
