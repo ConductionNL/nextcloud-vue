@@ -125,7 +125,7 @@
 			<NcActions
 				:force-name="true"
 				:inline="inlineActionCount"
-				menu-name="Actions"
+				:menu-name="actionsMenuName"
 				data-testid="cn-actions">
 				<!--
 					@event refresh
@@ -588,6 +588,19 @@ export default {
 	],
 
 	computed: {
+		/**
+		 * Name of the overflow Actions menu. Library chrome, so it resolves
+		 * against the LIBRARY catalogue — it was a bare `menu-name="Actions"`
+		 * literal, which rendered "Actions" in a Dutch session next to an
+		 * otherwise fully translated toolbar even though the catalogue has
+		 * carried "Acties" all along.
+		 *
+		 * @return {string}
+		 */
+		actionsMenuName() {
+			return t('nextcloud-vue', 'Actions')
+		},
+
 		/**
 		 * Effective translate function: the injected `cnTranslate` (the host
 		 * app's bound `t()`), identity by default.
