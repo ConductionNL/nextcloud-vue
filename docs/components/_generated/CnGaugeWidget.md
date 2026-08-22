@@ -2,6 +2,7 @@
 
 ### Props
 
-| Name      | Type    | Required | Default | Description                                                                                                                                                                                 |
-| --------- | ------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `content` | `union` |          | `\{\}`  | The widget's persisted configuration blob. An optional `route` (vue-router location) or `link` (external href) turns the whole tile into a click-through target (see the widgetLink mixin). |
+| Name        | Type                                  | Required | Default | Description                                                                                                                                                                                 |
+| ----------- | ------------------------------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `content`   | `union`                               |          | `\{\}`  | The widget's persisted configuration blob. An optional `route` (vue-router location) or `link` (external href) turns the whole tile into a click-through target (see the widgetLink mixin). |
+| `translate` | `((key: string) => string)&#124;null` |          | `null`  | Translate function. Falls back to the injected `cnTranslate` (itself an identity function by default). Provide explicitly when mounting CnGaugeWidget outside a CnAppRoot ancestor.         |

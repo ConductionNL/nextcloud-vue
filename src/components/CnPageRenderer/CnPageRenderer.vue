@@ -297,6 +297,10 @@ export default {
 					// `type:"export"` opens the shared CnMassExportDialog this
 					// component mounts (Wave 1, nextcloud-vue#91).
 					openExport: (exportAction) => { this.exportAction = exportAction },
+					// The host translate function, so an api-call/agent action's
+					// manifest-authored success/error toast localises exactly
+					// like the rest of the page chrome. Identity by default.
+					translate: (key) => this.tr(key),
 					...extraContext,
 				})
 			},

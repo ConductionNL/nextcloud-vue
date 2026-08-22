@@ -19,6 +19,7 @@ Gauge / utilization card. Resolves a value and a target from OpenRegister at run
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `content` | `object` | `{}` | The gauge config blob (`label`, `format`, `source`, `target`, `thresholds`). |
+| `translate` | `function` | `null` | Translate function for the `label` source string. Falls back to the injected `cnTranslate` (identity by default). |
 
 ## Notes
 
