@@ -59,6 +59,19 @@ wire this automatically from their own `showTitle` prop
 (`:visually-hidden="!showTitle"`), so those components always emit a heading
 regardless of `showTitle`.
 
+Translation — `title` and `description`:
+
+```vue
+<CnPageHeader title="Clients" description="Manage your clients" :translate="t" />
+```
+
+Both strings are manifest-authored English source keys (ADR-007), so they are
+rendered through the host translate function: the `translate` prop when given,
+otherwise the `cnTranslate` that `CnAppRoot` provides from its own `translate`
+prop. Inside a `CnAppRoot` nothing needs wiring — the injected translator is
+used automatically. With no translator, or a catalogue that lacks the key, the
+source string renders unchanged.
+
 With extra content (e.g., a badge or status indicator):
 
 ```vue

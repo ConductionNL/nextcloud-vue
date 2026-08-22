@@ -2,11 +2,12 @@
 
 ### Props
 
-| Name       | Type                 | Required | Default | Description                                                                                                                                    |
-| ---------- | -------------------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `objectId` | `string&#124;number` |          | `''`    | Object id/uuid/slug the transitions apply to.                                                                                                  |
-| `object`   | `union`              |          | `null`  | The currently-loaded object (for client-side `from`-state filtering of a config-declared `transitions` list, and to read the lifecycle field). |
-| `config`   | `union`              |          | `\{\}`  | The lifecycle config block.                                                                                                                    |
+| Name       | Type                 | Required | Default | Description                                                                                                                                                                                                                                                           |
+| ---------- | -------------------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `objectId` | `string&#124;number` |          | `''`    | Object id/uuid/slug the transitions apply to.                                                                                                                                                                                                                         |
+| `object`   | `union`              |          | `null`  | The currently-loaded object (for client-side `from`-state filtering of a config-declared `transitions` list, and to read the lifecycle field).                                                                                                                        |
+| `config`   | `union`              |          | `\{\}`  | The lifecycle config block. A declared transition may carry `inputs: [{ field, required }]` to collect data before it is applied.                                                                                                                                     |
+| `schema`   | `union`              |          | `null`  | The object's JSON Schema (with `properties`), forwarded to `CnTransitionInputDialog` so a transition's declared inputs render with the property's title/type instead of a bare text box. Optional — without it every input falls back to a plain labelled text field. |
 
 ### Events
 

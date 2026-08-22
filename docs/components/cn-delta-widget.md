@@ -45,6 +45,7 @@ Instead of the two OpenRegister legs, the tile can read BOTH values from one app
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `content` | `object` | `{}` | The delta config blob (`label`, `format`, `source` with `current`/`previous` — or `endpointSource` + `valueField`/`previousField`/`deltaField`). |
+| `translate` | `function` | `null` | Translate function for the `label` / `caption` source strings. Falls back to the injected `cnTranslate` (identity by default). |
 
 ## Notes
 

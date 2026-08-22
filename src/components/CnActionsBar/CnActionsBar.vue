@@ -160,7 +160,7 @@
 						<span v-else-if="entry.icon"
 							:class="['cn-actions-bar__header-action-icon', entry.icon]" />
 					</template>
-					{{ entry.label }}
+					{{ entry.label ? effectiveTranslate(entry.label) : entry.label }}
 				</NcActionButton>
 
 				<!--
@@ -299,6 +299,18 @@ export default {
 		ViewGridOutline,
 		FormatListBulletedSquare,
 		MapMarkerOutline,
+	},
+
+	inject: {
+		/**
+		 * Host translate function provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). The
+		 * manifest-authored `headerActions[].label` is run through it — the
+		 * entry is keyed and emitted by `id`, so only the visible text
+		 * changes. Defaults to an identity function so an untranslated key
+		 * renders as itself.
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -576,6 +588,16 @@ export default {
 	],
 
 	computed: {
+		/**
+		 * Effective translate function: the injected `cnTranslate` (the host
+		 * app's bound `t()`), identity by default.
+		 *
+		 * @return {(key: string) => string}
+		 */
+		effectiveTranslate() {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+		},
+
 		countText() {
 			if (!this.pagination) return ''
 			return t('nextcloud-vue', 'Showing {count} of {total}', { count: this.objectCount, total: this.pagination.total })

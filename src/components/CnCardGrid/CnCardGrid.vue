@@ -8,7 +8,7 @@
 		<!-- Empty state -->
 		<div v-else-if="objects.length === 0" class="cn-card-grid__empty">
 			<slot name="empty">
-				<NcEmptyContent :name="emptyText">
+				<NcEmptyContent :name="resolvedEmptyText">
 					<template #icon>
 						<ViewGrid :size="64" />
 					</template>
@@ -82,6 +82,16 @@ export default {
 		CnObjectCard,
 	},
 
+	inject: {
+		/**
+		 * Host translate function provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). The
+		 * manifest-authored empty-state copy is run through it. Defaults to
+		 * an identity function so an untranslated key renders as itself.
+		 */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	props: {
 		/** Array of objects to display as cards */
 		objects: {
@@ -121,6 +131,18 @@ export default {
 	},
 
 	emits: ['click', 'select'],
+
+	computed: {
+		/**
+		 * The empty-state copy run through the host translate function.
+		 *
+		 * @return {string}
+		 */
+		resolvedEmptyText() {
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return this.emptyText ? fn(this.emptyText) : this.emptyText
+		},
+	},
 
 	methods: {
 		isSelected(object) {

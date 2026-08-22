@@ -15,10 +15,10 @@
 		<div class="cn-dashboard-page__header" data-testid="cn-dashboard-page-header">
 			<div class="cn-dashboard-page__header-left">
 				<h2 v-if="title" class="cn-dashboard-page__title">
-					{{ title }}
+					{{ resolvedTitle }}
 				</h2>
 				<p v-if="description" class="cn-dashboard-page__description">
-					{{ description }}
+					{{ resolvedDescription }}
 				</p>
 			</div>
 			<div class="cn-dashboard-page__header-actions">
@@ -815,6 +815,14 @@ export default {
 		 * widget overrides a built-in of the same name).
 		 */
 		cnRegistry: { default: () => ({}) },
+		/**
+		 * Host translate function provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). The
+		 * manifest-authored page title/description are run through it.
+		 * Defaults to an identity function so an untranslated key renders
+		 * as itself.
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -1315,6 +1323,35 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Effective translate function: the injected `cnTranslate` (the host
+		 * app's bound `t()`), identity by default.
+		 *
+		 * @return {(key: string) => string}
+		 */
+		effectiveTranslate() {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+		},
+
+		/**
+		 * The page title run through the host translate function so a
+		 * manifest-authored source string localises.
+		 *
+		 * @return {string}
+		 */
+		resolvedTitle() {
+			return this.title ? this.effectiveTranslate(this.title) : this.title
+		},
+
+		/**
+		 * The page description run through the host translate function.
+		 *
+		 * @return {string}
+		 */
+		resolvedDescription() {
+			return this.description ? this.effectiveTranslate(this.description) : this.description
+		},
+
 		/**
 		 * Whether the widget grid should be drag/resize/remove-able — the
 		 * consumer's own edit toggle OR the Buildiq in-app editor (ADR-041).

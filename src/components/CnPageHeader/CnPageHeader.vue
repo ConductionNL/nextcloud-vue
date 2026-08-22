@@ -10,10 +10,10 @@
 		</div>
 		<div class="cn-page-header__text">
 			<h1 class="cn-page-header__title" data-testid="cn-page-title">
-				{{ title }}
+				{{ resolvedTitle }}
 			</h1>
 			<p v-if="description && !visuallyHidden" class="cn-page-header__description" data-testid="cn-page-description">
-				{{ description }}
+				{{ resolvedDescription }}
 			</p>
 		</div>
 		<slot v-if="!visuallyHidden" name="extra" />
@@ -50,12 +50,30 @@ import { CnIcon } from '../CnIcon/index.js'
  * ```vue
  * <CnPageHeader :title="title" :visually-hidden="!showTitle" />
  * ```
+ *
+ * ## Translation
+ *
+ * `title` and `description` are manifest-authored English source strings. They
+ * are rendered through the host translate function — the `translate` prop when
+ * given, else the `cnTranslate` provided by CnAppRoot — so a page heading
+ * follows the user's language. With no translator (or a catalogue that lacks
+ * the key) the source string renders unchanged.
  */
 export default {
 	name: 'CnPageHeader',
 
 	components: {
 		CnIcon,
+	},
+
+	inject: {
+		/**
+		 * Host translate function provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id).
+		 * Defaults to an identity function so the component stays usable
+		 * standalone and an untranslated key renders as itself.
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -88,6 +106,46 @@ export default {
 		visuallyHidden: {
 			type: Boolean,
 			default: false,
+		},
+		/**
+		 * Translate function. Falls back to the injected `cnTranslate`,
+		 * which itself defaults to an identity function.
+		 *
+		 * @type {((key: string) => string)|null}
+		 */
+		translate: {
+			type: Function,
+			default: null,
+		},
+	},
+
+	computed: {
+		/**
+		 * Effective translate function: the explicit `translate` prop when
+		 * given, else the injected `cnTranslate` (identity by default).
+		 *
+		 * @return {(key: string) => string}
+		 */
+		effectiveTranslate() {
+			return this.translate ?? this.cnTranslate
+		},
+
+		/**
+		 * The page title run through the host translate function.
+		 *
+		 * @return {string}
+		 */
+		resolvedTitle() {
+			return this.title ? this.effectiveTranslate(this.title) : this.title
+		},
+
+		/**
+		 * The page description run through the host translate function.
+		 *
+		 * @return {string}
+		 */
+		resolvedDescription() {
+			return this.description ? this.effectiveTranslate(this.description) : this.description
 		},
 	},
 }
