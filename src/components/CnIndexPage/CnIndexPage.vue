@@ -2318,16 +2318,18 @@ export default {
 		/** Add button label — derived from schema.title if not explicitly set */
 		resolvedAddLabel() {
 			if (this.addLabel) return this.cnTranslate(this.addLabel)
-			// Translate the schema title and the surrounding sentence separately:
-			// concatenating 'Add ' + title is untranslatable, and word order
-			// differs per language ("Nieuwe urenregistratie", not "Toevoegen …").
+			// Two catalogues, deliberately. The NOUN comes from the consumer's
+			// schema, so it resolves against the consumer's catalogue via the
+			// injected `cnTranslate`; the SENTENCE around it is library chrome, so
+			// it resolves against the library's own — exactly the split
+			// CnFormDialog already makes for "Create {title}".
+			//
+			// Getting that wrong is visible rather than subtle: routing the
+			// sentence through the host catalogue too produced "Add Urenboeking"
+			// on a Dutch instance, because no app catalogue carries a key that
+			// belongs to the library.
 			const type = this.cnTranslate(this.effectiveSchema?.title || 'Item')
-			const label = this.cnTranslate('Add {type}', { type })
-			// The injected default is `(key) => key`, and a host `t()` returns the
-			// source key unchanged when its catalogue has no entry — in both cases
-			// the placeholder survives, so substitute it here rather than shipping
-			// a literal `{type}` to the button.
-			return label.replace('{type}', type)
+			return t('nextcloud-vue', 'Add {type}', { type })
 		},
 
 		/**

@@ -4,13 +4,25 @@
  *
  * The Add control's label is derived from `schema.title`, so it was the one
  * string on a fully translated index page that stayed English ("Add Time
- * entry" over a Dutch table). It is translated as two parts — the schema
- * title and the sentence around it — because `'Add ' + title` cannot be
- * translated at all and the word order differs per language.
+ * entry" over a Dutch table).
  *
- * The identity fallback is asserted too: the injected default is `(key) => key`
- * and a host `t()` returns the source key when its catalogue has no entry, so
- * the `{type}` placeholder must never reach the button.
+ * It is built from TWO catalogues, and which string comes from which is the
+ * contract this file pins:
+ *
+ *   - the NOUN is the consumer's schema title, so it resolves against the
+ *     CONSUMER's catalogue through the injected `cnTranslate`;
+ *   - the SENTENCE around it is library chrome, so it resolves against the
+ *     LIBRARY's own catalogue — the same split CnFormDialog already makes for
+ *     "Create {title}".
+ *
+ * Getting that wrong is not subtle. Routing the sentence through the host
+ * catalogue too rendered "Add Urenboeking" on a Dutch instance — measured on
+ * the dev instance, not reasoned about — because no app catalogue carries a
+ * key that belongs to the library.
+ *
+ * `'Add {type}'` is one key rather than a concatenation because `'Add ' +
+ * title` cannot be translated at all, and because Dutch puts the words the
+ * other way round ("Nieuwe urenregistratie").
  */
 
 const { mount } = require('@vue/test-utils')
@@ -32,10 +44,9 @@ const stubs = {
 	NcEmptyContent: true,
 }
 
-const dict = {
-	'Time entry': 'urenregistratie',
-	'Add {type}': 'Nieuwe {type}',
-}
+// A consumer catalogue: it knows the app's own schema titles, and — like every
+// real app catalogue — knows nothing about the library's chrome strings.
+const dict = { 'Time entry': 'urenregistratie' }
 const cnTranslate = (key, vars) => {
 	const out = dict[key] ?? key
 	return vars ? Object.entries(vars).reduce((acc, [k, v]) => acc.replace('{' + k + '}', v), out) : out
@@ -60,15 +71,28 @@ function mountIndex(extraProps = {}, provide = undefined) {
 const addButton = (wrapper) => wrapper.find('[data-testid="cn-cta-primary"]')
 
 describe('CnIndexPage — Add label translation', () => {
-	it('translates the schema title AND the surrounding sentence', () => {
+	it('translates the schema title through the CONSUMER catalogue', () => {
 		const wrapper = mountIndex({}, { cnTranslate })
 
-		// Not "Toevoegen urenregistratie" — the whole label comes from the
-		// catalogue, so Dutch word order is the catalogue author's choice.
-		expect(addButton(wrapper).text()).toContain('Nieuwe urenregistratie')
+		expect(addButton(wrapper).text()).toContain('urenregistratie')
+		expect(addButton(wrapper).text()).not.toContain('Time entry')
 	})
 
-	it('translates an explicitly passed addLabel', () => {
+	it('takes the surrounding sentence from the LIBRARY catalogue, not the host one', () => {
+		// This translator would answer the library's key if it were ever asked —
+		// it must not be, or an app would have to carry library strings.
+		const wouldAnswer = jest.fn((key, vars) => {
+			const out = key === 'Add {type}' ? 'HOST-SENTENCE {type}' : (dict[key] ?? key)
+			return vars ? Object.entries(vars).reduce((acc, [k, v]) => acc.replace('{' + k + '}', v), out) : out
+		})
+		const wrapper = mountIndex({}, { cnTranslate: wouldAnswer })
+
+		expect(addButton(wrapper).text()).not.toContain('HOST-SENTENCE')
+		expect(wouldAnswer).toHaveBeenCalledWith('Time entry')
+		expect(wouldAnswer).not.toHaveBeenCalledWith('Add {type}', expect.anything())
+	})
+
+	it('translates an explicitly passed addLabel through the consumer catalogue', () => {
 		const wrapper = mountIndex({ addLabel: 'Time entry' }, { cnTranslate })
 
 		expect(addButton(wrapper).text()).toContain('urenregistratie')
@@ -81,15 +105,12 @@ describe('CnIndexPage — Add label translation', () => {
 		expect(addButton(wrapper).text()).not.toContain('{type}')
 	})
 
-	it('substitutes {type} even when the catalogue translates only the title', () => {
-		// A half-populated catalogue is the realistic state during a rollout:
-		// schema titles land before the library sentence does.
-		// This translator ignores `vars` entirely — like the injected default —
-		// so the placeholder can only disappear if the component substitutes it.
-		const partial = (key) => (key === 'Time entry' ? 'urenregistratie' : key)
-		const wrapper = mountIndex({}, { cnTranslate: partial })
+	it('substitutes the noun even when only the consumer catalogue answers', () => {
+		// The realistic mid-rollout state: the app's schema titles have landed,
+		// the library's Dutch catalogue is whatever the installed version ships.
+		const wrapper = mountIndex({}, { cnTranslate })
 
-		expect(addButton(wrapper).text()).toContain('Add urenregistratie')
+		expect(addButton(wrapper).text()).toContain('urenregistratie')
 		expect(addButton(wrapper).text()).not.toContain('{type}')
 	})
 })
