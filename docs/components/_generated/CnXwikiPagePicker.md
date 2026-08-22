@@ -2,10 +2,10 @@
 
 ### Props
 
-| Name                      | Type     | Required | Default                                                      | Description                                                                         |
-| ------------------------- | -------- | -------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| `apiBase`                 | `string` |          | `'/apps/openregister/api'`                                   | Base API URL for OR.                                                                |
-| `dialogTitle`             | `string` |          | `() =&gt; t('nextcloud-vue', 'Link an existing xWiki page')` | Pre-translated dialog title.                                                        |
+| Name                      | Type     | Required | Default                                                      | Description                                                                    |
+| ------------------------- | -------- | -------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| `apiBase`                 | `string` |          | `'/apps/openregister/api'`                                   | Base API URL for OR.                                                           |
+| `dialogTitle`             | `string` |          | `() =&gt; t('nextcloud-vue', 'Link an existing xWiki page')` | Pre-translated dialog title.                                                   |
 | `openConnectorSourcesUrl` | `string` |          | `'/index.php/apps/openconnector/sources'`                    | URL of Integriq's sources admin page (deep-link target for the configure CTA). |
 
 ### Events

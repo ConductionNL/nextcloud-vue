@@ -4,7 +4,7 @@
 
 | Name        | Type      | Required | Default | Description                                                                                                                                  |
 | ----------- | --------- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `available` | `boolean` |          | `false` | Whether Buildiq is available to this user. When falsey the component renders nothing. Wire from `useBuildiqEditAvailability()`.          |
+| `available` | `boolean` |          | `false` | Whether Buildiq is available to this user. When falsey the component renders nothing. Wire from `useBuildiqEditAvailability()`.              |
 | `editor`    | `union`   |          | `null`  | The shared `useManifestEditor` instance (`{ editing, working, dirty, enter, cancel, save }`). Falls back to the injected `cnManifestEditor`. |
 | `pageId`    | `string`  |          | `''`    | The active page's id, forwarded to `CnEditSidebarModal` so it edits the right page's sidebar config.                                         |
 
