@@ -105,7 +105,10 @@
 
 		<!-- Enum: status badge (auto-coloured from the property's optional colorMap) -->
 		<template v-else-if="isEnum">
-			<CnStatusBadge v-if="value" :label="enumLabel" :color-key="String(value)" :color-map="enumColorMap" />
+			<CnStatusBadge v-if="value"
+				:label="enumLabel"
+				:color-key="String(value)"
+				:color-map="enumColorMap" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
