@@ -82,7 +82,7 @@
 							<CnTranslatedBadge v-if="resolvedObject" :object="resolvedObject" />
 						</slot>
 						<p v-if="description" class="cn-detail-page__description">
-							{{ description }}
+							{{ resolvedDescription }}
 						</p>
 						<!-- Declarative cross-schema summary chips (manifest
 						     `config.summaryAggregates`). Count/sum/avg over a
@@ -303,7 +303,7 @@
 							v-if="showGridTitle(item)"
 							:id="`widget-title-${item.id}`"
 							class="cn-detail-page__widget-title">
-							{{ findWidget(item).title }}
+							{{ gridTitle(item) }}
 						</h3>
 						<!--
 							@slot `widget-${item.widgetId}`
@@ -482,7 +482,7 @@
 				-->
 				<slot name="stats-header">
 					<h3 v-if="statsTitle" class="cn-detail-page__section-title">
-						{{ statsTitle }}
+						{{ resolvedStatsTitle }}
 					</h3>
 				</slot>
 				<table class="cn-detail-page__stats-table">
@@ -843,6 +843,15 @@ export default {
 		 * configure cog. Defaults to null (no edit affordance) for standalone use.
 		 */
 		cnEditingBody: { default: null },
+		/**
+		 * Host translate function provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). The
+		 * manifest-authored page/section/widget titles are run through it.
+		 * Defaults to an identity function so an untranslated key renders
+		 * as itself. Record data (the resolved object's display name) is
+		 * NEVER translated — only manifest chrome is.
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -1806,7 +1815,46 @@ export default {
 		 * @return {string}
 		 */
 		displayTitle() {
-			return this.objectDisplayName || this.title
+			return this.objectDisplayName || this.resolvedTitle
+		},
+
+		/**
+		 * Effective translate function: the injected `cnTranslate` (the host
+		 * app's bound `t()`), identity by default.
+		 *
+		 * @return {(key: string) => string}
+		 */
+		effectiveTranslate() {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+		},
+
+		/**
+		 * The `title` prop (the manifest-authored type label) run through the
+		 * host translate function. Used for the header fallback and the type
+		 * eyebrow; the record's own display name is data and stays untouched.
+		 *
+		 * @return {string}
+		 */
+		resolvedTitle() {
+			return this.title ? this.effectiveTranslate(this.title) : this.title
+		},
+
+		/**
+		 * The page description run through the host translate function.
+		 *
+		 * @return {string}
+		 */
+		resolvedDescription() {
+			return this.description ? this.effectiveTranslate(this.description) : this.description
+		},
+
+		/**
+		 * The statistics section heading run through the host translate function.
+		 *
+		 * @return {string}
+		 */
+		resolvedStatsTitle() {
+			return this.statsTitle ? this.effectiveTranslate(this.statsTitle) : this.statsTitle
 		},
 
 		/**
@@ -1821,7 +1869,7 @@ export default {
 		typeEyebrow() {
 			const name = this.objectDisplayName
 			if (!name || !this.title || name === this.title) return ''
-			return this.title
+			return this.resolvedTitle
 		},
 
 		/**
@@ -2705,6 +2753,19 @@ export default {
 		showGridTitle(item) {
 			if (item.showTitle === false || !this.findWidget(item)) return false
 			return Boolean(this.$slots[`widget-${item.widgetId}`] || this.$slots[`widget-${item.widgetId}`])
+		},
+
+		/**
+		 * The grid section heading for a consumer slot widget — the widget
+		 * definition's manifest `title` run through the host translate
+		 * function. Returns the raw value untouched when there is none.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {string|undefined} The heading text.
+		 */
+		gridTitle(item) {
+			const title = this.findWidget(item)?.title
+			return title ? this.effectiveTranslate(title) : title
 		},
 
 		/**

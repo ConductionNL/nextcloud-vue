@@ -17,7 +17,7 @@
 
 		<div class="cn-delta-widget__body">
 			<div v-if="content.label" class="cn-delta-widget__label">
-				{{ content.label }}
+				{{ resolvedLabel }}
 			</div>
 
 			<div class="cn-delta-widget__value-row">
@@ -36,7 +36,7 @@
 			</div>
 
 			<div v-if="!displayLoading && !displayError && content.caption" class="cn-delta-widget__caption">
-				{{ content.caption }}
+				{{ resolvedCaption }}
 			</div>
 		</div>
 	</component>
@@ -145,6 +145,14 @@ export default {
 		 * reporting currency captured by the setup wizard). Defaults to `{}`.
 		 */
 		cnAppConfig: { default: () => ({}) },
+		/**
+		 * Host translate function provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). The
+		 * manifest-authored `content.label` / `content.caption` are run
+		 * through it, exactly as CnStatWidget does. Defaults to an identity
+		 * function so an untranslated key renders as itself.
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -167,6 +175,17 @@ export default {
 		content: {
 			type: Object,
 			default: () => ({}),
+		},
+		/**
+		 * Translate function. Falls back to the injected `cnTranslate`
+		 * (itself an identity function by default). Provide explicitly when
+		 * mounting CnDeltaWidget outside a CnAppRoot ancestor.
+		 *
+		 * @type {((key: string) => string)|null}
+		 */
+		translate: {
+			type: Function,
+			default: null,
 		},
 	},
 
@@ -205,6 +224,37 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Effective translate function: the explicit `translate` prop when
+		 * given, else the injected `cnTranslate` (identity by default).
+		 *
+		 * @return {(key: string) => string}
+		 */
+		effectiveTranslate() {
+			return this.translate ?? this.cnTranslate
+		},
+
+		/**
+		 * The tile label, run through the host translate function so a
+		 * manifest-authored source string localises to the user's language.
+		 *
+		 * @return {string}
+		 */
+		resolvedLabel() {
+			const label = this.content.label
+			return label ? this.effectiveTranslate(label) : ''
+		},
+
+		/**
+		 * The tile caption, run through the host translate function.
+		 *
+		 * @return {string}
+		 */
+		resolvedCaption() {
+			const caption = this.content.caption
+			return caption ? this.effectiveTranslate(caption) : ''
+		},
+
 		/**
 		 * The unwrapped page-level app config map for `@config.*` token
 		 * resolution. Always an object (defaults to `{}`).

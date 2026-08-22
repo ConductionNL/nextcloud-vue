@@ -29,7 +29,7 @@
 				<span v-else-if="tile.iconType === 'emoji'" class="cn-tile-widget__emoji">{{ tile.icon }}</span>
 			</div>
 			<div class="cn-tile-widget__title" :style="{ color: tile.textColor || '#ffffff' }">
-				{{ tile.title }}
+				{{ resolvedTitle }}
 			</div>
 		</a>
 	</div>
@@ -56,6 +56,16 @@ import { generateUrl } from '@nextcloud/router'
 export default {
 	name: 'CnTileWidget',
 
+	inject: {
+		/**
+		 * Host translate function provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). The
+		 * manifest-authored tile title is run through it. Defaults to an
+		 * identity function so an untranslated key renders as itself.
+		 */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	props: {
 		/**
 		 * Tile configuration object.
@@ -68,6 +78,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The tile caption run through the host translate function.
+		 *
+		 * @return {string}
+		 */
+		resolvedTitle() {
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return this.tile.title ? fn(this.tile.title) : this.tile.title
+		},
+
 		tileUrl() {
 			if (this.tile.linkType === 'app') {
 				return generateUrl('/apps/' + this.tile.linkValue)

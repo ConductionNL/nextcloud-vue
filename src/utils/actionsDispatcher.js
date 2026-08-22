@@ -159,6 +159,29 @@ export function buildOnSuccessRoute(onSuccessRoute, saved) {
 }
 
 /**
+ * Run a manifest-authored toast message through the host translate function.
+ *
+ * `successMessage` / `errorMessage` are English source strings authored in the
+ * manifest (ADR-007), so they need the SAME translator the rest of the page
+ * chrome uses — the consumer's bound `t()`, handed to the dispatcher by the
+ * rendering surface as `context.translate` (which itself comes from the
+ * `cnTranslate` CnAppRoot provides).
+ *
+ * A pure pass-through: with no translator, no message, or a catalogue that
+ * lacks the key, the message is returned byte-identical. Server-supplied
+ * messages are data and are never routed through here.
+ *
+ * @param {*} message The manifest-authored message (may be undefined).
+ * @param {object} context The dispatch context (`context.translate` optional).
+ * @return {*} The translated message, or the input unchanged.
+ */
+function translateMessage(message, context) {
+	const fn = context && context.translate
+	if (!message || typeof fn !== 'function') return message
+	return fn(message)
+}
+
+/**
  * Interpolate the `api-call` URL/filename token grammar inside a string:
  * the `{objectId}` BRACE convention (a literal placeholder some manifests
  * use for path templates, matching the OpenRegister credential-broker path
@@ -251,7 +274,7 @@ async function executeApiCall(action, context) {
 			triggerBlobDownload(res.data, filename)
 		}
 		if (typeof dialogs.showSuccess === 'function') {
-			dialogs.showSuccess(action.successMessage || t('nextcloud-vue', 'Action completed.'))
+			dialogs.showSuccess(translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Action completed.'))
 		}
 		const shouldRefresh = isDownload ? action.refresh === true : action.refresh !== false
 		if (shouldRefresh) emit(PAGE_REFRESH_CHANNEL, {})
@@ -260,7 +283,7 @@ async function executeApiCall(action, context) {
 		const serverMessage = error && error.response && error.response.data
 			&& (error.response.data.error || error.response.data.message)
 		if (typeof dialogs.showError === 'function') {
-			dialogs.showError(action.errorMessage || serverMessage || t('nextcloud-vue', 'Action failed.'))
+			dialogs.showError(translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.'))
 		}
 		return { ok: false, error }
 	}
@@ -351,7 +374,7 @@ async function executeAgentAction(action, context) {
 	try {
 		const res = await axios.post(target, body)
 		if (typeof dialogs.showSuccess === 'function') {
-			dialogs.showSuccess(action.successMessage || t('nextcloud-vue', 'Run queued'))
+			dialogs.showSuccess(translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Run queued'))
 		}
 		if (action.refresh !== false) emit(PAGE_REFRESH_CHANNEL, {})
 		return { ok: true, data: res && res.data }
@@ -367,7 +390,7 @@ async function executeAgentAction(action, context) {
 		if (typeof dialogs.showError === 'function') {
 			const msg = hermiqAbsent
 				? t('nextcloud-vue', 'Agent runtime unavailable')
-				: (action.errorMessage || serverMessage || t('nextcloud-vue', 'Action failed.'))
+				: (translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.'))
 			dialogs.showError(msg)
 		}
 		return { ok: false, error }
@@ -460,6 +483,11 @@ async function executeAgentAction(action, context) {
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [context.tokenCtx]
  *   Token context "api-call" URLs/params resolve against (the same shape
  *   `resolveFilterTokens` / `interpolateUrlTokens` take).
+ * @param {Function} [context.translate] The consumer's bound `t()` — the same
+ *   `cnTranslate` CnAppRoot provides to the page chrome. Applied to the
+ *   manifest-authored `successMessage` / `errorMessage` of "api-call" and
+ *   "agent" so their toasts follow the user's language. Omitted (or a
+ *   catalogue miss) leaves the message byte-identical.
  * @param {object} [context.objectStore] Object store instance (useObjectStore shape).
  *   Required for "object-op" type. All mutations go through `saveObject` / `deleteObject`
  *   so store caches (and their no-mutation-on-error semantics) apply.

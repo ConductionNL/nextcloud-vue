@@ -20,7 +20,7 @@
 					<CnIcon v-if="isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
 					<span v-else :class="entry.icon" />
 				</template>
-				{{ toggleState[entry.id] ? (entry.labelOn || entry.label) : (entry.labelOff || entry.label) }}
+				{{ tr(toggleState[entry.id] ? (entry.labelOn || entry.label) : (entry.labelOff || entry.label)) }}
 			</NcButton>
 			<!-- Everything else: a plain action button routed through the shared
 			     dispatcher (api-call / open-form / navigate / open-modal / refresh),
@@ -36,7 +36,7 @@
 					<CnIcon v-if="isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
 					<span v-else :class="entry.icon" />
 				</template>
-				{{ entry.label }}
+				{{ tr(entry.label) }}
 			</NcButton>
 		</template>
 
@@ -44,8 +44,8 @@
 		<CnConfirmDialog
 			v-if="confirmEntry"
 			ref="confirmDialog"
-			:dialog-title="confirmEntry.confirmTitle || confirmEntry.label"
-			:message="confirmEntry.confirmMessage || defaultConfirmMessage"
+			:dialog-title="tr(confirmEntry.confirmTitle || confirmEntry.label)"
+			:message="tr(confirmEntry.confirmMessage) || defaultConfirmMessage"
 			:variant="confirmEntry.variant === 'error' ? 'error' : 'primary'"
 			@confirm="onConfirmProceed"
 			@close="confirmEntry = null" />
@@ -133,6 +133,14 @@ export default {
 		cnAppConfig: { default: () => ({}) },
 		/** Pre-bound dispatchAction from CnPageRenderer (router/registry/handlers/openModal wired). */
 		cnDispatchAction: { default: null },
+		/**
+		 * Host translate function provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). The
+		 * manifest-authored action labels, confirm copy and api-call toasts
+		 * are run through it. Defaults to an identity function so an
+		 * untranslated key renders as itself.
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -193,6 +201,15 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Effective translate function: the injected `cnTranslate` (the host
+		 * app's bound `t()`), identity by default.
+		 *
+		 * @return {(key: string) => string}
+		 */
+		effectiveTranslate() {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+		},
 		/** The actions whose visibleWhen evaluated true (or carry no predicate). */
 		visibleActions() {
 			return (this.actions || []).filter((a) => a && a.id && this.visibility[a.id] !== false)
@@ -391,16 +408,29 @@ export default {
 		},
 
 		/**
+		 * Resolve a manifest-authored UI string through the host translate
+		 * function. A pure pass-through: an empty value, or a catalogue that
+		 * lacks the key, returns the input unchanged.
+		 *
+		 * @param {string} [value] The English source string.
+		 * @return {string|undefined} The translated (or source) string.
+		 */
+		tr(value) {
+			return value ? this.effectiveTranslate(value) : value
+		},
+
+		/**
 		 * Route an action through the shared dispatcher — the pre-bound
 		 * `cnDispatchAction` (router/registry/handlers/openModal already
 		 * wired) when available, else a direct call with a minimal context.
-		 * The token context is always merged in for `api-call`.
+		 * The token context and the host translate function are always
+		 * merged in (the latter localises `api-call` success/error toasts).
 		 *
 		 * @param {object} action The action to dispatch.
 		 * @return {Promise<*>} The dispatch result.
 		 */
 		dispatch(action) {
-			const extra = { tokenCtx: this.tokenCtx }
+			const extra = { tokenCtx: this.tokenCtx, translate: this.effectiveTranslate }
 			if (typeof this.cnDispatchAction === 'function') {
 				return this.cnDispatchAction(action, extra)
 			}

@@ -9,7 +9,7 @@
 		<div v-else-if="objects.length === 0" class="cn-object-list__empty">
 			<!-- @slot empty Custom empty state shown when there are no objects. -->
 			<slot name="empty">
-				<NcEmptyContent :name="emptyText">
+				<NcEmptyContent :name="resolvedEmptyText">
 					<template #icon>
 						<FormatListBulletedSquare :size="64" />
 					</template>
@@ -99,6 +99,16 @@ export default {
 		CnObjectRow,
 	},
 
+	inject: {
+		/**
+		 * Host translate function provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). The
+		 * manifest-authored empty-state copy is run through it. Defaults to
+		 * an identity function so an untranslated key renders as itself.
+		 */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	props: {
 		/** Array of objects to display as rows */
 		objects: {
@@ -146,6 +156,18 @@ export default {
 	},
 
 	emits: ['click', 'select'],
+
+	computed: {
+		/**
+		 * The empty-state copy run through the host translate function.
+		 *
+		 * @return {string}
+		 */
+		resolvedEmptyText() {
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return this.emptyText ? fn(this.emptyText) : this.emptyText
+		},
+	},
 
 	methods: {
 		isSelected(object) {
