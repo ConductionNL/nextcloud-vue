@@ -322,6 +322,27 @@ fieldOverrides: {
 
 The `enumLabels` object maps each enum value to its display label. Values without a mapping fall back to the raw value.
 
+A schema can declare the same map itself, so the labels live next to the enum instead of being repeated in every page that renders it:
+
+```json
+{
+  "status": {
+    "type": "string",
+    "title": "Status",
+    "enum": ["ingediend", "afgekeurd"],
+    "x-enum-labels": { "ingediend": "Submitted", "afgekeurd": "Rejected" }
+  }
+}
+```
+
+`fieldsFromSchema()` puts that on the field as `enumLabels`; a `fieldOverrides` entry still wins. The same map is read by `CnCellRenderer` (the status badge on index/detail surfaces) and by `filtersFromSchema()`, so one declaration covers all three.
+
+### Translation
+
+Everything the user reads is run through the host app's `cnTranslate` (provided by `CnAppRoot`): the dialog heading built from `schema.title`, each field label and description (from the property `title` / `description`), and each enum option label. The stored value is never translated — the option's `id` stays the raw schema code, so what is saved, sorted and filtered is unaffected.
+
+Because enum labels resolve through `x-enum-labels` **before** translation, the catalogue key is the English label (`"Submitted"`), not the stored code. That matters when the code is not English: without the map, an English session would read `ingediend` and there would be no English source key for the catalogue to be built on.
+
 ## Live demo
 
 ```vue

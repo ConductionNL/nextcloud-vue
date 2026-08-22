@@ -2317,8 +2317,17 @@ export default {
 
 		/** Add button label — derived from schema.title if not explicitly set */
 		resolvedAddLabel() {
-			if (this.addLabel) return this.addLabel
-			return 'Add ' + (this.effectiveSchema?.title || 'Item')
+			if (this.addLabel) return this.cnTranslate(this.addLabel)
+			// Translate the schema title and the surrounding sentence separately:
+			// concatenating 'Add ' + title is untranslatable, and word order
+			// differs per language ("Nieuwe urenregistratie", not "Toevoegen …").
+			const type = this.cnTranslate(this.effectiveSchema?.title || 'Item')
+			const label = this.cnTranslate('Add {type}', { type })
+			// The injected default is `(key) => key`, and a host `t()` returns the
+			// source key unchanged when its catalogue has no entry — in both cases
+			// the placeholder survives, so substitute it here rather than shipping
+			// a literal `{type}` to the button.
+			return label.replace('{type}', type)
 		},
 
 		/**

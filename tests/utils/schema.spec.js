@@ -359,6 +359,15 @@ describe('filtersFromSchema', () => {
 		expect(statusFilter.options[0]).toEqual({ id: 'draft', label: 'draft' })
 	})
 
+	it('translates enum option labels while the option id stays the raw value', () => {
+		// The id is what the facet query sends — translating it would filter on
+		// a Dutch string the backend has never stored.
+		const tr = (key) => ({ draft: 'concept' })[key] ?? key
+		const filters = filtersFromSchema(testSchema, { translate: tr })
+		const statusFilter = filters.find((f) => f.key === 'status')
+		expect(statusFilter.options[0]).toEqual({ id: 'draft', label: 'concept' })
+	})
+
 	it('maps other properties to select (dynamic options)', () => {
 		const filters = filtersFromSchema(testSchema)
 		const titleFilter = filters.find((f) => f.key === 'title')
