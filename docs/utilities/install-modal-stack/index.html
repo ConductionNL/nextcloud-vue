@@ -5,8 +5,8 @@
 <meta name="generator" content="Docusaurus v3.9.2">
 <title data-rh="true">installModalStack | @conduction/nextcloud-vue</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" property="og:image" content="https://nextcloud-vue.conduction.nl/img/og-conduction.png"><meta data-rh="true" name="twitter:image" content="https://nextcloud-vue.conduction.nl/img/og-conduction.png"><meta data-rh="true" property="og:url" content="https://nextcloud-vue.conduction.nl/docs/utilities/install-modal-stack/"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" property="og:locale:alternate" content="nl"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="twitter:site" content="@ConductionNL"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:type" content="website"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="installModalStack | @conduction/nextcloud-vue"><meta data-rh="true" name="description" content="installModalStack(root?) makes the most recently opened modal the one that"><meta data-rh="true" property="og:description" content="installModalStack(root?) makes the most recently opened modal the one that"><link data-rh="true" rel="icon" href="/img/favicon.svg"><link data-rh="true" rel="canonical" href="https://nextcloud-vue.conduction.nl/docs/utilities/install-modal-stack/"><link data-rh="true" rel="alternate" href="https://nextcloud-vue.conduction.nl/docs/utilities/install-modal-stack/" hreflang="en"><link data-rh="true" rel="alternate" href="https://nextcloud-vue.conduction.nl/nl/docs/utilities/install-modal-stack/" hreflang="nl"><link data-rh="true" rel="alternate" href="https://nextcloud-vue.conduction.nl/docs/utilities/install-modal-stack/" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","@id":"https://nextcloud-vue.conduction.nl/docs/utilities/install-modal-stack#article","mainEntityOfPage":"https://nextcloud-vue.conduction.nl/docs/utilities/install-modal-stack","headline":"installModalStack","inLanguage":"en","publisher":{"@id":"https://www.conduction.nl/#org"},"description":"installModalStack(root?) makes the most recently opened modal the one that","author":{"@type":"Organization","name":"Conduction","@id":"https://www.conduction.nl/#org"}}</script><script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","@id":"https://www.conduction.nl/#org","name":"Conduction B.V.","alternateName":"Conduction","url":"https://www.conduction.nl/","logo":"https://www.conduction.nl/img/brand/avatar-conduction-gold-on-white.svg","foundingDate":"2019","description":"Dutch open-source software company building EUPL-1.2 apps for the Nextcloud workspace.","address":{"@type":"PostalAddress","streetAddress":"Lauriergracht 14h","postalCode":"1016 RR","addressLocality":"Amsterdam","addressCountry":"NL"},"email":"info@conduction.nl","telephone":"+31-85-303-6840","taxID":"NL860784241B01","vatID":"NL860784241B01","identifier":{"@type":"PropertyValue","propertyID":"KvK","value":"76741850"},"sameAs":["https://github.com/ConductionNL","https://www.linkedin.com/company/conduction/"]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","@id":"https://nextcloud-vue.conduction.nl/#website","url":"https://nextcloud-vue.conduction.nl/","name":"@conduction/nextcloud-vue","publisher":{"@id":"https://www.conduction.nl/#org"},"inLanguage":["en","nl"]}</script><link rel="stylesheet" href="/assets/css/styles.98ab210f.css">
-<script src="/assets/js/runtime~main.6db89a67.js" defer="defer"></script>
-<script src="/assets/js/main.dd36d9ba.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.c8a67eac.js" defer="defer"></script>
+<script src="/assets/js/main.4c69fd19.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
 <svg style="display: none;"><defs>
@@ -26,7 +26,7 @@ masks comes first is a mount-timing race.</p>
 descendant, so the loser of that race has its whole dialog painted <em>underneath</em>
 the other dialog&#x27;s full-viewport mask. Both dialogs look open and visible, but
 every click aimed at the top one is swallowed by the one beneath it.</p>
-<p>Observed in OpenBuild: the nested &quot;Generate an app with AI&quot; dialog was visible on
+<p>Observed in Buildiq: the nested &quot;Generate an app with AI&quot; dialog was visible on
 top of the &quot;Create application&quot; wizard, yet every click on it was received by the
 wizard&#x27;s own <code>#wizard-app-description</code> textarea.</p>
 <p>Wrapping the inner dialog in <code>&lt;Teleport to=&quot;body&quot;&gt;</code> does <strong>not</strong> help — both
@@ -46,7 +46,7 @@ masks are already in <code>&lt;body&gt;</code>. The tie is the problem, not the 
 <p>Calling it twice never adds a second observer or double-counts a mask, so it is
 safe for both the app root and your own <code>main.js</code> to call it. It is
 <strong>reference-counted</strong>: each call registers an owner and the binder only stops
-once every owner has released it. App roots nest — OpenBuild&#x27;s <code>BuilderHost</code>
+once every owner has released it. App roots nest — Buildiq&#x27;s <code>BuilderHost</code>
 renders a second <code>CnAppRoot</code> for the app being previewed — and the inner shell
 unmounting must not blind the outer one.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="how-it-works">How it works<a href="#how-it-works" class="hash-link" aria-label="Direct link to How it works" title="Direct link to How it works" translate="no">​</a></h2>
@@ -70,7 +70,7 @@ keeps the layer it already has, so an outer dialog can never leapfrog its own
 child.</li>
 </ul>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="why-a-dom-observer-rather-than-a-prop">Why a DOM observer rather than a prop<a href="#why-a-dom-observer-rather-than-a-prop" class="hash-link" aria-label="Direct link to Why a DOM observer rather than a prop" title="Direct link to Why a DOM observer rather than a prop" translate="no">​</a></h3>
-<p>The dialogs that collide are not all this library&#x27;s. In the OpenBuild case the
+<p>The dialogs that collide are not all this library&#x27;s. In the Buildiq case the
 wizard is <code>CnWizardDialog</code> (ours) but the AI dialog is a plain <code>NcDialog</code> written
 in the consuming app, and <code>@nextcloud/vue</code> exposes no z-index prop. A
 per-component opt-in would therefore only ever fix half of a collision. Watching
