@@ -9,7 +9,7 @@
 		:class="{ 'cn-gauge-widget--linked': isLinked }"
 		v-bind="linkAttrs">
 		<div class="cn-gauge-widget__head">
-			<span v-if="content.label" class="cn-gauge-widget__label">{{ content.label }}</span>
+			<span v-if="content.label" class="cn-gauge-widget__label">{{ resolvedLabel }}</span>
 			<span class="cn-gauge-widget__pct" :style="{ color: barColor }">
 				<NcLoadingIcon v-if="loading" :size="16" />
 				<span v-else-if="error" :title="error">—</span>
@@ -79,6 +79,14 @@ export default {
 		 * reporting currency captured by the setup wizard). Defaults to `{}`.
 		 */
 		cnAppConfig: { default: () => ({}) },
+		/**
+		 * Host translate function provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). The
+		 * manifest-authored `content.label` is run through it, exactly as
+		 * CnStatWidget does. Defaults to an identity function so an
+		 * untranslated key renders as itself.
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -92,6 +100,17 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+		/**
+		 * Translate function. Falls back to the injected `cnTranslate`
+		 * (itself an identity function by default). Provide explicitly when
+		 * mounting CnGaugeWidget outside a CnAppRoot ancestor.
+		 *
+		 * @type {((key: string) => string)|null}
+		 */
+		translate: {
+			type: Function,
+			default: null,
+		},
 	},
 
 	data() {
@@ -104,6 +123,27 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Effective translate function: the explicit `translate` prop when
+		 * given, else the injected `cnTranslate` (identity by default).
+		 *
+		 * @return {(key: string) => string}
+		 */
+		effectiveTranslate() {
+			return this.translate ?? this.cnTranslate
+		},
+
+		/**
+		 * The tile label, run through the host translate function so a
+		 * manifest-authored source string localises to the user's language.
+		 *
+		 * @return {string}
+		 */
+		resolvedLabel() {
+			const label = this.content.label
+			return label ? this.effectiveTranslate(label) : ''
+		},
+
 		/** The unwrapped page-level app config map for `@config.*` resolution. */
 		configCtx() {
 			return unwrapAppConfig(this.cnAppConfig)

@@ -19,7 +19,7 @@
 		     void — an empty collection cell should be DESIGNED small, and this
 		     keeps whatever height it has quiet. -->
 		<p v-else-if="!loading && rows.length === 0" class="cn-object-list-widget__empty">
-			{{ emptyText }}
+			{{ resolvedEmptyText }}
 		</p>
 		<template v-else>
 			<div class="cn-object-list-widget__table">
@@ -117,6 +117,14 @@ export default {
 		 * its `promptText`).
 		 */
 		cnWorkspaceContext: { default: null },
+		/**
+		 * Host translate function provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). The
+		 * manifest-authored `content.emptyText` is run through it for this
+		 * component's OWN empty state. Defaults to an identity function so
+		 * an untranslated key renders as itself.
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -277,6 +285,18 @@ export default {
 		/** Empty-state text (overridable via `content.emptyText`). */
 		emptyText() {
 			return this.content.emptyText || t('nextcloud-vue', 'No items')
+		},
+		/**
+		 * The empty-state text run through the host translate function. Used
+		 * only by this component's OWN empty state — the raw `emptyText`
+		 * still goes to CnDataTable, which translates at its own render
+		 * boundary, so the string is never translated twice.
+		 *
+		 * @return {string}
+		 */
+		resolvedEmptyText() {
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return this.emptyText ? fn(this.emptyText) : this.emptyText
 		},
 		/**
 		 * The rows actually rendered: capped to what fits the host grid cell

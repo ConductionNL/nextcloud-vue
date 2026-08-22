@@ -121,7 +121,7 @@
 						<td :colspan="totalColumns">
 							<!-- @slot Empty-state content shown when there are no rows (defaults to `emptyText`). -->
 							<slot name="empty">
-								{{ emptyText }}
+								{{ translateLabel(emptyText) }}
 							</slot>
 						</td>
 					</tr>

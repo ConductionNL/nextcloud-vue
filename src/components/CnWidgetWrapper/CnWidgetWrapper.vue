@@ -28,14 +28,14 @@
 				<img
 					v-if="iconUrl"
 					:src="iconUrl"
-					:alt="displayTitle"
+					:alt="resolvedTitle"
 					class="cn-widget-wrapper__icon">
 				<span
 					v-else-if="iconClass"
 					:class="iconClass"
 					class="cn-widget-wrapper__icon" />
 				<h3 :id="titleId" class="cn-widget-wrapper__title">
-					{{ displayTitle }}
+					{{ resolvedTitle }}
 				</h3>
 				<!-- @slot title-meta Rendered inside the header's left group,
 				     after the title and before the spacer. Use for small
@@ -111,7 +111,7 @@
 			tabindex="0"
 			role="region"
 			:aria-labelledby="showTitle ? titleId : null"
-			:aria-label="showTitle ? null : displayTitle">
+			:aria-label="showTitle ? null : resolvedTitle">
 			<slot />
 		</div>
 
@@ -160,6 +160,17 @@ export default {
 
 	components: {
 		CnActionsMenu,
+	},
+
+	inject: {
+		/**
+		 * Host translate function provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). The
+		 * manifest-authored widget title is run through it so the card
+		 * heading follows the user's language. Defaults to an identity
+		 * function so an untranslated key renders as itself.
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -387,6 +398,16 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Actions'),
 		},
+		/**
+		 * Translate function. Falls back to the injected `cnTranslate`,
+		 * which itself defaults to an identity function.
+		 *
+		 * @type {((key: string) => string)|null}
+		 */
+		translate: {
+			type: Function,
+			default: null,
+		},
 	},
 
 	emits: ['refresh', 'request-feature'],
@@ -394,6 +415,29 @@ export default {
 	computed: {
 		displayTitle() {
 			return this.title || 'Widget'
+		},
+
+		/**
+		 * Effective translate function: the explicit `translate` prop when
+		 * given, else the injected `cnTranslate` (identity by default).
+		 *
+		 * @return {(key: string) => string}
+		 */
+		effectiveTranslate() {
+			return this.translate ?? this.cnTranslate
+		},
+
+		/**
+		 * The RENDERED widget title — `displayTitle` run through the host
+		 * translate function. Kept separate from `displayTitle` on purpose:
+		 * `resolvedWidgetId` slugifies the raw title, so identifiers (DOM
+		 * ids, refresh channels, action payloads) stay locale-independent
+		 * while only the visible/AT-facing text localises.
+		 *
+		 * @return {string}
+		 */
+		resolvedTitle() {
+			return this.title ? this.effectiveTranslate(this.title) : this.displayTitle
 		},
 
 		/**

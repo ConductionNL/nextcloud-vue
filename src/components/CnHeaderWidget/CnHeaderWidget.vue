@@ -81,6 +81,17 @@ const VERTICAL_ALIGN_FLEX = Object.freeze({
 export default {
 	name: 'CnHeaderWidget',
 
+	inject: {
+		/**
+		 * Host translate function provided by CnAppRoot as
+		 * `cnTranslate: this.translate` (bound to the host app's id). The
+		 * manifest-authored `content.title` / `content.subtitle` / CTA label
+		 * are run through it. Defaults to an identity function so an
+		 * untranslated key renders as itself.
+		 */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	props: {
 		/**
 		 * Persisted widget content: `{title, subtitle, backgroundImageUrl,
@@ -117,16 +128,26 @@ export default {
 	},
 
 	computed: {
-		/** The header title, or '' when absent. */
-		title() {
-			const value = this.content && this.content.title
-			return typeof value === 'string' ? value : ''
+		/**
+		 * Effective translate function: the injected `cnTranslate` (the host
+		 * app's bound `t()`), identity by default.
+		 *
+		 * @return {(key: string) => string}
+		 */
+		effectiveTranslate() {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
 		},
 
-		/** The header subtitle, or '' when absent. */
+		/** The header title, translated, or '' when absent. */
+		title() {
+			const value = this.content && this.content.title
+			return typeof value === 'string' && value !== '' ? this.effectiveTranslate(value) : ''
+		},
+
+		/** The header subtitle, translated, or '' when absent. */
 		subtitle() {
 			const value = this.content && this.content.subtitle
-			return typeof value === 'string' ? value : ''
+			return typeof value === 'string' && value !== '' ? this.effectiveTranslate(value) : ''
 		},
 
 		/** Whether a non-empty title is set. */
@@ -357,9 +378,9 @@ export default {
 			return this.cta !== null
 		},
 
-		/** The CTA label. */
+		/** The CTA label, translated. */
 		ctaLabel() {
-			return this.hasCta ? this.cta.label : ''
+			return this.hasCta && this.cta.label ? this.effectiveTranslate(this.cta.label) : ''
 		},
 
 		/** The CTA URL. */
