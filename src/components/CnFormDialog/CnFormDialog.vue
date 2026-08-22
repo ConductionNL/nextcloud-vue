@@ -42,9 +42,15 @@
 			<template v-else>
 				<slot name="before-fields" />
 
+				<!-- `data-cn-field` is the only per-field identity this form
+				     exposes to a test. Without it an assertion about a field can
+				     only match on the label TEXT — which is the thing under test
+				     the moment labels are translated, so the assertion passes by
+				     construction in whichever language it was written in. -->
 				<div
 					v-for="field in visibleFields"
 					:key="field.key"
+					:data-cn-field="field.key"
 					class="cn-form-dialog__field">
 					<!-- Per-field override slot -->
 					<slot
