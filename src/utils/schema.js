@@ -464,7 +464,7 @@ export function splitDescription(text, max = DESCRIPTION_INLINE_MAX) {
  * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`. Recognised keys: `hidden` (true → drop the field), `order` (number → wins over the schema property's `order` for sorting), `readOnly` (false on a schema-readOnly key un-skips it), plus any field props to merge (`label`, `widget`, `enum`, …). A single overrides map therefore controls visibility, ordering and rendering on every surface that consumes this pipeline (data widget + form dialog).
  * @param {boolean} [options.includeReadOnly] Whether to include readOnly properties
  * @param {(text: string) => string} [options.translate] Optional display-layer translation function applied to each field's `label` and `description`. Schema property titles/descriptions are authored in English as the canonical source; consumers pass their bound `t()` (via the injected `cnTranslate`) so the rendered field label follows the user's language. When omitted, label/description are the English source strings unchanged (pure, backward-compatible).
- * @return {Array<{key: string, label: string, description: string, descriptionLong: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean}|null, userPicker: {multiple: boolean}|null, fillFrom: object|null, validation: object, order: number}>} `description` is the inline helper text (see `splitDescription`); `descriptionLong` carries the full text when it was too long to render inline, else ''.
+ * @return {Array<{key: string, label: string, description: string, descriptionLong: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, enumLabels: object|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean}|null, userPicker: {multiple: boolean}|null, fillFrom: object|null, validation: object, order: number}>} `description` is the inline helper text (see `splitDescription`); `descriptionLong` carries the full text when it was too long to render inline, else ''. `enumLabels` maps each raw enum value to its English display label (from the property's `x-enum-labels`), or null.
  */
 export function fieldsFromSchema(schema, options = {}) {
 	const { exclude = [], include = null, overrides = {}, includeReadOnly = false, translate } = options
@@ -543,6 +543,15 @@ export function fieldsFromSchema(schema, options = {}) {
 			readOnly: prop.readOnly || false,
 			default: prop.default !== undefined ? prop.default : null,
 			enum: prop.enum || null,
+			// Display labels for the enum CODES, keyed by raw value. An enum
+			// value is a stored contract value, not display text — several are
+			// non-English by design (`ingediend`) — so a schema declares the
+			// English label here and the consumer surface translates THAT.
+			// Without it the only thing a form can show is the raw code.
+			enumLabels: prop.enumLabels
+				|| prop['x-enum-labels']
+				|| (prop.items && (prop.items.enumLabels || prop.items['x-enum-labels']))
+				|| null,
 			items: prop.items || null,
 			// Pluggable integration registry marker (AD-18): a property
 			// can declare `referenceType: '<integration-id>'` so consumer
@@ -668,9 +677,12 @@ export function filtersFromSchema(schema, options = {}) {
 				filter.type = 'checkbox'
 			} else if (prop.enum) {
 				filter.type = 'select'
+				const enumLabels = prop.enumLabels || prop['x-enum-labels'] || {}
 				filter.options = prop.enum.map((val) => ({
 					id: val,
-					label: val,
+					// The filter VALUE stays the raw schema code (it is what the
+					// query sends); only the label follows the user's language.
+					label: tr(enumLabels[val] || String(val)),
 				}))
 			} else {
 				// Default to select — options loaded dynamically from facet API

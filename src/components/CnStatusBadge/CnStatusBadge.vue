@@ -68,12 +68,27 @@ export default {
 			type: Object,
 			default: null,
 		},
+		/**
+		 * Key to look up in `colorMap` instead of the label. Set this when the
+		 * label is a translated/display string but the map is keyed on the raw
+		 * value (e.g. a schema enum code) — without it a translated label misses
+		 * every map entry and the badge silently falls back to `variant`.
+		 */
+		colorKey: {
+			type: String,
+			default: '',
+		},
 	},
 
 	computed: {
+		/** The value the colorMap is looked up by — `colorKey` when set, else the label. */
+		resolvedColorKey() {
+			return this.colorKey || this.label
+		},
+
 		resolvedVariant() {
-			if (this.colorMap && this.label) {
-				const key = this.label.toLowerCase()
+			if (this.colorMap && this.resolvedColorKey) {
+				const key = this.resolvedColorKey.toLowerCase()
 				const normalizedColorMap = Object.fromEntries(Object.entries(this.colorMap).map(([k, v]) => [k.toLowerCase(), v]))
 				return normalizedColorMap[key] || this.variant
 			}

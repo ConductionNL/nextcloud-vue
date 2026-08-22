@@ -42,9 +42,15 @@
 			<template v-else>
 				<slot name="before-fields" />
 
+				<!-- `data-cn-field` is the only per-field identity this form
+				     exposes to a test. Without it an assertion about a field can
+				     only match on the label TEXT — which is the thing under test
+				     the moment labels are translated, so the assertion passes by
+				     construction in whichever language it was written in. -->
 				<div
 					v-for="field in visibleFields"
 					:key="field.key"
+					:data-cn-field="field.key"
 					class="cn-form-dialog__field">
 					<!-- Per-field override slot -->
 					<slot
@@ -793,11 +799,15 @@ export default {
 		},
 
 		schemaTitle() {
-			return (this.schema && this.schema.title) || t('nextcloud-vue', 'Item')
+			// Schema titles are authored in English as the canonical source, the
+			// same as the property titles `fieldsFromSchema` translates — so the
+			// heading of a Dutch form does not read "Edit Time entry".
+			if (this.schema && this.schema.title) return this.cnTranslate(this.schema.title)
+			return t('nextcloud-vue', 'Item')
 		},
 
 		resolvedTitle() {
-			if (this.dialogTitle) return this.dialogTitle
+			if (this.dialogTitle) return this.cnTranslate(this.dialogTitle)
 			return this.isCreateMode
 				? t('nextcloud-vue', 'Create {title}', { title: this.schemaTitle })
 				: t('nextcloud-vue', 'Edit {title}', { title: this.schemaTitle })
@@ -1426,6 +1436,23 @@ export default {
 			}
 		},
 
+		/**
+		 * Display label for one enum value. The stored value (`id`) always stays
+		 * the raw schema value — only what the user reads is translated, first
+		 * through the field's `enumLabels` map when it has an entry, then through
+		 * the host app's catalogue. A schema enum is a set of English source
+		 * codes, so a Dutch session otherwise reads `submitted` in a form whose
+		 * every other string is Dutch.
+		 *
+		 * @param {object} field The field descriptor.
+		 * @param {*} val The raw enum value.
+		 * @return {string} The label to render.
+		 */
+		enumOptionLabel(field, val) {
+			const labels = field.enumLabels || {}
+			return this.cnTranslate(labels[val] || String(val))
+		},
+
 		getEnumOptions(field) {
 			if (!field.enum) return []
 			// Cache the built option list per field so the same option object
@@ -1437,10 +1464,9 @@ export default {
 			if (cached && cached.enum === field.enum && cached.enumLabels === (field.enumLabels || null)) {
 				return cached.options
 			}
-			const labels = field.enumLabels || {}
 			const options = field.enum.map((val) => ({
 				id: val,
-				label: labels[val] || String(val),
+				label: this.enumOptionLabel(field, val),
 			}))
 			this._enumOptionCache[field.key] = { enum: field.enum, enumLabels: field.enumLabels || null, options }
 			return options
@@ -1459,8 +1485,7 @@ export default {
 			const options = this.getEnumOptions(field)
 			const match = options.find((o) => o.id === val)
 			if (match) return match
-			const labels = field.enumLabels || {}
-			return { id: val, label: labels[val] || String(val) }
+			return { id: val, label: this.enumOptionLabel(field, val) }
 		},
 
 		onSelectChange(key, option) {
@@ -1471,14 +1496,14 @@ export default {
 			if (!field.items || !field.items.enum) return []
 			return field.items.enum.map((val) => ({
 				id: val,
-				label: String(val),
+				label: this.enumOptionLabel(field, val),
 			}))
 		},
 
 		getSelectedArrayOptions(field) {
 			const val = this.formData[field.key]
 			if (!Array.isArray(val)) return []
-			return val.map((v) => ({ id: v, label: String(v) }))
+			return val.map((v) => ({ id: v, label: this.enumOptionLabel(field, v) }))
 		},
 
 		onMultiSelectChange(key, options) {

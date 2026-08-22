@@ -40,6 +40,7 @@ const fields = fieldsFromSchema(schema, {
   readOnly: boolean,
   default: any | null,    // prop.default ?? null
   enum: any[] | null,
+  enumLabels: object | null,  // prop['x-enum-labels'] — raw enum value -> English display label
   items: object | null,
   validation: {
     minLength, maxLength, minimum, maximum, pattern

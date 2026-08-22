@@ -62,6 +62,28 @@ export default {
 </script>
 ```
 
+colorKey — look the variant up by something other than the label. Needed as soon as the label is a translated display string while the map stays keyed on the raw stored value: without it the translated label matches no entry and the badge silently falls back to `variant`, rendering in the default grey.
+
+```vue
+<template>
+  <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+    <CnStatusBadge label="Ingediend" color-key="submitted" :color-map="colorMap" />
+    <CnStatusBadge label="Goedgekeurd" color-key="approved" :color-map="colorMap" />
+    <!-- the same Dutch labels WITHOUT color-key: both fall back to grey -->
+    <CnStatusBadge label="Ingediend" :color-map="colorMap" />
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      colorMap: { submitted: 'warning', approved: 'success' },
+    }
+  },
+}
+</script>
+```
+
 Custom icon slot — prepend an icon inside the badge before the label text:
 
 ```vue
