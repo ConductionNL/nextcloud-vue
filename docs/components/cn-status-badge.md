@@ -24,6 +24,7 @@ Color-coded pill badge for status, priority, or category display. Supports autom
 | `size` | String | `'medium'` | `'small'` or `'medium'` |
 | `solid` | Boolean | `false` | Use solid background with white text instead of light background with colored text |
 | `colorMap` | Object | `null` | Map label values to variants (case-insensitive) |
+| `colorKey` | String | `''` | Look this up in `colorMap` instead of the label. Use it when the label is translated but the map is keyed on the raw value (e.g. a schema enum code) — otherwise a translated label matches nothing and the badge falls back to `variant`. |
 
 ## Slots
 

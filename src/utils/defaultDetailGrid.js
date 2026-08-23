@@ -4,7 +4,7 @@
  *
  * Default body grid for a `type:"detail"` page: a full-width schema-driven Data
  * widget with the Related-objects widget beneath it. Shared by CnDetailPage
- * (which materialises it in-memory for an un-customised page) and the OpenBuild
+ * (which materialises it in-memory for an un-customised page) and the Buildiq
  * edit button (which "ejects" it into `page.config.widgets`/`layout` on edit, so
  * resize / per-property config / added widgets persist on save). Keeping one
  * source of truth means the in-memory default and the ejected default are

@@ -228,7 +228,7 @@ export default {
 		},
 		/**
 		 * Authoritative object context `{ register, schema }` for the page hosting
-		 * the picker (supplied by the OpenBuild edit button from the ACTIVE page's
+		 * the picker (supplied by the Buildiq edit button from the ACTIVE page's
 		 * config). Provided down as `cnObjectContext` so the data sub-form resolves
 		 * the right schema even though the modal teleports out of the page's
 		 * ambient provide tree. Null on surfaces without a single object (e.g.

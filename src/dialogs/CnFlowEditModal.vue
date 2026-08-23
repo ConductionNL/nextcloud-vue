@@ -1,7 +1,7 @@
 <!--
   CnFlowEditModal — edit a flow without leaving the page.
 
-  This is what OpenBuild's "Edit flows…" opens. It hosts the SAME components as
+  This is what Buildiq's "Edit flows…" opens. It hosts the SAME components as
   the flow detail page — CnFlowDetail for the canvas, CnFlowSidebar for the
   controls — rather than a second, simpler editor. A modal that could only edit
   a flow's name would quietly become a different product surface from the page,

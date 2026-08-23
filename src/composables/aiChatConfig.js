@@ -143,6 +143,51 @@ export function agentsUrl(appId) {
 }
 
 /**
+ * On-instance transcription (`POST`, multipart `audio`).
+ *
+ * ⚠️ NOT Nextcloud's `core:audio2text` TaskProcessing endpoint, and the
+ * difference is not stylistic: that one takes a FILE ID, so a dictated sentence
+ * would first have to be written into the user's Files and then polled for.
+ * That leaves three-second audio clips in somebody's Documents folder and pays
+ * plumbing latency on every utterance. The backend app answers this
+ * synchronously with the transcript, and both paths meet at the same speech
+ * service underneath.
+ *
+ * @param {string} [appId] Backend app id.
+ * @return {string}
+ */
+export function speechTranscriptionsUrl(appId) {
+	return `${chatApiBase(appId)}/speech/transcriptions`
+}
+
+/**
+ * On-instance synthesis (`POST`), returning audio bytes.
+ *
+ * @param {string} [appId] Backend app id.
+ * @return {string}
+ */
+export function speechSynthesisUrl(appId) {
+	return `${chatApiBase(appId)}/speech/speech`
+}
+
+/**
+ * Whether on-instance speech can actually be performed (`GET`).
+ *
+ * 🔴 ASKED, NEVER ASSUMED. A backend can advertise speech it cannot perform —
+ * Nextcloud offered `core:audio2text` for months on an instance whose speech
+ * service was unreachable, and nobody found out until one was attempted. Here
+ * the stakes are higher than a failed transcription: the alternative engine is
+ * the browser's, which in Chrome means Google's servers, so believing a wrong
+ * answer can send audio off-instance for an agent configured never to do that.
+ *
+ * @param {string} [appId] Backend app id.
+ * @return {string}
+ */
+export function speechCapabilitiesUrl(appId) {
+	return `${chatApiBase(appId)}/speech/capabilities`
+}
+
+/**
  * Normalize a raw conversation object (the shape returned by the
  * `conversationsUrl()` / `conversationUrl()` endpoints) into the flat shape the
  * AI Chat Companion's recent-sessions and history UI consume: a `title`, a

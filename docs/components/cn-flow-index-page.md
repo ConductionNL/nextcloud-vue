@@ -34,7 +34,7 @@ The **browse surface** over OpenRegister's one flow store.
 
 ## One prop replaces a register per app
 
-OpenConnector passes `openconnector` and sees its own; hermiq passes `hermiq`; OpenRegister passes nothing and sees everything. That single prop is what replaces "a flow register per app" — the arrangement that previously forced a resolver to arbitrate between per-app stores, and let two apps disagree about who owned a flow id.
+Integriq passes `openconnector` and sees its own; Hermiq passes `hermiq`; OpenRegister passes nothing and sees everything. That single prop is what replaces "a flow register per app" — the arrangement that previously forced a resolver to arbitrate between per-app stores, and let two apps disagree about who owned a flow id.
 
 ## Status tells you whether it will actually run
 

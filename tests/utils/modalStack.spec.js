@@ -11,7 +11,7 @@
  * teleported to `<body>`. The loser's whole dialog sits under the winner's
  * full-viewport mask, so every click aimed at it is intercepted.
  *
- * Measured live in OpenBuild: clicks on the nested "Generate an app with AI"
+ * Measured live in Buildiq: clicks on the nested "Generate an app with AI"
  * dialog were received by the wizard's `#wizard-app-description` textarea.
  *
  * WHAT THESE TESTS CAN AND CANNOT PROVE
@@ -145,7 +145,7 @@ describe('modalStack — DOM binder', () => {
 	})
 
 	it('survives a nested app root unmounting', async () => {
-		// OpenBuild's BuilderHost renders a second CnAppRoot for the app being
+		// Buildiq's BuilderHost renders a second CnAppRoot for the app being
 		// previewed. When that inner shell unmounts, the outer one is still on
 		// screen and still needs its dialogs layered.
 		installModalStack() // outer CnAppRoot
@@ -175,7 +175,7 @@ describe('modalStack — DOM binder', () => {
 	})
 
 	it('lifts a bare NcModal above the NcDialog that opened it', async () => {
-		// The exact OpenBuild shape: the create-app wizard is a CnWizardDialog
+		// The exact Buildiq shape: the create-app wizard is a CnWizardDialog
 		// (NcDialog → `modal-mask dialog__modal`) and the copilot dialog inside it
 		// is a plain NcModal (`modal-mask` only, no `dialog__modal`). The stack
 		// keys on `.modal-mask`, so the CSS baseline's `dialog__modal` qualifier

@@ -141,7 +141,7 @@
 				     closed and an X (`.app-sidebar__close`) when open, so a custom
 				     button would duplicate it. -->
 				<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot. -->
-				<CnOpenBuildEditButton />
+				<CnBuildiqEditButton />
 				<CnActionsMenu
 					:show-refresh="effectiveHeaderShowRefresh"
 					:refreshing="effectiveRefreshing"
@@ -262,7 +262,7 @@
 			<!-- Adjustable widget grid (GridStack). The detail body is, at its
 			     core, a real drag/resize grid: by default it is seeded with the
 			     schema-driven Data + Related widgets (see `bodyGridLayout`), but in
-			     OpenBuild edit mode widgets can be moved, resized, configured and
+			     Buildiq edit mode widgets can be moved, resized, configured and
 			     added. Explicit `layout` + `widgets` props (manifest grid pages)
 			     feed the same engine, so hand-authored grid pages also become
 			     draggable. -->
@@ -286,7 +286,7 @@
 						:aria-labelledby="showGridTitle(item) ? `widget-title-${item.id}` : undefined">
 						<!-- In-app edit overlay (ADR-041): a configure cog appears on
 						     widgets that have a registered config form while the page
-						     is in OpenBuild edit mode. The modal's own Delete affordance
+						     is in Buildiq edit mode. The modal's own Delete affordance
 						     covers removal, so no separate remove button here. -->
 						<div v-if="editingBody && registryFormFor(item)" class="cn-detail-page__widget-edit">
 							<NcButton variant="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
@@ -355,7 +355,7 @@
 								:show-total-count="widgetContentFor(item).showTotalCount !== false"
 								@open-integration="onAutoBodyOpenIntegration" />
 							<!-- `type: 'object-geo'` widget: view/edit the object's
-							     `@self.geo` on a map. Editable in OpenBuild edit mode
+							     `@self.geo` on a map. Editable in Buildiq edit mode
 							     or when the widget config sets `editable`. -->
 							<CnObjectGeoWidget
 								v-else-if="isGeoWidget(item)"
@@ -602,7 +602,7 @@
 		</div>
 
 		<!-- Per-widget style/config editor (ADR-041). Opened by the per-widget
-		     configure cog while in OpenBuild edit mode; the modal's own Delete
+		     configure cog while in Buildiq edit mode; the modal's own Delete
 		     button removes the widget from the grid. -->
 		<CnWidgetStyleEditorModal
 			v-if="showWidgetConfig"
@@ -655,7 +655,7 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
-import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
@@ -671,6 +671,8 @@ import CnBodySections from '../CnBodySections/CnBodySections.vue'
 import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
 import CnRelationLinkModal from '../../dialogs/CnRelationLinkModal.vue'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+import { BUILT_IN_WIDGETS } from '../CnWidgetGrid/builtInWidgets.js'
+import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
 import '../CnWidgetGrid/registerDashboardWidgets.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
@@ -792,7 +794,7 @@ export default {
 		InformationOutline,
 		Refresh,
 		CnActionsMenu,
-		CnOpenBuildEditButton,
+		CnBuildiqEditButton,
 		CnLockedBanner,
 		CnObjectDataWidget,
 		CnFormDialog,
@@ -816,6 +818,18 @@ export default {
 	mixins: [gridLayout],
 
 	inject: {
+		/**
+		 * Consumer widget registry provided by CnAppRoot — the SAME injection
+		 * CnWidgetGrid reads. A consuming app registers its own components
+		 * here (hrmq registers `stat`, `chart`, `actions`,
+		 * `lifecycle-actions`, …), and per REQ-MVR-005 a consumer entry
+		 * OVERRIDES a built-in of the same name.
+		 *
+		 * Without this, a detail page could only render library widgets: an
+		 * app's own widget resolved on the CnWidgetGrid path and vanished on
+		 * this one, which is half of why the two paths disagreed.
+		 */
+		cnRegistry: { default: () => ({}) },
 		objectSidebarState: { default: null },
 		/**
 		 * Reactive AI context holder provided by CnAppRoot. This page
@@ -824,7 +838,7 @@ export default {
 		 */
 		cnAiContext: { default: null },
 		/**
-		 * OpenBuild in-app edit state (ADR-041), a ref provided by CnAppRoot /
+		 * Buildiq in-app edit state (ADR-041), a ref provided by CnAppRoot /
 		 * the edit button. When truthy, configurable grid widgets show a
 		 * configure cog. Defaults to null (no edit affordance) for standalone use.
 		 */
@@ -1565,7 +1579,7 @@ export default {
 		 * @return {string}
 		 */
 		/**
-		 * Whether the page is in OpenBuild edit mode — unwraps the injected
+		 * Whether the page is in Buildiq edit mode — unwraps the injected
 		 * `cnEditingBody` ref (or plain boolean). Drives the per-widget cog.
 		 *
 		 * @return {boolean}
@@ -2801,7 +2815,7 @@ export default {
 		 * render their own card chrome.
 		 */
 		materializeAutoBody() {
-			// One source of truth (shared with the OpenBuild edit button's
+			// One source of truth (shared with the Buildiq edit button's
 			// "eject" on edit) so the in-memory default and the manifest-ejected
 			// default are identical. The data widget's content carries the page's
 			// register/schema so its per-property editor can resolve the schema
@@ -2899,7 +2913,7 @@ export default {
 		/**
 		 * The registered config FORM for a grid item's widget type, or null.
 		 * Used to gate the per-widget configure cog (only configurable widgets
-		 * show one) in OpenBuild edit mode.
+		 * show one) in Buildiq edit mode.
 		 *
 		 * @param {object} item Layout item
 		 * @return {object|null} The form component, or null.
@@ -2924,8 +2938,32 @@ export default {
 		registryRendererFor(item) {
 			const def = this.findWidget(item)
 			if (!def || !def.type || def.type === 'integration' || def.type === 'data') return null
-			const entry = getWidgetTypeEntry(def.type)
-			return (entry && entry.renderer) || null
+			// Consumer registry FIRST — same order CnWidgetGrid uses, and the
+			// order REQ-MVR-005 mandates ("Custom widget overrides built-in").
+			const consumer = (this.cnRegistry || {})[def.type]
+			if (consumer) return consumer.component ?? consumer
+			const entry = getWidgetTypeEntry(canonicalWidgetType(def.type))
+			if (entry && entry.renderer) return entry.renderer
+			// Fall back to BUILT_IN_WIDGETS — the SAME vocabulary CnWidgetGrid
+			// resolves a `widgetKey` against.
+			//
+			// These were two near-disjoint registries: the dashboard catalog
+			// (chart, map, object-list, related, stats-block, table) and
+			// BUILT_IN_WIDGETS (audit-trail, banner, card-grid, data, divider,
+			// form-renderer, header, integration, map-viewer, metadata,
+			// nav-card-grid, object-geo, object-table, related, text). Only
+			// `related` was in both, and `table`/`object-table` plus
+			// `map`/`map-viewer` were the same concept under two names.
+			//
+			// The consequence was silent: a widget authored for one path was
+			// invisible to the other, so a detail page rendered nothing for it
+			// and said nothing about why. Measured on hrmq: 101 of 236 detail
+			// widgets (43%) — every audit-trail, stat, actions and
+			// lifecycle-actions — had no type this method could resolve.
+			//
+			// One vocabulary, resolved catalog-first so a registered override
+			// still wins.
+			return BUILT_IN_WIDGETS[canonicalWidgetType(def.type)] || BUILT_IN_WIDGETS[def.type] || null
 		},
 
 		/**
@@ -3096,7 +3134,18 @@ export default {
 				// of this object). Subsequent syncs must NOT clobber it, otherwise
 				// the user's close/toggle would be undone on the next reactive
 				// change. The shared channel owns `open` after seeding.
-				if (!this.sidebarSeeded) {
+				//
+				// `sidebarSeeded` used to be written here and never read, so
+				// `open` went into assignSidebarState() on EVERY sync and the
+				// paragraph above described behaviour the code did not have. A
+				// detail page emits several syncs while it hydrates (the object
+				// resolves, then the schema), and each one reset `open` to the
+				// prop default — reclosing a sidebar the user had just opened.
+				// Downstream that made openbuild's e2e race the UI: the tab was
+				// clicked and its panel was hidden again before the assertion
+				// ran (openbuild#268 — "resolves 30×, hidden").
+				const seedOpen = (this.sidebarSeeded === false)
+				if (seedOpen) {
 					this.sidebarSeeded = true
 				}
 				// Manifest-driven open-enum tabs (forwarded to the host
@@ -3111,7 +3160,10 @@ export default {
 					: merged.tabs
 				this.assignSidebarState({
 					active: true,
-					open: this.sidebarOpen,
+					// Omitted after the seeding sync — assignSidebarState()
+					// only writes the keys it is given, so leaving `open` out
+					// preserves whatever the shared channel currently holds.
+					...(seedOpen ? { open: this.sidebarOpen } : {}),
 					objectType: this.resolvedObjectType,
 					objectId: this.objectId,
 					// The loaded object, so coordinate-blind sidebar-tab widgets

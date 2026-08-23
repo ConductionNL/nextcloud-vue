@@ -5,7 +5,7 @@
   Flow:
     1. Browse pages via GET /api/integrations/xwiki/available
        (each row carries reference + title + space + url + breadcrumb).
-       xWiki is external (OpenConnector-routed): when no `xwiki` source is
+       xWiki is external (Integriq-routed): when no `xwiki` source is
        configured (or the upstream is down) the endpoint answers 503 with
        `details.cause` — the picker then renders a prominent
        Configure-XWiki CTA instead of a page list (AD-23 / wave-5.1).
@@ -43,7 +43,7 @@
 				<AlertCircleOutline :size="32" class="cn-xwiki-page-picker__unconfigured-icon" />
 				<strong>{{ unconfiguredTitle }}</strong>
 				<p>{{ unconfiguredMessage }}</p>
-				<NcButton variant="primary" @click="openOpenConnector">
+				<NcButton variant="primary" @click="openIntegriq">
 					{{ t('nextcloud-vue', 'Configure XWiki connection') }}
 				</NcButton>
 			</div>
@@ -128,7 +128,7 @@ export default {
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Pre-translated dialog title. */
 		dialogTitle: { type: String, default: () => t('nextcloud-vue', 'Link an existing xWiki page') },
-		/** URL of OpenConnector's sources admin page (deep-link target for the configure CTA). */
+		/** URL of Integriq's sources admin page (deep-link target for the configure CTA). */
 		openConnectorSourcesUrl: { type: String, default: '/index.php/apps/openconnector/sources' },
 	},
 
@@ -169,12 +169,12 @@ export default {
 
 		unconfiguredMessage() {
 			if (this.degradedCause === 'auth') {
-				return t('nextcloud-vue', 'XWiki returned 401 — check the OpenConnector source credentials.')
+				return t('nextcloud-vue', 'XWiki returned 401 — check the Integriq source credentials.')
 			}
 			if (this.degradedCause === 'upstream') {
 				return t('nextcloud-vue', 'The upstream XWiki host did not respond. Try again in a moment.')
 			}
-			return t('nextcloud-vue', 'Add an XWiki source in OpenConnector with the upstream URL and credentials so OpenRegister can browse pages.')
+			return t('nextcloud-vue', 'Add an XWiki source in Integriq with the upstream URL and credentials so OpenRegister can browse pages.')
 		},
 
 		/**
@@ -303,7 +303,7 @@ export default {
 			return String(page.space ?? '')
 		},
 
-		openOpenConnector() {
+		openIntegriq() {
 			if (typeof window !== 'undefined') {
 				window.open(this.openConnectorSourcesUrl, '_blank', 'noopener')
 			}

@@ -264,8 +264,8 @@ export interface TManifestCredential {
 /**
  * Declarative scheduled-task descriptor (apphost-scheduling capability).
  * The OpenRegister AppHost schedule-reconciler turns each entry into an
- * OpenConnector job that runs on the existing background-job path, so a
- * manifest-driven app (including a pure-virtual OpenBuild app) can own its
+ * Integriq job that runs on the existing background-job path, so a
+ * manifest-driven app (including a pure-virtual Buildiq app) can own its
  * cadence without shipping a PHP TimedJob. Consumed by the OpenRegister
  * engine, never by the Vue renderer. Exactly one of `interval` or `cron`
  * must be set.
@@ -328,7 +328,7 @@ export interface TManifest {
 	deepLinks?: TManifestDeepLink[]
 	/** External-provider credentials via the OpenRegister broker. */
 	credentials?: TManifestCredential[]
-	/** Declarative scheduled tasks (apphost-scheduling) reconciled into OpenConnector jobs. */
+	/** Declarative scheduled tasks (apphost-scheduling) reconciled into Integriq jobs. */
 	schedules?: TManifestSchedule[]
 	/**
 	 * Admin-only settings sections rendered by CnAppRoot's generic admin
@@ -339,8 +339,12 @@ export interface TManifest {
 	 */
 	adminSettings?: Record<string, unknown>[]
 	/**
-	 * ADR-041: offer the OpenBuild in-app edit button on this app's pages.
-	 * Default true; set false to suppress (e.g. OpenBuild's own UI).
+	 * ADR-041: offer the Buildiq in-app edit button on this app's pages.
+	 * Default true; set false to suppress (e.g. Buildiq's own UI).
+	 *
+	 * The property name keeps its `openbuildEditable` spelling: it is a
+	 * manifest data key that shipped manifests already carry, so the
+	 * 2026-08-21 OpenBuild → Buildiq rename deliberately left it untouched.
 	 */
 	openbuildEditable?: boolean
 	/**

@@ -21,7 +21,7 @@ Apps can either pass props for branding/messaging, override the `#logo` slot for
 <CnAppRoot ...>
   <template #loading>
     <CnAppLoading
-      message="Loading Decidesk…"
+      message="Loading Decidiq…"
       logo-url="/apps/decidesk/img/logo.svg" />
   </template>
 </CnAppRoot>

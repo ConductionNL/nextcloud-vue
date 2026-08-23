@@ -6,7 +6,7 @@
  *
  * This module exists because the contract used to be reimplemented per app: the
  * schema EDITOR was shared (CnSchemaFormDialog), but each consumer wrote its own
- * save/delete — so OpenBuild learned to acknowledge a breaking change while
+ * save/delete — so Buildiq learned to acknowledge a breaking change while
  * OpenRegister's own editor still could not save one at all. These tests pin the
  * contract itself, so both consumers inherit the same behaviour.
  */

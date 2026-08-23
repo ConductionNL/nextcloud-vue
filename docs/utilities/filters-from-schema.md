@@ -38,7 +38,7 @@ Apart from `translate`, this helper is config-free — unlike [`columnsFromSchem
 | Property shape | `type` | `options` |
 |---|---|---|
 | `type: 'boolean'` | `'checkbox'` | `[]` |
-| `enum: [...]` | `'select'` | `enum.map(v => ({ id: v, label: v }))` |
+| `enum: [...]` | `'select'` | one option per value; `id` is the raw value (it is what the facet query sends), `label` is `x-enum-labels[value]` when declared, else the value — then run through `options.translate` |
 | anything else | `'select'` | `[]` — populate dynamically from the facet API |
 
 ## Sorting

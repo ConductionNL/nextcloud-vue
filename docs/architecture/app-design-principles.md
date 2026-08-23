@@ -7,7 +7,7 @@ import { AppMock, AtomZones } from '@conduction/docusaurus-preset/components'
 
 # App design principles
 
-Every Conduction app — OpenRegister, OpenCatalogi, Procest, Pipelinq, LaunchPad, the dozen others — looks and works the same way on first sight. Same five structural pieces, same place, same behaviour. That recognisability isn't an accident: it's what `@conduction/nextcloud-vue` enforces, and what makes a user who's learnt one app productive in any of the others within minutes.
+Every Conduction app — OpenRegister, OpenCatalogi, Dossiq, Pipelinq, Launchpad, the dozen others — looks and works the same way on first sight. Same five structural pieces, same place, same behaviour. That recognisability isn't an accident: it's what `@conduction/nextcloud-vue` enforces, and what makes a user who's learnt one app productive in any of the others within minutes.
 
 This page explains the **chassis** — the abstract layout shared by every app — the **five atoms** that make up the chassis, and the **stacked views** the library composes on top so you don't have to lay each atom out by hand.
 
@@ -56,7 +56,7 @@ Pick the stacked view that matches the page's purpose; the chassis comes free. P
 
 Three things follow from the chassis-plus-atoms-plus-views discipline:
 
-1. **Cross-app muscle memory.** A user who learnt where things are in OpenRegister navigates Procest the first time without reading docs.
+1. **Cross-app muscle memory.** A user who learnt where things are in OpenRegister navigates Dossiq the first time without reading docs.
 2. **Consistent accessibility, theming, i18n.** All five atoms inherit Nextcloud's CSS variables, NL Design System tokens, and standard ARIA — no per-app drift.
 3. **Composability stays cheap.** A new app describes its content in a [JSON manifest](./manifest.md) and a [schema](./schemas-and-registers.md); the chassis renders it.
 

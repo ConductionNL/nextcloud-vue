@@ -98,11 +98,11 @@ The docs site MUST include a `docs/integrations/ecosystem.md` page listing the a
 - **OpenRegister** -- Foundation app; demonstrates all core components, register/schema management, object CRUD
 - **OpenCatalogi** -- Large-scale catalog with faceted search via CnFacetSidebar, public page rendering, CnIndexPage with heavy slot customization
 - **Pipelinq** -- CRM with CnIndexPage for contacts/organizations, CnDashboardPage for KPI dashboards, pipeline views with CnTimelineStages, settings management with CnSettingsCard/CnConfigurationCard
-- **Procest** -- Case management with CnIndexPage for zaak lists, workflow state transitions, CnAdvancedFormDialog for complex case editing
-- **LarpingApp** -- Character/event management with computed stats, PDF export, CnFormDialog with extensive field overrides
+- **Dossiq** -- Case management with CnIndexPage for zaak lists, workflow state transitions, CnAdvancedFormDialog for complex case editing
+- **Larpinq** -- Character/event management with computed stats, PDF export, CnFormDialog with extensive field overrides
 - **LaunchPad** -- Dashboard-focused app using CnDashboardPage, CnWidgetWrapper, CnTileWidget for widget-based layouts
 - **ZaakAfhandelApp** -- Case handling with CnDetailPage, CnObjectSidebar, CnNotesCard, CnTasksCard for case detail views
-- **SoftwareCatalog** -- Software catalog built on OpenCatalogi patterns
+- **Stackiq** -- Software catalog built on OpenCatalogi patterns
 
 Each app entry MUST note which Cn* components it uses most heavily, link to the app's GitHub repository, and describe the primary usage pattern.
 
@@ -110,7 +110,7 @@ Each app entry MUST note which Cn* components it uses most heavily, link to the 
 
 - GIVEN a developer wants to see how CnIndexPage is used in a real app
 - WHEN they check the ecosystem overview
-- THEN they SHALL see which apps use CnIndexPage (OpenRegister, OpenCatalogi, Pipelinq, Procest, LarpingApp) and can follow the repository link to see working source code
+- THEN they SHALL see which apps use CnIndexPage (OpenRegister, OpenCatalogi, Pipelinq, Dossiq, Larpinq) and can follow the repository link to see working source code
 
 #### Scenario: Developer finds dashboard pattern
 
@@ -122,7 +122,7 @@ Each app entry MUST note which Cn* components it uses most heavily, link to the 
 
 - GIVEN a developer wants to heavily customize CnFormDialog fields
 - WHEN they check the ecosystem overview
-- THEN they SHALL find LarpingApp listed as demonstrating extensive #field-{key} slot overrides
+- THEN they SHALL find Larpinq listed as demonstrating extensive #field-{key} slot overrides
 
 #### Scenario: Developer finds detail view pattern
 

@@ -5,7 +5,7 @@
 
   Renders NcEmptyContent with:
     - name        : "{App} not available" (or "{App} not configured" for
-                    external integrations with no OpenConnector source).
+                    external integrations with no Integriq source).
     - icon slot   : the integration's app icon (descriptor `icon`,
                     resolved via CnIcon).
     - description : a short "this integration isn't set up" line.

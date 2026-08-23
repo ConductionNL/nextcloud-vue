@@ -728,6 +728,27 @@ export default {
 		},
 
 		/**
+		 * The translated display label for an enum value, or null when the field
+		 * is not an enum (or the value is absent) and normal formatting applies.
+		 *
+		 * The stored value is untouched — only what the user reads changes, so
+		 * inline editing still writes back the raw code.
+		 *
+		 * @return {(field: object, raw: *) => string|null} Given the resolved
+		 *   field descriptor and the stored value, the label to display — or
+		 *   null to fall through to `formatValue`.
+		 */
+		enumDisplayLabel() {
+			return (field, raw) => {
+				if (raw === null || raw === undefined || raw === '') return null
+				const values = Array.isArray(field.enum) ? field.enum : null
+				if (values === null || !values.includes(raw)) return null
+				const labels = field.enumLabels || {}
+				return this.cnTranslate(labels[raw] || String(raw))
+			}
+		},
+
+		/**
 		 * Formatted display values for each field.
 		 */
 		displayValues() {
@@ -738,7 +759,16 @@ export default {
 					? this.dirtyFields[field.key]
 					: (this.objectData || {})[field.key]
 				const prop = this.schema.properties && this.schema.properties[field.key]
-				values[field.key] = (this.isRelationField(prop) && raw != null && raw !== '') ? this.relationLabel(raw) : formatValue(raw, prop || {})
+				if (this.isRelationField(prop) && raw != null && raw !== '') {
+					values[field.key] = this.relationLabel(raw)
+					continue
+				}
+				// An enum renders its LABEL, the way the table cell and the form
+				// dropdown do. Without this the detail page was the one surface
+				// still showing the stored code — `submitted` under a Dutch
+				// label, beside a list that already read "Ingediend".
+				const enumLabel = this.enumDisplayLabel(field, raw)
+				values[field.key] = enumLabel !== null ? enumLabel : formatValue(raw, prop || {})
 			}
 			return values
 		},

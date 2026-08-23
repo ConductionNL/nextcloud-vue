@@ -193,7 +193,7 @@
 
 /* Grid layout mode + schema-driven auto-body both render on the GridStack
    engine (CnDashboardGrid). The default Data + Related body is seeded as a
-   real drag/resize grid so OpenBuild edit mode can rearrange it. */
+   real drag/resize grid so Buildiq edit mode can rearrange it. */
 .cn-detail-page__grid {
 	width: 100%;
 }
@@ -263,7 +263,7 @@
 	max-width: 100%;
 }
 
-/* OpenBuild in-app edit cog (ADR-041), shown over a configurable widget
+/* Buildiq in-app edit cog (ADR-041), shown over a configurable widget
    while the page is in edit mode. Mirrors the dashboard's widget-edit cog. */
 .cn-detail-page__widget-edit {
 	position: absolute;

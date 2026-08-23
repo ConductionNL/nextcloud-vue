@@ -79,7 +79,7 @@ describe('useSetupStatus', () => {
 				],
 			},
 		}
-		// Exactly the shape OpenBuild's /api/setup/status returns: only the two
+		// Exactly the shape Buildiq's /api/setup/status returns: only the two
 		// actionable steps are reported, and both are done.
 		axios.get.mockResolvedValue({ data: { version: 1, completed: true, steps: { seed: { done: true }, store: { done: true } } } })
 		const s = useSetupStatus('openbuild', chromeManifest)

@@ -5,7 +5,7 @@ the working manifest copy (ADR-041): add, remove, reorder, relabel, re-type,
 re-parent and re-route the manifest's `pages[]`. All edits mutate the passed
 `working` copy **only**.
 
-Opened by [CnOpenBuildEditButton](./cn-open-build-edit-button.md)'s "Edit
+Opened by [CnBuildiqEditButton](./cn-buildiq-edit-button.md)'s "Edit
 pages…" item. Pages render as a compact **tree** (`CnPageTreeNode`) mirroring
 the menu editor — each page is a one-line row (type icon + title + type) with an
 edit **cog** that reveals Title, Type (`dashboard` / `index` / `detail` /

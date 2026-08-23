@@ -31,7 +31,7 @@
 			<!--
 			@slot default
 			@description Custom NcActionButton-family content rendered inside the
-			NcActions menu. Use this for hardcoded buttons (Doriath pattern) when
+			NcActions menu. Use this for hardcoded buttons (Keepiq pattern) when
 			the `actions` prop is empty.
 		-->
 			<slot />
@@ -100,7 +100,7 @@ import { CnIcon } from '../CnIcon/index.js'
  *   @close="closeContextMenu" />
  * ```
  *
- * Custom buttons via slot (Doriath pattern)
+ * Custom buttons via slot (Keepiq pattern)
  * ```vue
  * <CnContextMenu
  *   v-model:open="contextMenuOpen"

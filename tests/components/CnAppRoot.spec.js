@@ -89,7 +89,7 @@ describe('CnAppRoot', () => {
 		__resetAppStatusCacheForTests()
 		clearScopedThemeCache()
 		// Define a clean appswebroots each test. CnAppRoot's in-app edit shell
-		// (ADR-041) calls useAppStatus('openbuild'); without OpenBuild present it
+		// (ADR-041) calls useAppStatus('openbuild'); without Buildiq present it
 		// is inert (availability false, no edit toolbar).
 		global.OC = global.OC || {}
 		global.OC.appswebroots = {}
@@ -129,19 +129,19 @@ describe('CnAppRoot', () => {
 		})
 	})
 
-	describe('OpenBuild edit-button gating (openbuildEditable)', () => {
-		it('is available when OpenBuild is enabled and the manifest does not opt out', () => {
+	describe('Buildiq edit-button gating (openbuildEditable)', () => {
+		it('is available when Buildiq is enabled and the manifest does not opt out', () => {
 			getCapabilities.mockReturnValue({})
 			global.OC.appswebroots = { openbuild: '/index.php/apps/openbuild' }
 			const wrapper = mountRoot({ manifest: { ...baseManifest } })
-			expect(wrapper.vm.openBuildAvailable).toBe(true)
+			expect(wrapper.vm.buildiqAvailable).toBe(true)
 		})
 
 		it('is suppressed when the manifest sets openbuildEditable:false', () => {
 			getCapabilities.mockReturnValue({})
 			global.OC.appswebroots = { openbuild: '/index.php/apps/openbuild' }
 			const wrapper = mountRoot({ manifest: { ...baseManifest, openbuildEditable: false } })
-			expect(wrapper.vm.openBuildAvailable).toBe(false)
+			expect(wrapper.vm.buildiqAvailable).toBe(false)
 		})
 	})
 
@@ -433,7 +433,7 @@ describe('CnAppRoot', () => {
 
 		// REQ-OR-5: empty array short-circuits the entire guard (no capabilities call).
 		it('skips the guard when :requires-apps="[]" and renders immediately (REQ-OR-5)', async () => {
-			// Mark OpenBuild reachable so the edit-shell availability probe
+			// Mark Buildiq reachable so the edit-shell availability probe
 			// short-circuits via appswebroots and does not call getCapabilities;
 			// this keeps the assertion below about the GUARD not running.
 			global.OC.appswebroots = { openbuild: true }
@@ -517,7 +517,7 @@ describe('CnAppRoot', () => {
 				propsData: {
 					manifest: baseManifest,
 					appId: 'myapp',
-					userSettingsTitle: 'Decidesk preferences',
+					userSettingsTitle: 'Decidiq preferences',
 				},
 				mocks: { $route: { name: 'home' } },
 				stubs: {
@@ -526,7 +526,7 @@ describe('CnAppRoot', () => {
 					NcAppSettingsSection: true,
 				},
 			})
-			expect(wrapper.vm.resolvedUserSettingsTitle).toBe('Decidesk preferences')
+			expect(wrapper.vm.resolvedUserSettingsTitle).toBe('Decidiq preferences')
 		})
 	})
 

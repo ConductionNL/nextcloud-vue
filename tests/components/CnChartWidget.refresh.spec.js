@@ -105,7 +105,7 @@ describe('CnChartWidget — refresh (#6)', () => {
  * The page-level Refresh action broadcasts on `cn:page:refresh`, and the chart
  * used to ignore it: only useEndpointSource subscribes to that channel, so the
  * action reached endpoint-bound charts and silently did nothing for every chart
- * fed by `dataSource` — which is every chart on OpenConnector's dashboard.
+ * fed by `dataSource` — which is every chart on Integriq's dashboard.
  */
 describe('CnChartWidget — page-level refresh', () => {
 	beforeEach(() => {

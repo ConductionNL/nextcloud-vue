@@ -1,5 +1,5 @@
 /**
- * Tests for CnOpenBuildEditButton (ADR-041).
+ * Tests for CnBuildiqEditButton (ADR-041).
  *
  * - hidden when available:false; renders the orange glyph when available:true
  * - Edit ⇄ Save toggle drives editor.enter()/editor.save() and emits @save
@@ -10,7 +10,7 @@
 
 import { mount } from '@vue/test-utils'
 import { ref } from 'vue'
-import CnOpenBuildEditButton from '../../src/components/CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
+import CnBuildiqEditButton from '../../src/components/CnBuildiqEditButton/CnBuildiqEditButton.vue'
 
 const NcActionsStub = {
 	name: 'NcActions',
@@ -36,7 +36,7 @@ function makeEditor(editing = false, pages = []) {
 }
 
 function mountButton(props = {}) {
-	return mount(CnOpenBuildEditButton, {
+	return mount(CnBuildiqEditButton, {
 		propsData: { available: true, editor: makeEditor(), ...props },
 		stubs: {
 			NcActions: NcActionsStub,
@@ -53,16 +53,16 @@ function btn(wrapper, label) {
 	return wrapper.findAllComponents(NcActionButtonStub).find((b) => b.text().includes(label))
 }
 
-describe('CnOpenBuildEditButton', () => {
+describe('CnBuildiqEditButton', () => {
 	it('renders nothing when not available', () => {
 		const wrapper = mountButton({ available: false })
-		expect(wrapper.find('.cn-openbuild-edit').exists()).toBe(false)
+		expect(wrapper.find('.cn-buildiq-edit').exists()).toBe(false)
 	})
 
-	it('renders the orange OpenBuild glyph when available', () => {
+	it('renders the orange Buildiq glyph when available', () => {
 		const wrapper = mountButton({ available: true })
-		expect(wrapper.find('.cn-openbuild-edit').exists()).toBe(true)
-		expect(wrapper.find('.cn-openbuild-edit__glyph').exists()).toBe(true)
+		expect(wrapper.find('.cn-buildiq-edit').exists()).toBe(true)
+		expect(wrapper.find('.cn-buildiq-edit__glyph').exists()).toBe(true)
 	})
 
 	it('enters edit mode on the toggle when not editing', async () => {

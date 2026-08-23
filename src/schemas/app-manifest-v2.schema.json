@@ -33,7 +33,7 @@
 		"openbuildEditable": {
 			"type": "boolean",
 			"default": true,
-			"description": "Whether the OpenBuild in-app edit button (ADR-041) is offered on this app's pages. Default true. Set false to suppress it — e.g. OpenBuild's own UI, which does not edit itself with itself. Read by CnAppRoot to gate `cnOpenBuildAvailable`."
+			"description": "Whether the Buildiq in-app edit button (ADR-041) is offered on this app's pages. Default true. Set false to suppress it — e.g. Buildiq's own UI, which does not edit itself with itself. Read by CnAppRoot to gate `cnOpenBuildAvailable`. The property name and the inject key keep their `openbuild` spelling: both are data/runtime contracts that shipped manifests and consumer apps already carry, so the 2026-08-21 OpenBuild → Buildiq rename deliberately left them untouched."
 		},
 		"dependencies": {
 			"type": "array",
@@ -265,7 +265,7 @@
 		},
 		"schedules": {
 			"type": "array",
-			"description": "Declarative scheduled tasks (apphost-scheduling capability). Each entry declares a recurring task the OpenRegister AppHost schedule-reconciler turns into an OpenConnector job that runs on the existing background-job path — so a manifest-driven app (including a pure-virtual OpenBuild app with no PHP on disk) can own its ingestion/maintenance cadence without shipping a TimedJob. The temporal peer of `credentials`/`observability`: consumed by the OpenRegister engine, NOT by the Vue renderer. Optional and additive.",
+			"description": "Declarative scheduled tasks (apphost-scheduling capability). Each entry declares a recurring task the OpenRegister AppHost schedule-reconciler turns into an Integriq job that runs on the existing background-job path — so a manifest-driven app (including a pure-virtual Buildiq app with no PHP on disk) can own its ingestion/maintenance cadence without shipping a TimedJob. The temporal peer of `credentials`/`observability`: consumed by the OpenRegister engine, NOT by the Vue renderer. Optional and additive.",
 			"items": {
 				"type": "object",
 				"required": ["id", "action"],
@@ -1639,7 +1639,7 @@
 				"payload": {
 					"type": "object",
 					"additionalProperties": true,
-					"description": "api-call only: the JSON request body — PREFERRED over `params`, and used instead of it when both are set. Values run the SAME token grammar as `params` (@me, @now, @today±Nd, @monthStart/@quarterStart/@yearStart, @objectId, @object.<field>, @workspace.<key>/@config.<key> with a trailing `?` marking a value OPTIONAL — dropped when unresolved) but resolve RECURSIVELY at ANY nesting depth, including arrays of objects — e.g. a DocuDesk document-generation body: { \"dataRefs\": [{ \"register\": \"crm\", \"schema\": \"lead\", \"id\": \"@objectId\" }] }. A required (non-`?`) token left unresolved anywhere in the tree BLOCKS the call (error toast) instead of sending the literal token string to the server."
+					"description": "api-call only: the JSON request body — PREFERRED over `params`, and used instead of it when both are set. Values run the SAME token grammar as `params` (@me, @now, @today±Nd, @monthStart/@quarterStart/@yearStart, @objectId, @object.<field>, @workspace.<key>/@config.<key> with a trailing `?` marking a value OPTIONAL — dropped when unresolved) but resolve RECURSIVELY at ANY nesting depth, including arrays of objects — e.g. a Filinq document-generation body: { \"dataRefs\": [{ \"register\": \"crm\", \"schema\": \"lead\", \"id\": \"@objectId\" }] }. A required (non-`?`) token left unresolved anywhere in the tree BLOCKS the call (error toast) instead of sending the literal token string to the server."
 				},
 				"params": {
 					"type": "object",

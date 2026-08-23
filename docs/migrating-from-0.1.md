@@ -5,7 +5,7 @@ sidebar_position: 9
 
 # Migrating from 0.1.x to 1.0.x
 
-This guide is for apps currently using `@conduction/nextcloud-vue@^0.1.0-beta.x` (OpenConnector, DocuDesk, Planix, and similar apps). The upgrade to `1.0.0` requires **two changes** in `main.js` and `package.json`. Existing component templates and store calls need no modification.
+This guide is for apps currently using `@conduction/nextcloud-vue@^0.1.0-beta.x` (Integriq, Filinq, Planninq, and similar apps). The upgrade to `1.0.0` requires **two changes** in `main.js` and `package.json`. Existing component templates and store calls need no modification.
 
 ---
 

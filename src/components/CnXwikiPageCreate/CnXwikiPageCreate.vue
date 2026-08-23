@@ -9,9 +9,9 @@
   On submit, emits `create` with `{ space, title }`. The parent
   (CnXwikiTab) POSTs to
   `/api/objects/{register}/{schema}/{id}/xwiki/new`, which creates the
-  page in remote xWiki via OpenConnector and links it.
+  page in remote xWiki via Integriq and links it.
 
-  xWiki is external (OpenConnector-routed): when no `xwiki` source is
+  xWiki is external (Integriq-routed): when no `xwiki` source is
   configured the parent surfaces the Configure-XWiki CTA before this
   dialog is reachable, but the dialog also degrades gracefully — if it is
   opened against an unconfigured source the optional `unavailable` prop
@@ -33,8 +33,8 @@
 		<div v-if="unavailable" class="cn-xwiki-page-create__unconfigured" role="alert">
 			<AlertCircleOutline :size="32" class="cn-xwiki-page-create__unconfigured-icon" />
 			<strong>{{ t('nextcloud-vue', 'XWiki connection not configured') }}</strong>
-			<p>{{ t('nextcloud-vue', 'Add an XWiki source in OpenConnector before creating pages.') }}</p>
-			<NcButton variant="primary" @click="openOpenConnector">
+			<p>{{ t('nextcloud-vue', 'Add an XWiki source in Integriq before creating pages.') }}</p>
+			<NcButton variant="primary" @click="openIntegriq">
 				{{ t('nextcloud-vue', 'Configure XWiki connection') }}
 			</NcButton>
 		</div>
@@ -80,7 +80,7 @@
  *
  * CnXwikiPageCreate — inline-create dialog. Emits `create` with the form
  * payload `{ space, title }`; the parent submits to OR which creates the
- * page in remote xWiki via OpenConnector.
+ * page in remote xWiki via Integriq.
  *
  * @see ADR-019 (pluggable integrations) and ADR-022 (sidebar tabs)
  */
@@ -100,7 +100,7 @@ export default {
 		dialogTitle: { type: String, default: () => t('nextcloud-vue', 'Create a new xWiki page') },
 		/** When true, the source is unconfigured/down — disable the form, show the CTA. */
 		unavailable: { type: Boolean, default: false },
-		/** URL of OpenConnector's sources admin page (deep-link target for the configure CTA). */
+		/** URL of Integriq's sources admin page (deep-link target for the configure CTA). */
 		openConnectorSourcesUrl: { type: String, default: '/index.php/apps/openconnector/sources' },
 	},
 
@@ -135,7 +135,7 @@ export default {
 			this.$emit('close')
 		},
 
-		openOpenConnector() {
+		openIntegriq() {
 			if (typeof window !== 'undefined') {
 				window.open(this.openConnectorSourcesUrl, '_blank', 'noopener')
 			}

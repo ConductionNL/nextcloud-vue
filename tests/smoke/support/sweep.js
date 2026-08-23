@@ -229,7 +229,23 @@ function componentExports(barrel) {
 			// A component definition is an object (SFCs compile to one) or a
 			// function (defineAsyncComponent / functional). Anything else that
 			// happens to be Cn-prefixed is not a component.
-			return v && (typeof v === 'object' || typeof v === 'function')
+			if (!v || (typeof v !== 'object' && typeof v !== 'function')) return false
+
+			// ...but an ES6 CLASS is also `typeof 'function'`, so the check above
+			// admits one. `CnHttpError` (the error cnFetchJson throws) is
+			// Cn-prefixed for its API family, not because it renders — mounting
+			// it fails, and it can never be fixed to pass, so it must not be
+			// baselined either: the baseline ratchets both ways and is for
+			// components that SHOULD eventually mount.
+			//
+			// Walk the prototype chain rather than checking `v.prototype
+			// instanceof Error` alone, so a subclass of a subclass is caught too.
+			let proto = v.prototype
+			while (proto) {
+				if (proto === Error.prototype) return false
+				proto = Object.getPrototypeOf(proto)
+			}
+			return true
 		})
 		.sort()
 		.map((k) => [k, barrel[k]])

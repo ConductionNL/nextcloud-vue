@@ -90,7 +90,7 @@ The detail body is, at its core, a real drag/resize grid powered by
   widget ([`CnObjectDataWidget`](./cn-object-data-widget.md)) and a `related`
   widget ([`CnRelatedObjectsWidget`](./cn-related-objects-widget.md)). Set
   `showRelatedObjects: false` to seed only the data widget.
-- **Edit mode.** When the page is in OpenBuild edit mode (injected
+- **Edit mode.** When the page is in Buildiq edit mode (injected
   `cnEditingBody`), widgets can be dragged, resized and configured (the per-widget
   cog opens the registered config editor). Geometry changes emit `layout-change`
   / `update:layout`.

@@ -45,10 +45,10 @@
 					</template>
 					{{ isEditing ? doneLabel : editLabel }}
 				</NcButton>
-				<!-- In-app edit button (ADR-041). Renders only when OpenBuild is
+				<!-- In-app edit button (ADR-041). Renders only when Buildiq is
 				     reachable; self-wires from the cnManifestEditor / cnOpenBuildAvailable
 				     provided by CnAppRoot. Sits inline with the page's action buttons. -->
-				<CnOpenBuildEditButton />
+				<CnBuildiqEditButton />
 				<!-- Page-level overflow Actions menu (Refresh / Documentation /
 				     Request a feature). Separate from the per-widget menus.
 				     On by default; opt out per item, supply documentation-url
@@ -633,6 +633,8 @@ import Download from 'vue-material-design-icons/Download.vue'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+import { BUILT_IN_WIDGETS } from '../CnWidgetGrid/builtInWidgets.js'
+import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
@@ -643,7 +645,7 @@ import CnBodySections from '../CnBodySections/CnBodySections.vue'
 import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } from '../CnDateRangePicker/CnDateRangePicker.vue'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
-import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
 import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
@@ -789,14 +791,14 @@ export default {
 		CnDateRangePicker,
 		CnActionsMenu,
 		CnActionButtons,
-		CnOpenBuildEditButton,
+		CnBuildiqEditButton,
 		CnWidgetStyleEditorModal,
 		CnLeafMountHost,
 	},
 
 	inject: {
 		/**
-		 * OpenBuild in-app edit state (ADR-041), provided by CnAppRoot as a ref.
+		 * Buildiq in-app edit state (ADR-041), provided by CnAppRoot as a ref.
 		 * When true the dashboard grid becomes drag/resize/remove-able even
 		 * without the consumer's own `allowEdit` toggle.
 		 */
@@ -806,6 +808,13 @@ export default {
 		 * on created() and watched for prop changes. Reset on beforeUnmount().
 		 */
 		cnAiContext: { default: null },
+		/**
+		 * Consumer widget registry provided by CnAppRoot — the SAME injection
+		 * CnWidgetGrid and CnDetailPage read, so an app-registered widget
+		 * resolves identically on all three surfaces (REQ-MVR-005: a custom
+		 * widget overrides a built-in of the same name).
+		 */
+		cnRegistry: { default: () => ({}) },
 		/**
 		 * Host translate function provided by CnAppRoot as
 		 * `cnTranslate: this.translate` (bound to the host app's id). The
@@ -1345,15 +1354,15 @@ export default {
 
 		/**
 		 * Whether the widget grid should be drag/resize/remove-able — the
-		 * consumer's own edit toggle OR the OpenBuild in-app editor (ADR-041).
+		 * consumer's own edit toggle OR the Buildiq in-app editor (ADR-041).
 		 * Unwraps the injected `cnEditingBody` ref.
 		 *
 		 * @return {boolean}
 		 */
 		gridEditable() {
 			const e = this.cnEditingBody
-			const openBuildEditing = Boolean(e && typeof e === 'object' && 'value' in e ? e.value : e)
-			return this.isEditing || openBuildEditing
+			const buildiqEditing = Boolean(e && typeof e === 'object' && 'value' in e ? e.value : e)
+			return this.isEditing || buildiqEditing
 		},
 		/**
 		 * Effective Refresh visibility for custom-slot widgets. An explicit
@@ -2169,7 +2178,7 @@ export default {
 		 *
 		 * Deliberately a METHOD, not a cached computed `widgetMap`. The
 		 * `widgets` prop array is mutated IN PLACE by the in-app editor
-		 * (CnOpenBuildEditButton's "Add widget…" pushes onto
+		 * (CnBuildiqEditButton's "Add widget…" pushes onto
 		 * `page.config.widgets`), and a computed over a prop array does not
 		 * subscribe to that array's observer — so the map never invalidated
 		 * and every freshly added widget rendered the `unavailableLabel`
@@ -2271,8 +2280,53 @@ export default {
 		registryRenderer(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			if (!def || !def.type) return null
+			// `integration` is NOT ours to resolve — it has its own branch
+			// (isIntegrationWidget -> resolveRegistryWidget(integrationId)),
+			// and one without an `integrationId` must fall through to
+			// `unavailableLabel`. Claiming it here for BUILT_IN_WIDGETS
+			// .integration would render a widget where the page means to say
+			// "unavailable". CnDetailPage excludes the same type for the same
+			// reason.
+			if (def.type === 'integration') return null
+			// Same three-layer order as CnWidgetGrid and CnDetailPage:
+			// consumer registry -> dashboard catalog -> BUILT_IN_WIDGETS.
+			//
+			// This method used to read the catalog ALONE, which made a
+			// dashboard the odd surface out in two ways, both silent:
+			//
+			//  - a consumer override was IGNORED whenever the catalog carried
+			//    the same name. `chart` and `stat` are in both, so an app that
+			//    registers its own (hrmq registers a TrendChartWidget under
+			//    `chart`) got the library's component instead — the widget
+			//    still rendered, just the wrong one, which is worse than a
+			//    blank. REQ-MVR-005 mandates custom-over-built-in.
+			//  - a BUILT_IN-only type — `integration`, `metadata` — resolved
+			//    to nothing and the widget did not appear at all.
+			//
+			// #709 unified CnWidgetGrid and CnDetailPage but missed this one.
+			const consumer = (this.cnRegistry || {})[def.type]
+			if (consumer) return consumer.component ?? consumer
+			// THE TYPE AS WRITTEN WINS; the alias is only a fallback.
+			//
+			// `object-table` and `table` are two DIFFERENT registered widgets
+			// (CnHostedObjectTable vs CnObjectListWidget2), and
+			// WIDGET_TYPE_ALIASES nonetheless maps the first onto the second.
+			// Canonicalising before the lookup therefore resolved an
+			// `object-table` dashboard widget to the `table` renderer: a widget
+			// still appeared, nothing threw, it was simply the wrong component
+			// and the stored `content` blob never reached the props the host
+			// adapter maps it onto. That is the failure this method's own
+			// comment above calls "worse than a blank".
+			//
+			// Caught by larpingapp e2e on the 2.8.2 -> 2.9.2 bump:
+			// `.cn-widget-object-table` was not in the DOM at all.
+			//
+			// Aliases keep working for a spelling that is NOT registered in its
+			// own right — `map-viewer` still reaches `map`.
 			const entry = getWidgetTypeEntry(def.type)
-			return (entry && entry.renderer) || null
+				|| getWidgetTypeEntry(canonicalWidgetType(def.type))
+			if (entry && entry.renderer) return entry.renderer
+			return BUILT_IN_WIDGETS[def.type] || BUILT_IN_WIDGETS[canonicalWidgetType(def.type)] || null
 		},
 
 		/**
@@ -2291,7 +2345,12 @@ export default {
 		isCardWidget(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			if (!def || !def.type) return false
+			// Same precedence as registryRenderer: the type as written first, the
+			// alias only as a fallback. Canonicalising first read the card flag
+			// off a DIFFERENT widget's entry, so the chrome could disagree with
+			// the component actually rendered.
 			const entry = getWidgetTypeEntry(def.type)
+				|| getWidgetTypeEntry(canonicalWidgetType(def.type))
 			return Boolean(entry && entry.card === true)
 		},
 
@@ -2312,12 +2371,12 @@ export default {
 		 * and emits the updated layout so consumers persist.
 		 *
 		 * Splices in place rather than emitting fresh arrays. `widgets` / `layout`
-		 * ARE the working manifest's arrays — CnOpenBuildEditButton.onAddWidgetSubmit
+		 * ARE the working manifest's arrays — CnBuildiqEditButton.onAddWidgetSubmit
 		 * pushes straight into them, and onWidgetConfigSave mutates a def in place —
 		 * so mutation is what actually removes the widget from the page. Filtering
 		 * into new arrays and emitting them only told listeners about the removal,
 		 * and nothing listens (`@widget-remove` has no consumer in the library or in
-		 * OpenBuild), so Delete was a no-op.
+		 * Buildiq), so Delete was a no-op.
 		 *
 		 * @spec openspec/changes/dashboard-widget-system/specs/dashboard-page/spec.md
 		 * @param {object} item Layout item to remove.

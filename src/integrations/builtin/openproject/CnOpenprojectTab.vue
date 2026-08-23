@@ -12,14 +12,14 @@
     `/api/objects/{register}/{schema}/{objectId}/integrations/openproject`
   served by `OCA\OpenRegister\Service\Integration\Providers\OpenProjectProvider`
   (which delegates through `ExternalIntegrationRouter` to the
-  OpenConnector source named `openproject`).
+  Integriq source named `openproject`).
 
   Surface behaviour (per ADR-017 graceful degradation + ADR-019 external
   storage policy):
     - Unconfigured: 412 / `health=unavailable` from the provider →
-      "Configure OpenProject connection" CTA pointing at OpenConnector.
+      "Configure OpenProject connection" CTA pointing at Integriq.
     - Authorisation expired: 401 with `authStatus: 'expired'` →
-      reconnect-in-OpenConnector banner.
+      reconnect-in-Integriq banner.
     - Other 4xx/5xx: surface the upstream message (not a silent empty).
     - Loading: spinner.
     - Empty: "No work packages linked yet" + "Open OpenProject" CTA.
@@ -76,7 +76,7 @@
 
 		<NcLoadingIcon v-if="loading" />
 
-		<!-- Unconfigured: provider reports the OpenConnector `openproject` source is absent. -->
+		<!-- Unconfigured: provider reports the Integriq `openproject` source is absent. -->
 		<div
 			v-else-if="unconfigured"
 			class="cn-sidebar-tab__empty cn-openproject-tab__empty">
@@ -231,7 +231,7 @@ import { buildHeaders } from '../../../utils/index.js'
  * CnOpenprojectTab — bespoke sidebar tab for the `openproject` integration.
  *
  * Renders linked work packages with type / status / priority /
- * assignee, plus auth-status surfacing for OpenConnector configured /
+ * assignee, plus auth-status surfacing for Integriq configured /
  * missing / expired states. See the file-level docblock for the full
  * surface contract.
  */
@@ -292,7 +292,7 @@ export default {
 		/** Pre-translated label shown when the integration is unconfigured. */
 		unconfiguredLabel: {
 			type: String,
-			default: () => t('nextcloud-vue', 'OpenProject is not configured yet. Add an `openproject` source in OpenConnector to start linking work packages.'),
+			default: () => t('nextcloud-vue', 'OpenProject is not configured yet. Add an `openproject` source in Integriq to start linking work packages.'),
 		},
 		/** Pre-translated banner when OpenProject is unavailable. */
 		unavailableLabel: {
@@ -302,14 +302,14 @@ export default {
 		/** Pre-translated banner when the OAuth/API token has expired. */
 		authExpiredLabel: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Authorisation for OpenProject expired. Reconnect the source in OpenConnector to restore access.'),
+			default: () => t('nextcloud-vue', 'Authorisation for OpenProject expired. Reconnect the source in Integriq to restore access.'),
 		},
-		/** Pre-translated link label to the OpenConnector admin. */
+		/** Pre-translated link label to the Integriq admin. */
 		openconnectorLabel: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Open OpenConnector'),
+			default: () => t('nextcloud-vue', 'Open Integriq'),
 		},
-		/** URL of the OpenConnector source admin page (for the `openproject` source). */
+		/** URL of the Integriq source admin page (for the `openproject` source). */
 		openconnectorUrl: {
 			type: String,
 			default: '/index.php/apps/openconnector/sources/openproject',

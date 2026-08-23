@@ -18,7 +18,7 @@
 
 `@conduction/nextcloud-vue` is an npm component library that sits on top of `@nextcloud/vue` and provides higher-level, opinionated components for building Nextcloud apps. It handles the repetitive patterns — schema-driven tables, CRUD dialogs, paginated lists, faceted search — so each app only writes the domain-specific parts.
 
-Used internally by [Pipelinq](https://github.com/ConductionNL/pipelinq), [Procest](https://github.com/ConductionNL/procest), [Larping](https://github.com/ConductionNL/larpingapp), and other Conduction Nextcloud apps.
+Used internally by [Pipelinq](https://github.com/ConductionNL/pipelinq), [Dossiq](https://github.com/ConductionNL/dossiq), [Larpinq](https://github.com/ConductionNL/larpinq), and other Conduction Nextcloud apps.
 
 > **Requires:** Vue 2.7, Pinia 2, @nextcloud/vue 8
 

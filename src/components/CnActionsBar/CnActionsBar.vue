@@ -119,13 +119,13 @@
 			<slot name="actions" />
 
 			<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot. -->
-			<CnOpenBuildEditButton />
+			<CnBuildiqEditButton />
 
 			<!-- Actions menu (Refresh, Import, Export, mass actions) -->
 			<NcActions
 				:force-name="true"
 				:inline="inlineActionCount"
-				menu-name="Actions"
+				:menu-name="actionsMenuName"
 				data-testid="cn-actions">
 				<!--
 					@event refresh
@@ -243,7 +243,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActions, NcActionSeparator, NcButton, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
-import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Export from 'vue-material-design-icons/Export.vue'
@@ -277,7 +277,7 @@ export default {
 	name: 'CnActionsBar',
 
 	components: {
-		CnOpenBuildEditButton,
+		CnBuildiqEditButton,
 		NcActions,
 		NcActionButton,
 		NcActionLink,
@@ -588,6 +588,19 @@ export default {
 	],
 
 	computed: {
+		/**
+		 * Name of the overflow Actions menu. Library chrome, so it resolves
+		 * against the LIBRARY catalogue — it was a bare `menu-name="Actions"`
+		 * literal, which rendered "Actions" in a Dutch session next to an
+		 * otherwise fully translated toolbar even though the catalogue has
+		 * carried "Acties" all along.
+		 *
+		 * @return {string}
+		 */
+		actionsMenuName() {
+			return t('nextcloud-vue', 'Actions')
+		},
+
 		/**
 		 * Effective translate function: the injected `cnTranslate` (the host
 		 * app's bound `t()`), identity by default.

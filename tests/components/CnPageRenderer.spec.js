@@ -260,11 +260,11 @@ describe('CnPageRenderer', () => {
 			expect(wrapper.attributes('data-page-id')).toBe('broken')
 		})
 
-		it('renders the builder empty-state with the OpenBuild edit button when a page has no renderable body (ADR-041)', () => {
+		it('renders the builder empty-state with the Buildiq edit button when a page has no renderable body (ADR-041)', () => {
 			const wrapper = mountRenderer('broken', { customComponents: {} })
 			expect(wrapper.vm.hasRenderableBody).toBe(false)
 			expect(wrapper.find('.cn-page-renderer__empty').exists()).toBe(true)
-			expect(wrapper.findComponent({ name: 'CnOpenBuildEditButton' }).exists()).toBe(true)
+			expect(wrapper.findComponent({ name: 'CnBuildiqEditButton' }).exists()).toBe(true)
 		})
 
 		it('does NOT render the empty-state when the page has a renderable component', () => {

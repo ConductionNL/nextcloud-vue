@@ -1995,7 +1995,7 @@ export default {
 		 * (`img-src`) blocks unless that app explicitly allowlists the host — so a
 		 * richer default would ship dead options to consumers that never widened their
 		 * CSP. Apps that want a switcher declare the set in `mapConfig.basemaps` AND
-		 * allowlist those hosts (see Procest's `relaxCspForMapTiles()`).
+		 * allowlist those hosts (see Dossiq's `relaxCspForMapTiles()`).
 		 *
 		 * @return {Array<object>}
 		 */
@@ -2317,8 +2317,19 @@ export default {
 
 		/** Add button label — derived from schema.title if not explicitly set */
 		resolvedAddLabel() {
-			if (this.addLabel) return this.addLabel
-			return 'Add ' + (this.effectiveSchema?.title || 'Item')
+			if (this.addLabel) return this.cnTranslate(this.addLabel)
+			// Two catalogues, deliberately. The NOUN comes from the consumer's
+			// schema, so it resolves against the consumer's catalogue via the
+			// injected `cnTranslate`; the SENTENCE around it is library chrome, so
+			// it resolves against the library's own — exactly the split
+			// CnFormDialog already makes for "Create {title}".
+			//
+			// Getting that wrong is visible rather than subtle: routing the
+			// sentence through the host catalogue too produced "Add Urenboeking"
+			// on a Dutch instance, because no app catalogue carries a key that
+			// belongs to the library.
+			const type = this.cnTranslate(this.effectiveSchema?.title || 'Item')
+			return t('nextcloud-vue', 'Add {type}', { type })
 		},
 
 		/**

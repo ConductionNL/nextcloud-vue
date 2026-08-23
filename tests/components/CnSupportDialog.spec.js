@@ -17,7 +17,7 @@ const stubs = {
 }
 
 const baseProps = {
-	appName: 'Decidesk',
+	appName: 'Decidiq',
 	appSlug: 'decidesk',
 	appStoreUrl: 'https://apps.nextcloud.com/apps/decidesk',
 	featureRequestUrl: 'https://github.com/ConductionNL/decidesk/issues/new',

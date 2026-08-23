@@ -164,7 +164,7 @@
 
 		<!--
 			CnSchemaFormDialog schema-reference dropdown (gated behind ?sref=1).
-			available-schemas are shaped like OpenBuild passes them — keyed by
+			available-schemas are shaped like Buildiq passes them — keyed by
 			title/slug with NO `label` — so the e2e reproduces the "undefined" options
 			bug, and a ready-made array-of-object property renders the select at once.
 		-->
