@@ -16,6 +16,9 @@ const NAMED_DASHBOARD_COMPONENTS = new Set([
 	'DashboardIndex',
 	'DashboardView',
 	'DashboardCustomView',
+	// Kept verbatim: this is the literal Vue component name shipped in the
+	// Learniq (formerly Scholiq) app's manifests, matched as DATA. The
+	// 2026-08-21 rename did not change already-published manifests.
 	'ScholiqDashboards',
 ])
 
@@ -24,7 +27,7 @@ const NAMED_DASHBOARD_COMPONENTS = new Set([
  *
  * Converts a `type:"custom"` page whose `component` is one of the five known
  * bespoke dashboard components into a canonical `type:"dashboard"` page so the
- * dashboard becomes OpenBuild-editable and manifest-shape-checkable.
+ * dashboard becomes Buildiq-editable and manifest-shape-checkable.
  *
  * When the page carries manifest-declared widgets (top-level `widgets[]`, or a
  * dialect-B `config.widgets[]` + `config.layout[]` pair) those are left in place

@@ -7,8 +7,8 @@
  *
  * Regression guard: removeWidget used to filter `widgets` / `layout` into NEW
  * arrays and emit those, never mutating. Since `@widget-remove` has no consumer
- * in the library or in OpenBuild, the widget stayed on the page — Delete was a
- * silent no-op. Add (CnOpenBuildEditButton.onAddWidgetSubmit) and Save
+ * in the library or in Buildiq, the widget stayed on the page — Delete was a
+ * silent no-op. Add (CnBuildiqEditButton.onAddWidgetSubmit) and Save
  * (onWidgetConfigSave) both mutate the manifest arrays in place; delete now
  * matches them.
  */

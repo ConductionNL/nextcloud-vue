@@ -21,9 +21,9 @@ Apps can override CnAppRoot's `#dependency-missing` slot to customise the screen
   <template #dependency-missing="{ dependencies }">
     <CnDependencyMissing
       :dependencies="dependencies"
-      app-name="Decidesk"
+      app-name="Decidiq"
       heading="OpenRegister is required"
-      intro="Decidesk needs OpenRegister to manage decisions."
+      intro="Decidiq needs OpenRegister to manage decisions."
       install-label="Install"
       enable-label="Enable" />
   </template>

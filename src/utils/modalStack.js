@@ -17,7 +17,7 @@
  * subtree painted under the other dialog's full-viewport mask — every click
  * aimed at the top dialog is swallowed by the one underneath.
  *
- * Measured live in OpenBuild: the "Create application" wizard and the nested
+ * Measured live in Buildiq: the "Create application" wizard and the nested
  * "Generate an app with AI" dialog were both open and both visible, and every
  * click aimed at the AI dialog was received by the wizard's own
  * `#wizard-app-description` textarea. Teleporting the inner dialog to `<body>`
@@ -39,7 +39,7 @@
  *
  * WHY A `MutationObserver` AND NOT A PROP
  * ---------------------------------------
- * The dialogs that collide are not all ours. The OpenBuild wizard is
+ * The dialogs that collide are not all ours. The Buildiq wizard is
  * `CnWizardDialog` (this library) but the AI dialog is an `NcDialog` written in
  * the consuming app, and `@nextcloud/vue` exposes no z-index prop. A per-component
  * opt-in would therefore fix half of any given collision. Watching the DOM for
@@ -91,7 +91,7 @@ let observer = null
 /**
  * How many callers currently want the binder alive.
  *
- * Reference-counted because app roots nest: OpenBuild's BuilderHost renders a
+ * Reference-counted because app roots nest: Buildiq's BuilderHost renders a
  * second `CnAppRoot` for the app being previewed, so the inner shell unmounting
  * must NOT tear down the stack the outer shell is still relying on.
  *

@@ -1,24 +1,24 @@
 <!--
-  CnOpenBuildEditButton — the universal in-app edit entry point (ADR-041).
+  CnBuildiqEditButton — the universal in-app edit entry point (ADR-041).
 
-  A Conduction-orange icon button bearing the OpenBuild glyph, meant to sit
+  A Conduction-orange icon button bearing the Buildiq glyph, meant to sit
   immediately to the right of a page's refresh control. It renders nothing
-  unless `available` is true, and is deliberately OpenBuild-agnostic: it never
-  imports OpenBuild app code and never calls `useAppStatus` — availability is
-  passed in (wire it from `useOpenBuildEditAvailability()`).
+  unless `available` is true, and is deliberately Buildiq-agnostic: it never
+  imports Buildiq app code and never calls `useAppStatus` — availability is
+  passed in (wire it from `useBuildiqEditAvailability()`).
 
   Its action menu drives the shared `useManifestEditor` instance (passed as
   `editor`): Edit page ⇄ Save page, Add widget (disabled unless editing),
   Edit menu…, Edit sidebar…. Save emits `@save(delta)` with the minimal delta.
 -->
 <template>
-	<div v-if="isAvailable" class="cn-openbuild-edit">
+	<div v-if="isAvailable" class="cn-buildiq-edit">
 		<NcActions
 			v-model:open="menuOpen"
-			:aria-label="t('nextcloud-vue', 'Edit with OpenBuild')"
-			:class="['cn-openbuild-edit__actions', { 'cn-openbuild-edit__actions--editing': isEditing }]">
+			:aria-label="t('nextcloud-vue', 'Edit with Buildiq')"
+			:class="['cn-buildiq-edit__actions', { 'cn-buildiq-edit__actions--editing': isEditing }]">
 			<template #icon>
-				<svg class="cn-openbuild-edit__glyph"
+				<svg class="cn-buildiq-edit__glyph"
 					width="20"
 					height="20"
 					viewBox="0 0 24 24"
@@ -217,7 +217,7 @@ import { getDefaultContent, getWidgetTypeEntry } from '../CnWidgetGrid/dashboard
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 
 export default {
-	name: 'CnOpenBuildEditButton',
+	name: 'CnBuildiqEditButton',
 
 	components: {
 		NcActions,
@@ -253,7 +253,13 @@ export default {
 	inject: {
 		/** Shared editor instance published by CnAppRoot; overridden by the `editor` prop. */
 		cnManifestEditor: { default: null },
-		/** OpenBuild availability published by CnAppRoot; overridden by the `available` prop. */
+		/**
+		 * Buildiq availability published by CnAppRoot; overridden by the `available` prop.
+		 *
+		 * The inject key keeps its `cnOpenBuildAvailable` spelling on purpose: it is a
+		 * runtime provide/inject contract that consumer apps may already read, so the
+		 * 2026-08-21 OpenBuild → Buildiq rename deliberately left it untouched.
+		 */
 		cnOpenBuildAvailable: { default: false },
 		/** The live (published) manifest published by CnAppRoot — read when not editing. */
 		cnManifest: { default: null },
@@ -261,8 +267,8 @@ export default {
 
 	props: {
 		/**
-		 * Whether OpenBuild is available to this user. When falsey the component
-		 * renders nothing. Wire from `useOpenBuildEditAvailability()`.
+		 * Whether Buildiq is available to this user. When falsey the component
+		 * renders nothing. Wire from `useBuildiqEditAvailability()`.
 		 *
 		 * @type {boolean}
 		 */
@@ -702,7 +708,7 @@ export default {
 </script>
 
 <style scoped>
-.cn-openbuild-edit {
+.cn-buildiq-edit {
 	display: inline-flex;
 }
 
@@ -710,8 +716,8 @@ export default {
    NcActions trigger button — `.button-vue` in current @nextcloud/vue (icon-only
    mode renders no `.action-item__menutoggle`), with the legacy class kept too.
    `!important` beats the `button-vue--tertiary` transparent default. */
-.cn-openbuild-edit__actions :deep(.button-vue),
-.cn-openbuild-edit__actions :deep(.action-item__menutoggle) {
+.cn-buildiq-edit__actions :deep(.button-vue),
+.cn-buildiq-edit__actions :deep(.action-item__menutoggle) {
 	background-color: var(--c-orange-knvb, #f36c21) !important;
 	color: #fff !important;
 	border-radius: var(--border-radius-element, var(--border-radius-large, 8px));
@@ -719,16 +725,16 @@ export default {
 
 /* Center the glyph in the icon-only trigger (button-vue__icon is display:block
    by default, which left-aligns the 20×20 svg). */
-.cn-openbuild-edit__actions :deep(.button-vue__wrapper) {
+.cn-buildiq-edit__actions :deep(.button-vue__wrapper) {
 	justify-content: center;
 }
-.cn-openbuild-edit__actions :deep(.button-vue__icon) {
+.cn-buildiq-edit__actions :deep(.button-vue__icon) {
 	display: flex !important;
 	align-items: center;
 	justify-content: center;
 	color: #fff;
 }
-.cn-openbuild-edit__glyph {
+.cn-buildiq-edit__glyph {
 	color: #fff;
 	display: block;
 	margin: auto;

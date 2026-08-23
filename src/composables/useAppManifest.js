@@ -66,7 +66,7 @@ function loadValidator() {
  * boot. Every read-only consumer (`CnAppNav`, `CnPageRenderer`,
  * `CnDashboardPage`, …) only reads the tree and re-renders on the ref swap.
  * `CnAppRoot` upgrades the *same* object to deep-reactive IN PLACE (Vue 2.7
- * `reactive()`, preserving object identity) only when OpenBuild in-app
+ * `reactive()`, preserving object identity) only when Buildiq in-app
  * editing is available — see `manifest-shallow-reactivity-by-default` and
  * `useManifestEditor.upgradeManifestToEditable`. The object is deliberately
  * NOT `markRaw`'d, because `markRaw` would make that in-place `reactive()`
@@ -164,7 +164,7 @@ export function useAppManifest(appIdOrOptions, bundledManifest, options = {}) {
 function loadInMemory(input) {
 	// Shallow by default (manifest-shallow-reactivity-by-default): track the
 	// ref reassignment, not deep mutation of the manifest tree. NOT markRaw'd —
-	// CnAppRoot upgrades this same object in place via reactive() when OpenBuild
+	// CnAppRoot upgrades this same object in place via reactive() when Buildiq
 	// editing is available, which markRaw would silently block.
 	const manifest = shallowRef(input.manifest)
 	const isLoading = ref(false)
@@ -197,8 +197,8 @@ function loadInMemory(input) {
  * merge, sentinel resolution, validation. Implements REQ-JMR-002 of the
  * `json-manifest-renderer` capability. Preserved verbatim for backwards
  * compatibility with all current consumers (OpenRegister, OpenCatalogi,
- * Procest, Pipelinq, LaunchPad, decidesk, docudesk, larpingapp,
- * softwarecatalog).
+ * Dossiq, Pipelinq, Launchpad, Decidiq, Filinq, Larpinq,
+ * Stackiq).
  *
  * @param {string} appId Nextcloud app ID.
  * @param {object} bundledManifest The manifest shipped with the app.

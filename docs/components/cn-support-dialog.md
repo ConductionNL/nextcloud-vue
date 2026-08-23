@@ -24,7 +24,7 @@ The same dialog is also wired up automatically as the fourth container of [`CnFe
 
     <CnSupportDialog
       v-if="show"
-      app-name="Decidesk"
+      app-name="Decidiq"
       app-slug="decidesk"
       app-store-url="https://apps.nextcloud.com/apps/decidesk"
       feature-request-url="https://github.com/ConductionNL/decidesk/issues/new"
@@ -62,7 +62,7 @@ For apps not using `CnAppRoot`, pair `useSupportDialog` with a manual mount for 
 <template>
   <CnSupportDialog
     v-if="visible"
-    app-name="Decidesk"
+    app-name="Decidiq"
     app-slug="decidesk"
     app-store-url="https://apps.nextcloud.com/apps/decidesk"
     feature-request-url="https://github.com/ConductionNL/decidesk/issues/new"

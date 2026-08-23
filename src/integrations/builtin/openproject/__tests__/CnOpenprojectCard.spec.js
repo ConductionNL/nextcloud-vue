@@ -150,7 +150,7 @@ describe('CnOpenprojectCard', () => {
 		const wrapper = mount(CnOpenprojectCard, { propsData: { ...DEFAULT_PROPS, surface: 'user-dashboard' } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
-		expect(wrapper.text()).toContain('OpenProject not configured in OpenConnector')
+		expect(wrapper.text()).toContain('OpenProject not configured in Integriq')
 		expect(wrapper.find('.cn-openproject-card__auth-badge--warn').exists()).toBe(true)
 		wrapper.unmount()
 	})

@@ -57,6 +57,15 @@ export { CnRelationshipGraph } from './CnRelationshipGraph/index.js'
 export { CnGraphCanvas } from './CnGraphCanvas/index.js'
 export { CnFlowDetail, CnFlowSidebar, CnFlowIndexPage } from './CnFlowDetail/index.js'
 export { CnIcon, ICON_MAP, registerIcons } from './CnIcon/index.js'
+export {
+	SEMANTIC_ICONS,
+	SEMANTIC_ICONS_TIER_A,
+	SEMANTIC_ICONS_TIER_B,
+	SEMANTIC_ICON_TIERS,
+	SEMANTIC_ICON_COMPONENTS,
+	conceptForIcon,
+	getSemanticIconComponent,
+} from './CnIcon/semanticIcons.js'
 export { CnPageHeader } from './CnPageHeader/index.js'
 export { CnActionsBar } from './CnActionsBar/index.js'
 export { CnActionsMenu } from './CnActionsMenu/index.js'
@@ -279,12 +288,17 @@ export { CnCospendCreate } from './CnCospendCreate/index.js'
 export { CnTimeTrackerPicker } from './CnTimeTrackerPicker/index.js'
 export { CnTimeTrackerCreate } from './CnTimeTrackerCreate/index.js'
 
-// OpenBuild in-app edit shell (ADR-041).
+// Buildiq in-app edit shell (ADR-041).
 //
 // These live in src/dialogs/ now — they are NcDialog-based, and ADR-004 puts
 // NcDialog components there and NcModal ones in src/modals/. The exported NAMES
 // keep their `…Modal` suffix so no consumer import breaks; only the path moved.
-export { CnOpenBuildEditButton } from './CnOpenBuildEditButton/index.js'
+export { CnBuildiqEditButton } from './CnBuildiqEditButton/index.js'
+// Deprecated alias kept for consumers: OpenBuild was renamed to Buildiq in the
+// fleet-wide rename of 2026-08-21. `CnBuildiqEditButton` is canonical; this
+// re-export keeps the ~18 consuming apps that still import
+// `CnOpenBuildEditButton` working. @deprecated Use `CnBuildiqEditButton`.
+export { CnOpenBuildEditButton } from './CnBuildiqEditButton/index.js'
 export { default as CnEditMenuModal } from '../dialogs/CnEditMenuModal.vue'
 export { default as CnEditPagesModal } from '../dialogs/CnEditPagesModal.vue'
 export { default as CnEditSettingsModal } from '../dialogs/CnEditSettingsModal.vue'

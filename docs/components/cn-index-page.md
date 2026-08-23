@@ -490,7 +490,7 @@ Powered by the [`CnContextMenu`](./cn-context-menu.md) component and [`useContex
 - Each action's `disabled` state (boolean or function) is respected
 - Destructive actions are styled with `--color-error`
 - The menu closes on action click or outside click, cleaning up the CSS properties and data attribute
-- Works out of the box for all consumer apps (OpenRegister, Doriath, etc.)
+- Works out of the box for all consumer apps (OpenRegister, Keepiq, etc.)
 
 ## Filter and columns: table header vs sidebar
 

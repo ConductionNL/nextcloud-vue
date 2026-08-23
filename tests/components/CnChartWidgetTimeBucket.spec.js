@@ -41,7 +41,7 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
 const TIMESERIES_URL = '/nc/apps/openregister/api/objects/aggregations/openconnector/call_log/timeseries'
 
-// Mirrors OpenConnector's `calls-daily` manifest widget.
+// Mirrors Integriq's `calls-daily` manifest widget.
 const dataSource = {
 	register: 'openconnector',
 	schema: 'call_log',

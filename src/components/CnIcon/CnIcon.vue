@@ -5,6 +5,7 @@
 <script>
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
 import { DASHBOARD_ICONS } from '../CnIconPicker/dashboardIcons.js'
+import { SEMANTIC_ICON_COMPONENTS } from './semanticIcons.js'
 
 /**
  * Mutable icon registry.
@@ -82,12 +83,18 @@ export default {
 
 	computed: {
 		resolvedComponent() {
-			// Registered icons win; then the built-in dashboard-icon set (so an
-			// icon picked via CnIconBrowser always renders, since the picker offers
-			// exactly that set); then the fallback. A direct map lookup (not
-			// getIconComponent) returns undefined for unknown names so they still
-			// fall through to the help-circle fallback.
-			return _registry[this.name] || DASHBOARD_ICONS[this.name] || _registry[this.fallback] || HelpCircleOutline
+			// Registered icons win; then the ADR-077 semantic vocabulary (so every
+			// canonical concept icon resolves without the app registering it);
+			// then the built-in dashboard-icon set (so an icon picked via
+			// CnIconBrowser always renders, since the picker offers exactly that
+			// set); then the fallback. A direct map lookup (not getIconComponent)
+			// returns undefined for unknown names so they still fall through to
+			// the help-circle fallback.
+			return _registry[this.name]
+				|| SEMANTIC_ICON_COMPONENTS[this.name]
+				|| DASHBOARD_ICONS[this.name]
+				|| _registry[this.fallback]
+				|| HelpCircleOutline
 		},
 	},
 }

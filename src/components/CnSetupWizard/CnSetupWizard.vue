@@ -37,7 +37,7 @@
 
 				<!-- info -->
 				<template v-else-if="step.type === 'info'">
-					<NcNoteCard type="info" :heading="step.title">
+					<NcNoteCard type="info" :heading="stepTitle(step)">
 						{{ step.body || '' }}
 					</NcNoteCard>
 				</template>
@@ -48,7 +48,7 @@
 						{{ step.body }}
 					</NcNoteCard>
 					<NcSelect
-						:input-label="step.title || step.id"
+						:input-label="stepTitle(step)"
 						:options="optionsFor(step)"
 						:multiple="step.multiple === true"
 						:disabled="isChoiceDisabled(step)"
@@ -320,7 +320,7 @@ export default {
 					} else {
 						done = this.isStepDone(step.id)
 					}
-					return { id: step.id, title: step.title || step.id, value, done }
+					return { id: step.id, title: this.stepTitle(step), value, done }
 				})
 		},
 		/**
@@ -349,6 +349,28 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The visible title for a step, resolved through the host app's
+		 * translation function.
+		 *
+		 * `manifest.setup.steps[].title` is authored in English as the
+		 * canonical source, exactly like the schema property titles this
+		 * component already routes through `cnTranslate` for field labels
+		 * (see `fieldsFromSchema` below). The step titles were the one
+		 * remaining place rendering the manifest string verbatim, so an
+		 * nl-locale user saw a wizard whose field labels were translated and
+		 * whose step headings were not.
+		 *
+		 * Falls back to the step id when a step declares no title, which is
+		 * the same fallback the raw bindings used.
+		 *
+		 * @param {object} step A `manifest.setup.steps[]` entry.
+		 * @return {string} The translated title, or the step id.
+		 */
+		stepTitle(step) {
+			const raw = (step && step.title) || (step && step.id) || ''
+			return raw === '' ? '' : this.cnTranslate(raw)
+		},
 		stepSlot(step) {
 			return 'step-' + step.id
 		},

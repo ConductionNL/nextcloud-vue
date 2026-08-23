@@ -29,9 +29,9 @@ CRM and pipeline management. Demonstrates:
 - **CnSettingsSection** + **CnRegisterMapping** — admin settings with OpenRegister configuration
 - Pipeline (kanban) views alongside standard list views
 
-### Procest
+### Dossiq
 
-**Repository**: [ConductionNL/procest](https://github.com/ConductionNL/procest)
+**Repository**: [ConductionNL/dossiq](https://github.com/ConductionNL/dossiq)
 
 Case management with workflow states. Demonstrates:
 - **CnStatusBadge** — workflow state indicators with color maps
@@ -39,9 +39,9 @@ Case management with workflow states. Demonstrates:
 - **CnFormDialog** — case creation with custom field overrides
 - Lifecycle plugin for state transition hooks
 
-### LarpingApp
+### Larpinq
 
-**Repository**: [ConductionNL/larpingapp](https://github.com/ConductionNL/larpingapp)
+**Repository**: [ConductionNL/larpinq](https://github.com/ConductionNL/larpinq)
 
 Character and event management for LARP (Live Action Role Playing). Demonstrates:
 - **registerIcons** — registering domain-specific icons (Sword, MagicStaff, ShieldSwordOutline)
@@ -87,5 +87,5 @@ Software catalog for Dutch government organizations. Built on OpenCatalogi. Demo
 
 - `CnFacetSidebar` for faceted search (OpenCatalogi, Softwarecatalogus)
 - `CnKpiGrid` + `CnStatsBlock` for dashboards (LaunchPad)
-- `CnStatusBadge` for workflow states (Procest)
-- `CnCardGrid` + `CnObjectCard` for visual browsing (LarpingApp)
+- `CnStatusBadge` for workflow states (Dossiq)
+- `CnCardGrid` + `CnObjectCard` for visual browsing (Larpinq)

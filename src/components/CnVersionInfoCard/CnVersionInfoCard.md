@@ -74,7 +74,7 @@ With `title`, `description`, `docUrl`, `cardTitle`, `loading`, and `labels`:
     version: 'Installed version',
     configuredVersion: 'DB schema version',
   }"
-  app-name="Procest"
+  app-name="Dossiq"
   app-version="0.4.2"
   configured-version="0.4.2"
   :is-up-to-date="true" />

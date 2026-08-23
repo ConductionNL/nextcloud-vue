@@ -67,6 +67,7 @@
 <script>
 import { BUILT_IN_WIDGETS } from './builtInWidgets.js'
 import { getWidgetTypeEntry } from './dashboardWidgetRegistry.js'
+import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
 import CnUnknownWidget from './CnUnknownWidget.vue'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { resolveSlotColumns } from '../../utils/resolveSlotColumns.js'
@@ -237,15 +238,21 @@ export default {
 					component = entry.component ?? entry
 				}
 
+				// `table` and `object-table` (and `map` / `map-viewer`) are the
+				// same component registered under two names in two registries.
+				// Canonicalising here means either spelling resolves, whichever
+				// registry happens to hold it — see utils/widgetTypeAliases.js.
+				const canonical = canonicalWidgetType(key)
+
 				if (!component) {
-					component = BUILT_IN_WIDGETS[key] ?? null
+					component = BUILT_IN_WIDGETS[key] ?? BUILT_IN_WIDGETS[canonical] ?? null
 				}
 
 				if (!component) {
 					// Dashboard widget catalog (cn-widget-library): the 21 migrated
 					// widgets self-register here. Resolved after cnRegistry + built-ins
 					// so a consumer override still wins.
-					const entry = getWidgetTypeEntry(key)
+					const entry = getWidgetTypeEntry(key) || getWidgetTypeEntry(canonical)
 					component = (entry && entry.renderer) ?? null
 				}
 

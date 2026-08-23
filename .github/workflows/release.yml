@@ -31,14 +31,25 @@ name: Release
 # Conduction package currently shipping cleanly via semantic-release +
 # OIDC.
 
-# `feat/vue-3` is the Vue-3 line. `.releaserc.json` maps it to the `vue3`
-# dist-tag with a `vue3` prerelease preid, but that config only decides HOW
-# a release is versioned once this workflow runs — it does not decide WHEN.
-# Without the branch listed here the workflow simply never fires on a push
-# to it, and the Vue-3 package only ever ships when somebody remembers to
-# dispatch it by hand (which is exactly how 2.1.0-vue3.1 got out). Keep the
-# two lists in agreement: a branch added to `.releaserc.json` and not to
-# this trigger is a release channel that silently never publishes.
+# Keep this trigger list and `.releaserc.json`'s `branches` in agreement: a
+# branch configured in one and not the other is a release channel that
+# silently never publishes. That is not hypothetical — it is how
+# `2.1.0-vue3.1` ended up shipping only when somebody remembered to dispatch
+# it by hand.
+#
+# ⚠️ THE `vue3` CHANNEL IS GONE, BUT ITS npm DIST-TAG OUTLIVED IT.
+#
+# This comment used to describe `feat/vue-3` as a live Vue-3 line mapped to a
+# `vue3` dist-tag. Both halves are now false: the branch was folded into main
+# (see the `chore/fold-vue3-branches*` branches) and `.releaserc.json` lists
+# only `main` and `beta`. What survived is the npm dist-tag itself, still
+# pointing at **2.3.0** while `latest` moved to 2.8.x.
+#
+# A stale dist-tag is worse than no dist-tag: it reads as a deliberate
+# compatibility floor. Twelve apps sat on 2.3.0 for months and the tag was
+# the reason it looked intentional — `npm view` shows 2.3.0 and 2.8.x declare
+# IDENTICAL peer dependencies, `vue: ^3.5.0` included, so there was never a
+# Vue-3 boundary to hold. See `retag.yml` for the one-shot repair.
 on:
   push:
     branches: [main, beta]

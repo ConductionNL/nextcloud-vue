@@ -1,5 +1,11 @@
 export { useManifestEditor } from './useManifestEditor.js'
-export { useOpenBuildEditAvailability } from './useOpenBuildEditAvailability.js'
+export { useBuildiqEditAvailability } from './useBuildiqEditAvailability.js'
+// Deprecated alias kept for consumers: OpenBuild was renamed to Buildiq in the
+// fleet-wide rename of 2026-08-21. `useBuildiqEditAvailability` is canonical;
+// this re-export keeps the ~18 consuming apps that still call
+// `useOpenBuildEditAvailability` working.
+// @deprecated Use `useBuildiqEditAvailability`.
+export { useOpenBuildEditAvailability } from './useBuildiqEditAvailability.js'
 export { useAiContext, CN_AI_CONTEXT_KEY } from './useAiContext.js'
 export { useAiChatStream } from './useAiChatStream.js'
 export {

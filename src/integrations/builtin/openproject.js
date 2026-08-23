@@ -3,7 +3,7 @@
  *
  * Maps OpenProject's work-package surface (PHP-side:
  * `OCA\OpenRegister\Service\Integration\Providers\OpenProjectProvider`,
- * storage strategy `external`, OpenConnector-routed) onto bespoke
+ * storage strategy `external`, Integriq-routed) onto bespoke
  * `CnOpenprojectTab` and `CnOpenprojectCard` components. The generic
  * `CnIntegrationTab` / `CnIntegrationCard` would strip away
  * OpenProject's primary signals (work-package status, type, priority,
@@ -13,9 +13,9 @@
  *
  * As the first **external-storage** integration the pair also handles
  * the auth-status surface (configured / missing / expired) emitted by
- * OpenConnector — the generic components don't know how to render that
+ * Integriq — the generic components don't know how to render that
  * state, so the bespoke tab degrades to an "unconfigured" / "auth
- * expired" CTA pointing back to the OpenConnector admin UI.
+ * expired" CTA pointing back to the Integriq admin UI.
  *
  * Registration ordering: `registerBuiltinIntegrations()` runs before
  * `registerLeafIntegrations()` in OpenRegister's bootstrap (see

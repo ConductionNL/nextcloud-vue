@@ -105,7 +105,10 @@
 
 		<!-- Enum: status badge (auto-coloured from the property's optional colorMap) -->
 		<template v-else-if="isEnum">
-			<CnStatusBadge v-if="value" :label="String(value)" :color-map="enumColorMap" />
+			<CnStatusBadge v-if="value"
+				:label="enumLabel"
+				:color-key="String(value)"
+				:color-map="enumColorMap" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
@@ -176,6 +179,13 @@ export default {
 		 * Defaults to an empty object.
 		 */
 		cnCellWidgets: { default: () => ({}) },
+		/**
+		 * Display-layer translation function, provided by CnAppRoot
+		 * (`cnTranslate: this.translate`, bound to the host app's id). Applied
+		 * to the enum badge label only — the underlying value is untouched.
+		 * Defaults to identity so standalone use is unaffected.
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -289,6 +299,18 @@ export default {
 
 		isEnum() {
 			return !!(this.property?.enum && this.property.enum.length > 0)
+		},
+
+		/**
+		 * Badge text for an enum cell. Schema enum values are English source
+		 * codes, so a Dutch session otherwise reads `submitted` in a table whose
+		 * headers are Dutch. Only the label is translated — the cell's value,
+		 * sorting and filtering keep using the raw code.
+		 */
+		enumLabel() {
+			const raw = String(this.value)
+			const labels = (this.property && (this.property.enumLabels || this.property['x-enum-labels'])) || {}
+			return this.cnTranslate(labels[raw] || raw)
 		},
 
 		/** True when the property is a date / date-time (rendered via NcDateTime). */

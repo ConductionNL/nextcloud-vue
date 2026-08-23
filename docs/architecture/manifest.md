@@ -18,7 +18,7 @@ A typical Conduction Nextcloud app has 10 to 30 routes. Wiring each one as a `<r
   "$schema": "https://nextcloud-vue.conduction.nl/schemas/app-manifest.schema.json",
   "version": "1.2",
   "id": "decidesk",
-  "name": "Decidesk",
+  "name": "Decidiq",
   "description": "Open-source decision management for the Nextcloud workspace.",
   "icon": "ScaleBalance",
   "menu": [

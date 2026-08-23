@@ -404,7 +404,7 @@ The component MUST allow per-stage customization of indicator icons and colors v
 - THEN the default indicator (circle/checkmark/outlined) and default Nextcloud CSS variable colors SHALL be used
 
 ### Requirement: Integration with pipeline and case status models
-The component MUST work seamlessly when bound to pipeline stage configurations (Pipelinq) and case status type definitions (Procest).
+The component MUST work seamlessly when bound to pipeline stage configurations (Pipelinq) and case status type definitions (Dossiq).
 
 #### Scenario: Pipeline stage mapping
 - GIVEN a Pipelinq pipeline configuration with stages `[{ id: "lead", title: "Lead", probability: 10, order: 1 }, { id: "qualified", title: "Qualified", probability: 30, order: 2 }]`
@@ -413,7 +413,7 @@ The component MUST work seamlessly when bound to pipeline stage configurations (
 - AND clicking a stage (when `clickable`) SHALL emit the mapped stage object in the payload
 
 #### Scenario: Case status type mapping
-- GIVEN a Procest case type with status types `[{ id: "open", name: "Open" }, { id: "in_progress", name: "In Progress" }, { id: "closed", name: "Closed" }]` and a status history
+- GIVEN a Dossiq case type with status types `[{ id: "open", name: "Open" }, { id: "in_progress", name: "In Progress" }, { id: "closed", name: "Closed" }]` and a status history
 - WHEN the consumer maps these to stages with subtitles derived from the history
 - THEN completed stages SHALL show the date they were reached as subtitle text
 - AND the current stage SHALL show "Current" or a localized equivalent as subtitle
@@ -472,7 +472,7 @@ This section documents how the actual implementation in `nextcloud-vue/src/compo
 | Stage groups and sections | Not implemented | No `groups` prop or section label rendering. |
 | Animation on stage transitions | Partial | CSS `transition` on background/border-color (0.15s), but no track line fill animation or reduced-motion handling. |
 | Configurable stage icons/colors | Not implemented | No `icon` or `color` stage properties are processed. |
-| Integration with pipeline/case models | Conforms | Component is model-agnostic; consumers map freely. Procest currently uses a custom StatusTimeline instead. |
+| Integration with pipeline/case models | Conforms | Component is model-agnostic; consumers map freely. Dossiq currently uses a custom StatusTimeline instead. |
 | Accessible stage count announcement | Not implemented | `aria-label` is static; no step count, per-stage state labels, or live region. |
 
 ## Deviations from Spec
@@ -483,7 +483,7 @@ This section documents how the actual implementation in `nextcloud-vue/src/compo
 
 3. **Stage prop validator**: The implementation validates that every stage has `id` and `label` properties via a prop validator. The spec describes these fields but does not mandate runtime validation. This is a stricter-than-spec behavior that provides better developer experience.
 
-4. **Procest StatusTimeline duplication**: Procest has a custom `StatusTimeline` component (`procest/src/views/cases/components/StatusTimeline.vue`) that reimplements stage visualization with status history support. This suggests the shared component lacks features (error states, history dates, status-specific colors) needed by case management consumers. The ADDED requirements for error state support, stage data binding, and integration with pipeline/case models address this gap.
+4. **Dossiq StatusTimeline duplication**: Dossiq has a custom `StatusTimeline` component (`procest/src/views/cases/components/StatusTimeline.vue`) that reimplements stage visualization with status history support. This suggests the shared component lacks features (error states, history dates, status-specific colors) needed by case management consumers. The ADDED requirements for error state support, stage data binding, and integration with pipeline/case models address this gap.
 
 ## Accessibility Details
 

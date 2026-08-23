@@ -87,7 +87,7 @@ const fieldsTabSection = {
 
 const builtinTabSection = {
 	title: 'About',
-	widgets: [{ type: 'version-info', props: { appName: 'Procest', appVersion: '0.1.0' } }],
+	widgets: [{ type: 'version-info', props: { appName: 'Dossiq', appVersion: '0.1.0' } }],
 }
 
 describe('CnSettingsPage — tabs orchestration (REQ-MSO-*)', () => {
@@ -187,7 +187,7 @@ describe('CnSettingsPage — tabs orchestration (REQ-MSO-*)', () => {
 		const wrapper = mount(CnSettingsPage, { propsData: { tabs }, stubs })
 		const card = wrapper.find('.cn-version-info-card-stub')
 		expect(card.exists()).toBe(true)
-		expect(card.attributes('data-app-name')).toBe('Procest')
+		expect(card.attributes('data-app-name')).toBe('Dossiq')
 	})
 
 	it('REQ-MSO-6: widgets[] {type:"component", componentName} resolves via customComponents', () => {

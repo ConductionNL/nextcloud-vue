@@ -147,6 +147,86 @@ describe('CnDetailPage — sidebar Object form + show flag', () => {
 		})
 	})
 
+	describe('open is seeded once, not re-applied on every sync', () => {
+		// REGRESSION. `syncSidebarState()` documents this exactly:
+		//
+		//   Seed `open` only on the inactive→active edge (first activation of
+		//   this object). Subsequent syncs must NOT clobber it, otherwise the
+		//   user's close/toggle would be undone on the next reactive change.
+		//
+		// The code set `sidebarSeeded = true` and then passed `open` to
+		// `assignSidebarState()` unconditionally, so the flag was written and
+		// never read. Every later sync — and a detail page emits several while
+		// it hydrates — slammed `open` back to the prop's default of `false`,
+		// reclosing a sidebar the user had just opened.
+		//
+		// Downstream this made openbuild's e2e suite race the UI: the sidebar
+		// reopened, the tab was clicked, and the panel content was hidden again
+		// before the assertion ran (openbuild#268 — "resolves 30×, hidden").
+
+		it('does not reclose a sidebar the user opened, on a later sync', async () => {
+			const state = makeState()
+			const wrapper = mountDetailPage({
+				title: 'Lead',
+				objectType: 'lead',
+				objectId: '1',
+				sidebar: { register: 'leads', schema: 'lead' },
+			}, state)
+
+			// First activation seeds the prop default.
+			expect(state.active).toBe(true)
+			expect(state.open).toBe(false)
+
+			// The user (or NcAppSidebar's own toggle) opens it. The shared
+			// channel owns `open` from here on.
+			state.open = true
+
+			// Any later reactive change re-runs the sync. A hydrating detail
+			// page does this repeatedly as the object and schema resolve.
+			await wrapper.setProps({ title: 'Lead (loaded)' })
+			expect(state.open).toBe(true)
+
+			await wrapper.setProps({ subtitle: 'now with a subtitle' })
+			expect(state.open).toBe(true)
+		})
+
+		it('re-seeds on the next activation after going inactive', async () => {
+			const state = makeState()
+			const wrapper = mountDetailPage({
+				title: 'Lead',
+				objectType: 'lead',
+				objectId: '1',
+				sidebar: { register: 'leads', schema: 'lead' },
+			}, state)
+			expect(state.open).toBe(false)
+
+			state.open = true
+
+			// Deactivate — the seed re-arms.
+			await wrapper.setProps({ sidebar: { show: false } })
+			expect(state.active).toBe(false)
+
+			// Reactivating is a fresh activation, so the prop seeds again and
+			// the stale `open: true` from the previous object does not leak in.
+			await wrapper.setProps({ sidebar: { register: 'leads', schema: 'lead' } })
+			expect(state.active).toBe(true)
+			expect(state.open).toBe(false)
+		})
+
+		it('seeds sidebarOpen: true when the host asks for it', () => {
+			const state = makeState()
+			state.open = false
+			mountDetailPage({
+				title: 'Lead',
+				objectType: 'lead',
+				objectId: '1',
+				sidebarOpen: true,
+				sidebar: { register: 'leads', schema: 'lead' },
+			}, state)
+			expect(state.open).toBe(true)
+		})
+	})
+
 	describe('Object form fields', () => {
 		it('forwards register / schema / hiddenTabs / title / subtitle / tabs', () => {
 			const state = makeState()
