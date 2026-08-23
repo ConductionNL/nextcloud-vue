@@ -1543,6 +1543,17 @@ export default {
 			/** Widget definitions paired with `autoBodyLayout` (id ↔ widgetId). */
 			autoBodyWidgets: null,
 			/**
+			 * True when `materializeAutoBody()` dropped the Data widget only
+			 * because the schema had not arrived yet — the object won the race
+			 * against `fetchSchema`. The `currentSchema` watcher re-materializes
+			 * once on that signal, which is what stops a lost race from
+			 * permanently hiding every scalar field (shillinq#1073).
+			 *
+			 * A flag rather than an "is the widget missing?" test, so a body the
+			 * user has edited is never rewritten underneath them.
+			 */
+			dataWidgetDeferred: false,
+			/**
 			 * Drives the Actions-menu Refresh spinner during a schema-driven
 			 * self-fetch refresh, where the host has no promise to bind
 			 * `:refreshing` to. Mirrors CnIndexPage.internalRefreshing.
@@ -2105,32 +2116,21 @@ export default {
 
 		// Re-publish once the schema Object resolves (fetched async), so the
 		// hoisted sidebar's `data` tab widget gets its `schema` prop.
-		currentSchema() {
+		currentSchema(schema) {
 			this.syncSidebarState()
 
-			// AND REBUILD THE BODY IF IT WAS MATERIALIZED WITHOUT A SCHEMA.
+			// Put the Data widget back if the body materialized before the
+			// schema arrived. See materializeAutoBody(): fetchObject and
+			// fetchSchema race, `shouldRenderAutoBody` gates on the OBJECT
+			// only, and the body materializes once — so losing that race meant
+			// the page rendered its title and Related panel with every scalar
+			// field permanently missing (shillinq#1073).
 			//
-			// The auto-body is materialized ONCE, by the shouldRenderAutoBody
-			// watcher, the moment the OBJECT resolves — and materializeAutoBody()
-			// drops the Data widget when no schema is known at that instant. The
-			// schema is a SEPARATE async fetch, as the comment above says, so
-			// whenever the object won that race the page kept a Related widget
-			// and NO FIELDS for the life of the mount. Nothing rebuilt it,
-			// because the only reset is the resolvedObjectType watcher, which
-			// fires on a different object TYPE, not on a late schema.
-			//
-			// Invisible on a fast machine, where the schema usually lands first.
-			// Measured from a shillinq e2e failure whose snapshot showed the
-			// whole `main` region as heading + Actions + "No relations yet" and
-			// none of the sixteen declared fields (shillinq#928).
-			//
-			// Guarded on the widget being ABSENT so a schema re-publish cannot
-			// discard a drag/resize the user already made to a working body.
-			if (
-				this.currentSchema
-				&& Array.isArray(this.autoBodyLayout)
-				&& !this.autoBodyLayout.some((l) => l.widgetId === 'data')
-			) {
+			// Guarded by `dataWidgetDeferred` rather than by "is the data
+			// widget absent", so a body the user has edited is never rewritten
+			// underneath them. The flag is cleared by the re-materialize, so
+			// this runs at most once per materialized body.
+			if (schema && this.dataWidgetDeferred) {
 				this.materializeAutoBody()
 			}
 		},
@@ -2149,6 +2149,10 @@ export default {
 		resolvedObjectType() {
 			this.autoBodyLayout = null
 			this.autoBodyWidgets = null
+			// Cleared with the body it described. materializeAutoBody() sets it
+			// afresh, so this only avoids carrying a stale "deferred" across a
+			// type change.
+			this.dataWidgetDeferred = false
 		},
 
 		title() { this.syncSidebarState() },
@@ -2824,6 +2828,28 @@ export default {
 			})
 			// Drop the Data widget when there's no schema to render (the helper
 			// always includes it; the auto-body only shows it with a schema).
+			//
+			// This can happen because the schema HAS NOT ARRIVED YET, not
+			// because there is none: `schemaDrivenFetch` fires fetchObject and
+			// fetchSchema in parallel, and this body materializes as soon as
+			// `shouldRenderAutoBody` turns true — which tests `currentObject`
+			// and NOT `currentSchema`. When the object wins that race the Data
+			// widget is filtered out, and because the body materializes only
+			// once (`if (active && !this.autoBodyLayout)`) and resets only when
+			// `resolvedObjectType` changes, the schema landing a moment later
+			// never puts it back.
+			//
+			// The symptom is a detail page showing its title and Related panel
+			// with EVERY declared scalar field missing, intermittently, on
+			// identical code — shillinq#1073, where the object fetch returned
+			// 200 carrying the values the page then did not render.
+			//
+			// `dataWidgetDeferred` records that this filtering was provisional
+			// so the watcher below can re-materialize exactly once, when the
+			// schema arrives. It is deliberately NOT a plain "re-materialize if
+			// the data widget is absent": a body the user has edited must not
+			// have the widget silently restored underneath them.
+			this.dataWidgetDeferred = !this.currentSchema
 			if (!this.currentSchema) {
 				grid.widgets = grid.widgets.filter((w) => w.widgetId !== 'data')
 				grid.layout = grid.layout.filter((l) => l.widgetId !== 'data')

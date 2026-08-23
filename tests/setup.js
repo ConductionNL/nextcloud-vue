@@ -59,3 +59,27 @@ config.global.mocks = {
 	t: translate,
 	n: translatePlural,
 }
+
+// ResizeObserver — jsdom does not implement it, and Vue Flow needs it to
+// measure nodes. That measurement is a FEATURE, not an accident: it is what
+// let CnGraphCanvas drop the `nodeWidth`/`nodeHeight` props the hand-rolled
+// canvas needed so its edges could guess where a node's centre was.
+//
+// A no-op observer is the right stub for jsdom, which has no layout: it never
+// reports a size change because nothing ever resizes. Tests that care about
+// geometry belong in the Playwright e2e, where a real browser lays the canvas
+// out.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+	globalThis.ResizeObserver = class ResizeObserver {
+
+		/** @return {void} */
+		observe() {}
+
+		/** @return {void} */
+		unobserve() {}
+
+		/** @return {void} */
+		disconnect() {}
+
+	}
+}

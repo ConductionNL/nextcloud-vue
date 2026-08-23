@@ -42,6 +42,31 @@
 			layout, so `scrollWidth`/`clientWidth` are both 0 there and axe's
 			`scrollable-region-focusable` can never fire in the jest a11y lane.
 		-->
+		<!--
+			Vue Flow canvas (?canvas=1).
+
+			The canvas only exists in a REAL browser: Vue Flow measures nodes
+			before rendering them, and jsdom has no layout, so a unit test that
+			mounts it finds zero node elements. Every geometry and keyboard
+			assertion therefore has to run here.
+
+			`readonly=1` renders the same graph with readOnly set, so one page
+			serves both the interactive and the refused cases.
+		-->
+		<template v-else-if="showCanvas">
+			<h2>Flow canvas</h2>
+			<div class="canvas-box" data-testid="canvas-box">
+				<CnGraphCanvas
+					:nodes="canvasNodes"
+					:edges="canvasEdges"
+					:read-only="canvasReadOnly"
+					:show-mini-map="true"
+					@nodes-change="canvasChanges.push($event)"
+					@connect="canvasConnections.push($event)" />
+			</div>
+			<pre data-testid="canvas-connections">{{ JSON.stringify(canvasConnections) }}</pre>
+		</template>
+
 		<template v-else-if="showDtScroll">
 			<h2>Data table — horizontal scroll</h2>
 			<div class="dt-narrow" data-testid="dt-overflowing">
@@ -243,6 +268,7 @@
 </template>
 
 <script>
+import CnGraphCanvas from '../../src/components/CnGraphCanvas/CnGraphCanvas.vue'
 import CnIconPicker from '../../src/components/CnIconPicker/CnIconPicker.vue'
 import CnIconBrowser from '../../src/components/CnIconBrowser/CnIconBrowser.vue'
 import CnMarkdownEditor from '../../src/components/CnMarkdownEditor/CnMarkdownEditor.vue'
@@ -277,13 +303,31 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnDashboardPage, CnNavCardGrid, NcDialog, NcSelect },
+	components: { CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnDashboardPage, CnNavCardGrid, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
 			showDashboard: (typeof window !== 'undefined' && window.location.search.includes('dash')),
 			// Date-range chip harness (?chip=1) — see the template comment.
 			showDateChip: (typeof window !== 'undefined' && window.location.search.includes('chip')),
+			// Vue Flow canvas harness (?canvas=1) — see the template comment.
+			showCanvas: (typeof window !== 'undefined' && window.location.search.includes('canvas')),
+			canvasReadOnly: (typeof window !== 'undefined' && window.location.search.includes('readonly')),
+			// A ROUTING node with three exits, because the multi-exit keyboard
+			// path is the one that would silently regress.
+			canvasNodes: [
+				{ id: 'a', type: 'default', position: { x: 40, y: 40 }, data: { label: 'Start' } },
+				{
+					id: 'b',
+					type: 'default',
+					position: { x: 260, y: 160 },
+					data: { label: 'Route', ports: [{ id: 'yes', label: 'Yes' }, { id: 'no', label: 'No' }, { id: 'else', label: 'Else' }] },
+				},
+				{ id: 'c', type: 'default', position: { x: 40, y: 300 }, data: { label: 'End' } },
+			],
+			canvasEdges: [{ id: 'e1', source: 'a', target: 'b' }],
+			canvasChanges: [],
+			canvasConnections: [],
 			// CnDataTable horizontal-scroll harness (?dtscroll=1).
 			showDtScroll: (typeof window !== 'undefined' && window.location.search.includes('dtscroll')),
 			// Non-sortable, exactly like scholiq's failing "manage-courses" widget
@@ -437,6 +481,16 @@ export default {
 </script>
 
 <style>
+/* The canvas needs a REAL box. Vue Flow measures its container and renders
+   nodes into that measurement, so a zero-height parent yields a canvas whose
+   pane overlays its own nodes and swallows every pointer event — which is
+   exactly how the first run of the drag spec failed. */
+.canvas-box {
+	width: 800px;
+	height: 480px;
+	border: 1px solid #ccc;
+}
+
 /* Stands in for a dashboard widget card: a fixed-height scrolling content area
    with a border. Deliberately SHORTER than its rows, so the footer has to
    survive scrolling rather than merely existing. */
