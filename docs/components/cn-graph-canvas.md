@@ -4,18 +4,26 @@ sidebar_position: 44
 
 # CnGraphCanvas
 
-A generic node/edge canvas: **geometry and interaction only**. It owns pan, zoom, node dragging, and drag-to-connect — and nothing else.
+A generic node/edge canvas built on [Vue Flow](https://vueflow.dev) — the library n8n runs. Vue Flow owns pan, zoom, dragging, connecting and edge routing; this component adds Conduction's node chrome, the palette-drop event, and the keyboard contract.
 
 It has no opinion about what a node *means*. No statuses, no steps, no guards, no conditions, no persistence. You supply `nodes` and `edges` as plain geometry and render the bodies through slots.
 
 **Not a flow builder.** Per [ADR-065](https://codeberg.org/Conduction/hydra) this is a shared *renderer*. The palette, property panels, condition editors, validators, and persistence rules that surround a real editor are app-specific and stay in the consuming app — they are roughly 80% of an editor's code and 0% of what is reusable. A canvas that tried to own them would be a forced marriage between apps whose models genuinely differ.
 
-Extracted from procest's `WorkflowEditor.vue`, the only canvas in the fleet that has ever worked in production. Deliberately *not* built on `@vue-flow`: every `@vue-flow/core` release ever published declares a Vue 3 peer dependency, and this library is Vue 2.7. That mistake already cost one app its editor.
+**History, because the previous version of this page said the opposite.** This canvas used to be ~1,300 hand-written lines on a bare SVG, and this paragraph used to explain that `@vue-flow` was deliberately avoided because "every `@vue-flow/core` release declares a Vue 3 peer dependency, and this library is Vue 2.7". That was true and is no longer: ADR-081 migrated the fleet to Vue 3 *specifically* to unblock this, naming Vue Flow as the reason. Measured before the swap: `@vue-flow/core@1.48.2` against `vue ^3.5.13` builds with **zero** errors, where the Vue-2.7 attempt produced 272.
+
+**Cost.** The library is externalised, so consuming apps pay ~71 KB gz — against ~2,100 hand-maintained lines removed.
 
 ## Try it
 
 Drag a node. Drag from a node's handle onto another node to connect them. Scroll
-to zoom, drag empty space to pan. Focus a node and use the arrow keys.
+to zoom, drag empty space to pan.
+
+**Or use no pointer at all.** Tab to a node, move it with the arrow keys (Shift
+for a coarse step), press `c` to start a connection and `c` on another node to
+complete it, `Escape` to cancel. On a node with several exits, repeated `c`
+steps through them and rings the armed one — a mouse picks a branch by pointing
+at it, and without this the keyboard could only ever reach the first.
 
 ```vue
 <template>

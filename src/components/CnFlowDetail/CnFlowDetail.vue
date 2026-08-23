@@ -113,46 +113,37 @@
 			</ul>
 		</NcNoteCard>
 
+		<!-- Edges are Vue Flow's now. The hand-drawn `#edge` slot and its
+		     orthogonal `edgePath()` are gone: Vue Flow routes and arrows edges
+		     itself, and it measures the rendered node instead of being told a
+		     `nodeWidth`/`nodeHeight` to guess the centre from. -->
 		<CnGraphCanvas
-			:nodes="store.nodes"
+			:nodes="canvasNodes"
 			:edges="store.canvasEdges"
-			:selected-node-id="store.selectedNodeId"
-			:node-width="nodeWidth"
-			:node-height="nodeHeight"
-			:zoom="zoom"
 			:min-zoom="minZoom"
 			:max-zoom="maxZoom"
-			@update:zoom="zoom = $event"
-			@node-select="store.selectedNodeId = $event"
+			@node-select="onNodeSelect"
 			@canvas-click="store.selectedNodeId = null"
-			@node-move="store.moveNode($event)"
+			@nodes-change="onNodesChange"
 			@connect="store.connect($event)"
 			@canvas-drop="onCanvasDrop">
-			<!-- Orthogonal routing plus an explicit arrowhead: a flow has to read
-			     in one direction, which a plain line does not convey. -->
-			<template #edge="{ from, to }">
-				<g>
-					<path
-						class="cn-flow-detail__edge"
-						:d="edgePath(from, to)"
-						fill="none"
-						:marker-end="`url(#${arrowId})`" />
-				</g>
-			</template>
-
+			<!-- The step's own chrome. `node.data` carries the flow node, because
+			     Vue Flow's `type` selects a COMPONENT while the flow's own type
+			     is domain data — conflating the two would make every new step
+			     type need a registered component before it could render at all. -->
 			<template #node="{ node }">
 				<div
 					class="cn-flow-detail__node"
 					:class="[
-						`cn-flow-detail__node--${typeSlug(node.type)}`,
-						`cn-flow-detail__node--role-${store.roleOfNodeType(node.type)}`,
-						{ 'cn-flow-detail__node--unknown': isUnknown(node.type) },
+						`cn-flow-detail__node--${typeSlug(node.data.stepType)}`,
+						`cn-flow-detail__node--role-${store.roleOfNodeType(node.data.stepType)}`,
+						{ 'cn-flow-detail__node--unknown': isUnknown(node.data.stepType) },
 					]"
 					@dblclick.stop="store.editingNodeId = node.id">
-					<span class="cn-flow-detail__node-type">{{ typeLabel(node.type) }}</span>
-					<span class="cn-flow-detail__node-label">{{ nodeLabel(node) }}</span>
+					<span class="cn-flow-detail__node-type">{{ typeLabel(node.data.stepType) }}</span>
+					<span class="cn-flow-detail__node-label">{{ node.data.label }}</span>
 					<span
-						v-if="isUnknown(node.type)"
+						v-if="isUnknown(node.data.stepType)"
 						class="cn-flow-detail__node-warning"
 						:title="t('nextcloud-vue', 'The engine does not know this node type, so this step will fail when the flow runs.')">
 						{{ t('nextcloud-vue', 'Unknown step') }}
@@ -264,6 +255,36 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The flow's steps in Vue Flow's node shape.
+		 *
+		 * The mapping lives here rather than in the store because the store owns
+		 * the FLOW DOCUMENT — the thing that gets saved — and a canvas library's
+		 * node shape is a rendering concern. Pushing `position` into the store
+		 * would make the persisted document carry a dependency's vocabulary.
+		 *
+		 * `type` is pinned to `'default'` so every step renders through
+		 * CnFlowNode, and the flow's own type travels in `data.stepType`. Vue
+		 * Flow's `type` selects a COMPONENT; conflating it with the domain type
+		 * would mean a new step type could not render at all until someone
+		 * registered a component for it — exactly the "unknown step" case this
+		 * component exists to display gracefully.
+		 *
+		 * @return {Array<object>} Vue Flow nodes.
+		 */
+		canvasNodes() {
+			return (this.store.nodes || []).map((node) => ({
+				id: node.id,
+				type: 'default',
+				position: { x: Number(node.x) || 0, y: Number(node.y) || 0 },
+				data: {
+					stepType: node.type,
+					label: this.nodeLabel(node),
+					ports: this.store.portsOfNode ? this.store.portsOfNode(node) : undefined,
+				},
+			}))
+		},
+
 		/**
 		 * The editor for the node being edited: an app-registered one for its
 		 * type when there is one, the generic dialog otherwise.
@@ -382,19 +403,57 @@ export default {
 
 	methods: {
 		/**
-		 * Place a palette node where it was dropped.
+		 * Persist a node move that Vue Flow reports.
 		 *
-		 * @param {object} point   The drop point.
-		 * @param {number} point.x Canvas x.
-		 * @param {number} point.y Canvas y.
+		 * Vue Flow emits ONE change stream for drags, keyboard moves and
+		 * programmatic updates alike, so this replaces the old `@node-move`.
+		 * Only `position` changes with a settled position are persisted:
+		 * intermediate drag frames arrive with `dragging: true` and writing
+		 * those would put a store commit on every animation frame.
+		 *
+		 * @param {Array<object>} changes Vue Flow's node changes.
 		 * @return {void}
 		 */
-		onCanvasDrop({ x, y }) {
+		onNodesChange(changes) {
+			for (const change of (changes || [])) {
+				if (change.type !== 'position' || change.dragging === true) {
+					continue
+				}
+
+				if (change.position === undefined || change.position === null) {
+					continue
+				}
+
+				this.store.moveNode({ id: change.id, x: change.position.x, y: change.position.y })
+			}
+		},
+
+		/**
+		 * Vue Flow hands back `{ node }`; the store tracks a bare id.
+		 *
+		 * @param {object} event The node-click event.
+		 * @return {void}
+		 */
+		onNodeSelect(event) {
+			this.store.selectedNodeId = event?.node?.id ?? event?.id ?? null
+		},
+
+		/**
+		 * Place a palette node where it was dropped.
+		 *
+		 * @param {object} drop            The drop payload.
+		 * @param {object} drop.position   The point, already in canvas space.
+		 * @return {void}
+		 */
+		onCanvasDrop({ position }) {
 			if (!this.store.paletteDragType) {
 				return
 			}
 
-			this.store.addNode(this.store.paletteDragType, x, y)
+			// `position` is already canvas space — Vue Flow's `project()` undid
+			// pan and zoom in the canvas, same contract as before, different
+			// arithmetic.
+			this.store.addNode(this.store.paletteDragType, position.x, position.y)
 			this.store.paletteDragType = null
 		},
 
