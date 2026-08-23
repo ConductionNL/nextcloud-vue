@@ -16,12 +16,12 @@
 			:nodes-connectable="interactive"
 			:elements-selectable="interactive"
 			:connection-mode="connectionMode"
-			@nodes-change="$emit('nodes-change', $event)"
-			@edges-change="$emit('edges-change', $event)"
-			@connect="$emit('connect', $event)"
-			@node-click="$emit('node-select', $event)"
-			@edge-click="$emit('edge-select', $event)"
-			@pane-click="$emit('canvas-click', $event)">
+			@nodes-change="onNodesChange"
+			@edges-change="onEdgesChange"
+			@connect="onConnect"
+			@node-click="onNodeClick"
+			@edge-click="onEdgeClick"
+			@pane-click="onPaneClick">
 			<!-- Per-type node components, Vue Flow's convention. A host that
 			     registers `type: 'trigger'` gets `#node-trigger`; anything
 			     unregistered falls back to CnFlowNode, which carries the
@@ -29,6 +29,12 @@
 			<template #node-default="nodeProps">
 				<CnFlowNode v-bind="nodeProps">
 					<template #default="slotProps">
+						<!-- @slot node The body of a step, rendered inside the
+						     focusable node wrapper. Receives `{ node }` with the
+						     node's `id`, `data` and `selected`. The wrapper — and
+						     with it the keyboard contract and ARIA state — stays
+						     the canvas's, so a host cannot accidentally replace a
+						     focusable node with an inert div. -->
 						<slot name="node" v-bind="slotProps" />
 					</template>
 				</CnFlowNode>
@@ -216,6 +222,93 @@ export default {
 
 	methods: {
 		/**
+		 * Forward Vue Flow's node changes.
+		 *
+		 * @param {Array<object>} changes The changes.
+		 * @return {void}
+		 */
+		onNodesChange(changes) {
+			/**
+			 * @event nodes-change Vue Flow's node change stream — position,
+			 *   selection, dimensions, removal. The canvas does NOT apply these;
+			 *   the host decides what to persist. Drag frames arrive with
+			 *   `dragging: true`, so a host that writes on every change writes
+			 *   once per animation frame.
+			 */
+			this.$emit('nodes-change', changes)
+		},
+
+		/**
+		 * Forward Vue Flow's edge changes.
+		 *
+		 * @param {Array<object>} changes The changes.
+		 * @return {void}
+		 */
+		onEdgesChange(changes) {
+			/**
+			 * @event edges-change Vue Flow's edge change stream, same contract
+			 *   as `nodes-change`: reported, never applied here.
+			 */
+			this.$emit('edges-change', changes)
+		},
+
+		/**
+		 * Forward a new connection.
+		 *
+		 * @param {object} connection The connection.
+		 * @return {void}
+		 */
+		onConnect(connection) {
+			/**
+			 * @event connect A new connection was made, by pointer OR by
+			 *   keyboard. Carries Vue Flow's
+			 *   `{ source, target, sourceHandle, targetHandle }`.
+			 */
+			this.$emit('connect', connection)
+		},
+
+		/**
+		 * Forward a node click.
+		 *
+		 * @param {object} event Vue Flow's node event.
+		 * @return {void}
+		 */
+		onNodeClick(event) {
+			/**
+			 * @event node-select A node was clicked. Payload is Vue Flow's
+			 *   `{ node }`, so a host tracking bare ids reads `event.node.id`.
+			 */
+			this.$emit('node-select', event)
+		},
+
+		/**
+		 * Forward an edge click.
+		 *
+		 * @param {object} event Vue Flow's edge event.
+		 * @return {void}
+		 */
+		onEdgeClick(event) {
+			/**
+			 * @event edge-select An edge was clicked.
+			 */
+			this.$emit('edge-select', event)
+		},
+
+		/**
+		 * Forward a click on the empty pane.
+		 *
+		 * @param {object} event The click event.
+		 * @return {void}
+		 */
+		onPaneClick(event) {
+			/**
+			 * @event canvas-click The empty pane was clicked — hosts use this to
+			 *   clear a selection.
+			 */
+			this.$emit('canvas-click', event)
+		},
+
+		/**
 		 * A palette drop, with the point already converted to canvas space.
 		 *
 		 * Kept as a Conduction-level event because HTML5 drop plus coordinate
@@ -240,6 +333,12 @@ export default {
 				y: event.clientY - bounds.top,
 			})
 
+			/**
+			 * @event canvas-drop An HTML5 drop landed on the canvas, with
+			 *   `position` already projected into canvas space and the native
+			 *   `event` alongside so the host can read `dataTransfer`. The canvas
+			 *   never creates the node itself.
+			 */
 			this.$emit('canvas-drop', { position, event })
 		},
 	},

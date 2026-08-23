@@ -100,21 +100,24 @@ The canvas never mutates `nodes`. Dragging emits `node-move` with the intended p
 
 | Prop | Type | Default | Notes |
 |---|---|---|---|
-| `nodes` | `Array` | *required* | `{ id, x, y }` each. Extra keys pass through to the slot untouched — put your domain object on `data`, and a human name on `label` for the accessible name. |
-| `edges` | `Array` | `[]` | `{ id, source, target }`, where `source`/`target` are node ids. |
-| `nodeWidth` | `Number` | `200` | Rendered node width, in canvas units. Used for edge endpoints. |
-| `nodeHeight` | `Number` | `80` | Rendered node height, in canvas units. |
-| `selectedNodeId` | `String` | `null` | Selection is owned by the consumer; the canvas only reports intent. |
-| `selectedEdgeId` | `String` | `null` | As `selectedNodeId`, for edges. |
-| `zoom` | `Number` | `1` | Supports `.sync` via `update:zoom`. |
-| `minZoom` | `Number` | `0.3` | Lower clamp for wheel zoom. |
-| `maxZoom` | `Number` | `2` | Upper clamp for wheel zoom. |
-| `viewBox` | `String` | `'0 0 2000 1500'` | SVG viewBox for the edge layer. Widen it if the graph extends past the default area. |
-| `readOnly` | `Boolean` | `false` | Blocks node moves and connections. Pan and zoom stay live so the graph is still explorable. |
-| `connectable` | `Boolean` | `true` | Whether nodes expose a connection handle. |
-| `resizable` | `Boolean` | `false` | Gives each node a corner grip. The new size arrives as `node-resize`; a node's own `width`/`height` then win over `nodeWidth`/`nodeHeight`. |
-| `showGrid` | `Boolean` | `false` | Draws a dot grid behind the graph. The dots pan and zoom with the content, so a dot keeps the same canvas coordinate as the graph moves. |
-| `gridSize` | `Number` | `24` | Spacing between grid dots, in canvas units. |
+| `nodes` | `Array` | *required* | Vue Flow's shape: `{ id, type, position: { x, y }, data }`. Put your domain object on `data`; `data.label` becomes the node's accessible name, and `data.ports` declares its exits. |
+| `edges` | `Array` | *required* | Vue Flow's shape: `{ id, source, target }`. |
+| `readOnly` | `Boolean` | `false` | Refuses dragging, connecting **and** selection. Pan and zoom stay live so the graph is still explorable. |
+| `fitView` | `Boolean` | `true` | Frame the whole graph on first render, instead of computing a viewBox by hand. |
+| `snapToGrid` | `Boolean` | `true` | Snap dragged nodes to `snapGrid`. |
+| `snapGrid` | `Array` | `[16, 16]` | Grid spacing as Vue Flow's `[x, y]`. |
+| `minZoom` | `Number` | `0.2` | Lower clamp. |
+| `maxZoom` | `Number` | `2` | Upper clamp. |
+| `connectionMode` | `String` | `'loose'` | Vue Flow's connection mode — `loose` or `strict`. |
+| `showBackground` | `Boolean` | `true` | Draw the dotted background. |
+| `showControls` | `Boolean` | `true` | Draw the zoom / fit controls. These are **ours**, not `@vue-flow/controls`, which renders unlabelled buttons that axe flags as `button-name`. |
+| `showMiniMap` | `Boolean` | `false` | Draw the minimap. |
+
+### Props that no longer exist
+
+`nodeWidth` and `nodeHeight` are **gone**. They existed only so hand-drawn edges could guess a node's centre, and the previous version of this page warned that edges attach off-centre if you set them wrong. Vue Flow measures the rendered node, so the whole class of bug went with the props.
+
+`viewBox`, `zoom`/`update:zoom`, `showGrid`, `gridSize` and `connectable` are replaced by `fitView`, the viewport props, `<Background>` + `snapGrid`, and `connectionMode` respectively.
 
 ## Events
 
