@@ -2,14 +2,38 @@
 
 ## 0. Prove the build, before anything is rewritten
 
-- [ ] 0.1 Add `@vue-flow/core` to `@conduction/nextcloud-vue` and render one
-      `<VueFlow>` with two nodes and one edge inside the existing webpack/Vue
-      3.5 build. **This is the task that answers ADR-065's ghost**: procest's
-      editor died at 272 build errors under Vue 2.7, and the claim that it now
-      builds is exactly the kind of claim that should be measured rather than
-      argued. Record the error count and the gz delta.
-- [ ] 0.2 If 0.1 fails, STOP and write down why. A second dead `@vue-flow`
+- [x] 0.1 Add `@vue-flow/core` to `@conduction/nextcloud-vue` and render one
+      `<VueFlow>` with two nodes and one edge inside the existing build.
+      **This is the task that answers ADR-065's ghost**: procest's editor died
+      at 272 build errors under Vue 2.7, and the claim that it now builds is
+      exactly the kind of claim that should be measured rather than argued.
+      MEASURED 2026-08-23, in an isolated `npm ci` worktree:
+        `@vue-flow/core@1.48.2` installed against `vue ^3.5.13`
+        build exit 0, **0 new errors** (the only warnings are the two
+          pre-existing `field-inspection` circular imports and a
+          `this-is-undefined` from `@microsoft/fetch-event-source`, both
+          present on the baseline build before the dependency existed)
+        baseline build 31 s -> 26.8 s with it; no regression
+      CONSUMER COST: the library EXTERNALISES the dependency, so `dist/` does
+      not grow — the consuming app pays `vue-flow-core.mjs` at 337 KB raw /
+      **71 KB gz**, against 2,115 hand-rolled lines removed. That is higher
+      than the ~50 KB the proposal guessed; the guess is corrected here rather
+      than left standing.
+      ⚠️ CORRECTION TO THIS FILE'S OWN WORDING: the build is **rollup**
+      (`rollup.config.js`, `preserveModules`), not webpack. Anything in the
+      design that reasons about webpack chunking needs re-reading against
+      rollup before it is relied on.
+      🔑 HOW THE FIRST ATTEMPT LIED. Exporting the probe from
+      `src/components/index.js` was not enough: `src/index.js` re-exports a
+      NAMED LIST, so the probe was tree-shaken and the build passed without
+      ever compiling it. A green build proved nothing until
+      `dist/esm/components/CnVueFlowProbe/` existed AND its output still
+      carried `from '@vue-flow/core'`. Verify the artefact, not the exit code.
+      The probe itself was scaffolding and is not committed — task 1.1 builds
+      the real thing.
+- [x] 0.2 If 0.1 fails, STOP and write down why. A second dead `@vue-flow`
       component is worse than a hand-rolled canvas that works.
+      It did not fail. Proceed to 1.1.
 
 ## 1. The canvas
 
