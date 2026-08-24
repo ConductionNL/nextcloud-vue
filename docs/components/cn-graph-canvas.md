@@ -8,7 +8,7 @@ A generic node/edge canvas built on [Vue Flow](https://vueflow.dev) — the libr
 
 It has no opinion about what a node *means*. No statuses, no steps, no guards, no conditions, no persistence. You supply `nodes` and `edges` as plain geometry and render the bodies through slots.
 
-**Not a flow builder.** Per [ADR-065](https://codeberg.org/Conduction/hydra) this is a shared *renderer*. The palette, property panels, condition editors, validators, and persistence rules that surround a real editor are app-specific and stay in the consuming app — they are roughly 80% of an editor's code and 0% of what is reusable. A canvas that tried to own them would be a forced marriage between apps whose models genuinely differ.
+**Not a flow builder.** Per [ADR-065](https://github.com/ConductionNL/hydra) this is a shared *renderer*. The palette, property panels, condition editors, validators, and persistence rules that surround a real editor are app-specific and stay in the consuming app — they are roughly 80% of an editor's code and 0% of what is reusable. A canvas that tried to own them would be a forced marriage between apps whose models genuinely differ.
 
 **History, because the previous version of this page said the opposite.** This canvas used to be ~1,300 hand-written lines on a bare SVG, and this paragraph used to explain that `@vue-flow` was deliberately avoided because "every `@vue-flow/core` release declares a Vue 3 peer dependency, and this library is Vue 2.7". That was true and is no longer: ADR-081 migrated the fleet to Vue 3 *specifically* to unblock this, naming Vue Flow as the reason. Measured before the swap: `@vue-flow/core@1.48.2` against `vue ^3.5.13` builds with **zero** errors, where the Vue-2.7 attempt produced 272.
 
