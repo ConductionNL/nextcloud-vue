@@ -143,14 +143,28 @@ export default {
 		},
 	},
 
+	emits: [
+		/**
+		 * @event connect A keyboard-completed connection. Carries Vue Flow's
+		 *   `{ source, sourceHandle, target, targetHandle }` so the host cannot
+		 *   tell a keyboard connection from a pointer one. CnGraphCanvas routes
+		 *   it into the same `onConnect` the <VueFlow> pointer path uses.
+		 */
+		'connect',
+	],
+
 	setup() {
 		// `connectionStartNode` is module-level state shared by every node
 		// instance, because a keyboard connection spans TWO nodes: the one that
 		// started it and the one that completes it. Vue Flow's own connection
 		// state is pointer-driven and does not cover this path.
-		const { updateNodePositions, findNode, addEdges } = useVueFlow()
+		// `addEdges` is deliberately NOT pulled in. Writing an edge into Vue
+		// Flow's internal graph is what silently dropped keyboard connections:
+		// the host owns `edges` and this component must tell it, not mutate
+		// around it. See onConnectKey().
+		const { updateNodePositions, findNode } = useVueFlow()
 
-		return { updateNodePositions, findNode, addEdges, Position }
+		return { updateNodePositions, findNode, Position }
 	},
 
 	data() {
@@ -329,14 +343,40 @@ export default {
 			// A connection is already in flight and it did not start here, so
 			// this press completes it.
 			if (pending !== null && pending.nodeId !== this.id) {
-				this.addEdges([
-					{
-						id: `${pending.nodeId}:${pending.portId}->${this.id}`,
-						source: pending.nodeId,
-						sourceHandle: pending.portId,
-						target: this.id,
-					},
-				])
+				// EMIT, DO NOT `addEdges()`.
+				//
+				// `addEdges()` writes into Vue Flow's INTERNAL graph, and this
+				// canvas does not own that graph: CnGraphCanvas binds
+				// `:edges="edges"` from its prop, which CnFlowDetail fills from
+				// `store.canvasEdges`. The edges are controlled by the host.
+				//
+				// So `addEdges()` drew the edge and told nobody. The host's model
+				// never learned about it, the save serialised a flow with no
+				// edge, and the server refused to run it — "node has no outgoing
+				// edge and does not end the flow", naming a node rather than the
+				// connection that was missing. The canvas and the model
+				// disagreed, and the canvas is the one the user believes.
+				//
+				// Nothing caught it because the READ path was mapped and the
+				// WRITE path was never written: a one-way adapter is invisible
+				// until something writes through it.
+				//
+				// CnGraphCanvas already forwards pointer connections —
+				// `@connect="onConnect"` on <VueFlow>, re-emitted to the host —
+				// and its own docblock states the contract this restores:
+				// "@event connect A new connection was made, by pointer OR by
+				// keyboard." Emitting here puts the keyboard on that same path,
+				// so both routes end at the host's model and the host remains the
+				// single source of truth for edges.
+				//
+				// Vue Flow's connection shape, so the host cannot tell which
+				// input produced it.
+				this.$emit('connect', {
+					source: pending.nodeId,
+					sourceHandle: pending.portId,
+					target: this.id,
+					targetHandle: null,
+				})
 				this.clearPending()
 				return
 			}
