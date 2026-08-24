@@ -789,7 +789,15 @@ export default {
 	overflow: hidden;
 }
 
-.cn-flow-detail :deep(.cn-graph-canvas__node:has(.cn-flow-detail__node--unknown)) {
+/* Unknown step -> error border on the NODE WRAPPER, so the whole node reads as
+   wrong rather than just its body.
+
+   This targeted `.cn-graph-canvas__node` until the Vue Flow migration renamed
+   the wrapper to `.cn-flow-node`, and nothing caught it: a CSS rule whose
+   selector stops matching does not warn, it just silently stops painting. The
+   class kept appearing in the shipped stylesheet and source maps, so it read
+   as present while unknown nodes quietly lost their error border. */
+.cn-flow-detail :deep(.cn-flow-node:has(.cn-flow-detail__node--unknown)) {
 	border-color: var(--color-error);
 }
 
