@@ -135,11 +135,11 @@ describe('CnAdminSettingsShell', () => {
 			const appCredentials = [{ id: 'kvk', label: 'KvK API key' }]
 			const wrapper = mountShell({
 				showOrganisationCredentials: true,
-				appName: 'OpenConnector',
+				appName: 'Integriq',
 				appCredentials,
 			})
 			const broker = wrapper.findComponent({ name: 'CnCredentials' })
-			expect(broker.props('appName')).toBe('OpenConnector')
+			expect(broker.props('appName')).toBe('Integriq')
 			expect(broker.props('appCredentials')).toEqual(appCredentials)
 		})
 	})

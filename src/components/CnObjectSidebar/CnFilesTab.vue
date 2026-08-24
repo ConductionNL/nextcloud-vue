@@ -24,8 +24,33 @@
 			@dragover.prevent="onDragOver"
 			@dragleave.prevent="onDragLeave"
 			@drop.prevent="onDrop">
+			<!--
+				`:ref` (dynamic), not `ref` (static), and this is load-bearing.
+
+				Every other binding on this input is static, and Vue caches the
+				`@change` handler, so with a STATIC ref the compiler hoists the
+				whole vnode to module scope. A hoisted vnode is created once,
+				outside any render, so its ref carries no owner instance
+				(`rawRef.i === null`).
+
+				`setRef()` guards that — but the guard AND its early `return`
+				live inside `if (process.env.NODE_ENV !== 'production')`. In a
+				development build you get the warning "Missing ref owner
+				context. ref cannot be used on hoisted vnodes." and nothing
+				breaks. In a PRODUCTION build the guard is compiled out and
+				execution falls through to `owner.refs`, throwing
+				`TypeError: Cannot read properties of null (reading 'refs')`
+				— which aborts the render of whatever mounted this tab.
+
+				Measured: hrmq's detail pages (the only pages in the fleet that
+				reach CnIntegrationWidget through a `widgets[]` grid) rendered a
+				COMPLETELY BLANK content pane in production while looking fine
+				in dev. A dynamic ref is compiled as a patchable prop, so the
+				vnode is created inside the render function and owns a proper
+				instance.
+			-->
 			<input
-				ref="fileInput"
+				:ref="fileInputRef"
 				type="file"
 				multiple
 				class="cn-sidebar-tab__file-input"
@@ -145,6 +170,16 @@ export default {
 			total: 0,
 			limit: 20,
 			share: false,
+			/**
+			 * The file input element, set by the template's function ref.
+			 *
+			 * Held here rather than read back through `$refs` so the ref stays
+			 * DYNAMIC — see the long comment on the input itself for why a
+			 * static ref on this element is a production crash.
+			 *
+			 * @type {HTMLInputElement|null}
+			 */
+			fileInputEl: null,
 		}
 	},
 
@@ -163,6 +198,21 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Function ref for the file input.
+		 *
+		 * A method (not an inline arrow in the template) so the binding is a
+		 * stable reference across renders and Vue does not detach/reattach the
+		 * ref on every patch. Being a function ref is what keeps the vnode
+		 * dynamic — see the template comment on the input.
+		 *
+		 * @param {HTMLInputElement|null} el The element, or null on unmount.
+		 * @return {void}
+		 */
+		fileInputRef(el) {
+			this.fileInputEl = el || null
+		},
+
 		async fetchFiles(append = false) {
 			if (!this.register || !this.schema) return
 			if (append) { this.loadingMore = true } else { this.loading = true }
@@ -224,7 +274,7 @@ export default {
 		},
 
 		triggerFileInput() {
-			this.$refs.fileInput?.click()
+			this.fileInputEl?.click()
 		},
 
 		onDragOver() { this.isDragOver = true },
@@ -240,7 +290,7 @@ export default {
 			const inputFiles = event.target.files
 			if (!inputFiles?.length) return
 			await this.uploadFiles(inputFiles)
-			if (this.$refs.fileInput) this.$refs.fileInput.value = ''
+			if (this.fileInputEl) this.fileInputEl.value = ''
 		},
 
 		async uploadFiles(fileList) {

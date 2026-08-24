@@ -130,7 +130,7 @@ const DEFAULT_LAYERS = Object.freeze([
  * Every entry is an `<img>` load from a third-party host, so the consuming app
  * MUST allowlist that host in its `img-src` Content-Security-Policy or the tiles
  * render blank with no network request at all. Only `standard` is safe to assume;
- * see Procest's `relaxCspForMapTiles()` for the pattern.
+ * see Dossiq's `relaxCspForMapTiles()` for the pattern.
  */
 const BASEMAPS = Object.freeze({
 	standard: Object.freeze({

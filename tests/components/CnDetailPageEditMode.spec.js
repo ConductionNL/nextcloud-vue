@@ -11,7 +11,7 @@ import { registerDashboardWidget } from '../../src/components/CnWidgetGrid/dashb
 registerDashboardWidget('test-stat', { renderer: {}, form: {}, defaultContent: {}, displayName: 's', icon: 'X' })
 registerDashboardWidget('test-data', { renderer: {}, form: {}, defaultContent: {}, displayName: 'd', icon: 'X', surfaces: ['detail-page'] })
 
-describe('CnDetailPage OpenBuild edit mode', () => {
+describe('CnDetailPage Buildiq edit mode', () => {
 	const widgets = [
 		{ id: 'kpi', title: 'KPI', type: 'test-stat', content: { label: 'Revenue' } },
 		{ id: 'plain', title: 'Plain' }, // no type → no cog, no renderer

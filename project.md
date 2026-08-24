@@ -4,7 +4,7 @@
 
 A shared Vue 2 component library for Conduction Nextcloud apps. It complements `@nextcloud/vue` with higher-level components (data tables, list layouts, dialogs, form generation), supports NL Design System theming (via Nextcloud CSS variables), and includes a generic Pinia store for OpenRegister CRUD operations.
 
-**Consumers**: OpenRegister, OpenCatalogi, Procest, Pipelinq, LaunchPad
+**Consumers**: OpenRegister, OpenCatalogi, Dossiq, Pipelinq, Launchpad
 
 ## Architecture
 

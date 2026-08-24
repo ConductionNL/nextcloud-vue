@@ -2,7 +2,7 @@
  * Regression: a widget appended to the `widgets` prop array WHILE MOUNTED must
  * resolve on the next render.
  *
- * The in-app editor (CnOpenBuildEditButton "Add widget…") appends IN PLACE to the
+ * The in-app editor (CnBuildiqEditButton "Add widget…") appends IN PLACE to the
  * live manifest's `page.config.widgets` / `.layout` — it must, because
  * CnPageRenderer's `resolvedProps` does not re-derive when those keys are swapped
  * for new arrays, so a replaced array never reaches the page component at all.

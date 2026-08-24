@@ -4,18 +4,26 @@ sidebar_position: 44
 
 # CnGraphCanvas
 
-A generic node/edge canvas: **geometry and interaction only**. It owns pan, zoom, node dragging, and drag-to-connect — and nothing else.
+A generic node/edge canvas built on [Vue Flow](https://vueflow.dev) — the library n8n runs. Vue Flow owns pan, zoom, dragging, connecting and edge routing; this component adds Conduction's node chrome, the palette-drop event, and the keyboard contract.
 
 It has no opinion about what a node *means*. No statuses, no steps, no guards, no conditions, no persistence. You supply `nodes` and `edges` as plain geometry and render the bodies through slots.
 
-**Not a flow builder.** Per [ADR-065](https://codeberg.org/Conduction/hydra) this is a shared *renderer*. The palette, property panels, condition editors, validators, and persistence rules that surround a real editor are app-specific and stay in the consuming app — they are roughly 80% of an editor's code and 0% of what is reusable. A canvas that tried to own them would be a forced marriage between apps whose models genuinely differ.
+**Not a flow builder.** Per [ADR-065](https://github.com/ConductionNL/hydra) this is a shared *renderer*. The palette, property panels, condition editors, validators, and persistence rules that surround a real editor are app-specific and stay in the consuming app — they are roughly 80% of an editor's code and 0% of what is reusable. A canvas that tried to own them would be a forced marriage between apps whose models genuinely differ.
 
-Extracted from procest's `WorkflowEditor.vue`, the only canvas in the fleet that has ever worked in production. Deliberately *not* built on `@vue-flow`: every `@vue-flow/core` release ever published declares a Vue 3 peer dependency, and this library is Vue 2.7. That mistake already cost one app its editor.
+**History, because the previous version of this page said the opposite.** This canvas used to be ~1,300 hand-written lines on a bare SVG, and this paragraph used to explain that `@vue-flow` was deliberately avoided because "every `@vue-flow/core` release declares a Vue 3 peer dependency, and this library is Vue 2.7". That was true and is no longer: ADR-081 migrated the fleet to Vue 3 *specifically* to unblock this, naming Vue Flow as the reason. Measured before the swap: `@vue-flow/core@1.48.2` against `vue ^3.5.13` builds with **zero** errors, where the Vue-2.7 attempt produced 272.
+
+**Cost.** The library is externalised, so consuming apps pay ~71 KB gz — against ~2,100 hand-maintained lines removed.
 
 ## Try it
 
 Drag a node. Drag from a node's handle onto another node to connect them. Scroll
-to zoom, drag empty space to pan. Focus a node and use the arrow keys.
+to zoom, drag empty space to pan.
+
+**Or use no pointer at all.** Tab to a node, move it with the arrow keys (Shift
+for a coarse step), press `c` to start a connection and `c` on another node to
+complete it, `Escape` to cancel. On a node with several exits, repeated `c`
+steps through them and rings the armed one — a mouse picks a branch by pointing
+at it, and without this the keyboard could only ever reach the first.
 
 ```vue
 <template>
@@ -92,21 +100,24 @@ The canvas never mutates `nodes`. Dragging emits `node-move` with the intended p
 
 | Prop | Type | Default | Notes |
 |---|---|---|---|
-| `nodes` | `Array` | *required* | `{ id, x, y }` each. Extra keys pass through to the slot untouched — put your domain object on `data`, and a human name on `label` for the accessible name. |
-| `edges` | `Array` | `[]` | `{ id, source, target }`, where `source`/`target` are node ids. |
-| `nodeWidth` | `Number` | `200` | Rendered node width, in canvas units. Used for edge endpoints. |
-| `nodeHeight` | `Number` | `80` | Rendered node height, in canvas units. |
-| `selectedNodeId` | `String` | `null` | Selection is owned by the consumer; the canvas only reports intent. |
-| `selectedEdgeId` | `String` | `null` | As `selectedNodeId`, for edges. |
-| `zoom` | `Number` | `1` | Supports `.sync` via `update:zoom`. |
-| `minZoom` | `Number` | `0.3` | Lower clamp for wheel zoom. |
-| `maxZoom` | `Number` | `2` | Upper clamp for wheel zoom. |
-| `viewBox` | `String` | `'0 0 2000 1500'` | SVG viewBox for the edge layer. Widen it if the graph extends past the default area. |
-| `readOnly` | `Boolean` | `false` | Blocks node moves and connections. Pan and zoom stay live so the graph is still explorable. |
-| `connectable` | `Boolean` | `true` | Whether nodes expose a connection handle. |
-| `resizable` | `Boolean` | `false` | Gives each node a corner grip. The new size arrives as `node-resize`; a node's own `width`/`height` then win over `nodeWidth`/`nodeHeight`. |
-| `showGrid` | `Boolean` | `false` | Draws a dot grid behind the graph. The dots pan and zoom with the content, so a dot keeps the same canvas coordinate as the graph moves. |
-| `gridSize` | `Number` | `24` | Spacing between grid dots, in canvas units. |
+| `nodes` | `Array` | *required* | Vue Flow's shape: `{ id, type, position: { x, y }, data }`. Put your domain object on `data`; `data.label` becomes the node's accessible name, and `data.ports` declares its exits. |
+| `edges` | `Array` | *required* | Vue Flow's shape: `{ id, source, target }`. |
+| `readOnly` | `Boolean` | `false` | Refuses dragging, connecting **and** selection. Pan and zoom stay live so the graph is still explorable. |
+| `fitView` | `Boolean` | `true` | Frame the whole graph on first render, instead of computing a viewBox by hand. |
+| `snapToGrid` | `Boolean` | `true` | Snap dragged nodes to `snapGrid`. |
+| `snapGrid` | `Array` | `[16, 16]` | Grid spacing as Vue Flow's `[x, y]`. |
+| `minZoom` | `Number` | `0.2` | Lower clamp. |
+| `maxZoom` | `Number` | `2` | Upper clamp. |
+| `connectionMode` | `String` | `'loose'` | Vue Flow's connection mode — `loose` or `strict`. |
+| `showBackground` | `Boolean` | `true` | Draw the dotted background. |
+| `showControls` | `Boolean` | `true` | Draw the zoom / fit controls. These are **ours**, not `@vue-flow/controls`, which renders unlabelled buttons that axe flags as `button-name`. |
+| `showMiniMap` | `Boolean` | `false` | Draw the minimap. |
+
+### Props that no longer exist
+
+`nodeWidth` and `nodeHeight` are **gone**. They existed only so hand-drawn edges could guess a node's centre, and the previous version of this page warned that edges attach off-centre if you set them wrong. Vue Flow measures the rendered node, so the whole class of bug went with the props.
+
+`viewBox`, `zoom`/`update:zoom`, `showGrid`, `gridSize` and `connectable` are replaced by `fitView`, the viewport props, `<Background>` + `snapGrid`, and `connectionMode` respectively.
 
 ## Events
 

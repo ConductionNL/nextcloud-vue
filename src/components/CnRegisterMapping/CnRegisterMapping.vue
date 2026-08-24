@@ -185,7 +185,7 @@ import { CnSettingsSection } from '../CnSettingsSection/index.js'
  *   @reimport="reimport" />
  * ```
  *
- * Multi-register (SoftwareCatalog)
+ * Multi-register (Stackiq)
  * ```vue
  * <CnRegisterMapping
  *   :groups="[

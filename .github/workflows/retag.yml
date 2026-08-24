@@ -1,0 +1,188 @@
+name: Retag (npm dist-tag)
+
+# Point an npm dist-tag at an existing published version. Nothing is built and
+# nothing is published — this only moves a label.
+#
+# WHY THIS EXISTS
+#
+# The `vue3` dist-tag outlived the channel that created it. `feat/vue-3` was
+# folded into main and `.releaserc.json` now lists only `main` and `beta`, but
+# the tag stayed pinned to 2.3.0 while `latest` moved on to 2.8.x.
+#
+# That is not cosmetic. A stale dist-tag reads as a deliberate compatibility
+# floor, and it was believed: twelve apps sat on 2.3.0 and the tag is why it
+# looked intentional. `npm view` shows 2.3.0 and 2.8.x declare IDENTICAL peer
+# dependencies — `vue: ^3.5.0` included — so no Vue-3 boundary ever existed.
+#
+# RE-POINT RATHER THAN REMOVE. `npm dist-tag rm` would make
+# `npm i @conduction/nextcloud-vue@vue3` fail outright for anyone still typing
+# it; re-pointing hands them current code instead. The tag can be retired later
+# once it is known unused.
+#
+# ⚠️ AUTH — MEASURED, NOT ASSUMED: OIDC ALONE IS NOT ENOUGH.
+#
+# This job was written to reuse release.yml's npm Trusted Publisher (OIDC)
+# path, on the theory that `id-token: write` would cover a dist-tag write the
+# same way it covers a publish. It does not. Dispatched 2026-08-20 against
+# `vue3 -> 2.8.2`, run 32414935986:
+#
+#     npm error code E401
+#     npm error Unable to authenticate, your authentication token seems to be invalid.
+#
+# npm's OIDC credential is minted for PUBLISHING. `npm dist-tag add` is a
+# separate registry write and the exchange does not cover it. The job did what
+# it was supposed to do on failure — it stopped with the registry's own message
+# instead of exiting 0 and looking done.
+#
+# So this workflow cannot move a tag as-is. To make it work, give it a
+# credential with publish rights on the package:
+#
+#     env:
+#       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+#
+# and add that secret — accepting that it is a token to rotate, which is
+# exactly what the OIDC setup was adopted to avoid. Until someone decides that
+# trade, moving a tag is a one-liner from an account that already has rights:
+#
+#     npm dist-tag add @conduction/nextcloud-vue@2.8.2 vue3
+#
+# The workflow is kept because the verification step below is the valuable
+# part: it re-reads the tag from the registry and fails when it did not move.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'dist-tag to move (e.g. vue3)'
+        type: string
+        required: true
+      mode:
+        description: 'move = point the tag at a version. remove = delete the tag outright.'
+        type: choice
+        required: false
+        default: move
+        options:
+          - move
+          - remove
+      version:
+        description: 'Published version to point it at (e.g. 2.8.2). Leave blank to follow `latest`. Ignored when mode=remove.'
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  retag:
+    name: "Move dist-tag"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      id-token: write       # npm Trusted Publisher (OIDC)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # Node 24 for npm 11.x, which carries the OIDC support release.yml relies
+      # on. Pinning the major here rather than inheriting whatever the runner
+      # ships keeps this in step with the publish path.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Resolve the target version
+        id: resolve
+        run: |
+          set -euo pipefail
+          PKG=$(node -p "require('./package.json').name")
+          WANT='${{ inputs.version }}'
+          if [ -z "$WANT" ]; then
+            WANT=$(npm view "$PKG" dist-tags.latest)
+            echo "No version given — following latest ($WANT)."
+          fi
+
+          # A dist-tag can only point at a version that exists. Without this the
+          # `npm dist-tag add` below fails with a registry error that reads like
+          # an auth problem.
+          if ! npm view "$PKG@$WANT" version >/dev/null 2>&1; then
+            echo "::error::$PKG@$WANT is not published. A dist-tag can only point at an existing version."
+            exit 1
+          fi
+
+          echo "pkg=$PKG"   >> "$GITHUB_OUTPUT"
+          echo "want=$WANT" >> "$GITHUB_OUTPUT"
+          echo "before=$(npm view "$PKG" dist-tags.${{ inputs.tag }} 2>/dev/null || echo '(unset)')" >> "$GITHUB_OUTPUT"
+
+      - name: Move the tag
+        if: ${{ inputs.mode != 'remove' }}
+        run: |
+          set -euo pipefail
+          echo "dist-tags before:"
+          npm view '${{ steps.resolve.outputs.pkg }}' dist-tags
+          npx -y npm@latest dist-tag add \
+            '${{ steps.resolve.outputs.pkg }}@${{ steps.resolve.outputs.want }}' \
+            '${{ inputs.tag }}'
+
+      # REMOVING IS NOW THE RIGHT CALL FOR `vue3`, AND THE HEADER ABOVE SAYS WHY
+      # IT WAS NOT BEFORE: "re-point rather than remove … the tag can be retired
+      # later once it is known unused."
+      #
+      # It is now known unused. MEASURED 2026-08-22 across ConductionNL: every
+      # app declares @conduction/nextcloud-vue with a semver RANGE (^2.3.0,
+      # ^2.8.0, ^2.9.1 …), never `@vue3`, so no install resolves through the tag.
+      # An org-wide code search for `nextcloud-vue@vue3` returns exactly one hit —
+      # this workflow's own header. Nothing else references it: not a Dockerfile,
+      # not a CI step, not a doc install line.
+      #
+      # And the channel it named is gone: `feat/vue-3` was folded into main and
+      # .releaserc.json lists only `main` and `beta`. A tag pointing at a retired
+      # channel, four minors behind, reads as a deliberate compatibility floor —
+      # which is precisely how twelve apps came to sit on 2.3.0 believing it was
+      # a boundary. `npm view` shows 2.3.0 and current both declare `vue: ^3.5.0`,
+      # so no Vue-3 boundary ever existed.
+      - name: Remove the tag
+        if: ${{ inputs.mode == 'remove' }}
+        run: |
+          set -euo pipefail
+          echo "dist-tags before:"
+          npm view '${{ steps.resolve.outputs.pkg }}' dist-tags
+          npx -y npm@latest dist-tag rm \
+            '${{ steps.resolve.outputs.pkg }}' \
+            '${{ inputs.tag }}'
+
+      # THE TAG MUST BE RE-READ FROM THE REGISTRY.
+      #
+      # `npm dist-tag add` exiting 0 is not evidence the tag moved — the same
+      # trap as a green release that publishes nothing. Read it back, and fail
+      # when it still holds the old value.
+      - name: Verify the tag actually moved
+        run: |
+          set -euo pipefail
+          PKG='${{ steps.resolve.outputs.pkg }}'
+          WANT='${{ steps.resolve.outputs.want }}'
+          BEFORE='${{ steps.resolve.outputs.before }}'
+          sleep 5   # registry read-after-write is not instant
+          NOW=$(npm view "$PKG" "dist-tags.${{ inputs.tag }}" 2>/dev/null || echo '(unset)')
+
+          # The verification has to invert with the mode, or `remove` would be
+          # checked against a version it is supposed to have deleted and would
+          # fail every time it SUCCEEDED. A check that cannot pass is as useless
+          # as one that cannot fail.
+          if [ '${{ inputs.mode }}' = 'remove' ]; then
+            echo "dist-tag '${{ inputs.tag }}': ${BEFORE} -> ${NOW} (wanted: gone)"
+            if [ "$NOW" != '(unset)' ]; then
+              echo "::error::dist-tag '${{ inputs.tag }}' still reads '${NOW}'. The command exited 0 but the registry did not drop it."
+              exit 1
+            fi
+          else
+            echo "dist-tag '${{ inputs.tag }}': ${BEFORE} -> ${NOW} (wanted ${WANT})"
+            if [ "$NOW" != "$WANT" ]; then
+              echo "::error::dist-tag '${{ inputs.tag }}' still reads '${NOW}', not '${WANT}'. The command exited 0 but the registry did not move."
+              exit 1
+            fi
+          fi
+          echo "dist-tags now:"
+          npm view "$PKG" dist-tags

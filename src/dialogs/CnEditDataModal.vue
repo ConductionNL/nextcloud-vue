@@ -1,8 +1,8 @@
 <!--
   CnEditDataModal — manage the app's data model (OpenRegister register + schemas)
-  from inside the OpenBuild runtime (ADR-041 / ADR-004).
+  from inside the Buildiq runtime (ADR-041 / ADR-004).
 
-  Opened from the OpenBuild edit menu ("Edit data…"). It reads the register
+  Opened from the Buildiq edit menu ("Edit data…"). It reads the register
   slug(s) the manifest's pages point at, loads the matching OpenRegister
   register(s) and their schemas, and lets the user:
     • create a register when the app has none yet,
@@ -924,7 +924,7 @@ export default {
   outrank, so any two open dialogs tied and the painting order fell back to DOM
   order between two nodes teleported to <body>. The `--nested` escape hatch only
   helped dialogs this library itself nested; a dialog opened by the consuming app
-  (OpenBuild's "Generate an app with AI", opened from the create-application
+  (Buildiq's "Generate an app with AI", opened from the create-application
   wizard) still tied and still swallowed the clicks aimed at it.
 
   The baseline now lives in `src/css/patches.css` WITHOUT `!important`, and

@@ -20,32 +20,32 @@
 }
 
 /*
- * OpenBuild edit button — brand orange, ALWAYS applied.
- * CnOpenBuildEditButton styles its trigger orange via `<style scoped>`, but the
+ * Buildiq edit button — brand orange, ALWAYS applied.
+ * CnBuildiqEditButton styles its trigger orange via `<style scoped>`, but the
  * scoped `data-v-*` hash can miss the live element when the library is bundled
  * in duplicate in a consuming app (the trigger then falls back to the tertiary
  * transparent default and the button is intermittently not orange). These
  * unscoped globals guarantee the ADR-041 brand orange regardless of the hash.
  */
-.cn-openbuild-edit__actions .button-vue,
-.cn-openbuild-edit__actions .action-item__menutoggle {
+.cn-buildiq-edit__actions .button-vue,
+.cn-buildiq-edit__actions .action-item__menutoggle {
 	background-color: var(--c-orange-knvb, #f36c21) !important;
 	color: #fff !important;
 	border-radius: var(--border-radius-element, var(--border-radius-large, 8px));
 }
 
-.cn-openbuild-edit__actions .button-vue__wrapper {
+.cn-buildiq-edit__actions .button-vue__wrapper {
 	justify-content: center;
 }
 
-.cn-openbuild-edit__actions .button-vue__icon {
+.cn-buildiq-edit__actions .button-vue__icon {
 	display: flex !important;
 	align-items: center;
 	justify-content: center;
 	color: #fff;
 }
 
-.cn-openbuild-edit__glyph {
+.cn-buildiq-edit__glyph {
 	color: #fff !important;
 }
 

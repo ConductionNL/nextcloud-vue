@@ -170,12 +170,16 @@ export {
 	CnActionsBar,
 	CnActionsMenu,
 	CnActionButtons,
-	CnOpenBuildEditButton,
+	CnBuildiqEditButton,
 	CnEditMenuModal,
 	CnEditPagesModal,
 	CnEditSettingsModal,
 	CnEditSidebarModal,
 	CnEditActionsModal,
+	CnEditSetupModal,
+	CnEditWalkthroughModal,
+	CnEditSupportModal,
+	CnEditDataModal,
 	CnAddWidgetModal,
 	CnWidgetStyleEditorModal,
 	CnWidgetVisibilityRulesModal,
@@ -264,6 +268,15 @@ export {
 	CnDashTileWidgetForm,
 } from './components/index.js'
 
+// Deprecated alias kept for consumers: the app formerly called OpenBuild was
+// renamed to Buildiq in the fleet-wide rename of 2026-08-21, so
+// `CnBuildiqEditButton` (exported above) is the canonical name. This alias
+// re-exports the SAME component so the ~18 consuming apps that still import
+// `CnOpenBuildEditButton` keep working. Documented on
+// docs/components/cn-buildiq-edit-button.md; no separate doc page.
+// @deprecated Use `CnBuildiqEditButton`.
+export { CnOpenBuildEditButton } from './components/index.js'
+
 // AI Chat Companion component family
 export {
 	CnAiCompanion,
@@ -308,7 +321,13 @@ export {
 export { useAiContext, useAiChatStream } from './composables/index.js'
 // AI Chat Companion backend config (single point for the chat backend app id)
 export { DEFAULT_CHAT_APP_ID, chatApiBase, chatStreamUrl, chatSendUrl, chatHealthUrl, conversationsUrl, conversationMessagesUrl } from './composables/index.js'
-export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, clearContextMenuPositionDom, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, useAppManifest, useAppStatus, useAppInstaller, useSetupStatus, useWalkthrough, loadWalkthroughSeenVersion, persistWalkthroughSeenVersion, useGraphQL, useDataSource, selectByPath, buildCountQuery, buildBucketQuery, useBrokeredCall, useEndpointSource, fetchEndpointSource, invalidateEndpointSourceCache, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest, useSupportDialog, useClickDragGuard, useTenantContext, provideTenantContext, createTenantContext, TENANT_CONTEXT_KEY, useManifestEditor, useOpenBuildEditAvailability, useManifestEditHistory, useCommandPalette, useScopedTheme } from './composables/index.js'
+export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, clearContextMenuPositionDom, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, useAppManifest, useAppStatus, useAppInstaller, useSetupStatus, useWalkthrough, loadWalkthroughSeenVersion, persistWalkthroughSeenVersion, useGraphQL, useDataSource, selectByPath, buildCountQuery, buildBucketQuery, useBrokeredCall, useEndpointSource, fetchEndpointSource, invalidateEndpointSourceCache, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest, useSupportDialog, useClickDragGuard, useTenantContext, provideTenantContext, createTenantContext, TENANT_CONTEXT_KEY, useManifestEditor, useBuildiqEditAvailability, useManifestEditHistory, useCommandPalette, useScopedTheme } from './composables/index.js'
+// Deprecated alias kept for consumers: OpenBuild was renamed to Buildiq in the
+// fleet-wide rename of 2026-08-21. `useBuildiqEditAvailability` above is the
+// canonical name; this alias keeps the ~18 consuming apps that still call
+// `useOpenBuildEditAvailability` working.
+// @deprecated Use `useBuildiqEditAvailability`.
+export { useOpenBuildEditAvailability } from './composables/index.js'
 
 // Command palette — the "objects" source adapter (see docs/utilities/create-object-search-source.md).
 // `resolveManifestDetailRoute` is intentionally subpath-only (not re-exported here), same
@@ -397,8 +416,9 @@ export { registerTranslations } from './l10n/index.js'
 
 // Utilities
 export { buildHeaders, buildQueryString, parseResponseError, parseAxiosError, networkError, genericError } from './utils/index.js'
+export { cnFetch, cnFetchJson, CnHttpError } from './utils/cnFetch.js'
 export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema, validateValue } from './utils/index.js'
-// The OpenRegister schema API contract — shared so OpenBuild and OpenRegister cannot
+// The OpenRegister schema API contract — shared so Buildiq and OpenRegister cannot
 // drift on what a 409 means (breaking change / schema still has objects).
 export { saveSchema, deleteSchema, describeSchemaChange, SchemaBreakingChangeError, SchemaHasObjectsError } from './utils/index.js'
 export { validateManifest, validateManifestV2 } from './utils/validateManifest.js'

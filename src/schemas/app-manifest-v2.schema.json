@@ -33,7 +33,7 @@
 		"openbuildEditable": {
 			"type": "boolean",
 			"default": true,
-			"description": "Whether the OpenBuild in-app edit button (ADR-041) is offered on this app's pages. Default true. Set false to suppress it — e.g. OpenBuild's own UI, which does not edit itself with itself. Read by CnAppRoot to gate `cnOpenBuildAvailable`."
+			"description": "Whether the Buildiq in-app edit button (ADR-041) is offered on this app's pages. Default true. Set false to suppress it — e.g. Buildiq's own UI, which does not edit itself with itself. Read by CnAppRoot to gate `cnOpenBuildAvailable`. The property name and the inject key keep their `openbuild` spelling: both are data/runtime contracts that shipped manifests and consumer apps already carry, so the 2026-08-21 OpenBuild → Buildiq rename deliberately left them untouched."
 		},
 		"dependencies": {
 			"type": "array",
@@ -177,6 +177,45 @@
 				}
 			}
 		},
+		"support": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "First-open support and donation note. CnAppRoot mounts CnSupportDialog once per user on first open and reads this block; CnEditSupportModal edits it. Omitting the block keeps the default-on behaviour with the shell's own copy, so an app only declares what it wants to override. The block was read by CnAppRoot and written by CnEditSupportModal before it was declared here, which made `additionalProperties: false` reject every manifest that set it.",
+			"properties": {
+				"enabled": {
+					"type": "boolean",
+					"description": "Whether the note is shown on first open. Omit for the default (true); set false to suppress it for this app."
+				},
+				"title": {
+					"type": "string",
+					"description": "Dialog heading. Blank keeps the shell default."
+				},
+				"appName": {
+					"type": "string",
+					"description": "Display name interpolated into the body copy. Defaults to the host app's name."
+				},
+				"bodyParagraphs": {
+					"type": "array",
+					"description": "Body copy, one entry per paragraph, replacing the shell's default paragraphs.",
+					"items": { "type": "string" }
+				},
+				"founderName": { "type": "string", "description": "Signature name." },
+				"founderTitle": { "type": "string", "description": "Signature role, shown under the name." },
+				"founderAvatarUrl": { "type": "string", "description": "Signature avatar image URL." },
+				"founderProfileUrl": { "type": "string", "description": "Profile the signature avatar links to." },
+				"buttons": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Per-button overrides, keyed by the four built-in button ids. Each may be hidden, relabelled, restyled or re-pointed; omit a key to keep its default.",
+					"properties": {
+						"donate": { "$ref": "#/$defs/supportButton" },
+						"support": { "$ref": "#/$defs/supportButton" },
+						"feature-request": { "$ref": "#/$defs/supportButton" },
+						"app-store": { "$ref": "#/$defs/supportButton" }
+					}
+				}
+			}
+		},
 		"nav": {
 			"type": "object",
 			"additionalProperties": false,
@@ -265,7 +304,7 @@
 		},
 		"schedules": {
 			"type": "array",
-			"description": "Declarative scheduled tasks (apphost-scheduling capability). Each entry declares a recurring task the OpenRegister AppHost schedule-reconciler turns into an OpenConnector job that runs on the existing background-job path — so a manifest-driven app (including a pure-virtual OpenBuild app with no PHP on disk) can own its ingestion/maintenance cadence without shipping a TimedJob. The temporal peer of `credentials`/`observability`: consumed by the OpenRegister engine, NOT by the Vue renderer. Optional and additive.",
+			"description": "Declarative scheduled tasks (apphost-scheduling capability). Each entry declares a recurring task the OpenRegister AppHost schedule-reconciler turns into an Integriq job that runs on the existing background-job path — so a manifest-driven app (including a pure-virtual Buildiq app with no PHP on disk) can own its ingestion/maintenance cadence without shipping a TimedJob. The temporal peer of `credentials`/`observability`: consumed by the OpenRegister engine, NOT by the Vue renderer. Optional and additive.",
 			"items": {
 				"type": "object",
 				"required": ["id", "action"],
@@ -373,6 +412,34 @@
 		}
 	},
 	"$defs": {
+		"supportButton": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Override for one of the four built-in support-note buttons (donate, support, feature-request, app-store). Every field is optional; omit the whole entry to keep the shell's default for that button.",
+			"properties": {
+				"enabled": {
+					"type": "boolean",
+					"description": "Show this button. Set false to hide it."
+				},
+				"label": {
+					"type": "string",
+					"description": "Button text. Blank keeps the default label."
+				},
+				"url": {
+					"type": "string",
+					"description": "Where the button goes. The feature-request and app-store buttons have no useful default, so an app that wants them must set this."
+				},
+				"variant": {
+					"type": "string",
+					"enum": ["primary", "secondary", "tertiary", "error", "warning", "success"],
+					"description": "NcButton variant."
+				},
+				"icon": {
+					"type": "string",
+					"description": "Material Design Icon component name, e.g. HeartOutline."
+				}
+			}
+		},
 		"runtimeTheme": {
 			"type": "object",
 			"additionalProperties": false,
@@ -1639,7 +1706,7 @@
 				"payload": {
 					"type": "object",
 					"additionalProperties": true,
-					"description": "api-call only: the JSON request body — PREFERRED over `params`, and used instead of it when both are set. Values run the SAME token grammar as `params` (@me, @now, @today±Nd, @monthStart/@quarterStart/@yearStart, @objectId, @object.<field>, @workspace.<key>/@config.<key> with a trailing `?` marking a value OPTIONAL — dropped when unresolved) but resolve RECURSIVELY at ANY nesting depth, including arrays of objects — e.g. a DocuDesk document-generation body: { \"dataRefs\": [{ \"register\": \"crm\", \"schema\": \"lead\", \"id\": \"@objectId\" }] }. A required (non-`?`) token left unresolved anywhere in the tree BLOCKS the call (error toast) instead of sending the literal token string to the server."
+					"description": "api-call only: the JSON request body — PREFERRED over `params`, and used instead of it when both are set. Values run the SAME token grammar as `params` (@me, @now, @today±Nd, @monthStart/@quarterStart/@yearStart, @objectId, @object.<field>, @workspace.<key>/@config.<key> with a trailing `?` marking a value OPTIONAL — dropped when unresolved) but resolve RECURSIVELY at ANY nesting depth, including arrays of objects — e.g. a Filinq document-generation body: { \"dataRefs\": [{ \"register\": \"crm\", \"schema\": \"lead\", \"id\": \"@objectId\" }] }. A required (non-`?`) token left unresolved anywhere in the tree BLOCKS the call (error toast) instead of sending the literal token string to the server."
 				},
 				"params": {
 					"type": "object",

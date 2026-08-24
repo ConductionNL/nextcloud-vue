@@ -56,7 +56,7 @@ note rather than crashing.
 | `appId`          | `String` | `''`    | The consuming Nextcloud app id. Seeds the allowed-apps picker and keeps the pane host-agnostic.               |
 | `appName`        | `String` | `''`    | A friendly app name for copy ("`{app}` may use this credential"). Falls back to the `appId`.                     |
 | `appCredentials` | `Array`  | `[]`    | The current app's manifest `credentials[]` declarations (`[{ provider, reason, scopes }]`), rendered read-only. |
-| `vaultUrl`       | `String` | `null`  | Optional link target explaining the Doriath vault. Defaults to the Doriath app route; pass `''` to hide the link. |
+| `vaultUrl`       | `String` | `null`  | Optional link target explaining the Keepiq vault. Defaults to the Keepiq app route; pass `''` to hide the link. |
 
 The component emits **no events** and exposes **no named slots** — it fetches
 and persists its own state.

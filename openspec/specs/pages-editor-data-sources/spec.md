@@ -12,7 +12,7 @@ How the in-app pages editor discovers and refreshes the registers and schemas th
 
 `CnAppRoot.provide()` runs exactly once, so a `dataSources` snapshot captured at app boot can never reflect a register or schema created afterwards — the dropdown silently went stale until a full page reload. This capability defines the loader-based contract that replaces that snapshot: a stable reactive holder provided **by reference** (so the one-shot `provide()` still observes updates), an idempotent refresh action, and the loading / error surface that stops a failed fetch from masquerading as "no schemas exist".
 
-Shipped in `@conduction/nextcloud-vue@1.0.0-beta.187`; adopted by OpenBuild.
+Shipped in `@conduction/nextcloud-vue@1.0.0-beta.187`; adopted by Buildiq.
 
 ---
 
@@ -24,7 +24,7 @@ Shipped in `@conduction/nextcloud-vue@1.0.0-beta.187`; adopted by OpenBuild.
 
 The existing `dataSources` prop (`type: Object, default: null`) SHALL remain declared and SHALL keep its current meaning: a static snapshot supplied by the consumer. Neither prop SHALL be required, and no existing prop, event, slot or `provide` key SHALL change shape or be removed.
 
-> @e2e exclude Library-level prop/provide contract with no standalone browser surface; asserted by jest component tests under `tests/components/` and exercised end-to-end through OpenBuild's own e2e suite (ADR-008 / Playwright-UI-only convention).
+> @e2e exclude Library-level prop/provide contract with no standalone browser surface; asserted by jest component tests under `tests/components/` and exercised end-to-end through Buildiq's own e2e suite (ADR-008 / Playwright-UI-only convention).
 
 #### Scenario: A consumer supplies only the static snapshot
 
@@ -105,11 +105,11 @@ The holder's **object identity SHALL remain stable for the lifetime of the compo
 
 ### Requirement: The pages-editor modals SHALL refresh data sources when opened
 
-`CnEditPagesModal` and `CnPageConfigModal` SHALL invoke the injected `cnRefreshDataSources()` when they are opened. Because both modals are mounted behind `v-if` by their hosts (`CnOpenBuildEditButton` and `CnPageRenderer` respectively), "opened" SHALL be implemented as the modal's `mounted()` lifecycle hook.
+`CnEditPagesModal` and `CnPageConfigModal` SHALL invoke the injected `cnRefreshDataSources()` when they are opened. Because both modals are mounted behind `v-if` by their hosts (`CnBuildiqEditButton` and `CnPageRenderer` respectively), "opened" SHALL be implemented as the modal's `mounted()` lifecycle hook.
 
 Row-level components (`CnPageTreeRow`) SHALL NOT trigger their own refresh — exactly one refresh SHALL be triggered per modal open, regardless of how many pages or pickers the modal renders.
 
-> @e2e exclude Library-level lifecycle wiring; asserted by jest component tests under `tests/components/` and exercised through OpenBuild's e2e suite.
+> @e2e exclude Library-level lifecycle wiring; asserted by jest component tests under `tests/components/` and exercised through Buildiq's e2e suite.
 
 #### Scenario: A schema created after app boot appears without a reload
 
@@ -151,7 +151,7 @@ The picker-vs-free-text gate SHALL widen so that a configured loader never cause
 
 All colors SHALL come from Nextcloud CSS variables; all new UI strings SHALL use English i18n keys via the library's `t('nextcloud-vue', …)` catalog.
 
-> @e2e exclude Library-level UI-state contract rendered only inside a consumer's editor modal; asserted by jest component tests and exercised through OpenBuild's e2e suite.
+> @e2e exclude Library-level UI-state contract rendered only inside a consumer's editor modal; asserted by jest component tests and exercised through Buildiq's e2e suite.
 
 #### Scenario: The selects show a loading state during a refresh
 
@@ -173,13 +173,13 @@ All colors SHALL come from Nextcloud CSS variables; all new UI strings SHALL use
 - **THEN** the Register and Schema pickers SHALL be rendered (in their loading state)
 - **AND** the free-text Register and Schema inputs SHALL NOT be rendered
 
-### Requirement: OpenBuild SHALL pass a loader instead of prefetching at boot
+### Requirement: Buildiq SHALL pass a loader instead of prefetching at boot
 
-Both OpenBuild hosts SHALL pass `:data-sources-loader` to `CnAppRoot` instead of building a `dataSources` snapshot during bootstrap: `src/builder.js` (which today awaits `useRegisterPicker({ appSlug }).fetchDataSources()` before mounting) and `src/views/BuilderHost.vue` (which today assigns `this.dataSources` from its own `loadDataSources(version)`). No register or schema request SHALL be issued during app boot.
+Both Buildiq hosts SHALL pass `:data-sources-loader` to `CnAppRoot` instead of building a `dataSources` snapshot during bootstrap: `src/builder.js` (which today awaits `useRegisterPicker({ appSlug }).fetchDataSources()` before mounting) and `src/views/BuilderHost.vue` (which today assigns `this.dataSources` from its own `loadDataSources(version)`). No register or schema request SHALL be issued during app boot.
 
 The two hosts SHALL converge on a single register-scoped loader in `useRegisterPicker`. That loader SHALL fetch schemas with the register-scoped `GET /apps/openregister/api/registers/{slug}/schemas` endpoint, and SHALL be bounded to the app's own register scope — the per-app register `openbuild-{slug}`, plus registers referenced by a manifest page's `config.register`, plus any declared `Application.dataRegisters` bindings — instead of fanning schema requests out across every register on the instance. `fetchDataSources()`'s existing no-argument call shape SHALL keep working for any other caller.
 
-> @e2e exclude Consumer-side wiring in the OpenBuild repo; asserted by OpenBuild's own unit tests and its e2e suite.
+> @e2e exclude Consumer-side wiring in the Buildiq repo; asserted by Buildiq's own unit tests and its e2e suite.
 
 #### Scenario: App boot issues no data-source requests
 

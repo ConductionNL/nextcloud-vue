@@ -51,8 +51,23 @@
 				@click="triggerUpload">
 				{{ t('nextcloud-vue', 'Upload File') }}
 			</button>
+			<!--
+				`:ref`, not `ref`. Note `:aria-hidden="true"` does NOT save this:
+				a binding to a LITERAL CONSTANT is constant-folded, so the vnode
+				stays fully static and the compiler hoists it to module scope.
+				A hoisted vnode's ref has no owner instance, and `setRef()`'s
+				null-owner guard — along with its early `return` — is compiled
+				out of production builds, so it dereferences null and throws
+				`Cannot read properties of null (reading 'refs')`, aborting the
+				render of the page that mounted this widget.
+
+				Confirmed by instrumenting Vue's own warning to print the ref
+				name: `[DEBUG ref="fileInput" vnodeType=input]`. This widget is
+				the `files` integration leaf, which is how it reaches a detail
+				page. See CnFilesTab for the full account of the mechanism.
+			-->
 			<input
-				ref="fileInput"
+				:ref="fileInputRef"
 				type="file"
 				multiple
 				class="cn-files-widget__file-input"
@@ -296,6 +311,8 @@ export default {
 
 	data() {
 		return {
+			/** The hidden file input, set by the template's function ref (kept off `$refs` so the ref stays dynamic — see the template). @type {HTMLInputElement|null} */
+			fileInputEl: null,
 			items: [],
 			currentSubPath: '/',
 			loading: false,
@@ -518,6 +535,17 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * Function ref for the hidden file input; a method so the binding is
+		 * stable across renders and the vnode stays dynamic.
+		 *
+		 * @param {HTMLInputElement|null} el The element, or null on unmount.
+		 * @return {void}
+		 */
+		fileInputRef(el) {
+			this.fileInputEl = el || null
+		},
 
 		/**
 		 * Reset the listing/navigation state before a (re)fetch.
@@ -840,8 +868,8 @@ export default {
 		 * @return {void}
 		 */
 		triggerUpload() {
-			if (this.$refs.fileInput) {
-				this.$refs.fileInput.click()
+			if (this.fileInputEl) {
+				this.fileInputEl.click()
 			}
 		},
 
@@ -854,8 +882,8 @@ export default {
 		async onFileInputChange(event) {
 			const fileList = event?.target?.files
 			await this.uploadFiles(fileList)
-			if (this.$refs.fileInput) {
-				this.$refs.fileInput.value = ''
+			if (this.fileInputEl) {
+				this.fileInputEl.value = ''
 			}
 		},
 

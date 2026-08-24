@@ -41,7 +41,33 @@
 		     (e.g. an `object-table` widget in `body`) still wins over
 		     the default. -->
 		<template v-if="isV2Manifest">
-			<!-- body slot — widgets first, default typed component otherwise -->
+			<!-- body slot — widgets first, default typed component otherwise.
+			     KNOWN GAP (ConductionNL/hrmq#112 follow-up): a body widget
+			     short-circuits the typed component, so a `type: "detail"` page
+			     that adopts ADR-036's page-level `widgets[]` never mounts
+			     CnDetailPage and loses its header, padding, sidebar and grid
+			     discipline. The same applies to `type: "dashboard"` pages and
+			     CnDashboardPage.
+
+			     NOTE the direction of the tension: the v2 schema DOCUMENTS
+			     page-level `widgets[]` as preferred and calls `config.widgets`
+			     legacy, yet only `config.widgets` reaches the typed component.
+			     An app following the documented advice gets the worse result.
+
+			     hrmq was the only app with `widgets[]` on detail pages and has
+			     since moved its 47 pages onto `config.widgets` (hrmq#115), so
+			     nothing in the fleet is currently mis-rendering — but the trap
+			     is still armed for the next app that follows the schema's own
+			     recommendation.
+
+			     Hosting the grid in the typed component's default slot was tried
+			     and REVERTED: the unit suite went green while the live page got
+			     worse — the body rendered empty (CnDetailPage gates its default
+			     slot against its own auto-body) and its sidebar fired ~20
+			     integration endpoints that 404 on an instance without them. The
+			     real fix is either to make the typed components accept a body
+			     grid as a first-class input, or to settle the schema on one
+			     spelling and translate the other here. -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('body')"
 				:widgets="widgetsBySlot.get('body')"
@@ -125,16 +151,16 @@
 		<!-- Builder empty-state. A page with no renderable body — e.g. a
 		     freshly-created custom page that has no `component` / body widgets
 		     yet — would otherwise render nothing at all, leaving no
-		     "Edit with OpenBuild" affordance to start adding content. Render the
+		     "Edit with Buildiq" affordance to start adding content. Render the
 		     edit button (it self-gates to builder mode via CnAppRoot's
 		     `cnOpenBuildAvailable`) plus a neutral prompt, so a new page is
 		     always editable. ADR-041. -->
 		<div v-if="!hasRenderableBody" class="cn-page-renderer__empty">
 			<div class="cn-page-renderer__empty-actions">
-				<CnOpenBuildEditButton />
+				<CnBuildiqEditButton />
 			</div>
 			<NcEmptyContent :name="tr('This page is empty')"
-				:description="tr('Open the OpenBuild editor to start adding content to this page.')">
+				:description="tr('Open the Buildiq editor to start adding content to this page.')">
 				<template #icon>
 					<ShapeOutline :size="20" />
 				</template>
@@ -169,7 +195,7 @@ import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
 import { defaultPageTypes } from './pageTypes.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
-import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnPageConfigModal from '../../dialogs/CnPageConfigModal.vue'
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
@@ -217,7 +243,7 @@ export default {
 	components: {
 		CnWidgetGrid,
 		CnPageConfigModal,
-		CnOpenBuildEditButton,
+		CnBuildiqEditButton,
 		CnMassExportDialog,
 		NcEmptyContent,
 		ShapeOutline,
@@ -671,7 +697,7 @@ export default {
 		 * component (index/detail/dashboard/custom-with-component) or a v2 `body`
 		 * widget slot. False for a freshly-created custom page with no component
 		 * and no widgets, which drives the builder empty-state (ADR-041) so the
-		 * page still exposes the "Edit with OpenBuild" affordance.
+		 * page still exposes the "Edit with Buildiq" affordance.
 		 *
 		 * @return {boolean}
 		 */
@@ -764,6 +790,23 @@ export default {
 					topLevel[key] = page[key]
 				}
 			}
+			// NOTE on ADR-036 page-level `widgets[]`: it is NOT translated into
+			// the typed component's `widgets` + `layout` props here.
+			//
+			// An earlier cut of this fix did exactly that, and the suite caught
+			// why it is wrong: body widgets on the widget-grid path are fed
+			// their object context by the live-context HOLDER
+			// (`detailObjectContext`, #222) — subscription, re-render on store
+			// cache updates, re-scoping when the route object changes. Handing
+			// the widgets to the typed component instead silently dropped all
+			// of that; `CnPageRendererV2DetailLiveContext` went red on the
+			// widget rendering "none" where the holder had been supplying the
+			// object.
+			//
+			// So the widgets keep being rendered by CnWidgetGrid, with the
+			// holder intact. The typed component supplies only what was
+			// actually missing — its chrome — by hosting the grid in its
+			// default slot (see the template).
 			// `config.actionToggles` is a typed object sugaring the nine
 			// show*/selectable toggles on type='index' pages. Flatten
 			// each key into the top-level config namespace UNDER any

@@ -19,7 +19,7 @@
   fetchSingle contract).
 
   As an external integration the widget also surfaces the
-  OpenConnector auth status alongside the data (configured / missing /
+  Integriq auth status alongside the data (configured / missing /
   expired); ADR-019 mandates the auth state never silently degrades to
   an empty list.
 
@@ -165,7 +165,7 @@ const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'singl
  * `openproject` integration.
  *
  * Renders OpenProject-aware metadata across all four surfaces, with
- * special handling for the OpenConnector auth-status states (ADR-019
+ * special handling for the Integriq auth-status states (ADR-019
  * external storage). See the file-level docblock for surface-by-surface
  * behaviour.
  */
@@ -225,7 +225,7 @@ export default {
 		/** Pre-translated unconfigured label. */
 		unconfiguredLabel: {
 			type: String,
-			default: () => t('nextcloud-vue', 'OpenProject not configured in OpenConnector.'),
+			default: () => t('nextcloud-vue', 'OpenProject not configured in Integriq.'),
 		},
 		/** Pre-translated "configured" badge label. */
 		authConfiguredLabel: {

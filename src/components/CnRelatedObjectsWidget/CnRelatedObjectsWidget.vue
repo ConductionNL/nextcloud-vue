@@ -240,7 +240,14 @@
 					</NcActionButton>
 				</NcActions>
 				<span v-if="addError" class="cn-related-objects-widget__add-error">{{ addError }}</span>
-				<input ref="fileInput"
+				<!-- `:ref`, not `ref` — every other binding here is static and
+				     the handler is cached, so a static ref lets the compiler
+				     hoist this vnode to module scope, leaving its ref with no
+				     owner instance. Vue's guard for that is dev-only, so in a
+				     production build it throws
+				     `Cannot read properties of null (reading 'refs')` and
+				     aborts the render. See CnFilesTab for the full account. -->
+				<input :ref="fileInputRef"
 					type="file"
 					multiple
 					class="cn-related-objects-widget__file-input"
@@ -543,6 +550,8 @@ export default {
 
 	data() {
 		return {
+			/** The file input element, set by the template's function ref (kept off `$refs` so the ref stays dynamic — see the template). @type {HTMLInputElement|null} */
+			fileInputEl: null,
 			/** Whether any section/tab is currently fetching. */
 			loading: false,
 			/** True once the first fetch has completed (gates the empty state). */
@@ -746,6 +755,17 @@ export default {
 		t,
 
 		/**
+		 * Function ref for the file input. A method, so the binding is stable
+		 * across renders; being a function ref is what keeps the vnode dynamic.
+		 *
+		 * @param {HTMLInputElement|null} el The element, or null on unmount.
+		 * @return {void}
+		 */
+		fileInputRef(el) {
+			this.fileInputEl = el || null
+		},
+
+		/**
 		 * Display label for a relation group key.
 		 * @param {string} key - Group key (`objects`, `files`, or a leaf key).
 		 * @return {string}
@@ -789,7 +809,7 @@ export default {
 		/** Open the hidden file input for the footer upload flow. */
 		openFilePicker() {
 			this.addError = ''
-			if (this.$refs.fileInput) this.$refs.fileInput.click()
+			if (this.fileInputEl) this.fileInputEl.click()
 		},
 
 		/**

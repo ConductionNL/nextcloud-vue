@@ -7,7 +7,7 @@
  *  - submit is disabled until subject + project are set;
  *  - free-text project id is used when no projects are discovered;
  *  - 503 surfaces the unconfigured Configure CTA (external-source state);
- *  - 501 surfaces the "OpenConnector not installed" copy;
+ *  - 501 surfaces the "Integriq not installed" copy;
  *  - no create is emitted when the form is incomplete.
  */
 
@@ -104,7 +104,7 @@ describe('CnOpenProjectCreate', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 
-		expect(wrapper.text()).toContain('OpenConnector is not installed.')
+		expect(wrapper.text()).toContain('Integriq is not installed.')
 		wrapper.unmount()
 	})
 

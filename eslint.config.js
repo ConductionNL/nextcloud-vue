@@ -175,7 +175,7 @@ module.exports = defineConfig([{
 	// object. `CnPageConfigModal`'s `page` prop documents it literally ("the
 	// working manifest's page, mutated in place"), `useManifestEditor` makes
 	// the live manifest deeply reactive so those in-place edits render, and
-	// consuming apps depend on it — OpenBuild's builder.js PUTs the very same
+	// consuming apps depend on it — Buildiq's builder.js PUTs the very same
 	// manifest object back after the editor has mutated it.
 	//
 	// `vue/no-mutating-props` is therefore reporting the architecture, not a

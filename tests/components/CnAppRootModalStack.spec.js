@@ -82,7 +82,7 @@ describe('CnAppRoot — nested-modal stacking wiring', () => {
 	})
 
 	it('keeps it installed while an outer shell is still mounted', () => {
-		// OpenBuild's BuilderHost renders a second CnAppRoot for the app being
+		// Buildiq's BuilderHost renders a second CnAppRoot for the app being
 		// previewed. The inner shell unmounting must not blind the outer one.
 		const outer = mountShell()
 		const inner = mountShell()

@@ -94,7 +94,7 @@ describe('CnXwikiTab', () => {
 		wrapper.unmount()
 	})
 
-	it('shows the "Configure XWiki connection" CTA when the OpenConnector source is missing', async () => {
+	it('shows the "Configure XWiki connection" CTA when the Integriq source is missing', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce(unavailable('openconnector-source-missing'))
 		const wrapper = mount(CnXwikiTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
@@ -110,7 +110,7 @@ describe('CnXwikiTab', () => {
 		wrapper.unmount()
 	})
 
-	it('shows the unconfigured banner when OpenConnector itself is down', async () => {
+	it('shows the unconfigured banner when Integriq itself is down', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce(unavailable('openconnector-down'))
 		const wrapper = mount(CnXwikiTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()

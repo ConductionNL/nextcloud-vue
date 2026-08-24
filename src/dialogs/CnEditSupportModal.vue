@@ -49,7 +49,7 @@
 				<NcTextField v-model="support.founderAvatarUrl"
 					:label="t('nextcloud-vue', 'Avatar URL (blank for the default portrait)')" />
 				<div class="cn-edit-support__avatar-actions">
-					<NcButton variant="secondary" @click="$refs.avatarFile.click()">
+					<NcButton variant="secondary" @click="avatarFileEl && avatarFileEl.click()">
 						<template #icon>
 							<Upload :size="20" />
 						</template>
@@ -60,7 +60,10 @@
 						@click="clearAvatar">
 						{{ t('nextcloud-vue', 'Reset to default') }}
 					</NcButton>
-					<input ref="avatarFile"
+					<!-- `:ref`, not `ref` — see CnFilesTab: a fully static
+					     input with a cached handler is hoisted, and a hoisted
+					     vnode's ref has no owner, which throws in production. -->
+					<input :ref="avatarFileRef"
 						type="file"
 						accept="image/*"
 						class="cn-edit-support__avatar-input"
@@ -157,6 +160,19 @@ export default {
 
 	emits: ['close'],
 
+	data() {
+		return {
+			/**
+			 * The hidden avatar file input, set by the template's function ref.
+			 * Held here rather than read back through `$refs` so the ref stays
+			 * DYNAMIC — see the template comment on the input.
+			 *
+			 * @type {HTMLInputElement|null}
+			 */
+			avatarFileEl: null,
+		}
+	},
+
 	computed: {
 		/** The working manifest's support block. */
 		support() {
@@ -218,6 +234,17 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * Function ref for the hidden avatar file input; a method so the
+		 * binding is stable across renders.
+		 *
+		 * @param {HTMLInputElement|null} el The element, or null on unmount.
+		 * @return {void}
+		 */
+		avatarFileRef(el) {
+			this.avatarFileEl = el || null
+		},
 		/**
 		 * The override object for a button id. Falls back to an empty object
 		 * during the modal's close transition, when `working` (and thus

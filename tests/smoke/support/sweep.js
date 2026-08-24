@@ -27,6 +27,15 @@ const IGNORE_PATTERNS = [
 	// render as passthrough stubs; a parent asking one for a ref or a method it
 	// does not have is a limitation of the stub, not of the parent.
 	{ re: /\[Vue warn\]: Failed to resolve component: (NcAvatar|NcRichText|NcRichContenteditable|NcDashboardWidget|NcDashboardWidgetItem)\b/, why: 'ESM-only, stubbed — see realNextcloudVue.js' },
+	// Vue Flow measures its container and reads the stylesheet at mount. jsdom
+	// computes no layout, so the container is always 0x0, and the smoke lane
+	// loads the ESM modules WITHOUT `dist/nextcloud-vue.css`, so the stylesheet
+	// is genuinely absent here.
+	//
+	// VERIFIED before ignoring, rather than assumed: `dist/nextcloud-vue.css`
+	// carries 100 `vue-flow__` rules, so a real consumer importing the library's
+	// CSS does get them. Both warnings are this lane describing itself.
+	{ re: /\[Vue Flow\]: (The Vue Flow parent container needs a width and a height|It seems that you haven't loaded the necessary styles)/, why: 'jsdom has no layout and the smoke lane loads no CSS — verified the rules DO ship in dist/nextcloud-vue.css' },
 	// Vue's own advisory when a test mounts a component that expects to be a
 	// route child. The sweep stubs router-view/router-link, so this is the
 	// harness speaking, not the component.
@@ -220,7 +229,23 @@ function componentExports(barrel) {
 			// A component definition is an object (SFCs compile to one) or a
 			// function (defineAsyncComponent / functional). Anything else that
 			// happens to be Cn-prefixed is not a component.
-			return v && (typeof v === 'object' || typeof v === 'function')
+			if (!v || (typeof v !== 'object' && typeof v !== 'function')) return false
+
+			// ...but an ES6 CLASS is also `typeof 'function'`, so the check above
+			// admits one. `CnHttpError` (the error cnFetchJson throws) is
+			// Cn-prefixed for its API family, not because it renders — mounting
+			// it fails, and it can never be fixed to pass, so it must not be
+			// baselined either: the baseline ratchets both ways and is for
+			// components that SHOULD eventually mount.
+			//
+			// Walk the prototype chain rather than checking `v.prototype
+			// instanceof Error` alone, so a subclass of a subclass is caught too.
+			let proto = v.prototype
+			while (proto) {
+				if (proto === Error.prototype) return false
+				proto = Object.getPrototypeOf(proto)
+			}
+			return true
 		})
 		.sort()
 		.map((k) => [k, barrel[k]])

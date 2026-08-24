@@ -26,7 +26,7 @@
  * the caller's `translate` function.
  *
  * Pure and side-effect free: no component imports, no DOM access — usable
- * directly from OpenBuild's `form-editor-logic` preview and from Jest.
+ * directly from Buildiq's `form-editor-logic` preview and from Jest.
  *
  * @module utils/formValidation
  */

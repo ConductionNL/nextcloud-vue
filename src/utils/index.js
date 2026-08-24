@@ -1,4 +1,5 @@
 export { buildHeaders, buildQueryString } from './headers.js'
+export { cnFetch, cnFetchJson, CnHttpError } from './cnFetch.js'
 export { parseResponseError, parseAxiosError, networkError, genericError } from './errors.js'
 export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema, validateValue } from './schema.js'
 export { saveSchema, deleteSchema, describeSchemaChange, SchemaBreakingChangeError, SchemaHasObjectsError } from './schemaApi.js'

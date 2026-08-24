@@ -111,8 +111,9 @@
 					:data-cn-route="item.route"
 					@update:open="setItemOpen(item, $event)"
 					@click="onItemClick(item, $event)">
-					<template v-if="mdiIconComponent(item) || isRichIcon(item) || isRegistryIcon(item)" #icon>
+					<template v-if="mdiIconComponent(item) || isRichIcon(item) || isRegistryIcon(item) || isUnresolvedIcon(item)" #icon>
 						<component :is="mdiIconComponent(item)" v-if="mdiIconComponent(item)" :size="20" />
+						<HelpCircleOutline v-else-if="isUnresolvedIcon(item)" :size="20" />
 						<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 					</template>
 					<template v-if="resolveCount(item)" #counter>
@@ -144,8 +145,9 @@
 						:data-testid="`cn-nav-entry-${child.id}`"
 						:data-cn-route="child.route"
 						@click="onItemClick(child, $event)">
-						<template v-if="mdiIconComponent(child) || isRichIcon(child) || isRegistryIcon(child)" #icon>
+						<template v-if="mdiIconComponent(child) || isRichIcon(child) || isRegistryIcon(child) || isUnresolvedIcon(child)" #icon>
 							<component :is="mdiIconComponent(child)" v-if="mdiIconComponent(child)" :size="20" />
+							<HelpCircleOutline v-else-if="isUnresolvedIcon(child)" :size="20" />
 							<CnMenuItemIcon v-else :icon="child.icon" :size="20" />
 						</template>
 						<template v-if="resolveCount(child)" #counter>
@@ -176,8 +178,9 @@
 					:data-testid="`cn-nav-entry-${item.id}`"
 					:data-cn-route="item.route"
 					@click="onItemClick(item, $event)">
-					<template v-if="mdiIconComponent(item) || isRichIcon(item) || isRegistryIcon(item)" #icon>
+					<template v-if="mdiIconComponent(item) || isRichIcon(item) || isRegistryIcon(item) || isUnresolvedIcon(item)" #icon>
 						<component :is="mdiIconComponent(item)" v-if="mdiIconComponent(item)" :size="20" />
+						<HelpCircleOutline v-else-if="isUnresolvedIcon(item)" :size="20" />
 						<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 					</template>
 					<template v-if="resolveCount(item)" #counter>
@@ -251,8 +254,9 @@
 							:active="isActive(item)"
 							:data-testid="`cn-nav-entry-${item.id}`"
 							@click="onItemClick(item, $event)">
-							<template v-if="mdiIconComponent(item) || isRichIcon(item) || isRegistryIcon(item)" #icon>
+							<template v-if="mdiIconComponent(item) || isRichIcon(item) || isRegistryIcon(item) || isUnresolvedIcon(item)" #icon>
 								<component :is="mdiIconComponent(item)" v-if="mdiIconComponent(item)" :size="20" />
+								<HelpCircleOutline v-else-if="isUnresolvedIcon(item)" :size="20" />
 								<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 							</template>
 							<template v-if="resolveCount(item)" #counter>
@@ -273,6 +277,8 @@ import { NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavi
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import MapMarkerPath from 'vue-material-design-icons/MapMarkerPath.vue'
+// ADR-077 rule 4: visible fallback for an unresolvable icon name.
+import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import ShieldAccountOutline from 'vue-material-design-icons/ShieldAccountOutline.vue'
 import { translate as t } from '@nextcloud/l10n'
@@ -280,6 +286,7 @@ import { generateUrl } from '@nextcloud/router'
 import { ICON_MAP } from '../CnIcon/CnIcon.vue'
 import CnMenuItemIcon from '../CnMenuWidget/CnMenuItemIcon.vue'
 import { isCustomIconUrl, hasRegistryIcon } from '../CnWidgetGrid/widgetIcons.js'
+import { getSemanticIconComponent } from '../CnIcon/semanticIcons.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
@@ -337,6 +344,8 @@ import PlayCircleOutline from 'vue-material-design-icons/PlayCircleOutline.vue'
 import Pulse from 'vue-material-design-icons/Pulse.vue'
 import RenameBox from 'vue-material-design-icons/RenameBox.vue'
 import Sitemap from 'vue-material-design-icons/Sitemap.vue'
+import ShieldOutline from 'vue-material-design-icons/ShieldOutline.vue'
+import ShieldKeyOutline from 'vue-material-design-icons/ShieldKeyOutline.vue'
 import ShareVariant from 'vue-material-design-icons/ShareVariant.vue'
 import Star from 'vue-material-design-icons/Star.vue'
 import Tag from 'vue-material-design-icons/Tag.vue'
@@ -364,8 +373,11 @@ const CSS_ICON_TO_MDI = {
 	'icon-activity': Pulse,
 	'icon-add': Plus,
 	'icon-address': MapMarker,
+	'icon-briefcase': BriefcaseOutline,
 	'icon-calendar': Calendar,
+	'icon-category': Tune,
 	'icon-category-app-bundles': PackageVariantClosed,
+	'icon-category-auth': ShieldKeyOutline,
 	'icon-category-customization': Tune,
 	'icon-category-dashboard': ViewDashboard,
 	'icon-category-files': FolderMultiple,
@@ -373,7 +385,9 @@ const CSS_ICON_TO_MDI = {
 	'icon-category-monitoring': ChartLine,
 	'icon-category-office': OfficeBuilding,
 	'icon-category-organization': Domain,
+	'icon-category-security': ShieldOutline,
 	'icon-category-workflow': Sitemap,
+	'icon-chart': ChartLine,
 	'icon-checkmark': Check,
 	'icon-clippy': ClipboardOutline,
 	'icon-clock': ClockOutline,
@@ -424,6 +438,7 @@ const CSS_ICON_TO_MDI = {
 	'icon-toggle-pictures': ViewGridOutline,
 	'icon-upload': Upload,
 	'icon-user': Account,
+	'icon-user-admin': ShieldAccountOutline,
 	'icon-video': Video,
 }
 
@@ -450,6 +465,7 @@ export default {
 		NcCounterBubble,
 		CnMenuItemIcon,
 		Cog,
+		HelpCircleOutline,
 		ShieldAccountOutline,
 		MapMarkerPath,
 		BookOpenVariant,
@@ -886,7 +902,37 @@ export default {
 			const icon = item?.icon
 			if (typeof icon !== 'string' || icon.length === 0) return null
 			if (icon.startsWith('icon-')) return bridgedMdiForCssIcon(icon) || null
-			return ICON_MAP[icon] || null
+			// ADR-077: the app's own registerIcons() entries win (so an app can
+			// override), then the shared semantic vocabulary — which resolves
+			// WITHOUT the app having registered anything. Before the vocabulary
+			// existed, a name the app forgot to register resolved to null here
+			// and the entry rendered with no icon at all.
+			return ICON_MAP[icon] || getSemanticIconComponent(icon) || null
+		},
+		/**
+		 * Whether the item declares an icon that NOTHING can resolve — not the
+		 * app registry, not the semantic vocabulary, not the widget registry, and
+		 * not a URL / SVG path.
+		 *
+		 * ADR-077 rule 4: such an icon MUST degrade to a visible fallback glyph.
+		 * Historically it rendered as empty space, which is indistinguishable
+		 * from a deliberate no-icon design choice — 29 of hrmq's 72 nav entries
+		 * were silently blank this way. A visible "?" is discoverable; blank is
+		 * not.
+		 *
+		 * `icon-*` values are excluded: those have their own CSS-class fallback
+		 * path via the `cssIconClass` method.
+		 *
+		 * @param {{ icon?: string }} item Menu item descriptor.
+		 * @return {boolean} true when the declared icon resolves to nothing.
+		 */
+		isUnresolvedIcon(item) {
+			const icon = item?.icon
+			if (typeof icon !== 'string' || icon.length === 0) return false
+			if (icon.startsWith('icon-')) return false
+			return !this.mdiIconComponent(item)
+				&& !this.isRichIcon(item)
+				&& !this.isRegistryIcon(item)
 		},
 		/**
 		 * Whether the item's icon is a raw SVG path or an image URL (incl. the
@@ -914,7 +960,7 @@ export default {
 		 *
 		 * `ICON_MAP` only holds what the consuming app passed to `registerIcons()`,
 		 * and an app rendering USER-AUTHORED manifests cannot pre-register whatever
-		 * icon a user might pick — OpenBuild registers none at all. So a picked name
+		 * icon a user might pick — Buildiq registers none at all. So a picked name
 		 * failed `mdiIconComponent` (not registered) AND `isRichIcon` (not a URL or
 		 * SVG path), the `#icon` slot was skipped entirely, and the menu item rendered
 		 * with NO icon — even though CnMenuItemIcon → CnWidgetIcon could resolve it.

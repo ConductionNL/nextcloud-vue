@@ -6,7 +6,7 @@ title: Dashboard Widget Catalog
 # Dashboard Widget Catalog
 
 The **25 widget types** offered by the dashboard widget library — the catalog
-shared by **OpenBuild** and **LaunchPad** via the communal
+shared by **Buildiq** and **Launchpad** via the communal
 [`dashboardWidgetRegistry`](./cn-widget-grid.md). Each type self-registers a
 `{renderer, form, defaultContent, displayName, icon}` descriptor, so adding a
 widget capability to `@conduction/nextcloud-vue` makes it available to every
