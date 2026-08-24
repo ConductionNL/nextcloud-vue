@@ -112,7 +112,27 @@ module.exports = {
 				},
 				{
 					test: /\.(js|mjs|cjs)$/,
-					exclude: /node_modules\/(?!(@nextcloud|unified|vfile|lowlight|mdast-util|hast-util|unist-util|remark|rehype|micromark|decode-named-character-reference|bail|is-plain-obj|trim|trough|vfile-message|property-information|vue-codemirror6|codemirror|@codemirror|@lezer|gridstack|axios))/,
+					// This `exclude` is really an ALLOWLIST: the negative
+					// lookahead names the node_modules packages that DO get
+					// transpiled. A dependency shipping modern syntax and not
+					// listed here reaches webpack raw, and webpack 4 answers
+					// with "Module parse failed: Unexpected token" — which reads
+					// like a broken package rather than a missing entry.
+					//
+					// `@vue-flow` was the newest such arrival. Since the Vue
+					// Flow migration (#757) `CnFlowNode.vue` pulls in
+					// `@vue-flow/node-resizer`, whose dist uses `??` inside an
+					// arrow passed to `vue.toRef(...)`:
+					//
+					//   ../node_modules/@vue-flow/node-resizer/dist/…js 1057:60
+					//   Module parse failed: Unexpected token (1057:60)
+					//   > const controlPosition = vue.toRef(() => props.position
+					//       ?? DefaultPositions[props.variant]);
+					//
+					// That broke `Deploy Dev Styleguide` on development, so the
+					// component docs site has failed to build since the
+					// migration landed.
+					exclude: /node_modules\/(?!(@nextcloud|@vue-flow|unified|vfile|lowlight|mdast-util|hast-util|unist-util|remark|rehype|micromark|decode-named-character-reference|bail|is-plain-obj|trim|trough|vfile-message|property-information|vue-codemirror6|codemirror|@codemirror|@lezer|gridstack|axios))/,
 					use: {
 						loader: 'babel-loader',
 						options: {
