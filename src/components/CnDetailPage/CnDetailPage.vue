@@ -3180,6 +3180,35 @@ export default {
 					schema: merged.schema || this.schema || '',
 					hiddenTabs: merged.hiddenTabs || [],
 					tabs,
+					// ADR-019. `config.sidebar.useRegistry` reaches
+					// `resolvedSidebar` intact — the Object branch returns
+					// `{show, enabled, ...cfg}` — and survives
+					// mergeSidebarSources(), which spreads `resolved` before
+					// its own field list. It was simply never published here,
+					// so the host's CnObjectSidebar always saw the prop default
+					// `false` and rendered its BACKWARDS-COMPATIBLE branch: the
+					// five hard-coded built-in tabs (files, notes, tags, tasks,
+					// audit-trail) instead of one tab per registered provider.
+					//
+					// The declaration therefore did nothing at all. Measured on
+					// decidiq run 32702211376, whose MeetingIntegrations page
+					// sets `config.sidebar.useRegistry: true`:
+					//
+					//   JS registry carries every expected provider   passed
+					//   every component leaf has a tab + widget       passed
+					//   OCS caps and JS registry agree               passed
+					//   providers the server reports available          10
+					//   tabs the sidebar rendered                        5
+					//
+					// Five, exactly, because that is the fallback branch. Every
+					// app whose manifest opts a page into the registry sidebar
+					// has been getting the built-ins.
+					//
+					// `excludeIntegrations` rides the same channel and was
+					// dropped for the same reason; without it a page cannot
+					// suppress a provider it does not want.
+					useRegistry: merged.useRegistry === true,
+					excludeIntegrations: merged.excludeIntegrations || [],
 				})
 			} else {
 				this.assignSidebarState({ active: false, tabs: undefined })
