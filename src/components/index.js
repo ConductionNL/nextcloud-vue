@@ -304,6 +304,13 @@ export { default as CnEditPagesModal } from '../dialogs/CnEditPagesModal.vue'
 export { default as CnEditSettingsModal } from '../dialogs/CnEditSettingsModal.vue'
 export { default as CnEditSidebarModal } from '../dialogs/CnEditSidebarModal.vue'
 export { default as CnEditActionsModal } from '../dialogs/CnEditActionsModal.vue'
+// The remaining manifest editors. These shipped inside CnBuildiqEditButton but
+// were never exported, so a consumer could not mount one on its own surface —
+// Buildiq needs exactly these four on its app page.
+export { default as CnEditSetupModal } from '../dialogs/CnEditSetupModal.vue'
+export { default as CnEditWalkthroughModal } from '../dialogs/CnEditWalkthroughModal.vue'
+export { default as CnEditSupportModal } from '../dialogs/CnEditSupportModal.vue'
+export { default as CnEditDataModal } from '../dialogs/CnEditDataModal.vue'
 export { default as CnAddWidgetModal } from '../dialogs/CnAddWidgetModal.vue'
 export { default as CnWidgetStyleEditorModal } from '../dialogs/CnWidgetStyleEditorModal.vue'
 export { default as CnWidgetVisibilityRulesModal } from '../dialogs/CnWidgetVisibilityRulesModal.vue'

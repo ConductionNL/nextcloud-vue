@@ -3,7 +3,7 @@
 `denHaagIcons` — the **Gemeente Den Haag** icon set, 69 glyphs bundled as
 self-contained `data:image/svg+xml` URIs. Each entry is `{ id, label, url }`.
 Licensed **EUPL-1.2** — see
-[`src/icons/ATTRIBUTION.md`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/icons/ATTRIBUTION.md).
+[`src/icons/ATTRIBUTION.md`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/icons/ATTRIBUTION.md).
 
 ```js
 import { denHaagIcons } from '@conduction/nextcloud-vue/src/icons/denHaag.js'
