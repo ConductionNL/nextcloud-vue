@@ -27,7 +27,12 @@
 			     unregistered falls back to CnFlowNode, which carries the
 			     keyboard contract. -->
 			<template #node-default="nodeProps">
-				<CnFlowNode v-bind="nodeProps">
+				<!-- A keyboard-completed connection is forwarded through the
+				     SAME `connect` event a pointer drag produces, so the host
+				     handles one contract rather than two. Without this the
+				     node's emit has no listener and a keyboard connection is
+				     silently dropped. -->
+				<CnFlowNode v-bind="nodeProps" @connect="onConnect">
 					<template #default="slotProps">
 						<!-- @slot node The body of a step, rendered inside the
 						     focusable node wrapper. Receives `{ node }` with the

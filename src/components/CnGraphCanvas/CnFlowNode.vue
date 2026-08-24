@@ -143,14 +143,21 @@ export default {
 		},
 	},
 
+	emits: ['connect'],
+
 	setup() {
 		// `connectionStartNode` is module-level state shared by every node
 		// instance, because a keyboard connection spans TWO nodes: the one that
 		// started it and the one that completes it. Vue Flow's own connection
 		// state is pointer-driven and does not cover this path.
-		const { updateNodePositions, findNode, addEdges } = useVueFlow()
+		//
+		// `addEdges` is deliberately NOT pulled in. The keyboard path reports a
+		// connection through `@connect` and lets the host apply it, exactly as
+		// the pointer path does; writing to Vue Flow's store from here is what
+		// made keyboard edges invisible to the host in the first place.
+		const { updateNodePositions, findNode } = useVueFlow()
 
-		return { updateNodePositions, findNode, addEdges, Position }
+		return { updateNodePositions, findNode, Position }
 	},
 
 	data() {
@@ -328,15 +335,30 @@ export default {
 
 			// A connection is already in flight and it did not start here, so
 			// this press completes it.
+			//
+			// REPORT the connection, do not apply it. This used to call
+			// `addEdges()` directly, which writes the edge into Vue Flow's own
+			// store and emits `edges-change` — but NOT `connect`. The host
+			// (CnFlowDetail) saves from `@connect` only, so a keyboard-made
+			// edge was DRAWN on the canvas and never written to the flow. The
+			// editor looked right and the saved flow had no edge, so the server
+			// refused to run it: "node ... has no outgoing edge".
+			//
+			// Emitting instead puts the keyboard on exactly the same path as a
+			// pointer drag, and matches this canvas's standing contract that
+			// changes are reported to the host, never applied here.
 			if (pending !== null && pending.nodeId !== this.id) {
-				this.addEdges([
-					{
-						id: `${pending.nodeId}:${pending.portId}->${this.id}`,
-						source: pending.nodeId,
-						sourceHandle: pending.portId,
-						target: this.id,
-					},
-				])
+				/**
+				 * @event connect A keyboard-completed connection, in Vue Flow's
+				 *   own `{ source, target, sourceHandle, targetHandle }` shape
+				 *   so the host cannot tell it from a pointer drag.
+				 */
+				this.$emit('connect', {
+					source: pending.nodeId,
+					sourceHandle: pending.portId,
+					target: this.id,
+					targetHandle: null,
+				})
 				this.clearPending()
 				return
 			}

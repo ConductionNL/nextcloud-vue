@@ -199,6 +199,67 @@ describe('CnFlowNode — the keyboard contract', () => {
 		})
 
 		/**
+		 * THE CROSS-NODE HALF, WHICH NOTHING USED TO COVER.
+		 *
+		 * Every other test here drives ONE node, and a keyboard connection
+		 * spans two: one arms, the other completes. That gap hid a real
+		 * regression — the completing press called Vue Flow's `addEdges()`
+		 * directly, which writes the edge into the canvas's own store and emits
+		 * `edges-change`, but NOT `connect`. CnFlowDetail saves from `@connect`
+		 * only, so a keyboard-made edge was drawn on screen and never written
+		 * to the flow. The editor looked correct and the server then refused to
+		 * run the flow: "node ... has no outgoing edge".
+		 *
+		 * So this asserts the CONTRACT, not the drawing: completing a
+		 * connection must REPORT it, in the same shape a pointer drag reports.
+		 * Both nodes are mounted under one parent because the pending
+		 * connection is held on the shared root — two separate `mount()` calls
+		 * would not share it, and the test would pass while proving nothing.
+		 */
+		it('completing a keyboard connection REPORTS it rather than drawing it', async () => {
+			const Parent = {
+				components: { CnFlowNode },
+				template: '<div>'
+					+ '<CnFlowNode id="a" :data="{ label: \'Start\' }" />'
+					+ '<CnFlowNode id="b" :data="{ label: \'End\' }" />'
+					+ '</div>',
+			}
+			const wrapper = mount(Parent, {
+				global: {
+					stubs: {
+						Handle: { template: '<div class="handle-stub" v-bind="$attrs" />' },
+					},
+				},
+			})
+			const nodes = wrapper.findAllComponents(CnFlowNode)
+			const [source, target] = [nodes[0], nodes[1]]
+
+			await source.find('.cn-flow-node').trigger('keydown', { key: 'c' })
+			await target.find('.cn-flow-node').trigger('keydown', { key: 'c' })
+
+			const reported = target.emitted('connect')
+			expect(reported).toHaveLength(1)
+			expect(reported[0][0]).toMatchObject({
+				source: 'a',
+				target: 'b',
+				sourceHandle: 'out',
+			})
+			// The SHARED pending connection is released, so the next `c`
+			// starts a new connection rather than completing this one again.
+			expect(source.vm.$root.$cnFlowPendingConnection).toBeNull()
+
+			// Deliberately NOT asserting `source.vm.armedPortIndex === null`.
+			// `clearPending()` runs on the node that COMPLETES the connection
+			// and clears its own local flag plus the shared state; the source
+			// node's `armedPortIndex` stays set, so it keeps rendering
+			// `cn-flow-node--arming` after the connection is made. That is a
+			// real (cosmetic) wart, but it is pre-existing and separate from
+			// the reporting bug this test exists for — asserting it here would
+			// mean either failing on something this change did not cause, or
+			// quietly widening the fix. Recorded rather than papered over.
+		})
+
+		/**
 		 * THE ONE THAT MATTERS.
 		 *
 		 * A mouse picks a branch by pointing at it. Without stepping, the
