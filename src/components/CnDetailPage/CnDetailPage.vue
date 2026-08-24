@@ -2549,6 +2549,25 @@ export default {
 			}
 			return {
 				surface: this.surface,
+				// ADR-062 rule 5 — "every body widget has card chrome and its
+				// manifest title". An integration widget draws its own chrome
+				// (CnIntegrationCard renders a CnDetailCard), so it is correctly
+				// NOT wrapped in CnWidgetWrapper like the content-only catalog
+				// widgets are — but its title was never forwarded, and
+				// CnIntegrationCard's `cardTitle` falls back to
+				// `this.title || this.integrationId`. With no title prop the
+				// fallback wins, so a widget the manifest calls "Class space"
+				// rendered as the raw id "talk".
+				//
+				// Measured on learniq, whose CohortDetail/SessionDetail declare
+				// `cohort-talk` ("Class space"), `session-talk` ("Join call")
+				// and `sess-files` ("Session materials"): all three rendered
+				// under their integrationId, and e2e asserting the manifest
+				// title could never pass.
+				//
+				// Placed BEFORE `def.props` so an explicit per-widget prop
+				// still overrides it.
+				title: def?.title || '',
 				...(this.integrationContext || derivedContext),
 				...(def?.props || {}),
 			}
