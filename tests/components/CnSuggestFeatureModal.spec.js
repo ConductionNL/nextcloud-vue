@@ -82,7 +82,9 @@ describe('CnSuggestFeatureModal', () => {
 		const notes = wrapper.findAllComponents({ name: 'NcNoteCard' })
 		expect(notes).toHaveLength(2)
 		expect(notes.at(0).text()).toContain('Help us land this faster.')
-		expect(notes.at(1).text()).toContain('Why continue on Codeberg?')
+		// The copy is generated from the active forge's display name, so this
+		// tracks the default rather than naming a host literally.
+		expect(notes.at(1).text()).toContain('Why continue on GitHub?')
 		expect(wrapper.find('[data-label="Title"]').exists()).toBe(true)
 		expect(wrapper.find('[data-label="Problem"]').exists()).toBe(true)
 		expect(wrapper.find('[data-label="Proposed solution"]').exists()).toBe(true)
@@ -113,7 +115,7 @@ describe('CnSuggestFeatureModal', () => {
 		expect(conductionBtn.attributes('title')).toContain('Coming soon')
 	})
 
-	it('default (Codeberg) submit opens a title + body deep-link with the fields + context in the Markdown body', async () => {
+	it('default (GitHub) submit opens an Issue-Form deep-link with one query param per field', async () => {
 		const wrapper = mount(CnSuggestFeatureModal, {
 			stubs,
 			propsData: {
@@ -123,6 +125,47 @@ describe('CnSuggestFeatureModal', () => {
 				page: 'clients-index (/clients)',
 				surface: 'contacts-list-sidebar',
 				object: 'pipelinq · Client',
+			},
+		})
+		await fillValid(wrapper)
+		await wrapper.find('[data-label="Anything else?"] textarea').setValue('Avoid: hiding the filter behind a settings page.')
+		await wrapper.findAll('.dialog-actions button.btn').at(2).trigger('click')
+
+		expect(window.open).toHaveBeenCalledTimes(1)
+		const url = window.open.mock.calls[0][0]
+		expect(url).toMatch(/^https:\/\/github\.com\/Conduction\/pipelinq\/issues\/new\?/)
+		// GitHub supports Issue Forms, so each field is its own query param
+		// rather than one assembled Markdown body. `template=` names the form
+		// that must exist at .github/ISSUE_TEMPLATE/feature-request.yml in the
+		// consuming repo — the default cannot move to GitHub before that file
+		// is there, or the pre-filled fields are silently dropped.
+		expect(url).toContain('template=feature-request.yml')
+		expect(url).toContain('title=%5BFEATURE%5D+Add+timeline+filter')
+		const params = new URL(url).searchParams
+		expect(params.get('problem')).toContain('I want to filter contacts by last interaction date')
+		expect(params.get('proposed-solution')).toContain('date-range filter')
+		expect(params.get('who-benefits')).toContain('Account managers')
+		expect(params.get('priority-to-you')).toBe('Would use weekly')
+		expect(params.get('context')).toContain('Avoid: hiding the filter behind a settings page.')
+		expect(params.get('app')).toBe('pipelinq')
+		expect(params.get('spec-ref')).toBe('client-management')
+	})
+
+	// Retains the coverage the test above used to provide. The Markdown-body
+	// strategy is still live for Codeberg/Forgejo/Gitea; it is simply no longer
+	// what the DEFAULT produces, so it is now exercised through an explicit
+	// `forge` prop instead of by relying on the fleet default.
+	it('an explicit Codeberg forge still submits a title + body Markdown deep-link', async () => {
+		const wrapper = mount(CnSuggestFeatureModal, {
+			stubs,
+			propsData: {
+				repo: 'Conduction/pipelinq',
+				specRef: 'client-management',
+				app: 'pipelinq',
+				page: 'clients-index (/clients)',
+				surface: 'contacts-list-sidebar',
+				object: 'pipelinq · Client',
+				forge: { type: 'codeberg' },
 			},
 		})
 		await fillValid(wrapper)
