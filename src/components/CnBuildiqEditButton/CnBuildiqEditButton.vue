@@ -82,33 +82,20 @@
 				{{ t('nextcloud-vue', 'Edit actions…') }}
 			</NcActionButton>
 
-			<NcActionButton :close-after-click="true" @click="onEditSettings">
-				<template #icon>
-					<Cog :size="20" />
-				</template>
-				{{ t('nextcloud-vue', 'Edit settings…') }}
-			</NcActionButton>
+			<!-- The four APP-LEVEL editors (settings, setup wizard,
+			     walkthrough, support & donation) used to sit here. They edit
+			     the app's chrome rather than the page you are standing on, so
+			     they now live on the app detail page, where the whole app is
+			     in view. This menu is page-local: pages, menu, sidebar,
+			     actions, data, flows.
 
-			<NcActionButton :close-after-click="true" @click="onEditSetup">
-				<template #icon>
-					<AutoFix :size="20" />
-				</template>
-				{{ t('nextcloud-vue', 'Edit setup wizard…') }}
-			</NcActionButton>
-
-			<NcActionButton :close-after-click="true" @click="onEditWalkthrough">
-				<template #icon>
-					<MapMarkerPath :size="20" />
-				</template>
-				{{ t('nextcloud-vue', 'Edit walkthrough…') }}
-			</NcActionButton>
-
-			<NcActionButton :close-after-click="true" @click="onEditSupport">
-				<template #icon>
-					<HeartOutline :size="20" />
-				</template>
-				{{ t('nextcloud-vue', 'Edit support &amp; donation…') }}
-			</NcActionButton>
+			     `onEditSettings` / `onEditSetup` / `onEditWalkthrough` /
+			     `onEditSupport` and the modals they open are deliberately
+			     KEPT. They are no longer reachable from this menu, but they
+			     remain callable on a template ref, so a consumer that wants
+			     one of these editors on its own surface has it without
+			     re-implementing the modal. Removing them would be a breaking
+			     change to that API for a menu-layout decision. -->
 
 			<NcActionButton :close-after-click="true" @click="onEditData">
 				<template #icon>
@@ -193,15 +180,11 @@ import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import MenuIcon from 'vue-material-design-icons/Menu.vue'
 import Close from 'vue-material-design-icons/Close.vue'
-import Cog from 'vue-material-design-icons/Cog.vue'
 import FileMultiple from 'vue-material-design-icons/FileMultiple.vue'
 import PageLayoutSidebarRight from 'vue-material-design-icons/PageLayoutSidebarRight.vue'
 import GestureTapButton from 'vue-material-design-icons/GestureTapButton.vue'
 import Database from 'vue-material-design-icons/Database.vue'
 import Sitemap from 'vue-material-design-icons/Sitemap.vue'
-import AutoFix from 'vue-material-design-icons/AutoFix.vue'
-import MapMarkerPath from 'vue-material-design-icons/MapMarkerPath.vue'
-import HeartOutline from 'vue-material-design-icons/HeartOutline.vue'
 import CnEditMenuModal from '../../dialogs/CnEditMenuModal.vue'
 import CnEditPagesModal from '../../dialogs/CnEditPagesModal.vue'
 import CnEditSettingsModal from '../../dialogs/CnEditSettingsModal.vue'
@@ -228,15 +211,11 @@ export default {
 		Plus,
 		MenuIcon,
 		Close,
-		Cog,
 		FileMultiple,
 		PageLayoutSidebarRight,
 		GestureTapButton,
 		Database,
 		Sitemap,
-		AutoFix,
-		MapMarkerPath,
-		HeartOutline,
 		CnEditMenuModal,
 		CnEditPagesModal,
 		CnEditSettingsModal,
