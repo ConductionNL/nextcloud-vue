@@ -358,6 +358,14 @@ export interface TManifest {
 	 */
 	walkthrough?: Record<string, unknown>
 	/**
+	 * First-open support and donation note. `CnAppRoot` reads
+	 * `support.enabled` to decide whether to mount `CnSupportDialog`;
+	 * `CnEditSupportModal` writes the block. Omit it to keep the default-on
+	 * behaviour with the shell's own copy. See the `support` property in the
+	 * v2 schema for the full shape.
+	 */
+	support?: Record<string, unknown>
+	/**
 	 * Server-injected runtime context (e.g. `runtime.user`), added by
 	 * OpenRegister's ManifestController — never hand-authored.
 	 */
