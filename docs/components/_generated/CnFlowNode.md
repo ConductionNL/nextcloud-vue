@@ -11,6 +11,12 @@
 | `coarseStep` | `number`  |          | `40`    | How far a Shift+arrow press moves it.                        |
 | `resizable`  | `boolean` |          | `false` | Whether this node may be resized.                            |
 
+### Events
+
+| Name      | Payload | Description |
+| --------- | ------- | ----------- |
+| `connect` | —       |             |
+
 ### Slots
 
 | Name      | Bindings | Description |

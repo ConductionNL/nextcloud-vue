@@ -27,7 +27,15 @@
 			     unregistered falls back to CnFlowNode, which carries the
 			     keyboard contract. -->
 			<template #node-default="nodeProps">
-				<CnFlowNode v-bind="nodeProps">
+				<!-- `@connect` routes a KEYBOARD-completed connection into the
+				     same handler as a pointer one, so `onConnect` is the single
+				     place a new edge leaves this component regardless of input.
+				     Without it the keyboard path wrote into Vue Flow's internal
+				     graph and the host never heard about it — the edge drew and
+				     the save dropped it. -->
+				<CnFlowNode
+					v-bind="nodeProps"
+					@connect="onConnect">
 					<template #default="slotProps">
 						<!-- @slot node The body of a step, rendered inside the
 						     focusable node wrapper. Receives `{ node }` with the
