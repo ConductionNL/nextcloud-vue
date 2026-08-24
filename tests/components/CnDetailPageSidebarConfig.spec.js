@@ -30,6 +30,12 @@ function makeState() {
 		schema: '',
 		hiddenTabs: [],
 		tabs: undefined,
+		// The host app declares both of these on its shared channel (see
+		// decidiq src/App.vue). They belong in the fixture for the same reason
+		// the rest do: a field the fixture omits is a field this suite cannot
+		// notice being dropped.
+		useRegistry: false,
+		excludeIntegrations: [],
 	}
 }
 
@@ -77,6 +83,69 @@ describe('CnDetailPage — sidebar Object form + show flag', () => {
 			// Refresh settles → still active.
 			await wrapper.setProps({ loading: false, sidebar: { enabled: true } })
 			expect(state.active).toBe(true)
+		})
+	})
+
+	describe('ADR-019 registry sidebar forwarding', () => {
+		// REGRESSION. `config.sidebar.useRegistry` reached resolvedSidebar()
+		// intact and survived mergeSidebarSources(), and then was never
+		// published onto the shared channel — so the host's CnObjectSidebar
+		// always saw the prop default `false` and rendered its
+		// backwards-compatible branch: five hard-coded built-in tabs instead of
+		// one tab per registered provider.
+		//
+		// Measured on decidiq run 32702211376, whose MeetingIntegrations page
+		// sets `useRegistry: true`: the server reported 10 available providers,
+		// the JS registry carried every one of them WITH a tab component, and
+		// the sidebar rendered 5 tabs — exactly the fallback set. The
+		// declaration did nothing at all, in every app that used it.
+		it('publishes useRegistry from the manifest sidebar config', () => {
+			const state = makeState()
+			mountDetailPage({
+				title: 'Meeting',
+				objectType: 'meeting',
+				objectId: '1',
+				sidebar: { useRegistry: true },
+			}, state)
+			expect(state.active).toBe(true)
+			expect(state.useRegistry).toBe(true)
+		})
+
+		it('leaves useRegistry false when the config does not ask for it', () => {
+			const state = makeState()
+			mountDetailPage({
+				title: 'Meeting',
+				objectType: 'meeting',
+				objectId: '1',
+				sidebar: { register: 'decidiq' },
+			}, state)
+			expect(state.active).toBe(true)
+			expect(state.useRegistry).toBe(false)
+		})
+
+		// Strict `=== true`, so a truthy-but-not-true manifest value cannot
+		// switch a host into registry mode by accident.
+		it('does not treat a truthy non-boolean as opt-in', () => {
+			const state = makeState()
+			mountDetailPage({
+				title: 'Meeting',
+				objectType: 'meeting',
+				objectId: '1',
+				sidebar: { useRegistry: 'yes' },
+			}, state)
+			expect(state.useRegistry).toBe(false)
+		})
+
+		it('publishes excludeIntegrations, which rides the same channel', () => {
+			const state = makeState()
+			mountDetailPage({
+				title: 'Meeting',
+				objectType: 'meeting',
+				objectId: '1',
+				sidebar: { useRegistry: true, excludeIntegrations: ['talk'] },
+			}, state)
+			expect(state.useRegistry).toBe(true)
+			expect(state.excludeIntegrations).toEqual(['talk'])
 		})
 	})
 

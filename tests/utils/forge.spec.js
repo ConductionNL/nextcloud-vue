@@ -33,13 +33,13 @@ const payload = {
 }
 
 describe('forge — DEFAULT_FORGE + resolveForge', () => {
-	it('defaults to Codeberg', () => {
-		expect(DEFAULT_FORGE).toEqual({ type: 'codeberg', baseUrl: 'https://codeberg.org' })
+	it('defaults to GitHub', () => {
+		expect(DEFAULT_FORGE).toEqual({ type: 'github', baseUrl: 'https://github.com' })
 	})
 
-	it('resolves an empty/unknown config to the Codeberg default', () => {
-		expect(resolveForge(null)).toEqual({ type: 'codeberg', baseUrl: 'https://codeberg.org' })
-		expect(resolveForge({})).toEqual({ type: 'codeberg', baseUrl: 'https://codeberg.org' })
+	it('resolves an empty/unknown config to the GitHub default', () => {
+		expect(resolveForge(null)).toEqual({ type: 'github', baseUrl: 'https://github.com' })
+		expect(resolveForge({})).toEqual({ type: 'github', baseUrl: 'https://github.com' })
 	})
 
 	it('fills the canonical host when baseUrl is omitted', () => {
@@ -74,7 +74,13 @@ describe('forge — forgeDisplayName', () => {
 
 describe('forge — buildFeatureRequestUrl (Codeberg/Forgejo/Gitea)', () => {
 	it('builds a title + body deep-link with all sections + context', () => {
-		const url = buildFeatureRequestUrl(DEFAULT_FORGE, 'Conduction/pipelinq', payload)
+		// Explicitly `codeberg`, not DEFAULT_FORGE. This block tests the
+		// Markdown-body strategy (title + body, no `template` param), which is
+		// the Codeberg/Forgejo/Gitea shape. Passing DEFAULT_FORGE coupled the
+		// assertion to whatever the fleet default happened to be, so moving
+		// that default to GitHub — a different URL shape entirely — silently
+		// broke a test that was never about the default.
+		const url = buildFeatureRequestUrl({ type: 'codeberg' }, 'Conduction/pipelinq', payload)
 		const u = new URL(url)
 		expect(u.origin + u.pathname).toBe('https://codeberg.org/Conduction/pipelinq/issues/new')
 		expect(u.searchParams.get('title')).toBe('[FEATURE] Add timeline filter')

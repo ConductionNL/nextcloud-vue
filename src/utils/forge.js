@@ -39,20 +39,33 @@ export const FORGE_DEFAULT_BASE_URLS = {
 }
 
 /**
- * Fleet default forge. Codeberg is the current source of truth.
+ * Fleet default forge. GitHub is the only host the fleet publishes to,
+ * including for issues.
+ *
+ * This defaulted to Codeberg, and NO app overrides it — none of the fleet
+ * manifests carries a `forge` entry — so every app's in-product "Request a
+ * feature" deep-link pointed at an unmaintained mirror. The failure was
+ * invisible from the app side: each app looked correctly configured because
+ * it configured nothing.
+ *
+ * Changing the type also changes the URL SHAPE, not just the host:
+ * `github` builds a per-field Issue-Form link (`template=` + field params),
+ * while `codeberg`/`forgejo`/`gitea` assemble a Markdown body. That form is
+ * `.github/ISSUE_TEMPLATE/feature-request.yml`, which must exist in the
+ * consuming repo — see buildFeatureRequestUrl below.
  *
  * @type {{type: string, baseUrl: string}}
  */
 export const DEFAULT_FORGE = {
-	type: 'codeberg',
-	baseUrl: FORGE_DEFAULT_BASE_URLS.codeberg,
+	type: 'github',
+	baseUrl: FORGE_DEFAULT_BASE_URLS.github,
 }
 
 const ISSUE_FORM_TEMPLATE = 'feature-request.yml'
 
 /**
  * Normalise a (possibly partial) forge config to `{type, baseUrl}` with a
- * resolved host. Falls back to the Codeberg default for an unknown/empty
+ * resolved host. Falls back to the GitHub default for an unknown/empty
  * type, and to the type's canonical host when `baseUrl` is omitted.
  *
  * @param {{type?: string, baseUrl?: string}|null|undefined} forge Raw config.
