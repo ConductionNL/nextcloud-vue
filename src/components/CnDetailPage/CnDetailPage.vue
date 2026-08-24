@@ -2549,6 +2549,25 @@ export default {
 			}
 			return {
 				surface: this.surface,
+				// ADR-062 rule 5 — "every body widget has card chrome and its
+				// manifest title". An integration widget draws its own chrome
+				// (CnIntegrationCard renders a CnDetailCard), so it is correctly
+				// NOT wrapped in CnWidgetWrapper like the content-only catalog
+				// widgets are — but its title was never forwarded, and
+				// CnIntegrationCard's `cardTitle` falls back to
+				// `this.title || this.integrationId`. With no title prop the
+				// fallback wins, so a widget the manifest calls "Class space"
+				// rendered as the raw id "talk".
+				//
+				// Measured on learniq, whose CohortDetail/SessionDetail declare
+				// `cohort-talk` ("Class space"), `session-talk` ("Join call")
+				// and `sess-files` ("Session materials"): all three rendered
+				// under their integrationId, and e2e asserting the manifest
+				// title could never pass.
+				//
+				// Placed BEFORE `def.props` so an explicit per-widget prop
+				// still overrides it.
+				title: def?.title || '',
 				...(this.integrationContext || derivedContext),
 				...(def?.props || {}),
 			}
@@ -3180,6 +3199,35 @@ export default {
 					schema: merged.schema || this.schema || '',
 					hiddenTabs: merged.hiddenTabs || [],
 					tabs,
+					// ADR-019. `config.sidebar.useRegistry` reaches
+					// `resolvedSidebar` intact — the Object branch returns
+					// `{show, enabled, ...cfg}` — and survives
+					// mergeSidebarSources(), which spreads `resolved` before
+					// its own field list. It was simply never published here,
+					// so the host's CnObjectSidebar always saw the prop default
+					// `false` and rendered its BACKWARDS-COMPATIBLE branch: the
+					// five hard-coded built-in tabs (files, notes, tags, tasks,
+					// audit-trail) instead of one tab per registered provider.
+					//
+					// The declaration therefore did nothing at all. Measured on
+					// decidiq run 32702211376, whose MeetingIntegrations page
+					// sets `config.sidebar.useRegistry: true`:
+					//
+					//   JS registry carries every expected provider   passed
+					//   every component leaf has a tab + widget       passed
+					//   OCS caps and JS registry agree               passed
+					//   providers the server reports available          10
+					//   tabs the sidebar rendered                        5
+					//
+					// Five, exactly, because that is the fallback branch. Every
+					// app whose manifest opts a page into the registry sidebar
+					// has been getting the built-ins.
+					//
+					// `excludeIntegrations` rides the same channel and was
+					// dropped for the same reason; without it a page cannot
+					// suppress a provider it does not want.
+					useRegistry: merged.useRegistry === true,
+					excludeIntegrations: merged.excludeIntegrations || [],
 				})
 			} else {
 				this.assignSidebarState({ active: false, tabs: undefined })

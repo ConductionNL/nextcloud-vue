@@ -241,12 +241,12 @@
 				"forge": {
 					"type": "object",
 					"additionalProperties": false,
-					"description": "Forge that the in-product feature-request deep-link targets. Switching the whole fleet's forge (back to GitHub, or onto a self-hosted Forgejo/Gitea) is just this one field. Defaults to Codeberg.",
+					"description": "Forge that the in-product feature-request deep-link targets. Switching the whole fleet's forge (onto a self-hosted Forgejo/Gitea, or back to Codeberg) is just this one field. Defaults to GitHub, the only host the fleet publishes to.",
 					"properties": {
 						"type": {
 							"type": "string",
 							"enum": ["codeberg", "forgejo", "gitea", "github"],
-							"default": "codeberg",
+							"default": "github",
 							"description": "Forge type. Selects how the 'new issue' form is pre-filled: `github` uses per-field Issue-Form query params; `codeberg`/`forgejo`/`gitea` assemble a Markdown body (only title + body are supported there)."
 						},
 						"baseUrl": {
