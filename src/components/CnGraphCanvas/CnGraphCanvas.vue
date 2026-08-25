@@ -448,6 +448,21 @@ export default {
 @import '@vue-flow/core/dist/style.css';
 @import '@vue-flow/core/dist/theme-default.css';
 
+/* ⚠️ EVERY VUE FLOW PLUGIN SHIPS ITS OWN STYLESHEET, AND ONLY CORE'S WAS HERE.
+
+   `@vue-flow/node-resizer` was the one that mattered: its stylesheet is what
+   gives a resize control `position: absolute` and a 5px handle. Without it the
+   handles CnFlowNode renders have no size and no position, so a node that is
+   resizable looks exactly like a node that is not — the component was mounted
+   and the affordance was invisible.
+
+   The minimap's own sheet is small (a background colour and the grab cursors);
+   its geometry comes from `.vue-flow__panel` in core, which was already here.
+   Imported for the cursors, and before our own rules so the theme below still
+   wins. */
+@import '@vue-flow/node-resizer/dist/style.css';
+@import '@vue-flow/minimap/dist/style.css';
+
 .cn-graph-canvas {
 	position: relative;
 	width: 100%;
