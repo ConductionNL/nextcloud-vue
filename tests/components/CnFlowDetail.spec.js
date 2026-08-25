@@ -202,4 +202,74 @@ describe('CnFlowDetail', () => {
 			expect(load).not.toHaveBeenCalled()
 		})
 	})
+	describe('persisted node positions', () => {
+		/**
+		 * THE FLOW THAT LOADED AS AN EMPTY CANVAS.
+		 *
+		 * The server stores a node's coordinates as `position: {x, y}`. The
+		 * canvas read flat `node.x` / `node.y`, which is what addNode() and
+		 * moveNode() write IN MEMORY — so `Number(undefined) || 0` gave every
+		 * node of every SAVED flow the origin, and the whole graph reloaded as
+		 * one pile at (0, 0).
+		 *
+		 * It read as "the canvas renders nothing" rather than "the layout is
+		 * lost", which is why it survived: a stack of 76 nodes at one point is
+		 * indistinguishable from an empty canvas until you look at the DOM.
+		 *
+		 * Measured on a live instance before fixing: of 100 persisted flows,
+		 * NOT ONE carried a flat `x`/`y` node. Every one of them rendered
+		 * stacked. A brand-new flow looked fine, because its nodes had never
+		 * been through the server — which is exactly why this was not caught
+		 * by building a flow and looking at it.
+		 */
+		it('places a node from the persisted `position` shape', async () => {
+			const { wrapper } = await mountDetail({
+				flow: {
+					nodes: [
+						{ id: 'a', type: 'openregister.set-fields', position: { x: 240, y: 120 } },
+						{ id: 'b', type: 'openregister.end', position: { x: 500, y: 300 } },
+					],
+					edges: [],
+				},
+			})
+
+			const nodes = wrapper.vm.canvasNodes
+
+			expect(nodes[0].position).toEqual({ x: 240, y: 120 })
+			expect(nodes[1].position).toEqual({ x: 500, y: 300 })
+			// The bug's signature: everything at the origin.
+			expect(nodes.every((n) => n.position.x === 0 && n.position.y === 0)).toBe(false)
+		})
+
+		it('still places a node from the in-memory flat shape', async () => {
+			const { wrapper } = await mountDetail({
+				flow: {
+					nodes: [{ id: 'a', type: 'openregister.set-fields', x: 80, y: 60 }],
+					edges: [],
+				},
+			})
+
+			expect(wrapper.vm.canvasNodes[0].position).toEqual({ x: 80, y: 60 })
+		})
+
+		/**
+		 * A node with NO coordinates at all is legitimate — most generated
+		 * flows carry none — and the origin is the honest answer for it. The
+		 * point is that it must not drag positioned siblings down with it.
+		 */
+		it('leaves an unpositioned node at the origin without affecting others', async () => {
+			const { wrapper } = await mountDetail({
+				flow: {
+					nodes: [
+						{ id: 'a', type: 'openregister.set-fields' },
+						{ id: 'b', type: 'openregister.end', position: { x: 500, y: 300 } },
+					],
+					edges: [],
+				},
+			})
+
+			expect(wrapper.vm.canvasNodes[0].position).toEqual({ x: 0, y: 0 })
+			expect(wrapper.vm.canvasNodes[1].position).toEqual({ x: 500, y: 300 })
+		})
+	})
 })
