@@ -2,10 +2,14 @@
 
 ### Props
 
-| Name            | Type     | Required | Default                        | Description                                                  |
-| --------------- | -------- | -------- | ------------------------------ | ------------------------------------------------------------ |
-| `editingWidget` | `object` |          | `null`                         | The placement being edited, or `null` in create mode.        |
-| `value`         | `object` |          | `\{     ...DEFAULT_CONTENT \}` | Initial content values (registry defaults when not editing). |
+| Name            | Type     | Required | Default | Description                                           |
+| --------------- | -------- | -------- | ------- | ----------------------------------------------------- |
+| `editingWidget` | `object` |          | `null`  | The placement being edited, or `null` in create mode. |
+| `value`         | `object` |          | `\{     |
+
+     ...DEFAULT_CONTENT
+
+\}` | Initial content values (registry defaults when not editing). |
 
 ### Events
 

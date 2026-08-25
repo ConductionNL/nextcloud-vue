@@ -123,7 +123,7 @@ export default {
 		 * no duplicate request and no hidden-until-self-evaluated flash —
 		 * and `value` feeds the `{value}` text placeholder. `null` (the
 		 * default) keeps the banner self-evaluating.
-		 * @type {{ met: boolean, value: * }|null}
+		 * @type {object|null}
 		 */
 		conditionOutcome: {
 			type: Object,
