@@ -48,6 +48,46 @@
 				</CnFlowNode>
 			</template>
 
+			<!-- Per-type edge components, the same convention as nodes above.
+			     Registered on `default` because that is the type an edge gets
+			     when nothing else is asked for — which is every edge, now that
+			     the ROUTER moved off `type` and into `data.lineType`.
+
+			     That move is the edge half of the lesson the node slot records:
+			     `type` selects a COMPONENT, and a router is not a component. So
+			     long as `type` carried `smoothstep`, Vue Flow answered with its
+			     own built-in edge and no consumer could add anything to a line
+			     at all. -->
+			<template #edge-default="edgeProps">
+				<CnFlowEdge
+					v-bind="edgeProps"
+					:line-type="edgeProps.data && edgeProps.data.lineType"
+					:label-aria-label="edgeProps.data && edgeProps.data.labelAriaLabel"
+					@label-move="onEdgeLabelMove"
+					@label-click="onEdgeLabelClick"
+					@label-context="onEdgeLabelContext">
+					<template #label="slotProps">
+						<!-- @slot edge-label The chrome of a connection's
+						     label. Receives `{ edge }` with the edge's `id`,
+						     `data` and `selected`. Rendered inside a focusable
+						     control the canvas owns, so render inert content:
+						     the arrow keys, the focus ring and the ARIA name
+						     are already handled. An edge whose host renders
+						     nothing here draws no label control at all. -->
+						<slot name="edge-label" v-bind="slotProps" />
+					</template>
+
+					<template #adornment="slotProps">
+						<!-- @slot edge-adornment A host's own controls beside a
+						     connection's label. Receives `{ edge }`. Unlike
+						     `edge-label` this is NOT inside the label's button,
+						     so what goes here may be interactive — a replay's
+						     payload control is the case it exists for. -->
+						<slot name="edge-adornment" v-bind="slotProps" />
+					</template>
+				</CnFlowEdge>
+			</template>
+
 			<Background v-if="showBackground" :gap="snapGrid[0]" />
 			<MiniMap v-if="showMiniMap" />
 		</VueFlow>
@@ -89,6 +129,7 @@ import { VueFlow, useVueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { MiniMap } from '@vue-flow/minimap'
 import CnFlowNode from './CnFlowNode.vue'
+import CnFlowEdge from './CnFlowEdge.vue'
 
 /**
  * A graph canvas built on Vue Flow — the library n8n runs.
@@ -127,7 +168,7 @@ import CnFlowNode from './CnFlowNode.vue'
 export default {
 	name: 'CnGraphCanvas',
 
-	components: { VueFlow, Background, MiniMap, CnFlowNode },
+	components: { VueFlow, Background, MiniMap, CnFlowNode, CnFlowEdge },
 
 	props: {
 		/** Nodes in Vue Flow's shape: `{ id, type, position: {x,y}, data }`. */
@@ -204,6 +245,9 @@ export default {
 		'connect',
 		'node-select',
 		'edge-select',
+		'edge-label-move',
+		'edge-label-click',
+		'edge-label-context',
 		'canvas-click',
 		'canvas-drop',
 	],
@@ -300,6 +344,50 @@ export default {
 			 * @event edge-select An edge was clicked.
 			 */
 			this.$emit('edge-select', event)
+		},
+
+		/**
+		 * Forward a label slid along its line.
+		 *
+		 * @param {{id: string, labelT: number}} payload The edge and its new
+		 *   fraction, already clamped.
+		 * @return {void}
+		 */
+		onEdgeLabelMove(payload) {
+			/**
+			 * @event edge-label-move A connection's label was moved, by pointer
+			 *   or by keyboard. Carries `{ id, labelT }`. As everywhere else in
+			 *   this component the change is REPORTED, not applied — the host
+			 *   stores `labelT` and feeds it back down.
+			 */
+			this.$emit('edge-label-move', payload)
+		},
+
+		/**
+		 * Forward an activated label.
+		 *
+		 * @param {string} id The edge id.
+		 * @return {void}
+		 */
+		onEdgeLabelClick(id) {
+			/**
+			 * @event edge-label-click A connection's label was activated.
+			 */
+			this.$emit('edge-label-click', id)
+		},
+
+		/**
+		 * Forward a right-click on a label.
+		 *
+		 * @param {{id: string, event: MouseEvent}} payload The edge and event.
+		 * @return {void}
+		 */
+		onEdgeLabelContext(payload) {
+			/**
+			 * @event edge-label-context A connection's label was right-clicked.
+			 *   Hosts open the same menu they open for the line itself.
+			 */
+			this.$emit('edge-label-context', payload)
 		},
 
 		/**

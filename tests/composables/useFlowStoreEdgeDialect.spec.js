@@ -108,8 +108,30 @@ describe('useFlowStore — Vue Flow does the routing', () => {
 
 		const [line] = store.canvasEdges
 
-		expect(line.type).toBe('smoothstep')
+		expect(line.data.lineType).toBe('smoothstep')
 		expect(line.markerEnd).toBe('arrowclosed')
+	})
+
+	/**
+	 * `type` names the COMPONENT that draws the line, and the router is not a
+	 * component. While the router sat there Vue Flow answered with its own
+	 * built-in edge, which is why nothing could be attached to a line: the
+	 * label, the marker control and the payload affordance had nowhere to
+	 * render. Asserted explicitly because the two readings look identical from
+	 * the outside — the lines route the same either way, and only the things
+	 * that CANNOT be added tell them apart.
+	 */
+	it('names our own edge component in `type`, never the router', () => {
+		const store = useFlowStore()
+		store.flow = {
+			nodes: [{ id: 'a' }, { id: 'b' }],
+			edges: [{ id: 'e1', from: 'a', to: 'b', lineType: 'straight' }],
+		}
+
+		const [line] = store.canvasEdges
+
+		expect(line.type).toBe('default')
+		expect(line.data.lineType).toBe('straight')
 	})
 
 	/**
@@ -124,7 +146,7 @@ describe('useFlowStore — Vue Flow does the routing', () => {
 			edges: [{ id: 'e1', from: 'a', to: 'b', lineType: 'straight' }],
 		}
 
-		expect(store.canvasEdges[0].type).toBe('straight')
+		expect(store.canvasEdges[0].data.lineType).toBe('straight')
 	})
 
 	it('still splits one connection into several lines, each routed', () => {
@@ -135,6 +157,6 @@ describe('useFlowStore — Vue Flow does the routing', () => {
 		}
 
 		expect(store.canvasEdges).toHaveLength(2)
-		expect(store.canvasEdges.every((l) => l.type === 'smoothstep')).toBe(true)
+		expect(store.canvasEdges.every((l) => l.data.lineType === 'smoothstep')).toBe(true)
 	})
 })

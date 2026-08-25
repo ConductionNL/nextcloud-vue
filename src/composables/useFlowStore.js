@@ -230,9 +230,28 @@ export const useFlowStore = defineStore('cnFlow', {
 							// line can be switched to `step`, `straight` or
 							// `default` without moving a node — the seam an
 							// edge-level control hangs off.
-							type: edge.lineType || 'smoothstep',
+							//
+							// ⚠️ THE ROUTER TRAVELS IN `data`, NOT IN `type`.
+							// It sat in `type` when the router was the only
+							// thing an edge carried, and that quietly ruled out
+							// everything else: Vue Flow reads `type` to choose
+							// the COMPONENT that draws the line, so naming a
+							// router there means the built-in edge answers and
+							// no label, marker control or payload affordance
+							// can ever be attached. `default` selects
+							// CnFlowEdge, which reads the router back out of
+							// `data`. Same distinction the node side already
+							// records — `type` is a component, and a domain
+							// value put there is a component that does not
+							// exist.
+							type: 'default',
 							markerEnd: edge.markerEnd || 'arrowclosed',
-							edge,
+							data: {
+								lineType: edge.lineType || 'smoothstep',
+								labelT: edge.labelT,
+								label: edge.title || edge.label || '',
+								edge,
+							},
 						})
 					}
 				}
@@ -529,6 +548,12 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * Flat `x`/`y` is kept alongside it because autoSort() and addNode()
 		 * speak that spelling in memory, and dropping it here would make a moved
 		 * node inconsistent with an unmoved one within the same session.
+		 *
+		 * @param {object} move   The move.
+		 * @param {string} move.id The node that moved.
+		 * @param {number} move.x  Its new x, in canvas units.
+		 * @param {number} move.y  Its new y.
+		 * @return {void}
 		 */
 		moveNode({ id, x, y }) {
 			this.flow.nodes = this.nodes.map(
