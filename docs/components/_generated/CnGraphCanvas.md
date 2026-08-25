@@ -19,18 +19,22 @@
 
 ### Events
 
-| Name           | Payload | Description                                                                                                                                                                                                                                                   |
-| -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `nodes-change` | —       | Vue Flow's node change stream — position, selection, dimensions, removal. The canvas does NOT apply these; the host decides what to persist. Drag frames arrive with `dragging: true`, so a host that writes on every change writes once per animation frame. |
-| `edges-change` | —       | Vue Flow's edge change stream, same contract as `nodes-change`: reported, never applied here.                                                                                                                                                                 |
-| `connect`      | —       | A new connection was made, by pointer OR by keyboard. Carries Vue Flow's `{ source, target, sourceHandle, targetHandle }`.                                                                                                                                    |
-| `node-select`  | —       | A node was clicked. Payload is Vue Flow's `{ node }`, so a host tracking bare ids reads `event.node.id`.                                                                                                                                                      |
-| `edge-select`  | —       | An edge was clicked.                                                                                                                                                                                                                                          |
-| `canvas-click` | —       | The empty pane was clicked — hosts use this to clear a selection.                                                                                                                                                                                             |
-| `canvas-drop`  | —       | An HTML5 drop landed on the canvas, with `position` already projected into canvas space and the native `event` alongside so the host can read `dataTransfer`. The canvas never creates the node itself.                                                       |
+| Name                 | Payload | Description                                                                                                                                                                                                                                                   |
+| -------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nodes-change`       | —       | Vue Flow's node change stream — position, selection, dimensions, removal. The canvas does NOT apply these; the host decides what to persist. Drag frames arrive with `dragging: true`, so a host that writes on every change writes once per animation frame. |
+| `edges-change`       | —       | Vue Flow's edge change stream, same contract as `nodes-change`: reported, never applied here.                                                                                                                                                                 |
+| `connect`            | —       | A new connection was made, by pointer OR by keyboard. Carries Vue Flow's `{ source, target, sourceHandle, targetHandle }`.                                                                                                                                    |
+| `node-select`        | —       | A node was clicked. Payload is Vue Flow's `{ node }`, so a host tracking bare ids reads `event.node.id`.                                                                                                                                                      |
+| `edge-select`        | —       | An edge was clicked.                                                                                                                                                                                                                                          |
+| `edge-label-move`    | —       | A connection's label was moved, by pointer or by keyboard. Carries `{ id, labelT }`. As everywhere else in this component the change is REPORTED, not applied — the host stores `labelT` and feeds it back down.                                              |
+| `edge-label-click`   | —       | A connection's label was activated.                                                                                                                                                                                                                           |
+| `edge-label-context` | —       | A connection's label was right-clicked. Hosts open the same menu they open for the line itself.                                                                                                                                                               |
+| `canvas-click`       | —       | The empty pane was clicked — hosts use this to clear a selection.                                                                                                                                                                                             |
+| `canvas-drop`        | —       | An HTML5 drop landed on the canvas, with `position` already projected into canvas space and the native `event` alongside so the host can read `dataTransfer`. The canvas never creates the node itself.                                                       |
 
 ### Slots
 
-| Name   | Bindings | Description                                  |
-| ------ | -------- | -------------------------------------------- |
-| `node` | —        | node The body of a step, rendered inside the |
+| Name         | Bindings | Description                                  |
+| ------------ | -------- | -------------------------------------------- |
+| `node`       | —        | node The body of a step, rendered inside the |
+| `edge-label` | —        | edge-label The chrome of a connection's      |
