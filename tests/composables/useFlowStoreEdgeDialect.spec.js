@@ -90,3 +90,51 @@ describe('useFlowStore — edge dialect', () => {
 		expect(store.edges).toHaveLength(0)
 	})
 })
+
+describe('useFlowStore — Vue Flow does the routing', () => {
+	/**
+	 * The lines carried no `type`, so every one fell back to Vue Flow's
+	 * default bezier — which crosses nodes and doubles back as soon as a graph
+	 * stops being a straight chain. That looked like "our lines are
+	 * disorderly", and the instinct was to lay the graph out ourselves to
+	 * compensate rather than to set the routing option we had never set.
+	 */
+	it('routes with smoothstep and an arrowhead by default', () => {
+		const store = useFlowStore()
+		store.flow = {
+			nodes: [{ id: 'a' }, { id: 'b' }],
+			edges: [{ id: 'e1', from: 'a', to: 'b' }],
+		}
+
+		const [line] = store.canvasEdges
+
+		expect(line.type).toBe('smoothstep')
+		expect(line.markerEnd).toBe('arrowclosed')
+	})
+
+	/**
+	 * The seam an edge-level control hangs off: one awkward line can be
+	 * rerouted without moving a node, and the choice lives on the connection
+	 * rather than in a canvas-wide setting.
+	 */
+	it('lets the connection override the routing per line', () => {
+		const store = useFlowStore()
+		store.flow = {
+			nodes: [{ id: 'a' }, { id: 'b' }],
+			edges: [{ id: 'e1', from: 'a', to: 'b', lineType: 'straight' }],
+		}
+
+		expect(store.canvasEdges[0].type).toBe('straight')
+	})
+
+	it('still splits one connection into several lines, each routed', () => {
+		const store = useFlowStore()
+		store.flow = {
+			nodes: [{ id: 'a' }, { id: 'b' }, { id: 'c' }],
+			edges: [{ id: 'e1', from: 'a', to: ['b', 'c'] }],
+		}
+
+		expect(store.canvasEdges).toHaveLength(2)
+		expect(store.canvasEdges.every((l) => l.type === 'smoothstep')).toBe(true)
+	})
+})
