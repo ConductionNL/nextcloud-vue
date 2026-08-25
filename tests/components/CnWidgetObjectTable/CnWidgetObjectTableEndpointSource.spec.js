@@ -9,6 +9,12 @@
  * token-resolved params, and the refresh() force-refetch.
  */
 
+import axios from '@nextcloud/axios'
+import { shallowMount } from '@vue/test-utils'
+
+import CnWidgetObjectTable from '../../../src/components/CnWidgetObjectTable/CnWidgetObjectTable.vue'
+import { invalidateEndpointSourceCache } from '../../../src/composables/useEndpointSource.js'
+
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
 	default: { get: jest.fn() },
@@ -20,12 +26,6 @@ jest.mock('@nextcloud/router', () => ({
 jest.mock('../../../src/store/useObjectStore.js', () => ({
 	useObjectStore: jest.fn(() => ({ objectTypeRegistry: {}, errors: {} })),
 }))
-
-import axios from '@nextcloud/axios'
-import { shallowMount } from '@vue/test-utils'
-
-import CnWidgetObjectTable from '../../../src/components/CnWidgetObjectTable/CnWidgetObjectTable.vue'
-import { invalidateEndpointSourceCache } from '../../../src/composables/useEndpointSource.js'
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
@@ -61,6 +61,28 @@ describe('CnWidgetObjectTable — endpointSource (Wave 2)', () => {
 		expect(table.props('columns')).toEqual(columns)
 		// The endpoint binding must NOT arm the OpenRegister self-fetch.
 		expect(table.props('register')).toBeNull()
+	})
+
+	it('forwards a client-side limit so the "View all" footer is reachable for endpoint tables', async () => {
+		// The endpoint's FULL payload stays the total; CnDataTable slices to
+		// `limit` and its footer condition (total > shown) can finally hold.
+		// Without the forwarded limit this was dead config (restyle 4b).
+		axios.get.mockResolvedValue({ data: { report: { sources: rowsPayload } } })
+		const wrapper = shallowMount(CnWidgetObjectTable, {
+			propsData: {
+				endpointSource: { url: '/apps/pipelinq/api/reports/source-performance', responsePath: 'report.sources' },
+				columns: [{ key: 'source', label: 'Source' }],
+				limit: 1,
+				viewAllRoute: { name: 'Reports' },
+			},
+		})
+		await flush()
+		await wrapper.vm.$nextTick()
+
+		const table = wrapper.findComponent({ name: 'CnDataTable' })
+		expect(table.props('rows')).toEqual(rowsPayload)
+		expect(table.props('limit')).toBe(1)
+		expect(table.props('viewAllRoute')).toEqual({ name: 'Reports' })
 	})
 
 	it('resolves @workspace params through the shared filter grammar', async () => {

@@ -96,16 +96,26 @@ export default {
 </script>
 ```
 
-## Hidden banners collapse their cell
+## Conditional widgets collapse their cell
 
-A `banner` widget with an unmet `visibleWhen` (or no text) renders nothing —
-and in live mode the page also removes it from the grid layout and compacts
-the remaining widgets upward, so a fail-safe-hidden banner leaves no empty
-card and no reserved row behind. This is display-only: the authored `layout`
-is never mutated, and edit mode shows every widget at its authored spot so a
-hidden banner stays placeable and configurable. The predicate is evaluated
-once per page mount (and re-evaluated when the widget defs change), matching
-the banner's own evaluation cadence.
+Any widget def may carry a top-level `visibleWhen` (the shared predicate
+shape); while it is unmet the page removes the widget from the grid layout
+in live mode and compacts the remaining widgets upward, so a conditional
+card — a pending-work queue, a warning banner — leaves no empty card and no
+reserved row behind while it has nothing to say. Banners keep their extra
+rule (no text = never renders = collapsed) and may declare the predicate in
+`content`/`props` as before. This is display-only: the authored `layout` is
+never mutated, and edit mode shows every widget at its authored spot so a
+hidden widget stays placeable and configurable.
+
+The grid's first paint waits for the predicates to settle (a dashboard with
+no conditional widgets never waits), so a conditional widget is present or
+absent from the first rendered frame instead of popping in after load and
+reflowing the page. The page evaluates each predicate once per mount
+(re-evaluated when the widget defs change) and hands the verdict to banners,
+which render from it without issuing a second request — and interpolate the
+predicate's field value into their text wherever it says `{value}` (e.g.
+`"{value} application(s) awaiting approval"`).
 
 ## Additional props
 
