@@ -404,6 +404,33 @@ export const useFlowStore = defineStore('cnFlow', {
 			}
 			this.dirty = false
 
+			// A flow nobody has ever laid out opens as a PILE, not as a graph.
+			//
+			// Generated and imported flows carry no coordinates at all — a
+			// 76-node flow measured on a live instance had 73 nodes with no
+			// position — and every one of those lands on the same point. The
+			// result is indistinguishable from an empty canvas: one node's
+			// worth of pixels, with the rest underneath it.
+			//
+			// autoSort() already knows how to place them, and its own docblock
+			// says unreachable nodes must go "never at the origin, where they
+			// would hide under the entry points". This just calls it when the
+			// document has nothing to preserve.
+			//
+			// Only when NO node has a position. A flow someone has arranged is
+			// never rearranged behind their back, and a flow with even one
+			// placed node is treated as arranged — rearranging that would throw
+			// away a deliberate choice to make the other nodes tidier.
+			//
+			// `dirty` stays false: this is a rendering fallback for a document
+			// that never carried positions, not an edit. Marking it dirty would
+			// prompt to save a layout the author never asked for, and pressing
+			// save would then write coordinates the flow did not have.
+			if (this.nodes.length && !this.nodes.some(this.hasPosition)) {
+				this.autoSort()
+				this.dirty = false
+			}
+
 			this.loadRuns(id)
 		},
 
@@ -610,6 +637,26 @@ export const useFlowStore = defineStore('cnFlow', {
 			))
 			this.dirty = true
 			this.checkResult = null
+		},
+
+		/**
+		 * Whether a node carries a position of its own.
+		 *
+		 * BOTH SPELLINGS, because both are in circulation: the server stores
+		 * `position: {x, y}` and the editor writes flat `x`/`y` in memory.
+		 * Checking only one would read a positioned flow as unpositioned and
+		 * rearrange it — the opposite of what load() wants.
+		 *
+		 * A node AT the origin counts as positioned. (0, 0) is a legitimate
+		 * place to put something, and treating it as "no position" would keep
+		 * relaying out a flow whose author had parked a node there.
+		 *
+		 * @param {object} node The node.
+		 * @return {boolean} True when the node says where it goes.
+		 */
+		hasPosition(node) {
+			return Number.isFinite(Number(node?.x))
+				|| Number.isFinite(Number(node?.position?.x))
 		},
 
 		/**
