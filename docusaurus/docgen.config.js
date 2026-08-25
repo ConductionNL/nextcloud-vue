@@ -153,6 +153,13 @@ function cell(text) {
   // existing backslashes.
   const escaped = String(text || '').replace(/[\\|]/g, '\\$&')
   return escapeMdxBraces(escaped)
+    // Strip CR before collapsing LF: on a Windows (CRLF) checkout the
+    // extracted source of a multiline default carries \r\n, and a bare \r
+    // surviving into the cell breaks the table row — the committer's
+    // pre-commit regeneration then differs from CI's Linux output and
+    // fails the freshness gate. With CRs stripped, both produce the same
+    // bytes.
+    .replace(/\r/g, '')
     .replace(/\n/g, ' ')
     .trim()
 }
