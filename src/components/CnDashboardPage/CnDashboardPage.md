@@ -96,6 +96,17 @@ export default {
 </script>
 ```
 
+## Hidden banners collapse their cell
+
+A `banner` widget with an unmet `visibleWhen` (or no text) renders nothing —
+and in live mode the page also removes it from the grid layout and compacts
+the remaining widgets upward, so a fail-safe-hidden banner leaves no empty
+card and no reserved row behind. This is display-only: the authored `layout`
+is never mutated, and edit mode shows every widget at its authored spot so a
+hidden banner stays placeable and configurable. The predicate is evaluated
+once per page mount (and re-evaluated when the widget defs change), matching
+the banner's own evaluation cadence.
+
 ## Additional props
 
 | Prop | Type | Default | Description |

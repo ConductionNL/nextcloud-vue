@@ -236,7 +236,7 @@
 		<CnDashboardGrid
 			v-else
 			:key="`cn-dashboard-grid-${gridEditable ? 'editing' : 'live'}`"
-			:layout="layout"
+			:layout="displayLayout"
 			:editable="gridEditable"
 			:columns="columns"
 			:cell-height="cellHeight"
@@ -635,6 +635,7 @@ import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import { BUILT_IN_WIDGETS } from '../CnWidgetGrid/builtInWidgets.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
+import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
@@ -1319,6 +1320,17 @@ export default {
 			 * and not on every render.
 			 */
 			dateChipTitle: t('nextcloud-vue', 'Change date range'),
+			/**
+			 * Evaluated `visibleWhen` outcome per conditional banner widget,
+			 * keyed by widget id (true = the banner may show). Feeds
+			 * `displayLayout`, which collapses the grid cell of a banner
+			 * whose condition is unmet — CnBannerWidget's own v-if renders
+			 * nothing, but without this the wrapper card and the reserved
+			 * grid row survive it as a tall empty card.
+			 *
+			 * @type {Record<string, boolean>}
+			 */
+			bannerConditionMet: {},
 		}
 	},
 
@@ -1363,6 +1375,30 @@ export default {
 			const e = this.cnEditingBody
 			const buildiqEditing = Boolean(e && typeof e === 'object' && 'value' in e ? e.value : e)
 			return this.isEditing || buildiqEditing
+		},
+		/**
+		 * The layout actually handed to the grid. In live (non-edit) mode,
+		 * banner widgets that would render nothing right now — no text, or a
+		 * `visibleWhen` that has not evaluated true — are REMOVED and the
+		 * remaining items are re-compacted upward: GridStack runs
+		 * `float: true`, so a hidden banner otherwise keeps its wrapper card
+		 * and its reserved grid row, and a dashboard whose fail-safe banners
+		 * are (correctly) hidden opens on a column of tall empty cards.
+		 *
+		 * Purely a display transform: the authored `layout` prop is never
+		 * mutated (`onLayoutChange` merges geometry back into the FULL
+		 * authored array by id, so collapsed items survive round-trips), and
+		 * edit mode returns the authored layout untouched so hidden banners
+		 * stay visible, placeable and configurable while editing.
+		 *
+		 * @return {Array<object>}
+		 */
+		displayLayout() {
+			if (this.gridEditable) return this.layout
+			const items = this.layout || []
+			const visible = items.filter((item) => !this.isCollapsedBanner(item))
+			if (visible.length === items.length) return items
+			return this.compactDisplayLayout(visible)
 		},
 		/**
 		 * Effective Refresh visibility for custom-slot widgets. An explicit
@@ -1637,10 +1673,24 @@ export default {
 		},
 	},
 
+	watch: {
+		/**
+		 * Re-evaluate the banner predicates when the defs change — the
+		 * in-app editor (ADR-041) mutates widget defs in place and "Add
+		 * widget" pushes into the same array, so a deep watch is the only
+		 * signal that a banner's `visibleWhen` was added or edited.
+		 */
+		widgets: {
+			deep: true,
+			handler() { this.evaluateBannerConditions() },
+		},
+	},
+
 	created() {
 		this.pushAiContext()
 		this.initDateRange()
 		this.initPageFilters()
+		this.evaluateBannerConditions()
 	},
 
 	beforeUnmount() {
@@ -2171,6 +2221,94 @@ export default {
 			 * @event layout-change Emitted when the user finishes dragging/resizing a widget. Payload: the updated layout array `[{ widgetId, x, y, w, h }, ...]`.
 			 */
 			this.$emit('layout-change', this.layout)
+		},
+
+		/**
+		 * The banner-visibility inputs of a widget def, resolved the way the
+		 * banner itself would see them: the `content` blob first (the shape
+		 * the registry branch forwards to CnBannerWidget), then the legacy
+		 * manifest `props` blob (the fallback getStatsBlockProps and
+		 * getChartProps already honour for their own widget types).
+		 *
+		 * @param {object} def Widget definition.
+		 * @return {{ text: string, visibleWhen: (object|null) }}
+		 */
+		bannerDisplayConfig(def) {
+			const content = (def && typeof def.content === 'object' && def.content) || {}
+			const props = (def && typeof def.props === 'object' && def.props) || {}
+			return {
+				text: content.text || props.text || '',
+				visibleWhen: content.visibleWhen || props.visibleWhen || null,
+			}
+		},
+
+		/**
+		 * Whether a layout item is a banner that would render nothing right
+		 * now — no text at all, or a `visibleWhen` whose evaluation has not
+		 * come back true — and must therefore surrender its grid cell in
+		 * live mode instead of leaving an empty card behind.
+		 *
+		 * Scoped to the `banner` type by name (alias-canonicalised), so a
+		 * consumer-registry override of `banner` keeps the same collapse
+		 * semantics its declarative config promises.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} true when the cell must collapse.
+		 */
+		isCollapsedBanner(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			if (!def || !def.type) return false
+			if (def.type !== 'banner' && canonicalWidgetType(def.type) !== 'banner') return false
+			const { text, visibleWhen } = this.bannerDisplayConfig(def)
+			if (text === '') return true
+			if (!visibleWhen) return false
+			return this.bannerConditionMet[item.widgetId] !== true
+		},
+
+		/**
+		 * Evaluate every conditional banner's `visibleWhen` through the same
+		 * shared util CnBannerWidget uses, into `bannerConditionMet`. Runs
+		 * on created() and again whenever `widgets` changes (the in-app
+		 * editor mutates defs in place). Fail-safe like the banner itself:
+		 * the util resolves false on any fetch/shape error, so a broken
+		 * predicate collapses the cell rather than breaking the page.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async evaluateBannerConditions() {
+			const banners = (this.widgets || []).filter((def) => def && def.id && def.type
+				&& (def.type === 'banner' || canonicalWidgetType(def.type) === 'banner'))
+			await Promise.all(banners.map(async (def) => {
+				const { visibleWhen } = this.bannerDisplayConfig(def)
+				if (!visibleWhen) return
+				this.bannerConditionMet[def.id] = await evaluateVisibleWhen(visibleWhen) === true
+			}))
+		},
+
+		/**
+		 * Re-compact a filtered layout upward, display-only. GridStack runs
+		 * `float: true`, so removing an item does not close its row — this
+		 * skyline pass does, preserving the authored order (gridY, then
+		 * gridX) and every item's own column, width and height. Items are
+		 * shallow-copied only when their gridY actually moves.
+		 *
+		 * @param {Array<object>} items Layout items to compact.
+		 * @return {Array<object>} New array with recomputed gridY values.
+		 */
+		compactDisplayLayout(items) {
+			const heights = new Array(Math.max(1, this.columns)).fill(0)
+			return [...items]
+				.sort((a, b) => ((a.gridY ?? 0) - (b.gridY ?? 0)) || ((a.gridX ?? 0) - (b.gridX ?? 0)))
+				.map((item) => {
+					const x = Math.min(Math.max(0, item.gridX ?? 0), heights.length - 1)
+					const w = Math.max(1, item.gridWidth ?? 1)
+					const h = Math.max(1, item.gridHeight ?? 1)
+					const to = Math.min(x + w, heights.length)
+					let y = 0
+					for (let c = x; c < to; c++) y = Math.max(y, heights[c])
+					for (let c = x; c < to; c++) heights[c] = y + h
+					return y === (item.gridY ?? 0) ? item : { ...item, gridY: y }
+				})
 		},
 
 		/**
