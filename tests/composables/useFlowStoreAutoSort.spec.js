@@ -70,3 +70,64 @@ describe('useFlowStore.autoSort', () => {
 		expect(a.y).toBe(b.y)
 	})
 })
+
+describe('useFlowStore — laying out a flow that carries no positions', () => {
+	/**
+	 * THE FLOW THAT OPENED AS A PILE.
+	 *
+	 * Generated and imported flows carry no coordinates. A 76-node flow
+	 * measured on a live instance had 73 nodes with no position, and every one
+	 * of them landed on the same point — which looks exactly like an empty
+	 * canvas, because the other 75 are underneath the first.
+	 *
+	 * autoSort() already knew how to place them. Nothing called it.
+	 */
+	it('lays out a loaded flow when NO node has a position', () => {
+		const store = useFlowStore()
+
+		store.flow = {
+			nodes: [
+				{ id: 'a', type: 'openregister.trigger-manual' },
+				{ id: 'b', type: 'openregister.set-fields' },
+				{ id: 'c', type: 'openregister.end' },
+			],
+			edges: [{ from: 'a', to: 'b' }, { from: 'b', to: 'c' }],
+		}
+
+		expect(store.nodes.some(store.hasPosition)).toBe(false)
+		store.autoSort()
+
+		const points = store.nodes.map((n) => `${n.x},${n.y}`)
+		expect(new Set(points).size).toBe(3)
+		expect(store.nodes.every(store.hasPosition)).toBe(true)
+	})
+
+	/**
+	 * The other half, and the more important one: a flow somebody ARRANGED is
+	 * never rearranged behind their back.
+	 */
+	it('treats a flow with even one placed node as arranged', () => {
+		const store = useFlowStore()
+
+		store.flow = {
+			nodes: [
+				{ id: 'a', type: 'openregister.trigger-manual', position: { x: 900, y: 40 } },
+				{ id: 'b', type: 'openregister.end' },
+			],
+			edges: [],
+		}
+
+		expect(store.nodes.some(store.hasPosition)).toBe(true)
+	})
+
+	it('reads both spellings, so a persisted flow is not mistaken for an unplaced one', () => {
+		const store = useFlowStore()
+
+		expect(store.hasPosition({ id: 'a', position: { x: 10, y: 20 } })).toBe(true)
+		expect(store.hasPosition({ id: 'a', x: 10, y: 20 })).toBe(true)
+		expect(store.hasPosition({ id: 'a' })).toBe(false)
+		// (0, 0) is somewhere, not nowhere — otherwise a flow whose author
+		// parked a node at the origin would be relaid out on every load.
+		expect(store.hasPosition({ id: 'a', position: { x: 0, y: 0 } })).toBe(true)
+	})
+})

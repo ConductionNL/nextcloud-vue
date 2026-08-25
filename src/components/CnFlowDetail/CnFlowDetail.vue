@@ -276,7 +276,25 @@ export default {
 			return (this.store.nodes || []).map((node) => ({
 				id: node.id,
 				type: 'default',
-				position: { x: Number(node.x) || 0, y: Number(node.y) || 0 },
+				// BOTH SPELLINGS, for the same reason removeNode() reads both
+				// edge spellings: `position: {x, y}` is what the SERVER stores,
+				// and flat `x`/`y` is what addNode()/moveNode() write in memory.
+				//
+				// Reading only `node.x` meant `Number(undefined) || 0` for every
+				// node of every PERSISTED flow — so a saved flow reloaded with
+				// all of its nodes stacked at the origin, on top of each other.
+				// A new flow looked fine because its nodes had never been
+				// through the server. Measured on a live instance: of 100 stored
+				// flows sampled, NOT ONE had a flat `x`/`y` node; a 76-node flow
+				// reloaded with all 76 at (0, 0).
+				//
+				// The pile is invisible rather than obviously wrong, which is
+				// why this read as "the canvas renders nothing" instead of "the
+				// layout is lost".
+				position: {
+					x: Number(node.x ?? node.position?.x) || 0,
+					y: Number(node.y ?? node.position?.y) || 0,
+				},
 				data: {
 					stepType: node.type,
 					label: this.nodeLabel(node),

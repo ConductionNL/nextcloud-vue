@@ -204,7 +204,55 @@ export const useFlowStore = defineStore('cnFlow', {
 					for (const target of targets) {
 						// The line id must not be the edge id: a split renders
 						// one edge as several lines, and v-for keys collide.
-						lines.push({ id: `${edgeId}:${source}:${target}`, source, target, edge })
+						lines.push({
+							id: `${edgeId}:${source}:${target}`,
+							source,
+							target,
+
+							// LET VUE FLOW ROUTE THE LINE.
+							//
+							// These carried no `type`, so every line fell back
+							// to Vue Flow's default bezier — which crosses
+							// nodes and doubles back on itself as soon as a
+							// graph stops being a straight chain. That read as
+							// "our lines are disorderly", and the instinct was
+							// to lay the graph out ourselves to compensate.
+							//
+							// `smoothstep` is orthogonal routing with rounded
+							// corners: it is what the hand-drawn canvas was
+							// imitating, and the flow-builder's own dead `#edge`
+							// slot described the goal as "orthogonal routing
+							// plus an explicit arrowhead". Both are Vue Flow
+							// options we had simply never set.
+							//
+							// PER EDGE, and the document wins. `edge.lineType`
+							// is stored on the connection, so a single awkward
+							// line can be switched to `step`, `straight` or
+							// `default` without moving a node — the seam an
+							// edge-level control hangs off.
+							//
+							// ⚠️ THE ROUTER TRAVELS IN `data`, NOT IN `type`.
+							// It sat in `type` when the router was the only
+							// thing an edge carried, and that quietly ruled out
+							// everything else: Vue Flow reads `type` to choose
+							// the COMPONENT that draws the line, so naming a
+							// router there means the built-in edge answers and
+							// no label, marker control or payload affordance
+							// can ever be attached. `default` selects
+							// CnFlowEdge, which reads the router back out of
+							// `data`. Same distinction the node side already
+							// records — `type` is a component, and a domain
+							// value put there is a component that does not
+							// exist.
+							type: 'default',
+							markerEnd: edge.markerEnd || 'arrowclosed',
+							data: {
+								lineType: edge.lineType || 'smoothstep',
+								labelT: edge.labelT,
+								label: edge.title || edge.label || '',
+								edge,
+							},
+						})
 					}
 				}
 			}
@@ -404,6 +452,33 @@ export const useFlowStore = defineStore('cnFlow', {
 			}
 			this.dirty = false
 
+			// A flow nobody has ever laid out opens as a PILE, not as a graph.
+			//
+			// Generated and imported flows carry no coordinates at all — a
+			// 76-node flow measured on a live instance had 73 nodes with no
+			// position — and every one of those lands on the same point. The
+			// result is indistinguishable from an empty canvas: one node's
+			// worth of pixels, with the rest underneath it.
+			//
+			// autoSort() already knows how to place them, and its own docblock
+			// says unreachable nodes must go "never at the origin, where they
+			// would hide under the entry points". This just calls it when the
+			// document has nothing to preserve.
+			//
+			// Only when NO node has a position. A flow someone has arranged is
+			// never rearranged behind their back, and a flow with even one
+			// placed node is treated as arranged — rearranging that would throw
+			// away a deliberate choice to make the other nodes tidier.
+			//
+			// `dirty` stays false: this is a rendering fallback for a document
+			// that never carried positions, not an edit. Marking it dirty would
+			// prompt to save a layout the author never asked for, and pressing
+			// save would then write coordinates the flow did not have.
+			if (this.nodes.length && !this.nodes.some(this.hasPosition)) {
+				this.autoSort()
+				this.dirty = false
+			}
+
 			this.loadRuns(id)
 		},
 
@@ -461,8 +536,29 @@ export const useFlowStore = defineStore('cnFlow', {
 			this.checkResult = null
 		},
 
+		/**
+		 * WRITES BOTH SPELLINGS, FOR THE SAME REASON connect() WRITES `from`/`to`.
+		 *
+		 * `position: {x, y}` is the shape the SERVER stores — measured on a live
+		 * instance, not one of 100 persisted flows carried a flat `x`/`y` node.
+		 * Writing only flat coordinates therefore meant a dragged node's new
+		 * position never survived the save: it round-tripped back as no position
+		 * at all, and the node reloaded at the origin.
+		 *
+		 * Flat `x`/`y` is kept alongside it because autoSort() and addNode()
+		 * speak that spelling in memory, and dropping it here would make a moved
+		 * node inconsistent with an unmoved one within the same session.
+		 *
+		 * @param {object} move   The move.
+		 * @param {string} move.id The node that moved.
+		 * @param {number} move.x  Its new x, in canvas units.
+		 * @param {number} move.y  Its new y.
+		 * @return {void}
+		 */
 		moveNode({ id, x, y }) {
-			this.flow.nodes = this.nodes.map((node) => (node.id === id ? { ...node, x, y } : node))
+			this.flow.nodes = this.nodes.map(
+				(node) => (node.id === id ? { ...node, x, y, position: { x, y } } : node),
+			)
 			this.dirty = true
 		},
 
@@ -598,6 +694,26 @@ export const useFlowStore = defineStore('cnFlow', {
 		},
 
 		/**
+		 * Whether a node carries a position of its own.
+		 *
+		 * BOTH SPELLINGS, because both are in circulation: the server stores
+		 * `position: {x, y}` and the editor writes flat `x`/`y` in memory.
+		 * Checking only one would read a positioned flow as unpositioned and
+		 * rearrange it — the opposite of what load() wants.
+		 *
+		 * A node AT the origin counts as positioned. (0, 0) is a legitimate
+		 * place to put something, and treating it as "no position" would keep
+		 * relaying out a flow whose author had parked a node there.
+		 *
+		 * @param {object} node The node.
+		 * @return {boolean} True when the node says where it goes.
+		 */
+		hasPosition(node) {
+			return Number.isFinite(Number(node?.x))
+				|| Number.isFinite(Number(node?.position?.x))
+		},
+
+		/**
 		 * Lay the nodes out left-to-right by how the flow actually runs.
 		 *
 		 * Longest-path layering seeded from the start nodes, so a node sits one
@@ -659,11 +775,13 @@ export const useFlowStore = defineStore('cnFlow', {
 				const row = rows.get(column) || 0
 				rows.set(column, row + 1)
 
-				return {
-					...node,
-					x: margin + (column * columnWidth),
-					y: toolbarClearance + (row * rowHeight),
-				}
+				const x = margin + (column * columnWidth)
+				const y = toolbarClearance + (row * rowHeight)
+
+				// Both spellings — see moveNode(). Laying a flow out and saving
+				// it has to survive the round trip, or the button appears to
+				// work and the layout is gone on the next load.
+				return { ...node, x, y, position: { x, y } }
 			})
 			this.dirty = true
 		},

@@ -183,12 +183,25 @@ describe('CnBuildiqEditButton', () => {
 		expect(wrapper.emitted('edit-pages')).toBeTruthy()
 	})
 
-	it('exposes an Edit settings… item that auto-enters edit mode', async () => {
+	// The four APP-LEVEL editors moved to the app detail page (buildiq#439,
+	// buildiq#453). This menu is page-local now, so they are no longer listed
+	// here — but the handlers stay callable on a ref, which is the contract a
+	// consumer mounting its own surface depends on. Both halves are asserted:
+	// gone from the menu, still reachable programmatically.
+	it.each([
+		['Edit settings', 'edit-settings', 'onEditSettings'],
+		['Edit setup wizard', 'edit-setup', 'onEditSetup'],
+		['Edit walkthrough', 'edit-walkthrough', 'onEditWalkthrough'],
+		['Edit support', 'edit-support', 'onEditSupport'],
+	])('%s is off the menu but still callable on a ref', async (label, event, handler) => {
 		const editor = makeEditor(false)
 		const wrapper = mountButton({ editor })
-		await btn(wrapper, 'Edit settings').trigger('click')
+
+		expect(btn(wrapper, label)).toBeUndefined()
+
+		await wrapper.vm[handler]()
 		expect(editor.enter).toHaveBeenCalled()
-		expect(wrapper.emitted('edit-settings')).toBeTruthy()
+		expect(wrapper.emitted(event)).toBeTruthy()
 	})
 
 	it('Edit data… opens the data editor WITHOUT entering manifest edit mode', async () => {
