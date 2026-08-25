@@ -213,7 +213,7 @@
     "eslint-import-resolver-typescript": "^3.8.0",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-jsdoc": "^46.2.6",
-    "eslint-plugin-n": "^16.6.2",
+    "eslint-plugin-n": "^18.3.0",
     "eslint-plugin-promise": "^6.1.1",
     "eslint-plugin-vue": "^9.21.1",
     "eslint-webpack-plugin": "^4.0.1",
