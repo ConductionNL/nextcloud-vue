@@ -204,7 +204,36 @@ export const useFlowStore = defineStore('cnFlow', {
 					for (const target of targets) {
 						// The line id must not be the edge id: a split renders
 						// one edge as several lines, and v-for keys collide.
-						lines.push({ id: `${edgeId}:${source}:${target}`, source, target, edge })
+						lines.push({
+							id: `${edgeId}:${source}:${target}`,
+							source,
+							target,
+
+							// LET VUE FLOW ROUTE THE LINE.
+							//
+							// These carried no `type`, so every line fell back
+							// to Vue Flow's default bezier — which crosses
+							// nodes and doubles back on itself as soon as a
+							// graph stops being a straight chain. That read as
+							// "our lines are disorderly", and the instinct was
+							// to lay the graph out ourselves to compensate.
+							//
+							// `smoothstep` is orthogonal routing with rounded
+							// corners: it is what the hand-drawn canvas was
+							// imitating, and the flow-builder's own dead `#edge`
+							// slot described the goal as "orthogonal routing
+							// plus an explicit arrowhead". Both are Vue Flow
+							// options we had simply never set.
+							//
+							// PER EDGE, and the document wins. `edge.lineType`
+							// is stored on the connection, so a single awkward
+							// line can be switched to `step`, `straight` or
+							// `default` without moving a node — the seam an
+							// edge-level control hangs off.
+							type: edge.lineType || 'smoothstep',
+							markerEnd: edge.markerEnd || 'arrowclosed',
+							edge,
+						})
 					}
 				}
 			}
