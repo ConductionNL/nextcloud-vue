@@ -461,8 +461,23 @@ export const useFlowStore = defineStore('cnFlow', {
 			this.checkResult = null
 		},
 
+		/**
+		 * WRITES BOTH SPELLINGS, FOR THE SAME REASON connect() WRITES `from`/`to`.
+		 *
+		 * `position: {x, y}` is the shape the SERVER stores — measured on a live
+		 * instance, not one of 100 persisted flows carried a flat `x`/`y` node.
+		 * Writing only flat coordinates therefore meant a dragged node's new
+		 * position never survived the save: it round-tripped back as no position
+		 * at all, and the node reloaded at the origin.
+		 *
+		 * Flat `x`/`y` is kept alongside it because autoSort() and addNode()
+		 * speak that spelling in memory, and dropping it here would make a moved
+		 * node inconsistent with an unmoved one within the same session.
+		 */
 		moveNode({ id, x, y }) {
-			this.flow.nodes = this.nodes.map((node) => (node.id === id ? { ...node, x, y } : node))
+			this.flow.nodes = this.nodes.map(
+				(node) => (node.id === id ? { ...node, x, y, position: { x, y } } : node),
+			)
 			this.dirty = true
 		},
 
@@ -659,11 +674,13 @@ export const useFlowStore = defineStore('cnFlow', {
 				const row = rows.get(column) || 0
 				rows.set(column, row + 1)
 
-				return {
-					...node,
-					x: margin + (column * columnWidth),
-					y: toolbarClearance + (row * rowHeight),
-				}
+				const x = margin + (column * columnWidth)
+				const y = toolbarClearance + (row * rowHeight)
+
+				// Both spellings — see moveNode(). Laying a flow out and saving
+				// it has to survive the round trip, or the button appears to
+				// work and the layout is gone on the next load.
+				return { ...node, x, y, position: { x, y } }
 			})
 			this.dirty = true
 		},
