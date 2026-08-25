@@ -15,7 +15,7 @@
 				data-testid="cn-banner-widget-text"
 				@click="onClick"
 				@keydown.enter="onClick">
-				{{ resolvedText }}
+				{{ displayText }}
 			</component>
 		</NcNoteCard>
 	</div>
@@ -23,7 +23,7 @@
 
 <script>
 import { NcNoteCard } from '@nextcloud/vue'
-import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
+import { compareVisibleWhen, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 
 /** Variants understood by NcNoteCard. */
 const VARIANTS = ['info', 'warning', 'error', 'success']
@@ -115,12 +115,32 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+		/**
+		 * Pre-evaluated `visibleWhen` outcome `{ met, value }`, injected by a
+		 * host that already ran the predicate (CnDashboardPage evaluates it
+		 * to know whether to collapse the banner's grid cell). When present,
+		 * the banner renders from this verdict instead of fetching again —
+		 * no duplicate request and no hidden-until-self-evaluated flash —
+		 * and `value` feeds the `{value}` text placeholder. `null` (the
+		 * default) keeps the banner self-evaluating.
+		 * @type {object|null}
+		 */
+		conditionOutcome: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	data() {
 		return {
 			/** Evaluated visibleWhen outcome (null = not yet evaluated). */
 			conditionMet: null,
+			/**
+			 * The raw field value the predicate read (from the injected
+			 * outcome or the banner's own evaluation) — interpolated into
+			 * the text wherever it says `{value}`.
+			 */
+			conditionValue: null,
 		}
 	},
 
@@ -137,6 +157,22 @@ export default {
 		/** The effective visibleWhen condition (prop → content → null). */
 		resolvedVisibleWhen() {
 			return this.visibleWhen || (this.content && this.content.visibleWhen) || null
+		},
+		/** The effective injected outcome (prop → content → null). */
+		resolvedConditionOutcome() {
+			return this.conditionOutcome || (this.content && this.content.conditionOutcome) || null
+		},
+		/**
+		 * The rendered text: `resolvedText` with `{value}` replaced by the
+		 * predicate's field value once one is known. Without a known value
+		 * the text renders as written — a `{value}` placeholder only makes
+		 * sense on a conditional banner, which stays hidden until its
+		 * predicate (and therefore its value) resolves.
+		 */
+		displayText() {
+			const text = this.resolvedText
+			if (this.conditionValue === null || !text.includes('{value}')) return text
+			return text.replaceAll('{value}', String(this.conditionValue))
 		},
 		/** The effective click-through route (prop → content → null). */
 		resolvedRoute() {
@@ -159,25 +195,43 @@ export default {
 			immediate: true,
 			handler() { this.evaluateCondition() },
 		},
+		resolvedConditionOutcome() { this.evaluateCondition() },
 	},
 
 	methods: {
 		/**
-		 * Evaluate the `visibleWhen` predicate through the shared
-		 * `evaluateVisibleWhen` util (endpoint / OpenRegister-source modes —
-		 * the Wave-1 banner shape is the canonical one, extracted to
-		 * `utils/visibleWhen.js` in Wave 3 so manifest actions reuse it).
+		 * Resolve the `visibleWhen` verdict. A host-injected
+		 * `conditionOutcome` wins outright — the host already ran the
+		 * predicate, so re-fetching would double the request and flash the
+		 * banner hidden until its own copy resolved. Otherwise evaluate
+		 * through the shared util primitives (endpoint / OpenRegister-source
+		 * modes — the Wave-1 banner shape is the canonical one, extracted to
+		 * `utils/visibleWhen.js` in Wave 3 so manifest actions reuse it),
+		 * keeping the read VALUE for the `{value}` text placeholder.
 		 * Fail-safe: any fetch/shape error leaves the banner hidden.
 		 *
 		 * @return {Promise<void>}
 		 */
 		async evaluateCondition() {
+			const outcome = this.resolvedConditionOutcome
+			if (outcome) {
+				this.conditionMet = outcome.met === true
+				this.conditionValue = outcome.value !== undefined ? outcome.value : null
+				return
+			}
 			const cond = this.resolvedVisibleWhen
 			if (!cond) {
 				this.conditionMet = null
+				this.conditionValue = null
 				return
 			}
-			this.conditionMet = await evaluateVisibleWhen(cond)
+			try {
+				const value = await readVisibleWhenValue(cond)
+				this.conditionValue = value
+				this.conditionMet = compareVisibleWhen(value, cond.op || 'eq', cond.value)
+			} catch (e) {
+				this.conditionMet = false
+			}
 		},
 
 		/**

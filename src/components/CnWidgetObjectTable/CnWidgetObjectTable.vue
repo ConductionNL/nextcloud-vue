@@ -311,6 +311,19 @@ export default {
 			default: '',
 		},
 		/**
+		 * Client-side row cap, forwarded to CnDataTable (`0` = all rows).
+		 * This is what makes `viewAllRoute` reachable for `endpointSource`
+		 * tables: the endpoint's full payload stays the `totalRowCount`
+		 * while CnDataTable renders only the first `limit` rows, so the
+		 * "View all" footer condition (total > shown) can finally hold.
+		 * The OpenRegister `source` mode keeps using `source.limit` (an
+		 * explicit assignment that wins over this passthrough).
+		 */
+		limit: {
+			type: Number,
+			default: 0,
+		},
+		/**
 		 * vue-router route object for the "View all" footer link. Forwarded
 		 * to CnDataTable (footer shows when the rows are a `limit`-ed subset).
 		 * @type {object|null}
