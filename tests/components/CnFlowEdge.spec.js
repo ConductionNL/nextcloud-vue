@@ -159,6 +159,35 @@ describe('CnFlowEdge', () => {
 		expect(straight.vm.path).not.toBe(stepped.vm.path)
 	})
 
+	/**
+	 * The replay's payload control — "open the JSON that passed along this
+	 * connection" — has to be activatable in its own right, and the label
+	 * wrapper is a button. A button cannot contain another button, so the two
+	 * are siblings rather than nested.
+	 */
+	it('puts host controls beside the label, not inside its button', () => {
+		const wrapper = mountEdge({}, {
+			label: '<span>ship it</span>',
+			adornment: '<button class="payload">{}</button>',
+		})
+
+		const payload = wrapper.find('.payload')
+
+		expect(payload.exists()).toBe(true)
+		expect(payload.element.closest('.cn-flow-edge__label')).toBeNull()
+	})
+
+	it('draws no adornment for an edge the host gives none', () => {
+		const wrapper = mountEdge({}, {
+			label: '<span>ship it</span>',
+			adornment: '<button v-if="false" class="payload">{}</button>',
+		})
+
+		// A replay marks a handful of connections out of many; the rest must
+		// not carry an empty affordance beside their label.
+		expect(wrapper.find('.cn-flow-edge__adornment').exists()).toBe(false)
+	})
+
 	it('opens the same menu from the label as from the line', async () => {
 		const wrapper = mountEdge()
 

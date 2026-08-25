@@ -29,6 +29,7 @@
 
 ### Slots
 
-| Name    | Bindings | Description                                        |
-| ------- | -------- | -------------------------------------------------- |
-| `label` | `edge`   | label The chrome of a connection's label. Receives |
+| Name        | Bindings | Description                                        |
+| ----------- | -------- | -------------------------------------------------- |
+| `label`     | `edge`   | label The chrome of a connection's label. Receives |
+| `adornment` | `edge`   |                                                    |

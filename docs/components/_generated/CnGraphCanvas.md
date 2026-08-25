@@ -34,7 +34,8 @@
 
 ### Slots
 
-| Name         | Bindings | Description                                  |
-| ------------ | -------- | -------------------------------------------- |
-| `node`       | —        | node The body of a step, rendered inside the |
-| `edge-label` | —        | edge-label The chrome of a connection's      |
+| Name             | Bindings | Description                                   |
+| ---------------- | -------- | --------------------------------------------- |
+| `node`           | —        | node The body of a step, rendered inside the  |
+| `edge-label`     | —        | edge-label The chrome of a connection's       |
+| `edge-adornment` | —        | edge-adornment A host's own controls beside a |

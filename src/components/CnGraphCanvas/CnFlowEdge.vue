@@ -29,23 +29,38 @@
 	     same division CnFlowNode holds, and for the same reason: a host filling
 	     a slot cannot accidentally replace a focusable control with an inert
 	     div. -->
-	<EdgeLabelRenderer v-if="hasLabel">
-		<button
-			type="button"
-			class="cn-flow-edge__label"
-			:class="{ 'cn-flow-edge__label--dragging': dragging }"
-			:style="labelStyle"
-			:aria-label="labelAriaLabel"
-			@click.stop="$emit('label-click', id)"
-			@keydown="onKeydown"
-			@mousedown.stop="onMouseDown"
-			@contextmenu.prevent.stop="$emit('label-context', { id, event: $event })">
-			<!-- @slot label The chrome of a connection's label. Receives
-			     `{ edge }` with the edge's `id`, `data` and `selected`. Render
-			     inert content: the focus, the ARIA state and the arrow keys are
-			     the wrapper's. -->
-			<slot name="label" :edge="{ id, data, selected }" />
-		</button>
+	<EdgeLabelRenderer v-if="hasLabel || hasAdornment">
+		<div class="cn-flow-edge__layer" :style="labelStyle">
+			<button
+				v-if="hasLabel"
+				type="button"
+				class="cn-flow-edge__label"
+				:class="{ 'cn-flow-edge__label--dragging': dragging }"
+				:aria-label="labelAriaLabel"
+				@click.stop="$emit('label-click', id)"
+				@keydown="onKeydown"
+				@mousedown.stop="onMouseDown"
+				@contextmenu.prevent.stop="$emit('label-context', { id, event: $event })">
+				<!-- @slot label The chrome of a connection's label. Receives
+				     `{ edge }` with the edge's `id`, `data` and `selected`.
+				     Render INERT content: the focus, the ARIA state and the
+				     arrow keys belong to the wrapper. Anything the host needs
+				     to be separately clickable goes in `adornment` instead. -->
+				<slot name="label" :edge="{ id, data, selected }" />
+			</button>
+
+			<!-- @slot adornment A host's own controls, BESIDE the label rather
+			     than inside it.
+
+			     Separate from `label` because the label wrapper is a button and
+			     a button cannot contain another one. A replay's payload control
+			     — "open the JSON that passed along this connection" — has to be
+			     activatable in its own right, so it cannot be part of the
+			     label's chrome. -->
+			<div v-if="hasAdornment" class="cn-flow-edge__adornment">
+				<slot name="adornment" :edge="{ id, data, selected }" />
+			</div>
+		</div>
 	</EdgeLabelRenderer>
 </template>
 
@@ -222,6 +237,22 @@ export default {
 
 			return this.rendersContent(
 				this.$slots.label({ edge: { id: this.id, data: this.data, selected: this.selected } }),
+			)
+		},
+
+		/**
+		 * @return {boolean} Whether the host renders any control beside the
+		 *   label for this edge. Gated on rendered content for the same reason
+		 *   `hasLabel` is: a replay marks a handful of connections out of many,
+		 *   and the rest must not carry an empty affordance.
+		 */
+		hasAdornment() {
+			if (typeof this.$slots.adornment !== 'function') {
+				return false
+			}
+
+			return this.rendersContent(
+				this.$slots.adornment({ edge: { id: this.id, data: this.data, selected: this.selected } }),
 			)
 		},
 
@@ -478,8 +509,21 @@ export default {
 /* `pointer-events` is OFF on the layer EdgeLabelRenderer creates, so that the
    layer does not swallow clicks meant for the canvas underneath. A control in
    it has to turn them back on for itself. */
-.cn-flow-edge__label {
+.cn-flow-edge__layer {
 	position: absolute;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.cn-flow-edge__adornment {
+	pointer-events: all;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.cn-flow-edge__label {
 	pointer-events: all;
 	display: inline-flex;
 	align-items: center;

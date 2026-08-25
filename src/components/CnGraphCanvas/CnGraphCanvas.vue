@@ -76,6 +76,15 @@
 						     nothing here draws no label control at all. -->
 						<slot name="edge-label" v-bind="slotProps" />
 					</template>
+
+					<template #adornment="slotProps">
+						<!-- @slot edge-adornment A host's own controls beside a
+						     connection's label. Receives `{ edge }`. Unlike
+						     `edge-label` this is NOT inside the label's button,
+						     so what goes here may be interactive — a replay's
+						     payload control is the case it exists for. -->
+						<slot name="edge-adornment" v-bind="slotProps" />
+					</template>
 				</CnFlowEdge>
 			</template>
 
