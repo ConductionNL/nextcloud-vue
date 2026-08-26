@@ -469,7 +469,7 @@ export { DASHBOARD_ICONS, DEFAULT_ICON, getIconComponent, isCustomIconUrl } from
 //     import { NL_DESIGN_ICON_GROUPS } from '@conduction/nextcloud-vue/src/icons/index.js'
 export { fromMdiJs, fromFontAwesome, fromOpenGemeenten, dedupeCatalogue } from './components/CnIconPicker/index.js'
 export { mergeManifestDelta } from './utils/mergeManifestDelta.js'
-export { buildManifest, applyMenuLayout, mergeMenuItems, mergePages, applyMenuRelocations, applyMenuRemovals, applySettingsSection } from './utils/buildManifest.js'
+export { buildManifest, applyMenuLayout, mergeMenuItems, mergePages, applyMenuRelocations, applyMenuRemovals, applySettingsSection, applyIntegrationsSection } from './utils/buildManifest.js'
 export { expandPageTemplates } from './utils/expandPageTemplates.js'
 export { diffManifest } from './utils/diffManifest.js'
 export { createManifestEditHistory } from './utils/manifestEditHistory.js'

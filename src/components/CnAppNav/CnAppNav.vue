@@ -15,7 +15,8 @@
   is the declarative fallback. The slot wins when both are present;
   nothing renders when neither is.
 
-  Items split into three groups by `section`:
+  Items split into three RENDERED groups by `section`, plus one section
+  this component deliberately renders nowhere:
   - `section: "main"` (default) — top of the navigation, scrollable.
   - `section: "footer"` — rendered in NcAppNavigation's `#footer` slot,
     OUTSIDE the scrollable list and directly above the settings foldout,
@@ -45,6 +46,14 @@
     settings is enabled — so every app shows a Settings gear with at
     least Personal settings. It is only fully suppressed when there are
     no settings items AND `nav.includePersonalSettings: false`.
+  - `section: "integrations"` — rendered by this component NOWHERE. Per
+    ADR-110 these are the links that LEAVE this app for another one, and
+    they belong in the Integrations section at the bottom of the per-user
+    settings modal, which CnAppRoot owns. A link to another app cannot be
+    the active route and carries no counter, so putting it in the nav
+    makes another app's capability read as this app's feature. The one
+    deep link that stays in the navigation is the auto-prepended Admin
+    settings above — apps never declare that one themselves.
 
   Manifest and translate are injected from CnAppRoot by default but can
   also be passed as props for standalone use without CnAppRoot. Props
@@ -706,7 +715,18 @@ export default {
 					return a.order - b.order
 				})
 		},
-		/** Items that render in the top list (default placement). */
+		/**
+		 * Items that render in the top list (default placement).
+		 *
+		 * Note the `=== 'main'` rather than a negated list: an entry whose
+		 * section this component does not render must fall through to
+		 * NOTHING, not to the main list. `section: "integrations"` is
+		 * exactly that case — those entries render in CnAppRoot's
+		 * per-user settings modal, not in the navigation (ADR-110) — and a
+		 * `!== 'footer' && !== 'settings'` test would have quietly put
+		 * every one of them back in the nav this contract removes them
+		 * from.
+		 */
 		mainItems() {
 			return this.visibleItems.filter((item) => (item.section ?? 'main') === 'main')
 		},

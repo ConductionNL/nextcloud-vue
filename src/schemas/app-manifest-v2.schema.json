@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.23.0",
+	"version": "2.24.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -760,9 +760,9 @@
 				},
 				"section": {
 					"type": "string",
-					"enum": ["main", "footer", "settings"],
+					"enum": ["main", "footer", "settings", "integrations"],
 					"default": "main",
-					"description": "Where the entry renders inside CnAppNav. 'main' (default) places it in the top list. 'footer' pins the entry to the bottom as a flat item above the settings foldout. 'settings' places it inside the NcAppNavigationSettings gear-icon foldout."
+					"description": "Where the entry renders inside CnAppNav. 'main' (default) places it in the top list. 'footer' pins the entry to the bottom as a flat item above the settings foldout. 'settings' places it inside the NcAppNavigationSettings gear-icon foldout. 'integrations' renders the entry NOT in the navigation at all but in the Integrations section at the bottom of the per-user settings modal — the destination for links that leave this app for another (ADR-110). An 'integrations' entry MUST be clickable (href); a group with children is meaningless there."
 				},
 				"type": {
 					"type": "string",
@@ -834,7 +834,7 @@
 				"permission": { "type": "string" },
 				"section": {
 					"type": "string",
-					"enum": ["main", "footer", "settings"],
+					"enum": ["main", "footer", "settings", "integrations"],
 					"default": "main"
 				},
 				"type": {
