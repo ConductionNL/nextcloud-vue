@@ -470,6 +470,46 @@ export default {
 	min-height: 320px;
 }
 
+/* ⚠️ VUE FLOW'S DEFAULT NODE DRAWS A BOX WE NEVER ASKED FOR.
+
+   Every node this canvas renders goes through the `#node-default` slot, so
+   Vue Flow wraps our CnFlowNode in `.vue-flow__node-default` — and
+   `theme-default.css` gives that wrapper a 1px border, a white background and
+   10px of padding. The result was a box around our box: the wrapper's border,
+   then `.cn-flow-node`'s own. Nothing failed and nothing warned; a node just
+   quietly had one more outline than it was designed to have.
+
+   Stripped, not restyled: `.cn-flow-node` is the node's chrome, and it is the
+   ONLY border a node draws. `width` stays 150px because Vue Flow measures the
+   wrapper to route edges and place handles — dropping it would move every
+   node's footprint, which is a layout change, not a fix for a stray border. */
+.cn-graph-canvas .vue-flow__node-default {
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: none;
+
+	/* The handle colour reaches `.cn-flow-node__handle` through this variable.
+	   Vue Flow's own `.vue-flow__node-default .vue-flow__handle` rule outranks
+	   our single-class one, so a themed handle lost to a hard-coded #1a192b on
+	   every node — setting the variable themes it at the source instead of
+	   fighting the specificity. */
+	--vf-handle: var(--color-primary-element, #0082c9);
+}
+
+/* The selected/focus/hover states re-assert the border and shadow the rule
+   above just removed, so they have to be stripped too — otherwise clicking a
+   node brought the extra box back. Selection is shown by `.cn-flow-node--selected`,
+   and focus by `.cn-flow-node:focus-visible`, both on the node itself. */
+.cn-graph-canvas .vue-flow__node-default.selected,
+.cn-graph-canvas .vue-flow__node-default.selected:hover,
+.cn-graph-canvas .vue-flow__node-default.selectable:hover,
+.cn-graph-canvas .vue-flow__node-default:focus,
+.cn-graph-canvas .vue-flow__node-default:focus-visible {
+	border: 0;
+	box-shadow: none;
+}
+
 /* THEME, NOT OVERRIDE. Every colour comes from a Nextcloud variable with a
    fallback, so the canvas follows the user's theme — including dark — instead
    of being the one component that ignores it. */

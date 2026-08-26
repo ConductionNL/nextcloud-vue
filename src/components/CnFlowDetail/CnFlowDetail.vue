@@ -795,15 +795,33 @@ export default {
 
 /* ONE container, not a card in a card: the canvas wrapper draws the box —
    border, radius, background, selection — and this card only fills it. Its
-   earlier own border/background rendered as a visible nested box. */
-.cn-flow-detail__node {
+   earlier own border/background rendered as a visible nested box.
+
+   ⚠️ THE NO-BOX IS DECLARED, NOT LEFT OUT, AND IT IS SCOPED THROUGH THE PARENT
+   ON PURPOSE. Removing the border by simply deleting the declaration looked
+   like it worked here and did not work in a browser: several installed apps
+   still bundle an OLDER build of this component, Vue's scoped hash for it is
+   the same in both (`data-v-…` hashes the file, not its contents), and their
+   stale `.cn-flow-detail__node` rule therefore lands in the same page. Nothing
+   in the current build declared `border` at all, so the old declaration was
+   the only one in the cascade and simply won — the nested box came back on a
+   page whose own copy of the library was already fixed.
+
+   So the rule states the absence, and `.cn-flow-detail` in front of it raises
+   the specificity above any same-name copy, which makes this independent of
+   which bundle a page happens to inject last. */
+.cn-flow-detail .cn-flow-detail__node {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
 	justify-content: center;
 	block-size: 100%;
-	padding: 8px 12px;
+	/* No top/bottom/right padding: `.cn-flow-node` already pads the box. The
+	   left inset only clears the 4px role accent below. */
+	padding: 0 0 0 8px;
+	border: 0;
 	border-radius: inherit;
+	background: none;
 	overflow: hidden;
 }
 
