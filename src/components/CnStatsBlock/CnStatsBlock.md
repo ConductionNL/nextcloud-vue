@@ -87,6 +87,20 @@ Loading / empty states — `loadingLabel` and `emptyLabel` control the fallback 
 </div>
 ```
 
+Error state — `error` (anything truthy) replaces the number with a dash and
+`errorLabel`, and tints the tile. It beats `count`, `loading` and `emptyLabel`,
+because a tile that cannot read its number must not show one: a stale or
+defaulted figure during a failure is a number the reader will believe. Do not
+also pass `variant="error"` — the tile tints itself.
+
+```vue
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 450px;">
+  <CnStatsBlock title="Overdue" :count="0" :error="true" />
+  <CnStatsBlock title="Leads" :count="42" :error="true" error-label="Kan niet laden" />
+  <CnStatsBlock title="Healthy" :count="42" />
+</div>
+```
+
 Route-based navigation — renders as `<router-link>` when `route` is set; `iconSize` adjusts the icon diameter:
 
 ```vue
