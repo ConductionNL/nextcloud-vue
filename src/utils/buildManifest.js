@@ -111,7 +111,22 @@ export function mergeMenuItems(target, incoming) {
 	incoming.forEach((item) => {
 		const existing = target.find((t) => t.id === item.id)
 		if (!existing) {
-			target.push({ ...item, children: Array.isArray(item.children) ? [...item.children] : item.children })
+			// Copy `children` ONLY when there is an array to copy. The previous
+			// ternary's else-branch assigned `item.children` — i.e. `undefined`
+			// — which is not the same as leaving the key off: `Object.keys()`
+			// and JSON-Schema's `additionalProperties: false` both see a key
+			// that is present. Every leaf entry therefore carried a `children`
+			// property, and the BUILT manifest failed validation against the
+			// same schema its source passes. Invisible in practice because
+			// `JSON.stringify` drops undefined values, so nothing that logged
+			// or persisted the manifest ever showed it.
+			const copy = { ...item }
+			if (Array.isArray(item.children)) {
+				copy.children = [...item.children]
+			} else {
+				delete copy.children
+			}
+			target.push(copy)
 			return
 		}
 		for (const key of ['label', 'icon', 'route', 'order', 'section', 'featureFlag', 'permission', 'visibleIf', 'href', 'action']) {
