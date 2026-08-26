@@ -58,4 +58,12 @@ export const defaultPageTypes = {
 	roadmap: defineAsyncComponent(() => import('../CnFeaturesAndRoadmapPage/CnFeaturesAndRoadmapPage.vue').then(m => m.default)),
 	search: defineAsyncComponent(() => import('../CnSearchPage/CnSearchPage.vue').then(m => m.default)),
 	wiki: defineAsyncComponent(() => import('../CnWikiPage/CnWikiPage.vue').then(m => m.default)),
+	// ADR-110 Decision 4. A flow list cannot be a `type: "index"` page: a flow
+	// lives in OpenRegister's native flow store, not a register/schema pair, so
+	// the object-backed index has nothing to bind to. Without these two types
+	// every app adopting flows copies ~270 lines of identical wrapper differing
+	// only in an app-id string — which is how three apps ended up with the same
+	// dead `@rowClick` listener (CnIndexPage emits `row-click`).
+	flows: defineAsyncComponent(() => import('../CnFlowsPage/CnFlowsPage.vue').then(m => m.default)),
+	'flow-detail': defineAsyncComponent(() => import('../CnFlowsPage/CnFlowEditorPage.vue').then(m => m.default)),
 }

@@ -18,7 +18,11 @@
 				<h4>{{ title || t('nextcloud-vue', 'Objects') }}</h4>
 			</div>
 
-			<div v-if="hasValueSlot || count > 0 || (showZeroCount && count === 0)" class="cn-stats-block__count">
+			<div v-if="hasError" class="cn-stats-block__count cn-stats-block__count--error">
+				<span class="cn-stats-block__count-value">&mdash;</span>
+				<span class="cn-stats-block__count-label">{{ errorLabel }}</span>
+			</div>
+			<div v-else-if="hasValueSlot || count > 0 || (showZeroCount && count === 0)" class="cn-stats-block__count">
 				<span class="cn-stats-block__count-value">
 					<!-- @slot Override the prominently-displayed value — render a pre-formatted string (currency, percent, a "—" placeholder, …). `count` stays the raw number; this is presentation only. Defaults to the localized count. -->
 					<!-- @binding {number} count The raw numeric count. -->
@@ -36,7 +40,9 @@
 			</div>
 
 			<!-- Breakdown details -->
-			<div v-if="breakdown && (hasValueSlot || count > 0 || showZeroCount)" class="cn-stats-block__breakdown">
+			<div
+				v-if="hasError === false && breakdown && (hasValueSlot || count > 0 || showZeroCount)"
+				class="cn-stats-block__breakdown">
 				<div
 					v-for="(value, key) in breakdown"
 					:key="key"
@@ -150,6 +156,33 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'No items found'),
 		},
+		/**
+		 * The tile could not load its number. Anything truthy counts — pass the
+		 * caught error itself, or just `true`.
+		 *
+		 * The tile then shows a dash and `errorLabel` INSTEAD of a count, and
+		 * tints itself `error`. This takes precedence over `count`, `loading`
+		 * and `emptyLabel` deliberately: a stale or defaulted number rendered
+		 * during a failure is the exact thing this prop exists to stop. A
+		 * dashboard showing 0 because the backend is down is worse than one
+		 * showing nothing, because 0 is a number a reader will believe.
+		 * @type {boolean|string|Error|null}
+		 */
+		error: {
+			// TYPE ORDER IS SEMANTIC HERE. Vue casts an empty value to `true`
+			// when Boolean appears BEFORE String in the union, so
+			// `[Boolean, String]` would read `error=""` as an error. A caller
+			// clearing its message back to '' is reporting RECOVERY, and that
+			// would have pinned the tile in its error state after the fetch
+			// succeeded again. String first keeps '' falsy.
+			type: [String, Boolean, Object],
+			default: null,
+		},
+		/** Text shown in place of the count when `error` is set. */
+		errorLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Unavailable'),
+		},
 		/** Icon component (e.g., imported MDI icon) */
 		icon: {
 			type: [Object, Function],
@@ -208,6 +241,20 @@ export default {
 			return !!this.$slots.value || !!this.$slots.value
 		},
 
+		/**
+		 * Whether the tile is in its error state.
+		 *
+		 * Anything truthy counts, so a caller can pass the caught error itself
+		 * rather than converting it to a boolean first. An empty string is NOT
+		 * an error — that is a caller who cleared the message, not one
+		 * reporting a failure.
+		 *
+		 * @return {boolean} True when the tile should show `errorLabel`.
+		 */
+		hasError() {
+			return Boolean(this.error)
+		},
+
 		formattedCount() {
 			return this.count.toLocaleString()
 		},
@@ -245,7 +292,13 @@ export default {
 			return {
 				'cn-stats-block--horizontal': this.horizontal,
 				'cn-stats-block--clickable': this.isInteractive,
-				[`cn-stats-block--${this.variant}`]: this.variant !== 'default',
+				// An errored tile tints itself. Requiring the consumer to also
+				// pass `variant="error"` would mean every caller remembering
+				// two props to express one state, and forgetting the second is
+				// invisible — a tile that reads "Unavailable" in the default
+				// colour looks like ordinary content.
+				'cn-stats-block--error': this.hasError,
+				[`cn-stats-block--${this.variant}`]: this.variant !== 'default' && this.hasError === false,
 			}
 		},
 

@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.24.0",
+	"version": "2.25.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -2097,8 +2097,8 @@
 				},
 				"type": {
 					"type": "string",
-					"enum": ["index", "detail", "dashboard", "logs", "settings", "chat", "files", "form", "map", "roadmap", "search", "wiki", "custom"],
-					"description": "Page type. Closed enum of 14 supported types. 'roadmap' mounts CnFeaturesAndRoadmapPage (features + GitHub-issue-backed roadmap). 'search' mounts CnSearchPage (cross-schema query + facet sidebar + results list; consumers wire the actual search via @search). 'wiki' mounts CnWikiPage (manifest-declared markdown article + optional sidebar tree; MUST declare config.register + config.schema). 'custom' requires a _note field explaining why a standard type was not feasible."
+					"enum": ["index", "detail", "dashboard", "logs", "settings", "chat", "files", "form", "map", "roadmap", "search", "wiki", "flows", "flow-detail", "custom"],
+					"description": "Page type. Closed enum of 16 supported types. 'roadmap' mounts CnFeaturesAndRoadmapPage (features + GitHub-issue-backed roadmap). 'search' mounts CnSearchPage (cross-schema query + facet sidebar + results list; consumers wire the actual search via @search). 'wiki' mounts CnWikiPage (manifest-declared markdown article + optional sidebar tree; MUST declare config.register + config.schema). 'flows' mounts CnFlowsPage (the app-scoped flow list) and 'flow-detail' mounts CnFlowEditorPage (the shared node/edge canvas); both take config.app to scope to the owning app, and neither can be expressed as 'index'/'detail' because a flow lives in OpenRegister's native flow store rather than a register/schema pair (ADR-110 Decision 4). 'custom' requires a _note field explaining why a standard type was not feasible."
 				},
 				"title": {
 					"type": "string",
