@@ -28,6 +28,8 @@ Statistics display card with icon, count, and optional breakdown. Used inside Cn
 | `loading` | Boolean | `false` | Loading state |
 | `loadingLabel` | String | `'Loading...'` | |
 | `emptyLabel` | String | `'No items found'` | |
+| `error` | String \| Boolean \| Object | `null` | The tile could not load its number. Anything truthy counts — pass the caught error itself, or `true`. Shows a dash and `errorLabel` instead of a count, tints the tile `error`, and suppresses the breakdown. **Takes precedence over `count`, `loading` and `emptyLabel`.** |
+| `errorLabel` | String | `'Unavailable'` | Text shown in place of the count when `error` is set. |
 | `icon` | Component | `null` | MDI icon component |
 | `iconSize` | Number | `24` | Icon pixel size |
 | `variant` | String | `'default'` | `'default'`, `'primary'`, `'success'`, `'warning'`, `'error'` |
@@ -35,6 +37,39 @@ Statistics display card with icon, count, and optional breakdown. Used inside Cn
 | `clickable` | Boolean | `false` | Enable click interaction |
 | `showZeroCount` | Boolean | `false` | Display 0 as a count value instead of the empty label |
 | `route` | Object | `null` | Vue Router location object (`{ name, path, query, ... }`). When set, the card renders as a `<router-link>` and clickable styles are applied automatically. |
+
+## Error state
+
+A tile that cannot load its number must not render one.
+
+```vue
+<CnStatsBlock
+  :title="t('myapp', 'Overdue')"
+  :count="count"
+  :loading="loading"
+  :error="error" />
+```
+
+`error` beats `count`, `loading` and `emptyLabel`, in that order of importance:
+
+- **over `count`** — a tile that fetched 42 and then failed to refresh must not
+  keep presenting 42 as current.
+- **over `loading`** — a failed load is finished, not in progress.
+- **over `emptyLabel`** — "we could not read this" and "there is nothing here"
+  mean opposite things to a reader, and used to look identical.
+
+This exists because the alternative was observed in production: eleven tiles
+across five apps answered a failed fetch with `catch { count = 0 }`. A
+dashboard with a dead backend looked like a dashboard reporting genuinely empty
+collections, and zero is a number a reader believes.
+
+The tile tints itself — do not also pass `variant="error"`. Two props for one
+state means forgetting the second, and forgetting it is invisible: "Unavailable"
+in the default colour reads as ordinary content. An explicit `variant` is
+ignored while `error` is set.
+
+An empty string is **not** an error: a caller clearing its message back to `''`
+is reporting recovery.
 
 ## Events
 
