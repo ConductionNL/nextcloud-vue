@@ -840,6 +840,9 @@
     "This entry is already linked.": "This entry is already linked.",
     "Could not link entry.": "Could not link entry.",
     "Could not create client.": "Could not create client.",
-    "Could not unlink entry.": "Could not unlink entry."
+    "Could not unlink entry.": "Could not unlink entry.",
+    "Request a feature": "Request a feature",
+    "Refreshing…": "Refreshing…",
+    "Opens in a new tab": "Opens in a new tab"
   }
 }

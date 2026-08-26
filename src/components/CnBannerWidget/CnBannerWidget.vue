@@ -231,6 +231,7 @@ export default {
 				this.conditionMet = compareVisibleWhen(value, cond.op || 'eq', cond.value)
 			} catch (e) {
 				this.conditionMet = false
+				this.conditionValue = null
 			}
 		},
 

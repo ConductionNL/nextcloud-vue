@@ -832,6 +832,9 @@
     "This entry is already linked.": "Deze registratie is al gekoppeld.",
     "Could not link entry.": "Kon registratie niet koppelen.",
     "Could not create client.": "Kon klant niet aanmaken.",
-    "Could not unlink entry.": "Kon registratie niet ontkoppelen."
+    "Could not unlink entry.": "Kon registratie niet ontkoppelen.",
+    "Request a feature": "Een functie aanvragen",
+    "Refreshing…": "Vernieuwen…",
+    "Opens in a new tab": "Opent in een nieuw tabblad"
   }
 }
