@@ -56,9 +56,11 @@ import CnMenuTreeRow from './CnMenuTreeRow.vue'
  * top-level `section` marker set/cleared, and each item's `children[]` rebuilt —
  * so `diffManifest` sees the change. Field edits mutate the real refs directly.
  *
- * The top level is scoped by `section`: the main-menu editor shows non-settings
- * items, the settings-menu editor shows `section: "settings"` items; flatten
- * preserves the other section's items untouched.
+ * The top level is scoped by `section`, matched EXACTLY: the main-menu editor
+ * shows `main` items, the settings-menu editor shows `section: "settings"`
+ * items, and neither ever claims the other's — or an `integrations` entry,
+ * which has no editor here at all and must survive both untouched. Flatten
+ * preserves every section it does not own.
  */
 export default {
 	name: 'CnMenuTreeNode',
@@ -92,15 +94,17 @@ export default {
 			default: () => [],
 		},
 		/**
-		 * Which nav section this editor scopes to at the top level
-		 * (`"settings"` shows only the gear-foldout items; anything else shows
-		 * the non-settings items). Flatten preserves the other section.
+		 * Which nav section this editor scopes to at the top level. An editor
+		 * shows — and on flatten rewrites — ONLY entries whose section matches
+		 * exactly; every other section is preserved untouched. `null` and
+		 * `"main"` both mean the main menu.
 		 *
-		 * @type {string|null}
+		 * @type {'main'|'settings'|'integrations'|null}
 		 */
 		section: {
 			type: String,
 			default: null,
+			validator: (v) => v === null || ['main', 'settings', 'integrations'].includes(v),
 		},
 	},
 
@@ -140,9 +144,34 @@ export default {
 			return (node.ref && node.ref.id) || String(node._k || (node._k = Math.random()))
 		},
 
-		/** Whether this editor scopes to the settings section. */
-		wantSettings() {
-			return this.section === 'settings'
+		/**
+		 * The section this editor owns, normalised — an absent `section` prop
+		 * means the main menu.
+		 *
+		 * @return {string} 'main' | 'settings' | 'integrations'
+		 */
+		wantSection() {
+			return this.section || 'main'
+		},
+
+		/**
+		 * An entry's section, normalised the same way.
+		 *
+		 * This pair replaced a binary `(it.section === 'settings') === wantSettings`
+		 * test, which was correct only while exactly two sections existed. Once
+		 * `section: "integrations"` was added (ADR-110), an integrations entry
+		 * answered `false` to "is settings", so the MAIN editor claimed it — and
+		 * `flatten()` `delete`s the section marker on everything the main editor
+		 * claims. Opening the main-menu editor and saving would have quietly
+		 * converted every cross-app link back into a nav entry, undoing the
+		 * contract with no error and no diff the author asked for. Matching the
+		 * section exactly means an editor owns its own section and nothing else.
+		 *
+		 * @param {object} item The menu entry.
+		 * @return {string} The entry's normalised section.
+		 */
+		sectionOf(item) {
+			return (item && item.section) || 'main'
 		},
 
 		/**
@@ -164,9 +193,9 @@ export default {
 		 */
 		buildTree() {
 			const list = Array.isArray(this.list) ? this.list : []
-			const wantSettings = this.section === 'settings'
+			const want = this.wantSection()
 			const top = list
-				.filter((it) => it && (it.section === 'settings') === wantSettings)
+				.filter((it) => it && this.sectionOf(it) === want)
 				.slice()
 				.sort(this.byOrder(list))
 			return top.map((ref) => {
@@ -182,13 +211,13 @@ export default {
 		 * @return {void}
 		 */
 		flatten() {
-			const wantSettings = this.section === 'settings'
-			const others = this.list.filter((it) => it && (it.section === 'settings') !== wantSettings)
+			const want = this.wantSection()
+			const others = this.list.filter((it) => it && this.sectionOf(it) !== want)
 			const mine = this.tree.map((node, i) => {
 				const ref = node.ref
 				ref.order = (i + 1) * 10
-				if (wantSettings) ref.section = 'settings'
-				else delete ref.section
+				if (want === 'main') delete ref.section
+				else ref.section = want
 				if (node.children.length) {
 					ref.children = node.children.map((cn, j) => {
 						cn.ref.order = (j + 1) * 10
@@ -200,7 +229,7 @@ export default {
 				}
 				return ref
 			})
-			const next = wantSettings ? [...others, ...mine] : [...mine, ...others]
+			const next = want === 'main' ? [...mine, ...others] : [...others, ...mine]
 			this.suppressRebuild = true
 			// In-place edit by design — `list` is the working manifest's menu[],
 			// mutated by reference so diffManifest captures the reorder/nesting.
