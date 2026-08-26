@@ -32,7 +32,10 @@
     false`. Right below it, an "Admin settings" entry is auto-prepended
     for INSTANCE ADMINS only — gated on the `isAdmin` prop (computed by
     CnAppRoot from `getCurrentUser()?.isAdmin`). It is a LINK to
-    `/settings/admin/<appId>`, not a modal: per ADR-079 app-level
+    `/settings/admin/<appId>` that opens in a NEW TAB and carries an
+    open-in-new marker (the destination is outside the app — the marker
+    says so up front, the new tab keeps the app open), not a modal: per
+    ADR-079 app-level
     configuration lives in Nextcloud's own settings framework, which
     authorizes it server-side. `isAdmin` gates VISIBILITY only and is
     never an authorization decision; it is also NOT interchangeable with
@@ -51,7 +54,7 @@
   setting `action` on the manifest entry. Supported keywords:
   `"user-settings"` invokes the `cnOpenUserSettings` provide-injected
   by CnAppRoot, which opens the host app's NcAppSettingsDialog modal;
-  `"admin-settings"` navigates to `/settings/admin/<appId>` (ADR-079);
+  `"admin-settings"` opens `/settings/admin/<appId>` in a new tab (ADR-079);
   `"replay-walkthrough"` invokes `cnReplayWalkthrough` (optionally
   with the item's `tourId`) to re-run the product walkthrough from
   the first step (ADR-043). Both `route` and `href` are ignored when
@@ -228,6 +231,13 @@
 							<BookOpenVariant :size="20" />
 						</template>
 					</NcAppNavigationItem>
+					<!-- The target is Nextcloud's OWN settings area, not an
+					     in-app route: a new tab keeps the app open, and the
+					     trailing open-in-new marker tells the user they are
+					     leaving the app before they click. The new tab comes
+					     from the href being ABSOLUTE (see adminSettingsHref) —
+					     NcAppNavigationItem ignores a `target` attr and only
+					     sets target="_blank" for scheme-prefixed hrefs. -->
 					<NcAppNavigationItem
 						v-if="showAdminSettingsLink"
 						:name="adminSettingsLabel"
@@ -235,6 +245,9 @@
 						data-testid="cn-nav-admin-settings">
 						<template #icon>
 							<ShieldAccountOutline :size="20" />
+						</template>
+						<template #counter>
+							<OpenInNew :size="16" :title="opensInNewTabHint" data-testid="cn-nav-admin-settings-external" />
 						</template>
 					</NcAppNavigationItem>
 					<template v-for="item in settingsItems">
@@ -469,6 +482,7 @@ export default {
 		ShieldAccountOutline,
 		MapMarkerPath,
 		BookOpenVariant,
+		OpenInNew,
 	},
 
 	inject: {
@@ -803,6 +817,16 @@ export default {
 			return t('nextcloud-vue', 'Admin settings')
 		},
 		/**
+		 * Accessible name (and hover tooltip) of the open-in-new marker on
+		 * the Admin-settings entry — the visual cue that the link leaves
+		 * the app for Nextcloud's own settings area.
+		 *
+		 * @return {string}
+		 */
+		opensInNewTabHint() {
+			return t('nextcloud-vue', 'Opens in a new tab')
+		},
+		/**
 		 * Resolved app id for the Admin-settings link — the explicit
 		 * `appId` prop, else the `cnAppId` provided by CnAppRoot.
 		 *
@@ -823,7 +847,15 @@ export default {
 		 */
 		adminSettingsHref() {
 			if (!this.effectiveAppId) return ''
-			return generateUrl('/settings/admin/{appId}', { appId: this.effectiveAppId })
+			// ABSOLUTE (same-origin) on purpose: NcAppNavigationItem renders
+			// target="_blank" only for hrefs its isExternal() deems external
+			// (scheme-prefixed) and ignores a passed `target` — a relative
+			// path therefore always opens in the SAME tab. The absolute form
+			// gets the new tab while keeping native anchor semantics
+			// (middle-click, copy link).
+			const path = generateUrl('/settings/admin/{appId}', { appId: this.effectiveAppId })
+			const origin = (typeof window !== 'undefined' && window.location && window.location.origin) || ''
+			return origin + path
 		},
 		/**
 		 * Whether to show the Admin-settings link: the user administers the
@@ -1261,8 +1293,8 @@ export default {
 		 * Click handler. Dispatch order: action keyword → group toggle.
 		 * For `action: "user-settings"` invokes the injected
 		 * `cnOpenUserSettings` (provided by CnAppRoot) and prevents
-		 * default; for `action: "admin-settings"` navigates to
-		 * `/settings/admin/<appId>` and prevents default; for `action:
+		 * default; for `action: "admin-settings"` opens
+		 * `/settings/admin/<appId>` in a new tab and prevents default; for `action:
 		 * "replay-walkthrough"` invokes the injected
 		 * `cnReplayWalkthrough(item.tourId)` and prevents default. `href`
 		 * items are NOT handled here — they render a real anchor via
@@ -1290,11 +1322,12 @@ export default {
 					event.preventDefault()
 				}
 				// ADR-079: admin config lives in Nextcloud's settings
-				// framework, not in an in-app modal. Navigate rather than
-				// open a dialog. No-op when the app id is unresolvable —
+				// framework, not in an in-app modal. A NEW tab (same as the
+				// auto-prepended entry) so the app — and any unsaved state in
+				// it — stays open. No-op when the app id is unresolvable —
 				// better than sending the user to a broken URL.
 				if (this.adminSettingsHref) {
-					window.location.href = this.adminSettingsHref
+					window.open(this.adminSettingsHref, '_blank', 'noopener')
 				}
 				return
 			}

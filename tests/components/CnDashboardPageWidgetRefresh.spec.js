@@ -11,6 +11,7 @@
 
 import { mount } from '@vue/test-utils'
 import CnDashboardPage from '@/components/CnDashboardPage/CnDashboardPage.vue'
+import { registerDashboardWidget } from '@/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 
 jest.mock('gridstack', () => ({ GridStack: { init: jest.fn() } }), { virtual: true })
 jest.mock('gridstack/dist/gridstack.min.css', () => ({}), { virtual: true })
@@ -19,8 +20,8 @@ jest.mock('gridstack/dist/gridstack.min.css', () => ({}), { virtual: true })
 // CnWidgetWrapper stub that records the resolved show-refresh per widget id.
 const WidgetWrapperStub = {
 	name: 'CnWidgetWrapper',
-	props: ['title', 'iconUrl', 'iconClass', 'showTitle', 'borderless', 'flush', 'buttons', 'styleConfig', 'titleIconPosition', 'titleIconColor', 'showRefresh'],
-	template: '<div class="cn-widget-wrapper-stub" :data-title="title" :data-show-refresh="String(showRefresh)"><slot /></div>',
+	props: ['title', 'iconUrl', 'iconClass', 'showTitle', 'borderless', 'flush', 'buttons', 'styleConfig', 'titleIconPosition', 'titleIconColor', 'showRefresh', 'widgetId'],
+	template: '<div class="cn-widget-wrapper-stub" :data-title="title" :data-show-refresh="String(showRefresh)" :data-widget-id="widgetId"><slot /></div>',
 }
 
 const stubs = {
@@ -115,5 +116,37 @@ describe('CnDashboardPage — per-widget Refresh visibility', () => {
 		})
 		expect(refreshOf(wrapper, 'Alpha')).toBe('false')
 		expect(refreshOf(wrapper, 'Beta')).toBe('true')
+	})
+})
+
+// The chrome's Refresh broadcasts `cn:widget:refresh` with the wrapper's
+// `widgetId` in the payload; without the id the payload matches no
+// subscriber and the per-widget Refresh silently does nothing (only the
+// page-level Refresh — which needs no id — worked).
+describe('CnDashboardPage — a per-widget Refresh reaches the widget (widget-id wiring)', () => {
+	const RegistryProbe = {
+		name: 'RegistryProbe',
+		props: ['widgetId', 'content'],
+		template: '<div class="registry-probe" :data-widget-id="widgetId" />',
+	}
+	registerDashboardWidget('refresh-probe', { renderer: RegistryProbe, form: {}, defaultContent: {}, displayName: 'P', icon: 'X' })
+
+	it('gives the custom-slot chrome the layout item widget id', () => {
+		const wrapper = mountPage({ widgetShowRefresh: true })
+		const alpha = wrapper.findAll('.cn-widget-wrapper-stub')
+			.find((w) => w.attributes('data-title') === 'Alpha')
+		expect(alpha.attributes('data-widget-id')).toBe('alpha')
+	})
+
+	it('gives a registry widget the id on BOTH sides: the broadcasting chrome and the subscribing renderer', () => {
+		const wrapper = mount(CnDashboardPage, {
+			propsData: {
+				widgets: [{ id: 'queue', title: 'Queue', type: 'refresh-probe' }],
+				layout: [{ id: 1, widgetId: 'queue', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 4 }],
+			},
+			stubs,
+		})
+		expect(wrapper.find('.cn-widget-wrapper-stub').attributes('data-widget-id')).toBe('queue')
+		expect(wrapper.find('.registry-probe').attributes('data-widget-id')).toBe('queue')
 	})
 })

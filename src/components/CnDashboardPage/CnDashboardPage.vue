@@ -298,8 +298,14 @@
 					:tile="getTileConfig(item)" />
 
 				<!-- Custom slot widget — apps provide their own rendering -->
+				<!-- Every page-side wrapper carries `widget-id`: the chrome's
+				     Refresh broadcasts `cn:widget:refresh` with that id in the
+				     payload, and without it the payload's empty widgetId
+				     matches no subscriber — the per-widget Refresh silently
+				     does nothing. -->
 				<template v-else-if="hasWidgetSlot(item.widgetId)">
 					<CnWidgetWrapper
+						:widget-id="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
@@ -376,6 +382,7 @@
 				<!-- Chart widget — manifest-driven apexcharts mount -->
 				<template v-else-if="isChart(item)">
 					<CnWidgetWrapper
+						:widget-id="item.widgetId"
 						:class="{ 'cn-dashboard-page__chart-fit': isChartFitted(item) }"
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
@@ -454,6 +461,7 @@
 				     integration registry (AD-19 surface fallback). -->
 				<template v-else-if="isIntegration(item)">
 					<CnWidgetWrapper
+						:widget-id="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
@@ -488,6 +496,7 @@
 				<!-- NC Dashboard API widget -->
 				<template v-else-if="isNcWidget(item)">
 					<CnWidgetWrapper
+						:widget-id="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
@@ -509,6 +518,7 @@
 				     this is how catalog widgets added via "Add widget…" appear. -->
 				<template v-else-if="registryRenderer(item)">
 					<CnWidgetWrapper
+						:widget-id="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:show-title="widgetShowTitle(item)"
 						:show-actions="widgetShowActions(item)"
@@ -564,8 +574,13 @@
 									@update:model-value="onChipDateInput('to', $event)" />
 							</NcActions>
 						</template>
+						<!-- `widget-id` reaches the renderer's own refresh
+						     subscription (useEndpointSource matches it against
+						     `cn:widget:refresh` payloads) — the chrome above
+						     broadcasts with the same id. -->
 						<component
 							:is="registryRenderer(item)"
+							:widget-id="item.widgetId"
 							:content="registryWidgetBindings(item)"
 							v-bind="registryWidgetBindings(item)" />
 					</CnWidgetWrapper>
@@ -1353,6 +1368,23 @@ export default {
 			 * that truly changed).
 			 */
 			widgetConditionsSettled: false,
+			/**
+			 * Monotonic id of the newest evaluateWidgetConditions() run.
+			 * Each run captures its own id and writes outcomes only while it
+			 * is still the newest — an older run resolving late (slow
+			 * endpoint) must not overwrite fresher verdicts, and only the
+			 * newest run may prune outcomes for removed defs.
+			 */
+			widgetEvalSeq: 0,
+			/**
+			 * Signature of the last-evaluated conditional set — the sorted
+			 * `[id, visibleWhen]` pairs. The deep `widgets` watch fires on
+			 * ANY def edit (a title tweak, a color change); re-running the
+			 * predicates is only warranted when this signature actually
+			 * changed, otherwise an authoring session would refetch every
+			 * conditional endpoint on every keystroke.
+			 */
+			widgetEvalSignature: null,
 		}
 	},
 
@@ -2318,6 +2350,17 @@ export default {
 		async evaluateWidgetConditions() {
 			const conditional = (this.widgets || []).filter((def) => def && def.id && def.type
 				&& this.widgetDisplayConfig(def).visibleWhen)
+			// Skip when the CONDITIONAL SET is unchanged: the deep `widgets`
+			// watch fires on any def edit, but only an added/removed/edited
+			// predicate warrants refetching every conditional endpoint.
+			const signature = JSON.stringify(conditional
+				.map((def) => [def.id, this.widgetDisplayConfig(def).visibleWhen])
+				.sort((a, b) => String(a[0]).localeCompare(String(b[0]))))
+			if (signature === this.widgetEvalSignature && this.widgetConditionsSettled) {
+				return
+			}
+			this.widgetEvalSignature = signature
+			const seq = ++this.widgetEvalSeq
 			if (conditional.length === 0) {
 				this.widgetConditionsSettled = true
 				return
@@ -2331,8 +2374,20 @@ export default {
 				} catch (e) {
 					// fail-safe: hidden
 				}
-				this.widgetConditionOutcome[def.id] = outcome
+				// A newer run owns the map now — a stale verdict (possibly for
+				// a def that no longer exists) must not overwrite its writes.
+				if (seq === this.widgetEvalSeq) {
+					this.widgetConditionOutcome[def.id] = outcome
+				}
 			}))
+			if (seq !== this.widgetEvalSeq) return
+			// Prune outcomes for defs that left the conditional set — pruned
+			// AFTER the run (not before) so a still-visible widget never
+			// flashes collapsed while its re-evaluation is in flight.
+			const live = new Set(conditional.map((def) => def.id))
+			for (const id of Object.keys(this.widgetConditionOutcome)) {
+				if (!live.has(id)) delete this.widgetConditionOutcome[id]
+			}
 			this.widgetConditionsSettled = true
 		},
 
@@ -2378,10 +2433,18 @@ export default {
 					const w = Math.max(1, item.gridWidth ?? 1)
 					const h = Math.max(1, item.gridHeight ?? 1)
 					const to = Math.min(x + w, heights.length)
+					// An item authored wider than the grid is clamped in the
+					// RETURNED geometry too, not just in the skyline pass —
+					// otherwise GridStack re-places a widget the pack thought
+					// was narrower and the two can disagree on gridY.
+					const effectiveWidth = to - x
 					let y = 0
 					for (let c = x; c < to; c++) y = Math.max(y, heights[c])
 					for (let c = x; c < to; c++) heights[c] = y + h
-					return y === (item.gridY ?? 0) ? item : { ...item, gridY: y }
+					if (y === (item.gridY ?? 0) && effectiveWidth === w) return item
+					const out = { ...item, gridY: y }
+					if (effectiveWidth !== w) out.gridWidth = effectiveWidth
+					return out
 				})
 		},
 

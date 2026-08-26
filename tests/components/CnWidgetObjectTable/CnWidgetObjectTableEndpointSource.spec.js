@@ -164,4 +164,22 @@ describe('CnWidgetObjectTable — endpointSource (Wave 2)', () => {
 		await flush()
 		expect(axios.get).toHaveBeenCalledTimes(2)
 	})
+
+	it('reports an in-flight refetch to the wrapper chrome as `refreshing`', async () => {
+		axios.get.mockResolvedValueOnce({ data: [] })
+		const wrapper = shallowMount(CnWidgetObjectTable, {
+			propsData: { endpointSource: { url: '/api/report' }, widgetId: 'w-1' },
+		})
+		await flush()
+		await wrapper.vm.$nextTick()
+
+		let resolveRefetch
+		axios.get.mockReturnValueOnce(new Promise((resolve) => { resolveRefetch = resolve }))
+		wrapper.vm.refresh()
+		await wrapper.vm.$nextTick()
+		// The chrome's Refresh action spins for the real fetch duration.
+		expect(wrapper.findComponent({ name: 'CnWidgetWrapper' }).props('refreshing')).toBe(true)
+		resolveRefetch({ data: [] })
+		await flush()
+	})
 })
