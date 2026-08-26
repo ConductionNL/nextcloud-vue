@@ -260,7 +260,7 @@ export default {
 		 * declares no `dateRange` is unaffected by the page range — that is
 		 * deliberate, so adding a range to a dashboard cannot silently change what
 		 * an existing tile requests.
-		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variantWhen?: Array<{op: string, value: *, variant: string, icon?: string}>}}
+		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: *, variant: string, icon?: string}>}}
 		 */
 		content: {
 			type: Object,
@@ -346,13 +346,41 @@ export default {
 			return label ? this.effectiveTranslate(label) : ''
 		},
 		/**
-		 * The tile caption, run through the host translate function.
+		 * The tile caption, translated and then interpolated with the fetched
+		 * payload.
+		 *
+		 * `{field}` tokens are replaced from the endpoint payload by dot-path,
+		 * using the same {@link getByPath} that resolves `valueField` — so a
+		 * caption can say what the number MEANS rather than repeating it:
+		 *
+		 *   caption: '{levelName} · {currentStreakDays}-day streak'
+		 *
+		 * WHY THIS EXISTS. Without it a tile needing a secondary line had to be
+		 * a bespoke component: it could not be expressed as config, so apps
+		 * wrote their own card, and that card then re-implemented fetching,
+		 * loading and error handling too. Every one of those re-implementations
+		 * observed so far swallowed its errors into a zero.
+		 *
+		 * Translation runs FIRST, so a translator sees `{levelName}` as a
+		 * placeholder in the source string and can move it within the sentence —
+		 * the same contract as Nextcloud's own `t()` parameters.
+		 *
+		 * A token with no matching field resolves to the empty string rather
+		 * than being left as `{levelName}` on screen: a caption is decoration,
+		 * and showing a reader a raw token is worse than showing them less.
 		 *
 		 * @return {string}
 		 */
 		resolvedCaption() {
 			const caption = this.content.caption
-			return caption ? this.effectiveTranslate(caption) : ''
+			if (!caption) return ''
+			const translated = this.effectiveTranslate(caption)
+			if (translated.indexOf('{') === -1) return translated
+			const payload = this.endpointMode ? this.epData : null
+			return translated.replace(/\{([A-Za-z0-9_.]+)\}/g, (whole, path) => {
+				const v = getByPath(payload, path)
+				return (v === undefined || v === null) ? '' : String(v)
+			}).replace(/\s{2,}/g, ' ').trim()
 		},
 		/**
 		 * The unwrapped detail-page object context for token resolution, or null
@@ -506,6 +534,16 @@ export default {
 			// An explicit variantWhen rule always wins: a tile that says how it
 			// wants to be coloured is not overruled by the generic at-limit tint.
 			if (this.atLimit) return VARIANT_COLORS.warning || ''
+			// A STATIC `variant` is the floor, below both of the above: it is the
+			// tile's resting colour, not a signal about the current value, so a
+			// threshold rule or an at-limit warning must be able to override it.
+			//
+			// It exists because that is how CnStatsBlock has always been coloured
+			// (`variant="success"`), and a tile migrating from a bespoke card to
+			// this component would otherwise silently lose its colour — a change
+			// nothing would report, on a dashboard where colour is the fastest
+			// thing a reader takes in.
+			if (this.content.variant) return VARIANT_COLORS[this.content.variant] || ''
 			return ''
 		},
 		/**

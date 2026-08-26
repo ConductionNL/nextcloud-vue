@@ -88,6 +88,8 @@ export const NcCheckboxRadioSwitch = createStub('NcCheckboxRadioSwitch')
 export const NcColorPicker = createStub('NcColorPicker')
 export const NcAppNavigation = createStub('NcAppNavigation')
 export const NcAppNavigationItem = createStub('NcAppNavigationItem')
+export const NcBreadcrumbs = createStub('NcBreadcrumbs')
+export const NcBreadcrumb = createStub('NcBreadcrumb')
 export const NcContent = createStub('NcContent')
 export const NcEmptyContent = createStub('NcEmptyContent')
 export const NcActions = createStub('NcActions')
@@ -348,6 +350,8 @@ export default {
 	NcColorPicker,
 	NcAppNavigation,
 	NcAppNavigationItem,
+	NcBreadcrumbs,
+	NcBreadcrumb,
 	NcContent,
 	NcEmptyContent,
 	NcActions,
