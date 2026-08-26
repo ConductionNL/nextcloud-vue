@@ -62,6 +62,18 @@ import {
  */
 export const ENDPOINT_SOURCE_TTL_MS = 5 * 60 * 1000
 
+/**
+ * Minimum time a FORCED refetch (a Refresh action, a `refreshKey` bump) keeps
+ * `loading` true. A refresh against a fast endpoint settles in a few
+ * milliseconds — too briefly for the widget's loading state to be perceived,
+ * so the click reads as having done nothing. Only the loading FLAG is held;
+ * the fresh data lands the moment the response arrives. Initial and
+ * signature-change loads are not held — first paint should never wait.
+ *
+ * @type {number}
+ */
+export const MIN_FORCED_LOADING_MS = 400
+
 /** Event-bus channel the page-level Refresh action broadcasts on. */
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
@@ -317,6 +329,7 @@ export function useEndpointSource(source, options) {
 			loading.value = false
 			return
 		}
+		const startedAt = Date.now()
 		loading.value = true
 		error.value = ''
 		try {
@@ -329,7 +342,19 @@ export function useEndpointSource(source, options) {
 			error.value = (e && e.message) || 'error'
 			data.value = null
 		} finally {
-			if (seq === fetchSeq) loading.value = false
+			if (seq === fetchSeq) {
+				// Forced refetches hold `loading` to MIN_FORCED_LOADING_MS so
+				// the refresh is perceivable even against a fast endpoint; a
+				// newer run owns the flag once fetchSeq moves on.
+				const hold = force === true ? MIN_FORCED_LOADING_MS - (Date.now() - startedAt) : 0
+				if (hold > 0) {
+					setTimeout(() => {
+						if (seq === fetchSeq) loading.value = false
+					}, hold)
+				} else {
+					loading.value = false
+				}
+			}
 		}
 	}
 

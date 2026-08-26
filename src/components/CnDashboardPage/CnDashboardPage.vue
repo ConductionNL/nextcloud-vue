@@ -298,8 +298,14 @@
 					:tile="getTileConfig(item)" />
 
 				<!-- Custom slot widget — apps provide their own rendering -->
+				<!-- Every page-side wrapper carries `widget-id`: the chrome's
+				     Refresh broadcasts `cn:widget:refresh` with that id in the
+				     payload, and without it the payload's empty widgetId
+				     matches no subscriber — the per-widget Refresh silently
+				     does nothing. -->
 				<template v-else-if="hasWidgetSlot(item.widgetId)">
 					<CnWidgetWrapper
+						:widget-id="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
@@ -376,6 +382,7 @@
 				<!-- Chart widget — manifest-driven apexcharts mount -->
 				<template v-else-if="isChart(item)">
 					<CnWidgetWrapper
+						:widget-id="item.widgetId"
 						:class="{ 'cn-dashboard-page__chart-fit': isChartFitted(item) }"
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
@@ -454,6 +461,7 @@
 				     integration registry (AD-19 surface fallback). -->
 				<template v-else-if="isIntegration(item)">
 					<CnWidgetWrapper
+						:widget-id="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
@@ -488,6 +496,7 @@
 				<!-- NC Dashboard API widget -->
 				<template v-else-if="isNcWidget(item)">
 					<CnWidgetWrapper
+						:widget-id="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
@@ -509,6 +518,7 @@
 				     this is how catalog widgets added via "Add widget…" appear. -->
 				<template v-else-if="registryRenderer(item)">
 					<CnWidgetWrapper
+						:widget-id="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:show-title="widgetShowTitle(item)"
 						:show-actions="widgetShowActions(item)"
@@ -564,8 +574,13 @@
 									@update:model-value="onChipDateInput('to', $event)" />
 							</NcActions>
 						</template>
+						<!-- `widget-id` reaches the renderer's own refresh
+						     subscription (useEndpointSource matches it against
+						     `cn:widget:refresh` payloads) — the chrome above
+						     broadcasts with the same id. -->
 						<component
 							:is="registryRenderer(item)"
+							:widget-id="item.widgetId"
 							:content="registryWidgetBindings(item)"
 							v-bind="registryWidgetBindings(item)" />
 					</CnWidgetWrapper>
