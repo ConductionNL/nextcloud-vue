@@ -51,6 +51,58 @@ test.describe('flow canvas — rendering', () => {
 		expect(box.width).toBeGreaterThan(0)
 		expect(box.height).toBeGreaterThan(0)
 	})
+
+	test('a node draws exactly ONE box — the wrapper adds none', async ({ page }) => {
+		await page.goto(CANVAS)
+
+		// A node rendered THREE nested boxes at one point. Only one was ours:
+		// Vue Flow wraps every `#node-default` in `.vue-flow__node-default`,
+		// and its theme-default.css gives that wrapper a border, a white
+		// background and 10px of padding — a box around our box, on every node.
+		//
+		// This is asserted from COMPUTED STYLE rather than by counting
+		// elements, because the wrapper is legitimately there and has to be:
+		// what must not happen is that it PAINTS. A DOM-shape assertion would
+		// have to be rewritten every time Vue Flow changes its tree, and would
+		// still not notice a border reappearing.
+		const painted = await page.evaluate(() => {
+			const wrapper = document.querySelector('.vue-flow__node')
+			const node = wrapper.querySelector('.cn-flow-node')
+			const read = (el) => {
+				const c = getComputedStyle(el)
+				return {
+					borderWidth: c.borderTopWidth,
+					background: c.backgroundColor,
+				}
+			}
+			return { wrapper: read(wrapper), node: read(node) }
+		})
+
+		// The wrapper paints nothing at all.
+		expect(painted.wrapper.borderWidth).toBe('0px')
+		expect(['rgba(0, 0, 0, 0)', 'transparent']).toContain(painted.wrapper.background)
+
+		// ...and the node itself still does, so this cannot pass by the canvas
+		// having stopped drawing nodes altogether.
+		expect(painted.node.borderWidth).not.toBe('0px')
+	})
+
+	test('a port handle takes the theme colour, not Vue Flow\'s default', async ({ page }) => {
+		await page.goto(CANVAS)
+
+		// Vue Flow's `.vue-flow__node-default .vue-flow__handle` rule (0,2,0)
+		// outranks our `.cn-flow-node__handle` (0,1,0), so handles rendered its
+		// hard-coded #1a192b — rgb(26, 25, 43) — and ignored the user's theme
+		// including dark mode. Pinned as "not that colour" rather than as an
+		// exact value, because the themed colour is whatever the instance's
+		// --color-primary-element resolves to.
+		const background = await page.evaluate(() => {
+			const handle = document.querySelector('.cn-flow-node__handle')
+			return getComputedStyle(handle).backgroundColor
+		})
+
+		expect(background).not.toBe('rgb(26, 25, 43)')
+	})
 })
 
 test.describe('flow canvas — pointer interaction', () => {
