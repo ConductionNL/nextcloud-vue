@@ -27,11 +27,16 @@
  */
 export type TPageType =
 	| 'index' | 'detail' | 'dashboard' | 'logs' | 'settings' | 'chat'
-	| 'files' | 'form' | 'map' | 'roadmap' | 'search' | 'wiki' | 'custom'
+	| 'files' | 'form' | 'map' | 'roadmap' | 'search' | 'wiki'
+	| 'flows' | 'flow-detail' | 'custom'
 	| (string & {})
 
-/** Where a menu entry renders inside CnAppNav. */
-export type TManifestMenuSection = 'main' | 'footer' | 'settings'
+/**
+ * Where a menu entry renders. `main` / `footer` / `settings` are the three
+ * CnAppNav buckets; `integrations` renders NOT in the navigation at all but in
+ * the Integrations section of the per-user settings modal (ADR-110).
+ */
+export type TManifestMenuSection = 'main' | 'footer' | 'settings' | 'integrations'
 
 /**
  * Render kind of a menu entry. `"item"` (default) renders as a regular

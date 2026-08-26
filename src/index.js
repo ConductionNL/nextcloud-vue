@@ -91,6 +91,8 @@ export {
 	CnFlowDetail,
 	CnFlowSidebar,
 	CnFlowIndexPage,
+	CnFlowsPage,
+	CnFlowEditorPage,
 	CnDashboardPage,
 	CnDashboardGrid,
 	CnWidgetWrapper,
