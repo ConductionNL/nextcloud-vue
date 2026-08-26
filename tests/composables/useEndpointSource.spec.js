@@ -46,6 +46,7 @@ import {
 	endpointCacheKey,
 	invalidateEndpointSourceCache,
 	getByPath,
+	MIN_FORCED_LOADING_MS,
 } from '../../src/composables/useEndpointSource.js'
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
@@ -315,5 +316,42 @@ describe('useEndpointSource — reactive binding', () => {
 		expect(axios.get).toHaveBeenCalledTimes(1) // warm cache hit
 		await refetch()
 		expect(axios.get).toHaveBeenCalledTimes(2) // force
+	})
+})
+
+// A refresh against a fast endpoint settles in milliseconds — without a
+// minimum visible duration the loading state flashes imperceptibly and the
+// Refresh click reads as having done nothing.
+describe('useEndpointSource — minimum visible loading on forced refetch', () => {
+	afterEach(() => {
+		jest.useRealTimers()
+	})
+
+	it('holds loading for MIN_FORCED_LOADING_MS on a forced refetch while the data lands immediately', async () => {
+		jest.useFakeTimers()
+		axios.get.mockResolvedValue({ data: { v: 1 } })
+		const { data, loading, refetch } = useEndpointSource({ url: '/api/x' })
+		await jest.advanceTimersByTimeAsync(0)
+		expect(loading.value).toBe(false)
+
+		axios.get.mockResolvedValue({ data: { v: 2 } })
+		const done = refetch()
+		await jest.advanceTimersByTimeAsync(0)
+		await done
+		// The instant response already landed, but the flag is held so the
+		// refresh stays perceivable.
+		expect(data.value).toEqual({ v: 2 })
+		expect(loading.value).toBe(true)
+
+		await jest.advanceTimersByTimeAsync(MIN_FORCED_LOADING_MS)
+		expect(loading.value).toBe(false)
+	})
+
+	it('does not hold loading on the initial (non-forced) load', async () => {
+		jest.useFakeTimers()
+		axios.get.mockResolvedValue({ data: { v: 1 } })
+		const { loading } = useEndpointSource({ url: '/api/x' })
+		await jest.advanceTimersByTimeAsync(0)
+		expect(loading.value).toBe(false)
 	})
 })

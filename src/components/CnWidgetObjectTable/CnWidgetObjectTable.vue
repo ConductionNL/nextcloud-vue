@@ -18,9 +18,12 @@
   Spec: openspec/changes/list-widget-enrichment/specs/manifest-v2-renderer/spec.md
 -->
 <template>
+	<!-- `refreshing` mirrors the endpoint fetch so the chrome's Refresh
+	     action spins (and stays disabled) for the real duration of an
+	     in-flight refetch. -->
 	<component
 		:is="hideWrapper ? 'CnWidgetHostShell' : 'CnWidgetWrapper'"
-		v-bind="hideWrapper ? {} : { title, widgetId, documentationUrl, flush: true }">
+		v-bind="hideWrapper ? {} : { title, widgetId, documentationUrl, flush: true, refreshing: epLoading }">
 		<div class="cn-widget-object-table">
 			<CnDataTable ref="dataTable" v-bind="{ ...innerProps, ...$attrs }">
 				<!-- Forward every host-supplied CnDataTable scoped slot verbatim
@@ -309,6 +312,19 @@ export default {
 		rowRoute: {
 			type: String,
 			default: '',
+		},
+		/**
+		 * Client-side row cap, forwarded to CnDataTable (`0` = all rows).
+		 * This is what makes `viewAllRoute` reachable for `endpointSource`
+		 * tables: the endpoint's full payload stays the `totalRowCount`
+		 * while CnDataTable renders only the first `limit` rows, so the
+		 * "View all" footer condition (total > shown) can finally hold.
+		 * The OpenRegister `source` mode keeps using `source.limit` (an
+		 * explicit assignment that wins over this passthrough).
+		 */
+		limit: {
+			type: Number,
+			default: 0,
 		},
 		/**
 		 * vue-router route object for the "View all" footer link. Forwarded

@@ -721,7 +721,10 @@
     "Could not create project.": "Kon project niet aanmaken.",
     "Unlink entry": "Item ontkoppelen",
     "Could not unlink entry.": "Kon item niet ontkoppelen.",
-    "Property '{property}' should match format '{format}' but '{value}' does not. Please provide a value in the correct format.": "Veld '{property}' moet overeenkomen met formaat '{format}', maar '{value}' voldoet daar niet aan. Geef een waarde in het juiste formaat op."
+    "Property '{property}' should match format '{format}' but '{value}' does not. Please provide a value in the correct format.": "Veld '{property}' moet overeenkomen met formaat '{format}', maar '{value}' voldoet daar niet aan. Geef een waarde in het juiste formaat op.",
+    "Request a feature": "Een functie aanvragen",
+    "Refreshing…": "Vernieuwen…",
+    "Opens in a new tab": "Opent in een nieuw tabblad"
   },
   "plurals": {
     "{count} photo": ["{count} foto", "{count} foto's"],

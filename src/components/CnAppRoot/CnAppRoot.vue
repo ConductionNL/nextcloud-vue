@@ -495,6 +495,47 @@
 						</NcButton>
 					</NcAppSettingsSection>
 				</slot>
+				<!--
+					Integrations (ADR-110) — the links that leave this app for
+					another one, gathered out of the navigation into one place.
+
+					DELIBERATELY OUTSIDE the #user-settings slot. Six fleet apps
+					override that slot, and anything placed inside the default
+					fallback disappears the moment an app supplies its own
+					content — silently, because an unmatched slot renders nothing
+					and reports nothing. A contract every app is supposed to
+					honour cannot live somewhere six apps switch off by accident.
+
+					Renders nothing when the app declares no integration
+					entries, so apps without any never show an empty section.
+				-->
+				<NcAppSettingsSection v-if="userSettingsOpen && integrationEntries.length"
+					id="cn-integrations"
+					:name="translate('Integrations')">
+					<p class="cn-app-root__integrations-hint">
+						{{ translate('These open in another app.') }}
+					</p>
+					<ul class="cn-app-root__integrations">
+						<li v-for="entry in integrationEntries" :key="entry.id">
+							<!--
+								One uniform external-link icon rather than the
+								entry's own: every row here goes to a different
+								app, which is the thing worth signalling, and
+								CnIcon falls back to a question mark for any
+								name an app has not registered — a broken-looking
+								glyph on a link that works fine.
+							-->
+							<NcButton variant="tertiary"
+								:href="entry.href"
+								:aria-label="entry.label">
+								<template #icon>
+									<OpenInNew :size="20" />
+								</template>
+								{{ entry.label }}
+							</NcButton>
+						</li>
+					</ul>
+				</NcAppSettingsSection>
 			</NcAppSettingsDialog>
 
 			<!--
@@ -532,6 +573,7 @@ import { generateUrl } from '@nextcloud/router'
 import { getCurrentUser } from '@nextcloud/auth'
 import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Restart from 'vue-material-design-icons/Restart.vue'
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
@@ -552,6 +594,8 @@ import { useManifestEditor } from '../../composables/useManifestEditor.js'
 import { useBuildiqEditAvailability } from '../../composables/useBuildiqEditAvailability.js'
 import { useScopedTheme } from '../../composables/useScopedTheme.js'
 import { loadState } from '@nextcloud/initial-state'
+import { isAppInstalled } from '../../utils/appInstalled.js'
+import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 import { useAppStatus } from '../../composables/useAppStatus.js'
 import { useAppInstaller } from '../../composables/useAppInstaller.js'
 import { useSetupStatus } from '../../composables/useSetupStatus.js'
@@ -629,6 +673,7 @@ export default {
 		NcLoadingIcon,
 		NcNoteCard,
 		DatabaseSearchOutline,
+		OpenInNew,
 		Restart,
 		CnAppNav,
 		CnAppLoading,
@@ -2074,6 +2119,43 @@ export default {
 			return s ? s.steps.value.filter((st) => st.done).map((st) => st.id) : []
 		},
 		/**
+		 * The manifest's `section: "integrations"` menu entries — the links
+		 * that leave this app for another one, rendered in the Integrations
+		 * section of the per-user settings modal rather than in the navigation
+		 * (ADR-110).
+		 *
+		 * Applies the SAME `permission` and `visibleIf` rules CnAppNav applies
+		 * to nav entries, for two reasons. Skipping `permission` would surface
+		 * an admin-only link to everyone, and skipping `visibleIf.appInstalled`
+		 * would list a link to an app that is not installed — a guaranteed
+		 * 404 presented as a feature. That second case is the whole reason
+		 * these entries are worth gating: unlike a nav entry pointing at this
+		 * app's own route, a cross-app link can be dead through no fault of
+		 * this app.
+		 *
+		 * Only clickable entries qualify: `href` is what makes a row a link,
+		 * and a group with children has no meaning in a flat settings section.
+		 *
+		 * @return {Array<object>} Ordered, filtered integration entries.
+		 */
+		integrationEntries() {
+			const items = (this.manifest && this.manifest.menu) || []
+			return items
+				.filter((item) => item.section === 'integrations')
+				.filter((item) => typeof item.href === 'string' && item.href !== '')
+				.filter((item) => this.passesIntegrationPermission(item))
+				.filter((item) => this.passesIntegrationVisibleIf(item))
+				.slice()
+				.sort((a, b) => {
+					const aHas = typeof a.order === 'number'
+					const bHas = typeof b.order === 'number'
+					if (aHas && !bHas) return -1
+					if (!aHas && bHas) return 1
+					if (!aHas && !bHas) return 0
+					return a.order - b.order
+				})
+		},
+		/**
 		 * Whether the manifest declares an enabled walkthrough with at least one
 		 * tour (ADR-043). Drives the non-gating CnWalkthrough overlay in the shell.
 		 *
@@ -2435,6 +2517,37 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Permission gate for an Integrations entry — deliberately identical
+		 * to `CnAppNav.passesPermission`, including the "no permissions prop
+		 * means do not filter" escape. The two surfaces read the same
+		 * `menu[]` array, so a rule that held in the nav and not here would
+		 * mean an entry's visibility changed purely by being relocated.
+		 *
+		 * @param {object} item The menu entry.
+		 * @return {boolean} True when the entry may render.
+		 */
+		passesIntegrationPermission(item) {
+			if (!item.permission) return true
+			if (!this.permissions || this.permissions.length === 0) return true
+			return this.permissions.includes(item.permission)
+		},
+		/**
+		 * `visibleIf` gate for an Integrations entry, mirroring
+		 * `CnAppNav.passesVisibleIf`. `appInstalled` matters more here than
+		 * anywhere else in the manifest: it is what stops the section
+		 * advertising a link into an app the instance does not have.
+		 *
+		 * @param {object} item The menu entry.
+		 * @return {boolean} True when the entry may render.
+		 */
+		passesIntegrationVisibleIf(item) {
+			const condition = item.visibleIf
+			if (!condition || typeof condition !== 'object') return true
+			if (condition.appInstalled && !isAppInstalled(condition.appInstalled)) return false
+			const runtime = (this.manifest && this.manifest.runtime) || null
+			return passesContextPredicates(condition, runtime)
+		},
 		/**
 		 * Re-fetch the pages editor's register/schema data sources via the
 		 * `dataSourcesLoader` prop. Provided to descendants as
@@ -3071,6 +3184,21 @@ export default {
 .cn-app-root__walkthrough-hint {
 	margin-bottom: 12px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-app-root__integrations-hint {
+	margin-bottom: 12px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-app-root__integrations {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: calc(0.5 * var(--default-grid-baseline));
+	margin: 0;
+	padding: 0;
+	list-style: none;
 }
 
 .cn-app-root__or-missing-error {
