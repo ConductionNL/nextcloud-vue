@@ -67,6 +67,7 @@ export {
 	getSemanticIconComponent,
 } from './CnIcon/semanticIcons.js'
 export { CnPageHeader } from './CnPageHeader/index.js'
+export { CnBreadcrumbs } from './CnBreadcrumbs/index.js'
 export { CnActionsBar } from './CnActionsBar/index.js'
 export { CnActionsMenu } from './CnActionsMenu/index.js'
 export { CnActionButtons } from './CnActionButtons/index.js'

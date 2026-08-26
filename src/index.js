@@ -191,6 +191,7 @@ export {
 	CnTab,
 	CnIcon,
 	CnPageHeader,
+	CnBreadcrumbs,
 	CnNoteCard,
 	CnObjectDataWidget,
 	CnObjectMetadataWidget,
