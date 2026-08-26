@@ -232,6 +232,33 @@ describe('CnAppNav', () => {
 			expect(wrapper.find(sel).exists()).toBe(false)
 		})
 
+		// The destination is Nextcloud's OWN settings area, outside the app:
+		// the entry must say so up front (open-in-new marker) and must not
+		// navigate the app away (new tab keeps the app — and any unsaved
+		// state in it — open). NcAppNavigationItem ignores a `target` attr
+		// and only renders target="_blank" for hrefs its isExternal() deems
+		// external (scheme-prefixed) — so the new tab hinges on the href
+		// being ABSOLUTE.
+		it('uses an absolute same-origin href (the form NcAppNavigationItem opens in a new tab) with the open-in-new marker', () => {
+			const wrapper = mountNav({ isAdmin: true, appId: 'openconnector' })
+			expect(wrapper.find(sel).attributes('href')).toMatch(/^[a-z]+:\/\//i)
+			expect(wrapper.find('[data-testid="cn-nav-admin-settings-external"]').exists()).toBe(true)
+		})
+
+		it('action "admin-settings" opens the settings page in a new tab, not in place', () => {
+			const item = { id: 'x', label: 'Admin', action: 'admin-settings' }
+			const wrapper = mountNav({ isAdmin: true, appId: 'openconnector' })
+			const originalOpen = window.open
+			window.open = jest.fn()
+			wrapper.vm.onItemClick(item, { preventDefault: jest.fn() })
+			expect(window.open).toHaveBeenCalledWith(
+				expect.stringContaining('/settings/admin/openconnector'),
+				'_blank',
+				'noopener',
+			)
+			window.open = originalOpen
+		})
+
 		// The removed surface: manifest.adminSettings[] no longer gates or
 		// renders anything (zero fleet consumers at removal time).
 		it('ignores a legacy manifest adminSettings[] declaration', () => {

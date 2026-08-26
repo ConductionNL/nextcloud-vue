@@ -5,8 +5,10 @@
  * Every manifest-v2 app ran an identical ~200-line copy of this pipeline
  * inline in its `src/main.js`. Lifting it here makes the navigation contract
  * a single shared implementation: fragment merging, canonical relocations,
- * duplicate-entry removals, and promotion of config entries into Nextcloud's
- * settings foldout (`section: "settings"`) all behave the same across the
+ * duplicate-entry removals, promotion of config entries into Nextcloud's
+ * settings foldout (`section: "settings"`), and relocation of cross-app links
+ * out of the navigation into the per-user settings modal's Integrations
+ * section (`section: "integrations"`, ADR-110) all behave the same across the
  * fleet, and a new app adopts the whole IA model by passing its three inputs.
  *
  * The only app-local piece is collecting the fragments: `require.context` is
@@ -25,7 +27,7 @@
  *
  * @param {object} base The bundled base manifest (`src/manifest.json`).
  * @param {Array<object>} [fragments] Fragment objects (each may carry `pages`/`menu`).
- * @param {object} [menuLayout] `{ relocations?, removals?, settingsSection? }`.
+ * @param {object} [menuLayout] `{ relocations?, removals?, settingsSection?, integrationsSection? }`.
  * @return {object} The merged manifest: `{ ...base, pages, menu }`.
  */
 
@@ -71,18 +73,25 @@ export function buildManifest(base, fragments = [], menuLayout = {}) {
 
 /**
  * Apply the canonical navigation layout (`relocations` → `removals` →
- * `settingsSection`) to an already-merged menu. Exposed separately for apps
- * that assemble their menu through a different path but still want the shared
- * layout semantics.
+ * `settingsSection` → `integrationsSection`) to an already-merged menu.
+ * Exposed separately for apps that assemble their menu through a different
+ * path but still want the shared layout semantics.
+ *
+ * `integrationsSection` runs LAST so it wins over `settingsSection` if an id
+ * is listed in both: an integration link is not a settings page of this app,
+ * and the entry must end up in exactly one place. Running it last also means
+ * an id lifted into the foldout by a stale `settingsSection` entry is still
+ * reachable to be re-lifted, rather than silently staying in the nav.
  *
  * @param {Array<object>} menu The merged menu (mutated in place by the steps).
- * @param {object} [menuLayout] `{ relocations?, removals?, settingsSection? }`.
+ * @param {object} [menuLayout] `{ relocations?, removals?, settingsSection?, integrationsSection? }`.
  * @return {Array<object>} The laid-out menu.
  */
 export function applyMenuLayout(menu, menuLayout = {}) {
 	let out = applyMenuRelocations(menu, menuLayout.relocations)
 	out = applyMenuRemovals(out, menuLayout.removals)
 	out = applySettingsSection(out, menuLayout.settingsSection)
+	out = applyIntegrationsSection(out, menuLayout.integrationsSection)
 	return out
 }
 
@@ -236,29 +245,29 @@ export function applyMenuRemovals(menu, removals) {
 }
 
 /**
- * Promote the menu entries listed in `menu-layout.json#settingsSection` into
- * Nextcloud's settings foldout — the `NcAppNavigationSettings` gear at the
- * bottom-left of the navigation, OUTSIDE the scrollable list. CnAppNav renders
- * every TOP-LEVEL item carrying `section: "settings"` as a flat entry inside
- * that foldout (with an auto-prepended "Personal settings"). This lifts each
- * listed id out of wherever it currently sits, tags it `section: "settings"`,
- * flattens it (the foldout has no nested groups), and appends it to the top
- * level. Empty non-clickable groups left behind are dropped; a clickable group
- * is kept.
+ * Lift the menu entries listed by id out of wherever they currently sit, tag
+ * them with `section`, flatten them (neither destination renders nested
+ * groups), and append them at the top level. Empty non-clickable groups left
+ * behind are dropped; a clickable group is kept.
+ *
+ * Shared by `applySettingsSection` and `applyIntegrationsSection` so the two
+ * destinations cannot drift in their lift semantics — the only difference
+ * between them is the section tag, and therefore which surface renders them.
  *
  * @param {Array<object>} menu The merged + relocated + pruned menu.
- * @param {Array<string>|undefined} settingsIds Entry ids to move to the foldout.
- * @return {Array<object>} The menu with the settings entries lifted out.
+ * @param {Array<string>|undefined} ids Entry ids to lift.
+ * @param {string} section The `section` tag to stamp on each lifted entry.
+ * @return {Array<object>} The menu with the listed entries lifted out.
  */
-export function applySettingsSection(menu, settingsIds) {
-	if (!Array.isArray(settingsIds) || settingsIds.length === 0) return menu
-	const want = new Set(settingsIds)
+function liftToSection(menu, ids, section) {
+	if (!Array.isArray(ids) || ids.length === 0) return menu
+	const want = new Set(ids)
 	const isClickable = (n) => n.route !== undefined || n.href !== undefined || n.action !== undefined
 	const lifted = []
 	const strip = (nodes) => nodes.reduce((acc, n) => {
 		if (want.has(n.id)) {
 			const { children, ...leaf } = n
-			lifted.push({ ...leaf, section: 'settings' })
+			lifted.push({ ...leaf, section })
 			return acc
 		}
 		if (Array.isArray(n.children)) {
@@ -272,4 +281,41 @@ export function applySettingsSection(menu, settingsIds) {
 	}, [])
 	const remaining = strip(menu)
 	return [...remaining, ...lifted]
+}
+
+/**
+ * Promote the menu entries listed in `menu-layout.json#settingsSection` into
+ * Nextcloud's settings foldout — the `NcAppNavigationSettings` gear at the
+ * bottom-left of the navigation, OUTSIDE the scrollable list. CnAppNav renders
+ * every TOP-LEVEL item carrying `section: "settings"` as a flat entry inside
+ * that foldout (with an auto-prepended "Personal settings").
+ *
+ * @param {Array<object>} menu The merged + relocated + pruned menu.
+ * @param {Array<string>|undefined} settingsIds Entry ids to move to the foldout.
+ * @return {Array<object>} The menu with the settings entries lifted out.
+ */
+export function applySettingsSection(menu, settingsIds) {
+	return liftToSection(menu, settingsIds, 'settings')
+}
+
+/**
+ * Move the menu entries listed in `menu-layout.json#integrationsSection` OUT of
+ * the navigation entirely and into the Integrations section at the bottom of
+ * the per-user settings modal (ADR-110).
+ *
+ * This is where a link that LEAVES this app for another one belongs. Such a
+ * link is not a page of this app — it cannot be active, it has no counter, and
+ * putting it in the nav makes another app's capability read as this app's
+ * feature. The one deep link that stays in the navigation is Admin settings,
+ * and CnAppNav auto-prepends that itself (ADR-079); no app declares it.
+ *
+ * The entry survives — it is relocated, never dropped — which is what keeps
+ * this compatible with the ADR-044 Decision 5 no-functionality-loss invariant.
+ *
+ * @param {Array<object>} menu The merged + relocated + pruned menu.
+ * @param {Array<string>|undefined} integrationIds Entry ids to move to Integrations.
+ * @return {Array<object>} The menu with the integration entries lifted out.
+ */
+export function applyIntegrationsSection(menu, integrationIds) {
+	return liftToSection(menu, integrationIds, 'integrations')
 }

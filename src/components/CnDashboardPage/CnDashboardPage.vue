@@ -194,6 +194,13 @@
 		<!-- Loading state -->
 		<NcLoadingIcon v-if="loading" />
 
+		<!-- Widget predicates still settling: hold the grid's first paint
+		     so a conditional widget is present or absent from the first
+		     frame instead of popping in after load and reflowing the page.
+		     Edit mode skips the gate — it renders the authored layout with
+		     every widget regardless of conditions. -->
+		<NcLoadingIcon v-else-if="!widgetConditionsSettled && !gridEditable" />
+
 		<!-- Empty state. Suppressed when the page renders declarative body
 		     sections (before-grid / after-grid / end): a page can legitimately
 		     have no grid widgets yet still show bodyWidget content, so
@@ -236,7 +243,7 @@
 		<CnDashboardGrid
 			v-else
 			:key="`cn-dashboard-grid-${gridEditable ? 'editing' : 'live'}`"
-			:layout="layout"
+			:layout="displayLayout"
 			:editable="gridEditable"
 			:columns="columns"
 			:cell-height="cellHeight"
@@ -291,8 +298,14 @@
 					:tile="getTileConfig(item)" />
 
 				<!-- Custom slot widget — apps provide their own rendering -->
+				<!-- Every page-side wrapper carries `widget-id`: the chrome's
+				     Refresh broadcasts `cn:widget:refresh` with that id in the
+				     payload, and without it the payload's empty widgetId
+				     matches no subscriber — the per-widget Refresh silently
+				     does nothing. -->
 				<template v-else-if="hasWidgetSlot(item.widgetId)">
 					<CnWidgetWrapper
+						:widget-id="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
@@ -369,6 +382,7 @@
 				<!-- Chart widget — manifest-driven apexcharts mount -->
 				<template v-else-if="isChart(item)">
 					<CnWidgetWrapper
+						:widget-id="item.widgetId"
 						:class="{ 'cn-dashboard-page__chart-fit': isChartFitted(item) }"
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
@@ -447,6 +461,7 @@
 				     integration registry (AD-19 surface fallback). -->
 				<template v-else-if="isIntegration(item)">
 					<CnWidgetWrapper
+						:widget-id="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
@@ -481,6 +496,7 @@
 				<!-- NC Dashboard API widget -->
 				<template v-else-if="isNcWidget(item)">
 					<CnWidgetWrapper
+						:widget-id="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
@@ -502,6 +518,7 @@
 				     this is how catalog widgets added via "Add widget…" appear. -->
 				<template v-else-if="registryRenderer(item)">
 					<CnWidgetWrapper
+						:widget-id="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:show-title="widgetShowTitle(item)"
 						:show-actions="widgetShowActions(item)"
@@ -557,10 +574,15 @@
 									@update:model-value="onChipDateInput('to', $event)" />
 							</NcActions>
 						</template>
+						<!-- `widget-id` reaches the renderer's own refresh
+						     subscription (useEndpointSource matches it against
+						     `cn:widget:refresh` payloads) — the chrome above
+						     broadcasts with the same id. -->
 						<component
 							:is="registryRenderer(item)"
-							:content="getWidgetContent(item)"
-							v-bind="getWidgetContent(item)" />
+							:widget-id="item.widgetId"
+							:content="registryWidgetBindings(item)"
+							v-bind="registryWidgetBindings(item)" />
 					</CnWidgetWrapper>
 				</template>
 
@@ -635,6 +657,7 @@ import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import { BUILT_IN_WIDGETS } from '../CnWidgetGrid/builtInWidgets.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
+import { compareVisibleWhen, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
@@ -1319,6 +1342,49 @@ export default {
 			 * and not on every render.
 			 */
 			dateChipTitle: t('nextcloud-vue', 'Change date range'),
+			/**
+			 * Evaluated `visibleWhen` outcome per conditional widget, keyed
+			 * by widget id: `{ met, value }` — whether the widget's cell may
+			 * show, and the raw field value the predicate read (handed to
+			 * banners so they can interpolate `{value}` into their text and
+			 * skip re-fetching). Feeds `displayLayout`, which collapses the
+			 * grid cell of a widget whose condition is unmet — a widget that
+			 * renders nothing (or a whole card that should not exist yet)
+			 * would otherwise leave its wrapper card and reserved grid row
+			 * behind as a tall empty box.
+			 *
+			 * @type {Record<string, {met: boolean, value: any}>}
+			 */
+			widgetConditionOutcome: {},
+			/**
+			 * Whether the initial predicate evaluation has finished. The
+			 * grid's FIRST paint waits for it (only when the page actually
+			 * has conditional widgets), so a conditional widget is present
+			 * or absent from the first rendered frame — never popping in
+			 * after load and reflowing everything below it (WCAG-hostile
+			 * layout shift). Set synchronously when there is nothing to
+			 * evaluate; never reset once true (a later live change may
+			 * still reflow, which is the correct behaviour for a state
+			 * that truly changed).
+			 */
+			widgetConditionsSettled: false,
+			/**
+			 * Monotonic id of the newest evaluateWidgetConditions() run.
+			 * Each run captures its own id and writes outcomes only while it
+			 * is still the newest — an older run resolving late (slow
+			 * endpoint) must not overwrite fresher verdicts, and only the
+			 * newest run may prune outcomes for removed defs.
+			 */
+			widgetEvalSeq: 0,
+			/**
+			 * Signature of the last-evaluated conditional set — the sorted
+			 * `[id, visibleWhen]` pairs. The deep `widgets` watch fires on
+			 * ANY def edit (a title tweak, a color change); re-running the
+			 * predicates is only warranted when this signature actually
+			 * changed, otherwise an authoring session would refetch every
+			 * conditional endpoint on every keystroke.
+			 */
+			widgetEvalSignature: null,
 		}
 	},
 
@@ -1363,6 +1429,31 @@ export default {
 			const e = this.cnEditingBody
 			const buildiqEditing = Boolean(e && typeof e === 'object' && 'value' in e ? e.value : e)
 			return this.isEditing || buildiqEditing
+		},
+		/**
+		 * The layout actually handed to the grid. In live (non-edit) mode,
+		 * widgets that would render nothing right now — a `visibleWhen`
+		 * that has not evaluated true, or a banner with no text — are
+		 * REMOVED and the remaining items are re-compacted upward:
+		 * GridStack runs `float: true`, so a hidden widget otherwise keeps
+		 * its wrapper card and its reserved grid row, and a dashboard whose
+		 * fail-safe-hidden widgets are (correctly) hidden opens on a column
+		 * of tall empty cards.
+		 *
+		 * Purely a display transform: the authored `layout` prop is never
+		 * mutated (`onLayoutChange` merges geometry back into the FULL
+		 * authored array by id, so collapsed items survive round-trips), and
+		 * edit mode returns the authored layout untouched so hidden widgets
+		 * stay visible, placeable and configurable while editing.
+		 *
+		 * @return {Array<object>}
+		 */
+		displayLayout() {
+			if (this.gridEditable) return this.layout
+			const items = this.layout || []
+			const visible = items.filter((item) => !this.isCollapsedWidget(item))
+			if (visible.length === items.length) return items
+			return this.compactDisplayLayout(visible)
 		},
 		/**
 		 * Effective Refresh visibility for custom-slot widgets. An explicit
@@ -1637,10 +1728,24 @@ export default {
 		},
 	},
 
+	watch: {
+		/**
+		 * Re-evaluate the widget predicates when the defs change — the
+		 * in-app editor (ADR-041) mutates widget defs in place and "Add
+		 * widget" pushes into the same array, so a deep watch is the only
+		 * signal that a widget's `visibleWhen` was added or edited.
+		 */
+		widgets: {
+			deep: true,
+			handler() { this.evaluateWidgetConditions() },
+		},
+	},
+
 	created() {
 		this.pushAiContext()
 		this.initDateRange()
 		this.initPageFilters()
+		this.evaluateWidgetConditions()
 	},
 
 	beforeUnmount() {
@@ -2171,6 +2276,176 @@ export default {
 			 * @event layout-change Emitted when the user finishes dragging/resizing a widget. Payload: the updated layout array `[{ widgetId, x, y, w, h }, ...]`.
 			 */
 			this.$emit('layout-change', this.layout)
+		},
+
+		/**
+		 * Whether a widget def is a banner (alias-canonicalised by type
+		 * name, so a consumer-registry override of `banner` keeps the same
+		 * declarative semantics its config promises).
+		 *
+		 * @param {object} def Widget definition.
+		 * @return {boolean}
+		 */
+		isBannerDef(def) {
+			return !!def && !!def.type
+				&& (def.type === 'banner' || canonicalWidgetType(def.type) === 'banner')
+		},
+
+		/**
+		 * The cell-visibility inputs of a widget def. `visibleWhen` may sit
+		 * at the def's TOP LEVEL (any widget type — the declarative way to
+		 * gate a whole card, e.g. an object-table that should only exist
+		 * while its queue is non-empty), in the `content` blob (the shape
+		 * the registry branch forwards to CnBannerWidget), or in the legacy
+		 * manifest `props` blob (the fallback getStatsBlockProps and
+		 * getChartProps already honour for their own widget types). `text`
+		 * is only meaningful for banners.
+		 *
+		 * @param {object} def Widget definition.
+		 * @return {{ text: string, visibleWhen: (object|null) }}
+		 */
+		widgetDisplayConfig(def) {
+			const content = (def && typeof def.content === 'object' && def.content) || {}
+			const props = (def && typeof def.props === 'object' && def.props) || {}
+			return {
+				text: content.text || props.text || '',
+				visibleWhen: (def && def.visibleWhen) || content.visibleWhen || props.visibleWhen || null,
+			}
+		},
+
+		/**
+		 * Whether a layout item would render nothing right now — a widget
+		 * whose `visibleWhen` has not evaluated true, or a banner with no
+		 * text at all — and must therefore surrender its grid cell in live
+		 * mode instead of leaving an empty card behind.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} true when the cell must collapse.
+		 */
+		isCollapsedWidget(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			if (!def || !def.type) return false
+			const { text, visibleWhen } = this.widgetDisplayConfig(def)
+			if (this.isBannerDef(def) && text === '') return true
+			if (!visibleWhen) return false
+			const outcome = this.widgetConditionOutcome[item.widgetId]
+			return !outcome || outcome.met !== true
+		},
+
+		/**
+		 * Evaluate every conditional widget's `visibleWhen` into
+		 * `widgetConditionOutcome` — the verdict AND the raw field value,
+		 * read through the same shared util primitives CnBannerWidget uses.
+		 * Runs on created() and again whenever `widgets` changes (the
+		 * in-app editor mutates defs in place). Fail-safe like the banner
+		 * itself: any fetch/shape error counts as "not met", so a broken
+		 * predicate collapses the cell rather than breaking the page.
+		 *
+		 * Flips `widgetConditionsSettled` when the initial round is done —
+		 * synchronously when there is nothing to evaluate, so a dashboard
+		 * without conditional widgets never waits.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async evaluateWidgetConditions() {
+			const conditional = (this.widgets || []).filter((def) => def && def.id && def.type
+				&& this.widgetDisplayConfig(def).visibleWhen)
+			// Skip when the CONDITIONAL SET is unchanged: the deep `widgets`
+			// watch fires on any def edit, but only an added/removed/edited
+			// predicate warrants refetching every conditional endpoint.
+			const signature = JSON.stringify(conditional
+				.map((def) => [def.id, this.widgetDisplayConfig(def).visibleWhen])
+				.sort((a, b) => String(a[0]).localeCompare(String(b[0]))))
+			if (signature === this.widgetEvalSignature && this.widgetConditionsSettled) {
+				return
+			}
+			this.widgetEvalSignature = signature
+			const seq = ++this.widgetEvalSeq
+			if (conditional.length === 0) {
+				this.widgetConditionsSettled = true
+				return
+			}
+			await Promise.all(conditional.map(async (def) => {
+				const cond = this.widgetDisplayConfig(def).visibleWhen
+				let outcome = { met: false, value: null }
+				try {
+					const value = await readVisibleWhenValue(cond)
+					outcome = { met: compareVisibleWhen(value, cond.op || 'eq', cond.value), value }
+				} catch (e) {
+					// fail-safe: hidden
+				}
+				// A newer run owns the map now — a stale verdict (possibly for
+				// a def that no longer exists) must not overwrite its writes.
+				if (seq === this.widgetEvalSeq) {
+					this.widgetConditionOutcome[def.id] = outcome
+				}
+			}))
+			if (seq !== this.widgetEvalSeq) return
+			// Prune outcomes for defs that left the conditional set — pruned
+			// AFTER the run (not before) so a still-visible widget never
+			// flashes collapsed while its re-evaluation is in flight.
+			const live = new Set(conditional.map((def) => def.id))
+			for (const id of Object.keys(this.widgetConditionOutcome)) {
+				if (!live.has(id)) delete this.widgetConditionOutcome[id]
+			}
+			this.widgetConditionsSettled = true
+		},
+
+		/**
+		 * The v-bind payload for a registry-rendered widget. Banners get the
+		 * page's evaluated `conditionOutcome` merged in, so CnBannerWidget
+		 * renders from the verdict this page already fetched — no second
+		 * request, no invisible-until-self-evaluated flash inside the cell —
+		 * and can interpolate the predicate's field value into its text
+		 * (`{value}`). Every other widget type receives its stored content
+		 * unchanged: their cell-level `visibleWhen` is consumed entirely by
+		 * this page, never forwarded as a component prop.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {object}
+		 */
+		registryWidgetBindings(item) {
+			const content = this.getWidgetContent(item)
+			const def = this.getWidgetDef(item.widgetId)
+			if (!this.isBannerDef(def)) {
+				return content
+			}
+			const outcome = this.widgetConditionOutcome[item.widgetId]
+			return outcome ? { ...content, conditionOutcome: outcome } : content
+		},
+
+		/**
+		 * Re-compact a filtered layout upward, display-only. GridStack runs
+		 * `float: true`, so removing an item does not close its row — this
+		 * skyline pass does, preserving the authored order (gridY, then
+		 * gridX) and every item's own column, width and height. Items are
+		 * shallow-copied only when their gridY actually moves.
+		 *
+		 * @param {Array<object>} items Layout items to compact.
+		 * @return {Array<object>} New array with recomputed gridY values.
+		 */
+		compactDisplayLayout(items) {
+			const heights = new Array(Math.max(1, this.columns)).fill(0)
+			return [...items]
+				.sort((a, b) => ((a.gridY ?? 0) - (b.gridY ?? 0)) || ((a.gridX ?? 0) - (b.gridX ?? 0)))
+				.map((item) => {
+					const x = Math.min(Math.max(0, item.gridX ?? 0), heights.length - 1)
+					const w = Math.max(1, item.gridWidth ?? 1)
+					const h = Math.max(1, item.gridHeight ?? 1)
+					const to = Math.min(x + w, heights.length)
+					// An item authored wider than the grid is clamped in the
+					// RETURNED geometry too, not just in the skyline pass —
+					// otherwise GridStack re-places a widget the pack thought
+					// was narrower and the two can disagree on gridY.
+					const effectiveWidth = to - x
+					let y = 0
+					for (let c = x; c < to; c++) y = Math.max(y, heights[c])
+					for (let c = x; c < to; c++) heights[c] = y + h
+					if (y === (item.gridY ?? 0) && effectiveWidth === w) return item
+					const out = { ...item, gridY: y }
+					if (effectiveWidth !== w) out.gridWidth = effectiveWidth
+					return out
+				})
 		},
 
 		/**

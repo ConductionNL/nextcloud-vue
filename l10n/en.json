@@ -729,7 +729,10 @@
     "Could not create project.": "Could not create project.",
     "Unlink entry": "Unlink entry",
     "Could not unlink entry.": "Could not unlink entry.",
-    "Property '{property}' should match format '{format}' but '{value}' does not. Please provide a value in the correct format.": "Property '{property}' should match format '{format}' but '{value}' does not. Please provide a value in the correct format."
+    "Property '{property}' should match format '{format}' but '{value}' does not. Please provide a value in the correct format.": "Property '{property}' should match format '{format}' but '{value}' does not. Please provide a value in the correct format.",
+    "Request a feature": "Request a feature",
+    "Refreshing…": "Refreshing…",
+    "Opens in a new tab": "Opens in a new tab"
   },
   "plurals": {
     "{count} photo": ["{count} photo", "{count} photos"],
