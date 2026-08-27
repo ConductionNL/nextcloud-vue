@@ -621,6 +621,7 @@ import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema } from '../../utils/schema.js'
+import { useNamedSource } from './useNamedSource.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
@@ -940,6 +941,25 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
+		/**
+		 * Name of a registered NON-OBJECT source to list (e.g. `flows`).
+		 *
+		 * The third data mode. `register` + `schema` fetches OpenRegister
+		 * objects; `:objects` renders rows a parent already holds; `source`
+		 * names a list that is neither — a flow definition is deliberately not
+		 * an OpenRegister object, so an index had nothing to point at and such
+		 * lists became bespoke `type: "custom"` pages instead.
+		 *
+		 * An explicit `:objects` still wins, and a source wins over
+		 * register/schema. See `src/composables/indexSources.js`.
+		 */
+		source: { type: String, default: '' },
+
+		/**
+		 * Config handed to the named source's loader (e.g. `{ app: 'dossiq' }`).
+		 */
+		sourceConfig: { type: Object, default: null },
 
 		/** Pagination state: { page, pages, total, limit } */
 		pagination: {
@@ -1743,7 +1763,18 @@ export default {
 			selectedQuickFilterIndices,
 		} = useSelfFetchList(props, getCurrentInstance(), inject)
 
+		const {
+			isNamedSource,
+			namedSource,
+			namedRows,
+			namedLoading,
+		} = useNamedSource(props)
+
 		return {
+			isNamedSource,
+			namedSource,
+			namedRows,
+			namedLoading,
 			contextMenuOpen,
 			contextMenuRow,
 			openContextMenu,
@@ -1860,7 +1891,10 @@ export default {
 		/** True when self-fetch mode is active and the useListView instance exists. */
 		isSelfFetchMode() { return this.isSelfFetch && !!this.list },
 		/** Rows: store collection in self-fetch mode, else the `objects` prop. */
-		effectiveObjects() { return this.isSelfFetchMode ? (this.list.objects.value || []) : this.objects },
+		effectiveObjects() {
+			if (this.isNamedSource) return this.namedRows
+			return this.isSelfFetchMode ? (this.list.objects.value || []) : this.objects
+		},
 		/**
 		 * Rows handed to the table / card grid — `effectiveObjects` re-sorted by
 		 * the declarative `defaultSort` spec whenever no explicit user column
@@ -2034,7 +2068,10 @@ export default {
 			return [0, 0]
 		},
 		/** Loading flag: store loading in self-fetch mode, else the `loading` prop. */
-		effectiveLoading() { return this.isSelfFetchMode ? !!this.list.loading.value : this.loading },
+		effectiveLoading() {
+			if (this.isNamedSource) return this.namedLoading
+			return this.isSelfFetchMode ? !!this.list.loading.value : this.loading
+		},
 		/**
 		 * Whether to replace the page with the full loading spinner. Only on an
 		 * INITIAL fetch — i.e. while loading AND there is no data to show yet.
