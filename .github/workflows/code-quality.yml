@@ -123,3 +123,74 @@ jobs:
          "check:integration-parity", "check:peers", "check:docs-fresh",
          "check:a11y", "check:smoke"]
       enable-sbom: false
+
+  # ⚠️ THE PLAYWRIGHT SUITE HAD NEVER RUN IN CI. NOT ONCE.
+  #
+  # `e2e/` holds 100 tests across 20 files, and no gate executed any of them.
+  # The shared pipeline above runs the nine `frontend-checks` entries and
+  # nothing else; `test:e2e` was not among them, and this repository declared
+  # no job of its own. Every one of those tests was a local-only check — which
+  # is to say, a check that runs when someone remembers to run it.
+  #
+  # That is not a cosmetic gap, because of what this lane is FOR. The unit lane
+  # runs in jsdom, which computes no layout, so the canvas specs record in
+  # their own header that mounting Vue Flow there "yields ZERO node elements"
+  # and every geometry assertion "would pass over an empty list". The e2e lane
+  # exists precisely to catch what jsdom cannot see — and it was the half
+  # nobody was running. `check:a11y` and `check:smoke` were added to the list
+  # above for exactly this reason, each with a note saying their absence was
+  # indistinguishable from their success. This is the third one.
+  #
+  # A JOB OF ITS OWN, not a tenth `frontend-checks` entry. Each entry there
+  # runs the same `frontend-setup-command` (`cd docusaurus && npm ci`), and
+  # Playwright additionally needs a browser and its system libraries —
+  # installing those in the shared setup would pay that cost in all nine legs
+  # to serve one.
+  e2e:
+    name: Playwright (e2e)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+
+      - run: npm ci
+
+      # The `pretest` step `test:e2e` does not have. `src/utils/
+      # validateManifestV2.compiled.js` is generated, and .gitignore'd — so a
+      # clean checkout does not have it, and the harness mounts real library
+      # SFCs that reach the manifest validator.
+      - run: npm run build:validators
+
+      # `--with-deps` installs the browser AND the system libraries a headless
+      # Chromium needs. Chromium only: playwright.config.js declares exactly
+      # one project, so pulling Firefox and WebKit would be download time spent
+      # on browsers no test names.
+      - run: npx playwright install --with-deps chromium
+
+      # The config starts the Vite harness itself (`webServer`) and, with CI
+      # set, does NOT reuse an existing server.
+      - run: npm run test:e2e
+        env:
+          CI: "true"
+
+      # ⚠️ ALWAYS, AND THIS IS THE POINT OF THE JOB AS MUCH AS THE RUN ITSELF.
+      #
+      # A failing Playwright test writes an `error-context.md` holding the
+      # accessibility tree at the moment it failed, plus a trace on retry. Read
+      # from CI those turn "an assertion timed out" into "the element was
+      # inside a closed container" — the difference between diagnosing a
+      # failure and guessing at it. Without the upload the only thing a red
+      # cell says is that it is red.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+          if-no-files-found: ignore
