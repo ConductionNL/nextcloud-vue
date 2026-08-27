@@ -34,6 +34,7 @@ const cache = new Map()
  *   status: import('vue').Ref<object>,
  *   requiredUnmet: import('vue').ComputedRef<Array<object>>,
  *   optionalUnmet: import('vue').ComputedRef<Array<object>>,
+ *   optionalUnmetReported: import('vue').ComputedRef<Array<object>>,
  *   completed: import('vue').ComputedRef<boolean>,
  *   enabled: boolean,
  *   loading: import('vue').Ref<boolean>,
@@ -69,8 +70,18 @@ export function useSetupStatus(appId, manifest) {
 	const { status, loading, error, forbidden } = entry
 
 	const steps = computed(() => stepDefs.map((s) => {
-		const st = (status.value.steps && status.value.steps[s.id]) || {}
-		return { ...s, done: st.done === true, detail: st.detail }
+		const bag = status.value.steps || {}
+		const reported = Object.prototype.hasOwnProperty.call(bag, s.id)
+		const st = bag[s.id] || {}
+		// `reported` separates "the server says this step is NOT done" from "the
+		// server never mentioned this step at all". Both used to flatten into
+		// `done: false`, and that conflation is load-bearing: a manifest may
+		// declare an optional step its SetupController has no status key for
+		// (pipelinq's `demo-data`), which is UNKNOWN, not outstanding. Callers
+		// that act on an unmet step — CnAppRoot auto-opening the non-gating
+		// wizard — must act only on steps the server actually reported, or an
+		// unknowable step parks the wizard over the app for ever.
+		return { ...s, done: st.done === true, reported, detail: st.detail }
 	}))
 	// Presentational step types carry no work, so the server never reports a
 	// `done` flag for them. Counting them as "unmet" made `optionalUnmet`
@@ -91,6 +102,14 @@ export function useSetupStatus(appId, manifest) {
 	const optionalUnmet = computed(() => (forbidden.value === true
 		? []
 		: steps.value.filter((s) => isActionable(s) && !requiredById[s.id] && !s.done)))
+	// The subset of `optionalUnmet` the server positively reported as not done.
+	// This — not `optionalUnmet` — is what may auto-open the non-gating wizard:
+	// a step with no status key is unknown, and prompting on unknown is what
+	// parked the wizard over pipelinq on every fresh browser profile. A step
+	// the server DID report as `{done: false}` is genuinely outstanding, and
+	// suppressing it is what left dossiq's `seed` step (and with it the app's
+	// only demo-data affordance) permanently unreachable.
+	const optionalUnmetReported = computed(() => optionalUnmet.value.filter((s) => s.reported === true))
 	const completed = computed(() => {
 		if (!enabled) {
 			return true
@@ -151,7 +170,7 @@ export function useSetupStatus(appId, manifest) {
 		refresh()
 	}
 
-	return { steps, status, requiredUnmet, optionalUnmet, completed, enabled, loading, error, forbidden, refresh }
+	return { steps, status, requiredUnmet, optionalUnmet, optionalUnmetReported, completed, enabled, loading, error, forbidden, refresh }
 }
 
 /**

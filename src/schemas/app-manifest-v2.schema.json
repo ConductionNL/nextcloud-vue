@@ -2394,6 +2394,26 @@
 							"description": "Page-level header actions rendered inside CnActionsBar's overflow dropdown (between the built-in Refresh action and the `#action-items` slot). Same shape as the row-level `actions[]` ($ref action), but handlers receive NO row context — they are page-level. Reserved ids (`refresh`, `import`, `export`, `copy`, `delete`) are dropped at render time to avoid shadowing built-ins. See manifest-icons-and-page-actions for the dispatch semantics.",
 							"items": { "$ref": "#/$defs/action" }
 						},
+						"actions": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"required": ["label"],
+								"additionalProperties": true,
+								"properties": {
+									"label": { "type": "string", "minLength": 1 }
+								}
+							},
+							"description": "Declarative actions on a page. Governed ONLY by \"an object carrying a non-empty label\", deliberately: this key is polymorphic by page type (index rows dispatch $defs/action; detail pages also carry type='lifecycle-transition' entries), so one closed grammar here would reject working manifests. A label is what every dialect needs — CnRowActions renders an entry from its label and icon, so an entry without one became a full-height, clickable, EMPTY row in the overflow menu. Two shapes hit this, both meaning \"show the built-in\": a bare string (\"edit\") and a key-only object ({\"key\": \"edit\"}). Built-ins are enabled with config.actionToggles / the show*Action keys, never by naming them here."
+						},
+						"editOpensDetail": {
+							"type": "boolean",
+							"description": "type='index': send the Edit row action to the record's detail page instead of opening the edit modal. Set automatically by CnPageRenderer when a type='detail' page exists for the same register+schema (or config.rowRoute is set); declare it explicitly only to override that. Maps to CnIndexPage `editOpensDetail`."
+						},
+						"showEditAction": {
+							"type": "boolean",
+							"description": "type='detail': show the header Edit button that opens the record's schema form. Set automatically by CnPageRenderer for every schema-bound detail page; declare false to make a detail page read-only. Maps to CnDetailPage `showEditAction`."
+						},
 						"actionToggles": {
 							"type": "object",
 							"description": "Built-in action toggles for type='index' pages. Each key is sugar for the matching CnIndexPage prop — manifest authors can hide built-in mass actions / row actions / the Add button without writing a wrapper. Mirrors the CnIndexPage prop names. Explicit config.<key> wins over config.actionToggles.<key> (matches the readOnly precedence rule). Distinct from config.actions[] which is the typed row-actions array.",

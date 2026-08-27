@@ -376,6 +376,7 @@ export default {
 | `createOverride` | Function | `null` | Opt-in async create hook. When set, a **create** confirmed from the built-in form dialog calls `await createOverride(formData, ctx)` instead of the store / self-store `saveObject` — the override owns persistence (e.g. a contact-aware endpoint that fills a required FK) and returns the created object. Create-only (edits fall through). `ctx` is `{ register, schema, objectType, effectiveSchema }`. Unchanged behaviour when absent. |
 | `showViewAction` | Boolean | `true` | Whether to add a View row action |
 | `showEditAction` | Boolean | `true` | Whether to add an Edit row action |
+| `editOpensDetail` | Boolean | `false` | Send the Edit row action to the record's detail page (emits `@edit-open`) instead of opening the edit modal. Set automatically by `CnPageRenderer` when the record has a detail page. |
 | `showCopyAction` | Boolean | `true` | Whether to add a Copy row action |
 | `showDeleteAction` | Boolean | `true` | Whether to add a Delete row action |
 | `excludeFields` | Array | `[]` | Field keys to exclude from the form dialog |

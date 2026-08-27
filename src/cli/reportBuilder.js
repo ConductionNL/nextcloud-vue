@@ -21,7 +21,7 @@ function createReportBuilder() {
 		 * Record a migration event.
 		 *
 		 * @param {object} item Report item
-		 * @param {'merge-dashboard'|'lift-sidebar'|'flatten-section'|'flatten-tab'|'migrate-card'|'normalize-action'|'registry-suggestion'|'todo'|'carried-forward'|'custom-component-migrated'} item.kind
+		 * @param {'merge-dashboard'|'lift-sidebar'|'flatten-section'|'flatten-tab'|'migrate-card'|'normalize-action'|'drop-unrenderable-action'|'registry-suggestion'|'todo'|'carried-forward'|'custom-component-migrated'} item.kind
 		 * @param {string} [item.pageId]
 		 * @param {string} [item.message]
 		 * @param {object} [item.data]
@@ -77,6 +77,7 @@ function renderReport(items, opts = {}) {
 		'settings tab widgets flattened': items.filter((i) => i.kind === 'flatten-tab'),
 		'cardComponent migrations': items.filter((i) => i.kind === 'migrate-card'),
 		'action type normalizations': items.filter((i) => i.kind === 'normalize-action'),
+		'unrenderable actions dropped': items.filter((i) => i.kind === 'drop-unrenderable-action'),
 		'registry suggestions': items.filter((i) => i.kind === 'registry-suggestion'),
 		'manual migration TODOs': items.filter((i) => i.kind === 'todo'),
 		'carried-forward fields': items.filter((i) => i.kind === 'carried-forward'),
@@ -248,6 +249,8 @@ function formatItemMessage(item) {
 		return 'Migrated cardComponent to card-grid widget entry'
 	case 'normalize-action':
 		return `Normalized ${item.data?.count || 0} action(s) to explicit type: "handler"`
+	case 'drop-unrenderable-action':
+		return `Dropped ${item.data?.count || 0} action(s) with no label — they would have rendered as blank menu rows. Built-ins are enabled with config.actionToggles / the show*Action keys.`
 	case 'registry-suggestion':
 		return `Registry suggestion for component "${item.componentName}": add to registry with kind: "page"`
 	case 'todo':
