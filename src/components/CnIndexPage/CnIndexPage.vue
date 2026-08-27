@@ -2384,8 +2384,22 @@ export default {
 			// rejects the shape at authoring time (`config.actions` is governed by
 			// the same `action` definition as `pages[].actions`). Built-ins are
 			// turned on with the `show*Action` toggles, not by naming them here.
+			// A named source may supply its own row actions, on the same
+			// precedence as its columns: what the manifest declares wins, and the
+			// source is the DEFAULT for a page that declares none. Without this
+			// the source's `rowActions` were declared and never read — the third
+			// field of the same adapter to be wired late, after `columns` and
+			// `addLabel`.
+			//
+			// Note what this still cannot do: these are MERGED with the built-ins
+			// below, so a source can add an action but cannot say "these and no
+			// others". Suppressing a built-in is the `show*Action` toggles' job.
+			const declaredActions = (this.actions && this.actions.length > 0)
+				? this.actions
+				: ((this.isNamedSource && this.namedSource && this.namedSource.rowActions) || [])
+
 			const declared = []
-			for (const a of this.actions) {
+			for (const a of declaredActions) {
 				if (a && typeof a === 'object' && !Array.isArray(a)) {
 					declared.push(dispatchAction(a, ctx))
 					continue

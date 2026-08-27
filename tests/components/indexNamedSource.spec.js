@@ -145,6 +145,75 @@ describe('a named source supplies its columns to the table', () => {
 	})
 })
 
+describe('a named source supplies its row actions', () => {
+	/**
+	 * THE THIRD FIELD OF THIS ADAPTER TO BE WIRED LATE. `columns` was unread,
+	 * then `addLabel` and the routes were unread, and `rowActions` was unread
+	 * after both were fixed. The source declared an Edit action for every flow
+	 * list in the fleet and no page ever showed it.
+	 *
+	 * Same shape as the columns test, for the same reason: this calls the
+	 * component's OWN computed. Asserting that the SOURCE exposes `rowActions`
+	 * would have passed at every point in that history.
+	 */
+	const mergedActions = (ctx) => {
+		const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
+		return CnIndexPage.computed.mergedActions.call({
+			$router: null,
+			rowKey: 'id',
+			effectiveCustomComponents: {},
+			defaultActions: [],
+			actions: [],
+			isNamedSource: false,
+			namedSource: null,
+			...ctx,
+		})
+	}
+
+	it('falls back to the source row actions when the manifest declares none', () => {
+		const { indexSources } = require('../../src/composables/indexSources.js')
+		const source = indexSources.flows()
+
+		const acts = mergedActions({ isNamedSource: true, namedSource: source })
+
+		expect(acts.length).toBe(1)
+		expect(acts[0].label).toBe('Edit')
+	})
+
+	it('lets an explicit manifest action list win over the source', () => {
+		const { indexSources } = require('../../src/composables/indexSources.js')
+		const mine = [{ id: 'archive', label: 'Archive' }]
+
+		const acts = mergedActions({
+			actions: mine, isNamedSource: true, namedSource: indexSources.flows(),
+		})
+
+		expect(acts.map((a) => a.label)).toEqual(['Archive'])
+	})
+
+	it('adds nothing for an ordinary index with neither actions nor a source', () => {
+		expect(mergedActions({})).toEqual([])
+	})
+
+	/**
+	 * Pinned because it is the reason hermiq's "exactly one row action" test
+	 * stays fixme: a source can ADD an action but cannot say "these and no
+	 * others". The built-ins arrive through `defaultActions` and are suppressed
+	 * with the `show*Action` toggles, not from here.
+	 */
+	it('merges with the built-ins rather than replacing them', () => {
+		const { indexSources } = require('../../src/composables/indexSources.js')
+
+		const acts = mergedActions({
+			isNamedSource: true,
+			namedSource: indexSources.flows(),
+			defaultActions: [{ id: 'view', label: 'View' }],
+		})
+
+		expect(acts.map((a) => a.label)).toEqual(['Edit', 'View'])
+	})
+})
+
 describe('a named source supplies its create and navigation actions', () => {
 	/**
 	 * THE GAP THIS CLOSES, and it is the same one twice. #810 wired the
