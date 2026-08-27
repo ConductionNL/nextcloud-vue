@@ -202,7 +202,7 @@ export default {
 		 *
 		 * @type {object|string}
 		 */
-		modelValue: { type: [Object,String], default: undefined },
+		modelValue: { type: [Object, String], default: undefined },
 		/**
 		 * Preset list. Each entry declares ONE window kind: `period`
 		 * (`'week'|'month'|'quarter'|'year'` — the current calendar unit

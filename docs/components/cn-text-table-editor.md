@@ -34,6 +34,10 @@ export default {
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `value` | `{ headerRow, columnAlignments, rows }` | `emptyTable()` | The current `tableData` object — the `v-model` value. `rows` is a 2-D array of `{ text, rowSpan, colSpan }` cells. |
+| `modelValue` | `{ headerRow, columnAlignments, rows }` | `undefined` | The same value under Vue 3's v-model name. `v-model` binds THIS, not `value` — both are accepted. |
+
+> **Why two props.** Vue 3 compiles `v-model="x"` to `:modelValue` + `@update:modelValue`. A component declaring only `value`/`input` never receives the prop and its emit is never heard — silently. `value` is kept as the public name for existing consumers; `modelValue` is what a plain `v-model` binds, and both emit on every change.
+
 
 ## Events
 

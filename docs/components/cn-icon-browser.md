@@ -45,6 +45,7 @@ See [mdiCatalogue](../utilities/mdi-catalogue.md) and [vmdiCatalogue](../utiliti
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
 | `value` | `String` | `null` | Current selection (v-model) — the catalogue's emitted value (path / name / …), a URL, or null. |
+| `modelValue` | `String` | `undefined` | The same value under Vue 3's v-model name. `v-model` binds THIS, not `value` — both are accepted. |
 | `icons` | `Array` | `[]` | The catalogue to browse: `[{ key, label, value, search?, path?, component? }]`. Build with `mdiCatalogue` / `vmdiCatalogue`. |
 | `urlIcons` | `Array` | `[]` | Curated image-URL icons for the Custom tab: `[{ label, url }]`. Each emits its `url` when picked. |
 | `urlIconGroups` | `Array` | `[]` | Curated image-URL icons split into named groups, rendered on the Custom tab as one sub-tab per group with its own search: `[{ key, label, icons: [{ id?, label, url }] }]`. Use instead of the flat `urlIcons` for large packs such as the bundled NL Design catalogues (`NL_DESIGN_ICON_GROUPS`). |
@@ -58,6 +59,9 @@ See [mdiCatalogue](../utilities/mdi-catalogue.md) and [vmdiCatalogue](../utiliti
 | `clearable` | `Boolean` | `false` | Offer a control to unset the icon (emits `null`). Use for optional icon fields, where a picked icon would otherwise be impossible to remove. |
 | `sources` | `Array` | `[]` | Ordered catalogue source keys, one tab each (e.g. `['mdi', 'fontawesome', 'opengemeenten']`). Empty renders a single "Icons" tab over the resolved icons. |
 | `allowCustomSvg` | `Boolean` | `false` | Offer a tab for authoring a raw `<svg>` icon by hand. |
+
+> **Why two props.** Vue 3 compiles `v-model="x"` to `:modelValue` + `@update:modelValue`. A component declaring only `value`/`input` never receives the prop and its emit is never heard — silently. `value` is kept as the public name for existing consumers; `modelValue` is what a plain `v-model` binds, and both emit on every change.
+
 
 ## Catalogue injection
 

@@ -34,6 +34,7 @@ export default {
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `value` | String | `''` | v-model. Markdown source. |
+| `modelValue` | String | `undefined` | The same value under Vue 3's v-model name. `v-model` binds THIS, not `value` — both are accepted. |
 | `mode` | `'edit'\|'split'\|'preview'\|'wysiwyg'` | `'split'` | Layout mode. Use `.sync` or `v-model:mode` to bind. `wysiwyg` mounts a lazily-loaded Toast UI rich editor; the other modes use the textarea + preview. |
 | `placeholder` | String | `'Write Markdown…'` | Textarea placeholder. |
 | `ariaLabel` | String | `'Markdown editor input'` | Textarea aria-label. |
@@ -46,6 +47,9 @@ export default {
 | `hint` | String | `''` | Helper text rendered under the editor. |
 | `wysiwygToolbar` | `Array<Array<string>>` | default groups | WYSIWYG mode only: Toast UI toolbar layout (array of button groups). Ignored in the textarea modes. |
 | `wysiwygHeight` | String | `'300px'` | WYSIWYG mode only: editor height (any CSS length). |
+
+> **Why two props.** Vue 3 compiles `v-model="x"` to `:modelValue` + `@update:modelValue`. A component declaring only `value`/`input` never receives the prop and its emit is never heard — silently. `value` is kept as the public name for existing consumers; `modelValue` is what a plain `v-model` binds, and both emit on every change.
+
 
 ## WYSIWYG mode
 

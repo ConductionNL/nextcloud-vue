@@ -185,7 +185,7 @@ export default {
 		 *
 		 * @type {object|array}
 		 */
-		modelValue: { type: [Object,Array], default: undefined },
+		modelValue: { type: [Object, Array], default: undefined },
 		/**
 		 * Override / extend the field-type palette.
 		 *

@@ -315,7 +315,7 @@ export default {
 		 *
 		 * @type {string|object}
 		 */
-		modelValue: { type: [String,Object], default: undefined },
+		modelValue: { type: [String, Object], default: undefined },
 		/**
 		 * The resolved catalogue to browse: `[{ key, label, value, search?, path?, component? }]`.
 		 *
