@@ -80,6 +80,7 @@
 				v-bind="{ ...$attrs, ...resolvedProps }"
 				@view="onRowOpen"
 				@row-click="onRowOpen"
+				@edit-open="onRowOpen"
 				@configure="showConfigModal = true">
 				<!-- This `<template v-for>` defines dynamic SLOTS, not a
 				     rendered list, so the rule's advice is inverted here:
@@ -133,6 +134,7 @@
 			v-bind="{ ...$attrs, ...resolvedProps }"
 			@view="onRowOpen"
 			@row-click="onRowOpen"
+			@edit-open="onRowOpen"
 			@configure="showConfigModal = true">
 			<!-- Dynamic slot definition, not a rendered list — see the note on
 			     the identical block above. -->
@@ -832,7 +834,17 @@ export default {
 			if (isIndex) {
 				const hasRowRoute = typeof config.rowRoute === 'string' && config.rowRoute !== ''
 				const hasDetail = this.detailPageByRegisterSchema.has(`${config.register} ${config.schema}`)
-				if (hasRowRoute || hasDetail) topLevel.rowClickToView = true
+				if (hasRowRoute || hasDetail) {
+					topLevel.rowClickToView = true
+					// Same signal, second consequence: a record with a detail page
+					// is edited THERE, not in a modal launched from the table. The
+					// modal renders the schema's flat scalars only, so on a record
+					// that composes anything — a case type's statuses, results,
+					// roles and properties — it is not merely a duplicate surface
+					// but one that cannot express the record. An explicit
+					// `config.editOpensDetail` still wins (merged below).
+					topLevel.editOpensDetail = true
+				}
 			}
 			let normalizedConfig = config
 			if (isIndex && config.actionToggles && typeof config.actionToggles === 'object' && !Array.isArray(config.actionToggles)) {
@@ -851,6 +863,15 @@ export default {
 			// `params.objectId` still wins.
 			const isDetail = page?.type === 'detail'
 			if (isDetail) {
+				// The other half of the index rule above: a schema-bound detail
+				// page gets its own Edit affordance. Set unconditionally for
+				// schema-bound detail pages — the index stops offering the modal
+				// for exactly this set of pages, so a detail page that did not
+				// gain the button would leave its records with no edit surface at
+				// all. `config.showEditAction` still wins (merged below).
+				if (typeof normalizedConfig.schema === 'string' && normalizedConfig.schema.length > 0) {
+					topLevel.showEditAction = true
+				}
 				if (normalizedConfig.objectType === undefined && typeof normalizedConfig.schema === 'string' && normalizedConfig.schema.length > 0) {
 					normalizedConfig = { ...normalizedConfig, objectType: normalizedConfig.schema }
 				}

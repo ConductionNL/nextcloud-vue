@@ -276,7 +276,7 @@ export default {
 		},
 	},
 
-	emits: ['input', 'update:modelValue',],
+	emits: ['input', 'update:modelValue'],
 
 	computed: {
 		/**

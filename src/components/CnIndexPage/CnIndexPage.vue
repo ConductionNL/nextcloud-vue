@@ -1319,6 +1319,28 @@ export default {
 			default: true,
 		},
 
+		/**
+		 * Send the Edit row action to the record's detail page instead of
+		 * opening the edit modal, by emitting `edit-open` rather than showing
+		 * the form dialog.
+		 *
+		 * A record that HAS a detail page has two places to be edited, and the
+		 * modal is the worse of them: it shows the schema's flat scalar fields
+		 * and nothing else, so anything the record composes — related rows,
+		 * sub-resources, tabs — is uneditable from the index and invisible
+		 * while you edit. `CnPageRenderer` sets this automatically when the
+		 * manifest declares a `type:"detail"` page for the same
+		 * register+schema (or the index sets `config.rowRoute`), which is the
+		 * same signal that already makes a row click open the record.
+		 *
+		 * Leave false when there is nowhere to go: the modal is then the only
+		 * edit surface and removing it would make the record read-only.
+		 */
+		editOpensDetail: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Whether to add a Copy action to row actions */
 		showCopyAction: {
 			type: Boolean,
@@ -1725,6 +1747,7 @@ export default {
 		'copy',
 		'create',
 		'delete',
+		'edit-open',
 		'filter-change',
 		'folder-change',
 		'folder-create',
@@ -2282,6 +2305,17 @@ export default {
 				handlers: {
 					onView: (row) => this.onView(row),
 					onEdit: (row) => {
+						if (this.editOpensDetail) {
+							/**
+							 * @event edit-open Emitted instead of opening the edit modal when
+							 * `editOpensDetail` is set — the host navigates to the record's
+							 * detail page, where the full record (not just its scalars) is
+							 * editable.
+							 * @type {object} The row to open.
+							 */
+							this.$emit('edit-open', row)
+							return
+						}
 						this.editItem = row
 						this.showFormDialogVisible = true
 					},
@@ -2327,7 +2361,28 @@ export default {
 				rowKey: this.rowKey,
 				customComponents: this.effectiveCustomComponents,
 			}
-			return [...this.actions.map((a) => dispatchAction(a, ctx)), ...this.defaultActions]
+			// Drop anything that is not an action OBJECT. A bare string — the
+			// shorthand `"edit"` an author reasonably expects to mean "show the
+			// built-in Edit" — has no `label` and no `icon`, so it rendered as a
+			// full-height NcActionButton with nothing in it: an invisible,
+			// clickable, inert row in the overflow menu. Observed on dossiq,
+			// where `config.actions: ["create", "edit", "delete", {…}]` put three
+			// blank rows above the real ones on four different index pages.
+			//
+			// Named, not silently swallowed: a dropped action is a capability the
+			// author asked for and did not get, and the manifest schema now
+			// rejects the shape at authoring time (`config.actions` is governed by
+			// the same `action` definition as `pages[].actions`). Built-ins are
+			// turned on with the `show*Action` toggles, not by naming them here.
+			const declared = []
+			for (const a of this.actions) {
+				if (a && typeof a === 'object' && !Array.isArray(a)) {
+					declared.push(dispatchAction(a, ctx))
+					continue
+				}
+				console.warn(`[CnIndexPage] Ignoring action ${JSON.stringify(a)}: actions must be objects with an id and a label. To show a built-in action use the showViewAction / showEditAction / showCopyAction / showDeleteAction props.`)
+			}
+			return [...declared, ...this.defaultActions]
 		},
 
 		hasRowActions() {

@@ -56,6 +56,7 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 
 | Event | Payload | Description |
 |-------|---------|-------------|
+| `edited` | `object` | The header **Edit** form saved successfully; payload is the saved record. Only fires when `showEditAction` is set. |
 | `transitioned` | `{ action, to, object }` | A declarative lifecycle transition (from `lifecycleActions`) succeeded on this page's object. |
 | `relation-linked` | `object` | A `relationLinks` action patched a foreign key on this page's object; payload is the updated object. |
 | `related-row-click` | `{ collection, row, index }` | A row in a `relatedCollections` section was clicked. |
@@ -380,6 +381,8 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 |------|------|---------|-------------|
 | `showRelatedObjects` | Boolean | `true` | Whether to render the Related section beneath the data widget. Set `false` on pages that surface relations elsewhere (e.g. the sidebar) to drop the section. |
 | `createRoute` | String \| Object | `''` | Route pushed when the page's "create" action fires (empty disables it). |
+| `showEditAction` | Boolean | `false` | Show an **Edit** button in the header that opens the record's schema form (`CnFormDialog`) scoped to this record, saving through the object store and emitting `@edited`. Needs `register` + `schema` + `objectId`; hidden without them. `CnPageRenderer` sets it for every schema-bound `type:"detail"` page — the same set of records whose index tables stop offering an edit modal. Declare `config.showEditAction: false` to keep a detail page read-only. |
+| `editLabel` | String | `''` | Label for the header Edit button. Defaults to a translated "Edit". |
 
 ### Widget icons (ADR-062)
 

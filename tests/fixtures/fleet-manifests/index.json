@@ -85,9 +85,9 @@
 		"sha256": "72858956a574d976ee25811adfeef32a865615f7ccd845ab57953923157cfa8b"
 	},
 	"procest": {
-		"bytes": 88475,
+		"bytes": 117288,
 		"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
-		"sha256": "9fd1ce8371dbe24601b4092e75c030eada822462af2c32cbd88b601ee9775f76"
+		"sha256": "7b460bb598166f740e94d7bfcf456383b89fe3eae0b066372a95541a0b67e75b"
 	},
 	"scholiq": {
 		"bytes": 124620,
