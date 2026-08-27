@@ -474,21 +474,30 @@ describe('packaging — every redistributed dependency is under an OSI licence',
 	}
 
 	/**
-	 * Package names bundled into `dist/esm/node_modules/` in the tarball.
+	 * The third-party packages this build actually redistributes.
+	 *
+	 * ⚠️ READ FROM THE BUILD, NOT FROM A DIRECTORY NAME.
+	 *
+	 * This used to list `package/dist/esm/node_modules/` — where rollup left
+	 * vendored code until the gridstack fix changed what stays external. That
+	 * directory then stopped existing, so this returned `[]`, and the licence
+	 * sweep below iterated nothing and passed. 53 packages were still being
+	 * shipped with their licences unchecked; only the CONTROL beneath caught it.
+	 *
+	 * `dist/bundled-packages.json` is emitted by the `record-bundled-packages`
+	 * rollup plugin from the module graph itself, so it cannot drift from what
+	 * was built. Sourcemaps are not an alternative — this build emits them with
+	 * an empty `sources`.
 	 *
 	 * @return {string[]} Package names, scoped names included.
 	 */
 	function bundledPackages() {
-		const prefix = 'package/dist/esm/node_modules/'
-		const names = new Set()
-		for (const entry of entries) {
-			if (!entry.startsWith(prefix)) {
-				continue
-			}
-			const rest = entry.slice(prefix.length).split('/')
-			names.add(rest[0].startsWith('@') ? `${rest[0]}/${rest[1]}` : rest[0])
+		const manifest = path.join(REPO, 'dist', 'bundled-packages.json')
+		if (!fs.existsSync(manifest)) {
+			return []
 		}
-		return [...names].filter(Boolean).sort()
+
+		return JSON.parse(fs.readFileSync(manifest, 'utf8'))
 	}
 
 	it('CONTROL: OR accepts on one half, AND requires both', () => {
@@ -509,11 +518,20 @@ describe('packaging — every redistributed dependency is under an OSI licence',
 
 	it('CONTROL: the tarball really does redistribute third-party code', () => {
 		// "Every bundled package is fine" is worthless if the list is empty —
-		// and it would be empty from a typo in the prefix.
+		// which is exactly what happened when the vendoring layout changed under
+		// the old directory-listing implementation, and is the only reason
+		// anyone noticed. Keep this control: the sweep above cannot fail on its
+		// own when it has nothing to sweep.
 		const bundled = bundledPackages()
 		expect(bundled.length).toBeGreaterThan(10)
 		expect(bundled).toContain('vue3-apexcharts')
 		expect(bundled).toContain('apexcharts')
+	})
+
+	it('ships the bundled-package manifest, so the licence list is reproducible', () => {
+		// A manifest that exists only on the machine that built it cannot be
+		// audited by anyone downstream.
+		expect(entries).toContain('package/dist/bundled-packages.json')
 	})
 
 	it('bundles no package under a non-OSI licence', () => {
