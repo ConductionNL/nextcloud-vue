@@ -22,7 +22,7 @@ Cross-schema search surface. Renders a query input, a facet sidebar, and a resul
 
 ```vue
 <CnSearchPage
-  :query.sync="q"
+  v-model:query="q"
   :facets="facets"
   :active-facets="activeFacets"
   :results="results"

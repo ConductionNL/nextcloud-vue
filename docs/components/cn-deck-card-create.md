@@ -20,8 +20,12 @@ Form fields: **Board** (required, from `GET /api/integrations/deck/boards`), **S
 ## Usage
 
 ```vue
-<CnDeckCardCreate :open.sync="createOpen" @create="onCreate" />
+<CnDeckCardCreate :open="createOpen" @close="createOpen = false" @create="onCreate" />
 ```
+
+`open` is a one-way prop: the component emits `close`, not `update:open`, so
+neither `v-model:open` nor the `.sync` this documentation used to show binds
+anything. Close it yourself from `@close`.
 
 ## Additional props
 

@@ -38,7 +38,7 @@ mount and after every month navigation) to a re-fetch:
   :objects="objects"
   date-field="dueDate"
   end-date-field="endDate"
-  :visible-date.sync="visibleDate"
+  v-model:visible-date="visibleDate"
   :loading="loading"
   @range-change="fetchCalendarObjects"
   @object-click="openObject" />

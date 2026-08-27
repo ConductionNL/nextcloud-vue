@@ -14,7 +14,7 @@ Pragmatic MVP using `<textarea>` + `cnRenderMarkdown`. A richer TipTap-based WYS
 <template>
   <CnMarkdownEditor
     v-model="article"
-    :mode.sync="mode"
+    v-model:mode="mode"
     placeholder="Write your article…"
     hint="Supports Markdown. Use the toolbar or Ctrl+B / Ctrl+I." />
 </template>
