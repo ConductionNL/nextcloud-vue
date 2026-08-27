@@ -2,13 +2,18 @@
 
 ### Props
 
-| Name     | Type                                              | Required | Default | Description                                                                                               |
-| -------- | ------------------------------------------------- | -------- | ------- | --------------------------------------------------------------------------------------------------------- |
-| `value`  | `Array<{key: string, op: string, value: string}>` |          | `[]`    | The current filter rows (`{ key, op, value }[]`).                                                         |
-| `fields` | `string[]`                                        |          | `[]`    | Available schema field names — when non-empty the Property input becomes a dropdown instead of free-text. |
+| Name         | Type                                              | Required | Default     | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------ | ------------------------------------------------- | -------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `value`      | `Array<{key: string, op: string, value: string}>` |          | `[]`        | The current filter rows (`{ key, op, value }[]`).                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `modelValue` | `array`                                           |          | `undefined` | The same value as `value`, under Vue 3's own v-model name. ⚠️ WITHOUT THIS, `v-model` ON THIS COMPONENT DOES NOTHING. Vue 3 compiles `v-model="x"` to `:modelValue` + `@update:modelValue`, so a component declaring only `value`/`input` never receives the prop and its emit is never heard — silently, looking exactly like a component that works. `value` stays the public name; both are accepted. The default is `undefined` so "not passed" is distinguishable from "passed empty". |
+| `fields`     | `string[]`                                        |          | `[]`        | Available schema field names — when non-empty the Property input becomes a dropdown instead of free-text.                                                                                                                                                                                                                                                                                                                                                                                   |
 
 ### Events
 
-| Name    | Payload | Description                                             |
-| ------- | ------- | ------------------------------------------------------- |
-| `input` | —       | Emitted with the full updated rows array on every edit. |
+| Name                | Payload | Description                                                              |
+| ------------------- | ------- | ------------------------------------------------------------------------ |
+| `input`             | —       | The value changed. Vue 2's v-model dialect, kept for existing consumers. |
+| `update:modelValue` | —       | The same payload under Vue 3's v-model name; see the `modelValue` prop.  |
+
+| `update:modelValue The value changed. Vue 3's v-model
+  dialect — what a plain `v-model` listens for.` | — | |

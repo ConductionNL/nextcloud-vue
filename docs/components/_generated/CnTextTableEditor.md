@@ -2,12 +2,17 @@
 
 ### Props
 
-| Name    | Type                                                                                                                     | Required | Default                 | Description                                         |
-| ------- | ------------------------------------------------------------------------------------------------------------------------ | -------- | ----------------------- | --------------------------------------------------- |
-| `value` | `{headerRow: boolean, columnAlignments: string[], rows: Array<Array<{text: string, rowSpan: number, colSpan: number}>>}` |          | `() =&gt; emptyTable()` | The current tableData object — the `v-model` value. |
+| Name         | Type                                                                                                                     | Required | Default                 | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------ | -------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `value`      | `{headerRow: boolean, columnAlignments: string[], rows: Array<Array<{text: string, rowSpan: number, colSpan: number}>>}` |          | `() =&gt; emptyTable()` | The current tableData object — the `v-model` value.                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `modelValue` | `union`                                                                                                                  |          | `undefined`             | The same value as `value`, under Vue 3's own v-model name. ⚠️ WITHOUT THIS, `v-model` ON THIS COMPONENT DOES NOTHING. Vue 3 compiles `v-model="x"` to `:modelValue` + `@update:modelValue`, so a component declaring only `value`/`input` never receives the prop and its emit is never heard — silently, looking exactly like a component that works. `value` stays the public name; both are accepted. The default is `undefined` so "not passed" is distinguishable from "passed empty". |
 
 ### Events
 
-| Name    | Payload | Description                                                       |
-| ------- | ------- | ----------------------------------------------------------------- |
-| `input` | —       | `v-model` update; payload is the next validated tableData object. |
+| Name                | Payload | Description                                                              |
+| ------------------- | ------- | ------------------------------------------------------------------------ |
+| `input`             | —       | The value changed. Vue 2's v-model dialect, kept for existing consumers. |
+| `update:modelValue` | —       | The same payload under Vue 3's v-model name; see the `modelValue` prop.  |
+
+| `update:modelValue The value changed. Vue 3's v-model
+  dialect — what a plain `v-model` listens for.` | — | |

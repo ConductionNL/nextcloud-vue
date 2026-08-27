@@ -302,6 +302,21 @@ export default {
 			default: null,
 		},
 		/**
+		 * The same value as `value`, under Vue 3's own v-model name.
+		 *
+		 * ⚠️ WITHOUT THIS, `v-model` ON THIS COMPONENT DOES NOTHING. Vue 3
+		 * compiles `v-model="x"` to `:modelValue` + `@update:modelValue`, so a
+		 * component declaring only `value`/`input` never receives the prop and
+		 * its emit is never heard — silently, looking exactly like a component
+		 * that works.
+		 *
+		 * `value` stays the public name; both are accepted. The default is
+		 * `undefined` so "not passed" is distinguishable from "passed empty".
+		 *
+		 * @type {string|object}
+		 */
+		modelValue: { type: [String,Object], default: undefined },
+		/**
 		 * The resolved catalogue to browse: `[{ key, label, value, search?, path?, component? }]`.
 		 *
 		 * @type {Array<object>}
@@ -425,7 +440,7 @@ export default {
 		},
 	},
 
-	emits: ['input', 'pick'],
+	emits: ['input', 'update:modelValue', 'pick'],
 
 	data() {
 		return {
@@ -439,7 +454,7 @@ export default {
 			uploading: false,
 			uploadError: '',
 			debounceTimer: null,
-			urlDraft: isCustomIconUrl(this.value) ? this.value : '',
+			urlDraft: isCustomIconUrl((this.modelValue !== undefined ? this.modelValue : this.value)) ? (this.modelValue !== undefined ? this.modelValue : this.value) : '',
 			// Roving-tabindex cursor into visibleIcons: the one grid cell that's
 			// tab-reachable; arrow keys move it.
 			activeIndex: 0,
@@ -454,11 +469,19 @@ export default {
 			// Catalogue lazily built from the optional `@mdi/js` dep (source 'mdi').
 			mdiCatalogue: null,
 			// Raw-SVG draft for the Custom SVG tab.
-			customSvg: (typeof this.value === 'string' && this.value.trim().startsWith('<svg')) ? this.value : '',
+			customSvg: (typeof (this.modelValue !== undefined ? this.modelValue : this.value) === 'string' && (this.modelValue !== undefined ? this.modelValue : this.value).trim().startsWith('<svg')) ? (this.modelValue !== undefined ? this.modelValue : this.value) : '',
 		}
 	},
 
 	computed: {
+		/**
+		 * The value the consumer actually bound, whichever prop they used.
+		 *
+		 * @return {*} The bound value.
+		 */
+		boundValue() {
+			return this.modelValue !== undefined ? this.modelValue : this.value
+		},
 		/**
 		 * Whether the upload control is shown (only when an uploadFn is given).
 		 *
@@ -648,7 +671,7 @@ export default {
 		 * @return {boolean} true for URL values.
 		 */
 		isUrlValue() {
-			return isCustomIconUrl(this.value)
+			return isCustomIconUrl(this.boundValue)
 		},
 		/**
 		 * The catalogue entry matching the current value (for preview/highlight).
@@ -658,7 +681,7 @@ export default {
 		 * @return {object|null} the matching entry, or null.
 		 */
 		selectedEntry() {
-			return findIconByValue(this.allCatalogueIcons, this.value)
+			return findIconByValue(this.allCatalogueIcons, this.boundValue)
 		},
 		/**
 		 * The SVG path to preview when the value is a bare path string not backed
@@ -667,13 +690,13 @@ export default {
 		 * @return {string|null} the path string, or null.
 		 */
 		currentPath() {
-			if (!this.value || this.isUrlValue) {
+			if (!this.boundValue || this.isUrlValue) {
 				return null
 			}
 			if (this.selectedEntry) {
 				return this.selectedEntry.path || null
 			}
-			return isSvgPath(this.value) ? this.value : null
+			return isSvgPath(this.boundValue) ? this.boundValue : null
 		},
 		/**
 		 * Human label for the current selection.
@@ -681,17 +704,17 @@ export default {
 		 * @return {string} a display label, or '' when nothing is selected.
 		 */
 		selectedLabel() {
-			if (!this.value) {
+			if (!this.boundValue) {
 				return ''
 			}
 			if (this.isUrlValue) {
 				for (const group of this.resolvedGroups) {
-					const match = group.icons.find((icon) => icon.url === this.value)
+					const match = group.icons.find((icon) => icon.url === this.boundValue)
 					if (match) {
 						return match.label
 					}
 				}
-				return this.value
+				return this.boundValue
 			}
 			return this.selectedEntry ? this.selectedEntry.label : t('nextcloud-vue', 'Custom icon')
 		},
@@ -764,7 +787,7 @@ export default {
 		visibleIcons: {
 			immediate: true,
 			handler(list) {
-				const selected = list.findIndex((icon) => icon.value === this.value)
+				const selected = list.findIndex((icon) => icon.value === this.boundValue)
 				this.activeIndex = selected >= 0 ? selected : 0
 			},
 		},
@@ -793,6 +816,30 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Tell the consumer the value changed, in both v-model dialects.
+		 *
+		 * BOTH are emitted, always: a consumer on `@input` and a consumer on
+		 * `v-model` are the same consumer as far as this component knows, and
+		 * emitting only one silently breaks half of them.
+		 *
+		 * @param {*} next The new value.
+		 * @return {void}
+		 */
+		emitValue(next) {
+			/**
+			 * @event input The value changed. Vue 2's v-model dialect, kept for
+			 *   existing consumers.
+			 * @type {*}
+			 */
+			this.$emit('input', next)
+			/**
+			 * @event update:modelValue The value changed. Vue 3's v-model
+			 *   dialect — what a plain `v-model` listens for.
+			 * @type {*}
+			 */
+			this.$emit('update:modelValue', next)
+		},
 		t,
 
 		/**
@@ -832,7 +879,7 @@ export default {
 		 * @return {void}
 		 */
 		clearIcon() {
-			this.$emit('input', null)
+			this.emitValue(null)
 			this.$emit('pick')
 		},
 
@@ -913,7 +960,7 @@ export default {
 		 */
 		onCustomSvgInput(svg) {
 			this.customSvg = svg
-			this.$emit('input', svg || null)
+			this.emitValue(svg || null)
 		},
 
 		/**
@@ -1065,7 +1112,7 @@ export default {
 			 * @event input Emitted with the new icon value (path / name / URL / null).
 			 * @type {string|null}
 			 */
-			this.$emit('input', icon.value)
+			this.emitValue(icon.value)
 			/**
 			 * @event pick Emitted on a discrete selection so the parent can close
 			 * the popover (not fired while typing a URL).
@@ -1080,7 +1127,7 @@ export default {
 		 * @return {void}
 		 */
 		selectUrl(url) {
-			this.$emit('input', url)
+			this.emitValue(url)
 			this.$emit('pick')
 		},
 
@@ -1092,7 +1139,7 @@ export default {
 		 */
 		onUrlInput(event) {
 			this.urlDraft = event.target.value
-			this.$emit('input', this.urlDraft || null)
+			this.emitValue(this.urlDraft || null)
 		},
 
 		/**
@@ -1118,7 +1165,7 @@ export default {
 						throw new Error('FileReader did not return a data URL')
 					}
 					const response = await this.uploadFn(dataUrl)
-					this.$emit('input', response.url)
+					this.emitValue(response.url)
 					this.$emit('pick')
 				} catch (err) {
 					this.uploadError = (err && err.message) || t('nextcloud-vue', 'Failed to upload icon')
