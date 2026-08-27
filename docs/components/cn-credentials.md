@@ -65,7 +65,7 @@ and persists its own state.
 
 ```vue
 <template>
-  <NcAppSettingsDialog :open.sync="open" :name="t('myapp', 'Settings')">
+  <NcAppSettingsDialog v-model:open="open" :name="t('myapp', 'Settings')">
     <NcAppSettingsSection id="credentials" :name="t('myapp', 'Credentials')">
       <CnCredentials :app-id="appId" :app-credentials="manifest.credentials || []" />
     </NcAppSettingsSection>

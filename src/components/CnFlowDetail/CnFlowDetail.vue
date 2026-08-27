@@ -60,6 +60,18 @@
 					<SortVariant :size="20" />
 				</template>
 			</NcButton>
+			<!-- Undo has a BUTTON as well as Ctrl+Z. A shortcut nobody is told
+			     about is a feature only its author has: the affordance is what
+			     tells a user the canvas is safe to experiment on. -->
+			<NcButton type="tertiary"
+				:disabled="!store.canUndo"
+				:aria-label="t('nextcloud-vue', 'Undo the last change')"
+				:title="t('nextcloud-vue', 'Undo the last change')"
+				@click="store.undo()">
+				<template #icon>
+					<UndoVariant :size="20" />
+				</template>
+			</NcButton>
 			<div class="cn-flow-detail__toolbar-group">
 				<NcButton type="tertiary"
 					:disabled="zoom <= minZoom"
@@ -125,6 +137,7 @@
 			@node-select="onNodeSelect"
 			@canvas-click="store.selectedNodeId = null"
 			@nodes-change="onNodesChange"
+			@node-remove="store.removeNode($event)"
 			@connect="store.connect($event)"
 			@canvas-drop="onCanvasDrop">
 			<!-- The step's own chrome. `node.data` carries the flow node, because
@@ -152,21 +165,15 @@
 			</template>
 		</CnGraphCanvas>
 
-		<!-- Arrowhead marker, defined here so its colour and size are ours. -->
-		<svg class="cn-flow-detail__defs" aria-hidden="true" focusable="false">
-			<defs>
-				<marker
-					:id="arrowId"
-					viewBox="0 0 10 10"
-					refX="9"
-					refY="5"
-					markerWidth="5"
-					markerHeight="5"
-					orient="auto-start-reverse">
-					<path d="M 0 0 L 10 5 L 0 10 z" class="cn-flow-detail__arrowhead" />
-				</marker>
-			</defs>
-		</svg>
+		<!-- The step's own actions, at the step. Selecting a node used to only
+		     fill the sidebar, so Edit / Copy / Delete lived in another panel —
+		     or nowhere, for Copy. The canvas is where the graph is manipulated,
+		     so the actions on a step belong on the step. -->
+		<CnContextMenu
+			v-model:open="nodeMenuOpen"
+			:actions="nodeMenuActions"
+			:target-item="nodeMenuTarget"
+			@close="closeNodeMenu" />
 
 		<NcEmptyContent
 			v-if="store.nodes.length === 0"
@@ -181,6 +188,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import CheckDecagram from 'vue-material-design-icons/CheckDecagram.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
@@ -190,9 +198,12 @@ import Play from 'vue-material-design-icons/Play.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Sitemap from 'vue-material-design-icons/Sitemap.vue'
 import SortVariant from 'vue-material-design-icons/SortVariant.vue'
+import UndoVariant from 'vue-material-design-icons/UndoVariant.vue'
 import CnFlowNodeEditModal from '../../dialogs/CnFlowNodeEditModal.vue'
+import CnContextMenu from '../CnContextMenu/CnContextMenu.vue'
 import CnGraphCanvas from '../CnGraphCanvas/CnGraphCanvas.vue'
 import { resolveFlowNodeEditor } from '../../composables/useFlowNodeEditors.js'
+import { useContextMenu } from '../../composables/useContextMenu.js'
 import { useFlowStore } from '../../composables/useFlowStore.js'
 
 export default {
@@ -201,6 +212,7 @@ export default {
 	components: {
 		CheckDecagram,
 		CnFlowNodeEditModal,
+		CnContextMenu,
 		CnGraphCanvas,
 		ContentSave,
 		DockRight,
@@ -213,6 +225,7 @@ export default {
 		Plus,
 		Sitemap,
 		SortVariant,
+		UndoVariant,
 	},
 
 	props: {
@@ -237,15 +250,24 @@ export default {
 	emits: ['save', 'run'],
 
 	setup() {
-		return { store: useFlowStore() }
+		const {
+			isOpen: nodeMenuOpen,
+			targetItem: nodeMenuTarget,
+			open: openNodeMenu,
+			close: closeNodeMenu,
+		} = useContextMenu()
+
+		return {
+			store: useFlowStore(),
+			nodeMenuOpen,
+			nodeMenuTarget,
+			openNodeMenu,
+			closeNodeMenu,
+		}
 	},
 
 	data() {
 		return {
-			arrowId: 'cn-flow-detail-arrow',
-			nodeWidth: 200,
-			nodeHeight: 80,
-
 			// Zoom is owned here, not by the canvas: a consumer that does not
 			// bind it pins the canvas at 1 and silently kills the wheel gesture.
 			zoom: 1,
@@ -255,6 +277,39 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * What can be done to a step, as CnContextMenu's action list.
+		 *
+		 * Built as a computed rather than a constant because the labels are
+		 * translated, and `t()` must run after the locale is available.
+		 *
+		 * @return {Array<object>} The actions.
+		 */
+		nodeMenuActions() {
+			return [
+				{
+					label: t('nextcloud-vue', 'Edit'),
+					icon: 'Pencil',
+					handler: (id) => {
+						this.store.editingNodeId = id
+					},
+				},
+				{
+					label: t('nextcloud-vue', 'Copy'),
+					icon: 'ContentCopy',
+					handler: (id) => {
+						this.store.copyNode(id)
+					},
+				},
+				{
+					label: t('nextcloud-vue', 'Delete'),
+					icon: 'Delete',
+					handler: (id) => {
+						this.store.removeNode(id)
+					},
+				},
+			]
+		},
 		/**
 		 * The flow's steps in Vue Flow's node shape.
 		 *
@@ -416,10 +471,64 @@ export default {
 	},
 
 	async mounted() {
+		document.addEventListener('keydown', this.onDocumentKeydown)
 		await this.store.load({ app: this.app, id: this.id })
 	},
 
+	beforeUnmount() {
+		document.removeEventListener('keydown', this.onDocumentKeydown)
+	},
+
 	methods: {
+		/**
+		 * Ctrl+Z / Cmd+Z steps the GRAPH back one edit.
+		 *
+		 * Bound on `document` rather than the canvas element: the shortcut has
+		 * to work after clicking anywhere in the editor, and the canvas is not
+		 * what holds focus for most of a session.
+		 *
+		 * ⚠️ WHICH IS EXACTLY WHY IT HAS TO STAND DOWN. A document listener sees
+		 * every Ctrl+Z on the page, including the one a user presses to undo
+		 * TYPING in a step's name or its JSON config. Reverting the whole graph
+		 * because someone fixed a typo would be a far worse bug than having no
+		 * undo at all, so a keystroke aimed at editable text is left to the
+		 * browser's own undo. The open-editor check is a second guard for the
+		 * same reason: while a node's dialog is up, the user is editing that
+		 * node, not the graph.
+		 *
+		 * Shift+Ctrl+Z is deliberately NOT claimed — that is redo, and there is
+		 * no redo stack yet. Claiming it would swallow the key and do nothing.
+		 *
+		 * @param {KeyboardEvent} event The key event.
+		 * @return {void}
+		 */
+		onDocumentKeydown(event) {
+			if (event.key !== 'z' && event.key !== 'Z') {
+				return
+			}
+
+			if ((event.ctrlKey || event.metaKey) === false || event.shiftKey === true || event.altKey === true) {
+				return
+			}
+
+			const target = event.target
+			const tag = String(target?.tagName || '').toLowerCase()
+			if (tag === 'input' || tag === 'textarea' || target?.isContentEditable === true) {
+				return
+			}
+
+			if (this.store.editingNodeId !== null) {
+				return
+			}
+
+			if (this.store.canUndo === false) {
+				return
+			}
+
+			event.preventDefault()
+			this.store.undo()
+		},
+
 		/**
 		 * Persist a node move that Vue Flow reports.
 		 *
@@ -453,7 +562,22 @@ export default {
 		 * @return {void}
 		 */
 		onNodeSelect(event) {
-			this.store.selectedNodeId = event?.node?.id ?? event?.id ?? null
+			const id = event?.node?.id ?? event?.id ?? null
+			this.store.selectedNodeId = id
+
+			// Selection still happens — the sidebar keeps following the canvas —
+			// and the menu opens ON TOP of it. They are not alternatives: one is
+			// "which step am I looking at", the other is "what can I do to it".
+			if (id === null) {
+				return
+			}
+
+			const mouse = event?.event
+			if (mouse?.clientX === undefined) {
+				return
+			}
+
+			this.openNodeMenu({ item: id, event: mouse })
 		},
 
 		/**
@@ -596,129 +720,6 @@ export default {
 
 			return `${first}: ${shown} +${keys.length - 1}`
 		},
-
-		/**
-		 * The SVG `d` for one edge.
-		 *
-		 * @param {{x: number, y: number}} from Source centre.
-		 * @param {{x: number, y: number}} to   Target centre.
-		 * @return {string} The path.
-		 */
-		edgePath(from, to) {
-			return this.edgeGeometry(from, to).d
-		},
-
-		/**
-		 * Route one edge.
-		 *
-		 * Two decisions, in order:
-		 *
-		 * 1. Trim the endpoints from the node CENTRES (what the canvas hands the
-		 *    slot) back to the node borders, plus a small gap. Drawn centre to
-		 *    centre, the last stretch — arrowhead included — sits under the
-		 *    target card, so the flow reads as an undirected line.
-		 *
-		 * 2. Bend only when a straight run would not fit. Bending on any
-		 *    difference in centres produced a staircase for a modest offset and,
-		 *    for a near-aligned pair, two corner arcs with a zero-length leg
-		 *    between them — a wobble in place of a line. A corner should mean
-		 *    "these nodes are not in line", not "these nodes are a few pixels
-		 *    apart".
-		 *
-		 * @param {{x: number, y: number}} from Source centre.
-		 * @param {{x: number, y: number}} to   Target centre.
-		 * @return {{d: string, mid: {x: number, y: number}}} Path and midpoint.
-		 */
-		edgeGeometry(from, to) {
-			const gap = 6
-			const margin = 24
-			const vertical = Math.abs(to.y - from.y) >= Math.abs(to.x - from.x)
-
-			const [a, b] = vertical
-				? this.trimOn('y', this.nodeHeight, gap, from, to)
-				: this.trimOn('x', this.nodeWidth, gap, from, to)
-
-			const across = vertical ? Math.abs(to.x - from.x) : Math.abs(to.y - from.y)
-			const span = vertical ? this.nodeWidth : this.nodeHeight
-			if (across <= (span - margin)) {
-				const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
-				const [start, end] = vertical
-					? [{ x: mid.x, y: a.y }, { x: mid.x, y: b.y }]
-					: [{ x: a.x, y: mid.y }, { x: b.x, y: mid.y }]
-
-				return { d: `M ${start.x} ${start.y} L ${end.x} ${end.y}`, mid }
-			}
-
-			return this.elbow(a, b, vertical)
-		},
-
-		/**
-		 * Pull both endpoints in along one axis by half a node plus a gap.
-		 *
-		 * @param {string} axis The axis, `'x'` or `'y'`.
-		 * @param {number} size The node's extent on that axis.
-		 * @param {number} gap  Clearance to leave beyond the border.
-		 * @param {object} from Source centre.
-		 * @param {object} to   Target centre.
-		 * @return {Array<object>} Trimmed `[from, to]`.
-		 */
-		trimOn(axis, size, gap, from, to) {
-			const delta = to[axis] - from[axis]
-			const inset = Math.min((size / 2) + gap, Math.abs(delta) / 2)
-			const step = Math.sign(delta) * inset
-
-			return [
-				{ ...from, [axis]: from[axis] + step },
-				{ ...to, [axis]: to[axis] - step },
-			]
-		},
-
-		/**
-		 * Orthogonal path between two trimmed points, with rounded corners.
-		 *
-		 * @param {{x: number, y: number}} from     Trimmed source point.
-		 * @param {{x: number, y: number}} to       Trimmed target point.
-		 * @param {boolean}                vertical Whether the run is vertical.
-		 * @return {{d: string, mid: {x: number, y: number}}} Path and midpoint.
-		 */
-		elbow(from, to, vertical) {
-			const dx = to.x - from.x
-			const dy = to.y - from.y
-			// A corner radius must never eat more than half of either leg.
-			const rad = Math.min(12, Math.abs(dx) / 2, Math.abs(dy) / 2)
-			const sx = Math.sign(dx)
-			const sy = Math.sign(dy)
-
-			if (vertical) {
-				const midY = from.y + (dy / 2)
-
-				return {
-					mid: { x: from.x + (dx / 2), y: midY },
-					d: [
-						`M ${from.x} ${from.y}`,
-						`L ${from.x} ${midY - (rad * sy)}`,
-						`Q ${from.x} ${midY} ${from.x + (rad * sx)} ${midY}`,
-						`L ${to.x - (rad * sx)} ${midY}`,
-						`Q ${to.x} ${midY} ${to.x} ${midY + (rad * sy)}`,
-						`L ${to.x} ${to.y}`,
-					].join(' '),
-				}
-			}
-
-			const midX = from.x + (dx / 2)
-
-			return {
-				mid: { x: midX, y: from.y + (dy / 2) },
-				d: [
-					`M ${from.x} ${from.y}`,
-					`L ${midX - (rad * sx)} ${from.y}`,
-					`Q ${midX} ${from.y} ${midX} ${from.y + (rad * sy)}`,
-					`L ${midX} ${to.y - (rad * sy)}`,
-					`Q ${midX} ${to.y} ${midX + (rad * sx)} ${to.y}`,
-					`L ${to.x} ${to.y}`,
-				].join(' '),
-			}
-		},
 	},
 }
 </script>
@@ -778,32 +779,35 @@ export default {
 	list-style: disc;
 }
 
-.cn-flow-detail__defs {
-	position: absolute;
-	inline-size: 0;
-	block-size: 0;
-}
-
-.cn-flow-detail__edge {
-	stroke: var(--color-border-dark);
-	stroke-width: 2;
-}
-
-.cn-flow-detail__arrowhead {
-	fill: var(--color-border-dark);
-}
-
 /* ONE container, not a card in a card: the canvas wrapper draws the box —
    border, radius, background, selection — and this card only fills it. Its
-   earlier own border/background rendered as a visible nested box. */
-.cn-flow-detail__node {
+   earlier own border/background rendered as a visible nested box.
+
+   ⚠️ THE NO-BOX IS DECLARED, NOT LEFT OUT, AND IT IS SCOPED THROUGH THE PARENT
+   ON PURPOSE. Removing the border by simply deleting the declaration looked
+   like it worked here and did not work in a browser: several installed apps
+   still bundle an OLDER build of this component, Vue's scoped hash for it is
+   the same in both (`data-v-…` hashes the file, not its contents), and their
+   stale `.cn-flow-detail__node` rule therefore lands in the same page. Nothing
+   in the current build declared `border` at all, so the old declaration was
+   the only one in the cascade and simply won — the nested box came back on a
+   page whose own copy of the library was already fixed.
+
+   So the rule states the absence, and `.cn-flow-detail` in front of it raises
+   the specificity above any same-name copy, which makes this independent of
+   which bundle a page happens to inject last. */
+.cn-flow-detail .cn-flow-detail__node {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
 	justify-content: center;
 	block-size: 100%;
-	padding: 8px 12px;
+	/* No top/bottom/right padding: `.cn-flow-node` already pads the box. The
+	   left inset only clears the 4px role accent below. */
+	padding: 0 0 0 8px;
+	border: 0;
 	border-radius: inherit;
+	background: none;
 	overflow: hidden;
 }
 

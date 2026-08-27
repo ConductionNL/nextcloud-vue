@@ -31,12 +31,16 @@ Selecting a preset (other than `custom`) auto-fills both pickers to `now − day
 | Prop         | Type     | Default                          | Description                                           |
 | ------------ | -------- | -------------------------------- | ----------------------------------------------------- |
 | `value`      | Object   | `null`                           | Current `{ from, to, preset }` value (ISO-8601 UTC).  |
+| `modelValue` | Object   | `undefined`                      | The same value under Vue 3's v-model name. `v-model` binds THIS, not `value` — both are accepted. |
 | `presets`    | Array    | `DEFAULT_DATE_RANGE_PRESETS`     | Preset list. Each entry declares ONE window kind: `period` (current calendar week/month/quarter/year to date), `hours` (rolling N-hour window) or `days` (rolling N whole days). `days: null` = manual. |
 | `disabled`   | Boolean  | `false`                          | Disables both date pickers and the preset select.    |
 | `dateFormat` | String   | `'yyyy-MM-dd'`                   | Forwarded to `NcDateTimePicker`'s `format` prop. **date-fns tokens** — see note below. |
 | `presetLabel`| String   | `'Range preset'`                 | A11y label for the preset dropdown.                  |
 | `fromLabel`  | String   | `'From'`                         | A11y label for the start-of-range picker.            |
 | `toLabel`    | String   | `'To'`                           | A11y label for the end-of-range picker.              |
+
+> **Why two props.** Vue 3 compiles `v-model="x"` to `:modelValue` + `@update:modelValue`. A component declaring only `value`/`input` never receives the prop and its emit is never heard — silently. `value` is kept as the public name for existing consumers; `modelValue` is what a plain `v-model` binds, and both emit on every change.
+
 
 ### `dateFormat` uses date-fns tokens, not moment's
 

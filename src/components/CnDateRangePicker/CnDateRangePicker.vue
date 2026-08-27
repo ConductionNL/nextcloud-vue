@@ -189,6 +189,21 @@ export default {
 			default: null,
 		},
 		/**
+		 * The same value as `value`, under Vue 3's own v-model name.
+		 *
+		 * ⚠️ WITHOUT THIS, `v-model` ON THIS COMPONENT DOES NOTHING. Vue 3
+		 * compiles `v-model="x"` to `:modelValue` + `@update:modelValue`, so a
+		 * component declaring only `value`/`input` never receives the prop and
+		 * its emit is never heard — silently, looking exactly like a component
+		 * that works.
+		 *
+		 * `value` stays the public name; both are accepted. The default is
+		 * `undefined` so "not passed" is distinguishable from "passed empty".
+		 *
+		 * @type {object|string}
+		 */
+		modelValue: { type: [Object, String], default: undefined },
+		/**
 		 * Preset list. Each entry declares ONE window kind: `period`
 		 * (`'week'|'month'|'quarter'|'year'` — the current calendar unit
 		 * to date, e.g. "Current month" = the 1st through today), `hours`
@@ -261,17 +276,25 @@ export default {
 		},
 	},
 
-	emits: ['input'],
+	emits: ['input', 'update:modelValue',],
 
 	computed: {
+		/**
+		 * The value the consumer actually bound, whichever prop they used.
+		 *
+		 * @return {*} The bound value.
+		 */
+		boundValue() {
+			return this.modelValue !== undefined ? this.modelValue : this.value
+		},
 		fromDate() {
-			return this.value?.from ? new Date(this.value.from) : null
+			return this.boundValue?.from ? new Date(this.boundValue.from) : null
 		},
 		toDate() {
-			return this.value?.to ? new Date(this.value.to) : null
+			return this.boundValue?.to ? new Date(this.boundValue.to) : null
 		},
 		selectedPresetId() {
-			return this.value?.preset || 'custom'
+			return this.boundValue?.preset || 'custom'
 		},
 		presetOptions() {
 			return this.presets.map((p) => ({ id: p.id, label: p.label, days: p.days }))
@@ -285,6 +308,30 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Tell the consumer the value changed, in both v-model dialects.
+		 *
+		 * BOTH are emitted, always: a consumer on `@input` and a consumer on
+		 * `v-model` are the same consumer as far as this component knows, and
+		 * emitting only one silently breaks half of them.
+		 *
+		 * @param {*} next The new value.
+		 * @return {void}
+		 */
+		emitValue(next) {
+			/**
+			 * @event input The value changed. Vue 2's v-model dialect, kept for
+			 *   existing consumers.
+			 * @type {*}
+			 */
+			this.$emit('input', next)
+			/**
+			 * @event update:modelValue The value changed. Vue 3's v-model
+			 *   dialect — what a plain `v-model` listens for.
+			 * @type {*}
+			 */
+			this.$emit('update:modelValue', next)
+		},
 		/**
 		 * Handle a preset selection. When the preset has a numeric
 		 * `days` value we recompute the window; for `custom` (or any
@@ -303,16 +350,16 @@ export default {
 				 * @event input v-model emit. Payload: `{ from, to, preset }` where `from`/`to` are ISO-8601 timestamps (or null) and `preset` is one of the preset ids or `'custom'`.
 				 * @type {{ from: string|null, to: string|null, preset: string }}
 				 */
-				this.$emit('input', { from: win.from, to: win.to, preset: option.id })
+				this.emitValue({ from: win.from, to: win.to, preset: option.id })
 			} else {
 				// Custom or null-days preset → keep the existing window,
 				// just change the preset id.
-				const from = this.value?.from || null
-				const to = this.value?.to || null
+				const from = this.boundValue?.from || null
+				const to = this.boundValue?.to || null
 				/**
 				 * @event input v-model emit. Payload: `{ from, to, preset }` where `from`/`to` are ISO-8601 timestamps (or null) and `preset` is one of the preset ids or `'custom'`.
 				 */
-				this.$emit('input', { from, to, preset: option.id })
+				this.emitValue({ from, to, preset: option.id })
 			}
 		},
 
@@ -326,11 +373,11 @@ export default {
 		 */
 		onFromChange(date) {
 			const from = date ? toIsoStartOfDay(date) : null
-			const to = this.value?.to || null
+			const to = this.boundValue?.to || null
 			/**
 			 * @event input v-model emit. Payload: `{ from, to, preset }` where `from`/`to` are ISO-8601 timestamps (or null) and `preset` is one of the preset ids or `'custom'`.
 			 */
-			this.$emit('input', { from, to, preset: 'custom' })
+			this.emitValue({ from, to, preset: 'custom' })
 		},
 
 		/**
@@ -339,12 +386,12 @@ export default {
 		 * @param {Date|null} date The new date.
 		 */
 		onToChange(date) {
-			const from = this.value?.from || null
+			const from = this.boundValue?.from || null
 			const to = date ? toIsoEndOfDay(date) : null
 			/**
 			 * @event input v-model emit. Payload: `{ from, to, preset }` where `from`/`to` are ISO-8601 timestamps (or null) and `preset` is one of the preset ids or `'custom'`.
 			 */
-			this.$emit('input', { from, to, preset: 'custom' })
+			this.emitValue({ from, to, preset: 'custom' })
 		},
 	},
 }

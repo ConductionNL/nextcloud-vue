@@ -20,6 +20,9 @@
  * add one.
  */
 import { createApp } from 'vue'
+// CnFlowDetail and the flow store are Pinia-backed, so the harness needs a
+// pinia instance to mount them at all.
+import { createPinia } from 'pinia'
 // Nextcloud CSS custom properties so the harness reflects real theming
 // (the library styles everything with var(--color-*) tokens).
 import '../../styleguide/nextcloud-tokens.css'
@@ -27,6 +30,12 @@ import '../../styleguide/nextcloud-tokens.css'
 // `src/css/index.css`. It carries the modal stacking baseline, so the harness
 // needs it for any spec that measures how something stacks against a dialog.
 import '../../src/css/patches.css'
+// The context menu is positioned by a stylesheet, not by inline styles:
+// `context-menu.css` transforms the popper to the cursor. A consuming app
+// gets it through `src/css/index.css`; without it here the menu opened and
+// stayed parked at its off-screen -9999px trigger, which reads in a spec as
+// "the menu never opened".
+import '../../src/css/context-menu.css'
 import App from './App.vue'
 
 // Minimal l10n shims so library components that call the global `t`/`n` render.
@@ -36,6 +45,7 @@ const t = (app, text, vars) => (vars
 const n = (app, s, p, count) => (count === 1 ? s : p)
 
 const app = createApp(App)
+app.use(createPinia())
 // Vue 3's replacement for Vue.prototype.
 app.config.globalProperties.t = t
 app.config.globalProperties.n = n

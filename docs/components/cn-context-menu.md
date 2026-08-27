@@ -50,7 +50,7 @@ Right-click one of the rows below:
       {{ row.title }}
     </div>
     <CnContextMenu
-      :open.sync="contextMenuOpen"
+      v-model:open="contextMenuOpen"
       :actions="actions"
       :target-item="contextMenuRow"
       @close="closeContextMenu" />
@@ -90,7 +90,7 @@ export default {
 
 ```vue {static}
 <CnContextMenu
-  :open.sync="contextMenuOpen"
+  v-model:open="contextMenuOpen"
   @close="closeContextMenu">
   <NcActionButton close-after-click @click="onRename">
     <template #icon><PencilIcon :size="20" /></template>
@@ -107,7 +107,7 @@ export default {
 
 ```vue {static}
 <CnContextMenu
-  :open.sync="contextMenuOpen"
+  v-model:open="contextMenuOpen"
   :actions="commonActions"
   :target-item="contextMenuRow"
   @action="onAction"
@@ -128,8 +128,8 @@ the matching slot, which renders without the NcActions child filter.
 
 ```vue {static}
 <CnContextMenu
-  :open.sync="open"
-  :active-panel.sync="panel"
+  v-model:open="open"
+  v-model:active-panel="panel"
   @close="onClose">
   <!-- Default panel: entry points -->
   <NcActionButton @click="panel = 'colour'">

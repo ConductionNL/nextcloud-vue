@@ -25,6 +25,7 @@ Vue 2 v-model: `value` in, `input` out. Placement uses `v-model:placement`.
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
 | `value` | `String` | `null` | Current icon value — a registry key, a source value, a URL, raw SVG, or null (v-model). |
+| `modelValue` | `String` | `undefined` | The same value under Vue 3's v-model name. `v-model` binds THIS, not `value` — both are accepted. |
 | `icons` | `Object` | `DASHBOARD_ICONS` | Legacy icon registry to enumerate in the grid (name → component). Used in legacy mode and as the MDI fallback. |
 | `sources` | `String[]` | `['mdi']` | Enriched mode: which icon sets to offer (`mdi` / `fontawesome` / `opengemeenten`). Setting anything other than the single default `['mdi']` activates enriched mode. |
 | `catalogues` | `Object` | `{}` | Enriched mode: consumer-supplied catalogues keyed by source name, built with the exported adapters. The library bundles no icon pack. |
@@ -34,6 +35,9 @@ Vue 2 v-model: `value` in, `input` out. Placement uses `v-model:placement`.
 | `uploadFn` | `Function` | `null` | Injected upload transport `async (dataUrl) => ({ url })`. When null, the upload control is hidden. |
 | `compact` | `Boolean` | `false` | Compact mode — render a small trigger button that opens the icon grid as a popover instead of an always-visible grid. |
 | `clearable` | `Boolean` | `false` | Show a leading "None" tile that clears the selection (emits `null`). Off by default so existing pickers are unchanged. |
+
+> **Why two props.** Vue 3 compiles `v-model="x"` to `:modelValue` + `@update:modelValue`. A component declaring only `value`/`input` never receives the prop and its emit is never heard — silently. `value` is kept as the public name for existing consumers; `modelValue` is what a plain `v-model` binds, and both emit on every change.
+
 
 ## Events
 

@@ -83,7 +83,7 @@ import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
  *   :objects="objects"
  *   date-field="dueDate"
  *   end-date-field="endDate"
- *   :visible-date.sync="visibleDate"
+ *   v-model:visible-date="visibleDate"
  *   @range-change="fetchCalendarObjects"
  *   @object-click="openObject" />
  * ```

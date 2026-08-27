@@ -428,6 +428,55 @@ list nested under a parent route (`/forms/:id/submissions`) is a fully
 declarative page. When `objects` **is** supplied (every existing consumer),
 nothing changes — no store is touched and `filter` has no effect.
 
+## Named entity sources (`config.entitySource`) — lists that are not OpenRegister objects
+
+Self-fetch needs a `register` + `schema` pair. Some lists have neither: a flow
+definition is deliberately **not** stored as an OpenRegister object, so an
+index page had nothing to bind to. Those lists became bespoke `type:"custom"`
+pages whose only real job was loading rows from somewhere else and passing them
+down — which is how three apps ended up shipping the same ~270-line wrapper,
+differing only in an app-id string.
+
+`entitySource` is the third mode. It is deliberately **not** called `source`:
+that key is already taken on page config and is polymorphic — a URL string in
+some manifests, an object with `params` in others — so reusing it would give
+one key two meanings. The manifest names a registered source and the
+index loads it:
+
+```json
+{
+  "id": "Flows",
+  "route": "/flows",
+  "type": "index",
+  "config": { "entitySource": "flows", "app": "dossiq" }
+}
+```
+
+The source supplies what an index cannot infer — how to load, where the rows
+are, and default columns and row actions — so a manifest need not restate them.
+A manifest that **does** set `columns` still wins; the source only fills gaps.
+
+Precedence, in order:
+
+1. Non-empty `objects` — a parent handing rows down is never overridden.
+2. `entitySource` — wins over `register`/`schema`, because naming both is a
+   contradiction, and self-fetching would render the **wrong** list rather than
+   an obviously empty one. Self-fetch is suppressed outright, so no discarded
+   request is issued.
+3. `register` + `schema` — ordinary self-fetch.
+
+An unknown entity-source name warns to the console and renders an empty list. It does
+**not** throw, and it does **not** go quiet: a silent empty table is
+indistinguishable from a source that genuinely has no rows.
+
+Sources are registered in
+[`indexSources.js`](../../composables/indexSources.js). Adding one is a data
+change there rather than a branch in this component.
+
+`sourceConfig` is handed to the named source's loader — `{ app: 'dossiq' }`
+scopes the `flows` source to one app's flows. It is ignored when
+`entitySource` is not set.
+
 ## Bespoke card-grid via `cardComponent`
 
 When the schema-driven `CnObjectCard` is not enough — e.g. the

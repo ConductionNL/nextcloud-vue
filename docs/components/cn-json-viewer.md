@@ -113,7 +113,7 @@ Use as a JSON editor with two-way binding. Shows a "Format JSON" button and inli
 
 ```vue
 <CnJsonViewer
-  :value.sync="formData"
+  v-model="formData"
   @format="onFormatted" />
 ```
 

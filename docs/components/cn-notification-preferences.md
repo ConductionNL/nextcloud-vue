@@ -44,7 +44,7 @@ via `CnAppRoot`'s `#user-settings` slot, which mounts it by default).
 
 ```vue
 <template>
-  <NcAppSettingsDialog :open.sync="open" :name="t('myapp', 'Settings')">
+  <NcAppSettingsDialog v-model:open="open" :name="t('myapp', 'Settings')">
     <CnNotificationPreferences />
   </NcAppSettingsDialog>
 </template>

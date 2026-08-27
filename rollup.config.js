@@ -26,6 +26,52 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
  *
  * @return {import('rollup').Plugin} A rollup plugin copying Leaflet images.
  */
+/**
+ * Write down which third-party packages this build actually redistributes.
+ *
+ * ⚠️ THIS EXISTS BECAUSE A LICENCE CHECK WENT QUIET.
+ *
+ * `tests/packaging/subpath-exports.spec.js` sweeps every redistributed package
+ * for a non-OSI licence. It found them by listing `dist/esm/node_modules/`,
+ * which is where rollup used to leave vendored code — and when the gridstack
+ * fix changed what stays external, that directory stopped existing. The sweep
+ * then iterated an empty list and passed, which is the shape of every vacuous
+ * green: third-party code is still shipped, and nothing checks its licence.
+ *
+ * A directory name is the wrong anchor for that question. The build knows
+ * exactly which modules it pulled in, so it records them here rather than
+ * leaving a test to infer it from a layout that is free to change. Sourcemaps
+ * cannot answer it either — this build emits them with an empty `sources`.
+ *
+ * @return {object} The rollup plugin.
+ */
+function recordBundledPackages() {
+	return {
+		name: 'record-bundled-packages',
+		generateBundle(options, bundle) {
+			const names = new Set()
+
+			for (const chunk of Object.values(bundle)) {
+				for (const id of Object.keys(chunk.modules || {})) {
+					const marker = id.lastIndexOf('node_modules/')
+					if (marker < 0) {
+						continue
+					}
+
+					const rest = id.slice(marker + 'node_modules/'.length).split('/')
+					names.add(rest[0].startsWith('@') ? `${rest[0]}/${rest[1]}` : rest[0])
+				}
+			}
+
+			this.emitFile({
+				type: 'asset',
+				fileName: 'bundled-packages.json',
+				source: JSON.stringify([...names].filter(Boolean).sort(), null, '\t') + '\n',
+			})
+		},
+	}
+}
+
 function copyLeafletImages() {
 	return {
 		name: 'copy-leaflet-images',
@@ -257,6 +303,7 @@ export default {
 	},
 	plugins: [
 		copyLeafletImages(),
+		recordBundledPackages(),
 		{
 			name: 'resolve-apexcharts',
 			resolveId(source) {

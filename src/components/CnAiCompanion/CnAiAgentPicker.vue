@@ -68,6 +68,21 @@ export default {
 			type: String,
 			default: null,
 		},
+		/**
+		 * The same value as `value`, under Vue 3's own v-model name.
+		 *
+		 * ⚠️ WITHOUT THIS, `v-model` ON THIS COMPONENT DOES NOTHING. Vue 3
+		 * compiles `v-model="x"` to `:modelValue` + `@update:modelValue`, so a
+		 * component declaring only `value`/`input` never receives the prop and
+		 * its emit is never heard — silently, looking exactly like a component
+		 * that works.
+		 *
+		 * `value` stays the public name; both are accepted. The default is
+		 * `undefined` so "not passed" is distinguishable from "passed empty".
+		 *
+		 * @type {string|object}
+		 */
+		modelValue: { type: [String, Object], default: undefined },
 		/** Whether the agent list is still loading. */
 		loading: {
 			type: Boolean,
@@ -80,9 +95,17 @@ export default {
 		},
 	},
 
-	emits: ['input'],
+	emits: ['input', 'update:modelValue',],
 
 	computed: {
+		/**
+		 * The value the consumer actually bound, whichever prop they used.
+		 *
+		 * @return {*} The bound value.
+		 */
+		boundValue() {
+			return this.modelValue !== undefined ? this.modelValue : this.value
+		},
 		options() {
 			return this.agents.map((agent) => ({
 				id: agent.uuid || agent.id,
@@ -91,7 +114,7 @@ export default {
 		},
 
 		selectedOption() {
-			return this.options.find((option) => option.id === this.value) || null
+			return this.options.find((option) => option.id === this.boundValue) || null
 		},
 
 		pickerPlaceholder() {
@@ -106,8 +129,32 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Tell the consumer the value changed, in both v-model dialects.
+		 *
+		 * BOTH are emitted, always: a consumer on `@input` and a consumer on
+		 * `v-model` are the same consumer as far as this component knows, and
+		 * emitting only one silently breaks half of them.
+		 *
+		 * @param {*} next The new value.
+		 * @return {void}
+		 */
+		emitValue(next) {
+			/**
+			 * @event input The value changed. Vue 2's v-model dialect, kept for
+			 *   existing consumers.
+			 * @type {*}
+			 */
+			this.$emit('input', next)
+			/**
+			 * @event update:modelValue The value changed. Vue 3's v-model
+			 *   dialect — what a plain `v-model` listens for.
+			 * @type {*}
+			 */
+			this.$emit('update:modelValue', next)
+		},
 		onInput(option) {
-			this.$emit('input', option ? option.id : null)
+			this.emitValue(option ? option.id : null)
 		},
 	},
 }
