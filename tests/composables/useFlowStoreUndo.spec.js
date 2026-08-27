@@ -15,6 +15,21 @@
 import { setActivePinia, createPinia } from 'pinia'
 import { useFlowStore } from '../../src/composables/useFlowStore.js'
 
+/**
+ * A two-node flow, for the tests that only need something to edit.
+ *
+ * @return {object} The store.
+ */
+const seededFlow = () => {
+	const store = useFlowStore()
+	store.flow = {
+		name: 'F',
+		nodes: [{ id: 'a', type: 'openregister.trigger-manual' }, { id: 'b', type: 'openregister.end' }],
+		edges: [{ id: 'e1', from: 'a', to: 'b' }],
+	}
+	return store
+}
+
 describe('useFlowStore — undo', () => {
 	beforeEach(() => {
 		setActivePinia(createPinia())
@@ -142,6 +157,81 @@ describe('useFlowStore — undo', () => {
 		store.undo()
 
 		expect(store.checkResult).toBeNull()
+	})
+
+	/**
+	 * ⚠️ THE COPY MUST NOT SHARE ITS CONFIG OBJECT.
+	 *
+	 * A shallow spread copies the reference, so editing the duplicate would
+	 * silently rewrite the original — the copy would look independent and not
+	 * be, and the author would find a step they never touched had changed.
+	 */
+	it('copies a step without sharing its config', () => {
+		const store = useFlowStore()
+		store.flow = {
+			nodes: [{ id: 'a', type: 'openregister.set-fields', config: { to: 'x' }, x: 10, y: 20 }],
+			edges: [],
+		}
+
+		const copyId = store.copyNode('a')
+		const copy = store.nodes.find((n) => n.id === copyId)
+
+		expect(store.nodes).toHaveLength(2)
+		expect(copy.config).toEqual({ to: 'x' })
+
+		copy.config.to = 'changed'
+		expect(store.nodes.find((n) => n.id === 'a').config.to).toBe('x')
+	})
+
+	it('offsets the copy so it is not hidden under the original', () => {
+		const store = useFlowStore()
+		store.flow = { nodes: [{ id: 'a', type: 't', x: 10, y: 20 }], edges: [] }
+
+		// The id FIRST. Calling copyNode() inside the predicate runs it once per
+		// node and returns a different id each time — the copy is made, and the
+		// search is for an id that no longer matches anything.
+		const copyId = store.copyNode('a')
+		const copy = store.nodes.find((n) => n.id === copyId)
+
+		expect(copy.x).toBeGreaterThan(10)
+		expect(copy.y).toBeGreaterThan(20)
+	})
+
+	/**
+	 * A duplicate wired exactly like its original would fan the flow in two at
+	 * that point — a different graph from the one the author asked for. And a
+	 * second node claiming `start` makes the flow's entry ambiguous.
+	 */
+	it('does not copy the edges or the starting point', () => {
+		const store = useFlowStore()
+		store.flow = {
+			nodes: [{ id: 'a', type: 't', start: true }, { id: 'b', type: 't' }],
+			edges: [{ id: 'e1', from: 'a', to: 'b' }],
+		}
+
+		const copyId = store.copyNode('a')
+		const copy = store.nodes.find((n) => n.id === copyId)
+
+		expect(store.edges).toHaveLength(1)
+		expect(copy.start).toBeUndefined()
+	})
+
+	it('refuses to copy a step that is not there, without throwing', () => {
+		const store = useFlowStore()
+		store.flow = { nodes: [], edges: [] }
+
+		expect(store.copyNode('ghost')).toBeNull()
+		expect(store.canUndo).toBe(false)
+	})
+
+	it('undoes a copy', () => {
+		const store = seededFlow()
+
+		store.copyNode('a')
+		expect(store.nodes).toHaveLength(3)
+
+		store.undo()
+		expect(store.nodes).toHaveLength(2)
 	})
 
 	it('caps the stack so a long session cannot grow without bound', () => {

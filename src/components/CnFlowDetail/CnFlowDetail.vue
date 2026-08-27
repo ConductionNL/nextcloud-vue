@@ -165,6 +165,16 @@
 			</template>
 		</CnGraphCanvas>
 
+		<!-- The step's own actions, at the step. Selecting a node used to only
+		     fill the sidebar, so Edit / Copy / Delete lived in another panel —
+		     or nowhere, for Copy. The canvas is where the graph is manipulated,
+		     so the actions on a step belong on the step. -->
+		<CnContextMenu
+			v-model:open="nodeMenuOpen"
+			:actions="nodeMenuActions"
+			:target-item="nodeMenuTarget"
+			@close="closeNodeMenu" />
+
 		<NcEmptyContent
 			v-if="store.nodes.length === 0"
 			class="cn-flow-detail__empty"
@@ -178,6 +188,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import CheckDecagram from 'vue-material-design-icons/CheckDecagram.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
@@ -189,8 +200,10 @@ import Sitemap from 'vue-material-design-icons/Sitemap.vue'
 import SortVariant from 'vue-material-design-icons/SortVariant.vue'
 import UndoVariant from 'vue-material-design-icons/UndoVariant.vue'
 import CnFlowNodeEditModal from '../../dialogs/CnFlowNodeEditModal.vue'
+import CnContextMenu from '../CnContextMenu/CnContextMenu.vue'
 import CnGraphCanvas from '../CnGraphCanvas/CnGraphCanvas.vue'
 import { resolveFlowNodeEditor } from '../../composables/useFlowNodeEditors.js'
+import { useContextMenu } from '../../composables/useContextMenu.js'
 import { useFlowStore } from '../../composables/useFlowStore.js'
 
 export default {
@@ -199,6 +212,7 @@ export default {
 	components: {
 		CheckDecagram,
 		CnFlowNodeEditModal,
+		CnContextMenu,
 		CnGraphCanvas,
 		ContentSave,
 		DockRight,
@@ -236,7 +250,20 @@ export default {
 	emits: ['save', 'run'],
 
 	setup() {
-		return { store: useFlowStore() }
+		const {
+			isOpen: nodeMenuOpen,
+			targetItem: nodeMenuTarget,
+			open: openNodeMenu,
+			close: closeNodeMenu,
+		} = useContextMenu()
+
+		return {
+			store: useFlowStore(),
+			nodeMenuOpen,
+			nodeMenuTarget,
+			openNodeMenu,
+			closeNodeMenu,
+		}
 	},
 
 	data() {
@@ -250,6 +277,39 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * What can be done to a step, as CnContextMenu's action list.
+		 *
+		 * Built as a computed rather than a constant because the labels are
+		 * translated, and `t()` must run after the locale is available.
+		 *
+		 * @return {Array<object>} The actions.
+		 */
+		nodeMenuActions() {
+			return [
+				{
+					label: t('nextcloud-vue', 'Edit'),
+					icon: 'Pencil',
+					handler: (id) => {
+						this.store.editingNodeId = id
+					},
+				},
+				{
+					label: t('nextcloud-vue', 'Copy'),
+					icon: 'ContentCopy',
+					handler: (id) => {
+						this.store.copyNode(id)
+					},
+				},
+				{
+					label: t('nextcloud-vue', 'Delete'),
+					icon: 'Delete',
+					handler: (id) => {
+						this.store.removeNode(id)
+					},
+				},
+			]
+		},
 		/**
 		 * The flow's steps in Vue Flow's node shape.
 		 *
@@ -508,7 +568,22 @@ export default {
 		 * @return {void}
 		 */
 		onNodeSelect(event) {
-			this.store.selectedNodeId = event?.node?.id ?? event?.id ?? null
+			const id = event?.node?.id ?? event?.id ?? null
+			this.store.selectedNodeId = id
+
+			// Selection still happens — the sidebar keeps following the canvas —
+			// and the menu opens ON TOP of it. They are not alternatives: one is
+			// "which step am I looking at", the other is "what can I do to it".
+			if (id === null) {
+				return
+			}
+
+			const mouse = event?.event
+			if (mouse?.clientX === undefined) {
+				return
+			}
+
+			this.openNodeMenu({ item: id, event: mouse })
 		},
 
 		/**

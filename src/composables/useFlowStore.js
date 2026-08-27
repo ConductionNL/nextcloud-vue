@@ -654,6 +654,51 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @param {number} move.y  Its new y.
 		 * @return {void}
 		 */
+		/**
+		 * Duplicate a step, offset so the copy is visibly its own node.
+		 *
+		 * The config is deep-cloned. A shallow copy would leave both steps
+		 * sharing one config object, so editing the duplicate would silently
+		 * rewrite the original — the copy would look independent and not be.
+		 *
+		 * Edges are deliberately NOT copied. A duplicate wired exactly like its
+		 * original would fan the flow in two at that point, which is a different
+		 * graph from the one the author asked for; they connect the copy where
+		 * they want it.
+		 *
+		 * `start` is not copied either: a flow has one starting point, and a
+		 * second node claiming it makes the entry ambiguous.
+		 *
+		 * @param {string} id The node to copy.
+		 * @return {string|null} The new node's id, or null when there was nothing to copy.
+		 */
+		copyNode(id) {
+			const source = this.nodes.find((node) => node.id === id)
+			if (source === undefined) {
+				return null
+			}
+
+			this.pushUndo()
+
+			const copy = {
+				...source,
+				id: `${source.type}-${Date.now().toString(36)}-${this.nodes.length}`,
+				x: (source.x ?? 0) + 40,
+				y: (source.y ?? 0) + 40,
+				config: JSON.parse(JSON.stringify(source.config ?? {})),
+			}
+			copy.position = { x: copy.x, y: copy.y }
+			delete copy.start
+			delete copy.initial
+
+			this.flow.nodes = [...this.nodes, copy]
+			this.selectedNodeId = copy.id
+			this.dirty = true
+			this.checkResult = null
+
+			return copy.id
+		},
+
 		moveNode({ id, x, y }) {
 			this.pushUndo()
 
