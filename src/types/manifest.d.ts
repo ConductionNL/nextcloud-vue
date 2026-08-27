@@ -28,7 +28,12 @@
 export type TPageType =
 	| 'index' | 'detail' | 'dashboard' | 'logs' | 'settings' | 'chat'
 	| 'files' | 'form' | 'map' | 'roadmap' | 'search' | 'wiki'
-	| 'flows' | 'flow-detail' | 'custom'
+	| 'flow'
+	/** @deprecated `flows` predates named index sources — use `index` with `config.source: 'flows'`. */
+	| 'flows'
+	/** @deprecated Renamed to `flow`. */
+	| 'flow-detail'
+	| 'custom'
 	| (string & {})
 
 /**
