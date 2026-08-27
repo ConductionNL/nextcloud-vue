@@ -118,10 +118,34 @@ jobs:
       # against. It is the only lane that meets the real @nextcloud/vue 9 API
       # surface across the whole library, which is where a Vue 2 -> 3 leftover
       # ($set, $scopedSlots, _uid, moment-style date formats) actually shows up.
+      #
+      # check:vue3-compile and check:public-safe are the last two scripts this
+      # repository defines that no gate ran. Same class as check:a11y,
+      # check:smoke and the Playwright job above, each added with a note saying
+      # its absence had been indistinguishable from its success — and the same
+      # answer: a check nobody runs is a check that runs when someone remembers.
+      #
+      # check:vue3-compile sweeps all 366 components through Vue 3's compiler in
+      # compat MODE 2. It is the lane that sees a Vue-2 leftover in a TEMPLATE,
+      # which `test` cannot: the unit lane mounts components it has a spec for,
+      # and the sweep compiles every component there is.
+      #
+      # check:public-safe asserts that nothing reachable from the `public` entry
+      # pulls in `@nextcloud/*`. That entry exists so a non-Nextcloud host can
+      # use these components; one stray import makes it unusable, and the
+      # failure lands in the CONSUMER's build rather than here.
+      #
+      # ⚠️ check:dist-sideeffects is deliberately still absent, and that is a
+      # gap, not a decision. It needs `dist/`, which each check leg would have to
+      # build for itself — and it cannot be verified from a checkout inside the
+      # Nextcloud server tree (the documented `@vue/tsconfig` resolution
+      # artifact), so wiring it blind would mean shipping a gate nobody has seen
+      # pass. It belongs in a job of its own, like the e2e one.
       frontend-checks: >-
         ["test", "check:build", "check:docs", "check:jsdoc",
          "check:integration-parity", "check:peers", "check:docs-fresh",
-         "check:a11y", "check:smoke"]
+         "check:a11y", "check:smoke", "check:vue3-compile",
+         "check:public-safe"]
       enable-sbom: false
 
   # ⚠️ THE PLAYWRIGHT SUITE HAD NEVER RUN IN CI. NOT ONCE.
