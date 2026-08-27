@@ -266,11 +266,33 @@ import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { buildHeaders } from '../../utils/headers.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { registerIntegrationIcons } from '../../integrations/icons.js'
 import { useObjectStore } from '../../store/index.js'
 import FileTreeOutline from 'vue-material-design-icons/FileTreeOutline.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+
+// ⚠️ THIS WIDGET RENDERS INTEGRATION ICONS AND DID NOT REGISTER THEM.
+//
+// `LEAF_GROUPS` below names an MDI icon per section and `CnIcon` resolves those
+// against a registry the HOST app populates — and a host registers the handful
+// of icons it uses, not the integration set. `registerIntegrationIcons()` fixes
+// that, which is why CnIntegrationWidget and CnIntegrationWidgetEmpty both call
+// it at module load.
+//
+// This widget called nothing. It happened to look right on any page that ALSO
+// rendered one of those two components, because the registry is global and
+// whichever module loaded first filled it — so the icons were correct exactly
+// when something unrelated to this widget was on the page, and a help-circle
+// otherwise. Measured on the widget's own import graph: 7 of its 19 sections —
+// contacts, notes, tasks, talk, polls, bookmarks and photos — fell back.
+//
+// A defect that depends on what ELSE is mounted is not intermittent; it is
+// deterministic per page, and looks like a styling quirk on the pages where it
+// shows. Idempotent, so calling it here costs nothing where another component
+// already has.
+registerIntegrationIcons()
 
 /** Event-bus channel CnWidgetWrapper's Refresh action broadcasts on. */
 const REFRESH_BUS_CHANNEL = 'cn:widget:refresh'
@@ -284,7 +306,20 @@ let legacyWarned = false
 /**
  * Leaf groups surfaced by the aggregated `/relations` endpoint, in tab order.
  * `responseKey` is the key in the `/relations` payload; `integrationId` is the
- * sidebar tab the "open in sidebar" affordance deep-links to.
+ * sidebar tab the "open in sidebar" affordance deep-links to; `key` is this
+ * widget's own section id.
+ *
+ * ⚠️ `icon` AND `integrationId` ARE BOTH ANSWERED BY THE INTEGRATION REGISTRY,
+ * SO THIS TABLE IS A SECOND COPY OF DATA THAT ALREADY EXISTS — and it had
+ * drifted from it. Talk wore `Forum` here and `ChatOutline` in the registry;
+ * `Forum` and `ImageMultiple` are in NO registry at all, so those two sections
+ * fell back even on a page where every other icon resolved; and `timetracker`
+ * named no integration whatsoever — the registry id is `time-tracker` — so that
+ * row's deep link opened nothing and reported nothing.
+ *
+ * The copy stays (importing the registry here would be a cycle), but
+ * `tests/components/relatedObjectIcons.spec.js` now holds every row against it:
+ * same integration, same icon, and an `integrationId` that names something real.
  */
 const LEAF_GROUPS = [
 	{ key: 'mails', responseKey: 'emails', icon: 'Email', integrationId: 'email', requiredApp: 'mail' },
@@ -296,19 +331,19 @@ const LEAF_GROUPS = [
 	// Additional pluggable leaf integrations — surfaced automatically when the
 	// owning app is installed and the object has links (empty groups are hidden
 	// by `visibleGroups`). Server side is wired in RelationsController::LEAF_INTEGRATIONS.
-	{ key: 'talk', responseKey: 'talk', icon: 'Forum', integrationId: 'talk', requiredApp: 'spreed' },
-	{ key: 'forms', responseKey: 'forms', icon: 'FormatListChecks', integrationId: 'forms', requiredApp: 'forms' },
+	{ key: 'talk', responseKey: 'talk', icon: 'ChatOutline', integrationId: 'talk', requiredApp: 'spreed' },
+	{ key: 'forms', responseKey: 'forms', icon: 'ClipboardText', integrationId: 'forms', requiredApp: 'forms' },
 	{ key: 'maps', responseKey: 'maps', icon: 'MapMarker', integrationId: 'maps', requiredApp: 'maps' },
 	{ key: 'polls', responseKey: 'polls', icon: 'Poll', integrationId: 'polls', requiredApp: 'polls' },
 	{ key: 'bookmarks', responseKey: 'bookmarks', icon: 'Bookmark', integrationId: 'bookmarks', requiredApp: 'bookmarks' },
-	{ key: 'collectives', responseKey: 'collectives', icon: 'NotebookOutline', integrationId: 'collectives', requiredApp: 'collectives' },
-	{ key: 'photos', responseKey: 'photos', icon: 'ImageMultiple', integrationId: 'photos', requiredApp: 'photos' },
-	{ key: 'cospend', responseKey: 'cospend', icon: 'Cash', integrationId: 'cospend', requiredApp: 'cospend' },
-	{ key: 'timetracker', responseKey: 'timetracker', icon: 'ClockOutline', integrationId: 'timetracker', requiredApp: 'timemanager' },
-	{ key: 'analytics', responseKey: 'analytics', icon: 'ChartLine', integrationId: 'analytics', requiredApp: 'analytics' },
-	{ key: 'flow', responseKey: 'flow', icon: 'Sitemap', integrationId: 'flow', requiredApp: '' },
+	{ key: 'collectives', responseKey: 'collectives', icon: 'BookOpenPageVariant', integrationId: 'collectives', requiredApp: 'collectives' },
+	{ key: 'photos', responseKey: 'photos', icon: 'Image', integrationId: 'photos', requiredApp: 'photos' },
+	{ key: 'cospend', responseKey: 'cospend', icon: 'CurrencyEur', integrationId: 'cospend', requiredApp: 'cospend' },
+	{ key: 'timetracker', responseKey: 'timetracker', icon: 'Clock', integrationId: 'time-tracker', requiredApp: 'timemanager' },
+	{ key: 'analytics', responseKey: 'analytics', icon: 'ChartBar', integrationId: 'analytics', requiredApp: 'analytics' },
+	{ key: 'flow', responseKey: 'flow', icon: 'SitemapOutline', integrationId: 'flow', requiredApp: '' },
 	{ key: 'openproject', responseKey: 'openproject', icon: 'Briefcase', integrationId: 'openproject', requiredApp: 'integration_openproject' },
-	{ key: 'xwiki', responseKey: 'xwiki', icon: 'BookOpenVariant', integrationId: 'xwiki', requiredApp: '' },
+	{ key: 'xwiki', responseKey: 'xwiki', icon: 'FileDocumentMultiple', integrationId: 'xwiki', requiredApp: '' },
 ]
 
 /**

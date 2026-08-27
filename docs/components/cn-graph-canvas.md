@@ -135,37 +135,63 @@ The canvas never mutates `nodes`. Moves arrive on `@nodes-change` as Vue Flow's 
 
 | Event | Payload | When |
 |---|---|---|
-| `node-move` | `{ id, x, y }` | A node was dragged, or nudged with the arrow keys. **Not** clamped: a graph has no top-left corner, so a node may sit above or left of the origin. |
-| `node-resize` | `{ id, width, height }` | A node was resized by its grip or with the arrow keys on that grip. Sizes are yours to store, exactly as positions are. Never smaller than 40×40. |
-| `connect` | `{ source, target }` | A connection was made — by dragging a handle onto a node, or with the keyboard (`c` on the source then `c` on the target). Self-connections are refused. |
-| `canvas-drop` | `{ x, y, event }` | Something was dropped onto the canvas. `x`/`y` are in canvas space (pan/zoom undone); `event` is the native `DragEvent`, so you can read `dataTransfer`. The canvas does not add the node — you do. |
-| `node-select` | `id` | A node was clicked or focused. |
-| `edge-select` | `id` | An edge was clicked (default edge rendering only). |
-| `canvas-click` | — | Empty canvas was clicked. Consumers usually clear selection. |
+| `nodes-change` | Vue Flow's change array | Position, selection, dimension and removal changes. The canvas **applies none of them** — see *Positions are yours*. Drag frames carry `dragging: true`. |
+| `edges-change` | Vue Flow's change array | The same contract for edges: reported, never applied. |
+| `connect` | `{ source, target, sourceHandle, targetHandle }` | A connection was made — by dragging from a port, or with the keyboard (`c` on the source, `c` on the target). The handles are the **port ids you declared**; see *Ports and handle ids*. |
+| `canvas-drop` | `{ position, event }` | Something was dropped onto the canvas. `position` is already in canvas space (pan/zoom undone); `event` is the native `DragEvent`, so you can read `dataTransfer`. The canvas does not add the node — you do. |
+| `node-select` | Vue Flow's `{ node, event }` | A node was clicked. A host tracking bare ids reads `event.node.id`; `event.event` is the pointer event, which is what a context menu needs to position itself. |
+| `edge-select` | Vue Flow's `{ edge, event }` | An edge was clicked. Same shape. |
+| `edge-label-move` | `{ id, labelT }` | A connection's label was slid along its line, by pointer or by arrow key. `labelT` is a clamped **fraction** of the way along, never a pixel — store it and feed it back as `data.labelT`. |
+| `edge-label-click` | `id` | A connection's label was activated. |
+| `edge-label-context` | `{ id, event }` | A connection's label was right-clicked. Hosts open the same menu they open for the line. |
+| `canvas-click` | The pointer event | Empty pane was clicked. Consumers usually clear selection. |
 | `node-remove` | `id` | Delete or Backspace was pressed on a focused node. The canvas removes **nothing** — you own `nodes` and `edges`, and a node dropped without its edges leaves lines pointing at something that is gone. Not raised on a read-only canvas. |
-| `update:zoom` | `Number` | Wheel zoom, already clamped to `minZoom`/`maxZoom`. |
 
 ## Slots
 
 | Slot | Bindings | Notes |
 |---|---|---|
-| `node` | `{ node, selected }` | Renders a node's body. The canvas positions the wrapper; the slot fills it. |
-| `edge` | `{ edge, from, to, selected }` | Renders one edge inside the SVG layer. `from`/`to` are resolved centres, so you never recompute geometry. Must render SVG. Defaults to a straight arrow-tipped line. |
+| `node` | `{ node }` — its `id`, `data` and `selected` | Renders a step's body. The focusable wrapper, the ARIA state and the keyboard contract stay the canvas's, so a host cannot replace a focusable node with an inert div. |
+| `edge-label` | `{ edge }` — its `id`, `data` and `selected` | The chrome of a connection's label, rendered inside a focusable `<button>` the canvas owns. Render **inert** content. A line whose host renders nothing here draws no label control at all — gated on what the slot *renders*, not on whether it exists, so unnamed lines carry no empty chip. |
+| `edge-adornment` | `{ edge }` | A host's own controls **beside** the label. Separate from `edge-label` because that one is a button and a button cannot contain another; a replay's "open the payload that passed along this line" control is the case it exists for. |
+
+The hand-drawn `edge` slot is **gone**. Under it every consumer wrote its own orthogonal router, arrowhead marker and midpoint arithmetic — hermiq's ran to some 200 lines — and each had to be told how big a node was, because SVG cannot ask. Vue Flow routes the line and measures the node, leaving the consumer only the part that was ever app-specific: what the label says.
+
+## Ports and handle ids
+
+`data.hasTarget: false` removes a node's entries; `data.hasSource: false` removes its exits. `data.ports` declares its exits — `[{ id, label }]` — and a node that declares none gets one.
+
+Entries render on the **left and top**, exits on the **right and bottom**, left and right first. A node with several exits puts the first on the right and spreads the rest along the bottom.
+
+⚠️ **One exit is drawn on two sides, so a handle id is not a port id.** Vue Flow keys handles by id and two handles cannot share one, so the side is encoded into the handle's id (`yes__right`). The canvas strips it straight back off before `connect` is emitted, on both the pointer and the keyboard path — a branch recorded as `yes__bottom` would name a port your engine has never heard of. An entry handle reduces to `null`, because a node has exactly one inbound port.
+
+Set `data.hasIncoming` / `data.hasOutgoing` to have unconnected ports drawn as warnings, with the consequence in their `title` and accessible name. Leave them undefined and nothing is flagged — undefined means *not measured*, not *nothing connected*.
+
+## Line rendering
+
+`data.lineType` picks the router per edge — `smoothstep` (default), `straight`, or `default` for a bezier. It travels in `data`, never in `type`: Vue Flow reads `type` to choose the **component** that draws a line, so a router named there means the built-in edge answers and no label or adornment can be attached at all.
+
+Every line carries a slow travelling pulse in the direction of flow, suppressed under `prefers-reduced-motion` and switchable per edge with `data.animated: false`.
+
+An edge's arrowhead is sized to clear the target's port handle — Vue Flow draws the arrow at the path's end, which is exactly where the handle sits, in a layer painted above the edges. At the default size the arrow was drawn on every edge and covered on every edge: present, measurable, and invisible.
 
 ## Accessibility
 
-A drag-only canvas is not keyboard-operable — it fails WCAG 2.1 AA 2.1.1. So:
+A drag-only canvas is not keyboard-operable — it fails WCAG 2.1 AA 2.1.1, and Vue Flow is pointer-first. So the contract is re-implemented in `CnFlowNode` rather than inherited:
 
 - Nodes are focusable (`tabindex="0"`, `role="button"`, `aria-pressed` reflecting selection).
-- **Arrow keys move a focused node** (10 units); **Shift + arrow** takes a coarse step (50 units).
-- **`c` connects without a mouse**: press it on a focused node to start a connection, `c` on another node to complete it, `Escape` to cancel. The armed source node is marked while pending. This is the keyboard equivalent of dragging a handle.
-- `aria-label` comes from the node's `label`, falling back to its `id`.
-- Keys other than the arrows, `c`, and `Escape` are ignored, so inputs inside a node slot keep working.
+- **Arrow keys move a focused node** (8 units); **Shift + arrow** takes a coarse step (40 units).
+- **`r` toggles resize mode** on a resizable node, so the same arrow keys serve both. The pointer affordance is `@vue-flow/node-resizer`'s, which has no keyboard path of its own.
+- **`c` connects without a mouse**: press it on a focused node to arm an exit, `c` on another node to complete, `Escape` to cancel. Pressing `c` again on the *same* node steps through its remaining exits — a mouse picks a branch by pointing at it, and without stepping every branch but the first would be mouse-only. The armed port is **ringed** and marked `aria-pressed`; colour alone is not a state.
+- **Delete and Backspace** both remove a focused node, because which one deletes is a platform habit rather than a preference.
+- A connection's label is a real `<button>`, and **left/right arrows slide it** along its line.
+- `aria-label` comes from the node's `data.label`, falling back to its `id`.
+- The zoom/fit controls are **ours**, not `@vue-flow/controls` — the library's are bare buttons with an icon and no accessible name, which axe reports at *serious* impact.
 
 A canvas **must not be your only authoring surface**. Keep a list/form path for the same data.
 
 ## Notes
 
-- An edge whose `source` or `target` does not resolve to a node is **dropped, not drawn**. A dangling edge rendered to the origin reads as a rendering bug rather than as bad data — which is exactly how one earlier canvas hid a schema mismatch.
-- Node bodies sit above the edge layer, so node content stays clickable. Edges opt back into hit-testing individually.
-- Releasing the pointer outside the viewport ends the drag (`mouseleave`), so a node cannot get stuck to the cursor.
+- Vue Flow wraps every `#node-default` in `.vue-flow__node-default`, and its `theme-default.css` gives that wrapper a border, a background and padding — a box around your box. The stylesheet here strips it, in the selected, hover and focus states too. `.cn-flow-node` is the only border a node draws.
+- Every Vue Flow plugin ships its own stylesheet and only core's used to be imported. `@vue-flow/node-resizer`'s is what gives a resize control its size and position — without it a resizable node looked exactly like one that is not.
+- Colours come from Nextcloud variables throughout, including the arrowhead, which Vue Flow writes as an inline style and which therefore needs `!important` to stay themed rather than a hard-coded hex passed through the marker definition.

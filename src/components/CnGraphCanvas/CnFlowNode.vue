@@ -37,13 +37,30 @@
 		     canvas this replaces could be resized from the keyboard. -->
 		<NodeResizer v-if="resizable" :min-width="80" :min-height="40" />
 
-		<!-- Inbound port. Vue Flow draws the connection; the handle is what it
-		     attaches to. -->
+		<!-- WHERE A LINE ENTERS AND WHERE IT LEAVES, SAID BY THE PORT ITSELF.
+
+		     Every node used to draw one entry on top and one exit underneath,
+		     which contradicted the layout the editor actually produces:
+		     `useFlowStore.autoSort()` lays a flow out LEFT TO RIGHT, one column
+		     per depth. So the primary entry is on the LEFT and the primary exit
+		     on the RIGHT — Vue Flow attaches a handle-less edge to the first
+		     handle of each type, so DOM order here is what decides the default
+		     shape of every line on the canvas. Top and bottom stay as secondary
+		     attachment points for a graph the author routes by hand.
+
+		     A trigger has no entry and an end step has no exit: a port that can
+		     never be connected is not chrome, it is a lie about what the engine
+		     will do. -->
 		<Handle
-			v-if="hasTarget"
+			v-for="entry in entryHandles"
+			:id="entry.id"
+			:key="entry.id"
 			type="target"
-			:position="Position.Top"
-			class="cn-flow-node__handle" />
+			:position="entry.position"
+			class="cn-flow-node__handle cn-flow-node__handle--target"
+			:class="[`cn-flow-node__handle--dir-${entry.direction}`, { 'cn-flow-node__handle--orphan': orphanEntry }]"
+			:aria-label="entryLabel"
+			:title="orphanEntry ? orphanEntryHint : undefined" />
 
 		<div class="cn-flow-node__body">
 			<slot :node="{ id, data, selected }">
@@ -52,24 +69,59 @@
 		</div>
 
 		<!-- One out-port per exit. A routing node has several, and EVERY one of
-		     them has to be reachable without a mouse — see onKeydown. -->
+		     them has to be reachable without a mouse — see onKeydown.
+
+		     ⚠️ A HANDLE ID IS NOT A PORT ID. Two handles can serve one exit (a
+		     single-exit step offers both the right and the bottom edge), and Vue
+		     Flow keys handles by id, so they cannot share one. The side is
+		     therefore encoded into the handle id and stripped straight back off
+		     before a connection leaves this component — see `portIdOf`. The host
+		     only ever sees the port it declared. -->
 		<Handle
-			v-for="(port, index) in ports"
-			:id="port.id"
-			:key="port.id"
+			v-for="exit in exitHandles"
+			:id="exit.id"
+			:key="exit.id"
 			type="source"
-			:position="Position.Bottom"
+			:position="exit.position"
 			class="cn-flow-node__handle cn-flow-node__handle--source"
-			:class="{ 'cn-flow-node__handle--armed': armedPortIndex === index }"
-			:style="portStyle(index)"
-			:aria-label="portLabel(port)"
-			:aria-pressed="armedPortIndex === index ? 'true' : undefined" />
+			:class="[
+				`cn-flow-node__handle--dir-${exit.direction}`,
+				{
+					'cn-flow-node__handle--armed': exit.primary && armedPortIndex === exit.index,
+					'cn-flow-node__handle--orphan': orphanExit,
+				},
+			]"
+			:style="exit.style"
+			:aria-label="portLabel(exit.port)"
+			:title="orphanExit ? orphanExitHint : undefined"
+			:aria-pressed="exit.primary && armedPortIndex === exit.index ? 'true' : undefined" />
 	</div>
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { Handle, Position, useVueFlow } from '@vue-flow/core'
 import { NodeResizer } from '@vue-flow/node-resizer'
+
+/**
+ * What separates a port id from the side of the node its handle sits on.
+ *
+ * `__` rather than `-` or `.` because a port id is authored data — `out-2` and
+ * `openregister.no` are both ordinary ids — and a separator that can occur
+ * inside the thing it separates is not a separator. Read with `lastIndexOf`, so
+ * even a port id that does contain `__` survives the round trip.
+ *
+ * ⚠️ AND IT HAS TO BE CSS-SAFE. Vue Flow writes a handle's id straight into a
+ * class name (`vue-flow__handle-yes__right`), so a separator of `::` — the first
+ * choice here — produced `vue-flow__handle-in::top`, a class that reads as a
+ * pseudo-element the moment anyone tries to select it. Nothing targets these
+ * classes today; the point is that the next person to try would find a selector
+ * that silently matches nothing.
+ *
+ * Written in exactly one place — `exitHandles` — and read in exactly one place:
+ * `portIdOf`.
+ */
+const HANDLE_SIDE_SEPARATOR = '__'
 
 /**
  * The default node component, and the home of the canvas's keyboard contract.
@@ -200,10 +252,155 @@ export default {
 		},
 
 		/**
-		 * @return {boolean} Whether this node accepts inbound connections.
+		 * @return {boolean} Whether this node accepts inbound connections. A
+		 *   trigger does not: a run STARTS there, so an entry port on one is an
+		 *   affordance the engine will never honour.
 		 */
 		hasTarget() {
 			return this.data?.hasTarget !== false
+		},
+
+		/**
+		 * @return {boolean} Whether this node offers outbound connections. An
+		 *   end step does not — the flow stops there by definition.
+		 */
+		hasSource() {
+			return this.data?.hasSource !== false
+		},
+
+		/**
+		 * The entry ports, left first.
+		 *
+		 * LEFT IS PRIMARY, and that is a deliberate consequence of
+		 * `useFlowStore.autoSort()` laying a flow out left to right: Vue Flow
+		 * binds an edge that names no handle to the FIRST handle of its type, so
+		 * this order is what a line does by default.
+		 *
+		 * @return {Array<object>} The handles to draw.
+		 */
+		entryHandles() {
+			if (this.hasTarget === false) {
+				return []
+			}
+
+			return [
+				{ id: `in${HANDLE_SIDE_SEPARATOR}left`, position: this.Position.Left, direction: 'right' },
+				{ id: `in${HANDLE_SIDE_SEPARATOR}top`, position: this.Position.Top, direction: 'down' },
+			]
+		},
+
+		/**
+		 * The exit ports.
+		 *
+		 * The first exit sits on the RIGHT, where the next column is. Any
+		 * further exit — a routing step's branches — spreads along the bottom
+		 * edge, which is the one side with room for several and the only
+		 * arrangement that keeps a three-way branch readable.
+		 *
+		 * A step with a SINGLE exit gets a bottom handle as well, so a line may
+		 * leave downwards without the author fighting the router. Both handles
+		 * serve the same port; only the right-hand one is `primary`, so the
+		 * armed-port ring and `aria-pressed` land on exactly one element per
+		 * exit rather than two.
+		 *
+		 * @return {Array<object>} The handles to draw.
+		 */
+		exitHandles() {
+			if (this.hasSource === false) {
+				return []
+			}
+
+			const ports = this.ports
+			const branches = ports.length - 1
+			const handles = []
+
+			ports.forEach((port, index) => {
+				if (index === 0) {
+					handles.push({
+						id: `${port.id}${HANDLE_SIDE_SEPARATOR}right`,
+						port,
+						index,
+						position: this.Position.Right,
+						direction: 'right',
+						primary: true,
+						style: {},
+					})
+
+					return
+				}
+
+				handles.push({
+					id: `${port.id}${HANDLE_SIDE_SEPARATOR}bottom`,
+					port,
+					index,
+					position: this.Position.Bottom,
+					direction: 'down',
+					primary: true,
+					style: { left: `${(index / (branches + 1)) * 100}%` },
+				})
+			})
+
+			if (ports.length === 1) {
+				handles.push({
+					id: `${ports[0].id}${HANDLE_SIDE_SEPARATOR}bottom`,
+					port: ports[0],
+					index: 0,
+					position: this.Position.Bottom,
+					direction: 'down',
+					primary: false,
+					style: {},
+				})
+			}
+
+			return handles
+		},
+
+		/**
+		 * Whether this node draws an entry that nothing connects to.
+		 *
+		 * ⚠️ `=== false`, NOT falsy. A host that does not compute this at all
+		 * leaves it undefined, and undefined means "not measured" — flagging
+		 * every port on such a canvas would put a warning on a graph nobody
+		 * claimed anything about.
+		 *
+		 * @return {boolean} True when the port is drawn and unreachable.
+		 */
+		orphanEntry() {
+			return this.hasTarget === true && this.data?.hasIncoming === false
+		},
+
+		/**
+		 * @return {boolean} True when this node draws an exit that no line
+		 *   leaves from. Same "not measured" rule as `orphanEntry`.
+		 */
+		orphanExit() {
+			return this.hasSource === true && this.data?.hasOutgoing === false
+		},
+
+		/**
+		 * @return {string} The accessible name of an entry port.
+		 */
+		entryLabel() {
+			if (this.orphanEntry === true) {
+				return `${this.label}: ${this.orphanEntryHint}`
+			}
+
+			return t('nextcloud-vue', '{step}: entry', { step: this.label })
+		},
+
+		/**
+		 * @return {string} Why an unconnected entry port is a problem, in the
+		 *   terms the author cares about — what the ENGINE will do.
+		 */
+		orphanEntryHint() {
+			return t('nextcloud-vue', 'Nothing connects to this step, so the flow will never reach it.')
+		},
+
+		/**
+		 * @return {string} Why an unconnected exit port is a problem.
+		 */
+		orphanExitHint() {
+			return t('nextcloud-vue', 'Nothing leaves this step, so the flow stops here.')
 		},
 
 		/**
@@ -235,25 +432,39 @@ export default {
 
 	methods: {
 		/**
-		 * Spread several out-ports along the node's bottom edge.
+		 * Recover the PORT id a handle id was built from.
 		 *
-		 * @param {number} index The port's index.
-		 * @return {object} A style binding.
+		 * The inverse of the encoding in `exitHandles`, and the reason a
+		 * node can offer one exit on two sides without the host ever hearing
+		 * about a port it did not declare. Exported through the component so
+		 * CnGraphCanvas can apply it to Vue Flow's pointer connections too —
+		 * both routes have to end at the same port id or a branch would be
+		 * recorded under a name the engine has never seen.
+		 *
+		 * @param {string|null} handleId The handle id, or null.
+		 * @return {string|null} The port id.
 		 */
-		portStyle(index) {
-			const count = this.ports.length
-			if (count <= 1) {
-				return {}
+		portIdOf(handleId) {
+			if (typeof handleId !== 'string') {
+				return handleId ?? null
 			}
 
-			return { left: `${((index + 1) / (count + 1)) * 100}%` }
+			const cut = handleId.lastIndexOf(HANDLE_SIDE_SEPARATOR)
+
+			return cut === -1 ? handleId : handleId.slice(0, cut)
 		},
 
 		/**
 		 * @param {object} port The port.
-		 * @return {string} Its accessible label.
+		 * @return {string} Its accessible label. An unconnected exit says so
+		 *   rather than merely being painted differently — colour alone is not
+		 *   a state a screen reader can read.
 		 */
 		portLabel(port) {
+			if (this.orphanExit === true) {
+				return `${this.label}: ${this.orphanExitHint}`
+			}
+
 			return `${this.label}: ${port.label}`
 		},
 
@@ -490,9 +701,47 @@ export default {
 }
 
 .cn-flow-node__handle {
-	width: 10px;
-	height: 10px;
+	/* 14px, not 10: a port now carries a direction arrow, and there is no room
+	   to draw one legibly in 10. Sized against the 22px arrowhead an edge ends
+	   in (see `useFlowStore.canvasEdges`) — the marker still has to clear the
+	   handle it lands on. */
+	width: 14px;
+	height: 14px;
 	background: var(--color-primary-element, #0082c9);
+}
+
+/* AN ARROW IN THE PORT, because a dot cannot say which way it faces.
+
+   A canvas with four ports on a node is only readable if each one states
+   whether it takes a line in or lets one out, and the port is the only place
+   that can say it — a user reading the node has not yet followed the line.
+   Every arrow points WITH the flow: an entry on the left and an exit on the
+   right both point right, an entry on top and an exit on the bottom both point
+   down. So the whole node reads as one direction rather than as four separate
+   claims.
+
+   Drawn with borders rather than an icon component: a port is 14px, it is
+   rendered once per handle per node, and a triangle at that size is crisper
+   from a border than from a scaled glyph. */
+.cn-flow-node__handle::after {
+	content: '';
+	position: absolute;
+	inset-block-start: 50%;
+	inset-inline-start: 50%;
+	inline-size: 0;
+	block-size: 0;
+	border: 3px solid transparent;
+	pointer-events: none;
+}
+
+.cn-flow-node__handle--dir-right::after {
+	border-inline-start-color: var(--color-primary-element-text, #fff);
+	transform: translate(-30%, -50%);
+}
+
+.cn-flow-node__handle--dir-down::after {
+	border-block-start-color: var(--color-primary-element-text, #fff);
+	transform: translate(-50%, -30%);
 }
 
 /* The armed port is RINGED, not merely coloured: colour alone is not an
@@ -501,5 +750,32 @@ export default {
 .cn-flow-node__handle--armed {
 	outline: 3px solid var(--color-warning, #c28900);
 	outline-offset: 2px;
+}
+
+/* A PORT NOTHING IS CONNECTED TO IS A BROKEN FLOW, SHOWN WHERE IT BREAKS.
+
+   An entry with no line into it can never be reached; an exit with no line out
+   of it stops the run. Both are things the engine will report at run time, and
+   the port is where the author can act on it — the Check button's verdict is a
+   list of node ids in a card somewhere else on the screen.
+
+   ⚠️ NOT COLOUR ALONE. The ring changes the port's SHAPE as well as its fill,
+   and every warning port carries a `title` naming the consequence plus an
+   `aria-label` that says the same thing — see `orphanEntryHint`. A state a
+   sighted user reads from a colour and nobody else can read at all is not a
+   state, it is decoration. */
+.cn-flow-node__handle--orphan {
+	background: var(--color-warning, #c28900);
+	box-shadow: 0 0 0 2px var(--color-main-background, #fff), 0 0 0 4px var(--color-warning, #c28900);
+}
+
+.cn-flow-node__handle--orphan::after {
+	border-inline-start-color: var(--color-main-text, #222);
+	border-block-start-color: transparent;
+}
+
+.cn-flow-node__handle--orphan.cn-flow-node__handle--dir-down::after {
+	border-inline-start-color: transparent;
+	border-block-start-color: var(--color-main-text, #222);
 }
 </style>

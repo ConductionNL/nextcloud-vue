@@ -64,6 +64,7 @@
 				<CnFlowEdge
 					v-bind="edgeProps"
 					:line-type="edgeProps.data && edgeProps.data.lineType"
+					:animated="!(edgeProps.data && edgeProps.data.animated === false)"
 					:label-aria-label="edgeProps.data && edgeProps.data.labelAriaLabel"
 					@label-move="onEdgeLabelMove"
 					@label-click="onEdgeLabelClick"
@@ -335,9 +336,50 @@ export default {
 			/**
 			 * @event connect A new connection was made, by pointer OR by
 			 *   keyboard. Carries Vue Flow's
-			 *   `{ source, target, sourceHandle, targetHandle }`.
+			 *   `{ source, target, sourceHandle, targetHandle }`, with the
+			 *   handles reduced to the PORT the host declared — see
+			 *   `portIdOf` below.
 			 */
-			this.$emit('connect', connection)
+			this.$emit('connect', {
+				...connection,
+				sourceHandle: this.portIdOf(connection?.sourceHandle),
+				targetHandle: this.portIdOf(connection?.targetHandle),
+			})
+		},
+
+		/**
+		 * Reduce a HANDLE id to the PORT id the host declared.
+		 *
+		 * A node draws more handles than it has ports — one exit is offered on
+		 * both the right and the bottom edge, one entry on both the left and the
+		 * top — because a line has to be able to leave and arrive on the side
+		 * the graph reads best from. Vue Flow keys handles by id, so those
+		 * cannot share one, and the side is encoded into the id instead
+		 * (`yes__right`). See CnFlowNode's `exitHandles`.
+		 *
+		 * ⚠️ WHICH MEANS THE ENCODED ID MUST NEVER LEAVE THE CANVAS. A branch
+		 * recorded as `yes__bottom` names a port the engine has never heard of,
+		 * and a flow whose branch ids do not match its catalogue is one the
+		 * engine cannot route — it would take the default exit and the canvas
+		 * would keep showing the branch the author drew. So both routes into
+		 * this method (pointer via <VueFlow>, keyboard via CnFlowNode) are
+		 * stripped here, in the one place every connection passes through.
+		 *
+		 * An entry handle carries no port of its own — a node has exactly one
+		 * inbound port — so it reduces to null rather than to the literal `in`.
+		 *
+		 * @param {string|null|undefined} handleId The handle id Vue Flow reports.
+		 * @return {string|null} The port id, or null.
+		 */
+		portIdOf(handleId) {
+			if (typeof handleId !== 'string') {
+				return null
+			}
+
+			const cut = handleId.lastIndexOf('__')
+			const port = cut === -1 ? handleId : handleId.slice(0, cut)
+
+			return port === 'in' ? null : port
 		},
 
 		/**
