@@ -123,7 +123,8 @@ export default {
 
 	props: {
 		/**
-		 * Whether the context menu is open. Use with `.sync` modifier.
+		 * Whether the context menu is open. Bind with `v-model:open` — the `.sync`
+		 * modifier it replaces was removed in Vue 3 and binds nothing.
 		 * Bind to `useContextMenu().isOpen`.
 		 */
 		open: {
@@ -164,7 +165,7 @@ export default {
 		 * Name of the currently-active custom panel. When set (and the menu is
 		 * open), the default NcActions list is replaced by the matching
 		 * `#panel:<name>` slot, rendered free-form (no NcActions child filter).
-		 * Use with `.sync` — the component emits `update:activePanel(null)` when
+		 * Bind with `v-model:active-panel` — the component emits `update:activePanel(null)` when
 		 * the panel's `back()` binding is invoked or the menu closes.
 		 *
 		 * @type {string|null}

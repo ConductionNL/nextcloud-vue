@@ -13,8 +13,8 @@ Recursive hierarchical tree widget. Nested nodes with click-to-expand carets, op
 ```vue
 <CnTreeView
   :nodes="nodes"
-  :expanded-ids.sync="expanded"
-  :selected-id.sync="selected"
+  v-model:expanded-ids="expanded"
+  v-model:selected-id="selected"
   @select="onSelect">
   <template #actions="{ node }">
     <button @click.stop="edit(node)">Edit</button>

@@ -262,7 +262,7 @@
 					clearable
 					:sources="sources"
 					:catalogues="catalogues"
-					:placement.sync="placement" />
+					v-model:placement="placement" />
 				<pre data-testid="icon-value">{{ icon === null ? 'null' : icon }}</pre>
 				<pre data-testid="icon-placement">{{ placement }}</pre>
 			</section>
@@ -513,10 +513,17 @@ export default {
 		// from `main.js`. The harness mounts bare SFCs, so without this the
 		// mask keeps @nextcloud/vue's own 9998 and any spec about how something
 		// stacks against a dialog would be measuring a layout no user ever sees.
-		// Scoped to this scenario so the other harness sections are untouched.
-		if (this.showSelectZ) {
-			installModalStack()
-		}
+		// ⚠️ INSTALLED FOR EVERY SCENARIO, not just this one.
+		//
+		// It used to be scoped to `?selz=1` "so the other harness sections are
+		// untouched" — but untouched here means running in a state no consumer
+		// is ever in. `CnAppRoot` installs this on mount and apps that do not
+		// mount it are told to call it from `main.js`, so a real app always has
+		// it. Without it two open dialogs TIE at @nextcloud/vue's 9998, painting
+		// order falls back to DOM order, and for teleported masks that is a
+		// race — which is precisely what `nested-dialog-stacking.e2e.js` was
+		// failing on, in the `?sd=1` scenario the scoping excluded.
+		installModalStack()
 
 		// The flow specs seed a graph through the store rather than through the
 		// palette. Dragging from the palette would make every assertion about

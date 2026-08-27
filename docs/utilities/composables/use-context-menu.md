@@ -20,7 +20,7 @@ const { isOpen, targetItem, open, close, isActionDisabled, triggerAction } = use
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `isOpen` | `Ref<boolean>` | Whether the context menu is open. Bind to CnContextMenu via `:open.sync="isOpen"`. |
+| `isOpen` | `Ref<boolean>` | Whether the context menu is open. Bind to CnContextMenu via `v-model:open="isOpen"`. |
 | `targetItem` | `Ref<any>` | The item that was right-clicked (`null` when closed). Bind to CnContextMenu via `:target-item`. |
 | `open({ item, event })` | Function | Open the menu at the cursor position. Sets CSS vars and data attribute on `documentElement`. |
 | `close()` | Function | Close the menu and clean up DOM. Use as `@close` handler on CnContextMenu. |
@@ -43,7 +43,7 @@ const { isOpen, targetItem, open, close, isActionDisabled, triggerAction } = use
   </table>
 
   <CnContextMenu
-    :open.sync="contextMenuOpen"
+    v-model:open="contextMenuOpen"
     :actions="actions"
     :target-item="contextMenuRow"
     @action="onAction"
