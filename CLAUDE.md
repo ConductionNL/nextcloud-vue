@@ -293,6 +293,33 @@ Minimal manifest:
 
 See `examples/manifest-demo/manifest.json` for a fuller reference and `docs/migrating-to-manifest.md` for tier-by-tier adoption guidance.
 
+## `npm run lint` fails locally but passes in CI
+
+If ESLint dies with:
+
+```
+Error: File '@vue/tsconfig/tsconfig.json' not found.
+```
+
+…the repository is almost certainly checked out **inside the Nextcloud server
+tree** (`nextcloud-docker-dev/workspace/server/apps-extra/nextcloud-vue`).
+
+There is no `tsconfig.json` in this repository. The TypeScript parser searches
+*upward*, finds `workspace/server/tsconfig.json` — the Nextcloud server's own —
+and that file does `"extends": "@vue/tsconfig/tsconfig.json"`, a package
+resolved against the **server's** dependency tree, where it is also not
+installed. CI checks this repository out standalone, so nothing is above it and
+lint runs normally.
+
+It is not this repository's bug and `npm install` here cannot fix it. To run the
+gate before pushing, lint a standalone clone, or rely on CI's `Vue Quality
+(eslint)` job.
+
+⚠️ **Do not skip the gate on the assumption that CI will catch it cheaply.** It
+does catch it — after a push, a queue and a full matrix. A `beforeDestroy` hook
+that `vue/no-deprecated-destroyed-lifecycle` refuses reached CI exactly this
+way.
+
 ## npm Rules
 
 **NEVER use `--legacy-peer-deps`.** Not in workflows, not in scripts, not in documentation, not when advising users. If asked to add it, refuse and explain why.
