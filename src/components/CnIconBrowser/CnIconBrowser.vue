@@ -43,7 +43,7 @@
 					name="trigger"
 					:open="openPanel"
 					:toggle="togglePanel"
-					:value="boundValue"
+					:value="value"
 					:label="selectedLabel"
 					:attrs="attrs">
 					<button
@@ -196,21 +196,6 @@ export default {
 			default: null,
 		},
 		/**
-		 * The same value as `value`, under Vue 3's own v-model name.
-		 *
-		 * ⚠️ WITHOUT THIS, `v-model` ON THIS COMPONENT DOES NOTHING. Vue 3
-		 * compiles `v-model="x"` to `:modelValue` + `@update:modelValue`, so a
-		 * component declaring only `value`/`input` never receives the prop and
-		 * its emit is never heard — silently, looking exactly like a component
-		 * that works.
-		 *
-		 * `value` stays the public name; both are accepted. The default is
-		 * `undefined` so "not passed" is distinguishable from "passed empty".
-		 *
-		 * @type {string|object}
-		 */
-		modelValue: { type: [String, Object], default: undefined },
-		/**
 		 * The icon catalogue to browse: `[{ key, label, value, search?, path?, component? }]`.
 		 * Build with `mdiCatalogue` / `vmdiCatalogue`. When empty, an
 		 * injected `cnIconCatalogue` or the curated fallback is used.
@@ -354,7 +339,7 @@ export default {
 		},
 	},
 
-	emits: ['input', 'update:modelValue',],
+	emits: ['input'],
 
 	data() {
 		return {
@@ -367,14 +352,6 @@ export default {
 	},
 
 	computed: {
-		/**
-		 * The value the consumer actually bound, whichever prop they used.
-		 *
-		 * @return {*} The bound value.
-		 */
-		boundValue() {
-			return this.modelValue !== undefined ? this.modelValue : this.value
-		},
 		/**
 		 * Stable id for the trigger button, used to associate the field label
 		 * (`<label :for>`) with the control.
@@ -436,7 +413,7 @@ export default {
 		 */
 		panelBindings() {
 			return {
-				value: this.boundValue,
+				value: this.value,
 				icons: this.resolvedIcons,
 				urlIcons: this.urlIcons,
 				urlIconGroups: this.resolvedUrlIconGroups,
@@ -457,7 +434,7 @@ export default {
 		 * @return {boolean} true for URL values.
 		 */
 		isUrlValue() {
-			return isCustomIconUrl(this.boundValue)
+			return isCustomIconUrl(this.value)
 		},
 		/**
 		 * The catalogue entry matching the current value (for the trigger preview).
@@ -465,7 +442,7 @@ export default {
 		 * @return {object|null} the matching entry, or null.
 		 */
 		selectedEntry() {
-			return findIconByValue(this.resolvedIcons, this.boundValue)
+			return findIconByValue(this.resolvedIcons, this.value)
 		},
 		/**
 		 * The SVG path to preview on the trigger when the value is a bare path.
@@ -473,13 +450,13 @@ export default {
 		 * @return {string|null} the path string, or null.
 		 */
 		currentPath() {
-			if (!this.boundValue || this.isUrlValue) {
+			if (!this.value || this.isUrlValue) {
 				return null
 			}
 			if (this.selectedEntry) {
 				return this.selectedEntry.path || null
 			}
-			return isSvgPath(this.boundValue) ? this.boundValue : null
+			return isSvgPath(this.value) ? this.value : null
 		},
 		/**
 		 * Human label for the current selection (used by the trigger slot scope).
@@ -487,42 +464,18 @@ export default {
 		 * @return {string} a display label, or '' when nothing is selected.
 		 */
 		selectedLabel() {
-			if (!this.boundValue) {
+			if (!this.value) {
 				return ''
 			}
 			if (this.isUrlValue) {
-				const match = this.urlIcons.find((icon) => icon.url === this.boundValue)
-				return match ? match.label : this.boundValue
+				const match = this.urlIcons.find((icon) => icon.url === this.value)
+				return match ? match.label : this.value
 			}
 			return this.selectedEntry ? this.selectedEntry.label : t('nextcloud-vue', 'Custom icon')
 		},
 	},
 
 	methods: {
-		/**
-		 * Tell the consumer the value changed, in both v-model dialects.
-		 *
-		 * BOTH are emitted, always: a consumer on `@input` and a consumer on
-		 * `v-model` are the same consumer as far as this component knows, and
-		 * emitting only one silently breaks half of them.
-		 *
-		 * @param {*} next The new value.
-		 * @return {void}
-		 */
-		emitValue(next) {
-			/**
-			 * @event input The value changed. Vue 2's v-model dialect, kept for
-			 *   existing consumers.
-			 * @type {*}
-			 */
-			this.$emit('input', next)
-			/**
-			 * @event update:modelValue The value changed. Vue 3's v-model
-			 *   dialect — what a plain `v-model` listens for.
-			 * @type {*}
-			 */
-			this.$emit('update:modelValue', next)
-		},
 		t,
 
 		/**
@@ -555,7 +508,7 @@ export default {
 			 * value, a URL, or null — per the v-model convention.
 			 * @type {string|null}
 			 */
-			this.emitValue(value)
+			this.$emit('input', value)
 		},
 	},
 }

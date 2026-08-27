@@ -234,10 +234,7 @@ import { dedupeCatalogue } from './iconCatalogues.js'
  * lazy-load `@mdi/js` (an optional dependency) and falls back to the built-in
  * `DASHBOARD_ICONS` set if it is absent.
  *
- * v-model works in both dialects: `value`/`input` (kept for existing
- * consumers) and Vue 3's `modelValue`/`update:modelValue`, which is what a
- * plain `v-model` compiles to. Placement uses `v-model:placement` — the
- * `.sync` modifier it replaced does not exist in Vue 3 and binds nothing.
+ * Vue 2 v-model: `value` in, `input` out. Placement uses `v-model:placement`.
  *
  * ```vue
  * <CnIconPicker v-model="icon" :upload-fn="uploadDataUrl" />
@@ -265,21 +262,6 @@ export default {
 			type: String,
 			default: null,
 		},
-		/**
-		 * The same value as `value`, under Vue 3's own v-model name.
-		 *
-		 * ⚠️ WITHOUT THIS, `v-model` ON THIS COMPONENT DOES NOTHING. Vue 3
-		 * compiles `v-model="x"` to `:modelValue` + `@update:modelValue`, so a
-		 * component declaring only `value`/`input` never receives the prop and
-		 * its emit is never heard — silently, looking exactly like a component
-		 * that works.
-		 *
-		 * `value` stays the public name; both are accepted. The default is
-		 * `undefined` so "not passed" is distinguishable from "passed empty".
-		 *
-		 * @type {string|object}
-		 */
-		modelValue: { type: [String, Object], default: undefined },
 		/**
 		 * Legacy icon registry to enumerate in the grid (name → component).
 		 * Defaults to the built-in DASHBOARD_ICONS set. Used only in legacy mode
@@ -363,7 +345,7 @@ export default {
 		},
 	},
 
-	emits: ['input', 'update:modelValue', 'update:placement'],
+	emits: ['input', 'update:placement'],
 
 	data() {
 		return {
@@ -373,21 +355,13 @@ export default {
 			activeSource: (this.sources && this.sources[0]) || 'mdi',
 			query: '',
 			iconMode: 'standard',
-			customSvg: (typeof (this.modelValue !== undefined ? this.modelValue : this.value) === 'string' && (this.modelValue !== undefined ? this.modelValue : this.value).trim().startsWith('<svg')) ? (this.modelValue !== undefined ? this.modelValue : this.value) : '',
+			customSvg: (typeof this.value === 'string' && this.value.trim().startsWith('<svg')) ? this.value : '',
 			displayLimit: 120,
 			mdiCatalogue: null,
 		}
 	},
 
 	computed: {
-		/**
-		 * The value the consumer actually bound, whichever prop they used.
-		 *
-		 * @return {*} The bound value.
-		 */
-		boundValue() {
-			return this.modelValue !== undefined ? this.modelValue : this.value
-		},
 		/**
 		 * Whether the upload control is shown (only when an uploadFn is given).
 		 *
@@ -403,8 +377,8 @@ export default {
 		 * @return {string} the registry key, or '' for URL/empty values.
 		 */
 		builtInValue() {
-			if (this.boundValue && !isCustomIconUrl(this.boundValue)) {
-				return this.boundValue
+			if (this.value && !isCustomIconUrl(this.value)) {
+				return this.value
 			}
 			return ''
 		},
@@ -508,8 +482,8 @@ export default {
 				return list.filter((e) => (e.search || String(e.label).toLowerCase()).includes(query))
 			}
 			const sliced = list.slice(0, this.displayLimit)
-			if (this.boundValue && !sliced.find((e) => e.value === this.boundValue)) {
-				const selected = list.find((e) => e.value === this.boundValue)
+			if (this.value && !sliced.find((e) => e.value === this.value)) {
+				const selected = list.find((e) => e.value === this.value)
 				if (selected) {
 					sliced.push(selected)
 				}
@@ -544,30 +518,6 @@ export default {
 	},
 
 	methods: {
-		/**
-		 * Tell the consumer the value changed, in both v-model dialects.
-		 *
-		 * BOTH are emitted, always: a consumer on `@input` and a consumer on
-		 * `v-model` are the same consumer as far as this component knows, and
-		 * emitting only one silently breaks half of them.
-		 *
-		 * @param {*} next The new value.
-		 * @return {void}
-		 */
-		emitValue(next) {
-			/**
-			 * @event input The value changed. Vue 2's v-model dialect, kept for
-			 *   existing consumers.
-			 * @type {*}
-			 */
-			this.$emit('input', next)
-			/**
-			 * @event update:modelValue The value changed. Vue 3's v-model
-			 *   dialect — what a plain `v-model` listens for.
-			 * @type {*}
-			 */
-			this.$emit('update:modelValue', next)
-		},
 		t,
 		/**
 		 * Attempt to lazy-load `@mdi/js` (optional dependency) and adapt it into
@@ -648,7 +598,7 @@ export default {
 		setIconMode(mode) {
 			this.iconMode = mode
 			if (mode === 'custom' && this.customSvg) {
-				this.emitValue(this.customSvg)
+				this.$emit('input', this.customSvg)
 			}
 		},
 		/**
@@ -659,7 +609,7 @@ export default {
 		 */
 		onCustomSvgInput(svg) {
 			this.customSvg = svg
-			this.emitValue(svg || null)
+			this.$emit('input', svg || null)
 		},
 		/**
 		 * Pretty-print the SVG in the custom editor (indented, one node per
@@ -739,7 +689,7 @@ export default {
 			 * value, URL, raw SVG, or null) per the v-model convention.
 			 * @type {string|null}
 			 */
-			this.emitValue(name || null)
+			this.$emit('input', name || null)
 			// In compact mode, close the popover after a pick.
 			if (this.compact && this.$refs.root) {
 				this.$refs.root.open = false
@@ -781,7 +731,7 @@ export default {
 						throw new Error('FileReader did not return a data URL')
 					}
 					const response = await this.uploadFn(dataUrl)
-					this.emitValue(response.url)
+					this.$emit('input', response.url)
 				} catch (err) {
 					this.uploadError = (err && err.message) || t('nextcloud-vue', 'Failed to upload icon')
 					console.error('Icon upload failed:', err)

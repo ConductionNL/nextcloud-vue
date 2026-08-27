@@ -165,28 +165,11 @@ export default {
 			type: Object,
 			default: () => emptyTable(),
 		},
-		/**
-		 * The same value as `value`, under Vue 3's own v-model name.
-		 *
-		 * ⚠️ WITHOUT THIS, `v-model` ON THIS COMPONENT DOES NOTHING. Vue 3
-		 * compiles `v-model="x"` to `:modelValue` + `@update:modelValue`, so a
-		 * component declaring only `value`/`input` never receives the prop and
-		 * its emit is never heard — silently, looking exactly like a component
-		 * that works.
-		 *
-		 * `value` stays the public name; both are accepted. The default is
-		 * `undefined` so "not passed" is distinguishable from "passed empty".
-		 *
-		 * @type {string|object}
-		 */
-		modelValue: { type: [String,Object], default: undefined },
 	},
 
 	emits: [
 		/** `v-model` update; payload is the next validated tableData object. */
 		'input',
-		/** The same payload under Vue 3's v-model name; see the `modelValue` prop. */
-		'update:modelValue',
 	],
 
 	data() {
@@ -199,20 +182,12 @@ export default {
 
 	computed: {
 		/**
-		 * The value the consumer actually bound, whichever prop they used.
-		 *
-		 * @return {*} The bound value.
-		 */
-		boundValue() {
-			return this.modelValue !== undefined ? this.modelValue : this.value
-		},
-		/**
 		 * Whether the table currently has a selectable cell (non-empty grid).
 		 *
 		 * @return {boolean} true when there is at least one row and column.
 		 */
 		hasSelection() {
-			return this.boundValue.rows.length > 0 && this.boundValue.columnAlignments.length > 0
+			return this.value.rows.length > 0 && this.value.columnAlignments.length > 0
 		},
 
 		/**
@@ -237,36 +212,12 @@ export default {
 			if (!this.hasSelection) {
 				return false
 			}
-			const cell = this.boundValue.rows[this.anchor.rIdx]?.[this.anchor.cIdx]
+			const cell = this.value.rows[this.anchor.rIdx]?.[this.anchor.cIdx]
 			return cell && ((cell.rowSpan || 1) > 1 || (cell.colSpan || 1) > 1)
 		},
 	},
 
 	methods: {
-		/**
-		 * Tell the consumer the value changed, in both v-model dialects.
-		 *
-		 * BOTH are emitted, always: a consumer on `@input` and a consumer on
-		 * `v-model` are the same consumer as far as this component knows, and
-		 * emitting only one silently breaks half of them.
-		 *
-		 * @param {*} next The new value.
-		 * @return {void}
-		 */
-		emitValue(next) {
-			/**
-			 * @event input The value changed. Vue 2's v-model dialect, kept for
-			 *   existing consumers.
-			 * @type {*}
-			 */
-			this.$emit('input', next)
-			/**
-			 * @event update:modelValue The value changed. Vue 3's v-model
-			 *   dialect — what a plain `v-model` listens for.
-			 * @type {*}
-			 */
-			this.$emit('update:modelValue', next)
-		},
 		t,
 
 		/**
@@ -279,7 +230,7 @@ export default {
 		emitUpdate(next) {
 			const errors = validateTable(next)
 			this.errorMessage = errors.length > 0 ? errors[0] : ''
-			this.emitValue(next)
+			this.$emit('input', next)
 		},
 
 		/**
@@ -308,7 +259,7 @@ export default {
 		 * @return {boolean} true when the cell is a hidden placeholder.
 		 */
 		isPlaceholder(rIdx, cIdx) {
-			return isPlaceholderCell(this.boundValue.rows, rIdx, cIdx)
+			return isPlaceholderCell(this.value.rows, rIdx, cIdx)
 		},
 
 		/**
@@ -323,7 +274,7 @@ export default {
 			const inSelection = this.cellInSelection(rIdx, cIdx)
 			return {
 				'cn-text-table-editor__cell': true,
-				'cn-text-table-editor__cell--header': this.boundValue.headerRow && rIdx === 0,
+				'cn-text-table-editor__cell--header': this.value.headerRow && rIdx === 0,
 				'cn-text-table-editor__cell--anchor': isAnchor,
 				'cn-text-table-editor__cell--selected': inSelection && !isAnchor,
 			}
@@ -352,7 +303,7 @@ export default {
 		 */
 		cellStyle(cIdx) {
 			return {
-				'text-align': this.boundValue.columnAlignments[cIdx] || 'left',
+				'text-align': this.value.columnAlignments[cIdx] || 'left',
 			}
 		},
 
@@ -363,7 +314,7 @@ export default {
 		 * @return {string} the localised placeholder.
 		 */
 		cellPlaceholder(rIdx) {
-			return this.boundValue.headerRow && rIdx === 0
+			return this.value.headerRow && rIdx === 0
 				? t('nextcloud-vue', 'Header')
 				: t('nextcloud-vue', 'Cell')
 		},
@@ -388,7 +339,7 @@ export default {
 		 * @return {void}
 		 */
 		onCellInput(rIdx, cIdx, text) {
-			this.emitUpdate(setCellText(this.boundValue, rIdx, cIdx, text))
+			this.emitUpdate(setCellText(this.value, rIdx, cIdx, text))
 		},
 
 		/**
@@ -398,7 +349,7 @@ export default {
 		 * @return {void}
 		 */
 		onHeaderRowToggle(checked) {
-			this.emitUpdate(setHeaderRow(this.boundValue, checked === true))
+			this.emitUpdate(setHeaderRow(this.value, checked === true))
 		},
 
 		/**
@@ -409,7 +360,7 @@ export default {
 		 * @return {void}
 		 */
 		onAlignmentChange(cIdx, alignment) {
-			this.emitUpdate(setColumnAlignment(this.boundValue, cIdx, alignment))
+			this.emitUpdate(setColumnAlignment(this.value, cIdx, alignment))
 		},
 
 		/**
@@ -419,7 +370,7 @@ export default {
 		 * @return {void}
 		 */
 		onAddRow(position) {
-			this.emitUpdate(addRow(this.boundValue, this.anchor.rIdx, position))
+			this.emitUpdate(addRow(this.value, this.anchor.rIdx, position))
 		},
 
 		/**
@@ -429,7 +380,7 @@ export default {
 		 * @return {void}
 		 */
 		onAddColumn(position) {
-			this.emitUpdate(addColumn(this.boundValue, this.anchor.cIdx, position))
+			this.emitUpdate(addColumn(this.value, this.anchor.cIdx, position))
 		},
 
 		/**
@@ -439,7 +390,7 @@ export default {
 		 */
 		onDeleteRow() {
 			const rIdx = this.anchor.rIdx
-			const row = this.boundValue.rows[rIdx] || []
+			const row = this.value.rows[rIdx] || []
 			const hasText = row.some((cell) => typeof cell?.text === 'string' && cell.text.trim() !== '')
 			if (hasText) {
 				const proceed = typeof window !== 'undefined' && typeof window.confirm === 'function'
@@ -449,7 +400,7 @@ export default {
 					return
 				}
 			}
-			this.emitUpdate(deleteRow(this.boundValue, rIdx))
+			this.emitUpdate(deleteRow(this.value, rIdx))
 			this.anchor = { rIdx: Math.max(0, rIdx - 1), cIdx: this.anchor.cIdx }
 			this.extent = { ...this.anchor }
 		},
@@ -461,7 +412,7 @@ export default {
 		 */
 		onDeleteColumn() {
 			const cIdx = this.anchor.cIdx
-			const hasText = this.boundValue.rows.some(
+			const hasText = this.value.rows.some(
 				(row) => row[cIdx] && typeof row[cIdx].text === 'string' && row[cIdx].text.trim() !== '',
 			)
 			if (hasText) {
@@ -472,7 +423,7 @@ export default {
 					return
 				}
 			}
-			this.emitUpdate(deleteColumn(this.boundValue, cIdx))
+			this.emitUpdate(deleteColumn(this.value, cIdx))
 			this.anchor = { rIdx: this.anchor.rIdx, cIdx: Math.max(0, cIdx - 1) }
 			this.extent = { ...this.anchor }
 		},
@@ -483,7 +434,7 @@ export default {
 		 * @return {void}
 		 */
 		onMergeCells() {
-			this.emitUpdate(mergeCells(this.boundValue, this.anchor, this.extent))
+			this.emitUpdate(mergeCells(this.value, this.anchor, this.extent))
 			this.extent = { ...this.anchor }
 		},
 
@@ -493,7 +444,7 @@ export default {
 		 * @return {void}
 		 */
 		onSplitCell() {
-			this.emitUpdate(splitCell(this.boundValue, this.anchor.rIdx, this.anchor.cIdx))
+			this.emitUpdate(splitCell(this.value, this.anchor.rIdx, this.anchor.cIdx))
 		},
 	},
 }

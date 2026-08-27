@@ -139,21 +139,13 @@ export default {
 		/** Reset-button label. */
 		resetLabel: { type: String, default: 'Reset to defaults' },
 	},
-	emits: ['change', 'input', 'update:modelValue'],
+	emits: ['change', 'input'],
 	data() {
 		return {
 			model: this.buildInitialModel(),
 		}
 	},
 	computed: {
-		/**
-		 * The value the consumer actually bound, whichever prop they used.
-		 *
-		 * @return {*} The bound value.
-		 */
-		boundValue() {
-			return this.modelValue !== undefined ? this.modelValue : this.value
-		},
 		/**
 		 * Inline CSS variables applied to the preview panel.
 		 *
@@ -166,21 +158,6 @@ export default {
 			}
 			return out
 		},
-		/**
-		 * The same value as `value`, under Vue 3's own v-model name.
-		 *
-		 * ⚠️ WITHOUT THIS, `v-model` ON THIS COMPONENT DOES NOTHING. Vue 3
-		 * compiles `v-model="x"` to `:modelValue` + `@update:modelValue`, so a
-		 * component declaring only `value`/`input` never receives the prop and
-		 * its emit is never heard — silently, looking exactly like a component
-		 * that works.
-		 *
-		 * `value` stays the public name; both are accepted. The default is
-		 * `undefined` so "not passed" is distinguishable from "passed empty".
-		 *
-		 * @type {string|object}
-		 */
-		modelValue: { type: [String,Object], default: undefined },
 		/**
 		 * Whether the current model differs from `defaults`.
 		 *
@@ -209,44 +186,15 @@ export default {
 	},
 	methods: {
 		/**
-		 * Tell the consumer the value changed, in both v-model dialects.
-		 *
-		 * BOTH are emitted, always: a consumer on `@input` and a consumer on
-		 * `v-model` are the same consumer as far as this component knows, and
-		 * emitting only one silently breaks half of them.
-		 *
-		 * @param {*} next The new value.
-		 * @return {void}
-		 */
-		emitValue(next) {
-			/**
-			 * @event input The value changed. Vue 2's v-model dialect, kept for
-			 *   existing consumers.
-			 * @type {*}
-			 */
-			this.$emit('input', next)
-			/**
-			 * @event update:modelValue The value changed. Vue 3's v-model
-			 *   dialect — what a plain `v-model` listens for.
-			 * @type {*}
-			 */
-			this.$emit('update:modelValue', next)
-		},
-		/**
 		 * Build the starting model from `value` / picker defaults.
 		 *
 		 * @return {Record<string,string>} The seed model.
 		 */
 		buildInitialModel() {
-			// ⚠️ `data()` runs BEFORE computeds exist, so `this.boundValue` is
-			// undefined here and the model would silently fall back to defaults.
-			// Resolved inline instead — the same rule, evaluated at a moment the
-			// computed cannot be.
-			const bound = this.modelValue !== undefined ? this.modelValue : this.value
 			const out = {}
 			for (const p of this.pickers) {
-				if (bound && bound[p.key] !== undefined) {
-					out[p.key] = bound[p.key]
+				if (this.value && this.value[p.key] !== undefined) {
+					out[p.key] = this.value[p.key]
 				} else if (p.default !== undefined) {
 					out[p.key] = p.default
 				} else {
@@ -296,7 +244,7 @@ export default {
 			 *   Lets consumers bind `v-model` to a colour map.
 			 * @type {Record<string,string>}
 			 */
-			this.emitValue({ ...this.model })
+			this.$emit('input', { ...this.model })
 		},
 	},
 }

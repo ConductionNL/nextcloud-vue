@@ -250,7 +250,7 @@
 					clearable
 					:sources="sources"
 					:catalogues="catalogues"
-					v-model:placement="placement" />
+					:placement.sync="placement" />
 				<pre data-testid="icon-value">{{ icon === null ? 'null' : icon }}</pre>
 				<pre data-testid="icon-placement">{{ placement }}</pre>
 			</section>

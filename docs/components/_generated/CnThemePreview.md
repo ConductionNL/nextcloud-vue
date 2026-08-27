@@ -18,14 +18,10 @@
 
 ### Events
 
-| Name                | Payload | Description                                                                                     |
-| ------------------- | ------- | ----------------------------------------------------------------------------------------------- |
-| `change`            | —       | Emitted on every colour mutation (picker / text input / reset). Payload is the full colour map. |
-| `input`             | —       | The value changed. Vue 2's v-model dialect, kept for existing consumers.                        |
-| `update:modelValue` | —       |                                                                                                 |
-
-| `update:modelValue The value changed. Vue 3's v-model
-  dialect — what a plain `v-model` listens for.` | — | |
+| Name     | Payload | Description                                                                                     |
+| -------- | ------- | ----------------------------------------------------------------------------------------------- |
+| `change` | —       | Emitted on every colour mutation (picker / text input / reset). Payload is the full colour map. |
+| `input`  | —       | v-model-friendly alias of `change`. Lets consumers bind `v-model` to a colour map.              |
 
 ### Slots
 
