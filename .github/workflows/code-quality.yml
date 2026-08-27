@@ -28,8 +28,32 @@ on:
     branches: [main, beta, development, 'feat/vue-3']
   workflow_dispatch:
 
+# ⚠️ THE EVENT NAME IS PART OF THIS KEY, AND DROPPING IT CANCELS RELEASES.
+#
+# This group used to be `quality-${{ github.head_ref || github.ref_name }}`.
+# For a PUSH, `ref_name` is the branch; for a PULL REQUEST, `head_ref` is the
+# branch. So a push to `beta` and a PR whose head is `beta` both resolved to
+# `quality-beta` — and with `cancel-in-progress`, opening the release PR
+# CANCELLED the release branch's own quality run.
+#
+# Measured 2026-08-27 on the 2.20.0 release: run 33071272493 (push to beta)
+# had all 26 of its real jobs `cancelled` the moment `beta -> main` was
+# opened. It did not read as cancelled, though. The `Quality Report`
+# aggregator `needs:` those jobs, and an aggregator whose dependencies are
+# cancelled reports **failure** — so the release PR displayed a red
+# `quality / Quality Report` that said nothing whatever about the code, and
+# the only way to tell was to open the run and notice every sibling job
+# saying `cancelled`.
+#
+# Red-that-is-never-real is the most expensive kind of gate: it costs a full
+# runner matrix to produce and it teaches everyone to stop reading the colour.
+#
+# Keying on the event preserves the intent — a new push still cancels the
+# previous push for that branch, and a new commit on a PR still cancels that
+# PR's previous run — while letting the two coexist, which is what every
+# `development -> beta` and `beta -> main` release requires.
 concurrency:
-  group: quality-${{ github.head_ref || github.ref_name }}
+  group: quality-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 # Least privilege for the called quality pipeline: the Quality Report job
