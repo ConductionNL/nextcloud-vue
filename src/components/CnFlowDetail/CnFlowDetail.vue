@@ -1116,6 +1116,35 @@ export default {
 	border-radius: inherit;
 	background: none;
 	overflow: hidden;
+
+	/* ⚠️ THE ACCENT'S ABSENCE HAS TO BE DECLARED, NOT MERELY LEFT OUT — AND A
+	   LIVE INSTANCE IS THE ONLY PLACE THAT SHOWS WHY.
+
+	   Moving the role accent onto `.cn-flow-node` below meant deleting the
+	   `box-shadow` from the three `--role-*` rules that used to sit on THIS
+	   element. That is enough in this repository's own harness, where exactly
+	   one build of this component exists.
+
+	   It is not enough in a Nextcloud page. Measured on a live instance
+	   (dossiq, /apps/dossiq/flows/…): THREE stale copies of
+	   `.cn-flow-detail__node--role-trigger[data-v-65800ae2]` were injected by
+	   other apps' bundles alongside the current one, all carrying the old inset
+	   shadow. Vue's scoped hash is identical in every copy because it hashes the
+	   FILE PATH, not the contents — so an older build's rule lands in the same
+	   cascade under the same attribute, and with nothing in the current build
+	   declaring `box-shadow` for this element the stale rule simply won. The
+	   accent painted on the wrapper AND on the body, and the card-in-card came
+	   back on a page whose own copy of the library was already fixed.
+
+	   The e2e cannot catch this: its harness has one build, so
+	   `getComputedStyle(body).boxShadow === 'none'` passes there either way.
+	   Only this declaration holds it, and only because
+	   `.cn-flow-detail .cn-flow-detail__node` (0,3,0) outranks the stale
+	   `.cn-flow-detail__node--role-trigger` (0,2,0).
+
+	   The `border: 0` above is the same defence, written for the same reason
+	   when the nested BORDER came back the same way. */
+	box-shadow: none;
 }
 
 /* Unknown step -> error border on the NODE WRAPPER, so the whole node reads as

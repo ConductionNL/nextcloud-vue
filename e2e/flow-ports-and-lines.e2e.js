@@ -259,7 +259,18 @@ test.describe('flow editor — one box per step', () => {
 
 		// The node carries the accent...
 		expect(painted.nodeShadow).toContain('inset')
+
 		// ...and the body inside it paints nothing at all.
+		//
+		// ⚠️ THIS ASSERTION IS WEAKER THAN IT LOOKS, AND THE COMPONENT KNOWS IT.
+		// The harness has exactly ONE build of CnFlowDetail, so this passes
+		// whether the absence is declared or merely left out. On a real
+		// Nextcloud page several apps inject their own (older) copy of the same
+		// scoped stylesheet under the SAME `data-v-` hash — Vue hashes the file
+		// path, not the contents — and the stale `--role-*` rule then wins by
+		// default. Measured live on dossiq: three such copies. The
+		// `box-shadow: none` in CnFlowDetail is what actually holds this; see
+		// the note there.
 		expect(painted.bodyShadow).toBe('none')
 		// ...and no longer holds itself away from an edge it does not meet.
 		expect(painted.bodyPaddingLeft).toBe('0px')
@@ -399,16 +410,25 @@ test.describe('flow editor — the line action menu', () => {
 })
 
 test.describe('flow editor — accessibility', () => {
-	test('axe finds no violations on a graph carrying warnings, light and dark', async ({ page }) => {
-		// The EDITOR surface, not the bare canvas — `flow-canvas.e2e.js` covers
-		// that one. What is new here is a graph with warning ports on it, which
-		// is the state a half-built flow spends most of its life in and the one
-		// with the most colour and the most `title`/`aria-label` on elements
-		// that are not controls.
-		// eslint-disable-next-line
-		const axePath = require.resolve('axe-core')
+	// ⚠️ ONE TEST PER THEME, NOT A LOOP INSIDE ONE TEST.
+	//
+	// The loop seeded the graph twice, emulated the colour scheme twice and ran
+	// axe twice inside a single 30s budget. On its own that finished in ~12s; in
+	// the full `fullyParallel` run, with every other spec contending for the
+	// same machine, it timed out — and a timeout on the slowest test in the file
+	// reads as "the a11y check broke" rather than "this test asks for too much
+	// at once". Two tests fit the budget, and they run in parallel anyway, so
+	// splitting costs no wall-clock.
+	for (const theme of ['light', 'dark']) {
+		test(`axe finds no violations on a graph carrying warnings — ${theme}`, async ({ page }) => {
+			// The EDITOR surface, not the bare canvas — `flow-canvas.e2e.js`
+			// covers that one. What is new here is a graph with warning ports on
+			// it: the state a half-built flow spends most of its life in, and the
+			// one with the most colour and the most `title` / `aria-label` on
+			// elements that are not controls.
+			// eslint-disable-next-line
+			const axePath = require.resolve('axe-core')
 
-		for (const theme of ['light', 'dark']) {
 			await seed(page)
 			await page.emulateMedia({ colorScheme: theme })
 			await expect(step(page, 'Lonely').locator('.cn-flow-node__handle--orphan')).toHaveCount(4)
@@ -423,10 +443,10 @@ test.describe('flow editor — accessibility', () => {
 				(violation) => violation.impact === 'serious' || violation.impact === 'critical',
 			)
 			expect(
-				serious.map((violation) => `${theme} ${violation.id}: ${violation.nodes.map((n) => n.html).join(' | ')}`),
+				serious.map((violation) => `${violation.id}: ${violation.nodes.map((n) => n.html).join(' | ')}`),
 			).toEqual([])
-		}
-	})
+		})
+	}
 })
 
 test.describe('flow canvas — the direction of flow, along the whole line', () => {
