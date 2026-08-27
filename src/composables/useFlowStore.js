@@ -114,7 +114,12 @@ export const useFlowStore = defineStore('cnFlow', {
 		nodes: (state) => state.flow.nodes || [],
 		edges: (state) => state.flow.edges || [],
 
-		/** Whether there is anything to undo. Drives the toolbar's disabled state. */
+		/**
+		 * Whether there is anything to undo. Drives the toolbar's disabled state.
+		 *
+		 * @param {object} state The store state.
+		 * @return {boolean} True when the stack holds at least one snapshot.
+		 */
 		canUndo: (state) => state.undoStack.length > 0,
 
 		selectedNode: (state) => {

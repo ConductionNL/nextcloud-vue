@@ -479,12 +479,6 @@ export default {
 		document.removeEventListener('keydown', this.onDocumentKeydown)
 	},
 
-	// Vue 2.7 compatibility: `beforeUnmount` is the Vue 3 name, and this library
-	// still builds for both. Registering only one leaks the listener on the other.
-	beforeDestroy() {
-		document.removeEventListener('keydown', this.onDocumentKeydown)
-	},
-
 	methods: {
 		/**
 		 * Ctrl+Z / Cmd+Z steps the GRAPH back one edit.
