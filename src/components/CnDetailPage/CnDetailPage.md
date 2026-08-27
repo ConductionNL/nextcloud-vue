@@ -237,6 +237,8 @@ The header carries the shared [CnActionsMenu](./cn-actions-menu.md) overflow (Re
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `showRefresh` | Boolean | `true` | Show the Refresh item. Emits `@refresh`; default fires the `cn:page:refresh` event-bus channel. |
+| `showEditAction` | Boolean | `false` | Show a header **Edit** button opening the record's schema form. Needs `register` + `schema` + `objectId`. Emits `@edited` on save. |
+| `editLabel` | String | `''` | Label for the header Edit button. Defaults to a translated "Edit". |
 | `showRequestFeature` | Boolean | `true` | Show the Request-a-feature item. Opens CnSuggestFeatureModal with `surface: "detail:<id>"`. |
 | `documentationUrl` | String | `''` | When set, adds a **Documentation** entry opening the link in a new tab. Empty hides it. |
 | `documentationLabel` | String | `t('Documentation')` | Pre-translated Documentation label. |

@@ -253,3 +253,111 @@ describe('CnAppRoot optional setup wizard — an UNREPORTED step is not an UNDON
 		expect(wrapper.vm.phase).toBe('shell')
 	})
 })
+
+/**
+ * The mirror-image failure of the block above, and the reason the guard there
+ * had to get SHARPER rather than be removed.
+ *
+ * Dossiq declares an optional `seed` step ("load the Bezwaar & Beroep sample
+ * data") whose SetupController DOES report a status key: `{done: false}`. Its
+ * required `register-check` step auto-satisfies on app-enable, so
+ * `/api/setup/status` answers `200 {completed: true}` — and the blanket
+ * short-circuit on `completed` then suppressed the wizard that offers `seed`.
+ * The step was wired end-to-end and unreachable from the UI, which is why a
+ * freshly-installed dossiq had 88 case types and zero cases with no affordance
+ * anywhere to load any.
+ *
+ * `completed` means "no REQUIRED step is outstanding". It is NOT a statement
+ * about optional ones. Verified against the pre-fix commit: this case fails
+ * there and the pipelinq case above passes, which is exactly the pair that
+ * pins the distinction.
+ */
+describe('CnAppRoot optional setup wizard — a REPORTED-undone step IS outstanding', () => {
+	// Dossiq's real manifest step list (src/manifest.json → setup.steps).
+	const dossiqManifest = {
+		version: '1.0.0',
+		menu: [{ id: 'home', label: 'app.home', route: 'home' }],
+		pages: [{ id: 'home', route: '/', type: 'index', title: 'app.home' }],
+		dependencies: [],
+		setup: {
+			enabled: true,
+			version: 1,
+			steps: [
+				{ id: 'welcome', type: 'info' },
+				{ id: 'register-check', type: 'run-action', required: true },
+				{ id: 'seed', type: 'run-action' },
+				{ id: 'done', type: 'summary' },
+			],
+		},
+	}
+	// Verbatim payload observed from dossiq SetupController::status() on a
+	// clean install (localhost:8080, 2026-08-27).
+	const dossiqServerPayload = {
+		version: 1,
+		completed: true,
+		steps: { 'register-check': { done: true }, seed: { done: false } },
+	}
+
+	beforeEach(() => {
+		__resetSetupStatusCacheForTests()
+		axios.get.mockReset()
+	})
+
+	/**
+	 * Mount with dossiq's manifest.
+	 *
+	 * @return {object} The mounted wrapper.
+	 */
+	function mountDossiq() {
+		return mount(CnAppRoot, {
+			propsData: { manifest: dossiqManifest, appId: 'dossiq', isLoading: false, translate: (k) => k, requiresApps: [] },
+			mocks: { $route: { name: 'home' } },
+			stubs: { 'router-view': { template: '<div class="router-view-stub" />' } },
+		})
+	}
+
+	it('auto-opens the wizard for an optional step the server reports as not done, despite completed:true', async () => {
+		serveStatus(dossiqServerPayload)
+		const wrapper = mountDossiq()
+		await flush(wrapper)
+
+		// The server's own flag is true — that is the whole point of the case.
+		expect(wrapper.vm.setupState.completed.value).toBe(true)
+		// `seed` was REPORTED, so it is genuinely outstanding...
+		expect(wrapper.vm.setupState.optionalUnmetReported.value.map((s) => s.id)).toEqual(['seed'])
+		// ...and the wizard offering it opens.
+		expect(wrapper.vm.optionalSetupPending).toBe(true)
+		expect(wrapper.vm.setupWizardOpen).toBe(true)
+		expect(wrapper.find('.cn-app-root__setup-optional').exists()).toBe(true)
+		// The shell is still reachable behind it — this wizard does not gate.
+		expect(wrapper.vm.phase).toBe('shell')
+	})
+
+	it('stops offering the step once the server reports it done', async () => {
+		serveStatus({ version: 1, completed: true, steps: { 'register-check': { done: true }, seed: { done: true } } })
+		const wrapper = mountDossiq()
+		await flush(wrapper)
+
+		expect(wrapper.vm.setupState.optionalUnmetReported.value).toEqual([])
+		expect(wrapper.vm.optionalSetupPending).toBe(false)
+		expect(wrapper.vm.setupWizardOpen).toBe(false)
+	})
+
+	it('distinguishes a reported-undone step from an unreported one in the SAME manifest', async () => {
+		// `seed` reported undone, `extra` never mentioned. Only `seed` counts.
+		const mixed = {
+			...dossiqManifest,
+			setup: { ...dossiqManifest.setup, steps: [...dossiqManifest.setup.steps, { id: 'extra', type: 'run-action' }] },
+		}
+		serveStatus(dossiqServerPayload)
+		const wrapper = mount(CnAppRoot, {
+			propsData: { manifest: mixed, appId: 'dossiq', isLoading: false, translate: (k) => k, requiresApps: [] },
+			mocks: { $route: { name: 'home' } },
+			stubs: { 'router-view': { template: '<div class="router-view-stub" />' } },
+		})
+		await flush(wrapper)
+
+		expect(wrapper.vm.setupState.optionalUnmet.value.map((s) => s.id)).toEqual(['seed', 'extra'])
+		expect(wrapper.vm.setupState.optionalUnmetReported.value.map((s) => s.id)).toEqual(['seed'])
+	})
+})

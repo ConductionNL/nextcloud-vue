@@ -2076,15 +2076,27 @@ export default {
 		 * Two independent guards keep this from being permanently true, because
 		 * a step can look "unmet" for two unrelated reasons:
 		 *
-		 * 1. The server's `completed` flag is AUTHORITATIVE and short-circuits
-		 *    this. An app may declare optional steps its SetupController never
-		 *    reports a status key for — pipelinq's `demo-data` run-action is one
-		 *    — and an UNREPORTED step is indistinguishable from an UNDONE one, so
-		 *    `optionalUnmet` stays non-empty forever. Auto-opening on that
-		 *    difference parked the wizard over the app on every fresh browser
-		 *    profile even though `/api/setup/status` answered
-		 *    `200 {completed:true}`, which read as "the setup gate never clears"
-		 *    and timed out every UI e2e spec in the consuming app.
+		 * 1. Only steps the server POSITIVELY REPORTED count. An app may declare
+		 *    optional steps its SetupController never reports a status key for —
+		 *    pipelinq's `demo-data` run-action is one — and such a step is
+		 *    UNKNOWN, not outstanding. Auto-opening on it parked the wizard over
+		 *    the app on every fresh browser profile even though
+		 *    `/api/setup/status` answered `200 {completed:true}`, which read as
+		 *    "the setup gate never clears" and timed out every UI e2e spec in the
+		 *    consuming app.
+		 *
+		 *    This guard used to be a blanket short-circuit on the server's
+		 *    `completed` flag — a BLUNTER instrument aimed at the same target,
+		 *    which overshot. `completed` means "no REQUIRED step is
+		 *    outstanding", so it is true for every correctly-configured app, and
+		 *    suppressing on it hid reported-and-undone OPTIONAL steps too.
+		 *    Dossiq declares a `seed` step whose controller answers
+		 *    `{done: false}` — genuinely outstanding, genuinely actionable — and
+		 *    the wizard offering it never opened, leaving the app with no
+		 *    reachable demo-data affordance at all. `completed` is still honoured
+		 *    as a NEGATIVE signal (a server saying "unfinished" is believed
+		 *    outright); it just no longer overrides a step the server explicitly
+		 *    reported as not done.
 		 *
 		 * 2. `info` and `summary` steps are excluded: the server has nothing to
 		 *    persist for them, so they report `done: false` forever and would
@@ -2098,13 +2110,22 @@ export default {
 		 */
 		optionalSetupPending() {
 			const s = this.setupState
-			if (!s || s.loading.value !== false || s.completed.value === true) {
+			if (!s || s.loading.value !== false) {
 				return false
 			}
 			if (s.requiredUnmet.value.length > 0) {
 				return false
 			}
-			return s.optionalUnmet.value.some((st) => st.type !== 'info' && st.type !== 'summary')
+			// When the server itself says setup is UNFINISHED, take it at its word:
+			// every unmet optional step is fair game, reported or not.
+			//
+			// When it says setup IS complete, only steps it positively reported
+			// as `{done: false}` are outstanding. An unreported step is unknown,
+			// and prompting on unknown is what parked the wizard over pipelinq.
+			const outstanding = s.completed.value === true
+				? (s.optionalUnmetReported ? s.optionalUnmetReported.value : [])
+				: s.optionalUnmet.value
+			return outstanding.some((st) => st.type !== 'info' && st.type !== 'summary')
 		},
 		/**
 		 * Ids of setup steps the server already reports done. Passed to

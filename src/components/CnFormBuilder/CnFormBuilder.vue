@@ -183,7 +183,7 @@ export default {
 		 * `value` stays the public name; both are accepted. The default is
 		 * `undefined` so "not passed" is distinguishable from "passed empty".
 		 *
-		 * @type {object|array}
+		 * @type {object|Array}
 		 */
 		modelValue: { type: [Object, Array], default: undefined },
 		/**

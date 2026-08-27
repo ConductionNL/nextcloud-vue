@@ -11,6 +11,7 @@ const { flattenSettingsSectionWidgets } = require('./transforms/flattenSettingsS
 const { flattenSettingsTabs } = require('./transforms/flattenSettingsTabs')
 const { migrateCardComponent } = require('./transforms/migrateCardComponent')
 const { addExplicitActionTypes } = require('./transforms/addExplicitActionTypes')
+const { dropUnrenderableActions } = require('./transforms/dropUnrenderableActions')
 const { carryForwardVerbatimFields } = require('./transforms/carryForwardVerbatimFields')
 const { handleCustomPages } = require('./transforms/handleCustomPages')
 const { migrateCustomComponents } = require('./transforms/migrateCustomComponents')
@@ -123,7 +124,15 @@ function runPipeline(manifest, opts = {}) {
 					builder.add({ kind: 'normalize-action', pageId: page.id, data: { count: actionCount } })
 				}
 
-				return p6
+				// 10. Drop actions that could never have rendered. AFTER step 9,
+				// so an entry is judged on the shape the migration actually
+				// produces rather than on its raw v1 form.
+				const { page: p7, count: droppedActions } = dropUnrenderableActions(p6)
+				if (droppedActions > 0) {
+					builder.add({ kind: 'drop-unrenderable-action', pageId: page.id, data: { count: droppedActions } })
+				}
+
+				return p7
 			}),
 		}
 	}
