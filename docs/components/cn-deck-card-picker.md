@@ -20,7 +20,7 @@ Flow: **1.** choose a board → **2.** choose a stack → **3.** choose a card �
 ## Usage
 
 ```vue
-<CnDeckCardPicker :open.sync="pickerOpen" @link="onLink" />
+<CnDeckCardPicker v-model:open="pickerOpen" @link="onLink" />
 ```
 
 ## Additional props

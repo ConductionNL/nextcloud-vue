@@ -31,6 +31,7 @@
 | `edge-label-context` | —       | A connection's label was right-clicked. Hosts open the same menu they open for the line itself.                                                                                                                                                               |
 | `canvas-click`       | —       | The empty pane was clicked — hosts use this to clear a selection.                                                                                                                                                                                             |
 | `canvas-drop`        | —       | An HTML5 drop landed on the canvas, with `position` already projected into canvas space and the native `event` alongside so the host can read `dataTransfer`. The canvas never creates the node itself.                                                       |
+| `node-remove`        | —       | The focused node should be removed, by id. Raised by Delete/Backspace on a node. The canvas removes nothing itself — the host owns `nodes` and `edges`, and a node dropped here would leave the edges pointing at it behind.                                  |
 
 ### Slots
 

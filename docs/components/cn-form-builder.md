@@ -64,6 +64,7 @@ export default {
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `value` | `Array<Field>` | `[]` | v-model. Current field list. |
+| `modelValue` | `Array<Field>` | `undefined` | The same value under Vue 3's v-model name. `v-model` binds THIS, not `value` — both are accepted. |
 | `availableTypes` | `Array<{type,label,icon?}>` | default 5 | Extend / replace the palette. |
 | `title` / `description` | String | `''` | Optional header. |
 | `hidePreview` | Boolean | `false` | Hide the JSON preview footer. |
@@ -71,6 +72,9 @@ export default {
 | `emptyLabel` / `noSelectionLabel` / `untitledKey` | String | — | State texts. |
 | `keyLabel` / `typeLabel` / `labelLabel` / `placeholderLabel` / `requiredLabel` / `optionsLabel` / `optionsPlaceholder` | String | — | Per-field editor labels. |
 | `moveUpLabel` / `moveDownLabel` / `deleteLabel` | String | — | Row-action button titles. |
+
+> **Why two props.** Vue 3 compiles `v-model="x"` to `:modelValue` + `@update:modelValue`. A component declaring only `value`/`input` never receives the prop and its emit is never heard — silently. `value` is kept as the public name for existing consumers; `modelValue` is what a plain `v-model` binds, and both emit on every change.
+
 
 ## Events
 

@@ -2,15 +2,20 @@
 
 ### Props
 
-| Name         | Type      | Required | Default | Description                                                                      |
-| ------------ | --------- | -------- | ------- | -------------------------------------------------------------------------------- |
-| `agents`     | `array`   |          | `[]`    | Raw agent objects from `GET {chatApiBase}/agents` (`{ uuid\|id, name\|title }`). |
-| `value`      | `string`  |          | `null`  | Selected agent uuid (v-model style — parent owns the value).                     |
-| `loading`    | `boolean` |          | `false` | Whether the agent list is still loading.                                         |
-| `fetchError` | `boolean` |          | `false` | Whether the agent-list fetch failed.                                             |
+| Name         | Type      | Required | Default     | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------ | --------- | -------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agents`     | `array`   |          | `[]`        | Raw agent objects from `GET {chatApiBase}/agents` (`{ uuid\|id, name\|title }`).                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `value`      | `string`  |          | `null`      | Selected agent uuid (v-model style — parent owns the value).                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `modelValue` | `union`   |          | `undefined` | The same value as `value`, under Vue 3's own v-model name. ⚠️ WITHOUT THIS, `v-model` ON THIS COMPONENT DOES NOTHING. Vue 3 compiles `v-model="x"` to `:modelValue` + `@update:modelValue`, so a component declaring only `value`/`input` never receives the prop and its emit is never heard — silently, looking exactly like a component that works. `value` stays the public name; both are accepted. The default is `undefined` so "not passed" is distinguishable from "passed empty". |
+| `loading`    | `boolean` |          | `false`     | Whether the agent list is still loading.                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `fetchError` | `boolean` |          | `false`     | Whether the agent-list fetch failed.                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 ### Events
 
-| Name    | Payload | Description |
-| ------- | ------- | ----------- |
-| `input` | —       |             |
+| Name                | Payload | Description                                                              |
+| ------------------- | ------- | ------------------------------------------------------------------------ |
+| `input`             | —       | The value changed. Vue 2's v-model dialect, kept for existing consumers. |
+| `update:modelValue` | —       |                                                                          |
+
+| `update:modelValue The value changed. Vue 3's v-model
+  dialect — what a plain `v-model` listens for.` | — | |

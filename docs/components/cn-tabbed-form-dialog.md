@@ -71,8 +71,8 @@ A generic tabbed dialog for create/edit forms. Provides the standard dialog shel
   @confirm="saveApplication"
   @close="closeModal">
   <template #tab-settings="{ loading }">
-    <NcTextField :disabled="loading" label="Name *" :value.sync="formData.name" />
-    <NcTextArea :disabled="loading" label="Description" :value.sync="formData.description" />
+    <NcTextField :disabled="loading" label="Name *" v-model="formData.name" />
+    <NcTextArea :disabled="loading" label="Description" v-model="formData.description" />
   </template>
   <template #tab-quota="{ loading }">
     <NcTextField :disabled="loading" label="Storage Quota (MB)" type="number" />

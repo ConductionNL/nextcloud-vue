@@ -30,7 +30,13 @@ Pair it with [`CnFlowSidebar`](./cn-flow-sidebar.md), which holds the palette, s
 
 ## The toolbar
 
-Save is enabled once the flow has a name; Run once it has been stored (the engine runs the **stored** flow, not the unsaved canvas). **Check** posts the canvas to `POST /api/flow/validate` — the engine's own preflight, without saving — and renders the verdict as a note card on the canvas; a refusal still carries the preflight's report and is shown as the verdict it is, never as a transport error. **Arrange** (`autoSort`) re-lays the nodes left-to-right by how the flow actually runs, changing coordinates and nothing else. Zoom steps the same factor the mouse wheel drives. When the sidebar is closed, a **Show the flow controls** button appears here — the way back cannot live in the sidebar itself.
+Save is enabled once the flow has a name; Run once it has been stored (the engine runs the **stored** flow, not the unsaved canvas). **Check** posts the canvas to `POST /api/flow/validate` — the engine's own preflight, without saving — and renders the verdict as a note card on the canvas; a refusal still carries the preflight's report and is shown as the verdict it is, never as a transport error. **Arrange** (`autoSort`) re-lays the nodes left-to-right by how the flow actually runs, changing coordinates and nothing else. Zoom steps the same factor the mouse wheel drives. **Undo** steps the graph back one edit, and `Ctrl+Z` / `Cmd+Z` does the same from anywhere in the editor. It stands down for editable text and while a step's dialog is open: reverting the whole graph because someone undid a typo would be worse than having no undo. There is a button as well as the shortcut — a shortcut nobody is told about is a feature only its author has. When the sidebar is closed, a **Show the flow controls** button appears here — the way back cannot live in the sidebar itself.
+
+## Removing a step
+
+`Delete` or `Backspace` on a focused step removes it — both keys, because which one deletes is a platform habit rather than a preference, and a Mac user does not think of Backspace as the alternative. The edges pointing at that step go with it: a graph that kept them would carry lines to a step that no longer exists, and the engine would refuse the document at run time.
+
+Undo brings the step **and its edges** back. A read-only canvas refuses the keys entirely.
 
 ## Editing a step
 
@@ -52,7 +58,9 @@ An **empty** catalogue means it could not be read — not that every step is unk
 
 ## Edge routing
 
-Edges are trimmed from node centres back to the borders, so the arrowhead is not hidden under the target card, and they bend **only when a straight run genuinely does not fit**. Bending on any difference in centres produced a staircase for a modest offset and, for a near-aligned pair, two corner arcs with a zero-length leg between them — a visible wobble in place of a line. A corner should mean "these steps are not in line", not "these steps are a few pixels apart".
+Vue Flow routes every edge (`smoothstep` — orthogonal with rounded corners), measuring the rendered node rather than being told its size. The hand-drawn geometry this replaced is gone, along with the `nodeWidth`/`nodeHeight` props it needed to guess a node's centre from.
+
+Each edge ends in an **arrowhead**, because direction is the one thing a line cannot express on its own. It is sized to clear the target's port handle: Vue Flow draws the arrow at the path's end, which is exactly where the handle sits, and the handle is painted in a layer above the edges. At the default size the arrowhead was rendered on every edge and covered on every edge — present, measurable, and invisible. Its colour comes from `--color-text-maxcontrast` in CSS rather than from the marker definition, so it follows the theme into dark mode.
 
 ## Notes
 

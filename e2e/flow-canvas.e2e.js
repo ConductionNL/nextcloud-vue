@@ -51,6 +51,104 @@ test.describe('flow canvas — rendering', () => {
 		expect(box.width).toBeGreaterThan(0)
 		expect(box.height).toBeGreaterThan(0)
 	})
+
+	test('a node draws exactly ONE box — the wrapper adds none', async ({ page }) => {
+		await page.goto(CANVAS)
+
+		// A node rendered THREE nested boxes at one point. Only one was ours:
+		// Vue Flow wraps every `#node-default` in `.vue-flow__node-default`,
+		// and its theme-default.css gives that wrapper a border, a white
+		// background and 10px of padding — a box around our box, on every node.
+		//
+		// This is asserted from COMPUTED STYLE rather than by counting
+		// elements, because the wrapper is legitimately there and has to be:
+		// what must not happen is that it PAINTS. A DOM-shape assertion would
+		// have to be rewritten every time Vue Flow changes its tree, and would
+		// still not notice a border reappearing.
+		const painted = await page.evaluate(() => {
+			const wrapper = document.querySelector('.vue-flow__node')
+			const node = wrapper.querySelector('.cn-flow-node')
+			const read = (el) => {
+				const c = getComputedStyle(el)
+				return {
+					borderWidth: c.borderTopWidth,
+					background: c.backgroundColor,
+				}
+			}
+			return { wrapper: read(wrapper), node: read(node) }
+		})
+
+		// The wrapper paints nothing at all.
+		expect(painted.wrapper.borderWidth).toBe('0px')
+		expect(['rgba(0, 0, 0, 0)', 'transparent']).toContain(painted.wrapper.background)
+
+		// ...and the node itself still does, so this cannot pass by the canvas
+		// having stopped drawing nodes altogether.
+		expect(painted.node.borderWidth).not.toBe('0px')
+	})
+
+	test('an edge ends in a visible arrowhead, clear of the port handle', async ({ page }) => {
+		await page.goto(CANVAS)
+		await page.locator('.vue-flow__edge').first().waitFor()
+
+		// An edge says which way the data flows, and only the arrowhead says it.
+		// The arrow WAS being drawn all along at 12.5px — landing exactly on the
+		// target's 18px port handle, which Vue Flow paints in a layer above the
+		// edges. Measurably present, and invisible to every user: the canvas
+		// read as a set of undirected lines.
+		//
+		// So this asserts the two things that made it visible, not merely that a
+		// marker exists: it must be LARGER than the handle it lands on, and it
+		// must not be painted in the line's own pale colour.
+		const arrow = await page.evaluate(() => {
+			const marker = document.querySelector('.cn-graph-canvas marker.vue-flow__arrowhead')
+			if (marker === null) {
+				return null
+			}
+
+			const shape = marker.querySelector('polyline, path')
+			const handle = document.querySelector('.vue-flow__handle-top')
+			const path = document.querySelector('.vue-flow__edge-path')
+
+			return {
+				width: Number(marker.getAttribute('markerWidth')),
+				fill: getComputedStyle(shape).fill,
+				handleWidth: handle.getBoundingClientRect().width,
+				edgeStroke: getComputedStyle(path).stroke,
+				referenced: (path.getAttribute('marker-end') || '').includes(marker.id),
+			}
+		})
+
+		expect(arrow).not.toBeNull()
+
+		// The edge actually POINTS at this marker. A marker sitting unreferenced
+		// in <defs> renders nothing — which is exactly the state CnFlowDetail's
+		// own hand-rolled arrowhead was in.
+		expect(arrow.referenced).toBe(true)
+
+		// Bigger than the handle, or it is hidden behind it again.
+		expect(arrow.width).toBeGreaterThan(arrow.handleWidth)
+
+		// Not the line's colour: the arrow is the signal, the line is the path.
+		expect(arrow.fill).not.toBe(arrow.edgeStroke)
+	})
+
+	test('a port handle takes the theme colour, not Vue Flow\'s default', async ({ page }) => {
+		await page.goto(CANVAS)
+
+		// Vue Flow's `.vue-flow__node-default .vue-flow__handle` rule (0,2,0)
+		// outranks our `.cn-flow-node__handle` (0,1,0), so handles rendered its
+		// hard-coded #1a192b — rgb(26, 25, 43) — and ignored the user's theme
+		// including dark mode. Pinned as "not that colour" rather than as an
+		// exact value, because the themed colour is whatever the instance's
+		// --color-primary-element resolves to.
+		const background = await page.evaluate(() => {
+			const handle = document.querySelector('.cn-flow-node__handle')
+			return getComputedStyle(handle).backgroundColor
+		})
+
+		expect(background).not.toBe('rgb(26, 25, 43)')
+	})
 })
 
 test.describe('flow canvas — pointer interaction', () => {
@@ -95,6 +193,49 @@ test.describe('flow canvas — pointer interaction', () => {
 			await page.getByRole('button', { name }).click()
 			await expect(viewport).not.toHaveAttribute('style', before ?? '')
 		}
+	})
+})
+
+test.describe('flow canvas — removing a node', () => {
+	test('Delete removes the focused node, and its edges go with it', async ({ page }) => {
+		await page.goto(CANVAS)
+		await expect(page.locator('.cn-flow-node')).toHaveCount(3)
+		await expect(page.locator('.vue-flow__edge')).toHaveCount(1)
+
+		// Focus node `a`, which the harness graph's only edge leaves from.
+		await page.locator('.cn-flow-node').first().focus()
+		await page.keyboard.press('Delete')
+
+		await expect(page.locator('.cn-flow-node')).toHaveCount(2)
+
+		// The edge is the assertion that matters. A canvas that dropped the node
+		// and kept the line would leave an edge pointing at nothing — which is
+		// exactly what the store's own removeNode() exists to prevent, and what
+		// a node-count-only test would sail past.
+		await expect(page.locator('.vue-flow__edge')).toHaveCount(0)
+	})
+
+	test('Backspace removes it too, because that is the Mac delete key', async ({ page }) => {
+		await page.goto(CANVAS)
+		await expect(page.locator('.cn-flow-node')).toHaveCount(3)
+
+		await page.locator('.cn-flow-node').nth(2).focus()
+		await page.keyboard.press('Backspace')
+
+		await expect(page.locator('.cn-flow-node')).toHaveCount(2)
+	})
+
+	test('a read-only canvas refuses Delete', async ({ page }) => {
+		await page.goto(READONLY)
+		await expect(page.locator('.cn-flow-node')).toHaveCount(3)
+
+		await page.locator('.cn-flow-node').first().focus()
+		await page.keyboard.press('Delete')
+
+		// The control for the two above: the key is wired, and read-only means
+		// read-only. A canvas that LOOKS locked and still deletes on a keypress
+		// is worse than one with no shortcut at all.
+		await expect(page.locator('.cn-flow-node')).toHaveCount(3)
 	})
 })
 

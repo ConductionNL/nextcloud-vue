@@ -9,7 +9,7 @@ Pill-shaped buttons, active one filled with `--color-primary-element`. Used insi
       { label: 'Open', filter: { status: 'open' } },
       { label: 'Closed', filter: { status: 'closed' } },
     ]"
-    :active-index.sync="active" />
+    v-model:active-index="active" />
 </template>
 
 <script>

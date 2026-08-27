@@ -31,18 +31,14 @@ at it, and without this the keyboard could only ever reach the first.
     <CnGraphCanvas
       :nodes="nodes"
       :edges="edges"
-      :selected-node-id="selectedId"
-      :zoom.sync="zoom"
-      @node-move="onNodeMove"
+      @nodes-change="onNodesChange"
       @connect="onConnect"
-      @node-select="selectedId = $event"
+      @node-remove="onNodeRemove"
+      @node-select="selectedId = $event.node.id"
       @canvas-click="selectedId = null">
-      <template #node="{ node, selected }">
+      <template #node="{ node }">
         <div style="padding: 8px;">
-          <strong>{{ node.label }}</strong>
-          <div style="color: var(--color-text-maxcontrast); font-size: 0.8em;">
-            {{ Math.round(node.x) }}, {{ Math.round(node.y) }}
-          </div>
+          <strong>{{ node.data.label }}</strong>
         </div>
       </template>
     </CnGraphCanvas>
@@ -54,11 +50,11 @@ export default {
   data() {
     return {
       selectedId: null,
-      zoom: 1,
+      // Vue Flow's shape: `position`, and per-node `data`.
       nodes: [
-        { id: 'draft', x: 60, y: 60, label: 'Draft' },
-        { id: 'review', x: 340, y: 60, label: 'In review' },
-        { id: 'approved', x: 340, y: 220, label: 'Approved' },
+        { id: 'draft', type: 'default', position: { x: 60, y: 60 }, data: { label: 'Draft' } },
+        { id: 'review', type: 'default', position: { x: 340, y: 60 }, data: { label: 'In review' } },
+        { id: 'approved', type: 'default', position: { x: 340, y: 220 }, data: { label: 'Approved' } },
       ],
       edges: [
         { id: 'e1', source: 'draft', target: 'review' },
@@ -67,9 +63,19 @@ export default {
   },
   methods: {
     // Positions are owned by the consumer — the canvas only reports intent.
-    onNodeMove({ id, x, y }) {
-      const node = this.nodes.find((n) => n.id === id)
-      if (node) { this.$set(node, 'x', x); this.$set(node, 'y', y) }
+    // Vue Flow emits ONE change stream for drags, keyboard moves and
+    // programmatic updates alike; intermediate drag frames arrive with
+    // `dragging: true`, and persisting those puts a commit on every frame.
+    onNodesChange(changes) {
+      for (const change of changes) {
+        if (change.type !== 'position' || change.dragging === true || !change.position) {
+          continue
+        }
+        const node = this.nodes.find((n) => n.id === change.id)
+        if (node) {
+          node.position = { ...change.position }
+        }
+      }
     },
     onConnect({ source, target }) {
       const id = `${source}-${target}`
@@ -77,9 +83,13 @@ export default {
         this.edges.push({ id, source, target })
       }
     },
+    // Delete/Backspace on a focused node. The canvas removes nothing itself —
+    // drop the edges too, or they point at a node that is gone.
+    onNodeRemove(id) {
+      this.nodes = this.nodes.filter((n) => n.id !== id)
+      this.edges = this.edges.filter((e) => e.source !== id && e.target !== id)
+    },
   },
-}
-</script>
 ```
 
 In a real editor the `node` slot renders your own component — a status card, a
@@ -88,13 +98,15 @@ mutating local state.
 
 ## Coordinates
 
-Nodes carry canvas-space `x` / `y` — their **top-left corner**. Screen coordinates are converted with `(clientX - rect.left - panOffset.x) / zoom`, so positions stay stable under pan and zoom.
+Nodes carry Vue Flow's `position: { x, y }` in canvas space — the node's **top-left corner**. Vue Flow owns the pan/zoom transform, so you never convert screen coordinates yourself.
 
-`nodeWidth` and `nodeHeight` exist so edges can find a node's centre. **Set them to match what your node slot actually renders**, or edges will attach off-centre. (The source editor hardcoded `200 × 80`; here it is a prop.)
+`nodeWidth` / `nodeHeight` are **gone**. They existed only so hand-drawn edges could guess where a node's centre was, and the old documentation admitted the failure mode: *"set them to match what your node slot actually renders, or edges will attach off-centre"*. Vue Flow measures the rendered node, so the whole class of bug went with the props.
 
 ## Positions are yours
 
-The canvas never mutates `nodes`. Dragging emits `node-move` with the intended position and stops there — you decide whether to accept it, clamp it, snap it to a grid, or persist it. This keeps the canvas usable against an OpenRegister-backed store, a local draft, or a read-only view without changing the component.
+The canvas never mutates `nodes`. Moves arrive on `@nodes-change` as Vue Flow's change stream and stop there — you decide whether to accept, clamp, snap or persist them. That keeps the canvas usable against an OpenRegister-backed store, a local draft, or a read-only view without changing the component.
+
+⚠️ One change stream covers drags, keyboard moves and programmatic updates alike. Intermediate drag frames arrive with `dragging: true`; persisting those puts a store commit on every animation frame, so filter for the settled position.
 
 ## Props
 
@@ -130,6 +142,7 @@ The canvas never mutates `nodes`. Dragging emits `node-move` with the intended p
 | `node-select` | `id` | A node was clicked or focused. |
 | `edge-select` | `id` | An edge was clicked (default edge rendering only). |
 | `canvas-click` | — | Empty canvas was clicked. Consumers usually clear selection. |
+| `node-remove` | `id` | Delete or Backspace was pressed on a focused node. The canvas removes **nothing** — you own `nodes` and `edges`, and a node dropped without its edges leaves lines pointing at something that is gone. Not raised on a read-only canvas. |
 | `update:zoom` | `Number` | Wheel zoom, already clamped to `minZoom`/`maxZoom`. |
 
 ## Slots

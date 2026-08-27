@@ -72,6 +72,25 @@
 					rows="4"
 					@update:model-value="setJsonKey(key, $event)" />
 
+				<CnCronField v-else-if="widgetFor(key) === 'cron'"
+					:model-value="String(draft.config[key] ?? '')"
+					:label="labelFor(key)"
+					@update:model-value="setKey(key, $event)" />
+
+				<!-- `runAs` is a Nextcloud user id, and the SERVER decides
+				     whether this saver may act as that user — see
+				     FlowTriggerValidator::validateDelegation(). The picker
+				     defaults to the current user, which asserts no delegation
+				     at all; naming anyone else is a request the save may
+				     refuse, and refusing it here would only hide the reason. -->
+				<NcSelect v-else-if="widgetFor(key) === 'user'"
+					:model-value="userOption(key)"
+					:options="userOptions"
+					:input-label="labelFor(key)"
+					:loading="usersLoading"
+					:placeholder="t('nextcloud-vue', 'Pick a user…')"
+					@update:model-value="setKey(key, $event ? $event.id : '')" />
+
 				<NcTextField v-else
 					:model-value="String(draft.config[key] ?? '')"
 					:label="labelFor(key)"
@@ -85,8 +104,17 @@
 
 			<!-- The whole document, for anything the fields above cannot say.
 			     Collapsed: the fields ARE the interface; this is the escape
-			     hatch that keeps every present and future key reachable. -->
-			<details class="cn-flow-node-edit__advanced">
+			     hatch that keeps every present and future key reachable.
+
+			     HIDDEN when it can reach nothing. A step the engine declares no
+			     options for, carrying no config, was showing "This step has no
+			     options" and then — as the only thing on the dialog you could
+			     actually touch — a JSON editor containing `{}`. That reads as
+			     "configuring this needs JSON", which is both wrong and the
+			     opposite of what the form is for. An escape hatch with nothing
+			     to escape to is not an advanced feature; it is noise on the
+			     simplest step in the editor. -->
+			<details v-if="canEditAsJson" class="cn-flow-node-edit__advanced">
 				<summary>{{ t('nextcloud-vue', 'Advanced: edit as JSON') }}</summary>
 				<NcTextArea :model-value="advancedJson"
 					:label="t('nextcloud-vue', 'Configuration (JSON)')"
@@ -112,6 +140,7 @@
 </template>
 
 <script>
+import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import {
@@ -122,6 +151,7 @@ import {
 	NcTextArea,
 	NcTextField,
 } from '@nextcloud/vue'
+import CnCronField from '../components/CnCronField/CnCronField.vue'
 import { useFlowStore } from '../composables/useFlowStore.js'
 
 /** The verbs an HTTP-shaped `method` option can take. */
@@ -146,6 +176,7 @@ export default {
 	name: 'CnFlowNodeEditModal',
 
 	components: {
+		CnCronField,
 		NcButton,
 		NcCheckboxRadioSwitch,
 		NcDialog,
@@ -163,6 +194,13 @@ export default {
 
 		return {
 			HTTP_METHODS,
+
+			// Users for a `runAs`-shaped field, and whether that request is in
+			// flight. Empty is a legitimate resting state: the picker still
+			// offers the current user, so a schedule is authorable even when
+			// the user list cannot be read.
+			users: [],
+			usersLoading: false,
 
 			// The draft the form edits. Committed on Done, discarded on Cancel.
 			draft: {
@@ -236,6 +274,49 @@ export default {
 		 *
 		 * @return {Array<string>} The keys.
 		 */
+		/**
+		 * Whether the raw-JSON escape hatch has anything to reach.
+		 *
+		 * True when the step declares options, or when the node already carries
+		 * config the form does not render. False for a step with neither, where
+		 * the hatch would only ever show an empty document.
+		 *
+		 * @return {boolean} Whether to offer the JSON editor.
+		 */
+		canEditAsJson() {
+			if (this.formKeys.length > 0) {
+				return true
+			}
+
+			return Object.keys(this.draft.config || {}).length > 0
+		},
+
+		/**
+		 * The signed-in user's id, or '' when there is no session.
+		 *
+		 * @return {string} The uid.
+		 */
+		currentUid() {
+			return String(getCurrentUser()?.uid || '')
+		},
+
+		/**
+		 * The users offered for a `runAs` field.
+		 *
+		 * The current user is always present, and first. Naming yourself asserts
+		 * no delegation at all, so it is the one choice the server can never
+		 * refuse — which makes it both the right default and the right fallback
+		 * when the user list could not be read.
+		 *
+		 * @return {Array<object>} The options.
+		 */
+		userOptions() {
+			const me = this.currentUid
+			const mine = me === '' ? [] : [{ id: me, label: t('nextcloud-vue', '{uid} (you)', { uid: me }) }]
+
+			return [...mine, ...this.users.filter((user) => user.id !== me)]
+		},
+
 		formKeys() {
 			const fromForm = (this.entry?.configForm || []).map((f) => f.key).filter(Boolean)
 			const declared = [
@@ -275,9 +356,71 @@ export default {
 				this.loadSelectOptions(key, spec)
 			}
 		}
+
+		if (this.formKeys.some((key) => this.widgetFor(key) === 'user')) {
+			this.loadUsers()
+		}
 	},
 
 	methods: {
+		/**
+		 * Load the users a `runAs` field can name.
+		 *
+		 * Failure is not surfaced. The picker always offers the current user —
+		 * see `userOptions` — so a failed lookup costs the author the ability to
+		 * DELEGATE, not the ability to author a schedule at all. Blocking the
+		 * dialog on it would be a worse trade.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadUsers() {
+			this.usersLoading = true
+			try {
+				// Nextcloud's OWN autocomplete endpoint — the one the mention
+				// picker uses. OpenRegister publishes no user list, and the OCS
+				// user-listing API is admin-only, so this is the only source a
+				// non-admin author can read. `shareTypes[]=0` restricts it to
+				// users, keeping groups and circles out of a field that takes a
+				// single uid.
+				const response = await axios.get(
+					generateUrl('/ocs/v2.php/core/autocomplete/get'),
+					{
+						params: { search: '', itemType: '', itemId: '', 'shareTypes[]': 0, limit: 50 },
+						headers: { 'OCS-APIRequest': 'true', Accept: 'application/json' },
+					},
+				)
+
+				const rows = response?.data?.ocs?.data || []
+				this.users = (Array.isArray(rows) ? rows : [])
+					.filter((row) => row.source === 'users')
+					.map((row) => ({ id: String(row.id ?? ''), label: String(row.label ?? row.id ?? '') }))
+					.filter((row) => row.id !== '')
+			} catch (error) {
+				this.users = []
+			} finally {
+				this.usersLoading = false
+			}
+		},
+
+		/**
+		 * The selected user for a key, synthesised when it is not in the list.
+		 *
+		 * A stored uid the current user cannot see must still SHOW. Dropping it
+		 * would make the field look empty and a save would then clear a
+		 * delegation the author never touched.
+		 *
+		 * @param {string} key The config key.
+		 * @return {object|null} The option.
+		 */
+		userOption(key) {
+			const value = String(this.draft.config[key] ?? '')
+			if (value === '') {
+				return null
+			}
+
+			return this.userOptions.find((option) => option.id === value) || { id: value, label: value }
+		},
+
 		/**
 		 * Which widget a key gets: the owner's declaration first, the VALUE
 		 * second, the key's name last.
@@ -298,6 +441,17 @@ export default {
 			}
 			if (spec?.type === 'textarea') {
 				return 'textarea'
+			}
+
+			// Keyed on the engine's own declaration where it makes one, and on
+			// the key name otherwise. `cron` and `runAs` are the schedule
+			// trigger's required vocabulary — a bare text box for either is a
+			// schedule that fails at 03:00, with nobody watching.
+			if (spec?.type === 'cron' || spec?.format === 'cron' || key === 'cron') {
+				return 'cron'
+			}
+			if (spec?.type === 'user' || key === 'runAs') {
+				return 'user'
 			}
 
 			const value = this.draft.config[key]

@@ -16,7 +16,7 @@ Simulated open state — use `:open.sync` binding in practice:
         {{ open ? 'Close' : 'Open context menu' }}
       </button>
       <CnContextMenu
-        :open.sync="open"
+        v-model:open="open"
         :actions="actions"
         :target-item="targetItem"
         @close="open = false" />
