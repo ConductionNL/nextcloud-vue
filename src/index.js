@@ -35,6 +35,7 @@ export {
 	CnDataTable,
 	CnDataMatrix,
 	CnFilterBar,
+	CnCronField,
 	CnStatusBadge,
 	CnPagination,
 	CnSettingsCard,
