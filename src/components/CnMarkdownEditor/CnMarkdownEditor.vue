@@ -153,6 +153,22 @@ export default {
 		 */
 		value: { type: String, default: '' },
 		/**
+		 * Markdown source, Vue 3's own v-model prop.
+		 *
+		 * ⚠️ WITHOUT THIS, `v-model` ON THIS COMPONENT DOES NOTHING. Vue 3
+		 * compiles `v-model="x"` to `:modelValue` + `@update:modelValue`, so a
+		 * component that only declares `value`/`input` never receives the prop
+		 * and its emit is never heard — silently, with no warning, looking
+		 * exactly like a component that works.
+		 *
+		 * `value` is kept as the public name (consumers depend on it) and both
+		 * are accepted. `undefined` rather than `''` as the default is what
+		 * distinguishes "not passed" from "passed as empty".
+		 *
+		 * @type {string}
+		 */
+		modelValue: { type: String, default: undefined },
+		/**
 		 * Layout mode. `edit` shows only the textarea, `preview`
 		 * shows only the rendered HTML, `split` shows both
 		 * side-by-side.
@@ -205,10 +221,10 @@ export default {
 	// the component as its own `input` — after the component's own
 	// `$emit('input', value)` — and listeners receive the raw InputEvent
 	// instead of the string.
-	emits: ['input', 'update:mode'],
+	emits: ['input', 'update:modelValue', 'update:mode'],
 	data() {
 		return {
-			localValue: this.value,
+			localValue: (this.modelValue !== undefined ? this.modelValue : this.value),
 			// Whether the lazily-created Toast UI editor instance is live
 			// (WYSIWYG mode only). Drives the loading hint.
 			toastEditorReady: false,
@@ -223,6 +239,15 @@ export default {
 		modeClass() {
 			return `cn-markdown-editor--${this.mode}`
 		},
+		/**
+		 * The value the consumer actually bound, whichever prop they used.
+		 *
+		 * @return {string} The markdown source.
+		 */
+		boundValue() {
+			return this.modelValue !== undefined ? this.modelValue : this.value
+		},
+
 		/**
 		 * Rendered HTML for the preview pane. Uses
 		 * `cnRenderMarkdown` so the output goes through the lib's
@@ -258,17 +283,13 @@ export default {
 		},
 	},
 	watch: {
-		value(next) {
-			if (next !== this.localValue) {
-				this.localValue = next
-				// The imperative editor holds its own copy of the document, so
-				// an external v-model change has to be pushed into it. Guarded
-				// on the current markdown so we don't clobber the caret while
-				// the user is typing (our own change handler round-trips here).
-				if (this.toastEditor && this.toastEditor.getMarkdown() !== next) {
-					this.toastEditor.setMarkdown(next || '')
-				}
-			}
+		// Both spellings watched, because either may be the one the consumer
+		// bound. `boundValue` collapses them so the body is written once.
+		modelValue() {
+			this.onBoundValueChange(this.boundValue)
+		},
+		value() {
+			this.onBoundValueChange(this.boundValue)
 		},
 		mode(next) {
 			if (next === 'wysiwyg') {
@@ -347,8 +368,54 @@ export default {
 			 * @event input v-model emit.
 			 * @type {string}
 			 */
-			this.$emit('input', markdown)
+			this.emitValue(markdown)
 		},
+		/**
+		 * Adopt a value pushed in from outside.
+		 *
+		 * @param {string} next The new markdown.
+		 * @return {void}
+		 */
+		onBoundValueChange(next) {
+			if (next === this.localValue) {
+				return
+			}
+
+			this.localValue = next
+			// The imperative editor holds its own copy of the document, so an
+			// external v-model change has to be pushed into it. Guarded on the
+			// current markdown so we don't clobber the caret while the user is
+			// typing (our own change handler round-trips here).
+			if (this.toastEditor && this.toastEditor.getMarkdown() !== next) {
+				this.toastEditor.setMarkdown(next || '')
+			}
+		},
+
+		/**
+		 * Tell the consumer the value changed, in both v-model dialects.
+		 *
+		 * BOTH are emitted, always. A consumer on `@input` and a consumer on
+		 * `v-model` are the same consumer as far as this component knows, and
+		 * emitting only one silently breaks half of them.
+		 *
+		 * @param {string} next The new markdown.
+		 * @return {void}
+		 */
+		emitValue(next) {
+			/**
+			 * @event input The value changed. Vue 2's v-model dialect, kept for
+			 *   existing consumers.
+			 * @type {*}
+			 */
+			this.$emit('input', next)
+			/**
+			 * @event update:modelValue The value changed. Vue 3's v-model
+			 *   dialect — what a plain `v-model` listens for.
+			 * @type {*}
+			 */
+			this.$emit('update:modelValue', next)
+		},
+
 		/**
 		 * Textarea input handler — pushes the new value upward via
 		 * v-model.
@@ -362,7 +429,7 @@ export default {
 			 * @event input v-model emit.
 			 * @type {string}
 			 */
-			this.$emit('input', this.localValue)
+			this.emitValue(this.localValue)
 		},
 		/**
 		 * Keyboard handler. Ctrl/Cmd+B / Ctrl/Cmd+I trigger bold / italic;
@@ -487,7 +554,7 @@ export default {
 		 */
 		applyTextChange(next, selStart, selEnd) {
 			this.localValue = next
-			this.$emit('input', next)
+			this.emitValue(next)
 			this.$nextTick(() => {
 				const ta = this.$refs.textarea
 				if (!ta) return
@@ -583,7 +650,7 @@ export default {
 			}
 
 			this.localValue = nextValue
-			this.$emit('input', nextValue)
+			this.emitValue(nextValue)
 			this.$nextTick(() => {
 				ta.focus()
 				ta.setSelectionRange(nextSelStart, nextSelEnd)
@@ -601,7 +668,7 @@ export default {
 			const ta = this.$refs.textarea
 			if (!ta) {
 				this.localValue += text
-				this.$emit('input', this.localValue)
+				this.emitValue(this.localValue)
 				return
 			}
 			const before = this.localValue.slice(0, ta.selectionStart)
@@ -609,7 +676,7 @@ export default {
 			const next = `${before}${text}${after}`
 			const caret = before.length + text.length
 			this.localValue = next
-			this.$emit('input', next)
+			this.emitValue(next)
 			this.$nextTick(() => {
 				ta.focus()
 				ta.setSelectionRange(caret, caret)
