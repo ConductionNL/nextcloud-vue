@@ -87,6 +87,52 @@ test.describe('flow canvas — rendering', () => {
 		expect(painted.node.borderWidth).not.toBe('0px')
 	})
 
+	test('an edge ends in a visible arrowhead, clear of the port handle', async ({ page }) => {
+		await page.goto(CANVAS)
+		await page.locator('.vue-flow__edge').first().waitFor()
+
+		// An edge says which way the data flows, and only the arrowhead says it.
+		// The arrow WAS being drawn all along at 12.5px — landing exactly on the
+		// target's 18px port handle, which Vue Flow paints in a layer above the
+		// edges. Measurably present, and invisible to every user: the canvas
+		// read as a set of undirected lines.
+		//
+		// So this asserts the two things that made it visible, not merely that a
+		// marker exists: it must be LARGER than the handle it lands on, and it
+		// must not be painted in the line's own pale colour.
+		const arrow = await page.evaluate(() => {
+			const marker = document.querySelector('.cn-graph-canvas marker.vue-flow__arrowhead')
+			if (marker === null) {
+				return null
+			}
+
+			const shape = marker.querySelector('polyline, path')
+			const handle = document.querySelector('.vue-flow__handle-top')
+			const path = document.querySelector('.vue-flow__edge-path')
+
+			return {
+				width: Number(marker.getAttribute('markerWidth')),
+				fill: getComputedStyle(shape).fill,
+				handleWidth: handle.getBoundingClientRect().width,
+				edgeStroke: getComputedStyle(path).stroke,
+				referenced: (path.getAttribute('marker-end') || '').includes(marker.id),
+			}
+		})
+
+		expect(arrow).not.toBeNull()
+
+		// The edge actually POINTS at this marker. A marker sitting unreferenced
+		// in <defs> renders nothing — which is exactly the state CnFlowDetail's
+		// own hand-rolled arrowhead was in.
+		expect(arrow.referenced).toBe(true)
+
+		// Bigger than the handle, or it is hidden behind it again.
+		expect(arrow.width).toBeGreaterThan(arrow.handleWidth)
+
+		// Not the line's colour: the arrow is the signal, the line is the path.
+		expect(arrow.fill).not.toBe(arrow.edgeStroke)
+	})
+
 	test('a port handle takes the theme colour, not Vue Flow\'s default', async ({ page }) => {
 		await page.goto(CANVAS)
 
@@ -147,6 +193,49 @@ test.describe('flow canvas — pointer interaction', () => {
 			await page.getByRole('button', { name }).click()
 			await expect(viewport).not.toHaveAttribute('style', before ?? '')
 		}
+	})
+})
+
+test.describe('flow canvas — removing a node', () => {
+	test('Delete removes the focused node, and its edges go with it', async ({ page }) => {
+		await page.goto(CANVAS)
+		await expect(page.locator('.cn-flow-node')).toHaveCount(3)
+		await expect(page.locator('.vue-flow__edge')).toHaveCount(1)
+
+		// Focus node `a`, which the harness graph's only edge leaves from.
+		await page.locator('.cn-flow-node').first().focus()
+		await page.keyboard.press('Delete')
+
+		await expect(page.locator('.cn-flow-node')).toHaveCount(2)
+
+		// The edge is the assertion that matters. A canvas that dropped the node
+		// and kept the line would leave an edge pointing at nothing — which is
+		// exactly what the store's own removeNode() exists to prevent, and what
+		// a node-count-only test would sail past.
+		await expect(page.locator('.vue-flow__edge')).toHaveCount(0)
+	})
+
+	test('Backspace removes it too, because that is the Mac delete key', async ({ page }) => {
+		await page.goto(CANVAS)
+		await expect(page.locator('.cn-flow-node')).toHaveCount(3)
+
+		await page.locator('.cn-flow-node').nth(2).focus()
+		await page.keyboard.press('Backspace')
+
+		await expect(page.locator('.cn-flow-node')).toHaveCount(2)
+	})
+
+	test('a read-only canvas refuses Delete', async ({ page }) => {
+		await page.goto(READONLY)
+		await expect(page.locator('.cn-flow-node')).toHaveCount(3)
+
+		await page.locator('.cn-flow-node').first().focus()
+		await page.keyboard.press('Delete')
+
+		// The control for the two above: the key is wired, and read-only means
+		// read-only. A canvas that LOOKS locked and still deletes on a keypress
+		// is worse than one with no shortcut at all.
+		await expect(page.locator('.cn-flow-node')).toHaveCount(3)
 	})
 })
 

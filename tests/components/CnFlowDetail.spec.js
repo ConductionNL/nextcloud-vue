@@ -137,23 +137,21 @@ describe('CnFlowDetail', () => {
 		})
 	})
 
-	describe('edge routing', () => {
-		it('draws a straight line between nodes that are in line', async () => {
-			const { wrapper } = await mountDetail()
-			const d = wrapper.vm.edgePath({ x: 100, y: 0 }, { x: 100, y: 300 })
-
-			// No curve commands: a near-aligned pair used to get two corner arcs
-			// with a zero-length leg between them — a wobble in place of a line.
-			expect(d).not.toContain('Q')
-		})
-
-		it('bends only when the nodes are genuinely out of line', async () => {
-			const { wrapper } = await mountDetail()
-			const d = wrapper.vm.edgePath({ x: 0, y: 0 }, { x: 600, y: 300 })
-
-			expect(d).toContain('Q')
-		})
-	})
+	// EDGE ROUTING TESTS REMOVED WITH THE CODE THEY COVERED.
+	//
+	// `edgePath()` / `edgeGeometry()` / `trimOn()` hand-computed an orthogonal
+	// path back when this component drew its own edges. The Vue Flow migration
+	// moved routing into `getSmoothStepPath`, and the `#edge` slot that called
+	// them went with it — but the methods stayed, and so did these tests.
+	//
+	// So the suite kept proving that a straight run had no curve commands in a
+	// path string that nothing drew. Green, specific, and describing no pixel
+	// on screen: the tests were the only remaining caller, which is what made
+	// the dead code look alive.
+	//
+	// Routing is asserted where it now happens — against a real browser in
+	// `e2e/flow-canvas.e2e.js`, which is also the only place it CAN be, since
+	// Vue Flow measures nodes and jsdom computes no layout.
 
 	describe('following the route', () => {
 		/**

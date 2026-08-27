@@ -62,9 +62,27 @@
 					:read-only="canvasReadOnly"
 					:show-mini-map="true"
 					@nodes-change="canvasChanges.push($event)"
+					@node-remove="onCanvasNodeRemove"
 					@connect="canvasConnections.push($event)" />
 			</div>
 			<pre data-testid="canvas-connections">{{ JSON.stringify(canvasConnections) }}</pre>
+		</template>
+
+		<!--
+			Flow editor (?flow=1). The whole CnFlowDetail, not just its canvas,
+			because the two things it adds live on the EDITOR and not on the
+			canvas: the per-step action menu, and the Ctrl+Z that has to stand
+			down inside a text field. Both are keyboard/pointer behaviour against
+			real DOM, so neither can be settled in jsdom.
+
+			The spec stubs the OpenRegister calls with page.route().
+		-->
+		<template v-else-if="showFlow">
+			<h2>Flow editor</h2>
+			<div class="canvas-box" data-testid="flow-box">
+				<CnFlowDetail id="new" app="openregister" />
+			</div>
+			<input data-testid="outside-input" aria-label="Outside text" >
 		</template>
 
 		<template v-else-if="showDtScroll">
@@ -268,6 +286,8 @@
 </template>
 
 <script>
+import CnFlowDetail from '../../src/components/CnFlowDetail/CnFlowDetail.vue'
+import { useFlowStore } from '../../src/composables/useFlowStore.js'
 import CnGraphCanvas from '../../src/components/CnGraphCanvas/CnGraphCanvas.vue'
 import CnIconPicker from '../../src/components/CnIconPicker/CnIconPicker.vue'
 import CnIconBrowser from '../../src/components/CnIconBrowser/CnIconBrowser.vue'
@@ -303,7 +323,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnDashboardPage, CnNavCardGrid, NcDialog, NcSelect },
+	components: { CnFlowDetail, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnDashboardPage, CnNavCardGrid, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -325,10 +345,16 @@ export default {
 				},
 				{ id: 'c', type: 'default', position: { x: 40, y: 300 }, data: { label: 'End' } },
 			],
-			canvasEdges: [{ id: 'e1', source: 'a', target: 'b' }],
+			// `markerEnd` and `type` are what `useFlowStore.canvasEdges` actually
+			// emits for every line. Without them the harness drew a bare
+			// default-bezier edge, so the e2e lane could not see an arrowhead
+			// regression at all — the direction of flow is the one thing an
+			// edge exists to communicate, and it was untested here.
+			canvasEdges: [{ id: 'e1', source: 'a', target: 'b', type: 'default', markerEnd: { type: 'arrowclosed', width: 22, height: 22 }, data: { lineType: 'smoothstep' } }],
 			canvasChanges: [],
 			canvasConnections: [],
 			// CnDataTable horizontal-scroll harness (?dtscroll=1).
+			showFlow: (typeof window !== 'undefined' && window.location.search.includes('flow=1')),
 			showDtScroll: (typeof window !== 'undefined' && window.location.search.includes('dtscroll')),
 			// Non-sortable, exactly like scholiq's failing "manage-courses" widget
 			// table. A STRING column normalises to `sortable: true`, which puts a
@@ -476,6 +502,36 @@ export default {
 		if (this.showSelectZ) {
 			installModalStack()
 		}
+
+		// The flow specs seed a graph through the store rather than through the
+		// palette. Dragging from the palette would make every assertion about
+		// the action menu and undo depend on drag-and-drop working first, so a
+		// failure there would surface as a failure here — in the wrong place.
+		// Harness-only: nothing in src/ reads this.
+		if (this.showFlow) {
+			window.__cnFlowStore = useFlowStore()
+		}
+	},
+
+	methods: {
+		/**
+		 * Remove a node the canvas asked to delete, and its edges with it.
+		 *
+		 * The harness plays the HOST here deliberately. CnGraphCanvas only
+		 * EMITS `node-remove` — it never mutates the graph — so a spec that
+		 * expected the node to vanish without a host acting would be asserting
+		 * behaviour the component does not have, and would fail for the right
+		 * reason in the wrong place.
+		 *
+		 * @param {string} id The node id.
+		 * @return {void}
+		 */
+		onCanvasNodeRemove(id) {
+			this.canvasNodes = this.canvasNodes.filter((node) => node.id !== id)
+			this.canvasEdges = this.canvasEdges.filter(
+				(edge) => edge.source !== id && edge.target !== id,
+			)
+		},
 	},
 }
 </script>

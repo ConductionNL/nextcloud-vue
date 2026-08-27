@@ -130,6 +130,7 @@ The canvas never mutates `nodes`. Dragging emits `node-move` with the intended p
 | `node-select` | `id` | A node was clicked or focused. |
 | `edge-select` | `id` | An edge was clicked (default edge rendering only). |
 | `canvas-click` | — | Empty canvas was clicked. Consumers usually clear selection. |
+| `node-remove` | `id` | Delete or Backspace was pressed on a focused node. The canvas removes **nothing** — you own `nodes` and `edges`, and a node dropped without its edges leaves lines pointing at something that is gone. Not raised on a read-only canvas. |
 | `update:zoom` | `Number` | Wheel zoom, already clamped to `minZoom`/`maxZoom`. |
 
 ## Slots
