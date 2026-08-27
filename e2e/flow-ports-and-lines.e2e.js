@@ -347,12 +347,18 @@ test.describe('flow editor — the line action menu', () => {
 		await clickLine(page)
 		await page.getByRole('menuitem', { name: 'Straight', exact: true }).click()
 
-		const stored = await page.evaluate(() => window.__cnFlowStore.edges.map((edge) => edge.lineType ?? null))
-
+		// ⚠️ `expect.poll`, NOT a bare `page.evaluate()`. An evaluate takes ONE
+		// snapshot and cannot retry, so reading the store immediately after a
+		// click is a race with whatever the click still has to do. The same
+		// shape failed `dashboard-date-chip.e2e.js` on its first CI run while
+		// passing locally every time.
+		//
 		// One line changed; the other kept the default. A control that restyled
 		// both would be indistinguishable from a working one on a canvas with a
 		// single line, which is why the fixture has two.
-		expect(stored).toEqual(['straight', null])
+		await expect
+			.poll(() => page.evaluate(() => window.__cnFlowStore.edges.map((edge) => edge.lineType ?? null)))
+			.toEqual(['straight', null])
 	})
 
 	test('Copy then Paste style carries a line’s look onto another', async ({ page }) => {
@@ -368,8 +374,9 @@ test.describe('flow editor — the line action menu', () => {
 		await clickLine(page, 1)
 		await page.getByRole('menuitem', { name: 'Paste style', exact: true }).click()
 
-		const stored = await page.evaluate(() => window.__cnFlowStore.edges.map((edge) => edge.lineType))
-		expect(stored).toEqual(['straight', 'straight'])
+		await expect
+			.poll(() => page.evaluate(() => window.__cnFlowStore.edges.map((edge) => edge.lineType)))
+			.toEqual(['straight', 'straight'])
 	})
 
 	test('Paste style is hidden until something has been copied', async ({ page }) => {
