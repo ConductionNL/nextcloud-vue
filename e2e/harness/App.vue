@@ -85,6 +85,18 @@
 			<input data-testid="outside-input" aria-label="Outside text" >
 		</template>
 
+		<!-- Cron builder (?cron=1). A schedule is the kind of value where the
+		     three views have to agree: picking a preset must rewrite the
+		     expression, and typing an expression must re-select the preset it
+		     matches. Only a browser settles that. -->
+		<template v-else-if="showCron">
+			<h2>Cron field</h2>
+			<div data-testid="cron-box">
+				<CnCronField v-model="cronValue" label="Runs" />
+			</div>
+			<pre data-testid="cron-value">{{ cronValue }}</pre>
+		</template>
+
 		<template v-else-if="showDtScroll">
 			<h2>Data table — horizontal scroll</h2>
 			<div class="dt-narrow" data-testid="dt-overflowing">
@@ -286,6 +298,7 @@
 </template>
 
 <script>
+import CnCronField from '../../src/components/CnCronField/CnCronField.vue'
 import CnFlowDetail from '../../src/components/CnFlowDetail/CnFlowDetail.vue'
 import { useFlowStore } from '../../src/composables/useFlowStore.js'
 import CnGraphCanvas from '../../src/components/CnGraphCanvas/CnGraphCanvas.vue'
@@ -323,7 +336,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnFlowDetail, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnDashboardPage, CnNavCardGrid, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnDashboardPage, CnNavCardGrid, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -355,6 +368,8 @@ export default {
 			canvasConnections: [],
 			// CnDataTable horizontal-scroll harness (?dtscroll=1).
 			showFlow: (typeof window !== 'undefined' && window.location.search.includes('flow=1')),
+			showCron: (typeof window !== 'undefined' && window.location.search.includes('cron=1')),
+			cronValue: '0 9 * * 1',
 			showDtScroll: (typeof window !== 'undefined' && window.location.search.includes('dtscroll')),
 			// Non-sortable, exactly like scholiq's failing "manage-courses" widget
 			// table. A STRING column normalises to `sortable: true`, which puts a
