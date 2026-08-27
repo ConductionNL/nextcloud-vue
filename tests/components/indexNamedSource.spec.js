@@ -144,3 +144,83 @@ describe('a named source supplies its columns to the table', () => {
 		expect(tableColumns({ columns: [], isNamedSource: false, namedSource: null })).toEqual([])
 	})
 })
+
+describe('a named source supplies its create and navigation actions', () => {
+	/**
+	 * THE GAP THIS CLOSES, and it is the same one twice. #810 wired the
+	 * source's `columns` and stopped there, leaving `addLabel` and the routes
+	 * defined-and-never-read. Two apps' E2E caught it in the same way: after
+	 * migrating their flow list off a custom page, `getByRole('button', {name:
+	 * 'New flow'})` found nothing.
+	 *
+	 * A missing create button is not a crash. The list still renders, so the
+	 * page looks finished and is simply unusable — which is why the adapter
+	 * advertising a field is worth nothing until something reads it.
+	 */
+	const CnIndexPage = () => require('../../src/components/CnIndexPage/CnIndexPage.vue').default
+	const flows = () => require('../../src/composables/indexSources.js').indexSources.flows()
+
+	it('labels the create button from the source', () => {
+		const label = CnIndexPage().computed.resolvedAddLabel.call({
+			addLabel: '',
+			cnTranslate: (s) => s,
+			isNamedSource: true,
+			namedSource: flows(),
+			effectiveSchema: null,
+		})
+		expect(label).toBe('New flow')
+	})
+
+	it('creates by navigating to the editor, not by opening the object form dialog', () => {
+		const pushed = []
+		CnIndexPage().methods.onAddClick.call({
+			$: { vnode: { props: {} } },
+			isNamedSource: true,
+			namedSource: flows(),
+			$router: { push: (r) => pushed.push(r) },
+			showFormDialog: true,
+			$emit: () => {},
+		})
+		// The form dialog builds an OpenRegister object from a schema. A flow is
+		// not one, so reaching it here would be the regression.
+		expect(pushed).toEqual(['/flows/new'])
+	})
+
+	it('opens a clicked row in the source detail route', () => {
+		const pushed = []
+		CnIndexPage().methods.onRowClick.call({
+			selectable: false,
+			rowClickToView: true,
+			isNamedSource: true,
+			namedSource: flows(),
+			$router: { push: (r) => pushed.push(r) },
+			$emit: () => {},
+		})
+		expect(pushed).toEqual([])
+
+		CnIndexPage().methods.onRowClick.call({
+			selectable: false,
+			rowClickToView: true,
+			isNamedSource: true,
+			namedSource: flows(),
+			$router: { push: (r) => pushed.push(r) },
+			$emit: () => {},
+		}, { id: 'abc' })
+		expect(pushed).toEqual(['/flows/abc'])
+	})
+
+	it('leaves an explicit @add listener in charge', () => {
+		const pushed = []
+		let emitted = null
+		CnIndexPage().methods.onAddClick.call({
+			$: { vnode: { props: { onAdd: () => {} } } },
+			isNamedSource: true,
+			namedSource: flows(),
+			$router: { push: (r) => pushed.push(r) },
+			showFormDialog: true,
+			$emit: (e) => { emitted = e },
+		})
+		expect(emitted).toBe('add')
+		expect(pushed).toEqual([])
+	})
+})

@@ -2420,6 +2420,13 @@ export default {
 		/** Add button label — derived from schema.title if not explicitly set */
 		resolvedAddLabel() {
 			if (this.addLabel) return this.cnTranslate(this.addLabel)
+			// A named source names its own create action. Without this the button
+			// falls back to a schema-derived noun, and a named source has no
+			// schema — so the control the migration was supposed to preserve
+			// simply is not there.
+			if (this.isNamedSource && this.namedSource && this.namedSource.addLabel) {
+				return this.namedSource.addLabel
+			}
 			// Two catalogues, deliberately. The NOUN comes from the consumer's
 			// schema, so it resolves against the consumer's catalogue via the
 			// injected `cnTranslate`; the SENTENCE around it is library chrome, so
@@ -3046,6 +3053,15 @@ export default {
 			 * @event row-click Emitted on a row/card click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox).
 			 * @type {object} The clicked row object.
 			 */
+			// A named source knows where its rows live. Emitting only would leave
+			// the click inert on a manifest page, which has no listener to bind —
+			// the very shape that left three apps with a dead `@rowClick`.
+			if (this.isNamedSource && this.namedSource && this.namedSource.detailRoute) {
+				const id = row?.id || row?.uuid
+				if (id) {
+					this.$router.push(`${this.namedSource.detailRoute}/${id}`)
+				}
+			}
 			this.$emit('row-click', row)
 		},
 
@@ -3189,6 +3205,19 @@ export default {
 		 * emit the event (backward compatible). Otherwise open the form dialog.
 		 */
 		onAddClick() {
+			// A NAMED SOURCE CREATES BY NAVIGATING, not by the form dialog. That
+			// dialog builds an OpenRegister object from a schema; a flow is not
+			// one, which is why the page it replaces set `show-add="false"` and
+			// rendered its own button. An explicit @add listener still wins.
+			if (
+				!this.$.vnode.props?.onAdd
+				&& this.isNamedSource
+				&& this.namedSource
+				&& this.namedSource.addRoute
+			) {
+				this.$router.push(this.namedSource.addRoute)
+				return
+			}
 			// `$.vnode.props`, not `$attrs`: `add` is a declared emit, and Vue
 			// keeps declared emits out of `$attrs`.
 			if (this.$.vnode.props?.onAdd) {
