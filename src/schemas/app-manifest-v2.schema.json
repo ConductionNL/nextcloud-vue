@@ -2098,7 +2098,7 @@
 				"type": {
 					"type": "string",
 					"enum": ["index", "detail", "dashboard", "logs", "settings", "chat", "files", "form", "map", "roadmap", "search", "wiki", "flow", "flows", "flow-detail", "custom"],
-					"description": "Page type. Closed enum of 17 supported types. 'flow' opens ONE flow in the editor; the flow LIST is an ordinary 'index' with config.source='flows'. 'flows' and 'flow-detail' are DEPRECATED aliases kept for migration — 'flows' predates named index sources and 'flow-detail' is the old name for 'flow'. 'roadmap' mounts CnFeaturesAndRoadmapPage (features + GitHub-issue-backed roadmap). 'search' mounts CnSearchPage (cross-schema query + facet sidebar + results list; consumers wire the actual search via @search). 'wiki' mounts CnWikiPage (manifest-declared markdown article + optional sidebar tree; MUST declare config.register + config.schema). 'flows' mounts CnFlowsPage (the app-scoped flow list) and 'flow-detail' mounts CnFlowEditorPage (the shared node/edge canvas); both take config.app to scope to the owning app, and neither can be expressed as 'index'/'detail' because a flow lives in OpenRegister's native flow store rather than a register/schema pair (ADR-110 Decision 4). 'custom' requires a _note field explaining why a standard type was not feasible."
+					"description": "Page type. Closed enum of 17 supported types. 'flow' opens ONE flow in the editor; the flow LIST is an ordinary 'index' with config.entitySource='flows'. 'flows' and 'flow-detail' are DEPRECATED aliases kept for migration — 'flows' predates named index sources and 'flow-detail' is the old name for 'flow'. 'roadmap' mounts CnFeaturesAndRoadmapPage (features + GitHub-issue-backed roadmap). 'search' mounts CnSearchPage (cross-schema query + facet sidebar + results list; consumers wire the actual search via @search). 'wiki' mounts CnWikiPage (manifest-declared markdown article + optional sidebar tree; MUST declare config.register + config.schema). 'flow' and the deprecated 'flow-detail' both mount CnFlowEditorPage (the shared node/edge canvas) and take config.app to scope to the owning app. A flow lives in OpenRegister's native flow store rather than a register/schema pair, so a single flow cannot be a 'detail' page — but the LIST is a plain 'index' once a named entitySource supplies it, which is why 'flows' is deprecated (ADR-110 Decision 4). 'custom' requires a _note field explaining why a standard type was not feasible."
 				},
 				"title": {
 					"type": "string",
@@ -2157,7 +2157,7 @@
 						},
 						"app": {
 							"type": "string",
-							"description": "Scopes a named `source` to one app (e.g. source='flows' with app='dossiq' lists that app's flows)."
+							"description": "Scopes a named `entitySource` to one app (e.g. entitySource='flows' with app='dossiq' lists that app's flows)."
 						},
 						"register": {
 							"type": "string",
