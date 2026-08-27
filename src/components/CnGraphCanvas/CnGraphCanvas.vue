@@ -525,6 +525,25 @@ export default {
 	stroke: var(--color-primary-element, #0082c9);
 }
 
+/* An edge says which way the data flows, and it can only say it with an
+   arrowhead — the direction is the one thing a line cannot express on its own.
+
+   ⚠️ `!important` IS LOAD-BEARING HERE, not laziness. Vue Flow writes the
+   arrowhead's colour as an INLINE style on the polyline it generates, and an
+   inline style beats any class selector. The alternative is passing a colour
+   through the marker definition in JS, which would hard-code a hex and take
+   the arrowhead out of the theme — it would stay dark grey in dark mode while
+   the line it terminates went light. Themed here, it follows the user.
+
+   `markerUnits` defaults to `strokeWidth`, so the size set alongside this in
+   `useFlowStore.canvasEdges` is what keeps the arrow clear of the target
+   node's port handle. */
+.cn-graph-canvas .vue-flow__arrowhead polyline,
+.cn-graph-canvas .vue-flow__arrowhead path {
+	fill: var(--color-text-maxcontrast, #6b6b6b) !important;
+	stroke: var(--color-text-maxcontrast, #6b6b6b) !important;
+}
+
 .cn-graph-canvas__controls {
 	position: absolute;
 	bottom: 12px;

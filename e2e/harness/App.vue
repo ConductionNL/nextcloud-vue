@@ -325,7 +325,12 @@ export default {
 				},
 				{ id: 'c', type: 'default', position: { x: 40, y: 300 }, data: { label: 'End' } },
 			],
-			canvasEdges: [{ id: 'e1', source: 'a', target: 'b' }],
+			// `markerEnd` and `type` are what `useFlowStore.canvasEdges` actually
+			// emits for every line. Without them the harness drew a bare
+			// default-bezier edge, so the e2e lane could not see an arrowhead
+			// regression at all — the direction of flow is the one thing an
+			// edge exists to communicate, and it was untested here.
+			canvasEdges: [{ id: 'e1', source: 'a', target: 'b', type: 'default', markerEnd: { type: 'arrowclosed', width: 22, height: 22 }, data: { lineType: 'smoothstep' } }],
 			canvasChanges: [],
 			canvasConnections: [],
 			// CnDataTable horizontal-scroll harness (?dtscroll=1).

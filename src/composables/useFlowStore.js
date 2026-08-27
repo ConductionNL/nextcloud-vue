@@ -245,7 +245,26 @@ export const useFlowStore = defineStore('cnFlow', {
 							// value put there is a component that does not
 							// exist.
 							type: 'default',
-							markerEnd: edge.markerEnd || 'arrowclosed',
+
+							// ⚠️ SIZED, BECAUSE THE DEFAULT ARROWHEAD WAS DRAWN
+							// UNDERNEATH THE PORT HANDLE.
+							//
+							// `'arrowclosed'` on its own renders a 12.5px arrow
+							// at the path's end — which is exactly where the
+							// target node's handle sits, and that handle is an
+							// 18px filled circle in a layer Vue Flow paints
+							// ABOVE the edges. So the arrow was there the whole
+							// time, measurably, and no user could see it: the
+							// canvas read as a set of undirected lines.
+							//
+							// 22px is chosen against the handle, not for looks
+							// — the arrow has to extend beyond it to read as an
+							// arrow at all. Colour is deliberately NOT set here:
+							// Vue Flow writes it as an inline style on the
+							// polyline, so it is themed in CSS instead (see
+							// `.vue-flow__arrowhead` in CnGraphCanvas) and
+							// follows dark mode.
+							markerEnd: edge.markerEnd || { type: 'arrowclosed', width: 22, height: 22 },
 							data: {
 								lineType: edge.lineType || 'smoothstep',
 								labelT: edge.labelT,

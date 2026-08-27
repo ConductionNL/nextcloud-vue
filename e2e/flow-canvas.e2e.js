@@ -87,6 +87,52 @@ test.describe('flow canvas — rendering', () => {
 		expect(painted.node.borderWidth).not.toBe('0px')
 	})
 
+	test('an edge ends in a visible arrowhead, clear of the port handle', async ({ page }) => {
+		await page.goto(CANVAS)
+		await page.locator('.vue-flow__edge').first().waitFor()
+
+		// An edge says which way the data flows, and only the arrowhead says it.
+		// The arrow WAS being drawn all along at 12.5px — landing exactly on the
+		// target's 18px port handle, which Vue Flow paints in a layer above the
+		// edges. Measurably present, and invisible to every user: the canvas
+		// read as a set of undirected lines.
+		//
+		// So this asserts the two things that made it visible, not merely that a
+		// marker exists: it must be LARGER than the handle it lands on, and it
+		// must not be painted in the line's own pale colour.
+		const arrow = await page.evaluate(() => {
+			const marker = document.querySelector('.cn-graph-canvas marker.vue-flow__arrowhead')
+			if (marker === null) {
+				return null
+			}
+
+			const shape = marker.querySelector('polyline, path')
+			const handle = document.querySelector('.vue-flow__handle-top')
+			const path = document.querySelector('.vue-flow__edge-path')
+
+			return {
+				width: Number(marker.getAttribute('markerWidth')),
+				fill: getComputedStyle(shape).fill,
+				handleWidth: handle.getBoundingClientRect().width,
+				edgeStroke: getComputedStyle(path).stroke,
+				referenced: (path.getAttribute('marker-end') || '').includes(marker.id),
+			}
+		})
+
+		expect(arrow).not.toBeNull()
+
+		// The edge actually POINTS at this marker. A marker sitting unreferenced
+		// in <defs> renders nothing — which is exactly the state CnFlowDetail's
+		// own hand-rolled arrowhead was in.
+		expect(arrow.referenced).toBe(true)
+
+		// Bigger than the handle, or it is hidden behind it again.
+		expect(arrow.width).toBeGreaterThan(arrow.handleWidth)
+
+		// Not the line's colour: the arrow is the signal, the line is the path.
+		expect(arrow.fill).not.toBe(arrow.edgeStroke)
+	})
+
 	test('a port handle takes the theme colour, not Vue Flow\'s default', async ({ page }) => {
 		await page.goto(CANVAS)
 

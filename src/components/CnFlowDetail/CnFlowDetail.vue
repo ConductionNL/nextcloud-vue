@@ -152,22 +152,6 @@
 			</template>
 		</CnGraphCanvas>
 
-		<!-- Arrowhead marker, defined here so its colour and size are ours. -->
-		<svg class="cn-flow-detail__defs" aria-hidden="true" focusable="false">
-			<defs>
-				<marker
-					:id="arrowId"
-					viewBox="0 0 10 10"
-					refX="9"
-					refY="5"
-					markerWidth="5"
-					markerHeight="5"
-					orient="auto-start-reverse">
-					<path d="M 0 0 L 10 5 L 0 10 z" class="cn-flow-detail__arrowhead" />
-				</marker>
-			</defs>
-		</svg>
-
 		<NcEmptyContent
 			v-if="store.nodes.length === 0"
 			class="cn-flow-detail__empty"
@@ -242,10 +226,6 @@ export default {
 
 	data() {
 		return {
-			arrowId: 'cn-flow-detail-arrow',
-			nodeWidth: 200,
-			nodeHeight: 80,
-
 			// Zoom is owned here, not by the canvas: a consumer that does not
 			// bind it pins the canvas at 1 and silently kills the wheel gesture.
 			zoom: 1,
@@ -596,129 +576,6 @@ export default {
 
 			return `${first}: ${shown} +${keys.length - 1}`
 		},
-
-		/**
-		 * The SVG `d` for one edge.
-		 *
-		 * @param {{x: number, y: number}} from Source centre.
-		 * @param {{x: number, y: number}} to   Target centre.
-		 * @return {string} The path.
-		 */
-		edgePath(from, to) {
-			return this.edgeGeometry(from, to).d
-		},
-
-		/**
-		 * Route one edge.
-		 *
-		 * Two decisions, in order:
-		 *
-		 * 1. Trim the endpoints from the node CENTRES (what the canvas hands the
-		 *    slot) back to the node borders, plus a small gap. Drawn centre to
-		 *    centre, the last stretch — arrowhead included — sits under the
-		 *    target card, so the flow reads as an undirected line.
-		 *
-		 * 2. Bend only when a straight run would not fit. Bending on any
-		 *    difference in centres produced a staircase for a modest offset and,
-		 *    for a near-aligned pair, two corner arcs with a zero-length leg
-		 *    between them — a wobble in place of a line. A corner should mean
-		 *    "these nodes are not in line", not "these nodes are a few pixels
-		 *    apart".
-		 *
-		 * @param {{x: number, y: number}} from Source centre.
-		 * @param {{x: number, y: number}} to   Target centre.
-		 * @return {{d: string, mid: {x: number, y: number}}} Path and midpoint.
-		 */
-		edgeGeometry(from, to) {
-			const gap = 6
-			const margin = 24
-			const vertical = Math.abs(to.y - from.y) >= Math.abs(to.x - from.x)
-
-			const [a, b] = vertical
-				? this.trimOn('y', this.nodeHeight, gap, from, to)
-				: this.trimOn('x', this.nodeWidth, gap, from, to)
-
-			const across = vertical ? Math.abs(to.x - from.x) : Math.abs(to.y - from.y)
-			const span = vertical ? this.nodeWidth : this.nodeHeight
-			if (across <= (span - margin)) {
-				const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
-				const [start, end] = vertical
-					? [{ x: mid.x, y: a.y }, { x: mid.x, y: b.y }]
-					: [{ x: a.x, y: mid.y }, { x: b.x, y: mid.y }]
-
-				return { d: `M ${start.x} ${start.y} L ${end.x} ${end.y}`, mid }
-			}
-
-			return this.elbow(a, b, vertical)
-		},
-
-		/**
-		 * Pull both endpoints in along one axis by half a node plus a gap.
-		 *
-		 * @param {string} axis The axis, `'x'` or `'y'`.
-		 * @param {number} size The node's extent on that axis.
-		 * @param {number} gap  Clearance to leave beyond the border.
-		 * @param {object} from Source centre.
-		 * @param {object} to   Target centre.
-		 * @return {Array<object>} Trimmed `[from, to]`.
-		 */
-		trimOn(axis, size, gap, from, to) {
-			const delta = to[axis] - from[axis]
-			const inset = Math.min((size / 2) + gap, Math.abs(delta) / 2)
-			const step = Math.sign(delta) * inset
-
-			return [
-				{ ...from, [axis]: from[axis] + step },
-				{ ...to, [axis]: to[axis] - step },
-			]
-		},
-
-		/**
-		 * Orthogonal path between two trimmed points, with rounded corners.
-		 *
-		 * @param {{x: number, y: number}} from     Trimmed source point.
-		 * @param {{x: number, y: number}} to       Trimmed target point.
-		 * @param {boolean}                vertical Whether the run is vertical.
-		 * @return {{d: string, mid: {x: number, y: number}}} Path and midpoint.
-		 */
-		elbow(from, to, vertical) {
-			const dx = to.x - from.x
-			const dy = to.y - from.y
-			// A corner radius must never eat more than half of either leg.
-			const rad = Math.min(12, Math.abs(dx) / 2, Math.abs(dy) / 2)
-			const sx = Math.sign(dx)
-			const sy = Math.sign(dy)
-
-			if (vertical) {
-				const midY = from.y + (dy / 2)
-
-				return {
-					mid: { x: from.x + (dx / 2), y: midY },
-					d: [
-						`M ${from.x} ${from.y}`,
-						`L ${from.x} ${midY - (rad * sy)}`,
-						`Q ${from.x} ${midY} ${from.x + (rad * sx)} ${midY}`,
-						`L ${to.x - (rad * sx)} ${midY}`,
-						`Q ${to.x} ${midY} ${to.x} ${midY + (rad * sy)}`,
-						`L ${to.x} ${to.y}`,
-					].join(' '),
-				}
-			}
-
-			const midX = from.x + (dx / 2)
-
-			return {
-				mid: { x: midX, y: from.y + (dy / 2) },
-				d: [
-					`M ${from.x} ${from.y}`,
-					`L ${midX - (rad * sx)} ${from.y}`,
-					`Q ${midX} ${from.y} ${midX} ${from.y + (rad * sy)}`,
-					`L ${midX} ${to.y - (rad * sy)}`,
-					`Q ${midX} ${to.y} ${midX + (rad * sx)} ${to.y}`,
-					`L ${to.x} ${to.y}`,
-				].join(' '),
-			}
-		},
 	},
 }
 </script>
@@ -776,21 +633,6 @@ export default {
 	margin-block-start: 4px;
 	padding-inline-start: 20px;
 	list-style: disc;
-}
-
-.cn-flow-detail__defs {
-	position: absolute;
-	inline-size: 0;
-	block-size: 0;
-}
-
-.cn-flow-detail__edge {
-	stroke: var(--color-border-dark);
-	stroke-width: 2;
-}
-
-.cn-flow-detail__arrowhead {
-	fill: var(--color-border-dark);
 }
 
 /* ONE container, not a card in a card: the canvas wrapper draws the box —
