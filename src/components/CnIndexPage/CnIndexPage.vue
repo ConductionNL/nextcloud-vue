@@ -3056,6 +3056,14 @@ export default {
 		 * Row/card click: toggles selection when `selectable` (covers the custom
 		 * `cardComponent` path), otherwise emits `row-click` for navigation.
 		 *
+		 * The `@event` block below sits directly against its `$emit`, and must
+		 * stay there. vue-docgen binds an event's description to the emit it
+		 * IMMEDIATELY precedes; inserting the named-source branch between the two
+		 * silently emptied the event's description in
+		 * docs/components/_generated/CnIndexPage.md while the text sat in the
+		 * source looking maintained. Nothing failed at runtime - only the docs
+		 * freshness check, one commit later.
+		 *
 		 * @param {object} row The clicked row object
 		 */
 		onRowClick(row) {
@@ -3063,10 +3071,6 @@ export default {
 				this.onSelect(this.toggleIdInArray(this.internalSelectedIds, row[this.rowKey]))
 				return
 			}
-			/**
-			 * @event row-click Emitted on a row/card click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox).
-			 * @type {object} The clicked row object.
-			 */
 			// A named source knows where its rows live. Emitting only would leave
 			// the click inert on a manifest page, which has no listener to bind —
 			// the very shape that left three apps with a dead `@rowClick`.
@@ -3076,6 +3080,10 @@ export default {
 					this.$router.push(`${this.namedSource.detailRoute}/${id}`)
 				}
 			}
+			/**
+			 * @event row-click Emitted on a row/card click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox).
+			 * @type {object} The clicked row object.
+			 */
 			this.$emit('row-click', row)
 		},
 
