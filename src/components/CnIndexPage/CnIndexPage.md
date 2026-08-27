@@ -428,7 +428,7 @@ list nested under a parent route (`/forms/:id/submissions`) is a fully
 declarative page. When `objects` **is** supplied (every existing consumer),
 nothing changes — no store is touched and `filter` has no effect.
 
-## Named sources (`config.source`) — lists that are not OpenRegister objects
+## Named entity sources (`config.entitySource`) — lists that are not OpenRegister objects
 
 Self-fetch needs a `register` + `schema` pair. Some lists have neither: a flow
 definition is deliberately **not** stored as an OpenRegister object, so an
@@ -437,7 +437,10 @@ pages whose only real job was loading rows from somewhere else and passing them
 down — which is how three apps ended up shipping the same ~270-line wrapper,
 differing only in an app-id string.
 
-`source` is the third mode. The manifest names a registered source and the
+`entitySource` is the third mode. It is deliberately **not** called `source`:
+that key is already taken on page config and is polymorphic — a URL string in
+some manifests, an object with `params` in others — so reusing it would give
+one key two meanings. The manifest names a registered source and the
 index loads it:
 
 ```json
@@ -445,7 +448,7 @@ index loads it:
   "id": "Flows",
   "route": "/flows",
   "type": "index",
-  "config": { "source": "flows", "app": "dossiq" }
+  "config": { "entitySource": "flows", "app": "dossiq" }
 }
 ```
 
@@ -456,13 +459,13 @@ A manifest that **does** set `columns` still wins; the source only fills gaps.
 Precedence, in order:
 
 1. Non-empty `objects` — a parent handing rows down is never overridden.
-2. `source` — wins over `register`/`schema`, because naming both is a
+2. `entitySource` — wins over `register`/`schema`, because naming both is a
    contradiction, and self-fetching would render the **wrong** list rather than
    an obviously empty one. Self-fetch is suppressed outright, so no discarded
    request is issued.
 3. `register` + `schema` — ordinary self-fetch.
 
-An unknown source name warns to the console and renders an empty list. It does
+An unknown entity-source name warns to the console and renders an empty list. It does
 **not** throw, and it does **not** go quiet: a silent empty table is
 indistinguishable from a source that genuinely has no rows.
 

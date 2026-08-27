@@ -60,7 +60,7 @@ export function useSelfFetchList(props, instance, inject) {
 	// fire an OpenRegister request whose rows it then discards in favour of the
 	// source's — wasted, but worse than wasted if the manifest names both by
 	// mistake, because the request succeeds and nothing says the two disagree.
-	const isSelfFetch = !!(props.register && props.schema) && !objectsProvided && !props.source
+	const isSelfFetch = !!(props.register && props.schema) && !objectsProvided && !props.entitySource
 
 	const activeQuickFilterIndex = ref(resolveInitialQuickFilterIndex(props.quickFilters))
 	const selectedQuickFilterIndices = ref([])

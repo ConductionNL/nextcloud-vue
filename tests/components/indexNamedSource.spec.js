@@ -68,7 +68,7 @@ describe('self-fetch precedence', () => {
 		const { useSelfFetchList } = await import('../../src/components/CnIndexPage/useSelfFetchList.js')
 
 		const withSource = useSelfFetchList(
-			{ register: 'dossiq', schema: 'case', source: 'flows', quickFilters: null },
+			{ register: 'dossiq', schema: 'case', entitySource: 'flows', quickFilters: null },
 			null,
 			() => null,
 		)
@@ -80,7 +80,7 @@ describe('self-fetch precedence', () => {
 		const { useSelfFetchList } = await import('../../src/components/CnIndexPage/useSelfFetchList.js')
 
 		const withoutSource = useSelfFetchList(
-			{ register: 'dossiq', schema: 'case', source: '', quickFilters: null },
+			{ register: 'dossiq', schema: 'case', entitySource: '', quickFilters: null },
 			null,
 			() => null,
 		)

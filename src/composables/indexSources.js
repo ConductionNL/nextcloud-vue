@@ -20,10 +20,10 @@ import { useFlowStore } from './useFlowStore.js'
  * OpenRegister objects, so `type: "index"` had nothing to point at, and every
  * app that wanted a flow list shipped a custom page instead.
  *
- * This registry is the third mode. A manifest names a source, and the index
+ * This registry is the third mode. A manifest names an entity source, and the index
  * page loads it — no component, no `type: "custom"`.
  *
- *   { "type": "index", "config": { "source": "flows", "app": "dossiq" } }
+ *   { "type": "index", "config": { "entitySource": "flows", "app": "dossiq" } }
  *
  * Each entry supplies the parts an index cannot infer: how to load, where the
  * rows live, and sensible columns and row actions so a manifest does not have

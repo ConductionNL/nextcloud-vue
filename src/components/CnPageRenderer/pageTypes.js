@@ -66,11 +66,11 @@ export const defaultPageTypes = {
 	// listener (CnIndexPage emits `row-click`).
 	//
 	// Named index sources removed that constraint: `type: "index"` with
-	// `config.source: "flows"` lists them, so only the EDITOR still needs a
+	// `config.entitySource: "flows"` lists them, so only the EDITOR still needs a
 	// page type of its own.
 	//
 	// The flow EDITOR. `flow` opens one flow; the LIST is now an ordinary
-	// `type: "index"` with `config.source: "flows"`, so a flow surface needs no
+	// `type: "index"` with `config.entitySource: "flows"`, so a flow surface needs no
 	// custom page and no page type of its own for the list half.
 	flow: defineAsyncComponent(() => import('../CnFlowsPage/CnFlowEditorPage.vue').then(m => m.default)),
 

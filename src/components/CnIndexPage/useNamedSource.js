@@ -34,7 +34,7 @@ import { resolveIndexSource } from '../../composables/indexSources.js'
  */
 export function useNamedSource(props) {
 	const objectsProvided = !!(props.objects && props.objects.length > 0)
-	const isNamedSource = !!props.source && !objectsProvided
+	const isNamedSource = !!props.entitySource && !objectsProvided
 
 	if (!isNamedSource) {
 		return {
@@ -45,7 +45,7 @@ export function useNamedSource(props) {
 		}
 	}
 
-	const source = resolveIndexSource(props.source)
+	const source = resolveIndexSource(props.entitySource)
 
 	// An unknown source name resolves to null and was already warned about.
 	// The page then behaves as an empty index rather than throwing.
@@ -64,7 +64,7 @@ export function useNamedSource(props) {
 		} catch (error) {
 			// Surfaced, not swallowed: a failed load and an empty source look
 			// identical in the table, and only one of them is a problem.
-			console.error(`[CnIndexPage] source "${props.source}" failed to load`, error)
+			console.error(`[CnIndexPage] entitySource "${props.entitySource}" failed to load`, error)
 		}
 	})
 

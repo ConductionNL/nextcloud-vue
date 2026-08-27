@@ -943,7 +943,7 @@ export default {
 		},
 
 		/**
-		 * Name of a registered NON-OBJECT source to list (e.g. `flows`).
+		 * Name of a registered NON-OBJECT entity collection to list (e.g. `flows`).
 		 *
 		 * The third data mode. `register` + `schema` fetches OpenRegister
 		 * objects; `:objects` renders rows a parent already holds; `source`
@@ -954,7 +954,7 @@ export default {
 		 * An explicit `:objects` still wins, and a source wins over
 		 * register/schema. See `src/composables/indexSources.js`.
 		 */
-		source: { type: String, default: '' },
+		entitySource: { type: String, default: '' },
 
 		/**
 		 * Config handed to the named source's loader (e.g. `{ app: 'dossiq' }`).
