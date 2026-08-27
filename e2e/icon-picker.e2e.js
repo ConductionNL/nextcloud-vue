@@ -50,8 +50,22 @@ test.describe('CnIconPicker — enriched (real browser)', () => {
 	test('clicking a tile emits the MDI value into v-model', async ({ page }) => {
 		const sec = enriched(page)
 		await sec.locator('.cn-icon-picker__search').fill('home')
+
 		const tile = sec.locator('.cn-icon-picker__icon[aria-label]:not(.cn-icon-picker__none)').first()
-		await expect(tile).toBeVisible()
+
+		// ⚠️ WAIT FOR THE FILTERED GRID, NOT MERELY FOR A TILE.
+		//
+		// `.first()` on a re-rendering list is a moving target: `toBeVisible`
+		// can be satisfied by a tile from the UNFILTERED grid, which the filter's
+		// re-render then detaches before `click()` reaches it. Playwright retries
+		// the click, and on a quiet machine the retry lands — under the full
+		// parallel run it timed out instead, once, on a suite that is otherwise
+		// green.
+		//
+		// Asserting the label pins the grid to the filtered set, so the tile that
+		// is checked is the tile that is clicked.
+		await expect(tile).toHaveAttribute('aria-label', /home/i)
+
 		await tile.click()
 		await expect(page.getByTestId('icon-value')).toContainText('mdi')
 	})
