@@ -23,6 +23,7 @@
 //      vocabulary.
 
 import { defineStore } from 'pinia'
+import { DEFAULT_EDGE_LINE_TYPE } from './useFlowEdgeStyles.js'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 
@@ -72,6 +73,23 @@ export const useFlowStore = defineStore('cnFlow', {
 		// dialog is hosted by the canvas while it is opened from the sidebar,
 		// a node double-click, or a consumer.
 		editingNodeId: null,
+
+		// The CONNECTION whose edit dialog is open, as `{source, target}`, or
+		// null.
+		//
+		// ⚠️ NOT AN ID. `canvasEdges` expands one stored edge into several drawn
+		// lines — `{from: 'a', to: ['b', 'c']}` is two lines — so a line's id is
+		// synthesised per render and means nothing to the document. The endpoint
+		// pair is the only thing that identifies a line in both worlds, and it
+		// is what every edge action below is keyed on.
+		editingEdge: null,
+
+		// The label and router copied off a line, for pasting onto another. A
+		// line has no meaningful duplicate — two identical `from`/`to` records
+		// draw on top of each other and the engine dedupes them — so Copy on a
+		// connection copies its PRESENTATION, which is the part that is actually
+		// worth repeating across a graph.
+		edgeStyleClipboard: null,
 
 		// Whether the controls sidebar is shown. Lives here because the
 		// re-open affordance sits on the canvas toolbar, in the other half of
@@ -283,7 +301,7 @@ export const useFlowStore = defineStore('cnFlow', {
 							// follows dark mode.
 							markerEnd: edge.markerEnd || { type: 'arrowclosed', width: 22, height: 22 },
 							data: {
-								lineType: edge.lineType || 'smoothstep',
+								lineType: edge.lineType || DEFAULT_EDGE_LINE_TYPE,
 								labelT: edge.labelT,
 								label: edge.title || edge.label || '',
 								edge,
@@ -758,6 +776,180 @@ export const useFlowStore = defineStore('cnFlow', {
 			this.checkResult = null
 		},
 
+		/**
+		 * The stored edge a drawn line came from, and how it is stored.
+		 *
+		 * Both dialects and both cardinalities: an edge may speak
+		 * `{source, target}` or `{from, to}`, and either endpoint may be a LIST
+		 * (several `from` is a join, several `to` is a split). So "the edge for
+		 * line a→c" is not simply `edges.find(...)` — it may be one entry among
+		 * three that the same record draws.
+		 *
+		 * @param {object} line          The line.
+		 * @param {string} line.source   Its source node id.
+		 * @param {string} line.target   Its target node id.
+		 * @return {{index: number, edge: object, sourceKey: string, targetKey: string, sources: Array<string>, targets: Array<string>}|null}
+		 *   Where it lives, or null when no stored edge draws it.
+		 */
+		locateEdge({ source, target }) {
+			const toList = (value) => {
+				if (Array.isArray(value)) {
+					return value.filter((v) => v !== null && v !== undefined && v !== '')
+				}
+
+				return (value === null || value === undefined || value === '') ? [] : [value]
+			}
+
+			const edges = this.edges
+			for (let index = 0; index < edges.length; index++) {
+				const edge = edges[index]
+				const sourceKey = edge.source !== undefined ? 'source' : 'from'
+				const targetKey = edge.target !== undefined ? 'target' : 'to'
+				const sources = toList(edge[sourceKey])
+				const targets = toList(edge[targetKey])
+
+				if (sources.includes(source) && targets.includes(target)) {
+					return { index, edge, sourceKey, targetKey, sources, targets }
+				}
+			}
+
+			return null
+		},
+
+		/**
+		 * Remove ONE drawn connection.
+		 *
+		 * ⚠️ ONE LINE, NOT ONE RECORD. Deleting a→c out of `{from: 'a', to:
+		 * ['b','c']}` must leave a→b standing: dropping the whole record because
+		 * it happens to be where a→c is stored would silently delete a second
+		 * connection the author never selected. So a multi-line record is
+		 * narrowed rather than removed, and only a record left with nothing on
+		 * one end goes.
+		 *
+		 * @param {object} line        The line to remove.
+		 * @param {string} line.source Its source node id.
+		 * @param {string} line.target Its target node id.
+		 * @return {void}
+		 */
+		removeEdge({ source, target }) {
+			const found = this.locateEdge({ source, target })
+			if (found === null) {
+				return
+			}
+
+			this.pushUndo()
+
+			const targets = found.targets.filter((id) => id !== target)
+			const sources = found.sources.length > 1 ? found.sources.filter((id) => id !== source) : found.sources
+
+			const edges = [...this.edges]
+			if (targets.length === 0 || sources.length === 0) {
+				edges.splice(found.index, 1)
+			} else {
+				edges[found.index] = {
+					...found.edge,
+					[found.sourceKey]: sources.length === 1 ? sources[0] : sources,
+					[found.targetKey]: targets.length === 1 ? targets[0] : targets,
+				}
+			}
+
+			this.flow.edges = edges
+			this.dirty = true
+			this.checkResult = null
+		},
+
+		/**
+		 * Set a field — `title`, `lineType` — on ONE drawn connection.
+		 *
+		 * ⚠️ SPLITS A MULTI-LINE RECORD FIRST. Writing `lineType` straight onto
+		 * `{from: 'a', to: ['b','c']}` would restyle both lines from a control
+		 * the author opened on one of them. A per-line control whose blast
+		 * radius is three lines is not a per-line control, so the line being
+		 * edited is lifted into a record of its own and the field is set there.
+		 *
+		 * Takes a whole set of fields rather than one, so pasting a copied
+		 * presentation is a SINGLE undo step. Two `key`/`value` calls in a row
+		 * would leave a user pressing Ctrl+Z twice to reverse one paste, and the
+		 * first press would land on a half-pasted line.
+		 *
+		 * @param {object} change        The change.
+		 * @param {string} change.source The line's source node id.
+		 * @param {string} change.target The line's target node id.
+		 * @param {object} change.fields The fields to set, as a plain object.
+		 * @return {void}
+		 */
+		setEdgeFields({ source, target, fields }) {
+			const found = this.locateEdge({ source, target })
+			if (found === null) {
+				return
+			}
+
+			this.pushUndo()
+
+			const edges = [...this.edges]
+			const drawsOneLine = found.sources.length === 1 && found.targets.length === 1
+
+			if (drawsOneLine) {
+				edges[found.index] = { ...found.edge, ...fields }
+			} else {
+				// Narrow the record to the lines this one is NOT, then append the
+				// edited line as its own record.
+				const remainingTargets = found.targets.filter((id) => id !== target)
+				edges[found.index] = {
+					...found.edge,
+					[found.targetKey]: remainingTargets.length === 1 ? remainingTargets[0] : remainingTargets,
+				}
+				edges.push({
+					...found.edge,
+					id: undefined,
+					[found.sourceKey]: source,
+					[found.targetKey]: target,
+					...fields,
+				})
+			}
+
+			this.flow.edges = edges
+			this.dirty = true
+			this.checkResult = null
+		},
+
+		/**
+		 * Copy a connection's presentation, for pasting onto another.
+		 *
+		 * @param {object} line        The line to copy from.
+		 * @param {string} line.source Its source node id.
+		 * @param {string} line.target Its target node id.
+		 * @return {void}
+		 */
+		copyEdgeStyle({ source, target }) {
+			const found = this.locateEdge({ source, target })
+			if (found === null) {
+				return
+			}
+
+			this.edgeStyleClipboard = {
+				title: found.edge.title ?? found.edge.label ?? '',
+				lineType: found.edge.lineType || DEFAULT_EDGE_LINE_TYPE,
+			}
+		},
+
+		/**
+		 * Apply the copied presentation to another connection.
+		 *
+		 * @param {object} line        The line to paste onto.
+		 * @param {string} line.source Its source node id.
+		 * @param {string} line.target Its target node id.
+		 * @return {void}
+		 */
+		pasteEdgeStyle({ source, target }) {
+			const copied = this.edgeStyleClipboard
+			if (copied === null) {
+				return
+			}
+
+			this.setEdgeFields({ source, target, fields: { lineType: copied.lineType, title: copied.title } })
+		},
+
 		removeNode(id) {
 			this.pushUndo()
 
@@ -770,6 +962,12 @@ export const useFlowStore = defineStore('cnFlow', {
 				(edge) => (edge.source ?? edge.from) !== id && (edge.target ?? edge.to) !== id,
 			)
 			this.selectedNodeId = null
+			// A dialog open on a line that ran through this node now describes
+			// a connection the document no longer holds; every edge action would
+			// find nothing and quietly do nothing.
+			if (this.editingEdge?.source === id || this.editingEdge?.target === id) {
+				this.editingEdge = null
+			}
 			this.dirty = true
 			this.checkResult = null
 		},

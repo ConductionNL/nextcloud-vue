@@ -38,6 +38,46 @@ Save is enabled once the flow has a name; Run once it has been stored (the engin
 
 Undo brings the step **and its edges** back. A read-only canvas refuses the keys entirely.
 
+## Where a line may enter and leave a step
+
+Ports say what the engine will accept, so they follow the step's **catalogue role**:
+
+| Role | Entries | Exits |
+|------|---------|-------|
+| `trigger` | none — a run *starts* here | right, bottom |
+| `step` | left, top | right, bottom |
+| `end` | left, top | none — the flow *stops* here |
+
+**Left and right are primary.** `autoSort` lays a flow out left to right, one column per depth, and Vue Flow attaches an edge that names no handle to the first handle of its type — so a line drawn without aiming at a specific port leaves the right edge and arrives on the left. Top and bottom are there for a graph the author routes by hand.
+
+A routing step with several branches puts its **first** exit on the right and spreads the rest along the bottom, which is the one side with room for several.
+
+Every port draws a small arrow, and all four point *with* the flow: an entry on the left and an exit on the right both point right; an entry on top and an exit on the bottom both point down. The node then reads as one direction rather than as four separate claims.
+
+### An unconnected port warns where it breaks
+
+A port that is drawn but wired to nothing turns warning-coloured and carries a tooltip saying what the engine will do — "Nothing connects to this step, so the flow will never reach it", or "Nothing leaves this step, so the flow stops here". The same finding **Check** returns, but at the port the author can act on rather than as a node id in a card on the other side of the screen.
+
+The state is never colour alone: the consequence is in both the `title` and the port's accessible name.
+
+A host that does not measure connectedness (any plain [`CnGraphCanvas`](./cn-graph-canvas.md) consumer) gets no warnings at all — undefined means *not measured*, not *nothing connected*.
+
+## Acting on a connection
+
+Clicking a line opens its own action menu, next to the pointer:
+
+| Action | Effect |
+|--------|--------|
+| **Edit label** | Opens [`CnFlowEdgeEditModal`](./cn-flow-edge-edit-modal.md) — the line's label and its router. |
+| **Angled / Straight / Curved** | Re-routes this one line. The router it already uses is shown *disabled*, so the menu states the current value instead of hiding it behind a click. |
+| **Copy** | Copies the line's label and router. A connection has no useful *duplicate* — two records with the same endpoints draw on top of each other and `connect()` refuses the second — so Copy takes the part that is worth repeating. |
+| **Paste style** | Applies a copied label and router. Only offered once something has been copied. |
+| **Delete** | Removes this connection. Undoable; the steps at either end are untouched. |
+
+A line's **label** is a control too: clicking it opens the connection dialog, and right-clicking it opens the same menu as the line. An unlabelled line draws no chip at all — a blank chip reads as a connection whose name is empty rather than one that never had a name.
+
+Every one of these is keyed on the connection's **endpoints**, never on an id, and setting a field on one line of a multi-line record splits it out first. [`CnFlowEdgeEditModal`](./cn-flow-edge-edit-modal.md) explains why.
+
 ## Editing a step
 
 Double-clicking a node — or the sidebar's **Edit step…** button — opens [`CnFlowNodeEditModal`](./cn-flow-node-edit-modal.md), hosted by this component so it exists wherever the canvas does. Node cards draw as **one** container: the canvas wrapper owns the box (border, radius, selection) and the card only fills it, carrying the role accent.
@@ -62,9 +102,13 @@ Vue Flow routes every edge (`smoothstep` — orthogonal with rounded corners), m
 
 Each edge ends in an **arrowhead**, because direction is the one thing a line cannot express on its own. It is sized to clear the target's port handle: Vue Flow draws the arrow at the path's end, which is exactly where the handle sits, and the handle is painted in a layer above the edges. At the default size the arrowhead was rendered on every edge and covered on every edge — present, measurable, and invisible. Its colour comes from `--color-text-maxcontrast` in CSS rather than from the marker definition, so it follows the theme into dark mode.
 
+A slow **travelling pulse** runs along every line in the direction of flow. The arrowhead states the direction at one end; on a graph with crossings that is the one place a reader has to find before they can follow anything, and on a long line it is the far end from where their eye already is. The pulse is a second path over the line, so the line itself stays solid.
+
+It is suppressed entirely — not merely paused — under `prefers-reduced-motion`, because a paused dash pattern freezes wherever it stood and leaves the line looking like a second, dotted connection. A host can also switch it off per edge with `data.animated === false`.
+
 ## Notes
 
 - A namespaced id becomes a CSS class via `typeSlug()`. A dot mid-class is a compound selector rather than a name, so an unslugged accent silently matches nothing.
 - The step summary describes whatever configuration is actually set, so it works for every step type present and future — including ones added by an app this library has never heard of.
-- Cards carry a **role accent** keyed on the catalogue's `role` — trigger (green), step (primary), end (red) — drawn with an inset box-shadow so the accent adds no layout width. Never keyed on graph position, which once painted unconnected steps green.
+- Cards carry a **role accent** keyed on the catalogue's `role` — trigger (green), step (primary), end (red) — drawn as an inset box-shadow on the **node's own border**, so the accent adds no layout width and draws no second edge inside the first. It used to sit on the card *inside* the node wrapper, a few pixels in from that wrapper's border, which is what made a step read as a card inside a card. Never keyed on graph position, which once painted unconnected steps green.
 - Edges are drawn from `useFlowStore().canvasEdges`, which accepts both edge dialects (`{source, target}` and the engine's `{from, to}`, list endpoints included) — handing `flow.edges` to the canvas raw rendered every hermiq-stored flow as unconnected cards.

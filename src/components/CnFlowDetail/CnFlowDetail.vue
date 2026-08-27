@@ -135,7 +135,11 @@
 			:min-zoom="minZoom"
 			:max-zoom="maxZoom"
 			@node-select="onNodeSelect"
-			@canvas-click="store.selectedNodeId = null"
+			@edge-select="onEdgeSelect"
+			@edge-label-click="onEdgeLabelClick"
+			@edge-label-context="onEdgeLabelContext"
+			@edge-label-move="onEdgeLabelMove"
+			@canvas-click="onCanvasClick"
 			@nodes-change="onNodesChange"
 			@node-remove="store.removeNode($event)"
 			@connect="store.connect($event)"
@@ -163,6 +167,17 @@
 					</span>
 				</div>
 			</template>
+
+			<!-- A connection's own name, on the connection.
+
+			     Rendered only when the author gave the line one: CnFlowEdge
+			     gates the label control on what this slot RENDERS, not on
+			     whether it exists, so an unnamed line draws no empty chip. -->
+			<template #edge-label="{ edge }">
+				<template v-if="edge.data && edge.data.label">
+					{{ edge.data.label }}
+				</template>
+			</template>
 		</CnGraphCanvas>
 
 		<!-- The step's own actions, at the step. Selecting a node used to only
@@ -174,6 +189,18 @@
 			:actions="nodeMenuActions"
 			:target-item="nodeMenuTarget"
 			@close="closeNodeMenu" />
+
+		<!-- The line's own actions, at the line. A connection was the one thing
+		     on this canvas that could be drawn and then never touched again:
+		     selecting it did nothing at all, so there was no way to rename it,
+		     re-route it, or remove it short of deleting a step. -->
+		<CnContextMenu
+			v-model:open="edgeMenuOpen"
+			:actions="edgeMenuActions"
+			:target-item="edgeMenuTarget"
+			@close="closeEdgeMenu" />
+
+		<CnFlowEdgeEditModal v-if="store.editingEdge !== null" />
 
 		<NcEmptyContent
 			v-if="store.nodes.length === 0"
@@ -199,18 +226,39 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import Sitemap from 'vue-material-design-icons/Sitemap.vue'
 import SortVariant from 'vue-material-design-icons/SortVariant.vue'
 import UndoVariant from 'vue-material-design-icons/UndoVariant.vue'
+import VectorCurve from 'vue-material-design-icons/VectorCurve.vue'
+import VectorLine from 'vue-material-design-icons/VectorLine.vue'
+import VectorPolyline from 'vue-material-design-icons/VectorPolyline.vue'
+import ContentPaste from 'vue-material-design-icons/ContentPaste.vue'
+import CnFlowEdgeEditModal from '../../dialogs/CnFlowEdgeEditModal.vue'
 import CnFlowNodeEditModal from '../../dialogs/CnFlowNodeEditModal.vue'
 import CnContextMenu from '../CnContextMenu/CnContextMenu.vue'
 import CnGraphCanvas from '../CnGraphCanvas/CnGraphCanvas.vue'
 import { resolveFlowNodeEditor } from '../../composables/useFlowNodeEditors.js'
+import { DEFAULT_EDGE_LINE_TYPE, EDGE_LINE_TYPES } from '../../composables/useFlowEdgeStyles.js'
 import { useContextMenu } from '../../composables/useContextMenu.js'
 import { useFlowStore } from '../../composables/useFlowStore.js'
+
+/**
+ * Which glyph stands for which router, in menu order.
+ *
+ * Components rather than CnIcon names: a line's shape has no ADR-077 semantic
+ * concept behind it, and inventing one for three drawing options would put a
+ * private entry into a fleet-wide vocabulary. Edit / Copy / Delete DO have
+ * concepts, so those stay named — see `nodeMenuActions`.
+ */
+const LINE_TYPE_ICONS = {
+	smoothstep: VectorPolyline,
+	straight: VectorLine,
+	default: VectorCurve,
+}
 
 export default {
 	name: 'CnFlowDetail',
 
 	components: {
 		CheckDecagram,
+		CnFlowEdgeEditModal,
 		CnFlowNodeEditModal,
 		CnContextMenu,
 		CnGraphCanvas,
@@ -257,12 +305,27 @@ export default {
 			close: closeNodeMenu,
 		} = useContextMenu()
 
+		// A SECOND instance, not a shared one. Both menus position themselves by
+		// writing cursor coordinates onto the document, and a single instance
+		// re-targeted between a node and a line would carry the previous
+		// target's actions for as long as the reopen took.
+		const {
+			isOpen: edgeMenuOpen,
+			targetItem: edgeMenuTarget,
+			open: openEdgeMenu,
+			close: closeEdgeMenu,
+		} = useContextMenu()
+
 		return {
 			store: useFlowStore(),
 			nodeMenuOpen,
 			nodeMenuTarget,
 			openNodeMenu,
 			closeNodeMenu,
+			edgeMenuOpen,
+			edgeMenuTarget,
+			openEdgeMenu,
+			closeEdgeMenu,
 		}
 	},
 
@@ -288,8 +351,27 @@ export default {
 		nodeMenuActions() {
 			return [
 				{
+					// ⚠️ THE VOCABULARY'S NAME, NOT THE GLYPH'S.
+					//
+					// `CnIcon` resolves a string against the ADR-077 semantic
+					// vocabulary and falls back to a help-circle when it finds
+					// nothing — SILENTLY, because an unknown name is
+					// indistinguishable from a name nobody registered. This menu
+					// asked for `Pencil` and `Delete`; the vocabulary publishes
+					// `PencilOutline` and `DeleteOutline`. So two of the three
+					// entries rendered a question mark, and `Copy` — whose name
+					// happened to be right — rendered correctly, which is
+					// exactly what made it read as a styling quirk rather than
+					// as a lookup that failed.
+					//
+					// Named rather than imported so these stay tied to the
+					// vocabulary: the point of ADR-077 is that Edit is the same
+					// glyph in every app, and an import here would be a private
+					// copy of that decision. Guarded by
+					// tests/components/CnFlowMenuIcons.spec.js, which resolves
+					// every name this menu uses and fails on the fallback.
 					label: t('nextcloud-vue', 'Edit'),
-					icon: 'Pencil',
+					icon: 'PencilOutline',
 					handler: (id) => {
 						this.store.editingNodeId = id
 					},
@@ -303,13 +385,87 @@ export default {
 				},
 				{
 					label: t('nextcloud-vue', 'Delete'),
-					icon: 'Delete',
+					icon: 'DeleteOutline',
+					destructive: true,
 					handler: (id) => {
 						this.store.removeNode(id)
 					},
 				},
 			]
 		},
+		/**
+		 * What can be done to a connection, as CnContextMenu's action list.
+		 *
+		 * The three routers are FLAT entries rather than a submenu: CnContextMenu
+		 * has a custom-panel path, and it has no consumer anywhere in this
+		 * library — shipping a context menu on an untested code path to save
+		 * two rows is a poor trade. The router the line already uses is
+		 * disabled, with a `title` saying why, so the menu states the current
+		 * value instead of hiding it behind a click.
+		 *
+		 * `targetItem` is `{source, target}` — see `useFlowStore.editingEdge`
+		 * for why a line is identified by its endpoints and never by its id.
+		 *
+		 * @return {Array<object>} The actions.
+		 */
+		edgeMenuActions() {
+			const styleActions = EDGE_LINE_TYPES.map((style) => ({
+				label: style.label(),
+				icon: LINE_TYPE_ICONS[style.id],
+				disabled: (line) => this.lineTypeOf(line) === style.id,
+				title: (line) => (
+					this.lineTypeOf(line) === style.id
+						? t('nextcloud-vue', 'This line is already drawn this way.')
+						: null
+				),
+				handler: (line) => {
+					this.store.setEdgeFields({
+						source: line.source,
+						target: line.target,
+						fields: { lineType: style.id },
+					})
+				},
+			}))
+
+			return [
+				{
+					label: t('nextcloud-vue', 'Edit label'),
+					icon: 'PencilOutline',
+					handler: (line) => {
+						this.store.editingEdge = { source: line.source, target: line.target }
+					},
+				},
+				...styleActions,
+				{
+					// A connection has no useful DUPLICATE — two records with the
+					// same endpoints draw on top of each other and `connect()`
+					// refuses the second — so Copy takes the part of a line that
+					// IS worth repeating: its label and its router.
+					label: t('nextcloud-vue', 'Copy'),
+					icon: 'ContentCopy',
+					handler: (line) => {
+						this.store.copyEdgeStyle({ source: line.source, target: line.target })
+					},
+				},
+				{
+					label: t('nextcloud-vue', 'Paste style'),
+					icon: ContentPaste,
+					visible: () => this.store.edgeStyleClipboard !== null,
+					handler: (line) => {
+						this.store.pasteEdgeStyle({ source: line.source, target: line.target })
+					},
+				},
+				{
+					label: t('nextcloud-vue', 'Delete'),
+					icon: 'DeleteOutline',
+					destructive: true,
+					handler: (line) => {
+						this.store.removeEdge({ source: line.source, target: line.target })
+					},
+				},
+			]
+		},
+
 		/**
 		 * The flow's steps in Vue Flow's node shape.
 		 *
@@ -328,6 +484,18 @@ export default {
 		 * @return {Array<object>} Vue Flow nodes.
 		 */
 		canvasNodes() {
+			// WHICH STEPS A LINE ACTUALLY TOUCHES, measured once per render
+			// rather than once per node: `canvasEdges` expands the document's
+			// list dialects (`{from: 'a', to: ['b','c']}`) into one line per
+			// pair, and re-walking it inside the map below would be quadratic on
+			// a graph large enough to care.
+			const targeted = new Set()
+			const sourced = new Set()
+			for (const line of this.store.canvasEdges) {
+				targeted.add(line.target)
+				sourced.add(line.source)
+			}
+
 			return (this.store.nodes || []).map((node) => ({
 				id: node.id,
 				type: 'default',
@@ -354,6 +522,29 @@ export default {
 					stepType: node.type,
 					label: this.nodeLabel(node),
 					ports: this.store.portsOfNode ? this.store.portsOfNode(node) : undefined,
+
+					// A PORT THAT CANNOT BE CONNECTED IS NOT DRAWN.
+					//
+					// A run STARTS at a trigger, so an entry on one is an
+					// affordance the engine will never honour; a run STOPS at an
+					// end step, so an exit on one is the same lie in the other
+					// direction. Both were being drawn on every node regardless
+					// of role, which made the canvas claim a graph shape the
+					// engine would refuse.
+					//
+					// Keyed on the CATALOGUE's role, like the accent colours
+					// below — never on graph position, which once painted
+					// unconnected steps green.
+					hasTarget: this.store.roleOfNodeType(node.type) !== 'trigger',
+					hasSource: this.store.roleOfNodeType(node.type) !== 'end',
+
+					// Whether anything is actually wired to those ports. The
+					// node paints an unconnected one as a warning, which is the
+					// same finding `check()` returns — but at the port, where the
+					// author can act on it, rather than as a node id in a card
+					// on the other side of the screen.
+					hasIncoming: targeted.has(node.id),
+					hasOutgoing: sourced.has(node.id),
 				},
 			}))
 		},
@@ -553,6 +744,120 @@ export default {
 
 				this.store.moveNode({ id: change.id, x: change.position.x, y: change.position.y })
 			}
+		},
+
+		/**
+		 * @param {object|null} line The menu's target line.
+		 * @return {string} The router it is drawn with.
+		 */
+		lineTypeOf(line) {
+			return line?.lineType || DEFAULT_EDGE_LINE_TYPE
+		},
+
+		/**
+		 * A line was clicked: open its actions where the pointer is.
+		 *
+		 * Vue Flow reports `{ edge, event }`, and `edge.data.edge` is the STORED
+		 * record — but the menu is keyed on the endpoint pair rather than on
+		 * that record, because one stored record can draw several lines and only
+		 * the pair says which one was clicked.
+		 *
+		 * @param {object} event Vue Flow's edge-click event.
+		 * @return {void}
+		 */
+		onEdgeSelect(event) {
+			const edge = event?.edge ?? event
+			const mouse = event?.event
+
+			this.openEdgeMenuFor(edge, mouse)
+		},
+
+		/**
+		 * The label is a control in its own right, so activating it opens the
+		 * same menu the line does — a user who aims at the name of a connection
+		 * means the connection.
+		 *
+		 * @param {string} id The drawn line's id.
+		 * @return {void}
+		 */
+		onEdgeLabelClick(id) {
+			const line = this.store.canvasEdges.find((candidate) => candidate.id === id)
+			if (line === undefined) {
+				return
+			}
+
+			this.store.editingEdge = { source: line.source, target: line.target }
+		},
+
+		/**
+		 * @param {object}     payload       A right-click on a line's label.
+		 * @param {string}     payload.id    The drawn line's id.
+		 * @param {MouseEvent} payload.event The pointer event.
+		 * @return {void}
+		 */
+		onEdgeLabelContext({ id, event }) {
+			const line = this.store.canvasEdges.find((candidate) => candidate.id === id)
+			if (line === undefined) {
+				return
+			}
+
+			this.openEdgeMenuFor(line, event)
+		},
+
+		/**
+		 * Persist a label slid along its line.
+		 *
+		 * REPORTED, then stored — CnFlowEdge never writes the edge itself, the
+		 * same rule node positions follow.
+		 *
+		 * @param {object} payload        The move.
+		 * @param {string} payload.id     The drawn line's id.
+		 * @param {number} payload.labelT Its new fraction along the line.
+		 * @return {void}
+		 */
+		onEdgeLabelMove({ id, labelT }) {
+			const line = this.store.canvasEdges.find((candidate) => candidate.id === id)
+			if (line === undefined) {
+				return
+			}
+
+			this.store.setEdgeFields({ source: line.source, target: line.target, fields: { labelT } })
+		},
+
+		/**
+		 * Open the line menu, if the click carried a pointer position.
+		 *
+		 * A keyboard-activated selection has no coordinates, and a menu placed at
+		 * (0, 0) is worse than no menu — so the selection stands and nothing
+		 * pops. The dialog remains reachable from the label control, which IS
+		 * focusable.
+		 *
+		 * @param {object}      line  The drawn line, or Vue Flow's edge record.
+		 * @param {MouseEvent=} mouse The pointer event, when there was one.
+		 * @return {void}
+		 */
+		openEdgeMenuFor(line, mouse) {
+			if (line?.source === undefined || mouse?.clientX === undefined) {
+				return
+			}
+
+			this.openEdgeMenu({
+				item: {
+					source: line.source,
+					target: line.target,
+					lineType: line.data?.lineType,
+				},
+				event: mouse,
+			})
+		},
+
+		/**
+		 * Clicking the empty pane clears BOTH selections.
+		 *
+		 * @return {void}
+		 */
+		onCanvasClick() {
+			this.store.selectedNodeId = null
 		},
 
 		/**
@@ -802,9 +1107,11 @@ export default {
 	gap: 2px;
 	justify-content: center;
 	block-size: 100%;
-	/* No top/bottom/right padding: `.cn-flow-node` already pads the box. The
-	   left inset only clears the 4px role accent below. */
-	padding: 0 0 0 8px;
+	/* No padding at all: `.cn-flow-node` already pads the box, and the role
+	   accent moved OFF this element onto the node's own border below — the 8px
+	   left inset that used to clear it was the second half of the nested-box
+	   effect, holding the body away from an edge it no longer meets. */
+	padding: 0;
 	border: 0;
 	border-radius: inherit;
 	background: none;
@@ -824,17 +1131,29 @@ export default {
 }
 
 /* Role accents, keyed on the CATALOGUE's role — never on graph position,
-   which once painted unconnected steps green. Inset box-shadow rather than a
-   border so the accent adds no layout width. */
-.cn-flow-detail__node--role-trigger {
+   which once painted unconnected steps green.
+
+   ⚠️ ON THE NODE'S OWN BORDER, NOT ON THE BODY INSIDE IT. The accent used to be
+   an inset shadow on `.cn-flow-detail__node`, which sits inside
+   `.cn-flow-node`'s 2px border and 12px of padding — so the bar drew a second
+   vertical edge a few pixels in from the first, and a node read as a card
+   inside a card. Nothing had a border it should not have; the accent was simply
+   painted on the wrong box.
+
+   Still an inset box-shadow, per this repository's rule 8: `border-inline-start`
+   would widen the node's left edge from 2px to 4px and shove every node's body
+   sideways, which is a layout change rather than a fix for one. `:has()` is how
+   a rule on the body reaches the wrapper — the same mechanism the unknown-step
+   border below already uses. */
+.cn-flow-detail :deep(.cn-flow-node:has(.cn-flow-detail__node--role-trigger)) {
 	box-shadow: inset 4px 0 0 0 var(--color-success);
 }
 
-.cn-flow-detail__node--role-step {
+.cn-flow-detail :deep(.cn-flow-node:has(.cn-flow-detail__node--role-step)) {
 	box-shadow: inset 4px 0 0 0 var(--color-primary-element);
 }
 
-.cn-flow-detail__node--role-end {
+.cn-flow-detail :deep(.cn-flow-node:has(.cn-flow-detail__node--role-end)) {
 	box-shadow: inset 4px 0 0 0 var(--color-error);
 }
 
