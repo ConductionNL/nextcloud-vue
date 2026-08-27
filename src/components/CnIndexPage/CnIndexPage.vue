@@ -2254,7 +2254,17 @@ export default {
 		 */
 		tableColumns() {
 			const reg = typeof this.register === 'string' && this.register ? this.register : undefined
-			let cols = this.columns || []
+			// A NAMED SOURCE SUPPLIES ITS OWN COLUMNS when the manifest does not.
+			// Without this the adapter's `columns` were defined and never read:
+			// an `entitySource` page with no explicit `columns` fell through to
+			// `governedColumns`, which derives from a SCHEMA — and a named
+			// source has none. The table then rendered its rows with no columns
+			// at all, which looks like an empty list rather than a missing
+			// config. A manifest that DOES set columns still wins, which is
+			// what makes the source a default rather than a constraint.
+			let cols = (this.columns && this.columns.length > 0)
+				? this.columns
+				: ((this.isNamedSource && this.namedSource && this.namedSource.columns) || [])
 			if (reg) {
 				cols = cols.map((c) => (
 					c && c.aggregate && !c.aggregate.register
