@@ -136,6 +136,23 @@
 					:schema="currentSchema"
 					:object-type="resolvedObjectType"
 					:store="effectiveObjectStore" />
+				<!-- Record edit (ADR-062): the detail page's own way to change the
+				     record it is showing. Without it a `type:"detail"` page is
+				     read-only and the ONLY edit surface is the modal launched
+				     from the index table — which is why that modal could not
+				     simply be removed. Opens the same schema-driven CnFormDialog
+				     the index used, scoped to this record. -->
+				<NcButton
+					v-if="canEditRecord"
+					variant="secondary"
+					data-testid="cn-detail-page-edit"
+					:aria-label="editActionLabel"
+					@click="openEditForm">
+					<template #icon>
+						<Pencil :size="20" />
+					</template>
+					{{ editActionLabel }}
+				</NcButton>
 				<!-- NB: no sidebar-toggle here — NcObjectSidebar/NcAppSidebar
 				     renders its own open toggle (`.app-sidebar__toggle`) when
 				     closed and an X (`.app-sidebar__close`) when open, so a custom
@@ -629,6 +646,19 @@
 			@confirm="onCreateFormConfirm"
 			@close="onCreateFormClose" />
 
+		<!-- Record edit form. Same component and same schema the index table's
+		     modal used; the difference is that it is reached from the record,
+		     with the record's own page around it. -->
+		<CnFormDialog
+			v-if="editFormOpen && currentSchema"
+			ref="editFormDialog"
+			:schema="currentSchema"
+			:item="currentObject"
+			:register="register"
+			:dialog-title="editActionLabel"
+			@confirm="onEditFormConfirm"
+			@close="closeEditForm" />
+
 		<CnRelationLinkModal
 			v-if="activeRelationLink"
 			:title="activeRelationLink.title || undefined"
@@ -654,6 +684,7 @@ import InformationOutline from 'vue-material-design-icons/InformationOutline.vue
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
 import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
@@ -813,6 +844,7 @@ export default {
 		CnRelationLinkModal,
 		Cog,
 		Plus,
+		Pencil,
 	},
 
 	mixins: [gridLayout],
@@ -1242,6 +1274,27 @@ export default {
 		},
 
 		/**
+		 * Show an Edit button in the header that opens the record's schema
+		 * form. Needs `register` + `schema` + `objectId` to have something to
+		 * edit; without them the button stays hidden however this is set.
+		 *
+		 * `CnPageRenderer` turns this on for every schema-bound `type:"detail"`
+		 * page, which is the same set of pages whose index tables stop offering
+		 * an edit modal — the two are one rule, and shipping either half alone
+		 * would leave records with two edit surfaces or none.
+		 */
+		showEditAction: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Label for the header Edit button. Defaults to a translated "Edit". */
+		editLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Whether a header refresh is in flight. Disables the Refresh entry
 		 * and swaps its icon for a spinner. Wire this to the same flag the
 		 * host toggles around its `@refresh` handler.
@@ -1402,6 +1455,7 @@ export default {
 	emits: [
 		'create-cancel',
 		'created',
+		'edited',
 		'geo-saved',
 		'layout-change',
 		'open-integration',
@@ -1520,6 +1574,8 @@ export default {
 
 	data() {
 		return {
+			/** Whether the record edit form is open. */
+			editFormOpen: false,
 			/** Whether the per-widget style/config editor modal is open. */
 			showWidgetConfig: false,
 			/** The widgetId currently being configured via the cog. */
@@ -1663,6 +1719,30 @@ export default {
 		 */
 		hasSchemaDrivenFetch() {
 			return Boolean(this.register && this.schema && this.objectId)
+		},
+
+		/**
+		 * Whether the header Edit button renders. Opted in via `showEditAction`,
+		 * but gated on there actually being a record and a schema to edit it
+		 * with: `isCreateMode` already owns the id-less page, and a button that
+		 * opens a form with no schema is a dead button.
+		 *
+		 * @return {boolean}
+		 */
+		canEditRecord() {
+			return this.showEditAction
+				&& !this.isCreateMode
+				&& this.hasSchemaDrivenFetch
+				&& Boolean(this.currentSchema)
+		},
+
+		/**
+		 * Label for the header Edit button.
+		 *
+		 * @return {string}
+		 */
+		editActionLabel() {
+			return this.editLabel || t('nextcloud-vue', 'Edit')
 		},
 
 		/**
@@ -2493,6 +2573,77 @@ export default {
 				}
 			} catch (e) {
 				if (this.$refs.createFormDialog) this.$refs.createFormDialog.setResult({ error: (e && e.message) || 'error' })
+			}
+		},
+
+		/**
+		 * Open the record edit form.
+		 *
+		 * @return {void}
+		 */
+		openEditForm() {
+			this.editFormOpen = true
+		},
+
+		/**
+		 * Close the record edit form without saving.
+		 *
+		 * @return {void}
+		 */
+		closeEditForm() {
+			this.editFormOpen = false
+		},
+
+		/**
+		 * Persist an edit of the record this page is showing.
+		 *
+		 * Saves through the object store when one is available so the page's own
+		 * subscription re-renders with the new values; the store is also what
+		 * every other surface reads from, so a direct HTTP write would leave
+		 * them showing the pre-edit record until something else refetched.
+		 * Falls back to a PUT for consumers with no Pinia.
+		 *
+		 * @param {object} formData The submitted form values.
+		 * @return {Promise<void>}
+		 */
+		async onEditFormConfirm(formData) {
+			// `saveObject` picks PUT over POST on the presence of `id`, and an
+			// OpenRegister object carries its id in `@self`, not at the top
+			// level. Without this the edit would CREATE a duplicate record.
+			const payload = { ...formData, id: this.objectId }
+			const dialog = this.$refs.editFormDialog
+			try {
+				const store = this.effectiveObjectStore
+				let saved = null
+				if (store && typeof store.saveObject === 'function' && this.resolvedObjectType) {
+					saved = await store.saveObject(this.resolvedObjectType, payload)
+					if (!saved) {
+						const err = store.getError?.(this.resolvedObjectType)
+						if (dialog) dialog.setResult({ error: (err && err.message) || t('nextcloud-vue', 'Save failed') })
+						return
+					}
+				} else {
+					const [{ default: axios }, { generateUrl }] = await Promise.all([
+						import('@nextcloud/axios'),
+						import('@nextcloud/router'),
+					])
+					const url = generateUrl(
+						'/apps/openregister/api/objects/{register}/{schema}/{id}',
+						{ register: this.register, schema: this.schema, id: this.objectId },
+					)
+					const res = await axios.put(url, payload)
+					saved = (res && res.data) ? res.data : payload
+				}
+				if (dialog) dialog.setResult({ success: true })
+				this.editFormOpen = false
+				/**
+				 * @event edited Emitted after the record edit form saves successfully.
+				 * @type {object} The saved record.
+				 */
+				this.$emit('edited', saved)
+				this.onLifecycleReload()
+			} catch (e) {
+				if (dialog) dialog.setResult({ error: (e && e.message) || t('nextcloud-vue', 'Save failed') })
 			}
 		},
 

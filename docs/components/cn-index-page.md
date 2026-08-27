@@ -79,6 +79,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `createOverride` | Function | `null` | Opt-in async create hook. When set, a **create** confirmed from the built-in form dialog calls `await createOverride(formData, ctx)` instead of the store / self-store `saveObject`. The override owns persistence (e.g. an app posting through a contact-aware endpoint that fills a required FK before saving to OpenRegister) and must return the created object on success (falsy = failure; throwing surfaces the error in the dialog). `ctx` is `{ register, schema, objectType, effectiveSchema }`. Edits are never routed here; when absent, create behaviour is unchanged. See [Per-schema create-override hook](#per-schema-create-override-hook). |
 | `showViewAction` | Boolean | `true` | Show the built-in View row action. Emits a dedicated `@view` event — independent of `@row-click`. Set to `false` when the row has no separate "open detail" target. |
 | `showEditAction` | Boolean | `true` | Show edit row action |
+| `editOpensDetail` | Boolean | `false` | Send the Edit row action to the record's detail page (emits `@edit-open`) instead of opening the edit modal. `CnPageRenderer` sets this automatically when a `type:"detail"` page exists for the same register+schema, or when `config.rowRoute` is set — the same signal that makes a row click open the record. Leave `false` when there is nowhere to go, or the record has no edit surface at all. |
 | `showCopyAction` | Boolean | `true` | Show copy row action |
 | `showDeleteAction` | Boolean | `true` | Show delete row action |
 | `excludeFields` | Array | `[]` | Form fields to hide |
@@ -112,6 +113,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `add` | — | Add button clicked (backward compat) |
 | `create` | `formData` | Form dialog create confirmed. When store integration is active, payload is the saved object returned by the store. |
 | `edit` | `formData` | Form dialog edit confirmed. When store integration is active, payload is the saved object returned by the store. |
+| `edit-open` | `row` | Emitted **instead of** opening the edit modal when `editOpensDetail` is set. The host navigates to the record's detail page, where the whole record — not just its scalar fields — can be edited. `CnPageRenderer` binds this to the same navigation as `@view`. |
 | `delete` | `id` | Single delete confirmed |
 | `copy` | `\{ id, newName \}` | Single copy confirmed |
 | `mass-delete` | `ids[]` | Mass delete confirmed |
