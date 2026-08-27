@@ -946,12 +946,12 @@ export default {
 		 * Name of a registered NON-OBJECT entity collection to list (e.g. `flows`).
 		 *
 		 * The third data mode. `register` + `schema` fetches OpenRegister
-		 * objects; `:objects` renders rows a parent already holds; `source`
+		 * objects; `:objects` renders rows a parent already holds; `entitySource`
 		 * names a list that is neither — a flow definition is deliberately not
 		 * an OpenRegister object, so an index had nothing to point at and such
 		 * lists became bespoke `type: "custom"` pages instead.
 		 *
-		 * An explicit `:objects` still wins, and a source wins over
+		 * Non-empty `:objects` still wins, and an entity source wins over
 		 * register/schema. See `src/composables/indexSources.js`.
 		 */
 		entitySource: { type: String, default: '' },

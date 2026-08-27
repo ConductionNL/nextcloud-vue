@@ -473,6 +473,10 @@ Sources are registered in
 [`indexSources.js`](../../composables/indexSources.js). Adding one is a data
 change there rather than a branch in this component.
 
+`sourceConfig` is handed to the named source's loader — `{ app: 'dossiq' }`
+scopes the `flows` source to one app's flows. It is ignored when
+`entitySource` is not set.
+
 ## Bespoke card-grid via `cardComponent`
 
 When the schema-driven `CnObjectCard` is not enough — e.g. the
