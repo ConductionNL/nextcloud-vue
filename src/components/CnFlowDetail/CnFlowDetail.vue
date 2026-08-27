@@ -60,6 +60,18 @@
 					<SortVariant :size="20" />
 				</template>
 			</NcButton>
+			<!-- Undo has a BUTTON as well as Ctrl+Z. A shortcut nobody is told
+			     about is a feature only its author has: the affordance is what
+			     tells a user the canvas is safe to experiment on. -->
+			<NcButton type="tertiary"
+				:disabled="!store.canUndo"
+				:aria-label="t('nextcloud-vue', 'Undo the last change')"
+				:title="t('nextcloud-vue', 'Undo the last change')"
+				@click="store.undo()">
+				<template #icon>
+					<UndoVariant :size="20" />
+				</template>
+			</NcButton>
 			<div class="cn-flow-detail__toolbar-group">
 				<NcButton type="tertiary"
 					:disabled="zoom <= minZoom"
@@ -125,6 +137,7 @@
 			@node-select="onNodeSelect"
 			@canvas-click="store.selectedNodeId = null"
 			@nodes-change="onNodesChange"
+			@node-remove="store.removeNode($event)"
 			@connect="store.connect($event)"
 			@canvas-drop="onCanvasDrop">
 			<!-- The step's own chrome. `node.data` carries the flow node, because
@@ -174,6 +187,7 @@ import Play from 'vue-material-design-icons/Play.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Sitemap from 'vue-material-design-icons/Sitemap.vue'
 import SortVariant from 'vue-material-design-icons/SortVariant.vue'
+import UndoVariant from 'vue-material-design-icons/UndoVariant.vue'
 import CnFlowNodeEditModal from '../../dialogs/CnFlowNodeEditModal.vue'
 import CnGraphCanvas from '../CnGraphCanvas/CnGraphCanvas.vue'
 import { resolveFlowNodeEditor } from '../../composables/useFlowNodeEditors.js'
@@ -197,6 +211,7 @@ export default {
 		Plus,
 		Sitemap,
 		SortVariant,
+		UndoVariant,
 	},
 
 	props: {
@@ -396,10 +411,70 @@ export default {
 	},
 
 	async mounted() {
+		document.addEventListener('keydown', this.onDocumentKeydown)
 		await this.store.load({ app: this.app, id: this.id })
 	},
 
+	beforeUnmount() {
+		document.removeEventListener('keydown', this.onDocumentKeydown)
+	},
+
+	// Vue 2.7 compatibility: `beforeUnmount` is the Vue 3 name, and this library
+	// still builds for both. Registering only one leaks the listener on the other.
+	beforeDestroy() {
+		document.removeEventListener('keydown', this.onDocumentKeydown)
+	},
+
 	methods: {
+		/**
+		 * Ctrl+Z / Cmd+Z steps the GRAPH back one edit.
+		 *
+		 * Bound on `document` rather than the canvas element: the shortcut has
+		 * to work after clicking anywhere in the editor, and the canvas is not
+		 * what holds focus for most of a session.
+		 *
+		 * ⚠️ WHICH IS EXACTLY WHY IT HAS TO STAND DOWN. A document listener sees
+		 * every Ctrl+Z on the page, including the one a user presses to undo
+		 * TYPING in a step's name or its JSON config. Reverting the whole graph
+		 * because someone fixed a typo would be a far worse bug than having no
+		 * undo at all, so a keystroke aimed at editable text is left to the
+		 * browser's own undo. The open-editor check is a second guard for the
+		 * same reason: while a node's dialog is up, the user is editing that
+		 * node, not the graph.
+		 *
+		 * Shift+Ctrl+Z is deliberately NOT claimed — that is redo, and there is
+		 * no redo stack yet. Claiming it would swallow the key and do nothing.
+		 *
+		 * @param {KeyboardEvent} event The key event.
+		 * @return {void}
+		 */
+		onDocumentKeydown(event) {
+			if (event.key !== 'z' && event.key !== 'Z') {
+				return
+			}
+
+			if ((event.ctrlKey || event.metaKey) === false || event.shiftKey === true || event.altKey === true) {
+				return
+			}
+
+			const target = event.target
+			const tag = String(target?.tagName || '').toLowerCase()
+			if (tag === 'input' || tag === 'textarea' || target?.isContentEditable === true) {
+				return
+			}
+
+			if (this.store.editingNodeId !== null) {
+				return
+			}
+
+			if (this.store.canUndo === false) {
+				return
+			}
+
+			event.preventDefault()
+			this.store.undo()
+		},
+
 		/**
 		 * Persist a node move that Vue Flow reports.
 		 *

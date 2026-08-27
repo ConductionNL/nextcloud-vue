@@ -109,7 +109,21 @@ describe('useFlowStore — Vue Flow does the routing', () => {
 		const [line] = store.canvasEdges
 
 		expect(line.data.lineType).toBe('smoothstep')
-		expect(line.markerEnd).toBe('arrowclosed')
+
+		// SIZED, not just requested. The bare `'arrowclosed'` this replaces
+		// rendered a 12.5px arrow at the path's end — which is where the target
+		// node's ~18px port handle sits, in a layer Vue Flow paints above the
+		// edges. The arrowhead was present and measurable the whole time and no
+		// user could see it, so asserting merely that a marker is asked for
+		// would pass over exactly the state this fixed.
+		expect(line.markerEnd.type).toBe('arrowclosed')
+		expect(line.markerEnd.width).toBeGreaterThan(18)
+		expect(line.markerEnd.height).toBeGreaterThan(18)
+
+		// No colour here on purpose: Vue Flow writes it as an inline style, so
+		// it is themed in CSS and follows dark mode. A hex set here would pin
+		// the arrowhead to one theme.
+		expect(line.markerEnd.color).toBeUndefined()
 	})
 
 	/**

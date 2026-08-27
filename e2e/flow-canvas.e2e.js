@@ -196,6 +196,49 @@ test.describe('flow canvas — pointer interaction', () => {
 	})
 })
 
+test.describe('flow canvas — removing a node', () => {
+	test('Delete removes the focused node, and its edges go with it', async ({ page }) => {
+		await page.goto(CANVAS)
+		await expect(page.locator('.cn-flow-node')).toHaveCount(3)
+		await expect(page.locator('.vue-flow__edge')).toHaveCount(1)
+
+		// Focus node `a`, which the harness graph's only edge leaves from.
+		await page.locator('.cn-flow-node').first().focus()
+		await page.keyboard.press('Delete')
+
+		await expect(page.locator('.cn-flow-node')).toHaveCount(2)
+
+		// The edge is the assertion that matters. A canvas that dropped the node
+		// and kept the line would leave an edge pointing at nothing — which is
+		// exactly what the store's own removeNode() exists to prevent, and what
+		// a node-count-only test would sail past.
+		await expect(page.locator('.vue-flow__edge')).toHaveCount(0)
+	})
+
+	test('Backspace removes it too, because that is the Mac delete key', async ({ page }) => {
+		await page.goto(CANVAS)
+		await expect(page.locator('.cn-flow-node')).toHaveCount(3)
+
+		await page.locator('.cn-flow-node').nth(2).focus()
+		await page.keyboard.press('Backspace')
+
+		await expect(page.locator('.cn-flow-node')).toHaveCount(2)
+	})
+
+	test('a read-only canvas refuses Delete', async ({ page }) => {
+		await page.goto(READONLY)
+		await expect(page.locator('.cn-flow-node')).toHaveCount(3)
+
+		await page.locator('.cn-flow-node').first().focus()
+		await page.keyboard.press('Delete')
+
+		// The control for the two above: the key is wired, and read-only means
+		// read-only. A canvas that LOOKS locked and still deletes on a keypress
+		// is worse than one with no shortcut at all.
+		await expect(page.locator('.cn-flow-node')).toHaveCount(3)
+	})
+})
+
 test.describe('flow canvas — read-only refuses everything', () => {
 	test('a read-only canvas does not move a node', async ({ page }) => {
 		await page.goto(READONLY)

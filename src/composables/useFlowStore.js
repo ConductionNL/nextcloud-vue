@@ -56,6 +56,15 @@ export const useFlowStore = defineStore('cnFlow', {
 	state: () => ({
 		flow: emptyFlow(),
 		flows: [],
+
+		// Snapshots of `flow`, oldest first, for Ctrl+Z.
+		//
+		// A canvas is direct manipulation: a mis-drag or a mis-aimed Delete
+		// destroys work with no dialog in between, and until this existed the
+		// only way back was to reload and lose everything since the last save.
+		// The stack is capped — see pushUndo() — because a flow document is
+		// held whole in each entry.
+		undoStack: [],
 		selectedNodeId: null,
 		paletteDragType: null,
 
@@ -104,6 +113,9 @@ export const useFlowStore = defineStore('cnFlow', {
 	getters: {
 		nodes: (state) => state.flow.nodes || [],
 		edges: (state) => state.flow.edges || [],
+
+		/** Whether there is anything to undo. Drives the toolbar's disabled state. */
+		canUndo: (state) => state.undoStack.length > 0,
 
 		selectedNode: (state) => {
 			if (state.selectedNodeId === null) {
@@ -536,7 +548,75 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @param {number} y    Canvas y (optional).
 		 * @return {void}
 		 */
+		/**
+		 * Remember the current flow so the next edit can be undone.
+		 *
+		 * Called at the TOP of every mutating action, before the mutation — an
+		 * undo stack that records the state AFTER a change can only ever return
+		 * you to where you already are.
+		 *
+		 * Deep-cloned, not referenced. `flow` is mutated in place by several
+		 * actions, so a stored reference would be rewritten by the very edit it
+		 * exists to reverse and every entry would collapse to "now".
+		 *
+		 * Capped: each entry holds a whole flow document, and a canvas gets a
+		 * lot of small edits. 50 is far past what anyone reaches for and still
+		 * bounded.
+		 *
+		 * @return {void}
+		 */
+		pushUndo() {
+			this.undoStack.push(JSON.stringify(this.flow))
+			if (this.undoStack.length > 50) {
+				this.undoStack.shift()
+			}
+		},
+
+		/**
+		 * Step back one edit.
+		 *
+		 * Entries that match the current state are DISCARDED rather than
+		 * applied. Actions snapshot before they know whether they will change
+		 * anything — `connect()` refuses a duplicate, `setNodeConfig()` may be
+		 * handed the value already stored — so without this a user could press
+		 * Ctrl+Z and watch nothing happen, which reads as "undo is broken"
+		 * rather than "that edit was a no-op".
+		 *
+		 * @return {boolean} Whether anything was undone.
+		 */
+		undo() {
+			const current = JSON.stringify(this.flow)
+
+			while (this.undoStack.length > 0) {
+				const previous = this.undoStack.pop()
+				if (previous === current) {
+					continue
+				}
+
+				this.flow = JSON.parse(previous)
+				this.dirty = true
+
+				// The verdict described the graph that was just replaced.
+				this.checkResult = null
+
+				// A node that no longer exists cannot stay selected, and an open
+				// editor for it would render against nothing.
+				if (this.nodes.some((node) => node.id === this.selectedNodeId) === false) {
+					this.selectedNodeId = null
+				}
+				if (this.nodes.some((node) => node.id === this.editingNodeId) === false) {
+					this.editingNodeId = null
+				}
+
+				return true
+			}
+
+			return false
+		},
+
 		addNode(type, x = null, y = null) {
+			this.pushUndo()
+
 			const index = this.nodes.length
 			const node = {
 				id: `${type}-${Date.now().toString(36)}-${index}`,
@@ -575,6 +655,8 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @return {void}
 		 */
 		moveNode({ id, x, y }) {
+			this.pushUndo()
+
 			this.flow.nodes = this.nodes.map(
 				(node) => (node.id === id ? { ...node, x, y, position: { x, y } } : node),
 			)
@@ -608,6 +690,8 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @return {void}
 		 */
 		connect({ source, target }) {
+			this.pushUndo()
+
 			if (!source || !target || source === target) {
 				return
 			}
@@ -625,6 +709,8 @@ export const useFlowStore = defineStore('cnFlow', {
 		},
 
 		removeNode(id) {
+			this.pushUndo()
+
 			this.flow.nodes = this.nodes.filter((node) => node.id !== id)
 			// BOTH spellings, or removing a node leaves its `from`/`to` edges
 			// behind pointing at a node that no longer exists — and `from`/`to`
@@ -649,6 +735,8 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @return {void}
 		 */
 		setNodeConfigAll(config) {
+			this.pushUndo()
+
 			if (this.selectedNodeId === null) {
 				return
 			}
@@ -661,6 +749,8 @@ export const useFlowStore = defineStore('cnFlow', {
 		},
 
 		setNodeConfig(key, value) {
+			this.pushUndo()
+
 			if (this.selectedNodeId === null) {
 				return
 			}
@@ -675,6 +765,8 @@ export const useFlowStore = defineStore('cnFlow', {
 		},
 
 		setFlowField(key, value) {
+			this.pushUndo()
+
 			this.flow = { ...this.flow, [key]: value }
 			this.dirty = true
 		},
@@ -688,6 +780,8 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @return {void}
 		 */
 		setNodeName(id, name) {
+			this.pushUndo()
+
 			this.flow.nodes = this.nodes.map((node) => (
 				node.id === id ? { ...node, name } : node
 			))
@@ -705,6 +799,8 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @return {void}
 		 */
 		setNodeConfigById(id, config) {
+			this.pushUndo()
+
 			this.flow.nodes = this.nodes.map((node) => (
 				node.id === id ? { ...node, config: { ...config } } : node
 			))
@@ -744,6 +840,8 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @return {void}
 		 */
 		autoSort() {
+			this.pushUndo()
+
 			const nodes = this.nodes
 			if (!nodes.length) {
 				return

@@ -141,6 +141,14 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+		/**
+		 * Whether Delete/Backspace on this node emits `remove`. Defaults to
+		 * true; a read-only canvas passes false so the key does nothing.
+		 */
+		deletable: {
+			type: Boolean,
+			default: true,
+		},
 	},
 
 	emits: [
@@ -151,6 +159,13 @@ export default {
 		 *   it into the same `onConnect` the <VueFlow> pointer path uses.
 		 */
 		'connect',
+
+		/**
+		 * @event remove The focused node should be removed, by id. Emitted for
+		 *   Delete and Backspace. The host decides what removal means — its
+		 *   edges, its undo stack, its persistence — so nothing is removed here.
+		 */
+		'remove',
 	],
 
 	setup() {
@@ -292,6 +307,32 @@ export default {
 			if (event.key === 'c' || event.key === 'C') {
 				event.preventDefault()
 				this.onConnectKey()
+				return
+			}
+
+			// Delete and Backspace both, because which one removes a thing is a
+			// platform habit rather than a preference: Backspace is the delete
+			// key on a Mac keyboard, and a user who learned one does not think
+			// of the other as an alternative.
+			//
+			// EMITTED, never acted on here. This component knows about Vue Flow
+			// nodes; it does not know that removing one also has to drop the
+			// edges pointing at it, or that the host keeps an undo stack. A node
+			// that deleted itself would leave dangling edges behind — which is
+			// the bug `useFlowStore.removeNode` exists to prevent.
+			if (event.key === 'Delete' || event.key === 'Backspace') {
+				if (this.deletable === false) {
+					return
+				}
+
+				event.preventDefault()
+				/**
+				 * @event remove The focused node should be removed. Carries the
+				 *   node id. The host owns what removal means — edges, undo,
+				 *   persistence — so nothing is removed here.
+				 * @type {string}
+				 */
+				this.$emit('remove', this.id)
 			}
 		},
 

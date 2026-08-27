@@ -35,7 +35,9 @@
 				     the save dropped it. -->
 				<CnFlowNode
 					v-bind="nodeProps"
-					@connect="onConnect">
+					:deletable="!readOnly"
+					@connect="onConnect"
+					@remove="onNodeRemove">
 					<template #default="slotProps">
 						<!-- @slot node The body of a step, rendered inside the
 						     focusable node wrapper. Receives `{ node }` with the
@@ -250,6 +252,8 @@ export default {
 		'edge-label-context',
 		'canvas-click',
 		'canvas-drop',
+
+		'node-remove',
 	],
 
 	setup() {
@@ -310,6 +314,23 @@ export default {
 		 * @param {object} connection The connection.
 		 * @return {void}
 		 */
+		/**
+		 * Pass a node's removal request up to the host.
+		 *
+		 * @param {string} id The node that asked to be removed.
+		 * @return {void}
+		 */
+		onNodeRemove(id) {
+			/**
+			 * @event node-remove The focused node should be removed, by id.
+			 *   Raised by Delete/Backspace on a node. The canvas removes
+			 *   nothing itself — the host owns `nodes` and `edges`, and a node
+			 *   dropped here would leave the edges pointing at it behind.
+			 * @type {string}
+			 */
+			this.$emit('node-remove', id)
+		},
+
 		onConnect(connection) {
 			/**
 			 * @event connect A new connection was made, by pointer OR by

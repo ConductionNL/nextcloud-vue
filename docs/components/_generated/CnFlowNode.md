@@ -2,20 +2,22 @@
 
 ### Props
 
-| Name         | Type      | Required | Default | Description                                                  |
-| ------------ | --------- | -------- | ------- | ------------------------------------------------------------ |
-| `id`         | `string`  | ✓        | —       | Vue Flow's node id.                                          |
-| `data`       | `object`  |          | `\{\}`  | Vue Flow's per-node data bag.                                |
-| `selected`   | `boolean` |          | `false` | Whether Vue Flow considers this node selected.               |
-| `step`       | `number`  |          | `8`     | How far one arrow-key press moves the node, in canvas units. |
-| `coarseStep` | `number`  |          | `40`    | How far a Shift+arrow press moves it.                        |
-| `resizable`  | `boolean` |          | `false` | Whether this node may be resized.                            |
+| Name         | Type      | Required | Default | Description                                                                                                                      |
+| ------------ | --------- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `id`         | `string`  | ✓        | —       | Vue Flow's node id.                                                                                                              |
+| `data`       | `object`  |          | `\{\}`  | Vue Flow's per-node data bag.                                                                                                    |
+| `selected`   | `boolean` |          | `false` | Whether Vue Flow considers this node selected.                                                                                   |
+| `step`       | `number`  |          | `8`     | How far one arrow-key press moves the node, in canvas units.                                                                     |
+| `coarseStep` | `number`  |          | `40`    | How far a Shift+arrow press moves it.                                                                                            |
+| `resizable`  | `boolean` |          | `false` | Whether this node may be resized.                                                                                                |
+| `deletable`  | `boolean` |          | `true`  | Whether Delete/Backspace on this node emits `remove`. Defaults to true; a read-only canvas passes false so the key does nothing. |
 
 ### Events
 
-| Name      | Payload | Description |
-| --------- | ------- | ----------- |
-| `connect` | —       |             |
+| Name      | Payload | Description                                                                                                                                        |
+| --------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `connect` | —       |                                                                                                                                                    |
+| `remove`  | —       | The focused node should be removed. Carries the node id. The host owns what removal means — edges, undo, persistence — so nothing is removed here. |
 
 ### Slots
 

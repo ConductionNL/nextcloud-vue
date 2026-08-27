@@ -62,6 +62,7 @@
 					:read-only="canvasReadOnly"
 					:show-mini-map="true"
 					@nodes-change="canvasChanges.push($event)"
+					@node-remove="onCanvasNodeRemove"
 					@connect="canvasConnections.push($event)" />
 			</div>
 			<pre data-testid="canvas-connections">{{ JSON.stringify(canvasConnections) }}</pre>
@@ -481,6 +482,27 @@ export default {
 		if (this.showSelectZ) {
 			installModalStack()
 		}
+	},
+
+	methods: {
+		/**
+		 * Remove a node the canvas asked to delete, and its edges with it.
+		 *
+		 * The harness plays the HOST here deliberately. CnGraphCanvas only
+		 * EMITS `node-remove` — it never mutates the graph — so a spec that
+		 * expected the node to vanish without a host acting would be asserting
+		 * behaviour the component does not have, and would fail for the right
+		 * reason in the wrong place.
+		 *
+		 * @param {string} id The node id.
+		 * @return {void}
+		 */
+		onCanvasNodeRemove(id) {
+			this.canvasNodes = this.canvasNodes.filter((node) => node.id !== id)
+			this.canvasEdges = this.canvasEdges.filter(
+				(edge) => edge.source !== id && edge.target !== id,
+			)
+		},
 	},
 }
 </script>
