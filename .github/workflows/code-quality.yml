@@ -147,6 +147,9 @@ jobs:
          "check:a11y", "check:smoke", "check:vue3-compile",
          "check:public-safe"]
       enable-sbom: false
+      # The repo ships a REUSE.toml and LICENSES/ and lints clean (REUSE spec
+      # 3.3), so findings are regressions and may fail the build.
+      reuse-blocking: true
 
   # ⚠️ THE PLAYWRIGHT SUITE HAD NEVER RUN IN CI. NOT ONCE.
   #
