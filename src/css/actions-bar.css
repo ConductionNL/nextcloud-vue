@@ -278,7 +278,9 @@
 
    The MARKUP already groups by role at every width: the left info group
    holds the visual controls (search, #after-search filters, the view
-   toggle), the right cluster the act controls (sort, add, overflow).
+   toggle), the right cluster the act controls (add, overflow) plus the
+   standalone sort select — a display control kept on the right as legacy
+   placement from before this split.
    Under ~900px of bar width — where wrapping becomes a real possibility —
    both groups flatten (`display: contents`) into the bar's own flex row
    so the controls wrap as individual items in that same role order, and

@@ -1,8 +1,8 @@
 /**
  * Tests for CnActionsBar's `#after-search` slot — refinement controls (e.g. a
  * filter menu button) rendered beside the search field on the LEFT side of the
- * bar, so search + filters group as "narrow what you see" while the right
- * cluster stays "display + act".
+ * bar, where the visual controls live (search, filters, view toggle), while
+ * the right cluster holds the act controls (add, overflow).
  */
 import { mount } from '@vue/test-utils'
 import CnActionsBar from '../../src/components/CnActionsBar/CnActionsBar.vue'

@@ -17,7 +17,7 @@
 			</span>
 			<!--
 				@slot after-search
-				@description Refinement controls rendered beside the search field on the LEFT side of the bar (e.g. a filter menu button). Convention: the left side groups the VISUAL controls — "narrow/change what you see" (search, filters, view toggle) — the right cluster stays "act" (sort, add, overflow).
+				@description Refinement controls rendered beside the search field on the LEFT side of the bar (e.g. a filter menu button). Convention: the left side groups the VISUAL controls — "narrow/change what you see" (search, filters, view toggle) — the right cluster holds the ACT controls (add, overflow). The standalone sort select is a display control too but still renders on the right: legacy placement from before this split — apps increasingly fold sorting into their filter menu instead.
 			-->
 			<slot name="after-search" />
 
@@ -258,8 +258,10 @@
 		     pattern): appears while a selection is active, carrying the
 		     visible count, the built-in selection-scoped mass actions, the
 		     host's own bulk buttons (#selection-actions) and a Clear control.
-		     The overflow menu above keeps the same actions as the complete
-		     inventory — this strip is the discoverable surface. -->
+		     This strip is the discoverable surface for bulk actions; the
+		     BUILT-IN Copy/Delete-selected also stay listed in the overflow
+		     menu above, while a host decides for its own actions (strip-only
+		     is fine — keepiq does exactly that). -->
 		<div
 			v-if="selectable && selectedIds.length > 0"
 			class="cn-actions-bar__selection"
@@ -287,7 +289,7 @@
 			</NcButton>
 			<!--
 				@slot selection-actions
-				@description The host app's bulk-action buttons (NcButton family), rendered inside the contextual selection strip that appears while a selection is active. The overflow menu's #mass-actions stays the complete inventory; this strip is the discoverable surface.
+				@description The host app's bulk-action buttons (NcButton family), rendered inside the contextual selection strip that appears while a selection is active. This strip is the primary bulk-actions surface; #mass-actions remains available for hosts that ALSO want the actions listed in the overflow menu (optional — strip-only is fine).
 				@binding {number} count Length of the current selection.
 				@binding {Array<string|number>} selected-ids The selected row ids.
 			-->
