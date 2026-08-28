@@ -170,6 +170,25 @@ jobs:
   # Playwright additionally needs a browser and its system libraries —
   # installing those in the shared setup would pay that cost in all nine legs
   # to serve one.
+  # ⚠️ `enable-playwright: true` ON THE SHARED WORKFLOW IS DELIBERATELY NOT SET,
+  # AND THIS IS NOT AN OVERSIGHT TO TIDY UP.
+  #
+  # ConductionNL/.github's quality.yml DOES carry an "E2E Tests (Playwright)"
+  # job behind that input, which is why it shows on every run here as `skipped`.
+  # Flipping it on would be the obvious-looking fix and it would be wrong: that
+  # job checks out the Nextcloud SERVER and its submodules, sets up PHP,
+  # installs Nextcloud, and mounts the repository as an app. It is built for a
+  # Nextcloud app's e2e suite.
+  #
+  # This repository is a component LIBRARY. It has no `appinfo/info.xml`, so
+  # there is no app to install, and its Playwright suite runs against a Vite
+  # harness on :5199 with no server, no PHP and no Nextcloud anywhere in it.
+  # Enabling the shared job would boot an entire Nextcloud instance to run 101
+  # specs that never touch one — and then fail trying to enable an app that
+  # does not exist.
+  #
+  # Hence the dedicated job below: `npm ci`, `playwright install`, run. ~4
+  # minutes. The skipped shared leg is the correct outcome, not a missing one.
   e2e:
     name: Playwright (e2e)
     runs-on: ubuntu-latest
