@@ -121,6 +121,17 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+		/**
+		 * When true, a body click on a SELECTABLE card emits `click`
+		 * (navigation) instead of toggling selection — selection then happens
+		 * via the checkbox only. The card counterpart of CnIndexPage's
+		 * `rowClickToView` (a table row click already navigates in that mode).
+		 * @type {boolean}
+		 */
+		clickToView: {
+			type: Boolean,
+			default: false,
+		},
 		/** Maximum number of metadata fields to show */
 		maxMetadata: {
 			type: Number,
@@ -214,12 +225,14 @@ export default {
 
 		/**
 		 * Card-body click: emits `select` when `selectable` (ignoring drags),
-		 * otherwise emits `click` for navigation.
+		 * otherwise emits `click` for navigation. With `clickToView`, a
+		 * selectable card's body click navigates too — the checkbox is the
+		 * only selection surface, mirroring the table's rowClickToView split.
 		 *
 		 * @param {MouseEvent} [event] The originating click event.
 		 */
 		onCardClick(event) {
-			if (this.selectable) {
+			if (this.selectable && !this.clickToView) {
 				if (this.wasDrag(event)) return
 				/**
 				 * @event select Emitted when the card toggles selection (clicking the body of a selectable card, or its checkbox).

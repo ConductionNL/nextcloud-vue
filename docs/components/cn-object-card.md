@@ -25,6 +25,7 @@ Schema-driven card for displaying an object's key information. Uses schema confi
 | `schema` | Object | *(required)* | Schema with properties and configuration |
 | `selected` | Boolean | `false` | Selection state |
 | `selectable` | Boolean | `false` | Show selection checkbox |
+| `clickToView` | Boolean | `false` | Body click on a selectable card emits `click` (navigation) instead of toggling selection — the checkbox stays the only selection surface (the card counterpart of a table's `rowClickToView`) |
 | `maxMetadata` | Number | `4` | Max metadata fields shown |
 
 ## Schema Configuration Keys

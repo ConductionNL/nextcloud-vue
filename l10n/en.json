@@ -844,6 +844,8 @@
     "This entry is already linked.": "This entry is already linked.",
     "Could not link entry.": "Could not link entry.",
     "Could not create client.": "Could not create client.",
-    "Could not unlink entry.": "Could not unlink entry."
+    "Could not unlink entry.": "Could not unlink entry.",
+    "{count} selected": "{count} selected",
+    "Clear selection": "Clear selection"
   }
 }

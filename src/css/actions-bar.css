@@ -12,13 +12,21 @@
 	padding: calc(2 * var(--default-grid-baseline));
 	background: var(--color-background-hover);
 	border-radius: var(--border-radius);
+	/* Named inline-size container so the narrow-layout rules below respond to
+	   the BAR's own width (page content minus nav/sidebar), not the viewport. */
+	container: cn-actions-bar / inline-size;
 }
 
 .cn-actions-bar__info {
 	font-weight: 500;
 	font-size: var(--default-font-size);
 	/* Let the search area grow to fill the row but shrink (min-width:0) so the
-	   actions can stay beside it until there's genuinely no room, then wrap. */
+	   actions can stay beside it until there's genuinely no room, then wrap.
+	   Flex row so `#after-search` controls (filter buttons) sit BESIDE the
+	   search field — the left side groups "narrow what you see". */
+	display: flex;
+	align-items: center;
+	gap: calc(2 * var(--default-grid-baseline));
 	flex: 1 1 220px;
 	min-width: 0;
 }
@@ -112,6 +120,9 @@
 	padding: 4px;
 	border-radius: var(--border-radius-pill);
 	background: var(--color-background-dark);
+	/* Lives in the (shrinkable) left info group — never crush the segments;
+	   the search field is the one that gives up width. */
+	flex: 0 0 auto;
 }
 
 /* Scoped under the toggle (specificity 0,2,0) so it beats any stale copy of the
@@ -213,6 +224,42 @@
 	white-space: nowrap;
 }
 
+/* Contextual selection strip: its own full-width row inside the bar while a
+   selection is active, primary-tinted so the selection mode reads as a
+   distinct state (Proton Pass / Gmail / Files pattern). */
+.cn-actions-bar__selection {
+	flex: 1 1 100%;
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: calc(2 * var(--default-grid-baseline));
+	padding: var(--default-grid-baseline) calc(2 * var(--default-grid-baseline));
+	border-radius: var(--border-radius);
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-actions-bar__selection-count {
+	font-weight: 600;
+}
+
+/* Clear sits at the far end of the strip. */
+.cn-actions-bar__selection-clear {
+	margin-inline-start: auto;
+}
+
+/* Visually-hidden live region (role="status") for the selection count —
+   always present so assistive tech announces selection changes (WCAG 2.1
+   SC 4.1.3 Status Messages). */
+.cn-actions-bar__sr-status {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
 /* Override Nextcloud's pointer-events:none on disabled action items
    so native title tooltip is visible on hover.
    The button's disabled attribute still prevents click events. */
@@ -223,4 +270,89 @@
 
 .action.action--disabled button {
 	cursor: not-allowed;
+}
+
+/* Narrow-container layout (the bar is a named inline-size container;
+   browsers without container-query support keep the default wrapping —
+   functional, just less tidy).
+
+   The MARKUP already groups by role at every width: the left info group
+   holds the visual controls (search, #after-search filters, the view
+   toggle), the right cluster the act controls (add, overflow) plus the
+   standalone sort select — a display control kept on the right as legacy
+   placement from before this split.
+   Under ~900px of bar width — where wrapping becomes a real possibility —
+   both groups flatten (`display: contents`) into the bar's own flex row
+   so the controls wrap as individual items in that same role order, and
+   every control grows to fill its row: on a break the view toggle stays
+   with the search group and the act buttons drop to their own full-width
+   row — no ragged right-aligned staircase. The view-toggle segments also
+   go icon-only (labels stay in the accessibility tree) to keep one row
+   viable longer. */
+@container cn-actions-bar (max-width: 900px) {
+	.cn-actions-bar__info,
+	.cn-actions-bar__actions {
+		display: contents;
+	}
+
+	/* #after-search filter buttons + the view toggle ride beside the
+	   search field (DOM order — search first via its own order). */
+	.cn-actions-bar__info > * {
+		order: 1;
+	}
+
+	.cn-actions-bar__search {
+		order: 0;
+		flex: 1 1 200px;
+		max-width: none;
+	}
+
+	.cn-actions-bar__actions > * {
+		order: 2;
+		flex: 1 1 auto;
+	}
+
+	/* On its own wrapped row the toggle may stretch (segments share the
+	   width); the base no-shrink rule keeps it intact while inline. */
+	.cn-actions-bar__view-toggle {
+		flex: 1 1 auto;
+	}
+
+	/* The sort control's select grows with its row (the 140px floor stays
+	   as the flex basis via min-width on the select itself). */
+	.cn-actions-bar__sort .cn-actions-bar__sort-select {
+		flex: 1 1 auto;
+	}
+
+	/* Visually hidden, NOT display:none — the label remains each segment
+	   button's accessible name. */
+	.cn-actions-bar__view-toggle-label {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	/* The flattened groups get explicit orders (0/1/2); keep the selection
+	   strip after ALL of them so it stays the bar's last row. */
+	.cn-actions-bar__selection {
+		order: 3;
+	}
+
+	/* Narrow strip: Clear drops to its OWN row, flowing from the start — a
+	   right-pinned control on a wrapped row reads as detached. The ::after
+	   pseudo (order 1) is a full-width flex line-break between the bulk
+	   actions (order 0, the default) and Clear (order 2). */
+	.cn-actions-bar__selection::after {
+		content: "";
+		flex-basis: 100%;
+		order: 1;
+	}
+
+	.cn-actions-bar__selection .cn-actions-bar__selection-clear {
+		margin-inline-start: 0;
+		order: 2;
+	}
 }
