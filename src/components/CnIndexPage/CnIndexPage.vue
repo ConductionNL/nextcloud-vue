@@ -345,10 +345,7 @@
 					'cn-index-page__main--map': currentViewMode === 'map',
 					'cn-index-page__main--table': currentViewMode === 'table',
 				}">
-				<!--
-					@slot before-collection
-					@description Content rendered above the collection in EVERY view mode (table, cards, list, map) — e.g. a folder/group strip that must stay visually separate from the objects instead of masquerading as rows or cards.
-				-->
+				<!-- @slot before-collection Content rendered above the collection in EVERY view mode (table, cards, list, map) — e.g. a folder/group strip that must stay visually separate from the objects instead of masquerading as rows or cards. -->
 				<slot name="before-collection" />
 
 				<!-- Loading state — initial fetch only; a background refresh keeps the table visible -->
