@@ -1,0 +1,23 @@
+version = 1
+SPDX-PackageName = "@conduction/nextcloud-vue"
+SPDX-PackageSupplier = "Conduction B.V. <info@conduction.nl>"
+SPDX-PackageDownloadLocation = "https://github.com/ConductionNL/nextcloud-vue"
+
+# Repo-wide default. `precedence = "closest"` means a file's own SPDX header
+# (e.g. the AGPL-3.0-or-later files adapted from Nextcloud) always wins over
+# this entry; the blanket only fills files without their own tags.
+[[annotations]]
+path = "**"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Conduction B.V. <info@conduction.nl>"
+SPDX-License-Identifier = "EUPL-1.2"
+
+# Bundled Caveat font (latin subset from Google Fonts) and its license text.
+[[annotations]]
+path = [
+    "src/components/CnSupportDialog/assets/Caveat-Regular-latin.woff2",
+    "src/components/CnSupportDialog/assets/Caveat-OFL.txt",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2014 The Caveat Project Authors (https://github.com/googlefonts/caveat)"
+SPDX-License-Identifier = "OFL-1.1"
