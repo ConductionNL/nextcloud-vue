@@ -118,11 +118,38 @@ jobs:
       # against. It is the only lane that meets the real @nextcloud/vue 9 API
       # surface across the whole library, which is where a Vue 2 -> 3 leftover
       # ($set, $scopedSlots, _uid, moment-style date formats) actually shows up.
+      #
+      # check:vue3-compile and check:public-safe are the last two scripts this
+      # repository defines that no gate ran. Same class as check:a11y,
+      # check:smoke and the Playwright job above, each added with a note saying
+      # its absence had been indistinguishable from its success — and the same
+      # answer: a check nobody runs is a check that runs when someone remembers.
+      #
+      # check:vue3-compile sweeps all 366 components through Vue 3's compiler in
+      # compat MODE 2. It is the lane that sees a Vue-2 leftover in a TEMPLATE,
+      # which `test` cannot: the unit lane mounts components it has a spec for,
+      # and the sweep compiles every component there is.
+      #
+      # check:public-safe asserts that nothing reachable from the `public` entry
+      # pulls in `@nextcloud/*`. That entry exists so a non-Nextcloud host can
+      # use these components; one stray import makes it unusable, and the
+      # failure lands in the CONSUMER's build rather than here.
+      #
+      # ⚠️ check:dist-sideeffects is deliberately still absent, and that is a
+      # gap, not a decision. It needs `dist/`, which each check leg would have to
+      # build for itself — and it cannot be verified from a checkout inside the
+      # Nextcloud server tree (the documented `@vue/tsconfig` resolution
+      # artifact), so wiring it blind would mean shipping a gate nobody has seen
+      # pass. It belongs in a job of its own, like the e2e one.
       frontend-checks: >-
         ["test", "check:build", "check:docs", "check:jsdoc",
          "check:integration-parity", "check:peers", "check:docs-fresh",
-         "check:a11y", "check:smoke"]
+         "check:a11y", "check:smoke", "check:vue3-compile",
+         "check:public-safe"]
       enable-sbom: false
+      # The repo ships a REUSE.toml and LICENSES/ and lints clean (REUSE spec
+      # 3.3), so findings are regressions and may fail the build.
+      reuse-blocking: true
 
   # ⚠️ THE PLAYWRIGHT SUITE HAD NEVER RUN IN CI. NOT ONCE.
   #
@@ -146,6 +173,25 @@ jobs:
   # Playwright additionally needs a browser and its system libraries —
   # installing those in the shared setup would pay that cost in all nine legs
   # to serve one.
+  # ⚠️ `enable-playwright: true` ON THE SHARED WORKFLOW IS DELIBERATELY NOT SET,
+  # AND THIS IS NOT AN OVERSIGHT TO TIDY UP.
+  #
+  # ConductionNL/.github's quality.yml DOES carry an "E2E Tests (Playwright)"
+  # job behind that input, which is why it shows on every run here as `skipped`.
+  # Flipping it on would be the obvious-looking fix and it would be wrong: that
+  # job checks out the Nextcloud SERVER and its submodules, sets up PHP,
+  # installs Nextcloud, and mounts the repository as an app. It is built for a
+  # Nextcloud app's e2e suite.
+  #
+  # This repository is a component LIBRARY. It has no `appinfo/info.xml`, so
+  # there is no app to install, and its Playwright suite runs against a Vite
+  # harness on :5199 with no server, no PHP and no Nextcloud anywhere in it.
+  # Enabling the shared job would boot an entire Nextcloud instance to run 101
+  # specs that never touch one — and then fail trying to enable an app that
+  # does not exist.
+  #
+  # Hence the dedicated job below: `npm ci`, `playwright install`, run. ~4
+  # minutes. The skipped shared leg is the correct outcome, not a missing one.
   e2e:
     name: Playwright (e2e)
     runs-on: ubuntu-latest
@@ -194,3 +240,49 @@ jobs:
             test-results/
           retention-days: 14
           if-no-files-found: ignore
+
+  # The third script this repository defines that no gate ran. It could not go
+  # into `frontend-checks` with the others: it needs a built `dist/`, and each
+  # check leg is its own job with its own checkout, so the build has to happen
+  # in the same job. Hence a dedicated one, like the e2e job above.
+  #
+  # ⚠️ READ WHAT THIS CAN AND CANNOT CATCH BEFORE TRUSTING A GREEN CELL.
+  #
+  # The bug it was written for is real and severe: `package.json#sideEffects`
+  # is an ALLOWLIST, and when it failed to match the compiled `*.vue.js`
+  # render-attach wrappers, consumers' webpack shook every one of them away and
+  # every Cn component shipped render-less. Vue 3 renders a render-less
+  # component as a silent comment node — blank app, zero errors, zero warnings.
+  # Observed on hermiq, where it blocked a full e2e suite.
+  #
+  # ON TODAY'S EMIT SHAPE IT PASSES BY CONSTRUCTION, and I measured that rather
+  # than assuming it. Deleting `**/*.vue.js` from the allowlist and re-running
+  # still reports OK. The reason is that the build no longer emits what the
+  # gate was written against: the barrel now does
+  #
+  #     export { default as CnAppRoot } from './components/.../CnAppRoot.vue.js'
+  #
+  # — a VALUE re-export from the wrapper, where it used to export from
+  # `.vue2.js` and carry a separate bare `import './X.vue.js'` alongside. There
+  # are zero bare `*.vue.js` imports left in `dist/esm/index.js`. A value
+  # dependency cannot be tree-shaken, so the render survives whatever the
+  # allowlist says.
+  #
+  # So this is a REGRESSION GUARD for an emit shape that is not currently in
+  # use, not a live assertion about the allowlist. It fires if a rollup or
+  # plugin upgrade reverts the barrel to bare side-effect imports while the
+  # allowlist is wrong — which is exactly how the original bug arrived. That is
+  # worth two minutes of CI. It is NOT evidence that the allowlist is correct,
+  # and a green cell here must not be read as such.
+  dist-sideeffects:
+    name: "Dist sideEffects (tree-shaking)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run check:dist-sideeffects
