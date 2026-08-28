@@ -792,6 +792,24 @@ export default {
 					topLevel[key] = page[key]
 				}
 			}
+			// type:"custom" dispatches an app-authored component that usually
+			// declares NONE of the lifted fields as props. Vue's attribute
+			// fallthrough would then paint them onto the component's root
+			// element as plain HTML attributes — `title="Vault"` becomes a
+			// browser tooltip hovering over the ENTIRE page, and icon/widgets
+			// turn into junk markup. Forward a lifted field to a custom
+			// component only when its definition actually declares the prop.
+			if (page?.type === 'custom') {
+				const declared = this.resolvedComponent?.props
+				const declares = (key) => (Array.isArray(declared)
+					? declared.includes(key)
+					: Boolean(declared && key in declared))
+				for (const key of Object.keys(topLevel)) {
+					if (!declares(key)) {
+						delete topLevel[key]
+					}
+				}
+			}
 			// NOTE on ADR-036 page-level `widgets[]`: it is NOT translated into
 			// the typed component's `widgets` + `layout` props here.
 			//
