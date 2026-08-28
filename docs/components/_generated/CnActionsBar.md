@@ -57,14 +57,17 @@
 | `show-export`      | —       | User clicked the Export mass action. Host should open the export modal.                                    |
 | `show-copy`        | —       | User clicked the Copy-selected mass action. Disabled while no row is selected.                             |
 | `show-delete`      | —       | User clicked the Delete-selected mass action. Disabled while no row is selected.                           |
+| `clear-selection`  | —       |                                                                                                            |
 | `search`           | —       | Emitted when the user types in the inline search field.                                                    |
 | `sort-change`      | —       | Emitted when the user picks an option from the standalone sort dropdown.                                   |
 
 ### Slots
 
-| Name           | Bindings                | Description                                                                                                                                            |
-| -------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `filters`      | —                       | filters Inline filter controls rendered inside the action bar, between the view toggle and the add/actions (e.g. a CnQuickFilterBar segmented toggle). |
-| `actions`      | —                       | actions                                                                                                                                                |
-| `action-items` | —                       | action-items                                                                                                                                           |
-| `mass-actions` | `count`, `selected-ids` | mass-actions                                                                                                                                           |
+| Name                | Bindings                | Description                                                                                                                                            |
+| ------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `after-search`      | —                       | after-search                                                                                                                                           |
+| `filters`           | —                       | filters Inline filter controls rendered inside the action bar, between the view toggle and the add/actions (e.g. a CnQuickFilterBar segmented toggle). |
+| `actions`           | —                       | actions                                                                                                                                                |
+| `action-items`      | —                       | action-items                                                                                                                                           |
+| `mass-actions`      | `count`, `selected-ids` | mass-actions                                                                                                                                           |
+| `selection-actions` | `count`, `selected-ids` | selection-actions                                                                                                                                      |

@@ -68,6 +68,7 @@
 			:documentation-label="documentationLabel || undefined"
 			@sort-change="$emit('sort-change', $event)"
 			@add="onAddClick"
+			@clear-selection="onSelect([])"
 			@toggle-sidebar="sidebarOpen = !sidebarOpen"
 			@refresh="onRefreshEvent"
 			@header-action="onHeaderAction"
@@ -82,6 +83,14 @@
 			</template>
 			<template v-if="$slots['action-items']" #action-items>
 				<slot name="action-items" />
+			</template>
+			<template v-if="$slots['after-search']" #after-search>
+				<slot name="after-search" />
+			</template>
+			<template
+				v-if="$slots['selection-actions']"
+				#selection-actions="{ count, selectedIds: ids }">
+				<slot name="selection-actions" :count="count" :selected-ids="ids" />
 			</template>
 			<template v-if="$slots['header-actions'] || $slots['actions'] || isEditMode || showExportMenu || allowSavedViews" #actions>
 				<!--
@@ -336,6 +345,12 @@
 					'cn-index-page__main--map': currentViewMode === 'map',
 					'cn-index-page__main--table': currentViewMode === 'table',
 				}">
+				<!--
+					@slot before-collection
+					@description Content rendered above the collection in EVERY view mode (table, cards, list, map) — e.g. a folder/group strip that must stay visually separate from the objects instead of masquerading as rows or cards.
+				-->
+				<slot name="before-collection" />
+
 				<!-- Loading state — initial fetch only; a background refresh keeps the table visible -->
 				<div v-if="showInitialLoader" class="cn-index-page__loading">
 					<!-- name gives NcLoadingIcon a non-empty aria-label (WCAG role-img-alt); empty name ships an unlabeled role="img" -->
@@ -513,6 +528,7 @@
 					:objects="displayObjects"
 					:schema="effectiveSchema"
 					:selectable="selectable"
+					:click-to-view="rowClickToView"
 					:selected-ids="internalSelectedIds"
 					:row-key="rowKey"
 					:empty-text="emptyText"
@@ -725,6 +741,9 @@ import { useSelfFetchList } from './useSelfFetchList.js'
  *
  * @slot mass-actions — Extra mass action buttons (shown when items are selected)
  * @slot action-items — Extra action bar buttons
+ * @slot after-search — Refinement controls beside the search field on the bar's left side (e.g. a filter menu button)
+ * @slot before-collection — Content above the collection in every view mode (e.g. a folder/group strip)
+ * @slot selection-actions — Bulk-action buttons in the contextual selection strip shown while a selection is active. Scope: `{ count, selectedIds }`
  * @slot header-actions — Extra buttons in the page header
  * @slot delete-dialog — Replace the single-item delete dialog. Scope: `{ show, item, confirm, close }`. Call `confirm()` to perform the delete.
  * @slot copy-dialog — Replace the single-item copy dialog. Scope: `{ show, item, confirm, close }`. Call `confirm(payload)` to perform the copy.

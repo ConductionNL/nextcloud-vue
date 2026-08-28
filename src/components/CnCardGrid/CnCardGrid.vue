@@ -31,6 +31,7 @@
 						:object="object"
 						:schema="schema"
 						:selectable="selectable"
+						:click-to-view="clickToView"
 						:selected="isSelected(object)"
 						v-on="cardListeners(object)">
 						<template v-if="$slots['card-actions']" #actions="{ object: obj }">
@@ -113,6 +114,16 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+		/**
+		 * When true, a body click on a selectable card emits `click`
+		 * (navigation) and selection happens via the checkbox only — the
+		 * card-grid counterpart of CnIndexPage's `rowClickToView`.
+		 * @type {boolean}
+		 */
+		clickToView: {
+			type: Boolean,
+			default: false,
+		},
 		/** Array of currently selected object IDs */
 		selectedIds: {
 			type: Array,
@@ -151,17 +162,19 @@ export default {
 
 		/**
 		 * Listeners bound on each CnObjectCard. Selectable cards select via
-		 * `@select` only; the `@click` (navigation) listener is bound just for
+		 * `@select` only; the `@click` (navigation) listener is bound for
 		 * non-selectable cards — otherwise CnObjectCard's deprecated
 		 * click-to-select path fires (a body click would both select AND
-		 * navigate, unlike a table row which only selects).
+		 * navigate, unlike a table row which only selects) — and for
+		 * `clickToView` cards, where a body click navigates and the checkbox
+		 * is the only selection surface.
 		 *
 		 * @param {object} object The card's object.
 		 * @return {object} Event listeners for the card.
 		 */
 		cardListeners(object) {
 			const listeners = { select: () => this.toggleSelect(object) }
-			if (!this.selectable) {
+			if (!this.selectable || this.clickToView) {
 				listeners.click = () => this.$emit('click', object)
 			}
 			return listeners

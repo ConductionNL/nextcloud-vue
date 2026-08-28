@@ -127,6 +127,8 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 
 ### Slots
 
+- `after-search` — Refinement controls rendered beside the search field on the LEFT side of the bar (e.g. an `NcActions` filter menu with a funnel icon). Convention: the left side groups "narrow what you see" (search + filters); the right cluster stays "display + act" (view toggle, sort, add, overflow).
+- `selection-actions` — The host's bulk-action buttons (NcButton family) inside the contextual selection strip that appears while `selectable` and a selection is active. Scope: `{ count, selectedIds }`. The strip carries a live `role="status"` count (WCAG 2.1 SC 4.1.3), the built-in Copy/Delete-selected buttons when those mass actions are enabled, and a Clear control emitting `clear-selection`. Keep the same actions listed in `#mass-actions` as the menu inventory.
 - `filters` — Inline filter controls rendered inside the bar, between the view toggle and the add/actions (e.g. a `CnQuickFilterBar` segmented toggle).
 - `action-items` — Extra `NcActionButton` items injected into the overflow menu (respects `inlineActionCount`).
 - `header-actions`, `mass-actions` — see the props/events above.

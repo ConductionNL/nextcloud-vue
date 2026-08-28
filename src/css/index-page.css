@@ -14,6 +14,14 @@
     margin-bottom: calc(4 * var(--default-grid-baseline));
 }
 
+/* A below-header wrapper whose slot renders nothing on this route (e.g. an
+   empty breadcrumb trail at the root) must not leave its margin as a blank
+   band above the actions bar. Vue leaves only comment placeholders for
+   v-if'd-away content, and comments don't defeat :empty. */
+.cn-index-page__below-header:empty {
+	display: none;
+}
+
 /* Body layout */
 .cn-index-page__body {
 	display: flex;
