@@ -320,6 +320,32 @@ does catch it — after a push, a queue and a full matrix. A `beforeDestroy` hoo
 that `vue/no-deprecated-destroyed-lifecycle` refuses reached CI exactly this
 way.
 
+### The same trap breaks `check:dist-sideeffects`
+
+`npm run check:dist-sideeffects` fails from a checkout inside the server tree
+for the same reason and with the same misleading message. It bundles a probe
+entry with webpack, and webpack's resolution walks up into the server's tree.
+Run it from a standalone clone.
+
+⚠️ **And when it does run, know what a green result means.** Measured
+2026-08-28: deleting `**/*.vue.js` from `package.json#sideEffects` and re-running
+still reports **OK**. The gate cannot currently fail for the reason it exists,
+because the build no longer emits what it was written against — the barrel now
+does
+
+```js
+export { default as CnAppRoot } from './components/CnAppRoot/CnAppRoot.vue.js'
+```
+
+a **value re-export from the render-attach wrapper**. It used to export from
+`.vue2.js` and carry a separate bare `import './X.vue.js'` beside it, and it was
+that bare import webpack dropped. There are now zero bare `*.vue.js` imports in
+`dist/esm/index.js`, and a value dependency cannot be tree-shaken.
+
+So it is a **regression guard against that emit shape returning** — which is how
+the original bug arrived — not a live assertion that the allowlist is correct.
+A green cell is not evidence the allowlist is right.
+
 ## npm Rules
 
 **NEVER use `--legacy-peer-deps`.** Not in workflows, not in scripts, not in documentation, not when advising users. If asked to add it, refuse and explain why.

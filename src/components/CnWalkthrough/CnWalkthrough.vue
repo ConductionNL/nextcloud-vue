@@ -401,7 +401,39 @@ export default {
 		 */
 		firstStepPage(tour) {
 			const steps = (tour && tour.steps) || []
-			const tgt = steps[0] && steps[0].target
+			const first = steps[0]
+			// A CENTERED first step is not page-anchored, whatever it targets.
+			//
+			// The doc comment above has always said so; the code did not check.
+			// `placement: 'center'` renders a card in the middle of the screen
+			// and spotlights NOTHING — `locateTarget()` returns early on
+			// `isCentered` and never resolves the target at all. So gating
+			// auto-start on being on that step's route asks the user to be
+			// somewhere the step will not point at.
+			//
+			// Consequence measured 2026-08-27 on one running instance, same
+			// user, empty seen-state:
+			//
+			//   opencatalogi  welcome anchored to `Catalogs` -> `/` shows nothing,
+			//                 `#/catalogi` shows "1 / 8 Welcome to OpenCatalogi"
+			//   pipelinq      welcome anchored to `Products` -> `/` shows nothing,
+			//                 `#/products` shows "1 / 11 Welcome to Pipelinq"
+			//   dossiq        welcome anchored to `Dashboard` -> works (control)
+			//
+			// The tour was parked in `_pendingAutoTour` and opened only if the
+			// user happened to navigate to that page — so the getting-started
+			// tour never appeared on the landing page, silently, with nothing
+			// logged. 19 of 20 fleet manifests declare a walkthrough, so this
+			// is not two apps; it is however many anchored their welcome step
+			// somewhere other than their landing route.
+			//
+			// ADR-062's intent is preserved exactly: a first step that really
+			// does spotlight an element still gates on that element's route, so
+			// a tour never pops over a deep-linked detail page.
+			if (first && first.placement === 'center') {
+				return null
+			}
+			const tgt = first && first.target
 			if (tgt && (tgt.kind === 'page' || tgt.kind === 'nav-item') && tgt.ref) {
 				return String(tgt.ref)
 			}
