@@ -86,6 +86,17 @@ function flowsSource() {
 			{ label: t('nextcloud-vue', 'Edit'), icon: Pencil, action: 'open' },
 		],
 
+		// The surfaces a flow list needs beyond its rows. These are DEFAULTS a
+		// manifest can override, not a fixed shape: `detailRoute` is the fleet
+		// convention (`/flows/:id`) and the two routes below derive from it.
+		//
+		// A flow is created by navigating to the editor, NOT by the index page's
+		// built-in form dialog — that dialog builds an OpenRegister object, and a
+		// flow is not one. CnFlowsPage set `:show-add="false"` and rendered its
+		// own button for exactly this reason; expressing it here is what lets the
+		// custom page go.
+		detailRoute: '/flows',
+		addRoute: '/flows/new',
 		addLabel: t('nextcloud-vue', 'New flow'),
 		description: t('nextcloud-vue', 'A flow runs a series of steps when something happens — an object changes, a schedule fires, or you run it yourself.'),
 		title: t('nextcloud-vue', 'Flows'),

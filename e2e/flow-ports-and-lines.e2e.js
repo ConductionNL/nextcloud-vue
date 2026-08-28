@@ -416,6 +416,60 @@ test.describe('flow editor — the line action menu', () => {
 	})
 })
 
+test.describe('flow editor — the menus draw the right glyph', () => {
+	/**
+	 * ⚠️ RESOLVING AN ICON IS NOT DRAWING ONE, AND THE ORIGINAL DEFECT WAS
+	 * VISUAL.
+	 *
+	 * `CnIcon` answers an unknown name with a help-circle and says nothing —
+	 * that is how this menu shipped asking for `Pencil` and `Delete` (the
+	 * vocabulary publishes `PencilOutline` / `DeleteOutline`) and drew two
+	 * question marks. The unit guard, CnFlowMenuIcons.spec.js, resolves each
+	 * name to a component and fails on the fallback; it cannot see what reaches
+	 * the screen.
+	 *
+	 * THE TELL IS THAT THEY WERE IDENTICAL. Two of the three entries drew the
+	 * SAME glyph, and the third — `Copy`, whose name happened to be correct —
+	 * drew its own. So distinctness is not a proxy here, it is the actual
+	 * symptom: three fallen-back icons are three copies of one path, and a menu
+	 * of distinct paths cannot be a menu of fallbacks.
+	 */
+	test('the step menu draws three different icons, not the same one twice', async ({ page }) => {
+		await seed(page)
+		await step(page, 'Middle').click()
+
+		const paths = await page.evaluate(() =>
+			[...document.querySelectorAll('[role="menuitem"] svg path')]
+				.map((node) => node.getAttribute('d')),
+		)
+
+		expect(paths).toHaveLength(3)
+		// Non-empty, so "no icon at all" cannot pass as three distinct nothings.
+		for (const d of paths) {
+			expect(d && d.length).toBeGreaterThan(10)
+		}
+		expect(new Set(paths).size).toBe(3)
+	})
+
+	test('the line menu draws a different icon for every entry', async ({ page }) => {
+		await seed(page)
+		await clickLine(page)
+
+		const paths = await page.evaluate(() =>
+			[...document.querySelectorAll('[role="menuitem"] svg path')]
+				.map((node) => node.getAttribute('d')),
+		)
+
+		// Edit label / Angled / Straight / Curved / Copy / Delete.
+		expect(paths).toHaveLength(6)
+		for (const d of paths) {
+			expect(d && d.length).toBeGreaterThan(10)
+		}
+		expect(new Set(paths).size).toBe(6)
+	})
+
+})
+
 test.describe('flow editor — accessibility', () => {
 	// ⚠️ ONE TEST PER THEME, NOT A LOOP INSIDE ONE TEST.
 	//
