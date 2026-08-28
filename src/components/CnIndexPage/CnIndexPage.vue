@@ -2254,7 +2254,17 @@ export default {
 		 */
 		tableColumns() {
 			const reg = typeof this.register === 'string' && this.register ? this.register : undefined
-			let cols = this.columns || []
+			// A NAMED SOURCE SUPPLIES ITS OWN COLUMNS when the manifest does not.
+			// Without this the adapter's `columns` were defined and never read:
+			// an `entitySource` page with no explicit `columns` fell through to
+			// `governedColumns`, which derives from a SCHEMA — and a named
+			// source has none. The table then rendered its rows with no columns
+			// at all, which looks like an empty list rather than a missing
+			// config. A manifest that DOES set columns still wins, which is
+			// what makes the source a default rather than a constraint.
+			let cols = (this.columns && this.columns.length > 0)
+				? this.columns
+				: ((this.isNamedSource && this.namedSource && this.namedSource.columns) || [])
 			if (reg) {
 				cols = cols.map((c) => (
 					c && c.aggregate && !c.aggregate.register
@@ -2374,8 +2384,22 @@ export default {
 			// rejects the shape at authoring time (`config.actions` is governed by
 			// the same `action` definition as `pages[].actions`). Built-ins are
 			// turned on with the `show*Action` toggles, not by naming them here.
+			// A named source may supply its own row actions, on the same
+			// precedence as its columns: what the manifest declares wins, and the
+			// source is the DEFAULT for a page that declares none. Without this
+			// the source's `rowActions` were declared and never read — the third
+			// field of the same adapter to be wired late, after `columns` and
+			// `addLabel`.
+			//
+			// Note what this still cannot do: these are MERGED with the built-ins
+			// below, so a source can add an action but cannot say "these and no
+			// others". Suppressing a built-in is the `show*Action` toggles' job.
+			const declaredActions = (this.actions && this.actions.length > 0)
+				? this.actions
+				: ((this.isNamedSource && this.namedSource && this.namedSource.rowActions) || [])
+
 			const declared = []
-			for (const a of this.actions) {
+			for (const a of declaredActions) {
 				if (a && typeof a === 'object' && !Array.isArray(a)) {
 					declared.push(dispatchAction(a, ctx))
 					continue
@@ -2410,6 +2434,13 @@ export default {
 		/** Add button label — derived from schema.title if not explicitly set */
 		resolvedAddLabel() {
 			if (this.addLabel) return this.cnTranslate(this.addLabel)
+			// A named source names its own create action. Without this the button
+			// falls back to a schema-derived noun, and a named source has no
+			// schema — so the control the migration was supposed to preserve
+			// simply is not there.
+			if (this.isNamedSource && this.namedSource && this.namedSource.addLabel) {
+				return this.namedSource.addLabel
+			}
 			// Two catalogues, deliberately. The NOUN comes from the consumer's
 			// schema, so it resolves against the consumer's catalogue via the
 			// injected `cnTranslate`; the SENTENCE around it is library chrome, so
@@ -3025,12 +3056,29 @@ export default {
 		 * Row/card click: toggles selection when `selectable` (covers the custom
 		 * `cardComponent` path), otherwise emits `row-click` for navigation.
 		 *
+		 * The `@event` block below sits directly against its `$emit`, and must
+		 * stay there. vue-docgen binds an event's description to the emit it
+		 * IMMEDIATELY precedes; inserting the named-source branch between the two
+		 * silently emptied the event's description in
+		 * docs/components/_generated/CnIndexPage.md while the text sat in the
+		 * source looking maintained. Nothing failed at runtime - only the docs
+		 * freshness check, one commit later.
+		 *
 		 * @param {object} row The clicked row object
 		 */
 		onRowClick(row) {
 			if (this.selectable && !this.rowClickToView) {
 				this.onSelect(this.toggleIdInArray(this.internalSelectedIds, row[this.rowKey]))
 				return
+			}
+			// A named source knows where its rows live. Emitting only would leave
+			// the click inert on a manifest page, which has no listener to bind —
+			// the very shape that left three apps with a dead `@rowClick`.
+			if (this.isNamedSource && this.namedSource && this.namedSource.detailRoute) {
+				const id = row?.id || row?.uuid
+				if (id) {
+					this.$router.push(`${this.namedSource.detailRoute}/${id}`)
+				}
 			}
 			/**
 			 * @event row-click Emitted on a row/card click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox).
@@ -3179,6 +3227,19 @@ export default {
 		 * emit the event (backward compatible). Otherwise open the form dialog.
 		 */
 		onAddClick() {
+			// A NAMED SOURCE CREATES BY NAVIGATING, not by the form dialog. That
+			// dialog builds an OpenRegister object from a schema; a flow is not
+			// one, which is why the page it replaces set `show-add="false"` and
+			// rendered its own button. An explicit @add listener still wins.
+			if (
+				!this.$.vnode.props?.onAdd
+				&& this.isNamedSource
+				&& this.namedSource
+				&& this.namedSource.addRoute
+			) {
+				this.$router.push(this.namedSource.addRoute)
+				return
+			}
 			// `$.vnode.props`, not `$attrs`: `add` is a declared emit, and Vue
 			// keeps declared emits out of `$attrs`.
 			if (this.$.vnode.props?.onAdd) {

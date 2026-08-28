@@ -274,6 +274,7 @@
 							:exact="isExact(item)"
 							:icon="cssIconClass(item)"
 							:active="isActive(item)"
+							:data-cn-route="item.route"
 							:data-testid="`cn-nav-entry-${item.id}`"
 							@click="onItemClick(item, $event)">
 							<template v-if="mdiIconComponent(item) || isRichIcon(item) || isRegistryIcon(item) || isUnresolvedIcon(item)" #icon>

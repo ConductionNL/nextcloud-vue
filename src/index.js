@@ -299,6 +299,7 @@ export { default as CnConfirmDialog } from './dialogs/CnConfirmDialog.vue'
 export { default as CnTransitionInputDialog } from './dialogs/CnTransitionInputDialog.vue'
 export { default as CnFlowEditModal } from './dialogs/CnFlowEditModal.vue'
 export { default as CnFlowNodeEditModal } from './dialogs/CnFlowNodeEditModal.vue'
+export { default as CnFlowEdgeEditModal } from './dialogs/CnFlowEdgeEditModal.vue'
 
 // Store
 export { useObjectStore, createObjectStore } from './store/index.js'
@@ -397,6 +398,7 @@ export { DEFAULT_FIELD_INSPECTION_CONFIG, offlineCollection } from './integratio
 export { useSpecRef } from './composables/useSpecRef.js'
 export { useFlowStore } from './composables/useFlowStore.js'
 export { registerFlowNodeEditor, resolveFlowNodeEditor, unregisterFlowNodeEditor } from './composables/useFlowNodeEditors.js'
+export { DEFAULT_EDGE_LINE_TYPE, EDGE_LINE_TYPES } from './composables/useFlowEdgeStyles.js'
 export { useSuggestFeatureAction } from './composables/useSuggestFeatureAction.js'
 
 // Utilities — Features & roadmap menu (add-features-roadmap-menu)

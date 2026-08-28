@@ -16,6 +16,29 @@
 		:marker-end="markerEnd"
 		:style="style" />
 
+	<!-- WHICH WAY THE DATA GOES, SAID CONTINUOUSLY RATHER THAN ONCE.
+
+	     The arrowhead states the direction at one end of the line. On a graph
+	     with crossings and doubled-back routing that is the one place a reader
+	     has to find before they can follow anything, and on a long line it is
+	     the far end from where their eye already is. A slow travelling dash
+	     says the same thing along the whole path.
+
+	     A SECOND PATH, not a dash on the first: the line itself has to stay
+	     solid — a dashed connection already means something in every diagram
+	     convention there is — so the pulse rides on top of it.
+
+	     ⚠️ IT MUST BE POSSIBLE TO TURN OFF, AND IT IS OFF FOR ANYONE WHO ASKED.
+	     `prefers-reduced-motion` is honoured in CSS (see below), which covers
+	     the accessibility obligation without the host having to know about it;
+	     `data.animated === false` covers a host that wants a still canvas for
+	     its own reasons — a print view, a screenshot, a read-only replay. -->
+	<path
+		v-if="animated"
+		class="cn-flow-edge__pulse"
+		:d="path"
+		aria-hidden="true" />
+
 	<!-- The label is HTML, not SVG.
 
 	     `EdgeLabelRenderer` is Vue Flow's own portal: it lifts the label out of
@@ -67,6 +90,7 @@
 <script>
 import { Comment, Fragment, Text } from 'vue'
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, getSmoothStepPath, getStraightPath } from '@vue-flow/core'
+import { DEFAULT_EDGE_LINE_TYPE } from '../../composables/useFlowEdgeStyles.js'
 
 /**
  * How far the label is kept from either end, as a fraction of the line.
@@ -165,7 +189,7 @@ export default {
 		 */
 		lineType: {
 			type: String,
-			default: 'smoothstep',
+			default: DEFAULT_EDGE_LINE_TYPE,
 		},
 		/** Marker at the start of the line, in Vue Flow's shape. */
 		markerStart: {
@@ -191,6 +215,16 @@ export default {
 		labelAriaLabel: {
 			type: String,
 			default: '',
+		},
+		/**
+		 * Whether a travelling pulse runs along this line to show the direction
+		 * of flow. On by default; a host passes false for a still canvas.
+		 * Motion is suppressed regardless for a reader who has asked for
+		 * reduced motion.
+		 */
+		animated: {
+			type: Boolean,
+			default: true,
 		},
 	},
 
@@ -546,5 +580,43 @@ export default {
 
 .cn-flow-edge__label--dragging {
 	cursor: grabbing;
+}
+
+/* The travelling pulse. `stroke-dashoffset` walks from the dash period down to
+   zero, which slides the pattern FORWARDS along the path — source to target,
+   the same direction the arrowhead points. Running it the other way would give
+   the canvas two direction cues that disagree.
+
+   Deliberately slow and sparse: this sits behind whatever the user is actually
+   doing, and a fast marching-ants line on every connection of a twenty-step
+   flow is a distraction rather than information. */
+.cn-flow-edge__pulse {
+	fill: none;
+	stroke: var(--color-primary-element, #0082c9);
+	stroke-width: 2.5;
+	stroke-linecap: round;
+	stroke-dasharray: 1 16;
+	pointer-events: none;
+	animation: cn-flow-edge-pulse 1.6s linear infinite;
+}
+
+@keyframes cn-flow-edge-pulse {
+	from {
+		stroke-dashoffset: 17;
+	}
+
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+/* ⚠️ HIDDEN, NOT MERELY STOPPED. A paused animation leaves the dash pattern
+   frozen wherever it stood, so a still line would keep a row of dots on it that
+   look like a second, dotted connection. WCAG 2.2 AA 2.3.3 asks for the motion
+   to go; leaving its residue behind would be the letter without the point. */
+@media (prefers-reduced-motion: reduce) {
+	.cn-flow-edge__pulse {
+		display: none;
+	}
 }
 </style>

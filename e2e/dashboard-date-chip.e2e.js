@@ -35,6 +35,21 @@ test('the chip renders the active preset label', async ({ page }) => {
 test('the From/To fields show the ACTIVE RANGE, not blanks and not a fixed date', async ({ page }) => {
 	await page.locator(chipTrigger).first().click()
 
+	// ⚠️ WAIT FOR THE POPOVER, THEN READ IT.
+	//
+	// `page.evaluate()` takes ONE SNAPSHOT of the DOM as it stands. The popover
+	// is mounted and animated in by floating-vue after the click resolves, so a
+	// click immediately followed by an evaluate is a race — and it is a race
+	// this test lost the first time it ran on a loaded machine: CI reported
+	// "the popover must render two date inputs / Expected: 2 Received: 0", and
+	// the failure's own page snapshot showed the popover simply not open yet.
+	// It had passed locally every time, because a quiet laptop wins the race.
+	//
+	// `toHaveCount` RETRIES until the assertion holds or the timeout expires,
+	// which is the property `page.evaluate` structurally cannot have. The reads
+	// below stay in one evaluate — by then the popover exists.
+	await expect(page.locator('.action-input input, .v-popper__inner input')).toHaveCount(2)
+
 	const values = await page.evaluate(() => [...document.querySelectorAll('input')]
 		.filter((i) => i.closest('.action-input, .v-popper__inner'))
 		.map((i) => i.value))
@@ -62,6 +77,11 @@ test('the From/To fields show the ACTIVE RANGE, not blanks and not a fixed date'
 test('the open chip is styled by the pill itself, not a box behind it', async ({ page }) => {
 	const trigger = page.locator(chipTrigger).first()
 	await trigger.click()
+
+	// Same race as the test above, same fix. This one happened to survive CI —
+	// it reads an attribute the click sets synchronously — but the shape is
+	// identical and the next slow runner is not owed the benefit of the doubt.
+	await expect(trigger).toHaveAttribute('aria-expanded', 'true')
 
 	const box = await page.evaluate((sel) => {
 		const t = document.querySelector(sel)
