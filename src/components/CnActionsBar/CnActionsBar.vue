@@ -861,6 +861,10 @@ export default {
 			 * @event toggle-sidebar User clicked the Search/Columns sidebar toggle. No payload.
 			 */
 			this.$emit('toggle-sidebar')
+			/**
+			 * @event clear-selection User clicked the selection strip's Clear control. No payload — the host should empty its selection (CnIndexPage does this and re-emits `select` with an empty array).
+			 */
+			this.$emit('clear-selection')
 		},
 	},
 }
