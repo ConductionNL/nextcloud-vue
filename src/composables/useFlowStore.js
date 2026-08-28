@@ -112,6 +112,11 @@ export const useFlowStore = defineStore('cnFlow', {
 		// currently being inspected.
 		runs: [],
 		steps: [],
+		// What the inspected run TOUCHED, grouped by node. Distinct from
+		// `steps`, which is what it did: a step that wrote nothing still has a
+		// step row, and an object written by an app the node called into has no
+		// step of its own.
+		runObjects: [],
 		inspectedRunUuid: null,
 
 		loading: false,
@@ -477,6 +482,7 @@ export const useFlowStore = defineStore('cnFlow', {
 			this.editingNodeId = null
 			this.runs = []
 			this.steps = []
+			this.runObjects = []
 			this.inspectedRunUuid = null
 			this.checkResult = null
 
@@ -1295,6 +1301,37 @@ export const useFlowStore = defineStore('cnFlow', {
 			} catch (error) {
 				console.error('cn-flow: could not load the run steps', error)
 				this.steps = []
+			}
+
+			// Loaded alongside the steps, not on demand behind another click.
+			// The steps say what the run DID; these say what it did it TO, and
+			// reading one without the other is the gap this exists to close.
+			await this.loadRunObjects(runUuid)
+		},
+
+		/**
+		 * Load the objects one run touched, grouped by the node that touched them.
+		 *
+		 * A run's own record names only the object that TRIGGERED it, so
+		 * everything it went on to create or change is answerable only from the
+		 * attribution stamped on the audit trail. This is that read.
+		 *
+		 * Failure is quiet and empties the list rather than leaving the previous
+		 * run's objects on screen — stale rows here would be read as "this run
+		 * touched those", which is worse than showing nothing.
+		 *
+		 * @param {string} runUuid The run to read.
+		 * @return {Promise<void>}
+		 */
+		async loadRunObjects(runUuid) {
+			try {
+				const response = await axios.get(
+					generateUrl(`/apps/openregister/api/flow-runs/${runUuid}/objects`),
+				)
+				this.runObjects = response.data?.nodes || []
+			} catch (error) {
+				console.error('cn-flow: could not load the objects this run touched', error)
+				this.runObjects = []
 			}
 		},
 	},
