@@ -531,7 +531,19 @@ export default {
 		// failure there would surface as a failure here — in the wrong place.
 		// Harness-only: nothing in src/ reads this.
 		if (this.showFlow) {
-			window.__cnFlowStore = useFlowStore()
+			const store = useFlowStore()
+			window.__cnFlowStore = store
+
+			// A CATALOGUE, because the editor keys a step's role on it and the
+			// ports it draws follow from that role. Without one the store falls
+			// back to reading the role out of the id, which works for
+			// `…trigger-…` and `….end` and would leave the port tests asserting
+			// the FALLBACK rather than the path a real instance takes.
+			store.nodeCatalog = [
+				{ id: 'openregister.trigger-manual', displayName: 'Manual', role: 'trigger' },
+				{ id: 'openregister.set-fields', displayName: 'Edit fields', role: 'step' },
+				{ id: 'openregister.end', displayName: 'End', role: 'end' },
+			]
 		}
 	},
 

@@ -14,6 +14,23 @@ export default defineConfig({
 	testMatch: '**/*.e2e.js',
 	timeout: 30_000,
 	fullyParallel: true,
+
+	// ONE RETRY IN CI, NONE LOCALLY.
+	//
+	// ⚠️ NOT A LICENCE TO BE FLAKY. A retried-then-passed test is reported as
+	// `flaky`, not as `passed`, so a race stays VISIBLE in the run summary
+	// instead of being laundered into a green tick — which is the reason to
+	// prefer one retry over two, and the reason `trace: 'on-first-retry'` below
+	// was already configured before any retry existed to trigger it.
+	//
+	// The first CI run of this suite failed on exactly one spec, and it was a
+	// real bug in the test rather than a machine hiccup: a click followed
+	// immediately by `page.evaluate()`, which takes one snapshot and cannot
+	// retry. That is fixed at the source in `dashboard-date-chip.e2e.js`. The
+	// retry is here for what a shared runner does to timing in general, not as
+	// an alternative to fixing races.
+	retries: process.env.CI ? 1 : 0,
+
 	reporter: [['list']],
 	use: {
 		baseURL: 'http://localhost:5199',

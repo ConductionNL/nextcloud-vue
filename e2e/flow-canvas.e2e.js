@@ -110,10 +110,32 @@ test.describe('flow canvas — rendering', () => {
 			const handle = document.querySelector('.vue-flow__handle-top')
 			const path = document.querySelector('.vue-flow__edge-path')
 
+			// ⚠️ THE TWO SIZES ARE NOT IN THE SAME SPACE, AND COMPARING THEM RAW
+			// IS A BUG IN THIS TEST.
+			//
+			// `markerWidth` is in USER units, because `markerUnits` defaults to
+			// `strokeWidth` and the line's stroke is 1 — so 22 means 22 canvas
+			// units. `getBoundingClientRect()` is in SCREEN pixels, which
+			// `fitView` has already scaled by the viewport zoom.
+			//
+			// At the zoom this harness happens to settle on (~1.7) that made a
+			// 10px handle measure ~17 and a 14px one measure ~24, so growing the
+			// port to fit a direction arrow "failed" an assertion about the
+			// arrowhead. Nothing about the arrowhead had changed. The handle is
+			// therefore divided back into canvas units before the comparison,
+			// which is the space the claim was always about.
+			// ⚠️ `.vue-flow__transformationpane`, NOT `.vue-flow__viewport`. The
+			// viewport's own computed transform is `none`; reading it yields an
+			// identity matrix, a scale of 1, and a "conversion" that converts
+			// nothing — which looks exactly like a correct measurement and is
+			// not.
+			const pane = document.querySelector('.vue-flow__transformationpane')
+			const scale = new DOMMatrix(getComputedStyle(pane).transform).a
+
 			return {
 				width: Number(marker.getAttribute('markerWidth')),
 				fill: getComputedStyle(shape).fill,
-				handleWidth: handle.getBoundingClientRect().width,
+				handleWidth: handle.getBoundingClientRect().width / (scale || 1),
 				edgeStroke: getComputedStyle(path).stroke,
 				referenced: (path.getAttribute('marker-end') || '').includes(marker.id),
 			}
@@ -126,7 +148,8 @@ test.describe('flow canvas — rendering', () => {
 		// own hand-rolled arrowhead was in.
 		expect(arrow.referenced).toBe(true)
 
-		// Bigger than the handle, or it is hidden behind it again.
+		// Bigger than the handle, or it is hidden behind it again. Both in
+		// canvas units now — see the note above.
 		expect(arrow.width).toBeGreaterThan(arrow.handleWidth)
 
 		// Not the line's colour: the arrow is the signal, the line is the path.
