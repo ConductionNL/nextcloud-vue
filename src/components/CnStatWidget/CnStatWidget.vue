@@ -974,22 +974,17 @@ export default {
 
 <style scoped>
 /*
- * The card itself — its box, icon circle, title and value typography — is the
- * CANONICAL KPI card in src/css/kpi-card.css, shared with CnStatsBlock. What
- * remains here is only what is specific to THIS widget: the range select, the
- * "/ limit" denominator, the trend chip, the caption and the error glyph.
- * Resist adding card styling back; that is what split the two KPI looks apart
- * in the first place.
+ * The card itself — its box, body stack, icon circle, title and value
+ * typography — is the CANONICAL KPI card in src/css/kpi-card.css, shared with
+ * CnStatsBlock. What remains here is only what is specific to THIS widget: the
+ * range select, the "/ limit" denominator, the trend chip and the error glyph.
+ *
+ * Every size below is expressed against the shared `--cn-kpi-*` scale rather
+ * than as its own number, so the widget's extras re-scale with the card they
+ * sit in. Resist adding card styling back, and resist restating a value the
+ * scale already holds; that is what split the two KPI looks apart in the first
+ * place.
  */
-
-.cn-stat-widget__body {
-	display: flex;
-	flex-direction: column;
-	align-items: inherit;
-	gap: 2px;
-	min-width: 0;
-	max-width: 100%;
-}
 
 /* The title row carries an optional range select beside the label, which the
    canonical `__title` (a plain truncating heading) does not account for. */
@@ -1013,8 +1008,8 @@ export default {
 	border: none;
 	border-radius: var(--border-radius);
 	background: transparent;
-	color: var(--color-text-maxcontrast);
-	font-size: 0.8em;
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
+	font-size: var(--cn-kpi-label-size, 13px);
 	font-weight: normal;
 	cursor: pointer;
 }
@@ -1030,10 +1025,10 @@ export default {
    allowed to reach. Shares the value's `nowrap` so the pair never breaks. */
 .cn-stat-widget__limit {
 	flex: 0 0 auto;
-	font-size: 1.05em;
-	font-weight: 600;
-	line-height: 1.15;
-	color: var(--color-text-maxcontrast);
+	font-size: var(--cn-kpi-value-size-compact, 1.25rem);
+	font-weight: var(--cn-kpi-title-weight, 600);
+	line-height: var(--cn-kpi-value-line, 1.1);
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
 	white-space: nowrap;
 }
 
@@ -1041,13 +1036,19 @@ export default {
 	display: inline-flex;
 	align-items: center;
 	gap: 2px;
-	font-size: 0.85em;
-	font-weight: 600;
+	font-size: var(--cn-kpi-label-size, 13px);
+	font-weight: var(--cn-kpi-title-weight, 600);
 }
 
+/* The dash shown when the number could not be fetched. It stands where the
+   value stands, so it takes the value's size and weight — CnStatsBlock's own
+   error dash is literally a `cn-kpi-card__value`, and two components showing
+   the same failure at two different sizes is the drift this consolidation
+   exists to remove. Only the colour differs: a failure is not a number. */
 .cn-stat-widget__error {
-	font-size: 1.8em;
-	font-weight: 700;
-	color: var(--color-text-maxcontrast);
+	font-size: var(--cn-kpi-value-size, 2rem);
+	font-weight: var(--cn-kpi-value-weight, 700);
+	line-height: var(--cn-kpi-value-line, 1.1);
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
 }
 </style>
