@@ -1,0 +1,7 @@
+/*!
+ * regjsgen 0.8.0
+ * Copyright 2014-2023 Benjamin Tan <https://ofcr.se/>
+ * Available under the MIT license <https://github.com/bnjmnt4n/regjsgen/blob/main/LICENSE-MIT.txt>
+ */
+
+/*! https://mths.be/regenerate v1.4.2 by @mathias | MIT license */
