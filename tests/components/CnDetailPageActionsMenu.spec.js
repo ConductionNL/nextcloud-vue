@@ -66,11 +66,15 @@ describe('CnDetailPage — header Actions menu', () => {
 	})
 	afterEach(() => jest.restoreAllMocks())
 
-	it('auto: hides Refresh by default (legacy mode, no @refresh listener), shows Request a feature', () => {
+	// Documentation and Report-a-bug are unconditional now — the shared menu
+	// resolves their targets itself, so a page that configures neither still
+	// carries both. Only Refresh is still auto-detected from a listener.
+	it('auto: hides Refresh by default (legacy mode, no @refresh listener), shows the mandatory trio', () => {
 		const wrapper = mountPage()
 		expect(wrapper.find('[data-testid="cn-detail-page-action-refresh"]').exists()).toBe(false)
 		expect(wrapper.find('[data-testid="cn-detail-page-action-request-feature"]').exists()).toBe(true)
-		expect(wrapper.find('[data-testid="cn-detail-page-action-documentation"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-detail-page-action-report-bug"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-detail-page-action-documentation"]').exists()).toBe(true)
 	})
 
 	it('auto: shows Refresh when the host attaches an @refresh listener', () => {
@@ -121,8 +125,8 @@ describe('CnDetailPage — header Actions menu', () => {
 		expect(modal.props('surface')).toBe('detail:cases')
 	})
 
-	it('can opt out of both built-ins', () => {
-		const wrapper = mountPage({ showRefresh: false, showRequestFeature: false })
+	it('can opt out of every built-in', () => {
+		const wrapper = mountPage({ showRefresh: false, showRequestFeature: false, showReportBug: false, showDocumentation: false })
 		expect(wrapper.find('[data-testid="cn-detail-page-actions"]').exists()).toBe(false)
 	})
 })

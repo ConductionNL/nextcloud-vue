@@ -4,8 +4,15 @@
  *
  * Tests for CnWalkthrough item-7 fixes (ADR-062):
  *  - the coachmark "Skip" ENDS the tour (persists completion), never advances;
- *  - a first-visit tour whose first step is page-anchored only auto-opens on
- *    that page — deep-linking onto another route defers it.
+ *  - a first-visit tour whose first step SPOTLIGHTS something on a page only
+ *    auto-opens on that page — deep-linking onto another route defers it;
+ *  - but a `placement: "center"` first step spotlights nothing, so it is never
+ *    route-gated. That last one is a regression guard: the gate did not check
+ *    `placement`, so a welcome card anchored to any route other than the app's
+ *    landing route was deferred and never opened — silently, with no error.
+ *    Measured across the fleet as opencatalogi (anchored `Catalogs`) and
+ *    pipelinq (anchored `Products`) showing no walkthrough at `#/` while
+ *    dossiq (anchored to its landing `Dashboard`) worked.
  */
 const { mount } = require('@vue/test-utils')
 const CnWalkthrough = require('../../src/components/CnWalkthrough/CnWalkthrough.vue').default

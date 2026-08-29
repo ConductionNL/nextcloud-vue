@@ -1,35 +1,50 @@
+<!--
+  - CnStatsBlock renders the CANONICAL KPI card (src/css/kpi-card.css) — the
+  - same markup and the same stylesheet CnStatWidget renders, so OpenCatalogi's
+  - KPIs and dossiq's are one design rather than two. This component's own
+  - `cn-stats-block*` classes stay on the same elements for backwards
+  - compatibility with app CSS that targets them; the LOOK comes from the
+  - shared sheet.
+  -
+  - The comment lives OUT here rather than inside <template>: a comment node
+  - beside the root element makes the component multi-root in Vue 3, and a
+  - multi-root component has no root to put class attributes on — `rootClasses`
+  - silently stopped reaching the DOM.
+-->
 <template>
 	<component
 		:is="componentTag"
-		class="cn-stats-block"
+		class="cn-kpi-card cn-stats-block"
 		:class="rootClasses"
 		v-bind="componentAttrs"
 		@click="onClick">
 		<!-- Icon -->
-		<div v-if="hasIcon" class="cn-stats-block__icon" :class="iconClasses">
+		<div v-if="hasIcon" class="cn-kpi-card__icon cn-stats-block__icon" :class="iconClasses">
 			<slot name="icon">
 				<component :is="icon" v-if="icon" :size="iconSize" />
 			</slot>
 		</div>
 
 		<!-- Content -->
-		<div class="cn-stats-block__content">
+		<div class="cn-kpi-card__body cn-stats-block__content">
 			<div class="cn-stats-block__header">
-				<h4>{{ title || t('nextcloud-vue', 'Objects') }}</h4>
+				<h4 class="cn-kpi-card__title">
+					{{ title || t('nextcloud-vue', 'Objects') }}
+				</h4>
 			</div>
 
 			<div v-if="hasError" class="cn-stats-block__count cn-stats-block__count--error">
 				<span class="cn-stats-block__count-value">&mdash;</span>
 				<span class="cn-stats-block__count-label">{{ errorLabel }}</span>
 			</div>
-			<div v-else-if="hasValueSlot || count > 0 || (showZeroCount && count === 0)" class="cn-stats-block__count">
-				<span class="cn-stats-block__count-value">
+			<div v-else-if="hasValueSlot || count > 0 || (showZeroCount && count === 0)" class="cn-kpi-card__value-row cn-stats-block__count">
+				<span class="cn-kpi-card__value cn-stats-block__count-value">
 					<!-- @slot Override the prominently-displayed value — render a pre-formatted string (currency, percent, a "—" placeholder, …). `count` stays the raw number; this is presentation only. Defaults to the localized count. -->
 					<!-- @binding {number} count The raw numeric count. -->
 					<!-- @binding {string} formatted The default localized count string. -->
 					<slot name="value" :count="count" :formatted="formattedCount">{{ formattedCount }}</slot>
 				</span>
-				<span class="cn-stats-block__count-label">{{ countLabel }}</span>
+				<span class="cn-kpi-card__label cn-stats-block__count-label">{{ countLabel }}</span>
 			</div>
 			<div v-else-if="loading" class="cn-stats-block__loading">
 				<NcLoadingIcon :size="16" />
@@ -62,6 +77,10 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
+// The canonical KPI look, shared with CnStatWidget. Imported here so the
+// card is styled even when the consuming app has not pulled in the
+// library's global css/index.css.
+import '../../css/kpi-card.css'
 
 /**
  * CnStatsBlock — Statistics display card with icon, count, and optional breakdown.
@@ -290,8 +309,14 @@ export default {
 
 		rootClasses() {
 			return {
+				// Canonical + legacy, in pairs: the canonical class carries the
+				// look, the legacy one keeps existing app CSS matching.
+				'cn-kpi-card--horizontal': this.horizontal,
 				'cn-stats-block--horizontal': this.horizontal,
+				'cn-kpi-card--clickable': this.isInteractive,
 				'cn-stats-block--clickable': this.isInteractive,
+				'cn-kpi-card--error': this.hasError,
+				[`cn-kpi-card--${this.variant}`]: this.variant !== 'default' && this.hasError === false,
 				// An errored tile tints itself. Requiring the consumer to also
 				// pass `variant="error"` would mean every caller remembering
 				// two props to express one state, and forgetting the second is
@@ -307,6 +332,7 @@ export default {
 				[`cn-stats-block__icon--${this.variant}`]: this.variant !== 'default',
 			}
 		},
+
 	},
 
 	methods: {
@@ -327,138 +353,19 @@ export default {
 </script>
 
 <style scoped>
-.cn-stats-block {
-	background: var(--color-background-hover);
-	border-radius: var(--border-radius-large, 10px);
-	padding: 1rem;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	text-decoration: none;
-	color: inherit;
-	border: 2px solid transparent;
-	transition: border-color 0.15s ease, box-shadow 0.15s ease;
-	height: 100%;
-	width: 100%;
-	box-sizing: border-box;
-	overflow: hidden;
+/*
+ * The card's own look — box, icon circle, title, value, variants, hover —
+ * is the CANONICAL KPI card in src/css/kpi-card.css, shared with
+ * CnStatWidget. The rules that lived here duplicated it in different numbers
+ * (a 1.2rem count row, a 40px icon, hardcoded rgba() tints that ignored a
+ * re-themed palette), and that duplication IS how the two KPI looks drifted.
+ * What is left below is this component's own extras: the breakdown block, the
+ * loading line and the empty line.
+ */
+
+.cn-stats-block__header {
+	max-width: 100%;
 	min-width: 0;
-}
-
-/* Content */
-.cn-stats-block__content {
-	flex: 1;
-	min-width: 0;
-	text-align: center;
-}
-
-.cn-stats-block__count {
-	display: flex;
-	align-items: baseline;
-	justify-content: center;
-	gap: 0.25rem;
-	font-size: 1.2rem;
-	margin-bottom: 0.25rem;
-	white-space: nowrap;
-	overflow: hidden;
-}
-
-.cn-stats-block--horizontal {
-	flex-direction: row;
-	align-items: center;
-	gap: 12px;
-}
-
-.cn-stats-block--horizontal .cn-stats-block__content {
-	text-align: left;
-	min-width: 0;
-}
-
-.cn-stats-block--horizontal .cn-stats-block__count {
-	justify-content: flex-start;
-}
-
-.cn-stats-block--clickable {
-	cursor: pointer;
-}
-
-.cn-stats-block--clickable:hover {
-	border-color: var(--color-primary-element);
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.cn-stats-block--clickable:focus-visible {
-	outline: 2px solid var(--color-primary-element);
-	outline-offset: 2px;
-}
-
-/* Icon */
-.cn-stats-block__icon {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 44px;
-	height: 44px;
-	border-radius: 50%;
-	background: var(--color-primary-element-light, rgba(0, 130, 201, 0.1));
-	color: var(--color-primary-element);
-	flex-shrink: 0;
-	margin-bottom: 8px;
-}
-
-.cn-stats-block--horizontal .cn-stats-block__icon {
-	margin-bottom: 0;
-	width: 36px;
-	height: 36px;
-}
-
-.cn-stats-block__icon--primary {
-	background: var(--color-primary-element-light, rgba(0, 130, 201, 0.1));
-	color: var(--color-primary-element);
-}
-
-.cn-stats-block__icon--success {
-	background: rgba(70, 186, 97, 0.1);
-	color: var(--color-element-success, var(--color-success));
-}
-
-.cn-stats-block__icon--warning {
-	background: rgba(232, 163, 24, 0.1);
-	color: var(--color-element-warning, var(--color-warning));
-}
-
-.cn-stats-block__icon--error {
-	background: rgba(224, 36, 36, 0.1);
-	color: var(--color-element-error, var(--color-error));
-}
-
-.cn-stats-block__header h4 {
-	margin-top: 0;
-	margin-bottom: 0.25rem;
-	color: var(--color-main-text);
-	font-size: 14px;
-	font-weight: 600;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-}
-
-.cn-stats-block__count-value {
-	font-size: 2rem;
-	font-weight: bold;
-	color: var(--color-primary-element);
-	flex-shrink: 0;
-}
-
-.cn-stats-block--primary .cn-stats-block__count-value { color: var(--color-primary-element); }
-.cn-stats-block--success .cn-stats-block__count-value { color: var(--color-element-success, var(--color-success)); }
-.cn-stats-block--warning .cn-stats-block__count-value { color: var(--color-element-warning, var(--color-warning)); }
-.cn-stats-block--error .cn-stats-block__count-value { color: var(--color-element-error, var(--color-error)); }
-
-.cn-stats-block__count-label {
-	color: var(--color-text-maxcontrast);
-	overflow: hidden;
-	text-overflow: ellipsis;
 }
 
 .cn-stats-block__loading {

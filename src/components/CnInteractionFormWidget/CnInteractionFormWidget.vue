@@ -3,18 +3,23 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-interaction-form-widget">
-		<div class="cn-interaction-form-widget__field">
-			<NcSelect
-				:model-value="channelOption"
-				:options="channelOptions"
-				:input-label="channelLabel"
-				label="label"
-				:clearable="false"
-				@update:model-value="onChannelInput" />
-		</div>
-
-		<div class="cn-interaction-form-widget__field">
+	<CnFormWidgetBase
+		block-class="cn-interaction-form-widget"
+		:fields="formFields"
+		:model="form"
+		:errors="{ subject: subjectError }"
+		:can-submit="canRegister"
+		:submitting="saving"
+		:submit-label="registerLabel"
+		:submitting-label="savingLabel"
+		:error-message="errorMessage"
+		@update:field="onFieldUpdate"
+		@submit="onRegister">
+		<!-- The client picker is the one control the base does not know about:
+		     a CnResourceSelect, so typing a name that does not exist yet offers
+		     "Create '<name>'" inline rather than a dead "no results" path. The
+		     base still supplies its field wrapper and spacing. -->
+		<template #field-client>
 			<CnResourceSelect
 				:register="register"
 				:schema="clientSchema"
@@ -23,58 +28,15 @@
 				:input-label="clientLabel"
 				@update:modelValue="onClientChange"
 				@create="onClientCreated" />
-		</div>
-
-		<div class="cn-interaction-form-widget__field">
-			<NcTextField
-				:model-value="form.subject"
-				:label="subjectLabel"
-				:error="!!subjectError"
-				:helper-text="subjectError"
-				@update:model-value="v => form.subject = v" />
-		</div>
-
-		<div class="cn-interaction-form-widget__field">
-			<label class="cn-interaction-form-widget__label" :for="summaryId">
-				{{ summaryLabel }}
-			</label>
-			<textarea
-				:id="summaryId"
-				v-model="form.summary"
-				class="cn-interaction-form-widget__textarea"
-				rows="4"
-				@input="onSummaryInput" />
-		</div>
-
-		<div class="cn-interaction-form-widget__field">
-			<NcSelect
-				:model-value="outcomeOption"
-				:options="outcomeOptions"
-				:input-label="outcomeLabel"
-				label="label"
-				:clearable="true"
-				@update:model-value="onOutcomeInput" />
-		</div>
-
-		<div class="cn-interaction-form-widget__actions">
-			<NcButton variant="primary" :disabled="saving || !canRegister" @click="onRegister">
-				{{ saving ? savingLabel : registerLabel }}
-			</NcButton>
-		</div>
-
-		<p v-if="errorMessage" class="cn-interaction-form-widget__error">
-			{{ errorMessage }}
-		</p>
-	</div>
+		</template>
+	</CnFormWidgetBase>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
+import CnFormWidgetBase from '../CnFormWidgetBase/CnFormWidgetBase.vue'
 import { useObjectStore } from '../../store/index.js'
-
-let uid = 0
 
 /**
  * CnInteractionFormWidget — the "active interaction" quick-log form that drives
@@ -116,7 +78,7 @@ let uid = 0
 export default {
 	name: 'CnInteractionFormWidget',
 
-	components: { NcButton, NcSelect, NcTextField, CnResourceSelect },
+	components: { CnFormWidgetBase, CnResourceSelect },
 
 	inject: {
 		/**
@@ -142,9 +104,7 @@ export default {
 	emits: ['saved'],
 
 	data() {
-		uid += 1
 		return {
-			summaryId: `cn-interaction-summary-${uid}`,
 			form: {
 				channel: this.firstChannel(),
 				client: '',
@@ -188,11 +148,25 @@ export default {
 		outcomeOptions() {
 			return Array.isArray(this.content.outcomes) ? this.content.outcomes : []
 		},
-		channelOption() {
-			return this.channelOptions.find((o) => o.value === this.form.channel) || null
-		},
-		outcomeOption() {
-			return this.outcomeOptions.find((o) => o.value === this.form.outcome) || null
+		/**
+		 * The field descriptors handed to CnFormWidgetBase — the whole of this
+		 * widget's form, declared rather than drawn. Order matters: it is the
+		 * render order.
+		 *
+		 * `client` is declared here so it keeps its place in the stack and its
+		 * field wrapper, but its control comes from the `#field-client` slot
+		 * (a CnResourceSelect, which the base has no type for).
+		 *
+		 * @return {Array<object>}
+		 */
+		formFields() {
+			return [
+				{ key: 'channel', type: 'select', label: this.channelLabel, options: this.channelOptions },
+				{ key: 'client', type: 'custom', label: this.clientLabel },
+				{ key: 'subject', type: 'text', label: this.subjectLabel },
+				{ key: 'summary', type: 'textarea', label: this.summaryLabel, rows: 4 },
+				{ key: 'outcome', type: 'select', label: this.outcomeLabel, options: this.outcomeOptions, clearable: true },
+			]
 		},
 		objectStore() {
 			try {
@@ -225,12 +199,19 @@ export default {
 			return (Array.isArray(ch) && ch.length > 0 && ch[0].value) || 'telefoon'
 		},
 
-		onChannelInput(option) {
-			this.form.channel = option ? option.value : ''
-		},
-
-		onOutcomeInput(option) {
-			this.form.outcome = option ? option.value : ''
+		/**
+		 * A field edit from CnFormWidgetBase. Stores the value, then runs
+		 * whatever that particular field also does — `summary` streams into
+		 * the workspace context so a bound knowledge-base widget can search
+		 * the live conversation. `client` never arrives here: its control is
+		 * the `#field-client` slot, which calls onClientChange directly.
+		 *
+		 * @param {{key: string, value: *}} payload The changed field.
+		 * @return {void}
+		 */
+		onFieldUpdate({ key, value }) {
+			this.form[key] = value
+			if (key === 'summary') this.writeWorkspace('activeSummary', value)
 		},
 
 		/**
@@ -257,14 +238,6 @@ export default {
 				this.form.client = id
 				this.writeWorkspace('selectedClient', id)
 			}
-		},
-
-		/**
-		 * Typing in the summary streams the text into the workspace context so a
-		 * bound knowledge-base widget can search it live.
-		 */
-		onSummaryInput() {
-			this.writeWorkspace('activeSummary', this.form.summary)
 		},
 
 		/**
@@ -353,46 +326,11 @@ export default {
 }
 </script>
 
-<style scoped>
-.cn-interaction-form-widget {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-	width: 100%;
-}
-
-.cn-interaction-form-widget__field {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	min-width: 0;
-}
-
-.cn-interaction-form-widget__label {
-	font-weight: 500;
-	font-size: 0.9em;
-}
-
-.cn-interaction-form-widget__textarea {
-	width: 100%;
-	min-height: 80px;
-	padding: 8px;
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius);
-	background: var(--color-main-background);
-	color: var(--color-main-text);
-	font: inherit;
-	resize: vertical;
-}
-
-.cn-interaction-form-widget__actions {
-	display: flex;
-	gap: 8px;
-	justify-content: flex-end;
-}
-
-.cn-interaction-form-widget__error {
-	color: var(--color-error);
-	margin: 0;
-}
-</style>
+<!--
+  The scoped style block is gone on purpose. The markup now lives in
+  CnFormWidgetBase, so a scoped rule here would carry THIS component's
+  data-v attribute and match none of it. The rules moved verbatim to
+  src/css/form-widget.css, keyed on `cn-form-widget*`; the base also emits
+  the `cn-interaction-form-widget*` names on the same elements, so app CSS
+  targeting those keeps matching.
+-->

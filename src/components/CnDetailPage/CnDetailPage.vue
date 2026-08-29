@@ -163,7 +163,10 @@
 					:show-refresh="effectiveHeaderShowRefresh"
 					:refreshing="effectiveRefreshing"
 					:show-request-feature="showRequestFeature"
+					:show-report-bug="showReportBug"
+					:show-documentation="showDocumentation"
 					:documentation-url="documentationUrl"
+					:docs-anchor="resolvedPageId"
 					:documentation-label="documentationLabel || undefined"
 					:widget-id="resolvedPageId"
 					:title="title"
@@ -1306,6 +1309,28 @@ export default {
 
 		/** Whether the Request-a-feature entry renders in the page-header menu. */
 		showRequestFeature: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Whether the "Report a bug" entry renders in the page-header menu.
+		 * On by default — the trio Request a feature / Report a bug /
+		 * Documentation is the contract for every Conduction surface.
+		 *
+		 * @type {boolean}
+		 */
+		showReportBug: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Whether the Documentation entry renders in the page-header menu. On
+		 * by default; the shared menu resolves the target itself, so leaving
+		 * it on costs the host nothing.
+		 *
+		 * @type {boolean}
+		 */
+		showDocumentation: {
 			type: Boolean,
 			default: true,
 		},

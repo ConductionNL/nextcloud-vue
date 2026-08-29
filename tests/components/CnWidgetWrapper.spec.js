@@ -113,13 +113,15 @@ describe('CnWidgetWrapper — Actions menu visibility (widget-wrapper)', () => {
 		expect(wrapper.find('[data-testid="cn-widget-wrapper-action-request-feature"]').exists()).toBe(false)
 	})
 
-	it('hides the entire overflow menu when both opted out and no action-items slot', () => {
-		const wrapper = mountWrapper({ showRefresh: false, showRequestFeature: false })
+	// Request-a-feature / Report-a-bug / Documentation are now unconditional,
+	// so emptying the menu means opting out of all four items — not two.
+	it('hides the entire overflow menu when every item is opted out and no action-items slot', () => {
+		const wrapper = mountWrapper({ showRefresh: false, showRequestFeature: false, showReportBug: false, showDocumentation: false })
 		expect(wrapper.find('[data-testid="cn-widget-wrapper-actions"]').exists()).toBe(false)
 	})
 
-	it('the legacy hide-* aliases still opt out (back-compat)', () => {
-		const wrapper = mountWrapper({ hideRefresh: true, hideRequestFeature: true })
+	it('the legacy hide-* aliases still opt out of their own items (back-compat)', () => {
+		const wrapper = mountWrapper({ hideRefresh: true, hideRequestFeature: true, showReportBug: false, showDocumentation: false })
 		expect(wrapper.find('[data-testid="cn-widget-wrapper-actions"]').exists()).toBe(false)
 	})
 
@@ -299,9 +301,18 @@ describe('CnWidgetWrapper — Documentation action', () => {
 		jest.restoreAllMocks()
 	})
 
-	it('hides the Documentation item when no documentationUrl is set', () => {
+	// Inverted deliberately. A widget with no documentationUrl used to render
+	// no Documentation item at all — which is how OpenRegister's widget menus
+	// shipped without one. The shared menu now resolves a target itself, so
+	// the item is present whether or not the host configured anything.
+	it('still renders the Documentation item when no documentationUrl is set', () => {
 		const wrapper = mountWrapper()
-		expect(wrapper.find('[data-testid="cn-widget-wrapper-action-documentation"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-widget-wrapper-action-documentation"]').exists()).toBe(true)
+	})
+
+	it('renders Report a bug alongside it, unconfigured', () => {
+		const wrapper = mountWrapper()
+		expect(wrapper.find('[data-testid="cn-widget-wrapper-action-report-bug"]').exists()).toBe(true)
 	})
 
 	it('renders a Documentation link that opens in a new tab when documentationUrl is set', () => {

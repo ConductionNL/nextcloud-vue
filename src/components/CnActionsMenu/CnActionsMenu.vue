@@ -1,12 +1,19 @@
 <!--
   CnActionsMenu — Shared "…" overflow Actions menu.
 
-  Renders the canonical built-in action trio that appears on every
-  Conduction surface — Refresh, Documentation, Request a feature — inside
-  a single NcActions overflow, and auto-mounts the CnSuggestFeatureModal
-  for the Request-a-feature default. Used by CnWidgetWrapper (widgets) and
-  the page-level headers of CnDetailPage / CnDashboardPage so the three
-  surfaces stay in lockstep.
+  Renders the canonical action set that appears on every Conduction
+  surface — Refresh, then the mandatory trio Request a feature / Report a
+  bug / Documentation — inside a single NcActions overflow, and
+  auto-mounts the CnSuggestFeatureModal for the Request-a-feature default.
+  Used by CnWidgetWrapper (widgets) and the page-level headers of
+  CnDetailPage / CnDashboardPage so the three surfaces stay in lockstep.
+
+  The trio is not optional and not conditional on configuration: each item
+  resolves its own target (a forge new-issue deep-link for the bug report,
+  `cnDocumentationBaseUrl` + the surface's `docsAnchor` for the docs link),
+  so a host that passes no URLs still renders all three. That is the point
+  — the items used to be per-host markup, and OpenRegister's widgets shipped
+  without the Documentation entry while OpenCatalogi's were inconsistent.
 -->
 <template>
 	<!-- Root <template v-if> (Vue 3 native fragment, renders no DOM node — was
@@ -36,18 +43,15 @@
 				</template>
 				{{ refreshLabel }}
 			</NcActionButton>
-			<NcActionLink
-				v-if="documentationUrl"
-				:href="documentationUrl"
-				target="_blank"
-				rel="noopener noreferrer"
-				:data-testid="`${testidBase}-action-documentation`"
-				:close-after-click="true">
-				<template #icon>
-					<BookOpenVariant :size="20" />
-				</template>
-				{{ documentationLabel }}
-			</NcActionLink>
+			<!-- The canonical trio — Request a feature / Report a bug /
+			     Documentation — renders on EVERY surface. None of the three
+			     is conditional on a URL being configured any more: each
+			     resolves its own target (see resolvedDocumentationUrl /
+			     resolvedReportBugUrl), so a host that forgets to pass one
+			     still gets a working item instead of a silently missing one.
+			     `showRequestFeature` / `showReportBug` / `showDocumentation`
+			     exist only for the rare surface that must suppress one
+			     deliberately; they all default to true. -->
 			<NcActionButton
 				v-if="showRequestFeature"
 				:data-testid="`${testidBase}-action-request-feature`"
@@ -58,9 +62,34 @@
 				</template>
 				{{ requestFeatureLabel }}
 			</NcActionButton>
+			<NcActionLink
+				v-if="showReportBug && resolvedReportBugUrl"
+				:href="resolvedReportBugUrl"
+				target="_blank"
+				rel="noopener noreferrer"
+				:data-testid="`${testidBase}-action-report-bug`"
+				:close-after-click="true">
+				<template #icon>
+					<BugOutline :size="20" />
+				</template>
+				{{ reportBugLabel }}
+			</NcActionLink>
+			<NcActionLink
+				v-if="showDocumentation && resolvedDocumentationUrl"
+				:href="resolvedDocumentationUrl"
+				target="_blank"
+				rel="noopener noreferrer"
+				:data-testid="`${testidBase}-action-documentation`"
+				:close-after-click="true">
+				<template #icon>
+					<BookOpenVariant :size="20" />
+				</template>
+				{{ documentationLabel }}
+			</NcActionLink>
 			<!-- @slot action-items Additional NcActionButton-family items
 			     rendered inside the overflow menu, after the built-in
-			     Refresh / Documentation / Request-a-feature group. -->
+			     Refresh + Request-a-feature / Report-a-bug / Documentation
+			     group. -->
 			<slot name="action-items" />
 		</NcActions>
 
@@ -90,6 +119,62 @@ import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import LightbulbOutline from 'vue-material-design-icons/LightbulbOutline.vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
+import BugOutline from 'vue-material-design-icons/BugOutline.vue'
+
+/**
+ * Forge host defaults, keyed by the `cnFeatureRequestForge.type` a
+ * CnAppRoot provides. Used to build the "Report a bug" new-issue
+ * deep-link when the host passes no explicit `reportBugUrl`.
+ *
+ * @type {Record<string, string>}
+ */
+const FORGE_BASE_URLS = {
+	github: 'https://github.com',
+	codeberg: 'https://codeberg.org',
+}
+
+/**
+ * The fleet's per-app documentation site, derived from the app id. Used only
+ * when no `documentationUrl` prop and no `cnDocumentationBaseUrl` inject are
+ * available, so that the Documentation item is never absent — an app that
+ * hosts its docs anywhere else provides the base instead.
+ *
+ * @param {string} appId Consuming app's slug.
+ * @return {string} Documentation base URL, or '' when the app id is unknown.
+ */
+function defaultDocsBase(appId) {
+	const id = String(appId || '').trim()
+	if (!id) return ''
+	return `https://${id}.conduction.nl/docs/`
+}
+
+/**
+ * Resolve a documentation deep-link from a base URL and a per-widget
+ * anchor. An anchor already starting with `#`, `/` or a `scheme://` is
+ * used as written (respectively appended, resolved against the base's
+ * origin, or taken whole); a bare slug becomes a `#fragment`, which is
+ * how a docs page addresses one section of itself.
+ *
+ * @param {string} base Documentation base URL.
+ * @param {string} anchor Per-widget anchor / path fragment.
+ * @return {string} The resolved URL, or '' when there is no base to build on.
+ */
+export function resolveDocsUrl(base, anchor) {
+	const a = String(anchor || '').trim()
+	if (a.includes('://')) return a
+	const b = String(base || '').trim()
+	if (!b) return ''
+	if (!a) return b
+	if (a.startsWith('#')) return `${b.replace(/#.*$/, '')}${a}`
+	if (a.startsWith('/')) {
+		try {
+			return new URL(a, b).toString()
+		} catch (e) {
+			return `${b.replace(/\/+$/, '')}${a}`
+		}
+	}
+	return `${b.replace(/#.*$/, '').replace(/\/+$/, '')}#${a}`
+}
 
 /**
  * Build a synthetic event object handed to host listeners alongside the
@@ -113,15 +198,21 @@ function createSyntheticEvent() {
 }
 
 /**
- * CnActionsMenu — the shared built-in overflow Actions menu (Refresh /
- * Documentation / Request a feature).
+ * CnActionsMenu — the shared built-in overflow Actions menu.
+ *
+ * Renders Refresh plus the mandatory trio Request a feature / Report a bug /
+ * Documentation. The trio is unconditional: the bug link is built from the
+ * app's forge repo and the docs link from the app-wide documentation base
+ * plus this surface's `docsAnchor`, so no host can ship a menu missing one.
+ * Pass `docsAnchor` per widget type — that is what makes Documentation open
+ * that widget's own section instead of the docs homepage.
  *
  * ```vue
  * <CnActionsMenu
  *   :widget-id="resolvedWidgetId"
  *   :title="displayTitle"
  *   :surface="`widget:${resolvedWidgetId}`"
- *   :documentation-url="documentationUrl"
+ *   docs-anchor="open-cases"
  *   testid-base="cn-widget-wrapper"
  *   @refresh="(p, e) => $emit('refresh', p, e)"
  *   @request-feature="(p, e) => $emit('request-feature', p, e)">
@@ -141,6 +232,7 @@ export default {
 		Refresh,
 		LightbulbOutline,
 		BookOpenVariant,
+		BugOutline,
 		// Unwrap `.default` explicitly: under some webpack chunk layouts the
 		// resolved module namespace is frozen AND carries neither `__esModule`
 		// nor `Symbol.toStringTag === 'Module'`, so Vue 2's `ensureCtor` skips
@@ -174,6 +266,16 @@ export default {
 		 * Defaults to Codeberg when no CnAppRoot ancestor exists.
 		 */
 		cnFeatureRequestForge: { default: () => ({ type: 'codeberg', baseUrl: 'https://codeberg.org' }) },
+		/**
+		 * App-wide documentation base URL (e.g.
+		 * `https://pipelinq.conduction.nl/docs`), provided by CnAppRoot from
+		 * `manifest.nav.documentationUrl`. Every widget's Documentation item
+		 * is built from this base plus the widget's own `docsAnchor`, so the
+		 * link lands on that widget's section rather than the docs homepage.
+		 * Empty when no ancestor provides one — the host's explicit
+		 * `documentationUrl` prop then has to carry the whole URL.
+		 */
+		cnDocumentationBaseUrl: { default: () => '' },
 	},
 	inheritAttrs: false,
 
@@ -199,16 +301,66 @@ export default {
 			default: true,
 		},
 		/**
-		 * Documentation link target. When a non-empty URL is provided the
-		 * menu renders a "Documentation" item that opens the link in a new
-		 * tab (`target="_blank"` + `rel="noopener noreferrer"`). Empty
-		 * (the default) hides the item entirely.
+		 * Explicit documentation link target, opened in a new tab. Wins over
+		 * the `cnDocumentationBaseUrl` + `docsAnchor` pair. Leave empty (the
+		 * default) to let the menu build the per-widget deep-link itself.
 		 *
 		 * @type {string}
 		 */
 		documentationUrl: {
 			type: String,
 			default: '',
+		},
+		/**
+		 * This surface's own section in the app's documentation, appended to
+		 * the app-wide `cnDocumentationBaseUrl`. A bare slug (`open-cases`)
+		 * becomes a `#fragment`; a value starting with `/` is resolved as a
+		 * path; a full `scheme://` URL is used as written. Supplying it is
+		 * what makes the Documentation item land on THIS widget's section
+		 * rather than the docs homepage.
+		 *
+		 * @type {string}
+		 */
+		docsAnchor: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Whether the Documentation item renders. Defaults to true — the
+		 * canonical trio is meant to be present on every surface; set false
+		 * only where a docs link genuinely cannot exist.
+		 *
+		 * @type {boolean}
+		 */
+		showDocumentation: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Whether the "Report a bug" item renders.
+		 *
+		 * @type {boolean}
+		 */
+		showReportBug: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Explicit "Report a bug" target. Empty (the default) builds a
+		 * new-issue deep-link on the app's forge from the injected
+		 * `cnFeatureRequestRepo` + `cnFeatureRequestForge`, pre-filled with
+		 * the surface's title.
+		 *
+		 * @type {string}
+		 */
+		reportBugUrl: {
+			type: String,
+			default: '',
+		},
+		/** Pre-translated label for the Report-a-bug action. */
+		reportBugLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Report a bug'),
 		},
 		/**
 		 * Pre-translated label for the Documentation item. Defaults to the
@@ -298,7 +450,8 @@ export default {
 		/**
 		 * Prefix for the `data-testid`s emitted on the menu container and
 		 * its items: `<base>-actions` (container), `<base>-action-refresh`,
-		 * `<base>-action-documentation`, `<base>-action-request-feature`.
+		 * `<base>-action-request-feature`, `<base>-action-report-bug`,
+		 * `<base>-action-documentation`.
 		 * Lets each host keep its own stable testids.
 		 */
 		testidBase: {
@@ -330,9 +483,53 @@ export default {
 		 */
 		hasOverflowMenu() {
 			if (this.showRefresh) return true
-			if (this.documentationUrl) return true
+			if (this.showDocumentation && this.resolvedDocumentationUrl) return true
+			if (this.showReportBug && this.resolvedReportBugUrl) return true
 			if (this.showRequestFeature) return true
 			return Boolean(this.$slots['action-items']) || Boolean(this.$slots && this.$slots['action-items'])
+		},
+
+		/**
+		 * The Documentation item's target: the explicit `documentationUrl`
+		 * when given, otherwise the app-wide base deep-linked with this
+		 * surface's `docsAnchor`.
+		 *
+		 * @return {string}
+		 */
+		resolvedDocumentationUrl() {
+			if (this.documentationUrl) {
+				return this.docsAnchor
+					? resolveDocsUrl(this.documentationUrl, this.docsAnchor)
+					: this.documentationUrl
+			}
+			if (this.cnDocumentationBaseUrl) {
+				return resolveDocsUrl(this.cnDocumentationBaseUrl, this.docsAnchor)
+			}
+			// Last resort so the item is never simply MISSING — an absent
+			// Documentation entry is the defect this menu exists to prevent.
+			// The fleet's convention is one docs site per app id; an app that
+			// hosts its docs elsewhere sets `cnDocumentationBaseUrl` on
+			// CnAppRoot, and the warning below says so.
+			return resolveDocsUrl(defaultDocsBase(this.cnAppId), this.docsAnchor)
+		},
+
+		/**
+		 * The Report-a-bug target: the explicit `reportBugUrl` when given,
+		 * otherwise a new-issue deep-link on the app's forge, pre-filled with
+		 * a title naming the surface the report came from.
+		 *
+		 * @return {string}
+		 */
+		resolvedReportBugUrl() {
+			if (this.reportBugUrl) return this.reportBugUrl
+			const repo = String(this.cnFeatureRequestRepo || '').trim()
+			if (!repo) return ''
+			const forge = this.cnFeatureRequestForge || {}
+			const base = String(forge.baseUrl || FORGE_BASE_URLS[forge.type] || FORGE_BASE_URLS.codeberg)
+				.replace(/\/+$/, '')
+			const where = this.title || this.surface || this.widgetId
+			const title = where ? `Bug: ${where}` : 'Bug report'
+			return `${base}/${repo}/issues/new?title=${encodeURIComponent(title)}`
 		},
 	},
 

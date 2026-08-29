@@ -195,15 +195,25 @@
 			</slot>
 			<NcAppContent>
 				<!--
-				  Soft-dependency notices (REQ-DIA-6). One dismissible,
-				  NON-BLOCKING NcNoteCard per unresolved+undismissed SOFT
-				  dependency, each carrying the same admin-aware install/enable
-				  action as the hard surfaces. Dismissal persists per
-				  app+dependency in localStorage so a dismissed notice does not
-				  reappear on reload.
+				  Soft-dependency notices (REQ-DIA-6) — DEPRECATED, off by
+				  default since 2.1.0.
+
+				  These stacked. An app declaring four optional leaves rendered
+				  four orange NcNoteCards above its own content and pushed the
+				  page below the fold, every page load, for every user — while
+				  the only person who can act on the message is an
+				  administrator. The information now lives where that audience
+				  is: `CnLeafDependencySettings`, an admin-settings section
+				  carrying the same two states (not installed → "Install and
+				  enable"; installed but disabled → "Enable").
+
+				  The markup stays behind `softDependencyNotices` for one
+				  release so a consumer that genuinely needs the in-app surface
+				  can opt back in while it adopts the settings section. It is
+				  slated for removal.
 				-->
 				<NcNoteCard
-					v-for="dep in unresolvedSoftDependencies"
+					v-for="dep in visibleSoftDependencyNotices"
 					:key="'cn-soft-dep-' + dep.id"
 					type="warning"
 					:heading="softDepHeading(dep)"
@@ -959,6 +969,22 @@ export default {
 		manifest: {
 			type: Object,
 			required: true,
+		},
+		/**
+		 * DEPRECATED (2.1.0) — render the in-shell orange soft-dependency
+		 * banners above the routed page. Off by default: they stacked one per
+		 * optional leaf and pushed the app's own content below the fold, for
+		 * an audience (end users) who cannot act on them. Mount
+		 * `CnLeafDependencySettings` in the app's admin settings instead — it
+		 * carries the same two states and the same install/enable action.
+		 * Set true only as a temporary bridge while adopting that section;
+		 * this prop is slated for removal.
+		 *
+		 * @type {boolean}
+		 */
+		softDependencyNotices: {
+			type: Boolean,
+			default: false,
 		},
 		/**
 		 * Remount key for the routed `<router-view>`. Hosts that rebuild the
@@ -2045,6 +2071,19 @@ export default {
 			return this.unresolvedDependencies
 				.filter((dep) => !dep.required)
 				.filter((dep) => !this.dismissedSoftDeps.includes(dep.id))
+		},
+		/**
+		 * The soft-dependency notices actually RENDERED in the shell. Empty
+		 * unless the deprecated `softDependencyNotices` prop is switched back
+		 * on — the banners now live in admin settings
+		 * (`CnLeafDependencySettings`) instead of above every index page.
+		 * `unresolvedSoftDependencies` itself is untouched and still exposed,
+		 * so an app rendering its own surface from it keeps working.
+		 *
+		 * @return {Array<object>}
+		 */
+		visibleSoftDependencyNotices() {
+			return this.softDependencyNotices ? this.unresolvedSoftDependencies : []
 		},
 		/**
 		 * First-time-setup status for this app (ADR-042), or null when the
