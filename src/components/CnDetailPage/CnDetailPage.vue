@@ -651,9 +651,15 @@
 
 		<!-- Record edit form. Same component and same schema the index table's
 		     modal used; the difference is that it is reached from the record,
-		     with the record's own page around it. -->
+		     with the record's own page around it.
+
+		     Waits for the RECORD as well as the schema. `currentObject` is a
+		     store read that is null until this page's own fetch lands, and a
+		     dialog opened before then shows an empty form for a record that
+		     has values — which the user can type into, and whose Save would
+		     PUT those blanks over the record. -->
 		<CnFormDialog
-			v-if="editFormOpen && currentSchema"
+			v-if="editFormOpen && currentSchema && !editFormAwaitingRecord"
 			ref="editFormDialog"
 			:schema="currentSchema"
 			:item="currentObject"
@@ -1872,6 +1878,20 @@ export default {
 			const type = this.resolvedObjectType
 			if (!type || !this.objectId) return null
 			return store.objects?.[type]?.[this.objectId] ?? null
+		},
+
+		/**
+		 * Whether the edit form is still waiting for the record it edits.
+		 *
+		 * True only while a record is actually RESOLVABLE and absent — a host
+		 * with no object store has nothing to wait for, and gating on it
+		 * there would make the Edit button dead.
+		 *
+		 * @return {boolean}
+		 */
+		editFormAwaitingRecord() {
+			if (!this.effectiveObjectStore || !this.objectId) return false
+			return !this.currentObject
 		},
 
 		/**
