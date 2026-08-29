@@ -9,6 +9,23 @@
  */
 import { useScopedTheme, rewriteRootScope, clearScopedThemeCache, SCOPE_ATTR } from '../../src/composables/useScopedTheme.js'
 
+/*
+ * `generateFilePath` needs Nextcloud's `OC.appswebroots` to put `/apps/<id>/`
+ * in front of a file, and outside a browser there is no such global — it
+ * degrades to a bare `/css/tokens/x.css` with the app id dropped entirely.
+ * That silently erases the one thing several tests below are about (WHICH app
+ * id was requested), so the router is mocked to the shape it really has in a
+ * browser. `generateUrl` already carries the id in its argument and is passed
+ * through unchanged.
+ *
+ * Declared after the import only to satisfy `import/first`; babel hoists
+ * `jest.mock` above the imports either way.
+ */
+jest.mock('@nextcloud/router', () => ({
+	generateFilePath: (app, type, file) => `/apps/${app}/${type}/${file}`,
+	generateUrl: (path) => path,
+}))
+
 const TOKEN_CSS = ':root {\n  --nldesign-color-primary: #004699;\n  --nldesign-color-bg: #FFFFFF;\n}\n'
 
 const manifest = (tokenSet) => ({ runtime: { theme: { source: 'nldesign', tokenSet, tokenSetName: 'X' } } })
@@ -193,5 +210,109 @@ describe('useScopedTheme — evaluateContrast', () => {
 		const theme = useScopedTheme({ doc: fakeDoc(), client })
 		const result = await theme.evaluateContrast([{ name: 'primary', value: '#154273', role: 'text' }], '#FFFFFF')
 		expect(result).toBeNull()
+	})
+})
+
+describe('useScopedTheme — the theme app id is resolved, not assumed', () => {
+	beforeEach(() => clearScopedThemeCache())
+
+	/**
+	 * A client whose GET answers only for URLs naming one app id.
+	 *
+	 * @param {string} slug - the app id that answers; anything else 404s.
+	 * @param {*} data - the body that id returns.
+	 * @return {{get: Function}} An axios-like client double.
+	 */
+	const onlyFor = (slug, data) => ({
+		get: jest.fn(async (url) => {
+			if (!url.includes(`/${slug}/`)) {
+				const e = new Error('not found')
+				e.response = { status: 404 }
+				throw e
+			}
+			return { data }
+		}),
+	})
+
+	it('falls back to the renamed app id when the old one is absent', async () => {
+		const doc = fakeDoc()
+		const client = onlyFor('thematiq', TOKEN_CSS)
+		const theme = useScopedTheme({ doc, client, warn: jest.fn() })
+
+		expect(await theme.apply(manifest('gemeente-blauw'), 'petstore')).toBe(true)
+		expect(client.get.mock.calls.some(([url]) => url.includes('/thematiq/'))).toBe(true)
+	})
+
+	it('still themes through the old app id, which is what is deployed today', async () => {
+		const doc = fakeDoc()
+		const client = onlyFor('nldesign', TOKEN_CSS)
+		const theme = useScopedTheme({ doc, client, warn: jest.fn() })
+
+		expect(await theme.apply(manifest('gemeente-blauw'), 'petstore')).toBe(true)
+		// The deployed id is tried first, so the common case costs one request.
+		expect(client.get).toHaveBeenCalledTimes(1)
+	})
+
+	it('remembers the id that answered instead of re-probing the dead one', async () => {
+		const doc = fakeDoc()
+		const client = onlyFor('thematiq', TOKEN_CSS)
+		const theme = useScopedTheme({ doc, client, warn: jest.fn() })
+
+		await theme.apply(manifest('set-a'), 'petstore')
+		const afterFirst = client.get.mock.calls.length
+		await theme.apply(manifest('set-b'), 'petstore')
+
+		// Second apply is a different token set, so it really fetches — but it
+		// goes straight to the id that worked rather than paying the 404 again.
+		expect(client.get.mock.calls.length).toBe(afterFirst + 1)
+		expect(client.get.mock.calls.at(-1)[0]).toContain('/thematiq/')
+	})
+
+	it('treats an HTML body as "this app did not answer", not as a stylesheet', async () => {
+		const doc = fakeDoc()
+		// Nextcloud serves its login/error page with a 200, so status alone
+		// cannot tell a real stylesheet from a redirect to the login screen.
+		const client = {
+			get: jest.fn(async (url) => (url.includes('/thematiq/')
+				? { data: TOKEN_CSS }
+				: { data: '<!DOCTYPE html><html><body>login</body></html>' })),
+		}
+		const theme = useScopedTheme({ doc, client, warn: jest.fn() })
+
+		expect(await theme.apply(manifest('gemeente-blauw'), 'petstore')).toBe(true)
+		expect(doc.head.children).toHaveLength(1)
+		expect(doc.head.children[0].textContent).toContain('--nldesign-color-primary')
+	})
+
+	it('pins exactly one id when the caller names it, probing nothing else', async () => {
+		const doc = fakeDoc()
+		const client = onlyFor('thematiq', TOKEN_CSS)
+		const theme = useScopedTheme({ doc, client, warn: jest.fn(), appSlug: 'nldesign' })
+
+		expect(await theme.apply(manifest('gemeente-blauw'), 'petstore')).toBe(false)
+		expect(client.get).toHaveBeenCalledTimes(1)
+		expect(client.get.mock.calls[0][0]).toContain('/nldesign/')
+	})
+
+	it('resolves the id for listTokenSets too, not just the stylesheet', async () => {
+		const client = onlyFor('thematiq', { tokenSets: [{ id: 'gemeente-blauw', name: 'Gemeente Blauw' }] })
+		const theme = useScopedTheme({ doc: fakeDoc(), client })
+
+		expect(await theme.listTokenSets()).toEqual([{ id: 'gemeente-blauw', name: 'Gemeente Blauw' }])
+	})
+
+	it('resolves the id for evaluateContrast too', async () => {
+		const client = {
+			post: jest.fn(async (url) => {
+				if (!url.includes('/thematiq/')) {
+					throw new Error('not found')
+				}
+				return { data: { results: [{ name: 'primary', ratio: 8.1 }] } }
+			}),
+		}
+		const theme = useScopedTheme({ doc: fakeDoc(), client })
+
+		expect(await theme.evaluateContrast([{ name: 'primary', value: '#154273', role: 'text' }], '#FFFFFF'))
+			.toEqual([{ name: 'primary', ratio: 8.1 }])
 	})
 })
