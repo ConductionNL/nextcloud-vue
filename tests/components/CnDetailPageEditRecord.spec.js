@@ -33,6 +33,11 @@ function mountDetail(propsData = {}, storeExtras = {}) {
 		// `currentSchema` reads the schema off the store by registered type
 		// key, so the store is also how the form gets its fields.
 		schemas: { 'dossiq-caseType': schema },
+		// ...and `currentObject` reads the RECORD off it the same way. A real
+		// page has fetched it by the time the user can press Edit; a harness
+		// without it models a page whose fetch has not landed, which is a
+		// different case (exercised explicitly below).
+		objects: { 'dossiq-caseType': { 'ct-1': record } },
 		saveObject: jest.fn().mockResolvedValue({ ...record, title: 'Gewijzigd' }),
 		getError: jest.fn().mockReturnValue(null),
 		...storeExtras,
@@ -122,6 +127,7 @@ describe('CnDetailPage — record edit', () => {
 			{ showEditAction: true },
 			{
 				schemas: { 'dossiq-caseType': schema },
+				objects: { 'dossiq-caseType': { 'ct-1': record } },
 				saveObject: jest.fn().mockResolvedValue(null),
 				getError: jest.fn().mockReturnValue({ message: 'Validation failed' }),
 			},
@@ -155,6 +161,46 @@ describe('CnDetailPage — record edit', () => {
 			expect.objectContaining({ error: expect.stringContaining('duplicate') }),
 		)
 		expect(wrapper.vm.editFormOpen).toBe(true)
+	})
+
+	it('does not open the form until the record it edits has loaded', async () => {
+		// The window this closes: `currentObject` is a store read that is null
+		// until the page's own fetch lands, so the dialog could mount over a
+		// record that had not arrived. CnFormDialog reads a null `item` as
+		// CREATE mode and renders every field EMPTY — an empty form for a
+		// record that has values. Anything typed into that window was then
+		// overwritten when the record showed up, and Save PUT the pristine
+		// record back with a 200 (decidiq crud-persistence, dossiq cases-crud).
+		const { wrapper } = mountDetail({ showEditAction: true }, { objects: {} })
+		wrapper.vm.openEditForm()
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.editFormOpen).toBe(true)
+		expect(wrapper.vm.editFormAwaitingRecord).toBe(true)
+		expect(wrapper.findComponent({ name: 'CnFormDialog' }).exists()).toBe(false)
+	})
+
+	it('POSITIVE CONTROL: opens the form once the record is in the store', async () => {
+		// Without this, the assertion above would pass just as happily if the
+		// dialog never rendered at all.
+		const { wrapper } = mountDetail({ showEditAction: true })
+		wrapper.vm.openEditForm()
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.editFormAwaitingRecord).toBe(false)
+		expect(wrapper.findComponent({ name: 'CnFormDialog' }).exists()).toBe(true)
+	})
+
+	it('never waits when no record is resolvable, so the gate cannot deaden the button', () => {
+		// A host with no object store — or a page with no objectId — has
+		// nothing to wait FOR. Asserted on the computed directly because
+		// `objectStore: null` still falls through to `useObjectStore()`, so
+		// the branch is not reachable through the mount harness.
+		const awaiting = CnDetailPage.computed.editFormAwaitingRecord
+		expect(awaiting.call({ effectiveObjectStore: null, objectId: 'ct-1', currentObject: null })).toBe(false)
+		expect(awaiting.call({ effectiveObjectStore: {}, objectId: '', currentObject: null })).toBe(false)
+		// ...and it DOES wait when one is resolvable but absent.
+		expect(awaiting.call({ effectiveObjectStore: {}, objectId: 'ct-1', currentObject: null })).toBe(true)
 	})
 
 	it('closes the form without saving on cancel', async () => {
