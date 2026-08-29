@@ -334,13 +334,51 @@
 							widget; `type: 'integration'` resolves from the integration
 							registry; any other content-driven catalog type (stat / chart /
 							delta / gauge / object-list / …) renders its registered renderer.
+
+							The page's object context is bound alongside the widget
+							descriptor because a `type: "custom"` widget is not a template —
+							CnPageRenderer mounts the mapped component as
+							`<component v-bind="slotProps" />`, so whatever THIS slot binds
+							IS that widget's entire prop set. Binding only `item`/`widget`
+							therefore left every custom widget that declares `objectId`
+							sitting on its own `default: ''` — and an empty id does not
+							error, it widens the widget's OpenRegister filter to the whole
+							collection (decidiq#968: a voting-round panel filtering on
+							`relations.motion: ''` listed every round in the instance, so a
+							vote could be cast against another motion's round). Widgets that
+							declare none of these props are unaffected — this is purely
+							additive.
+
+							`objectId` is bound from the PROP, never read back off the loaded
+							record: `currentObject` / `resolvedObject` are themselves keyed by
+							`objectId`, and the record is null for the first frames of a
+							detail page — the same "the record has not arrived yet" race
+							`editFormAwaitingRecord` guards (#850). The route param reaches
+							the prop through CnPageRenderer, which maps `params.id` →
+							`objectId`, so the id is there on the first render while `object`
+							is not.
 							@binding {object} item Layout item descriptor.
 							@binding {object} widget Resolved widget definition.
+							@binding {string|number} objectId This record's id. Unlike `object`
+							it is present on the very first render, because it comes from the route.
+							@binding {object} object The loaded record, or null while it is
+							still being fetched.
+							@binding {object} objectData Alias of `object`, spelled the way widget
+							components declare the prop (`objectData`).
+							@binding {string} objectType Resolved object type slug.
+							@binding {string} register Register slug of this page.
+							@binding {string} schema Schema slug of this page.
 						-->
 						<slot
 							:name="`widget-${item.widgetId}`"
 							:item="item"
-							:widget="findWidget(item)">
+							:widget="findWidget(item)"
+							:object-id="objectId"
+							:object="resolvedObject"
+							:object-data="resolvedObject"
+							:object-type="resolvedObjectType"
+							:register="register"
+							:schema="schema">
 							<!-- `type: 'data'` widget: render the schema-driven data
 							     widget with the page's loaded object + the def's
 							     per-property overrides. This is the default body widget. -->
