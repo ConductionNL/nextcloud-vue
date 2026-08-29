@@ -143,6 +143,10 @@
 </template>
 
 <script>
+// The canonical KPI scale (`--cn-kpi-*`) lives in one stylesheet. Imported
+// here as well as from css/index.css so the tokens resolve even when the
+// consuming app pulls in components individually.
+import '../../css/kpi-card.css'
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon, NcListItem } from '@nextcloud/vue'
 import { CnStatsBlock } from '../CnStatsBlock/index.js'
@@ -273,6 +277,18 @@ export default {
 </script>
 
 <style scoped>
+/*
+ * The panel draws no KPI of its own — every stat it shows is a CnStatsBlock,
+ * so the tiles are already the canonical card (src/css/kpi-card.css). What
+ * this file owns is the chrome AROUND them: the section heading, the stack
+ * gutter, and the panel-level loading and empty lines.
+ *
+ * Those all read the shared `--cn-kpi-*` scale. A panel whose "No data
+ * available" line is a different size from the tile's own empty line, or whose
+ * stack gutter disagrees with the grid's, is a second KPI look assembled out
+ * of canonical parts — which is how the library got several to begin with.
+ */
+
 .cn-stats-panel__section {
 	padding: 12px 0;
 	border-bottom: 1px solid var(--color-border);
@@ -287,8 +303,8 @@ export default {
 }
 
 .cn-stats-panel__section-title {
-	color: var(--color-text-maxcontrast);
-	font-size: 14px;
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
+	font-size: var(--cn-kpi-section-title-size, 14px);
 	font-weight: bold;
 	padding: 0 16px;
 	margin: 0 0 12px 0;
@@ -297,20 +313,22 @@ export default {
 .cn-stats-panel__stack {
 	display: flex;
 	flex-direction: column;
-	gap: 12px;
+	gap: var(--cn-kpi-stack-gap, 12px);
 }
 
 .cn-stats-panel__loading {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 6px;
 	padding: 0 16px;
-	color: var(--color-text-maxcontrast);
+	font-size: var(--cn-kpi-label-size, 13px);
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
 }
 
 .cn-stats-panel__empty {
 	padding: 0 16px;
-	color: var(--color-text-maxcontrast);
+	font-size: var(--cn-kpi-label-size, 13px);
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
 	font-style: italic;
 }
 

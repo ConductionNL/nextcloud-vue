@@ -354,13 +354,18 @@ export default {
 
 <style scoped>
 /*
- * The card's own look — box, icon circle, title, value, variants, hover —
- * is the CANONICAL KPI card in src/css/kpi-card.css, shared with
+ * The card's own look — box, body stack, icon circle, title, value, variants,
+ * hover — is the CANONICAL KPI card in src/css/kpi-card.css, shared with
  * CnStatWidget. The rules that lived here duplicated it in different numbers
  * (a 1.2rem count row, a 40px icon, hardcoded rgba() tints that ignored a
  * re-themed palette), and that duplication IS how the two KPI looks drifted.
  * What is left below is this component's own extras: the breakdown block, the
  * loading line and the empty line.
+ *
+ * Those extras are secondary KPI text, so they read the shared
+ * `--cn-kpi-label-*` scale rather than carrying sizes of their own — an empty
+ * state that is a different size from the label it replaces is the same drift
+ * in miniature.
  */
 
 .cn-stats-block__header {
@@ -372,32 +377,35 @@ export default {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: 0.5rem;
-	color: var(--color-text-maxcontrast);
-	margin-bottom: 0.5rem;
+	gap: 6px;
+	font-size: var(--cn-kpi-label-size, 13px);
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
 }
 
 .cn-stats-block__empty {
 	text-align: center;
-	color: var(--color-text-maxcontrast);
+	font-size: var(--cn-kpi-label-size, 13px);
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
 	font-style: italic;
-	margin-bottom: 0.5rem;
 }
 
 .cn-stats-block__breakdown {
-	margin-top: 0.5rem;
-	padding: 0.75rem;
+	margin-top: 4px;
+	padding: 8px;
+	font-size: var(--cn-kpi-label-size, 13px);
 	background: var(--color-background-hover);
 	border-radius: var(--border-radius);
 	border: 1px solid var(--color-border);
 	width: 100%;
+	text-align: start;
 }
 
 .cn-stats-block__breakdown-item {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	margin-bottom: 0.5rem;
+	gap: 8px;
+	margin-bottom: 4px;
 }
 
 .cn-stats-block__breakdown-item:last-child {
@@ -409,11 +417,16 @@ export default {
 	color: var(--color-main-text);
 }
 
+/* The value takes the card's accent, so a breakdown reads as part of the tile
+   it sits in rather than as a table that happened to land there. It used to
+   carry a `--color-background-hover` chip — on a `--color-background-hover`
+   breakdown box, which is to say an invisible chip drawn at the cost of two
+   extra declarations and a differently-shaped hit area. The per-key modifiers
+   below still win: `invalid`, `deleted` and `published` mean something
+   specific and outrank the tile's own colour. */
 .cn-stats-block__breakdown-value {
-	font-weight: 600;
-	padding: 0.25rem 0.5rem;
-	border-radius: var(--border-radius);
-	background: var(--color-background-hover);
+	font-weight: var(--cn-kpi-title-weight, 600);
+	color: var(--cn-kpi-accent, var(--color-primary-element));
 }
 
 .cn-stats-block__breakdown-value--invalid { color: var(--color-element-warning); }
