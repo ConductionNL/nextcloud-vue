@@ -11,9 +11,21 @@
  * SPDX-License-Identifier: EUPL-1.2
  */
 
+// 🔑 HELD, NOT REQUIRED BACK. `@nextcloud/axios` is a PEER dependency, so
+// `require()`ing it here trips eslint's `n/no-missing-require` — the module is
+// legitimately absent from this package's own tree. A `mock`-prefixed variable
+// is the one thing a jest.mock factory may close over, so the spec keeps a
+// handle on the double without ever importing the real module.
+const mockAxios = {
+	get: jest.fn(),
+	post: jest.fn(),
+	put: jest.fn(),
+	delete: jest.fn(),
+}
+
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
-	default: { get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn() },
+	default: mockAxios,
 }))
 
 jest.mock('@nextcloud/router', () => ({
@@ -22,7 +34,6 @@ jest.mock('@nextcloud/router', () => ({
 }))
 
 const { setActivePinia, createPinia } = require('pinia')
-const axios = require('@nextcloud/axios').default
 const { useFlowStore } = require('../useFlowStore.js')
 
 /**
@@ -132,7 +143,7 @@ describe('useFlowStore — lifecycle', () => {
 
 	it('turns a 409 on save into a reason the sidebar can act on', async () => {
 		const store = storeWith('published')
-		axios.put.mockRejectedValue({
+		mockAxios.put.mockRejectedValue({
 			response: { status: 409, data: { reason: 'version-immutable', lifecycleStatus: 'published' } },
 		})
 
@@ -146,38 +157,38 @@ describe('useFlowStore — lifecycle', () => {
 
 	it('publishes by POSTing to the publish route and reloading', async () => {
 		const store = storeWith('draft')
-		axios.post.mockResolvedValue({ data: { version: 2, status: 'published' } })
-		axios.get.mockResolvedValue({ data: { results: [] } })
+		mockAxios.post.mockResolvedValue({ data: { version: 2, status: 'published' } })
+		mockAxios.get.mockResolvedValue({ data: { results: [] } })
 
 		const version = await store.publish()
 
-		expect(axios.post).toHaveBeenCalledWith('/apps/openregister/api/flows/flow-1/publish')
+		expect(mockAxios.post).toHaveBeenCalledWith('/apps/openregister/api/flows/flow-1/publish')
 		expect(version.status).toBe('published')
 	})
 
 	it('creates a draft by POSTing to the draft route', async () => {
 		const store = storeWith('published')
-		axios.post.mockResolvedValue({ data: { version: 3, status: 'draft' } })
-		axios.get.mockResolvedValue({ data: { results: [] } })
+		mockAxios.post.mockResolvedValue({ data: { version: 3, status: 'draft' } })
+		mockAxios.get.mockResolvedValue({ data: { results: [] } })
 
 		await store.createDraft()
 
-		expect(axios.post).toHaveBeenCalledWith('/apps/openregister/api/flows/flow-1/draft')
+		expect(mockAxios.post).toHaveBeenCalledWith('/apps/openregister/api/flows/flow-1/draft')
 	})
 
 	it('deprecates by POSTing to the deprecate route', async () => {
 		const store = storeWith('published')
-		axios.post.mockResolvedValue({ data: { version: 2, status: 'deprecated' } })
-		axios.get.mockResolvedValue({ data: { results: [] } })
+		mockAxios.post.mockResolvedValue({ data: { version: 2, status: 'deprecated' } })
+		mockAxios.get.mockResolvedValue({ data: { results: [] } })
 
 		await store.deprecate()
 
-		expect(axios.post).toHaveBeenCalledWith('/apps/openregister/api/flows/flow-1/deprecate')
+		expect(mockAxios.post).toHaveBeenCalledWith('/apps/openregister/api/flows/flow-1/deprecate')
 	})
 
 	it('surfaces a 409 from a transition without clobbering it as a generic error', async () => {
 		const store = storeWith('published')
-		axios.post.mockRejectedValue({
+		mockAxios.post.mockRejectedValue({
 			response: { status: 409, data: { reason: 'not-a-draft', lifecycleStatus: 'published' } },
 		})
 
@@ -191,6 +202,6 @@ describe('useFlowStore — lifecycle', () => {
 		store.flow = { app: 'openregister', nodes: [], edges: [] }
 
 		expect(await store.publish()).toBeNull()
-		expect(axios.post).not.toHaveBeenCalled()
+		expect(mockAxios.post).not.toHaveBeenCalled()
 	})
 })

@@ -685,12 +685,28 @@ export const useFlowStore = defineStore('cnFlow', {
 				return false
 			}
 
+			this.snapshot()
+
+			return true
+		},
+
+		/**
+		 * Push one undo entry, and keep the stack capped.
+		 *
+		 * 🔴 THE ONLY PLACE THAT PUSHES. Metadata edits are exempt from the
+		 * published-is-immutable lock but still want undo, and the first version
+		 * of that exemption pushed to `undoStack` directly — bypassing the trim
+		 * and letting the stack grow past its cap (caught at 60/50 by
+		 * `useFlowStoreUndo.spec.js`). A cap enforced in two places is a cap
+		 * enforced in one of them.
+		 *
+		 * @return {void}
+		 */
+		snapshot() {
 			this.undoStack.push(JSON.stringify(this.flow))
 			if (this.undoStack.length > 50) {
 				this.undoStack.shift()
 			}
-
-			return true
 		},
 
 		/**
@@ -1144,7 +1160,7 @@ export const useFlowStore = defineStore('cnFlow', {
 					return
 				}
 			} else {
-				this.undoStack.push(JSON.stringify(this.flow))
+				this.snapshot()
 			}
 
 			this.flow = { ...this.flow, [key]: value }
