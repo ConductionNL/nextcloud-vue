@@ -190,15 +190,27 @@
    and the number move together by construction — there is no second place to
    forget. The inline KPI below shares the same modifiers for the same reason:
    `success` must mean one colour across every KPI surface, not one per class
-   family. */
+   family.
+
+   THE `-text` TOKENS, NOT THE PLAIN ONES: the accent paints the NUMBER, not
+   just the icon tint. Nextcloud's `--color-success` / `--color-warning` /
+   `--color-error` are FILL colours meant to sit behind something; DefaultTheme
+   ships `--color-success-text` and friends for foreground use. Using a fill as
+   a text colour failed WCAG AA — axe measured `#d8f3da` on `#f5f5f5`, a
+   contrast of 1.08 against the required 3:1, serious, on filinq's dashboard
+   (gate-33, run 33261801989). Only `success` was on screen there; `warning`
+   and `error` carried the same defect unrendered.
+
+   Each keeps the plain token as a fallback, so a theme predating the `-text`
+   tokens degrades to the old colour rather than to none. */
 .cn-kpi-card--success,
-.cn-kpi-inline--success { --cn-kpi-accent: var(--color-success); }
+.cn-kpi-inline--success { --cn-kpi-accent: var(--color-success-text, var(--color-success)); }
 
 .cn-kpi-card--warning,
-.cn-kpi-inline--warning { --cn-kpi-accent: var(--color-warning); }
+.cn-kpi-inline--warning { --cn-kpi-accent: var(--color-warning-text, var(--color-warning)); }
 
 .cn-kpi-card--error,
-.cn-kpi-inline--error { --cn-kpi-accent: var(--color-error); }
+.cn-kpi-inline--error { --cn-kpi-accent: var(--color-error-text, var(--color-error)); }
 
 /* No semantic reading at all — a count that is neither good nor bad (an
    "unknown" bucket). Muted rather than coloured, so it cannot be mistaken for
