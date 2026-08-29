@@ -86,10 +86,10 @@
 				<h4>{{ t('nextcloud-vue', 'Version') }}</h4>
 				<p class="cn-flow-sidebar__version">
 					<span class="cn-flow-sidebar__version-number"
-						data-cy="flow-version">v{{ store.flowVersion }}</span>
+						data-testid="flow-version">v{{ store.flowVersion }}</span>
 					<span class="cn-flow-sidebar__badge"
 						:class="`cn-flow-sidebar__badge--${store.lifecycleStatus}`"
-						data-cy="flow-lifecycle">{{ lifecycleLabel }}</span>
+						data-testid="flow-lifecycle">{{ lifecycleLabel }}</span>
 				</p>
 
 				<!--
@@ -105,21 +105,21 @@
 					<NcButton v-if="store.isDraft"
 						variant="primary"
 						:disabled="store.transitioning || !store.flow.id"
-						data-cy="flow-publish"
+						data-testid="flow-publish"
 						@click="store.publish()">
 						{{ t('nextcloud-vue', 'Publish') }}
 					</NcButton>
 					<NcButton v-if="store.graphLocked"
 						variant="primary"
 						:disabled="store.transitioning"
-						data-cy="flow-create-draft"
+						data-testid="flow-create-draft"
 						@click="store.createDraft()">
 						{{ t('nextcloud-vue', 'Create draft version') }}
 					</NcButton>
 					<NcButton v-if="store.isPublished"
 						variant="tertiary"
 						:disabled="store.transitioning"
-						data-cy="flow-deprecate"
+						data-testid="flow-deprecate"
 						@click="store.deprecate()">
 						{{ t('nextcloud-vue', 'Deprecate') }}
 					</NcButton>
