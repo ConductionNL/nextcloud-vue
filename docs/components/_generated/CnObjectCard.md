@@ -2,13 +2,14 @@
 
 ### Props
 
-| Name          | Type      | Required | Default | Description                                         |
-| ------------- | --------- | -------- | ------- | --------------------------------------------------- |
-| `object`      | `object`  | ✓        | —       | The object data                                     |
-| `schema`      | `object`  | ✓        | —       | Schema definition with properties and configuration |
-| `selected`    | `boolean` |          | `false` | Whether this card is selected                       |
-| `selectable`  | `boolean` |          | `false` | Whether to show selection checkbox                  |
-| `maxMetadata` | `number`  |          | `4`     | Maximum number of metadata fields to show           |
+| Name          | Type      | Required | Default | Description                                                                                                                                                                                                                                                      |
+| ------------- | --------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `object`      | `object`  | ✓        | —       | The object data                                                                                                                                                                                                                                                  |
+| `schema`      | `object`  | ✓        | —       | Schema definition with properties and configuration                                                                                                                                                                                                              |
+| `selected`    | `boolean` |          | `false` | Whether this card is selected                                                                                                                                                                                                                                    |
+| `selectable`  | `boolean` |          | `false` | Whether to show selection checkbox                                                                                                                                                                                                                               |
+| `clickToView` | `boolean` |          | `false` | When true, a body click on a SELECTABLE card emits `click` (navigation) instead of toggling selection — selection then happens via the checkbox only. The card counterpart of CnIndexPage's `rowClickToView` (a table row click already navigates in that mode). |
+| `maxMetadata` | `number`  |          | `4`     | Maximum number of metadata fields to show                                                                                                                                                                                                                        |
 
 ### Events
 

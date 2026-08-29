@@ -2610,8 +2610,21 @@ export default {
 			// `saveObject` picks PUT over POST on the presence of `id`, and an
 			// OpenRegister object carries its id in `@self`, not at the top
 			// level. Without this the edit would CREATE a duplicate record.
-			const payload = { ...formData, id: this.objectId }
 			const dialog = this.$refs.editFormDialog
+			if (!this.objectId) {
+				// REFUSE rather than save. An empty id does not error — it makes
+				// saveObject POST, which silently CREATES A DUPLICATE and leaves
+				// the record the user was editing untouched. That presents as
+				// "my change did not save", with a new orphan row behind it, and
+				// nothing anywhere says so.
+				if (dialog) {
+					dialog.setResult({
+						error: t('nextcloud-vue', 'Cannot save: this record has no id, so the edit would create a duplicate instead of updating it.'),
+					})
+				}
+				return
+			}
+			const payload = { ...formData, id: this.objectId }
 			try {
 				const store = this.effectiveObjectStore
 				let saved = null

@@ -137,6 +137,26 @@ describe('CnDetailPage — record edit', () => {
 		expect(wrapper.emitted('edited')).toBeUndefined()
 	})
 
+	it('REFUSES to save when no id can be resolved, rather than creating a duplicate', async () => {
+		// The failure this guards is silent, which is why it is a refusal and
+		// not a best-effort save: an empty id does not error, it makes
+		// saveObject POST. That CREATES A NEW RECORD and leaves the one the
+		// user was editing untouched — so the user sees "my change did not
+		// save" with an orphan row behind it, and nothing anywhere says so.
+		const { wrapper, store, setResult } = mountDetail({ showEditAction: true, objectId: '' })
+		wrapper.vm.editFormOpen = true
+		await wrapper.vm.$nextTick()
+		wrapper.vm.currentObject = { title: 'No id anywhere' }
+
+		await wrapper.vm.onEditFormConfirm({ title: 'Gewijzigd' })
+
+		expect(store.saveObject).not.toHaveBeenCalled()
+		expect(setResult).toHaveBeenCalledWith(
+			expect.objectContaining({ error: expect.stringContaining('duplicate') }),
+		)
+		expect(wrapper.vm.editFormOpen).toBe(true)
+	})
+
 	it('closes the form without saving on cancel', async () => {
 		const { wrapper, store } = mountDetail({ showEditAction: true })
 		wrapper.vm.openEditForm()

@@ -2,15 +2,16 @@
 
 ### Props
 
-| Name          | Type      | Required | Default                                         | Description                                        |
-| ------------- | --------- | -------- | ----------------------------------------------- | -------------------------------------------------- |
-| `objects`     | `array`   |          | `[]`                                            | Array of objects to display as cards               |
-| `schema`      | `object`  |          | `null`                                          | Schema definition (passed through to CnObjectCard) |
-| `loading`     | `boolean` |          | `false`                                         | Whether data is loading                            |
-| `selectable`  | `boolean` |          | `false`                                         | Whether cards can be selected                      |
-| `selectedIds` | `array`   |          | `[]`                                            | Array of currently selected object IDs             |
-| `rowKey`      | `string`  |          | `'id'`                                          | Property name used as unique identifier            |
-| `emptyText`   | `string`  |          | `() =&gt; t('nextcloud-vue', 'No items found')` | Text shown when there are no objects               |
+| Name          | Type      | Required | Default                                         | Description                                                                                                                                                                        |
+| ------------- | --------- | -------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `objects`     | `array`   |          | `[]`                                            | Array of objects to display as cards                                                                                                                                               |
+| `schema`      | `object`  |          | `null`                                          | Schema definition (passed through to CnObjectCard)                                                                                                                                 |
+| `loading`     | `boolean` |          | `false`                                         | Whether data is loading                                                                                                                                                            |
+| `selectable`  | `boolean` |          | `false`                                         | Whether cards can be selected                                                                                                                                                      |
+| `clickToView` | `boolean` |          | `false`                                         | When true, a body click on a selectable card emits `click` (navigation) and selection happens via the checkbox only — the card-grid counterpart of CnIndexPage's `rowClickToView`. |
+| `selectedIds` | `array`   |          | `[]`                                            | Array of currently selected object IDs                                                                                                                                             |
+| `rowKey`      | `string`  |          | `'id'`                                          | Property name used as unique identifier                                                                                                                                            |
+| `emptyText`   | `string`  |          | `() =&gt; t('nextcloud-vue', 'No items found')` | Text shown when there are no objects                                                                                                                                               |
 
 ### Events
 

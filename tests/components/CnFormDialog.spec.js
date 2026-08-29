@@ -579,6 +579,53 @@ describe('CnFormDialog', () => {
 		expect(v).toMatch(/^2026-10-15T14:30:00[+-]\d{2}:\d{2}$/)
 	})
 
+	it('leaves an already-canonical UTC date-time untouched, instead of shifting it', () => {
+		// The drift this guards (nextcloud-vue#835): dateValueFor() reads the
+		// wall-clock digits and DISCARDS the offset — correct for the
+		// local-time picker — and formatDateValue() then stamps the LOCAL
+		// offset back on. Run over a value that already carried 'Z', that pair
+		// returns the same digits at a different instant: in Europe/Amsterdam
+		// '14:30:00Z' came back as '14:30:00+02:00', two hours earlier, on an
+		// edit that never touched the field.
+		//
+		// It is schema-valid either way, so nothing downstream objects. The
+		// only thing that can catch it is asserting the value is UNCHANGED.
+		const schema = {
+			title: 'Meeting',
+			properties: {
+				title: { type: 'string', title: 'Title' },
+				scheduledDate: { type: 'string', title: 'Scheduled', format: 'date-time' },
+			},
+		}
+		const stored = '2026-10-15T14:30:00Z'
+		const wrapper = mount(CnFormDialog, {
+			propsData: { schema, item: { id: '1', title: 'M', scheduledDate: stored } },
+			stubs,
+		})
+		expect(wrapper.vm.formData.scheduledDate).toBe(stored)
+		// And the instant itself must survive, which is the property that
+		// actually matters to a reader of the record.
+		expect(new Date(wrapper.vm.formData.scheduledDate).toISOString())
+			.toBe(new Date(stored).toISOString())
+	})
+
+	it('leaves an already-canonical offset date-time untouched', () => {
+		// The same rule for a non-UTC offset: a value that already satisfies
+		// the format is not this pass's business, whatever zone it names.
+		const schema = {
+			title: 'Meeting',
+			properties: {
+				scheduledDate: { type: 'string', title: 'Scheduled', format: 'date-time' },
+			},
+		}
+		const stored = '2026-10-15T14:30:00+05:30'
+		const wrapper = mount(CnFormDialog, {
+			propsData: { schema, item: { id: '1', scheduledDate: stored } },
+			stubs,
+		})
+		expect(wrapper.vm.formData.scheduledDate).toBe(stored)
+	})
+
 	it('editing only the title does not reject a persisted date-time / uuid (no format error)', () => {
 		const schema = {
 			title: 'Decision',

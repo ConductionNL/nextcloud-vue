@@ -28,6 +28,7 @@ await store.run({ uuid, register, schema })  // queue a run against a subject
 | `catalogLoading` | Whether the catalogue request is in flight — an in-flight catalogue is NOT a failed one. |
 | `eventCatalog` | The triggers a flow may subscribe to. |
 | `runs` / `steps` | Recent runs, and the per-node steps of the run being inspected. |
+| `runObjects` | What the inspected run **touched**, grouped by node. Distinct from `steps`, which is what it *did*: a step that wrote nothing still has a step row, and an object written by an app a node called into has no step of its own. |
 | `checkResult` | The engine's verdict on the unsaved canvas, from `check()`. Cleared by any edit that could change it. |
 | `editingNodeId` | The node whose edit dialog (`CnFlowNodeEditModal`) is open, or null. |
 | `sidebarOpen` | Whether the controls sidebar shows. The re-open button lives on the canvas toolbar — the other half of the tree. |
@@ -46,6 +47,7 @@ await store.run({ uuid, register, schema })  // queue a run against a subject
 - `check()` — `POST /api/flow/validate`: the engine's own preflight over the **canvas**, without saving. A 400 still carries the preflight's report and is stored as the verdict, not treated as a transport failure.
 - `autoSort()` — longest-path layering from the start nodes, left-to-right. Coordinates change and nothing else, which is what makes it safe on a working flow. Unreachable nodes go one column past everything, never at the origin where they would hide under the entry points.
 - `seedStartNode()` — puts the one node every flow starts from onto a blank canvas.
+- `loadRunObjects(runUuid)` — `GET /api/flow-runs/{uuid}/objects`: the objects a run touched, grouped by the node that touched them. Called automatically by `inspectRun()`, so the steps and what they changed arrive together rather than behind a second click. A failure empties the list rather than leaving the previous run's objects on screen — stale rows here read as *this* run having touched them.
 - `setNodeName(id, name)` / `setNodeConfigById(id, config)` — the edit dialog's commit path: it edits a draft and writes it back for whichever node it was opened on, which is not necessarily the selected one.
 
 ## The catalogue is authoritative

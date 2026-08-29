@@ -1429,11 +1429,46 @@ export default {
 				if (field.widget !== 'date' && field.widget !== 'datetime') continue
 				const raw = this.formData[field.key]
 				if (raw === null || raw === undefined || raw === '') continue
+				// Leave a value that ALREADY satisfies the schema format alone.
+				//
+				// This pass exists for OpenRegister's persisted shape
+				// ('2026-10-15 14:30:00' — space-separated, no zone), which fails
+				// the `date-time` format on save. A value that arrives as valid
+				// RFC 3339 does not need it, and rewriting one CORRUPTS it:
+				// dateValueFor() reads the wall-clock digits and DISCARDS the
+				// offset (right for the local-time picker), then formatDateValue()
+				// stamps the LOCAL offset back on. In Europe/Amsterdam a stored
+				// '2026-10-15T14:30:00Z' came back as '2026-10-15T14:30:00+02:00'
+				// — the same digits, two hours earlier, silently, on an edit that
+				// never touched the field. It is schema-valid either way, so
+				// nothing downstream objects (nextcloud-vue#835).
+				if (this.isCanonicalDateValue(field.widget, raw)) continue
 				const date = this.dateValueFor(field)
 				if (date instanceof Date && !isNaN(date.getTime())) {
 					this.formData[field.key] = this.formatDateValue(field.widget, date)
 				}
 			}
+		},
+
+		/**
+		 * Whether a stored value is already in the shape this field submits.
+		 *
+		 * `date` wants a bare `YYYY-MM-DD`; `datetime` wants a full RFC 3339
+		 * timestamp carrying a zone (`Z` or `±hh:mm`), which is what
+		 * `formatDateValue` emits and what ajv-formats requires. Anything else
+		 * — notably OpenRegister's space-separated persisted form — still gets
+		 * normalised.
+		 *
+		 * @param {string} widget The field widget ('date' | 'datetime').
+		 * @param {*} raw The stored value.
+		 * @return {boolean} True when the value needs no rewrite.
+		 */
+		isCanonicalDateValue(widget, raw) {
+			if (typeof raw !== 'string') return false
+			if (widget === 'date') {
+				return /^\d{4}-\d{2}-\d{2}$/.test(raw)
+			}
+			return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(raw)
 		},
 
 		/**
