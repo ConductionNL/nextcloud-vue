@@ -221,7 +221,7 @@ export default {
 | `stats-rows` | Custom `<tr>` rows inside the stats table body |
 | `sections` | Additional content below the main content area |
 | `footer` | Footer content rendered below the body |
-| `widget-{widgetId}` | Widget slot in grid layout mode. Scope: `{ item, widget }` |
+| `widget-{widgetId}` | Widget slot in grid layout mode. Scope: `{ item, widget, objectId, object, objectData, objectType, register, schema }`. A `type: "custom"` widget is mounted by `CnPageRenderer` as `<component v-bind="slotProps" />`, so this scope *is* the widget's prop set — declare `objectId` (and any of the rest) on the component and it arrives. `objectId` comes from the route-fed prop, so it is set on the first render; `object` / `objectData` are `null` until the record's fetch resolves. |
 
 ## Integration props (AD-19)
 
