@@ -15,10 +15,7 @@
 			<span v-else-if="pagination && pagination.total > 0" class="cn-actions-bar__count">
 				{{ countText }}
 			</span>
-			<!--
-				@slot after-search
-				@description Refinement controls rendered beside the search field on the LEFT side of the bar (e.g. a filter menu button). Convention: the left side groups the VISUAL controls — "narrow/change what you see" (search, filters, view toggle) — the right cluster holds the ACT controls (add, overflow). The standalone sort select is a display control too but still renders on the right: legacy placement from before this split — apps increasingly fold sorting into their filter menu instead.
-			-->
+			<!-- @slot after-search Refinement controls rendered beside the search field on the LEFT side of the bar (e.g. a filter menu button). Convention: the left side groups the VISUAL controls — search, filters, view toggle — while the right cluster holds the ACT controls (add, overflow); the standalone sort select is a display control too but keeps its legacy right-side placement. -->
 			<slot name="after-search" />
 
 			<!-- View mode toggle (Cards / Table / List) — segmented control with
@@ -288,8 +285,7 @@
 				{{ t('nextcloud-vue', 'Delete selected') }}
 			</NcButton>
 			<!--
-				@slot selection-actions
-				@description The host app's bulk-action buttons (NcButton family), rendered inside the contextual selection strip that appears while a selection is active. This strip is the primary bulk-actions surface; #mass-actions remains available for hosts that ALSO want the actions listed in the overflow menu (optional — strip-only is fine).
+				@slot selection-actions The host app's bulk-action buttons (NcButton family), rendered inside the contextual selection strip that appears while a selection is active. This strip is the primary bulk-actions surface; #mass-actions remains available for hosts that ALSO want the actions listed in the overflow menu (optional — strip-only is fine).
 				@binding {number} count Length of the current selection.
 				@binding {Array<string|number>} selected-ids The selected row ids.
 			-->
@@ -301,10 +297,11 @@
 				@event clear-selection
 				@description User clicked the selection strip's Clear control. The host should empty its selection (CnIndexPage does this for you and re-emits `select` with an empty array).
 			-->
+			<!-- No aria-label: the visible "Clear selection" text IS the
+			     accessible name (review: an override here is redundant). -->
 			<NcButton
 				class="cn-actions-bar__selection-clear"
 				variant="tertiary"
-				:aria-label="t('nextcloud-vue', 'Clear selection')"
 				@click="$emit('clear-selection')">
 				<template #icon>
 					<Close :size="20" />
