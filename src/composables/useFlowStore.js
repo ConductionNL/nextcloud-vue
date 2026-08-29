@@ -32,6 +32,17 @@ import { generateUrl } from '@nextcloud/router'
  *
  * @return {object} The empty flow.
  */
+/**
+ * The fields that make up the pinned DEFINITION of a flow.
+ *
+ * Kept in step with `FlowDefinitionPin::PINNED_KEYS` on the server: these four
+ * are what a version's hash is taken over, so these four are what a published
+ * version refuses to have changed.
+ *
+ * @type {string[]}
+ */
+const GRAPH_FIELDS = ['nodes', 'edges', 'limits', 'executionMode']
+
 function emptyFlow() {
 	return {
 		name: '',
@@ -50,6 +61,12 @@ function emptyFlow() {
 		retentionDays: null,
 		auditEnabled: null,
 		oversightEnabled: null,
+
+		// A new flow is a DRAFT. Nothing runs it until it is published, which
+		// is the point: an author builds a graph over several sittings and a
+		// half-wired process must not be firing on object writes in between.
+		version: 1,
+		lifecycleStatus: 'draft',
 	}
 }
 
@@ -96,6 +113,20 @@ export const useFlowStore = defineStore('cnFlow', {
 		// the tree.
 		sidebarOpen: true,
 
+		// Every version of the open flow, newest first.
+		versions: [],
+
+		// The server's last lifecycle refusal, as `{reason, lifecycleStatus}`.
+		//
+		// 🔑 KEPT AS THE SERVER'S FIELDS, not as a rendered sentence. "this
+		// version is published, create a draft" and "this flow has no published
+		// version, publish one" want opposite buttons, and choosing between
+		// them by matching on message text is how a UI offers the wrong one.
+		lifecycleRefusal: null,
+
+		// Whether a lifecycle transition is in flight.
+		transitioning: false,
+
 		// The node types the engine can actually execute. The catalogue is
 		// AUTHORITATIVE: a builder that invents its own ids produces flows the
 		// engine cannot run, which is exactly the defect this replaces.
@@ -136,6 +167,44 @@ export const useFlowStore = defineStore('cnFlow', {
 	getters: {
 		nodes: (state) => state.flow.nodes || [],
 		edges: (state) => state.flow.edges || [],
+
+		/**
+		 * @param {object} state The store state.
+		 * @return {string} The open flow's lifecycle status.
+		 */
+		lifecycleStatus: (state) => state.flow.lifecycleStatus || 'draft',
+
+		/**
+		 * @param {object} state The store state.
+		 * @return {number} The open flow's version number.
+		 */
+		flowVersion: (state) => Number(state.flow.version || 1),
+
+		/**
+		 * @param {object} state The store state.
+		 * @return {boolean} Whether the open flow is a draft.
+		 */
+		isDraft: (state) => (state.flow.lifecycleStatus || 'draft') === 'draft',
+
+		/**
+		 * @param {object} state The store state.
+		 * @return {boolean} Whether the open flow is published.
+		 */
+		isPublished: (state) => state.flow.lifecycleStatus === 'published',
+
+		/**
+		 * Whether the GRAPH may not be edited.
+		 *
+		 * 🔴 THE GRAPH, NOT THE FLOW. A published version's nodes and edges are
+		 * immutable, but its name, description and enabled flag are not —
+		 * renaming a live process or switching it off are not changes to the
+		 * process. The server draws the line in exactly the same place, so an
+		 * editor that locked everything would refuse edits the API accepts.
+		 *
+		 * @param {object} state The store state.
+		 * @return {boolean} Whether graph edits are locked.
+		 */
+		graphLocked: (state) => ['published', 'deprecated'].includes(state.flow.lifecycleStatus),
 
 		/**
 		 * Whether there is anything to undo. Drives the toolbar's disabled state.
@@ -480,6 +549,11 @@ export const useFlowStore = defineStore('cnFlow', {
 		open(id, app = null) {
 			this.selectedNodeId = null
 			this.editingNodeId = null
+			// Cleared with the rest of the per-flow state. A refusal left over
+			// from the last flow would tell the author their NEW draft is
+			// published and offer to draft it again.
+			this.lifecycleRefusal = null
+			this.versions = []
 			this.runs = []
 			this.steps = []
 			this.runObjects = []
@@ -592,9 +666,43 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * lot of small edits. 50 is far past what anyone reaches for and still
 		 * bounded.
 		 *
-		 * @return {void}
+		 * 🔴 IT ALSO ANSWERS WHETHER THE EDIT MAY HAPPEN AT ALL. Every graph
+		 * mutation snapshots here first, which makes this the one place the
+		 * published-is-immutable rule can be applied without nine call sites
+		 * each remembering to. A locked flow gets `false` and the caller
+		 * returns before touching the document — the alternative, letting the
+		 * canvas edit freely and discovering the refusal on save, loses the
+		 * author's work at the worst possible moment.
+		 *
+		 * @return {boolean} Whether the caller may proceed with its edit.
 		 */
 		pushUndo() {
+			if (this.graphLocked) {
+				this.lifecycleRefusal = {
+					reason: 'version-immutable',
+					lifecycleStatus: this.lifecycleStatus,
+				}
+				return false
+			}
+
+			this.snapshot()
+
+			return true
+		},
+
+		/**
+		 * Push one undo entry, and keep the stack capped.
+		 *
+		 * 🔴 THE ONLY PLACE THAT PUSHES. Metadata edits are exempt from the
+		 * published-is-immutable lock but still want undo, and the first version
+		 * of that exemption pushed to `undoStack` directly — bypassing the trim
+		 * and letting the stack grow past its cap (caught at 60/50 by
+		 * `useFlowStoreUndo.spec.js`). A cap enforced in two places is a cap
+		 * enforced in one of them.
+		 *
+		 * @return {void}
+		 */
+		snapshot() {
 			this.undoStack.push(JSON.stringify(this.flow))
 			if (this.undoStack.length > 50) {
 				this.undoStack.shift()
@@ -644,7 +752,9 @@ export const useFlowStore = defineStore('cnFlow', {
 		},
 
 		addNode(type, x = null, y = null) {
-			this.pushUndo()
+			if (!this.pushUndo()) {
+				return
+			}
 
 			const index = this.nodes.length
 			const node = {
@@ -707,7 +817,13 @@ export const useFlowStore = defineStore('cnFlow', {
 				return null
 			}
 
-			this.pushUndo()
+			// `null`, matching the not-found case above: this method's contract
+			// is "the new node's id, or null when nothing was copied", and a
+			// bare `return` would hand callers `undefined` for one refusal and
+			// `null` for the other.
+			if (!this.pushUndo()) {
+				return null
+			}
 
 			const copy = {
 				...source,
@@ -729,7 +845,9 @@ export const useFlowStore = defineStore('cnFlow', {
 		},
 
 		moveNode({ id, x, y }) {
-			this.pushUndo()
+			if (!this.pushUndo()) {
+				return
+			}
 
 			this.flow.nodes = this.nodes.map(
 				(node) => (node.id === id ? { ...node, x, y, position: { x, y } } : node),
@@ -764,7 +882,9 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @return {void}
 		 */
 		connect({ source, target }) {
-			this.pushUndo()
+			if (!this.pushUndo()) {
+				return
+			}
 
 			if (!source || !target || source === target) {
 				return
@@ -843,7 +963,9 @@ export const useFlowStore = defineStore('cnFlow', {
 				return
 			}
 
-			this.pushUndo()
+			if (!this.pushUndo()) {
+				return
+			}
 
 			const targets = found.targets.filter((id) => id !== target)
 			const sources = found.sources.length > 1 ? found.sources.filter((id) => id !== source) : found.sources
@@ -890,7 +1012,9 @@ export const useFlowStore = defineStore('cnFlow', {
 				return
 			}
 
-			this.pushUndo()
+			if (!this.pushUndo()) {
+				return
+			}
 
 			const edges = [...this.edges]
 			const drawsOneLine = found.sources.length === 1 && found.targets.length === 1
@@ -957,7 +1081,9 @@ export const useFlowStore = defineStore('cnFlow', {
 		},
 
 		removeNode(id) {
-			this.pushUndo()
+			if (!this.pushUndo()) {
+				return
+			}
 
 			this.flow.nodes = this.nodes.filter((node) => node.id !== id)
 			// BOTH spellings, or removing a node leaves its `from`/`to` edges
@@ -989,7 +1115,9 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @return {void}
 		 */
 		setNodeConfigAll(config) {
-			this.pushUndo()
+			if (!this.pushUndo()) {
+				return
+			}
 
 			if (this.selectedNodeId === null) {
 				return
@@ -1003,7 +1131,9 @@ export const useFlowStore = defineStore('cnFlow', {
 		},
 
 		setNodeConfig(key, value) {
-			this.pushUndo()
+			if (!this.pushUndo()) {
+				return
+			}
 
 			if (this.selectedNodeId === null) {
 				return
@@ -1019,7 +1149,19 @@ export const useFlowStore = defineStore('cnFlow', {
 		},
 
 		setFlowField(key, value) {
-			this.pushUndo()
+			// 🔴 THE LOCK APPLIES TO THE FOUR GRAPH KEYS AND NO OTHERS, exactly
+			// where the server draws the line. `executionMode` and `limits` are
+			// part of the pinned definition; `name`, `description` and `enabled`
+			// are not — renaming a live process or switching it off are not
+			// changes to the process. Locking those too would refuse edits the
+			// API accepts and leave a published flow unmanageable.
+			if (GRAPH_FIELDS.includes(key)) {
+				if (!this.pushUndo()) {
+					return
+				}
+			} else {
+				this.snapshot()
+			}
 
 			this.flow = { ...this.flow, [key]: value }
 			this.dirty = true
@@ -1034,7 +1176,9 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @return {void}
 		 */
 		setNodeName(id, name) {
-			this.pushUndo()
+			if (!this.pushUndo()) {
+				return
+			}
 
 			this.flow.nodes = this.nodes.map((node) => (
 				node.id === id ? { ...node, name } : node
@@ -1053,7 +1197,9 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @return {void}
 		 */
 		setNodeConfigById(id, config) {
-			this.pushUndo()
+			if (!this.pushUndo()) {
+				return
+			}
 
 			this.flow.nodes = this.nodes.map((node) => (
 				node.id === id ? { ...node, config: { ...config } } : node
@@ -1094,7 +1240,9 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @return {void}
 		 */
 		autoSort() {
-			this.pushUndo()
+			if (!this.pushUndo()) {
+				return
+			}
 
 			const nodes = this.nodes
 			if (!nodes.length) {
@@ -1224,12 +1372,135 @@ export const useFlowStore = defineStore('cnFlow', {
 				this.dirty = false
 				return saved
 			} catch (error) {
+				// A 409 is not a failure to save; it is the flow's STATE saying
+				// this edit needs a draft first. Kept as the server's fields so
+				// the sidebar can offer "create a draft version" rather than a
+				// generic error nobody can act on.
+				if (error?.response?.status === 409) {
+					this.lifecycleRefusal = {
+						reason: error.response.data?.reason || 'version-immutable',
+						lifecycleStatus: error.response.data?.lifecycleStatus || null,
+					}
+					return null
+				}
+
 				console.error('cn-flow: could not save the flow', error)
 				this.error = error
 				return null
 			} finally {
 				this.saving = false
 			}
+		},
+
+		/**
+		 * Publish the open flow's draft, so it backs new runs.
+		 *
+		 * Runs already in flight are untouched: they are pinned to the version
+		 * they started on, which is the whole point of publishing being an
+		 * event rather than a save.
+		 *
+		 * @return {Promise<object|null>} The published version, or null.
+		 */
+		async publish() {
+			return await this.transition('publish')
+		},
+
+		/**
+		 * Create a draft version from the published one.
+		 *
+		 * The published version keeps serving until the draft is published, so
+		 * editing a live process never takes it offline.
+		 *
+		 * @return {Promise<object|null>} The new draft version, or null.
+		 */
+		async createDraft() {
+			return await this.transition('draft')
+		},
+
+		/**
+		 * Retire the published version, so the flow backs no new runs.
+		 *
+		 * @return {Promise<object|null>} The deprecated version, or null.
+		 */
+		async deprecate() {
+			return await this.transition('deprecate')
+		},
+
+		/**
+		 * POST one lifecycle transition and reload the flow it changed.
+		 *
+		 * 🔑 THE RELOAD IS NOT OPTIONAL. A transition changes `version` and
+		 * `lifecycleStatus`, and those decide whether the canvas is editable.
+		 * Leaving the client's copy stale would show an author an editable
+		 * canvas over a version the server will refuse to write.
+		 *
+		 * @param {string} action `publish`, `draft` or `deprecate`.
+		 * @return {Promise<object|null>} The resulting version, or null.
+		 */
+		async transition(action) {
+			if (!this.flow.id) {
+				this.error = new Error('Save the flow before changing its lifecycle.')
+				return null
+			}
+
+			this.transitioning = true
+			this.lifecycleRefusal = null
+
+			try {
+				const response = await axios.post(
+					generateUrl(`/apps/openregister/api/flows/${this.flow.id}/${action}`),
+				)
+
+				// RELOAD THE LIST FIRST. `open()` reads from `this.flows`, not
+				// from the server, so opening without reloading would restore
+				// the pre-transition copy and show a published flow as still a
+				// draft — with an editable canvas over it.
+				const id = this.flow.id
+				const app = this.flow.app
+				await this.load({ app })
+				this.open(id, app)
+				await this.loadVersions()
+
+				return response.data || null
+			} catch (error) {
+				if (error?.response?.status === 409) {
+					this.lifecycleRefusal = {
+						reason: error.response.data?.reason || null,
+						lifecycleStatus: error.response.data?.lifecycleStatus || null,
+					}
+					return null
+				}
+
+				console.error(`cn-flow: could not ${action} the flow`, error)
+				this.error = error
+				return null
+			} finally {
+				this.transitioning = false
+			}
+		},
+
+		/**
+		 * Load every version of the open flow, newest first.
+		 *
+		 * @return {Promise<Array>} The versions.
+		 */
+		async loadVersions() {
+			if (!this.flow.id) {
+				this.versions = []
+				return this.versions
+			}
+
+			try {
+				const response = await axios.get(
+					generateUrl(`/apps/openregister/api/flows/${this.flow.id}/versions`),
+				)
+				this.versions = response.data?.results || []
+			} catch (error) {
+				console.error('cn-flow: could not read the flow versions', error)
+				this.versions = []
+			}
+
+			return this.versions
 		},
 
 		async remove(id) {

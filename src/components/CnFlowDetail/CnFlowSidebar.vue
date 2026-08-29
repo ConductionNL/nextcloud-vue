@@ -64,6 +64,68 @@
 				{{ errorText }}
 			</NcNoteCard>
 
+			<!--
+				The lifecycle refusal, and the action that resolves it.
+
+				🔴 A SEPARATE CARD FROM `store.error`, deliberately. A refusal is
+				not a failure: the request was fine and the flow's STATE declined
+				it, which the author fixes by creating a draft — not by retrying.
+				Rendering it as an error would offer the wrong remedy.
+			-->
+			<NcNoteCard v-if="store.lifecycleRefusal" type="warning" class="cn-flow-sidebar__failure">
+				{{ refusalText }}
+				<NcButton v-if="store.lifecycleRefusal.reason === 'version-immutable'"
+					variant="primary"
+					:disabled="store.transitioning"
+					@click="store.createDraft()">
+					{{ t('nextcloud-vue', 'Create draft version') }}
+				</NcButton>
+			</NcNoteCard>
+
+			<section class="cn-flow-sidebar__section cn-flow-sidebar__lifecycle">
+				<h4>{{ t('nextcloud-vue', 'Version') }}</h4>
+				<p class="cn-flow-sidebar__version">
+					<span class="cn-flow-sidebar__version-number"
+						data-testid="flow-version">v{{ store.flowVersion }}</span>
+					<span class="cn-flow-sidebar__badge"
+						:class="`cn-flow-sidebar__badge--${store.lifecycleStatus}`"
+						data-testid="flow-lifecycle">{{ lifecycleLabel }}</span>
+				</p>
+
+				<!--
+					Why the canvas will not accept edits, stated BEFORE the author
+					tries. Discovering immutability by dragging a node and watching
+					nothing happen reads as a broken editor.
+				-->
+				<p v-if="store.graphLocked" class="cn-flow-sidebar__hint">
+					{{ t('nextcloud-vue', 'This version is read-only. Create a draft to change its steps; the published version keeps running until you publish the draft.') }}
+				</p>
+
+				<div class="cn-flow-sidebar__actions">
+					<NcButton v-if="store.isDraft"
+						variant="primary"
+						:disabled="store.transitioning || !store.flow.id"
+						data-testid="flow-publish"
+						@click="store.publish()">
+						{{ t('nextcloud-vue', 'Publish') }}
+					</NcButton>
+					<NcButton v-if="store.graphLocked"
+						variant="primary"
+						:disabled="store.transitioning"
+						data-testid="flow-create-draft"
+						@click="store.createDraft()">
+						{{ t('nextcloud-vue', 'Create draft version') }}
+					</NcButton>
+					<NcButton v-if="store.isPublished"
+						variant="tertiary"
+						:disabled="store.transitioning"
+						data-testid="flow-deprecate"
+						@click="store.deprecate()">
+						{{ t('nextcloud-vue', 'Deprecate') }}
+					</NcButton>
+				</div>
+			</section>
+
 			<section v-if="store.selectedNode" class="cn-flow-sidebar__section">
 				<h4>{{ t('nextcloud-vue', 'Selected step') }}</h4>
 				<p class="cn-flow-sidebar__selected-name">
@@ -502,6 +564,45 @@ export default {
 		},
 
 		/**
+		 * The lifecycle status, in the author's language.
+		 *
+		 * @return {string} The label.
+		 */
+		lifecycleLabel() {
+			const labels = {
+				draft: this.t('nextcloud-vue', 'Draft'),
+				published: this.t('nextcloud-vue', 'Published'),
+				deprecated: this.t('nextcloud-vue', 'Deprecated'),
+			}
+
+			return labels[this.store.lifecycleStatus] || this.store.lifecycleStatus
+		},
+
+		/**
+		 * What the server refused, and what to do about it.
+		 *
+		 * 🔑 SWITCHED ON THE `reason` FIELD, never on the message text. The two
+		 * refusals an author meets want opposite actions — one needs a draft
+		 * created, the other needs a version published — and matching on English
+		 * prose is how a UI offers the wrong one.
+		 *
+		 * @return {string} The message.
+		 */
+		refusalText() {
+			const reason = this.store.lifecycleRefusal?.reason
+			const messages = {
+				'version-immutable': this.t('nextcloud-vue', 'This version is published and cannot be changed. Create a draft to make changes; the published version keeps running until you publish the draft.'),
+				'not-a-draft': this.t('nextcloud-vue', 'Only a draft version can be published.'),
+				'not-published': this.t('nextcloud-vue', 'Only a published version can be deprecated.'),
+				'no-published-version': this.t('nextcloud-vue', 'This flow has no published version, so it cannot run. Publish a version first.'),
+				'dead-end': this.t('nextcloud-vue', 'This version cannot be published while a step has nowhere to send its work.'),
+				'version-in-use': this.t('nextcloud-vue', 'This version cannot be removed while a run is still using it.'),
+			}
+
+			return messages[reason] || this.t('nextcloud-vue', 'That change was refused by the flow\'s current state.')
+		},
+
+		/**
 		 * @return {Array<object>} The trigger options, from the event catalogue.
 		 */
 		triggerOptions() {
@@ -594,6 +695,44 @@ export default {
 	flex-direction: column;
 	gap: 20px;
 	padding: 8px 12px;
+}
+
+.cn-flow-sidebar__version {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0 0 8px;
+}
+
+.cn-flow-sidebar__version-number {
+	font-weight: bold;
+}
+
+.cn-flow-sidebar__badge {
+	border-radius: var(--border-radius-pill, 100px);
+	padding: 2px 10px;
+	font-size: 0.85em;
+	/* Tokens, never literals: the badge has to stay legible in the dark theme
+	   and under the high-contrast accessibility setting, and a hardcoded pair
+	   fails both. */
+	background-color: var(--color-background-dark);
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-flow-sidebar__badge--published {
+	background-color: var(--color-success, var(--color-primary-element));
+	color: var(--color-primary-element-text, #fff);
+}
+
+.cn-flow-sidebar__badge--deprecated {
+	background-color: var(--color-warning, var(--color-background-dark));
+	color: var(--color-main-text);
+}
+
+.cn-flow-sidebar__hint {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+	margin: 0 0 8px;
 }
 
 .cn-flow-sidebar__section {
