@@ -15,10 +15,14 @@
 			<span v-else-if="pagination && pagination.total > 0" class="cn-actions-bar__count">
 				{{ countText }}
 			</span>
-		</div>
-		<div class="cn-actions-bar__actions">
+			<!-- @slot after-search Refinement controls rendered beside the search field on the LEFT side of the bar (e.g. a filter menu button). Convention: the left side groups the VISUAL controls — search, filters, view toggle — while the right cluster holds the ACT controls (add, overflow); the standalone sort select is a display control too but keeps its legacy right-side placement. -->
+			<slot name="after-search" />
+
 			<!-- View mode toggle (Cards / Table / List) — segmented control with
-			     a sliding thumb that animates between the N segments. -->
+			     a sliding thumb that animates between the N segments. Lives in
+			     the LEFT info group: switching view is a visual control like
+			     search and filters, it adds nothing — so it groups with them at
+			     every width instead of riding with the act buttons. -->
 			<div v-if="showViewToggle && viewSegments.length > 1"
 				class="cn-actions-bar__view-toggle"
 				role="group"
@@ -54,7 +58,8 @@
 					<span class="cn-actions-bar__view-toggle-label">{{ seg.label }}</span>
 				</button>
 			</div>
-
+		</div>
+		<div class="cn-actions-bar__actions">
 			<!-- Sort select (opt-in). A standalone sort control for card/list
 			     views, which — unlike the table — have no sortable column
 			     headers. A leading sort icon replaces a visible "Sort by"
@@ -237,6 +242,73 @@
 				<slot name="mass-actions" :count="selectedIds.length" :selected-ids="selectedIds" />
 			</NcActions>
 		</div>
+
+		<!-- Always-present live region for the selection count (WCAG 2.1
+		     SC 4.1.3 Status Messages): a `role="status"` element must exist
+		     BEFORE its content changes for assistive tech to announce it, so
+		     it cannot live inside the v-if'd strip below. -->
+		<span class="cn-actions-bar__sr-status" role="status">
+			{{ selectable && selectedIds.length > 0 ? selectionCountText : '' }}
+		</span>
+
+		<!-- Contextual selection strip (the Proton Pass / Gmail / Files
+		     pattern): appears while a selection is active, carrying the
+		     visible count, the built-in selection-scoped mass actions, the
+		     host's own bulk buttons (#selection-actions) and a Clear control.
+		     This strip is the discoverable surface for bulk actions; the
+		     BUILT-IN Copy/Delete-selected also stay listed in the overflow
+		     menu above, while a host decides for its own actions (strip-only
+		     is fine — keepiq does exactly that). -->
+		<div
+			v-if="selectable && selectedIds.length > 0"
+			class="cn-actions-bar__selection"
+			data-testid="cn-selection-strip">
+			<span class="cn-actions-bar__selection-count" aria-hidden="true">
+				{{ selectionCountText }}
+			</span>
+			<NcButton
+				v-if="showMassCopy"
+				variant="secondary"
+				@click="$emit('show-copy')">
+				<template #icon>
+					<ContentCopy :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Copy selected') }}
+			</NcButton>
+			<NcButton
+				v-if="showMassDelete"
+				variant="secondary"
+				@click="$emit('show-delete')">
+				<template #icon>
+					<TrashCanOutline :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Delete selected') }}
+			</NcButton>
+			<!--
+				@slot selection-actions The host app's bulk-action buttons (NcButton family), rendered inside the contextual selection strip that appears while a selection is active. This strip is the primary bulk-actions surface; #mass-actions remains available for hosts that ALSO want the actions listed in the overflow menu (optional — strip-only is fine).
+				@binding {number} count Length of the current selection.
+				@binding {Array<string|number>} selected-ids The selected row ids.
+			-->
+			<slot
+				name="selection-actions"
+				:count="selectedIds.length"
+				:selected-ids="selectedIds" />
+			<!--
+				@event clear-selection
+				@description User clicked the selection strip's Clear control. The host should empty its selection (CnIndexPage does this for you and re-emits `select` with an empty array).
+			-->
+			<!-- No aria-label: the visible "Clear selection" text IS the
+			     accessible name (review: an override here is redundant). -->
+			<NcButton
+				class="cn-actions-bar__selection-clear"
+				variant="tertiary"
+				@click="$emit('clear-selection')">
+				<template #icon>
+					<Close :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Clear selection') }}
+			</NcButton>
+		</div>
 	</div>
 </template>
 
@@ -245,6 +317,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActions, NcActionSeparator, NcButton, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Export from 'vue-material-design-icons/Export.vue'
 import FormatListBulletedSquare from 'vue-material-design-icons/FormatListBulletedSquare.vue'
@@ -288,6 +361,7 @@ export default {
 		CnIcon,
 		SortVariant,
 		BookOpenVariantOutline,
+		Close,
 		Plus,
 		Refresh,
 		ContentCopy,
@@ -575,6 +649,7 @@ export default {
 
 	emits: [
 		'add',
+		'clear-selection',
 		'header-action',
 		'refresh',
 		'search',
@@ -599,6 +674,17 @@ export default {
 		 */
 		actionsMenuName() {
 			return t('nextcloud-vue', 'Actions')
+		},
+
+		/**
+		 * The selection strip's count text — also fed to the always-present
+		 * `role="status"` live region (WCAG 2.1 SC 4.1.3), so assistive tech
+		 * announces selection changes without focus moving.
+		 *
+		 * @return {string}
+		 */
+		selectionCountText() {
+			return t('nextcloud-vue', '{count} selected', { count: this.selectedIds.length })
 		},
 
 		/**
@@ -772,6 +858,10 @@ export default {
 			 * @event toggle-sidebar User clicked the Search/Columns sidebar toggle. No payload.
 			 */
 			this.$emit('toggle-sidebar')
+			/**
+			 * @event clear-selection User clicked the selection strip's Clear control. No payload — the host should empty its selection (CnIndexPage does this and re-emits `select` with an empty array).
+			 */
+			this.$emit('clear-selection')
 		},
 	},
 }

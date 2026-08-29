@@ -120,7 +120,7 @@ function cssAttrEscape(value) {
  * @param {Function} [opts.client] - axios-like client injection for tests.
  * @param {Document|object} [opts.doc] - document injection for tests / SSR safety.
  * @param {Function} [opts.warn] - console.warn injection for tests.
- * @param {string} [opts.appSlug] - nldesign's own Nextcloud app id (URL-building only). Default `'nldesign'`.
+ * @param {string} [opts.appSlug] - Pin the theme app's Nextcloud id (URL-building only). Omitted, the id is resolved across `nldesign` and `thematiq` — see the note in the body.
  * @return {{apply: Function, teardown: Function, fetchTokenCss: Function, listTokenSets: Function, evaluateContrast: Function}}
  * @spec openspec/changes/scoped-theme-applier/specs/scoped-theme-applier/spec.md#req-sta-1
  * @spec openspec/changes/scoped-theme-applier/specs/scoped-theme-applier/spec.md#req-sta-2
@@ -129,7 +129,74 @@ export function useScopedTheme(opts = {}) {
 	const client = opts.client || axios
 	const doc = opts.doc || (typeof document !== 'undefined' ? document : null)
 	const warn = opts.warn || ((m) => { try { console.warn(m) } catch { /* noop */ } })
-	const appSlug = opts.appSlug || 'nldesign'
+	/*
+	 * The theme app's Nextcloud id is RENAMING (`nldesign` -> `thematiq`), and
+	 * the two ids will be live at the same time: an instance running the
+	 * published stable release answers on `nldesign`, one running a newer build
+	 * answers on `thematiq`. Every URL below is built from that id, so pinning
+	 * either one makes this composable fetch nothing on half the fleet — and it
+	 * fails SILENTLY, because every path here degrades to default styling by
+	 * design (REQ-STA-1). No error, no log, just an unthemed app.
+	 *
+	 * So the id is RESOLVED, not assumed: try each candidate until one answers,
+	 * then remember it for the rest of the session. `nldesign` goes first
+	 * because it is what is deployed today, which keeps the common case at one
+	 * request; the order stops mattering once `resolvedSlug` is set.
+	 *
+	 * An explicit `opts.appSlug` still wins outright — callers that know the id
+	 * (and the tests) keep the old exact-slug contract.
+	 *
+	 * Note this is the APP id only. `theme.source === 'nldesign'` below is the
+	 * DESIGN-SYSTEM id, an external Dutch-government standard that is not
+	 * renaming and must not be touched.
+	 */
+	const slugCandidates = opts.appSlug ? [opts.appSlug] : ['nldesign', 'thematiq']
+	let resolvedSlug = null
+
+	/**
+	 * Whether a response body is the app actually answering, rather than
+	 * Nextcloud's fallback for a route that does not exist.
+	 *
+	 * Status alone cannot decide this: Nextcloud serves HTML (a login or error
+	 * page) with a 200 in several situations, and a token stylesheet that is
+	 * really a login page would be injected as CSS and style nothing.
+	 *
+	 * @param {*} body - the response body.
+	 * @return {boolean} True when the body is not an HTML document.
+	 */
+	function looksLikeApp(body) {
+		if (typeof body !== 'string') {
+			return true
+		}
+		return !/^\s*(<!doctype html|<html[\s>])/i.test(body)
+	}
+
+	/**
+	 * Run a request against each candidate app id until one answers.
+	 *
+	 * @param {Function} attempt - `(slug) => Promise<*>`, resolving to the body.
+	 * @return {Promise<*>} The first usable body.
+	 * @throws {Error} When no candidate answers, so callers keep degrading as before.
+	 */
+	async function withResolvedSlug(attempt) {
+		const order = resolvedSlug
+			? [resolvedSlug, ...slugCandidates.filter((s) => s !== resolvedSlug)]
+			: slugCandidates
+		let lastError = null
+		for (const slug of order) {
+			try {
+				const body = await attempt(slug)
+				if (!looksLikeApp(body)) {
+					continue
+				}
+				resolvedSlug = slug
+				return body
+			} catch (e) {
+				lastError = e
+			}
+		}
+		throw lastError || new Error('no theme app answered')
+	}
 
 	/**
 	 * Fetch the raw token CSS for a set (session-cached).
@@ -143,8 +210,11 @@ export function useScopedTheme(opts = {}) {
 			return cssCache.get(tokenSet)
 		}
 		try {
-			const url = generateFilePath(appSlug, 'css', `tokens/${tokenSet}.css`)
-			const { data } = await client.get(url, { responseType: 'text' })
+			const data = await withResolvedSlug(async (slug) => {
+				const url = generateFilePath(slug, 'css', `tokens/${tokenSet}.css`)
+				const res = await client.get(url, { responseType: 'text' })
+				return res.data
+			})
 			const css = typeof data === 'string' ? data : String(data || '')
 			cssCache.set(tokenSet, css)
 			return css
@@ -221,8 +291,15 @@ export function useScopedTheme(opts = {}) {
 	 */
 	async function listTokenSets() {
 		try {
-			const url = generateUrl(`/apps/${appSlug}/api/token-sets`)
-			const { data } = await client.get(url)
+			const data = await withResolvedSlug(async (slug) => {
+				const res = await client.get(generateUrl(`/apps/${slug}/api/token-sets`))
+				// A body without `tokenSets` is not this app answering; let the
+				// next candidate try rather than caching an empty catalogue.
+				if (!res.data || !Array.isArray(res.data.tokenSets)) {
+					throw new Error('not a token-set response')
+				}
+				return res.data
+			})
 			const tokenSets = data && Array.isArray(data.tokenSets) ? data.tokenSets : null
 			return tokenSets || []
 		} catch {
@@ -246,8 +323,16 @@ export function useScopedTheme(opts = {}) {
 	 */
 	async function evaluateContrast(candidates, background) {
 		try {
-			const url = generateUrl(`/apps/${appSlug}/api/contrast/evaluate`)
-			const { data } = await client.post(url, { candidates, background })
+			const data = await withResolvedSlug(async (slug) => {
+				const url = generateUrl(`/apps/${slug}/api/contrast/evaluate`)
+				const res = await client.post(url, { candidates, background })
+				// Same reasoning as listTokenSets: a body without `results` is
+				// not this app, so try the other id before giving up.
+				if (!res.data || !Array.isArray(res.data.results)) {
+					throw new Error('not a contrast response')
+				}
+				return res.data
+			})
 			const results = data && Array.isArray(data.results) ? data.results : null
 			return results === null ? null : results
 		} catch {

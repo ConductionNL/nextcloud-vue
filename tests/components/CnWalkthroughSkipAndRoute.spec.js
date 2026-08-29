@@ -75,68 +75,63 @@ describe('CnWalkthrough — skip + route-gated auto-start', () => {
 })
 
 /**
- * A centered welcome step is a card in the middle of the screen. It highlights
- * no element, so "is the user on the right page?" is not a question about it —
- * and answering it anyway is what stopped the tour opening at all.
+ * A CENTERED first step is not page-anchored, whatever it targets.
+ *
+ * `placement: 'center'` renders a card in the middle of the screen and
+ * spotlights nothing — `locateTarget()` returns early on `isCentered` and never
+ * resolves the target. Gating auto-start on that step's route therefore asks
+ * the user to stand somewhere the step will not point at, and the tour is
+ * parked in `_pendingAutoTour` instead of opening.
+ *
+ * Measured 2026-08-27, one instance, same user, empty seen-state: opencatalogi
+ * anchored its centered welcome to `Catalogs` and pipelinq to `Products`, so
+ * neither tour appeared on the landing page; dossiq anchored to `Dashboard` and
+ * worked. 19 of 20 fleet manifests declare a walkthrough.
  */
-describe('CnWalkthrough — a centered welcome step is never route-gated', () => {
+const centeredSteps = [
+	{ id: 'welcome', sinceVersion: '1.0.0', title: 'Welcome', body: 'Hi', placement: 'center', target: { kind: 'page', ref: 'Products' }, advanceOn: { type: 'manual' } },
+	{ id: 'next', sinceVersion: '1.0.0', title: 'Next', target: { kind: 'page', ref: 'Products' }, advanceOn: { type: 'manual' } },
+]
+
+function centeredManifest() {
+	return { version: '1.0.0', walkthrough: { enabled: true, version: 1, tours: [{ id: 'getting-started', trigger: 'first-visit', steps: centeredSteps }] } }
+}
+
+describe('CnWalkthrough — a centered first step does not gate on a route', () => {
 	beforeEach(() => __resetWalkthroughCacheForTests())
 
-	const centeredManifest = (ref) => ({
-		version: '1.0.0',
-		walkthrough: {
-			enabled: true,
-			version: 1,
-			tours: [{
-				id: 'getting-started',
-				trigger: 'first-visit',
-				steps: [
-					{ id: 'welcome', sinceVersion: '1.0.0', placement: 'center', title: 'Welcome', body: 'Hi', target: { kind: 'page', ref }, advanceOn: { type: 'manual' } },
-					{ id: 'next', sinceVersion: '1.0.0', title: 'Next', target: { kind: 'page', ref }, advanceOn: { type: 'manual' } },
-				],
-			}],
-		},
-	})
-
-	// The exact shape of the fleet defect: welcome anchored to `Catalogs`, user
-	// lands on `Home`. Before the fix this parked in _pendingAutoTour forever.
-	it('opens on the landing route even when anchored to a different page', async () => {
+	it('auto-opens on an UNRELATED route when the first step is centered', async () => {
 		const router = fakeRouter()
 		const w = mount(CnWalkthrough, {
-			propsData: { appId: 'centered-app', manifest: centeredManifest('Catalogs') },
-			mocks: { $router: router, $route: { name: 'Home', params: {} } },
+			propsData: { appId: 'centered-app', manifest: centeredManifest() },
+			mocks: { $router: router, $route: { name: 'Dashboard', params: {} } },
 		})
 		await w.vm.$nextTick()
+		// Landing route is `Dashboard`; the centered welcome names `Products`.
+		// It spotlights nothing, so it must still open here.
 		expect(w.vm.active).toBe(true)
 		expect(w.vm.step.id).toBe('welcome')
 		expect(w.vm._pendingAutoTour).toBeFalsy()
 	})
 
-	it('opens on a deep-linked route too — a welcome card has no wrong screen', async () => {
-		const router = fakeRouter()
-		const w = mount(CnWalkthrough, {
-			propsData: { appId: 'centered-app-2', manifest: centeredManifest('Catalogs') },
-			mocks: { $router: router, $route: { name: 'SomeDetail', params: {} } },
-		})
+	it('firstStepPage() returns null for a centered first step', async () => {
+		const w = mount(CnWalkthrough, { propsData: { appId: 'centered-app-2', manifest: centeredManifest() } })
 		await w.vm.$nextTick()
-		expect(w.vm.active).toBe(true)
+		expect(w.vm.firstStepPage({ steps: centeredSteps })).toBeNull()
 	})
 
-	it('reports no first-step page for a centered step, whatever it is anchored to', () => {
-		const w = mount(CnWalkthrough, { propsData: { appId: 'centered-app-3', manifest: centeredManifest('Catalogs') } })
-		const tour = w.vm.manifest.walkthrough.tours[0]
-		expect(w.vm.firstStepPage(tour)).toBeNull()
-		expect(w.vm.routeMatchesTour(tour, 'AnyRouteAtAll')).toBe(true)
-		expect(w.vm.routeMatchesTour(tour, undefined)).toBe(true)
-	})
-
-	// The control. ADR-062's actual purpose — not popping a spotlight over the
-	// wrong screen — has to survive the fix, or this "fix" is just a revert.
-	it('still gates a first step that genuinely spotlights an element', async () => {
+	it('CONTROL: the same target WITHOUT placement:center still defers off-route', async () => {
+		// Identical tour, one property removed. If this also auto-opened, the
+		// change would have deleted ADR-062's deep-link guard rather than
+		// scoping it to steps that spotlight nothing.
+		const nonCentered = centeredSteps.map((s, i) => (i === 0 ? { ...s, placement: undefined } : s))
 		const router = fakeRouter()
 		const w = mount(CnWalkthrough, {
-			propsData: { appId: 'spotlight-app', manifest: manifest() },
-			mocks: { $router: router, $route: { name: 'SomeDetail', params: {} } },
+			propsData: {
+				appId: 'control-app',
+				manifest: { version: '1.0.0', walkthrough: { enabled: true, version: 1, tours: [{ id: 'getting-started', trigger: 'first-visit', steps: nonCentered }] } },
+			},
+			mocks: { $router: router, $route: { name: 'Dashboard', params: {} } },
 		})
 		await w.vm.$nextTick()
 		expect(w.vm.active).toBe(false)

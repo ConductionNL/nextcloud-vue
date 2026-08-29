@@ -87,15 +87,18 @@ Custom action items can be injected into the overflow menu:
 | `show-export` | — | Export action triggered |
 | `show-copy` | — | Copy selected action triggered |
 | `show-delete` | — | Delete selected action triggered |
+| `clear-selection` | — | Selection strip's Clear control clicked; the host should empty its selection (`CnIndexPage` does this and re-emits `select` with `[]`) |
 
 ### Slots
 
 | Slot | Scope | Description |
 |------|-------|-------------|
+| `after-search` | — | Refinement controls beside the search field on the bar's LEFT side (e.g. an `NcActions` filter menu with a funnel icon) — the left side groups the visual controls (search, filters, view toggle) |
 | `filters` | — | Inline filter controls rendered inside the bar, between the view toggle and the add/actions (e.g. a `CnQuickFilterBar` segmented toggle). |
 | `header-actions` | — | Extra buttons placed after the Add button, before the overflow menu |
 | `action-items` | — | Extra `NcActionButton` items injected into the overflow menu |
-| `mass-actions` | `{ count, selectedIds }` | Extra mass-action items at the bottom of the overflow menu |
+| `mass-actions` | `{ count, selectedIds }` | Extra mass-action items at the bottom of the overflow menu (optional mirror of the strip's actions) |
+| `selection-actions` | `{ count, selectedIds }` | The host's bulk-action buttons (NcButton family) in the contextual selection strip shown while `selectable` and a selection is active — the primary bulk-actions surface, with a live `role="status"` count and a built-in Clear control |
 
 ## Documentation link
 

@@ -55,7 +55,11 @@ export default {
 </script>
 ```
 
-Selectable — checkbox on the card for mass selections:
+Selectable — checkbox on the card for mass selections. By default a body
+click on a selectable card also toggles selection; set `clickToView` to make
+the body click emit `click` (navigation) instead, leaving the checkbox as the
+only selection surface — the card counterpart of a table's
+`rowClickToView` split:
 
 ```vue
 <template>

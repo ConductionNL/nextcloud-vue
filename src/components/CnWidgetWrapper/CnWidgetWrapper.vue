@@ -742,6 +742,20 @@ export default {
 	padding: 16px;
 }
 
+/* A TABLE GOES EDGE TO EDGE. ALWAYS.
+   A table drawn inside 16px of padding renders a border inside a border — two
+   rectangles a few pixels apart, which reads as a mistake because it is one.
+   The wrapper already has a `flush` prop that zeroes this padding, but a prop
+   is something an app has to remember on every table it ever adds, and the
+   apps did not: the padding was visible in pipelinq's table widgets.
+   So it is structural instead. `:has()` keys on the table component's own root
+   class, which means a table is flush by construction and no caller can
+   reintroduce the gap by forgetting a prop. */
+.cn-widget-wrapper__content:has(> .cn-table-container),
+.cn-widget-wrapper__content:has(> .cn-widget-object-table) {
+	padding: 0;
+}
+
 /* Keyboard focus ring for the now-focusable scrollable content region. */
 .cn-widget-wrapper__content:focus-visible {
 	outline: 2px solid var(--color-primary-element);
@@ -866,9 +880,29 @@ export default {
 	display: flex;
 	align-items: center;
 	flex-shrink: 0;
+	/* COLOURED BY DEFAULT. `--cn-widget-icon-color` is set on the header from
+	   titleIconStyle; the theme colour is the fallback for a wrapper rendered
+	   without it. Before this, the prop defaulted to null and the icon inherited
+	   body text colour, which is why every widget header looked the same. */
 	color: var(--cn-widget-icon-color, var(--color-primary-element));
+
+	/* SPACE BETWEEN THE ICON AND THE TITLE.
+	   This element is a sibling of `__header-left` inside a space-between
+	   header, so it never received that element's `gap: 8px` — the icon sat
+	   flush against the title text. Matching the header-left gap rather than
+	   inventing a value keeps the two icon positions spaced identically. */
+	margin-inline-end: 8px;
 }
 
+/* Right-positioned title icons sit AFTER the actions, so the margin belongs on
+   the other side or it pushes the icon off the header's right edge. */
+.cn-widget-wrapper__title-icon:last-child {
+	margin-inline-end: 0;
+	margin-inline-start: 8px;
+}
+
+/* Material-design-icon components paint with `fill: currentColor`, so the
+   colour above reaches them; this makes it reach a raw <svg> in the slot too. */
 .cn-widget-wrapper__title-icon :deep(svg) {
 	fill: currentcolor;
 }
