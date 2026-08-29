@@ -100,3 +100,24 @@ Custom page info format and navigation labels (useful for translated apps or cus
 | `lastLabel` | `String` | `'Last'` | Label for the Last page button |
 | `itemsPerPageLabel` | `String` | `'Items per page:'` | Label for the page-size selector |
 | `pageInfoFormat` | `String` | `'Page {current} of {total}'` | Format string for the page info text; use `{current}` and `{total}` as placeholders |
+
+## Compact mode (inside a widget)
+
+The full control — First/Last, numbered pages, a page-size select — is an index-page affordance. Dropped into a dashboard widget it is wider than the card and taller than the rows it pages. `compact` renders one Previous / Next pair and the item range instead.
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `compact` | `Boolean` | `false` | Widget-sized variant: one Prev/Next pair plus the item range; no First/Last, no page numbers, no page-size select |
+| `compactInfoFormat` | `String` | `'{from}–{to} of {total}'` | Format string used in compact mode. Placeholders: `{from}`, `{to}`, `{total}` |
+
+Compact mode names the **items**, not the pages: in a widget the row range is what the reader is looking at, and it is the only honest statement of how much is off-screen.
+
+```vue
+<CnPagination
+  compact
+  :current-page="page"
+  :total-pages="totalPages"
+  :total-items="total"
+  :current-page-size="pageSize"
+  @page-changed="onPageChange" />
+```

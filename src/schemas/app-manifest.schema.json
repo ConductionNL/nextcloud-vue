@@ -747,6 +747,28 @@
 					"type": "string",
 					"description": "Optional CSS class for the icon (e.g. \"icon-graph\")."
 				},
+				"titleIconVariant": {
+					"type": "string",
+					"enum": ["primary", "success", "warning", "error", "info", "neutral"],
+					"description": "Semantic colour for the header icon. Every widget's icon is coloured; `primary` (the theme colour) is the default. Name a variant when the widget's subject already carries a meaning — a Concepts list is `warning`, a Published list `success`, a Depublished list `error`."
+				},
+				"titleIconColor": {
+					"type": "string",
+					"description": "Explicit CSS colour for the header icon, overriding `titleIconVariant`. Must be a CSS variable or theme token — a literal hex opts the widget out of the nldesign app's re-theming (NL Design System)."
+				},
+				"titleIconPosition": {
+					"type": "string",
+					"enum": ["left", "right"],
+					"description": "Where the `title-icon` slot renders in the header: `left` places it before the title (inside the title group, so it is spaced from the title rather than flush against it); `right` places it after the actions. Defaults to `right`."
+				},
+				"documentationUrl": {
+					"type": "string",
+					"description": "Optional explicit documentation URL for this widget's Actions-menu Documentation entry. Usually unnecessary — prefer `docsAnchor`, which is appended to the app-wide documentation base so the link lands on this widget's own section."
+				},
+				"docsAnchor": {
+					"type": "string",
+					"description": "This widget's own section in the app's documentation, appended to the app-wide documentation base to build the Actions-menu Documentation deep-link. A bare slug (\"open-cases\") becomes a `#fragment`; a value starting with `/` is resolved as a path; a full `scheme://` URL is used as written. Defaults to the widget `type` when omitted."
+				},
 				"itemApiVersions": {
 					"type": "array",
 					"items": { "type": "integer" },

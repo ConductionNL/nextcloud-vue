@@ -195,3 +195,11 @@ Static-manifest apps use `useAppManifest('myapp', bundledManifest)`, which fetch
 | `supportDialog` | Boolean \| Object | `true` | Auto-mount the built-in support/feedback dialog. Pass `false` to disable, or an options object to configure it. |
 | `aiCompanion` | Boolean | `false` | Opt-in floating AI-chat companion (`CnAiCompanion`). Off by default; pass `true` to mount it (it still self-gates on its own backend health probe and hides on chat pages). The companion is an AI capability provided by the Hermiq app — apps opt in explicitly rather than every app auto-mounting it whenever a chat backend is reachable. |
 | `commandPalette` | Boolean \| Object | `false` | Opt-in Ctrl/Cmd+K command palette (`CnCommandPalette`). Off by default; pass `true` for zero-config navigation + registered actions, or an object to override any `CnCommandPalette` prop (e.g. `{ objectSearch: createObjectSearchSource({...}) }`). |
+
+## Deprecated: in-app soft-dependency banners
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `softDependencyNotices` | Boolean | `false` | **Deprecated.** Restores the in-shell orange notices, one per unresolved optional dependency. Off by default: they stacked one per optional leaf and pushed the app's own content below the fold, for an audience who cannot act on them. Mount `CnLeafDependencySettings` in admin settings instead. Slated for removal. |
+
+`unresolvedSoftDependencies` is unchanged and still exposed, so an app rendering its own surface from it keeps working.

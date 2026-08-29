@@ -50,6 +50,10 @@
 </template>
 
 <script>
+// The canonical KPI scale (`--cn-kpi-*`) lives in one stylesheet. Imported
+// here as well as from css/index.css so the tokens resolve even when the
+// consuming app pulls in components individually.
+import '../../css/kpi-card.css'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import CnStatsBlock from '../CnStatsBlock/CnStatsBlock.vue'
 import { useDataSource } from '../../composables/useDataSource.js'
@@ -546,10 +550,16 @@ export default {
 </script>
 
 <style scoped>
-/* Multi-entry mode stacks N KPI tiles inside the one widget card. */
+/*
+ * This widget draws no KPI of its own — every tile it shows is a CnStatsBlock,
+ * so the canonical card in src/css/kpi-card.css is already what a reader sees.
+ * All that is left here is how N of those tiles stack inside one widget, and
+ * that spacing comes from the shared `--cn-kpi-stack-gap` so a multi-entry
+ * widget and a CnStatsPanel stack of the same tiles are spaced identically.
+ */
 .cn-stats-block-widget--multi {
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
+	gap: var(--cn-kpi-stack-gap, 12px);
 }
 </style>

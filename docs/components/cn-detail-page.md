@@ -392,3 +392,7 @@ Every `config.widgets[]` def may carry `icon` (an MDI component name, e.g.
 their `CnWidgetWrapper` title. Together with the shared
 `var(--border-radius-large, 8px)` card radius this keeps all detail-page
 widgets in one visual family.
+
+## Header actions menu
+
+The page header's overflow menu carries Refresh plus the mandatory trio Request a feature / Report a bug / Documentation. `showReportBug` and `showDocumentation` (both `true` by default) exist for a surface that must suppress one deliberately; the shared menu resolves each target itself, so leaving them on costs nothing. The Documentation entry deep-links to this page's own section using the page id as its anchor.

@@ -281,3 +281,11 @@ CnAppRoot's root `<NcContent>` always carries `data-nldesign-theme-scope="<appId
 - A manifest that declares no `runtime.theme` renders identically to before — no style element, no behaviour change. nldesign absent, unreachable, or serving non-conformant token CSS degrades silently to default styling (at most a `console.warn`), never a throw and never a blocked shell.
 
 `CnPageRenderer` needs no change — the scope lives at this container level (one managed `<style>` per app instance), so CSS custom properties cascade to every page automatically.
+
+## Deprecated: in-app soft-dependency banners
+
+`softDependencyNotices` (Boolean, default `false`) restores the orange notices that used to render above every routed page, one per unresolved optional dependency.
+
+They are off by default because they stacked: an app declaring four optional leaves showed four cards above its own content and pushed the page below the fold, on every load, for an audience who cannot act on them. Mount [`CnLeafDependencySettings`](./cn-leaf-dependency-settings) in the app's admin settings instead — it carries the same two states and the same install/enable action.
+
+`unresolvedSoftDependencies` is unchanged and still exposed, so an app rendering its own surface from it keeps working. The prop is a bridge for one release and is slated for removal.
