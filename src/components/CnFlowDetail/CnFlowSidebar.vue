@@ -167,8 +167,38 @@
 							<strong>{{ step.transition }}</strong>
 							<span class="cn-flow-sidebar__hint"> · {{ step.status }}</span>
 							<span v-if="step.error" class="cn-flow-sidebar__error"> · {{ step.error }}</span>
+
+							<!-- What this step TOUCHED, under the step that did it.
+							     A step that wrote nothing is still listed above —
+							     it ran, and omitting it would read as though it
+							     had not. -->
+							<ul v-if="objectsForStep(step).length" class="cn-flow-sidebar__touched">
+								<li v-for="obj in objectsForStep(step)" :key="obj.auditUuid">
+									<span class="cn-flow-sidebar__touched-action">{{ obj.action }}</span>
+									<span class="cn-flow-sidebar__touched-uuid">{{ obj.objectUuid }}</span>
+								</li>
+							</ul>
 						</li>
 					</ol>
+
+					<!-- Anything the run touched that no step in the list claims.
+					     It should normally be empty; when it is not, the run
+					     changed something the step history cannot explain, and
+					     hiding that would be the opposite of what this is for. -->
+					<div v-if="unclaimedObjects.length" class="cn-flow-sidebar__touched-extra">
+						<h5>{{ t('nextcloud-vue', 'Also changed by this run') }}</h5>
+						<ul class="cn-flow-sidebar__touched">
+							<li v-for="obj in unclaimedObjects" :key="obj.auditUuid">
+								<span class="cn-flow-sidebar__touched-action">{{ obj.action }}</span>
+								<span class="cn-flow-sidebar__touched-uuid">{{ obj.objectUuid }}</span>
+								<span class="cn-flow-sidebar__hint"> · {{ obj.node }}</span>
+							</li>
+						</ul>
+					</div>
+
+					<p v-if="!flatObjects.length" class="cn-flow-sidebar__hint">
+						{{ t('nextcloud-vue', 'This run changed no objects.') }}
+					</p>
 				</div>
 			</section>
 		</component>
@@ -321,6 +351,36 @@ export default {
 		},
 
 		/**
+		 * @return {Array<object>} Every object the inspected run touched, flattened.
+		 */
+		flatObjects() {
+			return (this.store.runObjects || []).flatMap((group) => group.objects || [])
+		},
+
+		/**
+		 * Objects whose node matches no step in the run's own history.
+		 *
+		 * Normally empty. When it is not, the run changed something its step
+		 * history cannot account for, and that is precisely the case worth
+		 * showing rather than quietly dropping — the alternative is a panel
+		 * that under-reports what a run did and looks complete doing it.
+		 *
+		 * @return {Array<object>} The unaccounted-for objects, each carrying its node.
+		 */
+		unclaimedObjects() {
+			const stepNodes = new Set(
+				(this.store.steps || []).map((step) => String(step.transition || '')),
+			)
+
+			return (this.store.runObjects || [])
+				.filter((group) => !stepNodes.has(String(group.node || '')))
+				.flatMap((group) => (group.objects || []).map((obj) => ({
+					...obj,
+					node: group.node,
+				})))
+		},
+
+		/**
 		 * @return {Array<object>} The tab strip, for the embedded variant.
 		 */
 		tabs() {
@@ -466,6 +526,31 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The objects touched by the node this step ran.
+		 *
+		 * ⚠️ Matched on the NODE, not on the individual visit. A run that loops
+		 * visits the same node more than once, and every visit's objects appear
+		 * under each of them. Each object carries its own `step`, so the rows
+		 * are still individually attributable — the grouping is what is coarse,
+		 * not the data. Narrowing it needs the step's own sequence number, which
+		 * the run log does not carry (a step's position in the log is its
+		 * index, and the log is per-segment).
+		 *
+		 * @param {object} step A step from the run's history.
+		 * @return {Array<object>} The objects that node wrote during this run.
+		 */
+		objectsForStep(step) {
+			const node = String(step?.transition || '')
+			if (!node) {
+				return []
+			}
+
+			return (this.store.runObjects || [])
+				.filter((group) => String(group.node || '') === node)
+				.flatMap((group) => group.objects || [])
+		},
+
 		/**
 		 * A role id as the word the palette badge shows.
 		 *
@@ -639,5 +724,37 @@ export default {
 
 .cn-flow-sidebar__status--completed {
 	color: var(--color-success-text);
+}
+
+/* The objects a step touched, indented under it. Muted and monospaced: this is
+   reference detail somebody scans for one uuid, not prose. */
+.cn-flow-sidebar__touched {
+	margin: 2px 0 6px 0;
+	padding-inline-start: 14px;
+	list-style: none;
+	font-size: 0.85em;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-flow-sidebar__touched li {
+	display: flex;
+	gap: 6px;
+	align-items: baseline;
+}
+
+.cn-flow-sidebar__touched-action {
+	flex: 0 0 auto;
+	color: var(--color-main-text);
+}
+
+/* Breaks anywhere: a uuid has no spaces and would otherwise push the sidebar
+   wider than its column. */
+.cn-flow-sidebar__touched-uuid {
+	font-family: var(--font-face-monospace, monospace);
+	overflow-wrap: anywhere;
+}
+
+.cn-flow-sidebar__touched-extra {
+	margin-block-start: 8px;
 }
 </style>

@@ -14,6 +14,13 @@ describe('CnActionsBar — view toggle', () => {
 		expect(wrapper.findAll('.cn-actions-bar__view-toggle-btn')).toHaveLength(2)
 	})
 
+	it('lives in the LEFT info group (a visual control, grouped with search/filters)', () => {
+		const wrapper = shallowMount(CnActionsBar, { propsData: { viewMode: 'cards' } })
+		const toggle = wrapper.find('.cn-actions-bar__view-toggle')
+		expect(toggle.element.closest('.cn-actions-bar__info')).not.toBeNull()
+		expect(toggle.element.closest('.cn-actions-bar__actions')).toBeNull()
+	})
+
 	it('renders three segments in a custom availableViewModes order', () => {
 		const wrapper = shallowMount(CnActionsBar, {
 			propsData: { viewMode: 'list', availableViewModes: ['list', 'cards', 'table'] },

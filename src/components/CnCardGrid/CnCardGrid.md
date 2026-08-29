@@ -39,7 +39,7 @@ Empty state:
   empty-text="No items found" />
 ```
 
-Selectable cards — enable checkboxes for mass selection using `selectable` and `selectedIds`:
+Selectable cards — enable checkboxes for mass selection using `selectable` and `selectedIds`. Add `clickToView` when a card should OPEN on body click while staying selectable — selection then happens via the checkbox only (`CnIndexPage` wires this from its `rowClickToView`):
 
 ```vue
 <template>
