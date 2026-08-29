@@ -37,17 +37,29 @@ const { getCurrentUser } = require('@nextcloud/auth')
 const { __resetAppStatusCacheForTests } = require('../../src/composables/useAppStatus.js')
 const CnAppRoot = require('../../src/components/CnAppRoot/CnAppRoot.vue').default
 
-function mountRoot({ manifest, requiresApps = [], translate } = {}) {
+function mountRoot({ manifest, requiresApps = [], translate, props = {} } = {}) {
 	return mount(CnAppRoot, {
 		propsData: {
 			manifest,
 			appId: 'myapp',
 			requiresApps,
 			...(translate ? { translate } : {}),
+			...props,
 		},
 		stubs: { 'router-view': { template: '<div class="router-view-stub" />' } },
 	})
 }
+
+/**
+ * Mount with the DEPRECATED in-shell soft-dependency banners switched back
+ * on. They are off by default now (they stacked one per optional leaf and
+ * pushed the app's own content below the fold); the markup survives behind
+ * `softDependencyNotices` for one release, and these tests cover that path.
+ *
+ * @param {object} opts Same shape as mountRoot.
+ * @return {object} The mounted wrapper.
+ */
+const mountRootWithBanners = (opts) => mountRoot({ ...opts, props: { ...(opts.props || {}), softDependencyNotices: true } })
 
 const baseManifest = (dependencies) => ({
 	version: '1.0.0',
@@ -97,7 +109,7 @@ describe('CnAppRoot HARD/SOFT dependencies (REQ-DIA-5)', () => {
 	})
 })
 
-describe('CnAppRoot soft-dependency banner (REQ-DIA-6)', () => {
+describe('CnAppRoot soft-dependency banner (REQ-DIA-6) — DEPRECATED, opt-in', () => {
 	beforeEach(() => {
 		__resetAppStatusCacheForTests()
 		getCurrentUser.mockReturnValue({ uid: 'admin', isAdmin: true })
@@ -108,14 +120,14 @@ describe('CnAppRoot soft-dependency banner (REQ-DIA-6)', () => {
 	})
 
 	it('renders a dismissible banner with an install action for an unresolved soft dep', () => {
-		const wrapper = mountRoot({ manifest: baseManifest([{ id: 'deck', required: false, name: 'Deck' }]) })
+		const wrapper = mountRootWithBanners({ manifest: baseManifest([{ id: 'deck', required: false, name: 'Deck' }]) })
 		expect(wrapper.find('[data-testid="cn-app-root-soft-dep-deck"]').exists()).toBe(true)
 		expect(wrapper.find('[data-testid="cn-app-root-soft-dep-install-deck"]').exists()).toBe(true)
 		expect(wrapper.find('[data-testid="cn-app-root-soft-dep-dismiss-deck"]').exists()).toBe(true)
 	})
 
 	it('persists dismissal in localStorage and hides the banner', async () => {
-		const wrapper = mountRoot({ manifest: baseManifest([{ id: 'deck', required: false, name: 'Deck' }]) })
+		const wrapper = mountRootWithBanners({ manifest: baseManifest([{ id: 'deck', required: false, name: 'Deck' }]) })
 		await wrapper.find('[data-testid="cn-app-root-soft-dep-dismiss-deck"]').trigger('click')
 		await wrapper.vm.$nextTick()
 
@@ -125,12 +137,12 @@ describe('CnAppRoot soft-dependency banner (REQ-DIA-6)', () => {
 
 	it('does not render a banner that was dismissed in a previous session', () => {
 		window.localStorage.setItem('cn-soft-dep-dismissed:myapp:deck', '1')
-		const wrapper = mountRoot({ manifest: baseManifest([{ id: 'deck', required: false }]) })
+		const wrapper = mountRootWithBanners({ manifest: baseManifest([{ id: 'deck', required: false }]) })
 		expect(wrapper.find('[data-testid="cn-app-root-soft-dep-deck"]').exists()).toBe(false)
 	})
 
 	it('dismisses multiple soft dependencies independently', async () => {
-		const wrapper = mountRoot({
+		const wrapper = mountRootWithBanners({
 			manifest: baseManifest([
 				{ id: 'deck', required: false },
 				{ id: 'spreed', required: false },
@@ -148,9 +160,28 @@ describe('CnAppRoot soft-dependency banner (REQ-DIA-6)', () => {
 
 	it('shows ask-your-administrator copy instead of the install button for a non-admin', () => {
 		getCurrentUser.mockReturnValue({ uid: 'bob', isAdmin: false })
-		const wrapper = mountRoot({ manifest: baseManifest([{ id: 'deck', required: false, name: 'Deck' }]) })
+		const wrapper = mountRootWithBanners({ manifest: baseManifest([{ id: 'deck', required: false, name: 'Deck' }]) })
 		expect(wrapper.find('[data-testid="cn-app-root-soft-dep-install-deck"]').exists()).toBe(false)
 		expect(wrapper.find('.cn-app-root__soft-dep-ask-admin').text()).toContain('Deck')
+	})
+
+	// The deprecation itself. Four optional leaves used to mean four stacked
+	// orange cards above the app's own content, on every page load.
+	it('renders NO banners by default, however many soft deps are unresolved', () => {
+		const wrapper = mountRoot({
+			manifest: baseManifest([
+				{ id: 'deck', required: false },
+				{ id: 'spreed', required: false },
+				{ id: 'forms', required: false },
+				{ id: 'integriq', required: false },
+			]),
+		})
+		expect(wrapper.findAll('.cn-app-root__soft-dep')).toHaveLength(0)
+		// The data is still computed and still exposed — only the in-shell
+		// surface is gone, so an app rendering its own list keeps working.
+		expect(wrapper.vm.unresolvedSoftDependencies.map((d) => d.id)).toEqual(
+			['deck', 'spreed', 'forms', 'integriq'],
+		)
 	})
 })
 
@@ -164,7 +195,7 @@ describe('CnAppRoot or-missing guard action (REQ-DIA-3)', () => {
 	})
 
 	it('renders an admin install button that targets the missing app', async () => {
-		const wrapper = mountRoot({ manifest: baseManifest([]), requiresApps: ['openregister'] })
+		const wrapper = mountRootWithBanners({ manifest: baseManifest([]), requiresApps: ['openregister'] })
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.missingApps).toEqual(['openregister'])
 		const btn = wrapper.find('[data-testid="cn-app-root-or-missing-install"]')
@@ -175,7 +206,7 @@ describe('CnAppRoot or-missing guard action (REQ-DIA-3)', () => {
 
 	it('renders ask-your-administrator copy for a non-admin', async () => {
 		getCurrentUser.mockReturnValue({ uid: 'bob', isAdmin: false })
-		const wrapper = mountRoot({ manifest: baseManifest([]), requiresApps: ['openregister'] })
+		const wrapper = mountRootWithBanners({ manifest: baseManifest([]), requiresApps: ['openregister'] })
 		await wrapper.vm.$nextTick()
 		expect(wrapper.find('[data-testid="cn-app-root-or-missing-install"]').exists()).toBe(false)
 		const ask = wrapper.find('[data-testid="cn-app-root-or-missing-ask-admin"]')
@@ -191,7 +222,7 @@ describe('CnAppRoot app-availability English defaults (REQ-DIA-7)', () => {
 	})
 
 	it('renders English prose, not the raw app-availability.* keys', async () => {
-		const wrapper = mountRoot({ manifest: baseManifest([]), requiresApps: ['openregister'] })
+		const wrapper = mountRootWithBanners({ manifest: baseManifest([]), requiresApps: ['openregister'] })
 		await wrapper.vm.$nextTick()
 		const html = wrapper.find('.cn-app-root__or-missing').html()
 		expect(html).not.toContain('app-availability.title')
@@ -202,7 +233,7 @@ describe('CnAppRoot app-availability English defaults (REQ-DIA-7)', () => {
 
 	it('uses the translated string when the translate prop resolves the key', async () => {
 		const translate = (k) => (k === 'app-availability.title' ? 'Localised title' : k)
-		const wrapper = mountRoot({ manifest: baseManifest([]), requiresApps: ['openregister'], translate })
+		const wrapper = mountRootWithBanners({ manifest: baseManifest([]), requiresApps: ['openregister'], translate })
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.orMissingTitle).toBe('Localised title')
 	})

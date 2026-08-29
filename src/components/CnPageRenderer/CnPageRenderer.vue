@@ -800,7 +800,15 @@ export default {
 			// turn into junk markup. Forward a lifted field to a custom
 			// component only when its definition actually declares the prop.
 			if (page?.type === 'custom') {
-				const declared = this.resolvedComponent?.props
+				// A defineAsyncComponent wrapper exposes no `props` until its
+				// loader resolves — unwrap the resolved definition when
+				// available so a lazily-registered custom page still receives
+				// its declared lifted fields. Before resolution the fields
+				// are withheld, which is the safe default here: withheld
+				// means no stray root attributes, and the async component
+				// renders nothing yet anyway.
+				const resolved = this.resolvedComponent
+				const declared = (resolved?.__asyncResolved ?? resolved)?.props
 				const declares = (key) => (Array.isArray(declared)
 					? declared.includes(key)
 					: Boolean(declared && key in declared))

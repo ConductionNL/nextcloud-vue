@@ -1,14 +1,16 @@
 /**
  * Tests for CnActionsMenu — the shared "…" overflow Actions menu that
- * renders the built-in trio (Refresh / Documentation / Request a feature)
- * and auto-mounts the CnSuggestFeatureModal. Used by CnWidgetWrapper and
- * the page-level headers of CnDetailPage / CnDashboardPage.
+ * renders Refresh plus the MANDATORY trio (Request a feature / Report a bug /
+ * Documentation) and auto-mounts the CnSuggestFeatureModal. Used by
+ * CnWidgetWrapper and the page-level headers of CnDetailPage /
+ * CnDashboardPage.
  *
- * Covers: item visibility + the testidBase prefix, the Documentation
- * new-tab link, default Refresh handler (event-bus emit on the configured
- * channel) with preventDefault suppression, default Request-a-feature
- * handler (modal mount / repo-missing warn), and the refresh spinner
- * (disabled + loading icon driven solely by `:refreshing`).
+ * Covers: item visibility + the testidBase prefix, the unconditional trio and
+ * its per-widget docs deep-link, the forge-derived bug-report link, default
+ * Refresh handler (event-bus emit on the configured channel) with
+ * preventDefault suppression, default Request-a-feature handler (modal mount /
+ * repo-missing warn), and the refresh spinner (disabled + loading icon driven
+ * solely by `:refreshing`).
  */
 
 import { mount } from '@vue/test-utils'
@@ -49,6 +51,7 @@ const baseStubs = {
 	Refresh: true,
 	LightbulbOutline: true,
 	BookOpenVariant: true,
+	BugOutline: true,
 	CnSuggestFeatureModal: { name: 'CnSuggestFeatureModal', props: ['repo', 'specRef', 'app', 'page', 'surface', 'conductionSubmitEnabled'], template: '<div class="suggest-modal-stub" />' },
 }
 
@@ -67,11 +70,15 @@ describe('CnActionsMenu — visibility & testidBase', () => {
 	})
 	afterEach(() => jest.restoreAllMocks())
 
-	it('renders Refresh + Request a feature by default, Documentation hidden', () => {
+	// The whole point of the change: a host that configures NOTHING still
+	// gets all three. Before, Documentation rendered only when the host
+	// passed a URL, which is how OpenRegister's widgets shipped without it.
+	it('renders Refresh plus the mandatory trio with no configuration at all', () => {
 		const wrapper = mountMenu()
 		expect(wrapper.find('[data-testid="cn-actions-menu-action-refresh"]').exists()).toBe(true)
 		expect(wrapper.find('[data-testid="cn-actions-menu-action-request-feature"]').exists()).toBe(true)
-		expect(wrapper.find('[data-testid="cn-actions-menu-action-documentation"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-actions-menu-action-report-bug"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-actions-menu-action-documentation"]').exists()).toBe(true)
 	})
 
 	it('honours testidBase on the container and items', () => {
@@ -81,13 +88,13 @@ describe('CnActionsMenu — visibility & testidBase', () => {
 	})
 
 	it('hides the whole menu when everything is opted out and no action-items slot', () => {
-		const wrapper = mountMenu({ showRefresh: false, showRequestFeature: false })
+		const wrapper = mountMenu({ showRefresh: false, showRequestFeature: false, showReportBug: false, showDocumentation: false })
 		expect(wrapper.find('[data-testid="cn-actions-menu-actions"]').exists()).toBe(false)
 	})
 
 	it('renders the menu when only an action-items slot is provided', () => {
 		const wrapper = mountMenu(
-			{ showRefresh: false, showRequestFeature: false },
+			{ showRefresh: false, showRequestFeature: false, showReportBug: false, showDocumentation: false },
 			{ slots: { 'action-items': '<button data-testid="custom-item">X</button>' } },
 		)
 		expect(wrapper.find('[data-testid="cn-actions-menu-actions"]').exists()).toBe(true)
@@ -114,6 +121,70 @@ describe('CnActionsMenu — Documentation link', () => {
 	it('uses the documentationLabel prop for the link text', () => {
 		const wrapper = mountMenu({ documentationUrl: 'https://docs.example.test', documentationLabel: 'Guide' })
 		expect(wrapper.find('[data-testid="cn-actions-menu-action-documentation"]').text()).toContain('Guide')
+	})
+
+	// The reported defect was a docs link that landed on the homepage rather
+	// than on the widget being asked about; docsAnchor is what fixes that.
+	it('deep-links the app-wide docs base to THIS widget via docsAnchor', () => {
+		const wrapper = mountMenu(
+			{ docsAnchor: 'open-cases' },
+			{ provide: { cnAppId: 'dossiq', cnFeatureRequestRepo: 'ConductionNL/dossiq', cnDocumentationBaseUrl: 'https://dossiq.conduction.nl/docs/widgets' } },
+		)
+		expect(wrapper.find('[data-testid="cn-actions-menu-action-documentation"]').attributes('href'))
+			.toBe('https://dossiq.conduction.nl/docs/widgets#open-cases')
+	})
+
+	it('treats a path-shaped docsAnchor as a path and an absolute one as the whole URL', () => {
+		const asPath = mountMenu(
+			{ docsAnchor: '/widgets/open-cases' },
+			{ provide: { cnAppId: 'dossiq', cnFeatureRequestRepo: 'ConductionNL/dossiq', cnDocumentationBaseUrl: 'https://dossiq.conduction.nl/docs/' } },
+		)
+		expect(asPath.find('[data-testid="cn-actions-menu-action-documentation"]').attributes('href'))
+			.toBe('https://dossiq.conduction.nl/widgets/open-cases')
+
+		const absolute = mountMenu({ docsAnchor: 'https://elsewhere.test/x' })
+		expect(absolute.find('[data-testid="cn-actions-menu-action-documentation"]').attributes('href'))
+			.toBe('https://elsewhere.test/x')
+	})
+
+	it('falls back to the app id\'s docs site so the item is never absent', () => {
+		const wrapper = mountMenu({ docsAnchor: 'traffic' })
+		expect(wrapper.find('[data-testid="cn-actions-menu-action-documentation"]').attributes('href'))
+			.toBe('https://pipelinq.conduction.nl/docs#traffic')
+	})
+})
+
+describe('CnActionsMenu — Report a bug', () => {
+	beforeEach(() => {
+		jest.clearAllMocks()
+		jest.spyOn(console, 'warn').mockImplementation(() => {})
+	})
+	afterEach(() => jest.restoreAllMocks())
+
+	it('builds a forge new-issue link pre-filled with the surface title', () => {
+		const wrapper = mountMenu({ title: 'Traffic' })
+		const link = wrapper.find('[data-testid="cn-actions-menu-action-report-bug"]')
+		expect(link.attributes('href')).toBe('https://codeberg.org/ConductionNL/pipelinq/issues/new?title=Bug%3A%20Traffic')
+		expect(link.attributes('target')).toBe('_blank')
+		expect(link.attributes('rel')).toBe('noopener noreferrer')
+	})
+
+	it('honours the forge type provided by CnAppRoot', () => {
+		const wrapper = mountMenu({ title: 'Traffic' }, {
+			provide: {
+				cnAppId: 'pipelinq',
+				cnFeatureRequestRepo: 'ConductionNL/pipelinq',
+				cnFeatureRequestForge: { type: 'github' },
+			},
+		})
+		expect(wrapper.find('[data-testid="cn-actions-menu-action-report-bug"]').attributes('href'))
+			.toBe('https://github.com/ConductionNL/pipelinq/issues/new?title=Bug%3A%20Traffic')
+	})
+
+	it('an explicit reportBugUrl wins over the derived one', () => {
+		const wrapper = mountMenu({ reportBugUrl: 'https://tracker.example.test/new' })
+		expect(wrapper.find('[data-testid="cn-actions-menu-action-report-bug"]').attributes('href'))
+			.toBe('https://tracker.example.test/new')
 	})
 })
 

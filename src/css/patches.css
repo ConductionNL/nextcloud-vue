@@ -69,89 +69,28 @@
 }
 
 /*
- * KPI stat widget layout — same scoped-hash caveat as above. In a consuming app
- * that ends up with two compilations of the lib, the CnStatWidget `<style
- * scoped>` misses the live element and the card collapses to `display:inline`
- * with a full-width block icon band and a big empty void (looks broken). These
- * unscoped globals mirror the component's own scoped rules so the icon renders
- * as a small circle and the label/value/caption stack compactly regardless of
- * the data-v hash. Values are identical to CnStatWidget.vue.
+ * NO KPI RULES HERE. The KPI card's look lives in ONE place — src/css/kpi-card.css.
+ *
+ * This block used to hold an unscoped mirror of CnStatWidget's card styling,
+ * added when that look still lived in the component's `<style scoped>` and a
+ * duplicate bundling of the library could make the `data-v-*` hash miss the
+ * live element. The look has since moved OUT of the scoped block into
+ * kpi-card.css, which is plain unscoped CSS imported both by this aggregator
+ * and by the component module itself — so there is no hash to miss and no
+ * mirror to keep.
+ *
+ * Leaving the mirror in place was worse than useless: this file is imported
+ * LAST by index.css, and `.cn-stat-widget` beats nothing but ties with
+ * `.cn-kpi-card` on specificity, so source order handed the win to the stale
+ * copy. Every app loading the library stylesheet got the PRE-consolidation
+ * widget (1.6em value, 0.95em label, 40px icon, transparent row) painted over
+ * the canonical card (2rem value, 14px title, 44px icon, grey card) that
+ * CnStatsBlock renders — two visibly different KPI looks on one dashboard,
+ * from a file whose whole job was to stop exactly that.
+ *
+ * If a KPI ever needs a global rule again, add it to kpi-card.css. A second
+ * copy of a value is a second look waiting to happen.
  */
-.cn-stat-widget {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	padding: 8px 4px;
-	min-height: 64px;
-	min-width: 0;
-	max-width: 100%;
-}
-
-.cn-stat-widget--linked {
-	cursor: pointer;
-	text-decoration: none;
-	color: inherit;
-	border-radius: var(--border-radius-large, 8px);
-	transition: background-color 0.1s ease-in-out;
-}
-
-.cn-stat-widget--linked:hover {
-	background-color: var(--color-background-hover);
-}
-
-.cn-stat-widget__icon {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 40px;
-	height: 40px;
-	border-radius: 50%;
-	flex-shrink: 0;
-}
-
-.cn-stat-widget__body {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	min-width: 0;
-}
-
-.cn-stat-widget__label {
-	font-size: 0.95em;
-	font-weight: 600;
-	color: var(--color-main-text);
-}
-
-.cn-stat-widget__value-row {
-	display: flex;
-	align-items: baseline;
-	gap: 8px;
-	min-width: 0;
-}
-
-.cn-stat-widget__value {
-	font-size: 1.6em;
-	font-weight: 700;
-	line-height: 1.15;
-	color: var(--color-primary-element);
-	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.cn-stat-widget__trend {
-	display: inline-flex;
-	align-items: center;
-	gap: 2px;
-	font-size: 0.85em;
-	font-weight: 600;
-}
-
-.cn-stat-widget__caption {
-	font-size: 0.85em;
-	color: var(--color-text-maxcontrast);
-}
 
 /*
  * Modal / dialog stacking baseline.

@@ -77,3 +77,11 @@ Full pagination bar with page navigation, ellipsis for large page counts, and a 
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnPagination.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnPagination/CnPagination.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## Compact mode (inside a widget)
+
+`compact` renders one Previous / Next pair and the item range, sized for a dashboard widget's footer — no First/Last, no page numbers, no page-size select. `compactInfoFormat` (default `'{from}–{to} of {total}'`) formats the range; compact mode names the **items** rather than the pages, because in a widget the row range is what the reader is looking at.
+
+```vue
+<CnPagination compact :current-page="page" :total-pages="totalPages" :total-items="total" :current-page-size="pageSize" @page-changed="onPageChange" />
+```

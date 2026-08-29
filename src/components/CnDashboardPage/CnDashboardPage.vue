@@ -49,14 +49,17 @@
 				     reachable; self-wires from the cnManifestEditor / cnOpenBuildAvailable
 				     provided by CnAppRoot. Sits inline with the page's action buttons. -->
 				<CnBuildiqEditButton />
-				<!-- Page-level overflow Actions menu (Refresh / Documentation /
-				     Request a feature). Separate from the per-widget menus.
-				     On by default; opt out per item, supply documentation-url
-				     to surface a docs link. -->
+				<!-- Page-level overflow Actions menu (Refresh + the mandatory
+				     trio Request a feature / Report a bug / Documentation).
+				     Separate from the per-widget menus. `docs-anchor` deep-links
+				     the docs item to THIS page's section. -->
 				<CnActionsMenu
 					:show-refresh="showRefresh"
 					:show-request-feature="showRequestFeature"
+					:show-report-bug="showReportBug"
+					:show-documentation="showDocumentation"
 					:documentation-url="documentationUrl"
+					:docs-anchor="resolvedPageId"
 					:documentation-label="documentationLabel"
 					:refresh-label="refreshLabel"
 					:request-feature-label="requestFeatureLabel"
@@ -316,9 +319,11 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
+						:title-icon-variant="getWidgetTitleIconVariant(item)"
 						:show-refresh="getWidgetShowRefresh(item)"
 						:show-actions="widgetShowActions(item)"
 						:documentation-url="getWidgetDocumentationUrl(item)"
+						:docs-anchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<!-- @slot widget-{widgetId}-title-icon Per-widget custom title icon (e.g. `#widget-my-work-title-icon`). Scope: `{ item, widget }`. -->
@@ -394,8 +399,10 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
+						:title-icon-variant="getWidgetTitleIconVariant(item)"
 						:show-refresh="getWidgetShowRefresh(item)"
 						:documentation-url="getWidgetDocumentationUrl(item)"
+						:docs-anchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<template v-if="dateRangeEnabled && (item.dateChip === true || formatChartDateRange(item))" #title-meta>
@@ -472,8 +479,10 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
+						:title-icon-variant="getWidgetTitleIconVariant(item)"
 						:show-refresh="getWidgetShowRefresh(item)"
 						:documentation-url="getWidgetDocumentationUrl(item)"
+						:docs-anchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<!-- Mount-mode integration leaf (openregister#2127):
@@ -505,6 +514,7 @@
 						:style-config="item.styleConfig || {}"
 						:show-refresh="getWidgetShowRefresh(item)"
 						:documentation-url="getWidgetDocumentationUrl(item)"
+						:docs-anchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<CnWidgetRenderer
@@ -524,10 +534,14 @@
 						:show-actions="widgetShowActions(item)"
 						:show-refresh="getWidgetShowRefresh(item)"
 						:flush="item.flush !== false"
+						:title-icon-position="getWidgetTitleIconPosition(item)"
+						:title-icon-color="getWidgetTitleIconColor(item)"
+						:title-icon-variant="getWidgetTitleIconVariant(item)"
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
 						:documentation-url="getWidgetDocumentationUrl(item)"
+						:docs-anchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<!-- Opt-in per-widget date chip (`layout[].dateChip: true`) for
@@ -1195,9 +1209,31 @@ export default {
 			default: true,
 		},
 		/**
-		 * Documentation link for this dashboard. When a non-empty URL is
-		 * set, the page-level overflow menu renders a "Documentation" item
-		 * that opens the link in a new tab. Empty (the default) hides it.
+		 * Show the built-in "Report a bug" item in the page-level overflow
+		 * Actions menu. On by default — the trio Request a feature / Report a
+		 * bug / Documentation is the contract for every Conduction surface.
+		 *
+		 * @type {boolean}
+		 */
+		showReportBug: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Show the built-in Documentation item in the page-level overflow
+		 * Actions menu. On by default; the shared menu resolves the target
+		 * itself, so leaving it on costs the host nothing.
+		 *
+		 * @type {boolean}
+		 */
+		showDocumentation: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Explicit documentation link for this dashboard, opened in a new tab.
+		 * Usually unnecessary: the page-level menu builds one from the
+		 * app-wide documentation base and the page id.
 		 *
 		 * @type {string}
 		 */
@@ -2783,6 +2819,14 @@ export default {
 		 */
 		widgetBorderless(item) {
 			if (typeof item.borderless === 'boolean') return item.borderless
+			// A chart is never a self-drawing card: it renders a bare SVG, so
+			// dropping the wrapper's chrome leaves a graph floating on the page
+			// with no border AND — because the same condition drove both — no
+			// title either. That pair went missing together on dossiq's bar
+			// charts. Other widget families keep the historical derivation
+			// (see CnDashboardPageBorderless.spec.js), where `borderless` is
+			// the documented escape hatch.
+			if (this.isChart(item)) return false
 			return !this.widgetShowTitle(item)
 		},
 
@@ -2864,6 +2908,35 @@ export default {
 		getWidgetTitleIconColor(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			return def?.titleIconColor || null
+		},
+		/**
+		 * The widget's semantic header-icon colour. Read from the widget
+		 * definition's `titleIconVariant`; defaults to `primary`, which is
+		 * why EVERY widget's header icon is now coloured rather than only the
+		 * ones an app happened to configure. A widget whose subject already
+		 * carries a meaning names it — a Concepts list is `warning`, a
+		 * Published list `success`, a Depublished list `error`.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {string} A CnWidgetWrapper `titleIconVariant` value.
+		 */
+		getWidgetTitleIconVariant(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return def?.titleIconVariant || 'primary'
+		},
+		/**
+		 * The widget's own section in the app's documentation, forwarded to
+		 * the shared Actions menu so its Documentation item deep-links to
+		 * THIS widget rather than the docs homepage. Falls back to the widget
+		 * type, which is how the library's own catalog widgets are documented,
+		 * and finally to the widget id.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {string} An anchor slug / path / URL.
+		 */
+		getWidgetDocsAnchor(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return def?.docsAnchor || def?.type || item.widgetId || ''
 		},
 
 		isTile(item) {

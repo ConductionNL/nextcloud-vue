@@ -15,12 +15,23 @@
 		<p v-else-if="error" class="cn-object-list-widget__error">
 			{{ loadErrorLabel }}
 		</p>
-		<!-- Compact empty state (ADR-062): one muted line, never a full-height
-		     void — an empty collection cell should be DESIGNED small, and this
-		     keeps whatever height it has quiet. -->
-		<p v-else-if="!loading && rows.length === 0" class="cn-object-list-widget__empty">
-			{{ resolvedEmptyText }}
-		</p>
+		<!-- Designed empty state. This used to be a bare CnDataTable with no
+		     rows, which paints its <thead> — a full-width grey strip floating
+		     in the middle of an otherwise blank card, the "strange grey bar"
+		     from the review. CnWidgetEmptyState replaces it with something
+		     deliberate, and stays `compact` inside a fit-measured cell so it
+		     cannot outgrow a short tile (ADR-062). -->
+		<CnWidgetEmptyState
+			v-else-if="!loading && rows.length === 0"
+			:name="resolvedEmptyText"
+			:compact="fitRows !== null && fitRows < 3"
+			class="cn-object-list-widget__empty">
+			<template v-if="allowCreate && !waitingForContext" #action>
+				<button type="button" class="cn-object-list-widget__add" @click="openCreate">
+					+ {{ addLabel }}
+				</button>
+			</template>
+		</CnWidgetEmptyState>
 		<template v-else>
 			<div class="cn-object-list-widget__table">
 				<CnDataTable
@@ -31,10 +42,30 @@
 					borderless
 					@row-click="onRowClick" />
 			</div>
-			<!-- Fit-to-cell footer (ADR-062: the cell is the budget — rows adapt
-			     to the cell, the remainder is one click away, never a scrollbar).
-			     A navigating button when `viewAllRoute` is configured; a quiet
-			     "+N more" line otherwise. -->
+			<!--
+			  Footer. Two affordances, and they answer different questions.
+
+			  The PAGER walks the rest of the matching objects in place —
+			  server-side (`_page`), so "1–5 of 137" is the truth and not a
+			  count of what happened to be fetched. It renders only when a
+			  whole page fits the cell; on a cell too short for one page the
+			  fit-to-cell path below is all there is, because a pager under
+			  rows that are themselves clipped would page a lie.
+
+			  VIEW ALL leaves for the full index. It shows whenever there is
+			  more than the widget is showing, pager or no pager — a widget is
+			  a summary, and the index is where the list actually lives.
+			-->
+			<CnPagination
+				v-if="showPager"
+				compact
+				class="cn-object-list-widget__pager"
+				:current-page="page"
+				:total-pages="totalPages"
+				:total-items="total"
+				:current-page-size="pageSize"
+				:min-items-to-show="0"
+				@page-changed="onPageChange" />
 			<button
 				v-if="hiddenCount > 0 && content.viewAllRoute"
 				type="button"
@@ -42,15 +73,17 @@
 				@click="onViewAll">
 				{{ viewAllLabel }}
 			</button>
-			<p v-else-if="hiddenCount > 0" class="cn-object-list-widget__more">
+			<p v-else-if="hiddenCount > 0 && !showPager" class="cn-object-list-widget__more">
 				{{ moreLabel }}
 			</p>
 		</template>
 		<!-- Create affordance (ADR-062): every collection carries its Add at
 		     the bottom of the widget; the host card's Actions menu calls the
-		     same openCreate() through the public method. -->
+		     same openCreate() through the public method. Suppressed while the
+		     empty state is showing — that renders its own copy in its #action
+		     slot, and two Add buttons on one empty card read as a bug. -->
 		<button
-			v-if="allowCreate && !waitingForContext"
+			v-if="allowCreate && !waitingForContext && !showingEmptyState"
 			type="button"
 			class="cn-object-list-widget__add"
 			@click="openCreate">
@@ -69,6 +102,8 @@
 <script>
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
+import CnPagination from '../CnPagination/CnPagination.vue'
+import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
 import { translate as t } from '@nextcloud/l10n'
 import { resolveFilterTokens, hasUnresolvedTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
 import { objectFieldValue } from '../../utils/objectName.js'
@@ -98,7 +133,7 @@ import { objectFieldValue } from '../../utils/objectName.js'
 export default {
 	name: 'CnObjectListWidget',
 
-	components: { CnDataTable, CnFormDialog },
+	components: { CnDataTable, CnFormDialog, CnPagination, CnWidgetEmptyState },
 
 	inject: {
 		/**
@@ -150,6 +185,8 @@ export default {
 			error: '',
 			/** Server-side total for the resolved filter (drives "View all (N)"). */
 			total: 0,
+			/** Current 1-based page. Paging is SERVER-side (`_page`). */
+			page: 1,
 			/** Rows that fit the host cell; null = unconstrained (dashboards). */
 			fitRows: null,
 			/** Whether the create dialog is open. */
@@ -310,6 +347,46 @@ export default {
 			return this.fitRows ? this.rows.slice(0, this.fitRows) : this.rows
 		},
 		/**
+		 * Rows per page. This is `content.limit` (the fetch cap) — a FIXED
+		 * number, deliberately not the measured `fitRows`: a page size derived
+		 * from a post-render measurement would change the pagination under the
+		 * reader every time the tile resized, and would need a refetch to
+		 * settle.
+		 *
+		 * @return {number}
+		 */
+		pageSize() {
+			return Number((this.content || {}).limit) || 25
+		},
+		/**
+		 * Total pages for the resolved filter, from the SERVER's total.
+		 *
+		 * @return {number}
+		 */
+		totalPages() {
+			return Math.max(Math.ceil((this.total || 0) / this.pageSize), 1)
+		},
+		/**
+		 * Whether the compact pager renders.
+		 *
+		 * Two conditions, and the second is the load-bearing one. There must
+		 * be more than one page (otherwise there is nothing to page), AND the
+		 * cell must be able to show a whole page — because `visibleRows` clips
+		 * the page to what fits, and a pager over clipped rows would claim to
+		 * be showing "1–25 of 137" while five rows are on screen. On a cell
+		 * that short the existing fit-to-cell "View all" is the honest answer.
+		 *
+		 * @return {boolean}
+		 */
+		showPager() {
+			if (this.totalPages <= 1) return false
+			return this.fitRows === null || this.fitRows >= this.rows.length
+		},
+		/** Whether the designed empty state is what the widget is showing. */
+		showingEmptyState() {
+			return !this.waitingForContext && !this.error && !this.loading && this.rows.length === 0
+		},
+		/**
 		 * How many matching objects are NOT rendered (server total minus the
 		 * visible slice). Drives the "View all (N)" footer.
 		 *
@@ -353,6 +430,10 @@ export default {
 
 	watch: {
 		sourceKey() {
+			// The query changed, so page 3 of the OLD result set means nothing
+			// against the new one — and an out-of-range `_page` returns an empty
+			// list, which would read as "no matches" rather than "wrong page".
+			this.page = 1
 			this.fetchRows()
 		},
 	},
@@ -409,7 +490,10 @@ export default {
 				)
 				// `limit` is a FETCH CAP (ADR-062), not a render promise — the
 				// visible count fits the cell; fetch enough to fill big cells.
-				const params = { _limit: c.limit || 25 }
+				// It doubles as the PAGE SIZE: one fetch is exactly one page, so
+				// the pager's "1–25 of 137" is the server's arithmetic and not a
+				// client-side count of an already-capped window.
+				const params = { _limit: this.pageSize, _page: this.page }
 				if (c.sort && c.sort.field) {
 					params[`_order[${c.sort.field}]`] = (c.sort.dir === 'desc' ? 'desc' : 'asc')
 				}
@@ -541,6 +625,22 @@ export default {
 		 *
 		 * @return {void}
 		 */
+		/**
+		 * Pager click — refetch that page from the server. Paging is never
+		 * client-side over an already-capped window: that would silently drop
+		 * every row past the cap while still displaying a total that counted
+		 * them.
+		 *
+		 * @param {number} next The 1-based page to load.
+		 * @return {void}
+		 */
+		onPageChange(next) {
+			const target = Math.min(Math.max(Number(next) || 1, 1), this.totalPages)
+			if (target === this.page) return
+			this.page = target
+			this.fetchRows()
+		},
+
 		onViewAll() {
 			/**
 			 * @event view-all Emitted when the "View all (N)" footer is clicked.
@@ -600,17 +700,17 @@ export default {
 	overflow: hidden;
 }
 
-/* Compact empty state (ADR-062): one quiet centered line — matches the
-   integration leaves' "No meetings" look — never a tall void. */
+/* The empty state is CnWidgetEmptyState now — it brings its own layout, so
+   all this rule still owns is letting it claim the cell's leftover height
+   (ADR-062: it fits the cell, it never forces one). */
 .cn-object-list-widget__empty {
-	color: var(--color-text-maxcontrast);
-	margin: 0;
-	padding: 24px 8px;
-	text-align: center;
 	flex: 1 1 auto;
-	display: flex;
-	align-items: center;
-	justify-content: center;
+	min-height: 0;
+}
+
+/* The pager sits flush at the bottom of the card, above "View all". */
+.cn-object-list-widget__pager {
+	flex-shrink: 0;
 }
 
 .cn-object-list-widget__view-all {

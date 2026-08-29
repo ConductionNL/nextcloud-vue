@@ -1,0 +1,298 @@
+/* ========================================
+   @conduction/nextcloud-vue — The KPI card
+   ======================================== */
+
+/*
+ * ONE canonical KPI look, for every app.
+ *
+ * There were two. `CnStatsBlock` (OpenCatalogi's KPIs) drew a grey card with a
+ * circular tinted icon above a large coloured number; `CnStatWidget` (dossiq's)
+ * drew a transparent row with the icon beside a smaller number. Two components
+ * meant two designs, and the same dashboard read as two products.
+ *
+ * The visual contract now lives HERE, in one stylesheet, under one class
+ * family, and both components render that markup. Neither owns the look any
+ * more, so they cannot drift apart again: changing this file changes both.
+ * Each component keeps its own legacy class names on the same elements for
+ * backwards compatibility with app CSS that targets them.
+ *
+ * The canonical card is OpenCatalogi's, per the review: grey card, circular
+ * icon, big coloured number.
+ *
+ * Colours are Nextcloud tokens throughout — never literals. The nldesign app
+ * re-themes by overriding those variables, so a hardcoded hex would opt the
+ * card out of government theming (NL Design System).
+ */
+
+/* ----------------------------------------
+   The KPI scale
+   ----------------------------------------
+
+   Every number that decides what a KPI LOOKS like is declared once, here, and
+   read by `var()` everywhere else — in this sheet and in the scoped blocks of
+   the components that render KPI-shaped content but are not themselves a card
+   (CnKpiGrid's tracks, CnStatsPanel's sections, CnFederationStatus's summary
+   row). A component that wants the canonical treatment consumes the token; it
+   does not restate the value. That is the whole anti-drift mechanism: a
+   restated value is a value that can be changed in one place and not the
+   other, which is exactly how the library ended up with several KPI looks.
+
+   They live on `:root` rather than on `.cn-kpi-card` so a component that is
+   NOT a card can still read them. Every `var()` below also carries the
+   literal as its fallback, so a consumer that somehow loads a component
+   without this sheet still renders at the canonical size instead of at the
+   browser default.
+
+   An app may re-scale every KPI in one declaration by overriding these on
+   `:root` — that is a supported use, and preferable to per-app overrides of
+   the class names below. */
+:root {
+	/* Box */
+	--cn-kpi-padding: 16px;
+	--cn-kpi-gap: 8px;
+	--cn-kpi-gap-horizontal: 12px;
+	--cn-kpi-radius: var(--border-radius-large, 10px);
+	/* The gutter BETWEEN tiles — a CnKpiGrid's tracks, a CnStatsPanel stack,
+	   the entries a CnStatsBlockWidget stacks inside one widget. One value, so
+	   three surfaces that show the same tiles space them the same way. */
+	--cn-kpi-grid-gap: 16px;
+	--cn-kpi-stack-gap: 12px;
+
+	/* Icon */
+	--cn-kpi-icon-size: 44px;
+	--cn-kpi-icon-size-sm: 36px;
+	/* Share of the semantic colour mixed into the icon's circle. */
+	--cn-kpi-icon-tint: 12%;
+
+	/* Title — the name of the thing being counted. */
+	--cn-kpi-title-size: 14px;
+	--cn-kpi-title-weight: 600;
+
+	/* Value — the number itself, the point of the tile. */
+	--cn-kpi-value-size: 2rem;
+	/* A KPI number rendered inline in a dense row (a summary strip, a list
+	   header) rather than alone on a tile. Same family, same weight, same
+	   colour rules — one step down in size so it does not out-shout the row
+	   it sits in. */
+	--cn-kpi-value-size-compact: 1.25rem;
+	--cn-kpi-value-weight: 700;
+	--cn-kpi-value-line: 1.1;
+
+	/* Label — the unit or qualifier beside the number, and every piece of
+	   secondary KPI text (captions, breakdowns, empty and loading lines). */
+	--cn-kpi-label-size: 13px;
+	--cn-kpi-label-color: var(--color-text-maxcontrast);
+
+	/* Section heading above a group of KPIs. */
+	--cn-kpi-section-title-size: 14px;
+
+	/* The tile's semantic colour. The variant modifiers below re-point THIS,
+	   and the icon and the value both read it — so a card can never say
+	   "success" with its icon and "primary" with its number. */
+	--cn-kpi-accent: var(--color-primary-element);
+}
+
+.cn-kpi-card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--cn-kpi-gap, 8px);
+	width: 100%;
+	height: 100%;
+	min-width: 0;
+	padding: var(--cn-kpi-padding, 16px);
+	box-sizing: border-box;
+	overflow: hidden;
+	text-align: center;
+	text-decoration: none;
+	color: inherit;
+	background: var(--color-background-hover);
+	border: 2px solid transparent;
+	border-radius: var(--cn-kpi-radius, 10px);
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* The icon: a circle tinted from the card's own semantic colour. `color-mix`
+   rather than a frozen rgba() so a re-themed palette re-tints it too. */
+.cn-kpi-card__icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: var(--cn-kpi-icon-size, 44px);
+	height: var(--cn-kpi-icon-size, 44px);
+	border-radius: 50%;
+	flex-shrink: 0;
+	color: var(--cn-kpi-accent, var(--color-primary-element));
+	background: color-mix(in srgb, var(--cn-kpi-accent, var(--color-primary-element)) var(--cn-kpi-icon-tint, 12%), transparent);
+}
+
+.cn-kpi-card__icon svg {
+	fill: currentcolor;
+}
+
+.cn-kpi-card__title {
+	margin: 0;
+	font-size: var(--cn-kpi-title-size, 14px);
+	font-weight: var(--cn-kpi-title-weight, 600);
+	color: var(--color-main-text);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 100%;
+}
+
+/* The stack between the icon and the card edge: title, value row, and
+   whatever else the component puts inside (a breakdown, an empty line).
+   Canonical rather than per-component, because a body that stacks one way in
+   CnStatsBlock and another in CnStatWidget is two looks again — the spacing
+   between a title and its number is part of the KPI's identity. */
+.cn-kpi-card__body {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	min-width: 0;
+	max-width: 100%;
+}
+
+.cn-kpi-card__value-row {
+	display: flex;
+	align-items: baseline;
+	justify-content: center;
+	gap: 6px;
+	max-width: 100%;
+	min-width: 0;
+}
+
+/* The number is the point of the card, so it never shrinks and never wraps —
+   the decoration around it is what gives way in a narrow tile. */
+.cn-kpi-card__value {
+	flex: 0 0 auto;
+	font-size: var(--cn-kpi-value-size, 2rem);
+	font-weight: var(--cn-kpi-value-weight, 700);
+	line-height: var(--cn-kpi-value-line, 1.1);
+	white-space: nowrap;
+	color: var(--cn-kpi-accent, var(--color-primary-element));
+}
+
+.cn-kpi-card__label {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: var(--cn-kpi-label-size, 13px);
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Semantic variants. Each re-points the ONE accent token, so the icon tint
+   and the number move together by construction — there is no second place to
+   forget. The inline KPI below shares the same modifiers for the same reason:
+   `success` must mean one colour across every KPI surface, not one per class
+   family. */
+.cn-kpi-card--success,
+.cn-kpi-inline--success { --cn-kpi-accent: var(--color-success); }
+
+.cn-kpi-card--warning,
+.cn-kpi-inline--warning { --cn-kpi-accent: var(--color-warning); }
+
+.cn-kpi-card--error,
+.cn-kpi-inline--error { --cn-kpi-accent: var(--color-error); }
+
+/* No semantic reading at all — a count that is neither good nor bad (an
+   "unknown" bucket). Muted rather than coloured, so it cannot be mistaken for
+   a status. */
+.cn-kpi-inline--muted { --cn-kpi-accent: var(--color-text-maxcontrast); }
+
+/* Clickable card (a `route`/`link` on the widget, or `clickable` on the block). */
+.cn-kpi-card--clickable {
+	cursor: pointer;
+}
+
+.cn-kpi-card--clickable:hover {
+	border-color: var(--color-primary-element);
+	box-shadow: 0 2px 8px var(--color-box-shadow);
+}
+
+.cn-kpi-card--clickable:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
+
+/* Horizontal: icon beside the stack rather than above it. For a tile that is
+   wider than it is tall — the same card, laid out sideways. */
+.cn-kpi-card--horizontal {
+	flex-direction: row;
+	align-items: center;
+	justify-content: flex-start;
+	gap: var(--cn-kpi-gap-horizontal, 12px);
+	text-align: left;
+}
+
+.cn-kpi-card--horizontal .cn-kpi-card__body {
+	align-items: flex-start;
+	min-width: 0;
+	text-align: left;
+}
+
+.cn-kpi-card--horizontal .cn-kpi-card__value-row {
+	justify-content: flex-start;
+}
+
+.cn-kpi-card--horizontal .cn-kpi-card__icon {
+	width: var(--cn-kpi-icon-size-sm, 36px);
+	height: var(--cn-kpi-icon-size-sm, 36px);
+}
+
+/* ----------------------------------------
+   The inline KPI
+   ----------------------------------------
+
+   A number and its label rendered IN a row — a summary strip above a list, a
+   status roll-up in a panel header — rather than alone on a tile. Not every
+   KPI earns a card: a four-way "3 up / 1 degraded / 0 down" roll-up above a
+   node list is one line of context, and boxing each count would out-weigh the
+   list it introduces.
+
+   So the box is dropped and nothing else is. The number keeps the card's
+   weight, line-height and accent colour and steps down one size
+   (`--cn-kpi-value-size-compact`); the label keeps the card's label size and
+   colour; the variant modifiers are literally the card's own. It reads as the
+   same design at a different density, which is the whole point — the
+   alternative, a bespoke `0.85em` count with an inherited colour, is a second
+   KPI look wearing a different class name. */
+.cn-kpi-inline {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 6px;
+	min-width: 0;
+}
+
+.cn-kpi-inline__value {
+	flex: 0 0 auto;
+	font-size: var(--cn-kpi-value-size-compact, 1.25rem);
+	font-weight: var(--cn-kpi-value-weight, 700);
+	line-height: var(--cn-kpi-value-line, 1.1);
+	white-space: nowrap;
+	color: var(--cn-kpi-accent, var(--color-primary-element));
+}
+
+.cn-kpi-inline__label {
+	min-width: 0;
+	font-size: var(--cn-kpi-label-size, 13px);
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Flat: the card chrome removed, for a KPI already sitting inside a card that
+   draws its own (a CnWidgetWrapper with `borderless: false`). The typography,
+   the icon circle and the colours are unchanged — this drops the box only, so
+   the two contexts still read as the same component. */
+.cn-kpi-card--flat {
+	background: transparent;
+	border-color: transparent;
+	padding: 8px;
+}

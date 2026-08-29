@@ -9,24 +9,38 @@
 			</p>
 		</header>
 
-		<!-- Aggregate counts. -->
+		<!-- Aggregate counts — the KPI part of this component.
+
+		     Each count is a canonical INLINE KPI (src/css/kpi-card.css): the
+		     card's number weight, colour and label scale at the compact size,
+		     because a roll-up above a list is one line of context rather than
+		     four tiles. Splitting the count and the label into their own spans
+		     is what lets them take those two different treatments; before,
+		     both sat in one text node at one size and the number read as prose.
+
+		     The per-node list below is deliberately NOT a KPI surface — see the
+		     note in the stylesheet block. -->
 		<div v-if="!hideSummary" class="cn-federation-status__summary" data-testid="cn-federation-status-summary">
-			<span class="cn-federation-status__summary-item cn-federation-status__summary-item--up">
+			<span class="cn-federation-status__summary-item cn-federation-status__summary-item--up cn-kpi-inline cn-kpi-inline--success">
 				<span class="cn-federation-status__dot cn-federation-status__dot--up" />
-				{{ counts.up }} {{ upLabel }}
+				<span class="cn-kpi-inline__value">{{ counts.up }}</span>
+				<span class="cn-kpi-inline__label">{{ upLabel }}</span>
 			</span>
-			<span class="cn-federation-status__summary-item cn-federation-status__summary-item--degraded">
+			<span class="cn-federation-status__summary-item cn-federation-status__summary-item--degraded cn-kpi-inline cn-kpi-inline--warning">
 				<span class="cn-federation-status__dot cn-federation-status__dot--degraded" />
-				{{ counts.degraded }} {{ degradedLabel }}
+				<span class="cn-kpi-inline__value">{{ counts.degraded }}</span>
+				<span class="cn-kpi-inline__label">{{ degradedLabel }}</span>
 			</span>
-			<span class="cn-federation-status__summary-item cn-federation-status__summary-item--down">
+			<span class="cn-federation-status__summary-item cn-federation-status__summary-item--down cn-kpi-inline cn-kpi-inline--error">
 				<span class="cn-federation-status__dot cn-federation-status__dot--down" />
-				{{ counts.down }} {{ downLabel }}
+				<span class="cn-kpi-inline__value">{{ counts.down }}</span>
+				<span class="cn-kpi-inline__label">{{ downLabel }}</span>
 			</span>
 			<span v-if="counts.unknown > 0"
-				class="cn-federation-status__summary-item cn-federation-status__summary-item--unknown">
+				class="cn-federation-status__summary-item cn-federation-status__summary-item--unknown cn-kpi-inline cn-kpi-inline--muted">
 				<span class="cn-federation-status__dot cn-federation-status__dot--unknown" />
-				{{ counts.unknown }} {{ unknownLabel }}
+				<span class="cn-kpi-inline__value">{{ counts.unknown }}</span>
+				<span class="cn-kpi-inline__label">{{ unknownLabel }}</span>
 			</span>
 		</div>
 
@@ -43,7 +57,14 @@
 				:class="'cn-federation-status__node--' + normaliseStatus(node.status)"
 				:data-status="normaliseStatus(node.status)"
 				@click="onNodeClick(node)">
-				<span class="cn-federation-status__node-dot"
+				<!-- `__dot` as well as `__node-dot`: the size, the shape and the
+				     accent-driven fill all live on `__dot`, and the row's dot
+				     carried only the `--status` modifier — which after this change
+				     sets a custom property and nothing else. Without the base class
+				     the row's dot was a zero-by-zero span the whole time: a
+				     coloured background on an empty inline element paints nothing.
+				     Same class, same dot, in the strip and in the row. -->
+				<span class="cn-federation-status__node-dot cn-federation-status__dot"
 					:class="'cn-federation-status__dot--' + normaliseStatus(node.status)" />
 				<div class="cn-federation-status__node-body">
 					<span class="cn-federation-status__node-name">{{ node.name || node.id }}</span>
@@ -60,6 +81,10 @@
 </template>
 
 <script>
+// The canonical KPI scale (`--cn-kpi-*`) lives in one stylesheet. Imported
+// here as well as from css/index.css so the tokens resolve even when the
+// consuming app pulls in components individually.
+import '../../css/kpi-card.css'
 /**
  * CnFederationStatus — Federation-status widget for federated
  * directories. Renders an aggregate summary (`up` / `degraded` /
@@ -220,65 +245,92 @@ export default {
 </script>
 
 <style scoped>
+/*
+ * TWO densities on purpose, and only ONE of them is a KPI.
+ *
+ * The summary strip IS a KPI surface, so it uses the canonical inline KPI from
+ * src/css/kpi-card.css — the card's number weight, its accent colours and its
+ * label scale, one size down. Nothing about it is declared locally except the
+ * dot.
+ *
+ * The per-node list is NOT, and forcing it into KPI cards would be a false
+ * uniformity. A KPI tile answers "how many?" with one number a reader takes in
+ * at a glance; a node row answers "which one, where, and when was it last
+ * checked?" — a name, a URL, a message and a timestamp, four fields that only
+ * make sense read line by line. Boxing each of those in a 2rem-number card
+ * would show a directory of forty nodes as forty tiles with no number on them.
+ * What the list DOES share is the vocabulary: the same status dot, in the same
+ * accent colours, so the strip and the rows agree on what "degraded" looks
+ * like.
+ */
+
 .cn-federation-status {
 	display: flex;
 	flex-direction: column;
-	gap: 12px;
-	padding: 12px;
+	gap: var(--cn-kpi-stack-gap, 12px);
+	padding: var(--cn-kpi-padding, 16px);
 	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius);
+	border-radius: var(--cn-kpi-radius, 10px);
 	background: var(--color-main-background);
 }
 
 .cn-federation-status__title {
 	margin: 0;
-	font-size: 1.1em;
+	font-size: var(--cn-kpi-section-title-size, 14px);
+	font-weight: var(--cn-kpi-title-weight, 600);
 }
 
 .cn-federation-status__description {
 	margin: 4px 0 0;
-	color: var(--color-text-maxcontrast);
-	font-size: 0.9em;
+	font-size: var(--cn-kpi-label-size, 13px);
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
 }
 
 .cn-federation-status__summary {
 	display: flex;
-	gap: 12px;
+	gap: var(--cn-kpi-grid-gap, 16px);
 	flex-wrap: wrap;
-	font-size: 0.85em;
+	align-items: baseline;
 }
 
+/* Layout and typography come from `cn-kpi-inline`, which every summary item
+   also carries. The only thing left to say here is that the dot sits on the
+   text baseline rather than on the number's. */
 .cn-federation-status__summary-item {
-	display: inline-flex;
 	align-items: center;
-	gap: 6px;
 }
 
+/* One dot rule, four colours, no repetition: each status modifier re-points
+   the SAME accent token the inline KPI's number reads, so a dot can never be
+   amber next to a red number. */
 .cn-federation-status__dot {
 	width: 10px;
 	height: 10px;
 	border-radius: 50%;
 	display: inline-block;
+	flex-shrink: 0;
+	background: var(--cn-kpi-accent, var(--color-text-maxcontrast));
 }
 
 .cn-federation-status__dot--up {
-	background: var(--color-success);
+	--cn-kpi-accent: var(--color-success);
 }
 
 .cn-federation-status__dot--degraded {
-	background: var(--color-warning);
+	--cn-kpi-accent: var(--color-warning);
 }
 
 .cn-federation-status__dot--down {
-	background: var(--color-error);
+	--cn-kpi-accent: var(--color-error);
 }
 
 .cn-federation-status__dot--unknown {
-	background: var(--color-text-maxcontrast);
+	--cn-kpi-accent: var(--color-text-maxcontrast);
 }
 
 .cn-federation-status__empty {
-	color: var(--color-text-maxcontrast);
+	font-size: var(--cn-kpi-label-size, 13px);
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
 	font-style: italic;
 	text-align: center;
 	margin: 16px 0;
@@ -321,28 +373,31 @@ export default {
 }
 
 .cn-federation-status__node-name {
-	font-weight: 600;
+	font-size: var(--cn-kpi-title-size, 14px);
+	font-weight: var(--cn-kpi-title-weight, 600);
 }
 
 .cn-federation-status__node-url {
 	font-family: monospace;
-	color: var(--color-text-maxcontrast);
+	font-size: var(--cn-kpi-label-size, 13px);
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
 }
 
 .cn-federation-status__node-message {
-	color: var(--color-text-maxcontrast);
+	font-size: var(--cn-kpi-label-size, 13px);
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
 }
 
 .cn-federation-status__node-checked {
-	color: var(--color-text-maxcontrast);
-	font-size: 0.85em;
+	font-size: var(--cn-kpi-label-size, 13px);
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
 }
 
 .cn-federation-status__node-label {
-	font-size: 0.85em;
+	font-size: var(--cn-kpi-label-size, 13px);
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
-	color: var(--color-text-maxcontrast);
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
 	margin-top: 6px;
 }
 </style>

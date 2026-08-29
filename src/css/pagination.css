@@ -70,3 +70,24 @@
 .viewPaginationNumbers { display: flex; align-items: center; gap: var(--default-grid-baseline); }
 .viewPaginationEllipsis { padding: 0 var(--default-grid-baseline); color: var(--color-text-maxcontrast); font-size: 0.9rem; }
 .viewPaginationPageSize { display: flex; align-items: center; gap: calc(2 * var(--default-grid-baseline)); flex-shrink: 0; min-width: 0; }
+
+/* Compact pagination — the widget-sized variant (`:compact="true"`). Sized to
+   sit in a dashboard widget's footer rather than under an index page: no top
+   margin, tight padding, and the item range on the left with a Prev/Next pair
+   on the right. */
+.cn-pagination.cn-pagination--compact {
+	justify-content: space-between;
+	gap: calc(2 * var(--default-grid-baseline));
+	margin-top: 0;
+	padding: calc(2 * var(--default-grid-baseline)) 0;
+}
+
+.cn-pagination--compact .cn-pagination__page-info {
+	font-size: 0.8rem;
+}
+
+.cn-pagination__nav.cn-pagination__nav--compact {
+	flex-grow: 0;
+	justify-content: flex-end;
+	gap: var(--default-grid-baseline);
+}
