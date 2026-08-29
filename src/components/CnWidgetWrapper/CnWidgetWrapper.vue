@@ -17,14 +17,16 @@
 		}"
 		:style="wrapperStyles">
 		<!-- Header -->
-		<div v-if="showTitle" class="cn-widget-wrapper__header" :style="headerStyles">
-			<!-- Title icon — left: rendered before the title group -->
-			<div v-if="$slots['title-icon'] && titleIconPosition === 'left'"
-				class="cn-widget-wrapper__title-icon"
-				:style="titleIconColor ? { color: titleIconColor } : {}">
-				<slot name="title-icon" />
-			</div>
+		<div v-if="showTitle" class="cn-widget-wrapper__header" :style="[headerStyles, titleIconStyle]">
+			<!-- Title icon — left: rendered before the title group. Moved
+			     INSIDE header-left so the header's `space-between` cannot pull
+			     it away from the title it belongs to; header-left's `gap` is
+			     what now separates icon from title (they used to touch). -->
 			<div class="cn-widget-wrapper__header-left">
+				<div v-if="$slots['title-icon'] && titleIconPosition === 'left'"
+					class="cn-widget-wrapper__title-icon">
+					<slot name="title-icon" />
+				</div>
 				<img
 					v-if="iconUrl"
 					:src="iconUrl"
@@ -54,7 +56,11 @@
 				<CnActionsMenu
 					:show-refresh="effectiveShowRefresh"
 					:show-request-feature="effectiveShowRequestFeature"
+					:show-report-bug="showReportBug"
+					:show-documentation="showDocumentation"
 					:documentation-url="documentationUrl"
+					:docs-anchor="docsAnchor"
+					:report-bug-url="reportBugUrl"
 					:documentation-label="documentationLabel"
 					:refresh-label="refreshLabel"
 					:request-feature-label="requestFeatureLabel"
@@ -79,8 +85,7 @@
 			</div>
 			<!-- Title icon — right: rendered after actions, far right -->
 			<div v-if="$slots['title-icon'] && titleIconPosition === 'right'"
-				class="cn-widget-wrapper__title-icon"
-				:style="titleIconColor ? { color: titleIconColor } : {}">
+				class="cn-widget-wrapper__title-icon">
 				<slot name="title-icon" />
 			</div>
 		</div>
@@ -155,6 +160,23 @@ import { CnActionsMenu } from '../CnActionsMenu/index.js'
  * </CnWidgetWrapper>
  * ```
  */
+/**
+ * Semantic variant → CSS colour token for the widget header icon. Tokens
+ * only — the nldesign app themes by overriding the Nextcloud variables, so a
+ * literal hex here would ignore government theming entirely (ADR-062 / NL
+ * Design System).
+ *
+ * @type {Record<string, string>}
+ */
+const TITLE_ICON_VARIANT_COLORS = {
+	primary: 'var(--color-primary-element)',
+	success: 'var(--color-success)',
+	warning: 'var(--color-warning)',
+	error: 'var(--color-error)',
+	info: 'var(--color-info, var(--color-primary-element))',
+	neutral: 'var(--color-text-maxcontrast)',
+}
+
 export default {
 	name: 'CnWidgetWrapper',
 
@@ -238,10 +260,31 @@ export default {
 			default: 'right',
 			validator: (v) => ['left', 'right'].includes(v),
 		},
-		/** CSS color value applied to the title-icon slot container */
+		/**
+		 * Explicit CSS colour for the header icon. Overrides `titleIconVariant`.
+		 * Must be a CSS custom property or a theme token — never a literal hex
+		 * (NL Design System: the nldesign app re-themes by overriding the
+		 * Nextcloud variables, and a hardcoded colour ignores that).
+		 *
+		 * @type {string}
+		 */
 		titleIconColor: {
 			type: String,
 			default: null,
+		},
+		/**
+		 * Semantic colour for the header icon. Every widget's icon is
+		 * coloured — `primary` (the theme colour) is the default, and a
+		 * widget whose subject already carries a semantic meaning names it
+		 * here so the icon says so at a glance (a Depublished list is
+		 * `error`, a Concepts list `warning`, a Published list `success`).
+		 *
+		 * @type {'primary'|'success'|'warning'|'error'|'info'|'neutral'}
+		 */
+		titleIconVariant: {
+			type: String,
+			default: 'primary',
+			validator: (v) => ['primary', 'success', 'warning', 'error', 'info', 'neutral'].includes(v),
 		},
 		/** Footer action buttons: [{ text, link }] */
 		buttons: {
@@ -317,10 +360,34 @@ export default {
 			default: true,
 		},
 		/**
-		 * Documentation link for this widget. When a non-empty URL is set,
-		 * the overflow menu renders a "Documentation" item that opens the
-		 * link in a new tab. Host apps supply it from the widget
-		 * configuration. Empty (the default) hides the item.
+		 * Whether the built-in "Report a bug" item renders. On by default —
+		 * the trio Request a feature / Report a bug / Documentation is the
+		 * contract for every widget; this exists for the rare surface that
+		 * must suppress one deliberately.
+		 *
+		 * @type {boolean}
+		 */
+		showReportBug: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Whether the built-in "Documentation" item renders. On by default,
+		 * for the same reason as `showReportBug`. The item's target is
+		 * resolved by the shared menu (see `docsAnchor`), so leaving it on
+		 * costs the host nothing.
+		 *
+		 * @type {boolean}
+		 */
+		showDocumentation: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Explicit documentation link for this widget, opened in a new tab.
+		 * Usually unnecessary: leave it empty and set `docsAnchor` instead,
+		 * so the link is built from the app-wide documentation base and
+		 * lands on this widget's own section.
 		 *
 		 * @type {string}
 		 */
@@ -347,6 +414,29 @@ export default {
 		 * @type {string}
 		 */
 		widgetId: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * This widget's own section in the app's documentation, appended to
+		 * the app-wide documentation base URL (provided by CnAppRoot) to build
+		 * the Actions menu's Documentation deep-link. A bare slug becomes a
+		 * `#fragment`. Supply it per widget type — without it the item still
+		 * renders, but lands on the docs homepage rather than this widget.
+		 *
+		 * @type {string}
+		 */
+		docsAnchor: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Explicit "Report a bug" target for the Actions menu. Empty (the
+		 * default) builds a new-issue deep-link on the app's own forge.
+		 *
+		 * @type {string}
+		 */
+		reportBugUrl: {
 			type: String,
 			default: '',
 		},
@@ -415,6 +505,30 @@ export default {
 	computed: {
 		displayTitle() {
 			return this.title || 'Widget'
+		},
+
+		/**
+		 * The header's icon colour, published as ONE custom property on the
+		 * header rather than an inline `color` repeated on each icon element.
+		 * Everything under the header — the icon-class span, the `title-icon`
+		 * slot's content, an SVG inside it — inherits from that single
+		 * declaration, so the icon and any decoration around it cannot end up
+		 * different colours.
+		 *
+		 * `titleIconColor` wins when the host set one; otherwise the
+		 * `titleIconVariant` token does, which is why EVERY widget icon is
+		 * coloured and not just the ones an app remembered to configure. Every
+		 * value is a CSS variable, so the nldesign app's overrides re-theme
+		 * them for free (NL Design System).
+		 *
+		 * @return {object} A style object declaring `--cn-widget-icon-color`.
+		 */
+		titleIconStyle() {
+			return {
+				'--cn-widget-icon-color': this.titleIconColor
+					|| TITLE_ICON_VARIANT_COLORS[this.titleIconVariant]
+					|| TITLE_ICON_VARIANT_COLORS.primary,
+			}
 		},
 
 		/**
@@ -659,6 +773,10 @@ export default {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	/* The header is `space-between`, so without an explicit gap a right-hand
+	   title-icon sits flush against whatever precedes it. The left-hand icon's
+	   spacing comes from header-left's own gap. */
+	gap: 8px;
 	padding: 12px 16px;
 	border-bottom: 1px solid var(--color-border);
 	flex-shrink: 0;
@@ -678,6 +796,7 @@ export default {
 	width: 24px;
 	height: 24px;
 	flex-shrink: 0;
+	color: var(--cn-widget-icon-color, var(--color-primary-element));
 }
 
 .cn-widget-wrapper__title {
@@ -738,10 +857,20 @@ export default {
 	flex-shrink: 0;
 }
 
+/* Every widget's header icon is coloured — `--cn-widget-icon-color` is set on
+   the header from titleIconStyle, and defaults to the theme colour if a
+   wrapper is ever rendered without it. Material-design-icon components paint
+   with `fill: currentColor`, so this reaches them; the :deep rule below makes
+   it reach a raw <svg> in the slot too. */
 .cn-widget-wrapper__title-icon {
 	display: flex;
 	align-items: center;
 	flex-shrink: 0;
+	color: var(--cn-widget-icon-color, var(--color-primary-element));
+}
+
+.cn-widget-wrapper__title-icon :deep(svg) {
+	fill: currentcolor;
 }
 
 .cn-widget-wrapper__footer {

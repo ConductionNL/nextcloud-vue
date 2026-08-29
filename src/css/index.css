@@ -29,6 +29,8 @@
 @import './table.css';
 @import './card.css';
 @import './pagination.css';
+@import './kpi-card.css';
+@import './form-widget.css';
 @import './detail.css';
 @import './badge.css';
 @import './layout.css';

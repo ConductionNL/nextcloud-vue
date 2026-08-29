@@ -1,5 +1,9 @@
 <template>
-	<div v-if="totalPages > 1 || totalItems > minItemsToShow" class="cn-pagination" data-testid="cn-pagination">
+	<div
+		v-if="totalPages > 1 || totalItems > minItemsToShow"
+		class="cn-pagination"
+		:class="{ 'cn-pagination--compact': compact }"
+		data-testid="cn-pagination">
 		<!-- Page info -->
 		<div class="cn-pagination__info">
 			<span class="cn-pagination__page-info">
@@ -7,8 +11,35 @@
 			</span>
 		</div>
 
+		<!--
+		  Compact navigation — a single Previous / Next pair, for the inside of
+		  a dashboard widget. The full control (First/Last, numbered pages, a
+		  page-size select) is an index-page affordance; dropped into a widget
+		  card it is wider than the card and taller than the rows it pages.
+		-->
+		<div v-if="compact && totalPages > 1" class="cn-pagination__nav cn-pagination__nav--compact">
+			<NcButton
+				:aria-label="previousLabel"
+				:disabled="currentPage === 1"
+				data-testid="cn-pagination-prev"
+				@click="changePage(currentPage - 1)">
+				<template #icon>
+					<ChevronLeft :size="20" />
+				</template>
+			</NcButton>
+			<NcButton
+				:aria-label="nextLabel"
+				:disabled="currentPage === totalPages"
+				data-testid="cn-pagination-next"
+				@click="changePage(currentPage + 1)">
+				<template #icon>
+					<ChevronRight :size="20" />
+				</template>
+			</NcButton>
+		</div>
+
 		<!-- Page navigation -->
-		<div v-if="totalPages > 1" class="cn-pagination__nav">
+		<div v-else-if="totalPages > 1" class="cn-pagination__nav">
 			<NcButton
 				:disabled="currentPage === 1"
 				@click="changePage(1)">
@@ -49,7 +80,7 @@
 		</div>
 
 		<!-- Page size selector -->
-		<div class="cn-pagination__page-size">
+		<div v-if="!compact" class="cn-pagination__page-size">
 			<label :for="pageSizeId">{{ itemsPerPageLabel }}</label>
 			<NcSelect
 				:input-id="pageSizeId"
@@ -66,6 +97,8 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcSelect } from '@nextcloud/vue'
+import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
+import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import { nextUid } from '../../utils/uid.js'
 
 /**
@@ -94,6 +127,8 @@ export default {
 	components: {
 		NcButton,
 		NcSelect,
+		ChevronLeft,
+		ChevronRight,
 	},
 
 	props: {
@@ -129,6 +164,18 @@ export default {
 				{ value: 500, label: '500' },
 				{ value: 1000, label: '1000' },
 			],
+		},
+		/**
+		 * Compact mode — one Previous / Next pair and the item range, sized to
+		 * sit inside a dashboard widget's footer. Drops the First/Last
+		 * buttons, the numbered pages and the page-size select, none of which
+		 * fit in a widget card.
+		 *
+		 * @type {boolean}
+		 */
+		compact: {
+			type: Boolean,
+			default: false,
 		},
 		/** Minimum items before pagination is shown */
 		minItemsToShow: {
@@ -168,6 +215,14 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Page {current} of {total}'),
 		},
+		/**
+		 * Page info format used in `compact` mode. Placeholders: {from}, {to},
+		 * {total} — the item range rather than the page number.
+		 */
+		compactInfoFormat: {
+			type: String,
+			default: () => t('nextcloud-vue', '{from}–{to} of {total}'),
+		},
 	},
 
 	emits: ['page-changed', 'page-size-changed'],
@@ -193,6 +248,17 @@ export default {
 		},
 
 		pageInfoText() {
+			// Compact mode names the ITEMS, not the pages: in a widget the row
+			// range ("1–5 of 137") is what the reader is actually looking at,
+			// and it is the only honest statement of how much is off-screen.
+			if (this.compact) {
+				const from = this.totalItems === 0 ? 0 : ((this.currentPage - 1) * this.currentPageSize) + 1
+				const to = Math.min(this.currentPage * this.currentPageSize, this.totalItems)
+				return this.compactInfoFormat
+					.replace('{from}', from)
+					.replace('{to}', to)
+					.replace('{total}', this.totalItems)
+			}
 			return this.pageInfoFormat
 				.replace('{current}', this.currentPage)
 				.replace('{total}', this.totalPages)

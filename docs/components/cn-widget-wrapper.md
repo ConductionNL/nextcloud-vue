@@ -186,3 +186,21 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 | Slot | Description |
 |------|-------------|
 | `title-meta` | Inline content rendered next to the title (e.g. the dashboard date-range chip). |
+
+## Coloured header icon
+
+Every widget's header icon is coloured — `titleIconVariant` defaults to `primary`, so no configuration is needed. A widget whose subject already carries a meaning names it instead: a Concepts list is `warning`, a Published list `success`, a Depublished list `error`. `titleIconColor` overrides the variant with an explicit CSS variable (never a literal hex — that would ignore the nldesign app's re-theming).
+
+The colour is published once as `--cn-widget-icon-color` on the header and cascades to every icon under it.
+
+## Actions menu props
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `docsAnchor` | String | `''` | This widget's own section in the app's documentation, appended to the app-wide base so the Documentation entry deep-links to this widget rather than the docs homepage. Prefer it over `documentationUrl`. |
+| `showDocumentation` | Boolean | `true` | Whether the Documentation entry renders. |
+| `showReportBug` | Boolean | `true` | Whether the Report-a-bug entry renders. |
+| `reportBugUrl` | String | `''` | Explicit bug-report target; empty builds a new-issue deep-link on the app's own forge. |
+| `titleIconVariant` | String | `'primary'` | Semantic header-icon colour (`primary`/`success`/`warning`/`error`/`info`/`neutral`). |
+
+Request a feature / Report a bug / Documentation render on every widget.

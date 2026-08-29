@@ -1,0 +1,175 @@
+/* ========================================
+   @conduction/nextcloud-vue — The KPI card
+   ======================================== */
+
+/*
+ * ONE canonical KPI look, for every app.
+ *
+ * There were two. `CnStatsBlock` (OpenCatalogi's KPIs) drew a grey card with a
+ * circular tinted icon above a large coloured number; `CnStatWidget` (dossiq's)
+ * drew a transparent row with the icon beside a smaller number. Two components
+ * meant two designs, and the same dashboard read as two products.
+ *
+ * The visual contract now lives HERE, in one stylesheet, under one class
+ * family, and both components render that markup. Neither owns the look any
+ * more, so they cannot drift apart again: changing this file changes both.
+ * Each component keeps its own legacy class names on the same elements for
+ * backwards compatibility with app CSS that targets them.
+ *
+ * The canonical card is OpenCatalogi's, per the review: grey card, circular
+ * icon, big coloured number.
+ *
+ * Colours are Nextcloud tokens throughout — never literals. The nldesign app
+ * re-themes by overriding those variables, so a hardcoded hex would opt the
+ * card out of government theming (NL Design System).
+ */
+
+.cn-kpi-card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	width: 100%;
+	height: 100%;
+	min-width: 0;
+	padding: 16px;
+	box-sizing: border-box;
+	overflow: hidden;
+	text-align: center;
+	text-decoration: none;
+	color: inherit;
+	background: var(--color-background-hover);
+	border: 2px solid transparent;
+	border-radius: var(--border-radius-large, 10px);
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* The icon: a circle tinted from the card's own semantic colour. `color-mix`
+   rather than a frozen rgba() so a re-themed palette re-tints it too. */
+.cn-kpi-card__icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	border-radius: 50%;
+	flex-shrink: 0;
+	color: var(--color-primary-element);
+	background: color-mix(in srgb, var(--color-primary-element) 12%, transparent);
+}
+
+.cn-kpi-card__icon svg {
+	fill: currentcolor;
+}
+
+.cn-kpi-card__title {
+	margin: 0;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-main-text);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 100%;
+}
+
+.cn-kpi-card__value-row {
+	display: flex;
+	align-items: baseline;
+	justify-content: center;
+	gap: 6px;
+	max-width: 100%;
+	min-width: 0;
+}
+
+/* The number is the point of the card, so it never shrinks and never wraps —
+   the decoration around it is what gives way in a narrow tile. */
+.cn-kpi-card__value {
+	flex: 0 0 auto;
+	font-size: 2rem;
+	font-weight: 700;
+	line-height: 1.1;
+	white-space: nowrap;
+	color: var(--color-primary-element);
+}
+
+.cn-kpi-card__label {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Semantic variants — the icon tint and the number take the same colour, so a
+   card can never say "success" with its icon and "primary" with its number. */
+.cn-kpi-card--success .cn-kpi-card__value { color: var(--color-success); }
+.cn-kpi-card--warning .cn-kpi-card__value { color: var(--color-warning); }
+.cn-kpi-card--error .cn-kpi-card__value { color: var(--color-error); }
+
+.cn-kpi-card--success .cn-kpi-card__icon {
+	color: var(--color-success);
+	background: color-mix(in srgb, var(--color-success) 12%, transparent);
+}
+
+.cn-kpi-card--warning .cn-kpi-card__icon {
+	color: var(--color-warning);
+	background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+}
+
+.cn-kpi-card--error .cn-kpi-card__icon {
+	color: var(--color-error);
+	background: color-mix(in srgb, var(--color-error) 12%, transparent);
+}
+
+/* Clickable card (a `route`/`link` on the widget, or `clickable` on the block). */
+.cn-kpi-card--clickable {
+	cursor: pointer;
+}
+
+.cn-kpi-card--clickable:hover {
+	border-color: var(--color-primary-element);
+	box-shadow: 0 2px 8px var(--color-box-shadow);
+}
+
+.cn-kpi-card--clickable:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
+
+/* Horizontal: icon beside the stack rather than above it. For a tile that is
+   wider than it is tall — the same card, laid out sideways. */
+.cn-kpi-card--horizontal {
+	flex-direction: row;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 12px;
+	text-align: left;
+}
+
+.cn-kpi-card--horizontal .cn-kpi-card__body {
+	min-width: 0;
+	text-align: left;
+}
+
+.cn-kpi-card--horizontal .cn-kpi-card__value-row {
+	justify-content: flex-start;
+}
+
+.cn-kpi-card--horizontal .cn-kpi-card__icon {
+	width: 36px;
+	height: 36px;
+}
+
+/* Flat: the card chrome removed, for a KPI already sitting inside a card that
+   draws its own (a CnWidgetWrapper with `borderless: false`). The typography,
+   the icon circle and the colours are unchanged — this drops the box only, so
+   the two contexts still read as the same component. */
+.cn-kpi-card--flat {
+	background: transparent;
+	border-color: transparent;
+	padding: 8px;
+}
