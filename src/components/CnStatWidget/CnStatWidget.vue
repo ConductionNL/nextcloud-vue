@@ -21,7 +21,7 @@
 		:class="[
 			{ 'cn-kpi-card--clickable': isLinked, 'cn-stat-widget--linked': isLinked },
 			'cn-kpi-card--' + cardLayout,
-			flat ? 'cn-kpi-card--flat' : '',
+			flat ? 'cn-kpi-card--flat' : 'cn-kpi-card--filled',
 		]"
 		v-bind="linkAttrs">
 		<div
@@ -578,24 +578,25 @@ export default {
 			return (rule && rule.icon) || this.content.icon || ''
 		},
 		/**
-		 * Card orientation. Vertical (icon above the number) is the canonical
-		 * KPI card; `content.layout: 'horizontal'` lays the same card sideways
-		 * for a tile that is wider than it is tall.
+		 * Card orientation. Horizontal (icon beside the number) is the
+		 * canonical KPI card; `content.layout: 'vertical'` stacks the icon
+		 * above a centred number for a tile taller than it is wide.
 		 *
 		 * @return {'horizontal'|'vertical'}
 		 */
 		cardLayout() {
-			return (this.content || {}).layout === 'horizontal' ? 'horizontal' : 'vertical'
+			return (this.content || {}).layout === 'vertical' ? 'vertical' : 'horizontal'
 		},
 		/**
-		 * Whether to drop the card's own grey box. On when
-		 * `content.flat === true` — for a tile whose host wrapper already
-		 * draws a card, where the KPI's own box would be a card inside a card.
+		 * Whether the card draws no box of its own. On by default: every stat
+		 * tile is rendered inside a CnWidgetWrapper that already draws a card,
+		 * so a second box is a card inside a card. Set `content.flat: false`
+		 * for a tile mounted somewhere with no wrapper around it.
 		 *
 		 * @return {boolean}
 		 */
 		flat() {
-			return (this.content || {}).flat === true
+			return (this.content || {}).flat !== false
 		},
 		/** Inline style for the icon circle (variant rule wins over iconColor). */
 		iconCircleStyle() {
@@ -991,12 +992,16 @@ export default {
 .cn-stat-widget__label {
 	display: flex;
 	align-items: center;
-	justify-content: center;
+	justify-content: space-between;
 	gap: 8px;
+	width: 100%;
 }
 
-.cn-kpi-card--horizontal .cn-stat-widget__label {
-	justify-content: space-between;
+/* Stacked tile: the label and its range select centre over the number rather
+   than spreading to the card's edges. */
+.cn-kpi-card--vertical .cn-stat-widget__label {
+	justify-content: center;
+	width: auto;
 }
 
 /* Sized down to sit inside the label row without pushing the tile taller —
