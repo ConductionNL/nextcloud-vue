@@ -20,13 +20,22 @@ module.exports = {
 		'^.+\\.vue$': '@vue/vue3-jest',
 	},
 	transformIgnorePatterns: [
-		// `nostics` is pulled in by pinia >= 4 and is ESM-only; without it the
-		// whole suite dies at `require('pinia')` in tests/setup.js the moment a
-		// consumer's pinia major moves. Listed so the peer range this package
-		// advertises stays actually runnable here.
-		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|nostics|vue-codemirror6|codemirror|@codemirror|@ckpack)/)',
+		// pinia >= 4 pulls `@vue/devtools-api` 8, whose CJS entry requires
+		// `@vue/devtools-kit`, which is ESM-only and in turn pulls
+		// `perfect-debounce`, `birpc` and `hookable`. Without these listed the
+		// whole suite dies at `require('pinia')` in tests/setup.js with
+		// `SyntaxError: Unexpected token 'export'` the moment a consumer's pinia
+		// major moves. `nostics` is the same story from an earlier pinia bump.
+		// Listed so the peer range this package advertises stays actually
+		// runnable here.
+		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|nostics|@vue/devtools-api|@vue/devtools-kit|@vue/devtools-shared|perfect-debounce|birpc|hookable|vue-codemirror6|codemirror|@codemirror|@ckpack)/)',
 	],
 	moduleNameMapper: {
+		// pinia >= 4 loads @vue/devtools-api, which registers a devtools backend
+		// and leaves a handle open. Jest then exits non-zero on "A worker process
+		// has failed to exit gracefully" with every test passing. Devtools have
+		// nothing to assert in a unit test, so they are stubbed out.
+		'^@vue/devtools-api$': '<rootDir>/tests/mocks/vue-devtools-api.js',
 		'^@/(.*)$': '<rootDir>/src/$1',
 		// VTU v2 silently ignores v1's top-level stubs/provide/mocks. This
 		// adapter hoists them into `global` so ~100 legacy specs keep the
