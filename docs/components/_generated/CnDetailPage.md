@@ -78,20 +78,20 @@
 
 ### Slots
 
-| Name                      | Bindings                                                | Description                |
-| ------------------------- | ------------------------------------------------------- | -------------------------- |
-| `header`                  | `title`, `description`, `icon`, `icon-size`             | header                     |
-| `icon`                    | —                                                       | icon                       |
-| `translation-badge`       | `object`                                                | translation-badge          |
-| `actions`                 | `object`, `object-id`, `schema`, `object-type`, `store` | actions                    |
-| `error`                   | —                                                       | error                      |
-| `error-actions`           | —                                                       | error-actions              |
-| `empty`                   | —                                                       | empty                      |
-| `empty-actions`           | —                                                       | empty-actions              |
-| `before-body`             | `object`, `schema`, `object-type`, `object-id`, `store` | before-body                |
-| `widget-${item.widgetId}` | `name`, `item`, `widget`                                | `widget-\${item.widgetId}` |
-| `stats-header`            | —                                                       | stats-header               |
-| `stats-rows`              | —                                                       | stats-rows                 |
-| `default`                 | —                                                       | default                    |
-| `sections`                | —                                                       | sections                   |
-| `footer`                  | —                                                       | footer                     |
+| Name                      | Bindings                                                                                            | Description                |
+| ------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------- |
+| `header`                  | `title`, `description`, `icon`, `icon-size`                                                         | header                     |
+| `icon`                    | —                                                                                                   | icon                       |
+| `translation-badge`       | `object`                                                                                            | translation-badge          |
+| `actions`                 | `object`, `object-id`, `schema`, `object-type`, `store`                                             | actions                    |
+| `error`                   | —                                                                                                   | error                      |
+| `error-actions`           | —                                                                                                   | error-actions              |
+| `empty`                   | —                                                                                                   | empty                      |
+| `empty-actions`           | —                                                                                                   | empty-actions              |
+| `before-body`             | `object`, `schema`, `object-type`, `object-id`, `store`                                             | before-body                |
+| `widget-${item.widgetId}` | `name`, `item`, `widget`, `object-id`, `object`, `object-data`, `object-type`, `register`, `schema` | `widget-\${item.widgetId}` |
+| `stats-header`            | —                                                                                                   | stats-header               |
+| `stats-rows`              | —                                                                                                   | stats-rows                 |
+| `default`                 | —                                                                                                   | default                    |
+| `sections`                | —                                                                                                   | sections                   |
+| `footer`                  | —                                                                                                   | footer                     |
