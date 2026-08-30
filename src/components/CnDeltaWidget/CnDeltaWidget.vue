@@ -5,26 +5,30 @@
 <template>
 	<component
 		:is="linkTag"
-		class="cn-delta-widget"
-		:class="{ 'cn-delta-widget--linked': isLinked }"
+		class="cn-kpi-card cn-delta-widget"
+		:class="[
+			{ 'cn-kpi-card--clickable': isLinked, 'cn-delta-widget--linked': isLinked },
+			'cn-kpi-card--' + cardLayout,
+			flat ? 'cn-kpi-card--flat' : 'cn-kpi-card--filled',
+		]"
 		v-bind="linkAttrs">
 		<div
 			v-if="content.icon"
-			class="cn-delta-widget__icon"
+			class="cn-kpi-card__icon cn-delta-widget__icon"
 			:style="iconCircleStyle">
 			<CnWidgetIcon :name="content.icon" :size="24" />
 		</div>
 
-		<div class="cn-delta-widget__body">
-			<div v-if="content.label" class="cn-delta-widget__label">
+		<div class="cn-kpi-card__body cn-delta-widget__body">
+			<div v-if="content.label" class="cn-kpi-card__title cn-delta-widget__label">
 				{{ resolvedLabel }}
 			</div>
 
-			<div class="cn-delta-widget__value-row">
+			<div class="cn-kpi-card__value-row cn-delta-widget__value-row">
 				<NcLoadingIcon v-if="displayLoading" :size="22" />
 				<span v-else-if="displayError" class="cn-delta-widget__error" :title="displayError">—</span>
 				<template v-else>
-					<span class="cn-delta-widget__value">{{ formattedCurrent }}</span>
+					<span class="cn-kpi-card__value cn-delta-widget__value" :style="valueStyle">{{ formattedCurrent }}</span>
 					<span
 						v-if="deltaPct !== null"
 						class="cn-delta-widget__delta"
@@ -35,7 +39,7 @@
 				</template>
 			</div>
 
-			<div v-if="!displayLoading && !displayError && content.caption" class="cn-delta-widget__caption">
+			<div v-if="!displayLoading && !displayError && content.caption" class="cn-kpi-card__label cn-delta-widget__caption">
 				{{ resolvedCaption }}
 			</div>
 		</div>
@@ -43,6 +47,10 @@
 </template>
 
 <script>
+// The canonical KPI card, shared with CnStatWidget and CnStatsBlock.
+// Imported here so the tile is styled even when the consuming app pulls in
+// components individually rather than through css/index.css.
+import '../../css/kpi-card.css'
 import { inject, ref } from 'vue'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import TrendingUp from 'vue-material-design-icons/TrendingUp.vue'
@@ -289,8 +297,31 @@ export default {
 		},
 		/** Inline style for the icon circle (tinted with iconColor). */
 		iconCircleStyle() {
-			const color = this.content.iconColor || 'var(--color-primary-element)'
+			const color = this.content.iconColor || this.content.valueColor || 'var(--color-primary-element)'
 			return { color, backgroundColor: this.tint(color) }
+		},
+		/**
+		 * Card orientation. Horizontal (icon beside the number) is the
+		 * canonical KPI card; `content.layout: 'vertical'` stacks the icon
+		 * above a centred number.
+		 *
+		 * @return {'horizontal'|'vertical'}
+		 */
+		cardLayout() {
+			return (this.content || {}).layout === 'vertical' ? 'vertical' : 'horizontal'
+		},
+		/**
+		 * Whether the card draws no box of its own. On by default — the tile
+		 * is rendered inside a CnWidgetWrapper that already draws a card.
+		 *
+		 * @return {boolean}
+		 */
+		flat() {
+			return (this.content || {}).flat !== false
+		},
+		/** Inline colour for the value, when the tile names one. */
+		valueStyle() {
+			return this.content.valueColor ? { color: this.content.valueColor } : {}
 		},
 		/**
 		 * Whether the tile is endpoint-bound (Wave 2): a `content.endpointSource`
@@ -493,84 +524,33 @@ export default {
 </script>
 
 <style scoped>
-.cn-delta-widget {
-	display: flex;
-	align-items: center;
-	gap: 16px;
-	padding: 8px 4px;
-	min-height: 64px;
-}
+/*
+ * The card itself — its box, body stack, icon circle, title and value
+ * typography — is the CANONICAL KPI card in src/css/kpi-card.css, shared with
+ * CnStatWidget and CnStatsBlock. This tile is the one the canonical look was
+ * modelled on, and it used to draw that look from its OWN copy of the rules
+ * here: a 44px circle, a 16px gap, a 1.8em value. That copy is exactly how a
+ * "canonical" card ends up with a second definition, so it is gone. What is
+ * left is only what belongs to THIS widget: the delta chip and the error glyph.
+ */
 
-/* Whole-tile click target when the widget declares a `route`/`link`. */
-.cn-delta-widget--linked {
-	cursor: pointer;
-	text-decoration: none;
-	color: inherit;
-	border-radius: var(--border-radius-large, 8px);
-	transition: background-color 0.1s ease-in-out;
-}
-
-.cn-delta-widget--linked:hover {
-	background-color: var(--color-background-hover);
-}
-
-.cn-delta-widget--linked:focus-visible {
-	outline: 2px solid var(--color-primary-element);
-	outline-offset: 2px;
-}
-
-.cn-delta-widget__icon {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 44px;
-	height: 44px;
-	border-radius: 50%;
-	flex-shrink: 0;
-}
-
-.cn-delta-widget__body {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	min-width: 0;
-}
-
-.cn-delta-widget__label {
-	font-size: 0.95em;
-	font-weight: 600;
-	color: var(--color-main-text);
-}
-
-.cn-delta-widget__value-row {
-	display: flex;
-	align-items: baseline;
-	gap: 10px;
-}
-
-.cn-delta-widget__value {
-	font-size: 1.8em;
-	font-weight: 700;
-	line-height: 1.1;
-	color: var(--color-main-text);
-}
-
+/* The percentage-change chip beside the value. Tinted good/bad at runtime from
+ * `goodDirection`, so the colour is an inline style, not a class. */
 .cn-delta-widget__delta {
 	display: inline-flex;
 	align-items: center;
 	gap: 2px;
-	font-size: 0.95em;
-	font-weight: 600;
+	font-size: var(--cn-kpi-label-size, 13px);
+	font-weight: var(--cn-kpi-title-weight, 600);
 }
 
-.cn-delta-widget__caption {
-	font-size: 0.85em;
-	color: var(--color-text-maxcontrast);
-}
-
+/* The dash shown when the number could not be fetched. It stands where the
+ * value stands, so it takes the value's size and weight — only the colour
+ * differs, because a failure is not a number. */
 .cn-delta-widget__error {
-	font-size: 1.8em;
-	font-weight: 700;
-	color: var(--color-text-maxcontrast);
+	font-size: var(--cn-kpi-value-size, 2rem);
+	font-weight: var(--cn-kpi-value-weight, 700);
+	line-height: var(--cn-kpi-value-line, 1.1);
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
 }
 </style>
