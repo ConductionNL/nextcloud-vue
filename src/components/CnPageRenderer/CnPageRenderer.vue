@@ -200,7 +200,7 @@ import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnPageConfigModal from '../../dialogs/CnPageConfigModal.vue'
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
-import { dispatchAction } from '../../utils/actionsDispatcher.js'
+import { dispatchAction, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { useObjectStore } from '../../store/index.js'
 
@@ -1330,19 +1330,7 @@ export default {
 		 * @return {?Function} The async create handler, or null if unresolved.
 		 */
 		resolveCreateOverride(name) {
-			if (typeof name !== 'string' || name === '') {
-				return null
-			}
-			const entry = this.effectiveRegistry[name]
-			if (typeof entry === 'function') {
-				return entry
-			}
-			if (entry && typeof entry === 'object') {
-				if (typeof entry.handler === 'function') return entry.handler
-				if (typeof entry.fn === 'function') return entry.fn
-			}
-			const legacy = this.effectiveCustomComponents[name]
-			return typeof legacy === 'function' ? legacy : null
+			return resolveCreateOverrideHandler(name, this.effectiveRegistry, this.effectiveCustomComponents)
 		},
 
 		/**
