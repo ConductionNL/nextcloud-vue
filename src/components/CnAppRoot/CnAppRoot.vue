@@ -1786,16 +1786,22 @@ export default {
 		 * Caller's Nextcloud group GIDs, published by Buildiq's
 		 * `DashboardController::publishCurrentUserGroups()` initial state.
 		 * Read via `loadState`, never DOM attributes. Defensive try/catch
-		 * mirrors `serverAppStatuses` — apps without the `openbuild`
-		 * initial-state key (non-Buildiq hosts, tests) simply resolve to
-		 * an empty list, so the fallback gate stays false rather than
-		 * throwing.
+		 * mirrors `serverAppStatuses` — hosts without the initial-state key
+		 * (non-Buildiq hosts, tests) simply resolve to an empty list, so the
+		 * fallback gate stays false rather than throwing.
+		 *
+		 * Initial state is namespaced by the PUBLISHING app's id, which moved
+		 * from `openbuild` to `buildiq`, so both are tried. A miss is silent:
+		 * `loadState` with a default returns the default, the gate reads
+		 * false, and nothing reports a stale key. Drop `openbuild` once no
+		 * supported install ships the old app id.
 		 *
 		 * @return {Array<string>}
 		 */
 		currentUserGroups() {
 			try {
-				const groups = loadState('openbuild', 'currentUserGroups', [])
+				const groups = loadState('buildiq', 'currentUserGroups', null)
+					?? loadState('openbuild', 'currentUserGroups', [])
 				return Array.isArray(groups) ? groups : []
 			} catch {
 				return []
