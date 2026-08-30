@@ -310,10 +310,22 @@
 			  `pages[].sidebar.show: false`. Default content: when
 			  `cnPageSidebarComponent.value` is set (provided by
 			  `CnPageRenderer` for `pages[].sidebarComponent`), that
-			  component renders here; otherwise empty. Consumer-supplied
-			  slot content always wins over the resolved component.
+			  component renders here; otherwise empty.
+
+			  Consumer-supplied slot content wins over the resolved
+			  component, because Vue only falls back when the slot is
+			  ABSENT. An app that fills this slot unconditionally therefore
+			  SUPPRESSES `pages[].sidebarComponent` silently: no warning,
+			  no error, just no sidebar. That is why the resolved component
+			  is exposed as the `pageSidebarComponent` slot prop. An app
+			  with its own rail should render both:
+
+			      <template #sidebar="{ pageSidebarComponent }">
+			          <MyOwnSidebar />
+			          <component :is="pageSidebarComponent" v-if="pageSidebarComponent" />
+			      </template>
 			-->
-			<slot v-if="cnPageSidebarVisible.value !== false" name="sidebar">
+			<slot v-if="cnPageSidebarVisible.value !== false" name="sidebar" :pageSidebarComponent="pageSidebarComponent">
 				<component
 					:is="pageSidebarComponent"
 					v-if="pageSidebarComponent" />
