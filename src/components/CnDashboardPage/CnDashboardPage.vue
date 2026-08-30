@@ -3191,7 +3191,11 @@ export default {
 			const content = def?.content || {}
 			const props = content.props || def?.props || {}
 			const out = { title: content.title || def?.title || item.widgetId }
-			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'route', 'iconClass']) {
+			// `vertical` / `filled` carry the KPI card's look. They are the
+			// library's own defaults, so a manifest need not set them — but a
+			// manifest that DOES set them must reach the component, or the
+			// declaration is a silent no-op that reads like configuration.
+			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'vertical', 'filled', 'route', 'iconClass']) {
 				if (props[key] !== undefined) out[key] = props[key]
 			}
 			// `countLabel` is the unit beside the number ("0 cases", "0 tasks").

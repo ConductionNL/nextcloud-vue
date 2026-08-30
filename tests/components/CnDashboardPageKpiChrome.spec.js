@@ -82,6 +82,32 @@ describe('CnDashboardPage — who draws the KPI card', () => {
 		expect(mountWith('stat', { borderless: true }).find('.ww').attributes('data-borderless')).toBe('true')
 	})
 
+	it('forwards a stats-block look declared in the manifest', () => {
+		// `vertical` / `filled` are the library's own defaults, so a manifest
+		// rarely needs them — but a manifest that sets them must reach the
+		// component. They were absent from getStatsBlockProps' allowlist, which
+		// would have made every such declaration a silent no-op: present in the
+		// JSON, reading like configuration, changing nothing.
+		const w = mount(CnDashboardPage, {
+			propsData: {
+				widgets: [{
+					id: 'w',
+					type: 'stats-block',
+					title: 'Cases',
+					content: { props: { vertical: true, filled: true, variant: 'success' } },
+				}],
+				layout: [{ id: '1', widgetId: 'w', gridX: 0, gridY: 0, gridWidth: 3, gridHeight: 2 }],
+			},
+			stubs,
+		})
+
+		const out = w.vm.getStatsBlockProps({ widgetId: 'w' })
+		expect(out.vertical).toBe(true)
+		expect(out.filled).toBe(true)
+		// The pre-existing allowlist entries still come through.
+		expect(out.variant).toBe('success')
+	})
+
 	it('leaves a custom-slot widget on the historical derivation', () => {
 		// A custom widget draws its own surface; "no header" still means "no card"
 		// there. Only the REGISTERED widgets moved off that derivation.
