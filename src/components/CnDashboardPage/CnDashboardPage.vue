@@ -451,17 +451,39 @@
 				</template>
 
 				<!-- Stats-block widget — manifest-driven CnStatsBlock with a
-				     GraphQL-resolved count via `dataSource`. Rendered WITHOUT
-				     CnWidgetWrapper: CnStatsBlock already supplies title +
-				     bordered card chrome + count layout, so wrapping it
-				     produced a double-card visual (outer + inner titles, two
-				     bordered boxes). The action menu lives on the page-level
-				     dashboard chrome instead. -->
+				     GraphQL-resolved count via `dataSource`.
+
+				     This used to render WITHOUT CnWidgetWrapper, because
+				     CnStatsBlock drew its own grey bordered card and wrapping
+				     it produced a double card (outer + inner titles, two
+				     boxes). The KPI card is flat as of 2026-08-30, so the
+				     opposite is now true: without the wrapper the tile has no
+				     chrome at all. It is wrapped like every other widget, and
+				     the duplicate title is gone because `stats-block` is
+				     registered as a card widget — card widgets default to
+				     headerless, so only CnStatsBlock's own title renders. -->
 				<template v-else-if="isStatsBlock(item)">
-					<CnStatsBlockWidget
-						v-bind="getStatsBlockProps(item)"
+					<CnWidgetWrapper
+						:widget-id="item.widgetId"
 						:title="getWidgetTitle(item)"
-						:data-source="getWidgetDataSource(item)" />
+						:icon-url="getWidgetIconUrl(item)"
+						:icon-class="getWidgetIconClass(item)"
+						:show-title="widgetShowTitle(item)"
+						:show-actions="widgetShowActions(item)"
+						:borderless="registryWidgetBorderless(item)"
+						:flush="item.flush !== false"
+						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
+						:buttons="getWidgetButtons(item)"
+						:style-config="item.styleConfig || {}"
+						:documentation-url="getWidgetDocumentationUrl(item)"
+						:docs-anchor="getWidgetDocsAnchor(item)"
+						@refresh="onWidgetRefresh(item)"
+						@request-feature="onWidgetRequestFeature(item)">
+						<CnStatsBlockWidget
+							v-bind="getStatsBlockProps(item)"
+							:title="getWidgetTitle(item)"
+							:data-source="getWidgetDataSource(item)" />
+					</CnWidgetWrapper>
 				</template>
 
 				<!-- Integration widget — resolved from the pluggable
@@ -533,6 +555,7 @@
 						:show-title="widgetShowTitle(item)"
 						:show-actions="widgetShowActions(item)"
 						:show-refresh="getWidgetShowRefresh(item)"
+						:borderless="registryWidgetBorderless(item)"
 						:flush="item.flush !== false"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
@@ -2846,6 +2869,31 @@ export default {
 			// the documented escape hatch.
 			if (this.isChart(item)) return false
 			return !this.widgetShowTitle(item)
+		},
+
+		/**
+		 * Whether a REGISTERED widget's card chrome is suppressed.
+		 *
+		 * Registry widgets (stat / delta / gauge / stats-block / object-table /
+		 * …) deliberately do NOT use `widgetBorderless` above. That method
+		 * derives "no header" ⇒ "no card", and card widgets are precisely the
+		 * ones that default to headerless — their label IS their content. Since
+		 * the KPI card went flat (2026-08-30) the wrapper's chrome is the only
+		 * box a KPI has, so that derivation would leave every stat and delta
+		 * tile floating on the page background with no card at all.
+		 *
+		 * These widgets therefore keep their card unless the author explicitly
+		 * asks for it to go. That matches what they already did — the registry
+		 * branch never bound `borderless`, so it always took CnWidgetWrapper's
+		 * `false` default — with the one difference that an explicit
+		 * `borderless: true` in a layout now actually takes effect instead of
+		 * being silently ignored.
+		 *
+		 * @param {object} item the layout placement.
+		 * @return {boolean}
+		 */
+		registryWidgetBorderless(item) {
+			return item.borderless === true
 		},
 
 		/**

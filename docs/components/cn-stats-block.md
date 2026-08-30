@@ -33,7 +33,9 @@ Statistics display card with icon, count, and optional breakdown. Used inside Cn
 | `icon` | Component | `null` | MDI icon component |
 | `iconSize` | Number | `24` | Icon pixel size |
 | `variant` | String | `'default'` | `'default'`, `'primary'`, `'success'`, `'warning'`, `'error'` |
-| `horizontal` | Boolean | `false` | Icon-left layout |
+| `horizontal` | Boolean | `false` | **Deprecated since 2.25.0** — icon-left is the canonical card's own layout, so this prop no longer changes anything. Kept for existing callers. |
+| `vertical` | Boolean | `false` | Stack the icon above a centred number instead of placing it beside one. |
+| `filled` | Boolean | `false` | Draw the card's own grey box. Off by default: the block normally sits inside a wrapper that already draws a card, and a second box reads as a card inside a card. |
 | `clickable` | Boolean | `false` | Enable click interaction |
 | `showZeroCount` | Boolean | `false` | Display 0 as a count value instead of the empty label |
 | `route` | Object | `null` | Vue Router location object (`{ name, path, query, ... }`). When set, the card renders as a `<router-link>` and clickable styles are applied automatically. |

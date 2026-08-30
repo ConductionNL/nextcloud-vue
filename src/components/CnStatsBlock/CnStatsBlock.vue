@@ -85,24 +85,30 @@ import '../../css/kpi-card.css'
 /**
  * CnStatsBlock — Statistics display card with icon, count, and optional breakdown.
  *
- * Supports vertical (default) and horizontal layouts, color variants, icons,
- * and clickable state. Use in a CnKpiGrid for responsive dashboard layouts.
+ * Renders the canonical KPI card: a large circular icon beside a left-aligned
+ * number, drawing no box of its own because the wrapper around it already
+ * draws one. Supports colour variants, icons and clickable state. Use in a
+ * CnKpiGrid for responsive dashboard layouts.
  *
- * Basic vertical (default)
+ * Basic (canonical horizontal card)
  * ```vue
  * <CnStatsBlock title="Cases" :count="42" count-label="open cases" />
  * ```
  *
- * Horizontal with icon and variant
+ * With icon and variant
  * ```vue
  * <CnStatsBlock
  *   title="Open Cases"
  *   :count="42"
  *   :icon="BriefcaseOutline"
  *   variant="primary"
- *   horizontal
  *   clickable
  *   @click="goToCases" />
+ * ```
+ *
+ * Stacked and boxed — for a block mounted with no wrapper around it
+ * ```vue
+ * <CnStatsBlock title="Cases" :count="42" vertical filled />
  * ```
  *
  * With route-based navigation (renders as <router-link>)
@@ -218,8 +224,33 @@ export default {
 			default: 'default',
 			validator: (v) => ['default', 'primary', 'success', 'warning', 'error'].includes(v),
 		},
-		/** Use horizontal layout (icon left, content right) */
+		/**
+		 * Stack the icon above a centred number instead of placing it beside
+		 * one. The canonical KPI card is horizontal, so this is the opt-out;
+		 * `horizontal` below is kept only for callers that already pass it.
+		 */
+		vertical: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Lay the icon left of the content. No longer needed — this is the
+		 * canonical card's own layout — and kept so existing callers that pass
+		 * `horizontal` keep working. Pass `vertical` to stack instead.
+		 *
+		 * @deprecated since 2.25.0, the horizontal layout is the default.
+		 */
 		horizontal: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Draw the card's own grey box. Off by default: a stats block is
+		 * normally rendered inside a wrapper that already draws a card, and a
+		 * second box reads as a card inside a card. Turn it on for a block
+		 * mounted with no wrapper around it.
+		 */
+		filled: {
 			type: Boolean,
 			default: false,
 		},
@@ -311,8 +342,13 @@ export default {
 			return {
 				// Canonical + legacy, in pairs: the canonical class carries the
 				// look, the legacy one keeps existing app CSS matching.
-				'cn-kpi-card--horizontal': this.horizontal,
-				'cn-stats-block--horizontal': this.horizontal,
+				// The canonical card is already horizontal, so the legacy pair
+				// is emitted for app CSS but carries no look of its own.
+				'cn-kpi-card--horizontal': this.horizontal || !this.vertical,
+				'cn-stats-block--horizontal': this.horizontal || !this.vertical,
+				'cn-kpi-card--vertical': this.vertical,
+				'cn-stats-block--vertical': this.vertical,
+				'cn-kpi-card--filled': this.filled,
 				'cn-kpi-card--clickable': this.isInteractive,
 				'cn-stats-block--clickable': this.isInteractive,
 				'cn-kpi-card--error': this.hasError,
@@ -376,14 +412,14 @@ export default {
 .cn-stats-block__loading {
 	display: flex;
 	align-items: center;
-	justify-content: center;
+	justify-content: flex-start;
 	gap: 6px;
 	font-size: var(--cn-kpi-label-size, 13px);
 	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
 }
 
 .cn-stats-block__empty {
-	text-align: center;
+	text-align: start;
 	font-size: var(--cn-kpi-label-size, 13px);
 	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
 	font-style: italic;
