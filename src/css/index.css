@@ -46,3 +46,42 @@
 @import './timeline-stages.css';
 @import './context-menu.css';
 @import './patches.css';
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * WORKAROUND — @nextcloud/vue >= 9.10 orphans the NcSelect dropdown's z-index.
+ *
+ * Remove this once upstream fixes the scoping; see this repository's tracking
+ * issue, which references nextcloud-libraries/nextcloud-vue#8570.
+ *
+ * NcSelect renders its dropdown with `appendToBody: true`, so the menu is a
+ * child of <body> and NOT a descendant of the select. Its z-index comes from
+ * the `--vs-dropdown-z-index` custom property, which the menu can only receive
+ * by INHERITANCE.
+ *
+ * #8570 ("fix(NcSelect): floating label design using NcTextField", merged
+ * 2026-07-22) moved that declaration off `body` and onto the select root:
+ *
+ *     -body {
+ *     +.nc-select.v-select.select {
+ *          --vs-dropdown-z-index: 9999;
+ *
+ * The appended menu is not inside that element, so it inherits nothing and
+ * falls back to vue-select's own default — which sits BELOW Nextcloud's modal
+ * backdrop. The dropdown then renders visibly but cannot be clicked.
+ *
+ * Confirmed by measurement, not inspection. launchpad's Playwright suite
+ * against @nextcloud/vue 9.11.0:
+ *
+ *     without this rule    127 passed, 11 failed
+ *     with this rule       138 passed,  0 failed
+ *
+ * Every failure was an intercepted click, the trace naming `class="modal-mask"`
+ * 70 times while reporting the option itself "visible, enabled and stable".
+ *
+ * Affected: 9.10.0, 9.11.0, and upstream `main` as of 2026-08-30. Restoring the
+ * declaration on `body` is exactly what 9.9.0 shipped, so this is inert on any
+ * version that scopes it correctly.
+ * ───────────────────────────────────────────────────────────────────────────── */
+body {
+	--vs-dropdown-z-index: 9999;
+}
