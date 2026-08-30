@@ -1,4 +1,6 @@
-Vertical (default) — centered count and label:
+The canonical card (default) — a large circular icon beside a left-aligned
+count. It draws no box of its own, because the widget wrapper it normally sits
+inside already draws one; a second box would be a card inside a card.
 
 ```vue
 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; max-width: 600px;">
@@ -9,7 +11,18 @@ Vertical (default) — centered count and label:
 </div>
 ```
 
-Horizontal with icon — icon on the left, content on the right:
+Stacked and boxed — pass `vertical` to stack the icon above the number, and
+`filled` when the block is mounted somewhere that draws no card around it:
+
+```vue
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 480px;">
+  <CnStatsBlock title="Cases" :count="42" count-label="open" vertical filled />
+  <CnStatsBlock title="Contacts" :count="128" count-label="total" variant="success" vertical filled />
+  <CnStatsBlock title="Overdue" :count="3" count-label="items" variant="error" vertical filled />
+</div>
+```
+
+With an icon — icon on the left, content on the right:
 
 ```vue
 <template>

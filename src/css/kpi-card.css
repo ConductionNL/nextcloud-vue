@@ -16,8 +16,22 @@
  * Each component keeps its own legacy class names on the same elements for
  * backwards compatibility with app CSS that targets them.
  *
- * The canonical card is OpenCatalogi's, per the review: grey card, circular
- * icon, big coloured number.
+ * WHAT THE CANONICAL CARD LOOKS LIKE — changed 2026-08-30. It was OpenCatalogi's
+ * grey box with the icon stacked ABOVE a centred number. It is now pipelinq's
+ * "Gewonnen deals" tile: no fill of its own, and a large circular icon BESIDE
+ * the number, both left-aligned.
+ *
+ * The reason is the box, not the taste. Every KPI already sits inside a
+ * `CnWidgetWrapper`, which draws the white bordered card. A card that also
+ * drew its own grey fill produced a box inside a box on every dashboard in the
+ * fleet, and the one tile that looked right — the `delta` widget — looked right
+ * only because it had never joined this stylesheet and hand-rolled the two
+ * rules below. Making the odd one out the standard is what removes the nesting.
+ *
+ * So the base class is now flat and horizontal, and the OLD look is the opt-in:
+ * `--filled` puts the grey box back, `--vertical` stacks the icon again. The
+ * `--flat` and `--horizontal` modifiers are kept as no-ops so existing markup
+ * and app CSS that names them keeps matching.
  *
  * Colours are Nextcloud tokens throughout — never literals. The nldesign app
  * re-themes by overriding those variables, so a hardcoded hex would opt the
@@ -48,9 +62,13 @@
    the class names below. */
 :root {
 	/* Box */
+	/* The default card draws no fill, so it needs only enough padding to keep
+	   the icon off the wrapper's border. `--cn-kpi-padding` is what a `--filled`
+	   card uses, where the padding has a visible box to sit inside. */
+	--cn-kpi-padding-flat: 8px;
 	--cn-kpi-padding: 16px;
 	--cn-kpi-gap: 8px;
-	--cn-kpi-gap-horizontal: 12px;
+	--cn-kpi-gap-horizontal: 16px;
 	--cn-kpi-radius: var(--border-radius-large, 10px);
 	/* The gutter BETWEEN tiles — a CnKpiGrid's tracks, a CnStatsPanel stack,
 	   the entries a CnStatsBlockWidget stacks inside one widget. One value, so
@@ -68,8 +86,16 @@
 	--cn-kpi-title-size: 14px;
 	--cn-kpi-title-weight: 600;
 
-	/* Value — the number itself, the point of the tile. */
-	--cn-kpi-value-size: 2rem;
+	/* Value — the number itself, the point of the tile.
+
+	   The canonical card is horizontal, which spends ~60px of the tile's width
+	   on the icon and its gap. At 2rem a six-figure currency value ("€224,070")
+	   overflowed that remaining width and was CLIPPED by the card's
+	   `overflow: hidden` — a KPI showing "€224,0" is worse than a smaller one,
+	   because a truncated number still reads as a number. The stacked card gets
+	   the full width back and keeps 2rem (see `--vertical`). */
+	--cn-kpi-value-size: 1.75rem;
+	--cn-kpi-value-size-stacked: 2rem;
 	/* A KPI number rendered inline in a dense row (a summary strip, a list
 	   header) rather than alone on a tile. Same family, same weight, same
 	   colour rules — one step down in size so it does not out-shout the row
@@ -92,25 +118,49 @@
 	--cn-kpi-accent: var(--color-primary-element);
 }
 
+/* The canonical card: icon beside the number, left-aligned, no fill of its own.
+   The surrounding CnWidgetWrapper is what draws the visible card. */
 .cn-kpi-card {
 	display: flex;
-	flex-direction: column;
+	flex-direction: row;
 	align-items: center;
-	justify-content: center;
-	gap: var(--cn-kpi-gap, 8px);
+	justify-content: flex-start;
+	gap: var(--cn-kpi-gap-horizontal, 16px);
 	width: 100%;
 	height: 100%;
 	min-width: 0;
-	padding: var(--cn-kpi-padding, 16px);
+	min-height: 64px;
+	padding: var(--cn-kpi-padding-flat, 8px);
 	box-sizing: border-box;
 	overflow: hidden;
-	text-align: center;
+	text-align: left;
 	text-decoration: none;
 	color: inherit;
-	background: var(--color-background-hover);
+	background: transparent;
 	border: 2px solid transparent;
 	border-radius: var(--cn-kpi-radius, 10px);
 	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+	/* The tile sizes its own number — see the container query below. */
+	container-type: inline-size;
+	container-name: cn-kpi;
+}
+
+/* A narrow tile steps its number down rather than clipping it.
+   A three-column KPI leaves roughly 130px beside the icon, which a six-figure
+   currency value overruns at the full size; the card's `overflow: hidden` then
+   cuts it mid-digit, and "€224,0" reads as a number rather than as damage.
+   Keyed to the CARD, not the viewport: the same tile is narrow at 3 columns on
+   a desktop and wide at 12 on a phone, so a media query would size it by the
+   wrong box.
+
+   The ICON deliberately does not shrink with it. A large circular icon beside
+   the number is the identity of this card, and 44px of a 173px tile still
+   leaves the value room once it steps down; shrinking both made the tile read
+   as a different, smaller component. */
+@container cn-kpi (max-width: 230px) {
+	.cn-kpi-card__value {
+		font-size: var(--cn-kpi-value-size-compact, 1.25rem);
+	}
 }
 
 /* The icon: a circle tinted from the card's own semantic colour. `color-mix`
@@ -136,9 +186,16 @@
 	font-size: var(--cn-kpi-title-size, 14px);
 	font-weight: var(--cn-kpi-title-weight, 600);
 	color: var(--color-main-text);
-	white-space: nowrap;
+	/* Wraps to at most two lines rather than truncating on the first. Beside an
+	   icon there is not room for a name like "Recurring revenue (run-rate)" on
+	   one line, and "Recurring re…" does not identify the number underneath it.
+	   Past two lines it would push the value out of the tile, so it ellipsises
+	   there. */
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
 	overflow: hidden;
-	text-overflow: ellipsis;
+	overflow-wrap: anywhere;
 	max-width: 100%;
 }
 
@@ -150,8 +207,13 @@
 .cn-kpi-card__body {
 	display: flex;
 	flex-direction: column;
-	align-items: center;
+	align-items: flex-start;
 	gap: 2px;
+	/* Takes whatever the icon leaves, and is allowed to shrink below its
+	   content's intrinsic width — without `min-width: 0` a flex item refuses to
+	   shrink past its longest word, which is what pushed the number out of the
+	   card in the first place. */
+	flex: 1 1 auto;
 	min-width: 0;
 	max-width: 100%;
 }
@@ -159,7 +221,7 @@
 .cn-kpi-card__value-row {
 	display: flex;
 	align-items: baseline;
-	justify-content: center;
+	justify-content: flex-start;
 	gap: 6px;
 	max-width: 100%;
 	min-width: 0;
@@ -232,30 +294,59 @@
 	outline-offset: 2px;
 }
 
-/* Horizontal: icon beside the stack rather than above it. For a tile that is
-   wider than it is tall — the same card, laid out sideways. */
-.cn-kpi-card--horizontal {
-	flex-direction: row;
+/* Vertical: the icon stacked ABOVE a centred number — the pre-2026-08-30
+   canonical look, now opt-in via `content.layout: 'vertical'`. For a tile that
+   is taller than it is wide, where a sideways row would leave the card empty
+   down its middle. */
+.cn-kpi-card--vertical {
+	flex-direction: column;
 	align-items: center;
-	justify-content: flex-start;
-	gap: var(--cn-kpi-gap-horizontal, 12px);
-	text-align: left;
+	justify-content: center;
+	gap: var(--cn-kpi-gap, 8px);
+	text-align: center;
 }
 
-.cn-kpi-card--horizontal .cn-kpi-card__body {
-	align-items: flex-start;
-	min-width: 0;
-	text-align: left;
+.cn-kpi-card--vertical .cn-kpi-card__body {
+	align-items: center;
+	text-align: center;
 }
 
-.cn-kpi-card--horizontal .cn-kpi-card__value-row {
-	justify-content: flex-start;
+.cn-kpi-card--vertical .cn-kpi-card__value-row {
+	justify-content: center;
 }
 
-.cn-kpi-card--horizontal .cn-kpi-card__icon {
+/* Stacked: the number gets the card's full width back, so it takes the larger
+   size, and the title fits on one line again. */
+.cn-kpi-card--vertical .cn-kpi-card__value {
+	font-size: var(--cn-kpi-value-size-stacked, 2rem);
+}
+
+.cn-kpi-card--vertical .cn-kpi-card__title {
+	display: block;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+/* Filled: the card draws its own grey box, for a KPI that is NOT already
+   inside a wrapper that draws one. Opt-in via `content.flat: false`. */
+.cn-kpi-card--filled {
+	padding: var(--cn-kpi-padding, 16px);
+	background: var(--color-background-hover);
+}
+
+/* Compact: a smaller icon, for a tile too short to give a 44px circle room. */
+.cn-kpi-card--compact .cn-kpi-card__icon {
 	width: var(--cn-kpi-icon-size-sm, 36px);
 	height: var(--cn-kpi-icon-size-sm, 36px);
 }
+
+/* `--horizontal` and `--flat` ARE the base card since 2026-08-30, so this
+   sheet deliberately declares NO rule for either. Both names are still emitted
+   onto the element by CnStatWidget and CnStatsBlock and are still matched by
+   app CSS in the field — they just no longer need to carry anything.
+   Do NOT "restore" them as rules that re-assert the base: `--flat` is emitted
+   alongside `--vertical` on a flat vertical tile, so a `flex-direction: row`
+   here would silently un-stack it. */
 
 /* ----------------------------------------
    The inline KPI
@@ -299,12 +390,6 @@
 	white-space: nowrap;
 }
 
-/* Flat: the card chrome removed, for a KPI already sitting inside a card that
-   draws its own (a CnWidgetWrapper with `borderless: false`). The typography,
-   the icon circle and the colours are unchanged — this drops the box only, so
-   the two contexts still read as the same component. */
-.cn-kpi-card--flat {
-	background: transparent;
-	border-color: transparent;
-	padding: 8px;
-}
+/* The `--flat` rule that used to live here is gone: dropping the box IS the
+   base card now, so the modifier had nothing left to declare. See the note
+   beside `--filled` above for why the class is still emitted. */

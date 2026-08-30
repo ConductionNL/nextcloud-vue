@@ -87,6 +87,10 @@ registerDashboardWidget('stats-block', {
 	},
 	displayName: 'Statistic card',
 	icon: 'ChartBar',
+	// Card family (docs/architecture/cards-and-widgets.md), like `stat` and
+	// `delta`: the tile headlines itself with its own title, so the wrapper
+	// renders no header of its own and would otherwise show the title twice.
+	card: true,
 })
 
 // `table` and `object-list` (below) are legacy aliases of `object-table` — same
