@@ -166,5 +166,75 @@ describe('CnSetupWizard', () => {
 
 			expect(wrapper.vm.stepTitle({ id: 'region', title: 'Region' })).toBe('Region')
 		})
+
+		// 🔴 THE HEADING WAS TRANSLATED AND EVERYTHING AROUND IT WAS NOT.
+		// `step.body` rendered verbatim in four places and the tab strip used
+		// `s.title` raw, so a Dutch instance showed "Welkom" over an English
+		// paragraph, between translated Cancel and Next buttons. The app could
+		// not fix it from its side: decidiq shipped correct Dutch for exactly
+		// these strings in l10n/nl.json and the component never asked for them.
+		it('resolves a step body through the injected cnTranslate', () => {
+			const wrapper = shallowMount(CnSetupWizard, {
+				propsData: {
+					appId: 'decidiq',
+					steps: [{ id: 'welcome', type: 'info', title: 'Welcome', body: 'A short setup.' }],
+				},
+				provide: {
+					cnTranslate: (key) => (key === 'A short setup.' ? 'Een korte installatie.' : key),
+				},
+			})
+
+			expect(wrapper.vm.stepBody({ body: 'A short setup.' })).toBe('Een korte installatie.')
+		})
+
+		it('returns an empty body rather than undefined, so a bodyless step renders nothing', () => {
+			const wrapper = shallowMount(CnSetupWizard, {
+				propsData: { appId: 'decidiq', steps: [{ id: 'welcome', type: 'info' }] },
+			})
+
+			expect(wrapper.vm.stepBody({ id: 'welcome' })).toBe('')
+			expect(wrapper.vm.stepBody(undefined)).toBe('')
+		})
+
+		it('translates the tab-strip labels, not just the heading inside the step', () => {
+			const wrapper = shallowMount(CnSetupWizard, {
+				propsData: {
+					appId: 'decidiq',
+					steps: [{ id: 'welcome', type: 'info', title: 'Welcome' }],
+				},
+				provide: {
+					cnTranslate: (key) => (key === 'Welcome' ? 'Welkom' : key),
+				},
+			})
+
+			expect(wrapper.vm.wizardSteps[0].label).toBe('Welkom')
+		})
+
+		it('translates a choice option LABEL and leaves its VALUE alone', () => {
+			// The value is what `scalarChoice()` reads and what reaches
+			// POST /api/setup/config, so translating it would change what gets
+			// stored. Only the label a person reads is translated.
+			const step = {
+				id: 'example-set',
+				type: 'choice',
+				title: 'Which kind of organisation is this for?',
+				options: [
+					{ value: 'municipality', label: 'Municipality' },
+					{ value: 'works-council', label: 'Works council' },
+				],
+			}
+			const wrapper = shallowMount(CnSetupWizard, {
+				propsData: { appId: 'decidiq', steps: [step] },
+				provide: {
+					cnTranslate: (key) => (key === 'Municipality' ? 'Gemeente' : key),
+				},
+			})
+
+			const options = wrapper.vm.optionsFor(step)
+			expect(options[0].label).toBe('Gemeente')
+			expect(options[0].value).toBe('municipality')
+			expect(options[1].label).toBe('Works council')
+			expect(options[1].value).toBe('works-council')
+		})
 	})
 })
