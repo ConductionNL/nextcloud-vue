@@ -2776,7 +2776,25 @@ export default {
 			const def = this.getWidgetDef(item.widgetId)
 			// Prefer a per-placement override, then the widget def's customTitle
 			// (set by the in-place style editor cog), then the def's base title.
-			return item.customTitle || def?.customTitle || def?.title || item.widgetId
+			//
+			// Only the def's base title goes through the host translate function.
+			// It is the manifest-authored source string, exactly like the page
+			// title on `resolvedTitle` above. The two customTitle values are NOT
+			// translated: a person typed them into the style editor in their own
+			// words, so looking them up in a translation table is wrong, and a
+			// miss would be indistinguishable from a hit.
+			//
+			// This is the single display-time chokepoint for every widget type
+			// (slot, chart, stats-block, integration, NC-API, registry and the
+			// unknown fallback all bind `:title="getWidgetTitle(item)"`), which
+			// is why the fix belongs here rather than at each call site.
+			// `configWidget()` deliberately stays raw: it pre-fills the config
+			// modal, and translating there would persist a translated string
+			// back into the widget definition on save.
+			return item.customTitle
+				|| def?.customTitle
+				|| (def?.title ? this.effectiveTranslate(def.title) : '')
+				|| item.widgetId
 		},
 
 		/**
@@ -3127,6 +3145,14 @@ export default {
 			const out = { title: content.title || def?.title || item.widgetId }
 			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'route', 'iconClass']) {
 				if (props[key] !== undefined) out[key] = props[key]
+			}
+			// `countLabel` is the unit beside the number ("0 cases", "0 tasks").
+			// It is manifest-authored prose and was being forwarded raw, so a
+			// Dutch account read "0 cases" beside a translated widget title.
+			// The other keys in the loop are enums, booleans, routes and class
+			// names, none of which are translatable.
+			if (typeof out.countLabel === 'string' && out.countLabel) {
+				out.countLabel = this.effectiveTranslate(out.countLabel)
 			}
 			// Multi-entry mode (ADR-049): prefer `content.entries`, then
 			// `props.entries`. A legacy manifest that declared `entries` at the
