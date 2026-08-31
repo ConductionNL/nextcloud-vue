@@ -38,14 +38,14 @@
 				<!-- info -->
 				<template v-else-if="step.type === 'info'">
 					<NcNoteCard type="info" :heading="stepTitle(step)">
-						{{ step.body || '' }}
+						{{ stepBody(step) }}
 					</NcNoteCard>
 				</template>
 
 				<!-- choice -->
 				<template v-else-if="step.type === 'choice'">
 					<NcNoteCard v-if="step.body" type="info">
-						{{ step.body }}
+						{{ stepBody(step) }}
 					</NcNoteCard>
 					<NcSelect
 						:input-label="stepTitle(step)"
@@ -90,7 +90,7 @@
 				<!-- run-action -->
 				<template v-else-if="step.type === 'run-action'">
 					<NcNoteCard v-if="step.body" type="info">
-						{{ step.body }}
+						{{ stepBody(step) }}
 					</NcNoteCard>
 					<NcNoteCard
 						v-if="actionResult[step.id]"
@@ -110,7 +110,7 @@
 				<!-- summary -->
 				<template v-else-if="step.type === 'summary'">
 					<NcNoteCard v-if="step.body" type="info">
-						{{ step.body }}
+						{{ stepBody(step) }}
 					</NcNoteCard>
 					<ul class="cn-setup-summary">
 						<li
@@ -281,7 +281,7 @@ export default {
 		wizardSteps() {
 			return this.setupSteps.map((s) => ({
 				id: s.id,
-				label: s.title || s.id,
+				label: this.stepTitle(s),
 				optional: s.required !== true,
 			}))
 		},
@@ -371,6 +371,25 @@ export default {
 			const raw = (step && step.title) || (step && step.id) || ''
 			return raw === '' ? '' : this.cnTranslate(raw)
 		},
+		/**
+		 * The visible body for a step, resolved through the host app's
+		 * translation function.
+		 *
+		 * 🔴 THIS USED TO RENDER THE MANIFEST STRING VERBATIM, IN FOUR PLACES.
+		 * `stepTitle()` was routed through `cnTranslate` and the body was not,
+		 * so a wizard on a Dutch instance showed a translated heading over an
+		 * English paragraph, with translated Cancel/Next buttons underneath.
+		 * That reads as a bug rather than as a missing string, and the app could
+		 * not fix it: decidiq shipped correct Dutch for its setup copy in
+		 * `l10n/nl.json`, and the component never asked for it.
+		 *
+		 * @param {object} step The step declaration.
+		 * @return {string} The translated body, or ''.
+		 */
+		stepBody(step) {
+			const raw = (step && step.body) || ''
+			return raw === '' ? '' : this.cnTranslate(raw)
+		},
 		stepSlot(step) {
 			return 'step-' + step.id
 		},
@@ -395,12 +414,24 @@ export default {
 		 * @return {Array} The option list to render.
 		 */
 		optionsFor(step) {
+			let options = step.options || []
 			if (step.dependsOn && step.optionsByParent) {
 				const parentValue = this.choiceValues[step.dependsOn]
-				if (parentValue == null || parentValue === '') return []
-				return step.optionsByParent[parentValue] || []
+				options = (parentValue == null || parentValue === '')
+					? []
+					: (step.optionsByParent[parentValue] || [])
 			}
-			return step.options || []
+			// The LABEL is translated, the VALUE never is. `scalarChoice()` reads
+			// `.value` and that is what reaches `POST /api/setup/config`, so a
+			// translated label cannot change what gets stored — while an
+			// untranslated one leaves the choice itself in English on a
+			// localised instance, which is the half-translated screen this fix
+			// exists to remove.
+			return options.map((option) => (
+				(option && typeof option === 'object' && option.label)
+					? { ...option, label: this.cnTranslate(option.label) }
+					: option
+			))
 		},
 		isChoiceDisabled(step) {
 			if (!step.dependsOn) return false

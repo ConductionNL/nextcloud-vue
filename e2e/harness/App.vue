@@ -226,6 +226,20 @@
 			<CnNavCardGrid title="Explore" :entries="navCardEntries" />
 		</template>
 
+		<!--
+			CnInteractionFormWidget rendered at a FIXED width (gated behind
+			?ifw=1) so a Playwright screenshot of it is a stable pixel
+			reference. This exists to prove the CnFormWidgetBase extraction
+			(nextcloud-vue widget-review item 11) changed nothing a user can
+			see: the same spec screenshots the same box before and after the
+			refactor and the two PNGs are compared byte-for-byte.
+		-->
+		<template v-else-if="showInteractionForm">
+			<div class="ifw-frame" data-testid="ifw-frame">
+				<CnInteractionFormWidget :content="ifwContent" />
+			</div>
+		</template>
+
 		<!-- CnFormDialog schema-driven widget:'icon' (gated behind ?fd=1). -->
 		<template v-else-if="showFormDialog">
 			<h2>Form dialog — schema-driven icon field</h2>
@@ -313,6 +327,7 @@ import CnSchemaFormDialog from '../../src/components/CnSchemaFormDialog/CnSchema
 import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
 import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
 import CnNavCardGrid from '../../src/components/CnNavCardGrid/CnNavCardGrid.vue'
+import CnInteractionFormWidget from '../../src/components/CnInteractionFormWidget/CnInteractionFormWidget.vue'
 import { NcDialog, NcSelect } from '@nextcloud/vue'
 import { installModalStack } from '../../src/utils/modalStack.js'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
@@ -336,7 +351,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnDashboardPage, CnNavCardGrid, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -451,6 +466,21 @@ export default {
 					href: 'https://example.org/explore',
 				},
 			],
+			// CnInteractionFormWidget pixel-reference harness (?ifw=1).
+			showInteractionForm: (typeof window !== 'undefined' && window.location.search.includes('ifw')),
+			ifwContent: {
+				register: 'harness',
+				schema: 'contactmoment',
+				clientSchema: 'client',
+				channels: [
+					{ value: 'telefoon', label: 'Phone' },
+					{ value: 'email', label: 'Email' },
+				],
+				outcomes: [
+					{ value: 'opgelost', label: 'Resolved' },
+					{ value: 'open', label: 'Open' },
+				],
+			},
 			showFormDialog: (typeof window !== 'undefined' && window.location.search.includes('fd')),
 			fdResult: null,
 			fdFields: [
@@ -571,6 +601,14 @@ export default {
 </script>
 
 <style>
+/* Fixed-width frame for the CnInteractionFormWidget pixel reference (?ifw=1)
+   so the screenshot is not sensitive to the viewport. */
+.ifw-frame {
+	width: 420px;
+	padding: 16px;
+	background: var(--color-main-background);
+}
+
 /* The canvas needs a REAL box. Vue Flow measures its container and renders
    nodes into that measurement, so a zero-height parent yields a canvas whose
    pane overlays its own nodes and swallows every pointer event — which is

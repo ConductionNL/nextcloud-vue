@@ -117,6 +117,43 @@ export function savedObjectId(saved) {
 }
 
 /**
+ * Resolve a named create-override handler out of the v2 registry (or the
+ * legacy customComponents map) by value shape.
+ *
+ * A create-override is a plain async function that replaces the default
+ * `objectStore.saveObject` persist path — needed whenever a schema requires a
+ * field the create form cannot supply on its own (a server-minted foreign key,
+ * say). Recognised shapes, in order:
+ *   1. a `kind: 'create-override'` registry entry exposing `.handler` / `.fn`,
+ *   2. a directly function-valued registry entry,
+ *   3. a function-valued legacy `customComponents` entry.
+ *
+ * Shared by CnPageRenderer (page-level `config.createOverride` → CnIndexPage's
+ * prop) and CnActionButtons (per-action `createOverride` on an `open-form`), so
+ * the two surfaces cannot drift on what counts as a valid handler.
+ *
+ * @param {string} name The registered handler name.
+ * @param {object} registry The v2 component registry.
+ * @param {object} customComponents The legacy customComponents map.
+ * @return {?Function} The async create handler, or null when unresolved.
+ */
+export function resolveCreateOverrideHandler(name, registry, customComponents) {
+	if (typeof name !== 'string' || name === '') {
+		return null
+	}
+	const entry = (registry || {})[name]
+	if (typeof entry === 'function') {
+		return entry
+	}
+	if (entry && typeof entry === 'object') {
+		if (typeof entry.handler === 'function') return entry.handler
+		if (typeof entry.fn === 'function') return entry.fn
+	}
+	const legacy = (customComponents || {})[name]
+	return typeof legacy === 'function' ? legacy : null
+}
+
+/**
  * Build the vue-router push location for an `open-form` action's
  * `onSuccessRoute`, merging the saved object's id into the route params so
  * the post-save navigation can deep-link to the created object's detail page

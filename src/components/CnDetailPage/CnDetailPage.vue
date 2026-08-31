@@ -163,7 +163,10 @@
 					:show-refresh="effectiveHeaderShowRefresh"
 					:refreshing="effectiveRefreshing"
 					:show-request-feature="showRequestFeature"
+					:show-report-bug="showReportBug"
+					:show-documentation="showDocumentation"
 					:documentation-url="documentationUrl"
+					:docs-anchor="resolvedPageId"
 					:documentation-label="documentationLabel || undefined"
 					:widget-id="resolvedPageId"
 					:title="title"
@@ -331,13 +334,51 @@
 							widget; `type: 'integration'` resolves from the integration
 							registry; any other content-driven catalog type (stat / chart /
 							delta / gauge / object-list / …) renders its registered renderer.
+
+							The page's object context is bound alongside the widget
+							descriptor because a `type: "custom"` widget is not a template —
+							CnPageRenderer mounts the mapped component as
+							`<component v-bind="slotProps" />`, so whatever THIS slot binds
+							IS that widget's entire prop set. Binding only `item`/`widget`
+							therefore left every custom widget that declares `objectId`
+							sitting on its own `default: ''` — and an empty id does not
+							error, it widens the widget's OpenRegister filter to the whole
+							collection (decidiq#968: a voting-round panel filtering on
+							`relations.motion: ''` listed every round in the instance, so a
+							vote could be cast against another motion's round). Widgets that
+							declare none of these props are unaffected — this is purely
+							additive.
+
+							`objectId` is bound from the PROP, never read back off the loaded
+							record: `currentObject` / `resolvedObject` are themselves keyed by
+							`objectId`, and the record is null for the first frames of a
+							detail page — the same "the record has not arrived yet" race
+							`editFormAwaitingRecord` guards (#850). The route param reaches
+							the prop through CnPageRenderer, which maps `params.id` →
+							`objectId`, so the id is there on the first render while `object`
+							is not.
 							@binding {object} item Layout item descriptor.
 							@binding {object} widget Resolved widget definition.
+							@binding {string|number} objectId This record's id. Unlike `object`
+							it is present on the very first render, because it comes from the route.
+							@binding {object} object The loaded record, or null while it is
+							still being fetched.
+							@binding {object} objectData Alias of `object`, spelled the way widget
+							components declare the prop (`objectData`).
+							@binding {string} objectType Resolved object type slug.
+							@binding {string} register Register slug of this page.
+							@binding {string} schema Schema slug of this page.
 						-->
 						<slot
 							:name="`widget-${item.widgetId}`"
 							:item="item"
-							:widget="findWidget(item)">
+							:widget="findWidget(item)"
+							:object-id="objectId"
+							:object="resolvedObject"
+							:object-data="resolvedObject"
+							:object-type="resolvedObjectType"
+							:register="register"
+							:schema="schema">
 							<!-- `type: 'data'` widget: render the schema-driven data
 							     widget with the page's loaded object + the def's
 							     per-property overrides. This is the default body widget. -->
@@ -648,9 +689,15 @@
 
 		<!-- Record edit form. Same component and same schema the index table's
 		     modal used; the difference is that it is reached from the record,
-		     with the record's own page around it. -->
+		     with the record's own page around it.
+
+		     Waits for the RECORD as well as the schema. `currentObject` is a
+		     store read that is null until this page's own fetch lands, and a
+		     dialog opened before then shows an empty form for a record that
+		     has values — which the user can type into, and whose Save would
+		     PUT those blanks over the record. -->
 		<CnFormDialog
-			v-if="editFormOpen && currentSchema"
+			v-if="editFormOpen && currentSchema && !editFormAwaitingRecord"
 			ref="editFormDialog"
 			:schema="currentSchema"
 			:item="currentObject"
@@ -1309,6 +1356,28 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+		/**
+		 * Whether the "Report a bug" entry renders in the page-header menu.
+		 * On by default — the trio Request a feature / Report a bug /
+		 * Documentation is the contract for every Conduction surface.
+		 *
+		 * @type {boolean}
+		 */
+		showReportBug: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Whether the Documentation entry renders in the page-header menu. On
+		 * by default; the shared menu resolves the target itself, so leaving
+		 * it on costs the host nothing.
+		 *
+		 * @type {boolean}
+		 */
+		showDocumentation: {
+			type: Boolean,
+			default: true,
+		},
 
 		/**
 		 * Declarative lifecycle/transition actions (manifest `config.lifecycleActions`).
@@ -1847,6 +1916,20 @@ export default {
 			const type = this.resolvedObjectType
 			if (!type || !this.objectId) return null
 			return store.objects?.[type]?.[this.objectId] ?? null
+		},
+
+		/**
+		 * Whether the edit form is still waiting for the record it edits.
+		 *
+		 * True only while a record is actually RESOLVABLE and absent — a host
+		 * with no object store has nothing to wait for, and gating on it
+		 * there would make the Edit button dead.
+		 *
+		 * @return {boolean}
+		 */
+		editFormAwaitingRecord() {
+			if (!this.effectiveObjectStore || !this.objectId) return false
+			return !this.currentObject
 		},
 
 		/**
@@ -2610,8 +2693,21 @@ export default {
 			// `saveObject` picks PUT over POST on the presence of `id`, and an
 			// OpenRegister object carries its id in `@self`, not at the top
 			// level. Without this the edit would CREATE a duplicate record.
-			const payload = { ...formData, id: this.objectId }
 			const dialog = this.$refs.editFormDialog
+			if (!this.objectId) {
+				// REFUSE rather than save. An empty id does not error — it makes
+				// saveObject POST, which silently CREATES A DUPLICATE and leaves
+				// the record the user was editing untouched. That presents as
+				// "my change did not save", with a new orphan row behind it, and
+				// nothing anywhere says so.
+				if (dialog) {
+					dialog.setResult({
+						error: t('nextcloud-vue', 'Cannot save: this record has no id, so the edit would create a duplicate instead of updating it.'),
+					})
+				}
+				return
+			}
+			const payload = { ...formData, id: this.objectId }
 			try {
 				const store = this.effectiveObjectStore
 				let saved = null

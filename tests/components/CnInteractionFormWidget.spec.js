@@ -46,8 +46,10 @@ describe('CnInteractionFormWidget', () => {
 
 	it('streams the summary into the workspace context (activeSummary)', () => {
 		const { w, holder } = mount()
-		w.vm.form.summary = 'router keeps dropping'
-		w.vm.onSummaryInput()
+		// The summary edit now arrives through CnFormWidgetBase's `update:field`
+		// (one keyed handler replaced the per-control ones), so the test drives
+		// the same path the base does.
+		w.vm.onFieldUpdate({ key: 'summary', value: 'router keeps dropping' })
 		expect(holder.value.activeSummary).toBe('router keeps dropping')
 	})
 
@@ -119,8 +121,7 @@ describe('CnInteractionFormWidget', () => {
 
 		it('streams activeSummary onto a plain workspace object', () => {
 			const { w, bag } = mountPlain()
-			w.vm.form.summary = 'reset password'
-			w.vm.onSummaryInput()
+			w.vm.onFieldUpdate({ key: 'summary', value: 'reset password' })
 			expect(bag.activeSummary).toBe('reset password')
 		})
 	})

@@ -63,7 +63,9 @@ card when its resolved count is `0`).
 | `countLabel` | `string` | `''` | Label next to the count (single-KPI mode). |
 | `variant` | `'default'\|'primary'\|'success'\|'warning'\|'error'` | `'default'` | Color variant (single-KPI mode). |
 | `showZeroCount` | `boolean` | `true` | Show `0` instead of the empty-label fallback. |
-| `horizontal` | `boolean` | `false` | Horizontal layout. |
+| `horizontal` | `boolean` | `false` | **Deprecated since 2.25.0** — horizontal is the canonical card's own layout, so this prop no longer changes anything. |
+| `vertical` | `boolean` | `false` | Stack the icon above a centred number instead of beside it. |
+| `filled` | `boolean` | `false` | Draw each tile's own grey box. Off by default — the widget renders inside a `CnWidgetWrapper` that already draws a card. |
 | `route` | `object\|null` | `null` | Vue-router location; when set, the inner card becomes a `<router-link>` (single-KPI mode). |
 | `iconClass` | `string` | `''` | Optional NC core icon class (`icon-link`, `icon-mail`, …) applied to the wrapping `<div>`. |
 

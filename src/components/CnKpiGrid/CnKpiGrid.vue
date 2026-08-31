@@ -5,6 +5,10 @@
 </template>
 
 <script>
+// The canonical KPI scale (`--cn-kpi-*`) lives in one stylesheet. Imported
+// here as well as from css/index.css so the tokens resolve even when the
+// consuming app pulls in components individually.
+import '../../css/kpi-card.css'
 /**
  * CnKpiGrid — Responsive grid layout for KPI/stats cards.
  *
@@ -61,34 +65,51 @@ export default {
 </script>
 
 <style scoped>
+/*
+ * Layout only — this component draws no KPI of its own; the tiles inside it do
+ * (src/css/kpi-card.css). What it DOES owe the canonical look is the rhythm
+ * around those tiles, so the gutter is the card's own `--cn-kpi-grid-gap`
+ * rather than a number picked here. A grid whose gutter disagrees with the
+ * card's padding reads as a different design even when every tile is
+ * identical.
+ */
+
 .cn-kpi-grid {
 	display: grid;
-	gap: 16px;
+	gap: var(--cn-kpi-grid-gap, 16px);
 	margin-bottom: 24px;
 }
 
+/*
+ * `minmax(0, 1fr)`, not `1fr`. A grid track's default minimum is `auto`, which
+ * refuses to shrink below its content — and the canonical KPI value is
+ * deliberately `white-space: nowrap`, so a long number (a formatted currency
+ * amount, a six-figure count) pushes its track wider than its share and the
+ * whole row overflows the page. With a 0 minimum the track holds its share and
+ * the card's own `overflow: hidden` clips instead.
+ */
 .cn-kpi-grid--cols-2 {
-	grid-template-columns: repeat(2, 1fr);
+	grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .cn-kpi-grid--cols-3 {
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .cn-kpi-grid--cols-4 {
-	grid-template-columns: repeat(4, 1fr);
+	grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 /* Responsive breakpoints */
 @media (max-width: 1200px) {
 	.cn-kpi-grid--cols-4 {
-		grid-template-columns: repeat(2, 1fr);
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 }
 
 @media (max-width: 900px) {
 	.cn-kpi-grid--cols-3 {
-		grid-template-columns: repeat(2, 1fr);
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 }
 
@@ -96,7 +117,7 @@ export default {
 	.cn-kpi-grid--cols-2,
 	.cn-kpi-grid--cols-3,
 	.cn-kpi-grid--cols-4 {
-		grid-template-columns: 1fr;
+		grid-template-columns: minmax(0, 1fr);
 	}
 }
 </style>

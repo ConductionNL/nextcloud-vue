@@ -1,23 +1,39 @@
 <!--
   SPDX-FileCopyrightText: 2026 Conduction B.V.
   SPDX-License-Identifier: EUPL-1.2
+
+  CnStatWidget renders the CANONICAL KPI card (src/css/kpi-card.css). This tile
+  and CnStatsBlock used to be two different-looking KPIs — a transparent
+  icon-beside-number row here, a grey card with a circular icon and a large
+  coloured number there — so OpenCatalogi's and dossiq's dashboards did not
+  match. Both now render the same `cn-kpi-card` markup from the same
+  stylesheet. The legacy `cn-stat-widget*` classes stay on the same elements so
+  app CSS targeting them keeps working.
+
+  Keep this comment OUT of <template>: a comment node beside the root element
+  makes the component multi-root in Vue 3, and a multi-root component has no
+  root for its class bindings to land on.
 -->
 <template>
 	<component
 		:is="linkTag"
-		class="cn-stat-widget"
-		:class="{ 'cn-stat-widget--linked': isLinked }"
+		class="cn-kpi-card cn-stat-widget"
+		:class="[
+			{ 'cn-kpi-card--clickable': isLinked, 'cn-stat-widget--linked': isLinked },
+			'cn-kpi-card--' + cardLayout,
+			flat ? 'cn-kpi-card--flat' : 'cn-kpi-card--filled',
+		]"
 		v-bind="linkAttrs">
 		<div
 			v-if="resolvedIcon"
-			class="cn-stat-widget__icon"
+			class="cn-kpi-card__icon cn-stat-widget__icon"
 			:style="iconCircleStyle">
 			<CnWidgetIcon :name="resolvedIcon" :size="24" />
 		</div>
 
-		<div class="cn-stat-widget__body">
-			<div v-if="content.label || rangePresets.length" class="cn-stat-widget__label">
-				<span v-if="content.label">{{ resolvedLabel }}</span>
+		<div class="cn-kpi-card__body cn-stat-widget__body">
+			<div v-if="content.label || rangePresets.length" class="cn-kpi-card__title cn-stat-widget__label">
+				<span v-if="content.label" :title="resolvedLabel">{{ resolvedLabel }}</span>
 
 				<!-- Per-tile range override. Rendered ONLY when the tile declares its
 				     own `content.dateRange.presets`; a tile that merely follows the
@@ -42,11 +58,11 @@
 				</select>
 			</div>
 
-			<div class="cn-stat-widget__value-row">
+			<div class="cn-kpi-card__value-row cn-stat-widget__value-row">
 				<NcLoadingIcon v-if="displayLoading" :size="22" />
 				<span v-else-if="displayError" class="cn-stat-widget__error" :title="displayError">—</span>
 				<template v-else>
-					<span class="cn-stat-widget__value" :style="valueStyle">
+					<span class="cn-kpi-card__value cn-stat-widget__value" :style="valueStyle">
 						{{ formattedValue }}
 					</span>
 					<span
@@ -64,7 +80,7 @@
 						{{ formattedTrend }}
 					</span>
 				</template>
-				<span v-if="!displayLoading && !displayError && content.caption" class="cn-stat-widget__caption">
+				<span v-if="!displayLoading && !displayError && content.caption" class="cn-kpi-card__label cn-stat-widget__caption">
 					{{ resolvedCaption }}
 				</span>
 			</div>
@@ -84,6 +100,11 @@ import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { useEndpointSource, getByPath } from '../../composables/useEndpointSource.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import widgetLink from '../../mixins/widgetLink.js'
+// The canonical KPI look lives in one shared stylesheet, imported by BOTH
+// this component and CnStatsBlock, so the two cannot drift apart again.
+// Importing it here also means the look arrives without the consuming app
+// having pulled in the library's global css/index.css.
+import '../../css/kpi-card.css'
 
 /**
  * Variant → CSS colour token map for the `variantWhen` threshold rules.
@@ -92,13 +113,27 @@ import widgetLink from '../../mixins/widgetLink.js'
  *
  * @type {Record<string, string>}
  */
+// THE `-text` TOKENS, NOT THE PLAIN ONES. These paint the NUMBER and the icon
+// tint, i.e. foreground. Nextcloud's `--color-success` / `--color-warning` /
+// `--color-error` are FILL colours meant to sit behind something; DefaultTheme
+// ships `--color-success-text` and friends for foreground use. Using a fill as
+// a text colour failed WCAG AA — axe measured #d8f3da on #f5f5f5, a contrast of
+// 1.08 against the required 3:1, serious, on filinq's dashboard (gate-33).
+//
+// kpi-card.css fixed exactly this for the CSS-class path; this inline map was
+// missed because nothing reached it — every `variant` in the fleet is on a
+// stats-block, which renders classes. The first manifest to put `variant` on a
+// `stat` or `delta` would have hit the old failure.
+//
+// Each keeps the plain token as a fallback, so a theme predating the `-text`
+// tokens degrades to the old colour rather than to none.
 const VARIANT_COLORS = {
 	default: '',
 	primary: 'var(--color-primary-element)',
-	success: 'var(--color-success)',
-	warning: 'var(--color-warning)',
-	error: 'var(--color-error)',
-	danger: 'var(--color-error)',
+	success: 'var(--color-success-text, var(--color-success))',
+	warning: 'var(--color-warning-text, var(--color-warning))',
+	error: 'var(--color-error-text, var(--color-error))',
+	danger: 'var(--color-error-text, var(--color-error))',
 }
 
 /**
@@ -556,6 +591,27 @@ export default {
 			const rule = this.activeVariantRule
 			return (rule && rule.icon) || this.content.icon || ''
 		},
+		/**
+		 * Card orientation. Horizontal (icon beside the number) is the
+		 * canonical KPI card; `content.layout: 'vertical'` stacks the icon
+		 * above a centred number for a tile taller than it is wide.
+		 *
+		 * @return {'horizontal'|'vertical'}
+		 */
+		cardLayout() {
+			return (this.content || {}).layout === 'vertical' ? 'vertical' : 'horizontal'
+		},
+		/**
+		 * Whether the card draws no box of its own. On by default: every stat
+		 * tile is rendered inside a CnWidgetWrapper that already draws a card,
+		 * so a second box is a card inside a card. Set `content.flat: false`
+		 * for a tile mounted somewhere with no wrapper around it.
+		 *
+		 * @return {boolean}
+		 */
+		flat() {
+			return (this.content || {}).flat !== false
+		},
 		/** Inline style for the icon circle (variant rule wins over iconColor). */
 		iconCircleStyle() {
 			const color = this.variantColor || this.content.iconColor || this.content.valueColor || 'var(--color-primary-element)'
@@ -932,60 +988,34 @@ export default {
 </script>
 
 <style scoped>
-.cn-stat-widget {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	padding: 8px 4px;
-	min-height: 64px;
-	min-width: 0;
-	max-width: 100%;
-}
+/*
+ * The card itself — its box, body stack, icon circle, title and value
+ * typography — is the CANONICAL KPI card in src/css/kpi-card.css, shared with
+ * CnStatsBlock. What remains here is only what is specific to THIS widget: the
+ * range select, the "/ limit" denominator, the trend chip and the error glyph.
+ *
+ * Every size below is expressed against the shared `--cn-kpi-*` scale rather
+ * than as its own number, so the widget's extras re-scale with the card they
+ * sit in. Resist adding card styling back, and resist restating a value the
+ * scale already holds; that is what split the two KPI looks apart in the first
+ * place.
+ */
 
-/* Whole-tile click target when the widget declares a `route`/`link`. */
-.cn-stat-widget--linked {
-	cursor: pointer;
-	text-decoration: none;
-	color: inherit;
-	border-radius: var(--border-radius-large, 8px);
-	transition: background-color 0.1s ease-in-out;
-}
-
-.cn-stat-widget--linked:hover {
-	background-color: var(--color-background-hover);
-}
-
-.cn-stat-widget--linked:focus-visible {
-	outline: 2px solid var(--color-primary-element);
-	outline-offset: 2px;
-}
-
-.cn-stat-widget__icon {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 40px;
-	height: 40px;
-	border-radius: 50%;
-	flex-shrink: 0;
-}
-
-.cn-stat-widget__body {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	min-width: 0;
-}
-
+/* The title row carries an optional range select beside the label, which the
+   canonical `__title` (a plain truncating heading) does not account for. */
 .cn-stat-widget__label {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: 8px;
-	min-width: 0;
-	font-size: 0.95em;
-	font-weight: 600;
-	color: var(--color-main-text);
+	width: 100%;
+}
+
+/* Stacked tile: the label and its range select centre over the number rather
+   than spreading to the card's edges. */
+.cn-kpi-card--vertical .cn-stat-widget__label {
+	justify-content: center;
+	width: auto;
 }
 
 /* Sized down to sit inside the label row without pushing the tile taller —
@@ -997,8 +1027,8 @@ export default {
 	border: none;
 	border-radius: var(--border-radius);
 	background: transparent;
-	color: var(--color-text-maxcontrast);
-	font-size: 0.8em;
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
+	font-size: var(--cn-kpi-label-size, 13px);
 	font-weight: normal;
 	cursor: pointer;
 }
@@ -1009,35 +1039,15 @@ export default {
 	color: var(--color-main-text);
 }
 
-.cn-stat-widget__value-row {
-	display: flex;
-	align-items: baseline;
-	gap: 8px;
-	min-width: 0;
-}
-
-/* The value NEVER shrinks. It shared a flex row with the caption while being
-   the only shrinkable item, so any caption longer than the tile was wide won
-   the space and the NUMBER — the entire point of a KPI tile — ellipsised to
-   "3.." while its decoration rendered in full. */
-.cn-stat-widget__value {
-	flex: 0 0 auto;
-	font-size: 1.6em;
-	font-weight: 700;
-	line-height: 1.15;
-	color: var(--color-primary-element);
-	white-space: nowrap;
-}
-
 /* The denominator of a "value / limit" pair. Deliberately quieter and smaller
    than the value: the tile's subject is what the number IS, not what it is
    allowed to reach. Shares the value's `nowrap` so the pair never breaks. */
 .cn-stat-widget__limit {
 	flex: 0 0 auto;
-	font-size: 1.05em;
-	font-weight: 600;
-	line-height: 1.15;
-	color: var(--color-text-maxcontrast);
+	font-size: var(--cn-kpi-value-size-compact, 1.25rem);
+	font-weight: var(--cn-kpi-title-weight, 600);
+	line-height: var(--cn-kpi-value-line, 1.1);
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
 	white-space: nowrap;
 }
 
@@ -1045,25 +1055,19 @@ export default {
 	display: inline-flex;
 	align-items: center;
 	gap: 2px;
-	font-size: 0.85em;
-	font-weight: 600;
+	font-size: var(--cn-kpi-label-size, 13px);
+	font-weight: var(--cn-kpi-title-weight, 600);
 }
 
-/* The caption is what gives way in a narrow tile — it truncates, the value
-   does not. */
-.cn-stat-widget__caption {
-	flex: 1 1 auto;
-	min-width: 0;
-	font-size: 0.85em;
-	color: var(--color-text-maxcontrast);
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
+/* The dash shown when the number could not be fetched. It stands where the
+   value stands, so it takes the value's size and weight — CnStatsBlock's own
+   error dash is literally a `cn-kpi-card__value`, and two components showing
+   the same failure at two different sizes is the drift this consolidation
+   exists to remove. Only the colour differs: a failure is not a number. */
 .cn-stat-widget__error {
-	font-size: 1.8em;
-	font-weight: 700;
-	color: var(--color-text-maxcontrast);
+	font-size: var(--cn-kpi-value-size, 2rem);
+	font-weight: var(--cn-kpi-value-weight, 700);
+	line-height: var(--cn-kpi-value-line, 1.1);
+	color: var(--cn-kpi-label-color, var(--color-text-maxcontrast));
 }
 </style>

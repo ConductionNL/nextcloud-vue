@@ -378,8 +378,9 @@ export default {
 		},
 		/**
 		 * Start a qualifying auto-start tour — but a `first-visit` tour whose
-		 * first step targets a specific page only opens when the user is ON that
-		 * page. Deep-linking onto an unrelated route (e.g. a shared detail-page
+		 * first step SPOTLIGHTS something on a specific page only opens when the
+		 * user is ON that page. A centered welcome step spotlights nothing and
+		 * therefore starts anywhere. Deep-linking onto an unrelated route (e.g. a shared detail-page
 		 * URL) defers the tour via `_pendingAutoTour` instead of popping it over
 		 * the wrong screen (ADR-062). A forced `tourId` always starts; a tour
 		 * whose first step is not page-anchored keeps the prior any-route
@@ -405,12 +406,70 @@ export default {
 		 * first step is not page-anchored (a centered welcome step, or a
 		 * non-page target). Used to gate auto-start to the right screen.
 		 *
+		 * A `placement: "center"` first step returns NULL however it is
+		 * anchored. This is the whole point: a centered step spotlights
+		 * nothing — it is a welcome card floating in the middle of the screen —
+		 * so there is no element for the user to be "on the right page" for,
+		 * and gating its auto-open on a route only decides whether the tour
+		 * opens at all.
+		 *
+		 * That is what it did. This docblock already CLAIMED a centered welcome
+		 * step returned null; the code never checked `placement`, so any app
+		 * whose welcome step happened to carry a page/nav anchor other than its
+		 * landing route parked the tour in `_pendingAutoTour` and never opened
+		 * it — no error, no log, just no walkthrough. Measured on one instance
+		 * with an empty seen-state: opencatalogi (welcome anchored to
+		 * `Catalogs`) and pipelinq (anchored to `Products`) both showed nothing
+		 * at `#/` and the full tour at the anchored route, while dossiq
+		 * (anchored to its landing `Dashboard`) worked — the control that shows
+		 * the anchor, not the tour, was the variable. 19 of 20 fleet manifests
+		 * declare a walkthrough, so this is a class, not two instances.
+		 *
+		 * A step that genuinely spotlights an element keeps the ADR-062
+		 * behaviour, which is what it was built for: it still waits for its
+		 * page rather than popping over a deep-linked detail screen.
+		 *
 		 * @param {object} tour The tour definition.
 		 * @return {string|null} The first-step page/nav route name, or null.
 		 */
 		firstStepPage(tour) {
 			const steps = (tour && tour.steps) || []
-			const tgt = steps[0] && steps[0].target
+			const first = steps[0]
+			// A CENTERED first step is not page-anchored, whatever it targets.
+			//
+			// The doc comment above has always said so; the code did not check.
+			// `placement: 'center'` renders a card in the middle of the screen
+			// and spotlights NOTHING — `locateTarget()` returns early on
+			// `isCentered` and never resolves the target at all. So gating
+			// auto-start on being on that step's route asks the user to be
+			// somewhere the step will not point at.
+			//
+			// Consequence measured 2026-08-27 on one running instance, same
+			// user, empty seen-state:
+			//
+			//   opencatalogi  welcome anchored to `Catalogs` -> `/` shows nothing,
+			//                 `#/catalogi` shows "1 / 8 Welcome to OpenCatalogi"
+			//   pipelinq      welcome anchored to `Products` -> `/` shows nothing,
+			//                 `#/products` shows "1 / 11 Welcome to Pipelinq"
+			//   dossiq        welcome anchored to `Dashboard` -> works (control)
+			//
+			// The tour was parked in `_pendingAutoTour` and opened only if the
+			// user happened to navigate to that page — so the getting-started
+			// tour never appeared on the landing page, silently, with nothing
+			// logged. 19 of 20 fleet manifests declare a walkthrough, so this
+			// is not two apps; it is however many anchored their welcome step
+			// somewhere other than their landing route.
+			//
+			// ADR-062's intent is preserved exactly: a first step that really
+			// does spotlight an element still gates on that element's route, so
+			// a tour never pops over a deep-linked detail page.
+			if (!first) {
+				return null
+			}
+			if (first.placement === 'center') {
+				return null
+			}
+			const tgt = first.target
 			if (tgt && (tgt.kind === 'page' || tgt.kind === 'nav-item') && tgt.ref) {
 				return String(tgt.ref)
 			}
@@ -418,8 +477,15 @@ export default {
 		},
 		/**
 		 * Whether a tour may auto-open on the given route. True when the tour's
-		 * first step is not page-anchored (starts anywhere); otherwise the route
-		 * name must equal the first-step page.
+		 * first step is not page-anchored — which includes every `center`-placed
+		 * welcome step, since it spotlights nothing (see firstStepPage) — so the
+		 * tour starts wherever the user lands. Otherwise the route name must
+		 * equal the first-step page.
+		 *
+		 * This is the ONLY consumer of firstStepPage, and both auto-start paths
+		 * (maybeAutoStart on mount, and the router afterEach that resumes a
+		 * deferred tour) go through here — so a centered step cannot be
+		 * swallowed by either.
 		 *
 		 * @param {object} tour The tour definition.
 		 * @param {string} [routeName] The current route name.

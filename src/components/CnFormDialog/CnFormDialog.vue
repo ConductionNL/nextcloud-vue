@@ -881,10 +881,37 @@ export default {
 	},
 
 	watch: {
+		/**
+		 * Re-seed the form when the record changes — WITHOUT discarding
+		 * edits the user has already made to the record now arriving.
+		 *
+		 * A host can bind `item` to a value that is not resolved yet:
+		 * CnDetailPage binds it to `currentObject`, a read of the object
+		 * store that is `null` until the page's own fetch lands. The dialog
+		 * therefore opens over a record that has not arrived, renders every
+		 * field blank (a null `item` is create mode), and re-seeds when the
+		 * record shows up. Re-seeding wholesale at that point overwrites
+		 * whatever was typed in between, so Save submits the PRISTINE record
+		 * and the edit is lost with a 200 and no error anywhere.
+		 *
+		 * Seed from the record, then put the user's own values back on top:
+		 * untouched fields take the record's value (a whole-object PUT must
+		 * not blank them), touched fields keep what the user typed.
+		 *
+		 * @param {object|null} newItem The record now bound.
+		 * @param {object|null} oldItem The record previously bound.
+		 */
 		item: {
 			immediate: true,
-			handler(newItem) {
+			handler(newItem, oldItem) {
+				// Scoped to the record the values were typed into. Swapping
+				// the dialog to a DIFFERENT record starts from that record,
+				// so an edit can never leak from one row onto another.
+				const pending = this.isSameRecord(oldItem, newItem)
+					? this.pendingUserEdits()
+					: null
 				this.initFormData(newItem)
+				this.restoreUserEdits(pending)
 			},
 		},
 
@@ -1105,6 +1132,69 @@ export default {
 				// Carry the provider register on the reference so the fetch
 				// targets registerSlug (cross-app), not the form's own register.
 				reference: { schema: entry.schemaSlug, multiple: false, register: entry.registerSlug },
+			}
+		},
+
+		/**
+		 * The id of a record, wherever it carries one. An OpenRegister
+		 * object holds its id in `@self`, not only at the top level.
+		 *
+		 * @param {object|null} record The record to read.
+		 * @return {string} The id, or '' when the record has none.
+		 */
+		recordId(record) {
+			if (!record || typeof record !== 'object') return ''
+			return String(record.id ?? record['@self']?.id ?? record.uuid ?? '')
+		},
+
+		/**
+		 * Whether two `item` values are the same record, for the purpose of
+		 * carrying pending edits across a re-seed.
+		 *
+		 * A record ARRIVING (null/id-less -> record) is the same record as
+		 * far as the user is concerned: they are filling in the form that is
+		 * already on screen. Two different ids are not.
+		 *
+		 * @param {object|null} oldItem The record previously bound.
+		 * @param {object|null} newItem The record now bound.
+		 * @return {boolean} True when edits may be carried over.
+		 */
+		isSameRecord(oldItem, newItem) {
+			const oldId = this.recordId(oldItem)
+			if (oldId === '') return true
+			return oldId === this.recordId(newItem)
+		},
+
+		/**
+		 * Snapshot the fields the user has edited by hand, so a record that
+		 * arrives later can be merged UNDER them rather than over them.
+		 *
+		 * @return {object|null} The pending edits, or null when there are none.
+		 */
+		pendingUserEdits() {
+			const keys = Object.keys(this.touchedFields || {})
+			if (keys.length === 0) return null
+			const edits = {}
+			for (const key of keys) {
+				if (Object.hasOwn(this.formData, key)) {
+					edits[key] = this.formData[key]
+				}
+			}
+			return Object.keys(edits).length > 0 ? edits : null
+		},
+
+		/**
+		 * Re-apply edits captured by `pendingUserEdits()` after a re-seed,
+		 * restoring their touched state with them.
+		 *
+		 * @param {object|null} edits The snapshot to re-apply.
+		 * @return {void}
+		 */
+		restoreUserEdits(edits) {
+			if (!edits) return
+			for (const key of Object.keys(edits)) {
+				this.formData[key] = edits[key]
+				this.touchedFields[key] = true
 			}
 		},
 
@@ -1429,11 +1519,46 @@ export default {
 				if (field.widget !== 'date' && field.widget !== 'datetime') continue
 				const raw = this.formData[field.key]
 				if (raw === null || raw === undefined || raw === '') continue
+				// Leave a value that ALREADY satisfies the schema format alone.
+				//
+				// This pass exists for OpenRegister's persisted shape
+				// ('2026-10-15 14:30:00' — space-separated, no zone), which fails
+				// the `date-time` format on save. A value that arrives as valid
+				// RFC 3339 does not need it, and rewriting one CORRUPTS it:
+				// dateValueFor() reads the wall-clock digits and DISCARDS the
+				// offset (right for the local-time picker), then formatDateValue()
+				// stamps the LOCAL offset back on. In Europe/Amsterdam a stored
+				// '2026-10-15T14:30:00Z' came back as '2026-10-15T14:30:00+02:00'
+				// — the same digits, two hours earlier, silently, on an edit that
+				// never touched the field. It is schema-valid either way, so
+				// nothing downstream objects (nextcloud-vue#835).
+				if (this.isCanonicalDateValue(field.widget, raw)) continue
 				const date = this.dateValueFor(field)
 				if (date instanceof Date && !isNaN(date.getTime())) {
 					this.formData[field.key] = this.formatDateValue(field.widget, date)
 				}
 			}
+		},
+
+		/**
+		 * Whether a stored value is already in the shape this field submits.
+		 *
+		 * `date` wants a bare `YYYY-MM-DD`; `datetime` wants a full RFC 3339
+		 * timestamp carrying a zone (`Z` or `±hh:mm`), which is what
+		 * `formatDateValue` emits and what ajv-formats requires. Anything else
+		 * — notably OpenRegister's space-separated persisted form — still gets
+		 * normalised.
+		 *
+		 * @param {string} widget The field widget ('date' | 'datetime').
+		 * @param {*} raw The stored value.
+		 * @return {boolean} True when the value needs no rewrite.
+		 */
+		isCanonicalDateValue(widget, raw) {
+			if (typeof raw !== 'string') return false
+			if (widget === 'date') {
+				return /^\d{4}-\d{2}-\d{2}$/.test(raw)
+			}
+			return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(raw)
 		},
 
 		/**

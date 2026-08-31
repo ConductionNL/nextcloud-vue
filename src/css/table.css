@@ -351,3 +351,44 @@
 .tableColumnConstrained { width: 150px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tableColumnExpanded { width: auto; min-width: 200px; }
 .tableColumnTitle { min-width: 120px; max-width: 200px; word-wrap: break-word; overflow: hidden; }
+
+/* ========================================
+   Tables inside widgets go EDGE TO EDGE
+   ======================================== */
+
+/*
+ * A table inside a widget card must touch the card's border — never sit in a
+ * gutter. `CnWidgetWrapper`'s content area carries `padding: 16px` by default,
+ * which put a visible margin between the widget border and the table border on
+ * every table widget whose host forgot to pass `flush`.
+ *
+ * The rule lives HERE, in the table stylesheet, and keys off the presence of a
+ * table rather than off a prop. `CnDataTable` imports this file, so the rule
+ * arrives exactly when — and only when — a table is on the page, and no app can
+ * reintroduce the gutter by forgetting a prop: there is no prop left to forget.
+ *
+ * `:has()` is what makes this possible (Baseline since 2023; every browser
+ * Nextcloud 30+ supports has it). Unscoped on purpose — a scoped rule cannot
+ * see across the component boundary into the wrapper.
+ */
+.cn-widget-wrapper__content:has(.cn-table-container),
+.cn-detail-card__content:has(.cn-table-container) {
+	padding: 0;
+}
+
+/* The table's own card chrome is redundant inside a widget that already draws
+   one, and a second border reads as the same gutter defect. Flatten it. */
+.cn-widget-wrapper__content .cn-table-container,
+.cn-detail-card__content .cn-table-container {
+	margin-bottom: 0;
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+}
+
+/* The header/footer keep their own inset so the title and "View all" do not
+   collide with the card edge — the rows are what go edge to edge. */
+.cn-widget-wrapper__content .cn-data-table__header,
+.cn-widget-wrapper__content .cn-data-table__footer {
+	padding-inline: 16px;
+}

@@ -4,8 +4,15 @@
  *
  * Tests for CnWalkthrough item-7 fixes (ADR-062):
  *  - the coachmark "Skip" ENDS the tour (persists completion), never advances;
- *  - a first-visit tour whose first step is page-anchored only auto-opens on
- *    that page — deep-linking onto another route defers it.
+ *  - a first-visit tour whose first step SPOTLIGHTS something on a page only
+ *    auto-opens on that page — deep-linking onto another route defers it;
+ *  - but a `placement: "center"` first step spotlights nothing, so it is never
+ *    route-gated. That last one is a regression guard: the gate did not check
+ *    `placement`, so a welcome card anchored to any route other than the app's
+ *    landing route was deferred and never opened — silently, with no error.
+ *    Measured across the fleet as opencatalogi (anchored `Catalogs`) and
+ *    pipelinq (anchored `Products`) showing no walkthrough at `#/` while
+ *    dossiq (anchored to its landing `Dashboard`) worked.
  */
 const { mount } = require('@vue/test-utils')
 const CnWalkthrough = require('../../src/components/CnWalkthrough/CnWalkthrough.vue').default
@@ -64,5 +71,70 @@ describe('CnWalkthrough — skip + route-gated auto-start', () => {
 		})
 		await w.vm.$nextTick()
 		expect(w.vm.active).toBe(true)
+	})
+})
+
+/**
+ * A CENTERED first step is not page-anchored, whatever it targets.
+ *
+ * `placement: 'center'` renders a card in the middle of the screen and
+ * spotlights nothing — `locateTarget()` returns early on `isCentered` and never
+ * resolves the target. Gating auto-start on that step's route therefore asks
+ * the user to stand somewhere the step will not point at, and the tour is
+ * parked in `_pendingAutoTour` instead of opening.
+ *
+ * Measured 2026-08-27, one instance, same user, empty seen-state: opencatalogi
+ * anchored its centered welcome to `Catalogs` and pipelinq to `Products`, so
+ * neither tour appeared on the landing page; dossiq anchored to `Dashboard` and
+ * worked. 19 of 20 fleet manifests declare a walkthrough.
+ */
+const centeredSteps = [
+	{ id: 'welcome', sinceVersion: '1.0.0', title: 'Welcome', body: 'Hi', placement: 'center', target: { kind: 'page', ref: 'Products' }, advanceOn: { type: 'manual' } },
+	{ id: 'next', sinceVersion: '1.0.0', title: 'Next', target: { kind: 'page', ref: 'Products' }, advanceOn: { type: 'manual' } },
+]
+
+function centeredManifest() {
+	return { version: '1.0.0', walkthrough: { enabled: true, version: 1, tours: [{ id: 'getting-started', trigger: 'first-visit', steps: centeredSteps }] } }
+}
+
+describe('CnWalkthrough — a centered first step does not gate on a route', () => {
+	beforeEach(() => __resetWalkthroughCacheForTests())
+
+	it('auto-opens on an UNRELATED route when the first step is centered', async () => {
+		const router = fakeRouter()
+		const w = mount(CnWalkthrough, {
+			propsData: { appId: 'centered-app', manifest: centeredManifest() },
+			mocks: { $router: router, $route: { name: 'Dashboard', params: {} } },
+		})
+		await w.vm.$nextTick()
+		// Landing route is `Dashboard`; the centered welcome names `Products`.
+		// It spotlights nothing, so it must still open here.
+		expect(w.vm.active).toBe(true)
+		expect(w.vm.step.id).toBe('welcome')
+		expect(w.vm._pendingAutoTour).toBeFalsy()
+	})
+
+	it('firstStepPage() returns null for a centered first step', async () => {
+		const w = mount(CnWalkthrough, { propsData: { appId: 'centered-app-2', manifest: centeredManifest() } })
+		await w.vm.$nextTick()
+		expect(w.vm.firstStepPage({ steps: centeredSteps })).toBeNull()
+	})
+
+	it('CONTROL: the same target WITHOUT placement:center still defers off-route', async () => {
+		// Identical tour, one property removed. If this also auto-opened, the
+		// change would have deleted ADR-062's deep-link guard rather than
+		// scoping it to steps that spotlight nothing.
+		const nonCentered = centeredSteps.map((s, i) => (i === 0 ? { ...s, placement: undefined } : s))
+		const router = fakeRouter()
+		const w = mount(CnWalkthrough, {
+			propsData: {
+				appId: 'control-app',
+				manifest: { version: '1.0.0', walkthrough: { enabled: true, version: 1, tours: [{ id: 'getting-started', trigger: 'first-visit', steps: nonCentered }] } },
+			},
+			mocks: { $router: router, $route: { name: 'Dashboard', params: {} } },
+		})
+		await w.vm.$nextTick()
+		expect(w.vm.active).toBe(false)
+		expect(w.vm._pendingAutoTour).toBeTruthy()
 	})
 })

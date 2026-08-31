@@ -13,6 +13,7 @@
 
 import { mount } from '@vue/test-utils'
 import { toRaw } from 'vue'
+import { createMemoryHistory, createRouter } from 'vue-router'
 
 jest.mock('@nextcloud/capabilities', () => ({
 	getCapabilities: jest.fn(() => ({})),
@@ -184,6 +185,43 @@ describe('CnAppRoot registry validation', () => {
 		// assertion is still identity — the caller's registry object is what
 		// gets provided, not a rebuilt one.
 		expect(toRaw(wrapper.vm.$.provides.cnRegistry)).toBe(registry)
+	})
+
+	it('closes an open registry modal when the route changes', async () => {
+		// cnOpenModal sets activeModalKey and only the modal's own `close`
+		// cleared it, so navigating away left the dialog mounted over the new
+		// page. Found in pipelinq, the first app to register modals: opening
+		// "New lead" on a dashboard and clicking through to another page
+		// carried the dialog along, still covering the content.
+		const registry = {
+			myModal: { kind: 'modal', component: MockModal, propsSchema: null },
+		}
+		// A REAL router, because the watcher must fire on an actual navigation.
+		// A `mocks: { $route }` object cannot model one: the watcher tracks the
+		// route object's identity, vue-router replaces that object on navigate
+		// and a mock never does, so a mocked version passes whether or not the
+		// watcher is wired at all.
+		const router = createRouter({
+			history: createMemoryHistory(),
+			routes: [
+				{ path: '/', name: 'home', component: { template: '<div />' } },
+				{ path: '/other', name: 'other', component: { template: '<div />' } },
+			],
+		})
+		await router.push('/')
+		await router.isReady()
+
+		const wrapper = mount(CnAppRoot, {
+			propsData: { manifest: baseManifest, appId: 'testapp', requiresApps: [], registry },
+			global: { plugins: [router] },
+		})
+		wrapper.vm.$.provides.cnOpenModal('myModal', {})
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.activeModalKey).toBe('myModal')
+
+		await router.push('/other')
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.activeModalKey).toBeNull()
 	})
 
 	it('provides empty object when no registry prop is passed', () => {

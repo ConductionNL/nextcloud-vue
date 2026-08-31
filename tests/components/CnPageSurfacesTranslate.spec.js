@@ -330,16 +330,20 @@ describe('CnObjectListWidget — empty-state copy', () => {
 		...(provide ? { provide } : {}),
 	})
 
+	// The empty state is CnWidgetEmptyState now, and it carries an "+ Add"
+	// action beside the headline — so the assertion targets the headline
+	// element rather than the whole state's text, which would also pick up
+	// the button's label and stop being a statement about the translation.
 	it('translates the widget empty line via the injected cnTranslate', async () => {
 		const w = mountWidget(provideTranslate)
 		await flush()
-		expect(w.find('.cn-object-list-widget__empty').text()).toBe('Geen items')
+		expect(w.find('.cn-object-list-widget__empty .cn-widget-empty-state__name').text()).toBe('Geen items')
 	})
 
 	it('renders the raw empty line with no translator (no-op control)', async () => {
 		const w = mountWidget(null)
 		await flush()
-		expect(w.find('.cn-object-list-widget__empty').text()).toBe('No items')
+		expect(w.find('.cn-object-list-widget__empty .cn-widget-empty-state__name').text()).toBe('No items')
 	})
 })
 

@@ -221,7 +221,7 @@ export default {
 | `stats-rows` | Custom `<tr>` rows inside the stats table body |
 | `sections` | Additional content below the main content area |
 | `footer` | Footer content rendered below the body |
-| `widget-{widgetId}` | Widget slot in grid layout mode. Scope: `{ item, widget }` |
+| `widget-{widgetId}` | Widget slot in grid layout mode. Scope: `{ item, widget, objectId, object, objectData, objectType, register, schema }`. A `type: "custom"` widget is mounted by `CnPageRenderer` as `<component v-bind="slotProps" />`, so this scope *is* the widget's prop set — declare `objectId` (and any of the rest) on the component and it arrives. `objectId` comes from the route-fed prop, so it is set on the first render; `object` / `objectData` are `null` until the record's fetch resolves. |
 
 ## Integration props (AD-19)
 
@@ -267,3 +267,12 @@ CnDetailPage consumes the same `actions[].handler` contract as CnIndexPage. When
 | `summaryAggregates` | Array | `[]` | Declarative cross-schema count/sum/avg chips in the header; each `{ label, register, schema, metric?, field?, filter?, format? }` scoped to this object. See docs `cn-summary-aggregates.md`. |
 | `relationLinks` | Array | `[]` | Declarative relation-link actions; each `{ label?, register, schema, fkField, labelField?, allowCreate?, title?, selectLabel? }` opens a search-and-link modal that patches a FK on this object. Emits `@relation-linked`. See docs `cn-relation-link-modal.md`. |
 | `bodyWidgets` | Array | `[]` | Declarative IN-BODY sections; each `{ id?, component, title?, props?, placement?, colSpan? }` renders a registered host-app component as a titled body section (NOT the sidebar) with token-resolved props (`@objectId` / `@object.<field>` / `@workspace.<key>`) and the object context provided on `cnSectionContext`. `placement` = `before-body`/`after-data`/`after-related`/`end`. No sidebar tab required. See docs `cn-body-sections.md`. |
+
+## Header actions menu
+
+The page header's overflow menu carries Refresh plus the mandatory trio Request a feature / Report a bug / Documentation.
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `showReportBug` | Boolean | `true` | Whether the Report-a-bug entry renders in the page-header menu. |
+| `showDocumentation` | Boolean | `true` | Whether the Documentation entry renders. Its target is resolved by the shared menu from the app-wide documentation base plus this page's id, so leaving it on costs the host nothing. |

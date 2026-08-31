@@ -98,6 +98,7 @@ export default {
 |---|---|---|
 | `dialogTitle` | `''` | Dialog title. Defaults to `'Create {schema.title}'` or `'Edit {schema.title}'` when empty. |
 | `nameField` | `'title'` | Which field is the "name" of the item (used in result messages). |
+| `initialValues` | `null` | Field values seeded into a **create** form on open, layered over the schema defaults. Unlike `item` it does not flip the dialog into edit mode, so it is the right seam for fixing a discriminator or parent key the user should not have to type (e.g. `{ ticketType: 'request' }`). Ignored when `item` is set. |
 | `excludeFields` | `[]` | Array of field keys to exclude from the properties table and form. |
 | `includeFields` | `null` | Array of field keys to include (whitelist mode). Null means all fields. |
 | `fieldOverrides` | `{}` | Per-field override objects passed to `fieldsFromSchema`. |

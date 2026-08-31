@@ -62,3 +62,25 @@ The `data-testid`s are derived from `testidBase`: `<base>-actions` (container), 
 The table below is generated from the SFC source via `vue-docgen-cli` and updates automatically whenever the component changes.
 
 <GeneratedRef />
+
+## The mandatory trio
+
+Request a feature, Report a bug and Documentation render on **every** surface. None of them is conditional on a URL being configured: the menu resolves each target itself, so a host that passes nothing still gets all three. That is the point — the items used to be per-host markup, and OpenRegister's widget menus shipped without the Documentation entry while OpenCatalogi's were inconsistent.
+
+| Prop | Default | Description |
+|------|---------|-------------|
+| `docsAnchor` | `''` | This surface's own section in the app's documentation, appended to the app-wide base. A bare slug (`open-cases`) becomes a `#fragment`; a value starting with `/` is resolved as a path; a full `scheme://` URL is used as written. **Supplying it per widget is what makes the docs link land on that widget's section instead of the docs homepage.** |
+| `showDocumentation` | `true` | Whether the Documentation item renders. For the rare surface that must suppress it deliberately. |
+| `showReportBug` | `true` | Whether the Report-a-bug item renders. |
+| `reportBugUrl` | `''` | Explicit bug-report target. Empty builds a new-issue deep-link on the app's own forge from the injected `cnFeatureRequestRepo` / `cnFeatureRequestForge`, pre-filled with the surface's title. |
+| `reportBugLabel` | `t('Report a bug')` | Pre-translated label for the Report-a-bug item. |
+
+### Where the documentation link points
+
+The target is resolved in this order:
+
+1. the `documentationUrl` prop, if set (deep-linked with `docsAnchor` when both are given);
+2. the app-wide `cnDocumentationBaseUrl` provided by `CnAppRoot`, plus `docsAnchor`;
+3. the app's conventional docs site derived from `cnAppId` — a last resort so the item is never simply missing.
+
+An app that hosts its docs anywhere else should provide `cnDocumentationBaseUrl` rather than pass a URL per widget.

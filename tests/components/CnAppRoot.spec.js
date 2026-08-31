@@ -433,10 +433,11 @@ describe('CnAppRoot', () => {
 
 		// REQ-OR-5: empty array short-circuits the entire guard (no capabilities call).
 		it('skips the guard when :requires-apps="[]" and renders immediately (REQ-OR-5)', async () => {
-			// Mark Buildiq reachable so the edit-shell availability probe
-			// short-circuits via appswebroots and does not call getCapabilities;
-			// this keeps the assertion below about the GUARD not running.
-			global.OC.appswebroots = { openbuild: true }
+			// Mark Buildiq reachable under its current app id so the edit-shell
+			// availability probe short-circuits via appswebroots and does not
+			// call getCapabilities; this keeps the assertion below about the
+			// GUARD not running.
+			global.OC.appswebroots = { buildiq: true }
 			const wrapper = mountWithGuard({ requiresApps: [] })
 			await wrapper.vm.$nextTick()
 			expect(getCapabilities).not.toHaveBeenCalled()

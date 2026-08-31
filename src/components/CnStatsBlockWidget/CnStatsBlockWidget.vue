@@ -30,6 +30,8 @@
 				:variant="view.entry.variant || 'default'"
 				:show-zero-count="showZeroCount"
 				:horizontal="horizontal"
+				:vertical="vertical"
+				:filled="filled"
 				:clickable="!!view.route"
 				:route="view.route || null" />
 		</template>
@@ -44,12 +46,18 @@
 			:variant="variant"
 			:show-zero-count="showZeroCount"
 			:horizontal="horizontal"
+			:vertical="vertical"
+			:filled="filled"
 			:clickable="!!route"
 			:route="route" />
 	</div>
 </template>
 
 <script>
+// The canonical KPI scale (`--cn-kpi-*`) lives in one stylesheet. Imported
+// here as well as from css/index.css so the tokens resolve even when the
+// consuming app pulls in components individually.
+import '../../css/kpi-card.css'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import CnStatsBlock from '../CnStatsBlock/CnStatsBlock.vue'
 import { useDataSource } from '../../composables/useDataSource.js'
@@ -193,8 +201,29 @@ export default {
 			default: true,
 		},
 
-		/** Use horizontal layout (icon left, content right). */
+		/**
+		 * Lay the icon left of the content. The canonical KPI card already
+		 * does this, so the prop is redundant and kept only for existing
+		 * callers.
+		 *
+		 * @deprecated since 2.25.0, the horizontal layout is the default.
+		 */
 		horizontal: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Stack the icon above a centred number instead of beside it. */
+		vertical: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Draw each tile's own grey box. Off by default — the widget is
+		 * rendered inside a CnWidgetWrapper that already draws a card.
+		 */
+		filled: {
 			type: Boolean,
 			default: false,
 		},
@@ -392,12 +421,14 @@ export default {
 	mounted() {
 		this.fetchRest()
 		this.fetchEntries()
-		// Page-level Refresh. This tile is the one dashboard widget rendered
-		// WITHOUT CnWidgetWrapper (CnStatsBlock brings its own card chrome), so
-		// it has no per-widget Refresh item either — the page action was its
-		// only refresh affordance, and it reached nothing: the counts come from
-		// `fetchRest` / `fetchEntries` and the useDataSource GraphQL path, none
-		// of which subscribe to anything. No widgetId to match: a page refresh
+		// Page-level Refresh. This tile is now rendered inside CnWidgetWrapper
+		// like every other widget (it went flat in 2026-08-30's KPI-card
+		// change, so the wrapper is what draws its card), but it is registered
+		// as a CARD widget and cards carry no per-widget Actions menu — so the
+		// page action is still its only refresh affordance. It reached nothing
+		// before this subscription: the counts come from `fetchRest` /
+		// `fetchEntries` and the useDataSource GraphQL path, none of which
+		// subscribe on their own. No widgetId to match: a page refresh
 		// refreshes everything on the page.
 		this._onPageRefresh = () => {
 			this.refresh()
@@ -546,10 +577,16 @@ export default {
 </script>
 
 <style scoped>
-/* Multi-entry mode stacks N KPI tiles inside the one widget card. */
+/*
+ * This widget draws no KPI of its own — every tile it shows is a CnStatsBlock,
+ * so the canonical card in src/css/kpi-card.css is already what a reader sees.
+ * All that is left here is how N of those tiles stack inside one widget, and
+ * that spacing comes from the shared `--cn-kpi-stack-gap` so a multi-entry
+ * widget and a CnStatsPanel stack of the same tiles are spaced identically.
+ */
 .cn-stats-block-widget--multi {
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
+	gap: var(--cn-kpi-stack-gap, 12px);
 }
 </style>

@@ -299,6 +299,46 @@ export default {
 			// agree.
 			|| id === 'gridstack'
 			|| /^gridstack\//.test(id)
+			// `dexie`, `dompurify` and `marked` are peerDependencies too, and
+			// were being BUNDLED anyway — the same defect gridstack had above,
+			// with the same shape: the vendored copy and the consumer's copy
+			// are two different modules at runtime, and the vendored one wins.
+			//
+			// Measured 2026-08-28 on the published 2.20.1 tarball: intersecting
+			// `dist/bundled-packages.json` (53 entries) with `peerDependencies`
+			// gave exactly these three, and the dist really did ship
+			// `dist/esm/node_modules/dexie/dist/dexie.js`.
+			//
+			// dexie REFUSES to initialise twice, so this is not a subtle
+			// mismatch — it takes the consuming app's BOOT down. pipelinq#1431
+			// (dependabot, dexie 4.4.4 -> 4.4.5) failed its E2E boot gate with
+			//
+			//     [boot gate] The Pipelinq Vue app did not mount. The bundle
+			//     loaded but rendered nothing.
+			//       pageerror: Two different versions of Dexie loaded in the
+			//       same app: 4.4.5 and 4.4.4
+			//
+			// The app's lockfile held exactly ONE dexie. The second copy was
+			// ours. pipelinq#1455 (marked) failed the same way. It works today
+			// only because `development` happens to pin the same version we
+			// vendored — so every dependabot bump of one of these breaks every
+			// consuming app until someone pins it back.
+			//
+			// dompurify makes it a security defect rather than a packaging one.
+			// It is the XSS sanitizer, and a consumer CANNOT patch it: they bump
+			// their own dependency, `npm audit` reports green, and the
+			// vulnerable copy inside our dist keeps running. A check that
+			// reports success over a live vulnerability is worse than no check.
+			//
+			// The rule these three share with gridstack: never inline a package
+			// that must be a SINGLETON — a database layer, a sanitizer, anything
+			// holding global state or owning a security boundary.
+			|| id === 'dexie'
+			|| /^dexie\//.test(id)
+			|| id === 'dompurify'
+			|| /^dompurify\//.test(id)
+			|| id === 'marked'
+			|| /^marked\//.test(id)
 		)
 	},
 	plugins: [

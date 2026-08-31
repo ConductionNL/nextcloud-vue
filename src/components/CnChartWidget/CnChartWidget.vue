@@ -1893,7 +1893,19 @@ export default {
 <style scoped>
 .cn-chart-widget {
 	width: 100%;
+	/* A chart FITS its container — it is never a scroll region. apexcharts
+	   sizes its SVG from the element it is mounted in, but it also enforces
+	   its own minimum widths (axis labels, legend, a bar's minimum body), so
+	   on a narrow tile the SVG comes out wider than the box and the widget
+	   card grows a horizontal scrollbar. `max-width` + `overflow: hidden`
+	   settle it in the box's favour: the graph clips its own margins rather
+	   than handing the user a bar to drag. Applies in BOTH modes, not just
+	   the percentage-height `--fit` one — the horizontal overflow has nothing
+	   to do with how the height was configured, which is why the existing
+	   `--fit` rules never caught it. */
+	max-width: 100%;
 	min-height: 100px;
+	overflow-x: hidden;
 }
 
 /* Container-fitting mode (`height` given as a percentage). The root claims the
@@ -1910,6 +1922,16 @@ export default {
 
 .cn-chart-widget__canvas {
 	min-width: 0;
+	max-width: 100%;
+	overflow-x: hidden;
+}
+
+/* apexcharts writes an inline `width` onto its own wrapper from its measured
+   minimum, which beats the container when the container is narrower. Cap the
+   painted box so the inline width cannot push past the widget's border. */
+.cn-chart-widget :deep(.apexcharts-canvas),
+.cn-chart-widget :deep(.apexcharts-canvas svg) {
+	max-width: 100%;
 }
 
 /* `flex: 1 1 0` (not `1 1 auto`) is load-bearing: with an `auto` basis the box

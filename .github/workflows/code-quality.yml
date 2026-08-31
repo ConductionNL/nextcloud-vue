@@ -147,6 +147,9 @@ jobs:
          "check:a11y", "check:smoke", "check:vue3-compile",
          "check:public-safe"]
       enable-sbom: false
+      # The repo ships a REUSE.toml and LICENSES/ and lints clean (REUSE spec
+      # 3.3), so findings are regressions and may fail the build.
+      reuse-blocking: true
 
   # ⚠️ THE PLAYWRIGHT SUITE HAD NEVER RUN IN CI. NOT ONCE.
   #
@@ -237,3 +240,49 @@ jobs:
             test-results/
           retention-days: 14
           if-no-files-found: ignore
+
+  # The third script this repository defines that no gate ran. It could not go
+  # into `frontend-checks` with the others: it needs a built `dist/`, and each
+  # check leg is its own job with its own checkout, so the build has to happen
+  # in the same job. Hence a dedicated one, like the e2e job above.
+  #
+  # ⚠️ READ WHAT THIS CAN AND CANNOT CATCH BEFORE TRUSTING A GREEN CELL.
+  #
+  # The bug it was written for is real and severe: `package.json#sideEffects`
+  # is an ALLOWLIST, and when it failed to match the compiled `*.vue.js`
+  # render-attach wrappers, consumers' webpack shook every one of them away and
+  # every Cn component shipped render-less. Vue 3 renders a render-less
+  # component as a silent comment node — blank app, zero errors, zero warnings.
+  # Observed on hermiq, where it blocked a full e2e suite.
+  #
+  # ON TODAY'S EMIT SHAPE IT PASSES BY CONSTRUCTION, and I measured that rather
+  # than assuming it. Deleting `**/*.vue.js` from the allowlist and re-running
+  # still reports OK. The reason is that the build no longer emits what the
+  # gate was written against: the barrel now does
+  #
+  #     export { default as CnAppRoot } from './components/.../CnAppRoot.vue.js'
+  #
+  # — a VALUE re-export from the wrapper, where it used to export from
+  # `.vue2.js` and carry a separate bare `import './X.vue.js'` alongside. There
+  # are zero bare `*.vue.js` imports left in `dist/esm/index.js`. A value
+  # dependency cannot be tree-shaken, so the render survives whatever the
+  # allowlist says.
+  #
+  # So this is a REGRESSION GUARD for an emit shape that is not currently in
+  # use, not a live assertion about the allowlist. It fires if a rollup or
+  # plugin upgrade reverts the barrel to bare side-effect imports while the
+  # allowlist is wrong — which is exactly how the original bug arrived. That is
+  # worth two minutes of CI. It is NOT evidence that the allowlist is correct,
+  # and a green cell here must not be read as such.
+  dist-sideeffects:
+    name: "Dist sideEffects (tree-shaking)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run check:dist-sideeffects

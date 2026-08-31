@@ -218,6 +218,18 @@ export default {
 		schema: { type: Object, default: null },
 		/** The object instance being created or edited */
 		item: { type: Object, default: null },
+		/**
+		 * Field values seeded into a CREATE form on open, layered over the
+		 * schema defaults. Unlike `item` this does not flip the dialog into
+		 * edit mode (`isCreateMode` stays true), so it is the right seam for a
+		 * caller that must fix a discriminator or a parent key the user should
+		 * not have to type — e.g. `{ ticketType: 'request' }` on a schema whose
+		 * subtype is chosen by the button that opened the form.
+		 *
+		 * Ignored when `item` is set: an edit already carries its own values.
+		 * @type {object|null}
+		 */
+		initialValues: { type: Object, default: null },
 		/** Dialog title; falls back to schema.title when empty */
 		dialogTitle: { type: String, default: '' },
 		/** Schema property used as the item name in the title */
@@ -474,6 +486,10 @@ export default {
 					} else {
 						data[field.key] = null
 					}
+				}
+				// Caller-seeded create values win over the schema defaults.
+				if (this.initialValues && typeof this.initialValues === 'object') {
+					Object.assign(data, JSON.parse(JSON.stringify(this.initialValues)))
 				}
 				this.formData = data
 			}

@@ -136,3 +136,25 @@ export default {
 |------|-------------|
 | `title-meta` | Inline content next to the title (e.g. the date-range chip). |
 | `action-items` | Extra `NcActionButton`-family items appended inside the overflow menu, after the built-in Refresh / Documentation / Request-a-feature group. |
+
+## Coloured header icon
+
+Every widget's header icon is coloured. `titleIconVariant` defaults to `primary` (the theme colour), so this needs no configuration; a widget whose subject already carries a meaning names it instead.
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `titleIconVariant` | String | `'primary'` | Semantic colour for the header icon: `primary`, `success`, `warning`, `error`, `info`, `neutral`. A Concepts list is `warning`, a Published list `success`, a Depublished list `error`. |
+| `titleIconColor` | String | `null` | Explicit colour, overriding the variant. Must be a CSS variable or theme token — never a literal hex, which would ignore the nldesign app's re-theming. |
+
+The colour is published once as `--cn-widget-icon-color` on the header, so it cascades to the icon-class span, the `title-icon` slot's content, and any SVG inside it — the icon and the decoration beside it cannot end up different colours.
+
+## Actions menu
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `docsAnchor` | String | `''` | This widget's own section in the app's documentation. Appended to the app-wide documentation base to build the menu's Documentation deep-link. Prefer this over `documentationUrl`. |
+| `showDocumentation` | Boolean | `true` | Whether the Documentation entry renders. |
+| `showReportBug` | Boolean | `true` | Whether the Report-a-bug entry renders. |
+| `reportBugUrl` | String | `''` | Explicit bug-report target. Empty builds a new-issue deep-link on the app's own forge. |
+
+Request a feature / Report a bug / Documentation render on every widget; the shared menu resolves their targets itself.

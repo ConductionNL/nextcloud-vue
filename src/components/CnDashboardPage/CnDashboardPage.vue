@@ -49,14 +49,17 @@
 				     reachable; self-wires from the cnManifestEditor / cnOpenBuildAvailable
 				     provided by CnAppRoot. Sits inline with the page's action buttons. -->
 				<CnBuildiqEditButton />
-				<!-- Page-level overflow Actions menu (Refresh / Documentation /
-				     Request a feature). Separate from the per-widget menus.
-				     On by default; opt out per item, supply documentation-url
-				     to surface a docs link. -->
+				<!-- Page-level overflow Actions menu (Refresh + the mandatory
+				     trio Request a feature / Report a bug / Documentation).
+				     Separate from the per-widget menus. `docs-anchor` deep-links
+				     the docs item to THIS page's section. -->
 				<CnActionsMenu
 					:show-refresh="showRefresh"
 					:show-request-feature="showRequestFeature"
+					:show-report-bug="showReportBug"
+					:show-documentation="showDocumentation"
 					:documentation-url="documentationUrl"
+					:docs-anchor="resolvedPageId"
 					:documentation-label="documentationLabel"
 					:refresh-label="refreshLabel"
 					:request-feature-label="requestFeatureLabel"
@@ -316,9 +319,11 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
+						:title-icon-variant="getWidgetTitleIconVariant(item)"
 						:show-refresh="getWidgetShowRefresh(item)"
 						:show-actions="widgetShowActions(item)"
 						:documentation-url="getWidgetDocumentationUrl(item)"
+						:docs-anchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<!-- @slot widget-{widgetId}-title-icon Per-widget custom title icon (e.g. `#widget-my-work-title-icon`). Scope: `{ item, widget }`. -->
@@ -394,8 +399,10 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
+						:title-icon-variant="getWidgetTitleIconVariant(item)"
 						:show-refresh="getWidgetShowRefresh(item)"
 						:documentation-url="getWidgetDocumentationUrl(item)"
+						:docs-anchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<template v-if="dateRangeEnabled && (item.dateChip === true || formatChartDateRange(item))" #title-meta>
@@ -444,17 +451,39 @@
 				</template>
 
 				<!-- Stats-block widget — manifest-driven CnStatsBlock with a
-				     GraphQL-resolved count via `dataSource`. Rendered WITHOUT
-				     CnWidgetWrapper: CnStatsBlock already supplies title +
-				     bordered card chrome + count layout, so wrapping it
-				     produced a double-card visual (outer + inner titles, two
-				     bordered boxes). The action menu lives on the page-level
-				     dashboard chrome instead. -->
+				     GraphQL-resolved count via `dataSource`.
+
+				     This used to render WITHOUT CnWidgetWrapper, because
+				     CnStatsBlock drew its own grey bordered card and wrapping
+				     it produced a double card (outer + inner titles, two
+				     boxes). The KPI card is flat as of 2026-08-30, so the
+				     opposite is now true: without the wrapper the tile has no
+				     chrome at all. It is wrapped like every other widget, and
+				     the duplicate title is gone because `stats-block` is
+				     registered as a card widget — card widgets default to
+				     headerless, so only CnStatsBlock's own title renders. -->
 				<template v-else-if="isStatsBlock(item)">
-					<CnStatsBlockWidget
-						v-bind="getStatsBlockProps(item)"
+					<CnWidgetWrapper
+						:widget-id="item.widgetId"
 						:title="getWidgetTitle(item)"
-						:data-source="getWidgetDataSource(item)" />
+						:icon-url="getWidgetIconUrl(item)"
+						:icon-class="getWidgetIconClass(item)"
+						:show-title="widgetShowTitle(item)"
+						:show-actions="widgetShowActions(item)"
+						:borderless="widgetBorderless(item)"
+						:flush="item.flush !== false"
+						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
+						:buttons="getWidgetButtons(item)"
+						:style-config="item.styleConfig || {}"
+						:documentation-url="getWidgetDocumentationUrl(item)"
+						:docs-anchor="getWidgetDocsAnchor(item)"
+						@refresh="onWidgetRefresh(item)"
+						@request-feature="onWidgetRequestFeature(item)">
+						<CnStatsBlockWidget
+							v-bind="getStatsBlockProps(item)"
+							:title="getWidgetTitle(item)"
+							:data-source="getWidgetDataSource(item)" />
+					</CnWidgetWrapper>
 				</template>
 
 				<!-- Integration widget — resolved from the pluggable
@@ -472,8 +501,10 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
+						:title-icon-variant="getWidgetTitleIconVariant(item)"
 						:show-refresh="getWidgetShowRefresh(item)"
 						:documentation-url="getWidgetDocumentationUrl(item)"
+						:docs-anchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<!-- Mount-mode integration leaf (openregister#2127):
@@ -505,6 +536,7 @@
 						:style-config="item.styleConfig || {}"
 						:show-refresh="getWidgetShowRefresh(item)"
 						:documentation-url="getWidgetDocumentationUrl(item)"
+						:docs-anchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<CnWidgetRenderer
@@ -523,11 +555,16 @@
 						:show-title="widgetShowTitle(item)"
 						:show-actions="widgetShowActions(item)"
 						:show-refresh="getWidgetShowRefresh(item)"
+						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
+						:title-icon-position="getWidgetTitleIconPosition(item)"
+						:title-icon-color="getWidgetTitleIconColor(item)"
+						:title-icon-variant="getWidgetTitleIconVariant(item)"
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
 						:documentation-url="getWidgetDocumentationUrl(item)"
+						:docs-anchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<!-- Opt-in per-widget date chip (`layout[].dateChip: true`) for
@@ -1195,9 +1232,31 @@ export default {
 			default: true,
 		},
 		/**
-		 * Documentation link for this dashboard. When a non-empty URL is
-		 * set, the page-level overflow menu renders a "Documentation" item
-		 * that opens the link in a new tab. Empty (the default) hides it.
+		 * Show the built-in "Report a bug" item in the page-level overflow
+		 * Actions menu. On by default — the trio Request a feature / Report a
+		 * bug / Documentation is the contract for every Conduction surface.
+		 *
+		 * @type {boolean}
+		 */
+		showReportBug: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Show the built-in Documentation item in the page-level overflow
+		 * Actions menu. On by default; the shared menu resolves the target
+		 * itself, so leaving it on costs the host nothing.
+		 *
+		 * @type {boolean}
+		 */
+		showDocumentation: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Explicit documentation link for this dashboard, opened in a new tab.
+		 * Usually unnecessary: the page-level menu builds one from the
+		 * app-wide documentation base and the page id.
 		 *
 		 * @type {string}
 		 */
@@ -2740,7 +2799,25 @@ export default {
 			const def = this.getWidgetDef(item.widgetId)
 			// Prefer a per-placement override, then the widget def's customTitle
 			// (set by the in-place style editor cog), then the def's base title.
-			return item.customTitle || def?.customTitle || def?.title || item.widgetId
+			//
+			// Only the def's base title goes through the host translate function.
+			// It is the manifest-authored source string, exactly like the page
+			// title on `resolvedTitle` above. The two customTitle values are NOT
+			// translated: a person typed them into the style editor in their own
+			// words, so looking them up in a translation table is wrong, and a
+			// miss would be indistinguishable from a hit.
+			//
+			// This is the single display-time chokepoint for every widget type
+			// (slot, chart, stats-block, integration, NC-API, registry and the
+			// unknown fallback all bind `:title="getWidgetTitle(item)"`), which
+			// is why the fix belongs here rather than at each call site.
+			// `configWidget()` deliberately stays raw: it pre-fills the config
+			// modal, and translating there would persist a translated string
+			// back into the widget definition on save.
+			return item.customTitle
+				|| def?.customTitle
+				|| (def?.title ? this.effectiveTranslate(def.title) : '')
+				|| item.widgetId
 		},
 
 		/**
@@ -2767,23 +2844,30 @@ export default {
 		},
 
 		/**
-		 * Whether a widget's card chrome is suppressed. An explicit
-		 * `layout[].borderless` wins; otherwise a widget with no header is drawn
-		 * borderless, as before.
+		 * Whether a widget's card chrome is suppressed. Only an explicit
+		 * `layout[].borderless: true` suppresses it.
 		 *
-		 * The explicit override exists because "no header" and "no card" are
-		 * different intentions, and conflating them pushed authors into the
-		 * wrong shape: a headerless tile (a KPI whose label IS its content) lost
-		 * its card, so the widget drew its OWN bordered box inside the grid
-		 * cell — a card inside a card. Now `borderless: false` keeps the chrome
-		 * and the widget can stay flat, which is what a tile wants.
+		 * HEADERLESS IS NOT CHROMELESS. This used to derive "no header" ⇒ "no
+		 * card", which conflates two different intentions and was already known
+		 * to push authors into the wrong shape — a headerless tile lost its card
+		 * and drew its own box inside the grid cell instead, a card inside a
+		 * card.
+		 *
+		 * Since the KPI card went flat (2026-08-30) that derivation does not
+		 * merely look wrong, it erases the tile: a flat card in a borderless
+		 * wrapper has NO chrome at all. Measured on buildiq, whose dashboard
+		 * renders `CnStatsBlock` inside a headerless `#widget-apps` custom slot
+		 * — three KPI tiles with no card, no border and no background.
+		 *
+		 * The registered-widget branches carried a second copy of this rule for
+		 * exactly that reason; there is now one rule for every family, so a
+		 * custom slot and a registered widget cannot disagree about it.
 		 *
 		 * @param {object} item the layout placement.
 		 * @return {boolean}
 		 */
 		widgetBorderless(item) {
-			if (typeof item.borderless === 'boolean') return item.borderless
-			return !this.widgetShowTitle(item)
+			return item.borderless === true
 		},
 
 		/**
@@ -2864,6 +2948,35 @@ export default {
 		getWidgetTitleIconColor(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			return def?.titleIconColor || null
+		},
+		/**
+		 * The widget's semantic header-icon colour. Read from the widget
+		 * definition's `titleIconVariant`; defaults to `primary`, which is
+		 * why EVERY widget's header icon is now coloured rather than only the
+		 * ones an app happened to configure. A widget whose subject already
+		 * carries a meaning names it — a Concepts list is `warning`, a
+		 * Published list `success`, a Depublished list `error`.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {string} A CnWidgetWrapper `titleIconVariant` value.
+		 */
+		getWidgetTitleIconVariant(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return def?.titleIconVariant || 'primary'
+		},
+		/**
+		 * The widget's own section in the app's documentation, forwarded to
+		 * the shared Actions menu so its Documentation item deep-links to
+		 * THIS widget rather than the docs homepage. Falls back to the widget
+		 * type, which is how the library's own catalog widgets are documented,
+		 * and finally to the widget id.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {string} An anchor slug / path / URL.
+		 */
+		getWidgetDocsAnchor(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return def?.docsAnchor || def?.type || item.widgetId || ''
 		},
 
 		isTile(item) {
@@ -3052,8 +3165,20 @@ export default {
 			const content = def?.content || {}
 			const props = content.props || def?.props || {}
 			const out = { title: content.title || def?.title || item.widgetId }
-			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'route', 'iconClass']) {
+			// `vertical` / `filled` carry the KPI card's look. They are the
+			// library's own defaults, so a manifest need not set them — but a
+			// manifest that DOES set them must reach the component, or the
+			// declaration is a silent no-op that reads like configuration.
+			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'vertical', 'filled', 'route', 'iconClass']) {
 				if (props[key] !== undefined) out[key] = props[key]
+			}
+			// `countLabel` is the unit beside the number ("0 cases", "0 tasks").
+			// It is manifest-authored prose and was being forwarded raw, so a
+			// Dutch account read "0 cases" beside a translated widget title.
+			// The other keys in the loop are enums, booleans, routes and class
+			// names, none of which are translatable.
+			if (typeof out.countLabel === 'string' && out.countLabel) {
+				out.countLabel = this.effectiveTranslate(out.countLabel)
 			}
 			// Multi-entry mode (ADR-049): prefer `content.entries`, then
 			// `props.entries`. A legacy manifest that declared `entries` at the

@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.26.0",
+	"version": "2.27.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -1647,6 +1647,10 @@
 					"description": "Additional props forwarded to the handler or modal.",
 					"additionalProperties": true
 				},
+				"createOverride": {
+					"type": "string",
+					"description": "Registry handler name that owns the persist for an `open-form` action, replacing the default objectStore.saveObject. Resolved exactly as CnIndexPage resolves its own `createOverride` prop (a kind:'create-override' entry's `.handler`, a function-valued registry entry, or a function in the legacy customComponents map). Needed when the schema requires a field the create form cannot supply on its own — a server-minted foreign key, say — where a straight save would 400."
+				},
 				"handler": {
 					"type": "string",
 					"description": "Registry key for type: 'handler'. Resolved against the customComponents map passed to CnAppRoot. Also the built-in dispatch verb when paired with `route` (handler: 'navigate' → $router.push to `route`)."
@@ -2392,6 +2396,11 @@
 						"headerActions": {
 							"type": "array",
 							"description": "Page-level header actions rendered inside CnActionsBar's overflow dropdown (between the built-in Refresh action and the `#action-items` slot). Same shape as the row-level `actions[]` ($ref action), but handlers receive NO row context — they are page-level. Reserved ids (`refresh`, `import`, `export`, `copy`, `delete`) are dropped at render time to avoid shadowing built-ins. See manifest-icons-and-page-actions for the dispatch semantics.",
+							"items": { "$ref": "#/$defs/action" }
+						},
+						"bulkActions": {
+							"type": "array",
+							"description": "Bulk actions rendered in the contextual selection strip that appears while rows are selected. Same shape as the row-level `actions[]` ($ref action), but the handler receives the SELECTION rather than a row: `{ actionId, selectedIds, count }`. For `type: \"open-modal\"` the selection is merged into the modal's props as `selectedIds` and `count`, so a manifest-declared modal component can act on the selection without the page hand-writing anything. Reserved ids (`copy`, `delete`) are dropped at render time: the strip already ships both as built-ins. Before this existed the strip had only a `#selection-actions` slot, which only a hand-written host component could fill \u2014 so a page declared in a manifest could carry row actions and header actions but never a bulk one.",
 							"items": { "$ref": "#/$defs/action" }
 						},
 						"actions": {
