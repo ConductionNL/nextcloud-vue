@@ -320,7 +320,6 @@ export const SEMANTIC_ICONS_TIER_B = Object.freeze({
 	agent: 'RobotOutline',
 	ai: 'Brain',
 	tool: 'ToolboxOutline',
-	application: 'ApplicationOutline',
 	apps: 'ViewGridOutline',
 	module: 'PuzzleOutline',
 	source: 'SourceBranch',
