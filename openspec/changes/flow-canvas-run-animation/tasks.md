@@ -25,7 +25,7 @@
       canvas's existing `edges` prop.)
 - [x] Steps whose `transition` matches no canvas node are skipped and
       surfaced, never remapped.
-- [ ] Replay affordance on an inspected completed run in `CnFlowSidebar`'s
+- [x] Replay affordance on an inspected completed run in `CnFlowSidebar`'s
       Runs tab — plays `store.steps` through the same animator, per-hop timing
       scaled from real `durationMs` and clamped; cancellable.
 - [x] `prefers-reduced-motion: reduce` — static state colouring, no dash
