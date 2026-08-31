@@ -47,6 +47,20 @@ function isStale() {
 }
 
 module.exports = function globalSetup() {
+	// Pin the test timezone BEFORE any worker starts.
+	//
+	// Date assertions in this suite are exact UTC ISO strings
+	// ('2026-05-01T00:00:00.000Z'), while the calendar-aligned range presets
+	// build their window from LOCAL components — deliberately, because "Current
+	// month" is the reader's calendar and the pickers around it are
+	// `datetime-local`. Without a pinned zone those two collide: the same
+	// assertion passes in CI (UTC) and fails on a CEST laptop, which is the
+	// least useful kind of red.
+	//
+	// It must be set here, not in setupFilesAfterEnv — Node caches the zone on
+	// first Date use, so by then it is too late.
+	process.env.TZ = 'UTC'
+
 	if (!isStale()) {
 		return
 	}

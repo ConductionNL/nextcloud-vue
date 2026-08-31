@@ -79,24 +79,35 @@ export const DEFAULT_DATE_RANGE_PRESETS = Object.freeze([
  * @return {{ from: string, to: string } | null} ISO-8601 UTC window or null.
  */
 function resolveCalendarPeriod(period, now) {
-	const y = now.getUTCFullYear()
-	const m = now.getUTCMonth()
-	const d = now.getUTCDate()
+	// LOCAL calendar components, not UTC. "Current month" is a statement about
+	// the reader's calendar, and every surface around this one is local: the
+	// `datetime-local` inputs render these instants in local time, and
+	// `localDateTimeInputToIso` reads them back the same way.
+	//
+	// Built from UTC, the window ended at 23:59:59.999Z on today's UTC date,
+	// which in any zone ahead of UTC displays as the NEXT day — and on the last
+	// day of a month, the next MONTH. Measured 2026-08-31 in CEST: "Current
+	// month" showed a To of 1 September, and the range leaked two hours of
+	// September into an August total.
+	const y = now.getFullYear()
+	const m = now.getMonth()
+	const d = now.getDate()
 	let start
 	if (period === 'week') {
-		// getUTCDay() is 0 for Sunday; shift so Monday is the first day.
-		const offset = (now.getUTCDay() + 6) % 7
-		start = new Date(Date.UTC(y, m, d - offset, 0, 0, 0, 0))
+		// getDay() is 0 for Sunday; shift so Monday is the first day.
+		const offset = (now.getDay() + 6) % 7
+		start = new Date(y, m, (d - offset), 0, 0, 0, 0)
 	} else if (period === 'month') {
-		start = new Date(Date.UTC(y, m, 1, 0, 0, 0, 0))
+		start = new Date(y, m, 1, 0, 0, 0, 0)
 	} else if (period === 'quarter') {
-		start = new Date(Date.UTC(y, Math.floor(m / 3) * 3, 1, 0, 0, 0, 0))
+		start = new Date(y, (Math.floor(m / 3) * 3), 1, 0, 0, 0, 0)
 	} else if (period === 'year') {
-		start = new Date(Date.UTC(y, 0, 1, 0, 0, 0, 0))
+		start = new Date(y, 0, 1, 0, 0, 0, 0)
 	} else {
 		return null
 	}
-	const end = new Date(Date.UTC(y, m, d, 23, 59, 59, 999))
+
+	const end = new Date(y, m, d, 23, 59, 59, 999)
 	return { from: start.toISOString(), to: end.toISOString() }
 }
 
