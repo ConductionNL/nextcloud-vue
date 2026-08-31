@@ -2497,6 +2497,18 @@ export default {
 
 	watch: {
 		/**
+		 * Close a registry modal when the route changes.
+		 *
+		 * `cnOpenModal` sets `activeModalKey` and only the modal's own `close`
+		 * clears it, so navigating away left the dialog mounted over the new
+		 * page — open "New lead" on a dashboard, click through to another page,
+		 * and the dialog follows you there, still covering the content.
+		 */
+		$route() {
+			this.activeModalKey = null
+		},
+
+		/**
 		 * Auto-open the non-gating setup wizard once optional-unmet becomes
 		 * true, unless the user already dismissed this manifest version.
 		 * `immediate: true` so a fresh mount that's already optional-unmet
