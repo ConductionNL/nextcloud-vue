@@ -285,6 +285,23 @@
 				{{ t('nextcloud-vue', 'Delete selected') }}
 			</NcButton>
 			<!--
+				Declarative bulk actions, from `bulkActions`. They render in the
+				SAME strip as a host's slot buttons and before them, so a page
+				that declares some in its manifest and hand-writes others gets
+				one row of buttons rather than two groups in different places.
+				@event bulk-action
+				@description User clicked a declarative bulk action. Payload carries the action id AND the selection, because a bulk action without its selection is not a bulk action.
+			-->
+			<NcButton
+				v-for="entry in bulkActions"
+				:key="entry.id"
+				variant="secondary"
+				:disabled="entry.disabled === true"
+				:data-testid="`cn-bulk-action-${entry.id}`"
+				@click="$emit('bulk-action', { id: entry.id, action: entry.id, selectedIds, count: selectedIds.length })">
+				{{ entry.label }}
+			</NcButton>
+			<!--
 				@slot selection-actions The host app's bulk-action buttons (NcButton family), rendered inside the contextual selection strip that appears while a selection is active. This strip is the primary bulk-actions surface; #mass-actions remains available for hosts that ALSO want the actions listed in the overflow menu (optional — strip-only is fine).
 				@binding {number} count Length of the current selection.
 				@binding {Array<string|number>} selected-ids The selected row ids.
@@ -631,6 +648,25 @@ export default {
 		},
 
 		/**
+		 * Declarative bulk actions, rendered in the contextual selection strip
+		 * that appears while a selection is active.
+		 *
+		 * The strip already had a `#selection-actions` slot, which only a
+		 * hand-written host component can fill — so a page declared in an app
+		 * manifest could carry row actions and header actions but never a bulk
+		 * one. This prop is that missing vocabulary; the slot stays, and both
+		 * render side by side in one row.
+		 *
+		 * Clicking emits `bulk-action` with the id AND the current selection.
+		 *
+		 * @type {Array<{ id: string, label: string, icon?: string, disabled?: boolean }>}
+		 */
+		bulkActions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * When set, adds a Documentation entry to the overflow menu (after
 		 * Refresh, before headerActions). Opens the URL in a new tab.
 		 * Empty string hides the entry.
@@ -649,6 +685,7 @@ export default {
 
 	emits: [
 		'add',
+		'bulk-action',
 		'clear-selection',
 		'header-action',
 		'refresh',

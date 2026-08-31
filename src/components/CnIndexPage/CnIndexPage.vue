@@ -64,6 +64,7 @@
 			:show-sidebar-toggle="hasSidebar"
 			:sidebar-open="sidebarOpen"
 			:header-actions="mergedHeaderActions"
+			:bulk-actions="mergedBulkActions"
 			:documentation-url="documentationUrl"
 			:documentation-label="documentationLabel || undefined"
 			@sort-change="$emit('sort-change', $event)"
@@ -72,6 +73,7 @@
 			@toggle-sidebar="sidebarOpen = !sidebarOpen"
 			@refresh="onRefreshEvent"
 			@header-action="onHeaderAction"
+			@bulk-action="onBulkAction"
 			@show-import="showImportDialog = true"
 			@show-export="showExportDialog = true"
 			@show-copy="showMassCopyDialog = true"
@@ -731,6 +733,8 @@ import { useSelfFetchList } from './useSelfFetchList.js'
  * @event {number} page-size-changed — Pagination page size changed
  * @event {string[]} select — Selection changed. Payload: array of selected IDs
  * @event {object} action — Row action triggered. Payload: { action, row }
+ * @event {{ action: string, id: string, selectedIds: Array, count: number }} bulk-action — A declarative bulk action was triggered from the selection strip. The SELECTION travels with it: an action that has to go and find out what was selected is one re-render away from acting on a different set than the user saw highlighted.
+ * @event {{ target: string, props: object }} open-modal — A bulk action of type `open-modal` asks the host to open a registered modal. `props` carries `selectedIds` and `count` merged under the action's own props.
  * @event {object} apply-view — A saved view was applied (saved-views-ui). Payload: the View API object. Only emitted when `allowSavedViews`.
  * @event {string} search — Search input changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  * @event {string[]} columns-change — Visible columns changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
@@ -1724,6 +1728,30 @@ export default {
 		},
 
 		/**
+		 * Declarative bulk actions for the contextual selection strip.
+		 *
+		 * The strip has had a `#selection-actions` slot for a while, but a slot
+		 * can only be filled by a hand-written host component — so a page
+		 * declared in an app manifest could carry row actions and header
+		 * actions and never a bulk one. This prop is the missing vocabulary.
+		 *
+		 * Handler resolution mirrors `headerActions[]`, with one difference
+		 * that is the whole point: the handler is called with the SELECTION.
+		 * A bulk handler that has to go and find out what was selected is a
+		 * bulk handler waiting to disagree with the strip that invoked it.
+		 *
+		 * Reserved ids (`copy`, `delete`) are dropped with a warning — the
+		 * strip already ships those two as built-ins, and a second button with
+		 * the same name doing something else is worse than no button.
+		 *
+		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|Function, target?: string, props?: object, disabled?: boolean }>}
+		 */
+		bulkActions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * Active organisation entity (multi-tenancy-context). When
 		 * bound from a tenant-switcher higher in the tree, CnIndexPage
 		 * watches it and calls `store.setActiveTenantOrganisation(uuid)`
@@ -1758,6 +1786,7 @@ export default {
 		'action',
 		'add',
 		'apply-view',
+		'bulk-action',
 		'columns-change',
 		'configure',
 		'copy',
@@ -1769,6 +1798,7 @@ export default {
 		'folder-create',
 		'header-action',
 		'mass-copy',
+		'open-modal',
 		'mass-delete',
 		'mass-export',
 		'mass-import',
@@ -1921,6 +1951,39 @@ export default {
 					continue
 				}
 				merged.push(this.resolveHeaderHandler(entry))
+			}
+			return merged
+		},
+		/**
+		 * Declarative bulk actions, validated and normalised.
+		 *
+		 * `copy` and `delete` are reserved: the selection strip already ships
+		 * both as built-ins, so a declared action of the same name would put a
+		 * second button with the same word next to one that does something
+		 * else.
+		 *
+		 * Unlike `mergedHeaderActions` this does NOT pre-bind the handler.
+		 * A bulk handler needs the selection, and the selection is only known
+		 * at click time — binding it here would capture whatever was selected
+		 * when the list last re-rendered.
+		 *
+		 * @return {Array<object>}
+		 */
+		mergedBulkActions() {
+			const reserved = new Set(['copy', 'delete'])
+			const merged = []
+			for (const entry of this.bulkActions || []) {
+				if (!entry || typeof entry !== 'object' || !entry.id || !entry.label) {
+					// eslint-disable-next-line no-console
+					console.warn(`[CnIndexPage] Ignoring bulkActions entry ${JSON.stringify(entry)}: a bulk action needs an id and a label.`)
+					continue
+				}
+				if (reserved.has(entry.id)) {
+					// eslint-disable-next-line no-console
+					console.warn(`CnIndexPage: bulkActions[].id "${entry.id}" is reserved by the built-in selection strip; dropping entry`)
+					continue
+				}
+				merged.push(entry)
 			}
 			return merged
 		},
@@ -2782,6 +2845,91 @@ export default {
 			// Unknown registry name — silent emit-only fall-through.
 			const { handler: _ignored, ...rest } = entry
 			return { ...rest }
+		},
+		/**
+		 * Click dispatch from CnActionsBar's `@bulk-action`.
+		 *
+		 * 🔴 THE SELECTION IS PASSED, NEVER LOOKED UP. Everything a bulk
+		 * action does is defined by which rows were selected, and the strip
+		 * that raised the event is the thing that knows. A handler that reads
+		 * the selection from somewhere else is one re-render away from acting
+		 * on a different set than the user saw highlighted.
+		 *
+		 * Resolution mirrors `headerActions[]`:
+		 *   - a function handler is called with `{ actionId, selectedIds, count }`
+		 *   - `open-modal` (with `target`) opens the registered modal, with the
+		 *     selection merged into its props
+		 *   - a registry name resolves against `customComponents`
+		 *   - anything else falls through to emit-only
+		 *
+		 * `bulk-action` is emitted either way, so a host can listen instead of
+		 * declaring a handler.
+		 *
+		 * @param {{id: string, action: string, selectedIds: Array, count: number}} payload Bar payload.
+		 */
+		onBulkAction(payload) {
+			const id = payload && (payload.id ?? payload.action)
+			const selectedIds = (payload && Array.isArray(payload.selectedIds)) ? payload.selectedIds : []
+			const count = selectedIds.length
+			const entry = this.mergedBulkActions.find((e) => e.id === id)
+
+			if (entry) {
+				const handler = entry.handler
+				const scope = { actionId: id, selectedIds, count }
+
+				if (typeof handler === 'function') {
+					handler(scope)
+				} else if (handler === 'open-modal' || (!handler && entry.target)) {
+					this.openBulkModal(entry, selectedIds, count)
+				} else if (typeof handler === 'string' && handler !== 'emit' && handler !== 'none') {
+					const resolved = this.resolvedCustomComponents[handler]
+					if (typeof resolved === 'function') {
+						resolved(scope)
+					} else if (resolved !== undefined && resolved !== null) {
+						// eslint-disable-next-line no-console
+						console.warn(`CnIndexPage: bulkActions[].handler "${handler}" resolved to a non-function in customComponents; falling back to emit-only`)
+					}
+				}
+
+				if (entry._dispatchSuppress || entry.handler === 'none') {
+					return
+				}
+			}
+
+			/**
+			 * @event bulk-action A declarative bulk action was triggered from the selection strip. Payload: `{ action, id, selectedIds, count }`. The SELECTION travels with it, because an action that has to go and find out what was selected is one re-render away from acting on a different set than the user saw highlighted.
+			 */
+			this.$emit('bulk-action', { action: id, id, selectedIds, count })
+		},
+		/**
+		 * Open a bulk action's modal with the selection in its props.
+		 *
+		 * The selection is merged UNDER the entry's own props, so a manifest
+		 * that names a `selectedIds` prop of its own still wins — but it also
+		 * means such a manifest silently stops receiving the live selection,
+		 * which is why the collision is warned about rather than allowed
+		 * quietly.
+		 *
+		 * @param {object} entry The bulk action entry.
+		 * @param {Array} selectedIds The current selection.
+		 * @param {number} count Its length.
+		 */
+		openBulkModal(entry, selectedIds, count) {
+			const target = entry.target
+			if (!target) {
+				// eslint-disable-next-line no-console
+				console.warn(`CnIndexPage: bulkActions[].id "${entry.id}" handler:"open-modal" requires "target"; falling back to emit-only`)
+				return
+			}
+			const own = (entry.props && typeof entry.props === 'object') ? entry.props : {}
+			if (Object.prototype.hasOwnProperty.call(own, 'selectedIds')) {
+				// eslint-disable-next-line no-console
+				console.warn(`CnIndexPage: bulkActions[].id "${entry.id}" declares its own "selectedIds" prop, which shadows the live selection; the modal will not see what the user selected.`)
+			}
+			/**
+			 * @event open-modal A bulk action of type `open-modal` asks the host to open a registered modal. Payload: `{ target, props }`, where `props` carries `selectedIds` and `count` merged UNDER the action's own props.
+			 */
+			this.$emit('open-modal', { target, props: { selectedIds, count, ...own } })
 		},
 		/**
 		 * Click dispatch from CnActionsBar's `@header-action`. Looks
