@@ -33,7 +33,7 @@
 
 		<div class="cn-kpi-card__body cn-stat-widget__body">
 			<div v-if="content.label || rangePresets.length" class="cn-kpi-card__title cn-stat-widget__label">
-				<span v-if="content.label">{{ resolvedLabel }}</span>
+				<span v-if="content.label" :title="resolvedLabel">{{ resolvedLabel }}</span>
 
 				<!-- Per-tile range override. Rendered ONLY when the tile declares its
 				     own `content.dateRange.presets`; a tile that merely follows the
