@@ -129,9 +129,23 @@
 		     orthogonal `edgePath()` are gone: Vue Flow routes and arrows edges
 		     itself, and it measures the rendered node instead of being told a
 		     `nodeWidth`/`nodeHeight` to guess the centre from. -->
+		<!-- Steps the run log names that are NOT on this canvas any more: the
+		     flow was edited since the run. They are skipped and SAID, never
+		     guessed onto the nearest card — a replay that remaps a deleted
+		     node's step would draw a walk the engine never took. -->
+		<NcNoteCard v-if="skippedRunTransitions.length"
+			class="cn-flow-detail__run-skipped"
+			type="warning">
+			<p>{{ t('nextcloud-vue', 'Some steps of this run belong to nodes that are no longer on the canvas, so they were skipped: {nodes}', { nodes: skippedRunTransitions.join(', ') }) }}</p>
+		</NcNoteCard>
+
+		<!-- Run state travels ON the edge records, through the canvas's
+		     existing `edges` prop: Vue Flow applies an edge's `class` to the
+		     line it draws, so the canvas itself stays a geometry-only renderer
+		     with no status concept (ADR-065). -->
 		<CnGraphCanvas
 			:nodes="canvasNodes"
-			:edges="store.canvasEdges"
+			:edges="canvasEdgesWithRunState"
 			:min-zoom="minZoom"
 			:max-zoom="maxZoom"
 			@node-select="onNodeSelect"
@@ -155,6 +169,7 @@
 						`cn-flow-detail__node--${typeSlug(node.data.stepType)}`,
 						`cn-flow-detail__node--role-${store.roleOfNodeType(node.data.stepType)}`,
 						{ 'cn-flow-detail__node--unknown': isUnknown(node.data.stepType) },
+						runStateOf(node.id) ? `cn-flow-detail__node--run-${runStateOf(node.id)}` : null,
 					]"
 					@dblclick.stop="store.editingNodeId = node.id">
 					<span class="cn-flow-detail__node-type">{{ typeLabel(node.data.stepType) }}</span>
@@ -164,6 +179,16 @@
 						class="cn-flow-detail__node-warning"
 						:title="t('nextcloud-vue', 'The engine does not know this node type, so this step will fail when the flow runs.')">
 						{{ t('nextcloud-vue', 'Unknown step') }}
+					</span>
+					<!-- The run state IN WORDS, next to the colour. A state told
+					     by colour alone is invisible to anyone who cannot tell
+					     the colours apart (WCAG 1.4.1), so every coloured node
+					     also says what it is. -->
+					<span
+						v-if="runStateOf(node.id)"
+						class="cn-flow-detail__node-run"
+						:class="`cn-flow-detail__node-run--${runStateOf(node.id)}`">
+						{{ runStateLabel(runStateOf(node.id)) }}
 					</span>
 				</div>
 			</template>
@@ -253,6 +278,26 @@ const LINE_TYPE_ICONS = {
 	default: VectorCurve,
 }
 
+/**
+ * The catch-up pace for a live watch, per hop.
+ *
+ * The engine persists the log once per worker pass, so one poll can deliver
+ * five steps at once. Draining them at ~320ms a hop makes a burst read as
+ * five quick hops — not a teleport, and not a fabricated slow-motion "live"
+ * feed the data does not contain.
+ */
+const RUN_CATCH_UP_HOP_MS = 320
+
+/**
+ * Replay pacing bounds. Replay timing is scaled from each step's REAL
+ * `durationMs` — the only timing the log carries — and clamped so a
+ * 40-minute wait step does not freeze the replay and a 3ms step is still
+ * visible. Scaling real durations is presentation; inventing durations would
+ * be fabrication — the clamp is the line between them.
+ */
+const REPLAY_HOP_MIN_MS = 200
+const REPLAY_HOP_MAX_MS = 1500
+
 export default {
 	name: 'CnFlowDetail',
 
@@ -336,6 +381,58 @@ export default {
 			zoom: 1,
 			minZoom: 0.3,
 			maxZoom: 2,
+
+			// The run animator: everything about HOW the watched or replayed
+			// run paints onto the canvas. The store exposes facts (the run,
+			// its ordered steps, which are new); the timeline lives here, the
+			// only place that knows what a hop looks like.
+			//
+			// Derived per-node/per-edge classes come out of `runNodeStates`
+			// and `canvasEdgesWithRunState`; this object is the cursor those
+			// computeds derive from.
+			runAnimation: {
+				// 'watch', 'replay', or null while no run is on the canvas.
+				mode: null,
+
+				// Steps delivered but not yet animated. The engine persists
+				// the log once per worker pass, so steps arrive in BURSTS;
+				// the queue drains strictly in log order at a bounded pace —
+				// never interpolated fake timing to look "live".
+				queue: [],
+
+				// How many steps have been animated. Zero with an active run
+				// is the anticipation state: the start nodes pulse, because
+				// pretending a specific step is executing would be a lie.
+				playedCount: 0,
+
+				// The node whose step is being animated right now (halo), and
+				// the last node a step matched (the run's frontier).
+				currentNodeId: null,
+				lastNodeId: null,
+
+				// The drawn line being traced this hop, and the lines already
+				// walked (they keep a quiet success stroke).
+				traceLineId: null,
+				tracedLineIds: [],
+
+				// Residue: nodes whose steps completed, failed, or suspended.
+				doneNodeIds: [],
+				failedNodeIds: [],
+				holdNodeIds: [],
+
+				// Transitions the log names that match NO canvas node — the
+				// flow was edited since the run. Skipped and surfaced, never
+				// remapped onto the nearest card.
+				skippedTransitions: [],
+
+				// The hop timer. One at a time: a hop schedules the next.
+				timer: null,
+			},
+
+			// How many of `store.watchedSteps` this animator has consumed.
+			// Index-diffing on the consumer side too, so a poll that delivers
+			// nothing new enqueues nothing twice.
+			runConsumed: 0,
 		}
 	},
 
@@ -620,6 +717,122 @@ export default {
 				...(result.warnings || []).map(describe),
 			].filter(Boolean)
 		},
+
+		/**
+		 * What the run painted on each node, derived — never stored — from
+		 * the animator's cursor and residue.
+		 *
+		 * Precedence: a failure is never painted over (`failed` wins), a hold
+		 * is a state the user must notice (`hold` next), then the halo on the
+		 * step being animated (`active`), then the quiet success accent on
+		 * what completed (`done`).
+		 *
+		 * @return {{[key: string]: string}} Node id to run state.
+		 */
+		runNodeStates() {
+			const anim = this.runAnimation
+			if (anim.mode === null) {
+				return {}
+			}
+
+			const states = {}
+
+			for (const id of anim.doneNodeIds) {
+				states[id] = 'done'
+			}
+
+			// The hold state: the last suspended step's node — and, when the
+			// log lags behind a run that reports `suspended`, the marking's
+			// places, which are node ids in the engine's workflow.
+			const holdIds = [...anim.holdNodeIds]
+			const run = this.store.watchedRun
+			if (holdIds.length === 0
+				&& anim.mode === 'watch'
+				&& run?.status === 'suspended'
+				&& run.marking !== null
+				&& typeof run.marking === 'object') {
+				for (const place of Object.keys(run.marking)) {
+					if (this.store.nodes.some((node) => node.id === place)) {
+						holdIds.push(place)
+					}
+				}
+			}
+			for (const id of holdIds) {
+				states[id] = 'hold'
+			}
+
+			for (const id of anim.failedNodeIds) {
+				states[id] = 'failed'
+			}
+
+			// The halo: the step being animated — or, on a live watch with the
+			// queue drained, the run's frontier (its furthest logged node).
+			// That frontier is what "where is my case" actually asks for.
+			const suspended = anim.mode === 'watch' && run?.status === 'suspended'
+			const current = anim.currentNodeId
+				|| ((anim.mode === 'watch' && this.store.watchedRunActive && suspended === false)
+					? anim.lastNodeId
+					: null)
+			if (current !== null && states[current] !== 'failed' && states[current] !== 'hold') {
+				states[current] = 'active'
+			}
+
+			// Anticipation: the run says `running` (or `queued`) and the log
+			// is still empty — a mid-pass poll returns exactly this. The start
+			// nodes pulse; pretending a specific step is executing would
+			// fabricate liveness the data does not contain.
+			if (anim.mode === 'watch'
+				&& this.store.watchedRunActive
+				&& suspended === false
+				&& anim.playedCount === 0
+				&& anim.queue.length === 0) {
+				for (const id of this.store.startNodeIds) {
+					if (states[id] === undefined) {
+						states[id] = 'active'
+					}
+				}
+			}
+
+			return states
+		},
+
+		/**
+		 * The canvas edges with the run's classes on them.
+		 *
+		 * Vue Flow applies an edge record's `class` to the `<g>` it draws, so
+		 * run state reaches the lines through the canvas's EXISTING `edges`
+		 * prop — no prop, event or slot of CnGraphCanvas changes, and the
+		 * canvas itself keeps knowing nothing about statuses (ADR-065).
+		 *
+		 * @return {Array<object>} The drawable lines, some carrying a class.
+		 */
+		canvasEdgesWithRunState() {
+			const anim = this.runAnimation
+			if (anim.mode === null) {
+				return this.store.canvasEdges
+			}
+
+			return this.store.canvasEdges.map((line) => {
+				if (line.id === anim.traceLineId) {
+					return { ...line, class: 'cn-flow-detail__edge--run-tracing' }
+				}
+				if (anim.tracedLineIds.includes(line.id)) {
+					return { ...line, class: 'cn-flow-detail__edge--run-traced' }
+				}
+
+				return line
+			})
+		},
+
+		/**
+		 * The transitions the run log named that match no canvas node, once
+		 * each, for the warning card.
+		 *
+		 * @return {Array<string>} The unmatched transition names.
+		 */
+		skippedRunTransitions() {
+			return [...new Set(this.runAnimation.skippedTransitions)]
+		},
 	},
 
 	watch: {
@@ -659,6 +872,72 @@ export default {
 
 			await this.store.load({ app: this.app, id: next })
 		},
+
+		/**
+		 * A new watch replaces whatever run was on the canvas: the animator
+		 * resets and the store's steps start flowing into the fresh queue.
+		 *
+		 * @param {string|null} next The newly watched run's uuid.
+		 * @return {void}
+		 */
+		'store.watchedRunUuid'(next) {
+			if (next === null) {
+				return
+			}
+
+			this.startRunAnimation('watch')
+		},
+
+		/**
+		 * Steps arrived from a poll. Index-diffed on this side too — only the
+		 * entries beyond what was already consumed are queued, so a poll that
+		 * delivered nothing new enqueues nothing twice, and a resumed run's
+		 * appended entries queue without replaying the ones before them.
+		 *
+		 * @param {Array<object>} steps The watched run's log so far.
+		 * @return {void}
+		 */
+		'store.watchedSteps'(steps) {
+			if (this.runAnimation.mode !== 'watch') {
+				return
+			}
+
+			if (steps.length <= this.runConsumed) {
+				return
+			}
+
+			this.runAnimation.queue.push(...steps.slice(this.runConsumed))
+			this.runConsumed = steps.length
+			this.drainRunQueue()
+		},
+
+		/**
+		 * The sidebar asked for a replay of the inspected run. The stored log
+		 * plays through the same animator, in log order, paced from each
+		 * step's real `durationMs`. Starting another replay cancels the one
+		 * in progress — the reset is the cancellation.
+		 *
+		 * @return {void}
+		 */
+		'store.replayToken'() {
+			this.startRunAnimation('replay')
+			this.runAnimation.queue.push(...this.store.steps)
+			this.drainRunQueue()
+		},
+
+		/**
+		 * A graph edit tears the run picture down. The log names node ids of
+		 * the graph AS IT RAN; painting it over an edited graph would show a
+		 * walk the engine never took over these nodes.
+		 *
+		 * @param {boolean} next Whether the flow now has unsaved changes.
+		 * @return {void}
+		 */
+		'store.dirty'(next) {
+			if (next === true) {
+				this.cancelRunAnimation()
+			}
+		},
 	},
 
 	async mounted() {
@@ -668,6 +947,12 @@ export default {
 
 	beforeUnmount() {
 		document.removeEventListener('keydown', this.onDocumentKeydown)
+
+		// The animator's timer must not outlive the canvas, and neither may
+		// the store's poll loop outlive the surface that watches it — no
+		// polling survives navigating away.
+		this.cancelRunAnimation()
+		this.store.stopWatching()
 	},
 
 	methods: {
@@ -925,6 +1210,220 @@ export default {
 			 *   `useFlowStore().run()`.
 			 */
 			this.$emit('run')
+		},
+
+		/**
+		 * Reset the animator for a fresh run — a new watch or a replay.
+		 *
+		 * The reset IS the cancellation: a replay in progress, a previous
+		 * watch's residue, and any pending hop timer all go.
+		 *
+		 * @param {string} mode `watch` or `replay`.
+		 * @return {void}
+		 */
+		startRunAnimation(mode) {
+			this.cancelRunAnimation()
+			this.runAnimation.mode = mode
+		},
+
+		/**
+		 * Tear the run picture down: clear the timer, the queue, the residue.
+		 *
+		 * Called on unmount, on a graph edit, and by `startRunAnimation` when
+		 * a new run takes the canvas.
+		 *
+		 * @return {void}
+		 */
+		cancelRunAnimation() {
+			const anim = this.runAnimation
+			if (anim.timer !== null) {
+				clearTimeout(anim.timer)
+			}
+
+			this.runAnimation = {
+				mode: null,
+				queue: [],
+				playedCount: 0,
+				currentNodeId: null,
+				lastNodeId: null,
+				traceLineId: null,
+				tracedLineIds: [],
+				doneNodeIds: [],
+				failedNodeIds: [],
+				holdNodeIds: [],
+				skippedTransitions: [],
+				timer: null,
+			}
+			this.runConsumed = 0
+		},
+
+		/**
+		 * Play the next queued step, if a hop is not already in flight.
+		 *
+		 * Steps whose `transition` matches no canvas node are skipped HERE,
+		 * without spending a hop on them, and their names surfaced — the flow
+		 * was edited since the run, and remapping the step onto a different
+		 * card would draw a walk the engine never took. Subsequent steps
+		 * continue on their own nodes.
+		 *
+		 * @return {void}
+		 */
+		drainRunQueue() {
+			const anim = this.runAnimation
+			if (anim.timer !== null) {
+				return
+			}
+
+			while (anim.queue.length > 0) {
+				const transition = String(anim.queue[0].transition || '')
+				if (this.store.nodes.some((node) => node.id === transition)) {
+					break
+				}
+
+				anim.queue.shift()
+				anim.skippedTransitions.push(transition)
+			}
+
+			if (anim.queue.length === 0) {
+				// Drained. The halo hands over to the derived frontier state
+				// (see `runNodeStates`); the trace does not linger on a line
+				// whose hop is over.
+				anim.currentNodeId = null
+				anim.traceLineId = null
+				return
+			}
+
+			this.playRunStep(anim.queue.shift())
+		},
+
+		/**
+		 * One hop: paint one step onto its node and the edge that led there.
+		 *
+		 * @param {object} step The engine's log entry, as delivered.
+		 * @return {void}
+		 */
+		playRunStep(step) {
+			const anim = this.runAnimation
+			const nodeId = String(step.transition)
+			const previous = anim.lastNodeId
+
+			anim.currentNodeId = nodeId
+			anim.lastNodeId = nodeId
+			anim.playedCount += 1
+
+			// The edge just executed: the drawn line from the previously
+			// animated node to this one, resolved through `canvasEdges` —
+			// which already normalises `{from, to}` and list endpoints.
+			anim.traceLineId = null
+			if (previous !== null && previous !== nodeId) {
+				const line = this.store.canvasEdges.find(
+					(candidate) => candidate.source === previous && candidate.target === nodeId,
+				)
+				if (line !== undefined) {
+					anim.traceLineId = line.id
+					if (anim.tracedLineIds.includes(line.id) === false) {
+						anim.tracedLineIds.push(line.id)
+					}
+				}
+			}
+
+			// Residue, from the engine's own closed status set. A failure —
+			// or a stop that carries an error — stays red for the rest of the
+			// run; completed and pinned keep the quiet success accent; a
+			// suspended step holds until the watcher reports the run moved on.
+			const failed = step.status === 'failed'
+				|| (step.status === 'stopped' && Boolean(step.error))
+			if (failed === true) {
+				if (anim.failedNodeIds.includes(nodeId) === false) {
+					anim.failedNodeIds.push(nodeId)
+				}
+			} else if (step.status === 'completed' || step.status === 'pinned') {
+				if (anim.doneNodeIds.includes(nodeId) === false) {
+					anim.doneNodeIds.push(nodeId)
+				}
+			}
+			anim.holdNodeIds = step.status === 'suspended' ? [nodeId] : []
+
+			const hop = this.runHopMs(step)
+			if (hop <= 0) {
+				// Reduced motion: no dwell, no travel — the whole queue drains
+				// into static state colouring in one pass.
+				this.drainRunQueue()
+				return
+			}
+
+			anim.timer = setTimeout(() => {
+				anim.timer = null
+				this.drainRunQueue()
+			}, hop)
+		},
+
+		/**
+		 * How long one hop dwells.
+		 *
+		 * A live watch catches up at the bounded pace; a replay is paced from
+		 * the step's REAL `durationMs`, clamped to a watchable window. Under
+		 * reduced motion there is no dwell at all — the states paint
+		 * statically.
+		 *
+		 * @param {object} step The step being played.
+		 * @return {number} Milliseconds.
+		 */
+		runHopMs(step) {
+			if (this.prefersReducedMotion() === true) {
+				return 0
+			}
+
+			if (this.runAnimation.mode === 'replay') {
+				const real = Number(step.durationMs)
+				const ms = Number.isFinite(real) ? real : REPLAY_HOP_MIN_MS
+
+				return Math.min(REPLAY_HOP_MAX_MS, Math.max(REPLAY_HOP_MIN_MS, ms))
+			}
+
+			return RUN_CATCH_UP_HOP_MS
+		},
+
+		/**
+		 * Whether the reader asked for reduced motion.
+		 *
+		 * The CSS side is handled by the media query on the animations; this
+		 * is the JS side, which skips the sequential reveal — hopping node to
+		 * node is itself motion.
+		 *
+		 * @return {boolean} True when motion should not play.
+		 */
+		prefersReducedMotion() {
+			if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+				return false
+			}
+
+			return window.matchMedia('(prefers-reduced-motion: reduce)').matches === true
+		},
+
+		/**
+		 * @param {string} id The node id.
+		 * @return {string|null} Its run state, or null outside a run.
+		 */
+		runStateOf(id) {
+			return this.runNodeStates[id] || null
+		},
+
+		/**
+		 * The run state in words, for the chip beside the colour.
+		 *
+		 * @param {string} state The run state.
+		 * @return {string} The label.
+		 */
+		runStateLabel(state) {
+			const labels = {
+				active: this.t('nextcloud-vue', 'Running'),
+				done: this.t('nextcloud-vue', 'Done'),
+				failed: this.t('nextcloud-vue', 'Failed'),
+				hold: this.t('nextcloud-vue', 'Waiting'),
+			}
+
+			return labels[state] || state
 		},
 
 		/**
@@ -1210,5 +1709,143 @@ export default {
 	position: absolute;
 	inset: 0;
 	pointer-events: none;
+}
+
+.cn-flow-detail__run-skipped {
+	position: absolute;
+	inset-block-end: 12px;
+	inset-inline-end: 12px;
+	z-index: 10;
+	max-inline-size: 360px;
+}
+
+/* ---- Run state on the nodes ------------------------------------------- */
+
+/* The FlowMock visual grammar in Nextcloud tokens: `--color-success` for the
+   halo/trace/done (FlowMock's mint), `--color-error` for failed (its
+   vermillion), `--color-warning` for the hold. No `--c-*` marketing tokens —
+   semantic variables are what keep nldesign theming working.
+
+   ON THE NODE'S OUTLINE, NOT ITS BOX-SHADOW. The role accents above already
+   own `box-shadow` on the same `.cn-flow-node:has(...)` element, and a second
+   rule setting it would silently erase whichever loses the cascade. `outline`
+   is a separate channel: run state and role accent paint together. It also
+   costs no layout — an outline never moves the node's body. */
+.cn-flow-detail :deep(.cn-flow-node:has(.cn-flow-detail__node--run-done)) {
+	outline: 2px solid var(--color-success);
+	outline-offset: 1px;
+}
+
+.cn-flow-detail :deep(.cn-flow-node:has(.cn-flow-detail__node--run-active)) {
+	outline: 3px solid var(--color-success);
+	outline-offset: 1px;
+	animation: cn-flow-detail-run-halo 1.1s ease-in-out infinite;
+}
+
+.cn-flow-detail :deep(.cn-flow-node:has(.cn-flow-detail__node--run-failed)) {
+	outline: 3px solid var(--color-error);
+	outline-offset: 1px;
+}
+
+/* Visibly WAITING: dashed (a different shape from executing and from failed,
+   so the states differ by more than hue) and pulsing slowly. */
+.cn-flow-detail :deep(.cn-flow-node:has(.cn-flow-detail__node--run-hold)) {
+	outline: 3px dashed var(--color-warning);
+	outline-offset: 1px;
+	animation: cn-flow-detail-run-hold 2.4s ease-in-out infinite;
+}
+
+/* The halo: the outline breathes outwards and fades — a pulse with no layout
+   cost, on the wrapper the role accents already reach through `:has()`. */
+@keyframes cn-flow-detail-run-halo {
+	0%,
+	100% {
+		outline-offset: 1px;
+		outline-color: var(--color-success);
+	}
+
+	50% {
+		outline-offset: 7px;
+		outline-color: transparent;
+	}
+}
+
+@keyframes cn-flow-detail-run-hold {
+	0%,
+	100% {
+		outline-color: var(--color-warning);
+	}
+
+	50% {
+		outline-color: transparent;
+	}
+}
+
+/* The state in words — never colour alone (WCAG 1.4.1). */
+.cn-flow-detail__node-run {
+	font-size: 0.75em;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	color: var(--color-success-text, var(--color-success));
+}
+
+.cn-flow-detail__node-run--failed {
+	color: var(--color-error-text, var(--color-error));
+}
+
+.cn-flow-detail__node-run--hold {
+	color: var(--color-warning-text, var(--color-warning));
+}
+
+/* ---- Run state on the edges ------------------------------------------- */
+
+/* Lines already walked keep a quiet success stroke for the rest of the run. */
+.cn-flow-detail :deep(.vue-flow__edge.cn-flow-detail__edge--run-traced .vue-flow__edge-path),
+.cn-flow-detail :deep(.vue-flow__edge.cn-flow-detail__edge--run-tracing .vue-flow__edge-path) {
+	stroke: var(--color-success);
+}
+
+/* The trace: a success-coloured segment travelling the edge just executed,
+   source to target — `stroke-dashoffset` walking a dash pattern forwards,
+   FlowMock's own technique.
+
+   IT RIDES THE EDGE'S SECOND PATH, NOT THE LINE ITSELF. CnFlowEdge already
+   draws a direction pulse as a separate path over the same routed geometry,
+   exactly so the base line can stay solid (a dashed connection means
+   something else in every diagram convention). The trace re-styles that path
+   for the hop being animated: denser, thicker, faster, and in the success
+   colour. When the hop ends the class leaves and the pulse returns to its
+   quiet self. */
+.cn-flow-detail :deep(.vue-flow__edge.cn-flow-detail__edge--run-tracing .cn-flow-edge__pulse) {
+	stroke: var(--color-success);
+	stroke-width: 4;
+	stroke-dasharray: 10 22;
+	animation: cn-flow-detail-run-trace 0.4s linear infinite;
+}
+
+@keyframes cn-flow-detail-run-trace {
+	from {
+		stroke-dashoffset: 32;
+	}
+
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+/* Reduced motion: the state COLOURS stay — done, failed, hold and current
+   remain distinguishable — but nothing travels and nothing pulses. The
+   sequential hop reveal is also skipped on the JS side (`runHopMs`), and
+   CnFlowEdge already hides its pulse path entirely under this query, which
+   takes the trace's travel with it. */
+@media (prefers-reduced-motion: reduce) {
+	.cn-flow-detail :deep(.cn-flow-node:has(.cn-flow-detail__node--run-active)),
+	.cn-flow-detail :deep(.cn-flow-node:has(.cn-flow-detail__node--run-hold)) {
+		animation: none;
+	}
 }
 </style>
