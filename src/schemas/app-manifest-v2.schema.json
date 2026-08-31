@@ -2394,6 +2394,11 @@
 							"description": "Page-level header actions rendered inside CnActionsBar's overflow dropdown (between the built-in Refresh action and the `#action-items` slot). Same shape as the row-level `actions[]` ($ref action), but handlers receive NO row context — they are page-level. Reserved ids (`refresh`, `import`, `export`, `copy`, `delete`) are dropped at render time to avoid shadowing built-ins. See manifest-icons-and-page-actions for the dispatch semantics.",
 							"items": { "$ref": "#/$defs/action" }
 						},
+						"bulkActions": {
+							"type": "array",
+							"description": "Bulk actions rendered in the contextual selection strip that appears while rows are selected. Same shape as the row-level `actions[]` ($ref action), but the handler receives the SELECTION rather than a row: `{ actionId, selectedIds, count }`. For `type: \"open-modal\"` the selection is merged into the modal's props as `selectedIds` and `count`, so a manifest-declared modal component can act on the selection without the page hand-writing anything. Reserved ids (`copy`, `delete`) are dropped at render time: the strip already ships both as built-ins. Before this existed the strip had only a `#selection-actions` slot, which only a hand-written host component could fill \u2014 so a page declared in a manifest could carry row actions and header actions but never a bulk one.",
+							"items": { "$ref": "#/$defs/action" }
+						},
 						"actions": {
 							"type": "array",
 							"items": {
