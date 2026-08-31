@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * A placement's `borderless` flag decouples "no header" from "no card".
+ * A placement's `borderless` flag is the ONLY thing that drops the card.
  *
  * They used to be the same decision: a widget with `showTitle: false` was drawn
  * borderless, so a headerless TILE (a KPI whose label IS its content) lost its
@@ -41,8 +41,13 @@ describe('CnDashboardPage — borderless', () => {
 		expect(mountWith().find('.ww').attributes('data-borderless')).toBe('false')
 	})
 
-	it('drops the card with the header, as before, when nothing is declared', () => {
-		expect(mountWith({ showTitle: false }).find('.ww').attributes('data-borderless')).toBe('true')
+	it('KEEPS the card on a headerless widget — headerless is not chromeless', () => {
+		// This used to assert the opposite. "No header" and "no card" are
+		// different intentions, and since the KPI card went flat the old
+		// derivation does not merely look wrong, it erases the tile: a flat
+		// card in a borderless wrapper has no chrome at all. Measured on
+		// buildiq, which renders CnStatsBlock inside a headerless custom slot.
+		expect(mountWith({ showTitle: false }).find('.ww').attributes('data-borderless')).toBe('false')
 	})
 
 	it('keeps the card on a headerless tile when the placement says so', () => {

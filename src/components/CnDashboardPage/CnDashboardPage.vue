@@ -470,7 +470,7 @@
 						:icon-class="getWidgetIconClass(item)"
 						:show-title="widgetShowTitle(item)"
 						:show-actions="widgetShowActions(item)"
-						:borderless="registryWidgetBorderless(item)"
+						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
@@ -555,7 +555,7 @@
 						:show-title="widgetShowTitle(item)"
 						:show-actions="widgetShowActions(item)"
 						:show-refresh="getWidgetShowRefresh(item)"
-						:borderless="registryWidgetBorderless(item)"
+						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
@@ -2844,55 +2844,29 @@ export default {
 		},
 
 		/**
-		 * Whether a widget's card chrome is suppressed. An explicit
-		 * `layout[].borderless` wins; otherwise a widget with no header is drawn
-		 * borderless, as before.
+		 * Whether a widget's card chrome is suppressed. Only an explicit
+		 * `layout[].borderless: true` suppresses it.
 		 *
-		 * The explicit override exists because "no header" and "no card" are
-		 * different intentions, and conflating them pushed authors into the
-		 * wrong shape: a headerless tile (a KPI whose label IS its content) lost
-		 * its card, so the widget drew its OWN bordered box inside the grid
-		 * cell — a card inside a card. Now `borderless: false` keeps the chrome
-		 * and the widget can stay flat, which is what a tile wants.
+		 * HEADERLESS IS NOT CHROMELESS. This used to derive "no header" ⇒ "no
+		 * card", which conflates two different intentions and was already known
+		 * to push authors into the wrong shape — a headerless tile lost its card
+		 * and drew its own box inside the grid cell instead, a card inside a
+		 * card.
+		 *
+		 * Since the KPI card went flat (2026-08-30) that derivation does not
+		 * merely look wrong, it erases the tile: a flat card in a borderless
+		 * wrapper has NO chrome at all. Measured on buildiq, whose dashboard
+		 * renders `CnStatsBlock` inside a headerless `#widget-apps` custom slot
+		 * — three KPI tiles with no card, no border and no background.
+		 *
+		 * The registered-widget branches carried a second copy of this rule for
+		 * exactly that reason; there is now one rule for every family, so a
+		 * custom slot and a registered widget cannot disagree about it.
 		 *
 		 * @param {object} item the layout placement.
 		 * @return {boolean}
 		 */
 		widgetBorderless(item) {
-			if (typeof item.borderless === 'boolean') return item.borderless
-			// A chart is never a self-drawing card: it renders a bare SVG, so
-			// dropping the wrapper's chrome leaves a graph floating on the page
-			// with no border AND — because the same condition drove both — no
-			// title either. That pair went missing together on dossiq's bar
-			// charts. Other widget families keep the historical derivation
-			// (see CnDashboardPageBorderless.spec.js), where `borderless` is
-			// the documented escape hatch.
-			if (this.isChart(item)) return false
-			return !this.widgetShowTitle(item)
-		},
-
-		/**
-		 * Whether a REGISTERED widget's card chrome is suppressed.
-		 *
-		 * Registry widgets (stat / delta / gauge / stats-block / object-table /
-		 * …) deliberately do NOT use `widgetBorderless` above. That method
-		 * derives "no header" ⇒ "no card", and card widgets are precisely the
-		 * ones that default to headerless — their label IS their content. Since
-		 * the KPI card went flat (2026-08-30) the wrapper's chrome is the only
-		 * box a KPI has, so that derivation would leave every stat and delta
-		 * tile floating on the page background with no card at all.
-		 *
-		 * These widgets therefore keep their card unless the author explicitly
-		 * asks for it to go. That matches what they already did — the registry
-		 * branch never bound `borderless`, so it always took CnWidgetWrapper's
-		 * `false` default — with the one difference that an explicit
-		 * `borderless: true` in a layout now actually takes effect instead of
-		 * being silently ignored.
-		 *
-		 * @param {object} item the layout placement.
-		 * @return {boolean}
-		 */
-		registryWidgetBorderless(item) {
 			return item.borderless === true
 		},
 
