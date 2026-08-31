@@ -56,8 +56,8 @@
 				<p v-if="stepBody" class="cn-walkthrough__body">
 					{{ stepBody }}
 				</p>
-				<p v-if="step && step.task" class="cn-walkthrough__task">
-					<span class="cn-walkthrough__task-icon" aria-hidden="true">👉</span> {{ step.task }}
+				<p v-if="stepTask" class="cn-walkthrough__task">
+					<span class="cn-walkthrough__task-icon" aria-hidden="true">👉</span> {{ stepTask }}
 				</p>
 				<div class="cn-walkthrough__actions">
 					<NcButton v-if="!isFirst" variant="secondary" @click="back">
@@ -227,6 +227,15 @@ export default {
 		},
 		stepBody() {
 			return this.tr(this.step && this.step.body)
+		},
+		/**
+		 * The task line, through the same `translate` prop as title/body — a
+		 * raw `step.task` shipped English even in fully translated locales.
+		 *
+		 * @return {string} The translated task, or `''` when the step has none.
+		 */
+		stepTask() {
+			return this.tr(this.step && this.step.task)
 		},
 		dialogLabel() {
 			return this.stepTitle || t('nextcloud-vue', 'Walkthrough')

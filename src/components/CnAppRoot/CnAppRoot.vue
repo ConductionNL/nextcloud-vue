@@ -429,9 +429,18 @@
 			  preference is fetched first so a returning user never sees the
 			  tour flash open before the answer arrives. Without a key the
 			  flag is already true at data() time (localStorage-only, sync).
+
+			  Also withheld while the first-open support note is on screen
+			  (`cnSupportVisible`): a fresh user qualifies for BOTH, and two
+			  stacked overlays fight for the same first moment. The tour's
+			  machine state lives in the per-app useWalkthrough cache, so
+			  unmounting here only hides the overlay — when the note is
+			  dismissed the walkthrough remounts and the first-visit tour
+			  starts (or resumes) then. `!== true` keeps apps that opted out
+			  of the support note (`cnSupportVisible` undefined) unaffected.
 			-->
 			<!-- @slot walkthrough Override the gating-free walkthrough overlay. Scope: { manifest, seenVersion }. -->
-			<slot v-if="walkthroughEnabled && walkthroughSeenResolved"
+			<slot v-if="walkthroughEnabled && walkthroughSeenResolved && cnSupportVisible !== true"
 				name="walkthrough"
 				:manifest="manifest"
 				:seen-version="walkthroughSeenVersion">
