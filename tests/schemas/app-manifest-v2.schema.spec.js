@@ -1110,9 +1110,41 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.26.0', () => {
+	it('the manifest schema version reads 2.27.0', () => {
 		// eslint-disable-next-line global-require
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.26.0')
+		expect(schema.version).toBe('2.27.0')
+	})
+
+	it('accepts createOverride on an open-form action', () => {
+		// CnActionButtons resolves this to a registry handler that owns the
+		// persist. The schema is additionalProperties:false, so without the
+		// declaration a valid manifest is rejected — which is exactly how this
+		// gap surfaced: pipelinq could not declare its contact-first client
+		// create.
+		const manifest = {
+			$schema: V2_SCHEMA_URL,
+			version: '1.0.0',
+			menu: [{ id: 'Dashboard', label: 'Dashboard', route: 'Dashboard', order: 10 }],
+			pages: [{
+				id: 'Dashboard',
+				route: '/',
+				type: 'dashboard',
+				title: 'Dashboard',
+				config: {
+					headerActions: [{
+						id: 'new-client',
+						label: 'New client',
+						type: 'open-form',
+						register: 'pipelinq',
+						schema: 'client',
+						createOverride: 'createClientContactAware',
+						onSuccessRoute: 'ClientDetail',
+					}],
+				},
+			}],
+		}
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(true)
 	})
 })

@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.26.0",
+	"version": "2.27.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -1646,6 +1646,10 @@
 					"type": "object",
 					"description": "Additional props forwarded to the handler or modal.",
 					"additionalProperties": true
+				},
+				"createOverride": {
+					"type": "string",
+					"description": "Registry handler name that owns the persist for an `open-form` action, replacing the default objectStore.saveObject. Resolved exactly as CnIndexPage resolves its own `createOverride` prop (a kind:'create-override' entry's `.handler`, a function-valued registry entry, or a function in the legacy customComponents map). Needed when the schema requires a field the create form cannot supply on its own — a server-minted foreign key, say — where a straight save would 400."
 				},
 				"handler": {
 					"type": "string",
