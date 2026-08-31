@@ -150,7 +150,7 @@ describe('CnStatWidget static variant', () => {
 		// the rendered style attribute is empty no matter how correct the
 		// binding is. Assert the computed the template binds to — that is the
 		// component's own output, and the only honest thing to check here.
-		expect(wrapper.vm.valueStyle).toEqual({ color: 'var(--color-success)' })
+		expect(wrapper.vm.valueStyle).toEqual({ color: 'var(--color-success-text, var(--color-success))' })
 	})
 
 	it('lets a variantWhen rule override the static variant', async () => {
@@ -169,7 +169,7 @@ describe('CnStatWidget static variant', () => {
 		await flush()
 		await flush()
 
-		expect(wrapper.vm.valueStyle).toEqual({ color: 'var(--color-warning)' })
+		expect(wrapper.vm.valueStyle).toEqual({ color: 'var(--color-warning-text, var(--color-warning))' })
 	})
 
 	it('ignores an unknown variant name instead of emitting a broken style', async () => {
