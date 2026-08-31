@@ -157,9 +157,9 @@ describe('CnStatWidget — endpointSource (Wave 2)', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.vm.activeVariantRule.variant).toBe('warning')
-		expect(wrapper.vm.variantColor).toBe('var(--color-warning)')
+		expect(wrapper.vm.variantColor).toBe('var(--color-warning-text, var(--color-warning))')
 		expect(wrapper.vm.resolvedIcon).toBe('AlertOutline')
-		expect(wrapper.vm.valueStyle).toEqual({ color: 'var(--color-warning)' })
+		expect(wrapper.vm.valueStyle).toEqual({ color: 'var(--color-warning-text, var(--color-warning))' })
 	})
 
 	it('accepts the doriath "danger" variant as an alias of error and keeps colours on default', async () => {
@@ -171,7 +171,7 @@ describe('CnStatWidget — endpointSource (Wave 2)', () => {
 			variantWhen: [{ op: 'gt', value: 50, variant: 'danger' }],
 		})
 		await flush()
-		expect(wrapper.vm.variantColor).toBe('var(--color-error)')
+		expect(wrapper.vm.variantColor).toBe('var(--color-error-text, var(--color-error))')
 
 		const noMatch = mountWidget({
 			valueColor: '#123456',
