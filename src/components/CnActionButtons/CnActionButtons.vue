@@ -56,6 +56,7 @@
 			ref="formDialog"
 			:schema="formSchema"
 			:item="null"
+			:initial-values="formInitialValues"
 			@confirm="onFormConfirm"
 			@close="closeForm" />
 	</div>
@@ -68,7 +69,7 @@ import { NcButton } from '@nextcloud/vue'
 import { CnIcon } from '../CnIcon/index.js'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
-import { dispatchAction, resolveObjectOpType, buildOnSuccessRoute } from '../../utils/actionsDispatcher.js'
+import { dispatchAction, resolveObjectOpType, buildOnSuccessRoute, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
 import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
@@ -84,7 +85,12 @@ import { useObjectStore } from '../../store/useObjectStore.js'
  *  - **`open-form`** — mounts the shared `CnAdvancedFormDialog` for the
  *    action's `schema` (fetched through the object store), saves on
  *    confirm, toasts, refreshes the page, and optionally navigates to
- *    `onSuccessRoute`.
+ *    `onSuccessRoute`. Two optional keys cover the schemas a bare create
+ *    cannot satisfy: `props` seeds fixed field values into the create form
+ *    (so one schema can back several buttons, each fixing its own
+ *    discriminator), and `createOverride` names a registry handler that owns
+ *    the persist instead of `objectStore.saveObject` (for a schema requiring
+ *    a server-minted field the form cannot supply).
  *  - **`toggle`** — a two-way state button: `GET`s `stateSource` on mount,
  *    renders `labelOn` / `labelOff`, and on click `writes` the flipped
  *    value OPTIMISTICALLY, reverting on failure.
@@ -141,6 +147,10 @@ export default {
 		 * untranslated key renders as itself.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/** v2 component registry, for resolving an `open-form` createOverride. */
+		cnRegistry: { default: () => ({}) },
+		/** Legacy customComponents map, same resolution fallback. */
+		cnCustomComponents: { default: () => ({}) },
 	},
 
 	props: {
@@ -209,6 +219,18 @@ export default {
 		 */
 		effectiveTranslate() {
 			return typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+		},
+		/**
+		 * Create-form seed values for the open `open-form` action. An action
+		 * declares them as `props`, which is how a single schema backs several
+		 * buttons — "New request" and "New complaint" both open the `ticket`
+		 * form, each fixing its own `ticketType`.
+		 *
+		 * @return {object|null}
+		 */
+		formInitialValues() {
+			const props = this.formEntry && this.formEntry.props
+			return (props && typeof props === 'object' && !Array.isArray(props)) ? props : null
 		},
 		/** The actions whose visibleWhen evaluated true (or carry no predicate). */
 		visibleActions() {
@@ -490,7 +512,19 @@ export default {
 			try {
 				const store = useObjectStore()
 				const type = resolveObjectOpType(store, { register, schema })
-				const saved = await store.saveObject(type, { ...formData })
+				// A schema can require a field the form cannot supply — a
+				// server-minted foreign key, say — in which case a straight
+				// saveObject 400s. `createOverride` names a registry handler
+				// that owns the persist instead (the CnIndexPage precedent).
+				const override = resolveCreateOverrideHandler(
+					entry && entry.createOverride,
+					this.cnRegistry,
+					this.cnCustomComponents,
+				)
+				const payload = { ...formData }
+				const saved = override
+					? await override(payload, { register, schema, type })
+					: await store.saveObject(type, payload)
 				if (!saved) throw new Error('save rejected')
 				if (dialog && typeof dialog.setResult === 'function') dialog.setResult({ success: true })
 				const { showSuccess } = await import('@nextcloud/dialogs')

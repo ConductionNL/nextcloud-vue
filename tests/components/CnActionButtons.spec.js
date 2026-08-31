@@ -28,6 +28,7 @@ jest.mock('../../src/utils/actionsDispatcher.js', () => {
 		resolveObjectOpType: jest.fn(() => 'crm/lead'),
 		buildOnSuccessRoute: actual.buildOnSuccessRoute,
 		savedObjectId: actual.savedObjectId,
+		resolveCreateOverrideHandler: actual.resolveCreateOverrideHandler,
 	}
 })
 jest.mock('../../src/composables/useEndpointSource.js', () => ({
@@ -77,6 +78,7 @@ const stubs = {
 	},
 	CnAdvancedFormDialog: {
 		name: 'CnAdvancedFormDialog',
+		props: ['schema', 'item', 'initialValues'],
 		template: '<div class="form-dialog-stub" />',
 		methods: { setResult() {} },
 	},
@@ -218,6 +220,90 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			await flush()
 			expect(saveObject).toHaveBeenCalledWith('crm/lead', { name: 'Acme' })
 			expect(wrapper.emitted('created')).toBeTruthy()
+		})
+
+		it('seeds the create form with the action props without flipping it to edit mode', async () => {
+			const saveObject = jest.fn(() => Promise.resolve({ id: 'tk-1' }))
+			const fetchSchema = jest.fn(() => Promise.resolve({ title: 'Ticket', properties: {} }))
+			useObjectStore.mockReturnValue({ saveObject, fetchSchema })
+
+			const wrapper = mountBar([
+				{
+					id: 'new-request',
+					label: 'New request',
+					type: 'open-form',
+					register: 'pipelinq',
+					schema: 'ticket',
+					props: { ticketType: 'request' },
+				},
+			])
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-request"]').trigger('click')
+			await flush()
+
+			const dialog = wrapper.findComponent({ name: 'CnAdvancedFormDialog' })
+			expect(dialog.props('initialValues')).toEqual({ ticketType: 'request' })
+			// `item` stays null so the dialog remains in CREATE mode.
+			expect(dialog.props('item')).toBeNull()
+		})
+
+		it('persists through a registry createOverride instead of saveObject when named', async () => {
+			const saveObject = jest.fn(() => Promise.resolve({ id: 'never' }))
+			const fetchSchema = jest.fn(() => Promise.resolve({ title: 'Client', properties: {} }))
+			useObjectStore.mockReturnValue({ saveObject, fetchSchema })
+			const handler = jest.fn(() => Promise.resolve({ id: 'cl-9' }))
+
+			const wrapper = mount(CnActionButtons, {
+				propsData: {
+					actions: [
+						{
+							id: 'new-client',
+							label: 'New client',
+							type: 'open-form',
+							register: 'pipelinq',
+							schema: 'client',
+							createOverride: 'createClientContactAware',
+						},
+					],
+				},
+				stubs,
+				provide: {
+					cnRegistry: { createClientContactAware: { kind: 'create-override', handler } },
+				},
+			})
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-client"]').trigger('click')
+			await flush()
+			wrapper.findComponent({ name: 'CnAdvancedFormDialog' }).vm.$emit('confirm', { name: 'Acme' })
+			await flush()
+
+			expect(handler).toHaveBeenCalledWith({ name: 'Acme' }, expect.objectContaining({ schema: 'client' }))
+			expect(saveObject).not.toHaveBeenCalled()
+			expect(wrapper.emitted('created')).toBeTruthy()
+		})
+
+		it('falls back to saveObject when the named createOverride resolves to nothing', async () => {
+			const saveObject = jest.fn(() => Promise.resolve({ id: 'cl-1' }))
+			const fetchSchema = jest.fn(() => Promise.resolve({ title: 'Client', properties: {} }))
+			useObjectStore.mockReturnValue({ saveObject, fetchSchema })
+
+			const wrapper = mountBar([
+				{
+					id: 'new-client',
+					label: 'New client',
+					type: 'open-form',
+					register: 'pipelinq',
+					schema: 'client',
+					createOverride: 'notRegistered',
+				},
+			])
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-client"]').trigger('click')
+			await flush()
+			wrapper.findComponent({ name: 'CnAdvancedFormDialog' }).vm.$emit('confirm', { name: 'Acme' })
+			await flush()
+
+			expect(saveObject).toHaveBeenCalledWith('crm/lead', { name: 'Acme' })
 		})
 
 		it('navigates to onSuccessRoute with the saved object id merged into the params (#91)', async () => {

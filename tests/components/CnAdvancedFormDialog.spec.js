@@ -34,6 +34,54 @@ describe('CnAdvancedFormDialog', () => {
 		expect(wrapper.vm.resolvedTitle).toContain('Create')
 	})
 
+	it('seeds a create form from initialValues without leaving create mode', () => {
+		const wrapper = mount(CnAdvancedFormDialog, {
+			propsData: {
+				schema: testSchema,
+				item: null,
+				initialValues: { title: 'Seeded', count: 7 },
+			},
+			stubs: {
+				NcDialog: true,
+				NcButton: true,
+				NcNoteCard: true,
+				NcLoadingIcon: true,
+				NcTextField: true,
+				NcCheckboxRadioSwitch: true,
+				NcDateTimePickerNative: true,
+				BTabs: true,
+				BTab: true,
+			},
+		})
+		expect(wrapper.vm.isCreateMode).toBe(true)
+		expect(wrapper.vm.formData.title).toBe('Seeded')
+		expect(wrapper.vm.formData.count).toBe(7)
+	})
+
+	it('ignores initialValues when an item is being edited', () => {
+		const item = { id: '1', title: 'Existing', count: 5, active: true }
+		const wrapper = mount(CnAdvancedFormDialog, {
+			propsData: {
+				schema: testSchema,
+				item,
+				initialValues: { title: 'Seeded' },
+			},
+			stubs: {
+				NcDialog: true,
+				NcButton: true,
+				NcNoteCard: true,
+				NcLoadingIcon: true,
+				NcTextField: true,
+				NcCheckboxRadioSwitch: true,
+				NcDateTimePickerNative: true,
+				BTabs: true,
+				BTab: true,
+			},
+		})
+		expect(wrapper.vm.isCreateMode).toBe(false)
+		expect(wrapper.vm.formData.title).toBe('Existing')
+	})
+
 	it('renders in edit mode when item is provided', () => {
 		const item = { id: '1', title: 'Test', count: 5, active: true }
 		const wrapper = mount(CnAdvancedFormDialog, {

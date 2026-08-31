@@ -42,6 +42,7 @@ The dialog uses the same **two-phase pattern** as other CRUD dialogs: after the 
 |------|------|---------|-------------|
 | `schema` | Object | `null` | JSON Schema used to derive property list, types, and labels (e.g. `schema.properties`, `schema.required`, `schema.title`) |
 | `item` | Object | `null` | Existing object for edit mode; `null` for create mode |
+| `initialValues` | Object | `null` | Field values seeded into a **create** form on open, layered over the schema defaults. Unlike `item` this does not flip the dialog into edit mode, so it is the right seam for fixing a discriminator or parent key the user should not have to type (e.g. `{ ticketType: 'request' }`). Ignored when `item` is set. |
 | `dialogTitle` | String | `''` | Override dialog title; default is "Create \{schemaTitle\}" or "Edit \{schemaTitle\}" |
 | `nameField` | String | `'title'` | Property used as display name (e.g. in breadcrumbs or other UI) |
 | `successText` | String | `''` | Message shown in result phase on success; default "\{schemaTitle\} saved successfully." |
