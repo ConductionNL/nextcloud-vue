@@ -733,6 +733,8 @@ import { useSelfFetchList } from './useSelfFetchList.js'
  * @event {number} page-size-changed — Pagination page size changed
  * @event {string[]} select — Selection changed. Payload: array of selected IDs
  * @event {object} action — Row action triggered. Payload: { action, row }
+ * @event {{ action: string, id: string, selectedIds: Array, count: number }} bulk-action — A declarative bulk action was triggered from the selection strip. The SELECTION travels with it: an action that has to go and find out what was selected is one re-render away from acting on a different set than the user saw highlighted.
+ * @event {{ target: string, props: object }} open-modal — A bulk action of type `open-modal` asks the host to open a registered modal. `props` carries `selectedIds` and `count` merged under the action's own props.
  * @event {object} apply-view — A saved view was applied (saved-views-ui). Payload: the View API object. Only emitted when `allowSavedViews`.
  * @event {string} search — Search input changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  * @event {string[]} columns-change — Visible columns changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
@@ -2894,6 +2896,9 @@ export default {
 				}
 			}
 
+			/**
+			 * @event bulk-action A declarative bulk action was triggered from the selection strip. Payload: `{ action, id, selectedIds, count }`. The SELECTION travels with it, because an action that has to go and find out what was selected is one re-render away from acting on a different set than the user saw highlighted.
+			 */
 			this.$emit('bulk-action', { action: id, id, selectedIds, count })
 		},
 		/**
@@ -2921,6 +2926,9 @@ export default {
 				// eslint-disable-next-line no-console
 				console.warn(`CnIndexPage: bulkActions[].id "${entry.id}" declares its own "selectedIds" prop, which shadows the live selection; the modal will not see what the user selected.`)
 			}
+			/**
+			 * @event open-modal A bulk action of type `open-modal` asks the host to open a registered modal. Payload: `{ target, props }`, where `props` carries `selectedIds` and `count` merged UNDER the action's own props.
+			 */
 			this.$emit('open-modal', { target, props: { selectedIds, count, ...own } })
 		},
 		/**
