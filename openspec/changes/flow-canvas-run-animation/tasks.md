@@ -30,7 +30,7 @@
       scaled from real `durationMs` and clamped; cancellable.
 - [x] `prefers-reduced-motion: reduce` — static state colouring, no dash
       travel, no pulses.
-- [ ] JSDoc + regenerated docs partials for every touched prop/event/slot;
+- [x] JSDoc + regenerated docs partials for every touched prop/event/slot;
       `npm run check:docs` and `npm run check:jsdoc` clean.
 - [x] Unit tests — watcher lifecycle (start/stop/visibility/terminal),
       index-diffing across a suspend/resume, burst catch-up ordering,
