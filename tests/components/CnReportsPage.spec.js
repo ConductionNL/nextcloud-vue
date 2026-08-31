@@ -6,7 +6,7 @@
  * reports as cards on one page, with a category filter, instead of a Reports
  * submenu that grows one entry per report and never shrinks.
  *
- * @spec openspec/changes/reports-are-one-page-of-cards/specs/reports-page/spec.md
+ * @spec hydra openspec/architecture/adr-112-reports-are-one-page.md (ConductionNL/hydra#640)
  */
 
 import { mount } from '@vue/test-utils'

@@ -29,7 +29,7 @@
   A card names a ROUTE by name, never a path: a path is editable per app and a
   card pointing at a stale one is a dead end that still looks like a report.
 
-  Spec: openspec/changes/reports-are-one-page-of-cards.
+  Spec: hydra openspec/architecture/adr-112-reports-are-one-page.md (ConductionNL/hydra#640).
 -->
 <template>
 	<div class="cn-reports-page">
