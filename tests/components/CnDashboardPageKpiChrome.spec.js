@@ -10,11 +10,10 @@
  *  1. `stats-block` used to render WITHOUT a wrapper, because CnStatsBlock
  *     drew its own bordered box and wrapping it made a double card. A flat
  *     block with no wrapper has NO chrome at all, so it is wrapped now.
- *  2. Registered widgets keep their card unless the author explicitly removes
- *     it (`registryWidgetBorderless`). `widgetBorderless` derives "no header"
- *     ⇒ "no card", and card widgets are exactly the ones that default to
- *     headerless, so that derivation would take the box away from the tiles
- *     that now depend on it. Headerless is not chromeless.
+ *  2. EVERY widget keeps its card unless the author explicitly removes it.
+ *     The old rule derived "no header" ⇒ "no card", and card widgets are
+ *     exactly the ones that default to headerless — so it took the box away
+ *     from the tiles that depend on it. Headerless is not chromeless.
  *
  * Both are the kind of change that a passing suite would not have noticed:
  * the pre-existing borderless spec mounts a `type: 'custom'` widget, which is
@@ -108,9 +107,12 @@ describe('CnDashboardPage — who draws the KPI card', () => {
 		expect(out.variant).toBe('success')
 	})
 
-	it('leaves a custom-slot widget on the historical derivation', () => {
-		// A custom widget draws its own surface; "no header" still means "no card"
-		// there. Only the REGISTERED widgets moved off that derivation.
+	it('keeps the card on a headerless CUSTOM-slot widget too', () => {
+		// buildiq renders CnStatsBlock inside a headerless `#widget-apps` slot.
+		// Under the old derivation that wrapper was borderless, and once the KPI
+		// card went flat the result was three tiles with no card, no border and
+		// no background at all. One rule now covers every family, so a custom
+		// slot and a registered widget cannot disagree about it.
 		const mountCustom = (placement = {}) => mount(CnDashboardPage, {
 			propsData: {
 				widgets: [{ id: 'w', type: 'custom', title: 'Quota' }],
@@ -119,7 +121,9 @@ describe('CnDashboardPage — who draws the KPI card', () => {
 			slots: { 'widget-w': '<div class="mine" />' },
 			stubs,
 		})
-		expect(mountCustom({ showTitle: false }).find('.ww').attributes('data-borderless')).toBe('true')
+		expect(mountCustom({ showTitle: false }).find('.ww').attributes('data-borderless')).toBe('false')
 		expect(mountCustom().find('.ww').attributes('data-borderless')).toBe('false')
+		// The explicit escape hatch still works, for every family.
+		expect(mountCustom({ borderless: true }).find('.ww').attributes('data-borderless')).toBe('true')
 	})
 })
