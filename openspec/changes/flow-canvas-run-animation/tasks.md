@@ -1,12 +1,12 @@
 # Tasks: flow-canvas-run-animation
 
-- [ ] `useFlowStore.watchRun(uuid)` — poll `GET /apps/openregister/api/flow-runs/{uuid}`
+- [x] `useFlowStore.watchRun(uuid)` — poll `GET /apps/openregister/api/flow-runs/{uuid}`
       every 3s (floor 2s) while status is in `queued|running|suspended`;
       self-stop on terminal status / re-watch / teardown; pause on
       `visibilitychange` with one refetch on return (CnFlowRunsWidget
       precedent); expose the run and its log with an index-diffed "new steps"
       view.
-- [ ] `useFlowStore.run()` keeps the uuid the POST returns and starts the
+- [x] `useFlowStore.run()` keeps the uuid the POST returns and starts the
       watch instead of only refreshing the run list.
 - [ ] Animator in `CnFlowDetail` — ordered step queue, bounded catch-up pace
       for bursts, cursor-derived node/edge state; anticipation state (start
