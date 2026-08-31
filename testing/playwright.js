@@ -143,6 +143,25 @@ const WALKTHROUGH_CLOSE = '.cn-walkthrough__close'
 const SUPPORT_DIALOG = '[data-testid-modal="cn-support-dialog"]'
 
 /**
+ * Stable hook for the setup wizard (`CnSetupWizard` / `CnWizardDialog`).
+ *
+ * It opens on its own whenever the app's setup is incomplete, which is the
+ * normal state of a freshly provisioned CI instance, and it mounts as a
+ * `.modal-mask` covering the viewport. That mask **intercepts pointer events**
+ * for the whole page.
+ *
+ * The failure this causes is deliberately misleading. Playwright reports the
+ * target as *"visible, enabled and stable"* and then times out on the click, so
+ * it reads as a slow app rather than a covered one. Measured 2026-08-31 on
+ * decidiq: the wizard mask appeared **228 times** across one e2e run, and it is
+ * what took down the `integration-registry` spec. See
+ * `docs/testing/e2e-helpers.md`.
+ *
+ * @type {string}
+ */
+const SETUP_WIZARD_DIALOG = '[data-testid-modal="cn-wizard-dialog"]'
+
+/**
  * Attribute `CnAppRoot` stamps with its own `appId`
  * (`:data-nldesign-theme-scope="appId"`). It is the only place a mounted app
  * root publishes its id to the DOM, which makes it the mechanism
@@ -260,6 +279,9 @@ const CHROME_DIALOG_SELECTORS = [
 	// nc-vue's support prompt, both the class and the stable test hook.
 	'.cn-support-dialog',
 	SUPPORT_DIALOG,
+	// nc-vue's setup wizard. Chrome, not an app dialog: it opens by itself on
+	// an incomplete setup rather than in response to anything the spec did.
+	SETUP_WIZARD_DIALOG,
 	// Nextcloud's legacy jQuery dialog (`OC.dialogs.*`), still used by core for
 	// file pickers and confirmations.
 	'.oc-dialog',
@@ -633,6 +655,54 @@ async function dismissWalkthrough(page, options = {}) {
 }
 
 /**
+ * Dismiss the setup wizard if it is open.
+ *
+ * The wizard opens by itself whenever setup is incomplete, which is the normal
+ * state of a fresh CI instance, and its `.modal-mask` then intercepts pointer
+ * events for the entire page. Every later click in the spec fails as a
+ * **timeout on an element Playwright itself calls "visible, enabled and
+ * stable"**, so it reads as a slow app instead of a covered one.
+ *
+ * Unlike the support dialog and the walkthrough there is nothing to seed: the
+ * wizard's open state follows server-side setup status, not a
+ * `localStorage` flag, so it has to be dismissed on the page.
+ *
+ * @param {object} page Playwright `Page`.
+ * @param {object} [options] `{ timeout }` in ms (default 3000).
+ * @return {Promise<boolean>} True when a wizard was actually dismissed.
+ *
+ * @example
+ * await dismissSetupWizard(page)
+ */
+async function dismissSetupWizard(page, options = {}) {
+	const timeout = options.timeout || 3000
+	const dialog = page.locator(SETUP_WIZARD_DIALOG).first()
+
+	const open = await dialog
+		.waitFor({ state: 'visible', timeout })
+		.then(() => true)
+		.catch(() => false)
+	if (!open) {
+		return false
+	}
+
+	// Close control first, Escape second: the same two documented exits
+	// dismissSupportDialog uses, in the same order.
+	const clicked = await dialog.getByRole('button', { name: /close/i }).first()
+		.click({ timeout })
+		.then(() => true)
+		.catch(() => false)
+	if (!clicked) {
+		await page.keyboard.press('Escape').catch(() => {})
+	}
+
+	// Gate on the MASK going away, not on the card being hidden. The mask is
+	// what eats the next click, and it outlives the card's closing transition.
+	await dialog.waitFor({ state: 'detached', timeout }).catch(() => {})
+	return !(await dialog.isVisible().catch(() => false))
+}
+
+/**
  * Dismiss the first-visit `CnSupportDialog` if it is open.
  *
  * Two things make the naive `isVisible()` check wrong:
@@ -743,17 +813,22 @@ async function dismissFirstVisitOverlays(page, options = {}) {
 			reason: GUEST_SURFACE,
 			walkthroughDismissed: false,
 			supportDialogsDismissed: 0,
+			setupWizardDismissed: false,
 		}
 	}
 
 	const walkthroughDismissed = await dismissWalkthrough(page, options)
 	const supportDialogsDismissed = await dismissSupportDialog(page, options)
+	// Last, and deliberately so: the wizard's mask sits above the other two, so
+	// clearing it first only exposes whichever of them is still queued behind.
+	const setupWizardDismissed = await dismissSetupWizard(page, options)
 
 	return {
 		notApplicable: false,
 		reason: null,
 		walkthroughDismissed,
 		supportDialogsDismissed,
+		setupWizardDismissed,
 	}
 }
 
@@ -1328,6 +1403,9 @@ module.exports = {
 	SUPPORT_DIALOG_STORAGE_PREFIX,
 	WALKTHROUGH_STORAGE_PREFIX,
 	CHROME_DIALOG_SELECTORS,
+	// The setup wizard's stable hook, so a spec can wait on or assert against
+	// the mask without retyping the literal and drifting from it.
+	SETUP_WIZARD_DIALOG,
 	FIRST_RUN_WIZARD_ROUTE,
 	// The two `reason` strings. Exported so a spec can compare against the
 	// constant instead of retyping the literal and drifting.
@@ -1339,6 +1417,7 @@ module.exports = {
 	seedFirstVisitOverlaysSeen,
 	dismissWalkthrough,
 	dismissSupportDialog,
+	dismissSetupWizard,
 	dismissFirstVisitOverlays,
 	appDialog,
 	retireFirstRunWizard,

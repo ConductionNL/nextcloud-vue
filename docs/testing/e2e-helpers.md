@@ -13,6 +13,7 @@ devtools hooks.
 import {
 	seedFirstVisitOverlaysSeen,
 	dismissFirstVisitOverlays,
+	dismissSetupWizard,
 	findMounted,
 	readComponentProp,
 } from '@conduction/nextcloud-vue/testing/playwright'
@@ -192,12 +193,34 @@ await dismissFirstVisitOverlays(page)
   dialog's "have I been seen" answer is an async round-trip, so it can appear a
   beat after the caller moved on), and **loops** rather than closing exactly
   one — see the nested-`CnAppRoot` caveat above.
-- `dismissFirstVisitOverlays(page, options)` — the tour first, then the dialog.
-  Order matters: the tour's dimmer sits above the dialog, so clearing it first
-  is what makes the dialog's close button reachable. Returns
-  `{ notApplicable, reason, walkthroughDismissed, supportDialogsDismissed }`; on
-  a guest surface it short-circuits rather than polling — see
-  [Guest surfaces](#guest-surfaces-guestsurfacestatuspage).
+- `dismissSetupWizard(page, { timeout })` → `Promise<boolean>`. Closes the setup
+  wizard (`[data-testid-modal="cn-wizard-dialog"]`, exported as
+  `SETUP_WIZARD_DIALOG`). Gates on the **mask detaching**, not on the card
+  hiding, and returns `false` rather than pretending success if the wizard
+  survives both the close control and Escape.
+
+  Unlike the tour and the support dialog there is nothing to seed: the wizard's
+  open state follows server-side setup status, not a `localStorage` flag, so a
+  fresh CI instance raises it every run.
+- `dismissFirstVisitOverlays(page, options)` — the tour, then the dialog, then
+  the wizard. Order matters: each mask sits above the next, so clearing the
+  outermost first is what makes the one behind it reachable. Returns
+  `{ notApplicable, reason, walkthroughDismissed, supportDialogsDismissed,
+  setupWizardDismissed }`; on a guest surface it short-circuits rather than
+  polling — see [Guest surfaces](#guest-surfaces-guestsurfacestatuspage).
+
+:::danger The wizard reads as a slow app, not a covered one
+When the wizard's mask is up, Playwright reports your target as *"visible,
+enabled and stable"* and then times out on the click. The obvious reading is a
+slow app, and the obvious fix is a longer timeout, which never helps.
+
+Measured 2026-08-31 on decidiq: the mask appeared **228 times** in one e2e run
+and took down the whole `integration-registry` spec. `#firstrunwizard` appeared
+**zero** times, so the existing `retireFirstRunWizard()` did not touch it.
+
+If a click times out on an element the call log calls visible and enabled, read
+the rest of that log: it names the element that *"intercepts pointer events"*.
+:::
 
 ## Locating the app's own modal
 
@@ -227,7 +250,8 @@ showing. A passing test for a broken flow.
 :::
 
 Excluded by default (`CHROME_DIALOG_SELECTORS`): `#firstrunwizard`,
-`.cn-support-dialog`, `[data-testid-modal="cn-support-dialog"]`, `.oc-dialog`.
+`.cn-support-dialog`, `[data-testid-modal="cn-support-dialog"]`,
+`[data-testid-modal="cn-wizard-dialog"]`, `.oc-dialog`.
 Add your own with `appDialog(page, { exclude: ['.my-overlay'] })`, or get the
 whole match set with `{ all: true }`.
 

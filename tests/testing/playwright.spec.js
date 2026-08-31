@@ -29,7 +29,9 @@ import {
 	seedFirstVisitOverlaysSeen,
 	dismissWalkthrough,
 	dismissSupportDialog,
+	dismissSetupWizard,
 	dismissFirstVisitOverlays,
+	SETUP_WIZARD_DIALOG,
 	appDialog,
 	retireFirstRunWizard,
 	mountedComponents,
@@ -837,6 +839,76 @@ describe('dismissWalkthrough', () => {
 	})
 })
 
+describe('dismissSetupWizard', () => {
+	const WIZARD = '[data-testid-modal="cn-wizard-dialog"]'
+
+	it('exposes the selector it matches, so specs need not retype the literal', () => {
+		expect(SETUP_WIZARD_DIALOG).toBe(WIZARD)
+	})
+
+	it('closes the wizard when it is open', async () => {
+		const dialog = { open: true, clicks: 0 }
+		const page = makePage({ locators: { [WIZARD]: presentLocator(dialog) } })
+		await expect(dismissSetupWizard(page, { timeout: 10 })).resolves.toBe(true)
+		expect(dialog.clicks).toBe(1)
+	})
+
+	it('is a no-op when no wizard is open', async () => {
+		await expect(dismissSetupWizard(makePage(), { timeout: 10 })).resolves.toBe(false)
+	})
+
+	it('falls back to Escape when the close control cannot be clicked', async () => {
+		// The wizard is up but its close button is unreachable — the exact
+		// shape that made the mask outlive the helper and eat the next click.
+		let open = true
+		const stub = {
+			first: () => stub,
+			getByRole: () => stub,
+			async waitFor(opts) {
+				const wantDetached = opts && opts.state === 'detached'
+				if (wantDetached ? !open : open) {
+					return undefined
+				}
+				throw new Error('timeout')
+			},
+			async click() {
+				throw new Error('intercepted')
+			},
+			async isVisible() {
+				return open
+			},
+		}
+		const page = makePage({ locators: { [WIZARD]: stub } })
+		page.keyboard = { press: async () => { open = false } }
+		await expect(dismissSetupWizard(page, { timeout: 10 })).resolves.toBe(true)
+		expect(open).toBe(false)
+	})
+
+	it('reports false when the wizard survives both exits', async () => {
+		// Never silently claim the page is usable: a mask that is still up
+		// means every later click in the spec will time out.
+		const stub = {
+			first: () => stub,
+			getByRole: () => stub,
+			async waitFor(opts) {
+				if (opts && opts.state === 'detached') {
+					throw new Error('timeout')
+				}
+				return undefined
+			},
+			async click() {
+				throw new Error('intercepted')
+			},
+			async isVisible() {
+				return true
+			},
+		}
+		const page = makePage({ locators: { [WIZARD]: stub } })
+		page.keyboard = { press: async () => {} }
+		await expect(dismissSetupWizard(page, { timeout: 10 })).resolves.toBe(false)
+	})
+})
+
 describe('dismissSupportDialog', () => {
 	it('closes the dialog', async () => {
 		const dialog = { open: true, clicks: 0 }
@@ -885,6 +957,7 @@ describe('dismissSupportDialog', () => {
 			reason: null,
 			walkthroughDismissed: false,
 			supportDialogsDismissed: 0,
+			setupWizardDismissed: false,
 		})
 	})
 
@@ -1001,6 +1074,7 @@ describe('guest surfaces are DETECTABLE, not silently inert', () => {
 				reason: GUEST_SURFACE,
 				walkthroughDismissed: false,
 				supportDialogsDismissed: 0,
+				setupWizardDismissed: false,
 			})
 		})
 
