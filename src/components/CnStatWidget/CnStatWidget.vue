@@ -113,13 +113,27 @@ import '../../css/kpi-card.css'
  *
  * @type {Record<string, string>}
  */
+// THE `-text` TOKENS, NOT THE PLAIN ONES. These paint the NUMBER and the icon
+// tint, i.e. foreground. Nextcloud's `--color-success` / `--color-warning` /
+// `--color-error` are FILL colours meant to sit behind something; DefaultTheme
+// ships `--color-success-text` and friends for foreground use. Using a fill as
+// a text colour failed WCAG AA — axe measured #d8f3da on #f5f5f5, a contrast of
+// 1.08 against the required 3:1, serious, on filinq's dashboard (gate-33).
+//
+// kpi-card.css fixed exactly this for the CSS-class path; this inline map was
+// missed because nothing reached it — every `variant` in the fleet is on a
+// stats-block, which renders classes. The first manifest to put `variant` on a
+// `stat` or `delta` would have hit the old failure.
+//
+// Each keeps the plain token as a fallback, so a theme predating the `-text`
+// tokens degrades to the old colour rather than to none.
 const VARIANT_COLORS = {
 	default: '',
 	primary: 'var(--color-primary-element)',
-	success: 'var(--color-success)',
-	warning: 'var(--color-warning)',
-	error: 'var(--color-error)',
-	danger: 'var(--color-error)',
+	success: 'var(--color-success-text, var(--color-success))',
+	warning: 'var(--color-warning-text, var(--color-warning))',
+	error: 'var(--color-error-text, var(--color-error))',
+	danger: 'var(--color-error-text, var(--color-error))',
 }
 
 /**
