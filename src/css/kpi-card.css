@@ -145,23 +145,6 @@
 	container-name: cn-kpi;
 }
 
-/* A narrow tile steps its number down rather than clipping it.
-   A three-column KPI leaves roughly 130px beside the icon, which a six-figure
-   currency value overruns at the full size; the card's `overflow: hidden` then
-   cuts it mid-digit, and "€224,0" reads as a number rather than as damage.
-   Keyed to the CARD, not the viewport: the same tile is narrow at 3 columns on
-   a desktop and wide at 12 on a phone, so a media query would size it by the
-   wrong box.
-
-   The ICON deliberately does not shrink with it. A large circular icon beside
-   the number is the identity of this card, and 44px of a 173px tile still
-   leaves the value room once it steps down; shrinking both made the tile read
-   as a different, smaller component. */
-@container cn-kpi (max-width: 230px) {
-	.cn-kpi-card__value {
-		font-size: var(--cn-kpi-value-size-compact, 1.25rem);
-	}
-}
 
 /* The icon: a circle tinted from the card's own semantic colour. `color-mix`
    rather than a frozen rgba() so a re-themed palette re-tints it too. */
@@ -186,16 +169,15 @@
 	font-size: var(--cn-kpi-title-size, 14px);
 	font-weight: var(--cn-kpi-title-weight, 600);
 	color: var(--color-main-text);
-	/* Wraps to at most two lines rather than truncating on the first. Beside an
-	   icon there is not room for a name like "Recurring revenue (run-rate)" on
-	   one line, and "Recurring re…" does not identify the number underneath it.
-	   Past two lines it would push the value out of the tile, so it ellipsises
-	   there. */
-	display: -webkit-box;
-	-webkit-line-clamp: 2;
-	-webkit-box-orient: vertical;
+	/* One line, ellipsised. A two-line `-webkit-line-clamp` was tried and
+	   removed: this element is ALSO the flex row that carries CnStatWidget's
+	   range select, and `display: -webkit-box` cannot be both. The clamp lost
+	   to the scoped `display: flex` and silently did nothing, which is worse
+	   than not attempting it. Each component sets `title` on the element, so
+	   the full name is still reachable on hover. */
+	white-space: nowrap;
 	overflow: hidden;
-	overflow-wrap: anywhere;
+	text-overflow: ellipsis;
 	max-width: 100%;
 }
 
@@ -321,12 +303,6 @@
 	font-size: var(--cn-kpi-value-size-stacked, 2rem);
 }
 
-.cn-kpi-card--vertical .cn-kpi-card__title {
-	display: block;
-	white-space: nowrap;
-	text-overflow: ellipsis;
-}
-
 /* Filled: the card draws its own grey box, for a KPI that is NOT already
    inside a wrapper that draws one. Opt-in via `content.flat: false`. */
 .cn-kpi-card--filled {
@@ -393,3 +369,35 @@
 /* The `--flat` rule that used to live here is gone: dropping the box IS the
    base card now, so the modifier had nothing left to declare. See the note
    beside `--filled` above for why the class is still emitted. */
+
+/* ----------------------------------------
+   Narrow tiles
+   ----------------------------------------
+
+   THIS BLOCK MUST STAY LAST. A container query carries no extra specificity —
+   `.cn-kpi-card__value` inside it and the base `.cn-kpi-card__value` above are
+   equal, so whichever comes later wins. It was written directly beneath
+   `.cn-kpi-card`, ABOVE the base rule, and therefore never applied: measured
+   live on pipelinq, a 173px tile still rendered its value at 1.75rem and
+   "€224,070" was clipped by the card's `overflow: hidden`. Appending the very
+   same rule last took it to 1.25rem and the number fitted.
+
+   The first verification missed it because it injected the rule with
+   `!important`, which hides exactly this class of ordering bug. */
+/* A narrow tile steps its number down rather than clipping it.
+   A three-column KPI leaves roughly 130px beside the icon, which a six-figure
+   currency value overruns at the full size; the card's `overflow: hidden` then
+   cuts it mid-digit, and "€224,0" reads as a number rather than as damage.
+   Keyed to the CARD, not the viewport: the same tile is narrow at 3 columns on
+   a desktop and wide at 12 on a phone, so a media query would size it by the
+   wrong box.
+
+   The ICON deliberately does not shrink with it. A large circular icon beside
+   the number is the identity of this card, and 44px of a 173px tile still
+   leaves the value room once it steps down; shrinking both made the tile read
+   as a different, smaller component. */
+@container cn-kpi (max-width: 230px) {
+	.cn-kpi-card__value {
+		font-size: var(--cn-kpi-value-size-compact, 1.25rem);
+	}
+}

@@ -20,7 +20,7 @@
 		</div>
 
 		<div class="cn-kpi-card__body cn-delta-widget__body">
-			<div v-if="content.label" class="cn-kpi-card__title cn-delta-widget__label">
+			<div v-if="content.label" class="cn-kpi-card__title cn-delta-widget__label" :title="resolvedLabel">
 				{{ resolvedLabel }}
 			</div>
 
