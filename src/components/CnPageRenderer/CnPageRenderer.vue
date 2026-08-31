@@ -31,6 +31,34 @@
 		data-testid="cn-page"
 		:data-testid-page-id="currentPage.id"
 		:class="['cn-page-renderer', { 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
+		<!--
+		  A page whose `requiresApp` is not installed renders the missing-
+		  dependency screen INSTEAD of its body.
+
+		  This is for the deep link, not the menu. An entry gated by
+		  `visibleIf.appInstalled` is already hidden from navigation, so the
+		  only ways here are a bookmark, a shared URL, a redirect or an e2e
+		  spec — and every one of those otherwise lands on a page that renders
+		  an empty list with nothing saying why. "Not installed" then looks
+		  identical to "no data" and to "no permission".
+
+		  It is deliberately NOT the deprecated soft-dependency notice
+		  (REQ-DIA-6, off by default since 2.1.0). Those stacked one banner per
+		  optional app above EVERY page on EVERY load; this renders on the one
+		  page that actually needs the app, only when someone navigates to it.
+
+		  Widget-level gating stays with `visibleIf.appInstalled`: a detail page
+		  may carry many widgets where only one needs the app, and that widget
+		  hides while the page renders normally. Use `requiresApp` only when the
+		  WHOLE page is meaningless without it.
+		-->
+		<CnDependencyMissing
+			v-if="missingPageDependency"
+			:dependencies="[missingPageDependency]"
+			:heading="missingDependencyHeading"
+			:intro="missingDependencyIntro"
+			data-testid="cn-page-dependency-missing" />
+
 		<!-- V2 render path: slot dispatcher via CnWidgetGrid.
 		     Body falls back to the typed-primitive dispatch when no
 		     widgets[] entries target the `body` slot — apps that just
@@ -40,7 +68,7 @@
 		     to hand-author a widget entry. An explicit body widget
 		     (e.g. an `object-table` widget in `body`) still wins over
 		     the default. -->
-		<template v-if="isV2Manifest">
+		<template v-else-if="isV2Manifest">
 			<!-- body slot — widgets first, default typed component otherwise.
 			     KNOWN GAP (ConductionNL/hrmq#112 follow-up): a body widget
 			     short-circuits the typed component, so a `type: "detail"` page
@@ -203,6 +231,8 @@ import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { dispatchAction, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { useObjectStore } from '../../store/index.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
+import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 
 /** Recognised fixed slot names for v2 manifests. */
 const KNOWN_SLOTS = new Set(['body', 'sidebar', 'header-actions', 'footer', 'modal'])
@@ -243,6 +273,7 @@ export default {
 	name: 'CnPageRenderer',
 
 	components: {
+		CnDependencyMissing,
 		CnWidgetGrid,
 		CnPageConfigModal,
 		CnBuildiqEditButton,
@@ -622,6 +653,66 @@ export default {
 		 */
 		effectivePageTypes() {
 			return this.pageTypes ?? this.cnPageTypes ?? defaultPageTypes
+		},
+		/**
+		 * The app this page needs but that is not installed, or null.
+		 *
+		 * Reads the page's `requiresApp` and answers with a dependency entry
+		 * shaped the way CnDependencyMissing expects, so the same screen the
+		 * app-level check uses is reused rather than a second one written.
+		 *
+		 * `isAppInstalled` is the SAME resolver `visibleIf.appInstalled` uses.
+		 * Deliberately so: a menu entry hidden by one predicate and a page
+		 * gated by a different one would drift, and the pair would disagree
+		 * about whether the app is there.
+		 *
+		 * @return {{id: string, name: string}|null} The missing app, or null.
+		 */
+		missingPageDependency() {
+			const required = this.currentPage?.requiresApp
+			if (!required) {
+				return null
+			}
+
+			const id = (typeof required === 'string' ? required : required.id)
+			if (!id || isAppInstalled(id)) {
+				return null
+			}
+
+			return {
+				id,
+				name: (typeof required === 'object' && required.name) || id,
+			}
+		},
+		/**
+		 * Heading for the page-level missing-dependency screen.
+		 *
+		 * Overridden away from CnDependencyMissing's default ("Required apps
+		 * are missing"), which is written for the app-level check where
+		 * NOTHING works. Here the app is fine and one feature is not, and
+		 * saying otherwise would send the reader looking for a broken install.
+		 *
+		 * @return {string} The heading.
+		 */
+		missingDependencyHeading() {
+			return this.tr('This feature needs another app')
+		},
+		/**
+		 * Intro for the page-level missing-dependency screen.
+		 *
+		 * @return {string} The intro line.
+		 */
+		missingDependencyIntro() {
+			const title = (this.currentPage?.title || '')
+			if (title) {
+				return this.tr(
+					'"{page}" needs the following app to be installed and enabled.',
+				).replace('{page}', title)
+			}
+
+			return this.tr(
+				'This page needs the following app to be installed and enabled.',
+			)
 		},
 		/** Page definition matching the current route name, or null. */
 		currentPage() {
