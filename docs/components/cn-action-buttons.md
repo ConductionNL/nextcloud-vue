@@ -15,7 +15,7 @@ dispatcher — with a confirm gate first when the action asks for it.
 
 | `type` | Behaviour |
 |--------|-----------|
-| `open-form` | Fetches the action's `schema` through the object store and mounts `CnAdvancedFormDialog`; saves the new object on confirm, toasts, bumps `cn:page:refresh`, and navigates to `onSuccessRoute` when set. |
+| `open-form` | Fetches the action's `schema` through the object store and mounts `CnAdvancedFormDialog`; saves the new object on confirm, toasts, bumps `cn:page:refresh`, and navigates to `onSuccessRoute` when set. Optional `props` seeds fixed field values into the create form, and `createOverride` names a registry handler that owns the persist instead of `objectStore.saveObject`. |
 | `toggle` | Two-way state button: GETs `stateSource` on mount, renders `labelOn` / `labelOff`, and on click writes the flipped value **optimistically** (reverting on failure). |
 | `api-call` | POST/PUT `url` + success/error toast + page refresh — via `dispatchAction`. `payload` (preferred, deep @-token resolution) or `params` (legacy, shallow) supplies the JSON body; `download: true` requests a blob response and triggers a browser file download instead (no auto-refresh unless `refresh: true`). See [dispatchAction](../utilities/dispatch-action.md#api-call-wave-3-91). |
 | `agent` | Run a governed hermiq agent against the page object (hermiq#41). POSTs `{ register, schema, objectId, resultField?, skill?, prompt? }` to `/apps/hermiq/api/agents/{agent}/run-on-object` — `register` / `schema` / `objectId` default to the page's `@register` / `@schema` / `@objectId` context. A first-class companion to `api-call` (still the fallback for a bespoke body); hermiq is not hard-required — an app-level 404 toasts "Agent runtime unavailable". See [dispatchAction](../utilities/dispatch-action.md#agent-hermiq41). |
@@ -54,6 +54,36 @@ A `confirm: true` action opens `CnConfirmDialog` **before** dispatching
     "stateSource": { "url": "/apps/pipelinq/api/werkplek/@objectId/state", "responsePath": "open" },
     "field": "open", "writeUrl": "/apps/pipelinq/api/werkplek/@objectId/state", "method": "PUT" }
 ]
+```
+
+### Creating objects the bare form can't
+
+Two optional keys on an `open-form` action cover schemas a plain create
+cannot satisfy:
+
+- **`props`** seeds fixed field values into the create form (via
+  `CnAdvancedFormDialog`'s `initialValues`). This is how ONE schema backs
+  several buttons — "New request" and "New complaint" both open the
+  `ticket` form, each fixing its own `ticketType`. It seeds a create; it
+  does not turn the dialog into an edit.
+- **`createOverride`** names a registry handler that owns the persist
+  instead of `objectStore.saveObject`, resolved exactly as CnIndexPage
+  resolves its `createOverride` prop (a `kind: 'create-override'` entry's
+  `.handler`, a function-valued registry entry, or a function in the legacy
+  `customComponents` map). Reach for it when the schema requires a field
+  the form cannot supply — a server-minted foreign key, say — where a
+  straight save would 400.
+
+```jsonc
+{ "id": "new-request", "label": "New request", "type": "open-form",
+  "register": "pipelinq", "schema": "ticket",
+  "props": { "ticketType": "request" },
+  "onSuccessRoute": "TicketDetail", "variant": "primary" },
+
+{ "id": "new-client", "label": "New client", "type": "open-form",
+  "register": "pipelinq", "schema": "client",
+  "createOverride": "createClientContactAware",
+  "onSuccessRoute": "ClientDetail" }
 ```
 
 An `agent` action's `register` / `schema` / `objectId` are omitted above —

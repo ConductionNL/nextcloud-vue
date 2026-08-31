@@ -10,6 +10,8 @@
 		:options="displayOptions"
 		:loading="loading"
 		:clearable="clearable"
+		:disabled="disabled"
+		:placeholder="placeholder"
 		:filterable="false"
 		label="label"
 		@search="onSearch"
@@ -47,6 +49,19 @@ import { useObjectStore } from '../../store/index.js'
  *
  * Backwards-compatible, self-contained: it owns its own search + create flow,
  * so a consumer only needs to pass `register` + `schema` and bind `modelValue`.
+ *
+ * Three opt-in props cover the cases a plain object picker cannot:
+ *
+ *  - `filters` SCOPES the options to a parent selection, which is what makes a
+ *    cascading pair work (pick a client, then only that client's contacts are
+ *    offered). Changing the scope clears a now-invalid selection.
+ *  - `preload` fetches a first page on mount so the field can be BROWSED, not
+ *    only searched — the behaviour a user expects from a select.
+ *  - `createHandler` replaces the built-in save. Creating from a bare term only
+ *    works while the term is enough to satisfy the schema; the moment a
+ *    required field must come from somewhere else (a server-minted key, a value
+ *    worth collecting in a full dialog) the consumer owns the create and
+ *    resolves the finished object back.
  *
  * Example:
  * ```vue
@@ -123,6 +138,58 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+		/**
+		 * Field filters merged into the search query, so the option list can be
+		 * SCOPED to a parent selection — the cascading-select case (pick a
+		 * client, then only that client's contacts are offered). Changing this
+		 * reloads the options and clears a selection that no longer belongs to
+		 * the new scope.
+		 *
+		 * Example: `:filters="{ client: form.client }"`.
+		 * @type {object}
+		 */
+		filters: {
+			type: Object,
+			default: () => ({}),
+		},
+		/**
+		 * Load a first page of options on mount (and whenever `filters`
+		 * change) instead of waiting for `minChars` of typing. Lets the field
+		 * be BROWSED like a plain select while still searching server-side once
+		 * the user types. Off by default so existing consumers keep their
+		 * search-only behaviour and issue no extra request.
+		 */
+		preload: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Disable the input — e.g. a dependent select waiting on its parent.
+		 */
+		disabled: {
+			type: Boolean,
+			default: false,
+		},
+		/** Placeholder text for the underlying NcSelect. */
+		placeholder: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Override how a new object is created from the typed term. Receives
+		 * `(term, payload)` and MUST resolve to the created object (or a falsy
+		 * value to abort, e.g. the user cancelled a dialog).
+		 *
+		 * Without it the component posts `payload` straight to
+		 * `objectStore.saveObject`, which is wrong whenever the schema requires
+		 * a field the term cannot supply — a server-minted foreign key, say, or
+		 * anything the consumer would rather collect in a full create dialog.
+		 * @type {Function|null}
+		 */
+		createHandler: {
+			type: Function,
+			default: null,
+		},
 	},
 
 	emits: ['update:modelValue', 'create'],
@@ -176,6 +243,34 @@ export default {
 			}
 			return opts
 		},
+		/**
+		 * Stable string identity for `filters`. Watching the object itself
+		 * would re-fire on every parent re-render (a fresh object literal is a
+		 * new identity even when the values are unchanged), reloading options
+		 * and clobbering the selection in a loop.
+		 *
+		 * @return {string}
+		 */
+		filtersKey() {
+			return JSON.stringify(this.filters || {})
+		},
+		/**
+		 * `filters` with empty entries dropped. A parent that has not been
+		 * chosen yet holds `null`, and forwarding `client=` as a query param
+		 * asks the API for objects whose client is the empty string — which
+		 * matches nothing and reads as "no results" rather than "not scoped".
+		 *
+		 * @return {object}
+		 */
+		activeFilters() {
+			const out = {}
+			for (const [key, value] of Object.entries(this.filters || {})) {
+				if (value !== null && value !== undefined && value !== '') {
+					out[key] = value
+				}
+			}
+			return out
+		},
 	},
 
 	watch: {
@@ -185,9 +280,54 @@ export default {
 				this.ensureSelectedLoaded()
 			},
 		},
+		filtersKey(next, prev) {
+			if (next === prev) return
+			// The scope moved, so anything already selected may no longer be
+			// in it. Drop the stale options + selection, then re-seed.
+			this.options = []
+			if (this.modelValue) {
+				this.localSelected = null
+				this.$emit('update:modelValue', '')
+			}
+			if (this.search.trim().length >= this.minChars) {
+				this.onSearch(this.search)
+			} else {
+				this.loadInitialOptions()
+			}
+		},
+	},
+
+	created() {
+		this.loadInitialOptions()
 	},
 
 	methods: {
+		/**
+		 * Seed the dropdown with a first page of options so the field can be
+		 * browsed without typing. No-op unless `preload` is set.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadInitialOptions() {
+			if (!this.preload || !this.objectStore) return
+			this.loading = true
+			try {
+				this.ensureRegistered()
+				const collection = await this.objectStore.fetchCollection(this.typeSlug, {
+					...this.activeFilters,
+					_limit: 20,
+				})
+				const items = Array.isArray(collection)
+					? collection
+					: (this.objectStore.collections[this.typeSlug] || [])
+				this.options = items.map((o) => this.toOption(o))
+			} catch (e) {
+				this.options = []
+			} finally {
+				this.loading = false
+			}
+		},
+
 		/**
 		 * The translated "Create 'X'" label for the synthetic option.
 		 *
@@ -208,13 +348,17 @@ export default {
 		async onSearch(term) {
 			this.search = term || ''
 			if (!this.objectStore || this.search.trim().length < this.minChars) {
+				// Below the search threshold: fall back to the browsable first
+				// page when preloading, rather than blanking the list.
 				this.options = []
+				this.loadInitialOptions()
 				return
 			}
 			this.loading = true
 			try {
 				this.ensureRegistered()
 				const collection = await this.objectStore.fetchCollection(this.typeSlug, {
+					...this.activeFilters,
 					_search: this.search.trim(),
 					_limit: 20,
 				})
@@ -261,14 +405,25 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async createFromTerm(term) {
-			if (!this.objectStore) return
+			if (!this.objectStore && !this.createHandler) return
 			const name = (term || '').trim()
 			if (!name) return
 			this.loading = true
 			try {
-				this.ensureRegistered()
-				const payload = { ...this.createDefaults, [this.labelField]: name }
-				const created = await this.objectStore.saveObject(this.typeSlug, payload)
+				// The active scope is part of the new object's identity: a
+				// contact created while the list is filtered to one client
+				// belongs to that client. An explicit createDefaults entry
+				// still wins.
+				const payload = { ...this.activeFilters, ...this.createDefaults, [this.labelField]: name }
+				let created
+				if (this.createHandler) {
+					// A falsy resolve means the consumer aborted (cancelled
+					// dialog) — leave the selection untouched.
+					created = await this.createHandler(name, payload)
+				} else {
+					this.ensureRegistered()
+					created = await this.objectStore.saveObject(this.typeSlug, payload)
+				}
 				if (!created) return
 				const option = this.toOption(created)
 				this.options = [option, ...this.options.filter((o) => o.value !== option.value)]
