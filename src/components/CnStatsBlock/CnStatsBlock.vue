@@ -28,7 +28,7 @@
 		<!-- Content -->
 		<div class="cn-kpi-card__body cn-stats-block__content">
 			<div class="cn-stats-block__header">
-				<h4 class="cn-kpi-card__title">
+				<h4 class="cn-kpi-card__title" :title="title || undefined">
 					{{ title || t('nextcloud-vue', 'Objects') }}
 				</h4>
 			</div>
