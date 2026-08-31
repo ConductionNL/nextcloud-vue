@@ -870,6 +870,12 @@ export function validateManifest(manifest, options = {}) {
 			// (`manifest-detail-sidebar-config` spec — sibling of config,
 			// applies to every page type).
 			validatePageSidebar(page, index, errors)
+
+			// Per-page soft-dependency gate. Validated rather than ignored
+			// because a typo here fails OPEN: an unrecognised key is simply
+			// not read, the gate never fires, and the page renders an empty
+			// list that looks like "no data" instead of "install the app".
+			validatePageRequiresApp(page, index, errors)
 		})
 	}
 
@@ -1407,6 +1413,52 @@ function validateDetailTabsArray(tabs, tabsPath, errors) {
  * @param {number} pageIndex Index in `manifest.pages`
  * @param {string[]} errors Accumulator
  */
+/**
+ * Validate a page's `requiresApp` soft-dependency gate.
+ *
+ * Accepts a non-empty app id, or `{ id, name? }` when the page wants a
+ * human-readable name on the missing-dependency screen.
+ *
+ * This gates a WHOLE page and is for the deep link: a menu entry is hidden by
+ * `visibleIf.appInstalled`, so the page is still reachable by bookmark, shared
+ * URL, redirect or e2e spec. Gate a single widget with `visibleIf` instead —
+ * a detail page may carry many widgets where only one needs the app.
+ *
+ * @param {object} page      The page definition.
+ * @param {number} pageIndex Index of the page, for the error path.
+ * @param {Array<string>} errors Collected error messages, appended in place.
+ *
+ * @return {void}
+ */
+function validatePageRequiresApp(page, pageIndex, errors) {
+	if (page.requiresApp === undefined) return
+
+	const path = `/pages/${pageIndex}/requiresApp`
+
+	if (typeof page.requiresApp === 'string') {
+		if (page.requiresApp.length === 0) {
+			errors.push(`${path} must be a non-empty string`)
+		}
+		return
+	}
+
+	if (!isPlainObject(page.requiresApp)) {
+		errors.push(`${path} must be a non-empty string or an { id, name? } object`)
+		return
+	}
+
+	if (typeof page.requiresApp.id !== 'string' || page.requiresApp.id.length === 0) {
+		errors.push(`${path}/id must be a non-empty string`)
+	}
+
+	if (
+		page.requiresApp.name !== undefined
+		&& (typeof page.requiresApp.name !== 'string' || page.requiresApp.name.length === 0)
+	) {
+		errors.push(`${path}/name must be a non-empty string when present`)
+	}
+}
+
 function validatePageSidebar(page, pageIndex, errors) {
 	if (page.sidebar === undefined) return
 	const path = `/pages/${pageIndex}/sidebar`
