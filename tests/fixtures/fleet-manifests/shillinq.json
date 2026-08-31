@@ -16830,7 +16830,7 @@
 						"id": "bulk-classify-timing",
 						"label": "Classify as Timing",
 						"icon": "ClockOutline",
-						"endpoint": "/api/reconciliations/:reconId/matches/bulk-resolve",
+						"type": "api-call", "method": "POST", "url": "/api/reconciliations/:reconId/matches/bulk-resolve",
 						"payload": {
 							"resolutionStatus": "timing"
 						},
@@ -16840,7 +16840,7 @@
 						"id": "bulk-classify-pending",
 						"label": "Classify as Pending",
 						"icon": "TimerSandEmpty",
-						"endpoint": "/api/reconciliations/:reconId/matches/bulk-resolve",
+						"type": "api-call", "method": "POST", "url": "/api/reconciliations/:reconId/matches/bulk-resolve",
 						"payload": {
 							"resolutionStatus": "pending"
 						}
@@ -16849,7 +16849,7 @@
 						"id": "bulk-classify-adjustment",
 						"label": "Classify as Adjustment",
 						"icon": "TuneVariant",
-						"endpoint": "/api/reconciliations/:reconId/matches/bulk-resolve",
+						"type": "api-call", "method": "POST", "url": "/api/reconciliations/:reconId/matches/bulk-resolve",
 						"payload": {
 							"resolutionStatus": "adjustment"
 						}
