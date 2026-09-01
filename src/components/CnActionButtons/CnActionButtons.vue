@@ -70,6 +70,7 @@ import { CnIcon } from '../CnIcon/index.js'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { dispatchAction, resolveObjectOpType, buildOnSuccessRoute, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
@@ -230,7 +231,13 @@ export default {
 		 */
 		formInitialValues() {
 			const props = this.formEntry && this.formEntry.props
-			return (props && typeof props === 'object' && !Array.isArray(props)) ? props : null
+			if (!props || typeof props !== 'object' || Array.isArray(props)) return null
+			// Seed values go through the SAME token grammar as filters, so an
+			// action on a detail page can stamp the record it belongs to:
+			// `{ "domainObjectRef": "@objectId" }`. Without this the literal
+			// string "@objectId" is saved, and a foreign key pointing at nothing
+			// is a defect that only shows up in whatever reads it later.
+			return resolveFilterTokens(props, this.tokenCtx)
 		},
 		/** The actions whose visibleWhen evaluated true (or carry no predicate). */
 		visibleActions() {

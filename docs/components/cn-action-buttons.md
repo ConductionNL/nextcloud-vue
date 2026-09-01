@@ -66,6 +66,13 @@ cannot satisfy:
   several buttons — "New request" and "New complaint" both open the
   `ticket` form, each fixing its own `ticketType`. It seeds a create; it
   does not turn the dialog into an edit.
+
+  Seed values go through the **same token grammar as filters**, so an action
+  on a detail page can stamp the record it belongs to:
+  `"props": { "domainObjectRef": "@objectId", "domainObjectType": "dossiq:case" }`.
+  Without that resolution the literal string `@objectId` is saved, and a
+  foreign key pointing at nothing is a defect that surfaces only in whatever
+  reads it later.
 - **`createOverride`** names a registry handler that owns the persist
   instead of `objectStore.saveObject`, resolved exactly as CnIndexPage
   resolves its `createOverride` prop (a `kind: 'create-override'` entry's
