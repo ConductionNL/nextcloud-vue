@@ -141,3 +141,50 @@ describe('evaluateVisibleWhenLocal', () => {
 		expect(evaluateVisibleWhenLocal({ field: 'b', op: 'eq', value: 'y' }, { b: undefined })).toBe(false)
 	})
 })
+
+describe('appInstalled precondition', () => {
+	beforeEach(() => {
+		global.OC = { appswebroots: { humaniq: '/apps/humaniq' } }
+	})
+	afterEach(() => {
+		delete global.OC
+	})
+
+	it('shows when the named app is installed and nothing else is asked', async () => {
+		await expect(evaluateVisibleWhen({ appInstalled: 'humaniq' }, {})).resolves.toBe(true)
+	})
+
+	it('hides when the named app is absent', async () => {
+		await expect(evaluateVisibleWhen({ appInstalled: 'nosuchapp' }, {})).resolves.toBe(false)
+	})
+
+	it('gates a local field condition behind the app check', async () => {
+		// Both must hold: the app is here AND the record is in the right state.
+		const ctx = { object: { status: 'open' } }
+		await expect(evaluateVisibleWhen(
+			{ appInstalled: 'humaniq', field: 'status', op: 'eq', value: 'open' }, ctx,
+		)).resolves.toBe(true)
+		await expect(evaluateVisibleWhen(
+			{ appInstalled: 'humaniq', field: 'status', op: 'eq', value: 'closed' }, ctx,
+		)).resolves.toBe(false)
+	})
+
+	it('hides on the app check even when the field condition would pass', async () => {
+		const ctx = { object: { status: 'open' } }
+		await expect(evaluateVisibleWhen(
+			{ appInstalled: 'nosuchapp', field: 'status', op: 'eq', value: 'open' }, ctx,
+		)).resolves.toBe(false)
+	})
+
+	it('is honoured by the synchronous local evaluator too', () => {
+		// Without this the two evaluators disagree, and a form field gated on an
+		// app would show in one code path and hide in the other.
+		expect(evaluateVisibleWhenLocal({ appInstalled: 'humaniq' }, {})).toBe(true)
+		expect(evaluateVisibleWhenLocal({ appInstalled: 'nosuchapp' }, {})).toBe(false)
+	})
+
+	it('leaves a condition with no appInstalled key untouched', async () => {
+		await expect(evaluateVisibleWhen({ field: 'a', op: 'eq', value: 1 }, { object: { a: 1 } })).resolves.toBe(true)
+	})
+})
+

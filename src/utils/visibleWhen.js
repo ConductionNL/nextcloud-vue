@@ -5,8 +5,17 @@
  * visibleWhen — the shared declarative visibility predicate (Wave 1 banner
  * shape, generalised in Wave 3 of nextcloud-vue#91 for manifest actions).
  *
- * A `visibleWhen` condition is `{ endpoint?, source?, field?, op?, value }`
- * with THREE evaluation modes (first match wins):
+ * A `visibleWhen` condition is
+ * `{ appInstalled?, endpoint?, source?, field?, op?, value }`.
+ *
+ * `appInstalled` is a precondition rather than a mode: it names the Nextcloud
+ * app that backs the guarded element, and it is checked before anything else.
+ * On its own it IS the whole condition; combined with one of the modes below
+ * it gates that mode. It exists because the menu's `visibleIf` already spoke
+ * this word and `visibleWhen` did not, so the same manifest vocabulary meant
+ * two different things in two places.
+ *
+ * The value itself comes from one of THREE evaluation modes (first match wins):
  *
  *  1. `endpoint` — GET a same-origin JSON endpoint; `field` is a dot-path
  *     into the response body.
@@ -40,6 +49,8 @@ import { resolveFilterTokens } from './resolveFilterTokens.js'
 
 /** Supported visibleWhen comparison operators. */
 export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte']
+
+import { isAppInstalled } from './appInstalled.js'
 
 /**
  * Read a dot-path off an object (`'a.b.c'`); the object itself when no
@@ -131,6 +142,20 @@ export async function readVisibleWhenValue(cond, ctx) {
 export async function evaluateVisibleWhen(cond, ctx) {
 	if (!cond) return true
 	try {
+		// `appInstalled` is checked FIRST and on its own: it answers "is the app
+		// that backs this action even here", which has to settle before any of
+		// the other modes are worth evaluating. The menu's `visibleIf` already
+		// spoke this word, and `visibleWhen` did not, so a manifest author who
+		// wrote `{ appInstalled: "humaniq" }` here got a condition with no
+		// `field` — which the local mode rejects as malformed and hides. The
+		// button then never appeared, and nothing said why.
+		if (typeof cond.appInstalled === 'string' && cond.appInstalled !== '') {
+			if (!isAppInstalled(cond.appInstalled)) return false
+			// `appInstalled` on its own IS the whole condition. Combined with a
+			// field/endpoint/source it acts as a precondition, and evaluation
+			// falls through to that.
+			if (!cond.field && !cond.endpoint && !cond.source) return true
+		}
 		const actual = await readVisibleWhenValue(cond, ctx)
 		return compareVisibleWhen(actual, cond.op || 'eq', cond.value)
 	} catch (e) {
@@ -158,6 +183,10 @@ export function evaluateVisibleWhenLocal(cond, data) {
 	if (cond === null || cond === undefined) return true
 	if (typeof cond !== 'object' || Array.isArray(cond)) return false
 	if (cond.endpoint || cond.source) return false
+	if (typeof cond.appInstalled === 'string' && cond.appInstalled !== '') {
+		if (!isAppInstalled(cond.appInstalled)) return false
+		if (!cond.field) return true
+	}
 	if (typeof cond.field !== 'string' || cond.field.length === 0) return false
 	try {
 		const actual = readVisibleWhenPath(data, cond.field)

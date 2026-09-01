@@ -28,6 +28,18 @@ page / object context. A hidden action simply doesn't render. The
 (`{ field: "state", op: "eq", value: "pending" }`), so a detail action can
 show only in the right lifecycle state — no request.
 
+**`appInstalled`** is a precondition rather than a mode: it names the Nextcloud
+app that backs the action, and it is checked before anything else. On its own it
+is the whole condition (`{ "appInstalled": "humaniq" }`); combined with a
+`field` / `endpoint` / `source` it gates that mode as well, so both must hold.
+
+It exists because the manifest menu's `visibleIf` already spoke this word and
+`visibleWhen` did not. An author who wrote `{ "appInstalled": "humaniq" }` here
+got a condition with no `field`, which the predicate rejects as malformed and
+hides — so the button never appeared and nothing said why. An action that writes
+into a sibling app should carry it, so an install without that app sees no
+button rather than a form that saves nowhere.
+
 A `confirm: true` action opens `CnConfirmDialog` **before** dispatching
 (the object-op precedent).
 
