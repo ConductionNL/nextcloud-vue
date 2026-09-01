@@ -17,6 +17,7 @@
 
 ### Slots
 
-| Name      | Bindings | Description                                                                  |
-| --------- | -------- | ---------------------------------------------------------------------------- |
-| `default` | —        | The CnTab children. Anything else is rendered into the panel area untouched. |
+| Name      | Bindings       | Description                                                                                                                                                                                                                                                                                          |
+| --------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nav-end` | `active-index` | nav-end Rendered at the right-hand end of the tab bar, deliberately OUTSIDE the `role="tablist"` element. A widget Actions menu belongs beside the strip, not inside it: anything nested in the tablist is announced as one of the tabs, so a screen-reader user counting six tabs would hear seven. |
+| `default` | —              | The CnTab children. Anything else is rendered into the panel area untouched.                                                                                                                                                                                                                         |

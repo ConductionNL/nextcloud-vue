@@ -1,27 +1,34 @@
 <template>
 	<div class="cn-tabs" :class="{ 'cn-tabs--card': card }">
-		<div
-			class="cn-tabs__nav"
-			:class="{ 'cn-tabs__nav--justified': justified }"
-			role="tablist"
-			:aria-label="ariaLabel || null"
-			@keydown="onNavKeydown">
-			<button
-				v-for="tab in tabs"
-				:id="tab.tabId"
-				:key="tab.uid"
-				ref="navButtons"
-				type="button"
-				role="tab"
-				class="cn-tabs__nav-item"
-				:class="{ 'cn-tabs__nav-item--active': isActive(tab.uid) }"
-				:aria-selected="isActive(tab.uid) ? 'true' : 'false'"
-				:aria-controls="tab.panelId"
-				:tabindex="isActive(tab.uid) ? 0 : -1"
-				:disabled="tab.disabled || null"
-				@click="tab.onActivate()">
-				<component :is="tab.titleRender" />
-			</button>
+		<div class="cn-tabs__bar">
+			<div
+				class="cn-tabs__nav"
+				:class="{ 'cn-tabs__nav--justified': justified }"
+				role="tablist"
+				:aria-label="ariaLabel || null"
+				@keydown="onNavKeydown">
+				<button
+					v-for="tab in tabs"
+					:id="tab.tabId"
+					:key="tab.uid"
+					ref="navButtons"
+					type="button"
+					role="tab"
+					class="cn-tabs__nav-item"
+					:class="{ 'cn-tabs__nav-item--active': isActive(tab.uid) }"
+					:aria-selected="isActive(tab.uid) ? 'true' : 'false'"
+					:aria-controls="tab.panelId"
+					:tabindex="isActive(tab.uid) ? 0 : -1"
+					:disabled="tab.disabled || null"
+					@click="tab.onActivate()">
+					<component :is="tab.titleRender" />
+				</button>
+			</div>
+			<div v-if="$slots['nav-end']" class="cn-tabs__nav-end">
+				<!-- @slot nav-end Rendered at the right-hand end of the tab bar, deliberately OUTSIDE the `role="tablist"` element. A widget Actions menu belongs beside the strip, not inside it: anything nested in the tablist is announced as one of the tabs, so a screen-reader user counting six tabs would hear seven. -->
+				<!-- @binding {number} active-index Index of the currently selected tab. -->
+				<slot name="nav-end" :active-index="activeIndex" />
+			</div>
 		</div>
 		<div class="cn-tabs__content" :class="contentClass">
 			<!-- @slot The CnTab children. Anything else is rendered into the panel area untouched. -->
@@ -54,6 +61,22 @@
  *   </CnTab>
  * </CnTabs>
  * ```
+ *
+ * ## Putting controls beside the strip
+ *
+ * `#nav-end` fills the right-hand end of the tab bar. `CnTabsWidget` uses it to
+ * carry the active child's Actions menu, so one menu serves every tab instead
+ * of each panel drawing its own header:
+ *
+ * ```vue
+ * <CnTabs aria-label="Case details">
+ *   <template #nav-end><CnActionsMenu :title="activeTitle" /></template>
+ *   <CnTab title="Notes">…</CnTab>
+ * </CnTabs>
+ * ```
+ *
+ * The slot renders OUTSIDE the `role="tablist"` element on purpose. See the
+ * comment on it in the template.
  *
  * ## Migrating from `bootstrap-vue`
  *
@@ -254,11 +277,34 @@ export default defineComponent({
 </script>
 
 <style scoped>
+/* The bar owns the rule under the strip so a `#nav-end` surface sits ON the
+   line rather than above a line that stops where the last tab does. With no
+   nav-end content the nav is the bar's only child and the result is pixel
+   identical to the rule living on the nav itself. */
+.cn-tabs__bar {
+	align-items: flex-end;
+	border-bottom: 1px solid var(--color-border);
+	display: flex;
+	gap: 8px;
+}
+
 .cn-tabs__nav {
 	display: flex;
+	flex: 1 1 auto;
 	gap: 4px;
-	border-bottom: 1px solid var(--color-border);
-	overflow-x: auto;
+	min-width: 0;
+	/* Wrap before scrolling. A horizontally scrolling strip hides tabs behind
+	   an edge with nothing to say they are there, and beside a `#nav-end`
+	   control the clipped tab reads as sitting UNDER the control. Wrapping
+	   keeps every tab reachable without a gesture. */
+	flex-wrap: wrap;
+}
+
+.cn-tabs__nav-end {
+	align-items: center;
+	display: flex;
+	flex: 0 0 auto;
+	gap: 4px;
 }
 
 .cn-tabs__nav-item {
