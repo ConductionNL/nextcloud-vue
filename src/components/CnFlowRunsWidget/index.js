@@ -21,6 +21,8 @@ registerDashboardWidget('flow-runs', {
 		limit: 6,
 		pollSeconds: 15,
 		rowRoute: '',
+		runRoute: '',
+		subject: '',
 		emptyText: '',
 	},
 	displayName: 'Running flows',

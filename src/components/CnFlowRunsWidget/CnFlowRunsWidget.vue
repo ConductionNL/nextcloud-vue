@@ -9,16 +9,27 @@
 		<p v-if="error" class="cn-flow-runs-widget__error">
 			{{ tr('Could not load the running flows') }}
 		</p>
-		<div v-else-if="loading && rows.length === 0" class="cn-flow-runs-widget__loading">
+		<!-- A configured-but-unresolved subject token also shows the loading
+		     state: "no runs" would be a claim about a case the widget has not
+		     identified yet. -->
+		<div v-else-if="(loading || subjectPending) && rows.length === 0" class="cn-flow-runs-widget__loading">
 			<NcLoadingIcon :size="24" />
 		</div>
+		<!-- A subject where nothing EVER ran gets its own line: distinct from
+		     a case that is merely quiet right now. -->
+		<p v-else-if="neverRan" class="cn-flow-runs-widget__empty">
+			{{ tr('No flows have run yet') }}
+		</p>
 		<!-- Nothing running is the NORMAL state for this widget, not an
 		     error and not a void: one muted line, no illustration. -->
-		<p v-else-if="rows.length === 0" class="cn-flow-runs-widget__empty">
+		<p v-else-if="rows.length === 0 && showHistory === false" class="cn-flow-runs-widget__empty">
 			{{ emptyLabel }}
 		</p>
 		<template v-else>
-			<ul class="cn-flow-runs-widget__list">
+			<p v-if="rows.length === 0" class="cn-flow-runs-widget__empty">
+				{{ emptyLabel }}
+			</p>
+			<ul v-else class="cn-flow-runs-widget__list">
 				<li
 					v-for="run in rows"
 					:key="run.uuid"
@@ -42,15 +53,50 @@
 			<p v-if="hiddenCount > 0" class="cn-flow-runs-widget__more">
 				{{ moreLabel }}
 			</p>
+			<!-- The subject's run history. Terminal rows sit under their own
+			     labelled section with a hollow dot and a muted name, so live
+			     and finished never rely on colour alone to tell apart. -->
+			<template v-if="showHistory">
+				<p class="cn-flow-runs-widget__history-title">
+					{{ tr('Earlier runs') }}
+				</p>
+				<p v-if="completedError" class="cn-flow-runs-widget__error">
+					{{ tr('Could not load the run history') }}
+				</p>
+				<ul v-else class="cn-flow-runs-widget__list">
+					<li
+						v-for="run in completedRows"
+						:key="run.uuid"
+						class="cn-flow-runs-widget__row cn-flow-runs-widget__row--terminal"
+						:class="{ 'cn-flow-runs-widget__row--linked': isLinked }"
+						:data-status="run.status"
+						@click="onRowClick(run)">
+						<span
+							class="cn-flow-runs-widget__dot cn-flow-runs-widget__dot--terminal"
+							:class="`cn-flow-runs-widget__dot--${run.status}`"
+							:title="statusLabel(run.status)" />
+						<span class="cn-flow-runs-widget__body">
+							<span class="cn-flow-runs-widget__name">{{ run.flowName }}</span>
+							<span class="cn-flow-runs-widget__meta">{{ metaLine(run) }}</span>
+						</span>
+						<span class="cn-flow-runs-widget__age">{{ ageLabel(run) }}</span>
+					</li>
+				</ul>
+				<p v-if="completedError === '' && completedHiddenCount > 0" class="cn-flow-runs-widget__more">
+					{{ completedMoreLabel }}
+				</p>
+			</template>
 		</template>
 	</div>
 </template>
 
 <script>
-import { inject, ref } from 'vue'
+import { computed, inject, ref } from 'vue'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
+import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 
 /**
  * The OpenRegister endpoint that lists the caller's live flow runs.
@@ -65,8 +111,19 @@ import { useEndpointSource } from '../../composables/useEndpointSource.js'
 const ACTIVE_RUNS_URL = '/apps/openregister/api/flow-runs/active'
 
 /**
+ * The OpenRegister endpoint that lists the finished runs for ONE subject
+ * object. Subject-required by contract (openregister change
+ * `flow-runs-subject-scope`): there is no org-wide "all finished runs" here,
+ * so the widget only ever calls it with a resolved subject uuid.
+ *
+ * @type {string}
+ */
+const COMPLETED_RUNS_URL = '/apps/openregister/api/flow-runs/completed'
+
+/**
  * Statuses, in the order a person reads them: what is executing, what is
- * queued behind it, what is parked waiting on a timer or a child run.
+ * queued behind it, what is parked waiting on a timer or a child run, and
+ * then the terminal set a subject's run history renders.
  *
  * @type {Record<string, string>}
  */
@@ -74,7 +131,20 @@ const STATUS_LABELS = {
 	running: 'Running',
 	queued: 'Queued',
 	suspended: 'Waiting',
+	completed: 'Completed',
+	stopped: 'Stopped',
+	failed: 'Failed',
+	dead_letter: 'Failed after retries',
 }
+
+/**
+ * The terminal statuses (FlowRun::TERMINAL on the OpenRegister side). Rows
+ * with one of these are HISTORY: rendered in the earlier-runs section with a
+ * hollow dot and a muted name, never mixed into the live list.
+ *
+ * @type {string[]}
+ */
+const TERMINAL_STATUSES = ['completed', 'stopped', 'failed', 'dead_letter']
 
 /**
  * CnFlowRunsWidget — the live flow runs for the viewer's organisation.
@@ -101,7 +171,15 @@ const STATUS_LABELS = {
  * always: a run holds that status only during a worker pass, while queued and
  * suspended are where live runs actually wait. See FlowRun::ACTIVE.
  *
+ * Subject mode: a `content.subject` (a subject object uuid, or the
+ * `@objectId` / `@object.<field>` token a detail placement authors) narrows
+ * the live list to one case AND adds that case's finished runs below it, so
+ * a flow that completed does not look like nothing ever happened. Tokens
+ * resolve against the detail surface's injected object context, the same
+ * route CnStatWidget and CnChartWidget take.
+ *
  * @spec openspec/changes/cn-flow-runs-widget/specs/cn-flow-runs-widget/spec.md
+ * @spec openspec/changes/cn-flow-runs-widget-subject/specs/cn-flow-runs-widget-subject/spec.md
  */
 export default {
 	name: 'CnFlowRunsWidget',
@@ -128,9 +206,17 @@ export default {
 		 * - `rowRoute` — vue-router route NAME to open on a row click, receiving
 		 *   the run's flow id as `:id`. Omitted = rows are not clickable, which
 		 *   is correct for an app that has no flow-detail page.
+		 * - `runRoute` — vue-router route NAME to open on a row click, receiving
+		 *   the RUN's uuid as `:id`. Takes precedence over `rowRoute`; a row
+		 *   without a run uuid falls back to the `rowRoute` flow-id behaviour.
+		 * - `subject` — a subject object uuid, or an object-context token
+		 *   (`@objectId`, `@object.<field>`) a detail placement authors. When
+		 *   set, the live list is filtered to that subject server-side and the
+		 *   subject's finished runs render below it. Absent = today's org-wide
+		 *   widget, unchanged.
 		 * - `emptyText` — override for the "nothing running" line.
 		 *
-		 * @type {{limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, title?: string}}
+		 * @type {{limit?: number, pollSeconds?: number, rowRoute?: string, runRoute?: string, subject?: string, emptyText?: string, title?: string}}
 		 */
 		content: {
 			type: Object,
@@ -164,15 +250,80 @@ export default {
 		// binding CnStatWidget's endpoint mode uses, so a page-level Refresh
 		// updates this widget with everything else on the page.
 		const widgetIdRef = ref(props.widgetId)
-		const source = () => ({
-			url: ACTIVE_RUNS_URL,
-			method: 'GET',
-			params: { limit: normaliseLimit(props.content && props.content.limit) },
+
+		// The detail surface's object context, injected the same way the other
+		// endpoint-bound widgets (stat / chart / audit-trail) receive it, so a
+		// `subject: '@objectId'` placement binds the CURRENT object without the
+		// manifest hardcoding a uuid. Null on plain dashboards — the token then
+		// stays unresolved and the endpoint engine's `blocked` semantics hold
+		// the fetch instead of sending a literal `@objectId` to the server.
+		const objectCtxRaw = inject('cnObjectContext', null)
+		const detailCtxRaw = inject('cnDetailObjectContext', null)
+		const tokenCtx = () => ({
+			workspace: {},
+			config: {},
+			...(resolveObjectTokenContext(objectCtxRaw, detailCtxRaw) || {}),
 		})
+
+		const configuredSubject = () => {
+			const subject = props.content && props.content.subject
+			return (typeof subject === 'string' && subject !== '') ? subject : ''
+		}
+
+		/**
+		 * The subject uuid after token resolution: `''` when no subject is
+		 * configured, `null` while a token still waits on the object context,
+		 * else the concrete uuid.
+		 */
+		const resolvedSubject = computed(() => {
+			const subject = configuredSubject()
+			if (subject === '') {
+				return ''
+			}
+			const value = resolveFilterValue(subject, tokenCtx())
+			if (typeof value === 'string' && value.charAt(0) === '@') {
+				return null
+			}
+			return (value === undefined || value === null) ? null : String(value)
+		})
+
+		const source = () => {
+			const params = { limit: normaliseLimit(props.content && props.content.limit) }
+			const subject = configuredSubject()
+			if (subject !== '') {
+				params.subject = subject
+			}
+			return { url: ACTIVE_RUNS_URL, method: 'GET', params }
+		}
 		const { data, loading, error, refetch } = useEndpointSource(source, {
 			widgetId: widgetIdRef,
-			ctx: () => ({ workspace: {}, config: {} }),
+			ctx: tokenCtx,
 		})
+
+		// The history half of the subject view. A null config (no subject)
+		// means the composable never queries: the org-wide widget stays a
+		// single-request surface, bit-identical to before.
+		const completedSource = () => {
+			const subject = configuredSubject()
+			if (subject === '') {
+				return null
+			}
+			return {
+				url: COMPLETED_RUNS_URL,
+				method: 'GET',
+				params: { subject, limit: normaliseLimit(props.content && props.content.limit) },
+			}
+		}
+		const {
+			data: completedData,
+			loading: completedLoading,
+			error: completedError,
+			refetch: refetchCompleted,
+		} = useEndpointSource(completedSource, {
+			widgetId: widgetIdRef,
+			ctx: tokenCtx,
+		})
+
 		// `inject` is re-read in setup so Vue 2.7 and Vue 3 resolve it
 		// identically to the Options `inject` block (CnStatWidget precedent).
 		const injectedTranslate = inject('cnTranslate', null)
@@ -182,6 +333,11 @@ export default {
 			loading,
 			error,
 			refetch,
+			completedPayload: completedData,
+			completedLoading,
+			completedError,
+			refetchCompleted,
+			resolvedSubject,
 			injectedTranslate,
 		}
 	},
@@ -251,9 +407,87 @@ export default {
 			return this.tr('No flows are running')
 		},
 
-		/** Whether a row click navigates (a `content.rowRoute` is configured). */
+		/** Whether this placement is scoped to one subject object. */
+		hasSubject() {
+			return typeof this.content.subject === 'string' && this.content.subject !== ''
+		},
+
+		/**
+		 * Whether a configured subject token still waits on the object
+		 * context. The widget shows its loading state instead of an empty
+		 * line then: "no runs" would be a claim about a case it has not
+		 * identified yet.
+		 *
+		 * @return {boolean} True while the subject is configured but unresolved.
+		 */
+		subjectPending() {
+			return this.hasSubject && this.resolvedSubject === null
+		},
+
+		/**
+		 * The subject's finished runs — the completed-runs read's bounded
+		 * page, re-capped like the live rows.
+		 *
+		 * @return {Array<object>} The terminal run rows (empty without a subject).
+		 */
+		completedRows() {
+			if (this.hasSubject === false) {
+				return []
+			}
+			const results = (this.completedPayload && this.completedPayload.results) || []
+			if (Array.isArray(results) === false) {
+				return []
+			}
+			return results.slice(0, normaliseLimit(this.content.limit))
+		},
+
+		/**
+		 * How many finished runs exist beyond the rendered history rows, read
+		 * off the completed read's honest total.
+		 *
+		 * @return {number} The hidden finished-run count (never negative).
+		 */
+		completedHiddenCount() {
+			const total = Number((this.completedPayload && this.completedPayload.total) ?? this.completedRows.length)
+			if (Number.isFinite(total) === false) {
+				return 0
+			}
+			return Math.max(0, total - this.completedRows.length)
+		},
+
+		/** The "+N earlier" line under the history section. */
+		completedMoreLabel() {
+			return this.tr('+{count} earlier').replace('{count}', String(this.completedHiddenCount))
+		},
+
+		/**
+		 * Whether this subject has NO runs at all, live or finished. Rendered
+		 * as its own line: a case where nothing ever ran reads differently
+		 * from a case that is merely quiet right now.
+		 *
+		 * @return {boolean} True when both reads settled empty for a subject.
+		 */
+		neverRan() {
+			return this.hasSubject
+				&& this.subjectPending === false
+				&& this.loading === false
+				&& this.completedLoading === false
+				&& this.completedError === ''
+				&& this.rows.length === 0
+				&& this.completedRows.length === 0
+		},
+
+		/** Whether the history section renders (rows or a failed history read). */
+		showHistory() {
+			return this.hasSubject
+				&& this.subjectPending === false
+				&& (this.completedRows.length > 0 || this.completedError !== '')
+		},
+
+		/** Whether a row click navigates (a `runRoute` or `rowRoute` is configured). */
 		isLinked() {
-			return typeof this.content.rowRoute === 'string' && this.content.rowRoute !== ''
+			return (typeof this.content.rowRoute === 'string' && this.content.rowRoute !== '')
+				|| (typeof this.content.runRoute === 'string' && this.content.runRoute !== '')
 		},
 
 		/**
@@ -295,8 +529,22 @@ export default {
 				return
 			}
 			this.pollTimer = setInterval(() => {
-				this.refetch(true)
+				this.refetchAll()
 			}, this.pollMs)
+		},
+
+		/**
+		 * Refetch the live read, and the history read when a subject is
+		 * configured — a run that finishes between polls must MOVE to the
+		 * history section, not vanish from the widget.
+		 *
+		 * @return {void}
+		 */
+		refetchAll() {
+			this.refetch(true)
+			if (this.hasSubject) {
+				this.refetchCompleted(true)
+			}
 		},
 
 		/**
@@ -333,8 +581,19 @@ export default {
 				this.stopPolling()
 				return
 			}
-			this.refetch(true)
+			this.refetchAll()
 			this.startPolling()
+		},
+
+		/**
+		 * Whether a run's status is terminal — the history half of the
+		 * subject view. Drives the hollow-dot / muted-name row treatment.
+		 *
+		 * @param {object} run The run row.
+		 * @return {boolean} True for a finished run.
+		 */
+		isTerminal(run) {
+			return TERMINAL_STATUSES.includes(run && run.status)
 		},
 
 		/**
@@ -397,17 +656,28 @@ export default {
 		},
 
 		/**
-		 * Open the configured route for a run's flow, when one is configured.
+		 * Open the configured route for a clicked run.
 		 *
-		 * The route receives the FLOW id, not the run id: a click on a live
-		 * run means "show me this flow", and the flow page is the surface that
-		 * exists in every app that authors flows.
+		 * `runRoute` wins when the row carries a run uuid: on a case page a
+		 * click means "show me THIS run", and the run uuid is the deep link
+		 * the row contract carries. Without a `runRoute` (or on a row with no
+		 * uuid) the original behaviour holds unchanged: `rowRoute` receives
+		 * the FLOW id, the surface every flow-authoring app has.
 		 *
 		 * @param {object} run The clicked run row.
 		 * @return {void}
 		 */
 		onRowClick(run) {
 			if (this.isLinked === false || !this.$router) {
+				return
+			}
+			const runRoute = this.content.runRoute
+			if (typeof runRoute === 'string' && runRoute !== ''
+				&& run.uuid !== undefined && run.uuid !== null && run.uuid !== '') {
+				this.$router.push({ name: runRoute, params: { id: String(run.uuid) } }).catch(() => {})
+				return
+			}
+			if (typeof this.content.rowRoute !== 'string' || this.content.rowRoute === '') {
 				return
 			}
 			const id = run.flowId
@@ -506,6 +776,25 @@ function normaliseLimit(raw) {
 	background: var(--color-text-maxcontrast);
 }
 
+/* Terminal rows: the dot is a hollow RING, so live (filled) and finished
+   (hollow) never differ by colour alone. The per-status colour still rides
+   on the ring's border. */
+.cn-flow-runs-widget__dot--terminal {
+	width: 6px;
+	height: 6px;
+	background: transparent;
+	border: 2px solid var(--color-text-maxcontrast);
+}
+
+.cn-flow-runs-widget__dot--terminal.cn-flow-runs-widget__dot--completed {
+	border-color: var(--color-success, #2d7b41);
+}
+
+.cn-flow-runs-widget__dot--terminal.cn-flow-runs-widget__dot--failed,
+.cn-flow-runs-widget__dot--terminal.cn-flow-runs-widget__dot--dead_letter {
+	border-color: var(--color-error, #d91f2d);
+}
+
 .cn-flow-runs-widget__body {
 	display: flex;
 	flex-direction: column;
@@ -518,6 +807,14 @@ function normaliseLimit(raw) {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+/* Finished runs read as history: regular weight, muted colour. The hollow
+   dot and the section label carry the distinction for anyone who cannot
+   rely on colour. */
+.cn-flow-runs-widget__row--terminal .cn-flow-runs-widget__name {
+	font-weight: 400;
+	color: var(--color-text-maxcontrast);
 }
 
 /* Must sit AFTER the plain `__name` rule: the compound selector is more
@@ -542,6 +839,18 @@ function normaliseLimit(raw) {
 	color: var(--color-text-maxcontrast);
 	font-size: 12px;
 	font-variant-numeric: tabular-nums;
+}
+
+/* The history section label. Small caps text, not a colour: the section
+   boundary must survive monochrome. */
+.cn-flow-runs-widget__history-title {
+	margin: 0;
+	padding-top: 8px;
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
 }
 
 @keyframes cn-flow-runs-pulse {
