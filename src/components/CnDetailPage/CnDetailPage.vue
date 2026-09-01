@@ -596,7 +596,7 @@
 <script>
 import { Comment, Fragment, Text, provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
@@ -606,12 +606,8 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
-import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
-import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
-import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
-import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
@@ -626,7 +622,6 @@ import {
 	isContentOnlyWidgetDef,
 	isDataWidgetDef,
 	isGeoWidgetDef,
-	isIntegrationWidgetDef,
 	isRelatedWidgetDef,
 	resolveRegistryRenderer,
 	widgetContentOf,
@@ -641,7 +636,6 @@ import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 import { useObjectStore } from '../../store/index.js'
 import { CnIcon } from '../CnIcon/index.js'
-import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
@@ -744,7 +738,6 @@ export default {
 	name: 'CnDetailPage',
 
 	components: {
-		NcActionButton,
 		NcButton,
 		NcEmptyContent,
 		NcLoadingIcon,
@@ -756,19 +749,14 @@ export default {
 		CnBuildiqEditButton,
 		CnLockedBanner,
 		CnDetailWidgetHost,
-		CnObjectDataWidget,
 		CnFormDialog,
-		CnRelatedObjectsWidget,
-		CnObjectGeoWidget,
 		CnDashboardGrid,
-		CnWidgetWrapper,
 		CnLifecycleActions,
 		CnActionButtons,
 		CnSummaryAggregates,
 		CnRelatedCollections,
 		CnBodySections,
 		CnTranslatedBadge,
-		CnLeafMountHost,
 		CnWidgetStyleEditorModal,
 		CnRelationLinkModal,
 		Cog,
@@ -2662,12 +2650,6 @@ export default {
 			if (this.$router) this.$router.back()
 		},
 
-
-
-
-
-
-
 		/**
 		 * Whether a grid item is a schema-driven `data` widget — rendered via
 		 * CnObjectDataWidget with the page's loaded object + the def's overrides.
@@ -2731,8 +2713,6 @@ export default {
 			return isCardWidgetDef(this.findWidget(item))
 		},
 
-
-
 		/**
 		 * Debounced dev-mode audit: warn when a grid widget's rendered content
 		 * overflows its fixed cell (ADR-062 — the cell is the budget; overflow
@@ -2795,7 +2775,6 @@ export default {
 			const title = this.findWidget(item)?.title
 			return title ? this.effectiveTranslate(title) : title
 		},
-
 
 		/**
 		 * Whether a card widget (stat / gauge / delta) shows the wrapper header.

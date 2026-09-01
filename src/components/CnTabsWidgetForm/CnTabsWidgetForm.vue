@@ -58,7 +58,7 @@ import { translate as t } from '@nextcloud/l10n'
 
 /**
  * CnTabsWidgetForm — the config sub-form for a `tabs` widget
- * ({@link CnTabsWidget}).
+ * (`CnTabsWidget`).
  *
  * Picks which of the surface's other widgets become tabs, in order, and lets
  * each tab carry a label of its own. That last part is the reason the form

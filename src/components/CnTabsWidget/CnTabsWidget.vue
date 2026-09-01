@@ -8,7 +8,7 @@
 		<CnTabs
 			:aria-label="stripLabel"
 			class="cn-tabs-widget__tabs"
-			@update:activeIndex="onTabChange">
+			@update:active-index="onTabChange">
 			<!-- One Actions menu for the whole widget, bound to whichever child
 			     is showing. This is the point of the component: six tabbed
 			     widgets used to mean six card headers stacked down the page. -->

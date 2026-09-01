@@ -54,7 +54,7 @@ import { translate as t } from '@nextcloud/l10n'
 
 /**
  * CnCountdownWidgetForm — the config sub-form for a `countdown` widget
- * ({@link CnCountdownWidget}).
+ * (`CnCountdownWidget`).
  *
  * Picks the date property to count down to and the two threshold bands.
  * Emits `update:content`.

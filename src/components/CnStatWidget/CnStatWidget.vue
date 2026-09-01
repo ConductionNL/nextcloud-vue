@@ -63,10 +63,10 @@
 				<span v-else-if="displayError" class="cn-stat-widget__error" :title="displayError">—</span>
 				<template v-else>
 					<span
-					class="cn-kpi-card__value cn-stat-widget__value"
-					:class="{ 'cn-kpi-card__value--text': isTextValue }"
-					:title="isTextValue ? String(displayValue) : null"
-					:style="valueStyle">
+						class="cn-kpi-card__value cn-stat-widget__value"
+						:class="{ 'cn-kpi-card__value--text': isTextValue }"
+						:title="isTextValue ? String(displayValue) : null"
+						:style="valueStyle">
 						{{ formattedValue }}
 					</span>
 					<span

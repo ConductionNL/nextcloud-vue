@@ -47,10 +47,10 @@
 import { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
 import { resolveFilterTokens } from './resolveFilterTokens.js'
 
+import { isAppInstalled } from './appInstalled.js'
+
 /** Supported visibleWhen comparison operators. */
 export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte']
-
-import { isAppInstalled } from './appInstalled.js'
 
 /**
  * Read a dot-path off an object (`'a.b.c'`); the object itself when no
