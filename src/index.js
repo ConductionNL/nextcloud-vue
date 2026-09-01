@@ -106,6 +106,7 @@ export {
 	CnIconBrowser,
 	mdiCatalogue,
 	vmdiCatalogue,
+	CnIconColorPicker,
 	CnWidgetRenderer,
 	CnTileWidget,
 	CnTimelineView,
@@ -406,6 +407,20 @@ export { useSuggestFeatureAction } from './composables/useSuggestFeatureAction.j
 
 // Utilities — Features & roadmap menu (add-features-roadmap-menu)
 export { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from './utils/safeMarkdownDompurifyConfig.js'
+
+// Folder customization (per-vault icons & colors, the Proton Pass pattern):
+// the curated key-based catalogs + resolvers CnIconColorPicker picks from,
+// and the reactive theme read that keeps the resolved color variant in step
+// with a live light/dark flip.
+export {
+	FOLDER_COLORS,
+	FOLDER_ICONS,
+	folderColorTint,
+	resolveFolderColor,
+	resolveFolderIcon,
+	searchFolderIcons,
+} from './utils/folderCustomization.js'
+export { useCurrentTheme, currentTheme } from './composables/useCurrentTheme.js'
 export { ROADMAP_LABEL_BLOCKLIST } from './utils/roadmapLabelBlocklist.js'
 
 // Shared field validators. These are UX affordances that run in the browser —
