@@ -379,153 +379,23 @@
 							:object-type="resolvedObjectType"
 							:register="register"
 							:schema="schema">
-							<!-- `type: 'data'` widget: render the schema-driven data
-							     widget with the page's loaded object + the def's
-							     per-property overrides. This is the default body widget. -->
-							<CnObjectDataWidget
-								v-if="isDataWidget(item) && currentSchema"
-								:title="widgetDisplayTitle(item)"
-								:icon="findWidget(item).icon || null"
-								:schema="currentSchema"
-								:object-data="currentObject"
-								:object-type="resolvedObjectType"
-								:store="effectiveObjectStore"
-								:overrides="widgetContentFor(item).overrides || {}"
-								:include="widgetContentFor(item).include || null"
-								:exclude="widgetContentFor(item).exclude || []"
-								:hide-empty="widgetContentFor(item).hideEmpty === true || hideEmpty"
-								:columns="widgetContentFor(item).columns || 3"
-								:editable="widgetContentFor(item).editable !== false" />
-							<!-- `type: 'related'` widget: the related-objects widget,
-							     the second default body widget. Resolves this object's
-							     relations and links into integrations. -->
-							<CnRelatedObjectsWidget
-								v-else-if="isRelatedWidget(item)"
-								:title="widgetDisplayTitle(item)"
-								:object-type="resolvedObjectType"
+							<CnDetailWidgetHost
+								:widget="findWidget(item)"
+								chrome="card"
+								:show-card-title="showCardTitle(item)"
 								:object-id="objectId"
-								:object-data="currentObject"
+								:object="currentObject"
+								:object-type="resolvedObjectType"
+								:schema-object="currentSchema"
 								:register="register"
 								:schema="schema"
 								:store="effectiveObjectStore"
-								:include-groups="widgetContentFor(item).groups || []"
-								:hide-single-tab-title="widgetContentFor(item).hideSingleTabTitle !== false"
-								:show-total-count="widgetContentFor(item).showTotalCount !== false"
+								:surface="surface"
+								:integration-context="effectiveIntegrationContext"
+								:hide-empty="hideEmpty"
+								:cn-registry="cnRegistry"
+								@geo-saved="onGeoSaved"
 								@open-integration="onAutoBodyOpenIntegration" />
-							<!-- `type: 'object-geo'` widget: view/edit the object's
-							     `@self.geo` on a map. Editable in Buildiq edit mode
-							     or when the widget config sets `editable`. -->
-							<CnObjectGeoWidget
-								v-else-if="isGeoWidget(item)"
-								:title="widgetDisplayTitle(item)"
-								:object-id="objectId"
-								:object-data="currentObject"
-								:register="register"
-								:schema="schema"
-								:editable="widgetContentFor(item).editable !== false"
-								:address-search="widgetContentFor(item).addressSearch === true"
-								:basemap="widgetContentFor(item).basemap || 'standard'"
-								:allow-basemap-switch="widgetContentFor(item).allowBasemapSwitch === true"
-								:fit-control="widgetContentFor(item).fitControl !== false"
-								:locate-control="widgetContentFor(item).locateControl !== false"
-								:fullscreen-control="widgetContentFor(item).fullscreenControl !== false"
-								:height="widgetContentFor(item).height || '360px'"
-								:default-zoom="widgetContentFor(item).defaultZoom || 7"
-								@saved="onGeoSaved" />
-							<!-- Mount-mode integration leaf (openregister#2127):
-							     a `renderMode: 'mount'` provider renders through
-							     CnLeafMountHost — a bare host-owned element the
-							     leaf mounts its own framework into. -->
-							<CnLeafMountHost
-								v-else-if="isMountIntegrationWidget(item)"
-								:provider="integrationProviderFor(item)"
-								:mount-props="getIntegrationMountProps(item)" />
-							<!-- Fallback for `type: 'integration'` widget defs:
-							     render the registry widget on the detail-page
-							     surface. A consumer-supplied #widget-<id> slot
-							     still overrides this. -->
-							<component
-								:is="resolveIntegrationWidget(item)"
-								v-else-if="isIntegrationWidget(item) && resolveIntegrationWidget(item)"
-								v-bind="getIntegrationProps(item)" />
-							<!-- Content-only catalog widgets (object-list / table)
-							     render bare tables, so give them the titled
-							     CnWidgetWrapper card chrome (ADR-062: every body
-							     widget has chrome + its manifest title). -->
-							<CnWidgetWrapper
-								v-else-if="registryRendererFor(item) && isContentOnlyWidget(item)"
-								:title="findWidget(item).title || ''"
-								title-icon-position="left"
-								:show-refresh="false"
-								:show-request-feature="false"
-								class="cn-detail-page__catalog-card">
-								<template v-if="findWidget(item).icon" #title-icon>
-									<CnIcon :name="findWidget(item).icon" :size="20" />
-								</template>
-								<template v-if="catalogAddEnabled(item)" #action-items>
-									<NcActionButton @click="invokeCatalogAdd(item)">
-										<template #icon>
-											<Plus :size="20" />
-										</template>
-										{{ t('nextcloud-vue', 'Add') }}
-									</NcActionButton>
-								</template>
-								<component
-									:is="registryRendererFor(item)"
-									:ref="'catalog-' + item.widgetId"
-									:content="widgetContentFor(item)"
-									:object-id="objectId"
-									:register="register"
-									:schema="schema"
-									:object-data="currentObject"
-									:object-type="resolvedObjectType"
-									:store="effectiveObjectStore"
-									v-bind="widgetContentFor(item)" />
-							</CnWidgetWrapper>
-							<!-- Registry "card" widgets (stat / gauge / delta):
-							     these render bare tile content, so give them the
-							     titled CnWidgetWrapper card chrome exactly like the
-							     dashboard does (ADR-062: a lone stat must not read
-							     as uncarded text). `card-fit` centres the tile and
-							     drops the inner scrollbar. -->
-							<CnWidgetWrapper
-								v-else-if="registryRendererFor(item) && isCardWidget(item)"
-								:title="findWidget(item).title || widgetContentFor(item).title || ''"
-								:show-title="showCardTitle(item)"
-								title-icon-position="left"
-								flush
-								:show-refresh="false"
-								:show-request-feature="false"
-								class="cn-detail-page__card-fit">
-								<template v-if="findWidget(item).icon" #title-icon>
-									<CnIcon :name="findWidget(item).icon" :size="20" />
-								</template>
-								<component
-									:is="registryRendererFor(item)"
-									:content="widgetContentFor(item)"
-									v-bind="widgetContentFor(item)" />
-							</CnWidgetWrapper>
-							<!-- Fallback for content-driven catalog widgets
-							     (stat / chart / delta / gauge / object-list / …):
-							     render the registered renderer with the def's
-							     `content`. These self-fetch from OpenRegister.
-							     The current object's context is forwarded too (same
-							     shape CnWidgetGrid merges on the v2 widgets[] path) so
-							     object-aware catalog widgets — e.g. the `files` widget
-							     binding to this object's folder — receive it; widgets
-							     that don't declare these props ignore them. `content`
-							     is spread LAST so explicit widget config still wins. -->
-							<component
-								:is="registryRendererFor(item)"
-								v-else-if="registryRendererFor(item)"
-								:content="widgetContentFor(item)"
-								:object-id="objectId"
-								:register="register"
-								:schema="schema"
-								:object-data="currentObject"
-								:object-type="resolvedObjectType"
-								:store="effectiveObjectStore"
-								v-bind="widgetContentFor(item)" />
 						</slot>
 					</div>
 				</template>
@@ -748,9 +618,19 @@ import CnRelatedCollections from '../CnRelatedCollections/CnRelatedCollections.v
 import CnBodySections from '../CnBodySections/CnBodySections.vue'
 import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
 import CnRelationLinkModal from '../../dialogs/CnRelationLinkModal.vue'
+import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
-import { BUILT_IN_WIDGETS } from '../CnWidgetGrid/builtInWidgets.js'
-import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
+import {
+	isCardWidgetDef,
+	isContentOnlyWidgetDef,
+	isDataWidgetDef,
+	isGeoWidgetDef,
+	isIntegrationWidgetDef,
+	isRelatedWidgetDef,
+	resolveRegistryRenderer,
+	widgetContentOf,
+	widgetTitleOf,
+} from '../../utils/widgetDispatch.js'
 import '../CnWidgetGrid/registerDashboardWidgets.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
@@ -874,6 +754,7 @@ export default {
 		CnActionsMenu,
 		CnBuildiqEditButton,
 		CnLockedBanner,
+		CnDetailWidgetHost,
 		CnObjectDataWidget,
 		CnFormDialog,
 		CnRelatedObjectsWidget,
@@ -2094,6 +1975,29 @@ export default {
 		},
 
 		/**
+		 * The object context handed to integration widgets.
+		 *
+		 * An explicit `integrationContext` prop wins; otherwise it is derived the
+		 * way it always was, falling back through the resolved sidebar config and
+		 * `sidebarProps` before the page's own register/schema. That fallback
+		 * chain is why this is computed HERE and passed down rather than derived
+		 * inside CnDetailWidgetHost: `resolvedSidebar` and `sidebarProps` are page
+		 * state the host has no view of, and deriving from `register`/`schema`
+		 * alone hands the widget two empty strings.
+		 *
+		 * @return {object} `{ register, schema, objectId }`.
+		 */
+		effectiveIntegrationContext() {
+			if (this.integrationContext) return this.integrationContext
+			const resolved = this.resolvedSidebar || {}
+			return {
+				register: resolved.register || this.sidebarProps?.register || this.register || '',
+				schema: resolved.schema || this.schema || this.resolvedObjectType || this.sidebarProps?.schema || '',
+				objectId: this.objectId ? String(this.objectId) : '',
+			}
+		},
+
+		/**
 		 * Effective layout array driving the body grid. An explicit `layout` prop
 		 * (manifest grid page) wins; otherwise the materialized default auto-body
 		 * (Data + Related) is used when the schema-driven object has loaded.
@@ -2757,123 +2661,11 @@ export default {
 			if (this.$router) this.$router.back()
 		},
 
-		isIntegrationWidget(item) {
-			const def = this.findWidget(item)
-			return Boolean(def) && def.type === 'integration' && typeof def.integrationId === 'string'
-		},
 
-		/**
-		 * Resolve the Vue component for an integration widget, applying
-		 * the AD-19 surface fallback. Null when the integration isn't
-		 * registered (the grid section simply renders nothing extra).
-		 *
-		 * @param {object} item Layout item
-		 * @return {object|null} Vue component, or null.
-		 */
-		resolveIntegrationWidget(item) {
-			const def = this.findWidget(item)
-			if (!def || typeof def.integrationId !== 'string') {
-				return null
-			}
-			return this.resolveRegistryWidget(def.integrationId, this.surface)
-		},
 
-		/**
-		 * Props passed to an integration widget: surface, object
-		 * context (explicit `integrationContext` prop, else derived
-		 * from the sidebar config + objectId), and per-widget `props`.
-		 *
-		 * @param {object} item Layout item
-		 * @return {object} Props object for the widget component.
-		 */
-		getIntegrationProps(item) {
-			const def = this.findWidget(item)
-			const resolved = this.resolvedSidebar || {}
-			const derivedContext = {
-				register: resolved.register || this.sidebarProps?.register || this.register || '',
-				schema: resolved.schema || this.schema || this.resolvedObjectType || this.sidebarProps?.schema || '',
-				objectId: this.objectId ? String(this.objectId) : '',
-			}
-			return {
-				surface: this.surface,
-				// ADR-062 rule 5 — "every body widget has card chrome and its
-				// manifest title". An integration widget draws its own chrome
-				// (CnIntegrationCard renders a CnDetailCard), so it is correctly
-				// NOT wrapped in CnWidgetWrapper like the content-only catalog
-				// widgets are — but its title was never forwarded, and
-				// CnIntegrationCard's `cardTitle` falls back to
-				// `this.title || this.integrationId`. With no title prop the
-				// fallback wins, so a widget the manifest calls "Class space"
-				// rendered as the raw id "talk".
-				//
-				// Measured on learniq, whose CohortDetail/SessionDetail declare
-				// `cohort-talk` ("Class space"), `session-talk` ("Join call")
-				// and `sess-files` ("Session materials"): all three rendered
-				// under their integrationId, and e2e asserting the manifest
-				// title could never pass.
-				//
-				// Placed BEFORE `def.props` so an explicit per-widget prop
-				// still overrides it.
-				title: def?.title || '',
-				...(this.integrationContext || derivedContext),
-				...(def?.props || {}),
-			}
-		},
 
-		/**
-		 * The registry provider descriptor behind an integration widget def,
-		 * carrying `mount`/`unmount` when it is a mount-mode leaf
-		 * (openregister#2127). Null when unregistered.
-		 *
-		 * @param {object} item Layout item
-		 * @return {object|null} Provider descriptor, or null.
-		 */
-		integrationProviderFor(item) {
-			const def = this.findWidget(item)
-			if (!def || typeof def.integrationId !== 'string' || typeof this.getRegistryProvider !== 'function') {
-				return null
-			}
-			return this.getRegistryProvider(def.integrationId)
-		},
 
-		/**
-		 * Whether an integration widget def resolves to a mount-mode leaf
-		 * (`renderMode: 'mount'`) — rendered through CnLeafMountHost rather
-		 * than as a component under the host's Vue runtime.
-		 *
-		 * @param {object} item Layout item
-		 * @return {boolean} true when the integration is mount-mode.
-		 */
-		isMountIntegrationWidget(item) {
-			if (!this.isIntegrationWidget(item)) {
-				return false
-			}
-			const provider = this.integrationProviderFor(item)
-			return Boolean(provider)
-				&& provider.renderMode === 'mount'
-				&& typeof provider.mount === 'function'
-				&& typeof provider.unmount === 'function'
-		},
 
-		/**
-		 * Props forwarded to a mount-mode leaf's `mount(el, props)` — the same
-		 * context an SFC integration widget receives, plus an explicit
-		 * `integrationContext` bag for leaves that read it directly.
-		 *
-		 * @param {object} item Layout item
-		 * @return {object} Mount props.
-		 */
-		getIntegrationMountProps(item) {
-			const base = this.getIntegrationProps(item)
-			return {
-				...base,
-				integrationContext: {
-					register: base.register,
-					schema: base.schema,
-					objectId: base.objectId,
-				},
-			}
-		},
 
 		/**
 		 * Whether a grid item is a schema-driven `data` widget — rendered via
@@ -2883,8 +2675,7 @@ export default {
 		 * @return {boolean} true when the matching widget def is `type: 'data'`.
 		 */
 		isDataWidget(item) {
-			const def = this.findWidget(item)
-			return Boolean(def) && def.type === 'data'
+			return isDataWidgetDef(this.findWidget(item))
 		},
 
 		/**
@@ -2896,8 +2687,7 @@ export default {
 		 * @return {boolean} true when the matching widget def is `type: 'related'`.
 		 */
 		isRelatedWidget(item) {
-			const def = this.findWidget(item)
-			return Boolean(def) && def.type === 'related'
+			return isRelatedWidgetDef(this.findWidget(item))
 		},
 
 		/**
@@ -2909,8 +2699,7 @@ export default {
 		 * @return {boolean} true when the matching widget def is `type: 'object-geo'`.
 		 */
 		isGeoWidget(item) {
-			const def = this.findWidget(item)
-			return Boolean(def) && def.type === 'object-geo'
+			return isGeoWidgetDef(this.findWidget(item))
 		},
 
 		/**
@@ -2923,8 +2712,7 @@ export default {
 		 * @return {boolean} true when the widget def's type is content-only.
 		 */
 		isContentOnlyWidget(item) {
-			const def = this.findWidget(item)
-			return Boolean(def) && ['object-list', 'table', 'files'].includes(def.type)
+			return isContentOnlyWidgetDef(this.findWidget(item))
 		},
 
 		/**
@@ -2939,41 +2727,10 @@ export default {
 		 * @return {boolean} true when the widget def's registry entry is a card.
 		 */
 		isCardWidget(item) {
-			const def = this.findWidget(item)
-			if (!def || !def.type) return false
-			const entry = getWidgetTypeEntry(def.type)
-			return Boolean(entry && entry.card === true)
+			return isCardWidgetDef(this.findWidget(item))
 		},
 
-		/**
-		 * Whether a catalog list widget offers the Add action (ADR-062:
-		 * collections carry their create affordance in the card's Actions
-		 * menu AND as the widget's own footer button). On by default for
-		 * object-list/table; opt out via `content.allowCreate: false`.
-		 *
-		 * @param {object} item Layout item.
-		 * @return {boolean}
-		 */
-		catalogAddEnabled(item) {
-			const def = this.findWidget(item)
-			// Files widgets carry their own upload/drag-drop toolbar, so the card
-			// Add action is only for object-list / table collections.
-			if (!def || !['object-list', 'table'].includes(def.type)) return false
-			return this.widgetContentFor(item).allowCreate !== false
-		},
 
-		/**
-		 * Actions-menu "Add" entry: delegate to the rendered list widget's
-		 * public `openCreate()` (the same dialog its footer button opens).
-		 *
-		 * @param {object} item Layout item.
-		 * @return {void}
-		 */
-		invokeCatalogAdd(item) {
-			const r = this.$refs['catalog-' + item.widgetId]
-			const w = Array.isArray(r) ? r[0] : r
-			if (w && typeof w.openCreate === 'function') w.openCreate()
-		},
 
 		/**
 		 * Debounced dev-mode audit: warn when a grid widget's rendered content
@@ -3038,26 +2795,22 @@ export default {
 			return title ? this.effectiveTranslate(title) : title
 		},
 
+
 		/**
-		 * Whether a card widget (stat / gauge / delta) shows its CnWidgetWrapper
-		 * header. These renderers draw their OWN label from `content.label`, so a
-		 * wrapper header carrying the same manifest title prints the title twice —
-		 * once as card chrome, once inside the tile.
+		 * Whether a card widget (stat / gauge / delta) shows the wrapper header.
 		 *
-		 * `item.showTitle === false` is the opt-out, exactly as it is for the grid
-		 * `<h3>` in `showGridTitle`: one layout key, the same meaning on both of
-		 * this component's title-rendering paths. It was previously honoured only
-		 * by the `<h3>`, so a consumer that set it on a stat tile still got the
-		 * duplicate header with no way to switch it off short of dropping the
-		 * widget's title entirely (which also removes its name from edit mode).
+		 * These renderers draw their own label from `content.label`, so a header
+		 * carrying the same manifest title printed it twice. `showTitle: false`
+		 * on the layout item switches it off, the same key and the same meaning
+		 * as on the grid `<h3>` (`showGridTitle`).
 		 *
 		 * @param {object} item Layout item.
-		 * @return {boolean} true when the card header should render.
+		 * @return {boolean} true when the wrapper header renders.
 		 */
 		showCardTitle(item) {
 			if (item.showTitle === false) return false
-			return this.findWidget(item)?.title !== undefined
-				|| this.widgetContentFor(item).title !== undefined
+			const def = this.findWidget(item)
+			return def?.title !== undefined || widgetContentOf(def).title !== undefined
 		},
 
 		/**
@@ -3202,34 +2955,7 @@ export default {
 		 * @return {object|null} The renderer component, or null.
 		 */
 		registryRendererFor(item) {
-			const def = this.findWidget(item)
-			if (!def || !def.type || def.type === 'integration' || def.type === 'data') return null
-			// Consumer registry FIRST — same order CnWidgetGrid uses, and the
-			// order REQ-MVR-005 mandates ("Custom widget overrides built-in").
-			const consumer = (this.cnRegistry || {})[def.type]
-			if (consumer) return consumer.component ?? consumer
-			const entry = getWidgetTypeEntry(canonicalWidgetType(def.type))
-			if (entry && entry.renderer) return entry.renderer
-			// Fall back to BUILT_IN_WIDGETS — the SAME vocabulary CnWidgetGrid
-			// resolves a `widgetKey` against.
-			//
-			// These were two near-disjoint registries: the dashboard catalog
-			// (chart, map, object-list, related, stats-block, table) and
-			// BUILT_IN_WIDGETS (audit-trail, banner, card-grid, data, divider,
-			// form-renderer, header, integration, map-viewer, metadata,
-			// nav-card-grid, object-geo, object-table, related, text). Only
-			// `related` was in both, and `table`/`object-table` plus
-			// `map`/`map-viewer` were the same concept under two names.
-			//
-			// The consequence was silent: a widget authored for one path was
-			// invisible to the other, so a detail page rendered nothing for it
-			// and said nothing about why. Measured on hrmq: 101 of 236 detail
-			// widgets (43%) — every audit-trail, stat, actions and
-			// lifecycle-actions — had no type this method could resolve.
-			//
-			// One vocabulary, resolved catalog-first so a registered override
-			// still wins.
-			return BUILT_IN_WIDGETS[canonicalWidgetType(def.type)] || BUILT_IN_WIDGETS[def.type] || null
+			return resolveRegistryRenderer(this.findWidget(item), this.cnRegistry)
 		},
 
 		/**
@@ -3240,8 +2966,7 @@ export default {
 		 * @return {object} The widget def's `content`, or an empty object.
 		 */
 		widgetContentFor(item) {
-			const def = this.findWidget(item)
-			return (def && def.content && typeof def.content === 'object') ? def.content : {}
+			return widgetContentOf(this.findWidget(item))
 		},
 
 		/**
@@ -3261,14 +2986,7 @@ export default {
 		 * @return {string|undefined} The title to render, or undefined for the default.
 		 */
 		widgetDisplayTitle(item) {
-			const def = this.findWidget(item)
-			if (!def) return undefined
-			const content = (def.content && typeof def.content === 'object') ? def.content : {}
-			const entry = getWidgetTypeEntry(def.type)
-			if (entry && entry.ownsTitle) {
-				return content.title || undefined
-			}
-			return def.title || content.title || undefined
+			return widgetTitleOf(this.findWidget(item))
 		},
 
 		/**

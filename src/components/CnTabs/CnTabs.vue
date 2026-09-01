@@ -24,12 +24,9 @@
 					<component :is="tab.titleRender" />
 				</button>
 			</div>
-			<!-- @slot nav-end Rendered at the right-hand end of the tab bar,
-			     DELIBERATELY outside the `role="tablist"` element. A widget
-			     Actions menu belongs beside the strip, not inside it: anything
-			     nested in the tablist is announced as one of the tabs, and a
-			     screen-reader user counting six tabs would hear seven. -->
 			<div v-if="$slots['nav-end']" class="cn-tabs__nav-end">
+				<!-- @slot nav-end Rendered at the right-hand end of the tab bar, deliberately OUTSIDE the `role="tablist"` element. A widget Actions menu belongs beside the strip, not inside it: anything nested in the tablist is announced as one of the tabs, so a screen-reader user counting six tabs would hear seven. -->
+				<!-- @binding {number} active-index Index of the currently selected tab. -->
 				<slot name="nav-end" :active-index="activeIndex" />
 			</div>
 		</div>
