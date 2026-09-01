@@ -36,6 +36,7 @@ One panel inside a [`CnTabs`](./cn-tabs.md) strip. Its title is rendered by the 
 | `title` | `String` | `''` | Plain-text tab title. Ignored when a `#title` slot is supplied. |
 | `active` | `Boolean` | `false` | Select this tab. Honoured on mount **and** on every later change, so it can drive a controlled strip. |
 | `disabled` | `Boolean` | `false` | Render the nav button disabled, skip the tab in keyboard navigation, and never give it the initial selection. |
+| `lazy` | `Boolean` | `false` | Hold the panel body back until this tab is first activated, then keep it mounted. For strips whose panels are expensive to mount. |
 
 ## Slots
 
@@ -53,6 +54,7 @@ One panel inside a [`CnTabs`](./cn-tabs.md) strip. Its title is rendered by the 
 ## Notes
 
 - **The panel is not destroyed when inactive.** It is hidden with `hidden` + `display: none`, matching bootstrap-vue's `<BTab>`. A panel that fetches on `mounted()` would refire that request on every tab switch under a `v-if` implementation. Put a `v-if` inside the panel if you want teardown.
+- **`lazy` changes only the first paint.** The body waits until the tab is first activated, and from then on the panel behaves exactly as above: it stays mounted, so switching back never refetches. Reach for it when the panels are expensive. Six panels that each fetch on `mounted()` fire six requests on page load, and five of them answer questions nobody has asked yet.
 - **A title that is a computed value stays reactive.** The parent invokes the child's title renderer inside its own render effect, so the nav strip re-renders when the title changes.
 - **Rendered outside a `CnTabs` parent, the panel shows its content** rather than vanishing. The realistic cause of a missed `inject()` is the package being loaded twice (ADR-019 / openregister#1958), and rendering blank with no error is the worse failure. The injection key is a `Symbol.for`, so duplicate module instances converge on the same key.
 

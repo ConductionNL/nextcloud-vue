@@ -54,6 +54,26 @@ describe('CnWalkthrough', () => {
 		expect(w.text()).toContain('Press the button')
 	})
 
+	it('runs the task line through the translate prop, like title and body', async () => {
+		// The task used to render raw (`{{ step.task }}`), so it shipped English
+		// even in locales whose catalogue translates every tour string.
+		const dict = {
+			'Do it': 'Doe het',
+			'Press the button': 'Druk op de knop',
+		}
+		const w = mount(CnWalkthrough, {
+			propsData: {
+				appId: 'pq-tr',
+				manifest: manifest(steps),
+				translate: (k) => dict[k] || k,
+			},
+		})
+		w.vm.wt.next() // → click-it: has a task
+		await w.vm.$nextTick()
+		expect(w.text()).toContain('Druk op de knop')
+		expect(w.text()).not.toContain('Press the button')
+	})
+
 	it('shows the manual Next escape hatch when allowManualNext is set', async () => {
 		const custom = manifest([{ ...steps[1], allowManualNext: true }])
 		const w = mount(CnWalkthrough, { propsData: { appId: 'pq-esc', manifest: custom } })
@@ -145,9 +165,17 @@ describe('CnWalkthrough', () => {
 	it('a handoff step shows "Continue in {app}" and navigates with a resume token', () => {
 		const manifestH = {
 			version: '1.0.0',
-			walkthrough: { enabled: true, version: 1, tours: [{ id: 'pq:lead-to-bill', trigger: 'first-visit', steps: [
-				{ id: 'bill', sinceVersion: '1.0.0', placement: 'center', title: 'Bill it', target: { kind: 'page', ref: 'X' }, advanceOn: { type: 'manual' }, handoff: { app: 'Shillinq', url: '/index.php/apps/shillinq/', tour: 'shillinq:bill' } },
-			] }] },
+			walkthrough: {
+				enabled: true,
+				version: 1,
+				tours: [{
+					id: 'pq:lead-to-bill',
+					trigger: 'first-visit',
+					steps: [
+						{ id: 'bill', sinceVersion: '1.0.0', placement: 'center', title: 'Bill it', target: { kind: 'page', ref: 'X' }, advanceOn: { type: 'manual' }, handoff: { app: 'Shillinq', url: '/index.php/apps/shillinq/', tour: 'shillinq:bill' } },
+					],
+				}],
+			},
 		}
 		const w = mount(CnWalkthrough, { propsData: { appId: 'pq', manifest: manifestH } })
 		expect(w.vm.isHandoff).toBe(true)

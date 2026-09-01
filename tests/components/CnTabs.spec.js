@@ -263,6 +263,86 @@ describe('CnTabs / CnTab', () => {
 		})
 	})
 
+	describe('#nav-end slot', () => {
+		it('renders the slot content in the bar', async () => {
+			const w = mount(defineComponent({
+				components: { CnTabs, CnTab },
+				render() {
+					return h(CnTabs, {}, {
+						'nav-end': () => h('button', { class: 'my-menu' }, 'Actions'),
+						default: () => [h(CnTab, { title: 'One' }, { default: () => 'a' })],
+					})
+				},
+			}), { attachTo: document.body })
+			await nextTick()
+
+			expect(w.find('.cn-tabs__nav-end .my-menu').exists()).toBe(true)
+		})
+
+		it('keeps the slot OUT of the tablist so it is not announced as a tab', async () => {
+			// A control nested in role="tablist" is announced as one of the tabs.
+			// Six tabs plus an Actions menu would be heard as seven tabs.
+			const w = mount(defineComponent({
+				components: { CnTabs, CnTab },
+				render() {
+					return h(CnTabs, {}, {
+						'nav-end': () => h('button', { class: 'my-menu' }, 'Actions'),
+						default: () => [
+							h(CnTab, { title: 'One' }, { default: () => 'a' }),
+							h(CnTab, { title: 'Two' }, { default: () => 'b' }),
+						],
+					})
+				},
+			}), { attachTo: document.body })
+			await nextTick()
+
+			const tablist = w.find('[role="tablist"]')
+			expect(tablist.find('.my-menu').exists()).toBe(false)
+			expect(tablist.findAll('[role="tab"]')).toHaveLength(2)
+		})
+
+		it('is absent from the DOM when nothing fills it', async () => {
+			const w = await mountStrip([{ title: 'One' }])
+			expect(w.find('.cn-tabs__nav-end').exists()).toBe(false)
+		})
+	})
+
+	describe('lazy panels', () => {
+		it('does not render an inactive lazy panel body on first paint', async () => {
+			const w = await mountStrip([
+				{ title: 'One' },
+				{ title: 'Two', lazy: true },
+			])
+
+			expect(w.text()).toContain('panel 0')
+			expect(w.text()).not.toContain('panel 1')
+		})
+
+		it('renders it once activated, and keeps it mounted after switching away', async () => {
+			// The latch is the point: a lazy panel must not become a v-if that
+			// tears down and refetches on every switch back.
+			const w = await mountStrip([
+				{ title: 'One' },
+				{ title: 'Two', lazy: true },
+			])
+
+			await w.findAll('[role="tab"]')[1].trigger('click')
+			await nextTick()
+			expect(w.text()).toContain('panel 1')
+
+			await w.findAll('[role="tab"]')[0].trigger('click')
+			await nextTick()
+			// Hidden, but still in the DOM.
+			expect(w.text()).toContain('panel 1')
+			expect(w.findAll('.cn-tab')[1].attributes('hidden')).toBeDefined()
+		})
+
+		it('renders an eager panel immediately, as every existing consumer expects', async () => {
+			const w = await mountStrip([{ title: 'One' }, { title: 'Two' }])
+			expect(w.text()).toContain('panel 1')
+		})
+	})
+
 	describe('injection key', () => {
 		it('is registered globally so a duplicated package still resolves', () => {
 			// Symbol.for, not Symbol: two copies of this module must agree, or

@@ -8,7 +8,7 @@
 		:hidden="visible ? null : true"
 		:style="visible ? null : { display: 'none' }">
 		<!-- @slot The panel body. -->
-		<slot />
+		<slot v-if="rendered" />
 	</div>
 </template>
 
@@ -35,6 +35,10 @@
  * they were destroyed and recreated. Use `v-if` inside the panel yourself if
  * you specifically want teardown.
  *
+ * `lazy` changes only the FIRST paint: the body waits until the tab is first
+ * activated, and from then on the panel behaves exactly as above. It is for
+ * strips whose panels are expensive to mount, not for saving memory.
+ *
  * ## Rendered outside a CnTabs parent
  *
  * The panel shows its content rather than vanishing. That is deliberate: the
@@ -42,7 +46,7 @@
  * loaded twice — would otherwise render blank with no error at all. See
  * `tabsKey.js` for why the key is `Symbol.for`.
  */
-import { computed, defineComponent, getCurrentInstance, inject, onBeforeUnmount, onMounted, watch } from 'vue'
+import { computed, defineComponent, getCurrentInstance, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { CN_TABS_INJECTION_KEY } from './tabsKey.js'
 
 export default defineComponent({
@@ -61,6 +65,24 @@ export default defineComponent({
 		},
 		/** Render the nav button disabled and skip this tab in keyboard navigation. */
 		disabled: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Hold the panel body back until this tab is first activated, then keep
+		 * it mounted for the rest of the strip's life.
+		 *
+		 * Off by default, because the eager panel is what makes a tab switch
+		 * instant and it is the behaviour every existing consumer already has.
+		 * Turn it on when the panels are expensive: six panels that each fetch
+		 * on `mounted()` fire six requests on page load, and five of those
+		 * answer questions nobody has asked yet.
+		 *
+		 * This is NOT `v-if`-per-switch. Once a panel has been shown it stays
+		 * in the DOM, so switching back to it never refetches. That is the
+		 * whole reason an inactive panel is hidden rather than destroyed.
+		 */
+		lazy: {
 			type: Boolean,
 			default: false,
 		},
@@ -111,7 +133,18 @@ export default defineComponent({
 
 		const visible = computed(() => (tabsApi ? tabsApi.isActive(uid) : true))
 
-		return { visible, tabId, panelId }
+		// Latches on first activation and never resets, so a lazy panel mounts
+		// once and then behaves exactly like an eager one.
+		const shown = ref(false)
+		watch(visible, (isVisible) => {
+			if (isVisible) {
+				shown.value = true
+			}
+		}, { immediate: true })
+
+		const rendered = computed(() => !props.lazy || shown.value)
+
+		return { visible, rendered, tabId, panelId }
 	},
 })
 </script>

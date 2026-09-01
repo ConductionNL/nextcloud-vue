@@ -220,6 +220,24 @@
 	color: var(--cn-kpi-accent, var(--color-primary-element));
 }
 
+/* A TEXT value is a different shape from a number and needs the opposite rule.
+   `objectField` lets a tile headline a name ("Omgevingsvergunning kleine
+   bouwactiviteit") instead of a count, and the no-wrap rule above pushed it
+   straight out of the card. Text shrinks, wraps and clamps to two lines; a
+   number still never does. */
+.cn-kpi-card__value--text {
+	flex: 0 1 auto;
+	min-width: 0;
+	font-size: var(--cn-kpi-value-text-size, 1.25rem);
+	line-height: 1.2;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
 .cn-kpi-card__label {
 	flex: 1 1 auto;
 	min-width: 0;

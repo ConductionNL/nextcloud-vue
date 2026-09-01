@@ -24,6 +24,8 @@
 <template>
 	<CnWidgetWrapper
 		:title="title"
+		:show-title="!bare"
+		:borderless="bare"
 		:widget-id="widgetId || objectType"
 		:documentation-url="documentationUrl"
 		:refreshing="loading"
@@ -390,6 +392,18 @@ export default {
 		title: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Related'),
+		},
+		/**
+		 * Drop the card chrome: no header, no border. For a surface that already
+		 * supplies both, such as a `CnTabsWidget` panel, where a second title
+		 * inside the panel reads as a heading nested in its own heading.
+		 *
+		 * The header is where `CnWidgetWrapper` renders its Actions menu, so a
+		 * bare widget has none. That is the point: the surface hoists it.
+		 */
+		bare: {
+			type: Boolean,
+			default: false,
 		},
 		/** The registered object type slug (used for legacy store fetches). */
 		objectType: {

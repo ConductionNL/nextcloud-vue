@@ -68,6 +68,30 @@ Instead of an OpenRegister `source`, the tile can bind to an arbitrary app REST 
 }
 ```
 
+## Reading a field off the record (`objectField`)
+
+The two modes above ask a server "how many". `objectField` asks the record the detail page has already loaded, so the tile costs no request at all. It is what lets a KPI row headline a case's type or its assignee beside the counts, instead of those facts sitting three rows down in the properties grid.
+
+```json
+{
+  "type": "stat",
+  "content": {
+    "label": "Case type",
+    "icon": "FileTree",
+    "objectField": {
+      "field": "caseType",
+      "resolve": { "register": "dossiq", "schema": "caseType", "labelField": "title" }
+    }
+  }
+}
+```
+
+A plain scalar needs no `resolve`, and `objectField: "priority"` is accepted as shorthand for `{ field: "priority" }`.
+
+`resolve` is for a field holding a reference uuid, which is not something to show a person. The label is looked up through the shared object store, so per-schema caching and in-flight dedup come for free. It is opt-in rather than inferred: guessing that a string looks like a uuid would turn a legitimate identifier into a failed fetch.
+
+A non-numeric value renders as text, because `formatMetricValue` returns `String(value)` for anything non-finite.
+
 ## Props
 
 | Prop | Type | Default | Description |
@@ -76,6 +100,9 @@ Instead of an OpenRegister `source`, the tile can bind to an arbitrary app REST 
 | `translate` | `function` | `null` | Translate function for the `label` / `caption` source strings. Falls back to the injected `cnTranslate` (identity by default). |
 
 ## Notes
+
+- **An unresolvable reference shows the raw uuid, not a blank.** A blank KPI says nothing at all, so an id the store cannot resolve stays visible, the same way [`CnFkResolveCell`](./cn-fk-resolve-cell.md) behaves.
+
 
 - `source` supports the OpenRegister-backed kinds (`metric: 'count' \| 'sum' \| 'avg' \| …`) and a legacy `{ kind: 'endpoint', url }` form for arbitrary endpoints (uncached; prefer `endpointSource`).
 - Self-contained card surface — rendered flush and centred (no inner scrollbar).

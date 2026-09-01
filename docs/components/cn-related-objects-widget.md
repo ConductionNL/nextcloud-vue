@@ -46,6 +46,7 @@ In the deprecated list mode, relation and file sections only render when the sto
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `title` | `String` | `'Related'` | Widget title shown in the header |
+| `bare` | `Boolean` | `false` | Drop the card chrome: no header, no border. For a surface that already supplies both, such as a `CnTabsWidget` panel. The Actions menu lives in the header, so a bare widget has none and the surface hoists it. |
 | `object-type` | `String` | `''` | Registered object type slug (used for legacy store fetches) |
 | `object-id` | `String\|Number` | `''` | The object's id |
 | `object-data` | `Object` | `{}` | The object data — used to derive id/`register`/`schema` (from `@self`) when not passed explicitly |

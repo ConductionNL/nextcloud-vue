@@ -10,6 +10,7 @@
  * actionsDispatcherW3.spec.js).
  */
 
+import { ref } from 'vue'
 import { mount } from '@vue/test-utils'
 import CnActionButtons from '../../src/components/CnActionButtons/CnActionButtons.vue'
 import { dispatchAction } from '../../src/utils/actionsDispatcher.js'
@@ -352,6 +353,57 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			await flush()
 
 			expect(push).toHaveBeenCalledWith({ name: 'Leads', params: { id: 'lead-7' } })
+		})
+	})
+
+	describe('open-form seed values', () => {
+		it('resolves object-context tokens in `props`', () => {
+			// An action on a detail page stamps the record it belongs to. Saving
+			// the literal "@objectId" makes a foreign key that points at nothing,
+			// and nothing notices until whatever reads it later does.
+			const w = mount(CnActionButtons, {
+				props: {
+					actions: [{
+						id: 'log-hours',
+						type: 'open-form',
+						label: 'Log hours',
+						register: 'humaniq',
+						schema: 'TimeEntry',
+						props: { domainObjectRef: '@objectId', domainObjectType: 'dossiq:case' },
+					}],
+				},
+				global: {
+					provide: {
+						cnObjectContext: ref({ objectId: 'case-7', object: { title: 'A case' }, register: 'dossiq', schema: 'case' }),
+					},
+				},
+			})
+			w.vm.formEntry = w.vm.actions[0]
+
+			expect(w.vm.formInitialValues).toEqual({
+				domainObjectRef: 'case-7',
+				domainObjectType: 'dossiq:case',
+			})
+		})
+
+		it('leaves a literal seed value alone', () => {
+			const w = mount(CnActionButtons, {
+				props: {
+					actions: [{ id: 'a', type: 'open-form', label: 'New', schema: 's', props: { kind: 'complaint' } }],
+				},
+			})
+			w.vm.formEntry = w.vm.actions[0]
+
+			expect(w.vm.formInitialValues).toEqual({ kind: 'complaint' })
+		})
+
+		it('is null when the action declares no seed values', () => {
+			const w = mount(CnActionButtons, {
+				props: { actions: [{ id: 'a', type: 'open-form', label: 'New', schema: 's' }] },
+			})
+			w.vm.formEntry = w.vm.actions[0]
+
+			expect(w.vm.formInitialValues).toBeNull()
 		})
 	})
 })
