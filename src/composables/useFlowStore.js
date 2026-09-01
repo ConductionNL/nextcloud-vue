@@ -24,6 +24,7 @@
 
 import { defineStore } from 'pinia'
 import { DEFAULT_EDGE_LINE_TYPE } from './useFlowEdgeStyles.js'
+import { layoutFlowNodes, needsFullLayout, placeLooseNodes } from './flowGraphLayout.js'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 
@@ -686,24 +687,16 @@ export const useFlowStore = defineStore('cnFlow', {
 			// result is indistinguishable from an empty canvas: one node's
 			// worth of pixels, with the rest underneath it.
 			//
-			// autoSort() already knows how to place them, and its own docblock
-			// says unreachable nodes must go "never at the origin, where they
-			// would hide under the entry points". This just calls it when the
-			// document has nothing to preserve.
-			//
-			// Only when NO node has a position. A flow someone has arranged is
-			// never rearranged behind their back, and a flow with even one
-			// placed node is treated as arranged — rearranging that would throw
-			// away a deliberate choice to make the other nodes tidier.
-			//
-			// `dirty` stays false: this is a rendering fallback for a document
-			// that never carried positions, not an edit. Marking it dirty would
-			// prompt to save a layout the author never asked for, and pressing
-			// save would then write coordinates the flow did not have.
-			if (this.nodes.length && !this.nodes.some(this.hasPosition)) {
-				this.autoSort()
-				this.dirty = false
-			}
+			// ⚠️ NOT `autoSort()`. This fallback used to call it, and autoSort
+			// gates on `pushUndo()`, which refuses when the graph is locked —
+			// and a flow imported from `x-openregister-flows` is PUBLISHED the
+			// moment it exists (SchemaFlowImportListener publishes on import).
+			// So the exact flows that always need this fallback were the ones
+			// it silently skipped: dossiq's 18-node imported flow opened as a
+			// pile, with the run replay's badges painting an unreadable point.
+			// `applyRenderLayout()` computes coordinates without asking to
+			// edit, which a rendering fallback never does.
+			this.applyRenderLayout()
 
 			this.loadRuns(id)
 		},
@@ -1323,11 +1316,19 @@ export const useFlowStore = defineStore('cnFlow', {
 		/**
 		 * Lay the nodes out left-to-right by how the flow actually runs.
 		 *
-		 * Longest-path layering seeded from the start nodes, so a node sits one
-		 * column past the furthest node that leads to it. Unreachable nodes go
-		 * one column past everything — never at the origin, where they would
-		 * hide under the entry points. Coordinates and NOTHING else change,
-		 * which is what makes this safe to press on a working flow.
+		 * The pass lives in `flowGraphLayout.js`: longest-path layering seeded
+		 * from the start nodes with back edges dropped (a loop terminates the
+		 * layering instead of stretching it), one barycenter ordering pass per
+		 * column so parallel branches stay apart, fixed grid spacing.
+		 * Unreachable nodes go one column past everything — never at the
+		 * origin, where they would hide under the entry points. Coordinates
+		 * and NOTHING else change, which is what makes this safe to press on
+		 * a working flow.
+		 *
+		 * This is the EDIT — the toolbar button. It asks `pushUndo()` first,
+		 * so a locked graph refuses it, and it marks the document dirty so the
+		 * new layout is offered for saving. The rendering fallback that may
+		 * not do either of those things is `applyRenderLayout()`.
 		 *
 		 * @return {void}
 		 */
@@ -1336,65 +1337,54 @@ export const useFlowStore = defineStore('cnFlow', {
 				return
 			}
 
-			const nodes = this.nodes
-			if (!nodes.length) {
+			if (!this.nodes.length) {
 				return
 			}
 
-			const columnWidth = 260
-			const rowHeight = 170
-			const margin = 60
-			// The toolbar FLOATS over the canvas (position: absolute, top 12px,
-			// ~52px tall) because the controls belong with the graph. A node
-			// laid out at the old uniform 60px margin therefore landed UNDER
-			// it, and an overlaid node is not merely ugly — it is unreachable:
-			// the toolbar swallows the pointer, so it cannot be clicked,
-			// double-clicked to edit, or dragged out from under itself.
-			// Measured live on a three-node flow: the middle node sat wholly
-			// behind the toolbar and Playwright reported
-			// `cn-flow-detail__toolbar subtree intercepts pointer events`.
-			const toolbarClearance = 96
-
-			const outgoing = new Map()
-			for (const line of this.canvasEdges) {
-				if (!outgoing.has(line.source)) {
-					outgoing.set(line.source, [])
-				}
-				outgoing.get(line.source).push(line.target)
-			}
-
-			const depth = new Map()
-			const queue = this.startNodeIds.map((id) => ({ id, level: 0 }))
-			// n² guard: a cycle must terminate the walk, not the browser.
-			let budget = nodes.length * nodes.length
-			while (queue.length && budget-- > 0) {
-				const { id, level } = queue.shift()
-				if ((depth.get(id) ?? -1) >= level) {
-					continue
-				}
-
-				depth.set(id, level)
-				for (const next of (outgoing.get(id) || [])) {
-					queue.push({ id: next, level: level + 1 })
-				}
-			}
-
-			const unreachableColumn = (Math.max(-1, ...depth.values()) + 1)
-			const rows = new Map()
-			this.flow.nodes = nodes.map((node) => {
-				const column = depth.has(node.id) ? depth.get(node.id) : unreachableColumn
-				const row = rows.get(column) || 0
-				rows.set(column, row + 1)
-
-				const x = margin + (column * columnWidth)
-				const y = toolbarClearance + (row * rowHeight)
-
-				// Both spellings — see moveNode(). Laying a flow out and saving
-				// it has to survive the round trip, or the button appears to
-				// work and the layout is gone on the next load.
-				return { ...node, x, y, position: { x, y } }
-			})
+			this.flow.nodes = layoutFlowNodes(this.nodes, this.canvasEdges, this.startNodeIds)
 			this.dirty = true
+		},
+
+		/**
+		 * Give every node a usable position, without editing anything.
+		 *
+		 * A rendering fallback, not an edit: no undo entry, no dirty flag, no
+		 * lifecycle refusal — which is what lets it run on a PUBLISHED flow,
+		 * where `autoSort()` correctly refuses. The definition is untouched as
+		 * far as anyone else can tell: the coordinates live on the in-memory
+		 * copy `open()` already deep-cloned, nothing here persists them, and a
+		 * viewer who only looks never writes them anywhere. On a DRAFT the
+		 * author goes on to edit, the next save carries them along the
+		 * existing save path — which is the point: a once-opened flow becomes
+		 * stable instead of being relaid on every visit.
+		 *
+		 * Two cases, decided by the positions actually present:
+		 *
+		 * - No usable positions at all — none, or every positioned node piled
+		 *   on one identical point — lays the WHOLE graph out fresh.
+		 * - An arranged graph with some position-less nodes keeps every placed
+		 *   node exactly where its author put it and slots only the loose ones
+		 *   beneath, in run order.
+		 *
+		 * @return {boolean} Whether any node was given a position.
+		 */
+		applyRenderLayout() {
+			const nodes = this.flow.nodes || []
+			if (!nodes.length) {
+				return false
+			}
+
+			if (needsFullLayout(nodes)) {
+				this.flow.nodes = layoutFlowNodes(nodes, this.canvasEdges, this.startNodeIds)
+				return true
+			}
+
+			if (nodes.some((node) => !this.hasPosition(node))) {
+				this.flow.nodes = placeLooseNodes(nodes, this.canvasEdges, this.startNodeIds)
+				return true
+			}
+
+			return false
 		},
 
 		/**
