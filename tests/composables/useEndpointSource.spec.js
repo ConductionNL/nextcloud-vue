@@ -119,6 +119,50 @@ describe('resolveEndpointRequest', () => {
 		expect(required.blocked).toBe(true)
 	})
 
+	it('blocks a request whose URL token collapsed into an empty PATH segment', () => {
+		// Measured on dossiq: a KPI tile bound to the loaded record built
+		// `/cases/{id}/milestones/progress/@object.caseType` on first render,
+		// before the record arrived. The token collapsed to '' and the request
+		// 404'd, then re-fired correctly once the record loaded. The tile showed
+		// the same value throughout, because a failed fetch and a real zero
+		// render identically — so nothing looked wrong.
+		const blocked = resolveEndpointRequest(
+			{ url: '/apps/dossiq/api/cases/case-1/milestones/progress/@object.caseType' },
+			{ objectId: 'case-1', object: null },
+		)
+		expect(blocked.blocked).toBe(true)
+
+		const resolved = resolveEndpointRequest(
+			{ url: '/apps/dossiq/api/cases/case-1/milestones/progress/@object.caseType' },
+			{ objectId: 'case-1', object: { caseType: 'type-9' } },
+		)
+		expect(resolved.blocked).toBe(false)
+		expect(resolved.url).toBe('/apps/dossiq/api/cases/case-1/milestones/progress/type-9')
+	})
+
+	it('blocks a mid-path collapse, not just a trailing one', () => {
+		const req = resolveEndpointRequest(
+			{ url: '/api/@object.tenant/cases' },
+			{ object: {} },
+		)
+		expect(req.blocked).toBe(true)
+	})
+
+	it('leaves an empty QUERY value alone — only a path segment is a broken URL', () => {
+		const req = resolveEndpointRequest(
+			{ url: '/api/x?period=@workspace.period' },
+			{ workspace: {} },
+		)
+		expect(req.blocked).toBe(false)
+	})
+
+	it('never blocks a URL that carries no tokens, however it is shaped', () => {
+		// A caller may legitimately end a URL in a slash. Only a token that
+		// COLLAPSED is evidence of a half-built path.
+		expect(resolveEndpointRequest({ url: '/api/x/' }).blocked).toBe(false)
+		expect(resolveEndpointRequest({ url: '//api/x' }).blocked).toBe(false)
+	})
+
 	it('normalizes the method (GET default, POST opt-in)', () => {
 		expect(resolveEndpointRequest({ url: '/x' }).method).toBe('GET')
 		expect(resolveEndpointRequest({ url: '/x', method: 'post' }).method).toBe('POST')

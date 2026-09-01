@@ -155,9 +155,41 @@ export function resolveEndpointRequest(config, ctx) {
 	const url = interpolateUrlTokens(cfg.url || '', ctx)
 	const resolved = resolveFilterTokens(cfg.params || {}, ctx)
 	const params = dropOptionalUnresolved(resolved)
-	const blocked = hasUnresolvedTokens(params)
 	const method = String(cfg.method || 'GET').toUpperCase() === 'POST' ? 'POST' : 'GET'
+	const blocked = hasUnresolvedTokens(params) || hasEmptyPathSegment(cfg.url || '', url)
 	return { url, method, params, blocked }
+}
+
+/**
+ * Whether interpolation left an EMPTY PATH SEGMENT in a URL that had tokens.
+ *
+ * An unresolved token collapses to `''` so a literal `@object.caseType` never
+ * hits the wire. In a query value that is harmless. In a PATH it silently
+ * builds a different URL: `…/milestones/progress/@object.caseType` becomes
+ * `…/milestones/progress/`, which is a route that does not exist.
+ *
+ * Measured on dossiq: a KPI tile bound to the loaded record fired that 404 on
+ * every case-detail load, then re-fired correctly once the record arrived. The
+ * tile showed the same value throughout, because the widget's zero and a failed
+ * fetch render identically — so nothing looked wrong and the 404 simply became
+ * background noise in the console.
+ *
+ * Only PATH segments are judged, and only when the raw URL actually carried a
+ * token: an empty query value stays a caller's business, and a URL with no
+ * tokens is never blocked by this.
+ *
+ * @param {string} rawUrl The URL before interpolation.
+ * @param {string} resolvedUrl The URL after interpolation.
+ * @return {boolean} true when a token collapsed into an empty path segment.
+ */
+function hasEmptyPathSegment(rawUrl, resolvedUrl) {
+	if (typeof rawUrl !== 'string' || rawUrl.indexOf('@') === -1) return false
+	const path = String(resolvedUrl).split('?')[0].split('#')[0]
+	// A trailing slash on a URL that HAD no trailing slash before interpolation,
+	// or any `//` inside the path, is a segment that resolved to nothing.
+	const rawPath = rawUrl.split('?')[0].split('#')[0]
+	if (path.includes('//') && !rawPath.includes('//')) return true
+	return path.length > 1 && path.endsWith('/') && !rawPath.endsWith('/')
 }
 
 /**
