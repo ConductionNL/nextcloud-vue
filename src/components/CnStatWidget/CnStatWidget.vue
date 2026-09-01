@@ -62,7 +62,11 @@
 				<NcLoadingIcon v-if="displayLoading" :size="22" />
 				<span v-else-if="displayError" class="cn-stat-widget__error" :title="displayError">—</span>
 				<template v-else>
-					<span class="cn-kpi-card__value cn-stat-widget__value" :style="valueStyle">
+					<span
+					class="cn-kpi-card__value cn-stat-widget__value"
+					:class="{ 'cn-kpi-card__value--text': isTextValue }"
+					:title="isTextValue ? String(displayValue) : null"
+					:style="valueStyle">
 						{{ formattedValue }}
 					</span>
 					<span
@@ -476,6 +480,21 @@ export default {
 			if (!this.endpointMode) return this.value
 			const v = getByPath(this.epData, this.content.valueField)
 			return v === undefined ? null : v
+		},
+		/**
+		 * Whether the headline is text rather than a number.
+		 *
+		 * The KPI card is built around a number: it never wraps and never
+		 * shrinks, because in a narrow tile the decoration should give way and
+		 * the figure should not. A NAME needs the opposite, so it gets a variant
+		 * that wraps and clamps, plus a title attribute for the full string.
+		 *
+		 * @return {boolean} true when the value is not numeric.
+		 */
+		isTextValue() {
+			const v = this.displayValue
+			if (v === null || v === undefined || v === '') return false
+			return !Number.isFinite(Number(v))
 		},
 		/**
 		 * Whether the tile reads a field off the BOUND RECORD rather than

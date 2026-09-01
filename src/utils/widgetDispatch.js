@@ -32,9 +32,15 @@ import { canonicalWidgetType } from './widgetTypeAliases.js'
  * On a card surface they need the titled wrapper; inside a tab panel the strip
  * already supplies the title, so they render bare.
  *
+ * `flow-runs` belongs here for the same reason the lists do: it renders a bare
+ * row list, so without the wrapper it appeared on the detail page as loose text
+ * with no title and no card, which ADR-062 rule 5 forbids ("every body widget
+ * has card chrome and its manifest title"). It is NOT in the Add-action list,
+ * because a run is started by a flow, never by a person clicking Add.
+ *
  * @type {string[]}
  */
-export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files'])
+export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs'])
 
 /**
  * The stored content/config blob for a widget definition.

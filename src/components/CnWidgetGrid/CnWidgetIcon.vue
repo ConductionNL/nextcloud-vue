@@ -20,12 +20,25 @@
 	</svg>
 	<component
 		:is="iconComponent"
-		v-else
+		v-else-if="iconComponent"
 		:size="size" />
+	<!-- This registry is a CURATED 57-icon set for the tile/menu/links catalog,
+	     but a manifest `icon` field is authored against the fleet-wide
+	     vocabulary, which is far larger. A valid-but-unknown-here name landed on
+	     the DEFAULT icon, so a widget asking for a clock rendered a dashboard
+	     grid: wrong, and plausible enough that nobody reads it as a bug.
+	     CnIcon knows the wider vocabulary, so defer to it.
+
+	     Composed as a COMPONENT rather than by importing CnIcon's registry into
+	     widgetIcons.js: a `.js` utility importing a `.vue` SFC risks an import
+	     cycle, and a cycle around an SFC dies with `Cannot set properties of
+	     undefined (setting 'render')` naming neither file. -->
+	<CnIcon v-else :name="name" :size="size" />
 </template>
 
 <script>
-import { getIconComponent, isCustomIconUrl } from './widgetIcons.js'
+import CnIcon from '../CnIcon/CnIcon.vue'
+import { hasRegistryIcon, getIconComponent, isCustomIconUrl } from './widgetIcons.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
 
 /**
@@ -44,6 +57,10 @@ import { isSvgPath } from '../../utils/iconUtils.js'
  */
 export default {
 	name: 'CnWidgetIcon',
+
+	components: {
+		CnIcon,
+	},
 
 	props: {
 		/**
@@ -92,6 +109,11 @@ export default {
 		 * @return {object|null} a Vue component, or `null` for URL inputs.
 		 */
 		iconComponent() {
+			// Only answer for names this registry actually knows. Asking
+			// getIconComponent() unconditionally is useless here, because it
+			// returns the DEFAULT icon for every unknown name, which is exactly
+			// the wrong-but-plausible glyph this fallback exists to stop.
+			if (!hasRegistryIcon(this.name)) return null
 			return getIconComponent(this.name)
 		},
 	},

@@ -293,7 +293,11 @@ export default defineComponent({
 	flex: 1 1 auto;
 	gap: 4px;
 	min-width: 0;
-	overflow-x: auto;
+	/* Wrap before scrolling. A horizontally scrolling strip hides tabs behind
+	   an edge with nothing to say they are there, and beside a `#nav-end`
+	   control the clipped tab reads as sitting UNDER the control. Wrapping
+	   keeps every tab reachable without a gesture. */
+	flex-wrap: wrap;
 }
 
 .cn-tabs__nav-end {
