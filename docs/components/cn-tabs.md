@@ -52,6 +52,13 @@ export default { components: { CnTabs, CnTab } }
 | Slot | Description |
 | --- | --- |
 | `default` | The [`CnTab`](./cn-tab.md) children. Anything else is rendered into the panel area untouched. |
+| `nav-end` | Fills the right-hand end of the tab bar, beside the strip. Receives `activeIndex`. Use it for a control that belongs to the strip as a whole, such as one Actions menu serving whichever panel is showing. |
+
+### Why `nav-end` sits outside the tablist
+
+The slot renders as a sibling of the `role="tablist"` element, not inside it. Anything nested in a tablist is announced as one of the tabs, so a button in there makes a screen-reader user counting six tabs hear seven.
+
+`CnTabsWidget` uses this slot to hoist the active child widget's Actions menu out of the panels and into the bar, so one menu serves every tab.
 
 ## Events
 
