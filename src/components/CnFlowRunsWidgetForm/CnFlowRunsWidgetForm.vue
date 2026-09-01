@@ -32,6 +32,21 @@
 			@update:value="updateField('rowRoute', $event)" />
 
 		<NcTextField
+			:value="runRoute"
+			:label="t('nextcloud-vue', 'Open route on run click (optional, receives the run id)')"
+			placeholder="RunDetail"
+			@update:value="updateField('runRoute', $event)" />
+
+		<!-- Scoping the widget to ONE object. On a detail page the token
+		     @objectId binds the current object, so a manifest never hardcodes
+		     a uuid. Empty keeps the org-wide dashboard behaviour. -->
+		<NcTextField
+			:value="subject"
+			:label="t('nextcloud-vue', 'Subject object (uuid or @objectId, optional)')"
+			placeholder="@objectId"
+			@update:value="updateField('subject', $event)" />
+
+		<NcTextField
 			:value="emptyText"
 			:label="t('nextcloud-vue', 'Text when nothing is running')"
 			placeholder="No flows are running"
@@ -47,6 +62,8 @@ const DEFAULT_CONTENT = Object.freeze({
 	limit: 6,
 	pollSeconds: 15,
 	rowRoute: '',
+	runRoute: '',
+	subject: '',
 	emptyText: '',
 })
 
@@ -56,11 +73,13 @@ const DEFAULT_CONTENT = Object.freeze({
  * Deliberately small: the widget has no register / schema / filter to pick,
  * because "which flow runs" is not a choice — it is every live run the viewer's
  * organisation owns, resolved server-side. What IS a choice is how many rows
- * the cell can hold, how often to refetch, where a row click goes, and what to
- * say when nothing is running. Emits `update:content` on every change; used by
- * `CnAddWidgetModal` and the cog editor.
+ * the cell can hold, how often to refetch, where a row click goes, an optional
+ * subject object to scope to (a uuid, or `@objectId` on a detail page), and
+ * what to say when nothing is running. Emits `update:content` on every change;
+ * used by `CnAddWidgetModal` and the cog editor.
  *
  * @spec openspec/changes/cn-flow-runs-widget/specs/cn-flow-runs-widget/spec.md
+ * @spec openspec/changes/cn-flow-runs-widget-subject/specs/cn-flow-runs-widget-subject/spec.md
  */
 export default {
 	name: 'CnFlowRunsWidgetForm',
@@ -89,6 +108,8 @@ export default {
 			limit: Number.isFinite(initial.limit) ? initial.limit : 6,
 			pollSeconds: Number.isFinite(initial.pollSeconds) ? initial.pollSeconds : 15,
 			rowRoute: initial.rowRoute ?? '',
+			runRoute: initial.runRoute ?? '',
+			subject: initial.subject ?? '',
 			emptyText: initial.emptyText ?? '',
 		}
 	},
@@ -100,6 +121,8 @@ export default {
 				limit: this.limit,
 				pollSeconds: this.pollSeconds,
 				rowRoute: this.rowRoute,
+				runRoute: this.runRoute,
+				subject: this.subject,
 				emptyText: this.emptyText,
 			}
 		},
