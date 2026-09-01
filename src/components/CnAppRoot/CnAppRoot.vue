@@ -325,6 +325,7 @@
 			          <component :is="pageSidebarComponent" v-if="pageSidebarComponent" />
 			      </template>
 			-->
+			<!-- eslint-disable-next-line vue/attribute-hyphenation -- on a <slot>, the attribute IS the scoped-slot prop's key: hyphenating it would rename `pageSidebarComponent` for every consumer destructuring this slot -->
 			<slot v-if="cnPageSidebarVisible.value !== false" name="sidebar" :pageSidebarComponent="pageSidebarComponent">
 				<component
 					:is="pageSidebarComponent"

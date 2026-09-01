@@ -43,6 +43,30 @@ import { generateUrl } from '@nextcloud/router'
  */
 const GRAPH_FIELDS = ['nodes', 'edges', 'limits', 'executionMode']
 
+/**
+ * The run statuses the engine treats as "still going".
+ *
+ * Mirrors `FlowRun::ACTIVE` on the server (`queued`, `running`, `suspended`);
+ * everything else (`completed`, `stopped`, `failed`, `dead_letter`) is
+ * terminal. The watcher polls while a run is in this set and stops by itself
+ * the moment it leaves it.
+ *
+ * @type {string[]}
+ */
+export const FLOW_RUN_ACTIVE_STATUSES = ['queued', 'running', 'suspended']
+
+/**
+ * How often the watched run is polled, and the floor under a caller-supplied
+ * interval.
+ *
+ * 3s because the editor's Run is interactive — a person is looking — so the
+ * dashboard widget's 15s feels dead; floored at 2s because the engine writes
+ * the log once per worker pass, so polling faster multiplies requests for no
+ * extra information.
+ */
+const WATCH_INTERVAL_DEFAULT_MS = 3000
+const WATCH_INTERVAL_FLOOR_MS = 2000
+
 function emptyFlow() {
 	return {
 		name: '',
@@ -149,6 +173,39 @@ export const useFlowStore = defineStore('cnFlow', {
 		// step of its own.
 		runObjects: [],
 		inspectedRunUuid: null,
+
+		// The run being WATCHED live: the one `run()` just queued, polled while
+		// its status is non-terminal. The store exposes FACTS about it — the
+		// run, its ordered steps, which of them are new since the last poll —
+		// and animates nothing: the animation timeline lives in CnFlowDetail,
+		// the only place that knows what a hop looks like. Splitting it this
+		// way keeps the store testable without a clock.
+		watchedRunUuid: null,
+		watchedRun: null,
+
+		// The watched run's log so far, in the engine's order. WITHIN ONE RUN
+		// THE LOG ONLY GROWS — the engine appends per worker pass, and a
+		// resumed pass appends after the `suspended` entry — so entries are
+		// appended by index and an already-exposed step is never replaced or
+		// replayed.
+		watchedSteps: [],
+
+		// Where the latest poll's NEW entries start in `watchedSteps`. The
+		// index diff is exact because the log only grows; a consumer reads
+		// `newWatchedSteps` to learn what arrived without replaying the rest.
+		watchedNewFrom: 0,
+
+		// Whether the poll loop is live. Stays true while the tab is hidden —
+		// the timer is paused, not the watch — and turns false on a terminal
+		// status, a re-watch, or teardown.
+		watching: false,
+
+		// A replay request for the INSPECTED run, as a monotonic token. The
+		// sidebar raises it (`requestReplay()`), the canvas half watches it and
+		// plays `steps` through its animator. A token rather than a flag so
+		// replaying the same run twice in a row is two requests.
+		replayUuid: null,
+		replayToken: 0,
 
 		loading: false,
 		saving: false,
@@ -431,6 +488,31 @@ export const useFlowStore = defineStore('cnFlow', {
 		},
 
 		/**
+		 * Whether the watched run is still going.
+		 *
+		 * Read from the run's own `status` against the engine's non-terminal
+		 * set, never from `watching` — the poll loop can be paused (hidden
+		 * tab) or already stopped (terminal status seen) while the last
+		 * fetched state is what the canvas should keep painting.
+		 *
+		 * @param {object} state The store state.
+		 * @return {boolean} True while the run's status is non-terminal.
+		 */
+		watchedRunActive: (state) => FLOW_RUN_ACTIVE_STATUSES.includes(state.watchedRun?.status),
+
+		/**
+		 * The steps the latest poll ADDED, in log order.
+		 *
+		 * Index-diffed against what was already exposed, so a consumer can
+		 * tell new steps from ones it has already animated. Exact because the
+		 * log only grows within a run — see `watchedSteps`.
+		 *
+		 * @param {object} state The store state.
+		 * @return {Array<object>} The engine's log entries, as delivered.
+		 */
+		newWatchedSteps: (state) => state.watchedSteps.slice(state.watchedNewFrom),
+
+		/**
 		 * The flow as the engine would run it.
 		 *
 		 * @param {object} state The store state.
@@ -559,6 +641,16 @@ export const useFlowStore = defineStore('cnFlow', {
 			this.runObjects = []
 			this.inspectedRunUuid = null
 			this.checkResult = null
+
+			// A watch is per run and a run is per flow: polling the previous
+			// flow's run from the next flow's editor would keep painting a run
+			// this canvas cannot show.
+			this.stopWatching()
+			this.watchedRunUuid = null
+			this.watchedRun = null
+			this.watchedSteps = []
+			this.watchedNewFrom = 0
+			this.replayUuid = null
 
 			if (!id || id === 'new') {
 				// A new flow is runnable on demand until its author picks a real
@@ -1531,7 +1623,18 @@ export const useFlowStore = defineStore('cnFlow', {
 					{ subject },
 				)
 				await this.loadRuns(this.flow.id)
-				return response.data || null
+
+				// The POST answers with the created run, uuid included. That
+				// uuid used to be discarded, which is why pressing Run left a
+				// perfectly still canvas: nothing ever looked at the run again
+				// until the user opened the Runs tab. Watching it is what puts
+				// the run ON the canvas.
+				const run = response.data || null
+				if (run?.uuid) {
+					this.watchRun(run.uuid)
+				}
+
+				return run
 			} catch (error) {
 				console.error('cn-flow: could not run the flow', error)
 				this.error = error
@@ -1539,6 +1642,200 @@ export const useFlowStore = defineStore('cnFlow', {
 			} finally {
 				this.running = false
 			}
+		},
+
+		/**
+		 * Watch one run: poll it while its status is non-terminal.
+		 *
+		 * Polls `GET /apps/openregister/api/flow-runs/{uuid}` on an interval
+		 * (default 3s, floored at 2s), stops by itself on a terminal status,
+		 * on a re-watch, and on teardown. Pauses while the document is hidden
+		 * and resumes with one immediate fetch when it becomes visible — the
+		 * behaviour CnFlowRunsWidget already ships.
+		 *
+		 * Polling, not push, because that is what exists: the flow-run API is
+		 * REST only, and the engine persists the log once per worker pass
+		 * anyway, so a push channel would today deliver the same bursts.
+		 *
+		 * @param {string} uuid                The run to watch.
+		 * @param {object} options             Watch options.
+		 * @param {number} options.intervalMs  Poll interval in ms; floored at 2000.
+		 * @return {void}
+		 */
+		watchRun(uuid, { intervalMs = WATCH_INTERVAL_DEFAULT_MS } = {}) {
+			this.stopWatching()
+
+			if (!uuid) {
+				return
+			}
+
+			this.watchedRunUuid = uuid
+			this.watchedRun = null
+			this.watchedSteps = []
+			this.watchedNewFrom = 0
+			this.watching = true
+
+			const requested = Number(intervalMs)
+			this._watchIntervalMs = Math.max(
+				WATCH_INTERVAL_FLOOR_MS,
+				Number.isFinite(requested) ? requested : WATCH_INTERVAL_DEFAULT_MS,
+			)
+
+			// Bound so removeEventListener gets the SAME function back — an
+			// inline arrow here could be added but never removed.
+			this._watchOnVisibility = () => this.onWatchVisibilityChange()
+			document.addEventListener('visibilitychange', this._watchOnVisibility)
+
+			this.fetchWatchedRun()
+			this.startWatchTimer()
+		},
+
+		/**
+		 * Start (or restart) the poll interval — unless the watch is over or
+		 * the tab is hidden, in which case the visibility handler restarts it.
+		 *
+		 * @return {void}
+		 */
+		startWatchTimer() {
+			this.clearWatchTimer()
+
+			if (this.watching !== true || document.hidden === true) {
+				return
+			}
+
+			this._watchTimer = setInterval(() => {
+				this.fetchWatchedRun()
+			}, this._watchIntervalMs)
+		},
+
+		/**
+		 * Clear the poll interval. The watch itself stays what it was.
+		 *
+		 * @return {void}
+		 */
+		clearWatchTimer() {
+			if (this._watchTimer !== undefined && this._watchTimer !== null) {
+				clearInterval(this._watchTimer)
+				this._watchTimer = null
+			}
+		},
+
+		/**
+		 * One poll of the watched run.
+		 *
+		 * Appends the log entries beyond what `watchedSteps` already holds —
+		 * the log only grows within a run, so the index diff is exact and an
+		 * already-exposed step is never replayed. Stops the watch when the
+		 * status turns terminal, keeping the final run and steps for the
+		 * canvas's last paint.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async fetchWatchedRun() {
+			const uuid = this.watchedRunUuid
+			if (!uuid) {
+				return
+			}
+
+			try {
+				const response = await axios.get(
+					generateUrl(`/apps/openregister/api/flow-runs/${uuid}`),
+				)
+
+				// A re-watch can land while this request is in the air; its
+				// answer describes a run nobody is watching any more.
+				if (this.watchedRunUuid !== uuid) {
+					return
+				}
+
+				const run = response.data || null
+				this.watchedRun = run
+
+				const log = Array.isArray(run?.log) ? run.log : []
+				this.watchedNewFrom = this.watchedSteps.length
+				if (log.length > this.watchedSteps.length) {
+					this.watchedSteps = [
+						...this.watchedSteps,
+						...log.slice(this.watchedSteps.length),
+					]
+				}
+
+				if (run !== null && FLOW_RUN_ACTIVE_STATUSES.includes(run.status) === false) {
+					this.stopWatching()
+
+					// The Runs tab lists this run with the status it had when
+					// the list was last read — usually `queued`. Refresh so the
+					// history agrees with the canvas about how it ended.
+					if (this.flow.id) {
+						this.loadRuns(this.flow.id)
+					}
+				}
+			} catch (error) {
+				console.error('cn-flow: could not read the watched run', error)
+
+				// A missing run will not come back; anything else (a blip, a
+				// timeout) is worth the next poll.
+				if (error?.response?.status === 404) {
+					this.stopWatching()
+				}
+			}
+		},
+
+		/**
+		 * Stop polling. The watched run and its steps are KEPT — the canvas's
+		 * final paint reads them — only the loop and its listener go.
+		 *
+		 * @return {void}
+		 */
+		stopWatching() {
+			this.clearWatchTimer()
+
+			if (this._watchOnVisibility !== undefined && this._watchOnVisibility !== null) {
+				document.removeEventListener('visibilitychange', this._watchOnVisibility)
+				this._watchOnVisibility = null
+			}
+
+			this.watching = false
+		},
+
+		/**
+		 * Pause the poll while the tab is hidden; refetch once and resume when
+		 * it comes back, so returning shows current state rather than whatever
+		 * was true when the tab was backgrounded.
+		 *
+		 * @return {void}
+		 */
+		onWatchVisibilityChange() {
+			if (document.hidden === true) {
+				this.clearWatchTimer()
+				return
+			}
+
+			if (this.watching !== true) {
+				return
+			}
+
+			this.fetchWatchedRun()
+			this.startWatchTimer()
+		},
+
+		/**
+		 * Ask the canvas to replay the inspected run's stored log.
+		 *
+		 * The steps are already here — `inspectRun()` fetched them — so this
+		 * only raises the token the canvas half watches. A live watch is
+		 * stopped first: a replay and a live run cannot share the canvas.
+		 *
+		 * @return {void}
+		 */
+		requestReplay() {
+			if (!this.inspectedRunUuid || this.steps.length === 0) {
+				return
+			}
+
+			this.stopWatching()
+			this.replayUuid = this.inspectedRunUuid
+			this.replayToken += 1
 		},
 
 		async loadRuns(flowId) {
