@@ -2,6 +2,7 @@
 
 ### Props
 
-| Name   | Type     | Required | Default | Description                                     |
-| ------ | -------- | -------- | ------- | ----------------------------------------------- |
-| `page` | `object` |          | `\{\}`  | The manifest page, as CnPageRenderer passes it. |
+| Name        | Type                                  | Required | Default | Description                                               |
+| ----------- | ------------------------------------- | -------- | ------- | --------------------------------------------------------- |
+| `page`      | `object`                              |          | `\{\}`  | The manifest page, as CnPageRenderer passes it.           |
+| `translate` | `((key: string) => string)&#124;null` |          | `null`  | Translate function. Falls back to injected `cnTranslate`. |
