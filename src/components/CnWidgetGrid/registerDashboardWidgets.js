@@ -65,6 +65,8 @@ import CnMapWidget from '../CnMapWidget/CnMapWidget.vue'
 import CnMapWidgetForm from '../CnMapWidgetForm/CnMapWidgetForm.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnRelatedObjectsWidgetForm from '../CnRelatedObjectsWidgetForm/CnRelatedObjectsWidgetForm.vue'
+import CnTabsWidget from '../CnTabsWidget/CnTabsWidget.vue'
+import CnTabsWidgetForm from '../CnTabsWidgetForm/CnTabsWidgetForm.vue'
 
 registerDashboardWidget('chart', {
 	renderer: CnChartWidget,
@@ -185,6 +187,24 @@ registerDashboardWidget('map', {
 	},
 	displayName: 'Map',
 	icon: 'Map',
+})
+
+registerDashboardWidget('tabs', {
+	renderer: CnTabsWidget,
+	form: CnTabsWidgetForm,
+	defaultContent: {
+		tabs: [],
+		ariaLabel: '',
+	},
+	displayName: 'Tabs',
+	icon: 'TabPlus',
+	// Renders OTHER widgets, so CnDetailWidgetHost hands it the surface's
+	// sibling definitions and the context its children will need.
+	container: true,
+	// The strip's labels ARE the titles, so a card header above them would name
+	// the group twice.
+	ownsTitle: true,
+	surfaces: ['detail-page'],
 })
 
 /**

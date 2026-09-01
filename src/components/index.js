@@ -329,3 +329,6 @@ export { CnNcWidgetGridPicker } from './CnNcWidgetGridPicker/index.js'
 // Generic tab strip. `NcAppSidebarTab` only works inside an `NcAppSidebar`, and
 // `bootstrap-vue@2` — what apps reached for instead — has no Vue 3 release.
 export { CnTabs, CnTab, CN_TABS_INJECTION_KEY } from './CnTabs/index.js'
+export { CnTabsWidget } from './CnTabsWidget/index.js'
+export { CnTabsWidgetForm } from './CnTabsWidgetForm/index.js'
+export { CnDetailWidgetHost } from './CnDetailWidgetHost/index.js'

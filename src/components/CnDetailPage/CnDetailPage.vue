@@ -394,6 +394,7 @@
 								:integration-context="effectiveIntegrationContext"
 								:hide-empty="hideEmpty"
 								:cn-registry="cnRegistry"
+								:available-widgets="bodyGridWidgets"
 								@geo-saved="onGeoSaved"
 								@open-integration="onAutoBodyOpenIntegration" />
 						</slot>

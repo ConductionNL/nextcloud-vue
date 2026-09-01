@@ -161,6 +161,7 @@ import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
+import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import {
 	isCardWidgetDef,
@@ -303,6 +304,19 @@ export default {
 		hideEmpty: {
 			type: Boolean,
 			default: false,
+		},
+		/**
+		 * Every widget definition on the surface, for a CONTAINER widget to
+		 * resolve the children it references by id.
+		 *
+		 * Only container types receive it (see `rendererProps`). A leaf widget
+		 * has no business knowing what else is on the page.
+		 *
+		 * @type {object[]}
+		 */
+		availableWidgets: {
+			type: Array,
+			default: () => [],
 		},
 		/**
 		 * Whether a card widget (stat / gauge / delta) draws the wrapper header.
@@ -504,7 +518,7 @@ export default {
 		 * @return {object} The prop bag.
 		 */
 		rendererProps() {
-			return {
+			const base = {
 				content: this.content,
 				objectId: this.objectId,
 				register: this.register,
@@ -512,8 +526,33 @@ export default {
 				objectData: this.object,
 				objectType: this.objectType,
 				store: this.store,
-				...this.content,
 			}
+			// A container widget renders other widgets, so it needs what a
+			// surface knows and a leaf does not: the sibling definitions to
+			// resolve its children against, and the context those children will
+			// need. Handing this to every widget instead would put objects on
+			// the DOM as stringified attributes for the ones that ignore them.
+			if (this.isContainer) {
+				Object.assign(base, {
+					availableWidgets: this.availableWidgets,
+					schemaObject: this.schemaObject,
+					integrationContext: this.integrationContext,
+					cnRegistry: this.cnRegistry,
+					surface: this.surface,
+				})
+			}
+			return { ...base, ...this.content }
+		},
+
+		/**
+		 * Whether the type declares itself a container (registry `container`).
+		 *
+		 * @return {boolean} true for a widget that renders other widgets.
+		 */
+		isContainer() {
+			if (!this.widget?.type) return false
+			const entry = getWidgetTypeEntry(this.widget.type)
+			return Boolean(entry && entry.container === true)
 		},
 
 		/**
