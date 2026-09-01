@@ -240,6 +240,26 @@
 			</div>
 		</template>
 
+		<!--
+			CnTasksWidget + the tasks entity source index (gated behind
+			?tasksWidget=1 / ?tasksIndex=1). Offline: the spec intercepts
+			/apps/openregister/api/flow-tasks with page.route, so the rows,
+			the total and the claim refusal are deterministic
+			(cn-tasks-entity-source).
+		-->
+		<template v-else-if="showTasksWidget">
+			<h2>Tasks widget</h2>
+			<div class="tasks-frame" data-testid="tasks-widget-frame">
+				<CnTasksWidget :content="tasksWidgetContent" />
+			</div>
+		</template>
+		<template v-else-if="showTasksIndex">
+			<CnIndexPage
+				entity-source="tasks"
+				title="Tasks"
+				:show-refresh="false" />
+		</template>
+
 		<!-- CnFormDialog schema-driven widget:'icon' (gated behind ?fd=1). -->
 		<template v-else-if="showFormDialog">
 			<h2>Form dialog — schema-driven icon field</h2>
@@ -328,6 +348,8 @@ import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
 import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
 import CnNavCardGrid from '../../src/components/CnNavCardGrid/CnNavCardGrid.vue'
 import CnInteractionFormWidget from '../../src/components/CnInteractionFormWidget/CnInteractionFormWidget.vue'
+import CnTasksWidget from '../../src/components/CnTasksWidget/CnTasksWidget.vue'
+import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 import { NcDialog, NcSelect } from '@nextcloud/vue'
 import { installModalStack } from '../../src/utils/modalStack.js'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
@@ -351,7 +373,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, CnTasksWidget, CnIndexPage, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -466,6 +488,10 @@ export default {
 					href: 'https://example.org/explore',
 				},
 			],
+			// CnTasksWidget / tasks entity source harness (?tasksWidget=1 / ?tasksIndex=1).
+			showTasksWidget: (typeof window !== 'undefined' && window.location.search.includes('tasksWidget')),
+			showTasksIndex: (typeof window !== 'undefined' && window.location.search.includes('tasksIndex')),
+			tasksWidgetContent: { limit: 2, pollSeconds: 0 },
 			// CnInteractionFormWidget pixel-reference harness (?ifw=1).
 			showInteractionForm: (typeof window !== 'undefined' && window.location.search.includes('ifw')),
 			ifwContent: {
