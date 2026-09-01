@@ -62,8 +62,9 @@ SHALL render run state onto its node cards and edges:
 - the edge just executed — the `canvasEdges` line whose `source` is the
   previously animated node and whose `target` is the current one — SHALL be
   traced by an animated success-coloured segment travelling source to target,
-  using `pathLength`-normalised `stroke-dashoffset` travel over the same path
-  geometry `edgeGeometry()` already computes (FlowMock's exact technique);
+  using `stroke-dashoffset` travel over the same routed geometry the canvas
+  already draws (FlowMock's technique; since the Vue Flow migration the edge's
+  own direction-pulse path carries the travel, so the base line stays solid);
 - nodes whose steps completed (status `completed` or `pinned`) SHALL keep a
   subtle success-coloured border or accent for the rest of the run;
 - a node whose step reported `failed` (or `stopped` carrying an error) SHALL

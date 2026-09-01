@@ -221,6 +221,21 @@
 
 				<div v-if="store.inspectedRunUuid" class="cn-flow-sidebar__steps">
 					<h5>{{ t('nextcloud-vue', 'Steps') }}</h5>
+
+					<!-- Replay BESIDE the step list, not instead of it: the
+					     list stays what it is for reading, the replay plays the
+					     same stored log through the canvas animator. Only on a
+					     FINISHED run — a run still going is watched live. -->
+					<NcButton v-if="canReplay"
+						variant="secondary"
+						data-testid="flow-replay"
+						@click="store.requestReplay()">
+						<template #icon>
+							<Replay :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Replay on the canvas') }}
+					</NcButton>
+
 					<p v-if="!store.steps.length" class="cn-flow-sidebar__hint">
 						{{ t('nextcloud-vue', 'This run recorded no steps.') }}
 					</p>
@@ -341,8 +356,9 @@ import {
 } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import History from 'vue-material-design-icons/History.vue'
+import Replay from 'vue-material-design-icons/Replay.vue'
 import Sitemap from 'vue-material-design-icons/Sitemap.vue'
-import { useFlowStore } from '../../composables/useFlowStore.js'
+import { FLOW_RUN_ACTIVE_STATUSES, useFlowStore } from '../../composables/useFlowStore.js'
 
 export default {
 	name: 'CnFlowSidebar',
@@ -357,6 +373,7 @@ export default {
 		NcNoteCard,
 		NcSelect,
 		NcTextField,
+		Replay,
 		Sitemap,
 	},
 
@@ -410,6 +427,33 @@ export default {
 			}
 
 			return trigger || ''
+		},
+
+		/**
+		 * The run being inspected, from the loaded history.
+		 *
+		 * @return {object|null} Its list entry, or null.
+		 */
+		inspectedRun() {
+			return this.store.runs.find((run) => run.uuid === this.store.inspectedRunUuid) || null
+		},
+
+		/**
+		 * Whether the inspected run can be replayed on the canvas.
+		 *
+		 * Only a FINISHED run with a recorded log: a run still in the
+		 * engine's active set is watched live rather than replayed, and a
+		 * log-less run has nothing to play.
+		 *
+		 * @return {boolean} True when Replay is offered.
+		 */
+		canReplay() {
+			if (this.store.steps.length === 0) {
+				return false
+			}
+
+			const status = this.inspectedRun?.status
+			return status !== undefined && FLOW_RUN_ACTIVE_STATUSES.includes(status) === false
 		},
 
 		/**

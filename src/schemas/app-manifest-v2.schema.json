@@ -2091,6 +2091,21 @@
 			"additionalProperties": false,
 			"description": "A v2 page definition. CnPageRenderer dispatches by type and matches by $route.name === page.id. All page types support a uniform widgets[] array for declarative slot placement. Sentinels (@resolve:*) are NOT allowed in id, route, component, headerComponent, actionsComponent, or slots.* — those are router and registry invariants.",
 			"properties": {
+				"requiresApp": {
+					"description": "Soft dependency gating this WHOLE page. When the named Nextcloud app is not installed, the page renders the missing-dependency screen instead of its body. This is for the DEEP LINK: an entry gated by visibleIf.appInstalled is already hidden from the menu, so the remaining ways in are a bookmark, a shared URL, a redirect or an e2e spec, and those otherwise land on an empty page where 'not installed' looks the same as 'no data'. Gate a single WIDGET with visibleIf.appInstalled instead: a detail page may carry many widgets where only one needs the app, and that widget should hide while the page renders normally.",
+					"oneOf": [
+						{ "type": "string", "minLength": 1 },
+						{
+							"type": "object",
+							"required": ["id"],
+							"additionalProperties": false,
+							"properties": {
+								"id": { "type": "string", "minLength": 1 },
+								"name": { "type": "string", "minLength": 1, "description": "Human-readable app name shown on the screen; defaults to the id." }
+							}
+						}
+					]
+				},
 				"id": {
 					"type": "string",
 					"description": "Vue-router route name. MUST be unique across pages[]. Sentinels (@resolve:*) are NOT allowed."
@@ -2101,7 +2116,7 @@
 				},
 				"type": {
 					"type": "string",
-					"enum": ["index", "detail", "dashboard", "logs", "settings", "chat", "files", "form", "map", "roadmap", "search", "wiki", "flow", "flows", "flow-detail", "custom"],
+					"enum": ["index", "detail", "dashboard", "logs", "settings", "chat", "files", "form", "map", "roadmap", "reports", "search", "wiki", "flow", "flows", "flow-detail", "custom"],
 					"description": "Page type. Closed enum of 17 supported types. 'flow' opens ONE flow in the editor; the flow LIST is an ordinary 'index' with config.entitySource='flows'. 'flows' and 'flow-detail' are DEPRECATED aliases kept for migration — 'flows' predates named index sources and 'flow-detail' is the old name for 'flow'. 'roadmap' mounts CnFeaturesAndRoadmapPage (features + GitHub-issue-backed roadmap). 'search' mounts CnSearchPage (cross-schema query + facet sidebar + results list; consumers wire the actual search via @search). 'wiki' mounts CnWikiPage (manifest-declared markdown article + optional sidebar tree; MUST declare config.register + config.schema). 'flow' and the deprecated 'flow-detail' both mount CnFlowEditorPage (the shared node/edge canvas) and take config.app to scope to the owning app. A flow lives in OpenRegister's native flow store rather than a register/schema pair, so a single flow cannot be a 'detail' page — but the LIST is a plain 'index' once a named entitySource supplies it, which is why 'flows' is deprecated (ADR-110 Decision 4). 'custom' requires a _note field explaining why a standard type was not feasible."
 				},
 				"title": {
