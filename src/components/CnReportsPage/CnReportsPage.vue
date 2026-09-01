@@ -87,8 +87,18 @@
 /**
  * The Reports page: one surface listing an app's reports as cards.
  */
+import { translate as t } from '@nextcloud/l10n'
+
 export default {
 	name: 'CnReportsPage',
+
+	inject: {
+		/**
+		 * The consuming app's translate function, provided by CnAppRoot.
+		 * Defaults to identity so the page still renders outside one.
+		 */
+		cnTranslate: { default: () => (key) => key },
+	},
 
 	props: {
 		/**
@@ -97,6 +107,16 @@ export default {
 		page: {
 			type: Object,
 			default: () => ({}),
+		},
+
+		/**
+		 * Translate function. Falls back to injected `cnTranslate`.
+		 *
+		 * @type {((key: string) => string)|null}
+		 */
+		translate: {
+			type: Function,
+			default: null,
 		},
 	},
 
@@ -107,6 +127,15 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The translate function actually in force.
+		 *
+		 * @return {(key: string) => string} The translator.
+		 */
+		effectiveTranslate() {
+			return this.translate ?? this.cnTranslate
+		},
+
 		/**
 		 * The page's declared config, always an object.
 		 *
@@ -122,7 +151,9 @@ export default {
 		 * @return {string} The title.
 		 */
 		resolvedTitle() {
-			return this.config.title || (this.page && this.page.title) || 'Reports'
+			const declared = this.config.title || (this.page && this.page.title)
+
+			return declared ? this.tr(declared) : t('nextcloud-vue', 'Reports')
 		},
 
 		/**
@@ -131,7 +162,7 @@ export default {
 		 * @return {string} The description.
 		 */
 		resolvedDescription() {
-			return this.config.description || ''
+			return this.tr(this.config.description || '')
 		},
 
 		/**
@@ -149,7 +180,13 @@ export default {
 				return []
 			}
 
-			return declared.filter((card) => card && card.route && card.label)
+			return declared
+				.filter((card) => card && card.route && card.label)
+				.map((card) => ({
+					...card,
+					label: this.tr(card.label),
+					description: this.tr(card.description || ''),
+				}))
 		},
 
 		/**
@@ -166,7 +203,7 @@ export default {
 
 			Object.keys(declared)
 				.filter((key) => used.has(key))
-				.forEach((key) => options.push({ value: key, label: declared[key] }))
+				.forEach((key) => options.push({ value: key, label: this.tr(declared[key]) }))
 
 			return options
 		},
@@ -197,25 +234,51 @@ export default {
 		 * @return {string} The "all categories" option label.
 		 */
 		allLabel() {
-			return this.config.allCategoriesLabel || 'All categories'
+			return this.config.allCategoriesLabel
+				? this.tr(this.config.allCategoriesLabel)
+				: t('nextcloud-vue', 'All categories')
 		},
 
 		/**
 		 * @return {string} The filter's label.
 		 */
 		categoryLabel() {
-			return this.config.categoryLabel || 'Category'
+			return this.config.categoryLabel
+				? this.tr(this.config.categoryLabel)
+				: t('nextcloud-vue', 'Category')
 		},
 
 		/**
 		 * @return {string} The empty-state text.
 		 */
 		emptyLabel() {
-			return this.config.emptyLabel || 'No reports in this category.'
+			return this.config.emptyLabel
+				? this.tr(this.config.emptyLabel)
+				: t('nextcloud-vue', 'No reports in this category.')
 		},
 	},
 
 	methods: {
+		/**
+		 * Translate a manifest-declared string through the app's own
+		 * translate function.
+		 *
+		 * The manifest is data the renderer walks, not source the extractor
+		 * reads, so every string it carries has to be handed to the app's
+		 * translator explicitly. A card rendered straight from the manifest
+		 * shows its source language whatever locale the reader is in.
+		 *
+		 * @param {string} value The declared string.
+		 * @return {string} The translated string, or the input unchanged.
+		 */
+		tr(value) {
+			if (typeof value !== 'string' || value === '') {
+				return value
+			}
+
+			return this.effectiveTranslate(value)
+		},
+
 		/**
 		 * The human label for a card's category, if it has one.
 		 *
@@ -225,7 +288,7 @@ export default {
 		categoryName(card) {
 			const declared = this.config.categories || {}
 
-			return (card.category && declared[card.category]) || ''
+			return this.tr((card.category && declared[card.category]) || '')
 		},
 
 		/**
