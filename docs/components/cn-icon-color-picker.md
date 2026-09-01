@@ -26,6 +26,10 @@ Not to be confused with `CnIconPicker` / `CnIconBrowser`, which select **string 
 
 Every user-facing label — the "Color" / "Icon" group labels, "Default", "Search icons", and the color and icon names — passes through the `translate` prop, the same convention as `CnAppRoot`'s. The English source strings live in the catalogs (`FOLDER_COLORS[].label`, `FOLDER_ICONS[].label`), so a consuming app adds exactly those strings to its own l10n catalogs. The icon search matches the key, the English label, **and** the translated label.
 
+## Keyboard navigation
+
+Both groups use a roving tabindex (APG toolbar pattern): Tab enters and leaves each group in a single stop — parked on the current selection, or the Default cell — and Left/Right arrows step through the cells (wrapping), with Home/End jumping to the ends. In the icon grid, Up/Down move by one visual row. Swatches and icon cells both paint their own `:hover` / `:focus-visible` ring, so keyboard focus stays visible even under a host app's global `outline` reset.
+
 ## Rendering the stored keys
 
 ```vue

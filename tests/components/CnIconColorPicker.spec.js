@@ -83,6 +83,15 @@ describe('CnIconColorPicker', () => {
 		expect(w.find('[data-testid="cn-icon-color-picker-icon-default"]').exists()).toBe(false)
 	})
 
+	it('finds icons by translated search query (search goes through the translate prop)', async () => {
+		const nl = { Travel: 'Reizen' }
+		const w = factory({ translate: (s) => nl[s] || s })
+		w.vm.query = 'reizen'
+		await w.vm.$nextTick()
+		expect(w.find('[data-testid="cn-icon-color-picker-icon-airplane"]').exists()).toBe(true)
+		expect(w.findAll('.cn-icon-color-picker__icon')).toHaveLength(1)
+	})
+
 	it('passes every user-facing label through the translate prop', () => {
 		const w = factory({ translate: (s) => `NL:${s}` })
 		expect(w.text()).toContain('NL:Color')
@@ -98,5 +107,40 @@ describe('CnIconColorPicker', () => {
 	it('offers no Default icon cell without a fallback glyph', () => {
 		const w = mount(CnIconColorPicker)
 		expect(w.find('[data-testid="cn-icon-color-picker-icon-default"]').exists()).toBe(false)
+	})
+
+	it('gives each group a single roving Tab stop that Arrow keys move', async () => {
+		const w = factory()
+
+		// Exactly one swatch sits in the Tab order (the leading Default cell,
+		// while nothing is selected) — the rest are tabindex="-1".
+		const inTabOrder = w
+			.findAll('.cn-icon-color-picker__swatch')
+			.filter((b) => b.attributes('tabindex') === '0')
+		expect(inTabOrder).toHaveLength(1)
+		expect(
+			w.find('[data-testid="cn-icon-color-picker-color-default"]').attributes('tabindex'),
+		).toBe('0')
+
+		// ArrowRight moves the stop onto the first palette swatch.
+		await w
+			.find('[data-testid="cn-icon-color-picker-color-default"]')
+			.trigger('keydown', { key: 'ArrowRight' })
+		expect(
+			w.find(`[data-testid="cn-icon-color-picker-color-${FOLDER_COLORS[0].key}"]`).attributes('tabindex'),
+		).toBe('0')
+		expect(
+			w.find('[data-testid="cn-icon-color-picker-color-default"]').attributes('tabindex'),
+		).toBe('-1')
+	})
+
+	it('parks the icon grid Tab stop on the selected icon', () => {
+		const w = factory({ icon: 'home' })
+		expect(
+			w.find('[data-testid="cn-icon-color-picker-icon-home"]').attributes('tabindex'),
+		).toBe('0')
+		expect(
+			w.find('[data-testid="cn-icon-color-picker-icon-default"]').attributes('tabindex'),
+		).toBe('-1')
 	})
 })

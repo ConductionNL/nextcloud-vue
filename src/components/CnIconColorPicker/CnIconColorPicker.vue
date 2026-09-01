@@ -24,7 +24,8 @@
 			<div
 				class="cn-icon-color-picker__swatches"
 				role="group"
-				:aria-labelledby="`${uid}-color-label`">
+				:aria-labelledby="`${uid}-color-label`"
+				@keydown="onGroupKeydown($event, 'swatches')">
 				<button
 					type="button"
 					class="cn-icon-color-picker__swatch cn-icon-color-picker__swatch--default"
@@ -32,10 +33,12 @@
 					:aria-label="tr('Default')"
 					:aria-pressed="!color"
 					:title="tr('Default')"
+					:tabindex="swatchTabStop === 'default' ? 0 : -1"
+					data-cell-key="default"
 					data-testid="cn-icon-color-picker-color-default"
-					@click="$emit('update:color', null)" />
+					@click="pickColor(null)" />
 				<button
-					v-for="entry in colors"
+					v-for="entry in swatchesWithHex"
 					:key="entry.key"
 					type="button"
 					class="cn-icon-color-picker__swatch"
@@ -43,12 +46,14 @@
 						'cn-icon-color-picker__swatch--selected':
 							color === entry.key,
 					}"
-					:style="{ backgroundColor: swatchHex(entry) }"
+					:style="{ backgroundColor: entry.hex }"
 					:aria-label="tr(entry.label)"
 					:aria-pressed="color === entry.key"
 					:title="tr(entry.label)"
+					:tabindex="swatchTabStop === entry.key ? 0 : -1"
+					:data-cell-key="entry.key"
 					:data-testid="`cn-icon-color-picker-color-${entry.key}`"
-					@click="$emit('update:color', entry.key)" />
+					@click="pickColor(entry.key)" />
 			</div>
 		</div>
 
@@ -66,7 +71,8 @@
 			<div
 				class="cn-icon-color-picker__icons"
 				role="group"
-				:aria-labelledby="`${uid}-icon-label`">
+				:aria-labelledby="`${uid}-icon-label`"
+				@keydown="onGroupKeydown($event, 'icons')">
 				<button
 					v-if="showDefaultIconCell"
 					type="button"
@@ -75,8 +81,10 @@
 					:aria-label="tr('Default')"
 					:aria-pressed="!icon"
 					:title="tr('Default')"
+					:tabindex="iconTabStop === 'default' ? 0 : -1"
+					data-cell-key="default"
 					data-testid="cn-icon-color-picker-icon-default"
-					@click="$emit('update:icon', null)">
+					@click="pickIcon(null)">
 					<component :is="fallbackIcon" :size="20" />
 				</button>
 				<button
@@ -91,8 +99,10 @@
 					:aria-label="tr(entry.label)"
 					:aria-pressed="icon === entry.key"
 					:title="tr(entry.label)"
+					:tabindex="iconTabStop === entry.key ? 0 : -1"
+					:data-cell-key="entry.key"
 					:data-testid="`cn-icon-color-picker-icon-${entry.key}`"
-					@click="$emit('update:icon', entry.key)">
+					@click="pickIcon(entry.key)">
 					<component :is="entry.component" :size="20" />
 				</button>
 			</div>
@@ -169,17 +179,71 @@ export default {
 			query: '',
 			/** Stable id prefix tying the group labels to their groups. */
 			uid: `cn-icp-${uidCounter}`,
+			/** Roving-tabindex position in the swatch row ('default' or a color key). */
+			swatchFocusKey: null,
+			/** Roving-tabindex position in the icon grid ('default' or an icon key). */
+			iconFocusKey: null,
 		}
 	},
 
 	computed: {
 		/**
-		 * The color catalog the swatch row renders.
+		 * The color catalog with each entry's hex resolved for the ACTIVE
+		 * theme (reactive — the swatch fills flip with the theme). A computed
+		 * so the per-entry resolution runs once per theme change, not once
+		 * per swatch per render.
 		 *
-		 * @return {Array<object>} The palette entries.
+		 * @return {Array<object>} The palette entries, each with a `hex`.
 		 */
-		colors() {
-			return FOLDER_COLORS
+		swatchesWithHex() {
+			const theme = currentTheme()
+			return FOLDER_COLORS.map((entry) => ({
+				...entry,
+				hex: resolveFolderColor(entry.key, theme),
+			}))
+		},
+
+		/**
+		 * The swatch-row cell holding the single Tab stop (roving tabindex):
+		 * the last cell the user arrowed to, else the selected color, else
+		 * the leading Default swatch.
+		 *
+		 * @return {string} 'default' or a FOLDER_COLORS key.
+		 */
+		swatchTabStop() {
+			if (this.swatchFocusKey === 'default'
+				|| FOLDER_COLORS.some((e) => e.key === this.swatchFocusKey)) {
+				return this.swatchFocusKey
+			}
+			if (this.color && FOLDER_COLORS.some((e) => e.key === this.color)) {
+				return this.color
+			}
+			return 'default'
+		},
+
+		/**
+		 * The icon-grid cell holding the single Tab stop (roving tabindex):
+		 * the last cell the user arrowed to, else the selected icon, else the
+		 * Default cell, else the first search result — recomputed as a search
+		 * narrows the grid, so the stop never lands on a hidden cell.
+		 *
+		 * @return {string|null} 'default', a FOLDER_ICONS key, or null for an empty grid.
+		 */
+		iconTabStop() {
+			const keys = this.filteredIcons.map((e) => e.key)
+			if (this.iconFocusKey === 'default' && this.showDefaultIconCell) {
+				return 'default'
+			}
+			if (keys.includes(this.iconFocusKey)) {
+				return this.iconFocusKey
+			}
+			if (this.icon && keys.includes(this.icon)) {
+				return this.icon
+			}
+			if (this.showDefaultIconCell) {
+				return 'default'
+			}
+			return keys[0] ?? null
 		},
 
 		/**
@@ -247,13 +311,104 @@ export default {
 		},
 
 		/**
-		 * The swatch fill for a palette entry in the active theme.
+		 * Emit the color pick and move the swatch row's Tab stop onto the
+		 * clicked cell, so Tab re-enters the row where the user left it.
 		 *
-		 * @param {object} entry The palette entry.
-		 * @return {string} The theme-variant hex.
+		 * @param {string|null} key The picked FOLDER_COLORS key, or null for Default.
+		 * @return {void}
 		 */
-		swatchHex(entry) {
-			return resolveFolderColor(entry.key, currentTheme())
+		pickColor(key) {
+			this.swatchFocusKey = key ?? 'default'
+			this.$emit('update:color', key)
+		},
+
+		/**
+		 * Emit the icon pick and move the icon grid's Tab stop onto the
+		 * clicked cell, so Tab re-enters the grid where the user left it.
+		 *
+		 * @param {string|null} key The picked FOLDER_ICONS key, or null for Default.
+		 * @return {void}
+		 */
+		pickIcon(key) {
+			this.iconFocusKey = key ?? 'default'
+			this.$emit('update:icon', key)
+		},
+
+		/**
+		 * Roving-tabindex keyboard navigation for a picker group (APG toolbar
+		 * pattern): Tab enters and leaves the group in one stop; Left/Right
+		 * arrows step through the cells (wrapping), Home/End jump to the
+		 * ends, and — in the icon grid, where cells wrap into rows — Up/Down
+		 * move by one visual row.
+		 *
+		 * @param {KeyboardEvent} event The keydown event from the group container.
+		 * @param {('swatches'|'icons')} group Which picker group the event came from.
+		 * @return {void}
+		 */
+		onGroupKeydown(event, group) {
+			const cells = Array.from(event.currentTarget.querySelectorAll('button'))
+			const index = cells.indexOf(event.target)
+			if (index === -1 || cells.length === 0) {
+				return
+			}
+
+			let next = null
+			switch (event.key) {
+			case 'ArrowRight':
+				next = (index + 1) % cells.length
+				break
+			case 'ArrowLeft':
+				next = (index - 1 + cells.length) % cells.length
+				break
+			case 'ArrowDown':
+			case 'ArrowUp': {
+				if (group !== 'icons') {
+					return
+				}
+				// One visual row per keypress. jsdom reports no resolved
+				// grid tracks — then swallow the key (keep the page from
+				// scrolling under an open grid) without moving focus.
+				const columns = this.gridColumnCount(event.currentTarget)
+				const step = event.key === 'ArrowDown' ? columns : -columns
+				if (columns && index + step >= 0 && index + step < cells.length) {
+					next = index + step
+				}
+				break
+			}
+			case 'Home':
+				next = 0
+				break
+			case 'End':
+				next = cells.length - 1
+				break
+			default:
+				return
+			}
+
+			event.preventDefault()
+			if (next === null) {
+				return
+			}
+			cells[next].focus()
+			const key = cells[next].dataset.cellKey || 'default'
+			if (group === 'icons') {
+				this.iconFocusKey = key
+			} else {
+				this.swatchFocusKey = key
+			}
+		},
+
+		/**
+		 * The icon grid's current column count, read from the resolved CSS
+		 * grid tracks (the `auto-fill` column count depends on the host's
+		 * width, so it can only be read back, not derived).
+		 *
+		 * @param {HTMLElement} grid The grid container element.
+		 * @return {number} The column count, or 0 when unresolvable (jsdom).
+		 */
+		gridColumnCount(grid) {
+			const tracks = (getComputedStyle(grid).gridTemplateColumns || '').trim()
+			return tracks && tracks !== 'none' ? tracks.split(' ').length : 0
 		},
 
 		/**
@@ -265,12 +420,16 @@ export default {
 		 */
 		_emitDocs() {
 			/**
-			 * @event update:icon User picked an icon (payload: the FOLDER_ICONS key) or the Default cell (payload: null, meaning "clear back to the host's default glyph").
+			 * User picked an icon (payload: the FOLDER_ICONS key) or the Default cell (payload: null, meaning "clear back to the host's default glyph").
+			 *
+			 * @event update:icon
 			 * @type {string | null}
 			 */
 			this.$emit('update:icon')
 			/**
-			 * @event update:color User picked a color (payload: the FOLDER_COLORS key) or the Default swatch (payload: null, meaning "clear back to the theme default").
+			 * User picked a color (payload: the FOLDER_COLORS key) or the Default swatch (payload: null, meaning "clear back to the theme default").
+			 *
+			 * @event update:color
 			 * @type {string | null}
 			 */
 			this.$emit('update:color')
@@ -283,7 +442,7 @@ export default {
 .cn-icon-color-picker {
 	display: flex;
 	flex-direction: column;
-	gap: 12px;
+	gap: calc(3 * var(--default-grid-baseline, 4px));
 }
 
 .cn-icon-color-picker__preview {
@@ -300,7 +459,7 @@ export default {
 .cn-icon-color-picker__section {
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: calc(1.5 * var(--default-grid-baseline, 4px));
 }
 
 .cn-icon-color-picker__label {
@@ -314,7 +473,7 @@ export default {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: space-between;
-	gap: 6px;
+	gap: calc(1.5 * var(--default-grid-baseline, 4px));
 }
 
 .cn-icon-color-picker__swatch {
@@ -330,6 +489,14 @@ export default {
 	border: 2px solid transparent;
 	border-radius: 50%;
 	cursor: pointer;
+}
+
+/* Same affordance as the icon cells: never rely on the UA default focus
+   outline alone — a host-app global `outline: none` reset would leave the
+   swatches keyboard-invisible. The ring matches the --selected state. */
+.cn-icon-color-picker__swatch:hover,
+.cn-icon-color-picker__swatch:focus-visible {
+	border-color: var(--color-primary-element);
 }
 
 .cn-icon-color-picker__swatch--default {
@@ -360,7 +527,7 @@ export default {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
 	justify-items: center;
-	gap: 6px;
+	gap: calc(1.5 * var(--default-grid-baseline, 4px));
 }
 
 /* Proton-style cells: every icon sits on its own quiet circle. Dimensions

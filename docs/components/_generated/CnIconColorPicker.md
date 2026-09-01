@@ -11,9 +11,7 @@
 
 ### Events
 
-| Name                                                                                                                                                     | Payload | Description |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ----------- |
-| `update:color`                                                                                                                                           | —       |             |
-| `update:icon`                                                                                                                                            | —       |             |
-| `update:icon User picked an icon (payload: the FOLDER_ICONS key) or the Default cell (payload: null, meaning "clear back to the host's default glyph").` | —       |             |
-| `update:color User picked a color (payload: the FOLDER_COLORS key) or the Default swatch (payload: null, meaning "clear back to the theme default").`    | —       |             |
+| Name           | Payload | Description                                                                                                                                |
+| -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `update:icon`  | —       | User picked an icon (payload: the FOLDER_ICONS key) or the Default cell (payload: null, meaning "clear back to the host's default glyph"). |
+| `update:color` | —       | User picked a color (payload: the FOLDER_COLORS key) or the Default swatch (payload: null, meaning "clear back to the theme default").     |
