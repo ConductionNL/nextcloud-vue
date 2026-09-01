@@ -196,6 +196,8 @@ export {
 	CnTabs,
 	CnTab,
 	CnTabsWidget,
+	CnCountdownWidget,
+	CnCountdownWidgetForm,
 	CnTabsWidgetForm,
 	CnDetailWidgetHost,
 	CnIcon,

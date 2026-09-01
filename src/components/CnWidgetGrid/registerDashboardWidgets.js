@@ -67,6 +67,8 @@ import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWi
 import CnRelatedObjectsWidgetForm from '../CnRelatedObjectsWidgetForm/CnRelatedObjectsWidgetForm.vue'
 import CnTabsWidget from '../CnTabsWidget/CnTabsWidget.vue'
 import CnTabsWidgetForm from '../CnTabsWidgetForm/CnTabsWidgetForm.vue'
+import CnCountdownWidget from '../CnCountdownWidget/CnCountdownWidget.vue'
+import CnCountdownWidgetForm from '../CnCountdownWidgetForm/CnCountdownWidgetForm.vue'
 
 registerDashboardWidget('chart', {
 	renderer: CnChartWidget,
@@ -187,6 +189,24 @@ registerDashboardWidget('map', {
 	},
 	displayName: 'Map',
 	icon: 'Map',
+})
+
+registerDashboardWidget('countdown', {
+	renderer: CnCountdownWidget,
+	form: CnCountdownWidgetForm,
+	defaultContent: {
+		label: '',
+		field: '',
+		icon: 'ClockOutline',
+		thresholds: {},
+		showDate: true,
+	},
+	displayName: 'Countdown',
+	icon: 'ClockOutline',
+	// Card family: the tile headlines itself, so the wrapper draws no header.
+	card: true,
+	// It reads a date off the BOUND RECORD, which only a detail page has.
+	surfaces: ['detail-page'],
 })
 
 registerDashboardWidget('tabs', {
