@@ -166,6 +166,8 @@ export {
 	CnGaugeWidgetForm,
 	CnFlowRunsWidget,
 	CnFlowRunsWidgetForm,
+	CnTasksWidget,
+	CnTasksWidgetForm,
 	CnObjectListWidget,
 	CnObjectListWidgetForm,
 	CnChartWidgetForm,

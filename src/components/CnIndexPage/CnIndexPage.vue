@@ -60,7 +60,7 @@
 			:refreshing="effectiveRefreshing"
 			:refresh-disabled="refreshDisabled"
 			:add-disabled="addDisabled"
-			:show-add="showAdd"
+			:show-add="effectiveShowAdd"
 			:show-sidebar-toggle="hasSidebar"
 			:sidebar-open="sidebarOpen"
 			:header-actions="mergedHeaderActions"
@@ -152,10 +152,10 @@
 			     (between the view toggle and the actions) when the manifest
 			     declares `config.quickFilters`. Switching tabs re-fetches with
 			     the merged filter; @event quick-filter-change. -->
-			<template v-if="quickFilters && quickFilters.length > 0" #filters>
+			<template v-if="effectiveQuickFilters && effectiveQuickFilters.length > 0" #filters>
 				<CnQuickFilterBar
 					inline
-					:tabs="quickFilters"
+					:tabs="effectiveQuickFilters"
 					:mode="quickFilterMode"
 					:multiple="quickFilterMultiple"
 					:active-index="activeQuickFilterIndex"
@@ -1837,13 +1837,15 @@ export default {
 			namedSource,
 			namedRows,
 			namedLoading,
-		} = useNamedSource(props)
+			namedQuickFilters,
+		} = useNamedSource(props, { activeQuickFilterIndex })
 
 		return {
 			isNamedSource,
 			namedSource,
 			namedRows,
 			namedLoading,
+			namedQuickFilters,
 			contextMenuOpen,
 			contextMenuRow,
 			openContextMenu,
@@ -2490,6 +2492,35 @@ export default {
 
 		hasRowActions() {
 			return this.$slots['row-actions'] || this.mergedActions.length > 0
+		},
+
+		/**
+		 * The quick-filter tabs to render: the `quickFilters` prop when set,
+		 * else a named source's own tabs (`useNamedSource` resolved the same
+		 * precedence for the LOAD side, so strip and fetch cannot disagree).
+		 *
+		 * @return {Array<object>|null} The tabs, or null when there are none.
+		 */
+		effectiveQuickFilters() {
+			if (this.quickFilters && this.quickFilters.length > 0) {
+				return this.quickFilters
+			}
+			return (this.isNamedSource && this.namedQuickFilters) || null
+		},
+
+		/**
+		 * Whether the Add button renders. A named source that declares
+		 * `showAdd: false` suppresses it (a task is created by a flow, never
+		 * by a person clicking Add); the source cannot force the button ON,
+		 * so an explicit `:show-add="false"` prop always still wins.
+		 *
+		 * @return {boolean} True when the Add button should render.
+		 */
+		effectiveShowAdd() {
+			if (this.isNamedSource && this.namedSource && this.namedSource.showAdd === false) {
+				return false
+			}
+			return this.showAdd
 		},
 
 		/** Whether all visible items are selected */
@@ -3238,7 +3269,12 @@ export default {
 			// A named source knows where its rows live. Emitting only would leave
 			// the click inert on a manifest page, which has no listener to bind —
 			// the very shape that left three apps with a dead `@rowClick`.
-			if (this.isNamedSource && this.namedSource && this.namedSource.detailRoute) {
+			// `openRow` wins over `detailRoute`: a row whose detail page lives in
+			// ANOTHER app (a task's page is openregister's) cannot be reached by
+			// pushing on this app's router, so the source navigates itself.
+			if (this.isNamedSource && this.namedSource && typeof this.namedSource.openRow === 'function') {
+				this.namedSource.openRow(row)
+			} else if (this.isNamedSource && this.namedSource && this.namedSource.detailRoute) {
 				const id = row?.id || row?.uuid
 				if (id) {
 					this.$router.push(`${this.namedSource.detailRoute}/${id}`)
