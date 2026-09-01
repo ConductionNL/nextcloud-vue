@@ -437,6 +437,10 @@ test.describe('flow editor — the menus draw the right glyph', () => {
 	test('the step menu draws three different icons, not the same one twice', async ({ page }) => {
 		await seed(page)
 		await step(page, 'Middle').click()
+		// Wait for the menu to be DRAWN before reading it. Reading the paths in
+		// the same tick as the click raced the render and read fewer entries on a
+		// slow frame: 1 red run in 3 on an identical SHA, 2026-09-01.
+		await expect(page.getByRole('menuitem')).toHaveCount(3)
 
 		const paths = await page.evaluate(() =>
 			[...document.querySelectorAll('[role="menuitem"] svg path')]
@@ -454,6 +458,8 @@ test.describe('flow editor — the menus draw the right glyph', () => {
 	test('the line menu draws a different icon for every entry', async ({ page }) => {
 		await seed(page)
 		await clickLine(page)
+		// Same race as the step menu above: let the six entries render first.
+		await expect(page.getByRole('menuitem')).toHaveCount(6)
 
 		const paths = await page.evaluate(() =>
 			[...document.querySelectorAll('[role="menuitem"] svg path')]

@@ -28,6 +28,18 @@ page / object context. A hidden action simply doesn't render. The
 (`{ field: "state", op: "eq", value: "pending" }`), so a detail action can
 show only in the right lifecycle state — no request.
 
+**`appInstalled`** is a precondition rather than a mode: it names the Nextcloud
+app that backs the action, and it is checked before anything else. On its own it
+is the whole condition (`{ "appInstalled": "humaniq" }`); combined with a
+`field` / `endpoint` / `source` it gates that mode as well, so both must hold.
+
+It exists because the manifest menu's `visibleIf` already spoke this word and
+`visibleWhen` did not. An author who wrote `{ "appInstalled": "humaniq" }` here
+got a condition with no `field`, which the predicate rejects as malformed and
+hides — so the button never appeared and nothing said why. An action that writes
+into a sibling app should carry it, so an install without that app sees no
+button rather than a form that saves nowhere.
+
 A `confirm: true` action opens `CnConfirmDialog` **before** dispatching
 (the object-op precedent).
 
@@ -66,6 +78,13 @@ cannot satisfy:
   several buttons — "New request" and "New complaint" both open the
   `ticket` form, each fixing its own `ticketType`. It seeds a create; it
   does not turn the dialog into an edit.
+
+  Seed values go through the **same token grammar as filters**, so an action
+  on a detail page can stamp the record it belongs to:
+  `"props": { "domainObjectRef": "@objectId", "domainObjectType": "dossiq:case" }`.
+  Without that resolution the literal string `@objectId` is saved, and a
+  foreign key pointing at nothing is a defect that surfaces only in whatever
+  reads it later.
 - **`createOverride`** names a registry handler that owns the persist
   instead of `objectStore.saveObject`, resolved exactly as CnIndexPage
   resolves its `createOverride` prop (a `kind: 'create-override'` entry's

@@ -205,7 +205,7 @@
     "axe-core": "^4.12.1",
     "babel-jest": "^29.7.0",
     "commander": "^12.1.0",
-    "dexie": "^4.4.4",
+    "dexie": "^4.4.5",
     "eslint": "^8.56.0",
     "eslint-config-standard": "^17.1.0",
     "eslint-import-resolver-alias": "^1.1.2",

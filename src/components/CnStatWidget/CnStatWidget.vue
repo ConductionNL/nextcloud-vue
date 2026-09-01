@@ -62,7 +62,11 @@
 				<NcLoadingIcon v-if="displayLoading" :size="22" />
 				<span v-else-if="displayError" class="cn-stat-widget__error" :title="displayError">—</span>
 				<template v-else>
-					<span class="cn-kpi-card__value cn-stat-widget__value" :style="valueStyle">
+					<span
+						class="cn-kpi-card__value cn-stat-widget__value"
+						:class="{ 'cn-kpi-card__value--text': isTextValue }"
+						:title="isTextValue ? String(displayValue) : null"
+						:style="valueStyle">
 						{{ formattedValue }}
 					</span>
 					<span
@@ -97,6 +101,8 @@ import TrendingNeutral from 'vue-material-design-icons/TrendingNeutral.vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import { resolveFilterTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
+import { useObjectStore } from '../../store/useObjectStore.js'
+import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { useEndpointSource, getByPath } from '../../composables/useEndpointSource.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import widgetLink from '../../mixins/widgetLink.js'
@@ -354,6 +360,9 @@ export default {
 
 	data() {
 		return {
+			// Resolved display label for an `objectField` that holds a reference
+			// uuid. Null until resolved, and null forever when it cannot be.
+			referenceLabel: null,
 			value: null,
 			loading: false,
 			error: '',
@@ -467,9 +476,73 @@ export default {
 		 * @return {*}
 		 */
 		displayValue() {
+			if (this.objectFieldMode) return this.objectFieldValue
 			if (!this.endpointMode) return this.value
 			const v = getByPath(this.epData, this.content.valueField)
 			return v === undefined ? null : v
+		},
+		/**
+		 * Whether the headline is text rather than a number.
+		 *
+		 * The KPI card is built around a number: it never wraps and never
+		 * shrinks, because in a narrow tile the decoration should give way and
+		 * the figure should not. A NAME needs the opposite, so it gets a variant
+		 * that wraps and clamps, plus a title attribute for the full string.
+		 *
+		 * @return {boolean} true when the value is not numeric.
+		 */
+		isTextValue() {
+			const v = this.displayValue
+			if (v === null || v === undefined || v === '') return false
+			return !Number.isFinite(Number(v))
+		},
+		/**
+		 * Whether the tile reads a field off the BOUND RECORD rather than
+		 * aggregating or calling an endpoint (`content.objectField`).
+		 *
+		 * The record is already loaded by the detail page, so this costs no
+		 * request at all. It is what lets a KPI row headline a case's type or
+		 * its assignee beside the counts, instead of those facts being buried
+		 * three rows down in the properties grid.
+		 *
+		 * @return {boolean} true in object-field mode.
+		 */
+		objectFieldMode() {
+			const of = this.content.objectField
+			return !!(of && (typeof of === 'string' || of.field))
+		},
+		/**
+		 * The bound record's value for `content.objectField`.
+		 *
+		 * A reference field holds a uuid, which is not something to show a
+		 * person, so `resolve` names the register/schema to look the label up in.
+		 * The resolved label replaces the uuid; an unresolvable id falls back to
+		 * the raw value rather than blanking, exactly as CnFkResolveCell does.
+		 *
+		 * @return {*} The field's value, or null.
+		 */
+		/**
+		 * The bound record's raw value for `content.objectField`, before any
+		 * reference resolution.
+		 *
+		 * @return {*} The raw field value, or null.
+		 */
+		objectFieldRaw() {
+			const cfg = this.content.objectField
+			const field = typeof cfg === 'string' ? cfg : cfg?.field
+			const record = this.objectCtx?.object
+			if (!record || !field) return null
+			const raw = getByPath(record, field)
+			return (raw === undefined || raw === '') ? null : raw
+		},
+		/**
+		 * @return {*} The field's value, or null.
+		 */
+		objectFieldValue() {
+			if (this.objectFieldRaw === null) return null
+			// An unresolved or unresolvable reference falls back to the raw value
+			// rather than blanking, the same way CnFkResolveCell does.
+			return this.referenceLabel !== null ? this.referenceLabel : this.objectFieldRaw
 		},
 		/**
 		 * Loading state for the active source (endpoint or OpenRegister).
@@ -715,6 +788,12 @@ export default {
 		sourceKey() {
 			this.fetchValue()
 		},
+		objectFieldRaw: {
+			immediate: true,
+			handler() {
+				this.resolveReference()
+			},
+		},
 	},
 
 	mounted() {
@@ -722,6 +801,69 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Resolve an `objectField` that holds a reference uuid to the referenced
+		 * object's label, through the shared object store (per-schema caching and
+		 * in-flight dedup come for free).
+		 *
+		 * Does nothing unless `objectField.resolve` names a register and schema:
+		 * a plain scalar field needs no lookup, and guessing that a string looks
+		 * like a uuid would turn a legitimate identifier into a failed fetch.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async resolveReference() {
+			this.referenceLabel = null
+			const cfg = this.content.objectField
+			const resolve = (cfg && typeof cfg === 'object') ? cfg.resolve : null
+			const raw = this.objectFieldRaw
+			if (!resolve || !resolve.register || !resolve.schema || !raw) return
+
+			let store = null
+			try {
+				store = useObjectStore()
+			} catch (e) {
+				// No active Pinia: the tile shows the raw value, which is correct
+				// and never blank.
+				return
+			}
+			if (!store) return
+
+			const type = resolveObjectOpType(store, { register: resolve.register, schema: resolve.schema })
+			const id = String(raw)
+			try {
+				const cached = store.objects && store.objects[type] && store.objects[type][id]
+				const obj = cached || await store.fetchObject(type, id)
+				const label = this.pickReferenceLabel(obj, resolve.labelField)
+				if (label) this.referenceLabel = label
+			} catch (e) {
+				// Leave the raw value showing.
+			}
+		},
+
+		/**
+		 * Pick a display label off a resolved reference: the configured field
+		 * first, then `title`, then `@self.name`. A per-language map collapses to
+		 * its first non-empty value.
+		 *
+		 * @param {object|null} obj The referenced object.
+		 * @param {string} [labelField] The preferred label property.
+		 * @return {string} The label, or '' when none is usable.
+		 */
+		pickReferenceLabel(obj, labelField) {
+			if (!obj || typeof obj !== 'object') return ''
+			const candidates = [obj[labelField || 'title'], obj.title, obj.name, obj['@self'] && obj['@self'].name]
+			for (const value of candidates) {
+				if (typeof value === 'string' && value !== '') return value
+				if (typeof value === 'number') return String(value)
+				if (value && typeof value === 'object' && !Array.isArray(value)) {
+					const first = Object.values(value).find((v) => typeof v === 'string' && v !== '')
+					if (first) return first
+				}
+			}
+			return ''
+		},
+
 		/**
 		 * Derive a faint background tint for the icon circle from a colour.
 		 * Falls back to the NC light primary token for CSS variables / unknowns.
