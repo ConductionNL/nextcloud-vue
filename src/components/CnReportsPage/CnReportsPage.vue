@@ -44,7 +44,7 @@
 
 		<div v-if="categoryOptions.length > 1" class="cn-reports-page__filter">
 			<label class="cn-reports-page__filter-label" :for="filterId">
-				{{ categoryLabel }}
+				{{ resolvedCategoryLabel }}
 			</label>
 			<select :id="filterId"
 				v-model="activeCategory"
@@ -61,7 +61,7 @@
 		<p v-if="visibleCards.length === 0"
 			class="cn-reports-page__empty"
 			data-testid="cn-reports-empty">
-			{{ emptyLabel }}
+			{{ resolvedEmptyLabel }}
 		</p>
 
 		<ul v-else class="cn-reports-page__grid" data-testid="cn-reports-grid">
@@ -102,11 +102,90 @@ export default {
 
 	props: {
 		/**
-		 * The manifest page, as CnPageRenderer passes it.
+		 * The manifest page.
+		 *
+		 * ⚠️ CnPageRenderer does NOT pass this. `resolvedProps()` returns
+		 * `{ ...topLevel, ...normalizedConfig, ...params }` and has no `page`
+		 * key, so a dispatched `type: "reports"` page arrived here with the
+		 * default `{}` — `config` resolved to `{}`, `cards` to `[]`, and every
+		 * reports page in the fleet rendered its empty state while its manifest
+		 * declared cards. Kept because a host that renders this component
+		 * directly can still hand it the whole page; the flattened props below
+		 * are what the renderer actually supplies, and they win.
 		 */
 		page: {
 			type: Object,
 			default: () => ({}),
+		},
+
+		/**
+		 * The report cards, as CnPageRenderer flattens them out of `config`.
+		 *
+		 * @type {Array<object>|null}
+		 */
+		cards: {
+			type: Array,
+			default: null,
+		},
+
+		/**
+		 * Category key/label pairs, flattened out of `config`.
+		 *
+		 * @type {object|null}
+		 */
+		categories: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * The lead paragraph, flattened out of `config` or lifted from the page.
+		 *
+		 * @type {string|null}
+		 */
+		description: {
+			type: String,
+			default: null,
+		},
+
+		/**
+		 * The heading, lifted from the page by the renderer.
+		 *
+		 * @type {string|null}
+		 */
+		title: {
+			type: String,
+			default: null,
+		},
+
+		/**
+		 * Label for the "all categories" filter option.
+		 *
+		 * @type {string|null}
+		 */
+		allCategoriesLabel: {
+			type: String,
+			default: null,
+		},
+
+		/**
+		 * Label for the category filter control.
+		 *
+		 * @type {string|null}
+		 */
+		categoryLabel: {
+			type: String,
+			default: null,
+		},
+
+		/**
+		 * Text shown when the active filter admits no card.
+		 *
+		 * @type {string|null}
+		 */
+		emptyLabel: {
+			type: String,
+			default: null,
 		},
 
 		/**
@@ -137,12 +216,38 @@ export default {
 		},
 
 		/**
-		 * The page's declared config, always an object.
+		 * The declared config, always an object, from whichever direction it
+		 * arrived.
+		 *
+		 * TWO CALLERS, TWO SHAPES. CnPageRenderer flattens `page.config.*` into
+		 * individual props and passes NO `page`, so under the renderer the keys
+		 * arrive as props. A host that mounts this component itself hands it the
+		 * whole `page`. Reading only `page.config` is what made every dispatched
+		 * reports page render empty.
+		 *
+		 * Props win where both are present: they are the nearer declaration, and
+		 * the renderer has already resolved route sentinels in them.
 		 *
 		 * @return {object} The config.
 		 */
 		config() {
-			return (this.page && this.page.config) || {}
+			const fromPage = (this.page && this.page.config) || {}
+			const fromProps = {}
+			for (const key of [
+				'cards',
+				'categories',
+				'description',
+				'title',
+				'allCategoriesLabel',
+				'categoryLabel',
+				'emptyLabel',
+			]) {
+				if (this[key] !== null && this[key] !== undefined) {
+					fromProps[key] = this[key]
+				}
+			}
+
+			return { ...fromPage, ...fromProps }
 		},
 
 		/**
@@ -174,7 +279,7 @@ export default {
 		 *
 		 * @return {Array<object>} The usable cards.
 		 */
-		cards() {
+		resolvedCards() {
 			const declared = this.config.cards
 			if (!Array.isArray(declared)) {
 				return []
@@ -198,7 +303,7 @@ export default {
 		 */
 		categoryOptions() {
 			const declared = this.config.categories || {}
-			const used = new Set(this.cards.map((card) => card.category).filter(Boolean))
+			const used = new Set(this.resolvedCards.map((card) => card.category).filter(Boolean))
 			const options = [{ value: 'all', label: this.allLabel }]
 
 			Object.keys(declared)
@@ -215,10 +320,10 @@ export default {
 		 */
 		visibleCards() {
 			if (this.activeCategory === 'all') {
-				return this.cards
+				return this.resolvedCards
 			}
 
-			return this.cards.filter((card) => card.category === this.activeCategory)
+			return this.resolvedCards.filter((card) => card.category === this.activeCategory)
 		},
 
 		/**
@@ -242,7 +347,7 @@ export default {
 		/**
 		 * @return {string} The filter's label.
 		 */
-		categoryLabel() {
+		resolvedCategoryLabel() {
 			return this.config.categoryLabel
 				? this.tr(this.config.categoryLabel)
 				: t('nextcloud-vue', 'Category')
@@ -251,7 +356,7 @@ export default {
 		/**
 		 * @return {string} The empty-state text.
 		 */
-		emptyLabel() {
+		resolvedEmptyLabel() {
 			return this.config.emptyLabel
 				? this.tr(this.config.emptyLabel)
 				: t('nextcloud-vue', 'No reports in this category.')

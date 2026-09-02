@@ -48,6 +48,20 @@ Ports say what the engine will accept, so they follow the step's **catalogue rol
 | `step` | left, top | right, bottom |
 | `end` | left, top | none — the flow *stops* here |
 
+## Opening a flow that has no layout
+
+A flow can arrive without any node positions. Flows declared in a schema's `x-openregister-flows` are the main case: they are imported, published at once, and carry no coordinates. Rendered as stored, every node lands on one point.
+
+The store lays such a flow out before the canvas renders it. Triggers sit left. Every step sits one column past the furthest step that leads to it. Branches keep their own rows. A loop back to an earlier step is drawn, but never stretches the layout. The result is deterministic: the same flow opens looking the same, every time.
+
+Positions that exist but all sit on one identical point count as no layout. Some importers stamp `0,0` on every node, and that is the same pile with numbers written down.
+
+Three rules protect work the author did:
+
+- A flow with two or more distinct node positions opens exactly as saved.
+- Nodes without a position in such a flow slot beneath it, in run order.
+- The computed layout is never saved by itself. The flow stays clean on open, so a viewer changes nothing, and a published flow stays pure. When an author edits a draft and saves, the coordinates travel along.
+
 **Left and right are primary.** `autoSort` lays a flow out left to right, one column per depth, and Vue Flow attaches an edge that names no handle to the first handle of its type — so a line drawn without aiming at a specific port leaves the right edge and arrives on the left. Top and bottom are there for a graph the author routes by hand.
 
 A routing step with several branches puts its **first** exit on the right and spreads the rest along the bottom, which is the one side with room for several.

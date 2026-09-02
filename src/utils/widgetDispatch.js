@@ -37,10 +37,12 @@ import { canonicalWidgetType } from './widgetTypeAliases.js'
  * with no title and no card, which ADR-062 rule 5 forbids ("every body widget
  * has card chrome and its manifest title"). It is NOT in the Add-action list,
  * because a run is started by a flow, never by a person clicking Add.
+ * `tasks` follows for the same two reasons: a bare row list, and a task is
+ * created by a flow, never by a person clicking Add.
  *
  * @type {string[]}
  */
-export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs'])
+export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks'])
 
 /**
  * The stored content/config blob for a widget definition.

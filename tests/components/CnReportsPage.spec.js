@@ -212,3 +212,85 @@ describe('CnReportsPage', () => {
 		})
 	})
 })
+
+/**
+ * Mount the page the way CnPageRenderer actually dispatches it: `page.config.*`
+ * flattened into individual props, and NO `page` prop at all.
+ *
+ * @param {object} config The page config, as the renderer would flatten it.
+ * @param {Array<object>} pushed Sink for pushed routes.
+ * @return {object} The wrapper.
+ */
+function mountAsRenderer(config, pushed = []) {
+	return mount(CnReportsPage, {
+		props: { ...config },
+		global: { mocks: { $router: router(pushed) } },
+	})
+}
+
+/*
+ * THE DISPATCHED PATH, which had no coverage and did not work.
+ *
+ * Every test above hands the component a `page` prop. CnPageRenderer never
+ * does: `resolvedProps()` returns `{ ...topLevel, ...normalizedConfig,
+ * ...params }`, with no `page` key. So the component fell back to its
+ * `default: () => ({})`, `config` resolved to `{}`, and every `type: "reports"`
+ * page in the fleet rendered "No reports in this category." while its manifest
+ * declared cards.
+ *
+ * pipelinq is the measured case: four cards declared, an empty state rendered,
+ * and three e2e tests failing on a page that mounts perfectly well.
+ */
+describe('CnReportsPage — dispatched by CnPageRenderer', () => {
+	it('renders the declared cards when config arrives as flattened props', () => {
+		const wrapper = mountAsRenderer(CARDS)
+
+		expect(wrapper.findAll('[data-testid="cn-report-card"]')).toHaveLength(3)
+		expect(wrapper.find('[data-testid="cn-reports-empty"]').exists()).toBe(false)
+	})
+
+	it('renders the description the renderer lifted out of config', () => {
+		const wrapper = mountAsRenderer({
+			...CARDS,
+			description: 'Every report Pipelinq offers, in one place.',
+		})
+
+		expect(wrapper.text()).toContain('Every report Pipelinq offers, in one place.')
+	})
+
+	it('uses the title the renderer lifted off the page', () => {
+		const wrapper = mountAsRenderer({ ...CARDS, title: 'Reports' })
+
+		expect(wrapper.find('.cn-reports-page__title').text()).toBe('Reports')
+	})
+
+	it('offers the category filter built from the flattened categories', () => {
+		const wrapper = mountAsRenderer(CARDS)
+		const options = wrapper.findAll('[data-testid="cn-reports-category"] option')
+
+		// all + operational + compliance
+		expect(options).toHaveLength(3)
+	})
+
+	it('still reads a whole page when a host passes one directly', () => {
+		const wrapper = mountPage(CARDS)
+
+		expect(wrapper.findAll('[data-testid="cn-report-card"]')).toHaveLength(3)
+	})
+
+	it('lets the flattened props win over a page carrying different config', () => {
+		// Both directions at once. The renderer's props are the nearer
+		// declaration and have already had route sentinels resolved, so they
+		// are the ones that must be rendered.
+		const wrapper = mount(CnReportsPage, {
+			props: {
+				page: { id: 'Reports', config: { cards: [] } },
+				cards: CARDS.cards,
+				categories: CARDS.categories,
+			},
+			global: { mocks: { $router: router([]) } },
+		})
+
+		expect(wrapper.findAll('[data-testid="cn-report-card"]')).toHaveLength(3)
+	})
+})
