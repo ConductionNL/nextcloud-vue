@@ -1327,13 +1327,24 @@ export default {
 		 * to handle "open detail" and `@row-click` to handle row click
 		 * (selection, expand, etc.); they may share a handler when the app
 		 * wants click-to-view, but they are conceptually distinct.
+		 *
+		 * On a named `entitySource` page the effective default is FALSE: the
+		 * source's own open action navigates to the detail page, which is the
+		 * view. Passing the prop explicitly still wins.
 		 */
 		showViewAction: {
 			type: Boolean,
 			default: true,
 		},
 
-		/** Whether to add an Edit action to row actions */
+		/**
+		 * Whether to add an Edit action to row actions.
+		 *
+		 * On a named `entitySource` page the effective default is FALSE: a
+		 * source has no schema, so the form modal this action opens could only
+		 * ever render empty — the source declares its own Edit, which
+		 * navigates. Passing the prop explicitly still wins.
+		 */
 		showEditAction: {
 			type: Boolean,
 			default: true,
@@ -1361,13 +1372,25 @@ export default {
 			default: false,
 		},
 
-		/** Whether to add a Copy action to row actions */
+		/**
+		 * Whether to add a Copy action to row actions.
+		 *
+		 * On a named `entitySource` page the effective default is whether the
+		 * source implements `copyRow` — without it, the copy dialog's confirm
+		 * has nowhere to go. Passing the prop explicitly still wins.
+		 */
 		showCopyAction: {
 			type: Boolean,
 			default: true,
 		},
 
-		/** Whether to add a Delete action to row actions */
+		/**
+		 * Whether to add a Delete action to row actions.
+		 *
+		 * On a named `entitySource` page the effective default is whether the
+		 * source implements `deleteRow` — without it, the delete dialog's
+		 * confirm has nowhere to go. Passing the prop explicitly still wins.
+		 */
 		showDeleteAction: {
 			type: Boolean,
 			default: true,
@@ -2381,15 +2404,44 @@ export default {
 			return this.effectiveSchema?.icon || ''
 		},
 
-		/** Built-in row actions based on show*Action props */
+		/**
+		 * Built-in row actions based on show*Action props.
+		 *
+		 * A NAMED SOURCE changes the defaults, as a contract rather than a
+		 * page-by-page opt-out (observed on the fleet's flows pages, where the
+		 * menu carried FIVE actions and three of them were broken):
+		 *
+		 * - View and the schema-form Edit are OFF. A source has no schema, so
+		 *   the form modal can only ever render empty; and the source's own
+		 *   open/Edit action already navigates to the detail page, which IS
+		 *   the view. Rendering the built-ins beside it gave every flow list a
+		 *   dead View and an Edit that opened an empty dialog.
+		 * - Copy and Delete render only when the source implements them
+		 *   (`copyRow` / `deleteRow`): the built-in dialogs' confirm otherwise
+		 *   emits into a manifest page with nobody listening, a dialog that
+		 *   looks like it acted and did not.
+		 *
+		 * An EXPLICITLY passed show*Action prop always wins, both ways.
+		 */
 		defaultActions() {
 			return buildDefaultActions({
-				flags: {
-					view: this.showViewAction,
-					edit: this.showEditAction,
-					copy: this.showCopyAction,
-					del: this.showDeleteAction,
-				},
+				flags: this.isNamedSource && this.namedSource
+					? {
+						view: this.hasExplicitProp('showViewAction') && this.showViewAction,
+						edit: this.hasExplicitProp('showEditAction') && this.showEditAction,
+						copy: this.hasExplicitProp('showCopyAction')
+							? this.showCopyAction
+							: typeof this.namedSource.copyRow === 'function',
+						del: this.hasExplicitProp('showDeleteAction')
+							? this.showDeleteAction
+							: typeof this.namedSource.deleteRow === 'function',
+					}
+					: {
+						view: this.showViewAction,
+						edit: this.showEditAction,
+						copy: this.showCopyAction,
+						del: this.showDeleteAction,
+					},
 				// The View action is always an eye — a universal "view" affordance,
 				// independent of the object's schema icon (which is the header icon).
 				viewIcon: Eye,
@@ -2475,13 +2527,28 @@ export default {
 			// Note what this still cannot do: these are MERGED with the built-ins
 			// below, so a source can add an action but cannot say "these and no
 			// others". Suppressing a built-in is the `show*Action` toggles' job.
-			const declaredActions = (this.actions && this.actions.length > 0)
+			const manifestDeclared = this.actions && this.actions.length > 0
+			const declaredActions = manifestDeclared
 				? this.actions
 				: ((this.isNamedSource && this.namedSource && this.namedSource.rowActions) || [])
 
 			const declared = []
 			for (const a of declaredActions) {
 				if (a && typeof a === 'object' && !Array.isArray(a)) {
+					// A SOURCE action may say `action: 'open'`: open this row the
+					// way a row click does — the source's own navigation
+					// (`openRow`/`detailRoute`), with `edit-open` emitted so a
+					// host that configured a row target (`config.rowRoute`) wins.
+					// Resolved here because a source is a composable with no
+					// router; the flows source declared exactly this action and
+					// it rendered as a dead menu entry, because `action` was a
+					// key nothing read (dispatch reads `handler` and `type`).
+					// Source-declared actions only: the manifest grammar for
+					// navigation is `type`/`handler`, and stays so.
+					if (!manifestDeclared && a.action === 'open' && typeof a.handler !== 'function') {
+						declared.push({ ...a, handler: (row) => this.openSourceRow(row) })
+						continue
+					}
 					declared.push(dispatchAction(a, ctx))
 					continue
 				}
@@ -3411,6 +3478,50 @@ export default {
 		},
 
 		/**
+		 * Whether the consumer explicitly passed a prop, in either spelling.
+		 *
+		 * Needed where a named source changes a prop's EFFECTIVE default: the
+		 * declared default is unchanged (the prop interface must not break),
+		 * so the value alone cannot distinguish "left to default" from
+		 * "explicitly asked for the default".
+		 *
+		 * @param {string} name The camelCase prop name.
+		 * @return {boolean} True when the prop was passed explicitly.
+		 */
+		hasExplicitProp(name) {
+			const props = this.$.vnode.props || {}
+			const kebab = name.replace(/[A-Z]/g, (letter) => '-' + letter.toLowerCase())
+			return (name in props) || (kebab in props)
+		},
+
+		/**
+		 * Open a named-source row: the source's own navigation, then
+		 * `edit-open` for the host.
+		 *
+		 * This is what the source-action grammar `action: 'open'` resolves to
+		 * (see `mergedActions`). Navigation order is deliberate: the source's
+		 * `openRow`/`detailRoute` push happens FIRST, so when the host also
+		 * navigates (CnPageRenderer binds `@edit-open` → `onRowOpen`, which
+		 * honours `config.rowRoute`), the host's push lands last and wins —
+		 * the configured target beats the source's default, and a page with
+		 * no host listener still navigates.
+		 *
+		 * @param {object} row The row to open.
+		 * @return {void}
+		 */
+		openSourceRow(row) {
+			if (this.isNamedSource && this.namedSource && typeof this.namedSource.openRow === 'function') {
+				this.namedSource.openRow(row)
+			} else if (this.isNamedSource && this.namedSource && this.namedSource.detailRoute) {
+				const id = row?.id || row?.uuid
+				if (id && this.$router) {
+					this.$router.push(`${this.namedSource.detailRoute}/${id}`)
+				}
+			}
+			this.$emit('edit-open', row)
+		},
+
+		/**
 		 * Handle the built-in View action — emits a dedicated `view` event.
 		 * Kept distinct from `row-click` because the two are conceptually
 		 * different: a row click might mean select/expand/drilldown, while
@@ -3661,11 +3772,41 @@ export default {
 		// --- Single-object dialog handlers ---
 
 		async onSingleDeleteConfirm(id) {
+			// A named source deletes through its own hook. Emit-only would
+			// leave the confirm inert on a manifest page (nobody listens),
+			// which is why the Delete action only renders when the hook
+			// exists — see `defaultActions`.
+			if (this.isNamedSource && this.namedSource && typeof this.namedSource.deleteRow === 'function') {
+				try {
+					await this.namedSource.deleteRow(this.actionTargetItem || { id }, this.sourceConfig || {})
+					this.setSingleDeleteResult({ success: true })
+					this.$emit('delete', id)
+				} catch (err) {
+					this.setSingleDeleteResult({ error: (err && err.message) || 'Delete failed' })
+				}
+				return
+			}
 			if (await this.selfActions.handleSingleDelete(id)) return
 			this.$emit('delete', id)
 		},
 
 		async onSingleCopyConfirm(payload) {
+			// Same contract as delete: the source owns the copy, or there is
+			// no Copy action to confirm.
+			if (this.isNamedSource && this.namedSource && typeof this.namedSource.copyRow === 'function') {
+				try {
+					await this.namedSource.copyRow(
+						this.actionTargetItem || { id: payload && payload.id },
+						payload && payload.newName,
+						this.sourceConfig || {},
+					)
+					this.setSingleCopyResult({ success: true })
+					this.$emit('copy', payload)
+				} catch (err) {
+					this.setSingleCopyResult({ error: (err && err.message) || 'Copy failed' })
+				}
+				return
+			}
 			if (await this.selfActions.handleSingleCopy(payload)) return
 			this.$emit('copy', payload)
 		},
