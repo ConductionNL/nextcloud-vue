@@ -66,7 +66,7 @@
 
 <script>
 import { BUILT_IN_WIDGETS } from './builtInWidgets.js'
-import { getWidgetTypeEntry } from './dashboardWidgetRegistry.js'
+import { dashboardWidgetRegistry, getWidgetTypeEntry } from './dashboardWidgetRegistry.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
 import CnUnknownWidget from './CnUnknownWidget.vue'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
@@ -257,10 +257,27 @@ export default {
 				}
 
 				if (!component) {
+					// An EMPTY catalog is a different failure from an unknown key, and
+					// the fix is different, so say which one this is. It means nothing
+					// ever imported the module that populates the catalog — most often
+					// because a consumer deep-imported a widget's own module
+					// (`.../components/CnMapWidget/index.js`) expecting it to register
+					// its type. Those modules export the component only; the type
+					// registrations all live in `CnWidgetGrid/registerDashboardWidgets.js`,
+					// which the package root and the `components` barrel both import.
+					// Before this was consolidated, two of them self-registered as well,
+					// so a deep import happened to work by accident.
+					const catalogEmpty = Object.keys(dashboardWidgetRegistry).length === 0
 					// eslint-disable-next-line no-console
 					console.warn(
-						`[CnWidgetGrid] Unknown widgetKey "${key}" in slot "${this.slotName}". `
-						+ 'Register it in the built-in registry or pass it via the CnAppRoot registry prop.',
+						catalogEmpty
+							? `[CnWidgetGrid] The dashboard widget catalog is EMPTY, so widgetKey "${key}" `
+								+ `in slot "${this.slotName}" cannot resolve — this is not a bad key. `
+								+ 'Import the package root (`@conduction/nextcloud-vue`) or, if you '
+								+ 'cherry-pick modules, `components/CnWidgetGrid/registerDashboardWidgets.js`. '
+								+ 'Importing a widget\'s own module gives you the component but registers no type.'
+							: `[CnWidgetGrid] Unknown widgetKey "${key}" in slot "${this.slotName}". `
+								+ 'Register it in the built-in registry or pass it via the CnAppRoot registry prop.',
 					)
 					// Render a visible, designed placeholder instead of silently
 					// skipping — a page whose widgets ALL fail to resolve must not
