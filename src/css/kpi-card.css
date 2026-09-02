@@ -294,6 +294,36 @@
 	outline-offset: 2px;
 }
 
+/* ── Card-fit tiles: the WRAPPER is the card, so the hover goes on the wrapper ──
+   A stat / gauge / delta tile is rendered `flush` and then given its padding
+   back by the card-fit rule (`padding: 8px 14px`, CnDashboardPage), so that a
+   short KPI tile does not scroll. That leaves the KPI INSET inside the
+   wrapper, and the wrapper is what draws the border, the radius and the
+   background the user reads as "the card".
+
+   The `--clickable:hover` border above therefore paints a SECOND rounded box
+   8-14px inside the first, which reads as a card inside a card. Measured: a
+   card-fit stat widget sits 9px from the wrapper's top and 15px from its left,
+   while a non-card-fit stats block sits at 1px and so lands on the wrapper's
+   own edge. That is the whole difference, and it is why only the card-fit
+   variants show the effect.
+
+   So: suppress the inner border, and give the affordance to the wrapper, which
+   is the edge being hovered. `:has()` is Baseline since 2023 and is already
+   used across this stylesheet set (table.css, dashboard.css, detail-page.css).
+   Both card-fit hosts are covered: dashboard pages and detail pages. */
+.cn-dashboard-page__card-fit .cn-kpi-card--clickable:hover,
+.cn-detail-page__card-fit .cn-kpi-card--clickable:hover {
+	border-color: transparent;
+	box-shadow: none;
+}
+
+.cn-dashboard-page__card-fit:has(.cn-kpi-card--clickable:hover),
+.cn-detail-page__card-fit:has(.cn-kpi-card--clickable:hover) {
+	border-color: var(--color-primary-element);
+	box-shadow: 0 2px 8px var(--color-box-shadow);
+}
+
 /* Vertical: the icon stacked ABOVE a centred number — the pre-2026-08-30
    canonical look, now opt-in via `content.layout: 'vertical'`. For a tile that
    is taller than it is wide, where a sideways row would leave the card empty
