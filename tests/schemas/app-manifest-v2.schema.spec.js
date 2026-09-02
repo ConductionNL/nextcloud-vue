@@ -1110,10 +1110,43 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.27.0', () => {
+	it('the manifest schema version reads 2.28.0', () => {
 		// eslint-disable-next-line global-require
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.27.0')
+		expect(schema.version).toBe('2.28.0')
+	})
+
+	it('accepts the keys that narrow what an open-form button asks for', () => {
+		// The schema is additionalProperties:false, so an undeclared key makes
+		// a valid manifest invalid. dossiq's New case button collects nine of
+		// the case schema's 53 fields and could not say so without these.
+		const manifest = {
+			$schema: V2_SCHEMA_URL,
+			version: '1.0.0',
+			menu: [{ id: 'Dashboard', label: 'Dashboard', route: 'Dashboard', order: 10 }],
+			pages: [{
+				id: 'Dashboard',
+				route: '/',
+				type: 'dashboard',
+				title: 'Dashboard',
+				config: {
+					headerActions: [{
+						id: 'new-case',
+						label: 'New case',
+						type: 'open-form',
+						register: 'dossiq',
+						schema: 'case',
+						includeFields: ['caseType', 'title', 'description'],
+						excludeFields: ['status'],
+						fieldOverrides: { title: { order: 1 } },
+						formTitle: 'File a case',
+						advanced: false,
+					}],
+				},
+			}],
+		}
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(true)
 	})
 
 	it('accepts createOverride on an open-form action', () => {

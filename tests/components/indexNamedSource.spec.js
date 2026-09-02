@@ -293,3 +293,178 @@ describe('a named source supplies its create and navigation actions', () => {
 		expect(pushed).toEqual([])
 	})
 })
+
+describe('a named-source page renders only the actions that can work', () => {
+	/**
+	 * THE FIVE-ACTION MENU. On dossiq's /flows the row menu carried Edit /
+	 * View / Edit / Copy / Delete, and three of the five were broken: the
+	 * source's Edit had an `action` key nothing read, View emitted into a
+	 * page with nowhere to go, and the second Edit opened the schema form
+	 * modal — which a schemaless source can only ever render EMPTY. Copy and
+	 * Delete confirmed into an emit nobody listened to.
+	 *
+	 * The contract now: the source declares ONE Edit that navigates, and the
+	 * built-ins default to what the source implements — no View (the detail
+	 * page IS the view), no form Edit, Copy/Delete only over a source hook.
+	 */
+	const CnIndexPage = () => require('../../src/components/CnIndexPage/CnIndexPage.vue').default
+	const flows = () => require('../../src/composables/indexSources.js').indexSources.flows()
+	const tasks = () => require('../../src/composables/indexSources.js').indexSources.tasks()
+
+	const defaultActions = (ctx) => CnIndexPage().computed.defaultActions.call({
+		hasExplicitProp: () => false,
+		showViewAction: true,
+		showEditAction: true,
+		showCopyAction: true,
+		showDeleteAction: true,
+		editOpensDetail: false,
+		isNamedSource: false,
+		namedSource: null,
+		...ctx,
+	})
+
+	it('suppresses View and the form Edit, and keeps Copy/Delete over the source hooks', () => {
+		const labels = defaultActions({ isNamedSource: true, namedSource: flows() })
+			.map((a) => a.label)
+		// The flows source implements copyRow and deleteRow, so with its own
+		// Edit merged in front the full menu is exactly Edit / Copy / Delete.
+		expect(labels).toEqual(['Copy', 'Delete'])
+	})
+
+	it('renders no built-in Copy/Delete for a source without the hooks', () => {
+		const labels = defaultActions({ isNamedSource: true, namedSource: tasks() })
+			.map((a) => a.label)
+		expect(labels).toEqual([])
+	})
+
+	it('lets an explicitly passed prop win over the contract, both ways', () => {
+		const explicit = (name) => (asked) => asked === name
+		expect(defaultActions({
+			isNamedSource: true,
+			namedSource: flows(),
+			hasExplicitProp: explicit('showViewAction'),
+		}).map((a) => a.label)).toEqual(['View', 'Copy', 'Delete'])
+
+		expect(defaultActions({
+			isNamedSource: true,
+			namedSource: flows(),
+			hasExplicitProp: explicit('showDeleteAction'),
+			showDeleteAction: false,
+		}).map((a) => a.label)).toEqual(['Copy'])
+	})
+
+	it('keeps every built-in on an ordinary object index', () => {
+		const labels = defaultActions({}).map((a) => a.label)
+		expect(labels).toEqual(['View', 'Edit', 'Copy', 'Delete'])
+	})
+})
+
+describe('the source Edit action navigates', () => {
+	const CnIndexPage = () => require('../../src/components/CnIndexPage/CnIndexPage.vue').default
+	const flows = () => require('../../src/composables/indexSources.js').indexSources.flows()
+
+	it('resolves the source\'s `action: "open"` to a live handler', () => {
+		const opened = []
+		const acts = CnIndexPage().computed.mergedActions.call({
+			$router: null,
+			rowKey: 'id',
+			effectiveCustomComponents: {},
+			defaultActions: [],
+			actions: [],
+			isNamedSource: true,
+			namedSource: flows(),
+			openSourceRow: (row) => opened.push(row),
+		})
+
+		expect(acts.map((a) => a.label)).toEqual(['Edit'])
+		// The defect this pins: the action carried `action: 'open'`, dispatch
+		// read only `handler`/`type`, and the entry rendered dead in the menu.
+		expect(typeof acts[0].handler).toBe('function')
+		acts[0].handler({ id: 'f1' })
+		expect(opened).toEqual([{ id: 'f1' }])
+	})
+
+	it('opens through the source detail route and hands the host the last word', () => {
+		const pushed = []
+		const emitted = []
+		CnIndexPage().methods.openSourceRow.call({
+			isNamedSource: true,
+			namedSource: flows(),
+			$router: { push: (r) => pushed.push(r) },
+			$emit: (event, payload) => emitted.push([event, payload]),
+		}, { id: 'f1' })
+
+		// The source's fallback navigation fires first...
+		expect(pushed).toEqual(['/flows/f1'])
+		// ...and `edit-open` is emitted AFTER it, so a host that configured a
+		// row target (config.rowRoute via CnPageRenderer.onRowOpen) pushes
+		// last and wins.
+		expect(emitted).toEqual([['edit-open', { id: 'f1' }]])
+	})
+})
+
+describe('the built-in dialogs confirm through the source hooks', () => {
+	const CnIndexPage = () => require('../../src/components/CnIndexPage/CnIndexPage.vue').default
+
+	it('routes a confirmed delete to the source, in the page scope', async () => {
+		const deleteRow = jest.fn().mockResolvedValue()
+		const results = []
+		const emitted = []
+		await CnIndexPage().methods.onSingleDeleteConfirm.call({
+			isNamedSource: true,
+			namedSource: { deleteRow },
+			actionTargetItem: { id: 'f1', name: 'Intake' },
+			sourceConfig: { app: 'dossiq' },
+			setSingleDeleteResult: (r) => results.push(r),
+			$emit: (event, payload) => emitted.push([event, payload]),
+		}, 'f1')
+
+		expect(deleteRow).toHaveBeenCalledWith({ id: 'f1', name: 'Intake' }, { app: 'dossiq' })
+		expect(results).toEqual([{ success: true }])
+		expect(emitted).toEqual([['delete', 'f1']])
+	})
+
+	it('surfaces a failed delete in the dialog instead of reporting success', async () => {
+		const results = []
+		await CnIndexPage().methods.onSingleDeleteConfirm.call({
+			isNamedSource: true,
+			namedSource: { deleteRow: jest.fn().mockRejectedValue(new Error('Forbidden')) },
+			actionTargetItem: { id: 'f1' },
+			sourceConfig: {},
+			setSingleDeleteResult: (r) => results.push(r),
+			$emit: () => {},
+		}, 'f1')
+
+		expect(results).toEqual([{ error: 'Forbidden' }])
+	})
+
+	it('routes a confirmed copy to the source with the chosen name', async () => {
+		const copyRow = jest.fn().mockResolvedValue({ id: 'copy-1' })
+		const results = []
+		const emitted = []
+		await CnIndexPage().methods.onSingleCopyConfirm.call({
+			isNamedSource: true,
+			namedSource: { copyRow },
+			actionTargetItem: { id: 'f1', name: 'Intake' },
+			sourceConfig: { app: 'dossiq' },
+			setSingleCopyResult: (r) => results.push(r),
+			$emit: (event, payload) => emitted.push([event, payload]),
+		}, { id: 'f1', newName: 'Intake (copy)' })
+
+		expect(copyRow).toHaveBeenCalledWith({ id: 'f1', name: 'Intake' }, 'Intake (copy)', { app: 'dossiq' })
+		expect(results).toEqual([{ success: true }])
+		expect(emitted).toEqual([['copy', { id: 'f1', newName: 'Intake (copy)' }]])
+	})
+
+	it('still emits for a source without hooks, so a listening host keeps working', async () => {
+		const emitted = []
+		await CnIndexPage().methods.onSingleDeleteConfirm.call({
+			isNamedSource: true,
+			namedSource: {},
+			selfActions: { handleSingleDelete: async () => false },
+			$emit: (event, payload) => emitted.push([event, payload]),
+		}, 't1')
+
+		expect(emitted).toEqual([['delete', 't1']])
+	})
+})
