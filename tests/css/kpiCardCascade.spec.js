@@ -68,3 +68,66 @@ describe('kpi-card.css — cascade order', () => {
 		expect(titleRule).not.toContain('-webkit-line-clamp')
 	})
 })
+
+/**
+ * Card-fit tiles: the hover affordance belongs on the WRAPPER, not the card.
+ *
+ * A stat / gauge / delta tile renders `flush` and then gets its padding back
+ * from the card-fit rule (`padding: 8px 14px`, CnDashboardPage), so the KPI
+ * sits INSET inside the wrapper while the wrapper draws the border, radius and
+ * background the user reads as "the card". The base `--clickable:hover` rule
+ * then paints a second rounded box with its own shadow 8-14px inside the
+ * first: a card inside a card.
+ *
+ * Measured live on dossiq before the fix, while genuinely hovered: the inner
+ * card carried a 2px rgb(0,103,158) border and its own drop shadow, inset 9px
+ * from the wrapper's top and 15px from its left. A non-card-fit stats block
+ * (decidiq) sits at 1px, so its border lands on the wrapper's own edge and
+ * reads as one card. That inset is the entire difference.
+ *
+ * jsdom applies no `:hover` and computes no cascade across files, so a mounted
+ * test cannot see this either. The contract is again a property of the
+ * stylesheet text, so that is what is asserted.
+ */
+describe('kpi-card.css — card-fit hover moves to the wrapper', () => {
+	const suppress = CSS.indexOf('.cn-dashboard-page__card-fit .cn-kpi-card--clickable:hover')
+	const wrapperRule = CSS.indexOf('.cn-dashboard-page__card-fit:has(.cn-kpi-card--clickable:hover)')
+
+	it('suppresses the inner border and shadow on a card-fit tile', () => {
+		expect(suppress).toBeGreaterThan(-1)
+		const block = CSS.slice(suppress, suppress + 260)
+		expect(block).toContain('border-color: transparent')
+		expect(block).toContain('box-shadow: none')
+	})
+
+	it('gives the affordance to the wrapper instead', () => {
+		expect(wrapperRule).toBeGreaterThan(-1)
+		const block = CSS.slice(wrapperRule, wrapperRule + 320)
+		expect(block).toContain('border-color: var(--color-primary-element)')
+		expect(block).toContain('box-shadow: 0 2px 8px var(--color-box-shadow)')
+	})
+
+	it('covers detail pages as well as dashboards', () => {
+		// Both hosts add the same padding back, so both produce the nested box.
+		expect(CSS).toContain('.cn-detail-page__card-fit .cn-kpi-card--clickable:hover')
+		expect(CSS).toContain('.cn-detail-page__card-fit:has(.cn-kpi-card--clickable:hover)')
+	})
+
+	it('orders the override AFTER the base clickable hover rule', () => {
+		// The override is more specific, so order is not what makes it win — but
+		// a future edit that flattens the selector would silently re-break the
+		// tile, and reading top-to-bottom should show the exception after the
+		// rule it excepts.
+		const base = CSS.indexOf('.cn-kpi-card--clickable:hover')
+		expect(base).toBeGreaterThan(-1)
+		expect(suppress).toBeGreaterThan(base)
+	})
+
+	it('leaves a standalone clickable card its own border', () => {
+		// Only card-fit hosts are excepted. A KPI card used outside a wrapper is
+		// itself the card, and must keep the hover border it has always had.
+		const base = CSS.indexOf('.cn-kpi-card--clickable:hover')
+		const block = CSS.slice(base, base + 160)
+		expect(block).toContain('border-color: var(--color-primary-element)')
+	})
+})
