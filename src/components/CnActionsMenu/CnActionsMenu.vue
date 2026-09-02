@@ -120,18 +120,7 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
 import LightbulbOutline from 'vue-material-design-icons/LightbulbOutline.vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import BugOutline from 'vue-material-design-icons/BugOutline.vue'
-
-/**
- * Forge host defaults, keyed by the `cnFeatureRequestForge.type` a
- * CnAppRoot provides. Used to build the "Report a bug" new-issue
- * deep-link when the host passes no explicit `reportBugUrl`.
- *
- * @type {Record<string, string>}
- */
-const FORGE_BASE_URLS = {
-	github: 'https://github.com',
-	codeberg: 'https://codeberg.org',
-}
+import { buildBugReportUrl, DEFAULT_FORGE } from '../../utils/forge.js'
 
 /**
  * The fleet's per-app documentation site, derived from the app id. Used only
@@ -252,9 +241,9 @@ export default {
 		cnAppId: { default: () => '' },
 		/**
 		 * Repo slug used as the forge deep-link target on the auto-mounted
-		 * CnSuggestFeatureModal (e.g. `Conduction/pipelinq`). Provided by
+		 * CnSuggestFeatureModal (e.g. `ConductionNL/pipelinq`). Provided by
 		 * CnAppRoot from the manifest's `nav.featureRequestRepo` field (with
-		 * fallback to `Conduction/<appId>`). Empty when no ancestor — the
+		 * fallback to `ConductionNL/<appId>`). Empty when no ancestor — the
 		 * default handler warns and skips opening rather than open a broken
 		 * link.
 		 */
@@ -263,9 +252,22 @@ export default {
 		 * Forge config (`{type, baseUrl}`) forwarded to the auto-mounted
 		 * CnSuggestFeatureModal so its "Continue on …" deep-link targets the
 		 * right forge. Provided by CnAppRoot from `manifest.nav.forge`.
-		 * Defaults to Codeberg when no CnAppRoot ancestor exists.
+		 * Defaults to DEFAULT_FORGE when no CnAppRoot ancestor exists —
+		 * a third hardcoded Codeberg default lived here, so a menu mounted
+		 * standalone contradicted both the fleet default and the app it was
+		 * reporting for.
 		 */
-		cnFeatureRequestForge: { default: () => ({ type: 'codeberg', baseUrl: 'https://codeberg.org' }) },
+		cnFeatureRequestForge: { default: () => ({ ...DEFAULT_FORGE }) },
+		/**
+		 * Resolver for a widget's AUTHORED (untranslated) title, provided by
+		 * CnDashboardPage as `(widgetId) => string`. The `title` prop this
+		 * component receives has already been through the host translate
+		 * function — CnDashboardPage's getWidgetTitle is the display
+		 * chokepoint — so it is the wrong thing to put in a bug-report title.
+		 * Returns '' when no dashboard ancestor provides it (a standalone
+		 * widget, a detail page), and the link falls back to the surface slug.
+		 */
+		cnWidgetTitleSource: { default: () => () => '' },
 		/**
 		 * App-wide documentation base URL (e.g.
 		 * `https://pipelinq.conduction.nl/docs`), provided by CnAppRoot from
@@ -514,6 +516,25 @@ export default {
 		},
 
 		/**
+		 * This surface's title AS AUTHORED, for anything that must not be
+		 * localized. Asks the injected dashboard resolver for the widget's
+		 * manifest source string; '' when nothing can supply one.
+		 *
+		 * @return {string}
+		 */
+		sourceTitle() {
+			const resolve = this.cnWidgetTitleSource
+			if (typeof resolve !== 'function' || !this.widgetId) return ''
+			try {
+				return String(resolve(this.widgetId) || '').trim()
+			} catch (e) {
+				// A host resolver that throws must not take the menu with it —
+				// the link degrades to the surface slug.
+				return ''
+			}
+		},
+
+		/**
 		 * The Report-a-bug target: the explicit `reportBugUrl` when given,
 		 * otherwise a new-issue deep-link on the app's forge, pre-filled with
 		 * a title naming the surface the report came from.
@@ -524,12 +545,31 @@ export default {
 			if (this.reportBugUrl) return this.reportBugUrl
 			const repo = String(this.cnFeatureRequestRepo || '').trim()
 			if (!repo) return ''
-			const forge = this.cnFeatureRequestForge || {}
-			const base = String(forge.baseUrl || FORGE_BASE_URLS[forge.type] || FORGE_BASE_URLS.codeberg)
-				.replace(/\/+$/, '')
-			const where = this.title || this.surface || this.widgetId
-			const title = where ? `Bug: ${where}` : 'Bug report'
-			return `${base}/${repo}/issues/new?title=${encodeURIComponent(title)}`
+			// buildBugReportUrl owns both the host (one resolveForge for the
+			// whole suggestion flow) and the bug-report issue FORM. This was
+			// hand-rolled here against a local copy of the forge host map that
+			// defaulted to Codeberg, so a menu mounted without a CnAppRoot sent
+			// bug reports to a different host than the Request-a-feature item
+			// directly above it — and it linked the BLANK issue form, so every
+			// in-product report arrived with no steps, no expected/actual and
+			// no severity.
+			//
+			// The headline must be ENGLISH: the `title` prop is already
+			// translated (CnDashboardPage's getWidgetTitle is the display
+			// chokepoint), so a report from a French UI read "[BUG] Activité
+			// récente" and one from a Russian UI was in Cyrillic — unreadable
+			// to a maintainer, even though the English msgid was sitting in the
+			// manifest. `cnWidgetTitleSource` hands back that authored string.
+			//
+			// With no dashboard ancestor to ask, fall back to the surface slug
+			// rather than the translated prop: a slug is English by
+			// construction, and "always English" is the point. The translated
+			// title still travels as `displayTitle` context, so nothing that
+			// was readable is lost.
+			return buildBugReportUrl(this.cnFeatureRequestForge, repo, {
+				title: this.sourceTitle,
+				surface: this.surface || this.widgetId,
+			})
 		},
 	},
 

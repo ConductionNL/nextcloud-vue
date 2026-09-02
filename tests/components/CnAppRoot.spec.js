@@ -237,6 +237,31 @@ describe('CnAppRoot', () => {
 			const provided = getProvided(wrapper)
 			expect(provided.cnCustomComponents).toEqual({})
 		})
+		// The feature-request/report-a-bug repo was UNTESTED, which is how it
+		// drifted: DEFAULT_FORGE moved back to GitHub while this fallback kept
+		// the Codeberg org slug, so every app resolved to a github.com org that
+		// does not exist. No fleet manifest sets nav.featureRequestRepo, so the
+		// fallback IS the fleet's behaviour, not an edge case.
+		it('falls back to the fleet GitHub org and the app id as the repo slug', () => {
+			const wrapper = mountRoot()
+			expect(getProvided(wrapper).cnFeatureRequestRepo).toBe('ConductionNL/myapp')
+		})
+
+		it('lets a manifest override the repo slug for an off-convention repo', () => {
+			const wrapper = mountRoot({
+				manifest: { ...baseManifest, nav: { featureRequestRepo: 'ConductionNL/other-name' } },
+			})
+			expect(getProvided(wrapper).cnFeatureRequestRepo).toBe('ConductionNL/other-name')
+		})
+
+		// Two builders, one target: the support dialog spelled its own
+		// codeberg.org/Conduction/<appId> URL and so kept pointing at the
+		// mirror after the actions menu had already moved to GitHub.
+		it('builds the support-dialog feature-request URL from that same repo', () => {
+			const wrapper = mountRoot()
+			expect(wrapper.vm.cnSupportFeatureRequestUrl)
+				.toBe('https://github.com/ConductionNL/myapp/issues/new')
+		})
 	})
 
 	describe('cnPageSidebarVisible inject (REQ-MDSC-6)', () => {
@@ -653,10 +678,12 @@ describe('CnAppRoot', () => {
 
 		it('hydrates all counts with ONE POST /api/objects/counts (audit item 26)', async () => {
 			axios.post.mockResolvedValueOnce({
-				data: { results: [
-					{ register: 'decisions', schema: 'decision', count: 17 },
-					{ register: 'meetings', schema: 'meeting', count: 5 },
-				] },
+				data: {
+					results: [
+						{ register: 'decisions', schema: 'decision', count: 17 },
+						{ register: 'meetings', schema: 'meeting', count: 5 },
+					],
+				},
 			})
 			const wrapper = mountRoot()
 			await wrapper.vm._hydrateMenuCountsBatched([
@@ -666,10 +693,12 @@ describe('CnAppRoot', () => {
 			expect(axios.post).toHaveBeenCalledTimes(1)
 			const [url, body] = axios.post.mock.calls[0]
 			expect(url).toContain('/apps/openregister/api/objects/counts')
-			expect(body).toEqual({ counts: [
-				{ register: 'decisions', schema: 'decision' },
-				{ register: 'meetings', schema: 'meeting' },
-			] })
+			expect(body).toEqual({
+				counts: [
+					{ register: 'decisions', schema: 'decision' },
+					{ register: 'meetings', schema: 'meeting' },
+				],
+			})
 			expect(wrapper.vm.cnMenuCounts).toEqual({
 				decisions: { decision: 17 },
 				meetings: { meeting: 5 },
@@ -701,10 +730,12 @@ describe('CnAppRoot', () => {
 		// badges would never resolve.
 		it('collects (register, schema) targets from a nav-card-grid widget alongside menu[] targets', async () => {
 			axios.post.mockResolvedValueOnce({
-				data: { results: [
-					{ register: 'game', schema: 'level', count: 42 },
-					{ register: 'decisions', schema: 'decision', count: 17 },
-				] },
+				data: {
+					results: [
+						{ register: 'game', schema: 'level', count: 42 },
+						{ register: 'decisions', schema: 'decision', count: 17 },
+					],
+				},
 			})
 			const wrapper = mount(CnAppRoot, {
 				propsData: {

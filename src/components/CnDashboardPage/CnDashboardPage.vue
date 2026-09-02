@@ -1815,6 +1815,23 @@ export default {
 		}
 	},
 
+	/**
+	 * Expose the authored (untranslated) widget titles to descendants.
+	 *
+	 * CnActionsMenu needs the English source for the bug-report deep link, but
+	 * it sits inside CnWidgetWrapper inside the widget renderer — threading a
+	 * second title prop would mean touching every one of the ~20 renderers and
+	 * relying on each to forward it. An inject resolves by widget id instead,
+	 * and degrades to '' where no dashboard provides it.
+	 *
+	 * @return {object} The provided resolver.
+	 */
+	provide() {
+		return {
+			cnWidgetTitleSource: (widgetId) => this.getWidgetTitleSource(widgetId),
+		}
+	},
+
 	methods: {
 		/**
 		 * Seed the reactive workspace context with each page filter's default
@@ -2793,6 +2810,37 @@ export default {
 		onWidgetConfigDelete(_w) {
 			this.removeWidget({ widgetId: this.configWidgetId })
 			this.showWidgetConfig = false
+		},
+
+		/**
+		 * The widget's title as AUTHORED — the untranslated manifest source
+		 * string — resolved by widget id rather than by item, so a descendant
+		 * that only knows its own id can ask for it.
+		 *
+		 * Provided to descendants as `cnWidgetTitleSource` and used to build
+		 * the "Report a bug" issue title. getWidgetTitle() below is the
+		 * display chokepoint and runs the def title through the host translate
+		 * function, so the CnActionsMenu inside CnWidgetWrapper only ever saw
+		 * the TRANSLATED title: a report filed from a French UI arrived as
+		 * "[BUG] Activité récente", and one from a Russian UI in Cyrillic,
+		 * unreadable to a maintainer even though the English msgid was right
+		 * here in the manifest.
+		 *
+		 * Mirrors getWidgetTitle's precedence exactly, minus the translate
+		 * call. The two customTitle values are a person's own words in their
+		 * own language; there is no source string to recover for those, so
+		 * they are returned as typed.
+		 *
+		 * @param {string} widgetId The widget's id.
+		 * @return {string} The authored title, or '' when nothing names it.
+		 */
+		getWidgetTitleSource(widgetId) {
+			const item = (this.layout || []).find((w) => w && w.widgetId === widgetId)
+			const def = this.getWidgetDef(widgetId)
+			return (item && item.customTitle)
+				|| def?.customTitle
+				|| def?.title
+				|| ''
 		},
 
 		getWidgetTitle(item) {
