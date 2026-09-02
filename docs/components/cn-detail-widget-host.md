@@ -22,6 +22,28 @@ The pure decisions live in `utils/widgetDispatch.js`, which both surfaces import
 
 The `data` widget keeps its chrome in both modes. `CnWidgetWrapper` renders its actions inside the header, and `CnObjectDataWidget` puts its **Save** button there, so suppressing the header to remove a duplicate title would also remove the only way to commit an inline edit. A silently unsaveable form is worse than a doubled title.
 
+## When the widget leans on another app
+
+A widget definition may carry `requiredApp` — the id of another Nextcloud app it depends on, either because its data lives in that app's register or because its component comes from that app's integration leaf:
+
+```json
+{
+  "id": "case-hours",
+  "type": "stats-block",
+  "title": "Hours booked",
+  "requiredApp": "humaniq",
+  "content": { "entries": [{ "register": "humaniq", "schema": "TimeEntry", "metric": "sum" }] }
+}
+```
+
+When that app is absent the host renders the widget's **normal chrome plus a set-up state**, and issues no request.
+
+It renders rather than hides on purpose. A hidden widget leaves a hole a reader cannot interpret; letting the query run is worse. dossiq's hours tile aggregated humaniq's register, and on every install without humaniq the request 404'd and the tile showed `0` — which is exactly what a real zero shows. It looked correct on every case in every such install.
+
+`requiredApp` is read from the definition first and `content` second, so it can sit wherever the rest of that widget's config lives. It is declared rather than inferred from `content.register`, because a register slug is not always an app id and a widget can depend on an app without querying it.
+
+Integration widgets (`type: "integration"`) already degrade this way through the registry's own `requiredApp`; this extends the same behaviour to every other widget type.
+
 ## Usage
 
 ```vue
