@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.27.0",
+	"version": "2.28.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -1650,6 +1650,30 @@
 				"createOverride": {
 					"type": "string",
 					"description": "Registry handler name that owns the persist for an `open-form` action, replacing the default objectStore.saveObject. Resolved exactly as CnIndexPage resolves its own `createOverride` prop (a kind:'create-override' entry's `.handler`, a function-valued registry entry, or a function in the legacy customComponents map). Needed when the schema requires a field the create form cannot supply on its own — a server-minted foreign key, say — where a straight save would 400."
+				},
+				"includeFields": {
+					"type": "array",
+					"items": { "type": "string" },
+					"description": "open-form: the only fields the create dialog asks for. One schema often backs two surfaces, a detail page that edits all of it and a header button that collects what someone filing a new one types, and this is how the button says which it is. Omit for the whole schema."
+				},
+				"excludeFields": {
+					"type": "array",
+					"items": { "type": "string" },
+					"description": "open-form: fields the create dialog leaves out. Use it to drop a handful; use includeFields when it is easier to name what stays."
+				},
+				"fieldOverrides": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "open-form: per-field overrides passed to fieldsFromSchema, keyed by field. Recognised keys include label, order, hidden, readOnly and widget."
+				},
+				"advanced": {
+					"type": "boolean",
+					"default": false,
+					"description": "open-form: open the properties-and-JSON table (CnAdvancedFormDialog) instead of the plain form. The plain form is the default because a header button is aimed at someone filing a record, not at inspecting its schema."
+				},
+				"formTitle": {
+					"type": "string",
+					"description": "open-form: overrides the create dialog's heading. Defaults to 'Create {schema title}'."
 				},
 				"handler": {
 					"type": "string",
