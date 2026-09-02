@@ -32,6 +32,81 @@ describe('CnDashTileWidget renderer', () => {
 		expect(wrapper.find('.cn-dash-tile-widget__title').text()).toBe('Legacy')
 		expect(wrapper.vm.resolvedTarget).toBe('_blank')
 	})
+
+	describe('route linkType', () => {
+		const content = { title: 'New secret', linkType: 'route', linkValue: '/secrets?action=create' }
+
+		/**
+		 * Mount with a mocked host router.
+		 *
+		 * @param {object|null} $router Router mock, or undefined for a router-less host.
+		 * @return {object} { wrapper, $router }
+		 */
+		function mountRouteTile($router) {
+			const wrapper = mount(CnDashTileWidget, {
+				propsData: { content },
+				global: { mocks: { $router } },
+			})
+			return { wrapper, $router }
+		}
+
+		it('resolves the href through the host router', () => {
+			const $router = {
+				resolve: jest.fn(() => ({ href: '/apps/keepiq/secrets?action=create' })),
+				push: jest.fn(),
+			}
+			const { wrapper } = mountRouteTile($router)
+			expect(wrapper.find('a').attributes('href')).toBe('/apps/keepiq/secrets?action=create')
+			expect(wrapper.vm.resolvedTarget).toBe('_self')
+		})
+
+		it('pushes a plain left click through the router instead of navigating', () => {
+			const $router = {
+				resolve: jest.fn(() => ({ href: '/apps/keepiq/secrets?action=create' })),
+				push: jest.fn(),
+			}
+			const { wrapper } = mountRouteTile($router)
+			const event = { button: 0, preventDefault: jest.fn() }
+			wrapper.vm.onClick(event)
+			expect(event.preventDefault).toHaveBeenCalled()
+			expect($router.push).toHaveBeenCalledWith('/secrets?action=create')
+		})
+
+		it('lets a modified click fall through to the href', () => {
+			const $router = {
+				resolve: jest.fn(() => ({ href: '/apps/keepiq/secrets?action=create' })),
+				push: jest.fn(),
+			}
+			const { wrapper } = mountRouteTile($router)
+			const event = { button: 0, ctrlKey: true, preventDefault: jest.fn() }
+			wrapper.vm.onClick(event)
+			expect($router.push).not.toHaveBeenCalled()
+			expect(event.preventDefault).not.toHaveBeenCalled()
+		})
+
+		it('still suppresses clicks in edit mode', () => {
+			const $router = {
+				resolve: jest.fn(() => ({ href: '/apps/keepiq/secrets?action=create' })),
+				push: jest.fn(),
+			}
+			const wrapper = mount(CnDashTileWidget, {
+				propsData: { content, isAdmin: true, canEdit: true },
+				global: { mocks: { $router } },
+			})
+			const event = { button: 0, preventDefault: jest.fn() }
+			wrapper.vm.onClick(event)
+			expect(event.preventDefault).toHaveBeenCalled()
+			expect($router.push).not.toHaveBeenCalled()
+		})
+
+		it('degrades to a plain link on a host without a router', () => {
+			const { wrapper } = mountRouteTile(undefined)
+			expect(wrapper.find('a').attributes('href')).toBe('/secrets?action=create')
+			const event = { button: 0, preventDefault: jest.fn() }
+			wrapper.vm.onClick(event)
+			expect(event.preventDefault).not.toHaveBeenCalled()
+		})
+	})
 })
 
 describe('CnDashTileWidgetForm', () => {

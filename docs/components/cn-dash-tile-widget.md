@@ -1,6 +1,6 @@
 # CnDashTileWidget
 
-Registry-driven renderer for the `tile` dashboard widget type — a clickable card with an icon, title, and configurable colours that navigates by `linkType` (`app` → resolved Nextcloud route, `url` → external link in a new tab).
+Registry-driven renderer for the `tile` dashboard widget type — a clickable card with an icon, title, and configurable colours that navigates by `linkType` (`app` → resolved Nextcloud route via a full page load, `url` → external link in a new tab, `route` → pushed through the host app's vue-router so SPA state survives; modified clicks fall through to the resolved href, and without a router the tile degrades to a plain link).
 
 Part of the dashboard widget library (v2). Registered with the dashboard widget registry and consumed by LaunchPad's widget grid. Reads from BOTH the new inline `content.{title, icon, …}` shape AND the legacy flat `placement.tile{Title,Icon,…}` columns, so dashboards holding tiles created via the deprecated reusable-tile flow keep rendering without a migration step. Named `CnDashTileWidget` to avoid clobbering the library's quick-access [CnTileWidget](./cn-tile-widget.md). See [the widget library overview](./cn-widget-grid.md) and `docs/architecture/cards-and-widgets.md`.
 

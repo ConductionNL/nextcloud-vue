@@ -38,6 +38,24 @@ Emoji icon tile:
 </div>
 ```
 
+Router tile — `linkType: 'route'` pushes `linkValue` through the host app's
+vue-router instead of a full page load (falls back to a plain link when the
+host page has no router, as here in the styleguide):
+
+```vue
+<div style="position: relative; height: 130px; width: 140px; border-radius: 8px; overflow: hidden;">
+  <CnTileWidget :tile="{
+    title: 'New secret',
+    icon: '🔑',
+    iconType: 'emoji',
+    backgroundColor: '#21468B',
+    textColor: '#ffffff',
+    linkType: 'route',
+    linkValue: '/secrets?action=create',
+  }" />
+</div>
+```
+
 SVG icon tile — uses an MDI path directly:
 
 ```vue
