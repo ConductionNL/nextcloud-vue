@@ -79,7 +79,7 @@ const stubs = {
 	},
 	CnFormDialog: {
 		name: 'CnFormDialog',
-		props: ['schema', 'item', 'initialData', 'register', 'dialogTitle'],
+		props: ['schema', 'item', 'initialData', 'register', 'dialogTitle', 'includeFields', 'excludeFields', 'fieldOverrides'],
 		template: '<div class="form-dialog-stub" />',
 		methods: { setResult() {} },
 	},
@@ -351,6 +351,50 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			await flush()
 
 			expect(saveObject).toHaveBeenCalledTimes(1)
+		})
+
+		it('narrows the form to the fields the button asks for', async () => {
+			// One schema, two surfaces: the detail page edits all of it, the
+			// header button collects only what someone filing a new one types.
+			const fetchSchema = jest.fn(() => Promise.resolve({ title: 'Case', properties: {} }))
+			useObjectStore.mockReturnValue({ saveObject: jest.fn(), fetchSchema })
+
+			const wrapper = mountBar([
+				{
+					id: 'new-case',
+					label: 'New case',
+					type: 'open-form',
+					register: 'dossiq',
+					schema: 'case',
+					includeFields: ['caseType', 'title'],
+					excludeFields: ['status'],
+					fieldOverrides: { title: { order: 1 } },
+				},
+			])
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-case"]').trigger('click')
+			await flush()
+
+			const dialog = wrapper.findComponent({ name: 'CnFormDialog' })
+			expect(dialog.props('includeFields')).toEqual(['caseType', 'title'])
+			expect(dialog.props('excludeFields')).toEqual(['status'])
+			expect(dialog.props('fieldOverrides')).toEqual({ title: { order: 1 } })
+		})
+
+		it('asks for the whole schema when the action narrows nothing', async () => {
+			const fetchSchema = jest.fn(() => Promise.resolve({ title: 'Lead', properties: {} }))
+			useObjectStore.mockReturnValue({ saveObject: jest.fn(), fetchSchema })
+
+			const wrapper = mountBar([
+				{ id: 'new-lead', label: 'New lead', type: 'open-form', register: 'crm', schema: 'lead' },
+			])
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-lead"]').trigger('click')
+			await flush()
+
+			const dialog = wrapper.findComponent({ name: 'CnFormDialog' })
+			expect(dialog.props('includeFields')).toBeNull()
+			expect(dialog.props('excludeFields')).toEqual([])
 		})
 
 		it('persists through a registry createOverride instead of saveObject when named', async () => {

@@ -63,6 +63,9 @@
 			:register="formRegister"
 			:initial-data="formInitialValues || {}"
 			:dialog-title="tr(formEntry.formTitle) || ''"
+			:include-fields="formEntry.includeFields || null"
+			:exclude-fields="formEntry.excludeFields || []"
+			:field-overrides="formEntry.fieldOverrides || {}"
 			@confirm="onFormConfirm"
 			@close="closeForm" />
 		<CnAdvancedFormDialog
@@ -107,7 +110,10 @@ import { useObjectStore } from '../../store/useObjectStore.js'
  *    (so one schema can back several buttons, each fixing its own
  *    discriminator), and `createOverride` names a registry handler that owns
  *    the persist instead of `objectStore.saveObject` (for a schema requiring
- *    a server-minted field the form cannot supply).
+ *    a server-minted field the form cannot supply). `includeFields` /
+ *    `excludeFields` / `fieldOverrides` narrow what the button asks for, which
+ *    is how one schema serves both a full editor and a quick-create button.
+ *    `advanced: true` swaps in the properties/JSON table for a power user.
  *  - **`toggle`** — a two-way state button: `GET`s `stateSource` on mount,
  *    renders `labelOn` / `labelOff`, and on click `writes` the flipped
  *    value OPTIMISTICALLY, reverting on failure.
