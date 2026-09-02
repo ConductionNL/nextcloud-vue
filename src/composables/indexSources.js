@@ -84,9 +84,48 @@ function flowsSource() {
 			{ key: 'statusLabel', label: t('nextcloud-vue', 'Status') },
 		],
 
+		// ONE Edit, and it NAVIGATES. `action: 'open'` is the source-action
+		// grammar CnIndexPage resolves to "open this row where the source says
+		// rows live" — the page's configured row target (`config.rowRoute`, via
+		// `edit-open`) wins, and `detailRoute` below is the fallback. The flow
+		// detail page IS the edit surface AND the view surface, so the source
+		// declares no View, and the page's schema-form Edit is suppressed for
+		// named sources (a source has no schema, so that modal can only ever
+		// render empty).
 		rowActions: [
-			{ label: t('nextcloud-vue', 'Edit'), icon: Pencil, action: 'open' },
+			{ id: 'edit', label: t('nextcloud-vue', 'Edit'), icon: Pencil, action: 'open' },
 		],
+
+		/**
+		 * Delete one flow row, reloading in the page's scope.
+		 *
+		 * Read by CnIndexPage's built-in single-delete dialog: a named source
+		 * without this hook gets no Delete action at all, because the confirm
+		 * would otherwise emit into a manifest page with nobody listening — a
+		 * dialog that looks like it deleted and did not.
+		 *
+		 * @param {object} row The row to delete.
+		 * @param {object} config The page's source config (`app` scopes the reload).
+		 *
+		 * @return {Promise<void>} Resolves when deleted and reloaded.
+		 */
+		deleteRow: (row, config) => store.remove(row?.id || row?.uuid, { app: config?.app || null }),
+
+		/**
+		 * Copy one flow row under a new name, reloading in the page's scope.
+		 *
+		 * Read by CnIndexPage's built-in single-copy dialog, same contract as
+		 * `deleteRow`. The copy is a fresh flow: the server stamps the copier
+		 * as owner and lifecycle starts over, so copying a published flow
+		 * yields an unpublished one with the same graph.
+		 *
+		 * @param {object} row The row to copy.
+		 * @param {string} newName The copy's name.
+		 * @param {object} config The page's source config (`app` scopes the reload).
+		 *
+		 * @return {Promise<object>} The created flow.
+		 */
+		copyRow: (row, newName, config) => store.duplicate(row?.id || row?.uuid, newName, { app: config?.app || null }),
 
 		// The surfaces a flow list needs beyond its rows. These are DEFAULTS a
 		// manifest can override, not a fixed shape: `detailRoute` is the fleet
