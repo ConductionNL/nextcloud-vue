@@ -259,13 +259,16 @@ export default {
 		 */
 		cnFeatureRequestForge: { default: () => ({ ...DEFAULT_FORGE }) },
 		/**
-		 * Resolver for a widget's AUTHORED (untranslated) title, provided by
-		 * CnDashboardPage as `(widgetId) => string`. The `title` prop this
-		 * component receives has already been through the host translate
-		 * function — CnDashboardPage's getWidgetTitle is the display
-		 * chokepoint — so it is the wrong thing to put in a bug-report title.
-		 * Returns '' when no dashboard ancestor provides it (a standalone
-		 * widget, a detail page), and the link falls back to the surface slug.
+		 * Resolver for a widget's manifest title — the AUTHORED English
+		 * source string — provided by CnDashboardPage as
+		 * `(widgetId) => string`. The `title` prop this component receives
+		 * has already been through the host translate function
+		 * — CnDashboardPage's getWidgetTitle is the display chokepoint — and
+		 * may also be a user-typed customTitle in the user's own language, so
+		 * it is the wrong thing to put in a bug-report title. Returns '' when
+		 * no dashboard ancestor provides it (a standalone widget, a detail
+		 * page) or the widget def carries no title, and the link falls back
+		 * to the surface slug.
 		 */
 		cnWidgetTitleSource: { default: () => () => '' },
 		/**
@@ -559,13 +562,14 @@ export default {
 			// chokepoint), so a report from a French UI read "[BUG] Activité
 			// récente" and one from a Russian UI was in Cyrillic — unreadable
 			// to a maintainer, even though the English msgid was sitting in the
-			// manifest. `cnWidgetTitleSource` hands back that authored string.
+			// manifest. `cnWidgetTitleSource` hands back that manifest string,
+			// skipping any user-typed customTitle for the same reason.
 			//
 			// With no dashboard ancestor to ask, fall back to the surface slug
 			// rather than the translated prop: a slug is English by
-			// construction, and "always English" is the point. The translated
-			// title still travels as `displayTitle` context, so nothing that
-			// was readable is lost.
+			// construction, and "always English" is the point. The localized
+			// title is deliberately not carried in the URL at all — see
+			// buildBugReportUrl for why it was dropped.
 			return buildBugReportUrl(this.cnFeatureRequestForge, repo, {
 				title: this.sourceTitle,
 				surface: this.surface || this.widgetId,

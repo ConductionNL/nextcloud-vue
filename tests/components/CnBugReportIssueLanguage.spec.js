@@ -180,24 +180,36 @@ describe('CnDashboardPage — getWidgetTitleSource', () => {
 	})
 
 	// customTitle is a person's own words typed into the style editor, in
-	// whatever language they chose — there is no msgid to recover, so it is
-	// returned as typed rather than looked up.
-	it('prefers a placement customTitle, as typed', () => {
+	// whatever language they chose — returning it reopens the localized-
+	// headline failure, and a renamed placement does not identify the widget
+	// COMPONENT the bug is about. The manifest title wins.
+	it('ignores a placement customTitle', () => {
 		const ctx = {
 			layout: [{ widgetId: 'w1', customTitle: 'Mijn eigen titel' }],
 			getWidgetDef: () => ({ title: 'Recent activity' }),
 			effectiveTranslate: translate,
 		}
-		expect(resolve(ctx, 'w1')).toBe('Mijn eigen titel')
+		expect(resolve(ctx, 'w1')).toBe('Recent activity')
 	})
 
-	it('falls back to the def customTitle before the def title', () => {
+	it('ignores a def customTitle', () => {
 		const ctx = {
 			layout: [{ widgetId: 'w1' }],
 			getWidgetDef: () => ({ customTitle: 'Cog title', title: 'Recent activity' }),
 			effectiveTranslate: translate,
 		}
-		expect(resolve(ctx, 'w1')).toBe('Cog title')
+		expect(resolve(ctx, 'w1')).toBe('Recent activity')
+	})
+
+	// A def with only a customTitle yields '' so CnActionsMenu falls back to
+	// the surface slug (English by construction) instead of the user's words.
+	it('returns empty string when the def has only a customTitle', () => {
+		const ctx = {
+			layout: [{ widgetId: 'w1', customTitle: 'Mijn eigen titel' }],
+			getWidgetDef: () => ({ customTitle: 'Cog title' }),
+			effectiveTranslate: translate,
+		}
+		expect(resolve(ctx, 'w1')).toBe('')
 	})
 
 	it('returns empty string when nothing names the widget', () => {

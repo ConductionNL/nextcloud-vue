@@ -2826,21 +2826,20 @@ export default {
 		 * unreadable to a maintainer even though the English msgid was right
 		 * here in the manifest.
 		 *
-		 * Mirrors getWidgetTitle's precedence exactly, minus the translate
-		 * call. The two customTitle values are a person's own words in their
-		 * own language; there is no source string to recover for those, so
-		 * they are returned as typed.
+		 * Deliberately DIVERGES from getWidgetTitle's precedence: the two
+		 * customTitle values are skipped, not just left untranslated. They
+		 * are a person's own words in their own language, so returning them
+		 * reopens the exact failure above — and a renamed placement does not
+		 * identify the widget COMPONENT the bug is about, while the manifest
+		 * title (English, the msgid) does. When the def carries no title this
+		 * returns '' and CnActionsMenu falls back to the surface slug, which
+		 * is English by construction.
 		 *
 		 * @param {string} widgetId The widget's id.
-		 * @return {string} The authored title, or '' when nothing names it.
+		 * @return {string} The manifest title, or '' when the def has none.
 		 */
 		getWidgetTitleSource(widgetId) {
-			const item = (this.layout || []).find((w) => w && w.widgetId === widgetId)
-			const def = this.getWidgetDef(widgetId)
-			return (item && item.customTitle)
-				|| def?.customTitle
-				|| def?.title
-				|| ''
+			return this.getWidgetDef(widgetId)?.title || ''
 		},
 
 		getWidgetTitle(item) {
