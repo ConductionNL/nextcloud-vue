@@ -476,7 +476,54 @@ change there rather than a branch in this component.
 
 `sourceConfig` is handed to the named source's loader — `{ app: 'dossiq' }`
 scopes the `flows` source to one app's flows. It is ignored when
-`entitySource` is not set.
+`entitySource` is not set. On a manifest page `CnPageRenderer` fills it with
+the resolved page config when the config sets no explicit `sourceConfig`, so
+loader keys work declaratively (`config.app` for flows; `config.scope`,
+`config.state`, `config.priority`, `config.overdue`, `config.sort`,
+`config.limit` for tasks).
+
+### The `tasks` source: the viewer's inbox
+
+`entitySource: "tasks"` lists the caller's task inbox from OpenRegister's
+`flow-tasks` read (ADR-098: one inbox surface for the fleet):
+
+```json
+{
+  "id": "task-inbox",
+  "route": "/tasks",
+  "type": "index",
+  "config": { "entitySource": "tasks" }
+}
+```
+
+What the source brings, all overridable by the manifest:
+
+- Columns: task, subject, a state pill, priority, due (overdue in words),
+  assignee. State and priority pills key their colour maps on the shown
+  label, so state never rests on colour alone.
+- Quick-filter tabs: assigned to me (default), pool, watched, everything,
+  overdue. A tab switch **reloads** the source with the tab's filter merged
+  over `sourceConfig` (tab wins on a colliding key); nothing is filtered
+  client-side.
+- A row click opens the task's deep link
+  (`/apps/openregister/flow-tasks/{uuid}`) as a full URL, because the task
+  page is openregister's, not the consuming app's.
+- No Add button (`showAdd: false` on the source): a task is created by a
+  flow, never by a person clicking Add.
+- Scope stays the endpoint's session decision. The loader drops any
+  user-naming key, so a manifest cannot ask for someone else's inbox.
+
+### Source-supplied page hooks
+
+A source adapter may also declare, each one optional:
+
+- `quickFilters` — tabs in the manifest shape (`{ label, filter, default? }`).
+  A manifest that declares `config.quickFilters` still wins, and its tabs
+  then drive the source loader the same way. Single mode only.
+- `openRow(row)` — a row click handler that wins over `detailRoute`, for
+  rows whose detail page lives outside the consuming app's router.
+- `showAdd: false` — suppresses the Add button. A source cannot force the
+  button on; an explicit `:show-add="false"` prop always still wins.
 
 ## Bespoke card-grid via `cardComponent`
 

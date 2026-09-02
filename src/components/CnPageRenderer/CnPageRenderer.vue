@@ -1023,6 +1023,19 @@ export default {
 					normalizedConfig = rest
 				}
 			}
+			// A named entity source loads with the `sourceConfig` PROP, and the
+			// renderer never set it: config keys spread as individual props, so
+			// `config.app` (flows) or `config.scope` (tasks) reached the page as
+			// inert attributes and the loader received `{}`. Hand the resolved
+			// config through as the default `sourceConfig` — the loader picks
+			// the keys it knows and ignores the rest. An explicit
+			// `config.sourceConfig` block still wins unchanged.
+			if (isIndex
+				&& typeof normalizedConfig.entitySource === 'string'
+				&& normalizedConfig.entitySource.length > 0
+				&& normalizedConfig.sourceConfig === undefined) {
+				normalizedConfig = { ...normalizedConfig, sourceConfig: { ...normalizedConfig } }
+			}
 			// Precedence (highest wins): route params > config > top-level
 			// page fields. URL truth trumps everything; config trumps
 			// top-level so per-route config still beats the page default.
