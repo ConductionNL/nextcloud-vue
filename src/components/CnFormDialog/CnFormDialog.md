@@ -133,7 +133,7 @@ A schema property may carry `x-openregister-extends-form`, declaring that pickin
 
 `confirm` then carries two arguments. The first is the object's own fields; the second is `{ answers, declarations }`, or `null` for a schema that declares nothing. The split matters: a value row references the parent object, so it cannot be written in the same call, and posting a dynamic key to the parent schema would have OpenRegister drop it silently.
 
-```js
+```js static
 async onConfirm(formData, dynamic) {
   const saved = await store.saveObject('dossiq/case', formData)
   if (!dynamic) return

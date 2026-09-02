@@ -296,7 +296,7 @@ The dialog fetches the matching definitions on selection and renders them as ord
 
 `confirm` then carries two arguments. A value row references the parent object, so it cannot be written in the same call, and posting a dynamic key to the parent schema would have OpenRegister drop it silently:
 
-```js
+```js static
 async onConfirm(formData, dynamic) {
   const saved = await store.saveObject('dossiq/case', formData)
   if (!dynamic) return
