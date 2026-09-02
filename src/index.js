@@ -449,6 +449,7 @@ export { registerTranslations } from './l10n/index.js'
 export { buildHeaders, buildQueryString, parseResponseError, parseAxiosError, networkError, genericError } from './utils/index.js'
 export { cnFetch, cnFetchJson, CnHttpError } from './utils/cnFetch.js'
 export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema, validateValue } from './utils/index.js'
+export { splitDynamicFormData, valueRecordsFor, EXTENDS_FORM_KEY, DYNAMIC_KEY_PREFIX } from './utils/index.js'
 // The OpenRegister schema API contract — shared so Buildiq and OpenRegister cannot
 // drift on what a 409 means (breaking change / schema still has objects).
 export { saveSchema, deleteSchema, describeSchemaChange, SchemaBreakingChangeError, SchemaHasObjectsError } from './utils/index.js'

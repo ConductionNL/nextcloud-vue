@@ -9,8 +9,35 @@
 		     chrome, including in bare mode: its header carries the Save button
 		     for inline edits, and CnWidgetWrapper's actions live INSIDE the
 		     header, so hiding the header would hide Save. See the docblock. -->
+		<!-- `requiredApp` names another Nextcloud app this widget leans on. When
+		     that app is absent the widget renders its NORMAL chrome plus a
+		     set-up state, and asks its backend NOTHING.
+
+		     It renders rather than hides on purpose. A hidden widget leaves a
+		     hole a reader cannot interpret, and the alternative — letting the
+		     query run — is worse: an aggregation over an absent app's register
+		     404s and the tile shows `0`, which is exactly what a real zero
+		     shows. dossiq's hours tile did that on every install without
+		     humaniq, and looked correct doing it. -->
+		<CnWidgetWrapper
+			v-if="missingApp"
+			:title="isBare ? '' : widgetTitle"
+			:show-title="!isBare"
+			title-icon-position="left"
+			:show-refresh="false"
+			:show-request-feature="false">
+			<template v-if="widget && widget.icon" #title-icon>
+				<CnIcon :name="widget.icon" :size="20" />
+			</template>
+			<NcEmptyContent :name="missingAppName" :description="missingAppDescription">
+				<template #icon>
+					<CnIcon :name="(widget && widget.icon) || 'PuzzleOutline'" :size="44" />
+				</template>
+			</NcEmptyContent>
+		</CnWidgetWrapper>
+
 		<CnObjectDataWidget
-			v-if="isData && schemaObject"
+			v-else-if="isData && schemaObject"
 			:title="resolvedTitle"
 			:icon="widget.icon || null"
 			:schema="schemaObject"
@@ -153,7 +180,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton } from '@nextcloud/vue'
+import { NcActionButton, NcEmptyContent } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnLeafMountHost from '../CnLeafMountHost/CnLeafMountHost.vue'
@@ -161,6 +188,7 @@ import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import {
@@ -227,6 +255,7 @@ export default {
 		CnRelatedObjectsWidget,
 		CnWidgetWrapper,
 		NcActionButton,
+		NcEmptyContent,
 		Plus,
 	},
 
@@ -382,6 +411,79 @@ export default {
 		 */
 		resolvedTitle() {
 			return this.isBare ? undefined : widgetTitleOf(this.widget)
+		},
+
+		/**
+		 * The app this widget leans on, if it declares one.
+		 *
+		 * Read from the widget definition first and its `content` second, so a
+		 * manifest may put it wherever the rest of that widget's config lives.
+		 *
+		 * @return {string} A Nextcloud app id, or ''.
+		 */
+		requiredApp() {
+			// `widget` is declared required, but CnDetailPage renders a host for
+			// a layout item whose widget id resolves to nothing — and there is a
+			// test that it must not throw for one. This computed runs in the
+			// render path BEFORE the branches that tolerate a missing widget, so
+			// it is the one that has to survive it.
+			return (this.widget || {}).requiredApp || this.content.requiredApp || ''
+		},
+
+		/**
+		 * Whether this widget's backing app is declared and absent.
+		 *
+		 * @return {boolean} true when the widget must render its set-up state.
+		 */
+		missingApp() {
+			return this.requiredApp !== '' && !isAppInstalled(this.requiredApp)
+		},
+
+		/**
+		 * The widget's title, independent of chrome mode.
+		 *
+		 * `resolvedTitle` is deliberately undefined in bare mode so a tabbed
+		 * widget does not repeat what the strip already says. The set-up state
+		 * still needs the name to say WHICH widget is inert.
+		 *
+		 * @return {string} The manifest title.
+		 */
+		widgetTitle() {
+			return widgetTitleOf(this.widget) || ''
+		},
+
+		/**
+		 * Headline for the set-up state.
+		 *
+		 * @return {string} e.g. "Humaniq is not installed".
+		 */
+		missingAppName() {
+			return t('nextcloud-vue', '{app} is not installed', { app: this.requiredAppLabel })
+		},
+
+		/**
+		 * Body for the set-up state, naming what the reader is NOT seeing.
+		 *
+		 * @return {string} The description.
+		 */
+		missingAppDescription() {
+			return this.widgetTitle
+				? t('nextcloud-vue', '{title} needs the {app} app. Install and enable it to see this.', {
+					title: this.widgetTitle,
+					app: this.requiredAppLabel,
+				})
+				: t('nextcloud-vue', 'Install and enable the {app} app to see this.', {
+					app: this.requiredAppLabel,
+				})
+		},
+
+		/**
+		 * The app id as a display name — `humaniq` reads as `Humaniq`.
+		 *
+		 * @return {string} The capitalised app id.
+		 */
+		requiredAppLabel() {
+			return this.requiredApp.charAt(0).toUpperCase() + this.requiredApp.slice(1)
 		},
 
 		/** @return {boolean} true for `type: 'data'`. */

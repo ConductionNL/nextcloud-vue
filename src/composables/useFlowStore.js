@@ -1585,9 +1585,58 @@ export const useFlowStore = defineStore('cnFlow', {
 			return this.versions
 		},
 
-		async remove(id) {
+		/**
+		 * Delete a flow, then reload the list.
+		 *
+		 * The reload scope matters: the editor deletes the OPEN flow, so
+		 * `this.flow.app` is the right scope there — but an index page deletes
+		 * a ROW while no flow is open, and `this.flow.app` is then blank,
+		 * which reloads EVERY app's flows into a list that was scoped to one.
+		 * Callers that know their scope pass it; the default keeps the
+		 * editor's behaviour.
+		 *
+		 * @param {string} id The flow id or uuid.
+		 * @param {object} [options] Reload options.
+		 * @param {string|null} [options.app] The app scope to reload with;
+		 *   when omitted, the open flow's app is used.
+		 * @return {Promise<void>} Resolves when deleted and reloaded.
+		 */
+		async remove(id, options = {}) {
 			await axios.delete(generateUrl(`/apps/openregister/api/flows/${id}`))
-			await this.load({ app: this.flow.app })
+			const app = ('app' in options) ? options.app : this.flow.app
+			await this.load({ app })
+		},
+
+		/**
+		 * Copy a stored flow under a new name, then reload the list.
+		 *
+		 * Reads the STORED flow (`GET /api/flows/{id}`) rather than trusting a
+		 * list row, and re-posts its editable fields. Identity and lifecycle
+		 * are deliberately not copied: `FlowController::create()`'s allowlist
+		 * would refuse them anyway (owner is stamped from the session,
+		 * lifecycle starts fresh), but stripping them here documents that a
+		 * copy is a NEW flow — same graph, nobody's history.
+		 *
+		 * @param {string} id The flow to copy.
+		 * @param {string} name The copy's name.
+		 * @param {object} [options] Reload options.
+		 * @param {string|null} [options.app] The app scope to reload with.
+		 * @return {Promise<object>} The created flow.
+		 */
+		async duplicate(id, name, options = {}) {
+			const response = await axios.get(generateUrl(`/apps/openregister/api/flows/${id}`))
+			const {
+				id: _id, uuid: _uuid, owner: _owner, organisation: _organisation,
+				created: _created, updated: _updated, lifecycleStatus: _lifecycleStatus,
+				version: _version, ...editable
+			} = response.data || {}
+			const createResponse = await axios.post(
+				generateUrl('/apps/openregister/api/flows'),
+				{ ...editable, name },
+			)
+			const app = ('app' in options) ? options.app : this.flow.app
+			await this.load({ app })
+			return createResponse.data
 		},
 
 		/**

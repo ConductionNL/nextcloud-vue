@@ -50,9 +50,26 @@
 			@confirm="onConfirmProceed"
 			@close="confirmEntry = null" />
 
-		<!-- Schema-driven create dialog for an open-form action. -->
+		<!-- Schema-driven create dialog for an open-form action. The plain
+		     form is the default: the properties/JSON table is a power-user
+		     surface, and a header button that says "New case" is aimed at
+		     someone filing one, not at someone inspecting the schema. Set
+		     `advanced: true` on the action to get the table back. -->
+		<CnFormDialog
+			v-if="formEntry && formSchema && !formEntry.advanced"
+			ref="formDialog"
+			:schema="formSchema"
+			:item="null"
+			:register="formRegister"
+			:initial-data="formInitialValues || {}"
+			:dialog-title="tr(formEntry.formTitle) || ''"
+			:include-fields="formEntry.includeFields || null"
+			:exclude-fields="formEntry.excludeFields || []"
+			:field-overrides="formEntry.fieldOverrides || {}"
+			@confirm="onFormConfirm"
+			@close="closeForm" />
 		<CnAdvancedFormDialog
-			v-if="formEntry && formSchema"
+			v-if="formEntry && formSchema && formEntry.advanced"
 			ref="formDialog"
 			:schema="formSchema"
 			:item="null"
@@ -69,6 +86,8 @@ import { NcButton } from '@nextcloud/vue'
 import { CnIcon } from '../CnIcon/index.js'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
+import { CnFormDialog } from '../CnFormDialog/index.js'
+import { valueRecordsFor } from '../../utils/dynamicProperties.js'
 import { dispatchAction, resolveObjectOpType, buildOnSuccessRoute, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
@@ -91,7 +110,10 @@ import { useObjectStore } from '../../store/useObjectStore.js'
  *    (so one schema can back several buttons, each fixing its own
  *    discriminator), and `createOverride` names a registry handler that owns
  *    the persist instead of `objectStore.saveObject` (for a schema requiring
- *    a server-minted field the form cannot supply).
+ *    a server-minted field the form cannot supply). `includeFields` /
+ *    `excludeFields` / `fieldOverrides` narrow what the button asks for, which
+ *    is how one schema serves both a full editor and a quick-create button.
+ *    `advanced: true` swaps in the properties/JSON table for a power user.
  *  - **`toggle`** — a two-way state button: `GET`s `stateSource` on mount,
  *    renders `labelOn` / `labelOff`, and on click `writes` the flipped
  *    value OPTIMISTICALLY, reverting on failure.
@@ -127,7 +149,7 @@ import { useObjectStore } from '../../store/useObjectStore.js'
 export default {
 	name: 'CnActionButtons',
 
-	components: { NcButton, CnIcon, CnConfirmDialog, CnAdvancedFormDialog },
+	components: { NcButton, CnIcon, CnConfirmDialog, CnFormDialog, CnAdvancedFormDialog },
 
 	inject: {
 		/** Detail-page object context (`{ objectId, object, register, schema }`). */
@@ -238,6 +260,17 @@ export default {
 			// string "@objectId" is saved, and a foreign key pointing at nothing
 			// is a defect that only shows up in whatever reads it later.
 			return resolveFilterTokens(props, this.tokenCtx)
+		},
+		/**
+		 * The register the open dialog reads and writes against. The plain
+		 * form needs it to resolve `$ref` pickers into real dropdowns; without
+		 * one a reference field renders as an empty select and the action is
+		 * unusable for exactly the schemas that need it most.
+		 *
+		 * @return {string} The register slug, '' when none is resolvable.
+		 */
+		formRegister() {
+			return (this.formEntry && this.formEntry.register) || this.objectCtx.register || ''
 		},
 		/** The actions whose visibleWhen evaluated true (or carry no predicate). */
 		visibleActions() {
@@ -509,12 +542,13 @@ export default {
 		 * can deep-link to the created object's detail page.
 		 *
 		 * @param {object} formData The dialog's form payload.
+		 * @param {object|null} [dynamic] The answers to the schema's data-driven questions (`{ answers, declarations }`), when it has any.
 		 * @return {Promise<void>}
 		 */
-		async onFormConfirm(formData) {
+		async onFormConfirm(formData, dynamic = null) {
 			const entry = this.formEntry
 			const dialog = this.$refs.formDialog
-			const register = (entry && entry.register) || this.objectCtx.register || ''
+			const register = this.formRegister
 			const schema = (entry && entry.schema) || ''
 			try {
 				const store = useObjectStore()
@@ -533,6 +567,7 @@ export default {
 					? await override(payload, { register, schema, type })
 					: await store.saveObject(type, payload)
 				if (!saved) throw new Error('save rejected')
+				await this.saveDynamicAnswers(store, register, dynamic, saved)
 				if (dialog && typeof dialog.setResult === 'function') dialog.setResult({ success: true })
 				const { showSuccess } = await import('@nextcloud/dialogs')
 				if (typeof showSuccess === 'function') {
@@ -551,6 +586,47 @@ export default {
 			} catch (e) {
 				if (dialog && typeof dialog.setResult === 'function') {
 					dialog.setResult({ error: (e && e.message) || t('nextcloud-vue', 'Save failed.') })
+				}
+			}
+		},
+
+		/**
+		 * Write the answers to a schema's data-driven questions, once the
+		 * object they belong to exists.
+		 *
+		 * This runs AFTER the parent save and deliberately does not roll it
+		 * back on failure: a case that exists without one of its custom values
+		 * is recoverable by editing it, whereas discarding a case the user
+		 * believes they filed is not. A failure here surfaces as the dialog's
+		 * error so it is never silent.
+		 *
+		 * @param {object} store The object store.
+		 * @param {string} register The register the object was saved in.
+		 * @param {object|null} dynamic The `{ answers, declarations }` payload.
+		 * @param {object} saved The saved parent object.
+		 * @return {Promise<void>}
+		 */
+		async saveDynamicAnswers(store, register, dynamic, saved) {
+			if (!dynamic || !Array.isArray(dynamic.answers) || dynamic.answers.length === 0) return
+			const objectId = saved && (saved.id || saved.uuid)
+			if (!objectId) return
+			const declarations = dynamic.declarations || []
+			for (const { key, config } of declarations) {
+				const values = config && config.values
+				if (!values || !values.schema) continue
+				// An answer belongs to exactly one declaration. With a single
+				// declaration every answer carries its key anyway; the filter
+				// only matters once a schema has two, where writing an answer
+				// to both value schemas would invent a row nobody entered.
+				const mine = declarations.length === 1
+					? dynamic.answers
+					: dynamic.answers.filter((a) => a.declarationKey === key)
+				const rows = valueRecordsFor(mine, config, objectId)
+				if (rows.length === 0) continue
+				const valueRegister = values.register || register
+				const type = resolveObjectOpType(store, { register: valueRegister, schema: values.schema })
+				for (const row of rows) {
+					await store.saveObject(type, row)
 				}
 			}
 		},
