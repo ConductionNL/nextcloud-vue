@@ -103,6 +103,7 @@ export default {
 | `fieldOverrides` | `{}` | Per-field override objects passed to `fieldsFromSchema`. |
 | `nameField` | `'title'` | Which field is the "name" of the item (used in result messages). |
 | `size` | `'normal'` | NcDialog size — `'small'`, `'normal'`, or `'large'`. |
+| `dynamicLoadingLabel` | `'Loading the fields this choice adds.'` | Text shown while the fields a chosen value brings with it are being fetched. See *Fields the data decides* below. |
 
 ### Slots
 
@@ -125,6 +126,24 @@ All user-visible strings have props so they can be pre-translated by the consume
 | `cancelLabel` | `'Cancel'` | Label for the dismiss button before the action is confirmed. |
 | `closeLabel` | `'Close'` | Label for the dismiss button after the result is shown. |
 | `confirmLabel` | `''` | Confirm button label. Defaults to `'Create'` or `'Save'` depending on mode. |
+
+## Fields the data decides
+
+A schema property may carry `x-openregister-extends-form`, declaring that picking its value brings further fields with it: a case type's extra questions, a product line's attributes. The dialog fetches those definitions on selection and renders them as ordinary fields, keyed `x-prop:<definition id>`.
+
+`confirm` then carries two arguments. The first is the object's own fields; the second is `{ answers, declarations }`, or `null` for a schema that declares nothing. The split matters: a value row references the parent object, so it cannot be written in the same call, and posting a dynamic key to the parent schema would have OpenRegister drop it silently.
+
+```js
+async onConfirm(formData, dynamic) {
+  const saved = await store.saveObject('dossiq/case', formData)
+  if (!dynamic) return
+  for (const row of valueRecordsFor(dynamic.answers, dynamic.declarations[0].config, saved.id)) {
+    await store.saveObject('dossiq/caseProperty', row)
+  }
+}
+```
+
+Full reference: [fields the data decides](../../docs/utilities/dynamic-form-fields.md).
 
 ## Conditional field visibility (`condition` / `visibleWhen`)
 

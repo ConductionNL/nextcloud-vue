@@ -13,7 +13,7 @@
 import { ref } from 'vue'
 import { mount } from '@vue/test-utils'
 import CnActionButtons from '../../src/components/CnActionButtons/CnActionButtons.vue'
-import { dispatchAction } from '../../src/utils/actionsDispatcher.js'
+import { dispatchAction, resolveObjectOpType } from '../../src/utils/actionsDispatcher.js'
 import { fetchEndpointSource } from '../../src/composables/useEndpointSource.js'
 import { evaluateVisibleWhen } from '../../src/utils/visibleWhen.js'
 import { useObjectStore } from '../../src/store/useObjectStore.js'
@@ -77,10 +77,16 @@ const stubs = {
 		template: '<div class="confirm-dialog-stub" />',
 		methods: { setResult() {} },
 	},
+	CnFormDialog: {
+		name: 'CnFormDialog',
+		props: ['schema', 'item', 'initialData', 'register', 'dialogTitle'],
+		template: '<div class="form-dialog-stub" />',
+		methods: { setResult() {} },
+	},
 	CnAdvancedFormDialog: {
 		name: 'CnAdvancedFormDialog',
 		props: ['schema', 'item', 'initialValues'],
-		template: '<div class="form-dialog-stub" />',
+		template: '<div class="advanced-form-dialog-stub" />',
 		methods: { setResult() {} },
 	},
 }
@@ -214,7 +220,7 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			await flush()
 
 			expect(fetchSchema).toHaveBeenCalled()
-			const dialog = wrapper.findComponent({ name: 'CnAdvancedFormDialog' })
+			const dialog = wrapper.findComponent({ name: 'CnFormDialog' })
 			expect(dialog.exists()).toBe(true)
 
 			dialog.vm.$emit('confirm', { name: 'Acme' })
@@ -242,10 +248,109 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			await wrapper.find('[data-testid="cn-action-new-request"]').trigger('click')
 			await flush()
 
-			const dialog = wrapper.findComponent({ name: 'CnAdvancedFormDialog' })
-			expect(dialog.props('initialValues')).toEqual({ ticketType: 'request' })
+			const dialog = wrapper.findComponent({ name: 'CnFormDialog' })
+			expect(dialog.props('initialData')).toEqual({ ticketType: 'request' })
 			// `item` stays null so the dialog remains in CREATE mode.
 			expect(dialog.props('item')).toBeNull()
+		})
+
+		it('opens the plain form, not the properties table, because a header button aims at filing one', async () => {
+			const fetchSchema = jest.fn(() => Promise.resolve({ title: 'Lead', properties: {} }))
+			useObjectStore.mockReturnValue({ saveObject: jest.fn(), fetchSchema })
+
+			const wrapper = mountBar([
+				{ id: 'new-lead', label: 'New lead', type: 'open-form', register: 'crm', schema: 'lead' },
+			])
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-lead"]').trigger('click')
+			await flush()
+
+			expect(wrapper.findComponent({ name: 'CnFormDialog' }).exists()).toBe(true)
+			expect(wrapper.findComponent({ name: 'CnAdvancedFormDialog' }).exists()).toBe(false)
+		})
+
+		it('still opens the properties table when the action asks for advanced', async () => {
+			const fetchSchema = jest.fn(() => Promise.resolve({ title: 'Lead', properties: {} }))
+			useObjectStore.mockReturnValue({ saveObject: jest.fn(), fetchSchema })
+
+			const wrapper = mountBar([
+				{ id: 'new-lead', label: 'New lead', type: 'open-form', register: 'crm', schema: 'lead', advanced: true },
+			])
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-lead"]').trigger('click')
+			await flush()
+
+			expect(wrapper.findComponent({ name: 'CnAdvancedFormDialog' }).exists()).toBe(true)
+			expect(wrapper.findComponent({ name: 'CnFormDialog' }).exists()).toBe(false)
+		})
+
+		it('hands the form its register so a reference field resolves to a real dropdown', async () => {
+			const fetchSchema = jest.fn(() => Promise.resolve({ title: 'Lead', properties: {} }))
+			useObjectStore.mockReturnValue({ saveObject: jest.fn(), fetchSchema })
+
+			const wrapper = mountBar([
+				{ id: 'new-lead', label: 'New lead', type: 'open-form', register: 'crm', schema: 'lead' },
+			])
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-lead"]').trigger('click')
+			await flush()
+
+			expect(wrapper.findComponent({ name: 'CnFormDialog' }).props('register')).toBe('crm')
+		})
+
+		it('writes the answers to the data-driven questions after the object they belong to exists', async () => {
+			// A value row references the parent, so the order is not a detail:
+			// posting them together would have OpenRegister drop every answer.
+			const order = []
+			const saveObject = jest.fn((type, payload) => {
+				order.push(type)
+				return Promise.resolve({ id: type === 'crm/lead' ? 'lead-1' : 'val-1', ...payload })
+			})
+			const fetchSchema = jest.fn(() => Promise.resolve({ title: 'Lead', properties: {} }))
+			useObjectStore.mockReturnValue({ saveObject, fetchSchema })
+			resolveObjectOpType.mockImplementation((_s, { schema }) => `crm/${schema}`)
+
+			const wrapper = mountBar([
+				{ id: 'new-lead', label: 'New lead', type: 'open-form', register: 'crm', schema: 'lead' },
+			])
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-lead"]').trigger('click')
+			await flush()
+
+			wrapper.findComponent({ name: 'CnFormDialog' }).vm.$emit('confirm', { name: 'Acme' }, {
+				answers: [{ definitionId: 'def-1', value: 'Cultuur', declarationKey: 'leadType' }],
+				declarations: [{
+					key: 'leadType',
+					config: {
+						definitions: { schema: 'leadField' },
+						values: { schema: 'leadValue', objectRef: 'lead', definitionRef: 'field', valueKey: 'value' },
+					},
+				}],
+			})
+			await flush()
+
+			expect(order).toEqual(['crm/lead', 'crm/leadValue'])
+			expect(saveObject).toHaveBeenLastCalledWith('crm/leadValue', {
+				lead: 'lead-1', field: 'def-1', value: 'Cultuur',
+			})
+		})
+
+		it('writes no value rows for a schema that declares no data-driven questions', async () => {
+			const saveObject = jest.fn(() => Promise.resolve({ id: 'lead-1' }))
+			const fetchSchema = jest.fn(() => Promise.resolve({ title: 'Lead', properties: {} }))
+			useObjectStore.mockReturnValue({ saveObject, fetchSchema })
+			resolveObjectOpType.mockReturnValue('crm/lead')
+
+			const wrapper = mountBar([
+				{ id: 'new-lead', label: 'New lead', type: 'open-form', register: 'crm', schema: 'lead' },
+			])
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-lead"]').trigger('click')
+			await flush()
+			wrapper.findComponent({ name: 'CnFormDialog' }).vm.$emit('confirm', { name: 'Acme' }, null)
+			await flush()
+
+			expect(saveObject).toHaveBeenCalledTimes(1)
 		})
 
 		it('persists through a registry createOverride instead of saveObject when named', async () => {
@@ -275,7 +380,7 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			await flush()
 			await wrapper.find('[data-testid="cn-action-new-client"]').trigger('click')
 			await flush()
-			wrapper.findComponent({ name: 'CnAdvancedFormDialog' }).vm.$emit('confirm', { name: 'Acme' })
+			wrapper.findComponent({ name: 'CnFormDialog' }).vm.$emit('confirm', { name: 'Acme' })
 			await flush()
 
 			expect(handler).toHaveBeenCalledWith({ name: 'Acme' }, expect.objectContaining({ schema: 'client' }))
@@ -301,7 +406,7 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			await flush()
 			await wrapper.find('[data-testid="cn-action-new-client"]').trigger('click')
 			await flush()
-			wrapper.findComponent({ name: 'CnAdvancedFormDialog' }).vm.$emit('confirm', { name: 'Acme' })
+			wrapper.findComponent({ name: 'CnFormDialog' }).vm.$emit('confirm', { name: 'Acme' })
 			await flush()
 
 			expect(saveObject).toHaveBeenCalledWith('crm/lead', { name: 'Acme' })
@@ -325,7 +430,7 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			await flush()
 			await wrapper.find('[data-testid="cn-action-new-lead"]').trigger('click')
 			await flush()
-			wrapper.findComponent({ name: 'CnAdvancedFormDialog' }).vm.$emit('confirm', { name: 'Acme' })
+			wrapper.findComponent({ name: 'CnFormDialog' }).vm.$emit('confirm', { name: 'Acme' })
 			await flush()
 
 			expect(push).toHaveBeenCalledWith({ name: 'LeadDetail', params: { leadId: 'lead-42' } })
@@ -349,7 +454,7 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			await flush()
 			await wrapper.find('[data-testid="cn-action-new-lead"]').trigger('click')
 			await flush()
-			wrapper.findComponent({ name: 'CnAdvancedFormDialog' }).vm.$emit('confirm', { name: 'Acme' })
+			wrapper.findComponent({ name: 'CnFormDialog' }).vm.$emit('confirm', { name: 'Acme' })
 			await flush()
 
 			expect(push).toHaveBeenCalledWith({ name: 'Leads', params: { id: 'lead-7' } })

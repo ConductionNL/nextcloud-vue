@@ -29,7 +29,11 @@
 				{{ formError }}
 			</NcNoteCard>
 
-			<!-- Full form override slot -->
+			<!-- @slot form Replace the entire auto-generated form. -->
+			<!-- @binding {object[]} fields The resolved, visible field definitions. -->
+			<!-- @binding {object} form-data The live form values, keyed by field. -->
+			<!-- @binding {object} errors The current validation errors, keyed by field. -->
+			<!-- @binding {Function} update-field Write one field: `updateField(key, value)`. -->
 			<slot
 				v-if="$slots.form"
 				name="form"
@@ -40,6 +44,7 @@
 
 			<!-- Auto-generated form -->
 			<template v-else>
+				<!-- @slot before-fields Content above the first auto-generated field. Use it for introductory text or an input the schema does not describe. -->
 				<slot name="before-fields" />
 
 				<!-- `data-cn-field` is the only per-field identity this form
@@ -52,7 +57,11 @@
 					:key="field.key"
 					:data-cn-field="field.key"
 					class="cn-form-dialog__field">
-					<!-- Per-field override slot -->
+					<!-- @slot field-{key} Replace one auto-generated field with your own control. -->
+					<!-- @binding {object} field The field definition. -->
+					<!-- @binding {*} value The field's current value. -->
+					<!-- @binding {string} error The field's validation error, if any. -->
+					<!-- @binding {Function} update-field Write the value: `updateField(key, value)`. -->
 					<slot
 						v-if="$slots['field-' + field.key]"
 						:name="'field-' + field.key"
@@ -201,11 +210,15 @@
 								<template
 									v-if="$slots['field-' + field.key + '-option']"
 									#option="optionProps">
+									<!-- @slot field-{key}-option Render one dropdown option for a select, multiselect or tags field. -->
+									<!-- @binding {object} option The option being rendered (`{ id, label }`). -->
 									<slot :name="'field-' + field.key + '-option'" v-bind="optionProps" />
 								</template>
 								<template
 									v-if="$slots['field-' + field.key + '-selected-option']"
 									#selected-option="optionProps">
+									<!-- @slot field-{key}-selected-option Render the chosen option of a select, multiselect or tags field. -->
+									<!-- @binding {object} option The selected option (`{ id, label }`). -->
 									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
 								</template>
 							</NcSelect>
@@ -382,6 +395,18 @@
 					</template>
 				</div>
 
+				<!-- The extra questions a chosen case type / product line asks
+				     are fetched, so say they are coming. Silence here reads as
+				     "this type has none", and the user submits an incomplete
+				     form believing it was complete. -->
+				<div v-if="dynamicLoading"
+					class="cn-form-dialog__dynamic-loading"
+					data-testid="cn-form-dialog-dynamic-loading">
+					<NcLoadingIcon :size="20" />
+					<span>{{ dynamicLoadingLabel }}</span>
+				</div>
+
+				<!-- @slot after-fields Content below the last auto-generated field. -->
 				<slot name="after-fields" />
 			</template>
 		</div>
@@ -421,6 +446,13 @@ import { fieldsFromSchema } from '../../utils/schema.js'
 import { searchNextcloudUsers, resolveNextcloudUser } from '../../utils/userAutocomplete.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { shouldShow } from '../../utils/fieldCondition.js'
+import {
+	extendsFormDeclarations,
+	definitionQueryParams,
+	propertiesFromDefinitions,
+	splitDynamicFormData,
+	DYNAMIC_KEY_PREFIX,
+} from '../../utils/dynamicProperties.js'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 
 /**
@@ -732,6 +764,18 @@ export default {
 		},
 
 		/** Label for the cancel button */
+		/**
+		 * Text shown while the fields a chosen value brings with it are being
+		 * fetched. The default is deliberately generic; a host that knows the
+		 * domain can say what is actually loading ("Loading the questions for
+		 * this case type.").
+		 */
+		dynamicLoadingLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Loading the fields this choice adds.'),
+		},
+
+		/** Label for the dismiss button while the form is still showing. */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
 		/** Label for the close button */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
@@ -790,6 +834,33 @@ export default {
 			semanticResolutions: {},
 			/** Field keys the user has actually edited this session (used to avoid re-validating untouched persisted server values) */
 			touchedFields: {},
+			/**
+			 * Schema properties contributed by the record's own data rather
+			 * than its schema — the extra questions a chosen case type (or
+			 * product line, or segment) asks. Keyed by the same prefixed id
+			 * the form data uses. Replaced wholesale whenever a driving value
+			 * changes; `{}` while nothing is chosen. See utils/dynamicProperties.
+			 */
+			dynamicProperties: {},
+			/** Prefixed keys among `dynamicProperties` that must be answered. */
+			dynamicRequired: [],
+			/**
+			 * Which declaration each dynamic field came from, keyed by its
+			 * prefixed key. A schema may declare more than one driving
+			 * property, and their answers go to different value schemas — an
+			 * answer that cannot name its own declaration would be written to
+			 * all of them.
+			 */
+			dynamicOwners: {},
+			/** Whether a definitions fetch is in flight (the fields are announced as loading rather than absent). */
+			dynamicLoading: false,
+			/**
+			 * The driver signature the currently-loaded `dynamicProperties`
+			 * belong to. A fetch that resolves after its driver already moved
+			 * on is discarded against this, so a fast second pick cannot be
+			 * overwritten by the first pick's slower response.
+			 */
+			dynamicToken: '',
 		}
 	},
 
@@ -840,6 +911,50 @@ export default {
 			return Object.keys(this.jsonErrors).every((k) => !this.jsonErrors[k])
 		},
 
+		/**
+		 * The schema's `x-openregister-extends-form` declarations — properties
+		 * whose chosen value brings further fields with it.
+		 *
+		 * Empty for the overwhelming majority of schemas, which is what keeps
+		 * the whole mechanism free: no declaration, no fetch, no watcher work.
+		 *
+		 * @return {Array<{key: string, config: object}>} The declarations.
+		 */
+		extendsDeclarations() {
+			return this.fields ? [] : extendsFormDeclarations(this.schema)
+		},
+
+		/**
+		 * A stable signature of every driving property's current value.
+		 *
+		 * Watched instead of the individual fields so one handler covers a
+		 * schema with several declarations, and so re-selecting the same value
+		 * does not re-fetch.
+		 *
+		 * @return {string} The signature ('' when nothing is chosen).
+		 */
+		dynamicDriverToken() {
+			return this.extendsDeclarations
+				.map(({ key }) => `${key}=${this.dynamicDriverValue(this.formData[key])}`)
+				.join('&')
+		},
+
+		/**
+		 * Fields derived from `dynamicProperties`, through the SAME engine the
+		 * schema's own fields go through — so a definition gets its widget,
+		 * enum labels, validation and description handling from one place
+		 * rather than a parallel implementation that drifts.
+		 *
+		 * @return {object[]} The dynamic fields, ordered after the schema's own.
+		 */
+		dynamicFields() {
+			if (Object.keys(this.dynamicProperties).length === 0) return []
+			return fieldsFromSchema(
+				{ properties: this.dynamicProperties, required: this.dynamicRequired },
+				{ translate: this.cnTranslate },
+			)
+		},
+
 		resolvedFields() {
 			// Manual fields take priority
 			const base = this.fields
@@ -849,7 +964,7 @@ export default {
 					include: this.includeFields,
 					overrides: this.fieldOverrides,
 					translate: this.cnTranslate,
-				})
+				}).concat(this.dynamicFields)
 
 			// Render locked fields (parent references seeded via initialData) as
 			// read-only so the disabled binding on every widget branch applies.
@@ -924,6 +1039,21 @@ export default {
 		 * @param {object[]} newFields The new visible field set.
 		 * @param {object[]} oldFields The previous visible field set.
 		 */
+		/**
+		 * Load the fields a newly-chosen driving value brings with it.
+		 *
+		 * Immediate, because edit mode opens with the value already set and
+		 * the stored answers are unreadable without their definitions.
+		 *
+		 * @param {string} token The new driver signature.
+		 */
+		dynamicDriverToken: {
+			immediate: true,
+			handler(token) {
+				this.loadDynamicProperties(token)
+			},
+		},
+
 		visibleFields(newFields, oldFields) {
 			if (!Array.isArray(oldFields)) return
 			const newKeys = new Set(newFields.map((f) => f.key))
@@ -1891,6 +2021,108 @@ export default {
 			}
 		},
 
+		/**
+		 * The comparable form of a driving property's value.
+		 *
+		 * A `$ref` picker may hold either the bare UUID or the whole option
+		 * object, depending on whether the user has just chosen it or it came
+		 * back from the server. Both must produce the same signature, or
+		 * merely opening an existing record would look like a change and
+		 * refetch its definitions.
+		 *
+		 * @param {*} value The raw form value.
+		 * @return {string} The value's identity, '' when unset.
+		 */
+		dynamicDriverValue(value) {
+			if (value === null || value === undefined || value === '') return ''
+			if (typeof value === 'object') return String(value.id || value.uuid || '')
+			return String(value)
+		},
+
+		/**
+		 * Fetch and install the extra fields the current driving values ask
+		 * for. A driver that is unset clears them; a fetch that fails leaves
+		 * them cleared rather than half-populated, because a form missing a
+		 * required question it never showed is worse than one that shows none.
+		 *
+		 * @param {string} token The driver signature this load is for.
+		 * @return {Promise<void>}
+		 */
+		async loadDynamicProperties(token) {
+			this.dynamicToken = token
+			const active = this.extendsDeclarations
+				.filter(({ key }) => this.dynamicDriverValue(this.formData[key]) !== '')
+			if (active.length === 0) {
+				this.dynamicProperties = {}
+				this.dynamicRequired = []
+				this.dynamicOwners = {}
+				this.dynamicLoading = false
+				return
+			}
+			const store = this.getObjectStore()
+			if (!store) return
+
+			this.dynamicLoading = true
+			const properties = {}
+			const required = []
+			const owners = {}
+			try {
+				for (const { key, config } of active) {
+					const schemaSlug = config.definitions && config.definitions.schema
+					// A definitions schema normally lives beside the object's own,
+					// so the form's register is the default; `register` names
+					// another app's when it does not (ADR-066).
+					const register = (config.definitions && config.definitions.register) || this.register
+					if (!schemaSlug || !register) continue
+					const slug = store.createObjectTypeSlug(register, schemaSlug)
+					if (!store.objectTypeRegistry[slug]) {
+						store.registerObjectType(slug, schemaSlug, register)
+					}
+					const params = definitionQueryParams(
+						config,
+						this.dynamicDriverValue(this.formData[key]),
+						this.formData,
+					)
+					const records = await store.fetchCollection(slug, params)
+					// `orderFrom` keeps each declaration's block together and
+					// after the schema's own fields, whose `order` values are
+					// authored well below this.
+					const mappedProps = propertiesFromDefinitions(
+						Array.isArray(records) ? records : [],
+						config,
+						{ orderFrom: 1000 + Object.keys(properties).length },
+					)
+					Object.assign(properties, mappedProps.properties)
+					required.push(...mappedProps.required)
+					for (const propKey of Object.keys(mappedProps.properties)) owners[propKey] = key
+				}
+			} catch (err) {
+				console.error('CnFormDialog: could not load the fields for this selection:', err)
+			}
+			// A slower earlier fetch must not overwrite a later selection's
+			// fields; the signature it started under is the only way to tell.
+			if (this.dynamicToken !== token) return
+			this.dynamicProperties = properties
+			this.dynamicRequired = required
+			this.dynamicOwners = owners
+			this.dynamicLoading = false
+			this.seedDynamicDefaults(properties)
+		},
+
+		/**
+		 * Seed a newly-arrived dynamic field with its default, without
+		 * touching one the user (or the record) already answered.
+		 *
+		 * @param {object} properties The installed dynamic properties.
+		 */
+		seedDynamicDefaults(properties) {
+			for (const [key, prop] of Object.entries(properties)) {
+				if (prop.default === undefined) continue
+				if (this.formData[key] !== undefined && this.formData[key] !== null && this.formData[key] !== '') continue
+				this.formData[key] = prop.default
+			}
+		},
+
 		async fetchReferenceOptions(field, query) {
 			const register = this.referenceRegister(field)
 			if (!register || !field.reference || !field.reference.schema) return []
@@ -2282,11 +2514,28 @@ export default {
 
 			this.formError = null
 			this.loading = true
+			// The object's own fields and the answers to its data-driven
+			// questions go out separately: a value row references the parent,
+			// so it cannot be written in the same call, and posting a dynamic
+			// key to the parent schema would have OpenRegister drop it
+			// silently — a 200, an object back, and the answer gone. A host
+			// that ignores the second argument therefore still posts a clean
+			// payload rather than losing declared fields to undeclared ones.
+			const { base, answers: raw } = splitDynamicFormData(this.buildSubmitPayload())
+			const answers = raw.map((answer) => ({
+				...answer,
+				declarationKey: this.dynamicOwners[DYNAMIC_KEY_PREFIX + answer.definitionId] || '',
+			}))
 			/**
 			 * @event confirm Emitted when the user confirms the form.
-			 * Payload: form data object. Includes `id` when editing.
+			 * Payload: form data object. Includes `id` when editing. A second
+			 * argument carries the data-driven answers (`{ answers, declarations }`)
+			 * when the schema declares `x-openregister-extends-form`; it is
+			 * `null` otherwise, which is every schema that declares nothing.
 			 */
-			this.$emit('confirm', this.buildSubmitPayload())
+			this.$emit('confirm', base, answers.length > 0
+				? { answers, declarations: this.extendsDeclarations }
+				: null)
 		},
 
 		/**
@@ -2326,6 +2575,9 @@ export default {
 			this.result = resultData
 			if (resultData.success) {
 				this.closeTimeout = setTimeout(() => {
+					/**
+					 * @event close Emitted when the dialog should close: the user dismissed it, or a successful save auto-closed it.
+					 */
 					this.$emit('close')
 				}, 2000)
 			}
@@ -2411,5 +2663,14 @@ export default {
 
 .cn-form-dialog__helper--error {
 	color: var(--color-error);
+}
+
+.cn-form-dialog__dynamic-loading {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 0;
+	font-size: 0.9em;
+	color: var(--color-text-maxcontrast);
 }
 </style>

@@ -35,6 +35,7 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `fieldOverrides` | Object | `{}` | Per-field overrides (see [Field Overrides](#field-overrides)) |
 | `nameField` | String | `'title'` | |
 | `size` | String | `'normal'` | Dialog size |
+| `dynamicLoadingLabel` (`dynamic-loading-label`) | String | `'Loading the fields this choice adds.'` | Text shown while the fields a chosen value brings with it are being fetched. See [Fields the data decides](#fields-the-data-decides). |
 | `successText` | String | `''` | |
 | `cancelLabel` | String | | |
 | `closeLabel` | String | | |
@@ -67,7 +68,7 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `confirm` | `formData` | Form confirmed (includes id when editing) |
+| `confirm` | `formData`, `dynamic` | Form confirmed. `formData` holds the object's own fields and includes `id` when editing. `dynamic` carries `{ answers, declarations }` when the schema declares [`x-openregister-extends-form`](#fields-the-data-decides), and is `null` otherwise. |
 | `close` | — | Dialog closed |
 
 ## Slots
@@ -273,6 +274,39 @@ A 2-value `enum` property with `widget: 'switch'` renders as a toggle instead of
 ```js
 approved: { type: 'string', enum: ['no', 'approved'], widget: 'switch', title: 'Approved' }
 ```
+
+## Fields the data decides
+
+A schema property may carry `x-openregister-extends-form`, declaring that picking its value brings further fields with it. A case type declares the extra questions its cases answer, and a functional admin adds them at runtime, so the schema cannot enumerate them.
+
+```json
+"caseType": {
+  "type": "string",
+  "$ref": "caseType",
+  "title": "Case type",
+  "x-openregister-extends-form": {
+    "definitions": { "schema": "propertyDefinition", "filter": { "caseType": "$value" } },
+    "values": { "schema": "caseProperty", "objectRef": "case",
+                "definitionRef": "propertyDefinition", "valueKey": "value" }
+  }
+}
+```
+
+The dialog fetches the matching definitions on selection and renders them as ordinary fields, keyed `x-prop:<definition id>` so an admin-authored name can never collide with a real schema property. Changing the driving value clears the previous answers.
+
+`confirm` then carries two arguments. A value row references the parent object, so it cannot be written in the same call, and posting a dynamic key to the parent schema would have OpenRegister drop it silently:
+
+```js
+async onConfirm(formData, dynamic) {
+  const saved = await store.saveObject('dossiq/case', formData)
+  if (!dynamic) return
+  for (const row of valueRecordsFor(dynamic.answers, dynamic.declarations[0].config, saved.id)) {
+    await store.saveObject('dossiq/caseProperty', row)
+  }
+}
+```
+
+A host that ignores the second argument still posts a clean payload. Full reference: [fields the data decides](../utilities/dynamic-form-fields.md).
 
 ## Cross-app semantic references (`referenceSemanticType`)
 
