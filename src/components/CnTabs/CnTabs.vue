@@ -282,7 +282,13 @@ export default defineComponent({
    nav-end content the nav is the bar's only child and the result is pixel
    identical to the rule living on the nav itself. */
 .cn-tabs__bar {
-	align-items: flex-end;
+	/* flex-START, not flex-end. The nav is a SIBLING that grows taller when its
+	   tabs wrap, so bottom-aligning drops the `#nav-end` control down beside
+	   the LAST row. Measured on a 9-tab dossiq case strip: Actions landed next
+	   to the single wrapped tab and read as that one tab's own control rather
+	   than the strip's. Top-aligning keeps it on the first row, where the
+	   widget's title used to be. */
+	align-items: flex-start;
 	border-bottom: 1px solid var(--color-border);
 	display: flex;
 	gap: 8px;
@@ -305,6 +311,10 @@ export default defineComponent({
 	display: flex;
 	flex: 0 0 auto;
 	gap: 4px;
+	/* Mirror a nav item's vertical box (8px padding top and bottom, plus the
+	   2px active underline) so the control centres against the FIRST row of
+	   tabs instead of hugging the top edge when the strip is one row. */
+	min-height: 38px;
 }
 
 .cn-tabs__nav-item {
