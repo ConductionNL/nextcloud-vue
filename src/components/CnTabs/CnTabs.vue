@@ -311,10 +311,14 @@ export default defineComponent({
 	display: flex;
 	flex: 0 0 auto;
 	gap: 4px;
-	/* Mirror a nav item's vertical box (8px padding top and bottom, plus the
-	   2px active underline) so the control centres against the FIRST row of
-	   tabs instead of hugging the top edge when the strip is one row. */
-	min-height: 38px;
+	/* No min-height. This used to hard-code 38px to mirror the old nav item's
+	   vertical box, but the folder-tab restyle changed that box to 33px, and
+	   because the bar is `align-items: flex-start` the taller nav-end then drove
+	   the BAR's height. The bar's bottom rule sank 6px below the tab row, so the
+	   open tab no longer met the panel it is drawn as joined to. Letting the
+	   control size to its own content keeps the rule on the tab row whatever the
+	   nav item's box becomes, so the two cannot drift apart again. */
+	min-height: 0;
 }
 
 /* Folder tabs, not underlined labels. An underline is the weakest possible
@@ -346,6 +350,16 @@ export default defineComponent({
 	margin-bottom: -1px;
 	padding: 8px 12px;
 	white-space: nowrap;
+	/* Match the `#nav-end` control's own height. The bar is a flex row, so
+	   whichever side is taller sets the bar's height and therefore where its
+	   bottom rule lands. When the control was the taller one the rule sat below
+	   the tab row and showed as a line under the open tab, breaking the join to
+	   the panel. Sizing both sides the same is what keeps the rule ON the tab
+	   row; `inline-flex` centres the label inside the taller box. */
+	align-items: center;
+	box-sizing: border-box;
+	display: inline-flex;
+	min-height: var(--default-clickable-area, 34px);
 }
 
 .cn-tabs__nav--justified .cn-tabs__nav-item {
