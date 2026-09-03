@@ -317,14 +317,33 @@ export default defineComponent({
 	min-height: 38px;
 }
 
+/* Folder tabs, not underlined labels. An underline is the weakest possible
+   affordance on a strip that already carries icons: with nine tabs on a dossiq
+   case the row read as a sentence of links, and only the 2px rule said which
+   one was open. Giving the inactive tabs their own darker surface makes the
+   strip legible as a control at a glance, and the active tab, sharing the
+   panel's background and punching a hole in the bar's rule, reads as the sheet
+   in front. */
 .cn-tabs__nav-item {
-	background: transparent;
-	border: none;
-	border-bottom: 2px solid transparent;
-	border-radius: 0;
-	color: var(--color-text-maxcontrast);
+	background-color: var(--color-background-dark);
+	/* `--color-border-dark`, not `--color-border`: the latter is the same
+	   #ededed as `--color-background-dark` in the stock light theme, so a tab
+	   drawn with it has no visible edge against its own fill. */
+	border: 1px solid var(--color-border-dark);
+	border-bottom: none;
+	border-radius: var(--border-radius-large, 8px) var(--border-radius-large, 8px) 0 0;
+	/* Full-contrast label, not `--color-text-maxcontrast`. On the old
+	   transparent strip maxcontrast sat on white at 5.3:1; on this darker
+	   surface the same pair measures 4.55:1, which clears WCAG AA by 0.05 and
+	   would not survive a themed instance shifting either token. A real tab
+	   strip carries its selection in the surface and the weight anyway, so
+	   nothing is lost by giving every label the readable colour. */
+	color: var(--color-main-text);
 	cursor: pointer;
 	font-weight: normal;
+	/* Overlap the bar's 1px rule so the active tab's own bottom edge can cover
+	   it. Harmless on a wrapped second row: the 4px nav gap absorbs it. */
+	margin-bottom: -1px;
 	padding: 8px 12px;
 	white-space: nowrap;
 }
@@ -345,14 +364,24 @@ export default defineComponent({
 }
 
 .cn-tabs__nav-item[disabled]:hover {
-	background-color: transparent;
-	color: var(--color-text-maxcontrast);
+	background-color: var(--color-background-dark);
+	color: var(--color-main-text);
 }
 
+/* The open tab: the panel's own background, and a bottom border painted in
+   that same background so it erases the bar's rule underneath and the tab
+   joins the sheet below it. The primary-coloured top edge is what carries the
+   selection at a glance, and it survives forced-colours mode, which drops
+   background colours but keeps borders. */
 .cn-tabs__nav-item--active {
-	border-bottom-color: var(--color-primary-element);
+	background-color: var(--color-main-background);
+	border-bottom: 1px solid var(--color-main-background);
+	border-top: 2px solid var(--color-primary-element);
 	color: var(--color-main-text);
 	font-weight: bold;
+	/* Keep the text baseline identical to an inactive tab despite the 1px
+	   thicker top border, so the strip does not jog when the selection moves. */
+	padding-top: 7px;
 }
 
 .cn-tabs__content {

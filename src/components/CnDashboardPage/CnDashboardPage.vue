@@ -3318,7 +3318,11 @@ export default {
 <style scoped>
 .cn-dashboard-page {
 	padding: 20px;
-	max-width: 1400px;
+	max-width: 1800px;
+	/* Centre the leftover space once the cap engages, so a wide screen shows
+	   an even gutter instead of one dead column on the right. Matches
+	   .cn-detail-page. */
+	margin-inline: auto;
 	/* Scroll the dashboard itself when its widgets are taller than the host
 	   region (height:100% is a no-op when the host height is content-sized, so
 	   this only kicks in when an ancestor constrains the height). */
