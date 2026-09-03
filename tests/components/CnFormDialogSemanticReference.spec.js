@@ -232,3 +232,67 @@ describe('CnFormDialog — cross-app semantic references (ADR-048)', () => {
 		expect(wrapper.find('.cn-form-dialog__semantic-unresolved').exists()).toBe(false)
 	})
 })
+
+describe('CnFormDialog — the unavailable-provider sentence', () => {
+	// It used to be one template, `The {appLabel} app that provides
+	// {typeLabel} is not installed.`, with the literal `supporting app`
+	// substituted when the property named no provider. That rendered "The
+	// supporting app app that provides Requester is not installed." on
+	// dossiq's New case form. A filler noun forced into a slot built for a
+	// proper name is how a doubled word ships, so the fallback is its own
+	// sentence now.
+	const noAppSchema = {
+		title: 'Case',
+		properties: {
+			requester: {
+				type: 'string',
+				title: 'Requester',
+				referenceSemanticType: 'https://openregister.app/ns#Requester',
+			},
+		},
+	}
+
+	it('names the app and what to do about it when the property names one', async () => {
+		mockAxiosGet.mockResolvedValue({ data: { resolved: false } })
+		const wrapper = mount(CnFormDialog, {
+			propsData: { schema: semanticSchema, item: null },
+			stubs,
+		})
+		await flushPromises()
+		const field = wrapper.vm.visibleFields.find((f) => f.key === 'supplier')
+		const text = wrapper.vm.semanticUnavailableText(field)
+
+		expect(text).toBe('Install shillinq to pick a Organization.')
+		expect(text).not.toMatch(/\b(\w+) \1\b/)
+	})
+
+	it('does not invent a filler app name when the property names none', async () => {
+		mockAxiosGet.mockResolvedValue({ data: { resolved: false } })
+		const wrapper = mount(CnFormDialog, {
+			propsData: { schema: noAppSchema, item: null },
+			stubs,
+		})
+		await flushPromises()
+		const field = wrapper.vm.visibleFields.find((f) => f.key === 'requester')
+		const text = wrapper.vm.semanticUnavailableText(field)
+
+		// The exact sentence the acceptance proof read on screen, and must not.
+		expect(text).not.toContain('app app')
+		expect(text).not.toMatch(/\b(\w+) \1\b/)
+		expect(text).toBe('No installed app provides Requester.')
+	})
+
+	it('still says something when the URI has no usable last segment', () => {
+		mockAxiosGet.mockResolvedValue({ data: { resolved: false } })
+		const wrapper = mount(CnFormDialog, {
+			propsData: { schema: noAppSchema, item: null },
+			stubs,
+		})
+
+		// The positive control for the `this reference` fallback: without it
+		// the assertions above would pass on a method that returned '' for
+		// everything it could not name.
+		expect(wrapper.vm.semanticUnavailableText({ referenceSemanticType: '' }))
+			.toBe('No installed app provides this reference.')
+	})
+})
