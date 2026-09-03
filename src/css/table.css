@@ -376,6 +376,23 @@
 	padding: 0;
 }
 
+/* ...and the footer "Add" must stop bleeding once that padding is gone.
+   `CnObjectListWidget` pulls its footer button out by -16px on the inline axis
+   and the bottom so its divider crosses the wrapper's 16px content padding.
+   With the rule above that padding is zero, so the bleed crosses nothing and
+   simply pushes the button 16px past the card on the right and below it. Both
+   overflows are scrollable, so the card grows a vertical scrollbar AND a
+   horizontal one, underneath the table's own legitimate horizontal bar. That
+   is the double scrollbar seen on a dossiq case's Tasks card.
+
+   Only the inline and bottom margins are reset: `margin-top: auto` is what
+   pins the button to the bottom of the flex column and must survive. */
+.cn-widget-wrapper__content:has(.cn-table-container) .cn-object-list-widget__add,
+.cn-detail-card__content:has(.cn-table-container) .cn-object-list-widget__add {
+	margin-inline: 0 !important;
+	margin-bottom: 0 !important;
+}
+
 /* The table's own card chrome is redundant inside a widget that already draws
    one, and a second border reads as the same gutter defect. Flatten it. */
 .cn-widget-wrapper__content .cn-table-container,
