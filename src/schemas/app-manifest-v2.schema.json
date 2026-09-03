@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.31.0",
+	"version": "2.32.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -337,7 +337,7 @@
 				"register": { "type": "string", "description": "Remote register segment, used when the instance's registry_register config is unset or empty." },
 				"localRegister": { "type": "string", "description": "The register an install WRITES into. Defaults to the app id. A schema slug is NOT unique across the fleet (`case`, `task` and `document` exist in several apps at once), so an unscoped write can land in another app's register: an app whose OpenRegister register slug differs from its app id must set this." },
 				"installable": { "type": "array", "items": { "type": "string" }, "description": "Schema slugs an install may write. THIS IS A SECURITY BOUNDARY, not a convenience: a registry is somebody else's server, and without the allowlist an item could name any schema the app owns. An absent or empty list refuses EVERY install rather than permitting every install." },
-				"kinds": { "type": "array", "items": { "type": "string" }, "description": "Kind quick-filters (ADR-080 Decision 5). Defaults to the shared vocabulary when omitted." },
+				"kinds": { "type": "array", "items": { "type": "string" }, "description": "Kind quick-filters (ADR-080 Decision 5). Declared ONCE here, beside the allowlist: the engine returns them in the search response and CnStorePage prefers them over its page config. Defaults to the shared vocabulary when omitted." },
 				"cardFields": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Card field to remote property map. Defaults to the field names the fleet's registries already publish." },
 				"builtIn": { "type": "array", "description": "The items this app ships itself, rendered when no registry is configured or the registry does not answer. ADR-080 Decision 4 makes this the price of the word Store: a surface that goes blank without a registry was never a store.", "items": { "type": "object", "additionalProperties": false, "required": ["slug", "title"], "properties": { "slug": { "type": "string" }, "title": { "type": "string" }, "description": { "type": "string" }, "kind": { "type": "string" } } } },
 				"_note": { "type": "string", "description": "Free-text rationale, ignored at runtime." }
