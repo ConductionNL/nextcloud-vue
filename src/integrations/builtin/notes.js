@@ -59,6 +59,10 @@ export const notesIntegration = {
 	referenceType: 'notes',
 	tab: CnNotesTab,
 	widget: CnNotesCardAdapter,
+	// CnNotesCard's root draws no border, background or padding, so it is
+	// already bare content and belongs in a tab panel. Without this the panel
+	// gets CnNotesTab, whose composer hides behind an "Add note" button.
+	bareWidget: true,
 	defaultSize: { w: 4, h: 3 },
 }
 

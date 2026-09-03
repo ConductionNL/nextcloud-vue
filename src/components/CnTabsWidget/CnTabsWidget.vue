@@ -358,6 +358,10 @@ export default {
 </script>
 
 <style scoped>
+/* The strip IS the card's top edge. There is no title bar above it: the open
+   tab names the panel, so a title row would say the same thing twice and cost
+   a row of height on a card that is mostly content. Hence padding 0 here, with
+   the inset moved onto the bar and the panel below. */
 .cn-tabs-widget {
 	background-color: var(--color-main-background);
 	border: 1px solid var(--color-border);
@@ -367,7 +371,13 @@ export default {
 	height: 100%;
 	min-height: 0;
 	overflow: hidden;
-	padding: 8px 12px 12px;
+	padding: 0;
+}
+
+/* The bar carries its own inset so the first tab clears the card's rounded
+   corner instead of colliding with it. */
+.cn-tabs-widget__tabs :deep(.cn-tabs__bar) {
+	padding: 8px 8px 0;
 }
 
 .cn-tabs-widget__tabs {
@@ -377,11 +387,16 @@ export default {
 }
 
 /* The panel area is the scroll region, so the strip stays put while a long
-   child scrolls under it. */
+   child scrolls under it.
+
+   `padding-top: 0` overrides CnTabs' own 12px: the open tab is drawn joined to
+   the panel, and a gap under it breaks that join, leaving the tab floating
+   above content it is supposed to be attached to. */
 .cn-tabs-widget__tabs :deep(.cn-tabs__content) {
 	flex: 1 1 auto;
 	min-height: 0;
 	overflow: auto;
+	padding: 0 12px 12px;
 }
 
 .cn-tabs-widget__tabs :deep(.cn-tab) {

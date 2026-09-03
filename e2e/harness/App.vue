@@ -82,7 +82,7 @@
 			<div class="canvas-box" data-testid="flow-box">
 				<CnFlowDetail id="new" app="openregister" />
 			</div>
-			<input data-testid="outside-input" aria-label="Outside text" >
+			<input data-testid="outside-input" aria-label="Outside text">
 		</template>
 
 		<!-- Cron builder (?cron=1). A schedule is the kind of value where the
@@ -95,6 +95,22 @@
 				<CnCronField v-model="cronValue" label="Runs" />
 			</div>
 			<pre data-testid="cron-value">{{ cronValue }}</pre>
+		</template>
+
+		<!--
+			Tabs widget chrome (?tabswidget=1).
+
+			The strip has to BE the card's top edge, with no title row above it
+			and no gap between the open tab and its panel. Both are geometry, so
+			jsdom cannot judge them: it computes no layout, and every rect it
+			reports is 0. A real browser is the only place the join between tab
+			and panel can be measured.
+		-->
+		<template v-else-if="showTabsWidget">
+			<h2>Tabs widget</h2>
+			<div class="tw-box" data-testid="tw-widget">
+				<CnTabsWidget :content="twContent" :available-widgets="twWidgets" />
+			</div>
 		</template>
 
 		<template v-else-if="showDtScroll">
@@ -128,7 +144,9 @@
 				:date-range="chipDateRange"
 				title="Chip harness">
 				<template #widget-chip-widget>
-					<p data-testid="chip-widget-body">widget body</p>
+					<p data-testid="chip-widget-body">
+						widget body
+					</p>
 				</template>
 			</CnDashboardPage>
 		</template>
@@ -222,7 +240,9 @@
 		-->
 		<template v-else-if="showNavCards">
 			<h2>Nav card grid — keyboard activation</h2>
-			<button type="button" data-testid="navcards-start">Start</button>
+			<button type="button" data-testid="navcards-start">
+				Start
+			</button>
 			<CnNavCardGrid title="Explore" :entries="navCardEntries" />
 		</template>
 
@@ -291,12 +311,12 @@
 				<h2>Icon picker — enriched (multi-source)</h2>
 				<CnIconPicker
 					v-model="icon"
+					v-model:placement="placement"
 					searchable
 					allow-custom-svg
 					clearable
 					:sources="sources"
-					:catalogues="catalogues"
-					v-model:placement="placement" />
+					:catalogues="catalogues" />
 				<pre data-testid="icon-value">{{ icon === null ? 'null' : icon }}</pre>
 				<pre data-testid="icon-placement">{{ placement }}</pre>
 			</section>
@@ -345,6 +365,7 @@ import CnFormPage from '../../src/components/CnFormPage/CnFormPage.vue'
 import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
 import CnSchemaFormDialog from '../../src/components/CnSchemaFormDialog/CnSchemaFormDialog.vue'
 import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
+import CnTabsWidget from '../../src/components/CnTabsWidget/CnTabsWidget.vue'
 import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
 import CnNavCardGrid from '../../src/components/CnNavCardGrid/CnNavCardGrid.vue'
 import CnInteractionFormWidget from '../../src/components/CnInteractionFormWidget/CnInteractionFormWidget.vue'
@@ -373,7 +394,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, CnTasksWidget, CnIndexPage, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, CnTasksWidget, CnIndexPage, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -408,6 +429,19 @@ export default {
 			showCron: (typeof window !== 'undefined' && window.location.search.includes('cron=1')),
 			cronValue: '0 9 * * 1',
 			showDtScroll: (typeof window !== 'undefined' && window.location.search.includes('dtscroll')),
+			// Tabs widget chrome harness (?tabswidget=1).
+			showTabsWidget: (typeof window !== 'undefined' && window.location.search.includes('tabswidget')),
+			twContent: {
+				ariaLabel: 'Panels',
+				tabs: [
+					{ widgetId: 'tw-a', label: 'First' },
+					{ widgetId: 'tw-b', label: 'Second' },
+				],
+			},
+			twWidgets: [
+				{ id: 'tw-a', type: 'custom', title: 'First' },
+				{ id: 'tw-b', type: 'custom', title: 'Second' },
+			],
 			// Non-sortable, exactly like scholiq's failing "manage-courses" widget
 			// table. A STRING column normalises to `sortable: true`, which puts a
 			// tabindex on every <th> — the scrollport then HAS focusable content

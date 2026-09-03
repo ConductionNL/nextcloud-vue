@@ -542,41 +542,68 @@
 			@delete="onWidgetConfigDelete"
 			@close="showWidgetConfig = false" />
 
+		<!-- @slot form-dialog Replace the built-in create/edit form dialog (use CnFormDialog or CnAdvancedFormDialog). Deliberately the SAME slot name and the same scope as CnIndexPage's `form-dialog`, so one replacement component serves both pages and an app author learns one contract, not two. Covers both of this page's built-in dialogs — the create archetype's empty form and the record edit form — which are mutually exclusive, exactly as CnIndexPage's single slot covers create and edit. -->
+		<!-- @binding {boolean} show Whether the form dialog is currently visible. -->
+		<!-- @binding {?object} item The record being edited; in create mode the route-derived prefill, or null when there is nothing to prefill. -->
+		<!-- @binding {object} schema The effective JSON schema driving the form. Transform this — rather than replacing the save path — to splice a runtime vocabulary into an enum. -->
+		<!-- @binding {Function} confirm Persists the form data through the page's own save path and emits `created`/`edited`. Call this instead of saving in the replacement dialog, so a create or edit made there behaves exactly like one made in the built-in dialog. RESOLVES to a `{ success: true, data }` / `{ error }` result, which a replacement rendering its own CnFormDialog must hand back to that dialog's `setResult()`: CnFormDialog sets `loading` on submit and only `setResult` clears it, and `no-close` is bound to `loading`, so a replacement that ignores the result locks its own modal open on both success and failure. -->
+		<!-- @binding {Function} close Closes the form dialog — in create mode this is the "dismissed without saving" path, which navigates back so the user is not stranded on an id-less page. -->
+		<!--
+		     `show` and `confirm` are bound as PROPS, not left as listeners on
+		     the default children. A manifest-declared replacement is mounted by
+		     CnPageRenderer as `<component :is=… v-bind="slotProps" />`, which
+		     binds props only — so a listener is unreachable from a manifest
+		     even in principle, and a replacement dialog could render and close
+		     but never save (openconnector#1150, fixed the same way on
+		     CnIndexPage).
+
+		     The two default children below are UNCHANGED and still wire their
+		     own `@confirm` / `@close` directly, so a page that passes no slot
+		     renders and behaves exactly as it did before this slot existed.
+		-->
+		<slot
+			name="form-dialog"
+			:show="formDialogVisible"
+			:item="formDialogItem"
+			:schema="currentSchema"
+			:confirm="onFormDialogConfirm"
+			:close="onFormDialogClose">
+			<!-- Create archetype (ADR-062): a schema-bound `type:"detail"` page with
+			     no object id renders an empty create form for its schema instead of a
+			     blank page. Save POSTs the object and navigates to its detail route
+			     (or back); prefill comes from the route query. -->
+			<CnFormDialog
+				v-if="isCreateMode && currentSchema"
+				ref="createFormDialog"
+				:schema="currentSchema"
+				:item="createPrefill"
+				:register="register"
+				:dialog-title="title || undefined"
+				@confirm="onCreateFormConfirm"
+				@close="onCreateFormClose" />
+
+			<!-- Record edit form. Same component and same schema the index table's
+			     modal used; the difference is that it is reached from the record,
+			     with the record's own page around it.
+
+			     Waits for the RECORD as well as the schema. `currentObject` is a
+			     store read that is null until this page's own fetch lands, and a
+			     dialog opened before then shows an empty form for a record that
+			     has values — which the user can type into, and whose Save would
+			     PUT those blanks over the record. -->
+			<CnFormDialog
+				v-if="editFormOpen && currentSchema && !editFormAwaitingRecord"
+				ref="editFormDialog"
+				:schema="currentSchema"
+				:item="currentObject"
+				:register="register"
+				:dialog-title="editActionLabel"
+				@confirm="onEditFormConfirm"
+				@close="closeEditForm" />
+		</slot>
+
 		<!-- Relation-link modal (manifest `config.relationLinks`): async-search a
 		     target schema and patch a FK on the current object. -->
-		<!-- Create archetype (ADR-062): a schema-bound `type:"detail"` page with
-		     no object id renders an empty create form for its schema instead of a
-		     blank page. Save POSTs the object and navigates to its detail route
-		     (or back); prefill comes from the route query. -->
-		<CnFormDialog
-			v-if="isCreateMode && currentSchema"
-			ref="createFormDialog"
-			:schema="currentSchema"
-			:item="createPrefill"
-			:register="register"
-			:dialog-title="title || undefined"
-			@confirm="onCreateFormConfirm"
-			@close="onCreateFormClose" />
-
-		<!-- Record edit form. Same component and same schema the index table's
-		     modal used; the difference is that it is reached from the record,
-		     with the record's own page around it.
-
-		     Waits for the RECORD as well as the schema. `currentObject` is a
-		     store read that is null until this page's own fetch lands, and a
-		     dialog opened before then shows an empty form for a record that
-		     has values — which the user can type into, and whose Save would
-		     PUT those blanks over the record. -->
-		<CnFormDialog
-			v-if="editFormOpen && currentSchema && !editFormAwaitingRecord"
-			ref="editFormDialog"
-			:schema="currentSchema"
-			:item="currentObject"
-			:register="register"
-			:dialog-title="editActionLabel"
-			@confirm="onEditFormConfirm"
-			@close="closeEditForm" />
-
 		<CnRelationLinkModal
 			v-if="activeRelationLink"
 			:title="activeRelationLink.title || undefined"
@@ -1727,6 +1754,39 @@ export default {
 		},
 
 		/**
+		 * `show` for the `#form-dialog` slot: whether the page's built-in form
+		 * dialog is on screen — the create archetype's empty form, or the
+		 * record edit form.
+		 *
+		 * Mirrors the `v-if` on the two default children exactly, so a
+		 * replacement opens and closes on the same conditions the built-in
+		 * dialog does. That includes the `editFormAwaitingRecord` guard (#850),
+		 * which is what stops an edit form opening over a record that has not
+		 * loaded yet — a replacement that reimplemented visibility from
+		 * `editFormOpen` alone would reintroduce that blank-form-overwrites-
+		 * the-record bug in every app that used it.
+		 *
+		 * @return {boolean}
+		 */
+		formDialogVisible() {
+			if (!this.currentSchema) return false
+			if (this.isCreateMode) return true
+			return this.editFormOpen && !this.editFormAwaitingRecord
+		},
+
+		/**
+		 * `item` for the `#form-dialog` slot: the record the built-in dialog is
+		 * bound to — the loaded object when editing, the route-derived prefill
+		 * when creating (null for a true empty create, matching CnIndexPage,
+		 * where a null `item` likewise means "create").
+		 *
+		 * @return {object|null}
+		 */
+		formDialogItem() {
+			return this.isCreateMode ? this.createPrefill : this.currentObject
+		},
+
+		/**
 		 * Effective Refresh visibility for the page header. An explicit
 		 * `showRefresh` prop wins; when unset (`null`), show Refresh only if
 		 * it will do something — a consumer attached an `@refresh` listener,
@@ -2520,8 +2580,14 @@ export default {
 		 * navigate to the created object's detail route (`createRoute` with its
 		 * id) — or back in history when no route is configured.
 		 *
+		 * Returns the outcome as well as applying it. The built-in dialog reads
+		 * the outcome off its own ref (`createFormDialog.setResult`), which a
+		 * `#form-dialog` replacement does not have — the returned result is how
+		 * a replacement learns whether to unlock its own dialog. Nothing on the
+		 * default path consumes the return value.
+		 *
 		 * @param {object} formData The confirmed form values.
-		 * @return {Promise<void>}
+		 * @return {Promise<{success?: boolean, data?: object, error?: string}>}
 		 */
 		async onCreateFormConfirm(formData) {
 			try {
@@ -2547,9 +2613,53 @@ export default {
 				} else if (this.$router) {
 					this.$router.back()
 				}
+				return { success: true, data: created }
 			} catch (e) {
-				if (this.$refs.createFormDialog) this.$refs.createFormDialog.setResult({ error: (e && e.message) || 'error' })
+				const error = (e && e.message) || 'error'
+				if (this.$refs.createFormDialog) this.$refs.createFormDialog.setResult({ error })
+				return { error }
 			}
+		},
+
+		/**
+		 * `confirm` for the `#form-dialog` slot: the page's own save path,
+		 * handed to a replacement dialog so a create or edit made there behaves
+		 * exactly like one made in the built-in dialog — same duplicate-id
+		 * refusal, same store-then-axios fallback, same `created` / `edited`
+		 * events, same lifecycle reload.
+		 *
+		 * Bound as a PROP rather than left as an `@confirm` listener, because
+		 * CnPageRenderer mounts a manifest-declared replacement with
+		 * `v-bind="slotProps"` — props only. A listener is unreachable from a
+		 * manifest even in principle, which is what made the same slot on
+		 * CnIndexPage decorative until openconnector#1150.
+		 *
+		 * Dispatches on `isCreateMode`, the same flag that decides which of the
+		 * two built-in dialogs renders — they are mutually exclusive, since
+		 * create mode is by definition a page with no object id.
+		 *
+		 * @param {object} formData The submitted form values.
+		 * @return {Promise<{success?: boolean, data?: object, error?: string}>} The save outcome, for the replacement's own `setResult`.
+		 */
+		onFormDialogConfirm(formData) {
+			return this.isCreateMode
+				? this.onCreateFormConfirm(formData)
+				: this.onEditFormConfirm(formData)
+		},
+
+		/**
+		 * `close` for the `#form-dialog` slot. Dispatches the same way
+		 * `onFormDialogConfirm` does, so a dismissed create still navigates
+		 * back rather than stranding the user on an id-less page.
+		 *
+		 * @return {void}
+		 */
+		onFormDialogClose() {
+			if (this.isCreateMode) {
+				this.onCreateFormClose()
+				return
+			}
+			this.closeEditForm()
 		},
 
 		/**
@@ -2579,8 +2689,13 @@ export default {
 		 * them showing the pre-edit record until something else refetched.
 		 * Falls back to a PUT for consumers with no Pinia.
 		 *
+		 * Returns the outcome as well as applying it, for the same reason
+		 * `onCreateFormConfirm` does: a `#form-dialog` replacement has no ref
+		 * on the built-in dialog and would otherwise never learn whether the
+		 * save landed. Nothing on the default path consumes the return value.
+		 *
 		 * @param {object} formData The submitted form values.
-		 * @return {Promise<void>}
+		 * @return {Promise<{success?: boolean, data?: object, error?: string}>}
 		 */
 		async onEditFormConfirm(formData) {
 			// `saveObject` picks PUT over POST on the presence of `id`, and an
@@ -2593,12 +2708,11 @@ export default {
 				// the record the user was editing untouched. That presents as
 				// "my change did not save", with a new orphan row behind it, and
 				// nothing anywhere says so.
+				const error = t('nextcloud-vue', 'Cannot save: this record has no id, so the edit would create a duplicate instead of updating it.')
 				if (dialog) {
-					dialog.setResult({
-						error: t('nextcloud-vue', 'Cannot save: this record has no id, so the edit would create a duplicate instead of updating it.'),
-					})
+					dialog.setResult({ error })
 				}
-				return
+				return { error }
 			}
 			const payload = { ...formData, id: this.objectId }
 			try {
@@ -2608,8 +2722,9 @@ export default {
 					saved = await store.saveObject(this.resolvedObjectType, payload)
 					if (!saved) {
 						const err = store.getError?.(this.resolvedObjectType)
-						if (dialog) dialog.setResult({ error: (err && err.message) || t('nextcloud-vue', 'Save failed') })
-						return
+						const error = (err && err.message) || t('nextcloud-vue', 'Save failed')
+						if (dialog) dialog.setResult({ error })
+						return { error }
 					}
 				} else {
 					const [{ default: axios }, { generateUrl }] = await Promise.all([
@@ -2631,8 +2746,11 @@ export default {
 				 */
 				this.$emit('edited', saved)
 				this.onLifecycleReload()
+				return { success: true, data: saved }
 			} catch (e) {
-				if (dialog) dialog.setResult({ error: (e && e.message) || t('nextcloud-vue', 'Save failed') })
+				const error = (e && e.message) || t('nextcloud-vue', 'Save failed')
+				if (dialog) dialog.setResult({ error })
+				return { error }
 			}
 		},
 
