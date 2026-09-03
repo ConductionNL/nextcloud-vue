@@ -275,14 +275,14 @@ export default {
     // Decision types are stored configuration, not a schema enum, so the
     // schema's enum is deliberately empty and the vocabulary is fetched.
     const { data } = await axios.get(generateUrl('/apps/decidiq/api/v1/decision-types'))
-    this.decisionTypes = data.results ?? []
+    this.decisionTypes = data.results || []
   },
   methods: {
     // Splice the runtime vocabulary into the enum. Return a COPY: the schema
     // handed to the slot is the store's, and mutating it would change every
     // other surface reading the same schema.
     withDecisionTypes(schema) {
-      if (!schema?.properties?.decisionType) return schema
+      if (!schema || !schema.properties || !schema.properties.decisionType) return schema
       return {
         ...schema,
         properties: {
