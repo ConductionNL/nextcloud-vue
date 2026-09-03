@@ -127,3 +127,23 @@
 .statItem { display: flex; flex-direction: column; gap: var(--default-grid-baseline); }
 .statLabel { color: var(--color-text-maxcontrast); font-size: 0.9em; }
 .statValue { font-size: 1.1em; font-weight: 600; }
+
+/* Notes composer width, stated globally rather than only in the component's
+   scoped block.
+ *
+ * Nextcloud's server stylesheet sets `width: 130px` on every `textarea`. The
+ * component's own `width: 100%` normally beats it on specificity, but it is a
+ * SCOPED rule, so it only applies where the scope attribute is present. In
+ * OpenRegister's self-contained `integration-global` bundle the component
+ * resolves without its scope id, and the composer then rendered 130px wide
+ * inside a ~1000px panel: a one-line box for writing a case note.
+ *
+ * A plain class here is (0,1,0) against Nextcloud's (0,0,1) and carries no
+ * scope id, so it holds wherever the markup renders. This is deliberately a
+ * floor, not a replacement: the scoped rule still owns the rest of the
+ * composer's appearance. The underlying resolution gap is tracked in
+ * ConductionNL/openregister#3387. */
+.cn-notes-card__textarea {
+	width: 100%;
+	box-sizing: border-box;
+}
