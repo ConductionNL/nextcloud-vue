@@ -170,6 +170,23 @@ describe('CnFormDialog prefill from the chosen record', () => {
 		expect(wrapper.vm.formData.status).toBe('')
 	})
 
+	it('prefills a field the form does not render, and submits it', async () => {
+		// dossiq wants the case type's initial status stored without putting a
+		// status picker in front of someone filing a case, so `status` is
+		// prefilled while being absent from includeFields. The payload is
+		// built from formData rather than from the rendered fields, which is
+		// what makes that work; pin it, because it is not obvious.
+		mockStore()
+		const wrapper = mountForm({ includeFields: ['caseType', 'title'] })
+		await flush()
+
+		wrapper.vm.formData.caseType = 'ct-subsidie'
+		await flush()
+
+		expect(wrapper.vm.resolvedFields.map((f) => f.key)).toEqual(['caseType', 'title'])
+		expect(wrapper.vm.buildSubmitPayload().status).toBe('st-ontvangen')
+	})
+
 	it('survives a case type that answers nothing', async () => {
 		mockStore({ 'ct-leeg': { id: 'ct-leeg', title: '' } })
 		const wrapper = mountForm()
