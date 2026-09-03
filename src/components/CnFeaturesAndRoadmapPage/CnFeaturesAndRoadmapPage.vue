@@ -11,8 +11,8 @@
 
     1. Explicit `pages[].config.<key>` from the manifest.
     2. `loadState(appId, 'features_roadmap_<key>', <fallback>)`.
-    3. Hardcoded fallback (`repo` → `Conduction/<appId>` on Codeberg;
-       `forge` → the `cnFeatureRequestForge` inject, else Codeberg).
+    3. Hardcoded fallback (`repo` → `ConductionNL/<appId>` on GitHub;
+       `forge` → the `cnFeatureRequestForge` inject, else DEFAULT_FORGE).
 
   `appId` comes from the `cnAiContext` inject that CnAppRoot already
   provides; consumers can override it explicitly via the prop for tests.
@@ -88,7 +88,7 @@ export default {
 		/**
 		 * `<owner>/<repo>` of the app's repository on the forge. When
 		 * omitted, falls back to the loadState value, then to
-		 * `Conduction/<appId>`.
+		 * `ConductionNL/<appId>` — the fleet convention on GitHub.
 		 */
 		repo: {
 			type: String,
@@ -194,13 +194,13 @@ export default {
 			return readInitialState(
 				this.effectiveAppId,
 				'features_roadmap_repo',
-				`Conduction/${this.effectiveAppId}`,
+				`ConductionNL/${this.effectiveAppId}`,
 			)
 		},
 
 		/**
 		 * Effective forge. Manifest config > initialState >
-		 * `cnFeatureRequestForge` inject (CnAppRoot) > Codeberg.
+		 * `cnFeatureRequestForge` inject (CnAppRoot) > DEFAULT_FORGE.
 		 *
 		 * @return {{type: string, baseUrl?: string}}
 		 */

@@ -14,15 +14,14 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { emit as emitOnBus } from '@nextcloud/event-bus'
+import CnActionsMenu from '../../src/components/CnActionsMenu/CnActionsMenu.vue'
 
 jest.mock('@nextcloud/event-bus', () => ({
 	emit: jest.fn(),
 	subscribe: jest.fn(),
 	unsubscribe: jest.fn(),
 }))
-
-import { emit as emitOnBus } from '@nextcloud/event-bus'
-import CnActionsMenu from '../../src/components/CnActionsMenu/CnActionsMenu.vue'
 
 const NcActionButtonStub = {
 	name: 'NcActionButton',
@@ -161,12 +160,29 @@ describe('CnActionsMenu — Report a bug', () => {
 	})
 	afterEach(() => jest.restoreAllMocks())
 
-	it('builds a forge new-issue link pre-filled with the surface title', () => {
+	// No CnAppRoot ancestor, so no forge is injected: the host comes from
+	// resolveForge's default, which is the same GitHub the Request-a-feature
+	// item uses. This asserted codeberg.org while that item already built a
+	// github.com link, because the menu kept its own copy of the host map.
+	it('builds a forge new-issue link for the reporting surface', () => {
 		const wrapper = mountMenu({ title: 'Traffic' })
 		const link = wrapper.find('[data-testid="cn-actions-menu-action-report-bug"]')
-		expect(link.attributes('href')).toBe('https://codeberg.org/ConductionNL/pipelinq/issues/new?title=Bug%3A%20Traffic')
+		const u = new URL(link.attributes('href'))
+		expect(u.origin + u.pathname).toBe('https://github.com/ConductionNL/pipelinq/issues/new')
+		expect(u.searchParams.get('title')).toBe('[BUG] widget:w1')
 		expect(link.attributes('target')).toBe('_blank')
 		expect(link.attributes('rel')).toBe('noopener noreferrer')
+	})
+
+	// A translated title in the headline made a report from a Russian or Greek
+	// UI unreadable to a maintainer, while the stable slug sat one prop away.
+	// With no dashboard ancestor to supply the authored string, the slug is
+	// the headline — never the translated prop.
+	it('keeps the translated surface title out of the link entirely', () => {
+		const wrapper = mountMenu({ title: 'Секреты' })
+		const href = wrapper.find('[data-testid="cn-actions-menu-action-report-bug"]').attributes('href')
+		expect(new URL(href).searchParams.get('title')).toBe('[BUG] widget:w1')
+		expect(href).not.toContain('%D0%A1') // no Cyrillic anywhere in the URL
 	})
 
 	it('honours the forge type provided by CnAppRoot', () => {
@@ -177,8 +193,33 @@ describe('CnActionsMenu — Report a bug', () => {
 				cnFeatureRequestForge: { type: 'github' },
 			},
 		})
-		expect(wrapper.find('[data-testid="cn-actions-menu-action-report-bug"]').attributes('href'))
-			.toBe('https://github.com/ConductionNL/pipelinq/issues/new?title=Bug%3A%20Traffic')
+		const u = new URL(wrapper.find('[data-testid="cn-actions-menu-action-report-bug"]').attributes('href'))
+		expect(u.origin + u.pathname).toBe('https://github.com/ConductionNL/pipelinq/issues/new')
+	})
+
+	// Without `template`, GitHub serves the BLANK issue form and every
+	// in-product report arrives with no steps, no expected/actual and no
+	// severity — the reporter never sees the fields.
+	it('targets the bug-report issue form, not the blank one', () => {
+		const wrapper = mountMenu({ title: 'Traffic' })
+		const href = wrapper.find('[data-testid="cn-actions-menu-action-report-bug"]').attributes('href')
+		expect(new URL(href).searchParams.get('template')).toBe('bug-report.yml')
+	})
+
+	// Forgejo/Gitea/Codeberg have no per-field deep-link, so the template is
+	// omitted there rather than pointing at a form the forge will not render.
+	it('omits the issue-form template on a non-GitHub forge', () => {
+		const wrapper = mountMenu({ title: 'Traffic' }, {
+			provide: {
+				cnAppId: 'pipelinq',
+				cnFeatureRequestRepo: 'ConductionNL/pipelinq',
+				cnFeatureRequestForge: { type: 'codeberg' },
+			},
+		})
+		const href = wrapper.find('[data-testid="cn-actions-menu-action-report-bug"]').attributes('href')
+		expect(href.startsWith('https://codeberg.org/ConductionNL/pipelinq/issues/new?')).toBe(true)
+		expect(new URL(href).searchParams.get('template')).toBeNull()
+		expect(new URL(href).searchParams.get('title')).toBe('[BUG] widget:w1')
 	})
 
 	it('an explicit reportBugUrl wins over the derived one', () => {

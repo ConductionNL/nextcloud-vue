@@ -7,6 +7,8 @@ import {
 	definitionQueryParams,
 	extendsFormDeclarations,
 	isDynamicKey,
+	prefillDeclarations,
+	prefillValues,
 	propertiesFromDefinitions,
 	splitDynamicFormData,
 	valueRecordsFor,
@@ -224,5 +226,107 @@ describe('isDynamicKey / definitionIdFromKey', () => {
 	it('leaves an ordinary key alone', () => {
 		expect(isDynamicKey('title')).toBe(false)
 		expect(definitionIdFromKey('title')).toBe('')
+	})
+})
+
+describe('prefillDeclarations', () => {
+	const withPrefill = (fields) => ({
+		properties: {
+			caseType: { type: 'string', 'x-openregister-prefill': { fields } },
+			title: { type: 'string' },
+		},
+	})
+
+	it('finds the property that declares a fields map', () => {
+		const decls = prefillDeclarations(withPrefill({ title: 'title' }))
+		expect(decls).toHaveLength(1)
+		expect(decls[0].key).toBe('caseType')
+		expect(decls[0].config.fields).toEqual({ title: 'title' })
+	})
+
+	it('ignores a declaration with no fields to copy', () => {
+		expect(prefillDeclarations(withPrefill({}))).toEqual([])
+		expect(prefillDeclarations({
+			properties: { caseType: { 'x-openregister-prefill': {} } },
+		})).toEqual([])
+	})
+
+	it('returns nothing for a schema that declares none', () => {
+		expect(prefillDeclarations({ properties: { title: { type: 'string' } } })).toEqual([])
+		expect(prefillDeclarations(null)).toEqual([])
+		expect(prefillDeclarations({})).toEqual([])
+	})
+})
+
+describe('prefillValues', () => {
+	const config = {
+		fields: { title: 'title', status: 'initialStatus', assignee: 'defaultAssignee' },
+	}
+
+	it('maps each target field to the chosen record value', () => {
+		const record = {
+			title: 'Subsidie',
+			initialStatus: 'status-1',
+			defaultAssignee: 'jdoe',
+		}
+		expect(prefillValues(record, config)).toEqual({
+			title: 'Subsidie',
+			status: 'status-1',
+			assignee: 'jdoe',
+		})
+	})
+
+	it('skips a source the record leaves empty rather than blanking the target', () => {
+		// A case type with no default assignee must not clear an assignee; it
+		// simply has no opinion about that field.
+		const record = { title: 'Subsidie', initialStatus: '', defaultAssignee: null }
+		expect(prefillValues(record, config)).toEqual({ title: 'Subsidie' })
+	})
+
+	it('skips an empty array, which carries no more information than a blank', () => {
+		expect(prefillValues({ tags: [] }, { fields: { labels: 'tags' } })).toEqual({})
+	})
+
+	it('returns nothing without a record or a fields map', () => {
+		expect(prefillValues(null, config)).toEqual({})
+		expect(prefillValues({ title: 'x' }, {})).toEqual({})
+		expect(prefillValues({ title: 'x' }, null)).toEqual({})
+	})
+})
+
+describe('propertiesFromDefinitions field titles', () => {
+	const titleFor = (name) => {
+		const { properties } = propertiesFromDefinitions(
+			[{ id: 'd1', name, propertyType: 'string' }],
+			{ map: { title: 'name', type: 'propertyType' } },
+		)
+		return properties['x-prop:d1'].title
+	}
+
+	it('makes an identifier-shaped name readable', () => {
+		// Real seeded dossiq data, which rendered verbatim on the form.
+		expect(titleFor('auditorsStatementThreshold')).toBe('Auditors statement threshold')
+		expect(titleFor('interimReportTermWeeks')).toBe('Interim report term weeks')
+		expect(titleFor('targetGroup')).toBe('Target group')
+	})
+
+	it('capitalises a single lower-case word', () => {
+		expect(titleFor('plafond')).toBe('Plafond')
+	})
+
+	it('keeps an acronym whole', () => {
+		expect(titleFor('defaultBSNPolicy')).toBe('Default BSN policy')
+	})
+
+	it('splits snake_case and kebab-case too', () => {
+		expect(titleFor('grant_ceiling')).toBe('Grant ceiling')
+		expect(titleFor('grant-ceiling')).toBe('Grant ceiling')
+	})
+
+	it('leaves a label someone actually wrote completely alone', () => {
+		// Contains a space, so it is a label and not an identifier. Note the
+		// casing is preserved exactly, including the lower-case start.
+		expect(titleFor('maximaal aantal m2')).toBe('maximaal aantal m2')
+		expect(titleFor('Plafond per aanvraag')).toBe('Plafond per aanvraag')
 	})
 })

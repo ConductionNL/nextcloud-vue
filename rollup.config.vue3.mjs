@@ -131,6 +131,16 @@ export default {
 		postcss({ extract: 'nextcloud-vue.css', plugins: [postcssImport()] }),
 		json(),
 		nodeResolve({ extensions: ['.mjs', '.js', '.json', '.node'] }),
-		commonjs(),
+		// `esmExternals` MUST list 'vue'. Without it the plugin assumes every
+		// external is CommonJS and renders a CJS dep's `require('vue')` as a
+		// DEFAULT import — but Vue 3's ESM build has no default export, so the
+		// binding is `undefined` at runtime. vuedraggable's UMD bundle is such a
+		// dep (pulled in by CnMenuTreeNode → CnEditMenuModal → CnPageRenderer →
+		// index.js, so it loads for every consumer): it crashed the host app with
+		// "Cannot read properties of undefined (reading 'defineComponent')", after
+		// a build-time warning that webpack reports as only a warning.
+		// Naming 'vue' here makes it a namespace import instead, which is what a
+		// UMD factory expecting the Vue global actually wants.
+		commonjs({ esmExternals: (id) => id === 'vue' || id === '@vue/compat' }),
 	],
 }

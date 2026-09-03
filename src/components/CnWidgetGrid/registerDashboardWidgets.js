@@ -42,8 +42,6 @@ import '../CnObjectDataWidget/dashboardRegistration.js'
 import '../CnObjectGeoWidget/dashboardRegistration.js'
 import '../CnWidgetObjectTable/dashboardRegistration.js'
 import '../CnAuditTrailWidget/dashboardRegistration.js'
-import '../CnObjectListWidget/index.js'
-import '../CnMapWidget/index.js'
 import '../CnKbSearchWidget/index.js'
 import '../CnInteractionFormWidget/index.js'
 import '../CnBannerWidget/index.js'
@@ -120,13 +118,19 @@ registerDashboardWidget('table', {
 	surfaces: ['legacy'],
 })
 
-// `object-list` MUST be registered inline here, not only via the bare
-// `import '../CnObjectListWidget/index.js'` side effect above: package.json
-// declares `sideEffects: ["**/*.css"]` (ADR-061 tree-shaking), which lets
+// `object-list` is registered HERE and only here. Registering it from
+// CnObjectListWidget/index.js instead is not enough: package.json declares
+// `sideEffects: ["**/*.css"]` (ADR-061 tree-shaking), which lets
 // rollup/webpack legally DROP bare imports of side-effect-free JS modules —
 // the dist bundle shipped without the object-list registration and every
 // manifest `type:"object-list"` widget rendered blank. Inline calls in this
 // module survive because consumers import live bindings from the registry.
+//
+// That index.js ALSO self-registered, with a divergent entry (limit 5, no
+// `surfaces`), so both ran in a consumer's build — components/index.js
+// re-exports it, so it was never tree-shaken — and last-registration-wins
+// decided whether this legacy alias stayed hidden from the Add-widget picker.
+// The self-registration is gone; this entry is the one that already won.
 registerDashboardWidget('object-list', {
 	renderer: CnObjectListWidget2,
 	form: CnObjectListWidgetForm2,
@@ -153,10 +157,12 @@ registerDashboardWidget('related', {
 	ownsTitle: true,
 })
 
-// `map` is registered inline for the same tree-shaking reason as `object-list`
+// `map` is registered here for the same tree-shaking reason as `object-list`
 // above — a bare `import '../CnMapWidget/index.js'` is a side-effect-free JS module
 // as far as the bundler is concerned, so it may legally be dropped and the widget
-// would silently never appear in Add Widget.
+// would silently never appear in Add Widget. CnMapWidget/index.js carried a
+// byte-identical copy of this entry, which only produced a duplicate-registration
+// warning on every consumer's boot; it no longer registers.
 registerDashboardWidget('map', {
 	renderer: CnMapWidget,
 	form: CnMapWidgetForm,
