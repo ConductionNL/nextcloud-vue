@@ -102,13 +102,16 @@
 				<h3 class="cn-store-page__card-title">
 					{{ card.title || card.slug }}
 				</h3>
-				<p v-if="card.kind" class="cn-store-page__card-kind">
-					{{ card.kind }}
+				<p v-if="card.typeName || card.kind" class="cn-store-page__card-kind">
+					{{ card.typeName || card.kind }}
 				</p>
 				<p class="cn-store-page__card-description">
 					{{ card.description }}
 				</p>
 				<div class="cn-store-page__card-footer">
+					<span v-if="card.publisher" class="cn-store-page__card-publisher">
+						{{ card.publisher }}
+					</span>
 					<span v-if="card.version" class="cn-store-page__card-version">
 						{{ card.version }}
 					</span>
@@ -686,6 +689,14 @@ export default {
 .cn-store-page__card-version {
 	color: var(--color-text-maxcontrast);
 	font-size: 0.85rem;
+}
+
+/* Who published a configuration set matters more than its version does, since
+   installing one applies somebody else's schemas and flows to this instance. */
+.cn-store-page__card-publisher {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.85rem;
+	margin-inline-end: auto;
 }
 
 .cn-store-page__builtin-title {
