@@ -584,6 +584,37 @@ export default {
  * that spacing comes from the shared `--cn-kpi-stack-gap` so a multi-entry
  * widget and a CnStatsPanel stack of the same tiles are spaced identically.
  */
+/*
+ * Fill the host cell rather than sizing to content.
+ *
+ * 🔴 WITHOUT THIS THE WIDGET COLLAPSES TO THE WIDTH OF ITS ICON, and the
+ * number it exists to show is clipped to a sliver. Measured on a live
+ * instance: a 282px `.cn-widget-wrapper__content` held a 20px widget, a 20px
+ * `.cn-kpi-card` and a 0px `.cn-kpi-card__body`. 20px is the icon.
+ *
+ * The mechanism is a sizing cycle, which is why the KPI card's own CSS looks
+ * correct in isolation and is. `.cn-widget-wrapper__content` is `display:
+ * flex`, so this root is a flex ITEM and defaults to `flex: 0 1 auto` —
+ * content-sized. Its content is `.cn-kpi-card { width: 100% }`, which resolves
+ * against THIS element, which is resolving against its content. The card's
+ * body carries `min-width: 0` (deliberately, so a long number can shrink
+ * instead of overflowing), so the cycle settles with the body at zero and only
+ * the icon's intrinsic width surviving.
+ *
+ * `flex: 1 1 auto` + `width: 100%` gives the card a definite width to resolve
+ * against and breaks the cycle; `min-width: 0` keeps the shrink behaviour the
+ * body's rule was written for.
+ *
+ * On the BASE class, not `--multi`: both the single-source and multi-entry
+ * modes render this root, so both collapse. The bug was found on a
+ * single-entry stats-block.
+ */
+.cn-stats-block-widget {
+	flex: 1 1 auto;
+	min-width: 0;
+	width: 100%;
+}
+
 .cn-stats-block-widget--multi {
 	display: flex;
 	flex-direction: column;
