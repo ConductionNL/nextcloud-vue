@@ -38,9 +38,33 @@ describe('CnNotesCard chromeless', () => {
 		expect(w.findComponent({ name: 'CnDetailCard' }).exists()).toBe(true)
 	})
 
-	it('draws NO card when chromeless, so a tab panel gets no card-in-card', () => {
-		const w = mountCard({ chromeless: true })
-		expect(w.findComponent({ name: 'CnDetailCard' }).exists()).toBe(false)
+	it('draws no card CHROME when chromeless, so a tab panel gets no card-in-card', () => {
+		// The card component is still the root. That is deliberate: an earlier
+		// version swapped it for a dynamic `<component :is>` root, and Vue then
+		// stopped applying the scope id to the subtree, silently disabling every
+		// scoped rule in this file. What must be gone is the chrome, not the
+		// component, so this asserts the rendered result rather than the tree.
+		const w = mountCard({ chromeless: true }, mount)
+		const card = w.find('.cn-detail-card')
+		expect(card.exists()).toBe(true)
+		expect(card.classes()).toContain('cn-detail-card--chromeless')
+		expect(w.find('.cn-detail-card__header').exists()).toBe(false)
+	})
+
+	it('keeps a STATIC card root, which is what preserves its scope id', () => {
+		// Not asserted directly: scope ids are applied by the SFC build, and
+		// jest's transform does not add them, so a data-v assertion here would
+		// pass or fail on the harness rather than on the component.
+		//
+		// What IS assertable is the cause. A dynamic `<component :is>` root
+		// stopped Vue applying the scope id to the subtree, and every scoped
+		// rule in this file then missed: Nextcloud's own
+		// `textarea { width: 130px }` won, and the composer rendered 130px wide
+		// inside a 992px panel. Measured on a running instance.
+		//
+		// So both modes must resolve to the same static root component.
+		expect(mountCard({}, mount).find('.cn-detail-card').exists()).toBe(true)
+		expect(mountCard({ chromeless: true }, mount).find('.cn-detail-card').exists()).toBe(true)
 	})
 
 	it('still renders the compose textarea when chromeless', () => {

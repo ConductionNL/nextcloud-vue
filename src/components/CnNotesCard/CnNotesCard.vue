@@ -6,7 +6,10 @@
   Wraps CnDetailCard for consistent styling.
 -->
 <template>
-	<component :is="wrapper" v-bind="wrapperProps">
+	<CnDetailCard :title="titleLabel"
+		:icon="CommentTextOutline"
+		:collapsible="collapsible"
+		:chromeless="chromeless">
 		<div class="cn-notes-card">
 			<!-- Add note input -->
 			<div class="cn-notes-card__add-form">
@@ -79,7 +82,7 @@
 				{{ showAllLabel }} ({{ allNotes.length }})
 			</button>
 		</template>
-	</component>
+	</CnDetailCard>
 </template>
 
 <script>
@@ -207,18 +210,6 @@ export default {
 	},
 
 	computed: {
-		/** The card wrapper, or a plain div when rendering chromeless. */
-		wrapper() {
-			return this.chromeless ? 'div' : CnDetailCard
-		},
-
-		/** Card props, omitted entirely when there is no card to configure. */
-		wrapperProps() {
-			return this.chromeless
-				? {}
-				: { title: this.titleLabel, icon: CommentTextOutline, collapsible: this.collapsible }
-		},
-
 		displayedNotes() {
 			// Reverse chronological, limited to maxDisplay
 			const sorted = [...this.allNotes].sort((a, b) => {
