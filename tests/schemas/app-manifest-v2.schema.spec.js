@@ -1110,10 +1110,10 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.28.0', () => {
+	it('the manifest schema version reads 2.29.0', () => {
 		// eslint-disable-next-line global-require
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.28.0')
+		expect(schema.version).toBe('2.29.0')
 	})
 
 	it('accepts the keys that narrow what an open-form button asks for', () => {
@@ -1141,12 +1141,44 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 						fieldOverrides: { title: { order: 1 } },
 						formTitle: 'File a case',
 						advanced: false,
+						size: 'large',
+						columns: 2,
 					}],
 				},
 			}],
 		}
 		const result = validateManifestV2(manifest)
 		expect(result.valid).toBe(true)
+	})
+
+	it('rejects a column count the layout cannot render', () => {
+		// The prop validator accepts 1 or 2 only, and a manifest declaring 3
+		// would silently fall back rather than fail, so the schema is where
+		// the mistake has to surface.
+		const withColumns = (columns) => ({
+			$schema: V2_SCHEMA_URL,
+			version: '1.0.0',
+			menu: [{ id: 'Dashboard', label: 'Dashboard', route: 'Dashboard', order: 10 }],
+			pages: [{
+				id: 'Dashboard',
+				route: '/',
+				type: 'dashboard',
+				title: 'Dashboard',
+				config: {
+					headerActions: [{
+						id: 'new-case',
+						label: 'New case',
+						type: 'open-form',
+						register: 'dossiq',
+						schema: 'case',
+						columns,
+					}],
+				},
+			}],
+		})
+		expect(validateManifestV2(withColumns(2)).valid).toBe(true)
+		expect(validateManifestV2(withColumns(3)).valid).toBe(false)
+		expect(validateManifestV2(withColumns(0)).valid).toBe(false)
 	})
 
 	it('accepts createOverride on an open-form action', () => {

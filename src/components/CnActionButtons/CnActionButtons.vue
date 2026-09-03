@@ -66,6 +66,8 @@
 			:include-fields="formEntry.includeFields || null"
 			:exclude-fields="formEntry.excludeFields || []"
 			:field-overrides="formEntry.fieldOverrides || {}"
+			:size="formEntry.size || 'normal'"
+			:columns="formEntry.columns || 1"
 			@confirm="onFormConfirm"
 			@close="closeForm" />
 		<CnAdvancedFormDialog
