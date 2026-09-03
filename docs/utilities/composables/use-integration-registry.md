@@ -1,6 +1,6 @@
 # useIntegrationRegistry
 
-Vue 2.7 composable that exposes a reactive snapshot of the [pluggable integration registry](../../guides/integrations.md). Backs `CnObjectSidebar`, `CnDashboardPage`, and `CnDetailPage` — components re-render automatically when a consuming app registers or unregisters an integration.
+Vue 2.7 composable that exposes a reactive snapshot of the [pluggable integration registry](../../integrations/registry.md). Backs `CnObjectSidebar`, `CnDashboardPage`, and `CnDetailPage` — components re-render automatically when a consuming app registers or unregisters an integration.
 
 ## Signature
 
@@ -75,7 +75,7 @@ export default {
 
 ## See also
 
-- [Pluggable integration registry guide](../../guides/integrations.md)
+- [Pluggable integration registry guide](../../integrations/registry.md)
 - [`CnObjectSidebar`](../../components/cn-object-sidebar.md)
 - [`CnDashboardPage`](../../components/cn-dashboard-page.md)
 - [`CnDetailPage`](../../components/cn-detail-page.md)

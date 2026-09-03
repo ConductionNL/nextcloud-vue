@@ -102,7 +102,7 @@ Custom action items can be injected into the overflow menu:
 
 ## Documentation link
 
-Set `documentationUrl` to add a **Documentation** entry to the overflow menu (just before Request a feature). It renders as a link that opens the URL in a new tab (`target="_blank"`, `rel="noopener noreferrer"`); customise the wording with `documentationLabel`. Empty (the default) hides it. This mirrors the widget Actions menu's Documentation entry. [`CnIndexPage`](./cn-index-page) forwards its own `documentationUrl` / `documentationLabel` props here.
+Set `documentationUrl` to add a **Documentation** entry to the overflow menu (just before Request a feature). It renders as a link that opens the URL in a new tab (`target="_blank"`, `rel="noopener noreferrer"`); customise the wording with `documentationLabel`. Empty (the default) hides it. This mirrors the widget Actions menu's Documentation entry. [`CnIndexPage`](./cn-index-page.md) forwards its own `documentationUrl` / `documentationLabel` props here.
 
 ## Reference (auto-generated)
 

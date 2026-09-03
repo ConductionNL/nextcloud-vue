@@ -1,6 +1,6 @@
 # integrations
 
-Default singleton instance of the [pluggable integration registry](../guides/integrations.md). OpenRegister attaches this to `window.OCA.OpenRegister.integrations` at bootstrap; consuming Conduction apps call `integrations.register(...)` to expose tabs and widgets that appear in `CnObjectSidebar`, `CnDashboardPage`, and `CnDetailPage`.
+Default singleton instance of the [pluggable integration registry](../integrations/registry.md). OpenRegister attaches this to `window.OCA.OpenRegister.integrations` at bootstrap; consuming Conduction apps call `integrations.register(...)` to expose tabs and widgets that appear in `CnObjectSidebar`, `CnDashboardPage`, and `CnDetailPage`.
 
 For test isolation, import [`createIntegrationRegistry`](./create-integration-registry.md) instead — each call returns a fresh, isolated registry.
 
@@ -32,7 +32,7 @@ integrations.unregister('files')
 
 ## Entry shape
 
-See the [registration shape](../guides/integrations.md#registration-shape) reference for the full descriptor (id, label, icon, requiredApp, order, group, requiresPermission, referenceType, tab, widget, widgetCompact, widgetExpanded, widgetEntity, defaultSize).
+See the [registration shape](../integrations/registry.md#registration-shape) reference for the full descriptor (id, label, icon, requiredApp, order, group, requiresPermission, referenceType, tab, widget, widgetCompact, widgetExpanded, widgetEntity, defaultSize).
 
 ## See also
 

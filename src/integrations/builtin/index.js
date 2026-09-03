@@ -38,6 +38,7 @@ import { auditTrailIntegration } from './audit-trail.js'
 import { versionHistoryIntegration } from './version-history.js'
 import { calendarIntegration } from './calendar.js'
 import { contactsIntegration } from './contacts.js'
+import { contactmomentIntegration } from './contactmoment.js'
 import { emailIntegration } from './email.js'
 import { talkIntegration } from './talk.js'
 import { bookmarksIntegration } from './bookmarks.js'
@@ -77,6 +78,7 @@ export const builtinIntegrations = [
 	// comms
 	calendarIntegration,
 	contactsIntegration,
+	contactmomentIntegration,
 	emailIntegration,
 	talkIntegration,
 	// docs
@@ -139,6 +141,7 @@ export {
 	versionHistoryIntegration,
 	calendarIntegration,
 	contactsIntegration,
+	contactmomentIntegration,
 	emailIntegration,
 	talkIntegration,
 	bookmarksIntegration,

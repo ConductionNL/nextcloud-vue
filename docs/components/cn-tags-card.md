@@ -3,7 +3,7 @@ import GeneratedRef from './_generated/CnTagsCard.md'
 
 # CnTagsCard
 
-Compact tags widget for the [pluggable integration registry](../../guides/integrations.md). Fetches the Nextcloud system tags attached to an OpenRegister object and renders them as inline pills inside a `CnDetailCard`. Surface-aware shell around the `tags` integration: handles `user-dashboard`, `app-dashboard`, `detail-page`, and `single-entity` from a single component.
+Compact tags widget for the [pluggable integration registry](../integrations/registry.md). Fetches the Nextcloud system tags attached to an OpenRegister object and renders them as inline pills inside a `CnDetailCard`. Surface-aware shell around the `tags` integration: handles `user-dashboard`, `app-dashboard`, `detail-page`, and `single-entity` from a single component.
 
 **Wraps**: CnDetailCard
 

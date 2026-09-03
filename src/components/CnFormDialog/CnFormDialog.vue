@@ -887,6 +887,8 @@ export default {
 			 * all of them.
 			 */
 			dynamicOwners: {},
+			/** Definition records behind the dynamic fields, for the confirm payload. */
+			dynamicDefinitions: [],
 			/** Whether a definitions fetch is in flight (the fields are announced as loading rather than absent). */
 			dynamicLoading: false,
 			/**
@@ -2148,6 +2150,7 @@ export default {
 			const properties = {}
 			const required = []
 			const owners = {}
+			const definitions = []
 			try {
 				for (const { key, config } of active) {
 					const schemaSlug = config.definitions && config.definitions.schema
@@ -2166,6 +2169,10 @@ export default {
 						this.formData,
 					)
 					const records = await store.fetchCollection(slug, params)
+					// Kept for the confirm payload. Array-mode declarations
+					// store the definition's NAME beside its value on the
+					// parent, and the answers alone carry only ids.
+					if (Array.isArray(records)) definitions.push(...records)
 					// `orderFrom` keeps each declaration's block together and
 					// after the schema's own fields, whose `order` values are
 					// authored well below this.
@@ -2184,6 +2191,7 @@ export default {
 			// A slower earlier fetch must not overwrite a later selection's
 			// fields; the signature it started under is the only way to tell.
 			if (this.dynamicToken !== token) return
+			this.dynamicDefinitions = definitions
 			this.dynamicProperties = properties
 			this.dynamicRequired = required
 			this.dynamicOwners = owners
@@ -2698,7 +2706,7 @@ export default {
 			 * `null` otherwise, which is every schema that declares nothing.
 			 */
 			this.$emit('confirm', base, answers.length > 0
-				? { answers, declarations: this.extendsDeclarations }
+				? { answers, declarations: this.extendsDeclarations, definitions: this.dynamicDefinitions }
 				: null)
 		},
 

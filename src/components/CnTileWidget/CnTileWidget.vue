@@ -13,7 +13,8 @@
 			:href="tileUrl"
 			class="cn-tile-widget__link"
 			:target="tile.linkType === 'url' ? '_blank' : '_self'"
-			rel="noopener noreferrer">
+			rel="noopener noreferrer"
+			@click="onLinkClick">
 			<!-- SVG icon -->
 			<svg
 				v-if="tile.iconType === 'svg'"
@@ -68,8 +69,12 @@ export default {
 
 	props: {
 		/**
-		 * Tile configuration object.
-		 * @type {{ title: string, icon: string, iconType: 'svg'|'class'|'url'|'emoji', backgroundColor: string, textColor: string, linkType: 'app'|'url', linkValue: string }}
+		 * Tile configuration object. `linkType` decides how `linkValue` is
+		 * followed: `app` builds a full-page `/apps/…` URL, `url` opens an
+		 * external link, and `route` pushes `linkValue` through the host
+		 * app's vue-router so SPA state (e.g. an in-memory vault key)
+		 * survives the navigation.
+		 * @type {{ title: string, icon: string, iconType: 'svg'|'class'|'url'|'emoji', backgroundColor: string, textColor: string, linkType: 'app'|'url'|'route', linkValue: string }}
 		 */
 		tile: {
 			type: Object,
@@ -88,7 +93,21 @@ export default {
 			return this.tile.title ? fn(this.tile.title) : this.tile.title
 		},
 
+		/**
+		 * The anchor href. `route` tiles resolve through the host router so
+		 * middle-click / ctrl-click open the correct full URL (including the
+		 * router base); plain clicks are intercepted by `onLinkClick` instead.
+		 *
+		 * @return {string}
+		 */
 		tileUrl() {
+			if (this.tile.linkType === 'route') {
+				if (this.$router) {
+					return this.$router.resolve(this.tile.linkValue || '/').href
+				}
+				// No router on the host page — degrade to a plain link.
+				return this.tile.linkValue || '#'
+			}
 			if (this.tile.linkType === 'app') {
 				return generateUrl('/apps/' + this.tile.linkValue)
 			}
@@ -100,6 +119,31 @@ export default {
 				'--cn-tile-bg': this.tile.backgroundColor || '#0082c9',
 				'--cn-tile-text': this.tile.textColor || '#ffffff',
 			}
+		},
+	},
+
+	methods: {
+		/**
+		 * Push `route` tiles through the host router instead of letting the
+		 * anchor trigger a full page load — a full load tears down the SPA
+		 * (and with it any in-memory state such as an unlocked vault).
+		 * Mirrors RouterLink's guard: modified clicks (new tab/window) and
+		 * non-left buttons fall through to the resolved href.
+		 *
+		 * @param {MouseEvent} event The click event.
+		 * @return {void}
+		 */
+		onLinkClick(event) {
+			if (this.tile.linkType !== 'route' || !this.$router) {
+				return
+			}
+			if (event.defaultPrevented
+				|| (event.button !== undefined && event.button !== 0)
+				|| event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+				return
+			}
+			event.preventDefault()
+			this.$router.push(this.tile.linkValue || '/')
 		},
 	},
 }

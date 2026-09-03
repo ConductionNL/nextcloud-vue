@@ -4,7 +4,7 @@ Tabbed, app-faithful integration widget for OpenRegister object-detail pages and
 
 Supersedes the generic Phase E pair (CnIntegrationCard / [CnIntegrationWidgetGrid](./cn-integration-widget-grid.md)) which rendered a one-size surface that erased each integrated app's visual identity. Has two modes: an all-integrations tabbed view, and a single-integration mode for manifest multi-placement.
 
-See the [Pluggable Integration Registry](../../CLAUDE.md) section for registration.
+See the [Pluggable Integration Registry](../integrations/registry.md) section for registration.
 
 ## Props
 
