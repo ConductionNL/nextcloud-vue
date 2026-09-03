@@ -331,7 +331,10 @@
 			"type": "object",
 			"description": "ADR-080 / ADR-114 Decision 4. The declarative store plane. An app that declares this block gets a working Store surface with NO backend of its own: OpenRegister's AppHost aliases /api/store/items and /api/store/items/{slug}/install at its GenericStoreController, which reads this block at request time. Discovery stays in the engine (the SSRF guard, the redirect refusal and the registry token never leave it) and the app builds no registry URL.",
 			"additionalProperties": false,
-			"required": ["schema"],
+			"anyOf": [
+				{ "required": ["schema"], "title": "An objects store names the remote schema its registry serves." },
+				{ "required": ["types"], "title": "A configuration store names the shareable types it surfaces." }
+			],
 			"properties": {
 				"schema": { "type": "string", "description": "Remote schema slug the registry serves (e.g. \"case-type-template\", \"application-template\")." },
 				"register": { "type": "string", "description": "Remote register segment, used when the instance's registry_register config is unset or empty." },
