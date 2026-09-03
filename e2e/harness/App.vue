@@ -281,6 +281,24 @@
 		</template>
 
 		<!-- CnFormDialog schema-driven widget:'icon' (gated behind ?fd=1). -->
+		<!--
+			Array-mode dynamic properties (?arr=1).
+
+			A real CnActionButtons open-form action whose schema declares
+			`x-openregister-extends-form` in ARRAY mode. The point of the spec is
+			what reaches the SAVED PAYLOAD: the answers must be folded onto the
+			parent object, in the same write, not posted as separate child rows.
+
+			jsdom cannot judge that. The fold happens between the dialog's
+			confirm and the store's POST, so the only honest assertion is on the
+			request body the browser actually sends, which the spec reads with
+			page.route.
+		-->
+		<template v-else-if="showArrayMode">
+			<h2>Dynamic properties — array mode</h2>
+			<CnActionButtons :actions="arrActions" data-testid="arr-actions" />
+		</template>
+
 		<template v-else-if="showFormDialog">
 			<h2>Form dialog — schema-driven icon field</h2>
 			<CnFormDialog
@@ -365,6 +383,7 @@ import CnFormPage from '../../src/components/CnFormPage/CnFormPage.vue'
 import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
 import CnSchemaFormDialog from '../../src/components/CnSchemaFormDialog/CnSchemaFormDialog.vue'
 import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
+import CnActionButtons from '../../src/components/CnActionButtons/CnActionButtons.vue'
 import CnTabsWidget from '../../src/components/CnTabsWidget/CnTabsWidget.vue'
 import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
 import CnNavCardGrid from '../../src/components/CnNavCardGrid/CnNavCardGrid.vue'
@@ -394,7 +413,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, CnTasksWidget, CnIndexPage, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, CnTasksWidget, CnIndexPage, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -542,6 +561,18 @@ export default {
 				],
 			},
 			showFormDialog: (typeof window !== 'undefined' && window.location.search.includes('fd')),
+			// Array-mode dynamic properties harness (?arr=1).
+			showArrayMode: (typeof window !== 'undefined' && window.location.search.includes('arr')),
+			arrActions: [
+				{
+					id: 'new-case',
+					type: 'open-form',
+					label: 'New case',
+					register: 'dossiq',
+					schema: 'case',
+					successMessage: 'Case created.',
+				},
+			],
 			fdResult: null,
 			fdFields: [
 				{ key: 'icon', widget: 'icon', label: 'Icon', iconSources: ['fontawesome'], catalogues: { fontawesome: faSample }, searchable: true },
