@@ -348,6 +348,8 @@ export default defineComponent({
 	/* Overlap the bar's 1px rule so the active tab's own bottom edge can cover
 	   it. Harmless on a wrapped second row: the 4px nav gap absorbs it. */
 	margin-bottom: -1px;
+	/* See `.cn-tabs__nav .cn-tabs__nav-item` below for why this alone is not
+	   enough inside a Nextcloud page. */
 	padding: 8px 12px;
 	white-space: nowrap;
 	/* Match the `#nav-end` control's own height. The bar is a flex row, so
@@ -360,6 +362,22 @@ export default defineComponent({
 	box-sizing: border-box;
 	display: inline-flex;
 	min-height: var(--default-clickable-area, 34px);
+}
+
+/* Nextcloud's server stylesheet sets `margin-bottom: 3px` on every plain
+   `button`, and its selector
+   `button:not(.button-vue, [class^="vs__"]):not(.app-navigation-entry-button)`
+   scores (0,2,1) against the (0,2,0) of the scoped rule above. So inside a real
+   Nextcloud page the tabs sat 4px ABOVE the bar's rule and the open tab never
+   met its panel: the join this whole treatment is built on was only ever
+   visible outside the app.
+   Measured on a running instance, not inferred: the e2e harness is a bare vite
+   page that does not load Nextcloud's CSS, so it cannot see this conflict and
+   reported the gap as 1px while the app showed 5px.
+   Adding the parent class takes the selector to (0,3,0), which wins on
+   specificity rather than on `!important` or source order. */
+.cn-tabs__nav .cn-tabs__nav-item {
+	margin-bottom: -1px;
 }
 
 .cn-tabs__nav--justified .cn-tabs__nav-item {
