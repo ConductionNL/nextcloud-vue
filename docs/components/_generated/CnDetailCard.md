@@ -2,13 +2,14 @@
 
 ### Props
 
-| Name          | Type               | Required | Default | Description                                                          |
-| ------------- | ------------------ | -------- | ------- | -------------------------------------------------------------------- |
-| `title`       | `string`           |          | `''`    | Card header title                                                    |
-| `icon`        | `object&#124;func` |          | `null`  | Optional MDI icon component for the header                           |
-| `collapsible` | `boolean`          |          | `false` | Whether the card can be collapsed                                    |
-| `collapsed`   | `boolean`          |          | `false` | Initial collapsed state (only relevant when collapsible is true)     |
-| `flush`       | `boolean`          |          | `false` | Remove content padding — allows tables and lists to go edge-to-edge. |
+| Name          | Type               | Required | Default | Description                                                                                                                                                                                                                                                          |
+| ------------- | ------------------ | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `chromeless`  | `boolean`          |          | `false` | Render the card's content without the card: no border, no background, no padding, and no header. For a surface that already supplies both, such as a tab panel whose open tab names it. Drawing the card there nests a card inside a card and shows the title twice. |
+| `title`       | `string`           |          | `''`    | Card header title                                                                                                                                                                                                                                                    |
+| `icon`        | `object&#124;func` |          | `null`  | Optional MDI icon component for the header                                                                                                                                                                                                                           |
+| `collapsible` | `boolean`          |          | `false` | Whether the card can be collapsed                                                                                                                                                                                                                                    |
+| `collapsed`   | `boolean`          |          | `false` | Initial collapsed state (only relevant when collapsible is true)                                                                                                                                                                                                     |
+| `flush`       | `boolean`          |          | `false` | Remove content padding — allows tables and lists to go edge-to-edge.                                                                                                                                                                                                 |
 
 ### Events
 

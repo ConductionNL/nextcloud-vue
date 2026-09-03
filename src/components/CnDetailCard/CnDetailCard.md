@@ -89,3 +89,21 @@ With footer slot:
 |------|-------------|
 | `icon` | Override the header icon (replaces the `icon` prop rendering) |
 | `footer` | Footer content rendered below the card body (with a top border) |
+
+### Chromeless
+
+Set `chromeless` where the surface already draws the card and names it: a tab
+panel, for instance, whose open tab is its title. The content renders with no
+border, background, padding or header, so it does not nest a card inside a card
+or show the same label twice.
+
+```jsx
+<CnDetailCard title="Notes" chromeless>
+  Rendered bare, because the tab strip above already says "Notes".
+</CnDetailCard>
+```
+
+The card component stays the root either way. That is deliberate: swapping it
+for a dynamic `<component :is>` root stops Vue applying the scope id to the
+subtree, which silently disables every scoped rule in the consuming component.
+
