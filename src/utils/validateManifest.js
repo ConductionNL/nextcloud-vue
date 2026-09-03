@@ -11,6 +11,10 @@ import _compiledValidateV2 from './validateManifestV2.compiled.js'
 // renderer (CnWidgetGrid) exactly. A mismatch would let a manifest pass
 // validation yet clip at render time.
 import { resolveSlotColumns } from './resolveSlotColumns.js'
+// Single source of truth for "which widget keys does the library render
+// itself?", bound to the runtime registries by
+// tests/utils/libraryWidgetKeys.spec.js so the two cannot drift apart again.
+import { LIBRARY_WIDGET_KEYS } from './libraryWidgetKeys.js'
 
 // CJS/ESM interop: compiled file exports default via module.exports.default
 // in some bundlers. Unwrap when present.
@@ -55,34 +59,27 @@ function ajvErrorToString(err) {
  * Library built-in v2 widget keys. A `widgetKey` resolving to one of
  * these is rendered by a library `Cn*` SFC and does NOT count as a
  * custom registry component for the single-12×12-widget dashboard
- * rule (see `LIBRARY_BUILT_IN_WIDGET_KEYS` consumer below).
+ * rule (see the consumer below).
  *
- * Canonical list per ADR-036 Decision 1 + the manifest-v2 spec
- * (`object-table`, `card-grid`, `form-renderer`, `map-viewer`,
- * `chart`, `stats-block`). The runtime `BUILT_IN_WIDGETS` registry in
- * `src/components/CnWidgetGrid/` currently ships the first four;
- * `chart` and `stats-block` are
- * reserved here so manifests authored against the spec do not trip
- * the rule when those widgets ship. New built-ins added to the
- * library MUST be appended to this list in the same PR.
+ * This used to be a hand-written array carrying a comment telling the
+ * next author to append new built-ins "in the same PR". Eleven keys
+ * were listed while the library rendered forty-five, and nothing
+ * failed, because the only symptom is a legitimate library dashboard
+ * being told to redeclare itself as `type:"custom"`. The list now
+ * lives in `utils/libraryWidgetKeys.js`, which
+ * `tests/utils/libraryWidgetKeys.spec.js` holds to set equality
+ * against the two registries that actually resolve a key at runtime —
+ * `BUILT_IN_WIDGETS` and the dashboard catalog `CnWidgetGrid` falls
+ * back to. Adding a widget to either registry without updating that
+ * module now fails CI.
+ *
+ * Imported as bare strings on purpose: the registries themselves pull
+ * in ~50 SFCs (leaflet, the chart stack), and `validateManifest.js` is
+ * a lazily-loaded chunk that must stay cheap to import in Node.
  *
  * @type {Set<string>}
  */
-const LIBRARY_BUILT_IN_WIDGET_KEYS = new Set([
-	'object-table',
-	'card-grid',
-	'form-renderer',
-	'map-viewer',
-	'chart',
-	'stats-block',
-	// Wave 1 (nextcloud-vue#91): banner + audit-trail built-ins, and the
-	// dashboard-catalog presentation widgets ported to the v2 grid.
-	'banner',
-	'audit-trail',
-	'header',
-	'text',
-	'divider',
-])
+const LIBRARY_BUILT_IN_WIDGET_KEYS = new Set(LIBRARY_WIDGET_KEYS)
 
 /**
  * Closed enum of valid chart `valueAxisBaseline` values — mirrors
@@ -198,8 +195,11 @@ export function validateManifestV2(manifest) {
 	//    component is always a custom page in disguise — the wrapping
 	//    `CnDashboardPage` adds visible nesting on top of the custom view.
 	//    Counts widgets across ALL slots (a sidebar widget makes it
-	//    multi-widget). Built-in widget keys (chart, stats-block, etc.)
-	//    are exempt — those are legitimate full-page library widgets.
+	//    multi-widget). Every key the library renders itself is exempt —
+	//    those are legitimate full-page library widgets. The exempt set is
+	//    `LIBRARY_WIDGET_KEYS` (utils/libraryWidgetKeys.js), deliberately
+	//    not restated here: a second copy of a list is how the first one
+	//    went stale.
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, pIndex) => {
 			if (!page || page.type !== 'dashboard') return
