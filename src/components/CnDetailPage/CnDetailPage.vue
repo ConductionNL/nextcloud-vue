@@ -1036,7 +1036,7 @@ export default {
 		/** Maximum width of the page content */
 		maxWidth: {
 			type: String,
-			default: '1200px',
+			default: '1800px',
 		},
 
 		/**
