@@ -145,6 +145,63 @@ async onConfirm(formData, dynamic) {
 
 Full reference: [fields the data decides](../../docs/utilities/dynamic-form-fields.md).
 
+## Fields the chosen record answers
+
+Where `x-openregister-extends-form` ADDS fields, `x-openregister-prefill` fills
+ones the schema already declares. A case type knows the status a case of its
+kind starts in and who normally handles it, so the person filing one should not
+have to retype either.
+
+```json static
+{
+  "caseType": {
+    "type": "string",
+    "$ref": "caseType",
+    "x-openregister-prefill": {
+      "fields": {
+        "title": "title",
+        "status": "initialStatus",
+        "assignee": "defaultAssignee"
+      }
+    }
+  }
+}
+```
+
+`fields` reads as `{ targetProperty: sourceProperty }`, resolved against the
+chosen record. Two rules keep it safe:
+
+- **Only an empty target is written.** A title someone typed before picking a
+  case type survives, and so does one they typed after. A field that was
+  prefilled is no longer empty, so switching case type again does not overwrite
+  the first type's answer either.
+- **Create mode only.** In edit mode a blank field is a decision someone
+  already made about an existing record, and filling it on open would rewrite
+  that decision.
+
+A source the record leaves empty writes nothing, so a case type with no default
+assignee prefills the status it does know rather than blanking the assignee.
+Add `schema` and `register` to the block when the record does not live in the
+picker's own `$ref` target.
+
+## Two-column layout
+
+`columns: 2` pairs the fields up, which roughly halves the scrolling on a form
+that asks more than a handful of questions. Pair it with `size="large"`, or the
+two columns are merely two narrow ones.
+
+```html static
+<CnFormDialog :schema="caseSchema" size="large" :columns="2" />
+```
+
+Textareas, JSON editors and code editors still span the full width, and the
+layout collapses back to one column below 700px. A manifest `open-form` action
+declares the same two keys directly:
+
+```json static
+{ "id": "new-case", "type": "open-form", "size": "large", "columns": 2 }
+```
+
 ## Conditional field visibility (`condition` / `visibleWhen`)
 
 A field can declare a `condition` (alias `visibleWhen`) descriptor that hides
