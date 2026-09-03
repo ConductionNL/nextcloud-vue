@@ -1141,4 +1141,4 @@ Migration shape:
 3. Move the custom-page's row-action handlers into `customComponents` as named function exports (the registry already imported by `CnAppRoot`).
 4. Drop the wrapping `.vue` file — `CnIndexPage` now owns the rendering and the handler dispatch.
 
-When a row action has no side-effect (purely declarative, app emits a custom event elsewhere) keep the action declarable as `handler: "emit"`; when it's intentionally read-only use `handler: "none"`. See [CnIndexPage.md → Action handlers](../src/components/CnIndexPage/CnIndexPage.md#action-handlers-manifest-actions-dispatch) for the full keyword table.
+When a row action has no side-effect (purely declarative, app emits a custom event elsewhere) keep the action declarable as `handler: "emit"`; when it's intentionally read-only use `handler: "none"`. See [CnIndexPage.md → Action handlers](./components/cn-index-page.md#action-handlers-manifest-actions-dispatch) for the full keyword table.

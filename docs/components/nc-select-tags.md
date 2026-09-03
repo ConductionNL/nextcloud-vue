@@ -12,7 +12,7 @@ The public prop / event / slot contract is unchanged from upstream (see the [@ne
 
 2. **Consumer `:options` take precedence.** Upstream ignores `:options` whenever `fetchTags` is `true` (its default), so any call site that passes its own option list (e.g. a list of groups) silently gets system tags instead. The override surfaces a non-empty `:options` as-is and only fetches system tags when none are provided — matching how every consumer already uses the component.
 
-The override `extends` the upstream component, so all props, slots, `v-model` wiring and rendering are inherited unchanged; only the data source is replaced. Source: [`src/components/NcSelectTags/`](../../src/components/NcSelectTags/).
+The override `extends` the upstream component, so all props, slots, `v-model` wiring and rendering are inherited unchanged; only the data source is replaced. Source: [`src/components/NcSelectTags/`](https://github.com/ConductionNL/nextcloud-vue/blob/main/src/components/NcSelectTags/).
 
 ## Behaviour matrix
 
