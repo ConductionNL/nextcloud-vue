@@ -181,7 +181,7 @@ export default {
 		},
 		/**
 		 * URL the "Suggest a feature" CTA opens (typically the host app's
-		 * forge "new issue" form, e.g. on Codeberg). Required.
+		 * forge "new issue" form, e.g. on GitHub). Required.
 		 */
 		featureRequestUrl: {
 			type: String,
@@ -359,7 +359,7 @@ export default {
 		},
 		appsLabel() { return t('nextcloud-vue', 'apps') },
 		teamTrail() {
-			return t('nextcloud-vue', 'for Nextcloud. Every app is EUPL-1.2 on Codeberg, so your data stays yours and you can read, fork or improve the code yourself.')
+			return t('nextcloud-vue', 'for Nextcloud. Every app is EUPL-1.2 licensed, and the source is on GitHub. Your data stays yours, and you can read, fork or improve it yourself.')
 		},
 		featureParagraph() {
 			return t('nextcloud-vue', 'Feature requests are what move {appName} forward, not sales calls. If something is missing, awkward, or you\'d like it to work differently, tell us. That\'s how the app grows.', { appName: this.appName })
