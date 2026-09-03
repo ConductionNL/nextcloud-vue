@@ -35,6 +35,7 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `fieldOverrides` | Object | `{}` | Per-field overrides (see [Field Overrides](#field-overrides)) |
 | `nameField` | String | `'title'` | |
 | `size` | String | `'normal'` | Dialog size |
+| `columns` | Number | `1` | How many columns the auto-generated fields flow into. `2` pairs them up; textareas, JSON and code editors still span the full width, and the layout collapses to one column below 700px. Pair it with `size="large"`. |
 | `dynamicLoadingLabel` (`dynamic-loading-label`) | String | `'Loading the fields this choice adds.'` | Text shown while the fields a chosen value brings with it are being fetched. See [Fields the data decides](#fields-the-data-decides). |
 | `successText` | String | `''` | |
 | `cancelLabel` | String | | |
