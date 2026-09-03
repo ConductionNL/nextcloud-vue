@@ -286,6 +286,6 @@ CnAppRoot's root `<NcContent>` always carries `data-nldesign-theme-scope="<appId
 
 `softDependencyNotices` (Boolean, default `false`) restores the orange notices that used to render above every routed page, one per unresolved optional dependency.
 
-They are off by default because they stacked: an app declaring four optional leaves showed four cards above its own content and pushed the page below the fold, on every load, for an audience who cannot act on them. Mount [`CnLeafDependencySettings`](./cn-leaf-dependency-settings) in the app's admin settings instead — it carries the same two states and the same install/enable action.
+They are off by default because they stacked: an app declaring four optional leaves showed four cards above its own content and pushed the page below the fold, on every load, for an audience who cannot act on them. Mount [`CnLeafDependencySettings`](./cn-leaf-dependency-settings.md) in the app's admin settings instead — it carries the same two states and the same install/enable action.
 
 `unresolvedSoftDependencies` is unchanged and still exposed, so an app rendering its own surface from it keeps working. The prop is a bridge for one release and is slated for removal.

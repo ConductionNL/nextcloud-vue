@@ -19,5 +19,5 @@ Scrollable transcript for the AI Chat Companion — renders the conversation
 
 ## Reference
 
-- Implementation: [src/components/CnAiMessageList/CnAiMessageList.vue](../../src/components/CnAiMessageList/CnAiMessageList.vue)
+- Implementation: [src/components/CnAiMessageList/CnAiMessageList.vue](https://github.com/ConductionNL/nextcloud-vue/blob/main/src/components/CnAiMessageList/CnAiMessageList.vue)
 - Parent: [CnAiChatPanel](./cn-ai-chat-panel.md)

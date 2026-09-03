@@ -11,7 +11,7 @@ A first-open "support this project" modal every Conduction app can mount from `@
 3. **Donate** — tertiary. Defaults to ConductionNL GitHub Sponsors.
 4. **Get support** — tertiary. Routes organisations to a Conduction support partner (Host / Service / Certified). Conduction does not sell direct support — the apps stay free and support runs through partners. Defaults to `https://www.conduction.nl/support`.
 
-The dialog is paired with [`useSupportDialog`](./use-support-dialog.md) — a composable that persists the dismissed state per `appSlug` in `localStorage` so users only see the note the first time they open an app.
+The dialog is paired with [`useSupportDialog`](../utilities/composables/use-support-dialog.md) — a composable that persists the dismissed state per `appSlug` in `localStorage` so users only see the note the first time they open an app.
 
 The same dialog is also wired up automatically as the fourth container of [`CnFeaturesAndRoadmapSidebar`](./cn-features-and-roadmap-sidebar.md) ("Support this project" → "Show support note"), so users who dismissed the first-open prompt can always get back to it from the roadmap surface every Conduction app already mounts.
 
@@ -154,5 +154,5 @@ Other parties signing their own apps override it the same way as the copy — pa
 
 ## See also
 
-- [`useSupportDialog`](./use-support-dialog.md) — composable for first-open persistence.
+- [`useSupportDialog`](../utilities/composables/use-support-dialog.md) — composable for first-open persistence.
 - [`CnFeaturesAndRoadmapSidebar`](./cn-features-and-roadmap-sidebar.md) — its fourth container (Support this project → Show support note) opens this dialog.

@@ -68,6 +68,6 @@ Consumers should call `validateManifest()` in most cases. `validateManifestV2()`
 ## See also
 
 - [validateManifest](./validate-manifest.md) — v1 hand-rolled validator
-- [useAppManifest](../composables/use-app-manifest.md) — wraps `validateManifest()` for reactive use in components
+- [useAppManifest](./composables/use-app-manifest.md) — wraps `validateManifest()` for reactive use in components
 - [ADR-036 in hydra](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-036-universal-widget-manifest.md) — v2 design rationale
 - [docs/architecture/manifest.md](../architecture/manifest.md) — manifest authoring overview (v1 + v2)

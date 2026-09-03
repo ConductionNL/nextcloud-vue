@@ -82,7 +82,7 @@ Each `props` value is passed through `resolveFilterValue` with the page context:
 | `@objectId` | the loaded object's id |
 | `@object.<field>` | a field off the loaded object |
 | `@workspace.<key>` | a value off the page/workspace context |
-| `@me`, `@now`, `@today±Nd`, `@monthStart`, … | the time/user tokens (see [resolveFilterTokens](../utilities/resolve-filter-tokens.md)) |
+| `@me`, `@now`, `@today±Nd`, `@monthStart`, … | the time/user tokens (see `resolveFilterTokens`) |
 
 A value that stays an unresolved `@`-token (an unset optional `@workspace.<key>?`,
 or an `@object.<field>` whose field is absent) is **dropped** from the props so

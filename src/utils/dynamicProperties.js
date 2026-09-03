@@ -382,6 +382,58 @@ export function splitDynamicFormData(formData) {
 }
 
 /**
+ * Whether a declaration stores its answers as an array on the parent.
+ *
+ * Two shapes are supported. The default writes one child record per answer
+ * (`values.schema` + `objectRef` + `definitionRef`), which is normalised and
+ * queryable. Setting `values.mode: 'array'` instead folds the answers into an
+ * array property on the parent object itself, which reads in one request and
+ * saves in one write, at the cost of not being queryable per answer.
+ *
+ * @param {object} config One `x-openregister-extends-form` declaration.
+ * @return {boolean} True when the declaration stores an array on the parent.
+ */
+export function usesArrayValues(config) {
+	const values = (config && config.values) || null
+	return !!(values && values.mode === 'array' && values.arrayKey)
+}
+
+/**
+ * Build the array a declaration stores on its parent object.
+ *
+ * Each entry carries the definition it answers as well as its name, so a
+ * reader can render the answers without resolving every definition first.
+ * That denormalisation is the point of the array shape: one read, no joins.
+ *
+ * @param {Array<object>} answers `{ definitionId, value }` entries.
+ * @param {object} config One `x-openregister-extends-form` declaration.
+ * @param {Array<object>} definitions The definition records, for their names.
+ * @return {Array<object>} Entries for the parent's array property.
+ */
+export function valueArrayFor(answers, config, definitions = []) {
+	if (!usesArrayValues(config)) return []
+	const values = config.values
+	const definitionRef = values.definitionRef || 'definition'
+	const valueKey = values.valueKey || 'value'
+	const nameKey = values.nameKey || 'name'
+	const nameFrom = (config.map && config.map.title) || 'name'
+	const byId = new Map((definitions || []).map((d) => [String(d.id ?? d.uuid ?? ''), d]))
+
+	return (answers || [])
+		.filter(({ value }) => value !== undefined && value !== null && value !== '')
+		.map(({ definitionId, value }) => {
+			const def = byId.get(String(definitionId))
+			return {
+				[definitionRef]: definitionId,
+				[nameKey]: def ? String(def[nameFrom] ?? '') : '',
+				// Same rule as the record shape: a non-scalar answer is
+				// serialised rather than dropped.
+				[valueKey]: (typeof value === 'object') ? JSON.stringify(value) : String(value),
+			}
+		})
+}
+
+/**
  * The value-schema records to write for one saved parent object.
  *
  * An answer left empty writes no row: an absent row and a row holding `''`

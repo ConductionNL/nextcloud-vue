@@ -3,7 +3,7 @@ import GeneratedRef from './_generated/CnAuditTrailCard.md'
 
 # CnAuditTrailCard
 
-Compact audit-trail widget for the [pluggable integration registry](../../guides/integrations.md). Fetches the most recent audit-trail entries for an OpenRegister object (query-time storage strategy) and renders them inside a `CnDetailCard`. Surface-aware shell around the `audit-trail` integration: handles `user-dashboard`, `app-dashboard`, `detail-page`, and `single-entity` from a single component.
+Compact audit-trail widget for the [pluggable integration registry](../integrations/registry.md). Fetches the most recent audit-trail entries for an OpenRegister object (query-time storage strategy) and renders them inside a `CnDetailCard`. Surface-aware shell around the `audit-trail` integration: handles `user-dashboard`, `app-dashboard`, `detail-page`, and `single-entity` from a single component.
 
 **Wraps**: CnDetailCard
 

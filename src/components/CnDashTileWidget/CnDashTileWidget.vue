@@ -53,7 +53,9 @@ import { generateUrl } from '@nextcloud/router'
  * CnDashTileWidget — registry-driven renderer for the `tile` dashboard widget
  * type. Renders a clickable card with an icon, title, and configurable colours
  * that navigates based on the `linkType` discriminator (`app` → resolved
- * Nextcloud route, `url` → external link opened in a new tab).
+ * Nextcloud route via a full page load, `url` → external link opened in a new
+ * tab, `route` → pushed through the host app's vue-router so SPA state
+ * survives the navigation).
  *
  * Dual-shape compatibility: the renderer reads from BOTH the new inline
  * `content.{title, icon, ...}` shape AND the legacy flat
@@ -171,7 +173,7 @@ export default {
 		/**
 		 * The link-type discriminator.
 		 *
-		 * @return {string} `'app'` or `'url'`.
+		 * @return {string} `'app'`, `'url'` or `'route'`.
 		 */
 		linkType() {
 			return this.data.linkType
@@ -196,13 +198,19 @@ export default {
 		},
 
 		/**
-		 * The resolved anchor href (app routes go through `generateUrl`).
+		 * The resolved anchor href (app routes go through `generateUrl`;
+		 * `route` links resolve through the host vue-router so middle-click /
+		 * ctrl-click open the correct full URL including the router base —
+		 * plain clicks are intercepted in `onClick` and pushed instead).
 		 *
 		 * @return {string} the href, or `'#'`.
 		 */
 		resolvedHref() {
 			if (this.linkValue === '') {
 				return '#'
+			}
+			if (this.linkType === 'route' && this.$router) {
+				return this.$router.resolve(this.linkValue).href
 			}
 			if (this.linkType === 'app') {
 				return generateUrl(this.linkValue)
@@ -256,8 +264,13 @@ export default {
 
 	methods: {
 		/**
-		 * Click handler — suppresses navigation in edit mode and opens URL
-		 * links in a new tab; app links fall through to the anchor default.
+		 * Click handler — suppresses navigation in edit mode, opens URL
+		 * links in a new tab, and pushes `route` links through the host
+		 * vue-router (a full page load would tear down the SPA and any
+		 * in-memory state such as an unlocked vault); app links fall
+		 * through to the anchor default. For `route` links, modified
+		 * clicks (new tab/window) and non-left buttons fall through to
+		 * the resolved href, mirroring RouterLink's guard.
 		 *
 		 * @param {Event} event the click event.
 		 * @return {void}
@@ -274,6 +287,16 @@ export default {
 			if (this.linkType === 'url') {
 				event.preventDefault()
 				window.open(this.linkValue, '_blank', 'noopener,noreferrer')
+				return
+			}
+			if (this.linkType === 'route' && this.$router) {
+				if (event.defaultPrevented
+					|| (event.button !== undefined && event.button !== 0)
+					|| event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+					return
+				}
+				event.preventDefault()
+				this.$router.push(this.linkValue)
 			}
 		},
 	},

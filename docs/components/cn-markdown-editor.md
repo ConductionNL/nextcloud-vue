@@ -96,4 +96,4 @@ A WYSIWYG mode backed by TipTap is tracked in [`nextcloud-vue#286`](https://gith
 
 ## See also
 
-- [`cnRenderMarkdown`](../utilities/composables/cn-render-markdown.md) — drives the preview pipeline.
+- [`cnRenderMarkdown`](../utilities/cn-render-markdown.md) — drives the preview pipeline.

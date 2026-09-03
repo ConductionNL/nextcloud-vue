@@ -4,7 +4,7 @@ Responsive grid of every registered integration's widget for a given dashboard s
 
 Iterates `useIntegrationRegistry().integrations.value`, resolves each provider's surface-appropriate widget via the registry's AD-19 fallback rule, and mounts them in a 3/2/1-column responsive grid. Per ADR-019 the umbrella grid is ignorant of leaf data shapes — each leaf's widget renders itself for its declared surface.
 
-See the [Pluggable Integration Registry](../../CLAUDE.md) section for how apps register integrations. For the richer per-object detail surface, prefer [CnIntegrationWidget](./cn-integration-widget.md).
+See the [Pluggable Integration Registry](../integrations/registry.md) section for how apps register integrations. For the richer per-object detail surface, prefer [CnIntegrationWidget](./cn-integration-widget.md).
 
 ## Props
 

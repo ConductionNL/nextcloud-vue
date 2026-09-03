@@ -101,7 +101,7 @@ A non-numeric value renders as text, because `formatMetricValue` returns `String
 
 ## Notes
 
-- **An unresolvable reference shows the raw uuid, not a blank.** A blank KPI says nothing at all, so an id the store cannot resolve stays visible, the same way [`CnFkResolveCell`](./cn-fk-resolve-cell.md) behaves.
+- **An unresolvable reference shows the raw uuid, not a blank.** A blank KPI says nothing at all, so an id the store cannot resolve stays visible, the same way `CnFkResolveCell` behaves.
 
 
 - `source` supports the OpenRegister-backed kinds (`metric: 'count' \| 'sum' \| 'avg' \| …`) and a legacy `{ kind: 'endpoint', url }` form for arbitrary endpoints (uncached; prefer `endpointSource`).

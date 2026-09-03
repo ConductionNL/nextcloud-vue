@@ -1,6 +1,6 @@
 # CnIntegrationTab
 
-Generic sidebar tab for the [pluggable integration registry](../guides/integrations.md). Used as the `tab` component for the 18 [leaf integrations](../utilities/leaf-integrations.md) that don't yet need a bespoke UI — every leaf registration points its `tab` at this component and passes the integration's id via the registration descriptor.
+Generic sidebar tab for the [pluggable integration registry](../integrations/registry.md). Used as the `tab` component for the 18 [leaf integrations](../utilities/leaf-integrations.md) that don't yet need a bespoke UI — every leaf registration points its `tab` at this component and passes the integration's id via the registration descriptor.
 
 Fetches from OpenRegister's pluggable-integration sub-resource (`/api/objects/{register}/{schema}/{objectId}/integrations/{integrationId}`), renders rows generically (title / optional subtitle or breadcrumb / optional external `url`), and supports unlink. A 503 from the endpoint renders a quiet "currently unavailable" banner; 501 hides the unlink action.
 
@@ -48,4 +48,4 @@ window.OCA.OpenRegister.integrations.register({
 
 - [`CnIntegrationCard`](./cn-integration-card.md) — the matching widget for dashboard / detail / single-entity surfaces
 - [`leafIntegrations`](../utilities/leaf-integrations.md) — the 18 leaf descriptors that use this component
-- [Pluggable integration registry guide](../guides/integrations.md)
+- [Pluggable integration registry guide](../integrations/registry.md)

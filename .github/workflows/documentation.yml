@@ -87,17 +87,20 @@ jobs:
             exit 1
           fi
 
-      - name: Copy styleguide into Docusaurus build
-        run: |
-          mkdir -p docusaurus/build/styleguide
-          cp -r styleguide/build/. docusaurus/build/styleguide/
-
+      # The styleguide is NOT copied into docusaurus/build any more. It ships as
+      # its own scoped deploy below so that `keep_files: false` can replace the
+      # whole subtree. Copying it in here meant it inherited the root deploy's
+      # `keep_files: true`, which never deletes, so every build's
+      # content-hashed bundle.<hash>.js was kept forever.
 
       - name: Create .nojekyll file
         run: |
           cd docusaurus/build
           touch .nojekyll
 
+      # Root keeps `keep_files: true` on purpose: this deploy publishes to the
+      # branch root, and clearing it would delete /beta and /dev, which are
+      # written by their own workflows and would 404 until their next push.
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
@@ -109,6 +112,20 @@ jobs:
           force_orphan: false
           allow_empty_commit: true
           keep_files: true
+
+      # Scoped to `styleguide/`, so `keep_files: false` replaces that subtree
+      # and nothing else. This is what stops the bundle accumulation: a
+      # superseded bundle.<hash>.js is gone the moment a new build lands.
+      - name: Deploy styleguide to /styleguide/ on GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./styleguide/build
+          publish_branch: gh-pages
+          destination_dir: styleguide
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          keep_files: false
 
       - name: Verify deployment
         run: |
