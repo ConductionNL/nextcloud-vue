@@ -213,6 +213,42 @@ describe('CnStorePage', () => {
 		expect(showSuccess).not.toHaveBeenCalled()
 	})
 
+	// THE BLOCK KEY MUST NOT BE INERT. An app declares its kinds once, in the
+	// `store` manifest block, and the engine serves them with the cards. Before
+	// this the component read only its page config, so the block key was
+	// declared and read by nobody.
+	it('prefers the kinds the engine served over its own prop', async () => {
+		stubFetch({ outcome: 'ok', cards: [], kinds: ['case-type', 'flow-template'] })
+
+		const w = mountPage({ kinds: ['from-page-config'] })
+		await flushPromises()
+
+		expect(w.vm.kindOptions.map((o) => o.value)).toEqual(['', 'case-type', 'flow-template'])
+	})
+
+	// A served EMPTY list means the app declares none; it must not blank the
+	// filters, because that is indistinguishable from a response that never
+	// carried the key.
+	it('falls back to the prop when the engine serves no kinds', async () => {
+		stubFetch({ outcome: 'ok', cards: [], kinds: [] })
+
+		const w = mountPage({ kinds: ['from-page-config'] })
+		await flushPromises()
+
+		expect(w.vm.kindOptions.map((o) => o.value)).toEqual(['', 'from-page-config'])
+	})
+
+	// The filters survive a registry that is down: the engine sends `kinds` on
+	// every arm, so an unconfigured store still offers them over built-ins.
+	it('keeps the served kinds when the registry is not configured', async () => {
+		stubFetch({ outcome: 'not_configured', cards: [], kinds: ['case-type'] })
+
+		const w = mountPage()
+		await flushPromises()
+
+		expect(w.vm.kindOptions.map((o) => o.value)).toEqual(['', 'case-type'])
+	})
+
 	it('offers the ADR-080 kind vocabulary, and an app\'s own kinds when given', async () => {
 		stubFetch({ outcome: 'ok', cards: [] })
 

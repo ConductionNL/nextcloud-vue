@@ -283,6 +283,10 @@ export default {
 			installing: null,
 			report: null,
 			searchTimer: null,
+			// The kinds the ENGINE served, from the app's `store` manifest
+			// block. Null until the first response, so "not asked yet" stays
+			// distinguishable from "the app declares none".
+			servedKinds: null,
 		}
 	},
 
@@ -356,8 +360,30 @@ export default {
 		kindOptions() {
 			return [
 				{ value: '', label: t('nextcloud-vue', 'All kinds') },
-				...this.kinds.map((value) => ({ value, label: value })),
+				...this.effectiveKinds.map((value) => ({ value, label: value })),
 			]
+		},
+
+		/**
+		 * The kinds to offer, preferring what the ENGINE served.
+		 *
+		 * An app declares its kinds in the `store` block of its manifest, next
+		 * to the schema allowlist, and the engine returns them with the cards.
+		 * That is the single place an app says what its store sells; the
+		 * `kinds` PROP remains for a host rendering this component directly and
+		 * as the pre-response value, and DEFAULT_STORE_KINDS is the floor.
+		 *
+		 * A served EMPTY list means the app declared none, which is not the
+		 * same as not having asked yet — hence `servedKinds` starts null.
+		 *
+		 * @return {Array<string>} The kind filter values.
+		 */
+		effectiveKinds() {
+			if (Array.isArray(this.servedKinds) && this.servedKinds.length > 0) {
+				return this.servedKinds
+			}
+
+			return this.kinds
 		},
 
 		/**
@@ -503,6 +529,10 @@ export default {
 
 				this.outcome = body.outcome ?? 'store_invalid_response'
 				this.cards = Array.isArray(body.cards) ? body.cards : []
+				// Present on every arm the engine answers, including
+				// not_configured and store_unreachable, so the filters survive
+				// a registry that is down.
+				this.servedKinds = Array.isArray(body.kinds) ? body.kinds : null
 			} catch {
 				this.outcome = 'store_unreachable'
 				this.cards = []
