@@ -356,7 +356,7 @@ Each entry: `key` (the context key written on change), optional `label`, `type` 
 
 ## Built-in page-level Actions menu
 
-The dashboard header carries the shared [`CnActionsMenu`](./cn-actions-menu) overflow `…` — **Refresh**, **Documentation**, and **Request a feature** — next to the edit toggle. This is the **page-level** menu, distinct from each widget's own menu (the per-widget ones emit `@widget-refresh` / `@widget-request-feature`).
+The dashboard header carries the shared [`CnActionsMenu`](./cn-actions-menu.md) overflow `…` — **Refresh**, **Documentation**, and **Request a feature** — next to the edit toggle. This is the **page-level** menu, distinct from each widget's own menu (the per-widget ones emit `@widget-refresh` / `@widget-request-feature`).
 
 - **Refresh** emits `@refresh` and, unless suppressed via `event.preventDefault()`, fires the `cn:page:refresh` event-bus channel with `{ widgetId, title }`.
 - **Documentation** renders only when `documentationUrl` is set, opening it in a new tab.
@@ -381,9 +381,9 @@ Each **per-widget** menu also surfaces a **Documentation** item. Its URL resolve
 
 ## In-body sections (`bodyWidgets`)
 
-The `bodyWidgets` prop hosts **registered host-app section components** alongside the widget grid — the dashboard equivalent of [`CnDetailPage`'s `bodyWidgets`](./cn-detail-page#in-body-sections-bodywidgets). This is how a bespoke analytics dashboard (a custom funnel / time-series / channel-bar chart that reads its own REST endpoint) becomes a `type: "dashboard"` page **without rewriting the charts** — the chart stays a registered component and surfaces as an in-body section.
+The `bodyWidgets` prop hosts **registered host-app section components** alongside the widget grid — the dashboard equivalent of [`CnDetailPage`'s `bodyWidgets`](./cn-detail-page.md#props). This is how a bespoke analytics dashboard (a custom funnel / time-series / channel-bar chart that reads its own REST endpoint) becomes a `type: "dashboard"` page **without rewriting the charts** — the chart stays a registered component and surfaces as an in-body section.
 
-Each section resolves its `component` from the v2 `cnRegistry` (any entry exposing a `.component`) first, then the legacy `cnCustomComponents` map — the same resolver `type: "custom"` pages use. No sidebar tab is required (unlike integration widgets). A name in neither registry renders an inline error; the page never breaks. Reuses [`CnBodySections`](./cn-body-sections).
+Each section resolves its `component` from the v2 `cnRegistry` (any entry exposing a `.component`) first, then the legacy `cnCustomComponents` map — the same resolver `type: "custom"` pages use. No sidebar tab is required (unlike integration widgets). A name in neither registry renders an inline error; the page never breaks. Reuses [`CnBodySections`](./cn-body-sections.md).
 
 ```jsonc
 {
@@ -430,9 +430,9 @@ Each **per-widget** menu also surfaces a **Documentation** item. Its URL resolve
 
 ## In-body sections (`bodyWidgets`)
 
-The `bodyWidgets` prop hosts **registered host-app section components** alongside the widget grid — the dashboard equivalent of [`CnDetailPage`'s `bodyWidgets`](./cn-detail-page#in-body-sections-bodywidgets). This is how a bespoke analytics dashboard (a custom funnel / time-series / channel-bar chart that reads its own REST endpoint) becomes a `type: "dashboard"` page **without rewriting the charts** — the chart stays a registered component and surfaces as an in-body section.
+The `bodyWidgets` prop hosts **registered host-app section components** alongside the widget grid — the dashboard equivalent of [`CnDetailPage`'s `bodyWidgets`](./cn-detail-page.md#props). This is how a bespoke analytics dashboard (a custom funnel / time-series / channel-bar chart that reads its own REST endpoint) becomes a `type: "dashboard"` page **without rewriting the charts** — the chart stays a registered component and surfaces as an in-body section.
 
-Each section resolves its `component` from the v2 `cnRegistry` (any entry exposing a `.component`) first, then the legacy `cnCustomComponents` map — the same resolver `type: "custom"` pages use. No sidebar tab is required (unlike integration widgets). A name in neither registry renders an inline error; the page never breaks. Reuses [`CnBodySections`](./cn-body-sections).
+Each section resolves its `component` from the v2 `cnRegistry` (any entry exposing a `.component`) first, then the legacy `cnCustomComponents` map — the same resolver `type: "custom"` pages use. No sidebar tab is required (unlike integration widgets). A name in neither registry renders an inline error; the page never breaks. Reuses [`CnBodySections`](./cn-body-sections.md).
 
 ```jsonc
 {

@@ -50,5 +50,5 @@ So `0 9 * * 1` reads as "Every Monday at 09:00", and `0 9 * * 1-5` — a perfect
 
 ## Related
 
-- `parseCron` / `isValidCron` / `describeCron` in [`src/utils/cron.js`](../utilities/cron.md)
+- `parseCron` / `isValidCron` / `describeCron` in [`src/utils/cron.js`](https://github.com/ConductionNL/nextcloud-vue/blob/main/src/utils/cron.js)
 - OpenRegister's `format: "cron"` validates the same grammar server-side

@@ -50,4 +50,7 @@ jobs:
           destination_dir: dev/styleguide
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
-          keep_files: true
+          # Scoped to this channel's own subtree, so clearing it touches nothing
+          # else. `true` here never deleted a superseded bundle.<hash>.js, and
+          # they accumulated at ~11.8MB a build until the site passed 4GB.
+          keep_files: false

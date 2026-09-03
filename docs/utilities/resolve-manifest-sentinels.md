@@ -1,6 +1,6 @@
 # resolveManifestSentinels
 
-Pure utility that walks an assembled manifest and replaces every `@resolve:<key>` sentinel under `pages[].config` with the consuming app's `IAppConfig` value for `<key>`. Backs the [`manifest-resolve-sentinel` capability](../../openspec/changes/manifest-resolve-sentinel/specs/manifest-resolve-sentinel/spec.md) and is invoked automatically by [`useAppManifest`](./composables/use-app-manifest.md) between the bundled+backend-merge phase and validation.
+Pure utility that walks an assembled manifest and replaces every `@resolve:<key>` sentinel under `pages[].config` with the consuming app's `IAppConfig` value for `<key>`. Backs the [`manifest-resolve-sentinel` capability](https://github.com/ConductionNL/nextcloud-vue/blob/main/openspec/changes/manifest-resolve-sentinel/specs/manifest-resolve-sentinel/spec.md) and is invoked automatically by [`useAppManifest`](./composables/use-app-manifest.md) between the bundled+backend-merge phase and validation.
 
 Most consumers do **not** call this directly — `useAppManifest` already wires it up. The utility is exported so advanced consumers (e.g. CLI manifest checkers, custom loaders, fixture-driven tests) can run the same substitution out-of-band.
 
@@ -109,4 +109,4 @@ it('substitutes @resolve:theme_register', async () => {
 
 - [useAppManifest](./composables/use-app-manifest.md) — Primary consumer; calls this utility automatically.
 - [validateManifest](./validate-manifest.md) — Rejects sentinels in non-`config` paths.
-- [`manifest-resolve-sentinel` spec](../../openspec/changes/manifest-resolve-sentinel/specs/manifest-resolve-sentinel/spec.md) — The capability requirements.
+- [`manifest-resolve-sentinel` spec](https://github.com/ConductionNL/nextcloud-vue/blob/main/openspec/changes/manifest-resolve-sentinel/specs/manifest-resolve-sentinel/spec.md) — The capability requirements.

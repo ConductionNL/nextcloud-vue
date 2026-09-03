@@ -6,8 +6,8 @@
  * `url-icon-groups` prop (one searchable sub-tab per set).
  *
  * Deliberately NOT part of `./index.js`: that barrel statically imports all three
- * sets, so anything touching it pulls RVO's ~1.9MB of data URIs (1164 icons) into
- * the eager bundle. Here the two small sets (Gemeente 257, Den Haag 70 — ~405KB
+ * sets, so anything touching it pulls RVO's ~1.9MB of data URIs (1163 icons) into
+ * the eager bundle. Here the two small sets (Gemeente 256, Den Haag 69 — ~405KB
  * combined) are imported eagerly, and RVO is deferred behind an `import()`.
  *
  * Rollup's `preserveModules` ESM output keeps that `import()` as a real async

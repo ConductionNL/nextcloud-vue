@@ -1,6 +1,6 @@
 # useTenantContext
 
-Multi-tenancy hooks for Conduction apps consuming the [OpenRegister `MultiTenancyTrait`](../../openspec/specs/store/spec.md). One shared `activeOrganisationUuid` flows top-to-bottom via Vue provide/inject; every outbound request, every `<CnFormDialog>` instance, and every store action picks up the active tenant automatically.
+Multi-tenancy hooks for Conduction apps consuming the [OpenRegister `MultiTenancyTrait`](https://github.com/ConductionNL/nextcloud-vue/blob/main/openspec/specs/store/spec.md). One shared `activeOrganisationUuid` flows top-to-bottom via Vue provide/inject; every outbound request, every `<CnFormDialog>` instance, and every store action picks up the active tenant automatically.
 
 Spec: `openspec/changes/multi-tenancy-context`.
 

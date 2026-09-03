@@ -490,7 +490,7 @@ export { DASHBOARD_ICONS, DEFAULT_ICON, getIconComponent, isCustomIconUrl } from
 // NB: the NL-government icon sets are deliberately NOT re-exported here.
 //
 // `NL_DESIGN_ICONS` / `NL_DESIGN_ICON_GROUPS` / `rvoIcons` all reference RVO,
-// whose 1164 icons are ~1.9MB of inlined data URIs. Re-exporting them from the
+// whose 1163 icons are ~1.9MB of inlined data URIs. Re-exporting them from the
 // barrel put that on the eager path of every consumer that imports ANYTHING from
 // this package, and left it to each app's tree-shaking to prove the export was
 // unused — which openbuild and pipelinq managed but LaunchPad did not, silently

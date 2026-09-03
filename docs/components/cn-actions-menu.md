@@ -8,7 +8,7 @@ import GeneratedRef from './_generated/CnActionsMenu.md'
 2. **Documentation** (only when a `documentationUrl` is supplied)
 3. **Request a feature**
 
-It also auto-mounts the `CnSuggestFeatureModal` for the Request-a-feature default. It's used internally by [`CnWidgetWrapper`](./cn-widget-wrapper) (per-widget menu) and by the page-level headers of [`CnDetailPage`](./cn-detail-page) and [`CnDashboardPage`](./cn-dashboard-page), so widgets and pages stay in lockstep. [`CnActionsBar`](./cn-actions-bar) (list pages) mirrors the same items inline.
+It also auto-mounts the `CnSuggestFeatureModal` for the Request-a-feature default. It's used internally by [`CnWidgetWrapper`](./cn-widget-wrapper.md) (per-widget menu) and by the page-level headers of [`CnDetailPage`](./cn-detail-page.md) and [`CnDashboardPage`](./cn-dashboard-page.md), so widgets and pages stay in lockstep. [`CnActionsBar`](./cn-actions-bar.md) (list pages) mirrors the same items inline.
 
 Most apps never instantiate `CnActionsMenu` directly — they configure it through the host component's props (`documentation-url`, `show-refresh`, `show-request-feature`, …). Reach for it directly only when building a new surface that needs the same trio.
 

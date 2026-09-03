@@ -101,7 +101,7 @@ You do not need to adopt any of these to upgrade. They are available when you ar
 | `safeHref` / `safeImageSrc` | Security utilities for `:href` and `src` bindings |
 | Integration registry | Pluggable sidebar tabs and dashboard widgets |
 
-See the [CHANGELOG](../CHANGELOG.md) for the full list.
+See the [CHANGELOG](https://github.com/ConductionNL/nextcloud-vue/blob/main/CHANGELOG.md) for the full list.
 
 ---
 
