@@ -193,6 +193,14 @@ export function createIntegrationRegistry() {
 			// schema/filter config) and a consuming app can override it by
 			// pre-registering the same id with its own `offlineConfig`.
 			offlineConfig: (entry.offlineConfig && typeof entry.offlineConfig === 'object') ? entry.offlineConfig : null,
+			// Whether this provider's WIDGET is already bare, so a tab panel
+			// gets it instead of the sidebar `tab`. This normaliser copies a
+			// fixed key list and drops everything else, so a descriptor key
+			// that is not named here never reaches a consumer: the flag was set
+			// on the notes descriptor, survived the build, and vanished at
+			// registration, with the tabbed panel silently keeping the sidebar
+			// component.
+			bareWidget: entry.bareWidget === true,
 			// Marker set by `registerBuiltinIntegrations` /
 			// `registerLeafIntegrations` so `useIntegrationRegistry` can
 			// distinguish lib-owned registrations (whose components must
