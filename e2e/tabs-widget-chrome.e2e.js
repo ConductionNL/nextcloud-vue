@@ -114,6 +114,29 @@ test.describe('CnTabsWidget chrome', () => {
 		expect(inside.onTabRow).toBe(true)
 	})
 
+	// REGRESSION, and a gap in this file's own reach.
+	//
+	// Nextcloud's server stylesheet sets `margin-bottom: 3px` on every plain
+	// `button`, with a selector scoring (0,2,1) against the (0,2,0) of the
+	// component's scoped rule. Inside a real Nextcloud page the tabs therefore
+	// sat 4px ABOVE the bar's rule and the open tab never met its panel: the
+	// join was only ever visible in this harness, which is a bare vite page
+	// that does not load Nextcloud's CSS.
+	//
+	// So this test injects that one competing declaration and asserts the
+	// component still wins. It is the narrowest honest way to cover a cascade
+	// conflict here; the harness cannot host the whole server stylesheet.
+	test('the tab overlap survives Nextcloud\'s own button margin', async ({ page }) => {
+		await openHarness(page)
+		await page.addStyleTag({
+			content: 'button:not(.button-vue, [class^="vs__"]):not(.app-navigation-entry-button) { margin-bottom: 3px; }',
+		})
+		const mb = await page.evaluate(() =>
+			getComputedStyle(document.querySelector('.cn-tabs__nav-item--active')).marginBottom,
+		)
+		expect(mb).toBe('-1px')
+	})
+
 	test('inactive tabs carry their own darker surface', async ({ page }) => {
 		await openHarness(page)
 		const bg = await page.evaluate(() => {
