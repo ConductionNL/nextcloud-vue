@@ -185,8 +185,25 @@
 			  `<CnAppNav>` reading `manifest.menu` and filtering by
 			  `permissions`. Override to ship a hand-rolled menu while
 			  keeping the rest of CnAppRoot's shell.
+
+			  An override that wraps `CnAppNav` MUST forward these bindings.
+			  The slot used to carry none, so a wrapper could only pass
+			  `manifest`, and `isAdmin` silently defaulted to false: the
+			  Admin-settings entry then rendered for nobody, on apps whose
+			  whole admin surface lives behind it. Openregister shipped that
+			  way until its own e2e caught it.
 			-->
-			<slot name="menu">
+			<!-- @binding {object} manifest The menu manifest, after page-derived entries are merged. -->
+			<!-- @binding {object} permissions Permission map used to filter menu entries. -->
+			<!-- @binding {boolean} isOwner Whether the user owns this app (ADR-079 §3). -->
+			<!-- @binding {boolean} isAdmin Whether the user administers the instance; gates the Admin-settings link. -->
+			<!-- @binding {string} appId The app id used to build the Admin-settings target. -->
+			<slot name="menu"
+				:manifest="menuManifest"
+				:permissions="permissions"
+				:is-owner="isOwner"
+				:is-admin="isAdmin"
+				:app-id="appId">
 				<CnAppNav :manifest="menuManifest"
 					:permissions="permissions"
 					:is-owner="isOwner"
