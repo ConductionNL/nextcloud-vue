@@ -41,7 +41,7 @@ describe('CnTileWidget route links', () => {
 	it('resolves the href through the host router so modified clicks open a real URL', () => {
 		const $router = {
 			resolve: jest.fn(() => ({ href: '/apps/keepiq/secrets?action=create' })),
-			push: jest.fn(),
+			push: jest.fn(() => Promise.resolve()),
 		}
 		const { wrapper } = mountTile(routeTile, $router)
 		expect($router.resolve).toHaveBeenCalledWith('/secrets?action=create')
@@ -52,7 +52,7 @@ describe('CnTileWidget route links', () => {
 	it('pushes a plain left click through the router instead of navigating', async () => {
 		const $router = {
 			resolve: jest.fn(() => ({ href: '/apps/keepiq/secrets?action=create' })),
-			push: jest.fn(),
+			push: jest.fn(() => Promise.resolve()),
 		}
 		const { wrapper } = mountTile(routeTile, $router)
 		await wrapper.find('a').trigger('click', { button: 0 })
@@ -68,13 +68,26 @@ describe('CnTileWidget route links', () => {
 	])('lets a %s click fall through to the href', (_label, eventProps) => {
 		const $router = {
 			resolve: jest.fn(() => ({ href: '/apps/keepiq/secrets' })),
-			push: jest.fn(),
+			push: jest.fn(() => Promise.resolve()),
 		}
 		const { wrapper } = mountTile(routeTile, $router)
 		const event = { button: 0, preventDefault: jest.fn(), ...eventProps }
 		wrapper.vm.onLinkClick(event)
 		expect($router.push).not.toHaveBeenCalled()
 		expect(event.preventDefault).not.toHaveBeenCalled()
+	})
+
+	it('handles a rejected navigation instead of leaking an unhandled rejection', async () => {
+		const navigation = Promise.reject(new Error('navigation aborted'))
+		const catchSpy = jest.spyOn(navigation, 'catch')
+		const $router = {
+			resolve: jest.fn(() => ({ href: '/apps/keepiq/secrets?action=create' })),
+			push: jest.fn(() => navigation),
+		}
+		const { wrapper } = mountTile(routeTile, $router)
+		wrapper.vm.onLinkClick({ button: 0, preventDefault: jest.fn() })
+		expect(catchSpy).toHaveBeenCalled()
+		await Promise.resolve()
 	})
 
 	it('degrades to a plain link on a host without a router', () => {
@@ -88,7 +101,7 @@ describe('CnTileWidget route links', () => {
 	it('leaves app and url tiles on plain anchor navigation', () => {
 		const $router = {
 			resolve: jest.fn(() => ({ href: '/resolved' })),
-			push: jest.fn(),
+			push: jest.fn(() => Promise.resolve()),
 		}
 		const { wrapper } = mountTile({ ...routeTile, linkType: 'app', linkValue: 'files' }, $router)
 		const event = { button: 0, preventDefault: jest.fn() }

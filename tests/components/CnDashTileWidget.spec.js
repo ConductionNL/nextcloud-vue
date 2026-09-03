@@ -53,7 +53,7 @@ describe('CnDashTileWidget renderer', () => {
 		it('resolves the href through the host router', () => {
 			const $router = {
 				resolve: jest.fn(() => ({ href: '/apps/keepiq/secrets?action=create' })),
-				push: jest.fn(),
+				push: jest.fn(() => Promise.resolve()),
 			}
 			const { wrapper } = mountRouteTile($router)
 			expect(wrapper.find('a').attributes('href')).toBe('/apps/keepiq/secrets?action=create')
@@ -63,7 +63,7 @@ describe('CnDashTileWidget renderer', () => {
 		it('pushes a plain left click through the router instead of navigating', () => {
 			const $router = {
 				resolve: jest.fn(() => ({ href: '/apps/keepiq/secrets?action=create' })),
-				push: jest.fn(),
+				push: jest.fn(() => Promise.resolve()),
 			}
 			const { wrapper } = mountRouteTile($router)
 			const event = { button: 0, preventDefault: jest.fn() }
@@ -72,22 +72,41 @@ describe('CnDashTileWidget renderer', () => {
 			expect($router.push).toHaveBeenCalledWith('/secrets?action=create')
 		})
 
-		it('lets a modified click fall through to the href', () => {
+		it.each([
+			['ctrl', { ctrlKey: true }],
+			['meta', { metaKey: true }],
+			['shift', { shiftKey: true }],
+			['alt', { altKey: true }],
+			['middle button', { button: 1 }],
+		])('lets a %s click fall through to the href', (_label, eventProps) => {
 			const $router = {
 				resolve: jest.fn(() => ({ href: '/apps/keepiq/secrets?action=create' })),
-				push: jest.fn(),
+				push: jest.fn(() => Promise.resolve()),
 			}
 			const { wrapper } = mountRouteTile($router)
-			const event = { button: 0, ctrlKey: true, preventDefault: jest.fn() }
+			const event = { button: 0, preventDefault: jest.fn(), ...eventProps }
 			wrapper.vm.onClick(event)
 			expect($router.push).not.toHaveBeenCalled()
 			expect(event.preventDefault).not.toHaveBeenCalled()
 		})
 
+		it('handles a rejected navigation instead of leaking an unhandled rejection', async () => {
+			const navigation = Promise.reject(new Error('navigation aborted'))
+			const catchSpy = jest.spyOn(navigation, 'catch')
+			const $router = {
+				resolve: jest.fn(() => ({ href: '/apps/keepiq/secrets?action=create' })),
+				push: jest.fn(() => navigation),
+			}
+			const { wrapper } = mountRouteTile($router)
+			wrapper.vm.onClick({ button: 0, preventDefault: jest.fn() })
+			expect(catchSpy).toHaveBeenCalled()
+			await Promise.resolve()
+		})
+
 		it('still suppresses clicks in edit mode', () => {
 			const $router = {
 				resolve: jest.fn(() => ({ href: '/apps/keepiq/secrets?action=create' })),
-				push: jest.fn(),
+				push: jest.fn(() => Promise.resolve()),
 			}
 			const wrapper = mount(CnDashTileWidget, {
 				propsData: { content, isAdmin: true, canEdit: true },
