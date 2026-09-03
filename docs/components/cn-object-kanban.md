@@ -69,7 +69,7 @@ component:
   @load-more="fetchMoreCards" />
 ```
 
-```js
+```js static
 async onMove({ object, groupByField, toValue }) {
   try {
     await patchObject(object.id, { [groupByField]: toValue })

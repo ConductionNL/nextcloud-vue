@@ -312,7 +312,7 @@ duplicate-id refusal, the same store-then-axios fallback, the same `created` /
 that renders its own `CnFormDialog` **must** pass that result to the dialog's
 `setResult()`:
 
-```js
+```js static
 async onConfirm(formData) {
   const result = await this.confirm(formData)
   this.$refs.dialog.setResult(result)
