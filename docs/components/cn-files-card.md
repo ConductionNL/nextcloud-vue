@@ -3,7 +3,7 @@ import GeneratedRef from './_generated/CnFilesCard.md'
 
 # CnFilesCard
 
-Compact files widget for the [pluggable integration registry](../../guides/integrations.md). Fetches files attached to an OpenRegister object and renders the most recent entries inside a `CnDetailCard`. Surface-aware shell around the `files` integration: handles `user-dashboard`, `app-dashboard`, `detail-page`, and `single-entity` from a single component.
+Compact files widget for the [pluggable integration registry](../integrations/registry.md). Fetches files attached to an OpenRegister object and renders the most recent entries inside a `CnDetailCard`. Surface-aware shell around the `files` integration: handles `user-dashboard`, `app-dashboard`, `detail-page`, and `single-entity` from a single component.
 
 **Wraps**: CnDetailCard
 

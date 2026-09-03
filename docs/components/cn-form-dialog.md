@@ -54,7 +54,7 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `textarea` | Long text |
 | `select` | Single choice from options (static or async) |
 | `multiselect` | Multiple choices (static or async) |
-| `user` | Single Nextcloud user (`referenceType: 'nextcloud-user'` / `format: 'user'`) — a searchable dropdown of real users rendered by the shared select branch as NC's native `:user-select` picker (stores the UID string). See [Nextcloud user references](#nextcloud-user-references) |
+| `user` | Single Nextcloud user (`referenceType: 'nextcloud-user'` / `format: 'user'`) — a searchable dropdown of real users rendered by the shared select branch as NC's native `:user-select` picker (stores the UID string). See [Nextcloud user references](#nextcloud-user-references-referencetype-nextcloud-user) |
 | `user-multiselect` | Multiple Nextcloud users — searchable multi-select (stores an array of UIDs) |
 | `tags` | Tag input (with optional async suggestions) |
 | `checkbox` | Boolean toggle |

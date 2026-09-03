@@ -19,7 +19,7 @@ leafIntegrations.map((d) => d.id)
 
 ## Descriptor shape
 
-Each entry is a ready-to-`register()` integration descriptor: `{ id, label, icon, group, requiredApp, order, referenceType, tab, widget, defaultSize }`. See the [registration shape](../guides/integrations.md#registration-shape) reference for the full contract.
+Each entry is a ready-to-`register()` integration descriptor: `{ id, label, icon, group, requiredApp, order, referenceType, tab, widget, defaultSize }`. See the [registration shape](../integrations/registry.md#registration-shape) reference for the full contract.
 
 | id | order | group | requiredApp |
 |---|---|---|---|
@@ -49,4 +49,4 @@ The first 18 use [`CnIntegrationTab`](../components/cn-integration-tab.md) + [`C
 
 - [`registerLeafIntegrations`](./register-leaf-integrations.md) — register the whole set onto a registry
 - [`integrations`](./integrations.md) — the registry singleton
-- [Pluggable integration registry guide](../guides/integrations.md)
+- [Pluggable integration registry guide](../integrations/registry.md)
