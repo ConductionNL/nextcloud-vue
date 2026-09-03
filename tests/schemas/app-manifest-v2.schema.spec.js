@@ -1110,10 +1110,22 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.29.0', () => {
+	it('the manifest schema version reads 2.30.0', () => {
 		// eslint-disable-next-line global-require
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.29.0')
+		expect(schema.version).toBe('2.30.0')
+	})
+
+	it('accepts the `store` page type', () => {
+		// The enum is the reachability contract: CnPageRenderer can dispatch a
+		// type the schema refuses, and the manifest is then rejected before the
+		// renderer ever sees it. nextcloud-vue#897 shipped exactly that for
+		// `reports` — a component with no enum entry and no way to name it.
+		const manifest = {
+			...MINIMAL_V2,
+			pages: [{ id: 'Store', route: '/store', type: 'store', title: 'Store' }],
+		}
+		expect(validateManifestV2(manifest).valid).toBe(true)
 	})
 
 	it('accepts the keys that narrow what an open-form button asks for', () => {

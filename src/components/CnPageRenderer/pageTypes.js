@@ -57,6 +57,7 @@ export const defaultPageTypes = {
 	map: defineAsyncComponent(() => import('../CnMapPage/CnMapPage.vue').then(m => m.default)),
 	roadmap: defineAsyncComponent(() => import('../CnFeaturesAndRoadmapPage/CnFeaturesAndRoadmapPage.vue').then(m => m.default)),
 	reports: defineAsyncComponent(() => import('../CnReportsPage/CnReportsPage.vue').then(m => m.default)),
+	store: defineAsyncComponent(() => import('../CnStorePage/CnStorePage.vue').then(m => m.default)),
 	search: defineAsyncComponent(() => import('../CnSearchPage/CnSearchPage.vue').then(m => m.default)),
 	wiki: defineAsyncComponent(() => import('../CnWikiPage/CnWikiPage.vue').then(m => m.default)),
 	// A flow list USED TO need its own page type. A flow lives in
