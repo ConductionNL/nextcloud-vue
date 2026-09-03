@@ -28,6 +28,7 @@
 import { registerIcons } from '../components/CnIcon/CnIcon.vue'
 
 import AccountBox from 'vue-material-design-icons/AccountBox.vue'
+import PhoneOutline from 'vue-material-design-icons/PhoneOutline.vue'
 import AccountGroupOutline from 'vue-material-design-icons/AccountGroupOutline.vue'
 import AccountOutline from 'vue-material-design-icons/AccountOutline.vue'
 import BookOpenPageVariant from 'vue-material-design-icons/BookOpenPageVariant.vue'
@@ -70,6 +71,7 @@ import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
  */
 export const INTEGRATION_ICON_COMPONENTS = {
 	AccountBox,
+	PhoneOutline,
 	AccountGroupOutline,
 	AccountOutline,
 	BookOpenPageVariant,

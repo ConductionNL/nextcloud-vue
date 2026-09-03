@@ -557,6 +557,15 @@ export default {
 		 *
 		 * @return {object|null} The component, or null.
 		 */
+		/**
+		 * Whether this render is using a provider's widget as its bare surface.
+		 *
+		 * @return {boolean} True when bare AND the provider opted in.
+		 */
+		usesBareWidget() {
+			return !!(this.isBare && this.integrationProvider?.bareWidget && this.integrationProvider?.widget)
+		},
+
 		integrationComponent() {
 			if (!this.isIntegration) return null
 			// `bareWidget` lets a provider say its WIDGET is already bare, so a
@@ -569,7 +578,7 @@ export default {
 			// sidebar CSS, which is what made the tabbed leaves look like they
 			// had lost their styling. Opt-in rather than a blanket switch: the
 			// other providers keep today's behaviour until each is checked.
-			if (this.isBare && this.integrationProvider?.bareWidget && this.integrationProvider?.widget) {
+			if (this.usesBareWidget) {
 				return this.integrationProvider.widget
 			}
 			if (this.isBare && this.integrationProvider?.tab) {
@@ -606,6 +615,11 @@ export default {
 			return {
 				surface: this.surface,
 				title: this.widget?.title || '',
+				// A provider opting into `bareWidget` is being rendered where the
+				// tab strip already supplies the card and the title, so tell it to
+				// drop its own. Without this the panel gets a titled card inside
+				// the tabs card, repeating the label the open tab already shows.
+				...(this.usesBareWidget ? { chromeless: true } : {}),
 				...this.derivedIntegrationContext,
 				...(this.widget?.props || {}),
 			}
