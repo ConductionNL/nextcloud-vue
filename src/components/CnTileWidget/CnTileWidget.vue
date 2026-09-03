@@ -143,7 +143,9 @@ export default {
 				return
 			}
 			event.preventDefault()
-			this.$router.push(this.tile.linkValue || '/')
+			// vue-router rejects the push promise on a blocked or duplicate
+			// navigation; swallow it so it never surfaces as an unhandled rejection.
+			this.$router.push(this.tile.linkValue || '/').catch(() => {})
 		},
 	},
 }
