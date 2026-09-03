@@ -725,22 +725,12 @@
     "Request a feature": "Een functie aanvragen",
     "Refreshing…": "Vernieuwen…",
     "Opens in a new tab": "Opent in een nieuw tabblad",
-    "Breadcrumbs": "Kruimelpad"
-  },
-  "plurals": {
-    "{count} photo": ["{count} foto", "{count} foto's"],
-    "{count} card": ["{count} kaart", "{count} kaarten"],
-    "across {count} stack": ["over {count} stapel", "over {count} stapels"],
-    "{count} conversation": ["{count} gesprek", "{count} gesprekken"],
-    "{count} unread message": ["{count} ongelezen bericht", "{count} ongelezen berichten"],
-    "across {count} conversation": ["in {count} gesprek", "in {count} gesprekken"],
-    "{count} work package": ["{count} werkpakket", "{count} werkpakketten"],
+    "Breadcrumbs": "Kruimelpad",
     "Link an existing automation": "Bestaande automatisering koppelen",
     "Link existing automation": "Bestaande automatisering koppelen",
     "Link automation": "Automatisering koppelen",
     "Unlink automation": "Automatisering ontkoppelen",
     "Search automations": "Automatiseringen zoeken",
-    "Type to filter…": "Typ om te filteren…",
     "No automations available": "Geen automatiseringen beschikbaar",
     "No automations linked yet": "Nog geen automatiseringen gekoppeld",
     "Create an automation in NC Workflow settings first.": "Maak eerst een automatisering aan in de Workflow-instellingen.",
@@ -820,7 +810,6 @@
     "Search entries": "Registraties zoeken",
     "No entries available": "Geen registraties beschikbaar",
     "Create a client in NC TimeManager first, or use the create dialog.": "Maak eerst een klant aan in NC TimeManager, of gebruik het aanmaakvenster.",
-    "Unlink entry": "Registratie ontkoppelen",
     "Task": "Taak",
     "Entry": "Registratie",
     "Client": "Klant",
@@ -833,10 +822,7 @@
     "{count} tasks": "{count} taken",
     "Could not load tracked time.": "Kon tijdregistratie niet laden.",
     "Could not load entries.": "Kon registraties niet laden.",
-    "This entry is already linked.": "Deze registratie is al gekoppeld.",
-    "Could not link entry.": "Kon registratie niet koppelen.",
     "Could not create client.": "Kon klant niet aanmaken.",
-    "Could not unlink entry.": "Kon registratie niet ontkoppelen.",
     "{count} selected": "{count} geselecteerd",
     "Clear selection": "Selectie wissen",
     "Overdue by 1 day": "1 dag over tijd",
@@ -877,6 +863,18 @@
     "Rows to show": "Aantal rijen",
     "Refresh every (seconds, 0 = off)": "Ververs elke (seconden, 0 = uit)",
     "Open route on row click (optional, receives the task id)": "Route bij klik op een rij (optioneel, ontvangt het taak-id)",
-    "Text when the inbox is empty": "Tekst bij een lege inbox"
+    "Text when the inbox is empty": "Tekst bij een lege inbox",
+    "this reference": "deze verwijzing",
+    "Install {appLabel} to pick a {typeLabel}.": "Installeer {appLabel} om een {typeLabel} te kiezen.",
+    "No installed app provides {typeLabel}.": "Geen geïnstalleerde app levert {typeLabel}."
+  },
+  "plurals": {
+    "{count} photo": ["{count} foto", "{count} foto's"],
+    "{count} card": ["{count} kaart", "{count} kaarten"],
+    "across {count} stack": ["over {count} stapel", "over {count} stapels"],
+    "{count} conversation": ["{count} gesprek", "{count} gesprekken"],
+    "{count} unread message": ["{count} ongelezen bericht", "{count} ongelezen berichten"],
+    "across {count} conversation": ["in {count} gesprek", "in {count} gesprekken"],
+    "{count} work package": ["{count} werkpakket", "{count} werkpakketten"]
   }
 }
