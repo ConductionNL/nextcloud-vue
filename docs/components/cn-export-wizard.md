@@ -126,7 +126,7 @@ The wizard itself does not poll. Consumers do polling in the
 `@confirm` handler and translate the final status into a single
 `setResult()` call. Typical shape:
 
-```js
+```js static
 async onExport(payload) {
   const { data: { jobId } } = await axios.post('/api/exports', payload)
   this.$refs.wizard.setResult({ success: true, jobId, message: 'Export queued.' })
@@ -142,7 +142,7 @@ async onExport(payload) {
 If the export is synchronous (small dataset, immediate download),
 skip the polling entirely:
 
-```js
+```js static
 async onExport(payload) {
   const blob = await downloadExport(payload)
   triggerBlobDownload(blob)
