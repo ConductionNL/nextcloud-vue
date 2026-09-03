@@ -5,10 +5,12 @@
   Used inside CnDetailPage to organize entity detail information into cards.
 -->
 <template>
-	<div class="cn-detail-card" :class="{ 'cn-detail-card--collapsed': isCollapsed }">
+	<div
+		class="cn-detail-card"
+		:class="{ 'cn-detail-card--collapsed': isCollapsed, 'cn-detail-card--chromeless': chromeless }">
 		<!-- Header -->
 		<div
-			v-if="title || $slots.icon"
+			v-if="!chromeless && (title || $slots.icon)"
 			class="cn-detail-card__header"
 			:class="{ 'cn-detail-card__header--clickable': collapsible }"
 			@click="collapsible && toggleCollapse()">
@@ -87,6 +89,19 @@ export default {
 	},
 
 	props: {
+		/**
+		 * Render the card's content without the card: no border, no background,
+		 * no padding, and no header.
+		 *
+		 * For a surface that already supplies both, such as a tab panel whose
+		 * open tab names it. Drawing the card there nests a card inside a card
+		 * and shows the title twice.
+		 */
+		chromeless: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Card header title */
 		title: {
 			type: String,
@@ -140,6 +155,15 @@ export default {
 </script>
 
 <style scoped>
+/* Chromeless: the surface around it already draws the card and names it. */
+.cn-detail-card--chromeless {
+	background: none;
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+	padding: 0;
+}
+
 .cn-detail-card {
 	background: var(--color-main-background);
 	border: 1px solid var(--color-border);
