@@ -43,6 +43,7 @@ Card container for sections on detail pages. Provides a consistent header (icon 
 | `title` | String | `''` | Card title shown in the header |
 | `icon` | Object \| Function | `null` | Vue component for the header icon (MDI component reference) |
 | `collapsible` | Boolean | `false` | Whether the card body can be collapsed by clicking the header |
+| `chromeless` | Boolean | `false` | Render the content without the card: no border, background, padding or header. For a surface that already draws the card and names it, such as a tab panel whose open tab is its title. |
 | `collapsed` | Boolean | `false` | Initial collapsed state (only applies when `collapsible` is `true`). Supports `.sync` |
 | `flush` | Boolean | `false` | Remove content padding — lets tables and lists extend edge-to-edge |
 
