@@ -31,6 +31,7 @@ const BESPOKE_LEAF_IDS = [
 	// comms
 	'calendar',
 	'contacts',
+			'contactmoment',
 	'email',
 	'talk',
 	// docs
@@ -73,7 +74,8 @@ const SORTED_IDS = [
 	'version-history', // 6
 	'shares', // 10
 	'calendar', // 20
-	'contacts', // 21
+	'contacts',
+			'contactmoment', // 21
 	'email', // 22
 	'talk', // 23
 	'openproject', // 31

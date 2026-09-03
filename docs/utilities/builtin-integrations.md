@@ -51,6 +51,7 @@ registerIntegration(flowIntegration)
 |---|---|---|---|
 | `calendarIntegration` | `calendar` | 20 | `calendar` |
 | `contactsIntegration` | `contacts` | 21 | `contacts` |
+| `contactmomentIntegration` | `contactmoment` | 22 | `pipelinq` |
 | `emailIntegration` | `email` | 22 | `mail` |
 | `talkIntegration` | `talk` | 23 | `spreed` |
 

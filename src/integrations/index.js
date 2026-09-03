@@ -36,6 +36,7 @@ export {
 	// comms
 	calendarIntegration,
 	contactsIntegration,
+	contactmomentIntegration,
 	emailIntegration,
 	talkIntegration,
 	// docs

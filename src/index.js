@@ -376,6 +376,7 @@ export {
 	versionHistoryIntegration,
 	calendarIntegration,
 	contactsIntegration,
+	contactmomentIntegration,
 	emailIntegration,
 	talkIntegration,
 	bookmarksIntegration,
