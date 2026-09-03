@@ -50,5 +50,5 @@ A plain object suitable for `fetch({ headers })`:
 ## Notes
 
 - Reads `window.OC.requestToken`. On non-Nextcloud pages (unit tests, SSR) `OC` is `undefined`, so `requesttoken` falls back to an empty string.
-- The store factories ([`createCrudStore`](./store-factories/create-crud-store.md), [`createObjectStore`](./store-factories/create-object-store.md)) call `buildHeaders({ organisationUuid })` internally on every fetch when wired via [`provideTenantContext`](./provide-tenant-context.md) — most consumers don't need to call this directly for tenancy.
+- The store factories ([`createCrudStore`](../store/crud-store.md), [`createObjectStore`](../store/object-store.md)) call `buildHeaders({ organisationUuid })` internally on every fetch when wired via [`provideTenantContext`](./provide-tenant-context.md) — most consumers don't need to call this directly for tenancy.
 - Pair with [`buildQueryString`](./build-query-string.md) when calling the OpenRegister API.

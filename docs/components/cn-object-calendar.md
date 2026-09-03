@@ -44,7 +44,7 @@ mount and after every month navigation) to a re-fetch:
   @object-click="openObject" />
 ```
 
-```js
+```js static
 async fetchCalendarObjects({ rangeStart, rangeEnd }) {
   this.loading = true
   const { data } = await axios.get(url, { params: { start: rangeStart, end: rangeEnd } })

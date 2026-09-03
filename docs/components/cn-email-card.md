@@ -2,7 +2,7 @@ import Playground from '@site/src/components/Playground'
 
 # CnEmailCard
 
-Compact email widget for the [pluggable integration registry](../../guides/integrations.md). Fetches the most recent Nextcloud Mail messages linked to an OpenRegister object (link-table storage strategy, backed by `EmailService` + `EmailProvider`) and renders them inside a `CnDetailCard`. Surface-aware shell around the `email` integration: handles `user-dashboard`, `app-dashboard`, `detail-page`, and `single-entity` from a single component (single-entity collapses to a single row).
+Compact email widget for the [pluggable integration registry](../integrations/registry.md). Fetches the most recent Nextcloud Mail messages linked to an OpenRegister object (link-table storage strategy, backed by `EmailService` + `EmailProvider`) and renders them inside a `CnDetailCard`. Surface-aware shell around the `email` integration: handles `user-dashboard`, `app-dashboard`, `detail-page`, and `single-entity` from a single component (single-entity collapses to a single row).
 
 **Wraps**: CnDetailCard
 

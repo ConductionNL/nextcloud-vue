@@ -1,6 +1,6 @@
 # createIntegrationRegistry
 
-Factory for an isolated [pluggable integration registry](../guides/integrations.md) instance. Most call sites should use the default [`integrations`](./integrations.md) singleton — reach for this factory only when you need test isolation so registrations don't leak across cases.
+Factory for an isolated [pluggable integration registry](../integrations/registry.md) instance. Most call sites should use the default [`integrations`](./integrations.md) singleton — reach for this factory only when you need test isolation so registrations don't leak across cases.
 
 ## Signature
 

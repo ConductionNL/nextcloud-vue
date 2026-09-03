@@ -24,5 +24,5 @@ and the composer ([`CnAiInput`](./cn-ai-input.md)). Rendered by
 
 ## Reference
 
-- Implementation: [src/components/CnAiChatPanel/CnAiChatPanel.vue](../../src/components/CnAiChatPanel/CnAiChatPanel.vue)
+- Implementation: [src/components/CnAiChatPanel/CnAiChatPanel.vue](https://github.com/ConductionNL/nextcloud-vue/blob/main/src/components/CnAiChatPanel/CnAiChatPanel.vue)
 - Parent: [CnAiCompanion](./cn-ai-companion.md) · Children: [CnAiMessageList](./cn-ai-message-list.md), [CnAiInput](./cn-ai-input.md) · Transport: [useAiChatStream](../utilities/composables/use-ai-chat-stream.md)

@@ -1,6 +1,6 @@
 # VALID_SURFACES
 
-Enum of rendering surfaces understood by the [pluggable integration registry](../guides/integrations.md).
+Enum of rendering surfaces understood by the [pluggable integration registry](../integrations/registry.md).
 
 ## Value
 
@@ -23,6 +23,6 @@ import { VALID_SURFACES } from '@conduction/nextcloud-vue'
 
 ## See also
 
-- [Pluggable integration registry guide](../guides/integrations.md)
+- [Pluggable integration registry guide](../integrations/registry.md)
 - [`integrations.resolveWidget`](./integrations.md)
 - [`useIntegrationRegistry`](./composables/use-integration-registry.md)

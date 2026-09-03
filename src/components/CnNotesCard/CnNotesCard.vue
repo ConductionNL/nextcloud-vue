@@ -6,7 +6,7 @@
   Wraps CnDetailCard for consistent styling.
 -->
 <template>
-	<CnDetailCard :title="titleLabel" :icon="CommentTextOutline" :collapsible="collapsible">
+	<component :is="wrapper" v-bind="wrapperProps">
 		<div class="cn-notes-card">
 			<!-- Add note input -->
 			<div class="cn-notes-card__add-form">
@@ -79,7 +79,7 @@
 				{{ showAllLabel }} ({{ allNotes.length }})
 			</button>
 		</template>
-	</CnDetailCard>
+	</component>
 </template>
 
 <script>
@@ -166,6 +166,18 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Render the notes body without the surrounding CnDetailCard.
+		 *
+		 * Set when a surface already supplies the card and the title, such as a
+		 * tab panel whose open tab names the panel. Leaving the card on there
+		 * nests a card inside a card and shows the label twice.
+		 */
+		chromeless: {
+			type: Boolean,
+			default: false,
+		},
+
 		// --- Pre-translated labels ---
 		/** Card header title. */
 		titleLabel: { type: String, default: () => t('nextcloud-vue', 'Notes') },
@@ -195,6 +207,18 @@ export default {
 	},
 
 	computed: {
+		/** The card wrapper, or a plain div when rendering chromeless. */
+		wrapper() {
+			return this.chromeless ? 'div' : CnDetailCard
+		},
+
+		/** Card props, omitted entirely when there is no card to configure. */
+		wrapperProps() {
+			return this.chromeless
+				? {}
+				: { title: this.titleLabel, icon: CommentTextOutline, collapsible: this.collapsible }
+		},
+
 		displayedNotes() {
 			// Reverse chronological, limited to maxDisplay
 			const sorted = [...this.allNotes].sort((a, b) => {

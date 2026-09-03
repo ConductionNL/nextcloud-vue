@@ -17,5 +17,5 @@ of [`CnAiChatPanel`](./cn-ai-chat-panel.md).
 
 ## Reference
 
-- Implementation: [src/components/CnAiInput/CnAiInput.vue](../../src/components/CnAiInput/CnAiInput.vue)
+- Implementation: [src/components/CnAiInput/CnAiInput.vue](https://github.com/ConductionNL/nextcloud-vue/blob/main/src/components/CnAiInput/CnAiInput.vue)
 - Parent: [CnAiChatPanel](./cn-ai-chat-panel.md)

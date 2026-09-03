@@ -51,7 +51,7 @@ Manifest-driven map page. Resolved automatically by `CnPageRenderer` for `pages[
 
 ## Events
 
-`@map-ready`, `@marker-click`, `@bounds-change`, `@click` — all forward verbatim from the underlying `CnMapWidget`. See the [CnMapWidget](./cn-map-widget) docs for payload shapes.
+`@map-ready`, `@marker-click`, `@bounds-change`, `@click` — all forward verbatim from the underlying `CnMapWidget`. See the [CnMapWidget](./cn-map-widget.md) docs for payload shapes.
 
 ## Reference
 

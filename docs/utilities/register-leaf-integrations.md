@@ -30,4 +30,4 @@ registerLeafIntegrations(myRegistry)  // onto an isolated registry (tests)
 - [`leafIntegrations`](./leaf-integrations.md) — the 18 descriptors
 - [`registerBuiltinIntegrations`](./register-builtin-integrations.md) — call this first
 - [`installIntegrationRegistry`](./install-integration-registry.md) — bootstrap the registry singleton
-- [Pluggable integration registry guide](../guides/integrations.md)
+- [Pluggable integration registry guide](../integrations/registry.md)

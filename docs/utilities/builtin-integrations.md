@@ -17,7 +17,7 @@ builtinIntegrations.map((d) => d.id)
 
 ## Descriptor shape
 
-Each entry is a ready-to-`register()` integration descriptor: `{ id, label, icon, requiredApp, order, group, referenceType, tab, widget, defaultSize }`. See the [registration shape](../guides/integrations.md#registration-shape) reference for the full contract.
+Each entry is a ready-to-`register()` integration descriptor: `{ id, label, icon, requiredApp, order, group, referenceType, tab, widget, defaultSize }`. See the [registration shape](../integrations/registry.md#registration-shape) reference for the full contract.
 
 ## Importing a single descriptor
 
@@ -51,6 +51,7 @@ registerIntegration(flowIntegration)
 |---|---|---|---|
 | `calendarIntegration` | `calendar` | 20 | `calendar` |
 | `contactsIntegration` | `contacts` | 21 | `contacts` |
+| `contactmomentIntegration` | `contactmoment` | 22 | `pipelinq` |
 | `emailIntegration` | `email` | 22 | `mail` |
 | `talkIntegration` | `talk` | 23 | `spreed` |
 
@@ -93,4 +94,4 @@ registerIntegration(flowIntegration)
 - [`registerBuiltinIntegrations`](./register-builtin-integrations.md) — register the whole set onto a registry
 - [`leafIntegrations`](./leaf-integrations.md) — the generic-component fallback set
 - [`integrations`](./integrations.md) — the registry singleton
-- [Pluggable integration registry guide](../guides/integrations.md)
+- [Pluggable integration registry guide](../integrations/registry.md)

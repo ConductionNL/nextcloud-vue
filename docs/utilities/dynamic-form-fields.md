@@ -49,7 +49,7 @@ Some domains keep half of an object's shape in the database instead of the schem
 |---|---|
 | `schema` | Slug of the schema whose records describe the fields. Required. |
 | `register` | Register the definitions live in. Defaults to the form's own register. Use it for a cross-app definitions schema (ADR-066). |
-| `filter` | Query filter narrowing the definitions to the chosen value. `$value` is the driving property's value; `@object.<field>` and the other [filter tokens](resolve-filter-tokens.md) resolve against the live form data. A token that stays unresolved is dropped rather than sent, because filtering on a literal `@object.foo` returns zero rows and reads exactly like a case type with no extra fields. |
+| `filter` | Query filter narrowing the definitions to the chosen value. `$value` is the driving property's value; `@object.<field>` and the other filter tokens resolve against the live form data. A token that stays unresolved is dropped rather than sent, because filtering on a literal `@object.foo` returns zero rows and reads exactly like a case type with no extra fields. |
 
 ### `map`
 

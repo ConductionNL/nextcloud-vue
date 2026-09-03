@@ -104,7 +104,7 @@ A generic tabbed dialog for create/edit forms. Provides the standard dialog shel
 
 ### Handling Save Result
 
-```javascript
+```javascript static
 async saveOrganisation() {
   try {
     const { response } = await store.save(this.formData)

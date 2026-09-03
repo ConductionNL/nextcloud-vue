@@ -18,5 +18,5 @@ Rendered by [`CnAiCompanion`](./cn-ai-companion.md).
 
 ## Reference
 
-- Implementation: [src/components/CnAiFloatingButton/CnAiFloatingButton.vue](../../src/components/CnAiFloatingButton/CnAiFloatingButton.vue)
+- Implementation: [src/components/CnAiFloatingButton/CnAiFloatingButton.vue](https://github.com/ConductionNL/nextcloud-vue/blob/main/src/components/CnAiFloatingButton/CnAiFloatingButton.vue)
 - Parent: [CnAiCompanion](./cn-ai-companion.md)

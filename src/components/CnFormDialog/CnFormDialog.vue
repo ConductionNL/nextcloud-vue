@@ -887,6 +887,8 @@ export default {
 			 * all of them.
 			 */
 			dynamicOwners: {},
+			/** Definition records behind the dynamic fields, for the confirm payload. */
+			dynamicDefinitions: [],
 			/** Whether a definitions fetch is in flight (the fields are announced as loading rather than absent). */
 			dynamicLoading: false,
 			/**
@@ -1003,6 +1005,43 @@ export default {
 		prefillDriverToken() {
 			return this.prefillDecls
 				.map(({ key }) => `${key}=${this.dynamicDriverValue(this.formData[key])}`)
+				.join('&')
+		},
+
+		/**
+		 * Every property whose `x-relation-filter` points at another FIELD of
+		 * this same form, paired with that field's key.
+		 *
+		 * `{ caseType: '@object.caseType' }` on a `status` picker says "only
+		 * the statuses of the case type chosen above". Only `@object.<key>`
+		 * tokens qualify: a literal value or `@objectId` cannot change while
+		 * the dialog is open, so neither can invalidate an option list.
+		 *
+		 * @return {Array<{key: string, drivers: string[]}>} Field key => the form keys it depends on.
+		 */
+		relationFilterDecls() {
+			const properties = (this.schema && this.schema.properties) || {}
+			const decls = []
+			for (const [key, prop] of Object.entries(properties)) {
+				const filter = prop && prop['x-relation-filter']
+				if (!filter || typeof filter !== 'object') continue
+				const drivers = Object.values(filter)
+					.filter((v) => typeof v === 'string' && v.startsWith('@object.'))
+					.map((v) => v.slice('@object.'.length))
+				if (drivers.length > 0) decls.push({ key, drivers })
+			}
+			return decls
+		},
+
+		/**
+		 * A stable signature of every value a relation filter depends on.
+		 *
+		 * @return {string} The signature; a change means some picker's options are stale.
+		 */
+		relationFilterToken() {
+			return this.relationFilterDecls
+				.flatMap(({ drivers }) => drivers)
+				.map((key) => `${key}=${this.dynamicDriverValue(this.formData[key])}`)
 				.join('&')
 		},
 
@@ -1134,6 +1173,50 @@ export default {
 		 */
 		prefillDriverToken(token) {
 			this.applyPrefill(token)
+		},
+
+		/**
+		 * Refetch a scoped picker's options when the value it is scoped BY
+		 * changes.
+		 *
+		 * `fetchReferenceOptions` resolves `x-relation-filter` against the
+		 * live form data, and `initAsyncFields` calls it once, at open. On a
+		 * CREATE the form is empty at that moment, so `@object.caseType`
+		 * resolves to nothing, the filter entry is dropped ("unfiltered beats
+		 * an empty picker") and the fetch returns the first hundred rows of
+		 * the referenced schema. Nothing ever fetched again, so choosing a
+		 * case type left the status picker offering every case type's
+		 * statuses, four of them named "Received" with nothing to tell them
+		 * apart. Reported against dossiq's New case form; the same shape sits
+		 * on four more of its shipped properties.
+		 *
+		 * NOT immediate. The open-time load is `initAsyncFields`'s job, and
+		 * firing here as well would send two identical requests on every open.
+		 *
+		 * The new signature is not read: which fields to refetch comes from
+		 * `relationFilterDecls`, and the values themselves are resolved from
+		 * `formData` by `fetchReferenceOptions`.
+		 */
+		relationFilterToken() {
+			const stale = new Set(this.relationFilterDecls.map(({ key }) => key))
+			if (stale.size === 0) return
+
+			// The TRANSFORMED fields, the same list initAsyncFields iterates:
+			// a resolved cross-app semantic reference is a `$ref` picker by
+			// then and scopes itself the same way.
+			for (const field of this.resolvedFields.map((f) => this.applySemanticResolution(f))) {
+				if (!stale.has(field.key)) continue
+				if (!this.isAsyncEnum(field) && !this.isAsyncItemsEnum(field)) continue
+				// OPTIONS ONLY, the value is left alone. Clearing a selection
+				// that the new scope no longer offers looks tempting, and it
+				// would fight `applyPrefill`: `x-openregister-prefill` reacts
+				// to the same change, runs from a watcher declared above this
+				// one, and its whole job is to WRITE the field this one would
+				// then blank. Where a prefill exists it replaces the stale
+				// value already; where none does, a value the picker cannot
+				// show is the pre-existing behaviour and not what was reported.
+				this.loadAsyncOptions(field, '')
+			}
 		},
 
 		visibleFields(newFields, oldFields) {
@@ -1306,9 +1389,10 @@ export default {
 
 		/**
 		 * Tooltip / helper copy for an unresolved semantic-reference field:
-		 * "The {App} app that provides {Type} is not installed." `Type` is
+		 * "Install {App} to pick a {Type}." `Type` is
 		 * derived from the URI's last path segment; the app label from
-		 * `referenceSemanticApp` (fallback: a generic "supporting app").
+		 * `referenceSemanticApp`, or a shorter sentence naming only the type
+		 * when the property names no provider.
 		 *
 		 * @param {object} field A resolved field descriptor.
 		 * @return {string}
@@ -1317,10 +1401,21 @@ export default {
 			const uri = (field && field.referenceSemanticType) || ''
 			const segment = uri.split(/[/#]/).filter(Boolean).pop() || uri
 			const typeLabel = segment || t('nextcloud-vue', 'this reference')
-			const appLabel = (field && field.referenceSemanticApp)
-				? field.referenceSemanticApp
-				: t('nextcloud-vue', 'supporting app')
-			return t('nextcloud-vue', 'The {appLabel} app that provides {typeLabel} is not installed.', { appLabel, typeLabel })
+			const appLabel = (field && field.referenceSemanticApp) || ''
+			// TWO SENTENCES, NOT ONE WITH A FALLBACK NOUN. The single template
+			// read "The {appLabel} app that provides {typeLabel} is not
+			// installed." and the no-app case substituted the literal
+			// "supporting app", so a property that names no provider rendered
+			// "The supporting app app that provides Requester is not
+			// installed." A filler noun that has to fit a slot built for a
+			// proper name is how a doubled word ships. Where a provider IS
+			// named the string can say what to do about it; where none is,
+			// naming the missing type is all that is true.
+			if (appLabel !== '') {
+				return t('nextcloud-vue', 'Install {appLabel} to pick a {typeLabel}.', { appLabel, typeLabel })
+			}
+
+			return t('nextcloud-vue', 'No installed app provides {typeLabel}.', { typeLabel })
 		},
 
 		/**
@@ -2148,6 +2243,7 @@ export default {
 			const properties = {}
 			const required = []
 			const owners = {}
+			const definitions = []
 			try {
 				for (const { key, config } of active) {
 					const schemaSlug = config.definitions && config.definitions.schema
@@ -2166,6 +2262,10 @@ export default {
 						this.formData,
 					)
 					const records = await store.fetchCollection(slug, params)
+					// Kept for the confirm payload. Array-mode declarations
+					// store the definition's NAME beside its value on the
+					// parent, and the answers alone carry only ids.
+					if (Array.isArray(records)) definitions.push(...records)
 					// `orderFrom` keeps each declaration's block together and
 					// after the schema's own fields, whose `order` values are
 					// authored well below this.
@@ -2184,6 +2284,7 @@ export default {
 			// A slower earlier fetch must not overwrite a later selection's
 			// fields; the signature it started under is the only way to tell.
 			if (this.dynamicToken !== token) return
+			this.dynamicDefinitions = definitions
 			this.dynamicProperties = properties
 			this.dynamicRequired = required
 			this.dynamicOwners = owners
@@ -2698,7 +2799,7 @@ export default {
 			 * `null` otherwise, which is every schema that declares nothing.
 			 */
 			this.$emit('confirm', base, answers.length > 0
-				? { answers, declarations: this.extendsDeclarations }
+				? { answers, declarations: this.extendsDeclarations, definitions: this.dynamicDefinitions }
 				: null)
 		},
 

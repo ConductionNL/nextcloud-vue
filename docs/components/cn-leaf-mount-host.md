@@ -71,7 +71,7 @@ OCA.OpenRegister.integrations.register({
 })
 ```
 
-`renderMode` / `mount` / `unmount` travel as a validated pair (see the [Pluggable Integration Registry](../../CLAUDE.md) section): supplying one half of the mount pair without the other is rejected at registration. A leaf MAY also keep an SFC `tab` + `widget` pair alongside `mount` as a same-major fast path.
+`renderMode` / `mount` / `unmount` travel as a validated pair (see the [Pluggable Integration Registry](../integrations/registry.md) section): supplying one half of the mount pair without the other is rejected at registration. A leaf MAY also keep an SFC `tab` + `widget` pair alongside `mount` as a same-major fast path.
 
 ## See also
 

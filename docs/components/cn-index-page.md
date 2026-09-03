@@ -421,7 +421,7 @@ Form save (create/edit), **mass export**, and **mass import** are also self-hand
 
 ### Live updates — collection subscription
 
-In self-fetch mode the page also **subscribes to live collection updates** for its `or-collection-{register}-{schema}` scope (via [`useObjectSubscription`](../utilities/composables/use-object-subscription.md) and the store's [`liveUpdatesPlugin`](../../store/plugins/live-updates.md)). When another user creates, updates, or deletes an object in the register/schema pair, the list refetches with its **current** params (page, sort, search, filters) — events are hints, so bursts (mass import, bulk edits) are coalesced into at most one refetch per ~750 ms window, deduped against in-flight requests. When notify_push is unavailable the transport falls back to visibility-gated polling; nothing else changes for the page.
+In self-fetch mode the page also **subscribes to live collection updates** for its `or-collection-{register}-{schema}` scope (via [`useObjectSubscription`](../utilities/composables/use-object-subscription.md) and the store's [`liveUpdatesPlugin`](../store/plugins/live-updates.md)). When another user creates, updates, or deletes an object in the register/schema pair, the list refetches with its **current** params (page, sort, search, filters) — events are hints, so bursts (mass import, bulk edits) are coalesced into at most one refetch per ~750 ms window, deduped against in-flight requests. When notify_push is unavailable the transport falls back to visibility-gated polling; nothing else changes for the page.
 
 The subscription attaches on mount and is released on unmount; the epoch guard inside `useObjectSubscription` prevents a navigation-away during the async subscribe from leaking a stale subscription.
 
@@ -736,7 +736,7 @@ export default {
 
 ## Documentation link
 
-Set `documentationUrl` (and optionally `documentationLabel`) to surface a **Documentation** entry in the [`CnActionsBar`](./cn-actions-bar) overflow menu, alongside the built-in Request-a-feature item. It opens the link in a new tab. Empty (the default) hides it.
+Set `documentationUrl` (and optionally `documentationLabel`) to surface a **Documentation** entry in the [`CnActionsBar`](./cn-actions-bar.md) overflow menu, alongside the built-in Request-a-feature item. It opens the link in a new tab. Empty (the default) hides it.
 
 ## Reference (auto-generated)
 

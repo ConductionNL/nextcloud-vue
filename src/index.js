@@ -376,6 +376,7 @@ export {
 	versionHistoryIntegration,
 	calendarIntegration,
 	contactsIntegration,
+	contactmomentIntegration,
 	emailIntegration,
 	talkIntegration,
 	bookmarksIntegration,
@@ -449,7 +450,7 @@ export { registerTranslations } from './l10n/index.js'
 export { buildHeaders, buildQueryString, parseResponseError, parseAxiosError, networkError, genericError } from './utils/index.js'
 export { cnFetch, cnFetchJson, CnHttpError } from './utils/cnFetch.js'
 export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema, validateValue } from './utils/index.js'
-export { splitDynamicFormData, valueRecordsFor, EXTENDS_FORM_KEY, PREFILL_KEY, DYNAMIC_KEY_PREFIX } from './utils/index.js'
+export { splitDynamicFormData, valueRecordsFor, valueArrayFor, usesArrayValues, EXTENDS_FORM_KEY, PREFILL_KEY, DYNAMIC_KEY_PREFIX } from './utils/index.js'
 // The OpenRegister schema API contract — shared so Buildiq and OpenRegister cannot
 // drift on what a 409 means (breaking change / schema still has objects).
 export { saveSchema, deleteSchema, describeSchemaChange, SchemaBreakingChangeError, SchemaHasObjectsError } from './utils/index.js'
@@ -489,7 +490,7 @@ export { DASHBOARD_ICONS, DEFAULT_ICON, getIconComponent, isCustomIconUrl } from
 // NB: the NL-government icon sets are deliberately NOT re-exported here.
 //
 // `NL_DESIGN_ICONS` / `NL_DESIGN_ICON_GROUPS` / `rvoIcons` all reference RVO,
-// whose 1164 icons are ~1.9MB of inlined data URIs. Re-exporting them from the
+// whose 1163 icons are ~1.9MB of inlined data URIs. Re-exporting them from the
 // barrel put that on the eager path of every consumer that imports ANYTHING from
 // this package, and left it to each app's tree-shaking to prove the export was
 // unused — which openbuild and pipelinq managed but LaunchPad did not, silently

@@ -1,6 +1,6 @@
 # CnIntegrationCard
 
-Generic surface-aware widget for the [pluggable integration registry](../guides/integrations.md). Used as the `widget` component for the 18 [leaf integrations](../utilities/leaf-integrations.md) that don't yet need a bespoke widget — every leaf registration points its `widget` at this component and passes the integration's id via the registration descriptor.
+Generic surface-aware widget for the [pluggable integration registry](../integrations/registry.md). Used as the `widget` component for the 18 [leaf integrations](../utilities/leaf-integrations.md) that don't yet need a bespoke widget — every leaf registration points its `widget` at this component and passes the integration's id via the registration descriptor.
 
 Branches on the `surface` prop per AD-19:
 
@@ -53,4 +53,4 @@ window.OCA.OpenRegister.integrations.register({
 
 - [`CnIntegrationTab`](./cn-integration-tab.md) — the matching sidebar tab
 - [`leafIntegrations`](../utilities/leaf-integrations.md) — the 18 leaf descriptors that use this component
-- [Pluggable integration registry guide](../guides/integrations.md)
+- [Pluggable integration registry guide](../integrations/registry.md)

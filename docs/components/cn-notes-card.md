@@ -46,6 +46,7 @@ Pass pre-translated labels when your app handles i18n:
 | `apiBase` | String | | `'/apps/openregister/api'` | Base URL for OpenRegister API calls |
 | `maxDisplay` | Number | | `5` | Maximum number of notes to show before the "Show all" footer link appears |
 | `collapsible` | Boolean | | `false` | Whether the card supports collapse/expand |
+| `chromeless` | Boolean | | `false` | Render the notes body without the surrounding `CnDetailCard`. Set it where the surface already supplies the card and the title, such as a tab panel whose open tab names the panel; leaving the card on there nests a card inside a card and shows the label twice. |
 | `titleLabel` | String | | `'Notes'` | Card title |
 | `addNoteLabel` | String | | `'Add note'` | Submit button label |
 | `addNotePlaceholder` | String | | `'Write a note...'` | Textarea placeholder |

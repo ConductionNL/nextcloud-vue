@@ -29,4 +29,4 @@ registerBuiltinIntegrations(myRegistry)  // onto an isolated registry (tests)
 
 - [`builtinIntegrations`](./builtin-integrations.md) — the descriptor array
 - [`installIntegrationRegistry`](./install-integration-registry.md) — call this first
-- [Pluggable integration registry guide](../guides/integrations.md)
+- [Pluggable integration registry guide](../integrations/registry.md)

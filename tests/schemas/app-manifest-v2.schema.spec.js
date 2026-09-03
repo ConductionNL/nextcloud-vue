@@ -1110,10 +1110,47 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.29.0', () => {
+	it('the manifest schema version reads 2.32.0', () => {
 		// eslint-disable-next-line global-require
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.29.0')
+		expect(schema.version).toBe('2.32.0')
+	})
+
+	it('accepts a declarative `store` block, and requires the remote schema', () => {
+		// ADR-080 / ADR-114 D4: an app declares its store rather than writing
+		// one. `schema` is the only required key because it is the one thing
+		// the engine cannot default — it names what the registry serves.
+		expect(validateManifestV2({
+			...MINIMAL_V2,
+			store: { schema: 'case-type-template', installable: ['caseType'] },
+		}).valid).toBe(true)
+
+		expect(validateManifestV2({
+			...MINIMAL_V2,
+			store: { installable: ['caseType'] },
+		}).valid).toBe(false)
+	})
+
+	it('refuses an undeclared key inside the store block', () => {
+		// additionalProperties:false is what stops a typo'd `installible` from
+		// validating and then refusing every install at runtime, which is the
+		// silent-no-op shape this whole block is exposed to.
+		expect(validateManifestV2({
+			...MINIMAL_V2,
+			store: { schema: 'case-type-template', installible: ['caseType'] },
+		}).valid).toBe(false)
+	})
+
+	it('accepts the `store` page type', () => {
+		// The enum is the reachability contract: CnPageRenderer can dispatch a
+		// type the schema refuses, and the manifest is then rejected before the
+		// renderer ever sees it. nextcloud-vue#897 shipped exactly that for
+		// `reports` — a component with no enum entry and no way to name it.
+		const manifest = {
+			...MINIMAL_V2,
+			pages: [{ id: 'Store', route: '/store', type: 'store', title: 'Store' }],
+		}
+		expect(validateManifestV2(manifest).valid).toBe(true)
 	})
 
 	it('accepts the keys that narrow what an open-form button asks for', () => {

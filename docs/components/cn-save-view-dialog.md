@@ -18,7 +18,7 @@ Used by `CnIndexPage` when `allowSavedViews` is enabled; also usable standalone.
   @close="showSaveDialog = false" />
 ```
 
-```js
+```js static
 async onSaveViewConfirm({ name, isPublic }) {
   try {
     await createView(buildViewCreatePayload({ name, isPublic, state }))

@@ -3,7 +3,7 @@ import GeneratedRef from './_generated/CnVersionHistory.md'
 
 # CnVersionHistory
 
-Object version-history list plus field-by-field diff viewer for the [pluggable integration registry](../../guides/integrations.md). Fetches an OpenRegister object's audit-trail entries (query-time storage strategy, same endpoint as `CnAuditTrailTab`) and renders them inside a `CnDetailCard`, newest-first. Selecting one entry — or checking two and pressing "Compare selected" — opens a structural diff table (field | old value | new value), changed-only by default with a "Show all fields" toggle. Registered as its own `version-history` integration, additive alongside the existing `audit-trail` integration.
+Object version-history list plus field-by-field diff viewer for the [pluggable integration registry](../integrations/registry.md). Fetches an OpenRegister object's audit-trail entries (query-time storage strategy, same endpoint as `CnAuditTrailTab`) and renders them inside a `CnDetailCard`, newest-first. Selecting one entry — or checking two and pressing "Compare selected" — opens a structural diff table (field | old value | new value), changed-only by default with a "Show all fields" toggle. Registered as its own `version-history` integration, additive alongside the existing `audit-trail` integration.
 
 **Wraps**: CnDetailCard
 

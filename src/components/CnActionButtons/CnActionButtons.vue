@@ -89,7 +89,7 @@ import { CnIcon } from '../CnIcon/index.js'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
-import { valueRecordsFor } from '../../utils/dynamicProperties.js'
+import { valueRecordsFor, valueArrayFor, usesArrayValues } from '../../utils/dynamicProperties.js'
 import { dispatchAction, resolveObjectOpType, buildOnSuccessRoute, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
@@ -565,6 +565,12 @@ export default {
 					this.cnCustomComponents,
 				)
 				const payload = { ...formData }
+				// Array-mode declarations fold their answers into the parent's
+				// own payload, so the whole record saves in ONE write. The
+				// child-record mode below cannot do that (the rows need the
+				// parent's id), which is why it writes afterwards and can leave
+				// answers behind if that second write fails.
+				this.foldArrayAnswers(payload, dynamic)
 				const saved = override
 					? await override(payload, { register, schema, type })
 					: await store.saveObject(type, payload)
@@ -616,6 +622,8 @@ export default {
 			for (const { key, config } of declarations) {
 				const values = config && config.values
 				if (!values || !values.schema) continue
+				// Already written as part of the parent payload.
+				if (usesArrayValues(config)) continue
 				// An answer belongs to exactly one declaration. With a single
 				// declaration every answer carries its key anyway; the filter
 				// only matters once a schema has two, where writing an answer
@@ -630,6 +638,26 @@ export default {
 				for (const row of rows) {
 					await store.saveObject(type, row)
 				}
+			}
+		},
+
+		/**
+		 * Fold array-mode dynamic answers into the parent payload.
+		 *
+		 * @param {object} payload The parent object payload, mutated in place.
+		 * @param {object|null} dynamic The `{ answers, declarations }` payload.
+		 * @return {void}
+		 */
+		foldArrayAnswers(payload, dynamic) {
+			if (!dynamic || !Array.isArray(dynamic.answers) || dynamic.answers.length === 0) return
+			const declarations = dynamic.declarations || []
+			for (const { key, config } of declarations) {
+				if (!usesArrayValues(config)) continue
+				const mine = declarations.length === 1
+					? dynamic.answers
+					: dynamic.answers.filter((a) => a.declarationKey === key)
+				const entries = valueArrayFor(mine, config, dynamic.definitions || [])
+				if (entries.length) payload[config.values.arrayKey] = entries
 			}
 		},
 
