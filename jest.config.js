@@ -1,3 +1,42 @@
+/*
+ * "A worker process has failed to exit gracefully" — READ THIS BEFORE CHASING IT.
+ *
+ * A full local run on a many-core machine ends with:
+ *
+ *   A worker process has failed to exit gracefully and has been force exited.
+ *   This is likely caused by tests leaking due to improper teardown.
+ *
+ * It is NOT a leaking test, and `maxWorkers` is deliberately not set below to
+ * silence it. Measured on a 14-core machine over `tests/components` (352
+ * suites), each run repeated:
+ *
+ *   --maxWorkers=1,2,4,6,8   no warning
+ *   --maxWorkers=10,12       warning, every run
+ *   default (13 workers)     warning, every run (3 of 3)
+ *
+ * The threshold sits between 8 and 10 CONCURRENT workers, and it is total
+ * concurrency rather than per-worker load: 8 workers carry MORE suites each
+ * and stay clean. It is jsdom environments contending, so a worker misses
+ * jest's exit grace period and is force-killed after its tests have already
+ * passed.
+ *
+ * CI never sees it. The `Frontend Tests (unit)` job runs 627 suites green with
+ * ZERO occurrences, because a GitHub runner has too few cores to reach the
+ * threshold.
+ *
+ * `--detectOpenHandles` cannot help here and will mislead you: it implies
+ * `--runInBand`, so it removes the workers whose exit is the entire symptom.
+ * It reports no open handles across all 352 suites.
+ *
+ * WHAT IT COSTS. Nothing to correctness — every test passes and the exit code
+ * is 0. It can perturb scheduling enough to surface an order-dependent flake
+ * (seen once on CnAddWidgetModal, not reproducible on a second run of the same
+ * tree). If that becomes common, the lead worth pulling is per-suite teardown
+ * of mounted components, not this config.
+ *
+ * Capping `maxWorkers` here would slow every developer's run to hide a warning
+ * CI does not emit, so it is left alone and explained instead.
+ */
 module.exports = {
 	// Rebuilds the gitignored compiled manifest validator when it is missing or
 	// stale. `pretest` already does this for `npm test`, but not for `npx jest`,
