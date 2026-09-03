@@ -343,16 +343,19 @@ describe('CnActionsMenu — refresh spinner', () => {
 		expect(wrapper.findComponent({ name: 'Refresh' }).exists()).toBe(true)
 	})
 
-	// Regression guard: the async CnSuggestFeatureModal factory must resolve to
-	// the (extensible) component options, not a module namespace. Under some
-	// webpack chunk layouts the resolved namespace is frozen and untagged, so
-	// Vue 2's ensureCtor calls Vue.extend() on it and throws "Cannot add
-	// property _Ctor, object is not extensible" — silently breaking the
-	// Request-a-feature modal. The `.then(m => m.default || m)` unwrap fixes it.
-	it('resolves the CnSuggestFeatureModal async factory to component options, not a module namespace', async () => {
-		const factory = CnActionsMenu.components.CnSuggestFeatureModal
-		expect(typeof factory).toBe('function')
-		const resolved = await factory()
+	// Regression guard, two layers deep. (1) Vue 3: a BARE function in
+	// `components:` is a functional component — Vue CALLS it on render and
+	// prints the returned Promise as text, so the menu showed the literal
+	// "[object Promise]" and no modal. The registration must be a
+	// defineAsyncComponent wrapper (an options OBJECT carrying __asyncLoader),
+	// never a plain function. (2) The loader must resolve to the (extensible)
+	// component options, not a `{ default }` module-namespace wrapper.
+	it('registers CnSuggestFeatureModal as an async component that resolves to component options', async () => {
+		const registered = CnActionsMenu.components.CnSuggestFeatureModal
+		// A plain function here is the [object Promise] bug.
+		expect(typeof registered).not.toBe('function')
+		expect(typeof registered.__asyncLoader).toBe('function')
+		const resolved = await registered.__asyncLoader()
 		// Must be the component definition itself (has a name), not a `{ default }` wrapper.
 		expect(resolved.default).toBeUndefined()
 		expect(resolved.name).toBe('CnSuggestFeatureModal')

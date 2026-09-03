@@ -250,4 +250,19 @@ describe('CnPropertyValueCell', () => {
 		})
 		expect(wrapper.find('.nc-switch').exists()).toBe(true)
 	})
+
+	// Regression guard: under Vue 3 a BARE function in `components:` is a
+	// functional component — Vue CALLS it on render and prints the returned
+	// Promise as text ("[object Promise]", the CnActionsMenu bug, latent
+	// here). The lazy circular-dep-breaking registration must therefore be a
+	// defineAsyncComponent wrapper whose loader resolves to the unwrapped,
+	// extensible component options.
+	it('registers CnAdvancedFormDialog as an async component that resolves to component options', async () => {
+		const registered = CnPropertyValueCell.components.CnAdvancedFormDialog
+		expect(typeof registered).not.toBe('function')
+		expect(typeof registered.__asyncLoader).toBe('function')
+		const resolved = await registered.__asyncLoader()
+		expect(resolved.default).toBeUndefined()
+		expect(resolved.name).toBe('CnAdvancedFormDialog')
+	})
 })
