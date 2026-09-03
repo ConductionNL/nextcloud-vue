@@ -559,6 +559,19 @@ export default {
 		 */
 		integrationComponent() {
 			if (!this.isIntegration) return null
+			// `bareWidget` lets a provider say its WIDGET is already bare, so a
+			// tab panel gets the widget surface instead of the sidebar one.
+			// The default below (prefer `tab`) assumes every `widget` draws its
+			// own card, which is not true: `notes`' widget is an adapter around
+			// CnNotesCard, whose root carries no border, background or padding.
+			// Preferring `tab` there swapped an inline compose textarea for the
+			// sidebar's collapsed "Add note" button and dressed the panel in
+			// sidebar CSS, which is what made the tabbed leaves look like they
+			// had lost their styling. Opt-in rather than a blanket switch: the
+			// other providers keep today's behaviour until each is checked.
+			if (this.isBare && this.integrationProvider?.bareWidget && this.integrationProvider?.widget) {
+				return this.integrationProvider.widget
+			}
 			if (this.isBare && this.integrationProvider?.tab) {
 				return this.integrationProvider.tab
 			}
