@@ -1815,6 +1815,23 @@ export default {
 		}
 	},
 
+	/**
+	 * Expose the authored (untranslated) widget titles to descendants.
+	 *
+	 * CnActionsMenu needs the English source for the bug-report deep link, but
+	 * it sits inside CnWidgetWrapper inside the widget renderer — threading a
+	 * second title prop would mean touching every one of the ~20 renderers and
+	 * relying on each to forward it. An inject resolves by widget id instead,
+	 * and degrades to '' where no dashboard provides it.
+	 *
+	 * @return {object} The provided resolver.
+	 */
+	provide() {
+		return {
+			cnWidgetTitleSource: (widgetId) => this.getWidgetTitleSource(widgetId),
+		}
+	},
+
 	methods: {
 		/**
 		 * Seed the reactive workspace context with each page filter's default
@@ -2793,6 +2810,36 @@ export default {
 		onWidgetConfigDelete(_w) {
 			this.removeWidget({ widgetId: this.configWidgetId })
 			this.showWidgetConfig = false
+		},
+
+		/**
+		 * The widget's title as AUTHORED — the untranslated manifest source
+		 * string — resolved by widget id rather than by item, so a descendant
+		 * that only knows its own id can ask for it.
+		 *
+		 * Provided to descendants as `cnWidgetTitleSource` and used to build
+		 * the "Report a bug" issue title. getWidgetTitle() below is the
+		 * display chokepoint and runs the def title through the host translate
+		 * function, so the CnActionsMenu inside CnWidgetWrapper only ever saw
+		 * the TRANSLATED title: a report filed from a French UI arrived as
+		 * "[BUG] Activité récente", and one from a Russian UI in Cyrillic,
+		 * unreadable to a maintainer even though the English msgid was right
+		 * here in the manifest.
+		 *
+		 * Deliberately DIVERGES from getWidgetTitle's precedence: the two
+		 * customTitle values are skipped, not just left untranslated. They
+		 * are a person's own words in their own language, so returning them
+		 * reopens the exact failure above — and a renamed placement does not
+		 * identify the widget COMPONENT the bug is about, while the manifest
+		 * title (English, the msgid) does. When the def carries no title this
+		 * returns '' and CnActionsMenu falls back to the surface slug, which
+		 * is English by construction.
+		 *
+		 * @param {string} widgetId The widget's id.
+		 * @return {string} The manifest title, or '' when the def has none.
+		 */
+		getWidgetTitleSource(widgetId) {
+			return this.getWidgetDef(widgetId)?.title || ''
 		},
 
 		getWidgetTitle(item) {

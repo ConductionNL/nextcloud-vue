@@ -37,6 +37,18 @@ import { resolveFilterTokens } from './resolveFilterTokens.js'
 export const EXTENDS_FORM_KEY = 'x-openregister-extends-form'
 
 /**
+ * The vendor extension a driving property carries to prefill its siblings.
+ *
+ * Where `x-openregister-extends-form` adds NEW fields, this one fills fields
+ * the schema already declares. A case type knows the status a case of its
+ * kind starts in and who normally handles it, so a person should not have to
+ * retype what the chosen type already answers.
+ *
+ * @type {string}
+ */
+export const PREFILL_KEY = 'x-openregister-prefill'
+
+/**
  * Prefix that namespaces a dynamic field's key inside form data.
  *
  * Definition records are named by a functional admin, so a definition called
@@ -128,6 +140,100 @@ export function extendsFormDeclarations(schema) {
 }
 
 /**
+ * A definition's name as a person should read it.
+ *
+ * Definition names are typed by a functional admin, and in practice a good
+ * many arrive as identifiers rather than labels: real seeded data in dossiq
+ * carries `auditorsStatementThreshold` and `interimReportTermWeeks`, which
+ * render verbatim on a form a case handler is supposed to find friendly.
+ *
+ * Only an identifier-shaped name is touched. Anything containing a space is
+ * already a label someone wrote deliberately, and reformatting it would be
+ * this function deciding it knows better than the person who typed it.
+ *
+ * @param {string} name The definition's name.
+ * @return {string} The name, made readable when it was an identifier.
+ */
+function humaniseName(name) {
+	const value = String(name || '')
+	if (!value || value.includes(' ')) return value
+
+	const words = value
+		// `camelCase` and `snake_case` / `kebab-case` both become words. The
+		// lookahead pair keeps an acronym whole: `defaultBSNPolicy` splits to
+		// `default BSN Policy`, not `default B S N Policy`.
+		.replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+		.replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+		.replace(/[_-]+/g, ' ')
+		.trim()
+		.split(/\s+/)
+		.filter(Boolean)
+	if (words.length === 0) return value
+
+	// Sentence case, not Title Case: splitting `auditorsStatementThreshold`
+	// leaves each word capitalised, and shipping that would put a Title Case
+	// label on every form. An all-caps word is an acronym and keeps its shape.
+	const cased = words.map((word, index) => {
+		if (word.length > 1 && word === word.toUpperCase()) return word
+		const lower = word.toLowerCase()
+		return index === 0 ? lower.charAt(0).toUpperCase() + lower.slice(1) : lower
+	})
+
+	return cased.join(' ')
+}
+
+/**
+ * The schema's `x-openregister-prefill` declarations, in property order.
+ *
+ * A declaration needs a `fields` map to be worth acting on: without it there
+ * is nothing to copy, and returning it anyway would cost a fetch per change
+ * for no effect.
+ *
+ * @param {object} schema The schema object with a `properties` field.
+ * @return {Array<{key: string, config: object}>} The declarations, in property order.
+ */
+export function prefillDeclarations(schema) {
+	if (!schema || !schema.properties) return []
+	const out = []
+	for (const [key, prop] of Object.entries(schema.properties)) {
+		const config = prop && prop[PREFILL_KEY]
+		if (config && typeof config === 'object' && config.fields
+			&& Object.keys(config.fields).length > 0) {
+			out.push({ key, config })
+		}
+	}
+	return out
+}
+
+/**
+ * The values one chosen record offers its siblings.
+ *
+ * Reads `config.fields` as `{ targetProperty: sourceProperty }` and returns
+ * only the pairs the record can actually answer. A source field the record
+ * leaves empty yields nothing, so a case type with no default assignee
+ * prefills the status it does know and leaves the assignee alone, rather
+ * than blanking a value.
+ *
+ * @param {object} record The chosen record, as the API returned it.
+ * @param {object} config The `x-openregister-prefill` block (needs `fields`).
+ * @return {object} Target property keys mapped to the values to apply.
+ */
+export function prefillValues(record, config) {
+	const fields = (config && config.fields) || null
+	if (!record || !fields) return {}
+
+	const out = {}
+	for (const [target, source] of Object.entries(fields)) {
+		if (typeof source !== 'string' || !source) continue
+		const value = record[source]
+		if (value === undefined || value === null || value === '') continue
+		if (Array.isArray(value) && value.length === 0) continue
+		out[target] = value
+	}
+	return out
+}
+
+/**
  * The query parameters that fetch the definitions for one driving value.
  *
  * `config.definitions.filter` is token-resolved the way `x-relation-filter`
@@ -206,7 +312,7 @@ export function propertiesFromDefinitions(definitions, config = {}, options = {}
 
 		const prop = {
 			...base,
-			title: title || key,
+			title: humaniseName(title) || key,
 			// A definition record separates its short `definition` from its
 			// longer `description`; either may be absent, and an empty string
 			// must not become the helper text "undefined".

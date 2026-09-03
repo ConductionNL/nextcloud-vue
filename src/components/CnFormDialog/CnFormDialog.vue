@@ -21,6 +21,7 @@
 		<!-- Form phase -->
 		<div v-else
 			class="cn-form-dialog__form"
+			:class="{ 'cn-form-dialog__form--two-column': columns === 2 }"
 			data-testid="cn-modal"
 			data-testid-modal="cn-form-dialog"
 			data-testid-phase="form">
@@ -56,7 +57,8 @@
 					v-for="field in visibleFields"
 					:key="field.key"
 					:data-cn-field="field.key"
-					class="cn-form-dialog__field">
+					class="cn-form-dialog__field"
+					:class="{ 'cn-form-dialog__field--wide': fieldSpansBothColumns(field) }">
 					<!-- @slot field-{key} Replace one auto-generated field with your own control. -->
 					<!-- @binding {object} field The field definition. -->
 					<!-- @binding {*} value The field's current value. -->
@@ -449,11 +451,25 @@ import { shouldShow } from '../../utils/fieldCondition.js'
 import {
 	extendsFormDeclarations,
 	definitionQueryParams,
+	prefillDeclarations,
+	prefillValues,
 	propertiesFromDefinitions,
 	splitDynamicFormData,
 	DYNAMIC_KEY_PREFIX,
 } from '../../utils/dynamicProperties.js'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
+
+/**
+ * Widgets that take the full width of a two-column form.
+ *
+ * These are the multi-line ones: a textarea, the JSON editor and the code
+ * editor are unusable in half a dialog. Every other widget in the template's
+ * vocabulary (text, number, select, date, switch, checkbox and friends) is a
+ * single line and pairs happily.
+ *
+ * @type {string[]}
+ */
+const WIDE_WIDGETS = ['textarea', 'json', 'code']
 
 /**
  * OpenRegister semantic-type discovery endpoint (ADR-048). Resolves a
@@ -757,6 +773,25 @@ export default {
 			default: 'normal',
 		},
 
+		/**
+		 * How many columns the auto-generated fields flow into.
+		 *
+		 * `1` (the default) keeps every existing form exactly as it is. `2`
+		 * pairs the fields into two columns, which is worth it once a form
+		 * asks enough questions that the person has to scroll to see whether
+		 * there are more. Pair it with `size="large"`, or the two columns are
+		 * merely two narrow ones.
+		 *
+		 * A field whose widget needs the room (a textarea, a JSON editor)
+		 * spans both columns regardless. Below 700px the layout collapses
+		 * back to one column, so this is safe on a narrow screen.
+		 */
+		columns: {
+			type: Number,
+			default: 1,
+			validator: (value) => value === 1 || value === 2,
+		},
+
 		/** Success message. Defaults to "Item saved successfully." */
 		successText: {
 			type: String,
@@ -861,6 +896,12 @@ export default {
 			 * overwritten by the first pick's slower response.
 			 */
 			dynamicToken: '',
+			/**
+			 * The prefill signature the most recent prefill ran for. A slower
+			 * earlier fetch is discarded against this, the same way
+			 * `dynamicToken` guards the definitions fetch.
+			 */
+			prefillToken: '',
 		}
 	},
 
@@ -935,6 +976,32 @@ export default {
 		 */
 		dynamicDriverToken() {
 			return this.extendsDeclarations
+				.map(({ key }) => `${key}=${this.dynamicDriverValue(this.formData[key])}`)
+				.join('&')
+		},
+
+		/**
+		 * The schema's `x-openregister-prefill` declarations — properties
+		 * whose chosen record answers OTHER fields of this same form.
+		 *
+		 * Create mode only. In edit mode a blank field is a decision someone
+		 * already made about an existing record, and filling it because the
+		 * case type has an opinion would rewrite that decision on open.
+		 *
+		 * @return {Array<{key: string, config: object}>} The declarations.
+		 */
+		prefillDecls() {
+			if (this.fields || !this.isCreateMode) return []
+			return prefillDeclarations(this.schema)
+		},
+
+		/**
+		 * A stable signature of every prefilling property's current value.
+		 *
+		 * @return {string} The signature; changes drive a prefill.
+		 */
+		prefillDriverToken() {
+			return this.prefillDecls
 				.map(({ key }) => `${key}=${this.dynamicDriverValue(this.formData[key])}`)
 				.join('&')
 		},
@@ -1052,6 +1119,21 @@ export default {
 			handler(token) {
 				this.loadDynamicProperties(token)
 			},
+		},
+
+		/**
+		 * Prefill the fields the chosen record answers.
+		 *
+		 * NOT immediate, unlike the definitions watcher above. Immediate would
+		 * fire once on open with an empty driver and, worse, would run against
+		 * whatever `initialData` seeded — so a value a caller passed in
+		 * deliberately could be treated as "empty enough" on the very first
+		 * tick. Prefill is a response to a person choosing something.
+		 *
+		 * @param {string} token The new driver signature.
+		 */
+		prefillDriverToken(token) {
+			this.applyPrefill(token)
 		},
 
 		visibleFields(newFields, oldFields) {
@@ -2110,6 +2192,88 @@ export default {
 		},
 
 		/**
+		 * Whether a field takes the full width of a two-column form.
+		 *
+		 * A textarea or a JSON editor in a half-width column is worse than no
+		 * columns at all, and a checkbox pair reads as one control rather than
+		 * two. The list is deliberately about the WIDGET, not the field name,
+		 * so it needs no per-app configuration to behave.
+		 *
+		 * @param {object} field The resolved field.
+		 * @return {boolean} True when the field spans both columns.
+		 */
+		fieldSpansBothColumns(field) {
+			if (this.columns !== 2 || !field) return false
+			return WIDE_WIDGETS.includes(field.widget)
+		},
+
+		/**
+		 * Copy what the chosen record already answers into the empty fields
+		 * that ask the same question.
+		 *
+		 * Only empty targets are written. Someone who has typed a title before
+		 * picking a case type keeps their title, and switching case type after
+		 * that keeps it too: the field is no longer empty, so it is no longer
+		 * a candidate. That is the whole rule, and it is what makes the
+		 * feature safe to run on every change rather than only the first.
+		 *
+		 * A field the person deliberately cleared reads as empty and will be
+		 * filled again by the next change of case type. That is the accepted
+		 * cost of not tracking per-field provenance; the alternative is a
+		 * dirty-flag per field, which is a great deal of state for a case that
+		 * ends with the person clearing the field again.
+		 *
+		 * @param {string} token The prefill signature this run is for.
+		 * @return {Promise<void>}
+		 */
+		async applyPrefill(token) {
+			this.prefillToken = token
+			const active = this.prefillDecls
+				.filter(({ key }) => this.dynamicDriverValue(this.formData[key]) !== '')
+			if (active.length === 0) return
+
+			const store = this.getObjectStore()
+			if (!store) return
+
+			const resolved = {}
+			try {
+				for (const { key, config } of active) {
+					// The declaration may name its own schema; otherwise the
+					// picker's own `$ref` target is the record being chosen.
+					const field = this.resolvedFields.find((f) => f.key === key)
+					const schemaSlug = config.schema
+						|| (field && field.reference && field.reference.schema)
+					const register = config.register
+						|| (field ? this.referenceRegister(field) : this.register)
+					if (!schemaSlug || !register) continue
+
+					const slug = store.createObjectTypeSlug(register, schemaSlug)
+					if (!store.objectTypeRegistry[slug]) {
+						store.registerObjectType(slug, schemaSlug, register)
+					}
+					const record = await store.fetchObject(
+						slug,
+						this.dynamicDriverValue(this.formData[key]),
+					)
+					Object.assign(resolved, prefillValues(record, config))
+				}
+			} catch (err) {
+				// A prefill that fails leaves the person typing the values
+				// themselves, which is exactly where they were before.
+				console.error('CnFormDialog: could not prefill from this selection:', err)
+				return
+			}
+
+			if (this.prefillToken !== token) return
+			for (const [target, value] of Object.entries(resolved)) {
+				const current = this.formData[target]
+				const empty = current === null || current === undefined || current === ''
+					|| (Array.isArray(current) && current.length === 0)
+				if (empty) this.formData[target] = value
+			}
+		},
+
+		/**
 		 * Seed a newly-arrived dynamic field with its default, without
 		 * touching one the user (or the record) already answered.
 		 *
@@ -2611,6 +2775,41 @@ export default {
 
 .cn-form-dialog__field {
 	margin-bottom: 8px;
+}
+
+/* Two-column layout. The grid lives on a wrapper that only exists when
+   `columns` is 2, so a single-column form keeps its plain block flow and
+   cannot be reflowed by a rule meant for the other mode.
+
+   `min-width: 0` on the items is what stops a long select or a wide input
+   from pushing its column past its share: a grid item's default `auto`
+   minimum is its content, so without it one long option label widens the
+   whole column and the two stop being equal. */
+.cn-form-dialog__form--two-column {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	column-gap: 16px;
+	align-items: start;
+}
+
+.cn-form-dialog__form--two-column > * {
+	min-width: 0;
+}
+
+/* Anything that is not a field (the form-level error note, the slots above
+   and below the fields) spans the full width, so a note card never sits in
+   a half-width column beside an input. */
+.cn-form-dialog__form--two-column > :not(.cn-form-dialog__field),
+.cn-form-dialog__form--two-column > .cn-form-dialog__field--wide {
+	grid-column: 1 / -1;
+}
+
+/* A narrow viewport gets the single column back. Two columns of roughly
+   150px each are worse than one readable one. */
+@media (max-width: 700px) {
+	.cn-form-dialog__form--two-column {
+		display: block;
+	}
 }
 
 .cn-form-dialog__textarea-wrapper,

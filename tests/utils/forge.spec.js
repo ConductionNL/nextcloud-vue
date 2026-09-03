@@ -14,6 +14,7 @@ import {
 	resolveForge,
 	forgeDisplayName,
 	buildFeatureRequestUrl,
+	buildBugReportUrl,
 } from '../../src/utils/forge.js'
 
 const payload = {
@@ -141,5 +142,97 @@ describe('forge — buildFeatureRequestUrl (GitHub)', () => {
 		expect(u.searchParams.has('context')).toBe(false)
 		expect(u.searchParams.has('app')).toBe(false)
 		expect(u.searchParams.has('priority-to-you')).toBe(false)
+	})
+})
+
+describe('buildBugReportUrl', () => {
+	// Without `template` GitHub serves the BLANK issue form, so an
+	// in-product report arrives with none of the fields the triage flow
+	// expects (steps, expected/actual, severity). bug-report.yml resolves in
+	// every fleet repo via ConductionNL/.github's org-level defaults.
+	it('targets the bug-report issue form on GitHub', () => {
+		const u = new URL(buildBugReportUrl({ type: 'github' }, 'ConductionNL/pipelinq', { surface: 'dashboard:secrets' }))
+		expect(u.origin + u.pathname).toBe('https://github.com/ConductionNL/pipelinq/issues/new')
+		expect(u.searchParams.get('template')).toBe('bug-report.yml')
+	})
+
+	// THE POINT: a report filed from a French or Russian UI must be readable
+	// by a maintainer who does not speak it. The headline is the AUTHORED
+	// source string; the translated one is passed in and deliberately unused.
+	it('headlines the authored title, never the translated one', () => {
+		const u = new URL(buildBugReportUrl({ type: 'github' }, 'ConductionNL/keepiq', {
+			title: 'Recent activity', surface: 'widget:recent-activity-feed',
+			displayTitle: 'Activité récente',
+		}))
+		expect(u.searchParams.get('title')).toBe('[BUG] Recent activity')
+		expect(u.searchParams.get('title')).not.toContain('Activité')
+	})
+
+	// Cyrillic is the case that makes this non-negotiable: French or German a
+	// maintainer can usually muddle through, a script they cannot read is a
+	// dead issue.
+	it('headlines the authored title for a non-Latin UI language', () => {
+		const u = new URL(buildBugReportUrl({ type: 'github' }, 'ConductionNL/keepiq', {
+			title: 'Recent activity', surface: 'widget:recent-activity-feed',
+			displayTitle: 'Недавняя активность',
+		}))
+		expect(u.searchParams.get('title')).toBe('[BUG] Recent activity')
+	})
+
+	// No source string recoverable (a standalone widget, a detail page): the
+	// slug is English by construction, so it beats falling back to the
+	// translated prop.
+	it('falls back to the surface slug, not the display title', () => {
+		const u = new URL(buildBugReportUrl({ type: 'github' }, 'ConductionNL/keepiq', {
+			surface: 'dashboard:secrets', displayTitle: 'Секреты',
+		}))
+		expect(u.searchParams.get('title')).toBe('[BUG] dashboard:secrets')
+		expect(u.searchParams.get('title')).not.toContain('Секреты')
+	})
+
+	// The link is handed to a human and shows up in their address bar, so it
+	// carries the template and the title and nothing else. An earlier cut
+	// prefilled the `environment` field with app/route/surface/language/
+	// localized-title and reached ~400 characters of percent-encoding for
+	// information that was already implied. Prefilling that field also WIPED
+	// the form's own "- Namespace: / - Version: / - Browser:" skeleton, which
+	// the prefill then had to re-state verbatim just to break even.
+	it('prefills nothing beyond the template and the title', () => {
+		const u = new URL(buildBugReportUrl({ type: 'github' }, 'ConductionNL/keepiq', {
+			title: 'Recent activity', surface: 'widget:recent-activity-feed',
+		}))
+		expect([...u.searchParams.keys()].sort()).toEqual(['template', 'title'])
+		expect(u.searchParams.has('environment')).toBe(false)
+	})
+
+	it('stays short enough to read in an address bar', () => {
+		const url = buildBugReportUrl({ type: 'github' }, 'ConductionNL/keepiq', {
+			title: 'Applications awaiting approval', surface: 'widget:pending-apps-queue',
+		})
+		expect(url.length).toBeLessThan(150)
+	})
+
+	// A `title` param REPLACES the form's own `title: "[BUG] "` default, so
+	// the prefix has to be sent or deep-linked reports are the only ones in
+	// the tracker without it.
+	it('still produces a usable link with no context at all', () => {
+		const u = new URL(buildBugReportUrl({ type: 'github' }, 'ConductionNL/pipelinq'))
+		expect(u.searchParams.get('title')).toBe('[BUG] ')
+		expect(u.searchParams.get('template')).toBe('bug-report.yml')
+	})
+
+	// Forgejo/Gitea/Codeberg have no per-field deep-link; neither the template
+	// nor the environment prefill would render there.
+	it('omits the template and field prefill on a non-GitHub forge', () => {
+		const u = new URL(buildBugReportUrl({ type: 'codeberg' }, 'ConductionNL/pipelinq', { surface: 'dashboard:secrets' }))
+		expect(u.origin + u.pathname).toBe('https://codeberg.org/ConductionNL/pipelinq/issues/new')
+		expect(u.searchParams.has('template')).toBe(false)
+		expect(u.searchParams.has('environment')).toBe(false)
+		expect(u.searchParams.get('title')).toBe('[BUG] dashboard:secrets')
+	})
+
+	it('falls back to the fleet default forge when none is given', () => {
+		const u = new URL(buildBugReportUrl(null, 'ConductionNL/pipelinq', { title: 'x' }))
+		expect(u.origin).toBe(FORGE_DEFAULT_BASE_URLS[DEFAULT_FORGE.type])
 	})
 })

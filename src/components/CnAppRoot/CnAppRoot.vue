@@ -642,7 +642,7 @@ import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { useObjectStore } from '../../store/index.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
-import { DEFAULT_FORGE } from '../../utils/forge.js'
+import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 import { installModalStack, uninstallModalStack } from '../../utils/modalStack.js'
 import { RegistryKindError } from '../../errors/RegistryKindError.js'
 
@@ -872,10 +872,10 @@ export default {
 			cnAppId: this.appId,
 			/**
 			 * Target repo slug for the in-product feature-request deep
-			 * link (e.g. `Conduction/pipelinq`). Read from the
+			 * link (e.g. `ConductionNL/pipelinq`). Read from the
 			 * manifest's `nav.featureRequestRepo` when set; falls back
-			 * to `Conduction/<appId>` which is the convention for
-			 * every Conduction app on Codeberg.
+			 * to `ConductionNL/<appId>` which is the convention for
+			 * every Conduction app on GitHub.
 			 */
 			cnFeatureRequestRepo: this.resolvedFeatureRequestRepo,
 			/**
@@ -1956,16 +1956,21 @@ export default {
 				|| ('https://apps.nextcloud.com/apps/' + this.appId)
 		},
 		/**
-		 * Feature-request URL — host override, else the conventional
-		 * `codeberg.org/Conduction/{appId}/issues/new`. The fleet's source
-		 * of truth moved from GitHub to Codeberg (org `ConductionNL` →
-		 * `Conduction`); Codeberg resolves repo-name casing.
+		 * Feature-request URL — host override, else the new-issue link on
+		 * the app's own forge. Derived from the SAME resolved repo and
+		 * forge the actions menu uses, rather than a second hardcoded
+		 * host: this spelled out `codeberg.org/Conduction/{appId}` and so
+		 * kept pointing at the unmaintained mirror after the fleet moved
+		 * back to GitHub, while the menu's link had already moved.
 		 *
 		 * @return {string}
 		 */
 		cnSupportFeatureRequestUrl() {
-			return this.cnSupportConfig.featureRequestUrl
-				|| ('https://codeberg.org/Conduction/' + this.appId + '/issues/new')
+			if (this.cnSupportConfig.featureRequestUrl) {
+				return this.cnSupportConfig.featureRequestUrl
+			}
+			const { baseUrl } = resolveForge(this.resolvedFeatureRequestForge)
+			return `${baseUrl}/${this.resolvedFeatureRequestRepo}/issues/new`
 		},
 		/**
 		 * Pass-through of any other `CnSupportDialog` props supplied in
@@ -2429,11 +2434,20 @@ export default {
 		 * Repo target for the built-in feature-request deep link.
 		 * Provided to descendants under the `cnFeatureRequestRepo`
 		 * inject key. Reads `manifest.nav.featureRequestRepo` when set;
-		 * falls back to `Conduction/<appId>` — the convention for every
-		 * Conduction app on Codeberg (the org slug is `Conduction`, vs
-		 * `ConductionNL` on the old GitHub org). Returns empty string
-		 * when no `appId` is available (defensive — should never happen
-		 * since `appId` is a required prop).
+		 * falls back to `ConductionNL/<appId>` — the convention for
+		 * every Conduction app on GitHub, which is where DEFAULT_FORGE
+		 * points. The fallback used the Codeberg org slug `Conduction`
+		 * while the forge default was Codeberg; the forge moved back to
+		 * GitHub and this did not, so every app that configures nothing
+		 * — which is every app, no fleet manifest sets
+		 * `nav.featureRequestRepo` — resolved to a github.com org that
+		 * does not exist. Deriving it from `appId` is what keeps this
+		 * right per app: no consumer hardcodes its own slug, and an app
+		 * whose repo is named differently sets the manifest field.
+		 * GitHub resolves repo-name casing, so a lowercase `appId`
+		 * reaches a CamelCase repo. Returns empty string when no
+		 * `appId` is available (defensive — should never happen since
+		 * `appId` is a required prop).
 		 *
 		 * @return {string}
 		 */
@@ -2441,7 +2455,7 @@ export default {
 			const explicit = this.manifest?.nav?.featureRequestRepo
 			if (typeof explicit === 'string' && explicit.length > 0) return explicit
 			if (!this.appId) return ''
-			return `Conduction/${this.appId}`
+			return `ConductionNL/${this.appId}`
 		},
 		/**
 		 * Forge config for the built-in feature-request deep link,
