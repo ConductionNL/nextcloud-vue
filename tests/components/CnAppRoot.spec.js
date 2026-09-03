@@ -174,6 +174,38 @@ describe('CnAppRoot', () => {
 			expect(wrapper.find('.stub.NcAppNavigation').exists()).toBe(false)
 		})
 
+		it('hands the #menu slot the props CnAppNav needs, isAdmin included', () => {
+			// The slot used to carry no scope at all, so an override that
+			// wrapped CnAppNav could pass only `manifest`. `isAdmin` then
+			// defaulted to false and the Admin-settings entry rendered for
+			// nobody. Openregister shipped that way until its own e2e caught
+			// it, so this asserts the bindings exist rather than the rendering.
+			let seen = null
+			mount(CnAppRoot, {
+				propsData: {
+					manifest: baseManifest,
+					appId: 'myapp',
+					customComponents: {},
+					translate: (k) => k,
+					requiresApps: [],
+				},
+				mocks: { $route: { name: 'home' } },
+				stubs: { 'router-view': { template: '<div class="router-view-stub" />' } },
+				scopedSlots: {
+					menu(props) {
+						seen = props
+						return h('div', { class: 'custom-menu' })
+					},
+				},
+			})
+
+			expect(seen).not.toBeNull()
+			expect(Object.keys(seen)).toEqual(
+				expect.arrayContaining(['manifest', 'permissions', 'isOwner', 'isAdmin', 'appId']),
+			)
+			expect(typeof seen.isAdmin).toBe('boolean')
+		})
+
 		it('falls back to CnAppNav when no #menu slot is given', () => {
 			const wrapper = mountRoot()
 			// NcAppNavigation stub renders — confirms CnAppNav was used
