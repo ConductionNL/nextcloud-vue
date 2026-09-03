@@ -11,6 +11,8 @@
  * @spec hydra openspec/architecture/adr-114-app-chrome-is-seven-items.md
  */
 
+import { getCurrentUser } from '@nextcloud/auth'
+import { showSuccess } from '@nextcloud/dialogs'
 import { flushPromises, mount } from '@vue/test-utils'
 
 import CnStorePage from '../../src/components/CnStorePage/CnStorePage.vue'
@@ -25,9 +27,6 @@ jest.mock('@nextcloud/dialogs', () => ({
 jest.mock('@nextcloud/router', () => ({
 	generateUrl: (p) => p,
 }))
-
-const { getCurrentUser } = require('@nextcloud/auth')
-const { showSuccess } = require('@nextcloud/dialogs')
 
 const BUILT_IN = [
 	{ slug: 'starter', title: 'Starter template', description: 'Ships with the app.' },
