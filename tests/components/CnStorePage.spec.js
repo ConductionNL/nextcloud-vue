@@ -63,6 +63,39 @@ describe('CnStorePage', () => {
 		getCurrentUser.mockReturnValue({ uid: 'admin', isAdmin: true })
 	})
 
+	it('prefers the built-in items the ENGINE served over the page config', async () => {
+		// An app declares these ONCE, in its `store` manifest block. The prop
+		// is a second place to write the same list, and an app that declared
+		// them only in the manifest used to render nothing: the engine parsed
+		// them and never sent them. Mirrors how served `kinds` already wins.
+		stubFetch({
+			outcome: 'ok',
+			cards: [],
+			builtIn: [
+				{ slug: 'municipality', title: 'Municipality' },
+				{ slug: 'association', title: 'Association or VvE' },
+				{ slug: 'corporate', title: 'Company board' },
+				{ slug: 'works-council', title: 'Works council' },
+			],
+		})
+
+		const wrapper = mountPage({ builtIn: [{ slug: 'from-config', title: 'From page config' }] })
+		await flushPromises()
+
+		expect(wrapper.vm.visibleBuiltIn).toHaveLength(4)
+		expect(wrapper.vm.visibleBuiltIn[0].slug).toBe('municipality')
+	})
+
+	it('falls back to the page config when the engine serves no built-ins', async () => {
+		stubFetch({ outcome: 'ok', cards: [] })
+
+		const wrapper = mountPage({ builtIn: [{ slug: 'from-config', title: 'From page config' }] })
+		await flushPromises()
+
+		expect(wrapper.vm.visibleBuiltIn).toHaveLength(1)
+		expect(wrapper.vm.visibleBuiltIn[0].slug).toBe('from-config')
+	})
+
 	it('still shows what the app ships when the store answers ok with nothing', async () => {
 		// ADR-080 Decision 4: a surface that goes blank was never a store. A
 		// configured registry that has published nothing yet answers `ok` with

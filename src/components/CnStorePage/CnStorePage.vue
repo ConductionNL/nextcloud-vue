@@ -290,6 +290,10 @@ export default {
 			// block. Null until the first response, so "not asked yet" stays
 			// distinguishable from "the app declares none".
 			servedKinds: null,
+			// The built-in items the ENGINE served, from the app's `store`
+			// manifest block. Null until the first response, so "not asked
+			// yet" stays distinguishable from "the app declares none".
+			servedBuiltIn: null,
 		}
 	},
 
@@ -411,6 +415,28 @@ export default {
 		visibleBuiltIn() {
 			if (this.offline === false && this.unreachable === false && this.cards.length > 0) {
 				return []
+			}
+
+			return this.effectiveBuiltIn
+		},
+
+		/**
+		 * The app's own items, preferring what the ENGINE served over the page
+		 * config.
+		 *
+		 * An app declares these ONCE, in its `store` manifest block beside the
+		 * allowlist, which is where the schema documents them. The `builtIn`
+		 * PROP is a second place to write the same list, and an app that
+		 * declared them only in the manifest used to render nothing: the
+		 * engine parsed them and never sent them.
+		 *
+		 * Mirrors `effectiveKinds` exactly, for the same reason.
+		 *
+		 * @return {Array<object>} The items to render.
+		 */
+		effectiveBuiltIn() {
+			if (Array.isArray(this.servedBuiltIn) && this.servedBuiltIn.length > 0) {
+				return this.servedBuiltIn
 			}
 
 			return this.builtIn
@@ -549,6 +575,10 @@ export default {
 				// not_configured and store_unreachable, so the filters survive
 				// a registry that is down.
 				this.servedKinds = Array.isArray(body.kinds) ? body.kinds : null
+				// Same contract as `kinds`: present on every arm the engine
+				// answers, so an app's own items survive a registry that is
+				// down — which is exactly when they are all there is to show.
+				this.servedBuiltIn = Array.isArray(body.builtIn) ? body.builtIn : null
 			} catch {
 				this.outcome = 'store_unreachable'
 				this.cards = []
