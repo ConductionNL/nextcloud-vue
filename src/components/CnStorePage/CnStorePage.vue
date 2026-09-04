@@ -390,13 +390,26 @@ export default {
 		},
 
 		/**
-		 * The app's own items, shown only when the remote list is not the
-		 * primary surface. Not a network call, and not a Store on their own.
+		 * The app's own items, shown whenever the remote list is not carrying
+		 * the page. Not a network call, and not a Store on their own.
+		 *
+		 * 🔴 AN EMPTY ANSWER IS STILL AN EMPTY PAGE. This used to hide the
+		 * built-ins whenever the engine answered at all, checking only
+		 * `not_configured` and the error outcomes. A federated store that
+		 * answers `ok` with zero cards — a configured registry that has
+		 * published nothing yet — then rendered a heading, a search box and
+		 * nothing else, while the app shipped four items it could have shown.
+		 * Measured on decidiq, whose store returns `ok` with 0 cards and 4
+		 * built-ins declared.
+		 *
+		 * ADR-080 Decision 4 is explicit that a surface which goes blank was
+		 * never a store, so the test is what the reader can SEE, not which
+		 * outcome the engine reported.
 		 *
 		 * @return {Array<object>} The built-in items to render.
 		 */
 		visibleBuiltIn() {
-			if (this.offline === false && this.unreachable === false) {
+			if (this.offline === false && this.unreachable === false && this.cards.length > 0) {
 				return []
 			}
 

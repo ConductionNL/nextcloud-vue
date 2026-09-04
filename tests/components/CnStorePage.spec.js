@@ -63,6 +63,37 @@ describe('CnStorePage', () => {
 		getCurrentUser.mockReturnValue({ uid: 'admin', isAdmin: true })
 	})
 
+	it('still shows what the app ships when the store answers ok with nothing', async () => {
+		// ADR-080 Decision 4: a surface that goes blank was never a store. A
+		// configured registry that has published nothing yet answers `ok` with
+		// zero cards, and the built-ins used to be hidden for any answer at
+		// all — so decidiq, which declares four, rendered a heading, a search
+		// box and nothing else.
+		stubFetch({ outcome: 'ok', cards: [] })
+
+		const wrapper = mountPage({
+			builtIn: [
+				{ slug: 'municipality', title: 'Municipality', description: 'A council.' },
+				{ slug: 'association', title: 'Association or VvE', description: "A members' meeting." },
+			],
+		})
+		await flushPromises()
+
+		expect(wrapper.vm.visibleBuiltIn).toHaveLength(2)
+		expect(wrapper.find('[data-testid="store-builtin"]').exists()).toBe(true)
+	})
+
+	it('hides the built-ins once the remote actually offers something', async () => {
+		stubFetch({ outcome: 'ok', cards: [{ slug: 'remote-thing', title: 'Remote thing' }] })
+
+		const wrapper = mountPage({
+			builtIn: [{ slug: 'municipality', title: 'Municipality' }],
+		})
+		await flushPromises()
+
+		expect(wrapper.vm.visibleBuiltIn).toHaveLength(0)
+	})
+
 	it('addresses the declaring app, and only the declaring app', async () => {
 		const urls = []
 		stubFetch({ outcome: 'ok', cards: [] }, urls)
