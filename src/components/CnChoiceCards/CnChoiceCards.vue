@@ -218,6 +218,13 @@ export default {
 				return
 			}
 			if (!this.multiple) {
+				/**
+				 * @event update:modelValue The selection changed. Carries the
+				 *   option's VALUE, or the array of values when `multiple` —
+				 *   never the option object, so a parent can hand back what it
+				 *   receives as `modelValue`.
+				 * @type {string|number|boolean|Array}
+				 */
 				this.$emit('update:modelValue', option.value)
 				return
 			}
