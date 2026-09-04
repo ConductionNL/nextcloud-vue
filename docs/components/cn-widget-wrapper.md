@@ -76,7 +76,7 @@ Container shell around a dashboard widget. Provides a header with icon and title
 
 - **Refresh** — **shown only when it will do something.** `showRefresh` is tri-state: `true`/`false` force it on/off, and the default (`null`) is **auto** — the item renders only when a parent has attached an `@refresh` listener. This prevents dead buttons on widgets that can't refresh (e.g. a prop-driven `CnObjectDataWidget`) and on detail-page auto-body widgets where the page owns refresh. A widget that wants a manual Refresh while refreshing itself via the bus (no `@refresh` listener) can set `:show-refresh="true"` explicitly. When shown and clicked it emits `@refresh`, then (unless the host listener calls `event.preventDefault()`) emits on the `@nextcloud/event-bus` channel `cn:widget:refresh` with payload `{ widgetId, title }`.
 - **Documentation** — rendered only when a `documentationUrl` is supplied. Opens the host-provided link in a new tab (`target="_blank"`, `rel="noopener noreferrer"`); no JS handler. Apps pass the URL from the widget configuration (`:documentation-url="widget.documentationUrl"`); customise the wording with `documentationLabel`.
-- **Request a feature** — on by default; emits `@request-feature`, then (unless suppressed) auto-mounts `CnSuggestFeatureModal` with `app + page + surface=widget:<id>` context auto-filled from `CnAppRoot` injects. The host can override the default by binding `@request-feature` and calling `event.preventDefault()` to handle it themselves.
+- **Request a feature** — on by default; emits `@request-feature`, then (unless suppressed) opens the forge's feature-request issue form in a new tab with the `widget:<id>` surface as its English headline, built from the `CnAppRoot` injects. The host can override the default by binding `@request-feature` and calling `event.preventDefault()` to handle it themselves.
 
 Force Refresh on/off per-instance with `:show-refresh="true"`/`:show-refresh="false"` (the legacy `hide-refresh` alias still opts out for back-compat); opt out of Request-a-feature with `:show-request-feature="false"` (the legacy `hide-request-feature` alias also still works). When everything is hidden — Refresh auto-hidden or opted out, Request-a-feature opted out, no `documentationUrl`, and no `#action-items` slot content — the overflow menu disappears entirely. To drop the entire actions area in one go — e.g. on a compact KPI tile whose only header affordance is a date chip — set `:show-actions="false"`.
 
@@ -176,7 +176,7 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `specRef` | String | `''` | Forwarded to the auto-mounted CnSuggestFeatureModal so the resulting issue links to the widget's spec capability. |
+| `specRef` | String | `''` | Accepted for backward compatibility with the removed in-product suggestion modal; no longer forwarded. |
 | `documentationUrl` | String | `''` | When set, renders a **Documentation** item in the overflow menu that opens this link in a new tab. Empty hides it. |
 | `documentationLabel` | String | `t('Documentation')` | Pre-translated label for the Documentation action. |
 | `refreshLabel` | String | `t('Refresh')` | Pre-translated label for the Refresh action. |

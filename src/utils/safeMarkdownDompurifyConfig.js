@@ -3,8 +3,8 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  *
  * safeMarkdownDompurifyConfig — frozen DOMPurify config used everywhere
- * `@conduction/nextcloud-vue` renders untrusted markdown (GitHub issue bodies,
- * the live-preview pane in `SuggestFeatureModal`, etc.).
+ * `@conduction/nextcloud-vue` renders untrusted markdown (GitHub issue
+ * bodies on the roadmap tab, etc.).
  *
  * Disallows: `<script>`, all `on*` event-handler attributes, `javascript:`
  * URLs, `<iframe>`, `<style>`. Anchors keep `href`, `target`, `rel`.

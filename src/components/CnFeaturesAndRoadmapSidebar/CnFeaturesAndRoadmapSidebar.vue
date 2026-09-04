@@ -133,9 +133,10 @@ export default {
 		 * Optional override for the Suggest CTA. When set, the CTA renders
 		 * as an anchor pointing at this URL — appropriate when the app
 		 * routes feature suggestions through a public form, a Discord
-		 * channel, or any non-forge target. When empty (default) the CTA
-		 * is a button that emits `@suggest`, which the parent view binds
-		 * to `CnSuggestFeatureModal`'s forge deep-link. External URLs
+		 * channel, or any non-forge target. The hosting view now always
+		 * passes a URL (the forge's feature-request issue form by
+		 * default), so the empty-string button-that-emits-`@suggest` path
+		 * is a legacy fallback for standalone mounts. External URLs
 		 * (matching `^https?://`) open in a new tab.
 		 * @type {string}
 		 */
@@ -175,10 +176,10 @@ export default {
 		emitSuggest() {
 			/**
 			 * @event suggest Emitted when the user clicks the Suggest-feature
-			 *   CTA inside the sidebar (only when `suggestUrl` is empty).
-			 *   The parent view binds this to its `openSuggestModal` so a
-			 *   single `CnSuggestFeatureModal` serves the page header CTA
-			 *   and the sidebar text-CTA.
+			 *   CTA inside the sidebar (only when `suggestUrl` is empty —
+			 *   a legacy path: the hosting view now always passes the
+			 *   forge's feature-request form URL, rendering the CTA as an
+			 *   anchor instead).
 			 */
 			this.$emit('suggest')
 		},

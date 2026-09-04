@@ -118,90 +118,44 @@ export function forgeDisplayName(type) {
 }
 
 /**
- * Assemble the structured fields into a Markdown issue body for forges that
- * only support `title` + `body` prefill (Forgejo/Gitea/Codeberg).
+ * Build the "request a feature" new-issue deep-link for the given forge.
  *
- * @param {object} p Field + context payload (see buildFeatureRequestUrl).
- * @return {string} Markdown body.
- */
-function buildMarkdownBody(p) {
-	const sections = [
-		['Problem', p.problem],
-		['Proposed solution', p.proposedSolution],
-		['Who benefits', p.whoBenefits],
-		['How important is this to you?', p.priorityToYou],
-		['Anything else?', p.anythingElse],
-	]
-	const lines = []
-	for (const [heading, value] of sections) {
-		const v = (value || '').trim()
-		if (!v) continue
-		lines.push(`## ${heading}`, '', v, '')
-	}
-
-	const ctx = p.context || {}
-	const ctxItems = [
-		['App', ctx.app],
-		['Page', ctx.page],
-		['Surface', ctx.surface],
-		['Object', ctx.object],
-		['Spec ref', ctx.specRef],
-	].filter(([, v]) => (v || '').trim())
-	if (ctxItems.length) {
-		lines.push('---', '')
-		for (const [label, v] of ctxItems) {
-			lines.push(`- **${label}:** ${v.trim()}`)
-		}
-	}
-	return lines.join('\n').trim()
-}
-
-/**
- * Build the "new issue" deep-link for the given forge.
+ * Mirrors buildBugReportUrl deliberately (team decision, 2026-09-04): the
+ * in-product suggestion form is gone, and Request-a-feature sends the user
+ * straight to the forge's feature-request issue FORM, exactly like Report a
+ * bug. The forge is where the whole conversation happens in English — the
+ * form's own fields ask the structured questions the in-product modal used
+ * to ask, and asking for English belongs in that form (the org-level
+ * feature-request.yml), which every requester sees.
+ *
+ * Only `template` and `title` are prefilled. A query parameter REPLACES an
+ * issue-form field's default value rather than appending to it, so
+ * prefilling any content field would wipe the form's own skeleton (see
+ * buildBugReportUrl for the history of that lesson). The headline is the
+ * AUTHORED (untranslated) title when one can be recovered, else the surface
+ * slug — English by construction, never the translated display title.
  *
  * @param {{type?: string, baseUrl?: string}} forge Forge config (resolved internally).
  * @param {string} repo `<owner>/<repo>` slug on the forge.
- * @param {object} payload Suggestion payload.
- * @param {string} payload.title Short summary (without the [FEATURE] prefix).
- * @param {string} payload.problem What the user can't do today.
- * @param {string} payload.proposedSolution How the user would like it to work.
- * @param {string} payload.whoBenefits Which role/workflow this serves.
- * @param {string} payload.priorityToYou Resolved priority string.
- * @param {string} [payload.anythingElse] Optional extra context.
- * @param {object} [payload.context] Auto-captured surface context.
- * @param {string} [payload.context.app] Host app id.
- * @param {string} [payload.context.page] Manifest page id + route.
- * @param {string} [payload.context.surface] Active widget/modal/tab.
- * @param {string} [payload.context.object] Register · Schema · UUID viewed.
- * @param {string} [payload.context.specRef] Capability slug the surface belongs to.
+ * @param {object} [payload] Optional context. Every field is optional; the
+ *   link stays valid with none of them.
+ * @param {string} [payload.title] The surface's AUTHORED (untranslated) title.
+ * @param {string} [payload.surface] Stable surface slug, e.g. `dashboard:secrets`.
+ *   Used as the headline only when no authored title can be recovered.
  * @return {string} Absolute URL safe to pass to window.open.
  */
-export function buildFeatureRequestUrl(forge, repo, payload) {
+export function buildFeatureRequestUrl(forge, repo, payload = {}) {
 	const { type, baseUrl } = resolveForge(forge)
-	const title = `[FEATURE] ${(payload.title || '').trim()}`
 	const params = new URLSearchParams()
 
-	if (type === 'github') {
-		// GitHub Issue Form: one query param per form-field id.
-		const ctx = payload.context || {}
-		params.set('template', ISSUE_FORM_TEMPLATE)
-		params.set('title', title)
-		params.set('problem', (payload.problem || '').trim())
-		params.set('proposed-solution', (payload.proposedSolution || '').trim())
-		params.set('who-benefits', (payload.whoBenefits || '').trim())
-		if (payload.priorityToYou) params.set('priority-to-you', payload.priorityToYou)
-		if ((payload.anythingElse || '').trim()) params.set('context', payload.anythingElse.trim())
-		if (ctx.app) params.set('app', ctx.app)
-		if (ctx.page) params.set('page', ctx.page)
-		if (ctx.surface) params.set('surface', ctx.surface)
-		if (ctx.object) params.set('object', ctx.object)
-		if (ctx.specRef) params.set('spec-ref', ctx.specRef)
-		return `${baseUrl}/${repo}/issues/new?${params.toString()}`
-	}
+	const headline = (payload.title || '').trim()
+		|| (payload.surface || '').trim()
 
-	// Forgejo / Gitea / Codeberg: only title + body are supported.
-	params.set('title', title)
-	params.set('body', buildMarkdownBody(payload))
+	if (type === 'github') {
+		params.set('template', ISSUE_FORM_TEMPLATE)
+	}
+	params.set('title', headline ? `[FEATURE] ${headline}` : '[FEATURE] ')
+
 	return `${baseUrl}/${repo}/issues/new?${params.toString()}`
 }
 

@@ -1,3 +1,4 @@
+import { translate as t } from '@nextcloud/l10n'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
@@ -15,18 +16,23 @@ import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
  *   delete), each `{label, icon, handler}` — delete additionally `destructive`.
  */
 export function buildDefaultActions({ flags, viewIcon, handlers }) {
+	// t() at BUILD-actions time, not module time: the labels were string
+	// literals for the menu's whole life, which is why Edit/Copy/Delete
+	// rendered in English in every locale despite their catalog entries
+	// having existed all along. Runs after registerTranslations(), so the
+	// consuming app's language is already resolved.
 	const out = []
 	if (flags.view) {
-		out.push({ label: 'View', icon: viewIcon, handler: handlers.onView })
+		out.push({ label: t('nextcloud-vue', 'View'), icon: viewIcon, handler: handlers.onView })
 	}
 	if (flags.edit) {
-		out.push({ label: 'Edit', icon: Pencil, handler: handlers.onEdit })
+		out.push({ label: t('nextcloud-vue', 'Edit'), icon: Pencil, handler: handlers.onEdit })
 	}
 	if (flags.copy) {
-		out.push({ label: 'Copy', icon: ContentCopy, handler: handlers.onCopy })
+		out.push({ label: t('nextcloud-vue', 'Copy'), icon: ContentCopy, handler: handlers.onCopy })
 	}
 	if (flags.del) {
-		out.push({ label: 'Delete', icon: TrashCanOutline, destructive: true, handler: handlers.onDelete })
+		out.push({ label: t('nextcloud-vue', 'Delete'), icon: TrashCanOutline, destructive: true, handler: handlers.onDelete })
 	}
 	return out
 }

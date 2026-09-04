@@ -346,6 +346,84 @@ describe('CnAppNav', () => {
 			const a = wrapper.vm.visibleItems.find((i) => i.id === 'a')
 			expect(wrapper.vm.visibleChildren(a)).toEqual([])
 		})
+
+		// `order` on a CHILD used to be accepted, documented and ignored: this
+		// method filtered and never sorted. The declared array below is in the
+		// order `applyMenuRelocations()` actually produces — it walks the menu
+		// backwards and appends each move, so a group's relocated children land
+		// in REVERSE manifest order. Pipelinq's Customer Support group read
+		// "Projecten, My Work, Queue, Tasks, All tickets" against declared
+		// orders of 55, 20, 10, 60, 50.
+		it('sorts children by order, not by array position', () => {
+			const manifest = {
+				version: '1.0.0',
+				pages: [],
+				menu: [
+					{
+						id: 'group',
+						label: 'app.group',
+						order: 1,
+						children: [
+							{ id: 'projects', label: 'app.projects', route: 'projects', order: 55 },
+							{ id: 'mywork', label: 'app.mywork', route: 'mywork', order: 20 },
+							{ id: 'queue', label: 'app.queue', route: 'queue', order: 10 },
+							{ id: 'tasks', label: 'app.tasks', route: 'tasks', order: 60 },
+							{ id: 'tickets', label: 'app.tickets', route: 'tickets', order: 50 },
+						],
+					},
+				],
+			}
+			const wrapper = mountNav({ manifest, useProps: true })
+			const group = wrapper.vm.visibleItems.find((i) => i.id === 'group')
+
+			expect(wrapper.vm.visibleChildren(group).map((c) => c.id)).toEqual([
+				'queue', 'mywork', 'tickets', 'projects', 'tasks',
+			])
+		})
+
+		it('renders children without an order last, keeping their relative order', () => {
+			const manifest = {
+				version: '1.0.0',
+				pages: [],
+				menu: [
+					{
+						id: 'group',
+						label: 'app.group',
+						order: 1,
+						children: [
+							{ id: 'first-unordered', label: 'app.u1', route: 'u1' },
+							{ id: 'ordered', label: 'app.o', route: 'o', order: 5 },
+							{ id: 'second-unordered', label: 'app.u2', route: 'u2' },
+						],
+					},
+				],
+			}
+			const wrapper = mountNav({ manifest, useProps: true })
+			const group = wrapper.vm.visibleItems.find((i) => i.id === 'group')
+
+			expect(wrapper.vm.visibleChildren(group).map((c) => c.id)).toEqual([
+				'ordered', 'first-unordered', 'second-unordered',
+			])
+		})
+
+		// Sorting a filtered copy must not reorder the caller's manifest: the
+		// same array is read by route resolution and the walkthrough targets.
+		it('does not mutate the manifest children array', () => {
+			const children = [
+				{ id: 'b', label: 'app.b', route: 'b', order: 2 },
+				{ id: 'a', label: 'app.a', route: 'a', order: 1 },
+			]
+			const manifest = {
+				version: '1.0.0',
+				pages: [],
+				menu: [{ id: 'group', label: 'app.group', order: 1, children }],
+			}
+			const wrapper = mountNav({ manifest, useProps: true })
+			const group = wrapper.vm.visibleItems.find((i) => i.id === 'group')
+			wrapper.vm.visibleChildren(group)
+
+			expect(children.map((c) => c.id)).toEqual(['b', 'a'])
+		})
 	})
 
 	describe('props vs inject', () => {

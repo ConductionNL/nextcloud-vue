@@ -20,7 +20,16 @@
 						</template>
 						{{ toggleLabel }}
 					</NcButton>
-					<NcButton variant="primary" @click="openSuggestModal">
+					<!-- Direct link to the forge's feature-request issue form
+					     (team decision 2026-09-04: the in-product suggestion
+					     modal is gone — the forge is where the conversation
+					     happens, in English). -->
+					<NcButton
+						v-if="resolvedSuggestUrl"
+						variant="primary"
+						:href="resolvedSuggestUrl"
+						target="_blank"
+						rel="noopener noreferrer">
 						<template #icon>
 							<Plus :size="20" />
 						</template>
@@ -45,14 +54,6 @@
 				<CnFeaturesTab v-if="activeView === 'features'" :features="features" />
 				<CnRoadmapTab v-else :repo="repo" />
 			</main>
-
-			<CnSuggestFeatureModal
-				v-if="showSuggestModal"
-				:repo="repo"
-				:forge="forge"
-				:spec-ref="suggestModalSpecRef"
-				@submitted="onSubmitted"
-				@close="showSuggestModal = false" />
 
 			<CnSupportDialog
 				v-if="showSupportDialog"
@@ -85,9 +86,10 @@
  * When mounted under CnAppRoot the view publishes
  * `CnFeaturesAndRoadmapSidebar` + props into the holder on mounted()
  * and clears it on beforeUnmount(). Sidebar carries four pitch
- * sections: Suggest, OpenBuilt, LLM, Support. Suggest emits `@suggest`
- * (forwarded to the modal opener); Support emits `@support` (forwarded
- * to a freshly-mounted `CnSupportDialog`).
+ * sections: Suggest, OpenBuilt, LLM, Support. Suggest renders as an
+ * anchor to the forge's feature-request issue form (`resolvedSuggestUrl`
+ * is always passed); Support emits `@support` (forwarded to a
+ * freshly-mounted `CnSupportDialog`).
  *
  * Sidebar link targets are overridable via the `openbuiltUrl` and
  * `llmSkillsUrl` props. Defaults: in-instance `/apps/openbuilt` (via
@@ -105,11 +107,9 @@ import RoadVariant from 'vue-material-design-icons/RoadVariant.vue'
 
 import CnFeaturesTab from '../CnFeaturesTab/CnFeaturesTab.vue'
 import CnRoadmapTab from '../CnRoadmapTab/CnRoadmapTab.vue'
-import CnSuggestFeatureModal from '../CnSuggestFeatureModal/CnSuggestFeatureModal.vue'
 import CnFeaturesAndRoadmapSidebar from '../CnFeaturesAndRoadmapSidebar/CnFeaturesAndRoadmapSidebar.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
-import { useSpecRef } from '../../composables/useSpecRef.js'
-import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
+import { buildFeatureRequestUrl, DEFAULT_FORGE } from '../../utils/forge.js'
 
 const DEFAULT_OPENBUILT_PATH = '/apps/openbuilt'
 const DEFAULT_LLM_SKILLS_URL = 'https://docs.conduction.nl/ai-skills'
@@ -131,7 +131,6 @@ export default {
 		RoadVariant,
 		CnFeaturesTab,
 		CnRoadmapTab,
-		CnSuggestFeatureModal,
 		CnSupportDialog,
 	},
 
@@ -162,10 +161,10 @@ export default {
 			required: true,
 		},
 		/**
-		 * Target forge for the feature-request deep-link, forwarded to
-		 * `CnSuggestFeatureModal` and used to derive the support dialog's
-		 * feature-request URL. Defaults to Codeberg; set `{type: 'github'}`
-		 * (optionally with `baseUrl`) to switch forge.
+		 * Target forge the feature-request deep-links are built against
+		 * (the Suggest CTA and the support dialog's feature-request URL).
+		 * Set `{type: 'github'}` (optionally with `baseUrl`) to switch
+		 * forge.
 		 * @type {{type: 'codeberg'|'forgejo'|'gitea'|'github', baseUrl?: string}}
 		 */
 		forge: {
@@ -213,8 +212,8 @@ export default {
 		 * set the CTA renders as an anchor pointing at this URL —
 		 * appropriate when the app routes feature suggestions through a
 		 * public form, a Discord channel, or any non-forge target. When
-		 * empty (default) the CTA stays a button that opens the
-		 * SuggestFeatureModal's forge deep-link.
+		 * empty (default) the CTA links the forge's feature-request
+		 * issue form derived from `repo` + `forge`.
 		 * @type {string}
 		 */
 		suggestUrl: {
@@ -318,13 +317,9 @@ export default {
 		},
 	},
 
-	emits: ['submitted'],
-
 	data() {
 		return {
 			activeView: 'features',
-			showSuggestModal: false,
-			suggestModalSpecRef: null,
 			showSupportDialog: false,
 		}
 	},
@@ -375,7 +370,21 @@ export default {
 		resolvedFeatureRequestUrl() {
 			if (this.featureRequestUrl) return this.featureRequestUrl
 			if (!this.repo) return ''
-			return `${resolveForge(this.forge).baseUrl}/${this.repo}/issues/new`
+			// The feature-request issue FORM, not the blank new-issue page —
+			// the form's structured fields replaced the removed in-product
+			// suggestion modal.
+			return buildFeatureRequestUrl(this.forge, this.repo)
+		},
+
+		/**
+		 * The Suggest CTA's target: the host's `suggestUrl` override when
+		 * given (a public form, a Discord channel), else the forge's
+		 * feature-request issue form.
+		 *
+		 * @return {string}
+		 */
+		resolvedSuggestUrl() {
+			return this.suggestUrl || this.resolvedFeatureRequestUrl
 		},
 		documentationUrlIsExternal() {
 			return /^https?:\/\//i.test(this.resolvedDocumentationUrl)
@@ -404,26 +413,8 @@ export default {
 		toggleView() {
 			this.activeView = this.activeView === 'features' ? 'roadmap' : 'features'
 		},
-		openSuggestModal() {
-			this.suggestModalSpecRef = useSpecRef(this)
-			this.showSuggestModal = true
-		},
 		openSupportDialog() {
 			this.showSupportDialog = true
-		},
-		onSubmitted(payload) {
-			this.showSuggestModal = false
-			/**
-			 * Re-emitted when a feature suggestion was successfully filed from this view.
-			 * Carries the sanitized issue payload returned by the OpenRegister proxy
-			 * (`{number, title, html_url, ...}`). Host apps may use it to show a toast.
-			 *
-			 * @event submitted
-			 * @type {object}
-			 */
-			this.$emit('submitted', payload)
-			// Switch to the Roadmap view so the user sees their submission appear.
-			this.activeView = 'roadmap'
 		},
 		/**
 		 * Publish the hoisted-sidebar config to `cnIndexSidebarConfig`
@@ -444,10 +435,12 @@ export default {
 				props: {
 					openbuiltUrl: this.resolvedOpenbuiltUrl,
 					llmSkillsUrl: this.resolvedLlmSkillsUrl,
-					suggestUrl: this.suggestUrl,
+					// Always a URL now (the removed in-product modal was the
+					// only non-link path), so the sidebar CTA always renders
+					// as an anchor and its `suggest` emit path stays idle.
+					suggestUrl: this.resolvedSuggestUrl,
 				},
 				listeners: {
-					suggest: () => this.openSuggestModal(),
 					support: () => this.openSupportDialog(),
 				},
 			}
