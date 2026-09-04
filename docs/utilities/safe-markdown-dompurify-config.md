@@ -37,4 +37,4 @@ Each of these inputs is stripped to safe output:
 - Spec: `openspec/changes/add-features-roadmap-menu/specs/features-roadmap-component/spec.md`
   → Requirement "SAFE_MARKDOWN_DOMPURIFY_CONFIG"
 - Implementation: [src/utils/safeMarkdownDompurifyConfig.js](../../src/utils/safeMarkdownDompurifyConfig.js)
-- Used by: [CnRoadmapItem](../components/cn-roadmap-item.md), [CnSuggestFeatureModal](../components/cn-suggest-feature-modal.md)
+- Used by: [CnRoadmapItem](../components/cn-roadmap-item.md)

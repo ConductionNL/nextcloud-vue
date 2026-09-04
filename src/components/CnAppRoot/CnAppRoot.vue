@@ -865,9 +865,9 @@ export default {
 			cnHostsIndexSidebar: true,
 			/**
 			 * Consuming app's slug (e.g. "pipelinq"). Mirrors the `appId`
-			 * prop. Auto-filled by `CnWidgetWrapper`'s built-in
-			 * Request-a-feature default as the `app` prop on
-			 * `CnSuggestFeatureModal` so no per-widget wiring is needed.
+			 * prop, so descendants (the Actions menus, the forge deep-link
+			 * builders) know which app they act for without per-widget
+			 * wiring.
 			 */
 			cnAppId: this.appId,
 			/**

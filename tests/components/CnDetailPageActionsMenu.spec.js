@@ -117,12 +117,17 @@ describe('CnDetailPage — header Actions menu', () => {
 		expect(store.fetchObject).toHaveBeenCalledWith('pipelinq-lead', 'abc-123')
 	})
 
-	it('forwards the detail surface to the feature modal', async () => {
+	// The in-product modal is gone (team decision 2026-09-04): the surface
+	// slug now travels as the English headline of the forge issue-form link.
+	it('forwards the detail surface into the feature-request link', async () => {
+		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
 		const wrapper = mountPage({ pageId: 'cases' })
 		await wrapper.find('[data-testid="cn-detail-page-action-request-feature"]').trigger('click')
-		const modal = wrapper.findComponent({ name: 'CnSuggestFeatureModal' })
-		expect(modal.exists()).toBe(true)
-		expect(modal.props('surface')).toBe('detail:cases')
+		expect(openSpy).toHaveBeenCalledTimes(1)
+		const u = new URL(openSpy.mock.calls[0][0])
+		expect(u.searchParams.get('template')).toBe('feature-request.yml')
+		expect(u.searchParams.get('title')).toBe('[FEATURE] detail:cases')
+		openSpy.mockRestore()
 	})
 
 	it('can opt out of every built-in', () => {

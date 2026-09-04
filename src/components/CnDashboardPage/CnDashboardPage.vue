@@ -1222,8 +1222,8 @@ export default {
 		},
 		/**
 		 * Show the built-in Request-a-feature item in the page-level
-		 * overflow Actions menu. On by default; opens the
-		 * CnSuggestFeatureModal when mounted under CnAppRoot.
+		 * overflow Actions menu. On by default; opens the forge's
+		 * feature-request issue form when mounted under CnAppRoot.
 		 *
 		 * @type {boolean}
 		 */
@@ -1918,7 +1918,7 @@ export default {
 			 * page-level overflow Actions menu. Payload: `{ widgetId,
 			 * title }`. Handlers may call the second arg's
 			 * `preventDefault()` to suppress the built-in default
-			 * (auto-opening CnSuggestFeatureModal).
+			 * (opening the forge's feature-request issue form).
 			 * @type {{ widgetId: string, title: string }}
 			 */
 			this.$emit('request-feature', payload, ev)

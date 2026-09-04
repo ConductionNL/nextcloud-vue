@@ -220,48 +220,40 @@ describe('CnWidgetWrapper — default Request-a-feature handler (widget-wrapper-
 		jest.restoreAllMocks()
 	})
 
-	it('mounts CnSuggestFeatureModal with the expected auto-filled props', async () => {
+	// The in-product modal is gone (team decision 2026-09-04): the default
+	// opens the forge's feature-request issue FORM, exactly like Report a
+	// bug, with the widget surface as the English headline.
+	it('opens the feature-request issue form with the widget surface headline', async () => {
+		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
 		const wrapper = mountWrapper({ widgetId: 'outgoing-calls-daily', specRef: 'call-logs' })
 		await wrapper.find('[data-testid="cn-widget-wrapper-action-request-feature"]').trigger('click')
-		// Modal mounted lazily after click
-		const modal = wrapper.findComponent({ name: 'CnSuggestFeatureModal' })
-		expect(modal.exists()).toBe(true)
-		expect(modal.props()).toMatchObject({
-			repo: 'ConductionNL/pipelinq',
-			specRef: 'call-logs',
-			app: 'pipelinq',
-			page: 'Dashboard',
-			surface: 'widget:outgoing-calls-daily',
-			conductionSubmitEnabled: false,
-		})
+
+		expect(openSpy).toHaveBeenCalledTimes(1)
+		const u = new URL(openSpy.mock.calls[0][0])
+		expect(u.origin + u.pathname).toBe('https://github.com/ConductionNL/pipelinq/issues/new')
+		expect(u.searchParams.get('template')).toBe('feature-request.yml')
+		expect(u.searchParams.get('title')).toBe('[FEATURE] widget:outgoing-calls-daily')
 	})
 
-	it('host preventDefault suppresses the modal', async () => {
+	it('host preventDefault suppresses the built-in navigation', async () => {
+		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
 		const onRequest = jest.fn((_payload, event) => event.preventDefault())
 		const wrapper = mountWrapper({ widgetId: 'outgoing-calls-daily' }, { listeners: { 'request-feature': onRequest } })
 		await wrapper.find('[data-testid="cn-widget-wrapper-action-request-feature"]').trigger('click')
 		expect(onRequest).toHaveBeenCalled()
-		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).exists()).toBe(false)
+		expect(openSpy).not.toHaveBeenCalled()
 	})
 
-	it('warns and does not mount the modal when no cnFeatureRequestRepo inject', async () => {
+	it('warns and opens nothing when no cnFeatureRequestRepo inject', async () => {
 		const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
 		const wrapper = mountWrapper(
 			{ widgetId: 'outgoing-calls-daily' },
 			{ provide: { cnAppId: 'pipelinq', cnFeatureRequestRepo: '' } },
 		)
 		await wrapper.find('[data-testid="cn-widget-wrapper-action-request-feature"]').trigger('click')
-		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).exists()).toBe(false)
-		expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Cannot open feature request modal'))
-	})
-
-	it('closes the modal when CnSuggestFeatureModal emits @close', async () => {
-		const wrapper = mountWrapper({ widgetId: 'outgoing-calls-daily' })
-		await wrapper.find('[data-testid="cn-widget-wrapper-action-request-feature"]').trigger('click')
-		const modal = wrapper.findComponent({ name: 'CnSuggestFeatureModal' })
-		modal.vm.$emit('close')
-		await wrapper.vm.$nextTick()
-		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).exists()).toBe(false)
+		expect(openSpy).not.toHaveBeenCalled()
+		expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Cannot open the feature-request form'))
 	})
 })
 

@@ -237,7 +237,6 @@ export { CnCredentials } from './CnCredentials/index.js'
 export { CnFeaturesTab } from './CnFeaturesTab/index.js'
 export { CnRoadmapTab } from './CnRoadmapTab/index.js'
 export { CnRoadmapItem } from './CnRoadmapItem/index.js'
-export { CnSuggestFeatureModal } from './CnSuggestFeatureModal/index.js'
 // Deck integration leaf (Tier-2)
 export { CnDeckCardPicker } from './CnDeckCardPicker/index.js'
 export { CnDeckCardCreate } from './CnDeckCardCreate/index.js'

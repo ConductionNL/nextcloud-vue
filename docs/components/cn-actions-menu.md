@@ -8,7 +8,7 @@ import GeneratedRef from './_generated/CnActionsMenu.md'
 2. **Documentation** (only when a `documentationUrl` is supplied)
 3. **Request a feature**
 
-It also auto-mounts the `CnSuggestFeatureModal` for the Request-a-feature default. It's used internally by [`CnWidgetWrapper`](./cn-widget-wrapper.md) (per-widget menu) and by the page-level headers of [`CnDetailPage`](./cn-detail-page.md) and [`CnDashboardPage`](./cn-dashboard-page.md), so widgets and pages stay in lockstep. [`CnActionsBar`](./cn-actions-bar.md) (list pages) mirrors the same items inline.
+Request a feature deep-links the forge's feature-request issue form directly, exactly like Report a bug. It's used internally by [`CnWidgetWrapper`](./cn-widget-wrapper.md) (per-widget menu) and by the page-level headers of [`CnDetailPage`](./cn-detail-page.md) and [`CnDashboardPage`](./cn-dashboard-page.md), so widgets and pages stay in lockstep. [`CnActionsBar`](./cn-actions-bar.md) (list pages) mirrors the same items inline.
 
 Most apps never instantiate `CnActionsMenu` directly — they configure it through the host component's props (`documentation-url`, `show-refresh`, `show-request-feature`, …). Reach for it directly only when building a new surface that needs the same trio.
 
@@ -16,7 +16,7 @@ Most apps never instantiate `CnActionsMenu` directly — they configure it throu
 
 - **Refresh** — emits `@refresh` with `{ widgetId, title }`. Unless a host listener calls `event.preventDefault()` on the second handler argument, it then emits on the `@nextcloud/event-bus` channel named by `refreshChannel` (`cn:widget:refresh` for widgets, `cn:page:refresh` for pages).
 - **Documentation** — rendered as an `NcActionLink` only when `documentationUrl` is non-empty. Opens the link in a new tab (`target="_blank"` + `rel="noopener noreferrer"`); there is no JS handler.
-- **Request a feature** — emits `@request-feature` with `{ widgetId, title }`, then (unless suppressed) opens `CnSuggestFeatureModal` with `app + page + surface` context auto-filled from the `cnAppId` / `cnFeatureRequestRepo` injects provided by `CnAppRoot`. Without a resolvable repo it logs a one-line `console.warn` and skips opening.
+- **Request a feature** — emits `@request-feature` with `{ widgetId, title }`, then (unless suppressed) opens the forge's feature-request issue form in a new tab, built from the `cnFeatureRequestRepo` / `cnFeatureRequestForge` injects provided by `CnAppRoot` with an English headline (authored title, else the surface slug). Without a resolvable repo it logs a one-line `console.warn` and skips opening.
 
 The overflow trigger hides itself entirely when no built-in item is visible and no `#action-items` slot content is supplied.
 
@@ -55,7 +55,7 @@ The `data-testid`s are derived from `testidBase`: `<base>-actions` (container), 
 | `requestFeatureLabel` | `t('Request a feature')` | Pre-translated label for the Request-a-feature item. |
 | `actionsMenuLabel` | `t('Actions')` | Pre-translated aria-label / tooltip for the overflow trigger. |
 | `refreshing` | `false` | While true, the Refresh item is disabled and shows a loading spinner — for exactly as long as this stays true, so it reflects the real refresh time. |
-| `specRef` | `''` | Forwarded to the auto-mounted CnSuggestFeatureModal. |
+| `specRef` | `''` | Accepted for backward compatibility with the removed in-product suggestion modal; no longer forwarded. |
 
 ## Reference (auto-generated)
 
