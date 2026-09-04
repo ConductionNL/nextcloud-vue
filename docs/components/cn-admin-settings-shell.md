@@ -87,7 +87,7 @@ Two optional actions surface the [`CnSetupWizard`](./cn-setup-wizard.md) and the
 |------|------|---------|-------------|
 | `showSetup` | `boolean` | `false` | Show a "Run setup wizard" button that opens `CnSetupWizard`. |
 | `setupSteps` | `Array` | `[]` | The `manifest.setup.steps` array passed to the wizard. |
-| `showHelp` | `boolean` | `false` | Show a "Help us" button that opens `CnSuggestFeatureModal`. |
+| `showHelp` | `boolean` | `false` | Show a "Help us" link to the forge's feature-request issue form (`helpRepo`). |
 | `helpRepo` | `string` | `''` | `<owner>/<repo>` slug for the feature-request modal. |
 
 ## Slots

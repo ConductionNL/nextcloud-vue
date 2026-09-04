@@ -3,8 +3,10 @@
 
   Renders the canonical action set that appears on every Conduction
   surface — Refresh, then the mandatory trio Request a feature / Report a
-  bug / Documentation — inside a single NcActions overflow, and
-  auto-mounts the CnSuggestFeatureModal for the Request-a-feature default.
+  bug / Documentation — inside a single NcActions overflow. Request a
+  feature opens the forge's feature-request issue form directly, exactly
+  like Report a bug (team decision 2026-09-04: the in-product suggestion
+  modal is gone — the forge is where the conversation happens, in English).
   Used by CnWidgetWrapper (widgets) and the page-level headers of
   CnDetailPage / CnDashboardPage so the three surfaces stay in lockstep.
 
@@ -17,11 +19,7 @@
 -->
 <template>
 	<!-- Root <template v-if> (Vue 3 native fragment, renders no DOM node — was
-	     vue-frag <Fragment>) so NcActions stays in its host's flex/grid flow
-	     while the modal mounts as a SIBLING of NcActions, not inside it. The
-	     NcActions default slot is the floating-vue popover, which unmounts the
-	     instant the menu closes on an action-item click — mounting the modal
-	     there would destroy the dialog the moment it opens. -->
+	     vue-frag <Fragment>) so NcActions stays in its host's flex/grid flow. -->
 	<template v-if="hasOverflowMenu">
 		<NcActions
 			:force-menu="true"
@@ -92,22 +90,6 @@
 			     group. -->
 			<slot name="action-items" />
 		</NcActions>
-
-		<!-- Auto-mounted feature-request modal. Lazy-loaded so the modal
-		     bundle only ships when a surface renders the menu. Suppressed
-		     when the host calls preventDefault on @request-feature.
-		     Mounted as a sibling of NcActions (NOT inside its popover slot)
-		     so closing the overflow menu doesn't tear the dialog down. -->
-		<CnSuggestFeatureModal
-			v-if="featureRequestModalOpen"
-			:repo="cnFeatureRequestRepo"
-			:forge="cnFeatureRequestForge"
-			:spec-ref="specRef"
-			:app="cnAppId"
-			:page="$route ? ($route.name || '') : ''"
-			:surface="surface"
-			:conduction-submit-enabled="false"
-			@close="onFeatureRequestModalClose" />
 	</template>
 </template>
 
@@ -120,7 +102,7 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
 import LightbulbOutline from 'vue-material-design-icons/LightbulbOutline.vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import BugOutline from 'vue-material-design-icons/BugOutline.vue'
-import { buildBugReportUrl, DEFAULT_FORGE } from '../../utils/forge.js'
+import { buildBugReportUrl, buildFeatureRequestUrl, DEFAULT_FORGE } from '../../utils/forge.js'
 
 /**
  * The fleet's per-app documentation site, derived from the app id. Used only
@@ -222,36 +204,26 @@ export default {
 		LightbulbOutline,
 		BookOpenVariant,
 		BugOutline,
-		// Unwrap `.default` explicitly: under some webpack chunk layouts the
-		// resolved module namespace is frozen AND carries neither `__esModule`
-		// nor `Symbol.toStringTag === 'Module'`, so Vue 2's `ensureCtor` skips
-		// its own unwrap and calls `Vue.extend()` on the frozen namespace —
-		// throwing "Cannot add property _Ctor, object is not extensible" and
-		// silently swallowing the Request-a-feature modal.
-		CnSuggestFeatureModal: () => import('../CnSuggestFeatureModal/CnSuggestFeatureModal.vue').then(m => m.default || m),
 	},
 
 	inject: {
 		/**
 		 * Consuming app's slug (e.g. "pipelinq"). Provided by CnAppRoot.
-		 * Auto-filled on the built-in Request-a-feature modal as the `app`
-		 * prop. Defaults to empty string when no CnAppRoot ancestor exists;
-		 * the modal falls back to a missing-context warning.
+		 * Defaults to empty string when no CnAppRoot ancestor exists.
 		 */
 		cnAppId: { default: () => '' },
 		/**
-		 * Repo slug used as the forge deep-link target on the auto-mounted
-		 * CnSuggestFeatureModal (e.g. `ConductionNL/pipelinq`). Provided by
-		 * CnAppRoot from the manifest's `nav.featureRequestRepo` field (with
-		 * fallback to `ConductionNL/<appId>`). Empty when no ancestor — the
-		 * default handler warns and skips opening rather than open a broken
-		 * link.
+		 * Repo slug both forge deep-links target (e.g.
+		 * `ConductionNL/pipelinq`) — the Request-a-feature and Report-a-bug
+		 * new-issue forms. Provided by CnAppRoot from the manifest's
+		 * `nav.featureRequestRepo` field (with fallback to
+		 * `ConductionNL/<appId>`). Empty when no ancestor — the default
+		 * handler warns and skips opening rather than open a broken link.
 		 */
 		cnFeatureRequestRepo: { default: () => '' },
 		/**
-		 * Forge config (`{type, baseUrl}`) forwarded to the auto-mounted
-		 * CnSuggestFeatureModal so its "Continue on …" deep-link targets the
-		 * right forge. Provided by CnAppRoot from `manifest.nav.forge`.
+		 * Forge config (`{type, baseUrl}`) both new-issue deep-links are
+		 * built against. Provided by CnAppRoot from `manifest.nav.forge`.
 		 * Defaults to DEFAULT_FORGE when no CnAppRoot ancestor exists —
 		 * a third hardcoded Codeberg default lived here, so a menu mounted
 		 * standalone contradicted both the fleet default and the app it was
@@ -395,10 +367,10 @@ export default {
 			default: '',
 		},
 		/**
-		 * Full `surface` string forwarded to the auto-mounted
-		 * CnSuggestFeatureModal so the resulting GitHub issue records where
-		 * the request originated (e.g. `widget:<id>`, `detail:<id>`,
-		 * `dashboard:<id>`).
+		 * Stable `surface` slug naming where the menu sits (e.g.
+		 * `widget:<id>`, `detail:<id>`, `dashboard:<id>`). Used as the
+		 * English headline fallback for both new-issue deep-links when no
+		 * authored title can be recovered.
 		 *
 		 * @type {string}
 		 */
@@ -407,9 +379,10 @@ export default {
 			default: '',
 		},
 		/**
-		 * Optional `specRef` forwarded to the auto-mounted
-		 * CnSuggestFeatureModal so the issue links to the spec capability
-		 * this surface belongs to.
+		 * Optional `specRef` slug. Accepted for backward compatibility with
+		 * hosts that bound it for the removed in-product suggestion modal;
+		 * no longer forwarded anywhere (the forge issue form asks for its
+		 * own context).
 		 *
 		 * @type {string}
 		 */
@@ -466,17 +439,6 @@ export default {
 	},
 
 	emits: ['refresh', 'request-feature'],
-
-	data() {
-		return {
-			/**
-			 * Internal state for the auto-mounted CnSuggestFeatureModal.
-			 * Flipped true by the default Request-a-feature handler when
-			 * the host did not `preventDefault()` on `@request-feature`.
-			 */
-			featureRequestModalOpen: false,
-		}
-	},
 
 	computed: {
 		/**
@@ -575,6 +537,25 @@ export default {
 				surface: this.surface || this.widgetId,
 			})
 		},
+
+		/**
+		 * The Request-a-feature target: the forge's feature-request issue
+		 * FORM, built exactly like resolvedReportBugUrl — same repo, same
+		 * forge, same English-headline rules (see that computed for why the
+		 * headline is never the translated title). Empty when no repo can
+		 * be resolved, in which case the click handler warns and does
+		 * nothing rather than open a broken link.
+		 *
+		 * @return {string}
+		 */
+		resolvedRequestFeatureUrl() {
+			const repo = String(this.cnFeatureRequestRepo || '').trim()
+			if (!repo) return ''
+			return buildFeatureRequestUrl(this.cnFeatureRequestForge, repo, {
+				title: this.sourceTitle,
+				surface: this.surface || this.widgetId,
+			})
+		},
 	},
 
 	methods: {
@@ -604,7 +585,8 @@ export default {
 
 		/**
 		 * Request-a-feature click — emits `@request-feature`, then runs the
-		 * built-in default (open CnSuggestFeatureModal) unless a host called
+		 * built-in default (open the forge's feature-request issue form in a
+		 * new tab, exactly like Report a bug) unless a host called
 		 * `event.preventDefault()`. Warns and skips opening when no
 		 * `cnFeatureRequestRepo` inject can be resolved.
 		 *
@@ -616,28 +598,19 @@ export default {
 			 * @event request-feature User clicked the Request a feature
 			 * item. Payload: `{ widgetId, title }`. Handlers may call the
 			 * second arg's `preventDefault()` to suppress the built-in
-			 * default (auto-opening CnSuggestFeatureModal).
+			 * default (opening the forge's feature-request issue form).
 			 * @type {{ widgetId: string, title: string }}
 			 */
 			this.$emit('request-feature', { widgetId: this.widgetId, title: this.title }, ev)
 			if (ev.defaultPrevented) return
-			if (!this.cnFeatureRequestRepo) {
+			if (!this.resolvedRequestFeatureUrl) {
 				// eslint-disable-next-line no-console
 				console.warn(
-					'[CnActionsMenu] Cannot open feature request modal: missing cnFeatureRequestRepo inject (mount under CnAppRoot or bind a custom @request-feature listener).',
+					'[CnActionsMenu] Cannot open the feature-request form: missing cnFeatureRequestRepo inject (mount under CnAppRoot or bind a custom @request-feature listener).',
 				)
 				return
 			}
-			this.featureRequestModalOpen = true
-		},
-
-		/**
-		 * Close handler for the auto-mounted feature-request modal.
-		 *
-		 * @return {void}
-		 */
-		onFeatureRequestModalClose() {
-			this.featureRequestModalOpen = false
+			window.open(this.resolvedRequestFeatureUrl, '_blank', 'noopener,noreferrer')
 		},
 	},
 }

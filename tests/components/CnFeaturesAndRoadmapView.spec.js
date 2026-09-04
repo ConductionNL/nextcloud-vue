@@ -4,7 +4,7 @@
  *
  * Tests for CnFeaturesAndRoadmapView — the route-level container hosting the
  * Features + Roadmap card-grid views, the header view-toggle, the primary
- * Suggest-feature CTA, the SuggestFeatureModal lifecycle, and the hoisted
+ * Suggest-feature CTA (a forge issue-form link), and the hoisted
  * sidebar published to `cnIndexSidebarConfig` for CnAppRoot to mount at
  * NcContent level (same mechanism CnIndexPage uses for CnIndexSidebar).
  *
@@ -24,7 +24,7 @@ const stubs = {
 	// it in `$attrs`, where it falls through onto the root `<button>` as a
 	// native handler. A single `trigger('click')` then fires `toggleView` twice
 	// (native fallthrough + the stub's re-emit) and the view toggles back.
-	NcButton: { name: 'NcButton', emits: ['click'], template: '<button class="btn" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>' },
+	NcButton: { name: 'NcButton', emits: ['click'], props: ['href', 'target', 'rel'], template: '<button class="btn" :data-href="href" :data-target="target" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>' },
 	NcEmptyContent: { name: 'NcEmptyContent', props: ['name', 'description'], template: '<div class="empty"><h2>{{ name }}</h2></div>' },
 	NcNoteCard: { name: 'NcNoteCard', props: ['type'], template: '<div class="note-card" :data-type="type"><slot /></div>' },
 	FormatListBulleted: true,
@@ -33,7 +33,6 @@ const stubs = {
 	RoadVariant: true,
 	CnFeaturesTab: { name: 'CnFeaturesTab', props: ['features'], template: '<div class="features-tab" :data-count="features.length" />' },
 	CnRoadmapTab: { name: 'CnRoadmapTab', props: ['repo', 'disabled'], template: '<div class="roadmap-tab" :data-repo="repo" />' },
-	CnSuggestFeatureModal: { name: 'CnSuggestFeatureModal', props: ['repo', 'specRef'], template: '<div class="suggest-modal" />' },
 }
 
 const baseProps = { repo: 'ConductionNL/openregister', features: [{ slug: 'a', title: 'Alpha' }, { slug: 'b', title: 'Beta' }] }
@@ -82,30 +81,25 @@ describe('CnFeaturesAndRoadmapView', () => {
 		expect(headerButtons(wrapper).at(0).text()).toContain('Show features')
 	})
 
-	it('opens the Suggest modal from the header CTA', async () => {
+	// Team decision 2026-09-04: the in-product suggestion modal is gone —
+	// the header CTA links straight to the forge's feature-request issue
+	// form, exactly like Report a bug. The modal-lifecycle tests (@close,
+	// @submitted) died with it.
+	it('links the header CTA to the forge feature-request issue form', () => {
 		const wrapper = mount(CnFeaturesAndRoadmapView, { stubs, propsData: baseProps })
-		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).exists()).toBe(false)
-		await headerButtons(wrapper).at(1).trigger('click')
-		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).exists()).toBe(true)
-		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).props('repo')).toBe('ConductionNL/openregister')
+		const cta = headerButtons(wrapper).at(1)
+		const u = new URL(cta.attributes('data-href'))
+		expect(u.origin + u.pathname).toBe('https://github.com/ConductionNL/openregister/issues/new')
+		expect(u.searchParams.get('template')).toBe('feature-request.yml')
+		expect(cta.attributes('data-target')).toBe('_blank')
 	})
 
-	it('closes the Suggest modal on its close event', async () => {
-		const wrapper = mount(CnFeaturesAndRoadmapView, { stubs, propsData: baseProps })
-		await headerButtons(wrapper).at(1).trigger('click')
-		wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).vm.$emit('close')
-		await wrapper.vm.$nextTick()
-		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).exists()).toBe(false)
-	})
-
-	it('re-emits submitted and switches to the Roadmap view when the modal reports success', async () => {
-		const wrapper = mount(CnFeaturesAndRoadmapView, { stubs, propsData: baseProps })
-		await headerButtons(wrapper).at(1).trigger('click')
-		wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).vm.$emit('submitted', { number: 99 })
-		await wrapper.vm.$nextTick()
-		expect(wrapper.emitted('submitted')).toBeTruthy()
-		expect(wrapper.emitted('submitted')[0][0]).toMatchObject({ number: 99 })
-		expect(wrapper.findComponent({ name: 'CnRoadmapTab' }).exists()).toBe(true)
+	it('prefers the suggestUrl override for the header CTA', () => {
+		const wrapper = mount(CnFeaturesAndRoadmapView, {
+			stubs,
+			propsData: { ...baseProps, suggestUrl: 'https://example.com/feedback' },
+		})
+		expect(headerButtons(wrapper).at(1).attributes('data-href')).toBe('https://example.com/feedback')
 	})
 
 	it('publishes the hoisted sidebar config to cnIndexSidebarConfig on mount', () => {
@@ -114,7 +108,10 @@ describe('CnFeaturesAndRoadmapView', () => {
 		expect(sidebarHolder.value.component.name).toBe('CnFeaturesAndRoadmapSidebar')
 		expect(sidebarHolder.value.props.openbuiltUrl).toContain('/apps/openbuilt')
 		expect(sidebarHolder.value.props.llmSkillsUrl).toBe('https://docs.conduction.nl/ai-skills')
-		expect(typeof sidebarHolder.value.listeners.suggest).toBe('function')
+		// The sidebar CTA always gets a URL now (the forge issue form by
+		// default) — no suggest listener is published any more.
+		expect(new URL(sidebarHolder.value.props.suggestUrl).searchParams.get('template')).toBe('feature-request.yml')
+		expect(sidebarHolder.value.listeners.suggest).toBeUndefined()
 	})
 
 	it('honors openbuiltUrl + llmSkillsUrl prop overrides in the published config', () => {
@@ -146,15 +143,6 @@ describe('CnFeaturesAndRoadmapView', () => {
 		// View renders the same way but no hoist happens — host gets the
 		// untouched holder it provided.
 		expect(sidebarHolder.value).toBe(null)
-	})
-
-	it('sidebar-published listener opens the Suggest modal when fired', async () => {
-		const { wrapper, sidebarHolder } = mountWithHost()
-		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).exists()).toBe(false)
-		// Fire the listener the sidebar would invoke on its @suggest event.
-		sidebarHolder.value.listeners.suggest()
-		await wrapper.vm.$nextTick()
-		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).exists()).toBe(true)
 	})
 
 	it('does NOT publish the hoisted sidebar when disabled', () => {

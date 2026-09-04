@@ -170,6 +170,7 @@
 </template>
 
 <script>
+import { defineAsyncComponent } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import {
 	NcTextField,
@@ -224,15 +225,15 @@ export default {
 		CnJsonViewer,
 		CnColorPicker,
 		// Lazy-required to break the circular dep with CnAdvancedFormDialog.
-		// `.then(m => m.default)` unwraps the dynamic-import module namespace
-		// before Vue receives it. With rollup's `inlineDynamicImports: true`
-		// the namespace is frozen (`Object.freeze({__proto__: null, default:
-		// component})`), and Vue 2's `Vue.extend()` against that wrapper
-		// trips "Cannot add property _Ctor, object is not extensible" when
-		// downstream code (Vue Router, `<component :is>`) attaches its
-		// internal `_Ctor` cache. Pre-unwrapping yields the raw component
-		// options object, which is extensible.
-		CnAdvancedFormDialog: () => import('./CnAdvancedFormDialog.vue').then(m => m.default),
+		// defineAsyncComponent is MANDATORY under Vue 3: a bare function in
+		// `components:` is a functional component, so Vue CALLS it on render
+		// and prints the returned Promise as text instead of mounting the
+		// dialog (the same "[object Promise]" bug CnActionsMenu shipped).
+		// `.then(m => m.default || m)` unwraps the dynamic-import module namespace
+		// before Vue receives it — with rollup's `inlineDynamicImports: true`
+		// the namespace is frozen, and downstream code attaching bookkeeping
+		// to a frozen object throws.
+		CnAdvancedFormDialog: defineAsyncComponent(() => import('./CnAdvancedFormDialog.vue').then(m => m.default || m)),
 	},
 
 	props: {

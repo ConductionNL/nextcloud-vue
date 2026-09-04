@@ -123,7 +123,7 @@ export default {
 | `showRefresh` | Boolean | `true` | Show the built-in Refresh action. |
 | `showRequestFeature` | Boolean | `true` | Show the built-in Request-a-feature action. |
 | `widgetId` | String | `''` | Stable widget id used in the `cn:widget:refresh` event-bus payload and the `surface: "widget:<id>"` feature-request context. |
-| `specRef` | String | `''` | Forwarded to the auto-mounted CnSuggestFeatureModal. |
+| `specRef` | String | `''` | Optional `specRef` slug, forwarded to the Actions menu. Accepted for backward compatibility with the removed in-product suggestion modal; the forge issue form asks for its own context. |
 | `refreshing` | Boolean | `false` | While true, the Refresh item is disabled and shows a loading spinner for as long as this stays true (host-driven, reflects the real refresh time). |
 | `refreshLabel` | String | `t('Refresh')` | Pre-translated Refresh label. |
 | `requestFeatureLabel` | String | `t('Request a feature')` | Pre-translated Request-a-feature label. |

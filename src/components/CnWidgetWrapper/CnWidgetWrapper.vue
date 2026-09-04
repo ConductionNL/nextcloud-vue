@@ -406,10 +406,11 @@ export default {
 		/**
 		 * Widget id for the built-in default Refresh / Request-a-feature
 		 * handlers (B2). Forwarded as the `surface: "widget:<id>"` value
-		 * on the auto-mounted CnSuggestFeatureModal AND as the
-		 * `widgetId` field on the `cn:widget:refresh` event-bus payload.
-		 * When unset, the wrapper falls back to a slugified `displayTitle`,
-		 * which works but is less stable than an explicit id.
+		 * on the Actions menu (the English headline fallback for its forge
+		 * deep-links) AND as the `widgetId` field on the
+		 * `cn:widget:refresh` event-bus payload. When unset, the wrapper
+		 * falls back to a slugified `displayTitle`, which works but is
+		 * less stable than an explicit id.
 		 *
 		 * @type {string}
 		 */
@@ -441,9 +442,9 @@ export default {
 			default: '',
 		},
 		/**
-		 * Optional `specRef` forwarded to the auto-mounted
-		 * CnSuggestFeatureModal so the resulting GitHub issue links to
-		 * the spec capability this widget belongs to.
+		 * Optional `specRef` slug, forwarded to the Actions menu. Accepted
+		 * for backward compatibility with the removed in-product suggestion
+		 * modal; the forge issue form asks for its own context.
 		 *
 		 * @type {string}
 		 */
@@ -692,8 +693,8 @@ export default {
 		/**
 		 * Re-emit the shared CnActionsMenu `@request-feature` to the host,
 		 * passing the synthetic event through so a host listener can
-		 * `preventDefault()` the built-in default (auto-opening
-		 * CnSuggestFeatureModal).
+		 * `preventDefault()` the built-in default (opening the forge's
+		 * feature-request issue form).
 		 *
 		 * @param {{ widgetId: string, title: string }} payload Action payload.
 		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
@@ -704,7 +705,7 @@ export default {
 			 * @event request-feature User clicked the Request a feature
 			 * item. Payload: `{ widgetId, title }`. Handlers may call the
 			 * second arg's `preventDefault()` to suppress the built-in
-			 * default (auto-opening CnSuggestFeatureModal).
+			 * default (opening the forge's feature-request issue form).
 			 * @type {{ widgetId: string, title: string }}
 			 */
 			this.$emit('request-feature', payload, ev)

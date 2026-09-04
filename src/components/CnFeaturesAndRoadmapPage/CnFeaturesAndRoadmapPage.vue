@@ -143,8 +143,8 @@ export default {
 		/**
 		 * Override for the Suggest sidebar CTA. When set, the sidebar
 		 * Suggest CTA renders as an anchor pointing here; when empty
-		 * (default) it stays a button that opens the SuggestFeatureModal.
-		 * Manifest config > initialState > '' (modal).
+		 * (default) the view derives the forge's feature-request issue
+		 * form URL. Manifest config > initialState > '' (forge form).
 		 */
 		suggestUrl: {
 			type: String,

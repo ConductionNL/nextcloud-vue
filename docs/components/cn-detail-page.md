@@ -351,7 +351,7 @@ The header carries the shared [`CnActionsMenu`](./cn-actions-menu.md) overflow `
 
 - **Refresh** emits `@refresh` and, unless the host calls `event.preventDefault()`, fires the `cn:page:refresh` event-bus channel with `{ widgetId, title }`.
 - **Documentation** renders only when `documentationUrl` is set, opening it in a new tab.
-- **Request a feature** opens `CnSuggestFeatureModal` with `surface: "detail:<id>"` when mounted under `CnAppRoot`.
+- **Request a feature** opens the forge's feature-request issue form with the `detail:<id>` surface as its English headline, when mounted under `CnAppRoot`.
 
 Set `:page-id` for a stable id/surface (it otherwise falls back to a slugified `title`). All the menu props are forwarded to [`CnActionsMenu`](./cn-actions-menu.md):
 
