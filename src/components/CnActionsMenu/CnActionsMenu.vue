@@ -112,6 +112,7 @@
 </template>
 
 <script>
+import { defineAsyncComponent } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActions, NcActionButton, NcActionLink, NcLoadingIcon } from '@nextcloud/vue'
 import { emit as emitOnBus } from '@nextcloud/event-bus'
@@ -222,13 +223,14 @@ export default {
 		LightbulbOutline,
 		BookOpenVariant,
 		BugOutline,
-		// Unwrap `.default` explicitly: under some webpack chunk layouts the
-		// resolved module namespace is frozen AND carries neither `__esModule`
-		// nor `Symbol.toStringTag === 'Module'`, so Vue 2's `ensureCtor` skips
-		// its own unwrap and calls `Vue.extend()` on the frozen namespace —
-		// throwing "Cannot add property _Ctor, object is not extensible" and
-		// silently swallowing the Request-a-feature modal.
-		CnSuggestFeatureModal: () => import('../CnSuggestFeatureModal/CnSuggestFeatureModal.vue').then(m => m.default || m),
+		// defineAsyncComponent is MANDATORY under Vue 3: a bare function in
+		// `components:` is a functional component, so Vue CALLS it on render
+		// and prints the returned Promise as text — the literal
+		// "[object Promise]" beside the Actions button, and no modal. The
+		// `.default` unwrap survives from the Vue 2 era for webpack chunk
+		// layouts whose frozen module namespace carries neither `__esModule`
+		// nor `Symbol.toStringTag`.
+		CnSuggestFeatureModal: defineAsyncComponent(() => import('../CnSuggestFeatureModal/CnSuggestFeatureModal.vue').then(m => m.default || m)),
 	},
 
 	inject: {
