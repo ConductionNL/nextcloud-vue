@@ -58,7 +58,6 @@ const stubs = {
 	CnStatsBlockWidget: true,
 	CnWidgetRefItem: true,
 	CnDateRangePicker: true,
-	CnSuggestFeatureModal: { name: 'CnSuggestFeatureModal', props: ['repo', 'specRef', 'app', 'page', 'surface', 'conductionSubmitEnabled'], template: '<div class="suggest-modal-stub" />' },
 }
 
 const mountPage = (propsData = {}, opts = {}) => mount(CnDashboardPage, {

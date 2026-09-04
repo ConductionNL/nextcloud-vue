@@ -1,7 +1,7 @@
 /**
  * Tests for CnActionsMenu — the shared "…" overflow Actions menu that
  * renders Refresh plus the MANDATORY trio (Request a feature / Report a bug /
- * Documentation) and auto-mounts the CnSuggestFeatureModal. Used by
+ * Documentation), each a forge deep-link or event-bus emit. Used by
  * CnWidgetWrapper and the page-level headers of CnDetailPage /
  * CnDashboardPage.
  *
@@ -51,7 +51,6 @@ const baseStubs = {
 	LightbulbOutline: true,
 	BookOpenVariant: true,
 	BugOutline: true,
-	CnSuggestFeatureModal: { name: 'CnSuggestFeatureModal', props: ['repo', 'specRef', 'app', 'page', 'surface', 'conductionSubmitEnabled'], template: '<div class="suggest-modal-stub" />' },
 }
 
 const mountMenu = (propsData = {}, opts = {}) => mount(CnActionsMenu, {

@@ -53,7 +53,6 @@ const baseStubs = {
 	Refresh: true,
 	LightbulbOutline: true,
 	BookOpenVariant: true,
-	CnSuggestFeatureModal: { name: 'CnSuggestFeatureModal', props: ['repo', 'specRef', 'app', 'page', 'surface', 'conductionSubmitEnabled'], template: '<div class="suggest-modal-stub" />' },
 }
 
 const mountWrapper = (propsData = {}, opts = {}) => mount(CnWidgetWrapper, {

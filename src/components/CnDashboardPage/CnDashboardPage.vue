@@ -1281,7 +1281,14 @@ export default {
 			type: String,
 			default: '',
 		},
-		/** Optional `specRef` forwarded to the feature-request modal. */
+		/**
+		 * Optional `specRef` slug. Accepted for backward compatibility with
+		 * hosts that bound it for the removed in-product suggestion modal;
+		 * no longer forwarded anywhere (the forge issue form asks for its
+		 * own context).
+		 *
+		 * @type {string}
+		 */
 		specRef: {
 			type: String,
 			default: '',
