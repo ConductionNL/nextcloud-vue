@@ -1110,10 +1110,40 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.32.0', () => {
+	it('accepts a choice step that renders as cards and sources its options live', () => {
+		// The example-set step: the SERVER owns which sets it ships, so the
+		// manifest names where to read them instead of restating them and
+		// drifting from them.
+		const result = validateManifestV2({
+			...MINIMAL_V2,
+			setup: {
+				steps: [{
+					id: 'example-set',
+					type: 'choice',
+					display: 'cards',
+					optionsSource: 'profiles',
+					configKey: 'example_profile',
+					multiple: true,
+					title: 'Which kind of organisation is this for?',
+				}],
+			},
+		})
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('rejects a display mode the wizard cannot render', () => {
+		const result = validateManifestV2({
+			...MINIMAL_V2,
+			setup: { steps: [{ id: 'example-set', type: 'choice', display: 'carousel' }] },
+		})
+		expect(result.valid).toBe(false)
+	})
+
+	it('the manifest schema version reads 2.33.0', () => {
 		// eslint-disable-next-line global-require
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.32.0')
+		expect(schema.version).toBe('2.33.0')
 	})
 
 	it('accepts a declarative `store` block, and requires the remote schema', () => {
