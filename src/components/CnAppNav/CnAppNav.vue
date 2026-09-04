@@ -3,8 +3,9 @@
 
   Renders the manifest's `menu[]` array as a Nextcloud app navigation
   (NcAppNavigation + NcAppNavigationItem). One level of nested
-  `children[]` is supported. Items are sorted by `order`; items without
-  an order render last. Items with a `permission` are filtered against
+  `children[]` is supported. Items are sorted by `order` at BOTH levels —
+  top-level entries and a group's children — and items without an order
+  render last. Items with a `permission` are filtered against
   the `permissions` prop — when the prop is omitted, all items render.
 
   An optional primary action renders above the main list as an
@@ -476,6 +477,26 @@ function bridgedMdiForCssIcon(icon) {
 	return CSS_ICON_TO_MDI[icon] || CSS_ICON_TO_MDI[icon.replace(/-(dark|white)$/, '')]
 }
 
+/**
+ * Order two menu entries by their manifest `order`.
+ *
+ * Entries carrying an `order` come first, ascending; entries without one render
+ * last and keep their relative order. Used at BOTH nav levels so a group's
+ * children obey the same rule as the top-level list.
+ *
+ * @param {object} a First entry.
+ * @param {object} b Second entry.
+ * @return {number} Comparator result.
+ */
+function byManifestOrder(a, b) {
+	const aHas = typeof a.order === 'number'
+	const bHas = typeof b.order === 'number'
+	if (aHas && !bHas) return -1
+	if (!aHas && bHas) return 1
+	if (!aHas && !bHas) return 0
+	return a.order - b.order
+}
+
 export default {
 	name: 'CnAppNav',
 
@@ -707,14 +728,7 @@ export default {
 			return items
 				.filter((item) => this.passesPermission(item) && this.passesVisibleIf(item))
 				.slice()
-				.sort((a, b) => {
-					const aHas = typeof a.order === 'number'
-					const bHas = typeof b.order === 'number'
-					if (aHas && !bHas) return -1
-					if (!aHas && bHas) return 1
-					if (!aHas && !bHas) return 0
-					return a.order - b.order
-				})
+				.sort(byManifestOrder)
 		},
 		/**
 		 * Items that render in the top list (default placement).
@@ -1088,11 +1102,30 @@ export default {
 
 			return true
 		},
+		/**
+		 * A group's visible children, in `order`.
+		 *
+		 * The SORT is the fix for a silent no-op: this used to filter only, so
+		 * `order` on a child was accepted, documented and ignored. It bites
+		 * hardest on relocated leaves, because `applyMenuRelocations()` walks
+		 * the menu backwards and appends each move, which lands a group's
+		 * children in REVERSE manifest order — an order nobody wrote down and
+		 * no app can influence except by reordering `manifest.json` itself.
+		 * Pipelinq's Customer Support group read "Projecten, My Work, Queue,
+		 * Tasks, All tickets" against declared orders of 55, 20, 10, 60, 50.
+		 *
+		 * Same comparator as the top level, so one rule governs both: items
+		 * without an `order` render last, in their existing relative order
+		 * (Array.prototype.sort is stable).
+		 *
+		 * @param {object} item The group whose children to render.
+		 * @return {Array<object>} Visible children, ordered.
+		 */
 		visibleChildren(item) {
 			if (!Array.isArray(item.children)) return []
-			return item.children.filter(
-				(c) => this.passesPermission(c) && this.passesVisibleIf(c),
-			)
+			return item.children
+				.filter((c) => this.passesPermission(c) && this.passesVisibleIf(c))
+				.sort(byManifestOrder)
 		},
 		resolveLabel(item) {
 			return this.effectiveTranslate(item.label)
