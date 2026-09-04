@@ -219,12 +219,11 @@ export default {
 			}
 			if (!this.multiple) {
 				/**
-				 * @event update:modelValue The selection changed. Carries the
-				 *   option's VALUE, or the array of values when `multiple` —
-				 *   never the option object, so a parent can hand back what it
-				 *   receives as `modelValue`.
+				 * @event update:modelValue The selected value, or the array of values when `multiple`.
 				 * @type {string|number|boolean|Array}
 				 */
+				// Never the option OBJECT: a parent has to be able to hand back
+				// what it receives as `modelValue`.
 				this.$emit('update:modelValue', option.value)
 				return
 			}

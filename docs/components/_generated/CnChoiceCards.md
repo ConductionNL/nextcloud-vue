@@ -15,6 +15,7 @@
 
 ### Events
 
-| Name                | Payload | Description |
-| ------------------- | ------- | ----------- |
-| `update:modelValue` | —       |             |
+| Name                                                                            | Payload | Description |
+| ------------------------------------------------------------------------------- | ------- | ----------- |
+| `update:modelValue`                                                             | —       |             |
+| `update:modelValue The selected value, or the array of values when `multiple`.` | —       |             |
