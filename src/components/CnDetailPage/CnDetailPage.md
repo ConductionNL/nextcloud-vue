@@ -356,11 +356,11 @@ The header carries the shared [CnActionsMenu](./cn-actions-menu.md) overflow (Re
 | `showRefresh` | Boolean | `true` | Show the Refresh item. Emits `@refresh`; default fires the `cn:page:refresh` event-bus channel. |
 | `showEditAction` | Boolean | `false` | Show a header **Edit** button opening the record's schema form. Needs `register` + `schema` + `objectId`. Emits `@edited` on save. |
 | `editLabel` | String | `''` | Label for the header Edit button. Defaults to a translated "Edit". |
-| `showRequestFeature` | Boolean | `true` | Show the Request-a-feature item. Opens CnSuggestFeatureModal with `surface: "detail:<id>"`. |
+| `showRequestFeature` | Boolean | `true` | Show the Request-a-feature item. Emits `@request-feature`; the default opens the forge's feature-request issue form (repo and forge injected by CnAppRoot) in a new tab, pre-filled with the page title and `surface: "detail:<id>"`. |
 | `documentationUrl` | String | `''` | When set, adds a **Documentation** entry opening the link in a new tab. Empty hides it. |
 | `documentationLabel` | String | `t('Documentation')` | Pre-translated Documentation label. |
 | `pageId` | String | `''` | Stable id for the menu surface + `@refresh`/`@request-feature` payloads; falls back to a slugified `title`. |
-| `specRef` | String | `''` | Forwarded to the feature-request modal so the issue links to the spec capability. |
+| `specRef` | String | `''` | Accepted for backward compatibility with the removed in-product suggestion modal; no longer forwarded anywhere (the forge issue form asks for its own context). |
 | `refreshing` | Boolean | `false` | While true, the Refresh item is disabled and shows a loading spinner for as long as this stays true (reflects the real refresh time). |
 | `refreshLabel` | String | `t('Refresh')` | Pre-translated Refresh label. |
 | `requestFeatureLabel` | String | `t('Request a feature')` | Pre-translated Request-a-feature label. |

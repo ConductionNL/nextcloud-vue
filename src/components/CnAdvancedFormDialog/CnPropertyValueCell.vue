@@ -229,11 +229,11 @@ export default {
 		// `components:` is a functional component, so Vue CALLS it on render
 		// and prints the returned Promise as text instead of mounting the
 		// dialog (the same "[object Promise]" bug CnActionsMenu shipped).
-		// `.then(m => m.default)` unwraps the dynamic-import module namespace
+		// `.then(m => m.default || m)` unwraps the dynamic-import module namespace
 		// before Vue receives it — with rollup's `inlineDynamicImports: true`
 		// the namespace is frozen, and downstream code attaching bookkeeping
 		// to a frozen object throws.
-		CnAdvancedFormDialog: defineAsyncComponent(() => import('./CnAdvancedFormDialog.vue').then(m => m.default)),
+		CnAdvancedFormDialog: defineAsyncComponent(() => import('./CnAdvancedFormDialog.vue').then(m => m.default || m)),
 	},
 
 	props: {

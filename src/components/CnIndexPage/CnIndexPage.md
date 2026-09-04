@@ -654,9 +654,7 @@ items.
 
 ## Request-a-feature
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `showRequestFeature` | Boolean | `true` | Show the built-in "Request a feature" entry in the CnActionsBar overflow. Opens CnSuggestFeatureModal with `surface: "index:<schema>"`. Requires a CnAppRoot ancestor (repo inject). |
+CnIndexPage no longer carries its own Request-a-feature entry (the former `showRequestFeature` prop was relocated). The action lives on the shared [CnActionsMenu](./cn-actions-menu.md) used by CnDetailPage, CnDashboardPage and CnWidgetWrapper, where it deep-links to the forge's feature-request issue form.
 
 ## Documentation link
 

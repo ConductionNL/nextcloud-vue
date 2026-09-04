@@ -58,7 +58,6 @@ const stubs = {
 	CnStatsBlockWidget: true,
 	CnWidgetRefItem: true,
 	CnDateRangePicker: true,
-	CnSuggestFeatureModal: { name: 'CnSuggestFeatureModal', props: ['repo', 'specRef', 'app', 'page', 'surface', 'conductionSubmitEnabled'], template: '<div class="suggest-modal-stub" />' },
 }
 
 const mountPage = (propsData = {}, opts = {}) => mount(CnDashboardPage, {
@@ -95,10 +94,17 @@ describe('CnDashboardPage — page-level Actions menu', () => {
 		expect(emitOnBus).toHaveBeenCalledWith('cn:page:refresh', { widgetId: 'overview', title: 'Overview' })
 	})
 
-	it('forwards the dashboard surface to the feature modal', async () => {
+	// The in-product modal is gone (team decision 2026-09-04): the surface
+	// slug now travels as the English headline of the forge issue-form link.
+	it('forwards the dashboard surface into the feature-request link', async () => {
+		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
 		const wrapper = mountPage({ pageId: 'overview' })
 		await wrapper.find('[data-testid="cn-dashboard-page-action-request-feature"]').trigger('click')
-		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).props('surface')).toBe('dashboard:overview')
+		expect(openSpy).toHaveBeenCalledTimes(1)
+		const u = new URL(openSpy.mock.calls[0][0])
+		expect(u.searchParams.get('template')).toBe('feature-request.yml')
+		expect(u.searchParams.get('title')).toBe('[FEATURE] dashboard:overview')
+		openSpy.mockRestore()
 	})
 })
 

@@ -40,8 +40,15 @@
 					</template>
 					{{ setupLabel }}
 				</NcButton>
-				<!-- Open the "help us / suggest a feature" modal. -->
-				<NcButton v-if="showHelp" @click="helpModalOpen = true">
+				<!-- "Help us / suggest a feature" — a direct link to the forge's
+				     feature-request issue form (team decision 2026-09-04: the
+				     in-product suggestion modal is gone; the forge is where
+				     the conversation happens, in English). -->
+				<NcButton
+					v-if="showHelp && helpUrl"
+					:href="helpUrl"
+					target="_blank"
+					rel="noopener noreferrer">
 					<template #icon>
 						<HelpCircleOutline :size="20" />
 					</template>
@@ -108,12 +115,6 @@
 			@complete="setupWizardOpen = false"
 			@close="setupWizardOpen = false" />
 
-		<!-- "Help us / suggest a feature" modal, opened from the admin page. -->
-		<CnSuggestFeatureModal
-			v-if="showHelp && helpModalOpen"
-			:repo="helpRepo"
-			:app="appId"
-			@close="helpModalOpen = false" />
 	</div>
 </template>
 
@@ -130,7 +131,7 @@ import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import { CnVersionInfoCard } from '../CnVersionInfoCard/index.js'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
-import CnSuggestFeatureModal from '../CnSuggestFeatureModal/CnSuggestFeatureModal.vue'
+import { buildFeatureRequestUrl } from '../../utils/forge.js'
 
 /**
  * CnAdminSettingsShell — the canonical chrome for a Conduction app's Nextcloud
@@ -173,7 +174,6 @@ export default {
 		CnCredentials,
 		CnVersionInfoCard,
 		CnSetupWizard,
-		CnSuggestFeatureModal,
 		NcButton,
 		NcLoadingIcon,
 		Refresh,
@@ -323,12 +323,12 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-		/** Show a "Help us / suggest a feature" action that opens CnSuggestFeatureModal. */
+		/** Show a "Help us / suggest a feature" link to the forge's feature-request form. */
 		showHelp: {
 			type: Boolean,
 			default: false,
 		},
-		/** `<owner>/<repo>` GitHub slug for the feature-request modal. */
+		/** `<owner>/<repo>` GitHub slug the feature-request link targets. */
 		helpRepo: {
 			type: String,
 			default: '',
@@ -341,11 +341,23 @@ export default {
 		return {
 			reimporting: false,
 			setupWizardOpen: false,
-			helpModalOpen: false,
 		}
 	},
 
 	computed: {
+		/**
+		 * The "Help us" link target: the forge's feature-request issue form
+		 * for `helpRepo`, on the fleet-default forge. Empty (hiding the
+		 * button) when no repo is configured.
+		 *
+		 * @return {string}
+		 */
+		helpUrl() {
+			const repo = String(this.helpRepo || '').trim()
+			if (!repo) return ''
+			return buildFeatureRequestUrl(null, repo)
+		},
+
 		/** @return {string} The running version, falling back to AppHost initial state. */
 		resolvedVersion() {
 			if (this.appVersion) {

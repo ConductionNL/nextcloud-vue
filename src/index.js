@@ -232,7 +232,6 @@ export {
 	CnFeaturesTab,
 	CnRoadmapTab,
 	CnRoadmapItem,
-	CnSuggestFeatureModal,
 	CnSupportDialog,
 	CnNotificationPreferences,
 	CnCredentials,

@@ -1,16 +1,16 @@
 /**
  * Tests for CnActionsMenu — the shared "…" overflow Actions menu that
  * renders Refresh plus the MANDATORY trio (Request a feature / Report a bug /
- * Documentation) and auto-mounts the CnSuggestFeatureModal. Used by
+ * Documentation), each a forge deep-link or event-bus emit. Used by
  * CnWidgetWrapper and the page-level headers of CnDetailPage /
  * CnDashboardPage.
  *
  * Covers: item visibility + the testidBase prefix, the unconditional trio and
  * its per-widget docs deep-link, the forge-derived bug-report link, default
  * Refresh handler (event-bus emit on the configured channel) with
- * preventDefault suppression, default Request-a-feature handler (modal mount /
- * repo-missing warn), and the refresh spinner (disabled + loading icon driven
- * solely by `:refreshing`).
+ * preventDefault suppression, default Request-a-feature handler (forge
+ * issue-form navigation / repo-missing warn), and the refresh spinner
+ * (disabled + loading icon driven solely by `:refreshing`).
  */
 
 import { mount } from '@vue/test-utils'
@@ -51,7 +51,6 @@ const baseStubs = {
 	LightbulbOutline: true,
 	BookOpenVariant: true,
 	BugOutline: true,
-	CnSuggestFeatureModal: { name: 'CnSuggestFeatureModal', props: ['repo', 'specRef', 'app', 'page', 'surface', 'conductionSubmitEnabled'], template: '<div class="suggest-modal-stub" />' },
 }
 
 const mountMenu = (propsData = {}, opts = {}) => mount(CnActionsMenu, {
@@ -258,34 +257,41 @@ describe('CnActionsMenu — default Request-a-feature handler', () => {
 	})
 	afterEach(() => jest.restoreAllMocks())
 
-	it('mounts CnSuggestFeatureModal with the forwarded surface + context', async () => {
+	// Team decision 2026-09-04: the in-product suggestion modal is gone —
+	// the default opens the forge's feature-request issue FORM in a new
+	// tab, exactly like Report a bug, so the whole conversation happens on
+	// the forge (in English).
+	it('opens the feature-request issue form on the forge, like Report a bug', async () => {
+		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
 		const wrapper = mountMenu({ surface: 'detail:cases', specRef: 'cases' })
 		await wrapper.find('[data-testid="cn-actions-menu-action-request-feature"]').trigger('click')
-		const modal = wrapper.findComponent({ name: 'CnSuggestFeatureModal' })
-		expect(modal.exists()).toBe(true)
-		expect(modal.props()).toMatchObject({
-			repo: 'ConductionNL/pipelinq',
-			specRef: 'cases',
-			app: 'pipelinq',
-			page: 'Dashboard',
-			surface: 'detail:cases',
-		})
+
+		expect(openSpy).toHaveBeenCalledTimes(1)
+		const [url, target, features] = openSpy.mock.calls[0]
+		const u = new URL(url)
+		expect(u.origin + u.pathname).toBe('https://github.com/ConductionNL/pipelinq/issues/new')
+		expect(u.searchParams.get('template')).toBe('feature-request.yml')
+		expect(u.searchParams.get('title')).toBe('[FEATURE] detail:cases')
+		expect(target).toBe('_blank')
+		expect(features).toBe('noopener,noreferrer')
 	})
 
-	it('warns and does not mount the modal when no repo inject', async () => {
+	it('warns and opens nothing when no repo inject', async () => {
 		const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
 		const wrapper = mountMenu({}, { provide: { cnAppId: 'pipelinq', cnFeatureRequestRepo: '' } })
 		await wrapper.find('[data-testid="cn-actions-menu-action-request-feature"]').trigger('click')
-		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).exists()).toBe(false)
-		expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Cannot open feature request modal'))
+		expect(openSpy).not.toHaveBeenCalled()
+		expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Cannot open the feature-request form'))
 	})
 
-	it('host preventDefault suppresses the modal', async () => {
+	it('host preventDefault suppresses the built-in navigation', async () => {
+		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
 		const onRequest = jest.fn((_p, ev) => ev.preventDefault())
 		const wrapper = mountMenu({}, { listeners: { 'request-feature': onRequest } })
 		await wrapper.find('[data-testid="cn-actions-menu-action-request-feature"]').trigger('click')
 		expect(onRequest).toHaveBeenCalled()
-		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).exists()).toBe(false)
+		expect(openSpy).not.toHaveBeenCalled()
 	})
 })
 
@@ -343,21 +349,16 @@ describe('CnActionsMenu — refresh spinner', () => {
 		expect(wrapper.findComponent({ name: 'Refresh' }).exists()).toBe(true)
 	})
 
-	// Regression guard, two layers deep. (1) Vue 3: a BARE function in
-	// `components:` is a functional component — Vue CALLS it on render and
-	// prints the returned Promise as text, so the menu showed the literal
-	// "[object Promise]" and no modal. The registration must be a
-	// defineAsyncComponent wrapper (an options OBJECT carrying __asyncLoader),
-	// never a plain function. (2) The loader must resolve to the (extensible)
-	// component options, not a `{ default }` module-namespace wrapper.
-	it('registers CnSuggestFeatureModal as an async component that resolves to component options', async () => {
-		const registered = CnActionsMenu.components.CnSuggestFeatureModal
-		// A plain function here is the [object Promise] bug.
-		expect(typeof registered).not.toBe('function')
-		expect(typeof registered.__asyncLoader).toBe('function')
-		const resolved = await registered.__asyncLoader()
-		// Must be the component definition itself (has a name), not a `{ default }` wrapper.
-		expect(resolved.default).toBeUndefined()
-		expect(resolved.name).toBe('CnSuggestFeatureModal')
+	// The [object Promise] regression guard that used to live here policed
+	// the CnSuggestFeatureModal async registration; the modal is gone
+	// (team decision 2026-09-04 — Request a feature deep-links the forge's
+	// issue form) and with it the component's last async registration. The
+	// same guard survives for the remaining async registrations elsewhere
+	// (e.g. CnPropertyValueCell's CnAdvancedFormDialog).
+	it('registers no bare-function components (the [object Promise] trap)', () => {
+		for (const [name, comp] of Object.entries(CnActionsMenu.components)) {
+			expect({ name, isBareFunction: typeof comp === 'function' })
+				.toEqual({ name, isBareFunction: false })
+		}
 	})
 })

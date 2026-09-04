@@ -28,8 +28,8 @@ opens the corresponding issue in a new tab.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
-| `repo` | String | Yes | `<owner>/<repo>` slug of the app's repository on the forge. Passed through to `CnRoadmapTab` and `CnSuggestFeatureModal`. |
-| `forge` | Object | No | `{ type, baseUrl? }` target forge for the feature-request deep-link, forwarded to `CnSuggestFeatureModal` and used to derive the support dialog's feature-request URL. Defaults to Codeberg. See [CnSuggestFeatureModal](cn-suggest-feature-modal.md#forge-configuration). |
+| `repo` | String | Yes | `<owner>/<repo>` slug of the app's repository on the forge. Passed through to `CnRoadmapTab` and used to build the Suggest CTA's feature-request form link. |
+| `forge` | Object | No | `{ type, baseUrl? }` target forge the feature-request deep-links are built against (the Suggest CTA and the support dialog's feature-request URL). |
 | `features` | Array | Yes | Build-time feature manifest — array of `{slug, title, summary, docsUrl}` objects rendered by `CnFeaturesTab`. |
 | `disabled` | Boolean | No | When `true`, the view collapses to a single "disabled by your administrator" empty state. |
 | `openbuiltUrl` | String | No | Override the OpenBuilt sidebar CTA target. Pass an absolute URL or a Nextcloud-relative path. Defaults to the in-instance OpenBuilt route at `/apps/openbuilt` (resolved via `generateUrl`). |

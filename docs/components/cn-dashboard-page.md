@@ -360,7 +360,7 @@ The dashboard header carries the shared [`CnActionsMenu`](./cn-actions-menu.md) 
 
 - **Refresh** emits `@refresh` and, unless suppressed via `event.preventDefault()`, fires the `cn:page:refresh` event-bus channel with `{ widgetId, title }`.
 - **Documentation** renders only when `documentationUrl` is set, opening it in a new tab.
-- **Request a feature** opens `CnSuggestFeatureModal` with `surface: "dashboard:<id>"` when mounted under `CnAppRoot`.
+- **Request a feature** opens the forge's feature-request issue form with the `dashboard:<id>` surface as its English headline, when mounted under `CnAppRoot`.
 
 Refresh and Request-a-feature are on by default for the page-level menu; opt out with `:show-refresh="false"` / `:show-request-feature="false"`. Set `:page-id` for a stable id/surface.
 

@@ -22,7 +22,7 @@ The litmus test the team uses: **anything that shows a single headline number is
 Because every Widget renders on `CnWidgetWrapper`, it automatically carries the shared overflow **Actions** menu:
 
 - **Refresh** — always shown; broadcasts on the `cn:widget:refresh` event bus (page surfaces use `cn:page:refresh`).
-- **Request a feature** — always shown; opens `CnSuggestFeatureModal`, auto-resolving the app + repo from the `CnAppRoot` injects.
+- **Request a feature** — always shown; opens the forge's feature-request issue form, auto-resolving the repo + forge from the `CnAppRoot` injects.
 - **Documentation** — shown only when a `documentation-url` is provided.
 - Per-widget extras via the `#action-items` slot (e.g. the **Metadata** item on `CnObjectDataWidget`).
 

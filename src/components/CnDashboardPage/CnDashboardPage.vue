@@ -1222,8 +1222,8 @@ export default {
 		},
 		/**
 		 * Show the built-in Request-a-feature item in the page-level
-		 * overflow Actions menu. On by default; opens the
-		 * CnSuggestFeatureModal when mounted under CnAppRoot.
+		 * overflow Actions menu. On by default; opens the forge's
+		 * feature-request issue form when mounted under CnAppRoot.
 		 *
 		 * @type {boolean}
 		 */
@@ -1281,7 +1281,14 @@ export default {
 			type: String,
 			default: '',
 		},
-		/** Optional `specRef` forwarded to the feature-request modal. */
+		/**
+		 * Optional `specRef` slug. Accepted for backward compatibility with
+		 * hosts that bound it for the removed in-product suggestion modal;
+		 * no longer forwarded anywhere (the forge issue form asks for its
+		 * own context).
+		 *
+		 * @type {string}
+		 */
 		specRef: {
 			type: String,
 			default: '',
@@ -1918,7 +1925,7 @@ export default {
 			 * page-level overflow Actions menu. Payload: `{ widgetId,
 			 * title }`. Handlers may call the second arg's
 			 * `preventDefault()` to suppress the built-in default
-			 * (auto-opening CnSuggestFeatureModal).
+			 * (opening the forge's feature-request issue form).
 			 * @type {{ widgetId: string, title: string }}
 			 */
 			this.$emit('request-feature', payload, ev)
