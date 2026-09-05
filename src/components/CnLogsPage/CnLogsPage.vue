@@ -527,9 +527,10 @@ export default {
 		// without re-creating it, and `tokenCtx()` reflects the latest bags.
 		const resolveFixedFilters = () => {
 			const route = instance && instance.proxy && instance.proxy.$route
+			const ctx = tokenCtx()
 			return {
-				...resolveQueryFilters(route && route.query),
-				...resolveFilterMap(props.filter, (route && route.params) || {}, tokenCtx()),
+				...resolveQueryFilters(route && route.query, ctx),
+				...resolveFilterMap(props.filter, (route && route.params) || {}, ctx),
 			}
 		}
 
