@@ -76,10 +76,19 @@ export function parseSortKeysFromQuery(route) {
  * `?status[]=a&status[]=b` becomes an IN match). Merged BELOW the page's
  * `config.filter` so a page's own scoping still wins on a key collision.
  *
+ * The values go through the SAME `@`-token grammar a page's `config.filter`
+ * gets (see `resolveFilterMap`), so `?assignee=@me` scopes to the signed-in
+ * user and `?due=@today` to today. Without that, a `menu[].query` preset
+ * carrying a token sent the LITERAL string `@me` to the API and the entry
+ * silently listed nothing — which is exactly the shape ADR-097 Decision 5
+ * asks apps to replace a duplicate index page with.
+ *
  * @param {object} query The `$route.query` object.
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Token-resolution
+ *   context, the same bag `resolveFilterMap` takes.
  * @return {object} The query-derived filter map.
  */
-export function resolveQueryFilters(query) {
+export function resolveQueryFilters(query, ctx) {
 	if (!query || typeof query !== 'object') return {}
 	const out = {}
 	for (const [k, v] of Object.entries(query)) {
@@ -87,5 +96,5 @@ export function resolveQueryFilters(query) {
 		if (v === undefined || v === null || v === '') continue
 		out[k] = v
 	}
-	return out
+	return dropOptionalUnresolved(resolveFilterTokens(out, ctx))
 }
