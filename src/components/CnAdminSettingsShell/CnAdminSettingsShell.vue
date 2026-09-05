@@ -34,7 +34,7 @@
 					{{ reimporting ? importingLabel : reimportLabel }}
 				</NcButton>
 				<!-- Run the first-time setup wizard on demand (ADR-042). -->
-				<NcButton v-if="showSetup" @click="setupWizardOpen = true">
+				<NcButton v-if="showSetup" data-testid="cn-admin-run-setup" @click="setupWizardOpen = true">
 					<template #icon>
 						<AutoFix :size="20" />
 					</template>
