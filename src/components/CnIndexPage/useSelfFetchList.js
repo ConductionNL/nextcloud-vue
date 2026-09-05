@@ -155,8 +155,8 @@ export function useSelfFetchList(props, instance, inject) {
 		fixedFilters: () => {
 			const route = instance && instance.proxy && instance.proxy.$route
 			const params = (route && route.params) || {}
-			const queryFilters = resolveQueryFilters(route && route.query)
 			const ctx = tokenCtx()
+			const queryFilters = resolveQueryFilters(route && route.query, ctx)
 			const base = resolveFilterMap(props.filter, params, ctx)
 			const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
 			if (!tabs) return { ...queryFilters, ...base }
