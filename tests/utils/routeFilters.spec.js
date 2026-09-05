@@ -7,6 +7,10 @@
  * two page components.
  */
 
+jest.mock('@nextcloud/auth', () => ({
+	getCurrentUser: jest.fn(() => ({ uid: 'alice' })),
+}))
+
 const { resolveFilterMap, resolveQueryFilters } = require('../../src/utils/routeFilters.js')
 
 describe('resolveQueryFilters', () => {
@@ -37,6 +41,33 @@ describe('resolveQueryFilters', () => {
 		expect(resolveQueryFilters(undefined)).toEqual({})
 		expect(resolveQueryFilters(null)).toEqual({})
 		expect(resolveQueryFilters('nope')).toEqual({})
+	})
+
+	// A `menu[].query` preset is the remedy ADR-097 Decision 5 names for a
+	// duplicate index page. Until these passed, a preset carrying a token sent
+	// the LITERAL '@me' to the API and the entry listed nothing, silently.
+	it('resolves an "@me" token, so a menu query preset can scope to the caller', () => {
+		expect(resolveQueryFilters({ assignee: '@me' })).toEqual({ assignee: 'alice' })
+	})
+
+	it('resolves a token inside an array value', () => {
+		expect(resolveQueryFilters({ assignee: ['@me', 'shared'] }))
+			.toEqual({ assignee: ['alice', 'shared'] })
+	})
+
+	it('resolves an "@workspace.<key>" token against the supplied context', () => {
+		expect(resolveQueryFilters({ administrationId: '@workspace.activeAdministrationId' },
+			{ workspace: { activeAdministrationId: 'adm-1' } }))
+			.toEqual({ administrationId: 'adm-1' })
+	})
+
+	it('drops an UNRESOLVED optional token instead of sending it literally', () => {
+		expect(resolveQueryFilters({ administrationId: '@workspace.activeAdministrationId?' }, {}))
+			.toEqual({})
+	})
+
+	it('leaves a literal untouched, so ?status=submitted still means submitted', () => {
+		expect(resolveQueryFilters({ status: 'submitted' })).toEqual({ status: 'submitted' })
 	})
 })
 
