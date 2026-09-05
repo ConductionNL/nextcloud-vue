@@ -148,6 +148,7 @@ export {
 	CnRelatedCollections,
 	CnBodySections,
 	CnCard,
+	CnChoiceCards,
 	CnStatsPanel,
 	CnJsonViewer,
 	CnColorPicker,

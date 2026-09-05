@@ -87,17 +87,24 @@
 				{{ closeLabel }}
 			</NcButton>
 
-			<!-- Wizard phase actions: Cancel + Back + Next/Submit. -->
+			<!-- Wizard phase actions: Cancel + Back + Next/Submit.
+			     The testids exist because these buttons are the only way
+			     through a wizard and their LABELS are translated: an e2e that
+			     clicks "Next" passes on an English instance and times out on a
+			     Dutch one, reporting a broken dialog rather than a missing
+			     string. -->
 			<template v-else>
-				<NcButton v-if="cancellable" @click="onClose">
+				<NcButton v-if="cancellable" data-testid="cn-wizard-cancel" @click="onClose">
 					{{ cancelLabel }}
 				</NcButton>
 				<NcButton v-if="!isFirst"
+					data-testid="cn-wizard-back"
 					:disabled="loading"
 					@click="back">
 					{{ backLabel }}
 				</NcButton>
 				<NcButton variant="primary"
+					data-testid="cn-wizard-next"
 					:disabled="loading"
 					@click="isLast ? submit() : next()">
 					<template #icon>
