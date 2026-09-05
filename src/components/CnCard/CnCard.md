@@ -142,3 +142,15 @@ export default {
 |------|-------------|
 | `icon` | Override the icon rendered in the card title (replaces the `icon` prop) |
 | `actions` | Action controls rendered in the top-right corner of the card header |
+
+As an option rather than a page section, with `title-tag`:
+
+```vue
+<div style="max-width: 280px;">
+  <CnCard
+    title="Municipality"
+    title-tag="span"
+    description="A council, its committees and a decision list."
+    :stats="[{ label: 'Objects', value: 170 }]" />
+</div>
+```

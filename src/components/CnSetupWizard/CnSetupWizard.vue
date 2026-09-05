@@ -47,7 +47,17 @@
 					<NcNoteCard v-if="step.body" type="info">
 						{{ stepBody(step) }}
 					</NcNoteCard>
+					<CnChoiceCards
+						v-if="isCardChoice(step)"
+						:label="stepTitle(step)"
+						:options="optionsFor(step)"
+						:multiple="step.multiple === true"
+						:disabled="isChoiceDisabled(step)"
+						:loading="isOptionsLoading(step)"
+						:model-value="cardModel(step)"
+						@update:model-value="(v) => onChoice(step, v)" />
 					<NcSelect
+						v-else
 						:input-label="stepTitle(step)"
 						:options="optionsFor(step)"
 						:multiple="step.multiple === true"
@@ -134,6 +144,8 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcNoteCard, NcSelect, NcTextField, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import CnWizardDialog from '../CnWizardDialog/CnWizardDialog.vue'
+import CnChoiceCards from '../CnChoiceCards/CnChoiceCards.vue'
+import { useSetupStatus } from '../../composables/useSetupStatus.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
 
 /**
@@ -164,6 +176,7 @@ export default {
 
 	components: {
 		CnWizardDialog,
+		CnChoiceCards,
 		NcButton,
 		NcNoteCard,
 		NcSelect,
@@ -262,6 +275,28 @@ export default {
 
 	emits: ['complete', 'close', 'step-change', 'action-result'],
 
+	/**
+	 * Live option lists come from the app's own setup status document, so a
+	 * step that offers a choice of things the SERVER ships never has to
+	 * restate them in the manifest. `useSetupStatus` caches per app id, so the
+	 * host's own status fetch (CnAppRoot's setup gate) is the one that runs —
+	 * this reads the same refs rather than asking again.
+	 *
+	 * Only called when a step actually declares `optionsSource`: a wizard with
+	 * none must not start making requests it never made before.
+	 *
+	 * @param {object} props The component props.
+	 * @return {object} `setupStatus` / `setupStatusLoading` for the option resolver.
+	 */
+	setup(props) {
+		const wantsSource = (props.steps || []).some((s) => s && s.optionsSource)
+		if (!wantsSource) {
+			return {}
+		}
+		const { status, loading } = useSetupStatus(props.appId, { setup: { steps: props.steps } })
+		return { setupStatus: status, setupStatusLoading: loading }
+	},
+
 	data() {
 		return {
 			choiceModel: {},
@@ -301,11 +336,9 @@ export default {
 					if (step.type === 'choice') {
 						const raw = this.choiceModel[step.id]
 						if (Array.isArray(raw)) {
-							value = raw.map((o) => (o && o.label ? o.label : o)).join(', ')
-						} else if (raw && raw.label) {
-							value = raw.label
+							value = raw.map((o) => this.choiceLabel(step, o)).join(', ')
 						} else if (raw != null && raw !== '') {
-							value = String(raw)
+							value = this.choiceLabel(step, raw)
 						}
 					} else if (step.type === 'config-fields') {
 						value = this.fieldsFor(step)
@@ -415,7 +448,9 @@ export default {
 		 */
 		optionsFor(step) {
 			let options = step.options || []
-			if (step.dependsOn && step.optionsByParent) {
+			if (step.optionsSource) {
+				options = this.sourcedOptions(step)
+			} else if (step.dependsOn && step.optionsByParent) {
 				const parentValue = this.choiceValues[step.dependsOn]
 				options = (parentValue == null || parentValue === '')
 					? []
@@ -427,11 +462,89 @@ export default {
 			// untranslated one leaves the choice itself in English on a
 			// localised instance, which is the half-translated screen this fix
 			// exists to remove.
-			return options.map((option) => (
-				(option && typeof option === 'object' && option.label)
-					? { ...option, label: this.cnTranslate(option.label) }
-					: option
-			))
+			return options.map((option) => {
+				if (!option || typeof option !== 'object' || !option.label) {
+					return option
+				}
+				const translated = { ...option, label: this.cnTranslate(option.label) }
+				if (option.description) {
+					translated.description = this.cnTranslate(option.description)
+				}
+				return translated
+			})
+		},
+		/**
+		 * The option list a `choice` step declares `optionsSource` for, read
+		 * from the setup status document the app already serves.
+		 *
+		 * `optionsSource` names a key in that document (dots walk into nested
+		 * objects), and the entries are normalised to the option shape: `id` is
+		 * accepted for `value`, `name` for `label`, and a bare `objectCount`
+		 * becomes the one stat a card shows. A server that already sends
+		 * `stats` keeps them.
+		 *
+		 * @param {object} step The choice step declaring `optionsSource`.
+		 * @return {Array<object>} The options, or [] while the status is loading.
+		 */
+		sourcedOptions(step) {
+			let node = this.setupStatus
+			for (const key of String(step.optionsSource).split('.')) {
+				if (node == null || typeof node !== 'object') {
+					return []
+				}
+				node = node[key]
+			}
+			if (!Array.isArray(node)) {
+				return []
+			}
+			return node
+				.filter((entry) => entry && typeof entry === 'object')
+				.map((entry) => {
+					const value = entry.value !== undefined ? entry.value : entry.id
+					const option = {
+						...entry,
+						value,
+						label: entry.label || entry.name || String(value),
+					}
+					if (!option.stats && typeof entry.objectCount === 'number' && entry.objectCount > 0) {
+						option.stats = [{ label: t('nextcloud-vue', 'Objects'), value: entry.objectCount }]
+					}
+					return option
+				})
+				.filter((option) => option.value !== undefined)
+		},
+		/**
+		 * Whether a choice step renders as a card grid rather than a dropdown.
+		 *
+		 * @param {object} step The choice step.
+		 * @return {boolean} True for `display: "cards"`.
+		 */
+		isCardChoice(step) {
+			return step.display === 'cards'
+		},
+		/**
+		 * Whether this step is still waiting for its live option list.
+		 *
+		 * @param {object} step The choice step.
+		 * @return {boolean} True while the status document is in flight.
+		 */
+		isOptionsLoading(step) {
+			return !!step.optionsSource && this.setupStatusLoading === true
+		},
+		/**
+		 * The card grid's model: plain values, not the option objects NcSelect
+		 * binds. `scalarChoice` already reduces either shape to values, so both
+		 * renderers can share one `choiceModel` entry.
+		 *
+		 * @param {object} step The choice step.
+		 * @return {*} The selected value, or [] / null when nothing is picked.
+		 */
+		cardModel(step) {
+			const value = this.scalarChoice(step)
+			if (step.multiple === true) {
+				return Array.isArray(value) ? value : []
+			}
+			return value === undefined ? null : value
 		},
 		isChoiceDisabled(step) {
 			if (!step.dependsOn) return false
@@ -442,6 +555,26 @@ export default {
 			const parent = this.setupSteps.find((s) => s.configKey === step.dependsOn)
 			const label = parent ? (parent.title || parent.id) : step.dependsOn
 			return t('nextcloud-vue', 'Select "{step}" first.', { step: label })
+		},
+		/**
+		 * The visible label for one selected choice entry.
+		 *
+		 * A card grid stores plain VALUES where NcSelect stores option objects,
+		 * so the recap looked one up and printed the other: the summary read
+		 * "municipality" instead of "Municipality". Resolves a bare value back
+		 * to its option, and falls back to the value when the option list is
+		 * not (yet) available.
+		 *
+		 * @param {object} step  The choice step.
+		 * @param {*}      entry One selected entry: an option object or a value.
+		 * @return {string} The label to show.
+		 */
+		choiceLabel(step, entry) {
+			if (entry && typeof entry === 'object' && entry.label) {
+				return entry.label
+			}
+			const match = this.optionsFor(step).find((o) => o && String(o.value) === String(entry))
+			return (match && match.label) ? match.label : String(entry)
 		},
 		hasChoice(step) {
 			const v = this.choiceModel[step.id]

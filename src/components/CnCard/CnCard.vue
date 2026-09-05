@@ -5,12 +5,12 @@
 		:style="activeStyles"
 		@click="onClick">
 		<div class="cn-card__header">
-			<h2 class="cn-card__title">
+			<component :is="titleTag" class="cn-card__title">
 				<slot name="icon">
 					<component :is="icon" v-if="icon" :size="iconSize" />
 				</slot>
 				<span ref="titleText" :title="computedTooltip" class="cn-card__title-text">{{ title }}</span>
-			</h2>
+			</component>
 			<div v-if="$slots.actions || $slots.actions" class="cn-card__actions">
 				<slot name="actions" />
 			</div>
@@ -131,6 +131,17 @@ export default {
 		description: {
 			type: String,
 			default: '',
+		},
+		/**
+		 * Element the title renders as. Defaults to a heading, which is right
+		 * for a card that stands on its own in a page. Pass `"span"` where the
+		 * card is an OPTION rather than a section — a grid of six cards is six
+		 * choices, not six headings, and a screen reader's heading list should
+		 * not fill up with them.
+		 */
+		titleTag: {
+			type: String,
+			default: 'h2',
 		},
 		/** Tooltip text for the title. If not set, falls back to description */
 		titleTooltip: {

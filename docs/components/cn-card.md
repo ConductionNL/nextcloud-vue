@@ -50,6 +50,7 @@ The title auto-detects truncation and shows the full text as a tooltip when elli
 |------|------|---------|-------------|
 | `title` | String | `''` | Card title text. Auto-ellipsizes; full text shown as tooltip when truncated. |
 | `description` | String | `''` | Description paragraph, truncated via CSS line-clamp to `descriptionLines`. |
+| `titleTag` | String | `'h2'` | Element the title renders as. Pass `'span'` where the card is an option rather than a page section, so a grid of cards does not fill the heading outline. |
 | `titleTooltip` | String | `''` | Explicit tooltip text for the title. Falls back to `description`-less behaviour: when unset, the tooltip shows the title only while ellipsized. |
 | `icon` | Object \| Function | `null` | Vue component reference (typically an imported MDI icon) rendered before the title. |
 | `iconSize` | Number | `20` | Pixel size passed to the icon component. |

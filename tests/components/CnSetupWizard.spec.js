@@ -11,8 +11,9 @@ jest.mock('@nextcloud/router', () => ({
 }))
 
 const axios = require('@nextcloud/axios').default
-const { shallowMount } = require('@vue/test-utils')
+const { shallowMount, mount } = require('@vue/test-utils')
 const CnSetupWizard = require('../../src/components/CnSetupWizard/CnSetupWizard.vue').default
+const { __resetSetupStatusCacheForTests } = require('../../src/composables/useSetupStatus.js')
 
 const steps = [
 	{ id: 'welcome', type: 'info', title: 'Hi' },
@@ -236,5 +237,109 @@ describe('CnSetupWizard', () => {
 			expect(options[1].label).toBe('Works council')
 			expect(options[1].value).toBe('works-council')
 		})
+	})
+})
+
+describe('CnSetupWizard — a choice offered as cards', () => {
+	const cardStep = {
+		id: 'example-set',
+		type: 'choice',
+		display: 'cards',
+		optionsSource: 'profiles',
+		configKey: 'example_profile',
+		multiple: true,
+		title: 'Which kind of organisation is this for?',
+	}
+	const profiles = [
+		{ id: 'none', label: 'None', description: 'Plants nothing.' },
+		{ id: 'municipality', label: 'Municipality', description: 'A council and its committees.', objectCount: 170 },
+		{ id: 'generated', label: 'Every schema, generated values', description: 'From the schemas themselves.', objectCount: 0 },
+	]
+
+	beforeEach(() => {
+		__resetSetupStatusCacheForTests()
+		axios.get.mockReset()
+		axios.post.mockReset()
+		axios.get.mockResolvedValue({ data: { version: 1, completed: true, profiles, steps: {} } })
+	})
+
+	const mountWizard = async (step = cardStep) => {
+		const wrapper = mount(CnSetupWizard, { propsData: { appId: 'decidiq', steps: [step] } })
+		await new Promise((resolve) => setTimeout(resolve, 0))
+		await wrapper.vm.$nextTick()
+		return wrapper
+	}
+
+	it('reads its options from the app\'s own setup status document', async () => {
+		const wrapper = await mountWizard()
+		expect(axios.get).toHaveBeenCalledWith('/index.php/apps/decidiq/api/setup/status')
+		const options = wrapper.vm.optionsFor(cardStep)
+		expect(options.map((o) => o.value)).toEqual(['none', 'municipality', 'generated'])
+		expect(options[1].description).toBe('A council and its committees.')
+	})
+
+	it('turns a set\'s object count into the one stat a card shows, and omits an unknown one', async () => {
+		const wrapper = await mountWizard()
+		const options = wrapper.vm.optionsFor(cardStep)
+		expect(options[1].stats).toEqual([{ label: 'Objects', value: 170 }])
+		expect(options[2].stats).toBeUndefined()
+		expect(options[0].stats).toBeUndefined()
+	})
+
+	it('renders a card grid instead of a dropdown', async () => {
+		const wrapper = await mountWizard()
+		expect(wrapper.find('.cn-choice-cards').exists()).toBe(true)
+		expect(wrapper.findAll('.cn-choice-cards__option')).toHaveLength(3)
+		expect(wrapper.text()).toContain('A council and its committees.')
+	})
+
+	it('keeps the dropdown for a choice that does not ask for cards', async () => {
+		const wrapper = await mountWizard({ ...cardStep, display: undefined })
+		expect(wrapper.find('.cn-choice-cards').exists()).toBe(false)
+	})
+
+	it('collects several picks and POSTs them as a list', async () => {
+		const wrapper = await mountWizard()
+		const inputs = wrapper.findAll('.cn-choice-cards__input')
+		await inputs[1].trigger('change')
+		await inputs[2].trigger('change')
+		expect(wrapper.vm.scalarChoice(cardStep)).toEqual(['municipality', 'generated'])
+
+		axios.post.mockResolvedValue({ data: { success: true } })
+		expect(await wrapper.vm.validateStep('example-set')).toBe(true)
+		expect(axios.post).toHaveBeenCalledWith(
+			'/index.php/apps/decidiq/api/setup/config',
+			{ example_profile: ['municipality', 'generated'] },
+		)
+	})
+
+	it('recaps the picked sets by label, not by id', async () => {
+		const wrapper = await mountWizard()
+		await wrapper.findAll('.cn-choice-cards__input')[1].trigger('change')
+		const recap = wrapper.vm.summaryItems.find((i) => i.id === 'example-set')
+		expect(recap.value).toBe('Municipality')
+		expect(recap.done).toBe(true)
+	})
+
+	it('offers a way through that does not depend on the button label', async () => {
+		// The labels are translated; an e2e that clicks "Next" passes in English
+		// and times out in Dutch, reporting a broken dialog rather than a
+		// missing string.
+		const wrapper = await mountWizard()
+		expect(wrapper.find('[data-testid="cn-wizard-next"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-wizard-cancel"]').exists()).toBe(true)
+	})
+
+	it('never asks for setup status when no step declares an option source', () => {
+		axios.get.mockClear()
+		shallowMount(CnSetupWizard, { propsData: { appId: 'decidiq', steps } })
+		expect(axios.get).not.toHaveBeenCalled()
+	})
+
+	it('offers nothing rather than crashing when the status document has no such key', async () => {
+		axios.get.mockResolvedValue({ data: { version: 1, completed: true, steps: {} } })
+		const wrapper = await mountWizard()
+		expect(wrapper.vm.optionsFor(cardStep)).toEqual([])
+		expect(wrapper.find('.cn-choice-cards').exists()).toBe(true)
 	})
 })
