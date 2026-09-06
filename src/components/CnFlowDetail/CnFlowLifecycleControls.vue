@@ -14,6 +14,12 @@
   plain header row in the embedded (dialog) variant. One copy, so the two hosts
   cannot drift.
 
+  THE HEALTH DOT LEADS THE LINE. It reports the state of the last RUN, which is
+  the question an author opening a flow actually has, and it subsumes the
+  enabled/disabled label that used to sit here — a grey dot says "this is not
+  going to run" in less space and without competing with the version for the
+  eye.
+
   WHAT IS DELIBERATELY NOT HERE
   -----------------------------
   THE VERBS. Publish, Create draft version and Deprecate live in the header's
@@ -34,10 +40,12 @@
 <template>
 	<div class="cn-flow-lifecycle">
 		<p class="cn-flow-lifecycle__version">
-			<span class="cn-flow-lifecycle__version-number"
+			<CnFlowHealthDot :enabled="store.flow.enabled === true"
+				:last-run-status="store.flow.lastRunStatus || null" />
+			<span class="cn-flow-lifecycle__pill cn-flow-lifecycle__pill--version"
 				data-testid="flow-version">v{{ store.flowVersion }}</span>
-			<span class="cn-flow-lifecycle__badge"
-				:class="`cn-flow-lifecycle__badge--${store.lifecycleStatus}`"
+			<span class="cn-flow-lifecycle__pill"
+				:class="`cn-flow-lifecycle__pill--${store.lifecycleStatus}`"
 				data-testid="flow-lifecycle">{{ lifecycleLabel }}</span>
 		</p>
 	</div>
@@ -46,9 +54,12 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { useFlowStore } from '../../composables/useFlowStore.js'
+import CnFlowHealthDot from './CnFlowHealthDot.vue'
 
 export default {
 	name: 'CnFlowLifecycleControls',
+
+	components: { CnFlowHealthDot },
 
 	setup() {
 		return { store: useFlowStore() }
@@ -90,27 +101,30 @@ export default {
 	margin: 0;
 }
 
-.cn-flow-lifecycle__version-number {
-	font-weight: bold;
-}
-
-.cn-flow-lifecycle__badge {
+.cn-flow-lifecycle__pill {
 	border-radius: var(--border-radius-pill, 100px);
 	padding: 2px 10px;
 	font-size: 0.85em;
-	/* Tokens, never literals: the badge has to stay legible in the dark theme
-	   and under the high-contrast accessibility setting, and a hardcoded pair
+	/* Tokens, never literals: a pill has to stay legible in the dark theme and
+	   under the high-contrast accessibility setting, and a hardcoded pair
 	   fails both. */
 	background-color: var(--color-background-dark);
 	color: var(--color-text-maxcontrast);
 }
 
-.cn-flow-lifecycle__badge--published {
+.cn-flow-lifecycle__pill--version {
+	font-weight: bold;
+	color: var(--color-main-text);
+	/* Tabular figures so v9 and v10 do not shift the badge beside them. */
+	font-variant-numeric: tabular-nums;
+}
+
+.cn-flow-lifecycle__pill--published {
 	background-color: var(--color-success, var(--color-primary-element));
 	color: var(--color-primary-element-text, var(--color-main-background));
 }
 
-.cn-flow-lifecycle__badge--deprecated {
+.cn-flow-lifecycle__pill--deprecated {
 	background-color: var(--color-warning, var(--color-background-dark));
 	color: var(--color-main-text);
 }

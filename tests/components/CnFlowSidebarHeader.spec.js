@@ -167,6 +167,34 @@ describe('CnFlowSidebar — after the messages moved to the canvas', () => {
 			expect(header.find('[data-testid="flow-publish"]').exists()).toBe(true)
 		})
 
+		it('leads the line with the flow\'s health, read off the LAST RUN', async () => {
+			// The wiring, which the dot's own spec cannot see: `enabled` and
+			// `lastRunStatus` have to reach it from the store. A getter read
+			// wrongly here shows as a permanently grey dot, which looks
+			// deliberate.
+			const { wrapper } = await mountSidebar({
+				flow: {
+					id: 3, name: 'Mandaatbesluit', version: 2, lifecycleStatus: 'published',
+					enabled: true, lastRunStatus: 'failed', nodes: [], edges: [],
+				},
+			})
+
+			const dot = wrapper.find('.app-sidebar__header [data-testid="flow-health"]')
+			expect(dot.exists()).toBe(true)
+			expect(dot.attributes('data-health')).toBe('error')
+		})
+
+		it('shows a disabled flow as grey however its last run ended', async () => {
+			const { wrapper } = await mountSidebar({
+				flow: {
+					id: 3, name: 'Mandaatbesluit', version: 2, lifecycleStatus: 'published',
+					enabled: false, lastRunStatus: 'completed', nodes: [], edges: [],
+				},
+			})
+
+			expect(wrapper.find('[data-testid="flow-health"]').attributes('data-health')).toBe('disabled')
+		})
+
 		it('keeps them OUT of the Steps tab, so Runs and Flow show them too', async () => {
 			const { wrapper } = await mountSidebar({
 				flow: { id: 3, name: 'x', version: 2, lifecycleStatus: 'draft', nodes: [], edges: [] },

@@ -896,7 +896,11 @@
     "Save the flow before running it. The engine runs the stored flow, not the unsaved canvas.": "Save the flow before running it. The engine runs the stored flow, not the unsaved canvas.",
     "Running by hand needs a manual start step. Add \"When someone runs it\" to the canvas.": "Running by hand needs a manual start step. Add \"When someone runs it\" to the canvas.",
     "Run immediately instead of queueing": "Run immediately instead of queueing",
-    "Off by default. A queued run is picked up by the background worker, which keeps a slow flow from holding up whatever started it.": "Off by default. A queued run is picked up by the background worker, which keeps a slow flow from holding up whatever started it."
+    "Off by default. A queued run is picked up by the background worker, which keeps a slow flow from holding up whatever started it.": "Off by default. A queued run is picked up by the background worker, which keeps a slow flow from holding up whatever started it.",
+    "The last run failed": "The last run failed",
+    "The last run ended without finishing": "The last run ended without finishing",
+    "The last run finished": "The last run finished",
+    "Enabled, no finished run yet": "Enabled, no finished run yet"
   },
   "plurals": {
     "{count} photo": ["{count} photo", "{count} photos"],
