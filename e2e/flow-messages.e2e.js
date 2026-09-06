@@ -27,13 +27,31 @@ import { test, expect } from '@playwright/test'
 
 const EDITOR = '/?flow=1'
 
+// The addable step this spec clicks, taken from the catalogue THE HARNESS
+// seeds. Named once so it cannot drift back into a per-spec catalogue.
+const STEP = 'Edit fields'
+
 /**
- * Open the editor on a published flow with a usable palette.
+ * Open the editor on a flow, using the catalogue THE HARNESS owns.
  *
- * Seeded through the store: the harness has no Nextcloud behind it, so the
- * catalogue request fails and the palette would otherwise be empty. The
- * catalogue is server data in real life, and seeding it is the harness standing
- * in for the server rather than the test standing in for the component.
+ * 🔴 THIS SPEC MUST NOT SEED THE CATALOGUE. It used to, and that is what made
+ * it fail on CI while passing on every developer machine.
+ *
+ * The harness seeds a catalogue and then re-seeds it ONCE, from a watcher on
+ * `catalogLoading`, because the store's own request has no Nextcloud behind it
+ * and its failure path sets `nodeCatalog = []` a moment after the first seed.
+ * That watcher is the harness's whole defence, and it only fires on a CHANGE.
+ *
+ * Seeding `catalogLoading = false` here disarmed it. On CI, where the request
+ * is still in the air when the spec runs, the order became: spec seeds and
+ * forces the flag false, the request then fails and empties the catalogue, and
+ * the flag never changes again — so the watcher never fires and the palette is
+ * empty for the rest of the test. Locally the request had already failed
+ * before this line, so the seed survived and everything passed.
+ *
+ * The fix is not to wait longer. It is to stop two writers fighting over one
+ * variable: the harness owns the catalogue, so a spec uses the entries it
+ * provides (`Manual`, `Edit fields`, `End`) instead of inventing its own.
  *
  * @param {import('@playwright/test').Page} page The page.
  * @param {string} lifecycleStatus The flow's lifecycle status.
@@ -45,12 +63,6 @@ async function openFlow(page, lifecycleStatus) {
 
 	await page.evaluate((status) => {
 		const store = window.__cnFlowStore
-		store.nodeCatalog = [
-			{ id: 'openregister.trigger-manual', displayName: 'When someone runs it', description: 'Start this flow by hand.' },
-			{ id: 'openregister.filter', displayName: 'Filter', description: 'Drop items that do not match.' },
-			{ id: 'openregister.end', displayName: 'End', description: 'End the flow here.' },
-		]
-		store.catalogLoading = false
 		store.flow = {
 			id: 'flow-1',
 			name: 'Mandaatbesluit, verkorte route',
@@ -62,7 +74,14 @@ async function openFlow(page, lifecycleStatus) {
 		}
 	}, lifecycleStatus)
 
-	await expect(page.locator('.cn-flow-sidebar__palette-item').first()).toBeVisible()
+	// A PRECONDITION, named so it fails legibly. `Edit fields` is the harness's
+	// own entry, so its absence means the catalogue never seeded — which is a
+	// different problem from the step under test, and used to present as a
+	// click timing out after thirty seconds.
+	await expect(
+		page.locator('.cn-flow-sidebar__palette-item', { hasText: STEP }),
+		'the harness catalogue must have seeded before any of this is meaningful',
+	).toBeVisible()
 }
 
 test.describe('flow messages — the refusal an author could not find', () => {
@@ -73,7 +92,7 @@ test.describe('flow messages — the refusal an author could not find', () => {
 		await openFlow(page, 'published')
 
 		// The palette entry, clicked the way an author clicks it.
-		await page.locator('.cn-flow-sidebar__palette-item', { hasText: 'Filter' }).click()
+		await page.locator('.cn-flow-sidebar__palette-item', { hasText: STEP }).click()
 
 		const message = page.locator('[data-testid="flow-message-graph-locked"]')
 		await expect(message).toBeVisible()
@@ -94,7 +113,7 @@ test.describe('flow messages — the refusal an author could not find', () => {
 
 	test('the sidebar does not say it too', async ({ page }) => {
 		await openFlow(page, 'published')
-		await page.locator('.cn-flow-sidebar__palette-item', { hasText: 'Filter' }).click()
+		await page.locator('.cn-flow-sidebar__palette-item', { hasText: STEP }).click()
 
 		await expect(page.locator('[data-testid="flow-message-graph-locked"]')).toBeVisible()
 
@@ -106,9 +125,9 @@ test.describe('flow messages — the refusal an author could not find', () => {
 	test('clicking the palette again does not add a second card', async ({ page }) => {
 		await openFlow(page, 'published')
 
-		await page.locator('.cn-flow-sidebar__palette-item', { hasText: 'Filter' }).click()
+		await page.locator('.cn-flow-sidebar__palette-item', { hasText: STEP }).click()
 		await page.locator('.cn-flow-sidebar__palette-item', { hasText: 'End' }).click()
-		await page.locator('.cn-flow-sidebar__palette-item', { hasText: 'Filter' }).click()
+		await page.locator('.cn-flow-sidebar__palette-item', { hasText: STEP }).click()
 
 		// Three refused clicks, one thing wrong.
 		await expect(page.locator('[data-testid="flow-message-graph-locked"]')).toHaveCount(1)
@@ -117,7 +136,7 @@ test.describe('flow messages — the refusal an author could not find', () => {
 	test('a draft accepts the same click and says nothing about a lock', async ({ page }) => {
 		await openFlow(page, 'draft')
 
-		await page.locator('.cn-flow-sidebar__palette-item', { hasText: 'Filter' }).click()
+		await page.locator('.cn-flow-sidebar__palette-item', { hasText: STEP }).click()
 
 		await expect(page.locator('.cn-flow-node')).toHaveCount(1)
 		await expect(page.locator('[data-testid="flow-message-graph-locked"]')).toHaveCount(0)
@@ -127,7 +146,7 @@ test.describe('flow messages — the refusal an author could not find', () => {
 test.describe('flow messages — the area does not take the canvas away', () => {
 	test('the gaps between cards still belong to the graph', async ({ page }) => {
 		await openFlow(page, 'published')
-		await page.locator('.cn-flow-sidebar__palette-item', { hasText: 'Filter' }).click()
+		await page.locator('.cn-flow-sidebar__palette-item', { hasText: STEP }).click()
 
 		// A second message, so there is a real gap between two cards to aim at.
 		await page.evaluate(() => {
@@ -161,7 +180,7 @@ test.describe('flow messages — the area does not take the canvas away', () => 
 
 	test('a card is still clickable, so dismissing one works', async ({ page }) => {
 		await openFlow(page, 'published')
-		await page.locator('.cn-flow-sidebar__palette-item', { hasText: 'Filter' }).click()
+		await page.locator('.cn-flow-sidebar__palette-item', { hasText: STEP }).click()
 
 		const message = page.locator('[data-testid="flow-message-graph-locked"]')
 		await expect(message).toContainText('cannot be changed')
@@ -176,7 +195,7 @@ test.describe('flow messages — the area does not take the canvas away', () => 
 
 	test('the area does not cover the graph', async ({ page }) => {
 		await openFlow(page, 'published')
-		await page.locator('.cn-flow-sidebar__palette-item', { hasText: 'Filter' }).click()
+		await page.locator('.cn-flow-sidebar__palette-item', { hasText: STEP }).click()
 
 		const canvasBox = await page.locator('[data-testid="flow-box"]').boundingBox()
 		const areaBox = await page.locator('.cn-flow-canvas-messages').boundingBox()
