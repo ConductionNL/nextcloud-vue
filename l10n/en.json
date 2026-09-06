@@ -876,7 +876,14 @@
     "Text when the inbox is empty": "Text when the inbox is empty",
     "this reference": "this reference",
     "Install {appLabel} to pick a {typeLabel}.": "Install {appLabel} to pick a {typeLabel}.",
-    "No installed app provides {typeLabel}.": "No installed app provides {typeLabel}."
+    "No installed app provides {typeLabel}.": "No installed app provides {typeLabel}.",
+    "Flow editor messages": "Flow editor messages",
+    "Dismiss this message": "Dismiss this message",
+    "Error": "Error",
+    "Warning": "Warning",
+    "Information": "Information",
+    "Success": "Success",
+    "No steps are available to add.": "No steps are available to add."
   },
   "plurals": {
     "{count} photo": ["{count} photo", "{count} photos"],
@@ -885,6 +892,7 @@
     "{count} conversation": ["{count} conversation", "{count} conversations"],
     "{count} unread message": ["{count} unread message", "{count} unread messages"],
     "across {count} conversation": ["across {count} conversation", "across {count} conversations"],
-    "{count} work package": ["{count} work package", "{count} work packages"]
+    "{count} work package": ["{count} work package", "{count} work packages"],
+    "{count} more message": ["{count} more message", "{count} more messages"]
   }
 }

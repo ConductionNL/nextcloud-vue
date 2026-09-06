@@ -169,7 +169,9 @@ describe('CnFlowDetail run animation', () => {
 		expect(wrapper.vm.runAnimation.doneNodeIds).toEqual(['a', 'c'])
 		// …and the mismatch is stated rather than swallowed.
 		expect(wrapper.vm.skippedRunTransitions).toEqual(['ghost'])
-		expect(wrapper.find('.cn-flow-detail__run-skipped').text()).toContain('ghost')
+		// It now lands in the canvas message area with every other message,
+		// rather than in a note card of its own in a corner of the canvas.
+		expect(wrapper.find('[data-testid="flow-message-run-skipped"]').text()).toContain('ghost')
 
 		wrapper.unmount()
 	})

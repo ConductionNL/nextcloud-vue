@@ -770,6 +770,13 @@ export const useFlowStore = defineStore('cnFlow', {
 				return false
 			}
 
+			// The edit is going ahead, so whatever the flow's state last refused
+			// is no longer the situation. A refusal that outlives its cause is
+			// a message the author learns to ignore, and then ignores the true
+			// one too. Cleared HERE for the same reason the lock is checked
+			// here: it is the one place every graph mutation passes through.
+			this.lifecycleRefusal = null
+
 			this.snapshot()
 
 			return true
