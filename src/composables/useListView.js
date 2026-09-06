@@ -22,6 +22,7 @@ import { useObjectStore } from '../store/index.js'
  * @param {Array<{key: string, order: 'asc'|'desc'}>} [options.defaultSortKeys] Default MULTI-column sort applied on mount (ordered priority list). Takes precedence over `defaultSort` when both are given; used e.g. to restore a sort persisted in the route query.
  * @param {Array<string>|null} [options.defaultVisibleColumns] Initial visible-column key set. Seeds the sidebar's Columns tab with the curated default (e.g. a manifest `columns` list) so toggles add/remove from it. Omit (or `null`) for schema-driven tables where every column starts visible.
  * @param {object|Function} [options.fixedFilters] A filter map (or getter returning one) merged into every fetch AFTER the user's facet filters, so the fixed entries always win. Used e.g. by `CnIndexPage` to apply a route-param-scoped `pages[].config.filter`. Default `{}` — omitting it is behaviourally identical to before.
+ * @param {Array<string>|Function} [options.extend] OpenRegister `_extend[]` values (or a getter returning them) forwarded on every fetch, e.g. `['calculations']` so a schema's `materialise: false` calculations are evaluated and can be shown as columns. Default `[]` — omitting it sends no `_extend` at all, exactly as before.
  * @return {object} Reactive state and event handlers
  *
  * @example
@@ -106,6 +107,20 @@ export function useListView(objectTypeOrOptions, options) {
 	}
 
 	/**
+	 * Resolve `opts.extend` to a list of non-empty strings.
+	 *
+	 * Accepts an array or a getter returning one, so a caller can re-scope it
+	 * between fetches the way `fixedFilters` allows.
+	 *
+	 * @return {Array<string>} The `_extend[]` values, possibly empty.
+	 */
+	function resolveExtend() {
+		const e = typeof opts.extend === 'function' ? opts.extend() : opts.extend
+		if (!Array.isArray(e)) return []
+		return e.filter((v) => typeof v === 'string' && v !== '')
+	}
+
+	/**
 	 * Build API fetch params from current reactive state.
 	 *
 	 * @param {number} page Page number to request
@@ -135,6 +150,14 @@ export function useListView(objectTypeOrOptions, options) {
 
 		// Fixed filters (e.g. a route-param-scoped `pages[].config.filter`) are
 		// merged LAST so they always win over a colliding facet `activeFilter`.
+		// Repeated `_extend[]`, serialized by the shared query builder. Set
+		// before the fixed filters so an explicit `_extend` in a filter map
+		// still wins, matching every other key's precedence here.
+		const extend = resolveExtend()
+		if (extend.length > 0) {
+			params._extend = extend
+		}
+
 		for (const [key, value] of Object.entries(resolveFixedFilters())) {
 			if (value !== undefined && value !== null && value !== '') {
 				params[key] = value

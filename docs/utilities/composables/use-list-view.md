@@ -41,6 +41,7 @@ const {
 | `options.defaultSort` | `{ key, order }` | Applied on mount. `order` is `'asc'` or `'desc'`. |
 | `options.defaultVisibleColumns` | `Array<string> \| null` | Initial visible-column key set. Seeds the sidebar's Columns tab with the curated default (e.g. a manifest `columns` list) so toggles add/remove from it. Omit (or `null`) for schema-driven tables where every column starts visible. |
 | `options.fixedFilters` | `object \| () => object` | A filter map (or a getter returning one) merged into **every** fetch *after* the user's `activeFilters`, so the fixed entries always win over a colliding facet filter. A getter is re-read on each fetch — pass one to derive the map from reactive sources (e.g. route params). Default `{}` — omitting it is behaviourally identical to before. Used by `CnIndexPage` to apply a route-param-scoped `pages[].config.filter`. |
+| `options.extend` | `string[] \| () => string[]` | OpenRegister `_extend[]` values forwarded on **every** fetch, e.g. `['calculations']`. A schema's `x-openregister-calculations` entries declared `materialise: false` are virtual: `RenderObject` evaluates them only when the caller asks through `_extend`, so without this a declared calculation is absent from every row and its column renders empty. A getter is re-read on each fetch. Entries that are not non-empty strings are dropped; when nothing survives, no `_extend` is sent. Default `[]` — omitting it is behaviourally identical to before. Used by `CnIndexPage` to forward `pages[].config.extend`. |
 | `options.defaultVisibleColumns` | `Array<string> \| null` | Initial visible-column set for the persisted `visibleColumns` ref. When `null` (the default), every column declared by the consuming page is visible on first mount; pass an explicit list to start with a curated subset that the user can then expand via the column-picker. |
 
 ### Return value
@@ -73,6 +74,7 @@ Event handlers (all trigger a re-fetch, most reset to page 1):
 | `_search` | `searchTerm` (only when non-empty) |
 | `_order` | `{ [sortKey]: sortOrder }` (only when `sortKey` is set) |
 | `{filterKey}` | `activeFilters[filterKey]` — scalar when the array has one value, array otherwise |
+| `_extend` | `extend` resolved to non-empty strings, set **before** `fixedFilters` so an explicit `_extend` there still wins. Omitted entirely when empty |
 | `{fixedKey}` | `fixedFilters` resolved last (skipping `undefined`/`null`/`''`), so it overrides any colliding `activeFilters` entry |
 
 ### Sidebar wiring

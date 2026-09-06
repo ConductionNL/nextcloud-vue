@@ -231,3 +231,70 @@ describe('useListView — loading covers the whole mount sequence', () => {
 		expect(w.vm.list.loading.value).toBe(false)
 	})
 })
+
+/*
+ * `opts.extend` — OpenRegister's repeated `_extend[]`.
+ *
+ * A schema's `x-openregister-calculations` entries declared
+ * `materialise: false` are VIRTUAL: RenderObject evaluates them only when the
+ * caller asks through `_extend`. An index page could not ask at all, so a
+ * declared calculation was absent from every row and its column rendered
+ * empty, with nothing anywhere reporting a problem.
+ */
+describe('useListView — extend', () => {
+	it('sends no _extend at all when the option is omitted', async () => {
+		const store = makeStore()
+		mountList(store, {})
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(store.fetchCollection).toHaveBeenCalled()
+		expect(store.fetchCollection.mock.calls[0][1]._extend).toBeUndefined()
+	})
+
+	it('forwards a plain-array extend on every fetch', async () => {
+		const store = makeStore()
+		const w = mountList(store, { extend: ['calculations'] })
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(store.fetchCollection.mock.calls[0][1]._extend).toEqual(['calculations'])
+
+		await w.vm.list.onSearch('hello')
+		await new Promise((resolve) => setTimeout(resolve, 350))
+		const last = store.fetchCollection.mock.calls[store.fetchCollection.mock.calls.length - 1][1]
+		expect(last._extend).toEqual(['calculations'])
+	})
+
+	it('re-reads a getter extend on each fetch', async () => {
+		const store = makeStore()
+		const which = ref(['calculations'])
+		const w = mountList(store, { extend: () => which.value })
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(store.fetchCollection.mock.calls[0][1]._extend).toEqual(['calculations'])
+
+		which.value = ['calculations', 'files']
+		await w.vm.list.onSearch('x')
+		await new Promise((resolve) => setTimeout(resolve, 350))
+		const last = store.fetchCollection.mock.calls[store.fetchCollection.mock.calls.length - 1][1]
+		expect(last._extend).toEqual(['calculations', 'files'])
+	})
+
+	it('drops empty and non-string entries rather than sending them', async () => {
+		const store = makeStore()
+		mountList(store, { extend: ['calculations', '', null, 7, 'files'] })
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(store.fetchCollection.mock.calls[0][1]._extend).toEqual(['calculations', 'files'])
+	})
+
+	it('sends nothing when every entry is filtered out', async () => {
+		const store = makeStore()
+		mountList(store, { extend: ['', null] })
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(store.fetchCollection.mock.calls[0][1]._extend).toBeUndefined()
+	})
+
+	it('an explicit _extend in fixedFilters still wins', async () => {
+		const store = makeStore()
+		mountList(store, { extend: ['calculations'], fixedFilters: { _extend: ['files'] } })
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(store.fetchCollection.mock.calls[0][1]._extend).toEqual(['files'])
+	})
+})
+
