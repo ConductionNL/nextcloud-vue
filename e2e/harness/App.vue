@@ -79,8 +79,18 @@
 		-->
 		<template v-else-if="showFlow">
 			<h2>Flow editor</h2>
-			<div class="canvas-box" data-testid="flow-box">
-				<CnFlowDetail id="new" app="openregister" />
+			<div class="flow-editor">
+				<div class="canvas-box" data-testid="flow-box">
+					<CnFlowDetail id="new" app="openregister" />
+				</div>
+				<!-- The palette half, in its `embedded` form: there is no
+				     Nextcloud app layout here to hold an NcAppSidebar. It is
+				     mounted because one journey needs BOTH halves — clicking a
+				     palette step on a published flow, and finding the refusal
+				     on the canvas rather than in this panel. -->
+				<div class="flow-sidebar-box" data-testid="flow-sidebar-box">
+					<CnFlowSidebar embedded />
+				</div>
 			</div>
 			<input data-testid="outside-input" aria-label="Outside text">
 		</template>
@@ -372,6 +382,7 @@
 <script>
 import CnCronField from '../../src/components/CnCronField/CnCronField.vue'
 import CnFlowDetail from '../../src/components/CnFlowDetail/CnFlowDetail.vue'
+import CnFlowSidebar from '../../src/components/CnFlowDetail/CnFlowSidebar.vue'
 import { useFlowStore } from '../../src/composables/useFlowStore.js'
 import CnGraphCanvas from '../../src/components/CnGraphCanvas/CnGraphCanvas.vue'
 import CnIconPicker from '../../src/components/CnIconPicker/CnIconPicker.vue'
@@ -413,7 +424,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, CnTasksWidget, CnIndexPage, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, CnTasksWidget, CnIndexPage, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -660,11 +671,36 @@ export default {
 			// back to reading the role out of the id, which works for
 			// `…trigger-…` and `….end` and would leave the port tests asserting
 			// the FALLBACK rather than the path a real instance takes.
-			store.nodeCatalog = [
-				{ id: 'openregister.trigger-manual', displayName: 'Manual', role: 'trigger' },
-				{ id: 'openregister.set-fields', displayName: 'Edit fields', role: 'step' },
-				{ id: 'openregister.end', displayName: 'End', role: 'end' },
-			]
+			//
+			// ⚠️ SEEDED TWICE, AND THE SECOND TIME IS THE ONE THAT STICKS. The
+			// store's own catalogue request is already in the air by the time
+			// this runs (the child mounts first), there is no Nextcloud behind
+			// the harness, and `loadNodeCatalog()`'s failure path sets
+			// `nodeCatalog = []` — so the seed below is clobbered a moment after
+			// it is written. Nothing rendered from an empty catalogue until the
+			// canvas message area started reporting one, and then a warning card
+			// appeared over the graph and intercepted a click meant for a node.
+			// Re-seeding when the request settles is deterministic; a timer
+			// would be a race against a network failure.
+			const seedCatalog = () => {
+				store.nodeCatalog = [
+					{ id: 'openregister.trigger-manual', displayName: 'Manual', role: 'trigger' },
+					{ id: 'openregister.set-fields', displayName: 'Edit fields', role: 'step' },
+					{ id: 'openregister.end', displayName: 'End', role: 'end' },
+				]
+			}
+
+			seedCatalog()
+
+			const stopWatching = this.$watch(
+				() => store.catalogLoading,
+				(loading) => {
+					if (loading === false) {
+						seedCatalog()
+						stopWatching()
+					}
+				},
+			)
 		}
 	},
 
@@ -707,6 +743,19 @@ export default {
 .canvas-box {
 	width: 800px;
 	height: 480px;
+	border: 1px solid #ccc;
+}
+
+.flow-editor {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+}
+
+.flow-sidebar-box {
+	width: 320px;
+	max-height: 480px;
+	overflow-y: auto;
 	border: 1px solid #ccc;
 }
 

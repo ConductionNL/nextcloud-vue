@@ -113,32 +113,21 @@
 		     the generic form. Same draft contract either way. -->
 		<component :is="nodeEditorComponent" v-if="store.editingNodeId !== null" />
 
-		<!-- The engine's verdict on the canvas, from the Check button. -->
-		<NcNoteCard v-if="store.checkResult"
-			class="cn-flow-detail__check"
-			:type="checkCardType">
-			<p>{{ checkCardText }}</p>
-			<ul v-if="checkCardItems.length" class="cn-flow-detail__check-items">
-				<li v-for="(item, i) in checkCardItems" :key="i">
-					{{ item }}
-				</li>
-			</ul>
-		</NcNoteCard>
+		<!-- EVERYTHING THE EDITOR HAS TO SAY, IN ONE PLACE, ON THE CANVAS.
+
+		     Refusals and standing conditions both. They used to be spread over
+		     two sidebar tabs and two cards here, and the one an author most
+		     needed — "this version is published, your step was not added" —
+		     was the furthest away: top of the Steps tab, above a scrolling
+		     palette, on the other side of the screen from the click. -->
+		<CnFlowCanvasMessages :messages="canvasMessages"
+			@dismiss="dismissCanvasMessage"
+			@action="runCanvasMessageAction" />
 
 		<!-- Edges are Vue Flow's now. The hand-drawn `#edge` slot and its
 		     orthogonal `edgePath()` are gone: Vue Flow routes and arrows edges
 		     itself, and it measures the rendered node instead of being told a
 		     `nodeWidth`/`nodeHeight` to guess the centre from. -->
-		<!-- Steps the run log names that are NOT on this canvas any more: the
-		     flow was edited since the run. They are skipped and SAID, never
-		     guessed onto the nearest card — a replay that remaps a deleted
-		     node's step would draw a walk the engine never took. -->
-		<NcNoteCard v-if="skippedRunTransitions.length"
-			class="cn-flow-detail__run-skipped"
-			type="warning">
-			<p>{{ t('nextcloud-vue', 'Some steps of this run belong to nodes that are no longer on the canvas, so they were skipped: {nodes}', { nodes: skippedRunTransitions.join(', ') }) }}</p>
-		</NcNoteCard>
-
 		<!-- Run state travels ON the edge records, through the canvas's
 		     existing `edges` prop: Vue Flow applies an edge's `class` to the
 		     line it draws, so the canvas itself stays a geometry-only renderer
@@ -241,7 +230,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import CheckDecagram from 'vue-material-design-icons/CheckDecagram.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import DockRight from 'vue-material-design-icons/DockRight.vue'
@@ -258,6 +247,7 @@ import ContentPaste from 'vue-material-design-icons/ContentPaste.vue'
 import CnFlowEdgeEditModal from '../../dialogs/CnFlowEdgeEditModal.vue'
 import CnFlowNodeEditModal from '../../dialogs/CnFlowNodeEditModal.vue'
 import CnContextMenu from '../CnContextMenu/CnContextMenu.vue'
+import CnFlowCanvasMessages from './CnFlowCanvasMessages.vue'
 import CnGraphCanvas from '../CnGraphCanvas/CnGraphCanvas.vue'
 import { resolveFlowNodeEditor } from '../../composables/useFlowNodeEditors.js'
 import { DEFAULT_EDGE_LINE_TYPE, EDGE_LINE_TYPES } from '../../composables/useFlowEdgeStyles.js'
@@ -303,6 +293,7 @@ export default {
 
 	components: {
 		CheckDecagram,
+		CnFlowCanvasMessages,
 		CnFlowEdgeEditModal,
 		CnFlowNodeEditModal,
 		CnContextMenu,
@@ -313,7 +304,6 @@ export default {
 		NcButton,
 		NcEmptyContent,
 		NcLoadingIcon,
-		NcNoteCard,
 		Play,
 		Plus,
 		Sitemap,
@@ -433,6 +423,12 @@ export default {
 			// Index-diffing on the consumer side too, so a poll that delivers
 			// nothing new enqueues nothing twice.
 			runConsumed: 0,
+
+			// Whether the author closed the "steps skipped" message for the
+			// run currently on the canvas. Reset with the animator, so the
+			// next run says it again: it is a fact about THAT run, not a
+			// preference.
+			runSkipDismissed: false,
 		}
 	},
 
@@ -832,6 +828,198 @@ export default {
 		 */
 		skippedRunTransitions() {
 			return [...new Set(this.runAnimation.skippedTransitions)]
+		},
+
+		/**
+		 * What to show the user when a save or a run was refused.
+		 *
+		 * Prefers the API's own `error` field, because that is the sentence
+		 * written for a person — "A flow needs a name." says what to do, where
+		 * "Request failed with status code 400" does not.
+		 *
+		 * @return {string} The message.
+		 */
+		errorText() {
+			const error = this.store.error
+			if (!error) {
+				return ''
+			}
+
+			return error?.response?.data?.error
+				|| error?.response?.data?.message
+				|| error?.message
+				|| this.t('nextcloud-vue', 'The last action failed.')
+		},
+
+		/**
+		 * What stops this flow from finishing, as one readable sentence.
+		 *
+		 * @return {string|null} The message, or null when nothing is missing.
+		 */
+		missingEndsMessage() {
+			const missing = this.store.missingEnds
+			if (missing.trigger && missing.end) {
+				return this.t('nextcloud-vue', 'This flow has no trigger and no end step, so it cannot start or finish.')
+			}
+			if (missing.trigger) {
+				return this.t('nextcloud-vue', 'This flow has no trigger, so nothing will start it.')
+			}
+			if (missing.end) {
+				return this.t('nextcloud-vue', 'This flow has no end step, so a run can never finish.')
+			}
+
+			return null
+		},
+
+		/**
+		 * What the server refused, and what to do about it.
+		 *
+		 * 🔑 SWITCHED ON THE `reason` FIELD, never on the message text. The two
+		 * refusals an author meets want opposite actions — one needs a draft
+		 * created, the other needs a version published — and matching on English
+		 * prose is how a UI offers the wrong one.
+		 *
+		 * @return {string} The message.
+		 */
+		refusalText() {
+			const reason = this.store.lifecycleRefusal?.reason
+			const messages = {
+				'version-immutable': this.t('nextcloud-vue', 'This version is published and cannot be changed. Create a draft to make changes; the published version keeps running until you publish the draft.'),
+				'not-a-draft': this.t('nextcloud-vue', 'Only a draft version can be published.'),
+				'not-published': this.t('nextcloud-vue', 'Only a published version can be deprecated.'),
+				'no-published-version': this.t('nextcloud-vue', 'This flow has no published version, so it cannot run. Publish a version first.'),
+				'dead-end': this.t('nextcloud-vue', 'This version cannot be published while a step has nowhere to send its work.'),
+				'version-in-use': this.t('nextcloud-vue', 'This version cannot be removed while a run is still using it.'),
+			}
+
+			return messages[reason] || this.t('nextcloud-vue', 'That change was refused by the flow\'s current state.')
+		},
+
+		/**
+		 * What the author needs to be told about this flow, right now.
+		 *
+		 * 🔴 THE `id` IS IDENTITY, AND THAT IS THE WHOLE ANTI-ACCUMULATION
+		 * MECHANISM. Every source contributes at most one entry, so a refusal
+		 * fired on five palette clicks is one card. Anything that wants to
+		 * "add" a message adds it under an id that already means that thing.
+		 *
+		 * ⚠️ THE LOCK AND ITS REFUSAL SHARE ONE ID ON PURPOSE. A published flow
+		 * already carries the standing `graph-locked` message before the author
+		 * tries anything. When the try then happens and `pushUndo()` refuses it,
+		 * a second card saying almost the same sentence would be the sidebar's
+		 * old problem in a new place — so the refusal REPLACES the standing
+		 * text instead. The wording changes, which is what makes the polite
+		 * live region announce it again: an identical string re-set in a live
+		 * region is not a change and most screen readers stay silent.
+		 *
+		 * @return {Array<object>} The messages for the canvas area.
+		 */
+		canvasMessages() {
+			const messages = []
+			const refusal = this.store.lifecycleRefusal
+			const lockRefused = refusal?.reason === 'version-immutable'
+
+			// A save or a run the server refused outright. Its own sentence,
+			// because "A flow needs a name." says what to do and "Request
+			// failed with status code 400" does not.
+			if (this.store.error) {
+				messages.push({
+					id: 'action-failed',
+					severity: 'error',
+					text: this.errorText,
+					dismissible: true,
+				})
+			}
+
+			// The published-is-immutable rule, stated before the author trips
+			// over it and restated as a refusal when they do.
+			if (this.store.graphLocked) {
+				messages.push({
+					id: 'graph-locked',
+					severity: 'warning',
+					text: lockRefused
+						? this.refusalText
+						: this.t('nextcloud-vue', 'This version is read-only. Create a draft to change its steps; the published version keeps running until you publish the draft.'),
+					action: {
+						label: this.t('nextcloud-vue', 'Create draft version'),
+						disabled: this.store.transitioning,
+					},
+					// Only the refusal can be dismissed. The lock itself stays:
+					// it is true until the author creates a draft.
+					dismissible: lockRefused,
+				})
+			} else if (refusal) {
+				// Every other refusal: publishing what is not a draft, running
+				// a flow with no published version, and so on.
+				messages.push({
+					id: 'refused',
+					severity: 'warning',
+					text: this.refusalText,
+					dismissible: true,
+				})
+			}
+
+			if (this.missingEndsMessage) {
+				messages.push({
+					id: 'missing-ends',
+					severity: 'error',
+					text: this.missingEndsMessage,
+					dismissible: false,
+				})
+			}
+
+			// An empty catalogue means no step can be added at all. Distinct
+			// from a request still in the air: both are an empty list, and only
+			// one of them is a problem.
+			if (!this.store.catalogLoading && !this.store.nodeCatalog.length) {
+				messages.push({
+					id: 'no-catalog',
+					severity: 'warning',
+					text: this.t('nextcloud-vue', 'The list of available steps could not be read, so no steps can be added. This does not mean the instance has none.'),
+					dismissible: false,
+				})
+			}
+
+			if (this.store.flow.enabled && !this.store.flow.owner) {
+				messages.push({
+					id: 'no-owner',
+					severity: 'warning',
+					text: this.t('nextcloud-vue', 'This flow has no owner yet, so a trigger will not start it. Saving it makes you its owner.'),
+					dismissible: false,
+				})
+			}
+
+			if (this.store.dirty) {
+				messages.push({
+					id: 'unsaved',
+					severity: 'warning',
+					text: this.t('nextcloud-vue', 'This flow has unsaved changes.'),
+					dismissible: false,
+				})
+			}
+
+			// The engine's verdict from the Check button.
+			if (this.store.checkResult) {
+				messages.push({
+					id: 'check',
+					severity: this.checkCardType,
+					text: this.checkCardText,
+					items: this.checkCardItems,
+					dismissible: true,
+				})
+			}
+
+			// Steps the run log names that are not on this canvas any more.
+			if (this.skippedRunTransitions.length && !this.runSkipDismissed) {
+				messages.push({
+					id: 'run-skipped',
+					severity: 'warning',
+					text: this.t('nextcloud-vue', 'Some steps of this run belong to nodes that are no longer on the canvas, so they were skipped: {nodes}', { nodes: this.skippedRunTransitions.join(', ') }),
+					dismissible: true,
+				})
+			}
+
+			return messages
 		},
 	},
 
@@ -1255,6 +1443,47 @@ export default {
 				timer: null,
 			}
 			this.runConsumed = 0
+			// A dismissal belongs to the run it was about. The next run gets to
+			// say what it skipped, even if the last one was waved away.
+			this.runSkipDismissed = false
+		},
+
+		/**
+		 * Close a canvas message the author has read.
+		 *
+		 * 🔑 CLEARS THE SOURCE, NOT A LOCAL "HIDDEN" FLAG. A dismissed message
+		 * whose source is still set would come back on the next unrelated
+		 * re-render, and the author would learn that the close button does not
+		 * work. Only one-off messages reach this: a standing condition renders
+		 * no dismiss control at all, because it would still be true afterwards.
+		 *
+		 * @param {string} id The message id.
+		 * @return {void}
+		 */
+		dismissCanvasMessage(id) {
+			if (id === 'action-failed') {
+				this.store.error = null
+			} else if (id === 'refused' || id === 'graph-locked') {
+				// The lock itself stays; only the refusal it just answered goes.
+				// `graph-locked` falls back to its standing read-only wording.
+				this.store.lifecycleRefusal = null
+			} else if (id === 'check') {
+				this.store.checkResult = null
+			} else if (id === 'run-skipped') {
+				this.runSkipDismissed = true
+			}
+		},
+
+		/**
+		 * Run the action a canvas message offers.
+		 *
+		 * @param {string} id The message id.
+		 * @return {void}
+		 */
+		runCanvasMessageAction(id) {
+			if (id === 'graph-locked') {
+				this.store.createDraft()
+			}
 		},
 
 		/**
@@ -1569,20 +1798,6 @@ export default {
 	border-inline-start: 1px solid var(--color-border);
 }
 
-.cn-flow-detail__check {
-	position: absolute;
-	inset-block-start: 64px;
-	inset-inline-end: 12px;
-	z-index: 10;
-	max-inline-size: 360px;
-}
-
-.cn-flow-detail__check-items {
-	margin-block-start: 4px;
-	padding-inline-start: 20px;
-	list-style: disc;
-}
-
 /* ONE container, not a card in a card: the canvas wrapper draws the box —
    border, radius, background, selection — and this card only fills it. Its
    earlier own border/background rendered as a visible nested box.
@@ -1709,14 +1924,6 @@ export default {
 	position: absolute;
 	inset: 0;
 	pointer-events: none;
-}
-
-.cn-flow-detail__run-skipped {
-	position: absolute;
-	inset-block-end: 12px;
-	inset-inline-end: 12px;
-	z-index: 10;
-	max-inline-size: 360px;
 }
 
 /* ---- Run state on the nodes ------------------------------------------- */

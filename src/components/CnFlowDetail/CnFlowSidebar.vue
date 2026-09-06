@@ -1,11 +1,17 @@
 <!--
   CnFlowSidebar — the controls half of the flow editor.
 
-  Nextcloud's own app sidebar (NcAppSidebar), with three tabs: Steps (the
-  palette and the selected step), Runs (history and per-step traces), Flow
-  (the flow's own settings). Save / Run / Check live on CnFlowDetail's
-  toolbar — the actions that concern the graph live on the graph. The two
-  halves render in different parts of the tree, so they share `useFlowStore`.
+  Nextcloud's own app sidebar (NcAppSidebar), with the flow's version and
+  publish controls in its HEADER and three tabs under it: Steps (the palette),
+  Runs (history and per-step traces), Flow (the flow's own settings). Save /
+  Run / Check live on CnFlowDetail's toolbar, and every message the editor has
+  to give lands in the canvas message area beside the graph. The actions and
+  the messages that concern the graph live on the graph. The two halves render
+  in different parts of the tree, so they share `useFlowStore`.
+
+  Publish state is a property of the FLOW, so it sits in the header and stays
+  visible with Runs or Flow open. It used to live inside the Steps tab and
+  vanish the moment the author looked at a run.
 
   Closing the sidebar sets `store.sidebarOpen = false`; the canvas toolbar
   offers the re-open button, because a control to bring the sidebar back
@@ -33,6 +39,29 @@
 		:name="embedded ? undefined : sidebarName"
 		:subname="embedded ? undefined : sidebarSubname"
 		@close="onClose">
+		<!--
+			VERSION AND PUBLISH BELONG TO THE FLOW, NOT TO A TAB.
+
+			They used to sit inside the Steps tab, above the palette, and
+			disappeared the moment the author opened Runs or Flow — while
+			remaining true the whole time. Publish state is a property of the
+			flow, so it lives in the flow's header and stays visible whichever
+			tab is open.
+
+			NcAppSidebar's `description` slot renders directly under the name
+			and subname, above the tab strip. The embedded variant (a dialog,
+			no NcAppSidebar) renders the same block itself, below.
+		-->
+		<template v-if="!embedded" #description>
+			<div class="cn-flow-sidebar__header">
+				<CnFlowLifecycleControls />
+			</div>
+		</template>
+
+		<div v-if="embedded" class="cn-flow-sidebar__header">
+			<CnFlowLifecycleControls />
+		</div>
+
 		<div v-if="embedded" class="cn-flow-sidebar__tabs" role="tablist">
 			<button v-for="entry in tabs"
 				:key="entry.id"
@@ -55,94 +84,22 @@
 			</template>
 
 			<!--
-				The server's reason for refusing a save or a run.
+				NO MESSAGE CARDS HERE ANY MORE.
 
-				`store.error` was set on every failure and rendered NOWHERE, so a
-				refused save looked exactly like a save that worked (#607).
+				A refused save, a lifecycle refusal, unsaved changes, a flow that
+				can never finish and an unreadable catalogue all render in the
+				canvas message area (CnFlowCanvasMessages) beside the graph they
+				are about. The refusal for adding a step to a published flow used
+				to open this tab, above a scrolling palette, on the other side of
+				the screen from the click that caused it — and was missed
+				completely. Repeating any of them here would put the same
+				sentence in two places and make neither authoritative.
+
+				THE SELECTED STEP HAS NO BLOCK HERE EITHER. Clicking a step opens
+				an action menu at the step with Edit, Copy and Delete. A second
+				set of the same buttons, further away, is the thing that menu
+				replaced.
 			-->
-			<NcNoteCard v-if="store.error" type="error" class="cn-flow-sidebar__failure">
-				{{ errorText }}
-			</NcNoteCard>
-
-			<!--
-				The lifecycle refusal, and the action that resolves it.
-
-				🔴 A SEPARATE CARD FROM `store.error`, deliberately. A refusal is
-				not a failure: the request was fine and the flow's STATE declined
-				it, which the author fixes by creating a draft — not by retrying.
-				Rendering it as an error would offer the wrong remedy.
-			-->
-			<NcNoteCard v-if="store.lifecycleRefusal" type="warning" class="cn-flow-sidebar__failure">
-				{{ refusalText }}
-				<NcButton v-if="store.lifecycleRefusal.reason === 'version-immutable'"
-					variant="primary"
-					:disabled="store.transitioning"
-					@click="store.createDraft()">
-					{{ t('nextcloud-vue', 'Create draft version') }}
-				</NcButton>
-			</NcNoteCard>
-
-			<section class="cn-flow-sidebar__section cn-flow-sidebar__lifecycle">
-				<h4>{{ t('nextcloud-vue', 'Version') }}</h4>
-				<p class="cn-flow-sidebar__version">
-					<span class="cn-flow-sidebar__version-number"
-						data-testid="flow-version">v{{ store.flowVersion }}</span>
-					<span class="cn-flow-sidebar__badge"
-						:class="`cn-flow-sidebar__badge--${store.lifecycleStatus}`"
-						data-testid="flow-lifecycle">{{ lifecycleLabel }}</span>
-				</p>
-
-				<!--
-					Why the canvas will not accept edits, stated BEFORE the author
-					tries. Discovering immutability by dragging a node and watching
-					nothing happen reads as a broken editor.
-				-->
-				<p v-if="store.graphLocked" class="cn-flow-sidebar__hint">
-					{{ t('nextcloud-vue', 'This version is read-only. Create a draft to change its steps; the published version keeps running until you publish the draft.') }}
-				</p>
-
-				<div class="cn-flow-sidebar__actions">
-					<NcButton v-if="store.isDraft"
-						variant="primary"
-						:disabled="store.transitioning || !store.flow.id"
-						data-testid="flow-publish"
-						@click="store.publish()">
-						{{ t('nextcloud-vue', 'Publish') }}
-					</NcButton>
-					<NcButton v-if="store.graphLocked"
-						variant="primary"
-						:disabled="store.transitioning"
-						data-testid="flow-create-draft"
-						@click="store.createDraft()">
-						{{ t('nextcloud-vue', 'Create draft version') }}
-					</NcButton>
-					<NcButton v-if="store.isPublished"
-						variant="tertiary"
-						:disabled="store.transitioning"
-						data-testid="flow-deprecate"
-						@click="store.deprecate()">
-						{{ t('nextcloud-vue', 'Deprecate') }}
-					</NcButton>
-				</div>
-			</section>
-
-			<section v-if="store.selectedNode" class="cn-flow-sidebar__section">
-				<h4>{{ t('nextcloud-vue', 'Selected step') }}</h4>
-				<p class="cn-flow-sidebar__selected-name">
-					{{ selectedLabel }}
-				</p>
-				<p v-if="selectedEntry && selectedEntry.description" class="cn-flow-sidebar__hint">
-					{{ selectedEntry.description }}
-				</p>
-				<div class="cn-flow-sidebar__selected-actions">
-					<NcButton variant="primary" @click="store.editingNodeId = store.selectedNodeId">
-						{{ t('nextcloud-vue', 'Edit step…') }}
-					</NcButton>
-					<NcButton variant="tertiary" @click="store.removeNode(store.selectedNode.id)">
-						{{ t('nextcloud-vue', 'Remove step') }}
-					</NcButton>
-				</div>
-			</section>
 
 			<section class="cn-flow-sidebar__section">
 				<h4>{{ t('nextcloud-vue', 'Steps') }}</h4>
@@ -163,9 +120,16 @@
 				<p v-if="store.catalogLoading && !store.nodeCatalog.length" class="cn-flow-sidebar__hint">
 					{{ t('nextcloud-vue', 'Loading the available steps…') }}
 				</p>
-				<NcNoteCard v-else-if="!store.nodeCatalog.length" type="warning">
-					{{ t('nextcloud-vue', 'The list of available steps could not be read, so no steps can be added. This does not mean the instance has none.') }}
-				</NcNoteCard>
+				<!--
+					Why the list is empty, AT the list. One short line, because
+					the diagnosis (the catalogue could not be read, and no step
+					can be added at all) is a standing condition of the flow and
+					renders on the canvas with every other message. A palette
+					that simply draws nothing reads as a broken component.
+				-->
+				<p v-else-if="!store.nodeCatalog.length" class="cn-flow-sidebar__hint">
+					{{ t('nextcloud-vue', 'No steps are available to add.') }}
+				</p>
 				<p v-else-if="!paletteEntries.length" class="cn-flow-sidebar__hint">
 					{{ t('nextcloud-vue', 'No step matches this search.') }}
 				</p>
@@ -289,14 +253,6 @@
 				<Cog :size="20" />
 			</template>
 
-			<NcNoteCard v-if="store.dirty" type="warning">
-				{{ t('nextcloud-vue', 'This flow has unsaved changes.') }}
-			</NcNoteCard>
-
-			<NcNoteCard v-if="missingEndsMessage" type="error">
-				{{ missingEndsMessage }}
-			</NcNoteCard>
-
 			<section class="cn-flow-sidebar__section">
 				<h4>{{ t('nextcloud-vue', 'Flow') }}</h4>
 
@@ -335,10 +291,6 @@
 					@update:model-value="store.setFlowField('enabled', $event)">
 					{{ t('nextcloud-vue', 'Enabled') }}
 				</NcCheckboxRadioSwitch>
-
-				<NcNoteCard v-if="store.flow.enabled && !store.flow.owner" type="warning">
-					{{ t('nextcloud-vue', 'This flow has no owner yet, so a trigger will not start it. Saving it makes you its owner.') }}
-				</NcNoteCard>
 			</section>
 		</component>
 	</component>
@@ -350,7 +302,6 @@ import {
 	NcAppSidebarTab,
 	NcButton,
 	NcCheckboxRadioSwitch,
-	NcNoteCard,
 	NcSelect,
 	NcTextField,
 } from '@nextcloud/vue'
@@ -359,18 +310,19 @@ import History from 'vue-material-design-icons/History.vue'
 import Replay from 'vue-material-design-icons/Replay.vue'
 import Sitemap from 'vue-material-design-icons/Sitemap.vue'
 import { FLOW_RUN_ACTIVE_STATUSES, useFlowStore } from '../../composables/useFlowStore.js'
+import CnFlowLifecycleControls from './CnFlowLifecycleControls.vue'
 
 export default {
 	name: 'CnFlowSidebar',
 
 	components: {
+		CnFlowLifecycleControls,
 		Cog,
 		History,
 		NcAppSidebar,
 		NcAppSidebarTab,
 		NcButton,
 		NcCheckboxRadioSwitch,
-		NcNoteCard,
 		NcSelect,
 		NcTextField,
 		Replay,
@@ -498,29 +450,6 @@ export default {
 		},
 
 		/**
-		 * @return {object|null} The catalogue entry of the selected node.
-		 */
-		selectedEntry() {
-			return this.store.selectedNode
-				? this.store.catalogEntry(this.store.selectedNode.type)
-				: null
-		},
-
-		/**
-		 * @return {string} The selected step's headline: name, or type label.
-		 */
-		selectedLabel() {
-			const node = this.store.selectedNode
-			if (!node) {
-				return ''
-			}
-
-			return node.name
-				|| (this.selectedEntry && (this.selectedEntry.displayName || this.selectedEntry.id))
-				|| node.type
-		},
-
-		/**
 		 * The catalogue, searched and filtered, triggers first.
 		 *
 		 * @return {Array<object>} The entries to offer.
@@ -564,86 +493,6 @@ export default {
 		 */
 		roleFilterOption() {
 			return this.roleFilterOptions.find((o) => o.id === this.roleFilter) || this.roleFilterOptions[0]
-		},
-
-		/**
-		 * What stops this flow from finishing, as one readable sentence.
-		 *
-		 * @return {string|null} The message, or null when nothing is missing.
-		 */
-		missingEndsMessage() {
-			const missing = this.store.missingEnds
-			if (missing.trigger && missing.end) {
-				return this.t('nextcloud-vue', 'This flow has no trigger and no end step, so it cannot start or finish.')
-			}
-			if (missing.trigger) {
-				return this.t('nextcloud-vue', 'This flow has no trigger, so nothing will start it.')
-			}
-			if (missing.end) {
-				return this.t('nextcloud-vue', 'This flow has no end step, so a run can never finish.')
-			}
-
-			return null
-		},
-
-		/**
-		 * What to show the user when a save or a run was refused.
-		 *
-		 * Prefers the API's own `error` field, because that is the sentence
-		 * written for a person — "A flow needs a name." says what to do, where
-		 * "Request failed with status code 400" does not.
-		 *
-		 * @return {string} The message.
-		 */
-		errorText() {
-			const error = this.store.error
-			if (!error) {
-				return ''
-			}
-
-			return error?.response?.data?.error
-				|| error?.response?.data?.message
-				|| error?.message
-				|| this.t('nextcloud-vue', 'The last action failed.')
-		},
-
-		/**
-		 * The lifecycle status, in the author's language.
-		 *
-		 * @return {string} The label.
-		 */
-		lifecycleLabel() {
-			const labels = {
-				draft: this.t('nextcloud-vue', 'Draft'),
-				published: this.t('nextcloud-vue', 'Published'),
-				deprecated: this.t('nextcloud-vue', 'Deprecated'),
-			}
-
-			return labels[this.store.lifecycleStatus] || this.store.lifecycleStatus
-		},
-
-		/**
-		 * What the server refused, and what to do about it.
-		 *
-		 * 🔑 SWITCHED ON THE `reason` FIELD, never on the message text. The two
-		 * refusals an author meets want opposite actions — one needs a draft
-		 * created, the other needs a version published — and matching on English
-		 * prose is how a UI offers the wrong one.
-		 *
-		 * @return {string} The message.
-		 */
-		refusalText() {
-			const reason = this.store.lifecycleRefusal?.reason
-			const messages = {
-				'version-immutable': this.t('nextcloud-vue', 'This version is published and cannot be changed. Create a draft to make changes; the published version keeps running until you publish the draft.'),
-				'not-a-draft': this.t('nextcloud-vue', 'Only a draft version can be published.'),
-				'not-published': this.t('nextcloud-vue', 'Only a published version can be deprecated.'),
-				'no-published-version': this.t('nextcloud-vue', 'This flow has no published version, so it cannot run. Publish a version first.'),
-				'dead-end': this.t('nextcloud-vue', 'This version cannot be published while a step has nowhere to send its work.'),
-				'version-in-use': this.t('nextcloud-vue', 'This version cannot be removed while a run is still using it.'),
-			}
-
-			return messages[reason] || this.t('nextcloud-vue', 'That change was refused by the flow\'s current state.')
 		},
 
 		/**
@@ -741,38 +590,6 @@ export default {
 	padding: 8px 12px;
 }
 
-.cn-flow-sidebar__version {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	margin: 0 0 8px;
-}
-
-.cn-flow-sidebar__version-number {
-	font-weight: bold;
-}
-
-.cn-flow-sidebar__badge {
-	border-radius: var(--border-radius-pill, 100px);
-	padding: 2px 10px;
-	font-size: 0.85em;
-	/* Tokens, never literals: the badge has to stay legible in the dark theme
-	   and under the high-contrast accessibility setting, and a hardcoded pair
-	   fails both. */
-	background-color: var(--color-background-dark);
-	color: var(--color-text-maxcontrast);
-}
-
-.cn-flow-sidebar__badge--published {
-	background-color: var(--color-success, var(--color-primary-element));
-	color: var(--color-primary-element-text, #fff);
-}
-
-.cn-flow-sidebar__badge--deprecated {
-	background-color: var(--color-warning, var(--color-background-dark));
-	color: var(--color-main-text);
-}
-
 .cn-flow-sidebar__hint {
 	color: var(--color-text-maxcontrast);
 	font-size: 0.9em;
@@ -784,6 +601,13 @@ export default {
 	flex-direction: column;
 	gap: 8px;
 	padding: 8px 0;
+}
+
+/* Version, status and Publish, in the header rather than in a tab. Below the
+   flow's name in NcAppSidebar's `description` slot, and above the tab strip in
+   the embedded variant, so both hosts read the same way. */
+.cn-flow-sidebar__header {
+	padding-block-end: 8px;
 }
 
 .cn-flow-sidebar__tabs {
@@ -810,15 +634,6 @@ export default {
 .cn-flow-sidebar__tab--active {
 	color: var(--color-main-text);
 	border-block-end-color: var(--color-primary-element);
-}
-
-.cn-flow-sidebar__selected-name {
-	font-weight: 600;
-}
-
-.cn-flow-sidebar__selected-actions {
-	display: flex;
-	gap: 8px;
 }
 
 .cn-flow-sidebar__palette {
