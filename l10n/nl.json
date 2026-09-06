@@ -886,7 +886,9 @@
     "Flow settings": "Instellingen van de flow",
     "What starts this flow is a step on the canvas. Add a trigger step to give it a way in.": "Wat deze flow start is een stap op het canvas. Voeg een startstap toe om hem een ingang te geven.",
     "Save the flow before running it. The engine runs the stored flow, not the unsaved canvas.": "Sla de flow op voordat u hem uitvoert. De engine voert de opgeslagen flow uit, niet het niet-opgeslagen canvas.",
-    "Running by hand needs a manual start step. Add \"When someone runs it\" to the canvas.": "Handmatig uitvoeren vraagt om een handmatige startstap. Voeg \"Wanneer iemand hem uitvoert\" toe aan het canvas."
+    "Running by hand needs a manual start step. Add \"When someone runs it\" to the canvas.": "Handmatig uitvoeren vraagt om een handmatige startstap. Voeg \"Wanneer iemand hem uitvoert\" toe aan het canvas.",
+    "Run immediately instead of queueing": "Direct uitvoeren in plaats van in de wachtrij zetten",
+    "Off by default. A queued run is picked up by the background worker, which keeps a slow flow from holding up whatever started it.": "Standaard uit. Een run in de wachtrij wordt opgepakt door de achtergrondtaak, zodat een trage flow niet ophoudt wat hem startte."
   },
   "plurals": {
     "{count} photo": ["{count} foto", "{count} foto's"],
