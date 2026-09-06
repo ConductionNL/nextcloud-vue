@@ -672,16 +672,35 @@ export default {
 			// `…trigger-…` and `….end` and would leave the port tests asserting
 			// the FALLBACK rather than the path a real instance takes.
 			//
-			// ⚠️ SEEDED TWICE, AND THE SECOND TIME IS THE ONE THAT STICKS. The
-			// store's own catalogue request is already in the air by the time
-			// this runs (the child mounts first), there is no Nextcloud behind
-			// the harness, and `loadNodeCatalog()`'s failure path sets
-			// `nodeCatalog = []` — so the seed below is clobbered a moment after
-			// it is written. Nothing rendered from an empty catalogue until the
-			// canvas message area started reporting one, and then a warning card
-			// appeared over the graph and intercepted a click meant for a node.
-			// Re-seeding when the request settles is deterministic; a timer
-			// would be a race against a network failure.
+			// ⚠️ SEEDED, AND RE-SEEDED WHENEVER IT IS EMPTIED. The store's own
+			// catalogue request is already in the air by the time this runs
+			// (the child mounts first), there is no Nextcloud behind the
+			// harness, and `loadNodeCatalog()`'s failure path sets
+			// `nodeCatalog = []` — so the seed below is clobbered a moment
+			// after it is written. Nothing rendered from an empty catalogue
+			// until the canvas message area started reporting one, and then a
+			// warning card appeared over the graph and intercepted a click
+			// meant for a node.
+			//
+			// 🔴 THIS WATCHES THE CATALOGUE, NOT `catalogLoading`, AND IT DOES
+			// NOT STOP. It used to do both, and both were wrong.
+			//
+			// Watching `catalogLoading` for a single false meant the defence
+			// fired only if the flag CHANGED after the watcher was installed.
+			// A spec that set `catalogLoading = false` itself disarmed it
+			// permanently: the request then failed, emptied the catalogue, and
+			// the flag never changed again, so nothing re-seeded and the
+			// palette stayed empty for the rest of the test. That is precisely
+			// how `flow-messages.e2e.js` passed on every developer machine —
+			// where the request fails before the spec runs — and failed on CI,
+			// where it is still in the air. Two failures and two flakes, all
+			// presenting as a click timing out after thirty seconds.
+			//
+			// Watching the catalogue's emptiness instead states the invariant
+			// the harness actually wants: in the harness there is always a
+			// catalogue. It cannot loop, because the re-seed writes a
+			// non-empty array. Specs asserting an EMPTY catalogue are jest's,
+			// where no harness runs.
 			const seedCatalog = () => {
 				store.nodeCatalog = [
 					{ id: 'openregister.trigger-manual', displayName: 'Manual', role: 'trigger' },
@@ -692,12 +711,11 @@ export default {
 
 			seedCatalog()
 
-			const stopWatching = this.$watch(
-				() => store.catalogLoading,
-				(loading) => {
-					if (loading === false) {
+			this.$watch(
+				() => store.nodeCatalog.length,
+				(length) => {
+					if (length === 0) {
 						seedCatalog()
-						stopWatching()
 					}
 				},
 			)
