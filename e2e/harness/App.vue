@@ -79,8 +79,18 @@
 		-->
 		<template v-else-if="showFlow">
 			<h2>Flow editor</h2>
-			<div class="canvas-box" data-testid="flow-box">
-				<CnFlowDetail id="new" app="openregister" />
+			<div class="flow-editor">
+				<div class="canvas-box" data-testid="flow-box">
+					<CnFlowDetail id="new" app="openregister" />
+				</div>
+				<!-- The palette half, in its `embedded` form: there is no
+				     Nextcloud app layout here to hold an NcAppSidebar. It is
+				     mounted because one journey needs BOTH halves — clicking a
+				     palette step on a published flow, and finding the refusal
+				     on the canvas rather than in this panel. -->
+				<div class="flow-sidebar-box" data-testid="flow-sidebar-box">
+					<CnFlowSidebar embedded />
+				</div>
 			</div>
 			<input data-testid="outside-input" aria-label="Outside text">
 		</template>
@@ -372,6 +382,7 @@
 <script>
 import CnCronField from '../../src/components/CnCronField/CnCronField.vue'
 import CnFlowDetail from '../../src/components/CnFlowDetail/CnFlowDetail.vue'
+import CnFlowSidebar from '../../src/components/CnFlowDetail/CnFlowSidebar.vue'
 import { useFlowStore } from '../../src/composables/useFlowStore.js'
 import CnGraphCanvas from '../../src/components/CnGraphCanvas/CnGraphCanvas.vue'
 import CnIconPicker from '../../src/components/CnIconPicker/CnIconPicker.vue'
@@ -413,7 +424,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, CnTasksWidget, CnIndexPage, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, CnTasksWidget, CnIndexPage, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -660,11 +671,54 @@ export default {
 			// back to reading the role out of the id, which works for
 			// `…trigger-…` and `….end` and would leave the port tests asserting
 			// the FALLBACK rather than the path a real instance takes.
-			store.nodeCatalog = [
-				{ id: 'openregister.trigger-manual', displayName: 'Manual', role: 'trigger' },
-				{ id: 'openregister.set-fields', displayName: 'Edit fields', role: 'step' },
-				{ id: 'openregister.end', displayName: 'End', role: 'end' },
-			]
+			//
+			// ⚠️ SEEDED, AND RE-SEEDED WHENEVER IT IS EMPTIED. The store's own
+			// catalogue request is already in the air by the time this runs
+			// (the child mounts first), there is no Nextcloud behind the
+			// harness, and `loadNodeCatalog()`'s failure path sets
+			// `nodeCatalog = []` — so the seed below is clobbered a moment
+			// after it is written. Nothing rendered from an empty catalogue
+			// until the canvas message area started reporting one, and then a
+			// warning card appeared over the graph and intercepted a click
+			// meant for a node.
+			//
+			// 🔴 THIS WATCHES THE CATALOGUE, NOT `catalogLoading`, AND IT DOES
+			// NOT STOP. It used to do both, and both were wrong.
+			//
+			// Watching `catalogLoading` for a single false meant the defence
+			// fired only if the flag CHANGED after the watcher was installed.
+			// A spec that set `catalogLoading = false` itself disarmed it
+			// permanently: the request then failed, emptied the catalogue, and
+			// the flag never changed again, so nothing re-seeded and the
+			// palette stayed empty for the rest of the test. That is precisely
+			// how `flow-messages.e2e.js` passed on every developer machine —
+			// where the request fails before the spec runs — and failed on CI,
+			// where it is still in the air. Two failures and two flakes, all
+			// presenting as a click timing out after thirty seconds.
+			//
+			// Watching the catalogue's emptiness instead states the invariant
+			// the harness actually wants: in the harness there is always a
+			// catalogue. It cannot loop, because the re-seed writes a
+			// non-empty array. Specs asserting an EMPTY catalogue are jest's,
+			// where no harness runs.
+			const seedCatalog = () => {
+				store.nodeCatalog = [
+					{ id: 'openregister.trigger-manual', displayName: 'Manual', role: 'trigger' },
+					{ id: 'openregister.set-fields', displayName: 'Edit fields', role: 'step' },
+					{ id: 'openregister.end', displayName: 'End', role: 'end' },
+				]
+			}
+
+			seedCatalog()
+
+			this.$watch(
+				() => store.nodeCatalog.length,
+				(length) => {
+					if (length === 0) {
+						seedCatalog()
+					}
+				},
+			)
 		}
 	},
 
@@ -707,6 +761,19 @@ export default {
 .canvas-box {
 	width: 800px;
 	height: 480px;
+	border: 1px solid #ccc;
+}
+
+.flow-editor {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+}
+
+.flow-sidebar-box {
+	width: 320px;
+	max-height: 480px;
+	overflow-y: auto;
 	border: 1px solid #ccc;
 }
 

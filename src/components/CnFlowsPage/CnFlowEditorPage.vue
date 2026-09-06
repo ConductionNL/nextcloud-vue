@@ -3,6 +3,7 @@
 <template>
 	<CnFlowDetail :id="flowId"
 		:app="app"
+		:run="runUuid"
 		@save="onSave"
 		@run="onRun" />
 </template>
@@ -61,6 +62,17 @@ export default {
 			type: String,
 			default: '/flows',
 		},
+
+		/**
+		 * A run to open on arrival. Defaults to the `run` query parameter,
+		 * which is where a run's own address lands: `/flow-runs/{uuid}` reads
+		 * the run, finds its flow and redirects to `/flows/{id}?run={uuid}`.
+		 * Pass it explicitly only when mounting outside a route.
+		 */
+		run: {
+			type: String,
+			default: '',
+		},
 	},
 
 	/**
@@ -78,6 +90,13 @@ export default {
 		 */
 		flowId() {
 			return this.id || this.$route?.params?.id || ''
+		},
+
+		/**
+		 * @return {string} The run to open on arrival, or an empty string.
+		 */
+		runUuid() {
+			return this.run || this.$route?.query?.run || ''
 		},
 	},
 

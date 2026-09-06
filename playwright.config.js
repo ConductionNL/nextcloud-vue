@@ -15,6 +15,12 @@ export default defineConfig({
 	timeout: 30_000,
 	fullyParallel: true,
 
+	// Load the harness ONCE before any worker does. The dev server transforms
+	// the whole library graph on first hit, which cost 23 of the 30 seconds a
+	// test is allowed and made every addition to the harness a timeout for six
+	// unrelated tests. See e2e/global-setup.js for the measurement.
+	globalSetup: './e2e/global-setup.js',
+
 	// ONE RETRY IN CI, NONE LOCALLY.
 	//
 	// ⚠️ NOT A LICENCE TO BE FLAKY. A retried-then-passed test is reported as

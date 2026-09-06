@@ -956,6 +956,23 @@ export default {
 			default: () => [],
 		},
 
+		/**
+		 * OpenRegister `_extend[]` values forwarded on the fetch, e.g.
+		 * `["calculations"]`. Sourced from `pages[].config.extend`.
+		 *
+		 * A schema's `x-openregister-calculations` entries declared
+		 * `materialise: false` are VIRTUAL: RenderObject evaluates them only
+		 * when the caller asks for them through `_extend`, so without this a
+		 * declared calculation is simply absent from every row and its column
+		 * renders empty. The same contract `objectTableSource.extend` already
+		 * carries for dashboard widgets, which is where it shipped first;
+		 * index pages could not ask for it at all.
+		 */
+		extend: {
+			type: Array,
+			default: () => [],
+		},
+
 		/** Object/row data array */
 		objects: {
 			type: Array,
