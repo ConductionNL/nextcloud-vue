@@ -1,6 +1,6 @@
 <!--
-  CnFlowSettingsModal — the flow's own fields: what it is called, and what
-  starts it.
+  CnFlowSettingsModal — the flow's own fields: what it is called, and nothing
+  about what starts it.
 
   ⚠️ NOT `CnFlowEditModal`, AND THE DISTINCTION IS DELIBERATE. That name is
   already taken by the FULL editor in a dialog: canvas and sidebar together,
@@ -26,6 +26,21 @@
   Enabled is NOT here. It is a verb rather than a field, and it lives in the
   action menu with Publish for the same reason.
 
+  🔴 THE TRIGGER IS NOT HERE EITHER, AND THAT IS THE POINT OF THIS FILE NOW.
+  What starts a flow is a NODE on the canvas — `openregister.trigger-object`,
+  `…trigger-schedule`, `…trigger-manual` — not a property of the flow row. The
+  four legacy columns (`trigger`, `triggerRegister`, `triggerSchema`, `cron`)
+  hold exactly ONE trigger between them, so "on a schedule AND when an object
+  changes" had no representation at all and was worked around by duplicating
+  the flow. The engine already dispatches from the derived node index; these
+  fields were a second, weaker way to say the same thing, in a place the author
+  was not looking.
+
+  Two writers for one fact is the shape that drifts, so one of them goes. A
+  flow with no trigger node now says so on the canvas, where the graph is, and
+  the Run button explains itself rather than starting something the graph does
+  not describe.
+
   SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
   SPDX-License-Identifier: EUPL-1.2
 -->
@@ -44,40 +59,22 @@
 				:label="t('nextcloud-vue', 'Description')"
 				@update:model-value="store.setFlowField('description', $event)" />
 
-			<NcSelect :model-value="triggerOption"
-				:options="triggerOptions"
-				:input-label="t('nextcloud-vue', 'Trigger')"
-				:clearable="false"
-				@update:model-value="onTrigger" />
-
-			<NcTextField v-if="store.flow.trigger === 'schedule'"
-				:model-value="store.flow.cron || ''"
-				:label="t('nextcloud-vue', 'Cron schedule')"
-				:helper-text="t('nextcloud-vue', 'For example 0 9 * * 1 — 09:00 every Monday.')"
-				@update:model-value="store.setFlowField('cron', $event)" />
-
-			<NcTextField :model-value="store.flow.triggerRegister || ''"
-				:label="t('nextcloud-vue', 'Restrict to register')"
-				:helper-text="t('nextcloud-vue', 'Leave empty for any register.')"
-				@update:model-value="store.setFlowField('triggerRegister', $event)" />
-
-			<NcTextField :model-value="store.flow.triggerSchema || ''"
-				:label="t('nextcloud-vue', 'Restrict to schema')"
-				:helper-text="t('nextcloud-vue', 'Leave empty for any schema.')"
-				@update:model-value="store.setFlowField('triggerSchema', $event)" />
+			<p class="cn-flow-settings__note" data-testid="flow-settings-trigger-note">
+				{{ t('nextcloud-vue', 'What starts this flow is a step on the canvas. Add a trigger step to give it a way in.') }}
+			</p>
 		</div>
 	</NcDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcSelect, NcTextField } from '@nextcloud/vue'
+import { NcDialog, NcTextField } from '@nextcloud/vue'
 import { useFlowStore } from '../composables/useFlowStore.js'
 
 export default {
 	name: 'CnFlowSettingsModal',
 
-	components: { NcDialog, NcSelect, NcTextField },
+	components: { NcDialog, NcTextField },
 
 	emits: ['close'],
 
@@ -85,41 +82,8 @@ export default {
 		return { store: useFlowStore() }
 	},
 
-	computed: {
-		/**
-		 * @return {Array<object>} The trigger options, from the event catalogue.
-		 */
-		triggerOptions() {
-			const fromCatalog = this.store.eventCatalog.map((e) => ({ id: e.id, label: e.label || e.id }))
-
-			// `manual` and `schedule` are engine-level triggers rather than
-			// dispatched events, so the event catalogue does not carry them.
-			return [
-				{ id: 'manual', label: this.t('nextcloud-vue', 'Manually only') },
-				{ id: 'schedule', label: this.t('nextcloud-vue', 'On a schedule') },
-				...fromCatalog,
-			]
-		},
-
-		/**
-		 * @return {object} The currently selected trigger option.
-		 */
-		triggerOption() {
-			const current = this.store.flow.trigger
-			return this.triggerOptions.find((o) => o.id === current) || { id: current, label: current }
-		},
-	},
-
 	methods: {
 		t,
-
-		/**
-		 * @param {object} option The chosen trigger option.
-		 * @return {void}
-		 */
-		onTrigger(option) {
-			this.store.setFlowField('trigger', option ? option.id : 'manual')
-		},
 	},
 }
 </script>
@@ -130,5 +94,10 @@ export default {
 	flex-direction: column;
 	gap: 12px;
 	padding: 8px 0;
+}
+
+.cn-flow-settings__note {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
 }
 </style>

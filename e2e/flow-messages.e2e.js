@@ -267,8 +267,39 @@ test.describe('flow sidebar — the header carries the flow', () => {
 		// canvas inside a dialog on top of the canvas already on the page.
 		const dialog = page.locator('[data-testid="flow-settings-modal"]')
 		await expect(dialog).toBeVisible()
-		await expect(dialog).toContainText('Restrict to register')
+		await expect(dialog).toContainText('Name')
 		await expect(dialog.locator('.cn-graph-canvas')).toHaveCount(0)
+	})
+
+	// ⚠️ INVERTED, NOT DELETED. This assertion used to require
+	// 'Restrict to register' IN the dialog, which is exactly the thing that
+	// has moved: what starts a flow is a step on the canvas, and the four
+	// legacy columns were a second way to say a fact the graph already
+	// carries. Deleting the assertion would leave nothing watching the field
+	// come back; inverting it keeps the claim, pointed the other way.
+	test('the settings dialog carries no trigger configuration at all', async ({ page }) => {
+		await openFlow(page, 'draft')
+
+		await page.locator('[data-testid="flow-sidebar-box"] .action-item__menutoggle').first().click()
+		await page.getByRole('menuitem', { name: 'Edit flow' }).click()
+
+		const dialog = page.locator('[data-testid="flow-settings-modal"]')
+		await expect(dialog).toBeVisible()
+
+		for (const gone of ['Trigger', 'Restrict to register', 'Restrict to schema', 'Cron schedule']) {
+			await expect(dialog).not.toContainText(gone)
+		}
+
+		// And it says where the trigger went, rather than leaving a hole.
+		await expect(dialog.locator('[data-testid="flow-settings-trigger-note"]')).toContainText('step on the canvas')
+	})
+
+	test('Run is refused, in words, until the canvas has a manual start step', async ({ page }) => {
+		await openFlow(page, 'draft')
+
+		const run = page.locator('[data-testid="flow-run-button"]')
+		await expect(run).toBeDisabled()
+		await expect(run).toHaveAttribute('title', /manual start step/)
 	})
 
 	test('the sidebar has two tabs, and no Flow tab', async ({ page }) => {

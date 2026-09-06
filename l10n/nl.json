@@ -883,7 +883,10 @@
     "Logs": "Logboek",
     "This run raised no tasks.": "Deze run heeft geen taken aangemaakt.",
     "no matching step": "geen bijbehorende stap",
-    "Flow settings": "Instellingen van de flow"
+    "Flow settings": "Instellingen van de flow",
+    "What starts this flow is a step on the canvas. Add a trigger step to give it a way in.": "Wat deze flow start is een stap op het canvas. Voeg een startstap toe om hem een ingang te geven.",
+    "Save the flow before running it. The engine runs the stored flow, not the unsaved canvas.": "Sla de flow op voordat u hem uitvoert. De engine voert de opgeslagen flow uit, niet het niet-opgeslagen canvas.",
+    "Running by hand needs a manual start step. Add \"When someone runs it\" to the canvas.": "Handmatig uitvoeren vraagt om een handmatige startstap. Voeg \"Wanneer iemand hem uitvoert\" toe aan het canvas."
   },
   "plurals": {
     "{count} photo": ["{count} foto", "{count} foto's"],
