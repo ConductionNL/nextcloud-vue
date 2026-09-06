@@ -58,8 +58,14 @@ async function mountSidebar(state = {}, props = {}) {
 		global: {
 			stubs: {
 				NcAppSidebar: {
-					template: '<aside class="app-sidebar"><header class="app-sidebar__header"><slot name="description" /></header><slot /></aside>',
+					// Both header slots. NcAppSidebar wraps `secondary-actions`
+					// in an NcActions of its own, so the flow's verbs render in
+					// the header too — just not as buttons beside the version.
+					template: '<aside class="app-sidebar"><header class="app-sidebar__header"><slot name="description" /><slot name="secondary-actions" /></header><slot /></aside>',
 				},
+				NcActions: { template: '<div class="actions"><slot /></div>' },
+				NcActionButton: { template: '<button class="action-button"><slot /></button>' },
+				CnFlowSettingsModal: true,
 				NcAppSidebarTab: { template: '<div class="app-sidebar-tab"><slot /></div>' },
 				NcButton: {
 					template: '<button :disabled="disabled" :aria-label="ariaLabel"><slot /></button>',
@@ -155,6 +161,9 @@ describe('CnFlowSidebar — after the messages moved to the canvas', () => {
 			const header = wrapper.find('.app-sidebar__header')
 			expect(header.find('[data-testid="flow-version"]').text()).toBe('v2')
 			expect(header.find('[data-testid="flow-lifecycle"]').text()).toBe('Draft')
+			// Publish is in the header's action MENU rather than a button beside
+			// the version — see CnFlowSidebarActions.spec.js for why. Still the
+			// header, which is what this file is about.
 			expect(header.find('[data-testid="flow-publish"]').exists()).toBe(true)
 		})
 
@@ -193,6 +202,8 @@ describe('CnFlowSidebar — after the messages moved to the canvas', () => {
 			const header = wrapper.find('.cn-flow-sidebar__header')
 			expect(header.exists()).toBe(true)
 			expect(header.find('[data-testid="flow-version"]').text()).toBe('v2')
+			// The dialog has no NcAppSidebar to wrap the actions slot, so the
+			// embedded header brings its own menu. Same items either way.
 			expect(header.find('[data-testid="flow-publish"]').exists()).toBe(true)
 		})
 	})

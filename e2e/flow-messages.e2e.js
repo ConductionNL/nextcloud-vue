@@ -221,3 +221,67 @@ test.describe('flow messages — what a screen reader is told', () => {
 		expect(box.width).toBeLessThanOrEqual(2)
 	})
 })
+
+test.describe('flow sidebar — the header carries the flow', () => {
+	/**
+	 * The action menu really opens, which a mounted-component test cannot say.
+	 * NcActions teleports its menu to the body on click, so "the items exist"
+	 * in jsdom and "a user can reach them" are different claims.
+	 */
+	test('the header menu opens and offers the flow\'s verbs', async ({ page }) => {
+		await openFlow(page, 'draft')
+
+		await page.locator('[data-testid="flow-sidebar-box"] .action-item__menutoggle').first().click()
+
+		for (const name of ['Edit flow', 'Enable', 'Publish']) {
+			await expect(page.getByRole('menuitem', { name })).toBeVisible()
+		}
+	})
+
+	test('Edit flow opens the settings dialog, not the whole editor again', async ({ page }) => {
+		await openFlow(page, 'draft')
+
+		await page.locator('[data-testid="flow-sidebar-box"] .action-item__menutoggle').first().click()
+		await page.getByRole('menuitem', { name: 'Edit flow' }).click()
+
+		// CnFlowSettingsModal, not CnFlowEditModal. The second would mount a
+		// canvas inside a dialog on top of the canvas already on the page.
+		const dialog = page.locator('[data-testid="flow-settings-modal"]')
+		await expect(dialog).toBeVisible()
+		await expect(dialog).toContainText('Restrict to register')
+		await expect(dialog.locator('.cn-graph-canvas')).toHaveCount(0)
+	})
+
+	test('the sidebar has two tabs, and no Flow tab', async ({ page }) => {
+		await openFlow(page, 'draft')
+
+		const strip = page.locator('[data-testid="flow-sidebar-box"] [role="tablist"]').first()
+		await expect(strip.getByRole('tab')).toHaveCount(2)
+		await expect(strip).toContainText('Steps')
+		await expect(strip).toContainText('Runs')
+		await expect(strip).not.toContainText('Flow')
+	})
+})
+
+test.describe('flow sidebar — a run has its own address', () => {
+	test('a run row is a real link a browser can open in a new tab', async ({ page }) => {
+		await openFlow(page, 'draft')
+
+		await page.evaluate(() => {
+			window.__cnFlowStore.runs = [
+				{ uuid: 'run-1', status: 'completed', created: '2026-09-06 08:00' },
+			]
+		})
+
+		await page.locator('[data-testid="flow-sidebar-box"] [role="tab"]', { hasText: 'Runs' }).click()
+
+		const link = page.locator('[data-testid="flow-run-link"]').first()
+		await expect(link).toBeVisible()
+
+		// The attribute a browser acts on, read off the real DOM. `href` set
+		// through a binding that produced `undefined` still renders an <a>, and
+		// still swallows middle-click without a word.
+		const href = await link.getAttribute('href')
+		expect(href).toContain('/apps/openregister/flow-runs/run-1')
+	})
+})

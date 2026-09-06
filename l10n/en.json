@@ -883,7 +883,15 @@
     "Warning": "Warning",
     "Information": "Information",
     "Success": "Success",
-    "No steps are available to add.": "No steps are available to add."
+    "No steps are available to add.": "No steps are available to add.",
+    "Flow actions": "Flow actions",
+    "Edit flow": "Edit flow",
+    "Enable": "Enable",
+    "Disable": "Disable",
+    "Logs": "Logs",
+    "This run raised no tasks.": "This run raised no tasks.",
+    "no matching step": "no matching step",
+    "Flow settings": "Flow settings"
   },
   "plurals": {
     "{count} photo": ["{count} photo", "{count} photos"],

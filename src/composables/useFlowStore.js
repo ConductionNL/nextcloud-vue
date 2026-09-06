@@ -173,6 +173,14 @@ export const useFlowStore = defineStore('cnFlow', {
 		// step row, and an object written by an app the node called into has no
 		// step of its own.
 		runObjects: [],
+		// The tasks THIS RUN raised, from `GET /api/flow-tasks?runUuid={uuid}`.
+		//
+		// The parameter ANCHORS the read rather than filtering it: with it
+		// present the server ignores `scope`, so these are the run's tasks and
+		// not the reader's inbox. Visibility still applies on top, so a caller
+		// who is neither the run's requester nor an admin can see fewer rows
+		// than the run has. That is correct, and nothing here works around it.
+		runTasks: [],
 		inspectedRunUuid: null,
 
 		// The run being WATCHED live: the one `run()` just queued, polled while
@@ -1921,6 +1929,51 @@ export const useFlowStore = defineStore('cnFlow', {
 			// The steps say what the run DID; these say what it did it TO, and
 			// reading one without the other is the gap this exists to close.
 			await this.loadRunObjects(runUuid)
+			await this.loadRunTasks(runUuid)
+		},
+
+		/**
+		 * Load the tasks one run raised.
+		 *
+		 * 🔴 AN EMPTY UUID IS NOT A QUERY, AND THE SERVER WILL NOT SAVE US.
+		 * `?runUuid=` is treated as ABSENT, and an absent anchor means the
+		 * endpoint answers with the caller's ordinary inbox. Sending one would
+		 * put somebody's own task list under a run's Tasks tab, so the guard is
+		 * here rather than a hope that an empty answer comes back.
+		 *
+		 * 🔴 THE RESPONSE IS CHECKED AGAINST THE RUN, NOT TRUSTED. The anchor
+		 * is merged (openregister `801cc02b`), but this is a LIBRARY: a
+		 * consuming app can be running an openregister from before it, where an
+		 * unknown query parameter is silently dropped rather than rejected. That
+		 * server returns a perfectly valid 200 full of the reader's own tasks,
+		 * and rendering it would be a disclosure dressed as a feature with
+		 * nothing failing anywhere. Rows that do not name this run are dropped;
+		 * against an old server that empties the tab, which is the honest
+		 * answer.
+		 *
+		 * `scope` is deliberately NOT sent. The anchor overrides it, so passing
+		 * one would be a parameter that reads as though it narrowed something.
+		 *
+		 * @param {string} runUuid The run to read.
+		 * @return {Promise<void>}
+		 */
+		async loadRunTasks(runUuid) {
+			if (!runUuid) {
+				this.runTasks = []
+				return
+			}
+
+			try {
+				const response = await axios.get(generateUrl('/apps/openregister/api/flow-tasks'), {
+					params: { runUuid },
+				})
+
+				const rows = response.data?.results || []
+				this.runTasks = rows.filter((task) => String(task?.runUuid || '') === String(runUuid))
+			} catch (error) {
+				console.error('cn-flow: could not load the tasks this run raised', error)
+				this.runTasks = []
+			}
 		},
 
 		/**

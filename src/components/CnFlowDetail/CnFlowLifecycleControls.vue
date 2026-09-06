@@ -16,10 +16,17 @@
 
   WHAT IS DELIBERATELY NOT HERE
   -----------------------------
-  The read-only explanation ("create a draft to change its steps"). It is a
-  standing condition of the flow and now renders in the canvas message area with
-  every other message, beside the graph it is about. Repeating it here would put
-  the same sentence in two places and make neither authoritative.
+  THE VERBS. Publish, Create draft version and Deprecate live in the header's
+  action menu, next to Edit flow and Enable. This states a FACT about the open
+  flow: which version it is and whether that version is a draft. Buttons in a
+  header compete with the flow's name for the eye and win, and there were three
+  of them for something an author does a handful of times in a flow's life.
+
+  The read-only explanation ("create a draft to change its steps") is not here
+  either. It is a standing condition of the flow and renders in the canvas
+  message area with every other message, beside the graph it is about. Repeating
+  it here would put the same sentence in two places and make neither
+  authoritative.
 
   SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
   SPDX-License-Identifier: EUPL-1.2
@@ -33,42 +40,15 @@
 				:class="`cn-flow-lifecycle__badge--${store.lifecycleStatus}`"
 				data-testid="flow-lifecycle">{{ lifecycleLabel }}</span>
 		</p>
-
-		<div class="cn-flow-lifecycle__actions">
-			<NcButton v-if="store.isDraft"
-				variant="primary"
-				:disabled="store.transitioning || !store.flow.id"
-				data-testid="flow-publish"
-				@click="store.publish()">
-				{{ t('nextcloud-vue', 'Publish') }}
-			</NcButton>
-			<NcButton v-if="store.graphLocked"
-				variant="primary"
-				:disabled="store.transitioning"
-				data-testid="flow-create-draft"
-				@click="store.createDraft()">
-				{{ t('nextcloud-vue', 'Create draft version') }}
-			</NcButton>
-			<NcButton v-if="store.isPublished"
-				variant="tertiary"
-				:disabled="store.transitioning"
-				data-testid="flow-deprecate"
-				@click="store.deprecate()">
-				{{ t('nextcloud-vue', 'Deprecate') }}
-			</NcButton>
-		</div>
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton } from '@nextcloud/vue'
 import { useFlowStore } from '../../composables/useFlowStore.js'
 
 export default {
 	name: 'CnFlowLifecycleControls',
-
-	components: { NcButton },
 
 	setup() {
 		return { store: useFlowStore() }
@@ -133,12 +113,5 @@ export default {
 .cn-flow-lifecycle__badge--deprecated {
 	background-color: var(--color-warning, var(--color-background-dark));
 	color: var(--color-main-text);
-}
-
-.cn-flow-lifecycle__actions {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 8px;
-	margin-inline-start: auto;
 }
 </style>

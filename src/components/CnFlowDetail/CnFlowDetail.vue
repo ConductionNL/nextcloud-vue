@@ -328,6 +328,21 @@ export default {
 			type: String,
 			default: null,
 		},
+
+		/**
+		 * A run to open on arrival, from `?run=` on the URL.
+		 *
+		 * A run's own address (`/apps/openregister/flow-runs/{uuid}`) resolves
+		 * the run, finds its flow and redirects to `/flows/{flowId}?run={uuid}`,
+		 * so the run reaches the editor as a query rather than as a path. It is
+		 * a PROP rather than a `$route` read: this is a library component, and a
+		 * consumer mounting it outside a route must still be able to say which
+		 * run to open.
+		 */
+		run: {
+			type: String,
+			default: '',
+		},
 	},
 
 	emits: ['save', 'run'],
@@ -1059,6 +1074,26 @@ export default {
 			}
 
 			await this.store.load({ app: this.app, id: next })
+			await this.openRunFromRoute()
+		},
+
+		/**
+		 * Follow `?run=` to another run without a remount.
+		 *
+		 * Same route record, different query: Vue reuses this instance, so
+		 * `mounted` does not fire again — the same reason the flow-id watcher
+		 * above exists.
+		 *
+		 * @param {string} next The run now named by the URL.
+		 * @param {string} prev The one before it.
+		 * @return {Promise<void>}
+		 */
+		async run(next, prev) {
+			if (next === prev) {
+				return
+			}
+
+			await this.openRunFromRoute()
 		},
 
 		/**
@@ -1131,6 +1166,11 @@ export default {
 	async mounted() {
 		document.addEventListener('keydown', this.onDocumentKeydown)
 		await this.store.load({ app: this.app, id: this.id })
+
+		// AFTER the load, never before. `inspectRun` reads the run and its
+		// objects; doing it first would fill the panel and then have the flow
+		// arrive underneath it.
+		await this.openRunFromRoute()
 	},
 
 	beforeUnmount() {
@@ -1144,6 +1184,26 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Open the run the URL named, if it named one.
+		 *
+		 * Half of a deep link, and the half that is easy to leave out: the
+		 * `<a href>` in the Runs list is the visible part, but a visitor who
+		 * follows a run's own address lands on the flow with the run in the
+		 * query, and nothing wired that to `inspectRun()`. The link then opened
+		 * the right flow with no run selected, which reads as a broken link
+		 * rather than as a missing wire.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async openRunFromRoute() {
+			if (!this.run) {
+				return
+			}
+
+			await this.store.inspectRun(this.run)
+		},
+
 		/**
 		 * Ctrl+Z / Cmd+Z steps the GRAPH back one edit.
 		 *
