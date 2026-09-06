@@ -34,8 +34,9 @@
 				</template>
 				{{ t('nextcloud-vue', 'Save') }}
 			</NcButton>
-			<NcButton :disabled="store.running || !store.flow.id"
-				:title="store.flow.id ? null : t('nextcloud-vue', 'Save the flow before running it — the engine runs the stored flow, not the unsaved canvas.')"
+			<NcButton :disabled="store.running || !store.flow.id || !hasManualStart"
+				:title="runDisabledReason"
+				data-testid="flow-run-button"
 				@click="onRunClick">
 				<template #icon>
 					<Play :size="20" />
@@ -448,6 +449,46 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the graph carries a step that says a person starts this flow.
+		 *
+		 * Running by hand is not a property of the flow row, it is a step on
+		 * the canvas: `openregister.trigger-manual`. A flow whose only way in
+		 * is an object event or a schedule has no entry point a person can
+		 * take, so pressing Run would ask the engine to start something the
+		 * graph does not describe — and the engine refuses it, several
+		 * seconds later, in words about nodes rather than about the button
+		 * that was pressed.
+		 *
+		 * @return {boolean} Whether a manual trigger step is present.
+		 */
+		hasManualStart() {
+			return this.store.nodes.some((node) => node?.type === 'openregister.trigger-manual')
+		},
+
+		/**
+		 * Why Run is unavailable, or null when it is available.
+		 *
+		 * One title covering both reasons, in the order the author meets
+		 * them: a flow has to exist before it can be started, and it has to
+		 * have a way in before it can be started BY HAND. A disabled control
+		 * that does not say why is the thing this whole message pass was
+		 * about.
+		 *
+		 * @return {string|null} The explanation, or null.
+		 */
+		runDisabledReason() {
+			if (!this.store.flow.id) {
+				return this.t('nextcloud-vue', 'Save the flow before running it. The engine runs the stored flow, not the unsaved canvas.')
+			}
+
+			if (!this.hasManualStart) {
+				return this.t('nextcloud-vue', 'Running by hand needs a manual start step. Add "When someone runs it" to the canvas.')
+			}
+
+			return null
+		},
+
 		/**
 		 * What can be done to a step, as CnContextMenu's action list.
 		 *
