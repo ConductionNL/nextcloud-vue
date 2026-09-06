@@ -875,7 +875,15 @@
     "Warning": "Waarschuwing",
     "Information": "Informatie",
     "Success": "Gelukt",
-    "No steps are available to add.": "Er zijn geen stappen om toe te voegen."
+    "No steps are available to add.": "Er zijn geen stappen om toe te voegen.",
+    "Flow actions": "Acties voor deze flow",
+    "Edit flow": "Flow bewerken",
+    "Enable": "Aanzetten",
+    "Disable": "Uitzetten",
+    "Logs": "Logboek",
+    "This run raised no tasks.": "Deze run heeft geen taken aangemaakt.",
+    "no matching step": "geen bijbehorende stap",
+    "Flow settings": "Instellingen van de flow"
   },
   "plurals": {
     "{count} photo": ["{count} foto", "{count} foto's"],

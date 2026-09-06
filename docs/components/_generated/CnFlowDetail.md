@@ -2,10 +2,11 @@
 
 ### Props
 
-| Name  | Type     | Required | Default | Description                                                                                              |
-| ----- | -------- | -------- | ------- | -------------------------------------------------------------------------------------------------------- |
-| `id`  | `string` |          | `null`  | Flow uuid from the route. The literal `new` starts a blank flow, so creating and editing share one page. |
-| `app` | `string` |          | `null`  | The owning app id to scope to, and to stamp on a new flow.                                               |
+| Name  | Type     | Required | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ----- | -------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`  | `string` |          | `null`  | Flow uuid from the route. The literal `new` starts a blank flow, so creating and editing share one page.                                                                                                                                                                                                                                                                                                                      |
+| `app` | `string` |          | `null`  | The owning app id to scope to, and to stamp on a new flow.                                                                                                                                                                                                                                                                                                                                                                    |
+| `run` | `string` |          | `''`    | A run to open on arrival, from `?run=` on the URL. A run's own address (`/apps/openregister/flow-runs/{uuid}`) resolves the run, finds its flow and redirects to `/flows/{flowId}?run={uuid}`, so the run reaches the editor as a query rather than as a path. It is a PROP rather than a `$route` read: this is a library component, and a consumer mounting it outside a route must still be able to say which run to open. |
 
 ### Events
 
