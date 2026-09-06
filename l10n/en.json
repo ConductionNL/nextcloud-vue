@@ -898,7 +898,12 @@
     "The last run failed": "The last run failed",
     "The last run ended without finishing": "The last run ended without finishing",
     "The last run finished": "The last run finished",
-    "Enabled, no finished run yet": "Enabled, no finished run yet"
+    "Enabled, no finished run yet": "Enabled, no finished run yet",
+    "Back to the flow": "Back to the flow",
+    "Run": "Run",
+    "This run changed no objects.": "This run changed no objects.",
+    "This run recorded no steps.": "This run recorded no steps.",
+    "Replay on the canvas": "Replay on the canvas"
   },
   "plurals": {
     "{count} photo": ["{count} photo", "{count} photos"],

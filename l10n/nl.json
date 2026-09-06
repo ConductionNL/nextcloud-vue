@@ -890,7 +890,12 @@
     "The last run failed": "De laatste uitvoering is mislukt",
     "The last run ended without finishing": "De laatste uitvoering is geëindigd zonder af te ronden",
     "The last run finished": "De laatste uitvoering is afgerond",
-    "Enabled, no finished run yet": "Ingeschakeld, nog geen afgeronde uitvoering"
+    "Enabled, no finished run yet": "Ingeschakeld, nog geen afgeronde uitvoering",
+    "Back to the flow": "Terug naar de flow",
+    "Run": "Uitvoering",
+    "This run changed no objects.": "Deze uitvoering heeft geen objecten gewijzigd.",
+    "This run recorded no steps.": "Deze uitvoering heeft geen stappen vastgelegd.",
+    "Replay on the canvas": "Opnieuw afspelen op het canvas"
   },
   "plurals": {
     "{count} photo": ["{count} foto", "{count} foto's"],

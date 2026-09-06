@@ -97,7 +97,7 @@
 			</NcActions>
 		</div>
 
-		<div v-if="embedded" class="cn-flow-sidebar__tabs" role="tablist">
+		<div v-if="embedded && !inRunView" class="cn-flow-sidebar__tabs" role="tablist">
 			<button v-for="entry in tabs"
 				:key="entry.id"
 				class="cn-flow-sidebar__tab"
@@ -109,7 +109,18 @@
 			</button>
 		</div>
 
+		<!--
+			ONE STRIP AT A TIME. Reading a run REPLACES the flow's tabs rather
+			than nesting under them: the run used to render inside the Runs tab
+			with a strip of its own, so Steps and Runs stayed live above
+			Objects, Tasks and Logs — and pressing Steps while reading a run
+			swapped the panel while leaving the canvas painted with that run's
+			badges, so the graph and the sidebar described different things.
+		-->
+		<CnRunDetailSidebar v-if="inRunView" />
+
 		<component :is="embedded ? 'div' : 'NcAppSidebarTab'"
+			v-if="!inRunView"
 			v-show="embedded ? tab === 'flow-steps' : true"
 			:id="embedded ? undefined : 'flow-steps'"
 			:name="embedded ? undefined : t('nextcloud-vue', 'Steps')"
@@ -192,6 +203,7 @@
 		</component>
 
 		<component :is="embedded ? 'div' : 'NcAppSidebarTab'"
+			v-if="!inRunView"
 			v-show="embedded ? tab === 'flow-runs' : true"
 			:id="embedded ? undefined : 'flow-runs'"
 			:name="embedded ? undefined : t('nextcloud-vue', 'Runs')"
@@ -239,104 +251,6 @@
 						</a>
 					</li>
 				</ul>
-
-				<div v-if="store.inspectedRunUuid" class="cn-flow-sidebar__steps">
-					<!--
-						THE RUN'S OWN VIEW: what it changed, what it asked a
-						person to do, and what it did.
-
-						Three separate questions that used to be one scrolling
-						column, with the objects nested under each step and a
-						second block underneath for the ones no step claimed.
-					-->
-					<div class="cn-flow-sidebar__tabs" role="tablist">
-						<button v-for="entry in runTabs"
-							:key="entry.id"
-							class="cn-flow-sidebar__tab"
-							:class="{ 'cn-flow-sidebar__tab--active': runTab === entry.id }"
-							role="tab"
-							:data-testid="`flow-run-tab-${entry.id}`"
-							:aria-selected="runTab === entry.id ? 'true' : 'false'"
-							@click="runTab = entry.id">
-							{{ entry.label }}
-						</button>
-					</div>
-
-					<!-- Objects: the audit attribution, run-wide. -->
-					<template v-if="runTab === 'objects'">
-						<p v-if="!runObjectRows.length" class="cn-flow-sidebar__hint">
-							{{ t('nextcloud-vue', 'This run changed no objects.') }}
-						</p>
-						<ul v-else class="cn-flow-sidebar__touched">
-							<li v-for="obj in runObjectRows" :key="obj.auditUuid">
-								<span class="cn-flow-sidebar__touched-action">{{ obj.action }}</span>
-								<span class="cn-flow-sidebar__touched-uuid">{{ obj.objectUuid }}</span>
-								<span class="cn-flow-sidebar__hint"> · {{ obj.node }}</span>
-								<!--
-									A change the run's own step history cannot
-									account for. It should normally never
-									appear; when it does, hiding it would be the
-									opposite of what this view is for.
-								-->
-								<span v-if="obj.unaccounted"
-									class="cn-flow-sidebar__error"
-									data-testid="flow-object-unaccounted">
-									{{ t('nextcloud-vue', 'no matching step') }}
-								</span>
-							</li>
-						</ul>
-					</template>
-
-					<!-- Tasks: what the run asked a person to do. -->
-					<template v-else-if="runTab === 'tasks'">
-						<p v-if="!store.runTasks.length"
-							class="cn-flow-sidebar__hint"
-							data-testid="flow-run-tasks-empty">
-							{{ t('nextcloud-vue', 'This run raised no tasks.') }}
-						</p>
-						<ul v-else class="cn-flow-sidebar__runs">
-							<li v-for="task in store.runTasks" :key="task.uuid">
-								<!-- The task's one stable address, the same one
-								     the notification buttons and the VTODO
-								     already resolve to. -->
-								<a class="cn-flow-sidebar__run"
-									:href="taskUrl(task.uuid)"
-									data-testid="flow-task-link">
-									<span :class="`cn-flow-sidebar__status cn-flow-sidebar__status--${task.state}`">{{ task.state }}</span>
-									<span>{{ task.title || task.uuid }}</span>
-								</a>
-							</li>
-						</ul>
-					</template>
-
-					<!-- Logs: what the engine did, in its own order. -->
-					<template v-else>
-						<!-- Replay BESIDE the step list, not instead of it: the
-						     list stays what it is for reading, the replay plays the
-						     same stored log through the canvas animator. Only on a
-						     FINISHED run — a run still going is watched live. -->
-						<NcButton v-if="canReplay"
-							variant="secondary"
-							data-testid="flow-replay"
-							@click="store.requestReplay()">
-							<template #icon>
-								<Replay :size="20" />
-							</template>
-							{{ t('nextcloud-vue', 'Replay on the canvas') }}
-						</NcButton>
-
-						<p v-if="!store.steps.length" class="cn-flow-sidebar__hint">
-							{{ t('nextcloud-vue', 'This run recorded no steps.') }}
-						</p>
-						<ol v-else>
-							<li v-for="(step, i) in store.steps" :key="i">
-								<strong>{{ step.transition }}</strong>
-								<span class="cn-flow-sidebar__hint"> · {{ step.status }}</span>
-								<span v-if="step.error" class="cn-flow-sidebar__error"> · {{ step.error }}</span>
-							</li>
-						</ol>
-					</template>
-				</div>
 			</section>
 		</component>
 
@@ -362,11 +276,11 @@ import ContentDuplicate from 'vue-material-design-icons/ContentDuplicate.vue'
 import History from 'vue-material-design-icons/History.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Publish from 'vue-material-design-icons/Publish.vue'
-import Replay from 'vue-material-design-icons/Replay.vue'
 import Sitemap from 'vue-material-design-icons/Sitemap.vue'
 import CnFlowSettingsModal from '../../dialogs/CnFlowSettingsModal.vue'
-import { FLOW_RUN_ACTIVE_STATUSES, useFlowStore } from '../../composables/useFlowStore.js'
+import { useFlowStore } from '../../composables/useFlowStore.js'
 import CnFlowLifecycleControls from './CnFlowLifecycleControls.vue'
+import CnRunDetailSidebar from './CnRunDetailSidebar.vue'
 
 export default {
 	name: 'CnFlowSidebar',
@@ -375,6 +289,7 @@ export default {
 		Cancel,
 		CheckCircleOutline,
 		CnFlowLifecycleControls,
+		CnRunDetailSidebar,
 		CnFlowSettingsModal,
 		Cog,
 		ContentDuplicate,
@@ -388,7 +303,6 @@ export default {
 		NcTextField,
 		Pencil,
 		Publish,
-		Replay,
 		Sitemap,
 	},
 
@@ -424,7 +338,6 @@ export default {
 			tab: 'flow-steps',
 
 			// Which question about the inspected run is being asked.
-			runTab: 'objects',
 
 			// Whether the flow's settings dialog is open.
 			settingsOpen: false,
@@ -452,50 +365,12 @@ export default {
 		},
 
 		/**
-		 * Whether the inspected run can be replayed on the canvas.
+		 * Whether the sidebar is showing a RUN rather than the flow.
 		 *
-		 * Only a FINISHED run with a recorded log: a run still in the
-		 * engine's active set is watched live rather than replayed, and a
-		 * log-less run has nothing to play.
-		 *
-		 * @return {boolean} True when Replay is offered.
+		 * @return {boolean} True while a run is open.
 		 */
-		canReplay() {
-			if (this.store.steps.length === 0) {
-				return false
-			}
-
-			const status = this.inspectedRun?.status
-			return status !== undefined && FLOW_RUN_ACTIVE_STATUSES.includes(status) === false
-		},
-
-		/**
-		 * Everything the inspected run touched, one row per audit record.
-		 *
-		 * ⚠️ FLAT, AND CARRYING ITS NODE. These used to render nested under the
-		 * step that wrote them, with a second block below for the ones no step
-		 * claimed. That put the same list in two shapes in one column and still
-		 * could not answer "what did this run change?" without reading all of
-		 * it. The Objects tab asks exactly that question, so the rows are flat
-		 * and each says which node wrote it.
-		 *
-		 * `unaccounted` survives the flattening, and has to. A row whose node
-		 * matches no step in the run's own log means the run changed something
-		 * its history cannot explain; a view that quietly dropped that would
-		 * under-report what a run did and look complete doing it.
-		 *
-		 * @return {Array<object>} The touched objects, each with its node.
-		 */
-		runObjectRows() {
-			const stepNodes = new Set(
-				(this.store.steps || []).map((step) => String(step.transition || '')),
-			)
-
-			return (this.store.runObjects || []).flatMap((group) => (group.objects || []).map((obj) => ({
-				...obj,
-				node: group.node,
-				unaccounted: !stepNodes.has(String(group.node || '')),
-			})))
+		inRunView() {
+			return Boolean(this.store.inspectedRunUuid)
 		},
 
 		/**
@@ -508,17 +383,6 @@ export default {
 			return [
 				{ id: 'flow-steps', label: this.t('nextcloud-vue', 'Steps') },
 				{ id: 'flow-runs', label: this.t('nextcloud-vue', 'Runs') },
-			]
-		},
-
-		/**
-		 * @return {Array<object>} The three questions asked of one run.
-		 */
-		runTabs() {
-			return [
-				{ id: 'objects', label: this.t('nextcloud-vue', 'Objects') },
-				{ id: 'tasks', label: this.t('nextcloud-vue', 'Tasks') },
-				{ id: 'logs', label: this.t('nextcloud-vue', 'Logs') },
 			]
 		},
 
@@ -721,16 +585,6 @@ export default {
 		 */
 		runUrl(uuid) {
 			return generateUrl(`/apps/openregister/flow-runs/${uuid}`)
-		},
-
-		/**
-		 * The address of one task: the one the notifications already use.
-		 *
-		 * @param {string} uuid The task uuid.
-		 * @return {string} The task's own URL.
-		 */
-		taskUrl(uuid) {
-			return generateUrl(`/apps/openregister/flow-tasks/${uuid}`)
 		},
 
 		/**
