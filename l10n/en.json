@@ -891,7 +891,10 @@
     "Logs": "Logs",
     "This run raised no tasks.": "This run raised no tasks.",
     "no matching step": "no matching step",
-    "Flow settings": "Flow settings"
+    "Flow settings": "Flow settings",
+    "What starts this flow is a step on the canvas. Add a trigger step to give it a way in.": "What starts this flow is a step on the canvas. Add a trigger step to give it a way in.",
+    "Save the flow before running it. The engine runs the stored flow, not the unsaved canvas.": "Save the flow before running it. The engine runs the stored flow, not the unsaved canvas.",
+    "Running by hand needs a manual start step. Add \"When someone runs it\" to the canvas.": "Running by hand needs a manual start step. Add \"When someone runs it\" to the canvas."
   },
   "plurals": {
     "{count} photo": ["{count} photo", "{count} photos"],
