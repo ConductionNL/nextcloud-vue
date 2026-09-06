@@ -226,11 +226,16 @@
 							browser have it, so the two gestures do not fight.
 						-->
 						<a class="cn-flow-sidebar__run"
+							:class="{ 'cn-flow-sidebar__run--open': run.uuid === store.inspectedRunUuid }"
 							:href="runUrl(run.uuid)"
+							:aria-current="run.uuid === store.inspectedRunUuid ? 'true' : undefined"
 							data-testid="flow-run-link"
 							@click="onRunLinkClick($event, run.uuid)">
-							<span :class="`cn-flow-sidebar__status cn-flow-sidebar__status--${run.status}`">{{ run.status }}</span>
-							<span>{{ run.created }}</span>
+							<span class="cn-flow-sidebar__run-top">
+								<span :class="`cn-flow-sidebar__status cn-flow-sidebar__status--${run.status}`">{{ run.status }}</span>
+								<time class="cn-flow-sidebar__run-when" :datetime="run.created">{{ run.created }}</time>
+							</span>
+							<span v-if="run.error" class="cn-flow-sidebar__run-error">{{ run.error }}</span>
 						</a>
 					</li>
 				</ul>
@@ -872,15 +877,62 @@ export default {
 	color: var(--color-error-text);
 }
 
+/* THE RUNS LIST IS A STACK OF CARDS. */
+.cn-flow-sidebar__runs {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+/* A CARD, NOT A ROW. A run is a thing with a verdict, a time and sometimes a
+   reason it failed, and a single flex row could only ever show the first two
+   before the third pushed the date off the edge. The card gives the error its
+   own line and the run a hit area big enough to be a target, not a text link. */
 .cn-flow-sidebar__run {
 	display: flex;
-	gap: 8px;
+	flex-direction: column;
+	gap: 4px;
 	inline-size: 100%;
-	padding: 4px 6px;
-	border: none;
-	background: none;
+	padding: 10px 12px;
+	border: 2px solid transparent;
+	border-radius: var(--border-radius-large, 12px);
+	background: var(--color-background-hover);
 	text-align: start;
 	cursor: pointer;
+	color: inherit;
+}
+
+.cn-flow-sidebar__run-top {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	justify-content: space-between;
+}
+
+.cn-flow-sidebar__run-when {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+	font-variant-numeric: tabular-nums;
+}
+
+/* The failure's own words, clamped: a stack trace in a sidebar card pushes
+   every other run off the screen, and the card is an index, not the log. */
+.cn-flow-sidebar__run-error {
+	color: var(--color-error-text, var(--color-error));
+	font-size: 0.9em;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+/* WHICH RUN IS OPEN, stated by more than a background: a border survives
+   forced-colors mode, where a background tint does not. */
+.cn-flow-sidebar__run--open {
+	border-color: var(--color-primary-element);
 }
 
 .cn-flow-sidebar__run:hover {
