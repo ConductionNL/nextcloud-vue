@@ -152,6 +152,10 @@ export function useSelfFetchList(props, instance, inject) {
 		defaultSortKeys: initialSortKeys,
 		defaultPageSize: (props.pagination && props.pagination.limit) || undefined,
 		defaultVisibleColumns: configuredColumnKeys.length ? configuredColumnKeys : null,
+		// `pages[].config.extend` → OpenRegister's repeated `_extend[]`. A
+		// getter so a reactive change re-scopes the next fetch, matching how
+		// `fixedFilters` is read.
+		extend: () => (Array.isArray(props.extend) ? props.extend : []),
 		fixedFilters: () => {
 			const route = instance && instance.proxy && instance.proxy.$route
 			const params = (route && route.params) || {}

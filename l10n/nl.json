@@ -868,7 +868,22 @@
     "Text when the inbox is empty": "Tekst bij een lege inbox",
     "this reference": "deze verwijzing",
     "Install {appLabel} to pick a {typeLabel}.": "Installeer {appLabel} om een {typeLabel} te kiezen.",
-    "No installed app provides {typeLabel}.": "Geen geïnstalleerde app levert {typeLabel}."
+    "No installed app provides {typeLabel}.": "Geen geïnstalleerde app levert {typeLabel}.",
+    "Flow editor messages": "Meldingen van de flow-editor",
+    "Dismiss this message": "Deze melding sluiten",
+    "Error": "Fout",
+    "Warning": "Waarschuwing",
+    "Information": "Informatie",
+    "Success": "Gelukt",
+    "No steps are available to add.": "Er zijn geen stappen om toe te voegen.",
+    "Flow actions": "Acties voor deze flow",
+    "Edit flow": "Flow bewerken",
+    "Enable": "Aanzetten",
+    "Disable": "Uitzetten",
+    "Logs": "Logboek",
+    "This run raised no tasks.": "Deze run heeft geen taken aangemaakt.",
+    "no matching step": "geen bijbehorende stap",
+    "Flow settings": "Instellingen van de flow"
   },
   "plurals": {
     "{count} photo": ["{count} foto", "{count} foto's"],
@@ -877,6 +892,7 @@
     "{count} conversation": ["{count} gesprek", "{count} gesprekken"],
     "{count} unread message": ["{count} ongelezen bericht", "{count} ongelezen berichten"],
     "across {count} conversation": ["in {count} gesprek", "in {count} gesprekken"],
-    "{count} work package": ["{count} werkpakket", "{count} werkpakketten"]
+    "{count} work package": ["{count} werkpakket", "{count} werkpakketten"],
+    "{count} more message": ["nog {count} melding", "nog {count} meldingen"]
   }
 }

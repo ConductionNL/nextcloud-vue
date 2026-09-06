@@ -2,16 +2,24 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
  * SPDX-License-Identifier: EUPL-1.2
  *
- * A refused save or run must be VISIBLE (#607).
+ * The sidebar's palette, and nothing else.
  *
- * `store.save()` and `store.run()` both swallow the failure into `return null`
- * after setting `store.error`, and nothing rendered that. The consuming
- * `onSave()` then skips its `$router.replace`, so the entire visible effect of
- * a rejected save was the button flickering. There is no server log line to
- * fall back on either: a 400 JSONResponse is not an exception.
+ * ⚠️ THE MESSAGE ASSERTIONS THAT USED TO LIVE HERE MOVED, THEY WERE NOT DROPPED.
+ * A refused save (#607), a lifecycle refusal, unsaved changes and a flow that
+ * can never finish all render in the canvas message area now, and are asserted
+ * in `CnFlowDetailMessages.spec.js`. That the sidebar no longer renders them is
+ * asserted in `CnFlowSidebarHeader.spec.js`, so deleting a message from one
+ * half and forgetting the other still fails.
  *
- * Measured on openregister, where the API answers 400 "A flow needs a name."
- * for a flow the editor let the user save before it had been initialised.
+ * The original reason those assertions exist is worth keeping in front of
+ * whoever reads this file: `store.save()` and `store.run()` both swallow their
+ * failure into `return null` after setting `store.error`, and nothing rendered
+ * it. The consuming `onSave()` then skips its `$router.replace`, so the entire
+ * visible effect of a rejected save was the button flickering. There is no
+ * server log line to fall back on either: a 400 JSONResponse is not an
+ * exception. Measured on openregister, where the API answers 400 "A flow needs
+ * a name." for a flow the editor let the user save before it had been
+ * initialised.
  */
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
@@ -64,35 +72,6 @@ async function mountSidebar(state = {}) {
 }
 
 describe('CnFlowSidebar', () => {
-	describe('a refused action', () => {
-		it("shows the server's own reason when a save is rejected", async () => {
-			const { wrapper } = await mountSidebar({
-				error: {
-					message: 'Request failed with status code 400',
-					response: { data: { error: 'A flow needs a name.' } },
-				},
-			})
-
-			// The API's sentence, not axios's. "A flow needs a name." says what
-			// to do; "Request failed with status code 400" does not.
-			expect(wrapper.text()).toContain('A flow needs a name.')
-		})
-
-		it('falls back to the transport message when the API sent no reason', async () => {
-			const { wrapper } = await mountSidebar({
-				error: { message: 'Network Error' },
-			})
-
-			expect(wrapper.text()).toContain('Network Error')
-		})
-
-		it('shows nothing while no action has failed', async () => {
-			const { wrapper } = await mountSidebar({ error: null })
-
-			expect(wrapper.find('.cn-flow-sidebar__failure').exists()).toBe(false)
-		})
-	})
-
 	describe('the palette states', () => {
 		it('says it is loading while the catalogue request is in flight', async () => {
 			const { wrapper } = await mountSidebar({
@@ -106,13 +85,16 @@ describe('CnFlowSidebar', () => {
 			expect(wrapper.text()).not.toContain('could not be read')
 		})
 
-		it('reports a catalogue that could not be read, once loading is over', async () => {
+		it('says the list is empty, once loading is over', async () => {
 			const { wrapper } = await mountSidebar({
 				nodeCatalog: [],
 				catalogLoading: false,
 			})
 
-			expect(wrapper.text()).toContain('could not be read')
+			// One short line AT the list. Why it could not be read, and that no
+			// step can be added at all, is a standing condition of the flow and
+			// renders on the canvas.
+			expect(wrapper.text()).toContain('No steps are available to add.')
 		})
 
 		it('offers the catalogue with role badges, triggers first', async () => {
@@ -141,29 +123,6 @@ describe('CnFlowSidebar', () => {
 
 			const names = wrapper.findAll('.cn-flow-sidebar__palette-name').map((n) => n.text())
 			expect(names).toEqual(['Filter'])
-		})
-	})
-
-	describe('what stops the flow from finishing', () => {
-		it('says a flow with steps but no trigger will never start', async () => {
-			const { wrapper, store } = await mountSidebar({
-				nodeCatalog: [
-					{ id: 'openregister.filter', displayName: 'Filter', role: 'step' },
-					{ id: 'openregister.end', displayName: 'End', role: 'end' },
-				],
-			})
-			store.flow = { name: 'x', nodes: [{ id: 'n1', type: 'openregister.filter', config: {} }], edges: [] }
-			await wrapper.vm.$nextTick()
-
-			expect(wrapper.text()).toContain('no trigger')
-		})
-
-		it('reports nothing for an empty flow — a blank canvas is not incomplete', async () => {
-			const { wrapper, store } = await mountSidebar({})
-			store.flow = { name: 'x', nodes: [], edges: [] }
-			await wrapper.vm.$nextTick()
-
-			expect(wrapper.text()).not.toContain('no trigger')
 		})
 	})
 })
