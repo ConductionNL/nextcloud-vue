@@ -1630,10 +1630,14 @@ export const useFlowStore = defineStore('cnFlow', {
 			this.versionBumpRefusal = null
 
 			try {
-				const response = await axios.post(
-					generateUrl(`/apps/openregister/api/flows/${this.flow.id}/${action}`),
-					(body || {}),
-				)
+				// 🔑 NO BODY MEANS NO SECOND ARGUMENT. `draft` and `deprecate`
+				// take nothing, and sending them an empty object changes the
+				// call every caller and test has ever seen for the sake of a
+				// parameter only `publish` uses.
+				const url = generateUrl(`/apps/openregister/api/flows/${this.flow.id}/${action}`)
+				const response = body
+					? await axios.post(url, body)
+					: await axios.post(url)
 
 				// RELOAD THE LIST FIRST. `open()` reads from `this.flows`, not
 				// from the server, so opening without reloading would restore
