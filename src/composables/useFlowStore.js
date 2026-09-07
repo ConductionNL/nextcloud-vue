@@ -152,6 +152,23 @@ export const useFlowStore = defineStore('cnFlow', {
 		// Whether a lifecycle transition is in flight.
 		transitioning: false,
 
+		// What publishing WOULD do, as the server answered it: the next
+		// semantic version, and when major, what the publish takes away.
+		//
+		// 🔑 THE SERVER'S ANSWER, NOT A SECOND OPINION. Deriving "this looks
+		// breaking" in the client would be a second implementation of the rule,
+		// and the first time the two disagree the author learns to believe
+		// neither.
+		publishPreview: null,
+
+		// Whether that preview is being fetched.
+		previewingPublish: false,
+
+		// The server's refusal of an explicit bump, as a sentence naming what
+		// was removed. Separate from `lifecycleRefusal`: the flow's state is
+		// fine, the REQUEST is what was wrong.
+		versionBumpRefusal: null,
+
 		// The node types the engine can actually execute. The catalogue is
 		// AUTHORITATIVE: a builder that invents its own ids produces flows the
 		// engine cannot run, which is exactly the defect this replaces.
@@ -235,6 +252,19 @@ export const useFlowStore = defineStore('cnFlow', {
 		edges: (state) => state.flow.edges || [],
 
 		/**
+		 * Whether this flow runs inline rather than through the worker.
+		 *
+		 * The engine's own vocabulary is `sync` / `async` on the flow, and the
+		 * default is async — so anything the API has not told us about, or has
+		 * not set, queues. Reading it here rather than at the call site keeps
+		 * the one place that knows the vocabulary.
+		 *
+		 * @param {object} state The store state.
+		 * @return {boolean} True when a run should be executed immediately.
+		 */
+		runsSynchronously: (state) => String(state.flow.executionMode || '').toLowerCase() === 'sync',
+
+		/**
 		 * @param {object} state The store state.
 		 * @return {string} The open flow's lifecycle status.
 		 */
@@ -245,6 +275,24 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @return {number} The open flow's version number.
 		 */
 		flowVersion: (state) => Number(state.flow.version || 1),
+
+		/**
+		 * What the version pill says: the semantic version where the engine
+		 * has derived one, the ordinal where it has not.
+		 *
+		 * A flow that has never been published has no semantic version, and a
+		 * draft has none either — it has not been compared with anything yet.
+		 * Showing `v0.0.0` there would be a claim; showing the ordinal is the
+		 * truth the flow actually carries.
+		 *
+		 * @param {object} state The store state.
+		 * @return {string} The label, without a leading `v`.
+		 */
+		flowVersionLabel: (state) => {
+			const semver = String(state.flow.semver || '').trim()
+
+			return (semver === '') ? String(Number(state.flow.version || 1)) : semver
+		},
 
 		/**
 		 * @param {object} state The store state.
@@ -1498,8 +1546,44 @@ export const useFlowStore = defineStore('cnFlow', {
 		 *
 		 * @return {Promise<object|null>} The published version, or null.
 		 */
-		async publish() {
-			return await this.transition('publish')
+		async publish(bump = null) {
+			return await this.transition('publish', (bump ? { bump } : null))
+		},
+
+		/**
+		 * Ask what publishing would be called, without publishing.
+		 *
+		 * A GET that changes nothing. The author is asking before they commit
+		 * to an answer, so a refusal here would make it impossible to find out
+		 * that a change is breaking without first asserting that it is not.
+		 *
+		 * @return {Promise<object|null>} The preview, or null when it could not
+		 *                                be fetched.
+		 */
+		async previewPublish() {
+			if (!this.flow.id) {
+				return null
+			}
+
+			this.previewingPublish = true
+			this.versionBumpRefusal = null
+
+			try {
+				const response = await axios.get(
+					generateUrl(`/apps/openregister/api/flows/${this.flow.id}/version-preview`),
+				)
+				this.publishPreview = response.data || null
+				return this.publishPreview
+			} catch (error) {
+				// 🔑 A PREVIEW THAT FAILS MUST NOT BLOCK THE PUBLISH. It is a
+				// courtesy, and an instance whose route is older than this
+				// build would otherwise lose the ability to publish at all.
+				console.error('cn-flow: could not preview the next version', error)
+				this.publishPreview = null
+				return null
+			} finally {
+				this.previewingPublish = false
+			}
 		},
 
 		/**
@@ -1532,9 +1616,10 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * canvas over a version the server will refuse to write.
 		 *
 		 * @param {string} action `publish`, `draft` or `deprecate`.
+		 * @param {object|null} body What to send with it, such as `{bump}`.
 		 * @return {Promise<object|null>} The resulting version, or null.
 		 */
-		async transition(action) {
+		async transition(action, body = null) {
 			if (!this.flow.id) {
 				this.error = new Error('Save the flow before changing its lifecycle.')
 				return null
@@ -1542,11 +1627,17 @@ export const useFlowStore = defineStore('cnFlow', {
 
 			this.transitioning = true
 			this.lifecycleRefusal = null
+			this.versionBumpRefusal = null
 
 			try {
-				const response = await axios.post(
-					generateUrl(`/apps/openregister/api/flows/${this.flow.id}/${action}`),
-				)
+				// 🔑 NO BODY MEANS NO SECOND ARGUMENT. `draft` and `deprecate`
+				// take nothing, and sending them an empty object changes the
+				// call every caller and test has ever seen for the sake of a
+				// parameter only `publish` uses.
+				const url = generateUrl(`/apps/openregister/api/flows/${this.flow.id}/${action}`)
+				const response = body
+					? await axios.post(url, body)
+					: await axios.post(url)
 
 				// RELOAD THE LIST FIRST. `open()` reads from `this.flows`, not
 				// from the server, so opening without reloading would restore
@@ -1561,6 +1652,16 @@ export const useFlowStore = defineStore('cnFlow', {
 				return response.data || null
 			} catch (error) {
 				if (error?.response?.status === 409) {
+					// 🔑 TWO DIFFERENT 409s. `version-bump-refused` means the
+					// flow is fine and the REQUEST was wrong — the author asked
+					// to call a removal minor — and its remedy is to publish it
+					// as major, not to create a draft. Reading both as a
+					// lifecycle refusal offers the wrong button.
+					if (error.response.data?.kind === 'version-bump-refused') {
+						this.versionBumpRefusal = error.response.data?.error || null
+						return null
+					}
+
 					this.lifecycleRefusal = {
 						reason: error.response.data?.reason || null,
 						lifecycleStatus: error.response.data?.lifecycleStatus || null,
@@ -1655,14 +1756,24 @@ export const useFlowStore = defineStore('cnFlow', {
 		},
 
 		/**
-		 * Queue a run of the stored flow.
+		 * Run the stored flow, immediately or queued, as the flow itself says.
 		 *
 		 * A flow must be SAVED before it runs. The engine walks the stored
 		 * document, so running unsaved canvas state would report on a graph that
 		 * is not the one on screen.
 		 *
+		 * 🔴 `executionMode` DECIDES, AND IT WAS NEVER SENT. This POST carried
+		 * only the subject, so the endpoint fell back to its async default and
+		 * every press of Run produced a row reading `queued` — including for a
+		 * flow the author had explicitly set to run synchronously. The endpoint
+		 * has accepted `sync` all along; nothing was asking for it.
+		 *
+		 * A sync run answers with the FINISHED run rather than a queued one,
+		 * which is what a person standing in front of the button expects. An
+		 * async flow still queues, because that is what async means.
+		 *
 		 * @param {object} subject `{uuid, register, schema}` of the subject.
-		 * @return {Promise<object|null>} The queued run.
+		 * @return {Promise<object|null>} The run, finished or queued.
 		 */
 		async run(subject = {}) {
 			if (!this.flow.id) {
@@ -1674,7 +1785,7 @@ export const useFlowStore = defineStore('cnFlow', {
 			try {
 				const response = await axios.post(
 					generateUrl(`/apps/openregister/api/flows/${this.flow.id}/run`),
-					{ subject },
+					{ subject, sync: this.runsSynchronously },
 				)
 				await this.loadRuns(this.flow.id)
 

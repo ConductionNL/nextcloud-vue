@@ -72,57 +72,20 @@ async function mountSidebar(state = {}) {
 }
 
 describe('CnFlowSidebar', () => {
-	describe('the palette states', () => {
-		it('says it is loading while the catalogue request is in flight', async () => {
-			const { wrapper } = await mountSidebar({
-				nodeCatalog: [],
-				catalogLoading: true,
-			})
-
-			// An in-flight catalogue is NOT a failed one. The failure text used
-			// to show during every first paint of /flows/new.
-			expect(wrapper.text()).toContain('Loading the available steps')
-			expect(wrapper.text()).not.toContain('could not be read')
+	// ⚠️ THE PALETTE TESTS MOVED, they were not deleted. The palette is now
+	// `CnFlowStepPickerModal`, opened from the editor's toolbar, and every
+	// claim that used to be made here is made in
+	// `tests/dialogs/CnFlowStepPickerModal.spec.js` against that surface —
+	// including the three distinct empty states and search-by-description.
+	//
+	// What is asserted HERE is the consequence for the sidebar: it no longer
+	// offers a way to add a step at all.
+	it('offers no palette: adding a step is the toolbar’s job now', async () => {
+		const { wrapper } = await mountSidebar({
+			nodeCatalog: [{ id: 'openregister.filter', displayName: 'Filter', role: 'step' }],
 		})
 
-		it('says the list is empty, once loading is over', async () => {
-			const { wrapper } = await mountSidebar({
-				nodeCatalog: [],
-				catalogLoading: false,
-			})
-
-			// One short line AT the list. Why it could not be read, and that no
-			// step can be added at all, is a standing condition of the flow and
-			// renders on the canvas.
-			expect(wrapper.text()).toContain('No steps are available to add.')
-		})
-
-		it('offers the catalogue with role badges, triggers first', async () => {
-			const { wrapper } = await mountSidebar({
-				nodeCatalog: [
-					{ id: 'openregister.end', displayName: 'End', role: 'end' },
-					{ id: 'openregister.trigger-manual', displayName: 'When someone runs it', role: 'trigger' },
-					{ id: 'openregister.filter', displayName: 'Filter', role: 'step' },
-				],
-			})
-
-			const names = wrapper.findAll('.cn-flow-sidebar__palette-name').map((n) => n.text())
-			expect(names).toEqual(['When someone runs it', 'Filter', 'End'])
-		})
-
-		it('finds a step by its description, not only its name', async () => {
-			const { wrapper } = await mountSidebar({
-				nodeCatalog: [
-					{ id: 'openregister.filter', displayName: 'Filter', role: 'step', description: 'Drop items that do not match.' },
-					{ id: 'openregister.end', displayName: 'End', role: 'end', description: 'End the flow here.' },
-				],
-			})
-
-			wrapper.vm.paletteSearch = 'drop items'
-			await wrapper.vm.$nextTick()
-
-			const names = wrapper.findAll('.cn-flow-sidebar__palette-name').map((n) => n.text())
-			expect(names).toEqual(['Filter'])
-		})
+		expect(wrapper.find('.cn-flow-sidebar__palette').exists()).toBe(false)
+		expect(wrapper.text()).not.toContain('Search steps')
 	})
 })
