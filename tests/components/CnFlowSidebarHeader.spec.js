@@ -125,13 +125,16 @@ describe('CnFlowSidebar — after the messages moved to the canvas', () => {
 			expect(wrapper.text()).not.toContain('no trigger')
 		})
 
-		it('still explains an empty palette AT the palette, in one short line', async () => {
+		// ⚠️ MOVED, not dropped. "Explains an empty palette AT the palette" is
+		// now asserted in tests/dialogs/CnFlowStepPickerModal.spec.js, because
+		// that is where the palette is. What the SIDEBAR must not do is say it
+		// twice — the canvas carries the diagnosis and the picker carries the
+		// short line, and a third copy here would make none of them
+		// authoritative.
+		it('does not repeat the catalogue’s trouble in the sidebar', async () => {
 			const { wrapper } = await mountSidebar({ nodeCatalog: [], catalogLoading: false })
 
-			// The canvas carries the diagnosis: the catalogue could not be read
-			// and no step can be added. The list still has to say why it is
-			// empty, or a blank palette reads as a broken component.
-			expect(wrapper.text()).toContain('No steps are available to add.')
+			expect(wrapper.text()).not.toContain('No steps are available to add.')
 			expect(wrapper.text()).not.toContain('could not be read')
 		})
 	})
@@ -165,6 +168,110 @@ describe('CnFlowSidebar — after the messages moved to the canvas', () => {
 			// the version — see CnFlowSidebarActions.spec.js for why. Still the
 			// header, which is what this file is about.
 			expect(header.find('[data-testid="flow-publish"]').exists()).toBe(true)
+		})
+
+		it('renders the title ITSELF, with the version inline behind the name', async () => {
+			// NcAppSidebar renders its own heading and exposes no slot for it,
+			// so the version could only ever sit on the line UNDER the title.
+			// The heading is ours instead: one h2 carrying the dot, the name
+			// and the pills, and NcAppSidebar is handed no `name` at all.
+			const { wrapper } = await mountSidebar({
+				flow: { id: 3, name: 'Mandaatbesluit', version: 2, lifecycleStatus: 'draft', nodes: [], edges: [] },
+			})
+
+			const title = wrapper.find('[data-testid="flow-title"]')
+			expect(title.exists()).toBe(true)
+			expect(title.element.tagName).toBe('H2')
+
+			// The pill is INSIDE the heading, which is the whole ask.
+			expect(title.find('[data-testid="flow-version"]').text()).toBe('v2')
+			expect(title.find('[data-testid="flow-health"]').exists()).toBe(true)
+			expect(title.text()).toContain('Mandaatbesluit')
+		})
+
+		it('shows the SEMANTIC version once the engine has derived one', async () => {
+			const { wrapper } = await mountSidebar({
+				flow: {
+					id: 3, name: 'Mandaatbesluit', version: 4, semver: '2.1.0',
+					semverSource: 'derived', lifecycleStatus: 'published', nodes: [], edges: [],
+				},
+			})
+
+			// The ordinal is still 4 — it is what a run pins — but what the
+			// author reads is what changed.
+			expect(wrapper.find('[data-testid="flow-version"]').text()).toBe('v2.1.0')
+		})
+
+		it('falls back to the ordinal while there is no semantic version', async () => {
+			// A draft has not been compared with anything yet. `v0.0.0` would
+			// be a claim; the ordinal is the truth the flow carries.
+			const { wrapper } = await mountSidebar({
+				flow: { id: 3, name: 'Mandaatbesluit', version: 4, lifecycleStatus: 'draft', nodes: [], edges: [] },
+			})
+
+			expect(wrapper.find('[data-testid="flow-version"]').text()).toBe('v4')
+		})
+
+		it('says a back-filled version was not derived, so it can be distrusted', async () => {
+			const { wrapper } = await mountSidebar({
+				flow: {
+					id: 3, name: 'Mandaatbesluit', version: 2, semver: '1.1.0',
+					semverSource: 'backfill', lifecycleStatus: 'published', nodes: [], edges: [],
+				},
+			})
+
+			expect(wrapper.find('[data-testid="flow-version"]').attributes('title')).toContain('not derived')
+		})
+
+		it('does not put the flow\'s name on screen twice', async () => {
+			// The failure mode of rendering our own title is passing `name` as
+			// well and getting both.
+			const { wrapper } = await mountSidebar({
+				flow: { id: 3, name: 'Mandaatbesluit', version: 2, lifecycleStatus: 'draft', nodes: [], edges: [] },
+			})
+
+			const occurrences = wrapper.text().split('Mandaatbesluit').length - 1
+			expect(occurrences).toBe(1)
+		})
+
+		it('leads the line with the flow\'s health, read off the LAST RUN', async () => {
+			// The wiring, which the dot's own spec cannot see: `enabled` and
+			// `lastRunStatus` have to reach it from the store. A getter read
+			// wrongly here shows as a permanently grey dot, which looks
+			// deliberate.
+			const { wrapper } = await mountSidebar({
+				flow: {
+					id: 3,
+					name: 'Mandaatbesluit',
+					version: 2,
+					lifecycleStatus: 'published',
+					enabled: true,
+					lastRunStatus: 'failed',
+					nodes: [],
+					edges: [],
+				},
+			})
+
+			const dot = wrapper.find('.app-sidebar__header [data-testid="flow-health"]')
+			expect(dot.exists()).toBe(true)
+			expect(dot.attributes('data-health')).toBe('error')
+		})
+
+		it('shows a disabled flow as grey however its last run ended', async () => {
+			const { wrapper } = await mountSidebar({
+				flow: {
+					id: 3,
+					name: 'Mandaatbesluit',
+					version: 2,
+					lifecycleStatus: 'published',
+					enabled: false,
+					lastRunStatus: 'completed',
+					nodes: [],
+					edges: [],
+				},
+			})
+
+			expect(wrapper.find('[data-testid="flow-health"]').attributes('data-health')).toBe('disabled')
 		})
 
 		it('keeps them OUT of the Steps tab, so Runs and Flow show them too', async () => {

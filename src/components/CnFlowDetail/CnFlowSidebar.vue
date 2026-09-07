@@ -1,11 +1,16 @@
 <!--
   CnFlowSidebar — the controls half of the flow editor.
 
-  Nextcloud's own app sidebar (NcAppSidebar), with the flow's version and
-  publish controls in its HEADER and three tabs under it: Steps (the palette),
-  Runs (history and per-step traces), Flow (the flow's own settings). Save /
-  Run / Check live on CnFlowDetail's toolbar, and every message the editor has
-  to give lands in the canvas message area beside the graph. The actions and
+  Nextcloud's own app sidebar (NcAppSidebar), with the flow's identity in its
+  HEADER and its RUNS under it. Save / Run / Check / Add a step live on
+  CnFlowDetail's toolbar, and every message the editor has to give lands in the
+  canvas message area beside the graph.
+
+  ⚠️ THE PALETTE IS NOT HERE ANY MORE. A live instance serves SIXTY-FIVE step
+  types, and a one-per-row list that long in a 300px column is a scroll rather
+  than a chooser. It is `CnFlowStepPickerModal`, opened from the toolbar, where
+  the same entries render as a grid. With it went the Steps tab, and with that
+  the tab strip: one tab is chrome around nothing. The actions and
   the messages that concern the graph live on the graph. The two halves render
   in different parts of the tree, so they share `useFlowStore`.
 
@@ -36,7 +41,6 @@
 	<component :is="embedded ? 'div' : 'NcAppSidebar'"
 		v-if="store.sidebarOpen"
 		:class="embedded ? 'cn-flow-sidebar cn-flow-sidebar--embedded' : 'cn-flow-sidebar'"
-		:name="embedded ? undefined : sidebarName"
 		:active="embedded ? undefined : tab"
 		@update:active="tab = $event"
 		@close="onClose">
@@ -51,6 +55,12 @@
 			⚠️ NO `subname`. A small grey "manual" under the title announced the
 			trigger to an author who was not about to change it from there, and
 			it is edited in the settings modal with every other field.
+
+			⚠️ AND NO `name` EITHER. The version belongs BESIDE the title, and
+			NcAppSidebar renders its own heading with no slot to reach into. So
+			the heading is CnFlowLifecycleControls' own h2, and this component
+			hands the sidebar nothing to render above it — passing both would
+			put the flow's name on screen twice.
 		-->
 		<template v-if="!embedded" #description>
 			<div class="cn-flow-sidebar__header">
@@ -97,105 +107,27 @@
 			</NcActions>
 		</div>
 
-		<div v-if="embedded" class="cn-flow-sidebar__tabs" role="tablist">
-			<button v-for="entry in tabs"
-				:key="entry.id"
-				class="cn-flow-sidebar__tab"
-				:class="{ 'cn-flow-sidebar__tab--active': tab === entry.id }"
-				role="tab"
-				:aria-selected="tab === entry.id ? 'true' : 'false'"
-				@click="tab = entry.id">
-				{{ entry.label }}
-			</button>
-		</div>
+		<!--
+			ONE STRIP AT A TIME. Reading a run REPLACES the flow's tabs rather
+			than nesting under them: the run used to render inside the Runs tab
+			with a strip of its own, so Steps and Runs stayed live above
+			Objects, Tasks and Logs — and pressing Steps while reading a run
+			swapped the panel while leaving the canvas painted with that run's
+			badges, so the graph and the sidebar described different things.
+		-->
+		<CnRunDetailSidebar v-if="inRunView" />
 
+		<!--
+			THE SIDEBAR IS THE FLOW'S RUNS. The palette moved to a modal off the
+			toolbar, and with it the only other thing this sidebar showed. A tab
+			strip with one tab in it is chrome around nothing, so the strip goes
+			too — what is left renders directly.
+		-->
 		<component :is="embedded ? 'div' : 'NcAppSidebarTab'"
-			v-show="embedded ? tab === 'flow-steps' : true"
-			:id="embedded ? undefined : 'flow-steps'"
-			:name="embedded ? undefined : t('nextcloud-vue', 'Steps')"
-			:order="embedded ? undefined : 1">
-			<template v-if="!embedded" #icon>
-				<Sitemap :size="20" />
-			</template>
-
-			<!--
-				NO MESSAGE CARDS HERE ANY MORE.
-
-				A refused save, a lifecycle refusal, unsaved changes, a flow that
-				can never finish and an unreadable catalogue all render in the
-				canvas message area (CnFlowCanvasMessages) beside the graph they
-				are about. The refusal for adding a step to a published flow used
-				to open this tab, above a scrolling palette, on the other side of
-				the screen from the click that caused it — and was missed
-				completely. Repeating any of them here would put the same
-				sentence in two places and make neither authoritative.
-
-				THE SELECTED STEP HAS NO BLOCK HERE EITHER. Clicking a step opens
-				an action menu at the step with Edit, Copy and Delete. A second
-				set of the same buttons, further away, is the thing that menu
-				replaced.
-			-->
-
-			<section class="cn-flow-sidebar__section">
-				<h4>{{ t('nextcloud-vue', 'Steps') }}</h4>
-
-				<NcTextField :model-value="paletteSearch"
-					:label="t('nextcloud-vue', 'Search steps')"
-					trailing-button-icon="close"
-					:show-trailing-button="paletteSearch !== ''"
-					@trailing-button-click="paletteSearch = ''"
-					@update:model-value="paletteSearch = $event" />
-
-				<NcSelect :model-value="roleFilterOption"
-					:options="roleFilterOptions"
-					:input-label="t('nextcloud-vue', 'Type')"
-					:clearable="false"
-					@update:model-value="roleFilter = $event ? $event.id : null" />
-
-				<p v-if="store.catalogLoading && !store.nodeCatalog.length" class="cn-flow-sidebar__hint">
-					{{ t('nextcloud-vue', 'Loading the available steps…') }}
-				</p>
-				<!--
-					Why the list is empty, AT the list. One short line, because
-					the diagnosis (the catalogue could not be read, and no step
-					can be added at all) is a standing condition of the flow and
-					renders on the canvas with every other message. A palette
-					that simply draws nothing reads as a broken component.
-				-->
-				<p v-else-if="!store.nodeCatalog.length" class="cn-flow-sidebar__hint">
-					{{ t('nextcloud-vue', 'No steps are available to add.') }}
-				</p>
-				<p v-else-if="!paletteEntries.length" class="cn-flow-sidebar__hint">
-					{{ t('nextcloud-vue', 'No step matches this search.') }}
-				</p>
-				<ul v-else class="cn-flow-sidebar__palette">
-					<li v-for="entry in paletteEntries"
-						:key="entry.id"
-						class="cn-flow-sidebar__palette-item"
-						draggable="true"
-						:title="entry.description"
-						@dragstart="store.paletteDragType = entry.id"
-						@dragend="store.paletteDragType = null"
-						@click="store.addNode(entry.id)">
-						<span class="cn-flow-sidebar__palette-head">
-							<span class="cn-flow-sidebar__palette-name">{{ entry.displayName || entry.id }}</span>
-							<span class="cn-flow-sidebar__palette-role"
-								:class="`cn-flow-sidebar__palette-role--${entry.role}`">
-								{{ roleWord(entry.role) }}
-							</span>
-						</span>
-						<span v-if="entry.description" class="cn-flow-sidebar__palette-description">{{ entry.description }}</span>
-						<span class="cn-flow-sidebar__palette-id">{{ entry.id }}</span>
-					</li>
-				</ul>
-			</section>
-		</component>
-
-		<component :is="embedded ? 'div' : 'NcAppSidebarTab'"
-			v-show="embedded ? tab === 'flow-runs' : true"
+			v-if="!inRunView"
 			:id="embedded ? undefined : 'flow-runs'"
 			:name="embedded ? undefined : t('nextcloud-vue', 'Runs')"
-			:order="embedded ? undefined : 2">
+			:order="embedded ? undefined : 1">
 			<template v-if="!embedded" #icon>
 				<History :size="20" />
 			</template>
@@ -226,116 +158,24 @@
 							browser have it, so the two gestures do not fight.
 						-->
 						<a class="cn-flow-sidebar__run"
+							:class="{ 'cn-flow-sidebar__run--open': run.uuid === store.inspectedRunUuid }"
 							:href="runUrl(run.uuid)"
+							:aria-current="run.uuid === store.inspectedRunUuid ? 'true' : undefined"
 							data-testid="flow-run-link"
 							@click="onRunLinkClick($event, run.uuid)">
-							<span :class="`cn-flow-sidebar__status cn-flow-sidebar__status--${run.status}`">{{ run.status }}</span>
-							<span>{{ run.created }}</span>
+							<span class="cn-flow-sidebar__run-top">
+								<span :class="`cn-flow-sidebar__status cn-flow-sidebar__status--${run.status}`">{{ run.status }}</span>
+								<time class="cn-flow-sidebar__run-when" :datetime="run.created">{{ run.created }}</time>
+							</span>
+							<span v-if="run.error" class="cn-flow-sidebar__run-error">{{ run.error }}</span>
 						</a>
 					</li>
 				</ul>
-
-				<div v-if="store.inspectedRunUuid" class="cn-flow-sidebar__steps">
-					<!--
-						THE RUN'S OWN VIEW: what it changed, what it asked a
-						person to do, and what it did.
-
-						Three separate questions that used to be one scrolling
-						column, with the objects nested under each step and a
-						second block underneath for the ones no step claimed.
-					-->
-					<div class="cn-flow-sidebar__tabs" role="tablist">
-						<button v-for="entry in runTabs"
-							:key="entry.id"
-							class="cn-flow-sidebar__tab"
-							:class="{ 'cn-flow-sidebar__tab--active': runTab === entry.id }"
-							role="tab"
-							:data-testid="`flow-run-tab-${entry.id}`"
-							:aria-selected="runTab === entry.id ? 'true' : 'false'"
-							@click="runTab = entry.id">
-							{{ entry.label }}
-						</button>
-					</div>
-
-					<!-- Objects: the audit attribution, run-wide. -->
-					<template v-if="runTab === 'objects'">
-						<p v-if="!runObjectRows.length" class="cn-flow-sidebar__hint">
-							{{ t('nextcloud-vue', 'This run changed no objects.') }}
-						</p>
-						<ul v-else class="cn-flow-sidebar__touched">
-							<li v-for="obj in runObjectRows" :key="obj.auditUuid">
-								<span class="cn-flow-sidebar__touched-action">{{ obj.action }}</span>
-								<span class="cn-flow-sidebar__touched-uuid">{{ obj.objectUuid }}</span>
-								<span class="cn-flow-sidebar__hint"> · {{ obj.node }}</span>
-								<!--
-									A change the run's own step history cannot
-									account for. It should normally never
-									appear; when it does, hiding it would be the
-									opposite of what this view is for.
-								-->
-								<span v-if="obj.unaccounted"
-									class="cn-flow-sidebar__error"
-									data-testid="flow-object-unaccounted">
-									{{ t('nextcloud-vue', 'no matching step') }}
-								</span>
-							</li>
-						</ul>
-					</template>
-
-					<!-- Tasks: what the run asked a person to do. -->
-					<template v-else-if="runTab === 'tasks'">
-						<p v-if="!store.runTasks.length"
-							class="cn-flow-sidebar__hint"
-							data-testid="flow-run-tasks-empty">
-							{{ t('nextcloud-vue', 'This run raised no tasks.') }}
-						</p>
-						<ul v-else class="cn-flow-sidebar__runs">
-							<li v-for="task in store.runTasks" :key="task.uuid">
-								<!-- The task's one stable address, the same one
-								     the notification buttons and the VTODO
-								     already resolve to. -->
-								<a class="cn-flow-sidebar__run"
-									:href="taskUrl(task.uuid)"
-									data-testid="flow-task-link">
-									<span :class="`cn-flow-sidebar__status cn-flow-sidebar__status--${task.state}`">{{ task.state }}</span>
-									<span>{{ task.title || task.uuid }}</span>
-								</a>
-							</li>
-						</ul>
-					</template>
-
-					<!-- Logs: what the engine did, in its own order. -->
-					<template v-else>
-						<!-- Replay BESIDE the step list, not instead of it: the
-						     list stays what it is for reading, the replay plays the
-						     same stored log through the canvas animator. Only on a
-						     FINISHED run — a run still going is watched live. -->
-						<NcButton v-if="canReplay"
-							variant="secondary"
-							data-testid="flow-replay"
-							@click="store.requestReplay()">
-							<template #icon>
-								<Replay :size="20" />
-							</template>
-							{{ t('nextcloud-vue', 'Replay on the canvas') }}
-						</NcButton>
-
-						<p v-if="!store.steps.length" class="cn-flow-sidebar__hint">
-							{{ t('nextcloud-vue', 'This run recorded no steps.') }}
-						</p>
-						<ol v-else>
-							<li v-for="(step, i) in store.steps" :key="i">
-								<strong>{{ step.transition }}</strong>
-								<span class="cn-flow-sidebar__hint"> · {{ step.status }}</span>
-								<span v-if="step.error" class="cn-flow-sidebar__error"> · {{ step.error }}</span>
-							</li>
-						</ol>
-					</template>
-				</div>
 			</section>
 		</component>
 
 		<CnFlowSettingsModal v-if="settingsOpen" @close="settingsOpen = false" />
+		<CnFlowPublishDialog v-if="publishOpen" @close="publishOpen = false" />
 	</component>
 </template>
 
@@ -357,11 +197,12 @@ import ContentDuplicate from 'vue-material-design-icons/ContentDuplicate.vue'
 import History from 'vue-material-design-icons/History.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Publish from 'vue-material-design-icons/Publish.vue'
-import Replay from 'vue-material-design-icons/Replay.vue'
 import Sitemap from 'vue-material-design-icons/Sitemap.vue'
+import CnFlowPublishDialog from '../../dialogs/CnFlowPublishDialog.vue'
 import CnFlowSettingsModal from '../../dialogs/CnFlowSettingsModal.vue'
-import { FLOW_RUN_ACTIVE_STATUSES, useFlowStore } from '../../composables/useFlowStore.js'
+import { useFlowStore } from '../../composables/useFlowStore.js'
 import CnFlowLifecycleControls from './CnFlowLifecycleControls.vue'
+import CnRunDetailSidebar from './CnRunDetailSidebar.vue'
 
 export default {
 	name: 'CnFlowSidebar',
@@ -370,6 +211,8 @@ export default {
 		Cancel,
 		CheckCircleOutline,
 		CnFlowLifecycleControls,
+		CnRunDetailSidebar,
+		CnFlowPublishDialog,
 		CnFlowSettingsModal,
 		Cog,
 		ContentDuplicate,
@@ -383,7 +226,6 @@ export default {
 		NcTextField,
 		Pencil,
 		Publish,
-		Replay,
 		Sitemap,
 	},
 
@@ -416,26 +258,25 @@ export default {
 			// one value drives both hosts. The embedded strip used to have ids
 			// of its own (`nodes`, `runs`), which meant nothing outside this
 			// component could ask for a tab and be understood by both.
-			tab: 'flow-steps',
+			// One tab remains, and NcAppSidebar still wants to be told which is
+			// active. `flow-runs` is the id that tab registers under.
+			tab: 'flow-runs',
 
 			// Which question about the inspected run is being asked.
-			runTab: 'objects',
 
 			// Whether the flow's settings dialog is open.
 			settingsOpen: false,
 
-			paletteSearch: '',
-			roleFilter: null,
+			// 🔴 PUBLISH ASKS FIRST. It is the one irreversible thing in this
+			// menu — it deprecates the live version and locks the graph — and
+			// it was a single click that also silently decided what the new
+			// version would be CALLED. The dialog says both before it happens.
+			publishOpen: false,
+
 		}
 	},
 
 	computed: {
-		/**
-		 * @return {string} The sidebar header: the flow's name.
-		 */
-		sidebarName() {
-			return this.store.flow.name || this.t('nextcloud-vue', 'Flow')
-		},
 
 		/**
 		 * The run being inspected, from the loaded history.
@@ -447,74 +288,12 @@ export default {
 		},
 
 		/**
-		 * Whether the inspected run can be replayed on the canvas.
+		 * Whether the sidebar is showing a RUN rather than the flow.
 		 *
-		 * Only a FINISHED run with a recorded log: a run still in the
-		 * engine's active set is watched live rather than replayed, and a
-		 * log-less run has nothing to play.
-		 *
-		 * @return {boolean} True when Replay is offered.
+		 * @return {boolean} True while a run is open.
 		 */
-		canReplay() {
-			if (this.store.steps.length === 0) {
-				return false
-			}
-
-			const status = this.inspectedRun?.status
-			return status !== undefined && FLOW_RUN_ACTIVE_STATUSES.includes(status) === false
-		},
-
-		/**
-		 * Everything the inspected run touched, one row per audit record.
-		 *
-		 * ⚠️ FLAT, AND CARRYING ITS NODE. These used to render nested under the
-		 * step that wrote them, with a second block below for the ones no step
-		 * claimed. That put the same list in two shapes in one column and still
-		 * could not answer "what did this run change?" without reading all of
-		 * it. The Objects tab asks exactly that question, so the rows are flat
-		 * and each says which node wrote it.
-		 *
-		 * `unaccounted` survives the flattening, and has to. A row whose node
-		 * matches no step in the run's own log means the run changed something
-		 * its history cannot explain; a view that quietly dropped that would
-		 * under-report what a run did and look complete doing it.
-		 *
-		 * @return {Array<object>} The touched objects, each with its node.
-		 */
-		runObjectRows() {
-			const stepNodes = new Set(
-				(this.store.steps || []).map((step) => String(step.transition || '')),
-			)
-
-			return (this.store.runObjects || []).flatMap((group) => (group.objects || []).map((obj) => ({
-				...obj,
-				node: group.node,
-				unaccounted: !stepNodes.has(String(group.node || '')),
-			})))
-		},
-
-		/**
-		 * @return {Array<object>} The tab strip, for the embedded variant.
-		 */
-		tabs() {
-			// Two, not three. Everything the Flow tab held now lives in the
-			// header: its fields in the settings dialog, its verbs in the
-			// action menu.
-			return [
-				{ id: 'flow-steps', label: this.t('nextcloud-vue', 'Steps') },
-				{ id: 'flow-runs', label: this.t('nextcloud-vue', 'Runs') },
-			]
-		},
-
-		/**
-		 * @return {Array<object>} The three questions asked of one run.
-		 */
-		runTabs() {
-			return [
-				{ id: 'objects', label: this.t('nextcloud-vue', 'Objects') },
-				{ id: 'tasks', label: this.t('nextcloud-vue', 'Tasks') },
-				{ id: 'logs', label: this.t('nextcloud-vue', 'Logs') },
-			]
+		inRunView() {
+			return Boolean(this.store.inspectedRunUuid)
 		},
 
 		/**
@@ -564,7 +343,7 @@ export default {
 					icon: 'Publish',
 					label: this.t('nextcloud-vue', 'Publish'),
 					disabled: this.store.transitioning || !this.store.flow.id,
-					run: () => this.store.publish(),
+					run: () => { this.publishOpen = true },
 				})
 			}
 
@@ -591,52 +370,6 @@ export default {
 			}
 
 			return actions
-		},
-
-		/**
-		 * The catalogue, searched and filtered, triggers first.
-		 *
-		 * @return {Array<object>} The entries to offer.
-		 */
-		paletteEntries() {
-			const rank = { trigger: 0, step: 1, end: 2 }
-			const needle = this.paletteSearch.trim().toLowerCase()
-
-			return this.store.nodeCatalog
-				.map((entry) => ({ ...entry, role: this.store.roleOfNodeType(entry.id) }))
-				.filter((entry) => !this.roleFilter || entry.role === this.roleFilter)
-				.filter((entry) => {
-					if (!needle) {
-						return true
-					}
-
-					return `${entry.id} ${entry.displayName || ''} ${entry.description || ''}`
-						.toLowerCase()
-						.includes(needle)
-				})
-				// Stable: equal roles keep the catalogue's own order.
-				.map((entry, index) => ({ entry, index }))
-				.sort((a, b) => ((rank[a.entry.role] ?? 1) - (rank[b.entry.role] ?? 1)) || (a.index - b.index))
-				.map(({ entry }) => entry)
-		},
-
-		/**
-		 * @return {Array<object>} The role filter's options.
-		 */
-		roleFilterOptions() {
-			return [
-				{ id: null, label: this.t('nextcloud-vue', 'All types') },
-				{ id: 'trigger', label: this.t('nextcloud-vue', 'Triggers') },
-				{ id: 'step', label: this.t('nextcloud-vue', 'Steps') },
-				{ id: 'end', label: this.t('nextcloud-vue', 'End') },
-			]
-		},
-
-		/**
-		 * @return {object} The selected role filter option.
-		 */
-		roleFilterOption() {
-			return this.roleFilterOptions.find((o) => o.id === this.roleFilter) || this.roleFilterOptions[0]
 		},
 
 	},
@@ -679,22 +412,6 @@ export default {
 	},
 
 	methods: {
-		/**
-		 * A role id as the word the palette badge shows.
-		 *
-		 * @param {string} role The catalogue role.
-		 * @return {string} The word.
-		 */
-		roleWord(role) {
-			if (role === 'trigger') {
-				return this.t('nextcloud-vue', 'Trigger')
-			}
-			if (role === 'end') {
-				return this.t('nextcloud-vue', 'End')
-			}
-
-			return this.t('nextcloud-vue', 'Step')
-		},
 
 		/**
 		 * Hide the sidebar. The canvas toolbar offers the way back.
@@ -716,16 +433,6 @@ export default {
 		 */
 		runUrl(uuid) {
 			return generateUrl(`/apps/openregister/flow-runs/${uuid}`)
-		},
-
-		/**
-		 * The address of one task: the one the notifications already use.
-		 *
-		 * @param {string} uuid The task uuid.
-		 * @return {string} The task's own URL.
-		 */
-		taskUrl(uuid) {
-			return generateUrl(`/apps/openregister/flow-tasks/${uuid}`)
 		},
 
 		/**
@@ -872,15 +579,62 @@ export default {
 	color: var(--color-error-text);
 }
 
+/* THE RUNS LIST IS A STACK OF CARDS. */
+.cn-flow-sidebar__runs {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+/* A CARD, NOT A ROW. A run is a thing with a verdict, a time and sometimes a
+   reason it failed, and a single flex row could only ever show the first two
+   before the third pushed the date off the edge. The card gives the error its
+   own line and the run a hit area big enough to be a target, not a text link. */
 .cn-flow-sidebar__run {
 	display: flex;
-	gap: 8px;
+	flex-direction: column;
+	gap: 4px;
 	inline-size: 100%;
-	padding: 4px 6px;
-	border: none;
-	background: none;
+	padding: 10px 12px;
+	border: 2px solid transparent;
+	border-radius: var(--border-radius-large, 12px);
+	background: var(--color-background-hover);
 	text-align: start;
 	cursor: pointer;
+	color: inherit;
+}
+
+.cn-flow-sidebar__run-top {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	justify-content: space-between;
+}
+
+.cn-flow-sidebar__run-when {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+	font-variant-numeric: tabular-nums;
+}
+
+/* The failure's own words, clamped: a stack trace in a sidebar card pushes
+   every other run off the screen, and the card is an index, not the log. */
+.cn-flow-sidebar__run-error {
+	color: var(--color-error-text, var(--color-error));
+	font-size: 0.9em;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+/* WHICH RUN IS OPEN, stated by more than a background: a border survives
+   forced-colors mode, where a background tint does not. */
+.cn-flow-sidebar__run--open {
+	border-color: var(--color-primary-element);
 }
 
 .cn-flow-sidebar__run:hover {

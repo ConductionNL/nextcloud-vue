@@ -26,6 +26,11 @@
   Enabled is NOT here. It is a verb rather than a field, and it lives in the
   action menu with Publish for the same reason.
 
+  HOW IT RUNS *IS* HERE. `executionMode` decides whether a run happens inline
+  or is queued for the worker, and it was editable NOWHERE — a field the engine
+  reads on every dispatch that no author could see, let alone set. It is a
+  property of the flow, so it belongs with the flow's other fields.
+
   🔴 THE TRIGGER IS NOT HERE EITHER, AND THAT IS THE POINT OF THIS FILE NOW.
   What starts a flow is a NODE on the canvas — `openregister.trigger-object`,
   `…trigger-schedule`, `…trigger-manual` — not a property of the flow row. The
@@ -62,19 +67,29 @@
 			<p class="cn-flow-settings__note" data-testid="flow-settings-trigger-note">
 				{{ t('nextcloud-vue', 'What starts this flow is a step on the canvas. Add a trigger step to give it a way in.') }}
 			</p>
+
+			<NcCheckboxRadioSwitch type="switch"
+				:model-value="store.runsSynchronously"
+				data-testid="flow-settings-sync"
+				@update:model-value="store.setFlowField('executionMode', $event ? 'sync' : 'async')">
+				{{ t('nextcloud-vue', 'Run immediately instead of queueing') }}
+			</NcCheckboxRadioSwitch>
+			<p class="cn-flow-settings__note">
+				{{ t('nextcloud-vue', 'Off by default. A queued run is picked up by the background worker, which keeps a slow flow from holding up whatever started it.') }}
+			</p>
 		</div>
 	</NcDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcTextField } from '@nextcloud/vue'
+import { NcCheckboxRadioSwitch, NcDialog, NcTextField } from '@nextcloud/vue'
 import { useFlowStore } from '../composables/useFlowStore.js'
 
 export default {
 	name: 'CnFlowSettingsModal',
 
-	components: { NcDialog, NcTextField },
+	components: { NcCheckboxRadioSwitch, NcDialog, NcTextField },
 
 	emits: ['close'],
 

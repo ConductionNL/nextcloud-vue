@@ -1,6 +1,16 @@
 <!--
   CnFlowLifecycleControls — which version this is, and what can be done to it.
 
+  ⚠️ THIS RENDERS THE FLOW'S NAME ITSELF, and NcAppSidebar is given no `name`.
+  That is deliberate and it is a trade. The version belongs beside the title
+  rather than on a line under it, and NcAppSidebar renders its own heading with
+  no slot to reach into — only a `name` prop. So the heading is ours: an `h2`
+  carrying the health dot, the name, the version and the lifecycle on one line.
+
+  The cost is that this sidebar's heading is no longer NcAppSidebar's, so a
+  change to how the fleet's sidebars render their titles will not reach here.
+  The h2 and the ordering exist to keep the semantics that prop was providing.
+
   WHY THIS IS NOT PART OF A TAB
   -----------------------------
   Version, status and Publish used to render inside the sidebar's Steps tab,
@@ -13,6 +23,12 @@
   hosts need them: NcAppSidebar's `description` slot in the app layout, and a
   plain header row in the embedded (dialog) variant. One copy, so the two hosts
   cannot drift.
+
+  THE HEALTH DOT LEADS THE LINE. It reports the state of the last RUN, which is
+  the question an author opening a flow actually has, and it subsumes the
+  enabled/disabled label that used to sit here — a grey dot says "this is not
+  going to run" in less space and without competing with the version for the
+  eye.
 
   WHAT IS DELIBERATELY NOT HERE
   -----------------------------
@@ -32,29 +48,65 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-flow-lifecycle">
-		<p class="cn-flow-lifecycle__version">
-			<span class="cn-flow-lifecycle__version-number"
-				data-testid="flow-version">v{{ store.flowVersion }}</span>
-			<span class="cn-flow-lifecycle__badge"
-				:class="`cn-flow-lifecycle__badge--${store.lifecycleStatus}`"
-				data-testid="flow-lifecycle">{{ lifecycleLabel }}</span>
-		</p>
-	</div>
+	<h2 class="cn-flow-lifecycle" data-testid="flow-title">
+		<CnFlowHealthDot :enabled="store.flow.enabled === true"
+			:last-run-status="store.flow.lastRunStatus || null" />
+		<span class="cn-flow-lifecycle__name">{{ name }}</span>
+		<span class="cn-flow-lifecycle__pill cn-flow-lifecycle__pill--version"
+			:title="versionTitle"
+			data-testid="flow-version">v{{ store.flowVersionLabel }}</span>
+		<span class="cn-flow-lifecycle__pill"
+			:class="`cn-flow-lifecycle__pill--${store.lifecycleStatus}`"
+			data-testid="flow-lifecycle">{{ lifecycleLabel }}</span>
+	</h2>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { useFlowStore } from '../../composables/useFlowStore.js'
+import CnFlowHealthDot from './CnFlowHealthDot.vue'
 
 export default {
 	name: 'CnFlowLifecycleControls',
+
+	components: { CnFlowHealthDot },
 
 	setup() {
 		return { store: useFlowStore() }
 	},
 
 	computed: {
+		/**
+		 * What the pill is showing, said in words on hover.
+		 *
+		 * A back-filled version matters here: the repair that stamped historic
+		 * versions could not know whether any of them was breaking, so it
+		 * counted minors. Saying so is what lets somebody distrust it
+		 * correctly — a number that silently claims to be derived cannot be.
+		 *
+		 * @return {string} The explanation.
+		 */
+		versionTitle() {
+			if (!this.store.flow.semver) {
+				return this.t('nextcloud-vue', 'Version number. A semantic version appears once the flow is published.')
+			}
+
+			if (this.store.flow.semverSource === 'backfill') {
+				return this.t('nextcloud-vue', 'Numbered when semantic versions were introduced, not derived from a comparison.')
+			}
+
+			return this.t('nextcloud-vue', 'A major version means a step, a connection or a setting was removed.')
+		},
+
+		/**
+		 * The flow's name, or a placeholder while it has none.
+		 *
+		 * @return {string} The heading text.
+		 */
+		name() {
+			return this.store.flow.name || this.t('nextcloud-vue', 'Flow')
+		},
+
 		/**
 		 * The lifecycle status, in the author's language.
 		 *
@@ -81,36 +133,43 @@ export default {
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 8px;
-}
-
-.cn-flow-lifecycle__version {
-	display: flex;
-	align-items: center;
-	gap: 8px;
 	margin: 0;
+	font-size: 1.25em;
 }
 
-.cn-flow-lifecycle__version-number {
-	font-weight: bold;
+/* The name may be long and the pills must stay with it rather than wrap alone,
+   so the name is the only part allowed to shrink. */
+.cn-flow-lifecycle__name {
+	min-inline-size: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
-.cn-flow-lifecycle__badge {
+.cn-flow-lifecycle__pill {
 	border-radius: var(--border-radius-pill, 100px);
 	padding: 2px 10px;
 	font-size: 0.85em;
-	/* Tokens, never literals: the badge has to stay legible in the dark theme
-	   and under the high-contrast accessibility setting, and a hardcoded pair
+	/* Tokens, never literals: a pill has to stay legible in the dark theme and
+	   under the high-contrast accessibility setting, and a hardcoded pair
 	   fails both. */
 	background-color: var(--color-background-dark);
 	color: var(--color-text-maxcontrast);
 }
 
-.cn-flow-lifecycle__badge--published {
+.cn-flow-lifecycle__pill--version {
+	font-weight: bold;
+	color: var(--color-main-text);
+	/* Tabular figures so v9 and v10 do not shift the badge beside them. */
+	font-variant-numeric: tabular-nums;
+}
+
+.cn-flow-lifecycle__pill--published {
 	background-color: var(--color-success, var(--color-primary-element));
 	color: var(--color-primary-element-text, var(--color-main-background));
 }
 
-.cn-flow-lifecycle__badge--deprecated {
+.cn-flow-lifecycle__pill--deprecated {
 	background-color: var(--color-warning, var(--color-background-dark));
 	color: var(--color-main-text);
 }
