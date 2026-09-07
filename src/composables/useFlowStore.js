@@ -235,6 +235,19 @@ export const useFlowStore = defineStore('cnFlow', {
 		edges: (state) => state.flow.edges || [],
 
 		/**
+		 * Whether this flow runs inline rather than through the worker.
+		 *
+		 * The engine's own vocabulary is `sync` / `async` on the flow, and the
+		 * default is async — so anything the API has not told us about, or has
+		 * not set, queues. Reading it here rather than at the call site keeps
+		 * the one place that knows the vocabulary.
+		 *
+		 * @param {object} state The store state.
+		 * @return {boolean} True when a run should be executed immediately.
+		 */
+		runsSynchronously: (state) => String(state.flow.executionMode || '').toLowerCase() === 'sync',
+
+		/**
 		 * @param {object} state The store state.
 		 * @return {string} The open flow's lifecycle status.
 		 */
@@ -1655,14 +1668,24 @@ export const useFlowStore = defineStore('cnFlow', {
 		},
 
 		/**
-		 * Queue a run of the stored flow.
+		 * Run the stored flow, immediately or queued, as the flow itself says.
 		 *
 		 * A flow must be SAVED before it runs. The engine walks the stored
 		 * document, so running unsaved canvas state would report on a graph that
 		 * is not the one on screen.
 		 *
+		 * 🔴 `executionMode` DECIDES, AND IT WAS NEVER SENT. This POST carried
+		 * only the subject, so the endpoint fell back to its async default and
+		 * every press of Run produced a row reading `queued` — including for a
+		 * flow the author had explicitly set to run synchronously. The endpoint
+		 * has accepted `sync` all along; nothing was asking for it.
+		 *
+		 * A sync run answers with the FINISHED run rather than a queued one,
+		 * which is what a person standing in front of the button expects. An
+		 * async flow still queues, because that is what async means.
+		 *
 		 * @param {object} subject `{uuid, register, schema}` of the subject.
-		 * @return {Promise<object|null>} The queued run.
+		 * @return {Promise<object|null>} The run, finished or queued.
 		 */
 		async run(subject = {}) {
 			if (!this.flow.id) {
@@ -1674,7 +1697,7 @@ export const useFlowStore = defineStore('cnFlow', {
 			try {
 				const response = await axios.post(
 					generateUrl(`/apps/openregister/api/flows/${this.flow.id}/run`),
-					{ subject },
+					{ subject, sync: this.runsSynchronously },
 				)
 				await this.loadRuns(this.flow.id)
 
