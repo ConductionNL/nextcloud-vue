@@ -260,6 +260,24 @@ export const useFlowStore = defineStore('cnFlow', {
 		flowVersion: (state) => Number(state.flow.version || 1),
 
 		/**
+		 * What the version pill says: the semantic version where the engine
+		 * has derived one, the ordinal where it has not.
+		 *
+		 * A flow that has never been published has no semantic version, and a
+		 * draft has none either — it has not been compared with anything yet.
+		 * Showing `v0.0.0` there would be a claim; showing the ordinal is the
+		 * truth the flow actually carries.
+		 *
+		 * @param {object} state The store state.
+		 * @return {string} The label, without a leading `v`.
+		 */
+		flowVersionLabel: (state) => {
+			const semver = String(state.flow.semver || '').trim()
+
+			return (semver === '') ? String(Number(state.flow.version || 1)) : semver
+		},
+
+		/**
 		 * @param {object} state The store state.
 		 * @return {boolean} Whether the open flow is a draft.
 		 */

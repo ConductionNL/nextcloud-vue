@@ -53,7 +53,8 @@
 			:last-run-status="store.flow.lastRunStatus || null" />
 		<span class="cn-flow-lifecycle__name">{{ name }}</span>
 		<span class="cn-flow-lifecycle__pill cn-flow-lifecycle__pill--version"
-			data-testid="flow-version">v{{ store.flowVersion }}</span>
+			:title="versionTitle"
+			data-testid="flow-version">v{{ store.flowVersionLabel }}</span>
 		<span class="cn-flow-lifecycle__pill"
 			:class="`cn-flow-lifecycle__pill--${store.lifecycleStatus}`"
 			data-testid="flow-lifecycle">{{ lifecycleLabel }}</span>
@@ -75,6 +76,28 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * What the pill is showing, said in words on hover.
+		 *
+		 * A back-filled version matters here: the repair that stamped historic
+		 * versions could not know whether any of them was breaking, so it
+		 * counted minors. Saying so is what lets somebody distrust it
+		 * correctly — a number that silently claims to be derived cannot be.
+		 *
+		 * @return {string} The explanation.
+		 */
+		versionTitle() {
+			if (!this.store.flow.semver) {
+				return this.t('nextcloud-vue', 'Version number. A semantic version appears once the flow is published.')
+			}
+
+			if (this.store.flow.semverSource === 'backfill') {
+				return this.t('nextcloud-vue', 'Numbered when semantic versions were introduced, not derived from a comparison.')
+			}
+
+			return this.t('nextcloud-vue', 'A major version means a step, a connection or a setting was removed.')
+		},
+
 		/**
 		 * The flow's name, or a placeholder while it has none.
 		 *

@@ -906,7 +906,10 @@
     "This run changed no objects.": "This run changed no objects.",
     "This run recorded no steps.": "This run recorded no steps.",
     "Replay on the canvas": "Replay on the canvas",
-    "Add a step": "Add a step"
+    "Add a step": "Add a step",
+    "Version number. A semantic version appears once the flow is published.": "Version number. A semantic version appears once the flow is published.",
+    "Numbered when semantic versions were introduced, not derived from a comparison.": "Numbered when semantic versions were introduced, not derived from a comparison.",
+    "A major version means a step, a connection or a setting was removed.": "A major version means a step, a connection or a setting was removed."
   },
   "plurals": {
     "{count} photo": ["{count} photo", "{count} photos"],
