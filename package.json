@@ -71,6 +71,7 @@
     "build:vue3": "rollup -c rollup.config.vue3.mjs",
     "check:vue3-compile": "node scripts/vue3-compile-sweep.cjs",
     "check:dist-sideeffects": "node scripts/check-dist-sideeffects.mjs",
+    "check:bundled-peers": "node scripts/check-bundled-peers.mjs",
     "check:public-safe": "node scripts/check-public-safe.js"
   },
   "tsd": {

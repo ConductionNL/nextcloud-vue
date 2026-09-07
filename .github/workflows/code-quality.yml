@@ -286,3 +286,39 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run check:dist-sideeffects
+
+  # Vendored-peer gate. A peerDependency inlined into the dist is a build-time
+  # snapshot frozen into the library: the consuming app resolves its own copy,
+  # the two drift apart on the next release, and the app runs two modules for
+  # one package. For dexie that is fatal — it claims a page-global singleton and
+  # throws before the app mounts ("Two different versions of Dexie loaded in the
+  # same app"), which took consuming apps' boot down (pipelinq#1431). For
+  # dompurify it is a security defect: consumers bump their own copy, npm audit
+  # reports green, and the vulnerable vendored copy keeps sanitizing.
+  #
+  # The rule lives in rollup.singleton-externals.mjs, shared by both rollup
+  # configs. This job asserts the OUTCOME on the built artifact instead of
+  # trusting that rule, so it still fires if a future config forgets to import
+  # the shared list — which is exactly how the original defect arrived: the rule
+  # existed in rollup.config.js and was never copied to rollup.config.vue3.mjs,
+  # and that divergence shipped four vendored peers for months.
+  #
+  # Both dists are built because the two configs publish independently.
+  bundled-peers:
+    name: "Vendored peer dependencies"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build the published dist (rollup.config.js)
+        run: npm run build
+      - name: Assert no peer is vendored in the published dist
+        run: npm run check:bundled-peers
+      - name: Build the Vue 3 dist (rollup.config.vue3.mjs)
+        run: npm run build:vue3
+      - name: Assert no peer is vendored in the Vue 3 dist
+        run: npm run check:bundled-peers
