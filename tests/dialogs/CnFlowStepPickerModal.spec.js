@@ -62,6 +62,96 @@ async function mountPicker(state = {}) {
 }
 
 describe('the step picker', () => {
+	describe('grouped by category, in a fixed order', () => {
+		/**
+		 * A catalogue whose entries arrive in an order NO palette should show.
+		 *
+		 * Deliberately shuffled: registration order depends on which apps are
+		 * installed and in what order their listeners fire, so a palette that
+		 * simply renders the catalogue reorders itself when an unrelated app is
+		 * enabled. A fixture already in the right order would let that bug pass.
+		 *
+		 * @return {Array<object>} The catalogue.
+		 */
+		function shuffledCatalogue() {
+			return [
+				{ id: 'openregister.send-email', displayName: 'Send email', category: 'messaging', kind: 'sendTask' },
+				{ id: 'other.mystery', displayName: 'Mystery', category: 'quantum', kind: 'serviceTask' },
+				{ id: 'openregister.end', displayName: 'End', category: 'logic', kind: 'event' },
+				{ id: 'openconnector.source-call', displayName: 'Call a source', category: 'other', kind: 'serviceTask' },
+				{ id: 'openregister.user-task', displayName: 'Ask a person', category: 'human', kind: 'userTask' },
+				{ id: 'openregister.trigger-manual', displayName: 'Manual start', category: 'triggers', kind: 'event' },
+				{ id: 'openregister.object-read', displayName: 'Read object', category: 'objects', kind: 'serviceTask' },
+			]
+		}
+
+		/**
+		 * The category of each rendered group, in render order.
+		 *
+		 * @param {object} wrapper The mounted picker.
+		 * @return {Array<string>} The categories.
+		 */
+		function renderedCategories(wrapper) {
+			return wrapper.findAll('[data-testid="flow-step-picker-group"]')
+				.map((el) => el.attributes('data-category'))
+		}
+
+		it('renders the categories in the declared order, not the catalogue order', async () => {
+			const wrapper = await mountPicker({ nodeCatalog: shuffledCatalogue() })
+
+			expect(renderedCategories(wrapper)).toEqual([
+				'triggers',
+				'human',
+				'objects',
+				'logic',
+				'messaging',
+				'quantum',
+				'other',
+			])
+		})
+
+		it('puts other last, after a category this build does not know', async () => {
+			const wrapper = await mountPicker({ nodeCatalog: shuffledCatalogue() })
+			const rendered = renderedCategories(wrapper)
+
+			// `other` is the prompt for a node whose owner has not declared
+			// yet, not a home, so nothing sits below it.
+			expect(rendered[rendered.length - 1]).toBe('other')
+			// And an unknown category is SHOWN rather than dropped: a group an
+			// author can ask about beats a step that silently is not there.
+			expect(rendered).toContain('quantum')
+		})
+
+		it('omits a category with nothing in it', async () => {
+			const wrapper = await mountPicker({
+				nodeCatalog: [
+					{ id: 'openregister.user-task', displayName: 'Ask a person', category: 'human' },
+				],
+			})
+
+			// A heading with nothing under it reads as a broken filter.
+			expect(renderedCategories(wrapper)).toEqual(['human'])
+		})
+
+		it('groups what the search left, rather than searching within one group', async () => {
+			const wrapper = await mountPicker({ nodeCatalog: shuffledCatalogue() })
+			wrapper.vm.search = 'object'
+			await wrapper.vm.$nextTick()
+
+			expect(renderedCategories(wrapper)).toEqual(['objects'])
+			expect(wrapper.findAll('[data-testid="flow-step-picker-item"]')).toHaveLength(1)
+		})
+
+		it('reads an entry with no category as undeclared rather than dropping it', async () => {
+			const wrapper = await mountPicker({
+				nodeCatalog: [{ id: 'legacy.step', displayName: 'From an older server' }],
+			})
+
+			expect(renderedCategories(wrapper)).toEqual(['other'])
+			expect(wrapper.findAll('[data-testid="flow-step-picker-item"]')).toHaveLength(1)
+		})
+	})
+
 	describe('the three empty states, which say three different things', () => {
 		it('says it is loading while the catalogue request is in flight', async () => {
 			const wrapper = await mountPicker({ nodeCatalog: [], catalogLoading: true })
