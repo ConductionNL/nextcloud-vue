@@ -88,6 +88,28 @@ describe('object-table dashboard registration (issue #89)', () => {
 		expect(props.columns).toEqual([{ key: 'title', label: 'Case' }])
 	})
 
+	// An endpointSource table has no register/schema, so there is no `source`
+	// for `limit` to fold into — it has to survive as the widget's own prop.
+	// Dropping it capped nothing, so `viewAllRoute`'s "total > shown" footer
+	// condition could never hold and a configured View-all link never showed.
+	it('keeps a top-level limit when there is no register/schema to fold it into', () => {
+		const props = objectTableContentToProps({
+			endpointSource: { url: '/apps/keepiq/api/v1/applications/pending' },
+			columns: [{ key: 'name', label: 'Name' }],
+			limit: 3,
+			viewAllRoute: { name: 'ApplicationRegister' },
+		})
+		expect(props.limit).toBe(3)
+		expect(props.source).toBeUndefined()
+		expect(props.viewAllRoute).toEqual({ name: 'ApplicationRegister' })
+	})
+
+	it('drops a non-positive or non-numeric limit rather than passing it through', () => {
+		expect(objectTableContentToProps({ limit: 0 }).limit).toBeUndefined()
+		expect(objectTableContentToProps({ limit: -1 }).limit).toBeUndefined()
+		expect(objectTableContentToProps({ limit: '3' }).limit).toBeUndefined()
+	})
+
 	it('passes a v2-shaped content (explicit source) through unchanged', () => {
 		const content = {
 			source: { register: 'r', schema: 's', filter: { assignee: '@me' }, limit: 5 },

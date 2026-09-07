@@ -45,7 +45,16 @@ export function objectTableContentToProps(content) {
 	// eslint-disable-next-line no-unused-vars
 	const { register, schema, filter, sort, limit, ...rest } = c
 	if (!register && !schema) {
-		return { ...rest }
+		// `limit` is destructured out only to fold it into `source` below, but
+		// with no register/schema there is no `source` to fold it into — and
+		// `limit` is a real prop of its own (the client-side row cap). Dropping
+		// it here silently disabled `viewAllRoute` for every endpointSource
+		// table: the widget rendered ALL rows, so the footer's "total > shown"
+		// condition could never hold and a configured View-all link never
+		// appeared.
+		return Number.isFinite(limit) && limit > 0
+			? { ...rest, limit }
+			: { ...rest }
 	}
 	const order = {}
 	if (sort && sort.field) {
