@@ -1,6 +1,16 @@
 <!--
   CnFlowLifecycleControls — which version this is, and what can be done to it.
 
+  ⚠️ THIS RENDERS THE FLOW'S NAME ITSELF, and NcAppSidebar is given no `name`.
+  That is deliberate and it is a trade. The version belongs beside the title
+  rather than on a line under it, and NcAppSidebar renders its own heading with
+  no slot to reach into — only a `name` prop. So the heading is ours: an `h2`
+  carrying the health dot, the name, the version and the lifecycle on one line.
+
+  The cost is that this sidebar's heading is no longer NcAppSidebar's, so a
+  change to how the fleet's sidebars render their titles will not reach here.
+  The h2 and the ordering exist to keep the semantics that prop was providing.
+
   WHY THIS IS NOT PART OF A TAB
   -----------------------------
   Version, status and Publish used to render inside the sidebar's Steps tab,
@@ -38,17 +48,16 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-flow-lifecycle">
-		<p class="cn-flow-lifecycle__version">
-			<CnFlowHealthDot :enabled="store.flow.enabled === true"
-				:last-run-status="store.flow.lastRunStatus || null" />
-			<span class="cn-flow-lifecycle__pill cn-flow-lifecycle__pill--version"
-				data-testid="flow-version">v{{ store.flowVersion }}</span>
-			<span class="cn-flow-lifecycle__pill"
-				:class="`cn-flow-lifecycle__pill--${store.lifecycleStatus}`"
-				data-testid="flow-lifecycle">{{ lifecycleLabel }}</span>
-		</p>
-	</div>
+	<h2 class="cn-flow-lifecycle" data-testid="flow-title">
+		<CnFlowHealthDot :enabled="store.flow.enabled === true"
+			:last-run-status="store.flow.lastRunStatus || null" />
+		<span class="cn-flow-lifecycle__name">{{ name }}</span>
+		<span class="cn-flow-lifecycle__pill cn-flow-lifecycle__pill--version"
+			data-testid="flow-version">v{{ store.flowVersion }}</span>
+		<span class="cn-flow-lifecycle__pill"
+			:class="`cn-flow-lifecycle__pill--${store.lifecycleStatus}`"
+			data-testid="flow-lifecycle">{{ lifecycleLabel }}</span>
+	</h2>
 </template>
 
 <script>
@@ -66,6 +75,15 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The flow's name, or a placeholder while it has none.
+		 *
+		 * @return {string} The heading text.
+		 */
+		name() {
+			return this.store.flow.name || this.t('nextcloud-vue', 'Flow')
+		},
+
 		/**
 		 * The lifecycle status, in the author's language.
 		 *
@@ -92,13 +110,17 @@ export default {
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 8px;
+	margin: 0;
+	font-size: 1.25em;
 }
 
-.cn-flow-lifecycle__version {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	margin: 0;
+/* The name may be long and the pills must stay with it rather than wrap alone,
+   so the name is the only part allowed to shrink. */
+.cn-flow-lifecycle__name {
+	min-inline-size: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .cn-flow-lifecycle__pill {
