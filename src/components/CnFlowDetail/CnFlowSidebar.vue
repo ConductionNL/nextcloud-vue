@@ -175,6 +175,7 @@
 		</component>
 
 		<CnFlowSettingsModal v-if="settingsOpen" @close="settingsOpen = false" />
+		<CnFlowPublishDialog v-if="publishOpen" @close="publishOpen = false" />
 	</component>
 </template>
 
@@ -197,6 +198,7 @@ import History from 'vue-material-design-icons/History.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Publish from 'vue-material-design-icons/Publish.vue'
 import Sitemap from 'vue-material-design-icons/Sitemap.vue'
+import CnFlowPublishDialog from '../../dialogs/CnFlowPublishDialog.vue'
 import CnFlowSettingsModal from '../../dialogs/CnFlowSettingsModal.vue'
 import { useFlowStore } from '../../composables/useFlowStore.js'
 import CnFlowLifecycleControls from './CnFlowLifecycleControls.vue'
@@ -210,6 +212,7 @@ export default {
 		CheckCircleOutline,
 		CnFlowLifecycleControls,
 		CnRunDetailSidebar,
+		CnFlowPublishDialog,
 		CnFlowSettingsModal,
 		Cog,
 		ContentDuplicate,
@@ -263,6 +266,12 @@ export default {
 
 			// Whether the flow's settings dialog is open.
 			settingsOpen: false,
+
+			// 🔴 PUBLISH ASKS FIRST. It is the one irreversible thing in this
+			// menu — it deprecates the live version and locks the graph — and
+			// it was a single click that also silently decided what the new
+			// version would be CALLED. The dialog says both before it happens.
+			publishOpen: false,
 
 		}
 	},
@@ -334,7 +343,7 @@ export default {
 					icon: 'Publish',
 					label: this.t('nextcloud-vue', 'Publish'),
 					disabled: this.store.transitioning || !this.store.flow.id,
-					run: () => this.store.publish(),
+					run: () => { this.publishOpen = true },
 				})
 			}
 
