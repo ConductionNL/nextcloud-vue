@@ -380,8 +380,22 @@ export default {
 	emits: ['geo-saved', 'open-integration'],
 
 	setup() {
-		const { resolveWidget, getById } = useIntegrationRegistry()
-		return { resolveRegistryWidget: resolveWidget, getRegistryProvider: getById }
+		// Every integration component this host renders goes through the
+		// composable's resolvers, never through the registry entry's own
+		// `tab` / `widget`. The resolvers swap a lib-owned entry for THIS
+		// bundle's copy of the component (openregister#1958). The entry's
+		// object belongs to whichever bundle registered it; when that is
+		// OpenRegister's integration-global bundle, rendering it under the
+		// app's Vue leaves `resolveComponent()` without a current instance,
+		// and `<NcButton>` / `<CnDetailCard>` reach the DOM as literal
+		// unknown elements. Seen on dossiq's Notes, Contacts and Files tabs.
+		const { resolveWidget, resolveBaseWidget, resolveTab, getById } = useIntegrationRegistry()
+		return {
+			resolveRegistryWidget: resolveWidget,
+			resolveRegistryBaseWidget: resolveBaseWidget,
+			resolveRegistryTab: resolveTab,
+			getRegistryProvider: getById,
+		}
 	},
 
 	computed: {
@@ -552,12 +566,6 @@ export default {
 		},
 
 		/**
-		 * The component for a component-mode integration leaf. Bare mode takes
-		 * the provider's `tab`, which is its content without a card.
-		 *
-		 * @return {object|null} The component, or null.
-		 */
-		/**
 		 * Whether this render is using a provider's widget as its bare surface.
 		 *
 		 * @return {boolean} True when bare AND the provider opted in.
@@ -566,8 +574,27 @@ export default {
 			return !!(this.isBare && this.integrationProvider?.bareWidget && this.integrationProvider?.widget)
 		},
 
+		/**
+		 * The component for a component-mode integration leaf. Bare mode takes
+		 * the provider's `tab`, which is its content without a card, unless the
+		 * provider opted into `bareWidget`.
+		 *
+		 * Each branch resolves through the registry composable rather than
+		 * reading `integrationProvider.widget` / `.tab`. The provider is the
+		 * shared registry's entry, and its component objects belong to the
+		 * bundle that registered it. For a lib-owned id registered by
+		 * OpenRegister's bundle, that object renders under the wrong Vue: its
+		 * `resolveComponent()` finds no current instance, so `NcButton` and
+		 * `CnDetailCard` reach the DOM as literal `<ncbutton>` /
+		 * `<cndetailcard>` elements, and a Files tab whose whole body sits
+		 * inside that card looks empty. The resolvers hand back this bundle's
+		 * own copy for lib-owned ids and the stored object for consumer ids.
+		 *
+		 * @return {object|null} The component, or null.
+		 */
 		integrationComponent() {
 			if (!this.isIntegration) return null
+			const id = this.widget.integrationId
 			// `bareWidget` lets a provider say its WIDGET is already bare, so a
 			// tab panel gets the widget surface instead of the sidebar one.
 			// The default below (prefer `tab`) assumes every `widget` draws its
@@ -578,14 +605,14 @@ export default {
 			// sidebar CSS, which is what made the tabbed leaves look like they
 			// had lost their styling. Opt-in rather than a blanket switch: the
 			// other providers keep today's behaviour until each is checked.
-			if (this.usesBareWidget) {
-				return this.integrationProvider.widget
+			if (this.usesBareWidget && typeof this.resolveRegistryBaseWidget === 'function') {
+				return this.resolveRegistryBaseWidget(id)
 			}
-			if (this.isBare && this.integrationProvider?.tab) {
-				return this.integrationProvider.tab
+			if (this.isBare && this.integrationProvider?.tab && typeof this.resolveRegistryTab === 'function') {
+				return this.resolveRegistryTab(id)
 			}
 			if (typeof this.resolveRegistryWidget !== 'function') return null
-			return this.resolveRegistryWidget(this.widget.integrationId, this.surface)
+			return this.resolveRegistryWidget(id, this.surface)
 		},
 
 		/**

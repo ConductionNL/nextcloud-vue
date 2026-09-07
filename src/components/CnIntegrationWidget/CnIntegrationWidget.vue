@@ -108,7 +108,7 @@
 						:provider="singleProvider"
 						:reason="unavailableReason(singleProvider)" />
 					<component
-						:is="singleProvider.tab"
+						:is="leafComponent(singleProvider)"
 						v-else
 						v-bind="leafProps(singleProvider)" />
 				</div>
@@ -172,7 +172,7 @@
 						:provider="activeProvider"
 						:reason="unavailableReason(activeProvider)" />
 					<component
-						:is="activeProvider.tab"
+						:is="leafComponent(activeProvider)"
 						v-else
 						v-bind="leafProps(activeProvider)" />
 				</div>
@@ -286,8 +286,12 @@ export default {
 	},
 
 	setup(props) {
-		const { integrations } = useIntegrationRegistry(props.registry || undefined)
-		return { registryIntegrations: integrations }
+		const { integrations, resolveTab } = useIntegrationRegistry(props.registry || undefined)
+		// `resolveTab` swaps a lib-owned entry for THIS bundle's component
+		// (openregister#1958); the entry's own `tab` may belong to another
+		// bundle's Vue and then renders its nested components as literal
+		// unknown elements. See `leafComponent`.
+		return { registryIntegrations: integrations, resolveRegistryTab: resolveTab }
 	},
 
 	data() {
@@ -493,6 +497,25 @@ export default {
 		 */
 		unavailableReason(provider) {
 			return resolveProviderAvailability(provider, { isAppInstalled }).reason
+		},
+
+		/**
+		 * The content component for a leaf panel. Resolved through the
+		 * registry composable so a lib-owned id renders THIS bundle's copy
+		 * of its `tab`; the entry's stored object is only used for a
+		 * consumer-custom id, which lives in the consumer's own bundle.
+		 *
+		 * @param {object} provider Normalised registry entry.
+		 * @return {object|null} Vue component, or null.
+		 */
+		leafComponent(provider) {
+			if (!provider || typeof provider.id !== 'string') {
+				return null
+			}
+			const local = typeof this.resolveRegistryTab === 'function'
+				? this.resolveRegistryTab(provider.id)
+				: null
+			return local || provider.tab || null
 		},
 
 		/**
