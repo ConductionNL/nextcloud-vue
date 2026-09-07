@@ -68,27 +68,39 @@
 			<p v-else-if="!entries.length" class="cn-step-picker__hint" data-testid="flow-step-picker-nomatch">
 				{{ t('nextcloud-vue', 'No step matches this search.') }}
 			</p>
-			<ul v-else class="cn-step-picker__grid">
-				<li v-for="entry in entries"
-					:key="entry.id"
-					class="cn-step-picker__item"
-					draggable="true"
-					:title="entry.description"
-					data-testid="flow-step-picker-item"
-					@dragstart="store.paletteDragType = entry.id"
-					@dragend="store.paletteDragType = null"
-					@click="add(entry.id)">
-					<span class="cn-step-picker__head">
-						<span class="cn-step-picker__name">{{ entry.displayName || entry.id }}</span>
-						<span class="cn-step-picker__role"
-							:class="`cn-step-picker__role--${entry.role}`">
-							{{ roleWord(entry.role) }}
-						</span>
-					</span>
-					<span v-if="entry.description" class="cn-step-picker__description">{{ entry.description }}</span>
-					<span class="cn-step-picker__id">{{ entry.id }}</span>
-				</li>
-			</ul>
+			<template v-else>
+				<section v-for="group in groups"
+					:key="group.category"
+					class="cn-step-picker__group"
+					data-testid="flow-step-picker-group"
+					:data-category="group.category">
+					<h3 class="cn-step-picker__group-title">
+						{{ group.label }}
+						<span class="cn-step-picker__group-count">{{ group.entries.length }}</span>
+					</h3>
+					<ul class="cn-step-picker__grid">
+						<li v-for="entry in group.entries"
+							:key="entry.id"
+							class="cn-step-picker__item"
+							draggable="true"
+							:title="entry.description"
+							data-testid="flow-step-picker-item"
+							@dragstart="store.paletteDragType = entry.id"
+							@dragend="store.paletteDragType = null"
+							@click="add(entry.id)">
+							<span class="cn-step-picker__head">
+								<span class="cn-step-picker__name">{{ entry.displayName || entry.id }}</span>
+								<span class="cn-step-picker__role"
+									:class="`cn-step-picker__role--${entry.role}`">
+									{{ roleWord(entry.role) }}
+								</span>
+							</span>
+							<span v-if="entry.description" class="cn-step-picker__description">{{ entry.description }}</span>
+							<span class="cn-step-picker__id">{{ entry.id }}</span>
+						</li>
+					</ul>
+				</section>
+			</template>
 		</div>
 	</NcDialog>
 </template>
@@ -97,6 +109,24 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcDialog, NcSelect, NcTextField } from '@nextcloud/vue'
 import { useFlowStore } from '../composables/useFlowStore.js'
+
+/**
+ * The palette's groups, in the order it presents them.
+ *
+ * Mirrors `IFlowNodeTaxonomy::CATEGORIES` in openregister. Kept as a literal
+ * rather than derived from the catalogue for the reason in `groups()`: a
+ * discovered order is an accident of which apps are installed.
+ */
+const CATEGORY_ORDER = [
+	'triggers',
+	'human',
+	'objects',
+	'logic',
+	'messaging',
+	'ai',
+	'integrations',
+	'other',
+]
 
 export default {
 	name: 'CnFlowStepPickerModal',
@@ -143,6 +173,48 @@ export default {
 		},
 
 		/**
+		 * The entries grouped by category, in a FIXED order.
+		 *
+		 * 🔴 THE ORDER IS DECLARED, NOT DISCOVERED. Registration order depends
+		 * on which apps are installed and in what order their listeners fire,
+		 * so a palette ordered by the catalogue's own sequence reorders itself
+		 * when an unrelated app is enabled, and an author's muscle memory is
+		 * wrong through no change of theirs.
+		 *
+		 * An empty category is omitted rather than rendered as a heading with
+		 * nothing under it. `other` is last because it is the prompt for a node
+		 * whose owner has not declared yet, not a home.
+		 *
+		 * @return {Array<object>} One entry per non-empty category.
+		 */
+		groups() {
+			const byCategory = new Map()
+			for (const entry of this.entries) {
+				// The server always sends a category; an older instance that
+				// does not is read as undeclared rather than dropped.
+				const category = entry.category || 'other'
+				if (!byCategory.has(category)) {
+					byCategory.set(category, [])
+				}
+				byCategory.get(category).push(entry)
+			}
+
+			// Anything the server sends that this build does not know about
+			// still gets shown, after the known ones and before `other`.
+			const known = CATEGORY_ORDER.filter((c) => c !== 'other')
+			const unknown = [...byCategory.keys()].filter((c) => !CATEGORY_ORDER.includes(c)).sort()
+			const order = [...known, ...unknown, 'other']
+
+			return order
+				.filter((category) => byCategory.has(category))
+				.map((category) => ({
+					category,
+					label: this.categoryLabel(category),
+					entries: byCategory.get(category),
+				}))
+		},
+
+		/**
 		 * @return {Array<object>} The type filter's options.
 		 */
 		roleOptions() {
@@ -164,6 +236,29 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * A category's heading, in the author's language.
+		 *
+		 * A category this build does not know is shown by its own id rather
+		 * than hidden: a group an author can see and ask about beats a step
+		 * that silently is not there.
+		 *
+		 * @param {string} category The category id.
+		 * @return {string} The heading.
+		 */
+		categoryLabel(category) {
+			return {
+				triggers: this.t('nextcloud-vue', 'Triggers'),
+				human: this.t('nextcloud-vue', 'People'),
+				objects: this.t('nextcloud-vue', 'Objects'),
+				logic: this.t('nextcloud-vue', 'Logic'),
+				messaging: this.t('nextcloud-vue', 'Messaging'),
+				ai: this.t('nextcloud-vue', 'AI'),
+				integrations: this.t('nextcloud-vue', 'Integrations'),
+				other: this.t('nextcloud-vue', 'Other'),
+			}[category] || category
+		},
 
 		/**
 		 * The role, in the author's language.
@@ -226,6 +321,24 @@ export default {
 /* THE WHOLE POINT OF THE MODAL: a grid, so sixty-five entries can be compared
    rather than scrolled past one at a time. `auto-fill` rather than a fixed
    count, so the same markup works in a narrow window. */
+.cn-step-picker__group {
+	margin-block-start: 16px;
+}
+
+.cn-step-picker__group-title {
+	margin: 0 0 8px;
+	font-size: 1rem;
+	font-weight: bold;
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+}
+
+.cn-step-picker__group-count {
+	font-weight: normal;
+	color: var(--color-text-maxcontrast);
+}
+
 .cn-step-picker__grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
