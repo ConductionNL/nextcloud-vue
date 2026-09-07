@@ -36,7 +36,6 @@
 	<component :is="embedded ? 'div' : 'NcAppSidebar'"
 		v-if="store.sidebarOpen"
 		:class="embedded ? 'cn-flow-sidebar cn-flow-sidebar--embedded' : 'cn-flow-sidebar'"
-		:name="embedded ? undefined : sidebarName"
 		:active="embedded ? undefined : tab"
 		@update:active="tab = $event"
 		@close="onClose">
@@ -51,6 +50,12 @@
 			⚠️ NO `subname`. A small grey "manual" under the title announced the
 			trigger to an author who was not about to change it from there, and
 			it is edited in the settings modal with every other field.
+
+			⚠️ AND NO `name` EITHER. The version belongs BESIDE the title, and
+			NcAppSidebar renders its own heading with no slot to reach into. So
+			the heading is CnFlowLifecycleControls' own h2, and this component
+			hands the sidebar nothing to render above it — passing both would
+			put the flow's name on screen twice.
 		-->
 		<template v-if="!embedded" #description>
 			<div class="cn-flow-sidebar__header">
@@ -435,12 +440,6 @@ export default {
 	},
 
 	computed: {
-		/**
-		 * @return {string} The sidebar header: the flow's name.
-		 */
-		sidebarName() {
-			return this.store.flow.name || this.t('nextcloud-vue', 'Flow')
-		},
 
 		/**
 		 * The run being inspected, from the loaded history.

@@ -167,6 +167,36 @@ describe('CnFlowSidebar — after the messages moved to the canvas', () => {
 			expect(header.find('[data-testid="flow-publish"]').exists()).toBe(true)
 		})
 
+		it('renders the title ITSELF, with the version inline behind the name', async () => {
+			// NcAppSidebar renders its own heading and exposes no slot for it,
+			// so the version could only ever sit on the line UNDER the title.
+			// The heading is ours instead: one h2 carrying the dot, the name
+			// and the pills, and NcAppSidebar is handed no `name` at all.
+			const { wrapper } = await mountSidebar({
+				flow: { id: 3, name: 'Mandaatbesluit', version: 2, lifecycleStatus: 'draft', nodes: [], edges: [] },
+			})
+
+			const title = wrapper.find('[data-testid="flow-title"]')
+			expect(title.exists()).toBe(true)
+			expect(title.element.tagName).toBe('H2')
+
+			// The pill is INSIDE the heading, which is the whole ask.
+			expect(title.find('[data-testid="flow-version"]').text()).toBe('v2')
+			expect(title.find('[data-testid="flow-health"]').exists()).toBe(true)
+			expect(title.text()).toContain('Mandaatbesluit')
+		})
+
+		it('does not put the flow\'s name on screen twice', async () => {
+			// The failure mode of rendering our own title is passing `name` as
+			// well and getting both.
+			const { wrapper } = await mountSidebar({
+				flow: { id: 3, name: 'Mandaatbesluit', version: 2, lifecycleStatus: 'draft', nodes: [], edges: [] },
+			})
+
+			const occurrences = wrapper.text().split('Mandaatbesluit').length - 1
+			expect(occurrences).toBe(1)
+		})
+
 		it('leads the line with the flow\'s health, read off the LAST RUN', async () => {
 			// The wiring, which the dot's own spec cannot see: `enabled` and
 			// `lastRunStatus` have to reach it from the store. A getter read
@@ -174,8 +204,14 @@ describe('CnFlowSidebar — after the messages moved to the canvas', () => {
 			// deliberate.
 			const { wrapper } = await mountSidebar({
 				flow: {
-					id: 3, name: 'Mandaatbesluit', version: 2, lifecycleStatus: 'published',
-					enabled: true, lastRunStatus: 'failed', nodes: [], edges: [],
+					id: 3,
+					name: 'Mandaatbesluit',
+					version: 2,
+					lifecycleStatus: 'published',
+					enabled: true,
+					lastRunStatus: 'failed',
+					nodes: [],
+					edges: [],
 				},
 			})
 
@@ -187,8 +223,14 @@ describe('CnFlowSidebar — after the messages moved to the canvas', () => {
 		it('shows a disabled flow as grey however its last run ended', async () => {
 			const { wrapper } = await mountSidebar({
 				flow: {
-					id: 3, name: 'Mandaatbesluit', version: 2, lifecycleStatus: 'published',
-					enabled: false, lastRunStatus: 'completed', nodes: [], edges: [],
+					id: 3,
+					name: 'Mandaatbesluit',
+					version: 2,
+					lifecycleStatus: 'published',
+					enabled: false,
+					lastRunStatus: 'completed',
+					nodes: [],
+					edges: [],
 				},
 			})
 
