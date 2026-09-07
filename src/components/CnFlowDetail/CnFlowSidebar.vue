@@ -1,11 +1,16 @@
 <!--
   CnFlowSidebar — the controls half of the flow editor.
 
-  Nextcloud's own app sidebar (NcAppSidebar), with the flow's version and
-  publish controls in its HEADER and three tabs under it: Steps (the palette),
-  Runs (history and per-step traces), Flow (the flow's own settings). Save /
-  Run / Check live on CnFlowDetail's toolbar, and every message the editor has
-  to give lands in the canvas message area beside the graph. The actions and
+  Nextcloud's own app sidebar (NcAppSidebar), with the flow's identity in its
+  HEADER and its RUNS under it. Save / Run / Check / Add a step live on
+  CnFlowDetail's toolbar, and every message the editor has to give lands in the
+  canvas message area beside the graph.
+
+  ⚠️ THE PALETTE IS NOT HERE ANY MORE. A live instance serves SIXTY-FIVE step
+  types, and a one-per-row list that long in a 300px column is a scroll rather
+  than a chooser. It is `CnFlowStepPickerModal`, opened from the toolbar, where
+  the same entries render as a grid. With it went the Steps tab, and with that
+  the tab strip: one tab is chrome around nothing. The actions and
   the messages that concern the graph live on the graph. The two halves render
   in different parts of the tree, so they share `useFlowStore`.
 
@@ -102,18 +107,6 @@
 			</NcActions>
 		</div>
 
-		<div v-if="embedded && !inRunView" class="cn-flow-sidebar__tabs" role="tablist">
-			<button v-for="entry in tabs"
-				:key="entry.id"
-				class="cn-flow-sidebar__tab"
-				:class="{ 'cn-flow-sidebar__tab--active': tab === entry.id }"
-				role="tab"
-				:aria-selected="tab === entry.id ? 'true' : 'false'"
-				@click="tab = entry.id">
-				{{ entry.label }}
-			</button>
-		</div>
-
 		<!--
 			ONE STRIP AT A TIME. Reading a run REPLACES the flow's tabs rather
 			than nesting under them: the run used to render inside the Runs tab
@@ -124,95 +117,17 @@
 		-->
 		<CnRunDetailSidebar v-if="inRunView" />
 
+		<!--
+			THE SIDEBAR IS THE FLOW'S RUNS. The palette moved to a modal off the
+			toolbar, and with it the only other thing this sidebar showed. A tab
+			strip with one tab in it is chrome around nothing, so the strip goes
+			too — what is left renders directly.
+		-->
 		<component :is="embedded ? 'div' : 'NcAppSidebarTab'"
 			v-if="!inRunView"
-			v-show="embedded ? tab === 'flow-steps' : true"
-			:id="embedded ? undefined : 'flow-steps'"
-			:name="embedded ? undefined : t('nextcloud-vue', 'Steps')"
-			:order="embedded ? undefined : 1">
-			<template v-if="!embedded" #icon>
-				<Sitemap :size="20" />
-			</template>
-
-			<!--
-				NO MESSAGE CARDS HERE ANY MORE.
-
-				A refused save, a lifecycle refusal, unsaved changes, a flow that
-				can never finish and an unreadable catalogue all render in the
-				canvas message area (CnFlowCanvasMessages) beside the graph they
-				are about. The refusal for adding a step to a published flow used
-				to open this tab, above a scrolling palette, on the other side of
-				the screen from the click that caused it — and was missed
-				completely. Repeating any of them here would put the same
-				sentence in two places and make neither authoritative.
-
-				THE SELECTED STEP HAS NO BLOCK HERE EITHER. Clicking a step opens
-				an action menu at the step with Edit, Copy and Delete. A second
-				set of the same buttons, further away, is the thing that menu
-				replaced.
-			-->
-
-			<section class="cn-flow-sidebar__section">
-				<h4>{{ t('nextcloud-vue', 'Steps') }}</h4>
-
-				<NcTextField :model-value="paletteSearch"
-					:label="t('nextcloud-vue', 'Search steps')"
-					trailing-button-icon="close"
-					:show-trailing-button="paletteSearch !== ''"
-					@trailing-button-click="paletteSearch = ''"
-					@update:model-value="paletteSearch = $event" />
-
-				<NcSelect :model-value="roleFilterOption"
-					:options="roleFilterOptions"
-					:input-label="t('nextcloud-vue', 'Type')"
-					:clearable="false"
-					@update:model-value="roleFilter = $event ? $event.id : null" />
-
-				<p v-if="store.catalogLoading && !store.nodeCatalog.length" class="cn-flow-sidebar__hint">
-					{{ t('nextcloud-vue', 'Loading the available steps…') }}
-				</p>
-				<!--
-					Why the list is empty, AT the list. One short line, because
-					the diagnosis (the catalogue could not be read, and no step
-					can be added at all) is a standing condition of the flow and
-					renders on the canvas with every other message. A palette
-					that simply draws nothing reads as a broken component.
-				-->
-				<p v-else-if="!store.nodeCatalog.length" class="cn-flow-sidebar__hint">
-					{{ t('nextcloud-vue', 'No steps are available to add.') }}
-				</p>
-				<p v-else-if="!paletteEntries.length" class="cn-flow-sidebar__hint">
-					{{ t('nextcloud-vue', 'No step matches this search.') }}
-				</p>
-				<ul v-else class="cn-flow-sidebar__palette">
-					<li v-for="entry in paletteEntries"
-						:key="entry.id"
-						class="cn-flow-sidebar__palette-item"
-						draggable="true"
-						:title="entry.description"
-						@dragstart="store.paletteDragType = entry.id"
-						@dragend="store.paletteDragType = null"
-						@click="store.addNode(entry.id)">
-						<span class="cn-flow-sidebar__palette-head">
-							<span class="cn-flow-sidebar__palette-name">{{ entry.displayName || entry.id }}</span>
-							<span class="cn-flow-sidebar__palette-role"
-								:class="`cn-flow-sidebar__palette-role--${entry.role}`">
-								{{ roleWord(entry.role) }}
-							</span>
-						</span>
-						<span v-if="entry.description" class="cn-flow-sidebar__palette-description">{{ entry.description }}</span>
-						<span class="cn-flow-sidebar__palette-id">{{ entry.id }}</span>
-					</li>
-				</ul>
-			</section>
-		</component>
-
-		<component :is="embedded ? 'div' : 'NcAppSidebarTab'"
-			v-if="!inRunView"
-			v-show="embedded ? tab === 'flow-runs' : true"
 			:id="embedded ? undefined : 'flow-runs'"
 			:name="embedded ? undefined : t('nextcloud-vue', 'Runs')"
-			:order="embedded ? undefined : 2">
+			:order="embedded ? undefined : 1">
 			<template v-if="!embedded" #icon>
 				<History :size="20" />
 			</template>
@@ -340,15 +255,15 @@ export default {
 			// one value drives both hosts. The embedded strip used to have ids
 			// of its own (`nodes`, `runs`), which meant nothing outside this
 			// component could ask for a tab and be understood by both.
-			tab: 'flow-steps',
+			// One tab remains, and NcAppSidebar still wants to be told which is
+			// active. `flow-runs` is the id that tab registers under.
+			tab: 'flow-runs',
 
 			// Which question about the inspected run is being asked.
 
 			// Whether the flow's settings dialog is open.
 			settingsOpen: false,
 
-			paletteSearch: '',
-			roleFilter: null,
 		}
 	},
 
@@ -370,19 +285,6 @@ export default {
 		 */
 		inRunView() {
 			return Boolean(this.store.inspectedRunUuid)
-		},
-
-		/**
-		 * @return {Array<object>} The tab strip, for the embedded variant.
-		 */
-		tabs() {
-			// Two, not three. Everything the Flow tab held now lives in the
-			// header: its fields in the settings dialog, its verbs in the
-			// action menu.
-			return [
-				{ id: 'flow-steps', label: this.t('nextcloud-vue', 'Steps') },
-				{ id: 'flow-runs', label: this.t('nextcloud-vue', 'Runs') },
-			]
 		},
 
 		/**
@@ -461,52 +363,6 @@ export default {
 			return actions
 		},
 
-		/**
-		 * The catalogue, searched and filtered, triggers first.
-		 *
-		 * @return {Array<object>} The entries to offer.
-		 */
-		paletteEntries() {
-			const rank = { trigger: 0, step: 1, end: 2 }
-			const needle = this.paletteSearch.trim().toLowerCase()
-
-			return this.store.nodeCatalog
-				.map((entry) => ({ ...entry, role: this.store.roleOfNodeType(entry.id) }))
-				.filter((entry) => !this.roleFilter || entry.role === this.roleFilter)
-				.filter((entry) => {
-					if (!needle) {
-						return true
-					}
-
-					return `${entry.id} ${entry.displayName || ''} ${entry.description || ''}`
-						.toLowerCase()
-						.includes(needle)
-				})
-				// Stable: equal roles keep the catalogue's own order.
-				.map((entry, index) => ({ entry, index }))
-				.sort((a, b) => ((rank[a.entry.role] ?? 1) - (rank[b.entry.role] ?? 1)) || (a.index - b.index))
-				.map(({ entry }) => entry)
-		},
-
-		/**
-		 * @return {Array<object>} The role filter's options.
-		 */
-		roleFilterOptions() {
-			return [
-				{ id: null, label: this.t('nextcloud-vue', 'All types') },
-				{ id: 'trigger', label: this.t('nextcloud-vue', 'Triggers') },
-				{ id: 'step', label: this.t('nextcloud-vue', 'Steps') },
-				{ id: 'end', label: this.t('nextcloud-vue', 'End') },
-			]
-		},
-
-		/**
-		 * @return {object} The selected role filter option.
-		 */
-		roleFilterOption() {
-			return this.roleFilterOptions.find((o) => o.id === this.roleFilter) || this.roleFilterOptions[0]
-		},
-
 	},
 
 	watch: {
@@ -547,22 +403,6 @@ export default {
 	},
 
 	methods: {
-		/**
-		 * A role id as the word the palette badge shows.
-		 *
-		 * @param {string} role The catalogue role.
-		 * @return {string} The word.
-		 */
-		roleWord(role) {
-			if (role === 'trigger') {
-				return this.t('nextcloud-vue', 'Trigger')
-			}
-			if (role === 'end') {
-				return this.t('nextcloud-vue', 'End')
-			}
-
-			return this.t('nextcloud-vue', 'Step')
-		},
 
 		/**
 		 * Hide the sidebar. The canvas toolbar offers the way back.

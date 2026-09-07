@@ -897,7 +897,8 @@
     "Run": "Uitvoering",
     "This run changed no objects.": "Deze uitvoering heeft geen objecten gewijzigd.",
     "This run recorded no steps.": "Deze uitvoering heeft geen stappen vastgelegd.",
-    "Replay on the canvas": "Opnieuw afspelen op het canvas"
+    "Replay on the canvas": "Opnieuw afspelen op het canvas",
+    "Add a step": "Een stap toevoegen"
   },
   "plurals": {
     "{count} photo": ["{count} foto", "{count} foto's"],

@@ -905,7 +905,8 @@
     "Run": "Run",
     "This run changed no objects.": "This run changed no objects.",
     "This run recorded no steps.": "This run recorded no steps.",
-    "Replay on the canvas": "Replay on the canvas"
+    "Replay on the canvas": "Replay on the canvas",
+    "Add a step": "Add a step"
   },
   "plurals": {
     "{count} photo": ["{count} photo", "{count} photos"],

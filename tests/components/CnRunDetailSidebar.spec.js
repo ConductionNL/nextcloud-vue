@@ -85,7 +85,8 @@ describe('a run replaces the flow’s sidebar', () => {
 		const wrapper = await mountSidebar()
 
 		expect(wrapper.find('[data-testid="run-detail-sidebar"]').exists()).toBe(false)
-		expect(wrapper.text()).toContain('Steps')
+		// The sidebar is the flow's RUNS now: the palette moved to a modal and
+		// took the Steps tab with it.
 		expect(wrapper.text()).toContain('Runs')
 	})
 

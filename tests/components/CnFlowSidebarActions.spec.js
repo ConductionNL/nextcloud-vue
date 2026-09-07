@@ -179,11 +179,15 @@ describe('CnFlowSidebar — the header carries the flow', () => {
 	})
 
 	describe('the Flow tab is gone', () => {
-		it('renders exactly two tabs: Steps and Runs', async () => {
-			const { wrapper } = await mountSidebar({ flow: FLOW })
+		it('renders exactly ONE tab: Runs', async () => {
+			// Was two (Steps and Runs), and before that three. The palette moved
+			// to a modal off the toolbar and took the Steps tab with it, so the
+			// sidebar is the flow's runs. A strip with one tab in it is chrome
+			// around nothing, which is why the strip itself is gone too.
+			const { wrapper } = await mountSidebar()
 
-			const names = wrapper.findAll('.app-sidebar-tab').map((el) => el.attributes('data-tab'))
-			expect(names).toEqual(['Steps', 'Runs'])
+			const names = wrapper.findAll('.app-sidebar-tab').map((n) => n.attributes('data-tab'))
+			expect(names.filter(Boolean)).toEqual(['Runs'])
 		})
 
 		it('does not render the flow settings fields in a tab any more', async () => {
