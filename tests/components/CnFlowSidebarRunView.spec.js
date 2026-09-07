@@ -235,21 +235,28 @@ describe('CnFlowSidebar — the run view', () => {
 	})
 
 	describe('starting a run puts the author where the run is', () => {
-		it('switches to the Runs tab when a run begins', async () => {
+		// ⚠️ INVERTED. These used to assert that starting a run SWITCHED the
+		// sidebar from Steps to Runs, because being left on the palette while a
+		// run started is how an author concludes nothing happened.
+		//
+		// There is no longer anywhere else to be. The palette moved to a modal
+		// and took the Steps tab with it, so the sidebar is the flow's runs
+		// whether or not one has started. The guarantee the old tests bought is
+		// now structural, and this is what remains of it: it must not be
+		// possible to be looking at something else when a run begins.
+		it('is already showing runs when a run begins, with nowhere else to be', async () => {
 			const { wrapper, store } = await mountSidebar({
 				flow: { id: 'f1', name: 'x', nodes: [], edges: [] },
 			})
-			expect(wrapper.vm.tab).toBe('flow-steps')
+			expect(wrapper.vm.tab).toBe('flow-runs')
 
 			store.watchedRunUuid = 'run-9'
 			await wrapper.vm.$nextTick()
 
-			// Pressing Run and being left on Steps is how an author concludes
-			// nothing happened.
 			expect(wrapper.vm.tab).toBe('flow-runs')
 		})
 
-		it('does not yank the author away when no run started', async () => {
+		it('stays there when no run started', async () => {
 			const { wrapper, store } = await mountSidebar({
 				flow: { id: 'f1', name: 'x', nodes: [], edges: [] },
 			})
@@ -257,7 +264,7 @@ describe('CnFlowSidebar — the run view', () => {
 			store.watchedRunUuid = null
 			await wrapper.vm.$nextTick()
 
-			expect(wrapper.vm.tab).toBe('flow-steps')
+			expect(wrapper.vm.tab).toBe('flow-runs')
 		})
 	})
 })

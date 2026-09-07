@@ -78,10 +78,43 @@ async function openFlow(page, lifecycleStatus) {
 	// own entry, so its absence means the catalogue never seeded — which is a
 	// different problem from the step under test, and used to present as a
 	// click timing out after thirty seconds.
+	await openPicker(page)
 	await expect(
-		page.locator('.cn-flow-sidebar__palette-item', { hasText: STEP }),
+		page.locator('[data-testid="flow-step-picker-item"]', { hasText: STEP }),
 		'the harness catalogue must have seeded before any of this is meaningful',
 	).toBeVisible()
+	await page.keyboard.press('Escape')
+	await expect(page.locator('[data-testid="flow-step-picker"]')).toBeHidden()
+}
+
+/**
+ * Open the step picker.
+ *
+ * The palette used to be a column in the sidebar; it is a modal off the
+ * toolbar now, so every "click a step" in this file goes through here.
+ *
+ * @param {import('@playwright/test').Page} page The page.
+ * @return {Promise<void>}
+ */
+async function openPicker(page) {
+	await page.locator('[data-testid="flow-add-step"]').click()
+	await expect(page.locator('[data-testid="flow-step-picker"]')).toBeVisible()
+}
+
+/**
+ * Add a step by name, through the picker.
+ *
+ * The modal closes itself on either outcome — the step arriving, or the graph
+ * refusing it — because it covers the canvas that shows both.
+ *
+ * @param {import('@playwright/test').Page} page The page.
+ * @param {string} name The step's display name.
+ * @return {Promise<void>}
+ */
+async function addStep(page, name) {
+	await openPicker(page)
+	await page.locator('[data-testid="flow-step-picker-item"]', { hasText: name }).click()
+	await expect(page.locator('[data-testid="flow-step-picker"]')).toBeHidden()
 }
 
 test.describe('flow messages — the refusal an author could not find', () => {
@@ -92,7 +125,7 @@ test.describe('flow messages — the refusal an author could not find', () => {
 		await openFlow(page, 'published')
 
 		// The palette entry, clicked the way an author clicks it.
-		await page.locator('.cn-flow-sidebar__palette-item', { hasText: STEP }).click()
+		await addStep(page, STEP)
 
 		const message = page.locator('[data-testid="flow-message-graph-locked"]')
 		await expect(message).toBeVisible()
@@ -113,7 +146,7 @@ test.describe('flow messages — the refusal an author could not find', () => {
 
 	test('the sidebar does not say it too', async ({ page }) => {
 		await openFlow(page, 'published')
-		await page.locator('.cn-flow-sidebar__palette-item', { hasText: STEP }).click()
+		await addStep(page, STEP)
 
 		await expect(page.locator('[data-testid="flow-message-graph-locked"]')).toBeVisible()
 
@@ -125,9 +158,9 @@ test.describe('flow messages — the refusal an author could not find', () => {
 	test('clicking the palette again does not add a second card', async ({ page }) => {
 		await openFlow(page, 'published')
 
-		await page.locator('.cn-flow-sidebar__palette-item', { hasText: STEP }).click()
-		await page.locator('.cn-flow-sidebar__palette-item', { hasText: 'End' }).click()
-		await page.locator('.cn-flow-sidebar__palette-item', { hasText: STEP }).click()
+		await addStep(page, STEP)
+		await addStep(page, 'End')
+		await addStep(page, STEP)
 
 		// Three refused clicks, one thing wrong.
 		await expect(page.locator('[data-testid="flow-message-graph-locked"]')).toHaveCount(1)
@@ -136,7 +169,7 @@ test.describe('flow messages — the refusal an author could not find', () => {
 	test('a draft accepts the same click and says nothing about a lock', async ({ page }) => {
 		await openFlow(page, 'draft')
 
-		await page.locator('.cn-flow-sidebar__palette-item', { hasText: STEP }).click()
+		await addStep(page, STEP)
 
 		await expect(page.locator('.cn-flow-node')).toHaveCount(1)
 		await expect(page.locator('[data-testid="flow-message-graph-locked"]')).toHaveCount(0)
@@ -146,7 +179,7 @@ test.describe('flow messages — the refusal an author could not find', () => {
 test.describe('flow messages — the area does not take the canvas away', () => {
 	test('the gaps between cards still belong to the graph', async ({ page }) => {
 		await openFlow(page, 'published')
-		await page.locator('.cn-flow-sidebar__palette-item', { hasText: STEP }).click()
+		await addStep(page, STEP)
 
 		// A second message, so there is a real gap between two cards to aim at.
 		await page.evaluate(() => {
@@ -180,7 +213,7 @@ test.describe('flow messages — the area does not take the canvas away', () => 
 
 	test('a card is still clickable, so dismissing one works', async ({ page }) => {
 		await openFlow(page, 'published')
-		await page.locator('.cn-flow-sidebar__palette-item', { hasText: STEP }).click()
+		await addStep(page, STEP)
 
 		const message = page.locator('[data-testid="flow-message-graph-locked"]')
 		await expect(message).toContainText('cannot be changed')
@@ -195,7 +228,7 @@ test.describe('flow messages — the area does not take the canvas away', () => 
 
 	test('the area does not cover the graph', async ({ page }) => {
 		await openFlow(page, 'published')
-		await page.locator('.cn-flow-sidebar__palette-item', { hasText: STEP }).click()
+		await addStep(page, STEP)
 
 		const canvasBox = await page.locator('[data-testid="flow-box"]').boundingBox()
 		const areaBox = await page.locator('.cn-flow-canvas-messages').boundingBox()
@@ -302,14 +335,17 @@ test.describe('flow sidebar — the header carries the flow', () => {
 		await expect(run).toHaveAttribute('title', /manual start step/)
 	})
 
-	test('the sidebar has two tabs, and no Flow tab', async ({ page }) => {
+	// ⚠️ INVERTED, not deleted. This asserted TWO tabs (Steps and Runs), after a
+	// version that asserted three. The palette moved to a modal off the toolbar
+	// and took the Steps tab with it, so the sidebar is the flow's runs — and a
+	// strip with one tab in it is chrome around nothing, so the strip is gone
+	// too. The claim survives, pointed the other way.
+	test('the sidebar has no tab strip left: it is the flow\'s runs', async ({ page }) => {
 		await openFlow(page, 'draft')
 
-		const strip = page.locator('[data-testid="flow-sidebar-box"] [role="tablist"]').first()
-		await expect(strip.getByRole('tab')).toHaveCount(2)
-		await expect(strip).toContainText('Steps')
-		await expect(strip).toContainText('Runs')
-		await expect(strip).not.toContainText('Flow')
+		await expect(page.locator('[data-testid="flow-sidebar-box"] [role="tablist"]')).toHaveCount(0)
+		await expect(page.locator('[data-testid="flow-sidebar-box"]')).toContainText('Runs')
+		await expect(page.locator('[data-testid="flow-sidebar-box"]')).not.toContainText('Search steps')
 	})
 })
 
@@ -323,8 +359,7 @@ test.describe('flow sidebar — a run has its own address', () => {
 			]
 		})
 
-		await page.locator('[data-testid="flow-sidebar-box"] [role="tab"]', { hasText: 'Runs' }).click()
-
+		// No tab to press any more: the sidebar IS the runs.
 		const link = page.locator('[data-testid="flow-run-link"]').first()
 		await expect(link).toBeVisible()
 

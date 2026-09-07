@@ -139,7 +139,11 @@ describe('opening a run by its own URL', () => {
 	})
 
 	describe('the sidebar goes where the run is', () => {
-		it('opens the Runs tab when a run is inspected, not only when one starts', async () => {
+		it('shows the run, not the flow, when a run is inspected', async () => {
+			// ⚠️ INVERTED. This used to assert the sidebar opened the RUNS TAB.
+			// A run now REPLACES the flow's sidebar rather than selecting a tab
+			// in it, so the claim is stronger: the flow's own surface is not on
+			// screen at all while a run is open.
 			setActivePinia(createPinia())
 
 			const wrapper = mount(CnFlowSidebar, {
@@ -156,21 +160,24 @@ describe('opening a run by its own URL', () => {
 						Cog: true,
 						History: true,
 						Sitemap: true,
+						ArrowLeft: true,
+						Replay: true,
 					},
 					mocks: { t: (app, s) => s },
 				},
 			})
 
-			expect(wrapper.vm.tab).toBe('flow-steps')
+			expect(wrapper.find('[data-testid="run-detail-sidebar"]').exists()).toBe(false)
 
 			// A deep-linked run is INSPECTED, not watched: `watchedRunUuid` is
-			// for a run the editor started and is polling. Switching on the
+			// for a run the editor started and is polling. Reacting to the
 			// watch alone would leave a visitor who followed a run's URL
-			// looking at the palette.
+			// looking at the flow.
+			wrapper.vm.store.runs = [{ uuid: 'run-7', status: 'completed', created: '2026-09-06T09:00:00+00:00' }]
 			wrapper.vm.store.inspectedRunUuid = 'run-7'
 			await wrapper.vm.$nextTick()
 
-			expect(wrapper.vm.tab).toBe('flow-runs')
+			expect(wrapper.find('[data-testid="run-detail-sidebar"]').exists()).toBe(true)
 		})
 	})
 })

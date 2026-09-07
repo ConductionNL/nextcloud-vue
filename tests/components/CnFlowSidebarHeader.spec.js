@@ -125,13 +125,16 @@ describe('CnFlowSidebar — after the messages moved to the canvas', () => {
 			expect(wrapper.text()).not.toContain('no trigger')
 		})
 
-		it('still explains an empty palette AT the palette, in one short line', async () => {
+		// ⚠️ MOVED, not dropped. "Explains an empty palette AT the palette" is
+		// now asserted in tests/dialogs/CnFlowStepPickerModal.spec.js, because
+		// that is where the palette is. What the SIDEBAR must not do is say it
+		// twice — the canvas carries the diagnosis and the picker carries the
+		// short line, and a third copy here would make none of them
+		// authoritative.
+		it('does not repeat the catalogue’s trouble in the sidebar', async () => {
 			const { wrapper } = await mountSidebar({ nodeCatalog: [], catalogLoading: false })
 
-			// The canvas carries the diagnosis: the catalogue could not be read
-			// and no step can be added. The list still has to say why it is
-			// empty, or a blank palette reads as a broken component.
-			expect(wrapper.text()).toContain('No steps are available to add.')
+			expect(wrapper.text()).not.toContain('No steps are available to add.')
 			expect(wrapper.text()).not.toContain('could not be read')
 		})
 	})

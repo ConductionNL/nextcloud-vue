@@ -25,6 +25,29 @@
 		<!-- The editor's controls, ON the canvas: the actions that concern the
 		     graph live with the graph, the way every flow tool draws it. -->
 		<div class="cn-flow-detail__toolbar" role="toolbar" :aria-label="t('nextcloud-vue', 'Flow editor')">
+			<!--
+				FIRST, because it is the first thing a new flow needs and the
+				palette it replaced was three clicks away in a sidebar tab.
+			-->
+			<!--
+				⚠️ NOT DISABLED ON A LOCKED GRAPH, and that is deliberate. A
+				published version cannot be changed, and the obvious move is to
+				grey this out — but the refusal on the canvas is the thing that
+				TELLS the author so, and offers "Create draft version" next to
+				it. A silent grey button says only that something is wrong.
+
+				Different from Run, which IS disabled: pressing Run on a flow
+				with no manual start produced a slow, confusing engine error
+				several seconds later. Pressing this produces an immediate
+				message beside the graph it is about.
+			-->
+			<NcButton data-testid="flow-add-step"
+				@click="stepPickerOpen = true">
+				<template #icon>
+					<Plus :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Add a step') }}
+			</NcButton>
 			<NcButton type="primary"
 				:disabled="store.saving || !store.flow.name"
 				@click="onSaveClick">
@@ -226,6 +249,7 @@
 				<Sitemap :size="20" />
 			</template>
 		</NcEmptyContent>
+		<CnFlowStepPickerModal v-if="stepPickerOpen" @close="stepPickerOpen = false" />
 	</div>
 </template>
 
@@ -253,6 +277,7 @@ import CnGraphCanvas from '../CnGraphCanvas/CnGraphCanvas.vue'
 import { resolveFlowNodeEditor } from '../../composables/useFlowNodeEditors.js'
 import { DEFAULT_EDGE_LINE_TYPE, EDGE_LINE_TYPES } from '../../composables/useFlowEdgeStyles.js'
 import { useContextMenu } from '../../composables/useContextMenu.js'
+import CnFlowStepPickerModal from '../../dialogs/CnFlowStepPickerModal.vue'
 import { useFlowStore } from '../../composables/useFlowStore.js'
 
 /**
@@ -297,6 +322,7 @@ export default {
 		CnFlowCanvasMessages,
 		CnFlowEdgeEditModal,
 		CnFlowNodeEditModal,
+		CnFlowStepPickerModal,
 		CnContextMenu,
 		CnGraphCanvas,
 		ContentSave,
@@ -382,6 +408,9 @@ export default {
 
 	data() {
 		return {
+			// The step picker replaced the sidebar palette; it is a modal, so
+			// its open state is the editor's rather than the sidebar's.
+			stepPickerOpen: false,
 			// Zoom is owned here, not by the canvas: a consumer that does not
 			// bind it pins the canvas at 1 and silently kills the wheel gesture.
 			zoom: 1,
