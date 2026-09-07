@@ -189,6 +189,40 @@ describe('CnFlowSidebar — after the messages moved to the canvas', () => {
 			expect(title.text()).toContain('Mandaatbesluit')
 		})
 
+		it('shows the SEMANTIC version once the engine has derived one', async () => {
+			const { wrapper } = await mountSidebar({
+				flow: {
+					id: 3, name: 'Mandaatbesluit', version: 4, semver: '2.1.0',
+					semverSource: 'derived', lifecycleStatus: 'published', nodes: [], edges: [],
+				},
+			})
+
+			// The ordinal is still 4 — it is what a run pins — but what the
+			// author reads is what changed.
+			expect(wrapper.find('[data-testid="flow-version"]').text()).toBe('v2.1.0')
+		})
+
+		it('falls back to the ordinal while there is no semantic version', async () => {
+			// A draft has not been compared with anything yet. `v0.0.0` would
+			// be a claim; the ordinal is the truth the flow carries.
+			const { wrapper } = await mountSidebar({
+				flow: { id: 3, name: 'Mandaatbesluit', version: 4, lifecycleStatus: 'draft', nodes: [], edges: [] },
+			})
+
+			expect(wrapper.find('[data-testid="flow-version"]').text()).toBe('v4')
+		})
+
+		it('says a back-filled version was not derived, so it can be distrusted', async () => {
+			const { wrapper } = await mountSidebar({
+				flow: {
+					id: 3, name: 'Mandaatbesluit', version: 2, semver: '1.1.0',
+					semverSource: 'backfill', lifecycleStatus: 'published', nodes: [], edges: [],
+				},
+			})
+
+			expect(wrapper.find('[data-testid="flow-version"]').attributes('title')).toContain('not derived')
+		})
+
 		it('does not put the flow\'s name on screen twice', async () => {
 			// The failure mode of rendering our own title is passing `name` as
 			// well and getting both.
