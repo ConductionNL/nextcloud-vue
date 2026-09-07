@@ -7,7 +7,7 @@ Vue 2.7 composable that exposes a reactive snapshot of the [pluggable integratio
 ```js
 import { useIntegrationRegistry } from '@conduction/nextcloud-vue'
 
-const { integrations, getById, resolveTab, resolveWidget, registry } = useIntegrationRegistry()
+const { integrations, getById, resolveTab, resolveWidget, resolveBaseWidget, registry } = useIntegrationRegistry()
 ```
 
 | Argument | Type | Description |
@@ -22,6 +22,7 @@ const { integrations, getById, resolveTab, resolveWidget, registry } = useIntegr
 | `getById` | `(id: string) => object \| null` | Look up a single provider by id. |
 | `resolveTab` | `(id: string) => object \| null` | Resolve the sidebar tab component for an integration id. Lib-owned ids resolve to this bundle's LOCAL component (see [Local resolution](#local-resolution-lib-owned-ids) below); consumer-custom ids resolve via the shared registry's stored `tab`. |
 | `resolveWidget` | `(id: string, surface: string) => object \| null` | Pick the widget component for a surface, applying the AD-19 fallback rule. Same local-resolution semantics as `resolveTab`. |
+| `resolveBaseWidget` | `(id: string) => object \| null` | The provider's main `widget`, ignoring surface overrides, with the same local-resolution semantics. This is what a bare host renders for a provider that opted into `bareWidget`. |
 | `registry` | `object` | The underlying registry (escape hatch for advanced cases). |
 
 ## Surface fallback (AD-19)
@@ -39,7 +40,7 @@ For lib-owned ids, `resolveTab` and `resolveWidget` return the component importe
 
 Consumer-custom registrations (those without `__libOwned`) are resolved through the shared registry's stored component. Those components live in the consumer's own bundle and render under the same Vue, so no mismatch arises.
 
-**Practical rule:** prefer `resolveTab(entry.id)` / `resolveWidget(entry.id, surface)` over reading `entry.tab` / `entry.widget` directly when rendering integration components in a host app — the resolvers do the right thing in both single- and multi-bundle deployments.
+**Practical rule:** prefer `resolveTab(entry.id)` / `resolveWidget(entry.id, surface)` / `resolveBaseWidget(entry.id)` over reading `entry.tab` / `entry.widget` directly when rendering integration components in a host app — the resolvers do the right thing in both single- and multi-bundle deployments. Reading the entry's own component object is not a harmless shortcut: in a multi-bundle deployment it renders under the registering bundle's Vue, where `resolveComponent()` has no current instance, and every nested `NcButton` or `CnDetailCard` reaches the DOM as a literal unknown element. `CnDetailWidgetHost` and `CnIntegrationWidget` did exactly that for bare tab panels until 2.41, which is why dossiq's tabbed Notes, Contacts and Files leaves rendered `<ncbutton>` and an empty card.
 
 ## Lifecycle
 

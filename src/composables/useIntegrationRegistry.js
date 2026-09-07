@@ -47,6 +47,7 @@ import { LIB_INTEGRATION_COMPONENTS } from '../integrations/libComponents.js'
  *   getById: (id: string) => ?object,
  *   resolveTab: (id: string) => ?object,
  *   resolveWidget: (id: string, surface: string) => ?object,
+ *   resolveBaseWidget: (id: string) => ?object,
  *   registry: object,
  * }}
  */
@@ -134,11 +135,43 @@ export function useIntegrationRegistry(registry) {
 		return target.resolveWidget(id, surface)
 	}
 
+	/**
+	 * Resolve the provider's main `widget`, ignoring surface overrides,
+	 * through the same lib-owned swap as `resolveWidget`.
+	 *
+	 * This is the resolver for a provider that opted into `bareWidget`:
+	 * the flag says its WIDGET (not a per-surface variant) is already
+	 * bare content, so a tab panel renders exactly that component.
+	 * Reading `entry.widget` off the registry instead hands back the
+	 * REGISTERING bundle's object; when that is OpenRegister's
+	 * integration-global bundle, its `resolveComponent()` has no current
+	 * instance under the rendering app's Vue and every nested `NcButton`
+	 * / `CnDetailCard` lands in the DOM as a literal unknown element.
+	 *
+	 * @param {string} id Integration id.
+	 *
+	 * @return {?object} Vue component, or null when unknown.
+	 */
+	function resolveBaseWidget(id) {
+		const entry = target.get(id)
+		if (!entry) {
+			return null
+		}
+		if (entry.__libOwned === true) {
+			const libEntry = LIB_INTEGRATION_COMPONENTS[id]
+			if (libEntry && libEntry.widget) {
+				return libEntry.widget
+			}
+		}
+		return entry.widget || null
+	}
+
 	return {
 		integrations: computed(() => snapshot.value),
 		getById: (id) => target.get(id),
 		resolveTab,
 		resolveWidget,
+		resolveBaseWidget,
 		registry: target,
 	}
 }
