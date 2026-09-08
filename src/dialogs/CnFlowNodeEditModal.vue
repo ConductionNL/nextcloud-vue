@@ -83,6 +83,23 @@
 				     defaults to the current user, which asserts no delegation
 				     at all; naming anyone else is a request the save may
 				     refuse, and refusing it here would only hide the reason. -->
+				<!-- WHO the step asks. Users AND groups, because the step has
+				     always been able to ask either and the field could only ever
+				     say one word. Each option carries its own TYPE, so
+				     `{type: 'group', id: 'bezwaar'}` is stored as a group and
+				     nothing has to guess later. -->
+				<NcSelect v-else-if="widgetFor(key) === 'principal'"
+					:model-value="principalOptions(key)"
+					:options="principalChoices"
+					:input-label="labelFor(key)"
+					:loading="principalsLoading"
+					:multiple="true"
+					:close-on-select="false"
+					:placeholder="t('nextcloud-vue', 'Search people and groups…')"
+					:data-testid="`flow-node-principal-${key}`"
+					@search="searchPrincipals"
+					@update:model-value="setPrincipals(key, $event)" />
+
 				<NcSelect v-else-if="widgetFor(key) === 'user'"
 					:model-value="userOption(key)"
 					:options="userOptions"
@@ -155,6 +172,22 @@ import CnCronField from '../components/CnCronField/CnCronField.vue'
 import { useFlowStore } from '../composables/useFlowStore.js'
 
 /** The verbs an HTTP-shaped `method` option can take. */
+/**
+ * The config keys that name WHO a step asks.
+ *
+ * These are the fields that carried a bare name and meant a user OR a group.
+ * `runAs` is deliberately NOT here: it names the identity the step runs as,
+ * which is a different question with a different answer type.
+ */
+const PRINCIPAL_KEYS = [
+	'assignee',
+	'candidates',
+	'candidateUsers',
+	'candidateGroups',
+	'candidateRole',
+	'routingFallback',
+]
+
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
 
 /**
@@ -194,6 +227,12 @@ export default {
 
 		return {
 			HTTP_METHODS,
+
+			// Everybody a step could ask, and whether that lookup is in
+			// flight. Empty is a legitimate resting state: a stored reference
+			// still shows, because it is synthesised rather than looked up.
+			principals: [],
+			principalsLoading: false,
 
 			// Users for a `runAs`-shaped field, and whether that request is in
 			// flight. Empty is a legitimate resting state: the picker still
@@ -317,6 +356,15 @@ export default {
 			return [...mine, ...this.users.filter((user) => user.id !== me)]
 		},
 
+		/**
+		 * Everybody the picker can currently offer, users and groups together.
+		 *
+		 * @return {Array<object>} The options.
+		 */
+		principalChoices() {
+			return this.principals
+		},
+
 		formKeys() {
 			const fromForm = (this.entry?.configForm || []).map((f) => f.key).filter(Boolean)
 			const declared = [
@@ -357,6 +405,13 @@ export default {
 			}
 		}
 
+		if (this.formKeys.some((key) => this.widgetFor(key) === 'principal')) {
+			// An empty search returns the first page, so the picker opens with
+			// something in it rather than an empty box the author has to guess
+			// how to fill.
+			this.searchPrincipals('')
+		}
+
 		if (this.formKeys.some((key) => this.widgetFor(key) === 'user')) {
 			this.loadUsers()
 		}
@@ -373,6 +428,157 @@ export default {
 		 *
 		 * @return {Promise<void>}
 		 */
+		/**
+		 * The stored references on a field, as options the select can show.
+		 *
+		 * 🔴 A REFERENCE THE CURRENT USER CANNOT SEE MUST STILL SHOW. The
+		 * autocomplete endpoint answers with what THIS author may look up, and
+		 * a delegation is routinely to somebody they cannot. If an unmatched
+		 * reference rendered as nothing, opening a step and pressing Done would
+		 * silently clear it — a save that deletes the assignment while
+		 * appearing to change nothing.
+		 *
+		 * So every stored reference is synthesised into an option whether or
+		 * not the lookup found it, exactly as the single-user picker already
+		 * does for an unseen uid.
+		 *
+		 * @param {string} key The config key.
+		 * @return {Array<object>} The selected options.
+		 */
+		principalOptions(key) {
+			return this.storedPrincipals(key).map((reference) => {
+				const id = `${reference.type}:${reference.id}`
+				const known = this.principals.find((option) => option.id === id)
+
+				return known || {
+					id,
+					type: reference.type,
+					value: reference.id,
+					label: reference.id,
+				}
+			})
+		},
+
+		/**
+		 * What a performer field currently holds, as `{type, id}` references.
+		 *
+		 * Reads both spellings, because both are stored across the fleet: a
+		 * bare string (which has always meant a user or a group of that name),
+		 * and a typed reference. A bare one is shown under the type the FIELD
+		 * NAME implies, so a `candidateGroups` entry does not appear as a
+		 * person.
+		 *
+		 * @param {string} key The config key.
+		 * @return {Array<object>} The references.
+		 */
+		storedPrincipals(key) {
+			const raw = this.draft.config[key]
+			const bareType = key === 'candidateGroups' || key === 'candidateRole' ? 'group' : 'user'
+			const list = Array.isArray(raw) ? raw : (raw === null || raw === undefined || raw === '' ? [] : [raw])
+
+			return list
+				.map((entry) => {
+					if (typeof entry === 'string') {
+						return entry.trim() === '' ? null : { type: bareType, id: entry.trim() }
+					}
+					if (entry && typeof entry === 'object') {
+						const id = String(entry.id ?? entry.value ?? '').trim()
+
+						return id === '' ? null : { type: String(entry.type || bareType), id }
+					}
+
+					return null
+				})
+				.filter(Boolean)
+		},
+
+		/**
+		 * Write the picked references back onto the field.
+		 *
+		 * Always as typed references, never as bare strings: the whole point is
+		 * that the document records which kind of thing was meant, so a save
+		 * from this picker is never ambiguous again.
+		 *
+		 * @param {string} key The config key.
+		 * @param {Array<object>} picked What the select handed back.
+		 * @return {void}
+		 */
+		setPrincipals(key, picked) {
+			const references = (picked || []).map((option) => ({
+				type: option.type || 'user',
+				id: option.value || String(option.id || '').split(':').slice(1).join(':'),
+			})).filter((reference) => reference.id !== '')
+
+			// A single-valued field keeps its shape: `assignee` is one
+			// performer, and turning it into a list would change what the
+			// engine reads.
+			if (key === 'assignee' || key === 'routingFallback' || key === 'candidateRole') {
+				this.setKey(key, references[0] || '')
+
+				return
+			}
+
+			this.setKey(key, references)
+		},
+
+		/**
+		 * Look people and groups up as the author types.
+		 *
+		 * 🔑 THE SAME ENDPOINT THE MENTION PICKER USES, with `shareTypes[]` 0
+		 * AND 1 — users and groups. OpenRegister publishes no user list and the
+		 * OCS user-listing API is admin-only, so this is the only source a
+		 * non-admin author can read.
+		 *
+		 * ⚠️ IT DOES NOT DECIDE WHAT IS VALID. A type this editor cannot search
+		 * — a position, a function, a case role — is still a legal reference,
+		 * and the server's resolver registry is what says so. That is why a
+		 * stored reference is synthesised rather than filtered against these
+		 * results.
+		 *
+		 * @param {string} query What the author typed.
+		 * @return {Promise<void>} When the lookup has settled.
+		 */
+		async searchPrincipals(query) {
+			this.principalsLoading = true
+			try {
+				const response = await axios.get(
+					generateUrl('/ocs/v2.php/core/autocomplete/get'),
+					{
+						params: {
+							search: String(query || ''),
+							itemType: '',
+							itemId: '',
+							'shareTypes[]': [0, 1],
+							limit: 50,
+						},
+						headers: { 'OCS-APIRequest': 'true', Accept: 'application/json' },
+					},
+				)
+
+				const rows = response?.data?.ocs?.data || []
+				this.principals = (Array.isArray(rows) ? rows : [])
+					.map((row) => {
+						const type = row.source === 'groups' ? 'group' : 'user'
+						const id = String(row.id ?? '')
+
+						return {
+							id: `${type}:${id}`,
+							type,
+							value: id,
+							label: `${String(row.label ?? id)}${type === 'group' ? this.t('nextcloud-vue', ' (group)') : ''}`,
+						}
+					})
+					.filter((option) => option.value !== '')
+			} catch (error) {
+				// A failed lookup must not clear what is already picked: the
+				// selected options are synthesised from the document, not from
+				// this list.
+				this.principals = []
+			} finally {
+				this.principalsLoading = false
+			}
+		},
+
 		async loadUsers() {
 			this.usersLoading = true
 			try {
@@ -450,7 +656,23 @@ export default {
 			if (spec?.type === 'cron' || spec?.format === 'cron' || key === 'cron') {
 				return 'cron'
 			}
-			if (spec?.type === 'user' || key === 'runAs') {
+			// 🔴 `runAs` KEEPS THE SINGLE-USER PICKER. It is not a performer:
+			// it names the identity the step RUNS AS, the server decides
+			// whether this author may delegate to it, and a group cannot be
+			// one. Checked BEFORE the principal branch so a step that declares
+			// `runAs` as a principal cannot widen it.
+			if (key === 'runAs') {
+				return 'user'
+			}
+
+			// Who the step ASKS. Keyed on the engine's own declaration where it
+			// makes one, and on the performer key names otherwise — those are
+			// the fields that carried a bare name and meant a user OR a group.
+			if (spec?.type === 'principal' || PRINCIPAL_KEYS.includes(key)) {
+				return 'principal'
+			}
+
+			if (spec?.type === 'user') {
 				return 'user'
 			}
 
