@@ -101,6 +101,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `select-all` | `isSelectAll` | Emitted when the select-all checkbox is toggled |
 | `row-click` | `row` | Emitted when a data row is clicked (not the checkbox). **Only fires when `selectable` is `false`** — when `selectable` is `true`, a deliberate click anywhere on a row toggles its selection (emitting `select`) instead — a text-selection drag is not treated as a click. |
 | `row-context-menu` | `{ row, event }` | Emitted when a data row is right-clicked. The native `contextmenu` event is prevented. Used by CnIndexPage with the [`useContextMenu`](../utilities/composables/use-context-menu.md) composable to show a context menu at the cursor position. |
+| `view-all` | `viewAllRoute` | Emitted when the built-in "View all" footer control is activated (before the router push, when there is a router). Lets a host outside a vue-router context react to the button variant. |
 
 ### Slots
 
@@ -126,7 +127,10 @@ features are folded in here as opt-in props (bare-table usage is unchanged):
 - `borderless` — drop the container's card chrome so the table sits flush inside
   a parent card (e.g. a `CnWidgetWrapper` dashboard slot).
 - `limit` — show only the first N rows; with `viewAllRoute` a "View all" footer appears.
-- `viewAllRoute` / `viewAllLabel` — the footer link's route and label.
+- `viewAllRoute` / `viewAllLabel` — the footer control's route and label. It renders
+  as a real `<a :href>` when the router resolves the route, and as a
+  `<button type="button">` (emitting `view-all`) otherwise, so it always has a
+  link or button role and is keyboard reachable.
 - `register` + `schemaId` — self-fetch rows from OpenRegister when no `rows` are passed.
 - `fetchParams` — extra query params for the self-fetch (a resolved filter map,
   `_order[field]` ordering, `_limit`); changing it re-triggers the fetch. Used by

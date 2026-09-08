@@ -199,18 +199,32 @@
 		     footer link (e.g. a "+ New" create action or an always-shown
 		     "View all") with its own click handler — useful when the widget runs
 		     outside a vue-router context (the built-in link uses $router). When
-		     no slot is given, the built-in "View all" link (folded from the
-		     retired CnTableWidget) is shown for a `limit`-ed subset. -->
+		     no slot is given, the built-in "View all" control (folded from the
+		     retired CnTableWidget) is shown for a `limit`-ed subset.
+
+		     The control is a real link (with an href) when the router resolves
+		     `viewAllRoute` to a URL, and a real button otherwise. An `<a>`
+		     without an href has no link role and is not keyboard focusable
+		     (WCAG 2.1.1, 4.1.2), so it is never rendered. -->
 		<div
 			v-if="$slots.footer || (viewAllRoute && totalRowCount > effectiveRows.length)"
 			class="cn-data-table__footer">
 			<!-- @slot Custom footer content, scoped with { total, shown } (defaults to the built-in "View all" link). -->
 			<slot name="footer" :total="totalRowCount" :shown="effectiveRows.length">
 				<a
+					v-if="viewAllHref"
 					class="cn-data-table__view-all"
-					@click.prevent="onViewAll">
+					:href="viewAllHref"
+					@click="onViewAll">
 					{{ viewAllLabel }}
 				</a>
+				<button
+					v-else
+					type="button"
+					class="cn-data-table__view-all"
+					@click="onViewAll">
+					{{ viewAllLabel }}
+				</button>
 			</slot>
 		</div>
 	</div>
@@ -585,7 +599,7 @@ export default {
 		},
 	},
 
-	emits: ['row-click', 'row-context-menu', 'select', 'select-all', 'sort'],
+	emits: ['row-click', 'row-context-menu', 'select', 'select-all', 'sort', 'view-all'],
 
 	setup() {
 		// Tell a deliberate row click apart from a text-selection drag.
@@ -663,6 +677,25 @@ export default {
 		 */
 		totalRowCount() {
 			return this.sourceRows.length
+		},
+
+		/**
+		 * The URL the router resolves `viewAllRoute` to, or `null` when there is
+		 * no route or no router (a widget mounted outside a vue-router context).
+		 * Decides whether the "View all" footer renders as a link or a button.
+		 *
+		 * @return {string|null}
+		 */
+		viewAllHref() {
+			if (!this.viewAllRoute || !this.$router || typeof this.$router.resolve !== 'function') {
+				return null
+			}
+			try {
+				const resolved = this.$router.resolve(this.viewAllRoute)
+				return (resolved && resolved.href) || null
+			} catch (e) {
+				return null
+			}
 		},
 
 		/**
@@ -875,11 +908,25 @@ export default {
 		},
 
 		/**
-		 * Navigate to the "View all" footer route.
+		 * Activate the "View all" footer control: emit `view-all`, then push
+		 * `viewAllRoute` through the router when there is one. A plain left
+		 * click on the link is handled in-app; a modified click (ctrl/cmd/
+		 * shift/middle) is left to the browser so "open in new tab" keeps
+		 * working on the real href.
 		 *
+		 * @param {MouseEvent} [event] The click event, when triggered by one.
 		 * @return {void}
 		 */
-		onViewAll() {
+		onViewAll(event) {
+			const modified = Boolean(event && (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button))
+			if (event && !modified) {
+				event.preventDefault()
+			}
+			/** @event view-all Emitted when the built-in "View all" footer control is activated. Payload: the `viewAllRoute` object. */
+			this.$emit('view-all', this.viewAllRoute)
+			if (modified) {
+				return
+			}
 			if (this.viewAllRoute && this.$router) {
 				this.$router.push(this.viewAllRoute).catch(() => {})
 			}
