@@ -60,6 +60,27 @@
  *    CnDashboardGrid item rendered at 0px width. JS and CSS can only be
  *    guaranteed to agree when the consumer resolves both from one copy.
  *
+ * EXTERNALISING IS ONLY HALF OF IT — THE DECLARATION SHAPE MATTERS TOO
+ * --------------------------------------------------------------------
+ * A package listed here MUST be declared as peerDependencies (what the consumer
+ * supplies) plus devDependencies (what our own build and tests resolve), with
+ * NOTHING in dependencies. `dexie` and `gridstack` already had that shape;
+ * `dompurify` and `marked` did not, and for them externalising alone was a
+ * no-op.
+ *
+ * The reason: a package in `dependencies` is installed into the consumer's tree
+ * by npm no matter what rollup does. When the consumer's range cannot dedupe
+ * with ours, npm nests it at
+ * `node_modules/@conduction/nextcloud-vue/node_modules/<pkg>` — and the bare
+ * specifier this externalising produces then resolves to OUR nested copy, since
+ * node resolution walks up from our own dist directory and finds it first. The
+ * duplicate does not disappear; it moves out of `dist/` to somewhere a walk
+ * over `dist/` cannot see. Observed in openregister with two copies of
+ * `marked`: 18.0.11 at the top level and our 12.0.2 nested underneath us.
+ *
+ * `scripts/check-bundled-peers.mjs` asserts both halves, so a package added
+ * here in the wrong shape fails the build rather than silently doing nothing.
+ *
  * THE RULE
  * --------
  * Never inline a package that must be a SINGLETON — a database layer, a

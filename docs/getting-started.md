@@ -35,6 +35,58 @@ What this means today:
 npm install @conduction/nextcloud-vue
 ```
 
+### Peer dependencies you must install
+
+Five packages are deliberately **not** bundled into the library. Each of them
+must be a single copy in your app, so the library imports them by bare
+specifier and your bundler resolves them from your own `node_modules`:
+
+| package | range | npm installs it for you? |
+|---|---|---|
+| `@vueuse/core` | `^11.0.0 \|\| ^14.0.0` | yes — required peer |
+| `gridstack` | `^12.0.0 \|\| ^13.0.0` | yes — required peer |
+| `dexie` | `^4.0.8` | **no — optional peer** |
+| `dompurify` | `^3.0.0` | **no — optional peer** |
+| `marked` | `^12.0.0` | **no — optional peer** |
+
+The two required peers are installed automatically by npm 7 and later. **The
+three optional ones are not** — npm installs nothing for an optional peer, so
+if your app renders markdown, sanitises HTML, or uses the offline data
+collection core, add them yourself:
+
+```bash
+npm install dexie dompurify marked
+```
+
+Leaving one out fails the build with an unresolved bare specifier
+(`Can't resolve 'dexie'`) pointing into `node_modules/@conduction/nextcloud-vue`,
+which gives no hint that the cause is a missing peer in your own manifest.
+
+Stay inside the ranges above. They are not advisory: a version outside them is
+a version the library has not been built against, and `marked` in particular
+has had breaking changes across majors.
+
+#### Why these five and not others
+
+They are all singletons — a database layer, a sanitizer, a composable store,
+and a grid whose JS must agree with the CSS you import separately. Two copies
+of one of these in a page is not a slightly larger bundle, it is a bug:
+
+- `dexie` refuses to initialise twice. It claims a page-global
+  (`globalThis[Symbol.for("Dexie")]`) and throws before your app mounts —
+  `Two different versions of Dexie loaded in the same app: 4.4.5 and 4.4.4` —
+  so the bundle loads and nothing renders.
+- `dompurify` is the XSS sanitizer. A second copy means the one you patched is
+  not necessarily the one sanitising.
+- `@vueuse/core` composables stop sharing state across the copies: two
+  `useLocalStorage` refs for one key, one `createGlobalState` per copy.
+- `gridstack` JS from one version under CSS from another rendered every grid
+  item at 0px width.
+
+This is the same class of problem as the deduplication aliases in the webpack
+section below, which is why both live here. If you alias the library to `src/`
+for local development, these five must be resolvable from your app either way.
+
 ## Webpack Configuration
 
 The library uses source aliasing for local development. Your `webpack.config.js` needs:

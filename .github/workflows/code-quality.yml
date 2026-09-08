@@ -318,7 +318,15 @@ jobs:
         run: npm run build
       - name: Assert no peer is vendored in the published dist
         run: npm run check:bundled-peers
+      # build:vue3 does not clean dist/ the way build does (package.json: build
+      # rmSyncs it first), and both write preserveModules output into dist/esm.
+      # Without the clean the second assertion reads vue2-leftovers union
+      # vue3-output: it cannot pass falsely, since the set only grows, but it
+      # would report a vue2 offender as a vue3 one and the step name would be a
+      # lie. The only thing preventing that today is that the earlier assertion
+      # already failed — implicit, and it stops holding the moment someone
+      # reorders these steps or adds continue-on-error.
       - name: Build the Vue 3 dist (rollup.config.vue3.mjs)
-        run: npm run build:vue3
+        run: rm -rf dist && npm run build:vue3
       - name: Assert no peer is vendored in the Vue 3 dist
         run: npm run check:bundled-peers
