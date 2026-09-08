@@ -43,8 +43,9 @@
 				</template>
 
 				<CnDetailWidgetHost
-					v-if="entry.widget"
-					:widget="entry.widget"
+					v-for="child in entry.widgets"
+					:key="child.id"
+					:widget="child"
 					chrome="bare"
 					:object-id="objectId"
 					:object="objectData"
@@ -58,7 +59,9 @@
 					:cn-registry="cnRegistry"
 					@geo-saved="onGeoSaved"
 					@open-integration="onOpenIntegration" />
-				<NcEmptyContent v-else :name="missingLabel(entry)" />
+				<NcEmptyContent
+					v-if="entry.widgets.length === 0"
+					:name="missingLabel(entry)" />
 			</CnTab>
 		</CnTabs>
 	</div>
@@ -73,6 +76,30 @@ import { CnActionsMenu } from '../CnActionsMenu/index.js'
 import CnTabs from '../CnTabs/CnTabs.vue'
 import CnTab from '../CnTabs/CnTab.vue'
 import { widgetTitleOf } from '../../utils/widgetDispatch.js'
+
+/**
+ * The widget ids one tab entry names, in order.
+ *
+ * Three spellings, because the config is hand-authored and has grown: a bare
+ * string, `{ widgetId }` for one, and `{ widgetIds: [...] }` for a folded tab.
+ * The list form wins when both are present, and the single form is appended
+ * rather than dropped, so a config carrying both is read the way its author
+ * most likely meant rather than silently losing a panel.
+ *
+ * @param {string|object} tab One `content.tabs[]` entry.
+ *
+ * @return {string[]} The widget ids, deduplicated, empties removed.
+ */
+function tabIds(tab) {
+	if (typeof tab === 'string') {
+		return tab ? [tab] : []
+	}
+	const many = Array.isArray(tab?.widgetIds) ? tab.widgetIds : []
+	const ids = [...many, tab?.widgetId].filter(
+		(id) => typeof id === 'string' && id !== '',
+	)
+	return [...new Set(ids)]
+}
 
 /**
  * CnTabsWidget — a widget that holds other widgets, one per tab.
@@ -97,7 +124,16 @@ import { widgetTitleOf } from '../../utils/widgetDispatch.js'
  * ## Configuring it
  *
  * `content.tabs[]` names the children and their labels, so a deployment can
- * relabel or reorder tabs, or drop one, without touching code:
+ * relabel, reorder, fold or drop tabs without touching code. A tab entry names
+ * one widget with `widgetId`, or SEVERAL with `widgetIds`, which is how panels
+ * that answer the same question are folded onto one tab instead of paying a
+ * tab each:
+ *
+ *   tabs: [
+ *     { widgetIds: ['case-documents', 'case-files'], label: 'Documents' },
+ *   ]
+ *
+ * A folded tab is named after, and its Actions menu bound to, its FIRST widget.
  *
  * ```js
  * content: {
@@ -140,10 +176,11 @@ export default {
 		/**
 		 * The widget's config: `{ tabs, ariaLabel }`.
 		 *
-		 * `tabs[]` entries are `{ widgetId, label?, icon? }`. `label` and `icon`
+		 * `tabs[]` entries are `{ widgetId | widgetIds, label?, icon? }`, where
+		 * `widgetIds` folds several panels onto one tab. `label` and `icon`
 		 * fall back to the referenced widget's own title and icon.
 		 *
-		 * @type {{ tabs?: Array<{widgetId: string, label?: string, icon?: string}>, ariaLabel?: string }}
+		 * @type {{ tabs?: Array<{widgetId?: string, widgetIds?: string[], label?: string, icon?: string}>, ariaLabel?: string }}
 		 */
 		content: {
 			type: Object,
@@ -252,14 +289,28 @@ export default {
 		resolvedTabs() {
 			const tabs = Array.isArray(this.content?.tabs) ? this.content.tabs : []
 			return tabs.map((tab, index) => {
-				const widgetId = typeof tab === 'string' ? tab : tab?.widgetId
-				const widget = this.availableWidgets.find((w) => w && w.id === widgetId) || null
+				// A tab may name ONE widget or SEVERAL. `widgetIds` is what a
+				// surface uses to fold panels that answer the same question —
+				// documents and their files, or notes and mail beside the
+				// contact log — without paying a tab for each. `widgetId` is
+				// the single-widget spelling and stays exactly as it was, so
+				// every existing config resolves unchanged.
+				const ids = tabIds(tab)
+				const widgets = ids
+					.map((id) => this.availableWidgets.find((w) => w && w.id === id) || null)
+					.filter((w) => w !== null)
+				// The FIRST widget names the tab and binds the hoisted Actions
+				// menu. A folded tab is led by the panel it is named after, and
+				// the menu has to act on one child rather than on all of them.
+				const [lead] = widgets
 				return {
-					key: `${widgetId || 'tab'}-${index}`,
-					widgetId,
-					label: (tab && tab.label) || widgetTitleOf(widget) || widgetId || '',
-					icon: (tab && tab.icon) || widget?.icon || '',
-					widget,
+					key: `${ids.join('+') || 'tab'}-${index}`,
+					widgetId: ids[0] || '',
+					widgetIds: ids,
+					label: (tab && tab.label) || widgetTitleOf(lead) || ids[0] || '',
+					icon: (tab && tab.icon) || lead?.icon || '',
+					widget: (lead || null),
+					widgets,
 				}
 			})
 		},

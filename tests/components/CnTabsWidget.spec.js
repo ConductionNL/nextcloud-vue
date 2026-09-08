@@ -167,4 +167,74 @@ describe('CnTabsWidget', () => {
 
 		expect(w.find('[role="tab"]').text()).toContain('Notes')
 	})
+
+	describe('a tab that folds several widgets', () => {
+		// Panels that answer the same question cost a tab each otherwise, and a
+		// strip wide enough to hold them WRAPS: the surface that prompted this
+		// carried fourteen tabs onto three rows at 1024px, which pushes the
+		// panel itself below the fold.
+		it('renders every named widget in one panel, in order', async () => {
+			const w = mountWidget({
+				tabs: [{ widgetIds: ['w-files', 'w-notes'], label: 'Documents' }],
+			})
+			await nextTick()
+
+			expect(w.findAll('[role="tab"]')).toHaveLength(1)
+			const hosts = w.findAll('.host')
+			expect(hosts).toHaveLength(2)
+			expect(hosts[0].text()).toContain('w-files')
+			expect(hosts[1].text()).toContain('w-notes')
+		})
+
+		it('is named after its first widget when it declares no label', async () => {
+			const w = mountWidget({ tabs: [{ widgetIds: ['w-notes', 'w-files'] }] })
+			await nextTick()
+
+			expect(w.find('[role="tab"]').text()).toContain('Notes')
+		})
+
+		it('binds the hoisted Actions menu to the first widget', async () => {
+			// The menu acts on ONE child. A folded tab is led by the panel it
+			// is named after, so that is the one Refresh has to reach.
+			const w = mountWidget({ tabs: [{ widgetIds: ['w-notes', 'w-files'] }] })
+			await nextTick()
+
+			expect(w.vm.activeWidgetId).toBe('w-notes')
+		})
+
+		it('drops an id that resolves to nothing and keeps the rest', async () => {
+			const w = mountWidget({
+				tabs: [{ widgetIds: ['w-typo', 'w-notes'], label: 'Mixed' }],
+			})
+			await nextTick()
+
+			const hosts = w.findAll('.host')
+			expect(hosts).toHaveLength(1)
+			expect(hosts[0].text()).toContain('w-notes')
+		})
+
+		it('says which tab is empty when NONE of its ids resolve', async () => {
+			const w = mountWidget({
+				tabs: [{ widgetIds: ['w-typo', 'w-also-typo'], label: 'Oops' }],
+			})
+			await nextTick()
+
+			expect(w.findAll('[role="tab"]')).toHaveLength(1)
+			expect(w.findAll('.host')).toHaveLength(0)
+		})
+
+		it('reads a config carrying both spellings without losing a panel', async () => {
+			// Not a shape anyone should write, but hand-authored config drifts,
+			// and dropping one of the two silently is the worse answer.
+			const w = mountWidget({
+				tabs: [{ widgetIds: ['w-files'], widgetId: 'w-notes' }],
+			})
+			await nextTick()
+
+			const hosts = w.findAll('.host')
+			expect(hosts).toHaveLength(2)
+			expect(hosts[0].text()).toContain('w-files')
+			expect(hosts[1].text()).toContain('w-notes')
+		})
+	})
 })
