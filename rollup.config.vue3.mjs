@@ -30,6 +30,7 @@ import json from '@rollup/plugin-json'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
+import { isSingletonExternal } from './rollup.singleton-externals.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -97,6 +98,14 @@ export default {
 			|| /^@nextcloud\//.test(id)
 			|| /^vue-material-design-icons\//.test(id)
 			|| /^@toast-ui\//.test(id)
+			// Peer dependencies that must resolve to the CONSUMER's copy, never
+			// ours. This config used to omit them and shipped four vendored peers
+			// (dexie, dompurify, marked, @vueuse/core) for months, because the rule
+			// lived as a hand-written list in rollup.config.js only. Both configs
+			// now share one list so neither can be the one that forgot; the full
+			// incident and the reason each package qualifies are documented there.
+			// scripts/check-bundled-peers.mjs asserts the outcome on the built dist.
+			|| isSingletonExternal(id)
 		)
 	},
 	plugins: [
