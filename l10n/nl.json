@@ -918,7 +918,9 @@
     "People": "Mensen",
     "Logic": "Logica",
     "Messaging": "Berichten",
-    "AI": "AI"
+    "AI": "AI",
+    "Search people and groups…": "Zoek mensen en groepen…",
+    " (group)": " (groep)"
   },
   "plurals": {
     "{count} photo": ["{count} foto", "{count} foto's"],

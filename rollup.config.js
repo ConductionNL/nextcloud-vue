@@ -7,6 +7,7 @@ import json from '@rollup/plugin-json'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
+import { isSingletonExternal } from './rollup.singleton-externals.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -281,64 +282,14 @@ export default {
 			// The Toast UI WYSIWYG editor (loaded only in CnMarkdownEditor's
 			// `mode: 'wysiwyg'`) — kept external so it stays lazy at the consumer.
 			|| /^@toast-ui\//.test(id)
-			// `gridstack` is a peerDependency (package.json), not a bundled
-			// dependency — MUST stay external. CnDashboardGrid's JS sets a CSS
-			// custom property (`--gs-column-width`, v12+) that only GridStack's
-			// OWN matching stylesheet reads. A consumer imports
-			// `gridstack/dist/gridstack.min.css` from their own installed copy;
-			// if this bundler vendored a *different* resolved copy of the JS
-			// into dist (as it previously did — see dist/esm/node_modules/gridstack
-			// before this fix), the vendored JS and the consumer's CSS could be
-			// different majors and silently disagree, which is exactly how every
-			// CnDashboardGrid item rendered at 0px width (nc-vue's own bundled
-			// `^10.3.1` dependency vendored v10 JS underneath a consumer's v12
-			// CSS import). Keeping `gridstack` external makes the compiled
-			// output `import { GridStack } from 'gridstack'` a bare specifier,
-			// so the consumer's bundler resolves it to the SAME single copy
-			// whose CSS they import — the only way JS and CSS are guaranteed to
-			// agree.
-			|| id === 'gridstack'
-			|| /^gridstack\//.test(id)
-			// `dexie`, `dompurify` and `marked` are peerDependencies too, and
-			// were being BUNDLED anyway — the same defect gridstack had above,
-			// with the same shape: the vendored copy and the consumer's copy
-			// are two different modules at runtime, and the vendored one wins.
-			//
-			// Measured 2026-08-28 on the published 2.20.1 tarball: intersecting
-			// `dist/bundled-packages.json` (53 entries) with `peerDependencies`
-			// gave exactly these three, and the dist really did ship
-			// `dist/esm/node_modules/dexie/dist/dexie.js`.
-			//
-			// dexie REFUSES to initialise twice, so this is not a subtle
-			// mismatch — it takes the consuming app's BOOT down. pipelinq#1431
-			// (dependabot, dexie 4.4.4 -> 4.4.5) failed its E2E boot gate with
-			//
-			//     [boot gate] The Pipelinq Vue app did not mount. The bundle
-			//     loaded but rendered nothing.
-			//       pageerror: Two different versions of Dexie loaded in the
-			//       same app: 4.4.5 and 4.4.4
-			//
-			// The app's lockfile held exactly ONE dexie. The second copy was
-			// ours. pipelinq#1455 (marked) failed the same way. It works today
-			// only because `development` happens to pin the same version we
-			// vendored — so every dependabot bump of one of these breaks every
-			// consuming app until someone pins it back.
-			//
-			// dompurify makes it a security defect rather than a packaging one.
-			// It is the XSS sanitizer, and a consumer CANNOT patch it: they bump
-			// their own dependency, `npm audit` reports green, and the
-			// vulnerable copy inside our dist keeps running. A check that
-			// reports success over a live vulnerability is worse than no check.
-			//
-			// The rule these three share with gridstack: never inline a package
-			// that must be a SINGLETON — a database layer, a sanitizer, anything
-			// holding global state or owning a security boundary.
-			|| id === 'dexie'
-			|| /^dexie\//.test(id)
-			|| id === 'dompurify'
-			|| /^dompurify\//.test(id)
-			|| id === 'marked'
-			|| /^marked\//.test(id)
+			// Peer dependencies that must resolve to the CONSUMER's copy, never
+			// ours. The list and the full rationale for each package now live in
+			// rollup.singleton-externals.mjs, shared with rollup.config.vue3.mjs —
+			// this rule existed only here, was never copied to that config, and the
+			// divergence shipped four vendored peers for months. One list means
+			// neither config can be the one that forgot.
+			// scripts/check-bundled-peers.mjs asserts the outcome on the built dist.
+			|| isSingletonExternal(id)
 		)
 	},
 	plugins: [
