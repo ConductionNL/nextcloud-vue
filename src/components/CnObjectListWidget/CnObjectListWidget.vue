@@ -436,6 +436,17 @@ export default {
 			this.page = 1
 			this.fetchRows()
 		},
+		// The create-dialog schema is cached per instance, and an instance can
+		// be retargeted (CnRelatedCollections keys its children by index, so a
+		// reordered entry reuses the component). A schema resolved for the OLD
+		// register is exactly the wrong-app schema the register scoping above
+		// exists to prevent — drop it so the next open resolves it again.
+		'content.register'() {
+			this.forgetCreateSchema()
+		},
+		'content.schema'() {
+			this.forgetCreateSchema()
+		},
 	},
 
 	mounted() {
@@ -552,6 +563,17 @@ export default {
 			const available = cellRect.bottom - tableRect.top - footerReserve
 			const fit = Math.floor((available - headH) / rowH)
 			this.fitRows = Math.max(fit, 1)
+		},
+
+		/**
+		 * Drop the cached create-dialog schema (and close the dialog if it is
+		 * open) when the list points at another register or schema.
+		 *
+		 * @return {void}
+		 */
+		forgetCreateSchema() {
+			this.createSchema = null
+			this.showCreate = false
 		},
 
 		/**

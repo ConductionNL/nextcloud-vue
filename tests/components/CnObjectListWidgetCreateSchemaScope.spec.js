@@ -73,6 +73,23 @@ describe('CnObjectListWidget — create dialog resolves the schema in its own re
 		expect(options).toBeUndefined()
 	})
 
+	it('resolves the schema again, for the new register, after the list is retargeted', async () => {
+		// An instance can be reused for another register (CnRelatedCollections
+		// keys children by index). The schema cached for the OLD register is
+		// precisely the wrong-app schema the scoping exists to prevent.
+		const w = mountWidget({ register: 'portaliq', schema: 'page', columns: [] })
+		await w.vm.openCreate()
+		expect(schemaCalls()).toHaveLength(1)
+
+		await w.setProps({ content: { register: 'opencatalogi', schema: 'page', columns: [] } })
+		expect(w.vm.createSchema).toBeNull()
+		expect(w.vm.showCreate).toBe(false)
+
+		await w.vm.openCreate()
+		expect(schemaCalls()).toHaveLength(2)
+		expect(schemaCalls()[1][1]).toEqual({ params: { register: 'opencatalogi' } })
+	})
+
 	it('fetches the schema once and reuses it for the next open', async () => {
 		const w = mountWidget({ register: 'portaliq', schema: 'page', columns: [] })
 
