@@ -623,6 +623,7 @@
 <script>
 import { Comment, Fragment, Text, provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
@@ -664,6 +665,13 @@ import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 import { useObjectStore } from '../../store/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
+
+/**
+ * Event-bus channel a page-level refresh is announced on. The page's own
+ * Actions menu emits it, the manifest `refresh` / `api-call` actions bump it,
+ * and an app's own dialog emits it after a successful write.
+ */
+const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
@@ -2318,6 +2326,24 @@ export default {
 		// is guaranteed by mounted() but not by created().
 		this.fetchObjectIfNeeded()
 		this.scheduleCellOverflowAudit()
+
+		// `cn:page:refresh` is the channel a successful write announces itself
+		// on — the manifest `refresh` and `api-call` actions bump it, and so do
+		// app dialogs after a save. Until now nothing on a schema-driven detail
+		// page listened: `useEndpointSource` and CnChartWidget answered it, but
+		// every widget reading the page's OBJECT (`type: "data"` above all)
+		// reads the copy this component fetched once, so a page kept showing
+		// values the backend had already changed. Measured on a dossiq draft:
+		// publish returned `{"published":true,"version":1}`, a re-read showed
+		// `isDraft: false`, and the page still said draft.
+		//
+		// The subscription lives HERE rather than in each widget on purpose.
+		// One page carries several object-bound widgets; if each answered the
+		// channel itself, one write would become one read per widget. This
+		// component owns the object, so one write is one read however many
+		// widgets are bound to it.
+		this._onPageRefresh = () => this.onPageRefreshBus()
+		subscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
 	},
 
 	updated() {
@@ -2325,6 +2351,10 @@ export default {
 	},
 
 	beforeUnmount() {
+		if (this._onPageRefresh) {
+			unsubscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
+			this._onPageRefresh = null
+		}
 		if (this.hasExternalSidebar) {
 			this.objectSidebarState.active = false
 			// Clear manifest-driven tabs so the next mount starts fresh
@@ -2366,6 +2396,27 @@ export default {
 			} finally {
 				this.internalRefreshing = false
 			}
+		},
+
+		/**
+		 * A `cn:page:refresh` reached the page — re-read the object so every
+		 * object-bound widget re-renders from what the backend now holds.
+		 *
+		 * Deliberately a no-op while `internalRefreshing` is set. The header's
+		 * own Refresh item emits `@refresh` FIRST and only then emits on this
+		 * channel (see CnActionsMenu.onRefreshClick), and `onHeaderRefresh`
+		 * sets the flag synchronously before awaiting its fetch — so without
+		 * this guard one click on Refresh would fetch the object twice.
+		 *
+		 * @return {void}
+		 */
+		onPageRefreshBus() {
+			if (!this.hasSchemaDrivenFetch) return
+			if (this.internalRefreshing) return
+			this.internalRefreshing = true
+			Promise.resolve(this.fetchObjectIfNeeded()).finally(() => {
+				this.internalRefreshing = false
+			})
 		},
 
 		/**

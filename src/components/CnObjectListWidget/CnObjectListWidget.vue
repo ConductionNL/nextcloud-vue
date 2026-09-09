@@ -105,8 +105,16 @@ import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
 import { translate as t } from '@nextcloud/l10n'
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { resolveFilterTokens, hasUnresolvedTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
 import { objectFieldValue } from '../../utils/objectName.js'
+
+/**
+ * Event-bus channel a page-level refresh is announced on. The page's Actions
+ * menu emits it, the manifest `refresh` / `api-call` actions bump it, and an
+ * app's own dialog emits it after a successful write.
+ */
+const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
 /**
  * CnObjectListWidget — an abstract, manifest-configured object list / table.
@@ -440,6 +448,22 @@ export default {
 
 	mounted() {
 		this.fetchRows()
+		// Re-read on a page-level refresh. This list fetches its own rows from
+		// OpenRegister and subscribed to nothing, so after a write elsewhere on
+		// the page it went on rendering the result set it fetched on mount —
+		// values the backend had already changed. The endpoint-bound widgets
+		// have answered this channel since Wave 2 (useEndpointSource); the
+		// store-backed ones did not.
+		//
+		// Guarded on `loading`: the channel is a broadcast, and a page whose
+		// action fires it more than once (or a dialog that emits alongside the
+		// page's own Refresh) must not turn one write into a queue of
+		// overlapping reads for one list.
+		this._onPageRefresh = () => {
+			if (this.loading) return
+			this.fetchRows()
+		}
+		subscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
 		// Observe the host grid cell so the visible row count re-fits on
 		// resize/layout changes. Only detail-grid cells constrain height;
 		// on dashboards the closest() lookup misses and fitRows stays null.
@@ -452,6 +476,10 @@ export default {
 	},
 
 	beforeUnmount() {
+		if (this._onPageRefresh) {
+			unsubscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
+			this._onPageRefresh = null
+		}
 		if (this._fitObserver) this._fitObserver.disconnect()
 	},
 
