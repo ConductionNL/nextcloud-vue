@@ -67,7 +67,7 @@
 </template>
 
 <script>
-import { inject, ref } from 'vue'
+import { inject, markRaw, ref } from 'vue'
 import { translate as t, getLanguage } from '@nextcloud/l10n'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import VueApexCharts from 'vue3-apexcharts'
@@ -1173,7 +1173,8 @@ export default {
 	},
 
 	created() {
-		this.chartComponent = VueApexCharts
+		// markRaw: `data()` is deeply reactive and would proxy the component.
+		this.chartComponent = markRaw(VueApexCharts)
 	},
 
 	mounted() {
