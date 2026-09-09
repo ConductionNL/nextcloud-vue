@@ -1,11 +1,29 @@
 <template>
 	<div class="cn-tabs" :class="{ 'cn-tabs--card': card }">
 		<div class="cn-tabs__bar">
+			<!-- Pointer-only scroll affordances, rendered only when the strip
+			     actually overflows. `aria-hidden` + `tabindex="-1"` on purpose:
+			     a keyboard user reaches every tab with Left/Right, which moves
+			     focus and therefore scrolls the tab into view, so these would
+			     add two stops to the tab order and two announcements to a strip
+			     whose whole job is to be countable. -->
+			<button
+				v-if="hasOverflow"
+				type="button"
+				class="cn-tabs__scroll cn-tabs__scroll--start"
+				aria-hidden="true"
+				tabindex="-1"
+				:disabled="!canScrollStart"
+				@click="scrollStrip(-1)">
+				‹
+			</button>
 			<div
+				ref="navEl"
 				class="cn-tabs__nav"
 				:class="{ 'cn-tabs__nav--justified': justified }"
 				role="tablist"
 				:aria-label="ariaLabel || null"
+				@scroll="updateScrollState"
 				@keydown="onNavKeydown">
 				<button
 					v-for="tab in tabs"
@@ -21,9 +39,19 @@
 					:tabindex="isActive(tab.uid) ? 0 : -1"
 					:disabled="tab.disabled || null"
 					@click="tab.onActivate()">
-					<component :is="tab.titleRender" />
+					<span class="cn-tabs__nav-item-label"><component :is="tab.titleRender" /></span>
 				</button>
 			</div>
+			<button
+				v-if="hasOverflow"
+				type="button"
+				class="cn-tabs__scroll cn-tabs__scroll--end"
+				aria-hidden="true"
+				tabindex="-1"
+				:disabled="!canScrollEnd"
+				@click="scrollStrip(1)">
+				›
+			</button>
 			<div v-if="$slots['nav-end']" class="cn-tabs__nav-end">
 				<!-- @slot nav-end Rendered at the right-hand end of the tab bar, deliberately OUTSIDE the `role="tablist"` element. A widget Actions menu belongs beside the strip, not inside it: anything nested in the tablist is announced as one of the tabs, so a screen-reader user counting six tabs would hear seven. -->
 				<!-- @binding {number} active-index Index of the currently selected tab. -->
@@ -97,6 +125,28 @@
  * ones, so the nav strip matches the source. A tab that unmounts (a closable
  * tab) hands the selection to its neighbour.
  *
+ * ## The strip is one line
+ *
+ * Tabs share a single row whatever their number. They shrink to a readable
+ * floor first, so a strip that is only modestly over the width it has been
+ * given simply fits; past that floor the row scrolls, with a button at each
+ * end while there is anything to scroll to.
+ *
+ * It used to wrap instead, on the reasoning that a scrolling strip hides tabs
+ * behind an edge with nothing to say they are there. The reasoning was right
+ * and the remedy was wrong: `white-space: nowrap` makes a tab's min-content
+ * width its whole label, so the tabs could not shrink and the strip answered
+ * every shortfall with another row — six short tabs took three rows of a
+ * dossiq case panel, and cutting that strip from fourteen tabs to six changed
+ * nothing. The scroll buttons answer the objection that made wrapping look
+ * like the safer option.
+ *
+ * The buttons are `aria-hidden` and out of the tab order on purpose. Every tab
+ * is already reachable with Left/Right/Home/End, which moves focus and brings
+ * the target into view, so a keyboard user needs nothing here — and two extra
+ * stops in a strip whose job is to be countable would be a cost with no
+ * matching benefit.
+ *
  * ## Accessibility
  *
  * Implements the WAI-ARIA tabs pattern: `role="tablist"` / `role="tab"` /
@@ -105,7 +155,7 @@
  * Left/Right/Home/End keyboard navigation within the strip. Pass `aria-label`
  * (or `ariaLabel`) so screen-reader users hear what the strip is for.
  */
-import { computed, defineComponent, provide, reactive, ref } from 'vue'
+import { computed, defineComponent, nextTick, onBeforeUnmount, onMounted, provide, reactive, ref, watch } from 'vue'
 import { CN_TABS_INJECTION_KEY } from './tabsKey.js'
 
 export default defineComponent({
@@ -147,6 +197,83 @@ export default defineComponent({
 		const tabs = reactive([])
 		const activeUid = ref(null)
 		const navButtons = ref([])
+		const navEl = ref(null)
+		// Whether the strip overflows at all. BOTH affordances render together
+		// on the strength of it, each disabled when it has nothing to do,
+		// rather than each appearing when its own direction becomes available.
+		// They sit in the bar's flex row, so a button that appears mid-scroll
+		// narrows the strip under the scroll that is running: measured on a
+		// 14-tab strip, pressing End landed the last tab 22px — the button's
+		// exact width — short of its own right edge and stopped there. Showing
+		// both from the start keeps the strip's width constant while it moves.
+		// This cannot oscillate: rendering the buttons only ever makes the
+		// strip narrower, so a strip that overflows keeps overflowing.
+		const hasOverflow = ref(false)
+		const canScrollStart = ref(false)
+		const canScrollEnd = ref(false)
+		let resizeObserver = null
+
+		/**
+		 * Recompute whether the strip overflows, and in which direction.
+		 *
+		 * A 1px tolerance because a fractional layout (a 33.5px tab, a zoomed
+		 * page) leaves `scrollWidth` a hair above `clientWidth` on a strip that
+		 * visually fits, and a scroll button on a strip with nothing to scroll
+		 * to is worse than none.
+		 *
+		 * @return {void}
+		 */
+		function updateScrollState() {
+			const el = navEl.value
+			if (!el) {
+				hasOverflow.value = false
+				canScrollStart.value = false
+				canScrollEnd.value = false
+				return
+			}
+			hasOverflow.value = el.scrollWidth > el.clientWidth + 1
+			canScrollStart.value = el.scrollLeft > 1
+			canScrollEnd.value = el.scrollLeft + el.clientWidth < el.scrollWidth - 1
+		}
+
+		/**
+		 * Bring one nav button fully inside the strip, by the smallest scroll
+		 * that does it. Nothing happens when it is already whole.
+		 *
+		 * @param {HTMLElement} button The nav button to reveal.
+		 *
+		 * @return {void}
+		 */
+		function revealTab(button) {
+			const el = navEl.value
+			if (!el || !button || typeof el.scrollBy !== 'function') {
+				return
+			}
+			const tab = button.getBoundingClientRect()
+			const strip = el.getBoundingClientRect()
+			if (tab.left < strip.left) {
+				el.scrollBy({ left: tab.left - strip.left, behavior: 'smooth' })
+			} else if (tab.right > strip.right) {
+				el.scrollBy({ left: tab.right - strip.right, behavior: 'smooth' })
+			}
+		}
+
+		/**
+		 * Scroll the strip by most of a viewport, leaving a sliver of the tab
+		 * that was at the edge so the movement reads as a scroll rather than a
+		 * page change.
+		 *
+		 * @param {number} direction -1 for start, 1 for end.
+		 *
+		 * @return {void}
+		 */
+		function scrollStrip(direction) {
+			const el = navEl.value
+			if (!el) {
+				return
+			}
+			el.scrollBy({ left: direction * Math.max(80, el.clientWidth * 0.8), behavior: 'smooth' })
+		}
 
 		/**
 		 * Register a child tab. The first child to register wins the initial
@@ -236,7 +363,14 @@ export default defineComponent({
 			const position = tabs.indexOf(target)
 			const button = navButtons.value?.[position]
 			if (button && typeof button.focus === 'function') {
-				button.focus()
+				// `preventScroll`, then scroll the strip by hand. The browser's
+				// own focus scroll and `scrollIntoView()` both animate, and two
+				// smooth scrolls issued in the same tick fight: measured, the
+				// last tab of a 14-tab strip settled 22px short of its own
+				// right edge and stayed there. One deterministic scroll, by the
+				// exact overhang, lands it every time.
+				button.focus({ preventScroll: true })
+				revealTab(button)
 			}
 		}
 
@@ -271,7 +405,38 @@ export default defineComponent({
 
 		provide(CN_TABS_INJECTION_KEY, { register, unregister, select, isActive })
 
-		return { tabs, isActive, activeIndex, navButtons, onNavKeydown }
+		onMounted(() => {
+			updateScrollState()
+			if (typeof ResizeObserver !== 'undefined' && navEl.value) {
+				resizeObserver = new ResizeObserver(() => updateScrollState())
+				resizeObserver.observe(navEl.value)
+			}
+		})
+
+		onBeforeUnmount(() => {
+			if (resizeObserver) {
+				resizeObserver.disconnect()
+				resizeObserver = null
+			}
+		})
+
+		// A tab registering or unmounting changes the strip's width without
+		// resizing the nav, so the ResizeObserver alone would miss it.
+		watch(() => tabs.length, () => { nextTick(updateScrollState) })
+
+		return {
+			tabs,
+			isActive,
+			activeIndex,
+			navButtons,
+			navEl,
+			hasOverflow,
+			canScrollStart,
+			canScrollEnd,
+			updateScrollState,
+			scrollStrip,
+			onNavKeydown,
+		}
 	},
 })
 </script>
@@ -282,28 +447,96 @@ export default defineComponent({
    nav-end content the nav is the bar's only child and the result is pixel
    identical to the rule living on the nav itself. */
 .cn-tabs__bar {
-	/* flex-START, not flex-end. The nav is a SIBLING that grows taller when its
-	   tabs wrap, so bottom-aligning drops the `#nav-end` control down beside
-	   the LAST row. Measured on a 9-tab dossiq case strip: Actions landed next
-	   to the single wrapped tab and read as that one tab's own control rather
-	   than the strip's. Top-aligning keeps it on the first row, where the
-	   widget's title used to be. */
+	/* flex-START, not flex-end. Kept from when the nav could grow taller than
+	   its sibling: it no longer wraps, but the `#nav-end` control is still the
+	   taller side on some hosts and bottom-aligning would then push the tabs
+	   down off the bar's rule. */
 	align-items: flex-start;
 	border-bottom: 1px solid var(--color-border);
 	display: flex;
 	gap: 8px;
 }
 
+/* THE STRIP IS ONE LINE.
+   It used to wrap, on the reasoning that a scrolling strip hides tabs behind
+   an edge with nothing to say they are there. The reasoning was right and the
+   remedy was wrong: `white-space: nowrap` on a tab makes its min-content width
+   its whole label, so a flex item that is nominally shrinkable cannot actually
+   shrink, and the strip had no way to respond to the space it was given. It
+   answered every shortfall the only way left to it — another row.
+   Measured on a dossiq case panel, which is an 8-of-12 detail-grid cell and so
+   440px wide at a 1024 viewport, leaving a 317px strip: SIX short tabs took
+   THREE rows, and cutting the strip from fourteen tabs to six moved nothing,
+   because the first five sat at byte-identical positions either way. A tab
+   strip that is a third of a card's height is not a strip.
+   So: one line, tabs that shrink to a readable floor, and past that a scroll —
+   with the two buttons in the template answering the objection that made
+   wrapping look like the safer option. */
 .cn-tabs__nav {
 	display: flex;
 	flex: 1 1 auto;
 	gap: 4px;
 	min-width: 0;
-	/* Wrap before scrolling. A horizontally scrolling strip hides tabs behind
-	   an edge with nothing to say they are there, and beside a `#nav-end`
-	   control the clipped tab reads as sitting UNDER the control. Wrapping
-	   keeps every tab reachable without a gesture. */
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	/* `hidden`, not `visible`: `overflow-x: auto` forces the other axis to a
+	   scrolling value anyway, and `auto` there would add a vertical scrollbar
+	   to a 34px box. */
+	overflow-y: hidden;
+	scroll-behavior: smooth;
+	/* No scrollbar: the two buttons carry the affordance, and a scrollbar under
+	   a 34px strip is a second control saying the same thing.
+	   NOT VERIFIED AS A LAYOUT FIX. A classic (non-overlay) scrollbar is part
+	   of the box and would make the nav taller whenever the strip overflowed,
+	   sinking the bar's rule and breaking the join between the open tab and its
+	   panel — but this repo's Chromium renders overlay scrollbars, so leaving
+	   `scrollbar-width: auto` in place did not reproduce that and no test here
+	   can hold it. Stated as the reason to keep the declaration, not as a
+	   measured one. */
+	scrollbar-width: none;
+	/* The active tab's `margin-bottom: -1px` overhang lies outside the content
+	   box, so `overflow-y: hidden` would clip the very pixel that covers the
+	   bar's rule. One pixel of padding puts it back inside the padding box
+	   (which is what overflow clips at), and the matching negative margin keeps
+	   the nav's outer box exactly where it was. */
+	padding-bottom: 1px;
+	margin-bottom: -1px;
+}
+
+.cn-tabs__nav::-webkit-scrollbar {
+	display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-tabs__nav {
+		scroll-behavior: auto;
+	}
+}
+
+/* Rendered as a pair while the strip overflows; each disabled at its own end. */
+.cn-tabs__scroll {
+	align-items: center;
+	align-self: stretch;
+	background: transparent;
+	border: none;
+	color: var(--color-text-maxcontrast);
+	cursor: pointer;
+	display: flex;
+	flex: 0 0 auto;
+	font-size: 18px;
+	line-height: 1;
+	margin: 0;
+	min-height: 0;
+	padding: 0 4px;
+}
+
+.cn-tabs__scroll:hover:not([disabled]) {
+	color: var(--color-main-text);
+}
+
+.cn-tabs__scroll[disabled] {
+	cursor: default;
+	opacity: 0.35;
 }
 
 .cn-tabs__nav-end {
@@ -352,6 +585,21 @@ export default defineComponent({
 	   enough inside a Nextcloud page. */
 	padding: 8px 12px;
 	white-space: nowrap;
+	/* Shrinkable, with a floor. `min-width: auto` on a flex item resolves to
+	   its min-content width, which for nowrap text is the whole label — that is
+	   what stopped these responding to available space at all. The floor is
+	   what stops the other extreme: a strip squeezed to nothing per tab, which
+	   is a row of ellipses and names no panel. Past the floor the strip
+	   scrolls.
+	   Shrink is proportional to natural width, so the long label gives way
+	   first and the short ones keep their text — which is the right order.
+	   The floor is set just above the natural width of a one-word tab, so a
+	   strip of short tabs is barely distorted by it. The cap stops the other
+	   direction: one long label must not take a third of the strip. */
+	flex: 0 1 auto;
+	min-width: 5.5rem;
+	max-width: 16rem;
+	overflow: hidden;
 	/* Match the `#nav-end` control's own height. The bar is a flex row, so
 	   whichever side is taller sets the bar's height and therefore where its
 	   bottom rule lands. When the control was the taller one the rule sat below
@@ -382,6 +630,17 @@ export default defineComponent({
 
 .cn-tabs__nav--justified .cn-tabs__nav-item {
 	flex: 1 1 0;
+}
+
+/* The label truncates rather than being cut mid-glyph. The `#title` slot may
+   render an icon beside the text (CnTabsWidget does), so the ellipsis lives on
+   the inner text there; this covers the plain-string `title` case. */
+.cn-tabs__nav-item-label {
+	display: block;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .cn-tabs__nav-item:hover,

@@ -38,7 +38,7 @@
 							:name="entry.icon"
 							:size="18"
 							class="cn-tabs-widget__title-icon" />
-						{{ entry.label }}
+						<span class="cn-tabs-widget__title-text">{{ entry.label }}</span>
 					</span>
 				</template>
 
@@ -420,11 +420,23 @@ export default {
 
 .cn-tabs-widget__title {
 	align-items: center;
-	display: inline-flex;
+	display: flex;
 	gap: 6px;
+	min-width: 0;
 }
 
 .cn-tabs-widget__title-icon {
 	flex: 0 0 auto;
+}
+
+/* The label is the part that gives when the strip is short of room. It has to
+   be its own element: `text-overflow` needs a block container holding the
+   text, and a bare text node inside the flex title above is an anonymous flex
+   item, which clips mid-glyph instead of truncating. */
+.cn-tabs-widget__title-text {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 </style>
