@@ -88,6 +88,31 @@ describe('object-table dashboard registration (issue #89)', () => {
 		expect(props.columns).toEqual([{ key: 'title', label: 'Case' }])
 	})
 
+	it('keeps a top-level limit when there is no register/schema to fold it into', () => {
+		const props = objectTableContentToProps({
+			endpointSource: { url: '/apps/keepiq/api/v1/applications/pending' },
+			columns: [{ key: 'name', label: 'Name' }],
+			limit: 3,
+			viewAllRoute: { name: 'ApplicationRegister' },
+		})
+		expect(props.limit).toBe(3)
+		expect(props.source).toBeUndefined()
+		expect(props.viewAllRoute).toEqual({ name: 'ApplicationRegister' })
+	})
+
+	it('drops a non-positive or non-numeric limit rather than passing it through', () => {
+		expect(objectTableContentToProps({ limit: 0 }).limit).toBeUndefined()
+		expect(objectTableContentToProps({ limit: -1 }).limit).toBeUndefined()
+		expect(objectTableContentToProps({ limit: '3' }).limit).toBeUndefined()
+	})
+
+	it('vets a top-level limit on a v2 blob too, and keeps a valid one', () => {
+		const source = { register: 'r', schema: 's' }
+		expect(objectTableContentToProps({ source, limit: '3' }).limit).toBeUndefined()
+		expect(objectTableContentToProps({ source, limit: 0 }).limit).toBeUndefined()
+		expect(objectTableContentToProps({ source, limit: 4 }).limit).toBe(4)
+	})
+
 	it('passes a v2-shaped content (explicit source) through unchanged', () => {
 		const content = {
 			source: { register: 'r', schema: 's', filter: { assignee: '@me' }, limit: 5 },
