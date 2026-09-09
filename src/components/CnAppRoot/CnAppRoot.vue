@@ -387,6 +387,7 @@
 				v-if="shouldAutoMountObjectSidebar"
 				:open="effectiveObjectSidebarState.open === true"
 				:tabs="effectiveObjectSidebarState.tabs"
+				:use-registry="objectSidebarUseRegistry"
 				:object-type="effectiveObjectSidebarState.objectType"
 				:object-id="effectiveObjectSidebarState.objectId"
 				:object-data="effectiveObjectSidebarState.object"
@@ -1906,6 +1907,22 @@ export default {
 		 */
 		effectiveObjectSidebarState() {
 			return this.localObjectSidebarState
+		},
+		/**
+		 * Which mode the auto-mounted CnObjectSidebar runs in.
+		 *
+		 * CnObjectSidebar treats `tabs` and `useRegistry` as mutually
+		 * exclusive and warns when it gets both. This mount site passes
+		 * `:tabs` unconditionally, so leaving `useRegistry` at its default
+		 * `true` warned on every detail page that publishes tabs — advice no
+		 * consumer could act on, since they never see this element. Published
+		 * tabs mean tabs mode, which is what the sidebar picks anyway.
+		 *
+		 * @return {boolean}
+		 */
+		objectSidebarUseRegistry() {
+			const tabs = this.effectiveObjectSidebarState?.tabs
+			return !(Array.isArray(tabs) && tabs.length > 0)
 		},
 		/**
 		 * Decide whether THIS CnAppRoot should render the hoisted

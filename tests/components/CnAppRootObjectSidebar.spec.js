@@ -172,6 +172,39 @@ describe('CnAppRoot — CnObjectSidebar auto-mount', () => {
 		expect(appRoot.vm.$.provides.objectSidebarState).not.toBe(appRoot.vm.localObjectSidebarState)
 	})
 
+	describe('the auto-mount picks a mode instead of passing both', () => {
+		// CnObjectSidebar treats `tabs` and `useRegistry` as mutually exclusive
+		// and warns when given both. This mount site always passes `:tabs`, so
+		// a default `useRegistry: true` warned on every detail page that
+		// publishes tabs — advice no consumer could act on.
+		function mountWithTabs(tabs) {
+			const wrapper = shallowMount(CnAppRoot, {
+				propsData: { manifest, requiresApps: [] },
+				stubs: { CnObjectSidebar: true, CnAppNav: true, CnAiCompanion: true, NcContent: { template: '<div><slot/></div>' }, NcAppContent: { template: '<div><slot/></div>' } },
+			})
+			Object.assign(wrapper.vm.localObjectSidebarState, { active: true, objectType: 'r-s', objectId: 'o-1', tabs })
+			return wrapper
+		}
+
+		it('turns registry mode off when the page published tabs', async () => {
+			const wrapper = mountWithTabs([{ id: 'manifest', label: 'Manifest' }])
+			await vueNextTick()
+			expect(findSidebar(wrapper).props('useRegistry')).toBe(false)
+		})
+
+		it('keeps registry mode on when the page published none', async () => {
+			const wrapper = mountWithTabs(undefined)
+			await vueNextTick()
+			expect(findSidebar(wrapper).props('useRegistry')).toBe(true)
+		})
+
+		it('keeps registry mode on for an empty tabs array', async () => {
+			const wrapper = mountWithTabs([])
+			await vueNextTick()
+			expect(findSidebar(wrapper).props('useRegistry')).toBe(true)
+		})
+	})
+
 	it('still provides its OWN local holder when NO ancestor provides one', () => {
 		// Standalone CnAppRoot (openregister-style host without an ancestor
 		// provider, or a manifest-only app relying on the auto-mount) keeps
