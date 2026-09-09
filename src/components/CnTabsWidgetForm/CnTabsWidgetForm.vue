@@ -13,7 +13,7 @@
 			:model-value="selectedOptions"
 			:options="widgetOptions"
 			:multiple="true"
-			:close-on-select="false"
+			:keep-open="true"
 			label="label"
 			:input-label="t('nextcloud-vue', 'Widgets to show as tabs')"
 			:placeholder="t('nextcloud-vue', 'Pick the widgets')"

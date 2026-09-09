@@ -19,7 +19,7 @@
 			:model-value="selectedOptions"
 			:options="groupOptions"
 			:multiple="true"
-			:close-on-select="false"
+			:keep-open="true"
 			:input-label="t('nextcloud-vue', 'Relations to show')"
 			:placeholder="t('nextcloud-vue', 'All relations')"
 			@update:model-value="onGroupsInput" />

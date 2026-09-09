@@ -112,7 +112,7 @@
 						:input-label="t('nextcloud-vue', 'Available views')"
 						label="label"
 						:multiple="true"
-						:close-on-select="false"
+						:keep-open="true"
 						:placeholder="t('nextcloud-vue', 'Cards, Table (default)')"
 						@update:model-value="setAvailableViews" />
 					<p class="cn-field__hint">
@@ -392,7 +392,7 @@
 							:input-label="t('nextcloud-vue', 'Columns shown')"
 							label="label"
 							:multiple="true"
-							:close-on-select="false"
+							:keep-open="true"
 							:placeholder="t('nextcloud-vue', 'All properties')"
 							@update:model-value="setColumns" />
 						<NcTextField v-else

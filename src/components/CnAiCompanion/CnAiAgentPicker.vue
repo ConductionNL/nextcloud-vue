@@ -31,7 +31,6 @@
 			:loading="loading"
 			:disabled="loading || options.length === 0"
 			:clearable="false"
-			:close-on-select="true"
 			label="label"
 			:input-label="cnTranslate('Agent')"
 			:placeholder="pickerPlaceholder"

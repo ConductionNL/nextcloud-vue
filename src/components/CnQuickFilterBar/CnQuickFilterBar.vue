@@ -13,7 +13,7 @@
 			:model-value="dropdownValue"
 			:options="dropdownOptions"
 			:multiple="multiple"
-			:close-on-select="!multiple"
+			:keep-open="multiple"
 			:clearable="true"
 			label="label"
 			class="cn-quick-filter-bar__select"

@@ -139,6 +139,9 @@
 					:label-visible="true"
 					@update:model-value="(v) => setConfig('schema', v)" />
 
+				<!-- `keep-open`, not vue-select's `close-on-select`: NcSelect
+				     hardcodes `closeOnSelect: !keepOpen` when it forwards props,
+				     so `close-on-select` is swallowed with no warning. -->
 				<NcSelect v-if="page.type === 'index' && columnOptions.length"
 					class="cn-page-tree__panel-field"
 					:model-value="selectedColumns"
@@ -146,7 +149,7 @@
 					:input-label="t('nextcloud-vue', 'Columns')"
 					label="label"
 					:multiple="true"
-					:close-on-select="false"
+					:keep-open="true"
 					:placeholder="t('nextcloud-vue', 'All properties')"
 					@update:model-value="setColumns" />
 				<NcTextField v-else-if="page.type === 'index'"
