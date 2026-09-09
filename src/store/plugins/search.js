@@ -1,4 +1,5 @@
 import { buildQueryString, prefixUrl } from '../../utils/headers.js'
+import { normalizeFacets } from '../../utils/facets.js'
 // `buildHeaders` is reached via `this._buildHeaders()` so cross-schema
 // search fetches inherit the active tenant UUID (multi-tenancy-context).
 
@@ -314,19 +315,7 @@ export function searchPlugin() {
 					}
 
 					if (data.facets) {
-						const transformed = {}
-						for (const [key, facet] of Object.entries(data.facets)) {
-							if (facet.buckets || facet.data?.buckets) {
-								const buckets = facet.buckets || facet.data.buckets
-								transformed[key] = {
-									values: buckets.map((b) => ({
-										value: b.key ?? b.value,
-										count: b.count || 0,
-									})),
-								}
-							}
-						}
-						this._searchFacets = transformed
+						this._searchFacets = normalizeFacets(data.facets)
 					}
 
 					return results

@@ -194,9 +194,11 @@ CnFacetSidebar MUST auto-generate faceted filter groups from schema properties m
 
 #### Scenario: Live facet data with counts
 
-- GIVEN `facetData` contains `{ fieldName: { values: [{ value, count }] } }`
+- GIVEN `facetData` contains `{ fieldName: { values: [{ value, count?, label? }] } }`
 - WHEN a select filter renders for that field
-- THEN its options MUST display as `"value (count)"` labels
+- THEN its options MUST display as `"label (count)"`, falling back to the raw value when the bucket carries no label
+- AND when a bucket carries no `count`, the option MUST render the label alone with no count in parentheses
+- AND `(0)` MUST NOT be rendered for a bucket whose count is absent, because a count nothing measured must not be shown as a number
 - AND when `facetData` has no entry for a field, the filter MUST fall back to static enum options from the schema
 
 #### Scenario: Multi-select facet filters
@@ -310,6 +312,8 @@ CnIndexSidebar MUST support pre-selected active filters and live facet data with
 - GIVEN `facetData` prop contains `{ status: { values: [{ value: "active", count: 12 }, { value: "pending", count: 3 }] } }`
 - WHEN the status filter renders
 - THEN the NcSelect options MUST display `"active (12)"` and `"pending (3)"` as labels
+- AND a facet over a `$ref` whose buckets carry a `label` MUST display the label, not the identifier the bucket is keyed by
+- AND a bucket with no `count` MUST render its label alone, never `"label (0)"`
 - AND when `facetData` is empty, the filter MUST fall back to static enum options from the schema
 
 ### REQ-LC-011: CnIndexSidebar — Column Groups and Metadata
