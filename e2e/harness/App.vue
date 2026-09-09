@@ -123,39 +123,6 @@
 			</div>
 		</template>
 
-		<!--
-			Tab-strip fit (?tabsfit=1).
-
-			The strip has to stay on ONE line. Reported on a dossiq case page,
-			where the panels strip was cut from fourteen tabs to six to get it
-			onto one line at 1024 and the six still wrapped — the first five sat
-			at byte-identical positions before and after the cut, so the count
-			was never the variable.
-
-			Both boxes are 440px, which is what an 8-of-12 detail-grid cell
-			comes to inside a Nextcloud page at a 1024 viewport. The first
-			carries dossiq's own six labels; the second carries fourteen, which
-			no width can fit and which therefore has to degrade rather than
-			wrap.
-
-			Geometry, so jsdom cannot judge it: every rect it reports is 0 and a
-			unit test would pass with the strip wrapped into a block.
-		-->
-		<template v-else-if="showTabsFit">
-			<h2>Tab strip fit</h2>
-			<div class="tf-cell" data-testid="tf-six">
-				<CnTabsWidget :content="tfSixContent" :available-widgets="tfSixWidgets" />
-			</div>
-			<h3>Fourteen tabs</h3>
-			<div class="tf-cell" data-testid="tf-fourteen">
-				<CnTabsWidget :content="tfManyContent" :available-widgets="tfManyWidgets" />
-			</div>
-			<h3>Same six tabs, a wider cell</h3>
-			<div class="tf-wide" data-testid="tf-wide">
-				<CnTabsWidget :content="tfSixContent" :available-widgets="tfSixWidgets" />
-			</div>
-		</template>
-
 		<template v-else-if="showDtScroll">
 			<h2>Data table — horizontal scroll</h2>
 			<div class="dt-narrow" data-testid="dt-overflowing">
@@ -494,26 +461,6 @@ export default {
 			showDtScroll: (typeof window !== 'undefined' && window.location.search.includes('dtscroll')),
 			// Tabs widget chrome harness (?tabswidget=1).
 			showTabsWidget: (typeof window !== 'undefined' && window.location.search.includes('tabswidget')),
-			// Tab-strip fit harness (?tabsfit=1).
-			showTabsFit: (typeof window !== 'undefined' && window.location.search.includes('tabsfit')),
-			// dossiq's own six case-panel labels, verbatim from its manifest.
-			tfSixContent: {
-				ariaLabel: 'Case details',
-				tabs: [
-					{ widgetId: 'tf-1', label: 'Data', icon: 'DatabaseOutline' },
-					{ widgetId: 'tf-2', label: 'Documents', icon: 'FileDocumentOutline' },
-					{ widgetId: 'tf-3', label: 'People', icon: 'AccountGroupOutline' },
-					{ widgetId: 'tf-4', label: 'Work', icon: 'ClipboardCheckOutline' },
-					{ widgetId: 'tf-5', label: 'Related', icon: 'FileTreeOutline' },
-					{ widgetId: 'tf-6', label: 'Objects and locations', icon: 'MapMarkerOutline' },
-				],
-			},
-			tfSixWidgets: Array.from({ length: 6 }, (_, i) => ({ id: `tf-${i + 1}`, type: 'custom', title: `Panel ${i + 1}` })),
-			tfManyContent: {
-				ariaLabel: 'Many panels',
-				tabs: Array.from({ length: 14 }, (_, i) => ({ widgetId: `tm-${i + 1}`, label: `Panel number ${i + 1}`, icon: 'FileDocumentOutline' })),
-			},
-			tfManyWidgets: Array.from({ length: 14 }, (_, i) => ({ id: `tm-${i + 1}`, type: 'custom', title: `Panel ${i + 1}` })),
 			twContent: {
 				ariaLabel: 'Panels',
 				tabs: [
@@ -837,23 +784,6 @@ export default {
    really does overflow rather than merely being declared scrollable. */
 .dt-narrow {
 	width: 320px;
-	margin-bottom: 24px;
-}
-
-/* An 8-of-12 detail-grid cell inside a Nextcloud page at a 1024 viewport:
-   1024 less the app navigation and the page inset, times 8/12. The number is
-   the point of the harness — a strip that only fits when given the whole
-   window is not fixed. */
-.tf-cell {
-	width: 440px;
-	margin-bottom: 24px;
-}
-
-/* Wide enough that the six tabs are only MODESTLY over: their natural widths
-   come to a little more than the strip, so a strip that responds to available
-   space fits them without scrolling, and one that does not, cannot. */
-.tf-wide {
-	width: 700px;
 	margin-bottom: 24px;
 }
 
