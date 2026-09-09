@@ -52,6 +52,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon } from '@nextcloud/vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import { objectDisplayName } from '../../utils/objectName.js'
 
 /**
  * CnDeleteDialog — Single-item delete confirmation dialog.
@@ -145,7 +146,24 @@ export default {
 	computed: {
 		itemName() {
 			if (this.nameFormatter) return this.nameFormatter(this.item)
-			return this.item[this.nameField] || this.item.name || this.item.naam || this.item.title || this.item.id
+			// The caller's `nameField` first — it is the explicit instruction —
+			// but only when it holds a STRING. A schema whose `name` is
+			// structured (Haal Centraal naming gives a person
+			// `name: { givenNames, namePrefix, surname }`) would otherwise put
+			// that object into the sentence, and "permanently delete
+			// \"[object Object]\"?" is a prompt nobody can answer.
+			//
+			// Everything after it is the shared `objectDisplayName`, which asks
+			// `@self.name` — OpenRegister's own derived display name — before
+			// sniffing the record's fields, and type-checks each candidate. It
+			// replaces the hand-rolled chain that used to live here; that chain
+			// had no `@self.name` and no `displayName`, so on a person record it
+			// fell all the way through to the UUID even after the object was
+			// skipped.
+			const explicit = this.item[this.nameField]
+			if (typeof explicit === 'string' && explicit.trim() !== '') return explicit
+			if (typeof explicit === 'number') return String(explicit)
+			return objectDisplayName(this.item) || this.item.id
 		},
 		resolvedWarningText() {
 			return this.warningText.replace('{name}', this.itemName)

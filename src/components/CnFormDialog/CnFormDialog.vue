@@ -448,6 +448,7 @@ import { fieldsFromSchema } from '../../utils/schema.js'
 import { searchNextcloudUsers, resolveNextcloudUser } from '../../utils/userAutocomplete.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { shouldShow } from '../../utils/fieldCondition.js'
+import { objectDisplayName } from '../../utils/objectName.js'
 import {
 	extendsFormDeclarations,
 	definitionQueryParams,
@@ -2043,22 +2044,27 @@ export default {
 		},
 
 		/**
-		 * Resolve a human-readable label for an OpenRegister object, falling
-		 * back through the common name fields to the UUID.
+		 * Resolve a human-readable label for an OpenRegister object.
+		 *
+		 * Delegates to the shared `objectDisplayName`, which asks `@self.name`
+		 * FIRST — the display name OpenRegister derived from whichever property
+		 * the schema actually uses — and type-checks every candidate.
+		 *
+		 * This used to be its own chain, and it took the first TRUTHY key
+		 * starting at `obj.title`, `obj.name`. That is wrong for any schema
+		 * whose `name` is structured rather than a string: Haal Centraal naming
+		 * gives a person `name: { givenNames, namePrefix, surname }`, so the
+		 * label became that OBJECT and the picker rendered `[object Object]`
+		 * where the requester's name belonged. `@self.name` held "Stephan
+		 * Janssen" the whole time, four candidates further down a list that
+		 * never reached it because `obj.name` was truthy.
 		 *
 		 * @param {object} obj An OpenRegister object.
 		 * @return {string} The display label.
 		 */
 		displayLabel(obj) {
 			if (!obj || typeof obj !== 'object') return String(obj)
-			return obj.title
-				|| obj.name
-				|| obj.naam
-				|| obj.label
-				|| obj.identifier
-				|| (obj['@self'] && obj['@self'].name)
-				|| obj.id
-				|| ''
+			return objectDisplayName(obj)
 		},
 
 		/**
