@@ -34,39 +34,44 @@
 					</slot>
 				</div>
 
+				<!-- `#item` + `item-key`: vuedraggable@4 (the Vue 3 build)
+				     renders the cards itself from this slot. A `v-for` in the
+				     default slot throws "draggable element must have an item
+				     slot" the moment the column paints. -->
 				<draggable
 					:list="column.cards"
 					tag="div"
 					class="cn-object-kanban__column-cards"
+					:item-key="cardKey"
 					group="cn-object-kanban-cards"
 					:data-column-value="columnKey(column.value)"
 					@start="onDragStart(column)"
 					@change="onColumnChange($event, column)">
-					<div
-						v-for="card in column.cards"
-						:key="cardKey(card)"
-						class="cn-object-kanban__card"
-						:class="{ 'cn-object-kanban__card--pending': isPending(card) }">
-						<!-- @slot card Fully replace the default card rendering. -->
-						<!-- @binding {object} object The card's object. -->
-						<!-- @binding {object} column The column the card currently sits in. -->
-						<slot name="card" :object="card" :column="column">
-							<div class="cn-object-kanban__card-title" @click="onCardClick(card)">
-								{{ cardTitle(card) }}
-							</div>
-							<div v-if="cardFields.length" class="cn-object-kanban__card-fields">
-								<div
-									v-for="field in cardFields"
-									:key="field"
-									class="cn-object-kanban__card-field">
-									<CnCellRenderer
-										:value="card[field]"
-										:property="schemaProperty(field)"
-										:truncate="40" />
+					<template #item="{ element: card }">
+						<div
+							class="cn-object-kanban__card"
+							:class="{ 'cn-object-kanban__card--pending': isPending(card) }">
+							<!-- @slot card Fully replace the default card rendering. -->
+							<!-- @binding {object} object The card's object. -->
+							<!-- @binding {object} column The column the card currently sits in. -->
+							<slot name="card" :object="card" :column="column">
+								<div class="cn-object-kanban__card-title" @click="onCardClick(card)">
+									{{ cardTitle(card) }}
 								</div>
-							</div>
-						</slot>
-					</div>
+								<div v-if="cardFields.length" class="cn-object-kanban__card-fields">
+									<div
+										v-for="field in cardFields"
+										:key="field"
+										class="cn-object-kanban__card-field">
+										<CnCellRenderer
+											:value="card[field]"
+											:property="schemaProperty(field)"
+											:truncate="40" />
+									</div>
+								</div>
+							</slot>
+						</div>
+					</template>
 				</draggable>
 
 				<div v-if="hasMore(column)" class="cn-object-kanban__load-more">

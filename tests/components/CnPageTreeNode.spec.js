@@ -6,11 +6,27 @@
  * mirror from the flat `pages[]`, flattening it back (parent assignment + order),
  * the depth-1 drag guard, and add/remove with child reparenting.
  */
+import { reactive } from 'vue'
 import { mount } from '@vue/test-utils'
 import CnPageTreeNode from '../../src/components/CnPageTreeNode/CnPageTreeNode.vue'
 
 // Stub vuedraggable + the row so the node mounts without Sortable / child deps.
-const DraggableStub = { name: 'draggable', props: ['value', 'list', 'group', 'move'], template: '<ul><slot /></ul>' }
+// Mirrors vuedraggable@4: rows come from the `#item` slot, one per element,
+// NOT from the default slot. The stub used to render `<slot />`, which is the
+// Vue 2 contract — so a component still written against Vue 2 rendered fine
+// here while the real component threw "draggable element must have an item
+// slot" in the browser. With this stub, that form renders nothing and the row
+// assertions below fail.
+const DraggableStub = {
+	name: 'draggable',
+	props: ['modelValue', 'value', 'list', 'group', 'move', 'itemKey', 'tag'],
+	computed: {
+		items() {
+			return this.modelValue || this.value || this.list || []
+		},
+	},
+	template: '<ul><template v-for="(element, index) in items" :key="index"><slot name="item" :element="element" :index="index" /></template></ul>',
+}
 const RowStub = { name: 'CnPageTreeRow', props: ['page', 'canAddChild'], template: '<div class="row-stub" />' }
 
 function mountNode(list) {
@@ -147,5 +163,56 @@ describe('CnPageTreeNode', () => {
 		const top = wrapper.vm.tree[0]
 		wrapper.vm.removeNode(top.children[0], top)
 		expect(list.map((p) => p.id)).toEqual(['dogs'])
+	})
+
+	it('picks up a page the HOST appends in place, without a new array', async () => {
+		// What the "Add page" button does: push onto the working manifest's
+		// `pages[]`, which IS this prop. The array reference never changes, so
+		// the `list` watcher alone never fired and the new page was appended to
+		// the manifest but never appeared.
+		//
+		// `reactive()` because that is what the component really receives —
+		// `useManifestEditor.enter()` installs a reactive proxy over the live
+		// manifest. A plain array here would track nothing and the test would
+		// fail against correct code.
+		const list = reactive([{ id: 'dash', type: 'dashboard', route: '/' }])
+		const wrapper = mountNode(list)
+		expect(wrapper.findAll('.row-stub').length).toBe(1)
+
+		list.push({ id: 'page-2', type: 'custom', route: '/page-2' })
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.tree.map((n) => n.ref.id)).toEqual(['dash', 'page-2'])
+		expect(wrapper.findAll('.row-stub').length).toBe(2)
+	})
+
+	it('does NOT rebuild the tree when a row edits a field in place', async () => {
+		// Why the watcher keys on length and not `deep: true`: a deep watcher
+		// fires on every keystroke in a row's Title/Route field and re-seeds
+		// the tree, tearing down the row whose settings panel is open.
+		const list = reactive([{ id: 'dogs', type: 'index', route: '/dogs', title: '' }])
+		const wrapper = mountNode(list)
+		const before = wrapper.vm.tree
+
+		list[0].title = 'Dogs'
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.tree).toBe(before)
+	})
+
+	it('renders a row per node through the #item slot, nested children included', () => {
+		// Every other test here works at vm level, so the whole suite passed
+		// while the component was still written against vuedraggable's Vue 2
+		// API and threw on render in the browser. This asserts rows actually
+		// come out.
+		const list = [
+			{ id: 'dash', type: 'dashboard', route: '/' },
+			{ id: 'dogs', type: 'index', route: '/dogs' },
+			{ id: 'dog', type: 'detail', route: '/dogs/:id', parent: 'dogs' },
+		]
+		const wrapper = mountNode(list)
+		// Two top-level rows + the nested one = three CnPageTreeRow renders.
+		expect(wrapper.findAll('.row-stub').length).toBe(3)
+		expect(wrapper.findAll('.cn-page-tree__node').length).toBe(3)
 	})
 })
