@@ -25,36 +25,41 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 /**
  * Normalise a stored widget content blob onto CnWidgetObjectTable's props.
  *
- * Two content shapes are accepted:
+ * Three content shapes are accepted:
  *
  * 1. v2-prop shape — content already carries a `source` object (plus
- *    `columns`, `actions`, `hideHeader`, …). Passed through unchanged.
+ *    `columns`, `actions`, `hideHeader`, …). Passed through as-is.
  * 2. Flat form shape — the shape CnObjectListWidgetForm assembles
  *    (`{ register, schema, filter, sort: {field, dir}, limit, columns }`).
  *    Folded into the widget's `source` (`sort` becomes an
- *    `order: { field: dir }` map).
+ *    `order: { field: dir }` map), `limit` among it.
+ * 3. Neither — no `source` and no register/schema, the shape an
+ *    `endpointSource` table stores. There is nothing to fold into, so
+ *    `limit` stays a top-level prop and the rest passes through.
+ *
+ * In all three, `limit` survives only as a positive finite number: the
+ * widget's prop is `type: Number`, so a stored `'3'` is dropped.
  *
  * @param {object} content The stored widget `content` blob.
  * @return {object} A CnWidgetObjectTable props map (without `hideWrapper`).
  */
 export function objectTableContentToProps(content) {
 	const c = (content && typeof content === 'object') ? content : {}
-	if (c.source && typeof c.source === 'object') {
-		return { ...c }
-	}
-	// eslint-disable-next-line no-unused-vars
 	const { register, schema, filter, sort, limit, ...rest } = c
+	// A stored blob can hold `limit: '3'`; the prop is `type: Number`, so an
+	// unusable value has to be dropped rather than forwarded and warned about.
+	const hasLimit = Number.isFinite(limit) && limit > 0
+	if (c.source && typeof c.source === 'object') {
+		// eslint-disable-next-line no-unused-vars
+		const { limit: _limit, ...v2 } = c
+		return hasLimit ? { ...v2, limit } : { ...v2 }
+	}
 	if (!register && !schema) {
-		// `limit` is destructured out only to fold it into `source` below, but
-		// with no register/schema there is no `source` to fold it into — and
-		// `limit` is a real prop of its own (the client-side row cap). Dropping
-		// it here silently disabled `viewAllRoute` for every endpointSource
-		// table: the widget rendered ALL rows, so the footer's "total > shown"
-		// condition could never hold and a configured View-all link never
-		// appeared.
-		return Number.isFinite(limit) && limit > 0
-			? { ...rest, limit }
-			: { ...rest }
+		// No register/schema means no `source` to fold `limit` into, but it is
+		// a real prop of its own. Dropping it disabled `viewAllRoute` on every
+		// endpointSource table: uncapped, the footer's "total > shown"
+		// condition never held, so the View-all link never appeared.
+		return hasLimit ? { ...rest, limit } : { ...rest }
 	}
 	const order = {}
 	if (sort && sort.field) {
@@ -66,7 +71,7 @@ export function objectTableContentToProps(content) {
 		filter: filter || {},
 		order,
 	}
-	if (Number.isFinite(limit) && limit > 0) {
+	if (hasLimit) {
 		source.limit = limit
 	}
 	return { ...rest, source }

@@ -19,12 +19,10 @@
 		v-if="crumbs.length > 0"
 		:aria-label="ariaLabel"
 		data-testid="cn-breadcrumbs">
-		<!-- `name` falls back to '': an icon-only crumb (the documented
-		     `{ icon: 'Home', to: … }` shape) has no label, and NcBreadcrumb
-		     declares `name` as a REQUIRED String — forwarding undefined
-		     warns once per crumb per render. Nothing renders the empty
-		     string: NcBreadcrumb prints `name` only for crumbs without an
-		     icon slot. -->
+		<!-- `name` falls back to '' because NcBreadcrumb declares it a REQUIRED
+		     String and warns per render on the label-less icon-only crumb. The
+		     empty string never shows: NcBreadcrumb prints `name` only for
+		     crumbs without an icon slot. -->
 		<NcBreadcrumb
 			v-for="(crumb, index) in crumbs"
 			:key="`${index}-${crumb.label ?? crumb.icon}`"

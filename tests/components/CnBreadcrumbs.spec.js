@@ -68,9 +68,6 @@ describe('CnBreadcrumbs', () => {
 		expect(icon.props('name')).toBe('Home')
 	})
 
-	// NcBreadcrumb declares `name` as a REQUIRED String, so an icon-only
-	// crumb — the shape the component's own docs advertise for Home — used
-	// to warn once per crumb per render. Empty string, not undefined.
 	it('gives an icon-only crumb an empty name rather than undefined', () => {
 		const wrapper = mount(CnBreadcrumbs, { propsData: { crumbs: CRUMBS } })
 		expect(crumbEls(wrapper)[0].attributes('name')).toBe('')
