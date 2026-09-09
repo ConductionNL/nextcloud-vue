@@ -4,40 +4,50 @@
 -->
 
 <template>
-	<div class="cn-action-buttons" data-testid="cn-action-buttons">
-		<template v-for="entry in visibleActions">
-			<!-- Toggle: a stateful two-way state button (GET on mount, write on
-			     click, optimistic + revert). Rendered inline, never dispatched. -->
-			<NcButton
-				v-if="entry.type === 'toggle'"
-				:key="entry.id"
-				:type="toggleState[entry.id] ? 'primary' : 'secondary'"
-				:disabled="Boolean(togglePending[entry.id])"
-				:data-testid="`cn-action-toggle-${entry.id}`"
-				:aria-pressed="String(Boolean(toggleState[entry.id]))"
-				@click="onToggleClick(entry)">
-				<template v-if="entry.icon" #icon>
-					<CnIcon v-if="isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
-					<span v-else :class="entry.icon" />
-				</template>
-				{{ tr(toggleState[entry.id] ? (entry.labelOn || entry.label) : (entry.labelOff || entry.label)) }}
-			</NcButton>
-			<!-- Everything else: a plain action button routed through the shared
-			     dispatcher (api-call / open-form / navigate / open-modal / refresh),
-			     confirm-gated first when the action asks for it. -->
-			<NcButton
-				v-else
-				:key="entry.id"
-				:type="entry.variant || 'secondary'"
-				:disabled="Boolean(actionPending[entry.id])"
-				:data-testid="`cn-action-${entry.id}`"
-				@click="onActionClick(entry)">
-				<template v-if="entry.icon" #icon>
-					<CnIcon v-if="isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
-					<span v-else :class="entry.icon" />
-				</template>
-				{{ tr(entry.label) }}
-			</NcButton>
+	<div
+		class="cn-action-buttons"
+		:class="{ 'cn-action-buttons--menu': display === 'menu' }"
+		data-testid="cn-action-buttons">
+		<!-- `display: "menu"` keeps every dialog below but renders no buttons of
+		     its own: the host draws the entries as NcActionButtons inside an
+		     overflow menu instead, driven by the `entries` event. NcActions
+		     keeps only NcAction* vnodes out of its default slot, so this
+		     component cannot be placed in the menu itself. -->
+		<template v-if="display === 'buttons'">
+			<template v-for="entry in visibleActions">
+				<!-- Toggle: a stateful two-way state button (GET on mount, write on
+				     click, optimistic + revert). Rendered inline, never dispatched. -->
+				<NcButton
+					v-if="entry.type === 'toggle'"
+					:key="entry.id"
+					:type="toggleState[entry.id] ? 'primary' : 'secondary'"
+					:disabled="Boolean(togglePending[entry.id])"
+					:data-testid="`cn-action-toggle-${entry.id}`"
+					:aria-pressed="String(Boolean(toggleState[entry.id]))"
+					@click="onToggleClick(entry)">
+					<template v-if="entry.icon" #icon>
+						<CnIcon v-if="isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
+						<span v-else :class="entry.icon" />
+					</template>
+					{{ tr(toggleState[entry.id] ? (entry.labelOn || entry.label) : (entry.labelOff || entry.label)) }}
+				</NcButton>
+				<!-- Everything else: a plain action button routed through the shared
+				     dispatcher (api-call / open-form / navigate / open-modal / refresh),
+				     confirm-gated first when the action asks for it. -->
+				<NcButton
+					v-else
+					:key="entry.id"
+					:type="entry.variant || 'secondary'"
+					:disabled="Boolean(actionPending[entry.id])"
+					:data-testid="`cn-action-${entry.id}`"
+					@click="onActionClick(entry)">
+					<template v-if="entry.icon" #icon>
+						<CnIcon v-if="isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
+						<span v-else :class="entry.icon" />
+					</template>
+					{{ tr(entry.label) }}
+				</NcButton>
+			</template>
 		</template>
 
 		<!-- Confirm gate for a confirm:true action (reuses CnConfirmDialog). -->
@@ -200,9 +210,21 @@ export default {
 			type: Object,
 			default: null,
 		},
+		/**
+		 * Where the actions are drawn. `buttons` (the default) puts one
+		 * NcButton per action in the host's header. `menu` draws none and
+		 * emits `entries` instead, so the host can render them inside an
+		 * overflow menu while this component keeps owning the dialogs.
+		 * @type {'buttons'|'menu'}
+		 */
+		display: {
+			type: String,
+			default: 'buttons',
+			validator: (v) => ['buttons', 'menu'].includes(v),
+		},
 	},
 
-	emits: ['created'],
+	emits: ['created', 'entries'],
 
 	setup() {
 		// Read the two detail-surface injects once so the object token context
@@ -278,6 +300,43 @@ export default {
 		visibleActions() {
 			return (this.actions || []).filter((a) => a && a.id && this.visibility[a.id] !== false)
 		},
+		/**
+		 * The visible actions flattened for a host that draws them as menu
+		 * items. Everything the item needs to render is resolved here — the
+		 * translated label a toggle currently shows, its pressed state, its
+		 * pending flag, and which of the two icon shapes applies — so the host
+		 * template stays a plain v-for and needs none of this component's
+		 * state. `run()` is pre-bound, the way CnIndexPage pre-binds a header
+		 * action's handler for the index bar, so the host dispatches without
+		 * reaching back through a ref.
+		 *
+		 * @return {Array<object>} One menu-ready descriptor per visible action.
+		 */
+		menuEntries() {
+			return this.visibleActions.map((entry) => {
+				const isToggle = entry.type === 'toggle'
+				const on = Boolean(this.toggleState[entry.id])
+				const label = isToggle
+					? (on ? (entry.labelOn || entry.label) : (entry.labelOff || entry.label))
+					: entry.label
+				return {
+					id: entry.id,
+					label: this.tr(label),
+					// An mdi name goes to CnIcon; a legacy `icon-*` class goes
+					// on a bare span. Deciding it here keeps isMdiIconName from
+					// having to be duplicated into every host.
+					iconName: this.isMdiIconName(entry.icon) ? entry.icon : '',
+					iconClass: (entry.icon && !this.isMdiIconName(entry.icon)) ? entry.icon : '',
+					disabled: Boolean(isToggle ? this.togglePending[entry.id] : this.actionPending[entry.id]),
+					// null, not false: a non-toggle carries no pressed state at
+					// all, and `aria-pressed="false"` would announce every
+					// action as an un-pressed toggle button.
+					pressed: isToggle ? on : null,
+					testid: isToggle ? `cn-action-toggle-${entry.id}` : `cn-action-${entry.id}`,
+					run: () => (isToggle ? this.onToggleClick(entry) : this.onActionClick(entry)),
+				}
+			})
+		},
 		/** Unwrapped page workspace bag. */
 		workspaceCtx() {
 			const c = this.workspaceRaw
@@ -320,6 +379,19 @@ export default {
 		objectCtx: {
 			deep: true,
 			handler() { this.evaluateVisibility() },
+		},
+		// Push the menu-ready descriptors at a `display: "menu"` host. It fires
+		// immediately so the host has the list on first paint, and again on
+		// every change of visibility, toggle state or pending flag — the three
+		// things that would otherwise leave a stale item in an open menu.
+		menuEntries: {
+			immediate: true,
+			handler(entries) {
+				/**
+				 * @event entries Emitted in `display: "menu"` only, whenever the visible actions, their toggle state or their pending flags change. Payload: one menu-ready descriptor per visible action, each carrying `id`, `label`, `iconName`, `iconClass`, `disabled`, `pressed`, `testid` and a pre-bound `run()`.
+				 */
+				if (this.display === 'menu') this.$emit('entries', entries)
+			},
 		},
 	},
 
@@ -680,5 +752,12 @@ export default {
 	align-items: center;
 	gap: 8px;
 	flex-wrap: wrap;
+}
+
+/* In menu mode the only children are dialogs, so the wrapper must not be a
+   box: an empty inline-flex child still eats one of the header's flex gaps
+   and pushes the Actions menu away from the Edit button beside it. */
+.cn-action-buttons--menu {
+	display: contents;
 }
 </style>

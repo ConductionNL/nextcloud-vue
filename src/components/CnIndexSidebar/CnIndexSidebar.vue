@@ -172,6 +172,7 @@ import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import { CnIcon } from '../CnIcon/index.js'
 import { columnsFromSchema, filtersFromSchema } from '../../utils/schema.js'
+import { facetOptionLabel } from '../../utils/facets.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 
 /**
@@ -254,7 +255,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
-		/** Live facet data from API: { fieldName: { values: [{value, count}] } } */
+		/** Live facet data from the API: `{ fieldName: { values: [{ value, count?, label? }] } }` */
 		facetData: {
 			type: Object,
 			default: () => ({}),
@@ -506,7 +507,7 @@ export default {
 			if (facet?.values?.length > 0) {
 				return facet.values.map((v) => ({
 					id: v.value,
-					label: v.count !== undefined ? `${v.value} (${v.count})` : String(v.value),
+					label: facetOptionLabel(v),
 				}))
 			}
 			return filter.options || []

@@ -96,7 +96,17 @@
 	margin-top: auto;
 }
 
+/* Rendered as <a :href> when the route resolves, as <button type="button">
+   otherwise. The resets neutralise Nextcloud's global button chrome (border,
+   background, 44px min-height, padding) so both variants look the same. */
 .cn-data-table__view-all {
+	display: inline;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: none;
+	background: none;
+	font: inherit;
 	font-size: 13px;
 	color: var(--color-primary-element);
 	cursor: pointer;
@@ -104,6 +114,16 @@
 }
 
 .cn-data-table__view-all:hover {
+	text-decoration: underline;
+}
+
+/* Both variants are keyboard focusable, so they need a visible focus
+   indicator (WCAG 2.4.7). The button reset above drops Nextcloud's, which
+   would otherwise have covered the button but never the link. */
+.cn-data-table__view-all:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+	border-radius: var(--border-radius, 3px);
 	text-decoration: underline;
 }
 

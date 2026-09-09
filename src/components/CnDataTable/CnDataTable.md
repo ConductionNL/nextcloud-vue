@@ -208,7 +208,7 @@ export default {
 | `row-actions` | `{ row }` | Action buttons rendered in a trailing actions column |
 | `actions-header` | — | Content shown in the header cell of the actions column |
 | `empty` | — | Custom empty-state content (replaces `emptyText`) |
-| `footer` | `{ total, shown }` | Custom footer link/content (e.g. a "+ New" create action or an always-shown "View all"). Renders with its own click handler — usable outside a vue-router context, where the built-in `viewAllRoute` link's `$router.push` no-ops. When omitted, the built-in "View all" link is used for a `limit`-ed subset |
+| `footer` | `{ total, shown }` | Custom footer link/content (e.g. a "+ New" create action or an always-shown "View all"). Renders with its own click handler. When omitted, the built-in "View all" control is used for a `limit`-ed subset: a real `<a :href>` where the router resolves `viewAllRoute`, and a `<button type="button">` emitting `view-all` outside a vue-router context, so it always carries a link or button role and stays keyboard reachable |
 
 ## Card / widget mode (folded from CnTableWidget)
 
@@ -219,7 +219,10 @@ features are folded in here as opt-in props (bare-table usage is unchanged):
 - `borderless` — drop the container's card chrome so the table sits flush inside
   a parent card (e.g. a `CnWidgetWrapper` dashboard slot).
 - `limit` — show only the first N rows; with `viewAllRoute` a "View all" footer appears.
-- `viewAllRoute` / `viewAllLabel` — the footer link's route and label.
+- `viewAllRoute` / `viewAllLabel` — the footer control's route and label. It renders
+  as a real `<a :href>` when the router resolves the route, and as a
+  `<button type="button">` (emitting `view-all`) otherwise, so it always has a
+  link or button role and is keyboard reachable.
 - `register` + `schemaId` — self-fetch rows from OpenRegister when no `rows` are passed.
 - `fetchParams` — extra query params for the self-fetch (a resolved filter map,
   `_order[field]` ordering, `_limit`); changing it re-triggers the fetch. Used by

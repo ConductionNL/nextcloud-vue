@@ -33,6 +33,7 @@
 
 ### Slots
 
-| Name           | Bindings | Description                                         |
-| -------------- | -------- | --------------------------------------------------- |
-| `action-items` | —        | action-items Additional NcActionButton-family items |
+| Name            | Bindings | Description                                         |
+| --------------- | -------- | --------------------------------------------------- |
+| `primary-items` | —        | primary-items The surface's OWN actions — a page's  |
+| `action-items`  | —        | action-items Additional NcActionButton-family items |

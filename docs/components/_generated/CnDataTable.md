@@ -48,6 +48,7 @@
 | `select`           | —       | Emitted when row selection changes. Payload: array of selected IDs.                                                                                             |
 | `select-all`       | —       | Emitted when select-all checkbox is toggled.                                                                                                                    |
 | `sort`             | —       | Emitted when a sortable column header is clicked (plain click) or shift-clicked (multi-sort).                                                                   |
+| `view-all`         | —       | Emitted when the built-in "View all" footer control is activated. Payload: the `viewAllRoute` object.                                                           |
 
 ### Slots
 

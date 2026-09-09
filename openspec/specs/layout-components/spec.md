@@ -194,9 +194,11 @@ CnFacetSidebar MUST auto-generate faceted filter groups from schema properties m
 
 #### Scenario: Live facet data with counts
 
-- GIVEN `facetData` contains `{ fieldName: { values: [{ value, count }] } }`
+- GIVEN `facetData` contains `{ fieldName: { values: [{ value, count?, label? }] } }`
 - WHEN a select filter renders for that field
-- THEN its options MUST display as `"value (count)"` labels
+- THEN its options MUST display as `"label (count)"`, falling back to the raw value when the bucket carries no label
+- AND when a bucket carries no `count`, the option MUST render the label alone with no count in parentheses
+- AND `(0)` MUST NOT be rendered for a bucket whose count is absent, because a count nothing measured must not be shown as a number
 - AND when `facetData` has no entry for a field, the filter MUST fall back to static enum options from the schema
 
 #### Scenario: Multi-select facet filters
@@ -310,6 +312,8 @@ CnIndexSidebar MUST support pre-selected active filters and live facet data with
 - GIVEN `facetData` prop contains `{ status: { values: [{ value: "active", count: 12 }, { value: "pending", count: 3 }] } }`
 - WHEN the status filter renders
 - THEN the NcSelect options MUST display `"active (12)"` and `"pending (3)"` as labels
+- AND a facet over a `$ref` whose buckets carry a `label` MUST display the label, not the identifier the bucket is keyed by
+- AND a bucket with no `count` MUST render its label alone, never `"label (0)"`
 - AND when `facetData` is empty, the filter MUST fall back to static enum options from the schema
 
 ### REQ-LC-011: CnIndexSidebar — Column Groups and Metadata
@@ -419,6 +423,43 @@ CnIndexSidebar MUST synchronize open state via the `.sync` modifier and support 
 - WHEN the schema contains properties with `adminOnly: true`
 - THEN those properties MUST be excluded from the generated search filters
 - AND the same RBAC filtering MUST apply in both CnIndexSidebar and CnFacetSidebar
+
+### REQ-LC-016: CnFolderSidebar and the `field` source over a paged list
+
+CnFolderSidebar's `field` source MUST derive its folders from the whole result set, and MUST NOT present one page of a longer list as if it were the whole set.
+
+The index page passes `objects` as the rows currently loaded, which on a paged list is one page. Folders derived from those rows alone are incomplete, they change as the reader pages, and a grouping value whose rows all sit on a later page cannot be reached at all.
+
+#### Scenario: A facet supplies the complete folder list
+
+- GIVEN the grouping property is marked `facetable: true`, so the platform returns a facet for it
+- AND the facet is computed with the pagination parameters removed, so it covers the whole query
+- WHEN a `field`-source CnFolderSidebar receives `facetValues` for the grouping field
+- THEN the folders MUST come from the facet buckets and the loaded rows MUST NOT be consulted
+- AND each folder's count MUST be the bucket count, which is the total for that value rather than a tally of the page
+- AND a folder MUST be named by its bucket `label` when the bucket carries one, so a facet over a `$ref` names its targets instead of listing identifiers
+
+#### Scenario: A value with no row on the current page is still reachable
+
+- GIVEN every row of one grouping value sits on a page that is not loaded
+- WHEN the facet for that field is available
+- THEN a folder for that value MUST still be offered
+
+#### Scenario: Without a facet, a page is not counted as a total
+
+- GIVEN no facet is available for the grouping field
+- AND `partial` is true, meaning rows exist beyond the ones loaded
+- WHEN the folders are derived from the loaded rows
+- THEN each folder MUST still be offered, because it names a real value and reaching it beats hiding it
+- AND its count MUST be omitted, because a tally of the loaded page shown beside a value reads as that value's total
+- AND the sidebar MUST show that the folder list covers the loaded page only
+
+#### Scenario: A single-page list is complete and says so
+
+- GIVEN the loaded rows are the whole result set
+- WHEN the folders are derived from them
+- THEN the counts MUST be kept, because for a complete set the tally IS the total
+- AND no partial notice MUST be shown
 
 ---
 

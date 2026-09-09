@@ -5,7 +5,7 @@
 | Name            | Type      | Required | Default                                    | Description                                                                                                         |
 | --------------- | --------- | -------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
 | `schema`        | `object`  |          | `null`                                     | Schema definition — reads facetable properties                                                                      |
-| `facetData`     | `object`  |          | `\{\}`                                     | Live facet data from API: \{ fieldName: \{ values: [\{value, count\}] \} \}                                         |
+| `facetData`     | `object`  |          | `\{\}`                                     | Live facet data from the API: `{ fieldName: { values: [{ value, count?, label? }] } }`                              |
 | `activeFilters` | `object`  |          | `\{\}`                                     | Current active filters: \{ fieldName: value \| [values] \}                                                          |
 | `loading`       | `boolean` |          | `false`                                    | Whether facet data is loading                                                                                       |
 | `title`         | `string`  |          | `() =&gt; t('nextcloud-vue', 'Filters')`   | Sidebar title                                                                                                       |

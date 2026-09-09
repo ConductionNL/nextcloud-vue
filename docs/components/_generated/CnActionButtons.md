@@ -2,13 +2,15 @@
 
 ### Props
 
-| Name      | Type            | Required | Default | Description                                                                                                                                                                                                                                                        |
-| --------- | --------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `actions` | `Array<object>` |          | `[]`    | The page's declarative header actions. Each entry is a typed action (`open-form` \| `toggle` \| `api-call` \| `navigate` \| `open-modal` \| `refresh` \| `handler`) plus `id` / `label` and an optional `visibleWhen` predicate, `icon`, `variant`, and `confirm`. |
-| `router`  | `union`         |          | `null`  | Explicit Vue Router instance for `navigate` / `open-page` / `onSuccessRoute`. Falls back to `this.$router`. Only needed for standalone mounts outside a router tree.                                                                                               |
+| Name      | Type            | Required | Default     | Description                                                                                                                                                                                                                                                        |
+| --------- | --------------- | -------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `actions` | `Array<object>` |          | `[]`        | The page's declarative header actions. Each entry is a typed action (`open-form` \| `toggle` \| `api-call` \| `navigate` \| `open-modal` \| `refresh` \| `handler`) plus `id` / `label` and an optional `visibleWhen` predicate, `icon`, `variant`, and `confirm`. |
+| `router`  | `union`         |          | `null`      | Explicit Vue Router instance for `navigate` / `open-page` / `onSuccessRoute`. Falls back to `this.$router`. Only needed for standalone mounts outside a router tree.                                                                                               |
+| `display` | `string`        |          | `'buttons'` | Where the actions are drawn. `buttons` (the default) puts one NcButton per action in the host's header. `menu` draws none and emits `entries` instead, so the host can render them inside an overflow menu while this component keeps owning the dialogs.          |
 
 ### Events
 
-| Name      | Payload | Description                                                           |
-| --------- | ------- | --------------------------------------------------------------------- |
-| `created` | —       | Emitted after an open-form action saves. Payload: the created object. |
+| Name      | Payload | Description                                                                                                                                                                                                                                                                              |
+| --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `created` | —       | Emitted after an open-form action saves. Payload: the created object.                                                                                                                                                                                                                    |
+| `entries` | —       | Emitted in `display: "menu"` only, whenever the visible actions, their toggle state or their pending flags change. Payload: one menu-ready descriptor per visible action, each carrying `id`, `label`, `iconName`, `iconClass`, `disabled`, `pressed`, `testid` and a pre-bound `run()`. |

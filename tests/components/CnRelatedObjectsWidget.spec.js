@@ -484,3 +484,135 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 		expect(wrapper.vm.addError).toBe('Could not add note')
 	})
 })
+
+/**
+ * `extraSections` on the tabbed path.
+ *
+ * The prop was only ever rendered by the LEGACY list branch, so any host that
+ * could resolve register/schema/id — which is every host the widget itself
+ * prefers, since that is what selects the tabbed path — handed its sections
+ * over and got nothing back. No warning, no empty section, no error: the prop
+ * was accepted and dropped.
+ *
+ * dossiq's CasePlannedWidget is the reported case. Its own component test
+ * proves the handover (the props arrive carrying label and items) but cannot
+ * assert the render: its vitest suite aliases `@conduction/nextcloud-vue` to a
+ * stub, so the assertion would only test the stub. It belongs here.
+ */
+describe('CnRelatedObjectsWidget — extraSections on the tabbed path', () => {
+	beforeEach(() => {
+		integrations.__resetForTests()
+		jest.clearAllMocks()
+		global.OC = { requestToken: 'tok' }
+	})
+
+	afterEach(() => {
+		delete global.fetch
+		delete global.OC
+	})
+
+	const EMPTY_SELF_FETCH = {
+		relations: {},
+		uses: { results: [], total: 0 },
+		used: { results: [], total: 0 },
+		files: { results: [], total: 0 },
+	}
+
+	const PLANNED = [{
+		key: 'planned',
+		label: 'Planned cases',
+		icon: 'CalendarClock',
+		items: [{ id: 'p1', label: 'Hoorzitting', meta: '2026-10-01' }],
+	}]
+
+	const mountTabbed = (props = {}) => mount(CnRelatedObjectsWidget, {
+		propsData: { objectData: SELF, ...props },
+		stubs,
+	})
+
+	it('renders a tab and its rows for a host-supplied section', async () => {
+		global.fetch = mockFetchBySuffix(EMPTY_SELF_FETCH)
+		const wrapper = mountTabbed({ extraSections: PLANNED, hideSingleTabTitle: false })
+		await flush()
+
+		// THE ASSERTION dossiq could not write. Pre-fix this found zero tabs:
+		// the self-fetch returned nothing, `visibleGroups` read only `groups`,
+		// and the widget rendered its "No relations yet" empty state over a
+		// section the host had handed it.
+		const labels = wrapper.findAll('.cn-related-objects-widget__tab-label').map((w) => w.text())
+		expect(labels).toContain('Planned cases')
+		expect(wrapper.find('.cn-related-objects-widget__empty-state').exists()).toBe(false)
+		expect(wrapper.findAll('.cn-related-objects-widget__row').map((w) => w.text())).toEqual(
+			expect.arrayContaining([expect.stringContaining('Hoorzitting')]),
+		)
+	})
+
+	it('shows the section beside the self-fetched groups, not instead of them', async () => {
+		global.fetch = mockFetchBySuffix({
+			...EMPTY_SELF_FETCH,
+			files: { results: [{ id: 'f1', name: 'doc.pdf', size: 10 }], total: 1 },
+		})
+		const wrapper = mountTabbed({ extraSections: PLANNED })
+		await flush()
+
+		const labels = wrapper.findAll('.cn-related-objects-widget__tab-label').map((w) => w.text())
+		expect(labels).toEqual(expect.arrayContaining(['Files', 'Planned cases']))
+	})
+
+	it('counts the section in the header total', async () => {
+		global.fetch = mockFetchBySuffix(EMPTY_SELF_FETCH)
+		const wrapper = mountTabbed({ extraSections: PLANNED })
+		await flush()
+		expect(wrapper.vm.totalCount).toBe(1)
+	})
+
+	it('emits select-extra when one of its rows is clicked', async () => {
+		global.fetch = mockFetchBySuffix(EMPTY_SELF_FETCH)
+		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => {})
+		const wrapper = mountTabbed({ extraSections: PLANNED })
+		await flush()
+
+		await wrapper.find('.cn-related-objects-widget__row').trigger('click')
+
+		// The host owns these rows, so the click must go back OUT rather than
+		// be routed by resolveItemHref against a leaf group it is not.
+		expect(openSpy).not.toHaveBeenCalled()
+		expect(wrapper.emitted('select-extra')[0][0]).toMatchObject({
+			section: 'planned',
+			item: { id: 'p1' },
+		})
+		expect(wrapper.emitted('select-related')).toBeUndefined()
+		openSpy.mockRestore()
+	})
+
+	it('picks the section up when the host resolves its rows after mount', async () => {
+		// dossiq fills `planned` from an endpoint call in mounted(), so the
+		// prop is an EMPTY section on first render. Copying extraSections into
+		// `groups` at fetch time would miss this entirely.
+		global.fetch = mockFetchBySuffix(EMPTY_SELF_FETCH)
+		const wrapper = mountTabbed({ extraSections: [{ ...PLANNED[0], items: [] }], hideSingleTabTitle: false })
+		await flush()
+		expect(wrapper.findAll('.cn-related-objects-widget__tab-label').length).toBe(0)
+
+		await wrapper.setProps({ extraSections: PLANNED })
+		await flush()
+		expect(wrapper.findAll('.cn-related-objects-widget__tab-label').map((w) => w.text()))
+			.toContain('Planned cases')
+	})
+
+	it('renders an empty section as nothing at all', async () => {
+		global.fetch = mockFetchBySuffix(EMPTY_SELF_FETCH)
+		const wrapper = mountTabbed({ extraSections: [{ key: 'planned', label: 'Planned cases', items: [] }] })
+		await flush()
+		expect(wrapper.findAll('.cn-related-objects-widget__tab').length).toBe(0)
+		expect(wrapper.find('.cn-related-objects-widget__empty-state').exists()).toBe(true)
+	})
+
+	it('is not filtered out by includeGroups, which scopes the widget\'s own groups', async () => {
+		global.fetch = mockFetchBySuffix(EMPTY_SELF_FETCH)
+		const wrapper = mountTabbed({ extraSections: PLANNED, includeGroups: ['files'], hideSingleTabTitle: false })
+		await flush()
+		expect(wrapper.findAll('.cn-related-objects-widget__tab-label').map((w) => w.text()))
+			.toContain('Planned cases')
+	})
+})
