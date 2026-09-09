@@ -3,6 +3,13 @@
 ## [Unreleased]
 
 ### Fixed
+- **`marked`, `dompurify` and `dexie` are required peers again, not optional ones.** All three are imported STATICALLY at the top of modules that are reachable from the package root, so a consumer without them fails to resolve at build time with a bare `Module not found` naming a package it never asked for. `optional: true` tells npm the opposite: do not install it, and do not warn when it is missing. 2.42.0 shipped `marked` and `dompurify` that way; `dexie` had been that way longer, and its own docblock said only apps using the offline core needed it, which `src/index.js` → `offlineCollection` → `integrations/builtin/field-inspection` → `offline/offlineDb.js` contradicts.
+
+  **No consumer has to change anything.** Every app in the fleet already declares all three. What changes is that npm now installs them for an app that does not, instead of failing that app's build.
+
+  The `marked` range is widened from `^12.0.0` to `>=12 <19`. The fleet spans marked 12 (opencatalogi) to 18 (everyone else), and the library only uses `new Marked({...})` and `.parse()`, which exist across that whole span. Before this, taking the library at all put `npm ls` into `ELSPROBLEMS` for every app on 18.
+
+  A packaging test now walks `src/` for static imports of any optional peer and fails on a match, so the next component that imports one is caught here rather than in someone else's build. Making an import dynamic is what earns the optional marker back.
 - **`CnDetailWidgetHost` and `CnIntegrationWidget` now resolve every integration leaf through the lib-owned registry path.** Both read `provider.tab` / `provider.widget` straight off the shared registry entry for bare tab panels, skipping the `__libOwned` swap that `useIntegrationRegistry().resolveTab` / `resolveWidget` apply. When OpenRegister's `integration-global` bundle had registered the entry, the rendered component belonged to that bundle's Vue: its `resolveComponent()` found no current instance and `NcButton` / `CnDetailCard` reached the DOM as literal `<ncbutton>` / `<cndetailcard>` elements. Seen live on dossiq's case page: the Notes and Contacts tabs showed the raw tags and the Files tab rendered an empty card. `useIntegrationRegistry` gains `resolveBaseWidget(id)`, the surface-agnostic counterpart of `resolveWidget` that a `bareWidget` provider is rendered through. Consumer-custom ids (no `__libOwned`) still resolve to their stored component.
 
 ### Added
