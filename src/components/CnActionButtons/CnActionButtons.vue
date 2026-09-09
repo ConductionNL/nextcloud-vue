@@ -387,6 +387,9 @@ export default {
 		menuEntries: {
 			immediate: true,
 			handler(entries) {
+				/**
+				 * @event entries Emitted in `display: "menu"` only, whenever the visible actions, their toggle state or their pending flags change. Payload: one menu-ready descriptor per visible action, each carrying `id`, `label`, `iconName`, `iconClass`, `disabled`, `pressed`, `testid` and a pre-bound `run()`.
+				 */
 				if (this.display === 'menu') this.$emit('entries', entries)
 			},
 		},
