@@ -63,6 +63,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcSelect, NcTextField, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { filtersFromSchema } from '../../utils/schema.js'
+import { facetOptionLabel } from '../../utils/facets.js'
 
 /**
  * CnFacetSidebar — Auto-generated faceted search sidebar from schema properties.
@@ -109,7 +110,7 @@ export default {
 			type: Object,
 			default: null,
 		},
-		/** Live facet data from API: { fieldName: { values: [{value, count}] } } */
+		/** Live facet data from the API: `{ fieldName: { values: [{ value, count?, label? }] } }` */
 		facetData: {
 			type: Object,
 			default: () => ({}),
@@ -170,7 +171,7 @@ export default {
 			if (facet?.values?.length > 0) {
 				return facet.values.map((v) => ({
 					id: v.value,
-					label: v.count !== undefined ? `${v.value} (${v.count})` : String(v.value),
+					label: facetOptionLabel(v),
 				}))
 			}
 			// Fall back to static enum options from schema

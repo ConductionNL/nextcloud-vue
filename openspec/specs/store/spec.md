@@ -92,12 +92,32 @@ The store MUST fetch paginated collections from the OpenRegister API, parse pagi
 - GIVEN the cached schema for `'lead'` has `properties.status.facetable = true`
 - WHEN `store.fetchCollection('lead', {})` is called without explicit `_facets`
 - THEN the request MUST include `_facets=extend` in the query string
-- AND facet data from the response MUST be parsed into `store.facets.lead` in CnIndexSidebar format: `{ fieldName: { values: [{ value, count }] } }`
+- AND facet data from the response MUST be parsed into `store.facets.lead` in CnIndexSidebar format: `{ fieldName: { values: [{ value, count?, label? }] } }`
 
 #### Scenario: Facet data parsing with buckets
 
-- GIVEN the API returns `{ facets: { status: { buckets: [{ key: 'open', count: 5 }, { key: 'closed', count: 3 }] } } }`
-- THEN `store.facets.lead` MUST equal `{ status: { values: [{ value: 'open', count: 5 }, { value: 'closed', count: 3 }] } }`
+- GIVEN the API returns `{ facets: { status: { buckets: [{ key: 'open', results: 5, label: 'Open' }, { key: 'closed', results: 3, label: 'Closed' }] } } }`
+- THEN `store.facets.lead` MUST equal `{ status: { values: [{ value: 'open', count: 5, label: 'Open' }, { value: 'closed', count: 3, label: 'Closed' }] } }`
+
+#### Scenario: Both bucket dialects are read
+
+- GIVEN OpenRegister emits a terms bucket as `{ key, results, label }` from its object search, and `{ value, count, label }` from its facetable-field discovery
+- WHEN either shape arrives in the `facets` block
+- THEN the bucket size MUST be read from `results` first and from `count` otherwise
+- AND the option value MUST be read from `key` first and from `value` otherwise
+
+#### Scenario: A bucket without a count normalises to no count
+
+- GIVEN the API returns `{ facets: { status: { buckets: [{ key: 'open', label: 'Open' }] } } }`
+- THEN `store.facets.lead.status.values[0].count` MUST be `undefined`
+- AND it MUST NOT be `0`, because a count the API never sent must not reach the renderer as a number
+
+#### Scenario: A bucket label is carried through
+
+- GIVEN a facet over a `$ref` property keys its buckets by identifier
+- WHEN the bucket carries a `label`
+- THEN the normalised value MUST carry that `label`
+- AND when the bucket carries no `label`, the normalised value MUST omit the field rather than defaulting it to the identifier
 
 #### Scenario: Collection fetch with search term
 
