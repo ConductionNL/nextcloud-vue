@@ -358,26 +358,31 @@ export default {
 </script>
 
 <style scoped>
-/* The strip IS the card's top edge. There is no title bar above it: the open
-   tab names the panel, so a title row would say the same thing twice and cost
-   a row of height on a card that is mostly content. Hence padding 0 here, with
-   the inset moved onto the bar and the panel below. */
+/* The panel is the card; the strip is not inside it. There is no title bar
+   above the tabs either: the open tab names the panel, so a title row would
+   say the same thing twice and cost a row of height on a card that is mostly
+   content.
+
+   The card chrome used to wrap the strip as well, which drew a border and a
+   pair of rounded corners ABOVE the tabs and boxed them in. Folder tabs are
+   drawn as the edge of the sheet they open, so a second edge around them
+   reads as a header the widget does not have. Border, radius and background
+   now live on the panel below, and the strip sits bare on the page. */
 .cn-tabs-widget {
-	background-color: var(--color-main-background);
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius-large);
 	display: flex;
 	flex-direction: column;
 	height: 100%;
 	min-height: 0;
-	overflow: hidden;
 	padding: 0;
 }
 
-/* The bar carries its own inset so the first tab clears the card's rounded
-   corner instead of colliding with it. */
+/* No inset, so the first tab starts at the panel's own left edge. The 8px
+   here was there to clear the card's rounded top corner; that corner is gone
+   from the strip now, and the inset it existed for left the first tab floating
+   8px inside the sheet it opens. The bar's bottom rule closes the panel either
+   way: padding sits inside the border box, so it never shortened the rule. */
 .cn-tabs-widget__tabs :deep(.cn-tabs__bar) {
-	padding: 8px 8px 0;
+	padding: 0;
 }
 
 .cn-tabs-widget__tabs {
@@ -393,6 +398,16 @@ export default {
    the panel, and a gap under it breaks that join, leaving the tab floating
    above content it is supposed to be attached to. */
 .cn-tabs-widget__tabs :deep(.cn-tabs__content) {
+	background-color: var(--color-main-background);
+	/* Three sides only: the bar's own bottom rule is this sheet's top edge, and
+	   the open tab erases the slice of it directly above the panel so the two
+	   read as one surface. A border-top here would put a second line under that
+	   tab which the tab cannot paint over. */
+	border: 1px solid var(--color-border);
+	border-top: none;
+	/* Bottom corners only. Rounding the top would curl the sheet away from the
+	   tab that is supposed to be joined to it. */
+	border-radius: 0 0 var(--border-radius-large) var(--border-radius-large);
 	flex: 1 1 auto;
 	min-height: 0;
 	overflow: auto;
