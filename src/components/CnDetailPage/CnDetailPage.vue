@@ -113,8 +113,9 @@
 				     `@object.<field>` tokens + local predicates (the shillinq
 				     PaymentRunDetailActions contract). -->
 				<CnActionButtons
-					v-if="headerActions && headerActions.length"
-					:actions="headerActions"
+					v-if="effectiveHeaderActions.length > 0"
+					:actions="effectiveHeaderActions"
+					:inline="inlineActions || 0"
 					data-testid="cn-detail-page-header-actions"
 					@created="onLifecycleReload" />
 				<!--
@@ -128,6 +129,8 @@
 					@binding {object} schema The resolved schema.
 					@binding {string} objectType The resolved object type.
 					@binding {object} store The effective object store.
+					@binding {Function} openEditForm Opens this page's own record edit form. Lets an actions component put Edit inside ITS action cluster instead of leaving the page's button beside it — the page renders no button of its own once `showEditAction` is false, but this still opens the same dialog.
+					@binding {boolean} canEditRecord Whether the page would render its own Edit button (`showEditAction` plus a record and schema to edit).
 				-->
 				<slot
 					name="actions"
@@ -135,15 +138,21 @@
 					:object-id="objectId"
 					:schema="currentSchema"
 					:object-type="resolvedObjectType"
-					:store="effectiveObjectStore" />
+					:store="effectiveObjectStore"
+					:open-edit-form="openEditForm"
+					:can-edit-record="canEditRecord" />
 				<!-- Record edit (ADR-062): the detail page's own way to change the
 				     record it is showing. Without it a `type:"detail"` page is
 				     read-only and the ONLY edit surface is the modal launched
 				     from the index table — which is why that modal could not
 				     simply be removed. Opens the same schema-driven CnFormDialog
 				     the index used, scoped to this record. -->
+				<!-- Standalone unless `inlineActions` is set, in which case Edit
+				     is folded into CnActionButtons above so one `inline` count
+				     governs the whole cluster. Kept standalone by default so
+				     every existing consumer's header is byte-identical. -->
 				<NcButton
-					v-if="canEditRecord"
+					v-if="canEditRecord && !foldsEditIntoActions"
 					variant="secondary"
 					data-testid="cn-detail-page-edit"
 					:aria-label="editActionLabel"
@@ -1313,6 +1322,23 @@ export default {
 		},
 
 		/**
+		 * How many of the header actions stay as buttons; the rest collapse
+		 * into one `···` menu (forwarded to CnActionButtons' `inline`).
+		 *
+		 * Setting it also folds this page's own Edit button into that cluster,
+		 * so a single count governs everything in the header rather than the
+		 * Edit button sitting outside the limit. `null` (the default) keeps
+		 * both of today's behaviours: every action renders as a button and Edit
+		 * renders standalone.
+		 *
+		 * @type {number|null}
+		 */
+		inlineActions: {
+			type: Number,
+			default: null,
+		},
+
+		/**
 		 * Declarative related-object list sections (manifest
 		 * `config.relatedCollections`). Each entry renders a titled
 		 * `CnObjectListWidget` below the detail body, filtered to this object via
@@ -1695,6 +1721,38 @@ export default {
 		 *
 		 * @return {boolean}
 		 */
+		/**
+		 * Whether Edit joins the CnActionButtons cluster instead of standing
+		 * on its own. Opted into by `inlineActions`.
+		 *
+		 * @return {boolean}
+		 */
+		foldsEditIntoActions() {
+			return typeof this.inlineActions === 'number'
+		},
+		/**
+		 * The header actions actually handed to CnActionButtons: the declared
+		 * ones, plus this page's Edit appended when `inlineActions` folds it
+		 * in. Edit goes LAST so it collapses before any author-declared action
+		 * does — the page's own affordance yields to the app's.
+		 *
+		 * @return {Array<object>} The action descriptors.
+		 */
+		effectiveHeaderActions() {
+			const declared = Array.isArray(this.headerActions) ? this.headerActions : []
+			if (!(this.foldsEditIntoActions && this.canEditRecord)) return declared
+			return [
+				...declared,
+				{
+					id: 'cn-detail-page-edit',
+					label: this.editActionLabel,
+					icon: 'Pencil',
+					// A function, not a dispatch type: `open-form` hardcodes
+					// `item: null`, so it creates and cannot edit this record.
+					onSelect: () => this.openEditForm(),
+				},
+			]
+		},
 		canEditRecord() {
 			return this.showEditAction
 				&& !this.isCreateMode

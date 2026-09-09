@@ -1867,7 +1867,16 @@
 				},
 				"variant": {
 					"type": "string",
-					"description": "CnActionButtons button variant (e.g. 'primary', 'secondary', 'error'). 'error' also styles the confirm dialog as destructive."
+					"description": "CnActionButtons button variant (e.g. 'primary', 'secondary', 'error'). 'error' also styles the confirm dialog as destructive. A 'primary' action is never collapsed into CnActionButtons' overflow menu and consumes none of its `inline` slots: NcActions paints all of its inline actions with one shared variant, so a lone primary among them is not expressible."
+				},
+				"children": {
+					"type": "array",
+					"description": "Sub-actions, rendered by CnActionButtons as this action's OWN chevron dropdown beside its button — deliberately not folded into the page's single overflow menu, because NcActions cannot nest and a list that grows per record (app versions, say) would swamp it. Children take the same shape as any action, `visibleWhen` included, and an action carrying them consumes none of the `inline` slots.",
+					"items": { "$ref": "#/$defs/action" }
+				},
+				"childrenLabel": {
+					"type": "string",
+					"description": "i18n key naming the `children` dropdown. Falls back to the parent action's own label, so the chevron is never announced unlabelled."
 				},
 				"visibleWhen": {
 					"$ref": "#/$defs/visibleWhen",

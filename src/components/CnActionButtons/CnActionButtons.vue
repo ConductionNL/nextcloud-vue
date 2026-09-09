@@ -5,13 +5,13 @@
 
 <template>
 	<div class="cn-action-buttons" data-testid="cn-action-buttons">
-		<template v-for="entry in visibleActions">
+		<template v-for="entry in barActions">
 			<!-- Toggle: a stateful two-way state button (GET on mount, write on
 			     click, optimistic + revert). Rendered inline, never dispatched. -->
 			<NcButton
 				v-if="entry.type === 'toggle'"
 				:key="entry.id"
-				:type="toggleState[entry.id] ? 'primary' : 'secondary'"
+				:variant="toggleState[entry.id] ? 'primary' : 'secondary'"
 				:disabled="Boolean(togglePending[entry.id])"
 				:data-testid="`cn-action-toggle-${entry.id}`"
 				:aria-pressed="String(Boolean(toggleState[entry.id]))"
@@ -25,10 +25,16 @@
 			<!-- Everything else: a plain action button routed through the shared
 			     dispatcher (api-call / open-form / navigate / open-modal / refresh),
 			     confirm-gated first when the action asks for it. -->
+			<!-- `variant`, NOT `type`. NcButton carries both: `type` is the
+			     native button type (default "button") and `variant` is the
+			     styling. Binding the descriptor's variant to `type` set an
+			     invalid native type and left `variant` at its "secondary"
+			     default, so `variant: "primary"` / `"error"` had never once
+			     rendered — silently, since an unknown native type is ignored. -->
 			<NcButton
 				v-else
 				:key="entry.id"
-				:type="entry.variant || 'secondary'"
+				:variant="entry.variant || 'secondary'"
 				:disabled="Boolean(actionPending[entry.id])"
 				:data-testid="`cn-action-${entry.id}`"
 				@click="onActionClick(entry)">
@@ -38,7 +44,50 @@
 				</template>
 				{{ tr(entry.label) }}
 			</NcButton>
+			<!-- Sub-actions. Its OWN chevron rather than entries folded into the
+			     overflow below, because NcActions cannot nest — and a grouped
+			     dropdown is the point of declaring children (a version list
+			     flattened into the page's one menu grows without bound). -->
+			<NcActions
+				v-if="hasChildren(entry)"
+				:key="`${entry.id}-children`"
+				:menuName="childMenuName(entry)"
+				:data-testid="`cn-action-children-${entry.id}`">
+				<NcActionButton
+					v-for="child in visibleChildren(entry)"
+					:key="child.id"
+					:disabled="Boolean(actionPending[child.id])"
+					:data-testid="`cn-action-${child.id}`"
+					@click="onActionClick(child)">
+					<template v-if="child.icon" #icon>
+						<CnIcon v-if="isMdiIconName(child.icon)" :name="child.icon" :size="20" />
+						<span v-else :class="child.icon" />
+					</template>
+					{{ tr(child.label) }}
+				</NcActionButton>
+			</NcActions>
 		</template>
+
+		<!-- Overflow. Only ever rendered when `inline` is set, so a consumer
+		     that never asked for a limit keeps every action as a button. -->
+		<NcActions
+			v-if="overflowActions.length > 0"
+			:menuName="overflowMenuName"
+			:forceMenu="true"
+			data-testid="cn-action-buttons-overflow">
+			<NcActionButton
+				v-for="entry in overflowActions"
+				:key="entry.id"
+				:disabled="Boolean(actionPending[entry.id])"
+				:data-testid="`cn-action-${entry.id}`"
+				@click="onActionClick(entry)">
+				<template v-if="entry.icon" #icon>
+					<CnIcon v-if="isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
+					<span v-else :class="entry.icon" />
+				</template>
+				{{ tr(entry.label) }}
+			</NcActionButton>
+		</NcActions>
 
 		<!-- Confirm gate for a confirm:true action (reuses CnConfirmDialog). -->
 		<CnConfirmDialog
@@ -84,7 +133,7 @@
 <script>
 import { inject } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton } from '@nextcloud/vue'
+import { NcActionButton, NcActions, NcButton } from '@nextcloud/vue'
 import { CnIcon } from '../CnIcon/index.js'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
@@ -151,7 +200,7 @@ import { useObjectStore } from '../../store/useObjectStore.js'
 export default {
 	name: 'CnActionButtons',
 
-	components: { NcButton, CnIcon, CnConfirmDialog, CnFormDialog, CnAdvancedFormDialog },
+	components: { NcActions, NcActionButton, NcButton, CnIcon, CnConfirmDialog, CnFormDialog, CnAdvancedFormDialog },
 
 	inject: {
 		/** Detail-page object context (`{ objectId, object, register, schema }`). */
@@ -189,6 +238,36 @@ export default {
 		actions: {
 			type: Array,
 			default: () => [],
+		},
+		/**
+		 * How many collapsible actions stay as buttons; the rest fall into a
+		 * single `···` overflow menu.
+		 *
+		 * `0` (the default) renders EVERY action as a button, which is what
+		 * every existing consumer already gets — the overflow only ever
+		 * appears once a host asks for a limit.
+		 *
+		 * A `variant: "primary"` action, an action carrying `children`, and a
+		 * `toggle` are never collapsed and never consume one of the N slots:
+		 * NcActions paints all of its inline actions with one shared variant
+		 * (so a lone primary among them is not expressible), it cannot nest
+		 * another NcActions, and a toggle's state lives in its button.
+		 *
+		 * @type {number}
+		 */
+		inline: {
+			type: Number,
+			default: 0,
+		},
+		/**
+		 * Name for the overflow menu. Empty falls back to a translated
+		 * "Actions".
+		 *
+		 * @type {string}
+		 */
+		overflowLabel: {
+			type: String,
+			default: '',
 		},
 		/**
 		 * Explicit Vue Router instance for `navigate` / `open-page` /
@@ -278,6 +357,42 @@ export default {
 		visibleActions() {
 			return (this.actions || []).filter((a) => a && a.id && this.visibility[a.id] !== false)
 		},
+		/**
+		 * The actions rendered in the bar itself: every non-collapsible one,
+		 * plus the first `inline` collapsible ones. Declaration order is kept,
+		 * so promoting an action never reshuffles the row.
+		 *
+		 * @return {Array<object>} Actions to render as buttons / chevrons.
+		 */
+		barActions() {
+			if (!(this.inline > 0)) return this.visibleActions
+			const promoted = new Set(
+				this.visibleActions
+					.filter((a) => this.isCollapsible(a))
+					.slice(0, this.inline)
+					.map((a) => a.id),
+			)
+			return this.visibleActions.filter((a) => !this.isCollapsible(a) || promoted.has(a.id))
+		},
+		/**
+		 * The actions that did not fit, for the `···` menu. Always empty while
+		 * `inline` is 0.
+		 *
+		 * @return {Array<object>} Actions to render as menu items.
+		 */
+		overflowActions() {
+			if (!(this.inline > 0)) return []
+			const shown = new Set(this.barActions.map((a) => a.id))
+			return this.visibleActions.filter((a) => !shown.has(a.id))
+		},
+		/**
+		 * Name for the overflow trigger.
+		 *
+		 * @return {string} The label.
+		 */
+		overflowMenuName() {
+			return this.tr(this.overflowLabel) || t('nextcloud-vue', 'Actions')
+		},
 		/** Unwrapped page workspace bag. */
 		workspaceCtx() {
 			const c = this.workspaceRaw
@@ -342,8 +457,17 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async evaluateVisibility() {
+			// Children are walked too: a sub-action whose predicate was never
+			// evaluated would read as visible and render regardless.
+			const flat = []
 			for (const action of this.actions || []) {
 				if (!action || !action.id) continue
+				flat.push(action)
+				if (Array.isArray(action.children)) {
+					flat.push(...action.children.filter((c) => c && c.id))
+				}
+			}
+			for (const action of flat) {
 				if (!action.visibleWhen) {
 					this.visibility[action.id] = true
 					continue
@@ -373,6 +497,48 @@ export default {
 					// Leave the default (off); a failed state read never breaks the bar.
 				}
 			}
+		},
+
+		/**
+		 * Whether an action may be pushed into the overflow menu. See the
+		 * `inline` prop for why these three shapes never can be.
+		 *
+		 * @param {object} entry The action descriptor.
+		 * @return {boolean} True when it can collapse.
+		 */
+		isCollapsible(entry) {
+			return !this.hasChildren(entry)
+				&& entry.variant !== 'primary'
+				&& entry.type !== 'toggle'
+		},
+		/**
+		 * Whether an action declares sub-actions worth a chevron.
+		 *
+		 * @param {object} entry The action descriptor.
+		 * @return {boolean} True when it has at least one visible child.
+		 */
+		hasChildren(entry) {
+			return this.visibleChildren(entry).length > 0
+		},
+		/**
+		 * An action's sub-actions, minus any hidden by `visibleWhen`.
+		 *
+		 * @param {object} entry The action descriptor.
+		 * @return {Array<object>} The renderable children.
+		 */
+		visibleChildren(entry) {
+			if (!Array.isArray(entry?.children)) return []
+			return entry.children.filter((c) => c && c.id && this.visibility[c.id] !== false)
+		},
+		/**
+		 * Name for a sub-action chevron. `childrenLabel` when set, else the
+		 * parent's own label, so the dropdown is never announced unlabelled.
+		 *
+		 * @param {object} entry The action descriptor.
+		 * @return {string} The menu name.
+		 */
+		childMenuName(entry) {
+			return this.tr(entry.childrenLabel) || this.tr(entry.label) || ''
 		},
 
 		/**
@@ -461,6 +627,15 @@ export default {
 		 * @return {Promise<*>} The dispatch result (undefined for open-form).
 		 */
 		async runAction(entry) {
+			// A function on the descriptor, for a PARENT COMPONENT composing
+			// entries in JS (CnDetailPage folds its own Edit in this way).
+			// Manifest JSON cannot carry one, so the declarative path is
+			// untouched — and it runs after the confirm gate, like every
+			// dispatched type.
+			if (typeof entry.onSelect === 'function') {
+				entry.onSelect(entry)
+				return undefined
+			}
 			if (entry.type === 'open-form') {
 				await this.openForm(entry)
 				return undefined
