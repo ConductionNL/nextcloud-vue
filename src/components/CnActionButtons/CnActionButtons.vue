@@ -4,7 +4,18 @@
 -->
 
 <template>
-	<div class="cn-action-buttons" data-testid="cn-action-buttons">
+	<div
+		class="cn-action-buttons"
+		:class="{ 'cn-action-buttons--menu': display === 'menu' }"
+		data-testid="cn-action-buttons">
+		<!-- `display: "menu"` keeps every dialog below but renders no buttons of
+		     its own: the host draws the entries as NcActionButtons inside an
+		     overflow menu instead, driven by the `entries` event. NcActions
+		     keeps only NcAction* vnodes out of its default slot, so this
+		     component cannot be placed in the menu itself.
+		     That mode is enforced in `barActions` / `overflowActions`, which
+		     both answer empty for it — so `inline` only means anything while
+		     this component is the one drawing. -->
 		<template v-for="entry in barActions">
 			<!-- Toggle: a stateful two-way state button (GET on mount, write on
 			     click, optimistic + revert). Rendered inline, never dispatched. -->
@@ -51,7 +62,7 @@
 			<NcActions
 				v-if="hasChildren(entry)"
 				:key="`${entry.id}-children`"
-				:menuName="childMenuName(entry)"
+				:menu-name="childMenuName(entry)"
 				:data-testid="`cn-action-children-${entry.id}`">
 				<NcActionButton
 					v-for="child in visibleChildren(entry)"
@@ -72,8 +83,8 @@
 		     that never asked for a limit keeps every action as a button. -->
 		<NcActions
 			v-if="overflowActions.length > 0"
-			:menuName="overflowMenuName"
-			:forceMenu="true"
+			:menu-name="overflowMenuName"
+			:force-menu="true"
 			data-testid="cn-action-buttons-overflow">
 			<NcActionButton
 				v-for="entry in overflowActions"
@@ -279,9 +290,21 @@ export default {
 			type: Object,
 			default: null,
 		},
+		/**
+		 * Where the actions are drawn. `buttons` (the default) puts one
+		 * NcButton per action in the host's header. `menu` draws none and
+		 * emits `entries` instead, so the host can render them inside an
+		 * overflow menu while this component keeps owning the dialogs.
+		 * @type {'buttons'|'menu'}
+		 */
+		display: {
+			type: String,
+			default: 'buttons',
+			validator: (v) => ['buttons', 'menu'].includes(v),
+		},
 	},
 
-	emits: ['created'],
+	emits: ['created', 'entries'],
 
 	setup() {
 		// Read the two detail-surface injects once so the object token context
@@ -362,9 +385,13 @@ export default {
 		 * plus the first `inline` collapsible ones. Declaration order is kept,
 		 * so promoting an action never reshuffles the row.
 		 *
+		 * Empty in `display: "menu"` — the host draws the entries itself there,
+		 * so this component renders no buttons and has nothing to cap.
+		 *
 		 * @return {Array<object>} Actions to render as buttons / chevrons.
 		 */
 		barActions() {
+			if (this.display === 'menu') return []
 			if (!(this.inline > 0)) return this.visibleActions
 			const promoted = new Set(
 				this.visibleActions
@@ -376,12 +403,12 @@ export default {
 		},
 		/**
 		 * The actions that did not fit, for the `···` menu. Always empty while
-		 * `inline` is 0.
+		 * `inline` is 0, and in `display: "menu"` where the host owns the menu.
 		 *
 		 * @return {Array<object>} Actions to render as menu items.
 		 */
 		overflowActions() {
-			if (!(this.inline > 0)) return []
+			if (this.display === 'menu' || !(this.inline > 0)) return []
 			const shown = new Set(this.barActions.map((a) => a.id))
 			return this.visibleActions.filter((a) => !shown.has(a.id))
 		},
@@ -392,6 +419,43 @@ export default {
 		 */
 		overflowMenuName() {
 			return this.tr(this.overflowLabel) || t('nextcloud-vue', 'Actions')
+		},
+		/**
+		 * The visible actions flattened for a host that draws them as menu
+		 * items. Everything the item needs to render is resolved here — the
+		 * translated label a toggle currently shows, its pressed state, its
+		 * pending flag, and which of the two icon shapes applies — so the host
+		 * template stays a plain v-for and needs none of this component's
+		 * state. `run()` is pre-bound, the way CnIndexPage pre-binds a header
+		 * action's handler for the index bar, so the host dispatches without
+		 * reaching back through a ref.
+		 *
+		 * @return {Array<object>} One menu-ready descriptor per visible action.
+		 */
+		menuEntries() {
+			return this.visibleActions.map((entry) => {
+				const isToggle = entry.type === 'toggle'
+				const on = Boolean(this.toggleState[entry.id])
+				const label = isToggle
+					? (on ? (entry.labelOn || entry.label) : (entry.labelOff || entry.label))
+					: entry.label
+				return {
+					id: entry.id,
+					label: this.tr(label),
+					// An mdi name goes to CnIcon; a legacy `icon-*` class goes
+					// on a bare span. Deciding it here keeps isMdiIconName from
+					// having to be duplicated into every host.
+					iconName: this.isMdiIconName(entry.icon) ? entry.icon : '',
+					iconClass: (entry.icon && !this.isMdiIconName(entry.icon)) ? entry.icon : '',
+					disabled: Boolean(isToggle ? this.togglePending[entry.id] : this.actionPending[entry.id]),
+					// null, not false: a non-toggle carries no pressed state at
+					// all, and `aria-pressed="false"` would announce every
+					// action as an un-pressed toggle button.
+					pressed: isToggle ? on : null,
+					testid: isToggle ? `cn-action-toggle-${entry.id}` : `cn-action-${entry.id}`,
+					run: () => (isToggle ? this.onToggleClick(entry) : this.onActionClick(entry)),
+				}
+			})
 		},
 		/** Unwrapped page workspace bag. */
 		workspaceCtx() {
@@ -435,6 +499,19 @@ export default {
 		objectCtx: {
 			deep: true,
 			handler() { this.evaluateVisibility() },
+		},
+		// Push the menu-ready descriptors at a `display: "menu"` host. It fires
+		// immediately so the host has the list on first paint, and again on
+		// every change of visibility, toggle state or pending flag — the three
+		// things that would otherwise leave a stale item in an open menu.
+		menuEntries: {
+			immediate: true,
+			handler(entries) {
+				/**
+				 * @event entries Emitted in `display: "menu"` only, whenever the visible actions, their toggle state or their pending flags change. Payload: one menu-ready descriptor per visible action, each carrying `id`, `label`, `iconName`, `iconClass`, `disabled`, `pressed`, `testid` and a pre-bound `run()`.
+				 */
+				if (this.display === 'menu') this.$emit('entries', entries)
+			},
 		},
 	},
 
@@ -855,5 +932,12 @@ export default {
 	align-items: center;
 	gap: 8px;
 	flex-wrap: wrap;
+}
+
+/* In menu mode the only children are dialogs, so the wrapper must not be a
+   box: an empty inline-flex child still eats one of the header's flex gaps
+   and pushes the Actions menu away from the Edit button beside it. */
+.cn-action-buttons--menu {
+	display: contents;
 }
 </style>

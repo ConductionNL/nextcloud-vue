@@ -155,6 +155,7 @@ current record without extra wiring.
 | `inline` | `Number` | `0` | How many collapsible actions stay as buttons; the rest fall into one `···` menu. `0` renders every action as a button (the pre-existing behaviour). |
 | `overflowLabel` | `String` | `''` | Name for the overflow menu. Empty falls back to a translated "Actions". |
 | `router` | `Object` | `null` | Explicit Vue Router for `navigate` / `onSuccessRoute` (falls back to `this.$router`). |
+| `display` | `String` | `'buttons'` | Where the actions are drawn. `buttons` puts one `NcButton` per action in the host's header. `menu` draws none and emits `entries` instead, so the host can render them inside an overflow menu while this component keeps owning the dialogs. |
 
 ## Overflow and sub-actions
 
@@ -195,6 +196,37 @@ path is unaffected — `CnDetailPage` uses it to fold its own Edit button in.
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `created` | the created object | Emitted after an `open-form` action saves. `CnDetailPage` wires this to reload the record. |
+| `entries` | one descriptor per visible action | `display: "menu"` only. Fires whenever the visible actions, their toggle state or their pending flags change. Each descriptor carries `id`, `label`, `iconName`, `iconClass`, `disabled`, `pressed`, `testid` and a pre-bound `run()`. |
+
+### Drawing the actions in a menu
+
+`display="menu"` exists because `NcActions` keeps only `NcAction*` vnodes out
+of its default slot: a wrapper component placed inside the menu renders
+nothing at all, silently. So the host draws the entries and this component
+keeps the dialogs.
+
+```vue
+<CnActionsMenu ...>
+  <template v-if="menuHeaderActions.length" #primary-items>
+    <NcActionButton
+      v-for="entry in menuHeaderActions"
+      :key="entry.id"
+      :data-testid="entry.testid"
+      :disabled="entry.disabled"
+      :close-after-click="true"
+      @click="entry.run()">
+      {{ entry.label }}
+    </NcActionButton>
+    <NcActionSeparator />
+  </template>
+</CnActionsMenu>
+<CnActionButtons
+  :actions="headerActions"
+  display="menu"
+  @entries="menuHeaderActions = $event" />
+```
+
+This is what `CnDetailPage` does with a page's manifest `headerActions`.
 
 ## Notes
 

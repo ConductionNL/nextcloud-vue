@@ -368,7 +368,11 @@ The header carries the shared [CnActionsMenu](./cn-actions-menu.md) overflow (Re
 
 | Slot | Description |
 |------|-------------|
-| `action-items` | Extra `NcActionButton`-family items appended inside the overflow menu, after the built-in trio. |
+| `actions` | Buttons rendered in the page header beside Edit. Receives the resolved `object`, `objectId`, `schema`, `objectType` and `store`. |
+
+Manifest `headerActions` are NOT part of this table: the page renders them
+itself, as items in the header's Actions menu above the Request-a-feature /
+Report-a-bug / Documentation trio. See the `headerActions` prop.
 
 ## Action handlers (manifest-actions-dispatch)
 
@@ -380,7 +384,7 @@ CnDetailPage consumes the same `actions[].handler` contract as CnIndexPage. When
 |------|------|---------|-------------|
 | `showRelatedObjects` | Boolean | `true` | Whether to render the Related section beneath the data widget. Set `false` on pages that surface relations elsewhere (e.g. the sidebar) to drop the section. |
 | `lifecycleActions` | Object \| null | `null` | Declarative status-gated transition buttons in the page header, driven by the object's `x-openregister-lifecycle`. `{ field: 'status' }` fetches allowed transitions from OpenRegister's `/available-actions`; an explicit `{ transitions: [...] }` is filtered client-side by current state. Emits `@transitioned`. See [CnLifecycleActions](../CnLifecycleActions/CnLifecycleActions.md) / docs `cn-lifecycle-actions.md`. |
-| `inlineActions` | Number \| null | `null` | How many header actions stay as buttons; the rest collapse into one `···` menu (forwarded to `CnActionButtons`' `inline`). Setting it also folds this page's own Edit button into that cluster, so one count governs the whole header. `null` keeps today's behaviour: every action a button, Edit standalone. |
+| `inlineActions` | Number \| null | `null` | Set to fold this page's own Edit button in with the header actions, so it becomes an entry in the Actions menu rather than a button beside it. `null` keeps Edit standalone. The number caps nothing here — this page draws its header actions as Actions-menu entries (`display: "menu"`), where there are no buttons to cap; it is still `CnActionButtons`' `inline` count for a host mounting that component in `buttons` mode. |
 | `relatedCollections` | Array | `[]` | Declarative related-object list sections below the body; each `{ title?, register, schema, filter?, columns?, sort?, limit?, rowRoute? }` renders a `CnObjectListWidget` scoped to this object via `@objectId`. Emits `@related-row-click`. See docs `cn-related-collections.md`. |
 | `summaryAggregates` | Array | `[]` | Declarative cross-schema count/sum/avg chips in the header; each `{ label, register, schema, metric?, field?, filter?, format? }` scoped to this object. See docs `cn-summary-aggregates.md`. |
 | `relationLinks` | Array | `[]` | Declarative relation-link actions; each `{ label?, register, schema, fkField, labelField?, allowCreate?, title?, selectLabel? }` opens a search-and-link modal that patches a FK on this object. Emits `@relation-linked`. See docs `cn-relation-link-modal.md`. |

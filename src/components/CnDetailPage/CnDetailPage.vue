@@ -107,16 +107,24 @@
 					@transitioned="onTransitioned"
 					@reload="onLifecycleReload" />
 				<!-- Declarative header actions (#91 Wave 3): a manifest
-				     `config.headerActions[]` renders as buttons (api-call /
-				     open-form / toggle / navigate) with visibleWhen gating —
+				     `config.headerActions[]` dispatched with visibleWhen gating —
 				     the object context this page provides drives `@objectId` /
 				     `@object.<field>` tokens + local predicates (the shillinq
-				     PaymentRunDetailActions contract). -->
+				     PaymentRunDetailActions contract).
+
+				     They render as entries in the Actions menu below, not as a
+				     row of buttons, which is what the manifest schema has always
+				     said they are and what CnIndexPage already does with the same
+				     key. A dossiq case declares twelve, and twelve buttons pushed
+				     the record's own title down to a truncated stub. This
+				     instance draws nothing itself; it owns the dialogs the
+				     actions open and feeds the menu through `entries`. -->
 				<CnActionButtons
 					v-if="effectiveHeaderActions.length > 0"
 					:actions="effectiveHeaderActions"
-					:inline="inlineActions || 0"
+					display="menu"
 					data-testid="cn-detail-page-header-actions"
+					@entries="menuHeaderActions = $event"
 					@created="onLifecycleReload" />
 				<!--
 					@slot actions
@@ -148,9 +156,9 @@
 				     simply be removed. Opens the same schema-driven CnFormDialog
 				     the index used, scoped to this record. -->
 				<!-- Standalone unless `inlineActions` is set, in which case Edit
-				     is folded into CnActionButtons above so one `inline` count
-				     governs the whole cluster. Kept standalone by default so
-				     every existing consumer's header is byte-identical. -->
+				     joins the header actions above and lands in the Actions menu
+				     with them. Kept standalone by default so every existing
+				     consumer's header is byte-identical. -->
 				<NcButton
 					v-if="canEditRecord && !foldsEditIntoActions"
 					variant="secondary"
@@ -183,7 +191,25 @@
 					refresh-channel="cn:page:refresh"
 					testid-base="cn-detail-page"
 					@refresh="onHeaderRefresh"
-					@request-feature="onHeaderRequestFeature" />
+					@request-feature="onHeaderRequestFeature">
+					<template v-if="menuHeaderActions.length" #primary-items>
+						<NcActionButton
+							v-for="entry in menuHeaderActions"
+							:key="entry.id"
+							:data-testid="entry.testid"
+							:disabled="entry.disabled"
+							:aria-pressed="entry.pressed === null ? null : String(entry.pressed)"
+							:close-after-click="true"
+							@click="entry.run()">
+							<template v-if="entry.iconName || entry.iconClass" #icon>
+								<CnIcon v-if="entry.iconName" :name="entry.iconName" :size="20" />
+								<span v-else :class="entry.iconClass" />
+							</template>
+							{{ entry.label }}
+						</NcActionButton>
+						<NcActionSeparator />
+					</template>
+				</CnActionsMenu>
 			</div>
 		</div>
 
@@ -632,7 +658,8 @@
 <script>
 import { Comment, Fragment, Text, provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { NcActionButton, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
@@ -673,6 +700,13 @@ import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 import { useObjectStore } from '../../store/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
+
+/**
+ * Event-bus channel a page-level refresh is announced on. The page's own
+ * Actions menu emits it, the manifest `refresh` / `api-call` actions bump it,
+ * and an app's own dialog emits it after a successful write.
+ */
+const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
@@ -774,6 +808,8 @@ export default {
 	name: 'CnDetailPage',
 
 	components: {
+		NcActionButton,
+		NcActionSeparator,
 		NcButton,
 		NcEmptyContent,
 		NcLoadingIcon,
@@ -1305,14 +1341,21 @@ export default {
 
 		/**
 		 * Declarative header actions (manifest `config.headerActions`, #91
-		 * Wave 3) rendered as buttons in the page header via CnActionButtons —
-		 * `api-call` (POST/PUT + toast + refresh), `open-form`, `toggle`,
-		 * `navigate` / `open-modal`, each with an optional `visibleWhen`
-		 * predicate. Distinct from `lifecycleActions` (state-machine
-		 * transitions): these are free-form record actions (approve, send,
-		 * archive). The page's object context drives `@objectId` /
-		 * `@object.<field>` token + local-predicate resolution. Empty (the
-		 * default) renders nothing.
+		 * Wave 3) rendered as items in the header's Actions menu via
+		 * CnActionButtons — `api-call` (POST/PUT + toast + refresh),
+		 * `open-form`, `toggle`, `navigate` / `open-modal`, each with an
+		 * optional `visibleWhen` predicate. Distinct from `lifecycleActions`
+		 * (state-machine transitions): these are free-form record actions
+		 * (approve, send, archive). The page's object context drives
+		 * `@objectId` / `@object.<field>` token + local-predicate resolution.
+		 * Empty (the default) renders nothing.
+		 *
+		 * The menu, not a row of buttons: that is what the manifest schema has
+		 * always said this key is, and what CnIndexPage already does with it.
+		 * The two surfaces had drifted, and on a dossiq case — twelve actions —
+		 * the button row squeezed the record's own title to a truncated stub.
+		 * Edit stays a button because it is the one action a handler reaches
+		 * for on nearly every visit.
 		 *
 		 * @type {Array<object>}
 		 */
@@ -1322,14 +1365,16 @@ export default {
 		},
 
 		/**
-		 * How many of the header actions stay as buttons; the rest collapse
-		 * into one `···` menu (forwarded to CnActionButtons' `inline`).
+		 * Set to fold this page's own Edit button in with the header actions,
+		 * so it becomes an entry in the Actions menu instead of a button
+		 * standing beside it. `null` (the default) keeps Edit standalone, so
+		 * every existing consumer's header is unchanged.
 		 *
-		 * Setting it also folds this page's own Edit button into that cluster,
-		 * so a single count governs everything in the header rather than the
-		 * Edit button sitting outside the limit. `null` (the default) keeps
-		 * both of today's behaviours: every action renders as a button and Edit
-		 * renders standalone.
+		 * The number itself no longer caps anything HERE: this page draws its
+		 * header actions as Actions-menu entries (`display: "menu"`), where
+		 * there are no buttons to cap. It is still CnActionButtons' `inline`
+		 * count for a host that mounts that component in `buttons` mode — see
+		 * that component's `inline` prop.
 		 *
 		 * @type {number|null}
 		 */
@@ -1568,6 +1613,13 @@ export default {
 		return {
 			/** Whether the record edit form is open. */
 			editFormOpen: false,
+			/**
+			 * The manifest `headerActions[]` flattened into menu items by the
+			 * `display: "menu"` CnActionButtons instance, which keeps owning
+			 * their dialogs. Each carries its own pre-bound `run()`, so the
+			 * menu dispatches without reaching back into that component.
+			 */
+			menuHeaderActions: [],
 			/** Whether the per-widget style/config editor modal is open. */
 			showWidgetConfig: false,
 			/** The widgetId currently being configured via the cog. */
@@ -1733,8 +1785,8 @@ export default {
 		/**
 		 * The header actions actually handed to CnActionButtons: the declared
 		 * ones, plus this page's Edit appended when `inlineActions` folds it
-		 * in. Edit goes LAST so it collapses before any author-declared action
-		 * does — the page's own affordance yields to the app's.
+		 * in. Edit goes LAST so it reads after the app's own actions in the
+		 * Actions menu — the page's affordance yields to the app's.
 		 *
 		 * @return {Array<object>} The action descriptors.
 		 */
@@ -2376,6 +2428,24 @@ export default {
 		// is guaranteed by mounted() but not by created().
 		this.fetchObjectIfNeeded()
 		this.scheduleCellOverflowAudit()
+
+		// `cn:page:refresh` is the channel a successful write announces itself
+		// on — the manifest `refresh` and `api-call` actions bump it, and so do
+		// app dialogs after a save. Until now nothing on a schema-driven detail
+		// page listened: `useEndpointSource` and CnChartWidget answered it, but
+		// every widget reading the page's OBJECT (`type: "data"` above all)
+		// reads the copy this component fetched once, so a page kept showing
+		// values the backend had already changed. Measured on a dossiq draft:
+		// publish returned `{"published":true,"version":1}`, a re-read showed
+		// `isDraft: false`, and the page still said draft.
+		//
+		// The subscription lives HERE rather than in each widget on purpose.
+		// One page carries several object-bound widgets; if each answered the
+		// channel itself, one write would become one read per widget. This
+		// component owns the object, so one write is one read however many
+		// widgets are bound to it.
+		this._onPageRefresh = () => this.onPageRefreshBus()
+		subscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
 	},
 
 	updated() {
@@ -2383,6 +2453,10 @@ export default {
 	},
 
 	beforeUnmount() {
+		if (this._onPageRefresh) {
+			unsubscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
+			this._onPageRefresh = null
+		}
 		if (this.hasExternalSidebar) {
 			this.objectSidebarState.active = false
 			// Clear manifest-driven tabs so the next mount starts fresh
@@ -2424,6 +2498,27 @@ export default {
 			} finally {
 				this.internalRefreshing = false
 			}
+		},
+
+		/**
+		 * A `cn:page:refresh` reached the page — re-read the object so every
+		 * object-bound widget re-renders from what the backend now holds.
+		 *
+		 * Deliberately a no-op while `internalRefreshing` is set. The header's
+		 * own Refresh item emits `@refresh` FIRST and only then emits on this
+		 * channel (see CnActionsMenu.onRefreshClick), and `onHeaderRefresh`
+		 * sets the flag synchronously before awaiting its fetch — so without
+		 * this guard one click on Refresh would fetch the object twice.
+		 *
+		 * @return {void}
+		 */
+		onPageRefreshBus() {
+			if (!this.hasSchemaDrivenFetch) return
+			if (this.internalRefreshing) return
+			this.internalRefreshing = true
+			Promise.resolve(this.fetchObjectIfNeeded()).finally(() => {
+				this.internalRefreshing = false
+			})
 		},
 
 		/**

@@ -49,7 +49,25 @@ export function objectDisplayName(obj) {
 	// @self.name first — it is the backend's answer, and it is right for every schema.
 	// The rest are for objects handed to us outside an OpenRegister response (inline
 	// GeoJSON features, test fixtures) that never had an envelope.
-	const candidates = [self.name, obj.name, obj.title, self.id, obj.id]
+	//
+	// `displayName` / `naam` / `label` / `identifier` sit after the two canonical
+	// keys and BEFORE the id fallbacks, so they can only ever replace a UUID with
+	// a real name. They are here so that this function covers everything the
+	// hand-rolled chains around the library covered, and those can delegate to it
+	// rather than each keeping its own list — which is how one of them ended up
+	// returning an object (see the type guard below).
+	const candidates = [
+		self.name, obj.name, obj.title,
+		obj.displayName, obj.naam, obj.label, obj.identifier,
+		self.id, obj.id,
+	]
+	// TYPE-CHECKED, and that is the point rather than a nicety. A property named
+	// `name` is not necessarily a string: Haal Centraal naming gives a person
+	// `name: { givenNames, namePrefix, surname }`, and a chain that takes the
+	// first TRUTHY candidate hands that object back as the label. It then renders
+	// as `[object Object]` wherever a name was meant to be — measured on dossiq's
+	// brpPerson rows, whose `@self.name` already held "Stephan Janssen" the whole
+	// time, one candidate further down a list that never got there.
 	for (const c of candidates) {
 		if (typeof c === 'string' && c.trim() !== '') return c
 		if (typeof c === 'number') return String(c)

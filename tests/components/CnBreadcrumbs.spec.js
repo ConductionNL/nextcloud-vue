@@ -68,6 +68,11 @@ describe('CnBreadcrumbs', () => {
 		expect(icon.props('name')).toBe('Home')
 	})
 
+	it('gives an icon-only crumb an empty name rather than undefined', () => {
+		const wrapper = mount(CnBreadcrumbs, { propsData: { crumbs: CRUMBS } })
+		expect(crumbEls(wrapper)[0].attributes('name')).toBe('')
+	})
+
 	it('renders nothing for an empty trail', () => {
 		const wrapper = mount(CnBreadcrumbs, { propsData: { crumbs: [] } })
 		expect(wrapper.find('[data-testid="cn-breadcrumbs"]').exists()).toBe(false)

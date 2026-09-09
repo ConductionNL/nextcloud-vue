@@ -10,7 +10,10 @@
       (merged into Objects), /files — and renders one TAB per non-empty group
     with a count badge, showing the items inline. Each leaf tab carries an
     "open in sidebar" affordance that emits `open-integration` without
-    replacing the inline content.
+    replacing the inline content. A host's `extraSections` join the strip as
+    further tabs: content the widget cannot resolve itself is still content
+    about this object, and dropping it on the mode the widget picks for itself
+    is a loss the host has no way to see.
 
   • Legacy list (`layout="list"`, or when register/schema can't be resolved) —
     the original flat sections driven by the object store's
@@ -501,8 +504,24 @@ export default {
 			default: () => [],
 		},
 		/**
-		 * Extra related sections the store can't resolve generically (legacy
-		 * list path). Each: `{ key, label, icon?, items: [] }`.
+		 * Extra related sections the widget cannot resolve itself — content a
+		 * host knows about that OpenRegister's relation endpoints do not
+		 * return. Each: `{ key, label, icon?, items: [] }`.
+		 *
+		 * Renders on BOTH paths. On the legacy list path each section is a
+		 * flat block; on the tabbed path each becomes a tab beside the
+		 * self-fetched ones, and a row click emits `select-extra` rather than
+		 * being deep-linked, because the host owns these rows and this widget
+		 * knows nothing about where they live.
+		 *
+		 * A section with no items renders nothing at all, so a host can bind
+		 * a section unconditionally and let it appear when it fills.
+		 *
+		 * `includeGroups` does NOT filter these. That whitelist scopes which
+		 * of the widget's OWN groups it fetches and shows; a section handed
+		 * over explicitly by the host is not one of those, and dropping it
+		 * would be silent.
+		 *
 		 * @type {Array<{ key: string, label: string, icon?: string, items: object[] }>}
 		 */
 		extraSections: {
@@ -662,15 +681,54 @@ export default {
 		},
 
 		/**
+		 * The host's `extraSections`, normalised into the same group shape the
+		 * tab strip and the panel render. A section with no items is dropped,
+		 * so an unconditionally-bound section costs nothing until it fills.
+		 *
+		 * Kept as a COMPUTED rather than pushed into `groups` inside
+		 * `loadTabs()`: a host typically resolves these rows asynchronously
+		 * after mount (dossiq's planned follow-ups are one endpoint call), and
+		 * a value copied into `groups` at fetch time would never pick that up.
+		 *
+		 * @return {Array<object>} Group descriptors, `isExtra: true`.
+		 */
+		extraGroups() {
+			return (this.extraSections || [])
+				.filter((section) => section && (section.items || []).length > 0)
+				.map((section) => {
+					const items = section.items.map((raw, i) => ({
+						id: String(raw?.id ?? i),
+						label: raw?.label || raw?.title || raw?.name || '',
+						meta: typeof raw?.meta === 'string' ? raw.meta : '',
+						detail: '',
+						raw,
+					}))
+					return {
+						key: section.key,
+						label: section.label,
+						icon: section.icon || 'LinkVariant',
+						integrationId: '',
+						items,
+						total: items.length,
+						isExtra: true,
+					}
+				})
+		},
+
+		/**
 		 * Tab groups that have at least one item (tabbed path), honouring the
 		 * `includeGroups` whitelist when set.
+		 *
+		 * Host-supplied `extraSections` are appended and are deliberately NOT
+		 * subject to `includeGroups` — see the prop's docblock.
 		 */
 		visibleGroups() {
 			const allow = Array.isArray(this.includeGroups) ? this.includeGroups : []
-			return this.groups.filter((group) =>
+			const own = this.groups.filter((group) =>
 				(group.total > 0 || group.items.length > 0)
 				&& (allow.length === 0 || allow.includes(group.key)),
 			)
+			return [...own, ...this.extraGroups]
 		},
 
 		/**
@@ -979,6 +1037,14 @@ export default {
 		 * @param {object} item - The clicked, normalised row (`item.raw` is the record).
 		 */
 		onSelectGroupItem(group, item) {
+			// A host-supplied section's rows belong to the host: this widget
+			// did not fetch them and has no owning-app page to deep-link to,
+			// so the click goes straight back out as `select-extra` — the same
+			// event the legacy list path emits for the same rows.
+			if (group.isExtra) {
+				this.onSelectExtra(group.key, item.raw)
+				return
+			}
 			if (group.key === 'objects') {
 				this.onSelectObject(item.raw)
 				return
@@ -1077,14 +1143,16 @@ export default {
 		},
 
 		/**
-		 * Emit a click in a host-supplied extra section (legacy list path).
+		 * Emit a click in a host-supplied extra section. Reached from both
+		 * paths: the legacy list's own rows, and a tabbed-path row whose
+		 * group came from `extraSections`.
 		 * @param {string} sectionKey - The section's key.
 		 * @param {object} item - The clicked item.
 		 */
 		onSelectExtra(sectionKey, item) {
 			/**
 			 * @event select-extra A row in a host-supplied `extraSections`
-			 * group was clicked.
+			 * group was clicked, on either the list or the tabbed path.
 			 * @type {{ section: string, item: object }}
 			 */
 			this.$emit('select-extra', { section: sectionKey, item })

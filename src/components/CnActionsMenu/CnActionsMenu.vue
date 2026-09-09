@@ -41,6 +41,15 @@
 				</template>
 				{{ refreshLabel }}
 			</NcActionButton>
+			<!-- @slot primary-items The surface's OWN actions — a page's
+			     manifest `headerActions`, say — rendered above the canonical
+			     trio. They sit here rather than in `#action-items` because a
+			     case's Add party belongs above Report a bug, not under it.
+			     The caller owns the trailing NcActionSeparator: only the
+			     caller knows whether its v-for produced any items, and a
+			     separator rendered here would strand itself when it did
+			     not. -->
+			<slot name="primary-items" />
 			<!-- The canonical trio — Request a feature / Report a bug /
 			     Documentation — renders on EVERY surface. None of the three
 			     is conditional on a URL being configured any more: each
@@ -453,6 +462,7 @@ export default {
 			if (this.showDocumentation && this.resolvedDocumentationUrl) return true
 			if (this.showReportBug && this.resolvedReportBugUrl) return true
 			if (this.showRequestFeature) return true
+			if (this.$slots['primary-items']) return true
 			return Boolean(this.$slots['action-items']) || Boolean(this.$slots && this.$slots['action-items'])
 		},
 
