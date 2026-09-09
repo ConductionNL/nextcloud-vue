@@ -107,15 +107,24 @@
 					@transitioned="onTransitioned"
 					@reload="onLifecycleReload" />
 				<!-- Declarative header actions (#91 Wave 3): a manifest
-				     `config.headerActions[]` renders as buttons (api-call /
-				     open-form / toggle / navigate) with visibleWhen gating —
+				     `config.headerActions[]` dispatched with visibleWhen gating —
 				     the object context this page provides drives `@objectId` /
 				     `@object.<field>` tokens + local predicates (the shillinq
-				     PaymentRunDetailActions contract). -->
+				     PaymentRunDetailActions contract).
+
+				     They render as entries in the Actions menu below, not as a
+				     row of buttons, which is what the manifest schema has always
+				     said they are and what CnIndexPage already does with the same
+				     key. A dossiq case declares twelve, and twelve buttons pushed
+				     the record's own title down to a truncated stub. This
+				     instance draws nothing itself; it owns the dialogs the
+				     actions open and feeds the menu through `entries`. -->
 				<CnActionButtons
 					v-if="headerActions && headerActions.length"
 					:actions="headerActions"
+					display="menu"
 					data-testid="cn-detail-page-header-actions"
+					@entries="menuHeaderActions = $event"
 					@created="onLifecycleReload" />
 				<!--
 					@slot actions
@@ -174,7 +183,25 @@
 					refresh-channel="cn:page:refresh"
 					testid-base="cn-detail-page"
 					@refresh="onHeaderRefresh"
-					@request-feature="onHeaderRequestFeature" />
+					@request-feature="onHeaderRequestFeature">
+					<template v-if="menuHeaderActions.length" #primary-items>
+						<NcActionButton
+							v-for="entry in menuHeaderActions"
+							:key="entry.id"
+							:data-testid="entry.testid"
+							:disabled="entry.disabled"
+							:aria-pressed="entry.pressed === null ? null : String(entry.pressed)"
+							:close-after-click="true"
+							@click="entry.run()">
+							<template v-if="entry.iconName || entry.iconClass" #icon>
+								<CnIcon v-if="entry.iconName" :name="entry.iconName" :size="20" />
+								<span v-else :class="entry.iconClass" />
+							</template>
+							{{ entry.label }}
+						</NcActionButton>
+						<NcActionSeparator />
+					</template>
+				</CnActionsMenu>
 			</div>
 		</div>
 
@@ -623,7 +650,7 @@
 <script>
 import { Comment, Fragment, Text, provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
@@ -765,6 +792,8 @@ export default {
 	name: 'CnDetailPage',
 
 	components: {
+		NcActionButton,
+		NcActionSeparator,
 		NcButton,
 		NcEmptyContent,
 		NcLoadingIcon,
@@ -1296,14 +1325,21 @@ export default {
 
 		/**
 		 * Declarative header actions (manifest `config.headerActions`, #91
-		 * Wave 3) rendered as buttons in the page header via CnActionButtons —
-		 * `api-call` (POST/PUT + toast + refresh), `open-form`, `toggle`,
-		 * `navigate` / `open-modal`, each with an optional `visibleWhen`
-		 * predicate. Distinct from `lifecycleActions` (state-machine
-		 * transitions): these are free-form record actions (approve, send,
-		 * archive). The page's object context drives `@objectId` /
-		 * `@object.<field>` token + local-predicate resolution. Empty (the
-		 * default) renders nothing.
+		 * Wave 3) rendered as items in the header's Actions menu via
+		 * CnActionButtons — `api-call` (POST/PUT + toast + refresh),
+		 * `open-form`, `toggle`, `navigate` / `open-modal`, each with an
+		 * optional `visibleWhen` predicate. Distinct from `lifecycleActions`
+		 * (state-machine transitions): these are free-form record actions
+		 * (approve, send, archive). The page's object context drives
+		 * `@objectId` / `@object.<field>` token + local-predicate resolution.
+		 * Empty (the default) renders nothing.
+		 *
+		 * The menu, not a row of buttons: that is what the manifest schema has
+		 * always said this key is, and what CnIndexPage already does with it.
+		 * The two surfaces had drifted, and on a dossiq case — twelve actions —
+		 * the button row squeezed the record's own title to a truncated stub.
+		 * Edit stays a button because it is the one action a handler reaches
+		 * for on nearly every visit.
 		 *
 		 * @type {Array<object>}
 		 */
@@ -1542,6 +1578,13 @@ export default {
 		return {
 			/** Whether the record edit form is open. */
 			editFormOpen: false,
+			/**
+			 * The manifest `headerActions[]` flattened into menu items by the
+			 * `display: "menu"` CnActionButtons instance, which keeps owning
+			 * their dialogs. Each carries its own pre-bound `run()`, so the
+			 * menu dispatches without reaching back into that component.
+			 */
+			menuHeaderActions: [],
 			/** Whether the per-widget style/config editor modal is open. */
 			showWidgetConfig: false,
 			/** The widgetId currently being configured via the cog. */

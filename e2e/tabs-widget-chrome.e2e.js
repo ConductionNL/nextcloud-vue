@@ -1,12 +1,17 @@
 // SPDX-FileCopyrightText: 2026 Conduction B.V.
 // SPDX-License-Identifier: EUPL-1.2
 //
-// The tabs widget's strip must BE the card's top edge.
+// The panel is the card. The tab strip sits on top of it, with no chrome of
+// its own.
 //
-// Reported on a dossiq case: the strip sat inside the card with the card's own
-// 8px/12px padding around it and CnTabs' 12px gap below it, so the open tab
-// floated above content it is drawn as being attached to, and the card spent a
-// row of height on chrome that says nothing the open tab does not already say.
+// Reported on a dossiq case, twice. First the strip sat inside the card with
+// the card's own 8px/12px padding around it and CnTabs' 12px gap below it, so
+// the open tab floated above content it is drawn as being attached to, and the
+// card spent a row of height on chrome that says nothing the open tab does not
+// already say. That was fixed by taking the padding out, which left the card's
+// border and rounded corners still wrapped around the strip: a second edge
+// above folder tabs, reading as a header the widget does not have. So the
+// border, the radius and the background moved down onto the panel.
 //
 // WHY PLAYWRIGHT AND NOT JEST
 // ---------------------------
@@ -135,6 +140,60 @@ test.describe('CnTabsWidget chrome', () => {
 			getComputedStyle(document.querySelector('.cn-tabs__nav-item--active')).marginBottom,
 		)
 		expect(mb).toBe('-1px')
+	})
+
+	// The strip carries no card chrome of its own. Measured through
+	// getComputedStyle rather than by reading the stylesheet, so any other
+	// correct implementation passes and only a regression fails.
+	test('the card border and radius are on the panel, not around the strip', async ({ page }) => {
+		await openHarness(page)
+		const chrome = await page.evaluate(() => {
+			const px = (v) => Math.round(parseFloat(v) || 0)
+			const root = getComputedStyle(document.querySelector('.cn-tabs-widget'))
+			const panel = getComputedStyle(document.querySelector('.cn-tabs__content'))
+			return {
+				rootBorderTop: px(root.borderTopWidth),
+				rootBorderLeft: px(root.borderLeftWidth),
+				rootRadiusTopLeft: px(root.borderTopLeftRadius),
+				panelBorderLeft: px(panel.borderLeftWidth),
+				panelBorderBottom: px(panel.borderBottomWidth),
+				// The panel's top edge is the bar's own rule, so a border here
+				// would draw a second line the open tab cannot paint over.
+				panelBorderTop: px(panel.borderTopWidth),
+				panelRadiusTopLeft: px(panel.borderTopLeftRadius),
+				panelRadiusBottomLeft: px(panel.borderBottomLeftRadius),
+			}
+		})
+
+		expect(chrome.rootBorderTop).toBe(0)
+		expect(chrome.rootBorderLeft).toBe(0)
+		expect(chrome.rootRadiusTopLeft).toBe(0)
+
+		expect(chrome.panelBorderLeft).toBeGreaterThan(0)
+		expect(chrome.panelBorderBottom).toBeGreaterThan(0)
+		expect(chrome.panelBorderTop).toBe(0)
+		// Square under the strip, rounded where the sheet ends.
+		expect(chrome.panelRadiusTopLeft).toBe(0)
+		expect(chrome.panelRadiusBottomLeft).toBeGreaterThan(0)
+	})
+
+	// The first tab starts at the panel's left edge, so the strip reads as the
+	// sheet's own edge rather than as a row floating inside it.
+	//
+	// Measured on the TAB, not on the bar. The bar's padding sits inside its
+	// border box, so `bar.getBoundingClientRect()` is identical with and
+	// without the 8px inset: an assertion on the bar's edges passes with the
+	// inset fully present, which is how the first version of this test was
+	// written and why it proved nothing.
+	test('the first tab starts at the panel edge, with no inset', async ({ page }) => {
+		await openHarness(page)
+		const offset = await page.evaluate(() => {
+			const tab = document.querySelector('.cn-tabs__nav-item').getBoundingClientRect()
+			const panel = document.querySelector('.cn-tabs__content').getBoundingClientRect()
+			return Math.round(tab.left - panel.left)
+		})
+		// 1px of slack for the panel's own left border.
+		expect(Math.abs(offset)).toBeLessThanOrEqual(1)
 	})
 
 	test('inactive tabs carry their own darker surface', async ({ page }) => {
