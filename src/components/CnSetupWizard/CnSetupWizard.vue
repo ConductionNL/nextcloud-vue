@@ -373,11 +373,18 @@ export default {
 				return ''
 			}
 			const actionable = this.setupSteps.filter((s) => s.type !== 'info' && s.type !== 'summary')
-			const firstUnmet = actionable.find((s) => {
+			const firstUnmetIndex = actionable.findIndex((s) => {
 				if (s.type === 'choice') return !(this.hasChoice(s) || this.isServerDone(s.id))
 				return !this.isStepDone(s.id)
 			})
-			return firstUnmet ? firstUnmet.id : ''
+			// Done is not the same as seen: an app that pre-satisfies a step at
+			// install time (buildiq seeds templates from a repair step) reports it
+			// done before anyone opens the wizard. Only finished work BEFORE the
+			// outstanding step means there is something to resume past.
+			if (firstUnmetIndex <= 0) {
+				return ''
+			}
+			return actionable[firstUnmetIndex].id
 		},
 	},
 
