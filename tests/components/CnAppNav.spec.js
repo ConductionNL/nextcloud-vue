@@ -963,7 +963,7 @@ describe('CnAppNav', () => {
 
 		it('renders footer-section items in the #footer slot, outside the scroll list', () => {
 			const wrapper = mountNav({ manifest: sectionManifest, routeName: 'home' })
-			// Footer items live in the .cn-app-nav__footer-list <ul> inside
+			// Footer items live in the .cn-app-nav__footer-list inside
 			// NcAppNavigation's #footer slot so they stay visible above the
 			// settings foldout even when the main list overflows (the pinned
 			// prop only bottom-pins while the list does not scroll).
@@ -971,6 +971,16 @@ describe('CnAppNav', () => {
 			expect(footerList.exists()).toBe(true)
 			expect(footerList.find('[data-testid="cn-nav-entry-docs"]').exists()).toBe(true)
 			expect(footerList.find('[data-testid="cn-nav-entry-roadmap"]').exists()).toBe(true)
+		})
+
+		it('builds the footer list out of NcAppNavigationList, not a bare <ul>', () => {
+			const wrapper = mountNav({ manifest: sectionManifest, routeName: 'home' })
+			// The entries' edge inset rides on this component's own scoped
+			// padding; a bare <ul> leaves them flush against the navigation.
+			// Asserted on the component because jsdom shows no padding.
+			const footerList = wrapper.findComponent({ name: 'NcAppNavigationList' })
+			expect(footerList.exists()).toBe(true)
+			expect(footerList.classes()).toContain('cn-app-nav__footer-list')
 		})
 
 		it('mounts the settings foldout with the settings items inside', () => {

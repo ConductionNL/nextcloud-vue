@@ -177,8 +177,13 @@
 			     About) live in NcAppNavigation's #footer slot — OUTSIDE the
 			     scrollable list — so they stay visible above the settings
 			     foldout no matter how long the main menu is. The pinned-prop
-			     approach only bottom-pinned while the list did not overflow. -->
-			<ul v-if="footerItems.length > 0" class="cn-app-nav__footer-list">
+			     approach only bottom-pinned while the list did not overflow.
+
+			     NcAppNavigationList, not a bare <ul>: its padding, gap and
+			     hover highlight are scoped to itself, so they survive being
+			     slotted. The main list's inset comes from NcAppNavigation's
+			     scope, which slot content does not carry. -->
+			<NcAppNavigationList v-if="footerItems.length > 0" class="cn-app-nav__footer-list">
 				<NcAppNavigationItem
 					v-for="item in footerItems"
 					:key="item.id"
@@ -202,7 +207,7 @@
 							:active="isActive(item)" />
 					</template>
 				</NcAppNavigationItem>
-			</ul>
+			</NcAppNavigationList>
 			<!-- Settings foldout (section: "settings" items). NC-native
 			     gear-icon button that slides open a panel; the first entry
 			     is an auto-prepended "Personal settings" that opens the
@@ -297,7 +302,7 @@
 </template>
 
 <script>
-import { NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationNew, NcAppNavigationSettings, NcCounterBubble } from '@nextcloud/vue'
+import { NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationList, NcAppNavigationNew, NcAppNavigationSettings, NcCounterBubble } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import MapMarkerPath from 'vue-material-design-icons/MapMarkerPath.vue'
@@ -504,6 +509,7 @@ export default {
 		NcAppNavigation,
 		NcAppNavigationCaption,
 		NcAppNavigationItem,
+		NcAppNavigationList,
 		NcAppNavigationNew,
 		NcAppNavigationSettings,
 		NcCounterBubble,
@@ -1479,20 +1485,18 @@ export default {
  * `pinned`-prop approach kept them inside the scrollable list, where
  * `margin-top: auto` only bottom-pins while the list does not overflow —
  * long menus showed Documentation / Features & roadmap mid-scroll.)
- * The <ul> only resets list chrome and aligns with the 16px icon inset
- * of the main list; NC's own footer layout does the rest.
  *
- * As a direct `> ul` child of `.app-navigation__content`, NC's scoped rule
- * makes it a shrinkable, scrollable flex item (`overflow: hidden auto;
- * flex: 0 1 auto`). With a couple of footer entries that let the list be
- * squeezed a few pixels below its content and grow an unwanted scrollbar,
- * even on a short menu with plenty of room. Footer entries are few and must
- * always show in full, so opt out of shrinking and scrolling here.
+ * No `padding` here on purpose: it comes from NcAppNavigationList's own
+ * `var(--app-navigation-padding)`, so it stays in step with the main list.
+ *
+ * As a direct `> ul` child of `.app-navigation__content`, NC makes it a
+ * shrinkable, scrollable flex item, and NcAppNavigationList adds
+ * `overflow-y: auto` besides. That let a two-entry list be squeezed below its
+ * content and grow a scrollbar on a short menu, so opt out of both.
  */
 .cn-app-nav__footer-list {
 	list-style: none;
 	margin: 0;
-	padding: 0;
 	flex-shrink: 0 !important;
 	overflow: visible !important;
 }
