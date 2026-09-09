@@ -89,6 +89,11 @@ export function useListView(objectTypeOrOptions, options) {
 	const pagination = computed(
 		() => objectStore.pagination[objectType] || { total: 0, page: 1, pages: 1, limit: 20 },
 	)
+	// Facets are computed by the platform over the whole query rather than the
+	// loaded page, so anything that needs the complete set of values for a
+	// field (a folder pane grouping by it, say) reads them here rather than
+	// deriving them from `objects`, which is only the current page.
+	const facets = computed(() => objectStore.facets[objectType] || {})
 
 	let searchTimeout = null
 
@@ -311,6 +316,7 @@ export function useListView(objectTypeOrOptions, options) {
 		objects,
 		loading,
 		pagination,
+		facets,
 		// Local state
 		searchTerm,
 		sortKey,

@@ -4,6 +4,7 @@ import { buildHeaders, buildQueryString, prefixUrl, capitalize } from '../utils/
 import { parseResponseError, networkError, genericError } from '../utils/errors.js'
 import { extractId } from '../utils/id.js'
 import { discardResponseBody } from '../utils/discardResponseBody.js'
+import { normalizeFacets } from '../utils/facets.js'
 import { mergePluginState, mergePluginGetters, mergePluginActions } from './pluginMerge.js'
 import { liveUpdatesPlugin } from './plugins/liveUpdates.js'
 
@@ -68,7 +69,9 @@ function baseState(baseUrl = DEFAULT_BASE_URL) {
 		/** @type {{string: object|null}} */
 		registers: {},
 		/**
-		 * Facet data per type for CnIndexSidebar: { fieldName: { values: [{value, count}] } }
+		 * Facet data per type for CnIndexSidebar:
+		 * `{ fieldName: { values: [{ value, count?, label? }] } }`. `count` and
+		 * `label` are omitted when the bucket did not carry them.
 		 * @type {{string: object}}
 		 */
 		facets: {},
@@ -603,18 +606,7 @@ const baseActions = {
 
 			// Parse facet data from API response and transform to CnIndexSidebar format
 			if (data.facets) {
-				const transformed = {}
-				for (const [key, facet] of Object.entries(data.facets)) {
-					if (facet.buckets || facet.data?.buckets) {
-						const buckets = facet.buckets || facet.data.buckets
-						transformed[key] = {
-							values: buckets.map((b) => ({
-								value: b.key ?? b.value,
-								count: b.count || 0,
-							})),
-						}
-					}
-				}
+				const transformed = normalizeFacets(data.facets)
 				this.facets = { ...this.facets, [type]: transformed }
 			}
 

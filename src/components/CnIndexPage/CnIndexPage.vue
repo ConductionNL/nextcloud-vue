@@ -330,6 +330,8 @@
 					:folders="folderSidebarFolders"
 					:objects="effectiveObjects"
 					:group-by="folderSidebar.groupBy || folderSidebar.field || ''"
+					:facet-values="folderSidebarFacetValues"
+					:partial="folderSidebarPartial"
 					:files-path="folderSidebar.filesPath || '/'"
 					:selected-id="selectedFolderId"
 					:all-label="folderSidebar.allLabel || undefined"
@@ -2103,6 +2105,59 @@ export default {
 			if (!this.folderSidebar) return []
 			if (this.folderSidebar.source === 'register') return this.folderRegisterList
 			return this.folderSidebar.folders || []
+		},
+
+		/**
+		 * The grouping field for a `field`-source folder sidebar.
+		 *
+		 * @return {string} The property the folders group by, or ''.
+		 */
+		folderSidebarGroupBy() {
+			if (!this.folderSidebar) return ''
+			return this.folderSidebar.groupBy || this.folderSidebar.field || ''
+		},
+
+		/**
+		 * Facet buckets for the folder sidebar's grouping field.
+		 *
+		 * `:objects` is the current page, so folders derived from it alone list
+		 * only the values that happen to have a row on screen. The platform
+		 * already answers this properly: OpenRegister computes facets with the
+		 * pagination parameters removed, so a facet over the grouping field is
+		 * the complete set of distinct values with their true totals. Any
+		 * property marked `facetable: true` gets one under `_facets=extend`.
+		 *
+		 * Read from the live store first, so the folder pane does not depend on
+		 * the metadata sidebar being switched on, then from the sidebar config
+		 * a consumer-managed page supplies, then from the folder config itself.
+		 *
+		 * @return {Array<object>} Normalised facet values, or [] when none.
+		 */
+		folderSidebarFacetValues() {
+			const field = this.folderSidebarGroupBy
+			if (!field) return []
+
+			const fromStore = this.isSelfFetchMode ? (this.list.facets?.value || null) : null
+			const facets = fromStore
+				|| (this.folderSidebar && this.folderSidebar.facets)
+				|| this.resolvedSidebar.facets
+				|| {}
+
+			return facets[field]?.values || []
+		},
+
+		/**
+		 * Whether the rows handed to the folder sidebar are only part of the
+		 * result set. True when the list is paged beyond what is loaded and no
+		 * facet is available to complete the picture, which is exactly when
+		 * folders can be missing and a per-page count would read as a total.
+		 *
+		 * @return {boolean} True when the folder list is knowingly incomplete.
+		 */
+		folderSidebarPartial() {
+			if (this.folderSidebarFacetValues.length > 0) return false
+			const total = Number(this.effectivePagination?.total ?? 0)
+			return total > this.effectiveObjects.length
 		},
 
 		/**

@@ -290,3 +290,83 @@ describe('CnDataTable — column header translation via cnTranslate', () => {
 		expect(headers).toContain('Name')
 	})
 })
+
+// The built-in "View all" footer must be a real control. An `<a>` without an
+// href has no link role and is not keyboard focusable (WCAG 2.1.1, 4.1.2), and
+// Playwright's getByRole('link') cannot find it — seen live on the dossiq
+// dashboard on 2026-09-08. With a router that resolves `viewAllRoute` it is
+// a link with an href; without one it is a `<button type="button">`.
+describe('CnDataTable — built-in "View all" footer control', () => {
+	const viewAllRoute = { name: 'cases' }
+
+	/**
+	 * Mount a limited table with the given VTU mocks.
+	 *
+	 * @param {object} mocks Instance mocks (e.g. `$router`).
+	 * @return {object} The Vue Test Utils wrapper.
+	 */
+	function mountLimited(mocks = {}) {
+		return mount(CnDataTable, {
+			propsData: { rows, columns: ['name'], limit: 1, viewAllRoute },
+			stubs: { CnCellRenderer: { props: ['value'], template: '<span class="cell">{{ value }}</span>' } },
+			mocks,
+		})
+	}
+
+	it('renders a real link (with href) when the router resolves the route, and pushes on click', async () => {
+		const $router = {
+			resolve: jest.fn(() => ({ href: '/index.php/apps/dossiq/#/cases' })),
+			push: jest.fn(() => Promise.resolve()),
+		}
+		const wrapper = mountLimited({ $router })
+		const control = wrapper.find('.cn-data-table__view-all')
+		expect(control.exists()).toBe(true)
+		// Reachable by role: an <a> only has the link role when it has an href.
+		expect(control.element.tagName).toBe('A')
+		expect(control.attributes('href')).toBe('/index.php/apps/dossiq/#/cases')
+		// ...and only then is it in the tab order. This is the assertion that
+		// actually fails against the old href-less anchor (tabIndex -1).
+		expect(control.element.tabIndex).toBe(0)
+		expect(wrapper.find('button.cn-data-table__view-all').exists()).toBe(false)
+		expect(control.text()).toBe('View all')
+		expect($router.resolve).toHaveBeenCalledWith(viewAllRoute)
+
+		await control.trigger('click')
+		expect($router.push).toHaveBeenCalledWith(viewAllRoute)
+		expect(wrapper.emitted('view-all')).toEqual([[viewAllRoute]])
+	})
+
+	it('leaves a modified click (ctrl/cmd) to the browser so "open in new tab" works on the href', async () => {
+		const $router = {
+			resolve: jest.fn(() => ({ href: '/index.php/apps/dossiq/#/cases' })),
+			push: jest.fn(() => Promise.resolve()),
+		}
+		const wrapper = mountLimited({ $router })
+		await wrapper.find('a.cn-data-table__view-all').trigger('click', { ctrlKey: true })
+		expect($router.push).not.toHaveBeenCalled()
+		expect(wrapper.emitted('view-all')).toEqual([[viewAllRoute]])
+	})
+
+	it('renders a real button (type="button") outside a router context, and emits view-all on click', async () => {
+		const wrapper = mountLimited()
+		const control = wrapper.find('.cn-data-table__view-all')
+		expect(control.exists()).toBe(true)
+		// Reachable by role: a <button> has the button role and is focusable.
+		expect(control.element.tagName).toBe('BUTTON')
+		expect(control.attributes('type')).toBe('button')
+		expect(control.element.tabIndex).toBe(0)
+		expect(control.attributes('href')).toBeUndefined()
+		expect(wrapper.find('a.cn-data-table__view-all').exists()).toBe(false)
+		expect(control.text()).toBe('View all')
+
+		await control.trigger('click')
+		expect(wrapper.emitted('view-all')).toEqual([[viewAllRoute]])
+	})
+
+	it('never renders an href-less anchor, even when the router cannot resolve the route', () => {
+		const $router = { resolve: jest.fn(() => { throw new Error('unknown route') }), push: jest.fn() }
+		const wrapper = mountLimited({ $router })
+		expect(wrapper.find('a.cn-data-table__view-all').exists()).toBe(false)
+		expect(wrapper.find('button.cn-data-table__view-all[type="button"]').exists()).toBe(true)
+	})
+})

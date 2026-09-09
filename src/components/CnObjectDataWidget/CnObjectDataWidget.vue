@@ -1159,9 +1159,17 @@ export default {
 		 */
 		objectDisplayName(obj, id) {
 			const self = (obj && obj['@self']) || {}
-			let name = obj.name || obj.title || obj.displayName
-			if (!name && (obj.firstName || obj.lastName)) name = ((obj.firstName || '') + ' ' + (obj.lastName || '')).trim()
-			if (!name && self.name && self.name !== id) name = self.name
+			// `str()` rather than a bare truthiness chain. A property called
+			// `name` is not necessarily a string — Haal Centraal naming gives a
+			// person `name: { givenNames, namePrefix, surname }` — and taking the
+			// first truthy candidate hands that OBJECT back as the label, which
+			// renders as `[object Object]` where a name belongs. Skipping a
+			// non-string lets the next candidate answer, and for these schemas
+			// the next one is right.
+			const str = (v) => (typeof v === 'string' && v.trim() !== '' ? v : (typeof v === 'number' ? String(v) : ''))
+			let name = str(obj.name) || str(obj.title) || str(obj.displayName)
+			if (!name && (str(obj.firstName) || str(obj.lastName))) name = (str(obj.firstName) + ' ' + str(obj.lastName)).trim()
+			if (!name && str(self.name) && self.name !== id) name = str(self.name)
 			return name || id
 		},
 
