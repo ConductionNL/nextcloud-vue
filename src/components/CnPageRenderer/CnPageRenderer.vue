@@ -230,6 +230,7 @@ import CnPageConfigModal from '../../dialogs/CnPageConfigModal.vue'
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { dispatchAction, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
+import { buildRouteParams, routePathFor } from '../../utils/routeParams.js'
 import { useObjectStore } from '../../store/index.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
@@ -1316,9 +1317,9 @@ export default {
 		 * navigate for manifest-driven index pages — `CnIndexPage` only emits
 		 * the event, so without this the action is a no-op. Resolves the
 		 * matching `type: 'detail'` page (same `register` + `schema` as the
-		 * current index page) and pushes to it with the row's id as the `:id`
-		 * route param (CnPageRenderer maps `params.id` → `objectId`). No-ops
-		 * when there is no detail page, no router, or no resolvable id.
+		 * current index page) and pushes to it with the row's id in whichever
+		 * param that page's route declares — `:id`, `:objectId`, anything.
+		 * No-ops when there is no detail page, no router, or no resolvable id.
 		 *
 		 * @param {object} row The clicked / viewed row object.
 		 * @return {void}
@@ -1350,7 +1351,15 @@ export default {
 				console.warn(`[CnPageRenderer] Index page "${page.id}" opens rows on route "${target}", which the router does not have. Row clicks will do nothing.`)
 				return
 			}
-			router.push({ name: target, params: { id: String(id) } }).catch(() => {})
+			// The param name comes from the TARGET'S OWN path, never a
+			// hardcoded `id`: a manifest is free to write
+			// `/applications/:objectId`, and vue-router answers a mismatch by
+			// discarding the param and throwing `Missing required param`.
+			// Manifest first, router second — a `rowRoute` may name a route
+			// registered outside the manifest.
+			const path = this.pageById.get(target)?.route ?? routePathFor(router, target)
+			const params = buildRouteParams(path, id, this.$route?.params)
+			router.push({ name: target, params }).catch(() => {})
 		},
 
 		/**
