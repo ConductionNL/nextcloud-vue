@@ -368,7 +368,11 @@ The header carries the shared [CnActionsMenu](./cn-actions-menu.md) overflow (Re
 
 | Slot | Description |
 |------|-------------|
-| `action-items` | Extra `NcActionButton`-family items appended inside the overflow menu, after the built-in trio. |
+| `actions` | Buttons rendered in the page header beside Edit. Receives the resolved `object`, `objectId`, `schema`, `objectType` and `store`. |
+
+Manifest `headerActions` are NOT part of this table: the page renders them
+itself, as items in the header's Actions menu above the Request-a-feature /
+Report-a-bug / Documentation trio. See the `headerActions` prop.
 
 ## Action handlers (manifest-actions-dispatch)
 
