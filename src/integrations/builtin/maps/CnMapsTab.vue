@@ -180,7 +180,7 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnMapPoiCreate from '../../../components/CnMapPoiCreate/CnMapPoiCreate.vue'
 import CnMapPoiPicker from '../../../components/CnMapPoiPicker/CnMapPoiPicker.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
 const COMMENT_MAX_CHARS = 160
@@ -417,7 +417,7 @@ export default {
 		async onLinkPick(payload) {
 			this.pickerOpen = false
 			try {
-				const response = await fetch(this.mapsEndpoint(), {
+				const response = await fetch(prefixUrl(this.mapsEndpoint()), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -439,7 +439,7 @@ export default {
 		async onCreatePick(payload) {
 			this.createOpen = false
 			try {
-				const response = await fetch(`${this.mapsEndpoint()}/new`, {
+				const response = await fetch(prefixUrl(`${this.mapsEndpoint()}/new`), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -462,7 +462,7 @@ export default {
 				return
 			}
 			try {
-				const response = await fetch(`${this.mapsEndpoint()}/${favoriteId}`, {
+				const response = await fetch(prefixUrl(`${this.mapsEndpoint()}/${favoriteId}`), {
 					method: 'DELETE',
 					headers: buildHeaders(),
 				})
@@ -486,7 +486,7 @@ export default {
 			this.error = ''
 			this.degraded = ''
 			try {
-				const response = await fetch(this.mapsEndpoint(), { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.mapsEndpoint()), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					const rows = data.results || data.items || (Array.isArray(data) ? data : []) || []

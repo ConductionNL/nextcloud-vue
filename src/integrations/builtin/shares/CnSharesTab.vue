@@ -167,7 +167,7 @@ import Share from 'vue-material-design-icons/Share.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { CnShareCreate } from '../../../components/CnShareCreate/index.js'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 // NC core share-type constants (OCP\Share\IShare::TYPE_*).
 const SHARE_TYPE_USER = 0
@@ -313,7 +313,7 @@ export default {
 			}
 			this.filesLoading = true
 			try {
-				const response = await fetch(this.shareableFilesUrl(), { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.shareableFilesUrl()), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					this.shareableFiles = data.results || (Array.isArray(data) ? data : []) || []
@@ -338,7 +338,7 @@ export default {
 
 		async createShare(payload) {
 			try {
-				const response = await fetch(this.sharesUrl(), {
+				const response = await fetch(prefixUrl(this.sharesUrl()), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -459,7 +459,7 @@ export default {
 			this.error = ''
 			this.degraded = ''
 			try {
-				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.baseUrl()), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					const rows = data.results || data.items || (Array.isArray(data) ? data : []) || []
@@ -487,7 +487,7 @@ export default {
 				return
 			}
 			try {
-				const response = await fetch(`${this.baseUrl()}/${encodeURIComponent(id)}`, {
+				const response = await fetch(prefixUrl(`${this.baseUrl()}/${encodeURIComponent(id)}`), {
 					method: 'DELETE',
 					headers: buildHeaders(),
 				})

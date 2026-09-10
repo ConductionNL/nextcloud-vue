@@ -135,7 +135,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import SitemapOutline from 'vue-material-design-icons/SitemapOutline.vue'
 import CnFlowOperationPicker from '../../../components/CnFlowOperationPicker/CnFlowOperationPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
  * CnFlowTab — bespoke automation-rule list for the `flow` integration.
@@ -325,7 +325,7 @@ export default {
 			this.error = ''
 			this.degraded = ''
 			try {
-				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.baseUrl()), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					const rows = data.results || data.items || (Array.isArray(data) ? data : []) || []
@@ -354,7 +354,7 @@ export default {
 		async onLink({ operationId }) {
 			this.pickerOpen = false
 			try {
-				const response = await fetch(this.baseUrl(), {
+				const response = await fetch(prefixUrl(this.baseUrl()), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify({ operationId }),
@@ -387,7 +387,7 @@ export default {
 				}
 			}
 			try {
-				const response = await fetch(`${this.baseUrl()}/${encodeURIComponent(opId)}`, {
+				const response = await fetch(prefixUrl(`${this.baseUrl()}/${encodeURIComponent(opId)}`), {
 					method: 'DELETE',
 					headers: buildHeaders(),
 				})

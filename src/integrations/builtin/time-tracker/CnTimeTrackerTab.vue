@@ -181,7 +181,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import Timer from 'vue-material-design-icons/Timer.vue'
 import CnTimeTrackerCreate from '../../../components/CnTimeTrackerCreate/CnTimeTrackerCreate.vue'
 import CnTimeTrackerPicker from '../../../components/CnTimeTrackerPicker/CnTimeTrackerPicker.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
  * CnTimeTrackerTab — bespoke sidebar tab for the `time-tracker`
@@ -471,7 +471,7 @@ export default {
 		async onLinkPick(payload) {
 			this.pickerOpen = false
 			try {
-				const response = await fetch(this.baseUrl(), {
+				const response = await fetch(prefixUrl(this.baseUrl()), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -493,7 +493,7 @@ export default {
 		async onCreatePick(payload) {
 			this.createOpen = false
 			try {
-				const response = await fetch(`${this.baseUrl()}/new`, {
+				const response = await fetch(prefixUrl(`${this.baseUrl()}/new`), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -516,7 +516,7 @@ export default {
 				return
 			}
 			try {
-				const response = await fetch(`${this.baseUrl()}/${encodeURIComponent(id)}`, {
+				const response = await fetch(prefixUrl(`${this.baseUrl()}/${encodeURIComponent(id)}`), {
 					method: 'DELETE',
 					headers: buildHeaders(),
 				})
@@ -540,7 +540,7 @@ export default {
 			this.error = ''
 			this.degraded = ''
 			try {
-				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.baseUrl()), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					const rows = data.results || data.items || (Array.isArray(data) ? data : []) || []

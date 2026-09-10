@@ -96,7 +96,7 @@ import CloseCircleOutline from 'vue-material-design-icons/CloseCircleOutline.vue
 
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import CnUserActionMenu from '../CnUserActionMenu/CnUserActionMenu.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 /**
  * CnTasksCard — Inline tasks widget for detail pages.
@@ -239,7 +239,7 @@ export default {
 			this.loading = true
 			try {
 				const url = `${this.apiBase}/objects/${this.registerId}/${this.schemaId}/${this.objectId}/tasks`
-				const response = await fetch(url, { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(url), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					this.allTasks = data.results || data || []

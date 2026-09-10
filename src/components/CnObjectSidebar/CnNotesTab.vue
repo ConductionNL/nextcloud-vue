@@ -94,7 +94,7 @@ import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue
 import Send from 'vue-material-design-icons/Send.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { parseMentions, extractMentionedIds } from '../../utils/mentions.js'
 import { searchNextcloudUsers } from '../../utils/userAutocomplete.js'
 
@@ -170,7 +170,7 @@ export default {
 			this.loading = true
 			try {
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes`),
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {
@@ -285,7 +285,7 @@ export default {
 			const savedText = this.newNoteText.trim()
 			try {
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes`),
 					{
 						method: 'POST',
 						headers: buildHeaders(),
@@ -326,7 +326,7 @@ export default {
 			const noteId = this.editingNoteId
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes/${noteId}`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes/${noteId}`),
 					{
 						method: 'PUT',
 						headers: buildHeaders(),
@@ -351,7 +351,7 @@ export default {
 		async deleteNote(note) {
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes/${note.id}`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes/${note.id}`),
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
 				this.notes = this.notes.filter(n => n.id !== note.id)

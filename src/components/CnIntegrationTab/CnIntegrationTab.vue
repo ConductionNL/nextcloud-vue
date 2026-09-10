@@ -69,7 +69,7 @@ import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import LinkVariantOff from 'vue-material-design-icons/LinkVariantOff.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 /**
  * CnIntegrationTab — generic sidebar tab.
@@ -150,7 +150,7 @@ export default {
 			this.error = ''
 			this.degraded = ''
 			try {
-				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.baseUrl()), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					this.rows = data.results || data.items || (Array.isArray(data) ? data : []) || []
@@ -178,7 +178,7 @@ export default {
 			}
 			this.unlinkingKey = key
 			try {
-				const response = await fetch(`${this.baseUrl()}/${encodeURIComponent(key)}`, {
+				const response = await fetch(prefixUrl(`${this.baseUrl()}/${encodeURIComponent(key)}`), {
 					method: 'DELETE',
 					headers: buildHeaders(),
 				})

@@ -236,7 +236,7 @@ import LinkVariantOff from 'vue-material-design-icons/LinkVariantOff.vue'
 import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
 import MapMarkerOutline from 'vue-material-design-icons/MapMarkerOutline.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnCalendarEventPicker from '../../../components/CnCalendarEventPicker/CnCalendarEventPicker.vue'
 import CnCalendarEventCreate from '../../../components/CnCalendarEventCreate/CnCalendarEventCreate.vue'
@@ -362,7 +362,7 @@ export default {
 			this.error = ''
 			this.degraded = false
 			try {
-				const response = await fetch(`${this.baseObjectUrl()}/events`, { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(`${this.baseObjectUrl()}/events`), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					this.events = data.results || data.items || (Array.isArray(data) ? data : []) || []
@@ -406,7 +406,7 @@ export default {
 			this.closePicker()
 			this.error = ''
 			try {
-				const response = await fetch(`${this.baseObjectUrl()}/events/link`, {
+				const response = await fetch(prefixUrl(`${this.baseObjectUrl()}/events/link`), {
 					method: 'POST',
 					headers: buildHeaders(),
 					body: JSON.stringify(payload),
@@ -437,7 +437,7 @@ export default {
 			try {
 				// Tier-2 unlink-only endpoint: DELETE /events/{eventUid}/link
 				const url = `${this.baseObjectUrl()}/events/${encodeURIComponent(key)}/link`
-				const response = await fetch(url, { method: 'DELETE', headers: buildHeaders() })
+				const response = await fetch(prefixUrl(url), { method: 'DELETE', headers: buildHeaders() })
 				if (response.ok || response.status === 204) {
 					this.events = this.events.filter((row) => this.rowKey(row) !== key)
 					this.$emit('unlinked', key)
@@ -464,7 +464,7 @@ export default {
 			try {
 				// Legacy destroy endpoint — destroys the VEVENT and cleans the link row.
 				const url = `${this.baseObjectUrl()}/events/${encodeURIComponent(eventUri)}`
-				const response = await fetch(url, { method: 'DELETE', headers: buildHeaders() })
+				const response = await fetch(prefixUrl(url), { method: 'DELETE', headers: buildHeaders() })
 				if (response.ok || response.status === 204) {
 					this.events = this.events.filter((row) => this.rowKey(row) !== key)
 					this.$emit('deleted', key)

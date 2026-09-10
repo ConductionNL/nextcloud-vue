@@ -102,7 +102,7 @@ import { NcAvatar, NcButton, NcDateTime, NcLoadingIcon } from '@nextcloud/vue'
 import EmailEditOutline from 'vue-material-design-icons/EmailEditOutline.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import CnEmailPicker from '../../../components/CnEmailPicker/CnEmailPicker.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
  * CnEmailTab — sidebar tab rendering the full list of Nextcloud Mail
@@ -259,7 +259,7 @@ export default {
 					params.set('_page', '0')
 				}
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/email?${params.toString()}`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/email?${params.toString()}`),
 					{ headers: buildHeaders() },
 				)
 				if (response.ok === true) {
@@ -417,7 +417,7 @@ export default {
 			}
 			try {
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/emails`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/emails`),
 					{
 						method: 'POST',
 						headers: { ...buildHeaders(), 'Content-Type': 'application/json' },

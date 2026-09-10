@@ -120,7 +120,7 @@ import {
 import AccountSearchOutline from 'vue-material-design-icons/AccountSearchOutline.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 /**
  * CnContactPicker — pick an existing CardDAV contact to link to an OR
@@ -265,7 +265,7 @@ export default {
 			this.loading = true
 			try {
 				const url = `${this.apiBase}/contacts/search?q=${encodeURIComponent(q || '')}`
-				const response = await fetch(url, { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(url), { headers: buildHeaders() })
 				if (!response.ok) {
 					this.results = []
 					return

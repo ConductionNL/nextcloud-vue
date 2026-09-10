@@ -134,7 +134,7 @@ import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon, NcTextField } from '
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ClipboardText from 'vue-material-design-icons/ClipboardText.vue'
 
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
  * CnFormPicker — modal that picks an NC Forms form to link to an OR object.
@@ -293,7 +293,7 @@ export default {
 			this.error = ''
 			try {
 				const url = `${this.apiBase}/integrations/forms/available?objectUuid=${encodeURIComponent(this.objectId)}`
-				const response = await fetch(url, { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(url), { headers: buildHeaders() })
 				if (!response.ok) {
 					this.error = `${response.status} ${response.statusText}`
 					this.forms = []

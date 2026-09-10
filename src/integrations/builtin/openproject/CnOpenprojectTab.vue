@@ -225,7 +225,7 @@ import StarFourPointsOutline from 'vue-material-design-icons/StarFourPointsOutli
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnOpenProjectCreate from '../../../components/CnOpenProjectCreate/CnOpenProjectCreate.vue'
 import CnOpenProjectPicker from '../../../components/CnOpenProjectPicker/CnOpenProjectPicker.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
  * CnOpenprojectTab — bespoke sidebar tab for the `openproject` integration.
@@ -367,7 +367,7 @@ export default {
 		async onLinkPick(payload) {
 			this.pickerOpen = false
 			try {
-				const response = await fetch(this.openProjectEndpoint(), {
+				const response = await fetch(prefixUrl(this.openProjectEndpoint()), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -389,7 +389,7 @@ export default {
 		async onCreatePick(payload) {
 			this.createOpen = false
 			try {
-				const response = await fetch(`${this.openProjectEndpoint()}/new`, {
+				const response = await fetch(prefixUrl(`${this.openProjectEndpoint()}/new`), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -412,7 +412,7 @@ export default {
 				return
 			}
 			try {
-				const response = await fetch(`${this.openProjectEndpoint()}/${id}`, {
+				const response = await fetch(prefixUrl(`${this.openProjectEndpoint()}/${id}`), {
 					method: 'DELETE',
 					headers: buildHeaders(),
 				})
@@ -616,7 +616,7 @@ export default {
 			this.authBanner = ''
 			this.unconfigured = false
 			try {
-				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.baseUrl()), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					const rows = data.results

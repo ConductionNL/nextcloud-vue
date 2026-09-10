@@ -160,7 +160,7 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnCollectivePageCreate from '../../../components/CnCollectivePageCreate/CnCollectivePageCreate.vue'
 import CnCollectivePagePicker from '../../../components/CnCollectivePagePicker/CnCollectivePagePicker.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
@@ -407,7 +407,7 @@ export default {
 		async onLinkPick(payload) {
 			this.pickerOpen = false
 			try {
-				const response = await fetch(this.collectivesEndpoint(), {
+				const response = await fetch(prefixUrl(this.collectivesEndpoint()), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -429,7 +429,7 @@ export default {
 		async onCreatePick(payload) {
 			this.createOpen = false
 			try {
-				const response = await fetch(`${this.collectivesEndpoint()}/new`, {
+				const response = await fetch(prefixUrl(`${this.collectivesEndpoint()}/new`), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -452,7 +452,7 @@ export default {
 				return
 			}
 			try {
-				const response = await fetch(`${this.collectivesEndpoint()}/${id}`, {
+				const response = await fetch(prefixUrl(`${this.collectivesEndpoint()}/${id}`), {
 					method: 'DELETE',
 					headers: buildHeaders(),
 				})
@@ -476,7 +476,7 @@ export default {
 			this.error = ''
 			this.degraded = ''
 			try {
-				const response = await fetch(this.collectivesEndpoint(), { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.collectivesEndpoint()), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					const rows = data.results || data.items || (Array.isArray(data) ? data : []) || []

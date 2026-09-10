@@ -106,7 +106,7 @@ import CalendarClock from 'vue-material-design-icons/CalendarClock.vue'
 import CalendarCheck from 'vue-material-design-icons/CalendarCheck.vue'
 
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
  * CnCalendarCard — surface-aware compact widget for the calendar
@@ -246,7 +246,7 @@ export default {
 			this.loading = true
 			this.error = ''
 			try {
-				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.baseUrl()), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					this.allEvents = data.results || data.items || (Array.isArray(data) ? data : []) || []
@@ -276,7 +276,7 @@ export default {
 			this.error = ''
 			try {
 				const url = `${this.baseUrl()}/${encodeURI(this.entityId)}`
-				const response = await fetch(url, { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(url), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					this.allEvents = data && (data.id || data.uid) ? [data] : []

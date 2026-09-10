@@ -111,7 +111,7 @@ import AccountMultiple from 'vue-material-design-icons/AccountMultiple.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
  * CnContactsCard — vCard contacts widget.
@@ -263,7 +263,7 @@ export default {
 			this.error = null
 			try {
 				const url = `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/contacts`
-				const response = await fetch(url, { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(url), { headers: buildHeaders() })
 				if (!response.ok) {
 					this.error = `${response.status} ${response.statusText}`
 					this.contacts = []

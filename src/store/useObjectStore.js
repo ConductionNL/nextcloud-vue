@@ -49,6 +49,14 @@ const _inflightObjectFetches = new Map()
 // ── Base state ──────────────────────────────────────────────────────────
 
 function baseState(baseUrl = DEFAULT_BASE_URL) {
+	// Prefix here, at the ONE place every store instance passes through, rather
+	// than at the factory: `createObjectStore({ baseUrl })` used to hand a
+	// consumer-supplied path straight through unprefixed, so an app that
+	// pointed the store at its own API (`/apps/portaliq/api/objects`) got the
+	// bare form and 404'd on an instance without pretty URLs — while the
+	// library default was prefixed and worked. prefixUrl is idempotent, so the
+	// already-prefixed default survives unchanged.
+	const prefixedBaseUrl = prefixUrl(baseUrl)
 	return {
 		/** @type {{string: {schema: string, register: string}}} */
 		objectTypeRegistry: {},
@@ -77,7 +85,7 @@ function baseState(baseUrl = DEFAULT_BASE_URL) {
 		facets: {},
 		/** @type {{baseUrl: string, organisationUuidGetter: Function|null, languageGetter: Function|null, targetLanguageGetter: Function|null}} */
 		_options: {
-			baseUrl,
+			baseUrl: prefixedBaseUrl,
 			organisationUuidGetter: null,
 			languageGetter: null,
 			targetLanguageGetter: null,

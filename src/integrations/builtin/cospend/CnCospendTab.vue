@@ -171,7 +171,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnCospendCreate from '../../../components/CnCospendCreate/CnCospendCreate.vue'
 import CnCospendPicker from '../../../components/CnCospendPicker/CnCospendPicker.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
  * CnCospendTab — bespoke sidebar tab for the `cospend` integration.
@@ -309,7 +309,7 @@ export default {
 		async onLinkPick(payload) {
 			this.pickerOpen = false
 			try {
-				const response = await fetch(this.cospendEndpoint(), {
+				const response = await fetch(prefixUrl(this.cospendEndpoint()), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -331,7 +331,7 @@ export default {
 		async onCreatePick(payload) {
 			this.createOpen = false
 			try {
-				const response = await fetch(`${this.cospendEndpoint()}/new`, {
+				const response = await fetch(prefixUrl(`${this.cospendEndpoint()}/new`), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -354,7 +354,7 @@ export default {
 				return
 			}
 			try {
-				const response = await fetch(`${this.cospendEndpoint()}/${id}`, {
+				const response = await fetch(prefixUrl(`${this.cospendEndpoint()}/${id}`), {
 					method: 'DELETE',
 					headers: buildHeaders(),
 				})
@@ -531,7 +531,7 @@ export default {
 			this.error = ''
 			this.degraded = ''
 			try {
-				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.baseUrl()), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					const rows = data.results || data.items || (Array.isArray(data) ? data : []) || []
