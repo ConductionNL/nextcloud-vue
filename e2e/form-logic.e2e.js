@@ -86,7 +86,7 @@ test.describe('CnFormPage — manifest-form-logic wizard (real browser)', () => 
  * throughout) — avoids re-querying `.cn-form-page__step` via a fresh
  * `page.locator` call at every assertion site.
  *
- * @param {import('@playwright/test').Page} page
+ * @param {import('@playwright/test').Page} page The page under test.
  * @return {import('@playwright/test').Locator}
  */
 function steps(page) {
