@@ -259,6 +259,72 @@ describe('named-source quick filters', () => {
 		expect(wrapper.vm.named.namedQuickFilters.map((t) => t.label)[1]).toBe('Pool')
 	})
 
+	/**
+	 * A TAB FILTER IS A FILTER, so `@today` has to resolve here too.
+	 *
+	 * Without this the literal string `@today+7d` went over the wire and the
+	 * task endpoint either rejected it or answered the wrong window. The
+	 * manifest author writing a due-window lens has no way of knowing that
+	 * the page behind the label is a named source rather than a self-fetch,
+	 * and self-fetch has resolved tokens since the first day.
+	 */
+	it('resolves sentinel tokens in a tab filter before the request', async () => {
+		const activeIndex = ref(0)
+		mountHost({
+			entitySource: 'tasks',
+			objects: [],
+			quickFilters: [
+				{
+					label: 'Due this week',
+					filter: { scope: 'all', isTerminal: false, dueAfter: '@today', dueBefore: '@today+7d' },
+					default: true,
+				},
+			],
+			sourceConfig: null,
+		}, activeIndex)
+		await nextTick()
+
+		const params = lastParams()
+		const today = new Date()
+		const iso = (d) => d.toISOString().slice(0, 10)
+		const week = new Date(today.getTime() + (7 * 24 * 60 * 60 * 1000))
+
+		expect(params.dueAfter).not.toBe('@today')
+		expect(String(params.dueAfter)).toContain(iso(today))
+		expect(String(params.dueBefore)).toContain(iso(week))
+		// The literal keys around it are untouched.
+		expect(params.scope).toBe('all')
+		expect(params.isTerminal).toBe('false')
+	})
+
+	it('resolves a token in sourceConfig, not only in the tab', async () => {
+		const activeIndex = ref(null)
+		mountHost({
+			entitySource: 'tasks',
+			objects: [],
+			quickFilters: null,
+			sourceConfig: { dueBefore: '@today' },
+		}, activeIndex)
+		await nextTick()
+
+		expect(lastParams().dueBefore).not.toBe('@today')
+	})
+
+	it('leaves a value that is not a token exactly as written', async () => {
+		const activeIndex = ref(0)
+		mountHost({
+			entitySource: 'tasks',
+			objects: [],
+			quickFilters: [
+				{ label: 'Urgent', filter: { priority: 'urgent' }, default: true },
+			],
+			sourceConfig: null,
+		}, activeIndex)
+		await nextTick()
+
+		expect(lastParams().priority).toBe('urgent')
+	})
+
 	it('keeps the flows source on its old single-load path', async () => {
 		const activeIndex = ref(null)
 		mountHost({ entitySource: 'flows', objects: [], quickFilters: null, sourceConfig: { app: 'dossiq' } }, activeIndex)
