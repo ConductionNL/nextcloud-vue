@@ -223,7 +223,7 @@ dialog asking every property the schema declares, which is why consumers reached
 for `allowCreate: false` instead of configuring it.
 
 Only `CnActionButtons` forwarded `size` and `columns` before nextcloud-vue
-2.44.0. The other four ignored both, so an app could open a two-column create
+2.46.0. The other four ignored both, so an app could open a two-column create
 form from a detail page's header action and a one-column one for the same kind
 of record from its index page's Add button, with nothing in either manifest to
 explain the difference.
