@@ -33,6 +33,24 @@
 				</template>
 				{{ tr(toggleState[entry.id] ? (entry.labelOn || entry.label) : (entry.labelOff || entry.label)) }}
 			</NcButton>
+			<!-- An entry that goes to a URL is a LINK, not a button that calls
+			     the browser. NcButton renders an anchor when given `href`, so it
+			     keeps the cluster's styling while the browser supplies the
+			     pointer, the focus ring, middle-click and "open in new tab" —
+			     none of which a click handler can offer. -->
+			<NcButton
+				v-else-if="entry.href"
+				:key="entry.id"
+				:variant="entry.variant || 'secondary'"
+				:href="entry.href"
+				:target="entry.target || undefined"
+				:data-testid="`cn-action-${entry.id}`">
+				<template v-if="entry.icon" #icon>
+					<CnIcon v-if="isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
+					<span v-else :class="entry.icon" />
+				</template>
+				{{ tr(entry.label) }}
+			</NcButton>
 			<!-- Everything else: a plain action button routed through the shared
 			     dispatcher (api-call / open-form / navigate / open-modal / refresh),
 			     confirm-gated first when the action asks for it. -->
@@ -64,18 +82,32 @@
 				:key="`${entry.id}-children`"
 				:menu-name="childMenuName(entry)"
 				:data-testid="`cn-action-children-${entry.id}`">
-				<NcActionButton
-					v-for="child in visibleChildren(entry)"
-					:key="child.id"
-					:disabled="Boolean(actionPending[child.id])"
-					:data-testid="`cn-action-${child.id}`"
-					@click="onActionClick(child)">
-					<template v-if="child.icon" #icon>
-						<CnIcon v-if="isMdiIconName(child.icon)" :name="child.icon" :size="20" />
-						<span v-else :class="child.icon" />
-					</template>
-					{{ tr(child.label) }}
-				</NcActionButton>
+				<template v-for="child in visibleChildren(entry)">
+					<NcActionLink
+						v-if="child.href"
+						:key="`${child.id}-link`"
+						:href="child.href"
+						:target="child.target || undefined"
+						:data-testid="`cn-action-${child.id}`">
+						<template v-if="child.icon" #icon>
+							<CnIcon v-if="isMdiIconName(child.icon)" :name="child.icon" :size="20" />
+							<span v-else :class="child.icon" />
+						</template>
+						{{ tr(child.label) }}
+					</NcActionLink>
+					<NcActionButton
+						v-else
+						:key="child.id"
+						:disabled="Boolean(actionPending[child.id])"
+						:data-testid="`cn-action-${child.id}`"
+						@click="onActionClick(child)">
+						<template v-if="child.icon" #icon>
+							<CnIcon v-if="isMdiIconName(child.icon)" :name="child.icon" :size="20" />
+							<span v-else :class="child.icon" />
+						</template>
+						{{ tr(child.label) }}
+					</NcActionButton>
+				</template>
 			</NcActions>
 		</template>
 
@@ -86,18 +118,32 @@
 			:menu-name="overflowMenuName"
 			:force-menu="true"
 			data-testid="cn-action-buttons-overflow">
-			<NcActionButton
-				v-for="entry in overflowActions"
-				:key="entry.id"
-				:disabled="Boolean(actionPending[entry.id])"
-				:data-testid="`cn-action-${entry.id}`"
-				@click="onActionClick(entry)">
-				<template v-if="entry.icon" #icon>
-					<CnIcon v-if="isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
-					<span v-else :class="entry.icon" />
-				</template>
-				{{ tr(entry.label) }}
-			</NcActionButton>
+			<template v-for="entry in overflowActions">
+				<NcActionLink
+					v-if="entry.href"
+					:key="`${entry.id}-link`"
+					:href="entry.href"
+					:target="entry.target || undefined"
+					:data-testid="`cn-action-${entry.id}`">
+					<template v-if="entry.icon" #icon>
+						<CnIcon v-if="isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
+						<span v-else :class="entry.icon" />
+					</template>
+					{{ tr(entry.label) }}
+				</NcActionLink>
+				<NcActionButton
+					v-else
+					:key="entry.id"
+					:disabled="Boolean(actionPending[entry.id])"
+					:data-testid="`cn-action-${entry.id}`"
+					@click="onActionClick(entry)">
+					<template v-if="entry.icon" #icon>
+						<CnIcon v-if="isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
+						<span v-else :class="entry.icon" />
+					</template>
+					{{ tr(entry.label) }}
+				</NcActionButton>
+			</template>
 		</NcActions>
 
 		<!-- Confirm gate for a confirm:true action (reuses CnConfirmDialog). -->
@@ -144,7 +190,7 @@
 <script>
 import { inject } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActions, NcButton } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcActions, NcButton } from '@nextcloud/vue'
 import { CnIcon } from '../CnIcon/index.js'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
@@ -211,7 +257,7 @@ import { useObjectStore } from '../../store/useObjectStore.js'
 export default {
 	name: 'CnActionButtons',
 
-	components: { NcActions, NcActionButton, NcButton, CnIcon, CnConfirmDialog, CnFormDialog, CnAdvancedFormDialog },
+	components: { NcActions, NcActionButton, NcActionLink, NcButton, CnIcon, CnConfirmDialog, CnFormDialog, CnAdvancedFormDialog },
 
 	inject: {
 		/** Detail-page object context (`{ objectId, object, register, schema }`). */
@@ -244,6 +290,12 @@ export default {
 		 * (`open-form` | `toggle` | `api-call` | `navigate` | `open-modal` |
 		 * `refresh` | `handler`) plus `id` / `label` and an optional
 		 * `visibleWhen` predicate, `icon`, `variant`, and `confirm`.
+		 *
+		 * An entry carrying `href` (with optional `target`) renders as a real
+		 * link instead — an anchor in the bar, an NcActionLink in a menu — and
+		 * is never dispatched. Use it for anything that ends in a URL, so the
+		 * browser keeps middle-click, "open in new tab" and the link semantics
+		 * assistive tech announces.
 		 * @type {Array<object>}
 		 */
 		actions: {

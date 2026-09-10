@@ -64,7 +64,10 @@ const stubs = {
 		// `variant` declared so the styling assertions can read it. NcButton
 		// carries BOTH `type` (native) and `variant` (styling), and binding a
 		// descriptor's variant to `type` renders every button secondary.
-		props: ['disabled', 'variant'],
+		// `href` / `target` declared because the real NcButton renders an ANCHOR
+		// when given an href (and a button otherwise) — a stub that is always a
+		// button would let a link action pass while shipping the wrong element.
+		props: ['disabled', 'variant', 'href', 'target'],
 		// `emits: ['click']` is load-bearing. Vue 2 kept listeners in a separate
 		// channel, so `v-bind="$attrs"` could never re-attach the parent's
 		// `@click`. In Vue 3 an UNDECLARED event name stays in `$attrs` as the
@@ -72,7 +75,7 @@ const stubs = {
 		// the parent's handler a SECOND time — one call from the DOM click, one
 		// from `$emit('click')`. Declaring it removes `onClick` from `$attrs`.
 		emits: ['click'],
-		template: '<button :disabled="disabled" v-bind="$attrs" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>',
+		template: '<component :is="href ? \'a\' : \'button\'" :disabled="disabled" :href="href" :target="target" v-bind="$attrs" @click="$emit(\'click\')"><slot name="icon" /><slot /></component>',
 	},
 	CnIcon: { name: 'CnIcon', template: '<span class="cn-icon" />' },
 	CnConfirmDialog: {
@@ -105,6 +108,11 @@ stubs.NcActionButton = {
 	props: ['disabled'],
 	emits: ['click'],
 	template: '<button class="nc-action-button-stub" :disabled="disabled" v-bind="$attrs" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>',
+}
+stubs.NcActionLink = {
+	name: 'NcActionLink',
+	props: ['href', 'target'],
+	template: '<a class="nc-action-link-stub" :href="href" :target="target" v-bind="$attrs"><slot name="icon" /><slot /></a>',
 }
 
 function mountBar(actions, { provide, inline, overflowLabel } = {}) {
@@ -696,6 +704,54 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			const wrapper = mountBar(four, { inline: 1, overflowLabel: 'More' })
 			await flush()
 			expect(wrapper.find('[data-testid="cn-action-buttons-overflow"] .menu-name').text()).toBe('More')
+		})
+	})
+
+	// An action that ends in a URL has to BE a link. Routing it through a click
+	// handler costs middle-click, "open in new tab", the status-bar preview and
+	// the role assistive tech announces — none of which JS can give back.
+	describe('href entries render as links', () => {
+		it('renders a bar entry with href as an anchor, and never dispatches it', async () => {
+			const wrapper = mountBar([
+				{ id: 'open-app', label: 'Open app', href: '/index.php/apps/buildiq/builder/shop', target: '_blank' },
+			])
+			await flush()
+			const el = wrapper.find('[data-testid="cn-action-open-app"]')
+			expect(el.element.tagName).toBe('A')
+			expect(el.attributes('href')).toBe('/index.php/apps/buildiq/builder/shop')
+			expect(el.attributes('target')).toBe('_blank')
+
+			await el.trigger('click')
+			await flush()
+			expect(dispatchAction).not.toHaveBeenCalled()
+		})
+
+		it('renders an href entry in the overflow menu as an NcActionLink', async () => {
+			const wrapper = mountBar([
+				{ id: 'first', label: 'First', type: 'api-call', url: '/a' },
+				{ id: 'docs', label: 'Documentation', href: 'https://example.test/docs' },
+			], { inline: 1 })
+			await flush()
+			const link = wrapper.find('[data-testid="cn-action-buttons-overflow"] [data-testid="cn-action-docs"]')
+			expect(link.element.tagName).toBe('A')
+			expect(link.attributes('href')).toBe('https://example.test/docs')
+		})
+
+		it('renders an href CHILD as a link while its button siblings stay buttons', async () => {
+			const wrapper = mountBar([
+				{
+					id: 'open-app',
+					label: 'Open app',
+					variant: 'primary',
+					children: [
+						{ id: 'open-prod', label: 'Production', href: '/index.php/apps/buildiq/builder/shop' },
+						{ id: 'edit-prod', label: 'Edit production', type: 'api-call', url: '/e' },
+					],
+				},
+			])
+			await flush()
+			expect(wrapper.find('[data-testid="cn-action-open-prod"]').element.tagName).toBe('A')
+			expect(wrapper.find('[data-testid="cn-action-edit-prod"]').element.tagName).toBe('BUTTON')
 		})
 	})
 })
