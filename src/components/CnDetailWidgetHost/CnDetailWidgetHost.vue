@@ -17,7 +17,25 @@
 
 		     Passing `undefined` was never enough on its own: `title` carries a
 		     DEFAULT of "Data", so an unset title became a "Data" heading that
-		     nobody chose. -->
+		     nobody chose.
+
+		     The overflow menu goes too. Dropping the title, the border and the
+		     padding left a 59px band with a divider rule whose only content was
+		     an Actions menu about eight pixels from the tab strip's own, which
+		     still reads as a card inside a card.
+
+		     Nothing is lost, but that took a second piece of work rather than
+		     being true on its own. Suppressing the menu takes its two items with
+		     it, and Metadata had no other home anywhere: the page header carries
+		     no equivalent, so it became unreachable inside a panel. Edit is the
+		     softer case. CnDetailPage does carry a record Edit button, but it
+		     opens the form the PAGE configures, not the subset THIS widget
+		     declares through `overrides`, `include` and `exclude`, so a tabbed
+		     widget showing eight of forty fields lost the form scoped to its
+		     eight. Both items are now published to the host surface and render in
+		     its menu; see utils/panelActions.js. Inline editing was never
+		     affected: a cell opens its editor when clicked, and Save and Discard
+		     arrive in the header the moment there is an edit to commit. -->
 		<!-- `requiredApp` names another Nextcloud app this widget leans on. When
 		     that app is absent the widget renders its NORMAL chrome plus a
 		     set-up state, and asks its backend NOTHING.
@@ -49,6 +67,7 @@
 			v-else-if="isData && schemaObject"
 			:title="resolvedTitle"
 			:show-title="!isBare"
+			:show-actions="!isBare"
 			:borderless="isBare"
 			:flush="isBare"
 			:icon="widget.icon || null"
@@ -201,6 +220,7 @@ import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import {
@@ -274,6 +294,44 @@ export default {
 		NcActionButton,
 		NcEmptyContent,
 		Plus,
+	},
+
+	inject: {
+		/**
+		 * The surface's panel-action channel, when this host sits inside one.
+		 *
+		 * Absent on every other surface, which is why the default is null
+		 * rather than a required injection.
+		 */
+		panelActionSink: {
+			from: PANEL_ACTION_SINK,
+			default: null,
+		},
+	},
+
+	/**
+	 * Re-provide the channel with this panel's widget id baked in.
+	 *
+	 * The widget below does not know its own id on the surface and should not
+	 * have to, so the id is supplied here, where it is already known. Read at
+	 * CALL time rather than captured, so a host whose `widget` changes keeps
+	 * publishing under the right key.
+	 *
+	 * Provides null when there is no surface to publish to, so the widget's own
+	 * injection resolves to null instead of finding a channel that goes nowhere.
+	 *
+	 * @return {object} The narrowed sink, or null.
+	 */
+	provide() {
+		const sink = this.panelActionSink
+		return {
+			[PANEL_ACTION_SINK]: sink
+				? {
+					set: (items) => sink.set(this.widget?.id, items),
+					clear: () => sink.clear(this.widget?.id),
+				}
+				: null,
+		}
 	},
 
 	props: {

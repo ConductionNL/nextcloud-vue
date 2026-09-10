@@ -17,20 +17,17 @@
 		}"
 		:style="wrapperStyles">
 		<!-- Header.
-		     Rendered when there is a TITLE to show, or when the caller filled
-		     the `actions` SLOT and those controls would otherwise have nowhere
-		     to live. Separate conditions on purpose: `CnObjectDataWidget` puts
-		     its Save button in that slot, so gating the whole header on
-		     `showTitle` meant a caller who only wanted the doubled title gone
-		     also silently removed the one control that commits an inline edit.
-		     A tab panel wants exactly that combination — no title, still
-		     saveable — and could not ask for it.
-
-		     The condition reads the SLOT, not `showActions`. `showActions`
-		     defaults to true and governs the overflow menu, so using it here
-		     gave a header to every headerless KPI tile that had never had one,
-		     which is what the floating title-meta test caught. -->
-		<div v-if="showTitle || hasActionsSlot"
+		     Rendered when a title earns it, or when controls that are actually
+		     on screen need a home. Three conditions rather than one, and each of
+		     the three is a bug this component has already shipped: gating on
+		     `showTitle` alone took the Save button for an inline edit away along
+		     with the doubled title; reading `showActions`, which defaults to
+		     true, handed a header to every headerless KPI tile; and reading the
+		     `actions` slot's mere PRESENCE gave a titleless tab panel a 59px
+		     band with a divider rule under it, because `CnObjectDataWidget`
+		     provides that template always and fills it only while an edit is
+		     unsaved. `headerIsWorthIt()` carries the reasoning. -->
+		<div v-if="headerIsWorthIt()"
 			class="cn-widget-wrapper__header"
 			:class="{ 'cn-widget-wrapper__header--actions-only': !showTitle }"
 			:style="[headerStyles, titleIconStyle]">
@@ -65,11 +62,15 @@
 					<slot name="title-meta" />
 				</div>
 			</div>
-			<div v-if="showActions" class="cn-widget-wrapper__actions">
+			<!-- `showActions` gates the overflow MENU, not the slot beside it.
+			     It used to gate both, so a caller who switched the menu off
+			     also lost the Save button for an inline edit, silently. -->
+			<div v-if="actionsAreVisible()" class="cn-widget-wrapper__actions">
 				<!-- @slot actions Custom action buttons rendered before the
 				     built-in overflow menu. -->
 				<slot name="actions" />
 				<CnActionsMenu
+					v-if="showActions"
 					:show-refresh="effectiveShowRefresh"
 					:show-request-feature="effectiveShowRequestFeature"
 					:show-report-bug="showReportBug"
@@ -154,6 +155,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
+import { slotRenders } from '../../utils/slotContent.js'
 
 /**
  * CnWidgetWrapper — Widget container with header, content, and footer.
@@ -702,6 +704,60 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether the `actions` slot renders anything a reader can see.
+		 *
+		 * `CnObjectDataWidget` always PROVIDES the template and fills it only
+		 * while an edit is unsaved, so the slot has to be called and its vnodes
+		 * inspected. Reading `$slots.actions` as a boolean counts the template
+		 * itself as content, which is what gave a titleless tab panel a 59px
+		 * band holding nothing but a second Actions menu.
+		 *
+		 * A method rather than a computed on purpose. The answer changes when the
+		 * PARENT's state changes, and a computed reading `$slots` does not
+		 * re-track that; a method re-runs on every render, and a slot whose
+		 * content depends on parent state already forces this component to
+		 * re-render.
+		 *
+		 * @return {boolean} True when the slot yields visible content.
+		 */
+		actionsSlotRenders() {
+			return slotRenders(this.$slots.actions)
+		},
+
+		/**
+		 * Whether the header band is worth the vertical space it costs.
+		 *
+		 * A title always earns it. Otherwise it is earned by controls that are
+		 * actually on screen: content in the `actions` slot, or the overflow menu
+		 * when a caller both asked for it and provided the slot it sits beside.
+		 *
+		 * That last clause looks redundant and is not. `showActions` defaults to
+		 * TRUE, so reading it alone hands a header to every headerless KPI tile
+		 * in the fleet, which is what the floating title-meta test caught when
+		 * this was first written the short way.
+		 *
+		 * @return {boolean} True when the header should render.
+		 */
+		headerIsWorthIt() {
+			if (this.showTitle) return true
+			if (this.actionsSlotRenders()) return true
+			return this.showActions && this.hasActionsSlot
+		},
+
+		/**
+		 * Whether the actions group holds anything.
+		 *
+		 * The overflow menu and the slot beside it are separate conditions now.
+		 * `showActions` used to gate both, so a caller who only wanted the menu
+		 * gone also lost the button that commits an inline edit.
+		 *
+		 * @return {boolean} True when the group would hold a visible control.
+		 */
+		actionsAreVisible() {
+			return this.showActions || this.actionsSlotRenders()
+		},
+
 		/**
 		 * Re-emit the shared CnActionsMenu `@refresh` to the host, passing
 		 * the synthetic event through unchanged so a host listener can
