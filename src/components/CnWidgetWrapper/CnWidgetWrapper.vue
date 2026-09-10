@@ -873,6 +873,17 @@ export default {
 	padding: 0;
 }
 
+/* `chromeless` — border and background are already gone through borderless,
+   and the content padding through flush. What is left on the root is the
+   corner radius, which still clips: with `overflow: hidden` above, a child
+   that paints its own background (a table header) gets rounded corners inside
+   a square panel, which is the last visible piece of a card that is supposed
+   to be absent. `CnDetailCard.cn-detail-card--chromeless` zeroes the same
+   thing for the same reason. */
+.cn-widget-wrapper--chromeless {
+	border-radius: 0;
+}
+
 /*
  * `chrome="nc-dashboard"` — reproduce the native Nextcloud Dashboard panel
  * (apps/dashboard) exactly, using the same design tokens so an un-customised
