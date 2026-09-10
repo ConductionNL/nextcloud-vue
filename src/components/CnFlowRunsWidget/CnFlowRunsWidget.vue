@@ -204,8 +204,10 @@ export default {
 		 *   always reported honestly regardless of this cap.
 		 * - `pollSeconds` — refetch interval (default 15; `0` disables polling).
 		 * - `rowRoute` — vue-router route NAME to open on a row click, receiving
-		 *   the run's flow id as `:id`. Omitted = rows are not clickable, which
-		 *   is correct for an app that has no flow-detail page.
+		 *   the run's flow id as `:id` and the clicked run's uuid as `?run=`, so
+		 *   the flow opens with that run inspected rather than merely open.
+		 *   Omitted = rows are not clickable, which is correct for an app that
+		 *   has no flow-detail page.
 		 * - `runRoute` — vue-router route NAME to open on a row click, receiving
 		 *   the RUN's uuid as `:id`. Takes precedence over `rowRoute`; a row
 		 *   without a run uuid falls back to the `rowRoute` flow-id behaviour.
@@ -664,6 +666,16 @@ export default {
 		 * uuid) the original behaviour holds unchanged: `rowRoute` receives
 		 * the FLOW id, the surface every flow-authoring app has.
 		 *
+		 * 🔑 THE FLOW ID ALONE ANSWERS THE WRONG QUESTION. A click on a run
+		 * means "show me THIS run", and `rowRoute` used to push the flow id and
+		 * nothing else — so the reader landed on the flow's current graph with
+		 * no indication which of its runs they had just clicked, and had to find
+		 * the row again in the sidebar's run list. The run travels as `?run=`,
+		 * which is the address CnFlowDetail already documents its `run` prop as
+		 * reading, so a `rowRoute` click and a pasted run link open the same
+		 * screen. Apps that never wired a run detail page — which is all of them
+		 * — get the run view for free.
+		 *
 		 * @param {object} run The clicked run row.
 		 * @return {void}
 		 */
@@ -684,7 +696,15 @@ export default {
 			if (id === undefined || id === null || id === '') {
 				return
 			}
-			this.$router.push({ name: this.content.rowRoute, params: { id: String(id) } }).catch(() => {})
+			const target = { name: this.content.rowRoute, params: { id: String(id) } }
+			// Only when the row actually carries one. An empty `?run=` is not a
+			// deep link, it is a query the destination has to defend against —
+			// and CnFlowDetail's `run` prop defaults to '' precisely so that
+			// "no run named" stays one value rather than two.
+			if (run.uuid !== undefined && run.uuid !== null && run.uuid !== '') {
+				target.query = { run: String(run.uuid) }
+			}
+			this.$router.push(target).catch(() => {})
 		},
 	},
 }

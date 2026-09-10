@@ -48,8 +48,16 @@
 				</template>
 				{{ t('nextcloud-vue', 'Add a step') }}
 			</NcButton>
+			<!-- Disabled on a locked graph, which is a published or deprecated
+			     flow and now also a version snapshot. It was enabled on both
+			     before: pressing it on a published flow spent a request to be
+			     told no, and pressing it on a snapshot would have written the
+			     snapshot over the live flow. The store refuses the snapshot case
+			     outright; this is the half that says so before the click. -->
 			<NcButton type="primary"
-				:disabled="store.saving || !store.flow.name"
+				:disabled="store.saving || !store.flow.name || store.graphLocked"
+				:title="saveDisabledReason"
+				data-testid="flow-save-button"
 				@click="onSaveClick">
 				<template #icon>
 					<NcLoadingIcon v-if="store.saving" :size="20" />
@@ -513,6 +521,27 @@ export default {
 
 			if (!this.hasManualStart) {
 				return this.t('nextcloud-vue', 'Running by hand needs a manual start step. Add "When someone runs it" to the canvas.')
+			}
+
+			return null
+		},
+
+		/**
+		 * Why Save is unavailable, as the button's title.
+		 *
+		 * A disabled control with no explanation is a dead end: the reader can
+		 * see that saving is off and has nothing to act on. Both reasons here
+		 * have a way out, so both name it.
+		 *
+		 * @return {string|null} The reason, or null when Save is available.
+		 */
+		saveDisabledReason() {
+			if (this.store.viewingVersion !== null) {
+				return this.t('nextcloud-vue', 'You are looking at a stored version. Go back to the flow to edit and save it.')
+			}
+
+			if (this.store.graphLocked) {
+				return this.t('nextcloud-vue', 'A published flow cannot be edited. Create a draft to change it.')
 			}
 
 			return null
@@ -1109,8 +1138,40 @@ export default {
 				})
 			}
 
+			// WHICH GRAPH IS THIS? A reader inspecting a run has to be able to
+			// answer that, and the answer is not always the same. Three states,
+			// one of which is silence: the snapshot is up, or it is not up and
+			// there is a reason, or no run is open at all.
+			if (this.store.viewingVersion !== null) {
+				messages.push({
+					id: 'viewing-version',
+					severity: 'info',
+					text: this.t('nextcloud-vue', 'This is version {version} of the flow, the graph this run used. Go back to the flow to edit it.', { version: this.store.viewingVersion }),
+					dismissible: false,
+				})
+			} else if (this.store.runGraphNotice?.reason === 'unsaved-edits') {
+				messages.push({
+					id: 'run-graph-unsaved',
+					severity: 'warning',
+					text: this.t('nextcloud-vue', 'This run used version {version} of the flow. You have unsaved changes, so it is replayed over your current graph instead. Save or undo your changes to see the graph it used.', { version: this.store.runGraphNotice.version }),
+					dismissible: false,
+				})
+			} else if (this.store.runGraphNotice?.reason === 'unreadable') {
+				messages.push({
+					id: 'run-graph-unreadable',
+					severity: 'warning',
+					text: this.t('nextcloud-vue', 'Version {version} of this flow could not be read, so the run is replayed over the current graph. Read the run steps in the sidebar for what actually ran.', { version: this.store.runGraphNotice.version }),
+					dismissible: false,
+				})
+			}
+
 			// Steps the run log names that are not on this canvas any more.
-			if (this.skippedRunTransitions.length && !this.runSkipDismissed) {
+			//
+			// Never while the snapshot is up: the snapshot IS the graph the run
+			// executed, so every step it names is on the canvas by construction.
+			// Leaving the check running would only report a bug in the snapshot,
+			// and it would report it in words that blame the reader's flow.
+			if (this.store.viewingVersion === null && this.skippedRunTransitions.length && !this.runSkipDismissed) {
 				messages.push({
 					id: 'run-skipped',
 					severity: 'warning',

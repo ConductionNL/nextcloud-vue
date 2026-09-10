@@ -114,7 +114,6 @@
 			:steps="setupSteps"
 			@complete="setupWizardOpen = false"
 			@close="setupWizardOpen = false" />
-
 	</div>
 </template>
 
