@@ -1,6 +1,10 @@
 <!--
   CnObjectMetadataModal — Read-only object metadata in a small dialog.
 
+  Sized `large`, not `small`: the panel carries five grouped categories now
+  (Identity, Location, Ownership, Lifecycle, Archiving), and at `small` a URI
+  wrapped over four lines while every label took a row of its own.
+
   A thin NcDialog wrapper around CnObjectMetadataWidget. Surfaces an
   object's @self / system metadata (id, uuid, uri, register, schema,
   created, updated, owner, …) on demand — e.g. from the "Metadata" item
@@ -11,7 +15,7 @@
 	<NcDialog
 		:open="open"
 		:name="name"
-		size="small"
+		size="large"
 		@update:open="onUpdateOpen">
 		<CnObjectMetadataWidget
 			title=""
