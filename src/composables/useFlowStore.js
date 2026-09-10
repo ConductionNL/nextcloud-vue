@@ -245,6 +245,15 @@ export const useFlowStore = defineStore('cnFlow', {
 
 		dirty: false,
 		error: null,
+		/**
+		 * The flow id that could not be resolved, or null.
+		 *
+		 * Distinct from `error`, which is a failed REQUEST. A flow that resolves
+		 * to nothing is a successful request with an empty answer, and the canvas
+		 * must be able to tell a reader that rather than rendering an empty grid
+		 * that looks like a flow with no steps.
+		 */
+		notFound: null,
 	}),
 
 	getters: {
@@ -651,7 +660,55 @@ export const useFlowStore = defineStore('cnFlow', {
 			// the meantime, so only a STORED flow is opened at this point — it
 			// genuinely needs `this.flows`, which the request above just filled.
 			if (id !== null && isBlank === false) {
+				// 🔴 THE LIST IS NOT THE ONLY PLACE A FLOW CAN LIVE.
+				//
+				// `open()` resolves a flow by looking it up in `this.flows`, and
+				// that list was just fetched scoped to ONE app. A flow belonging
+				// to a different app is therefore absent, `open()` finds no match,
+				// and — before this — returned silently, leaving the canvas
+				// painted with whatever was there before: blank.
+				//
+				// That is not a hypothetical. A dossiq case ran eighteen flow runs
+				// of a flow whose `app` is `openregister`; clicking any of them
+				// opened `/flows/<id>` on dossiq's flow page, which loads
+				// `?app=dossiq`, and the editor came up empty with no error.
+				// Cross-app runs are ordinary — a case is driven by flows from
+				// whichever app authored them.
+				//
+				// `GET /api/flows/{id}` resolves by uuid with no app filter, so
+				// one request answers it. Only reached on a miss, so the common
+				// case costs nothing.
+				await this.ensureFlowLoaded(id)
 				this.open(id, app)
+			}
+		},
+
+		/**
+		 * Make sure a flow is present in `this.flows` before `open()` looks for it.
+		 *
+		 * Fetches the single flow by uuid when the app-scoped list did not carry
+		 * it. A 404 is left alone: `open()` reports the not-found state, which is
+		 * the honest answer and the one the canvas can render.
+		 *
+		 * @param {string} id The flow uuid.
+		 * @return {Promise<void>}
+		 */
+		async ensureFlowLoaded(id) {
+			if (!id || id === 'new') return
+			if (this.flows.some((flow) => String(flow.id) === String(id))) return
+
+			try {
+				const response = await axios.get(generateUrl('/apps/openregister/api/flows/' + encodeURIComponent(id)))
+				const flow = response.data
+				if (flow && flow.id) {
+					this.flows = [...this.flows, flow]
+				}
+			} catch (error) {
+				// Surfaced, not swallowed — but not fatal either. `open()` sets
+				// the not-found state right after this, and that is what the
+				// canvas renders; throwing here would take out the whole page for
+				// a flow that simply is not there any more.
+				console.error('cn-flow: could not resolve flow by id', id, error)
 			}
 		},
 
@@ -709,6 +766,10 @@ export const useFlowStore = defineStore('cnFlow', {
 			this.watchedNewFrom = 0
 			this.replayUuid = null
 
+			// Cleared on every open, so a not-found id from the previous route
+			// cannot keep a resolvable flow behind an error screen.
+			this.notFound = null
+
 			if (!id || id === 'new') {
 				// A new flow is runnable on demand until its author picks a real
 				// trigger, so the flow-level trigger and the seeded start node
@@ -721,6 +782,11 @@ export const useFlowStore = defineStore('cnFlow', {
 
 			const match = this.flows.find((flow) => String(flow.id) === String(id))
 			if (!match) {
+				// A blank canvas and no explanation is the worst of the three
+				// possible answers here. `notFound` lets the host say which id it
+				// could not resolve, so "this flow was deleted" and "this page is
+				// broken" stop looking identical.
+				this.notFound = String(id)
 				return
 			}
 
@@ -1544,6 +1610,9 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * they started on, which is the whole point of publishing being an
 		 * event rather than a save.
 		 *
+		 * @param {string|null} bump The semver component to advance ('major' |
+		 *                          'minor' | 'patch'), or null to let the server
+		 *                          decide from what actually changed.
 		 * @return {Promise<object|null>} The published version, or null.
 		 */
 		async publish(bump = null) {

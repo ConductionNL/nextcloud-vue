@@ -2,8 +2,17 @@
 
 ### Props
 
-| Name        | Type     | Required | Default | Description                                                                                                                                                                                                 |
-| ----------- | -------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lockedBy`  | `string` |          | `''`    | Display name (or username) of the user holding the lock. Comes from `useObjectLock().lockedBy`.                                                                                                             |
-| `expiresAt` | `union`  |          | `null`  | Lock expiration as a Date instance. Comes from `useObjectLock().expiresAt`. When omitted, the "expires in N min" sub-line is suppressed.                                                                    |
-| `message`   | `string` |          | `''`    | Override the rendered message. Useful for custom branding / tone. Left empty, the banner renders `t('nextcloud-vue', 'Locked by {user}')` with `lockedBy` interpolated — see the `displayMessage` computed. |
+| Name         | Type      | Required | Default | Description                                                                                                                                                                                                                                                                      |
+| ------------ | --------- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lockedBy`   | `string`  |          | `''`    | Display name (or username) of the user holding the lock. Comes from `useObjectLock().lockedBy`.                                                                                                                                                                                  |
+| `lockedByMe` | `boolean` |          | `false` | Whether the lock is held by the current user. Comes from `useObjectLock().lockedByMe`. Defaults to false, which is the safe reading: a host that does not pass it gets the error tone and no Unlock button, rather than offering to release a lock that belongs to someone else. |
+| `expiresAt`  | `union`   |          | `null`  | Lock expiration as a Date instance. Comes from `useObjectLock().expiresAt`. When omitted, the "expires in N min" sub-line is suppressed.                                                                                                                                         |
+| `showUnlock` | `boolean` |          | `true`  | Whether to offer the Unlock button on the viewer's own lock. Off switches it back to a plain notice — for a surface with no writer, such as a read-only preview.                                                                                                                 |
+| `unlocking`  | `boolean` |          | `false` | Whether a release is in flight. Bound by the host so the button can disable itself and spin while `release()` is awaited.                                                                                                                                                        |
+| `message`    | `string`  |          | `''`    | Override the rendered message. Useful for custom branding / tone. Left empty, the banner renders the default line for whichever of the two situations applies — see the `displayMessage` computed.                                                                               |
+
+### Events
+
+| Name     | Payload | Description                                 |
+| -------- | ------- | ------------------------------------------- |
+| `unlock` | —       | The viewer asked to release their own lock. |

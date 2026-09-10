@@ -205,13 +205,19 @@
 			</div>
 		</div>
 
-		<!-- Locked-by-other banner. Renders only when a `lockState`
-		     was wired by `setup()` AND a remote lock is active.
-		     Suppressed when the lock is held by the current user. -->
+		<!-- The locked card, under the title, for ANY active lock — not only a
+		     remote one. It used to be suppressed when the current user held the
+		     lock, which meant the one person who could do something about a
+		     stale lock was also the only person the UI never told about it.
+		     The card carries the tone: an error for somebody else's lock, a
+		     neutral notice plus Unlock for your own. -->
 		<CnLockedBanner
-			v-if="lockState && lockState.locked.value && !lockState.lockedByMe.value"
+			v-if="lockState && lockState.locked.value"
 			:locked-by="lockState.lockedBy.value"
-			:expires-at="lockState.expiresAt.value" />
+			:locked-by-me="lockState.lockedByMe.value"
+			:expires-at="lockState.expiresAt.value"
+			:unlocking="releasingLock"
+			@unlock="onReleaseLock" />
 
 		<!-- Loading state -->
 		<div v-if="showLoadingState" class="cn-detail-page__loading">
@@ -1587,6 +1593,13 @@ export default {
 			/** Whether the record edit form is open. */
 			editFormOpen: false,
 			/**
+			 * Whether a lock release is in flight, so the locked card's Unlock
+			 * button can disable itself for the round trip. Without it a slow
+			 * release invites a second click, and the second `release()` lands
+			 * on a lock that is already gone.
+			 */
+			releasingLock: false,
+			/**
 			 * The manifest `headerActions[]` flattened into menu items by the
 			 * `display: "menu"` CnActionButtons instance, which keeps owning
 			 * their dialogs. Each carries its own pre-bound `run()`, so the
@@ -2417,6 +2430,27 @@ export default {
 		// Expose the shared grid helpers to the template (grid mode + auto-body).
 		cnGridCellStyle,
 		hasGridRow,
+
+		/**
+		 * Release the lock the current user holds on this record.
+		 *
+		 * Only reachable from the locked card's Unlock button, which the card
+		 * only renders for the viewer's OWN lock — so this never releases
+		 * somebody else's. A failure is left to `useObjectLock`, which logs it;
+		 * the flag is cleared either way so a failed release does not strand
+		 * the button disabled.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async onReleaseLock() {
+			if (!this.lockState || this.releasingLock) return
+			this.releasingLock = true
+			try {
+				await this.lockState.release()
+			} finally {
+				this.releasingLock = false
+			}
+		},
 
 		/**
 		 * Re-emit the page-header menu's Refresh to the host.

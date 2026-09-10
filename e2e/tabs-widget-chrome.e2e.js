@@ -196,6 +196,51 @@ test.describe('CnTabsWidget chrome', () => {
 		expect(Math.abs(offset)).toBeLessThanOrEqual(1)
 	})
 
+	// REGRESSION, and the reason the root rule doubles its class.
+	//
+	// Nextcloud serves every enabled app's assets on every page, each app
+	// bundles this library's compiled CSS, and the Vue scope id comes from the
+	// file PATH, so it is byte-identical across library versions. An app on an
+	// older release ships a rule with EXACTLY this selector and the old
+	// declarations, onto the pages of an app already on the new one. Measured
+	// live on a dossiq case: three stale copies, one from hermiq's
+	// companion.css and two inline from other bundles. Same specificity, so
+	// source order decided and the card border came back around the strip.
+	//
+	// This injects one such copy, appended last so source order favours it, and
+	// asserts the component still wins. The harness cannot host another app's
+	// whole bundle; one competing declaration is the narrowest honest model of
+	// it, the same way the Nextcloud button-margin test above works.
+	test('the panel chrome survives an older app\'s copy of the old rule', async ({ page }) => {
+		await openHarness(page)
+		const scopeId = await page.evaluate(() => {
+			const el = document.querySelector('.cn-tabs-widget')
+			const attr = [...el.attributes].find((a) => a.name.startsWith('data-v-'))
+			return attr ? attr.name : null
+		})
+		expect(scopeId).not.toBeNull()
+
+		await page.addStyleTag({
+			content: `.cn-tabs-widget[${scopeId}] {
+				background-color: var(--color-main-background);
+				border: 1px solid var(--color-border);
+				border-radius: var(--border-radius-large);
+				overflow: hidden;
+			}`,
+		})
+
+		const chrome = await page.evaluate(() => {
+			const px = (v) => Math.round(parseFloat(v) || 0)
+			const root = getComputedStyle(document.querySelector('.cn-tabs-widget'))
+			return {
+				borderTop: px(root.borderTopWidth),
+				radiusTopLeft: px(root.borderTopLeftRadius),
+			}
+		})
+		expect(chrome.borderTop).toBe(0)
+		expect(chrome.radiusTopLeft).toBe(0)
+	})
+
 	test('inactive tabs carry their own darker surface', async ({ page }) => {
 		await openHarness(page)
 		const bg = await page.evaluate(() => {
