@@ -348,3 +348,40 @@ describe('the manifest schema accepts the tasks source', () => {
 		expect(result.valid).toBe(false)
 	})
 })
+
+/**
+ * `isTerminal` reaches the wire.
+ *
+ * The server has always accepted it — `TaskController` documents
+ * "'true'|'false' to restrict on terminality" — and only the store's
+ * allowlist withheld it. Without it an app cannot express "closed" or "my
+ * open work" as a scope tab, which is two of dossiq's five task lenses.
+ */
+describe('useTaskInboxStore isTerminal', () => {
+	beforeEach(() => {
+		mockGet.mockClear()
+	})
+
+	it('passes isTerminal through, stringified like overdue', async () => {
+		const store = useTaskInboxStore()
+
+		await store.load({ scope: 'all', isTerminal: true })
+
+		const params = mockGet.mock.calls[0][1].params
+		expect(params.isTerminal).toBe('true')
+
+		mockGet.mockClear()
+		await store.load({ scope: 'assigned', isTerminal: false })
+		expect(mockGet.mock.calls[0][1].params.isTerminal).toBe('false')
+	})
+
+	it('still drops a key that is not on the allowlist', async () => {
+		const store = useTaskInboxStore()
+
+		await store.load({ scope: 'all', assignee: 'someone', nonsense: 1 })
+
+		const params = mockGet.mock.calls[0][1].params
+		expect(params).not.toHaveProperty('assignee')
+		expect(params).not.toHaveProperty('nonsense')
+	})
+})
