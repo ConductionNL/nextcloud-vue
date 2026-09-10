@@ -12,3 +12,4 @@ export { evaluateVisibleWhenLocal, evaluateVisibleWhen, readVisibleWhenPath, com
 export { validateFieldValue } from './formValidation.js'
 export { computeObjectDiff } from './computeObjectDiff.js'
 export { foldAuditTrailEntries } from './auditTrailDiff.js'
+export { readLockPayload, isObjectLocked, lockHolder, isLockedByCurrentUser, resolveObjectLock } from './objectLock.js'

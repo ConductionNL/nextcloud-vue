@@ -1,48 +1,97 @@
 <!--
-  CnLockedBanner — Inline notice that the current object is locked.
+  CnLockedBanner — the card that says this object is locked, and by whom.
 
-  Mounted by CnDetailPage / CnObjectSidebar when `locked && !lockedByMe`
-  to inform the user that another session holds the pessimistic lock,
-  and to suppress the Edit toggle until the lock is released.
+  Mounted by CnDetailPage / CnObjectSidebar directly under the page title, so
+  the first thing a reader learns about a locked record is that it is locked —
+  rather than finding out when a save is refused.
 
-  Presentation-only; lock state is managed by `useObjectLock`. Pass
-  `lockedBy` and (optionally) `expiresAt` from the composable's refs.
+  Two tones, because the two situations are not the same problem:
+
+    - locked by SOMEONE ELSE — an error card. You cannot edit this now, and
+      nothing you do on this page will change that. Names the holder and when
+      the lock lapses.
+    - locked by YOU — a neutral card carrying an Unlock button. Nothing is
+      wrong; you are simply holding a lock you may not remember taking, and
+      the card is the only place in the UI that lets you hand it back.
+
+  Presentation-only for the state itself; lock state is managed by
+  `useObjectLock`. Pass `lockedBy`, `lockedByMe` and (optionally) `expiresAt`
+  from the composable's refs, and wire `@unlock` to its `release()`.
 -->
 <template>
 	<div
 		class="cn-locked-banner"
-		role="status"
+		:class="toneClass"
+		:role="lockedByMe ? 'status' : 'alert'"
 		aria-live="polite"
 		data-testid="cn-locked-banner">
-		<LockOutline :size="20" class="cn-locked-banner__icon" />
+		<component
+			:is="iconComponent"
+			:size="20"
+			class="cn-locked-banner__icon" />
 		<div class="cn-locked-banner__body">
 			<p class="cn-locked-banner__message">
 				{{ displayMessage }}
 			</p>
 			<p
-				v-if="expiresLabel"
+				v-if="subLine"
 				class="cn-locked-banner__sub">
-				{{ expiresLabel }}
+				{{ subLine }}
 			</p>
 		</div>
+		<!-- Only ever offered for a lock the current user holds. A lock held by
+		     someone else is theirs to release; a Release button here would
+		     either fail at the server or, worse, succeed and take the record out
+		     from under whoever is editing it. -->
+		<NcButton
+			v-if="lockedByMe && showUnlock"
+			class="cn-locked-banner__action"
+			variant="secondary"
+			:disabled="unlocking"
+			data-testid="cn-locked-banner-unlock"
+			@click="onUnlock">
+			<template #icon>
+				<NcLoadingIcon v-if="unlocking" :size="20" />
+				<LockOpenVariantOutline v-else :size="20" />
+			</template>
+			{{ unlockLabel }}
+		</NcButton>
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import LockAlertOutline from 'vue-material-design-icons/LockAlertOutline.vue'
+import LockOpenVariantOutline from 'vue-material-design-icons/LockOpenVariantOutline.vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 
 /**
- * CnLockedBanner — Object-locked notice strip.
+ * CnLockedBanner — Object-locked card.
  *
- * Renders a one-line notice with the locking user's display name
- * and the lock expiry. Used by CnDetailPage and CnObjectSidebar to
- * surface the result of a `useObjectLock`-detected remote lock.
+ * Renders who holds the lock and when it lapses, in an error tone for a
+ * remote lock and a neutral one for the viewer's own, where it also offers
+ * to release it.
+ *
+ * ```vue
+ * <CnLockedBanner
+ *   v-if="lock.locked.value"
+ *   :locked-by="lock.lockedBy.value"
+ *   :locked-by-me="lock.lockedByMe.value"
+ *   :expires-at="lock.expiresAt.value"
+ *   @unlock="lock.release()" />
+ * ```
  */
 export default {
 	name: 'CnLockedBanner',
 
-	components: { LockOutline },
+	components: {
+		LockAlertOutline,
+		LockOpenVariantOutline,
+		LockOutline,
+		NcButton,
+		NcLoadingIcon,
+	},
 
 	props: {
 		/**
@@ -54,6 +103,21 @@ export default {
 		lockedBy: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Whether the lock is held by the current user. Comes from
+		 * `useObjectLock().lockedByMe`.
+		 *
+		 * Defaults to false, which is the safe reading: a host that does not
+		 * pass it gets the error tone and no Unlock button, rather than
+		 * offering to release a lock that belongs to someone else.
+		 *
+		 * @type {boolean}
+		 */
+		lockedByMe: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -69,10 +133,33 @@ export default {
 		},
 
 		/**
+		 * Whether to offer the Unlock button on the viewer's own lock. Off
+		 * switches it back to a plain notice — for a surface with no writer,
+		 * such as a read-only preview.
+		 *
+		 * @type {boolean}
+		 */
+		showUnlock: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Whether a release is in flight. Bound by the host so the button can
+		 * disable itself and spin while `release()` is awaited.
+		 *
+		 * @type {boolean}
+		 */
+		unlocking: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Override the rendered message. Useful for custom
-		 * branding / tone. Left empty, the banner renders
-		 * `t('nextcloud-vue', 'Locked by {user}')` with `lockedBy`
-		 * interpolated — see the `displayMessage` computed.
+		 * branding / tone. Left empty, the banner renders the default line
+		 * for whichever of the two situations applies — see the
+		 * `displayMessage` computed.
 		 *
 		 * @type {string}
 		 */
@@ -82,11 +169,37 @@ export default {
 		},
 	},
 
+	emits: ['unlock'],
+
 	computed: {
 		/**
+		 * Tone modifier. The error tone is the default because the default
+		 * `lockedByMe` is false, and a lock whose holder the host did not
+		 * report should read as somebody else's.
+		 */
+		toneClass() {
+			if (this.lockedByMe) {
+				return 'cn-locked-banner--mine'
+			}
+
+			return 'cn-locked-banner--other'
+		},
+
+		/**
+		 * The icon for the tone: an alert lock for somebody else's lock, a
+		 * plain one for the viewer's own.
+		 */
+		iconComponent() {
+			if (this.lockedByMe) {
+				return 'LockOutline'
+			}
+
+			return 'LockAlertOutline'
+		},
+
+		/**
 		 * The message actually rendered: the `message` override when the
-		 * consumer supplied one, otherwise the default "Locked by {user}"
-		 * line built from `lockedBy`.
+		 * consumer supplied one, otherwise the default line for this tone.
 		 *
 		 * This deliberately is NOT a prop `default()` factory. Vue 3 calls
 		 * those with `this === null`, so `this.lockedBy` threw a TypeError
@@ -97,7 +210,17 @@ export default {
 		 * both crash-free and reactive.
 		 */
 		displayMessage() {
-			return this.message || t('nextcloud-vue', 'Locked by {user}', { user: this.lockedBy || '?' })
+			if (this.message) {
+				return this.message
+			}
+
+			if (this.lockedByMe) {
+				return t('nextcloud-vue', 'You are editing this. Others cannot change it until you unlock it.')
+			}
+
+			return t('nextcloud-vue', 'Locked by {user}. You cannot edit this until the lock is released.', {
+				user: this.lockedBy || t('nextcloud-vue', 'another user'),
+			})
 		},
 
 		/**
@@ -113,6 +236,39 @@ export default {
 			if (min < 1) return t('nextcloud-vue', 'Expires in less than a minute')
 			return t('nextcloud-vue', 'Expires in {min} min', { min })
 		},
+
+		/**
+		 * The sub-line, kept as its own computed so the expiry wording stays
+		 * in one place while the two tones can add to it later without the
+		 * template growing a branch.
+		 */
+		subLine() {
+			return this.expiresLabel
+		},
+
+		/** Label on the release button. */
+		unlockLabel() {
+			return t('nextcloud-vue', 'Unlock')
+		},
+	},
+
+	methods: {
+		/**
+		 * Ask the host to release the lock.
+		 *
+		 * The component does not call `release()` itself: it holds no
+		 * reference to the composable, and a component that released a lock
+		 * on its own would do so without the host being able to refetch or
+		 * re-enable its editors afterwards.
+		 *
+		 * @return {void}
+		 */
+		onUnlock() {
+			/**
+			 * @event unlock The viewer asked to release their own lock.
+			 */
+			this.$emit('unlock')
+		},
 	},
 }
 </script>
@@ -124,13 +280,37 @@ export default {
 	gap: 12px;
 	padding: 12px 16px;
 	border-radius: var(--border-radius-large, 8px);
-	background-color: var(--color-warning-hover, rgba(233, 163, 0, 0.15));
-	border: 1px solid var(--color-warning, #e9a300);
 	margin-bottom: 16px;
 }
 
+/*
+ * Somebody else's lock. Error tone, not warning: for the viewer this is not a
+ * caution about something that might go wrong, it is a refusal that already
+ * applies — the record cannot be edited from this page at all.
+ */
+.cn-locked-banner--other {
+	background-color: var(--color-error-hover, rgba(219, 80, 80, 0.15));
+	border: 1px solid var(--color-error, #db5050);
+}
+
+.cn-locked-banner--other .cn-locked-banner__icon {
+	color: var(--color-error, #db5050);
+}
+
+/*
+ * The viewer's own lock. Nothing is wrong, so nothing shouts: a bordered
+ * neutral card that carries the Unlock button.
+ */
+.cn-locked-banner--mine {
+	background-color: var(--color-background-hover, #f5f5f5);
+	border: 1px solid var(--color-border, #ededed);
+}
+
+.cn-locked-banner--mine .cn-locked-banner__icon {
+	color: var(--color-text-maxcontrast, #767676);
+}
+
 .cn-locked-banner__icon {
-	color: var(--color-warning, #e9a300);
 	flex-shrink: 0;
 	margin-top: 2px;
 }
@@ -150,5 +330,10 @@ export default {
 	margin: 4px 0 0;
 	font-size: 13px;
 	color: var(--color-text-maxcontrast, #767676);
+}
+
+.cn-locked-banner__action {
+	flex-shrink: 0;
+	align-self: center;
 }
 </style>

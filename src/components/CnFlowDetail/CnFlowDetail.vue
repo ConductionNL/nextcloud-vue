@@ -1004,6 +1004,21 @@ export default {
 			const refusal = this.store.lifecycleRefusal
 			const lockRefused = refusal?.reason === 'version-immutable'
 
+			// The route named a flow that does not resolve. FIRST, and on its
+			// own, because nothing else on this canvas is about anything: the
+			// editor used to render an empty grid here, which is exactly what a
+			// brand-new flow looks like, so a deleted flow and a blank one were
+			// the same picture. Everything below concerns a flow that IS loaded,
+			// so it is skipped rather than stacked underneath.
+			if (this.store.notFound) {
+				return [{
+					id: 'flow-not-found',
+					severity: 'error',
+					text: this.t('nextcloud-vue', 'This flow could not be found. It may have been deleted, or you may not have access to it.'),
+					dismissible: false,
+				}]
+			}
+
 			// A save or a run the server refused outright. Its own sentence,
 			// because "A flow needs a name." says what to do and "Request
 			// failed with status code 400" does not.

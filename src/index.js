@@ -174,6 +174,7 @@ export {
 	CnChartWidgetForm,
 	CnStatsBlockWidgetForm,
 	CnLockedBanner,
+	CnLockIndicator,
 	CnObjectSidebar,
 	CnInfoWidget,
 	CnTableWidget,
@@ -449,6 +450,10 @@ export { registerTranslations } from './l10n/index.js'
 // Utilities
 export { buildHeaders, buildQueryString, parseResponseError, parseAxiosError, networkError, genericError } from './utils/index.js'
 export { cnFetch, cnFetchJson, CnHttpError } from './utils/cnFetch.js'
+// The one reading of "is this record locked, and by whom" — shared by
+// CnLockIndicator, CnObjectCard and CnDataTable, and available to apps that
+// need the same answer without rendering a padlock.
+export { readLockPayload, isObjectLocked, lockHolder, isLockedByCurrentUser, resolveObjectLock } from './utils/objectLock.js'
 export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema, validateValue } from './utils/index.js'
 export { splitDynamicFormData, valueRecordsFor, valueArrayFor, usesArrayValues, EXTENDS_FORM_KEY, PREFILL_KEY, DYNAMIC_KEY_PREFIX } from './utils/index.js'
 // The OpenRegister schema API contract — shared so Buildiq and OpenRegister cannot
