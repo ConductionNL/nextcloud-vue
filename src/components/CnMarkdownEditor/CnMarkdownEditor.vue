@@ -60,6 +60,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { cnRenderMarkdown } from '../../composables/cnRenderMarkdown.js'
+import { toastUiSanitizer } from '../../utils/toastUiSanitizer.js'
 
 /**
  * Default formatting toolbar — Markdown insertions that wrap a
@@ -346,6 +347,12 @@ export default {
 					previewStyle: 'tab',
 					height: this.wysiwygHeight,
 					events: { change: this.onWysiwygChange },
+					// Replaces the DOMPurify 2.3.3 copy that @toast-ui/editor
+					// inlines into its own bundle (unmaintained since 2023, so
+					// no npm-level fix exists). Same sanitising contract, run
+					// by the maintained DOMPurify 3.x — see the module docs.
+					// Set last so a consumer cannot drop it via wysiwygOptions.
+					customHTMLSanitizer: toastUiSanitizer,
 				})
 				this.toastEditorReady = true
 			} catch (e) {
