@@ -51,7 +51,13 @@ import {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
-/** Fire every captured handler on a bus channel. */
+/**
+ * Fire every captured handler on a bus channel.
+ *
+ * @param {string} channel The event-bus channel.
+ * @param {*} payload The payload handed to each handler.
+ * @return {void}
+ */
 const fireBus = (channel, payload) => {
 	for (const cb of (mockBusHandlers[channel] || [])) cb(payload)
 }

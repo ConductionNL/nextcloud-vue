@@ -37,11 +37,25 @@ const { mount } = require('@vue/test-utils')
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
 
 const stubs = {
-	CnDataTable: true, CnCardGrid: true, CnPagination: true, CnActionsBar: true,
-	CnContextMenu: true, CnRowActions: true, CnIndexSidebar: true, CnPageHeader: true,
-	CnMassDeleteDialog: true, CnMassCopyDialog: true, CnMassExportDialog: true,
-	CnMassImportDialog: true, CnDeleteDialog: true, CnCopyDialog: true,
-	CnFormDialog: true, CnAdvancedFormDialog: true, NcLoadingIcon: true, NcEmptyContent: true, CnIcon: true,
+	CnDataTable: true,
+	CnCardGrid: true,
+	CnPagination: true,
+	CnActionsBar: true,
+	CnContextMenu: true,
+	CnRowActions: true,
+	CnIndexSidebar: true,
+	CnPageHeader: true,
+	CnMassDeleteDialog: true,
+	CnMassCopyDialog: true,
+	CnMassExportDialog: true,
+	CnMassImportDialog: true,
+	CnDeleteDialog: true,
+	CnCopyDialog: true,
+	CnFormDialog: true,
+	CnAdvancedFormDialog: true,
+	NcLoadingIcon: true,
+	NcEmptyContent: true,
+	CnIcon: true,
 }
 
 /**

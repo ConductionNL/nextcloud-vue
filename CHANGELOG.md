@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Fixed
+- **A `data` widget in a tab panel no longer draws a card inside the card.** `CnTabsWidget` already asked for bare chrome, but `CnObjectDataWidget.title` carries a default of `"Data"`, so the `undefined` bare mode passed became that default: the heading in the panel was a default filling a gap, not a choice. `CnObjectDataWidget` gains `showTitle`, `borderless` and `flush`, and `CnDetailWidgetHost` passes them instead of exempting the widget.
+
+  The exemption was protecting something real, so two things changed together. `CnWidgetWrapper` now renders its header when there is a title **or** when the `actions` slot is filled, so "no title" and "no Save button" became separate requests — previously hiding the header to remove the duplicate title also removed the only control that commits an inline edit.
+
+  The header condition reads the SLOT, not `showActions`: that prop defaults to `true` and governs the overflow menu, so reading it there gives a header to every headerless KPI tile that never had one.
 - **`CnTabsWidget`'s panel chrome now beats an older app's copy of the old rule.** Nextcloud serves every enabled app's assets on every page, each app bundles this library's compiled CSS, and the Vue scope id is derived from the file PATH, so `data-v-1dbd6122` is byte-identical across library versions. An app still on an older release therefore ships a rule with exactly the same selector and the OLD declarations, and it lands on the pages of an app already on the new one. Measured live on a dossiq case page: three stale copies of the pre-fix rule, one from hermiq's `companion.css` and two inline from other bundles. Same specificity, so source order decided, and the card border came back around the tab strip on an app that had already taken the fix.
 
   The root rule doubles its class, taking it to (0,3,0) against the stale (0,2,0), and explicitly zeroes `border`, `border-radius`, `background-color` and `overflow` rather than merely omitting them, since dropping a declaration cannot override a rule that sets it. It wins on specificity rather than on `!important` or on load order this library does not control. Same technique, for the same reason, as `.cn-tabs__nav .cn-tabs__nav-item` beating Nextcloud's own button margin.

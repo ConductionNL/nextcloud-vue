@@ -94,7 +94,8 @@ describe('objectToGeoFeature', () => {
 	it('prefers @self.geo over the fallback fields', () => {
 		const obj = {
 			'@self': { geo: { type: 'Point', coordinates: [5.29, 52.13] } },
-			lat: 1, lng: 1,
+			lat: 1,
+			lng: 1,
 		}
 		expect(objectToGeoFeature(obj, { latField: 'lat', lngField: 'lng' }).geometry.coordinates)
 			.toEqual([5.29, 52.13])

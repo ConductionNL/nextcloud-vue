@@ -115,9 +115,14 @@ describe('CnDetailPage — sidebarProps.tabs forwarding', () => {
 		// A no-op store so the schema-driven mount path (register+schema+
 		// objectId) doesn't reach Pinia — we only exercise the sidebar sync.
 		const noopStore = {
-			objects: {}, schemas: {}, loading: {},
-			registerObjectType() {}, fetchObject() { return Promise.resolve(null) }, fetchSchema() { return Promise.resolve(null) },
-			getObject() { return null }, getSchema() { return null },
+			objects: {},
+			schemas: {},
+			loading: {},
+			registerObjectType() {},
+			fetchObject() { return Promise.resolve(null) },
+			fetchSchema() { return Promise.resolve(null) },
+			getObject() { return null },
+			getSchema() { return null },
 		}
 		function mountSchemaDriven(extra, state) {
 			return mountDetailPage({

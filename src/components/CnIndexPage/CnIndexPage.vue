@@ -996,6 +996,28 @@ export default {
 		entitySource: { type: String, default: '' },
 
 		/**
+		 * Route name a clicked row opens, overriding a named source's own
+		 * navigation.
+		 *
+		 * An entity source knows where its rows live and navigates itself, and
+		 * for a source whose detail page belongs to ANOTHER app that is right:
+		 * `tasks` sends a click to openregister's task page, because pushing
+		 * on this app's router could not reach it.
+		 *
+		 * It is wrong for an app that HAS its own page for those rows. Dossiq
+		 * keeps a task detail page on purpose, so its handlers see a task in
+		 * dossiq's vocabulary beside the case it belongs to. Without this prop
+		 * adopting `entitySource: "tasks"` would send every click out of the
+		 * app, and the `row-click` event cannot recover it: `openRow` calls
+		 * `window.location.assign()`, so a host's push never lands.
+		 *
+		 * Set it and the row pushes `{ name: rowRoute, params: { id } }` on
+		 * this app's router instead. Leave it unset and the source's own
+		 * navigation is unchanged, which is what every current consumer gets.
+		 */
+		rowRoute: { type: String, default: '' },
+
+		/**
 		 * Config handed to the named source's loader (e.g. `{ app: 'dossiq' }`).
 		 */
 		sourceConfig: { type: Object, default: null },
@@ -3408,10 +3430,20 @@ export default {
 			// A named source knows where its rows live. Emitting only would leave
 			// the click inert on a manifest page, which has no listener to bind —
 			// the very shape that left three apps with a dead `@rowClick`.
-			// `openRow` wins over `detailRoute`: a row whose detail page lives in
-			// ANOTHER app (a task's page is openregister's) cannot be reached by
-			// pushing on this app's router, so the source navigates itself.
-			if (this.isNamedSource && this.namedSource && typeof this.namedSource.openRow === 'function') {
+			//
+			// `rowRoute` wins over everything: an app that declares its own
+			// page for these rows means it. The source's `openRow` is the
+			// right default precisely because a task's page is usually
+			// openregister's, and it is wrong for an app that ships one of
+			// its own. This cannot be done by listening to `row-click`,
+			// because `openRow` calls `window.location.assign()` and the
+			// host's push never lands.
+			if (this.isNamedSource && this.rowRoute) {
+				const routeId = row?.id || row?.uuid
+				if (routeId) {
+					this.$router.push({ name: this.rowRoute, params: { id: String(routeId) } })
+				}
+			} else if (this.isNamedSource && this.namedSource && typeof this.namedSource.openRow === 'function') {
 				this.namedSource.openRow(row)
 			} else if (this.isNamedSource && this.namedSource && this.namedSource.detailRoute) {
 				const id = row?.id || row?.uuid

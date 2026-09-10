@@ -83,9 +83,11 @@ async function mountDialog(storeOverrides = {}) {
 				},
 				NcLoadingIcon: true,
 			},
-			mocks: { t: (app, s, vars) => (vars
-				? Object.entries(vars).reduce((out, [k, v]) => out.replace(`{${k}}`, v), s)
-				: s) },
+			mocks: {
+				t: (app, s, vars) => (vars
+					? Object.entries(vars).reduce((out, [k, v]) => out.replace(`{${k}}`, v), s)
+					: s),
+			},
 		},
 	})
 

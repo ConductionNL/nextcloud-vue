@@ -192,8 +192,14 @@ describe('CnFlowSidebar — after the messages moved to the canvas', () => {
 		it('shows the SEMANTIC version once the engine has derived one', async () => {
 			const { wrapper } = await mountSidebar({
 				flow: {
-					id: 3, name: 'Mandaatbesluit', version: 4, semver: '2.1.0',
-					semverSource: 'derived', lifecycleStatus: 'published', nodes: [], edges: [],
+					id: 3,
+					name: 'Mandaatbesluit',
+					version: 4,
+					semver: '2.1.0',
+					semverSource: 'derived',
+					lifecycleStatus: 'published',
+					nodes: [],
+					edges: [],
 				},
 			})
 
@@ -215,8 +221,14 @@ describe('CnFlowSidebar — after the messages moved to the canvas', () => {
 		it('says a back-filled version was not derived, so it can be distrusted', async () => {
 			const { wrapper } = await mountSidebar({
 				flow: {
-					id: 3, name: 'Mandaatbesluit', version: 2, semver: '1.1.0',
-					semverSource: 'backfill', lifecycleStatus: 'published', nodes: [], edges: [],
+					id: 3,
+					name: 'Mandaatbesluit',
+					version: 2,
+					semver: '1.1.0',
+					semverSource: 'backfill',
+					lifecycleStatus: 'published',
+					nodes: [],
+					edges: [],
 				},
 			})
 

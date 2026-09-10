@@ -61,7 +61,12 @@ function setupState(wrapper) {
 	}
 }
 
-/** Declare which apps this page load can see. */
+/**
+ * Declare which apps this page load can see.
+ *
+ * @param {...string} ids The app ids to report as installed.
+ * @return {void}
+ */
 function installApps(...ids) {
 	global.OC = { appswebroots: Object.fromEntries(ids.map((id) => [id, `/apps/${id}`])) }
 	__resetAppInstalledCacheForTests()
