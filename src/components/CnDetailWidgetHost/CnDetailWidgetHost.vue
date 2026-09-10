@@ -5,10 +5,19 @@
 
 <template>
 	<div class="cn-detail-widget-host" :class="`cn-detail-widget-host--${chrome}`">
-		<!-- `type: 'data'` — the schema-driven data widget. Always keeps its own
-		     chrome, including in bare mode: its header carries the Save button
-		     for inline edits, and CnWidgetWrapper's actions live INSIDE the
-		     header, so hiding the header would hide Save. See the docblock. -->
+		<!-- `type: 'data'` — the schema-driven data widget. In bare mode it drops
+		     its title, border and padding so a tab panel holds the content
+		     directly instead of a card inside a card.
+
+		     It used to keep the whole card here, because its Save button lives
+		     in CnWidgetWrapper's header and hiding the header hid Save with it.
+		     The wrapper now renders its header whenever there are actions, with
+		     or without a title, so the two can be asked for separately and the
+		     panel gets no title while an inline edit stays committable.
+
+		     Passing `undefined` was never enough on its own: `title` carries a
+		     DEFAULT of "Data", so an unset title became a "Data" heading that
+		     nobody chose. -->
 		<!-- `requiredApp` names another Nextcloud app this widget leans on. When
 		     that app is absent the widget renders its NORMAL chrome plus a
 		     set-up state, and asks its backend NOTHING.
@@ -39,6 +48,9 @@
 		<CnObjectDataWidget
 			v-else-if="isData && schemaObject"
 			:title="resolvedTitle"
+			:show-title="!isBare"
+			:borderless="isBare"
+			:flush="isBare"
 			:icon="widget.icon || null"
 			:schema="schemaObject"
 			:object-data="object"
@@ -226,13 +238,18 @@ import {
  * its `widget` (which draws its own card). That pairing is not new: it is
  * exactly what `CnIntegrationWidget` already does inside its own panels.
  *
- * ## What bare mode deliberately does NOT strip
+ * ## The `data` widget in bare mode
  *
- * The `data` widget keeps its chrome in both modes. `CnWidgetWrapper` renders
- * its actions INSIDE the header, and `CnObjectDataWidget` puts its **Save**
- * button there, so suppressing the header to remove a duplicate title would
- * also remove the only way to commit an inline edit. A silently unsaveable
- * form is a worse outcome than a doubled title, so the title stays.
+ * It drops its title, border and padding, so a tab panel holds the content
+ * directly rather than a card inside a card.
+ *
+ * That used not to be possible. `CnWidgetWrapper` renders its actions INSIDE
+ * the header and `CnObjectDataWidget` puts its **Save** button there, so
+ * hiding the header to remove the duplicate title also removed the only way to
+ * commit an inline edit; a silently unsaveable form being worse than a doubled
+ * title, the title stayed. The wrapper now renders its header whenever there
+ * are actions, with or without a title, so the two are separate requests and a
+ * panel can have no title while staying saveable.
  *
  * ```vue
  * <CnDetailWidgetHost
