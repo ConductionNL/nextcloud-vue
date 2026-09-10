@@ -368,11 +368,34 @@ export default {
    drawn as the edge of the sheet they open, so a second edge around them
    reads as a header the widget does not have. Border, radius and background
    now live on the panel below, and the strip sits bare on the page. */
-.cn-tabs-widget {
+/* The class is doubled on purpose, and the four properties below are RESET
+   rather than simply omitted.
+
+   Nextcloud serves every enabled app's assets on every page, each app bundles
+   this library's compiled CSS, and the Vue scope id is derived from the file
+   PATH, so `data-v-1dbd6122` is byte-identical across library versions. An app
+   still on an older release therefore ships a rule with exactly this selector
+   and the OLD declarations, and it lands on the pages of an app already on the
+   new one. Measured on a dossiq case page: three stale copies of the pre-fix
+   rule, one from hermiq's `companion.css` (its companion bundle loads on every
+   page by design) and two inline from other apps' bundles. Same specificity,
+   so source order decided, and the card border came back around the strip.
+
+   Dropping a declaration cannot beat a rule that sets it, so `border` and the
+   rest are explicitly zeroed. Doubling the class takes this selector to
+   (0,3,0) against the stale (0,2,0), which wins on specificity rather than on
+   `!important` or on load order this library does not control. The same
+   technique, for the same reason, is used on `.cn-tabs__nav .cn-tabs__nav-item`
+   in CnTabs to beat Nextcloud's own button margin. */
+.cn-tabs-widget.cn-tabs-widget {
+	background-color: transparent;
+	border: 0;
+	border-radius: 0;
 	display: flex;
 	flex-direction: column;
 	height: 100%;
 	min-height: 0;
+	overflow: visible;
 	padding: 0;
 }
 
