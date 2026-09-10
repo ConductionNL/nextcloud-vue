@@ -48,7 +48,13 @@ function mountButton(props = {}) {
 	})
 }
 
-/** Find an action button by (a substring of) its visible label. */
+/**
+ * Find an action button by (a substring of) its visible label.
+ *
+ * @param {object} wrapper The mounted wrapper to search.
+ * @param {string} label A substring of the button's visible label.
+ * @return {object|undefined} The button, or undefined when none matches.
+ */
 function btn(wrapper, label) {
 	return wrapper.findAllComponents(NcActionButtonStub).find((b) => b.text().includes(label))
 }

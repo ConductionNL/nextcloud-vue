@@ -71,7 +71,7 @@ describe('CnFilesTab.openFile — safeHref protection (C4)', () => {
 
 	it('does NOT open a data: accessUrl', () => {
 		const wrapper = mountTab()
-		wrapper.vm.openFile({ accessUrl: 'data:text/html,<script>alert(1)<\/script>' })
+		wrapper.vm.openFile({ accessUrl: 'data:text/html,<script>alert(1)</script>' })
 
 		const unsafeCalls = windowOpenSpy.mock.calls.filter(
 			(args) => typeof args[0] === 'string' && args[0].startsWith('data:'),

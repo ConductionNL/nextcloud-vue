@@ -41,7 +41,12 @@ describe('gridLayout mixin', () => {
 				{ id: 2, widgetId: 'a', gridX: 0, gridY: 0 },
 			]
 			const instance = createInstance(layout)
-			instance.sortedLayout
+			// Read into a binding and assert on it. A bare `instance.sortedLayout`
+			// statement reads as dead code to anyone scanning the file, and if the
+			// getter ever stopped sorting, this test would still pass on the
+			// non-mutation claim alone.
+			const sorted = instance.sortedLayout
+			expect(sorted[0].widgetId).toBe('a') // the getter really did sort
 
 			expect(layout[0].widgetId).toBe('b') // original unchanged
 		})

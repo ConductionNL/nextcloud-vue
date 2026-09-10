@@ -12,7 +12,7 @@ jest.mock('@nextcloud/l10n', () => ({
 	translate: (app, text, params = {}) => text.replace(/\{(\w+)\}/g, (_, k) => params[k] ?? `{${k}}`),
 }))
 
-const { shallowMount, flushPromises } = require('@vue/test-utils')
+const { shallowMount } = require('@vue/test-utils')
 const axios = require('@nextcloud/axios').default
 const { loadState } = require('@nextcloud/initial-state')
 const CnAdminSettingsShell = require('../../src/components/CnAdminSettingsShell/CnAdminSettingsShell.vue').default

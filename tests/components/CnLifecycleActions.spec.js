@@ -57,10 +57,14 @@ describe('CnLifecycleActions', () => {
 
 	describe('server-derived transitions', () => {
 		it('fetches /available-actions and renders one button per allowed action', async () => {
-			axios.get.mockResolvedValue({ data: { actions: [
-				{ action: 'close', to: 'closed', requires: null, description: null },
-				{ action: 'void', to: 'voided', requires: null, description: 'Void shift' },
-			] } })
+			axios.get.mockResolvedValue({
+				data: {
+					actions: [
+						{ action: 'close', to: 'closed', requires: null, description: null },
+						{ action: 'void', to: 'voided', requires: null, description: 'Void shift' },
+					],
+				},
+			})
 			const wrapper = mount(CnLifecycleActions, {
 				propsData: { objectId: 'shift-1', config: { field: 'status' } },
 				stubs,
@@ -186,9 +190,13 @@ describe('CnLifecycleActions', () => {
 
 		/** Mount with one server-derived action declaring inputs, click it open. */
 		async function openServerDialog() {
-			axios.get.mockResolvedValue({ data: { actions: [
-				{ action: 'reject', to: 'rejected', description: 'Reject', inputs: REJECT_INPUTS },
-			] } })
+			axios.get.mockResolvedValue({
+				data: {
+					actions: [
+						{ action: 'reject', to: 'rejected', description: 'Reject', inputs: REJECT_INPUTS },
+					],
+				},
+			})
 			const wrapper = mount(CnLifecycleActions, {
 				propsData: { objectId: 'req-1', config: { field: 'status' }, schema: SCHEMA },
 				stubs,

@@ -49,13 +49,14 @@ const baseManifest = {
  * interfere with the existing manifest-dependency / phase tests — those
  * scenarios are independent of the capabilities-API guard. Tests that
  * exercise the guard explicitly opt in via `requiresApps`.
- * @param root0
- * @param root0.manifest
- * @param root0.isLoading
- * @param root0.slots
- * @param root0.customComponents
- * @param root0.t
- * @param root0.requiresApps
+ * @param {object} options Overrides for the mount.
+ * @param {object} options.manifest The manifest to render.
+ * @param {boolean} options.isLoading Whether the root renders its loading state.
+ * @param {object} options.slots Slot content passed to the mount.
+ * @param {object} options.customComponents The consumer's component registry.
+ * @param {Function} options.t The translate function the root is given.
+ * @param {Array<string>} options.requiresApps App ids the availability guard checks.
+ * @return {object} The wrapper.
  */
 function mountRoot({
 	manifest = baseManifest,
@@ -413,11 +414,12 @@ describe('CnAppRoot', () => {
 		 * Mount helper that exercises the guard. Unlike mountRoot above,
 		 * this one defaults `requiresApps` to its production default
 		 * `['openregister']` so the test asserts the as-shipped behaviour.
-		 * @param root0
-		 * @param root0.manifest
-		 * @param root0.requiresApps
-		 * @param root0.slots
-		 * @param root0.t
+		 * @param {object} options Overrides for the mount.
+		 * @param {object} options.manifest The manifest to render.
+		 * @param {Array<string>} options.requiresApps App ids the guard checks.
+		 * @param {object} options.slots Slot content passed to the mount.
+		 * @param {Function} options.t The translate function the root is given.
+		 * @return {object} The wrapper.
 		 */
 		function mountWithGuard({
 			manifest = baseManifest,

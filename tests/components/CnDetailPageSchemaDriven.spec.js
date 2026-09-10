@@ -54,7 +54,7 @@ function makeFakeStore() {
 
 describe('CnDetailPage — schema-driven mode', () => {
 	describe('resolvedObjectType', () => {
-		it('fuses register + schema into ${register}-${schema}', () => {
+		it('fuses register + schema into <register>-<schema>', () => {
 			const wrapper = mount(CnDetailPage, {
 				propsData: { register: 'openbuilt', schema: 'application', objectId: 'a-1' },
 			})

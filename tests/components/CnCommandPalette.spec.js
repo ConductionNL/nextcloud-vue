@@ -24,7 +24,8 @@ const manifest = {
 	],
 }
 
-/** Every wrapper `mountPalette` creates, so `afterEach` can tear them ALL
+/**
+ * Every wrapper `mountPalette` creates, so `afterEach` can tear them ALL
  * down — each mounted instance attaches its own `document`-level keydown
  * listener, so a leaked wrapper from a previous test would keep firing
  * `onGlobalKeydown` against the (shared) `isOpen` singleton and
