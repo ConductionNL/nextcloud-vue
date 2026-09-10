@@ -283,6 +283,11 @@ export default {
 	margin-bottom: 16px;
 }
 
+.cn-locked-banner__icon {
+	flex-shrink: 0;
+	margin-top: 2px;
+}
+
 /*
  * Somebody else's lock. Error tone, not warning: for the viewer this is not a
  * caution about something that might go wrong, it is a refusal that already
@@ -308,11 +313,6 @@ export default {
 
 .cn-locked-banner--mine .cn-locked-banner__icon {
 	color: var(--color-text-maxcontrast, #767676);
-}
-
-.cn-locked-banner__icon {
-	flex-shrink: 0;
-	margin-top: 2px;
 }
 
 .cn-locked-banner__body {
