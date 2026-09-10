@@ -11,8 +11,9 @@
 	<div
 		class="cn-widget-wrapper"
 		:class="{
-			'cn-widget-wrapper--borderless': borderless,
-			'cn-widget-wrapper--flush': flush,
+			'cn-widget-wrapper--borderless': noBorder,
+			'cn-widget-wrapper--flush': noPadding,
+			'cn-widget-wrapper--chromeless': chromeless,
 			'cn-widget-wrapper--nc-dashboard': chrome === 'nc-dashboard',
 		}"
 		:style="wrapperStyles">
@@ -30,15 +31,15 @@
 		     defaults to true and governs the overflow menu, so using it here
 		     gave a header to every headerless KPI tile that had never had one,
 		     which is what the floating title-meta test caught. -->
-		<div v-if="showTitle || hasActionsSlot"
+		<div v-if="titleVisible || hasActionsSlot"
 			class="cn-widget-wrapper__header"
-			:class="{ 'cn-widget-wrapper__header--actions-only': !showTitle }"
+			:class="{ 'cn-widget-wrapper__header--actions-only': !titleVisible }"
 			:style="[headerStyles, titleIconStyle]">
 			<!-- Title icon — left: rendered before the title group. Moved
 			     INSIDE header-left so the header's `space-between` cannot pull
 			     it away from the title it belongs to; header-left's `gap` is
 			     what now separates icon from title (they used to touch). -->
-			<div v-if="showTitle" class="cn-widget-wrapper__header-left">
+			<div v-if="titleVisible" class="cn-widget-wrapper__header-left">
 				<div v-if="$slots['title-icon'] && titleIconPosition === 'left'"
 					class="cn-widget-wrapper__title-icon">
 					<slot name="title-icon" />
@@ -112,7 +113,7 @@
 		     compact flush KPI tile can carry a date-range chip without growing a
 		     full header bar. -->
 		<div
-			v-if="!showTitle && $slots['title-meta']"
+			v-if="!titleVisible && $slots['title-meta']"
 			class="cn-widget-wrapper__floating-meta">
 			<slot name="title-meta" />
 		</div>
@@ -131,8 +132,8 @@
 			class="cn-widget-wrapper__content"
 			tabindex="0"
 			role="region"
-			:aria-labelledby="showTitle ? titleId : null"
-			:aria-label="showTitle ? null : resolvedTitle">
+			:aria-labelledby="titleVisible ? titleId : null"
+			:aria-label="titleVisible ? null : resolvedTitle">
 			<slot />
 		</div>
 
@@ -254,6 +255,33 @@ export default {
 		 * Useful for list-style widgets where items should span the full width.
 		 */
 		flush: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Draw NO card of this widget's own: no border, no background, no
+		 * content padding, no title row and no header divider. For a surface
+		 * that already supplies the card and the heading — a tab panel being
+		 * the case that matters, where a nested card repeats both.
+		 *
+		 * The wrapper ELEMENT still renders. That is the contract, not an
+		 * oversight: `CnObjectDataWidget` measures its overflow against
+		 * `.cn-widget-wrapper__content` (`closest()` plus a ResizeObserver on
+		 * that node), `src/css/table.css` gives a table inside it its
+		 * edge-to-edge treatment, and `src/css/detail-page.css` and
+		 * `dashboard.css` size their content areas through it. Dropping the
+		 * node would take all of that out silently — `closest()` returning
+		 * null reads as "nothing overflows", never as an error.
+		 *
+		 * Controls in the `actions` slot are NOT chrome and keep their header:
+		 * the Save button that commits an inline edit lives there, and a panel
+		 * that hides it is silently unsaveable.
+		 *
+		 * `chromeless` is what an integration provider already asks for through
+		 * `CnDetailWidgetHost` (`bareWidget`), so this is the same word for the
+		 * same thing on every path into the wrapper.
+		 */
+		chromeless: {
 			type: Boolean,
 			default: false,
 		},
@@ -654,6 +682,42 @@ export default {
 			return Boolean(this.$slots.actions)
 		},
 
+		/**
+		 * Whether the card outline is drawn. `chromeless` implies `borderless`
+		 * so a caller names the intent once instead of remembering the three
+		 * props it decomposes into.
+		 *
+		 * @return {boolean} true when border and background are suppressed.
+		 */
+		noBorder() {
+			return this.borderless || this.chromeless
+		},
+
+		/**
+		 * Whether the content area goes edge to edge. `chromeless` implies
+		 * `flush` for the same reason as `noBorder`.
+		 *
+		 * @return {boolean} true when content padding is suppressed.
+		 */
+		noPadding() {
+			return this.flush || this.chromeless
+		},
+
+		/**
+		 * Whether the title row renders. `chromeless` overrides `showTitle`,
+		 * which defaults to true: a surface that already names the widget must
+		 * not have to also remember to turn the title off.
+		 *
+		 * Read everywhere the template used to read `showTitle` directly,
+		 * including the two ARIA bindings on the content region — a hidden
+		 * title cannot be the region's `aria-labelledby` target.
+		 *
+		 * @return {boolean} true when the header's title group renders.
+		 */
+		titleVisible() {
+			return this.showTitle && !this.chromeless
+		},
+
 		wrapperStyles() {
 			const styles = {}
 
@@ -807,6 +871,18 @@ export default {
 
 .cn-widget-wrapper--flush .cn-widget-wrapper__content {
 	padding: 0;
+}
+
+/* `chromeless` — the surface around this widget already drew the card, so
+   nothing here may draw a second one. Border, background and content padding
+   are already gone (chromeless implies borderless + flush); what is left is
+   the header, which still renders when there are controls to hold. Its bottom
+   rule is the card's own divider and reads as a second card edge inside the
+   panel, and its 16px side inset leaves those controls hanging off the grid
+   that now starts at the panel's edge. Both go. */
+.cn-widget-wrapper--chromeless .cn-widget-wrapper__header {
+	border-bottom: none;
+	padding-inline: 0;
 }
 
 /*
