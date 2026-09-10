@@ -610,8 +610,15 @@ export default {
 			// `aria-expanded="false"` too, and clicking it pops a menu over the
 			// navigation at the moment the engine is trying to expose a target —
 			// covering the very row the spotlight is about to frame. Reveal must
-			// open containers, never menus.
-			const isMenuTrigger = (el) => el.closest('.action-item, .app-navigation-entry__actions, .v-popper__reference') !== null
+			// open containers, never menus. Two selectors are enough for the
+			// fleet: NcActions marks its own trigger `action-item__menutoggle`
+			// inside `.action-item`, and a per-entry menu sits in
+			// `.app-navigation-entry__actions`. A `.v-popper__reference` was
+			// listed here too and could never match — floating-vue emits
+			// `v-popper`, `v-popper__popper` and `v-popper__inner`, and no
+			// `__reference` class at all, so it only made the rule look wider
+			// than it was.
+			const isMenuTrigger = (el) => el.closest('.action-item, .app-navigation-entry__actions') !== null
 			// Primary signal: any collapse toggle reporting a collapsed state.
 			nav.querySelectorAll('[aria-expanded="false"]').forEach((el) => {
 				if (isMenuTrigger(el)) return
