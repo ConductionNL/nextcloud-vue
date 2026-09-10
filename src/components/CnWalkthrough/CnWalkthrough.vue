@@ -13,9 +13,18 @@
 		</div>
 
 		<!-- Dimmer: a centered step uses one full overlay; an anchored step uses
-		     four strips that frame the target rect, leaving a real interactive hole. -->
+		     four strips that frame the target rect, leaving a real interactive hole.
+		     An ANCHORED step that lost its anchor (target present but not laid
+		     out, e.g. inside a closed settings foldout) falls back to the full
+		     overlay too — but there it must let clicks THROUGH: the step's own
+		     task tells the user to click something in the app underneath, and an
+		     interactive backdrop would swallow exactly that click, leaving only
+		     Back/Finish usable. A centered step spotlights nothing, so its
+		     backdrop stays interactive and dismisses the tour. -->
 		<template v-if="isCentered || !rect">
-			<div class="cn-walkthrough__dim cn-walkthrough__dim--full" @click.self="onBackdrop" />
+			<div class="cn-walkthrough__dim cn-walkthrough__dim--full"
+				:class="{ 'cn-walkthrough__dim--passthrough': !isCentered }"
+				@click.self="onBackdrop" />
 		</template>
 		<template v-else>
 			<div class="cn-walkthrough__dim" :style="strip.top" @click.self="onBackdrop" />
@@ -584,9 +593,19 @@ export default {
 			}
 			// Primary signal: any collapse toggle reporting a collapsed state.
 			nav.querySelectorAll('[aria-expanded="false"]').forEach((el) => {
-				// Prefer a real button toggle inside the same group over the link.
-				const group = el.closest('.app-navigation-entry--collapsible') || nav
-				const btn = group.querySelector('button.icon-collapse, .app-navigation-entry__children-toggle, .app-navigation-entry__collapse, button[aria-expanded="false"]')
+				// Prefer a real button toggle inside the same COLLAPSIBLE GROUP over
+				// the link that carries the state. With no collapsible ancestor the
+				// element IS the toggle — an NcAppNavigationSettings foldout button
+				// is the fleet's case, and it is where `section: "settings"` menu
+				// items live. Falling back to `group = nav` there searched the whole
+				// navigation in document order and clicked the first
+				// collapsed-looking button anywhere in it (an unrelated NcActions
+				// trigger, say), leaving the real foldout shut — so the step's target
+				// never became measurable and the tour stalled on a full dim.
+				const group = el.closest('.app-navigation-entry--collapsible')
+				const btn = group
+					? group.querySelector('button.icon-collapse, .app-navigation-entry__children-toggle, .app-navigation-entry__collapse, button[aria-expanded="false"]')
+					: null
 				click(btn || el)
 			})
 			// Fallback: collapsible groups not yet opened (older markup without
@@ -870,6 +889,13 @@ export default {
 
 .cn-walkthrough__dim--full {
 	inset: 0;
+}
+
+/* Anchorless fallback for an ANCHORED step: dim everything, but do not
+   intercept pointer events — the step's task requires clicking the app
+   underneath (see the template comment). */
+.cn-walkthrough__dim--passthrough {
+	pointer-events: none;
 }
 
 .cn-walkthrough__ring {
