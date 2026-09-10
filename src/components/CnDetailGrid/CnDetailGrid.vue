@@ -63,8 +63,19 @@
 						:is="resolveReferenceWidget(item)"
 						v-if="resolveReferenceWidget(item)"
 						v-bind="referenceWidgetProps(item)" />
+					<!-- An item carrying `href` renders as a link. Used for a
+					     folder, which is a place you go to rather than a number
+					     you read. A URL that does not survive the scheme guard
+					     falls through to plain text: a dead `href="#"` looks
+					     clickable and is not, which is worse than no link. -->
+					<a
+						v-else-if="linkHref(item)"
+						:href="linkHref(item)"
+						class="cn-detail-grid__link">
+						{{ displayValue(item) }}
+					</a>
 					<template v-else>
-						{{ item.value !== undefined && item.value !== null ? item.value : '-' }}
+						{{ displayValue(item) }}
 					</template>
 				</slot>
 			</div>
@@ -85,6 +96,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { safeHref } from '../../utils/safeHref.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
 
@@ -255,6 +267,33 @@ export default {
 
 	methods: {
 		/**
+		 * The item's value as rendered, with the empty placeholder.
+		 *
+		 * @param {object} item - The item definition.
+		 * @return {*} The value, or a dash when it carries none.
+		 */
+		displayValue(item) {
+			if (item.value === undefined || item.value === null) return '-'
+			return item.value
+		},
+
+		/**
+		 * An item's link target, once the scheme guard has passed it.
+		 *
+		 * `safeHref` answers '#' rather than nothing for a `javascript:` or
+		 * `data:` URL, so the '#' is treated here as a refusal: the item
+		 * renders as plain text instead of as a link that goes nowhere.
+		 *
+		 * @param {object} item - The item definition.
+		 * @return {string|null} The href to render, or null for no link.
+		 */
+		linkHref(item) {
+			if (!item.href) return null
+			const href = safeHref(item.href)
+			return href === '#' ? null : href
+		},
+
+		/**
 		 * Resolve an item's reference integration widget, if any.
 		 * Returns the integration's single-entity widget component
 		 * (AD-19 fallback to its main `widget`) when the item declares
@@ -341,6 +380,17 @@ export default {
 .cn-detail-grid--horizontal .cn-detail-grid__label {
 	min-width: var(--cn-detail-grid-label-width, 150px);
 	flex-shrink: 0;
+}
+
+/* ===== Link ===== */
+.cn-detail-grid__link {
+	color: var(--color-primary-element);
+	text-decoration: underline;
+}
+
+.cn-detail-grid__link:hover,
+.cn-detail-grid__link:focus-visible {
+	text-decoration: none;
 }
 
 /* ===== Value ===== */

@@ -94,6 +94,11 @@
 			ref="createDialog"
 			:schema="createSchema"
 			:item="null"
+			:size="formSize"
+			:columns="formColumns"
+			:include-fields="formIncludeFields"
+			:exclude-fields="formExcludeFields"
+			:field-overrides="formFieldOverrides"
 			@confirm="onCreateConfirm"
 			@close="showCreate = false" />
 	</div>
@@ -415,6 +420,45 @@ export default {
 		allowCreate() {
 			const c = this.content || {}
 			return c.allowCreate !== false && Boolean(c.register) && Boolean(c.schema)
+		},
+
+		/**
+		 * NcDialog size for the create dialog (`content.formSize`).
+		 *
+		 * The widget fetches the WHOLE schema to build this form, so a list
+		 * scoped to a handful of columns still opened a create dialog asking
+		 * every property the schema declares — at `normal` width, in one
+		 * column. A case schema with thirty visible properties is unusable
+		 * that way, and every consumer that hit it worked around it by
+		 * turning the create button off.
+		 */
+		formSize() {
+			const c = this.content || {}
+			return c.formSize || 'normal'
+		},
+
+		/** How many columns the create dialog flows its fields into (`content.formColumns`). */
+		formColumns() {
+			const c = this.content || {}
+			return c.formColumns === 2 ? 2 : 1
+		},
+
+		/** Whitelist of fields the create dialog asks for (`content.formIncludeFields`). Null means all. */
+		formIncludeFields() {
+			const c = this.content || {}
+			return Array.isArray(c.formIncludeFields) ? c.formIncludeFields : null
+		},
+
+		/** Fields the create dialog leaves out (`content.formExcludeFields`). */
+		formExcludeFields() {
+			const c = this.content || {}
+			return Array.isArray(c.formExcludeFields) ? c.formExcludeFields : []
+		},
+
+		/** Per-field overrides for the create dialog (`content.formFieldOverrides`). */
+		formFieldOverrides() {
+			const c = this.content || {}
+			return (c.formFieldOverrides && typeof c.formFieldOverrides === 'object') ? c.formFieldOverrides : {}
 		},
 		/** Pre-translated Add label (overridable via `content.addLabel`). */
 		addLabel() {

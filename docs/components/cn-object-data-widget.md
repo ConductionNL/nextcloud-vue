@@ -32,6 +32,8 @@ Schema-driven editable data grid widget. Displays object properties in a CSS gri
 | `hide-empty` | `Boolean` | `false` | Hide fields that have no value instead of rendering them with an em dash. Read grid only — a field being edited, a field with an unsaved change, and the full Edit form stay visible. |
 | `exclude` | `Array` | `[]` | Property keys to hide from display |
 | `include` | `Array` | `null` | Property keys to show (whitelist — all others hidden) |
+| `formSize` (`form-size`) | String | `'normal'` | NcDialog size for the full-form **Edit** dialog (`'small'`, `'normal'`, `'large'`). The widget already scopes that form with `include` / `exclude`, but a scoped form can still be long enough to want the room. |
+| `formColumns` (`form-columns`) | Number | `1` | How many columns the **Edit** form flows its fields into (`1` or `2`). Pair `2` with `formSize: 'large'`, or the two columns are merely two narrow ones. Collapses back to one column below 700px. |
 | `save-label` | `String` | `'Save'` | Label for the save button |
 | `discard-label` | `String` | `'Discard'` | Label for the discard button |
 | `empty-label` | `String` | `'No data available'` | Label when no properties are found |

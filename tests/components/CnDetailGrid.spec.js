@@ -74,3 +74,56 @@ describe('CnDetailGrid — referenceType hook', () => {
 		wrapper.unmount()
 	})
 })
+
+describe('CnDetailGrid — an item that carries a link', () => {
+	/**
+	 * Mount one item and read back its rendered link, if it has one.
+	 *
+	 * @param {object} item The single item to render.
+	 * @return {object} The wrapper and the anchor it rendered.
+	 */
+	function linkFor(item) {
+		const wrapper = mount(CnDetailGrid, { propsData: { items: [item] } })
+		return { wrapper, link: wrapper.find('.cn-detail-grid__link') }
+	}
+
+	it('renders an item with an href as a link on its own value', () => {
+		const { wrapper, link } = linkFor({ label: 'Folder', value: '4213', href: '/apps/files/?fileid=4213' })
+		expect(link.exists()).toBe(true)
+		expect(link.attributes('href')).toBe('/apps/files/?fileid=4213')
+		expect(link.text()).toBe('4213')
+		wrapper.unmount()
+	})
+
+	it('renders an item with no href as plain text', () => {
+		const { wrapper, link } = linkFor({ label: 'ID', value: '12345' })
+		expect(link.exists()).toBe(false)
+		expect(wrapper.text()).toContain('12345')
+		wrapper.unmount()
+	})
+
+	it('refuses a javascript: href rather than rendering a dead link', () => {
+		// safeHref answers '#' for an unsafe scheme. Rendering that '#' would
+		// give the reader something that looks clickable and is not, so the
+		// item falls back to plain text and keeps its value visible.
+		// eslint-disable-next-line no-script-url
+		const { wrapper, link } = linkFor({ label: 'Folder', value: 'payload', href: 'javascript:alert(1)' })
+		expect(link.exists()).toBe(false)
+		expect(wrapper.text()).toContain('payload')
+		wrapper.unmount()
+	})
+
+	it('refuses a protocol-relative href, which safeHref treats as unsafe', () => {
+		const { wrapper, link } = linkFor({ label: 'Folder', value: 'elsewhere', href: '//attacker.example/x' })
+		expect(link.exists()).toBe(false)
+		expect(wrapper.text()).toContain('elsewhere')
+		wrapper.unmount()
+	})
+
+	it('shows a dash for a linked item that carries no value', () => {
+		const { wrapper, link } = linkFor({ label: 'Folder', value: null, href: '/apps/files/' })
+		expect(link.exists()).toBe(true)
+		expect(link.text()).toBe('-')
+		wrapper.unmount()
+	})
+})

@@ -2506,6 +2506,18 @@
 							"type": "boolean",
 							"description": "type='detail': show the header Edit button that opens the record's schema form. Set automatically by CnPageRenderer for every schema-bound detail page; declare false to make a detail page read-only. Maps to CnDetailPage `showEditAction`."
 						},
+						"formSize": {
+							"type": "string",
+							"enum": ["small", "normal", "large"],
+							"default": "normal",
+							"description": "NcDialog size for the page's built-in Add/Edit form dialog (type='index' and type='detail'). A manifest `open-form` header action has always been able to ask for `large`; the built-in dialog could not, so the same app could have a roomy create form on one surface and a cramped one on another. Maps to CnIndexPage / CnDetailPage `formSize`."
+						},
+						"formColumns": {
+							"type": "integer",
+							"enum": [1, 2],
+							"default": 1,
+							"description": "How many columns the page's built-in Add/Edit form flows its fields into. Pair 2 with formSize 'large', or the two columns are merely two narrow ones. CnFormDialog collapses back to one column below 700px, and a textarea or JSON editor spans both columns regardless. Maps to CnIndexPage / CnDetailPage `formColumns`."
+						},
 						"actionToggles": {
 							"type": "object",
 							"description": "Built-in action toggles for type='index' pages. Each key is sugar for the matching CnIndexPage prop — manifest authors can hide built-in mass actions / row actions / the Add button without writing a wrapper. Mirrors the CnIndexPage prop names. Explicit config.<key> wins over config.actionToggles.<key> (matches the readOnly precedence rule). Distinct from config.actions[] which is the typed row-actions array.",
