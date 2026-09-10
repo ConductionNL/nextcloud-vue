@@ -35,7 +35,7 @@ export const FLOW_TASKS_URL = '/apps/openregister/api/flow-tasks'
 // All / Mine / Unclaimed / Closed / Overdue, and two of those are exactly
 // this filter. Boolean-ish, like `overdue`, so it is stringified on the way
 // out.
-const ALLOWED_PARAMS = ['scope', 'state', 'isTerminal', 'priority', 'overdue', 'objectUuid', 'sort', 'limit', 'offset']
+const ALLOWED_PARAMS = ['scope', 'state', 'isTerminal', 'priority', 'overdue', 'dueAfter', 'dueBefore', 'objectUuid', 'sort', 'limit', 'offset']
 
 /**
  * Internal Pinia store for the `tasks` index source (cn-tasks-entity-source).

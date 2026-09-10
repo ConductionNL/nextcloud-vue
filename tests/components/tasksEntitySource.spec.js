@@ -385,3 +385,45 @@ describe('useTaskInboxStore isTerminal', () => {
 		expect(params).not.toHaveProperty('nonsense')
 	})
 })
+
+/**
+ * The due WINDOW reaches the wire.
+ *
+ * `overdue` is open-ended in the past, so it answers "what is late" and not
+ * "what is due this week". The endpoint grew `dueAfter` / `dueBefore` for
+ * the latter (openregister#3581), and without them in this allowlist a lens
+ * for the week ahead has no server-side answer — only a client-side filter
+ * over a paged window, which silently drops matching rows past the page
+ * boundary.
+ */
+describe('useTaskInboxStore due window', () => {
+	beforeEach(() => {
+		mockGet.mockClear()
+	})
+
+	it('passes both ends of the window through, as given', async () => {
+		const store = useTaskInboxStore()
+
+		await store.load({
+			scope: 'all',
+			dueAfter: '2026-09-01T00:00:00+00:00',
+			dueBefore: '2026-09-08T00:00:00+00:00',
+		})
+
+		const params = mockGet.mock.calls[0][1].params
+		// ISO instants, not stringified booleans: the endpoint parses them
+		// and refuses an unparseable one with 400.
+		expect(params.dueAfter).toBe('2026-09-01T00:00:00+00:00')
+		expect(params.dueBefore).toBe('2026-09-08T00:00:00+00:00')
+	})
+
+	it('lets each end stand alone', async () => {
+		const store = useTaskInboxStore()
+
+		await store.load({ dueBefore: '2026-09-08T00:00:00+00:00' })
+
+		const params = mockGet.mock.calls[0][1].params
+		expect(params.dueBefore).toBe('2026-09-08T00:00:00+00:00')
+		expect(params).not.toHaveProperty('dueAfter')
+	})
+})
