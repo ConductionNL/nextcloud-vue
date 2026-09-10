@@ -200,6 +200,30 @@ export const useFlowStore = defineStore('cnFlow', {
 		runTasks: [],
 		inspectedRunUuid: null,
 
+		// THE GRAPH AS IT RAN, not the graph as it is now.
+		//
+		// A run records the `flowVersion` it executed, and a flow's graph moves
+		// on: steps are added, renamed and deleted. Replaying an old run over
+		// today's canvas paints badges onto nodes that were not there when it
+		// ran and silently drops the ones that have since been deleted — the
+		// `run-skipped` warning in CnFlowDetail exists solely to apologise for
+		// that. So inspecting a run loads that version's stored graph and shows
+		// it, and the reader is looking at what actually executed.
+		//
+		// `viewingVersion` is the version number on the canvas, or null for the
+		// live graph. `liveGraph` is the graph that was displaced, kept so
+		// closing the run restores it EXACTLY rather than refetching and hoping.
+		// `runGraphNotice` is why the snapshot is NOT on the canvas when a run
+		// is open, as `{ version, reason }`. There are two reasons and they are
+		// not interchangeable: `unreadable` is a version row that could not be
+		// fetched, and `unsaved-edits` is a canvas we refused to displace. Both
+		// end with the replay drawn over the live graph, so without this the
+		// reader cannot tell which graph they are looking at, and the answer
+		// differs from the one the `viewingVersion` banner would have given.
+		viewingVersion: null,
+		liveGraph: null,
+		runGraphNotice: null,
+
 		// The run being WATCHED live: the one `run()` just queued, polled while
 		// its status is non-terminal. The store exposes FACTS about it — the
 		// run, its ordered steps, which of them are new since the last poll —
@@ -324,10 +348,23 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * process. The server draws the line in exactly the same place, so an
 		 * editor that locked everything would refuse edits the API accepts.
 		 *
+		 * 🔴 A VERSION SNAPSHOT IS LOCKED TOO, AND THIS IS NOT COSMETIC.
+		 *
+		 * `viewingVersion` means the canvas holds a HISTORIC graph loaded for a
+		 * run replay, while `flow.id` still names the live flow. `save()` picks
+		 * PUT over POST from `flow.id`, so a single edit-and-save on a snapshot
+		 * would overwrite the current flow with an old graph — the same class of
+		 * loss the `id` watcher in CnFlowDetail was written to prevent, reached
+		 * by a different door. Reusing the existing lock rather than inventing a
+		 * read-only mode means every caller that already respects `graphLocked`
+		 * — `pushUndo()` and everything gated behind it — is correct here for
+		 * free, and a new call site cannot forget the snapshot case.
+		 *
 		 * @param {object} state The store state.
 		 * @return {boolean} Whether graph edits are locked.
 		 */
-		graphLocked: (state) => ['published', 'deprecated'].includes(state.flow.lifecycleStatus),
+		graphLocked: (state) => state.viewingVersion !== null
+			|| ['published', 'deprecated'].includes(state.flow.lifecycleStatus),
 
 		/**
 		 * Whether there is anything to undo. Drives the toolbar's disabled state.
@@ -769,6 +806,14 @@ export const useFlowStore = defineStore('cnFlow', {
 			// Cleared on every open, so a not-found id from the previous route
 			// cannot keep a resolvable flow behind an error screen.
 			this.notFound = null
+
+			// Cleared with the rest of the per-flow state. A snapshot left over
+			// from the previous flow's run would keep THIS flow's canvas locked,
+			// and `liveGraph` would hold another flow's nodes ready to be
+			// restored over it.
+			this.viewingVersion = null
+			this.liveGraph = null
+			this.runGraphNotice = null
 
 			if (!id || id === 'new') {
 				// A new flow is runnable on demand until its author picks a real
@@ -1559,9 +1604,26 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * a client-supplied owner would let an author mint a flow that RUNS as
 		 * somebody else.
 		 *
+		 * 🔴 A VERSION SNAPSHOT IS NEVER SAVED, AND THE UI IS NOT THE GUARD.
+		 *
+		 * While `viewingVersion` is set the canvas holds a HISTORIC graph and
+		 * `flow.id` still names the live flow, so the PUT below would overwrite
+		 * the current flow with an old graph. The disabled Save button is not
+		 * protection: this method is also reached by the keyboard shortcut, and
+		 * the server only refuses a PUBLISHED flow — a flow that was published,
+		 * run, and then drafted again has version rows to inspect AND accepts
+		 * writes, which is exactly the combination that loses the graph.
+		 *
+		 * Returning null rather than throwing: nothing has gone wrong, the save
+		 * simply does not apply to what is on screen.
+		 *
 		 * @return {Promise<object|null>} The stored flow, or null on failure.
 		 */
 		async save() {
+			if (this.viewingVersion !== null) {
+				return null
+			}
+
 			this.saving = true
 			this.error = null
 			try {
@@ -2095,21 +2157,141 @@ export const useFlowStore = defineStore('cnFlow', {
 		 */
 		async inspectRun(runUuid) {
 			this.inspectedRunUuid = runUuid
+			let version = null
 			try {
 				const response = await axios.get(
 					generateUrl(`/apps/openregister/api/flow-runs/${runUuid}`),
 				)
 				this.steps = response.data?.log || []
+				// Read from the RUN, not from `this.runs`. A run reached by
+				// `?run=` need not be in the loaded page of run history at all —
+				// the history is capped at 25 — and the run's own record is the
+				// authority on which version of the flow it executed.
+				version = response.data?.flowVersion ?? null
 			} catch (error) {
 				console.error('cn-flow: could not load the run steps', error)
 				this.steps = []
 			}
+
+			// BEFORE the objects and tasks: those two only fill panels, while
+			// this changes what the canvas is showing, and a reader watching the
+			// graph swap after the panels have settled reads it as a glitch.
+			await this.showRunVersionGraph(version)
 
 			// Loaded alongside the steps, not on demand behind another click.
 			// The steps say what the run DID; these say what it did it TO, and
 			// reading one without the other is the gap this exists to close.
 			await this.loadRunObjects(runUuid)
 			await this.loadRunTasks(runUuid)
+		},
+
+		/**
+		 * Put the graph a run actually executed onto the canvas.
+		 *
+		 * The version's stored graph replaces `flow.nodes`/`flow.edges` for as
+		 * long as the run is open. The displaced graph is stashed in `liveGraph`
+		 * so `closeRun()` can put it back exactly — refetching instead would
+		 * lose an author's in-progress layout for no gain.
+		 *
+		 * 🔴 UNSAVED WORK IS NEVER DISPLACED. `dirty` means the author has edits
+		 * on this canvas that exist nowhere else. Swapping the graph out from
+		 * under them would destroy those edits with no undo and no warning, to
+		 * show a nicety. So a dirty canvas keeps its graph and the run replays
+		 * over it, exactly as it did before this existed, and CnFlowDetail says
+		 * so on the canvas rather than leaving the reader to guess which graph
+		 * they are looking at.
+		 *
+		 * A version that cannot be read — pruned, or never recorded for a run
+		 * from before versioning — is recorded in `runGraphNotice` and
+		 * the replay falls back to the live graph. That fallback is the OLD
+		 * behaviour, so nothing regresses; it just stops being silent.
+		 *
+		 * @param {number|string|null} version The run's `flowVersion`.
+		 * @return {Promise<void>}
+		 */
+		async showRunVersionGraph(version) {
+			this.runGraphNotice = null
+
+			const number = Number(version)
+			if (!this.flow.id || !Number.isInteger(number) || number <= 0) {
+				return
+			}
+
+			if (this.dirty === true) {
+				this.runGraphNotice = { version: number, reason: 'unsaved-edits' }
+				return
+			}
+
+			try {
+				const response = await axios.get(
+					generateUrl(`/apps/openregister/api/flows/${this.flow.id}/versions/${number}`),
+				)
+				const graph = response.data?.graph
+				if (!graph || Array.isArray(graph.nodes) === false) {
+					this.runGraphNotice = { version: number, reason: 'unreadable' }
+					return
+				}
+
+				// Stashed ONCE. Moving between two runs of the same flow calls
+				// this twice, and overwriting the stash on the second call would
+				// store the FIRST run's snapshot as the live graph — after
+				// which closing the run restores a version instead of the flow.
+				if (this.liveGraph === null) {
+					this.liveGraph = {
+						nodes: this.flow.nodes,
+						edges: this.flow.edges,
+					}
+				}
+
+				this.flow = {
+					...this.flow,
+					// Deep-copied for the same reason `open()` deep-copies the
+					// list row: the canvas mutates node positions, and a stored
+					// version is not the place to discover that.
+					nodes: JSON.parse(JSON.stringify(graph.nodes)),
+					edges: Array.isArray(graph.edges) ? JSON.parse(JSON.stringify(graph.edges)) : [],
+				}
+				this.viewingVersion = number
+
+				// A stored version carries whatever coordinates it was saved
+				// with, and a flow imported from `x-openregister-flows` was
+				// saved with none — so the same pile `open()` guards against
+				// arrives here by a different route.
+				this.applyRenderLayout()
+			} catch (error) {
+				console.error('cn-flow: could not read the graph this run executed', error)
+				this.runGraphNotice = { version: number, reason: 'unreadable' }
+			}
+		},
+
+		/**
+		 * Stop inspecting a run and put the live graph back.
+		 *
+		 * The one way out, so the restore cannot be forgotten. Setting
+		 * `inspectedRunUuid = null` by hand would leave a historic graph on a
+		 * canvas that no longer says it is historic — and, because the lock
+		 * lifts with `viewingVersion`, an editable one.
+		 *
+		 * @return {void}
+		 */
+		closeRun() {
+			this.inspectedRunUuid = null
+			this.steps = []
+			this.runObjects = []
+			this.runTasks = []
+			this.replayUuid = null
+			this.runGraphNotice = null
+
+			if (this.liveGraph !== null) {
+				this.flow = {
+					...this.flow,
+					nodes: this.liveGraph.nodes,
+					edges: this.liveGraph.edges,
+				}
+				this.liveGraph = null
+			}
+
+			this.viewingVersion = null
 		},
 
 		/**

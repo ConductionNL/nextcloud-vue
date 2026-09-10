@@ -116,6 +116,26 @@
 			reports is 0. A real browser is the only place the join between tab
 			and panel can be measured.
 		-->
+		<!--
+			Run deep link (?runlink=1). THE WHOLE CHAIN, in one page: the runs
+			widget, a real vue-router, and the flow page the click lands on.
+
+			This is the only scenario with a router, and it is installed for this
+			flag alone (see main.js) so no other spec's environment changes. It has
+			to be real: the claim under test is that clicking a run NAVIGATES with
+			the run in the query and the destination opens that run. A stubbed
+			$router would let the assertion pass on a push that never routed.
+		-->
+		<template v-else-if="showRunLink">
+			<h2>Run deep link</h2>
+			<div class="runlink-widget" data-testid="runlink-widget">
+				<CnFlowRunsWidget :content="runLinkContent" widget-id="runs" />
+			</div>
+			<div class="runlink-page" data-testid="runlink-page">
+				<RouterView />
+			</div>
+		</template>
+
 		<template v-else-if="showTabsWidget">
 			<h2>Tabs widget</h2>
 			<div class="tw-box" data-testid="tw-widget">
@@ -400,6 +420,7 @@ import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPag
 import CnNavCardGrid from '../../src/components/CnNavCardGrid/CnNavCardGrid.vue'
 import CnInteractionFormWidget from '../../src/components/CnInteractionFormWidget/CnInteractionFormWidget.vue'
 import CnTasksWidget from '../../src/components/CnTasksWidget/CnTasksWidget.vue'
+import CnFlowRunsWidget from '../../src/components/CnFlowRunsWidget/CnFlowRunsWidget.vue'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 import { NcDialog, NcSelect } from '@nextcloud/vue'
 import { installModalStack } from '../../src/utils/modalStack.js'
@@ -424,7 +445,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, CnTasksWidget, CnIndexPage, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -461,6 +482,12 @@ export default {
 			showDtScroll: (typeof window !== 'undefined' && window.location.search.includes('dtscroll')),
 			// Tabs widget chrome harness (?tabswidget=1).
 			showTabsWidget: (typeof window !== 'undefined' && window.location.search.includes('tabswidget')),
+			// Run deep link harness (?runlink=1).
+			showRunLink: (typeof window !== 'undefined' && window.location.search.includes('runlink')),
+			// `rowRoute` and no `runRoute`, which is what every app in the fleet
+			// declares: none of them has a run detail page. Polling off so the
+			// widget makes exactly the one read the spec stubs.
+			runLinkContent: { rowRoute: 'FlowDetail', pollSeconds: 0, limit: 5 },
 			twContent: {
 				ariaLabel: 'Panels',
 				tabs: [

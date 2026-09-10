@@ -36,7 +36,7 @@
 		<div class="cn-run-sidebar__head">
 			<NcButton variant="tertiary"
 				data-testid="run-back"
-				@click="store.inspectedRunUuid = null">
+				@click="store.closeRun()">
 				<template #icon>
 					<ArrowLeft :size="20" />
 				</template>
