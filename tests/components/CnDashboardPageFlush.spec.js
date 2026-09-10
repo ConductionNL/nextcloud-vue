@@ -23,7 +23,8 @@ const stubs = {
 	CnDashboardGrid: { template: '<div><div v-for="it in layout" :key="it.id"><slot name="widget" :item="it" /></div></div>', props: ['layout', 'editable', 'columns', 'cellHeight', 'margin'] },
 	CnWidgetWrapper: { props: ['flush', 'showTitle', 'showActions', 'title'], template: '<div class="ww" :data-flush="String(flush)"><slot /></div>' },
 	NcButton: { template: '<button><slot /></button>' },
-	NcEmptyContent: { template: '<div />' }, NcLoadingIcon: { template: '<div />' },
+	NcEmptyContent: { template: '<div />' },
+	NcLoadingIcon: { template: '<div />' },
 }
 
 const mountItem = (type, extra = {}) => mount(CnDashboardPage, {

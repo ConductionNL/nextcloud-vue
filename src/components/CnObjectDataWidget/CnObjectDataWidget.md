@@ -133,3 +133,6 @@ export default {
 | `widget-id` | String | `''` | Stable id forwarded to the widget chrome (falls back to `object-type`) |
 | `metadata-label` | String | `'Metadata'` | Label for the Metadata item in the overflow Actions menu |
 | `edit-label` | String | `'Edit'` | Label for the Edit action item that opens the full-form edit dialog |
+| `show-title` | Boolean | `true` | Draw the header's title row. Set `false` in a tab panel, where the open tab already names the panel. The header still renders whenever the `actions` slot is filled, so the Save button an inline edit needs does not vanish with the title. It is needed because `title` carries a DEFAULT of `'Data'`: a host that wanted no title passed `undefined` and got the default instead. |
+| `borderless` | Boolean | `false` | Drop the card border and background, for a host that draws its own (a tab panel). |
+| `flush` | Boolean | `false` | Drop the content padding, for a host that supplies its own inset. |

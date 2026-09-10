@@ -2,12 +2,20 @@ import { mount } from '@vue/test-utils'
 import CnTreeView from '@/components/CnTreeView/CnTreeView.vue'
 
 const tree = [
-	{ id: 1, label: 'Root A', children: [
-		{ id: 11, label: 'Child A1', children: [
-			{ id: 111, label: 'Leaf A1a' },
-		] },
-		{ id: 12, label: 'Child A2' },
-	] },
+	{
+		id: 1,
+		label: 'Root A',
+		children: [
+			{
+				id: 11,
+				label: 'Child A1',
+				children: [
+					{ id: 111, label: 'Leaf A1a' },
+				],
+			},
+			{ id: 12, label: 'Child A2' },
+		],
+	},
 	{ id: 2, label: 'Root B' },
 ]
 

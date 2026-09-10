@@ -56,7 +56,7 @@ const makeManifest = (page = {}) => ({
  * Mount CnAppRoot with a stubbed route and the given manifest/registry.
  *
  * @param {object} manifest The manifest.
- * @param {object} registry The v2 component registry.
+ * @param {object} extraProps Extra props merged into the mount.
  * @param {string} routeName The current route name.
  * @return {object} The wrapper.
  */

@@ -11,6 +11,9 @@
 <template>
 	<CnWidgetWrapper
 		:title="title"
+		:show-title="showTitle"
+		:borderless="borderless"
+		:flush="flush"
 		:widget-id="widgetId || objectType"
 		:documentation-url="documentationUrl"
 		:class="{ 'cn-object-data-widget--expanded': overflowing && expanded }"
@@ -471,6 +474,39 @@ export default {
 		title: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Data'),
+		},
+		/**
+		 * Draw the header's title row.
+		 *
+		 * Set false inside a tab panel, where the open tab already names the
+		 * panel. The header itself still renders whenever there are actions, so
+		 * the Save button an inline edit needs does not vanish with the title —
+		 * that is the whole reason this is separate from the actions.
+		 *
+		 * It exists because `title` carries a DEFAULT of "Data". A host that
+		 * wanted no title passed `undefined` and got the default instead, which
+		 * is how a tab panel ended up with a "Data" heading nobody chose.
+		 * @type {boolean}
+		 */
+		showTitle: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Drop the card border and background, for a host that draws its own.
+		 * @type {boolean}
+		 */
+		borderless: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Drop the content padding, for a host that supplies its own inset.
+		 * @type {boolean}
+		 */
+		flush: {
+			type: Boolean,
+			default: false,
 		},
 		/** Optional MDI icon component for the header. */
 		icon: {

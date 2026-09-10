@@ -80,10 +80,13 @@ describe('diffManifest', () => {
 
 		it('emits a minimal per-child delta for an added child and round-trips', () => {
 			const edited = {
-				menu: [{ id: 'CasesGroup', children: [
-					{ id: 'AllCases', label: 'All cases' },
-					{ id: 'ct-new', label: 'Objections', route: 'Cases' },
-				] }],
+				menu: [{
+					id: 'CasesGroup',
+					children: [
+						{ id: 'AllCases', label: 'All cases' },
+						{ id: 'ct-new', label: 'Objections', route: 'Cases' },
+					],
+				}],
 			}
 			const delta = diffManifest(menuBase(), edited)
 			// Only the new child travels in the delta, keyed under the group.

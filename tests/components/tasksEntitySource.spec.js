@@ -27,7 +27,7 @@ import { mount } from '@vue/test-utils'
 import { ref, nextTick } from 'vue'
 
 const { indexSources, resolveIndexSource, taskDueLabel, taskDeepLink } = require('../../src/composables/indexSources.js')
-const { useTaskInboxStore, FLOW_TASKS_URL } = require('../../src/composables/useTaskInboxStore.js')
+const { useTaskInboxStore } = require('../../src/composables/useTaskInboxStore.js')
 const { useNamedSource } = require('../../src/components/CnIndexPage/useNamedSource.js')
 
 /** @return {object} The params of the most recent GET. */
@@ -346,5 +346,84 @@ describe('the manifest schema accepts the tasks source', () => {
 		})
 
 		expect(result.valid).toBe(false)
+	})
+})
+
+/**
+ * `isTerminal` reaches the wire.
+ *
+ * The server has always accepted it — `TaskController` documents
+ * "'true'|'false' to restrict on terminality" — and only the store's
+ * allowlist withheld it. Without it an app cannot express "closed" or "my
+ * open work" as a scope tab, which is two of dossiq's five task lenses.
+ */
+describe('useTaskInboxStore isTerminal', () => {
+	beforeEach(() => {
+		mockGet.mockClear()
+	})
+
+	it('passes isTerminal through, stringified like overdue', async () => {
+		const store = useTaskInboxStore()
+
+		await store.load({ scope: 'all', isTerminal: true })
+
+		const params = mockGet.mock.calls[0][1].params
+		expect(params.isTerminal).toBe('true')
+
+		mockGet.mockClear()
+		await store.load({ scope: 'assigned', isTerminal: false })
+		expect(mockGet.mock.calls[0][1].params.isTerminal).toBe('false')
+	})
+
+	it('still drops a key that is not on the allowlist', async () => {
+		const store = useTaskInboxStore()
+
+		await store.load({ scope: 'all', assignee: 'someone', nonsense: 1 })
+
+		const params = mockGet.mock.calls[0][1].params
+		expect(params).not.toHaveProperty('assignee')
+		expect(params).not.toHaveProperty('nonsense')
+	})
+})
+
+/**
+ * The due WINDOW reaches the wire.
+ *
+ * `overdue` is open-ended in the past, so it answers "what is late" and not
+ * "what is due this week". The endpoint grew `dueAfter` / `dueBefore` for
+ * the latter (openregister#3581), and without them in this allowlist a lens
+ * for the week ahead has no server-side answer — only a client-side filter
+ * over a paged window, which silently drops matching rows past the page
+ * boundary.
+ */
+describe('useTaskInboxStore due window', () => {
+	beforeEach(() => {
+		mockGet.mockClear()
+	})
+
+	it('passes both ends of the window through, as given', async () => {
+		const store = useTaskInboxStore()
+
+		await store.load({
+			scope: 'all',
+			dueAfter: '2026-09-01T00:00:00+00:00',
+			dueBefore: '2026-09-08T00:00:00+00:00',
+		})
+
+		const params = mockGet.mock.calls[0][1].params
+		// ISO instants, not stringified booleans: the endpoint parses them
+		// and refuses an unparseable one with 400.
+		expect(params.dueAfter).toBe('2026-09-01T00:00:00+00:00')
+		expect(params.dueBefore).toBe('2026-09-08T00:00:00+00:00')
+	})
+
+	it('lets each end stand alone', async () => {
+		const store = useTaskInboxStore()
+
+		await store.load({ dueBefore: '2026-09-08T00:00:00+00:00' })
+
+		const params = mockGet.mock.calls[0][1].params
+		expect(params.dueBefore).toBe('2026-09-08T00:00:00+00:00')
+		expect(params).not.toHaveProperty('dueAfter')
 	})
 })

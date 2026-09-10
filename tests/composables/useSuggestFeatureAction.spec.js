@@ -31,7 +31,7 @@ describe('useSuggestFeatureAction', () => {
 		expect(typeof action.icon).toBe('string')
 	})
 
-	it("invokes the onOpenModal callback with the resolved slug when the action is fired", () => {
+	it('invokes the onOpenModal callback with the resolved slug when the action is fired', () => {
 		const vm = {
 			$options: { specRef: 'avg-compliance' },
 			$parent: null,

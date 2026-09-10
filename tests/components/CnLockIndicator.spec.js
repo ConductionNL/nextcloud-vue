@@ -25,10 +25,20 @@ const {
 	resolveObjectLock,
 } = require('../../src/utils/objectLock.js')
 
-/** An ISO timestamp N minutes from now. */
+/**
+ * An ISO timestamp N minutes from now.
+ *
+ * @param {number} n Minutes from now; negative for the past.
+ * @return {string} The ISO timestamp.
+ */
 const inMinutes = (n) => new Date(Date.now() + (n * 60000)).toISOString()
 
-/** A record carrying a `@self.locked` block. */
+/**
+ * A record carrying a `@self.locked` block.
+ *
+ * @param {object|null} locked The lock block, or null for an unlocked record.
+ * @return {object} The record.
+ */
 const withLock = (locked) => ({ '@self': { locked } })
 
 describe('objectLock helpers', () => {

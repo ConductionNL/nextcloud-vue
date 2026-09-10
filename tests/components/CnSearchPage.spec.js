@@ -2,14 +2,24 @@ import { mount } from '@vue/test-utils'
 import CnSearchPage from '@/components/CnSearchPage/CnSearchPage.vue'
 
 const facets = [
-	{ key: 'schema', label: 'Schema', multiple: true, options: [
-		{ value: 'article', label: 'Article', count: 7 },
-		{ value: 'page', label: 'Page', count: 3 },
-	] },
-	{ key: 'status', label: 'Status', multiple: false, options: [
-		{ value: 'draft', label: 'Draft' },
-		{ value: 'published', label: 'Published' },
-	] },
+	{
+		key: 'schema',
+		label: 'Schema',
+		multiple: true,
+		options: [
+			{ value: 'article', label: 'Article', count: 7 },
+			{ value: 'page', label: 'Page', count: 3 },
+		],
+	},
+	{
+		key: 'status',
+		label: 'Status',
+		multiple: false,
+		options: [
+			{ value: 'draft', label: 'Draft' },
+			{ value: 'published', label: 'Published' },
+		],
+	},
 ]
 const results = [
 	{ id: '1', title: 'Hello world', snippet: 'A short snippet …', schema: 'article' },

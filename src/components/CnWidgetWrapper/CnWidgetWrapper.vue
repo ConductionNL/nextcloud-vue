@@ -16,13 +16,29 @@
 			'cn-widget-wrapper--nc-dashboard': chrome === 'nc-dashboard',
 		}"
 		:style="wrapperStyles">
-		<!-- Header -->
-		<div v-if="showTitle" class="cn-widget-wrapper__header" :style="[headerStyles, titleIconStyle]">
+		<!-- Header.
+		     Rendered when there is a TITLE to show, or when the caller filled
+		     the `actions` SLOT and those controls would otherwise have nowhere
+		     to live. Separate conditions on purpose: `CnObjectDataWidget` puts
+		     its Save button in that slot, so gating the whole header on
+		     `showTitle` meant a caller who only wanted the doubled title gone
+		     also silently removed the one control that commits an inline edit.
+		     A tab panel wants exactly that combination — no title, still
+		     saveable — and could not ask for it.
+
+		     The condition reads the SLOT, not `showActions`. `showActions`
+		     defaults to true and governs the overflow menu, so using it here
+		     gave a header to every headerless KPI tile that had never had one,
+		     which is what the floating title-meta test caught. -->
+		<div v-if="showTitle || hasActionsSlot"
+			class="cn-widget-wrapper__header"
+			:class="{ 'cn-widget-wrapper__header--actions-only': !showTitle }"
+			:style="[headerStyles, titleIconStyle]">
 			<!-- Title icon — left: rendered before the title group. Moved
 			     INSIDE header-left so the header's `space-between` cannot pull
 			     it away from the title it belongs to; header-left's `gap` is
 			     what now separates icon from title (they used to touch). -->
-			<div class="cn-widget-wrapper__header-left">
+			<div v-if="showTitle" class="cn-widget-wrapper__header-left">
 				<div v-if="$slots['title-icon'] && titleIconPosition === 'left'"
 					class="cn-widget-wrapper__title-icon">
 					<slot name="title-icon" />
@@ -621,6 +637,23 @@ export default {
 			return Boolean(this.$slots['action-items']) || Boolean(this.$slots && this.$slots['action-items'])
 		},
 
+		/**
+		 * Whether the caller put controls in the `actions` slot.
+		 *
+		 * Gates the header together with `showTitle`, so a surface that wants no
+		 * title still keeps controls that have nowhere else to go — the Save
+		 * button `CnObjectDataWidget` renders there being the case that matters.
+		 *
+		 * Deliberately NOT `showActions`: that prop defaults to true and governs
+		 * the overflow menu, so reading it here would give a header to every
+		 * headerless KPI tile that never had one.
+		 *
+		 * @return {boolean} true when the slot is filled.
+		 */
+		hasActionsSlot() {
+			return Boolean(this.$slots.actions)
+		},
+
 		wrapperStyles() {
 			const styles = {}
 
@@ -795,6 +828,13 @@ export default {
 	padding: 12px 16px;
 	border-bottom: 1px solid var(--color-border);
 	flex-shrink: 0;
+}
+
+/* Actions with no title beside them. `header-left` is not rendered at all in
+   this mode, and the header is `space-between`, so a single child would sit
+   flush LEFT where every other surface puts its actions on the right. */
+.cn-widget-wrapper__header--actions-only {
+	justify-content: flex-end;
 }
 
 .cn-widget-wrapper__header-left {

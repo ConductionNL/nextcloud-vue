@@ -7,7 +7,7 @@
  * Covers task 7.8 / spec.md "Exit codes".
  */
 
-import { execFileSync, spawnSync } from 'child_process'
+import { spawnSync } from 'child_process'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
@@ -18,7 +18,7 @@ const V1_MANIFEST = path.resolve(__dirname, '../fixtures/v1-manifests/decidesk-v
 /**
  * Run the CLI and return { stdout, stderr, status }.
  *
- * @param {string[]} args
+ * @param {string[]} args Command-line arguments passed to the CLI.
  * @return {{ stdout: string, stderr: string, status: number }}
  */
 function runCli(args) {

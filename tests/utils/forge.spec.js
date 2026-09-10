@@ -138,7 +138,8 @@ describe('buildBugReportUrl', () => {
 	// source string; the translated one is passed in and deliberately unused.
 	it('headlines the authored title, never the translated one', () => {
 		const u = new URL(buildBugReportUrl({ type: 'github' }, 'ConductionNL/keepiq', {
-			title: 'Recent activity', surface: 'widget:recent-activity-feed',
+			title: 'Recent activity',
+			surface: 'widget:recent-activity-feed',
 			displayTitle: 'Activité récente',
 		}))
 		expect(u.searchParams.get('title')).toBe('[BUG] Recent activity')
@@ -150,7 +151,8 @@ describe('buildBugReportUrl', () => {
 	// dead issue.
 	it('headlines the authored title for a non-Latin UI language', () => {
 		const u = new URL(buildBugReportUrl({ type: 'github' }, 'ConductionNL/keepiq', {
-			title: 'Recent activity', surface: 'widget:recent-activity-feed',
+			title: 'Recent activity',
+			surface: 'widget:recent-activity-feed',
 			displayTitle: 'Недавняя активность',
 		}))
 		expect(u.searchParams.get('title')).toBe('[BUG] Recent activity')

@@ -261,13 +261,28 @@ describe('CnMenuWidgetForm', () => {
 			propsData: {
 				value: {
 					items: [
-						{ label: 'a', url: '', icon: '', children: [
-							{ label: 'b', url: '', icon: '', children: [
-								{ label: 'c', url: '', icon: '', children: [
-									{ label: 'd', url: '', icon: '', children: [] },
-								] },
-							] },
-						] },
+						{
+							label: 'a',
+							url: '',
+							icon: '',
+							children: [
+								{
+									label: 'b',
+									url: '',
+									icon: '',
+									children: [
+										{
+											label: 'c',
+											url: '',
+											icon: '',
+											children: [
+												{ label: 'd', url: '', icon: '', children: [] },
+											],
+										},
+									],
+								},
+							],
+						},
 					],
 				},
 			},
