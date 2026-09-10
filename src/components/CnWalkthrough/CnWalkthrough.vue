@@ -316,6 +316,10 @@ export default {
 		this._onKey = null
 		this._onObjectCreated = null
 		this._routeUnhook = null
+		// Layout watchers for the ACTIVE step's target (see trackTargetLayout).
+		this._layoutObs = null
+		this._bodyResizeObs = null
+		this._remeasureRaf = null
 		// A qualifying auto-start tour whose first-step page is NOT the current
 		// route — held here until the user navigates to that page (see hookRouter).
 		this._pendingAutoTour = null
@@ -531,8 +535,10 @@ export default {
 			// The ResizeObserver only fires when the target itself resizes. A nav
 			// item can MOVE (siblings render/settle after mount) without resizing,
 			// leaving a stale cutout one row off. Re-measure across the next few
-			// frames so the spotlight tracks the settled position.
+			// frames so the spotlight tracks the settled position, and keep
+			// tracking it afterwards for content that arrives later still.
 			this.scheduleSettleRemeasure()
+			this.trackTargetLayout()
 		},
 		/**
 		 * Resolve a step's `target` to a DOM element, preferring stable manifest
@@ -603,12 +609,44 @@ export default {
 		 * layout settling (sibling nav items rendering, fonts, etc.) that moves
 		 * the target without resizing it. Cleared in teardownStep.
 		 *
+		 * Fast path only; later movement is caught by `trackTargetLayout()`.
+		 *
 		 * @return {void}
 		 */
 		scheduleSettleRemeasure() {
 			const again = () => { if (this.targetEl && !this.isCentered) this.computeRect() }
 			this._settleTimers = (this._settleTimers || [])
 			this._settleTimers.push(setTimeout(again, 100), setTimeout(again, 300), setTimeout(again, 600))
+		},
+		/**
+		 * Re-measure on any layout change for as long as the step is active.
+		 *
+		 * The settle timers above stop at 600ms; a target on a page whose content
+		 * arrives from the network keeps moving after that, leaving the cutout on
+		 * empty space. The MutationObserver catches inserted content, the
+		 * ResizeObserver catches reflows that insert no nodes.
+		 *
+		 * @return {void}
+		 */
+		trackTargetLayout() {
+			const remeasure = () => {
+				if (this._remeasureRaf) return
+				const raf = typeof window.requestAnimationFrame === 'function'
+					? window.requestAnimationFrame
+					: (fn) => setTimeout(fn, 16)
+				this._remeasureRaf = raf(() => {
+					this._remeasureRaf = null
+					if (this.targetEl && !this.isCentered) this.computeRect()
+				})
+			}
+			if (window.MutationObserver) {
+				this._layoutObs = new MutationObserver(remeasure)
+				this._layoutObs.observe(document.body, { childList: true, subtree: true })
+			}
+			if (window.ResizeObserver) {
+				this._bodyResizeObs = new ResizeObserver(remeasure)
+				this._bodyResizeObs.observe(document.body)
+			}
 		},
 		/**
 		 * Measure the target into a viewport rect.
@@ -640,7 +678,13 @@ export default {
 			// the coachmark against the REAL viewport even when a transformed
 			// ancestor makes the position:fixed origin non-zero.
 			this._hostOffset = { top: host.top, left: host.left }
-			this.rect = { top: r.top - host.top, left: r.left - host.left, width: r.width, height: r.height }
+			const next = { top: r.top - host.top, left: r.left - host.left, width: r.width, height: r.height }
+			// Bail when nothing moved: trackTargetLayout() calls this on every
+			// layout change, and placeCard()'s focusCard() would otherwise steal
+			// focus back from whatever the user is typing in.
+			const p = this.rect
+			if (p && p.top === next.top && p.left === next.left && p.width === next.width && p.height === next.height) return
+			this.rect = next
 			this.$nextTick(() => this.placeCard())
 		},
 		/**
@@ -751,6 +795,13 @@ export default {
 			this._revealAttempted = false
 			if (this._observer) { this._observer.disconnect(); this._observer = null }
 			if (this._resizeObs) { this._resizeObs.disconnect(); this._resizeObs = null }
+			if (this._layoutObs) { this._layoutObs.disconnect(); this._layoutObs = null }
+			if (this._bodyResizeObs) { this._bodyResizeObs.disconnect(); this._bodyResizeObs = null }
+			if (this._remeasureRaf) {
+				const cancel = typeof window.cancelAnimationFrame === 'function' ? window.cancelAnimationFrame : clearTimeout
+				cancel(this._remeasureRaf)
+				this._remeasureRaf = null
+			}
 			if (this._delayTimer) { clearTimeout(this._delayTimer); this._delayTimer = null }
 			if (this._settleTimers) { this._settleTimers.forEach(clearTimeout); this._settleTimers = null }
 			if (this.targetEl && this._clickHandler) {
