@@ -329,6 +329,33 @@
 			<CnActionButtons :actions="arrActions" data-testid="arr-actions" />
 		</template>
 
+		<!--
+			Two-column form dialog opened from an INDEX PAGE (?twocol=1).
+
+			`columns: 2` is a CSS grid, so what it is worth depends entirely on
+			where the boxes actually land — and jsdom reports zero for every
+			one of them. The unit lane can prove the props crossed the
+			boundary and nothing more; whether two fields end up side by side,
+			whether a textarea still spans both, and whether the layout folds
+			back to one column on a narrow screen are all questions only a real
+			browser answers.
+
+			The page is here rather than a bare CnFormDialog because the index
+			page's Add button is the path that had no way to ask for any of
+			this before.
+		-->
+		<template v-else-if="showTwoColumn">
+			<h2>Index page — two-column Add form</h2>
+			<CnIndexPage
+				title="Case types"
+				:schema="twoColSchema"
+				:objects="[]"
+				:loading="false"
+				:show-refresh="false"
+				form-size="large"
+				:form-columns="2" />
+		</template>
+
 		<template v-else-if="showFormDialog">
 			<h2>Form dialog — schema-driven icon field</h2>
 			<CnFormDialog
@@ -597,6 +624,27 @@ export default {
 					{ value: 'opgelost', label: 'Resolved' },
 					{ value: 'open', label: 'Open' },
 				],
+			},
+			showTwoColumn: (typeof window !== 'undefined' && window.location.search.includes('twocol')),
+			// Eight scalars and one textarea: enough fields that pairing them
+			// is worth doing, and one field that must refuse to be paired.
+			twoColSchema: {
+				title: 'Case type',
+				properties: {
+					title: { type: 'string', title: 'Title' },
+					identifier: { type: 'string', title: 'Identifier' },
+					category: { type: 'string', title: 'Category' },
+					purpose: { type: 'string', title: 'Purpose' },
+					processingDeadline: { type: 'number', title: 'Processing deadline' },
+					handlingModel: { type: 'string', title: 'Handling model', enum: ['direct', 'intake', 'review'] },
+					validFrom: { type: 'string', format: 'date', title: 'Valid from' },
+					validUntil: { type: 'string', format: 'date', title: 'Valid until' },
+					// `format: 'textarea'` is what fieldsFromSchema keys the
+					// multi-line widget off (that, or maxLength > 255). It is the
+					// field that must REFUSE to be paired.
+					description: { type: 'string', format: 'textarea', title: 'Description' },
+				},
+				required: ['title'],
 			},
 			showFormDialog: (typeof window !== 'undefined' && window.location.search.includes('fd')),
 			// Array-mode dynamic properties harness (?arr=1).
