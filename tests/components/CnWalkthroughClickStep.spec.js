@@ -44,7 +44,9 @@ describe('CnWalkthrough — a step that asks for a click', () => {
 				<nav>
 					<ul>
 						<li class="app-navigation-entry">
-							<button id="unrelated-actions" aria-expanded="false">Actions</button>
+							<div class="app-navigation-entry__actions action-item">
+								<button id="unrelated-actions" class="action-item__menutoggle" aria-expanded="false">Actions</button>
+							</div>
 						</li>
 					</ul>
 					<div id="settings-foldout">
@@ -71,6 +73,41 @@ describe('CnWalkthrough — a step that asks for a click', () => {
 		w.vm.revealTarget()
 
 		expect(clicked).toContain('settings-toggle')
+		// And ONLY that one: an NcActions trigger reports the same collapsed
+		// state, and opening its menu covers the navigation row the spotlight is
+		// about to frame. Reveal opens containers, never menus.
+		expect(clicked).not.toContain('unrelated-actions')
+	})
+
+	it('does not dismiss the tour when the passthrough dim is clicked', async () => {
+		// The passthrough dim is `pointer-events: none`, so a click on the greyed
+		// area reaches the app underneath — by design (the step's own task asks
+		// for exactly that click). The consequence, pinned here: the
+		// backdrop-dismiss gesture is gone on such a step; ESC, the close button
+		// and Back/Finish remain the exits.
+		const steps = [{
+			id: 'go-flows',
+			sinceVersion: '1.0.0',
+			placement: 'right',
+			task: 'Open Settings, then Flows',
+			target: { kind: 'nav-item', ref: 'Flows' },
+			advanceOn: { type: 'route-match', route: 'Flows' },
+		}]
+		const w = mount(CnWalkthrough, { propsData: { appId: 'dismiss-app', manifest: manifest(steps) } })
+		await w.vm.$nextTick()
+		const dim = w.find('.cn-walkthrough__dim--passthrough')
+		expect(dim.exists()).toBe(true)
+
+		expect(w.vm.active).toBe(true)
+		expect(w.find('.cn-walkthrough__card').exists()).toBe(true)
+		await dim.trigger('click')
+
+		// jsdom dispatches the click regardless of pointer-events, so this
+		// asserts the CONTRACT the class expresses rather than the browser's
+		// hit-testing: whatever a real click reaches, it must not be treated as
+		// a dismissal of an anchored, task-bearing step.
+		expect(w.vm.active).toBe(true)
+		expect(w.find('.cn-walkthrough__card').exists()).toBe(true)
 	})
 
 	it('lets clicks through the fallback dim when an anchored step lost its anchor', async () => {

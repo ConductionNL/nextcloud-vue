@@ -19,12 +19,25 @@
 		     overlay too — but there it must let clicks THROUGH: the step's own
 		     task tells the user to click something in the app underneath, and an
 		     interactive backdrop would swallow exactly that click, leaving only
-		     Back/Finish usable. A centered step spotlights nothing, so its
-		     backdrop stays interactive and dismisses the tour. -->
+		     Back/Finish usable. The trade-off is deliberate: a passthrough dim
+		     cannot be clicked to dismiss the tour, so on such a step the exits
+		     are ESC, the coachmark's close button and Back/Finish — a click on
+		     the greyed-out area reaches the app, which is the point. A centered
+		     step spotlights nothing, so its backdrop stays interactive and
+		     dismisses the tour. -->
 		<template v-if="isCentered || !rect">
-			<div class="cn-walkthrough__dim cn-walkthrough__dim--full"
-				:class="{ 'cn-walkthrough__dim--passthrough': !isCentered }"
+			<div v-if="isCentered"
+				class="cn-walkthrough__dim cn-walkthrough__dim--full"
 				@click.self="onBackdrop" />
+			<!-- No dismiss handler on a passthrough dim: `pointer-events: none`
+			     means a browser never delivers the click here anyway, and
+			     leaving the listener attached would make the SAME gesture
+			     dismiss the tour in any environment that ignores
+			     pointer-events (jsdom, a forced-colors mode) while reaching the
+			     app in a browser. One behaviour, not two. -->
+			<div v-else
+				class="cn-walkthrough__dim cn-walkthrough__dim--full cn-walkthrough__dim--passthrough"
+				aria-hidden="true" />
 		</template>
 		<template v-else>
 			<div class="cn-walkthrough__dim" :style="strip.top" @click.self="onBackdrop" />
@@ -573,9 +586,10 @@ export default {
 		 * measured and the engine would otherwise fall back to a centered coachmark.
 		 *
 		 * Scoped to the app navigation. Robust across @nextcloud/vue markup
-		 * variants: it primarily clicks any `[aria-expanded="false"]` toggle, then
-		 * falls back to the collapse button of any collapsible group that is not in
-		 * the opened state. Attempted at most once per step (guarded by
+		 * variants: it primarily clicks any `[aria-expanded="false"]` toggle that
+		 * is not a menu trigger (an NcActions button reports the same state and
+		 * would pop a menu over the navigation), then falls back to the collapse
+		 * button of any collapsible group that is not in the opened state. Attempted at most once per step (guarded by
 		 * `_revealAttempted`, reset in teardownStep) to avoid an expand/observe loop.
 		 *
 		 * @return {void}
@@ -591,8 +605,16 @@ export default {
 				clicked.add(el)
 				try { el.click() } catch (e) { /* jsdom / detached */ }
 			}
+			// A collapsed-looking control that is NOT a navigation-group or
+			// foldout toggle: an NcActions trigger carries
+			// `aria-expanded="false"` too, and clicking it pops a menu over the
+			// navigation at the moment the engine is trying to expose a target —
+			// covering the very row the spotlight is about to frame. Reveal must
+			// open containers, never menus.
+			const isMenuTrigger = (el) => el.closest('.action-item, .app-navigation-entry__actions, .v-popper__reference') !== null
 			// Primary signal: any collapse toggle reporting a collapsed state.
 			nav.querySelectorAll('[aria-expanded="false"]').forEach((el) => {
+				if (isMenuTrigger(el)) return
 				// Prefer a real button toggle inside the same COLLAPSIBLE GROUP over
 				// the link that carries the state. With no collapsible ancestor the
 				// element IS the toggle — an NcAppNavigationSettings foldout button
@@ -894,6 +916,8 @@ export default {
 /* Anchorless fallback for an ANCHORED step: dim everything, but do not
    intercept pointer events — the step's task requires clicking the app
    underneath (see the template comment). */
+/* Lets the step's own task through — and therefore cannot be clicked to
+   dismiss; ESC, the close button and Back/Finish remain (see the template). */
 .cn-walkthrough__dim--passthrough {
 	pointer-events: none;
 }
