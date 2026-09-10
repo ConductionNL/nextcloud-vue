@@ -16,7 +16,33 @@
 			<slot name="actions" />
 		</template>
 
+		<!-- Grouped: one grid per category, each under its own heading. A flat
+		     list of twenty rows is a wall; Identity / Location / Ownership /
+		     Lifecycle / Archiving is how a reader actually looks for one fact.
+		     `grouped: false` restores the single flat grid for hosts that want
+		     the old shape. -->
+		<template v-if="grouped && groupedItems.length > 0">
+			<div
+				v-for="group in groupedItems"
+				:key="group.key"
+				class="cn-object-metadata__group">
+				<h4 class="cn-object-metadata__group-title">
+					{{ group.label }}
+				</h4>
+				<CnDetailGrid
+					:items="group.items"
+					:layout="layout"
+					:columns="columns"
+					:label-width="labelWidth"
+					:accent="false"
+					:empty-label="emptyLabel" />
+			</div>
+		</template>
+
+		<!-- One flat grid: either because grouping is off, or because there is
+		     nothing to group and CnDetailGrid already owns the empty state. -->
 		<CnDetailGrid
+			v-else
 			:items="metadataItems"
 			:layout="layout"
 			:columns="columns"
@@ -28,6 +54,7 @@
 
 <script>
 import { translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { CnDetailCard } from '../CnDetailCard/index.js'
 import { CnDetailGrid } from '../CnDetailGrid/index.js'
 
@@ -36,45 +63,69 @@ import { CnDetailGrid } from '../CnDetailGrid/index.js'
  * These are the standard fields from OpenRegister's @self / system fields.
  */
 const METADATA_FIELDS = [
-	{ key: 'id', label: 'ID' },
-	{ key: 'uuid', label: 'UUID' },
-	{ key: 'uri', label: 'URI' },
-	{ key: 'register', label: 'Register' },
-	{ key: 'schema', label: 'Schema' },
-	{ key: 'schemaVersion', label: 'Schema version' },
-	{ key: 'version', label: 'Version' },
-	{ key: 'status', label: 'Status' },
-	{ key: 'owner', label: 'Owner' },
-	{ key: 'organisation', label: 'Organisation' },
-	{ key: 'organization', label: 'Organization' },
-	{ key: 'created', label: 'Created', format: 'date-time' },
-	{ key: 'updated', label: 'Updated', format: 'date-time' },
-	{ key: 'folder', label: 'Folder' },
-	{ key: 'textRepresentation', label: 'Text Representation' },
-	{ key: 'locked', label: 'Locked', format: 'lock' },
+	{ key: 'id', label: 'ID', group: 'identity' },
+	{ key: 'uuid', label: 'UUID', group: 'identity' },
+	{ key: 'uri', label: 'URI', group: 'identity' },
+	{ key: 'version', label: 'Version', group: 'identity' },
+	{ key: 'register', label: 'Register', group: 'location' },
+	{ key: 'schema', label: 'Schema', group: 'location' },
+	{ key: 'schemaVersion', label: 'Schema version', group: 'location' },
+	{ key: 'folder', label: 'Folder', group: 'location', format: 'folder' },
+	{ key: 'owner', label: 'Owner', group: 'ownership' },
+	{ key: 'organisation', label: 'Organisation', group: 'ownership' },
+	{ key: 'organization', label: 'Organization', group: 'ownership' },
+	{ key: 'status', label: 'Status', group: 'lifecycle' },
+	{ key: 'created', label: 'Created', group: 'lifecycle', format: 'date-time' },
+	{ key: 'updated', label: 'Updated', group: 'lifecycle', format: 'date-time' },
+	{ key: 'locked', label: 'Locked', group: 'lifecycle', format: 'lock' },
+	{ key: 'textRepresentation', label: 'Text Representation', group: 'identity' },
 ]
 
 /**
  * The archival constraints, read from the resolved `@self._retention` decision.
  *
- * Kept as its own list rather than appended to METADATA_FIELDS because the keys
- * live one level down, under `_retention`, and because they are a group a
- * reader looks at together: what happens to this record, when, and on whose
- * authority. `include` / `exclude` address them by the same names, so a host
- * can ask for `['nomination', 'actionDate']` and get just those.
+ * 🔴 THESE KEYS ARE MDTO CONCEPTS IN ENGLISH, and they changed with
+ * openregister#3584: `nomination` became `appraisal`, `period` became
+ * `retentionPeriod`, `actionDate` became `disposalDate`, `classification`
+ * became `disposalCategory`, and the Archiefwet lifecycle arrived as
+ * `recordState` with a derived `immutable`. MDTO supersedes TMLO, so
+ * `archiefnominatie` is the superseded spelling of MDTO's `waardering`.
  *
- * These are empty on an object whose schema declares no archival obligation,
- * and that is a real answer rather than a gap — see `emptyLabel`.
+ * They live one level down, under `_retention`, and `include` / `exclude`
+ * address them by these same names.
+ *
+ * Two of the resolver's keys are deliberately not rows here. `immutable` is
+ * derived from `recordState` and would only repeat what "Transferred to
+ * archive" already says, and `annotation` is the raw rule-evaluation object
+ * kept for debugging, which would land in the panel as JSON.
+ *
+ * Empty on an object whose schema declares no archival obligation, and that is
+ * a real answer rather than a gap — see `emptyLabel`.
  */
 const ARCHIVAL_FIELDS = [
-	{ key: 'nomination', label: 'Archival action', format: 'nomination' },
-	{ key: 'period', label: 'Retention period', format: 'duration' },
-	{ key: 'actionDate', label: 'Archive action date', format: 'date' },
-	{ key: 'status', label: 'Archival status' },
-	{ key: 'classification', label: 'Selection list category' },
-	{ key: 'basis', label: 'Basis', format: 'basis' },
-	{ key: 'source', label: 'Source' },
-	{ key: 'legalHold', label: 'Legal hold', format: 'legal-hold' },
+	{ key: 'appraisal', label: 'Appraisal', group: 'archiving', format: 'appraisal' },
+	{ key: 'retentionPeriod', label: 'Retention period', group: 'archiving', format: 'duration' },
+	{ key: 'disposalDate', label: 'Disposal date', group: 'archiving', format: 'date' },
+	{ key: 'recordState', label: 'Record state', group: 'archiving', format: 'record-state' },
+	{ key: 'disposalCategory', label: 'Selection list category', group: 'archiving' },
+	{ key: 'basis', label: 'Basis', group: 'archiving', format: 'basis' },
+	{ key: 'source', label: 'Source', group: 'archiving' },
+	{ key: 'legalHold', label: 'Legal hold', group: 'archiving', format: 'legal-hold' },
+]
+
+/**
+ * The groups, in the order a reader works down them.
+ *
+ * Identity first (which record is this), then where it lives, who owns it, what
+ * state it is in, and finally what happens to it. Archiving last because it is
+ * the answer you go looking for rather than the one you scan past.
+ */
+const GROUPS = [
+	{ key: 'identity', label: 'Identity' },
+	{ key: 'location', label: 'Location' },
+	{ key: 'ownership', label: 'Ownership' },
+	{ key: 'lifecycle', label: 'Lifecycle' },
+	{ key: 'archiving', label: 'Archiving' },
 ]
 
 /**
@@ -195,6 +246,29 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+		/**
+		 * Group the rows under category headings (Identity, Location,
+		 * Ownership, Lifecycle, Archiving) instead of rendering one flat list.
+		 *
+		 * On by default: a flat list of twenty rows is a wall to read. Pass
+		 * `false` for the previous single-grid shape.
+		 *
+		 * @type {boolean}
+		 */
+		grouped: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Heading for the items a host supplied through `extraItems`, which
+		 * carry no group of their own.
+		 *
+		 * @type {string}
+		 */
+		otherLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Other'),
+		},
 		/** Label shown when no metadata available */
 		emptyLabel: {
 			type: String,
@@ -259,6 +333,35 @@ export default {
 		},
 
 		/**
+		 * The same items, bucketed into the categories a reader scans.
+		 *
+		 * A group with nothing in it is dropped rather than rendered as an
+		 * empty heading — an object with no archival obligation should not
+		 * carry an "Archiving" heading over a void. `extraItems` carry no
+		 * group, so they collect under the host's own heading at the end.
+		 */
+		groupedItems() {
+			const byKey = new Map(GROUPS.map((g) => [g.key, { ...g, items: [] }]))
+			const ungrouped = []
+
+			for (const item of this.metadataItems) {
+				const bucket = item.group ? byKey.get(item.group) : null
+				if (bucket) {
+					bucket.items.push(item)
+				} else {
+					ungrouped.push(item)
+				}
+			}
+
+			const groups = [...byKey.values()].filter((g) => g.items.length > 0)
+			if (ungrouped.length > 0) {
+				groups.push({ key: 'other', label: this.otherLabel, items: ungrouped })
+			}
+
+			return groups
+		},
+
+		/**
 		 * Build the items array for CnDetailGrid from known metadata fields.
 		 */
 		metadataItems() {
@@ -276,6 +379,8 @@ export default {
 				items.push({
 					label: def.label,
 					value: this.formatMetadataValue(raw, def),
+					group: def.group,
+					href: this.hrefFor(raw, def),
 				})
 			}
 
@@ -294,6 +399,7 @@ export default {
 				items.push({
 					label: def.label,
 					value: this.formatMetadataValue(raw, def),
+					group: def.group,
 				})
 			}
 
@@ -326,9 +432,13 @@ export default {
 			// Archival formats. Each turns a stored code into the phrase an
 			// archivist would say, and each falls back to the raw value rather
 			// than hiding a code it has not been taught — an unrecognised
-			// nomination is still a records obligation.
-			if (def.format === 'nomination') {
-				return this.formatNomination(value)
+			// appraisal is still a records obligation.
+			if (def.format === 'appraisal') {
+				return this.formatAppraisal(value)
+			}
+
+			if (def.format === 'record-state') {
+				return this.formatRecordState(value)
 			}
 
 			if (def.format === 'duration') {
@@ -419,16 +529,50 @@ export default {
 		/**
 		 * Name what is going to happen to the record.
 		 *
-		 * @param {string} value - The stored nomination.
+		 * @param {string} value - The stored appraisal.
 		 * @return {string} The phrase, or the raw code when unrecognised.
 		 */
-		formatNomination(value) {
+		formatAppraisal(value) {
 			const known = {
-				blijvend_bewaren: t('nextcloud-vue', 'Keep permanently'),
-				vernietigen: t('nextcloud-vue', 'Destroy'),
-				nog_niet_bepaald: t('nextcloud-vue', 'Not yet determined'),
+				retain_permanently: t('nextcloud-vue', 'Keep permanently'),
+				destroy: t('nextcloud-vue', 'Destroy'),
+				not_yet_determined: t('nextcloud-vue', 'Not yet determined'),
 			}
 			return known[value] || String(value)
+		},
+
+		/**
+		 * Name the record's place in the Archiefwet lifecycle.
+		 *
+		 * @param {string} value - The record state.
+		 * @return {string} The phrase, or the raw value.
+		 */
+		formatRecordState(value) {
+			const known = {
+				active: t('nextcloud-vue', 'Active'),
+				semi_static: t('nextcloud-vue', 'Semi-static'),
+				transferred: t('nextcloud-vue', 'Transferred to archive'),
+				destroyed: t('nextcloud-vue', 'Destroyed'),
+			}
+			return known[value] || String(value)
+		},
+
+		/**
+		 * A Files deep-link for a folder held as a numeric node id.
+		 *
+		 * `@self.folder` is a string that is USUALLY a node id and sometimes a
+		 * legacy path, so only the digit form gets a link — a path would produce
+		 * a URL that 404s, which is worse than plain text.
+		 *
+		 * @param {*} raw - The raw metadata value.
+		 * @param {object} def - The field definition.
+		 * @return {string|null} The href, or null when it is not linkable.
+		 */
+		hrefFor(raw, def) {
+			if (def.format !== 'folder') return null
+			const id = String(raw).trim()
+			if (!/^\d+$/.test(id)) return null
+			return generateUrl('/apps/files/?fileid={id}&opendetails=true', { id })
 		},
 
 		/**
@@ -461,9 +605,15 @@ export default {
 		 */
 		formatBasis(value) {
 			const known = {
-				selectielijst: t('nextcloud-vue', 'Selection list'),
+				selection_list: t('nextcloud-vue', 'Selection list'),
+				// Its own answer, not a variant of "schema": the schema expected
+				// a selection list and none was consulted, which an operator who
+				// believes one is configured needs to be told.
+				selection_list_not_consulted: t('nextcloud-vue', 'Selection list not consulted'),
 				schema: t('nextcloud-vue', 'Schema archive settings'),
-				annotation: t('nextcloud-vue', 'Schema archival annotation'),
+				schema_annotation: t('nextcloud-vue', 'Schema archival annotation'),
+				tmlo: t('nextcloud-vue', 'Record archival metadata'),
+				record: t('nextcloud-vue', 'Recorded on the object'),
 			}
 			return known[value] || String(value)
 		},
@@ -499,6 +649,21 @@ export default {
 </script>
 
 <style scoped>
+/* Group headings. Quiet enough that they organise without competing with the
+   values they sit over — a category label is a signpost, not content. */
+.cn-object-metadata__group + .cn-object-metadata__group {
+	margin-top: calc(3 * var(--default-grid-baseline, 4px));
+}
+
+.cn-object-metadata__group-title {
+	margin: 0 0 calc(0.5 * var(--default-grid-baseline, 4px));
+	font-size: 0.8em;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--color-text-maxcontrast);
+}
+
 /* Override CnDetailGrid item styling for a compact table-like appearance */
 :deep(.cn-detail-grid__item) {
 	background: none;
