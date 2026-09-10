@@ -355,6 +355,8 @@ The header carries the shared [CnActionsMenu](./cn-actions-menu.md) overflow (Re
 |------|------|---------|-------------|
 | `showRefresh` | Boolean | `true` | Show the Refresh item. Emits `@refresh`; default fires the `cn:page:refresh` event-bus channel. |
 | `showEditAction` | Boolean | `false` | Show a header **Edit** button opening the record's schema form. Needs `register` + `schema` + `objectId`. Emits `@edited` on save. |
+| `formSize` (`form-size`) | String | `'normal'` | NcDialog size for this page's create and edit form dialogs (`'small'`, `'normal'`, `'large'`). Set from the manifest as `config.formSize`. Before 2.44.0 the page passed no size, so both forms sat at `normal` however many properties the schema declared, while a manifest `open-form` header action could already ask for `large`. |
+| `formColumns` (`form-columns`) | Number | `1` | How many columns the create and edit forms flow their fields into (`1` or `2`). Pair `2` with `formSize: 'large'`, or the two columns are merely two narrow ones. Textareas and JSON editors still span both, and the layout collapses back to one column below 700px. Set from the manifest as `config.formColumns`. |
 | `editLabel` | String | `''` | Label for the header Edit button. Defaults to a translated "Edit". |
 | `showRequestFeature` | Boolean | `true` | Show the Request-a-feature item. Emits `@request-feature`; the default opens the forge's feature-request issue form (repo and forge injected by CnAppRoot) in a new tab, pre-filled with the page title and `surface: "detail:<id>"`. |
 | `documentationUrl` | String | `''` | When set, adds a **Documentation** entry opening the link in a new tab. Empty hides it. |

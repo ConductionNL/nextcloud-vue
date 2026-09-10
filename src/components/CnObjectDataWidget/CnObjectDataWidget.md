@@ -126,6 +126,8 @@ export default {
 | `hideEmpty` | Boolean | `false` | Hide fields with no value instead of rendering an em dash. For discriminated supertypes (one `ticket` schema holding request/complaint/contactmoment), so the grid is type-aware without the schema enumerating which fields belong to which variant. Read grid only — the field being edited, a field with unsaved changes, and the Edit form stay visible; `false`/`0` are values and are never hidden. |
 | `exclude` | Array | `[]` | Property keys to hide |
 | `include` | Array | `null` | Property keys to show (whitelist; shows all when `null`) |
+| `formSize` (`form-size`) | String | `'normal'` | NcDialog size for the full-form **Edit** dialog (`'small'`, `'normal'`, `'large'`). The widget already scopes that form with `include` / `exclude`, but a scoped form can still be long enough to want the room. |
+| `formColumns` (`form-columns`) | Number | `1` | How many columns the **Edit** form flows its fields into (`1` or `2`). Pair `2` with `formSize: 'large'`, or the two columns are merely two narrow ones. Collapses back to one column below 700px. |
 | `saveLabel` | String | `'Save'` | Label for the save button |
 | `discardLabel` | String | `'Discard'` | Label for the discard button |
 | `emptyLabel` | String | `'No data available'` | Label shown when no properties are displayable |

@@ -14,7 +14,7 @@ Supports two layout modes:
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `items` | `Array<{ label, value? }>` | `[]` | Array of items to render. Each item needs a `label` (string) and optional `value` (string or number). Items without a `value` display `'-'` unless overridden by a slot. |
+| `items` | `Array<{ label, value?, href? }>` | `[]` | Array of items to render. Each item needs a `label` (string) and optional `value` (string or number). Items without a `value` display `'-'` unless overridden by a slot. An item may also carry an `href`, which renders its value as a link. |
 | `layout` | `'grid'` \| `'horizontal'` | `'grid'` | Layout mode. `'grid'` renders a responsive card grid. `'horizontal'` renders label-value rows. |
 | `columns` | Number | `0` | Fixed number of grid columns. Only applies to `layout="grid"`. Set to `0` (default) for responsive auto-fit behavior. |
 | `minItemWidth` | Number | `250` | Minimum width (px) for auto-fit grid items. Only applies when `columns` is `0` and `layout` is `'grid'`. |
@@ -125,6 +125,24 @@ Build items from an object at runtime:
     value: String(val),
   }))" />
 ```
+
+### An item that links somewhere
+
+Give an item an `href` and its value renders as a link. Use it for a value that
+is a place you go to rather than a fact you read: a folder, a related record, a
+file.
+
+```vue
+<CnDetailGrid :items="[
+  { label: 'Folder', value: '4213', href: '/apps/files/?fileid=4213&opendetails=true' },
+  { label: 'Owner', value: 'admin' },
+]" />
+```
+
+The URL passes through the library's scheme guard first. A `javascript:`,
+`data:` or protocol-relative URL is refused, and the item renders as plain text
+instead: a link that is guaranteed to go nowhere reads as broken, so the value
+is better shown without one.
 
 ## Styling
 

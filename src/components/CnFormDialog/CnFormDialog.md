@@ -202,6 +202,32 @@ declares the same two keys directly:
 { "id": "new-case", "type": "open-form", "size": "large", "columns": 2 }
 ```
 
+### Asking for it from a host component
+
+This dialog is mounted by five components, and each names the two keys the way
+that component is configured. A page takes props, a widget reads its content
+blob, and the manifest keys follow whichever it is.
+
+| Host | Keys | Declared as |
+|---|---|---|
+| `CnActionButtons` (manifest `open-form`) | `size`, `columns` | action entry |
+| `CnIndexPage` | `formSize`, `formColumns` | `pages[].config` |
+| `CnDetailPage` | `formSize`, `formColumns` | `pages[].config` |
+| `CnObjectListWidget` | `formSize`, `formColumns` | widget `content` |
+| `CnObjectDataWidget` | `formSize`, `formColumns` | props |
+
+`CnObjectListWidget` builds its create form from the whole target schema, so it
+also reads `formIncludeFields`, `formExcludeFields` and `formFieldOverrides` off
+the same content blob. A list scoped to four columns otherwise opened a create
+dialog asking every property the schema declares, which is why consumers reached
+for `allowCreate: false` instead of configuring it.
+
+Only `CnActionButtons` forwarded `size` and `columns` before nextcloud-vue
+2.44.0. The other four ignored both, so an app could open a two-column create
+form from a detail page's header action and a one-column one for the same kind
+of record from its index page's Add button, with nothing in either manifest to
+explain the difference.
+
 ## Conditional field visibility (`condition` / `visibleWhen`)
 
 A field can declare a `condition` (alias `visibleWhen`) descriptor that hides

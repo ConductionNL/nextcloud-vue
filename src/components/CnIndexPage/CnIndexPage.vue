@@ -300,6 +300,8 @@
 				:include-fields="includeFields"
 				:field-overrides="fieldOverrides"
 				:name-field="massActionNameField"
+				:size="formSize"
+				:columns="formColumns"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog">
 				<template v-if="$slots['form-fields']" #form="scope">
@@ -1336,6 +1338,36 @@ export default {
 		useAdvancedFormDialog: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * NcDialog size for the built-in Add/Edit form dialog.
+		 *
+		 * The dialog itself has taken a `size` since it shipped, but this page
+		 * never passed one, so an index page's Add form was stuck at `normal`
+		 * however many properties its schema declared. A manifest-declared
+		 * `open-form` header action, which reaches CnFormDialog through
+		 * CnActionButtons, could already ask for `large` — which is why the
+		 * same app could have a roomy create form on a detail page and a
+		 * cramped one on its index.
+		 */
+		formSize: {
+			type: String,
+			default: 'normal',
+		},
+
+		/**
+		 * How many columns the built-in Add/Edit form flows its fields into.
+		 *
+		 * Pair `2` with `formSize: 'large'`, or the two columns are merely two
+		 * narrow ones. Worth it once the schema asks more questions than fit on
+		 * a screen; below 700px CnFormDialog collapses back to one column on
+		 * its own, so this is safe on a narrow viewport.
+		 */
+		formColumns: {
+			type: Number,
+			default: 1,
+			validator: (value) => value === 1 || value === 2,
 		},
 
 		/**

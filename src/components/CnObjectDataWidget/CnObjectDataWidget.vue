@@ -374,6 +374,8 @@
 			:overrides="resolvedOverrides"
 			:exclude-fields="exclude"
 			:include-fields="include"
+			:size="formSize"
+			:columns="formColumns"
 			@confirm="onEditConfirm"
 			@close="editModalOpen = false" />
 	</CnWidgetWrapper>
@@ -642,6 +644,24 @@ export default {
 		include: {
 			type: Array,
 			default: () => null,
+		},
+		/**
+		 * NcDialog size for the edit form dialog. This widget already scopes
+		 * the form with `include` / `exclude`, but a scoped form can still be
+		 * long enough to want the room.
+		 */
+		formSize: {
+			type: String,
+			default: 'normal',
+		},
+		/**
+		 * How many columns the edit form flows its fields into. Pair `2` with
+		 * `formSize: 'large'`, or the two columns are merely two narrow ones.
+		 */
+		formColumns: {
+			type: Number,
+			default: 1,
+			validator: (value) => value === 1 || value === 2,
 		},
 		/** Label for the save button */
 		saveLabel: {
