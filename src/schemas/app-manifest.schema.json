@@ -291,7 +291,7 @@
 				},
 				"permission": {
 					"type": "string",
-					"description": "Optional permission identifier required to access this page. Consumer-side enforcement only — CnPageRenderer / CnAppRoot do NOT currently gate the page on it; consumers that want enforcement filter the manifest themselves before passing it to CnAppRoot. Added (schema-only) so the multiple apps that declare page-level permissions (procest's WmsLayers* / LhsMatrices*) validate clean."
+					"description": "Permission identifier required to access this page. ENFORCED since 2.43.0: CnPageRenderer refuses the page and renders an access-denied empty state when the user's permissions do not include this value, using the same semantics as CnAppNav's menu filter so the route and the menu agree — an empty permissions list still means 'the app did not say' and allows. Until 2.43.0 this was schema-only, which meant a declared page was dropped from the MENU and still served in full to anyone who typed its URL. Consumers pass the user's permissions to CnAppRoot, which provides them as `cnPermissions`."
 				},
 				"config": {
 					"type": "object",

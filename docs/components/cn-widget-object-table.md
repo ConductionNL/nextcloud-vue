@@ -207,10 +207,20 @@ renders it — including through the in-app "Add widget…" picker (the
 config form is the shared object-list form: register / schema /
 filters / sort / limit / columns). The registered renderer is a
 chrome-aware adapter: it mounts the widget with `hideWrapper: true`
-inside the dashboard's own `CnWidgetWrapper`, and accepts the stored
-`content` blob in either the flat form shape
-(`{ register, schema, filter, sort, limit, columns }`) or the v2 prop
-shape (`{ source, columns, actions, … }`).
+inside the dashboard's own `CnWidgetWrapper`, and normalises the stored
+`content` blob onto the widget's props. Three blob shapes are accepted:
+
+| Stored `content` | Result |
+| --- | --- |
+| Flat form shape (`{ register, schema, filter, sort, limit, columns }`) — what the config form writes | Folded into `source`; `sort` becomes `order: { field: dir }` and `limit` becomes `source.limit` |
+| v2 prop shape (`{ source, columns, actions, … }`) | Passed through as-is |
+| Neither — no `source` and no register/schema, e.g. an `endpointSource` blob | Passed through with `limit` left as a top-level prop, since there is no `source` to fold it into |
+
+In every shape `limit` is kept only when it is a positive finite
+number — the widget's prop is `type: Number`, so a stored `"3"` is
+dropped rather than forwarded. That top-level `limit` is what
+`viewAllRoute` needs: the footer's View-all link shows only while the
+table's row cap hides rows (`total > shown`).
 
 ## Slots
 
