@@ -382,6 +382,8 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 | `showRelatedObjects` | Boolean | `true` | Whether to render the Related section beneath the data widget. Set `false` on pages that surface relations elsewhere (e.g. the sidebar) to drop the section. |
 | `createRoute` | String \| Object | `''` | Route pushed when the page's "create" action fires (empty disables it). |
 | `showEditAction` | Boolean | `false` | Show an **Edit** button in the header that opens the record's schema form (`CnFormDialog`) scoped to this record, saving through the object store and emitting `@edited`. Needs `register` + `schema` + `objectId`; hidden without them. `CnPageRenderer` sets it for every schema-bound `type:"detail"` page — the same set of records whose index tables stop offering an edit modal. Declare `config.showEditAction: false` to keep a detail page read-only. |
+| `formSize` (`form-size`) | String | `'normal'` | NcDialog size for this page's create and edit form dialogs (`'small'`, `'normal'`, `'large'`). Set from the manifest as `config.formSize`. Before 2.44.0 the page passed no size, so both forms sat at `normal` however many properties the schema declared, while a manifest `open-form` header action could already ask for `large`. |
+| `formColumns` (`form-columns`) | Number | `1` | How many columns the create and edit forms flow their fields into (`1` or `2`). Pair `2` with `formSize: 'large'`, or the two columns are merely two narrow ones. Textareas and JSON editors still span both, and the layout collapses back to one column below 700px. Set from the manifest as `config.formColumns`. |
 | `editLabel` | String | `''` | Label for the header Edit button. Defaults to a translated "Edit". |
 
 ### Widget icons (ADR-062)

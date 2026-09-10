@@ -612,6 +612,8 @@
 				:item="createPrefill"
 				:register="register"
 				:dialog-title="title || undefined"
+				:size="formSize"
+				:columns="formColumns"
 				@confirm="onCreateFormConfirm"
 				@close="onCreateFormClose" />
 
@@ -631,6 +633,8 @@
 				:item="currentObject"
 				:register="register"
 				:dialog-title="editActionLabel"
+				:size="formSize"
+				:columns="formColumns"
 				@confirm="onEditFormConfirm"
 				@close="closeEditForm" />
 		</slot>
@@ -878,6 +882,31 @@ export default {
 		title: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * NcDialog size for this page's create and edit form dialogs.
+		 *
+		 * CnFormDialog has taken a `size` since it shipped; this page never
+		 * passed one, so both its forms were stuck at `normal` however many
+		 * properties the schema declared.
+		 */
+		formSize: {
+			type: String,
+			default: 'normal',
+		},
+
+		/**
+		 * How many columns the create and edit forms flow their fields into.
+		 *
+		 * Pair `2` with `formSize: 'large'`, or the two columns are merely two
+		 * narrow ones. CnFormDialog collapses back to one column below 700px
+		 * on its own, so this is safe on a narrow viewport.
+		 */
+		formColumns: {
+			type: Number,
+			default: 1,
+			validator: (value) => value === 1 || value === 2,
 		},
 
 		/** Page description (shown below title) */
