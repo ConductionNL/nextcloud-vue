@@ -24,7 +24,8 @@ describe('CnRelatedCollections', () => {
 				collections: [
 					{
 						title: 'Running cases',
-						register: 'pipelinq', schema: 'case',
+						register: 'pipelinq',
+						schema: 'case',
 						filter: { client: '@objectId', status: 'open' },
 						columns: [{ key: 'title', label: 'Case' }],
 						limit: 5,
@@ -32,7 +33,8 @@ describe('CnRelatedCollections', () => {
 					},
 					{
 						title: 'Contracts',
-						register: 'pipelinq', schema: 'contract',
+						register: 'pipelinq',
+						schema: 'contract',
 						filter: { client: '@objectId' },
 					},
 				],

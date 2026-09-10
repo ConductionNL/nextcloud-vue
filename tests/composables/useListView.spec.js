@@ -297,4 +297,3 @@ describe('useListView — extend', () => {
 		expect(store.fetchCollection.mock.calls[0][1]._extend).toEqual(['files'])
 	})
 })
-

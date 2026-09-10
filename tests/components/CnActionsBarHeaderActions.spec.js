@@ -103,7 +103,7 @@ describe('CnActionsBar — headerActions rendering', () => {
 		const wrapper = mountBar({
 			headerActions: [{ id: 'h', label: 'H', disabled: true }],
 		})
-		const target = wrapper.findAll('.nc-action-button-stub')			.find(b => b.find('.nc-action-button-stub__label').text() === 'H')
+		const target = wrapper.findAll('.nc-action-button-stub').find(b => b.find('.nc-action-button-stub__label').text() === 'H')
 		// The stub coerces `disabled` to the DOM attribute as the literal "true" string
 		expect(target.attributes('data-disabled')).toBe('true')
 	})

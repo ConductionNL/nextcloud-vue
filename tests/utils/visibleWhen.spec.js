@@ -187,4 +187,3 @@ describe('appInstalled precondition', () => {
 		await expect(evaluateVisibleWhen({ field: 'a', op: 'eq', value: 1 }, { object: { a: 1 } })).resolves.toBe(true)
 	})
 })
-

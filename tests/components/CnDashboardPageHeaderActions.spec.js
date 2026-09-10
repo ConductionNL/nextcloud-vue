@@ -71,7 +71,8 @@ describe('CnDashboardPage — chart endpointSource forwarding (#91 Wave 2/3)', (
 
 	it('forwards a chart widget dataSource (aggregate/drilldown ride inside it)', () => {
 		const dataSource = {
-			register: 'crm', schema: 'request',
+			register: 'crm',
+			schema: 'request',
 			aggregate: { groupBy: 'status', topN: 5, otherBucket: true },
 			drilldown: { route: 'Requests', filterParam: 'status' },
 		}

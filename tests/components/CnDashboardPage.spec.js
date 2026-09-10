@@ -242,7 +242,8 @@ describe('CnDashboardPage — integration widget dispatcher', () => {
 		const layout = [{ id: 1, widgetId: 'w1', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 3 }]
 		const wrapper = mount(CnDashboardPage, {
 			propsData: {
-				widgets, layout,
+				widgets,
+				layout,
 				surface: 'detail-page',
 				integrationContext: { register: 'r', schema: 's', objectId: 'obj-1' },
 			},

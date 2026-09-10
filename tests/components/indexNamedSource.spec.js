@@ -104,6 +104,9 @@ describe('a named source supplies its columns to the table', () => {
 	 * These call the component's OWN computed rather than a copy of its logic.
 	 * A test that restates the implementation passes whether or not the
 	 * component was ever wired, which is the mistake that let this ship.
+	 *
+	 * @param {object} ctx Fields merged over the default `this` for the computed.
+	 * @return {Array<object>} The resolved columns.
 	 */
 	const tableColumns = (ctx) => {
 		const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
@@ -155,6 +158,9 @@ describe('a named source supplies its row actions', () => {
 	 * Same shape as the columns test, for the same reason: this calls the
 	 * component's OWN computed. Asserting that the SOURCE exposes `rowActions`
 	 * would have passed at every point in that history.
+	 *
+	 * @param {object} ctx Fields merged over the default `this` for the computed.
+	 * @return {Array<object>} The resolved row actions.
 	 */
 	const mergedActions = (ctx) => {
 		const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default

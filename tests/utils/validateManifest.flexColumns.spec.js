@@ -25,7 +25,10 @@ function bodyWidget(extra = {}) {
 describe('validateManifestV2 — flexible columns', () => {
 	it('accepts a widget that fits a widened slot', () => {
 		const m = manifestWith({
-			id: 'p', route: '/', type: 'dashboard', title: 'P',
+			id: 'p',
+			route: '/',
+			type: 'dashboard',
+			title: 'P',
 			config: { slotColumns: { body: 16 } },
 			widgets: [bodyWidget({ gridX: 0, gridWidth: 14 }), bodyWidget({ widgetKey: 'stats-block', gridX: 14, gridWidth: 2 })],
 		})
@@ -36,7 +39,10 @@ describe('validateManifestV2 — flexible columns', () => {
 
 	it('rejects a widget exceeding the resolved bound and names it', () => {
 		const m = manifestWith({
-			id: 'p', route: '/', type: 'dashboard', title: 'P',
+			id: 'p',
+			route: '/',
+			type: 'dashboard',
+			title: 'P',
 			config: { slotColumns: { body: 8 } },
 			widgets: [bodyWidget({ gridX: 4, gridWidth: 6 })],
 		})
@@ -47,7 +53,10 @@ describe('validateManifestV2 — flexible columns', () => {
 
 	it('keeps the default 12-column bound when no slotColumns set', () => {
 		const m = manifestWith({
-			id: 'p', route: '/', type: 'dashboard', title: 'P',
+			id: 'p',
+			route: '/',
+			type: 'dashboard',
+			title: 'P',
 			widgets: [bodyWidget({ gridX: 6, gridWidth: 8 })],
 		})
 		const { valid, errors } = validateManifestV2(m)
@@ -57,7 +66,10 @@ describe('validateManifestV2 — flexible columns', () => {
 
 	it('rejects a malformed slotColumns map', () => {
 		const m = manifestWith({
-			id: 'p', route: '/', type: 'dashboard', title: 'P',
+			id: 'p',
+			route: '/',
+			type: 'dashboard',
+			title: 'P',
 			config: { slotColumns: { body: 0 } },
 			widgets: [],
 		})
@@ -70,7 +82,10 @@ describe('validateManifestV2 — flexible columns', () => {
 describe('validateManifestV2 — reserved delta markers + widget id', () => {
 	it('rejects $op in a non-delta manifest', () => {
 		const m = manifestWith({
-			id: 'p', route: '/', type: 'dashboard', title: 'P',
+			id: 'p',
+			route: '/',
+			type: 'dashboard',
+			title: 'P',
 			widgets: [bodyWidget({ $op: 'remove' })],
 		})
 		const { valid, errors } = validateManifestV2(m)
@@ -80,7 +95,11 @@ describe('validateManifestV2 — reserved delta markers + widget id', () => {
 
 	it('rejects __order in a non-delta manifest', () => {
 		const m = manifestWith({
-			id: 'p', route: '/', type: 'dashboard', title: 'P', __order: { widgets: ['x'] },
+			id: 'p',
+			route: '/',
+			type: 'dashboard',
+			title: 'P',
+			__order: { widgets: ['x'] },
 			widgets: [bodyWidget()],
 		})
 		const { valid, errors } = validateManifestV2(m)
@@ -90,13 +109,19 @@ describe('validateManifestV2 — reserved delta markers + widget id', () => {
 
 	it('accepts an optional widget id and rejects duplicates within a page', () => {
 		const ok = manifestWith({
-			id: 'p', route: '/', type: 'dashboard', title: 'P',
+			id: 'p',
+			route: '/',
+			type: 'dashboard',
+			title: 'P',
 			widgets: [bodyWidget({ id: 'a', gridX: 0 }), bodyWidget({ id: 'b', gridX: 4 })],
 		})
 		expect(validateManifestV2(ok).valid).toBe(true)
 
 		const dup = manifestWith({
-			id: 'p', route: '/', type: 'dashboard', title: 'P',
+			id: 'p',
+			route: '/',
+			type: 'dashboard',
+			title: 'P',
 			widgets: [bodyWidget({ id: 'a', gridX: 0 }), bodyWidget({ id: 'a', gridX: 4 })],
 		})
 		const { valid, errors } = validateManifestV2(dup)

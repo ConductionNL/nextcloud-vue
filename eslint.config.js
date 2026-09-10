@@ -48,6 +48,19 @@ module.exports = defineConfig([{
 		// linting the inlined SVG URIs is not actionable. See icons/ATTRIBUTION.md.
 		'src/icons/rvo.js',
 		'src/icons/openGemeenten.js',
+		// 🔴 DELIBERATELY INVALID CODE. These are the fixtures
+		// `tests/eslint/preset.spec.js` LINTS in order to prove the shipped
+		// preset still flags Vue-2 idioms: a `.sync` binding, a `slot="name"`
+		// attribute, a `beforeDestroy` hook. They are the expected input of a
+		// test, not source.
+		//
+		// Ignored because `--fix` over `tests/` repaired all three and five
+		// assertions in that spec went green-to-red: with the idioms gone the
+		// preset had nothing to report, so the test could no longer tell a
+		// working preset from a broken one. Linting a fixture that exists to
+		// fail linting is a category error, and the fixer makes it a
+		// destructive one.
+		'tests/fixtures/eslint-preset/**',
 		'src/icons/denHaag.js',
 		'src/icons/index.js',
 	],
@@ -215,5 +228,58 @@ module.exports = defineConfig([{
 		'jsdoc/require-param-description': 'off',
 		'jsdoc/escape-inline-tags': 'off',
 		'jsdoc/reject-function-type': 'off',
+	},
+}, {
+	// TEST CODE, which is not application code and is not linted as if it were.
+	//
+	// `tests/` joins `src/`, `eslint/` and `testing/` in the lint script with
+	// this override, and the two rules turned off here are the reason it could
+	// not simply be added: both report the jest idiom itself, so "fixing" them
+	// would mean rewriting 146 spec files away from the way jest works.
+	//
+	// 🔴 `import/first` HAS AN AUTOFIX, AND IT WOULD HAVE BROKEN THE SUITE. A
+	// jest spec puts `jest.mock(...)` above its imports on purpose: the factory
+	// may only close over `mock`-prefixed variables, so those declarations sit
+	// above the imports too. The rule sees statements before an import and its
+	// fixer MOVES THE IMPORTS UP, past the declarations the mock factory
+	// depends on. 130 of these were reported; running `--fix` without this
+	// entry rewrites every one of them.
+	//
+	// `n/no-missing-require` reports peer dependencies, which are legitimately
+	// absent from this package's own node_modules — `@nextcloud/axios` and
+	// friends are provided by the consuming app. The specs already say so at
+	// the require site (see useFlowStore.autoLayout.spec.js), and `src/cli/**`
+	// above turns the same rule off for the same reason.
+	files: ['tests/**/*.js', 'tests/**/*.vue', 'src/**/__tests__/**/*.js'],
+	rules: {
+		'import/first': 'off',
+		'n/no-missing-require': 'off',
+		// The DEFERRED PROMISE, which is how a test controls when an async
+		// call settles: `let resolveIt; new Promise((r) => { resolveIt = r })`.
+		// The rule wants that parameter called `resolve`, and at 25 sites here
+		// the surrounding capture variable is sometimes called `resolve`
+		// already — so obeying it produces `new Promise((resolve) => { resolve
+		// = resolve })`, which never settles and hangs the test rather than
+		// failing it. Renaming per-site by hand would be safe at most of the
+		// 25 and silently wrong at the rest, which is not a trade worth making
+		// for a naming convention inside test scaffolding.
+		'promise/param-names': 'off',
+		// 🔴 `var` IS LOAD-BEARING IN A JEST SPEC, AND `--fix` BROKE TWO SUITES
+		// PROVING IT.
+		//
+		// A `jest.mock()` factory is HOISTED above every declaration in the
+		// file, and it may only close over variables whose names start with
+		// `mock`. Those are declared `var` on purpose: `var` hoists and
+		// initialises to undefined, so the factory reads undefined and guards
+		// on it. `let` and `const` sit in the temporal dead zone until their
+		// line runs, so the same read THROWS.
+		//
+		// Running `--fix` over `tests/` rewrote 18 of these. Two suites then
+		// failed to load with `ReferenceError: Cannot access 'mockBusHandlers'
+		// before initialization`, and the other 16 were latent, waiting for a
+		// factory that runs during module init. Note the failure mode: a suite
+		// that cannot LOAD reports zero failing tests, so the run said
+		// "7878 passed" while 42 tests had silently stopped existing.
+		'no-var': 'off',
 	},
 }])

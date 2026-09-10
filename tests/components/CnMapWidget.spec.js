@@ -152,7 +152,9 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
 /**
  * Every url L.tileLayer was asked to build, in call order.
- * @param L
+ *
+ * @param {object} L The mocked Leaflet namespace.
+ * @return {Array<string>} The urls, in call order.
  */
 const tileUrls = (L) => L.tileLayer.mock.calls.map(([url]) => url)
 

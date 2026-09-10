@@ -27,7 +27,7 @@ import { mount } from '@vue/test-utils'
 import { ref, nextTick } from 'vue'
 
 const { indexSources, resolveIndexSource, taskDueLabel, taskDeepLink } = require('../../src/composables/indexSources.js')
-const { useTaskInboxStore, FLOW_TASKS_URL } = require('../../src/composables/useTaskInboxStore.js')
+const { useTaskInboxStore } = require('../../src/composables/useTaskInboxStore.js')
 const { useNamedSource } = require('../../src/components/CnIndexPage/useNamedSource.js')
 
 /** @return {object} The params of the most recent GET. */

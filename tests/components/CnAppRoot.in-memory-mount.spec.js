@@ -68,7 +68,12 @@ const ManifestInjectingRouterView = {
 	},
 }
 
-/** Flush the IIFE used by the legacy fetch-and-merge branch. */
+/**
+ * Flush the IIFE used by the legacy fetch-and-merge branch.
+ *
+ * @param {object} wrapper The mounted wrapper to settle.
+ * @return {Promise<void>}
+ */
 async function flush(wrapper) {
 	await wrapper.vm.$nextTick()
 	await Promise.resolve()

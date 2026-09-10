@@ -9,12 +9,22 @@ import { validateManifest, validateManifestV2 } from '../../src/utils/validateMa
 
 const V2_SCHEMA_URL = 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json'
 
-/** Minimal valid v1 manifest carrying the supplied dependencies. */
+/**
+ * Minimal valid v1 manifest carrying the supplied dependencies.
+ *
+ * @param {Array<string>} dependencies The declared app dependencies.
+ * @return {object} The manifest.
+ */
 function v1(dependencies) {
 	return { version: '1.0.0', menu: [], pages: [], dependencies }
 }
 
-/** Minimal valid v2 manifest carrying the supplied dependencies. */
+/**
+ * Minimal valid v2 manifest carrying the supplied dependencies.
+ *
+ * @param {Array<string>} dependencies The declared app dependencies.
+ * @return {object} The manifest.
+ */
 function v2(dependencies) {
 	return { $schema: V2_SCHEMA_URL, version: '2.18.0', menu: [], pages: [], dependencies }
 }

@@ -41,6 +41,11 @@ const collectionRoot = `
  * A 200 tag response.
  *
  * @param {object} tag The tag values to render into the response body.
+ * @param {string} tag.id The tag's id.
+ * @param {string} tag.displayName The tag's visible name.
+ * @param {boolean} tag.canAssign Whether the caller may assign it.
+ * @param {boolean} tag.userAssignable Whether users may assign it.
+ * @param {boolean} tag.userVisible Whether users may see it.
  * @return {string} The `<d:response>` XML fragment.
  */
 function tagResponse({ id, displayName, canAssign = true, userAssignable = true, userVisible = true }) {
