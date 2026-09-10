@@ -17,6 +17,9 @@ Schema-driven editable data grid widget. Displays object properties in a CSS gri
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `title` | `String` | `'Data'` | Widget title in the card header |
+| `show-title` | `Boolean` | `true` | Draw the header's title row. Set `false` in a tab panel, where the open tab already names the panel. The header still renders whenever the `actions` slot is filled, so the Save button an inline edit needs does not vanish with the title. Needed because `title` carries a DEFAULT of `'Data'`: a host that wanted no title passed `undefined` and got the default instead. |
+| `borderless` | `Boolean` | `false` | Drop the card border and background, for a host that draws its own. |
+| `flush` | `Boolean` | `false` | Drop the content padding, for a host that supplies its own inset. |
 | `icon` | `Object\|Function` | `null` | Optional MDI icon component for the header |
 | `object-data` | `Object` | `null` | The object to display and edit. Keys must match the schema property keys. Optional — `null` while the object is still loading (internal reads are null-guarded). |
 | `schema` | `Object` | `null` | JSON Schema defining properties. Must have a `properties` field. Optional — `null` renders the empty state (e.g. before the schema is fetched). |
