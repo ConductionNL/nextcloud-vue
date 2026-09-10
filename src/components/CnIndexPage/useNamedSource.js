@@ -3,8 +3,9 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
  */
 
-import { computed, onMounted, watch } from 'vue'
+import { computed, inject, onMounted, watch } from 'vue'
 import { resolveIndexSource } from '../../composables/indexSources.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 /**
  * Third data mode for CnIndexPage: a NAMED source.
@@ -36,6 +37,15 @@ import { resolveIndexSource } from '../../composables/indexSources.js'
  * The default tab is seeded BEFORE the watcher registers, so mounting issues
  * exactly one request. Single mode only: `quickFilterMultiple` unions filter
  * maps for an OpenRegister query, which a source loader has no grammar for.
+ *
+ * 🔑 TOKENS RESOLVE HERE TOO. A tab filter is a filter, and a manifest author
+ * writing `{ dueBefore: '@today+7d' }` has no way of knowing that the page
+ * behind the label happens to be a named source rather than a self-fetch.
+ * Without this the literal string `@today+7d` went over the wire, and a
+ * source's server either rejected it or, worse, quietly answered the wrong
+ * window: dossiq's "Due this week" lens is exactly that shape. Self-fetch
+ * resolved tokens from the first day; this closes the gap rather than
+ * teaching manifests which pages may use them.
  *
  * @param {object} props The CnIndexPage props.
  * @param {object} [options] Wiring handed down by CnIndexPage's setup.
@@ -94,16 +104,46 @@ export function useNamedSource(props, options = {}) {
 		activeIndex.value = di >= 0 ? di : 0
 	}
 
+	// The same three bags `useSelfFetchList` injects, so a token means the
+	// same thing on both kinds of page. They default to null/absent, so a
+	// host that provides none is unaffected and `@today` still works: that
+	// one needs no context at all.
+	const objectCtxRaw = inject('cnObjectContext', null)
+	const workspaceCtxRaw = inject('cnWorkspaceContext', null)
+	const appConfigRaw = inject('cnAppConfig', null)
+	const unwrapCtx = (v) => ((v && typeof v === 'object' && 'value' in v) ? v.value : v)
+
+	/**
+	 * Build the token-resolution ctx from the injected bags, unwrapping refs.
+	 *
+	 * @return {object} The ctx `{ objectId?, object?, workspace, config }`.
+	 */
+	const tokenCtx = () => {
+		const objCtx = unwrapCtx(objectCtxRaw)
+		const base = (objCtx && typeof objCtx === 'object') ? { ...objCtx } : {}
+		base.workspace = unwrapCtx(workspaceCtxRaw) || {}
+		base.config = unwrapCtx(appConfigRaw) || {}
+		return base
+	}
+
 	/**
 	 * Load the source with the active tab's filter merged over the page's
-	 * `sourceConfig` (tab wins on a colliding key).
+	 * `sourceConfig` (tab wins on a colliding key), tokens resolved.
+	 *
+	 * The ctx is rebuilt on every load rather than captured once, the same
+	 * way `useSelfFetchList` does it: `@today` has to mean today at the
+	 * moment of the fetch, not at the moment the page mounted, and a tab
+	 * left open across midnight would otherwise keep asking for yesterday.
 	 *
 	 * @return {Promise<void>} Resolves when the load settles.
 	 */
 	const loadActive = async () => {
 		const idx = activeIndex ? activeIndex.value : null
 		const tab = (tabs && idx !== null && idx !== undefined) ? tabs[idx] : null
-		const config = { ...(props.sourceConfig || {}), ...((tab && tab.filter) || {}) }
+		const config = resolveFilterTokens(
+			{ ...(props.sourceConfig || {}), ...((tab && tab.filter) || {}) },
+			tokenCtx(),
+		)
 		try {
 			await source.load(config)
 		} catch (error) {
