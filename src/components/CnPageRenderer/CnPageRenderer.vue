@@ -289,33 +289,6 @@ const READ_ONLY_DEFAULTS = Object.freeze({
 	showMassDelete: false,
 })
 
-/**
- * Query-string keys a page TYPE is allowed to receive as a prop, by type.
- *
- * 🔴 AN ALLOWLIST, NOT A SPREAD, AND THE DIFFERENCE IS THE WHOLE POINT.
- *
- * `resolvedProps` merges the page's top-level fields, its `config` and the
- * route PARAMS. The query was never in that list, so a page type that
- * documents a query-string prop could not actually be handed one: CnFlowDetail
- * declares `run` and says in its own JSDoc that it arrives from `?run=`, and no
- * URL could ever set it. Every run deep link in the fleet opened the right flow
- * with no run selected, which reads as a broken link rather than a missing wire.
- *
- * Forwarding the WHOLE query would fix that and open something worse. Config
- * keys and query keys share one namespace here, so `?register=x` or
- * `?showDeleteAction=true` on any of the 21 apps would silently overrule what
- * the manifest declared, on every page type at once — a URL that rewrites a
- * page's configuration. So a page type gets exactly the query keys it has
- * declared it reads, and an undeclared key stays in `$route.query` where a
- * component can still read it deliberately.
- *
- * Merged BELOW `params`: a path segment is stronger evidence than a query, so
- * `/flows/:id` still wins over a stray `?id=`.
- */
-const QUERY_PROPS = Object.freeze({
-	flow: Object.freeze(['run']),
-})
-
 export default {
 	name: 'CnPageRenderer',
 
@@ -957,20 +930,6 @@ export default {
 			// console.warn per pageId+sentinel).
 			const pageId = page?.id ?? '<unknown>'
 			const config = resolveRouteSentinels(rawConfig, params, pageId)
-			// The query keys THIS page type declared it reads, and only those.
-			// See QUERY_PROPS. Built here so the two merge sites below (the
-			// read-only shortcut and the ordinary tail) both carry it.
-			const queryProps = {}
-			for (const key of (QUERY_PROPS[page?.type] ?? [])) {
-				const value = this.$route?.query?.[key]
-				// A repeated key (`?run=a&run=b`) arrives as an ARRAY, and a
-				// bare `?run` as null. Neither is a deep link; both would reach
-				// a String-typed prop as a Vue type warning and an unusable
-				// value, so only a non-empty string is forwarded.
-				if (typeof value === 'string' && value !== '') {
-					queryProps[key] = value
-				}
-			}
 			// Schema v2 lifts a uniform set of page-level fields out of
 			// `config` so every page type can declare them without
 			// per-type schema branches. Forward those to the dispatched
@@ -1104,7 +1063,7 @@ export default {
 			// `readOnly` prop.
 			if (isIndex && normalizedConfig.readOnly === true) {
 				const { readOnly, ...rest } = normalizedConfig
-				return { ...topLevel, ...READ_ONLY_DEFAULTS, ...rest, ...queryProps, ...params }
+				return { ...topLevel, ...READ_ONLY_DEFAULTS, ...rest, ...params }
 			}
 			// `config.createOverride` can be declared in the JSON manifest as a
 			// STRING naming an async create handler the consumer registered in
@@ -1137,11 +1096,10 @@ export default {
 				&& normalizedConfig.sourceConfig === undefined) {
 				normalizedConfig = { ...normalizedConfig, sourceConfig: { ...normalizedConfig } }
 			}
-			// Precedence (highest wins): route params > declared query keys >
-			// config > top-level page fields. URL truth trumps everything, and
-			// within the URL a path segment outranks a query; config trumps
+			// Precedence (highest wins): route params > config > top-level
+			// page fields. URL truth trumps everything; config trumps
 			// top-level so per-route config still beats the page default.
-			return { ...topLevel, ...normalizedConfig, ...queryProps, ...params }
+			return { ...topLevel, ...normalizedConfig, ...params }
 		},
 		/**
 		 * Resolved `{ register, schema, objectId, slug }` for a
