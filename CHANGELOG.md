@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Fixed
+- **`CnCalendarWidget` now says when no calendar has been chosen, instead of reporting an empty diary.** The host fetches events only for the calendars named in `content.internalCalendars` / `content.externalIcsUrls`, and it skips the fetch entirely when both are empty: LaunchPad's `CalendarWidgetService::getEvents()` guards each branch with `!== []`, so an unconfigured widget comes back with zero events **and zero failures**. The widget could not tell that apart from a genuinely empty week and said "No events in the next 14 days".
+
+  It is not a rare state. The registry's own `defaultContent` for this widget type is `internalCalendars: []`, so every freshly added Calendar widget started there and made a false statement about the user's diary, forever, with nothing on screen suggesting configuration was the missing step. Measured on the dev instance: three events existed today and the widget reported none.
+
+  The new state only claims itself when a content blob is present and both lists are empty. A host driving the widget through `dataSource` alone keeps the ordinary empty message, so no existing consumer changes.
 - **A `data` widget in a tab panel no longer draws a card inside the card.** `CnTabsWidget` already asked for bare chrome, but `CnObjectDataWidget.title` carries a default of `"Data"`, so the `undefined` bare mode passed became that default: the heading in the panel was a default filling a gap, not a choice. `CnObjectDataWidget` gains `showTitle`, `borderless` and `flush`, and `CnDetailWidgetHost` passes them instead of exempting the widget.
 
   The exemption was protecting something real, so two things changed together. `CnWidgetWrapper` now renders its header when there is a title **or** when the `actions` slot is filled, so "no title" and "no Save button" became separate requests — previously hiding the header to remove the duplicate title also removed the only control that commits an inline edit.
