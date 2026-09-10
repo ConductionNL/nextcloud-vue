@@ -873,18 +873,6 @@ export default {
 	padding: 0;
 }
 
-/* `chromeless` — the surface around this widget already drew the card, so
-   nothing here may draw a second one. Border, background and content padding
-   are already gone (chromeless implies borderless + flush); what is left is
-   the header, which still renders when there are controls to hold. Its bottom
-   rule is the card's own divider and reads as a second card edge inside the
-   panel, and its 16px side inset leaves those controls hanging off the grid
-   that now starts at the panel's edge. Both go. */
-.cn-widget-wrapper--chromeless .cn-widget-wrapper__header {
-	border-bottom: none;
-	padding-inline: 0;
-}
-
 /*
  * `chrome="nc-dashboard"` — reproduce the native Nextcloud Dashboard panel
  * (apps/dashboard) exactly, using the same design tokens so an un-customised
@@ -911,6 +899,23 @@ export default {
    flush LEFT where every other surface puts its actions on the right. */
 .cn-widget-wrapper__header--actions-only {
 	justify-content: flex-end;
+}
+
+/* `chromeless` — the surface around this widget already drew the card, so
+   nothing here may draw a second one. Border, background and content padding
+   are already gone (chromeless implies borderless + flush); what is left is
+   the header, which still renders when there are controls to hold. Its bottom
+   rule is the card's own divider and reads as a second card edge inside the
+   panel, and its 16px side inset leaves those controls hanging off the grid
+   that now starts at the panel's edge. Both go.
+
+   Placed AFTER the rules it overrides, which is what stylelint's
+   no-descending-specificity asks for. The cascade did not need it (this
+   selector is more specific either way), a reader does: an override written
+   above the thing it overrides has to be read twice. */
+.cn-widget-wrapper--chromeless .cn-widget-wrapper__header {
+	border-bottom: none;
+	padding-inline: 0;
 }
 
 .cn-widget-wrapper__header-left {
