@@ -49,11 +49,13 @@ export function shouldShow(field, formData) {
 	}
 
 	if (typeof condition !== 'object' || Array.isArray(condition)) {
+		// eslint-disable-next-line no-console -- manifest-authoring mistake surfaced to the developer console
 		console.warn(`CnFormDialog: field "${field.key}" condition must be an object, got ${typeof condition}`)
 		return true
 	}
 
 	if (typeof condition.field !== 'string' || condition.field.length === 0) {
+		// eslint-disable-next-line no-console -- manifest-authoring mistake surfaced to the developer console
 		console.warn(`CnFormDialog: field "${field.key}" condition is missing a "field" reference`)
 		return true
 	}
@@ -80,6 +82,7 @@ export function shouldShow(field, formData) {
 		return Boolean(value) === !condition.falsy
 	}
 
+	// eslint-disable-next-line no-console -- manifest-authoring mistake surfaced to the developer console
 	console.warn(`CnFormDialog: field "${field.key}" condition has no recognised predicate (equals/notEquals/in/notIn/truthy/falsy); keeping field visible`)
 	return true
 }

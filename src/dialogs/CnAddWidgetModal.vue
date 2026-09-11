@@ -673,6 +673,7 @@ export default {
 				} catch (error) {
 					// The sub-form surfaces its own inline error; keep the modal
 					// open so the author can retry or pick another file.
+					// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 					console.error('[CnAddWidgetModal] Widget commit failed:', error)
 					return
 				} finally {

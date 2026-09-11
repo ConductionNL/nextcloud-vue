@@ -604,6 +604,7 @@ const baseActions = {
 
 			if (!response.ok) {
 				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error(`Error fetching ${type} collection:`, this.errors[type])
 				return []
 			}
@@ -636,6 +637,7 @@ const baseActions = {
 					? networkError(error)
 					: genericError(error),
 			}
+			// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 			console.error(`Error fetching ${type} collection:`, error)
 			return []
 		} finally {
@@ -710,6 +712,7 @@ const baseActions = {
 				// went wrong: `parseResponseError` returns a reactive proxy,
 				// which the console renders as an unreadable `Proxy(Object)`.
 				if (response.status !== 404) {
+					// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 					console.error(
 						`Error fetching ${type}/${id}: ${response.status} ${response.statusText}`,
 						toRaw(this.errors[type]),
@@ -733,6 +736,7 @@ const baseActions = {
 					? networkError(error)
 					: genericError(error),
 			}
+			// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 			console.error(`Error fetching ${type}/${id}:`, error)
 			return null
 		} finally {
@@ -766,6 +770,7 @@ const baseActions = {
 
 			if (!response.ok) {
 				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error(`Error saving ${type}:`, this.errors[type])
 				return null
 			}
@@ -786,6 +791,7 @@ const baseActions = {
 					? networkError(error)
 					: genericError(error),
 			}
+			// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 			console.error(`Error saving ${type}:`, error)
 			return null
 		} finally {
@@ -814,6 +820,7 @@ const baseActions = {
 
 			if (!response.ok) {
 				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error(`Error deleting ${type}/${id}:`, this.errors[type])
 				return false
 			}
@@ -841,6 +848,7 @@ const baseActions = {
 					? networkError(error)
 					: genericError(error),
 			}
+			// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 			console.error(`Error deleting ${type}/${id}:`, error)
 			return false
 		} finally {
@@ -879,6 +887,7 @@ const baseActions = {
 					discardResponseBody(response)
 					return { id, success: response.ok }
 				} catch (error) {
+					// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 					console.error(`Error deleting ${type}/${id}:`, error)
 					return { id, success: false }
 				}

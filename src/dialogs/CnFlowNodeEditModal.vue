@@ -741,6 +741,7 @@ export default {
 			} catch (error) {
 				// A picker that could not load degrades to showing the stored
 				// value; the Advanced editor still reaches everything.
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error(`cn-flow: could not load options for "${key}"`, error)
 			} finally {
 				this.selectLoading = { ...this.selectLoading, [key]: false }

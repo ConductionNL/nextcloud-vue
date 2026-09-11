@@ -89,6 +89,7 @@ export function createPollingTransport() {
 			try {
 				cb()
 			} catch (e) {
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error('pollingTransport: callback error:', e)
 			}
 		}

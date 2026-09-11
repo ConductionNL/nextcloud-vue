@@ -104,6 +104,7 @@ export function createSubResourcePlugin(name, endpoint, options = {}) {
 						// which the console renders as an unreadable
 						// `Proxy(Object)`.
 						if (response.status !== 404) {
+							// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 							console.error(
 								`Error fetching ${name} for ${type}/${objectId}: `
 								+ `${response.status} ${response.statusText}`,
@@ -131,6 +132,7 @@ export function createSubResourcePlugin(name, endpoint, options = {}) {
 						: { status: null, message: error.message, details: null, isValidation: false, fields: null, toString() {
 								return this.message
 							} }
+					// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 					console.error(`Error fetching ${name} for ${type}/${objectId}:`, error)
 					return []
 				} finally {

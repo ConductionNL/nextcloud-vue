@@ -361,6 +361,7 @@ export default {
 				})
 				this.toastEditorReady = true
 			} catch (e) {
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error('CnMarkdownEditor: failed to load the WYSIWYG editor', e)
 			}
 		},

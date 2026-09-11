@@ -344,6 +344,7 @@ export default {
 				this.updateField('url', resolvedUrl)
 			} catch (err) {
 				this.uploadError = (err && err.message) || t('nextcloud-vue', 'Failed to upload image')
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error('Image upload failed:', err)
 				throw err
 			} finally {

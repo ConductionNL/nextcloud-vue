@@ -412,6 +412,7 @@ export default {
 				const load = this.fetcher || fetchWebdavFolderTree
 				this.fileTree = await load({ path: this.filesPath, depth: this.maxDepth })
 			} catch (e) {
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error('[CnFolderSidebar] failed to load folders', e)
 				this.fileTree = []
 			} finally {
