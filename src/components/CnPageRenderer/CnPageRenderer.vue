@@ -285,6 +285,18 @@ export default {
 
 	inject: {
 		cnManifest: { default: null },
+		/**
+		 * The same manifest as `cnManifest`, but provided as a REF.
+		 *
+		 * Options-API `inject` resolves a plain provided value exactly once, at
+		 * this component's creation, and `cnManifest` is a getter on CnAppRoot's
+		 * provide object — so what arrives is a snapshot. A renderer created
+		 * before edit mode keeps the pre-edit manifest object and never
+		 * re-derives its page props from an in-app edit. `inject` unwraps a ref
+		 * into a reactive getter instead, which is what makes those edits render
+		 * (ADR-041).
+		 */
+		cnManifestSource: { default: null },
 		cnCustomComponents: { default: () => ({}) },
 		cnTranslate: { default: () => (key) => key },
 		cnPageTypes: { default: null },
@@ -563,9 +575,13 @@ export default {
 				.map((f) => (typeof f === 'string' ? { id: f, label: f.toUpperCase() } : f))
 				.filter((f) => f && f.id)
 		},
-		/** Effective manifest: explicit prop wins over injected value. */
+		/**
+		 * Effective manifest: explicit prop wins, then the reactive injected
+		 * source, then the one-shot `cnManifest` snapshot for hosts that
+		 * provide only that.
+		 */
 		effectiveManifest() {
-			return this.manifest ?? this.cnManifest
+			return this.manifest ?? this.cnManifestSource ?? this.cnManifest
 		},
 		/**
 		 * True when the effective manifest is a v2 manifest.

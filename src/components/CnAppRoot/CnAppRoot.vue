@@ -755,6 +755,13 @@ export default {
 			get cnManifest() {
 				return self.manifestEditor ? self.manifestEditor.source.value : self.manifest
 			},
+			// The same manifest as a REF. The getter above is NOT enough on its
+			// own: Options-API `inject` resolves a provided value once, at the
+			// descendant's creation, so a renderer created before edit mode gets
+			// the pre-edit manifest and never re-derives from an in-app edit —
+			// which is why adding a widget to a page that had none appeared to do
+			// nothing. `inject` unwraps a ref into a reactive getter instead.
+			cnManifestSource: this.manifestEditor ? this.manifestEditor.source : null,
 			cnManifestEditor: this.manifestEditor,
 			// App registers/schemas for the in-app pages editor (index/detail
 			// data source). Plain value (not a getter) so deep descendants —
