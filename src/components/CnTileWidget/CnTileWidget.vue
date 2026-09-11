@@ -8,6 +8,7 @@
 	<div
 		v-if="tile"
 		class="cn-tile-widget"
+		:class="{ 'cn-tile-widget--tinted': isTinted }"
 		:style="tileStyles">
 		<a
 			:href="tileUrl"
@@ -19,17 +20,29 @@
 			<svg
 				v-if="tile.iconType === 'svg'"
 				class="cn-tile-widget__icon cn-tile-widget__icon--svg"
-				:style="{ fill: tile.textColor || '#ffffff' }"
+				:style="{ fill: resolvedTextColor }"
 				viewBox="0 0 24 24">
 				<path :d="tile.icon" />
 			</svg>
 			<!-- Other icon types -->
 			<div v-else class="cn-tile-widget__icon">
-				<span v-if="tile.iconType === 'class'" :class="['icon', tile.icon]" />
+				<!-- A registry key (`Trophy`, `ViewDashboard`, …) comes FIRST:
+				     with no icon catalogue wired, that is what CnIconBrowser
+				     emits, and the tile form files it under `class` because it
+				     is neither a URL nor an SVG path. Rendered as a CSS class it
+				     is a rule nobody wrote, so the tile showed no icon at all.
+				     `hasRegistryIcon` excludes `icon-*`, which really are
+				     Nextcloud CSS-class icons. -->
+				<component
+					:is="registryIcon"
+					v-if="registryIcon"
+					:size="32"
+					:fill-color="resolvedTextColor" />
+				<span v-else-if="tile.iconType === 'class'" :class="['icon', tile.icon]" />
 				<img v-else-if="tile.iconType === 'url'" :src="tile.icon" alt="">
 				<span v-else-if="tile.iconType === 'emoji'" class="cn-tile-widget__emoji">{{ tile.icon }}</span>
 			</div>
-			<div class="cn-tile-widget__title" :style="{ color: tile.textColor || '#ffffff' }">
+			<div class="cn-tile-widget__title" :style="{ color: resolvedTextColor }">
 				{{ resolvedTitle }}
 			</div>
 		</a>
@@ -38,6 +51,7 @@
 
 <script>
 import { generateUrl } from '@nextcloud/router'
+import { getIconComponent, hasRegistryIcon } from '../CnWidgetGrid/widgetIcons.js'
 
 /**
  * CnTileWidget — Quick-access tile with icon and link.
@@ -114,10 +128,52 @@ export default {
 			return this.tile.linkValue || '#'
 		},
 
+		/**
+		 * The icon component for a registry-key icon value, or null when the
+		 * value is something the other branches render.
+		 *
+		 * @return {object|null} the icon component.
+		 */
+		registryIcon() {
+			return hasRegistryIcon(this.tile.icon)
+				? getIconComponent(this.tile.icon)
+				: null
+		},
+
+		/**
+		 * Whether the author actually chose a background colour.
+		 *
+		 * @return {boolean} true when the tile is tinted.
+		 */
+		isTinted() {
+			return Boolean(this.tile.backgroundColor)
+		},
+
+		/**
+		 * The text/icon colour. White on a tinted tile (any author-chosen
+		 * colour is assumed dark enough, as it always was); the ordinary text
+		 * colour otherwise, since an untinted tile sits on the page background.
+		 *
+		 * @return {string} a CSS colour.
+		 */
+		resolvedTextColor() {
+			if (this.tile.textColor) {
+				return this.tile.textColor
+			}
+			return this.isTinted ? '#ffffff' : 'var(--color-main-text)'
+		},
+
+		/**
+		 * Tile colours. An untinted tile paints NO background: a tile whose
+		 * author never picked a colour should look like the surface it sits
+		 * on, not invent one — it used to impose a hardcoded Nextcloud blue.
+		 *
+		 * @return {object} the CSS custom properties.
+		 */
 		tileStyles() {
 			return {
-				'--cn-tile-bg': this.tile.backgroundColor || '#0082c9',
-				'--cn-tile-text': this.tile.textColor || '#ffffff',
+				'--cn-tile-bg': this.tile.backgroundColor || 'transparent',
+				'--cn-tile-text': this.resolvedTextColor,
 			}
 		},
 	},
@@ -202,6 +258,12 @@ export default {
 	width: 48px;
 	height: 48px;
 	background-size: 48px;
+}
+
+/* A CSS-class icon is a dark background-image, so it is inverted to white to
+   read against the tint. An untinted tile sits on the page background, where
+   white would be invisible in a light theme, so it keeps its own colour. */
+.cn-tile-widget--tinted .cn-tile-widget__icon span.icon {
 	filter: brightness(0) invert(1);
 }
 

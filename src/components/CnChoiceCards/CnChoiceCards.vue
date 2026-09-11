@@ -261,6 +261,12 @@ export default {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 	gap: 12px;
+	/* Room for the card shadow. `src/css/card.css` is loaded globally by every
+	   consumer and gives EVERY `.cn-card` a `box-shadow` — including these — so
+	   a grid flush against its container gets the shadow shaved off wherever
+	   that container clips, which the setup wizard's dialog body does on the
+	   sides and the bottom. 12px clears the widest of those shadows. */
+	padding: 12px;
 }
 
 .cn-choice-cards__option {
@@ -284,8 +290,15 @@ export default {
 	transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
+/* The same global `card.css` also scales `.cn-card` up on hover. A transform
+   counts towards the scrollable overflow of the nearest scroll container, so in
+   a dialog body sized to its content a scrollbar appears the moment the pointer
+   touches a card, and the grid twitches. The border colour below already
+   carries hover, so the scale is dropped: at (0,3,0) this beats the global
+   `.cn-card:hover` at (0,2,0). */
 .cn-choice-cards__option:hover :deep(.cn-card) {
 	border-color: var(--color-primary-element);
+	transform: none;
 }
 
 /* The focus ring belongs on the card, not on the small input inside it. */

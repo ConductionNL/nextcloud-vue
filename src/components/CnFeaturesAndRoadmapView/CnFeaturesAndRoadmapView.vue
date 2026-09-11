@@ -105,6 +105,8 @@ import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import RoadVariant from 'vue-material-design-icons/RoadVariant.vue'
 
+import { markRaw } from 'vue'
+
 import CnFeaturesTab from '../CnFeaturesTab/CnFeaturesTab.vue'
 import CnRoadmapTab from '../CnRoadmapTab/CnRoadmapTab.vue'
 import CnFeaturesAndRoadmapSidebar from '../CnFeaturesAndRoadmapSidebar/CnFeaturesAndRoadmapSidebar.vue'
@@ -431,7 +433,9 @@ export default {
 				return
 			}
 			this.cnIndexSidebarConfig.value = {
-				component: CnFeaturesAndRoadmapSidebar,
+				// markRaw: see CnIndexPage's publishHoistedSidebar — the holder
+				// is deeply reactive and would proxy the component definition.
+				component: markRaw(CnFeaturesAndRoadmapSidebar),
 				props: {
 					openbuiltUrl: this.resolvedOpenbuiltUrl,
 					llmSkillsUrl: this.resolvedLlmSkillsUrl,

@@ -112,3 +112,52 @@ describe('CnTileWidget route links', () => {
 		expect(wrapper.find('a').attributes('target')).toBe('_self')
 	})
 })
+
+/**
+ * Icon and colour rendering.
+ *
+ * Regression: a tile configured through the Add-widget modal showed no icon,
+ * on a blue nobody chose. With no icon catalogue wired, CnIconBrowser emits a
+ * registry KEY (`Trophy`), which the tile form files under `iconType: 'class'`
+ * because it is neither a URL nor an SVG path — and `class` rendered it as a
+ * CSS class that does not exist.
+ */
+describe('CnTileWidget icon and colours', () => {
+	const base = { title: 'Docs', linkType: 'url', linkValue: 'https://example.com' }
+
+	it('renders a registry-key icon as its component, not a CSS class', () => {
+		const wrapper = mount(CnTileWidget, {
+			propsData: { tile: { ...base, icon: 'Trophy', iconType: 'class' } },
+		})
+		expect(wrapper.find('span.icon.Trophy').exists()).toBe(false)
+		expect(wrapper.find('.cn-tile-widget__icon svg').exists()).toBe(true)
+	})
+
+	it('still renders a real Nextcloud CSS-class icon as a class', () => {
+		const wrapper = mount(CnTileWidget, {
+			propsData: { tile: { ...base, icon: 'icon-files', iconType: 'class' } },
+		})
+		expect(wrapper.find('span.icon.icon-files').exists()).toBe(true)
+	})
+
+	it('paints no background when no colour was chosen', () => {
+		const wrapper = mount(CnTileWidget, {
+			propsData: { tile: { ...base, icon: '', iconType: 'class', backgroundColor: '', textColor: '' } },
+		})
+		const tile = wrapper.find('.cn-tile-widget')
+		// No imposed colour at all — not blue, not the theme primary.
+		expect(tile.attributes('style')).toContain('transparent')
+		expect(tile.attributes('style')).toContain('var(--color-main-text)')
+		expect(tile.classes()).not.toContain('cn-tile-widget--tinted')
+	})
+
+	it('honours an explicitly chosen colour, and keeps white text on it', () => {
+		const wrapper = mount(CnTileWidget, {
+			propsData: { tile: { ...base, icon: '', iconType: 'class', backgroundColor: '#ff8800' } },
+		})
+		const tile = wrapper.find('.cn-tile-widget')
+		expect(tile.attributes('style')).toContain('#ff8800')
+		expect(tile.attributes('style')).toContain('#ffffff')
+		expect(tile.classes()).toContain('cn-tile-widget--tinted')
+	})
+})

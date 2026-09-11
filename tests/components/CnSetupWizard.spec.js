@@ -74,6 +74,14 @@ describe('CnSetupWizard', () => {
 			expect(mountWizard(['region', 'seed']).vm.initialStepId).toBe('')
 		})
 
+		it('starts at step one when only LATER steps are done, not earlier ones', () => {
+			// An app whose install-time repair step pre-satisfies `seed` reports it
+			// done on the very first visit, before anyone has opened the wizard.
+			// Nothing before the outstanding `region` step is finished, so there is
+			// nothing to resume past and the welcome step must still be shown.
+			expect(mountWizard(['seed']).vm.initialStepId).toBe('')
+		})
+
 		it('skips info/summary steps when resuming', () => {
 			const withSummary = [...steps, { id: 'done', type: 'summary', title: 'All set' }]
 			const wrapper = shallowMount(CnSetupWizard, {

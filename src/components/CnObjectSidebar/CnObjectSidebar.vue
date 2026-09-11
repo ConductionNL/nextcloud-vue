@@ -6,10 +6,15 @@
   All tabs are optional and overridable via props and slots.
 -->
 <template>
+	<!-- `subname` is NcAppSidebar's visible secondary line; `subtitle` is only
+	     the tooltip on it, and the line is not rendered at all while subname is
+	     empty — so passing subtitle alone showed nothing. Same pair as
+	     name/title, and as CnIndexSidebar. -->
 	<NcAppSidebar
 		v-model:active="activeTab"
 		:name="sidebarTitle"
 		:title="sidebarTitle"
+		:subname="sidebarSubtitle"
 		:subtitle="sidebarSubtitle"
 		:open="open"
 		data-testid="cn-object-sidebar"

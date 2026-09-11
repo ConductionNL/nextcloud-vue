@@ -500,3 +500,51 @@ describe('CnObjectSidebar — pluggable integration registry mode', () => {
 		wrapper.unmount()
 	})
 })
+
+// REGRESSION. NcAppSidebar renders its secondary line from `subname`;
+// `subtitle` is only the tooltip on that line, and the line is not rendered at
+// all while subname is empty. Passing subtitle alone meant a manifest's
+// `config.sidebar.subtitle` was never visible.
+describe('CnObjectSidebar — header name and subname', () => {
+	const SidebarStub = {
+		name: 'NcAppSidebar',
+		props: ['name', 'title', 'subname', 'subtitle', 'open', 'active'],
+		template: '<div><slot /></div>',
+	}
+
+	const mountHeader = (extra) => mount(CnObjectSidebar, {
+		propsData: { ...baseProps, useRegistry: false, ...extra },
+		stubs: {
+			NcAppSidebar: SidebarStub,
+			CnFilesTab: true,
+			CnNotesTab: true,
+			CnTagsTab: true,
+			CnTasksTab: true,
+			CnAuditTrailTab: true,
+		},
+	})
+
+	it('passes the subtitle as subname, so it renders, and as subtitle for the tooltip', () => {
+		const bar = mountHeader({ subtitle: 'Acme Corp' }).findComponent(SidebarStub)
+		expect(bar.props('subname')).toBe('Acme Corp')
+		expect(bar.props('subtitle')).toBe('Acme Corp')
+	})
+
+	it('honours the deprecated subtitleProp alias on both', () => {
+		const bar = mountHeader({ subtitleProp: 'Legacy' }).findComponent(SidebarStub)
+		expect(bar.props('subname')).toBe('Legacy')
+		expect(bar.props('subtitle')).toBe('Legacy')
+	})
+
+	it('leaves both empty when no subtitle is given, so no line is drawn', () => {
+		const bar = mountHeader({}).findComponent(SidebarStub)
+		expect(bar.props('subname')).toBe('')
+		expect(bar.props('subtitle')).toBe('')
+	})
+
+	it('still passes the title as both name and title', () => {
+		const bar = mountHeader({ title: 'Lead 42' }).findComponent(SidebarStub)
+		expect(bar.props('name')).toBe('Lead 42')
+		expect(bar.props('title')).toBe('Lead 42')
+	})
+})

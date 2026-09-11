@@ -156,6 +156,67 @@ describe('dispatchAction — navigate type', () => {
 		expect(warnSpy).toHaveBeenCalled()
 		warnSpy.mockRestore()
 	})
+
+	// REGRESSION. vue-router accepts an absolute URL as a PATH, so pushing
+	// `https://www.youtube.com/watch?v=X` matched no route and landed on the
+	// app's fallback page carrying the URL's own query string — which reads as
+	// the app swallowing the link.
+	describe('an external target never reaches the router', () => {
+		let openSpy
+
+		beforeEach(() => {
+			openSpy = jest.spyOn(window, 'open').mockImplementation(() => {})
+		})
+
+		afterEach(() => openSpy.mockRestore())
+
+		it.each([
+			['https://www.youtube.com/watch?v=MM60juTPkSM'],
+			['http://example.test/a'],
+			['//example.test/a'],
+			['mailto:someone@example.test'],
+			['tel:+3110000000'],
+		])('opens %s in a new tab instead of pushing it', (target) => {
+			const push = jest.fn()
+			dispatchAction({ type: 'navigate', target }, { router: { push } })
+			expect(push).not.toHaveBeenCalled()
+			expect(openSpy).toHaveBeenCalledWith(target, '_blank', 'noopener,noreferrer')
+		})
+
+		it('still routes an in-app path, including one holding a query', () => {
+			const push = jest.fn()
+			dispatchAction({ type: 'navigate', target: '/dogs?v=1' }, { router: { push } })
+			expect(push).toHaveBeenCalledWith('/dogs?v=1')
+			expect(openSpy).not.toHaveBeenCalled()
+		})
+
+		it('needs no router at all for an external target', () => {
+			const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+			dispatchAction({ type: 'navigate', target: 'https://example.test' }, {})
+			expect(openSpy).toHaveBeenCalled()
+			expect(warnSpy).not.toHaveBeenCalled()
+			warnSpy.mockRestore()
+		})
+	})
+})
+
+describe('isExternalActionTarget', () => {
+	const { isExternalActionTarget } = require('../../src/utils/actionsDispatcher.js')
+
+	it.each([
+		['https://example.test', true],
+		['HTTP://EXAMPLE.TEST', true],
+		['//example.test', true],
+		['mailto:a@b.test', true],
+		['tel:+31', true],
+		['/dogs', false],
+		['dogs/1', false],
+		['', false],
+		[undefined, false],
+		[{ path: '/dogs' }, false],
+	])('%s → %s', (target, expected) => {
+		expect(isExternalActionTarget(target)).toBe(expected)
+	})
 })
 
 /**

@@ -120,8 +120,8 @@
 				     instance draws nothing itself; it owns the dialogs the
 				     actions open and feeds the menu through `entries`. -->
 				<CnActionButtons
-					v-if="headerActions && headerActions.length"
-					:actions="headerActions"
+					v-if="effectiveHeaderActions.length > 0"
+					:actions="effectiveHeaderActions"
 					display="menu"
 					data-testid="cn-detail-page-header-actions"
 					@entries="menuHeaderActions = $event"
@@ -137,6 +137,8 @@
 					@binding {object} schema The resolved schema.
 					@binding {string} objectType The resolved object type.
 					@binding {object} store The effective object store.
+					@binding {Function} openEditForm Opens this page's own record edit form. Lets an actions component put Edit inside ITS action cluster instead of leaving the page's button beside it — the page renders no button of its own once `showEditAction` is false, but this still opens the same dialog.
+					@binding {boolean} canEditRecord Whether the page would render its own Edit button (`showEditAction` plus a record and schema to edit).
 				-->
 				<slot
 					name="actions"
@@ -144,15 +146,21 @@
 					:object-id="objectId"
 					:schema="currentSchema"
 					:object-type="resolvedObjectType"
-					:store="effectiveObjectStore" />
+					:store="effectiveObjectStore"
+					:open-edit-form="openEditForm"
+					:can-edit-record="canEditRecord" />
 				<!-- Record edit (ADR-062): the detail page's own way to change the
 				     record it is showing. Without it a `type:"detail"` page is
 				     read-only and the ONLY edit surface is the modal launched
 				     from the index table — which is why that modal could not
 				     simply be removed. Opens the same schema-driven CnFormDialog
 				     the index used, scoped to this record. -->
+				<!-- Standalone unless `inlineActions` is set, in which case Edit
+				     joins the header actions above and lands in the Actions menu
+				     with them. Kept standalone by default so every existing
+				     consumer's header is byte-identical. -->
 				<NcButton
-					v-if="canEditRecord"
+					v-if="canEditRecord && !foldsEditIntoActions"
 					variant="secondary"
 					data-testid="cn-detail-page-edit"
 					:aria-label="editActionLabel"
@@ -185,20 +193,38 @@
 					@refresh="onHeaderRefresh"
 					@request-feature="onHeaderRequestFeature">
 					<template v-if="menuHeaderActions.length" #primary-items>
-						<NcActionButton
-							v-for="entry in menuHeaderActions"
-							:key="entry.id"
-							:data-testid="entry.testid"
-							:disabled="entry.disabled"
-							:aria-pressed="entry.pressed === null ? null : String(entry.pressed)"
-							:close-after-click="true"
-							@click="entry.run()">
-							<template v-if="entry.iconName || entry.iconClass" #icon>
-								<CnIcon v-if="entry.iconName" :name="entry.iconName" :size="20" />
-								<span v-else :class="entry.iconClass" />
-							</template>
-							{{ entry.label }}
-						</NcActionButton>
+						<template v-for="entry in menuHeaderActions">
+							<!-- An action that goes to a URL is a LINK. The browser
+							     then supplies middle-click, "open in new tab" and the
+							     semantics assistive tech announces, none of which a
+							     click handler can. -->
+							<NcActionLink
+								v-if="entry.href"
+								:key="`${entry.id}-link`"
+								:href="entry.href"
+								:target="entry.linkTarget || undefined"
+								:data-testid="entry.testid">
+								<template v-if="entry.iconName || entry.iconClass" #icon>
+									<CnIcon v-if="entry.iconName" :name="entry.iconName" :size="20" />
+									<span v-else :class="entry.iconClass" />
+								</template>
+								{{ entry.label }}
+							</NcActionLink>
+							<NcActionButton
+								v-else
+								:key="entry.id"
+								:data-testid="entry.testid"
+								:disabled="entry.disabled"
+								:aria-pressed="entry.pressed === null ? null : String(entry.pressed)"
+								:close-after-click="true"
+								@click="entry.run()">
+								<template v-if="entry.iconName || entry.iconClass" #icon>
+									<CnIcon v-if="entry.iconName" :name="entry.iconName" :size="20" />
+									<span v-else :class="entry.iconClass" />
+								</template>
+								{{ entry.label }}
+							</NcActionButton>
+						</template>
 						<NcActionSeparator />
 					</template>
 				</CnActionsMenu>
@@ -661,7 +687,7 @@
 import { provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { NcActionButton, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
@@ -790,6 +816,7 @@ export default {
 
 	components: {
 		NcActionButton,
+		NcActionLink,
 		NcActionSeparator,
 		NcButton,
 		NcEmptyContent,
@@ -1371,6 +1398,25 @@ export default {
 		},
 
 		/**
+		 * Set to fold this page's own Edit button in with the header actions,
+		 * so it becomes an entry in the Actions menu instead of a button
+		 * standing beside it. `null` (the default) keeps Edit standalone, so
+		 * every existing consumer's header is unchanged.
+		 *
+		 * The number itself no longer caps anything HERE: this page draws its
+		 * header actions as Actions-menu entries (`display: "menu"`), where
+		 * there are no buttons to cap. It is still CnActionButtons' `inline`
+		 * count for a host that mounts that component in `buttons` mode — see
+		 * that component's `inline` prop.
+		 *
+		 * @type {number|null}
+		 */
+		inlineActions: {
+			type: Number,
+			default: null,
+		},
+
+		/**
 		 * Declarative related-object list sections (manifest
 		 * `config.relatedCollections`). Each entry renders a titled
 		 * `CnObjectListWidget` below the detail body, filtered to this object via
@@ -1767,6 +1813,38 @@ export default {
 		 *
 		 * @return {boolean}
 		 */
+		/**
+		 * Whether Edit joins the CnActionButtons cluster instead of standing
+		 * on its own. Opted into by `inlineActions`.
+		 *
+		 * @return {boolean}
+		 */
+		foldsEditIntoActions() {
+			return typeof this.inlineActions === 'number'
+		},
+		/**
+		 * The header actions actually handed to CnActionButtons: the declared
+		 * ones, plus this page's Edit appended when `inlineActions` folds it
+		 * in. Edit goes LAST so it reads after the app's own actions in the
+		 * Actions menu — the page's affordance yields to the app's.
+		 *
+		 * @return {Array<object>} The action descriptors.
+		 */
+		effectiveHeaderActions() {
+			const declared = Array.isArray(this.headerActions) ? this.headerActions : []
+			if (!(this.foldsEditIntoActions && this.canEditRecord)) return declared
+			return [
+				...declared,
+				{
+					id: 'cn-detail-page-edit',
+					label: this.editActionLabel,
+					icon: 'Pencil',
+					// A function, not a dispatch type: `open-form` hardcodes
+					// `item: null`, so it creates and cannot edit this record.
+					onSelect: () => this.openEditForm(),
+				},
+			]
+		},
 		canEditRecord() {
 			return this.showEditAction
 				&& !this.isCreateMode
@@ -2282,8 +2360,15 @@ export default {
 			}
 		},
 
+		// Deep, like `sidebarTabs` / `sidebarProps` below: the manifest editors
+		// mutate `page.config.sidebar` IN PLACE, so the reference CnPageRenderer
+		// forwards never changes. A shallow watcher missed every such edit —
+		// switching the sidebar off in CnEditSidebarModal did nothing until the
+		// page was reloaded. assignSidebarState() only writes keys that actually
+		// changed, so the extra calls cost a comparison.
 		sidebar: {
 			immediate: true,
+			deep: true,
 			handler() { this.syncSidebarState() },
 		},
 

@@ -212,4 +212,48 @@ describe('CnDetailPage — record edit', () => {
 		expect(wrapper.vm.editFormOpen).toBe(false)
 		expect(store.saveObject).not.toHaveBeenCalled()
 	})
+
+	describe('folding Edit into the header actions cluster', () => {
+		it('leaves Edit standalone while inlineActions is unset', () => {
+			// The backwards-compatibility guarantee: no consumer that has not
+			// opted in sees its header change.
+			const { wrapper } = mountDetail({ showEditAction: true })
+			expect(wrapper.vm.foldsEditIntoActions).toBe(false)
+			expect(wrapper.find('[data-testid="cn-detail-page-edit"]').exists()).toBe(true)
+			expect(wrapper.vm.effectiveHeaderActions).toEqual([])
+		})
+
+		it('moves Edit into the actions cluster when inlineActions is set', () => {
+			const { wrapper } = mountDetail({ showEditAction: true, inlineActions: 2 })
+			expect(wrapper.vm.foldsEditIntoActions).toBe(true)
+			// Gone as its own button — one `inline` count now governs it.
+			expect(wrapper.find('[data-testid="cn-detail-page-edit"]').exists()).toBe(false)
+			const ids = wrapper.vm.effectiveHeaderActions.map((a) => a.id)
+			expect(ids).toEqual(['cn-detail-page-edit'])
+		})
+
+		it('appends Edit AFTER the declared actions, so it collapses first', () => {
+			const { wrapper } = mountDetail({
+				showEditAction: true,
+				inlineActions: 1,
+				headerActions: [{ id: 'send', label: 'Send', type: 'api-call', url: '/s' }],
+			})
+			expect(wrapper.vm.effectiveHeaderActions.map((a) => a.id))
+				.toEqual(['send', 'cn-detail-page-edit'])
+		})
+
+		it('folds nothing in when the page cannot edit the record', () => {
+			const { wrapper } = mountDetail({ inlineActions: 2 })
+			expect(wrapper.vm.canEditRecord).toBe(false)
+			expect(wrapper.vm.effectiveHeaderActions).toEqual([])
+		})
+
+		it("the folded entry's onSelect opens the same edit form", () => {
+			const { wrapper } = mountDetail({ showEditAction: true, inlineActions: 2 })
+			const edit = wrapper.vm.effectiveHeaderActions[0]
+			expect(wrapper.vm.editFormOpen).toBe(false)
+			edit.onSelect()
+			expect(wrapper.vm.editFormOpen).toBe(true)
+		})
+	})
 })

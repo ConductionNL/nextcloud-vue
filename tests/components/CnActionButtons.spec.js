@@ -27,6 +27,7 @@ jest.mock('../../src/utils/actionsDispatcher.js', () => {
 		__esModule: true,
 		dispatchAction: jest.fn(() => Promise.resolve({ ok: true })),
 		resolveObjectOpType: jest.fn(() => 'crm/lead'),
+		isExternalActionTarget: actual.isExternalActionTarget,
 		buildOnSuccessRoute: actual.buildOnSuccessRoute,
 		savedObjectId: actual.savedObjectId,
 		resolveCreateOverrideHandler: actual.resolveCreateOverrideHandler,
@@ -61,7 +62,13 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 const stubs = {
 	NcButton: {
 		name: 'NcButton',
-		props: ['disabled'],
+		// `variant` declared so the styling assertions can read it. NcButton
+		// carries BOTH `type` (native) and `variant` (styling), and binding a
+		// descriptor's variant to `type` renders every button secondary.
+		// `href` / `target` declared because the real NcButton renders an ANCHOR
+		// when given an href (and a button otherwise) — a stub that is always a
+		// button would let a link action pass while shipping the wrong element.
+		props: ['disabled', 'variant', 'href', 'target'],
 		// `emits: ['click']` is load-bearing. Vue 2 kept listeners in a separate
 		// channel, so `v-bind="$attrs"` could never re-attach the parent's
 		// `@click`. In Vue 3 an UNDECLARED event name stays in `$attrs` as the
@@ -69,7 +76,7 @@ const stubs = {
 		// the parent's handler a SECOND time — one call from the DOM click, one
 		// from `$emit('click')`. Declaring it removes `onClick` from `$attrs`.
 		emits: ['click'],
-		template: '<button :disabled="disabled" v-bind="$attrs" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>',
+		template: '<component :is="href ? \'a\' : \'button\'" :disabled="disabled" :href="href" :target="target" v-bind="$attrs" @click="$emit(\'click\')"><slot name="icon" /><slot /></component>',
 	},
 	CnIcon: { name: 'CnIcon', template: '<span class="cn-icon" />' },
 	CnConfirmDialog: {
@@ -91,9 +98,32 @@ const stubs = {
 	},
 }
 
-function mountBar(actions, { provide } = {}) {
+// `emits: ['click']` for the same reason as the NcButton stub above.
+stubs.NcActions = {
+	name: 'NcActions',
+	props: ['menuName', 'forceMenu'],
+	template: '<div class="nc-actions-stub" v-bind="$attrs"><span class="menu-name">{{ menuName }}</span><slot /></div>',
+}
+stubs.NcActionButton = {
+	name: 'NcActionButton',
+	props: ['disabled'],
+	emits: ['click'],
+	template: '<button class="nc-action-button-stub" :disabled="disabled" v-bind="$attrs" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>',
+}
+stubs.NcActionLink = {
+	name: 'NcActionLink',
+	props: ['href', 'target'],
+	template: '<a class="nc-action-link-stub" :href="href" :target="target" v-bind="$attrs"><slot name="icon" /><slot /></a>',
+}
+
+function mountBar(actions, { provide, inline, overflowLabel, display } = {}) {
 	return mount(CnActionButtons, {
-		propsData: { actions },
+		propsData: {
+			actions,
+			...(inline === undefined ? {} : { inline }),
+			...(overflowLabel === undefined ? {} : { overflowLabel }),
+			...(display === undefined ? {} : { display }),
+		},
 		stubs,
 		provide: provide || {},
 		mocks: { $router: { push: jest.fn(() => Promise.resolve()) } },
@@ -553,6 +583,241 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			w.vm.formEntry = w.vm.actions[0]
 
 			expect(w.vm.formInitialValues).toBeNull()
+		})
+	})
+
+	describe('overflow, sub-actions and onSelect', () => {
+		const four = [
+			{ id: 'a', label: 'A', type: 'api-call', url: '/a' },
+			{ id: 'b', label: 'B', type: 'api-call', url: '/b' },
+			{ id: 'c', label: 'C', type: 'api-call', url: '/c' },
+			{ id: 'd', label: 'D', type: 'api-call', url: '/d' },
+		]
+
+		it('renders every action as a button and NO overflow when inline is unset', async () => {
+			// The backwards-compatibility guarantee: existing consumers pass no
+			// `inline` and must keep the header they already have.
+			const wrapper = mountBar(four)
+			await flush()
+			for (const id of ['a', 'b', 'c', 'd']) {
+				expect(wrapper.find(`[data-testid="cn-action-${id}"]`).exists()).toBe(true)
+			}
+			expect(wrapper.find('[data-testid="cn-action-buttons-overflow"]').exists()).toBe(false)
+		})
+
+		it('keeps the first N as buttons and collapses the rest', async () => {
+			const wrapper = mountBar(four, { inline: 2 })
+			await flush()
+			const overflow = wrapper.find('[data-testid="cn-action-buttons-overflow"]')
+			expect(overflow.exists()).toBe(true)
+			expect(wrapper.vm.barActions.map((a) => a.id)).toEqual(['a', 'b'])
+			expect(wrapper.vm.overflowActions.map((a) => a.id)).toEqual(['c', 'd'])
+			// The collapsed ones still dispatch, from inside the menu.
+			await overflow.find('[data-testid="cn-action-d"]').trigger('click')
+			await flush()
+			expect(dispatchAction.mock.calls[0][0]).toMatchObject({ url: '/d' })
+		})
+
+		it('never collapses a primary action, and it costs no inline slot', async () => {
+			// NcActions paints all inline actions with one shared variant, so a
+			// lone primary among them cannot be expressed — it has to stay out.
+			const wrapper = mountBar([
+				{ id: 'open', label: 'Open', variant: 'primary', type: 'open-page', target: '/x' },
+				...four,
+			], { inline: 2 })
+			await flush()
+			expect(wrapper.vm.barActions.map((a) => a.id)).toEqual(['open', 'a', 'b'])
+			expect(wrapper.vm.overflowActions.map((a) => a.id)).toEqual(['c', 'd'])
+		})
+
+		it('gives an action with children its own chevron, costing no inline slot', async () => {
+			const wrapper = mountBar([
+				{
+					id: 'open',
+					label: 'Open app',
+					type: 'open-page',
+					target: '/x',
+					childrenLabel: 'Open a version',
+					children: [
+						{ id: 'v12', label: 'Open v1.2', type: 'open-page', target: '/x?v=1.2' },
+					],
+				},
+				...four,
+			], { inline: 2 })
+			await flush()
+			const chevron = wrapper.find('[data-testid="cn-action-children-open"]')
+			expect(chevron.exists()).toBe(true)
+			expect(chevron.find('.menu-name').text()).toBe('Open a version')
+			expect(wrapper.vm.barActions.map((a) => a.id)).toEqual(['open', 'a', 'b'])
+			await chevron.find('[data-testid="cn-action-v12"]').trigger('click')
+			await flush()
+			expect(dispatchAction.mock.calls[0][0]).toMatchObject({ target: '/x?v=1.2' })
+		})
+
+		it('hides a child whose visibleWhen evaluates false', async () => {
+			evaluateVisibleWhen.mockImplementation((cond) => Promise.resolve(cond.value === 'keep'))
+			const wrapper = mountBar([
+				{
+					id: 'open',
+					label: 'Open',
+					type: 'open-page',
+					target: '/x',
+					children: [
+						{ id: 'keep', label: 'Keep', type: 'open-page', target: '/k', visibleWhen: { field: 's', op: 'eq', value: 'keep' } },
+						{ id: 'drop', label: 'Drop', type: 'open-page', target: '/d', visibleWhen: { field: 's', op: 'eq', value: 'drop' } },
+					],
+				},
+			])
+			await flush()
+			expect(wrapper.find('[data-testid="cn-action-keep"]').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-action-drop"]').exists()).toBe(false)
+		})
+
+		it('calls onSelect instead of dispatching, and still honours confirm', async () => {
+			const onSelect = jest.fn()
+			const wrapper = mountBar([{ id: 'edit', label: 'Edit', onSelect }])
+			await flush()
+			await wrapper.find('[data-testid="cn-action-edit"]').trigger('click')
+			await flush()
+			expect(onSelect).toHaveBeenCalledTimes(1)
+			expect(dispatchAction).not.toHaveBeenCalled()
+		})
+
+		it('renders a primary action through NcButton\'s `variant`, not `type`', async () => {
+			// NcButton has both props: `type` is the NATIVE button type and
+			// `variant` is the styling. Binding the descriptor's variant to
+			// `type` left every button on the "secondary" default, so a
+			// primary/error action never once looked different.
+			const wrapper = mountBar([
+				{ id: 'open', label: 'Open', variant: 'primary', type: 'open-page', target: '/x' },
+				{ id: 'kill', label: 'Delete', variant: 'error', type: 'api-call', url: '/d' },
+				{ id: 'plain', label: 'Plain', type: 'api-call', url: '/p' },
+			])
+			await flush()
+			const variantOf = (id) => wrapper
+				.findComponent(`[data-testid="cn-action-${id}"]`)
+				.props('variant')
+			expect(variantOf('open')).toBe('primary')
+			expect(variantOf('kill')).toBe('error')
+			expect(variantOf('plain')).toBe('secondary')
+		})
+
+		it('names the overflow menu from overflowLabel', async () => {
+			const wrapper = mountBar(four, { inline: 1, overflowLabel: 'More' })
+			await flush()
+			expect(wrapper.find('[data-testid="cn-action-buttons-overflow"] .menu-name').text()).toBe('More')
+		})
+	})
+
+	// An action that ends in a URL has to BE a link. Routing it through a click
+	// handler costs middle-click, "open in new tab", the status-bar preview and
+	// the role assistive tech announces — none of which JS can give back.
+	describe('href entries render as links', () => {
+		it('renders a bar entry with href as an anchor, and never dispatches it', async () => {
+			const wrapper = mountBar([
+				{ id: 'open-app', label: 'Open app', href: '/index.php/apps/buildiq/builder/shop', target: '_blank' },
+			])
+			await flush()
+			const el = wrapper.find('[data-testid="cn-action-open-app"]')
+			expect(el.element.tagName).toBe('A')
+			expect(el.attributes('href')).toBe('/index.php/apps/buildiq/builder/shop')
+			expect(el.attributes('target')).toBe('_blank')
+
+			await el.trigger('click')
+			await flush()
+			expect(dispatchAction).not.toHaveBeenCalled()
+		})
+
+		it('renders an href entry in the overflow menu as an NcActionLink', async () => {
+			const wrapper = mountBar([
+				{ id: 'first', label: 'First', type: 'api-call', url: '/a' },
+				{ id: 'docs', label: 'Documentation', href: 'https://example.test/docs' },
+			], { inline: 1 })
+			await flush()
+			const link = wrapper.find('[data-testid="cn-action-buttons-overflow"] [data-testid="cn-action-docs"]')
+			expect(link.element.tagName).toBe('A')
+			expect(link.attributes('href')).toBe('https://example.test/docs')
+		})
+
+		it('renders an href CHILD as a link while its button siblings stay buttons', async () => {
+			const wrapper = mountBar([
+				{
+					id: 'open-app',
+					label: 'Open app',
+					variant: 'primary',
+					children: [
+						{ id: 'open-prod', label: 'Production', href: '/index.php/apps/buildiq/builder/shop' },
+						{ id: 'edit-prod', label: 'Edit production', type: 'api-call', url: '/e' },
+					],
+				},
+			])
+			await flush()
+			expect(wrapper.find('[data-testid="cn-action-open-prod"]').element.tagName).toBe('A')
+			expect(wrapper.find('[data-testid="cn-action-edit-prod"]').element.tagName).toBe('BUTTON')
+		})
+	})
+
+	// REGRESSION. A manifest-authored `type: "navigate"` action carries its URL
+	// in `target`, not `href`, so it fell through to the dispatcher and was
+	// pushed at the router. An absolute URL is not a route: it matched nothing
+	// and landed on the app's fallback page carrying the URL's query string.
+	describe('an external navigate action becomes a link', () => {
+		it('renders as an anchor to the target, in a new tab, and never dispatches', async () => {
+			const wrapper = mountBar([
+				{ id: 'watch', label: 'Watch', type: 'navigate', target: 'https://www.youtube.com/watch?v=MM60juTPkSM' },
+			])
+			await flush()
+			const el = wrapper.find('[data-testid="cn-action-watch"]')
+			expect(el.element.tagName).toBe('A')
+			expect(el.attributes('href')).toBe('https://www.youtube.com/watch?v=MM60juTPkSM')
+			expect(el.attributes('target')).toBe('_blank')
+
+			await el.trigger('click')
+			await flush()
+			expect(dispatchAction).not.toHaveBeenCalled()
+		})
+
+		it('leaves an in-app navigate as a dispatched button', async () => {
+			const wrapper = mountBar([
+				{ id: 'dogs', label: 'Dogs', type: 'navigate', target: '/dogs' },
+			])
+			await flush()
+			const el = wrapper.find('[data-testid="cn-action-dogs"]')
+			expect(el.element.tagName).toBe('BUTTON')
+
+			await el.trigger('click')
+			await flush()
+			expect(dispatchAction).toHaveBeenCalled()
+		})
+
+		it('does not override an author-supplied href', async () => {
+			const wrapper = mountBar([
+				{ id: 'x', label: 'X', type: 'navigate', target: 'https://a.test', href: 'https://b.test' },
+			])
+			await flush()
+			expect(wrapper.find('[data-testid="cn-action-x"]').attributes('href')).toBe('https://b.test')
+		})
+
+		it('publishes the link to a display:"menu" host through `entries`', async () => {
+			const wrapper = mountBar([
+				{ id: 'watch', label: 'Watch', type: 'navigate', target: 'https://example.test/v' },
+			], { display: 'menu' })
+			await flush()
+			const [entries] = wrapper.emitted('entries').at(-1)
+			expect(entries[0]).toMatchObject({
+				id: 'watch',
+				href: 'https://example.test/v',
+				linkTarget: '_blank',
+			})
+		})
+
+		it('leaves href and linkTarget empty for a dispatched entry', async () => {
+			const wrapper = mountBar([
+				{ id: 'dogs', label: 'Dogs', type: 'navigate', target: '/dogs' },
+			], { display: 'menu' })
+			await flush()
+			const [entries] = wrapper.emitted('entries').at(-1)
+			expect(entries[0]).toMatchObject({ href: '', linkTarget: '' })
 		})
 	})
 })

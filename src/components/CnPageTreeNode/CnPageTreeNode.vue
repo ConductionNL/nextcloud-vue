@@ -4,41 +4,52 @@
 -->
 
 <template>
+	<!-- `#item` + `item-key`, NOT a `v-for` in the default slot. vuedraggable@4
+	     is the Vue 3 build and it renders rows ITSELF from this slot: the
+	     Vue 2 form throws "draggable element must have an item slot" outright
+	     (`computeNodes` in its source) and warns that the required `itemKey`
+	     is missing. `item-key` takes the same function the `:key` used to. -->
 	<draggable v-model="tree"
 		tag="ul"
 		class="cn-page-tree"
+		:item-key="(node) => nodeKey(node.ref)"
 		:group="group"
 		handle=".cn-page-tree__handle"
 		:move="onMove"
 		@end="flatten">
-		<li v-for="node in tree" :key="nodeKey(node.ref)" class="cn-page-tree__node">
-			<CnPageTreeRow :page="node.ref"
-				:can-add-child="maxDepth > 0"
-				@add-child="addChild(node)"
-				@rename="(id) => renamePage(node.ref, id)"
-				@navigate="bubbleNavigate"
-				@remove="removeNode(node, null)" />
+		<template #item="{ element: node }">
+			<li class="cn-page-tree__node">
+				<CnPageTreeRow :page="node.ref"
+					:can-add-child="maxDepth > 0"
+					@add-child="addChild(node)"
+					@rename="(id) => renamePage(node.ref, id)"
+					@navigate="bubbleNavigate"
+					@remove="removeNode(node, null)" />
 
-			<!-- One level of children: a drop target on every top page so a row
-			     can be dragged IN (to nest) or OUT (to top level). -->
-			<draggable v-if="maxDepth > 0"
-				v-model="node.children"
-				tag="ul"
-				class="cn-page-tree__children"
-				:class="{ 'cn-page-tree__children--empty': !node.children.length }"
-				:group="group"
-				handle=".cn-page-tree__handle"
-				:move="onMove"
-				@end="flatten">
-				<li v-for="child in node.children" :key="nodeKey(child.ref)" class="cn-page-tree__node">
-					<CnPageTreeRow :page="child.ref"
-						:can-add-child="false"
-						@rename="(id) => renamePage(child.ref, id)"
-						@navigate="bubbleNavigate"
-						@remove="removeNode(child, node)" />
-				</li>
-			</draggable>
-		</li>
+				<!-- One level of children: a drop target on every top page so a
+				     row can be dragged IN (to nest) or OUT (to top level). -->
+				<draggable v-if="maxDepth > 0"
+					v-model="node.children"
+					tag="ul"
+					class="cn-page-tree__children"
+					:class="{ 'cn-page-tree__children--empty': !node.children.length }"
+					:item-key="(child) => nodeKey(child.ref)"
+					:group="group"
+					handle=".cn-page-tree__handle"
+					:move="onMove"
+					@end="flatten">
+					<template #item="{ element: child }">
+						<li class="cn-page-tree__node">
+							<CnPageTreeRow :page="child.ref"
+								:can-add-child="false"
+								@rename="(id) => renamePage(child.ref, id)"
+								@navigate="bubbleNavigate"
+								@remove="removeNode(child, node)" />
+						</li>
+					</template>
+				</draggable>
+			</li>
+		</template>
 	</draggable>
 </template>
 
@@ -117,17 +128,38 @@ export default {
 	},
 
 	watch: {
+		// The prop's IDENTITY, for a host that swaps the array wholesale.
 		list: {
-			handler() {
-				if (this.suppressRebuild) return
-				this.tree = this.buildTree()
-			},
+			handler: 'rebuild',
 			deep: false,
 		},
+		// ...and its LENGTH, for a host that pushes or splices in place. The
+		// modal's "Add page" does exactly that — `list` IS the working
+		// manifest's `pages[]`, so its reference never changes and the watcher
+		// above never fired: the page was appended to the manifest and simply
+		// never appeared.
+		//
+		// Length rather than `deep: true`, which would fire on every keystroke
+		// in a row's Title/Route field and rebuild the tree under the user,
+		// tearing down the row whose settings panel is open.
+		//
+		// This component's OWN mutations all land in `flatten()`, which holds
+		// `suppressRebuild` across the splice, so they do not round-trip.
+		'list.length': 'rebuild',
 	},
 
 	methods: {
 		t,
+		/**
+		 * Re-seed the local tree from `list`, unless our own `flatten()` is
+		 * mid-write.
+		 *
+		 * @return {void}
+		 */
+		rebuild() {
+			if (this.suppressRebuild) return
+			this.tree = this.buildTree()
+		},
 		/**
 		 * Stable render key for a page's `<li>`, tied to the page object rather
 		 * than its `id`. Renaming a slug mutates `id` in place; keying by `id`

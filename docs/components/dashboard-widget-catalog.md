@@ -159,15 +159,6 @@ supplied by the consuming app via `calendarsFetcher`) instead of free-text
 principal URIs; external ICS URLs must be `https://`.
 → [`CnCalendarWidget`](./cn-calendar-widget.md) · [`CnCalendarWidgetForm`](./cn-calendar-widget-form.md)
 
-### News · `news`
-
-![news widget rendering RSS headlines](/img/screenshots/widget-news.png)
-
-RSS/Atom news aggregator widget; items fetched via the consumer-supplied
-`itemsEndpoint`. The consuming app's backend fetches and parses the feed URLs
-stored in the placement `content`.
-→ [`CnNewsWidget`](./cn-news-widget.md) · [`CnNewsWidgetForm`](./cn-news-widget-form.md)
-
 ### Nextcloud widget · `nc-widget`
 
 ![nc-widget proxy rendering a native Nextcloud dashboard widget](/img/screenshots/widget-nc-widget.png)

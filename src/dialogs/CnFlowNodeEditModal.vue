@@ -94,7 +94,7 @@
 					:input-label="labelFor(key)"
 					:loading="principalsLoading"
 					:multiple="true"
-					:close-on-select="false"
+					:keep-open="true"
 					:placeholder="t('nextcloud-vue', 'Search people and groups…')"
 					:data-testid="`flow-node-principal-${key}`"
 					@search="searchPrincipals"
