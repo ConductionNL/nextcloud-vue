@@ -12,7 +12,7 @@ import { networkError, parseResponseError } from '../../utils/errors.js'
  * State: lifecycleLoading, lifecycleError
  * Actions: lockObject, unlockObject, publishObject, depublishObject, revertObject, mergeObjects
  *
- * @return {Function} Plugin factory
+ * @return {object} The plugin definition (name, state, getters, actions)
  *
  * @example
  * const useStore = createObjectStore('object', {

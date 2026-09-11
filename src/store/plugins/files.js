@@ -16,7 +16,7 @@ import { createSubResourcePlugin } from '../createSubResourcePlugin.js'
  *
  * @param {object} [options={}] Plugin options
  * @param {number} [options.limit=20] Default page size
- * @return {Function} Plugin factory
+ * @return {object} The plugin definition (name, state, getters, actions)
  *
  * @example
  * const useStore = createObjectStore('object', {

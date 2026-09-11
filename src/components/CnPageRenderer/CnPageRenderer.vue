@@ -449,7 +449,7 @@ export default {
 		 * components rendered by the renderer can `inject('cnTranslate')`
 		 * via the consumer's setup.
 		 *
-		 * @type {Function|null}
+		 * @type {?(text: string, placeholders?: object) => string}
 		 */
 		translate: {
 			type: Function,
@@ -675,7 +675,7 @@ export default {
 		 * Proxy for the cnOpenModal inject so the provide() closure can
 		 * reference `this._cnOpenModal` without binding issues.
 		 *
-		 * @return {Function|null}
+		 * @return {?(key: string, props?: object) => void} The injected opener, or null.
 		 */
 		_cnOpenModal() {
 			return typeof this.cnOpenModal === 'function' ? this.cnOpenModal : null
@@ -1552,7 +1552,7 @@ export default {
 		 *   2. legacy customComponents — a function-valued entry.
 		 *
 		 * @param {string} name The registered handler name from `config.createOverride`.
-		 * @return {?Function} The async create handler, or null if unresolved.
+		 * @return {?(formData: object, ctx: object) => Promise<object>} The async create handler, or null if unresolved.
 		 */
 		resolveCreateOverride(name) {
 			return resolveCreateOverrideHandler(name, this.effectiveRegistry, this.effectiveCustomComponents)

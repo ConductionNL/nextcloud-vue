@@ -115,9 +115,9 @@ function objectDedupKey(type, id) {
  * `cancel()` clears any pending trailing dispatch — called on
  * unsubscribe so a torn-down subscription never fires a late refetch.
  *
- * @param {Function} fn The refetch dispatcher.
+ * @param {() => void} fn The refetch dispatcher.
  * @param {number} waitMs Coalescing window in ms; `<= 0` disables (every run dispatches).
- * @return {{run: Function, cancel: Function}} The coalesced dispatcher.
+ * @return {{run: () => void, cancel: () => void}} The coalesced dispatcher.
  */
 function createHintCoalescer(fn, waitMs) {
 	let timer = null

@@ -58,7 +58,7 @@ export default {
 		 * `renderMode` is `'mount'`). The host resolves this from
 		 * `useIntegrationRegistry().getById(id)`.
 		 *
-		 * @type {{ id: string, mount: Function, unmount: Function }}
+		 * @type {{ id: string, mount: (el: HTMLElement, props: object) => void, unmount: (el: HTMLElement) => void }}
 		 */
 		provider: {
 			type: Object,

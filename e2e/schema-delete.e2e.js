@@ -45,7 +45,7 @@ function json(route, body, status = 200) {
  * can model a different server: one that supports the cascade, and one that does not.
  *
  * @param {import('@playwright/test').Page} page The page.
- * @param {Function} onDelete Receives ({ route, url, cascade }) for a schema DELETE.
+ * @param {(args: {route: object, url: string, cascade: boolean}) => (void|Promise<void>)} onDelete Receives ({ route, url, cascade }) for a schema DELETE.
  * @return {Promise<{deleteCalls: string[]}>} Records every schema-DELETE url.
  */
 async function stubOpenRegister(page, onDelete) {

@@ -1043,8 +1043,8 @@ export default {
 		/**
 		 * Fetch one scalar from the OpenRegister `/value` aggregation endpoint.
 		 *
-		 * @param {Function} axios The axios instance.
-		 * @param {Function} generateUrl The router helper.
+		 * @param {{get: (url: string, config?: object) => Promise<object>}} axios The axios instance.
+		 * @param {(path: string, params?: object) => string} generateUrl The router helper.
 		 * @param {object} s The source (register/schema).
 		 * @param {string} metric The aggregation metric.
 		 * @param {?string} field The numeric field (non-count metrics).
@@ -1137,8 +1137,8 @@ export default {
 		 * (no OpenRegister expression-aggregation primitive yet). Pulls the
 		 * matching objects (capped at `limit`, default 1000) and folds them.
 		 *
-		 * @param {Function} axios The axios instance.
-		 * @param {Function} generateUrl The router helper.
+		 * @param {{get: (url: string, config?: object) => Promise<object>}} axios The axios instance.
+		 * @param {(path: string, params?: object) => string} generateUrl The router helper.
 		 * @param {object} s The weighted source `{ field, weightField, divisor?, filter?, limit? }`.
 		 * @return {Promise<number|null>} The weighted sum.
 		 */
@@ -1219,8 +1219,8 @@ export default {
 		 * to a custom-aggregation endpoint (e.g. `/api/analytics/summary`) that
 		 * OpenRegister's per-schema aggregation can't express.
 		 *
-		 * @param {Function} axios The axios instance.
-		 * @param {Function} generateUrl The router helper.
+		 * @param {{get: (url: string, config?: object) => Promise<object>}} axios The axios instance.
+		 * @param {(path: string, params?: object) => string} generateUrl The router helper.
 		 * @param {object} s The endpoint source `{ url, path?, params?, method? }`.
 		 * @return {Promise<number|null>} The extracted value.
 		 */

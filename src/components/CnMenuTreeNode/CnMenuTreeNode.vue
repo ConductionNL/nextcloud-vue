@@ -186,7 +186,7 @@ export default {
 		 * Order comparator: numeric `order` ascending, array index as tiebreak.
 		 *
 		 * @param {Array} arr The array being sorted (for index tiebreak).
-		 * @return {Function}
+		 * @return {(a: object, b: object) => number} The comparator.
 		 */
 		byOrder(arr) {
 			return (a, b) => {
