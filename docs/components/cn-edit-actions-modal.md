@@ -9,7 +9,11 @@ and overflow Actions items the page renders. All edits mutate the passed
 Opened by [CnBuildiqEditButton](./cn-buildiq-edit-button.md)'s "Edit
 actions…" item. Each action carries a `type` (`open-page` / `navigate` /
 `open-modal` / `handler`) selected via an `NcSelect` (with `inputLabel`); the
-target field's label adapts to the type.
+target field's label adapts to the type, and the icon is picked with
+[CnIconBrowser](./cn-icon-browser.md) rather than typed.
+
+A page with no actions yet shows a hint pointing at the footer's "Add action",
+so the empty body doesn't read as a broken modal.
 
 ## Import
 

@@ -12,6 +12,9 @@
 			v-if="!page"
 			:name="t('nextcloud-vue', 'No editable page')" />
 		<template v-else>
+			<p v-if="!actions.length" class="cn-edit-actions__hint">
+				{{ t('nextcloud-vue', 'This page has no actions yet. Use “Add action” below to create one.') }}
+			</p>
 			<ul class="cn-edit-actions__list">
 				<li v-for="(action, index) in actions" :key="action.id || index" class="cn-edit-actions__row">
 					<div class="cn-edit-actions__fields">
@@ -19,10 +22,11 @@
 							v-model="action.label"
 							:label="t('nextcloud-vue', 'Label')"
 							:label-visible="true" />
-						<NcTextField
-							v-model="action.icon"
+						<CnIconBrowser
+							:value="action.icon || null"
 							:label="t('nextcloud-vue', 'Icon')"
-							:label-visible="true" />
+							clearable
+							@input="(value) => setIcon(action, value)" />
 						<NcSelect
 							v-model="action.type"
 							:options="actionTypes"
@@ -85,6 +89,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import ArrowUp from 'vue-material-design-icons/ArrowUp.vue'
 import ArrowDown from 'vue-material-design-icons/ArrowDown.vue'
+import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 const ACTION_TYPES = ['open-page', 'navigate', 'open-modal', 'handler']
@@ -92,7 +97,7 @@ const ACTION_TYPES = ['open-page', 'navigate', 'open-modal', 'handler']
 export default {
 	name: 'CnEditActionsModal',
 
-	components: { NcDialog, NcButton, NcTextField, NcSelect, NcEmptyContent, NcLoadingIcon, Plus, Delete, ArrowUp, ArrowDown },
+	components: { NcDialog, NcButton, NcTextField, NcSelect, NcEmptyContent, NcLoadingIcon, CnIconBrowser, Plus, Delete, ArrowUp, ArrowDown },
 
 	mixins: [manifestModalDoneMixin],
 
@@ -159,6 +164,17 @@ export default {
 			default: return t('nextcloud-vue', 'Handler name')
 			}
 		},
+		/**
+		 * Set an action's icon from the icon browser, which emits `null` on clear
+		 * while the manifest stores an absent icon as `''`.
+		 *
+		 * @param {object} action The action row being edited.
+		 * @param {string|null} value The picked icon value.
+		 * @return {void}
+		 */
+		setIcon(action, value) {
+			action.icon = value || ''
+		},
 		/** Append a new blank action to the working page. */
 		add() {
 			this.actions.push({ id: `action-${this.actions.length + 1}`, label: '', icon: '', type: 'open-page', target: '' })
@@ -191,6 +207,11 @@ export default {
 </script>
 
 <style scoped>
+.cn-edit-actions__hint {
+	color: var(--color-text-maxcontrast);
+	margin-bottom: 12px;
+}
+
 .cn-edit-actions__list {
 	display: flex;
 	flex-direction: column;
@@ -200,16 +221,20 @@ export default {
 .cn-edit-actions__row {
 	display: flex;
 	gap: 8px;
-	align-items: flex-end;
+	align-items: flex-start;
 	padding-bottom: 12px;
 	border-bottom: 1px solid var(--color-border);
 }
 
+/* One field per line: side by side the four controls have different intrinsic
+   heights (the icon trigger and the select are not text inputs), so no
+   alignment reads as deliberate. */
 .cn-edit-actions__fields {
 	display: flex;
+	flex-direction: column;
 	gap: 8px;
 	flex: 1 1 auto;
-	flex-wrap: wrap;
+	min-width: 0;
 }
 
 .cn-edit-actions__row-actions {
