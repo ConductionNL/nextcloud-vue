@@ -65,9 +65,19 @@ resolves for every object. They use MDTO concepts under English names.
 | `disposalCategory` | The selection list category the decision came from |
 | `basis` | On whose authority the period rests |
 | `source` | The named selection list or schema behind it |
+| `sourceVersion` | Which revision of that selection list was applied |
+| `sourceConsultedAt` | When the selection list was consulted |
 | `legalHold` | An active hold, with its reason |
 
 The widget shows nothing archival for an object that carries no obligation.
+
+When an object does carry a decision, the four core rows (`appraisal`,
+`retentionPeriod`, `disposalDate`, `recordState`) always show, with a dash when
+a fact is missing. A missing disposal date is itself an answer a records
+officer needs, and a row that is simply absent reads as a panel that never
+looked. The provenance rows appear only when they carry a value, unless a host
+names them in `include`, in which case they show blank too. Blank rows carry the
+`cn-detail-grid__value--empty` class.
 
 ## Examples
 
