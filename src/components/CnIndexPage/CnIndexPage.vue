@@ -3838,7 +3838,7 @@ export default {
 		},
 
 		/**
-		 * Handle the Add button click. If the consumer listens to @add,
+		 * Handle the Add button click. If the consumer listens to `@add`,
 		 * emit the event (backward compatible). Otherwise open the form dialog.
 		 */
 		onAddClick() {

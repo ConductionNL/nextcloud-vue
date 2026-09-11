@@ -2140,7 +2140,7 @@ export default {
 		 *
 		 * @param {{ label: string, value: string }} preset Preset descriptor.
 		 * @param {object} _item Layout item (unused — included so the
-		 *   binding shape matches the template's @click signature).
+		 *   binding shape matches the template's `@click` signature).
 		 * @return {void}
 		 */
 		onChipPresetPick(preset, _item) {

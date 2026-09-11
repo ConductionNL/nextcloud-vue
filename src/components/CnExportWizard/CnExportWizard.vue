@@ -376,7 +376,7 @@ export default {
 		},
 
 		/**
-		 * Confirm handler. Emits @confirm with the current form data
+		 * Confirm handler. Emits `@confirm` with the current form data
 		 * and sets `loading` until `setResult` is called.
 		 *
 		 * @return {void}

@@ -648,7 +648,11 @@ export default {
 
 	data() {
 		return {
-			/** The file input element, set by the template's function ref (kept off `$refs` so the ref stays dynamic — see the template). @type {HTMLInputElement|null} */
+			/**
+			 * The file input element, set by the template's function ref (kept off `$refs` so the ref stays dynamic — see the template).
+			 *
+			 * @type {HTMLInputElement|null}
+			 */
 			fileInputEl: null,
 			/** Whether any section/tab is currently fetching. */
 			loading: false,

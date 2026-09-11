@@ -315,7 +315,11 @@ export default {
 
 	data() {
 		return {
-			/** The hidden file input, set by the template's function ref (kept off `$refs` so the ref stays dynamic — see the template). @type {HTMLInputElement|null} */
+			/**
+			 * The hidden file input, set by the template's function ref (kept off `$refs` so the ref stays dynamic — see the template).
+			 *
+			 * @type {HTMLInputElement|null}
+			 */
 			fileInputEl: null,
 			items: [],
 			currentSubPath: '/',

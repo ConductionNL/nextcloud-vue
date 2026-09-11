@@ -589,9 +589,6 @@ const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-imp
  * with the form data. The parent performs the actual API call and calls
  * `setResult()` via a ref.
  *
- * @event confirm Emitted when the user confirms the form. Payload: formData object (includes `id` in edit mode).
- * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
- *
  * ```vue
  * <CnFormDialog
  *   v-if="showFormDialog"
@@ -638,6 +635,9 @@ const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-imp
  *   </template>
  * </CnFormDialog>
  * ```
+ *
+ * @event confirm Emitted when the user confirms the form. Payload: formData object (includes `id` in edit mode).
+ * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
  */
 export default {
 	name: 'CnFormDialog',
