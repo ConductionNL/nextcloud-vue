@@ -599,7 +599,7 @@
 				},
 				"widgetProps": {
 					"type": "object",
-					"description": "Optional extra props spread onto the resolved cell-widget component (e.g. `{ \"variant\": \"warning\" }` for the built-in `badge` widget). Ignored when `widget` is unset or unresolved.",
+					"description": "Optional extra props spread onto the resolved cell-widget component (e.g. `{ \"variant\": \"warning\" }` for the built-in `badge` widget). The built-in `link` widget reads `route` (page id), `params` (route param to row field), `href` (URL with `{field}` placeholders, checked by safeHref), and `routeField` + `routeMap` to pick the page per row from a sibling field, with `route` as the fallback. Ignored when `widget` is unset or unresolved.",
 					"additionalProperties": true
 				},
 				"format": {
