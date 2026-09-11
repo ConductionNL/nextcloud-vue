@@ -12,13 +12,15 @@
 
 const { mergeManifestDelta } = require('../../src/utils/mergeManifestDelta.js')
 
-const base = () => ({
+function base () {
+  return {
 	version: '1.0.0',
 	pages: [
 		{ id: 'a', title: 'A', widgets: [{ id: 'w1', widgetKey: 'k1' }, { id: 'w2', widgetKey: 'k2' }] },
 		{ id: 'b', title: 'B' },
 	],
-})
+}
+}
 
 describe('mergeManifestDelta', () => {
 	it('patches an existing page without touching siblings', () => {

@@ -36,7 +36,8 @@ function canonical(value) {
 	return value
 }
 
-const detailTemplateManifest = () => ({
+function detailTemplateManifest () {
+  return {
 	$schema: 'x/app-manifest-v2.schema.json',
 	version: '1.0.0',
 	pageTemplates: [
@@ -93,7 +94,8 @@ const detailTemplateManifest = () => ({
 			},
 		},
 	],
-})
+}
+}
 
 describe('expandPageTemplates — substitution', () => {
 	it('substitutes exact-match placeholders preserving value type', () => {

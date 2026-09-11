@@ -60,13 +60,15 @@ const stubs = {
 	CnDateRangePicker: true,
 }
 
-const mountPage = (propsData = {}, opts = {}) => mount(CnDashboardPage, {
+function mountPage (propsData = {}, opts = {}) {
+  return mount(CnDashboardPage, {
 	propsData: { title: 'Overview', widgets: [], layout: [], ...propsData },
 	stubs,
 	mocks: { $route: { name: 'dashboard' } },
 	provide: { cnAppId: 'pipelinq', cnFeatureRequestRepo: 'ConductionNL/pipelinq', ...(opts.provide || {}) },
 	...opts,
 })
+}
 
 describe('CnDashboardPage — page-level Actions menu', () => {
 	beforeEach(() => {

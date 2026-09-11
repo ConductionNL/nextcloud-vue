@@ -11,7 +11,8 @@
 
 const { validateManifestV2 } = require('../../src/utils/validateManifest.js')
 
-const templated = () => ({
+function templated () {
+  return {
 	$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json',
 	version: '1.0.0',
 	menu: [],
@@ -41,7 +42,8 @@ const templated = () => ({
 		label: 'Invoice',
 		params: { id: 'InvoiceDetail', route: '/invoices/:id' },
 	}],
-})
+}
+}
 
 describe('app-manifest-v2 schema — entity-scaffold templating', () => {
 	it('accepts a manifest declaring pageTemplates + pageInstances + sets', () => {

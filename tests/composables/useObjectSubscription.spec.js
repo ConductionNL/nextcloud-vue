@@ -17,7 +17,8 @@ function makeStore() {
 	}
 }
 
-const Host = (composable) => defineComponent({
+function Host (composable) {
+  return defineComponent({
 	props: ['store', 'type', 'id', 'enabled'],
 	setup(props) {
 		composable(props)
@@ -27,6 +28,7 @@ const Host = (composable) => defineComponent({
 		return h('div')
 	},
 })
+}
 
 describe('useObjectSubscription', () => {
 	test('subscribes on mount, unsubscribes on unmount', async () => {

@@ -31,7 +31,8 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { createObjectStore } from '../../src/store/useObjectStore.js'
 
-const notOk = (status, statusText) => ({
+function notOk (status, statusText) {
+  return {
 	ok: false,
 	status,
 	statusText,
@@ -39,7 +40,8 @@ const notOk = (status, statusText) => ({
 	json: async () => {
 		throw new Error('no json')
 	},
-})
+}
+}
 
 describe('useObjectStore fetch-by-id console contract', () => {
 	let store

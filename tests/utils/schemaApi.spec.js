@@ -20,7 +20,8 @@ import {
 
 const axios = require('@nextcloud/axios').default
 
-const breaking409 = () => ({
+function breaking409 () {
+  return {
 	response: {
 		status: 409,
 		data: {
@@ -29,11 +30,14 @@ const breaking409 = () => ({
 			changes: [{ property: 'barn', kind: 'type_changed', old: 'string', new: 'object' }],
 		},
 	},
-})
+}
+}
 
-const hasObjects409 = (objectCount = 2) => ({
+function hasObjects409 (objectCount = 2) {
+  return {
 	response: { status: 409, data: { error: 'schema-has-objects', objectCount } },
-})
+}
+}
 
 describe('saveSchema', () => {
 	beforeEach(() => {

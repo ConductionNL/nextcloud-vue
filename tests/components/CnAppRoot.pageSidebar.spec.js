@@ -27,7 +27,8 @@ const SidebarStub = {
  * @param {object} component The component.
  * @return {object} The registry.
  */
-const registryWith = (component) => ({
+function registryWith (component) {
+  return {
 	DetailSidebar: {
 		kind: 'widget',
 		component,
@@ -37,9 +38,11 @@ const registryWith = (component) => ({
 		allowedSlots: ['sidebar'],
 		propsSchema: {},
 	},
-})
+}
+}
 
-const makeManifest = (page = {}) => ({
+function makeManifest (page = {}) {
+  return {
 	id: 'testapp',
 	name: 'Test App',
 	menu: [],
@@ -50,7 +53,8 @@ const makeManifest = (page = {}) => ({
 			...page,
 		},
 	],
-})
+}
+}
 
 /**
  * Mount CnAppRoot with a stubbed route and the given manifest/registry.
@@ -60,7 +64,7 @@ const makeManifest = (page = {}) => ({
  * @param {string} routeName The current route name.
  * @return {object} The wrapper.
  */
-const mountRoot = (manifest, extraProps = {}, routeName = 'Detail') => {
+function mountRoot (manifest, extraProps = {}, routeName = 'Detail') {
 	// CnAppRoot is nested inside a wrapper render function so `mocks`/`stubs`
 	// given at the top level apply app-wide (see tests/support/vueTestUtilsCompat.js).
 	//

@@ -70,7 +70,7 @@ const pageKeys = new WeakMap()
 export default {
 	name: 'CnPageTreeNode',
 
-	components: { draggable, CnPageTreeRow },
+	components: { Draggable: draggable, CnPageTreeRow },
 
 	props: {
 		/**

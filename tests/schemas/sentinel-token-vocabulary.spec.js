@@ -28,7 +28,8 @@ const DEF_FOR_CONTEXT = {
 	deprecated: 'sentinelDeprecatedToken',
 }
 
-const manifest = (config, widgets) => ({
+function manifest (config, widgets) {
+  return {
 	$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json',
 	version: '1.0.0',
 	menu: [],
@@ -40,7 +41,8 @@ const manifest = (config, widgets) => ({
 		...(config ? { config } : {}),
 		...(widgets ? { widgets } : {}),
 	}],
-})
+}
+}
 
 describe('sentinel-token vocabulary ⇄ schema $def equality', () => {
 	it('every context pattern string equals its schema $def pattern (no drift)', () => {

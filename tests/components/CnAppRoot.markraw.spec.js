@@ -27,12 +27,14 @@ const { __resetAppStatusCacheForTests } = require('../../src/composables/useAppS
 const { diffManifest } = require('../../src/utils/diffManifest.js')
 const CnAppRoot = require('../../src/components/CnAppRoot/CnAppRoot.vue').default
 
-const makeManifest = () => ({
+function makeManifest () {
+  return {
 	version: '1.0.0',
 	dependencies: [],
 	menu: [{ id: 'home', label: 'Home', route: 'home' }],
 	pages: [{ id: 'home', route: '/', type: 'index', title: 'Home' }],
-})
+}
+}
 
 /**
  * Mount CnAppRoot nested inside a wrapper so its manifest prop is not

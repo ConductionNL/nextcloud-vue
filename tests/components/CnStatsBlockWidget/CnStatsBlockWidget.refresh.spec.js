@@ -70,10 +70,12 @@ async function flush() {
 	}
 }
 
-const mountWidget = (propsData) => mount(CnStatsBlockWidget, {
+function mountWidget (propsData) {
+  return mount(CnStatsBlockWidget, {
 	propsData,
 	stubs: { CnStatsBlock: StatsBlockStub },
 })
+}
 
 const dataSource = { register: 'openconnector', schema: 'source' }
 

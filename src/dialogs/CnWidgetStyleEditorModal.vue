@@ -158,14 +158,16 @@ const mdiConnection = 'M21.4 7.5C22.2 8.3 22.2 9.6 21.4 10.3L18.6 13.1L10.8 5.3L
 
 // The shape a freshly-reset widget chrome falls back to. Kept as a factory so
 // callers of resetDraft() always get a deep copy (never a shared reference).
-const defaultStyleConfig = () => ({
+function defaultStyleConfig () {
+  return {
 	backgroundColor: '',
 	borderStyle: 'none',
 	borderColor: '',
 	borderWidth: 1,
 	borderRadius: 12,
 	padding: { top: 0, right: 0, bottom: 0, left: 0 },
-})
+}
+}
 
 /**
  * CnWidgetStyleEditorModal — isolated host (ADR-004) for editing a single

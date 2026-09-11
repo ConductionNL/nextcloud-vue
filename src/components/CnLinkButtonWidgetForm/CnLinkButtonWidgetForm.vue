@@ -107,7 +107,7 @@
 							:disabled="index === 0"
 							:aria-label="t('nextcloud-vue', 'Move link up')"
 							@click="moveLinkUp(index)">
-							{{ '↑' }}
+							↑
 						</button>
 						<button
 							type="button"
@@ -115,7 +115,7 @@
 							:disabled="index === links.length - 1"
 							:aria-label="t('nextcloud-vue', 'Move link down')"
 							@click="moveLinkDown(index)">
-							{{ '↓' }}
+							↓
 						</button>
 						<div class="cn-link-button-widget-form__row-fields">
 							<NcTextField

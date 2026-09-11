@@ -21,10 +21,12 @@ const schema = {
 	},
 }
 
-const mountWith = (objectData) => shallowMount(CnObjectDataWidget, {
+function mountWith (objectData) {
+  return shallowMount(CnObjectDataWidget, {
 	propsData: { schema, objectData },
 	mocks: { t: (app, s) => s },
 })
+}
 
 const fieldByKey = (vm, key) => vm.resolvedFields.find((f) => f.key === key)
 

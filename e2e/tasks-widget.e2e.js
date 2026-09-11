@@ -42,7 +42,8 @@ function row(overrides = {}) {
 	}
 }
 
-const pooled = () => row({
+function pooled () {
+  return row({
 	uuid: 'task-2',
 	displayTitle: 'Vraag aanvullende stukken op',
 	state: 'enabled',
@@ -52,6 +53,7 @@ const pooled = () => row({
 	daysOverdue: 2,
 	daysUntilDue: null,
 })
+}
 
 test.describe('the tasks index page (entitySource: "tasks")', () => {
 	test.beforeEach(async ({ page }) => {

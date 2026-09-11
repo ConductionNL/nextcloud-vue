@@ -53,13 +53,15 @@ function setupState(steps, loading = false) {
 	}
 }
 
-const manifestWith = (steps, version = 1) => ({
+function manifestWith (steps, version = 1) {
+  return {
 	version: '1.0.0',
 	menu: [{ id: 'home', label: 'Home', route: 'home' }],
 	pages: [{ id: 'home', route: '/', type: 'index', title: 'Home' }],
 	dependencies: [],
 	setup: { enabled: true, version, steps: steps.map(({ id, type, required }) => ({ id, type, required })) },
-})
+}
+}
 
 function mountRoot(manifest) {
 	return mount(CnAppRoot, {

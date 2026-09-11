@@ -48,7 +48,8 @@
 						type="button"
 						role="tab"
 						:aria-selected="String(group.key === activeKey)"
-						class="cn-related-objects-widget__tab" :class="[{ 'cn-related-objects-widget__tab--active': group.key === activeKey }]"
+						class="cn-related-objects-widget__tab"
+:class="[{ 'cn-related-objects-widget__tab--active': group.key === activeKey }]"
 						@click="activeKey = group.key">
 						<CnIcon :name="group.icon" :size="18" class="cn-related-objects-widget__tab-icon" />
 						<span class="cn-related-objects-widget__tab-label">{{ group.label }}</span>

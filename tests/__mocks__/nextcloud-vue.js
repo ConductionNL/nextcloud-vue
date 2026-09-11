@@ -60,7 +60,7 @@ const NATIVE_BOOLEAN_ATTRS = new Set([
  * @param {object} attrs the fallthrough attributes.
  * @return {object} attributes safe to spread onto the stub's `<div>`.
  */
-const withBooleanAttrSemantics = (attrs) => {
+function withBooleanAttrSemantics (attrs) {
 	const out = {}
 	for (const [key, value] of Object.entries(attrs)) {
 		if (value === false && NATIVE_BOOLEAN_ATTRS.has(key)) {
@@ -71,7 +71,8 @@ const withBooleanAttrSemantics = (attrs) => {
 	return out
 }
 
-const createStub = (name) => ({
+function createStub (name) {
+  return {
 	name,
 	inheritAttrs: false,
 	setup(props, { slots, attrs }) {
@@ -97,7 +98,8 @@ const createStub = (name) => ({
 			return h('div', { class: ['stub', name, consumerClass], ...rest }, children)
 		}
 	},
-})
+}
+}
 
 export const NcDialog = createStub('NcDialog')
 export const NcModal = createStub('NcModal')

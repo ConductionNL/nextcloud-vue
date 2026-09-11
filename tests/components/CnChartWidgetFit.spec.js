@@ -67,19 +67,23 @@ const dashboardStubs = {
 	NcLoadingIcon: { template: '<div class="nc-loading-icon-stub" />' },
 }
 
-const chartWidgetDef = (props = {}) => ([{
+function chartWidgetDef (props = {}) {
+  return [{
 	id: 'sla',
 	title: 'SLA trend',
 	type: 'chart',
 	props: { chartKind: 'line', series: [{ name: 'SLA %', data: [1, 2] }], ...props },
-}])
+}]
+}
 
 const chartLayout = [{ id: 1, widgetId: 'sla', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 4 }]
 
-const mountDashboard = (widgets) => mount(CnDashboardPage, {
+function mountDashboard (widgets) {
+  return mount(CnDashboardPage, {
 	propsData: { widgets, layout: chartLayout },
 	stubs: dashboardStubs,
 })
+}
 
 describe('CnChartWidget — container fitting', () => {
 	it('keeps the pinned-height rendering by default (regression)', () => {

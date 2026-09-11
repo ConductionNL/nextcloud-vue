@@ -33,7 +33,8 @@
 			type="button"
 			role="tab"
 			:aria-selected="isChipActive(i) ? 'true' : 'false'"
-			class="cn-quick-filter-bar__tab" :class="[{ 'cn-quick-filter-bar__tab--active': isChipActive(i) }]"
+			class="cn-quick-filter-bar__tab"
+:class="[{ 'cn-quick-filter-bar__tab--active': isChipActive(i) }]"
 			@click="onClick(i)">
 			<CnIcon
 				v-if="tab.icon"

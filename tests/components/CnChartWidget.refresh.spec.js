@@ -62,9 +62,11 @@ import CnChartWidget from '../../src/components/CnChartWidget/CnChartWidget.vue'
 
 const dataSource = { register: 'openconnector', schema: 'job_log', bucket: { field: 'created', interval: 'day' } }
 
-const mountChart = (props = {}) => mount(CnChartWidget, {
+function mountChart (props = {}) {
+  return mount(CnChartWidget, {
 	propsData: { dataSource, ...props },
 })
+}
 
 describe('CnChartWidget — refresh (#6)', () => {
 	beforeEach(() => {

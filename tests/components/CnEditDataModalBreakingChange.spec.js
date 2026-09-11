@@ -19,7 +19,8 @@ const CnEditDataModal = require('../../src/dialogs/CnEditDataModal.vue').default
 const { onSchemaConfirm, confirmBreaking, cancelBreaking, describeBreakingChange } = CnEditDataModal.methods
 const { breakingChanges } = CnEditDataModal.computed
 
-const breaking409 = () => ({
+function breaking409 () {
+  return {
 	message: 'Request failed with status code 409',
 	response: {
 		status: 409,
@@ -29,7 +30,8 @@ const breaking409 = () => ({
 			changes: [{ property: 'barn', kind: 'type_changed', old: 'string', new: 'object' }],
 		},
 	},
-})
+}
+}
 
 const axios = require('@nextcloud/axios').default
 

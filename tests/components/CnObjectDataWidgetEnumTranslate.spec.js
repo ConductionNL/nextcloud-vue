@@ -41,17 +41,21 @@ const stubs = {
 	NcActionButton: true,
 }
 
-const mountWidget = (provide) => mount(CnObjectDataWidget, {
+function mountWidget (provide) {
+  return mount(CnObjectDataWidget, {
 	propsData: { schema, objectData },
 	stubs,
 	provide,
 })
+}
 
-const cellText = (wrapper, label) => wrapper.findAll('.cn-object-data-widget__cell')
+function cellText (wrapper, label) {
+  return wrapper.findAll('.cn-object-data-widget__cell')
 	.filter((c) => c.text().includes(label))
 	.at(0)
 	.find('.cn-object-data-widget__value')
 	.text()
+}
 
 describe('CnObjectDataWidget — enum values render as labels', () => {
 	it('shows the declared English label, not the stored code', () => {

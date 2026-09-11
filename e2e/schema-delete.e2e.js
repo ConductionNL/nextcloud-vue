@@ -32,11 +32,13 @@ const SCHEMAS = {
 	4434: { id: 4434, slug: 'cow', title: 'Cow', properties: { name: { type: 'string' } } },
 }
 
-const json = (route, body, status = 200) => route.fulfill({
+function json (route, body, status = 200) {
+  return route.fulfill({
 	status,
 	contentType: 'application/json',
 	body: JSON.stringify(body),
 })
+}
 
 /**
  * Stub OpenRegister. `onDelete` decides what the schema DELETE does, so each test

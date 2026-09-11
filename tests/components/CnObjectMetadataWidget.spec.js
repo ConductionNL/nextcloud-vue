@@ -21,10 +21,12 @@ const stubs = {
 	},
 }
 
-const mountWidget = (props = {}) => mount(CnObjectMetadataWidget, {
+function mountWidget (props = {}) {
+  return mount(CnObjectMetadataWidget, {
 	propsData: props,
 	stubs,
 })
+}
 
 describe('CnObjectMetadataWidget', () => {
 	it('renders @self + top-level fields without throwing', () => {

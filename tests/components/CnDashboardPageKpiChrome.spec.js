@@ -49,13 +49,15 @@ const stubs = {
 	NcLoadingIcon: { template: '<div />' },
 }
 
-const mountWith = (type, placement = {}) => mount(CnDashboardPage, {
+function mountWith (type, placement = {}) {
+  return mount(CnDashboardPage, {
 	propsData: {
 		widgets: [{ id: 'w', type, title: 'Open cases' }],
 		layout: [{ id: '1', widgetId: 'w', gridX: 0, gridY: 0, gridWidth: 3, gridHeight: 2, ...placement }],
 	},
 	stubs,
 })
+}
 
 describe('CnDashboardPage — who draws the KPI card', () => {
 	it('wraps a stats-block, so a flat block still has chrome', () => {

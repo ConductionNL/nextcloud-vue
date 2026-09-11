@@ -58,11 +58,13 @@ const TestCard = {
  * uses to count the component's OWN warnings, so mounting without a router
  * would inflate the count with framework chatter.
  */
-const routerMock = () => ({
+function routerMock () {
+  return {
 	push: jest.fn(() => Promise.resolve()),
 	replace: jest.fn(() => Promise.resolve()),
 	resolve: jest.fn(() => ({ href: '#' })),
-})
+}
+}
 
 function mountIndexPage(extraProps = {}, mountOptions = {}) {
 	return mount(CnIndexPage, {

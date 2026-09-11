@@ -144,7 +144,7 @@ export default {
 	name: 'CnObjectKanban',
 
 	components: {
-		draggable,
+		Draggable: draggable,
 		NcButton,
 		NcLoadingIcon,
 		NcEmptyContent,

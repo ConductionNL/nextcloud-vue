@@ -25,7 +25,8 @@ const RANGES = [
 	{ name: 'weekday', min: 0, max: 7 },
 ]
 
-const WEEKDAY_NAMES = () => ([
+function WEEKDAY_NAMES () {
+  return [
 	t('nextcloud-vue', 'Sunday'),
 	t('nextcloud-vue', 'Monday'),
 	t('nextcloud-vue', 'Tuesday'),
@@ -33,7 +34,8 @@ const WEEKDAY_NAMES = () => ([
 	t('nextcloud-vue', 'Thursday'),
 	t('nextcloud-vue', 'Friday'),
 	t('nextcloud-vue', 'Saturday'),
-])
+]
+}
 
 /**
  * Split an expression into named fields.

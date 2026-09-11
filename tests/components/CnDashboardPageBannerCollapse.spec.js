@@ -48,7 +48,8 @@ const stubs = {
 
 const CONDITION = { endpoint: '/api/status', field: 'status', op: 'eq', value: 'in_progress' }
 
-const mountWith = ({ banner = {}, layoutExtra = {} } = {}) => mount(CnDashboardPage, {
+function mountWith ({ banner = {}, layoutExtra = {} } = {}) {
+  return mount(CnDashboardPage, {
 	propsData: {
 		widgets: [
 			{ id: 'b', type: 'banner', ...banner },
@@ -61,6 +62,7 @@ const mountWith = ({ banner = {}, layoutExtra = {} } = {}) => mount(CnDashboardP
 	},
 	stubs,
 })
+}
 
 const cells = (wrapper) => wrapper.findAll('.cell').map((c) => ({ wid: c.attributes('data-wid'), y: c.attributes('data-y') }))
 

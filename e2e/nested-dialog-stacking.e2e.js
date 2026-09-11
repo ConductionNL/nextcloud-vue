@@ -45,7 +45,8 @@ async function stubOpenRegister(page) {
  * that its own fix is still present — it would go red if the bug were fixed a
  * different way, and it would never have caught the original tie-on-one-layer bug.
  */
-const stackingOf = (page, parentName, nestedName) => page.evaluate(([p, n]) => {
+function stackingOf (page, parentName, nestedName) {
+  return page.evaluate(([p, n]) => {
 	const masks = [...document.querySelectorAll('.modal-mask')]
 	const all = [...document.body.querySelectorAll('*')]
 	const read = (name) => {
@@ -67,6 +68,7 @@ const stackingOf = (page, parentName, nestedName) => page.evaluate(([p, n]) => {
 	}
 	return { parent, nested, topAtNestedCentre }
 }, [parentName, nestedName])
+}
 
 test.describe('a dialog opened from a dialog stacks above it', () => {
 	test('the nested schema editor outranks the dialog that opened it', async ({ page }) => {

@@ -6,7 +6,7 @@
  * @param {string|object} value - object value
  * @return {string} id
  */
-export const extractId = (value) => {
+export function extractId (value) {
 	if (typeof value === 'string') {
 		return value
 	}

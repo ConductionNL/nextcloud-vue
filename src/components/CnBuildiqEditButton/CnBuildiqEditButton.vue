@@ -16,7 +16,8 @@
 		<NcActions
 			v-model:open="menuOpen"
 			:aria-label="t('nextcloud-vue', 'Edit with Buildiq')"
-			class="cn-buildiq-edit__actions" :class="[{ 'cn-buildiq-edit__actions--editing': isEditing }]">
+			class="cn-buildiq-edit__actions"
+:class="[{ 'cn-buildiq-edit__actions--editing': isEditing }]">
 			<template #icon>
 				<svg class="cn-buildiq-edit__glyph"
 					width="20"

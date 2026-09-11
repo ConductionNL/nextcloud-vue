@@ -196,7 +196,10 @@
 						</td>
 
 						<!-- Row actions -->
-						<td v-if="$slots['row-actions']" class="cn-table-col--actions" :class="[cellClass ? cellClass(row, { key: 'actions' }) : '']" @click.stop>
+						<td v-if="$slots['row-actions']"
+class="cn-table-col--actions"
+:class="[cellClass ? cellClass(row, { key: 'actions' }) : '']"
+@click.stop>
 							<!-- @slot Per-row actions menu (e.g. a CnRowActions), scoped with { row }. Supplying it adds the trailing actions column. -->
 							<slot name="row-actions" :row="row" />
 						</td>

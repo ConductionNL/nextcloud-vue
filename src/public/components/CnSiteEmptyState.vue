@@ -5,7 +5,8 @@
 
 <template>
 	<div
-		class="ac-empty-state" :class="[`ac-empty-state--${variant}`]"
+		class="ac-empty-state"
+:class="[`ac-empty-state--${variant}`]"
 		:role="variant === 'error' ? 'alert' : undefined"
 		:aria-busy="variant === 'loading' ? 'true' : undefined"
 		:aria-live="variant === 'loading' ? 'polite' : undefined">

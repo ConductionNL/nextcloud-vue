@@ -23,12 +23,14 @@ jest.mock('@nextcloud/capabilities', () => ({ getCapabilities: jest.fn(() => ({}
 const { __resetAppStatusCacheForTests } = require('../../src/composables/useAppStatus.js')
 const CnAppRoot = require('../../src/components/CnAppRoot/CnAppRoot.vue').default
 
-const manifest = () => ({
+function manifest () {
+  return {
 	version: '1.0.0',
 	dependencies: [],
 	menu: [{ id: 'home', label: 'Home', route: 'home' }],
 	pages: [{ id: 'home', route: '/', type: 'index', title: 'Home' }],
-})
+}
+}
 
 /**
  * Mount CnAppRoot nested in a wrapper, as production does.

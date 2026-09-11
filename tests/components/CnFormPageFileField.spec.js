@@ -52,7 +52,8 @@ async function settleRead(wrapper, timeoutMs = 5000) {
 	await wrapper.vm.$nextTick()
 }
 
-const mountForm = (props, cnCustomComponents = {}) => mount(CnFormPage, {
+function mountForm (props, cnCustomComponents = {}) {
+  return mount(CnFormPage, {
 	props,
 	global: {
 		stubs: { CnPageHeader: true },
@@ -60,6 +61,7 @@ const mountForm = (props, cnCustomComponents = {}) => mount(CnFormPage, {
 		provide: { cnCustomComponents },
 	},
 })
+}
 
 async function pick(wrapper, file) {
 	const input = wrapper.find('[data-testid="cn-file-field-input"]')

@@ -122,14 +122,16 @@ const sampleManifest = {
 
 const createClientContactAware = jest.fn().mockResolvedValue({ id: 'c-1' })
 
-const defaultRegistry = () => ({
+function defaultRegistry () {
+  return {
 	SettingsPage: SettingsPageStub,
 	MyHeader: HeaderStub,
 	MyActions: ActionsStub,
 	CreateDialog: CreateDialogStub,
 	FormFields: FormFieldsStub,
 	createClientContactAware,
-})
+}
+}
 
 function mountRenderer(routeName, {
 	useProps = false,

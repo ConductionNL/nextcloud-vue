@@ -17,7 +17,7 @@ import { shallowMount } from '@vue/test-utils'
 
 const CnAuditTrailWidget = require('../../src/components/CnAuditTrailWidget/CnAuditTrailWidget.vue').default
 
-const cardProps = (wrapper) => {
+function cardProps (wrapper) {
 	const card = wrapper.findComponent({ name: 'CnAuditTrailCard' })
 	return card.exists() ? card.props() : null
 }

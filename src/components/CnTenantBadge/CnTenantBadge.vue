@@ -8,7 +8,10 @@
 	Spec: openspec/changes/multi-tenancy-context — REQ-MT-4 (UI).
 -->
 <template>
-	<div v-if="visible" class="cn-tenant-badge" :class="[sizeClass]" :title="badgeTitle">
+	<div v-if="visible"
+class="cn-tenant-badge"
+:class="[sizeClass]"
+:title="badgeTitle">
 		<span v-if="iconLetter" class="cn-tenant-badge__icon" :style="iconStyle">{{ iconLetter }}</span>
 		<span class="cn-tenant-badge__name">{{ displayName }}</span>
 	</div>

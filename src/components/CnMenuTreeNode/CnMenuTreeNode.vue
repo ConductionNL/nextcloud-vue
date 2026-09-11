@@ -65,7 +65,7 @@ import CnMenuTreeRow from './CnMenuTreeRow.vue'
 export default {
 	name: 'CnMenuTreeNode',
 
-	components: { draggable, CnMenuTreeRow },
+	components: { Draggable: draggable, CnMenuTreeRow },
 
 	props: {
 		/**

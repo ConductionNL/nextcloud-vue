@@ -54,7 +54,8 @@ function busHandler() {
 	return call && call[1]
 }
 
-const mountPage = (store, propsData = {}) => mount(CnDetailPage, {
+function mountPage (store, propsData = {}) {
+  return mount(CnDetailPage, {
 	propsData: {
 		register: 'openbuilt',
 		schema: 'application',
@@ -63,6 +64,7 @@ const mountPage = (store, propsData = {}) => mount(CnDetailPage, {
 		...propsData,
 	},
 })
+}
 
 describe('CnDetailPage — cn:page:refresh', () => {
 	beforeEach(() => jest.clearAllMocks())

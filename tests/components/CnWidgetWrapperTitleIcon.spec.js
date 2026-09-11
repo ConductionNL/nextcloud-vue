@@ -25,11 +25,13 @@ const stubs = {
 	CnActionsMenu: { template: '<div class="menu-stub" />' },
 }
 
-const mountWrapper = (propsData = {}, opts = {}) => mount(CnWidgetWrapper, {
+function mountWrapper (propsData = {}, opts = {}) {
+  return mount(CnWidgetWrapper, {
 	propsData: { title: 'Concept Publications', ...propsData },
 	stubs,
 	...opts,
 })
+}
 
 const iconSlot = { 'title-icon': '<span class="my-icon" />' }
 

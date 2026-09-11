@@ -14,10 +14,12 @@
 import { parseAxiosError } from '../../src/utils/errors.js'
 
 // A 409 exactly as OpenRegister's SchemasController::destroy sends it.
-const conflict409 = (objectCount = 1) => ({
+function conflict409 (objectCount = 1) {
+  return {
 	message: 'Request failed with status code 409', // axios's useless generic
 	response: { status: 409, data: { error: 'schema-has-objects', objectCount } },
-})
+}
+}
 
 describe('parseAxiosError', () => {
 	it('extracts the server error code and count from a 409 body', () => {

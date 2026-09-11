@@ -168,13 +168,15 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
  */
 const tileUrls = (L) => L.tileLayer.mock.calls.map(([url]) => url)
 
-const mountWidget = (propsData) => mount(CnMapWidget, {
+function mountWidget (propsData) {
+  return mount(CnMapWidget, {
 	propsData: {
 		center: [52, 5],
 		...propsData,
 	},
 	mocks: {},
 })
+}
 
 beforeEach(() => {
 	const L = require('leaflet').default

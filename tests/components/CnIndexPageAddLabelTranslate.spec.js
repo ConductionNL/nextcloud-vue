@@ -57,7 +57,7 @@ const stubs = {
 // A consumer catalogue: it knows the app's own schema titles, and — like every
 // real app catalogue — knows nothing about the library's chrome strings.
 const dict = { 'Time entry': 'urenregistratie' }
-const cnTranslate = (key, vars) => {
+function cnTranslate (key, vars) {
 	const out = dict[key] ?? key
 	return vars ? Object.entries(vars).reduce((acc, [k, v]) => acc.replace('{' + k + '}', v), out) : out
 }

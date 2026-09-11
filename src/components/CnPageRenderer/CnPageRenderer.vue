@@ -30,7 +30,8 @@
 		:data-page-id="currentPage.id"
 		data-testid="cn-page"
 		:data-testid-page-id="currentPage.id"
-		class="cn-page-renderer" :class="[{ 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
+		class="cn-page-renderer"
+:class="[{ 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
 		<!--
 		  A page whose `requiresApp` is not installed renders the missing-
 		  dependency screen INSTEAD of its body.

@@ -39,7 +39,8 @@ function makeContext() {
 	})
 }
 
-const notOk = (status, statusText) => ({
+function notOk (status, statusText) {
+  return {
 	ok: false,
 	status,
 	statusText,
@@ -47,7 +48,8 @@ const notOk = (status, statusText) => ({
 	json: async () => {
 		throw new Error('no json')
 	},
-})
+}
+}
 
 describe('createSubResourcePlugin — console contract on non-ok responses', () => {
 	afterEach(() => {

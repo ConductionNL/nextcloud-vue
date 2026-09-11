@@ -1,6 +1,7 @@
 <template>
 	<div
-		class="cn-page-header" :class="[{ 'cn-page-header--visually-hidden': visuallyHidden }]"
+		class="cn-page-header"
+:class="[{ 'cn-page-header--visually-hidden': visuallyHidden }]"
 		data-testid="cn-page-header"
 		:data-visually-hidden="visuallyHidden ? 'true' : null">
 		<div v-if="!visuallyHidden && (icon || $slots.icon)" class="cn-page-header__icon">

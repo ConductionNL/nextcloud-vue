@@ -38,11 +38,13 @@ const fields = [
 	{ key: 'summary', type: 'textarea', label: 'Summary' },
 ]
 
-const mountBase = (propsData = {}, opts = {}) => mount(CnFormWidgetBase, {
+function mountBase (propsData = {}, opts = {}) {
+  return mount(CnFormWidgetBase, {
 	propsData: { fields, model: {}, ...propsData },
 	stubs,
 	...opts,
 })
+}
 
 describe('CnFormWidgetBase', () => {
 	it('renders one field wrapper per declared field, in order', () => {

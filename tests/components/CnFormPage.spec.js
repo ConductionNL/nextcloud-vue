@@ -60,7 +60,8 @@ const stubs = {
 	CnJsonViewer: { template: '<pre class="cn-json-viewer-stub" />', props: ['value', 'label'] },
 }
 
-const mountForm = (propsData, opts = {}) => mount(CnFormPage, {
+function mountForm (propsData, opts = {}) {
+  return mount(CnFormPage, {
 	propsData,
 	stubs,
 	mocks: {
@@ -72,6 +73,7 @@ const mountForm = (propsData, opts = {}) => mount(CnFormPage, {
 	},
 	...opts.mountOptions,
 })
+}
 
 describe('CnFormPage', () => {
 	let warnSpy
