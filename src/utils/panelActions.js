@@ -8,9 +8,13 @@
  * surface is hosting it.
  *
  * WHY THIS EXISTS. A widget rendered in a tab panel draws no header, so the
- * items it would have put in its own overflow menu have nowhere to go. For
- * `CnObjectDataWidget` those are Metadata and the full edit dialog, and both
- * disappeared when the panel stopped drawing a card. Metadata had no other home
+ * items that header would have carried have nowhere to go. The rule a reader
+ * expects is simply that the open tab decides what the strip's menu offers.
+ *
+ * For `CnObjectDataWidget` the lost items are Metadata and the full edit dialog,
+ * and both disappeared when the panel stopped drawing a card. For a catalog
+ * panel (`object-list`, `table`, so a Documents or Files tab) it is the Add
+ * action, which `CnDetailWidgetHost` draws in its own card header. Metadata had no other home
  * at all. Edit had a near neighbour, the record Edit button on a detail page
  * header, but that opens the form the PAGE configures rather than the field
  * subset the widget declares, so a widget showing eight of forty fields still
@@ -32,14 +36,21 @@
  * THE SHAPE. Two layers, because the widget does not know its own id on the
  * surface and should not have to:
  *
- *   - The SURFACE (`CnTabsWidget`) provides `{ set(id, items), clear(id) }` and
- *     renders the items belonging to whichever panel is open. It keys by id
- *     because `lazy` tabs stay mounted once visited, so several panels publish
- *     at the same time.
+ *   - The SURFACE (`CnTabsWidget`) provides `{ set(id, items, source),
+ *     clear(id, source) }` and renders the items belonging to whichever panel
+ *     is open. It keys by id because `lazy` tabs stay mounted once visited, so
+ *     several panels publish at the same time, and by SOURCE because a panel
+ *     has two possible publishers.
  *   - The HOST (`CnDetailWidgetHost`) knows the id, and re-provides the channel
- *     with its own baked in: `{ set(items), clear() }`.
+ *     with its own id and the `widget` source baked in: `{ set(items),
+ *     clear() }`. It also publishes its OWN items under the `host` source: the
+ *     catalog Add, which it draws in a card header that a panel does not have.
  *   - The WIDGET injects that narrowed channel and publishes while its own menu
  *     is suppressed.
+ *
+ * The two sources are why `set` takes one. A single slot per widget meant
+ * whichever published last silently replaced the other, which would have cost a
+ * catalog panel its Add the moment anything else published for the same tab.
  *
  * A widget outside such a surface injects the default `null` and does nothing,
  * which is every other use of every one of these components.
