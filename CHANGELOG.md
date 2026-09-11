@@ -34,6 +34,10 @@
 
   **No app has to change anything.** None currently requires the preset; launchpad and openregister extend `@nextcloud/stylelint-config` directly and carry the `::v-deep` exception inline. They can now drop that copy and require the preset instead, which is what it was written for.
 
+- **`npx manifest-migrate` now runs in an app.** The package publishes it as a `bin`, and `src/cli/manifest-migrate.js` requires `commander`, which sat in `devDependencies`. A consumer never installs a package's dev dependencies, so the command died with `Cannot find module 'commander'` before it printed a word. It is now a runtime dependency. Third of its kind after the stylelint preset above and the peers in #1048.
+
+  It moves to 14, not the 15 Dependabot proposed: commander 15 is ESM-only and the CLI is CommonJS, and loading it would lean on `require()` of an ES module, which Node 20 does not support. `tests/packaging/bin-scripts-declare-their-dependencies.spec.js` reads the requires out of every published command, following its relative imports, and fails if any package one of them needs is not in `dependencies`. It names no package, so the next CLI that picks up a dev dependency fails there too.
+
 - **stylelint 14 to 17, matching the fleet.** The apps were already on 17 through `@nextcloud/stylelint-config` 3; this repository was three majors behind the config it publishes. `stylelint-config-recommended-vue` stays on 1.x because `@nextcloud/stylelint-config` pins `^1.6.1`, and `stylelint-config-html` is held at 1.x so its `postcss-html` peer agrees with that.
 
   The new rules raised 120 errors, all fixed. 91 were a missing blank line before a rule. The other 29 were deprecated CSS, and each was handled for what it does rather than by the autofixer:
