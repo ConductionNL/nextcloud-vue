@@ -209,7 +209,8 @@ export default {
 		 * @return {void}
 		 */
 		updateField(field, value) {
-			this[field] = value; this.emitChange()
+			this[field] = value
+			this.emitChange()
 		},
 
 		/**
@@ -220,7 +221,8 @@ export default {
 		 * @return {void}
 		 */
 		updateSource(field, value) {
-			this.source[field] = value; this.emitChange()
+			this.source[field] = value
+			this.emitChange()
 		},
 
 		/**
@@ -231,7 +233,8 @@ export default {
 		 * @return {void}
 		 */
 		onCurrentRows(rows) {
-			this.currentRows = rows; this.emitChange()
+			this.currentRows = rows
+			this.emitChange()
 		},
 
 		/**
@@ -242,7 +245,8 @@ export default {
 		 * @return {void}
 		 */
 		onPreviousRows(rows) {
-			this.previousRows = rows; this.emitChange()
+			this.previousRows = rows
+			this.emitChange()
 		},
 
 		/** Emit the assembled content. */

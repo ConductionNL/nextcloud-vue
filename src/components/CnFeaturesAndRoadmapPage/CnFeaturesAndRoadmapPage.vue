@@ -57,7 +57,7 @@ function readInitialState(appId, key, fallback) {
 		// covers the parse-error case only. It is a runtime condition, never a
 		// module-resolution failure.
 		return loadState(appId, key, fallback)
-	} catch (e) {
+	} catch {
 		// Slot present but unparseable — fall back.
 	}
 	return fallback

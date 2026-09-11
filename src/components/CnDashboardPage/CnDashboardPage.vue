@@ -2416,7 +2416,7 @@ export default {
 					to: parsed.to,
 					preset: typeof parsed.preset === 'string' ? parsed.preset : 'custom',
 				}
-			} catch (_e) {
+			} catch {
 				return null
 			}
 		},
@@ -2435,7 +2435,7 @@ export default {
 					return
 				}
 				localStorage.setItem(key, JSON.stringify(value))
-			} catch (_e) {
+			} catch {
 				// Intentionally swallowed — non-fatal.
 			}
 		},
@@ -2580,7 +2580,7 @@ export default {
 				try {
 					const value = await readVisibleWhenValue(cond)
 					outcome = { met: compareVisibleWhen(value, cond.op || 'eq', cond.value), value }
-				} catch (e) {
+				} catch {
 					// fail-safe: hidden
 				}
 				// A newer run owns the map now — a stale verdict (possibly for

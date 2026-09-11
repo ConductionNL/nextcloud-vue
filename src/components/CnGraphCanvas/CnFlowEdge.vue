@@ -440,7 +440,7 @@ export default {
 
 					return { x: point.x, y: point.y }
 				}
-			} catch (error) {
+			} catch {
 				// Falls through to the straight-line reading below.
 			}
 

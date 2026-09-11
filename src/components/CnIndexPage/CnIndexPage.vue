@@ -2354,9 +2354,11 @@ export default {
 				let sumLat = 0
 				let sumLng = 0
 				for (const f of feats) {
-					const _p = this.firstLatLng(f.geometry); if (!_p) {
+					const _p = this.firstLatLng(f.geometry)
+					if (!_p) {
 						continue
-					} sumLng += _p.lng
+					}
+					sumLng += _p.lng
 					sumLat += _p.lat
 				}
 				return [sumLat / feats.length, sumLng / feats.length]
@@ -3451,7 +3453,7 @@ export default {
 				const nameField = cfg.nameField || 'title'
 				this.folderRegisterList = rows
 					.map((row) => ({ id: this.getByPath(row, idField), name: this.getByPath(row, nameField) || this.getByPath(row, idField) }))
-					.filter((f) => f.id != null)
+					.filter((f) => f.id !== null && f.id !== undefined)
 					.sort((a, b) => String(a.name).localeCompare(String(b.name)))
 			} catch (e) {
 				console.error('[CnIndexPage] failed to load folder register', e)
@@ -3776,7 +3778,7 @@ export default {
 			if (Object.hasOwn(obj, path)) {
 				return obj[path]
 			}
-			return path.split('.').reduce((acc, seg) => (acc == null ? undefined : acc[seg]), obj)
+			return path.split('.').reduce((acc, seg) => (acc === null || acc === undefined ? undefined : acc[seg]), obj)
 		},
 
 		/**

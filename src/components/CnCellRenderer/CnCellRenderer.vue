@@ -496,7 +496,7 @@ export default {
 			if (!href) {
 				return null
 			}
-			const resolved = String(href).replace(/\{(\w+)\}/g, (_, key) => this.row && this.row[key] != null ? String(this.row[key]) : '')
+			const resolved = String(href).replace(/\{(\w+)\}/g, (_, key) => this.row && this.row[key] !== null && this.row[key] !== undefined ? String(this.row[key]) : '')
 			// The safeHref retrofit (18700fd94) put this check here and a later
 			// lint pass (e5ea00d51) dropped it, leaving the docblock above
 			// promising a check the code no longer made: a template of `{url}`

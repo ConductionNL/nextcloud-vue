@@ -131,7 +131,7 @@ export function createSelfModeActions(ctx) {
 				} else {
 					failedIds.push(id)
 				}
-			} catch (_e) {
+			} catch {
 				failedIds.push(id)
 			}
 		}

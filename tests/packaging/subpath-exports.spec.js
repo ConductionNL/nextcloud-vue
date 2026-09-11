@@ -464,9 +464,8 @@ describe('packaging — every redistributed dependency is under an OSI licence',
 		}
 		const normalised = expression.replace(/[()]/g, ' ').trim()
 		// OR binds loosest: any alternative may satisfy the whole expression.
-		return normalised.split(/\s+OR\s+/i).some((alternative) =>
-			// Within an alternative, every AND-ed part must be allowed.
-			alternative.split(/\s+AND\s+/i).every((part) => ALLOWED_LICENCES.has(part.trim().replace(/\+$/, ''))))
+		// Within an alternative, every AND-ed part must be allowed.
+		return normalised.split(/\s+OR\s+/i).some((alternative) => alternative.split(/\s+AND\s+/i).every((part) => ALLOWED_LICENCES.has(part.trim().replace(/\+$/, ''))))
 	}
 
 	/**

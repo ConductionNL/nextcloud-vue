@@ -55,7 +55,7 @@ export function readCapabilityProviders(getCapabilities) {
 	let caps = null
 	try {
 		caps = accessor()
-	} catch (e) {
+	} catch {
 		return null
 	}
 	if (caps === null || typeof caps !== 'object') {

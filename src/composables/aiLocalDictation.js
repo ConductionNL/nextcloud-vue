@@ -86,7 +86,7 @@ export function createLocalDictation(options) {
 		}
 		try {
 			stream = await media.getUserMedia({ audio: true })
-		} catch (e) {
+		} catch {
 			// A denied permission and an absent microphone arrive the same way.
 			onError('Microphone access was refused')
 
@@ -235,7 +235,7 @@ export function createLocalDictation(options) {
 			if (text !== '') {
 				onTranscript(text)
 			}
-		} catch (e) {
+		} catch {
 			onError('Could not transcribe the recording')
 		} finally {
 			chunks = []

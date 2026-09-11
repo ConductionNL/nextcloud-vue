@@ -860,7 +860,7 @@ export default {
 						)
 				await axios.delete(url)
 				this.items = this.items.filter((item) => item.fileId !== target.fileId)
-			} catch (err) {
+			} catch {
 				this.fetchContents()
 			} finally {
 				this.confirmTarget = null
@@ -929,7 +929,7 @@ export default {
 					})
 				}
 				this.fetchContents()
-			} catch (err) {
+			} catch {
 				this.fetchContents()
 			}
 		},

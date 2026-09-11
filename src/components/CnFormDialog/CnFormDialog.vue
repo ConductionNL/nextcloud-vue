@@ -1399,7 +1399,7 @@ export default {
 						resolved: true,
 						registerSlug: String(data.registerSlug),
 						schemaSlug: String(data.schemaSlug),
-						appId: data.appId != null ? String(data.appId) : null,
+						appId: data.appId !== null && data.appId !== undefined ? String(data.appId) : null,
 					}
 				}
 				return empty
@@ -2941,8 +2941,7 @@ export default {
 							if (!new RegExp(v.pattern).test(value)) {
 								newErrors[field.key] = 'Invalid format.'
 							}
-						// TODO: restore to `catch {` (optional catch binding) once on Vue 3 (buble doesn't support it)
-						} catch (_e) {
+						} catch {
 							// Ignore invalid regex patterns
 						}
 					}

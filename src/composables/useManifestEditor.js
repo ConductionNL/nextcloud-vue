@@ -57,7 +57,7 @@ export function useManifestEditor(baseRef, options = {}) {
 	const snapshot = ref(null)
 
 	const dirty = computed(() => {
-		if (!editing.value || snapshot.value == null) {
+		if (!editing.value || snapshot.value === null || snapshot.value === undefined) {
 			return false
 		}
 		return stableStringify(baseRef.value) !== stableStringify(snapshot.value)
@@ -97,7 +97,7 @@ export function useManifestEditor(baseRef, options = {}) {
 	 */
 	function enter() {
 		snapshot.value = deepClone(baseRef.value)
-		if (baseRef.value != null && typeof baseRef.value === 'object') {
+		if (baseRef.value !== null && baseRef.value !== undefined && typeof baseRef.value === 'object') {
 			baseRef.value = reactive(baseRef.value)
 		}
 		editing.value = true
@@ -163,7 +163,7 @@ function restoreInPlace(target, snap) {
  * @return {*} A deep clone of the value.
  */
 function deepClone(value) {
-	if (value == null) {
+	if (value === null || value === undefined) {
 		return value
 	}
 	if (typeof structuredClone === 'function') {

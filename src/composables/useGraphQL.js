@@ -31,7 +31,7 @@ export const OPENREGISTER_GRAPHQL_PATH = '/apps/openregister/api/graphql'
  * @return {*} The resolved value, or `undefined` if any segment is missing.
  */
 export function selectByPath(obj, selector) {
-	if (obj == null || typeof selector !== 'string' || selector === '') {
+	if (obj === null || obj === undefined || typeof selector !== 'string' || selector === '') {
 		return undefined
 	}
 	const segments = selector.split('.')
@@ -41,7 +41,7 @@ export function selectByPath(obj, selector) {
 		const key = isArrayHop ? raw.slice(0, -2) : raw
 		const next = []
 		for (const value of cursor) {
-			if (value == null) {
+			if (value === null || value === undefined) {
 				continue
 			}
 			const inner = key === '' ? value : value[key]

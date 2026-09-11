@@ -227,7 +227,7 @@ export default {
 		objectStore() {
 			try {
 				return useObjectStore()
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},
@@ -348,7 +348,7 @@ export default {
 					? collection
 					: (this.objectStore.collections[this.typeSlug] || [])
 				this.options = items.map((o) => this.toOption(o))
-			} catch (e) {
+			} catch {
 				this.options = []
 			} finally {
 				this.loading = false
@@ -393,7 +393,7 @@ export default {
 					? collection
 					: (this.objectStore.collections[this.typeSlug] || [])
 				this.options = items.map((o) => this.toOption(o))
-			} catch (e) {
+			} catch {
 				this.options = []
 			} finally {
 				this.loading = false
@@ -495,7 +495,7 @@ export default {
 			if (this.objectStore && typeof this.objectStore.registerObjectType === 'function') {
 				try {
 					this.objectStore.registerObjectType(this.typeSlug, this.schema, this.register)
-				} catch (e) {
+				} catch {
 					// Already registered or store not ready — non-fatal.
 				}
 			}
@@ -520,7 +520,7 @@ export default {
 				if (obj) {
 					this.localSelected = this.toOption(obj)
 				}
-			} catch (e) {
+			} catch {
 				// Leave the id un-labelled rather than crash.
 			}
 		},

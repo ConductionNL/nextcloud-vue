@@ -201,7 +201,7 @@ async function resolveServerVisibility(http, endpoint, storage, key, visible, ma
 		// record it immediately so it never re-traps on navigation.
 		visible.value = true
 		markSeen()
-	} catch (e) {
+	} catch {
 		// Unauthenticated / endpoint missing / offline. Fall back to the
 		// per-browser flag, but only show when we can positively confirm
 		// the flag is readable AND unset. Otherwise stay hidden — a support
@@ -221,7 +221,7 @@ function putFlag(http, endpoint, value) {
 		// session, so a failed write only means the user might see it
 		// again on another device — acceptable for a support nudge.
 		http.put(endpoint, { value }).catch(() => {})
-	} catch (e) {
+	} catch {
 		/* swallow — never let persistence break the UI */
 	}
 }
@@ -235,7 +235,7 @@ function resolveStorage(injected) {
 	}
 	try {
 		return window.localStorage
-	} catch (e) {
+	} catch {
 		return null
 	}
 }
@@ -257,7 +257,7 @@ function hasRealFlag(storage, key) {
 	}
 	try {
 		return storage.getItem(key) === '1'
-	} catch (e) {
+	} catch {
 		return false
 	}
 }
@@ -279,7 +279,7 @@ function flagIsReadableAndUnset(storage, key) {
 	}
 	try {
 		return storage.getItem(key) !== '1'
-	} catch (e) {
+	} catch {
 		return false
 	}
 }
@@ -301,7 +301,7 @@ function setFlag(storage, key) {
 	}
 	try {
 		storage.setItem(key, '1')
-	} catch (e) {
+	} catch {
 		/* quota or private-mode — swallow */
 	}
 }
@@ -312,7 +312,7 @@ function clearFlag(storage, key) {
 	}
 	try {
 		storage.removeItem(key)
-	} catch (e) {
+	} catch {
 		/* swallow */
 	}
 }

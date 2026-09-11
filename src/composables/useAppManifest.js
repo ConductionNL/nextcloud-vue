@@ -244,7 +244,7 @@ function loadFromBackend(appId, bundledManifest, options) {
 						base = deepMerge(bundledManifest, response.data)
 					}
 				}
-			} catch (fetchErr) {
+			} catch {
 				// Network / 404 / unauthenticated — keep the bundled manifest.
 			}
 
@@ -284,7 +284,7 @@ function loadFromBackend(appId, bundledManifest, options) {
 			// The shallowRef reassignment is what re-renders consumers; the new
 			// object stays shallow (not deep-observed) unless CnAppRoot upgrades it.
 			manifest.value = resolved
-		} catch (err) {
+		} catch {
 			// Defensive: any unexpected error leaves the bundled manifest in
 			// place. Apps without a backend endpoint keep working.
 		} finally {

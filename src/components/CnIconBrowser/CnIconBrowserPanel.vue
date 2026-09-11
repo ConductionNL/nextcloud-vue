@@ -985,7 +985,7 @@ export default {
 					import('../CnIconPicker/iconCatalogues.js'),
 				])
 				this.mdiCatalogue = adapters.fromMdiJs(mdi)
-			} catch (error) {
+			} catch {
 				// @mdi/js not installed — the `icons` fallback stands.
 				this.mdiCatalogue = null
 			}
@@ -1066,11 +1066,19 @@ export default {
 			let next = index
 			switch (event.key) {
 				case 'ArrowRight':
-				case 'ArrowDown': next = index === last ? 0 : index + 1; break
+				case 'ArrowDown':
+					next = index === last ? 0 : index + 1
+					break
 				case 'ArrowLeft':
-				case 'ArrowUp': next = index === 0 ? last : index - 1; break
-				case 'Home': next = 0; break
-				case 'End': next = last; break
+				case 'ArrowUp':
+					next = index === 0 ? last : index - 1
+					break
+				case 'Home':
+					next = 0
+					break
+				case 'End':
+					next = last
+					break
 				default: return
 			}
 			event.preventDefault()
@@ -1123,12 +1131,24 @@ export default {
 			const cols = this.gridColumns()
 			let next = index
 			switch (event.key) {
-				case 'ArrowRight': next = Math.min(index + 1, last); break
-				case 'ArrowLeft': next = Math.max(index - 1, 0); break
-				case 'ArrowDown': next = Math.min(index + cols, last); break
-				case 'ArrowUp': next = Math.max(index - cols, 0); break
-				case 'Home': next = 0; break
-				case 'End': next = last; break
+				case 'ArrowRight':
+					next = Math.min(index + 1, last)
+					break
+				case 'ArrowLeft':
+					next = Math.max(index - 1, 0)
+					break
+				case 'ArrowDown':
+					next = Math.min(index + cols, last)
+					break
+				case 'ArrowUp':
+					next = Math.max(index - cols, 0)
+					break
+				case 'Home':
+					next = 0
+					break
+				case 'End':
+					next = last
+					break
 				default: return
 			}
 			event.preventDefault()

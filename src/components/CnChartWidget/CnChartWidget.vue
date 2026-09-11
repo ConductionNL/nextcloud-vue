@@ -1564,7 +1564,7 @@ export default {
 				const categories = groups.map((g) => this.formatBucketKey(g.key, b.interval))
 				const values = groups.map((g) => Number(g.value) || 0)
 				this.bucketData = { series: [{ name: b.metricField || b.metric || 'count', data: values }], categories, labels: categories }
-			} catch (e) {
+			} catch {
 				if (requestKey === this.bucketKey) {
 					this.bucketData = null
 				}
@@ -1692,7 +1692,7 @@ export default {
 				} else {
 					this.groupByData = { series: [{ name: gb.metricField || gb.metric || 'count', data: values }], categories: keys, labels: keys, rawKeys }
 				}
-			} catch (e) {
+			} catch {
 				if (requestKey === this.groupByKey) {
 					this.groupByData = null
 				}
@@ -1758,7 +1758,7 @@ export default {
 				}
 				const res = await axios.get(url, { params })
 				groups = (res && res.data && res.data.groups) || []
-			} catch (e) {
+			} catch {
 				// Facet endpoint unavailable → client-side fallback aggregation.
 				groups = await this.aggregateFromCollection(ds, agg, metric)
 			}
@@ -1823,7 +1823,7 @@ export default {
 					totals.set(key, (totals.get(key) || 0) + increment)
 				}
 				return Array.from(totals.entries()).map(([key, value]) => ({ key, value }))
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},
@@ -1954,7 +1954,7 @@ export default {
 			let store = null
 			try {
 				store = useObjectStore()
-			} catch (e) {
+			} catch {
 				store = null
 			}
 			const type = store ? resolveObjectOpType(store, { register, schema }) : null
@@ -1986,7 +1986,7 @@ export default {
 					}
 					const color = colorField && typeof obj[colorField] === 'string' ? obj[colorField] : ''
 					return { label: this.displayString(raw), color }
-				} catch (e) {
+				} catch {
 					return { label: '', color: '' }
 				}
 			}))
@@ -2063,11 +2063,11 @@ export default {
 							raw = obj['@self'] && obj['@self'].name
 						}
 						return this.displayString(raw) || String(key)
-					} catch (e) {
+					} catch {
 						return String(key)
 					}
 				}))
-			} catch (e) {
+			} catch {
 				return groups.map((g) => (g.key === null || g.key === undefined ? '—' : String(g.key)))
 			}
 		},

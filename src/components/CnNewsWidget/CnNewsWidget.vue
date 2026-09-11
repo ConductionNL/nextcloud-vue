@@ -313,7 +313,7 @@ export default {
 				this.items = Array.isArray(data.items) ? data.items : []
 				this.failedCount = typeof data.feedsFailed === 'number' ? data.feedsFailed : 0
 				this.failedUrls = Array.isArray(data.failedUrls) ? data.failedUrls : []
-			} catch (err) {
+			} catch {
 				this.hasError = true
 				this.items = []
 			} finally {

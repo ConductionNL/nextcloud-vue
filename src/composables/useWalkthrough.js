@@ -72,7 +72,7 @@ function resolveStorage(injected) {
 	}
 	try {
 		return window.localStorage
-	} catch (e) {
+	} catch {
 		return null
 	}
 }
@@ -92,7 +92,7 @@ export function readLocalWalkthroughSeenVersion(appId, storage) {
 	}
 	try {
 		return normaliseSeenVersion(s.getItem(WALKTHROUGH_SEEN_STORAGE_PREFIX + appId))
-	} catch (e) {
+	} catch {
 		return ''
 	}
 }
@@ -112,7 +112,7 @@ function writeLocalWalkthroughSeenVersion(appId, version, storage) {
 	}
 	try {
 		s.setItem(WALKTHROUGH_SEEN_STORAGE_PREFIX + appId, version)
-	} catch (e) {
+	} catch {
 		/* quota / private mode — persistence is best-effort */
 	}
 }
@@ -163,7 +163,7 @@ export async function loadWalkthroughSeenVersion(appId, configKey, options = {})
 			return seen
 		}
 		return local
-	} catch (e) {
+	} catch {
 		// Unauthenticated / endpoint missing / offline.
 		return local
 	}
@@ -194,7 +194,7 @@ export function persistWalkthroughSeenVersion(appId, configKey, version, options
 		return Promise.resolve(http.put(walkthroughPreferenceUrl(appId, configKey), { value }))
 			.then(() => true)
 			.catch(() => false)
-	} catch (e) {
+	} catch {
 		return Promise.resolve(false)
 	}
 }
@@ -231,7 +231,7 @@ export function interpolateTokens(input, context) {
 		return input
 	}
 	return input.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (m, key) => {
-		if (context && Object.hasOwn(context, key) && context[key] != null) {
+		if (context && Object.hasOwn(context, key) && context[key] !== null && context[key] !== undefined) {
 			return String(context[key])
 		}
 		return m
@@ -414,7 +414,7 @@ export function useWalkthrough(appId, manifest, options = {}) {
 				} else if (source.object) {
 					value = (key === 'id') ? (source.object.id ?? source.object['@self']?.id ?? source.object.uuid) : source.object[key]
 				}
-				if (value != null) {
+				if (value !== null && value !== undefined) {
 					next[varName] = value
 				}
 			}

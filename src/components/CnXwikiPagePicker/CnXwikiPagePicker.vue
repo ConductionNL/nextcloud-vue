@@ -254,7 +254,7 @@ export default {
 					try {
 						const body = await response.json()
 						cause = String(body?.details?.cause ?? '')
-					} catch (_e) {
+					} catch {
 						cause = ''
 					}
 					this.degradedCause = this.degradedFromCause(cause)

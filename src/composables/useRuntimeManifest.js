@@ -97,7 +97,7 @@ export function useRuntimeManifest(appId, stubManifest = null, options = {}) {
 
 			manifest.value = resolved
 			validationErrors.value = null
-		} catch (err) {
+		} catch {
 			// 404, network errors, etc. — fall back to stub
 			manifest.value = stubManifest
 		} finally {

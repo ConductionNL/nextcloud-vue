@@ -279,7 +279,7 @@ export default {
 				)
 				const res = await axios.get(url)
 				this.serverActions = (res && res.data && Array.isArray(res.data.actions)) ? res.data.actions : []
-			} catch (e) {
+			} catch {
 				// A missing lifecycle / 404 simply means "no transitions" — render nothing.
 				this.serverActions = []
 			}

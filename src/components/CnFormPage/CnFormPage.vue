@@ -593,7 +593,7 @@ export default {
 		cloneInitial() {
 			try {
 				return JSON.parse(JSON.stringify(this.initialValue || {}))
-			} catch (_e) {
+			} catch {
 				return {}
 			}
 		},

@@ -181,7 +181,8 @@ export default {
 		 * @return {void}
 		 */
 		updateField(field, value) {
-			this[field] = value; this.emitChange()
+			this[field] = value
+			this.emitChange()
 		},
 
 		/**
@@ -192,7 +193,8 @@ export default {
 		 * @return {void}
 		 */
 		updateSource(field, value) {
-			this.source[field] = value; this.emitChange()
+			this.source[field] = value
+			this.emitChange()
 		},
 
 		/**
@@ -203,7 +205,8 @@ export default {
 		 * @return {void}
 		 */
 		onFilterRows(rows) {
-			this.filterRows = rows; this.emitChange()
+			this.filterRows = rows
+			this.emitChange()
 		},
 
 		/** Emit the assembled content. */

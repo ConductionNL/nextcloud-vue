@@ -86,7 +86,7 @@ export function parseBrokeredBody(body) {
 	if (trimmed[0] === '{' || trimmed[0] === '[') {
 		try {
 			return JSON.parse(trimmed)
-		} catch (e) {
+		} catch {
 			return body
 		}
 	}

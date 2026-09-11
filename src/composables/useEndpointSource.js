@@ -104,7 +104,7 @@ export function getByPath(obj, path) {
 		return obj
 	}
 	return String(path).split('.').reduce(
-		(o, k) => (o == null ? undefined : o[k]),
+		(o, k) => (o === null || o === undefined ? undefined : o[k]),
 		obj,
 	)
 }
