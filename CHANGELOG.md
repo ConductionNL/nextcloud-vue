@@ -16,6 +16,9 @@
   Root `npm audit` now reports 0, and `npm audit --omit=dev` reports 0.
 
 ### Fixed
+- **`CnNcWidgetWidget` says when a proxied widget cannot be shown here, instead of saying it has no items.** A dashboard widget whose provider implements only `IWidget` declares `itemApiVersions: []` and is simply ABSENT from the widget-items response. With no native callback registered on the page, the proxy used to render "No items available" under it. For the Tasks app's widget on a case handler's dashboard that read as "you have no tasks" while five were due, and the same list appeared the moment LaunchPad's legacy widget bridge was switched on.
+
+  The two cases were always distinguishable, they just were not distinguished: an unsupported widget has no key in the response, while a widget with nothing right now comes back as its own key holding an empty list (the Mail app's `{items: [], emptyContentMessage}`). Only a SUCCESSFUL response can say a widget is absent, so a failed request keeps the ordinary empty state rather than a claim about the app. No extra request is made.
 - **`@types/react` no longer ships to every consumer.** It sat in `dependencies`, so all 21 fleet apps downloaded React type definitions with this library. Nothing referenced it: no source import, no `.d.ts` reference, no installed package declaring it as a peer, and the only mentions of "react" in the type declarations are the words "reactive" and "react to" in prose. The `@uiw/codemirror-theme-*` packages are framework-agnostic CodeMirror extensions despite their repository's name, which is the likeliest reason it was added. Removed rather than bumped to 19, which is what Dependabot proposed.
 
 - **`@codemirror/lint` to 6.9.7 and `@uiw/codemirror-theme-github` to 4.25.11.** Both already inside their declared ranges, so this is a lockfile move.
