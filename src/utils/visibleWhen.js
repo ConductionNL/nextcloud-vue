@@ -113,7 +113,9 @@ export function compareVisibleWhen(actual, op, expected) {
 export async function readVisibleWhenValue(cond, ctx) {
 	if (cond.endpoint) {
 		const response = await fetch(prefixUrl(cond.endpoint), { headers: buildHeaders() })
-		if (!response.ok) { throw new Error(`endpoint returned ${response.status}`) }
+		if (!response.ok) {
+			throw new Error(`endpoint returned ${response.status}`)
+		}
 		const data = await response.json()
 		return readVisibleWhenPath(data, cond.field)
 	}
@@ -123,7 +125,9 @@ export async function readVisibleWhenValue(cond, ctx) {
 		const qs = buildQueryString({ ...filter, _limit: 1 })
 		const url = prefixUrl(`/apps/openregister/api/objects/${src.register}/${src.schema}${qs}`)
 		const response = await fetch(url, { headers: buildHeaders() })
-		if (!response.ok) { throw new Error(`source returned ${response.status}`) }
+		if (!response.ok) {
+			throw new Error(`source returned ${response.status}`)
+		}
 		const data = await response.json()
 		if (!cond.field || cond.field === '@total') {
 			return data.total ?? (Array.isArray(data.results) ? data.results.length : 0)

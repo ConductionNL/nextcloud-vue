@@ -187,11 +187,20 @@ export default {
 
 	computed: {
 		/** Aggregation metric options. */
-		metricOptions() { return ['count', 'sum', 'avg', 'min', 'max'] },
+		metricOptions() {
+			return ['count', 'sum', 'avg', 'min', 'max']
+		},
+
 		/** Target kinds: a fixed number or a second aggregate. */
-		targetKindOptions() { return ['static', 'aggregate'] },
+		targetKindOptions() {
+			return ['static', 'aggregate']
+		},
+
 		/** Number-format styles. */
-		formatOptions() { return ['number', 'currency', 'percent'] },
+		formatOptions() {
+			return ['number', 'currency', 'percent']
+		},
+
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			return {
@@ -243,7 +252,10 @@ export default {
 		 *   otherwise a string.
 		 * @return {void}
 		 */
-		updateField(field, value) { this[field] = value; this.emitChange() },
+		updateField(field, value) {
+			this[field] = value; this.emitChange()
+		},
+
 		/**
 		 * Set a source sub-field and emit.
 		 *
@@ -251,7 +263,10 @@ export default {
 		 * @param {string} value The chosen register or schema slug.
 		 * @return {void}
 		 */
-		updateSource(field, value) { this.source[field] = value; this.emitChange() },
+		updateSource(field, value) {
+			this.source[field] = value; this.emitChange()
+		},
+
 		/**
 		 * Receive updated filter rows.
 		 *
@@ -260,9 +275,15 @@ export default {
 		 *   target aggregates.
 		 * @return {void}
 		 */
-		onFilterRows(rows) { this.filterRows = rows; this.emitChange() },
+		onFilterRows(rows) {
+			this.filterRows = rows; this.emitChange()
+		},
+
 		/** Emit the assembled content. */
-		emitChange() { this.$emit('update:content', this.assembledContent) },
+		emitChange() {
+			this.$emit('update:content', this.assembledContent)
+		},
+
 		/**
 		 * Validate the form; an empty array means valid.
 		 *

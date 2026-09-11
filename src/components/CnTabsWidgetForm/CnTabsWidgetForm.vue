@@ -195,7 +195,9 @@ export default {
 		 */
 		updateLabel(index, label) {
 			const tabs = this.tabs.map((tab, i) => {
-				if (i !== index) { return { ...tab } }
+				if (i !== index) {
+					return { ...tab }
+				}
 				const next = { ...tab }
 				if (label && label.trim() !== '') {
 					next.label = label

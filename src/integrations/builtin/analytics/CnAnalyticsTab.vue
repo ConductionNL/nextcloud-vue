@@ -240,9 +240,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchReports() } } },
-		register() { this.fetchReports() },
-		schema() { this.fetchReports() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchReports()
+			}
+		} },
+
+		register() {
+			this.fetchReports()
+		},
+
+		schema() {
+			this.fetchReports()
+		},
 	},
 
 	methods: {

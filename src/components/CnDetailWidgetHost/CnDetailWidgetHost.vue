@@ -887,7 +887,9 @@ export default {
 
 	watch: {
 		ownPanelActions: {
-			handler() { this.publishOwnPanelActions() },
+			handler() {
+				this.publishOwnPanelActions()
+			},
 		},
 	},
 

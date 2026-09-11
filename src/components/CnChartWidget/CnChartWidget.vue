@@ -949,7 +949,9 @@ export default {
 				// Without the tuple case an `[x, y]` series read as all-NaN and
 				// dropped every point, which silently disabled `valueAxisBounds`.
 				let raw = v
-				if (Array.isArray(v)) { raw = v[1] } else if (typeof v === 'object' && v !== null) {
+				if (Array.isArray(v)) {
+					raw = v[1]
+				} else if (typeof v === 'object' && v !== null) {
 					raw = v.y
 				}
 				const n = Number(raw)
@@ -958,7 +960,13 @@ export default {
 				}
 			}
 			for (const s of (Array.isArray(this.displayedSeries) ? this.displayedSeries : [])) {
-				if (Array.isArray(s)) { s.forEach(push) } else if (s && Array.isArray(s.data)) { s.data.forEach(push) } else { push(s) }
+				if (Array.isArray(s)) {
+					s.forEach(push)
+				} else if (s && Array.isArray(s.data)) {
+					s.data.forEach(push)
+				} else {
+					push(s)
+				}
 			}
 			return out
 		},
@@ -1022,10 +1030,14 @@ export default {
 			}
 			// A flat all-zero series has no scale to infer — give it a token
 			// ceiling so the axis renders instead of collapsing.
-			if (dataMax === 0) { return { min: 0, max: 1 } }
+			if (dataMax === 0) {
+				return { min: 0, max: 1 }
+			}
 			const zeroBaseline = this.valueAxisBaseline === 'zero'
 				|| ['bar', 'area'].includes(this.type)
-			if (zeroBaseline) { return { min: 0, max: niceCeil(dataMax) } }
+			if (zeroBaseline) {
+				return { min: 0, max: niceCeil(dataMax) }
+			}
 			// Line/scatter: keep a non-zero baseline, but require the visible
 			// window to cover at least a quarter of the data's magnitude so a
 			// 1-in-1000 wiggle can't fill the plot.
@@ -1536,7 +1548,9 @@ export default {
 				if (_f && typeof _f === 'object') {
 					for (const [k, v] of Object.entries(_f)) {
 						if (v && typeof v === 'object') {
-							for (const [op, ov] of Object.entries(v)) { params[`filter[${k}][${op}]`] = ov }
+							for (const [op, ov] of Object.entries(v)) {
+								params[`filter[${k}][${op}]`] = ov
+							}
 						} else if (v !== '' && v !== null && v !== undefined) {
 							params[`filter[${k}]`] = v
 						}
@@ -1640,7 +1654,9 @@ export default {
 				if (_f && typeof _f === 'object') {
 					for (const [k, v] of Object.entries(_f)) {
 						if (v && typeof v === 'object') {
-							for (const [op, ov] of Object.entries(v)) { params[`filter[${k}][${op}]`] = ov }
+							for (const [op, ov] of Object.entries(v)) {
+								params[`filter[${k}][${op}]`] = ov
+							}
 						} else if (v !== '' && v !== null && v !== undefined) {
 							params[`filter[${k}]`] = v
 						}
@@ -1732,7 +1748,9 @@ export default {
 				if (_f && typeof _f === 'object') {
 					for (const [k, v] of Object.entries(_f)) {
 						if (v && typeof v === 'object') {
-							for (const [op, ov] of Object.entries(v)) { params[`filter[${k}][${op}]`] = ov }
+							for (const [op, ov] of Object.entries(v)) {
+								params[`filter[${k}][${op}]`] = ov
+							}
 						} else if (v !== '' && v !== null && v !== undefined) {
 							params[`filter[${k}]`] = v
 						}
@@ -1787,7 +1805,9 @@ export default {
 				if (_f && typeof _f === 'object') {
 					for (const [k, v] of Object.entries(_f)) {
 						if (v && typeof v === 'object' && !Array.isArray(v)) {
-							for (const [op, ov] of Object.entries(v)) { params[`${k}[${op}]`] = ov }
+							for (const [op, ov] of Object.entries(v)) {
+								params[`${k}[${op}]`] = ov
+							}
 						} else if (v !== '' && v !== null && v !== undefined) {
 							params[k] = v
 						}
@@ -1887,7 +1907,11 @@ export default {
 				rawKeys = order.map((l) => acc[l].key)
 				if (colorMap) {
 					const merged = {}
-					order.forEach((l) => { if (colorMap[l]) { merged[l] = colorMap[l] } })
+					order.forEach((l) => {
+						if (colorMap[l]) {
+							merged[l] = colorMap[l]
+						}
+					})
 					colorMap = merged
 				}
 			}
@@ -1947,11 +1971,15 @@ export default {
 				return (res && res.data) || null
 			}
 			return Promise.all(keys.map(async (id) => {
-				if (!id) { return { label: '', color: '' } }
+				if (!id) {
+					return { label: '', color: '' }
+				}
 				try {
 					const cached = store && store.objects && store.objects[type] && store.objects[type][id]
 					const obj = cached || (store ? await store.fetchObject(type, id) : await fetchViaAxios(id))
-					if (!obj || typeof obj !== 'object') { return { label: '', color: '' } }
+					if (!obj || typeof obj !== 'object') {
+						return { label: '', color: '' }
+					}
 					let raw = obj[labelField]
 					if (raw === undefined || raw === null || raw === '') {
 						raw = obj['@self'] && obj['@self'].name

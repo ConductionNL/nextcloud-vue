@@ -116,7 +116,9 @@ export default {
 		 * @return {void}
 		 */
 		onNavigate(route) {
-			if (route && this.$router) { this.$router.push(route).catch(() => {}) }
+			if (route && this.$router) {
+				this.$router.push(route).catch(() => {})
+			}
 			this.$emit('close')
 		},
 	},

@@ -256,9 +256,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchCards() } } },
-		register() { this.fetchCards() },
-		schema() { this.fetchCards() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchCards()
+			}
+		} },
+
+		register() {
+			this.fetchCards()
+		},
+
+		schema() {
+			this.fetchCards()
+		},
 	},
 
 	methods: {

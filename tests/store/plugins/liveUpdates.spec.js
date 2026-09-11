@@ -210,7 +210,9 @@ describe('liveUpdatesPlugin', () => {
 			await store.subscribe('melding', 'uuid-sub')
 
 			let resolveFirst
-			const pending = new Promise((res) => { resolveFirst = res })
+			const pending = new Promise((res) => {
+				resolveFirst = res
+			})
 			global.fetch = jest.fn().mockReturnValue(pending.then(() => okJson({ id: 'uuid-abc', title: 'test' })))
 
 			// Three concurrent fetchObject calls
@@ -293,7 +295,9 @@ describe('liveUpdatesPlugin', () => {
 			await store.subscribe('melding', 'uuid-sub')
 
 			let resolve
-			const pending = new Promise((res) => { resolve = res })
+			const pending = new Promise((res) => {
+				resolve = res
+			})
 			global.fetch = jest.fn().mockReturnValue(pending.then(() => okJson({ results: [], total: 0, page: 1, pages: 1 })))
 
 			const params = { _limit: 10, _search: 'test' }

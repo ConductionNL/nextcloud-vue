@@ -83,7 +83,9 @@ describe('CnDashboardPage — hidden banners collapse their grid cell', () => {
 
 	it('holds the grid\'s first paint until the predicates settle — no pop-in reflow', async () => {
 		let resolveFetch
-		readVisibleWhenValue.mockReturnValue(new Promise((resolve) => { resolveFetch = resolve }))
+		readVisibleWhenValue.mockReturnValue(new Promise((resolve) => {
+			resolveFetch = resolve
+		}))
 		const wrapper = mountWith({ banner: { content: { text: 'T', visibleWhen: CONDITION } } })
 		// Predicate pending: loading icon instead of a grid that would reflow.
 		expect(wrapper.findAll('.cell')).toHaveLength(0)
@@ -197,7 +199,9 @@ describe('CnDashboardPage — hidden banners collapse their grid cell', () => {
 	it('ignores a stale evaluation resolving after a newer one (no verdict overwrite)', async () => {
 		let resolveStale
 		readVisibleWhenValue
-			.mockReturnValueOnce(new Promise((resolve) => { resolveStale = resolve }))
+			.mockReturnValueOnce(new Promise((resolve) => {
+				resolveStale = resolve
+			}))
 			.mockResolvedValueOnce('active')
 		const wrapper = mountWith({ banner: { content: { text: 'T', visibleWhen: CONDITION } } })
 		// Run 1 is in flight; edit the predicate so run 2 starts (new value).

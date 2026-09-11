@@ -36,7 +36,9 @@ const hasObjects409 = (objectCount = 2) => ({
 })
 
 describe('saveSchema', () => {
-	beforeEach(() => { jest.resetAllMocks() })
+	beforeEach(() => {
+		jest.resetAllMocks()
+	})
 
 	it('PUTs when an id is given, POSTs when it is not', async () => {
 		axios.put = jest.fn().mockResolvedValue({ data: { id: 7 } })
@@ -97,7 +99,9 @@ describe('saveSchema', () => {
 })
 
 describe('deleteSchema', () => {
-	beforeEach(() => { jest.resetAllMocks() })
+	beforeEach(() => {
+		jest.resetAllMocks()
+	})
 
 	it('does not cascade by default', async () => {
 		axios.delete = jest.fn().mockResolvedValue({ data: {} })

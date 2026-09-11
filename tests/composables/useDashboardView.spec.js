@@ -48,7 +48,9 @@ function mountDash(opts) {
 			const dash = useDashboardView(opts)
 			return { dash }
 		},
-		render() { return h('div') },
+		render() {
+			return h('div')
+		},
 	})
 	return mount(Comp)
 }

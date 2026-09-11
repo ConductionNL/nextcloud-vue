@@ -356,8 +356,12 @@ export default {
 		 * Dynamic attributes for the root element based on rendering mode.
 		 */
 		componentAttrs() {
-			if (this.route) { return { to: this.route, tabindex: '0' } }
-			if (this.clickable) { return { href: '#', role: 'button', tabindex: '0' } }
+			if (this.route) {
+				return { to: this.route, tabindex: '0' }
+			}
+			if (this.clickable) {
+				return { href: '#', role: 'button', tabindex: '0' }
+			}
 			return {}
 		},
 

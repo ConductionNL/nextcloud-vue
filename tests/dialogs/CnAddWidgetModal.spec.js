@@ -326,7 +326,9 @@ describe('CnAddWidgetModal', () => {
 
 	it('awaits the sub-form commit() before emitting submit', async () => {
 		const order = []
-		const commit = jest.fn(async () => { order.push('commit') })
+		const commit = jest.fn(async () => {
+			order.push('commit')
+		})
 		const { CnAddWidgetModal } = loadModal({
 			label: { form: fakeForm({ errors: [], assembled: { text: 'hi' }, commit }) },
 		})
@@ -355,7 +357,9 @@ describe('CnAddWidgetModal', () => {
 
 	it('does not close (cancel/Esc) while a commit() is in flight', async () => {
 		let resolveCommit
-		const commit = jest.fn(() => new Promise((res) => { resolveCommit = res }))
+		const commit = jest.fn(() => new Promise((res) => {
+			resolveCommit = res
+		}))
 		const { CnAddWidgetModal } = loadModal({
 			label: { form: fakeForm({ errors: [], assembled: { text: 'hi' }, commit }) },
 		})

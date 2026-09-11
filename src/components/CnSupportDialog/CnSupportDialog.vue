@@ -366,17 +366,26 @@ export default {
 				.filter((b) => b.enabled)
 		},
 
-		greetingHi() { return t('nextcloud-vue', 'Hi,') },
+		greetingHi() {
+			return t('nextcloud-vue', 'Hi,')
+		},
+
 		introLead() {
 			return t('nextcloud-vue', 'I\'m {founderName}, a founder of', { founderName: this.founderName })
 		},
 
-		conductionLabel() { return t('nextcloud-vue', 'Conduction') },
+		conductionLabel() {
+			return t('nextcloud-vue', 'Conduction')
+		},
+
 		teamLead() {
 			return t('nextcloud-vue', 'We\'re a small Dutch team. We build {appName} and the rest of our open-source', { appName: this.appName })
 		},
 
-		appsLabel() { return t('nextcloud-vue', 'apps') },
+		appsLabel() {
+			return t('nextcloud-vue', 'apps')
+		},
+
 		teamTrail() {
 			return t('nextcloud-vue', 'for Nextcloud. Every app is EUPL-1.2 licensed, and the source is on GitHub. Your data stays yours, and you can read, fork or improve it yourself.')
 		},
@@ -389,10 +398,21 @@ export default {
 			return t('nextcloud-vue', 'If {appName} is useful to you, a review on the App Store helps other people find it, and a small donation keeps us writing code instead of invoices. The app stays free, always. And if your organisation wants hands-on help with hosting, setup or an SLA, we\'ll match you with a partner who supports it.', { appName: this.appName })
 		},
 
-		featureRequestLabel() { return t('nextcloud-vue', 'Suggest a feature') },
-		appStoreLabel() { return t('nextcloud-vue', 'Review on App Store') },
-		donateLabel() { return t('nextcloud-vue', 'Donate') },
-		supportLabel() { return t('nextcloud-vue', 'Get support') },
+		featureRequestLabel() {
+			return t('nextcloud-vue', 'Suggest a feature')
+		},
+
+		appStoreLabel() {
+			return t('nextcloud-vue', 'Review on App Store')
+		},
+
+		donateLabel() {
+			return t('nextcloud-vue', 'Donate')
+		},
+
+		supportLabel() {
+			return t('nextcloud-vue', 'Get support')
+		},
 	},
 
 	mounted() {

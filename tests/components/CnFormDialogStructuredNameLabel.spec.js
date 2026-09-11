@@ -39,7 +39,9 @@ const PERSON = {
 const mockStore = {
 	objectTypeRegistry: {},
 	createObjectTypeSlug: (...parts) => parts.join('-'),
-	registerObjectType: jest.fn((slug) => { mockStore.objectTypeRegistry[slug] = {} }),
+	registerObjectType: jest.fn((slug) => {
+		mockStore.objectTypeRegistry[slug] = {}
+	}),
 	fetchCollection: jest.fn().mockResolvedValue([PERSON]),
 	fetchObject: jest.fn().mockResolvedValue(PERSON),
 }

@@ -822,7 +822,9 @@ export default {
 		 * @return {Promise<{ok: boolean, error?: string}>}
 		 */
 		async runAction(action, row) {
-			if (!action) { return { ok: false, error: '' } }
+			if (!action) {
+				return { ok: false, error: '' }
+			}
 			if (action.type !== 'object-op') {
 				const wrapped = (!action.type || action.type === 'handler')
 					? { ...action, args: [...(action.args || []), row] }

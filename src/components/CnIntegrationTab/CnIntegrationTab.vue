@@ -118,8 +118,15 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchRows() } } },
-		integrationId() { this.fetchRows() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchRows()
+			}
+		} },
+
+		integrationId() {
+			this.fetchRows()
+		},
 	},
 
 	methods: {

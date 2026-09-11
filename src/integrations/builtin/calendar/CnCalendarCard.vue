@@ -208,9 +208,17 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler() { this.refresh() } },
-		entityId() { this.refresh() },
-		surface() { this.refresh() },
+		objectId: { immediate: true, handler() {
+			this.refresh()
+		} },
+
+		entityId() {
+			this.refresh()
+		},
+
+		surface() {
+			this.refresh()
+		},
 	},
 
 	methods: {

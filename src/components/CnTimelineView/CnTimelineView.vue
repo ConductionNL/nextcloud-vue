@@ -186,7 +186,9 @@ export default {
 		 */
 		defaultGroup(evt) {
 			const d = new Date(evt.start)
-			if (Number.isNaN(d.getTime())) { return { key: 'invalid', label: 'Unknown date' } }
+			if (Number.isNaN(d.getTime())) {
+				return { key: 'invalid', label: 'Unknown date' }
+			}
 			const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 			const label = d.toLocaleDateString(this.locale, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
 			return { key, label }

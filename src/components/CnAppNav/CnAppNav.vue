@@ -1329,7 +1329,6 @@ export default {
 			return pages.find((p) => p.id === item.route) ?? null
 		},
 
-
 		/**
 		 * Build the `:to` value for an `NcAppNavigationItem`. Action
 		 * items (`action: "user-settings"`) and `href` items return

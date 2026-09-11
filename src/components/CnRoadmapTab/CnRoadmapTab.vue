@@ -127,15 +127,41 @@ export default {
 			return [...this.items].sort((a, b) => (b.reactions?.total_count || 0) - (a.reactions?.total_count || 0))
 		},
 
-		disabledLabel() { return t('nextcloud-vue', 'Roadmap is disabled by your administrator') },
-		patNotConfiguredTitle() { return t('nextcloud-vue', 'Roadmap not yet configured') },
-		patNotConfiguredDescription() { return t('nextcloud-vue', 'Ask your administrator to add a GitHub Personal Access Token in the OpenRegister settings to enable the roadmap.') },
-		rateLimitedTitle() { return t('nextcloud-vue', 'GitHub temporarily unavailable') },
-		rateLimitedDescription() { return t('nextcloud-vue', 'GitHub rate limited the request — please retry in a few minutes.') },
-		errorTitle() { return t('nextcloud-vue', 'Could not load the roadmap') },
-		emptyTitle() { return t('nextcloud-vue', 'No roadmap items yet') },
-		emptyDescription() { return t('nextcloud-vue', 'When the maintainers label issues "enhancement" or "feature" on GitHub they will appear here.') },
-		retryLabel() { return t('nextcloud-vue', 'Retry') },
+		disabledLabel() {
+			return t('nextcloud-vue', 'Roadmap is disabled by your administrator')
+		},
+
+		patNotConfiguredTitle() {
+			return t('nextcloud-vue', 'Roadmap not yet configured')
+		},
+
+		patNotConfiguredDescription() {
+			return t('nextcloud-vue', 'Ask your administrator to add a GitHub Personal Access Token in the OpenRegister settings to enable the roadmap.')
+		},
+
+		rateLimitedTitle() {
+			return t('nextcloud-vue', 'GitHub temporarily unavailable')
+		},
+
+		rateLimitedDescription() {
+			return t('nextcloud-vue', 'GitHub rate limited the request — please retry in a few minutes.')
+		},
+
+		errorTitle() {
+			return t('nextcloud-vue', 'Could not load the roadmap')
+		},
+
+		emptyTitle() {
+			return t('nextcloud-vue', 'No roadmap items yet')
+		},
+
+		emptyDescription() {
+			return t('nextcloud-vue', 'When the maintainers label issues "enhancement" or "feature" on GitHub they will appear here.')
+		},
+
+		retryLabel() {
+			return t('nextcloud-vue', 'Retry')
+		},
 	},
 
 	mounted() {

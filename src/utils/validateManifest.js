@@ -621,7 +621,9 @@ export function validateManifestV2(manifest) {
 				const duplicated = []
 				declaredKeys.forEach((key) => {
 					const count = assignmentCount.get(key) || 0
-					if (count === 0) { unassigned.push(key) } else if (count > 1) {
+					if (count === 0) {
+						unassigned.push(key)
+					} else if (count > 1) {
 						duplicated.push(key)
 					}
 				})
@@ -795,7 +797,9 @@ export function validateManifest(manifest, options = {}) {
 			} else if (isSentinel(item.id)) {
 				errors.push(`/menu/${index}/id must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
 			}
-			if (typeof item.label !== 'string') { errors.push(`/menu/${index}/label must be a string`) }
+			if (typeof item.label !== 'string') {
+				errors.push(`/menu/${index}/label must be a string`)
+			}
 			if (item.route !== undefined && isSentinel(item.route)) {
 				errors.push(`/menu/${index}/route must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
 			}
@@ -856,7 +860,9 @@ export function validateManifest(manifest, options = {}) {
 			} else if (isSentinel(page.route)) {
 				errors.push(`/pages/${index}/route must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
 			}
-			if (typeof page.title !== 'string') { errors.push(`/pages/${index}/title must be a string`) }
+			if (typeof page.title !== 'string') {
+				errors.push(`/pages/${index}/title must be a string`)
+			}
 			if (typeof page.type !== 'string' || page.type.length === 0) {
 				errors.push(`/pages/${index}/type must be a non-empty string`)
 			} else if (allowedTypes && !allowedTypes.includes(page.type)) {

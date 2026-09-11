@@ -42,7 +42,9 @@ jest.mock('leaflet', () => {
 			const m = {
 				_added: [],
 				_handlers: {},
-				on: jest.fn(function(evt, cb) { this._handlers[evt] = cb }),
+				on: jest.fn(function(evt, cb) {
+					this._handlers[evt] = cb
+				}),
 				off: jest.fn(),
 				removeLayer: jest.fn(function(layer) {
 					this._added = this._added.filter((l) => l !== layer)
@@ -95,7 +97,10 @@ jest.mock('leaflet', () => {
 	// Control plumbing — enough of L.Control / L.DomUtil / L.DomEvent for the
 	// custom control bar (fit / locate / fullscreen) and the base-map switcher.
 	L.Control = class {
-		constructor(opts) { this.options = opts || {} }
+		constructor(opts) {
+			this.options = opts || {}
+		}
+
 		addTo(map) {
 			map._controls = map._controls || []
 			this._container = this.onAdd(map)
@@ -106,7 +111,9 @@ jest.mock('leaflet', () => {
 	L.Control.extend = (proto) => {
 		const Base = L.Control
 		return class extends Base {
-			constructor(opts) { super(opts); Object.assign(this, proto) }
+			constructor(opts) {
+				super(opts); Object.assign(this, proto)
+			}
 		}
 	}
 	L.control = Object.assign(

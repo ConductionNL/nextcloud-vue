@@ -123,12 +123,20 @@ export function validateFieldValue(field, value, translate) {
 					return customMessage
 				}
 				if (type === 'number') {
-					if (hasMin && hasMax) { return ncTranslate('nextcloud-vue', 'Must be between {min} and {max}', { min: validation.min, max: validation.max }) }
-					if (belowMin) { return ncTranslate('nextcloud-vue', 'Must be at least {min}', { min: validation.min }) }
+					if (hasMin && hasMax) {
+						return ncTranslate('nextcloud-vue', 'Must be between {min} and {max}', { min: validation.min, max: validation.max })
+					}
+					if (belowMin) {
+						return ncTranslate('nextcloud-vue', 'Must be at least {min}', { min: validation.min })
+					}
 					return ncTranslate('nextcloud-vue', 'Must be at most {max}', { max: validation.max })
 				}
-				if (hasMin && hasMax) { return ncTranslate('nextcloud-vue', 'Must be between {min} and {max} characters', { min: validation.min, max: validation.max }) }
-				if (belowMin) { return ncTranslate('nextcloud-vue', 'Must be at least {min} characters', { min: validation.min }) }
+				if (hasMin && hasMax) {
+					return ncTranslate('nextcloud-vue', 'Must be between {min} and {max} characters', { min: validation.min, max: validation.max })
+				}
+				if (belowMin) {
+					return ncTranslate('nextcloud-vue', 'Must be at least {min} characters', { min: validation.min })
+				}
 				return ncTranslate('nextcloud-vue', 'Must be at most {max} characters', { max: validation.max })
 			}
 		}

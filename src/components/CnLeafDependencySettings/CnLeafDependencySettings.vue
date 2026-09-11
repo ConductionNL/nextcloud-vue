@@ -264,12 +264,29 @@ export default {
 				.sort((a, b) => (Number(b.required) - Number(a.required)) || a.name.localeCompare(b.name))
 		},
 
-		loadingLabel() { return t('nextcloud-vue', 'Checking apps…') },
-		allResolvedLabel() { return t('nextcloud-vue', 'All integrations this app can use are installed and enabled.') },
-		installLabel() { return t('nextcloud-vue', 'Install and enable') },
-		enableLabel() { return t('nextcloud-vue', 'Enable') },
-		requiredTagLabel() { return t('nextcloud-vue', 'Required') },
-		optionalTagLabel() { return t('nextcloud-vue', 'Optional') },
+		loadingLabel() {
+			return t('nextcloud-vue', 'Checking apps…')
+		},
+
+		allResolvedLabel() {
+			return t('nextcloud-vue', 'All integrations this app can use are installed and enabled.')
+		},
+
+		installLabel() {
+			return t('nextcloud-vue', 'Install and enable')
+		},
+
+		enableLabel() {
+			return t('nextcloud-vue', 'Enable')
+		},
+
+		requiredTagLabel() {
+			return t('nextcloud-vue', 'Required')
+		},
+
+		optionalTagLabel() {
+			return t('nextcloud-vue', 'Optional')
+		},
 	},
 
 	methods: {

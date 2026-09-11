@@ -61,7 +61,9 @@ function mountDetail(args) {
 			const detail = useDetailView(...args)
 			return { detail }
 		},
-		render() { return h('div') },
+		render() {
+			return h('div')
+		},
 	})
 	return mount(Comp)
 }

@@ -207,7 +207,9 @@ describe('CnAppRoot — refreshDataSources()', () => {
 
 	it('de-dupes a refresh that is already in flight', async () => {
 		let resolve
-		const loader = jest.fn(() => new Promise((r) => { resolve = r }))
+		const loader = jest.fn(() => new Promise((r) => {
+			resolve = r
+		}))
 		const ctx = harness(loader)
 
 		const a = ctx.refreshDataSources()
@@ -229,7 +231,9 @@ describe('CnAppRoot — refreshDataSources()', () => {
 	})
 
 	it('treats a synchronously-throwing loader like a rejected promise', async () => {
-		const ctx = harness(() => { throw new Error('sync boom') }, SNAPSHOT)
+		const ctx = harness(() => {
+			throw new Error('sync boom')
+		}, SNAPSHOT)
 		await expect(ctx.refreshDataSources()).resolves.toBeUndefined()
 		expect(ctx.dataSourcesState.error).toBeInstanceOf(Error)
 		expect(toRaw(ctx.dataSourcesState.value)).toBe(SNAPSHOT)

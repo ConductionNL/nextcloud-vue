@@ -71,7 +71,9 @@ function installedCopies(name) {
 			if (fs.existsSync(manifest)) {
 				try {
 					const pkg = JSON.parse(fs.readFileSync(manifest, 'utf8'))
-					if (pkg.name === name && pkg.version) { found.push({ dir: full, version: pkg.version }) }
+					if (pkg.name === name && pkg.version) {
+						found.push({ dir: full, version: pkg.version })
+					}
 				} catch {
 					// An unreadable manifest is not this test's business.
 				}

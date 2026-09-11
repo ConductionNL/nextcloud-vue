@@ -697,9 +697,13 @@ export default {
 				// field (request/step timings), and they would all collapse to
 				// the `0s` floor below — so render them in ms directly.
 				const ms = Math.round(secs)
-				if (Math.abs(ms) < 1000) { return `${fmt.prefix || ''}${ms}ms${fmt.suffix || ''}` }
+				if (Math.abs(ms) < 1000) {
+					return `${fmt.prefix || ''}${ms}ms${fmt.suffix || ''}`
+				}
 				secs = ms / 1000
-			} else if (fmt.unit === 'minutes') { secs *= 60 } else if (fmt.unit === 'hours') {
+			} else if (fmt.unit === 'minutes') {
+				secs *= 60
+			} else if (fmt.unit === 'hours') {
 				secs *= 3600
 			}
 			secs = Math.round(secs)
@@ -709,9 +713,15 @@ export default {
 			const m = Math.floor((secs % 3600) / 60)
 			const s = secs % 60
 			const parts = []
-			if (h > 0) { parts.push(`${h}u`) }
-			if (m > 0) { parts.push(`${m}m`) }
-			if (s > 0 && h === 0) { parts.push(`${s}s`) }
+			if (h > 0) {
+				parts.push(`${h}u`)
+			}
+			if (m > 0) {
+				parts.push(`${m}m`)
+			}
+			if (s > 0 && h === 0) {
+				parts.push(`${s}s`)
+			}
 			if (parts.length === 0) {
 				parts.push('0s')
 			}

@@ -180,7 +180,9 @@ describe('createObjectStore default-on live updates', () => {
 			})
 
 			let resolve
-			const pending = new Promise((res) => { resolve = res })
+			const pending = new Promise((res) => {
+				resolve = res
+			})
 			global.fetch = jest.fn().mockReturnValue(pending.then(() => okJson({ results: [], total: 0, page: 1, pages: 1 })))
 
 			const params = { _limit: 10 }
@@ -204,7 +206,9 @@ describe('createObjectStore default-on live updates', () => {
 			await store.subscribe('melding', 'uuid-abc')
 
 			let resolve
-			const pending = new Promise((res) => { resolve = res })
+			const pending = new Promise((res) => {
+				resolve = res
+			})
 			global.fetch = jest.fn().mockReturnValue(pending.then(() => okJson({ results: [], total: 0, page: 1, pages: 1 })))
 
 			const params = { _limit: 10 }

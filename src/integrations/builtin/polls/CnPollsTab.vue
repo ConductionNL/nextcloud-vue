@@ -242,9 +242,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchPolls() } } },
-		register() { this.fetchPolls() },
-		schema() { this.fetchPolls() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchPolls()
+			}
+		} },
+
+		register() {
+			this.fetchPolls()
+		},
+
+		schema() {
+			this.fetchPolls()
+		},
 	},
 
 	methods: {

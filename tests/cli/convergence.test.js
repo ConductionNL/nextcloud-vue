@@ -38,7 +38,9 @@ describe('runConvergence — fleet mixed-dialect regression', () => {
 			it('produces a manifest that still validates against the v2 schema', () => {
 				const { transformed } = runConvergence(manifest)
 				const result = validateManifestV2(transformed)
-				if (!result.valid) { console.error(`${name} errors:`, result.errors.slice(0, 10)) }
+				if (!result.valid) {
+					console.error(`${name} errors:`, result.errors.slice(0, 10))
+				}
 				expect(result.valid).toBe(true)
 			})
 

@@ -232,7 +232,9 @@ export function prefillDeclarations(schema) {
  */
 export function prefillValues(record, config) {
 	const fields = (config && config.fields) || null
-	if (!record || !fields) { return {} }
+	if (!record || !fields) {
+		return {}
+	}
 
 	const out = {}
 	for (const [target, source] of Object.entries(fields)) {
@@ -285,7 +287,9 @@ export function definitionQueryParams(config, value, formData = {}) {
 			continue
 		}
 		if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
-			for (const [op, operand] of Object.entries(entry)) { params[`${key}[${op}]`] = operand }
+			for (const [op, operand] of Object.entries(entry)) {
+				params[`${key}[${op}]`] = operand
+			}
 		} else if (entry !== '' && entry !== null && entry !== undefined) {
 			params[key] = entry
 		}

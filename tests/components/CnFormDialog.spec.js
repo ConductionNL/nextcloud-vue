@@ -171,7 +171,9 @@ describe('CnFormDialog', () => {
 
 	it('isFieldLoading returns true while async enum is pending', async () => {
 		let resolveEnum
-		const enumFn = jest.fn().mockImplementation(() => new Promise((r) => { resolveEnum = r }))
+		const enumFn = jest.fn().mockImplementation(() => new Promise((r) => {
+			resolveEnum = r
+		}))
 
 		const wrapper = mount(CnFormDialog, {
 			propsData: {
@@ -712,7 +714,9 @@ describe('CnFormDialog — referenceType (pluggable integration registry)', () =
 			return h('div', { class: 'contact-entity-widget' }, `${this.surface}|${this.value || ''}`)
 		},
 	}
-	const RegistryTab = { name: 'RegistryTab', render() { return h('div') } }
+	const RegistryTab = { name: 'RegistryTab', render() {
+		return h('div')
+	} }
 
 	const refSchema = {
 		title: 'Lead',

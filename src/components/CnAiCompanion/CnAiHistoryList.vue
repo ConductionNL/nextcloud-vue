@@ -247,8 +247,12 @@ export default {
 				if (diffMinutes < 2) {
 					return 'just now'
 				}
-				if (diffMinutes < 60) { return `${diffMinutes}m ago` }
-				if (diffHours < 24) { return `${diffHours}h ago` }
+				if (diffMinutes < 60) {
+					return `${diffMinutes}m ago`
+				}
+				if (diffHours < 24) {
+					return `${diffHours}h ago`
+				}
 				return `${diffDays}d ago`
 			} catch {
 				return ''

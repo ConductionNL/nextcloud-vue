@@ -40,7 +40,9 @@ test.describe('CnIconPicker — enriched (real browser)', () => {
 		await expect(sec.locator('.cn-icon-picker__hint')).toContainText('scroll for more')
 		// Scroll the grid to its bottom a few times to load further batches.
 		for (let i = 0; i < 3; i++) {
-			await grid.evaluate((el) => { el.scrollTop = el.scrollHeight })
+			await grid.evaluate((el) => {
+				el.scrollTop = el.scrollHeight
+			})
 			await page.waitForTimeout(150)
 		}
 		await expect.poll(async () => grid.locator('.cn-icon-picker__icon').count()).toBeGreaterThan(before)

@@ -138,7 +138,9 @@ export function useGraphQL(query, variables, options = {}) {
 	if (isRef(query)) {
 		watch(query, refetch)
 	}
-	if (isRef(variables)) { watch(variables, refetch, { deep: true }) }
+	if (isRef(variables)) {
+		watch(variables, refetch, { deep: true })
+	}
 
 	return { data, loading, error, refetch }
 }

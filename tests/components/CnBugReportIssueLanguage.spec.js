@@ -137,7 +137,9 @@ describe('Report a bug — issue language', () => {
 				cnAppId: 'keepiq',
 				cnFeatureRequestRepo: 'ConductionNL/keepiq',
 				cnFeatureRequestForge: { type: 'github' },
-				cnWidgetTitleSource: () => { throw new Error('host blew up') },
+				cnWidgetTitleSource: () => {
+					throw new Error('host blew up')
+				},
 			},
 		})
 

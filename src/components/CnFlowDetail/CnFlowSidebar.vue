@@ -319,7 +319,9 @@ export default {
 				icon: 'Pencil',
 				label: this.t('nextcloud-vue', 'Edit flow'),
 				disabled: false,
-				run: () => { this.settingsOpen = true },
+				run: () => {
+					this.settingsOpen = true
+				},
 			}]
 
 			// The label says which way the switch will GO, not which way it is
@@ -343,7 +345,9 @@ export default {
 					icon: 'Publish',
 					label: this.t('nextcloud-vue', 'Publish'),
 					disabled: this.store.transitioning || !this.store.flow.id,
-					run: () => { this.publishOpen = true },
+					run: () => {
+						this.publishOpen = true
+					},
 				})
 			}
 

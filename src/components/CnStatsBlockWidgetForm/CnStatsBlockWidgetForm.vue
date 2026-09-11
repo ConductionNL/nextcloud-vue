@@ -132,9 +132,15 @@ export default {
 
 	computed: {
 		/** Aggregation metric options. */
-		metricOptions() { return ['count', 'sum', 'avg', 'min', 'max'] },
+		metricOptions() {
+			return ['count', 'sum', 'avg', 'min', 'max']
+		},
+
 		/** Card colour variants (CnStatsBlock). */
-		variantOptions() { return ['default', 'primary', 'success', 'warning', 'error'] },
+		variantOptions() {
+			return ['default', 'primary', 'success', 'warning', 'error']
+		},
+
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			return {
@@ -174,7 +180,10 @@ export default {
 		 * @param {string} value The new value for that key.
 		 * @return {void}
 		 */
-		updateField(field, value) { this[field] = value; this.emitChange() },
+		updateField(field, value) {
+			this[field] = value; this.emitChange()
+		},
+
 		/**
 		 * Set a source sub-field and emit.
 		 *
@@ -182,7 +191,10 @@ export default {
 		 * @param {string} value The chosen register or schema slug.
 		 * @return {void}
 		 */
-		updateSource(field, value) { this.source[field] = value; this.emitChange() },
+		updateSource(field, value) {
+			this.source[field] = value; this.emitChange()
+		},
+
 		/**
 		 * Receive updated filter rows.
 		 *
@@ -190,9 +202,15 @@ export default {
 		 *   full row list, serialised by `rowsToFilter()` into `dataSource.filter`.
 		 * @return {void}
 		 */
-		onFilterRows(rows) { this.filterRows = rows; this.emitChange() },
+		onFilterRows(rows) {
+			this.filterRows = rows; this.emitChange()
+		},
+
 		/** Emit the assembled content. */
-		emitChange() { this.$emit('update:content', this.assembledContent) },
+		emitChange() {
+			this.$emit('update:content', this.assembledContent)
+		},
+
 		/**
 		 * Validate the form; an empty array means valid.
 		 *

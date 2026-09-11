@@ -23,7 +23,9 @@ function isExternalUrl(target) {
  * @return {{ resolved: boolean, value: * }} `resolved` is false when a token names a field the row does not carry.
  */
 function resolveRowToken(value, row) {
-	if (typeof value !== 'string' || !value.includes('{')) { return { resolved: true, value } }
+	if (typeof value !== 'string' || !value.includes('{')) {
+		return { resolved: true, value }
+	}
 
 	const exact = value.match(/^\{([^{}]+)\}$/)
 	if (exact) {
@@ -143,7 +145,9 @@ export function resolveActionHandler(action, ctx) {
 	if (name === 'emit') {
 		return null
 	}
-	if (name === 'none') { return () => {} }
+	if (name === 'none') {
+		return () => {}
+	}
 
 	const fn = ctx.customComponents[name]
 	if (typeof fn === 'function') {

@@ -39,11 +39,19 @@ describe('folderCustomization catalogs', () => {
 				return 0
 			}
 			let h
-			if (max === r) { h = ((g - b) / d) % 6 } else if (max === g) { h = (b - r) / d + 2 } else { h = (r - g) / d + 4 }
+			if (max === r) {
+				h = ((g - b) / d) % 6
+			} else if (max === g) {
+				h = (b - r) / d + 2
+			} else {
+				h = (r - g) / d + 4
+			}
 			return ((h * 60) + 360) % 360
 		}
 		for (const c of FOLDER_COLORS) {
-			if (c.key === 'gray') { continue } // desaturated — hue is meaningless
+			if (c.key === 'gray') {
+				continue
+			} // desaturated — hue is meaningless
 			const diff = Math.abs(hueOf(c.light) - hueOf(c.dark))
 			const wrapped = Math.min(diff, 360 - diff)
 			expect(wrapped).toBeLessThanOrEqual(12)
@@ -85,7 +93,6 @@ describe('folderColorTint', () => {
 		const blue = FOLDER_COLORS.find((c) => c.key === 'blue')
 		const int = parseInt(blue.dark.slice(1), 16)
 		const expected = `rgba(${(int >> 16) & 0xff}, ${(int >> 8) & 0xff}, ${int & 0xff}, 0.15)`
-		/* eslint-enable no-bitwise */
 		expect(folderColorTint('blue', 'dark')).toBe(expected)
 	})
 

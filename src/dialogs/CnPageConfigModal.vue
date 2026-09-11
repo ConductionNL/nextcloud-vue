@@ -1002,7 +1002,11 @@ export default {
 		 */
 		setConfig(key, value) {
 			const config = this.ensureConfig()
-			if (value) { config[key] = value } else { delete config[key] }
+			if (value) {
+				config[key] = value
+			} else {
+				delete config[key]
+			}
 		},
 
 		/**
@@ -1015,7 +1019,11 @@ export default {
 		setNumber(key, value) {
 			const config = this.ensureConfig()
 			const n = Number(value)
-			if (value === '' || value === null || Number.isNaN(n)) { delete config[key] } else { config[key] = n }
+			if (value === '' || value === null || Number.isNaN(n)) {
+				delete config[key]
+			} else {
+				config[key] = n
+			}
 		},
 
 		/**
@@ -1044,7 +1052,11 @@ export default {
 		 */
 		setBool(key, checked) {
 			const config = this.ensureConfig()
-			if (checked === (BOOL_DEFAULTS[key] === true)) { delete config[key] } else { config[key] = checked }
+			if (checked === (BOOL_DEFAULTS[key] === true)) {
+				delete config[key]
+			} else {
+				config[key] = checked
+			}
 		},
 
 		/**
@@ -1066,7 +1078,11 @@ export default {
 		setViewMode(option) {
 			const config = this.ensureConfig()
 			const v = option ? option.value : 'table'
-			if (v && v !== 'table') { config.viewMode = v } else { delete config.viewMode }
+			if (v && v !== 'table') {
+				config.viewMode = v
+			} else {
+				delete config.viewMode
+			}
 		},
 
 		/**
@@ -1083,13 +1099,21 @@ export default {
 			const modes = (options || []).map((o) => o.value)
 			const isDefault = modes.length === 2
 				&& modes.includes('cards') && modes.includes('table')
-			if (!modes.length || isDefault) { delete config.viewModes } else { config.viewModes = modes }
+			if (!modes.length || isDefault) {
+				delete config.viewModes
+			} else {
+				config.viewModes = modes
+			}
 			// Keep the default view within the enabled set.
 			const effective = modes.length ? modes : ['cards', 'table']
 			const current = this.configValue('viewMode') || 'table'
 			if (!effective.includes(current)) {
 				const next = effective[0]
-				if (next && next !== 'table') { config.viewMode = next } else { delete config.viewMode }
+				if (next && next !== 'table') {
+					config.viewMode = next
+				} else {
+					delete config.viewMode
+				}
 			}
 		},
 
@@ -1119,7 +1143,11 @@ export default {
 				map = {}
 				config.mapConfig = map
 			}
-			if (value) { map[key] = value } else { delete map[key] }
+			if (value) {
+				map[key] = value
+			} else {
+				delete map[key]
+			}
 			if (!Object.keys(config.mapConfig).length) {
 				delete config.mapConfig
 			}
@@ -1157,7 +1185,11 @@ export default {
 		setColumns(options) {
 			const config = this.ensureConfig()
 			const cols = (options || []).map((o) => o.value)
-			if (cols.length) { config.columns = cols } else { delete config.columns }
+			if (cols.length) {
+				config.columns = cols
+			} else {
+				delete config.columns
+			}
 		},
 
 		/**
@@ -1169,7 +1201,11 @@ export default {
 		setColumnsText(text) {
 			const config = this.ensureConfig()
 			const cols = String(text || '').split(',').map((s) => s.trim()).filter(Boolean)
-			if (cols.length) { config.columns = cols } else { delete config.columns }
+			if (cols.length) {
+				config.columns = cols
+			} else {
+				delete config.columns
+			}
 		},
 
 		/**
@@ -1208,7 +1244,11 @@ export default {
 				map = {}
 				config.columnOverrides = map
 			}
-			if (override && Object.keys(override).length) { map[col] = override } else { delete map[col] }
+			if (override && Object.keys(override).length) {
+				map[col] = override
+			} else {
+				delete map[col]
+			}
 			if (!Object.keys(config.columnOverrides).length) {
 				delete config.columnOverrides
 			}
@@ -1223,7 +1263,11 @@ export default {
 		 */
 		setColLabel(col, label) {
 			const next = { ...this.colOverride(col) }
-			if (label) { next.label = label } else { delete next.label }
+			if (label) {
+				next.label = label
+			} else {
+				delete next.label
+			}
 			this.writeOverride(col, next)
 		},
 
@@ -1236,7 +1280,11 @@ export default {
 		selectedFormat(col) {
 			const ov = this.colOverride(col)
 			let value = ''
-			if (ov.formatter) { value = ov.formatter } else if (ov.widget) { value = ov.widget } else if (ov.format && ov.format.style) {
+			if (ov.formatter) {
+				value = ov.formatter
+			} else if (ov.widget) {
+				value = ov.widget
+			} else if (ov.format && ov.format.style) {
 				value = ov.format.style
 			}
 			return this.formatOptions.find((o) => o.value === value) || this.formatOptions[0]
@@ -1256,7 +1304,13 @@ export default {
 			delete next.widget
 			delete next.format
 			const preset = FORMAT_OPTIONS.find((o) => o.value === (option && option.value))
-			if (preset && preset.channel === 'formatter') { next.formatter = preset.value } else if (preset && preset.channel === 'widget') { next.widget = preset.value } else if (preset && preset.channel === 'format') { next.format = { style: preset.value } }
+			if (preset && preset.channel === 'formatter') {
+				next.formatter = preset.value
+			} else if (preset && preset.channel === 'widget') {
+				next.widget = preset.value
+			} else if (preset && preset.channel === 'format') {
+				next.format = { style: preset.value }
+			}
 			this.writeOverride(col, next)
 		},
 

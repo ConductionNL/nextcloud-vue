@@ -151,7 +151,9 @@ describe('CnChartWidget — endpointSource (Wave 2)', () => {
 
 	it('falls back to the static series/labels props while the endpoint has not resolved', async () => {
 		let resolveFetch
-		axios.get.mockReturnValue(new Promise((resolve) => { resolveFetch = resolve }))
+		axios.get.mockReturnValue(new Promise((resolve) => {
+			resolveFetch = resolve
+		}))
 		const wrapper = mountChart({
 			type: 'line',
 			series: [{ name: 'Static', data: [1] }],

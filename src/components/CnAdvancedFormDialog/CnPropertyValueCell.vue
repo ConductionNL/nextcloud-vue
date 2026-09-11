@@ -466,7 +466,9 @@ export default {
 		 */
 		colorSwatchStyle() {
 			const c = this.colorPreviewValue
-			if (!c) { return {} }
+			if (!c) {
+				return {}
+			}
 			const fill = `linear-gradient(${c}, ${c})`
 			return {
 				backgroundImage: `${fill}, var(--cn-color-swatch-checker)`,
@@ -541,7 +543,11 @@ export default {
 				return ''
 			}
 			if (typeof ex === 'object') {
-				try { return JSON.stringify(ex) } catch { return '' }
+				try {
+					return JSON.stringify(ex)
+				} catch {
+					return ''
+				}
 			}
 			return String(ex)
 		},
@@ -1077,8 +1083,12 @@ export default {
 				const aHex = Math.round(a * 255).toString(16).padStart(2, '0')
 				return ((hex || '#000000') + aHex).toLowerCase()
 			}
-			if (fmt === 'color-rgb') { return `rgb(${r}, ${g}, ${b})` }
-			if (fmt === 'color-rgba') { return `rgba(${r}, ${g}, ${b}, ${this.formatAlpha(a)})` }
+			if (fmt === 'color-rgb') {
+				return `rgb(${r}, ${g}, ${b})`
+			}
+			if (fmt === 'color-rgba') {
+				return `rgba(${r}, ${g}, ${b}, ${this.formatAlpha(a)})`
+			}
 			if (fmt === 'color-hsl' || fmt === 'color-hsla') {
 				const { h, s, l } = this.rgbToHsl(r, g, b)
 				if (fmt === 'color-hsla') {

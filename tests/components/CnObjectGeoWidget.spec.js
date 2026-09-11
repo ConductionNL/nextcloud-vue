@@ -233,7 +233,9 @@ describe('CnObjectGeoWidget — address search', () => {
 
 	it('surfaces a message instead of throwing when the lookup fails (e.g. CSP-blocked)', async () => {
 		jest.spyOn(console, 'warn').mockImplementation(() => {})
-		global.fetch = jest.fn(async () => { throw new Error('blocked by CSP') })
+		global.fetch = jest.fn(async () => {
+			throw new Error('blocked by CSP')
+		})
 		const wrapper = mountWidget({ editable: true, addressSearch: true })
 		wrapper.vm.query = 'utrecht'
 		await wrapper.vm.geocode()

@@ -86,7 +86,9 @@ function convergeTypedWidgets(page) {
 	const converted = typedDefs.map((def) => convertDef(def, layoutById, () => {
 		const row = autoRow
 		return row
-	}, (h) => { autoRow += h }))
+	}, (h) => {
+		autoRow += h
+	}))
 
 	const mergedWidgets = [...canonicalTop, ...converted]
 

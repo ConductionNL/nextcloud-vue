@@ -264,7 +264,9 @@ export default {
 		},
 
 		ringStyle() {
-			if (!this.rect) { return {} }
+			if (!this.rect) {
+				return {}
+			}
 			const pad = 6
 			return {
 				top: (this.rect.top - pad) + 'px',
@@ -276,7 +278,9 @@ export default {
 
 		strip() {
 			const r = this.rect
-			if (!r) { return {} }
+			if (!r) {
+				return {}
+			}
 			const pad = 6
 			const top = Math.max(0, r.top - pad)
 			const bottom = r.top + r.height + pad
@@ -351,7 +355,11 @@ export default {
 		this._onScroll = () => this.computeRect()
 		window.addEventListener('scroll', this._onScroll, true)
 		window.addEventListener('resize', this._onScroll)
-		this._onKey = (e) => { if (e.key === 'Escape') { this.onBackdrop() } }
+		this._onKey = (e) => {
+			if (e.key === 'Escape') {
+				this.onBackdrop()
+			}
+		}
 		window.addEventListener('keydown', this._onKey)
 		this._onObjectCreated = (e) => this.wt.notify({ kind: 'object-created', object: (e && e.detail) || {} })
 		window.addEventListener('cn-walkthrough:object-created', this._onObjectCreated)
@@ -576,7 +584,9 @@ export default {
 				this.rect = null
 				return
 			}
-			try { el.scrollIntoView({ block: 'center', inline: 'center' }) } catch (e) { /* jsdom */ }
+			try {
+				el.scrollIntoView({ block: 'center', inline: 'center' })
+			} catch (e) { /* jsdom */ }
 			this.computeRect()
 			this.armStep(el)
 			// The ResizeObserver only fires when the target itself resizes. A nav
@@ -596,7 +606,13 @@ export default {
 		resolveTarget(step) {
 			const tgt = step.target || {}
 			const ref = tgt.ref
-			const q = (sel) => { try { return document.querySelector(sel) } catch (e) { return null } }
+			const q = (sel) => {
+				try {
+					return document.querySelector(sel)
+				} catch (e) {
+					return null
+				}
+			}
 			const esc = (v) => (window.CSS && CSS.escape ? CSS.escape(v) : String(v).replace(/"/g, '\\"'))
 			if (tgt.kind === 'selector' && tgt.selector) {
 				return q(tgt.selector)
@@ -611,8 +627,12 @@ export default {
 			if (tgt.kind === 'nav-item' || tgt.kind === 'page') {
 				return q(`[data-cn-route="${esc(ref)}"]`) || q(`a[href$="#/${esc(ref)}"]`) || q(`[data-route="${esc(ref)}"]`)
 			}
-			if (tgt.kind === 'widget') { return q(`[data-widget-key="${esc(ref)}"]`) || q(`[data-widget-id="${esc(ref)}"]`) }
-			if (tgt.kind === 'action') { return q(`[data-action-id="${esc(ref)}"]`) }
+			if (tgt.kind === 'widget') {
+				return q(`[data-widget-key="${esc(ref)}"]`) || q(`[data-widget-id="${esc(ref)}"]`)
+			}
+			if (tgt.kind === 'action') {
+				return q(`[data-action-id="${esc(ref)}"]`)
+			}
 			return null
 		},
 
@@ -645,7 +665,9 @@ export default {
 					return
 				}
 				clicked.add(el)
-				try { el.click() } catch (e) { /* jsdom / detached */ }
+				try {
+					el.click()
+				} catch (e) { /* jsdom / detached */ }
 			}
 			// Primary signal: any collapse toggle reporting a collapsed state.
 			nav.querySelectorAll('[aria-expanded="false"]').forEach((el) => {
@@ -676,7 +698,11 @@ export default {
 		 * @return {void}
 		 */
 		scheduleSettleRemeasure() {
-			const again = () => { if (this.targetEl && !this.isCentered) { this.computeRect() } }
+			const again = () => {
+				if (this.targetEl && !this.isCentered) {
+					this.computeRect()
+				}
+			}
 			this._settleTimers = (this._settleTimers || [])
 			this._settleTimers.push(setTimeout(again, 100), setTimeout(again, 300), setTimeout(again, 600))
 		},
@@ -744,7 +770,15 @@ export default {
 			if (placement === 'top' && r.top - gap - ch < 0) {
 				placement = 'bottom'
 			}
-			if (placement === 'bottom') { top = r.top + r.height + gap; left = r.left } else if (placement === 'top') { top = r.top - gap - ch; left = r.left } else if (placement === 'left') { top = r.top; left = r.left - gap - cw } else { top = r.top; left = r.left + r.width + gap }
+			if (placement === 'bottom') {
+				top = r.top + r.height + gap; left = r.left
+			} else if (placement === 'top') {
+				top = r.top - gap - ch; left = r.left
+			} else if (placement === 'left') {
+				top = r.top; left = r.left - gap - cw
+			} else {
+				top = r.top; left = r.left + r.width + gap
+			}
 			// Clamp to the viewport. `left`/`top` live in overlay-relative space
 			// (this.rect was host-subtracted), so the viewport bounds must be
 			// host-subtracted too — otherwise a scrolled/transformed host would
@@ -922,7 +956,9 @@ export default {
 			this.$emit('handoff', { app: h.app, url })
 			this.$emit('complete')
 			this.wt.complete()
-			try { window.location.href = url } catch (e) { /* jsdom */ }
+			try {
+				window.location.href = url
+			} catch (e) { /* jsdom */ }
 		},
 
 		/**

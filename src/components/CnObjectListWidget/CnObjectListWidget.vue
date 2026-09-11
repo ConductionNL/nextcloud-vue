@@ -719,7 +719,9 @@ export default {
 				if (filter && typeof filter === 'object') {
 					for (const [k, v] of Object.entries(filter)) {
 						if (v && typeof v === 'object') {
-							for (const [op, ov] of Object.entries(v)) { params[`${k}[${op}]`] = ov }
+							for (const [op, ov] of Object.entries(v)) {
+								params[`${k}[${op}]`] = ov
+							}
 						} else if (v !== '' && v !== null && v !== undefined) {
 							params[k] = v
 						}
@@ -826,7 +828,9 @@ export default {
 				}
 				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: c.register, schema: c.schema })
 				await axios.post(url, payload)
-				if (this.$refs.createDialog) { this.$refs.createDialog.setResult({ success: true }) }
+				if (this.$refs.createDialog) {
+					this.$refs.createDialog.setResult({ success: true })
+				}
 				/**
 				 * @event created Emitted after a successful create with the sent payload.
 				 * @type {object}
@@ -834,7 +838,9 @@ export default {
 				this.$emit('created', payload)
 				this.fetchRows()
 			} catch (e) {
-				if (this.$refs.createDialog) { this.$refs.createDialog.setResult({ error: (e && e.message) || 'error' }) }
+				if (this.$refs.createDialog) {
+					this.$refs.createDialog.setResult({ error: (e && e.message) || 'error' })
+				}
 			}
 		},
 

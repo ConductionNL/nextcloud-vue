@@ -424,8 +424,13 @@ export default {
 	},
 
 	watch: {
-		restKey() { this.fetchRest() },
-		entriesKey() { this.fetchEntries() },
+		restKey() {
+			this.fetchRest()
+		},
+
+		entriesKey() {
+			this.fetchEntries()
+		},
 	},
 
 	created() {
@@ -546,7 +551,9 @@ export default {
 				}
 				for (const [k, v] of Object.entries(filter || {})) {
 					if (v && typeof v === 'object') {
-						for (const [op, ov] of Object.entries(v)) { params[`filter[${k}][${op}]`] = ov }
+						for (const [op, ov] of Object.entries(v)) {
+							params[`filter[${k}][${op}]`] = ov
+						}
 					} else if (v !== '' && v !== null && v !== undefined) {
 						params[`filter[${k}]`] = v
 					}

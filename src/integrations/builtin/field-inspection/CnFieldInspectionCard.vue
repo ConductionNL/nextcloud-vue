@@ -265,7 +265,9 @@ export default {
 	},
 
 	watch: {
-		integrationContext: { immediate: true, handler() { this.loadLocal() } },
+		integrationContext: { immediate: true, handler() {
+			this.loadLocal()
+		} },
 	},
 
 	/**

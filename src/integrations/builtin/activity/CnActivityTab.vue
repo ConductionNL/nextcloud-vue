@@ -280,9 +280,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.bootstrap() } } },
-		register() { this.bootstrap() },
-		schema() { this.bootstrap() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.bootstrap()
+			}
+		} },
+
+		register() {
+			this.bootstrap()
+		},
+
+		schema() {
+			this.bootstrap()
+		},
 	},
 
 	methods: {

@@ -281,9 +281,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchRows() } } },
-		register() { this.fetchRows() },
-		schema() { this.fetchRows() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchRows()
+			}
+		} },
+
+		register() {
+			this.fetchRows()
+		},
+
+		schema() {
+			this.fetchRows()
+		},
 	},
 
 	methods: {

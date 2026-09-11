@@ -198,9 +198,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchRooms() } } },
-		register() { this.fetchRooms() },
-		schema() { this.fetchRooms() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchRooms()
+			}
+		} },
+
+		register() {
+			this.fetchRooms()
+		},
+
+		schema() {
+			this.fetchRooms()
+		},
 	},
 
 	methods: {

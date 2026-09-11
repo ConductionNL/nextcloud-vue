@@ -147,7 +147,9 @@ export const NcActionInput = {
 	render() {
 		return h('li', { class: ['stub', 'NcActionInput'] }, [
 			h('form', {
-				onSubmit: (event) => { event.preventDefault(); this.$emit('submit', event) },
+				onSubmit: (event) => {
+					event.preventDefault(); this.$emit('submit', event)
+				},
 			}, [
 				h('input', {
 					value: this.modelValue,

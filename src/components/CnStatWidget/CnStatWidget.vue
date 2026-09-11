@@ -1031,7 +1031,9 @@ export default {
 			filter = dropOptionalUnresolved(resolveFilterTokens(filter, ctx))
 			for (const [k, v] of Object.entries(filter)) {
 				if (v && typeof v === 'object') {
-					for (const [op, ov] of Object.entries(v)) { target[`filter[${k}][${op}]`] = ov }
+					for (const [op, ov] of Object.entries(v)) {
+						target[`filter[${k}][${op}]`] = ov
+					}
 				} else if (v !== '' && v !== null && v !== undefined) {
 					target[`filter[${k}]`] = v
 				}

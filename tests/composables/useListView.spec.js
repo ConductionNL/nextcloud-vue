@@ -42,7 +42,9 @@ function mountList(store, opts, mountOptions) {
 			const list = useListView('t', { objectStore: store, ...opts })
 			return { list }
 		},
-		render() { return h('div') },
+		render() {
+			return h('div')
+		},
 	})
 	return mount(Comp, mountOptions)
 }

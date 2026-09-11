@@ -96,7 +96,9 @@ export const defaultKbProvider = {
 		}
 		const url = prefixUrl(`${endpoint}?${params.toString()}`)
 		const response = await fetch(url, { headers: buildHeaders() })
-		if (!response.ok) { throw new Error(`kb search returned ${response.status}`) }
+		if (!response.ok) {
+			throw new Error(`kb search returned ${response.status}`)
+		}
 		const data = await response.json()
 		return normaliseKbResults(data)
 	},

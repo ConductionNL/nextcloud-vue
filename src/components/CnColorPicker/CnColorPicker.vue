@@ -163,7 +163,9 @@ export default {
 			const c = typeof this.value === 'string'
 				? this.value
 				: (this.value?.hex8 || this.value?.hex)
-			if (!c) { return {} }
+			if (!c) {
+				return {}
+			}
 			// Layer the solid fill on top of the four-gradient checker. Each
 			// checker layer needs its own offset so the squares alternate; if
 			// they all share `0 0` the pattern collapses to a single square.

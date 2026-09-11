@@ -421,13 +421,19 @@ export function useEndpointSource(source, options) {
 	 */
 	const refetch = (force = true) => load(force)
 
-	watch(requestKey, () => { load(false) }, { immediate: true })
+	watch(requestKey, () => {
+		load(false)
+	}, { immediate: true })
 
 	if (opts.refreshKey !== undefined) {
-		watch(() => read(opts.refreshKey), () => { load(true) })
+		watch(() => read(opts.refreshKey), () => {
+			load(true)
+		})
 	}
 
-	const onPageRefresh = () => { load(true) }
+	const onPageRefresh = () => {
+		load(true)
+	}
 	const onWidgetRefresh = (payload) => {
 		const id = read(opts.widgetId)
 		if (!id) {

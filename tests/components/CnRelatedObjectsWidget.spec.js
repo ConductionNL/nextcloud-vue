@@ -470,7 +470,9 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 
 	it('keeps the draft and surfaces an error when the note POST fails', async () => {
 		global.fetch = jest.fn((url, init) => {
-			if (init && init.method === 'POST') { return Promise.resolve({ ok: false, status: 500 }) }
+			if (init && init.method === 'POST') {
+				return Promise.resolve({ ok: false, status: 500 })
+			}
 			return Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
 		})
 		const wrapper = mountTabbed()

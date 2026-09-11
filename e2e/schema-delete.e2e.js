@@ -50,7 +50,9 @@ async function stubOpenRegister(page, onDelete) {
 	const deleteCalls = []
 
 	await page.route('**/apps/openregister/api/registers**', (route) => {
-		if (route.request().method() === 'GET') { return json(route, { results: [REGISTER] }) }
+		if (route.request().method() === 'GET') {
+			return json(route, { results: [REGISTER] })
+		}
 		return json(route, REGISTER) // PATCH — unlink
 	})
 
@@ -110,7 +112,9 @@ test.describe('CnEditDataModal — deleting a schema that still has objects', ()
 	test('confirming runs the cascade, and the register is only unlinked once it lands', async ({ page }) => {
 		let deleted = false
 		const { deleteCalls } = await stubOpenRegister(page, ({ route, cascade }) => {
-			if (!cascade) { return json(route, { error: 'schema-has-objects', objectCount: 1 }, 409) }
+			if (!cascade) {
+				return json(route, { error: 'schema-has-objects', objectCount: 1 }, 409)
+			}
 			deleted = true
 			return json(route, { success: true, deletedCount: 1, tableDropped: true })
 		})

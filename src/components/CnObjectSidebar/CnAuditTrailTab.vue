@@ -180,13 +180,28 @@ export default {
 	watch: {
 		objectId: {
 			immediate: true,
-			handler(id) { if (id) { this.fetchAuditTrails() } },
+			handler(id) {
+				if (id) {
+					this.fetchAuditTrails()
+				}
+			},
 		},
 
-		filterAction() { this.resetAndFetch() },
-		filterUser() { this.resetAndFetch() },
-		filterDateFrom() { this.resetAndFetch() },
-		filterDateTo() { this.resetAndFetch() },
+		filterAction() {
+			this.resetAndFetch()
+		},
+
+		filterUser() {
+			this.resetAndFetch()
+		},
+
+		filterDateFrom() {
+			this.resetAndFetch()
+		},
+
+		filterDateTo() {
+			this.resetAndFetch()
+		},
 	},
 
 	methods: {
@@ -294,7 +309,9 @@ export default {
 					hour: '2-digit',
 					minute: '2-digit',
 				})
-			} catch { return dateStr }
+			} catch {
+				return dateStr
+			}
 		},
 	},
 }

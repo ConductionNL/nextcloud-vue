@@ -114,7 +114,9 @@ function diffKeyedArray(baseArr, editedArr, keyField, path) {
 		const key = editedEntry[keyField]
 		if (baseByKey.has(key)) {
 			const patch = diffValue(baseByKey.get(key), editedEntry, `${path}/${key}`)
-			if (patch !== undefined) { entries.push({ [keyField]: key, ...patch }) }
+			if (patch !== undefined) {
+				entries.push({ [keyField]: key, ...patch })
+			}
 		} else {
 			entries.push(clone(editedEntry))
 		}

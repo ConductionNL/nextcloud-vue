@@ -41,7 +41,9 @@ function normalizeSidebarShapes(page) {
 	const cfg = (page.config && typeof page.config === 'object' && !Array.isArray(page.config))
 		? page.config
 		: null
-	if (!cfg) { return { page, count: 0, unconverted: [] } }
+	if (!cfg) {
+		return { page, count: 0, unconverted: [] }
+	}
 
 	const hasSidebarProps = cfg.sidebarProps && typeof cfg.sidebarProps === 'object' && Array.isArray(cfg.sidebarProps.tabs)
 	const hasSidebarTabs = Array.isArray(cfg.sidebarTabs)
@@ -116,12 +118,20 @@ function normalizeSidebarShapes(page) {
 			nextCfg.sidebarProps = { ...cfg.sidebarProps, tabs: residual }
 		} else {
 			const { tabs: _t, ...restProps } = cfg.sidebarProps
-			if (Object.keys(restProps).length > 0) { nextCfg.sidebarProps = restProps } else { delete nextCfg.sidebarProps }
+			if (Object.keys(restProps).length > 0) {
+				nextCfg.sidebarProps = restProps
+			} else {
+				delete nextCfg.sidebarProps
+			}
 		}
 	}
 	if (hasSidebarTabs) {
 		const residual = processTabs(cfg.sidebarTabs)
-		if (residual.length > 0) { nextCfg.sidebarTabs = residual } else { delete nextCfg.sidebarTabs }
+		if (residual.length > 0) {
+			nextCfg.sidebarTabs = residual
+		} else {
+			delete nextCfg.sidebarTabs
+		}
 	}
 	if (hasSidebarObjTabs) {
 		const residual = processTabs(cfg.sidebar.tabs)

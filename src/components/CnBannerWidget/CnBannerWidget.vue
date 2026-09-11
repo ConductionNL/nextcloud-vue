@@ -214,10 +214,14 @@ export default {
 	watch: {
 		resolvedVisibleWhen: {
 			immediate: true,
-			handler() { this.evaluateCondition() },
+			handler() {
+				this.evaluateCondition()
+			},
 		},
 
-		resolvedConditionOutcome() { this.evaluateCondition() },
+		resolvedConditionOutcome() {
+			this.evaluateCondition()
+		},
 	},
 
 	methods: {

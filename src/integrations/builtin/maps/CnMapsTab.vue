@@ -246,9 +246,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchPoints() } } },
-		register() { this.fetchPoints() },
-		schema() { this.fetchPoints() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchPoints()
+			}
+		} },
+
+		register() {
+			this.fetchPoints()
+		},
+
+		schema() {
+			this.fetchPoints()
+		},
 	},
 
 	methods: {

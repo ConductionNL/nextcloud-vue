@@ -107,7 +107,9 @@ describe('CnLeafMountHost', () => {
 		const provider = {
 			id: 'broken',
 			renderMode: 'mount',
-			mount: jest.fn(() => { throw new Error('leaf boom') }),
+			mount: jest.fn(() => {
+				throw new Error('leaf boom')
+			}),
 			unmount: jest.fn(),
 		}
 		// mount() must NOT throw — the error is caught inside the host.
@@ -127,7 +129,9 @@ describe('CnLeafMountHost', () => {
 		const provider = {
 			id: 'broken',
 			renderMode: 'mount',
-			mount: jest.fn(() => { throw new Error('nope') }),
+			mount: jest.fn(() => {
+				throw new Error('nope')
+			}),
 			unmount: jest.fn(),
 		}
 		const wrapper = mount(CnLeafMountHost, {

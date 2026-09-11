@@ -2105,7 +2105,10 @@ export default {
 		//    list datum is the useListView instance in self-fetch mode, the
 		//    prop otherwise. The template binds to these.
 		/** True when self-fetch mode is active and the useListView instance exists. */
-		isSelfFetchMode() { return this.isSelfFetch && !!this.list },
+		isSelfFetchMode() {
+			return this.isSelfFetch && !!this.list
+		},
+
 		/** Rows: store collection in self-fetch mode, else the `objects` prop. */
 		effectiveObjects() {
 			if (this.isNamedSource) {
@@ -2351,7 +2354,9 @@ export default {
 				let sumLat = 0
 				let sumLng = 0
 				for (const f of feats) {
-					const _p = this.firstLatLng(f.geometry); if (!_p) { continue } sumLng += _p.lng
+					const _p = this.firstLatLng(f.geometry); if (!_p) {
+						continue
+					} sumLng += _p.lng
 					sumLat += _p.lat
 				}
 				return [sumLat / feats.length, sumLng / feats.length]
@@ -2378,16 +2383,25 @@ export default {
 		 * the spinner over already-rendered content (fetchCollection preserves
 		 * the prior collection until the new results arrive).
 		 */
-		showInitialLoader() { return this.effectiveLoading && this.effectiveObjects.length === 0 },
+		showInitialLoader() {
+			return this.effectiveLoading && this.effectiveObjects.length === 0
+		},
+
 		/**
 		 * Refresh-spinner flag for the Actions menu: the `refreshing` prop
 		 * OR (self-fetch mode) the internally-tracked refresh. Lets manifest
 		 * and self-fetch pages spin the Refresh action without the host
 		 * wiring `:refreshing` (it has no fetch promise to await).
 		 */
-		effectiveRefreshing() { return this.refreshing || this.internalRefreshing },
+		effectiveRefreshing() {
+			return this.refreshing || this.internalRefreshing
+		},
+
 		/** Pagination: store pagination in self-fetch mode, else the `pagination` prop. */
-		effectivePagination() { return this.isSelfFetchMode ? this.list.pagination.value : this.pagination },
+		effectivePagination() {
+			return this.isSelfFetchMode ? this.list.pagination.value : this.pagination
+		},
+
 		/** Resolved schema OBJECT (for column generation / icons / labels). */
 		effectiveSchema() {
 			if (this.isSelfFetchMode) {
@@ -2441,8 +2455,14 @@ export default {
 		},
 
 		/** Sort key / order: list state in self-fetch mode, else the props. */
-		effectiveSortKey() { return this.isSelfFetchMode ? this.list.sortKey.value : this.sortKey },
-		effectiveSortOrder() { return this.isSelfFetchMode ? this.list.sortOrder.value : this.sortOrder },
+		effectiveSortKey() {
+			return this.isSelfFetchMode ? this.list.sortKey.value : this.sortKey
+		},
+
+		effectiveSortOrder() {
+			return this.isSelfFetchMode ? this.list.sortOrder.value : this.sortOrder
+		},
+
 		/**
 		 * Ordered multi-column sort state fed to CnDataTable: the self-fetch
 		 * list's `sortKeys` in self-fetch mode, else the host-controlled
@@ -2450,11 +2470,22 @@ export default {
 		 *
 		 * @return {Array<{key: string, order: 'asc'|'desc'}>}
 		 */
-		effectiveSortKeys() { return this.isSelfFetchMode ? (this.list.sortKeys.value || []) : this.sortKeys },
+		effectiveSortKeys() {
+			return this.isSelfFetchMode ? (this.list.sortKeys.value || []) : this.sortKeys
+		},
+
 		/** Search term / visible columns / active facet filters for the embedded sidebar. */
-		effectiveSearchValue() { return this.isSelfFetchMode ? (this.list.searchTerm.value || '') : (this.searchValue || '') },
-		effectiveVisibleColumns() { return this.isSelfFetchMode ? this.list.visibleColumns.value : this.visibleColumns },
-		effectiveActiveFilters() { return this.isSelfFetchMode ? (this.list.activeFilters.value || {}) : (this.activeFilters || {}) },
+		effectiveSearchValue() {
+			return this.isSelfFetchMode ? (this.list.searchTerm.value || '') : (this.searchValue || '')
+		},
+
+		effectiveVisibleColumns() {
+			return this.isSelfFetchMode ? this.list.visibleColumns.value : this.visibleColumns
+		},
+
+		effectiveActiveFilters() {
+			return this.isSelfFetchMode ? (this.list.activeFilters.value || {}) : (this.activeFilters || {})
+		},
 
 		/**
 		 * Enum schema columns offered in the header filter menu: one entry per
@@ -2983,8 +3014,14 @@ export default {
 		},
 
 		// Re-push AI context when relevant props change
-		register() { this.pushAiContext() },
-		schema() { this.pushAiContext() },
+		register() {
+			this.pushAiContext()
+		},
+
+		schema() {
+			this.pushAiContext()
+		},
+
 		// In self-fetch mode, a same-component route-param change (e.g. the
 		// `:id` of `/forms/:id/submissions`) must re-resolve `config.filter`
 		// and re-fetch. useListView's `fixedFilters` getter re-reads $route on
@@ -3518,7 +3555,10 @@ export default {
 				component: CnIndexSidebar,
 				props: this.hoistedSidebarProps,
 				listeners: {
-					'update:open': (val) => { this.sidebarOpen = val },
+					'update:open': (val) => {
+						this.sidebarOpen = val
+					},
+
 					search: (event) => this.onSearchEvent(event),
 					'columns-change': (event) => this.onColumnsEvent(event),
 					'filter-change': (event) => this.onFilterEvent(event),
@@ -3642,7 +3682,9 @@ export default {
 			}
 			const lat = Number(this.getByPath(row, cfg.latField))
 			const lng = Number(this.getByPath(row, cfg.lngField))
-			if (Number.isFinite(lat) && Number.isFinite(lng)) { return { lat, lng } }
+			if (Number.isFinite(lat) && Number.isFinite(lng)) {
+				return { lat, lng }
+			}
 			return null
 		},
 
@@ -3666,7 +3708,11 @@ export default {
 			if (cfg.geoField) {
 				let geo = this.getByPath(row, cfg.geoField)
 				if (typeof geo === 'string') {
-					try { geo = JSON.parse(geo) } catch { geo = null }
+					try {
+						geo = JSON.parse(geo)
+					} catch {
+						geo = null
+					}
 				}
 				if (geo && GEO_TYPES.includes(geo.type)) {
 					const hasShape = geo.type === 'GeometryCollection'
@@ -3844,7 +3890,9 @@ export default {
 				const nav = this.$router.replace({ query })
 				// $router.replace returns a Promise in Vue Router 3 but may
 				// return undefined in mocked / legacy environments — guard.
-				if (nav && typeof nav.catch === 'function') { nav.catch(() => {}) }
+				if (nav && typeof nav.catch === 'function') {
+					nav.catch(() => {})
+				}
 			}
 		},
 
@@ -3942,7 +3990,9 @@ export default {
 			const nav = this.$router.replace({ query })
 			// Swallow the duplicate-navigation rejection (Vue Router 3)
 			// when the applied view matches the current query.
-			if (nav && typeof nav.catch === 'function') { nav.catch(() => {}) }
+			if (nav && typeof nav.catch === 'function') {
+				nav.catch(() => {})
+			}
 			this.$emit('apply-view', view)
 		},
 
@@ -4016,32 +4066,49 @@ export default {
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setMassDeleteResult(resultData) { this._setResult('massDeleteDialog', resultData) },
+		setMassDeleteResult(resultData) {
+			this._setResult('massDeleteDialog', resultData)
+		},
+
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setMassCopyResult(resultData) { this._setResult('massCopyDialog', resultData) },
+		setMassCopyResult(resultData) {
+			this._setResult('massCopyDialog', resultData)
+		},
+
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setExportResult(resultData) { this._setResult('exportDialog', resultData) },
+		setExportResult(resultData) {
+			this._setResult('exportDialog', resultData)
+		},
+
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setImportResult(resultData) { this._setResult('importDialog', resultData) },
+		setImportResult(resultData) {
+			this._setResult('importDialog', resultData)
+		},
+
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setDeleteResult(resultData) { this._setResult('massDeleteDialog', resultData) },
+		setDeleteResult(resultData) {
+			this._setResult('massDeleteDialog', resultData)
+		},
+
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setCopyResult(resultData) { this._setResult('massCopyDialog', resultData) },
+		setCopyResult(resultData) {
+			this._setResult('massCopyDialog', resultData)
+		},
 
 		// --- Single-object dialog handlers ---
 
@@ -4165,17 +4232,26 @@ export default {
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setSingleDeleteResult(resultData) { this._setResult('singleDeleteDialog', resultData) },
+		setSingleDeleteResult(resultData) {
+			this._setResult('singleDeleteDialog', resultData)
+		},
+
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setSingleCopyResult(resultData) { this._setResult('singleCopyDialog', resultData) },
+		setSingleCopyResult(resultData) {
+			this._setResult('singleCopyDialog', resultData)
+		},
+
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setFormResult(resultData) { this._setResult('formDialog', resultData) },
+		setFormResult(resultData) {
+			this._setResult('formDialog', resultData)
+		},
+
 		/**
 		 * Show a validation error in the form dialog while keeping the form
 		 * visible (so the user can fix the data), instead of replacing it with
@@ -4186,7 +4262,9 @@ export default {
 		 * @param {string} [message] Form-level message shown above the fields
 		 * @public
 		 */
-		setFormValidationErrors(fieldErrors, message) { this.$refs.formDialog?.setValidationErrors(fieldErrors || {}, message) },
+		setFormValidationErrors(fieldErrors, message) {
+			this.$refs.formDialog?.setValidationErrors(fieldErrors || {}, message)
+		},
 
 		// --- Context menu handlers ---
 

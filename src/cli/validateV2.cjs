@@ -101,8 +101,12 @@ function validateManifestV2(manifest) {
 			if (!item) {
 				return
 			}
-			if (isSentinel(item.id)) { errors.push(`/menu/${i}/id must not be a @resolve: sentinel`) }
-			if (isSentinel(item.route)) { errors.push(`/menu/${i}/route must not be a @resolve: sentinel`) }
+			if (isSentinel(item.id)) {
+				errors.push(`/menu/${i}/id must not be a @resolve: sentinel`)
+			}
+			if (isSentinel(item.route)) {
+				errors.push(`/menu/${i}/route must not be a @resolve: sentinel`)
+			}
 		})
 	}
 	if (Array.isArray(clone.pages)) {
@@ -110,11 +114,21 @@ function validateManifestV2(manifest) {
 			if (!page) {
 				return
 			}
-			if (isSentinel(page.id)) { errors.push(`/pages/${i}/id must not be a @resolve: sentinel`) }
-			if (isSentinel(page.route)) { errors.push(`/pages/${i}/route must not be a @resolve: sentinel`) }
-			if (isSentinel(page.component)) { errors.push(`/pages/${i}/component must not be a @resolve: sentinel`) }
-			if (isSentinel(page.headerComponent)) { errors.push(`/pages/${i}/headerComponent must not be a @resolve: sentinel`) }
-			if (isSentinel(page.actionsComponent)) { errors.push(`/pages/${i}/actionsComponent must not be a @resolve: sentinel`) }
+			if (isSentinel(page.id)) {
+				errors.push(`/pages/${i}/id must not be a @resolve: sentinel`)
+			}
+			if (isSentinel(page.route)) {
+				errors.push(`/pages/${i}/route must not be a @resolve: sentinel`)
+			}
+			if (isSentinel(page.component)) {
+				errors.push(`/pages/${i}/component must not be a @resolve: sentinel`)
+			}
+			if (isSentinel(page.headerComponent)) {
+				errors.push(`/pages/${i}/headerComponent must not be a @resolve: sentinel`)
+			}
+			if (isSentinel(page.actionsComponent)) {
+				errors.push(`/pages/${i}/actionsComponent must not be a @resolve: sentinel`)
+			}
 			if (page.slots && typeof page.slots === 'object') {
 				for (const [slotName, slotValue] of Object.entries(page.slots)) {
 					if (isSentinel(slotValue)) {

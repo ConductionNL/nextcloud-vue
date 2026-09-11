@@ -338,7 +338,9 @@ async function executeApiCall(action, context) {
 			dialogs.showSuccess(translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Action completed.'))
 		}
 		const shouldRefresh = isDownload ? action.refresh === true : action.refresh !== false
-		if (shouldRefresh) { emit(PAGE_REFRESH_CHANNEL, {}) }
+		if (shouldRefresh) {
+			emit(PAGE_REFRESH_CHANNEL, {})
+		}
 		return { ok: true, data: res && res.data }
 	} catch (error) {
 		const serverMessage = error && error.response && error.response.data
@@ -445,7 +447,9 @@ async function executeAgentAction(action, context) {
 		if (typeof dialogs.showSuccess === 'function') {
 			dialogs.showSuccess(translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Run queued'))
 		}
-		if (action.refresh !== false) { emit(PAGE_REFRESH_CHANNEL, {}) }
+		if (action.refresh !== false) {
+			emit(PAGE_REFRESH_CHANNEL, {})
+		}
 		return { ok: true, data: res && res.data }
 	} catch (error) {
 		const response = error && error.response

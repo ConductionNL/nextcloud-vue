@@ -78,7 +78,9 @@ export function lifecyclePlugin() {
 				} catch (error) {
 					this.lifecycleError = error.name === 'TypeError'
 						? networkError(error)
-						: { status: null, message: error.message, details: null, isValidation: false, fields: null, toString() { return this.message } }
+						: { status: null, message: error.message, details: null, isValidation: false, fields: null, toString() {
+								return this.message
+							} }
 					console.error(`Error performing ${action} on ${type}/${objectId}:`, error)
 					return null
 				} finally {

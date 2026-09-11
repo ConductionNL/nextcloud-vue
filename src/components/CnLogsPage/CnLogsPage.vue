@@ -806,9 +806,17 @@ export default {
 			this.list.refresh(1)
 		},
 
-		register(value, previous) { this.onSourcePropChange('register', value, previous) },
-		schema(value, previous) { this.onSourcePropChange('schema', value, previous) },
-		source(value, previous) { this.onSourcePropChange('source', value, previous) },
+		register(value, previous) {
+			this.onSourcePropChange('register', value, previous)
+		},
+
+		schema(value, previous) {
+			this.onSourcePropChange('schema', value, previous)
+		},
+
+		source(value, previous) {
+			this.onSourcePropChange('source', value, previous)
+		},
 	},
 
 	created() {
@@ -990,7 +998,9 @@ export default {
 				// `.catch` swallows vue-router's NavigationDuplicated when the
 				// row is already open — a rejected push is not an error here.
 				const push = this.$router?.push({ name: this.rowRoute, params: { id: row?.[this.rowKey] } })
-				if (push && typeof push.catch === 'function') { push.catch(() => {}) }
+				if (push && typeof push.catch === 'function') {
+					push.catch(() => {})
+				}
 			} else if (this.rowDetail) {
 				this.detailRow = row
 			}

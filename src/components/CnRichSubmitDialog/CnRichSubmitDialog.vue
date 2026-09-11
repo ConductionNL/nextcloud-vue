@@ -254,7 +254,9 @@ export default {
 		 */
 		normalisedReasons() {
 			return this.reasons.map((r) => {
-				if (typeof r === 'string') { return { value: r, label: r } }
+				if (typeof r === 'string') {
+					return { value: r, label: r }
+				}
 				return { value: r.value, label: r.label || r.value, description: r.description }
 			})
 		},
@@ -324,8 +326,12 @@ export default {
 		 * @return {string} Like "1.2 MB".
 		 */
 		humanSize(bytes) {
-			if (bytes < 1024) { return `${bytes} B` }
-			if (bytes < 1024 * 1024) { return `${(bytes / 1024).toFixed(1)} KB` }
+			if (bytes < 1024) {
+				return `${bytes} B`
+			}
+			if (bytes < 1024 * 1024) {
+				return `${(bytes / 1024).toFixed(1)} KB`
+			}
 			return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 		},
 

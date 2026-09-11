@@ -153,7 +153,9 @@ export function resolveDocsUrl(base, anchor) {
 	if (!a) {
 		return b
 	}
-	if (a.startsWith('#')) { return `${b.replace(/#.*$/, '')}${a}` }
+	if (a.startsWith('#')) {
+		return `${b.replace(/#.*$/, '')}${a}`
+	}
 	if (a.startsWith('/')) {
 		try {
 			return new URL(a, b).toString()

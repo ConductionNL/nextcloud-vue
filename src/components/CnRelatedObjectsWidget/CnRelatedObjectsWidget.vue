@@ -998,7 +998,9 @@ export default {
 				})
 				// buildHeaders(null): let the browser set the multipart boundary.
 				const response = await fetch(url, { method: 'POST', headers: buildHeaders(null), body: formData })
-				if (!response.ok) { throw new Error(`${response.status}`) }
+				if (!response.ok) {
+					throw new Error(`${response.status}`)
+				}
 				/**
 				 * @event file-uploaded Files were uploaded via the Add footer.
 				 * @type {File[]}
@@ -1038,7 +1040,9 @@ export default {
 					headers: buildHeaders(),
 					body: JSON.stringify({ message }),
 				})
-				if (!response.ok) { throw new Error(`${response.status}`) }
+				if (!response.ok) {
+					throw new Error(`${response.status}`)
+				}
 				this.noteDraft = ''
 				/**
 				 * @event note-added A note was created via the Add footer.
@@ -1179,7 +1183,9 @@ export default {
 			if (groupKey === 'tasks') {
 				const cal = raw.calendarId || raw.calendarUri
 				const task = raw.uri || raw.uid || raw.id
-				if (cal && task) { return generateUrl('/apps/tasks/#/calendars/{cal}/tasks/{task}', { cal: String(cal), task: String(task) }) }
+				if (cal && task) {
+					return generateUrl('/apps/tasks/#/calendars/{cal}/tasks/{task}', { cal: String(cal), task: String(task) })
+				}
 			}
 			// Meetings/events → open the event in the Calendar app (dav path, base64url).
 			if (groupKey === 'events') {

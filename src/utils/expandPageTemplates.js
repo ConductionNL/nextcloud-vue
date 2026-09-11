@@ -198,7 +198,9 @@ function substitute(node, params, declared, sets, _sets, errors, label) {
 		const out = {}
 		for (const key of Object.keys(node)) {
 			const v = substitute(node[key], params, declared, sets, _sets, errors, label)
-			if (v !== DROP) { out[key] = v } // drop keys whose optional param was absent
+			if (v !== DROP) {
+				out[key] = v
+			} // drop keys whose optional param was absent
 		}
 		return out
 	}

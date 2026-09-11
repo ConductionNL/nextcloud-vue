@@ -17,7 +17,9 @@ const ContactEntityWidget = {
 		return h('div', { class: 'contact-entity-widget' }, `${this.surface}|${this.value || ''}`)
 	},
 }
-const RegistryTab = { name: 'RegistryTab', render() { return h('div') } }
+const RegistryTab = { name: 'RegistryTab', render() {
+	return h('div')
+} }
 
 describe('CnDetailGrid — referenceType hook', () => {
 	afterEach(() => integrations.__resetForTests())

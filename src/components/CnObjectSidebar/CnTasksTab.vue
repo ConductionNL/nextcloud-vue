@@ -246,7 +246,11 @@ export default {
 			if (!this.register || !this.schema) {
 				return
 			}
-			if (append) { this.loadingMore = true } else { this.loading = true }
+			if (append) {
+				this.loadingMore = true
+			} else {
+				this.loading = true
+			}
 			try {
 				const params = new URLSearchParams({ limit: this.limit, _page: this.page })
 				const response = await fetch(
@@ -445,7 +449,9 @@ export default {
 					day: 'numeric',
 					month: 'short',
 				})
-			} catch { return dateStr }
+			} catch {
+				return dateStr
+			}
 		},
 	},
 }

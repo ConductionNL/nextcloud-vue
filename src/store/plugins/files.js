@@ -92,7 +92,9 @@ export function filesPlugin(options = {}) {
 				} catch (error) {
 					this.tagsError = error.name === 'TypeError'
 						? networkError(error)
-						: { status: null, message: error.message, details: null, isValidation: false, fields: null, toString() { return this.message } }
+						: { status: null, message: error.message, details: null, isValidation: false, fields: null, toString() {
+								return this.message
+							} }
 					console.error('Error fetching tags:', error)
 					return []
 				} finally {
@@ -135,7 +137,9 @@ export function filesPlugin(options = {}) {
 				} catch (error) {
 					this.filesError = error.name === 'TypeError'
 						? networkError(error)
-						: { status: null, message: error.message, details: null, isValidation: false, fields: null, toString() { return this.message } }
+						: { status: null, message: error.message, details: null, isValidation: false, fields: null, toString() {
+								return this.message
+							} }
 					console.error(`Error uploading files for ${type}/${objectId}:`, error)
 					return null
 				} finally {

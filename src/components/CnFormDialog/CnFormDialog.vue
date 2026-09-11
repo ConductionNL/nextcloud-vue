@@ -1056,7 +1056,9 @@ export default {
 				const drivers = Object.values(filter)
 					.filter((v) => typeof v === 'string' && v.startsWith('@object.'))
 					.map((v) => v.slice('@object.'.length))
-				if (drivers.length > 0) { decls.push({ key, drivers }) }
+				if (drivers.length > 0) {
+					decls.push({ key, drivers })
+				}
 			}
 			return decls
 		},
@@ -2573,7 +2575,9 @@ export default {
 							continue
 						}
 						if (fv && typeof fv === 'object') {
-							for (const [op, ov] of Object.entries(fv)) { params[`${fk}[${op}]`] = ov }
+							for (const [op, ov] of Object.entries(fv)) {
+								params[`${fk}[${op}]`] = ov
+							}
 						} else if (fv !== '' && fv !== null && fv !== undefined) {
 							params[fk] = fv
 						}

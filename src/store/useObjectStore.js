@@ -886,7 +886,11 @@ const baseActions = {
 
 			const outcomes = await Promise.all(ids.map(runOne))
 			for (const { id, success } of outcomes) {
-				if (success) { result.successfulIds.push(id) } else { result.failedIds.push(id) }
+				if (success) {
+					result.successfulIds.push(id)
+				} else {
+					result.failedIds.push(id)
+				}
 			}
 
 			if (result.successfulIds.length > 0) {
@@ -930,7 +934,9 @@ const baseActions = {
 	 * @return {Promise<{[key: string]: object}>} Map of id -> object
 	 */
 	async resolveReferences(type, ids) {
-		if (!ids || ids.length === 0) { return {} }
+		if (!ids || ids.length === 0) {
+			return {}
+		}
 
 		const uniqueIds = [...new Set(ids.filter(Boolean))]
 		const result = {}

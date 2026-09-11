@@ -243,9 +243,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchBookmarks() } } },
-		register() { this.fetchBookmarks() },
-		schema() { this.fetchBookmarks() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchBookmarks()
+			}
+		} },
+
+		register() {
+			this.fetchBookmarks()
+		},
+
+		schema() {
+			this.fetchBookmarks()
+		},
 	},
 
 	methods: {

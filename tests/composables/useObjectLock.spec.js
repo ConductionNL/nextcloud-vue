@@ -52,7 +52,9 @@ function mountLock(store, options = {}) {
 			)
 			return () => h('div')
 		},
-		render() { return h('div') },
+		render() {
+			return h('div')
+		},
 	})
 	const wrapper = mount(Comp)
 	return { wrapper, lock: () => composable }
@@ -134,7 +136,9 @@ describe('useObjectLock — REQ-CO-LOCK-003 (acquire / release)', () => {
 		})
 		const { wrapper, lock } = mountLock(store, { autoRenew: false })
 		await expect(lock().acquire()).rejects.toBeInstanceOf(LockConflictError)
-		try { await lock().acquire() } catch (e) {
+		try {
+			await lock().acquire()
+		} catch (e) {
 			expect(e.lockedBy).toBe('bob')
 		}
 		wrapper.unmount()

@@ -137,7 +137,9 @@ describe('CnDetailPage — cn:page:refresh', () => {
 	it('reads ONCE when the channel fires twice before the first read settles', async () => {
 		const store = makeFakeStore()
 		let release
-		store.fetchObject.mockImplementation(() => new Promise((resolve) => { release = resolve }))
+		store.fetchObject.mockImplementation(() => new Promise((resolve) => {
+			release = resolve
+		}))
 		mountPage(store)
 		await Promise.resolve()
 		store.fetchObject.mockClear()

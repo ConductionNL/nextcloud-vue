@@ -36,7 +36,9 @@ const notOk = (status, statusText) => ({
 	status,
 	statusText,
 	text: async () => 'body',
-	json: async () => { throw new Error('no json') },
+	json: async () => {
+		throw new Error('no json')
+	},
 })
 
 describe('useObjectStore fetch-by-id console contract', () => {

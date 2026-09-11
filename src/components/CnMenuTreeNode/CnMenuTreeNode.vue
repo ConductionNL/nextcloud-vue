@@ -227,7 +227,11 @@ export default {
 			const mine = this.tree.map((node, i) => {
 				const ref = node.ref
 				ref.order = (i + 1) * 10
-				if (want === 'main') { delete ref.section } else { ref.section = want }
+				if (want === 'main') {
+					delete ref.section
+				} else {
+					ref.section = want
+				}
 				if (node.children.length) {
 					ref.children = node.children.map((cn, j) => {
 						cn.ref.order = (j + 1) * 10
@@ -245,7 +249,9 @@ export default {
 			// mutated by reference so diffManifest captures the reorder/nesting.
 			// eslint-disable-next-line vue/no-mutating-props
 			this.list.splice(0, this.list.length, ...next)
-			this.$nextTick(() => { this.suppressRebuild = false })
+			this.$nextTick(() => {
+				this.suppressRebuild = false
+			})
 		},
 
 		/**
@@ -272,7 +278,11 @@ export default {
 		 */
 		nextId() {
 			const ids = new Set()
-			const walk = (arr) => (arr || []).forEach((it) => { if (it) { ids.add(it.id); walk(it.children) } })
+			const walk = (arr) => (arr || []).forEach((it) => {
+				if (it) {
+					ids.add(it.id); walk(it.children)
+				}
+			})
 			walk(this.list)
 			let n = ids.size + 1
 			while (ids.has(`menu-${n}`)) {

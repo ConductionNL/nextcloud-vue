@@ -156,24 +156,61 @@ export default {
 			return /^https?:\/\//i.test(this.suggestUrl)
 		},
 
-		sidebarTitle() { return t('nextcloud-vue', 'Your input is the roadmap') },
-		sidebarSubtitle() { return t('nextcloud-vue', 'Four ways to ship what you need') },
+		sidebarTitle() {
+			return t('nextcloud-vue', 'Your input is the roadmap')
+		},
 
-		suggestTitle() { return t('nextcloud-vue', 'Hit a wall? Tell us.') },
-		suggestBody() { return t('nextcloud-vue', 'Anything that wastes your time is gold to us. Every suggestion becomes a public issue, others can back it, and we triage within 24 hours. You watch it move on this roadmap and get credit on the merge.') },
-		suggestCta() { return t('nextcloud-vue', 'Suggest a feature') },
+		sidebarSubtitle() {
+			return t('nextcloud-vue', 'Four ways to ship what you need')
+		},
 
-		openbuiltTitle() { return t('nextcloud-vue', 'Tweak it yourself') },
-		openbuiltBody() { return t('nextcloud-vue', 'Need a new screen, renamed field, or custom register today? OpenBuilt is the visual app builder inside your own Nextcloud. Drag, drop, save. No code, no deploy, no waiting on a release.') },
-		openbuiltCta() { return t('nextcloud-vue', 'Open OpenBuilt') },
+		suggestTitle() {
+			return t('nextcloud-vue', 'Hit a wall? Tell us.')
+		},
 
-		llmTitle() { return t('nextcloud-vue', 'Or have AI build it') },
-		llmBody() { return t('nextcloud-vue', 'Claude, ChatGPT, Grok, Qwen or Mistral can ship a feature for you. Our skill set teaches them this codebase. You write the prompt, they write the code, push the PR — same triage, same roadmap, faster path.') },
-		llmCta() { return t('nextcloud-vue', 'Read the AI guide') },
+		suggestBody() {
+			return t('nextcloud-vue', 'Anything that wastes your time is gold to us. Every suggestion becomes a public issue, others can back it, and we triage within 24 hours. You watch it move on this roadmap and get credit on the merge.')
+		},
 
-		supportTitle() { return t('nextcloud-vue', 'Support this project') },
-		supportBody() { return t('nextcloud-vue', 'A short note from the founder on what keeps this app going, and the few small things you can do to help. A review, a feature request, a donation. Worth a minute.') },
-		supportCta() { return t('nextcloud-vue', 'Show support note') },
+		suggestCta() {
+			return t('nextcloud-vue', 'Suggest a feature')
+		},
+
+		openbuiltTitle() {
+			return t('nextcloud-vue', 'Tweak it yourself')
+		},
+
+		openbuiltBody() {
+			return t('nextcloud-vue', 'Need a new screen, renamed field, or custom register today? OpenBuilt is the visual app builder inside your own Nextcloud. Drag, drop, save. No code, no deploy, no waiting on a release.')
+		},
+
+		openbuiltCta() {
+			return t('nextcloud-vue', 'Open OpenBuilt')
+		},
+
+		llmTitle() {
+			return t('nextcloud-vue', 'Or have AI build it')
+		},
+
+		llmBody() {
+			return t('nextcloud-vue', 'Claude, ChatGPT, Grok, Qwen or Mistral can ship a feature for you. Our skill set teaches them this codebase. You write the prompt, they write the code, push the PR — same triage, same roadmap, faster path.')
+		},
+
+		llmCta() {
+			return t('nextcloud-vue', 'Read the AI guide')
+		},
+
+		supportTitle() {
+			return t('nextcloud-vue', 'Support this project')
+		},
+
+		supportBody() {
+			return t('nextcloud-vue', 'A short note from the founder on what keeps this app going, and the few small things you can do to help. A review, a feature request, a donation. Worth a minute.')
+		},
+
+		supportCta() {
+			return t('nextcloud-vue', 'Show support note')
+		},
 	},
 
 	methods: {

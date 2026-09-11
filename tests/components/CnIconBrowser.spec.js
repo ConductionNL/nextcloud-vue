@@ -257,7 +257,10 @@ describe('CnIconBrowserPanel — upload', () => {
 		OrigFileReader = global.FileReader
 		lastReader = null
 		global.FileReader = class {
-			constructor() { lastReader = this; this.onload = null; this.onerror = null }
+			constructor() {
+				lastReader = this; this.onload = null; this.onerror = null
+			}
+
 			readAsDataURL() { /* test fires onload/onerror manually */ }
 		}
 	})
@@ -293,7 +296,9 @@ describe('CnIconBrowserPanel — upload', () => {
 
 	it('sets uploadError and resets uploading when uploadFn rejects', async () => {
 		const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
-		const uploadFn = jest.fn(async () => { throw new Error('Server said no') })
+		const uploadFn = jest.fn(async () => {
+			throw new Error('Server said no')
+		})
 		const w = await selectFile(uploadFn)
 		lastReader.onload({ target: { result: 'data:image/png;base64,AAA' } })
 		await flush()

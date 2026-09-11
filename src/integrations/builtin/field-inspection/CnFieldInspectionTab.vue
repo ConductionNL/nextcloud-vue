@@ -137,7 +137,9 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler() { this.loadLocal() } },
+		objectId: { immediate: true, handler() {
+			this.loadLocal()
+		} },
 	},
 
 	/**

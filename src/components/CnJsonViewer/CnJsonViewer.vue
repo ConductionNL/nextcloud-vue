@@ -121,7 +121,10 @@ export default {
 
 	computed: {
 		localValue: {
-			get() { return this.internalValue },
+			get() {
+				return this.internalValue
+			},
+
 			set(v) {
 				this.internalValue = v
 				/**
@@ -133,11 +136,15 @@ export default {
 		},
 
 		isDark: {
-			get() { return getTheme() === 'dark' },
+			get() {
+				return getTheme() === 'dark'
+			},
 		},
 
 		theme: {
-			get() { return this.isDark ? githubDark : githubLight },
+			get() {
+				return this.isDark ? githubDark : githubLight
+			},
 		},
 
 		/**

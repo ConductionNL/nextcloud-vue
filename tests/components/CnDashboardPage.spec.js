@@ -221,7 +221,9 @@ describe('CnDashboardPage — integration widget dispatcher', () => {
 			return h('div', { class: 'integration-widget' }, `${this.surface}|${this.objectId || ''}|${this.extraProp || ''}`)
 		},
 	}
-	const RegistryTab = { name: 'RegistryTab', render() { return h('div') } }
+	const RegistryTab = { name: 'RegistryTab', render() {
+		return h('div')
+	} }
 
 	afterEach(() => integrations.__resetForTests())
 
@@ -463,8 +465,12 @@ describe('CnDashboardPage — card-fit registry widgets', () => {
 	const { registerDashboardWidget } = require('@/components/CnWidgetGrid/dashboardWidgetRegistry.js')
 	// Render functions (not `template:` strings) so they mount under the
 	// runtime-only Vue build the dynamic `<component :is>` uses.
-	const CardRenderer = { name: 'CardRenderer', props: ['content'], render() { return h('div', { class: 'card-renderer-stub' }) } }
-	const PlainRenderer = { name: 'PlainRenderer', props: ['content'], render() { return h('div', { class: 'plain-renderer-stub' }) } }
+	const CardRenderer = { name: 'CardRenderer', props: ['content'], render() {
+		return h('div', { class: 'card-renderer-stub' })
+	} }
+	const PlainRenderer = { name: 'PlainRenderer', props: ['content'], render() {
+		return h('div', { class: 'plain-renderer-stub' })
+	} }
 
 	beforeAll(() => {
 		registerDashboardWidget('test-card', { renderer: CardRenderer, form: null, defaultContent: {}, displayName: 'Card', icon: 'X', card: true })

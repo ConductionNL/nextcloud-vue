@@ -177,7 +177,9 @@ export function networkError(error) {
 		details: null,
 		isValidation: false,
 		fields: null,
-		toString() { return this.message },
+		toString() {
+			return this.message
+		},
 	}
 }
 
@@ -194,6 +196,8 @@ export function genericError(error) {
 		details: null,
 		isValidation: false,
 		fields: null,
-		toString() { return this.message },
+		toString() {
+			return this.message
+		},
 	}
 }

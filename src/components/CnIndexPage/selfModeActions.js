@@ -126,7 +126,11 @@ export function createSelfModeActions(ctx) {
 			const clone = cloneObjectForCopy(source, getName(source), nameField)
 			try {
 				const saved = await ctx.selfObjectStore().saveObject(ctx.selfObjectType(), clone)
-				if (saved) { successfulIds.push(id) } else { failedIds.push(id) }
+				if (saved) {
+					successfulIds.push(id)
+				} else {
+					failedIds.push(id)
+				}
 			} catch (_e) {
 				failedIds.push(id)
 			}

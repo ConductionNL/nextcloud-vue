@@ -273,7 +273,9 @@ export default {
 		},
 
 		activeStyles() {
-			if (!this.active) { return {} }
+			if (!this.active) {
+				return {}
+			}
 			const variantMap = {
 				success: 'var(--color-success)',
 				primary: 'var(--color-primary-element)',

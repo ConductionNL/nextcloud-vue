@@ -35,8 +35,12 @@ function recordingSink() {
 	return {
 		published,
 		calls,
-		set: (id, items, source) => { calls.push(['set', id, source]); published[`${id}::${source}`] = items },
-		clear: (id, source) => { calls.push(['clear', id, source]); delete published[`${id}::${source}`] },
+		set: (id, items, source) => {
+			calls.push(['set', id, source]); published[`${id}::${source}`] = items
+		},
+		clear: (id, source) => {
+			calls.push(['clear', id, source]); delete published[`${id}::${source}`]
+		},
 	}
 }
 

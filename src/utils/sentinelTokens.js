@@ -262,9 +262,13 @@ export function matchDeprecation(token) {
  */
 export function classifyToken(token) {
 	const deprecation = matchDeprecation(token)
-	if (deprecation) { return { status: 'deprecated', context: null, deprecation } }
+	if (deprecation) {
+		return { status: 'deprecated', context: null, deprecation }
+	}
 	const context = contextOf(token)
-	if (context) { return { status: 'known', context, deprecation: null } }
+	if (context) {
+		return { status: 'known', context, deprecation: null }
+	}
 	return { status: 'unknown', context: null, deprecation: null }
 }
 
@@ -307,7 +311,9 @@ export function scanManifestTokens(manifest) {
 			return
 		}
 		if (node && typeof node === 'object') {
-			for (const [k, v] of Object.entries(node)) { visit(v, `${path}.${k}`) }
+			for (const [k, v] of Object.entries(node)) {
+				visit(v, `${path}.${k}`)
+			}
 		}
 	}
 
@@ -316,8 +322,12 @@ export function scanManifestTokens(manifest) {
 		if (!page || typeof page !== 'object') {
 			return
 		}
-		if (page.config && typeof page.config === 'object') { visit(page.config, `pages[${i}].config`) }
-		if (Array.isArray(page.widgets)) { visit(page.widgets, `pages[${i}].widgets`) }
+		if (page.config && typeof page.config === 'object') {
+			visit(page.config, `pages[${i}].config`)
+		}
+		if (Array.isArray(page.widgets)) {
+			visit(page.widgets, `pages[${i}].widgets`)
+		}
 	})
 
 	return { unknown, deprecated, known }

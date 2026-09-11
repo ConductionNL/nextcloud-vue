@@ -28,7 +28,9 @@ function manifest() {
 }
 
 function fakeRouter() {
-	return { afterEach: (cb) => { fakeRouter._cb = cb; return () => {} } }
+	return { afterEach: (cb) => {
+		fakeRouter._cb = cb; return () => {}
+	} }
 }
 
 describe('CnWalkthrough — skip + route-gated auto-start', () => {

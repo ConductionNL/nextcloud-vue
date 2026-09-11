@@ -364,7 +364,9 @@ export default {
 			const [field] = next.splice(idx, 1)
 			next.splice(target, 0, field)
 			this.model = next
-			if (this.selectedIndex === idx) { this.selectedIndex = target } else if (this.selectedIndex === target) {
+			if (this.selectedIndex === idx) {
+				this.selectedIndex = target
+			} else if (this.selectedIndex === target) {
 				this.selectedIndex = idx
 			}
 			this.emitChange()

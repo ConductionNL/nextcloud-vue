@@ -1414,7 +1414,9 @@ export default {
 		provide('cnAppConfig', appConfigRef)
 		watch(
 			() => props.appConfig,
-			(next) => { appConfigRef.value = { ...(next || {}) } },
+			(next) => {
+				appConfigRef.value = { ...(next || {}) }
+			},
 			{ deep: true },
 		)
 
@@ -1875,7 +1877,9 @@ export default {
 		 */
 		widgets: {
 			deep: true,
-			handler() { this.evaluateWidgetConditions() },
+			handler() {
+				this.evaluateWidgetConditions()
+			},
 		},
 	},
 
@@ -2119,7 +2123,9 @@ export default {
 			}
 			const left = fmt(fromDate)
 			const right = fmt(toDateValue)
-			if (left && right) { return `${left} – ${right}` }
+			if (left && right) {
+				return `${left} – ${right}`
+			}
 			return (left || right) || null
 		},
 

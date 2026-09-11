@@ -83,7 +83,9 @@ function validateAgainst(def, value, path = '$') {
 		}
 		const required = Array.isArray(def.required) ? def.required : []
 		for (const key of required) {
-			if (!(key in value)) { errors.push(`${path}.${key}: required`) }
+			if (!(key in value)) {
+				errors.push(`${path}.${key}: required`)
+			}
 		}
 		const props = def.properties || {}
 		const allowExtra = def.additionalProperties === true || isPlainObject(def.additionalProperties)
@@ -127,7 +129,9 @@ function validateAgainst(def, value, path = '$') {
 		return { valid: errors.length === 0, errors }
 	}
 	if (def.type === 'boolean') {
-		if (typeof value !== 'boolean') { errors.push(`${path}: must be boolean`) }
+		if (typeof value !== 'boolean') {
+			errors.push(`${path}: must be boolean`)
+		}
 		return { valid: errors.length === 0, errors }
 	}
 	return { valid: true, errors: [] }

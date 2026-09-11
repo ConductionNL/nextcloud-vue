@@ -128,7 +128,9 @@ export function createSubResourcePlugin(name, endpoint, options = {}) {
 				} catch (error) {
 					this[`${name}Error`] = error.name === 'TypeError'
 						? networkError(error)
-						: { status: null, message: error.message, details: null, isValidation: false, fields: null, toString() { return this.message } }
+						: { status: null, message: error.message, details: null, isValidation: false, fields: null, toString() {
+								return this.message
+							} }
 					console.error(`Error fetching ${name} for ${type}/${objectId}:`, error)
 					return []
 				} finally {

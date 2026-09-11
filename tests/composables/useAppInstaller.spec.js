@@ -101,7 +101,9 @@ describe('useAppInstaller', () => {
 
 	it('flips installing to true while the request is in flight', async () => {
 		let resolvePost
-		axios.post.mockReturnValue(new Promise((resolve) => { resolvePost = resolve }))
+		axios.post.mockReturnValue(new Promise((resolve) => {
+			resolvePost = resolve
+		}))
 
 		const { installing, installAndEnable } = useAppInstaller()
 		const pending = installAndEnable('openregister')

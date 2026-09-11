@@ -558,7 +558,9 @@ export default {
 				const lastCard = cards[cards.length - 1]
 				if (lastCard) {
 					const firstFocusable = lastCard.querySelector('input, button, [tabindex]')
-					if (firstFocusable) { firstFocusable.focus({ preventScroll: true }) }
+					if (firstFocusable) {
+						firstFocusable.focus({ preventScroll: true })
+					}
 				}
 			})
 		},
@@ -614,7 +616,9 @@ export default {
 				const form = Array.isArray(formEl) ? formEl[0] : formEl
 				if (form) {
 					const firstInput = (form.$el || form).querySelector('input, [tabindex="0"]')
-					if (firstInput) { firstInput.focus({ preventScroll: true }) }
+					if (firstInput) {
+						firstInput.focus({ preventScroll: true })
+					}
 				}
 			})
 		},

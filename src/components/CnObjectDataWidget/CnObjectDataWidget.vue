@@ -831,14 +831,18 @@ export default {
 					key: 'edit',
 					label: this.editLabel,
 					icon: 'Pencil',
-					run: () => { this.editModalOpen = true },
+					run: () => {
+						this.editModalOpen = true
+					},
 				})
 			}
 			items.push({
 				key: 'metadata',
 				label: this.metadataLabel,
 				icon: 'InformationOutline',
-				run: () => { this.metadataModalOpen = true },
+				run: () => {
+					this.metadataModalOpen = true
+				},
 			})
 			return items
 		},
@@ -1010,7 +1014,9 @@ export default {
 		},
 
 		schema: {
-			handler() { this.resolveRelations() },
+			handler() {
+				this.resolveRelations()
+			},
 		},
 
 		// Republish when the items change (a label retranslated, `editable`
@@ -1019,11 +1025,15 @@ export default {
 		// publishing then would mutate the ancestor's state mid-render. Mounted
 		// does it once the tree is settled.
 		panelActionItems: {
-			handler() { this.publishPanelActions() },
+			handler() {
+				this.publishPanelActions()
+			},
 		},
 
 		showActions: {
-			handler() { this.publishPanelActions() },
+			handler() {
+				this.publishPanelActions()
+			},
 		},
 	},
 
@@ -1179,7 +1189,11 @@ export default {
 			}
 			let clip = rowBottoms[0]
 			for (const b of rowBottoms) {
-				if (b <= budget) { clip = b } else { break }
+				if (b <= budget) {
+					clip = b
+				} else {
+					break
+				}
 			}
 			return clip
 		},
@@ -1336,7 +1350,9 @@ export default {
 			if (rawRef != null && (typeof rawRef === 'string' || typeof rawRef === 'number')) {
 				const slug = String(rawRef).split('/').pop().replace(/\.json$/, '')
 				const reg = this.contextRegisterOf()
-				if (slug && reg) { return { target: `${reg}/${slug}` } }
+				if (slug && reg) {
+					return { target: `${reg}/${slug}` }
+				}
 			}
 			return null
 		},
@@ -1495,7 +1511,9 @@ export default {
 							continue
 						}
 						if (fv && typeof fv === 'object') {
-							for (const [op, ov] of Object.entries(fv)) { params[`${fk}[${op}]`] = ov }
+							for (const [op, ov] of Object.entries(fv)) {
+								params[`${fk}[${op}]`] = ov
+							}
 						} else if (fv !== '' && fv !== null && fv !== undefined) {
 							params[fk] = fv
 						}
@@ -1509,7 +1527,11 @@ export default {
 				}).filter((o) => o.id)
 				this.relationOptions[key] = opts
 				// Cache the labels so display resolution reuses them.
-				opts.forEach((o) => { if (!(o.id in this.relatedLabels)) { this.relatedLabels[o.id] = o.label } })
+				opts.forEach((o) => {
+					if (!(o.id in this.relatedLabels)) {
+						this.relatedLabels[o.id] = o.label
+					}
+				})
 			} catch (e) {
 				this.relationOptions[key] = []
 			} finally {

@@ -409,7 +409,9 @@ export function useWalkthrough(appId, manifest, options = {}) {
 			for (const [varName, token] of Object.entries(cap)) {
 				const key = String(token).replace(/^:/, '')
 				let value
-				if (source.params && key in source.params) { value = source.params[key] } else if (source.object) {
+				if (source.params && key in source.params) {
+					value = source.params[key]
+				} else if (source.object) {
 					value = (key === 'id') ? (source.object.id ?? source.object['@self']?.id ?? source.object.uuid) : source.object[key]
 				}
 				if (value != null) {
@@ -536,13 +538,17 @@ export function useWalkthrough(appId, manifest, options = {}) {
 			let match = false
 			if (signal.kind === 'route' && a.type === 'route-match') {
 				match = signal.route === a.route
-				if (match) { runCapture(step, { params: signal.params || {} }) }
+				if (match) {
+					runCapture(step, { params: signal.params || {} })
+				}
 			} else if (signal.kind === 'object-created' && a.type === 'object-created') {
 				const obj = signal.object || {}
 				const reg = obj.register ?? obj['@self']?.register
 				const sch = obj.schema ?? obj['@self']?.schema
 				match = (!a.register || reg === a.register) && (!a.schema || sch === a.schema)
-				if (match) { runCapture(step, { object: obj }) }
+				if (match) {
+					runCapture(step, { object: obj })
+				}
 			} else if (signal.kind === 'element' && a.type === 'element-appears') {
 				match = true
 			} else if (signal.kind === 'click' && a.type === 'click-target') {

@@ -113,7 +113,9 @@ export default {
 	watch: {
 		ids: {
 			immediate: true,
-			handler() { this.resolveAll() },
+			handler() {
+				this.resolveAll()
+			},
 		},
 	},
 

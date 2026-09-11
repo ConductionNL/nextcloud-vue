@@ -441,7 +441,9 @@ export default {
 			}
 
 			const selected = BASEMAPS[this.basemap] || BASEMAPS.standard
-			if (!this.allowBasemapSwitch) { return [{ ...selected }] }
+			if (!this.allowBasemapSwitch) {
+				return [{ ...selected }]
+			}
 
 			// Selected first (it is the one CnMapWidget activates on load), then the rest.
 			return [
@@ -531,7 +533,9 @@ export default {
 			try {
 				const url = `${NOMINATIM_URL}?format=jsonv2&limit=5&q=${encodeURIComponent(q)}`
 				const response = await fetch(url)
-				if (!response.ok) { throw new Error(`HTTP ${response.status}`) }
+				if (!response.ok) {
+					throw new Error(`HTTP ${response.status}`)
+				}
 				const json = await response.json()
 				this.results = (Array.isArray(json) ? json : [])
 					.map((r) => ({
@@ -688,7 +692,9 @@ export default {
 					headers: buildHeaders(),
 					body: JSON.stringify({ '@self': { geo: newGeo } }),
 				})
-				if (!response.ok) { throw new Error(`${response.status}`) }
+				if (!response.ok) {
+					throw new Error(`${response.status}`)
+				}
 				this.localGeo = newGeo
 				this.draft = undefined
 				/**

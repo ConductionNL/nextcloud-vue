@@ -26,10 +26,18 @@ import { dropOptionalUnresolved, resolveFilterTokens } from './resolveFilterToke
  * @return {object} The resolved filter map.
  */
 export function resolveFilterMap(filterMap, params, ctx) {
-	if (!filterMap || typeof filterMap !== 'object') { return {} }
+	if (!filterMap || typeof filterMap !== 'object') {
+		return {}
+	}
 	const out = {}
 	for (const [k, v] of Object.entries(filterMap)) {
-		if (typeof v === 'string' && v.startsWith('@route.')) { out[k] = params[v.slice('@route.'.length)] } else if (typeof v === 'string' && v.startsWith(':')) { out[k] = params[v.slice(1)] } else { out[k] = v }
+		if (typeof v === 'string' && v.startsWith('@route.')) {
+			out[k] = params[v.slice('@route.'.length)]
+		} else if (typeof v === 'string' && v.startsWith(':')) {
+			out[k] = params[v.slice(1)]
+		} else {
+			out[k] = v
+		}
 	}
 	return dropOptionalUnresolved(resolveFilterTokens(out, ctx))
 }
@@ -91,7 +99,9 @@ export function parseSortKeysFromQuery(route) {
  * @return {object} The query-derived filter map.
  */
 export function resolveQueryFilters(query, ctx) {
-	if (!query || typeof query !== 'object') { return {} }
+	if (!query || typeof query !== 'object') {
+		return {}
+	}
 	const out = {}
 	for (const [k, v] of Object.entries(query)) {
 		if (k.startsWith('_')) {

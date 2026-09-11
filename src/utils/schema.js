@@ -499,7 +499,9 @@ function clampToWord(text, max) {
  */
 export function splitDescription(text, max = DESCRIPTION_INLINE_MAX) {
 	const full = typeof text === 'string' ? text.trim() : ''
-	if (!full || full.length <= max) { return { short: full, long: '' } }
+	if (!full || full.length <= max) {
+		return { short: full, long: '' }
+	}
 
 	const sentence = firstSentenceOf(full)
 	return {
@@ -883,7 +885,9 @@ export function validateValue(value, property = {}, options = {}) {
 		if (property.items && typeof property.items === 'object') {
 			for (let i = 0; i < value.length; i++) {
 				const itemErr = validateValue(value[i], property.items)
-				if (itemErr) { return `Item ${i + 1}: ${itemErr}` }
+				if (itemErr) {
+					return `Item ${i + 1}: ${itemErr}`
+				}
 			}
 		}
 	}
@@ -941,6 +945,8 @@ function validateStringFormat(format, value) {
 		return 'Value must be a valid URL.'
 	}
 	const re = FORMAT_PATTERNS[format]
-	if (re && !re.test(value)) { return `Value must be a valid '${format}'.` }
+	if (re && !re.test(value)) {
+		return `Value must be a valid '${format}'.`
+	}
 	return null
 }

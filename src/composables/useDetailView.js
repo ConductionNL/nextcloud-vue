@@ -69,7 +69,9 @@ export function useDetailView(objectTypeOrOptions, id, options) {
 	const isNew = computed(() => !idRef.value || idRef.value === 'new')
 
 	const object = computed(() => {
-		if (isNew.value) { return {} }
+		if (isNew.value) {
+			return {}
+		}
 		return objectStore.getObject(objectType, idRef.value) || {}
 	})
 

@@ -118,8 +118,10 @@ export default {
 			}
 			// Normalise the working page in place so the editor can bind to it —
 			// the working manifest is ours to mutate by design (see CnEditPagesModal).
-			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-			if (!this.page.config || typeof this.page.config !== 'object') { this.page.config = {} }
+			if (!this.page.config || typeof this.page.config !== 'object') {
+				// eslint-disable-next-line vue/no-side-effects-in-computed-properties
+				this.page.config = {}
+			}
 			const cfg = this.page.config
 			if (typeof cfg.sidebar !== 'object' || cfg.sidebar === null) {
 				cfg.sidebar = typeof cfg.sidebar === 'boolean' ? { show: cfg.sidebar } : {}
@@ -236,7 +238,9 @@ export default {
 		 */
 		setTabVisible(id, visible) {
 			const idx = this.hiddenTabs.indexOf(id)
-			if (visible && idx !== -1) { this.hiddenTabs.splice(idx, 1) } else if (!visible && idx === -1) {
+			if (visible && idx !== -1) {
+				this.hiddenTabs.splice(idx, 1)
+			} else if (!visible && idx === -1) {
 				this.hiddenTabs.push(id)
 			}
 		},

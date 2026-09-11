@@ -76,7 +76,9 @@ describe('CnCellRenderer — column formatters', () => {
 		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
 		const wrapper = mountRenderer(
 			{ value: 'plain text', property: { type: 'string' }, formatter: 'boom' },
-			{ cnFormatters: { boom: () => { throw new Error('kaboom') } } },
+			{ cnFormatters: { boom: () => {
+				throw new Error('kaboom')
+			} } },
 		)
 		expect(wrapper.text()).toBe('plain text')
 		expect(warn).toHaveBeenCalled()
@@ -109,7 +111,9 @@ describe('CnCellRenderer — column formatters', () => {
 		const seen = []
 		mountRenderer(
 			{ value: 'x', property: { type: 'string' }, formatter: 'plain' },
-			{ cnFormatters: { plain: (...args) => { seen.push(args); return 'ok' } } },
+			{ cnFormatters: { plain: (...args) => {
+				seen.push(args); return 'ok'
+			} } },
 		)
 		expect(seen[0][3]).toBeUndefined()
 	})
@@ -154,7 +158,9 @@ describe('CnCellRenderer — column widgets', () => {
 	})
 
 	it('a consumer widget receives the formatter-shaped value as `formatted` when formatter is also set', () => {
-		const Plain = { name: 'Plain', props: ['formatted'], render() { return h('span', { 'data-test': 'p' }, this.formatted) } }
+		const Plain = { name: 'Plain', props: ['formatted'], render() {
+			return h('span', { 'data-test': 'p' }, this.formatted)
+		} }
 		const wrapper = mountRenderer(
 			{ value: 'lead.created', property: { type: 'string' }, formatter: 'human', widget: 'plain' },
 			{ cnFormatters: { human: () => 'Lead created' }, cnCellWidgets: { plain: Plain } },
@@ -203,7 +209,9 @@ describe('CnCellRenderer — column widgets', () => {
 	})
 
 	it('a consumer-registered fkResolve override wins over the built-in', () => {
-		const Custom = { name: 'CustomFk', render() { return h('span', { 'data-test': 'custom-fk' }, 'custom') } }
+		const Custom = { name: 'CustomFk', render() {
+			return h('span', { 'data-test': 'custom-fk' }, 'custom')
+		} }
 		const wrapper = mountRenderer(
 			{ value: 'uuid-1', property: { type: 'string' }, widget: 'fkResolve' },
 			{ cnCellWidgets: { fkResolve: Custom } },

@@ -1522,7 +1522,9 @@ export default {
 		registryExposed.cnAppConfigRef = cnAppConfig
 		watch(
 			() => props.appConfig,
-			(next) => { cnAppConfig.value = { ...(next || {}) } },
+			(next) => {
+				cnAppConfig.value = { ...(next || {}) }
+			},
 			{ deep: true },
 		)
 
@@ -2240,7 +2242,9 @@ export default {
 			// (the explicit Object form below still overrides show/enabled).
 			const hasTabs = Array.isArray(this.sidebarTabs) && this.sidebarTabs.length > 0
 			if (typeof cfg === 'boolean') {
-				if (cfg) { return { show: true, enabled: true } }
+				if (cfg) {
+					return { show: true, enabled: true }
+				}
 				return hasTabs ? { show: true, enabled: true } : { show: false, enabled: false }
 			}
 			if (cfg && typeof cfg === 'object') {
@@ -2335,7 +2339,9 @@ export default {
 
 		sidebar: {
 			immediate: true,
-			handler() { this.syncSidebarState() },
+			handler() {
+				this.syncSidebarState()
+			},
 		},
 
 		// Keep the provided object context current so detail-page abstract
@@ -2394,9 +2400,18 @@ export default {
 			this.dataWidgetDeferred = false
 		},
 
-		title() { this.syncSidebarState() },
-		subtitle() { this.syncSidebarState() },
-		objectType() { this.syncSidebarState() },
+		title() {
+			this.syncSidebarState()
+		},
+
+		subtitle() {
+			this.syncSidebarState()
+		},
+
+		objectType() {
+			this.syncSidebarState()
+		},
+
 		// Schema-driven props feed both the sidebar state (via
 		// resolvedObjectType) and the auto-fetch path. Re-sync + re-fetch
 		// whenever any of the three move so the page stays consistent if
@@ -2422,12 +2437,16 @@ export default {
 
 		sidebarTabs: {
 			deep: true,
-			handler() { this.syncSidebarState() },
+			handler() {
+				this.syncSidebarState()
+			},
 		},
 
 		sidebarProps: {
 			deep: true,
-			handler() { this.syncSidebarState() },
+			handler() {
+				this.syncSidebarState()
+			},
 		},
 	},
 
@@ -2807,7 +2826,9 @@ export default {
 				const res = await axios.post(url, formData)
 				const created = (res && res.data) ? res.data : {}
 				const newId = (created['@self'] && created['@self'].id) || created.id
-				if (this.$refs.createFormDialog) { this.$refs.createFormDialog.setResult({ success: true }) }
+				if (this.$refs.createFormDialog) {
+					this.$refs.createFormDialog.setResult({ success: true })
+				}
 				/**
 				 * @event created Emitted after a successful create-form save.
 				 * @type {object}
@@ -2821,7 +2842,9 @@ export default {
 				return { success: true, data: created }
 			} catch (e) {
 				const error = (e && e.message) || 'error'
-				if (this.$refs.createFormDialog) { this.$refs.createFormDialog.setResult({ error }) }
+				if (this.$refs.createFormDialog) {
+					this.$refs.createFormDialog.setResult({ error })
+				}
 				return { error }
 			}
 		},
@@ -2928,7 +2951,9 @@ export default {
 					if (!saved) {
 						const err = store.getError?.(this.resolvedObjectType)
 						const error = (err && err.message) || t('nextcloud-vue', 'Save failed')
-						if (dialog) { dialog.setResult({ error }) }
+						if (dialog) {
+							dialog.setResult({ error })
+						}
 						return { error }
 					}
 				} else {
@@ -2943,7 +2968,9 @@ export default {
 					const res = await axios.put(url, payload)
 					saved = (res && res.data) ? res.data : payload
 				}
-				if (dialog) { dialog.setResult({ success: true }) }
+				if (dialog) {
+					dialog.setResult({ success: true })
+				}
 				this.editFormOpen = false
 				/**
 				 * @event edited Emitted after the record edit form saves successfully.
@@ -2954,7 +2981,9 @@ export default {
 				return { success: true, data: saved }
 			} catch (e) {
 				const error = (e && e.message) || t('nextcloud-vue', 'Save failed')
-				if (dialog) { dialog.setResult({ error }) }
+				if (dialog) {
+					dialog.setResult({ error })
+				}
 				return { error }
 			}
 		},

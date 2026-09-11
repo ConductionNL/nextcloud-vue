@@ -243,9 +243,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchPages() } } },
-		register() { this.fetchPages() },
-		schema() { this.fetchPages() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchPages()
+			}
+		} },
+
+		register() {
+			this.fetchPages()
+		},
+
+		schema() {
+			this.fetchPages()
+		},
 	},
 
 	methods: {

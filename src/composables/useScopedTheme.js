@@ -128,7 +128,11 @@ function cssAttrEscape(value) {
 export function useScopedTheme(opts = {}) {
 	const client = opts.client || axios
 	const doc = opts.doc || (typeof document !== 'undefined' ? document : null)
-	const warn = opts.warn || ((m) => { try { console.warn(m) } catch { /* noop */ } })
+	const warn = opts.warn || ((m) => {
+		try {
+			console.warn(m)
+		} catch { /* noop */ }
+	})
 	/*
 	 * The theme app's Nextcloud id is RENAMING (`nldesign` -> `thematiq`), and
 	 * the two ids will be live at the same time: an instance running the

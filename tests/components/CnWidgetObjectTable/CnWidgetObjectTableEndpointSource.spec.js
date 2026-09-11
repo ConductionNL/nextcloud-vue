@@ -173,7 +173,9 @@ describe('CnWidgetObjectTable — endpointSource (Wave 2)', () => {
 		await wrapper.vm.$nextTick()
 
 		let resolveRefetch
-		axios.get.mockReturnValueOnce(new Promise((resolve) => { resolveRefetch = resolve }))
+		axios.get.mockReturnValueOnce(new Promise((resolve) => {
+			resolveRefetch = resolve
+		}))
 		wrapper.vm.refresh()
 		await wrapper.vm.$nextTick()
 		// The chrome's Refresh action spins for the real fetch duration.

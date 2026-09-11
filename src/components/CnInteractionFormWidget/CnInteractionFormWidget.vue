@@ -198,13 +198,33 @@ export default {
 			return Boolean(this.form.subject && this.form.subject.trim() && this.form.channel)
 		},
 
-		channelLabel() { return t('nextcloud-vue', 'Channel') },
-		clientLabel() { return t('nextcloud-vue', 'Client') },
-		subjectLabel() { return t('nextcloud-vue', 'Subject') },
-		summaryLabel() { return t('nextcloud-vue', 'Summary') },
-		outcomeLabel() { return t('nextcloud-vue', 'Outcome') },
-		registerLabel() { return t('nextcloud-vue', 'Register') },
-		savingLabel() { return t('nextcloud-vue', 'Saving…') },
+		channelLabel() {
+			return t('nextcloud-vue', 'Channel')
+		},
+
+		clientLabel() {
+			return t('nextcloud-vue', 'Client')
+		},
+
+		subjectLabel() {
+			return t('nextcloud-vue', 'Subject')
+		},
+
+		summaryLabel() {
+			return t('nextcloud-vue', 'Summary')
+		},
+
+		outcomeLabel() {
+			return t('nextcloud-vue', 'Outcome')
+		},
+
+		registerLabel() {
+			return t('nextcloud-vue', 'Register')
+		},
+
+		savingLabel() {
+			return t('nextcloud-vue', 'Saving…')
+		},
 	},
 
 	methods: {
@@ -324,7 +344,9 @@ export default {
 			this.saving = true
 			try {
 				if (typeof this.objectStore.registerObjectType === 'function') {
-					try { this.objectStore.registerObjectType(this.typeSlug, this.schema, this.register) } catch (e) { /* idempotent */ }
+					try {
+						this.objectStore.registerObjectType(this.typeSlug, this.schema, this.register)
+					} catch (e) { /* idempotent */ }
 				}
 				const result = await this.objectStore.saveObject(this.typeSlug, payload)
 				if (!result) {

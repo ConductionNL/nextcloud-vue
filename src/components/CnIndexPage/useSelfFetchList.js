@@ -173,7 +173,9 @@ export function useSelfFetchList(props, instance, inject) {
 			const queryFilters = resolveQueryFilters(route && route.query, ctx)
 			const base = resolveFilterMap(props.filter, params, ctx)
 			const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
-			if (!tabs) { return { ...queryFilters, ...base } }
+			if (!tabs) {
+				return { ...queryFilters, ...base }
+			}
 
 			// Multiple mode: OR the selected tabs' filters together (union).
 			if (isMultiQuickFilter) {

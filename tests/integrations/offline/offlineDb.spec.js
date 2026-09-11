@@ -83,7 +83,9 @@ describe('offlineDb', () => {
 		it('persists and reuses a generated id', () => {
 			const store = (() => {
 				const m = {}
-				return { getItem: (k) => m[k] ?? null, setItem: (k, v) => { m[k] = v } }
+				return { getItem: (k) => m[k] ?? null, setItem: (k, v) => {
+					m[k] = v
+				} }
 			})()
 			const first = resolveDeviceId(store)
 			const second = resolveDeviceId(store)

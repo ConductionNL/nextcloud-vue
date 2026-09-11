@@ -299,7 +299,9 @@ describe('a named source supplies its create and navigation actions', () => {
 			namedSource: flows(),
 			$router: { push: (r) => pushed.push(r) },
 			showFormDialog: true,
-			$emit: (e) => { emitted = e },
+			$emit: (e) => {
+				emitted = e
+			},
 		})
 		expect(emitted).toBe('add')
 		expect(pushed).toEqual([])

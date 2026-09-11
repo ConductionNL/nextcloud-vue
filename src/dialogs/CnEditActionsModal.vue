@@ -139,10 +139,12 @@ export default {
 			}
 			// Normalise the working page in place so the editor can bind to it —
 			// the working manifest is ours to mutate by design (see CnEditPagesModal).
-			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-			if (!this.page.config || typeof this.page.config !== 'object') { this.page.config = {} }
-			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
+			if (!this.page.config || typeof this.page.config !== 'object') {
+				// eslint-disable-next-line vue/no-side-effects-in-computed-properties
+				this.page.config = {}
+			}
 			if (!Array.isArray(this.page.config.actions)) {
+				// eslint-disable-next-line vue/no-side-effects-in-computed-properties
 				this.page.config.actions = []
 			}
 			return this.page.config.actions

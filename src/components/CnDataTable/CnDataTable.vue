@@ -809,7 +809,9 @@ export default {
 			if (this.sortKeys && this.sortKeys.length > 0) {
 				return this.sortKeys
 			}
-			if (this.sortKey) { return [{ key: this.sortKey, order: this.sortOrder || 'asc' }] }
+			if (this.sortKey) {
+				return [{ key: this.sortKey, order: this.sortOrder || 'asc' }]
+			}
 			return []
 		},
 
@@ -853,11 +855,16 @@ export default {
 
 	watch: {
 		rows: {
-			handler() { this.loadAggregates() },
+			handler() {
+				this.loadAggregates()
+			},
 		},
 
 		effectiveColumns: {
-			handler() { this.loadAggregates() },
+			handler() {
+				this.loadAggregates()
+			},
+
 			deep: false,
 		},
 
@@ -1161,7 +1168,9 @@ export default {
 		async loadAggregates() {
 			const aggCols = this.effectiveColumns.filter((c) => c && c.aggregate && c.aggregate.op === 'count')
 			if (aggCols.length === 0) {
-				if (Object.keys(this.aggregateValues).length > 0) { this.aggregateValues = {} }
+				if (Object.keys(this.aggregateValues).length > 0) {
+					this.aggregateValues = {}
+				}
 				this.aggregateLoading = false
 				return
 			}
@@ -1228,7 +1237,9 @@ export default {
 			// function maps the row to a route to push (the event still fires).
 			if (this.rowClickRoute && this.$router) {
 				const route = this.rowClickRoute(row)
-				if (route) { this.$router.push(route).catch(() => {}) }
+				if (route) {
+					this.$router.push(route).catch(() => {})
+				}
 			}
 		},
 

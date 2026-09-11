@@ -321,7 +321,13 @@ export function formatCount(value, _row, _property, options) {
 	}
 	const collection = parseCollection(value)
 	let n
-	if (Array.isArray(collection)) { n = collection.length } else if (typeof collection === 'object') { n = Object.keys(collection).length } else { n = 1 }
+	if (Array.isArray(collection)) {
+		n = collection.length
+	} else if (typeof collection === 'object') {
+		n = Object.keys(collection).length
+	} else {
+		n = 1
+	}
 	if (n === 0) {
 		return zero
 	}

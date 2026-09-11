@@ -262,7 +262,9 @@ describe('CnSettingsPage — tabs orchestration (REQ-MSO-*)', () => {
 	it('REQ-MSO-6: sibling widgets keep rendering after a missed component lookup', () => {
 		const SiblingPanel = {
 			name: 'SiblingPanel',
-			render() { return h('div', { class: 'sibling-panel-stub' }, 'sibling') },
+			render() {
+				return h('div', { class: 'sibling-panel-stub' }, 'sibling')
+			},
 		}
 		const tabs = [
 			{
@@ -290,7 +292,9 @@ describe('CnSettingsPage — tabs orchestration (REQ-MSO-*)', () => {
 		// type string, not through the new discriminator.
 		const WorkflowEditor = {
 			name: 'WorkflowEditor',
-			render() { return h('div', { class: 'legacy-workflow-stub' }, 'legacy') },
+			render() {
+				return h('div', { class: 'legacy-workflow-stub' }, 'legacy')
+			},
 		}
 		const sections = [{
 			title: 'Workflow',

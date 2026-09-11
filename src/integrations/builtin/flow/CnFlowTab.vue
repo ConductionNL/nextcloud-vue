@@ -181,9 +181,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchOperations() } } },
-		register() { this.fetchOperations() },
-		schema() { this.fetchOperations() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchOperations()
+			}
+		} },
+
+		register() {
+			this.fetchOperations()
+		},
+
+		schema() {
+			this.fetchOperations()
+		},
 	},
 
 	methods: {

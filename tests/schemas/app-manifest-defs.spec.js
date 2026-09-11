@@ -64,7 +64,9 @@ function structuralValidate(def, value, path = '$') {
 		}
 		const required = Array.isArray(def.required) ? def.required : []
 		for (const key of required) {
-			if (!(key in value)) { errors.push(`${path}.${key}: required`) }
+			if (!(key in value)) {
+				errors.push(`${path}.${key}: required`)
+			}
 		}
 		const props = def.properties || {}
 		const allowExtra = def.additionalProperties === true
@@ -108,7 +110,9 @@ function structuralValidate(def, value, path = '$') {
 		return { valid: errors.length === 0, errors }
 	}
 	if (def.type === 'boolean') {
-		if (typeof value !== 'boolean') { errors.push(`${path}: must be boolean`) }
+		if (typeof value !== 'boolean') {
+			errors.push(`${path}: must be boolean`)
+		}
 		return { valid: errors.length === 0, errors }
 	}
 	// def.type undefined (e.g. formField.default — "any") — accept.

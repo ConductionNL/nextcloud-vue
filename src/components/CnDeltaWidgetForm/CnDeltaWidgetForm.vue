@@ -152,11 +152,20 @@ export default {
 
 	computed: {
 		/** Aggregation metric options. */
-		metricOptions() { return ['count', 'sum', 'avg', 'min', 'max'] },
+		metricOptions() {
+			return ['count', 'sum', 'avg', 'min', 'max']
+		},
+
 		/** Which direction of change is "good" (green). */
-		directionOptions() { return ['up', 'down'] },
+		directionOptions() {
+			return ['up', 'down']
+		},
+
 		/** Number-format styles. */
-		formatOptions() { return ['number', 'currency', 'percent'] },
+		formatOptions() {
+			return ['number', 'currency', 'percent']
+		},
+
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			return {
@@ -199,7 +208,10 @@ export default {
 		 * @param {string|number} value The new value for that key (`decimals` is numeric; the rest are strings).
 		 * @return {void}
 		 */
-		updateField(field, value) { this[field] = value; this.emitChange() },
+		updateField(field, value) {
+			this[field] = value; this.emitChange()
+		},
+
 		/**
 		 * Set a source sub-field and emit.
 		 *
@@ -207,7 +219,10 @@ export default {
 		 * @param {string} value The chosen register or schema slug.
 		 * @return {void}
 		 */
-		updateSource(field, value) { this.source[field] = value; this.emitChange() },
+		updateSource(field, value) {
+			this.source[field] = value; this.emitChange()
+		},
+
 		/**
 		 * Receive updated current-period filter rows.
 		 *
@@ -215,7 +230,10 @@ export default {
 		 *   full row list for the current period, serialised by `rowsToFilter()`.
 		 * @return {void}
 		 */
-		onCurrentRows(rows) { this.currentRows = rows; this.emitChange() },
+		onCurrentRows(rows) {
+			this.currentRows = rows; this.emitChange()
+		},
+
 		/**
 		 * Receive updated previous-period filter rows.
 		 *
@@ -223,9 +241,15 @@ export default {
 		 *   full row list for the comparison period, serialised by `rowsToFilter()`.
 		 * @return {void}
 		 */
-		onPreviousRows(rows) { this.previousRows = rows; this.emitChange() },
+		onPreviousRows(rows) {
+			this.previousRows = rows; this.emitChange()
+		},
+
 		/** Emit the assembled content. */
-		emitChange() { this.$emit('update:content', this.assembledContent) },
+		emitChange() {
+			this.$emit('update:content', this.assembledContent)
+		},
+
 		/**
 		 * Validate the form; an empty array means valid.
 		 *

@@ -120,7 +120,9 @@ export function useSubResource(store, endpoint, options = {}) {
 		} catch (err) {
 			error.value = err.name === 'TypeError'
 				? networkError(err)
-				: { status: null, message: err.message, details: null, isValidation: false, fields: null, toString() { return this.message } }
+				: { status: null, message: err.message, details: null, isValidation: false, fields: null, toString() {
+						return this.message
+					} }
 			console.error(`Error fetching ${endpoint} for ${type}/${objectId}:`, err)
 			return []
 		} finally {

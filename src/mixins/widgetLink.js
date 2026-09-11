@@ -67,8 +67,12 @@ export default {
 		},
 		/** Root element attributes for the resolved link tag. */
 		linkAttrs() {
-			if (this.linkRoute) { return { to: this.linkRoute, tabindex: '0' } }
-			if (this.linkHref) { return { href: this.linkHref, target: '_blank', rel: 'noopener noreferrer', tabindex: '0' } }
+			if (this.linkRoute) {
+				return { to: this.linkRoute, tabindex: '0' }
+			}
+			if (this.linkHref) {
+				return { href: this.linkHref, target: '_blank', rel: 'noopener noreferrer', tabindex: '0' }
+			}
 			return {}
 		},
 		/** True when the tile navigates on click (route or external link). */

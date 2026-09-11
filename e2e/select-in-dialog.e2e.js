@@ -82,7 +82,9 @@ test.describe('NcSelect inside a dialog', () => {
 		await page.goto('/?selz=1&nodialog=1')
 		await page.evaluate(() => {
 			// Drop the mask so the select is on a bare page; nothing else changes.
-			document.querySelectorAll('.modal-mask').forEach((m) => { m.style.zIndex = '0' })
+			document.querySelectorAll('.modal-mask').forEach((m) => {
+				m.style.zIndex = '0'
+			})
 		})
 		await page.locator('.vs__dropdown-toggle').click()
 		await page.getByRole('option', { name: 'Cherry' }).click({ timeout: 5000 })

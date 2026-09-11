@@ -63,8 +63,12 @@ function mountSidebar(extra = {}, mountOptions = {}) {
 describe('CnObjectSidebar — useRegistry default (ADR-019)', () => {
 	// The integration registry singleton consumed by setup().
 	const { integrations } = require('../../src/integrations/registry.js')
-	const DefaultTab = { name: 'DefaultTab', render() { return h('div', { class: 'default-registry-tab' }) } }
-	const DefaultWidget = { name: 'DefaultWidget', render() { return h('div') } }
+	const DefaultTab = { name: 'DefaultTab', render() {
+		return h('div', { class: 'default-registry-tab' })
+	} }
+	const DefaultWidget = { name: 'DefaultWidget', render() {
+		return h('div')
+	} }
 
 	afterEach(() => {
 		integrations.__resetForTests()
@@ -414,9 +418,13 @@ describe('CnObjectSidebar — pluggable integration registry mode', () => {
 	const RegistryTab = {
 		name: 'RegistryTab',
 		props: ['objectId', 'objectType', 'register', 'schema', 'apiBase'],
-		render() { return h('div', { class: 'registry-tab' }, String(this.objectId)) },
+		render() {
+			return h('div', { class: 'registry-tab' }, String(this.objectId))
+		},
 	}
-	const RegistryWidget = { name: 'RegistryWidget', render() { return h('div', { class: 'registry-widget' }) } }
+	const RegistryWidget = { name: 'RegistryWidget', render() {
+		return h('div', { class: 'registry-widget' })
+	} }
 
 	function mountRegistrySidebar(extra = {}) {
 		return mount(CnObjectSidebar, {

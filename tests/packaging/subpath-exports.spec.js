@@ -288,7 +288,9 @@ describe('packaging — the packed code is the FIXED code', () => {
 			async addInitScript() {},
 			pages: () => [],
 			async newPage() {},
-			async storageState() { return { origins: [] } },
+			async storageState() {
+				return { origins: [] }
+			},
 		}
 		await expect(seedSupportDialogSeen(context, '*')).rejects.toThrow(/cannot be persisted/)
 	})

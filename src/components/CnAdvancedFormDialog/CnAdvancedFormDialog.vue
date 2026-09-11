@@ -624,7 +624,9 @@ export default {
 			} catch {
 				// Keep previous formData
 			} finally {
-				this.$nextTick(() => { this.isInternalUpdate = false })
+				this.$nextTick(() => {
+					this.isInternalUpdate = false
+				})
 			}
 		},
 
@@ -638,7 +640,9 @@ export default {
 			} catch {
 				// Ignore
 			} finally {
-				this.$nextTick(() => { this.isInternalUpdate = false })
+				this.$nextTick(() => {
+					this.isInternalUpdate = false
+				})
 			}
 		},
 
@@ -669,7 +673,9 @@ export default {
 					if (!this.isInternalUpdate) {
 						this.isInternalUpdate = true
 						this.formData = parsed
-						this.$nextTick(() => { this.isInternalUpdate = false })
+						this.$nextTick(() => {
+							this.isInternalUpdate = false
+						})
 					}
 				}
 			} catch {
@@ -681,7 +687,9 @@ export default {
 			if (!this.isInternalUpdate) {
 				this.isInternalUpdate = true
 				this.formData = parsed
-				this.$nextTick(() => { this.isInternalUpdate = false })
+				this.$nextTick(() => {
+					this.isInternalUpdate = false
+				})
 			}
 		},
 

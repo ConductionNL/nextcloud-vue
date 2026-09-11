@@ -226,7 +226,9 @@ describe('logsPlugin', () => {
 
 	describe('autoRefreshOnItemChange', () => {
 		class Src {
-			constructor(data) { Object.assign(this, data) }
+			constructor(data) {
+				Object.assign(this, data)
+			}
 		}
 
 		it('auto-fires refreshLogs when setItem receives an item with id', async () => {

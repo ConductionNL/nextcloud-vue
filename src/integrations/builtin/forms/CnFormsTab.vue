@@ -271,9 +271,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchForms() } } },
-		register() { this.fetchForms() },
-		schema() { this.fetchForms() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchForms()
+			}
+		} },
+
+		register() {
+			this.fetchForms()
+		},
+
+		schema() {
+			this.fetchForms()
+		},
 	},
 
 	methods: {

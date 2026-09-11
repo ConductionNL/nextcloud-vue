@@ -94,7 +94,9 @@ export default {
 		/** Deterministic colour-from-name for the avatar background. */
 		iconStyle() {
 			const name = this.displayName
-			if (!name) { return {} }
+			if (!name) {
+				return {}
+			}
 			let hash = 0
 			for (let i = 0; i < name.length; i++) {
 				hash = name.charCodeAt(i) + ((hash << 5) - hash)
@@ -107,7 +109,9 @@ export default {
 		badgeTitle() {
 			const name = this.displayName
 			const uuid = this.activeOrganisationUuid
-			if (name && uuid && name !== uuid) { return `${name} (${uuid})` }
+			if (name && uuid && name !== uuid) {
+				return `${name} (${uuid})`
+			}
 			return name || uuid || ''
 		},
 

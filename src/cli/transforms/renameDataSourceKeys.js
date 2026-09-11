@@ -76,7 +76,9 @@ function renameDataSourceKeys(page) {
 		return next
 	})
 
-	if (count === 0) { return { page, count: 0 } }
+	if (count === 0) {
+		return { page, count: 0 }
+	}
 
 	return { page: { ...page, widgets }, count }
 }

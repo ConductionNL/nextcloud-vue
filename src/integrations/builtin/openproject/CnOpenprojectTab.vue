@@ -343,9 +343,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchWorkPackages() } } },
-		register() { this.fetchWorkPackages() },
-		schema() { this.fetchWorkPackages() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchWorkPackages()
+			}
+		} },
+
+		register() {
+			this.fetchWorkPackages()
+		},
+
+		schema() {
+			this.fetchWorkPackages()
+		},
 	},
 
 	methods: {

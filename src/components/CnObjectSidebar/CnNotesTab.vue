@@ -160,7 +160,11 @@ export default {
 	watch: {
 		objectId: {
 			immediate: true,
-			handler(id) { if (id) { this.fetchNotes() } },
+			handler(id) {
+				if (id) {
+					this.fetchNotes()
+				}
+			},
 		},
 	},
 
@@ -380,7 +384,9 @@ export default {
 					hour: '2-digit',
 					minute: '2-digit',
 				})
-			} catch { return dateStr }
+			} catch {
+				return dateStr
+			}
 		},
 	},
 }

@@ -103,7 +103,9 @@ describe('CnAppRoot currentUserGroups', () => {
 	})
 
 	it('resolves to an empty list when loadState throws', () => {
-		loadState.mockImplementation(() => { throw new Error('no initial state') })
+		loadState.mockImplementation(() => {
+			throw new Error('no initial state')
+		})
 		expect(mountRoot().vm.currentUserGroups).toEqual([])
 	})
 })

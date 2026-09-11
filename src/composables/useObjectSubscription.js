@@ -167,7 +167,11 @@ export function useObjectSubscription(objectStore, type, id, options = {}) {
 	// reaching for the store.
 	watch(
 		() => objectStore.liveLastEventAt,
-		(t) => { if (t) { lastEventAt.value = t } },
+		(t) => {
+			if (t) {
+				lastEventAt.value = t
+			}
+		},
 		{ immediate: true },
 	)
 

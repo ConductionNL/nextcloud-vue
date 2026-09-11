@@ -461,7 +461,9 @@ export default {
 			}
 			if (event.ctrlKey || event.metaKey) {
 				let toolId = null
-				if (event.key === 'b' || event.key === 'B') { toolId = 'bold' } else if (event.key === 'i' || event.key === 'I') {
+				if (event.key === 'b' || event.key === 'B') {
+					toolId = 'bold'
+				} else if (event.key === 'i' || event.key === 'I') {
 					toolId = 'italic'
 				}
 				if (!toolId) {

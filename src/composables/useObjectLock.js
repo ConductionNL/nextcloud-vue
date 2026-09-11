@@ -73,9 +73,15 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 	const isVisible = () => typeof document === 'undefined' || document.visibilityState !== 'hidden'
 	let renewTimer = null
 
-	function readType() { return unref(schema) }
-	function readId() { return unref(id) }
-	function readRegister() { return unref(register) }
+	function readType() {
+		return unref(schema)
+	}
+	function readId() {
+		return unref(id)
+	}
+	function readRegister() {
+		return unref(register)
+	}
 
 	function readSelfLock() {
 		const t = readType()
@@ -163,7 +169,9 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 			await axios.delete(endpoint())
 		} catch (e) {
 			const status = e?.response?.status
-			if (status === 404) { return } // already released; idempotent
+			if (status === 404) {
+				return
+			} // already released; idempotent
 			if (status === 401 || status === 403) {
 				throw new PermissionError(e?.response?.data?.message || 'No permission to release this lock')
 			}

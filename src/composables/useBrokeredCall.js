@@ -221,7 +221,9 @@ export function useBrokeredCall(config, options = {}) {
 	}
 
 	// Reactive inputs re-run the request (deep — nested query/headers change).
-	if (isRef(config)) { watch(config, refetch, { deep: true }) }
+	if (isRef(config)) {
+		watch(config, refetch, { deep: true })
+	}
 
 	return { data, loading, error, refetch }
 }

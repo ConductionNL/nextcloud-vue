@@ -119,7 +119,9 @@ describe('CnTranslatedBadge', () => {
 				object: {
 					_translationMeta: { translatedFrom: 'nl', translatedAt: null },
 				},
-				localeNameFormatter: () => { throw new Error('boom') },
+				localeNameFormatter: () => {
+					throw new Error('boom')
+				},
 			},
 		})
 		const badge = wrapper.find('.cn-translated-badge')

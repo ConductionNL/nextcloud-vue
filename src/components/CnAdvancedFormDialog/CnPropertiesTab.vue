@@ -225,7 +225,9 @@ export default {
 			if (this.propCellColor === null) {
 				return undefined
 			}
-			if (this.propCellColor === 'none') { return { boxShadow: 'none' } }
+			if (this.propCellColor === 'none') {
+				return { boxShadow: 'none' }
+			}
 			return { boxShadow: `inset 3px 0 0 0 ${this.propCellColor}` }
 		},
 

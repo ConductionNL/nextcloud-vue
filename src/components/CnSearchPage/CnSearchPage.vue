@@ -212,7 +212,11 @@ export default {
 	},
 
 	watch: {
-		query(next) { if (next !== this.localQuery) { this.localQuery = next } },
+		query(next) {
+			if (next !== this.localQuery) {
+				this.localQuery = next
+			}
+		},
 	},
 
 	methods: {
@@ -244,7 +248,9 @@ export default {
 			} else {
 				const cur = Array.isArray(next[key]) ? [...next[key]] : []
 				const idx = cur.indexOf(value)
-				if (checked && idx < 0) { cur.push(value) } else if (!checked && idx >= 0) {
+				if (checked && idx < 0) {
+					cur.push(value)
+				} else if (!checked && idx >= 0) {
 					cur.splice(idx, 1)
 				}
 				next[key] = cur

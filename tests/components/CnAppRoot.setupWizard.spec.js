@@ -91,7 +91,9 @@ const wizardOf = (wrapper) => wrapper.findComponent({ name: 'CnSetupWizard' })
 describe('CnAppRoot setup wizard', () => {
 	beforeEach(() => {
 		mockRefresh.mockReset()
-		try { window.localStorage.clear() } catch (e) { /* noop */ }
+		try {
+			window.localStorage.clear()
+		} catch (e) { /* noop */ }
 	})
 
 	describe('gating phase (required step unmet)', () => {

@@ -36,7 +36,11 @@ function fakeDoc() {
 	const doc = {
 		head,
 		createElement() {
-			return { _attrs: {}, setAttribute(k, v) { this._attrs[k] = v }, getAttribute(k) { return this._attrs[k] }, textContent: '', parentNode: null }
+			return { _attrs: {}, setAttribute(k, v) {
+				this._attrs[k] = v
+			}, getAttribute(k) {
+				return this._attrs[k]
+			}, textContent: '', parentNode: null }
 		},
 		querySelectorAll(sel) {
 			const m = /style\[data-nldesign-theme="([^"]+)"\]/.exec(sel)
@@ -44,7 +48,11 @@ function fakeDoc() {
 			return head.children.filter((el) => el._attrs['data-nldesign-theme'] === slug)
 		},
 	}
-	head.appendChild = (el) => { el.parentNode = { removeChild: (c) => { head.children = head.children.filter((x) => x !== c) } }; head.children.push(el) }
+	head.appendChild = (el) => {
+		el.parentNode = { removeChild: (c) => {
+			head.children = head.children.filter((x) => x !== c)
+		} }; head.children.push(el)
+	}
 	return doc
 }
 

@@ -352,7 +352,9 @@ export default {
 		 */
 		archivalSource() {
 			const block = this.metadataSource._retention
-			if (!block || typeof block !== 'object') { return {} }
+			if (!block || typeof block !== 'object') {
+				return {}
+			}
 			return block
 		},
 

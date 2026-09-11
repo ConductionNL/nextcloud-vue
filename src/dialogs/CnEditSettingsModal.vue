@@ -236,7 +236,9 @@ export default {
 
 		/** Ensure `working.nav` is an object, then return it for mutation. */
 		ensureNav() {
-			if (!this.working.nav || typeof this.working.nav !== 'object') { this.working.nav = {} }
+			if (!this.working.nav || typeof this.working.nav !== 'object') {
+				this.working.nav = {}
+			}
 			return this.working.nav
 		},
 

@@ -280,9 +280,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchShares() } } },
-		register() { this.fetchShares() },
-		schema() { this.fetchShares() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchShares()
+			}
+		} },
+
+		register() {
+			this.fetchShares()
+		},
+
+		schema() {
+			this.fetchShares()
+		},
 	},
 
 	methods: {

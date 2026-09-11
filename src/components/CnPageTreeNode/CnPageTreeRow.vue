@@ -510,7 +510,11 @@ export default {
 		 */
 		setConfig(key, value) {
 			const config = this.ensureConfig()
-			if (value) { config[key] = value } else { delete config[key] }
+			if (value) {
+				config[key] = value
+			} else {
+				delete config[key]
+			}
 		},
 
 		/**
@@ -545,7 +549,11 @@ export default {
 		setColumns(options) {
 			const config = this.ensureConfig()
 			const cols = (options || []).map((o) => o.value)
-			if (cols.length) { config.columns = cols } else { delete config.columns }
+			if (cols.length) {
+				config.columns = cols
+			} else {
+				delete config.columns
+			}
 		},
 
 		/**
@@ -557,7 +565,11 @@ export default {
 		setColumnsText(text) {
 			const config = this.ensureConfig()
 			const cols = String(text || '').split(',').map((s) => s.trim()).filter(Boolean)
-			if (cols.length) { config.columns = cols } else { delete config.columns }
+			if (cols.length) {
+				config.columns = cols
+			} else {
+				delete config.columns
+			}
 		},
 	},
 }

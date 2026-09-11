@@ -217,7 +217,9 @@ export default {
 			// mutated by reference so diffManifest captures the reorder/nesting.
 			// eslint-disable-next-line vue/no-mutating-props
 			this.list.splice(0, this.list.length, ...flat)
-			this.$nextTick(() => { this.suppressRebuild = false })
+			this.$nextTick(() => {
+				this.suppressRebuild = false
+			})
 		},
 
 		/**

@@ -210,7 +210,6 @@ export function folderColorTint(value, theme, alpha = 0.15) {
 	const r = (int >> 16) & 0xff
 	const g = (int >> 8) & 0xff
 	const b = int & 0xff
-	/* eslint-enable no-bitwise */
 	return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 

@@ -221,7 +221,11 @@ export default {
 			if (!this.register || !this.schema) {
 				return
 			}
-			if (append) { this.loadingMore = true } else { this.loading = true }
+			if (append) {
+				this.loadingMore = true
+			} else {
+				this.loading = true
+			}
 			try {
 				const params = new URLSearchParams({ limit: this.limit, _page: this.page })
 				const response = await fetch(
@@ -288,8 +292,13 @@ export default {
 			this.fileInputEl?.click()
 		},
 
-		onDragOver() { this.isDragOver = true },
-		onDragLeave() { this.isDragOver = false },
+		onDragOver() {
+			this.isDragOver = true
+		},
+
+		onDragLeave() {
+			this.isDragOver = false
+		},
 
 		onDrop(event) {
 			this.isDragOver = false

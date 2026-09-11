@@ -120,7 +120,9 @@ describe('CnIndexPage — self-fetch mode', () => {
 		// fetchCollection resolves only when we call `release()`, so we can
 		// assert the spinner is on mid-flight and off once it settles.
 		let release
-		mockStore.fetchCollection.mockImplementationOnce(() => new Promise((resolve) => { release = resolve }))
+		mockStore.fetchCollection.mockImplementationOnce(() => new Promise((resolve) => {
+			release = resolve
+		}))
 		const wrapper = mountPage({ title: 'Decisions', register: 'decidesk', schema: 'decision' })
 		await new Promise((resolve) => setTimeout(resolve))
 

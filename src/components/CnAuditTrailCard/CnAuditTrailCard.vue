@@ -116,7 +116,11 @@ export default {
 	watch: {
 		objectId: {
 			immediate: true,
-			handler(id) { if (id) { this.fetchEntries() } },
+			handler(id) {
+				if (id) {
+					this.fetchEntries()
+				}
+			},
 		},
 	},
 

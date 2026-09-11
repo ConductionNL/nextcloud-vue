@@ -135,7 +135,10 @@ export default {
 		 *   the two display options.
 		 * @return {void}
 		 */
-		updateField(field, value) { this[field] = value; this.emitChange() },
+		updateField(field, value) {
+			this[field] = value; this.emitChange()
+		},
+
 		/**
 		 * Map the selected options back to group keys and emit.
 		 *
@@ -148,14 +151,19 @@ export default {
 		},
 
 		/** Emit the assembled content. */
-		emitChange() { this.$emit('update:content', this.assembledContent) },
+		emitChange() {
+			this.$emit('update:content', this.assembledContent)
+		},
+
 		/**
 		 * Validate the form; an empty array means valid. The related widget
 		 * inherits its object from the page, so no field is required.
 		 *
 		 * @return {string[]} the validation errors.
 		 */
-		validate() { return [] },
+		validate() {
+			return []
+		},
 	},
 }
 </script>

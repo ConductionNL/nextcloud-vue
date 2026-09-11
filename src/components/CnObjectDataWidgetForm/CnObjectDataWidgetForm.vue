@@ -183,9 +183,15 @@ export default {
 
 	computed: {
 		/** Edit-widget type options ('auto' = derive from schema). */
-		widgetOptions() { return WIDGET_OPTIONS },
+		widgetOptions() {
+			return WIDGET_OPTIONS
+		},
+
 		/** The inherited register/schema (shown as placeholders when not overridden). */
-		contextSource() { return this.unwrapContext() },
+		contextSource() {
+			return this.unwrapContext()
+		},
+
 		/** Quick column-layout presets (1 = stacked beneath each other). */
 		layoutPresets() {
 			return [
@@ -265,21 +271,30 @@ export default {
 		 * @param {string|number} value The widget title, or the column count.
 		 * @return {void}
 		 */
-		updateField(field, value) { this[field] = value; this.emitChange() },
+		updateField(field, value) {
+			this[field] = value; this.emitChange()
+		},
+
 		/**
 		 * Apply a column-layout preset (1 = stacked) and emit.
 		 *
 		 * @param {number} value The column count to set.
 		 * @return {void}
 		 */
-		setColumns(value) { this.columns = value; this.emitChange() },
+		setColumns(value) {
+			this.columns = value; this.emitChange()
+		},
+
 		/**
 		 * Remember which row a drag started on.
 		 *
 		 * @param {number} index The row index being dragged.
 		 * @return {void}
 		 */
-		onDragStart(index) { this.dragIndex = index },
+		onDragStart(index) {
+			this.dragIndex = index
+		},
+
 		/**
 		 * Reorder the property rows on drop: move the dragged row to the drop
 		 * target, then stamp every row with a sequential `order` so the new order
@@ -297,7 +312,9 @@ export default {
 			}
 			const moved = this.rows.splice(from, 1)[0]
 			this.rows.splice(index, 0, moved)
-			this.rows.forEach((row, i) => { row.order = i })
+			this.rows.forEach((row, i) => {
+				row.order = i
+			})
 			this.emitChange()
 		},
 
@@ -309,7 +326,10 @@ export default {
 		 * @param {string} value The chosen register or schema slug.
 		 * @return {void}
 		 */
-		updateSource(field, value) { this.source[field] = value; this.emitChange() },
+		updateSource(field, value) {
+			this.source[field] = value; this.emitChange()
+		},
+
 		/**
 		 * Mutate one property row and re-emit.
 		 *
@@ -363,7 +383,10 @@ export default {
 		},
 
 		/** Emit the assembled content. */
-		emitChange() { this.$emit('update:content', this.assembledContent) },
+		emitChange() {
+			this.$emit('update:content', this.assembledContent)
+		},
+
 		/**
 		 * Validate the form; an empty array means valid.
 		 *

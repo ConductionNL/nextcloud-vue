@@ -211,7 +211,13 @@ export default {
 			const warn = Number.isFinite(th.warn) ? th.warn : 80
 			const danger = Number.isFinite(th.danger) ? th.danger : 100
 			let level
-			if (pct >= danger) { level = 'danger' } else if (pct >= warn) { level = 'warn' } else { level = 'ok' }
+			if (pct >= danger) {
+				level = 'danger'
+			} else if (pct >= warn) {
+				level = 'warn'
+			} else {
+				level = 'ok'
+			}
 			if (th.invert) {
 				level = level === 'ok' ? 'danger' : level === 'danger' ? 'ok' : 'warn'
 			}

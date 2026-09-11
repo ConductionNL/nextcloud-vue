@@ -387,7 +387,9 @@ export default {
 					openModal: this._cnOpenModal,
 					// `type:"export"` opens the shared CnMassExportDialog this
 					// component mounts (Wave 1, nextcloud-vue#91).
-					openExport: (exportAction) => { this.exportAction = exportAction },
+					openExport: (exportAction) => {
+						this.exportAction = exportAction
+					},
 					// The host translate function, so an api-call/agent action's
 					// manifest-authored success/error toast localises exactly
 					// like the rest of the page chrome. Identity by default.
@@ -1209,7 +1211,9 @@ export default {
 			const entries = []
 			for (const [name, registryName] of Object.entries(map)) {
 				const component = this.resolveRegistryName(registryName, name)
-				if (component) { entries.push({ name, component }) }
+				if (component) {
+					entries.push({ name, component })
+				}
 			}
 			return entries
 		},

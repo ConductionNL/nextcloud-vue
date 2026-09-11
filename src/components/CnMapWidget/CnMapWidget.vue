@@ -399,7 +399,9 @@ export default {
 		},
 
 		resolvedHeight() {
-			if (typeof this.cfg.height === 'number') { return `${this.cfg.height}px` }
+			if (typeof this.cfg.height === 'number') {
+				return `${this.cfg.height}px`
+			}
 			return this.cfg.height
 		},
 

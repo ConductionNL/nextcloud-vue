@@ -150,7 +150,9 @@ export default {
 		provide('cnSectionContext', cnSectionContext)
 		watch(
 			() => props.context,
-			(next) => { cnSectionContext.value = { ...(next || {}) } },
+			(next) => {
+				cnSectionContext.value = { ...(next || {}) }
+			},
 			{ deep: true },
 		)
 		return {}
@@ -265,7 +267,9 @@ export default {
 		 * @return {object} An inline-style object.
 		 */
 		sectionStyle(entry) {
-			if (!this.useGrid || typeof entry.colSpan !== 'number') { return {} }
+			if (!this.useGrid || typeof entry.colSpan !== 'number') {
+				return {}
+			}
 			const span = Math.max(1, Math.min(12, entry.colSpan))
 			return { gridColumn: `span ${span}` }
 		},

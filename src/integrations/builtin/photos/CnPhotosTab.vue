@@ -210,9 +210,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchAlbums() } } },
-		register() { this.fetchAlbums() },
-		schema() { this.fetchAlbums() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchAlbums()
+			}
+		} },
+
+		register() {
+			this.fetchAlbums()
+		},
+
+		schema() {
+			this.fetchAlbums()
+		},
 	},
 
 	methods: {

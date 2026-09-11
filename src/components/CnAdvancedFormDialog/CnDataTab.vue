@@ -56,8 +56,13 @@ export default {
 
 	computed: {
 		localValue: {
-			get() { return this.value },
-			set(v) { this.$emit('update:value', v) },
+			get() {
+				return this.value
+			},
+
+			set(v) {
+				this.$emit('update:value', v)
+			},
 		},
 	},
 

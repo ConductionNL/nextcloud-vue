@@ -283,37 +283,54 @@ export default {
 		 *
 		 * @return {string} The default label.
 		 */
-		dateFromLabel() { return 'From' },
+		dateFromLabel() {
+			return 'From'
+		},
+
 		/**
 		 * Default label for the "Date to" input.
 		 *
 		 * @return {string} The default label.
 		 */
-		dateToLabel() { return 'To' },
+		dateToLabel() {
+			return 'To'
+		},
+
 		/**
 		 * Default label for the regulation field.
 		 *
 		 * @return {string} The default label.
 		 */
-		regulationLabel() { return 'Regulation' },
+		regulationLabel() {
+			return 'Regulation'
+		},
+
 		/**
 		 * Default label for the schema field.
 		 *
 		 * @return {string} The default label.
 		 */
-		schemaLabel() { return 'Schema' },
+		schemaLabel() {
+			return 'Schema'
+		},
+
 		/**
 		 * Default label for the format select.
 		 *
 		 * @return {string} The default label.
 		 */
-		formatLabel() { return 'Format' },
+		formatLabel() {
+			return 'Format'
+		},
+
 		/**
 		 * Default label for the delivery select.
 		 *
 		 * @return {string} The default label.
 		 */
-		deliveryLabel() { return 'Delivery' },
+		deliveryLabel() {
+			return 'Delivery'
+		},
 	},
 
 	methods: {

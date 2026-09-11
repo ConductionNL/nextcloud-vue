@@ -365,9 +365,17 @@ export default {
 				: t('nextcloud-vue', 'Show features')
 		},
 
-		suggestLabel() { return t('nextcloud-vue', 'Suggest feature') },
-		disabledTitle() { return t('nextcloud-vue', 'This feature has been disabled by your administrator') },
-		disabledDescription() { return t('nextcloud-vue', 'Contact your Nextcloud administrator to enable Features & Roadmap on this instance.') },
+		suggestLabel() {
+			return t('nextcloud-vue', 'Suggest feature')
+		},
+
+		disabledTitle() {
+			return t('nextcloud-vue', 'This feature has been disabled by your administrator')
+		},
+
+		disabledDescription() {
+			return t('nextcloud-vue', 'Contact your Nextcloud administrator to enable Features & Roadmap on this instance.')
+		},
 
 		resolvedOpenbuiltUrl() {
 			if (this.openbuiltUrl) {
@@ -440,13 +448,18 @@ export default {
 			return /^https?:\/\//i.test(this.resolvedDocumentationUrl)
 		},
 
-		docsNoteLeading() { return t('nextcloud-vue', 'Looking for documentation? Visit') },
+		docsNoteLeading() {
+			return t('nextcloud-vue', 'Looking for documentation? Visit')
+		},
+
 		docsNoteLinkLabel() {
 			// Strip protocol for a cleaner inline link label.
 			return this.resolvedDocumentationUrl.replace(/^https?:\/\//i, '')
 		},
 
-		docsNoteTrailing() { return t('nextcloud-vue', 'for all technical and user documentation.') },
+		docsNoteTrailing() {
+			return t('nextcloud-vue', 'for all technical and user documentation.')
+		},
 	},
 
 	mounted() {

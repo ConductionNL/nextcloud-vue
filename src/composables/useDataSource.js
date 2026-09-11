@@ -141,7 +141,9 @@ export function useDataSource(dataSource, options = {}) {
 	const queryAndVars = computed(() => {
 		bucketError.value = null
 		const s = ds.value
-		if (!s) { return { query: null, variables: {} } }
+		if (!s) {
+			return { query: null, variables: {} }
+		}
 		// Raw GraphQL form — pass through.
 		if (s.graphql?.query) {
 			return { query: s.graphql.query, variables: s.graphql.variables ?? {} }

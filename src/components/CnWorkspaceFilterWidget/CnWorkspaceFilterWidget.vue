@@ -199,7 +199,9 @@ export default {
 		/** Re-fetch options when a dynamic source changes. */
 		content: {
 			deep: true,
-			handler() { this.loadOptions() },
+			handler() {
+				this.loadOptions()
+			},
 		},
 
 		/**
@@ -238,8 +240,12 @@ export default {
 		 * @return {{value: *, label: string, count?: number}}
 		 */
 		normaliseOption(o) {
-			if (o === null || o === undefined) { return { value: undefined, label: '' } }
-			if (typeof o !== 'object') { return { value: o, label: String(o) } }
+			if (o === null || o === undefined) {
+				return { value: undefined, label: '' }
+			}
+			if (typeof o !== 'object') {
+				return { value: o, label: String(o) }
+			}
 			const value = o.value !== undefined ? o.value : (o.id !== undefined ? o.id : o.key)
 			const label = o.label !== undefined ? o.label : (o.name !== undefined ? o.name : String(value))
 			const out = { value, label: String(label) }
@@ -316,7 +322,9 @@ export default {
 				const params = { groupBy: src.groupBy, metric: 'count' }
 				const filter = resolveFilterTokens(src.filter || {}, { workspace: this.readWorkspaceBag() })
 				for (const [k, v] of Object.entries(filter)) {
-					if (v !== '' && v !== null && v !== undefined) { params[`filter[${k}]`] = v }
+					if (v !== '' && v !== null && v !== undefined) {
+						params[`filter[${k}]`] = v
+					}
 				}
 				const res = await axios.get(url, { params })
 				const groups = (res && res.data && res.data.groups) || []
@@ -383,7 +391,9 @@ export default {
 		 */
 		readWorkspaceBag() {
 			const holder = this.cnWorkspaceContext
-			if (!holder || typeof holder !== 'object') { return {} }
+			if (!holder || typeof holder !== 'object') {
+				return {}
+			}
 			return ('value' in holder) ? (holder.value || {}) : holder
 		},
 

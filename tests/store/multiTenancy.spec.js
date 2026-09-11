@@ -107,7 +107,9 @@ describe('multi-tenancy / object store', () => {
 
 	it('errors thrown by the getter are downgraded to "no header"', async () => {
 		const useStore = createObjectStore('mt-erroring', {
-			organisationUuidGetter: () => { throw new Error('boom') },
+			organisationUuidGetter: () => {
+				throw new Error('boom')
+			},
 		})
 		const store = useStore()
 		store.registerObjectType('case', 'sch-1', 'reg-1')

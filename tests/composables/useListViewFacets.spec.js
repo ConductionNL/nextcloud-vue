@@ -23,7 +23,9 @@ function mountList(store) {
 		setup() {
 			return { list: useListView('t', { objectStore: store }) }
 		},
-		render() { return h('div') },
+		render() {
+			return h('div')
+		},
 	})
 	return mount(Comp)
 }

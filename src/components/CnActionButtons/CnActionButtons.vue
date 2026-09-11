@@ -395,7 +395,9 @@ export default {
 		// Re-evaluate local (object-context) visibleWhen when the record loads.
 		objectCtx: {
 			deep: true,
-			handler() { this.evaluateVisibility() },
+			handler() {
+				this.evaluateVisibility()
+			},
 		},
 
 		// Push the menu-ready descriptors at a `display: "menu"` host. It fires
@@ -686,7 +688,9 @@ export default {
 					throw new Error('save rejected')
 				}
 				await this.saveDynamicAnswers(store, register, dynamic, saved)
-				if (dialog && typeof dialog.setResult === 'function') { dialog.setResult({ success: true }) }
+				if (dialog && typeof dialog.setResult === 'function') {
+					dialog.setResult({ success: true })
+				}
 				const { showSuccess } = await import('@nextcloud/dialogs')
 				if (typeof showSuccess === 'function') {
 					showSuccess((entry && entry.successMessage) || t('nextcloud-vue', 'Saved.'))
@@ -699,7 +703,9 @@ export default {
 				this.$emit('created', saved)
 				if (entry && entry.onSuccessRoute && this.effectiveRouter) {
 					const location = buildOnSuccessRoute(entry.onSuccessRoute, saved)
-					if (location) { this.effectiveRouter.push(location).catch(() => {}) }
+					if (location) {
+						this.effectiveRouter.push(location).catch(() => {})
+					}
 				}
 			} catch (e) {
 				if (dialog && typeof dialog.setResult === 'function') {

@@ -57,7 +57,9 @@ function harness() {
 }
 
 describe('CnEditDataModal — breaking schema change', () => {
-	beforeEach(() => { jest.resetAllMocks() })
+	beforeEach(() => {
+		jest.resetAllMocks()
+	})
 
 	it('offers the acknowledgement instead of a dead end', async () => {
 		axios.put = jest.fn().mockRejectedValue(breaking409())

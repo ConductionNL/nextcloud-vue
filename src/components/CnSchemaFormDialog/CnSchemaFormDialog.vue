@@ -697,7 +697,9 @@ export default {
 			try {
 				await navigator.clipboard.writeText(text)
 				this.isCopied = true
-				setTimeout(() => { this.isCopied = false }, 2000)
+				setTimeout(() => {
+					this.isCopied = false
+				}, 2000)
 			} catch (err) {
 				console.error('Failed to copy text:', err)
 			}

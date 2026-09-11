@@ -185,7 +185,9 @@ describe('CnAppRoot walkthrough completion persistence', () => {
 	it('holds the overlay back until the preference answer arrives (no flash for a returning user)', async () => {
 		let resolveGet
 		axios.get.mockImplementation((url) => (String(url).includes(PREF_PATH)
-			? new Promise((res) => { resolveGet = res })
+			? new Promise((res) => {
+					resolveGet = res
+				})
 			: Promise.reject(new Error('no route'))))
 
 		const w = mountRoot('wt-noflash')
