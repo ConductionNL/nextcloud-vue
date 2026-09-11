@@ -115,7 +115,12 @@
 			swapped the panel while leaving the canvas painted with that run's
 			badges, so the graph and the sidebar described different things.
 		-->
-		<CnRunDetailSidebar v-if="inRunView" />
+		<!--
+			`embedded` travels: inside a dialog there is no NcAppSidebar to
+			register a tab with, so the run's panels render as plain blocks
+			under a strip of their own rather than injecting into nothing.
+		-->
+		<CnRunDetailSidebar v-if="inRunView" :embedded="embedded" />
 
 		<!--
 			THE SIDEBAR IS THE FLOW'S RUNS. The palette moved to a modal off the

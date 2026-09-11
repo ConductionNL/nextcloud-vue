@@ -200,6 +200,20 @@ export const useFlowStore = defineStore('cnFlow', {
 		runTasks: [],
 		inspectedRunUuid: null,
 
+		// THE INSPECTED RUN'S OWN RECORD, as the server answered it.
+		//
+		// `runs` is the flow's run history and it is capped at 25, so a run
+		// reached by `?run=` need not be in it at all. Reading the header from
+		// that list alone left a deep-linked run with no status, no time and no
+		// error, which reads as a run that recorded nothing.
+		//
+		// It also carries what `GET /flow-runs/{uuid}/objects` cannot: the
+		// objects the run is ABOUT (`subjects`) and the ones it is holding at a
+		// place (`placeItems`). That endpoint reports audited CHANGES, so a run
+		// that waited on a locked object and failed lists nothing there while
+		// its own error names that object.
+		runDetail: null,
+
 		// THE GRAPH AS IT RAN, not the graph as it is now.
 		//
 		// A run records the `flowVersion` it executed, and a flow's graph moves
@@ -791,6 +805,7 @@ export const useFlowStore = defineStore('cnFlow', {
 			this.steps = []
 			this.runObjects = []
 			this.inspectedRunUuid = null
+			this.runDetail = null
 			this.checkResult = null
 
 			// A watch is per run and a run is per flow: polling the previous
@@ -2162,6 +2177,10 @@ export const useFlowStore = defineStore('cnFlow', {
 				const response = await axios.get(
 					generateUrl(`/apps/openregister/api/flow-runs/${runUuid}`),
 				)
+				// KEPT WHOLE, not picked apart. The record carries the run's
+				// status, its error, and the objects it is about, none of which
+				// can be recovered from the log or from the capped history list.
+				this.runDetail = response.data || null
 				this.steps = response.data?.log || []
 				// Read from the RUN, not from `this.runs`. A run reached by
 				// `?run=` need not be in the loaded page of run history at all —
@@ -2170,6 +2189,7 @@ export const useFlowStore = defineStore('cnFlow', {
 				version = response.data?.flowVersion ?? null
 			} catch (error) {
 				console.error('cn-flow: could not load the run steps', error)
+				this.runDetail = null
 				this.steps = []
 			}
 
@@ -2276,6 +2296,7 @@ export const useFlowStore = defineStore('cnFlow', {
 		 */
 		closeRun() {
 			this.inspectedRunUuid = null
+			this.runDetail = null
 			this.steps = []
 			this.runObjects = []
 			this.runTasks = []

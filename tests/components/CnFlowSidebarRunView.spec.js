@@ -133,15 +133,27 @@ describe('CnFlowSidebar — the run view', () => {
 	})
 
 	describe('the run view tabs', () => {
-		it('offers Objects, Tasks and Logs once a run is inspected', async () => {
+		// ⚠️ THESE ARE THE SIDEBAR'S TABS, NOT A STRIP OF OUR OWN.
+		//
+		// They used to be three hand-rolled buttons with a border under the
+		// active one, sitting inside NcAppSidebar. They read as a panel dropped
+		// into the sidebar rather than as the sidebar's tabs: no icons, the
+		// wrong size, the wrong active mark, and none of NcAppSidebarTabs'
+		// keyboard behaviour. So the assertion is that each panel registers
+		// with the sidebar as an NcAppSidebarTab, by name.
+		it('registers Objects, Tasks and Logs as the sidebar’s own tabs', async () => {
 			const { wrapper } = await mountSidebar({
 				flow: { id: 'f1', name: 'x', nodes: [], edges: [] },
 				runs: RUNS,
 				inspectedRunUuid: 'run-1',
 			})
 
-			const labels = wrapper.findAll('[data-testid^="flow-run-tab-"]').map((el) => el.text())
-			expect(labels).toEqual(['Objects', 'Tasks', 'Logs'])
+			const names = wrapper.findAll('.app-sidebar-tab').map((el) => el.attributes('data-tab'))
+			expect(names).toEqual(['Objects', 'Tasks', 'Logs'])
+
+			// And nothing hand-rolled beside them. A second strip is how the
+			// old defect would come back without any test noticing.
+			expect(wrapper.findAll('[role="tablist"]')).toHaveLength(0)
 		})
 
 		it('shows no run tabs while no run is being inspected', async () => {
@@ -150,7 +162,8 @@ describe('CnFlowSidebar — the run view', () => {
 				runs: RUNS,
 			})
 
-			expect(wrapper.findAll('[data-testid^="flow-run-tab-"]')).toHaveLength(0)
+			const names = wrapper.findAll('.app-sidebar-tab').map((el) => el.attributes('data-tab'))
+			expect(names).toEqual(['Runs'])
 		})
 
 		it('lists what the run touched under Objects, with the node that did it', async () => {
@@ -164,10 +177,9 @@ describe('CnFlowSidebar — the run view', () => {
 				],
 			})
 
-			await wrapper.find('[data-testid="flow-run-tab-objects"]').trigger('click')
-
-			expect(wrapper.text()).toContain('obj-1')
-			expect(wrapper.text()).toContain('create')
+			const objects = wrapper.find('[data-testid="flow-run-panel-objects"]')
+			expect(objects.text()).toContain('obj-1')
+			expect(objects.text()).toContain('create')
 		})
 
 		it('marks an object no step in the log accounts for', async () => {
@@ -180,8 +192,6 @@ describe('CnFlowSidebar — the run view', () => {
 					{ node: 'ghost', objects: [{ auditUuid: 'au-2', action: 'update', objectUuid: 'obj-2' }] },
 				],
 			})
-
-			await wrapper.find('[data-testid="flow-run-tab-objects"]').trigger('click')
 
 			// The run changed something its own step history cannot explain.
 			// Hiding that would be the opposite of what this view is for.
@@ -196,9 +206,7 @@ describe('CnFlowSidebar — the run view', () => {
 				steps: [{ transition: 'send-letter', status: 'completed' }],
 			})
 
-			await wrapper.find('[data-testid="flow-run-tab-logs"]').trigger('click')
-
-			expect(wrapper.text()).toContain('send-letter')
+			expect(wrapper.find('[data-testid="flow-run-panel-logs"]').text()).toContain('send-letter')
 		})
 
 		it('renders an empty Tasks tab rather than inventing rows', async () => {
@@ -208,8 +216,6 @@ describe('CnFlowSidebar — the run view', () => {
 				inspectedRunUuid: 'run-1',
 				runTasks: [],
 			})
-
-			await wrapper.find('[data-testid="flow-run-tab-tasks"]').trigger('click')
 
 			expect(wrapper.find('[data-testid="flow-run-tasks-empty"]').exists()).toBe(true)
 		})
@@ -224,9 +230,7 @@ describe('CnFlowSidebar — the run view', () => {
 				],
 			})
 
-			await wrapper.find('[data-testid="flow-run-tab-tasks"]').trigger('click')
-
-			expect(wrapper.text()).toContain('Approve the mandate')
+			expect(wrapper.find('[data-testid="flow-run-panel-tasks"]').text()).toContain('Approve the mandate')
 			// A task has its own stable address too, the one the notification
 			// buttons and the VTODO already resolve to.
 			expect(wrapper.find('[data-testid="flow-task-link"]').attributes('href'))
