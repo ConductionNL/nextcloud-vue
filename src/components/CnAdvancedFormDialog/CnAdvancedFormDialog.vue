@@ -708,7 +708,7 @@ export default {
 			const newErrors = {}
 			for (const field of this.resolvedFields) {
 				const value = this.formData[field.key]
-				if (field.required && (value == null || value === '')) {
+				if (field.required && (value === null || value === undefined || value === '')) {
 					newErrors[field.key] = `${field.label} is required.`
 				}
 			}

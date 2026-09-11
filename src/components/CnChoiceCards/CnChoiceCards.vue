@@ -172,7 +172,7 @@ export default {
 		 */
 		normalizedOptions() {
 			return (this.options || [])
-				.filter((option) => option != null)
+				.filter((option) => option !== null && option !== undefined)
 				.map((option) => {
 					if (typeof option !== 'object') {
 						return { value: option, label: String(option) }

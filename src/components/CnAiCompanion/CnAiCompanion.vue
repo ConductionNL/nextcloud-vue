@@ -284,7 +284,7 @@ export default {
 				return
 			}
 
-			if (scope[COMPANION_SINGLETON_KEY] == null) {
+			if (scope[COMPANION_SINGLETON_KEY] === null || scope[COMPANION_SINGLETON_KEY] === undefined) {
 				scope[COMPANION_SINGLETON_KEY] = this
 				this.isPrimaryCompanion = true
 				return

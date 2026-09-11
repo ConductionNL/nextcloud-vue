@@ -2005,10 +2005,10 @@ export default {
 				return ''
 			}
 			const self = obj['@self'] || {}
-			const id = this.objectId != null ? String(this.objectId) : ''
+			const id = this.objectId !== null && this.objectId !== undefined ? String(this.objectId) : ''
 			const candidates = [self.name, self.title, obj.name, obj.title, obj.displayName]
 			for (const c of candidates) {
-				if (c != null && c !== '' && String(c) !== id) {
+				if (c !== null && c !== undefined && c !== '' && String(c) !== id) {
 					return String(c)
 				}
 			}

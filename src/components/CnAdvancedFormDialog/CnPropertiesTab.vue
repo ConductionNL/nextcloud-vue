@@ -476,7 +476,7 @@ export default {
 			const lockOnce = prop.immutable === true || prop.readOnly === true
 			if (lockOnce) {
 				const persisted = this.item && this.item[key]
-				if (persisted != null && persisted !== '') {
+				if (persisted !== null && persisted !== undefined && persisted !== '') {
 					return false
 				}
 			}

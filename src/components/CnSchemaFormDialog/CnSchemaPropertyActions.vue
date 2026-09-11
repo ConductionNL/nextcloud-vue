@@ -749,7 +749,7 @@ export default {
 			if (field === 'aggregated') {
 				config.aggregated = value
 			} else if (field === 'order') {
-				config.order = value !== '' && value != null ? Number(value) : null
+				config.order = value !== '' && value !== null && value !== undefined ? Number(value) : null
 			} else {
 				config[field] = value
 			}
@@ -757,7 +757,7 @@ export default {
 			const hasCustomConfig = !config.aggregated
 				|| (config.title && config.title.trim())
 				|| (config.description && config.description.trim())
-				|| (config.order != null)
+				|| (config.order !== null && config.order !== undefined)
 
 			if (hasCustomConfig) {
 				this.schema.properties[key].facetable = {

@@ -618,7 +618,7 @@ export default {
 				}
 				return v.map(lookup)
 			}
-			if (v == null || v === '') {
+			if (v === null || v === undefined || v === '') {
 				return null
 			}
 			return lookup(v)
@@ -673,7 +673,7 @@ export default {
 
 		stringValue() {
 			const v = this.value
-			if (v == null) {
+			if (v === null || v === undefined) {
 				return ''
 			}
 			if (typeof v === 'string') {
@@ -687,7 +687,7 @@ export default {
 
 		objectJsonString() {
 			const v = this.value
-			if (v == null) {
+			if (v === null || v === undefined) {
 				return ''
 			}
 			if (typeof v === 'string') {
@@ -864,7 +864,7 @@ export default {
 				this.$emit('update:value', coerced)
 				return
 			}
-			this.$emit('update:value', selected == null ? null : toId(selected))
+			this.$emit('update:value', selected === null || selected === undefined ? null : toId(selected))
 		},
 
 		/**
@@ -984,12 +984,12 @@ export default {
 			const items = this.schemaProp?.items
 			const nameField = items?.objectConfiguration?.objectNameField
 				|| items?.configuration?.objectNameField
-			if (nameField && item && item[nameField] != null && item[nameField] !== '') {
+			if (nameField && item && item[nameField] !== null && item[nameField] !== undefined && item[nameField] !== '') {
 				return String(item[nameField])
 			}
 			if (item && typeof item === 'object') {
 				for (const v of Object.values(item)) {
-					if (v == null || v === '') {
+					if (v === null || v === undefined || v === '') {
 						continue
 					}
 					if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {

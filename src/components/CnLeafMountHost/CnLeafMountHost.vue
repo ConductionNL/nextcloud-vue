@@ -129,9 +129,9 @@ export default {
 		mountKey() {
 			const p = this.mountProps || {}
 			const ic = p.integrationContext || {}
-			const register = p.register != null ? p.register : ic.register
-			const schema = p.schema != null ? p.schema : ic.schema
-			const objectId = p.objectId != null ? p.objectId : ic.objectId
+			const register = p.register ?? ic.register
+			const schema = p.schema ?? ic.schema
+			const objectId = p.objectId ?? ic.objectId
 			const id = this.provider ? this.provider.id : ''
 			return [id, register, schema, objectId].join('::')
 		},

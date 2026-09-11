@@ -797,7 +797,7 @@ export default {
 				if (Array.isArray(cleanedSchemaItem[field])) {
 					cleanedSchemaItem[field] = cleanedSchemaItem[field]
 						.map((ref) => (typeof ref === 'object' && ref !== null ? ref.id : ref))
-						.filter((id) => id != null && id !== '')
+						.filter((id) => id !== null && id !== undefined && id !== '')
 					if (cleanedSchemaItem[field].length === 0) {
 						delete cleanedSchemaItem[field]
 					}

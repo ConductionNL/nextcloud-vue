@@ -1081,7 +1081,7 @@ export default {
 				const latField = (this.cfg.markers && this.cfg.markers.latField) || 'lat'
 				const lngField = (this.cfg.markers && this.cfg.markers.lngField) || 'lng'
 				return json
-					.filter((row) => row != null && Number.isFinite(row[latField]) && Number.isFinite(row[lngField]))
+					.filter((row) => row !== null && row !== undefined && Number.isFinite(row[latField]) && Number.isFinite(row[lngField]))
 					.map((row) => ({
 						type: 'Feature',
 						geometry: { type: 'Point', coordinates: [row[lngField], row[latField]] },

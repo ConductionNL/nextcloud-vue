@@ -718,7 +718,7 @@ export default {
 			if (this.rows && this.rows.length > 0) {
 				return this.rows
 			}
-			if (this.register != null && this.schemaId != null) {
+			if (this.register !== null && this.register !== undefined && this.schemaId !== null && this.schemaId !== undefined) {
 				return this.fetchedRows
 			}
 			return this.rows
@@ -877,7 +877,7 @@ export default {
 		 * `@workspace.*`) can change after mount. External rows still win.
 		 */
 		selfFetchKey() {
-			if ((!this.rows || this.rows.length === 0) && this.register != null && this.schemaId != null) {
+			if ((!this.rows || this.rows.length === 0) && this.register !== null && this.register !== undefined && this.schemaId !== null && this.schemaId !== undefined) {
 				this.fetchData()
 			}
 		},
@@ -887,7 +887,7 @@ export default {
 		this.loadAggregates()
 		// Self-fetch mode: pull rows from OpenRegister when register + schemaId
 		// are given and no external rows were passed (folded from CnTableWidget).
-		if ((!this.rows || this.rows.length === 0) && this.register != null && this.schemaId != null) {
+		if ((!this.rows || this.rows.length === 0) && this.register !== null && this.register !== undefined && this.schemaId !== null && this.schemaId !== undefined) {
 			this.fetchData()
 		}
 		this.observeScrollOverflow()
