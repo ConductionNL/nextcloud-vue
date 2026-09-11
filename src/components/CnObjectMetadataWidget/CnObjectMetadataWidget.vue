@@ -177,11 +177,13 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Metadata'),
 		},
+
 		/** Optional MDI icon component for the header */
 		icon: {
 			type: [Object, Function],
 			default: null,
 		},
+
 		/**
 		 * The object data containing metadata.
 		 * Supports flat objects and objects with `@self` metadata block.
@@ -196,6 +198,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Layout mode for the grid: 'grid' or 'horizontal'.
 		 */
@@ -203,6 +206,7 @@ export default {
 			type: String,
 			default: 'horizontal',
 		},
+
 		/**
 		 * Number of grid columns (only for layout='grid').
 		 */
@@ -210,6 +214,7 @@ export default {
 			type: Number,
 			default: 0,
 		},
+
 		/**
 		 * Min width for labels in horizontal layout.
 		 */
@@ -217,40 +222,49 @@ export default {
 			type: Number,
 			default: 150,
 		},
+
 		/**
 		 * Additional metadata items to display.
+		 *
 		 * @type {Array<{ label: string, value: string|number }>}
 		 */
 		extraItems: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Metadata fields to include (whitelist). If null, all available are shown.
+		 *
 		 * @type {string[]|null}
 		 */
 		include: {
 			type: Array,
 			default: null,
 		},
+
 		/**
 		 * Metadata fields to exclude.
+		 *
 		 * @type {string[]}
 		 */
 		exclude: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Whether the card can be collapsed */
 		collapsible: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Initial collapsed state */
 		collapsed: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Group the rows under category headings (Identity, Location,
 		 * Ownership, Lifecycle, Archiving) instead of rendering one flat list.
@@ -264,6 +278,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Heading for the items a host supplied through `extraItems`, which
 		 * carry no group of their own.
@@ -274,6 +289,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Other'),
 		},
+
 		/** Label shown when no metadata available */
 		emptyLabel: {
 			type: String,
@@ -288,6 +304,7 @@ export default {
 
 		/**
 		 * Merged metadata source: combines @self block with top-level fields.
+		 *
 		 * @self fields take priority over top-level for shared keys.
 		 */
 		metadataSource() {
@@ -314,7 +331,7 @@ export default {
 			// either way because the API mirrors it to the top level.
 			if (selfBlock && typeof selfBlock === 'object') {
 				const carried = {}
-				if (data.id !== undefined && selfBlock.id === undefined) carried.id = data.id
+				if (data.id !== undefined && selfBlock.id === undefined) { carried.id = data.id }
 				return { ...carried, ...selfBlock }
 			}
 
@@ -333,7 +350,7 @@ export default {
 		 */
 		archivalSource() {
 			const block = this.metadataSource._retention
-			if (!block || typeof block !== 'object') return {}
+			if (!block || typeof block !== 'object') { return {} }
 			return block
 		},
 
@@ -375,11 +392,11 @@ export default {
 
 			for (const def of METADATA_FIELDS) {
 				// Filter by include/exclude
-				if (this.include && !this.include.includes(def.key)) continue
-				if (this.exclude.includes(def.key)) continue
+				if (this.include && !this.include.includes(def.key)) { continue }
+				if (this.exclude.includes(def.key)) { continue }
 
 				const raw = source[def.key]
-				if (raw === undefined || raw === null) continue
+				if (raw === undefined || raw === null) { continue }
 
 				items.push({
 					// Translated at use, not at import: the bundles register
@@ -410,12 +427,12 @@ export default {
 			const archival = this.archivalSource
 			const hasDecision = Object.keys(archival).length > 0
 			for (const def of ARCHIVAL_FIELDS) {
-				if (this.include && !this.include.includes(def.key)) continue
-				if (this.exclude.includes(def.key)) continue
+				if (this.include && !this.include.includes(def.key)) { continue }
+				if (this.exclude.includes(def.key)) { continue }
 
 				const raw = archival[def.key]
 				const absent = raw === undefined || raw === null
-				if (absent && !(hasDecision && (def.core || this.include))) continue
+				if (absent && !(hasDecision && (def.core || this.include))) { continue }
 
 				items.push({
 					label: t('nextcloud-vue', def.label),
@@ -437,11 +454,12 @@ export default {
 	methods: {
 		/**
 		 * Format a metadata value for display.
+		 *
 		 * @param {*} value - The raw metadata value.
 		 * @param {object} def - The metadata field definition (format, label, etc.).
 		 */
 		formatMetadataValue(value, def) {
-			if (value === null || value === undefined) return '-'
+			if (value === null || value === undefined) { return '-' }
 
 			// The lock is an object (`{ user, displayName, expiresAt }`) and used
 			// to reach the panel as raw JSON, which reads as debug output rather
@@ -477,7 +495,7 @@ export default {
 
 			if (def.format === 'date') {
 				const date = new Date(value)
-				if (Number.isNaN(date.getTime())) return String(value)
+				if (Number.isNaN(date.getTime())) { return String(value) }
 				return date.toLocaleDateString(undefined, {
 					day: '2-digit',
 					month: '2-digit',
@@ -489,7 +507,7 @@ export default {
 			if (def.format === 'date-time') {
 				try {
 					const date = new Date(value)
-					if (Number.isNaN(date.getTime())) return String(value)
+					if (Number.isNaN(date.getTime())) { return String(value) }
 					return date.toLocaleDateString(undefined, {
 						day: '2-digit',
 						month: '2-digit',
@@ -529,7 +547,7 @@ export default {
 		 * @return {string} Who holds it, and until when.
 		 */
 		formatLock(lock) {
-			if (typeof lock !== 'object') return String(lock)
+			if (typeof lock !== 'object') { return String(lock) }
 			const holder = lock.displayName || lock.user
 			const until = lock.expiresAt ? new Date(lock.expiresAt) : null
 			const hasUntil = until && !Number.isNaN(until.getTime())
@@ -591,9 +609,9 @@ export default {
 		 * @return {string|null} The href, or null when it is not linkable.
 		 */
 		hrefFor(raw, def) {
-			if (def.format !== 'folder') return null
+			if (def.format !== 'folder') { return null }
 			const id = String(raw).trim()
-			if (!/^\d+$/.test(id)) return null
+			if (!/^\d+$/.test(id)) { return null }
 			return generateUrl('/apps/files/?fileid={id}&opendetails=true', { id })
 		},
 
@@ -611,11 +629,11 @@ export default {
 		 */
 		formatDuration(value) {
 			const match = /^P(\d+)([YMD])$/.exec(String(value))
-			if (!match) return String(value)
+			if (!match) { return String(value) }
 
 			const amount = Number(match[1])
-			if (match[2] === 'Y') return n('nextcloud-vue', '%n year', '%n years', amount)
-			if (match[2] === 'M') return n('nextcloud-vue', '%n month', '%n months', amount)
+			if (match[2] === 'Y') { return n('nextcloud-vue', '%n year', '%n years', amount) }
+			if (match[2] === 'M') { return n('nextcloud-vue', '%n month', '%n months', amount) }
 			return n('nextcloud-vue', '%n day', '%n days', amount)
 		},
 
@@ -651,7 +669,7 @@ export default {
 		 * @return {string} The hold sentence.
 		 */
 		formatLegalHold(hold) {
-			if (typeof hold !== 'object') return String(hold)
+			if (typeof hold !== 'object') { return String(hold) }
 
 			if (hold.active) {
 				if (hold.reason) {

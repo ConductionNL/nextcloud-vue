@@ -253,7 +253,7 @@ describe('CnObjectMetadataWidget — an archival decision with a gap (nextcloud-
 		})
 		const map = {}
 		for (const item of wrapper.vm.metadataItems) {
-			if (item.group === 'archiving') map[item.label] = item
+			if (item.group === 'archiving') { map[item.label] = item }
 		}
 		return map
 	}
@@ -274,7 +274,10 @@ describe('CnObjectMetadataWidget — an archival decision with a gap (nextcloud-
 		const items = archivalItemsFor({ appraisal: 'destroy' })
 
 		expect(Object.keys(items)).toEqual(expect.arrayContaining([
-			'Appraisal', 'Retention period', 'Disposal date', 'Record state',
+			'Appraisal',
+			'Retention period',
+			'Disposal date',
+			'Record state',
 		]))
 	})
 

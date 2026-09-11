@@ -194,10 +194,11 @@ export default {
 				 * @return {void}
 				 */
 				set: (id, items, source = 'widget') => {
-					if (!id) return
+					if (!id) { return }
 					const forId = { ...(this.panelActionsByWidget[id] || {}), [source]: items }
 					this.panelActionsByWidget = { ...this.panelActionsByWidget, [id]: forId }
 				},
+
 				/**
 				 * Withdraw one source's items, on unmount or when that
 				 * publisher's own menu comes back. The other source's items
@@ -209,7 +210,7 @@ export default {
 				 */
 				clear: (id, source = 'widget') => {
 					const forId = this.panelActionsByWidget[id]
-					if (!forId || !(source in forId)) return
+					if (!forId || !(source in forId)) { return }
 					const { [source]: _removed, ...keptSources } = forId
 					if (Object.keys(keptSources).length) {
 						this.panelActionsByWidget = { ...this.panelActionsByWidget, [id]: keptSources }
@@ -235,6 +236,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Every widget definition available on the surface, for `content.tabs[]`
 		 * to reference by id.
@@ -249,71 +251,85 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** The bound record's id. */
 		objectId: {
 			type: [String, Number],
 			default: '',
 		},
+
 		/** The loaded record, or null while it is still being fetched. */
 		objectData: {
 			type: Object,
 			default: null,
 		},
+
 		/** The resolved object-type slug. */
 		objectType: {
 			type: String,
 			default: '',
 		},
+
 		/** The resolved JSON Schema object, needed by a `data` child. */
 		schemaObject: {
 			type: Object,
 			default: null,
 		},
+
 		/** OpenRegister register slug of the surface. */
 		register: {
 			type: [String, Object],
 			default: '',
 		},
+
 		/** OpenRegister schema slug of the surface. */
 		schema: {
 			type: [String, Object],
 			default: '',
 		},
+
 		/** The effective object store. */
 		store: {
 			type: Object,
 			default: null,
 		},
+
 		/** Rendering surface forwarded to integration children (AD-19). */
 		surface: {
 			type: String,
 			default: 'detail-page',
 		},
+
 		/** Object context forwarded to integration children. */
 		integrationContext: {
 			type: Object,
 			default: null,
 		},
+
 		/** The consumer's component registry, for custom child widget types. */
 		cnRegistry: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Show the Refresh entry in the hoisted Actions menu. */
 		showRefresh: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Show the Request-a-feature entry in the hoisted Actions menu. */
 		showRequestFeature: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Show the Documentation entry in the hoisted Actions menu. */
 		showDocumentation: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Documentation URL for the hoisted Actions menu. */
 		documentationUrl: {
 			type: String,
@@ -341,7 +357,7 @@ export default {
 		 */
 		activePanelActions() {
 			const forId = this.panelActionsByWidget[this.activeWidgetId]
-			if (!forId) return []
+			if (!forId) { return [] }
 			// Host first, then the widget's own: the catalog Add is about the
 			// panel as a whole, the widget's items about what is in it.
 			return [...(forId.host || []), ...(forId.widget || [])]
