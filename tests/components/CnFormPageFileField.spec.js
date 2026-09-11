@@ -52,15 +52,15 @@ async function settleRead(wrapper, timeoutMs = 5000) {
 	await wrapper.vm.$nextTick()
 }
 
-function mountForm (props, cnCustomComponents = {}) {
-  return mount(CnFormPage, {
-	props,
-	global: {
-		stubs: { CnPageHeader: true },
-		mocks: { $route: { params: { id: 'case-1' } }, $router: { push: jest.fn() } },
-		provide: { cnCustomComponents },
-	},
-})
+function mountForm(props, cnCustomComponents = {}) {
+	return mount(CnFormPage, {
+		props,
+		global: {
+			stubs: { CnPageHeader: true },
+			mocks: { $route: { params: { id: 'case-1' } }, $router: { push: jest.fn() } },
+			provide: { cnCustomComponents },
+		},
+	})
 }
 
 async function pick(wrapper, file) {

@@ -42,17 +42,17 @@ function row(overrides = {}) {
 	}
 }
 
-function pooled () {
-  return row({
-	uuid: 'task-2',
-	displayTitle: 'Vraag aanvullende stukken op',
-	state: 'enabled',
-	assignee: null,
-	priority: 'normal',
-	overdue: true,
-	daysOverdue: 2,
-	daysUntilDue: null,
-})
+function pooled() {
+	return row({
+		uuid: 'task-2',
+		displayTitle: 'Vraag aanvullende stukken op',
+		state: 'enabled',
+		assignee: null,
+		priority: 'normal',
+		overdue: true,
+		daysOverdue: 2,
+		daysUntilDue: null,
+	})
 }
 
 test.describe('the tasks index page (entitySource: "tasks")', () => {

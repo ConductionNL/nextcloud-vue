@@ -48,20 +48,20 @@ const stubs = {
 
 const CONDITION = { endpoint: '/api/status', field: 'status', op: 'eq', value: 'in_progress' }
 
-function mountWith ({ banner = {}, layoutExtra = {} } = {}) {
-  return mount(CnDashboardPage, {
-	propsData: {
-		widgets: [
-			{ id: 'b', type: 'banner', ...banner },
-			{ id: 'w', type: 'test-banner-neighbour' },
-		],
-		layout: [
-			{ id: '1', widgetId: 'b', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 1, ...layoutExtra },
-			{ id: '2', widgetId: 'w', gridX: 0, gridY: 1, gridWidth: 6, gridHeight: 4 },
-		],
-	},
-	stubs,
-})
+function mountWith({ banner = {}, layoutExtra = {} } = {}) {
+	return mount(CnDashboardPage, {
+		propsData: {
+			widgets: [
+				{ id: 'b', type: 'banner', ...banner },
+				{ id: 'w', type: 'test-banner-neighbour' },
+			],
+			layout: [
+				{ id: '1', widgetId: 'b', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 1, ...layoutExtra },
+				{ id: '2', widgetId: 'w', gridX: 0, gridY: 1, gridWidth: 6, gridHeight: 4 },
+			],
+		},
+		stubs,
+	})
 }
 
 const cells = (wrapper) => wrapper.findAll('.cell').map((c) => ({ wid: c.attributes('data-wid'), y: c.attributes('data-y') }))

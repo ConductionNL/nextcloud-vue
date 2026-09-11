@@ -17,17 +17,17 @@ function makeStore() {
 	}
 }
 
-function Host (composable) {
-  return defineComponent({
-	props: ['store', 'type', 'id', 'enabled'],
-	setup(props) {
-		composable(props)
-		return () => h('div')
-	},
-	render() {
-		return h('div')
-	},
-})
+function Host(composable) {
+	return defineComponent({
+		props: ['store', 'type', 'id', 'enabled'],
+		setup(props) {
+			composable(props)
+			return () => h('div')
+		},
+		render() {
+			return h('div')
+		},
+	})
 }
 
 describe('useObjectSubscription', () => {

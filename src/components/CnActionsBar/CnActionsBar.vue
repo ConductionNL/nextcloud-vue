@@ -164,7 +164,7 @@
 						<CnIcon v-if="entry.icon && isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
 						<span v-else-if="entry.icon"
 							class="cn-actions-bar__header-action-icon"
-:class="[entry.icon]" />
+							:class="[entry.icon]" />
 					</template>
 					{{ entry.label ? effectiveTranslate(entry.label) : entry.label }}
 				</NcActionButton>

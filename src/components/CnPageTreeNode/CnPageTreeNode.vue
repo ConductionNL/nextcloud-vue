@@ -4,7 +4,7 @@
 -->
 
 <template>
-	<draggable v-model="tree"
+	<Draggable v-model="tree"
 		tag="ul"
 		class="cn-page-tree"
 		:group="group"
@@ -21,7 +21,7 @@
 
 			<!-- One level of children: a drop target on every top page so a row
 			     can be dragged IN (to nest) or OUT (to top level). -->
-			<draggable v-if="maxDepth > 0"
+			<Draggable v-if="maxDepth > 0"
 				v-model="node.children"
 				tag="ul"
 				class="cn-page-tree__children"
@@ -37,9 +37,9 @@
 						@navigate="bubbleNavigate"
 						@remove="removeNode(child, node)" />
 				</li>
-			</draggable>
+			</Draggable>
 		</li>
-	</draggable>
+	</Draggable>
 </template>
 
 <script>

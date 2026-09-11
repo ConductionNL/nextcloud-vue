@@ -27,14 +27,14 @@ const stubs = {
 	NcLoadingIcon: { template: '<div />' },
 }
 
-function mountItem (type, extra = {}) {
-  return mount(CnDashboardPage, {
-	propsData: {
-		widgets: [{ id: 'w', type }],
-		layout: [{ id: '1', widgetId: 'w', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 4, ...extra }],
-	},
-	stubs,
-})
+function mountItem(type, extra = {}) {
+	return mount(CnDashboardPage, {
+		propsData: {
+			widgets: [{ id: 'w', type }],
+			layout: [{ id: '1', widgetId: 'w', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 4, ...extra }],
+		},
+		stubs,
+	})
 }
 
 describe('CnDashboardPage — flush by default', () => {

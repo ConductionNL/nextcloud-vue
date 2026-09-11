@@ -61,7 +61,7 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
  * @param {*} payload The payload handed to each handler.
  * @return {void}
  */
-function fireBus (channel, payload) {
+function fireBus(channel, payload) {
 	for (const cb of (mockBusHandlers[channel] || [])) {
 		cb(payload)
 	}

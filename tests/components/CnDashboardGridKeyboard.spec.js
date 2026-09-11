@@ -18,11 +18,11 @@
 import { mount } from '@vue/test-utils'
 import CnDashboardGrid from '@/components/CnDashboardGrid/CnDashboardGrid.vue'
 
-function layout () {
-  return [
-	{ id: 'a', title: 'Open tickets', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 2 },
-	{ id: 'b', title: 'Revenue', gridX: 4, gridY: 0, gridWidth: 4, gridHeight: 2 },
-]
+function layout() {
+	return [
+		{ id: 'a', title: 'Open tickets', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 2 },
+		{ id: 'b', title: 'Revenue', gridX: 4, gridY: 0, gridWidth: 4, gridHeight: 2 },
+	]
 }
 
 /**
@@ -32,13 +32,13 @@ function layout () {
  * @param {object} [props] Extra props merged over the defaults.
  * @return {object} The Vue Test Utils wrapper.
  */
-function mountGrid (props = {}) {
-  return mount(CnDashboardGrid, {
-	propsData: { layout: layout(), editable: true, columns: 12, minWidth: 2, minHeight: 2, ...props },
-	slots: {
-		widget: '<div class="slot-root"><button class="inner">go</button></div>',
-	},
-})
+function mountGrid(props = {}) {
+	return mount(CnDashboardGrid, {
+		propsData: { layout: layout(), editable: true, columns: 12, minWidth: 2, minHeight: 2, ...props },
+		slots: {
+			widget: '<div class="slot-root"><button class="inner">go</button></div>',
+		},
+	})
 }
 
 const items = (wrapper) => wrapper.findAll('.grid-stack-item')

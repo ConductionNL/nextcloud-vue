@@ -18,12 +18,12 @@
 import { shallowMount } from '@vue/test-utils'
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 
-function mountWith (propsData = {}) {
-  return shallowMount(CnDetailPage, {
-	propsData: { register: 'pipelinq', schema: 'ticket', objectId: 'abc', ...propsData },
-	mocks: { t: (app, s) => s },
-	stubs: { CnObjectDataWidget: true, CnObjectMetadataWidget: true },
-})
+function mountWith(propsData = {}) {
+	return shallowMount(CnDetailPage, {
+		propsData: { register: 'pipelinq', schema: 'ticket', objectId: 'abc', ...propsData },
+		mocks: { t: (app, s) => s },
+		stubs: { CnObjectDataWidget: true, CnObjectMetadataWidget: true },
+	})
 }
 
 describe('CnDetailPage hide-empty forwarding', () => {

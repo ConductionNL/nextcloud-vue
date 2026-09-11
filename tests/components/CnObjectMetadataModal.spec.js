@@ -21,11 +21,11 @@ const stubs = {
 	},
 }
 
-function mountModal (props = {}) {
-  return mount(CnObjectMetadataModal, {
-	propsData: { objectData: { id: '42', '@self': { schema: 'lead' } }, ...props },
-	stubs,
-})
+function mountModal(props = {}) {
+	return mount(CnObjectMetadataModal, {
+		propsData: { objectData: { id: '42', '@self': { schema: 'lead' } }, ...props },
+		stubs,
+	})
 }
 
 describe('CnObjectMetadataModal', () => {

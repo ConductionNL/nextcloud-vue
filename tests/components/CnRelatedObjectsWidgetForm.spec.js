@@ -9,10 +9,10 @@
 import { shallowMount } from '@vue/test-utils'
 import CnRelatedObjectsWidgetForm from '../../src/components/CnRelatedObjectsWidgetForm/CnRelatedObjectsWidgetForm.vue'
 
-function mount (content) {
-  return shallowMount(CnRelatedObjectsWidgetForm, {
-	propsData: { editingWidget: { content } },
-})
+function mount(content) {
+	return shallowMount(CnRelatedObjectsWidgetForm, {
+		propsData: { editingWidget: { content } },
+	})
 }
 
 describe('CnRelatedObjectsWidgetForm', () => {

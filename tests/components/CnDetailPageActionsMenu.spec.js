@@ -50,14 +50,14 @@ const stubs = {
 	BookOpenVariant: true,
 }
 
-function mountPage (propsData = {}, opts = {}) {
-  return mount(CnDetailPage, {
-	propsData: { title: 'Case 42', ...propsData },
-	stubs,
-	mocks: { $route: { name: 'cases-detail' } },
-	provide: { cnAppId: 'pipelinq', cnFeatureRequestRepo: 'ConductionNL/pipelinq', ...(opts.provide || {}) },
-	...opts,
-})
+function mountPage(propsData = {}, opts = {}) {
+	return mount(CnDetailPage, {
+		propsData: { title: 'Case 42', ...propsData },
+		stubs,
+		mocks: { $route: { name: 'cases-detail' } },
+		provide: { cnAppId: 'pipelinq', cnFeatureRequestRepo: 'ConductionNL/pipelinq', ...(opts.provide || {}) },
+		...opts,
+	})
 }
 
 describe('CnDetailPage — header Actions menu', () => {

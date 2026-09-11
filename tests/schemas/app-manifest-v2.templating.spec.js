@@ -11,38 +11,38 @@
 
 const { validateManifestV2 } = require('../../src/utils/validateManifest.js')
 
-function templated () {
-  return {
-	$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json',
-	version: '1.0.0',
-	menu: [],
-	pages: [{ id: 'home', route: '/', type: 'index', title: 'Home' }],
-	sets: {
-		auditSidebar: { tabs: [{ id: 'audit', label: 'Audit Trail', order: 90 }] },
-	},
-	pageTemplates: [{
-		id: 'detailScaffold',
-		params: [
-			{ name: 'id', required: true },
-			{ name: 'route', required: true },
-			{ name: 'label', required: true },
-			{ name: 'schema', required: true },
-		],
-		page: {
-			id: '{{id}}',
-			route: '{{route}}',
-			type: 'detail',
-			title: '{{label}}',
-			config: { register: 'demo', schema: '{{schema}}', sidebarProps: '{{set:auditSidebar}}' },
+function templated() {
+	return {
+		$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json',
+		version: '1.0.0',
+		menu: [],
+		pages: [{ id: 'home', route: '/', type: 'index', title: 'Home' }],
+		sets: {
+			auditSidebar: { tabs: [{ id: 'audit', label: 'Audit Trail', order: 90 }] },
 		},
-	}],
-	pageInstances: [{
-		templateRef: 'detailScaffold',
-		schema: 'Invoice',
-		label: 'Invoice',
-		params: { id: 'InvoiceDetail', route: '/invoices/:id' },
-	}],
-}
+		pageTemplates: [{
+			id: 'detailScaffold',
+			params: [
+				{ name: 'id', required: true },
+				{ name: 'route', required: true },
+				{ name: 'label', required: true },
+				{ name: 'schema', required: true },
+			],
+			page: {
+				id: '{{id}}',
+				route: '{{route}}',
+				type: 'detail',
+				title: '{{label}}',
+				config: { register: 'demo', schema: '{{schema}}', sidebarProps: '{{set:auditSidebar}}' },
+			},
+		}],
+		pageInstances: [{
+			templateRef: 'detailScaffold',
+			schema: 'Invoice',
+			label: 'Invoice',
+			params: { id: 'InvoiceDetail', route: '/invoices/:id' },
+		}],
+	}
 }
 
 describe('app-manifest-v2 schema — entity-scaffold templating', () => {

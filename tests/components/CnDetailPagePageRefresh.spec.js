@@ -54,16 +54,16 @@ function busHandler() {
 	return call && call[1]
 }
 
-function mountPage (store, propsData = {}) {
-  return mount(CnDetailPage, {
-	propsData: {
-		register: 'openbuilt',
-		schema: 'application',
-		objectId: 'a-1',
-		objectStore: store,
-		...propsData,
-	},
-})
+function mountPage(store, propsData = {}) {
+	return mount(CnDetailPage, {
+		propsData: {
+			register: 'openbuilt',
+			schema: 'application',
+			objectId: 'a-1',
+			objectStore: store,
+			...propsData,
+		},
+	})
 }
 
 describe('CnDetailPage — cn:page:refresh', () => {

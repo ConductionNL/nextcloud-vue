@@ -19,18 +19,18 @@ const CnEditDataModal = require('../../src/dialogs/CnEditDataModal.vue').default
 const { onSchemaConfirm, confirmBreaking, cancelBreaking, describeBreakingChange } = CnEditDataModal.methods
 const { breakingChanges } = CnEditDataModal.computed
 
-function breaking409 () {
-  return {
-	message: 'Request failed with status code 409',
-	response: {
-		status: 409,
-		data: {
-			error: 'Schema change classified breaking; acknowledgeBreaking required.',
-			classification: 'breaking',
-			changes: [{ property: 'barn', kind: 'type_changed', old: 'string', new: 'object' }],
+function breaking409() {
+	return {
+		message: 'Request failed with status code 409',
+		response: {
+			status: 409,
+			data: {
+				error: 'Schema change classified breaking; acknowledgeBreaking required.',
+				classification: 'breaking',
+				changes: [{ property: 'barn', kind: 'type_changed', old: 'string', new: 'object' }],
+			},
 		},
-	},
-}
+	}
 }
 
 const axios = require('@nextcloud/axios').default

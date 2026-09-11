@@ -22,7 +22,7 @@
 	<button
 		v-if="visible"
 		class="cn-ai-floating-button"
-:class="[
+		:class="[
 			`cn-ai-floating-button--${position}`,
 		]"
 		:aria-label="cnTranslate('Open AI chat')"

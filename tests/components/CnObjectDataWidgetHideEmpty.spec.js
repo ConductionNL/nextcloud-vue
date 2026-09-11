@@ -43,11 +43,11 @@ const complaint = {
 	tags: [],
 }
 
-function mountWith (objectData, propsData = {}) {
-  return shallowMount(CnObjectDataWidget, {
-	propsData: { schema, objectData, ...propsData },
-	mocks: { t: (app, s) => s },
-})
+function mountWith(objectData, propsData = {}) {
+	return shallowMount(CnObjectDataWidget, {
+		propsData: { schema, objectData, ...propsData },
+		mocks: { t: (app, s) => s },
+	})
 }
 
 const keys = (vm) => vm.resolvedFields.map((f) => f.key)

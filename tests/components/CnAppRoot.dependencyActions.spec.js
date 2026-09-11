@@ -61,13 +61,13 @@ function mountRoot({ manifest, requiresApps = [], translate, props = {} } = {}) 
  */
 const mountRootWithBanners = (opts) => mountRoot({ ...opts, props: { ...(opts.props || {}), softDependencyNotices: true } })
 
-function baseManifest (dependencies) {
-  return {
-	version: '1.0.0',
-	menu: [{ id: 'home', label: 'Home', route: 'home' }],
-	pages: [{ id: 'home', route: '/', type: 'index', title: 'Home' }],
-	dependencies,
-}
+function baseManifest(dependencies) {
+	return {
+		version: '1.0.0',
+		menu: [{ id: 'home', label: 'Home', route: 'home' }],
+		pages: [{ id: 'home', route: '/', type: 'index', title: 'Home' }],
+		dependencies,
+	}
 }
 
 describe('CnAppRoot HARD/SOFT dependencies (REQ-DIA-5)', () => {

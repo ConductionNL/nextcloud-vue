@@ -56,7 +56,7 @@
 			     with a value" rather than reading a lone dash. -->
 			<div
 				class="cn-detail-grid__value"
-:class="{
+				:class="{
 					'cn-detail-grid__value--empty': isEmptyValue(item),
 				}">
 				<!-- @slot item-{index} Per-item value override (e.g. `#item-0`). Defaults to `item.value` or the AD-18 reference widget. -->

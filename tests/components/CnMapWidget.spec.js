@@ -168,14 +168,14 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
  */
 const tileUrls = (L) => L.tileLayer.mock.calls.map(([url]) => url)
 
-function mountWidget (propsData) {
-  return mount(CnMapWidget, {
-	propsData: {
-		center: [52, 5],
-		...propsData,
-	},
-	mocks: {},
-})
+function mountWidget(propsData) {
+	return mount(CnMapWidget, {
+		propsData: {
+			center: [52, 5],
+			...propsData,
+		},
+		mocks: {},
+	})
 }
 
 beforeEach(() => {

@@ -26,19 +26,19 @@ const SCHEMA = {
 	},
 }
 
-function makeTransition (inputs, extra = {}) {
-  return {
-	action: 'reject',
-	label: 'Reject request',
-	inputs,
-	...extra,
-}
+function makeTransition(inputs, extra = {}) {
+	return {
+		action: 'reject',
+		label: 'Reject request',
+		inputs,
+		...extra,
+	}
 }
 
-function mountDialog (transition, schema = SCHEMA) {
-  return mount(CnTransitionInputDialog, {
-	propsData: { transition, schema },
-})
+function mountDialog(transition, schema = SCHEMA) {
+	return mount(CnTransitionInputDialog, {
+		propsData: { transition, schema },
+	})
 }
 
 describe('CnTransitionInputDialog — field resolution', () => {

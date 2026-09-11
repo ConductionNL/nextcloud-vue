@@ -60,7 +60,7 @@ const NATIVE_BOOLEAN_ATTRS = new Set([
  * @param {object} attrs the fallthrough attributes.
  * @return {object} attributes safe to spread onto the stub's `<div>`.
  */
-function withBooleanAttrSemantics (attrs) {
+function withBooleanAttrSemantics(attrs) {
 	const out = {}
 	for (const [key, value] of Object.entries(attrs)) {
 		if (value === false && NATIVE_BOOLEAN_ATTRS.has(key)) {
@@ -71,34 +71,34 @@ function withBooleanAttrSemantics (attrs) {
 	return out
 }
 
-function createStub (name) {
-  return {
-	name,
-	inheritAttrs: false,
-	setup(props, { slots, attrs }) {
-		return () => {
-			const children = []
-			if (slots.default) {
-				children.push(slots.default())
-			}
-			for (const key of Object.keys(slots)) {
-				if (key === 'default') {
-					continue
+function createStub(name) {
+	return {
+		name,
+		inheritAttrs: false,
+		setup(props, { slots, attrs }) {
+			return () => {
+				const children = []
+				if (slots.default) {
+					children.push(slots.default())
 				}
-				children.push(slots[key]())
+				for (const key of Object.keys(slots)) {
+					if (key === 'default') {
+						continue
+					}
+					children.push(slots[key]())
+				}
+				// `class` must be MERGED, not spread over. Vue 2 kept class/style out
+				// of `$attrs` (they lived in the vnode's own `data.class` /
+				// `data.staticClass`), so `{ class: [...], ...attrs }` was safe.
+				// Vue 3 folds class and style INTO `$attrs`, so a consumer writing
+				// `<NcNoteCard class="cn-banner-widget__card">` silently replaced the
+				// stub's own `stub NcNoteCard` marker and every `find('.stub.NcX')`
+				// in the suite stopped matching.
+				const { class: consumerClass, ...rest } = withBooleanAttrSemantics(attrs)
+				return h('div', { class: ['stub', name, consumerClass], ...rest }, children)
 			}
-			// `class` must be MERGED, not spread over. Vue 2 kept class/style out
-			// of `$attrs` (they lived in the vnode's own `data.class` /
-			// `data.staticClass`), so `{ class: [...], ...attrs }` was safe.
-			// Vue 3 folds class and style INTO `$attrs`, so a consumer writing
-			// `<NcNoteCard class="cn-banner-widget__card">` silently replaced the
-			// stub's own `stub NcNoteCard` marker and every `find('.stub.NcX')`
-			// in the suite stopped matching.
-			const { class: consumerClass, ...rest } = withBooleanAttrSemantics(attrs)
-			return h('div', { class: ['stub', name, consumerClass], ...rest }, children)
-		}
-	},
-}
+		},
+	}
 }
 
 export const NcDialog = createStub('NcDialog')

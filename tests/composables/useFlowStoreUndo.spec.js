@@ -20,7 +20,7 @@ import { useFlowStore } from '../../src/composables/useFlowStore.js'
  *
  * @return {object} The store.
  */
-function seededFlow () {
+function seededFlow() {
 	const store = useFlowStore()
 	store.flow = {
 		name: 'F',

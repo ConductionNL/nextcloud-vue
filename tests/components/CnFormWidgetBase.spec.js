@@ -38,12 +38,12 @@ const fields = [
 	{ key: 'summary', type: 'textarea', label: 'Summary' },
 ]
 
-function mountBase (propsData = {}, opts = {}) {
-  return mount(CnFormWidgetBase, {
-	propsData: { fields, model: {}, ...propsData },
-	stubs,
-	...opts,
-})
+function mountBase(propsData = {}, opts = {}) {
+	return mount(CnFormWidgetBase, {
+		propsData: { fields, model: {}, ...propsData },
+		stubs,
+		...opts,
+	})
 }
 
 describe('CnFormWidgetBase', () => {

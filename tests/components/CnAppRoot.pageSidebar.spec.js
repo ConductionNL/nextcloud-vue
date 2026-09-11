@@ -27,33 +27,33 @@ const SidebarStub = {
  * @param {object} component The component.
  * @return {object} The registry.
  */
-function registryWith (component) {
-  return {
-	DetailSidebar: {
-		kind: 'widget',
-		component,
-		defaultSize: { w: 1, h: 1 },
-		minSize: { w: 1, h: 1 },
-		maxSize: { w: 4, h: 4 },
-		allowedSlots: ['sidebar'],
-		propsSchema: {},
-	},
-}
+function registryWith(component) {
+	return {
+		DetailSidebar: {
+			kind: 'widget',
+			component,
+			defaultSize: { w: 1, h: 1 },
+			minSize: { w: 1, h: 1 },
+			maxSize: { w: 4, h: 4 },
+			allowedSlots: ['sidebar'],
+			propsSchema: {},
+		},
+	}
 }
 
-function makeManifest (page = {}) {
-  return {
-	id: 'testapp',
-	name: 'Test App',
-	menu: [],
-	pages: [
-		{
-			id: 'Detail',
-			type: 'custom',
-			...page,
-		},
-	],
-}
+function makeManifest(page = {}) {
+	return {
+		id: 'testapp',
+		name: 'Test App',
+		menu: [],
+		pages: [
+			{
+				id: 'Detail',
+				type: 'custom',
+				...page,
+			},
+		],
+	}
 }
 
 /**
@@ -64,7 +64,7 @@ function makeManifest (page = {}) {
  * @param {string} routeName The current route name.
  * @return {object} The wrapper.
  */
-function mountRoot (manifest, extraProps = {}, routeName = 'Detail') {
+function mountRoot(manifest, extraProps = {}, routeName = 'Detail') {
 	// CnAppRoot is nested inside a wrapper render function so `mocks`/`stubs`
 	// given at the top level apply app-wide (see tests/support/vueTestUtilsCompat.js).
 	//

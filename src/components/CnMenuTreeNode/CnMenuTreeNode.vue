@@ -4,7 +4,7 @@
 -->
 
 <template>
-	<draggable v-model="tree"
+	<Draggable v-model="tree"
 		tag="ul"
 		class="cn-menu-tree"
 		:group="group"
@@ -19,7 +19,7 @@
 				@remove="removeNode(node, null)" />
 
 			<!-- One level of children: a drop target on every top item. -->
-			<draggable v-if="maxDepth > 0"
+			<Draggable v-if="maxDepth > 0"
 				v-model="node.children"
 				tag="ul"
 				class="cn-menu-tree__children"
@@ -34,9 +34,9 @@
 						:canAddChild="false"
 						@remove="removeNode(child, node)" />
 				</li>
-			</draggable>
+			</Draggable>
 		</li>
-	</draggable>
+	</Draggable>
 </template>
 
 <script>

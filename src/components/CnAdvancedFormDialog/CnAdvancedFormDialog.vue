@@ -57,7 +57,7 @@
 								:aria-selected="activeTab === idx"
 								:disabled="tab.disabled"
 								class="cn-advanced-form-dialog__tab-button"
-:class="[{ 'is-active': activeTab === idx }]"
+								:class="[{ 'is-active': activeTab === idx }]"
 								@click="activeTab = idx">
 								{{ tab.title }}
 							</button>

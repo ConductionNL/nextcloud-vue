@@ -53,14 +53,14 @@ const baseStubs = {
 	BugOutline: true,
 }
 
-function mountMenu (propsData = {}, opts = {}) {
-  return mount(CnActionsMenu, {
-	propsData: { widgetId: 'w1', title: 'My widget', surface: 'widget:w1', ...propsData },
-	stubs: baseStubs,
-	mocks: { $route: { name: 'Dashboard' } },
-	provide: { cnAppId: 'pipelinq', cnFeatureRequestRepo: 'ConductionNL/pipelinq', ...(opts.provide || {}) },
-	...opts,
-})
+function mountMenu(propsData = {}, opts = {}) {
+	return mount(CnActionsMenu, {
+		propsData: { widgetId: 'w1', title: 'My widget', surface: 'widget:w1', ...propsData },
+		stubs: baseStubs,
+		mocks: { $route: { name: 'Dashboard' } },
+		provide: { cnAppId: 'pipelinq', cnFeatureRequestRepo: 'ConductionNL/pipelinq', ...(opts.provide || {}) },
+		...opts,
+	})
 }
 
 describe('CnActionsMenu — visibility & testidBase', () => {

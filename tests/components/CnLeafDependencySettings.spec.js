@@ -53,11 +53,11 @@ const stubs = {
 	Download: true,
 }
 
-function mountSection (propsData = {}) {
-  return mount(CnLeafDependencySettings, {
-	propsData: { appId: 'dossiq', ...propsData },
-	stubs,
-})
+function mountSection(propsData = {}) {
+	return mount(CnLeafDependencySettings, {
+		propsData: { appId: 'dossiq', ...propsData },
+		stubs,
+	})
 }
 
 describe('CnLeafDependencySettings', () => {

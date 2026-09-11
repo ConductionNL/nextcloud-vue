@@ -21,11 +21,11 @@ const stubs = {
 	},
 }
 
-function mountWidget (props = {}) {
-  return mount(CnObjectMetadataWidget, {
-	propsData: props,
-	stubs,
-})
+function mountWidget(props = {}) {
+	return mount(CnObjectMetadataWidget, {
+		propsData: props,
+		stubs,
+	})
 }
 
 describe('CnObjectMetadataWidget', () => {

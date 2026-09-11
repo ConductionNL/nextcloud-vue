@@ -19,10 +19,10 @@ const CnShareCreate = require('../CnShareCreate.vue').default
 
 const FILES = [{ fileId: 10, fileName: 'doc.txt' }]
 
-function mountWith (props = {}) {
-  return mount(CnShareCreate, {
-	propsData: { files: FILES, ...props },
-})
+function mountWith(props = {}) {
+	return mount(CnShareCreate, {
+		propsData: { files: FILES, ...props },
+	})
 }
 
 describe('CnShareCreate', () => {

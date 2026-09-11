@@ -52,7 +52,7 @@
 							:aria-controls="'cn-tab-panel-' + tab.id"
 							:disabled="tab.disabled"
 							class="cn-tabbed-form-dialog__tab-button"
-:class="[{ 'is-active': activeTab === idx }]"
+							:class="[{ 'is-active': activeTab === idx }]"
 							@click="onTabClick(idx)">
 							<component :is="tab.icon" v-if="tab.icon" :size="16" />
 							<span>{{ tab.title }}</span>

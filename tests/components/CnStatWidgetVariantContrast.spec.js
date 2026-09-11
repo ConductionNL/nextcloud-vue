@@ -22,7 +22,7 @@
 import { mount } from '@vue/test-utils'
 import CnStatWidget from '@/components/CnStatWidget/CnStatWidget.vue'
 
-async function mountStat (content = {}) {
+async function mountStat(content = {}) {
 	const w = mount(CnStatWidget, {
 		propsData: { content: { label: 'Cases', icon: 'Cash', ...content } },
 		stubs: { NcLoadingIcon: { template: '<div />' }, CnWidgetIcon: { template: '<div />' } },

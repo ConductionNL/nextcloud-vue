@@ -20,23 +20,23 @@ import {
 
 const axios = require('@nextcloud/axios').default
 
-function breaking409 () {
-  return {
-	response: {
-		status: 409,
-		data: {
-			error: 'Schema change classified breaking; acknowledgeBreaking required.',
-			classification: 'breaking',
-			changes: [{ property: 'barn', kind: 'type_changed', old: 'string', new: 'object' }],
+function breaking409() {
+	return {
+		response: {
+			status: 409,
+			data: {
+				error: 'Schema change classified breaking; acknowledgeBreaking required.',
+				classification: 'breaking',
+				changes: [{ property: 'barn', kind: 'type_changed', old: 'string', new: 'object' }],
+			},
 		},
-	},
-}
+	}
 }
 
-function hasObjects409 (objectCount = 2) {
-  return {
-	response: { status: 409, data: { error: 'schema-has-objects', objectCount } },
-}
+function hasObjects409(objectCount = 2) {
+	return {
+		response: { status: 409, data: { error: 'schema-has-objects', objectCount } },
+	}
 }
 
 describe('saveSchema', () => {

@@ -24,11 +24,11 @@ import CnFlowHealthDot from '../../src/components/CnFlowDetail/CnFlowHealthDot.v
  * @param {object} props The props.
  * @return {object} The wrapper.
  */
-function dot (props) {
-  return mount(CnFlowHealthDot, {
-	props,
-	global: { mocks: { t: (app, s) => s } },
-})
+function dot(props) {
+	return mount(CnFlowHealthDot, {
+		props,
+		global: { mocks: { t: (app, s) => s } },
+	})
 }
 
 describe('CnFlowHealthDot', () => {

@@ -27,19 +27,19 @@ const stubs = {
 	},
 }
 
-function mountPage (propsData, opts = {}) {
-  return mount(CnMapPage, {
-	propsData: {
-		title: 'Case Map',
-		center: [52.13, 5.29],
-		zoom: 7,
-		layers: [],
-		markers: null,
-		...propsData,
-	},
-	stubs,
-	...opts,
-})
+function mountPage(propsData, opts = {}) {
+	return mount(CnMapPage, {
+		propsData: {
+			title: 'Case Map',
+			center: [52.13, 5.29],
+			zoom: 7,
+			layers: [],
+			markers: null,
+			...propsData,
+		},
+		stubs,
+		...opts,
+	})
 }
 
 describe('CnMapPage', () => {

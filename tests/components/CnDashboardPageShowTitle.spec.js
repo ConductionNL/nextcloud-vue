@@ -29,14 +29,14 @@ const stubs = {
 	NcLoadingIcon: { template: '<div />' },
 }
 
-function mountWith ({ def = {}, placement = {} } = {}) {
-  return mount(CnDashboardPage, {
-	propsData: {
-		widgets: [{ id: 'w', type: 'test-showtitle', ...def }],
-		layout: [{ id: '1', widgetId: 'w', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 4, ...placement }],
-	},
-	stubs,
-})
+function mountWith({ def = {}, placement = {} } = {}) {
+	return mount(CnDashboardPage, {
+		propsData: {
+			widgets: [{ id: 'w', type: 'test-showtitle', ...def }],
+			layout: [{ id: '1', widgetId: 'w', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 4, ...placement }],
+		},
+		stubs,
+	})
 }
 
 describe('CnDashboardPage — showTitle / showActions def fallback', () => {

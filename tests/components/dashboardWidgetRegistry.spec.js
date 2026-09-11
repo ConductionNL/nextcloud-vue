@@ -21,15 +21,15 @@ function freshRegistry() {
 	return mod
 }
 
-function stubEntry (overrides = {}) {
-  return {
-	renderer: { name: 'StubRenderer' },
-	form: { name: 'StubForm' },
-	defaultContent: { foo: 'bar' },
-	displayName: 'Stub',
-	icon: 'Star',
-	...overrides,
-}
+function stubEntry(overrides = {}) {
+	return {
+		renderer: { name: 'StubRenderer' },
+		form: { name: 'StubForm' },
+		defaultContent: { foo: 'bar' },
+		displayName: 'Stub',
+		icon: 'Star',
+		...overrides,
+	}
 }
 
 describe('dashboardWidgetRegistry', () => {

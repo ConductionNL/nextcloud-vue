@@ -27,13 +27,13 @@ const stubs = {
 	BookOpenVariant: true,
 }
 
-function mountPage (propsData = {}) {
-  return mount(CnDetailPage, {
-	propsData: { title: 'Expense', ...propsData },
-	stubs,
-	mocks: { $route: { name: 'expense-detail' } },
-	slots: { default: '<div class="my-content">CONTENT</div>' },
-})
+function mountPage(propsData = {}) {
+	return mount(CnDetailPage, {
+		propsData: { title: 'Expense', ...propsData },
+		stubs,
+		mocks: { $route: { name: 'expense-detail' } },
+		slots: { default: '<div class="my-content">CONTENT</div>' },
+	})
 }
 
 describe('CnDetailPage — in-place refresh', () => {

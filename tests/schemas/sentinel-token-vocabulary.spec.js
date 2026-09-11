@@ -28,20 +28,20 @@ const DEF_FOR_CONTEXT = {
 	deprecated: 'sentinelDeprecatedToken',
 }
 
-function manifest (config, widgets) {
-  return {
-	$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json',
-	version: '1.0.0',
-	menu: [],
-	pages: [{
-		id: 'p',
-		route: '/p',
-		type: 'index',
-		title: 't',
-		...(config ? { config } : {}),
-		...(widgets ? { widgets } : {}),
-	}],
-}
+function manifest(config, widgets) {
+	return {
+		$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json',
+		version: '1.0.0',
+		menu: [],
+		pages: [{
+			id: 'p',
+			route: '/p',
+			type: 'index',
+			title: 't',
+			...(config ? { config } : {}),
+			...(widgets ? { widgets } : {}),
+		}],
+	}
 }
 
 describe('sentinel-token vocabulary ⇄ schema $def equality', () => {

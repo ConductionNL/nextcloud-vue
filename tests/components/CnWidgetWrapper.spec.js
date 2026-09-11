@@ -55,14 +55,14 @@ const baseStubs = {
 	BookOpenVariant: true,
 }
 
-function mountWrapper (propsData = {}, opts = {}) {
-  return mount(CnWidgetWrapper, {
-	propsData: { title: 'Outgoing calls', showTitle: true, ...propsData },
-	stubs: baseStubs,
-	mocks: { $route: { name: 'Dashboard' } },
-	provide: { cnAppId: 'pipelinq', cnFeatureRequestRepo: 'ConductionNL/pipelinq', ...(opts.provide || {}) },
-	...opts,
-})
+function mountWrapper(propsData = {}, opts = {}) {
+	return mount(CnWidgetWrapper, {
+		propsData: { title: 'Outgoing calls', showTitle: true, ...propsData },
+		stubs: baseStubs,
+		mocks: { $route: { name: 'Dashboard' } },
+		provide: { cnAppId: 'pipelinq', cnFeatureRequestRepo: 'ConductionNL/pipelinq', ...(opts.provide || {}) },
+		...opts,
+	})
 }
 
 describe('CnWidgetWrapper — chrome variant', () => {

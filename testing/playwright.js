@@ -202,7 +202,7 @@ const GUEST_SURFACE = 'guest-surface'
  *
  * @return {{user: (string|null), isNextcloudPage: boolean}} Session facts.
  */
-function readSurfaceSession () {
+function readSurfaceSession() {
 	const oc = globalThis.OC || {}
 	const head = (globalThis.document && globalThis.document.head) || null
 	const attr = (name) => (head && typeof head.getAttribute === 'function' ? head.getAttribute(name) : null)
@@ -327,7 +327,7 @@ function matchAllRefusal(scope) {
  * @param {object} args The serialised `{ prefix, ids, matchAll, value }`.
  * @return {number} Concrete keys written to the backing store.
  */
-function applySeed (args) {
+function applySeed(args) {
 	const store = globalThis.__cnSeenSeeds || (globalThis.__cnSeenSeeds = [])
 	store.push(args)
 

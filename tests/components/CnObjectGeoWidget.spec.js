@@ -32,7 +32,7 @@ const stubs = {
 	MapMarkerOff: true,
 }
 
-async function flush () {
+async function flush() {
 	await new Promise((resolve) => setTimeout(resolve, 0))
 }
 

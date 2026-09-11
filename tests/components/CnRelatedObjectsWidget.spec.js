@@ -35,7 +35,7 @@ const stubs = {
 	ChevronRight: true,
 }
 
-async function flush () {
+async function flush() {
 	// Drain microtasks (nested fetch().json() + Promise.all) and let Vue re-render.
 	await new Promise((resolve) => setTimeout(resolve, 0))
 	await new Promise((resolve) => setTimeout(resolve, 0))
@@ -51,11 +51,11 @@ function makeStore(overrides = {}) {
 	}
 }
 
-function mountWidget (props = {}, store = makeStore()) {
-  return mount(CnRelatedObjectsWidget, {
-	propsData: { objectType: 'lead', objectId: 'L1', store, ...props },
-	stubs,
-})
+function mountWidget(props = {}, store = makeStore()) {
+	return mount(CnRelatedObjectsWidget, {
+		propsData: { objectType: 'lead', objectId: 'L1', store, ...props },
+		stubs,
+	})
 }
 
 describe('CnRelatedObjectsWidget', () => {

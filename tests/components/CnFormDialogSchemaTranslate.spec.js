@@ -42,7 +42,7 @@ const dict = {
 	billable: 'declarabel',
 	internal: 'intern',
 }
-function cnTranslate (key, vars) {
+function cnTranslate(key, vars) {
 	const out = dict[key] ?? key
 	return vars ? Object.entries(vars).reduce((acc, [k, v]) => acc.replace('{' + k + '}', v), out) : out
 }

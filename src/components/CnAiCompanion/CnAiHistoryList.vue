@@ -58,7 +58,7 @@
 				v-for="conv in filteredConversations"
 				:key="conv.uuid"
 				class="cn-ai-history-list__item"
-:class="[
+				:class="[
 					{ 'cn-ai-history-list__item--active': conv.uuid === activeConversationUuid },
 				]">
 				<div v-if="editingUuid === conv.uuid" class="cn-ai-history-list__edit" data-testid="cn-ai-history-list-edit">

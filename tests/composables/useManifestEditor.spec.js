@@ -17,14 +17,14 @@ const { useManifestEditor } = require('../../src/composables/useManifestEditor.j
 const { diffManifest } = require('../../src/utils/diffManifest.js')
 const { mergeManifestDelta } = require('../../src/utils/mergeManifestDelta.js')
 
-function baseManifest () {
-  return {
-	version: '1.0.0',
-	menu: [{ id: 'home', label: 'Home', route: 'home' }],
-	pages: [
-		{ id: 'home', route: '/', type: 'dashboard', title: 'Home', widgets: [{ id: 'w1', widgetKey: 'k', slot: 'body', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 2 }] },
-	],
-}
+function baseManifest() {
+	return {
+		version: '1.0.0',
+		menu: [{ id: 'home', label: 'Home', route: 'home' }],
+		pages: [
+			{ id: 'home', route: '/', type: 'dashboard', title: 'Home', widgets: [{ id: 'w1', widgetKey: 'k', slot: 'body', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 2 }] },
+		],
+	}
 }
 
 describe('useManifestEditor', () => {

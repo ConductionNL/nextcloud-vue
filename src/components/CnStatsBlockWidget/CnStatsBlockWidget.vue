@@ -17,7 +17,7 @@
 <template>
 	<div
 		class="cn-stats-block-widget"
-:class="[iconClass, { 'cn-stats-block-widget--multi': hasEntries }]">
+		:class="[iconClass, { 'cn-stats-block-widget--multi': hasEntries }]">
 		<!-- Multi-entry mode: one KPI per entry, all inside this widget card.
 		     An entry with hideWhenZero whose resolved count is 0 is omitted. -->
 		<template v-if="hasEntries">

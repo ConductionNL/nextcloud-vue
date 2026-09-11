@@ -34,7 +34,7 @@
 					</slot>
 				</div>
 
-				<draggable
+				<Draggable
 					:list="column.cards"
 					tag="div"
 					class="cn-object-kanban__column-cards"
@@ -67,7 +67,7 @@
 							</div>
 						</slot>
 					</div>
-				</draggable>
+				</Draggable>
 
 				<div v-if="hasMore(column)" class="cn-object-kanban__load-more">
 					<NcButton :disabled="isColumnLoading(column)" @click="onLoadMore(column)">

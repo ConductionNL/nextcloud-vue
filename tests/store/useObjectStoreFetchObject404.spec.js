@@ -31,16 +31,16 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { createObjectStore } from '../../src/store/useObjectStore.js'
 
-function notOk (status, statusText) {
-  return {
-	ok: false,
-	status,
-	statusText,
-	text: async () => 'body',
-	json: async () => {
-		throw new Error('no json')
-	},
-}
+function notOk(status, statusText) {
+	return {
+		ok: false,
+		status,
+		statusText,
+		text: async () => 'body',
+		json: async () => {
+			throw new Error('no json')
+		},
+	}
 }
 
 describe('useObjectStore fetch-by-id console contract', () => {

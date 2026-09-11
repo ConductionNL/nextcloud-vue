@@ -38,8 +38,8 @@ function makeRepo(files) {
 	return root
 }
 
-function PHP_RENDER_SURFACE (id, useConst = false) {
-  return `<?php
+function PHP_RENDER_SURFACE(id, useConst = false) {
+	return `<?php
 use OCA\\OpenRegister\\Service\\Integration\\LeafDescriptor;
 class RegisterLeafListener {
 	${useConst ? `public const LEAF_ID = '${id}';` : ''}
@@ -59,8 +59,8 @@ class RegisterLeafListener {
 `
 }
 
-function PHP_DATA_ONLY (id) {
-  return `<?php
+function PHP_DATA_ONLY(id) {
+	return `<?php
 use OCA\\OpenRegister\\Service\\Integration\\LeafDescriptor;
 $descriptor = new LeafDescriptor(
 	id: '${id}',
@@ -71,8 +71,8 @@ $descriptor = new LeafDescriptor(
 `
 }
 
-function JS_REGISTRATION (id) {
-  return `import { registerIntegration } from '@conduction/nextcloud-vue'
+function JS_REGISTRATION(id) {
+	return `import { registerIntegration } from '@conduction/nextcloud-vue'
 import Tab from './Tab.vue'
 import Widget from './Widget.vue'
 registerIntegration({
@@ -233,8 +233,8 @@ registerIntegration({
 // accepts everything.
 // ---------------------------------------------------------------------------
 
-function PHP_PROVIDER (id, { base = 'AbstractIntegrationProvider', useConst = false } = {}) {
-  return `<?php
+function PHP_PROVIDER(id, { base = 'AbstractIntegrationProvider', useConst = false } = {}) {
+	return `<?php
 
 /**
  * A docblock that says the words "new LeafDescriptor(" and
@@ -260,8 +260,8 @@ ${useConst ? `    public const ID = '${id}';\n` : ''}
 `
 }
 
-function PHP_PROVIDER_VIA_INTERFACE (id) {
-  return `<?php
+function PHP_PROVIDER_VIA_INTERFACE(id) {
+	return `<?php
 namespace OCA\\OpenRegister\\Service\\Integration\\Providers;
 use OCA\\OpenRegister\\Service\\Integration\\IntegrationProvider;
 class ViaInterface implements IntegrationProvider, JsonSerializable
@@ -278,8 +278,8 @@ class ViaInterface implements IntegrationProvider, JsonSerializable
 // provider. If this is collected, the matcher is keying on the method name
 // rather than the contract, and every id-bearing service in lib/ becomes a
 // "leaf".
-function PHP_NOT_A_PROVIDER (id) {
-  return `<?php
+function PHP_NOT_A_PROVIDER(id) {
+	return `<?php
 namespace OCA\\OpenRegister\\ContextChat;
 class ContentProvider implements IContentProvider
 {
@@ -302,8 +302,8 @@ abstract class AbstractIntegrationProvider implements IntegrationProvider
 }
 `
 
-function JS_DIRECT_REGISTRATION (id) {
-  return `import Tab from './Tab.vue'
+function JS_DIRECT_REGISTRATION(id) {
+	return `import Tab from './Tab.vue'
 window.OCA.OpenRegister.integrations.register({
 	id: '${id}',
 	label: 'X',

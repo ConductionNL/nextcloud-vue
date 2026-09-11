@@ -60,19 +60,19 @@ const stubs = {
 	CnJsonViewer: { template: '<pre class="cn-json-viewer-stub" />', props: ['value', 'label'] },
 }
 
-function mountForm (propsData, opts = {}) {
-  return mount(CnFormPage, {
-	propsData,
-	stubs,
-	mocks: {
-		$route: opts.$route ?? { params: {} },
-		$router: opts.$router ?? { push: jest.fn() },
-	},
-	provide: {
-		cnCustomComponents: opts.cnCustomComponents ?? {},
-	},
-	...opts.mountOptions,
-})
+function mountForm(propsData, opts = {}) {
+	return mount(CnFormPage, {
+		propsData,
+		stubs,
+		mocks: {
+			$route: opts.$route ?? { params: {} },
+			$router: opts.$router ?? { push: jest.fn() },
+		},
+		provide: {
+			cnCustomComponents: opts.cnCustomComponents ?? {},
+		},
+		...opts.mountOptions,
+	})
 }
 
 describe('CnFormPage', () => {
