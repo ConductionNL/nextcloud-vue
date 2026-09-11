@@ -5,19 +5,51 @@
 
 <template>
 	<div class="cn-detail-widget-host" :class="`cn-detail-widget-host--${chrome}`">
-		<!-- `type: 'data'` — the schema-driven data widget. In bare mode it drops
-		     its title, border and padding so a tab panel holds the content
-		     directly instead of a card inside a card.
+		<!-- `type: 'data'` — the schema-driven data widget. In bare mode it is
+		     `chromeless`: no border, no background, no padding, no title row and
+		     no header divider, so the tab panel holds the content directly
+		     instead of a card inside a card.
+
+		     One prop, not three. `chromeless` is the word this component already
+		     used for the same thing on the integration path (`bareWidget`), and
+		     the three it replaces (`show-title`, `borderless`, `flush`) were a
+		     decomposition every caller had to remember in full — miss one and
+		     the panel keeps half a card.
+
+		     Chromeless does NOT mean no wrapper element. The wrapper's content
+		     node is what `CnObjectDataWidget` measures its overflow against and
+		     what the library's table and detail-page CSS key on; removing it
+		     would take the whole-row clip out silently, because a `closest()`
+		     that finds nothing reads as "nothing overflows".
 
 		     It used to keep the whole card here, because its Save button lives
 		     in CnWidgetWrapper's header and hiding the header hid Save with it.
-		     The wrapper now renders its header whenever there are actions, with
-		     or without a title, so the two can be asked for separately and the
-		     panel gets no title while an inline edit stays committable.
+		     The wrapper renders its header whenever there are actions, with or
+		     without a title, so the panel gets no title while an inline edit
+		     stays committable. Controls are not chrome.
 
 		     Passing `undefined` was never enough on its own: `title` carries a
 		     DEFAULT of "Data", so an unset title became a "Data" heading that
-		     nobody chose. -->
+		     nobody chose. The title is still passed, and now names the content
+		     region for a screen reader instead of printing a second heading.
+
+		     The overflow menu goes too, which `chromeless` does not cover. It
+		     left a 59px band whose only content was an Actions menu about eight
+		     pixels from the tab strip's own, and two menus on one row read as the
+		     same card inside a card in miniature.
+
+		     Nothing is lost, but that took a second piece of work rather than
+		     being true on its own. Suppressing the menu takes its two items with
+		     it, and Metadata had no other home anywhere: the page header carries
+		     no equivalent, so it became unreachable inside a panel. Edit is the
+		     softer case. CnDetailPage does carry a record Edit button, but it
+		     opens the form the PAGE configures, not the subset THIS widget
+		     declares through `overrides`, `include` and `exclude`, so a tabbed
+		     widget showing eight of forty fields lost the form scoped to its
+		     eight. Both items are now published to the host surface and render in
+		     its menu; see utils/panelActions.js. Inline editing was never
+		     affected: a cell opens its editor when clicked, and Save and Discard
+		     arrive in the header the moment there is an edit to commit. -->
 		<!-- `requiredApp` names another Nextcloud app this widget leans on. When
 		     that app is absent the widget renders its NORMAL chrome plus a
 		     set-up state, and asks its backend NOTHING.
@@ -27,11 +59,18 @@
 		     query run — is worse: an aggregation over an absent app's register
 		     404s and the tile shows `0`, which is exactly what a real zero
 		     shows. dossiq's hours tile did that on every install without
-		     humaniq, and looked correct doing it. -->
+		     humaniq, and looked correct doing it.
+
+		     "NORMAL chrome" means the chrome of the surface it is on. In a tab
+		     panel that is no chrome, same as every other widget there: a set-up
+		     state is still a widget, and a bordered card around it inside the
+		     panel is the same doubled card this file removes below. The title
+		     is now passed in bare mode too, where it names the content region
+		     rather than printing a heading the tab already carries. -->
 		<CnWidgetWrapper
 			v-if="missingApp"
-			:title="isBare ? '' : widgetTitle"
-			:show-title="!isBare"
+			:title="widgetTitle"
+			:chromeless="isBare"
 			title-icon-position="left"
 			:show-refresh="false"
 			:show-request-feature="false">
@@ -48,9 +87,8 @@
 		<CnObjectDataWidget
 			v-else-if="isData && schemaObject"
 			:title="resolvedTitle"
-			:show-title="!isBare"
-			:borderless="isBare"
-			:flush="isBare"
+			:chromeless="isBare"
+			:show-actions="!isBare"
 			:icon="widget.icon || null"
 			:schema="schemaObject"
 			:object-data="object"
@@ -201,6 +239,7 @@ import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import {
@@ -274,6 +313,44 @@ export default {
 		NcActionButton,
 		NcEmptyContent,
 		Plus,
+	},
+
+	inject: {
+		/**
+		 * The surface's panel-action channel, when this host sits inside one.
+		 *
+		 * Absent on every other surface, which is why the default is null
+		 * rather than a required injection.
+		 */
+		panelActionSink: {
+			from: PANEL_ACTION_SINK,
+			default: null,
+		},
+	},
+
+	/**
+	 * Re-provide the channel with this panel's widget id baked in.
+	 *
+	 * The widget below does not know its own id on the surface and should not
+	 * have to, so the id is supplied here, where it is already known. Read at
+	 * CALL time rather than captured, so a host whose `widget` changes keeps
+	 * publishing under the right key.
+	 *
+	 * Provides null when there is no surface to publish to, so the widget's own
+	 * injection resolves to null instead of finding a channel that goes nowhere.
+	 *
+	 * @return {object} The narrowed sink, or null.
+	 */
+	provide() {
+		const sink = this.panelActionSink
+		return {
+			[PANEL_ACTION_SINK]: sink
+				? {
+					set: (items) => sink.set(this.widget?.id, items),
+					clear: () => sink.clear(this.widget?.id),
+				}
+				: null,
+		}
 	},
 
 	props: {

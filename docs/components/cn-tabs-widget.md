@@ -18,6 +18,16 @@ The Actions menu moves out of the panels and into the tab bar, beside the strip 
 
 The menu renders through the strip's `#nav-end` slot, which is a sibling of the `role="tablist"` element. Anything nested inside a tablist is announced as one of the tabs, so a screen-reader user counting six tabs would otherwise hear seven.
 
+## What the open panel lends to the menu
+
+Some widgets carry items that live only in their own overflow menu. [`CnObjectDataWidget`](./cn-object-data-widget.md) carries two: Metadata, and the full edit dialog. A panel draws no header, so suppressing its menu left both with nowhere to go. Metadata had no other home anywhere. Edit had a near neighbour, the record Edit button in a detail page header, but that opens the form the page configures rather than the field subset the widget declares.
+
+The open panel now publishes those items and the strip renders them under the built-in Refresh and Request a feature. Switch tabs and they go with the panel, because the strip keeps them per widget id. A visited tab stays mounted, so more than one panel publishes at a time and only the open one's items are offered.
+
+The strip renders the items. It does not rebuild them. Each one carries a callback that reaches the widget that published it, so Edit still opens that widget's dialog with that widget's `overrides`, `include` and `exclude` applied, and still saves through that widget's own path. Rebuilding the dialog on the strip would drop all of it.
+
+A widget that keeps its own header publishes nothing, which is every surface except a tab panel. The channel itself is an internal module, `src/utils/panelActions.js`, and it documents the shape a widget publishes.
+
 ## Usage
 
 Reference it from a manifest placement. `label` and `icon` are optional and fall back to the child widget's own title and icon, so the common case is a list of `widgetId`s:
