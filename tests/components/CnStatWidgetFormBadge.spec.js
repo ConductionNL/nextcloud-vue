@@ -40,8 +40,13 @@ const dossiqStatus = {
 			variantMap: { true: 'success', false: 'info' },
 		},
 	},
+	// THE FIXTURE CARRIES AN ICON AND AN UNKNOWN `when` KEY ON PURPOSE. Without
+	// them the round-trip test below passed while the form silently dropped
+	// both: editing a manifest-authored tile's label deleted its override icon,
+	// and any clause the form does not draw went with it.
 	overrides: [
-		{ when: { field: 'suspended' }, label: 'Suspended', variant: 'warning' },
+		{ when: { field: 'suspended' }, label: 'Suspended', variant: 'warning', icon: 'PauseCircle' },
+		{ when: { field: 'archived', op: 'eq', value: 'true', appInstalled: 'keepiq' }, label: 'Archived', variant: 'default' },
 	],
 }
 
@@ -178,7 +183,56 @@ describe('CnStatWidgetForm: display, empty text and special states', () => {
 	it('removes a row', () => {
 		const w = mountForm(dossiqStatus)
 		w.vm.removeRow('overrideRows', 0)
+		w.vm.removeRow('overrideRows', 0)
 
 		expect(w.emitted('update:content').at(-1)[0].overrides).toBeUndefined()
+	})
+
+	// THE FORM MUST NOT NARROW WHAT IT DOES NOT DRAW. `overrides` is an owned
+	// key, so the passthrough that saves unknown CONTENT keys does not cover
+	// it: whatever the assembler leaves out is gone for good.
+	it('keeps an override icon through an edit that never touches it', () => {
+		const w = mountForm(dossiqStatus)
+		w.vm.updateRow('overrideRows', 0, 'label', 'On hold')
+
+		const overrides = w.emitted('update:content').at(-1)[0].overrides
+		expect(overrides[0]).toEqual({ when: { field: 'suspended' }, label: 'On hold', variant: 'warning', icon: 'PauseCircle' })
+	})
+
+	it('keeps a clause of the when grammar it cannot draw', () => {
+		const w = mountForm(dossiqStatus)
+		w.vm.updateRow('overrideRows', 1, 'variant', 'error')
+
+		const overrides = w.emitted('update:content').at(-1)[0].overrides
+		expect(overrides[1].when).toEqual({ field: 'archived', op: 'eq', value: 'true', appInstalled: 'keepiq' })
+	})
+
+	it('edits the icon on a row', () => {
+		const w = mountForm(dossiqStatus)
+		w.vm.updateRow('overrideRows', 0, 'icon', 'Sleep')
+
+		expect(w.emitted('update:content').at(-1)[0].overrides[0].icon).toBe('Sleep')
+	})
+
+	// An override with no `when.field` is one the form cannot draw at all. It
+	// is kept in place rather than deleted, and it does not render a row the
+	// person could type into and corrupt.
+	it('re-emits an override it cannot show, in its own position', () => {
+		const stored = {
+			...dossiqStatus,
+			overrides: [
+				{ when: { appInstalled: 'keepiq' }, label: 'Archivable' },
+				{ when: { field: 'suspended' }, label: 'Suspended', variant: 'warning' },
+			],
+		}
+		const w = mountForm(stored)
+		expect(w.findAll('[data-testid="cn-stat-widget-form-override-row"]')).toHaveLength(1)
+
+		w.vm.updateRow('overrideRows', 1, 'label', 'On hold')
+		const overrides = w.emitted('update:content').at(-1)[0].overrides
+		expect(overrides).toEqual([
+			{ when: { appInstalled: 'keepiq' }, label: 'Archivable' },
+			{ when: { field: 'suspended' }, label: 'On hold', variant: 'warning' },
+		])
 	})
 })

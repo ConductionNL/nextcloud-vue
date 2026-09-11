@@ -435,6 +435,12 @@ export default {
 			referenceRow: null,
 			// True once a configured lookup ran and found no usable label.
 			referenceFailed: false,
+			// True while a configured lookup is in flight. Without it, "not
+			// resolved yet" and "cannot be resolved" were the same state, so the
+			// tile showed the RAW UUID for the length of the request and then
+			// replaced it with the label or the empty text. A person watching a
+			// status badge saw `4f2b9c10-…` flash past where a state belonged.
+			referencePending: false,
 			value: null,
 			loading: false,
 			error: '',
@@ -726,6 +732,11 @@ export default {
 		 * @return {boolean}
 		 */
 		displayLoading() {
+			// A reference lookup is a request like any other, and it is the only
+			// one the record mode makes. Leaving it out meant the tile rendered
+			// the raw uuid as if it were the answer while the request was still
+			// out.
+			if (this.objectFieldMode) return this.referencePending
 			return this.endpointMode ? this.epLoading : this.loading
 		},
 		/**
@@ -1000,6 +1011,7 @@ export default {
 			this.referenceLabel = null
 			this.referenceRow = null
 			this.referenceFailed = false
+			this.referencePending = false
 			const cfg = this.content.objectField
 			const resolve = (cfg && typeof cfg === 'object') ? cfg.resolve : null
 			const raw = this.objectFieldRaw
@@ -1017,11 +1029,16 @@ export default {
 
 			const type = resolveObjectOpType(store, { register: resolve.register, schema: resolve.schema })
 			const id = String(raw)
+			const cached = store.objects && store.objects[type] && store.objects[type][id]
+			// Only an actual request pends. A cache hit resolves in the same
+			// tick, and flagging it would flicker a loading icon for nothing.
+			if (!cached) this.referencePending = true
 			try {
-				const cached = store.objects && store.objects[type] && store.objects[type][id]
 				const obj = cached || await store.fetchObject(type, id)
 				// The record may have moved on while the lookup was in flight.
+				// The newer call owns the state, so this one touches nothing.
 				if (String(this.objectFieldRaw) !== id) return
+				this.referencePending = false
 				if (obj && typeof obj === 'object') this.referenceRow = obj
 				const label = this.pickReferenceLabel(obj, resolve.labelField)
 				if (label) {
@@ -1031,7 +1048,10 @@ export default {
 				}
 			} catch (e) {
 				// Leave the raw value showing, unless `emptyText` says otherwise.
-				if (String(this.objectFieldRaw) === id) this.referenceFailed = true
+				if (String(this.objectFieldRaw) === id) {
+					this.referencePending = false
+					this.referenceFailed = true
+				}
 			}
 		},
 

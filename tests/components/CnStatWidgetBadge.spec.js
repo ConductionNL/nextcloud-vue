@@ -287,3 +287,47 @@ describe('CnStatWidget: record-driven override', () => {
 		expect(w.vm.activeOverride).toBeNull()
 	})
 })
+
+describe('CnStatWidget: a reference lookup that is still out', () => {
+	// THE RAW UUID IS NOT AN ANSWER. `displayLoading` covered only the endpoint
+	// and OpenRegister-query modes, and `objectFieldValue` falls back to the raw
+	// value whenever `referenceLabel` is null, which is both "still loading" and
+	// "cannot be resolved". So the tile rendered `4f2b9c10-…` for the length of
+	// the request, and only then the label or the empty text.
+	it('shows a loading state, not the uuid, while the lookup is in flight', async () => {
+		let answer
+		jest.spyOn(global, 'fetch').mockImplementation(() => new Promise((resolve) => {
+			answer = () => resolve({ ok: true, json: async () => ({ id: 'st-work', name: 'In behandeling', isFinal: false }) })
+		}))
+		const w = mountTile(statusTile({ emptyText: 'Unknown' }), { id: 'case-1', status: '4f2b9c10-0000-4000-8000-000000000001' })
+		await nextTick()
+
+		expect(w.vm.referencePending).toBe(true)
+		expect(w.text()).not.toContain('4f2b9c10')
+		expect(w.findComponent(CnStatusBadge).exists()).toBe(false)
+		expect(w.find('.cn-stat-widget__value').exists()).toBe(false)
+
+		answer()
+		await flush()
+
+		expect(w.vm.referencePending).toBe(false)
+		expect(w.findComponent(CnStatusBadge).props('label')).toBe('In behandeling')
+	})
+
+	it('does not pend on a plain value that needs no lookup', async () => {
+		const w = mountTile({ label: 'Priority', display: 'badge', objectField: 'priority' }, { id: 'case-1', priority: 'High' })
+		await flush()
+
+		expect(w.vm.referencePending).toBe(false)
+		expect(w.findComponent(CnStatusBadge).props('label')).toBe('High')
+	})
+
+	it('stops pending and shows the empty text when the lookup fails', async () => {
+		jest.spyOn(global, 'fetch').mockResolvedValue({ ok: false, status: 404, json: async () => ({}) })
+		const w = mountTile(statusTile({ emptyText: 'Unknown' }), { id: 'case-1', status: 'st-gone' })
+		await flush()
+
+		expect(w.vm.referencePending).toBe(false)
+		expect(w.findComponent(CnStatusBadge).props('label')).toBe('Unknown')
+	})
+})

@@ -236,7 +236,7 @@
 			{{ t('nextcloud-vue', 'When the record matches, the tile shows this label and colour instead. The first match wins.') }}
 		</p>
 		<div
-			v-for="(row, i) in overrideRows"
+			v-for="{ row, i } in shownOverrideRows"
 			:key="'override-' + i"
 			class="cn-stat-widget-form__rule"
 			data-testid="cn-stat-widget-form-override-row">
@@ -281,6 +281,10 @@
 					{{ variantLabel(id) }}
 				</template>
 			</NcSelect>
+			<CnIconBrowser
+				:value="row.icon"
+				:label="t('nextcloud-vue', 'Icon (optional)')"
+				@input="updateRow('overrideRows', i, 'icon', $event)" />
 			<NcButton
 				variant="tertiary"
 				:aria-label="t('nextcloud-vue', 'Remove special state')"
@@ -290,7 +294,7 @@
 				</template>
 			</NcButton>
 		</div>
-		<NcButton variant="tertiary" @click="addRow('overrideRows', { field: '', op: 'truthy', value: '', label: '', variant: 'warning' })">
+		<NcButton variant="tertiary" @click="addRow('overrideRows', { field: '', op: 'truthy', value: '', label: '', variant: 'warning', icon: '', whenRest: {}, rest: {} })">
 			<template #icon>
 				<Plus :size="18" />
 			</template>
@@ -375,14 +379,29 @@ function variantMapToRows(map) {
  */
 function overridesToRows(overrides) {
 	if (!Array.isArray(overrides)) return []
-	return overrides.filter((o) => o && o.when && typeof o.when.field === 'string').map((o) => {
-		const compares = Object.prototype.hasOwnProperty.call(o.when, 'value') || Boolean(o.when.op)
+	return overrides.map((o, index) => {
+		// An override the form cannot draw is KEPT, not dropped. A `when` with
+		// no `field` is a valid clause the grammar grows over time (an
+		// `appInstalled` gate, say), and editing an unrelated row used to
+		// delete every one of them on save.
+		if (!o || typeof o !== 'object' || !o.when || typeof o.when.field !== 'string') {
+			return { index, opaque: o }
+		}
+		const { field, op, value, ...whenRest } = o.when
+		const { when, label, variant, icon, ...rest } = o
+		const compares = Object.prototype.hasOwnProperty.call(o.when, 'value') || Boolean(op)
 		return {
-			field: o.when.field,
-			op: compares ? (o.when.op || 'eq') : 'truthy',
-			value: compares && o.when.value !== undefined && o.when.value !== null ? String(o.when.value) : '',
-			label: o.label || '',
-			variant: o.variant || 'warning',
+			index,
+			field,
+			op: compares ? (op || 'eq') : 'truthy',
+			value: compares && value !== undefined && value !== null ? String(value) : '',
+			label: label || '',
+			variant: variant || 'warning',
+			icon: icon || '',
+			// Everything the form does not draw, carried through the round trip
+			// so saving cannot quietly narrow a manifest-authored override.
+			whenRest,
+			rest,
 		}
 	})
 }
@@ -603,16 +622,33 @@ export default {
 		 *
 		 * @return {Array<object>} The overrides.
 		 */
+		/**
+		 * The override rows the form can draw, each with its position in the
+		 * stored list so an edit writes back to the right one. Rows the form
+		 * cannot draw stay in `overrideRows` and are re-emitted untouched.
+		 *
+		 * @return {Array<{row: object, i: number}>} The drawable rows.
+		 */
+		shownOverrideRows() {
+			return this.overrideRows
+				.map((row, i) => ({ row, i }))
+				.filter((entry) => entry.row.opaque === undefined)
+		},
+
 		assembledOverrides() {
-			return this.overrideRows.filter((row) => row.field).map((row) => {
-				const when = row.op === 'truthy'
-					? { field: row.field }
-					: { field: row.field, op: row.op, value: row.value }
-				const override = { when }
-				if (row.label) override.label = row.label
-				if (row.variant) override.variant = row.variant
-				return override
-			})
+			return this.overrideRows
+				.filter((row) => row.opaque !== undefined || row.field)
+				.map((row) => {
+					if (row.opaque !== undefined) return row.opaque
+					const when = row.op === 'truthy'
+						? { ...row.whenRest, field: row.field }
+						: { ...row.whenRest, field: row.field, op: row.op, value: row.value }
+					const override = { ...row.rest, when }
+					if (row.label) override.label = row.label
+					if (row.variant) override.variant = row.variant
+					if (row.icon) override.icon = row.icon
+					return override
+				})
 		},
 	},
 
