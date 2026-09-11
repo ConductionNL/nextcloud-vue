@@ -65,6 +65,28 @@ export function isTrue(value) {
 }
 
 /**
+ * Whether a flag value means false.
+ *
+ * The counterpart of `isTrue`, and it exists for the same reason: a JSON
+ * round trip, a database column or a form post produces `'false'`, `0` and
+ * `'0'` where the schema said boolean. A guard that only recognises the
+ * literal `false` treats every one of those as "not refused", which fails
+ * OPEN. The shapes are listed here rather than inferred, so adding one is a
+ * decision somebody makes on purpose.
+ *
+ * `undefined` and `null` are deliberately NOT false. An answer that does not
+ * carry the flag at all has said nothing about the move, and "absent means
+ * allowed" is what lets an endpoint that lists only the reachable stages keep
+ * working.
+ *
+ * @param {*} value The raw value.
+ * @return {boolean} True when the flag is explicitly off.
+ */
+export function isFalse(value) {
+	return value === false || value === 0 || value === '0' || value === 'false'
+}
+
+/**
  * Order and normalise stage rows into CnTimelineStages stages.
  *
  * Rows sort by `orderField` ascending when one is configured, with the id as
@@ -143,16 +165,17 @@ export function inputMode(value) {
  * comment (`commentField`), a result (`resultField`) and the results to
  * choose from (`resultOptionsField`).
  *
- * Only an explicit `false` in `allowedField` blocks a move. An answer that
- * does not carry the flag at all keeps working, and a move the server would
- * refuse is still refused by the server.
+ * An explicit false in `allowedField` blocks a move, in any of the shapes
+ * `isFalse` accepts: `false`, `0`, `'0'` and `'false'`. An answer that does
+ * not carry the flag at all keeps working, and a move the server would refuse
+ * is still refused by the server.
  *
  * When two entries reach the same stage, the first allowed one wins, so a
  * blocked route never hides an open one.
  *
  * @param {Array<object>} entries The availability entries.
  * @param {object} [cfg] The field mapping (see the component docs).
- * @return {Map<string, {moveId: string, allowed: boolean, reason: string, comment: string, result: boolean, resultOptions: Array<{id: string, label: string}>}>} Moves by stage id.
+ * @return {Map<string, {moveId: string, allowed: boolean, reason: string, comment: (''|'optional'|'required'), result: (''|'optional'|'required'), resultOptions: Array<{id: string, label: string}>}>} Moves by stage id.
  */
 export function buildAvailability(entries, cfg = {}) {
 	const moves = new Map()
@@ -169,13 +192,17 @@ export function buildAvailability(entries, cfg = {}) {
 		if (stage === undefined || stage === null || stage === '') continue
 		const stageId = String(stage)
 		const moveRaw = cfg.moveField ? getByPath(entry, cfg.moveField) : undefined
-		const allowed = getByPath(entry, allowedField) !== false
+		const allowed = !isFalse(getByPath(entry, allowedField))
 		const move = {
 			moveId: (moveRaw === undefined || moveRaw === null || moveRaw === '') ? stageId : String(moveRaw),
 			allowed,
 			reason: allowed ? '' : labelText(getByPath(entry, reasonField)).trim(),
 			comment: inputMode(getByPath(entry, commentField)),
-			result: inputMode(getByPath(entry, resultField)) !== '',
+			// The SAME three-state mode as `comment`, not a boolean. Collapsing
+			// it lost the difference between the two declarations that matter:
+			// `'optional'` forced a result nobody asked for, and `'required'`
+			// was indistinguishable from it.
+			result: inputMode(getByPath(entry, resultField)),
 			resultOptions: normalizeOptions(getByPath(entry, resultOptionsField), {
 				idField: cfg.resultIdField,
 				labelField: cfg.resultLabelField,
@@ -185,6 +212,45 @@ export function buildAvailability(entries, cfg = {}) {
 		if (!existing || (!existing.allowed && move.allowed)) moves.set(stageId, move)
 	}
 	return moves
+}
+
+/**
+ * Build the body a `field` transition saves the record with.
+ *
+ * The save is a PUT, so the record's own properties have to travel with it or
+ * the write would clear them. Three shapes must NOT travel:
+ *
+ *  - `@self`, which is OpenRegister's server-owned metadata envelope and not a
+ *    property of the record at all;
+ *  - `null`, `{}` and `[]`, which OpenRegister refuses on an object property.
+ *    It says so by rejecting the whole write, so a record carrying one empty
+ *    object property could not change its stage at all. Omitting the key is
+ *    the documented answer, and an absent property and an empty one mean the
+ *    same thing to OpenRegister, so nothing is lost by leaving it out.
+ *
+ * Because `{ kind: 'field' }` is the registry default, this is the path an app
+ * gets without configuring anything.
+ *
+ * @param {object} record The bound record.
+ * @param {string} id The record's id, already resolved by the caller.
+ * @param {string} field The property holding the stage.
+ * @param {string} stageId The stage to move to.
+ * @param {object} [extra] Extra keys to set, such as a comment or a result.
+ * @return {object} The save body.
+ */
+export function stageSavePayload(record, id, field, stageId, extra = {}) {
+	const payload = {}
+	for (const [key, value] of Object.entries(record || {})) {
+		if (key === '@self') continue
+		if (value === null) continue
+		if (Array.isArray(value) && value.length === 0) continue
+		if (value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) continue
+		payload[key] = value
+	}
+	Object.assign(payload, extra)
+	payload[field] = stageId
+	payload.id = id
+	return payload
 }
 
 /**

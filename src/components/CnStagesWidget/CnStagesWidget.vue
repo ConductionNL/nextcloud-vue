@@ -28,7 +28,7 @@
 				:current-stage="currentStageId"
 				:orientation="orientation"
 				:size="size"
-				:clickable="canMove"
+				:clickable="interactive"
 				:aria-label="ariaLabel"
 				@stage-click="onStageClick">
 				<template #label="{ stage }">
@@ -97,7 +97,7 @@ import {
 } from '../../utils/resolveFilterTokens.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
-import { buildAvailability, normalizeOptions, normalizeStages, refusalReason } from './stagesModel.js'
+import { buildAvailability, normalizeOptions, normalizeStages, refusalReason, stageSavePayload } from './stagesModel.js'
 // The stepper's look lives in the global timeline stylesheet. Imported here
 // so the widget renders styled without the app's global css/index.css, the
 // same reason CnStatWidget imports kpi-card.css.
@@ -362,6 +362,14 @@ export default {
 			pendingMove: null,
 			/** @type {boolean} Whether a move is running. */
 			busy: false,
+			/**
+			 * @type {boolean} A move landed and the guard answer in hand is
+			 * still the one for the stage the record has just left. Until the
+			 * fresh answer arrives the strip stays blocked: the old map is
+			 * authoritative-looking and wrong, and clicking it POSTs a move the
+			 * server has already closed.
+			 */
+			awaitingGuards: false,
 			/** @type {string} Why the last move failed, or ''. */
 			moveError: '',
 			/** @type {string} The last outcome, for the polite live region. */
@@ -377,6 +385,26 @@ export default {
 		 */
 		record() {
 			return this.tokenCtx().object || null
+		},
+
+		/**
+		 * The bound record's id, from every shape it can arrive in.
+		 *
+		 * The token context first, then the record's own `id`, then the
+		 * OpenRegister `@self.id` envelope. The context alone was not enough:
+		 * `resolveObjectTokenContext` has no `@self` fallback, so a record
+		 * shaped `{'@self': {id}}` reaching a surface that passes no explicit
+		 * `objectId` resolved to nothing.
+		 *
+		 * @return {string} The id, or '' when the record has none.
+		 */
+		recordId() {
+			const fromCtx = this.tokenCtx().objectId
+			if (fromCtx !== null && fromCtx !== undefined && fromCtx !== '') return String(fromCtx)
+			const record = this.record
+			if (!record) return ''
+			const own = record.id ?? record['@self']?.id ?? record.uuid
+			return (own === undefined || own === null) ? '' : String(own)
 		},
 
 		/**
@@ -479,31 +507,65 @@ export default {
 		},
 
 		/**
+		 * Whether the strip is interactive at all: a transition is configured
+		 * and there is a property to write the stage to.
+		 *
+		 * This deliberately does NOT fall to false while a move runs.
+		 * `clickable` drives the roving tabindex in CnTimelineStages, so
+		 * flipping it mid-move took every stage's focus stop away and dropped
+		 * a keyboard user's focus to `body` with nothing to restore it to. A
+		 * busy strip keeps its stops and disables its stages instead.
+		 *
+		 * @return {boolean} True when the widget is interactive.
+		 */
+		interactive() {
+			return Boolean(this.transition) && Boolean(this.content.currentField)
+		},
+
+		/**
 		 * Whether the widget may move the record right now.
 		 *
-		 * @return {boolean} True when a transition is configured and idle.
+		 * @return {boolean} True when it is interactive and idle.
 		 */
 		canMove() {
-			return Boolean(this.transition) && !this.busy && Boolean(this.content.currentField)
+			return this.interactive && !this.busy && !this.awaitingGuards
 		},
 
 		/**
-		 * Whether an availability endpoint gates the moves.
+		 * Whether an availability block is declared at all.
 		 *
-		 * @return {boolean} True when one is configured.
+		 * Presence, not usability. A block that is present but unusable (a
+		 * typo like `uri` for `url`) must BLOCK, and it can only do that if it
+		 * counts as configured. Reading usability here would have made the
+		 * typo mean "no guard", which is every stage clickable with nothing
+		 * logged and nothing on screen.
+		 *
+		 * @return {boolean} True when one is declared.
 		 */
 		availabilityConfigured() {
-			return Boolean(this.content.availability && this.content.availability.url)
+			const cfg = this.content.availability
+			return Boolean(cfg && typeof cfg === 'object' && !Array.isArray(cfg) && Object.keys(cfg).length > 0)
 		},
 
 		/**
-		 * The availability read failed. Every move then stays disabled: a
-		 * guard that cannot be read is not a guard that passed.
+		 * Whether the declared availability block can actually be read.
 		 *
-		 * @return {boolean} True on a failed read.
+		 * @return {boolean} True when it names a url.
+		 */
+		availabilityUsable() {
+			return this.availabilityConfigured && Boolean(this.content.availability.url)
+		},
+
+		/**
+		 * The availability read failed, or could never be made. Every move
+		 * then stays disabled: a guard that cannot be read is not a guard
+		 * that passed.
+		 *
+		 * @return {boolean} True on a failed or impossible read.
 		 */
 		availabilityFailed() {
-			return this.availabilityConfigured && Boolean(this.availabilityError)
+			if (!this.availabilityConfigured) return false
+			return !this.availabilityUsable || Boolean(this.availabilityError)
 		},
 
 		/**
@@ -513,7 +575,7 @@ export default {
 		 * @return {Map<string, object>|null} The moves.
 		 */
 		moves() {
-			if (!this.availabilityConfigured || this.availabilityFailed) return null
+			if (!this.availabilityUsable || this.availabilityFailed) return null
 			if (this.availabilityBody === null) return null
 			return buildAvailability(getByPath(this.availabilityBody, this.content.availability.path), this.content.availability)
 		},
@@ -582,16 +644,37 @@ export default {
 				this.fetchSourceStages()
 			},
 		},
+		record(next, previous) {
+			if (next === previous) return
+			// A RE-READ RECORD IS AUTHORITATIVE, whatever it says.
+			//
+			// `movedTo` is the optimistic stage, shown so a move looks
+			// immediate. It used to be cleared only when `recordStageId`
+			// CHANGED, so a 200 that did not actually move the record (a guard
+			// the server enforced silently, a no-op transition) left the strip
+			// claiming a stage the record never reached, permanently, while the
+			// availability answer described the real one. The arrival of a
+			// fresh record ends the optimism either way.
+			this.movedTo = null
+		},
 		recordStageId(next, previous) {
 			if (next === previous) return
-			if (this.movedTo !== null) {
-				// The re-read record caught up with (or overtook) the move.
-				this.movedTo = null
-				return
-			}
 			// The record moved without us, so the old answer about what is
-			// reachable describes a stage the record has left.
-			if (this.availabilityConfigured && previous !== null) this.refetchAvailability(true)
+			// reachable describes a stage the record has left. After OUR move
+			// the refresh signal already triggered that refetch, and
+			// `awaitingGuards` is holding the strip until it lands.
+			if (this.availabilityUsable && previous !== null && !this.awaitingGuards) this.refetchAvailability(true)
+		},
+		availabilityLoading(next, previous) {
+			// The fresh guard answer has landed (or failed). Either way the map
+			// in hand now describes the stage the record is on.
+			if (previous && !next) this.awaitingGuards = false
+		},
+		availabilityBody() {
+			this.awaitingGuards = false
+		},
+		availabilityError() {
+			this.awaitingGuards = false
 		},
 	},
 
@@ -616,8 +699,16 @@ export default {
 		stageAccess(stage) {
 			const open = { disabled: false, reason: '', reasonVisible: false }
 			if (!this.transition) return open
-			// You cannot move to where you already are.
-			if (stage.id === this.currentStageId) return { disabled: true, reason: '', reasonVisible: false }
+			// You cannot move to where you already are. That is NOT the same as
+			// blocked, so it is not announced as blocked: the stage carries
+			// `aria-current="step"` and nothing else. Marking it
+			// `aria-disabled` on top said "you may not go here" about the place
+			// the record already is. `onStageClick` refuses it explicitly.
+			if (stage.id === this.currentStageId) return open
+			// A move is running, or the guard answer in hand is the one for the
+			// stage the record has just LEFT. Everything is disabled until the
+			// fresh answer lands, and the focus stops stay.
+			if (!this.canMove) return { disabled: true, reason: '', reasonVisible: false }
 			if (!this.availabilityConfigured) return open
 			if (this.availabilityFailed) {
 				return { disabled: true, reason: this.tr('Could not check whether this stage can be reached'), reasonVisible: false }
@@ -633,7 +724,39 @@ export default {
 			if (!move.allowed) {
 				return { disabled: true, reason: move.reason || this.tr('This move is blocked'), reasonVisible: true }
 			}
+			// A move that MUST carry a result, with nothing to choose from, is a
+			// dead end: the dialog would open with no picker and a confirm
+			// button that can never be enabled. Say so at the stage instead.
+			if (this.resultMode(stage, move) === 'required' && this.resultOptionsFor(move).length === 0) {
+				return { disabled: true, reason: this.tr('This move needs a result, and none is on offer'), reasonVisible: true }
+			}
 			return open
+		},
+
+		/**
+		 * The results a move may choose from: the move's own, else the ones the
+		 * stages response offered.
+		 *
+		 * @param {object|null} move The availability move.
+		 * @return {Array<{id: string, label: string}>} The choices.
+		 */
+		resultOptionsFor(move) {
+			return (move && move.resultOptions.length) ? move.resultOptions : this.resultChoices
+		},
+
+		/**
+		 * Whether a move asks for a result, and how hard.
+		 *
+		 * The move's own declaration wins. Without one, a stage that closes the
+		 * record requires a result, which is the rule the widget shipped with.
+		 *
+		 * @param {{final?: boolean}} stage The target stage.
+		 * @param {object|null} move The availability move.
+		 * @return {''|'optional'|'required'} The mode.
+		 */
+		resultMode(stage, move) {
+			if (move && move.result) return move.result
+			return (stage && stage.final) ? 'required' : ''
 		},
 
 		/**
@@ -645,6 +768,10 @@ export default {
 		 */
 		onStageClick({ stage }) {
 			if (!this.canMove || !stage) return
+			// The current stage is no longer marked disabled, so refuse it here.
+			// You cannot move to where you already are, and re-firing the move
+			// that just landed is exactly what a stray click would do.
+			if (stage.id === this.currentStageId) return
 			const target = this.timelineStages.find((s) => s.id === stage.id)
 			if (!target || target.disabled) return
 			const request = this.buildRequest(target)
@@ -665,17 +792,22 @@ export default {
 		buildRequest(stage) {
 			const move = this.moves ? this.moves.get(stage.id) : null
 			const row = this.stages.find((s) => s.id === stage.id)
-			const options = (move && move.resultOptions.length) ? move.resultOptions : this.resultChoices
-			const resultRequired = Boolean(((move && move.result) || (row && row.final)) && options.length > 0)
+			const options = this.resultOptionsFor(move)
+			// `'optional'` offers a result, `'required'` holds the confirm until
+			// one is picked. Collapsing the two made every declaration force a
+			// result, which is not what an endpoint saying `'optional'` asked
+			// for.
+			const mode = this.resultMode(row, move)
+			const asksResult = mode !== '' && options.length > 0
 			const always = this.content.confirm === 'always'
 			const commentMode = (move && move.comment) || (always ? 'optional' : 'none')
 			return {
 				stage: { id: stage.id, label: stage.label },
 				moveId: move ? move.moveId : stage.id,
 				commentMode,
-				resultOptions: resultRequired ? options : [],
-				resultRequired,
-				needsConfirm: always || commentMode !== 'none' || resultRequired,
+				resultOptions: asksResult ? options : [],
+				resultRequired: asksResult && mode === 'required',
+				needsConfirm: always || commentMode !== 'none' || asksResult,
 			}
 		},
 
@@ -720,6 +852,13 @@ export default {
 				this.movedTo = request.stage.id
 				this.pendingMove = null
 				this.statusMessage = this.tr('Moved to {stage}', { stage: request.stage.label })
+				// Block the strip until the guard answer for the NEW stage
+				// arrives. `busy` is cleared in the finally below, while the
+				// endpoint engine holds the previous answer until its refetch
+				// lands, and in that window the old map rendered as if it were
+				// current. Fails closed: if the refetch never reports, the strip
+				// stays disabled rather than clickable against a stale map.
+				if (this.availabilityUsable) this.awaitingGuards = true
 				/**
 				 * @event moved The record moved to another stage.
 				 * @type {{stage: string, move: string}}
@@ -785,13 +924,22 @@ export default {
 			if (!store) throw userError(this.tr('The move could not be made'))
 			const type = this.resolveType(store)
 			if (!type) throw userError(this.tr('The move could not be made'))
-			const payload = { ...record, [this.content.currentField]: request.stage.id }
-			if (!payload.id) {
-				const id = this.tokenCtx().objectId
-				if (id !== null && id !== undefined && id !== '') payload.id = id
+			// REFUSE rather than save without an id. `saveObject` picks PUT over
+			// POST purely on the presence of `id`, and an OpenRegister record
+			// carries its id in `@self`, not at the top level, so a record whose
+			// context id happened to be empty was POSTed as A BRAND NEW OBJECT
+			// and the widget then announced a successful move. The record the
+			// person was looking at never changed, and an orphan row was left
+			// behind. `CnDetailPage.onEditFormConfirm` refuses the same case for
+			// the same reason.
+			const id = this.recordId
+			if (id === '') {
+				throw userError(this.tr('Cannot move: this record has no id, so the move would create a duplicate instead of updating it.'))
 			}
-			if (input.comment) payload[tr.commentKey || 'comment'] = input.comment
-			if (input.result) payload[tr.resultKey || 'result'] = input.result
+			const extra = {}
+			if (input.comment) extra[tr.commentKey || 'comment'] = input.comment
+			if (input.result) extra[tr.resultKey || 'result'] = input.result
+			const payload = stageSavePayload(record, id, this.content.currentField, request.stage.id, extra)
 			const saved = await store.saveObject(type, payload)
 			if (!saved) {
 				const error = typeof store.getError === 'function' ? store.getError(type) : null

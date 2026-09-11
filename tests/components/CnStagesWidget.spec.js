@@ -352,6 +352,12 @@ describe('CnStagesWidget: guards', () => {
 		await flush()
 
 		expect(w.find('[data-testid="cn-stages-widget-availability-error"]').exists()).toBe(true)
+		// ASSERT THE REASON, NOT ONLY THE SILENCE. `moves` is null whenever the
+		// read failed, so the disabled-because-unknown branch produces exactly
+		// the same "no POST" as this one, and the test passed either way. This
+		// sentence is written in the failed branch and nowhere else.
+		expect(w.find('[data-testid="cn-stages-widget-reason-st-work"]').text())
+			.toBe('Could not check whether this stage can be reached')
 		await stageNode(w, 'st-work').trigger('click')
 		await flush()
 		expect(axios.post).not.toHaveBeenCalled()
@@ -487,5 +493,250 @@ describe('CnStagesWidget: the confirm step', () => {
 
 		expect(w.findComponent(CnStageMoveDialog).props('commentMode')).toBe('optional')
 		expect(axios.post).not.toHaveBeenCalled()
+	})
+})
+
+describe('CnStagesWidget: the guard answer has a lifetime', () => {
+	const openToWork = {
+		transitions: [
+			{ id: 'tr-work', toStatus: 'st-work', guardsPassed: true, failedGuards: [] },
+			{ id: 'tr-close', toStatus: 'st-done', guardsPassed: true, failedGuards: [] },
+		],
+	}
+
+	// A MOVE INVALIDATES THE MAP THAT MADE IT. `busy` clears the moment the
+	// POST resolves, while the endpoint engine holds the PREVIOUS answer until
+	// its refetch lands. In that window the widget rendered the old stage's
+	// guard map against the new current stage, fully clickable, and a click
+	// POSTed a move the server had just closed.
+	it('keeps every stage blocked until the fresh availability answer lands', async () => {
+		answerGets({ blueprint: BLUEPRINT, 'available-transitions': openToWork })
+		axios.post.mockResolvedValue({ data: {} })
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, availability: AVAILABILITY, transition: ENDPOINT_TRANSITION })
+		await flush()
+
+		// Hold the refetch open, so the window under test stays open.
+		let releaseAvailability
+		axios.get.mockImplementation((url) => {
+			if (url.includes('blueprint')) return Promise.resolve({ data: BLUEPRINT })
+			return new Promise((resolve) => { releaseAvailability = () => resolve({ data: { transitions: [] } }) })
+		})
+
+		await stageNode(w, 'st-work').trigger('click')
+		await flush()
+		expect(axios.post).toHaveBeenCalledTimes(1)
+
+		// The move landed and the strip is no longer busy, but the answer in
+		// hand describes st-new, the stage the record has left.
+		expect(w.vm.busy).toBe(false)
+		expect(w.vm.awaitingGuards).toBe(true)
+		expect(stageNode(w, 'st-done').attributes('aria-disabled')).toBe('true')
+		await stageNode(w, 'st-done').trigger('click')
+		await flush()
+		expect(axios.post).toHaveBeenCalledTimes(1)
+
+		releaseAvailability()
+		await flush()
+		expect(w.vm.awaitingGuards).toBe(false)
+	})
+
+	// A 200 IS NOT PROOF THE RECORD MOVED. `movedTo` used to be cleared only
+	// when the record's stage CHANGED, so a server that accepted the call and
+	// left the status alone left the strip claiming a stage the record never
+	// reached, for good, while availability described the real one.
+	it('drops the local stage when the re-read record did not move after all', async () => {
+		answerGets({ blueprint: BLUEPRINT })
+		axios.post.mockResolvedValue({ data: {} })
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: { kind: 'endpoint', url: '/api/move' } })
+		await flush()
+		await stageNode(w, 'st-work').trigger('click')
+		await flush()
+		expect(w.vm.movedTo).toBe('st-work')
+
+		// The page re-read the case and it is still on st-new.
+		w.context.value = { ...w.context.value, object: { id: 'case-1', caseType: 'ct-1', status: 'st-new' } }
+		await flush()
+
+		expect(w.vm.movedTo).toBeNull()
+		expect(stageNode(w, 'st-new').attributes('aria-current')).toBe('step')
+		expect(stageNode(w, 'st-work').attributes('aria-current')).toBeUndefined()
+	})
+
+	// A GUARD THAT CANNOT BE READ MUST BLOCK. Reading "configured" as "has a
+	// url" meant a typo in the key removed the guard entirely: every stage
+	// clickable, nothing logged, nothing on screen.
+	it('blocks every move when the availability block names no url', async () => {
+		answerGets({ blueprint: BLUEPRINT })
+		const w = mountWidget({
+			currentField: 'status',
+			stagesEndpoint: STAGES_ENDPOINT,
+			availability: { uri: '/apps/dossiq/api/case/@objectId/available-transitions', path: 'transitions' },
+			transition: ENDPOINT_TRANSITION,
+		})
+		await flush()
+
+		expect(stageNode(w, 'st-work').attributes('aria-disabled')).toBe('true')
+		expect(w.find('[data-testid="cn-stages-widget-reason-st-work"]').text())
+			.toBe('Could not check whether this stage can be reached')
+		await stageNode(w, 'st-work').trigger('click')
+		await flush()
+		expect(axios.post).not.toHaveBeenCalled()
+	})
+
+	it('leaves a widget with no availability block alone', async () => {
+		answerGets({ blueprint: BLUEPRINT })
+		axios.post.mockResolvedValue({ data: {} })
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: ENDPOINT_TRANSITION })
+		await flush()
+
+		expect(stageNode(w, 'st-work').attributes('aria-disabled')).toBeUndefined()
+		await stageNode(w, 'st-work').trigger('click')
+		await flush()
+		expect(axios.post).toHaveBeenCalled()
+	})
+})
+
+describe('CnStagesWidget: what the strip says while it works', () => {
+	// NOT-A-MOVE IS NOT BLOCKED. The current stage used to carry
+	// `aria-disabled="true"` alongside `aria-current="step"`, plus the disabled
+	// class and a not-allowed cursor, which told a screen reader "you may not
+	// go here" about the place the record already is.
+	it('does not announce the current stage as blocked', async () => {
+		answerGets({ blueprint: BLUEPRINT })
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: { kind: 'endpoint', url: '/api/move' } })
+		await flush()
+
+		const current = stageNode(w, 'st-new')
+		expect(current.attributes('aria-current')).toBe('step')
+		expect(current.attributes('aria-disabled')).toBeUndefined()
+		expect(current.classes()).not.toContain('cn-timeline-stages__stage--disabled')
+		expect(w.find('[data-testid="cn-stages-widget-reason-st-new"]').exists()).toBe(false)
+	})
+
+	// A MOVE IN FLIGHT MUST NOT EAT THE FOCUS STOPS. `clickable` drives the
+	// roving tabindex, so flipping it off while busy removed every stage's
+	// tabindex and dropped a keyboard user's focus to `body`, with nothing to
+	// restore it to.
+	it('keeps every focus stop while a move is running, and marks them busy', async () => {
+		answerGets({ blueprint: BLUEPRINT })
+		let settle
+		axios.post.mockImplementation(() => new Promise((resolve) => { settle = () => resolve({ data: {} }) }))
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: { kind: 'endpoint', url: '/api/move' } })
+		await flush()
+
+		const before = w.findAll('.cn-timeline-stages__stage').map((n) => n.attributes('tabindex'))
+		await stageNode(w, 'st-work').trigger('click')
+		await nextTick()
+
+		expect(w.vm.busy).toBe(true)
+		expect(w.attributes('aria-busy')).toBe('true')
+		expect(w.findAll('.cn-timeline-stages__stage').map((n) => n.attributes('tabindex'))).toEqual(before)
+		expect(before.some((t) => t === '0')).toBe(true)
+		expect(stageNode(w, 'st-done').attributes('aria-disabled')).toBe('true')
+
+		// A second click while the first is in flight sends nothing.
+		await stageNode(w, 'st-done').trigger('click')
+		expect(axios.post).toHaveBeenCalledTimes(1)
+
+		settle()
+		await flush()
+	})
+})
+
+describe('CnStagesWidget: the field transition writes a record OpenRegister accepts', () => {
+	/**
+	 * Mount bound to a record whose id lives only in the `@self` envelope.
+	 *
+	 * @param {object} record The bound record.
+	 * @param {object} context The object context, which may carry no id.
+	 * @return {object} The wrapper.
+	 */
+	function mountWithContext(record, context) {
+		const ctx = ref({ ...context, object: record })
+		const wrapper = mount(CnStagesWidget, {
+			props: { content: { currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: { kind: 'field' } } },
+			global: { provide: { cnObjectContext: ctx } },
+		})
+		wrapper.context = ctx
+		return wrapper
+	}
+
+	// A POST WHERE A PUT WAS MEANT CREATES A DUPLICATE AND REPORTS SUCCESS.
+	// `saveObject` picks its verb on the presence of `id` alone, and an
+	// OpenRegister record carries its id in `@self`.
+	it('reads the id out of the @self envelope when the context carries none', async () => {
+		answerGets({ blueprint: BLUEPRINT })
+		const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
+			ok: true,
+			json: async () => ({ id: 'case-1', status: 'st-work' }),
+		})
+		const w = mountWithContext(
+			{ '@self': { id: 'case-1' }, caseType: 'ct-1', status: 'st-new' },
+			{ objectId: '', register: 'dossiq', schema: 'case' },
+		)
+		await flush()
+
+		await stageNode(w, 'st-work').trigger('click')
+		await flush()
+
+		const put = fetchSpy.mock.calls.find(([, i]) => i && i.method === 'PUT')
+		expect(put).toBeDefined()
+		expect(fetchSpy.mock.calls.some(([, i]) => i && i.method === 'POST')).toBe(false)
+		expect(String(put[0])).toContain('/objects/dossiq/case/case-1')
+	})
+
+	it('refuses the move rather than creating a duplicate when there is no id at all', async () => {
+		answerGets({ blueprint: BLUEPRINT })
+		const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, json: async () => ({}) })
+		const w = mountWithContext(
+			{ caseType: 'ct-1', status: 'st-new' },
+			{ objectId: '', register: 'dossiq', schema: 'case' },
+		)
+		await flush()
+
+		await stageNode(w, 'st-work').trigger('click')
+		await flush()
+
+		expect(fetchSpy.mock.calls.some(([, i]) => i && (i.method === 'POST' || i.method === 'PUT'))).toBe(false)
+		expect(w.find('[data-testid="cn-stages-widget-error"]').text())
+			.toBe('Cannot move: this record has no id, so the move would create a duplicate instead of updating it.')
+		expect(w.emitted('moved')).toBeUndefined()
+		expect(stageNode(w, 'st-new').attributes('aria-current')).toBe('step')
+	})
+
+	// OpenRegister REFUSES {}, [] and null on an object property. Sending the
+	// record straight back meant a case carrying one empty object property
+	// could not change its stage at all, on the registry's DEFAULT transition.
+	it('omits @self and the empty shapes OpenRegister refuses', async () => {
+		answerGets({ blueprint: BLUEPRINT })
+		const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
+			ok: true,
+			json: async () => ({ id: 'case-1', status: 'st-work' }),
+		})
+		const w = mountWithContext(
+			{
+				'@self': { id: 'case-1', schema: 'case' },
+				id: 'case-1',
+				caseType: 'ct-1',
+				status: 'st-new',
+				applicant: {},
+				documents: [],
+				closedAt: null,
+				reference: 'Z-2026-1',
+			},
+			{ objectId: 'case-1', register: 'dossiq', schema: 'case' },
+		)
+		await flush()
+
+		await stageNode(w, 'st-work').trigger('click')
+		await flush()
+
+		const [, init] = fetchSpy.mock.calls.find(([, i]) => i && i.method === 'PUT')
+		const body = JSON.parse(init.body)
+		expect(body).not.toHaveProperty('@self')
+		expect(body).not.toHaveProperty('applicant')
+		expect(body).not.toHaveProperty('documents')
+		expect(body).not.toHaveProperty('closedAt')
+		expect(body).toMatchObject({ id: 'case-1', status: 'st-work', caseType: 'ct-1', reference: 'Z-2026-1' })
 	})
 })

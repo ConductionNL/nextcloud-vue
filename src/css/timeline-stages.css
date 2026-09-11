@@ -222,6 +222,17 @@
 	cursor: not-allowed;
 }
 
+/* The stage the record is ON is not a move, and it is not blocked either. It
+   carries no `aria-disabled` and no not-allowed cursor: both said "you may not
+   go here" about the place the record already is. It simply offers nothing. */
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--current {
+	cursor: default;
+}
+
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--current:hover {
+	background-color: transparent;
+}
+
 .cn-timeline-stages--clickable .cn-timeline-stages__stage--disabled:hover {
 	background-color: transparent;
 }

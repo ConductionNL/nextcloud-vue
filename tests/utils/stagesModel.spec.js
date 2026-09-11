@@ -11,6 +11,7 @@ import {
 	normalizeOptions,
 	normalizeStages,
 	refusalReason,
+	stageSavePayload,
 } from '../../src/components/CnStagesWidget/stagesModel.js'
 
 describe('normalizeStages', () => {
@@ -71,14 +72,60 @@ describe('buildAvailability', () => {
 			{ stage: 's2', allowed: true, requiresComment: 'required', requiresResult: true, resultOptions: [{ id: 'r', name: 'R' }] },
 			{ stage: 's3', allowed: false, reason: 'Missing a document' },
 		])
-		expect(moves.get('s2')).toEqual({ moveId: 's2', allowed: true, reason: '', comment: 'required', result: true, resultOptions: [{ id: 'r', label: 'R' }] })
+		expect(moves.get('s2')).toEqual({ moveId: 's2', allowed: true, reason: '', comment: 'required', result: 'optional', resultOptions: [{ id: 'r', label: 'R' }] })
 		expect(moves.get('s3')).toMatchObject({ allowed: false, reason: 'Missing a document' })
 	})
 
-	it('blocks only on an explicit false', () => {
-		const moves = buildAvailability([{ stage: 's2' }, { stage: 's3', allowed: 0 }])
-		expect(moves.get('s2').allowed).toBe(true)
-		expect(moves.get('s3').allowed).toBe(true)
+	// THE GUARD MUST FAIL CLOSED ON EVERY SHAPE OF FALSE. A JSON round trip, a
+	// database column or a form post produces '0', 'false' and 0 where the
+	// schema said boolean, and each one used to read as "not refused": the
+	// stage rendered enabled and a click POSTed a move the server had closed,
+	// with the refusal reason discarded because it is only read when blocked.
+	it.each([
+		[false],
+		[0],
+		['0'],
+		['false'],
+	])('blocks on %p', (value) => {
+		const moves = buildAvailability([{ stage: 's', allowed: value, reason: 'Not yours to make' }])
+		expect(moves.get('s').allowed).toBe(false)
+		expect(moves.get('s').reason).toBe('Not yours to make')
+	})
+
+	// ABSENT MEANS ALLOWED, deliberately: an endpoint that lists only the
+	// reachable stages says nothing about the flag, and must keep working.
+	it.each([
+		[undefined],
+		[null],
+		[true],
+		['true'],
+		[1],
+		['1'],
+	])('allows %p', (value) => {
+		const moves = buildAvailability([{ stage: 's', allowed: value }])
+		expect(moves.get('s').allowed).toBe(true)
+	})
+
+	it('does not read a stage id or a label as a refusal', () => {
+		// '' and 'no' are neither in the true list nor the false list. Only the
+		// four decided shapes block, so a stray value never silently closes a
+		// stage the server left open.
+		expect(buildAvailability([{ stage: 's', allowed: '' }]).get('s').allowed).toBe(true)
+		expect(buildAvailability([{ stage: 's', allowed: 'no' }]).get('s').allowed).toBe(true)
+	})
+
+	// `result` carries the SAME three-state mode as `comment`. Collapsed to a
+	// boolean, 'optional' forced a result nobody asked for and 'required' was
+	// indistinguishable from it.
+	it.each([
+		['required', 'required'],
+		['optional', 'optional'],
+		[true, 'optional'],
+		[false, ''],
+		[undefined, ''],
+	])('reads requiresResult %p as %p', (value, mode) => {
+		const moves = buildAvailability([{ stage: 's', requiresResult: value }])
+		expect(moves.get('s').result).toBe(mode)
 	})
 
 	it('maps a dossiq-shaped answer through the configured fields', () => {
@@ -114,5 +161,66 @@ describe('refusalReason', () => {
 	it('returns nothing for a body that says nothing', () => {
 		expect(refusalReason(undefined)).toBe('')
 		expect(refusalReason({ code: 409 })).toBe('')
+	})
+})
+
+describe('stageSavePayload', () => {
+	// A `field` transition is a PUT, and the registry default, so this is the
+	// out-of-the-box write path.
+	const record = {
+		'@self': { id: 'c-1', register: 'dossiq', schema: 'case' },
+		id: 'c-1',
+		title: 'A case',
+		status: 'st-new',
+		assignee: null,
+		attachments: [],
+		address: {},
+		open: false,
+		count: 0,
+		note: '',
+	}
+
+	it('sets the stage and the id', () => {
+		const payload = stageSavePayload(record, 'c-1', 'status', 'st-work')
+		expect(payload.status).toBe('st-work')
+		expect(payload.id).toBe('c-1')
+	})
+
+	it('keeps the record’s own properties, because a PUT replaces the object', () => {
+		const payload = stageSavePayload(record, 'c-1', 'status', 'st-work')
+		expect(payload.title).toBe('A case')
+	})
+
+	// OpenRegister REFUSES {}, [] and null on an object property, and says so by
+	// rejecting the whole write. Sending the record straight back meant a case
+	// carrying one empty object property could not change its stage at all.
+	it('omits the shapes OpenRegister refuses', () => {
+		const payload = stageSavePayload(record, 'c-1', 'status', 'st-work')
+		expect(payload).not.toHaveProperty('assignee')
+		expect(payload).not.toHaveProperty('attachments')
+		expect(payload).not.toHaveProperty('address')
+	})
+
+	it('keeps falsey values that are not empty', () => {
+		const payload = stageSavePayload(record, 'c-1', 'status', 'st-work')
+		expect(payload.open).toBe(false)
+		expect(payload.count).toBe(0)
+		expect(payload.note).toBe('')
+	})
+
+	it('never sends the @self envelope, which is the server’s, not a property', () => {
+		expect(stageSavePayload(record, 'c-1', 'status', 'st-work')).not.toHaveProperty('@self')
+	})
+
+	it('carries the comment and the result under the configured keys', () => {
+		const payload = stageSavePayload(record, 'c-1', 'status', 'st-done', { toelichting: 'Done', resultaat: 'r-1' })
+		expect(payload.toelichting).toBe('Done')
+		expect(payload.resultaat).toBe('r-1')
+	})
+
+	it('lets the stage and the id win over anything the extras carry', () => {
+		const payload = stageSavePayload(record, 'c-1', 'status', 'st-done', { status: 'nonsense', id: 'other' })
+		expect(payload.status).toBe('st-done')
+		expect(payload.id).toBe('c-1')
 	})
 })
