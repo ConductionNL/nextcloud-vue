@@ -24,12 +24,18 @@
 				     undefined and the picker throws on its first colour
 				     change. `value` is kept as this component's own public
 				     prop name so consumers are unaffected. -->
+				<!-- `@ckpack/vue-color` emits `update:modelValue`, never
+				     `input`. Re-emitting is what keeps this component's own
+				     documented `@input` contract working; forwarding a
+				     consumer's listener through `$attrs` did not, because
+				     nothing downstream ever fires that event. -->
 				<ChromeColorPicker
 					ref="picker"
 					v-bind="$attrs"
 					class="cn-color-picker__chrome"
 					:class="{ 'cn-color-picker__chrome--locked-mode': mode !== null }"
-					:model-value="value || '#000000'" />
+					:model-value="value || '#000000'"
+					@update:model-value="onPick" />
 			</div>
 		</NcPopover>
 		<!-- Inline clear affordance: sits next to the swatch and only appears
@@ -61,11 +67,11 @@ import Close from 'vue-material-design-icons/Close.vue'
  *
  * ### Prop forwarding
  *
- * `CnColorPicker` declares only `value`, `disabled`, and `mode` itself. **All
- * other props and listeners are forwarded** to the underlying `Chrome` picker
- * via `v-bind="$attrs"` and `v-on="$listeners"`, so the full vue-color API
- * stays available even though those props aren't listed in the auto-generated
- * table above.
+ * `CnColorPicker` declares only `value`, `disabled`, `mode` and `clearable`
+ * itself. **Every other attribute is forwarded** to the underlying `Chrome`
+ * picker via `v-bind="$attrs"`, so the full vue-color API stays available even
+ * though those props aren't listed in the auto-generated table above. The two
+ * events below are this component's own and are not forwarded.
  *
  * Most commonly used forwarded props:
  *
@@ -86,8 +92,8 @@ import Close from 'vue-material-design-icons/Close.vue'
  * `$event.rgba`, or the whole object) when you want alpha to round-trip —
  * `$event.hex` is the 6-char form and silently strips transparency.
  *
- * @event input Forwarded from `Chrome`. Payload: vue-color color object
- *              `{ hex, hex8, rgba, hsl, hsv, a, source }`.
+ * @event input Re-emitted from `Chrome`'s `update:modelValue`. Payload:
+ *              vue-color color object `{ hex, hex8, rgba, hsl, hsv, a, source }`.
  * @event clear Emitted when the user presses the inline clear (×) button
  *              shown next to the swatch (only rendered when `clearable`). No payload — the parent decides what "no color"
  *              means (e.g. set the bound value to `''`/`null`).
@@ -142,7 +148,9 @@ export default {
 		},
 	},
 
-	emits: ['clear'],
+	// `input` must be declared: an undeclared listener stays in `$attrs` and
+	// falls through to the Chrome picker, which never emits it.
+	emits: ['clear', 'input'],
 
 	data() {
 		return {
@@ -205,6 +213,21 @@ export default {
 			 */
 			this.$emit('clear')
 			this.open = false
+		},
+
+		/**
+		 * Re-emit the Chrome picker's colour under this component's own event
+		 * name.
+		 *
+		 * @param {object} color vue-color colour object `{ hex, hex8, rgba, … }`.
+		 * @return {void}
+		 */
+		onPick(color) {
+			/**
+			 * @event input Payload: vue-color colour object
+			 *              `{ hex, hex8, rgba, hsl, hsv, a, source }`.
+			 */
+			this.$emit('input', color)
 		},
 
 		/** Pin the Chrome picker's `fieldsIndex` to the requested mode. */
