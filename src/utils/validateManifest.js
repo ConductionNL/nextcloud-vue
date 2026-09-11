@@ -186,7 +186,8 @@ export function validateManifestV2(manifest) {
 				const gx = widget.gridX
 				const gw = widget.gridWidth
 				if (typeof gx === 'number' && typeof gw === 'number') {
-					const resolved = resolveSlotColumns(widget.slot, isPlainObject(page.config) ? page.config.slotColumns : null); if (gx + gw > resolved) {
+					const resolved = resolveSlotColumns(widget.slot, isPlainObject(page.config) ? page.config.slotColumns : null)
+					if (gx + gw > resolved) {
 						errors.push(`pages[${pIndex}]/widgets[${wIndex}]: Widget '${widget.widgetKey}' in slot '${widget.slot}': gridX (${gx}) + gridWidth (${gw}) exceeds ${resolved}`)
 					}
 				}
@@ -962,6 +963,11 @@ function isPlainObject(value) {
 	return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
+// The accepted `type` values for `fields[]` entries: the settings-page set,
+// and the form-page set, which also accepts `file` (see validateFieldsArray).
+const FORM_FIELD_TYPES = ['boolean', 'number', 'string', 'enum', 'password', 'json']
+const FORM_PAGE_FIELD_TYPES = [...FORM_FIELD_TYPES, 'file']
+
 /**
  * Validate a page's `config` object against per-type rules for the
  * built-in extended types: `logs`, `settings`, `chat`, `files`, `map`.
@@ -1599,6 +1605,14 @@ function validateConfigMode(cfg, pathSlash, pathBracket, errors) {
 }
 
 /**
+ * REQ-MAD-1 — Allowed shapes for `actions[].handler`. Either a
+ * reserved keyword (`navigate` | `emit` | `none`) or a JS-identifier
+ * registry name (alphanumeric + underscore, leading letter). Mirrors
+ * the schema's `pattern` on the `handler` property.
+ */
+const HANDLER_PATTERN = /^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$/
+
+/**
  * Validate `config.actions[]` for index page type
  * (`manifest-config-refs` REQ-MCR). Each entry MUST be an object with
  * non-empty `id` and `label` strings — matches the `action` $def's
@@ -1646,14 +1660,6 @@ function validateActionsArray(cfg, pathSlash, pathBracket, errors) {
 		}
 	})
 }
-
-/**
- * REQ-MAD-1 — Allowed shapes for `actions[].handler`. Either a
- * reserved keyword (`navigate` | `emit` | `none`) or a JS-identifier
- * registry name (alphanumeric + underscore, leading letter). Mirrors
- * the schema's `pattern` on the `handler` property.
- */
-const HANDLER_PATTERN = /^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$/
 
 /**
  * Validate `config.actionToggles` for index page type
@@ -2127,8 +2133,6 @@ function validateContentArray(cfg, pathSlash, pathBracket, errors) {
  * @param {string[]} [allowedTypes] The accepted `type` values. Defaults to
  *   the settings set, `FORM_FIELD_TYPES`.
  */
-const FORM_FIELD_TYPES = ['boolean', 'number', 'string', 'enum', 'password', 'json']
-const FORM_PAGE_FIELD_TYPES = [...FORM_FIELD_TYPES, 'file']
 function validateFieldsArray(fields, fieldsPath, errors, allowedTypes = FORM_FIELD_TYPES) {
 	if (!Array.isArray(fields)) {
 		return

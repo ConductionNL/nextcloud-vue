@@ -119,11 +119,11 @@ export function resolveFilterValue(v, ctx) {
 	if (v === '@me') {
 		// Canonical source is @nextcloud/auth; window.OC is the fallback for
 		// environments where the auth package can't read the page state (jsdom).
-		let uid = null
+		let uid
 		try {
 			const user = getCurrentUser()
 			uid = user && user.uid
-		} catch (e) {
+		} catch {
 			uid = null
 		}
 		return uid || (typeof window !== 'undefined' && window.OC && window.OC.currentUser) || ''

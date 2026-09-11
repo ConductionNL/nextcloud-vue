@@ -341,7 +341,7 @@ export default {
 				 * @type {{ id: string }}
 				 */
 				this.$emit('installed', { id: dep.id })
-			} catch (e) {
+			} catch {
 				this.erroredId = dep.id
 			} finally {
 				this.busyId = ''

@@ -199,7 +199,7 @@ export default {
 		isAdmin() {
 			try {
 				return getCurrentUser()?.isAdmin === true
-			} catch (e) {
+			} catch {
 				return false
 			}
 		},
@@ -221,7 +221,7 @@ export default {
 			try {
 				await this.installer.installAndEnable(dep.id)
 				window.location.reload()
-			} catch (e) {
+			} catch {
 				// Error surfaced via `error`; the fallback store link stays.
 				// A cancelled password confirmation also lands here (no text).
 				this.erroredDepId = dep.id

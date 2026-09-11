@@ -255,7 +255,7 @@ export default {
 				const value = await readVisibleWhenValue(cond)
 				this.conditionValue = value
 				this.conditionMet = compareVisibleWhen(value, cond.op || 'eq', cond.value)
-			} catch (e) {
+			} catch {
 				this.conditionMet = false
 				this.conditionValue = null
 			}

@@ -242,7 +242,7 @@ async function defaultGetAppConfigValue(appId, key) {
 				}
 				return data
 			}
-		} catch (e) {
+		} catch {
 			// Silent — caller treats as "unset".
 		}
 		return null
@@ -272,7 +272,7 @@ function readInitialState(appId, key) {
 		// `#initial-state-*` element is missing and no fallback is supplied —
 		// that is a real, expected runtime condition, not a resolution failure.
 		return loadState(appId, key, undefined)
-	} catch (e) {
+	} catch {
 		// No slot provisioned for this app/key — the documented "absent" case.
 	}
 	return undefined

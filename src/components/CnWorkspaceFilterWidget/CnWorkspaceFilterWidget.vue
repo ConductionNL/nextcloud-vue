@@ -294,7 +294,7 @@ export default {
 					workspace: this.readWorkspaceBag(),
 				})
 				this.fetchedOptions = Array.isArray(payload) ? payload : []
-			} catch (e) {
+			} catch {
 				this.fetchedOptions = []
 			} finally {
 				this.loading = false
@@ -331,7 +331,7 @@ export default {
 				this.fetchedOptions = groups
 					.filter((g) => g.key !== null && g.key !== undefined && g.key !== '')
 					.map((g) => ({ value: g.key, label: String(g.key), count: Number(g.value) || 0 }))
-			} catch (e) {
+			} catch {
 				this.fetchedOptions = []
 			} finally {
 				this.loading = false

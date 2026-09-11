@@ -63,7 +63,7 @@ export function readVisibleWhenPath(data, field) {
 	if (!field) {
 		return data
 	}
-	return String(field).split('.').reduce((obj, key) => (obj == null ? obj : obj[key]), data)
+	return String(field).split('.').reduce((obj, key) => (obj === null || obj === undefined ? obj : obj[key]), data)
 }
 
 /**
@@ -177,7 +177,7 @@ export async function evaluateVisibleWhen(cond, ctx) {
 		}
 		const actual = await readVisibleWhenValue(cond, ctx)
 		return compareVisibleWhen(actual, cond.op || 'eq', cond.value)
-	} catch (e) {
+	} catch {
 		return false
 	}
 }
@@ -222,7 +222,7 @@ export function evaluateVisibleWhenLocal(cond, data) {
 	try {
 		const actual = readVisibleWhenPath(data, cond.field)
 		return compareVisibleWhen(actual, cond.op || 'eq', cond.value)
-	} catch (e) {
+	} catch {
 		return false
 	}
 }

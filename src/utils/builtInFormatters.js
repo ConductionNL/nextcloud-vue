@@ -34,7 +34,7 @@ import { safeCurrencyCode } from './formatMetric.js'
  * @return {Date|null} A `Date` instance, or `null` if the input is null/empty/unparseable.
  */
 function toDate(value) {
-	if (value == null || value === '') {
+	if (value === null || value === undefined || value === '') {
 		return null
 	}
 	if (value instanceof Date) {
@@ -52,7 +52,7 @@ function toDate(value) {
  * @return {string} Formatted date, or `''` for null/empty, or `String(value)` for unparseable.
  */
 export function formatDate(value) {
-	if (value == null || value === '') {
+	if (value === null || value === undefined || value === '') {
 		return ''
 	}
 	const d = toDate(value)
@@ -70,7 +70,7 @@ export function formatDate(value) {
  * @return {string} Formatted date + time, or `''` for null/empty, or `String(value)` for unparseable.
  */
 export function formatDateTime(value) {
-	if (value == null || value === '') {
+	if (value === null || value === undefined || value === '') {
 		return ''
 	}
 	const d = toDate(value)
@@ -89,7 +89,7 @@ export function formatDateTime(value) {
  * @return {string} Relative phrasing, or `''` for null/empty, or `String(value)` for unparseable.
  */
 export function formatRelativeTime(value) {
-	if (value == null || value === '') {
+	if (value === null || value === undefined || value === '') {
 		return ''
 	}
 	const d = toDate(value)
@@ -144,7 +144,7 @@ function dayDiffFromToday(d) {
  * @return {string} The relative-day phrasing (or ''/original on bad input).
  */
 export function formatDaysUntil(value) {
-	if (value == null || value === '') {
+	if (value === null || value === undefined || value === '') {
 		return ''
 	}
 	const d = toDate(value)
@@ -176,7 +176,7 @@ export function formatDaysUntil(value) {
  * @return {string} The relative-day phrasing (or ''/original on bad input).
  */
 export function formatDaysSince(value) {
-	if (value == null || value === '') {
+	if (value === null || value === undefined || value === '') {
 		return ''
 	}
 	const d = toDate(value)
@@ -210,7 +210,7 @@ export function formatDaysSince(value) {
  * @return {string} The locale currency string (or ''/original on bad input).
  */
 export function formatCurrency(value, _row, _property, options) {
-	if (value == null || value === '') {
+	if (value === null || value === undefined || value === '') {
 		return ''
 	}
 	const num = Number(value)
@@ -247,7 +247,7 @@ export function formatCurrency(value, _row, _property, options) {
  * @return {string} The selected phrase with `{n}` substituted (or ''/original on bad input).
  */
 export function formatConditionalPhrase(value, _row, _property, options) {
-	if (value == null || value === '') {
+	if (value === null || value === undefined || value === '') {
 		return ''
 	}
 	const num = Number(value)
@@ -286,7 +286,7 @@ function parseCollection(value) {
 	try {
 		const parsed = JSON.parse(trimmed)
 		return (parsed !== null && typeof parsed === 'object') ? parsed : value
-	} catch (e) {
+	} catch {
 		return value
 	}
 }
@@ -316,7 +316,7 @@ export function formatCount(value, _row, _property, options) {
 	// used to fall through to the scalar branch and count as one entry, so a
 	// column over a `0` rendered "1 retry" — the singular of a thing that isn't
 	// there.
-	if (value == null || value === '' || value === 0 || value === false) {
+	if (value === null || value === undefined || value === '' || value === 0 || value === false) {
 		return zero
 	}
 	const collection = parseCollection(value)

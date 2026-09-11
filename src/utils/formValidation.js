@@ -144,10 +144,10 @@ export function validateFieldValue(field, value, translate) {
 
 	// 3. pattern — string/password only.
 	if ((type === 'string' || type === 'password') && typeof validation.pattern === 'string' && !isEmptyValue(type, value)) {
-		let matches = true
+		let matches
 		try {
 			matches = new RegExp(validation.pattern).test(String(value))
-		} catch (e) {
+		} catch {
 			// An uncompilable pattern is a schema-authoring error caught by
 			// validateManifestV2() post-schema — never block the end user here.
 			matches = true

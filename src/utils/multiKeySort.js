@@ -27,7 +27,7 @@ function readField(row, field) {
 		return undefined
 	}
 	if (field.includes('.')) {
-		return field.split('.').reduce((obj, k) => (obj == null ? undefined : obj[k]), row)
+		return field.split('.').reduce((obj, k) => (obj === null || obj === undefined ? undefined : obj[k]), row)
 	}
 	if (row[field] === undefined && row['@self'] && typeof row['@self'] === 'object') {
 		return row['@self'][field]

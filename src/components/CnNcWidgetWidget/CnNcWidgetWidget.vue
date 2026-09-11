@@ -319,7 +319,7 @@ export default {
 					if (result && typeof result.then === 'function') {
 						result.catch(fallback)
 					}
-				} catch (e) {
+				} catch {
 					fallback()
 				}
 			})
@@ -352,7 +352,7 @@ export default {
 				// failed request says nothing about the widget, so it keeps
 				// the ordinary empty state rather than a claim about the app.
 				this.unsupported = data !== null && (widgetData === null || widgetData === undefined)
-			} catch (e) {
+			} catch {
 				this.items = []
 				this.unsupported = false
 			} finally {

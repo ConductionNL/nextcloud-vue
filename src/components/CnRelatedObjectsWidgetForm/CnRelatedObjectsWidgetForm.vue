@@ -136,7 +136,8 @@ export default {
 		 * @return {void}
 		 */
 		updateField(field, value) {
-			this[field] = value; this.emitChange()
+			this[field] = value
+			this.emitChange()
 		},
 
 		/**

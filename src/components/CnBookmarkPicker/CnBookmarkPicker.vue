@@ -244,7 +244,7 @@ export default {
 			try {
 				const url = new URL(bookmark.url)
 				return `${url.origin}/favicon.ico`
-			} catch (e) {
+			} catch {
 				return ''
 			}
 		},

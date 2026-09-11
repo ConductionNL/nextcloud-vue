@@ -469,7 +469,7 @@ export default {
 					const payload = await fetchEndpointSource(action.stateSource, this.tokenCtx)
 					const value = action.field ? this.readField(payload, action.field) : payload
 					this.toggleState[action.id] = Boolean(value)
-				} catch (e) {
+				} catch {
 					// Leave the default (off); a failed state read never breaks the bar.
 				}
 			}
@@ -486,7 +486,7 @@ export default {
 			if (!field) {
 				return data
 			}
-			return String(field).split('.').reduce((o, k) => (o == null ? o : o[k]), data)
+			return String(field).split('.').reduce((o, k) => (o === null || o === undefined ? o : o[k]), data)
 		},
 
 		/**
@@ -634,7 +634,7 @@ export default {
 				const store = useObjectStore()
 				const type = resolveObjectOpType(store, { register, schema })
 				this.formSchema = await store.fetchSchema(type)
-			} catch (e) {
+			} catch {
 				this.formSchema = null
 			}
 			if (!this.formSchema) {

@@ -630,7 +630,7 @@ export default {
 				try {
 					this.$router.push(url)
 					return
-				} catch (e) {
+				} catch {
 					// Fall through to location assignment.
 				}
 			}

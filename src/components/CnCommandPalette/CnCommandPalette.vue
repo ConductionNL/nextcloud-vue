@@ -627,7 +627,7 @@ export default {
 			const token = ++this.objectSearchToken
 			const query = this.query
 			this.objectLoading = true
-			let results = []
+			let results
 			try {
 				results = await this.objectSearch(query)
 			} catch (e) {

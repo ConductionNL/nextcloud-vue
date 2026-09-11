@@ -272,7 +272,7 @@ export default {
 		 * @return {boolean}
 		 */
 		isComponentIcon(icon) {
-			return icon != null && typeof icon !== 'string'
+			return icon !== null && icon !== undefined && typeof icon !== 'string'
 		},
 	},
 }

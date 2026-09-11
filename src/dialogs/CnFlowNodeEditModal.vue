@@ -567,7 +567,7 @@ export default {
 						}
 					})
 					.filter((option) => option.value !== '')
-			} catch (error) {
+			} catch {
 				// A failed lookup must not clear what is already picked: the
 				// selected options are synthesised from the document, not from
 				// this list.
@@ -599,7 +599,7 @@ export default {
 					.filter((row) => row.source === 'users')
 					.map((row) => ({ id: String(row.id ?? ''), label: String(row.label ?? row.id ?? '') }))
 					.filter((row) => row.id !== '')
-			} catch (error) {
+			} catch {
 				this.users = []
 			} finally {
 				this.usersLoading = false
@@ -840,7 +840,7 @@ export default {
 				delete rest[key]
 				this.jsonErrors = rest
 				this.setKey(key, parsed)
-			} catch (e) {
+			} catch {
 				this.jsonErrors = {
 					...this.jsonErrors,
 					[key]: this.t('nextcloud-vue', 'Not valid JSON, so this option keeps its previous value.'),
@@ -867,7 +867,7 @@ export default {
 				this.draft.config = parsed
 				this.jsonDrafts = {}
 				this.jsonErrors = {}
-			} catch (e) {
+			} catch {
 				this.advancedError = this.t('nextcloud-vue', 'Not valid JSON, so the configuration keeps its previous value.')
 			}
 		},

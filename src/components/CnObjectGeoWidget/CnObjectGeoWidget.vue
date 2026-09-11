@@ -707,7 +707,7 @@ export default {
 				 * @type {object|null}
 				 */
 				this.$emit('update:geo', newGeo)
-			} catch (e) {
+			} catch {
 				this.error = t('nextcloud-vue', 'Could not save the location.')
 			} finally {
 				this.saving = false

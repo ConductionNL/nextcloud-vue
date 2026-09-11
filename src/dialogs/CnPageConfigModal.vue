@@ -1125,7 +1125,7 @@ export default {
 		 */
 		mapConfigValue(key) {
 			const mc = this.page && this.page.config && this.page.config.mapConfig
-			return (mc && typeof mc === 'object' && mc[key] != null) ? mc[key] : ''
+			return (mc && typeof mc === 'object' && mc[key] !== null && mc[key] !== undefined) ? mc[key] : ''
 		},
 
 		/**
@@ -1323,7 +1323,8 @@ export default {
 		setSortField(option) {
 			const config = this.ensureConfig()
 			if (!option) {
-				delete config.defaultSort; return
+				delete config.defaultSort
+				return
 			}
 			const order = (this.defaultSortArray[0] && this.defaultSortArray[0].order) || 'asc'
 			config.defaultSort = [{ field: option.value, order }]
@@ -1365,7 +1366,7 @@ export default {
 				const parsed = JSON.parse(trimmed)
 				delete this.jsonErrors[key]
 				config[key] = parsed
-			} catch (e) {
+			} catch {
 				this.jsonErrors[key] = true
 			}
 		},

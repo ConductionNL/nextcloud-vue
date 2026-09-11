@@ -278,7 +278,7 @@ export default {
 			list.forEach((f) => {
 				const node = byId[f[this.idField]]
 				const parent = f[this.parentField]
-				if (parent != null && byId[parent]) {
+				if (parent !== null && parent !== undefined && byId[parent]) {
 					byId[parent].children.push(node)
 				} else {
 					roots.push(node)
@@ -324,7 +324,7 @@ export default {
 			const counts = new Map()
 			this.objects.forEach((obj) => {
 				const value = obj[this.groupBy]
-				if (value == null || value === '') {
+				if (value === null || value === undefined || value === '') {
 					return
 				}
 				counts.set(value, (counts.get(value) || 0) + 1)

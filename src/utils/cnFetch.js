@@ -105,7 +105,7 @@ export async function cnFetchJson(url, options = {}) {
 	if (raw !== '') {
 		try {
 			parsed = JSON.parse(raw)
-		} catch (e) {
+		} catch {
 			parsed = raw
 		}
 	}
