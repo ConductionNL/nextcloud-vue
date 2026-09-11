@@ -346,7 +346,7 @@ export default {
 		 * group, so they collect under the host's own heading at the end.
 		 */
 		groupedItems() {
-			const byKey = new Map(GROUPS.map((g) => [g.key, { ...g, items: [] }]))
+			const byKey = new Map(GROUPS.map((g) => [g.key, { ...g, label: t('nextcloud-vue', g.label), items: [] }]))
 			const ungrouped = []
 
 			for (const item of this.metadataItems) {
@@ -382,7 +382,10 @@ export default {
 				if (raw === undefined || raw === null) continue
 
 				items.push({
-					label: def.label,
+					// Translated at use, not at import: the bundles register
+					// after this module loads, and a label resolved at import
+					// time would stay English for every reader.
+					label: t('nextcloud-vue', def.label),
 					value: this.formatMetadataValue(raw, def),
 					group: def.group,
 					href: this.hrefFor(raw, def),
@@ -415,7 +418,7 @@ export default {
 				if (absent && !(hasDecision && (def.core || this.include))) continue
 
 				items.push({
-					label: def.label,
+					label: t('nextcloud-vue', def.label),
 					value: this.formatMetadataValue(raw, def),
 					group: def.group,
 					empty: absent,
