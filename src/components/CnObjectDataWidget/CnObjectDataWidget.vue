@@ -15,6 +15,7 @@
 		:show-actions="showActions"
 		:borderless="borderless"
 		:flush="flush"
+		:chromeless="chromeless"
 		:widget-id="widgetId || objectType"
 		:documentation-url="documentationUrl"
 		:class="{ 'cn-object-data-widget--expanded': overflowing && expanded }"
@@ -542,6 +543,23 @@ export default {
 		 * @type {boolean}
 		 */
 		flush: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Draw no card at all: no border, no background, no content padding,
+		 * no title row, no header divider. What a tab panel wants, in one word
+		 * instead of three, and the word `CnDetailWidgetHost` already uses for
+		 * this on its integration path.
+		 *
+		 * It had to become a real prop. Until it was one, a `chromeless` passed
+		 * here fell into `$attrs`, landed on the wrapper's root element as a
+		 * plain HTML attribute, and changed nothing — a caller asking for the
+		 * documented thing got a silent no-op with an attribute in the DOM to
+		 * suggest it had worked.
+		 * @type {boolean}
+		 */
+		chromeless: {
 			type: Boolean,
 			default: false,
 		},
