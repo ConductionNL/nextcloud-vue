@@ -185,7 +185,7 @@ export default {
 		 * Toggle a node's expanded state by id. Emits
 		 * `update:expanded-ids` with the new array.
 		 *
-		 * @param {*} id Node id.
+		 * @param {string|number} id Node id.
 		 * @return {void}
 		 */
 		toggleNode(id) {

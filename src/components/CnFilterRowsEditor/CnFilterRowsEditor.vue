@@ -133,7 +133,7 @@ export default {
 		/**
 		 * The value the consumer actually bound, whichever prop they used.
 		 *
-		 * @return {*} The bound value.
+		 * @return {Array} The bound value.
 		 */
 		boundValue() {
 			return this.modelValue !== undefined ? this.modelValue : this.value
@@ -153,20 +153,20 @@ export default {
 		 * `v-model` are the same consumer as far as this component knows, and
 		 * emitting only one silently breaks half of them.
 		 *
-		 * @param {*} next The new value.
+		 * @param {Array} next The new value.
 		 * @return {void}
 		 */
 		emitValue(next) {
 			/**
 			 * @event input The value changed. Vue 2's v-model dialect, kept for
 			 *   existing consumers.
-			 * @type {*}
+			 * @type {Array}
 			 */
 			this.$emit('input', next)
 			/**
 			 * @event update:modelValue The value changed. Vue 3's v-model
 			 *   dialect — what a plain `v-model` listens for.
-			 * @type {*}
+			 * @type {Array}
 			 */
 			this.$emit('update:modelValue', next)
 		},

@@ -362,7 +362,7 @@ export default {
 		 * The effective value for a key: formData override or the object's own value
 		 *
 		 * @param {string} key - The property key to look up
-		 * @param {*} objectValue - The fallback value from the object
+		 * @param {unknown} objectValue - The fallback value from the object
 		 */
 		resolvedValue(key, objectValue) {
 			return this.formData[key] !== undefined ? this.formData[key] : objectValue

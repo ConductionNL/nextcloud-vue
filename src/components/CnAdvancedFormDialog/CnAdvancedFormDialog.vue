@@ -588,7 +588,7 @@ export default {
 		 * Proxy for slot consumers: exposes isPropertyEditable from the tab sub-component.
 		 *
 		 * @param {string} key - Property key
-		 * @param {*} value - Current property value
+		 * @param {unknown} value - Current property value
 		 */
 		isPropertyEditable(key, value) {
 			const tab = this.$refs.propertiesTab
@@ -615,7 +615,7 @@ export default {
 		 * Proxy for slot consumers.
 		 *
 		 * @param {string} key - Property key
-		 * @param {*} value - Current property value
+		 * @param {unknown} value - Current property value
 		 */
 		getPropertyValidationClass(key, value) {
 			const tab = this.$refs.propertiesTab

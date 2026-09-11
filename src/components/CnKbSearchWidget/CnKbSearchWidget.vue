@@ -327,7 +327,7 @@ export default {
 		 * built-in default provider), so a provider MAY return a raw response
 		 * body and still normalise here.
 		 *
-		 * @param {*} data The raw provider result.
+		 * @param {object|Array<object>|null} data The raw provider result.
 		 * @return {Array<object>} The article list (possibly empty).
 		 */
 		normalise(data) {

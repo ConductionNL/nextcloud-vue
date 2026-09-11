@@ -363,7 +363,7 @@ export default {
 		 * Set a widget-level option and notify the parent.
 		 *
 		 * @param {string} field the option key.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateOption(field, value) {

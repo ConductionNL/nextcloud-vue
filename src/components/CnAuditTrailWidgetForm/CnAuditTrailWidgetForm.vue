@@ -93,7 +93,7 @@ export default {
 		 * Set one field and emit the assembled content.
 		 *
 		 * @param {string} field The data field name.
-		 * @param {*} value The new value.
+		 * @param {unknown} value The new value.
 		 */
 		update(field, value) {
 			this[field] = value

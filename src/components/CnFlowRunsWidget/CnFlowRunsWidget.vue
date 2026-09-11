@@ -712,7 +712,7 @@ export default {
 /**
  * Clamp a configured row limit into the range the endpoint accepts.
  *
- * @param {*} raw The configured limit.
+ * @param {number|string|undefined} raw The configured limit.
  * @return {number} A limit between 1 and 50 (default 6).
  */
 function normaliseLimit(raw) {

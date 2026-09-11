@@ -394,7 +394,7 @@ export default {
 		 *    overdue / at-risk row can be highlighted declaratively from a
 		 *    manifest with no bespoke function. Default `null` = no row class.
 		 *
-		 * @type {Function|Array<{when: {field: string, op?: string, value: *}, class: string}>|null}
+		 * @type {Function|Array<{when: {field: string, op?: string, value: unknown}, class: string}>|null}
 		 */
 		rowClass: {
 			type: [Function, Array],
@@ -854,7 +854,7 @@ export default {
 			/**
 			 * @event object-op Emitted after a successful declarative mutation
 			 * so a host that supplies external `rows` can refetch them.
-			 * @type {{action: object, row: (object|null), result: *}}
+			 * @type {{action: object, row: (object|null), result: unknown}}
 			 */
 			this.$emit('object-op', { action, row, result })
 			return { ok: true }

@@ -353,7 +353,7 @@ export default {
 		 * `content.valueField` in endpoint mode, else the OpenRegister
 		 * `current` leg.
 		 *
-		 * @return {*}
+		 * @return {number|string|null}
 		 */
 		effectiveCurrent() {
 			if (!this.endpointMode) {
@@ -368,7 +368,7 @@ export default {
 		 * `content.previousField` in endpoint mode, else the OpenRegister
 		 * `previous` leg.
 		 *
-		 * @return {*}
+		 * @return {number|string|null}
 		 */
 		effectivePrevious() {
 			if (!this.endpointMode) {
@@ -506,7 +506,7 @@ export default {
 		/**
 		 * Format a number per the content.format spec (number/currency/percent).
 		 *
-		 * @param {*} value The raw value.
+		 * @param {number|string|null} value The raw value.
 		 * @return {string} The formatted string.
 		 */
 		formatNumber(value) {

@@ -1171,7 +1171,7 @@ async function findMounted(page, componentName) {
  * @param {object} page Playwright `Page`.
  * @param {string} componentName Component to locate, by `name`.
  * @param {string} propName Prop to read.
- * @return {Promise<*>} A structured clone of the prop value.
+ * @return {Promise<unknown>} A structured clone of the prop value.
  * @throws {Error} When the component is not mounted, or has no such prop. The
  *   message lists every component that WAS found, so a rename shows up as a
  *   rename and not as a phantom "not mounted".

@@ -303,7 +303,7 @@ export default {
 		 * deliberate, so adding a range to a dashboard cannot silently change what
 		 * an existing tile requests.
 		 *
-		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: *, variant: string, icon?: string}>}}
+		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>}}
 		 */
 		content: {
 			type: Object,
@@ -487,7 +487,7 @@ export default {
 		 * `content.valueField` (dot-path; omitted = the payload itself);
 		 * otherwise the OpenRegister-aggregated `value`.
 		 *
-		 * @return {*}
+		 * @return {unknown}
 		 */
 		displayValue() {
 			if (this.objectFieldMode) {
@@ -542,13 +542,13 @@ export default {
 		 * The resolved label replaces the uuid; an unresolvable id falls back to
 		 * the raw value rather than blanking, exactly as CnFkResolveCell does.
 		 *
-		 * @return {*} The field's value, or null.
+		 * @return {unknown} The field's value, or null.
 		 */
 		/**
 		 * The bound record's raw value for `content.objectField`, before any
 		 * reference resolution.
 		 *
-		 * @return {*} The raw field value, or null.
+		 * @return {unknown} The raw field value, or null.
 		 */
 		objectFieldRaw() {
 			const cfg = this.content.objectField
@@ -562,7 +562,7 @@ export default {
 		},
 
 		/**
-		 * @return {*} The field's value, or null.
+		 * @return {unknown} The field's value, or null.
 		 */
 		objectFieldValue() {
 			if (this.objectFieldRaw === null) {
@@ -990,8 +990,8 @@ export default {
 		 * comparison when both sides coerce to numbers; `eq` / `neq` fall back
 		 * to strict string equality for non-numeric values.
 		 *
-		 * @param {*} current The current display value.
-		 * @param {{op: string, value: *}} rule The threshold rule.
+		 * @param {unknown} current The current display value.
+		 * @param {{op: string, value: unknown}} rule The threshold rule.
 		 * @return {boolean} True when the rule matches.
 		 */
 		matchesRule(current, rule) {
@@ -1202,7 +1202,7 @@ export default {
 		 *
 		 * @param {object} obj The source object.
 		 * @param {string} path The dot-path.
-		 * @return {*} The resolved value or undefined.
+		 * @return {unknown} The resolved value or undefined.
 		 */
 		getByPath(obj, path) {
 			// Delegates to the shared useEndpointSource util so the legacy

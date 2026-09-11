@@ -456,7 +456,7 @@ export default {
 		/**
 		 * Canonical wrapper-key cascade — mirrors CnContactsTab.unwrapList.
 		 *
-		 * @param {*} data parsed JSON response body
+		 * @param {object|Array<object>|null} data parsed JSON response body
 		 *
 		 * @return {Array}
 		 */

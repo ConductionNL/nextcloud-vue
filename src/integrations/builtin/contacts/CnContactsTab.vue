@@ -445,7 +445,7 @@ export default {
 		 * `{results:[...]}`, `{items:[...]}`, or a bare array; any
 		 * other shape (object, null, undefined) becomes `[]`.
 		 *
-		 * @param {*} data parsed JSON response body
+		 * @param {object|Array<object>|null} data parsed JSON response body
 		 *
 		 * @return {Array}
 		 */

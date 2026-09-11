@@ -323,7 +323,7 @@ export default {
 		 * (see ADR-022). Accepts `{results:[...]}`, `{items:[...]}`, or
 		 * a bare array; any other shape becomes `[]`.
 		 *
-		 * @param {*} data parsed JSON response body
+		 * @param {object|Array<object>|null} data parsed JSON response body
 		 *
 		 * @return {Array}
 		 */

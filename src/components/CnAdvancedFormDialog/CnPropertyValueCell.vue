@@ -873,9 +873,9 @@ export default {
 		 * `undefined` for entries that can't be coerced so the caller can drop
 		 * them from the array.
 		 *
-		 * @param {*} v - The raw value.
+		 * @param {unknown} v - The raw value.
 		 * @param {string} [itemType] - Schema `items.type` (string, number, integer, boolean).
-		 * @return {*}
+		 * @return {unknown}
 		 */
 		coerceItem(v, itemType) {
 			if (v === null || v === undefined) {

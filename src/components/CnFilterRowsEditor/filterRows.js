@@ -30,7 +30,7 @@ export const FILTER_OPERATORS = Object.freeze([
 /**
  * Build the OpenRegister filter object from editable rows.
  *
- * @param {Array<{key: string, op: string, value: *}>} rows The editable rows.
+ * @param {Array<{key: string, op: string, value: unknown}>} rows The editable rows.
  * @return {object} The filter object (`{ field: value }` / `{ field: { op: value } }`).
  */
 export function rowsToFilter(rows) {

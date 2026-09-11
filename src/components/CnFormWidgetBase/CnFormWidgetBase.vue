@@ -253,7 +253,7 @@ export default {
 		 * The current value for a field.
 		 *
 		 * @param {object} field Field descriptor.
-		 * @return {*} The model value, or '' when unset.
+		 * @return {unknown} The model value, or '' when unset.
 		 */
 		valueOf(field) {
 			const v = (this.model || {})[field.key]
@@ -319,13 +319,13 @@ export default {
 		 * rather than only store it.
 		 *
 		 * @param {object} field Field descriptor.
-		 * @param {*} value The new value.
+		 * @param {unknown} value The new value.
 		 * @return {void}
 		 */
 		onUpdate(field, value) {
 			/**
 			 * @event update:field A field's value changed.
-			 * @type {{ key: string, value: * }}
+			 * @type {{ key: string, value: unknown }}
 			 */
 			this.$emit('update:field', { key: field.key, value })
 		},

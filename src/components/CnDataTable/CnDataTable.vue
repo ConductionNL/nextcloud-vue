@@ -1047,7 +1047,7 @@ export default {
 		 *
 		 * @param {object} row The row data
 		 * @param {string} key The column key (supports dot notation: 'address.city')
-		 * @return {*} The cell value
+		 * @return {unknown} The cell value
 		 */
 		getCellValue(row, key) {
 			if (typeof key !== 'string') {
@@ -1123,7 +1123,7 @@ export default {
 		 *
 		 * @param {object} row The row data.
 		 * @param {object} col The column definition.
-		 * @return {*} The value handed to the slot / CnCellRenderer.
+		 * @return {unknown} The value handed to the slot / CnCellRenderer.
 		 */
 		cellValue(row, col) {
 			if (col && col.aggregate) {

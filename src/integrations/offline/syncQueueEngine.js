@@ -258,7 +258,7 @@ export function resolveConflictChoice(resolution, mergedPayload = null) {
  * @param {object} clientVersion The user's offline version.
  * @param {object} serverVersion The server's current version.
  *
- * @return {Array<{ field: string, client: *, server: * }>} The differing fields.
+ * @return {Array<{ field: string, client: unknown, server: unknown }>} The differing fields.
  */
 export function diffVersions(clientVersion, serverVersion) {
 	const client = clientVersion ?? {}

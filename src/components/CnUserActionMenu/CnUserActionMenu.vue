@@ -114,7 +114,7 @@ let _capabilitiesPromise = null
  * CnUserActionMenu — Popover with user communication actions.
  *
  * Shows contextual actions based on installed Nextcloud apps (Talk, Mail, Calendar).
- * Uses @nextcloud/capabilities when available, falls back to OCS API.
+ * Uses `@nextcloud/capabilities` when available, falls back to OCS API.
  *
  * Usage in notes/tasks cards
  * ```vue

@@ -343,7 +343,12 @@ export default {
 
 	data() {
 		return {
-			/** The hidden file input, set by the template's function ref (kept off `$refs` so the ref stays dynamic). @type {HTMLInputElement|null} */
+			/**
+			 * The hidden file input, set by the template's function ref (kept
+			 * off `$refs` so the ref stays dynamic).
+			 *
+			 * @type {HTMLInputElement|null}
+			 */
 			fileInputEl: null,
 			inputText: '',
 			/** Uploaded attachment refs: { path, name } — awaiting send. */

@@ -378,7 +378,7 @@ export default {
 			 *
 			 * @param {object} action The action to dispatch.
 			 * @param {object} [extraContext] Extra context merged over the pre-bound one.
-			 * @return {*} The dispatchAction return value (a promise for object-op).
+			 * @return {unknown} The dispatchAction return value (a promise for object-op).
 			 */
 			cnDispatchAction: (action, extraContext = {}) => {
 				return dispatchAction(action, {
@@ -409,8 +409,8 @@ export default {
 	 * the host passed to CnPageRenderer land on the dispatched page via
 	 * `v-bind="{ ...$attrs, ...resolvedProps }"` instead. `v-on="$listeners"`
 	 * does the same for events. Without this, built-in page components
-	 * that emit (CnDashboardPage @widget-refresh / @widget-request-feature,
-	 * CnIndexPage @create / @edit / @delete) cannot reach the host App.
+	 * that emit (CnDashboardPage `@widget-refresh` / `@widget-request-feature`,
+	 * CnIndexPage `@create` / `@edit` / `@delete`) cannot reach the host App.
 	 *
 	 * Resolved props win over `$attrs` on key collisions because the
 	 * spread order is `{ ...$attrs, ...resolvedProps }`.

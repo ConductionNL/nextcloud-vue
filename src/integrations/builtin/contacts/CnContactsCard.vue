@@ -295,7 +295,7 @@ export default {
 		 * CnContactsTab.unwrapList for the same canonical cascade
 		 * (results → items → bare array → []).
 		 *
-		 * @param {*} data parsed JSON response body
+		 * @param {object|Array<object>|null} data parsed JSON response body
 		 *
 		 * @return {Array}
 		 */

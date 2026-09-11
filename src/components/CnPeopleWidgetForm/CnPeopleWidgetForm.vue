@@ -247,7 +247,7 @@ export default {
 		 * Set a field and notify the parent.
 		 *
 		 * @param {string} field one of the form's reactive keys.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateField(field, value) {
