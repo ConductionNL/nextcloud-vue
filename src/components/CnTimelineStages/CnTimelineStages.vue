@@ -21,6 +21,7 @@
 			:class="stageClasses(index)"
 			role="listitem"
 			:aria-current="stageStates[index] === 'current' ? 'step' : undefined"
+			:aria-disabled="clickable && stage.disabled ? 'true' : undefined"
 			:tabindex="clickable ? (focusedIndex === index ? 0 : -1) : undefined"
 			@click="onStageClick(stage, index)"
 			@keydown="onKeydown($event, stage, index)">
@@ -104,8 +105,11 @@ export default {
 	props: {
 		/**
 		 * Array of stage objects. Each must have `id` (unique) and `label` (display text).
-		 * Optional `subtitle` for secondary text below the label.
-		 * @type {{ id: string, label: string, subtitle: string }[]}
+		 * Optional `subtitle` for secondary text below the label. Optional
+		 * `disabled` marks a stage that cannot be chosen: in clickable mode it
+		 * keeps its focus stop, carries `aria-disabled="true"` and emits no
+		 * `stage-click`.
+		 * @type {{ id: string, label: string, subtitle?: string, disabled?: boolean }[]}
 		 */
 		stages: {
 			type: Array,
@@ -225,6 +229,7 @@ export default {
 			return {
 				'cn-timeline-stages__stage': true,
 				[`cn-timeline-stages__stage--${state}`]: true,
+				'cn-timeline-stages__stage--disabled': this.clickable && this.stages[index]?.disabled === true,
 			}
 		},
 		/**
@@ -233,7 +238,7 @@ export default {
 		 * @param {number} index The stage index
 		 */
 		onStageClick(stage, index) {
-			if (!this.clickable) return
+			if (!this.clickable || stage.disabled === true) return
 			/**
 			 * Emitted when a clickable stage is activated (click, Enter, or Space).
 			 * @event stage-click
@@ -263,6 +268,9 @@ export default {
 				this.moveFocus(index - 1)
 			} else if (event.key === 'Enter' || event.key === ' ') {
 				event.preventDefault()
+				// A disabled stage keeps its focus stop, so a screen reader can
+				// reach it and read why, but it cannot be chosen.
+				if (stage.disabled === true) return
 				this.$emit('stage-click', { stage, index })
 			}
 		},

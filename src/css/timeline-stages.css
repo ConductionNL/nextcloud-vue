@@ -217,6 +217,19 @@
 	background-color: var(--color-background-dark, #ededed);
 }
 
+/* A stage that cannot be chosen keeps its focus stop but reads as inert. */
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--disabled {
+	cursor: not-allowed;
+}
+
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--disabled:hover {
+	background-color: transparent;
+}
+
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--upcoming.cn-timeline-stages__stage--disabled .cn-timeline-stages__indicator {
+	border-style: dashed;
+}
+
 /* Focus ring (keyboard only) */
 .cn-timeline-stages--clickable .cn-timeline-stages__stage:focus-visible {
 	outline: 2px solid var(--color-primary-element, #0082c9);

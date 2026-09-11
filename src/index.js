@@ -205,6 +205,8 @@ export {
 	CnCountdownWidget,
 	CnCountdownWidgetForm,
 	CnTabsWidgetForm,
+	CnStagesWidget,
+	CnStagesWidgetForm,
 	CnDetailWidgetHost,
 	CnIcon,
 	CnPageHeader,
@@ -310,6 +312,7 @@ export { default as CnAiHistoryDialog } from './dialogs/CnAiHistoryDialog.vue'
 // Generic dialogs (NcDialog-based, one file per dialog — modal-isolation rule)
 export { default as CnConfirmDialog } from './dialogs/CnConfirmDialog.vue'
 export { default as CnTransitionInputDialog } from './dialogs/CnTransitionInputDialog.vue'
+export { default as CnStageMoveDialog } from './dialogs/CnStageMoveDialog.vue'
 export { default as CnFlowEditModal } from './dialogs/CnFlowEditModal.vue'
 export { default as CnFlowNodeEditModal } from './dialogs/CnFlowNodeEditModal.vue'
 export { default as CnFlowEdgeEditModal } from './dialogs/CnFlowEdgeEditModal.vue'
