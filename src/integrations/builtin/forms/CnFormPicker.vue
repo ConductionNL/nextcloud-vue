@@ -177,16 +177,27 @@ export default {
 		apiBase: { type: String, default: '/apps/openregister/api' },
 
 		// --- Pre-translated labels ---
+		/** Dialog title. */
 		dialogTitle: { type: String, default: () => t('nextcloud-vue', 'Link existing form') },
+		/** Placeholder for the search field. */
 		searchPlaceholder: { type: String, default: () => t('nextcloud-vue', 'Search forms') },
+		/** Empty state shown when the search matches no form. */
 		emptyLabel: { type: String, default: () => t('nextcloud-vue', 'No forms found') },
+		/** Message shown when the forms could not be loaded. */
 		errorLabel: { type: String, default: () => t('nextcloud-vue', 'Could not load forms') },
+		/** Stand-in title for a form that has none. */
 		untitledLabel: { type: String, default: () => t('nextcloud-vue', 'Untitled form') },
+		/** Badge shown on a form this object already links. */
 		alreadyLinkedLabel: { type: String, default: () => t('nextcloud-vue', 'Already linked') },
+		/** Label for the button that closes the dialog without linking. */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the button that links the selection. */
 		linkLabel: { type: String, default: () => t('nextcloud-vue', 'Link') },
+		/** Label for the choice that links the form itself. */
 		linkFormModeLabel: { type: String, default: () => t('nextcloud-vue', 'Link the form') },
+		/** Label for the choice that links one submission. */
 		linkSubmissionModeLabel: { type: String, default: () => t('nextcloud-vue', 'Link a specific submission') },
+		/** Hint shown next to a form that has no submission yet. */
 		noSubmissionsHintLabel: { type: String, default: () => t('nextcloud-vue', '(no submissions yet)') },
 	},
 

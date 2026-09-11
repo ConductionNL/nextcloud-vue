@@ -140,9 +140,13 @@ export default {
 	},
 
 	props: {
+		/** OpenRegister register id (slug or uuid). */
 		register: { type: String, default: '' },
+		/** OpenRegister schema id (slug or uuid). */
 		schema: { type: String, default: '' },
+		/** Parent object id. */
 		objectId: { type: [String, Number], default: '' },
+		/** Base API URL for OpenRegister. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 
 		/**
@@ -159,13 +163,19 @@ export default {
 		 */
 		contact: { type: Object, default: null },
 
+		/** How many contacts to show before the "view all" line. */
 		displayMax: { type: Number, default: 2 },
 
 		// --- Pre-translated labels ---
+		/** Card title. */
 		titleLabel: { type: String, default: () => t('nextcloud-vue', 'Contacts') },
+		/** Empty state shown when no contact is linked. */
 		emptyLabel: { type: String, default: () => t('nextcloud-vue', 'No contacts linked') },
+		/** Message shown when the contacts could not be loaded. */
 		errorLabel: { type: String, default: () => t('nextcloud-vue', 'Could not load contacts') },
+		/** Stand-in name for a contact whose name is missing. */
 		unknownLabel: { type: String, default: () => t('nextcloud-vue', 'Unknown contact') },
+		/** Label for the link that opens the full contact list. */
 		viewAllLabel: { type: String, default: () => t('nextcloud-vue', 'View all') },
 	},
 

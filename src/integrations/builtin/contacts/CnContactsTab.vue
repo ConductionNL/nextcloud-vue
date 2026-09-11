@@ -219,25 +219,43 @@ export default {
 	},
 
 	props: {
+		/** Parent object id. */
 		objectId: { type: String, required: true },
+		/** OpenRegister register id (slug or uuid). */
 		register: { type: String, default: '' },
+		/** OpenRegister schema id (slug or uuid). */
 		schema: { type: String, default: '' },
+		/** Base API URL for OpenRegister. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 
 		// --- Pre-translated labels (consumer-overridable for i18n flexibility) ---
+		/** Label for the button that links an existing contact. */
 		linkExistingLabel: { type: String, default: () => t('nextcloud-vue', 'Link contact') },
+		/** Label for the button that creates a contact. */
 		addNewLabel: { type: String, default: () => t('nextcloud-vue', 'Add new contact') },
+		/** Title of the empty state shown when no contact is linked. */
 		emptyTitleLabel: { type: String, default: () => t('nextcloud-vue', 'No contacts linked') },
+		/** Body of the empty state shown when no contact is linked. */
 		emptyDescriptionLabel: { type: String, default: () => t('nextcloud-vue', 'Link a contact from your address book.') },
+		/** Message shown when the contacts could not be loaded. */
 		errorLabel: { type: String, default: () => t('nextcloud-vue', 'Could not load contacts') },
+		/** Stand-in name for a contact whose name is missing. */
 		unknownLabel: { type: String, default: () => t('nextcloud-vue', 'Unknown contact') },
+		/** Label for the action that unlinks a contact from the object. */
 		unlinkLabel: { type: String, default: () => t('nextcloud-vue', 'Unlink contact') },
+		/** Heading above the contacts grouped as applicants. */
 		applicantsLabel: { type: String, default: () => t('nextcloud-vue', 'Applicants') },
+		/** Heading above the contacts grouped as handlers. */
 		handlersLabel: { type: String, default: () => t('nextcloud-vue', 'Handlers') },
+		/** Heading above the contacts grouped as advisors. */
 		advisorsLabel: { type: String, default: () => t('nextcloud-vue', 'Advisors') },
+		/** Heading above the contacts with no recognised role. */
 		otherLabel: { type: String, default: () => t('nextcloud-vue', 'Other') },
+		/** Role badge shown on an applicant. */
 		applicantRoleLabel: { type: String, default: () => t('nextcloud-vue', 'Applicant') },
+		/** Role badge shown on a handler. */
 		handlerRoleLabel: { type: String, default: () => t('nextcloud-vue', 'Handler') },
+		/** Role badge shown on an advisor. */
 		advisorRoleLabel: { type: String, default: () => t('nextcloud-vue', 'Advisor') },
 	},
 

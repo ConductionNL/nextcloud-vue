@@ -175,14 +175,23 @@ export default {
 	},
 
 	props: {
+		/** Stable integration id (matches the PHP-side provider id, always `talk`). */
 		integrationId: { type: String, default: 'talk' },
+		/** Parent object id. */
 		objectId: { type: String, required: true },
+		/** OpenRegister register id (slug or uuid). */
 		register: { type: String, default: '' },
+		/** OpenRegister schema id (slug or uuid). */
 		schema: { type: String, default: '' },
+		/** Base API URL for OpenRegister. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
+		/** Empty state shown when no conversation is linked yet. */
 		emptyLabel: { type: String, default: () => t('nextcloud-vue', 'No conversations linked yet') },
+		/** Label for the link that opens the conversation in Talk. */
 		openTalkLabel: { type: String, default: () => t('nextcloud-vue', 'Open Talk') },
+		/** Message shown when the Talk app cannot be reached. */
 		unavailableLabel: { type: String, default: () => t('nextcloud-vue', 'NC Talk is currently unavailable.') },
+		/** Base URL of the Talk app, used to build a conversation link. */
 		talkAppUrl: { type: String, default: '/index.php/apps/spreed' },
 	},
 

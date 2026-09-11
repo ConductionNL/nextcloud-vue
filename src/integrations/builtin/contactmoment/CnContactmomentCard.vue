@@ -87,10 +87,15 @@ export default {
 		chromeless: { type: Boolean, default: false },
 
 		// --- Pre-translated labels ---
+		/** Card title. */
 		titleLabel: { type: String, default: () => t('nextcloud-vue', 'Contact moments') },
+		/** Accessible text shown while the interactions load. */
 		loadingLabel: { type: String, default: () => t('nextcloud-vue', 'Loading contact moments') },
+		/** Empty state shown when the object has no interaction. */
 		emptyLabel: { type: String, default: () => t('nextcloud-vue', 'No contact moments recorded yet') },
+		/** Message shown when the interactions could not be loaded. */
 		errorLabel: { type: String, default: () => t('nextcloud-vue', 'Could not load contact moments') },
+		/** Stand-in title for an interaction that has none. */
 		unknownLabel: { type: String, default: () => t('nextcloud-vue', 'Untitled interaction') },
 	},
 

@@ -110,14 +110,23 @@ export default {
 		submitError: { type: String, default: '' },
 
 		// --- Pre-translated labels ---
+		/** Dialog title. */
 		dialogTitle: { type: String, default: () => t('nextcloud-vue', 'Create new form') },
+		/** Field label for the form title. */
 		titleLabel: { type: String, default: () => t('nextcloud-vue', 'Title') },
+		/** Placeholder for the form title field. */
 		titlePlaceholder: { type: String, default: () => t('nextcloud-vue', 'My new form') },
+		/** Field label for the form description. */
 		descriptionLabel: { type: String, default: () => t('nextcloud-vue', 'Description') },
+		/** Placeholder for the form description field. */
 		descriptionPlaceholder: { type: String, default: () => t('nextcloud-vue', 'What is this form for?') },
+		/** Label for the button that closes the dialog without creating. */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the button that creates the form and links it. */
 		createLabel: { type: String, default: () => t('nextcloud-vue', 'Create + link') },
+		/** Label the create button shows while the POST is in flight. */
 		creatingLabel: { type: String, default: () => t('nextcloud-vue', 'Creating…') },
+		/** Validation message shown when the title is empty. */
 		titleRequiredLabel: { type: String, default: () => t('nextcloud-vue', 'Title is required') },
 	},
 
