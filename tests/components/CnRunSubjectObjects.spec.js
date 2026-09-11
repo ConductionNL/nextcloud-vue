@@ -111,6 +111,20 @@ describe('the Objects panel of a run that changed nothing', () => {
 		expect(subjects.text()).toContain('Dakkapel Kerkstraat 12')
 	})
 
+	it('separates the parts of a row, rather than running them together', async () => {
+		const wrapper = await mountSidebar()
+
+		// 🔴 WHAT THE LIVE INSTANCE SHOWED: "triggerDakkapel Kerkstraat
+		// 122e98a265-401c-426f-9dc5-1e07f7f442c9". Three adjacent spans with
+		// nothing between them read as one string, and a CSS gap would fix
+		// only the look: the text itself is what anything reading the DOM
+		// gets, so the separator has to be a character.
+		const row = wrapper.find('[data-testid="flow-run-subjects"] li').text()
+
+		expect(row).toMatch(/trigger\s*·\s*Dakkapel Kerkstraat 12/)
+		expect(row).toMatch(/Dakkapel Kerkstraat 12\s*·\s*2e98a265/)
+	})
+
 	it('names the role, so a subject is not confused with a change', async () => {
 		const wrapper = await mountSidebar()
 
