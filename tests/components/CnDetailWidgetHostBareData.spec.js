@@ -47,12 +47,10 @@ function mountHost(chrome) {
 }
 
 describe('CnDetailWidgetHost — a data widget in a tab panel', () => {
-	it('asks the data widget to drop its title, border and padding', () => {
+	it('asks the data widget for no chrome of its own', () => {
 		const data = mountHost('bare').findComponent(CnObjectDataWidget)
 		expect(data.exists()).toBe(true)
-		expect(data.props('showTitle')).toBe(false)
-		expect(data.props('borderless')).toBe(true)
-		expect(data.props('flush')).toBe(true)
+		expect(data.props('chromeless')).toBe(true)
 	})
 
 	it('renders no title row in the panel', () => {
@@ -65,9 +63,109 @@ describe('CnDetailWidgetHost — a data widget in a tab panel', () => {
 
 	it('keeps the full card on a grid surface', () => {
 		const data = mountHost('card').findComponent(CnObjectDataWidget)
+		expect(data.props('chromeless')).toBe(false)
 		expect(data.props('showTitle')).toBe(true)
 		expect(data.props('borderless')).toBe(false)
 		expect(data.props('flush')).toBe(false)
+	})
+})
+
+/**
+ * The contract itself, at the wrapper.
+ *
+ * "No card inside the card" is not "no element inside the card". The wrapper's
+ * content node is load-bearing: `CnObjectDataWidget` finds it with `closest()`
+ * to measure whether its field grid overflows and to observe resizes, and
+ * `src/css/table.css`, `src/css/detail-page.css` and `src/css/dashboard.css`
+ * all key layout on it. A `closest()` that finds nothing returns null and the
+ * widget concludes that nothing overflows, so deleting the node would remove
+ * the whole-row clip and the "Show all N fields" affordance without a single
+ * failure anywhere. So `chromeless` suppresses what is DRAWN and keeps what is
+ * MEASURED.
+ */
+describe('CnWidgetWrapper — chromeless', () => {
+	it('draws no card: no border, no background, no padding, no title', () => {
+		const wrapper = mount(CnWidgetWrapper, {
+			propsData: { title: 'Data', chromeless: true },
+		})
+		const root = wrapper.find('.cn-widget-wrapper')
+		// jsdom computes no layout, so the assertion is on the modifier classes
+		// that carry the rules. The rules themselves are asserted in a browser,
+		// in dossiq's case-detail e2e, where a computed border width can be read.
+		expect(root.classes()).toContain('cn-widget-wrapper--chromeless')
+		expect(root.classes()).toContain('cn-widget-wrapper--borderless')
+		expect(root.classes()).toContain('cn-widget-wrapper--flush')
+		expect(wrapper.find('.cn-widget-wrapper__header-left').exists()).toBe(false)
+		expect(wrapper.text()).not.toContain('Data')
+	})
+
+	it('keeps the wrapper element, because the widget measures against it', () => {
+		const wrapper = mount(CnWidgetWrapper, {
+			propsData: { title: 'Data', chromeless: true },
+		})
+		// The node `closest('.cn-widget-wrapper__content')` has to reach.
+		expect(wrapper.find('.cn-widget-wrapper__content').exists()).toBe(true)
+	})
+
+	it('overrides showTitle rather than asking the caller to repeat itself', () => {
+		// `showTitle` defaults to TRUE, so a surface that names the widget
+		// already would otherwise have to remember to also turn the title off.
+		const wrapper = mount(CnWidgetWrapper, {
+			propsData: { title: 'Data', chromeless: true, showTitle: true },
+		})
+		expect(wrapper.find('.cn-widget-wrapper__title').exists()).toBe(false)
+	})
+
+	it('names the content region by the hidden title', () => {
+		// WCAG 4.1.2: the content area is a focusable region, so it needs an
+		// accessible name. With no title rendered there is no id to point
+		// `aria-labelledby` at, and the title becomes the label instead.
+		const wrapper = mount(CnWidgetWrapper, {
+			propsData: { title: 'Data', chromeless: true },
+		})
+		const content = wrapper.find('.cn-widget-wrapper__content')
+		expect(content.attributes('aria-label')).toBe('Data')
+		expect(content.attributes('aria-labelledby')).toBeUndefined()
+	})
+
+	it('keeps controls, because a control is not chrome', () => {
+		// The Save button that commits an inline edit lives in this header. A
+		// panel that drops it is silently unsaveable, which is the failure this
+		// whole contract had to avoid on the way to removing the doubled title.
+		const wrapper = mount(CnWidgetWrapper, {
+			propsData: { title: 'Data', chromeless: true },
+			slots: { actions: '<button data-testid="save">Save</button>' },
+		})
+		expect(wrapper.find('[data-testid="save"]').exists()).toBe(true)
+		expect(wrapper.find('.cn-widget-wrapper__header--actions-only').exists()).toBe(true)
+	})
+
+	it('leaves a normal widget alone', () => {
+		const wrapper = mount(CnWidgetWrapper, { propsData: { title: 'Data' } })
+		const root = wrapper.find('.cn-widget-wrapper')
+		expect(root.classes()).not.toContain('cn-widget-wrapper--chromeless')
+		expect(root.classes()).not.toContain('cn-widget-wrapper--borderless')
+		expect(wrapper.find('.cn-widget-wrapper__title').exists()).toBe(true)
+	})
+})
+
+describe('CnObjectDataWidget — chromeless', () => {
+	it('forwards it, instead of dropping it into $attrs', () => {
+		// Until it was a declared prop, `chromeless` fell through to the
+		// wrapper's root element as a plain HTML attribute and changed nothing:
+		// a caller asking for the documented thing got a silent no-op, with an
+		// attribute in the DOM to suggest it had worked.
+		const widget = mount(CnObjectDataWidget, {
+			propsData: {
+				title: 'Data',
+				schema: SCHEMA,
+				objectData: { title: 'A case' },
+				objectType: 'case',
+				chromeless: true,
+			},
+		})
+		expect(widget.findComponent(CnWidgetWrapper).props('chromeless')).toBe(true)
+		expect(widget.find('.cn-widget-wrapper--chromeless').exists()).toBe(true)
 	})
 })
 
