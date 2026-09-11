@@ -280,7 +280,8 @@ export default {
 			const ids = new Set()
 			const walk = (arr) => (arr || []).forEach((it) => {
 				if (it) {
-					ids.add(it.id); walk(it.children)
+					ids.add(it.id)
+					walk(it.children)
 				}
 			})
 			walk(this.list)

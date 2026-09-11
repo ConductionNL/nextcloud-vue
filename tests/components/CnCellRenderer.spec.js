@@ -112,7 +112,8 @@ describe('CnCellRenderer — column formatters', () => {
 		mountRenderer(
 			{ value: 'x', property: { type: 'string' }, formatter: 'plain' },
 			{ cnFormatters: { plain: (...args) => {
-				seen.push(args); return 'ok'
+				seen.push(args)
+				return 'ok'
 			} } },
 		)
 		expect(seen[0][3]).toBeUndefined()

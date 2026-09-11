@@ -411,12 +411,22 @@ export default {
 				if (!Object.hasOwn(obj, key)) {
 					let def
 					switch (prop.type) {
-						case 'string': def = prop.const ?? ''; break
+						case 'string':
+							def = prop.const ?? ''
+							break
 						case 'number':
-						case 'integer': def = 0; break
-						case 'boolean': def = false; break
-						case 'array': def = []; break
-						case 'object': def = {}; break
+						case 'integer':
+							def = 0
+							break
+						case 'boolean':
+							def = false
+							break
+						case 'array':
+							def = []
+							break
+						case 'object':
+							def = {}
+							break
 						default: def = ''
 					}
 					missing.push([key, def])

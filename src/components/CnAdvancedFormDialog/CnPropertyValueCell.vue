@@ -1151,9 +1151,15 @@ export default {
 				const d = max - min
 				s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
 				switch (max) {
-					case rN: h = (gN - bN) / d + (gN < bN ? 6 : 0); break
-					case gN: h = (bN - rN) / d + 2; break
-					case bN: h = (rN - gN) / d + 4; break
+					case rN:
+						h = (gN - bN) / d + (gN < bN ? 6 : 0)
+						break
+					case gN:
+						h = (bN - rN) / d + 2
+						break
+					case bN:
+						h = (rN - gN) / d + 4
+						break
 				}
 				h /= 6
 			}

@@ -577,7 +577,8 @@ export default {
 		async fetchRest() {
 			const ds = this.dataSource || {}
 			if (!ds.register || !ds.schema || ds.graphql) {
-				this.restCount = null; return
+				this.restCount = null
+				return
 			}
 			this.restCount = await this.fetchValue(ds, resolveFilterTokens(ds.filter || {}))
 		},

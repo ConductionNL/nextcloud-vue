@@ -29,7 +29,8 @@ function manifest() {
 
 function fakeRouter() {
 	return { afterEach: (cb) => {
-		fakeRouter._cb = cb; return () => {}
+		fakeRouter._cb = cb
+		return () => {}
 	} }
 }
 

@@ -1619,7 +1619,10 @@ export default {
 
 			if (!this.schema.properties[key] || !this.schema.properties[key].authorization) {
 				return
-			}['create', 'read', 'update', 'delete'].forEach((action) => {
+			}
+
+			const actions = ['create', 'read', 'update', 'delete']
+			actions.forEach((action) => {
 				this.updatePropertyGroupPermission(key, groupId, action, false)
 			})
 		},
