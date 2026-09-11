@@ -76,7 +76,7 @@ export function mdiCatalogue(mdiNamespace) {
  * <CnIconBrowser :icons="vmdiCatalogue(ctx)" />
  * ```
  *
- * @param {Function & {keys: Function}} requireContext a Webpack require-context over the icon `.vue` files.
+ * @param {((file: string) => object) & { keys: () => Array<string> }} requireContext a Webpack require-context over the icon `.vue` files.
  * @return {Array<{key: string, label: string, value: string, search: string, component: object}>}
  *   the normalized, alphabetically-sorted catalogue.
  */

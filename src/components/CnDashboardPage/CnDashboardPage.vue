@@ -1968,7 +1968,7 @@ export default {
 		 * per-widget menus emit.
 		 *
 		 * @param {{ widgetId: string, title: string }} payload Action payload.
-		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
+		 * @param {{ defaultPrevented: boolean, preventDefault: () => void }} ev Synthetic event.
 		 * @return {void}
 		 */
 		onActionsRefresh(payload, ev) {
@@ -1987,7 +1987,7 @@ export default {
 		 * host. Distinct from `@widget-request-feature`.
 		 *
 		 * @param {{ widgetId: string, title: string }} payload Action payload.
-		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
+		 * @param {{ defaultPrevented: boolean, preventDefault: () => void }} ev Synthetic event.
 		 * @return {void}
 		 */
 		onActionsRequestFeature(payload, ev) {

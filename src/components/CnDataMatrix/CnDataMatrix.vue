@@ -127,7 +127,7 @@ export default {
 		/**
 		 * Column declarations.
 		 *
-		 * @type {Array<{key:string,label?:string,type?:'number'|'string',readOnly?:boolean,formatter?:Function,aggregate?:'sum'|'avg'|'count'|'none',width?:string}>}
+		 * @type {Array<{key:string,label?:string,type?:'number'|'string',readOnly?:boolean,formatter?:(value: unknown) => string,aggregate?:'sum'|'avg'|'count'|'none',width?:string}>}
 		 */
 		columns: { type: Array, default: () => [] },
 		/** Field on each row carrying its id. */

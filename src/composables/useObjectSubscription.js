@@ -20,10 +20,10 @@ import { isRef, onBeforeUnmount, onMounted, ref, watch } from 'vue'
  * Use inside a Vue component `setup()` (or any active effect scope).
  *
  * @param {object} objectStore   The Pinia store instance (typically the result of `useObjectStore()`).
- * @param {string|import('vue').Ref<string>|Function}      type    Object type slug (e.g. `'meeting'`), a ref, or a getter.
- * @param {string|import('vue').Ref<string>|Function|null} [id]    Object UUID for per-object subscription (plain, ref, or getter), or `null` for collection.
+ * @param {string|import('vue').Ref<string>|(() => string)}      type    Object type slug (e.g. `'meeting'`), a ref, or a getter.
+ * @param {string|import('vue').Ref<string>|(() => string)|null} [id]    Object UUID for per-object subscription (plain, ref, or getter), or `null` for collection.
  * @param {object}      [options]              Optional config.
- * @param {boolean|import('vue').Ref<boolean>|Function} [options.enabled]  Reactive gate (plain, ref, or getter); subscribe only when true.
+ * @param {boolean|import('vue').Ref<boolean>|(() => boolean)} [options.enabled]  Reactive gate (plain, ref, or getter); subscribe only when true.
  * @return {{ status: import('vue').Ref<'connecting'|'open'|'closed'>, lastEventAt: import('vue').Ref<Date|null> }}
  *   Reactive subscription diagnostics.
  */

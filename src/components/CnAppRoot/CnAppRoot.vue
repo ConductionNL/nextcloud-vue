@@ -1069,7 +1069,7 @@ export default {
 		 * still updates the rendered manifest in memory but persists nothing —
 		 * wire this to the Buildiq app-override endpoint to make edits durable.
 		 *
-		 * @type {Function|null}
+		 * @type {((delta: object) => void|Promise<void>)|null}
 		 */
 		persistManifestDelta: {
 			type: Function,
@@ -1105,7 +1105,7 @@ export default {
 		 * both props are given, `dataSources` seeds the initial list and
 		 * the loader's result replaces it on the first refresh.
 		 *
-		 * @type {Function|null}
+		 * @type {(() => Promise<{ registers: Array<object> }>)|null}
 		 */
 		dataSourcesLoader: {
 			type: Function,
@@ -1294,7 +1294,7 @@ export default {
 		 * install via `Vue.mixin({ methods: { t, n } })`. The provide
 		 * key is `cnTranslate`.
 		 *
-		 * @type {Function}
+		 * @type {(key: string) => string}
 		 */
 		translate: {
 			type: Function,

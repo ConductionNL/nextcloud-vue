@@ -73,7 +73,7 @@ function resolveRowToken(value, row) {
  *
  * @param {object} action Manifest action descriptor.
  * @param {{ router: object, rowKey: string, customComponents: object }} ctx Dispatch context (router, rowKey, customComponents registry).
- * @return {Function|null}
+ * @return {((row?: object) => void)|null}
  */
 export function resolveActionHandler(action, ctx) {
 	const type = (typeof action.type === 'string' && action.type.length > 0) ? action.type : 'handler'

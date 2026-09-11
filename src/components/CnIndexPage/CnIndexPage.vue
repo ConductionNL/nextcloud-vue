@@ -1827,7 +1827,7 @@ export default {
 		 * `import`, `export`, `copy`, `delete`) are dropped from the
 		 * merged list with a `console.warn`.
 		 *
-		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|Function, route?: string, disabled?: boolean }>}
+		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|(() => void), route?: string, disabled?: boolean }>}
 		 */
 		headerActions: {
 			type: Array,
@@ -1851,7 +1851,7 @@ export default {
 		 * strip already ships those two as built-ins, and a second button with
 		 * the same name doing something else is worse than no button.
 		 *
-		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|Function, target?: string, props?: object, disabled?: boolean }>}
+		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|((scope: { actionId: string, selectedIds: Array<string>, count: number }) => void), target?: string, props?: object, disabled?: boolean }>}
 		 */
 		bulkActions: {
 			type: Array,

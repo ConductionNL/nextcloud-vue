@@ -388,7 +388,7 @@ export default {
 		 * field labels, success messages, `validation.message`, etc.
 		 * Defaults to identity.
 		 *
-		 * @type {Function|null}
+		 * @type {((key: string) => string)|null}
 		 */
 		translate: {
 			type: Function,

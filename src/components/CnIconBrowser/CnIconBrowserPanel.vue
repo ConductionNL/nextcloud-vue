@@ -404,7 +404,7 @@ export default {
 		 * Injected upload transport: `async (dataUrl) => ({ url })`. When null,
 		 * the upload control is hidden.
 		 *
-		 * @type {Function|null}
+		 * @type {((dataUrl: string) => Promise<{ url: string }>)|null}
 		 */
 		uploadFn: {
 			type: Function,
@@ -623,7 +623,7 @@ export default {
 		 * empty and fills in without the tab disappearing. Groups that are neither
 		 * populated nor loadable drop out.
 		 *
-		 * @return {Array<{ key: string, label: string, icons: Array<object>, lazy: boolean, load: Function|null }>} the groups.
+		 * @return {Array<{ key: string, label: string, icons: Array<object>, lazy: boolean, load: (() => Promise<Array<object>>)|null }>} the groups.
 		 */
 		resolvedGroups() {
 			const groups = this.urlIconGroups.length > 0

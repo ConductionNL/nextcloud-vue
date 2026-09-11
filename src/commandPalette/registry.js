@@ -63,7 +63,7 @@ export function createCommandRegistry() {
 	 * @param {string[]} [entry.keywords] Extra ranked search terms beyond the title.
 	 * @param {string} [entry.icon] MDI icon name resolved against `CnIcon`'s ICON_MAP.
 	 * @param {number} [entry.order] Numeric ordering hint used for the empty-query idle list; lower sorts first (default 100).
-	 * @param {Function} entry.run Invoked (no arguments) when the command is activated — REQUIRED.
+	 * @param {() => void} entry.run Invoked (no arguments) when the command is activated — REQUIRED.
 	 * @return {object} The normalised, stored entry.
 	 */
 	function register(entry) {

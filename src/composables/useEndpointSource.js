@@ -316,12 +316,12 @@ function read(v) {
  *  - a bump of the optional reactive `refreshKey` → force-refetch (escape
  *    hatch for app-local refresh signals the library cannot observe).
  *
- * @param {object|import('vue').Ref<object>|Function} source The endpointSource block (object, ref, or getter).
+ * @param {object|import('vue').Ref<object>|(() => object)} source The endpointSource block (object, ref, or getter).
  * @param {object} [options] Options.
- * @param {object|import('vue').Ref<object>|Function} [options.ctx] Token context `{ objectId?, object?, workspace?, config? }` (object, ref, or getter).
- * @param {string|import('vue').Ref<string>|Function} [options.widgetId] Widget id matched against `cn:widget:refresh` payloads (empty disables widget-scoped refresh).
+ * @param {object|import('vue').Ref<object>|(() => object)} [options.ctx] Token context `{ objectId?, object?, workspace?, config? }` (object, ref, or getter).
+ * @param {string|import('vue').Ref<string>|(() => string)} [options.widgetId] Widget id matched against `cn:widget:refresh` payloads (empty disables widget-scoped refresh).
  * @param {*} [options.refreshKey] Reactive value (ref or getter) whose changes force a refetch.
- * @return {{data: import('vue').Ref<*>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<string>, refetch: Function}} Reactive state + a `refetch(force = true)` trigger.
+ * @return {{data: import('vue').Ref<*>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<string>, refetch: (force?: boolean) => Promise<void>}} Reactive state + a `refetch(force = true)` trigger.
  */
 export function useEndpointSource(source, options) {
 	const opts = options || {}

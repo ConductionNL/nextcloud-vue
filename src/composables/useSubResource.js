@@ -15,7 +15,7 @@ import { buildHeaders, buildQueryString } from '../utils/headers.js'
  * @param {object} store The object store instance (must have objectTypeRegistry and _options)
  * @param {string} endpoint URL path segment appended to the object URL (e.g. 'tasks')
  * @param {object} [options] Composable options
- * @param {Function} [options.transform] Transform function applied to each result item
+ * @param {(item: object) => object} [options.transform] Transform function applied to each result item
  * @param {number} [options.limit] Default page size
  * @return {object} Reactive state and methods
  *

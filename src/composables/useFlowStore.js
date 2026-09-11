@@ -405,7 +405,7 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * step at run time.
 		 *
 		 * @param {object} state The store state.
-		 * @return {Function} (type) => entry|null
+		 * @return {(type: string) => object|null} The catalogue entry, or null when the engine does not know the type.
 		 */
 		catalogEntry: (state) => (type) => {
 			return state.nodeCatalog.find((entry) => (
@@ -419,7 +419,7 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * Falls back to the id's naming convention only while the catalogue has
 		 * not loaded, so the canvas is not colourless during the first paint.
 		 *
-		 * @return {Function} (type) => 'trigger'|'step'|'end'
+		 * @return {(type: string) => 'trigger'|'step'|'end'} The role of a node type.
 		 */
 		roleOfNodeType() {
 			return (type) => {

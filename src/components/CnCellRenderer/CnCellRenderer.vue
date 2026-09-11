@@ -379,7 +379,7 @@ export default {
 		 * the built-in `"badge"` is NOT resolved here (handled inline in the
 		 * template) so apps can still override `"badge"` via the registry.
 		 *
-		 * @return {object|Function|null}
+		 * @return {import('vue').Component|null}
 		 */
 		widgetComponent() {
 			if (!this.widget) {
@@ -511,7 +511,7 @@ export default {
 		 * Resolved formatter function for this cell, or `null`. A column's
 		 * `formatter` id resolves against the injected `cnFormatters` registry.
 		 *
-		 * @return {Function|null}
+		 * @return {((value: unknown, row: object, property: object, options: object) => unknown)|null}
 		 */
 		formatterFn() {
 			const fn = this.formatter && this.cnFormatters && this.cnFormatters[this.formatter]

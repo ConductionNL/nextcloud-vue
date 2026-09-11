@@ -117,11 +117,11 @@ function cssAttrEscape(value) {
  * Scoped-theme applier bound to one nldesign app slug.
  *
  * @param {object} [opts] - options.
- * @param {Function} [opts.client] - axios-like client injection for tests.
+ * @param {object} [opts.client] - axios-like client injection for tests.
  * @param {Document|object} [opts.doc] - document injection for tests / SSR safety.
- * @param {Function} [opts.warn] - console.warn injection for tests.
+ * @param {(message: string) => void} [opts.warn] - console.warn injection for tests.
  * @param {string} [opts.appSlug] - Pin the theme app's Nextcloud id (URL-building only). Omitted, the id is resolved across `nldesign` and `thematiq` — see the note in the body.
- * @return {{apply: Function, teardown: Function, fetchTokenCss: Function, listTokenSets: Function, evaluateContrast: Function}}
+ * @return {{ apply: (manifest: object, scopeId: string) => Promise<boolean>, teardown: (scopeId: string) => void, fetchTokenCss: (tokenSet: string) => Promise<string|null>, listTokenSets: () => Promise<Array<object>>, evaluateContrast: (candidates: Array<object>, background: string) => Promise<Array<object>|null> }}
  * @spec openspec/changes/scoped-theme-applier/specs/scoped-theme-applier/spec.md#req-sta-1
  * @spec openspec/changes/scoped-theme-applier/specs/scoped-theme-applier/spec.md#req-sta-2
  */
@@ -179,7 +179,7 @@ export function useScopedTheme(opts = {}) {
 	/**
 	 * Run a request against each candidate app id until one answers.
 	 *
-	 * @param {Function} attempt - `(slug) => Promise<*>`, resolving to the body.
+	 * @param {(slug: string) => Promise<object>} attempt - `(slug) => Promise<*>`, resolving to the body.
 	 * @return {Promise<*>} The first usable body.
 	 * @throws {Error} When no candidate answers, so callers keep degrading as before.
 	 */

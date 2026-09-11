@@ -109,7 +109,7 @@ export default {
 		 * free-text box is replaced by a multiselect picker. Supplied by the
 		 * consuming app (which owns the calendar backend) via `CnAddWidgetModal`.
 		 *
-		 * @type {Function|null}
+		 * @type {(() => Promise<Array<{ key: string, name: string, color: string }>>)|null}
 		 */
 		calendarsFetcher: {
 			type: Function,

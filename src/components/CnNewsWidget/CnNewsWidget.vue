@@ -125,7 +125,7 @@ export default {
 		 * a builder `(placementId, { limit }) => string`. When `null` the
 		 * widget renders the empty state without making a request.
 		 *
-		 * @type {string|Function|null}
+		 * @type {string|((placementId: string, options: { limit: number }) => string)|null}
 		 */
 		itemsEndpoint: {
 			type: [String, Function],

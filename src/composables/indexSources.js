@@ -318,7 +318,7 @@ function tasksSource() {
 /**
  * The registered sources, by the name a manifest uses.
  *
- * @type {Record<string, Function>}
+ * @type {Record<string, () => object>}
  */
 export const indexSources = {
 	flows: flowsSource,

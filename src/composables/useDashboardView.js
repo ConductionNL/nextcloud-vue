@@ -26,8 +26,8 @@ import { filterWidgetsByVisibility } from '../utils/widgetVisibility.js'
  * @param {object} [options] Configuration options
  * @param {Array} [options.widgets] Static widget definitions from the app
  * @param {Array} [options.defaultLayout] Default layout if no saved layout exists
- * @param {Function} [options.loadLayout] Async function that returns saved layout array, or null
- * @param {Function} [options.saveLayout] Async function that persists layout: (layout) => Promise
+ * @param {() => Promise<Array<object>|null>} [options.loadLayout] Async function that returns saved layout array, or null
+ * @param {(layout: Array<object>) => Promise<void>} [options.saveLayout] Async function that persists layout: (layout) => Promise
  * @param {boolean} [options.includeNcWidgets] Whether to also load NC Dashboard API widgets
  * @param {number} [options.columns] Grid columns
  * @return {object} Reactive state and methods for CnDashboardPage

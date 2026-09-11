@@ -55,8 +55,8 @@
  * @param {object} args
  * @param {object} args.field   The formField shape.
  * @param {*}      args.value   Current value for `field.key`.
- * @param {Function} args.onInput Callback invoked with the new value.
- * @param {Function} [args.t]   Optional translator for `field.label`.
+ * @param {(value: unknown) => void} args.onInput Callback invoked with the new value.
+ * @param {(key: string) => string} [args.t]   Optional translator for `field.label`.
  * @param {string|null} [args.error] Optional validation failure message (REQ-MFL-11).
  * @param {object}  [args.componentMap] Optional override map from
  *   widget id → Vue component. Defaults to the library's standard
@@ -158,8 +158,8 @@ function resolveEnumOptions(field) {
  * @param {object} args See module docblock.
  * @param {object} args.field The formField shape.
  * @param {*} args.value Current value for `field.key`.
- * @param {Function} args.onInput Callback invoked with the new value.
- * @param {Function} [args.t] Optional translator for `field.label`.
+ * @param {(value: unknown) => void} args.onInput Callback invoked with the new value.
+ * @param {(key: string) => string} [args.t] Optional translator for `field.label`.
  * @param {string|null} [args.error] Optional validation failure message (REQ-MFL-11).
  * @param {object} [args.componentMap] Optional override map from widget id to Vue component.
  * @return {{ tag: object|string, props: object, listeners: object, kind: string }}

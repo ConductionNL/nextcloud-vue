@@ -10,7 +10,7 @@ import { resolveManifestSentinels } from '../utils/resolveManifestSentinels.js'
  * a static import makes every consumer bundle carry them. The dynamic import
  * splits them into an async chunk fetched on first validation only.
  *
- * @return {Promise<Function>} The validateManifest function.
+ * @return {Promise<(manifest: object) => { valid: boolean, errors: Array<string> }>} The validateManifest function.
  */
 function loadValidator() {
 	return import(/* webpackChunkName: "cn-manifest-validator" */ '../utils/validateManifest.js')
@@ -83,11 +83,11 @@ function loadValidator() {
  *   legacy signature; ignored in the in-memory signature.
  * @param {string} [options.endpoint] Override the backend fetch URL.
  *   Useful for tests and alternative-host deployments.
- * @param {Function} [options.fetcher] Override the fetch function. Must
+ * @param {(url: string) => Promise<{ status: number, data: object }>} [options.fetcher] Override the fetch function. Must
  *   return a promise resolving to `{ status: number, data: object }`.
  *   Defaults to `axios.get` from `@nextcloud/axios` (which inherits the
  *   Nextcloud CSRF token automatically).
- * @param {Function} [options.getAppConfigValue] Override the
+ * @param {(appId: string, key: string) => Promise<string|null>} [options.getAppConfigValue] Override the
  *   IAppConfig resolver consumed by `resolveManifestSentinels`. Useful
  *   for tests that want to mount a fixture-driven config map.
  * @return {{ manifest: import('vue').Ref<object>, isLoading: import('vue').Ref<boolean>, validationErrors: import('vue').Ref<string[]|null>, unresolvedSentinels: import('vue').Ref<string[]> }}

@@ -201,7 +201,7 @@ export default {
 		 * a field the term cannot supply — a server-minted foreign key, say, or
 		 * anything the consumer would rather collect in a full create dialog.
 		 *
-		 * @type {Function|null}
+		 * @type {((term: string, payload: object) => Promise<object|null>)|null}
 		 */
 		createHandler: {
 			type: Function,

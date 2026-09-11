@@ -872,7 +872,7 @@ export default {
 		 * `cn:widget:refresh`).
 		 *
 		 * @param {{ widgetId: string, title: string }} payload Action payload.
-		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
+		 * @param {{ defaultPrevented: boolean, preventDefault: () => void }} ev Synthetic event.
 		 * @return {void}
 		 */
 		onActionsRefresh(payload, ev) {
@@ -893,7 +893,7 @@ export default {
 		 * feature-request issue form).
 		 *
 		 * @param {{ widgetId: string, title: string }} payload Action payload.
-		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
+		 * @param {{ defaultPrevented: boolean, preventDefault: () => void }} ev Synthetic event.
 		 * @return {void}
 		 */
 		onActionsRequestFeature(payload, ev) {

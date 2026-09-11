@@ -69,7 +69,7 @@ export default {
 		 * When omitted, falls back to `Intl.DisplayNames` when
 		 * available, then to the raw BCP-47 string.
 		 *
-		 * @type {Function|null}
+		 * @type {((locale: string) => string)|null}
 		 */
 		localeNameFormatter: {
 			type: Function,

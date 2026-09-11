@@ -199,7 +199,7 @@ export default {
 		 * via `searchNextcloudUsers` (fail-soft: errors resolve to []).
 		 *
 		 * @param {string} search The partial id/name typed after `@`.
-		 * @param {Function} callback Receives the suggestion array.
+		 * @param {(suggestions: Array<object>) => void} callback Receives the suggestion array.
 		 */
 		async fetchMentionSuggestions(search, callback) {
 			const users = await searchNextcloudUsers(search)

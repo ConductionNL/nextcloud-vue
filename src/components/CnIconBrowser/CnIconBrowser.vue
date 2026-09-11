@@ -252,7 +252,7 @@ export default {
 		 * Injected upload transport: `async (dataUrl) => ({ url })`. When null,
 		 * the upload control is hidden (the library carries no upload dependency).
 		 *
-		 * @type {Function|null}
+		 * @type {((dataUrl: string) => Promise<{ url: string }>)|null}
 		 */
 		uploadFn: {
 			type: Function,
