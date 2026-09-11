@@ -920,7 +920,14 @@
     "Messaging": "Berichten",
     "AI": "AI",
     "Search people and groups…": "Zoek mensen en groepen…",
-    " (group)": " (groep)"
+    " (group)": " (groep)",
+    "Choose file": "Bestand kiezen",
+    "Replace file": "Bestand vervangen",
+    "Remove file": "Bestand verwijderen",
+    "A file is attached.": "Er is een bestand toegevoegd.",
+    "This file type is not accepted.": "Dit bestandstype wordt niet geaccepteerd.",
+    "This file is larger than {size}.": "Dit bestand is groter dan {size}.",
+    "The file could not be read.": "Het bestand kon niet worden gelezen."
   },
   "plurals": {
     "{count} photo": ["{count} foto", "{count} foto's"],

@@ -42,6 +42,10 @@
 				{{ t('nextcloud-vue', 'No widget selected') }}
 			</div>
 
+			<div v-else-if="unsupported" class="cn-nc-widget-widget__state" data-testid="nc-widget-unsupported">
+				{{ t('nextcloud-vue', 'This widget can only be shown on the Nextcloud dashboard itself.') }}
+			</div>
+
 			<div v-else-if="items.length === 0" class="cn-nc-widget-widget__state">
 				{{ t('nextcloud-vue', 'No items available') }}
 			</div>
@@ -134,6 +138,21 @@ export default {
 		return {
 			/** @type {'pending'|'native'|'api'} the resolved mounting mode. */
 			mode: 'pending',
+			/**
+			 * Whether the items API has no entry for this widget at all.
+			 *
+			 * Not the same as an empty list. A widget whose provider implements
+			 * only `IWidget` (no `IAPIWidget`/`IAPIWidgetV2`) declares
+			 * `itemApiVersions: []` and is simply ABSENT from the widget-items
+			 * response, while a widget with nothing to show right now comes
+			 * back as its own key holding an empty list. The Tasks app's widget
+			 * is the first kind: with no native callback registered on the page
+			 * it can never render a single item here, and saying "No items
+			 * available" under it told the reader their task list was empty.
+			 *
+			 * @type {boolean}
+			 */
+			unsupported: false,
 			loading: false,
 			items: [],
 		}
@@ -329,8 +348,13 @@ export default {
 				const data = response && response.data && response.data.ocs ? response.data.ocs.data : null
 				const widgetData = data ? data[this.widgetId] : null
 				this.items = this.extractItems(widgetData)
+				// Only a SUCCESSFUL response can say the widget is absent. A
+				// failed request says nothing about the widget, so it keeps
+				// the ordinary empty state rather than a claim about the app.
+				this.unsupported = data !== null && (widgetData === null || widgetData === undefined)
 			} catch (e) {
 				this.items = []
+				this.unsupported = false
 			} finally {
 				this.loading = false
 			}

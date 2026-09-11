@@ -1098,7 +1098,7 @@ function validateTypeConfig(page, index, errors) {
 		if (!hasFields) {
 			errors.push(`${pathSlash}/fields: ${pathBracket}: form pages must declare a non-empty fields[] array`)
 		} else {
-			validateFieldsArray(cfg.fields, `${pathSlash}/fields`, errors)
+			validateFieldsArray(cfg.fields, `${pathSlash}/fields`, errors, FORM_PAGE_FIELD_TYPES)
 		}
 
 		const hasHandler = cfg && typeof cfg.submitHandler === 'string' && cfg.submitHandler.length > 0
@@ -2027,17 +2027,24 @@ function validateContentArray(cfg, pathSlash, pathBracket, errors) {
 
 /**
  * Validate `config.sections[].fields[]` for settings page type
- * (`manifest-config-refs` REQ-MCR). Each field MUST be an object with
- * non-empty `key`, `label` strings and `type` ∈ the closed enum
- * `boolean | number | string | enum | password | json` — matches the
- * `formField` $def.
+ * (`manifest-config-refs` REQ-MCR) and `config.fields[]` for form pages.
+ * Each field MUST be an object with non-empty `key`, `label` strings and
+ * `type` in the closed enum `boolean | number | string | enum | password |
+ * json`, which matches the `formField` $def.
+ *
+ * A form page also accepts `file`. A settings page does not: it saves to
+ * app config, which has no place for file content, and CnSettingsPage has
+ * no file input to render.
  *
  * @param {*} fields The candidate fields value
  * @param {string} fieldsPath JSON-pointer-style path prefix for errors
  * @param {string[]} errors Accumulator
+ * @param {string[]} [allowedTypes] The accepted `type` values. Defaults to
+ *   the settings set, `FORM_FIELD_TYPES`.
  */
 const FORM_FIELD_TYPES = ['boolean', 'number', 'string', 'enum', 'password', 'json']
-function validateFieldsArray(fields, fieldsPath, errors) {
+const FORM_PAGE_FIELD_TYPES = [...FORM_FIELD_TYPES, 'file']
+function validateFieldsArray(fields, fieldsPath, errors, allowedTypes = FORM_FIELD_TYPES) {
 	if (!Array.isArray(fields)) return
 	fields.forEach((field, fIndex) => {
 		const fieldPath = `${fieldsPath}/${fIndex}`
@@ -2053,8 +2060,8 @@ function validateFieldsArray(fields, fieldsPath, errors) {
 		}
 		if (typeof field.type !== 'string' || field.type.length === 0) {
 			errors.push(`${fieldPath}/type: must be a non-empty string`)
-		} else if (!FORM_FIELD_TYPES.includes(field.type)) {
-			errors.push(`${fieldPath}/type: must be one of ${FORM_FIELD_TYPES.join(', ')}`)
+		} else if (!allowedTypes.includes(field.type)) {
+			errors.push(`${fieldPath}/type: must be one of ${allowedTypes.join(', ')}`)
 		}
 	})
 }

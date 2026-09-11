@@ -33,9 +33,10 @@
 		</template>
 
 		<!-- Built-in "link" widget — renders the (possibly formatter-shaped) value
-		     as a router-link (when widgetProps.route is a manifest page id) or an
-		     external anchor (when widgetProps.href is set). Falls back to plain
-		     text + a once-per-session console.warn when neither resolves. -->
+		     as a router-link (when widgetProps.route is a manifest page id, or
+		     widgetProps.routeMap picks one per row by widgetProps.routeField) or
+		     an external anchor (when widgetProps.href is set). Falls back to
+		     plain text + a once-per-session console.warn when neither resolves. -->
 		<template v-else-if="widget === 'link'">
 			<router-link
 				v-if="linkRoute"
@@ -235,7 +236,14 @@ export default {
 			type: String,
 			default: null,
 		},
-		/** Extra props spread onto the resolved cell-widget component. */
+		/**
+		 * Extra props spread onto the resolved cell-widget component. The
+		 * built-in `"link"` reads its target from here: `route` (a manifest
+		 * page id), `params` (route param to row field), `href` (URL with
+		 * `{field}` placeholders), and `routeField` + `routeMap` to pick the
+		 * page per row from a sibling field (`{ person: 'ContactDetail' }`),
+		 * with `route` as the fallback for a value the map does not hold.
+		 */
 		widgetProps: {
 			type: Object,
 			default: () => ({}),
@@ -394,19 +402,49 @@ export default {
 		},
 
 		/**
+		 * The manifest page id the built-in `widget:"link"` routes this row
+		 * to, or null.
+		 *
+		 * `widgetProps.routeField` names a sibling field on the row, and
+		 * `widgetProps.routeMap` maps that field's values to page ids, so one
+		 * column can link a person to `ContactDetail` and an organisation to
+		 * `OrganisationDetail` off `initiatorType`. A row whose value has no
+		 * entry in the map falls back to the fixed `widgetProps.route`, and
+		 * without one the cell renders as text. The map is the whole
+		 * vocabulary: a row value is only ever used as a KEY into it, never
+		 * as a route name itself, so row data cannot send a link to a page
+		 * the manifest did not name.
+		 *
+		 * @return {string|null} The page id, or null when none resolves.
+		 */
+		linkRouteName() {
+			const wp = this.widgetProps || {}
+			const map = wp.routeMap
+			if (typeof wp.routeField === 'string' && wp.routeField !== '' && map && typeof map === 'object') {
+				const key = this.row ? this.row[wp.routeField] : undefined
+				if (key !== undefined && key !== null && Object.prototype.hasOwnProperty.call(map, String(key))) {
+					const mapped = map[String(key)]
+					if (typeof mapped === 'string' && mapped !== '') return mapped
+				}
+			}
+			return (typeof wp.route === 'string' && wp.route !== '') ? wp.route : null
+		},
+
+		/**
 		 * Resolved router-link target for the built-in `widget:"link"`. When
-		 * `widgetProps.route` is set (a manifest page id), returns
+		 * a page id resolves (`widgetProps.route`, or the row's entry in
+		 * `widgetProps.routeMap`, see `linkRouteName`), returns
 		 * `{ name: route, params }`. Param map is `widgetProps.params`
 		 * (a map of route-param-name → row-field-name); when omitted,
-		 * defaults to `{ id: row[rowKey] }`. Returns null when `route`
-		 * isn't set (the template falls through to `linkHref` or plain
+		 * defaults to `{ id: row[rowKey] }`. Returns null when no page id
+		 * resolves (the template falls through to `linkHref` or plain
 		 * text).
 		 *
 		 * @return {object|null}
 		 */
 		linkRoute() {
 			if (this.widget !== 'link') return null
-			const route = this.widgetProps && this.widgetProps.route
+			const route = this.linkRouteName
 			if (!route) return null
 			const paramMap = (this.widgetProps && this.widgetProps.params)
 				|| { id: this.rowKey || 'id' }
@@ -423,7 +461,8 @@ export default {
 		 * are substituted from the row (`"/x/{id}"` + `row.id === "42"`
 		 * → `"/x/42"`). The final computed value is validated with
 		 * `safeHref` so row-injected values cannot introduce unsafe
-		 * schemes. Returns null when `href` isn't set.
+		 * schemes: a `javascript:` or `data:` result renders as plain text
+		 * instead of a link. Returns null when `href` isn't set.
 		 *
 		 * @return {string|null}
 		 */
@@ -431,9 +470,17 @@ export default {
 			if (this.widget !== 'link') return null
 			const href = this.widgetProps && this.widgetProps.href
 			if (!href) return null
-			return String(href).replace(/\{(\w+)\}/g, (_, key) =>
+			const resolved = String(href).replace(/\{(\w+)\}/g, (_, key) =>
 				this.row && this.row[key] != null ? String(this.row[key]) : '',
 			)
+			// The safeHref retrofit (18700fd94) put this check here and a later
+			// lint pass (e5ea00d51) dropped it, leaving the docblock above
+			// promising a check the code no longer made: a template of `{url}`
+			// put a row's `javascript:` value straight into `:href`. safeHref
+			// answers '#' for anything unsafe; that is not a link worth
+			// rendering, so fall through to plain text.
+			const safe = safeHref(resolved)
+			return safe === '#' ? null : safe
 		},
 
 		/**
@@ -531,11 +578,17 @@ export default {
 		// Warn once per column-property-name when `widget:"link"` resolves
 		// to neither a `route` nor an `href` — silent fallback hides
 		// manifest mistakes, an every-row warn is too noisy.
+		// A column with a `routeMap` has declared its targets; a row whose
+		// value is not in the map (an empty requester, say) is data, not a
+		// manifest mistake, so it renders as text without the warning. The
+		// same holds for a declared `href` whose resolved value safeHref
+		// refused: the manifest is fine, the row value is not.
 		if (
 			this.widget === 'link'
 			&& !this.linkRoute
-			&& !this.linkHref
+			&& !this.widgetProps?.href
 			&& this.widgetProps?.fallback !== 'silent'
+			&& !(this.widgetProps?.routeMap && typeof this.widgetProps.routeMap === 'object')
 		) {
 			const key = this.property?.title || String(this.value).slice(0, 20)
 			if (!WARNED_LINK_KEYS.has(key)) {

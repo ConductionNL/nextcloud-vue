@@ -16,6 +16,10 @@
   Root `npm audit` now reports 0, and `npm audit --omit=dev` reports 0.
 
 ### Fixed
+- **`CnNcWidgetWidget` says when a proxied widget cannot be shown here, instead of saying it has no items.** A dashboard widget whose provider implements only `IWidget` declares `itemApiVersions: []` and is simply ABSENT from the widget-items response. With no native callback registered on the page, the proxy used to render "No items available" under it. For the Tasks app's widget on a case handler's dashboard that read as "you have no tasks" while five were due, and the same list appeared the moment LaunchPad's legacy widget bridge was switched on.
+
+  The two cases were always distinguishable, they just were not distinguished: an unsupported widget has no key in the response, while a widget with nothing right now comes back as its own key holding an empty list (the Mail app's `{items: [], emptyContentMessage}`). Only a SUCCESSFUL response can say a widget is absent, so a failed request keeps the ordinary empty state rather than a claim about the app. No extra request is made.
+
 - **`@conduction/nextcloud-vue/stylelint` now loads.** The published preset extends `@nextcloud/stylelint-config`, and this package never declared it, so `require('@conduction/nextcloud-vue/stylelint')` threw `MODULE_NOT_FOUND` in any app that had not installed it for its own reasons. Same failure as the `marked` / `dompurify` / `dexie` peers fixed in #1048: a file this package ships depended on something it did not declare.
 
   It went unnoticed because this repository linted itself with a DIFFERENT config and never loaded the one it shipped. `stylelint.config.js` is now a one-line re-export of the preset, so `npm run stylelint` exercises exactly what an app gets, and `tests/packaging/stylelint-preset-resolves.spec.js` fails if the preset stops resolving or the repository stops using it.
