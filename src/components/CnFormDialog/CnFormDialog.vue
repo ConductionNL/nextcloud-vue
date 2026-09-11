@@ -197,7 +197,15 @@
 						     onAsyncSearch) resolves real users — mirroring how `user-multiselect`
 						     shares the multiselect branch below. -->
 						<div v-else-if="field.widget === 'select' || field.widget === 'user'" class="cn-form-dialog__select-wrapper">
-							<NcSelect
+							<!-- A `widget: "user"` field renders NcSelectUsers, everything
+							     else NcSelect. It used to be one NcSelect with
+							     `:user-select="isUserField(field)"`, and @nextcloud/vue 9
+							     REMOVED that prop, so a user field had silently become a
+							     plain select. NcSelectUsers wraps NcSelect and merges the
+							     rest of these bindings through, so the async load, search
+							     and select machinery is unchanged either way. -->
+							<component
+								:is="isUserField(field) ? 'NcSelectUsers' : 'NcSelect'"
 								:inputId="'cn-form-' + field.key"
 								:inputLabel="field.label + (field.required ? ' *' : '')"
 								:options="getEffectiveOptions(field)"
@@ -206,7 +214,6 @@
 								:disabled="field.readOnly"
 								:loading="isFieldLoading(field)"
 								:filterable="!isAsyncEnum(field)"
-								:userSelect="isUserField(field)"
 								@update:modelValue="onEffectiveSelectChange(field, $event)"
 								@search="isAsyncEnum(field) ? onAsyncSearch(field, $event) : undefined">
 								<template
@@ -223,7 +230,7 @@
 									<!-- @binding {object} option The selected option (`{ id, label }`). -->
 									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
 								</template>
-							</NcSelect>
+							</component>
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
@@ -435,7 +442,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect, NcSelectUsers, NcTextField } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnFieldHelper from '../CnFieldHelper/CnFieldHelper.vue'
@@ -642,6 +649,7 @@ export default {
 		NcLoadingIcon,
 		NcTextField,
 		NcSelect,
+		NcSelectUsers,
 		NcDateTimePickerNative,
 		NcCheckboxRadioSwitch,
 		CnJsonViewer,
