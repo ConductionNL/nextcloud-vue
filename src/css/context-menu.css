@@ -22,9 +22,11 @@
 .v-popper__popper[data-cn-ctx-menu-popper] {
 	transform: translate3d(var(--cn-ctx-menu-x), var(--cn-ctx-menu-y), 0px) !important;
 }
+
 .v-popper__popper[data-cn-ctx-menu-popper][data-popper-placement="top"] {
 	transform: translate3d(var(--cn-ctx-menu-x), calc(var(--cn-ctx-menu-y) - 50vh + 34px), 0px) !important;
 }
+
 .v-popper__popper[data-cn-ctx-menu-popper] .v-popper__arrow-container {
 	display: none;
 }

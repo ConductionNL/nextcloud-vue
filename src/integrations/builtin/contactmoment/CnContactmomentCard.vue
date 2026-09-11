@@ -219,7 +219,7 @@ export default {
 
 .cn-contactmoment-card__summary {
 	margin-top: 2px;
-	word-break: break-word;
+	overflow-wrap: anywhere;
 }
 
 .cn-contactmoment-card__state {

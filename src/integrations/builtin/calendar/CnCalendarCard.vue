@@ -350,6 +350,7 @@ export default {
 }
 
 .cn-calendar-card__icon--upcoming { color: var(--color-primary-element); }
+
 .cn-calendar-card__icon--past     { color: var(--color-text-maxcontrast); }
 
 .cn-calendar-card__row-main {
@@ -423,7 +424,9 @@ export default {
 }
 
 .cn-calendar-card__chip-status--confirmed { background: var(--color-success); color: var(--color-main-background); }
+
 .cn-calendar-card__chip-status--tentative { background: var(--color-warning, #e9a40f); color: var(--color-main-background); }
+
 .cn-calendar-card__chip-status--cancelled { background: var(--color-error); color: var(--color-main-background); }
 
 .cn-calendar-card__cta,

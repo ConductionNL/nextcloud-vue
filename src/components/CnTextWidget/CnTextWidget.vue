@@ -372,7 +372,6 @@ export default {
 	/* Safety net — ensures long URLs / words inside the sanitised HTML wrap
 	   rather than overflowing horizontally. */
 	overflow-wrap: break-word;
-	word-wrap: break-word;
 	max-width: 100%;
 }
 
@@ -512,7 +511,6 @@ export default {
 .cn-text-widget__table th,
 .cn-text-widget__table td {
 	overflow-wrap: break-word;
-	word-wrap: break-word;
 	vertical-align: top;
 }
 

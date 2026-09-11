@@ -1,0 +1,5 @@
+{
+  "@csstools/css-syntax-patches-for-csstree": "MIT-0 (MIT No Attribution). Strictly more permissive than MIT, which the allowlist accepts, and equivalent in effect to 0BSD, which it also accepts: it drops MIT's attribution clause and adds nothing. OSI-approved. Pulled in by stylelint 17 as dev tooling; never shipped to a consumer. Approved 2026-09-11.",
+  "@csstools/selector-resolve-nested": "MIT-0 (MIT No Attribution). Same reasoning as @csstools/css-syntax-patches-for-csstree: strictly more permissive than MIT, equivalent to the allowed 0BSD, OSI-approved, dev tooling only. Approved 2026-09-11.",
+  "@csstools/selector-specificity": "MIT-0 (MIT No Attribution). Same reasoning as @csstools/css-syntax-patches-for-csstree: strictly more permissive than MIT, equivalent to the allowed 0BSD, OSI-approved, dev tooling only. Approved 2026-09-11."
+}

@@ -373,7 +373,7 @@ export default {
 	font-size: 16px;
 	font-weight: 600;
 	text-align: center;
-	word-break: break-word;
+	overflow-wrap: anywhere;
 	line-height: 1.3;
 }
 </style>

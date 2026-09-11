@@ -222,7 +222,7 @@ export default {
 	font-size: 14px;
 	color: var(--color-main-text);
 	margin: 0;
-	word-break: break-word;
+	overflow-wrap: anywhere;
 }
 
 /* Responsive: single column on small screens */

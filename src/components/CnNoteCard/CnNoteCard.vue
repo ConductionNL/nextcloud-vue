@@ -121,6 +121,7 @@ export default {
 .notecard__icon {
   color: var(--note-theme);
 }
+
 .notecard__icon--heading {
   font-size: var(--note-card-icon-size);
   /* Ensure icon is on the same height as the heading */

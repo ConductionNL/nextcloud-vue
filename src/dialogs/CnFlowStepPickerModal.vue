@@ -384,6 +384,7 @@ export default {
 }
 
 .cn-step-picker__role--trigger { color: var(--color-primary-element); }
+
 .cn-step-picker__role--end { color: var(--color-warning-text, var(--color-warning)); }
 
 .cn-step-picker__description {
