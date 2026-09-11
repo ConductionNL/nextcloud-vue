@@ -14,7 +14,7 @@ Supports two layout modes:
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `items` | `Array<{ label, value?, href? }>` | `[]` | Array of items to render. Each item needs a `label` (string) and optional `value` (string or number). Items without a `value` display `'-'` unless overridden by a slot. An item may also carry an `href`, which renders its value as a link. |
+| `items` | `Array<{ label, value?, href?, empty? }>` | `[]` | Array of items to render. Each item needs a `label` (string) and optional `value` (string or number). Items without a `value` display `'-'` unless overridden by a slot. An item may also carry an `href`, which renders its value as a link, and `empty: true`, which marks a row whose value is a placeholder. A blank row gets the `cn-detail-grid__value--empty` class, so it reads as blank rather than as a value. |
 | `layout` | `'grid'` \| `'horizontal'` | `'grid'` | Layout mode. `'grid'` renders a responsive card grid. `'horizontal'` renders label-value rows. |
 | `columns` | Number | `0` | Fixed number of grid columns. Only applies to `layout="grid"`. Set to `0` (default) for responsive auto-fit behavior. |
 | `minItemWidth` | Number | `250` | Minimum width (px) for auto-fit grid items. Only applies when `columns` is `0` and `layout` is `'grid'`. |

@@ -103,13 +103,18 @@ const METADATA_FIELDS = [
  * a real answer rather than a gap — see `emptyLabel`.
  */
 const ARCHIVAL_FIELDS = [
-	{ key: 'appraisal', label: 'Appraisal', group: 'archiving', format: 'appraisal' },
-	{ key: 'retentionPeriod', label: 'Retention period', group: 'archiving', format: 'duration' },
-	{ key: 'disposalDate', label: 'Disposal date', group: 'archiving', format: 'date' },
-	{ key: 'recordState', label: 'Record state', group: 'archiving', format: 'record-state' },
+	{ key: 'appraisal', label: 'Appraisal', group: 'archiving', format: 'appraisal', core: true },
+	{ key: 'retentionPeriod', label: 'Retention period', group: 'archiving', format: 'duration', core: true },
+	{ key: 'disposalDate', label: 'Disposal date', group: 'archiving', format: 'date', core: true },
+	{ key: 'recordState', label: 'Record state', group: 'archiving', format: 'record-state', core: true },
 	{ key: 'disposalCategory', label: 'Selection list category', group: 'archiving' },
 	{ key: 'basis', label: 'Basis', group: 'archiving', format: 'basis' },
 	{ key: 'source', label: 'Source', group: 'archiving' },
+	// Which revision of the list, and when it was read (openregister#3588).
+	// The same category carries different retention periods across revisions,
+	// so a decision that names only the list cannot be defended once it moves.
+	{ key: 'sourceVersion', label: 'Selection list version', group: 'archiving' },
+	{ key: 'sourceConsultedAt', label: 'Consulted on', group: 'archiving', format: 'date' },
 	{ key: 'legalHold', label: 'Legal hold', group: 'archiving', format: 'legal-hold' },
 ]
 
@@ -388,18 +393,32 @@ export default {
 			// Appended after the identity fields rather than interleaved: what
 			// happens to a record and when is a question of its own, and a
 			// records officer reads the group, not one line of it.
+			// nextcloud-vue#1062. When the object HAS an archival decision, an
+			// absent core fact is itself the answer: a records officer reading
+			// "Disposal date: -" learns there is no date yet, while a missing row
+			// reads as a panel that never looked. So the four MDTO core rows
+			// stay, blank, and so does any key a host named in `include`, which
+			// is already the host saying "this row matters to me". Optional
+			// provenance rows still only appear when they carry something.
+			//
+			// An object with NO decision keeps an empty Archiving group, which
+			// the grouping drops entirely: "no archival obligation" and "an
+			// obligation with a gap" are different answers and must look it.
 			const archival = this.archivalSource
+			const hasDecision = Object.keys(archival).length > 0
 			for (const def of ARCHIVAL_FIELDS) {
 				if (this.include && !this.include.includes(def.key)) continue
 				if (this.exclude.includes(def.key)) continue
 
 				const raw = archival[def.key]
-				if (raw === undefined || raw === null) continue
+				const absent = raw === undefined || raw === null
+				if (absent && !(hasDecision && (def.core || this.include))) continue
 
 				items.push({
 					label: def.label,
 					value: this.formatMetadataValue(raw, def),
 					group: def.group,
+					empty: absent,
 				})
 			}
 
