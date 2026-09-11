@@ -111,6 +111,31 @@ function nextListMarker(marker) {
 }
 
 /**
+ * Read off the run of wrap markers sitting against one edge of the selection,
+ * innermost first. `**_` to the left of the caret yields `['_', '**']`.
+ *
+ * `markers` must be ordered longest-first so `**` is never read as two `*`.
+ *
+ * @param {string} text The text on that side of the selection.
+ * @param {string[]} markers Known wrap delimiters, longest first.
+ * @param {boolean} fromEnd Scan backwards from the end (the text BEFORE the
+ *   selection) rather than forwards from the start (the text AFTER it).
+ * @return {string[]} The markers found, innermost first.
+ */
+function peelMarkers(text, markers, fromEnd) {
+	const found = []
+	let rest = text
+	const nextMarker = () => markers.find((m) =>
+		m !== '' && (fromEnd ? rest.endsWith(m) : rest.startsWith(m)),
+	)
+	for (let hit = nextMarker(); hit; hit = nextMarker()) {
+		found.push(hit)
+		rest = fromEnd ? rest.slice(0, rest.length - hit.length) : rest.slice(hit.length)
+	}
+	return found
+}
+
+/**
  * Default Toast UI WYSIWYG toolbar layout — used only in `mode: 'wysiwyg'`.
  *
  * @type {Array<Array<string>>}
@@ -239,6 +264,24 @@ export default {
 		 */
 		modeClass() {
 			return `cn-markdown-editor--${this.mode}`
+		},
+		/**
+		 * Every wrap delimiter the active toolbar can produce, longest first.
+		 * Toggling has to recognise the OTHER tools' markers, not just its own,
+		 * or alternating bold and italic stacks instead of toggling.
+		 *
+		 * @return {string[]} The delimiters, longest first.
+		 */
+		wrapMarkers() {
+			const out = new Set()
+			for (const tool of this.toolbar) {
+				if (tool.linePrefix || !tool.suffix) {
+					continue
+				}
+				out.add(tool.prefix)
+				out.add(tool.suffix)
+			}
+			return [...out].sort((a, b) => b.length - a.length)
 		},
 		/**
 		 * The value the consumer actually bound, whichever prop they used.
@@ -628,23 +671,42 @@ export default {
 			} else {
 				// Wrap mode (bold/italic/link/code): toggle. If the selection is
 				// already wrapped in this tool's delimiters — either they're part
-				// of the selection, or they sit immediately around it — strip them;
-				// otherwise add them. Stops `**`/`_` from stacking on repeat presses.
+				// of the selection, or they sit around it — strip them; otherwise
+				// add them. Stops `**`/`_` from stacking on repeat presses.
 				const p = tool.prefix
 				const s = tool.suffix || ''
 				const wrappedInside = selected.length >= p.length + s.length
 					&& selected.startsWith(p)
 					&& selected.endsWith(s)
-				const wrappedOutside = s !== '' && before.endsWith(p) && after.startsWith(s)
+
+				// Not just the delimiters immediately against the selection: read
+				// the whole run on each side, so this tool's pair is still found
+				// with another tool's nested inside it. Toggling bold on
+				// `**_text_**` has to see the `**` through the `_`, or alternating
+				// bold and italic stacks markers forever instead of toggling.
+				const markers = this.wrapMarkers
+				const leftRun = s === '' ? [] : peelMarkers(before, markers, true)
+				const rightRun = s === '' ? [] : peelMarkers(after, markers, false)
+				// Same depth on both sides: that is what makes them a pair.
+				const depth = leftRun.findIndex((m, i) => m === p && rightRun[i] === s)
 
 				if (wrappedInside) {
 					const inner = selected.slice(p.length, selected.length - s.length)
 					nextValue = `${before}${inner}${after}`
 					nextSelStart = before.length
 					nextSelEnd = nextSelStart + inner.length
-				} else if (wrappedOutside) {
-					// Selection is the inner text; the delimiters are just outside it.
-					nextValue = `${before.slice(0, before.length - p.length)}${selected}${after.slice(s.length)}`
+				} else if (depth !== -1) {
+					// Selection is the inner text; drop this tool's pair and leave
+					// every marker nested inside it where it is.
+					const pStart = before.length
+						- leftRun.slice(0, depth).reduce((n, m) => n + m.length, 0)
+						- p.length
+					const sStart = rightRun.slice(0, depth).reduce((n, m) => n + m.length, 0)
+					nextValue = before.slice(0, pStart)
+						+ before.slice(pStart + p.length)
+						+ selected
+						+ after.slice(0, sStart)
+						+ after.slice(sStart + s.length)
 					nextSelStart = before.length - p.length
 					nextSelEnd = nextSelStart + selected.length
 				} else {
