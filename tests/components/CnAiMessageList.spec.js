@@ -12,7 +12,7 @@ const MESSAGE_WITH_TOOL = {
 	role: 'assistant',
 	content: 'Using search tool...',
 	toolCalls: [
-		{ toolId: 'opencatalogi.searchCatalogues', arguments: { q: 'broker' }, _expanded: false },
+		{ toolId: 'opencatalogi.searchCatalogues', arguments: { q: 'broker' } },
 	],
 }
 const MESSAGE_WITH_ERROR_TOOL = {
@@ -73,6 +73,42 @@ describe('CnAiMessageList', () => {
 		// Click to expand
 		await summary.trigger('click')
 		expect(wrapper.find('.cn-ai-message-list__tool-detail').exists()).toBe(true)
+	})
+
+	it('never writes the expanded state onto the messages it was given', async () => {
+		// 🔴 THE DEFECT. `toggleTool` set `_expanded` on the tool entry inside
+		// the `messages` prop, so opening a tool call mutated the caller's
+		// conversation in place. It also made the test above flaky: it passed
+		// alone and failed under load, because a write that deep into a
+		// shallow reactive prop is not something a re-render can rely on.
+		//
+		// ⚠️ ITS OWN LITERAL, NOT A CLONE OF `MESSAGE_WITH_TOOL`. Other tests
+		// in this file click that shared fixture, and under the defect each
+		// click wrote into it. A clone taken afterwards already carried the
+		// write, so this guard compared a polluted "before" with an equally
+		// polluted "after" and passed with the defect present. Watched it
+		// happen: the mutation check reddened this test run alone and passed
+		// it in the full file.
+		const tool = { toolId: 'search', arguments: { q: 'broker' } }
+		const messages = [{ role: 'assistant', content: 'Searching', toolCalls: [tool] }]
+		const wrapper = mountList(messages)
+
+		await wrapper.find('.cn-ai-message-list__tool-summary').trigger('click')
+
+		expect(wrapper.find('.cn-ai-message-list__tool-detail').exists()).toBe(true)
+		expect(messages[0].toolCalls[0]).toBe(tool)
+		expect(tool).toEqual({ toolId: 'search', arguments: { q: 'broker' } })
+	})
+
+	it('closes again on a second click', async () => {
+		const wrapper = mountList([JSON.parse(JSON.stringify(MESSAGE_WITH_TOOL))])
+		const summary = wrapper.find('.cn-ai-message-list__tool-summary')
+
+		await summary.trigger('click')
+		await summary.trigger('click')
+
+		expect(wrapper.find('.cn-ai-message-list__tool-detail').exists()).toBe(false)
+		expect(summary.attributes('aria-expanded')).toBe('false')
 	})
 
 	it('tool-result with isError:true renders error styling', () => {
