@@ -300,6 +300,8 @@
 				:include-fields="includeFields"
 				:field-overrides="fieldOverrides"
 				:name-field="massActionNameField"
+				:size="formSize"
+				:columns="formColumns"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog">
 				<template v-if="$slots['form-fields']" #form="scope">
@@ -996,6 +998,28 @@ export default {
 		entitySource: { type: String, default: '' },
 
 		/**
+		 * Route name a clicked row opens, overriding a named source's own
+		 * navigation.
+		 *
+		 * An entity source knows where its rows live and navigates itself, and
+		 * for a source whose detail page belongs to ANOTHER app that is right:
+		 * `tasks` sends a click to openregister's task page, because pushing
+		 * on this app's router could not reach it.
+		 *
+		 * It is wrong for an app that HAS its own page for those rows. Dossiq
+		 * keeps a task detail page on purpose, so its handlers see a task in
+		 * dossiq's vocabulary beside the case it belongs to. Without this prop
+		 * adopting `entitySource: "tasks"` would send every click out of the
+		 * app, and the `row-click` event cannot recover it: `openRow` calls
+		 * `window.location.assign()`, so a host's push never lands.
+		 *
+		 * Set it and the row pushes `{ name: rowRoute, params: { id } }` on
+		 * this app's router instead. Leave it unset and the source's own
+		 * navigation is unchanged, which is what every current consumer gets.
+		 */
+		rowRoute: { type: String, default: '' },
+
+		/**
 		 * Config handed to the named source's loader (e.g. `{ app: 'dossiq' }`).
 		 */
 		sourceConfig: { type: Object, default: null },
@@ -1314,6 +1338,36 @@ export default {
 		useAdvancedFormDialog: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * NcDialog size for the built-in Add/Edit form dialog.
+		 *
+		 * The dialog itself has taken a `size` since it shipped, but this page
+		 * never passed one, so an index page's Add form was stuck at `normal`
+		 * however many properties its schema declared. A manifest-declared
+		 * `open-form` header action, which reaches CnFormDialog through
+		 * CnActionButtons, could already ask for `large` — which is why the
+		 * same app could have a roomy create form on a detail page and a
+		 * cramped one on its index.
+		 */
+		formSize: {
+			type: String,
+			default: 'normal',
+		},
+
+		/**
+		 * How many columns the built-in Add/Edit form flows its fields into.
+		 *
+		 * Pair `2` with `formSize: 'large'`, or the two columns are merely two
+		 * narrow ones. Worth it once the schema asks more questions than fit on
+		 * a screen; below 700px CnFormDialog collapses back to one column on
+		 * its own, so this is safe on a narrow viewport.
+		 */
+		formColumns: {
+			type: Number,
+			default: 1,
+			validator: (value) => value === 1 || value === 2,
 		},
 
 		/**
@@ -3410,10 +3464,20 @@ export default {
 			// A named source knows where its rows live. Emitting only would leave
 			// the click inert on a manifest page, which has no listener to bind —
 			// the very shape that left three apps with a dead `@rowClick`.
-			// `openRow` wins over `detailRoute`: a row whose detail page lives in
-			// ANOTHER app (a task's page is openregister's) cannot be reached by
-			// pushing on this app's router, so the source navigates itself.
-			if (this.isNamedSource && this.namedSource && typeof this.namedSource.openRow === 'function') {
+			//
+			// `rowRoute` wins over everything: an app that declares its own
+			// page for these rows means it. The source's `openRow` is the
+			// right default precisely because a task's page is usually
+			// openregister's, and it is wrong for an app that ships one of
+			// its own. This cannot be done by listening to `row-click`,
+			// because `openRow` calls `window.location.assign()` and the
+			// host's push never lands.
+			if (this.isNamedSource && this.rowRoute) {
+				const routeId = row?.id || row?.uuid
+				if (routeId) {
+					this.$router.push({ name: this.rowRoute, params: { id: String(routeId) } })
+				}
+			} else if (this.isNamedSource && this.namedSource && typeof this.namedSource.openRow === 'function') {
 				this.namedSource.openRow(row)
 			} else if (this.isNamedSource && this.namedSource && this.namedSource.detailRoute) {
 				const id = row?.id || row?.uuid

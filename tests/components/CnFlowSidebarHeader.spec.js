@@ -61,7 +61,13 @@ async function mountSidebar(state = {}, props = {}) {
 					// Both header slots. NcAppSidebar wraps `secondary-actions`
 					// in an NcActions of its own, so the flow's verbs render in
 					// the header too — just not as buttons beside the version.
-					template: '<aside class="app-sidebar"><header class="app-sidebar__header"><slot name="description" /><slot name="secondary-actions" /></header><slot /></aside>',
+					//
+					// ⚠️ IT RENDERS `name`, because the real one does. A stub
+					// that swallowed it would let "the name is on screen once"
+					// pass while the heading was empty, which is the defect this
+					// file now pins.
+					template: '<aside class="app-sidebar"><header class="app-sidebar__header"><h2 class="app-sidebar__name">{{ name }}</h2><slot name="description" /><slot name="secondary-actions" /></header><slot /></aside>',
+					props: ['name'],
 				},
 				NcActions: { template: '<div class="actions"><slot /></div>' },
 				NcActionButton: { template: '<button class="action-button"><slot /></button>' },
@@ -170,30 +176,56 @@ describe('CnFlowSidebar — after the messages moved to the canvas', () => {
 			expect(header.find('[data-testid="flow-publish"]').exists()).toBe(true)
 		})
 
-		it('renders the title ITSELF, with the version inline behind the name', async () => {
-			// NcAppSidebar renders its own heading and exposes no slot for it,
-			// so the version could only ever sit on the line UNDER the title.
-			// The heading is ours instead: one h2 carrying the dot, the name
-			// and the pills, and NcAppSidebar is handed no `name` at all.
+		it('gives the sidebar a heading that names the flow, not an empty one', async () => {
+			// 🔴 THE DEFECT. `name` is a REQUIRED prop of NcAppSidebar and this
+			// component passed none, so that the version could sit beside a
+			// heading of our own. NcAppSidebar still rendered its heading, with
+			// nothing in it: an h2 above ours naming nothing, announced as a
+			// heading by a screen reader, plus a Vue warning on every mount.
 			const { wrapper } = await mountSidebar({
 				flow: { id: 3, name: 'Mandaatbesluit', version: 2, lifecycleStatus: 'draft', nodes: [], edges: [] },
 			})
 
+			expect(wrapper.find('.app-sidebar__name').text()).toBe('Mandaatbesluit')
+
+			// And the lifecycle row under it carries what the heading cannot:
+			// the health dot and the version, with no second name and no
+			// second heading.
 			const title = wrapper.find('[data-testid="flow-title"]')
 			expect(title.exists()).toBe(true)
-			expect(title.element.tagName).toBe('H2')
-
-			// The pill is INSIDE the heading, which is the whole ask.
+			expect(title.element.tagName).not.toBe('H2')
 			expect(title.find('[data-testid="flow-version"]').text()).toBe('v2')
 			expect(title.find('[data-testid="flow-health"]').exists()).toBe(true)
-			expect(title.text()).toContain('Mandaatbesluit')
+		})
+
+		it('leaves no heading empty in the sidebar', async () => {
+			const { wrapper } = await mountSidebar({
+				flow: { id: 3, name: 'Mandaatbesluit', version: 2, lifecycleStatus: 'draft', nodes: [], edges: [] },
+			})
+
+			// Stated as the invariant rather than as one element's contents:
+			// any heading that names nothing is the same defect wherever it
+			// comes from. Collected rather than asserted one by one, so a
+			// failure's diff names which tags were empty. (jest's `expect`
+			// takes one argument, so there is no message parameter to use.)
+			const empty = wrapper.findAll('h1, h2, h3, h4')
+				.filter((heading) => heading.text().trim() === '')
+				.map((heading) => heading.element.tagName)
+
+			expect(empty).toEqual([])
 		})
 
 		it('shows the SEMANTIC version once the engine has derived one', async () => {
 			const { wrapper } = await mountSidebar({
 				flow: {
-					id: 3, name: 'Mandaatbesluit', version: 4, semver: '2.1.0',
-					semverSource: 'derived', lifecycleStatus: 'published', nodes: [], edges: [],
+					id: 3,
+					name: 'Mandaatbesluit',
+					version: 4,
+					semver: '2.1.0',
+					semverSource: 'derived',
+					lifecycleStatus: 'published',
+					nodes: [],
+					edges: [],
 				},
 			})
 
@@ -215,8 +247,14 @@ describe('CnFlowSidebar — after the messages moved to the canvas', () => {
 		it('says a back-filled version was not derived, so it can be distrusted', async () => {
 			const { wrapper } = await mountSidebar({
 				flow: {
-					id: 3, name: 'Mandaatbesluit', version: 2, semver: '1.1.0',
-					semverSource: 'backfill', lifecycleStatus: 'published', nodes: [], edges: [],
+					id: 3,
+					name: 'Mandaatbesluit',
+					version: 2,
+					semver: '1.1.0',
+					semverSource: 'backfill',
+					lifecycleStatus: 'published',
+					nodes: [],
+					edges: [],
 				},
 			})
 
@@ -224,8 +262,8 @@ describe('CnFlowSidebar — after the messages moved to the canvas', () => {
 		})
 
 		it('does not put the flow\'s name on screen twice', async () => {
-			// The failure mode of rendering our own title is passing `name` as
-			// well and getting both.
+			// The other side of the fix: now that NcAppSidebar is given the
+			// name, the lifecycle row must stop rendering one of its own.
 			const { wrapper } = await mountSidebar({
 				flow: { id: 3, name: 'Mandaatbesluit', version: 2, lifecycleStatus: 'draft', nodes: [], edges: [] },
 			})

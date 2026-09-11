@@ -45,11 +45,25 @@ const CnActionsBarStub = {
 }
 
 const stubs = {
-	CnDataTable: true, CnCardGrid: true, CnPagination: true, CnActionsBar: CnActionsBarStub,
-	CnContextMenu: true, CnRowActions: true, CnIndexSidebar: true, CnPageHeader: true,
-	CnMassDeleteDialog: true, CnMassCopyDialog: true, CnMassExportDialog: true,
-	CnMassImportDialog: true, CnDeleteDialog: true, CnCopyDialog: true,
-	CnFormDialog: true, CnAdvancedFormDialog: true, NcLoadingIcon: true, NcEmptyContent: true, CnIcon: true,
+	CnDataTable: true,
+	CnCardGrid: true,
+	CnPagination: true,
+	CnActionsBar: CnActionsBarStub,
+	CnContextMenu: true,
+	CnRowActions: true,
+	CnIndexSidebar: true,
+	CnPageHeader: true,
+	CnMassDeleteDialog: true,
+	CnMassCopyDialog: true,
+	CnMassExportDialog: true,
+	CnMassImportDialog: true,
+	CnDeleteDialog: true,
+	CnCopyDialog: true,
+	CnFormDialog: true,
+	CnAdvancedFormDialog: true,
+	NcLoadingIcon: true,
+	NcEmptyContent: true,
+	CnIcon: true,
 	NcSelect: true,
 }
 
@@ -249,8 +263,12 @@ describe('CnIndexPage — multi-select quick filters (quickFilterMultiple)', () 
 
 	it('dropdown mode renders an NcSelect instead of the chip strip', async () => {
 		const wrapper = mountPage({
-			title: 'C', register: 'app', schema: 'c',
-			quickFilterMode: 'dropdown', quickFilterMultiple: true, quickFilters: TYPES,
+			title: 'C',
+			register: 'app',
+			schema: 'c',
+			quickFilterMode: 'dropdown',
+			quickFilterMultiple: true,
+			quickFilters: TYPES,
 		})
 		await flush()
 		expect(wrapper.find('.cn-quick-filter-bar--dropdown').exists()).toBe(true)

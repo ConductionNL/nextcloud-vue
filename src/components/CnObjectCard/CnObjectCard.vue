@@ -23,6 +23,11 @@
 
 				<div class="cn-object-card__title-area">
 					<h3 class="cn-object-card__title">
+						<!-- Beside the title, not in the badges row: the badges
+						     slot is the consumer's, and a lock is the library's
+						     to report. A card whose consumer passes no badges
+						     would otherwise show no padlock at all. -->
+						<CnLockIndicator :object="object" :size="16" />
 						{{ title }}
 					</h3>
 					<p v-if="description" class="cn-object-card__description">
@@ -63,6 +68,7 @@
 <script>
 import { NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
+import { CnLockIndicator } from '../CnLockIndicator/index.js'
 import { formatValue } from '../../utils/schema.js'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 
@@ -86,6 +92,7 @@ export default {
 	components: {
 		NcCheckboxRadioSwitch,
 		CnCellRenderer,
+		CnLockIndicator,
 	},
 
 	inject: {

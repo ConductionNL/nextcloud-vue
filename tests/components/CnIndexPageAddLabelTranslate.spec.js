@@ -36,11 +36,21 @@ const baseProps = {
 }
 
 const stubs = {
-	CnDataTable: true, CnCardGrid: true, CnPagination: true,
-	CnContextMenu: true, CnRowActions: true, CnIndexSidebar: true,
-	CnMassDeleteDialog: true, CnMassCopyDialog: true, CnMassExportDialog: true,
-	CnMassImportDialog: true, CnDeleteDialog: true, CnCopyDialog: true,
-	CnFormDialog: true, CnAdvancedFormDialog: true, NcLoadingIcon: true,
+	CnDataTable: true,
+	CnCardGrid: true,
+	CnPagination: true,
+	CnContextMenu: true,
+	CnRowActions: true,
+	CnIndexSidebar: true,
+	CnMassDeleteDialog: true,
+	CnMassCopyDialog: true,
+	CnMassExportDialog: true,
+	CnMassImportDialog: true,
+	CnDeleteDialog: true,
+	CnCopyDialog: true,
+	CnFormDialog: true,
+	CnAdvancedFormDialog: true,
+	NcLoadingIcon: true,
 	NcEmptyContent: true,
 }
 

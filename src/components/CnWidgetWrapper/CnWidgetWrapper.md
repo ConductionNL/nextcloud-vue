@@ -97,6 +97,7 @@ export default {
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `flush` | Boolean | `false` | Remove content padding so content goes edge-to-edge |
+| `chromeless` | Boolean | `false` | Draw no card at all: no border, no background, no content padding, no title row, no header divider. For a surface that already drew the card and named it, a tab panel above all. Implies `borderless` and `flush`, and overrides `showTitle`. Controls in the `actions` slot keep their header, because a control is not chrome. The wrapper element still renders: `CnObjectDataWidget` measures its overflow against `.cn-widget-wrapper__content`, and the table and detail-page CSS size their content areas through it. |
 | `chrome` | String | `'default'` | Card chrome variant — `'default'` (library card) or `'nc-dashboard'` (native Nextcloud Dashboard panel look) |
 | `showActions` | Boolean | `true` | Whether the header's overflow action menu renders; set `false` on compact surfaces to free header width |
 | `iconUrl` | String | `null` | URL of an image icon shown left of the title |

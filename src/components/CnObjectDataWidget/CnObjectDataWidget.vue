@@ -11,6 +11,11 @@
 <template>
 	<CnWidgetWrapper
 		:title="title"
+		:show-title="showTitle"
+		:show-actions="showActions"
+		:borderless="borderless"
+		:flush="flush"
+		:chromeless="chromeless"
 		:widget-id="widgetId || objectType"
 		:documentation-url="documentationUrl"
 		:class="{ 'cn-object-data-widget--expanded': overflowing && expanded }"
@@ -371,6 +376,8 @@
 			:overrides="resolvedOverrides"
 			:exclude-fields="exclude"
 			:include-fields="include"
+			:size="formSize"
+			:columns="formColumns"
 			@confirm="onEditConfirm"
 			@close="editModalOpen = false" />
 	</CnWidgetWrapper>
@@ -382,6 +389,7 @@ import { NcButton, NcLoadingIcon, NcTextField, NcSelect, NcCheckboxRadioSwitch, 
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
+import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
@@ -464,6 +472,15 @@ export default {
 		 * identity when used standalone (no CnAppRoot ancestor).
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * The host surface's panel-action channel, when this widget is rendered
+		 * in a tab panel. Null everywhere else, which is every other surface.
+		 *
+		 * A panel draws no header, so the items this widget would put in its own
+		 * overflow menu have nowhere to go. Publishing them here puts them in
+		 * the strip's menu instead; see utils/panelActions.js.
+		 */
+		panelActionSink: { from: PANEL_ACTION_SINK, default: null },
 	},
 
 	props: {
@@ -471,6 +488,80 @@ export default {
 		title: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Data'),
+		},
+		/**
+		 * Draw the header's title row.
+		 *
+		 * Set false inside a tab panel, where the open tab already names the
+		 * panel. The header itself still renders whenever there are actions, so
+		 * the Save button an inline edit needs does not vanish with the title —
+		 * that is the whole reason this is separate from the actions.
+		 *
+		 * It exists because `title` carries a DEFAULT of "Data". A host that
+		 * wanted no title passed `undefined` and got the default instead, which
+		 * is how a tab panel ended up with a "Data" heading nobody chose.
+		 * @type {boolean}
+		 */
+		showTitle: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Show the overflow Actions menu in the header.
+		 *
+		 * Worth switching off where a host already offers one within a few
+		 * pixels. A tab panel is that case: the tab strip carries its own Actions
+		 * menu, so a second copy inside the panel bought a header band to hold
+		 * it and nothing else.
+		 *
+		 * Switching it off costs the widget nothing, because the two items it
+		 * holds travel instead of vanishing. Metadata and the full edit dialog are
+		 * published to the host surface and render in its menu, each still opening
+		 * THIS widget's dialog with this widget's `overrides`, `include` and
+		 * `exclude` applied. That scoping is the reason they are published rather
+		 * than left to the page: a detail page does carry its own record Edit, but
+		 * it opens the form the page configures, not the subset declared here. See
+		 * utils/panelActions.js. Inline editing never used the menu at all: a cell
+		 * opens its editor when clicked, and Save and Discard appear in the
+		 * `actions` slot from the moment there is an edit to commit.
+		 * @type {boolean}
+		 */
+		showActions: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Drop the card border and background, for a host that draws its own.
+		 * @type {boolean}
+		 */
+		borderless: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Drop the content padding, for a host that supplies its own inset.
+		 * @type {boolean}
+		 */
+		flush: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Draw no card at all: no border, no background, no content padding,
+		 * no title row, no header divider. What a tab panel wants, in one word
+		 * instead of three, and the word `CnDetailWidgetHost` already uses for
+		 * this on its integration path.
+		 *
+		 * It had to become a real prop. Until it was one, a `chromeless` passed
+		 * here fell into `$attrs`, landed on the wrapper's root element as a
+		 * plain HTML attribute, and changed nothing — a caller asking for the
+		 * documented thing got a silent no-op with an attribute in the DOM to
+		 * suggest it had worked.
+		 * @type {boolean}
+		 */
+		chromeless: {
+			type: Boolean,
+			default: false,
 		},
 		/** Optional MDI icon component for the header. */
 		icon: {
@@ -607,6 +698,24 @@ export default {
 			type: Array,
 			default: () => null,
 		},
+		/**
+		 * NcDialog size for the edit form dialog. This widget already scopes
+		 * the form with `include` / `exclude`, but a scoped form can still be
+		 * long enough to want the room.
+		 */
+		formSize: {
+			type: String,
+			default: 'normal',
+		},
+		/**
+		 * How many columns the edit form flows its fields into. Pair `2` with
+		 * `formSize: 'large'`, or the two columns are merely two narrow ones.
+		 */
+		formColumns: {
+			type: Number,
+			default: 1,
+			validator: (value) => value === 1 || value === 2,
+		},
 		/** Label for the save button */
 		saveLabel: {
 			type: String,
@@ -670,6 +779,38 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The items this widget offers to a host surface's overflow menu.
+		 *
+		 * Exactly the two that live in `#action-items` on its own header, as
+		 * plain descriptors. `run` closes over this component, so the button an
+		 * ancestor renders still opens THIS widget's dialog, pre-filled from its
+		 * own config and committing through its own save path.
+		 *
+		 * Edit is gated on `editable` for the same reason the header item is: a
+		 * read-only widget offering a full edit form is a dead end.
+		 *
+		 * @return {object[]} PanelAction descriptors.
+		 */
+		panelActionItems() {
+			const items = []
+			if (this.editable) {
+				items.push({
+					key: 'edit',
+					label: this.editLabel,
+					icon: 'Pencil',
+					run: () => { this.editModalOpen = true },
+				})
+			}
+			items.push({
+				key: 'metadata',
+				label: this.metadataLabel,
+				icon: 'InformationOutline',
+				run: () => { this.metadataModalOpen = true },
+			})
+			return items
+		},
+
 		iconComponent() {
 			return (this.icon && typeof this.icon !== 'string') ? this.icon : null
 		},
@@ -834,11 +975,23 @@ export default {
 		schema: {
 			handler() { this.resolveRelations() },
 		},
+		// Republish when the items change (a label retranslated, `editable`
+		// flipped) and when the widget's own menu comes or goes. Not `immediate`:
+		// an immediate watcher runs during this component's own setup, and
+		// publishing then would mutate the ancestor's state mid-render. Mounted
+		// does it once the tree is settled.
+		panelActionItems: {
+			handler() { this.publishPanelActions() },
+		},
+		showActions: {
+			handler() { this.publishPanelActions() },
+		},
 	},
 
 	mounted() {
 		this.resolveRelations()
 		this.scheduleOverflowMeasure()
+		this.publishPanelActions()
 	},
 
 	updated() {
@@ -848,9 +1001,31 @@ export default {
 	beforeUnmount() {
 		if (this._overflowObserver) this._overflowObserver.disconnect()
 		if (this._overflowTimer) clearTimeout(this._overflowTimer)
+		// Leave nothing behind in the strip's menu. A closed tab's panel can be
+		// torn down while the strip lives on, and an item whose widget is gone
+		// would open a dialog belonging to nothing.
+		if (this.panelActionSink) this.panelActionSink.clear()
 	},
 
 	methods: {
+		/**
+		 * Publish or withdraw this widget's items on the host surface.
+		 *
+		 * Published only while the widget's OWN menu is suppressed. With a
+		 * header of its own the items already have a home, and publishing too
+		 * would put the same two entries in two menus on one screen.
+		 *
+		 * @return {void}
+		 */
+		publishPanelActions() {
+			if (!this.panelActionSink) return
+			if (this.showActions) {
+				this.panelActionSink.clear()
+				return
+			}
+			this.panelActionSink.set(this.panelActionItems)
+		},
+
 		/** Pre-translated string helper exposed to the template. */
 		t,
 
@@ -1694,7 +1869,7 @@ export default {
 .cn-object-data-widget__value {
 	font-size: 1em;
 	color: var(--color-main-text);
-	word-break: break-word;
+	overflow-wrap: anywhere;
 	position: relative;
 	padding-right: 20px;
 }
@@ -1789,7 +1964,7 @@ export default {
 	padding: 2px 8px 2px 0;
 	border-bottom: 1px solid var(--color-border);
 	vertical-align: top;
-	word-break: break-word;
+	overflow-wrap: anywhere;
 }
 
 .cn-object-data-widget__mini-table th {
@@ -1832,7 +2007,7 @@ export default {
 
 .cn-object-data-widget__deflist dd {
 	margin: 0;
-	word-break: break-word;
+	overflow-wrap: anywhere;
 }
 
 /* Responsive: collapse to single column on narrow widths */

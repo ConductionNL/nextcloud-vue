@@ -291,7 +291,7 @@
 				},
 				"permission": {
 					"type": "string",
-					"description": "Optional permission identifier required to access this page. Consumer-side enforcement only — CnPageRenderer / CnAppRoot do NOT currently gate the page on it; consumers that want enforcement filter the manifest themselves before passing it to CnAppRoot. Added (schema-only) so the multiple apps that declare page-level permissions (procest's WmsLayers* / LhsMatrices*) validate clean."
+					"description": "Permission identifier required to access this page. ENFORCED since 2.43.0: CnPageRenderer refuses the page and renders an access-denied empty state when the user's permissions do not include this value, using the same semantics as CnAppNav's menu filter so the route and the menu agree — an empty permissions list still means 'the app did not say' and allows. Until 2.43.0 this was schema-only, which meant a declared page was dropped from the MENU and still served in full to anyone who typed its URL. Consumers pass the user's permissions to CnAppRoot, which provides them as `cnPermissions`."
 				},
 				"config": {
 					"type": "object",
@@ -599,7 +599,7 @@
 				},
 				"widgetProps": {
 					"type": "object",
-					"description": "Optional extra props spread onto the resolved cell-widget component (e.g. `{ \"variant\": \"warning\" }` for the built-in `badge` widget). Ignored when `widget` is unset or unresolved.",
+					"description": "Optional extra props spread onto the resolved cell-widget component (e.g. `{ \"variant\": \"warning\" }` for the built-in `badge` widget). The built-in `link` widget reads `route` (page id), `params` (route param to row field), `href` (URL with `{field}` placeholders, checked by safeHref), and `routeField` + `routeMap` to pick the page per row from a sibling field, with `route` as the fallback. Ignored when `widget` is unset or unresolved.",
 					"additionalProperties": true
 				},
 				"format": {
@@ -897,8 +897,8 @@
 				},
 				"type": {
 					"type": "string",
-					"enum": ["boolean", "number", "string", "enum", "password", "json"],
-					"description": "Field value type. Closed enum: \"boolean\" (checkbox), \"number\" (NcTextField type=number), \"string\" (NcTextField), \"enum\" (NcSelect), \"password\" (NcPasswordField), \"json\" (CnJsonViewer)."
+					"enum": ["boolean", "number", "string", "enum", "password", "json", "file"],
+					"description": "Field value type. Closed enum: \"boolean\" (checkbox), \"number\" (NcTextField type=number), \"string\" (NcTextField), \"enum\" (NcSelect), \"password\" (NcPasswordField), \"json\" (CnJsonViewer), \"file\" (CnFileField). A \"file\" field holds the picked file as a `data:` URL, never a path or URL, so the receiver of the payload decides where it is stored; OpenRegister stores it in the object's own folder for a schema property of type file. \"file\" is valid on type='form' pages only: a type='settings' page saves to app config and the FE validator rejects it there."
 				},
 				"required": {
 					"type": "boolean",
@@ -919,6 +919,15 @@
 				"help": {
 					"type": "string",
 					"description": "Optional help / tooltip text shown next to the field. i18n key resolved at render time."
+				},
+				"accept": {
+					"type": "string",
+					"description": "type='file' only. File types the picker offers, in HTML `accept` syntax: extensions (\".pdf\"), MIME types (\"application/pdf\") and wildcards (\"image/*\"), comma-separated. Checked again after the pick. The server still decides what it accepts."
+				},
+				"maxSize": {
+					"type": "integer",
+					"minimum": 1,
+					"description": "type='file' only. Largest file the field reads, in bytes. Defaults to 1048576 (1 MB), the library's cap for a file carried inline in a payload."
 				}
 			}
 		},

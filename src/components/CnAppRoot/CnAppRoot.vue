@@ -788,6 +788,19 @@ export default {
 			// Buildiq rename deliberately left this runtime contract untouched.
 			cnOpenBuildAvailable: this.buildiqAvailable,
 			cnEditingBody: this.manifestEditor ? this.manifestEditor.editing : false,
+			// Page-level permission enforcement. The manifest schema has carried
+			// `pages[].permission` as SCHEMA-ONLY since it was added — "consumers
+			// that want enforcement filter the manifest themselves" — and no
+			// consumer did, so a page declaring it was hidden from the menu and
+			// served to anyone who typed its URL. dossiq's Integrations page
+			// answered a non-admin with seven links into admin settings.
+			//
+			// A getter, so it tracks the prop rather than freezing at the single
+			// provide() call, and normalised to an array here so every descendant
+			// reads one shape.
+			get cnPermissions() {
+				return Array.isArray(self.permissions) ? self.permissions : []
+			},
 			cnCustomComponents: this.customComponents,
 			cnTranslate: this.translate,
 			cnPageTypes: this.pageTypes,

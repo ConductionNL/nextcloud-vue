@@ -213,13 +213,19 @@
 			</div>
 		</div>
 
-		<!-- Locked-by-other banner. Renders only when a `lockState`
-		     was wired by `setup()` AND a remote lock is active.
-		     Suppressed when the lock is held by the current user. -->
+		<!-- The locked card, under the title, for ANY active lock — not only a
+		     remote one. It used to be suppressed when the current user held the
+		     lock, which meant the one person who could do something about a
+		     stale lock was also the only person the UI never told about it.
+		     The card carries the tone: an error for somebody else's lock, a
+		     neutral notice plus Unlock for your own. -->
 		<CnLockedBanner
-			v-if="lockState && lockState.locked.value && !lockState.lockedByMe.value"
+			v-if="lockState && lockState.locked.value"
 			:locked-by="lockState.lockedBy.value"
-			:expires-at="lockState.expiresAt.value" />
+			:locked-by-me="lockState.lockedByMe.value"
+			:expires-at="lockState.expiresAt.value"
+			:unlocking="releasingLock"
+			@unlock="onReleaseLock" />
 
 		<!-- Loading state -->
 		<div v-if="showLoadingState" class="cn-detail-page__loading">
@@ -614,6 +620,8 @@
 				:item="createPrefill"
 				:register="register"
 				:dialog-title="title || undefined"
+				:size="formSize"
+				:columns="formColumns"
 				@confirm="onCreateFormConfirm"
 				@close="onCreateFormClose" />
 
@@ -633,6 +641,8 @@
 				:item="currentObject"
 				:register="register"
 				:dialog-title="editActionLabel"
+				:size="formSize"
+				:columns="formColumns"
 				@confirm="onEditFormConfirm"
 				@close="closeEditForm" />
 		</slot>
@@ -656,7 +666,7 @@
 </template>
 
 <script>
-import { Comment, Fragment, Text, provide, ref, watch } from 'vue'
+import { provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { NcActionButton, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
@@ -697,6 +707,7 @@ import { useObjectSubscription } from '../../composables/useObjectSubscription.j
 import { gridLayout } from '../../mixins/gridLayout.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
+import { slotRenders } from '../../utils/slotContent.js'
 import { useObjectStore } from '../../store/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
@@ -710,28 +721,6 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
-
-/**
- * Whether a rendered slot produced anything a user can actually see.
- *
- * A non-empty vnode array is NOT evidence of content: Vue hands back a
- * `Comment` placeholder for a falsy `v-if`, and a whitespace-only `Text`
- * node for a stray newline between tags. Both have to read as "empty" so a
- * consumer who wrote `<CnDetailPage>` across two lines does not
- * accidentally suppress the auto-body.
- *
- * @param {Array} nodes Vnodes returned by calling a slot function.
- * @return {boolean} True when at least one vnode renders visible content.
- */
-function hasRenderableContent(nodes) {
-	if (!Array.isArray(nodes)) return false
-	return nodes.some((vnode) => {
-		if (!vnode || vnode.type === Comment) return false
-		if (vnode.type === Text) return String(vnode.children ?? '').trim() !== ''
-		if (vnode.type === Fragment) return hasRenderableContent(vnode.children)
-		return true
-	})
-}
 
 /**
  * CnDetailPage — Generic detail/overview page.
@@ -880,6 +869,31 @@ export default {
 		title: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * NcDialog size for this page's create and edit form dialogs.
+		 *
+		 * CnFormDialog has taken a `size` since it shipped; this page never
+		 * passed one, so both its forms were stuck at `normal` however many
+		 * properties the schema declared.
+		 */
+		formSize: {
+			type: String,
+			default: 'normal',
+		},
+
+		/**
+		 * How many columns the create and edit forms flow their fields into.
+		 *
+		 * Pair `2` with `formSize: 'large'`, or the two columns are merely two
+		 * narrow ones. CnFormDialog collapses back to one column below 700px
+		 * on its own, so this is safe on a narrow viewport.
+		 */
+		formColumns: {
+			type: Number,
+			default: 1,
+			validator: (value) => value === 1 || value === 2,
 		},
 
 		/** Page description (shown below title) */
@@ -1614,6 +1628,13 @@ export default {
 			/** Whether the record edit form is open. */
 			editFormOpen: false,
 			/**
+			 * Whether a lock release is in flight, so the locked card's Unlock
+			 * button can disable itself for the round trip. Without it a slow
+			 * release invites a second click, and the second `release()` lands
+			 * on a lock that is already gone.
+			 */
+			releasingLock: false,
+			/**
 			 * The manifest `headerActions[]` flattened into menu items by the
 			 * `display: "menu"` CnActionButtons instance, which keeps owning
 			 * their dialogs. Each carries its own pre-bound `run()`, so the
@@ -2115,9 +2136,7 @@ export default {
 		 * whatever the consumer had put in the slot.
 		 */
 		hasDefaultSlotContent() {
-			const slot = this.$slots.default
-			if (typeof slot !== 'function') return false
-			return hasRenderableContent(slot())
+			return slotRenders(this.$slots.default)
 		},
 
 		/**
@@ -2476,6 +2495,27 @@ export default {
 		// Expose the shared grid helpers to the template (grid mode + auto-body).
 		cnGridCellStyle,
 		hasGridRow,
+
+		/**
+		 * Release the lock the current user holds on this record.
+		 *
+		 * Only reachable from the locked card's Unlock button, which the card
+		 * only renders for the viewer's OWN lock — so this never releases
+		 * somebody else's. A failure is left to `useObjectLock`, which logs it;
+		 * the flag is cleared either way so a failed release does not strand
+		 * the button disabled.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async onReleaseLock() {
+			if (!this.lockState || this.releasingLock) return
+			this.releasingLock = true
+			try {
+				await this.lockState.release()
+			} finally {
+				this.releasingLock = false
+			}
+		},
 
 		/**
 		 * Re-emit the page-header menu's Refresh to the host.

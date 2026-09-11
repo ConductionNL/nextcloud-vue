@@ -3,7 +3,20 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-object-list-widget">
+	<div
+		class="cn-object-list-widget"
+		:class="{ 'cn-object-list-widget--dropping': dropping }"
+		@dragenter="onDragEnter"
+		@dragover="onDragOver"
+		@dragleave="onDragLeave"
+		@drop="onDrop">
+		<!-- Drop overlay. Rendered only while a drag carrying files is over a
+		     widget that declares `content.dropZone`; without the key the drag
+		     handlers below all return before touching any state, so a widget
+		     that did not ask for a drop zone behaves exactly as before. -->
+		<div v-if="dropping" class="cn-object-list-widget__drop-overlay">
+			{{ dropLabel }}
+		</div>
 		<p v-if="waitingForContext" class="cn-object-list-widget__prompt">
 			{{ promptText }}
 		</p>
@@ -40,7 +53,15 @@
 					:loading="loading"
 					:empty-text="emptyText"
 					borderless
-					@row-click="onRowClick" />
+					@row-click="onRowClick">
+					<!-- Declarative per-row actions (`content.rowActions`).
+					     CnDataTable only paints the trailing actions column
+					     when this slot is supplied, so a widget without
+					     `rowActions` keeps the column count it had. -->
+					<template v-if="mappedRowActions.length > 0" #row-actions="{ row }">
+						<CnRowActions :actions="mappedRowActions" :row="row" />
+					</template>
+				</CnDataTable>
 			</div>
 			<!--
 			  Footer. Two affordances, and they answer different questions.
@@ -94,6 +115,11 @@
 			ref="createDialog"
 			:schema="createSchema"
 			:item="null"
+			:size="formSize"
+			:columns="formColumns"
+			:include-fields="formIncludeFields"
+			:exclude-fields="formExcludeFields"
+			:field-overrides="formFieldOverrides"
 			@confirm="onCreateConfirm"
 			@close="showCreate = false" />
 	</div>
@@ -104,10 +130,12 @@ import CnDataTable from '../CnDataTable/CnDataTable.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
+import { CnRowActions } from '../CnRowActions/index.js'
 import { translate as t } from '@nextcloud/l10n'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { resolveFilterTokens, hasUnresolvedTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
 import { objectFieldValue } from '../../utils/objectName.js'
+import { dispatchAction } from '../../utils/actionsDispatcher.js'
 
 /**
  * Event-bus channel a page-level refresh is announced on. The page's Actions
@@ -141,7 +169,7 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 export default {
 	name: 'CnObjectListWidget',
 
-	components: { CnDataTable, CnFormDialog, CnPagination, CnWidgetEmptyState },
+	components: { CnDataTable, CnFormDialog, CnPagination, CnWidgetEmptyState, CnRowActions },
 
 	inject: {
 		/**
@@ -168,6 +196,14 @@ export default {
 		 * an untranslated key renders as itself.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * Pre-bound `dispatchAction` provided by CnPageRenderer (router,
+		 * registry, handlers and openModal already wired). `rowActions` and
+		 * `dropZone` dispatch through it; outside a CnPageRenderer tree the
+		 * component falls back to a bare `dispatchAction` call, which reaches
+		 * the router-backed types and warns on the registry-backed ones.
+		 */
+		cnDispatchAction: { default: null },
 	},
 
 	props: {
@@ -176,7 +212,22 @@ export default {
 		 * (default 25) — the rendered row count fits the host cell (ADR-062).
 		 * `viewAllRoute` / `viewAllQuery` configure the "View all (N)" footer
 		 * navigation; `viewAllQuery` values are token-resolved (`@objectId`).
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, columns?: Array, rowRoute?: string, prompt?: string, emptyText?: string, viewAllRoute?: string, viewAllQuery?: object}}
+		 *
+		 * `extend` is the OpenRegister `_extend[]` list forwarded on the fetch.
+		 * It is what makes a DOTTED column key work: `CnDataTable` reads
+		 * `informatieobject.title` as a path into the row, and without
+		 * `extend: ['informatieobject']` the row holds a uuid string at that
+		 * key, so six columns off one referenced object render as six copies
+		 * of the same uuid. `fkResolve` is the one-label answer; `extend` is
+		 * the several-fields-off-the-same-reference answer.
+		 *
+		 * `rowActions` is an array in the unified manifest action shape
+		 * (`handler` | `open-modal` | `open-page` | `navigate` | …), rendered
+		 * per row through CnRowActions. `dropZone` is one action of that same
+		 * shape, dispatched when files are dropped on the widget, with the
+		 * dropped `File[]` handed to it. Neither carries authorization:
+		 * OpenRegister RBAC is the only authority over what a write may do.
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, rowRoute?: string, prompt?: string, emptyText?: string, viewAllRoute?: string, viewAllQuery?: object}}
 		 */
 		content: {
 			type: Object,
@@ -184,7 +235,7 @@ export default {
 		},
 	},
 
-	emits: ['created', 'row-click', 'view-all'],
+	emits: ['created', 'row-click', 'view-all', 'files-dropped'],
 
 	data() {
 		return {
@@ -201,6 +252,13 @@ export default {
 			showCreate: false,
 			/** Target schema definition fetched for the create dialog. */
 			createSchema: null,
+			/**
+			 * Depth of nested dragenter/dragleave pairs over the widget.
+			 * A single counter, because `dragleave` fires when the pointer
+			 * crosses into a CHILD element: tracking a boolean instead makes
+			 * the overlay flicker off the moment the drag reaches the table.
+			 */
+			dragDepth: 0,
 		}
 	},
 
@@ -327,6 +385,45 @@ export default {
 			}
 			return mapped
 		},
+		/**
+		 * Declared per-row actions mapped onto the CnRowActions shape. Every
+		 * entry keeps its label, icon and `destructive` flag and routes its
+		 * click back through `runRowAction`, so the dispatcher decides what a
+		 * type means and this component does not grow a second action
+		 * vocabulary.
+		 *
+		 * @return {Array<object>}
+		 */
+		mappedRowActions() {
+			const declared = Array.isArray(this.content.rowActions) ? this.content.rowActions : []
+			return declared
+				.filter((a) => a && typeof a === 'object')
+				.map((action) => ({
+					label: action.label,
+					icon: action.icon,
+					destructive: action.destructive === true,
+					handler: (row) => this.runRowAction(action, row),
+				}))
+		},
+		/**
+		 * The declared drop-zone action, or null. A widget without the key
+		 * takes no part in a drag at all.
+		 *
+		 * @return {object|null}
+		 */
+		dropZoneAction() {
+			const dz = this.content.dropZone
+			return (dz && typeof dz === 'object') ? dz : null
+		},
+		/** Whether a file drag is currently over a drop-enabled widget. */
+		dropping() {
+			return this.dropZoneAction !== null && this.dragDepth > 0
+		},
+		/** Copy shown on the drop overlay (overridable via `dropZone.label`). */
+		dropLabel() {
+			return (this.dropZoneAction && this.dropZoneAction.label)
+				|| t('nextcloud-vue', 'Drop files here')
+		},
 		/** Empty-state text (overridable via `content.emptyText`). */
 		emptyText() {
 			return this.content.emptyText || t('nextcloud-vue', 'No items')
@@ -415,6 +512,45 @@ export default {
 		allowCreate() {
 			const c = this.content || {}
 			return c.allowCreate !== false && Boolean(c.register) && Boolean(c.schema)
+		},
+
+		/**
+		 * NcDialog size for the create dialog (`content.formSize`).
+		 *
+		 * The widget fetches the WHOLE schema to build this form, so a list
+		 * scoped to a handful of columns still opened a create dialog asking
+		 * every property the schema declares — at `normal` width, in one
+		 * column. A case schema with thirty visible properties is unusable
+		 * that way, and every consumer that hit it worked around it by
+		 * turning the create button off.
+		 */
+		formSize() {
+			const c = this.content || {}
+			return c.formSize || 'normal'
+		},
+
+		/** How many columns the create dialog flows its fields into (`content.formColumns`). */
+		formColumns() {
+			const c = this.content || {}
+			return c.formColumns === 2 ? 2 : 1
+		},
+
+		/** Whitelist of fields the create dialog asks for (`content.formIncludeFields`). Null means all. */
+		formIncludeFields() {
+			const c = this.content || {}
+			return Array.isArray(c.formIncludeFields) ? c.formIncludeFields : null
+		},
+
+		/** Fields the create dialog leaves out (`content.formExcludeFields`). */
+		formExcludeFields() {
+			const c = this.content || {}
+			return Array.isArray(c.formExcludeFields) ? c.formExcludeFields : []
+		},
+
+		/** Per-field overrides for the create dialog (`content.formFieldOverrides`). */
+		formFieldOverrides() {
+			const c = this.content || {}
+			return (c.formFieldOverrides && typeof c.formFieldOverrides === 'object') ? c.formFieldOverrides : {}
 		},
 		/** Pre-translated Add label (overridable via `content.addLabel`). */
 		addLabel() {
@@ -524,6 +660,16 @@ export default {
 				const params = { _limit: this.pageSize, _page: this.page }
 				if (c.sort && c.sort.field) {
 					params[`_order[${c.sort.field}]`] = (c.sort.dir === 'desc' ? 'desc' : 'asc')
+				}
+				// `content.extend` → OpenRegister's repeated `_extend[]`. axios
+				// serializes an array value as `_extend[]=a&_extend[]=b`, which
+				// is the wire form OR reads. This is what turns a dotted column
+				// key into a real value: the referenced object is inlined on the
+				// row, so `informatieobject.title` resolves instead of reading a
+				// uuid string as an object path.
+				if (Array.isArray(c.extend)) {
+					const extend = c.extend.filter((e) => typeof e === 'string' && e !== '')
+					if (extend.length > 0) params._extend = extend
 				}
 				// The OpenRegister OBJECT-SEARCH endpoint filters on DIRECT field
 				// params (`status=open`, `value[gt]=30000`) — unlike the
@@ -702,6 +848,125 @@ export default {
 			 */
 			this.$emit('row-click', row)
 		},
+
+		/**
+		 * Dispatch one declared action. Non-`handler` types go through as
+		 * declared; a `handler` action gets the row appended as its last
+		 * argument, the same convention CnWidgetObjectTable uses, so a
+		 * registry function reads its row from where it already expects one.
+		 *
+		 * @param {object} action The declared action.
+		 * @param {object|null} row The row the action was triggered on.
+		 * @return {void}
+		 */
+		runRowAction(action, row) {
+			this.dispatch(action, [row])
+		},
+
+		/**
+		 * Dispatch a declared action through the page's pre-bound dispatcher,
+		 * falling back to a bare `dispatchAction` when this widget is mounted
+		 * outside a CnPageRenderer tree.
+		 *
+		 * `extraArgs` is appended to a `handler` action's `args`; it is NOT
+		 * merged into any other type, because only `handler` has an argument
+		 * list. A drop's `File[]` additionally rides an `open-modal` action's
+		 * `props.files`, since that is how a modal receives anything at all.
+		 *
+		 * @param {object} action The declared action.
+		 * @param {Array} extraArgs Arguments appended for a `handler` action.
+		 * @param {object} extraProps Props merged for an `open-modal` action.
+		 * @return {void}
+		 */
+		dispatch(action, extraArgs = [], extraProps = {}) {
+			if (!action || typeof action !== 'object') return
+			const type = action.type || 'handler'
+			let wrapped = action
+			if (type === 'handler') {
+				wrapped = { ...action, args: [...(action.args || []), ...extraArgs] }
+			} else if (type === 'open-modal' && Object.keys(extraProps).length > 0) {
+				wrapped = { ...action, props: { ...(action.props || {}), ...extraProps } }
+			}
+			if (typeof this.cnDispatchAction === 'function') {
+				this.cnDispatchAction(wrapped)
+			} else {
+				dispatchAction(wrapped, { router: this.$router || null })
+			}
+		},
+
+		/**
+		 * Whether a drag event is carrying files. A drag of text or of a row
+		 * from another table is not a file drop and must not paint the
+		 * overlay; `dataTransfer.types` is the only thing readable during a
+		 * dragover (the items themselves are not).
+		 *
+		 * @param {DragEvent} event The drag event.
+		 * @return {boolean}
+		 */
+		dragHasFiles(event) {
+			const types = event && event.dataTransfer && event.dataTransfer.types
+			if (!types) return false
+			return Array.prototype.indexOf.call(types, 'Files') !== -1
+		},
+
+		/**
+		 * @param {DragEvent} event The drag event.
+		 * @return {void}
+		 */
+		onDragEnter(event) {
+			if (!this.dropZoneAction || !this.dragHasFiles(event)) return
+			event.preventDefault()
+			this.dragDepth += 1
+		},
+
+		/**
+		 * `dragover` must preventDefault or the browser refuses the drop and
+		 * navigates to the file instead.
+		 *
+		 * @param {DragEvent} event The drag event.
+		 * @return {void}
+		 */
+		onDragOver(event) {
+			if (!this.dropZoneAction || !this.dragHasFiles(event)) return
+			event.preventDefault()
+		},
+
+		/**
+		 * Leaving one element of the widget. The event is not read: a
+		 * `dragleave` fires for the widget AND for every child crossed, so the
+		 * counter — not this event — decides whether the drag is still over us.
+		 *
+		 * @return {void}
+		 */
+		onDragLeave() {
+			if (!this.dropZoneAction) return
+			this.dragDepth = Math.max(0, this.dragDepth - 1)
+		},
+
+		/**
+		 * Hand the dropped files to the declared `dropZone` action. Nothing is
+		 * uploaded here: this component reads no file content and calls no
+		 * write endpoint, so whoever receives the files decides where they go
+		 * — the same split the form file field keeps.
+		 *
+		 * @param {DragEvent} event The drop event.
+		 * @return {void}
+		 */
+		onDrop(event) {
+			if (!this.dropZoneAction) return
+			if (!this.dragHasFiles(event)) { this.dragDepth = 0; return }
+			event.preventDefault()
+			this.dragDepth = 0
+			const files = Array.from((event.dataTransfer && event.dataTransfer.files) || [])
+			if (files.length === 0) return
+			/**
+			 * @event files-dropped Emitted with the dropped files, for a host
+			 * that wants to handle the drop itself rather than declare an action.
+			 * @type {Array<File>}
+			 */
+			this.$emit('files-dropped', files)
+			this.dispatch(this.dropZoneAction, [files], { files })
+		},
 	},
 }
 </script>
@@ -720,6 +985,33 @@ export default {
 	display: flex;
 	flex-direction: column;
 	min-height: 0;
+}
+
+/* The overlay covers the widget while a file drag is over it. `position:
+   relative` is set only in the dropping state so a widget without a drop zone
+   keeps the containing block it had — an unconditional rule here would
+   re-parent any absolutely-positioned descendant a host has placed. */
+.cn-object-list-widget--dropping {
+	position: relative;
+}
+
+.cn-object-list-widget__drop-overlay {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	padding: var(--cn-spacing-m, 12px);
+	border: 2px dashed var(--color-primary-element);
+	border-radius: var(--border-radius-large, 12px);
+	background-color: var(--color-primary-element-light);
+	color: var(--color-main-text);
+	/* The overlay is a painted state, not a target: letting it swallow the
+	   pointer would fire dragleave the instant it appeared under the cursor,
+	   and the drop would land on nothing. */
+	pointer-events: none;
 }
 
 .cn-object-list-widget__table {

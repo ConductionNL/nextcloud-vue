@@ -27,7 +27,7 @@ import { mount } from '@vue/test-utils'
 import { ref, nextTick } from 'vue'
 
 const { indexSources, resolveIndexSource, taskDueLabel, taskDeepLink } = require('../../src/composables/indexSources.js')
-const { useTaskInboxStore, FLOW_TASKS_URL } = require('../../src/composables/useTaskInboxStore.js')
+const { useTaskInboxStore } = require('../../src/composables/useTaskInboxStore.js')
 const { useNamedSource } = require('../../src/components/CnIndexPage/useNamedSource.js')
 
 /** @return {object} The params of the most recent GET. */
@@ -259,6 +259,72 @@ describe('named-source quick filters', () => {
 		expect(wrapper.vm.named.namedQuickFilters.map((t) => t.label)[1]).toBe('Pool')
 	})
 
+	/**
+	 * A TAB FILTER IS A FILTER, so `@today` has to resolve here too.
+	 *
+	 * Without this the literal string `@today+7d` went over the wire and the
+	 * task endpoint either rejected it or answered the wrong window. The
+	 * manifest author writing a due-window lens has no way of knowing that
+	 * the page behind the label is a named source rather than a self-fetch,
+	 * and self-fetch has resolved tokens since the first day.
+	 */
+	it('resolves sentinel tokens in a tab filter before the request', async () => {
+		const activeIndex = ref(0)
+		mountHost({
+			entitySource: 'tasks',
+			objects: [],
+			quickFilters: [
+				{
+					label: 'Due this week',
+					filter: { scope: 'all', isTerminal: false, dueAfter: '@today', dueBefore: '@today+7d' },
+					default: true,
+				},
+			],
+			sourceConfig: null,
+		}, activeIndex)
+		await nextTick()
+
+		const params = lastParams()
+		const today = new Date()
+		const iso = (d) => d.toISOString().slice(0, 10)
+		const week = new Date(today.getTime() + (7 * 24 * 60 * 60 * 1000))
+
+		expect(params.dueAfter).not.toBe('@today')
+		expect(String(params.dueAfter)).toContain(iso(today))
+		expect(String(params.dueBefore)).toContain(iso(week))
+		// The literal keys around it are untouched.
+		expect(params.scope).toBe('all')
+		expect(params.isTerminal).toBe('false')
+	})
+
+	it('resolves a token in sourceConfig, not only in the tab', async () => {
+		const activeIndex = ref(null)
+		mountHost({
+			entitySource: 'tasks',
+			objects: [],
+			quickFilters: null,
+			sourceConfig: { dueBefore: '@today' },
+		}, activeIndex)
+		await nextTick()
+
+		expect(lastParams().dueBefore).not.toBe('@today')
+	})
+
+	it('leaves a value that is not a token exactly as written', async () => {
+		const activeIndex = ref(0)
+		mountHost({
+			entitySource: 'tasks',
+			objects: [],
+			quickFilters: [
+				{ label: 'Urgent', filter: { priority: 'urgent' }, default: true },
+			],
+			sourceConfig: null,
+		}, activeIndex)
+		await nextTick()
+
+		expect(lastParams().priority).toBe('urgent')
+	})
+
 	it('keeps the flows source on its old single-load path', async () => {
 		const activeIndex = ref(null)
 		mountHost({ entitySource: 'flows', objects: [], quickFilters: null, sourceConfig: { app: 'dossiq' } }, activeIndex)
@@ -346,5 +412,84 @@ describe('the manifest schema accepts the tasks source', () => {
 		})
 
 		expect(result.valid).toBe(false)
+	})
+})
+
+/**
+ * `isTerminal` reaches the wire.
+ *
+ * The server has always accepted it — `TaskController` documents
+ * "'true'|'false' to restrict on terminality" — and only the store's
+ * allowlist withheld it. Without it an app cannot express "closed" or "my
+ * open work" as a scope tab, which is two of dossiq's five task lenses.
+ */
+describe('useTaskInboxStore isTerminal', () => {
+	beforeEach(() => {
+		mockGet.mockClear()
+	})
+
+	it('passes isTerminal through, stringified like overdue', async () => {
+		const store = useTaskInboxStore()
+
+		await store.load({ scope: 'all', isTerminal: true })
+
+		const params = mockGet.mock.calls[0][1].params
+		expect(params.isTerminal).toBe('true')
+
+		mockGet.mockClear()
+		await store.load({ scope: 'assigned', isTerminal: false })
+		expect(mockGet.mock.calls[0][1].params.isTerminal).toBe('false')
+	})
+
+	it('still drops a key that is not on the allowlist', async () => {
+		const store = useTaskInboxStore()
+
+		await store.load({ scope: 'all', assignee: 'someone', nonsense: 1 })
+
+		const params = mockGet.mock.calls[0][1].params
+		expect(params).not.toHaveProperty('assignee')
+		expect(params).not.toHaveProperty('nonsense')
+	})
+})
+
+/**
+ * The due WINDOW reaches the wire.
+ *
+ * `overdue` is open-ended in the past, so it answers "what is late" and not
+ * "what is due this week". The endpoint grew `dueAfter` / `dueBefore` for
+ * the latter (openregister#3581), and without them in this allowlist a lens
+ * for the week ahead has no server-side answer — only a client-side filter
+ * over a paged window, which silently drops matching rows past the page
+ * boundary.
+ */
+describe('useTaskInboxStore due window', () => {
+	beforeEach(() => {
+		mockGet.mockClear()
+	})
+
+	it('passes both ends of the window through, as given', async () => {
+		const store = useTaskInboxStore()
+
+		await store.load({
+			scope: 'all',
+			dueAfter: '2026-09-01T00:00:00+00:00',
+			dueBefore: '2026-09-08T00:00:00+00:00',
+		})
+
+		const params = mockGet.mock.calls[0][1].params
+		// ISO instants, not stringified booleans: the endpoint parses them
+		// and refuses an unparseable one with 400.
+		expect(params.dueAfter).toBe('2026-09-01T00:00:00+00:00')
+		expect(params.dueBefore).toBe('2026-09-08T00:00:00+00:00')
+	})
+
+	it('lets each end stand alone', async () => {
+		const store = useTaskInboxStore()
+
+		await store.load({ dueBefore: '2026-09-08T00:00:00+00:00' })
+
+		const params = mockGet.mock.calls[0][1].params
+		expect(params.dueBefore).toBe('2026-09-08T00:00:00+00:00')
+		expect(params).not.toHaveProperty('dueAfter')
 	})
 })

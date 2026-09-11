@@ -177,15 +177,46 @@ describe('CnFlowRunsWidget', () => {
 			expect(push).not.toHaveBeenCalled()
 		})
 
-		it('open the configured route with the FLOW id', () => {
+		it('open the configured route with the FLOW id and the clicked RUN as ?run=', () => {
 			const push = jest.fn(() => Promise.resolve())
 			const w = mountWidget({
-				payload: { results: [run({ flowId: 'flow-9' })], total: 1 },
+				payload: { results: [run({ flowId: 'flow-9', uuid: 'run-9' })], total: 1 },
 				content: { rowRoute: 'GraphDetail' },
 				router: { push },
 			})
 			w.find('.cn-flow-runs-widget__row').trigger('click')
+			// The flow id alone opens the right flow and answers the wrong
+			// question: the reader clicked a RUN. The query is what turns the
+			// destination into the run view.
+			expect(push).toHaveBeenCalledWith({
+				name: 'GraphDetail',
+				params: { id: 'flow-9' },
+				query: { run: 'run-9' },
+			})
+		})
+
+		it('omit the query on a row that carries no run uuid', () => {
+			const push = jest.fn(() => Promise.resolve())
+			const w = mountWidget({
+				payload: { results: [run({ flowId: 'flow-9', uuid: '' })], total: 1 },
+				content: { rowRoute: 'GraphDetail' },
+				router: { push },
+			})
+			w.find('.cn-flow-runs-widget__row').trigger('click')
+			// An empty `?run=` is not a deep link, it is a value the
+			// destination has to defend against. Absent means absent.
 			expect(push).toHaveBeenCalledWith({ name: 'GraphDetail', params: { id: 'flow-9' } })
+		})
+
+		it('still prefer runRoute, which addresses the run by path', () => {
+			const push = jest.fn(() => Promise.resolve())
+			const w = mountWidget({
+				payload: { results: [run({ flowId: 'flow-9', uuid: 'run-9' })], total: 1 },
+				content: { rowRoute: 'GraphDetail', runRoute: 'RunDetail' },
+				router: { push },
+			})
+			w.find('.cn-flow-runs-widget__row').trigger('click')
+			expect(push).toHaveBeenCalledWith({ name: 'RunDetail', params: { id: 'run-9' } })
 		})
 	})
 

@@ -38,7 +38,9 @@
 						<span class="cn-contactmoment-card__subject">{{ item.subject || unknownLabel }}</span>
 						<span v-if="item.channel" class="cn-contactmoment-card__channel">{{ item.channel }}</span>
 					</div>
-					<div v-if="item.summary" class="cn-contactmoment-card__summary">{{ item.summary }}</div>
+					<div v-if="item.summary" class="cn-contactmoment-card__summary">
+						{{ item.summary }}
+					</div>
 					<div class="cn-contactmoment-card__meta">
 						<span v-if="item.agent">{{ item.agent }}</span>
 						<span v-if="item.timestamp">{{ formatWhen(item.timestamp) }}</span>
@@ -217,7 +219,7 @@ export default {
 
 .cn-contactmoment-card__summary {
 	margin-top: 2px;
-	word-break: break-word;
+	overflow-wrap: anywhere;
 }
 
 .cn-contactmoment-card__state {

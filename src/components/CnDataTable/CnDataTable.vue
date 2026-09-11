@@ -159,10 +159,20 @@
 
 						<!-- Data cells -->
 						<td
-							v-for="col in effectiveColumns"
+							v-for="(col, colIndex) in effectiveColumns"
 							:key="col.key"
 							:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '']"
 							:style="col.width ? { maxWidth: col.width } : {}">
+							<!-- The padlock rides the FIRST data cell, beside whatever
+							     names the row. Deliberately OUTSIDE the #column-<key>
+							     slot: a consumer overriding that column's rendering is
+							     customising their own data, not opting out of being told
+							     the record is locked. It renders nothing when unlocked,
+							     so an unlocked table is byte-for-byte what it was. -->
+							<CnLockIndicator
+								v-if="colIndex === 0"
+								:object="row"
+								:size="16" />
 							<!-- @slot Per-column cell override (`#column-<key>`), scoped with { row, value }. Wins over CnCellRenderer. -->
 							<slot :name="'column-' + col.key" :row="row" :value="cellValue(row, col)">
 								<!-- Every column renders through CnCellRenderer: it resolves
@@ -236,6 +246,7 @@ import { NcLoadingIcon, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
+import { CnLockIndicator } from '../CnLockIndicator/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
@@ -305,6 +316,7 @@ export default {
 		NcCheckboxRadioSwitch,
 		CnCellRenderer,
 		CnIcon,
+		CnLockIndicator,
 	},
 
 	inject: {

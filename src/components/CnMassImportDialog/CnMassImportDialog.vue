@@ -469,9 +469,13 @@ export default {
 }
 
 .cn-mass-import__stat--found { color: var(--color-primary-element); }
+
 .cn-mass-import__stat--created { color: var(--color-success); }
+
 .cn-mass-import__stat--updated { color: var(--color-warning); }
+
 .cn-mass-import__stat--unchanged { color: var(--color-text-maxcontrast); }
+
 .cn-mass-import__stat--errors { color: var(--color-error); }
 
 .cn-mass-import__expand {

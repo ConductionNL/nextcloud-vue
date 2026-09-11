@@ -5,10 +5,51 @@
 
 <template>
 	<div class="cn-detail-widget-host" :class="`cn-detail-widget-host--${chrome}`">
-		<!-- `type: 'data'` — the schema-driven data widget. Always keeps its own
-		     chrome, including in bare mode: its header carries the Save button
-		     for inline edits, and CnWidgetWrapper's actions live INSIDE the
-		     header, so hiding the header would hide Save. See the docblock. -->
+		<!-- `type: 'data'` — the schema-driven data widget. In bare mode it is
+		     `chromeless`: no border, no background, no padding, no title row and
+		     no header divider, so the tab panel holds the content directly
+		     instead of a card inside a card.
+
+		     One prop, not three. `chromeless` is the word this component already
+		     used for the same thing on the integration path (`bareWidget`), and
+		     the three it replaces (`show-title`, `borderless`, `flush`) were a
+		     decomposition every caller had to remember in full — miss one and
+		     the panel keeps half a card.
+
+		     Chromeless does NOT mean no wrapper element. The wrapper's content
+		     node is what `CnObjectDataWidget` measures its overflow against and
+		     what the library's table and detail-page CSS key on; removing it
+		     would take the whole-row clip out silently, because a `closest()`
+		     that finds nothing reads as "nothing overflows".
+
+		     It used to keep the whole card here, because its Save button lives
+		     in CnWidgetWrapper's header and hiding the header hid Save with it.
+		     The wrapper renders its header whenever there are actions, with or
+		     without a title, so the panel gets no title while an inline edit
+		     stays committable. Controls are not chrome.
+
+		     Passing `undefined` was never enough on its own: `title` carries a
+		     DEFAULT of "Data", so an unset title became a "Data" heading that
+		     nobody chose. The title is still passed, and now names the content
+		     region for a screen reader instead of printing a second heading.
+
+		     The overflow menu goes too, which `chromeless` does not cover. It
+		     left a 59px band whose only content was an Actions menu about eight
+		     pixels from the tab strip's own, and two menus on one row read as the
+		     same card inside a card in miniature.
+
+		     Nothing is lost, but that took a second piece of work rather than
+		     being true on its own. Suppressing the menu takes its two items with
+		     it, and Metadata had no other home anywhere: the page header carries
+		     no equivalent, so it became unreachable inside a panel. Edit is the
+		     softer case. CnDetailPage does carry a record Edit button, but it
+		     opens the form the PAGE configures, not the subset THIS widget
+		     declares through `overrides`, `include` and `exclude`, so a tabbed
+		     widget showing eight of forty fields lost the form scoped to its
+		     eight. Both items are now published to the host surface and render in
+		     its menu; see utils/panelActions.js. Inline editing was never
+		     affected: a cell opens its editor when clicked, and Save and Discard
+		     arrive in the header the moment there is an edit to commit. -->
 		<!-- `requiredApp` names another Nextcloud app this widget leans on. When
 		     that app is absent the widget renders its NORMAL chrome plus a
 		     set-up state, and asks its backend NOTHING.
@@ -18,11 +59,18 @@
 		     query run — is worse: an aggregation over an absent app's register
 		     404s and the tile shows `0`, which is exactly what a real zero
 		     shows. dossiq's hours tile did that on every install without
-		     humaniq, and looked correct doing it. -->
+		     humaniq, and looked correct doing it.
+
+		     "NORMAL chrome" means the chrome of the surface it is on. In a tab
+		     panel that is no chrome, same as every other widget there: a set-up
+		     state is still a widget, and a bordered card around it inside the
+		     panel is the same doubled card this file removes below. The title
+		     is now passed in bare mode too, where it names the content region
+		     rather than printing a heading the tab already carries. -->
 		<CnWidgetWrapper
 			v-if="missingApp"
-			:title="isBare ? '' : widgetTitle"
-			:show-title="!isBare"
+			:title="widgetTitle"
+			:chromeless="isBare"
 			title-icon-position="left"
 			:show-refresh="false"
 			:show-request-feature="false">
@@ -39,6 +87,8 @@
 		<CnObjectDataWidget
 			v-else-if="isData && schemaObject"
 			:title="resolvedTitle"
+			:chromeless="isBare"
+			:show-actions="!isBare"
 			:icon="widget.icon || null"
 			:schema="schemaObject"
 			:object-data="object"
@@ -189,6 +239,7 @@ import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import {
@@ -226,13 +277,18 @@ import {
  * its `widget` (which draws its own card). That pairing is not new: it is
  * exactly what `CnIntegrationWidget` already does inside its own panels.
  *
- * ## What bare mode deliberately does NOT strip
+ * ## The `data` widget in bare mode
  *
- * The `data` widget keeps its chrome in both modes. `CnWidgetWrapper` renders
- * its actions INSIDE the header, and `CnObjectDataWidget` puts its **Save**
- * button there, so suppressing the header to remove a duplicate title would
- * also remove the only way to commit an inline edit. A silently unsaveable
- * form is a worse outcome than a doubled title, so the title stays.
+ * It drops its title, border and padding, so a tab panel holds the content
+ * directly rather than a card inside a card.
+ *
+ * That used not to be possible. `CnWidgetWrapper` renders its actions INSIDE
+ * the header and `CnObjectDataWidget` puts its **Save** button there, so
+ * hiding the header to remove the duplicate title also removed the only way to
+ * commit an inline edit; a silently unsaveable form being worse than a doubled
+ * title, the title stayed. The wrapper now renders its header whenever there
+ * are actions, with or without a title, so the two are separate requests and a
+ * panel can have no title while staying saveable.
  *
  * ```vue
  * <CnDetailWidgetHost
@@ -257,6 +313,44 @@ export default {
 		NcActionButton,
 		NcEmptyContent,
 		Plus,
+	},
+
+	inject: {
+		/**
+		 * The surface's panel-action channel, when this host sits inside one.
+		 *
+		 * Absent on every other surface, which is why the default is null
+		 * rather than a required injection.
+		 */
+		panelActionSink: {
+			from: PANEL_ACTION_SINK,
+			default: null,
+		},
+	},
+
+	/**
+	 * Re-provide the channel with this panel's widget id baked in.
+	 *
+	 * The widget below does not know its own id on the surface and should not
+	 * have to, so the id is supplied here, where it is already known. Read at
+	 * CALL time rather than captured, so a host whose `widget` changes keeps
+	 * publishing under the right key.
+	 *
+	 * Provides null when there is no surface to publish to, so the widget's own
+	 * injection resolves to null instead of finding a channel that goes nowhere.
+	 *
+	 * @return {object} The narrowed sink, or null.
+	 */
+	provide() {
+		const sink = this.panelActionSink
+		return {
+			[PANEL_ACTION_SINK]: sink
+				? {
+					set: (items) => sink.set(this.widget?.id, items, 'widget'),
+					clear: () => sink.clear(this.widget?.id, 'widget'),
+				}
+				: null,
+		}
 	},
 
 	props: {
@@ -738,9 +832,69 @@ export default {
 		addLabel() {
 			return t('nextcloud-vue', 'Add')
 		},
+
+		/**
+		 * The items THIS HOST offers to the surface, as opposed to the ones the
+		 * widget inside it publishes.
+		 *
+		 * There is one: the catalog Add. It is drawn in the host's own card
+		 * header, and that header only exists off a panel, so a Documents or
+		 * Files tab simply had no way to add anything. The data widget's
+		 * Metadata went the same way until it was published, and this is the
+		 * same defect one widget type along.
+		 *
+		 * Empty off a panel, where the header draws the item itself and
+		 * publishing would put it in two menus at once.
+		 *
+		 * @return {object[]} PanelAction descriptors.
+		 */
+		ownPanelActions() {
+			if (!this.isBare || !this.catalogAddEnabled) return []
+			return [{
+				key: 'catalog-add',
+				label: this.addLabel,
+				icon: 'Plus',
+				run: () => this.invokeCatalogAdd(),
+			}]
+		},
+	},
+
+	watch: {
+		ownPanelActions: {
+			handler() { this.publishOwnPanelActions() },
+		},
+	},
+
+	mounted() {
+		this.publishOwnPanelActions()
+	},
+
+	beforeUnmount() {
+		// A closed tab's panel can be torn down while the strip lives on, and an
+		// item whose host is gone would call into nothing.
+		if (this.panelActionSink) this.panelActionSink.clear(this.widget?.id, 'host')
 	},
 
 	methods: {
+		/**
+		 * Publish or withdraw this host's OWN items on the surface.
+		 *
+		 * Published under the `host` source so the widget inside the panel can
+		 * publish its own without either replacing the other.
+		 *
+		 * @return {void}
+		 */
+		publishOwnPanelActions() {
+			if (!this.panelActionSink) return
+			const id = this.widget?.id
+			if (!id) return
+			if (this.ownPanelActions.length) {
+				this.panelActionSink.set(id, this.ownPanelActions, 'host')
+			} else {
+				this.panelActionSink.clear(id, 'host')
+			}
+		},
+
 		/**
 		 * Re-emit the geo widget's save so the surface can reload the record.
 		 *

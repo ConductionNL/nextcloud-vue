@@ -19,8 +19,17 @@
  * Dexie is imported here only — the pure engine (`syncQueueEngine.js`) and the
  * pure helpers carry the unit-test surface and import nothing from this module,
  * so they stay importable in a Node environment with no IndexedDB. Tests for
- * THIS module inject a fake-indexeddb-backed Dexie via `__setDexie`. Dexie is an
- * OPTIONAL peer dependency: only apps that use the offline core need it.
+ * THIS module inject a fake-indexeddb-backed Dexie via `__setDexie`.
+ *
+ * Dexie is a REQUIRED peer dependency, not an optional one. It reads as though
+ * only apps using the offline core need it, but the import below is static and
+ * this module is reachable from the package root: `src/index.js` exports
+ * `offlineCollection`, which reaches `integrations/builtin/field-inspection`,
+ * which reaches here. Every consumer therefore has to resolve `dexie` at BUILD
+ * time whether or not it ever collects a field inspection. Declaring it
+ * optional told npm not to install it and not to warn, which is the shape that
+ * fails as a bare "Module not found" in someone else's build. Making the import
+ * dynamic is what would earn the optional marker back.
  *
  * @module integrations/offline/offlineDb
  */

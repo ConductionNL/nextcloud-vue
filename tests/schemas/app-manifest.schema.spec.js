@@ -1294,7 +1294,10 @@ describe('validateManifest — manifest-form-page-type', () => {
 
 	it('accepts a type=form page with handler-mode dispatch', () => {
 		const result = validateManifest(wrap({
-			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			id: 'survey',
+			route: '/s',
+			type: 'form',
+			title: 'Survey',
 			config: { fields: [baseField], submitHandler: 'submitSurvey' },
 		}))
 		expect(result.valid).toBe(true)
@@ -1303,16 +1306,49 @@ describe('validateManifest — manifest-form-page-type', () => {
 
 	it('accepts a type=form page with endpoint-mode dispatch', () => {
 		const result = validateManifest(wrap({
-			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			id: 'survey',
+			route: '/s',
+			type: 'form',
+			title: 'Survey',
 			config: { fields: [baseField], submitEndpoint: '/api/forms', submitMethod: 'POST', mode: 'public' },
 		}))
 		expect(result.valid).toBe(true)
 		expect(result.errors).toEqual([])
 	})
 
+	it('accepts a type=file field on a type=form page', () => {
+		const result = validateManifest(wrap({
+			id: 'advice',
+			route: '/advice',
+			type: 'form',
+			title: 'Advice',
+			config: {
+				fields: [baseField, { key: 'report', label: 'i18n.report', type: 'file', accept: '.pdf', maxSize: 10485760 }],
+				submitHandler: 'saveAdvice',
+			},
+		}))
+		expect(result.errors).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('rejects a type=file field on a type=settings page, which saves to app config', () => {
+		const result = validateManifest(wrap({
+			id: 'app-settings',
+			route: '/settings',
+			type: 'settings',
+			title: 'Settings',
+			config: { sections: [{ title: 'g', fields: [{ key: 'logo', label: 'Logo', type: 'file' }] }] },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors).toContain('/pages/0/config/sections/0/fields/0/type: must be one of boolean, number, string, enum, password, json')
+	})
+
 	it('rejects a type=form page missing fields', () => {
 		const result = validateManifest(wrap({
-			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			id: 'survey',
+			route: '/s',
+			type: 'form',
+			title: 'Survey',
 			config: { submitHandler: 'submitSurvey' },
 		}))
 		expect(result.valid).toBe(false)
@@ -1321,7 +1357,10 @@ describe('validateManifest — manifest-form-page-type', () => {
 
 	it('rejects a type=form page with empty fields[]', () => {
 		const result = validateManifest(wrap({
-			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			id: 'survey',
+			route: '/s',
+			type: 'form',
+			title: 'Survey',
 			config: { fields: [], submitHandler: 'submitSurvey' },
 		}))
 		expect(result.valid).toBe(false)
@@ -1330,7 +1369,10 @@ describe('validateManifest — manifest-form-page-type', () => {
 
 	it('rejects a type=form page with both submitHandler and submitEndpoint', () => {
 		const result = validateManifest(wrap({
-			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			id: 'survey',
+			route: '/s',
+			type: 'form',
+			title: 'Survey',
 			config: { fields: [baseField], submitHandler: 'h', submitEndpoint: '/api' },
 		}))
 		expect(result.valid).toBe(false)
@@ -1339,7 +1381,10 @@ describe('validateManifest — manifest-form-page-type', () => {
 
 	it('rejects a type=form page with neither submitHandler nor submitEndpoint', () => {
 		const result = validateManifest(wrap({
-			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			id: 'survey',
+			route: '/s',
+			type: 'form',
+			title: 'Survey',
 			config: { fields: [baseField] },
 		}))
 		expect(result.valid).toBe(false)
@@ -1348,7 +1393,10 @@ describe('validateManifest — manifest-form-page-type', () => {
 
 	it('rejects a type=form page with disallowed submitMethod', () => {
 		const result = validateManifest(wrap({
-			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			id: 'survey',
+			route: '/s',
+			type: 'form',
+			title: 'Survey',
 			config: { fields: [baseField], submitEndpoint: '/api', submitMethod: 'GET' },
 		}))
 		expect(result.valid).toBe(false)
@@ -1357,7 +1405,10 @@ describe('validateManifest — manifest-form-page-type', () => {
 
 	it('rejects a type=form page with disallowed mode', () => {
 		const result = validateManifest(wrap({
-			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			id: 'survey',
+			route: '/s',
+			type: 'form',
+			title: 'Survey',
 			config: { fields: [baseField], submitHandler: 'h', mode: 'review' },
 		}))
 		expect(result.valid).toBe(false)
@@ -1366,7 +1417,10 @@ describe('validateManifest — manifest-form-page-type', () => {
 
 	it('validates each form field against the formField $def shape', () => {
 		const result = validateManifest(wrap({
-			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			id: 'survey',
+			route: '/s',
+			type: 'form',
+			title: 'Survey',
 			config: { fields: [{ key: 'x' /* missing label + type */ }], submitHandler: 'h' },
 		}))
 		expect(result.valid).toBe(false)

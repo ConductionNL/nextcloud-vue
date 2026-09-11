@@ -293,7 +293,9 @@ export default {
 }
 
 .cn-field-inspection-tab__sync--success .cn-field-inspection-tab__dot { background: var(--color-success); }
+
 .cn-field-inspection-tab__sync--warning .cn-field-inspection-tab__dot { background: var(--color-warning); }
+
 .cn-field-inspection-tab__sync--error .cn-field-inspection-tab__dot { background: var(--color-error); }
 
 .cn-field-inspection-tab__actions {

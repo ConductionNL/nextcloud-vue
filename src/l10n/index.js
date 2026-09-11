@@ -82,8 +82,40 @@ const BUNDLES = {
 }
 const APP_NAME = 'nextcloud-vue'
 
+/**
+ * A bundle's plurals, keyed the way @nextcloud/l10n looks them up.
+ *
+ * 🔴 EVERY PLURAL IN THIS LIBRARY WAS UNTRANSLATED, for every app and every
+ * language. The catalogs store plurals as `singular -> [one, many]`, but
+ * `translatePlural()` looks them up in the registered translations under the
+ * identifier `_<singular>_::_<plural>_`, and only `bundle.translations` was
+ * ever registered. So `n('nextcloud-vue', '%n day', '%n days', 2)` found
+ * nothing and fell back to the English source, silently, while the Dutch
+ * forms sat in nl.json unread.
+ *
+ * The English plural msgid is not stored in a locale's own entry, only the
+ * translated forms are, so it is recovered from the English catalog, which is
+ * the source of truth for every key. An entry with no English counterpart
+ * cannot be keyed and is skipped rather than guessed at.
+ *
+ * @param {object} bundle A locale bundle with an optional `plurals` block.
+ * @return {object} Identifier-keyed plural entries, ready to register.
+ */
+export function pluralEntries(bundle) {
+	const entries = {}
+	for (const [singular, forms] of Object.entries(bundle.plurals ?? {})) {
+		const englishPlural = en.plurals?.[singular]?.[1]
+		if (!englishPlural || !Array.isArray(forms)) continue
+		entries[`_${singular}_::_${englishPlural}_`] = forms
+	}
+	return entries
+}
+
+/**
+ * Register the current language's translations, plurals included.
+ */
 export function registerTranslations() {
 	const lang = (getLanguage() || 'en').split(/[-_]/)[0]
 	const bundle = BUNDLES[lang] ?? BUNDLES.en
-	register(APP_NAME, bundle.translations)
+	register(APP_NAME, { ...bundle.translations, ...pluralEntries(bundle) })
 }

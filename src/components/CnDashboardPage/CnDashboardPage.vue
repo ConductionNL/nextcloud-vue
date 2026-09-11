@@ -885,6 +885,23 @@ export default {
 		cnTranslate: { default: () => (key) => key },
 	},
 
+	/**
+	 * Expose the authored (untranslated) widget titles to descendants.
+	 *
+	 * CnActionsMenu needs the English source for the bug-report deep link, but
+	 * it sits inside CnWidgetWrapper inside the widget renderer — threading a
+	 * second title prop would mean touching every one of the ~20 renderers and
+	 * relying on each to forward it. An inject resolves by widget id instead,
+	 * and degrades to '' where no dashboard provides it.
+	 *
+	 * @return {object} The provided resolver.
+	 */
+	provide() {
+		return {
+			cnWidgetTitleSource: (widgetId) => this.getWidgetTitleSource(widgetId),
+		}
+	},
+
 	props: {
 		/** Page title */
 		title: {
@@ -1819,23 +1836,6 @@ export default {
 			this.cnAiContext.pageKind = 'custom'
 			this.cnAiContext.registerSlug = undefined
 			this.cnAiContext.schemaSlug = undefined
-		}
-	},
-
-	/**
-	 * Expose the authored (untranslated) widget titles to descendants.
-	 *
-	 * CnActionsMenu needs the English source for the bug-report deep link, but
-	 * it sits inside CnWidgetWrapper inside the widget renderer — threading a
-	 * second title prop would mean touching every one of the ~20 renderers and
-	 * relying on each to forward it. An inject resolves by widget id instead,
-	 * and degrades to '' where no dashboard provides it.
-	 *
-	 * @return {object} The provided resolver.
-	 */
-	provide() {
-		return {
-			cnWidgetTitleSource: (widgetId) => this.getWidgetTitleSource(widgetId),
 		}
 	},
 

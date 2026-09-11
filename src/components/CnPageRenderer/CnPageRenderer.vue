@@ -52,8 +52,27 @@
 		  hides while the page renders normally. Use `requiresApp` only when the
 		  WHOLE page is meaningless without it.
 		-->
+		<!--
+		  A page whose declared `permission` the user does not hold renders a
+		  refusal INSTEAD of its body, and BEFORE the dependency check, because
+		  "you may not see this" outranks "the app it needs is missing".
+
+		  Same reasoning as `requiresApp` above: this is for the deep link, not
+		  the menu. CnAppNav already drops the entry, so the only ways here are
+		  a bookmark, a shared URL, a redirect or a typed address — and until
+		  now every one of those rendered the page in full.
+		-->
+		<NcEmptyContent v-if="forbiddenPagePermission"
+			:name="tr('You do not have access to this page')"
+			:description="tr('Ask an administrator if you need it.')"
+			data-testid="cn-page-forbidden">
+			<template #icon>
+				<LockOutline :size="20" />
+			</template>
+		</NcEmptyContent>
+
 		<CnDependencyMissing
-			v-if="missingPageDependency"
+			v-else-if="missingPageDependency"
 			:dependencies="[missingPageDependency]"
 			:heading="missingDependencyHeading"
 			:intro="missingDependencyIntro"
@@ -222,6 +241,7 @@ import { ref } from 'vue'
 import { NcEmptyContent } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
+import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import { defaultPageTypes } from './pageTypes.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
@@ -281,6 +301,7 @@ export default {
 		CnMassExportDialog,
 		NcEmptyContent,
 		ShapeOutline,
+		LockOutline,
 	},
 
 	inject: {
@@ -301,6 +322,8 @@ export default {
 		cnTranslate: { default: () => (key) => key },
 		cnPageTypes: { default: null },
 		cnRegistry: { default: () => ({}) },
+		/** Permission strings the current user holds, provided by CnAppRoot. */
+		cnPermissions: { default: () => [] },
 		cnOpenModal: { default: null },
 		/** ADR-041: true while the in-app editor is editing — makes the body grid draggable. */
 		cnEditingBody: { default: false },
@@ -685,6 +708,43 @@ export default {
 		 *
 		 * @return {{id: string, name: string}|null} The missing app, or null.
 		 */
+		/**
+		 * The permission this page declares and the user does not hold, or null.
+		 *
+		 * The schema has carried `pages[].permission` as SCHEMA-ONLY since it
+		 * was added: "CnPageRenderer / CnAppRoot do NOT currently gate the page
+		 * on it; consumers that want enforcement filter the manifest themselves".
+		 * No consumer did. So a page declaring it was hidden from the MENU by
+		 * CnAppNav and served to anyone who typed its URL, which is the worst of
+		 * the two: it reads as protected to whoever declared it.
+		 *
+		 * Measured on dossiq: a non-admin opening `/settings/integrations`
+		 * directly got the page with seven links into admin settings, while the
+		 * same account correctly saw no entry for it in the navigation.
+		 *
+		 * 🔑 THE SEMANTICS ARE CnAppNav's, DELIBERATELY, so the route and the
+		 * menu agree. An empty list still means "the app did not say" and
+		 * allows, exactly as the menu filter does. Refusing on an empty list
+		 * would hide every declared page in an app that passes no `permissions`
+		 * — which is the shape that once rendered an Admin-settings entry for
+		 * nobody — and that is a separate decision from closing this hole.
+		 *
+		 * @return {string|null} The missing permission, or null when allowed.
+		 */
+		forbiddenPagePermission() {
+			const required = this.currentPage?.permission
+			if (!required) {
+				return null
+			}
+
+			const held = Array.isArray(this.cnPermissions) ? this.cnPermissions : []
+			if (held.length === 0) {
+				return null
+			}
+
+			return held.includes(required) ? null : required
+		},
+
 		missingPageDependency() {
 			const required = this.currentPage?.requiresApp
 			if (!required) {

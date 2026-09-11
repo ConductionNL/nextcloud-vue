@@ -22,7 +22,33 @@
 					:title="activeTitle"
 					:surface="`widget:${activeWidgetId}`"
 					refresh-channel="cn:widget:refresh"
-					testid-base="cn-tabs-widget" />
+					testid-base="cn-tabs-widget">
+					<!-- The open panel's own items, below the built-in trio.
+					     A panel draws no header, so these would otherwise have
+					     nowhere to go: the data widget's Metadata and full edit
+					     dialog vanished outright when the panel stopped drawing
+					     a card. They are rendered here rather than rebuilt here
+					     because `run` closes over the widget that published it,
+					     which is what keeps the dialog's per-widget config and
+					     the widget's own save path. See utils/panelActions.js.
+
+					     Only the ACTIVE panel's items. `lazy` keeps a visited
+					     tab mounted, so several panels publish at once and an
+					     unfiltered list would offer actions for a sheet nobody
+					     is looking at. -->
+					<template v-if="activePanelActions.length" #action-items>
+						<NcActionButton
+							v-for="action in activePanelActions"
+							:key="action.key"
+							:close-after-click="true"
+							@click="action.run()">
+							<template #icon>
+								<CnIcon :name="action.icon" :size="20" />
+							</template>
+							{{ action.label }}
+						</NcActionButton>
+					</template>
+				</CnActionsMenu>
 			</template>
 
 			<CnTab
@@ -66,13 +92,14 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcEmptyContent } from '@nextcloud/vue'
+import { NcActionButton, NcEmptyContent } from '@nextcloud/vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
 import CnTabs from '../CnTabs/CnTabs.vue'
 import CnTab from '../CnTabs/CnTab.vue'
 import { widgetTitleOf } from '../../utils/widgetDispatch.js'
+import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 
 /**
  * CnTabsWidget — a widget that holds other widgets, one per tab.
@@ -133,7 +160,66 @@ export default {
 		CnIcon,
 		CnTab,
 		CnTabs,
+		NcActionButton,
 		NcEmptyContent,
+	},
+
+	/**
+	 * Offer the panels a way to put their own menu items in the strip's menu.
+	 *
+	 * Re-provided one level down by `CnDetailWidgetHost`, which knows the id to
+	 * key by; see utils/panelActions.js for why the items travel up instead of
+	 * being rebuilt here.
+	 *
+	 * @return {object} The provided sink.
+	 */
+	provide() {
+		return {
+			[PANEL_ACTION_SINK]: {
+				/**
+				 * Publish a panel's items, under one SOURCE.
+				 *
+				 * A panel has two possible publishers: the host, for an action
+				 * the host itself would have drawn (the catalog Add), and the
+				 * widget inside it, for its own menu items. Keyed by source so
+				 * the two coexist; a single slot per widget meant whichever
+				 * published last silently replaced the other.
+				 *
+				 * Replaces the map rather than mutating it so the computed that
+				 * reads it re-evaluates on any change.
+				 *
+				 * @param {string} id The publishing widget's id.
+				 * @param {object[]} items Its PanelAction descriptors.
+				 * @param {string} [source] Who is publishing: `host` or `widget`.
+				 * @return {void}
+				 */
+				set: (id, items, source = 'widget') => {
+					if (!id) return
+					const forId = { ...(this.panelActionsByWidget[id] || {}), [source]: items }
+					this.panelActionsByWidget = { ...this.panelActionsByWidget, [id]: forId }
+				},
+				/**
+				 * Withdraw one source's items, on unmount or when that
+				 * publisher's own menu comes back. The other source's items
+				 * stay.
+				 *
+				 * @param {string} id The publishing widget's id.
+				 * @param {string} [source] Who is withdrawing.
+				 * @return {void}
+				 */
+				clear: (id, source = 'widget') => {
+					const forId = this.panelActionsByWidget[id]
+					if (!forId || !(source in forId)) return
+					const { [source]: _removed, ...keptSources } = forId
+					if (Object.keys(keptSources).length) {
+						this.panelActionsByWidget = { ...this.panelActionsByWidget, [id]: keptSources }
+						return
+					}
+					const { [id]: _gone, ...rest } = this.panelActionsByWidget
+					this.panelActionsByWidget = rest
+				},
+			},
+		}
 	},
 
 	props: {
@@ -240,10 +326,27 @@ export default {
 	data() {
 		return {
 			activeIndex: 0,
+			// Items published by the panels, keyed by widget id. Keyed rather
+			// than a flat list because `lazy` keeps a visited tab mounted, so
+			// more than one panel publishes at a time.
+			panelActionsByWidget: {},
 		}
 	},
 
 	computed: {
+		/**
+		 * The open panel's own menu items, or an empty list.
+		 *
+		 * @return {object[]} PanelAction descriptors for the active tab.
+		 */
+		activePanelActions() {
+			const forId = this.panelActionsByWidget[this.activeWidgetId]
+			if (!forId) return []
+			// Host first, then the widget's own: the catalog Add is about the
+			// panel as a whole, the widget's items about what is in it.
+			return [...(forId.host || []), ...(forId.widget || [])]
+		},
+
 		/**
 		 * The configured tabs, each paired with the widget definition it names.
 		 *
@@ -368,11 +471,34 @@ export default {
    drawn as the edge of the sheet they open, so a second edge around them
    reads as a header the widget does not have. Border, radius and background
    now live on the panel below, and the strip sits bare on the page. */
-.cn-tabs-widget {
+/* The class is doubled on purpose, and the four properties below are RESET
+   rather than simply omitted.
+
+   Nextcloud serves every enabled app's assets on every page, each app bundles
+   this library's compiled CSS, and the Vue scope id is derived from the file
+   PATH, so `data-v-1dbd6122` is byte-identical across library versions. An app
+   still on an older release therefore ships a rule with exactly this selector
+   and the OLD declarations, and it lands on the pages of an app already on the
+   new one. Measured on a dossiq case page: three stale copies of the pre-fix
+   rule, one from hermiq's `companion.css` (its companion bundle loads on every
+   page by design) and two inline from other apps' bundles. Same specificity,
+   so source order decided, and the card border came back around the strip.
+
+   Dropping a declaration cannot beat a rule that sets it, so `border` and the
+   rest are explicitly zeroed. Doubling the class takes this selector to
+   (0,3,0) against the stale (0,2,0), which wins on specificity rather than on
+   `!important` or on load order this library does not control. The same
+   technique, for the same reason, is used on `.cn-tabs__nav .cn-tabs__nav-item`
+   in CnTabs to beat Nextcloud's own button margin. */
+.cn-tabs-widget.cn-tabs-widget {
+	background-color: transparent;
+	border: 0;
+	border-radius: 0;
 	display: flex;
 	flex-direction: column;
 	height: 100%;
 	min-height: 0;
+	overflow: visible;
 	padding: 0;
 }
 
