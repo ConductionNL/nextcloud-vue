@@ -137,6 +137,25 @@ test.describe('the run sidebar', () => {
 		await expect(page.locator('[data-testid="flow-run-panel-objects"]')).toContainText('This run changed no objects.')
 	})
 
+	/**
+	 * The sidebar's heading, which NcAppSidebar renders and which this
+	 * component used to leave empty by passing no `name`. An empty h2 above the
+	 * real title is a heading that names nothing, and a screen reader announces
+	 * it as a heading anyway. Asserted in a browser because the empty one came
+	 * from NcAppSidebar itself, not from anything in this repo's templates.
+	 */
+	test('leaves no heading in the sidebar empty', async ({ page }) => {
+		await stubRun(page)
+		await page.goto(HARNESS)
+		await openRun(page)
+
+		const empty = await page.evaluate(() => Array.from(document.querySelectorAll('aside h1, aside h2, aside h3, aside h4'))
+			.filter((heading) => heading.textContent.trim() === '')
+			.map((heading) => heading.tagName + '.' + heading.className))
+
+		expect(empty).toEqual([])
+	})
+
 	test('names the run’s status and time from the run’s own record', async ({ page }) => {
 		await stubRun(page)
 		await page.goto(HARNESS)
