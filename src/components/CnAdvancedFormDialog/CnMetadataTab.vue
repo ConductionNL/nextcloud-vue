@@ -37,8 +37,10 @@ export default {
 	props: {
 		/** The object instance being created or edited */
 		item: { type: Object, default: null },
+		/* eslint-disable vue/no-unused-properties -- CnAdvancedFormDialog binds it next to `item`, and every default row reads `item` */
 		/** Current form data object */
 		formData: { type: Object, default: () => ({}) },
+		/* eslint-enable vue/no-unused-properties */
 		/**
 		 * Additional `[label, value]` rows appended to (or, when `replaceRows` is true,
 		 * replacing) the default ID/Created/Updated rows. Use this to surface

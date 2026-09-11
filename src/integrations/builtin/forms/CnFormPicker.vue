@@ -169,10 +169,12 @@ export default {
 	props: {
 		/** OR object UUID — forwarded to the available-forms endpoint so each row carries a `linked` flag. */
 		objectId: { type: String, required: true },
+		/* eslint-disable vue/no-unused-properties -- CnFormsTab binds both; the available-forms endpoint keys on objectUuid alone */
 		/** OR register slug or uuid. */
 		register: { type: String, default: '' },
 		/** OR schema slug or uuid. */
 		schema: { type: String, default: '' },
+		/* eslint-enable vue/no-unused-properties */
 		/** Base API URL — same as CnFormsTab. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 

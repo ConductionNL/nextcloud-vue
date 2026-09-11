@@ -1027,6 +1027,25 @@ export default {
 		onClose() {
 			this.stopSpeaking()
 			this.$emit('close')
+			this.returnFocusToLauncher()
+		},
+
+		/**
+		 * Put focus back on the launcher the panel was opened from (WCAG 2.2
+		 * SC 2.4.3 Focus Order). The panel is hidden rather than unmounted, so
+		 * without this the focused control disappears and focus falls to the
+		 * document body, stranding a keyboard user at the top of the page.
+		 *
+		 * `fabRef` may be a component instance or a plain element, so both
+		 * shapes are accepted.
+		 *
+		 * @return {void}
+		 */
+		returnFocusToLauncher() {
+			const el = this.fabRef?.$el ?? this.fabRef
+			if (el && typeof el.focus === 'function') {
+				el.focus()
+			}
 		},
 
 		/**

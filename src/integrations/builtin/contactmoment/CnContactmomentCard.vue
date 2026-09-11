@@ -76,8 +76,10 @@ export default {
 		entityType: { type: String, default: '' },
 		/** OpenRegister schema slug of the surrounding object. */
 		schema: { type: String, default: '' },
+		/* eslint-disable vue/no-unused-properties -- every integration surface is handed `surface` by its host; this card renders one layout and does not branch on it */
 		/** Rendering surface, forwarded by the registry (AD-19). */
 		surface: { type: String, default: 'detail-page' },
+		/* eslint-enable vue/no-unused-properties */
 		/** How many interactions to show before the "more" line. */
 		limit: { type: Number, default: 5 },
 		/**

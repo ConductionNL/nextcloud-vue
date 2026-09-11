@@ -236,8 +236,10 @@ export default {
 		unavailableLabel: { type: String, default: () => t('nextcloud-vue', 'NC sharing is currently unavailable.') },
 		/** Pre-translated revoke button label. */
 		revokeLabel: { type: String, default: () => t('nextcloud-vue', 'Revoke share') },
+		/* eslint-disable vue/no-unused-properties -- the row hides the revoke button when canRevoke is false rather than disabling it, so the tooltip has no anchor today */
 		/** Pre-translated tooltip shown when the current user cannot revoke. */
 		revokeDisabledLabel: { type: String, default: () => t('nextcloud-vue', 'Only the share owner can revoke') },
+		/* eslint-enable vue/no-unused-properties */
 		/** Pre-translated label for the password-protected indicator. */
 		passwordProtectedLabel: { type: String, default: () => t('nextcloud-vue', 'Password protected') },
 		/** Pre-translated label for the expiry row. */

@@ -235,8 +235,10 @@ export default {
 		initialValues: { type: Object, default: null },
 		/** Dialog title; falls back to schema.title when empty */
 		dialogTitle: { type: String, default: '' },
-		/** Schema property used as the item name in the title */
+		/* eslint-disable vue/no-unused-properties -- accepted for parity with CnFormDialog; this dialog titles itself and reports results from the schema title */
+		/** Schema property holding the item's name. Accepted for parity with CnFormDialog; this dialog builds its title and result messages from the schema title. */
 		nameField: { type: String, default: 'title' },
+		/* eslint-enable vue/no-unused-properties */
 		/** Message shown after a successful operation */
 		successText: { type: String, default: '' },
 		/** Label for the cancel button */
