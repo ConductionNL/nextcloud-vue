@@ -47,8 +47,9 @@
   Field rendering is delegated to `cnRenderFormField` from
   `@conduction/nextcloud-vue/composables` so the same input set
   CnSettingsPage uses (boolean, number, string, password, enum, json)
-  is available without duplication. `widget: "textarea"` overrides
-  the default string input.
+  is available without duplication, plus the form-only `file` type
+  (CnFileField, whose value is the picked file as a `data:` URL).
+  `widget: "textarea"` overrides the default string input.
 
   Slots (mirrors CnSettingsPage):
     - `#header`   — overrides CnPageHeader. Scope `{ title, description }`.

@@ -10,6 +10,7 @@
 
 import * as ncVue from '@nextcloud/vue'
 import { cnRenderFormField, NC_TEXT_AREA_AVAILABLE } from '@/composables/cnFormFieldRenderer.js'
+import CnFileField from '@/components/CnFileField/CnFileField.vue'
 
 describe('cnRenderFormField', () => {
 	let warnSpy
@@ -124,6 +125,45 @@ describe('cnRenderFormField', () => {
 		})
 		expect(out.kind).toBe('json')
 		expect(out.props.value).toEqual({ foo: 'bar' })
+	})
+
+	it('file field maps to CnFileField and hands its data: URL straight to onInput', () => {
+		const onInput = jest.fn()
+		const out = cnRenderFormField({
+			field: { key: 'report', type: 'file', label: 'Report', accept: '.pdf', maxSize: 2048 },
+			value: null,
+			onInput,
+		})
+		expect(out.kind).toBe('file')
+		expect(out.tag).toBe(CnFileField)
+		expect(out.props).toEqual({ label: 'Report', modelValue: null, accept: '.pdf', maxSize: 2048 })
+		out.listeners['update:modelValue']('data:application/pdf;base64,eA==')
+		expect(onInput).toHaveBeenCalledWith('data:application/pdf;base64,eA==')
+		// A known type: no "unknown field.type" warning.
+		expect(warnSpy).not.toHaveBeenCalled()
+	})
+
+	it('file field leaves maxSize to the component default when unset or unusable', () => {
+		for (const maxSize of [undefined, null, 0, -1, 'lots']) {
+			const out = cnRenderFormField({
+				field: { key: 'report', type: 'file', label: 'Report', maxSize },
+				value: null,
+				onInput: jest.fn(),
+			})
+			expect(out.props).not.toHaveProperty('maxSize')
+			expect(out.props.accept).toBe('')
+		}
+	})
+
+	it('file field binds no validation error: CnFormPage renders the adjacent alert instead', () => {
+		const out = cnRenderFormField({
+			field: { key: 'report', type: 'file', label: 'Report' },
+			value: null,
+			onInput: jest.fn(),
+			error: 'Required',
+		})
+		expect(out.props).not.toHaveProperty('error')
+		expect(out.props).not.toHaveProperty('helperText')
 	})
 
 	it('unknown field.type warns once and falls back to NcTextField', () => {
