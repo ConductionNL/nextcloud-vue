@@ -117,7 +117,7 @@
 				<NcLoadingIcon
 					v-if="transcribing"
 					:size="20" />
-				<Microphone
+				<MicrophoneIcon
 					v-else-if="micIsOpen"
 					:size="20" />
 				<MicrophoneOutline
@@ -208,7 +208,7 @@ import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Headset from 'vue-material-design-icons/Headset.vue'
 import HeadsetOff from 'vue-material-design-icons/HeadsetOff.vue'
-import Microphone from 'vue-material-design-icons/Microphone.vue'
+import MicrophoneIcon from 'vue-material-design-icons/Microphone.vue'
 import MicrophoneOutline from 'vue-material-design-icons/MicrophoneOutline.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import Send from 'vue-material-design-icons/Send.vue'
@@ -235,7 +235,7 @@ export default {
 		Send,
 		Paperclip,
 		Close,
-		Microphone,
+		MicrophoneIcon,
 		MicrophoneOutline,
 		Headset,
 		HeadsetOff,

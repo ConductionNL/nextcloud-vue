@@ -25,6 +25,14 @@
  * corrected.
  */
 
+/*
+ * `process.env.NODE_ENV` is not a runtime global in the browser: every
+ * consuming app's bundler substitutes it at build time (webpack's
+ * DefinePlugin, rollup's replace). Declared here so the reference is
+ * described rather than assumed.
+ */
+/* global process */
+
 import { NcSelectTags as UpstreamNcSelectTags } from '@nextcloud/vue'
 import { searchSystemTags } from './searchSystemTags.js'
 

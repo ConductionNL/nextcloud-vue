@@ -221,7 +221,7 @@ export default {
 			if (!this.$refs.innerGrid) {
 				return
 			}
-			let GridStackCtor = null
+			let GridStackCtor
 			try {
 				const mod = await import('gridstack')
 				GridStackCtor = mod && (mod.GridStack || mod.default)

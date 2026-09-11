@@ -898,7 +898,7 @@ export default {
 				return
 			}
 
-			let store = null
+			let store
 			try {
 				store = useObjectStore()
 			} catch {

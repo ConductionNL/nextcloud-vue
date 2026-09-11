@@ -59,7 +59,6 @@
 						:aria-label="t('nextcloud-vue', 'Search icons')">
 
 					<div
-						ref="grid"
 						class="cn-icon-picker__grid"
 						role="listbox"
 						:aria-label="t('nextcloud-vue', 'Icon')"

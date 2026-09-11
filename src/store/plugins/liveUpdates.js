@@ -276,7 +276,7 @@ export function liveUpdatesPlugin(opts = {}) {
 								[type]: { ...config, registerSlug, schemaSlug },
 							}
 						} catch (err) {
-							throw new Error(`liveUpdatesPlugin: cannot subscribe to "${type}" collection — ${err.message}`)
+							throw new Error(`liveUpdatesPlugin: cannot subscribe to "${type}" collection — ${err.message}`, { cause: err })
 						}
 					}
 

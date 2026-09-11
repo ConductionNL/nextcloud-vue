@@ -505,7 +505,7 @@ export default {
 		const liveSubType = ref('')
 		const liveSubId = ref('')
 		const liveSubEnabled = ref(false)
-		let liveStore = null
+		let liveStore
 		try {
 			liveStore = useObjectStore()
 		} catch {
@@ -1735,7 +1735,7 @@ export default {
 				return
 			}
 
-			let store = null
+			let store
 			try {
 				store = useObjectStore()
 			} catch {

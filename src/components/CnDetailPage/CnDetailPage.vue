@@ -2172,6 +2172,7 @@ export default {
 			// useManifestEditor.enter() observes them in place, so a cache
 			// built pre-edit would stay frozen for in-place pushes (Add widget
 			// on a detail page / grid ejection). See CnDashboardPage.hasWidgets.
+			// eslint-disable-next-line @typescript-eslint/no-unused-expressions -- reading the flag IS the effect: the read registers the reactive dependency, and there is nothing to assign it to
 			this.editingBody
 			if (this.hasGridLayout) {
 				return this.layout

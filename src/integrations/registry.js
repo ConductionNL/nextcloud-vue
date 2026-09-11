@@ -21,6 +21,14 @@
  * @module integrations/registry
  */
 
+/*
+ * `process.env.NODE_ENV` is not a runtime global in the browser: every
+ * consuming app's bundler substitutes it at build time (webpack's
+ * DefinePlugin, rollup's replace). Declared here so the reference is
+ * described rather than assumed.
+ */
+/* global process */
+
 const DEV = process.env.NODE_ENV !== 'production'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']

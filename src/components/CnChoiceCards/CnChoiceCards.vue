@@ -110,7 +110,7 @@ export default {
 		 * @type {string|number|boolean|Array|null}
 		 */
 		modelValue: {
-			type: [String, Number, Boolean, Array, Object],
+			type: [Boolean, String, Number, Array, Object],
 			default: null,
 		},
 
