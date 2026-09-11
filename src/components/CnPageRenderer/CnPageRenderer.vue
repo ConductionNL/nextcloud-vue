@@ -508,7 +508,7 @@ export default {
 		let liveStore = null
 		try {
 			liveStore = useObjectStore()
-		} catch (err) {
+		} catch {
 			// Pinia not installed (stand-alone / unit-test mounts) — no
 			// live updates; loadDetailObject degrades the same way.
 			liveStore = null
@@ -1610,7 +1610,7 @@ export default {
 			let store = null
 			try {
 				store = useObjectStore()
-			} catch (err) {
+			} catch {
 				// Pinia not installed (unit tests). Publish the ids so
 				// id-only widgets still work; skip the object fetch and
 				// leave the live subscription disabled.
@@ -1738,7 +1738,7 @@ export default {
 			let store = null
 			try {
 				store = useObjectStore()
-			} catch (err) {
+			} catch {
 				// Pinia not installed (common in unit tests). Silently
 				// skip — the custom component can still register itself
 				// at mount time if/when it has its own store.

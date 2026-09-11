@@ -311,7 +311,7 @@ export default {
 					limit: typeof this.content.limit === 'number' ? this.content.limit : 8,
 				})
 				this.results = this.normalise(articles)
-			} catch (e) {
+			} catch {
 				// 503 / network / disabled backend — show the unavailable state.
 				this.results = []
 				this.unavailable = true

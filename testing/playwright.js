@@ -213,7 +213,7 @@ function readSurfaceSession() {
 			const current = oc.getCurrentUser()
 			user = (current && current.uid) || null
 		}
-	} catch (e) {
+	} catch {
 		/* a partially-initialised OC can throw; absence is the answer we want */
 	}
 	if (!user && typeof oc.currentUser === 'string' && oc.currentUser !== '') {
@@ -364,7 +364,7 @@ function applySeed(args) {
 			try {
 				globalThis.localStorage.setItem(args.prefix + id, args.value)
 				written++
-			} catch (e) {
+			} catch {
 				/* private mode / quota / opaque origin — the shim still covers reads */
 			}
 		}
@@ -397,7 +397,7 @@ function poisonStorageState(page, scope) {
 	let context
 	try {
 		context = page.context()
-	} catch (e) {
+	} catch {
 		return
 	}
 	if (!context || typeof context.storageState !== 'function' || context.__cnStorageStatePoisoned) {
@@ -896,7 +896,7 @@ async function retireFirstRunWizard(page, options = {}) {
 				headers: { requesttoken: oc.requestToken || '' },
 			})
 			return res.status
-		} catch (e) {
+		} catch {
 			return -1
 		}
 	}, route).catch(() => -1)

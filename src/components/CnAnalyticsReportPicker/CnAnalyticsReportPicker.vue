@@ -248,7 +248,7 @@ export default {
 					return ''
 				}
 				return d.toLocaleDateString(undefined, { dateStyle: 'medium' })
-			} catch (_) {
+			} catch {
 				return ''
 			}
 		},

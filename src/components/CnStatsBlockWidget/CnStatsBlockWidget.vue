@@ -561,7 +561,7 @@ export default {
 				}
 				const res = await axios.get(url, { params })
 				return Number(res?.data?.value ?? 0) || 0
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},

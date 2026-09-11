@@ -225,7 +225,7 @@ export default {
 			try {
 				const mod = await import('gridstack')
 				GridStackCtor = mod && (mod.GridStack || mod.default)
-			} catch (e) {
+			} catch {
 				// GridStack runtime unavailable — non-fatal in tests.
 				return
 			}
@@ -288,7 +288,7 @@ export default {
 			if (this.gridInstance && typeof this.gridInstance.destroy === 'function') {
 				try {
 					this.gridInstance.destroy(false)
-				} catch (e) {
+				} catch {
 					// no-op — best-effort teardown
 				}
 			}

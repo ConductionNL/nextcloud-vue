@@ -386,7 +386,7 @@ export default {
 			if (Number.isFinite(num) && String(raw).trim() !== '') {
 				try {
 					return num.toLocaleString()
-				} catch (_) {
+				} catch {
 					return String(num)
 				}
 			}
@@ -427,7 +427,7 @@ export default {
 					return String(value)
 				}
 				return d.toLocaleDateString(undefined, { dateStyle: 'medium' })
-			} catch (_) {
+			} catch {
 				return String(value)
 			}
 		},

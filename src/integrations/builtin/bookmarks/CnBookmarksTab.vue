@@ -373,7 +373,7 @@ export default {
 				const url = new URL(raw)
 				const path = url.pathname === '/' ? '' : url.pathname.replace(/\/$/, '')
 				return `${url.host}${path}${url.search}`
-			} catch (e) {
+			} catch {
 				return raw
 			}
 		},

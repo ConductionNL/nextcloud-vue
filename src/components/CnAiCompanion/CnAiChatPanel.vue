@@ -770,7 +770,7 @@ export default {
 		restoreSpeakPreference() {
 			try {
 				this.speakReplies = (window.localStorage.getItem(SPEAK_PREFERENCE_KEY) === '1')
-			} catch (e) {
+			} catch {
 				// Storage can be unavailable (private mode, blocked cookies).
 				// The toggle then simply does not persist.
 				this.speakReplies = false
@@ -790,7 +790,7 @@ export default {
 			}
 			try {
 				window.localStorage.setItem(SPEAK_PREFERENCE_KEY, this.speakReplies ? '1' : '0')
-			} catch (e) {
+			} catch {
 				// Preference is still honoured for this session.
 			}
 		},
@@ -851,7 +851,7 @@ export default {
 			try {
 				const response = await axios.get(speechCapabilitiesUrl(this.chatAppId))
 				this.localSpeechAvailable = !!(response && response.data && response.data.available)
-			} catch (e) {
+			} catch {
 				this.localSpeechAvailable = false
 			}
 		},
@@ -880,7 +880,7 @@ export default {
 					this.resumeConversationIfActive()
 				}
 				await this.localSpeechAudio.play()
-			} catch (e) {
+			} catch {
 				// Speaking is a convenience; a failure must not disturb the chat
 				// — but a conversation waiting on it must not stall either.
 				this.resumeConversationIfActive()
@@ -942,7 +942,7 @@ export default {
 					: 'en-US'
 				utterance.onend = () => this.resumeConversationIfActive()
 				window.speechSynthesis.speak(utterance)
-			} catch (e) {
+			} catch {
 				// Speaking is a convenience; a failure must not disturb the chat
 				// — but a conversation waiting on it must not stall either.
 				this.resumeConversationIfActive()
@@ -961,7 +961,7 @@ export default {
 			if (this.localSpeechAudio !== null) {
 				try {
 					this.localSpeechAudio.pause()
-				} catch (e) {
+				} catch {
 					// Already stopped.
 				}
 				this.localSpeechAudio = null
@@ -971,7 +971,7 @@ export default {
 			}
 			try {
 				window.speechSynthesis.cancel()
-			} catch (e) {
+			} catch {
 				// Nothing to cancel.
 			}
 		},
@@ -1014,7 +1014,7 @@ export default {
 						[],
 					)
 				}
-			} catch (e) {
+			} catch {
 				// Leave the card in place: a decision that did not record must not
 				// look as though it did.
 				this.resolvingApprovalId = ''

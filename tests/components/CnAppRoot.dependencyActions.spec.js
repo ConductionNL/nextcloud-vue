@@ -79,7 +79,7 @@ describe('CnAppRoot HARD/SOFT dependencies (REQ-DIA-5)', () => {
 		mockInstallerRefs.error.value = null
 		try {
 			window.localStorage.clear()
-		} catch (e) { /* noop */ }
+		} catch { /* noop */ }
 	})
 
 	it('normalises a string entry to a HARD dependency', () => {
@@ -122,7 +122,7 @@ describe('CnAppRoot soft-dependency banner (REQ-DIA-6) — DEPRECATED, opt-in', 
 		mockInstallerRefs.error.value = null
 		try {
 			window.localStorage.clear()
-		} catch (e) { /* noop */ }
+		} catch { /* noop */ }
 	})
 
 	it('renders a dismissible banner with an install action for an unresolved soft dep', () => {

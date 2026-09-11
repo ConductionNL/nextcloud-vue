@@ -181,7 +181,7 @@ export default {
 		objectStore() {
 			try {
 				return useObjectStore()
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},
@@ -346,7 +346,7 @@ export default {
 				if (typeof this.objectStore.registerObjectType === 'function') {
 					try {
 						this.objectStore.registerObjectType(this.typeSlug, this.schema, this.register)
-					} catch (e) { /* idempotent */ }
+					} catch { /* idempotent */ }
 				}
 				const result = await this.objectStore.saveObject(this.typeSlug, payload)
 				if (!result) {

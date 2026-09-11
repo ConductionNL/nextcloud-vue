@@ -200,7 +200,7 @@ export default {
 			}
 			try {
 				return JSON.stringify(this.content, null, 2)
-			} catch (e) {
+			} catch {
 				return String(this.content)
 			}
 		},

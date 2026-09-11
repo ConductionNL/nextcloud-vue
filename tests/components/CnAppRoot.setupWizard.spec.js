@@ -95,7 +95,7 @@ describe('CnAppRoot setup wizard', () => {
 		mockRefresh.mockReset()
 		try {
 			window.localStorage.clear()
-		} catch (e) { /* noop */ }
+		} catch { /* noop */ }
 	})
 
 	describe('gating phase (required step unmet)', () => {

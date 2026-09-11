@@ -273,7 +273,7 @@ export default {
 				try {
 					const parsed = JSON.parse(raw)
 					return Array.isArray(parsed) === true ? parsed.length : 0
-				} catch (e) {
+				} catch {
 					return 0
 				}
 			}

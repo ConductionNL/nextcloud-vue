@@ -757,7 +757,7 @@ export default {
 			try {
 				const resolved = this.$router.resolve(this.viewAllRoute)
 				return (resolved && resolved.href) || null
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},
@@ -993,7 +993,7 @@ export default {
 					...(this.fetchParams ? { params: this.fetchParams } : {}),
 				})
 				this.fetchedRows = (data && data.results) || (Array.isArray(data) ? data : [])
-			} catch (e) {
+			} catch {
 				this.fetchedRows = []
 			} finally {
 				this.selfFetchLoading = false

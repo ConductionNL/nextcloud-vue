@@ -901,7 +901,7 @@ export default {
 			let store = null
 			try {
 				store = useObjectStore()
-			} catch (e) {
+			} catch {
 				// No active Pinia: the tile shows the raw value, which is correct
 				// and never blank.
 				return
@@ -919,7 +919,7 @@ export default {
 				if (label) {
 					this.referenceLabel = label
 				}
-			} catch (e) {
+			} catch {
 				// Leave the raw value showing.
 			}
 		},

@@ -885,7 +885,7 @@ export default {
 		getObjectStore() {
 			try {
 				return useObjectStore()
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},
@@ -906,7 +906,7 @@ export default {
 						return err.message
 					}
 				}
-			} catch (e) {
+			} catch {
 				// fall through to the generic message
 			}
 			return t('nextcloud-vue', 'The operation was rejected')

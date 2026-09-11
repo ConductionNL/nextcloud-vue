@@ -86,7 +86,7 @@ export default {
 		}
 		try {
 			this.cnFetchedTags = await searchSystemTags()
-		} catch (error) {
+		} catch {
 			this.cnFetchedTags = []
 		}
 	},

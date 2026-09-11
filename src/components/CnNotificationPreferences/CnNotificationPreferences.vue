@@ -176,7 +176,7 @@ export default {
 					enabled: e.enabled === true,
 					saving: false,
 				}))
-			} catch (e) {
+			} catch {
 				this.error = true
 			} finally {
 				this.loading = false
@@ -201,7 +201,7 @@ export default {
 					enabled: checked,
 				})
 				entry.source = 'user-override'
-			} catch (e) {
+			} catch {
 				entry.enabled = previous
 				this.showError(t('nextcloud-vue', 'Could not save notification preference'))
 			} finally {
@@ -224,7 +224,7 @@ export default {
 					reset: true,
 				})
 				await this.load()
-			} catch (e) {
+			} catch {
 				this.showError(t('nextcloud-vue', 'Could not reset notification preference'))
 				entry.saving = false
 			}

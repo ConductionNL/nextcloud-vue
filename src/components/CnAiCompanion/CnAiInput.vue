@@ -910,7 +910,7 @@ export default {
 			}
 			try {
 				this.recognition.stop()
-			} catch (e) {
+			} catch {
 				// Already stopped; nothing to release.
 			}
 			this.recognition = null

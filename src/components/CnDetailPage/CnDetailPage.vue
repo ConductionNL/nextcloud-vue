@@ -1548,7 +1548,7 @@ export default {
 		if (!subscriptionStore && props.subscribe && props.register && props.schema) {
 			try {
 				subscriptionStore = useObjectStore()
-			} catch (err) {
+			} catch {
 				// Pinia not active (stand-alone test mounts) — no live updates.
 				subscriptionStore = null
 			}

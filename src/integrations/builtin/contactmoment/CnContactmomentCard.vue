@@ -153,7 +153,7 @@ export default {
 				const body = await res.json()
 				this.items = Array.isArray(body.results) ? body.results : []
 				this.total = Number(body.total) || this.items.length
-			} catch (e) {
+			} catch {
 				// pipelinq absent, or the object is not visible to this user.
 				// Either way the card says so rather than rendering an empty
 				// list, which would read as "no interactions" when the truth is

@@ -602,7 +602,7 @@ export default {
 					import('./iconCatalogues.js'),
 				])
 				this.mdiCatalogue = adapters.fromMdiJs(mdi)
-			} catch (e) {
+			} catch {
 				// @mdi/js not installed — the DASHBOARD_ICONS fallback is used.
 				this.mdiCatalogue = null
 			}
@@ -712,7 +712,7 @@ export default {
 					}
 				}
 				this.onCustomSvgInput(this.prettySvg(svgEl))
-			} catch (e) {
+			} catch {
 				// Leave content unchanged on any parse/serialize error.
 			}
 		},

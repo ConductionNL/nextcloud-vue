@@ -283,7 +283,7 @@ export default {
 				if (trimmed.charAt(0) === '{' || trimmed.charAt(0) === '[') {
 					try {
 						msg = JSON.parse(trimmed)
-					} catch (e) {
+					} catch {
 						return this.cleanPreview(trimmed)
 					}
 				} else {

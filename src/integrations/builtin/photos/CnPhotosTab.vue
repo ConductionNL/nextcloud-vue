@@ -313,7 +313,7 @@ export default {
 					return String(value)
 				}
 				return d.toLocaleDateString(undefined, { dateStyle: 'medium' })
-			} catch (_) {
+			} catch {
 				return String(value)
 			}
 		},

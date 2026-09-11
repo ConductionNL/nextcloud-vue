@@ -433,7 +433,7 @@ export default {
 						if (body && typeof body.error === 'string') {
 							message = body.error
 						}
-					} catch (_) { /* ignore */ }
+					} catch { /* ignore */ }
 					this.error = message
 				}
 			} catch (err) {

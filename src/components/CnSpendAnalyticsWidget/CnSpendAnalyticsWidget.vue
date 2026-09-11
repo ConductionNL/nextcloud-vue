@@ -394,7 +394,7 @@ export default {
 				if (vendor) {
 					this.vendor = vendor
 				}
-			} catch (e) {
+			} catch {
 				this.finance = { available: false, empty: false, total: 0, currency: 'EUR', byCategory: [], trend: [] }
 			} finally {
 				this.loading = false
@@ -423,7 +423,7 @@ export default {
 				} else {
 					this.aiUnavailable = true
 				}
-			} catch (e) {
+			} catch {
 				this.aiUnavailable = true
 			}
 		},
@@ -460,7 +460,7 @@ export default {
 					style: 'currency',
 					currency: safeCurrencyCode(this.finance.currency),
 				}).format(value)
-			} catch (e) {
+			} catch {
 				return String(value)
 			}
 		},

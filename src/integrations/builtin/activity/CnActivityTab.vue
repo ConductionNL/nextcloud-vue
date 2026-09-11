@@ -363,7 +363,7 @@ export default {
 			}
 			try {
 				return date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
-			} catch (e) {
+			} catch {
 				return date.toISOString().split('T')[0]
 			}
 		},
@@ -375,7 +375,7 @@ export default {
 			}
 			try {
 				return ts.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-			} catch (e) {
+			} catch {
 				return ts.toISOString().split('T')[1].slice(0, 5)
 			}
 		},
