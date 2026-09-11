@@ -248,6 +248,7 @@ export default {
 }
 
 .cn-roadmap-item__body :deep(p) { margin: 4px 0; }
+
 .cn-roadmap-item__body :deep(h1),
 .cn-roadmap-item__body :deep(h2),
 .cn-roadmap-item__body :deep(h3) {
@@ -255,7 +256,9 @@ export default {
 	margin: 4px 0;
 	font-weight: 600;
 }
+
 .cn-roadmap-item__body :deep(pre) { background: var(--color-background-hover); padding: 8px; border-radius: 4px; overflow-x: auto; }
+
 .cn-roadmap-item__body :deep(code) { background: var(--color-background-hover); padding: 2px 4px; border-radius: 3px; }
 
 .cn-roadmap-item__labels {

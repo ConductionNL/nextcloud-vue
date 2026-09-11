@@ -87,4 +87,5 @@
 
 /* Backwards compatibility aliases */
 .dashboardContent { margin-inline: auto; max-width: 1200px; padding-block: calc(5 * var(--default-grid-baseline)); padding-inline: calc(5 * var(--default-grid-baseline)); }
+
 .loadingContainer { display: flex; align-items: center; gap: calc(2 * var(--default-grid-baseline)); color: var(--color-text-maxcontrast); justify-content: center; padding-block: calc(10 * var(--default-grid-baseline)); }

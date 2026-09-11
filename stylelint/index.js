@@ -41,6 +41,20 @@
  * This is additive in the strict sense — it relaxes a rule on a token Nextcloud
  * never emits — so a file that satisfies this preset still satisfies theirs.
  *
+ * WHAT AN APP HAS TO INSTALL
+ * --------------------------
+ * `stylelint` and `@nextcloud/stylelint-config`, declared here as OPTIONAL
+ * peers, the same way the ESLint preset declares its tooling. Optional because
+ * this is an opt-in subpath: an app that never lints with it should not
+ * download stylelint. `@nextcloud/stylelint-config` then pulls its own peers.
+ *
+ * Until 2026-09-11 neither was declared, so requiring this preset threw
+ * MODULE_NOT_FOUND in any app that had not installed them for its own reasons.
+ * Nobody noticed because this repository linted itself with a different config.
+ * It now lints itself with this one (see `stylelint.config.js`), and
+ * `tests/packaging/stylelint-preset-resolves.spec.js` fails if it stops
+ * resolving.
+ *
  * USAGE
  * -----
  *   // stylelint.config.js

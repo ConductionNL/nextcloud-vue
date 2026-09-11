@@ -36,6 +36,10 @@
 				{{ t('nextcloud-vue', 'No calendar available') }}
 			</div>
 
+			<div v-else-if="hasNoCalendarChosen" class="cn-calendar-widget__state">
+				{{ t('nextcloud-vue', 'No calendar is selected yet. Choose one in this widget\u2019s settings.') }}
+			</div>
+
 			<div v-else-if="events.length === 0 && activeMode === 'agenda'" class="cn-calendar-widget__state">
 				{{ emptyMessage }}
 			</div>
@@ -237,6 +241,37 @@ export default {
 		 */
 		colorByCalendar() {
 			return !(this.content && this.content.colorByCalendar === false)
+		},
+
+		/**
+		 * Whether the widget is configured with no calendar at all.
+		 *
+		 * The host fetches events for the calendars named in
+		 * `content.internalCalendars` / `content.externalIcsUrls`, and it
+		 * skips the fetch entirely when both are empty: LaunchPad's
+		 * `CalendarWidgetService::getEvents()` guards each branch with
+		 * `!== []`, so an unconfigured widget returns zero events AND zero
+		 * failures. That is indistinguishable from a genuinely empty week.
+		 *
+		 * It is not a rare state. The registry's own `defaultContent` for
+		 * this widget type is `internalCalendars: []`, so EVERY freshly added
+		 * Calendar widget starts here and says "No events in the next 14
+		 * days" forever, which is a false statement about the user's diary
+		 * rather than a prompt to finish configuring it.
+		 *
+		 * Only claims the state when both lists are present and empty. A host
+		 * that drives the widget through `dataSource` alone, with no content
+		 * blob, keeps the ordinary empty message.
+		 *
+		 * @return {boolean} true when no calendar has been chosen.
+		 */
+		hasNoCalendarChosen() {
+			const c = this.content
+			if (!c) return false
+			const internal = c.internalCalendars
+			const external = c.externalIcsUrls
+			if (!Array.isArray(internal) && !Array.isArray(external)) return false
+			return (internal || []).length === 0 && (external || []).length === 0
 		},
 
 		/**

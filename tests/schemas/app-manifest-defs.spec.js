@@ -211,10 +211,18 @@ describe('$defs.formField', () => {
 		expect(r.valid).toBe(false)
 		expect(r.errors.some((e) => e.includes('type: must be one of'))).toBe(true)
 	})
-	it('declares type as a closed enum of the six allowed values', () => {
+	it('declares type as a closed enum of the seven allowed values', () => {
 		expect(schema.$defs.formField.properties.type.enum).toEqual(
-			['boolean', 'number', 'string', 'enum', 'password', 'json'],
+			['boolean', 'number', 'string', 'enum', 'password', 'json', 'file'],
 		)
+	})
+	it('accepts a file field with its accept and maxSize options', () => {
+		const r = structuralValidate(schema.$defs.formField, {
+			key: 'report', label: 'Report', type: 'file', accept: '.pdf,image/*', maxSize: 10485760,
+		})
+		expect(r).toEqual({ valid: true, errors: [] })
+		expect(schema.$defs.formField.properties.accept.type).toBe('string')
+		expect(schema.$defs.formField.properties.maxSize).toMatchObject({ type: 'integer', minimum: 1 })
 	})
 })
 

@@ -1021,6 +1021,7 @@ export default {
 	padding-left: 0;
 	padding-block: 0;
 }
+
 .cn-advanced-form-dialog__boolean-input-row__input > input {
 	margin: 0;
 }

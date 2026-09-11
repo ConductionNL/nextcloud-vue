@@ -238,3 +238,85 @@ describe('CnObjectMetadataWidget — the folder link', () => {
 		expect(item.href).toBeNull()
 	})
 })
+
+describe('CnObjectMetadataWidget — an archival decision with a gap (nextcloud-vue#1062)', () => {
+	/**
+	 * Mount the widget and read back its archival items, blank ones included.
+	 *
+	 * @param {object} retention The resolved `@self._retention` decision.
+	 * @param {object} extra Extra props.
+	 * @return {object} A map of label to the whole item.
+	 */
+	function archivalItemsFor(retention, extra = {}) {
+		const wrapper = mount(CnObjectMetadataWidget, {
+			propsData: { objectData: { '@self': { _retention: retention } }, ...extra },
+		})
+		const map = {}
+		for (const item of wrapper.vm.metadataItems) {
+			if (item.group === 'archiving') map[item.label] = item
+		}
+		return map
+	}
+
+	it('keeps an absent disposal date as a blank row, not a missing one', () => {
+		// The case the issue was filed for: a decision exists, the date does
+		// not. "Disposal date: -" is the answer a records officer came for; a
+		// row that is simply not there reads as a panel that never looked.
+		const items = archivalItemsFor({ appraisal: 'retain_permanently' })
+
+		expect(items['Disposal date']).toBeDefined()
+		expect(items['Disposal date'].value).toBe('-')
+		expect(items['Disposal date'].empty).toBe(true)
+		expect(items.Appraisal.empty).toBe(false)
+	})
+
+	it('keeps all four MDTO core rows whenever there is a decision', () => {
+		const items = archivalItemsFor({ appraisal: 'destroy' })
+
+		expect(Object.keys(items)).toEqual(expect.arrayContaining([
+			'Appraisal', 'Retention period', 'Disposal date', 'Record state',
+		]))
+	})
+
+	it('does not pad the panel with optional provenance rows that say nothing', () => {
+		// Basis, source, category, version and hold are provenance. A blank one
+		// is noise, not an answer, so they appear only when they carry a value.
+		const items = archivalItemsFor({ appraisal: 'destroy' })
+
+		for (const optional of ['Basis', 'Source', 'Selection list category', 'Selection list version', 'Consulted on', 'Legal hold']) {
+			expect(items[optional]).toBeUndefined()
+		}
+	})
+
+	it('shows no archival rows at all when there is no decision', () => {
+		// "No archival obligation" and "an obligation with a gap" are different
+		// answers and must look it: the first is an empty group, dropped.
+		const wrapper = mount(CnObjectMetadataWidget, {
+			propsData: { objectData: { '@self': { uuid: 'abc' } } },
+		})
+		const headings = wrapper.findAll('.cn-object-metadata__group-title').map((h) => h.text())
+
+		expect(wrapper.vm.metadataItems.filter((i) => i.group === 'archiving')).toHaveLength(0)
+		expect(headings).not.toContain('Archiving')
+	})
+
+	it('keeps an optional row blank when the host named it in include', () => {
+		// Naming a key in `include` is the host saying the row matters.
+		const items = archivalItemsFor({ appraisal: 'destroy' }, { include: ['appraisal', 'legalHold'] })
+
+		expect(items['Legal hold']).toBeDefined()
+		expect(items['Legal hold'].empty).toBe(true)
+	})
+
+	it('shows which revision of the selection list was consulted, and when', () => {
+		const items = archivalItemsFor({
+			appraisal: 'destroy',
+			source: 'Selectielijst gemeenten 2020',
+			sourceVersion: '2020.2',
+			sourceConsultedAt: '2026-09-10T12:00:00+00:00',
+		})
+
+		expect(items['Selection list version'].value).toBe('2020.2')
+		expect(items['Consulted on'].value).not.toBe('-')
+	})
+})

@@ -144,7 +144,7 @@
 	font-size: 0.9em;
 	line-height: 1.3;
 	color: var(--color-text-maxcontrast, #767676);
-	word-break: break-word;
+	overflow-wrap: anywhere;
 }
 
 /* Vertical: label aligns with indicator center */

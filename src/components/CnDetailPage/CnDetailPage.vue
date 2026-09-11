@@ -658,7 +658,7 @@
 </template>
 
 <script>
-import { Comment, Fragment, Text, provide, ref, watch } from 'vue'
+import { provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { NcActionButton, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
@@ -699,6 +699,7 @@ import { useObjectSubscription } from '../../composables/useObjectSubscription.j
 import { gridLayout } from '../../mixins/gridLayout.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
+import { slotRenders } from '../../utils/slotContent.js'
 import { useObjectStore } from '../../store/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
@@ -712,28 +713,6 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
-
-/**
- * Whether a rendered slot produced anything a user can actually see.
- *
- * A non-empty vnode array is NOT evidence of content: Vue hands back a
- * `Comment` placeholder for a falsy `v-if`, and a whitespace-only `Text`
- * node for a stray newline between tags. Both have to read as "empty" so a
- * consumer who wrote `<CnDetailPage>` across two lines does not
- * accidentally suppress the auto-body.
- *
- * @param {Array} nodes Vnodes returned by calling a slot function.
- * @return {boolean} True when at least one vnode renders visible content.
- */
-function hasRenderableContent(nodes) {
-	if (!Array.isArray(nodes)) return false
-	return nodes.some((vnode) => {
-		if (!vnode || vnode.type === Comment) return false
-		if (vnode.type === Text) return String(vnode.children ?? '').trim() !== ''
-		if (vnode.type === Fragment) return hasRenderableContent(vnode.children)
-		return true
-	})
-}
 
 /**
  * CnDetailPage — Generic detail/overview page.
@@ -2098,9 +2077,7 @@ export default {
 		 * whatever the consumer had put in the slot.
 		 */
 		hasDefaultSlotContent() {
-			const slot = this.$slots.default
-			if (typeof slot !== 'function') return false
-			return hasRenderableContent(slot())
+			return slotRenders(this.$slots.default)
 		},
 
 		/**

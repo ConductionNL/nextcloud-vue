@@ -2,7 +2,65 @@
 
 ## [Unreleased]
 
+### Security
+- **The sanitizer that runs in the markdown editor is no longer a 2.x copy.** `@toast-ui/editor` depends on `dompurify@^2.3.3`, so installing this library brought a SECOND sanitizer into the tree beside the 3.x it declares. That nested copy carried fifteen open XSS advisories, and it is the copy that actually sanitizes what a user types. This library's own dompurify being current said nothing about it, which is why it went unnoticed.
+
+  An `overrides` entry collapses the two onto one version, written as `$dompurify` so it follows this package's own dependency and cannot drift behind it. Toast UI works against dompurify 3: verified in a real browser, where the editor lazily mounts and typing still round-trips through `v-model`. `tests/packaging/sanitizer-is-not-downgraded.spec.js` fails if a 2.x copy ever returns.
+
+- **Every advisory that could reach a consumer is closed, and the count that mattered was never 247.** GitHub reported 247 across the repository, which is the sum of three separate package trees. `styleguide/` and `docusaurus/` are documentation tooling that no consumer installs. The root package held 33, of which 8 were reachable from `dependencies`, and of those 8 only three could run in a consumer's browser or server: the Toast UI sanitizer above, `axios` through `@nextcloud/axios`, and `fast-uri` through `ajv`. The rest, `postcss`, `browserslist` and `baseline-browser-mapping`, arrive as dependencies of build tools that npm classifies as production because `vue-router` declares `unplugin`, and they never execute in shipped code.
+
+  Raised through `overrides` rather than direct bumps, because every one of them is transitive: `axios` to 1.18, `form-data` to 4.0.6, `fast-uri` to 3.1.6, `postcss` to 8.5.23, plus `browserslist`, `baseline-browser-mapping`, `brace-expansion`, `ip-address`, `js-yaml`, `picomatch`, `svgo`, `colord`, `postcss-selector-parser` and `fast-xml-parser`. Every one stays inside its current major, so no API moves. `@semantic-release/npm` goes to 13.1.5, which clears twelve advisories in the release tooling including the only critical one, `tar`.
+
+  `axios` deliberately stops at 1.x. The 2.x line is `exports`-only, and a directory alias naming a path inside it fails at build time in consuming apps.
+
+  Root `npm audit` now reports 0, and `npm audit --omit=dev` reports 0.
+
 ### Fixed
+- **`CnNcWidgetWidget` says when a proxied widget cannot be shown here, instead of saying it has no items.** A dashboard widget whose provider implements only `IWidget` declares `itemApiVersions: []` and is simply ABSENT from the widget-items response. With no native callback registered on the page, the proxy used to render "No items available" under it. For the Tasks app's widget on a case handler's dashboard that read as "you have no tasks" while five were due, and the same list appeared the moment LaunchPad's legacy widget bridge was switched on.
+
+  The two cases were always distinguishable, they just were not distinguished: an unsupported widget has no key in the response, while a widget with nothing right now comes back as its own key holding an empty list (the Mail app's `{items: [], emptyContentMessage}`). Only a SUCCESSFUL response can say a widget is absent, so a failed request keeps the ordinary empty state rather than a claim about the app. No extra request is made.
+
+- **`@conduction/nextcloud-vue/stylelint` now loads.** The published preset extends `@nextcloud/stylelint-config`, and this package never declared it, so `require('@conduction/nextcloud-vue/stylelint')` threw `MODULE_NOT_FOUND` in any app that had not installed it for its own reasons. Same failure as the `marked` / `dompurify` / `dexie` peers fixed in #1048: a file this package ships depended on something it did not declare.
+
+  It went unnoticed because this repository linted itself with a DIFFERENT config and never loaded the one it shipped. `stylelint.config.js` is now a one-line re-export of the preset, so `npm run stylelint` exercises exactly what an app gets, and `tests/packaging/stylelint-preset-resolves.spec.js` fails if the preset stops resolving or the repository stops using it.
+
+  `stylelint` and `@nextcloud/stylelint-config` are declared as OPTIONAL peers, exactly as the ESLint preset declares its tooling: the preset is an opt-in subpath, and an app that never lints with it should not download stylelint.
+
+  **No app has to change anything.** None currently requires the preset; launchpad and openregister extend `@nextcloud/stylelint-config` directly and carry the `::v-deep` exception inline. They can now drop that copy and require the preset instead, which is what it was written for.
+
+- **stylelint 14 to 17, matching the fleet.** The apps were already on 17 through `@nextcloud/stylelint-config` 3; this repository was three majors behind the config it publishes. `stylelint-config-recommended-vue` stays on 1.x because `@nextcloud/stylelint-config` pins `^1.6.1`, and `stylelint-config-html` is held at 1.x so its `postcss-html` peer agrees with that.
+
+  The new rules raised 120 errors, all fixed. 91 were a missing blank line before a rule. The other 29 were deprecated CSS, and each was handled for what it does rather than by the autofixer:
+
+  - `word-break: break-word` (16) became `overflow-wrap: anywhere`. That is its exact specified meaning, and the spec also says it overrides any other `overflow-wrap` in the rule, so a second declaration in the same rule was removed rather than left to disagree.
+  - `clip` (7) is in every case part of a visually-hidden, screen-reader-only pattern. It became `clip-path: inset(50%)`, or was dropped where that was already present. Removing it outright would leave the text hidden only by its 1px box.
+  - `word-wrap` (6) became `overflow-wrap`, its standard name.
+
+  The autofixer was run for the blank-line rule alone, and it still rewrote `<style` to `\3c style` inside two CSS comments. Both were restored by hand.
+
+  201 `csstools/use-logical` **warnings** remain, deliberately. That rule rewrites `border-left` as `border-inline-start`, which changes rendering in right-to-left layouts. It is the right direction, but it is a visual change to review component by component, not a side effect of a tooling bump. Warnings do not fail the gate.
+
+- **`@types/react` no longer ships to every consumer.** It sat in `dependencies`, so all 21 fleet apps downloaded React type definitions with this library. Nothing referenced it: no source import, no `.d.ts` reference, no installed package declaring it as a peer, and the only mentions of "react" in the type declarations are the words "reactive" and "react to" in prose. The `@uiw/codemirror-theme-*` packages are framework-agnostic CodeMirror extensions despite their repository's name, which is the likeliest reason it was added. Removed rather than bumped to 19, which is what Dependabot proposed.
+
+- **`@codemirror/lint` to 6.9.7 and `@uiw/codemirror-theme-github` to 4.25.11.** Both already inside their declared ranges, so this is a lockfile move.
+
+- **The unit suite no longer fails a random spec per run.** 361 specs mount components and only 81 unmounted them, so most tests left a live component attached to the jsdom document for the rest of the file, keeping its watchers, timers and listeners in the DOM the next test queried and clicked. The symptom was a click that did nothing: `wrapper.emitted(...)` came back undefined and the spec failed on a line that was not the bug. Four click-based specs did it, one per full run, each passing in isolation and on a re-run of the same tree.
+
+  `jest.config.js` had already named the lead in its own header: "the lead worth pulling is per-suite teardown of mounted components, not this config". `tests/setup.js` now calls Vue Test Utils' `enableAutoUnmount(afterEach)`, which tracks every wrapper `mount()` created so no spec has to remember. Measured over six consecutive full runs before and after.
+
+  Teardown running at all exposed two things that had never been reached. `URL.createObjectURL` and `URL.revokeObjectURL` are now stubbed globally, because jsdom implements neither and `CnImageWidgetForm` revokes its preview on unmount. And one saved-views test asserted on a dialog one tick after the click that opens it, which is a tick too early when the handler has its own promise to settle.
+
+- **`CnCalendarWidget` now says when no calendar has been chosen, instead of reporting an empty diary.** The host fetches events only for the calendars named in `content.internalCalendars` / `content.externalIcsUrls`, and it skips the fetch entirely when both are empty: LaunchPad's `CalendarWidgetService::getEvents()` guards each branch with `!== []`, so an unconfigured widget comes back with zero events **and zero failures**. The widget could not tell that apart from a genuinely empty week and said "No events in the next 14 days".
+
+  It is not a rare state. The registry's own `defaultContent` for this widget type is `internalCalendars: []`, so every freshly added Calendar widget started there and made a false statement about the user's diary, forever, with nothing on screen suggesting configuration was the missing step. Measured on the dev instance: three events existed today and the widget reported none.
+
+  The new state only claims itself when a content blob is present and both lists are empty. A host driving the widget through `dataSource` alone keeps the ordinary empty message, so no existing consumer changes.
+- **A `data` widget in a tab panel keeps its own menu items, and no longer shows an empty header band.** Follow-up to the change below, which rendered the header whenever the `actions` slot was filled and read "filled" as the slot being PROVIDED. `CnObjectDataWidget` provides that template always and fills it only while an edit is unsaved, so an idle panel still carried a 59px band holding nothing. A new `slotContent` helper calls the slot and inspects the vnodes, so a `Comment` placeholder from a falsy `v-if` and a whitespace-only `Text` node both read as empty.
+
+  The band also held the widget's own overflow menu, about eight pixels from the tab strip's own, so `CnDetailWidgetHost` now passes `show-actions="!isBare"`. `chromeless` does not cover that menu.
+
+  Suppressing the menu would have taken two items with it. **Metadata** had no other home anywhere. **Edit** had a near neighbour, the record Edit button on a detail page header, but that opens the form the PAGE configures rather than the field subset the widget declares through `overrides`, `include` and `exclude`, so a tabbed widget showing eight of forty fields lost the form scoped to its eight. The open panel now publishes both items and `CnTabsWidget` renders them in its own menu, keyed by widget id because a `lazy` tab stays mounted once visited and would otherwise offer actions for a sheet nobody is looking at. They are published, not rebuilt: each carries a callback into the widget that published it, so Edit still opens that widget's dialog with that widget's configuration and still commits through its own save path. `src/utils/panelActions.js` carries the contract.
+
 - **A `data` widget in a tab panel no longer draws a card inside the card.** `CnTabsWidget` already asked for bare chrome, but `CnObjectDataWidget.title` carries a default of `"Data"`, so the `undefined` bare mode passed became that default: the heading in the panel was a default filling a gap, not a choice. `CnObjectDataWidget` gains `showTitle`, `borderless` and `flush`, and `CnDetailWidgetHost` passes them instead of exempting the widget.
 
   The exemption was protecting something real, so two things changed together. `CnWidgetWrapper` now renders its header when there is a title **or** when the `actions` slot is filled, so "no title" and "no Save button" became separate requests — previously hiding the header to remove the duplicate title also removed the only control that commits an inline edit.

@@ -144,8 +144,12 @@ export default {
 }
 
 .cn-flow-health--disabled { color: var(--color-text-maxcontrast); }
+
 .cn-flow-health--error { color: var(--color-error); }
+
 .cn-flow-health--warning { color: var(--color-warning); }
+
 .cn-flow-health--success { color: var(--color-success); }
+
 .cn-flow-health--info { color: var(--color-primary-element); }
 </style>

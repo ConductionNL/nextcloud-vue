@@ -528,7 +528,9 @@ export default {
 }
 
 .cn-field-inspection__sync--success .cn-field-inspection__dot { background: var(--color-success); }
+
 .cn-field-inspection__sync--warning .cn-field-inspection__dot { background: var(--color-warning); }
+
 .cn-field-inspection__sync--error .cn-field-inspection__dot { background: var(--color-error); }
 
 .cn-field-inspection__actions {

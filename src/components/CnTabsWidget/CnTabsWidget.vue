@@ -22,7 +22,33 @@
 					:title="activeTitle"
 					:surface="`widget:${activeWidgetId}`"
 					refresh-channel="cn:widget:refresh"
-					testid-base="cn-tabs-widget" />
+					testid-base="cn-tabs-widget">
+					<!-- The open panel's own items, below the built-in trio.
+					     A panel draws no header, so these would otherwise have
+					     nowhere to go: the data widget's Metadata and full edit
+					     dialog vanished outright when the panel stopped drawing
+					     a card. They are rendered here rather than rebuilt here
+					     because `run` closes over the widget that published it,
+					     which is what keeps the dialog's per-widget config and
+					     the widget's own save path. See utils/panelActions.js.
+
+					     Only the ACTIVE panel's items. `lazy` keeps a visited
+					     tab mounted, so several panels publish at once and an
+					     unfiltered list would offer actions for a sheet nobody
+					     is looking at. -->
+					<template v-if="activePanelActions.length" #action-items>
+						<NcActionButton
+							v-for="action in activePanelActions"
+							:key="action.key"
+							:close-after-click="true"
+							@click="action.run()">
+							<template #icon>
+								<CnIcon :name="action.icon" :size="20" />
+							</template>
+							{{ action.label }}
+						</NcActionButton>
+					</template>
+				</CnActionsMenu>
 			</template>
 
 			<CnTab
@@ -66,13 +92,14 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcEmptyContent } from '@nextcloud/vue'
+import { NcActionButton, NcEmptyContent } from '@nextcloud/vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
 import CnTabs from '../CnTabs/CnTabs.vue'
 import CnTab from '../CnTabs/CnTab.vue'
 import { widgetTitleOf } from '../../utils/widgetDispatch.js'
+import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 
 /**
  * CnTabsWidget — a widget that holds other widgets, one per tab.
@@ -133,7 +160,50 @@ export default {
 		CnIcon,
 		CnTab,
 		CnTabs,
+		NcActionButton,
 		NcEmptyContent,
+	},
+
+	/**
+	 * Offer the panels a way to put their own menu items in the strip's menu.
+	 *
+	 * Re-provided one level down by `CnDetailWidgetHost`, which knows the id to
+	 * key by; see utils/panelActions.js for why the items travel up instead of
+	 * being rebuilt here.
+	 *
+	 * @return {object} The provided sink.
+	 */
+	provide() {
+		return {
+			[PANEL_ACTION_SINK]: {
+				/**
+				 * Publish a panel's items.
+				 *
+				 * Replaces the map rather than mutating it so the computed that
+				 * reads it re-evaluates on any change.
+				 *
+				 * @param {string} id The publishing widget's id.
+				 * @param {object[]} items Its PanelAction descriptors.
+				 * @return {void}
+				 */
+				set: (id, items) => {
+					if (!id) return
+					this.panelActionsByWidget = { ...this.panelActionsByWidget, [id]: items }
+				},
+				/**
+				 * Withdraw a panel's items, on unmount or when its own menu
+				 * comes back.
+				 *
+				 * @param {string} id The publishing widget's id.
+				 * @return {void}
+				 */
+				clear: (id) => {
+					if (!(id in this.panelActionsByWidget)) return
+					const { [id]: _removed, ...rest } = this.panelActionsByWidget
+					this.panelActionsByWidget = rest
+				},
+			},
+		}
 	},
 
 	props: {
@@ -240,10 +310,23 @@ export default {
 	data() {
 		return {
 			activeIndex: 0,
+			// Items published by the panels, keyed by widget id. Keyed rather
+			// than a flat list because `lazy` keeps a visited tab mounted, so
+			// more than one panel publishes at a time.
+			panelActionsByWidget: {},
 		}
 	},
 
 	computed: {
+		/**
+		 * The open panel's own menu items, or an empty list.
+		 *
+		 * @return {object[]} PanelAction descriptors for the active tab.
+		 */
+		activePanelActions() {
+			return this.panelActionsByWidget[this.activeWidgetId] || []
+		},
+
 		/**
 		 * The configured tabs, each paired with the widget definition it names.
 		 *

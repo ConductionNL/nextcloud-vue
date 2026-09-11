@@ -411,7 +411,7 @@ export default {
 	font-size: 13px;
 	margin: 0;
 	white-space: pre-wrap;
-	word-break: break-word;
+	overflow-wrap: anywhere;
 	padding-right: 32px;
 }
 

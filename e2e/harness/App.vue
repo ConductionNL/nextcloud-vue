@@ -143,6 +143,46 @@
 			</div>
 		</template>
 
+		<!--
+			A `data` widget inside a tab panel (?baredata=1).
+
+			THE WHOLE CHAIN, unstubbed: CnTabsWidget resolves the tab, hands the
+			child to CnDetailWidgetHost with `chrome="bare"`, and that mounts the
+			real CnObjectDataWidget. The reported defect lived in the seam between
+			those three, so a harness that mounted only the last one would not
+			have shown it.
+
+			WHY A BROWSER. Two of the three claims are geometry. "No card inside a
+			card" is a measured border, and "no empty header band" is a measured
+			HEIGHT — the band that shipped was 59px tall and held nothing but a
+			divider rule, which is visible to a reader and invisible to a DOM
+			assertion, because an element with no text still occupies the row.
+			jsdom reports 0 for every rect, so the jest suite passes with the band
+			fully present.
+
+			The third claim is behavioural and belongs here for a different
+			reason: the header was hidden in the first place to remove a doubled
+			title, and that took the Save button down with it, because it renders
+			INSIDE the header. So the test has to start a real inline edit and
+			confirm Save is on screen and clickable. `store` is left null: a click
+			on Save would have nowhere to write, and nothing here asserts that it
+			does — only that the control a user needs is reachable.
+		-->
+		<template v-else-if="showBareData">
+			<h2>Data widget in a tab panel</h2>
+			<div class="tw-box" data-testid="bd-widget">
+				<CnTabsWidget
+					:content="bdContent"
+					:available-widgets="bdWidgets"
+					object-id="case-1"
+					:object-data="bdObject"
+					object-type="case"
+					:schema-object="bdSchema"
+					register="dossiq"
+					schema="case" />
+			</div>
+		</template>
+
 		<template v-else-if="showDtScroll">
 			<h2>Data table — horizontal scroll</h2>
 			<div class="dt-narrow" data-testid="dt-overflowing">
@@ -344,6 +384,26 @@
 			page's Add button is the path that had no way to ask for any of
 			this before.
 		-->
+		<!--
+			Proxied Nextcloud widgets (?ncproxy=1).
+
+			Two proxies side by side, and the spec answers the OCS widget-items
+			call with the two shapes a real instance gives: the Tasks app's
+			widget implements only IWidget, so the response has NO key for it;
+			the Mail app's widget with an empty inbox comes back as its own key
+			holding an empty list. They look identical to a component that only
+			counts items, and they mean opposite things.
+		-->
+		<template v-else-if="showNcProxy">
+			<h2>Proxied Nextcloud widgets</h2>
+			<div class="ncproxy-box" data-testid="ncproxy-tasks">
+				<CnNcWidgetWidget :content="{ widgetId: 'tasks', displayMode: 'vertical' }" />
+			</div>
+			<div class="ncproxy-box" data-testid="ncproxy-mail">
+				<CnNcWidgetWidget :content="{ widgetId: 'mail', displayMode: 'vertical' }" />
+			</div>
+		</template>
+
 		<template v-else-if="showTwoColumn">
 			<h2>Index page — two-column Add form</h2>
 			<CnIndexPage
@@ -449,6 +509,7 @@ import CnInteractionFormWidget from '../../src/components/CnInteractionFormWidge
 import CnTasksWidget from '../../src/components/CnTasksWidget/CnTasksWidget.vue'
 import CnFlowRunsWidget from '../../src/components/CnFlowRunsWidget/CnFlowRunsWidget.vue'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
+import CnNcWidgetWidget from '../../src/components/CnNcWidgetWidget/CnNcWidgetWidget.vue'
 import { NcDialog, NcSelect } from '@nextcloud/vue'
 import { installModalStack } from '../../src/utils/modalStack.js'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
@@ -472,7 +533,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -509,6 +570,7 @@ export default {
 			showDtScroll: (typeof window !== 'undefined' && window.location.search.includes('dtscroll')),
 			// Tabs widget chrome harness (?tabswidget=1).
 			showTabsWidget: (typeof window !== 'undefined' && window.location.search.includes('tabswidget')),
+			showBareData: (typeof window !== 'undefined' && window.location.search.includes('baredata')),
 			// Run deep link harness (?runlink=1).
 			showRunLink: (typeof window !== 'undefined' && window.location.search.includes('runlink')),
 			// `rowRoute` and no `runRoute`, which is what every app in the fleet
@@ -526,6 +588,42 @@ export default {
 				{ id: 'tw-a', type: 'custom', title: 'First' },
 				{ id: 'tw-b', type: 'custom', title: 'Second' },
 			],
+			// A data widget in a tab panel (?baredata=1).
+			//
+			// TWO tabs, and the data widget is the SECOND one. The bug was about
+			// a widget that had to be navigated to, and a single-tab strip is a
+			// case CnTabsWidget can special-case (`hideSingleTabTitle`), so a
+			// one-tab harness would test a path the report never took.
+			//
+			// The tab's label deliberately differs from the widget's own title.
+			// The defect was a DOUBLED title — the strip's label plus the card's
+			// heading — and with both strings equal, an assertion that the title
+			// appears once cannot tell which of the two survived.
+			bdContent: {
+				ariaLabel: 'Case panels',
+				tabs: [
+					{ widgetId: 'bd-other', label: 'Timeline' },
+					{ widgetId: 'bd-data', label: 'Core data' },
+				],
+			},
+			bdWidgets: [
+				{ id: 'bd-other', type: 'custom', title: 'Timeline' },
+				{ id: 'bd-data', type: 'data', title: 'Core case data' },
+			],
+			bdSchema: {
+				title: 'Case',
+				properties: {
+					title: { type: 'string', title: 'Title' },
+					reference: { type: 'string', title: 'Reference' },
+					status: { type: 'string', title: 'Status' },
+				},
+			},
+			bdObject: {
+				id: 'case-1',
+				title: 'Permit for a roof terrace',
+				reference: 'Z-2026-0041',
+				status: 'In review',
+			},
 			// Non-sortable, exactly like scholiq's failing "manage-courses" widget
 			// table. A STRING column normalises to `sortable: true`, which puts a
 			// tabindex on every <th> — the scrollport then HAS focusable content
@@ -626,6 +724,7 @@ export default {
 				],
 			},
 			showTwoColumn: (typeof window !== 'undefined' && window.location.search.includes('twocol')),
+			showNcProxy: (typeof window !== 'undefined' && window.location.search.includes('ncproxy')),
 			// Eight scalars and one textarea: enough fields that pairing them
 			// is worth doing, and one field that must refuse to be paired.
 			twoColSchema: {
