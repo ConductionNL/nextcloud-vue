@@ -39,9 +39,11 @@ This replaces the hand-written transition strip an app used to ship as its own c
 
 Configure exactly one of two sources.
 
-`stagesEndpoint` reads an app endpoint: `{ url, path, params?, idField?, labelField?, descriptionField?, orderField?, finalField?, resultsPath?, resultIdField?, resultLabelField? }`. The url and the params take the shared token grammar (`@objectId`, `@object.<field>`), so `/apps/myapp/api/types/@object.type/stages` names the record's own type. `path` points at the array in the response.
+`stagesEndpoint` reads an app endpoint: `{ url, method?, path, params?, idField?, labelField?, descriptionField?, orderField?, finalField?, resultsPath?, resultIdField?, resultLabelField? }`. The url and the params take the shared token grammar (`@objectId`, `@object.<field>`), so `/apps/myapp/api/types/@object.type/stages` names the record's own type. `path` points at the array in the response, and `method` is `GET` unless the endpoint wants otherwise.
 
-`stagesSource` reads an OpenRegister query instead: `{ register, schema, filter?, orderBy?, labelField?, descriptionField?, finalField?, limit? }`. The filter takes the same tokens.
+`stagesSource` reads an OpenRegister query instead: `{ register, schema, filter?, orderBy?, idField?, labelField?, descriptionField?, finalField?, limit? }`. The filter takes the same tokens.
+
+`idField` names the property holding each stage's id, for a row that does not carry `id`, `@self.id` or `uuid`. `resultIdField` and `resultLabelField` do the same for the result rows at `resultsPath`.
 
 `finalField` marks the stages that close the record. A move into one asks for a result when results are on offer, either through `resultsPath` in the stages response or through the move's own options.
 
@@ -59,19 +61,39 @@ After a successful move the widget shows the new stage at once and fires `cn:pag
 
 ## Guards
 
-`availability` names an endpoint that says which stages can be reached from here, why the others cannot, and what a move needs: `{ url, path, stageField?, moveField?, allowedField?, reasonField?, commentField?, resultField?, resultOptionsField?, unlistedReason? }`.
+`availability` names an endpoint that says which stages can be reached from here, why the others cannot, and what a move needs: `{ url, method?, path, params?, stageField?, moveField?, allowedField?, reasonField?, commentField?, resultField?, resultOptionsField?, resultIdField?, resultLabelField?, unlistedReason? }`. `method` and `params` behave as they do on `stagesEndpoint`, tokens included.
 
 A blocked stage renders disabled with its reason on screen, because the reason tells the person what the record still needs. A stage the answer does not list renders disabled too, with `unlistedReason` as screen-reader text. A disabled stage keeps its focus stop and carries `aria-disabled="true"`, so a keyboard reaches it and hears why it is closed.
 
-When the availability read fails, every move is blocked. A guard that cannot be checked is not a guard that passed.
+### What counts as blocked
 
-A move that declares a comment or a result opens [`CnStageMoveDialog`](./cn-stage-move-dialog.md) before anything is sent. Set `confirm: 'always'` to ask on every move, with an optional comment, even where the answer declares nothing.
+`allowedField` blocks the move on `false`, `0`, `'0'` and `'false'`. Those four are listed rather than inferred, because a JSON round trip or a database column produces the string where the schema said boolean, and a guard that recognises only the literal `false` fails open on every other shape.
+
+A value the answer does not carry at all means allowed, which is what lets an endpoint that lists only the reachable stages keep working. So does any other value: only the four shapes above close a stage.
+
+### When the strip stays shut
+
+Three states block every move, each of them failing closed.
+
+The availability read failed. A guard that cannot be checked is not a guard that passed.
+
+The `availability` block is present but names no url. A typo in the key is a broken guard, not an absent one, so it blocks rather than quietly opening every stage.
+
+A move has just landed and the fresh answer has not arrived. The map in hand describes the stage the record has left, and clicking it would send a move the server has already closed.
+
+### Asking before moving
+
+`commentField` and `resultField` each read `'required'`, `'optional'` (also `true`) or nothing. A move that declares either opens [`CnStageMoveDialog`](./cn-stage-move-dialog.md) before anything is sent. Required means the confirm button waits for it, and the widget re-checks it where the request is made rather than trusting the button alone. Optional means the dialog offers the field and sends the move without it.
+
+A stage marked final by `finalField` requires a result when results are on offer. If none are, the move is blocked at the stage with that reason, because a dialog with no picker and a confirm that can never be enabled is a dead end.
+
+Set `confirm: 'always'` to ask on every move, with an optional comment, even where the answer declares nothing.
 
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | `object` | `{}` | The widget config: `currentField`, `stagesEndpoint` or `stagesSource`, `availability`, `transition`, `confirm` (`'declared'` by default, or `'always'`), `orientation`, `size` and `ariaLabel`. |
+| `content` | `object` | `{}` | The widget config: `currentField`, `stagesEndpoint` or `stagesSource`, `availability`, `transition`, `confirm` (`'declared'` by default, or `'always'`), `orientation`, `size` and `ariaLabel`. `ariaLabel` falls back to `label`, then to "Stages", so a titled placement names its own strip without repeating the title. |
 | `objectData` | `object\|null` | `null` | The bound record, when the surface passes it. Falls back to the detail page's injected object context. |
 | `objectId` | `string\|number` | `''` | The bound record's id, when the surface passes it. Falls back to the injected object context. |
 | `objectType` | `string` | `''` | The object-store type slug of the bound record, used by the `field` transition. Falls back to the context, then to the register and schema of the page. |
@@ -87,8 +109,10 @@ A move that declares a comment or a result opens [`CnStageMoveDialog`](./cn-stag
 ## Notes
 
 - Without a `transition` the strip is read only. The stages still render, and nothing is clickable.
-- Clicking the current stage does nothing, so a stray click cannot re-fire a move that already happened.
+- The current stage carries `aria-current="step"` and nothing else. It is not a move, and it is not blocked either, so it is not announced as blocked. Clicking it does nothing, which stops a stray click re-firing the move that just landed.
+- A move in flight keeps every stage's focus stop and marks the stages disabled. Taking the stops away would drop a keyboard user's focus to the page body with nothing to restore it to.
 - A refused move leaves the record on its stage and shows the server's reason. `errorField` names the field to read it from.
+- A `field` transition saves the record's own properties, minus the `@self` envelope and minus any property holding `null`, `{}` or `[]`, which OpenRegister refuses on an object property. A record with no id at all is refused rather than saved, because the save would create a duplicate instead of updating it.
 - The strip carries `role="list"` with `ariaLabel` as its name, so a screen reader announces what the stages belong to.
 
 Next: configure a placement with [`CnStagesWidgetForm`](./cn-stages-widget-form.md), or put the status beside it as a badge with [`CnStatWidget`](./cn-stat-widget.md).
