@@ -31,6 +31,11 @@
  * reason, which keeps the escape hatch auditable instead of silent.
  */
 
+/* eslint-disable no-template-curly-in-string -- the ALLOWED keys below are
+ * VERBATIM source text, matched character-for-character against the URL
+ * argument the scanner extracts. A `${…}` inside one is the thing being
+ * matched, not a template literal that forgot its backticks. */
+
 const fs = require('fs')
 const path = require('path')
 
@@ -206,9 +211,14 @@ function firstArgument(source, start) {
 			continue
 		}
 		if (c === '"' || c === "'" || c === '`') { quote = c; continue }
-		if ('([{'.includes(c)) depth++
-		else if (')]}'.includes(c)) { if (depth === 0) break; depth-- }
-		else if (c === ',' && depth === 0) break
+		if ('([{'.includes(c)) {
+			depth++
+		} else if (')]}'.includes(c)) {
+			if (depth === 0) break
+			depth--
+		} else if (c === ',' && depth === 0) {
+			break
+		}
 	}
 	return source.slice(start, i)
 }
