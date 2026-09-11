@@ -228,9 +228,9 @@ export function buildOnSuccessRoute(onSuccessRoute, saved) {
  * lacks the key, the message is returned byte-identical. Server-supplied
  * messages are data and are never routed through here.
  *
- * @param {*} message The manifest-authored message (may be undefined).
+ * @param {unknown} message The manifest-authored message (may be undefined).
  * @param {object} context The dispatch context (`context.translate` optional).
- * @return {*} The translated message, or the input unchanged.
+ * @return {unknown} The translated message, or the input unchanged.
  */
 function translateMessage(message, context) {
 	const fn = context && context.translate
@@ -295,7 +295,7 @@ function interpolateActionString(str, ctx) {
  * @param {object} context Runtime context; `context.tokenCtx` is the token
  *   context (`{ objectId?, object?, workspace?, config? }`) the URL/body
  *   resolve against.
- * @return {Promise<{ok: boolean, data?: *, error?: *}>} The call outcome.
+ * @return {Promise<{ok: boolean, data?: unknown, error?: unknown}>} The call outcome.
  */
 async function executeApiCall(action, context) {
 	const tokenCtx = context.tokenCtx || {}
@@ -361,8 +361,8 @@ async function executeApiCall(action, context) {
  * to the server); a `{ slug | id }` object (a schema holder) is flattened to its
  * slug/id.
  *
- * @param {*} actionVal The action's explicit value (may be undefined or an @-token).
- * @param {*} ctxDefault The page-context default (`tokenCtx.<field>`).
+ * @param {unknown} actionVal The action's explicit value (may be undefined or an @-token).
+ * @param {unknown} ctxDefault The page-context default (`tokenCtx.<field>`).
  * @param {object} tokenCtx The token context the @-tokens resolve against.
  * @return {string} The resolved reference, or '' when unresolved/absent.
  */
@@ -408,7 +408,7 @@ function resolveAgentRef(actionVal, ctxDefault, tokenCtx) {
  *   `errorMessage?`, `refresh?`).
  * @param {object} context Runtime context; `context.tokenCtx` is the token
  *   context (`{ objectId?, object?, register?, schema?, workspace?, config? }`).
- * @return {Promise<{ok: boolean, data?: *, error?: *}>} The call outcome.
+ * @return {Promise<{ok: boolean, data?: unknown, error?: unknown}>} The call outcome.
  */
 async function executeAgentAction(action, context) {
 	const tokenCtx = context.tokenCtx || {}

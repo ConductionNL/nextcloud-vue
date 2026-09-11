@@ -68,12 +68,12 @@ function ymd(d) {
 /**
  * Resolve a single filter value if it is a dynamic `@`-token, else pass through.
  *
- * @param {*} v The candidate value.
+ * @param {unknown} v The candidate value.
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Optional
  *   context for `@objectId` / `@object.<field>` (detail page),
  *   `@workspace.<key>` (page-level workspace state), and `@config.<key>`
  *   (page-level app config) tokens.
- * @return {*} The resolved value.
+ * @return {unknown} The resolved value.
  */
 export function resolveFilterValue(v, ctx) {
 	if (typeof v !== 'string' || v.charAt(0) !== '@') {
@@ -164,7 +164,7 @@ export function resolveFilterValue(v, ctx) {
  * it as "drop me when unset"). Callers strip such keys from the filter so the
  * list shows all rows rather than waiting for a selection / a config value.
  *
- * @param {*} v A (possibly resolved) filter value.
+ * @param {unknown} v A (possibly resolved) filter value.
  * @return {boolean}
  */
 export function isOptionalUnresolved(v) {
@@ -304,10 +304,10 @@ export function resolveFilterTokens(filter, ctx) {
  * needs the token resolved inside a nested array of objects, which the
  * shallow filter-map resolver can't reach.
  *
- * @param {*} value The value to resolve — object / array / primitive.
+ * @param {unknown} value The value to resolve — object / array / primitive.
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Optional
  *   context forwarded to {@link resolveFilterValue}.
- * @return {*} A new value with every string leaf token-resolved (structure preserved).
+ * @return {unknown} A new value with every string leaf token-resolved (structure preserved).
  */
 export function resolveDeepTokens(value, ctx) {
 	if (Array.isArray(value)) {
@@ -331,7 +331,7 @@ export function resolveDeepTokens(value, ctx) {
  * `@objectId` / `@object.<field>`) that failed to resolve, instead of
  * silently sending the literal token string to the server.
  *
- * @param {*} value The (already deep-resolved) value.
+ * @param {unknown} value The (already deep-resolved) value.
  * @return {boolean} True when a required token is still unresolved.
  */
 export function hasUnresolvedDeepTokens(value) {
@@ -351,8 +351,8 @@ export function hasUnresolvedDeepTokens(value) {
  * whose value is an unresolved optional token is dropped entirely; an array
  * item that resolves unresolved-optional is filtered out.
  *
- * @param {*} value The (already {@link resolveDeepTokens}-resolved) value.
- * @return {*} The value with unresolved-optional leaves removed.
+ * @param {unknown} value The (already {@link resolveDeepTokens}-resolved) value.
+ * @return {unknown} The value with unresolved-optional leaves removed.
  */
 export function dropOptionalUnresolvedDeep(value) {
 	if (Array.isArray(value)) {

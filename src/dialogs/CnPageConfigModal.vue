@@ -986,7 +986,7 @@ export default {
 		 * Read a config value (empty string when unset).
 		 *
 		 * @param {string} key The config key.
-		 * @return {*}
+		 * @return {unknown}
 		 */
 		configValue(key) {
 			const v = (this.page && this.page.config && this.page.config[key])

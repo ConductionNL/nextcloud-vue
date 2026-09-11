@@ -53,7 +53,7 @@ export function clearRouteSentinelWarnings() {
  * Check whether `value` is a JSON-style plain object (not Array,
  * Map, Set, Date, etc.).
  *
- * @param {*} value Value to test.
+ * @param {unknown} value Value to test.
  * @return {boolean} True when value is a plain object.
  */
 function isPlainObject(value) {
@@ -75,10 +75,10 @@ function isPlainObject(value) {
  * the clone and `diffManifest` would see no change. Only changed paths are
  * rebuilt; unchanged ones stay pointer-identical to the manifest.
  *
- * @param {*} value The input value (any depth).
+ * @param {unknown} value The input value (any depth).
  * @param {object} params The route params map (e.g. `$route.params`).
  * @param {string} pageId Page identifier used for warning dedup.
- * @return {*} Value with sentinels resolved; identical reference when unchanged.
+ * @return {unknown} Value with sentinels resolved; identical reference when unchanged.
  */
 export function resolveRouteSentinels(value, params, pageId = '<unknown>') {
 	const safeParams = params && typeof params === 'object' ? params : {}

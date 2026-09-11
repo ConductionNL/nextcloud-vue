@@ -79,7 +79,7 @@ const MAX_RECENCY_BOOST = 20
 /**
  * Lower-case + trim a value for comparison. Non-string input coerces to ''.
  *
- * @param {*} value The raw value.
+ * @param {unknown} value The raw value.
  * @return {string} The normalised string.
  */
 function normalise(value) {

@@ -377,7 +377,7 @@ export default {
 		 * Normalise a per-widget OCS payload to an items array, tolerating both
 		 * the flat array and the `{items}` envelope shapes.
 		 *
-		 * @param {*} widgetData the per-widget payload.
+		 * @param {unknown} widgetData the per-widget payload.
 		 * @return {object[]} the items array (possibly empty).
 		 */
 		extractItems(widgetData) {

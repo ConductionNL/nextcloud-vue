@@ -184,7 +184,7 @@ export default {
 		 * The reactive workspace value for this key — watched so an external
 		 * write (another widget) syncs the local selection.
 		 *
-		 * @return {*}
+		 * @return {unknown}
 		 */
 		workspaceValue() {
 			return this.readWorkspace()
@@ -207,7 +207,7 @@ export default {
 		/**
 		 * Track external workspace changes (another widget writing the same key).
 		 *
-		 * @param {*} val The new workspace value for this key.
+		 * @param {unknown} val The new workspace value for this key.
 		 */
 		workspaceValue(val) {
 			if (val !== undefined) {
@@ -236,8 +236,8 @@ export default {
 		 * `{ value, label, count }`, `{ id, name }`, `{ key, count }` (OR
 		 * facet), or a bare string/number.
 		 *
-		 * @param {*} o The raw option.
-		 * @return {{value: *, label: string, count?: number}}
+		 * @param {unknown} o The raw option.
+		 * @return {{value: unknown, label: string, count?: number}}
 		 */
 		normaliseOption(o) {
 			if (o === null || o === undefined) {
@@ -372,7 +372,7 @@ export default {
 		 * Apply a new selection: mirror it locally, write it into the workspace
 		 * context (so sibling widgets refetch), and emit `@change`.
 		 *
-		 * @param {*} value The new value.
+		 * @param {unknown} value The new value.
 		 * @return {void}
 		 */
 		applySelection(value) {
@@ -401,7 +401,7 @@ export default {
 		 * Read the current workspace value for this widget's key (undefined
 		 * when unset).
 		 *
-		 * @return {*}
+		 * @return {unknown}
 		 */
 		readWorkspace() {
 			if (!this.writeKey) {
@@ -416,7 +416,7 @@ export default {
 		 * (the CnInteractionFormWidget write pattern — replace-in-place for the
 		 * unwrapped bag, `.value` for the raw-ref shape).
 		 *
-		 * @param {*} value The value to write.
+		 * @param {unknown} value The value to write.
 		 * @return {void}
 		 */
 		writeWorkspace(value) {

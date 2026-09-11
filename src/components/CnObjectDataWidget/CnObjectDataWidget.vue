@@ -911,7 +911,7 @@ export default {
 		 * The stored value is untouched — only what the user reads changes, so
 		 * inline editing still writes back the raw code.
 		 *
-		 * @return {(field: object, raw: *) => string|null} Given the resolved
+		 * @return {(field: object, raw: unknown) => string|null} Given the resolved
 		 *   field descriptor and the stored value, the label to display — or
 		 *   null to fall through to `formatValue`.
 		 */
@@ -1279,7 +1279,7 @@ export default {
 		 * definition-list renderer.
 		 *
 		 * @param {object} raw The object value.
-		 * @return {Array<[string, *]>} The entries.
+		 * @return {Array<[string, unknown]>} The entries.
 		 */
 		objectEntries(raw) {
 			return (raw && typeof raw === 'object') ? Object.entries(raw) : []
@@ -1289,7 +1289,7 @@ export default {
 		 * Stringify a scalar cell value; a nested object/array collapses to
 		 * compact JSON (never "[object Object]").
 		 *
-		 * @param {*} v The cell value.
+		 * @param {unknown} v The cell value.
 		 * @return {string} The display string.
 		 */
 		stringifyCell(v) {
@@ -1384,7 +1384,7 @@ export default {
 		 * `false` and `0` are values, not absences, so they are deliberately kept —
 		 * hiding a boolean because it is false would lose information.
 		 *
-		 * @param {*} value The raw value from objectData.
+		 * @param {unknown} value The raw value from objectData.
 		 * @return {boolean} True when there is nothing to show.
 		 */
 		isEmptyValue(value) {
@@ -1708,7 +1708,7 @@ export default {
 		 * Update the working edit value for a field.
 		 *
 		 * @param {string} key - Field key to update
-		 * @param {*} value - New value for the field
+		 * @param {unknown} value - New value for the field
 		 */
 		updateField(key, value) {
 			this.editData = { ...this.editData, [key]: value }

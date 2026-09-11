@@ -420,13 +420,13 @@ export default {
 			/**
 			 * @event input The value changed. Vue 2's v-model dialect, kept for
 			 *   existing consumers.
-			 * @type {*}
+			 * @type {unknown}
 			 */
 			this.$emit('input', next)
 			/**
 			 * @event update:modelValue The value changed. Vue 3's v-model
 			 *   dialect — what a plain `v-model` listens for.
-			 * @type {*}
+			 * @type {unknown}
 			 */
 			this.$emit('update:modelValue', next)
 		},

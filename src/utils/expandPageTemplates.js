@@ -171,14 +171,14 @@ export function expandPageTemplates(manifest, options = {}) {
 /**
  * Recursively substitute `{{param}}` / `{{set:NAME}}` placeholders in a value.
  *
- * @param {*} node Value to substitute into.
+ * @param {unknown} node Value to substitute into.
  * @param {object} params Effective parameter map.
  * @param {Map<string, object>} declared Declared params (name → { required }).
  * @param {object} sets Shared named sets registry.
  * @param {object} _sets (unused alias kept for signature symmetry).
  * @param {string[]} errors Accumulator for named errors.
  * @param {string} label Instantiation label for error messages.
- * @return {*} Substituted value, or the DROP sentinel.
+ * @return {unknown} Substituted value, or the DROP sentinel.
  */
 function substitute(node, params, declared, sets, _sets, errors, label) {
 	if (typeof node === 'string') {
@@ -216,7 +216,7 @@ function substitute(node, params, declared, sets, _sets, errors, label) {
  * @param {object} sets Shared named sets registry.
  * @param {string[]} errors Accumulator for named errors.
  * @param {string} label Instantiation label.
- * @return {*} Substituted value / typed param value / DROP sentinel.
+ * @return {unknown} Substituted value / typed param value / DROP sentinel.
  */
 function substituteString(str, params, declared, sets, errors, label) {
 	const exact = str.match(/^\{\{\s*([^}]+?)\s*\}\}$/)
@@ -244,7 +244,7 @@ function substituteString(str, params, declared, sets, errors, label) {
  * @param {object} sets Shared named sets registry.
  * @param {string[]} errors Accumulator for named errors.
  * @param {string} label Instantiation label.
- * @return {*} Resolved value, or DROP when the parameter is absent.
+ * @return {unknown} Resolved value, or DROP when the parameter is absent.
  */
 function resolveToken(token, params, declared, sets, errors, label) {
 	if (token.startsWith('set:')) {
@@ -324,8 +324,8 @@ function isPlainObject(value) {
 /**
  * Structured clone via JSON (manifests are plain JSON — no cycles/functions).
  *
- * @param {*} value The value to clone.
- * @return {*} A deep clone of the value.
+ * @param {unknown} value The value to clone.
+ * @return {unknown} A deep clone of the value.
  */
 function clone(value) {
 	if (value === undefined) {

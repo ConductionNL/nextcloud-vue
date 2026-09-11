@@ -795,7 +795,7 @@ export default {
 
 		/**
 		 * @param {string} key   The config key.
-		 * @param {*}      value The new value.
+		 * @param {unknown}      value The new value.
 		 * @return {void}
 		 */
 		setKey(key, value) {

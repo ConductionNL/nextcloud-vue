@@ -260,7 +260,7 @@ export default {
 		/**
 		 * Format a number per the content.format spec (number/currency/percent).
 		 *
-		 * @param {*} value The raw value.
+		 * @param {unknown} value The raw value.
 		 * @return {string} The formatted string.
 		 */
 		formatNumber(value) {

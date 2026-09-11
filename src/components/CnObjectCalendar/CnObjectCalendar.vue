@@ -360,7 +360,7 @@ export default {
 		 * The object's identity, per `rowKey`.
 		 *
 		 * @param {object} object The object.
-		 * @return {*}
+		 * @return {unknown}
 		 */
 		objectKey(object) {
 			return object?.[this.rowKey]

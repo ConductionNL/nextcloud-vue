@@ -478,9 +478,9 @@ export default {
 		/**
 		 * Read a dot-path off a payload (the toggle state field).
 		 *
-		 * @param {*} data The payload.
+		 * @param {unknown} data The payload.
 		 * @param {string} field The dot-path.
-		 * @return {*} The value at the path.
+		 * @return {unknown} The value at the path.
 		 */
 		readField(data, field) {
 			if (!field) {
@@ -566,7 +566,7 @@ export default {
 		 * the confirm dialog can report success/failure.
 		 *
 		 * @param {object} entry The action.
-		 * @return {Promise<*>} The dispatch result (undefined for open-form).
+		 * @return {Promise<unknown>} The dispatch result (undefined for open-form).
 		 */
 		async runAction(entry) {
 			if (entry.type === 'open-form') {
@@ -599,7 +599,7 @@ export default {
 		 * merged in (the latter localises `api-call` success/error toasts).
 		 *
 		 * @param {object} action The action to dispatch.
-		 * @return {Promise<*>} The dispatch result.
+		 * @return {Promise<unknown>} The dispatch result.
 		 */
 		dispatch(action) {
 			const extra = { tokenCtx: this.tokenCtx, translate: this.effectiveTranslate }

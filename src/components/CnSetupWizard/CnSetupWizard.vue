@@ -561,7 +561,7 @@ export default {
 		 * renderers can share one `choiceModel` entry.
 		 *
 		 * @param {object} step The choice step.
-		 * @return {*} The selected value, or [] / null when nothing is picked.
+		 * @return {unknown} The selected value, or [] / null when nothing is picked.
 		 */
 		cardModel(step) {
 			const value = this.scalarChoice(step)
@@ -595,7 +595,7 @@ export default {
 		 * not (yet) available.
 		 *
 		 * @param {object} step  The choice step.
-		 * @param {*}      entry One selected entry: an option object or a value.
+		 * @param {unknown}      entry One selected entry: an option object or a value.
 		 * @return {string} The label to show.
 		 */
 		choiceLabel(step, entry) {

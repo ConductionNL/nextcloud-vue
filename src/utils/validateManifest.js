@@ -700,7 +700,7 @@ const SENTINEL_PATTERN = /^@resolve:[a-z][a-z0-9_-]*$/
 /**
  * Test whether a string is a manifest `@resolve:` sentinel.
  *
- * @param {*} value Candidate value.
+ * @param {unknown} value Candidate value.
  * @return {boolean} True when the value is a fully-matched sentinel.
  */
 function isSentinel(value) {
@@ -1410,7 +1410,7 @@ function validateSidebarConfig(page, pageIndex, errors) {
  * `config.sidebar.tabs` path (manifest-detail-sidebar-config) reuse
  * the same rules.
  *
- * @param {*} tabs The candidate tabs value (expected: array of tab defs)
+ * @param {unknown} tabs The candidate tabs value (expected: array of tab defs)
  * @param {string} tabsPath JSON-pointer-shaped path prefix for errors
  * @param {string[]} errors Accumulator
  */
@@ -1914,7 +1914,7 @@ function validateLayoutArray(cfg, pathSlash, pathBracket, errors) {
  * `widget.type === "component"` discriminator (REQ-MSO-6) requires
  * `componentName: <non-empty string>`.
  *
- * @param {*} section The section under validation
+ * @param {unknown} section The section under validation
  * @param {string} pathSlash JSON-pointer-style path prefix for errors
  * @param {string} pathBracket Human-readable bracket-path for errors
  * @param {string[]} errors Accumulator
@@ -2127,7 +2127,7 @@ function validateContentArray(cfg, pathSlash, pathBracket, errors) {
  * app config, which has no place for file content, and CnSettingsPage has
  * no file input to render.
  *
- * @param {*} fields The candidate fields value
+ * @param {unknown} fields The candidate fields value
  * @param {string} fieldsPath JSON-pointer-style path prefix for errors
  * @param {string[]} errors Accumulator
  * @param {string[]} [allowedTypes] The accepted `type` values. Defaults to

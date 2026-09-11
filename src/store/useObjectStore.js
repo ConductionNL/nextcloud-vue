@@ -207,7 +207,7 @@ const baseActions = {
 	 * takes a unspecified number of props and joins them from first to left with a `-`.
 	 * However it is recommended to give it 1 register and 1 schema in that order.
 	 *
-	 * @param {*} params - unspecified number of props
+	 * @param {unknown} params - unspecified number of props
 	 * @return {string}
 	 */
 	createObjectTypeSlug(...params) {

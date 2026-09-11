@@ -20,7 +20,7 @@
  * them, so a caller can distinguish "no count" from "a count of zero".
  *
  * @param {object} bucket A raw facet bucket from the API
- * @return {{value: *, count?: *, label?: *}} The normalised option
+ * @return {{value: unknown, count?: unknown, label?: unknown}} The normalised option
  */
 export function normalizeFacetBucket(bucket) {
 	const option = { value: bucket.key ?? bucket.value }

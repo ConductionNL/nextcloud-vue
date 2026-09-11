@@ -144,7 +144,7 @@ export default {
 		 * Set one field and re-emit the whole content blob.
 		 *
 		 * @param {string} key   The field name.
-		 * @param {*}      value The new value.
+		 * @param {unknown}      value The new value.
 		 * @return {void}
 		 */
 		updateField(key, value) {

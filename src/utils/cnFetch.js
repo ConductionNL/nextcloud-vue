@@ -43,7 +43,7 @@ export class CnHttpError extends Error {
 	/**
 	 * @param {string} message Human-readable message.
 	 * @param {number} status  HTTP status code.
-	 * @param {*}      body    Parsed response body, or the raw text when it was not JSON.
+	 * @param {unknown}      body    Parsed response body, or the raw text when it was not JSON.
 	 * @param {string} url     The requested URL, for logs.
 	 */
 	constructor(message, status, body, url) {
@@ -92,7 +92,7 @@ export async function cnFetch(url, options = {}) {
  * @param {string} url       App-absolute path.
  * @param {object} [options] As {@link cnFetch}.
  * @throws {CnHttpError} When the response status is not 2xx.
- * @return {Promise<*>} Parsed JSON body, or null for an empty body.
+ * @return {Promise<unknown>} Parsed JSON body, or null for an empty body.
  */
 export async function cnFetchJson(url, options = {}) {
 	const response = await cnFetch(url, options)

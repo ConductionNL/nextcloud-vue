@@ -346,7 +346,7 @@ export default {
 		 *
 		 * @param {string} key The property name.
 		 * @param {string} field The row field to set.
-		 * @param {*} value The new value.
+		 * @param {unknown} value The new value.
 		 * @return {void}
 		 */
 		setRow(key, field, value) {
