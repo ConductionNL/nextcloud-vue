@@ -100,11 +100,14 @@ export default {
 		},
 
 		/**
-		 * Optional name of the host app, included in the default heading.
+		 * Optional name of the host app. NOT read here yet: the default
+		 * `heading` is a fixed sentence, so binding this changes nothing
+		 * on screen. Kept as published API (CnAppRoot binds it) until the
+		 * app-aware heading copy is written.
 		 *
 		 * @type {string}
 		 */
-		appName: {
+		appName: { // eslint-disable-line vue/no-unused-properties -- published prop bound by CnAppRoot; the app-aware heading it documents is not written yet
 			type: String,
 			default: '',
 		},

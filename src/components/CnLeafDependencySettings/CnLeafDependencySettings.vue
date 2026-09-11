@@ -143,8 +143,12 @@ export default {
 	},
 
 	props: {
-		/** The consuming app's id (e.g. `dossiq`). Used for status lookups. */
-		appId: {
+		/**
+		 * The consuming app's id (e.g. `dossiq`). Not read here: a status
+		 * lookup is keyed on the DEPENDENCY's id, which `useAppStatus(id)`
+		 * takes from each declared entry. Kept as published API.
+		 */
+		appId: { // eslint-disable-line vue/no-unused-properties -- published prop; status is looked up per dependency id, never per consuming app
 			type: String,
 			default: '',
 		},

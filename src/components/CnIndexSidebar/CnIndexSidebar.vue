@@ -89,6 +89,7 @@
 
 			<div class="cn-index-sidebar__tab-content">
 				<div class="cn-sidebar-columns">
+					<h3>{{ columnsHeading }}</h3>
 					<p class="cn-sidebar-columns__description">
 						{{ columnsDescription }}
 					</p>

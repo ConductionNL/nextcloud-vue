@@ -83,7 +83,7 @@ export default {
 		/** Parent object id. */
 		objectId: { type: String, required: true },
 		/** Rendering surface — passed for AD-19 surface fallback consumers. */
-		surface: {
+		surface: { // eslint-disable-line vue/no-unused-properties -- AD-19 hands every integration widget the same `surface`; this one does not branch on it yet
 			type: String,
 			default: 'detail-page',
 			validator: (value) => ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity'].includes(value),

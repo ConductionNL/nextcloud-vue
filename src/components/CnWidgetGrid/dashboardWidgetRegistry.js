@@ -67,7 +67,11 @@ export function registerDashboardWidget(type, entry) {
 		return
 	}
 	const isOverride = Object.hasOwn(dashboardWidgetRegistry, type)
-	if (isOverride && typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
+	// Read through `globalThis` rather than a bare `process`: this module is
+	// bundled for the browser, where `process` is simply absent, and the
+	// optional chain states that as plainly as the old `typeof` guard did.
+	const env = globalThis.process?.env
+	if (isOverride && env && env.NODE_ENV !== 'production') {
 		// eslint-disable-next-line no-console
 		console.warn(`[dashboardWidgetRegistry] widget type "${type}" is already registered — overriding the previous entry (last-registration-wins).`)
 	}

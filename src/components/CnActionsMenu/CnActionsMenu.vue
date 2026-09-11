@@ -418,7 +418,7 @@ export default {
 		 *
 		 * @type {string}
 		 */
-		specRef: {
+		specRef: { // eslint-disable-line vue/no-unused-properties -- published prop kept so hosts that still bind it do not leak it into $attrs
 			type: String,
 			default: '',
 		},

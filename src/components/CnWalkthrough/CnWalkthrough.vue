@@ -39,14 +39,18 @@
 					<Close :size="20" />
 				</template>
 			</NcButton>
-			<!-- @slot coachmark Override the whole coachmark body. Scope: { step, index, total, next, back, skip }. -->
+			<!-- @slot coachmark Override the whole coachmark body. Scope: { step, index, total, next, back, skip, skipLabel }.
+			     The default body has no Skip control (ADR-062 gives that job to
+			     the corner close button), so `skipLabel` reaches the only place
+			     a Skip control can live: a host-supplied coachmark. -->
 			<slot name="coachmark"
 				:step="step"
 				:index="index"
 				:total="total"
 				:next="advance"
 				:back="back"
-				:skip="skip">
+				:skip="skip"
+				:skipLabel="skipLabel">
 				<div class="cn-walkthrough__counter">
 					{{ index + 1 }} / {{ total }}
 				</div>

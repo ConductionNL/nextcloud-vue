@@ -44,6 +44,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnPageTreeNode from '../components/CnPageTreeNode/CnPageTreeNode.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
@@ -51,7 +52,7 @@ import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 export default {
 	name: 'CnEditPagesModal',
 
-	components: { NcDialog, NcButton, NcEmptyContent, NcLoadingIcon, Plus, CnPageTreeNode },
+	components: { NcDialog, NcButton, NcEmptyContent, NcLoadingIcon, Plus, ContentSaveOutline, CnPageTreeNode },
 
 	mixins: [manifestModalDoneMixin],
 

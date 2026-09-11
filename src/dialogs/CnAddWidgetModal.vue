@@ -371,8 +371,9 @@ export default {
 		 * @return {string[]} the validation error messages.
 		 */
 		validationErrors() {
-			// touch the tick so Vue tracks it as a dependency
-			this.validationTick
+			// Read the tick, discard the value: `$refs` is not reactive, so the
+			// tick is what Vue can track as this computed's dependency.
+			void this.validationTick
 			return this.form.validate(this.$refs.activeSubForm)
 		},
 
@@ -394,8 +395,8 @@ export default {
 		 * @return {boolean} true when something changed since open.
 		 */
 		isDirty() {
-			// touch the tick so content edits re-run this computed
-			this.validationTick
+			// Read the tick, discard the value, so content edits re-run this.
+			void this.validationTick
 			return this.currentSnapshot() !== this.initialSnapshot
 		},
 

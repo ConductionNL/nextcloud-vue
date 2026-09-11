@@ -597,14 +597,15 @@ export default {
 		 * (admin-settings-owner-gating capability). Computed by CnAppRoot
 		 * from `currentUserGroups` ∩ `permissions.owners` and/or a manifest
 		 * `runtime.user` owner signal — deliberately NOT `OC.isUserAdmin()`.
-		 * Gates the auto-included "Admin settings" entry together with
-		 * `hasAdminSettings`. Defaults to `false` so CnAppNav mounted
-		 * standalone (without a CnAppRoot ancestor computing the value)
-		 * never shows the entry.
+		 * Read by nothing in this component: the auto-included "Admin
+		 * settings" entry is gated on `isAdmin` alone (see the file header
+		 * and `showAdminSettingsLink`). The prop stays because CnAppRoot
+		 * binds it as published API and owner-gating is its own question,
+		 * not the instance-admin one.
 		 *
 		 * @type {boolean}
 		 */
-		isOwner: {
+		isOwner: { // eslint-disable-line vue/no-unused-properties -- published prop bound by CnAppRoot; owner-gating is decided upstream, not here
 			type: Boolean,
 			default: false,
 		},
