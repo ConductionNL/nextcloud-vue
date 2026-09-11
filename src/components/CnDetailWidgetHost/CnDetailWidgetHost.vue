@@ -346,8 +346,8 @@ export default {
 		return {
 			[PANEL_ACTION_SINK]: sink
 				? {
-					set: (items) => sink.set(this.widget?.id, items),
-					clear: () => sink.clear(this.widget?.id),
+					set: (items) => sink.set(this.widget?.id, items, 'widget'),
+					clear: () => sink.clear(this.widget?.id, 'widget'),
 				}
 				: null,
 		}
@@ -832,9 +832,69 @@ export default {
 		addLabel() {
 			return t('nextcloud-vue', 'Add')
 		},
+
+		/**
+		 * The items THIS HOST offers to the surface, as opposed to the ones the
+		 * widget inside it publishes.
+		 *
+		 * There is one: the catalog Add. It is drawn in the host's own card
+		 * header, and that header only exists off a panel, so a Documents or
+		 * Files tab simply had no way to add anything. The data widget's
+		 * Metadata went the same way until it was published, and this is the
+		 * same defect one widget type along.
+		 *
+		 * Empty off a panel, where the header draws the item itself and
+		 * publishing would put it in two menus at once.
+		 *
+		 * @return {object[]} PanelAction descriptors.
+		 */
+		ownPanelActions() {
+			if (!this.isBare || !this.catalogAddEnabled) return []
+			return [{
+				key: 'catalog-add',
+				label: this.addLabel,
+				icon: 'Plus',
+				run: () => this.invokeCatalogAdd(),
+			}]
+		},
+	},
+
+	watch: {
+		ownPanelActions: {
+			handler() { this.publishOwnPanelActions() },
+		},
+	},
+
+	mounted() {
+		this.publishOwnPanelActions()
+	},
+
+	beforeUnmount() {
+		// A closed tab's panel can be torn down while the strip lives on, and an
+		// item whose host is gone would call into nothing.
+		if (this.panelActionSink) this.panelActionSink.clear(this.widget?.id, 'host')
 	},
 
 	methods: {
+		/**
+		 * Publish or withdraw this host's OWN items on the surface.
+		 *
+		 * Published under the `host` source so the widget inside the panel can
+		 * publish its own without either replacing the other.
+		 *
+		 * @return {void}
+		 */
+		publishOwnPanelActions() {
+			if (!this.panelActionSink) return
+			const id = this.widget?.id
+			if (!id) return
+			if (this.ownPanelActions.length) {
+				this.panelActionSink.set(id, this.ownPanelActions, 'host')
+			} else {
+				this.panelActionSink.clear(id, 'host')
+			}
+		},
+
 		/**
 		 * Re-emit the geo widget's save so the surface can reload the record.
 		 *
