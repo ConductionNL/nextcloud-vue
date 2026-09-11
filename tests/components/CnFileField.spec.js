@@ -18,9 +18,29 @@ import { readFileAsDataUrl, FALLBACK_MAX_BYTES } from '@/utils/widgetUpload.js'
 /**
  * Wait until the component's async FileReader work has settled.
  *
+ * Waits on the component's own `reading` flag rather than on the clock. This
+ * used to be a fixed 20ms sleep, and FileReader in jsdom resolves on the event
+ * loop, so on a loaded machine the read had not finished when the assertion
+ * ran: `emitted('update:modelValue')` came back undefined and the spec failed
+ * on a line that was not the bug. It passed alone and failed in a full run.
+ *
+ * The handler sets `reading` before its first await, so by the time
+ * `trigger()` resolves the flag is already true for a file it accepted, and
+ * still false for one it refused, which returns straight away.
+ *
+ * @param {object} wrapper The mounted CnFileField.
  * @return {Promise<void>}
  */
-const settle = () => new Promise((resolve) => setTimeout(resolve, 20))
+async function settle(wrapper) {
+	for (let i = 0; i < 500; i++) {
+		if (!wrapper.vm.reading) {
+			await wrapper.vm.$nextTick()
+			return
+		}
+		await new Promise((resolve) => setTimeout(resolve, 5))
+	}
+	throw new Error('CnFileField never finished reading the picked file')
+}
 
 /**
  * Put `file` on the hidden input and fire its change event, the way a
@@ -34,7 +54,7 @@ async function pick(wrapper, file) {
 	const input = wrapper.find('[data-testid="cn-file-field-input"]')
 	Object.defineProperty(input.element, 'files', { value: [file], configurable: true })
 	await input.trigger('change')
-	await settle()
+	await settle(wrapper)
 }
 
 const pdf = (size = 12) => new File(['x'.repeat(size)], 'advice.pdf', { type: 'application/pdf' })
