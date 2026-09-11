@@ -16,6 +16,10 @@
   Root `npm audit` now reports 0, and `npm audit --omit=dev` reports 0.
 
 ### Fixed
+- **`@types/react` no longer ships to every consumer.** It sat in `dependencies`, so all 21 fleet apps downloaded React type definitions with this library. Nothing referenced it: no source import, no `.d.ts` reference, no installed package declaring it as a peer, and the only mentions of "react" in the type declarations are the words "reactive" and "react to" in prose. The `@uiw/codemirror-theme-*` packages are framework-agnostic CodeMirror extensions despite their repository's name, which is the likeliest reason it was added. Removed rather than bumped to 19, which is what Dependabot proposed.
+
+- **`@codemirror/lint` to 6.9.7 and `@uiw/codemirror-theme-github` to 4.25.11.** Both already inside their declared ranges, so this is a lockfile move.
+
 - **The unit suite no longer fails a random spec per run.** 361 specs mount components and only 81 unmounted them, so most tests left a live component attached to the jsdom document for the rest of the file, keeping its watchers, timers and listeners in the DOM the next test queried and clicked. The symptom was a click that did nothing: `wrapper.emitted(...)` came back undefined and the spec failed on a line that was not the bug. Four click-based specs did it, one per full run, each passing in isolation and on a re-run of the same tree.
 
   `jest.config.js` had already named the lead in its own header: "the lead worth pulling is per-suite teardown of mounted components, not this config". `tests/setup.js` now calls Vue Test Utils' `enableAutoUnmount(afterEach)`, which tracks every wrapper `mount()` created so no spec has to remember. Measured over six consecutive full runs before and after.
