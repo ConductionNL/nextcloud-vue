@@ -16,6 +16,12 @@
   Root `npm audit` now reports 0, and `npm audit --omit=dev` reports 0.
 
 ### Fixed
+- **The open tab now decides the whole Actions menu, including a catalog panel's Add.** A panel draws no header, so anything that header would have carried is gone unless it is published to the strip. `CnObjectDataWidget` publishes its Metadata and full-form Edit. `CnDetailWidgetHost` did not publish its own: the catalog **Add** lives in the card header the host draws off a panel, so a Documents or Files tab had no way to add anything at all. Reported from a real case, where the Data tab's menu offered only the built-in trio.
+
+  The channel now keys by SOURCE as well as by widget id, because a panel has two possible publishers. With one slot per widget, whichever published last silently replaced the other, so a panel with both would have lost one.
+
+  `allowCreate: false` is still honoured: a read-only list publishes no Add, so a panel never offers what a card refuses.
+
 - **`CnNcWidgetWidget` says when a proxied widget cannot be shown here, instead of saying it has no items.** A dashboard widget whose provider implements only `IWidget` declares `itemApiVersions: []` and is simply ABSENT from the widget-items response. With no native callback registered on the page, the proxy used to render "No items available" under it. For the Tasks app's widget on a case handler's dashboard that read as "you have no tasks" while five were due, and the same list appeared the moment LaunchPad's legacy widget bridge was switched on.
 
   The two cases were always distinguishable, they just were not distinguished: an unsupported widget has no key in the response, while a widget with nothing right now comes back as its own key holding an empty list (the Mail app's `{items: [], emptyContentMessage}`). Only a SUCCESSFUL response can say a widget is absent, so a failed request keeps the ordinary empty state rather than a claim about the app. No extra request is made.

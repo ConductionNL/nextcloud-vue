@@ -54,7 +54,27 @@
 			{{ run.error }}
 		</p>
 
-		<div class="cn-run-sidebar__tabs" role="tablist">
+		<!--
+			THE STRIP IS NEXTCLOUD'S, NOT OURS.
+
+			These three used to be hand-rolled buttons with a border under the
+			active one. They sat directly inside NcAppSidebar, one element away
+			from the real thing, so they read as a panel that had been dropped
+			into the sidebar rather than as the sidebar's own tabs: no icons,
+			the wrong size, the wrong active mark, and none of the keyboard
+			behaviour NcAppSidebarTabs brings.
+
+			NcAppSidebarTab registers itself with the sidebar through an
+			injection, so the sidebar builds the strip. That also settles which
+			tab is open: entering run view leaves `flow-runs` registered by
+			nothing, and NcAppSidebarTabs falls back to the first tab it has,
+			which is Objects.
+
+			`embedded` (CnFlowEditModal) has no NcAppSidebar to inject that, so
+			it keeps a strip of its own. One list of tabs feeds both, so the two
+			hosts cannot come to offer different ones.
+		-->
+		<div v-if="embedded" class="cn-run-sidebar__tabs" role="tablist">
 			<button v-for="entry in tabs"
 				:key="entry.id"
 				class="cn-run-sidebar__tab"
@@ -67,8 +87,49 @@
 			</button>
 		</div>
 
-		<!-- Objects: the audit attribution, run-wide. -->
-		<template v-if="tab === 'objects'">
+		<!-- Objects: what the run is about, and what it changed. -->
+		<component :is="embedded ? 'div' : 'NcAppSidebarTab'"
+			v-if="!embedded || tab === 'objects'"
+			:id="embedded ? undefined : 'run-objects'"
+			:name="embedded ? undefined : t('nextcloud-vue', 'Objects')"
+			:order="embedded ? undefined : 1"
+			data-testid="flow-run-panel-objects">
+			<template v-if="!embedded" #icon>
+				<DatabaseOutline :size="20" />
+			</template>
+
+			<!--
+				THE OBJECTS THE RUN IS ABOUT, FIRST.
+
+				`GET /flow-runs/{uuid}/objects` answers the AUDIT: objects this
+				run changed. A run that waited on a locked object and then
+				failed changed nothing, so that list is empty while the run's
+				own error names the object by uuid — and this panel said "this
+				run changed no objects", which reads as the run having had
+				nothing to do with it.
+
+				The run record knows better. `subjects` is what it was started
+				on and `placeItems` is what it is holding at a step, so both are
+				listed here, and each row says which it is. The changed list
+				keeps its own heading below: "worked on" and "changed" are
+				different claims and this view exists to keep them apart.
+			-->
+			<template v-if="subjectRows.length">
+				<h5 class="cn-run-sidebar__group">
+					{{ t('nextcloud-vue', 'Objects this run is about') }}
+				</h5>
+				<ul class="cn-run-sidebar__touched" data-testid="flow-run-subjects">
+					<li v-for="obj in subjectRows" :key="`${obj.role}-${obj.uuid}`">
+						<span class="cn-run-sidebar__touched-action">{{ obj.role }}</span>
+						<span v-if="obj.title">{{ obj.title }}</span>
+						<span class="cn-run-sidebar__touched-uuid">{{ obj.uuid }}</span>
+					</li>
+				</ul>
+			</template>
+
+			<h5 v-if="subjectRows.length" class="cn-run-sidebar__group">
+				{{ t('nextcloud-vue', 'Changed by this run') }}
+			</h5>
 			<p v-if="!objectRows.length" class="cn-run-sidebar__hint">
 				{{ t('nextcloud-vue', 'This run changed no objects.') }}
 			</p>
@@ -89,10 +150,19 @@
 					</span>
 				</li>
 			</ul>
-		</template>
+		</component>
 
 		<!-- Tasks: what the run asked a person to do. -->
-		<template v-else-if="tab === 'tasks'">
+		<component :is="embedded ? 'div' : 'NcAppSidebarTab'"
+			v-if="!embedded || tab === 'tasks'"
+			:id="embedded ? undefined : 'run-tasks'"
+			:name="embedded ? undefined : t('nextcloud-vue', 'Tasks')"
+			:order="embedded ? undefined : 2"
+			data-testid="flow-run-panel-tasks">
+			<template v-if="!embedded" #icon>
+				<CheckboxMarkedOutline :size="20" />
+			</template>
+
 			<p v-if="!store.runTasks.length"
 				class="cn-run-sidebar__hint"
 				data-testid="flow-run-tasks-empty">
@@ -110,10 +180,19 @@
 					</a>
 				</li>
 			</ul>
-		</template>
+		</component>
 
 		<!-- Logs: what the engine did, in its own order. -->
-		<template v-else>
+		<component :is="embedded ? 'div' : 'NcAppSidebarTab'"
+			v-if="!embedded || tab === 'logs'"
+			:id="embedded ? undefined : 'run-logs'"
+			:name="embedded ? undefined : t('nextcloud-vue', 'Logs')"
+			:order="embedded ? undefined : 3"
+			data-testid="flow-run-panel-logs">
+			<template v-if="!embedded" #icon>
+				<FormatListBulleted :size="20" />
+			</template>
+
 			<!-- Replay BESIDE the step list, not instead of it: the list stays
 			     what it is for reading, the replay plays the same stored log
 			     through the canvas animator. Only on a FINISHED run — a run
@@ -138,22 +217,46 @@
 					<span v-if="step.error" class="cn-run-sidebar__error"> · {{ step.error }}</span>
 				</li>
 			</ol>
-		</template>
+		</component>
 	</section>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcButton } from '@nextcloud/vue'
+import { NcAppSidebarTab, NcButton } from '@nextcloud/vue'
 import ArrowLeft from 'vue-material-design-icons/ArrowLeft.vue'
+import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
+import DatabaseOutline from 'vue-material-design-icons/DatabaseOutline.vue'
+import FormatListBulleted from 'vue-material-design-icons/FormatListBulleted.vue'
 import Replay from 'vue-material-design-icons/Replay.vue'
 import { FLOW_RUN_ACTIVE_STATUSES, useFlowStore } from '../../composables/useFlowStore.js'
 
 export default {
 	name: 'CnRunDetailSidebar',
 
-	components: { ArrowLeft, NcButton, Replay },
+	components: {
+		ArrowLeft,
+		CheckboxMarkedOutline,
+		DatabaseOutline,
+		FormatListBulleted,
+		NcAppSidebarTab,
+		NcButton,
+		Replay,
+	},
+
+	props: {
+		/**
+		 * Render the panels without NcAppSidebarTab, for a host that is not
+		 * NcAppSidebar. CnFlowEditModal renders this sidebar inside a dialog,
+		 * where there is no sidebar to register a tab with, so that host keeps
+		 * a strip of its own.
+		 */
+		embedded: {
+			type: Boolean,
+			default: false,
+		},
+	},
 
 	setup() {
 		return { store: useFlowStore() }
@@ -165,10 +268,91 @@ export default {
 
 	computed: {
 		/**
+		 * The run being read.
+		 *
+		 * The run's OWN record first, the history list second. The list is
+		 * capped at 25, so a run opened from a `?run=` deep link need not be in
+		 * it, and reading only the list left such a run with no status, no time
+		 * and no error on screen.
+		 *
 		 * @return {object|null} The run being read.
 		 */
 		run() {
+			const detail = this.store.runDetail
+			if (detail && String(detail.uuid || '') === String(this.store.inspectedRunUuid || '')) {
+				return detail
+			}
+
 			return this.store.runs.find((r) => r.uuid === this.store.inspectedRunUuid) || null
+		},
+
+		/**
+		 * The objects the run is ABOUT, as opposed to the ones it changed.
+		 *
+		 * Two sources, both on the run's own record. `subjects` is what the run
+		 * was started on, keyed by the role that supplied it (`trigger` for a
+		 * run a trigger started). `placeItems` is what the run is holding at a
+		 * step right now, keyed by that step.
+		 *
+		 * Deduplicated by uuid, because a run's subject is normally also the
+		 * item sitting in a place and listing it twice would suggest two
+		 * objects. The subject wins the row: it is the more durable fact.
+		 *
+		 * @return {Array<object>} The rows, subjects first.
+		 */
+		subjectRows() {
+			const run = this.run
+			if (!run) {
+				return []
+			}
+
+			// The held items first, because they are the half that carries a
+			// TITLE. A subject record is a uuid, a register and a schema; the
+			// item sitting in a place is the object itself. Merging the two
+			// gives a subject row a name a reader recognises instead of a uuid.
+			const held = new Map()
+			for (const [node, items] of Object.entries(run.placeItems || {})) {
+				for (const item of items || []) {
+					const uuid = String(item?.json?.id || item?.id || '')
+					if (uuid === '' || held.has(uuid)) {
+						continue
+					}
+
+					held.set(uuid, {
+						// Named by the step that is holding it, because that is
+						// the useful half: "which step is this stuck at".
+						role: this.t('nextcloud-vue', 'at {node}', { node }),
+						uuid,
+						title: item?.json?.title || '',
+					})
+				}
+			}
+
+			const rows = []
+			const seen = new Set()
+
+			for (const [role, subject] of Object.entries(run.subjects || {})) {
+				const uuid = String(subject?.uuid || '')
+				if (uuid === '' || seen.has(uuid)) {
+					continue
+				}
+
+				seen.add(uuid)
+				rows.push({
+					role,
+					uuid,
+					title: subject?.title || held.get(uuid)?.title || '',
+				})
+			}
+
+			for (const [uuid, row] of held.entries()) {
+				if (seen.has(uuid) === false) {
+					seen.add(uuid)
+					rows.push(row)
+				}
+			}
+
+			return rows
 		},
 
 		/**
@@ -259,6 +443,12 @@ export default {
 
 .cn-run-sidebar__hint {
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-run-sidebar__group {
+	margin: 8px 0 0;
+	color: var(--color-text-maxcontrast);
+	font-weight: bold;
 }
 
 .cn-run-sidebar__tabs {

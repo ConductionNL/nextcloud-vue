@@ -177,29 +177,45 @@ export default {
 		return {
 			[PANEL_ACTION_SINK]: {
 				/**
-				 * Publish a panel's items.
+				 * Publish a panel's items, under one SOURCE.
+				 *
+				 * A panel has two possible publishers: the host, for an action
+				 * the host itself would have drawn (the catalog Add), and the
+				 * widget inside it, for its own menu items. Keyed by source so
+				 * the two coexist; a single slot per widget meant whichever
+				 * published last silently replaced the other.
 				 *
 				 * Replaces the map rather than mutating it so the computed that
 				 * reads it re-evaluates on any change.
 				 *
 				 * @param {string} id The publishing widget's id.
 				 * @param {object[]} items Its PanelAction descriptors.
+				 * @param {string} [source] Who is publishing: `host` or `widget`.
 				 * @return {void}
 				 */
-				set: (id, items) => {
+				set: (id, items, source = 'widget') => {
 					if (!id) return
-					this.panelActionsByWidget = { ...this.panelActionsByWidget, [id]: items }
+					const forId = { ...(this.panelActionsByWidget[id] || {}), [source]: items }
+					this.panelActionsByWidget = { ...this.panelActionsByWidget, [id]: forId }
 				},
 				/**
-				 * Withdraw a panel's items, on unmount or when its own menu
-				 * comes back.
+				 * Withdraw one source's items, on unmount or when that
+				 * publisher's own menu comes back. The other source's items
+				 * stay.
 				 *
 				 * @param {string} id The publishing widget's id.
+				 * @param {string} [source] Who is withdrawing.
 				 * @return {void}
 				 */
-				clear: (id) => {
-					if (!(id in this.panelActionsByWidget)) return
-					const { [id]: _removed, ...rest } = this.panelActionsByWidget
+				clear: (id, source = 'widget') => {
+					const forId = this.panelActionsByWidget[id]
+					if (!forId || !(source in forId)) return
+					const { [source]: _removed, ...keptSources } = forId
+					if (Object.keys(keptSources).length) {
+						this.panelActionsByWidget = { ...this.panelActionsByWidget, [id]: keptSources }
+						return
+					}
+					const { [id]: _gone, ...rest } = this.panelActionsByWidget
 					this.panelActionsByWidget = rest
 				},
 			},
@@ -324,7 +340,11 @@ export default {
 		 * @return {object[]} PanelAction descriptors for the active tab.
 		 */
 		activePanelActions() {
-			return this.panelActionsByWidget[this.activeWidgetId] || []
+			const forId = this.panelActionsByWidget[this.activeWidgetId]
+			if (!forId) return []
+			// Host first, then the widget's own: the catalog Add is about the
+			// panel as a whole, the widget's items about what is in it.
+			return [...(forId.host || []), ...(forId.widget || [])]
 		},
 
 		/**
