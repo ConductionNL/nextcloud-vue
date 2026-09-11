@@ -55,14 +55,14 @@
 					<button
 						type="button"
 						class="cn-ai-message-list__tool-summary"
-						:aria-expanded="!!tool._expanded"
+						:aria-expanded="isToolExpanded(index, tIdx) ? 'true' : 'false'"
 						@click="toggleTool(index, tIdx)">
 						<ChevronDown
 							:size="16"
-							:class="['cn-ai-message-list__tool-chevron', { 'cn-ai-message-list__tool-chevron--open': tool._expanded }]" />
+							:class="['cn-ai-message-list__tool-chevron', { 'cn-ai-message-list__tool-chevron--open': isToolExpanded(index, tIdx) }]" />
 						{{ cnTranslate('Tool: {toolId}').replace('{toolId}', tool.toolId) }}
 					</button>
-					<div v-if="tool._expanded" class="cn-ai-message-list__tool-detail">
+					<div v-if="isToolExpanded(index, tIdx)" class="cn-ai-message-list__tool-detail">
 						<pre class="cn-ai-message-list__tool-json">{{ formatToolPayload(tool) }}</pre>
 					</div>
 				</div>
@@ -149,9 +149,20 @@ export default {
 	},
 
 	data() {
-		// We mutate tool entries to track expanded state.
-		// Keep a local copy to avoid mutating prop.
-		return {}
+		return {
+			// Which tool calls are open, keyed `message:tool` by position.
+			//
+			// 🔴 LOCAL, NEVER WRITTEN ONTO THE PROP. This used to set
+			// `_expanded` on the tool entry inside `messages`, under a
+			// comment claiming it kept a local copy. It did not: it mutated
+			// the caller's array in place. Vue 3 props are shallow reactive,
+			// so a write that deep is not something a re-render can rely on,
+			// and the entry it wrote to belongs to whoever owns the
+			// conversation. The symptom was a test that passed alone and
+			// failed under load, which is what an update riding on some
+			// other render looks like.
+			expandedTools: {},
+		}
 	},
 
 	computed: {
@@ -169,13 +180,30 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether one tool call's detail is open.
+		 *
+		 * @param {number} messageIndex Position of the message.
+		 * @param {number} toolIndex Position of the tool call in it.
+		 * @return {boolean} True when expanded.
+		 */
+		isToolExpanded(messageIndex, toolIndex) {
+			return this.expandedTools[`${messageIndex}:${toolIndex}`] === true
+		},
+
+		/**
+		 * Open or close one tool call's detail.
+		 *
+		 * Replaces the map rather than writing a key into it, so the change
+		 * is a plain reactive assignment whatever the Vue version.
+		 *
+		 * @param {number} messageIndex Position of the message.
+		 * @param {number} toolIndex Position of the tool call in it.
+		 * @return {void}
+		 */
 		toggleTool(messageIndex, toolIndex) {
-			const msg = this.messages[messageIndex]
-			if (!msg || !msg.toolCalls) return
-			const tool = msg.toolCalls[toolIndex]
-			if (!tool) return
-			// Vue 2: use $set for reactivity on new properties
-			msg.toolCalls[toolIndex] = { ...tool, _expanded: !tool._expanded }
+			const key = `${messageIndex}:${toolIndex}`
+			this.expandedTools = { ...this.expandedTools, [key]: !this.expandedTools[key] }
 		},
 
 		formatToolPayload(tool) {
