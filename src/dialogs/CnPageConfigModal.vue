@@ -963,8 +963,13 @@ export default {
 		 */
 		boolVal(key) {
 			const cfg = (this.page && this.page.config) || {}
-			if (Object.prototype.hasOwnProperty.call(cfg, key)) return !!cfg[key]
-			return BOOL_DEFAULTS[key] === true
+			// Read through the proxy: `hasOwnProperty` goes through the
+			// getOwnPropertyDescriptor trap, which Vue does not implement, so
+			// probing an unset key registered no dependency and the switch
+			// never re-rendered once `setBool` added it.
+			const stored = cfg[key]
+			if (stored === undefined) return BOOL_DEFAULTS[key] === true
+			return !!stored
 		},
 		/**
 		 * Set a boolean toggle: store the value when it differs from the key's

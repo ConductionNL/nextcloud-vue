@@ -6,6 +6,7 @@
  * handling, type/view-mode writes, and the data-source pickers.
  */
 import { mount } from '@vue/test-utils'
+import { reactive } from 'vue'
 import CnPageConfigModal from '../../src/dialogs/CnPageConfigModal.vue'
 
 const Stub = (name, props = []) => ({ name, props, template: '<div><slot /></div>' })
@@ -25,7 +26,7 @@ function mountModal(page, provide = {}) {
 			NcButton: Stub('NcButton', ['type', 'disabled']),
 			NcTextField: Stub('NcTextField', ['value', 'label']),
 			NcSelect: Stub('NcSelect', ['value', 'options', 'multiple']),
-			NcCheckboxRadioSwitch: Stub('NcCheckboxRadioSwitch', ['checked']),
+			NcCheckboxRadioSwitch: Stub('NcCheckboxRadioSwitch', ['checked', 'modelValue']),
 			NcLoadingIcon: Stub('NcLoadingIcon'),
 		},
 	})
@@ -58,6 +59,18 @@ describe('CnPageConfigModal', () => {
 		wrapper.vm.setBool('showTitle', true) // on → differs from default → store true (title reappears)
 		expect(page.config.showTitle).toBe(true)
 		expect(wrapper.vm.boolVal('showTitle')).toBe(true)
+	})
+
+	it('a switch re-renders when setBool adds a previously unset key', async () => {
+		const page = reactive({ id: 'p', type: 'index', config: {} })
+		const wrapper = mountModal(page)
+		const findSwitch = () => wrapper.findAllComponents({ name: 'NcCheckboxRadioSwitch' })
+			.find((c) => c.text().includes('Show Cards / Table toggle'))
+
+		expect(findSwitch().props('modelValue')).toBe(true)
+		wrapper.vm.setBool('showViewToggle', false)
+		await wrapper.vm.$nextTick()
+		expect(findSwitch().props('modelValue')).toBe(false)
 	})
 
 	it('setType / setViewMode write the page + config', () => {
