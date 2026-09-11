@@ -36,4 +36,20 @@ module.exports = {
 	setupFiles: [
 		'<rootDir>/tests/a11y/support/jsdomEnvPolyfill.js',
 	],
+	// One axe run against a mounted page does not fit in jest's 5 second
+	// default on a busy machine, and blowing that deadline does not just fail
+	// one test: the abandoned run is never torn down, so every later test in
+	// the same file dies on "Axe is already running" and the file reports four
+	// or five failures for one slow assertion. Measured against generated CPU
+	// load, alternating runs so the load is the same on both sides: 3 of 3 runs
+	// red on the 5 second default, 0 of 3 with this setting. On an idle machine
+	// both are green, which is why the setting looks pointless until it is not.
+	// Nothing about the components changes between those runs, and the suite
+	// that goes red is whichever one drew the most contention.
+	//
+	// 30 seconds is chosen against the passing numbers rather than picked
+	// round: a healthy axe assertion here lands in 2 to 4 seconds, so this
+	// leaves an order of magnitude of headroom while still failing a test that
+	// has genuinely hung rather than waiting for the suite's own 45 minute cap.
+	testTimeout: 30000,
 }
