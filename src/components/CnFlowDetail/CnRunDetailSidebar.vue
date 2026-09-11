@@ -119,10 +119,18 @@
 					{{ t('nextcloud-vue', 'Objects this run is about') }}
 				</h5>
 				<ul class="cn-run-sidebar__touched" data-testid="flow-run-subjects">
+					<!--
+						SEPARATED IN THE TEXT, not only by layout. Three adjacent
+						spans render as one run-on string: "triggerDakkapel
+						Kerkstraat 122e98a265-..." was what the live instance
+						showed. A gap would fix the look and leave the text
+						itself unreadable, which is what anything reading the
+						DOM gets, so the separator is a character.
+					-->
 					<li v-for="obj in subjectRows" :key="`${obj.role}-${obj.uuid}`">
 						<span class="cn-run-sidebar__touched-action">{{ obj.role }}</span>
-						<span v-if="obj.title">{{ obj.title }}</span>
-						<span class="cn-run-sidebar__touched-uuid">{{ obj.uuid }}</span>
+						<span v-if="obj.title"> · {{ obj.title }}</span>
+						<span class="cn-run-sidebar__touched-uuid"> · {{ obj.uuid }}</span>
 					</li>
 				</ul>
 			</template>
@@ -134,9 +142,12 @@
 				{{ t('nextcloud-vue', 'This run changed no objects.') }}
 			</p>
 			<ul v-else class="cn-run-sidebar__touched">
+				<!-- Same separator as the subject rows above, and for the same
+				     reason: "create" and the uuid ran together as "createobj-1"
+				     with nothing between them. -->
 				<li v-for="obj in objectRows" :key="obj.auditUuid">
 					<span class="cn-run-sidebar__touched-action">{{ obj.action }}</span>
-					<span class="cn-run-sidebar__touched-uuid">{{ obj.objectUuid }}</span>
+					<span class="cn-run-sidebar__touched-uuid"> · {{ obj.objectUuid }}</span>
 					<span class="cn-run-sidebar__hint"> · {{ obj.node }}</span>
 					<!--
 						A change the run's own step history cannot account for.
@@ -500,5 +511,15 @@ export default {
 .cn-run-sidebar__touched-uuid {
 	font-family: monospace;
 	font-size: 0.9em;
+}
+
+/* A uuid is long and the sidebar is narrow, so a row wraps rather than
+   pushing the panel wider. The gap keeps the parts apart on the line the
+   separators already keep apart in the text. */
+.cn-run-sidebar__touched li {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0 4px;
 }
 </style>
