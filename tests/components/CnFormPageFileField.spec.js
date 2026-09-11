@@ -17,39 +17,37 @@ import axios from '@nextcloud/axios'
 import CnFormPage from '@/components/CnFormPage/CnFormPage.vue'
 import { readFileAsDataUrl } from '@/utils/widgetUpload.js'
 
-/**
- * Let the async work after an interaction finish.
- *
- * Used after a submit, whose handler settles its own promise on the event loop.
- *
- * @return {Promise<void>}
- */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 20))
 
 /**
- * Wait until no file field in the form is still reading its picked file.
+ * Wait until the mounted CnFileField has finished with the picked file.
  *
- * The read runs on FileReader, which resolves on the event loop, so a fixed
- * sleep is a race: on a loaded CI runner it expired first and the submit went
- * out with an EMPTY payload, which the assertion then reported as the form
- * dropping the file. Same failure #1087 fixed in CnFileField's own spec; this is
- * its sibling, and it kept the sleep.
+ * A FIXED SLEEP IS WHAT MADE THIS FLAKY, and #1087 already established that
+ * for CnFileField's own spec. This file mounts the SAME real component through
+ * CnFormPage and kept the 20 ms guess, so the same latent flake stayed here:
+ * a FileReader resolves on a macrotask, `flushPromises()` cannot cover it, and
+ * 20 ms is a guess that holds on a quiet machine and loses on a loaded runner.
+ * When it lost, the read had not resolved, the field had emitted nothing, and
+ * the submitted payload asserted below was `{}` — a failure that names the
+ * assertion and not the wait.
  *
- * Waits on the field's `reading` flag, which its handler sets before its first
- * await, so an accepted file always has it true by the time `trigger` resolves.
+ * So this waits on the child component's own `reading` flag, set before the
+ * read's `await` and cleared in its `finally`, exactly as #1087 does. A read
+ * that never finishes fails loudly here rather than letting a later assertion
+ * read an absent value.
  *
  * @param {object} wrapper The mounted CnFormPage.
- * @param {number} [timeoutMs] How long to allow before giving up.
+ * @param {number} [timeoutMs] How long a read may take before the test fails.
  * @return {Promise<void>}
  */
 async function settleRead(wrapper, timeoutMs = 5000) {
-	const stillReading = () => wrapper.findAllComponents({ name: 'CnFileField' }).some((f) => f.vm.reading)
+	const field = wrapper.findComponent({ name: 'CnFileField' })
 	const deadline = Date.now() + timeoutMs
-	while (stillReading() && Date.now() < deadline) {
+	while (field.vm.reading && Date.now() < deadline) {
 		await new Promise((resolve) => setTimeout(resolve, 5))
 	}
-	if (stillReading()) {
-		throw new Error(`a file field was still reading after ${timeoutMs} ms`)
+	if (field.vm.reading) {
+		throw new Error(`CnFileField was still reading the file after ${timeoutMs} ms`)
 	}
 	await wrapper.vm.$nextTick()
 }
