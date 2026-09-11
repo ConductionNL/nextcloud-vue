@@ -19,6 +19,39 @@ import { readFileAsDataUrl } from '@/utils/widgetUpload.js'
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 20))
 
+/**
+ * Wait until the mounted CnFileField has finished with the picked file.
+ *
+ * A FIXED SLEEP IS WHAT MADE THIS FLAKY, and #1087 already established that
+ * for CnFileField's own spec. This file mounts the SAME real component through
+ * CnFormPage and kept the 20 ms guess, so the same latent flake stayed here:
+ * a FileReader resolves on a macrotask, `flushPromises()` cannot cover it, and
+ * 20 ms is a guess that holds on a quiet machine and loses on a loaded runner.
+ * When it lost, the read had not resolved, the field had emitted nothing, and
+ * the submitted payload asserted below was `{}` — a failure that names the
+ * assertion and not the wait.
+ *
+ * So this waits on the child component's own `reading` flag, set before the
+ * read's `await` and cleared in its `finally`, exactly as #1087 does. A read
+ * that never finishes fails loudly here rather than letting a later assertion
+ * read an absent value.
+ *
+ * @param {object} wrapper The mounted CnFormPage.
+ * @param {number} [timeoutMs] How long a read may take before the test fails.
+ * @return {Promise<void>}
+ */
+async function settleRead(wrapper, timeoutMs = 5000) {
+	const field = wrapper.findComponent({ name: 'CnFileField' })
+	const deadline = Date.now() + timeoutMs
+	while (field.vm.reading && Date.now() < deadline) {
+		await new Promise((resolve) => setTimeout(resolve, 5))
+	}
+	if (field.vm.reading) {
+		throw new Error(`CnFileField was still reading the file after ${timeoutMs} ms`)
+	}
+	await wrapper.vm.$nextTick()
+}
+
 const mountForm = (props, cnCustomComponents = {}) => mount(CnFormPage, {
 	props,
 	global: {
@@ -32,7 +65,7 @@ async function pick(wrapper, file) {
 	const input = wrapper.find('[data-testid="cn-file-field-input"]')
 	Object.defineProperty(input.element, 'files', { value: [file], configurable: true })
 	await input.trigger('change')
-	await settle()
+	await settleRead(wrapper)
 }
 
 describe('CnFormPage: file field', () => {
