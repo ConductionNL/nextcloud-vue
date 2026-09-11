@@ -196,7 +196,7 @@ import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
 import { valueRecordsFor, valueArrayFor, usesArrayValues } from '../../utils/dynamicProperties.js'
-import { dispatchAction, resolveObjectOpType, buildOnSuccessRoute, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
+import { dispatchAction, isExternalActionTarget, resolveObjectOpType, buildOnSuccessRoute, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
@@ -428,9 +428,23 @@ export default {
 		formRegister() {
 			return (this.formEntry && this.formEntry.register) || this.objectCtx.register || ''
 		},
-		/** The actions whose visibleWhen evaluated true (or carry no predicate). */
+		/**
+		 * The actions whose visibleWhen evaluated true (or carry no predicate).
+		 *
+		 * A `navigate` action whose target leaves the app is turned into a link
+		 * entry here, so it takes the `href` branch above instead of being
+		 * dispatched. An absolute URL is not a route: pushing one at the router
+		 * matched nothing and landed on the fallback page, carrying the URL's
+		 * own query string with it. The action's `target` (the URL) is replaced
+		 * by the anchor's `target`, since the two fields share a name and the
+		 * URL now lives in `href`. An author's explicit `href` still wins.
+		 */
 		visibleActions() {
-			return (this.actions || []).filter((a) => a && a.id && this.visibility[a.id] !== false)
+			return (this.actions || [])
+				.filter((a) => a && a.id && this.visibility[a.id] !== false)
+				.map((a) => ((!a.href && a.type === 'navigate' && isExternalActionTarget(a.target))
+					? { ...a, href: a.target, target: '_blank' }
+					: a))
 		},
 		/**
 		 * The actions rendered in the bar itself: every non-collapsible one,
@@ -505,6 +519,11 @@ export default {
 					// action as an un-pressed toggle button.
 					pressed: isToggle ? on : null,
 					testid: isToggle ? `cn-action-toggle-${entry.id}` : `cn-action-${entry.id}`,
+					// A link entry, for a host to render as an anchor rather
+					// than a button with a click handler. Named `linkTarget`
+					// because an action's own `target` is its destination.
+					href: entry.href || '',
+					linkTarget: entry.href ? (entry.target || '_blank') : '',
 					run: () => (isToggle ? this.onToggleClick(entry) : this.onActionClick(entry)),
 				}
 			})

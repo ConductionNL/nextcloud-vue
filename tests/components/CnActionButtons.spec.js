@@ -27,6 +27,7 @@ jest.mock('../../src/utils/actionsDispatcher.js', () => {
 		__esModule: true,
 		dispatchAction: jest.fn(() => Promise.resolve({ ok: true })),
 		resolveObjectOpType: jest.fn(() => 'crm/lead'),
+		isExternalActionTarget: actual.isExternalActionTarget,
 		buildOnSuccessRoute: actual.buildOnSuccessRoute,
 		savedObjectId: actual.savedObjectId,
 		resolveCreateOverrideHandler: actual.resolveCreateOverrideHandler,
@@ -115,12 +116,13 @@ stubs.NcActionLink = {
 	template: '<a class="nc-action-link-stub" :href="href" :target="target" v-bind="$attrs"><slot name="icon" /><slot /></a>',
 }
 
-function mountBar(actions, { provide, inline, overflowLabel } = {}) {
+function mountBar(actions, { provide, inline, overflowLabel, display } = {}) {
 	return mount(CnActionButtons, {
 		propsData: {
 			actions,
 			...(inline === undefined ? {} : { inline }),
 			...(overflowLabel === undefined ? {} : { overflowLabel }),
+			...(display === undefined ? {} : { display }),
 		},
 		stubs,
 		provide: provide || {},
@@ -752,6 +754,70 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			await flush()
 			expect(wrapper.find('[data-testid="cn-action-open-prod"]').element.tagName).toBe('A')
 			expect(wrapper.find('[data-testid="cn-action-edit-prod"]').element.tagName).toBe('BUTTON')
+		})
+	})
+
+	// REGRESSION. A manifest-authored `type: "navigate"` action carries its URL
+	// in `target`, not `href`, so it fell through to the dispatcher and was
+	// pushed at the router. An absolute URL is not a route: it matched nothing
+	// and landed on the app's fallback page carrying the URL's query string.
+	describe('an external navigate action becomes a link', () => {
+		it('renders as an anchor to the target, in a new tab, and never dispatches', async () => {
+			const wrapper = mountBar([
+				{ id: 'watch', label: 'Watch', type: 'navigate', target: 'https://www.youtube.com/watch?v=MM60juTPkSM' },
+			])
+			await flush()
+			const el = wrapper.find('[data-testid="cn-action-watch"]')
+			expect(el.element.tagName).toBe('A')
+			expect(el.attributes('href')).toBe('https://www.youtube.com/watch?v=MM60juTPkSM')
+			expect(el.attributes('target')).toBe('_blank')
+
+			await el.trigger('click')
+			await flush()
+			expect(dispatchAction).not.toHaveBeenCalled()
+		})
+
+		it('leaves an in-app navigate as a dispatched button', async () => {
+			const wrapper = mountBar([
+				{ id: 'dogs', label: 'Dogs', type: 'navigate', target: '/dogs' },
+			])
+			await flush()
+			const el = wrapper.find('[data-testid="cn-action-dogs"]')
+			expect(el.element.tagName).toBe('BUTTON')
+
+			await el.trigger('click')
+			await flush()
+			expect(dispatchAction).toHaveBeenCalled()
+		})
+
+		it('does not override an author-supplied href', async () => {
+			const wrapper = mountBar([
+				{ id: 'x', label: 'X', type: 'navigate', target: 'https://a.test', href: 'https://b.test' },
+			])
+			await flush()
+			expect(wrapper.find('[data-testid="cn-action-x"]').attributes('href')).toBe('https://b.test')
+		})
+
+		it('publishes the link to a display:"menu" host through `entries`', async () => {
+			const wrapper = mountBar([
+				{ id: 'watch', label: 'Watch', type: 'navigate', target: 'https://example.test/v' },
+			], { display: 'menu' })
+			await flush()
+			const [entries] = wrapper.emitted('entries').at(-1)
+			expect(entries[0]).toMatchObject({
+				id: 'watch',
+				href: 'https://example.test/v',
+				linkTarget: '_blank',
+			})
+		})
+
+		it('leaves href and linkTarget empty for a dispatched entry', async () => {
+			const wrapper = mountBar([
+				{ id: 'dogs', label: 'Dogs', type: 'navigate', target: '/dogs' },
+			], { display: 'menu' })
+			await flush()
+			const [entries] = wrapper.emitted('entries').at(-1)
+			expect(entries[0]).toMatchObject({ href: '', linkTarget: '' })
 		})
 	})
 })

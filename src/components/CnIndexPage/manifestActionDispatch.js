@@ -1,13 +1,4 @@
-/**
- * True when `target` is an external/absolute URL (has a scheme + `//`, is
- * protocol-relative, or is a `mailto:`/`tel:` link) rather than an in-app path.
- *
- * @param {string} target The action target to test.
- * @return {boolean}
- */
-function isExternalUrl(target) {
-	return /^([a-z][a-z0-9+.-]*:)?\/\//i.test(target) || /^(mailto|tel):/i.test(target)
-}
+import { isExternalActionTarget } from '../../utils/actionsDispatcher.js'
 
 /**
  * Substitute `{field}` row tokens in a single manifest param value.
@@ -84,7 +75,7 @@ export function resolveActionHandler(action, ctx) {
 				+ 'but target is missing; falling back to @action-only.')
 			return null
 		}
-		if (isExternalUrl(target)) {
+		if (isExternalActionTarget(target)) {
 			return () => window.open(target, '_blank', 'noopener,noreferrer')
 		}
 		return () => ctx.router.push(target)

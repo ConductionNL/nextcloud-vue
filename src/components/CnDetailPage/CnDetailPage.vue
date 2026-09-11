@@ -193,20 +193,38 @@
 					@refresh="onHeaderRefresh"
 					@request-feature="onHeaderRequestFeature">
 					<template v-if="menuHeaderActions.length" #primary-items>
-						<NcActionButton
-							v-for="entry in menuHeaderActions"
-							:key="entry.id"
-							:data-testid="entry.testid"
-							:disabled="entry.disabled"
-							:aria-pressed="entry.pressed === null ? null : String(entry.pressed)"
-							:close-after-click="true"
-							@click="entry.run()">
-							<template v-if="entry.iconName || entry.iconClass" #icon>
-								<CnIcon v-if="entry.iconName" :name="entry.iconName" :size="20" />
-								<span v-else :class="entry.iconClass" />
-							</template>
-							{{ entry.label }}
-						</NcActionButton>
+						<template v-for="entry in menuHeaderActions">
+							<!-- An action that goes to a URL is a LINK. The browser
+							     then supplies middle-click, "open in new tab" and the
+							     semantics assistive tech announces, none of which a
+							     click handler can. -->
+							<NcActionLink
+								v-if="entry.href"
+								:key="`${entry.id}-link`"
+								:href="entry.href"
+								:target="entry.linkTarget || undefined"
+								:data-testid="entry.testid">
+								<template v-if="entry.iconName || entry.iconClass" #icon>
+									<CnIcon v-if="entry.iconName" :name="entry.iconName" :size="20" />
+									<span v-else :class="entry.iconClass" />
+								</template>
+								{{ entry.label }}
+							</NcActionLink>
+							<NcActionButton
+								v-else
+								:key="entry.id"
+								:data-testid="entry.testid"
+								:disabled="entry.disabled"
+								:aria-pressed="entry.pressed === null ? null : String(entry.pressed)"
+								:close-after-click="true"
+								@click="entry.run()">
+								<template v-if="entry.iconName || entry.iconClass" #icon>
+									<CnIcon v-if="entry.iconName" :name="entry.iconName" :size="20" />
+									<span v-else :class="entry.iconClass" />
+								</template>
+								{{ entry.label }}
+							</NcActionButton>
+						</template>
 						<NcActionSeparator />
 					</template>
 				</CnActionsMenu>
@@ -669,7 +687,7 @@
 import { provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { NcActionButton, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
@@ -798,6 +816,7 @@ export default {
 
 	components: {
 		NcActionButton,
+		NcActionLink,
 		NcActionSeparator,
 		NcButton,
 		NcEmptyContent,
