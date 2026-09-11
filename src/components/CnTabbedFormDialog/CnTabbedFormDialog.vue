@@ -575,6 +575,7 @@ export default {
 	color: var(--color-text-maxcontrast);
 	pointer-events: auto;
 }
+
 :deep(.nav-tabs .nav-link.disabled *) {
     cursor: not-allowed;
 }

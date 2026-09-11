@@ -495,6 +495,8 @@ export default {
 }
 
 .cn-sidebar-tab__task-done { color: var(--color-success); }
+
 .cn-sidebar-tab__task-overdue-icon { color: var(--color-error, #e53935); }
+
 .cn-sidebar-tab__task-overdue-date { color: var(--color-error, #e53935); font-weight: 500; }
 </style>

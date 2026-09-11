@@ -479,7 +479,9 @@ a.cn-analytics-card__title:hover {
 }
 
 .cn-analytics-card__badge--type-3 { background: var(--color-primary-element-light, var(--color-primary-light)); color: var(--color-primary-element-text); }
+
 .cn-analytics-card__badge--type-4 { background: var(--color-success, #46ba61); color: var(--color-main-background); }
+
 .cn-analytics-card__badge--type-2 { background: var(--color-warning, #e9a40f); color: var(--color-main-background); }
 
 .cn-analytics-card__view-all {

@@ -332,7 +332,7 @@
 .cn-table-col--title {
 	min-width: 120px;
 	max-width: 200px;
-	word-wrap: break-word;
+	overflow-wrap: break-word;
 	overflow: hidden;
 }
 
@@ -359,18 +359,30 @@
    (legacy OpenRegister CSS class names)
    ======================================== */
 .viewTableContainer { background: var(--color-main-background); border-radius: var(--border-radius); overflow-x: hidden; overflow-y: visible; box-shadow: 0 2px 4px var(--color-box-shadow); border: 1px solid var(--color-border); margin-bottom: calc(5 * var(--default-grid-baseline)); }
+
 .viewTableContainer.scrollable { max-height: 400px; overflow-y: auto; }
+
 .viewTable { width: 100%; border-collapse: collapse; background-color: var(--color-main-background); }
+
 .viewTable th, .viewTable td { padding: calc(3 * var(--default-grid-baseline)); text-align: left; border-bottom: 1px solid var(--color-border); vertical-align: middle; }
+
 .viewTable th { background: var(--color-background-hover); font-weight: 500; color: var(--color-text-maxcontrast); background-color: var(--color-background-dark); }
+
 .viewTableRow { border-bottom: 1px solid var(--color-border); cursor: pointer; transition: background-color var(--animation-quick) ease; }
+
 .viewTableRow:hover { background: var(--color-background-hover); }
+
 .viewTableRow.active, .viewTableRowSelected { background: var(--color-primary-light); }
+
 .tableColumnCheckbox { width: 50px; text-align: center; }
+
 .tableColumnActions { width: 120px; text-align: center; min-width: 120px; }
+
 .tableColumnConstrained { width: 150px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .tableColumnExpanded { width: auto; min-width: 200px; }
-.tableColumnTitle { min-width: 120px; max-width: 200px; word-wrap: break-word; overflow: hidden; }
+
+.tableColumnTitle { min-width: 120px; max-width: 200px; overflow-wrap: break-word; overflow: hidden; }
 
 /* ========================================
    Tables inside widgets go EDGE TO EDGE

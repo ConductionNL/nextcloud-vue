@@ -273,7 +273,7 @@ export default {
 	margin: -1px;
 	border: 0;
 	overflow: hidden;
-	clip: rect(0 0 0 0);
+	clip-path: inset(50%);
 	white-space: nowrap;
 }
 </style>

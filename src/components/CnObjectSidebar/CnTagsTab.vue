@@ -201,7 +201,9 @@ export default {
 
 <style scoped>
 .cn-sidebar-tab { padding: 12px; }
+
 .cn-sidebar-tab__action { margin-bottom: 16px; }
+
 .cn-sidebar-tab__action--row { display: flex; gap: 8px; align-items: flex-end; }
 
 .cn-sidebar-tab__empty {

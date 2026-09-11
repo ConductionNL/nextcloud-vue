@@ -690,7 +690,7 @@ export default {
 
 .cn-advanced-form-dialog__value-cell {
 	width: 70%;
-	word-break: break-word;
+	overflow-wrap: anywhere;
 	border-radius: 4px;
 }
 

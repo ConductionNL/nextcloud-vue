@@ -16,6 +16,26 @@
   Root `npm audit` now reports 0, and `npm audit --omit=dev` reports 0.
 
 ### Fixed
+- **`@conduction/nextcloud-vue/stylelint` now loads.** The published preset extends `@nextcloud/stylelint-config`, and this package never declared it, so `require('@conduction/nextcloud-vue/stylelint')` threw `MODULE_NOT_FOUND` in any app that had not installed it for its own reasons. Same failure as the `marked` / `dompurify` / `dexie` peers fixed in #1048: a file this package ships depended on something it did not declare.
+
+  It went unnoticed because this repository linted itself with a DIFFERENT config and never loaded the one it shipped. `stylelint.config.js` is now a one-line re-export of the preset, so `npm run stylelint` exercises exactly what an app gets, and `tests/packaging/stylelint-preset-resolves.spec.js` fails if the preset stops resolving or the repository stops using it.
+
+  `stylelint` and `@nextcloud/stylelint-config` are declared as OPTIONAL peers, exactly as the ESLint preset declares its tooling: the preset is an opt-in subpath, and an app that never lints with it should not download stylelint.
+
+  **No app has to change anything.** None currently requires the preset; launchpad and openregister extend `@nextcloud/stylelint-config` directly and carry the `::v-deep` exception inline. They can now drop that copy and require the preset instead, which is what it was written for.
+
+- **stylelint 14 to 17, matching the fleet.** The apps were already on 17 through `@nextcloud/stylelint-config` 3; this repository was three majors behind the config it publishes. `stylelint-config-recommended-vue` stays on 1.x because `@nextcloud/stylelint-config` pins `^1.6.1`, and `stylelint-config-html` is held at 1.x so its `postcss-html` peer agrees with that.
+
+  The new rules raised 120 errors, all fixed. 91 were a missing blank line before a rule. The other 29 were deprecated CSS, and each was handled for what it does rather than by the autofixer:
+
+  - `word-break: break-word` (16) became `overflow-wrap: anywhere`. That is its exact specified meaning, and the spec also says it overrides any other `overflow-wrap` in the rule, so a second declaration in the same rule was removed rather than left to disagree.
+  - `clip` (7) is in every case part of a visually-hidden, screen-reader-only pattern. It became `clip-path: inset(50%)`, or was dropped where that was already present. Removing it outright would leave the text hidden only by its 1px box.
+  - `word-wrap` (6) became `overflow-wrap`, its standard name.
+
+  The autofixer was run for the blank-line rule alone, and it still rewrote `<style` to `\3c style` inside two CSS comments. Both were restored by hand.
+
+  201 `csstools/use-logical` **warnings** remain, deliberately. That rule rewrites `border-left` as `border-inline-start`, which changes rendering in right-to-left layouts. It is the right direction, but it is a visual change to review component by component, not a side effect of a tooling bump. Warnings do not fail the gate.
+
 - **`@types/react` no longer ships to every consumer.** It sat in `dependencies`, so all 21 fleet apps downloaded React type definitions with this library. Nothing referenced it: no source import, no `.d.ts` reference, no installed package declaring it as a peer, and the only mentions of "react" in the type declarations are the words "reactive" and "react to" in prose. The `@uiw/codemirror-theme-*` packages are framework-agnostic CodeMirror extensions despite their repository's name, which is the likeliest reason it was added. Removed rather than bumped to 19, which is what Dependabot proposed.
 
 - **`@codemirror/lint` to 6.9.7 and `@uiw/codemirror-theme-github` to 4.25.11.** Both already inside their declared ranges, so this is a lockfile move.

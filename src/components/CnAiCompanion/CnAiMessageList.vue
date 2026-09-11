@@ -232,7 +232,7 @@ export default {
 	max-width: 80%;
 	padding: 8px 12px;
 	border-radius: var(--border-radius-large, 12px);
-	word-break: break-word;
+	overflow-wrap: anywhere;
 }
 
 .cn-ai-message-list__bubble--user {

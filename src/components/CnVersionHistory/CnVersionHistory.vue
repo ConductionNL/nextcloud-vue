@@ -572,7 +572,7 @@ export default {
 .cn-version-history__diff-json {
 	margin: 0;
 	white-space: pre-wrap;
-	word-break: break-word;
+	overflow-wrap: anywhere;
 	font-family: monospace;
 	font-size: 12px;
 }
