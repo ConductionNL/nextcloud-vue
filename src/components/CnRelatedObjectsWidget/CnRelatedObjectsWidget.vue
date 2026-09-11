@@ -584,7 +584,7 @@ export default {
 		 * @deprecated No longer rendered — tabbed mode deep-links each item to its
 		 * owning Nextcloud app instead of offering an open-in-sidebar action.
 		 */
-		openInSidebarLabel: {
+		openInSidebarLabel: { // eslint-disable-line vue/no-unused-properties -- deprecated no-op, kept so apps still passing it do not leak it onto the DOM through $attrs.
 			type: String,
 			default: () => t('nextcloud-vue', 'Open in sidebar'),
 		},

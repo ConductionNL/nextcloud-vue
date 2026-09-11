@@ -973,7 +973,7 @@ export default {
 		 * carries for dashboard widgets, which is where it shipped first;
 		 * index pages could not ask for it at all.
 		 */
-		extend: {
+		extend: { // eslint-disable-line vue/no-unused-properties -- read by useSelfFetchList.js off the props object, which this rule does not follow.
 			type: Array,
 			default: () => [],
 		},
@@ -996,7 +996,7 @@ export default {
 		 * Non-empty `:objects` still wins, and an entity source wins over
 		 * register/schema. See `src/composables/indexSources.js`.
 		 */
-		entitySource: { type: String, default: '' },
+		entitySource: { type: String, default: '' }, // eslint-disable-line vue/no-unused-properties -- read by useNamedSource.js and useSelfFetchList.js off the props object, which this rule does not follow.
 
 		/**
 		 * Route name a clicked row opens, overriding a named source's own
@@ -1655,7 +1655,7 @@ export default {
 		 *
 		 * @type {boolean}
 		 */
-		subscribe: {
+		subscribe: { // eslint-disable-line vue/no-unused-properties -- read by useSelfFetchList.js off the props object, which this rule does not follow.
 			type: Boolean,
 			default: true,
 		},

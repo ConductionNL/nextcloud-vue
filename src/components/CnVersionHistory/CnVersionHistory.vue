@@ -12,7 +12,11 @@
   openspec change's design notes.
 -->
 <template>
-	<CnDetailCard :title="resolvedTitle" :icon="FileCompare" :collapsible="collapsible">
+	<CnDetailCard
+		:title="resolvedTitle"
+		:icon="FileCompare"
+		:collapsible="collapsible"
+		:data-surface="surface">
 		<NcLoadingIcon v-if="loading && entries.length === 0" />
 		<div v-else-if="entries.length === 0" class="cn-version-history__empty">
 			{{ noEntriesLabel }}

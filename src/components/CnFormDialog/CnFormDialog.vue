@@ -773,8 +773,13 @@ export default {
 			default: null,
 		},
 
-		/** Which field is the "name" (used in result messages) */
-		nameField: {
+		/**
+		 * Which field is the "name".
+		 *
+		 * @deprecated Never read. The result note card renders whatever message the
+		 * parent hands to `setResult()`, so this field names nothing.
+		 */
+		nameField: { // eslint-disable-line vue/no-unused-properties -- deprecated no-op, kept so apps still passing it do not leak it onto the DOM through $attrs.
 			type: String,
 			default: 'title',
 		},

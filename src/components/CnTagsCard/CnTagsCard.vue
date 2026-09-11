@@ -10,7 +10,11 @@
   forwarded so consumers can branch internally if desired.
 -->
 <template>
-	<CnDetailCard :title="resolvedTitle" :icon="Tag" :collapsible="collapsible">
+	<CnDetailCard
+		:title="resolvedTitle"
+		:icon="Tag"
+		:collapsible="collapsible"
+		:data-surface="surface">
 		<NcLoadingIcon v-if="loading" />
 		<div v-else-if="tags.length === 0" class="cn-tags-card__empty">
 			{{ noTagsLabel }}

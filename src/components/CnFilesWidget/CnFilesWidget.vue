@@ -236,13 +236,13 @@ export default {
 		},
 
 		/** Whether the dashboard shell is in admin mode. */
-		isAdmin: {
+		isAdmin: { // eslint-disable-line vue/no-unused-properties -- the dashboard shell passes this to every widget; declared so it does not fall through to $attrs.
 			type: Boolean,
 			default: false,
 		},
 
 		/** Whether the dashboard shell is in edit mode. */
-		canEdit: {
+		canEdit: { // eslint-disable-line vue/no-unused-properties -- the dashboard shell passes this to every widget; declared so it does not fall through to $attrs.
 			type: Boolean,
 			default: false,
 		},
