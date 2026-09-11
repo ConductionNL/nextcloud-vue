@@ -16,6 +16,12 @@
   Root `npm audit` now reports 0, and `npm audit --omit=dev` reports 0.
 
 ### Fixed
+- **The unit suite no longer fails a random spec per run.** 361 specs mount components and only 81 unmounted them, so most tests left a live component attached to the jsdom document for the rest of the file, keeping its watchers, timers and listeners in the DOM the next test queried and clicked. The symptom was a click that did nothing: `wrapper.emitted(...)` came back undefined and the spec failed on a line that was not the bug. Four click-based specs did it, one per full run, each passing in isolation and on a re-run of the same tree.
+
+  `jest.config.js` had already named the lead in its own header: "the lead worth pulling is per-suite teardown of mounted components, not this config". `tests/setup.js` now calls Vue Test Utils' `enableAutoUnmount(afterEach)`, which tracks every wrapper `mount()` created so no spec has to remember. Measured over six consecutive full runs before and after.
+
+  Teardown running at all exposed two things that had never been reached. `URL.createObjectURL` and `URL.revokeObjectURL` are now stubbed globally, because jsdom implements neither and `CnImageWidgetForm` revokes its preview on unmount. And one saved-views test asserted on a dialog one tick after the click that opens it, which is a tick too early when the handler has its own promise to settle.
+
 - **`CnCalendarWidget` now says when no calendar has been chosen, instead of reporting an empty diary.** The host fetches events only for the calendars named in `content.internalCalendars` / `content.externalIcsUrls`, and it skips the fetch entirely when both are empty: LaunchPad's `CalendarWidgetService::getEvents()` guards each branch with `!== []`, so an unconfigured widget comes back with zero events **and zero failures**. The widget could not tell that apart from a genuinely empty week and said "No events in the next 14 days".
 
   It is not a rare state. The registry's own `defaultContent` for this widget type is `internalCalendars: []`, so every freshly added Calendar widget started there and made a false statement about the user's diary, forever, with nothing on screen suggesting configuration was the missing step. Measured on the dev instance: three events existed today and the widget reported none.
