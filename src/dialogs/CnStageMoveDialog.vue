@@ -13,7 +13,7 @@
 			data-testid="cn-modal"
 			data-testid-modal="cn-stage-move-dialog">
 			<p v-if="asksResult" class="cn-stage-move__note">
-				{{ t('nextcloud-vue', 'This stage closes the record. Pick the result it closes with.') }}
+				{{ resultNote }}
 			</p>
 
 			<NcSelect
@@ -197,13 +197,30 @@ export default {
 		},
 
 		/**
-		 * Whether the dialog asks for a result: one is required and there are
-		 * results to choose from.
+		 * Whether the dialog shows the result picker: there is something to
+		 * pick.
+		 *
+		 * Offering is not the same as requiring, the same split `commentMode`
+		 * already had. Tying the picker to `resultRequired` meant a move that
+		 * merely OFFERS a result showed no picker at all, so the person could
+		 * not give the answer the endpoint asked for.
 		 *
 		 * @return {boolean} True when the result picker shows.
 		 */
 		asksResult() {
-			return this.resultRequired && this.resultOptions.length > 0
+			return this.resultOptions.length > 0
+		},
+
+		/**
+		 * The line above the result picker. "Pick" is an instruction, so it is
+		 * only used where a result actually has to be given.
+		 *
+		 * @return {string} The note.
+		 */
+		resultNote() {
+			return this.resultRequired
+				? t('nextcloud-vue', 'This stage closes the record. Pick the result it closes with.')
+				: t('nextcloud-vue', 'You can record the result this stage closes with.')
 		},
 
 		/**
@@ -214,7 +231,7 @@ export default {
 		canConfirm() {
 			if (this.busy) return false
 			if (this.commentMode === 'required' && this.comment.trim() === '') return false
-			if (this.asksResult && !this.result) return false
+			if (this.resultRequired && this.asksResult && !this.result) return false
 			return true
 		},
 	},

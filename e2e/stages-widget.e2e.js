@@ -161,6 +161,84 @@ test.describe('the stages widget', () => {
 	})
 })
 
+test.describe('a move that closes the record', () => {
+	// THE RESULT PICKER IS AN NcSelect INSIDE AN NcDialog, which is a known
+	// stacking trap in this library: `select-in-dialog.e2e.js` documents a
+	// dialog mask painted OVER its own teleported dropdown, so the options
+	// render, read as visible, and swallow every click. Nothing exercised that
+	// path here: the only dialog this spec opened was the comment one.
+	//
+	// The assertion that matters is the click LANDING and meaning something, so
+	// no force:true anywhere. Forcing would bypass the condition under test.
+	test('picking a result in the dialog sends it with the move', async ({ page }) => {
+		const state = { posts: [] }
+		const json = (route, body) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
+
+		await page.route('**/apps/dossiq/api/case-types/ct-1/blueprint', (route) => json(route, BLUEPRINT))
+		await page.route('**/apps/dossiq/api/case/case-1/available-transitions', (route) => json(route, {
+			transitions: [{ id: 'tr-close', toStatus: 'st-done', guardsPassed: true, failedGuards: [], requiresResult: 'required' }],
+		}))
+		await page.route('**/apps/dossiq/api/case/case-1/transition', (route) => {
+			state.posts.push(route.request().postDataJSON())
+			return json(route, { status: 'st-done' })
+		})
+		await page.route('**/apps/openregister/api/objects/dossiq/case/case-1', (route) => json(route, {
+			id: 'case-1', caseType: 'ct-1', status: state.posts.length ? 'st-done' : 'st-new', suspended: false,
+		}))
+
+		await openHarness(page, '?stageswidget=1', '[data-testid="cn-stages-widget"] .cn-timeline-stages__stage')
+		await stage(page, 'st-done').click()
+
+		const dialog = page.getByRole('dialog', { name: 'Move to Afgehandeld' })
+		await expect(dialog).toBeVisible()
+		await expect(dialog.getByText('This stage closes the record')).toBeVisible()
+
+		// The move cannot be confirmed until a result is picked.
+		const confirm = dialog.getByRole('button', { name: 'Move' })
+		await expect(confirm).toBeDisabled()
+		expect(state.posts).toHaveLength(0)
+
+		await dialog.locator('.vs__dropdown-toggle').click()
+		const option = page.getByRole('option', { name: 'Toegekend' })
+		await expect(option).toBeVisible()
+		await option.click({ timeout: 5000 })
+
+		await expect(confirm).toBeEnabled()
+		const posted = page.waitForRequest((request) => request.url().endsWith('/apps/dossiq/api/case/case-1/transition'))
+		await confirm.click()
+		const request = await posted
+
+		expect(request.postDataJSON()).toEqual({ transitionId: 'tr-close', resultTypeId: 'rt-granted' })
+		await expect(dialog).toBeHidden()
+		await expect(stage(page, 'st-done')).toHaveAttribute('aria-current', 'step')
+	})
+
+	test('the result dropdown paints above the dialog mask', async ({ page }) => {
+		const json = (route, body) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
+		await page.route('**/apps/dossiq/api/case-types/ct-1/blueprint', (route) => json(route, BLUEPRINT))
+		await page.route('**/apps/dossiq/api/case/case-1/available-transitions', (route) => json(route, {
+			transitions: [{ id: 'tr-close', toStatus: 'st-done', guardsPassed: true, failedGuards: [], requiresResult: 'required' }],
+		}))
+
+		await openHarness(page, '?stageswidget=1', '[data-testid="cn-stages-widget"] .cn-timeline-stages__stage')
+		await stage(page, 'st-done').click()
+		await page.getByRole('dialog').locator('.vs__dropdown-toggle').click()
+		await expect(page.getByRole('option', { name: 'Toegekend' })).toBeVisible()
+
+		// Structural, not a magic number: read both computed layers and compare.
+		const layers = await page.evaluate(() => {
+			const z = (sel) => {
+				const el = document.querySelector(sel)
+				return el ? Number(getComputedStyle(el).zIndex) : null
+			}
+			return { menu: z('.vs__dropdown-menu'), mask: z('.modal-mask') }
+		})
+		expect(layers.menu).not.toBeNull()
+		expect(layers.mask).not.toBeNull()
+		expect(layers.menu).toBeGreaterThan(layers.mask)
+	})
+})
+
 test.describe('the status badge tile', () => {
 	/**
 	 * Stub the status row the tile resolves its uuid through.

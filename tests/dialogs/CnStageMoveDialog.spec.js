@@ -68,6 +68,22 @@ describe('CnStageMoveDialog', () => {
 		expect(w.vm.canConfirm).toBe(true)
 	})
 
+	// OFFERING IS NOT REQUIRING. Tying the picker to `resultRequired` meant a
+	// move that merely offers a result showed no picker, so the person could
+	// not give the answer the endpoint asked for.
+	it('offers a result without holding the confirm for it', () => {
+		const w = mountDialog({ resultRequired: false, resultOptions: RESULTS })
+		expect(w.find('[data-testid="cn-stage-move-result"]').exists()).toBe(true)
+		expect(w.vm.canConfirm).toBe(true)
+		expect(w.text()).toContain('You can record the result')
+		expect(w.text()).not.toContain('Pick the result it closes with')
+	})
+
+	it('instructs rather than offers when the result is required', () => {
+		const w = mountDialog({ resultRequired: true, resultOptions: RESULTS })
+		expect(w.text()).toContain('Pick the result it closes with')
+	})
+
 	it('emits the trimmed comment and the picked result id', async () => {
 		const w = mountDialog({ commentMode: 'optional', resultRequired: true, resultOptions: RESULTS })
 		w.vm.comment = '  Granted after review.  '

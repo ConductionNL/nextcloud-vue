@@ -740,3 +740,114 @@ describe('CnStagesWidget: the field transition writes a record OpenRegister acce
 		expect(body).toMatchObject({ id: 'case-1', status: 'st-work', caseType: 'ct-1', reference: 'Z-2026-1' })
 	})
 })
+
+describe('CnStagesWidget: what a move declares it needs is checked where it is sent', () => {
+	// THE DIALOG'S DISABLED BUTTON IS NOT THE RULE, IT IS THE UI FOR THE RULE.
+	// `performMove` used to take whatever the dialog handed it, so the guard
+	// lived only where the button is drawn, and nothing enforced it on the path
+	// that actually makes the request.
+	it('sends nothing when a required comment is missing', async () => {
+		answerGets({
+			blueprint: BLUEPRINT,
+			'available-transitions': { transitions: [{ id: 'tr-1', toStatus: 'st-work', requiresComment: 'required' }] },
+		})
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, availability: AVAILABILITY, transition: ENDPOINT_TRANSITION })
+		await flush()
+		await stageNode(w, 'st-work').trigger('click')
+		await flush()
+		expect(w.findComponent(CnStageMoveDialog).props('commentMode')).toBe('required')
+
+		w.findComponent(CnStageMoveDialog).vm.$emit('confirm', { comment: '   ' })
+		await flush()
+
+		expect(axios.post).not.toHaveBeenCalled()
+		const dialog = w.findComponent(CnStageMoveDialog)
+		expect(dialog.exists()).toBe(true)
+		expect(dialog.props('error')).toBe('This move needs a comment')
+		expect(w.emitted('moved')).toBeUndefined()
+	})
+
+	it('sends nothing when a required result is missing', async () => {
+		answerGets({
+			blueprint: BLUEPRINT,
+			'available-transitions': { transitions: [{ id: 'tr-close', toStatus: 'st-done', requiresResult: 'required' }] },
+		})
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, availability: AVAILABILITY, transition: ENDPOINT_TRANSITION })
+		await flush()
+		await stageNode(w, 'st-done').trigger('click')
+		await flush()
+
+		w.findComponent(CnStageMoveDialog).vm.$emit('confirm', {})
+		await flush()
+
+		expect(axios.post).not.toHaveBeenCalled()
+		expect(w.findComponent(CnStageMoveDialog).props('error')).toBe('This move needs a result')
+	})
+
+	// An OPTIONAL comment is still optional. The re-check must not turn every
+	// declaration into a requirement, which is the obvious way to overshoot.
+	it('sends a move whose comment was only offered', async () => {
+		answerGets({
+			blueprint: BLUEPRINT,
+			'available-transitions': { transitions: [{ id: 'tr-1', toStatus: 'st-work', requiresComment: 'optional' }] },
+		})
+		axios.post.mockResolvedValue({ data: {} })
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, availability: AVAILABILITY, transition: ENDPOINT_TRANSITION })
+		await flush()
+		await stageNode(w, 'st-work').trigger('click')
+		await flush()
+
+		w.findComponent(CnStageMoveDialog).vm.$emit('confirm', {})
+		await flush()
+
+		expect(axios.post).toHaveBeenCalledWith('/apps/dossiq/api/case/case-1/transition', { transitionId: 'tr-1' })
+	})
+
+	// A move declaring 'optional' must NOT force a result. Collapsed to a
+	// boolean, `requiresResult: 'optional'` held the confirm until one was
+	// picked.
+	it('offers a result without requiring it when the move says optional', async () => {
+		answerGets({
+			blueprint: BLUEPRINT,
+			'available-transitions': { transitions: [{ id: 'tr-close', toStatus: 'st-done', requiresResult: 'optional' }] },
+		})
+		axios.post.mockResolvedValue({ data: {} })
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, availability: AVAILABILITY, transition: ENDPOINT_TRANSITION })
+		await flush()
+		await stageNode(w, 'st-done').trigger('click')
+		await flush()
+
+		const dialog = w.findComponent(CnStageMoveDialog)
+		expect(dialog.props('resultRequired')).toBe(false)
+		expect(dialog.props('resultOptions')).toHaveLength(2)
+
+		dialog.vm.$emit('confirm', {})
+		await flush()
+		expect(axios.post).toHaveBeenCalledWith('/apps/dossiq/api/case/case-1/transition', { transitionId: 'tr-close' })
+	})
+
+	// A REQUIRED RESULT WITH NOTHING TO PICK IS A DEAD END: the dialog would
+	// open with no picker and a confirm that can never be enabled. Say so at
+	// the stage instead.
+	it('blocks a move that needs a result when none is on offer', async () => {
+		answerGets({
+			blueprint: { statusTypes: BLUEPRINT.statusTypes },
+			'available-transitions': { transitions: [{ id: 'tr-close', toStatus: 'st-done', requiresResult: 'required' }] },
+		})
+		const w = mountWidget({
+			currentField: 'status',
+			stagesEndpoint: { ...STAGES_ENDPOINT, resultsPath: '' },
+			availability: AVAILABILITY,
+			transition: ENDPOINT_TRANSITION,
+		})
+		await flush()
+
+		expect(stageNode(w, 'st-done').attributes('aria-disabled')).toBe('true')
+		expect(w.find('[data-testid="cn-stages-widget-reason-st-done"]').text())
+			.toBe('This move needs a result, and none is on offer')
+		await stageNode(w, 'st-done').trigger('click')
+		await flush()
+		expect(axios.post).not.toHaveBeenCalled()
+		expect(w.findComponent(CnStageMoveDialog).exists()).toBe(false)
+	})
+})

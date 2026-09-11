@@ -844,6 +844,18 @@ export default {
 			this.busy = true
 			this.moveError = ''
 			try {
+				// RE-CHECK WHAT THE MOVE DECLARED IT NEEDS. The dialog holds its
+				// confirm button until a required comment is typed and a
+				// required result picked, but that guard lived only in the view,
+				// and a guard that lives only where the button is drawn is not
+				// enforced on the path that makes the request. Cheap here, and
+				// it means the rule is stated once where the send happens.
+				if (request.commentMode === 'required' && !String(input.comment || '').trim()) {
+					throw userError(this.tr('This move needs a comment'))
+				}
+				if (request.resultRequired && !input.result) {
+					throw userError(this.tr('This move needs a result'))
+				}
 				if (this.transition.kind === 'endpoint') {
 					await this.moveViaEndpoint(request, input)
 				} else {
