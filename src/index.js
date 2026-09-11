@@ -261,8 +261,6 @@ export {
 	CnFilesWidgetForm,
 	CnPeopleWidget,
 	CnPeopleWidgetForm,
-	CnNewsWidget,
-	CnNewsWidgetForm,
 	CnQuicklinksWidget,
 	CnQuicklinksWidgetForm,
 	CnLinksWidget,
