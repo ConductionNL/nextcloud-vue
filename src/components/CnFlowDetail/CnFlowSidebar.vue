@@ -295,10 +295,16 @@ export default {
 		/**
 		 * Whether the sidebar is showing a RUN rather than the flow.
 		 *
-		 * @return {boolean} True while a run is open.
+		 * 🔑 THE STORE'S GETTER, WHICH ALSO COUNTS A RUN BEING OPENED. Reading
+		 * `inspectedRunUuid` alone meant the sidebar stayed on the flow for the
+		 * length of the load, so a visitor following a run link was told to
+		 * "save the flow first" on a flow that had run many times, while the
+		 * canvas beside it had already entered run view.
+		 *
+		 * @return {boolean} True while a run is open or being opened.
 		 */
 		inRunView() {
-			return Boolean(this.store.inspectedRunUuid)
+			return this.store.inRunView
 		},
 
 		/**

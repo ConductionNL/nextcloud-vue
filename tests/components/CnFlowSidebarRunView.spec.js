@@ -156,6 +156,27 @@ describe('CnFlowSidebar — the run view', () => {
 			expect(wrapper.findAll('[role="tablist"]')).toHaveLength(0)
 		})
 
+		/**
+		 * ⚠️ THE LOADING WINDOW, WHICH IS WHERE THIS WAS WRONG. A visitor
+		 * following `?run=` reached the flow before the run had been read, and
+		 * the sidebar read `inspectedRunUuid`, which is only set once the fetch
+		 * returns. So it showed the flow's Runs tab for the length of the load,
+		 * telling the reader to "save the flow first" on a flow that had run
+		 * many times, while the canvas beside it was already in run view.
+		 */
+		it('is in run view while the run named by the URL is still being read', async () => {
+			const { wrapper } = await mountSidebar({
+				flow: { id: 'f1', name: 'x', nodes: [], edges: [] },
+				runs: RUNS,
+				// What the URL said, before anything came back.
+				openingRunUuid: 'run-1',
+				inspectedRunUuid: null,
+			})
+
+			expect(wrapper.find('[data-testid="run-detail-sidebar"]').exists()).toBe(true)
+			expect(wrapper.text()).not.toContain('Save the flow first')
+		})
+
 		it('shows no run tabs while no run is being inspected', async () => {
 			const { wrapper } = await mountSidebar({
 				flow: { id: 'f1', name: 'x', nodes: [], edges: [] },
