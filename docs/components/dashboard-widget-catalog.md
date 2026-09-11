@@ -32,9 +32,9 @@ at the `CnWidgetGrid` resolution boundary. See the
 [widget library overview](./cn-widget-grid.md) and
 `docs/architecture/cards-and-widgets.md`.
 
-Two further types — `kb-search` and `interaction-form` — are registered for the
-**detail-page** surface and so do not appear in the dashboard Add-widget picker.
-The `data` type is likewise detail-page only.
+Three further types, `kb-search`, `interaction-form` and `stages`, are registered
+for the **detail-page** surface and so do not appear in the dashboard Add-widget
+picker. The `data` type is likewise detail-page only.
 
 ---
 
@@ -241,6 +241,15 @@ Compact data table with a card wrapper, title header, and optional "View all" fo
 Supports external rows (`rows`) or self-fetch (`register` + `schemaId`). Shares the
 `object-list` sub-form.
 → [`CnTableWidget`](./cn-table-widget.md) · [`CnObjectListWidgetForm`](./cn-object-list-widget-form.md)
+
+### Stages · `stages`
+
+The stages a record moves through, read from an app endpoint or an OpenRegister
+query. Clicking a reachable stage moves the record, either by saving its stage
+property or by calling a transition endpoint. An optional availability endpoint
+disables the stages that are closed and says why. **Detail-page surface only**: it
+reads and moves the bound record, which only a detail page has.
+→ [`CnStagesWidget`](./cn-stages-widget.md) · [`CnStagesWidgetForm`](./cn-stages-widget-form.md) · [`CnStageMoveDialog`](./cn-stage-move-dialog.md)
 
 ---
 
