@@ -2,12 +2,31 @@
 
 ## [Unreleased]
 
+### Security
+- **The sanitizer that runs in the markdown editor is no longer a 2.x copy.** `@toast-ui/editor` depends on `dompurify@^2.3.3`, so installing this library brought a SECOND sanitizer into the tree beside the 3.x it declares. That nested copy carried fifteen open XSS advisories, and it is the copy that actually sanitizes what a user types. This library's own dompurify being current said nothing about it, which is why it went unnoticed.
+
+  An `overrides` entry collapses the two onto one version, written as `$dompurify` so it follows this package's own dependency and cannot drift behind it. Toast UI works against dompurify 3: verified in a real browser, where the editor lazily mounts and typing still round-trips through `v-model`. `tests/packaging/sanitizer-is-not-downgraded.spec.js` fails if a 2.x copy ever returns.
+
+- **Every advisory that could reach a consumer is closed, and the count that mattered was never 247.** GitHub reported 247 across the repository, which is the sum of three separate package trees. `styleguide/` and `docusaurus/` are documentation tooling that no consumer installs. The root package held 33, of which 8 were reachable from `dependencies`, and of those 8 only three could run in a consumer's browser or server: the Toast UI sanitizer above, `axios` through `@nextcloud/axios`, and `fast-uri` through `ajv`. The rest, `postcss`, `browserslist` and `baseline-browser-mapping`, arrive as dependencies of build tools that npm classifies as production because `vue-router` declares `unplugin`, and they never execute in shipped code.
+
+  Raised through `overrides` rather than direct bumps, because every one of them is transitive: `axios` to 1.18, `form-data` to 4.0.6, `fast-uri` to 3.1.6, `postcss` to 8.5.23, plus `browserslist`, `baseline-browser-mapping`, `brace-expansion`, `ip-address`, `js-yaml`, `picomatch`, `svgo`, `colord`, `postcss-selector-parser` and `fast-xml-parser`. Every one stays inside its current major, so no API moves. `@semantic-release/npm` goes to 13.1.5, which clears twelve advisories in the release tooling including the only critical one, `tar`.
+
+  `axios` deliberately stops at 1.x. The 2.x line is `exports`-only, and a directory alias naming a path inside it fails at build time in consuming apps.
+
+  Root `npm audit` now reports 0, and `npm audit --omit=dev` reports 0.
+
 ### Fixed
 - **`CnCalendarWidget` now says when no calendar has been chosen, instead of reporting an empty diary.** The host fetches events only for the calendars named in `content.internalCalendars` / `content.externalIcsUrls`, and it skips the fetch entirely when both are empty: LaunchPad's `CalendarWidgetService::getEvents()` guards each branch with `!== []`, so an unconfigured widget comes back with zero events **and zero failures**. The widget could not tell that apart from a genuinely empty week and said "No events in the next 14 days".
 
   It is not a rare state. The registry's own `defaultContent` for this widget type is `internalCalendars: []`, so every freshly added Calendar widget started there and made a false statement about the user's diary, forever, with nothing on screen suggesting configuration was the missing step. Measured on the dev instance: three events existed today and the widget reported none.
 
   The new state only claims itself when a content blob is present and both lists are empty. A host driving the widget through `dataSource` alone keeps the ordinary empty message, so no existing consumer changes.
+- **A `data` widget in a tab panel keeps its own menu items, and no longer shows an empty header band.** Follow-up to the change below, which rendered the header whenever the `actions` slot was filled and read "filled" as the slot being PROVIDED. `CnObjectDataWidget` provides that template always and fills it only while an edit is unsaved, so an idle panel still carried a 59px band holding nothing. A new `slotContent` helper calls the slot and inspects the vnodes, so a `Comment` placeholder from a falsy `v-if` and a whitespace-only `Text` node both read as empty.
+
+  The band also held the widget's own overflow menu, about eight pixels from the tab strip's own, so `CnDetailWidgetHost` now passes `show-actions="!isBare"`. `chromeless` does not cover that menu.
+
+  Suppressing the menu would have taken two items with it. **Metadata** had no other home anywhere. **Edit** had a near neighbour, the record Edit button on a detail page header, but that opens the form the PAGE configures rather than the field subset the widget declares through `overrides`, `include` and `exclude`, so a tabbed widget showing eight of forty fields lost the form scoped to its eight. The open panel now publishes both items and `CnTabsWidget` renders them in its own menu, keyed by widget id because a `lazy` tab stays mounted once visited and would otherwise offer actions for a sheet nobody is looking at. They are published, not rebuilt: each carries a callback into the widget that published it, so Edit still opens that widget's dialog with that widget's configuration and still commits through its own save path. `src/utils/panelActions.js` carries the contract.
+
 - **A `data` widget in a tab panel no longer draws a card inside the card.** `CnTabsWidget` already asked for bare chrome, but `CnObjectDataWidget.title` carries a default of `"Data"`, so the `undefined` bare mode passed became that default: the heading in the panel was a default filling a gap, not a choice. `CnObjectDataWidget` gains `showTitle`, `borderless` and `flush`, and `CnDetailWidgetHost` passes them instead of exempting the widget.
 
   The exemption was protecting something real, so two things changed together. `CnWidgetWrapper` now renders its header when there is a title **or** when the `actions` slot is filled, so "no title" and "no Save button" became separate requests — previously hiding the header to remove the duplicate title also removed the only control that commits an inline edit.
