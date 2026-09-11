@@ -17,7 +17,42 @@ import axios from '@nextcloud/axios'
 import CnFormPage from '@/components/CnFormPage/CnFormPage.vue'
 import { readFileAsDataUrl } from '@/utils/widgetUpload.js'
 
+/**
+ * Let the async work after an interaction finish.
+ *
+ * Used after a submit, whose handler settles its own promise on the event loop.
+ *
+ * @return {Promise<void>}
+ */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 20))
+
+/**
+ * Wait until no file field in the form is still reading its picked file.
+ *
+ * The read runs on FileReader, which resolves on the event loop, so a fixed
+ * sleep is a race: on a loaded CI runner it expired first and the submit went
+ * out with an EMPTY payload, which the assertion then reported as the form
+ * dropping the file. Same failure #1087 fixed in CnFileField's own spec; this is
+ * its sibling, and it kept the sleep.
+ *
+ * Waits on the field's `reading` flag, which its handler sets before its first
+ * await, so an accepted file always has it true by the time `trigger` resolves.
+ *
+ * @param {object} wrapper The mounted CnFormPage.
+ * @param {number} [timeoutMs] How long to allow before giving up.
+ * @return {Promise<void>}
+ */
+async function settleRead(wrapper, timeoutMs = 5000) {
+	const stillReading = () => wrapper.findAllComponents({ name: 'CnFileField' }).some((f) => f.vm.reading)
+	const deadline = Date.now() + timeoutMs
+	while (stillReading() && Date.now() < deadline) {
+		await new Promise((resolve) => setTimeout(resolve, 5))
+	}
+	if (stillReading()) {
+		throw new Error(`a file field was still reading after ${timeoutMs} ms`)
+	}
+	await wrapper.vm.$nextTick()
+}
 
 const mountForm = (props, cnCustomComponents = {}) => mount(CnFormPage, {
 	props,
@@ -32,7 +67,7 @@ async function pick(wrapper, file) {
 	const input = wrapper.find('[data-testid="cn-file-field-input"]')
 	Object.defineProperty(input.element, 'files', { value: [file], configurable: true })
 	await input.trigger('change')
-	await settle()
+	await settleRead(wrapper)
 }
 
 describe('CnFormPage: file field', () => {
