@@ -103,7 +103,7 @@
 								:isNoUser="true"
 								:disableMenu="true"
 								:disableTooltip="true"
-								:showUserStatus="false" />
+								hideStatus />
 						</div>
 						<div class="cn-contacts-tab__details">
 							<div class="cn-contacts-tab__name-row">

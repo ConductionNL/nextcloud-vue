@@ -139,7 +139,7 @@
 							:modelValue="cred.allowedApps"
 							:multiple="true"
 							:taggable="true"
-							:closeOnSelect="false"
+							keepOpen
 							:disabled="cred.saving"
 							:inputLabel="t('nextcloud-vue', 'Allowed apps')"
 							:placeholder="t('nextcloud-vue', 'No app may use this credential yet')"
@@ -227,7 +227,7 @@
 								:modelValue="form.allowedApps"
 								:multiple="true"
 								:taggable="true"
-								:closeOnSelect="false"
+								keepOpen
 								:disabled="saving"
 								:inputLabel="t('nextcloud-vue', 'Allowed apps')"
 								:placeholder="t('nextcloud-vue', 'Choose which apps may use it')"

@@ -80,7 +80,7 @@
 						:displayName="roomTitle(room)"
 						:size="40"
 						:isNoUser="true"
-						:showUserStatus="false" />
+						hideStatus />
 				</template>
 				<template #subname>
 					<span class="cn-talk-tab__preview">{{ roomSubname(room) }}</span>

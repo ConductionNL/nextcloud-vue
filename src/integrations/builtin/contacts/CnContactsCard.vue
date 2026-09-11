@@ -33,7 +33,7 @@
 			:isNoUser="true"
 			:disableMenu="true"
 			:disableTooltip="true"
-			:showUserStatus="false" />
+			hideStatus />
 		<div class="cn-contacts-card__chip-text">
 			<span class="cn-contacts-card__chip-name">
 				{{ (primaryContact && primaryContact.displayName) || unknownLabel }}
@@ -80,7 +80,7 @@
 					:isNoUser="true"
 					:disableMenu="true"
 					:disableTooltip="true"
-					:showUserStatus="false" />
+					hideStatus />
 				<div class="cn-contacts-card__item-text">
 					<span class="cn-contacts-card__item-name">{{ item.displayName || unknownLabel }}</span>
 					<span v-if="item.email" class="cn-contacts-card__item-email">{{ item.email }}</span>

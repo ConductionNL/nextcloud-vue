@@ -83,7 +83,7 @@
 							:displayName="roomTitle(room)"
 							:size="32"
 							:isNoUser="true"
-							:showUserStatus="false" />
+							hideStatus />
 						<NcCounterBubble
 							v-if="hasUnread(room)"
 							class="cn-talk-card__badge"

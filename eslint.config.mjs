@@ -121,10 +121,33 @@ export default [
 			// surface for zero behavioural gain, so the convention is declared
 			// explicitly and kept ENFORCING rather than switched off.
 			'vue/custom-event-name-casing': ['error', 'kebab-case', {
-				// `update:xxx` / `update:xxx-yyy` v-model event names.
-				ignores: ['/^[a-z]+(?:-[a-z]+)*:[a-z]+(?:-[a-z]+)*$/u'],
+				// `update:` events are Vue's own v-model convention and keep the
+				// prop's spelling after the colon, so BOTH halves are exempt:
+				// `update:selected-id` because the prop is kebab in the template,
+				// and `update:modelValue` because that is the name Vue itself
+				// defines. Hyphenating the latter would rename the v-model event
+				// of every component in the library.
+				ignores: ['/^update:[a-zA-Z]+(?:[-A-Z][a-zA-Z]*)*$/u'],
 			}],
 			'vue/first-attribute-linebreak': 'off',
+
+			// SLOT NAMES ARE PUBLISHED API, and this library's are kebab-case:
+			// `#action-items`, `#mass-actions`, `#title-icon`. Every consuming app
+			// binds them by name and every one is documented under that name, so
+			// camelCasing 94 of them would be a breaking change to 21 apps for a
+			// naming preference. The convention is deliberate and consistent, which
+			// is the thing a casing rule is there to protect.
+			'vue/slot-name-casing': 'off',
+
+			// A BOOLEAN PROP DEFAULTING TO TRUE IS THIS LIBRARY'S API, not an
+			// oversight. 142 of the 152 findings are `default: true`, and they are
+			// the `show*` family: showActions, showRefresh, showTitle, and their
+			// kin. Vue's guidance is that presence should mean true, and it is good
+			// guidance for new props. Applying it here would INVERT the behaviour
+			// every consuming app relies on, and the alternative spelling
+			// (`hideActions`) renames the same public surface. Either way it is a
+			// breaking change to 21 apps in exchange for a default's direction.
+			'vue/no-boolean-default': 'off',
 		},
 	},
 

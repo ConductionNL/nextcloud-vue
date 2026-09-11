@@ -146,7 +146,7 @@
 					:inputLabel="t('nextcloud-vue', 'Columns')"
 					label="label"
 					:multiple="true"
-					:closeOnSelect="false"
+					keepOpen
 					:placeholder="t('nextcloud-vue', 'All properties')"
 					@update:modelValue="setColumns" />
 				<NcTextField v-else-if="page.type === 'index'"

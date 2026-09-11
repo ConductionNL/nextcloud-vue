@@ -37,7 +37,7 @@
 						:user="userId"
 						:displayName="displayName"
 						:size="36"
-						:showUserStatus="false" />
+						hideStatus />
 					<div class="cn-user-action-menu__user-info">
 						<span class="cn-user-action-menu__display-name">{{ displayName }}</span>
 						<span v-if="userEmail" class="cn-user-action-menu__email">{{ userEmail }}</span>

@@ -127,7 +127,7 @@
 									:isNoUser="true"
 									:disableMenu="true"
 									:disableTooltip="false"
-									:showUserStatus="false" />
+									hideStatus />
 								<span
 									v-if="assigneeOverflow(card) > 0"
 									class="cn-deck-tab__avatar-overflow"

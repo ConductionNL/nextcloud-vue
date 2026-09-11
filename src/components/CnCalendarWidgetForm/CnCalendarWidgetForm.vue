@@ -21,7 +21,7 @@
 				:modelValue="selectedCalendarOptions"
 				:options="calendarOptions"
 				:multiple="true"
-				:closeOnSelect="false"
+				keepOpen
 				:loading="loadingCalendars"
 				:inputLabel="t('nextcloud-vue', 'Calendars')"
 				:placeholder="t('nextcloud-vue', 'Select calendars…')"

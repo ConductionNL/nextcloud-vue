@@ -109,7 +109,7 @@
 									:size="36"
 									:disableMenu="true"
 									:disableTooltip="true"
-									:showUserStatus="false" />
+									hideStatus />
 								<span class="cn-activity-tab__type-badge" :class="typeBadgeClass(entry)">
 									<component :is="iconFor(entry)" :size="12" />
 								</span>

@@ -171,7 +171,7 @@
 							:isNoUser="true"
 							:disableMenu="true"
 							:disableTooltip="false"
-							:showUserStatus="false"
+							hideStatus
 							:title="assigneeTitle(wp)" />
 					</span>
 				</template>
