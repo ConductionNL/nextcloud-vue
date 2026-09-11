@@ -28,7 +28,7 @@ export const OPENREGISTER_GRAPHQL_PATH = '/apps/openregister/api/graphql'
  *
  * @param {object|null} obj      The object to read from (typically `response.data`).
  * @param {string}      selector The dot-path with optional `[]` segments.
- * @return {*} The resolved value, or `undefined` if any segment is missing.
+ * @return {unknown} The resolved value, or `undefined` if any segment is missing.
  */
 export function selectByPath(obj, selector) {
 	if (obj === null || obj === undefined || typeof selector !== 'string' || selector === '') {
@@ -87,7 +87,7 @@ export function selectByPath(obj, selector) {
  * @param {string}                           [options.endpoint]      Endpoint URL (default OR).
  * @param {string}                           [options.operationName] GraphQL operation name.
  * @param {boolean}                          [options.immediate]     Run on mount (default true).
- * @return {{ data: import('vue').Ref<any>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<Error|null>, refetch: () => Promise<void> }}
+ * @return {{ data: import('vue').Ref<unknown>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<Error|null>, refetch: () => Promise<void> }}
  *   Reactive query state. `data.value` is the response `data` object
  *   (not the full response envelope).
  */

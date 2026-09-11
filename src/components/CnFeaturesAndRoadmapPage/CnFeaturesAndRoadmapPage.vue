@@ -47,8 +47,8 @@ import { DEFAULT_FORGE } from '../../utils/forge.js'
  *
  * @param {string} appId Nextcloud app ID.
  * @param {string} key Initial-state key (full key, not prefixed).
- * @param {*} fallback Default value when no provisioned slot exists.
- * @return {*} Provisioned value or the fallback.
+ * @param {unknown} fallback Default value when no provisioned slot exists.
+ * @return {unknown} Provisioned value or the fallback.
  */
 function readInitialState(appId, key, fallback) {
 	try {

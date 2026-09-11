@@ -18,9 +18,9 @@ function isExternalUrl(target) {
  * (`"new"`) pass through verbatim — that is what keeps a literal
  * `params: { id: "new" }` working.
  *
- * @param {*} value The declared param value.
+ * @param {unknown} value The declared param value.
  * @param {object} row The row the action was triggered on.
- * @return {{ resolved: boolean, value: * }} `resolved` is false when a token names a field the row does not carry.
+ * @return {{ resolved: boolean, value: unknown }} `resolved` is false when a token names a field the row does not carry.
  */
 function resolveRowToken(value, row) {
 	if (typeof value !== 'string' || !value.includes('{')) {

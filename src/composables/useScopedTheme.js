@@ -166,7 +166,7 @@ export function useScopedTheme(opts = {}) {
 	 * page) with a 200 in several situations, and a token stylesheet that is
 	 * really a login page would be injected as CSS and style nothing.
 	 *
-	 * @param {*} body - the response body.
+	 * @param {unknown} body - the response body.
 	 * @return {boolean} True when the body is not an HTML document.
 	 */
 	function looksLikeApp(body) {
@@ -180,7 +180,7 @@ export function useScopedTheme(opts = {}) {
 	 * Run a request against each candidate app id until one answers.
 	 *
 	 * @param {(slug: string) => Promise<object>} attempt - `(slug) => Promise<*>`, resolving to the body.
-	 * @return {Promise<*>} The first usable body.
+	 * @return {Promise<unknown>} The first usable body.
 	 * @throws {Error} When no candidate answers, so callers keep degrading as before.
 	 */
 	async function withResolvedSlug(attempt) {

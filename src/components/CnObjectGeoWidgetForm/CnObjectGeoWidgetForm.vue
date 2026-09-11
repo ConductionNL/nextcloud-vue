@@ -200,7 +200,7 @@ export default {
 		 * Set a field and emit the assembled content.
 		 *
 		 * @param {string} field The field name.
-		 * @param {*} value The new value.
+		 * @param {unknown} value The new value.
 		 * @return {void}
 		 */
 		updateField(field, value) {

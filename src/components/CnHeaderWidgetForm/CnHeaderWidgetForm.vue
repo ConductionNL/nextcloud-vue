@@ -421,7 +421,7 @@ export default {
 		 * Set a top-level field and re-emit the assembled payload.
 		 *
 		 * @param {string} field one of the top-level content keys.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateField(field, value) {

@@ -235,7 +235,7 @@ export default {
 		/**
 		 * The placement id used to build the items request.
 		 *
-		 * @return {*} the placement id, or `null`.
+		 * @return {unknown} the placement id, or `null`.
 		 */
 		placementId() {
 			return this.placement && this.placement.id ? this.placement.id : null

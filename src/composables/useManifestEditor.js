@@ -159,8 +159,8 @@ function restoreInPlace(target, snap) {
 /**
  * structuredClone with a JSON fallback (manifests are plain JSON, no cycles).
  *
- * @param {*} value The value to clone.
- * @return {*} A deep clone of the value.
+ * @param {unknown} value The value to clone.
+ * @return {unknown} A deep clone of the value.
  */
 function deepClone(value) {
 	if (value === null || value === undefined) {
@@ -175,7 +175,7 @@ function deepClone(value) {
 /**
  * Stable JSON for equality — manifests are plain JSON, so this is sufficient.
  *
- * @param {*} value The value to stringify.
+ * @param {unknown} value The value to stringify.
  * @return {string} The JSON string.
  */
 function stableStringify(value) {

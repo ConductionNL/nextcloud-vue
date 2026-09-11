@@ -1957,7 +1957,7 @@ export default {
 		 * normalised.
 		 *
 		 * @param {string} widget The field widget ('date' | 'datetime').
-		 * @param {*} raw The stored value.
+		 * @param {unknown} raw The stored value.
 		 * @return {boolean} True when the value needs no rewrite.
 		 */
 		isCanonicalDateValue(widget, raw) {
@@ -1979,7 +1979,7 @@ export default {
 		 * every other string is Dutch.
 		 *
 		 * @param {object} field The field descriptor.
-		 * @param {*} val The raw enum value.
+		 * @param {unknown} val The raw enum value.
 		 * @return {string} The label to render.
 		 */
 		enumOptionLabel(field, val) {
@@ -2290,7 +2290,7 @@ export default {
 		 *
 		 * @param {object}  field The switch field descriptor (carries `enum`).
 		 * @param {boolean} on    The new switch state.
-		 * @return {*} The enum value to store.
+		 * @return {unknown} The enum value to store.
 		 */
 		switchValueFor(field, on) {
 			const values = Array.isArray(field.enum) ? field.enum : []
@@ -2341,7 +2341,7 @@ export default {
 		 * merely opening an existing record would look like a change and
 		 * refetch its definitions.
 		 *
-		 * @param {*} value The raw form value.
+		 * @param {unknown} value The raw form value.
 		 * @return {string} The value's identity, '' when unset.
 		 */
 		dynamicDriverValue(value) {

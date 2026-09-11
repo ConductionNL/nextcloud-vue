@@ -269,7 +269,7 @@ export default {
 		/**
 		 * Coerce an arbitrary value into a positive integer file id or null.
 		 *
-		 * @param {*} raw the candidate value.
+		 * @param {unknown} raw the candidate value.
 		 * @return {number|null} a positive integer, or `null`.
 		 */
 		coerceFileId(raw) {
@@ -287,7 +287,7 @@ export default {
 		 * Set a field and notify the parent via `update:content`.
 		 *
 		 * @param {string} field one of the nine content keys.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateField(field, value) {

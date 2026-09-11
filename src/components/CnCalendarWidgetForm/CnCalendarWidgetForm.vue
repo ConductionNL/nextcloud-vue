@@ -216,7 +216,7 @@ export default {
 		 * Set a field and notify the parent.
 		 *
 		 * @param {string} field the reactive key.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateField(field, value) {

@@ -288,7 +288,7 @@ function flagIsReadableAndUnset(storage, key) {
  * Type guard — true when value is a plain (non-array, non-null) object.
  * Used to reject SPA HTML-string responses from the preferences endpoint.
  *
- * @param {*} value Candidate.
+ * @param {unknown} value Candidate.
  * @return {boolean} True when value is a plain object.
  */
 function isPlainObject(value) {

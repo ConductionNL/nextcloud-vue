@@ -742,7 +742,7 @@ import { useSelfFetchList } from './useSelfFetchList.js'
  * @event {object} apply-view — A saved view was applied (saved-views-ui). Payload: the View API object. Only emitted when `allowSavedViews`.
  * @event {string} search — Search input changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  * @event {string[]} columns-change — Visible columns changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
- * @event {{ key: string, values: any[] }} filter-change — Facet filter changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
+ * @event {{ key: string, values: Array<unknown> }} filter-change — Facet filter changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  *
  * @slot mass-actions — Extra mass action buttons (shown when items are selected)
  * @slot action-items — Extra action bar buttons
@@ -3773,7 +3773,7 @@ export default {
 		 *
 		 * @param {object} obj The object to read from.
 		 * @param {string} path Dot-separated property path.
-		 * @return {*} The resolved value or undefined.
+		 * @return {unknown} The resolved value or undefined.
 		 */
 		getByPath(obj, path) {
 			if (!obj || !path) {
@@ -4069,7 +4069,7 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
 		setMassDeleteResult(resultData) {
@@ -4077,7 +4077,7 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
 		setMassCopyResult(resultData) {
@@ -4085,7 +4085,7 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
 		setExportResult(resultData) {
@@ -4093,7 +4093,7 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
 		setImportResult(resultData) {
@@ -4101,7 +4101,7 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
 		setDeleteResult(resultData) {
@@ -4109,7 +4109,7 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
 		setCopyResult(resultData) {
@@ -4236,7 +4236,7 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
 		setSingleDeleteResult(resultData) {
@@ -4244,7 +4244,7 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
 		setSingleCopyResult(resultData) {
@@ -4252,7 +4252,7 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
 		setFormResult(resultData) {

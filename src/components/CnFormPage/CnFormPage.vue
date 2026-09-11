@@ -824,7 +824,7 @@ export default {
 			 * Field-level update event.
 			 *
 			 * @event input
-			 * @type {{key: string, value: any}}
+			 * @type {{key: string, value: unknown}}
 			 */
 			this.$emit('input', { key, value })
 		},

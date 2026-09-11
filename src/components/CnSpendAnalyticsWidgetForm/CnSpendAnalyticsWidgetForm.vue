@@ -205,7 +205,7 @@ export default {
 		/**
 		 * Filter a raw value to a clean string array.
 		 *
-		 * @param {*} raw the raw value.
+		 * @param {unknown} raw the raw value.
 		 * @return {string[]} the cleaned list.
 		 */
 		coerceList(raw) {
@@ -219,7 +219,7 @@ export default {
 		 * Set a field and notify the parent.
 		 *
 		 * @param {string} field the reactive key.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateField(field, value) {

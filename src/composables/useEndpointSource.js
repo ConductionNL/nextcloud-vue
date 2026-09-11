@@ -86,7 +86,7 @@ const WIDGET_REFRESH_CHANNEL = 'cn:widget:refresh'
  * dedupe to one in-flight promise (pipelinq `cached()` semantics: an
  * errored fetch drops its entry so the next mount retries).
  *
- * @type {Map<string, {promise: Promise<*>, timestamp: number}>}
+ * @type {Map<string, {promise: Promise<unknown>, timestamp: number}>}
  */
 const responseCache = new Map()
 
@@ -95,9 +95,9 @@ const responseCache = new Map()
  * Returns the object itself for an empty path and `undefined` when any
  * segment is missing.
  *
- * @param {*} obj The source object.
+ * @param {unknown} obj The source object.
  * @param {string} [path] The dot-path.
- * @return {*} The resolved value or undefined.
+ * @return {unknown} The resolved value or undefined.
  */
 export function getByPath(obj, path) {
 	if (path === undefined || path === null || path === '') {
@@ -229,7 +229,7 @@ export function invalidateEndpointSourceCache() {
  *
  * @param {{url: string, method: string, params: object}} request The resolved request.
  * @param {{force?: boolean}} [opts] `force: true` bypasses (and replaces) the cache entry.
- * @return {Promise<*>} The raw response body (`res.data`).
+ * @return {Promise<unknown>} The raw response body (`res.data`).
  */
 async function fetchSharedResponse(request, opts) {
 	const key = endpointCacheKey(request)
@@ -273,7 +273,7 @@ async function fetchSharedResponse(request, opts) {
  * @param {{url: string, method?: string, params?: object, responsePath?: string}} config The endpointSource block.
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] The token context.
  * @param {{force?: boolean}} [opts] `force: true` bypasses the shared cache.
- * @return {Promise<*>} The plucked payload (or null).
+ * @return {Promise<unknown>} The plucked payload (or null).
  */
 export async function fetchEndpointSource(config, ctx, opts) {
 	if (!config || !config.url) {
@@ -291,8 +291,8 @@ export async function fetchEndpointSource(config, ctx, opts) {
 /**
  * Unwrap a value that may be a plain value, a ref, or a getter function.
  *
- * @param {*} v The wrapped value.
- * @return {*} The unwrapped value.
+ * @param {unknown} v The wrapped value.
+ * @return {unknown} The unwrapped value.
  */
 function read(v) {
 	return typeof v === 'function' ? v() : unref(v)
@@ -320,8 +320,8 @@ function read(v) {
  * @param {object} [options] Options.
  * @param {object|import('vue').Ref<object>|(() => object)} [options.ctx] Token context `{ objectId?, object?, workspace?, config? }` (object, ref, or getter).
  * @param {string|import('vue').Ref<string>|(() => string)} [options.widgetId] Widget id matched against `cn:widget:refresh` payloads (empty disables widget-scoped refresh).
- * @param {*} [options.refreshKey] Reactive value (ref or getter) whose changes force a refetch.
- * @return {{data: import('vue').Ref<*>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<string>, refetch: (force?: boolean) => Promise<void>}} Reactive state + a `refetch(force = true)` trigger.
+ * @param {import('vue').Ref<unknown>|(() => unknown)} [options.refreshKey] Reactive value (ref or getter) whose changes force a refetch.
+ * @return {{data: import('vue').Ref<unknown>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<string>, refetch: (force?: boolean) => Promise<void>}} Reactive state + a `refetch(force = true)` trigger.
  */
 export function useEndpointSource(source, options) {
 	const opts = options || {}

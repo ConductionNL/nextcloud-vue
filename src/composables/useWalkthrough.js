@@ -43,7 +43,7 @@ export function walkthroughPreferenceUrl(appId, configKey) {
  * truthiness check would misread as a fresh user and re-open the tour on every
  * visit. This is the read-side counterpart of `persistWalkthroughSeenVersion`.
  *
- * @param {*} value The raw stored / API value.
+ * @param {unknown} value The raw stored / API value.
  * @return {string} The last-seen version, or `''` when never seen.
  */
 export function normaliseSeenVersion(value) {
@@ -122,7 +122,7 @@ function writeLocalWalkthroughSeenVersion(appId, version, storage) {
  * the SPA index HTML Nextcloud returns (with status 200) when an app does not
  * actually serve `/api/preferences/{key}`.
  *
- * @param {*} value Candidate.
+ * @param {unknown} value Candidate.
  * @return {boolean} True when value is a plain object.
  */
 function isPlainObject(value) {

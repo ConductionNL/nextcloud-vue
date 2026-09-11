@@ -212,7 +212,7 @@ export default {
 		 *
 		 * @param {object} row Row record.
 		 * @param {object} col Column definition.
-		 * @return {*} The raw value.
+		 * @return {unknown} The raw value.
 		 */
 		cellValue(row, col) {
 			return row[col.key]
@@ -223,7 +223,7 @@ export default {
 		 * locale-formatted number; others go through the column's
 		 * `formatter` (if any) or are returned verbatim.
 		 *
-		 * @param {*} value The raw value.
+		 * @param {unknown} value The raw value.
 		 * @param {object} col Column definition.
 		 * @return {string} The display string.
 		 */

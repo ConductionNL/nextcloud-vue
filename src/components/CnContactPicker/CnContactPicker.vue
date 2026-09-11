@@ -291,7 +291,7 @@ export default {
 		 * Normalise a list response (`{results:[...]}`, `{items:[...]}`,
 		 * or bare array).
 		 *
-		 * @param {*} data parsed JSON
+		 * @param {unknown} data parsed JSON
 		 *
 		 * @return {Array}
 		 */

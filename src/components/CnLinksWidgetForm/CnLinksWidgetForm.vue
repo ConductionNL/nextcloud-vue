@@ -350,7 +350,7 @@ export default {
 		/**
 		 * Clamp the column count to 1–6.
 		 *
-		 * @param {*} value the candidate column count.
+		 * @param {unknown} value the candidate column count.
 		 * @return {number} the clamped column count.
 		 */
 		clampColumns(value) {
@@ -499,7 +499,7 @@ export default {
 		 * Update a global layout option, then emit.
 		 *
 		 * @param {string} field the option field.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateOption(field, value) {

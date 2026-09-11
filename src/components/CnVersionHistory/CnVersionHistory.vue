@@ -138,8 +138,8 @@ import { buildHeaders } from '../../utils/index.js'
  * @typedef {object} FieldDiffRow
  * @property {string} path Field name.
  * @property {'added'|'removed'|'changed'|'unchanged'} type Classification.
- * @property {*} oldValue Value before.
- * @property {*} newValue Value after.
+ * @property {unknown} oldValue Value before.
+ * @property {unknown} newValue Value after.
  */
 
 /**

@@ -1474,7 +1474,7 @@ export default {
 			 * would otherwise leave its wrapper card and reserved grid row
 			 * behind as a tall empty box.
 			 *
-			 * @type {Record<string, {met: boolean, value: any}>}
+			 * @type {Record<string, {met: boolean, value: unknown}>}
 			 */
 			widgetConditionOutcome: {},
 			/**

@@ -589,7 +589,7 @@ export default {
 /**
  * Clamp a configured row limit into the range the endpoint accepts.
  *
- * @param {*} raw The configured limit.
+ * @param {unknown} raw The configured limit.
  * @return {number} A limit between 1 and 50 (default 6).
  */
 function normaliseLimit(raw) {
@@ -603,7 +603,7 @@ function normaliseLimit(raw) {
 /**
  * Clamp a configured scope onto the endpoint's vocabulary.
  *
- * @param {*} raw The configured scope.
+ * @param {unknown} raw The configured scope.
  * @return {string} One of assigned, pooled, watched, all (default assigned).
  */
 function normaliseScope(raw) {
