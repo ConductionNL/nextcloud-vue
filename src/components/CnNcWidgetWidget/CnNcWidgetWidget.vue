@@ -272,7 +272,7 @@ export default {
 		/**
 		 * Look up a native render callback on the `OCA.Dashboard` global.
 		 *
-		 * @return {Function|null} the callback, or `null` when none is registered.
+		 * @return {((el: HTMLElement, ctx: {widget: object}) => unknown)|null} the callback, or `null` when none is registered.
 		 */
 		resolveNativeCallback() {
 			const dashboard = getDashboardGlobal()
@@ -292,7 +292,7 @@ export default {
 		 * Mount the widget natively by invoking its registered callback with
 		 * our render container.
 		 *
-		 * @param {Function} callback the native render callback.
+		 * @param {(el: HTMLElement, ctx: {widget: object}) => unknown} callback the native render callback.
 		 * @return {void}
 		 */
 		mountNative(callback) {

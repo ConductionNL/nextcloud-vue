@@ -78,7 +78,7 @@ export function clearDeprecationWarnings() {
  * map. Idempotent per token for the process lifetime.
  *
  * @param {string} token The `@`-prefixed token.
- * @param {Function} warn console.warn override (tests).
+ * @param {(...args: unknown[]) => void} warn console.warn override (tests).
  * @return {boolean} True when the token is deprecated (regardless of whether a
  *   warning was emitted this call).
  */
@@ -113,7 +113,7 @@ export function warnIfDeprecated(token, warn) {
  *   Context forwarded to {@link resolveFilterValue} for filter / object /
  *   workspace / `@config.<key>` tokens.
  * @param {string} [opts.pageId] Page id for route-resolver warning dedup.
- * @param {Function} [opts.warn] console.warn override (tests).
+ * @param {(...args: unknown[]) => void} [opts.warn] console.warn override (tests).
  * @return {{value: *, unresolved: string[]}} The resolved subtree plus the
  *   list of tokens that stayed unresolved (excluding OPTIONAL `?` tokens, which
  *   are meant to be dropped, not waited on).

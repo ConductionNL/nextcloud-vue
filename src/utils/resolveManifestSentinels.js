@@ -83,10 +83,10 @@ export function clearResolveCache() {
  * @param {string} appId Nextcloud app ID. Used to scope the
  *   IAppConfig lookup namespace.
  * @param {object} [options] Resolver overrides.
- * @param {Function} [options.getAppConfigValue] Async (appId, key) =>
- *   value resolver. Override for tests; defaults to the
+ * @param {(appId: string, key: string) => Promise<unknown>} [options.getAppConfigValue] Value
+ *   resolver. Override for tests; defaults to the
  *   initial-state-then-fetch chain documented above.
- * @param {Function} [options.warn] Override for `console.warn`. Used in
+ * @param {(...args: unknown[]) => void} [options.warn] Override for `console.warn`. Used in
  *   tests to capture warning calls without polluting test output.
  * @return {Promise<{ manifest: object, unresolved: string[] }>}
  */

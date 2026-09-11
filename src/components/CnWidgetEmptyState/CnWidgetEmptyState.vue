@@ -92,7 +92,7 @@ export default {
 		 * Icon component rendered inside the circle. Defaults to an
 		 * empty-tray outline.
 		 *
-		 * @type {object|Function|null}
+		 * @type {import('vue').Component|null}
 		 */
 		icon: {
 			type: [Object, Function],
@@ -126,7 +126,7 @@ export default {
 		/**
 		 * The icon component to render (the `icon` prop, else the default).
 		 *
-		 * @return {object|Function}
+		 * @return {import('vue').Component}
 		 */
 		iconComponent() {
 			return this.icon || TrayRemove

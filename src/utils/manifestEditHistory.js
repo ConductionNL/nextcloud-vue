@@ -39,7 +39,7 @@
  *   a `push(state, label)` within `coalesceMs` of the previous push, at the
  *   top of the stack, carrying the same non-empty `label`, replaces the top
  *   entry instead of appending. `0` (the default) disables coalescing.
- * @param {Function} [options.now] Injectable clock used to timestamp pushes
+ * @param {() => number} [options.now] Injectable clock used to timestamp pushes
  *   and evaluate the coalescing window. Default `Date.now`. Exists so tests
  *   can simulate elapsed time deterministically without real timers.
  * @return {{

@@ -147,7 +147,7 @@ export default {
 		 * base64-encoded and stored), so the browser tab can't be frozen by a huge
 		 * inline blob. Wire a transport for anything larger.
 		 *
-		 * @type {Function|null}
+		 * @type {((file: File) => Promise<{url: string}>)|null}
 		 */
 		fileUploadFn: {
 			type: Function,
@@ -163,7 +163,7 @@ export default {
 		 * a data URL and hands that to this function (emitting a one-time
 		 * console.warn). `fileUploadFn` takes precedence when both are provided.
 		 *
-		 * @type {Function|null}
+		 * @type {((dataUrl: string) => Promise<{url: string}>)|null}
 		 */
 		uploadFn: {
 			type: Function,

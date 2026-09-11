@@ -175,7 +175,7 @@ export function resolveDocsUrl(base, anchor) {
  * re-emitting `@refresh`), so a host listener on the outer component can
  * still suppress the default.
  *
- * @return {{defaultPrevented: boolean, preventDefault: Function}}
+ * @return {{defaultPrevented: boolean, preventDefault: () => void}}
  */
 function createSyntheticEvent() {
 	const ev = {

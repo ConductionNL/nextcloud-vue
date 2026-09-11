@@ -28,7 +28,7 @@ let instance = null
  *   pollTransport: object|null,
  *   activeTransport: object|null,
  *   handles: Map<object, object>,
- *   statusObservers: Function[],
+ *   statusObservers: Array<(status: string) => void>,
  *   pollIntervalCollection: number,
  *   pollIntervalObject: number,
  * }}
@@ -62,7 +62,7 @@ function notifyStatus(newStatus) {
  * Switch all active subscriptions from websocket to polling transport.
  * Called when the websocket transport emits `'polling'` status.
  *
- * @param {Array<{ handle: object, eventKey: string, cb: Function, interval: number }>} activeSubscriptions
+ * @param {Array<{ handle: object, eventKey: string, cb: (event?: string, body?: object) => void, interval: number }>} activeSubscriptions
  *   Every live subscription, re-registered one-for-one against the polling
  *   transport; `handle` is the caller-facing handle whose mapping is rewritten
  *   to the new internal handle so `unsubscribe` keeps working.
@@ -163,7 +163,7 @@ export function getLiveUpdates(opts = {}) {
 		/**
 		 * Register a status observer.
 		 *
-		 * @param {Function} cb Callback receiving the new status string
+		 * @param {(status: string) => void} cb Callback receiving the new status string
 		 */
 		onStatusChange(cb) {
 			state.statusObservers.push(cb)
@@ -173,7 +173,7 @@ export function getLiveUpdates(opts = {}) {
 		 * Subscribe to an event key.
 		 *
 		 * @param {string} eventKey Event key (from eventKeys.js)
-		 * @param {Function} cb Callback invoked when the event fires
+		 * @param {(event?: string, body?: object) => void} cb Callback invoked when the event fires
 		 * @param {object} [opts] Options
 		 * @param {number} [opts.interval] Poll interval override (polling transport only)
 		 * @param {boolean} [opts.isObject] Whether this is an object (vs collection) subscription

@@ -151,7 +151,7 @@ export function savedObjectId(saved) {
  * @param {string} name The registered handler name.
  * @param {object} registry The v2 component registry.
  * @param {object} customComponents The legacy customComponents map.
- * @return {?Function} The async create handler, or null when unresolved.
+ * @return {?((context: object) => unknown)} The async create handler, or null when unresolved.
  */
 export function resolveCreateOverrideHandler(name, registry, customComponents) {
 	if (typeof name !== 'string' || name === '') {
@@ -541,12 +541,12 @@ async function executeAgentAction(action, context) {
  * @param {object} [context.registry] Component registry (Record<string, { kind, component }>).
  *   Required for "open-modal" type.
  * @param {object} [context.handlers] Map of handler name → function. Required for "handler" type.
- * @param {Function} [context.openModal] Function `(key, props)` that opens a modal.
+ * @param {(key: string, props: object) => void} [context.openModal] Opens a modal.
  *   Required for "open-modal" type.
- * @param {Function} [context.openExport] Function `(action)` that opens the shared
+ * @param {(action: object) => void} [context.openExport] Opens the shared
  *   CnMassExportDialog configured from the action. Required for "export" type —
  *   CnPageRenderer pre-binds it in the `cnDispatchAction` context.
- * @param {Function} [context.openForm] Function `(action)` that opens the schema-driven
+ * @param {(action: object) => void} [context.openForm] Opens the schema-driven
  *   create dialog. Required for "open-form" type — the rendering surface
  *   (CnActionButtons) provides it, mirroring `openExport`. On a successful save the
  *   surface navigates to `action.onSuccessRoute` (a route NAME string, or
@@ -556,7 +556,7 @@ async function executeAgentAction(action, context) {
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [context.tokenCtx]
  *   Token context "api-call" URLs/params resolve against (the same shape
  *   `resolveFilterTokens` / `interpolateUrlTokens` take).
- * @param {Function} [context.translate] The consumer's bound `t()` — the same
+ * @param {(app: string, text: string, vars?: object) => string} [context.translate] The consumer's bound `t()` — the same
  *   `cnTranslate` CnAppRoot provides to the page chrome. Applied to the
  *   manifest-authored `successMessage` / `errorMessage` of "api-call" and
  *   "agent" so their toasts follow the user's language. Omitted (or a

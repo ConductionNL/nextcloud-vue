@@ -183,7 +183,7 @@ export default {
 		 * control is hidden and the picker still offers its catalogues, NL sets,
 		 * and a URL field.
 		 *
-		 * @type {Function|null}
+		 * @type {((dataUrl: string) => Promise<{url: string}>)|null}
 		 */
 		uploadFn: {
 			type: Function,
@@ -199,7 +199,7 @@ export default {
 		 * image widget defer the upload to submit and hand over the raw `File`.
 		 * When null, sub-forms fall back to their own no-transport behaviour.
 		 *
-		 * @type {Function|null}
+		 * @type {((file: File) => Promise<{url: string}>)|null}
 		 */
 		fileUploadFn: {
 			type: Function,
@@ -212,7 +212,7 @@ export default {
 		 * by the consuming app (which owns the calendar backend); when null the
 		 * calendar form falls back to free-text principal entry.
 		 *
-		 * @type {Function|null}
+		 * @type {(() => Promise<Array<{key: string, name: string, color: string}>>)|null}
 		 */
 		calendarsFetcher: {
 			type: Function,

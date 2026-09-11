@@ -649,7 +649,7 @@ export default {
 		 * children in the DOM but `display:none`, so the target can't be located or
 		 * measured and the engine would otherwise fall back to a centered coachmark.
 		 *
-		 * Scoped to the app navigation. Robust across @nextcloud/vue markup
+		 * Scoped to the app navigation. Robust across `@nextcloud/vue` markup
 		 * variants: it primarily clicks any `[aria-expanded="false"]` toggle, then
 		 * falls back to the collapse button of any collapsible group that is not in
 		 * the opened state. Attempted at most once per step (guarded by

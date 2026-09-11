@@ -26,7 +26,7 @@ export function emptyPaginated(limit = 20) {
  * @param {string} endpoint URL path segment appended to the object URL (e.g. 'audit-trails')
  * @param {object} [options] Plugin options
  * @param {number} [options.limit] Default page size
- * @return {Function} Plugin factory that returns the plugin definition
+ * @return {() => object} Plugin factory that returns the plugin definition
  *
  * @example
  * // Simple read-only sub-resource

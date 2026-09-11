@@ -83,7 +83,7 @@ function isEmptyValue(type, value) {
  *
  * @param {object} field The formField shape (`{ key, type, validation? }`).
  * @param {*} value The current field value.
- * @param {Function} [translate] Optional single-arg translator applied to
+ * @param {(message: string) => string} [translate] Optional single-arg translator applied to
  *   `validation.message` (mirrors how `field.label` is resolved by the
  *   page's `translate` prop). Defaults to identity.
  * @return {string|null} The failure message, or `null` when the value is valid.

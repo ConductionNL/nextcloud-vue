@@ -244,7 +244,7 @@ export default {
 		 *
 		 * @param {object[]} items the items array to descend.
 		 * @param {number[]} path the index path.
-		 * @param {Function} mutator called with `(arr, index)`.
+		 * @param {(arr: object[], index: number) => void} mutator called with `(arr, index)`.
 		 * @return {void}
 		 */
 		setItemAtPath(items, path, mutator) {

@@ -267,7 +267,7 @@ export default {
 
 		/**
 		 * Dropzone drop handler — extracts files + validates size +
-		 * emits @upload.
+		 * emits `@upload`.
 		 *
 		 * @param {DragEvent} event The drop event.
 		 * @return {void}

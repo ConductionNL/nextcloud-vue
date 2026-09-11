@@ -91,7 +91,7 @@ function defaultResolveResult(obj, type) {
  * @param {string} [config.section] Section label the palette groups these results under. Defaults to `'Objects'`.
  * @param {number} [config.limit] Max results requested PER type (not total). Defaults to `6`.
  * @param {number} [config.minQueryLength] Below this query length, `search()` resolves to `[]` without calling the store (avoids a network round-trip per keystroke on a 1-character query). Defaults to `2`.
- * @param {?Function} [config.resolveResult] `(obj, type) => { title, subtitle?, keywords?, route?, run? }`. Defaults to `defaultResolveResult` (title-ish field sniffing, no navigation). Supply this to wire real navigation — e.g. via `resolveManifestDetailRoute`.
+ * @param {?((obj: object, type: string) => object)} [config.resolveResult] Maps a stored object to `{ title, subtitle?, keywords?, route?, run? }`. Defaults to `defaultResolveResult` (title-ish field sniffing, no navigation). Supply this to wire real navigation — e.g. via `resolveManifestDetailRoute`.
  * @param {?object} [config.router] A vue-router instance. When `resolveResult` returns `route` (and not `run`), the item's `run()` calls `router.push(route)`. Omit if every `resolveResult` returns its own `run`.
  * @return {{id: string, section: string, search: (query: string) => Promise<Array<object>>}} The source descriptor for `CnCommandPalette`'s `objectSearch` prop.
  */

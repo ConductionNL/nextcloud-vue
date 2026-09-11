@@ -143,7 +143,7 @@ export default {
 		 * `createObjectSearchSource` (`src/utils/commandPaletteObjectSource.js`)
 		 * produces. Omit to run without live object search.
 		 *
-		 * @type {Function|null}
+		 * @type {((query: string) => Promise<object[]>)|null}
 		 */
 		objectSearch: { type: Function, default: null },
 		/**

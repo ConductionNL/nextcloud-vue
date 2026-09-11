@@ -167,7 +167,7 @@ export default {
 		 * `({ path, depth }) => Promise<folders>`. Defaults to a built-in
 		 * WebDAV PROPFIND loader. Inject in tests.
 		 *
-		 * @type {Function}
+		 * @type {(opts: {path: string, depth: number}) => Promise<object[]>}
 		 */
 		fetcher: {
 			type: Function,
