@@ -378,7 +378,9 @@ export default {
 
 <style scoped>
 .cn-sidebar-tab { padding: 12px; }
+
 .cn-sidebar-tab__action { margin-bottom: 16px; }
+
 .cn-sidebar-tab__action--row { display: flex; gap: 8px; align-items: flex-end; margin-top: 8px; }
 
 .cn-sidebar-tab__composer {

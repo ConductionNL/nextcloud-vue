@@ -17,6 +17,7 @@
  *  | boolean          | value is `true`               | not applicable     | not applicable |
  *  | enum             | a value is selected           | not applicable     | not applicable |
  *  | json             | value is non-null             | not applicable     | not applicable |
+ *  | file             | a file is present (the generic non-empty check) | not applicable | not applicable |
  *
  * `validation.message` — when set — replaces the built-in default message
  * for WHICHEVER rule fails, and is run through the caller-supplied

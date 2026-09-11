@@ -397,7 +397,7 @@ export default {
 .cn-detail-grid__value {
 	font-size: 1em;
 	color: var(--color-main-text);
-	word-break: break-word;
+	overflow-wrap: anywhere;
 	margin: 0.5rem;
 }
 

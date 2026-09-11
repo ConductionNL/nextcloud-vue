@@ -707,12 +707,14 @@ export default {
 .cn-buildiq-edit__actions :deep(.button-vue__wrapper) {
 	justify-content: center;
 }
+
 .cn-buildiq-edit__actions :deep(.button-vue__icon) {
 	display: flex !important;
 	align-items: center;
 	justify-content: center;
 	color: #fff;
 }
+
 .cn-buildiq-edit__glyph {
 	color: #fff;
 	display: block;

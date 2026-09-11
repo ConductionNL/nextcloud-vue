@@ -1869,7 +1869,7 @@ export default {
 .cn-object-data-widget__value {
 	font-size: 1em;
 	color: var(--color-main-text);
-	word-break: break-word;
+	overflow-wrap: anywhere;
 	position: relative;
 	padding-right: 20px;
 }
@@ -1964,7 +1964,7 @@ export default {
 	padding: 2px 8px 2px 0;
 	border-bottom: 1px solid var(--color-border);
 	vertical-align: top;
-	word-break: break-word;
+	overflow-wrap: anywhere;
 }
 
 .cn-object-data-widget__mini-table th {
@@ -2007,7 +2007,7 @@ export default {
 
 .cn-object-data-widget__deflist dd {
 	margin: 0;
-	word-break: break-word;
+	overflow-wrap: anywhere;
 }
 
 /* Responsive: collapse to single column on narrow widths */

@@ -22,6 +22,15 @@
  *  |               | `field.widget === "textarea"`                      |
  *  | `enum`        | NcSelect, options shaped from `field.enum`/`field.options` |
  *  | `json`        | CnJsonViewer (read-only display in this rev)       |
+ *  | `file`        | CnFileField, value is the picked file's `data:` URL |
+ *
+ * A `file` field reads the file in the browser and holds its content as a
+ * `data:` URL. It never holds a path or a URL, so the field cannot choose
+ * where the file ends up: the receiver of the form payload does. For a
+ * schema property of `type: "file"`, OpenRegister stores the content in the
+ * object's own folder under a name it generates. `field.accept` narrows the
+ * picker (HTML `accept` syntax) and `field.maxSize` caps the size in bytes
+ * (default 1 MB, the library's inline-file cap).
  *
  * Unknown `field.type` values fall back to NcTextField and emit a
  * single `console.warn` so the consumer notices the typo.
@@ -90,6 +99,7 @@ import {
 	NcTextField,
 } from '@nextcloud/vue'
 import CnJsonViewer from '../components/CnJsonViewer/CnJsonViewer.vue'
+import CnFileField from '../components/CnFileField/CnFileField.vue'
 
 /**
  * Whether the installed `@nextcloud/vue` actually provided `NcTextArea`.
@@ -111,9 +121,10 @@ const DEFAULT_COMPONENT_MAP = Object.freeze({
 	'string-textarea': NcTextArea,
 	enum: NcSelect,
 	json: CnJsonViewer,
+	file: CnFileField,
 })
 
-const KNOWN_TYPES = ['boolean', 'number', 'password', 'string', 'enum', 'json']
+const KNOWN_TYPES = ['boolean', 'number', 'password', 'string', 'enum', 'json', 'file']
 
 const warned = new Set()
 
@@ -235,6 +246,28 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 				label,
 			},
 			listeners: {},
+		}
+	} else if (field.type === 'file') {
+		// The value is content, never a location: CnFileField emits the
+		// picked file as a `data:` URL (or null on Remove file), and only
+		// forwards `accept` / `maxSize`. Where the content is stored is the
+		// payload receiver's decision, not the manifest's. A validation
+		// `error` is NOT bound here: CnFileField is not an NcInputField, so
+		// CnFormPage renders its adjacent role="alert" for it, as it does for
+		// `enum` and `json`.
+		const maxSize = Number(field.maxSize)
+		result = {
+			kind: 'file',
+			tag: map.file,
+			props: {
+				label,
+				modelValue: value ?? null,
+				accept: typeof field.accept === 'string' ? field.accept : '',
+				...(Number.isFinite(maxSize) && maxSize > 0 ? { maxSize } : {}),
+			},
+			listeners: {
+				'update:modelValue': (next) => onInput(next),
+			},
 		}
 	} else if (field.type === 'string') {
 		const isTextarea = field.widget === 'textarea'

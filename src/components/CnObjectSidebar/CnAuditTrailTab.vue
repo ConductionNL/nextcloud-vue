@@ -305,6 +305,7 @@ export default {
 }
 
 .cn-audit-filters__select { min-width: 0; }
+
 .cn-audit-filters__date { min-width: 0; }
 
 .cn-sidebar-tab__load-more { margin-top: 8px; }

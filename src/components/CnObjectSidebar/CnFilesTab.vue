@@ -411,9 +411,12 @@ export default {
 .cn-sidebar-tab__share { margin-bottom: 12px; }
 
 .cn-sidebar-tab__dropzone-icon { color: var(--color-text-maxcontrast); }
+
 .cn-sidebar-tab__dropzone--active .cn-sidebar-tab__dropzone-icon,
 .cn-sidebar-tab__dropzone:hover .cn-sidebar-tab__dropzone-icon { color: var(--color-primary-element); }
+
 .cn-sidebar-tab__dropzone-text { font-size: 13px; color: var(--color-text-maxcontrast); }
+
 .cn-sidebar-tab__file-input { display: none; }
 
 .cn-sidebar-tab__empty {
@@ -424,5 +427,6 @@ export default {
 }
 
 .cn-sidebar-tab__list { display: flex; flex-direction: column; gap: 2px; }
+
 .cn-sidebar-tab__load-more { margin-top: 8px; }
 </style>

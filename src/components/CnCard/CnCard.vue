@@ -374,7 +374,6 @@ export default {
 .cn-card__description {
 	color: var(--color-text-lighter);
 	margin-bottom: 12px;
-	word-wrap: break-word;
 	overflow-wrap: break-word;
 	display: -webkit-box;
 	-webkit-box-orient: vertical;

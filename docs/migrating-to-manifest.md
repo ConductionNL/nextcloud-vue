@@ -831,7 +831,7 @@ Formatters are invoked as `fn(value, row, property, formatterOptions)` — the f
 |---|---|
 | `badge` | Renders the value as a `CnStatusBadge` pill. `widgetProps.variant` picks the colour (default `"default"`), and `widgetProps.colorMap` — a `{ value: variant }` map, matched case-insensitively — colours each value individually (e.g. `{ "info": "info", "error": "error" }`), which is how you colour a status column whose schema property carries no `enum`. Lives on the *widget* mechanism (not a formatter) because it renders a component; pair it with a `formatter` to shape the pill's label. |
 | `fkResolve` | Resolves a reference uuid (or an array of them) to the related object's display label, fetched through the shared object store with per-schema caching (one request per distinct id, in-flight de-dup). Config: `widgetProps { register, schema, labelField }` — `labelField` default `"name"`, falling back to `title` → `@self.name` → the raw id. |
-| `link` | Renders the value as a navigable link. Resolution order: `widgetProps.route` (a manifest page id) → `<router-link>` to `{name: route, params: {id: row[rowKey]}}`; else `widgetProps.href` → `<a target="_blank" rel="noopener">` (with `{key}` placeholders substituted from the row); else plain text + a once-per-session `console.warn` (silence with `widgetProps.fallback: "silent"`). For non-`id` route params, pass `widgetProps.params: { routeParamName: "rowFieldName" }`. |
+| `link` | Renders the value as a navigable link. Resolution order: `widgetProps.route` (a manifest page id) → `<router-link>` to `{name: route, params: {id: row[rowKey]}}`; else `widgetProps.href` → `<a target="_blank" rel="noopener">` (with `{key}` placeholders substituted from the row); else plain text + a once-per-session `console.warn` (silence with `widgetProps.fallback: "silent"`). For non-`id` route params, pass `widgetProps.params: { routeParamName: "rowFieldName" }`. To pick the page per row, add `routeField` (a sibling field on the row) and `routeMap` (its values to page ids); see "A link whose page depends on the row" below. |
 
 ```jsonc
 "columns": [
@@ -841,6 +841,30 @@ Formatters are invoked as `fn(value, row, property, formatterOptions)` — the f
 ```
 
 `widget` is checked AFTER any consumer registry entry, so an app can override `"link"` / `"badge"` by registering same-named components on `CnAppRoot`'s `:cell-widgets`.
+
+#### A link whose page depends on the row
+
+A Requester column can hold a person or an organisation, and each has its own detail page. Name the sibling field that tells them apart in `routeField`, and map its values to page ids in `routeMap`:
+
+```jsonc
+{
+  "key": "requesterName",
+  "label": "Requester",
+  "widget": "link",
+  "widgetProps": {
+    "routeField": "initiatorType",
+    "routeMap": { "person": "ContactDetail", "organisation": "OrganisationDetail" },
+    "params": { "id": "requester" }
+  }
+}
+```
+
+A row with `initiatorType: "organisation"` links to `OrganisationDetail` with `id` taken from its `requester` field. The same `params` map applies to every page in the map.
+
+- A value the map does not hold falls back to `route` when you set one. Without it, the cell shows plain text and logs no warning, because an empty requester is data, not a manifest mistake.
+- A row value is only ever a key into `routeMap`. It never becomes a route name itself, so row data cannot link to a page the manifest did not name.
+
+`href` values get the same care: the resolved URL goes through `safeHref`, and a `javascript:` or `data:` result renders as text instead of a link.
 
 ## `pages[].permission` (schema-only)
 

@@ -77,6 +77,44 @@ describe('CnNcWidgetWidget renderer', () => {
 		expect(wrapper.vm.mode).toBe('api')
 		expect(axios.get).toHaveBeenCalled()
 	})
+
+	it('says the widget cannot be shown here when the items API has no entry for it', async () => {
+		// The shape measured on a real instance for the Tasks app's widget,
+		// which implements only IWidget: the widget-items response has NO key
+		// for it. `data` is an empty list, not a map holding an empty list.
+		axios.get.mockResolvedValueOnce({ status: 200, data: { ocs: { data: [] } } })
+		const wrapper = mount(CnNcWidgetWidget, { propsData: { content: { widgetId: 'tasks' } } })
+		await flushPromises()
+
+		const state = wrapper.find('.cn-nc-widget-widget__state')
+		expect(state.text()).toContain('can only be shown on the Nextcloud dashboard')
+		expect(state.text()).not.toContain('No items available')
+	})
+
+	it('keeps "No items available" for a widget that answers with an empty list', async () => {
+		// The shape measured for the Mail app's widget with an empty inbox:
+		// the widget IS in the response, and it has nothing right now.
+		axios.get.mockResolvedValueOnce({
+			status: 200,
+			data: { ocs: { data: { mail: { items: [], emptyContentMessage: 'No message found yet' } } } },
+		})
+		const wrapper = mount(CnNcWidgetWidget, { propsData: { content: { widgetId: 'mail' } } })
+		await flushPromises()
+
+		expect(wrapper.find('.cn-nc-widget-widget__state').text()).toContain('No items available')
+		expect(wrapper.find('[data-testid="nc-widget-unsupported"]').exists()).toBe(false)
+	})
+
+	it('does not blame the app when the request itself failed', async () => {
+		// A failed request says nothing about whether the widget can serve
+		// items, so it must not produce a claim about the app.
+		axios.get.mockRejectedValueOnce(new Error('network'))
+		const wrapper = mount(CnNcWidgetWidget, { propsData: { content: { widgetId: 'tasks' } } })
+		await flushPromises()
+
+		expect(wrapper.find('[data-testid="nc-widget-unsupported"]').exists()).toBe(false)
+		expect(wrapper.find('.cn-nc-widget-widget__state').text()).toContain('No items available')
+	})
 })
 
 describe('nc-widget registry registration', () => {

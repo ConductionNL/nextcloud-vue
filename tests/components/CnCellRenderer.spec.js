@@ -306,6 +306,105 @@ describe('CnCellRenderer — built-in "link" widget (REQ-MIPFU-2)', () => {
 		})
 		expect(wrapper.find('[data-test="router-link"]').text()).toBe('RAW')
 	})
+
+	describe('a route chosen per row by a sibling field (routeField + routeMap)', () => {
+		// contacts-domain 3.6: one Requester column links a person to their
+		// contact page and an organisation to theirs, off `initiatorType`.
+		const perRow = {
+			routeField: 'initiatorType',
+			routeMap: { person: 'ContactDetail', organisation: 'OrganisationDetail' },
+			params: { id: 'requester' },
+		}
+		const requesterColumn = { route: 'CaseList', ...perRow }
+
+		const toOf = (wrapper) => JSON.parse(wrapper.find('[data-test="router-link"]').attributes('data-to'))
+
+		it('routes each row to the page its sibling field maps to', () => {
+			const person = mountLink({
+				value: 'Jan Jansen',
+				widget: 'link',
+				widgetProps: requesterColumn,
+				row: { id: 'case-1', requester: 'p-1', initiatorType: 'person' },
+			})
+			const organisation = mountLink({
+				value: 'Acme BV',
+				widget: 'link',
+				widgetProps: requesterColumn,
+				row: { id: 'case-2', requester: 'o-9', initiatorType: 'organisation' },
+			})
+			expect(toOf(person)).toEqual({ name: 'ContactDetail', params: { id: 'p-1' } })
+			expect(toOf(organisation)).toEqual({ name: 'OrganisationDetail', params: { id: 'o-9' } })
+		})
+
+		it('falls back to the fixed route when the row value has no entry', () => {
+			const wrapper = mountLink({
+				value: 'Unknown',
+				widget: 'link',
+				widgetProps: requesterColumn,
+				row: { id: 'case-3', requester: 'x-1', initiatorType: 'robot' },
+			})
+			expect(toOf(wrapper)).toEqual({ name: 'CaseList', params: { id: 'x-1' } })
+		})
+
+		it('never uses a row value as a route name the map does not hold', () => {
+			// The row says "AdminSettings"; the map does not name it, and there is
+			// no fixed route, so the cell is text rather than a link there.
+			const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+			try {
+				const wrapper = mountLink({
+					value: 'Sneaky',
+					property: { type: 'string', title: 'RouteMapNoEntry' },
+					widget: 'link',
+					widgetProps: perRow,
+					row: { id: 'case-4', requester: 'x-2', initiatorType: 'AdminSettings' },
+				})
+				expect(wrapper.find('[data-test="router-link"]').exists()).toBe(false)
+				expect(wrapper.text()).toBe('Sneaky')
+				// A row outside the map is data, not a manifest mistake: no warning.
+				expect(warn.mock.calls.filter((c) => String(c[0]).includes('widget:"link"'))).toHaveLength(0)
+			} finally {
+				warn.mockRestore()
+			}
+		})
+
+		it('only reads the map\'s own entries, not ones it inherits', () => {
+			// A routeMap built in JS can carry a prototype. An inherited entry is
+			// not one the author declared on this column, so it must not route.
+			const inherited = Object.assign(Object.create({ robot: 'AdminSettings' }), perRow.routeMap)
+			const wrapper = mountLink({
+				value: 'Proto',
+				property: { type: 'string', title: 'RouteMapProto' },
+				widget: 'link',
+				widgetProps: { ...perRow, routeMap: inherited },
+				row: { id: 'case-5', requester: 'x-3', initiatorType: 'robot' },
+			})
+			expect(wrapper.find('[data-test="router-link"]').exists()).toBe(false)
+			expect(wrapper.text()).toBe('Proto')
+		})
+	})
+
+	describe('href safety', () => {
+		it('does not render a row value with a javascript: scheme as a link', () => {
+			const wrapper = mountLink({
+				value: 'Click me',
+				widget: 'link',
+				widgetProps: { href: '{url}' },
+				row: { id: '1', url: 'javascript:alert(1)' },
+			})
+			expect(wrapper.find('a').exists()).toBe(false)
+			expect(wrapper.text()).toBe('Click me')
+		})
+
+		it('still renders a safe https value as an external link', () => {
+			const wrapper = mountLink({
+				value: 'Site',
+				widget: 'link',
+				widgetProps: { href: '{url}' },
+				row: { id: '1', url: 'https://example.org/x' },
+			})
+			expect(wrapper.find('a[target="_blank"]').attributes('href')).toBe('https://example.org/x')
+		})
+	})
 })
 
 describe('CnCellRenderer — date-time & uri rendering', () => {

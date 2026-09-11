@@ -1316,6 +1316,33 @@ describe('validateManifest — manifest-form-page-type', () => {
 		expect(result.errors).toEqual([])
 	})
 
+	it('accepts a type=file field on a type=form page', () => {
+		const result = validateManifest(wrap({
+			id: 'advice',
+			route: '/advice',
+			type: 'form',
+			title: 'Advice',
+			config: {
+				fields: [baseField, { key: 'report', label: 'i18n.report', type: 'file', accept: '.pdf', maxSize: 10485760 }],
+				submitHandler: 'saveAdvice',
+			},
+		}))
+		expect(result.errors).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('rejects a type=file field on a type=settings page, which saves to app config', () => {
+		const result = validateManifest(wrap({
+			id: 'app-settings',
+			route: '/settings',
+			type: 'settings',
+			title: 'Settings',
+			config: { sections: [{ title: 'g', fields: [{ key: 'logo', label: 'Logo', type: 'file' }] }] },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors).toContain('/pages/0/config/sections/0/fields/0/type: must be one of boolean, number, string, enum, password, json')
+	})
+
 	it('rejects a type=form page missing fields', () => {
 		const result = validateManifest(wrap({
 			id: 'survey',

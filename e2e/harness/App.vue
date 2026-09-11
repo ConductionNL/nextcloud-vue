@@ -384,6 +384,26 @@
 			page's Add button is the path that had no way to ask for any of
 			this before.
 		-->
+		<!--
+			Proxied Nextcloud widgets (?ncproxy=1).
+
+			Two proxies side by side, and the spec answers the OCS widget-items
+			call with the two shapes a real instance gives: the Tasks app's
+			widget implements only IWidget, so the response has NO key for it;
+			the Mail app's widget with an empty inbox comes back as its own key
+			holding an empty list. They look identical to a component that only
+			counts items, and they mean opposite things.
+		-->
+		<template v-else-if="showNcProxy">
+			<h2>Proxied Nextcloud widgets</h2>
+			<div class="ncproxy-box" data-testid="ncproxy-tasks">
+				<CnNcWidgetWidget :content="{ widgetId: 'tasks', displayMode: 'vertical' }" />
+			</div>
+			<div class="ncproxy-box" data-testid="ncproxy-mail">
+				<CnNcWidgetWidget :content="{ widgetId: 'mail', displayMode: 'vertical' }" />
+			</div>
+		</template>
+
 		<template v-else-if="showTwoColumn">
 			<h2>Index page — two-column Add form</h2>
 			<CnIndexPage
@@ -489,6 +509,7 @@ import CnInteractionFormWidget from '../../src/components/CnInteractionFormWidge
 import CnTasksWidget from '../../src/components/CnTasksWidget/CnTasksWidget.vue'
 import CnFlowRunsWidget from '../../src/components/CnFlowRunsWidget/CnFlowRunsWidget.vue'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
+import CnNcWidgetWidget from '../../src/components/CnNcWidgetWidget/CnNcWidgetWidget.vue'
 import { NcDialog, NcSelect } from '@nextcloud/vue'
 import { installModalStack } from '../../src/utils/modalStack.js'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
@@ -512,7 +533,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -703,6 +724,7 @@ export default {
 				],
 			},
 			showTwoColumn: (typeof window !== 'undefined' && window.location.search.includes('twocol')),
+			showNcProxy: (typeof window !== 'undefined' && window.location.search.includes('ncproxy')),
 			// Eight scalars and one textarea: enough fields that pairing them
 			// is worth doing, and one field that must refuse to be paired.
 			twoColSchema: {

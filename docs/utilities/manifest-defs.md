@@ -157,12 +157,14 @@ Schema-driven form field consumed by manifest-driven settings / form pages. Mani
 
 - `key` (required, string — IAppConfig or schema property name)
 - `label` (required, string — i18n key)
-- `type` (required, enum: `boolean | number | string | enum | password | json`)
+- `type` (required, enum: `boolean | number | string | enum | password | json | file`). `file` is valid on `type: "form"` pages only; see [CnFileField](../components/cn-file-field.md)
 - `required?` (boolean, default false)
 - `default?` (any — matches `type`)
 - `enum?` (array — when `type === "enum"`)
 - `widget?` (string — widget registry hint)
 - `help?` (string — i18n key)
+- `accept?` (string, `type: "file"` only: HTML `accept` syntax such as `.pdf,image/*`)
+- `maxSize?` (integer, `type: "file"` only: largest file in bytes, default 1048576)
 
 ## sidebarSection
 

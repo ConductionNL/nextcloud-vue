@@ -36,6 +36,7 @@ export {
 	CnDataMatrix,
 	CnFilterBar,
 	CnCronField,
+	CnFileField,
 	CnStatusBadge,
 	CnPagination,
 	CnSettingsCard,
